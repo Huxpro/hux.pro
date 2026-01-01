@@ -1,0 +1,135 @@
+---
+title: "React 设计模式实践"
+date: "2023-07-10"
+language: "zh"
+description: "分享在大型项目中使用 React 的设计模式和最佳实践。"
+tags: ["React", "设计模式", "前端"]
+---
+
+在大型 React 项目中，代码组织和设计模式的选择直接影响项目的可维护性。本文分享一些我在实践中总结的模式。
+
+## 组件设计原则
+
+### 单一职责
+
+每个组件应该只做一件事。如果一个组件变得太复杂，就该拆分了。
+
+```tsx
+// ❌ 不好：一个组件做太多事情
+function UserProfile() {
+  // 获取数据
+  // 处理表单
+  // 显示UI
+  // ...
+}
+
+// ✅ 好：职责分离
+function UserProfile() {
+  return (
+    <UserDataProvider>
+      <UserProfileView />
+    </UserDataProvider>
+  );
+}
+```
+
+### 组合优于继承
+
+React 的组件模型天然支持组合。利用 children 和 render props 来构建灵活的组件。
+
+```tsx
+function Card({ header, children, footer }) {
+  return (
+    <div className="card">
+      {header && <div className="card-header">{header}</div>}
+      <div className="card-body">{children}</div>
+      {footer && <div className="card-footer">{footer}</div>}
+    </div>
+  );
+}
+```
+
+## 状态管理模式
+
+### 提升状态
+
+当多个组件需要共享状态时，将状态提升到最近的公共父组件。
+
+### 状态下沉
+
+如果状态只在某个子树使用，就不要放在更高的层级。
+
+### Context 的正确使用
+
+Context 适合：
+- 主题
+- 用户认证
+- 语言偏好
+
+Context 不适合：
+- 频繁更新的状态
+- 局部状态
+
+## 自定义 Hooks
+
+将可复用的逻辑抽取到自定义 Hooks：
+
+```tsx
+function useLocalStorage<T>(key: string, initialValue: T) {
+  const [value, setValue] = useState<T>(() => {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : initialValue;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(key, JSON.stringify(value));
+  }, [key, value]);
+
+  return [value, setValue] as const;
+}
+```
+
+## 性能优化
+
+### React.memo
+
+对于纯展示组件，使用 memo 避免不必要的重渲染：
+
+```tsx
+const ExpensiveList = memo(function ExpensiveList({ items }) {
+  return items.map(item => <ExpensiveItem key={item.id} item={item} />);
+});
+```
+
+### useMemo 和 useCallback
+
+缓存计算结果和回调函数，但不要过度使用。
+
+## 错误边界
+
+在关键位置放置错误边界，防止整个应用崩溃：
+
+```tsx
+class ErrorBoundary extends Component {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <ErrorFallback />;
+    }
+    return this.props.children;
+  }
+}
+```
+
+## 结语
+
+好的设计模式让代码更容易理解、测试和维护。但记住：模式是工具，不是目的。根据实际需求选择合适的模式，避免过度设计。
+
+---
+
+*你在项目中使用了哪些设计模式？欢迎分享你的经验。*
