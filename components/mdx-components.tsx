@@ -1,34 +1,7 @@
 import type { MDXComponents } from "mdx/types";
 import Link from "next/link";
 import type { ComponentPropsWithoutRef } from "react";
-
-/**
- * Code block component that handles rehype-pretty-code output
- * Supports: language display, line highlighting, copy button styling hooks
- */
-function Pre({ children, ...props }: ComponentPropsWithoutRef<"pre">) {
-  // rehype-pretty-code adds data-language attribute
-  const language = (props as { "data-language"?: string })["data-language"];
-  const theme = (props as { "data-theme"?: string })["data-theme"];
-
-  return (
-    <div className="relative group my-6">
-      {/* Language badge */}
-      {language && (
-        <div className="absolute top-0 right-0 px-3 py-1 text-xs font-mono text-muted-foreground/60 bg-muted/50 rounded-bl-lg rounded-tr-lg">
-          {language}
-        </div>
-      )}
-      <pre
-        {...props}
-        data-theme={theme}
-        className="overflow-x-auto rounded-lg border border-border bg-[#0d1117] p-4 text-sm leading-relaxed"
-      >
-        {children}
-      </pre>
-    </div>
-  );
-}
+import { CodeBlock } from "@/components/code-block";
 
 /**
  * Inline code component (not in a code block)
@@ -117,16 +90,16 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     hr: () => <hr className="my-8 border-border" />,
     // Code components with syntax highlighting support
     code: InlineCode,
-    pre: Pre,
+    pre: CodeBlock,
     // Enhanced table styling
     table: ({ children }) => (
       <div className="overflow-x-auto my-6 rounded-lg border border-border">
-        <table className="w-full border-collapse text-sm">{children}</table>
+        <table className="w-full border-collapse text-sm !my-0">
+          {children}
+        </table>
       </div>
     ),
-    thead: ({ children }) => (
-      <thead className="bg-muted/50">{children}</thead>
-    ),
+    thead: ({ children }) => <thead className="bg-muted/50">{children}</thead>,
     th: ({ children }) => (
       <th className="border-b border-border px-4 py-3 text-left font-semibold text-foreground">
         {children}
@@ -211,11 +184,11 @@ export const mdxComponents: MDXComponents = {
   hr: () => <hr className="my-8 border-border" />,
   // Code components with syntax highlighting support
   code: InlineCode,
-  pre: Pre,
+  pre: CodeBlock,
   // Enhanced table styling
   table: ({ children }) => (
     <div className="overflow-x-auto my-6 rounded-lg border border-border">
-      <table className="w-full border-collapse text-sm">{children}</table>
+      <table className="w-full border-collapse text-sm !my-0">{children}</table>
     </div>
   ),
   thead: ({ children }) => <thead className="bg-muted/50">{children}</thead>,

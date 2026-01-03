@@ -13,7 +13,10 @@ export const mdxOptions: MDXRemoteProps["options"] = {
       [
         rehypePrettyCode as unknown as Parameters<typeof Array.prototype.push>[0],
         {
-          theme: "github-dark",
+          theme: {
+            dark: "one-dark-pro",
+            light: "one-light",
+          },
           keepBackground: true,
           defaultLang: "plaintext",
           // Prevent empty lines from collapsing

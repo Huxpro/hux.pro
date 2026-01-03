@@ -224,7 +224,8 @@
 /* Code blocks with rehype-pretty-code styling */
 .prose-article pre {
   @apply my-6 rounded-lg overflow-x-auto border border-border;
-  background-color: var(--shiki-bg, #0d1117) !important;
+  background-color: var(--shiki-light-bg);
+  color: var(--shiki-light);
 }
 
 .prose-article pre code {
@@ -232,6 +233,45 @@
   display: grid;
   min-width: 100%;
   counter-reset: line;
+}
+
+/*
+   Theme switching for code blocks
+   rehype-pretty-code with dual themes outputs CSS variables for each theme:
+   --shiki-light, --shiki-light-bg, etc.
+   --shiki-dark, --shiki-dark-bg, etc.
+
+   We need to explicitly apply these variables to the properties.
+*/
+
+/* Default (Light Mode) */
+.prose-article pre,
+.prose-article code,
+.prose-article span {
+  color: var(--shiki-light);
+  font-style: var(--shiki-light-font-style);
+  font-weight: var(--shiki-light-font-weight);
+  text-decoration: var(--shiki-light-text-decoration);
+}
+
+/* Dark Mode */
+.dark .prose-article pre,
+.dark .prose-article code,
+.dark .prose-article span {
+  color: var(--shiki-dark);
+  background-color: var(--shiki-dark-bg);
+  font-style: var(--shiki-dark-font-style);
+  font-weight: var(--shiki-dark-font-weight);
+  text-decoration: var(--shiki-dark-text-decoration);
+}
+
+/* Background colors need to be applied specifically to the pre container */
+.prose-article pre {
+  background-color: var(--shiki-light-bg);
+}
+
+.dark .prose-article pre {
+  background-color: var(--shiki-dark-bg);
 }
 
 /* Code block lines */

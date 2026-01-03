@@ -2,6 +2,7 @@
 
 import { useLocale } from "@/components/providers";
 import { localeNames, t, type Locale } from "@/lib/i18n";
+import { Languages } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
@@ -177,7 +178,7 @@ function BlogPostContentInner({
   // Check if alternate language is available
   const hasAlternate = isBilingual;
   const alternateLocale = displayLocale === "en" ? "zh" : "en";
-  const alternateLabel = displayLocale === "en" ? "中文" : "English";
+  const alternateLabel = displayLocale === "en" ? "中文版" : "English";
 
   // Switch to alternate language via URL
   const switchLanguage = () => {
@@ -233,12 +234,10 @@ function BlogPostContentInner({
                 <span className="text-muted-foreground/40">·</span>
                 <button
                   onClick={switchLanguage}
-                  className="hover:text-foreground transition-colors"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-md transition-colors bg-muted text-foreground cursor-pointer"
                 >
-                  {t(displayLocale, "alsoIn")}{" "}
-                  <span className="underline underline-offset-2">
-                    {alternateLabel}
-                  </span>
+                  <Languages className="h-3.5 w-3.5" />
+                  <span>{alternateLabel}</span>
                 </button>
               </>
             )}

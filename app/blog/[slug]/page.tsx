@@ -27,9 +27,10 @@ export default async function BlogPostPage({
       date={post.date}
       language={post.language}
       readingTime={post.readingTime}
+      readingTimeZh={post.readingTimeZh}
     >
       {{
-        en: <MDXRenderer source={post.content} />,
+        en: post.content ? <MDXRenderer source={post.content} /> : null,
         zh: post.contentZh ? <MDXRenderer source={post.contentZh} /> : null,
       }}
     </BlogPostContent>

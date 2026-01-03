@@ -1,0 +1,79 @@
+# Responsive Design & Device Adaptation
+
+This document outlines our approach to handling device-specific behaviors, particularly focusing on the challenges of bringing a "desktop-class" Command Palette experience to mobile web browsers.
+
+## Command Palette on Mobile Safari
+
+Bringing a Raycast/Spotlight-style command palette to iOS Safari presents unique challenges due to the browser's dynamic viewport handling, virtual keyboard behavior, and touch interaction model.
+
+### The Challenges
+
+1.  **Dynamic Viewport & Address Bar**:
+    *   On iOS, the address bar expands and contracts, changing the effective `100vh`.
+    *   `position: fixed` overlays often fail to cover the screen correctly or get detached when the keyboard opens.
+2.  **Virtual Keyboard Displacement**:
+    *   When the keyboard opens, the viewport is pushed up. Fixed elements can end up off-screen or covering the input.
+3.  **Scroll Chaining & Rubber-banding**:
+    *   Without careful locking, scrolling the modal can accidentally scroll the background page (rubber-banding), breaking the illusion of a modal.
+4.  **Input Zoom**:
+    *   If the input font size is < 16px, iOS automatically zooms in, ruining the layout.
+5.  **Ghost Clicks**:
+    *   Fast taps can sometimes trigger events on elements *behind* the backdrop if not handled correctly.
+
+### The Solution: "iOS Mode"
+
+We implemented a dedicated "iOS Mode" detected at runtime, distinct from the desktop and even generic mobile experience.
+
+#### 1. Visual Minimalism
+We removed the **Backdrop Blur** and **Background Overlay** entirely for this mode.
+*   **Decision**: `bg-transparent`.
+*   **Why**: Performance is better, but more importantly, it avoids visual glitches when the viewport resizes dynamically. It feels lighter and "native".
+
+#### 2. Absolute vs. Fixed Positioning
+Instead of `position: fixed`, we use `position: absolute` combined with a scroll-lock hack.
+*   **Logic**:
+    ```tsx
+    // Desktop
+    position: fixed;
+    inset: 0;
+
+    // iOS
+    position: absolute;
+    top: window.scrollY; // Match current scroll position
+    height: 100dvh;      // Use dynamic viewport height
+    ```
+*   **Why**: This anchors the modal to the *document* rather than the *viewport*. When the keyboard pushes the view, the modal stays relative to the content.
+
+#### 3. Scroll Locking
+We lock the `body` scroll only on iOS.
+*   **Code**: `document.body.style.overflow = "hidden"`
+*   **Why**: Prevents the background from scrolling when trying to scroll the list of commands.
+
+#### 4. Interaction Tweaks
+*   **Autofocus Disabled**: We explicitly **disable autofocus** on the input when opening on iOS.
+    *   *Reason*: Prevents the keyboard from jarringly popping up immediately, covering half the screen before the user has oriented themselves.
+*   **Snappy Dismiss**: Used `onPointerDown` instead of `onClick` for the backdrop.
+    *   *Reason*: `onClick` has a slight delay on touch devices (waiting for double-tap check). `onPointerDown` fires immediately, making the "tap outside to close" feel native and responsive.
+
+### Implementation Reference
+
+```tsx
+// components/layout/command-palette.tsx
+
+// Detection
+const isIOS = /iPhone|iPod/.test(navigator.userAgent);
+
+// Positioning & Layout
+<div
+  className={cn(
+    "z-50 flex items-start justify-center pt-[20vh]",
+    isIOS ? "absolute inset-x-0" : "fixed inset-0"
+  )}
+  style={isIOS ? { top: scrollPosition, height: "100dvh" } : undefined}
+>
+```
+
+## Future Improvements (Todos)
+
+1.  **Revisit iOS Architecture**: The current `absolute` positioning + scroll lock is stable but complex. As CSS Viewport Units (`dvh`, `lvh`, `svh`) mature and browser keyboard handling improves, we should re-evaluate `position: fixed` solutions.
+2.  **Input Device Detection**: Explore libraries like `what-input` to distinguish between "iPad with Touch" vs "iPad with Trackpad/Keyboard". Currently, iPad is treated as Desktop, which is mostly correct, but edge cases exist.

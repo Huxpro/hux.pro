@@ -148,10 +148,30 @@ export function t(locale: Locale, key: TranslationKey): string {
 
 ### Content Language
 
-Blog posts have a `language` field in frontmatter:
-- `"en"`: English only
-- `"zh"`: Chinese only  
-- `"both"`: Available in both languages
+**Language is derived from filename, not frontmatter.** Files must follow the `[slug].[lang].mdx` convention:
+
+```
+content/blog/
+├── my-post.en.mdx              # English only → language: "en"
+├── another-post.zh.mdx         # Chinese only → language: "zh"
+├── bilingual-post.en.mdx       # Both exist → language: "both"
+├── bilingual-post.zh.mdx
+└── some-post/                  # Directory-based (for posts with assets)
+    ├── index.en.mdx
+    ├── index.zh.mdx
+    └── diagram.png
+```
+
+| File Structure | Derived Language | Behavior |
+|----------------|------------------|----------|
+| `slug.en.mdx` only | `"en"` | English-only post |
+| `slug.zh.mdx` only | `"zh"` | Chinese-only post |
+| `slug.en.mdx` + `slug.zh.mdx` | `"both"` | True bilingual post |
+
+**Bilingual Post URL Behavior:**
+- Base URL `/blog/slug` uses system locale
+- Shareable URL `/blog/slug?lang=zh` forces specific language
+- When `?lang=` conflicts with system locale, a dialog asks user to choose
 
 | Post Type | English UI | Chinese UI |
 |-----------|------------|------------|
@@ -160,6 +180,7 @@ Blog posts have a `language` field in frontmatter:
 | Bilingual | Primary: EN, "Also in 中文" | Primary: ZH, "Also in English" |
 
 The `shouldShowPost()` utility filters posts based on current locale and user preference.
+The `validateBlogContent()` function validates file naming during build.
 
 ## CSS Architecture
 
@@ -210,7 +231,7 @@ Built on `cmdk` library with custom styling:
 - Escape: Close
 
 // Search mode shortcuts (in command-palette.tsx)
-- Single letters (H/E/B/T/D/L): Execute action when input empty
+- Single letters (H/E/B/T/A/L): Execute action when input empty
 - /: Switch to action mode
 
 // Action mode shortcuts (in command-palette.tsx)
