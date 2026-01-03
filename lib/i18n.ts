@@ -56,8 +56,8 @@ export const translations = {
     blogTitle: "Writing",
     blogSubtitle: "thoughts on craft, software, and practice",
     allLanguages: "All",
-    alsoIn: "Also in",
     backToWriting: "back to writing",
+    alsoIn: "Also in",
 
     // Talks
     talksTitle: "Talks",
@@ -83,6 +83,12 @@ export const translations = {
     switchToLight: "Switch to Light Mode",
     switchToZh: "Switch to 中文",
     switchToEn: "Switch to English",
+
+    // Language conflict dialog
+    langConflictTitle: "This post was shared in",
+    langConflictYourPreference: "Your preference is",
+    langConflictReadIn: "Read in",
+    langConflictKeep: "Keep",
   },
   zh: {
     // Navigation
@@ -109,8 +115,8 @@ export const translations = {
     blogTitle: "写作",
     blogSubtitle: "关于技艺、软件与实践的思考",
     allLanguages: "全部",
-    alsoIn: "也有",
     backToWriting: "返回写作",
+    alsoIn: "也有",
 
     // Talks
     talksTitle: "演讲",
@@ -136,6 +142,12 @@ export const translations = {
     switchToLight: "切换到浅色模式",
     switchToZh: "切换到中文",
     switchToEn: "切换到 English",
+
+    // Language conflict dialog
+    langConflictTitle: "此文章分享语言为",
+    langConflictYourPreference: "您的偏好语言为",
+    langConflictReadIn: "阅读",
+    langConflictKeep: "保持",
   },
 } as const;
 
