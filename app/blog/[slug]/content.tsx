@@ -1,11 +1,11 @@
 "use client";
 
-import { useLocale } from "@/components/providers";
+import { useLocale, useVisitor } from "@/components/providers";
 import { localeNames, t, type Locale } from "@/lib/i18n";
 import { Languages } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 
 interface BlogPostContentProps {
   title: string;
@@ -104,9 +104,11 @@ function BlogPostContentInner({
   children,
 }: BlogPostContentProps) {
   const { locale: systemLocale, setLocale } = useLocale();
+  const { recordVisit } = useVisitor();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const hasRecordedVisit = useRef(false);
 
   const urlLang = searchParams.get("lang") as Locale | null;
   const isBilingual = language === "both";
@@ -114,6 +116,20 @@ function BlogPostContentInner({
   // Track if we should show the conflict dialog
   const [showConflictDialog, setShowConflictDialog] = useState(false);
   const [hasHandledConflict, setHasHandledConflict] = useState(false);
+
+  // Record visit to this blog post (runs once on mount)
+  useEffect(() => {
+    if (!hasRecordedVisit.current) {
+      hasRecordedVisit.current = true;
+      // Extract slug from pathname (e.g., /blog/my-post -> my-post)
+      const slug = pathname.split("/").pop() || "";
+      recordVisit({
+        slug,
+        title: title,
+        type: "blog",
+      });
+    }
+  }, [pathname, title, recordVisit]);
 
   // Determine the effective locale for display
   // For bilingual posts with URL lang param, show conflict dialog if different from system

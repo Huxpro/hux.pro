@@ -37,7 +37,7 @@ export const translations = {
     blog: "Blog",
     talks: "Talks",
 
-    // Homepage
+    // Homepage - Legacy (kept for compatibility)
     tagline:
       "Prose, profession, programming, production, projects—each a facet of a complete person.",
     currently: "Currently",
@@ -47,6 +47,23 @@ export const translations = {
     blogDesc: "Writing & thoughts",
     talksDesc: "Presentations & speaking",
     navigateHint: "to navigate anywhere",
+
+    // Homepage - AI-Native OS Voice
+    greetingMorning: "good morning.",
+    greetingAfternoon: "good afternoon.",
+    greetingEvening: "good evening.",
+    greetingNight: "good night.",
+    greetingWelcomeBack: "welcome back.",
+    greetingLongTime: "it's been a while.",
+    greetingLastReading: "last time you were reading",
+    greetingWhatsNew: "here's what's new.",
+    promptPlaceholder: "what brings you here?",
+
+    // Widget labels
+    widgetBlog: "writing",
+    widgetTalks: "talks",
+    widgetStatus: "currently",
+    widgetViewAll: "view all",
 
     // Career
     careerTitle: "Career",
@@ -71,7 +88,7 @@ export const translations = {
     backToDocs: "back to docs",
 
     // Command Palette
-    searchPlaceholder: "Search or press / for actions...",
+    searchPlaceholder: "What are you looking for?",
     noResults: "No results found",
     navigate: "navigate",
     select: "select",
@@ -102,7 +119,7 @@ export const translations = {
     blog: "博客",
     talks: "演讲",
 
-    // Homepage
+    // Homepage - Legacy (kept for compatibility)
     tagline: "散文、职业、编程、生产、项目——一个完整人格的多重面向。",
     currently: "近况",
     currentStatus:
@@ -111,6 +128,23 @@ export const translations = {
     blogDesc: "写作与思考",
     talksDesc: "演讲与分享",
     navigateHint: "快速导航",
+
+    // Homepage - AI-Native OS Voice
+    greetingMorning: "早上好。",
+    greetingAfternoon: "下午好。",
+    greetingEvening: "晚上好。",
+    greetingNight: "夜深了。",
+    greetingWelcomeBack: "欢迎回来。",
+    greetingLongTime: "好久不见。",
+    greetingLastReading: "上次你在读",
+    greetingWhatsNew: "这是最新的内容。",
+    promptPlaceholder: "想找什么？",
+
+    // Widget labels
+    widgetBlog: "写作",
+    widgetTalks: "演讲",
+    widgetStatus: "近况",
+    widgetViewAll: "查看全部",
 
     // Career
     careerTitle: "职业",
@@ -135,7 +169,7 @@ export const translations = {
     backToDocs: "返回文档",
 
     // Command Palette
-    searchPlaceholder: "搜索，或按 / 快捷操作...",
+    searchPlaceholder: "你想找什么？",
     noResults: "未找到结果",
     navigate: "导航",
     select: "选择",

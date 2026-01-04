@@ -64,11 +64,60 @@ export function useCommandPalette() {
   return context;
 }
 
+// Visitor context for tracking visits and last read content
+export interface LastVisitedItem {
+  slug: string;
+  title: string;
+  type: "blog" | "talk";
+}
+
+interface VisitorContextType {
+  lastVisited: LastVisitedItem | null;
+  lastVisitTime: number | null;
+  isReturningVisitor: boolean;
+  daysSinceLastVisit: number | null;
+  recordVisit: (item: LastVisitedItem) => void;
+  recordPageView: () => void;
+}
+
+const VisitorContext = createContext<VisitorContextType | undefined>(undefined);
+
+export function useVisitor() {
+  const context = useContext(VisitorContext);
+  if (!context) throw new Error("useVisitor must be used within Providers");
+  return context;
+}
+
+const VISITOR_STORAGE_KEY = "hux_visitor";
+
+interface VisitorStorage {
+  lastVisited: LastVisitedItem | null;
+  lastVisitTime: number;
+}
+
+function getVisitorStorage(): VisitorStorage | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = localStorage.getItem(VISITOR_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setVisitorStorage(data: VisitorStorage): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(VISITOR_STORAGE_KEY, JSON.stringify(data));
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [locale, setLocaleState] = useState<Locale>(defaultLocale);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isActionMode, setIsActionMode] = useState(false);
+  const [lastVisited, setLastVisited] = useState<LastVisitedItem | null>(null);
+  const [lastVisitTime, setLastVisitTime] = useState<number | null>(null);
+  const [isReturningVisitor, setIsReturningVisitor] = useState(false);
   const router = useRouter();
 
   // Initialize theme from system preference
@@ -92,6 +141,39 @@ export function Providers({ children }: { children: React.ReactNode }) {
   // Initialize locale
   useEffect(() => {
     setTimeout(() => setLocaleState(getStoredLocale()), 0);
+  }, []);
+
+  // Initialize visitor context from localStorage
+  useEffect(() => {
+    const stored = getVisitorStorage();
+    if (stored) {
+      setLastVisited(stored.lastVisited);
+      setLastVisitTime(stored.lastVisitTime);
+      setIsReturningVisitor(true);
+    }
+  }, []);
+
+  // Calculate days since last visit
+  const daysSinceLastVisit = lastVisitTime
+    ? Math.floor((Date.now() - lastVisitTime) / (1000 * 60 * 60 * 24))
+    : null;
+
+  // Record a content visit (blog post or talk)
+  const recordVisit = useCallback((item: LastVisitedItem) => {
+    setLastVisited(item);
+    const now = Date.now();
+    setLastVisitTime(now);
+    setVisitorStorage({ lastVisited: item, lastVisitTime: now });
+  }, []);
+
+  // Record a page view (updates last visit time)
+  const recordPageView = useCallback(() => {
+    const now = Date.now();
+    const stored = getVisitorStorage();
+    setVisitorStorage({
+      lastVisited: stored?.lastVisited || null,
+      lastVisitTime: now,
+    });
   }, []);
 
   const toggleTheme = useCallback(() => {
@@ -157,18 +239,29 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
       <LocaleContext.Provider value={{ locale, setLocale }}>
-        <CommandPaletteContext.Provider
+        <VisitorContext.Provider
           value={{
-            isOpen: isCommandOpen,
-            isActionMode,
-            open: openCommand,
-            close: closeCommand,
-            toggle: toggleCommand,
-            setActionMode: setIsActionMode,
+            lastVisited,
+            lastVisitTime,
+            isReturningVisitor,
+            daysSinceLastVisit,
+            recordVisit,
+            recordPageView,
           }}
         >
-          {children}
-        </CommandPaletteContext.Provider>
+          <CommandPaletteContext.Provider
+            value={{
+              isOpen: isCommandOpen,
+              isActionMode,
+              open: openCommand,
+              close: closeCommand,
+              toggle: toggleCommand,
+              setActionMode: setIsActionMode,
+            }}
+          >
+            {children}
+          </CommandPaletteContext.Provider>
+        </VisitorContext.Provider>
       </LocaleContext.Provider>
     </ThemeContext.Provider>
   );
