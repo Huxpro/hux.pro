@@ -1,6 +1,6 @@
-'use client';
-import { type JSX, useEffect, useState } from 'react';
-import { motion, MotionProps } from 'motion/react';
+"use client";
+import { motion, MotionProps } from "motion/react";
+import { type JSX, useCallback, useEffect, useRef, useState } from "react";
 
 export type TextScrambleProps = {
   children: string;
@@ -14,7 +14,7 @@ export type TextScrambleProps = {
 } & MotionProps;
 
 const defaultChars =
-  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
 export function TextScramble({
   children,
@@ -22,7 +22,7 @@ export function TextScramble({
   speed = 0.04,
   characterSet = defaultChars,
   className,
-  as: Component = 'p',
+  as: Component = "p",
   trigger = true,
   onScrambleComplete,
   ...props
@@ -31,51 +31,79 @@ export function TextScramble({
     Component as keyof JSX.IntrinsicElements
   );
   const [displayText, setDisplayText] = useState(children);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const text = children;
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const targetTextRef = useRef(children);
 
-  const scramble = async () => {
-    if (isAnimating) return;
-    setIsAnimating(true);
+  // Cleanup function to clear interval
+  const cleanup = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
 
-    const steps = duration / speed;
-    let step = 0;
+  const scrambleTo = useCallback(
+    (targetText: string) => {
+      // Always cleanup previous animation first
+      cleanup();
 
-    const interval = setInterval(() => {
-      let scrambled = '';
-      const progress = step / steps;
+      // Update target ref
+      targetTextRef.current = targetText;
 
-      for (let i = 0; i < text.length; i++) {
-        if (text[i] === ' ') {
-          scrambled += ' ';
-          continue;
+      const steps = duration / speed;
+      let step = 0;
+
+      intervalRef.current = setInterval(() => {
+        // Check if target changed during animation
+        if (targetTextRef.current !== targetText) {
+          cleanup();
+          return;
         }
 
-        if (progress * text.length > i) {
-          scrambled += text[i];
-        } else {
-          scrambled +=
-            characterSet[Math.floor(Math.random() * characterSet.length)];
+        let scrambled = "";
+        const progress = step / steps;
+
+        for (let i = 0; i < targetText.length; i++) {
+          if (targetText[i] === " ") {
+            scrambled += " ";
+            continue;
+          }
+
+          if (progress * targetText.length > i) {
+            scrambled += targetText[i];
+          } else {
+            scrambled +=
+              characterSet[Math.floor(Math.random() * characterSet.length)];
+          }
         }
-      }
 
-      setDisplayText(scrambled);
-      step++;
+        setDisplayText(scrambled);
+        step++;
 
-      if (step > steps) {
-        clearInterval(interval);
-        setDisplayText(text);
-        setIsAnimating(false);
-        onScrambleComplete?.();
-      }
-    }, speed * 1000);
-  };
+        if (step > steps) {
+          cleanup();
+          setDisplayText(targetText);
+          onScrambleComplete?.();
+        }
+      }, speed * 1000);
+    },
+    [duration, speed, characterSet, cleanup, onScrambleComplete]
+  );
 
+  // Handle children changes - scramble to new text
   useEffect(() => {
-    if (!trigger) return;
+    if (!trigger) {
+      setDisplayText(children);
+      return;
+    }
+    scrambleTo(children);
+    return cleanup;
+  }, [children, trigger, scrambleTo, cleanup]);
 
-    scramble();
-  }, [trigger]);
+  // Cleanup on unmount
+  useEffect(() => {
+    return cleanup;
+  }, [cleanup]);
 
   return (
     <MotionComponent className={className} {...props}>

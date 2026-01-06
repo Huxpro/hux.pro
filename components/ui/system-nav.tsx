@@ -22,8 +22,14 @@ interface SystemNavProps {
  * - Shows destination path by default (e.g., "/docs", "λhux")
  * - Scrambles to "cd .." on hover
  * - Click navigates immediately (not blocked by animation)
+ * - Mobile optimized: larger touch target (44px min), touch feedback
  */
-export function SystemNav({ href, path, hoverText = "cd ..", className }: SystemNavProps) {
+export function SystemNav({
+  href,
+  path,
+  hoverText = "cd ..",
+  className,
+}: SystemNavProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   // Determine display text: show path normally, scramble to hoverText on hover
@@ -33,18 +39,27 @@ export function SystemNav({ href, path, hoverText = "cd ..", className }: System
     <Link
       href={href}
       className={cn(
-        "inline-block font-mono text-xs tracking-wide",
+        // Visual styling (unchanged)
+        "font-mono text-xs tracking-wide",
         "text-muted-foreground hover:text-foreground",
         "transition-colors duration-200",
         // Ensure pointer events work during animation
         "pointer-events-auto cursor-pointer",
+        // Mobile touch optimization
+        // Larger touch target with negative margin to maintain visual position
+        "relative inline-flex items-center justify-start",
+        "min-h-[44px] min-w-[44px]", // Apple HIG minimum touch target
+        "-ml-3 pl-3 pr-3 -mt-2 pt-2 -mb-2 pb-2", // Expand touch area without moving visual
+        "rounded-lg", // Rounded for touch feedback area
+        // Touch feedback
+        "active:bg-foreground/5 active:scale-[0.98]",
+        "transition-all duration-150",
         className
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <TextScramble
-        key={displayText}
         trigger={true}
         duration={0.4}
         speed={0.02}

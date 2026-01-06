@@ -1,10 +1,7 @@
 "use client";
 
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
-import {
-  useLocale,
-  useVisitor,
-} from "@/components/providers";
+import { useLocale, useVisitor } from "@/components/providers";
 import { getLocalizedTitle } from "@/lib/content";
 import { blogPosts, talks } from "@/lib/data";
 import { t } from "@/lib/i18n";
@@ -278,7 +275,6 @@ function ScrambleIdentifier() {
         onMouseLeave={() => setIsHovered(false)}
       >
         <TextScramble
-          key={targetText}
           trigger={true}
           duration={0.6}
           speed={0.03}
