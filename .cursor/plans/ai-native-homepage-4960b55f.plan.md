@@ -1,4 +1,9 @@
-<!-- 4960b55f-1a24-4f34-9078-c39337cf6294 e6624420-2510-435f-b605-50aa6b982b93 -->
+---
+name: AI-Native Homepage Redesign
+overview: ""
+todos: []
+---
+
 # AI-Native Homepage Redesign
 
 ## Overview

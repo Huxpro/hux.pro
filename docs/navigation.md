@@ -1,5 +1,70 @@
 # Navigation System
 
+## Command Trigger
+
+The **Command Trigger** is a unified floating component that provides consistent access to the command palette across all pages. It morphs between three states based on context and screen size:
+
+```
+Mobile (non-home)     Desktop (non-home)      Homepage (any)
++---------+           +-------------+         +---------------------------+
+|   ⌘     |  <--->    |  ⌘K         |  <--->  | 🔍  Search...     [⌘K]   |
++---------+           +-------------+         +---------------------------+
+   FAB                   Pill                   Conversational Prompt
+```
+
+### State Determination
+
+| Screen | Page | Variant | Position |
+|--------|------|---------|----------|
+| Mobile | Homepage | Prompt (compact) | Bottom center |
+| Mobile | Other | FAB (circle) | Bottom right |
+| Desktop | Homepage | Prompt (full) | Bottom center |
+| Desktop | Other | Pill | Bottom right |
+
+### Design Decisions
+
+#### Unified Component
+Previously, the FAB and Conversational Prompt were separate components with different styles and positions. The new unified approach:
+- Uses a single `FloatingActionButton` component
+- Shares the same glass styling across all states
+- Animates smoothly between states during navigation
+
+#### Glass Styling
+All variants share the "frosted glass" aesthetic:
+
+```tsx
+"bg-card/50 backdrop-blur-xl",
+"border border-border/50",
+"shadow-lg shadow-black/5"
+```
+
+#### Animation Strategy
+The morph uses Framer Motion's `layout` prop with staggered content transitions:
+
+1. **Exit Phase**: Text content fades out first (opacity + x-translation)
+2. **Reshape Phase**: Container morphs size/position (layout animation)
+3. **Enter Phase**: New content fades in after reshape completes
+
+This "stagger and reshape" approach ensures:
+- Smooth contour continuity (no border-radius clipping)
+- Content doesn't overflow during transition
+- Stable animation origin point
+
+#### Consistent Height
+All states maintain `h-12` (48px) height to eliminate vertical jitter during transitions.
+
+#### Responsive Text
+
+| State | Mobile | Desktop |
+|-------|--------|---------|
+| Homepage | "Search" | "Search or / for commands" |
+| Other | ⌘ icon only | ⌘K |
+
+### Interaction States
+
+- **Homepage (Prompt)**: Focus ring effect (`focus:ring-2`) — feels like an input field
+- **Other pages (FAB/Pill)**: Scale effect (`active:scale-95`) — feels like a button
+
 ## Command Palette
 
 The command palette is the central navigation hub, inspired by Raycast, Spotlight, and VS Code.
@@ -15,9 +80,9 @@ The command palette is the central navigation hub, inspired by Raycast, Spotligh
 
 ### Homepage Entry Point
 
-On the homepage, the FAB is replaced by a **conversational prompt**—an inline button styled as a search input with the placeholder "what brings you here?". This creates a more inviting, dialogue-like entry point that fits the AI-native OS aesthetic.
+On the homepage, the Command Trigger expands into a **conversational prompt**—a wide button styled as a search input with the placeholder "Search" (mobile) or "Search or / for commands" (desktop). This creates a more inviting, dialogue-like entry point that fits the AI-native OS aesthetic.
 
-The FAB remains visible on all other pages (`/blog`, `/career`, `/talks`, etc.) for consistent command palette access.
+When navigating away from the homepage, the prompt smoothly morphs into a compact FAB (mobile) or pill (desktop) positioned in the bottom-right corner.
 
 ### Two Modes
 
@@ -109,8 +174,9 @@ Each page follows a consistent pattern:
 
 ## Mobile Considerations
 
-- FAB (Floating Action Button) in bottom-right for command palette access (hidden on homepage)
-- Conversational prompt on homepage serves as primary entry point
+- **Unified Command Trigger**: Same component morphs between prompt (homepage) and FAB (other pages)
+- **Compact prompt on mobile**: Shows only "Search" text instead of the full desktop message
+- **FAB position**: Bottom-right corner with consistent `bottom-6 right-6` positioning
 - Command palette is responsive (full width on small screens)
-- Touch-friendly tap targets
+- Touch-friendly tap targets (`h-12` minimum)
 - Widget grid stacks vertically on mobile

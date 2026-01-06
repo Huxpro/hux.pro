@@ -2,7 +2,6 @@
 
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import {
-  useCommandPalette,
   useLocale,
   useVisitor,
 } from "@/components/providers";
@@ -10,7 +9,7 @@ import { getLocalizedTitle } from "@/lib/content";
 import { blogPosts, talks } from "@/lib/data";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { ArrowRight, Search } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -295,50 +294,13 @@ function ScrambleIdentifier() {
 }
 
 // =============================================================================
-// Conversational Prompt - morphs into command palette
-// =============================================================================
-
-function ConversationalPrompt() {
-  const { locale } = useLocale();
-  const { open } = useCommandPalette();
-
-  return (
-    <div className="flex flex-col items-center">
-      <button
-        onClick={() => open()}
-        className={cn(
-          "w-full max-w-md",
-          "flex items-center gap-3 px-5 py-4",
-          "bg-card/50 backdrop-blur-xl",
-          "border border-border/50 rounded-2xl",
-          "text-left",
-          "transition-all duration-300",
-          "hover:border-border hover:bg-card/70",
-          "focus:outline-none focus:ring-2 focus:ring-ring/20",
-          "group"
-        )}
-      >
-        <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className="flex-1 text-muted-foreground text-sm">
-          {t(locale, "promptPlaceholder")}
-        </span>
-        <kbd className="hidden sm:flex items-center gap-0.5 px-2 py-1 text-xs font-mono text-muted-foreground bg-muted/50 rounded">
-          <span>⌘</span>
-          <span>K</span>
-        </kbd>
-      </button>
-    </div>
-  );
-}
-
-// =============================================================================
 // Main Homepage
 // =============================================================================
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">
-      <main className="mx-auto max-w-[680px] px-6 pt-24 pb-24">
+      <main className="mx-auto max-w-[680px] px-6 pt-24 pb-32">
         {/* System identifier with scramble effect */}
         <ScrambleIdentifier />
 
@@ -347,9 +309,6 @@ export default function Home() {
 
         {/* Widget grid */}
         <WidgetGrid />
-
-        {/* Conversational prompt */}
-        <ConversationalPrompt />
       </main>
     </div>
   );

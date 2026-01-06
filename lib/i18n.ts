@@ -60,7 +60,9 @@ export const translations = {
     greetingLongTime: "it's been a while.",
     greetingLastReading: "last time you were reading",
     greetingWhatsNew: "here's what's new.",
-    promptPlaceholder: "what brings you here?",
+    promptPlaceholder: "What brings you to here?",
+    searchMobile: "Search",
+    searchDesktop: "Search or / for commands",
 
     // Widget labels
     widgetBlog: "/prose",
@@ -145,6 +147,8 @@ export const translations = {
     greetingLastReading: "上次你在读",
     greetingWhatsNew: "这是最新的内容",
     promptPlaceholder: "想找什么？",
+    searchMobile: "搜索",
+    searchDesktop: "搜索或使用 / 呼出命令",
 
     // Widget labels
     widgetBlog: "/散文",
