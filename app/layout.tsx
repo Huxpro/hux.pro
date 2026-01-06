@@ -2,7 +2,12 @@ import { CommandPalette } from "@/components/layout/command-palette";
 import { FloatingActionButton } from "@/components/layout/fab";
 import { Providers } from "@/components/providers";
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Newsreader } from "next/font/google";
+import {
+  Inter,
+  JetBrains_Mono,
+  Newsreader,
+  Noto_Serif_SC,
+} from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -12,9 +17,16 @@ const inter = Inter({
 });
 
 const newsreader = Newsreader({
-  variable: "--font-serif",
+  variable: "--font-serif-latin",
   subsets: ["latin"],
   style: ["normal", "italic"],
+  display: "swap",
+});
+
+const notoSerifSC = Noto_Serif_SC({
+  variable: "--font-serif-cjk",
+  weight: ["400", "700"],
+  subsets: ["latin"],
   display: "swap",
 });
 
@@ -49,7 +61,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${newsreader.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+        className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         <Providers>
           {children}

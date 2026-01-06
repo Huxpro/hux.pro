@@ -1,0 +1,100 @@
+# Typography Test
+
+This document demonstrates all typography elements to verify consistency between the website and Obsidian preview.
+
+---
+
+## Heading Structure Examples
+
+### Basic Pattern
+
+Content follows the h3 heading. This is a regular paragraph using Inter font. The quick brown fox jumps over the lazy dog.
+
+### Another Section
+
+Here is *italic text using Newsreader* within a sentence. Newsreader's elegant serifs make italic text feel more literary and refined.
+
+## Second Major Section
+
+### Subsection A
+
+This demonstrates the h2 → h3 → content pattern. Typography is the art and technique of arranging type to make written language legible, readable, and appealing.
+
+### Subsection B
+
+Here is **bold text using Inter semibold** within a sentence. Bold text maintains the same font family but with increased weight.
+
+---
+
+## Text Emphasis
+
+Regular text uses Inter. Here is *italic text* (Newsreader) and **bold text** (Inter semibold) and ***bold italic*** (Newsreader semibold).
+
+---
+
+## Blockquotes
+
+> Design is not just what it looks like and feels like. Design is how it works.  
+> — Steve Jobs
+
+---
+
+## Lists
+
+List markers use JetBrains Mono in muted color, with minimal indentation.
+
+### Unordered
+
+- First item with **bold** text
+- Second item with *italic* text
+- Third item with `inline code`
+  - Nested item
+
+### Ordered
+
+1. First ordered item
+2. Second with *Newsreader italics*
+3. Third with ***bold italic***
+4. Fourth item to show number alignment
+5. Fifth item continues the pattern
+
+---
+
+## Code
+
+Inline: Use `const` and `let` for variables.
+
+```javascript
+const typography = {
+  sans: 'Inter',
+  serif: 'Newsreader',
+  mono: 'JetBrains Mono'
+};
+```
+
+---
+
+## Tables
+
+| Element | Font | Weight |
+|---------|------|--------|
+| Body | Inter | 400 |
+| *Italic* | Newsreader | 400 |
+| **Bold** | Inter | 600 |
+
+---
+
+## Mixed Formatting
+
+This paragraph combines *italic Newsreader text* with **bold Inter text** and ***bold italic Newsreader*** together. You can also include `inline code` and [links](https://example.com).
+
+*This entire paragraph is in italics using Newsreader. Notice how the serif font gives a more literary feel.*
+
+---
+
+## Font Reference
+
+- Normal (400): The quick brown fox jumps over the lazy dog
+- **Semibold (600): The quick brown fox jumps over the lazy dog**
+- *Italic (400): The quick brown fox jumps over the lazy dog*
+- ***Italic Semibold (600): The quick brown fox jumps over the lazy dog***

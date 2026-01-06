@@ -26,10 +26,20 @@ export default async function DocPage({
 
   // Remove the title from content since we display it separately
   const contentWithoutTitle = doc.content.replace(/^#\s+.+\n/, "");
+  const contentZhWithoutTitle = doc.contentZh?.replace(/^#\s+.+\n/, "");
 
   return (
-    <DocContent title={doc.title} readingTime={doc.readingTime}>
-      <MDXRenderer source={contentWithoutTitle} />
+    <DocContent
+      title={doc.title}
+      titleZh={doc.titleZh}
+      language={doc.language}
+      readingTime={doc.readingTime}
+      readingTimeZh={doc.readingTimeZh}
+    >
+      {{
+        en: contentWithoutTitle ? <MDXRenderer source={contentWithoutTitle} /> : null,
+        zh: contentZhWithoutTitle ? <MDXRenderer source={contentZhWithoutTitle} /> : null,
+      }}
     </DocContent>
   );
 }

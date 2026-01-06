@@ -1,8 +1,5 @@
-import { getAllBlogPosts } from "@/lib/mdx";
-import { BlogPostList } from "./blog-list";
+import { redirect } from "next/navigation";
 
-export default function BlogPage() {
-  const posts = getAllBlogPosts();
-
-  return <BlogPostList posts={posts} />;
+export default function BlogRedirect() {
+  redirect("/prose");
 }

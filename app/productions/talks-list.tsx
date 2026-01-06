@@ -1,10 +1,10 @@
 "use client";
 
 import { useLocale } from "@/components/providers";
+import { SystemNav } from "@/components/ui/system-nav";
 import { t } from "@/lib/i18n";
 import type { TalkWithContent } from "@/lib/mdx";
-import { ArrowLeft, FileText, Play } from "lucide-react";
-import Link from "next/link";
+import { FileText, Play } from "lucide-react";
 
 interface TalksListProps {
   talks: TalkWithContent[];
@@ -16,23 +16,14 @@ export function TalksList({ talks }: TalksListProps) {
   return (
     <div className="min-h-screen bg-background">
       <main className="mx-auto max-w-[680px] px-6 pt-16 pb-24">
-        {/* Back link */}
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-12"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t(locale, "home")}
-        </Link>
+        {/* Back link - System UI */}
+        <SystemNav href="/" path="λhux" className="mb-12" />
 
         {/* Header */}
         <header className="mb-16">
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
             {t(locale, "talksTitle")}
           </h1>
-          <p className="mt-4 text-muted-foreground leading-relaxed">
-            {t(locale, "talksSubtitle")}
-          </p>
         </header>
 
         {/* Talks grid */}
@@ -48,7 +39,7 @@ export function TalksList({ talks }: TalksListProps) {
             return (
               <article key={talk.slug} className="group">
                 {/* Meta */}
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-sm text-muted-foreground mb-2">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-muted-foreground mb-2">
                   <time>{talk.date}</time>
                   <span className="text-border">·</span>
                   <span>{talk.event}</span>

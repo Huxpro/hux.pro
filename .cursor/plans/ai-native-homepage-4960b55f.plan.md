@@ -113,7 +113,7 @@ interface VisitorContextType {
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                                                             │
-│                         hux_                                │  ← mono, small, muted
+│                         λhux                                │  ← mono, small, muted
 │                                                             │     (system identifier)
 │                                                             │
 │              good evening.                                  │  ← serif, large, hero
@@ -139,7 +139,7 @@ interface VisitorContextType {
 
 ### Visual Hierarchy
 
-1. **System identifier** (`hux_`): Mono, small, muted—like a terminal prompt or OS watermark
+1. **System identifier** (`λhux`): Mono, small, muted—like a terminal prompt or OS watermark
 2. **Message to user**: Serif, large, warm—the voice of Hux addressing the visitor directly
 3. **Widget grid**: Glassmorphic cards with content discovery at a glance
 4. **Conversational prompt**: The input itself contains the invitation ("what brings you here?")

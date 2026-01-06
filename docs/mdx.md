@@ -32,8 +32,23 @@ Rendered HTML
 
 - `lib/mdx-processor.ts` — MDX options configuration with plugins
 - `components/mdx-renderer.tsx` — Server component that renders MDX
-- `components/mdx-components.tsx` — Custom component overrides for MDX elements
-- `app/globals.css` — Code block and table styling
+- `components/mdx-components.tsx` — Semantic/logic overrides (see convention below)
+- `app/globals.css` — All prose styling (`.prose-article` section)
+
+### Styling Convention
+
+**IMPORTANT**: MDX components are intentionally "context-less" — they contain no visual styling.
+
+| Concern | Location | Example |
+|---------|----------|---------|
+| **Typography** | `app/globals.css` | Font sizes, margins, colors |
+| **Visual styling** | `app/globals.css` | Backgrounds, borders, spacing |
+| **Semantic logic** | `mdx-components.tsx` | External link detection |
+| **Custom components** | `mdx-components.tsx` | `CodeBlock`, table wrapper |
+
+This separation allows MDX components to be reused in different contexts with different styles. All prose styling is centralized in the `.prose-article` CSS class.
+
+See `components/mdx-components.tsx` for detailed documentation.
 
 ## Features
 
@@ -64,12 +79,12 @@ Supports:
 
 ### Custom Components
 
-All MDX elements are styled via custom components defined in `mdx-components.tsx`:
-- Typography (h1-h6, p, blockquote)
-- Lists (ul, ol, li)
-- Code (inline and blocks)
-- Tables (thead, tr, th, td)
-- Links (internal and external)
+MDX elements receive semantic overrides from `mdx-components.tsx`:
+- **Links**: External link detection (opens in new tab)
+- **Code**: Inline vs block code detection
+- **Tables**: Horizontal scroll wrapper
+
+All visual styling is handled by CSS in `app/globals.css` (`.prose-article` class).
 
 ## Why Not Fumadocs?
 

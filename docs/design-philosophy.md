@@ -2,14 +2,14 @@
 
 ## Overview
 
-Hux.Pro is a personal website that embodies a **"System UI" aesthetic**—drawing inspiration from developer tools, command palettes, and native OS interfaces rather than typical marketing-focused web design.
+Hux.Pro is a personal website that embodies an **"AI-Native OS" aesthetic**—the homepage feels like encountering a personal operating system that recognizes you, rather than a static web page. Drawing inspiration from developer tools, command palettes, and native OS interfaces rather than typical marketing-focused web design.
 
 ## Dual Aesthetic System
 
 | Context | Vibe | Where Applied |
 |---------|------|---------------|
 | **Content UI** | Minimal, breathable, editorial | Blog posts, talks, career content |
-| **System UI** | Liquid Glass, dimensional, tactile | Command palette, nav, modals, buttons |
+| **System UI** | Liquid Glass, dimensional, tactile | Command palette, widgets, modals, buttons |
 
 ### Content-Oriented UI
 > "A well-printed essay on a modern screen"
@@ -22,34 +22,84 @@ Hux.Pro is a personal website that embodies a **"System UI" aesthetic**—drawin
 ### System/App UI
 > "Linear-like productivity surface inside a calm editorial space"
 
-- Frosted glass: `backdrop-filter: blur()`, 0.7–0.9 opacity
+- Frosted glass: `backdrop-blur: blur()`, 0.7–0.9 opacity
 - Layered shadows: ambient + directional
 - Subtle gradients suggesting light source
 - Micro-animations that feel physical
 - Hover states: responsive, weighty
 
-## Homepage Vision
+## AI-Native Homepage
+
+The homepage is designed as a **personal OS surface**, not a traditional landing page. It embodies five key principles:
+
+### 1. The Surface, Not the Desktop
+Instead of a desktop with objects on it, think of a surface that reflects your current state. It's not empty space waiting to be filled—it's a mirror of what's relevant now.
+
+### 2. Ambient Over Explicit
+The OS knows things. Time of day. What you were last doing. What's changed. It doesn't wait for you to ask—it surfaces context gently.
+
+### 3. Conversation as Navigation
+The command palette isn't a search box—it's a dialogue. "What brings you here?" not "Type a command." The whole homepage is a subtle invitation to converse.
+
+### 4. Fluid Boundaries
+Sections don't have hard edges. Blog, Work, Talks—these aren't rooms, they're aspects. The homepage shows a blend via widgets, weighted by recency or relevance.
+
+### 5. Presence, Not Structure
+The homepage feels like encountering a person, not reading a directory. There's a sense of who's here before what's available.
+
+## Homepage Layout
 
 ```
-┌─────────────────────────────────────────────┐
-│                                             │
-│                    Hux                      │
-│                                             │
-│           evening. december.                │  ← ambient awareness
-│                                             │
-│   ╭─────────────────────────────────╮       │
-│   │  On Design Systems              │       │  ← living surface
-│   ╰─────────────────────────────────╯       │
-│                                             │
-│         what brings you here?               │  ← conversational
-│         ┌───────────────────┐               │     prompt
-│         │ _                 │               │
-│         └───────────────────┘               │
-│                                             │
-│                    ⌘K                       │  ← hint
-│                                             │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│                         hux_                                │  ← mono, small, muted
+│                                                             │     (system identifier)
+│                                                             │
+│              good evening.                                  │  ← serif, large, hero
+│              last time you were reading                     │     (Hux speaking to you)
+│              On Design Systems.                             │  ← italic emphasis
+│                                                             │
+│                                                             │
+│   ┌─────────────────────────────┐  ┌─────────────┐          │
+│   │  On Design Systems          │  │  Currently  │          │  ← Widget Grid
+│   │  The Future of Cross...     │  │  @ ByteD... │          │
+│   │  On Developer Experience    │  ├─────────────┤          │
+│   │                      Blog →│  │  Latest     │          │
+│   └─────────────────────────────┘  │  Talk       │          │
+│                                    └─────────────┘          │
+│                                                             │
+│              ┌───────────────────────────────┐              │
+│              │ what brings you here? _   ⌘K │              │  ← conversational
+│              └───────────────────────────────┘              │     prompt (input)
+│                                                             │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
+
+### Visual Hierarchy
+
+1. **System identifier** (`hux_`): Mono, small, muted—like a terminal prompt or OS watermark
+2. **Message to user**: Serif, large, warm—the voice of Hux addressing the visitor directly
+3. **Widget grid**: Glassmorphic cards with content discovery at a glance
+4. **Conversational prompt**: The input itself contains the invitation ("what brings you here?")
+
+### Hux as OS Voice
+
+Hux speaks directly to the user, creating presence through address:
+
+| Scenario | Hux Says |
+|----------|----------|
+| First visit, morning | "good morning." |
+| First visit, evening | "good evening." |
+| Returning, same day | "welcome back." |
+| Returning, read something | "last time you were reading *[title]*." |
+| Returning, long gap (>7 days) | "it's been a while." |
+
+The voice is:
+- Lowercase (calm, unhurried)
+- Brief (not chatty)
+- Warm but not effusive
+- Acknowledges without demanding
 
 ## Core Principles
 

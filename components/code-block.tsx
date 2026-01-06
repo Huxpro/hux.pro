@@ -1,8 +1,8 @@
 "use client";
 
-import * as React from "react";
-import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Check, Copy } from "lucide-react";
+import * as React from "react";
 
 interface CodeBlockProps extends React.ComponentPropsWithoutRef<"pre"> {
   "data-language"?: string;
@@ -41,7 +41,7 @@ export function CodeBlock({
     <div className="relative group my-6">
       {/* Language badge */}
       {language && (
-        <div className="absolute top-0 right-0 px-3 py-1 text-xs font-mono text-muted-foreground/60 bg-muted/50 rounded-bl-lg rounded-tr-lg border-b border-l border-border select-none">
+        <div className="absolute top-0 right-0 px-3 py-1 text-xs font-mono text-muted-foreground bg-muted/50 rounded-bl-lg rounded-tr-lg border-b border-l border-border select-none">
           {language}
         </div>
       )}

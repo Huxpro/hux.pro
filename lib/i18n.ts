@@ -33,9 +33,12 @@ export const translations = {
   en: {
     // Navigation
     home: "Home",
-    career: "Career",
-    blog: "Blog",
-    talks: "Talks",
+    career: "Career", // Legacy, kept for compatibility
+    projects: "Projects",
+    blog: "Blog", // Legacy, kept for compatibility
+    prose: "Prose",
+    talks: "Talks", // Legacy, kept for compatibility
+    productions: "Productions",
 
     // Homepage - Legacy (kept for compatibility)
     tagline:
@@ -60,24 +63,24 @@ export const translations = {
     promptPlaceholder: "what brings you here?",
 
     // Widget labels
-    widgetBlog: "writing",
-    widgetTalks: "talks",
-    widgetStatus: "currently",
+    widgetBlog: "/prose",
+    widgetTalks: "/productions",
+    widgetStatus: "processing",
     widgetViewAll: "view all",
 
-    // Career
-    careerTitle: "Career",
+    // Career/Projects
+    careerTitle: "Projects",
     careerSubtitle: "A narrative of roles, challenges, and growth.",
 
-    // Blog
-    blogTitle: "Writing",
+    // Blog/Prose
+    blogTitle: "Prose",
     blogSubtitle: "thoughts on craft, software, and practice",
     allLanguages: "All",
     backToWriting: "back to writing",
     alsoIn: "Also in",
 
-    // Talks
-    talksTitle: "Talks",
+    // Talks/Productions
+    talksTitle: "Productions",
     talksSubtitle: "Presentations, workshops, and speaking engagements.",
     watch: "Watch",
     slides: "Slides",
@@ -115,9 +118,12 @@ export const translations = {
   zh: {
     // Navigation
     home: "首页",
-    career: "职业",
-    blog: "博客",
-    talks: "演讲",
+    career: "职业", // Legacy, kept for compatibility
+    projects: "项目",
+    blog: "博客", // Legacy, kept for compatibility
+    prose: "散文",
+    talks: "演讲", // Legacy, kept for compatibility
+    productions: "作品",
 
     // Homepage - Legacy (kept for compatibility)
     tagline: "散文、职业、编程、生产、项目——一个完整人格的多重面向。",
@@ -130,35 +136,35 @@ export const translations = {
     navigateHint: "快速导航",
 
     // Homepage - AI-Native OS Voice
-    greetingMorning: "早上好。",
-    greetingAfternoon: "下午好。",
-    greetingEvening: "晚上好。",
-    greetingNight: "夜深了。",
-    greetingWelcomeBack: "欢迎回来。",
-    greetingLongTime: "好久不见。",
+    greetingMorning: "早上好",
+    greetingAfternoon: "下午好",
+    greetingEvening: "晚上好",
+    greetingNight: "夜深了",
+    greetingWelcomeBack: "欢迎回来",
+    greetingLongTime: "好久不见",
     greetingLastReading: "上次你在读",
-    greetingWhatsNew: "这是最新的内容。",
+    greetingWhatsNew: "这是最新的内容",
     promptPlaceholder: "想找什么？",
 
     // Widget labels
-    widgetBlog: "写作",
-    widgetTalks: "演讲",
-    widgetStatus: "近况",
+    widgetBlog: "/散文",
+    widgetTalks: "/作品",
+    widgetStatus: "处理中",
     widgetViewAll: "查看全部",
 
-    // Career
-    careerTitle: "职业",
+    // Career/Projects
+    careerTitle: "项目",
     careerSubtitle: "角色、挑战与成长的叙事。",
 
-    // Blog
-    blogTitle: "写作",
+    // Blog/Prose
+    blogTitle: "散文",
     blogSubtitle: "关于技艺、软件与实践的思考",
     allLanguages: "全部",
     backToWriting: "返回写作",
     alsoIn: "也有",
 
-    // Talks
-    talksTitle: "演讲",
+    // Talks/Productions
+    talksTitle: "作品",
     talksSubtitle: "演示、工作坊和演讲活动。",
     watch: "观看",
     slides: "幻灯片",

@@ -1,24 +1,41 @@
 "use client";
 
 import { useLocale } from "@/components/providers";
+import { SystemNav } from "@/components/ui/system-nav";
 import {
   getAlternateLangLabel,
   getLocalizedDescription,
+  getLocalizedReadingTime,
   getLocalizedTitle,
   shouldShowPost,
-  type BlogPost,
+  type Post,
 } from "@/lib/content";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
-interface BlogPostListProps {
-  posts: BlogPost[];
+interface PostListProps<T extends Post> {
+  posts: T[];
+
+  // Page configuration
+  title: string; // Translation key for the page title
+  backHref: string;
+  backLabel: string;
+  basePath: string; // e.g., "/prose" or "/docs"
+
+  // Optional: render custom meta for each post (e.g., date)
+  renderMeta?: (post: T) => ReactNode;
 }
 
-export function BlogPostList({ posts }: BlogPostListProps) {
+export function PostList<T extends Post>({
+  posts,
+  title,
+  backHref,
+  backLabel,
+  basePath,
+  renderMeta,
+}: PostListProps<T>) {
   const { locale } = useLocale();
   const [includeOther, setIncludeOther] = useState(false);
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
@@ -27,34 +44,17 @@ export function BlogPostList({ posts }: BlogPostListProps) {
     shouldShowPost(post, locale, includeOther)
   );
 
-  // Format date like "oct 2024"
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date
-      .toLocaleDateString("en-US", { month: "short", year: "numeric" })
-      .toLowerCase();
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <main className="mx-auto max-w-[680px] px-6 pt-24 pb-32">
-        {/* Back link */}
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-16"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t(locale, "home")}
-        </Link>
+        {/* Back link - System UI */}
+        <SystemNav href={backHref} path={backLabel} className="mb-16" />
 
         {/* Header */}
         <header className="mb-20 text-center">
-          <h1 className="text-3xl font-light tracking-tight text-foreground">
-            {t(locale, "blogTitle")}
+          <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
+            {t(locale, title as Parameters<typeof t>[1])}
           </h1>
-          <p className="mt-3 font-serif italic text-muted-foreground">
-            {t(locale, "blogSubtitle")}
-          </p>
         </header>
 
         {/* Language filter pills */}
@@ -101,7 +101,7 @@ export function BlogPostList({ posts }: BlogPostListProps) {
                 onMouseLeave={() => setHoveredSlug(null)}
               >
                 <Link
-                  href={`/blog/${post.slug}`}
+                  href={`${basePath}/${post.slug}`}
                   className={cn(
                     "flex items-baseline justify-between gap-4 py-4 -mx-4 px-4 rounded-lg transition-all duration-200",
                     isHovered && "bg-muted/50"
@@ -125,7 +125,7 @@ export function BlogPostList({ posts }: BlogPostListProps) {
                       )}
                     </div>
 
-                    {/* Hover content: excerpt and also-in */}
+                    {/* Hover content: description and also-in */}
                     <div
                       className={cn(
                         "overflow-hidden transition-all duration-300 ease-out",
@@ -148,10 +148,12 @@ export function BlogPostList({ posts }: BlogPostListProps) {
                     </div>
                   </div>
 
-                  {/* Date */}
-                  <time className="font-mono text-sm text-muted-foreground shrink-0">
-                    {formatDate(post.date)}
-                  </time>
+                  {/* Meta (date or reading time) */}
+                  <span className="font-mono text-xs text-muted-foreground shrink-0">
+                    {renderMeta
+                      ? renderMeta(post)
+                      : getLocalizedReadingTime(post, locale)}
+                  </span>
                 </Link>
               </article>
             );

@@ -1,5 +1,6 @@
 "use client";
 
+import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import {
   useCommandPalette,
   useLocale,
@@ -54,14 +55,15 @@ function AmbientGreeting() {
 
   if (!mounted) {
     // Prevent hydration mismatch
-    return (
-      <div className="min-h-[120px]" />
-    );
+    return <div className="min-h-[120px]" />;
   }
 
   // Build the greeting message
   const greetingKey = getGreetingKey(timeOfDay);
-  const timeGreeting = t(locale, greetingKey as keyof typeof import("@/lib/i18n").translations.en);
+  const timeGreeting = t(
+    locale,
+    greetingKey as keyof typeof import("@/lib/i18n").translations.en
+  );
 
   // Determine contextual message
   let contextMessage: React.ReactNode = null;
@@ -106,7 +108,7 @@ function AmbientGreeting() {
       </h1>
       {/* Contextual message */}
       {contextMessage && (
-        <p className="mt-3 text-lg sm:text-xl leading-relaxed">
+        <p className="mt-3 text-base sm:text-lg leading-relaxed">
           {contextMessage}
         </p>
       )}
@@ -138,7 +140,7 @@ function BlogWidget() {
           {t(locale, "widgetBlog")}
         </span>
         <Link
-          href="/blog"
+          href="/prose"
           className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
         >
           {t(locale, "widgetViewAll")}
@@ -151,7 +153,7 @@ function BlogWidget() {
         {recentPosts.map((post) => (
           <Link
             key={post.slug}
-            href={`/blog/${post.slug}`}
+            href={`/prose/${post.slug}`}
             className="block group/item"
           >
             <div className="text-sm text-foreground group-hover/item:text-foreground/80 transition-colors truncate">
@@ -175,7 +177,7 @@ function TalkWidget() {
 
   return (
     <Link
-      href="/talks"
+      href="/productions"
       className={cn(
         "group relative p-5 rounded-2xl",
         "bg-card/50 backdrop-blur-xl",
@@ -211,7 +213,7 @@ function StatusWidget() {
 
   return (
     <Link
-      href="/career"
+      href="/projects"
       className={cn(
         "group relative p-5 rounded-2xl",
         "bg-card/50 backdrop-blur-xl",
@@ -254,6 +256,40 @@ function WidgetGrid() {
         <StatusWidget />
         <TalkWidget />
       </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Text Scramble System Identifier Component
+// =============================================================================
+
+function ScrambleIdentifier() {
+  const [isHovered, setIsHovered] = useState(false);
+  const targetText = isHovered ? "λHUX" : "λhux";
+
+  return (
+    <div className="text-center mb-12">
+      <span
+        className={cn(
+          "font-mono text-xs tracking-wider relative inline-block cursor-default transition-colors duration-300",
+          isHovered ? "text-foreground" : "text-muted-foreground"
+        )}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <TextScramble
+          key={targetText}
+          trigger={true}
+          duration={0.6}
+          speed={0.03}
+          characterSet="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?"
+          as="span"
+          className="inline-block"
+        >
+          {targetText}
+        </TextScramble>
+      </span>
     </div>
   );
 }
@@ -302,13 +338,9 @@ function ConversationalPrompt() {
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">
-      <main className="mx-auto max-w-[680px] px-6 pt-[15vh] pb-24">
-        {/* System identifier */}
-        <div className="text-center mb-12">
-          <span className="font-mono text-sm text-muted-foreground tracking-wider">
-            hux_
-          </span>
-        </div>
+      <main className="mx-auto max-w-[680px] px-6 pt-24 pb-24">
+        {/* System identifier with scramble effect */}
+        <ScrambleIdentifier />
 
         {/* Hux speaking to the user */}
         <AmbientGreeting />

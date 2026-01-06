@@ -1,34 +1,65 @@
 # Design System
-
 ## Typography
 
 ### Font Stack
 
-The site uses a carefully curated three-font system:
+The site uses a carefully curated font system:
 
 ```css
---font-sans: Inter        /* UI elements, navigation */
---font-serif: Newsreader  /* Prose, article titles, emphasis */
---font-mono: JetBrains Mono  /* Dates, tags, code, shortcuts */
+--font-sans: Inter                    /* UI elements, navigation */
+--font-serif: Newsreader, Noto Serif SC  /* Prose, article titles, emphasis */
+--font-mono: JetBrains Mono           /* Dates, tags, code, shortcuts */
 ```
+
+**Chinese Support**: `Noto Serif SC` (思源宋体) provides serif typography for Chinese text, ensuring headers like "散文" display with proper serif styling.
 
 ### Typographic Hierarchy
 
-| Element | Font | Size | Weight |
-|---------|------|------|--------|
-| Page titles | Sans | 3xl-5xl | Semibold |
-| Article titles | Serif | 4xl | Normal |
-| Headings (H2) | Serif | 2xl | Normal |
-| Body text | Sans | 17px | Normal |
-| UI labels | Sans | sm | Medium |
-| Metadata | Mono | xs-sm | Normal |
+**Article/Documentation pages** (inspired by [paco.me](https://paco.me) and [ibelick.com](https://ibelick.com)):
+
+| Element | Font | Size | Weight | Color |
+|---------|------|------|--------|-------|
+| Article title | Sans | 2xl-3xl | Medium | foreground |
+| Heading (H1 in content) | Sans | xl | Medium | foreground |
+| Heading (H2) | Sans | base | Medium | foreground |
+| Heading (H3) | Sans | sm | Medium | foreground, uppercase |
+| Body text | Sans | 16px | Normal | foreground/85 |
+| Emphasis (em, blockquote) | Serif | 17px | Italic | — |
+| UI labels | Sans | sm | Medium | — |
+| Metadata | Mono | xs | Normal | muted |
+
+**Contrast hierarchy**: Body is `foreground/85`, headings are full `foreground` (slightly brighter)
+
+### Inner Page Headers
+
+All inner page headers (Writing, Docs, Career, Talks) use the same typography as the homepage greeting:
+
+```css
+font-serif text-3xl sm:text-4xl text-foreground tracking-tight
+```
+
+This creates visual consistency across the site and reinforces the literary, personal tone. **No subtitles** — the header stands alone.
 
 ### The Serif Italic Pattern
 
-The site uses `font-serif italic` for emphasis and literary quality:
-- The word "Prose" in the tagline
-- Blog subtitles
-- Quotations and pullquotes
+Serif (`Newsreader` / `Noto Serif SC`) is reserved for emphasis and literary quality:
+- Homepage greeting and section titles
+- Inline emphasis (`em`, `italic`) in prose
+- Blockquotes and pullquotes
+- Contextual hints (e.g., "*Building Design Systems*")
+
+This creates contrast: **Sans-serif for structure, Serif for emphasis**.
+
+### Homepage Typography
+
+The homepage uses a distinct hierarchy to create the AI-native OS feel:
+
+| Element | Font | Size | Style |
+|---------|------|------|-------|
+| System identifier (`λhux`) | Mono | sm | Muted, tracking-wider |
+| Time greeting | Serif | 3xl-4xl | Normal weight |
+| Contextual message | Sans + Serif italic | lg-xl | Mixed for emphasis |
+| Widget labels | Mono | xs | Uppercase, tracking-wider |
 
 ## Color System
 
@@ -126,7 +157,97 @@ px-1.5 py-0.5 text-xs font-mono bg-muted/50 rounded
 
 - **Navigation**: Underline on hover with transition
 - **Prose**: Persistent underline with `decoration-muted-foreground/50`
-- **Back links**: Subtle, almost invisible (`text-muted-foreground/60`)
+- **Back links**: System UI style (see below)
+
+### Mono System UI
+
+All monospace elements (machine-layer, non-translatable UI) use consistent styling:
+
+| Property | Value | Notes |
+|----------|-------|-------|
+| **Size** | `text-xs` | Uniform across all mono UI |
+| **Idle color** | `text-muted-foreground` | |
+| **Hover color** | `text-foreground` | |
+
+The font choice (Mono) already distinguishes system UI from content. No additional size or opacity hierarchy is needed within this layer.
+
+**Exceptions**:
+- **Inline code** in prose uses `text-sm` (relative to surrounding body text)
+- **Input placeholders** use `text-muted-foreground/60` (meant to disappear when user types)
+
+### System UI Navigation
+
+All navigation elements (back to home, back to writing, etc.) follow a consistent "System UI" design language:
+
+```css
+/* SystemNav component */
+font-mono text-xs tracking-wide
+text-muted-foreground hover:text-foreground
+transition-colors duration-200
+```
+
+**Key principles:**
+1. **Monospace font** – Same as other system elements (dates, tags, keyboard badges)
+2. **Path-first display** – Shows destination path by default (e.g., `/docs`, `λhux`)
+3. **Scramble to command** – On hover, scrambles to `cd ..` for terminal-like interaction
+4. **Instant navigation** – Click works immediately, not blocked by animation
+
+**Path conventions:**
+- `λhux` – Root/home (brand identifier)
+- `/prose` – Prose list (blog posts)
+- `/docs` – Documentation list
+- `/productions` – Productions list (talks)
+- `/projects` – Projects page
+
+**Usage:**
+```tsx
+import { SystemNav } from "@/components/ui/system-nav";
+
+// Back to home (shows "λhux", scrambles to "cd .." on hover)
+<SystemNav href="/" path="λhux" className="mb-12" />
+
+// Back to prose list (shows "/prose", scrambles to "cd .." on hover)
+<SystemNav href="/prose" path="/prose" className="mb-12" />
+
+// Custom hover text
+<SystemNav href="/docs" path="/docs" hoverText="cd ~/docs" className="mb-12" />
+```
+
+### Homepage Widgets
+
+Glassmorphic cards used on the homepage for content discovery:
+
+```css
+/* Base widget styling */
+p-5 rounded-2xl
+bg-card/50 backdrop-blur-xl
+border border-border/50
+transition-all duration-300
+
+/* Hover state */
+hover:border-border hover:bg-card/70
+```
+
+Widget headers use monospace uppercase labels:
+```css
+text-xs font-mono uppercase tracking-wider text-muted-foreground
+```
+
+### Conversational Prompt
+
+The homepage search entry point styled as a dialogue invitation:
+
+```css
+/* Container */
+w-full max-w-md
+flex items-center gap-3 px-5 py-4
+bg-card/50 backdrop-blur-xl
+border border-border/50 rounded-2xl
+
+/* Placeholder text */
+text-muted-foreground text-sm
+/* "what brings you here?" */
+```
 
 ## Prose Styling
 
@@ -139,3 +260,28 @@ The `.prose-article` class provides reading-optimized styling for MDX content:
 - **Code**: Monospace with subtle background
 
 See `app/globals.css` for full implementation.
+
+### Code Blocks
+
+Code blocks use minimal contrast to blend seamlessly with content:
+
+```css
+/* Code block container */
+.prose-article pre {
+  @apply bg-muted/50 rounded-lg border border-border;
+  /* Matches table header background for consistency */
+}
+
+/* Inline code */
+.prose-article code {
+  @apply font-mono text-sm bg-muted px-1.5 py-0.5 rounded;
+}
+```
+
+**Design decisions:**
+- **Background**: `bg-muted/50` (50% opacity) — matches table header background for visual consistency
+- **Contrast**: Minimal — code blocks should feel integrated, not stand out
+- **Padding**: `p-4` on container, no extra padding on individual lines
+- **Syntax highlighting**: Uses shiki theme colors for tokens, but background is controlled by site theme
+
+This creates a subtle, cohesive look where code feels like part of the content rather than a separate element.

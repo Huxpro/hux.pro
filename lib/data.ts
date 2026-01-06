@@ -1,7 +1,13 @@
-import { type BlogPost } from "./content";
+import { type BlogPost, type LocalizedContent } from "./content";
 
 // Re-export types
 export type { BlogPost };
+
+// Blog post metadata for command palette search (extends LocalizedContent with date/tags)
+export interface BlogPostMeta extends LocalizedContent {
+  date: string;
+  tags?: string[];
+}
 
 export interface TalkData {
   id: string;
@@ -18,7 +24,7 @@ export interface TalkData {
 
 // Static data for client-side search in command palette
 // This mirrors the MDX frontmatter for quick access without fs
-export const blogPosts: BlogPost[] = [
+export const blogPosts: BlogPostMeta[] = [
   {
     slug: "building-design-systems",
     language: "both",

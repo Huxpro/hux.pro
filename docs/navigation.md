@@ -6,11 +6,18 @@ The command palette is the central navigation hub, inspired by Raycast, Spotligh
 
 ### Opening Methods
 
-| Method | Action |
-|--------|--------|
-| `⌘K` / `Ctrl+K` | Open in **Search Mode** |
-| `/` (anywhere) | Open in **Action Mode** |
-| FAB button (mobile) | Open in Search Mode |
+| Method | Where | Action |
+|--------|-------|--------|
+| `⌘K` / `Ctrl+K` | Anywhere | Open in **Search Mode** |
+| `/` (anywhere) | Anywhere | Open in **Action Mode** |
+| Conversational prompt | Homepage | Open in Search Mode |
+| FAB button | Non-homepage pages | Open in Search Mode |
+
+### Homepage Entry Point
+
+On the homepage, the FAB is replaced by a **conversational prompt**—an inline button styled as a search input with the placeholder "what brings you here?". This creates a more inviting, dialogue-like entry point that fits the AI-native OS aesthetic.
+
+The FAB remains visible on all other pages (`/blog`, `/career`, `/talks`, etc.) for consistent command palette access.
 
 ### Two Modes
 
@@ -102,6 +109,8 @@ Each page follows a consistent pattern:
 
 ## Mobile Considerations
 
-- FAB (Floating Action Button) in bottom-right for command palette access
+- FAB (Floating Action Button) in bottom-right for command palette access (hidden on homepage)
+- Conversational prompt on homepage serves as primary entry point
 - Command palette is responsive (full width on small screens)
 - Touch-friendly tap targets
+- Widget grid stacks vertically on mobile

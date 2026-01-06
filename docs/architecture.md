@@ -2,15 +2,15 @@
 
 ## Stack
 
-| Layer | Technology |
-|-------|------------|
-| Framework | Next.js 16 (App Router) |
-| Language | TypeScript |
-| Styling | Tailwind CSS v4 |
-| Animations | tw-animate-css |
-| Command Palette | cmdk |
-| MDX | next-mdx-remote |
-| Package Manager | pnpm |
+| Layer           | Technology              |
+| --------------- | ----------------------- |
+| Framework       | Next.js 16 (App Router) |
+| Language        | TypeScript              |
+| Styling         | Tailwind CSS v4         |
+| Animations      | tw-animate-css          |
+| Command Palette | cmdk                    |
+| MDX             | next-mdx-remote         |
+| Package Manager | pnpm                    |
 
 ### Portability Rules (Technical Constraints)
 
@@ -103,15 +103,61 @@ interface CommandPaletteContextType {
 }
 ```
 
+### Visitor Context
+```typescript
+interface LastVisitedItem {
+  slug: string;
+  title: string;
+  type: "blog" | "talk";
+}
+
+interface VisitorContextType {
+  lastVisited: LastVisitedItem | null;
+  lastVisitTime: number | null;
+  isReturningVisitor: boolean;
+  daysSinceLastVisit: number | null;
+  recordVisit: (item: LastVisitedItem) => void;
+  recordPageView: () => void;
+}
+```
+- **Initialization**: Reads from localStorage on mount
+- **Persistence**: `hux_visitor` key in localStorage stores last visited item and timestamp
+- **Usage**: Powers the homepage's contextual greeting ("last time you were reading...")
+
 ## Rendering Strategy
 
 | Page | Strategy |
 |------|----------|
-| `/` | Client-side (locale-dependent) |
+| `/` | Client-side (locale, time, visitor context) |
 | `/blog` | Client-side (filtering, hover states) |
 | `/blog/[slug]` | Static generation + client hydration |
 | `/career` | Client-side |
 | `/talks` | Client-side |
+
+## Homepage Components
+
+The homepage (`app/page.tsx`) is composed of inline components that create the AI-native OS experience:
+
+### AmbientGreeting
+Time-aware greeting that speaks to the user:
+- Detects time of day (morning/afternoon/evening/night)
+- Shows contextual message based on visitor history
+- Uses serif font for warmth
+
+### WidgetGrid
+Bento-style CSS Grid with three widget types:
+
+| Widget | Content | Styling |
+|--------|---------|---------|
+| BlogWidget | 3 recent posts with dates | Large (2x1), glassmorphic |
+| StatusWidget | Current status with ping | Medium (1x1), green indicator |
+| TalkWidget | Latest talk with event | Medium (1x1), clickable |
+
+### ConversationalPrompt
+Inline button that opens the command palette:
+- Replaces FAB on homepage
+- "what brings you here?" placeholder
+- Shows ⌘K hint on desktop
 
 ### Blog Post Generation
 

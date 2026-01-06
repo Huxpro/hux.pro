@@ -99,23 +99,23 @@ export function CommandPalette() {
     },
     {
       key: "e",
-      label: t(locale, "career"),
+      label: t(locale, "projects"),
       icon: <Briefcase className="h-4 w-4" />,
-      onSelect: () => handleNavigation("/career"),
+      onSelect: () => handleNavigation("/projects"),
       section: "navigation",
     },
     {
       key: "b",
-      label: t(locale, "blog"),
+      label: t(locale, "prose"),
       icon: <FileText className="h-4 w-4" />,
-      onSelect: () => handleNavigation("/blog"),
+      onSelect: () => handleNavigation("/prose"),
       section: "navigation",
     },
     {
       key: "t",
-      label: t(locale, "talks"),
+      label: t(locale, "productions"),
       icon: <Mic className="h-4 w-4" />,
-      onSelect: () => handleNavigation("/talks"),
+      onSelect: () => handleNavigation("/productions"),
       section: "navigation",
     },
     // Hidden Actions
@@ -296,7 +296,7 @@ export function CommandPalette() {
                 )}
               >
                 <Slash className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="flex-1 font-mono text-sm text-muted-foreground">
+                <span className="flex-1 font-mono text-xs text-muted-foreground">
                   {t(locale, "actionMode")}
                 </span>
                 <kbd className="px-2 py-1 text-xs font-mono text-muted-foreground bg-muted/50 rounded">
@@ -345,16 +345,18 @@ export function CommandPalette() {
                   </Command.Item>
 
                   <Command.Item
-                    value="career"
+                    value="projects"
                     keywords={[
+                      "projects",
                       "career",
                       "work",
                       "job",
                       "experience",
+                      "项目",
                       "职业",
                       "工作",
                     ]}
-                    onSelect={() => handleNavigation("/career")}
+                    onSelect={() => handleNavigation("/projects")}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                       "text-sm cursor-pointer transition-colors",
@@ -363,15 +365,16 @@ export function CommandPalette() {
                     )}
                   >
                     <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1">{t(locale, "career")}</span>
+                    <span className="flex-1">{t(locale, "projects")}</span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       E
                     </kbd>
                   </Command.Item>
 
                   <Command.Item
-                    value="blog"
+                    value="prose"
                     keywords={[
+                      "prose",
                       "blog",
                       "posts",
                       "writing",
@@ -379,7 +382,7 @@ export function CommandPalette() {
                       "博客",
                       "文章",
                     ]}
-                    onSelect={() => handleNavigation("/blog")}
+                    onSelect={() => handleNavigation("/prose")}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                       "text-sm cursor-pointer transition-colors",
@@ -388,22 +391,23 @@ export function CommandPalette() {
                     )}
                   >
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1">{t(locale, "blog")}</span>
+                    <span className="flex-1">{t(locale, "prose")}</span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       B
                     </kbd>
                   </Command.Item>
 
                   <Command.Item
-                    value="talks"
+                    value="productions"
                     keywords={[
+                      "productions",
                       "talks",
                       "presentations",
                       "speaking",
                       "演讲",
                       "分享",
                     ]}
-                    onSelect={() => handleNavigation("/talks")}
+                    onSelect={() => handleNavigation("/productions")}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                       "text-sm cursor-pointer transition-colors",
@@ -412,7 +416,7 @@ export function CommandPalette() {
                     )}
                   >
                     <Mic className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1">{t(locale, "talks")}</span>
+                    <span className="flex-1">{t(locale, "productions")}</span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       T
                     </kbd>
@@ -486,7 +490,7 @@ export function CommandPalette() {
                 </Command.Group>
 
                 {/* Blog Posts */}
-                <Command.Group heading={t(locale, "blog")}>
+                <Command.Group heading={t(locale, "prose")}>
                   {blogPosts.map((post) => (
                     <Command.Item
                       key={`blog-${post.slug}`}
@@ -497,12 +501,13 @@ export function CommandPalette() {
                         post.description,
                         post.descriptionZh || "",
                         ...(post.tags || []),
+                        "prose",
                         "blog",
                         "post",
                         "article",
                         "文章",
                       ].filter(Boolean)}
-                      onSelect={() => handleNavigation(`/blog/${post.slug}`)}
+                      onSelect={() => handleNavigation(`/prose/${post.slug}`)}
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                         "text-sm cursor-pointer transition-colors",
@@ -524,7 +529,7 @@ export function CommandPalette() {
                 </Command.Group>
 
                 {/* Talks */}
-                <Command.Group heading={t(locale, "talks")}>
+                <Command.Group heading={t(locale, "productions")}>
                   {talks.map((talk) => (
                     <Command.Item
                       key={`talk-${talk.id}`}
@@ -535,11 +540,12 @@ export function CommandPalette() {
                         talk.event,
                         talk.description || "",
                         talk.descriptionZh || "",
+                        "productions",
                         "talk",
                         "presentation",
                         "演讲",
                       ].filter(Boolean)}
-                      onSelect={() => handleNavigation("/talks")}
+                      onSelect={() => handleNavigation("/productions")}
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                         "text-sm cursor-pointer transition-colors",

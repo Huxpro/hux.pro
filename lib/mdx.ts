@@ -2,15 +2,20 @@ import fs from "fs";
 import matter from "gray-matter";
 import path from "path";
 import readingTime from "reading-time";
-import type { BlogPost, PostLanguage } from "./content";
+import type { BlogPost, Doc, PostLanguage } from "./content";
 
 const contentDirectory = path.join(process.cwd(), "content");
 
+// BlogPost already has readingTime from Post, just add content fields
 export interface BlogPostWithContent extends BlogPost {
   content: string;
   contentZh?: string;
-  readingTime: string;
-  readingTimeZh?: string;
+}
+
+// Doc already has readingTime from Post, just add content fields
+export interface DocWithContent extends Doc {
+  content: string;
+  contentZh?: string;
 }
 
 export interface TalkWithContent {
@@ -297,13 +302,8 @@ export function getTalkBySlug(slug: string): TalkWithContent | null {
 
 const docsDirectory = path.join(process.cwd(), "docs");
 
-export interface DocPage {
-  slug: string;
-  title: string;
-  description: string;
-  content: string;
-  readingTime: string;
-}
+// Regex to match [slug].[lang].md pattern
+const DOC_LANG_FILE_REGEX = /^(.+)\.(en|zh)\.md$/;
 
 /**
  * Extract title from markdown content (first # heading)
@@ -343,52 +343,129 @@ function extractDescriptionFromMarkdown(content: string): string {
 
 /**
  * Get all doc slugs for static generation
+ * Handles both [slug].md (legacy) and [slug].[lang].md (bilingual) patterns
  */
 export function getDocSlugs(): string[] {
   if (!fs.existsSync(docsDirectory)) {
     return [];
   }
 
-  return fs
-    .readdirSync(docsDirectory)
-    .filter((file) => file.endsWith(".md"))
-    .map((file) => file.replace(/\.md$/, ""));
+  const files = fs.readdirSync(docsDirectory);
+  const slugs = new Set<string>();
+
+  for (const file of files) {
+    if (!file.endsWith(".md")) continue;
+
+    // Check for language-suffixed file pattern
+    const langMatch = file.match(DOC_LANG_FILE_REGEX);
+    if (langMatch) {
+      slugs.add(langMatch[1]);
+    } else {
+      // Legacy pattern: [slug].md (no language suffix)
+      slugs.add(file.replace(/\.md$/, ""));
+    }
+  }
+
+  return Array.from(slugs);
 }
 
 /**
  * Get all docs with metadata (for listing pages)
  */
-export function getAllDocs(): DocPage[] {
+export function getAllDocs(): DocWithContent[] {
   const slugs = getDocSlugs();
 
   return slugs
     .map((slug) => getDocBySlug(slug))
-    .filter((doc): doc is DocPage => doc !== null)
+    .filter((doc): doc is DocWithContent => doc !== null)
     .sort((a, b) => a.title.localeCompare(b.title));
 }
 
 /**
  * Get a single doc by slug with full content
+ * Supports both legacy [slug].md and bilingual [slug].[lang].md patterns
  */
-export function getDocBySlug(slug: string): DocPage | null {
-  const filePath = path.join(docsDirectory, `${slug}.md`);
+export function getDocBySlug(slug: string): DocWithContent | null {
+  // Check for bilingual files first
+  const enFilePath = path.join(docsDirectory, `${slug}.en.md`);
+  const zhFilePath = path.join(docsDirectory, `${slug}.zh.md`);
+  const legacyFilePath = path.join(docsDirectory, `${slug}.md`);
 
-  if (!fs.existsSync(filePath)) {
+  const hasEn = fs.existsSync(enFilePath);
+  const hasZh = fs.existsSync(zhFilePath);
+  const hasLegacy = fs.existsSync(legacyFilePath);
+
+  // Must have at least one version
+  if (!hasEn && !hasZh && !hasLegacy) {
     return null;
   }
 
-  const fileContents = fs.readFileSync(filePath, "utf8");
-  const { content } = matter(fileContents);
+  // Legacy file (no language suffix) - treat as English only
+  if (hasLegacy && !hasEn && !hasZh) {
+    const fileContents = fs.readFileSync(legacyFilePath, "utf8");
+    const { content } = matter(fileContents);
+    const title = extractTitleFromMarkdown(content);
+    const description = extractDescriptionFromMarkdown(content);
+    const stats = readingTime(content);
 
-  const title = extractTitleFromMarkdown(content);
-  const description = extractDescriptionFromMarkdown(content);
-  const stats = readingTime(content);
+    return {
+      slug,
+      language: "en",
+      title,
+      description,
+      content,
+      readingTime: stats.text,
+    };
+  }
+
+  // Bilingual or single-language with suffix
+  const language: PostLanguage = hasEn && hasZh ? "both" : hasEn ? "en" : "zh";
+
+  // Read English content
+  let content = "";
+  let title = "";
+  let description = "";
+  let readingTimeEn = "";
+  if (hasEn) {
+    const enContents = fs.readFileSync(enFilePath, "utf8");
+    const parsed = matter(enContents);
+    content = parsed.content;
+    title = extractTitleFromMarkdown(content);
+    description = extractDescriptionFromMarkdown(content);
+    readingTimeEn = readingTime(content).text;
+  }
+
+  // Read Chinese content
+  let contentZh: string | undefined;
+  let titleZh: string | undefined;
+  let descriptionZh: string | undefined;
+  let readingTimeZh: string | undefined;
+  if (hasZh) {
+    const zhContents = fs.readFileSync(zhFilePath, "utf8");
+    const parsed = matter(zhContents);
+    contentZh = parsed.content;
+    titleZh = extractTitleFromMarkdown(contentZh);
+    descriptionZh = extractDescriptionFromMarkdown(contentZh);
+    readingTimeZh = readingTime(contentZh).text;
+  }
+
+  // For Chinese-only docs, use Chinese as primary
+  if (!hasEn && hasZh) {
+    title = titleZh || "";
+    description = descriptionZh || "";
+    content = contentZh || "";
+  }
 
   return {
     slug,
+    language,
     title,
+    titleZh,
     description,
+    descriptionZh,
     content,
-    readingTime: stats.text,
+    contentZh,
+    readingTime: readingTimeEn || readingTimeZh || "",
+    readingTimeZh,
   };
 }

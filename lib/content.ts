@@ -1,17 +1,35 @@
-// Content types for MDX frontmatter
+// Content types and helpers for MDX posts
 import type { Locale } from "./i18n";
 
 export type PostLanguage = "en" | "zh" | "both";
 
-export interface BlogPost {
+// ===== Base Types =====
+
+// Minimal localized content (for search/command palette)
+export interface LocalizedContent {
   slug: string;
   language: PostLanguage;
   title: string;
-  titleZh?: string; // For bilingual posts
-  date: string; // YYYY-MM-DD
+  titleZh?: string;
   description: string;
-  descriptionZh?: string; // For bilingual posts
+  descriptionZh?: string;
+}
+
+// Full post with reading time (for actual content pages)
+export interface Post extends LocalizedContent {
+  readingTime: string;
+  readingTimeZh?: string;
+}
+
+// ===== Specialized Post Types =====
+
+export interface BlogPost extends Post {
+  date: string; // YYYY-MM-DD
   tags?: string[];
+}
+
+export interface Doc extends Post {
+  // Docs don't have dates or tags, just the base Post fields
 }
 
 export interface Talk {
@@ -39,9 +57,14 @@ export interface CareerEntry {
   skills?: string[];
 }
 
-// Helper to check if a post should be shown for a given locale
-export function shouldShowPost(
-  post: BlogPost,
+// ===== Generic Helpers =====
+// These work with LocalizedContent or Post
+
+/**
+ * Check if a post should be shown for a given locale
+ */
+export function shouldShowPost<T extends LocalizedContent>(
+  post: T,
   locale: Locale,
   includeOther: boolean
 ): boolean {
@@ -51,9 +74,11 @@ export function shouldShowPost(
   return false;
 }
 
-// Get the display title based on locale
-export function getLocalizedTitle(
-  post: BlogPost,
+/**
+ * Get the display title based on locale
+ */
+export function getLocalizedTitle<T extends LocalizedContent>(
+  post: T,
   locale: Locale
 ): string {
   if (locale === "zh" && post.titleZh) {
@@ -62,9 +87,11 @@ export function getLocalizedTitle(
   return post.title;
 }
 
-// Get the display description based on locale
-export function getLocalizedDescription(
-  post: BlogPost,
+/**
+ * Get the display description based on locale
+ */
+export function getLocalizedDescription<T extends LocalizedContent>(
+  post: T,
   locale: Locale
 ): string {
   if (locale === "zh" && post.descriptionZh) {
@@ -73,14 +100,32 @@ export function getLocalizedDescription(
   return post.description;
 }
 
-// Check if post has alternate language version
-export function hasAlternateLanguage(post: BlogPost): boolean {
+/**
+ * Get the display reading time based on locale
+ * Only works with Post (which has readingTime)
+ */
+export function getLocalizedReadingTime<T extends Post>(
+  post: T,
+  locale: Locale
+): string {
+  if (locale === "zh" && post.readingTimeZh) {
+    return post.readingTimeZh;
+  }
+  return post.readingTime;
+}
+
+/**
+ * Check if post has alternate language version
+ */
+export function hasAlternateLanguage<T extends LocalizedContent>(post: T): boolean {
   return post.language === "both";
 }
 
-// Get the alternate language label
-export function getAlternateLangLabel(
-  post: BlogPost,
+/**
+ * Get the alternate language label
+ */
+export function getAlternateLangLabel<T extends LocalizedContent>(
+  post: T,
   currentLocale: Locale
 ): { locale: Locale; label: string } | null {
   if (post.language !== "both") return null;

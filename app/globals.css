@@ -7,7 +7,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-serif: var(--font-serif);
+  --font-serif: var(--font-serif-latin), var(--font-serif-cjk), serif;
   --font-mono: var(--font-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -161,11 +161,15 @@
   }
 }
 
-/* Prose article typography */
+/* Prose article typography
+   Inspired by paco.me and ibelick.com:
+   - Sans-serif headings (Inter) with reduced weight
+   - Serif only for emphasis (em, italic, blockquote)
+   - "De-weighted" headings: smaller, subtle but slightly brighter than body */
 .prose-article {
-  @apply text-foreground leading-relaxed;
-  font-size: 17px;
-  line-height: 1.7;
+  @apply text-foreground/85 leading-relaxed;
+  font-size: 16px;
+  line-height: 1.75;
 }
 
 .prose-article p {
@@ -173,15 +177,15 @@
 }
 
 .prose-article h1 {
-  @apply font-serif text-3xl font-normal mt-12 mb-6 tracking-tight;
+  @apply font-sans text-xl font-medium mt-14 mb-6 text-foreground first:mt-0;
 }
 
 .prose-article h2 {
-  @apply font-serif text-2xl font-normal mt-10 mb-4 tracking-tight;
+  @apply font-sans text-lg font-medium mt-16 mb-6 text-foreground;
 }
 
 .prose-article h3 {
-  @apply font-serif text-xl font-normal mt-8 mb-3 tracking-tight;
+  @apply font-sans text-base font-medium mt-12 mb-4 text-foreground;
 }
 
 .prose-article a {
@@ -193,38 +197,144 @@
 }
 
 .prose-article em {
-  @apply italic;
+  @apply font-serif italic;
 }
 
+/* Optical adjustment for Latin: Newsreader has smaller x-height than Inter */
+.prose-article[lang="en"] em {
+  font-size: 17px;
+}
+
+/* Right spacing for Chinese italic to prevent overhang */
+.prose-article[lang="zh"] em {
+  margin-right: 0.1em;
+}
+
+/* Blockquote - Editorial hanging quotation marks style */
 .prose-article blockquote {
-  @apply border-l-2 border-muted-foreground/30 pl-6 my-6 italic text-muted-foreground;
+  @apply my-8 font-serif italic text-foreground/70 relative;
+  padding-left: 0;
+  border: none;
 }
 
+.prose-article blockquote::before {
+  content: "\201C";
+  position: absolute;
+  left: -0.5em;
+  top: -0.1em;
+  font-family: var(--font-serif);
+  font-size: 2.5em;
+  line-height: 1;
+  color: var(--muted-foreground);
+  font-weight: 300;
+}
+
+.prose-article[lang="en"] blockquote {
+  font-size: 17px;
+}
+
+/* Lists - custom markers with absolute positioning for proper text flow */
 .prose-article ul,
 .prose-article ol {
-  @apply my-6 pl-6;
+  @apply my-6;
+  padding-left: 1.25em;
+  list-style: none;
+}
+
+.prose-article ol {
+  counter-reset: ol-counter;
 }
 
 .prose-article li {
   @apply mb-2;
+  position: relative;
+  padding-left: 0;
 }
 
-.prose-article ul > li {
-  @apply list-disc;
+.prose-article li::before {
+  position: absolute;
+  left: -1.25em;
+  color: var(--muted-foreground);
 }
 
+/* Unordered list bullet */
+.prose-article ul > li::before {
+  content: "•";
+}
+
+/* Ordered list number */
 .prose-article ol > li {
-  @apply list-decimal;
+  counter-increment: ol-counter;
 }
 
+.prose-article ol > li::before {
+  content: counter(ol-counter);
+}
+
+/* Nested lists - indentation and counter reset */
+.prose-article li ul,
+.prose-article li ol {
+  @apply my-2;
+  padding-left: 1.25em;
+  margin-left: 0;
+}
+
+.prose-article li ol {
+  counter-reset: ol-counter;
+}
+
+/* Fix MDX paragraph wrapping in list items */
+.prose-article li > p {
+  @apply mb-0;
+}
+
+.prose-article li > p:first-child {
+  display: inline;
+}
+
+/* Horizontal rule */
+.prose-article hr {
+  @apply my-12 border-border;
+}
+
+/* Tables */
+.prose-table-wrapper {
+  @apply overflow-x-auto my-6 rounded-lg border border-border;
+}
+
+.prose-article table {
+  @apply w-full border-collapse text-sm;
+  margin: 0; /* Override any inherited margins */
+}
+
+.prose-article thead {
+  @apply bg-muted/50;
+}
+
+.prose-article th {
+  @apply border-b border-border px-4 py-2 text-left font-semibold text-foreground;
+}
+
+.prose-article tr {
+  @apply border-b border-border last:border-b-0;
+}
+
+.prose-article tbody tr:hover {
+  @apply bg-muted/30;
+}
+
+.prose-article td {
+  @apply px-4 py-2;
+}
+
+/* Inline code */
 .prose-article code {
   @apply font-mono text-sm bg-muted px-1.5 py-0.5 rounded;
 }
 
 /* Code blocks with rehype-pretty-code styling */
 .prose-article pre {
-  @apply my-6 rounded-lg overflow-x-auto border border-border;
-  background-color: var(--shiki-light-bg);
+  @apply my-6 rounded-lg overflow-x-auto border border-border bg-muted/50;
   color: var(--shiki-light);
 }
 
@@ -259,24 +369,14 @@
 .dark .prose-article code,
 .dark .prose-article span {
   color: var(--shiki-dark);
-  background-color: var(--shiki-dark-bg);
   font-style: var(--shiki-dark-font-style);
   font-weight: var(--shiki-dark-font-weight);
   text-decoration: var(--shiki-dark-text-decoration);
 }
 
-/* Background colors need to be applied specifically to the pre container */
-.prose-article pre {
-  background-color: var(--shiki-light-bg);
-}
-
-.dark .prose-article pre {
-  background-color: var(--shiki-dark-bg);
-}
-
 /* Code block lines */
 .prose-article pre code > [data-line] {
-  @apply px-4 border-l-2 border-transparent;
+  @apply border-l-2 border-transparent;
 }
 
 /* Line highlighting */
@@ -321,34 +421,6 @@
   @apply mt-2 text-center text-sm text-muted-foreground;
 }
 
-/* GFM Table styling */
-.prose-article table {
-  @apply my-6 w-full border-collapse text-sm;
-}
-
-.prose-article thead {
-  @apply bg-muted/50;
-}
-
-.prose-article th {
-  @apply border-b border-border px-4 py-3 text-left font-semibold text-foreground;
-}
-
-.prose-article tr {
-  @apply border-b border-border;
-}
-
-.prose-article tr:last-child {
-  @apply border-b-0;
-}
-
-.prose-article td {
-  @apply px-4 py-3 text-foreground/90;
-}
-
-.prose-article tbody tr:hover {
-  @apply bg-muted/30;
-}
 
 /* Strikethrough (GFM) */
 .prose-article del {
