@@ -37,6 +37,7 @@ export function HeadingWithLink({
   useEffect(() => {
     if (headingRef.current) {
       const textContent = headingRef.current.textContent || "";
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setId(generateHeadingId(textContent));
     }
   }, [children]);

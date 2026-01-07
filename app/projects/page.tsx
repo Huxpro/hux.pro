@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale } from "@/components/providers";
+import { PageSurface } from "@/components/layout/page-surface";
 import { SystemNav } from "@/components/ui/system-nav";
 import type { CareerEntry } from "@/lib/content";
 import { t } from "@/lib/i18n";
@@ -49,7 +50,7 @@ export default function CareerPage() {
   const { locale } = useLocale();
 
   return (
-    <div className="min-h-screen bg-background">
+    <PageSurface>
       <main className="mx-auto max-w-[680px] px-6 pt-16 pb-24">
         {/* Back link - System UI */}
         <SystemNav href="/" path="λhux" className="mb-12" />
@@ -108,6 +109,6 @@ export default function CareerPage() {
           })}
         </section>
       </main>
-    </div>
+    </PageSurface>
   );
 }

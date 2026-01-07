@@ -68,7 +68,24 @@ export const translations = {
     widgetBlog: "/prose",
     widgetTalks: "/productions",
     widgetStatus: "processing",
+    widgetWeather: "weather",
     widgetViewAll: "view all",
+
+    // Ambient (location / weather)
+    locationIp: "ip",
+    locationAccurate: "accurate",
+    weatherUnavailable: "weather unavailable",
+    timeDay: "day",
+    timeNight: "night",
+    settingsLocation: "Location",
+    settingsGeolocation: "Geolocation",
+    settingsWeatherGradient: "Weather gradient",
+    settingsDebugPanel: "Debug panel",
+    stateOn: "on",
+    stateOff: "off",
+    debugOverride: "override",
+    debugReal: "real",
+    internalDocs: "Internal Docs",
 
     // Career/Projects
     careerTitle: "Projects",
@@ -154,7 +171,24 @@ export const translations = {
     widgetBlog: "/散文",
     widgetTalks: "/作品",
     widgetStatus: "处理中",
+    widgetWeather: "天气",
     widgetViewAll: "查看全部",
+
+    // Ambient (location / weather)
+    locationIp: "IP",
+    locationAccurate: "精确",
+    weatherUnavailable: "天气暂不可用",
+    timeDay: "白天",
+    timeNight: "夜晚",
+    settingsLocation: "位置",
+    settingsGeolocation: "地理定位",
+    settingsWeatherGradient: "天气渐变",
+    settingsDebugPanel: "调试面板",
+    stateOn: "开",
+    stateOff: "关",
+    debugOverride: "覆盖",
+    debugReal: "真实",
+    internalDocs: "内部文档",
 
     // Career/Projects
     careerTitle: "项目",

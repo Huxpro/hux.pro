@@ -144,6 +144,21 @@ Time-aware greeting that speaks to the user:
 - Shows contextual message based on visitor history
 - Uses serif font for warmth
 
+### AmbientWeather (Location + Weather + Gradient)
+Environment-aware ambient system that powers:
+- **Location**: defaults to IP-based location (no permission), can be upgraded to **Accurate** via Web Geolocation API permission.
+- **Weather**: fetched from a no-key API (Open-Meteo) using the resolved coordinates.
+- **Weather gradient background**: maps weather → mood → subtle OKLCH gradients (route-configurable, enabled on `/` by default).
+
+Implementation notes:
+- Ambient state lives in `components/providers.tsx` as `AmbientContext` (`useAmbient()`).
+- Route config is centralized in `lib/ambient/route-config.ts`.
+- Background renderer: `components/ambient/weather-gradient-background.tsx`.
+- Page background composability: `components/layout/page-surface.tsx` switches between `bg-background` and `bg-transparent` depending on whether gradient is active.
+- Local persistence:
+  - `hux_ambient_settings` stores user choices (location mode, gradient toggle).
+  - TTL caches store IP location and per-location weather snapshots.
+
 ### WidgetGrid
 Bento-style CSS Grid with three widget types:
 

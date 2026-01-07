@@ -28,9 +28,8 @@ export interface BlogPost extends Post {
   tags?: string[];
 }
 
-export interface Doc extends Post {
-  // Docs don't have dates or tags, just the base Post fields
-}
+// Docs don't have extra fields beyond Post
+export type Doc = Post;
 
 export interface Talk {
   title: string;

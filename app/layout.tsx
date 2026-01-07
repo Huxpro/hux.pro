@@ -1,5 +1,7 @@
 import { CommandPalette } from "@/components/layout/command-palette";
 import { FloatingActionButton } from "@/components/layout/fab";
+import { WeatherGradientBackground } from "@/components/ambient/weather-gradient-background";
+import { DebugPanel } from "@/components/debug/debug-panel";
 import { Providers } from "@/components/providers";
 import type { Metadata, Viewport } from "next";
 import {
@@ -64,6 +66,8 @@ export default function RootLayout({
         className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         <Providers>
+          <WeatherGradientBackground />
+          <DebugPanel />
           {children}
           <CommandPalette />
           <FloatingActionButton />

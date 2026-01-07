@@ -1,6 +1,11 @@
 "use client";
 
-import { useCommandPalette, useLocale, useTheme } from "@/components/providers";
+import {
+  useAmbient,
+  useCommandPalette,
+  useLocale,
+  useTheme,
+} from "@/components/providers";
 import { getLocalizedDescription, getLocalizedTitle } from "@/lib/content";
 import { blogPosts, talks } from "@/lib/data";
 import { localeNames, t } from "@/lib/i18n";
@@ -10,13 +15,16 @@ import {
   Briefcase,
   FileText,
   Hash,
+  Bug,
   Home,
   Languages,
+  MapPin,
   Mic,
   Moon,
   Search,
   Slash,
   Sun,
+  Waves,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -25,26 +33,30 @@ export function CommandPalette() {
   const { isOpen, isActionMode, close, setActionMode } = useCommandPalette();
   const { theme, toggleTheme } = useTheme();
   const { locale, setLocale } = useLocale();
+  const {
+    settings: ambientSettings,
+    setLocationMode,
+    setWeatherGradientEnabled,
+    setDebugFabEnabled,
+    requestAccurateLocation,
+  } = useAmbient();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [scrollPosition, setScrollPosition] = useState(0);
-  const [isIOS, setIsIOS] = useState(false);
-
   // Detect iOS devices (iPhone/iPod only, excluding iPad)
-  useEffect(() => {
-    const checkIsIOS = () => {
-      if (typeof window === "undefined") return false;
-      return /iPhone|iPod/.test(navigator.userAgent);
-    };
-    setIsIOS(checkIsIOS());
-  }, []);
+  // Use a state initializer (no effect) to avoid both SSR pitfalls and setState-in-effect lint noise.
+  const [isIOS] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return /iPhone|iPod/.test(navigator.userAgent);
+  });
 
   // Lock scroll and set position when opened (ONLY for iOS devices)
   useEffect(() => {
     if (!isIOS) return;
 
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setScrollPosition(window.scrollY);
       document.body.style.overflow = "hidden";
     } else {
@@ -66,6 +78,7 @@ export function CommandPalette() {
       }, 50);
     }
     if (!isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInputValue("");
     }
   }, [isOpen, isActionMode, isIOS]);
@@ -84,7 +97,7 @@ export function CommandPalette() {
     key: string;
     label?: string;
     icon?: React.ReactNode;
-    onSelect: () => void;
+    onSelect: () => void | Promise<void>;
     section?: "navigation" | "settings";
   };
 
@@ -118,11 +131,10 @@ export function CommandPalette() {
       onSelect: () => handleNavigation("/productions"),
       section: "navigation",
     },
-    // Hidden Actions
     {
-      key: "d",
-      // Hidden action: /docs
-      // This is not rendered in the list but accessible via shortcut
+      key: "i",
+      // Hidden action: /docs (Internal)
+      // This is not rendered in the list but accessible via shortcut.
       onSelect: () => handleNavigation("/docs"),
     },
     // Settings
@@ -155,6 +167,51 @@ export function CommandPalette() {
       },
       section: "settings",
     },
+    {
+      key: "g",
+      label: `${t(locale, "settingsGeolocation")}: ${
+        ambientSettings.locationMode === "accurate"
+          ? t(locale, "locationAccurate")
+          : t(locale, "locationIp")
+      }`,
+      icon: <MapPin className="h-4 w-4" />,
+      onSelect: async () => {
+        // Correct behavior: IP -> request accurate; Accurate -> switch back to IP
+        if (ambientSettings.locationMode === "ip") {
+          await requestAccurateLocation();
+        } else {
+          setLocationMode("ip");
+        }
+        close();
+      },
+      section: "settings",
+    },
+    {
+      key: "w",
+      label: `${t(locale, "settingsWeatherGradient")}: ${
+        ambientSettings.weatherGradientEnabled
+          ? t(locale, "stateOn")
+          : t(locale, "stateOff")
+      }`,
+      icon: <Waves className="h-4 w-4" />,
+      onSelect: () => {
+        setWeatherGradientEnabled(!ambientSettings.weatherGradientEnabled);
+        close();
+      },
+      section: "settings",
+    },
+    {
+      key: "d",
+      label: `${t(locale, "settingsDebugPanel")}: ${
+        ambientSettings.debugFabEnabled ? t(locale, "stateOn") : t(locale, "stateOff")
+      }`,
+      icon: <Bug className="h-4 w-4" />,
+      onSelect: () => {
+        setDebugFabEnabled(!ambientSettings.debugFabEnabled);
+        close();
+      },
+      section: "settings",
+    },
   ];
 
   // Handle action mode key presses
@@ -171,17 +228,74 @@ export function CommandPalette() {
 
       // Single letter shortcuts in action mode
       const key = e.key.toLowerCase();
-      const action = actions.find((a) => a.key === key);
+      e.preventDefault();
+      switch (key) {
+        // Navigation
+        case "h":
+          handleNavigation("/");
+          return;
+        case "e":
+          handleNavigation("/projects");
+          return;
+        case "b":
+          handleNavigation("/prose");
+          return;
+        case "t":
+          handleNavigation("/productions");
+          return;
+        case "i":
+          handleNavigation("/docs");
+          return;
 
-      if (action) {
-        e.preventDefault();
-        action.onSelect();
+        // Settings
+        case "a":
+          toggleTheme();
+          close();
+          return;
+        case "l":
+          setLocale(locale === "en" ? "zh" : "en");
+          close();
+          return;
+        case "g":
+          void (async () => {
+            if (ambientSettings.locationMode === "ip") {
+              await requestAccurateLocation();
+            } else {
+              setLocationMode("ip");
+            }
+            close();
+          })();
+          return;
+        case "w":
+          setWeatherGradientEnabled(!ambientSettings.weatherGradientEnabled);
+          close();
+          return;
+        case "d":
+          setDebugFabEnabled(!ambientSettings.debugFabEnabled);
+          close();
+          return;
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isActionMode, actions, setActionMode]);
+  }, [
+    isOpen,
+    isActionMode,
+    setActionMode,
+    handleNavigation,
+    toggleTheme,
+    close,
+    setLocale,
+    locale,
+    ambientSettings.locationMode,
+    ambientSettings.weatherGradientEnabled,
+    ambientSettings.debugFabEnabled,
+    requestAccurateLocation,
+    setLocationMode,
+    setWeatherGradientEnabled,
+    setDebugFabEnabled,
+  ]);
 
   // Handle keyboard shortcuts in search mode
   useEffect(() => {
@@ -485,6 +599,111 @@ export function CommandPalette() {
                     </span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       L
+                    </kbd>
+                  </Command.Item>
+
+                  <Command.Item
+                    value="location"
+                    keywords={[
+                      "location",
+                      "geolocation",
+                      "geo",
+                      "geolocation",
+                      "ip",
+                      "accurate",
+                      "定位",
+                      "位置",
+                      "精确",
+                    ]}
+                    onSelect={async () => {
+                      if (ambientSettings.locationMode === "ip") {
+                        await requestAccurateLocation();
+                      } else {
+                        setLocationMode("ip");
+                      }
+                    }}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                      "text-sm cursor-pointer transition-colors",
+                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                      "hover:bg-accent/25"
+                    )}
+                  >
+                    <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1">
+                      {t(locale, "settingsGeolocation")}:{" "}
+                      {ambientSettings.locationMode === "accurate"
+                        ? t(locale, "locationAccurate")
+                        : t(locale, "locationIp")}
+                    </span>
+                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                      G
+                    </kbd>
+                  </Command.Item>
+
+                  <Command.Item
+                    value="weather-gradient"
+                    keywords={[
+                      "weather",
+                      "gradient",
+                      "background",
+                      "mood",
+                      "天气",
+                      "渐变",
+                      "背景",
+                    ]}
+                    onSelect={() =>
+                      setWeatherGradientEnabled(
+                        !ambientSettings.weatherGradientEnabled
+                      )
+                    }
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                      "text-sm cursor-pointer transition-colors",
+                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                      "hover:bg-accent/25"
+                    )}
+                  >
+                    <Waves className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1">
+                      {t(locale, "settingsWeatherGradient")}:{" "}
+                      {ambientSettings.weatherGradientEnabled
+                        ? t(locale, "stateOn")
+                        : t(locale, "stateOff")}
+                    </span>
+                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                      W
+                    </kbd>
+                  </Command.Item>
+
+                  <Command.Item
+                    value="debug-panel"
+                    keywords={[
+                      "debug",
+                      "debug panel",
+                      "developer",
+                      "devtools",
+                      "test gradients",
+                      "调试",
+                      "调试面板",
+                    ]}
+                    onSelect={() => setDebugFabEnabled(!ambientSettings.debugFabEnabled)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                      "text-sm cursor-pointer transition-colors",
+                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                      "hover:bg-accent/25"
+                    )}
+                  >
+                    <Bug className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1">
+                      {t(locale, "settingsDebugPanel")}:{" "}
+                      {ambientSettings.debugFabEnabled
+                        ? t(locale, "stateOn")
+                        : t(locale, "stateOff")}
+                    </span>
+                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                      D
                     </kbd>
                   </Command.Item>
                 </Command.Group>

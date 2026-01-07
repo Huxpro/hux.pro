@@ -1,6 +1,8 @@
 "use client";
 
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
+import { WeatherWidget } from "@/components/ambient/weather-widget";
+import { PageSurface } from "@/components/layout/page-surface";
 import { useLocale, useVisitor } from "@/components/providers";
 import { getLocalizedTitle } from "@/lib/content";
 import { blogPosts, talks } from "@/lib/data";
@@ -45,6 +47,7 @@ function AmbientGreeting() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTimeOfDay(getTimeOfDay());
     setMounted(true);
   }, []);
@@ -249,6 +252,7 @@ function WidgetGrid() {
         <BlogWidget />
       </div>
       <div className="space-y-4">
+        <WeatherWidget />
         <StatusWidget />
         <TalkWidget />
       </div>
@@ -295,7 +299,7 @@ function ScrambleIdentifier() {
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background">
+    <PageSurface>
       <main className="mx-auto max-w-[680px] px-6 pt-24 pb-32">
         {/* System identifier with scramble effect */}
         <ScrambleIdentifier />
@@ -306,6 +310,6 @@ export default function Home() {
         {/* Widget grid */}
         <WidgetGrid />
       </main>
-    </div>
+    </PageSurface>
   );
 }
