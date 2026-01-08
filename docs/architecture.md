@@ -10,9 +10,10 @@
 | Animations      | tw-animate-css          |
 | Command Palette | cmdk                    |
 | MDX             | next-mdx-remote         |
+| Data Fetching   | TanStack Query          |
 | Package Manager | pnpm                    |
 
-### Portability Rules (Technical Constraints)
+### Portability Rules
 
 ✅ **Always:**
 - Server components (build-time)
@@ -32,97 +33,75 @@ cursor/
 ├── app/                    # Next.js App Router pages
 │   ├── layout.tsx          # Root layout with providers
 │   ├── page.tsx            # Homepage
-│   ├── globals.css         # Tailwind + custom styles
-│   ├── blog/
-│   │   ├── page.tsx        # Blog list page
-│   │   ├── blog-list.tsx   # Client component for list
-│   │   └── [slug]/
-│   │       ├── page.tsx    # Static blog post page
-│   │       └── content.tsx # Client component for post
-│   ├── career/
-│   │   └── page.tsx
-│   └── talks/
-│       ├── page.tsx
-│       └── talks-list.tsx
+│   └── globals.css         # Tailwind + custom styles
 ├── components/
-│   ├── layout/
-│   │   ├── command-palette.tsx  # Command palette UI
-│   │   ├── fab.tsx              # Floating Action Button
-│   │   └── header.tsx           # (unused, kept for reference)
-│   ├── providers.tsx            # Global state providers
-│   └── mdx-components.tsx       # MDX component overrides
+│   ├── ambient/            # Weather widget, gradient background
+│   ├── debug/              # DevTool FAB and panel
+│   ├── layout/             # Command palette, FAB, page surface
+│   ├── providers.tsx       # Global state providers
+│   └── mdx-components.tsx  # MDX component overrides
 ├── content/
-│   ├── blog/                    # MDX blog posts
-│   └── talks/                   # MDX talk content
+│   ├── blog/               # MDX blog posts
+│   └── talks/              # MDX talk content
 ├── lib/
-│   ├── content.ts               # Content utilities
-│   ├── data.ts                  # Static data for search
-│   ├── i18n.ts                  # Translations
-│   ├── mdx.ts                   # MDX processing
-│   └── utils.ts                 # cn() and helpers
-└── docs/                        # This documentation
+│   ├── ambient/            # Location, weather, gradient logic
+│   ├── query.ts            # TanStack Query setup
+│   ├── content.ts          # Content utilities
+│   ├── i18n.ts             # Translations
+│   └── utils.ts            # cn() and helpers
+└── docs/                   # This documentation
 ```
 
 ## State Management
 
 All global state is managed via React Context in `components/providers.tsx`:
 
-### Theme Context
-```typescript
-interface ThemeContextType {
-  theme: "light" | "dark";
-  toggleTheme: () => void;
-}
 ```
-- **Initialization**: System preference via `matchMedia`
-- **Persistence**: Follows system (no localStorage)
-- **Application**: `document.documentElement.classList.toggle("dark")`
-
-### Locale Context
-```typescript
-interface LocaleContextType {
-  locale: "en" | "zh";
-  setLocale: (locale: Locale) => void;
-}
-```
-- **Initialization**: 
-  1. Check localStorage
-  2. If empty, detect from `navigator.language`
-  3. Store detected value for future visits
-- **Persistence**: localStorage
-
-### Command Palette Context
-```typescript
-interface CommandPaletteContextType {
-  isOpen: boolean;
-  isActionMode: boolean;
-  open: (actionMode?: boolean) => void;
-  close: () => void;
-  toggle: () => void;
-  setActionMode: (mode: boolean) => void;
-}
+┌─────────────────────────────────────────────────────────────────────┐
+│                     CONTEXT HIERARCHY                               │
+├─────────────────────────────────────────────────────────────────────┤
+│  QueryClientProvider (TanStack Query)                               │
+│  └── PersistQueryClientProvider                                     │
+│      └── ThemeContext (light/dark, system preference)               │
+│          └── LocaleContext (en/zh, localStorage)                    │
+│              └── VisitorContext (returning visitor tracking)        │
+│                  └── AmbientProviders                               │
+│                      ├── LocationContext (coordinates, mode)        │
+│                      ├── WeatherContext (weather, gradient)         │
+│                      └── DebugContext (DevTool FAB, panel)          │
+│                          └── CommandPaletteContext (open/close)     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Visitor Context
-```typescript
-interface LastVisitedItem {
-  slug: string;
-  title: string;
-  type: "blog" | "talk";
-}
+### Context Summary
 
-interface VisitorContextType {
-  lastVisited: LastVisitedItem | null;
-  lastVisitTime: number | null;
-  isReturningVisitor: boolean;
-  daysSinceLastVisit: number | null;
-  recordVisit: (item: LastVisitedItem) => void;
-  recordPageView: () => void;
-}
+| Context | Purpose | Persistence |
+|---------|---------|-------------|
+| Theme | Light/dark mode | System preference |
+| Locale | en/zh language | localStorage |
+| Visitor | Returning visitor detection | localStorage |
+| Location | GPS or IP-based coordinates | TanStack Query cache |
+| Weather | Weather data + gradient | TanStack Query cache |
+| Debug | DevTool FAB and panel visibility | localStorage |
+| CommandPalette | Open/close state | None (ephemeral) |
+
+### Data Architecture
+
+Server state (fetched data) and client state (preferences) are separated:
+
 ```
-- **Initialization**: Reads from localStorage on mount
-- **Persistence**: `hux_visitor` key in localStorage stores last visited item and timestamp
-- **Usage**: Powers the homepage's contextual greeting ("last time you were reading...")
+┌─────────────────────────────────────────────────────────────────────┐
+│           TanStack Query Cache (Server State)                       │
+│  • Location data (lat, lon, city)                                   │
+│  • Weather data (temp, condition, isDay)                            │
+│  • Auto-persisted to localStorage                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│           React Context (Client State)                              │
+│  • User preferences (locationMode, gradientEnabled)                 │
+│  • UI state (DevTool panel open)                                    │
+│  • Manually persisted to localStorage                               │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ## Rendering Strategy
 
@@ -134,175 +113,108 @@ interface VisitorContextType {
 | `/career` | Client-side |
 | `/talks` | Client-side |
 
-## Homepage Components
+## Homepage
 
-The homepage (`app/page.tsx`) is composed of inline components that create the AI-native OS experience:
+The homepage (`app/page.tsx`) creates an AI-native OS experience:
 
 ### AmbientGreeting
+
 Time-aware greeting that speaks to the user:
 - Detects time of day (morning/afternoon/evening/night)
 - Shows contextual message based on visitor history
 - Uses serif font for warmth
 
-### AmbientWeather (Location + Weather + Gradient)
-Environment-aware ambient system that powers:
-- **Location**: defaults to IP-based location (no permission), can be upgraded to **Accurate** via Web Geolocation API permission.
-- **Weather**: fetched from a no-key API (Open-Meteo) using the resolved coordinates.
-- **Weather gradient background**: maps weather → mood → subtle OKLCH gradients (route-configurable, enabled on `/` by default).
+### Widget System
 
-Implementation notes:
-- Ambient state lives in `components/providers.tsx` as `AmbientContext` (`useAmbient()`).
-- Route config is centralized in `lib/ambient/route-config.ts`.
-- Background renderer: `components/ambient/weather-gradient-background.tsx`.
-- Page background composability: `components/layout/page-surface.tsx` switches between `bg-background` and `bg-transparent` depending on whether gradient is active.
-- Local persistence:
-  - `hux_ambient_settings` stores user choices (location mode, gradient toggle).
-  - TTL caches store IP location and per-location weather snapshots.
+Bento-style CSS Grid with glassmorphic widgets:
 
-### WidgetGrid
-Bento-style CSS Grid with three widget types:
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                       WIDGET GRID                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌───────────────────────────────────┐ ┌─────────────────────────┐  │
+│  │                                   │ │      WeatherWidget      │  │
+│  │          BlogWidget               │ │  ┌───────────────────┐  │  │
+│  │  ┌─────────────────────────────┐  │ │  │ BEIJING           │  │  │
+│  │  │ Recent posts with dates     │  │ │  │ 23°          ⛅   │  │  │
+│  │  │ • Post title 1      Jan 5   │  │ │  │              Clear│  │  │
+│  │  │ • Post title 2      Jan 3   │  │ │  └───────────────────┘  │  │
+│  │  │ • Post title 3      Jan 1   │  │ └─────────────────────────┘  │
+│  │  └─────────────────────────────┘  │                              │
+│  │                        2x1 span   │ ┌─────────────────────────┐  │
+│  └───────────────────────────────────┘ │      StatusWidget       │  │
+│                                        │  ┌───────────────────┐  │  │
+│  ┌───────────────────────────────────┐ │  │ 🟢 Available      │  │  │
+│  │          TalkWidget               │ │  │    for work       │  │  │
+│  │  ┌─────────────────────────────┐  │ │  └───────────────────┘  │  │
+│  │  │ Latest talk with event      │  │ └─────────────────────────┘  │
+│  │  └─────────────────────────────┘  │                              │
+│  └───────────────────────────────────┘                              │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-| Widget | Content | Styling |
-|--------|---------|---------|
-| BlogWidget | 3 recent posts with dates | Large (2x1), glassmorphic |
-| StatusWidget | Current status with ping | Medium (1x1), green indicator |
-| TalkWidget | Latest talk with event | Medium (1x1), clickable |
+| Widget | Content | Size |
+|--------|---------|------|
+| BlogWidget | 3 recent posts with dates | Large (2x1) |
+| WeatherWidget | Location + temperature + condition | Medium (1x1) |
+| StatusWidget | Current availability with ping | Medium (1x1) |
+| TalkWidget | Latest talk with event | Medium (1x1) |
 
 ### ConversationalPrompt
+
 Inline button that opens the command palette:
 - Replaces FAB on homepage
 - "what brings you here?" placeholder
 - Shows ⌘K hint on desktop
 
-### Blog Post Generation
+## Key Systems
 
-```typescript
-// Static params generated at build time
-export function generateStaticParams() {
-  const slugs = getAllBlogSlugs();
-  return slugs.map((slug) => ({ slug }));
-}
+### Ambient System
 
-// MDX content read at build time, rendered client-side
-export default async function BlogPost({ params }) {
-  const content = await getBlogContent(params.slug);
-  return <BlogPostContent {...content} />;
-}
-```
+Environment-aware location + weather experience with gradient backgrounds.
 
-## i18n System
+See [Ambient System](./ambient-system.md).
 
-### Translation Keys
+### Content System
 
-All UI text is centralized in `lib/i18n.ts`:
+Bilingual MDX content with static generation.
 
-```typescript
-export const translations = {
-  en: { home: "Home", blog: "Blog", ... },
-  zh: { home: "首页", blog: "博客", ... },
-};
+See [Content System](./content-system.md).
 
-export function t(locale: Locale, key: TranslationKey): string {
-  return translations[locale][key];
-}
-```
+### DevTool
 
-### Content Language
+Floating debug panel for development and weather testing.
 
-**Language is derived from filename, not frontmatter.** Files must follow the `[slug].[lang].mdx` convention:
+See [DevTool](./devtool.md).
 
-```
-content/blog/
-├── my-post.en.mdx              # English only → language: "en"
-├── another-post.zh.mdx         # Chinese only → language: "zh"
-├── bilingual-post.en.mdx       # Both exist → language: "both"
-├── bilingual-post.zh.mdx
-└── some-post/                  # Directory-based (for posts with assets)
-    ├── index.en.mdx
-    ├── index.zh.mdx
-    └── diagram.png
-```
+### i18n System
 
-| File Structure | Derived Language | Behavior |
-|----------------|------------------|----------|
-| `slug.en.mdx` only | `"en"` | English-only post |
-| `slug.zh.mdx` only | `"zh"` | Chinese-only post |
-| `slug.en.mdx` + `slug.zh.mdx` | `"both"` | True bilingual post |
+Bilingual support (English/Chinese):
+- UI text: centralized in `lib/i18n.ts`
+- Content: filename-based language detection (`*.en.mdx`, `*.zh.mdx`)
+- Locale switching: persisted to localStorage
 
-**Bilingual Post URL Behavior:**
-- Base URL `/blog/slug` uses system locale
-- Shareable URL `/blog/slug?lang=zh` forces specific language
-- When `?lang=` conflicts with system locale, a dialog asks user to choose
+### Command Palette
 
-| Post Type | English UI | Chinese UI |
-|-----------|------------|------------|
-| English-only | Shown | Hidden (checkbox to include) |
-| Chinese-only | Hidden (checkbox to include) | Shown |
-| Bilingual | Primary: EN, "Also in 中文" | Primary: ZH, "Also in English" |
+Built on `cmdk` library:
+- **Dual-mode**: Search mode and action mode
+- **Keyboard-first**: ⌘K to open, single-letter shortcuts
+- **Grouped results**: Navigation, Settings, Blog, Talks
 
-The `shouldShowPost()` utility filters posts based on current locale and user preference.
-The `validateBlogContent()` function validates file naming during build.
+### CSS Architecture
 
-## CSS Architecture
+Using Tailwind CSS v4:
+- `@import "tailwindcss"` syntax
+- `@custom-variant dark` for dark mode
+- CSS Grid animations for smooth height transitions
 
-### Tailwind v4
+## Related Documentation
 
-Using new Tailwind v4 syntax:
-
-```css
-@import "tailwindcss";
-@custom-variant dark (&:is(.dark *));
-@theme inline { ... }
-```
-
-### Custom Utilities
-
-- `.prose-article`: Blog post typography (see `globals.css`)
-- CSS Grid animations for height transitions
-
-### Animation Pattern
-
-Height animations use CSS Grid instead of `height: auto`:
-
-```css
-.grid { grid-template-rows: 0fr; }  /* collapsed */
-.grid { grid-template-rows: 1fr; }  /* expanded */
-```
-
-This allows smooth transitions where `height: auto` cannot animate.
-
-## Command Palette Implementation
-
-Built on `cmdk` library with custom styling:
-
-### Key Features
-
-1. **Dual-mode operation**: Search mode and action mode
-2. **Morphing transitions**: Smooth animation between modes
-3. **Fuzzy search**: Built into cmdk
-4. **Keyboard-first**: All actions accessible via keyboard
-5. **Grouped results**: Navigation, Settings, Blog, Talks
-
-### Event Handling
-
-```typescript
-// Global shortcuts (in providers.tsx)
-- ⌘K: Toggle palette
-- /: Open in action mode
-- Escape: Close
-
-// Search mode shortcuts (in command-palette.tsx)
-- Single letters (H/E/B/T/A/L): Execute action when input empty
-- /: Switch to action mode
-
-// Action mode shortcuts (in command-palette.tsx)
-- Single letters: Execute action
-- Backspace: Back to search mode
-```
-
-## Performance Considerations
-
-1. **Static generation**: Blog posts pre-rendered at build time
-2. **Client hydration**: Interactive features added client-side
-3. **No layout shifts**: Consistent sizing prevents CLS
-4. **Lazy MDX**: Content serialized on-demand in useEffect
+- [Ambient System](./ambient-system.md) - Location, weather, and gradient
+- [Content System](./content-system.md) - MDX, i18n, and static generation
+- [DevTool](./devtool.md) - Debug panel and weather testing
+- [React Engineering](./react-engineering.md) - React patterns and conventions
+- [Design System](./design-system.md) - Visual design language
+- [Design Philosophy](./design-philosophy.md) - Product design rationale

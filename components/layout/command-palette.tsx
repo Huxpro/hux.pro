@@ -1,10 +1,12 @@
 "use client";
 
 import {
-  useAmbient,
   useCommandPalette,
+  useDebug,
   useLocale,
+  useLocation,
   useTheme,
+  useWeather,
 } from "@/components/providers";
 import { getLocalizedDescription, getLocalizedTitle } from "@/lib/content";
 import { blogPosts, talks } from "@/lib/data";
@@ -13,9 +15,9 @@ import { cn } from "@/lib/utils";
 import { Command } from "cmdk";
 import {
   Briefcase,
+  Bug,
   FileText,
   Hash,
-  Bug,
   Home,
   Languages,
   MapPin,
@@ -33,13 +35,10 @@ export function CommandPalette() {
   const { isOpen, isActionMode, close, setActionMode } = useCommandPalette();
   const { theme, toggleTheme } = useTheme();
   const { locale, setLocale } = useLocale();
-  const {
-    settings: ambientSettings,
-    setLocationMode,
-    setWeatherGradientEnabled,
-    setDebugFabEnabled,
-    requestAccurateLocation,
-  } = useAmbient();
+  const { locationMode, setLocationMode, requestAccurateLocation } =
+    useLocation();
+  const { isGradientEnabled, setGradientEnabled } = useWeather();
+  const { isFABEnabled, setFABEnabled } = useDebug();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState("");
@@ -170,14 +169,14 @@ export function CommandPalette() {
     {
       key: "g",
       label: `${t(locale, "settingsGeolocation")}: ${
-        ambientSettings.locationMode === "accurate"
+        locationMode === "accurate"
           ? t(locale, "locationAccurate")
           : t(locale, "locationIp")
       }`,
       icon: <MapPin className="h-4 w-4" />,
       onSelect: async () => {
         // Correct behavior: IP -> request accurate; Accurate -> switch back to IP
-        if (ambientSettings.locationMode === "ip") {
+        if (locationMode === "ip") {
           await requestAccurateLocation();
         } else {
           setLocationMode("ip");
@@ -189,13 +188,11 @@ export function CommandPalette() {
     {
       key: "w",
       label: `${t(locale, "settingsWeatherGradient")}: ${
-        ambientSettings.weatherGradientEnabled
-          ? t(locale, "stateOn")
-          : t(locale, "stateOff")
+        isGradientEnabled ? t(locale, "stateOn") : t(locale, "stateOff")
       }`,
       icon: <Waves className="h-4 w-4" />,
       onSelect: () => {
-        setWeatherGradientEnabled(!ambientSettings.weatherGradientEnabled);
+        setGradientEnabled(!isGradientEnabled);
         close();
       },
       section: "settings",
@@ -203,11 +200,11 @@ export function CommandPalette() {
     {
       key: "d",
       label: `${t(locale, "settingsDebugPanel")}: ${
-        ambientSettings.debugFabEnabled ? t(locale, "stateOn") : t(locale, "stateOff")
+        isFABEnabled ? t(locale, "stateOn") : t(locale, "stateOff")
       }`,
       icon: <Bug className="h-4 w-4" />,
       onSelect: () => {
-        setDebugFabEnabled(!ambientSettings.debugFabEnabled);
+        setFABEnabled(!isFABEnabled);
         close();
       },
       section: "settings",
@@ -258,7 +255,7 @@ export function CommandPalette() {
           return;
         case "g":
           void (async () => {
-            if (ambientSettings.locationMode === "ip") {
+            if (locationMode === "ip") {
               await requestAccurateLocation();
             } else {
               setLocationMode("ip");
@@ -267,11 +264,11 @@ export function CommandPalette() {
           })();
           return;
         case "w":
-          setWeatherGradientEnabled(!ambientSettings.weatherGradientEnabled);
+          setGradientEnabled(!isGradientEnabled);
           close();
           return;
         case "d":
-          setDebugFabEnabled(!ambientSettings.debugFabEnabled);
+          setFABEnabled(!isFABEnabled);
           close();
           return;
       }
@@ -288,13 +285,13 @@ export function CommandPalette() {
     close,
     setLocale,
     locale,
-    ambientSettings.locationMode,
-    ambientSettings.weatherGradientEnabled,
-    ambientSettings.debugFabEnabled,
+    locationMode,
+    isGradientEnabled,
+    isFABEnabled,
     requestAccurateLocation,
     setLocationMode,
-    setWeatherGradientEnabled,
-    setDebugFabEnabled,
+    setGradientEnabled,
+    setFABEnabled,
   ]);
 
   // Handle keyboard shortcuts in search mode
@@ -334,7 +331,8 @@ export function CommandPalette() {
   return (
     <div
       className={cn(
-        "z-50 flex items-start justify-center pt-[20vh]",
+        // z-[60] to appear above FAB (z-50) and Debug FAB (z-50)
+        "z-[60] flex items-start justify-center pt-[20vh]",
         isIOS ? "absolute inset-x-0" : "fixed inset-0"
       )}
       style={isIOS ? { top: scrollPosition, height: "100dvh" } : undefined}
@@ -616,7 +614,7 @@ export function CommandPalette() {
                       "精确",
                     ]}
                     onSelect={async () => {
-                      if (ambientSettings.locationMode === "ip") {
+                      if (locationMode === "ip") {
                         await requestAccurateLocation();
                       } else {
                         setLocationMode("ip");
@@ -632,7 +630,7 @@ export function CommandPalette() {
                     <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">
                       {t(locale, "settingsGeolocation")}:{" "}
-                      {ambientSettings.locationMode === "accurate"
+                      {locationMode === "accurate"
                         ? t(locale, "locationAccurate")
                         : t(locale, "locationIp")}
                     </span>
@@ -652,11 +650,7 @@ export function CommandPalette() {
                       "渐变",
                       "背景",
                     ]}
-                    onSelect={() =>
-                      setWeatherGradientEnabled(
-                        !ambientSettings.weatherGradientEnabled
-                      )
-                    }
+                    onSelect={() => setGradientEnabled(!isGradientEnabled)}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                       "text-sm cursor-pointer transition-colors",
@@ -667,7 +661,7 @@ export function CommandPalette() {
                     <Waves className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">
                       {t(locale, "settingsWeatherGradient")}:{" "}
-                      {ambientSettings.weatherGradientEnabled
+                      {isGradientEnabled
                         ? t(locale, "stateOn")
                         : t(locale, "stateOff")}
                     </span>
@@ -687,7 +681,7 @@ export function CommandPalette() {
                       "调试",
                       "调试面板",
                     ]}
-                    onSelect={() => setDebugFabEnabled(!ambientSettings.debugFabEnabled)}
+                    onSelect={() => setFABEnabled(!isFABEnabled)}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                       "text-sm cursor-pointer transition-colors",
@@ -698,7 +692,7 @@ export function CommandPalette() {
                     <Bug className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">
                       {t(locale, "settingsDebugPanel")}:{" "}
-                      {ambientSettings.debugFabEnabled
+                      {isFABEnabled
                         ? t(locale, "stateOn")
                         : t(locale, "stateOff")}
                     </span>

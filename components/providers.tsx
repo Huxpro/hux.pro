@@ -1,25 +1,41 @@
 "use client";
 
+import { getWeatherGradient } from "@/lib/ambient/gradient";
+import type { LocationMode, ResolvedLocation } from "@/lib/ambient/location";
+import { requestAccurateLocation } from "@/lib/ambient/location";
+import { useLocationQuery, useWeatherQuery } from "@/lib/ambient/queries";
+import {
+  type AmbientSettings,
+  getAmbientSettings,
+  setAmbientSettings,
+} from "@/lib/ambient/settings";
+import type {
+  NormalizedWeather,
+  WeatherCondition,
+} from "@/lib/ambient/weather";
 import {
   type Locale,
   defaultLocale,
   getStoredLocale,
   setStoredLocale,
 } from "@/lib/i18n";
-import type { LocationMode, ResolvedLocation } from "@/lib/ambient/location";
-import { fetchIpLocation, requestAccurateLocation } from "@/lib/ambient/location";
-import type { NormalizedWeather } from "@/lib/ambient/weather";
-import { fetchCurrentWeather } from "@/lib/ambient/weather";
-import { getStoredWithExpiry, setStoredWithExpiry } from "@/lib/ambient/storage";
+import { queryClient, queryPersister } from "@/lib/query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
-// Theme context
+// =============================================================================
+// Theme Context
+// Manages light/dark theme based on system preference
+// =============================================================================
+
 interface ThemeContextType {
   theme: "light" | "dark";
   toggleTheme: () => void;
@@ -33,7 +49,11 @@ export function useTheme() {
   return context;
 }
 
-// Locale context
+// =============================================================================
+// Locale Context
+// Manages i18n locale (en/zh) with localStorage persistence
+// =============================================================================
+
 interface LocaleContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
@@ -47,7 +67,11 @@ export function useLocale() {
   return context;
 }
 
-// Command palette context
+// =============================================================================
+// Command Palette Context
+// Controls the command palette open/close state and mode
+// =============================================================================
+
 interface CommandPaletteContextType {
   isOpen: boolean;
   isActionMode: boolean;
@@ -68,52 +92,11 @@ export function useCommandPalette() {
   return context;
 }
 
-// Ambient context (location + weather)
-export type AmbientSettings = {
-  locationMode: LocationMode;
-  weatherEnabled: boolean;
-  weatherGradientEnabled: boolean;
-  debugFabEnabled: boolean;
-};
+// =============================================================================
+// Visitor Context
+// Tracks returning visitors and last-read content for personalized greetings
+// =============================================================================
 
-export type AmbientState = {
-  settings: AmbientSettings;
-  location: ResolvedLocation | null;
-  weather: NormalizedWeather | null;
-  debugWeatherOverride: Pick<NormalizedWeather, "condition" | "isDay"> | null;
-  debugWeatherOverrideEnabled: boolean;
-  debugPanelOpen: boolean;
-  hasAttemptedLocation: boolean;
-  hasAttemptedWeather: boolean;
-  isResolvingLocation: boolean;
-  isFetchingWeather: boolean;
-  error: string | null;
-};
-
-export type AmbientActions = {
-  setLocationMode: (mode: LocationMode) => void;
-  setWeatherGradientEnabled: (enabled: boolean) => void;
-  setDebugFabEnabled: (enabled: boolean) => void;
-  setDebugPanelOpen: (open: boolean) => void;
-  setDebugWeatherOverride: (
-    override: Pick<NormalizedWeather, "condition" | "isDay"> | null
-  ) => void;
-  setDebugWeatherOverrideEnabled: (enabled: boolean) => void;
-  refresh: () => void;
-  requestAccurateLocation: () => Promise<boolean>;
-};
-
-type AmbientContextType = AmbientState & AmbientActions;
-
-const AmbientContext = createContext<AmbientContextType | undefined>(undefined);
-
-export function useAmbient() {
-  const context = useContext(AmbientContext);
-  if (!context) throw new Error("useAmbient must be used within Providers");
-  return context;
-}
-
-// Visitor context for tracking visits and last read content
 export interface LastVisitedItem {
   slug: string;
   title: string;
@@ -137,18 +120,118 @@ export function useVisitor() {
   return context;
 }
 
-const VISITOR_STORAGE_KEY = "hux_visitor";
-const AMBIENT_SETTINGS_KEY = "hux_ambient_settings";
-const AMBIENT_IP_LOCATION_CACHE_KEY = "hux_ambient_ip_location_cache";
-const AMBIENT_WEATHER_CACHE_KEY = "hux_ambient_weather_cache";
+// =============================================================================
+// Location Context
+// Exposes location data from React Query with mode switching
+// =============================================================================
 
-const IP_LOCATION_TTL_MS = 24 * 60 * 60 * 1000;
-const WEATHER_TTL_MS = 45 * 60 * 1000;
-
-function getWeatherCacheKey(lat: number, lon: number): string {
-  // Round to ~1km resolution to avoid cache fragmentation while still being “correct enough”.
-  return `${AMBIENT_WEATHER_CACHE_KEY}:${lat.toFixed(2)},${lon.toFixed(2)}`;
+interface LocationContextType {
+  /** Current location mode: "ip" (default) or "accurate" (GPS) */
+  locationMode: LocationMode;
+  /** Resolved location coordinates and metadata */
+  location: ResolvedLocation | null;
+  /** True during initial load (no data yet) */
+  isLoading: boolean;
+  /** True during background refetch (has stale data) */
+  isFetching: boolean;
+  /** Error message if location resolution failed */
+  error: string | null;
+  /** Switch location mode (IP ↔ Accurate) */
+  setLocationMode: (mode: LocationMode) => void;
+  /** Request accurate location with user permission prompt */
+  requestAccurateLocation: () => Promise<boolean>;
 }
+
+const LocationContext = createContext<LocationContextType | undefined>(
+  undefined
+);
+
+export function useLocation() {
+  const context = useContext(LocationContext);
+  if (!context) throw new Error("useLocation must be used within Providers");
+  return context;
+}
+
+// =============================================================================
+// Debug Context
+// Controls the debug FAB and panel visibility
+// =============================================================================
+
+interface DebugContextType {
+  /** Whether the debug FAB is visible */
+  isFABEnabled: boolean;
+  /** Whether the debug panel is currently open */
+  isOpen: boolean;
+  /** Toggle panel open/close */
+  toggle: () => void;
+  /** Open the panel */
+  open: () => void;
+  /** Close the panel */
+  close: () => void;
+  /** Toggle FAB visibility */
+  toggleFAB: () => void;
+  /** Set FAB enabled state directly */
+  setFABEnabled: (enabled: boolean) => void;
+}
+
+const DebugContext = createContext<DebugContextType | undefined>(undefined);
+
+export function useDebug() {
+  const context = useContext(DebugContext);
+  if (!context) throw new Error("useDebug must be used within Providers");
+  return context;
+}
+
+// =============================================================================
+// Weather Context
+// Exposes weather data from React Query with gradient computation
+// =============================================================================
+
+interface WeatherDebugOverride {
+  condition: WeatherCondition;
+  isDay: boolean;
+}
+
+interface WeatherContextType {
+  /** Current weather data (null if not yet fetched or error) */
+  weather: NormalizedWeather | null;
+  /** Computed gradient CSS based on weather/override and theme */
+  gradient: string;
+  /** True during initial load */
+  isLoading: boolean;
+  /** True during background refetch */
+  isFetching: boolean;
+  /** Error message if weather fetch failed */
+  error: string | null;
+  /** Whether weather gradient background is enabled */
+  isGradientEnabled: boolean;
+  /** Toggle weather gradient background */
+  setGradientEnabled: (enabled: boolean) => void;
+  /** Whether debug override is active */
+  isOverrideEnabled: boolean;
+  /** Toggle override enabled state */
+  setOverrideEnabled: (enabled: boolean) => void;
+  /** Current debug override values */
+  debugOverride: WeatherDebugOverride | null;
+  /** Set debug override values */
+  setDebugOverride: (override: WeatherDebugOverride | null) => void;
+  /** Force refresh weather data */
+  refresh: () => void;
+}
+
+const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
+
+export function useWeather() {
+  const context = useContext(WeatherContext);
+  if (!context) throw new Error("useWeather must be used within Providers");
+  return context;
+}
+
+// =============================================================================
+// Visitor Storage Helpers
+// =============================================================================
+
+const VISITOR_STORAGE_KEY = "hux_visitor";
 
 interface VisitorStorage {
   lastVisited: LastVisitedItem | null;
@@ -170,361 +253,158 @@ function setVisitorStorage(data: VisitorStorage): void {
   localStorage.setItem(VISITOR_STORAGE_KEY, JSON.stringify(data));
 }
 
-function getAmbientSettings(): AmbientSettings {
-  const devDefault = process.env.NODE_ENV === "development";
-  if (typeof window === "undefined") {
-    return {
-      locationMode: "ip",
-      weatherEnabled: true,
-      weatherGradientEnabled: true,
-      debugFabEnabled: devDefault,
-    };
-  }
-  try {
-    const stored = localStorage.getItem(AMBIENT_SETTINGS_KEY);
-    if (!stored) {
-      return {
-        locationMode: "ip",
-        weatherEnabled: true,
-        weatherGradientEnabled: true,
-        debugFabEnabled: devDefault,
-      };
-    }
-    const parsed = JSON.parse(stored) as Partial<AmbientSettings> & {
-      // Backwards compat (previous key)
-      weatherDebugEnabled?: boolean;
-      debugPanelEnabled?: boolean;
-    };
-    const locationMode: LocationMode =
-      parsed.locationMode === "accurate" ? "accurate" : "ip";
-    const weatherEnabled = parsed.weatherEnabled !== false;
-    const weatherGradientEnabled = parsed.weatherGradientEnabled !== false;
-    const debugFabEnabled =
-      parsed.debugFabEnabled === true ||
-      parsed.debugPanelEnabled === true ||
-      parsed.weatherDebugEnabled === true;
-    return { locationMode, weatherEnabled, weatherGradientEnabled, debugFabEnabled };
-  } catch {
-    return {
-      locationMode: "ip",
-      weatherEnabled: true,
-      weatherGradientEnabled: true,
-      debugFabEnabled: devDefault,
-    };
-  }
-}
+// =============================================================================
+// AmbientProviders - Inner component that uses React Query
+// Must be rendered inside QueryClientProvider
+// =============================================================================
 
-function setAmbientSettings(settings: AmbientSettings): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(AMBIENT_SETTINGS_KEY, JSON.stringify(settings));
-  } catch {
-    // ignore
-  }
-}
+function AmbientProviders({
+  children,
+  settings,
+  updateSettings,
+  theme,
+  isCommandOpen,
+}: {
+  children: React.ReactNode;
+  settings: AmbientSettings;
+  updateSettings: (partial: Partial<AmbientSettings>) => void;
+  theme: "light" | "dark";
+  isCommandOpen: boolean;
+}) {
+  // ---------------------------------------------------------------------------
+  // Debug State (ephemeral)
+  // ---------------------------------------------------------------------------
+  const [isDebugOpen, setIsDebugOpen] = useState(false);
+  const [debugOverride, setDebugOverride] =
+    useState<WeatherDebugOverride | null>(null);
+  const [isOverrideEnabled, setIsOverrideEnabled] = useState(false);
 
-export function Providers({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [locale, setLocaleState] = useState<Locale>(defaultLocale);
-  const [isCommandOpen, setIsCommandOpen] = useState(false);
-  const [isActionMode, setIsActionMode] = useState(false);
-  const [lastVisited, setLastVisited] = useState<LastVisitedItem | null>(null);
-  const [lastVisitTime, setLastVisitTime] = useState<number | null>(null);
-  const [isReturningVisitor, setIsReturningVisitor] = useState(false);
-  const [ambientSettings, setAmbientSettingsState] = useState<AmbientSettings>({
-    locationMode: "ip",
-    weatherEnabled: true,
-    weatherGradientEnabled: true,
-    debugFabEnabled: false,
-  });
-  const [ambientLocation, setAmbientLocation] = useState<ResolvedLocation | null>(
-    null
-  );
-  const [ambientWeather, setAmbientWeather] = useState<NormalizedWeather | null>(
-    null
-  );
-  const [debugWeatherOverride, setDebugWeatherOverride] = useState<
-    Pick<NormalizedWeather, "condition" | "isDay"> | null
-  >(null);
-  const [debugWeatherOverrideEnabled, setDebugWeatherOverrideEnabled] =
-    useState(false);
-  const [debugPanelOpen, setDebugPanelOpen] = useState(false);
-  const [hasAttemptedLocation, setHasAttemptedLocation] = useState(false);
-  const [hasAttemptedWeather, setHasAttemptedWeather] = useState(false);
-  const [isResolvingLocation, setIsResolvingLocation] = useState(false);
-  const [isFetchingWeather, setIsFetchingWeather] = useState(false);
-  const [ambientError, setAmbientError] = useState<string | null>(null);
+  // ===========================================================================
+  // Location (React Query)
+  // ===========================================================================
 
-  // Initialize theme from system preference
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const updateTheme = () => {
-      setTheme(mediaQuery.matches ? "dark" : "light");
-    };
-    // Set initial theme
-    updateTheme();
-    // Listen for system theme changes
-    mediaQuery.addEventListener("change", updateTheme);
-    return () => mediaQuery.removeEventListener("change", updateTheme);
-  }, []);
-
-  // Apply theme class
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
-
-  // Initialize locale
-  useEffect(() => {
-    setTimeout(() => setLocaleState(getStoredLocale()), 0);
-  }, []);
-
-  // Initialize ambient settings and cache
-  useEffect(() => {
-    const settings = getAmbientSettings();
-    setAmbientSettingsState(settings);
-    const cachedIp = getStoredWithExpiry<ResolvedLocation>(AMBIENT_IP_LOCATION_CACHE_KEY);
-    if (cachedIp) setAmbientLocation(cachedIp);
-    if (cachedIp) {
-      const cachedWeather = getStoredWithExpiry<NormalizedWeather>(
-        getWeatherCacheKey(cachedIp.lat, cachedIp.lon)
-      );
-      if (cachedWeather) setAmbientWeather(cachedWeather);
-    }
-  }, []);
-
-  // Initialize visitor context from localStorage
-  useEffect(() => {
-    const stored = getVisitorStorage();
-    if (stored) {
-      setLastVisited(stored.lastVisited);
-      setLastVisitTime(stored.lastVisitTime);
-      setIsReturningVisitor(true);
-    }
-  }, []);
-
-  // Calculate days since last visit
-  const daysSinceLastVisit = lastVisitTime
-    ? Math.floor((Date.now() - lastVisitTime) / (1000 * 60 * 60 * 24))
-    : null;
-
-  // Record a content visit (blog post or talk)
-  const recordVisit = useCallback((item: LastVisitedItem) => {
-    setLastVisited(item);
-    const now = Date.now();
-    setLastVisitTime(now);
-    setVisitorStorage({ lastVisited: item, lastVisitTime: now });
-  }, []);
-
-  // Record a page view (updates last visit time)
-  const recordPageView = useCallback(() => {
-    const now = Date.now();
-    const stored = getVisitorStorage();
-    setVisitorStorage({
-      lastVisited: stored?.lastVisited || null,
-      lastVisitTime: now,
-    });
-  }, []);
-
-  const toggleTheme = useCallback(() => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
-  }, []);
-
-  const setLocale = useCallback((newLocale: Locale) => {
-    setLocaleState(newLocale);
-    setStoredLocale(newLocale);
-  }, []);
-
-  const persistAmbientSettings = useCallback((next: AmbientSettings) => {
-    setAmbientSettingsState(next);
-    setAmbientSettings(next);
-  }, []);
-
-  // Clear in-memory data so dependent UI (e.g. WeatherWidget) can show a spinner
-  // and refetch. LocalStorage TTL caches remain intact.
-  const resetWeatherDataForReload = useCallback(() => {
-    setAmbientError(null);
-    setAmbientWeather(null);
-    setHasAttemptedWeather(false);
-  }, []);
+  const locationQuery = useLocationQuery(settings.locationMode);
 
   const setLocationMode = useCallback(
     (mode: LocationMode) => {
-      if (mode === ambientSettings.locationMode) return;
-      // Show “reload” affordance when switching location source (IP ↔ Accurate)
-      resetWeatherDataForReload();
-      // Location will be re-resolved by the ambient effect
-      setAmbientLocation(null);
-      persistAmbientSettings({ ...ambientSettings, locationMode: mode });
+      if (mode === settings.locationMode) return;
+      updateSettings({ locationMode: mode });
+      // React Query will automatically refetch due to query key change
     },
-    [ambientSettings, persistAmbientSettings, resetWeatherDataForReload]
+    [settings.locationMode, updateSettings]
   );
 
-  const setWeatherGradientEnabled = useCallback(
-    (enabled: boolean) => {
-      persistAmbientSettings({ ...ambientSettings, weatherGradientEnabled: enabled });
-    },
-    [ambientSettings, persistAmbientSettings]
-  );
-
-  const setDebugFabEnabled = useCallback(
-    (enabled: boolean) => {
-      persistAmbientSettings({ ...ambientSettings, debugFabEnabled: enabled });
-      if (!enabled) setDebugPanelOpen(false);
-    },
-    [ambientSettings, persistAmbientSettings]
-  );
-
-  const refresh = useCallback(() => {
-    // force re-fetch by clearing in-memory state; TTL caches will be overwritten
-    setAmbientLocation(null);
-    setAmbientWeather(null);
-  }, []);
-
-  const resolveLocation = useCallback(
-    async (mode: LocationMode): Promise<ResolvedLocation | null> => {
-      setHasAttemptedLocation(true);
-      setAmbientError(null);
-      setIsResolvingLocation(true);
+  const requestAccurateLocationAction =
+    useCallback(async (): Promise<boolean> => {
       try {
-        if (mode === "accurate") {
-          try {
-            const loc = await requestAccurateLocation();
-            setAmbientLocation(loc);
-            return loc;
-          } catch {
-            // Permission denied / unavailable → fallback to IP
-            // Keep settings honest: if accurate fails, switch back to IP.
-            persistAmbientSettings({ ...ambientSettings, locationMode: "ip" });
-            const ipLoc =
-              getStoredWithExpiry<ResolvedLocation>(AMBIENT_IP_LOCATION_CACHE_KEY) ??
-              (await fetchIpLocation());
-            setAmbientLocation(ipLoc);
-            setStoredWithExpiry(AMBIENT_IP_LOCATION_CACHE_KEY, ipLoc, IP_LOCATION_TTL_MS);
-            return ipLoc;
-          }
-        }
-
-        const cached =
-          getStoredWithExpiry<ResolvedLocation>(AMBIENT_IP_LOCATION_CACHE_KEY) ??
-          null;
-        if (cached) {
-          setAmbientLocation(cached);
-          return cached;
-        }
-        const ipLoc = await fetchIpLocation();
-        setAmbientLocation(ipLoc);
-        setStoredWithExpiry(AMBIENT_IP_LOCATION_CACHE_KEY, ipLoc, IP_LOCATION_TTL_MS);
-        return ipLoc;
-      } catch (e) {
-        setAmbientError(e instanceof Error ? e.message : "Failed to resolve location");
-        return null;
-      } finally {
-        setIsResolvingLocation(false);
+        // Request permission and get location
+        await requestAccurateLocation();
+        // If successful, switch to accurate mode
+        updateSettings({ locationMode: "accurate" });
+        return true;
+      } catch {
+        // Fall back to IP mode
+        updateSettings({ locationMode: "ip" });
+        return false;
       }
-    },
-    [ambientSettings, persistAmbientSettings]
-  );
+    }, [updateSettings]);
 
-  const fetchWeatherFor = useCallback(async (loc: ResolvedLocation) => {
-    setHasAttemptedWeather(true);
-    setAmbientError(null);
-    setIsFetchingWeather(true);
-    try {
-      const cacheKey = getWeatherCacheKey(loc.lat, loc.lon);
-      const cached = getStoredWithExpiry<NormalizedWeather>(cacheKey);
-      if (cached) {
-        setAmbientWeather(cached);
-        return cached;
-      }
-      const w = await fetchCurrentWeather(loc.lat, loc.lon);
-      setAmbientWeather(w);
-      setStoredWithExpiry(cacheKey, w, WEATHER_TTL_MS);
-      return w;
-    } catch (e) {
-      setAmbientError(e instanceof Error ? e.message : "Failed to fetch weather");
-      return null;
-    } finally {
-      setIsFetchingWeather(false);
-    }
+  // ===========================================================================
+  // Weather (React Query)
+  // ===========================================================================
+
+  const weatherQuery = useWeatherQuery(locationQuery.data);
+
+  const refreshWeather = useCallback(() => {
+    // Invalidate both queries to force refetch
+    queryClient.invalidateQueries({ queryKey: ["location"] });
+    queryClient.invalidateQueries({ queryKey: ["weather"] });
   }, []);
 
-  // Keep ambient data up-to-date
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      if (!ambientSettings.weatherEnabled) return;
-      const loc = ambientLocation ?? (await resolveLocation(ambientSettings.locationMode));
-      if (cancelled || !loc) return;
-      await fetchWeatherFor(loc);
-    };
-    run();
-    return () => {
-      cancelled = true;
-    };
+  // Compute gradient based on weather (or debug override) and theme
+  const computedGradient = useMemo(() => {
+    if (!settings.weatherGradientEnabled) return "";
+
+    // Use debug override if enabled
+    if (isOverrideEnabled && debugOverride) {
+      return getWeatherGradient({
+        condition: debugOverride.condition,
+        isDay: debugOverride.isDay,
+        theme,
+      }).backgroundImage;
+    }
+
+    // Use actual weather
+    const weather = weatherQuery.data;
+    if (weather) {
+      return getWeatherGradient({
+        condition: weather.condition,
+        isDay: weather.isDay,
+        theme,
+      }).backgroundImage;
+    }
+
+    return "";
   }, [
-    ambientSettings.locationMode,
-    ambientSettings.weatherEnabled,
-    ambientLocation,
-    resolveLocation,
-    fetchWeatherFor,
+    settings.weatherGradientEnabled,
+    isOverrideEnabled,
+    debugOverride,
+    weatherQuery.data,
+    theme,
   ]);
 
-  const requestAccurateLocationAction = useCallback(async (): Promise<boolean> => {
-    setAmbientError(null);
-    try {
-      resetWeatherDataForReload();
-      const loc = await requestAccurateLocation();
-      setAmbientLocation(loc);
-      // Enable accurate mode once permission succeeds
-      persistAmbientSettings({ ...ambientSettings, locationMode: "accurate" });
-      await fetchWeatherFor(loc);
-      return true;
-    } catch (e) {
-      setAmbientError(e instanceof Error ? e.message : "Geolocation permission denied");
-      // Fall back to IP mode
-      persistAmbientSettings({ ...ambientSettings, locationMode: "ip" });
-      return false;
+  const setGradientEnabled = useCallback(
+    (enabled: boolean) => {
+      updateSettings({ weatherGradientEnabled: enabled });
+    },
+    [updateSettings]
+  );
+
+  // ===========================================================================
+  // Debug Panel Controls
+  // ===========================================================================
+
+  const toggleDebugFAB = useCallback(() => {
+    const newEnabled = !settings.debugFabEnabled;
+    updateSettings({ debugFabEnabled: newEnabled });
+    if (!newEnabled) setIsDebugOpen(false);
+  }, [settings.debugFabEnabled, updateSettings]);
+
+  const setDebugFABEnabled = useCallback(
+    (enabled: boolean) => {
+      updateSettings({ debugFabEnabled: enabled });
+      if (!enabled) setIsDebugOpen(false);
+    },
+    [updateSettings]
+  );
+
+  const toggleDebug = useCallback(() => {
+    if (settings.debugFabEnabled) {
+      setIsDebugOpen((prev) => !prev);
     }
-  }, [ambientSettings, persistAmbientSettings, fetchWeatherFor, resetWeatherDataForReload]);
+  }, [settings.debugFabEnabled]);
 
-  const openCommand = useCallback((actionMode = false) => {
-    setIsCommandOpen(true);
-    setIsActionMode(actionMode);
-  }, []);
-  const closeCommand = useCallback(() => {
-    setIsCommandOpen(false);
-    setIsActionMode(false);
-  }, []);
-  const toggleCommand = useCallback(() => {
-    setIsCommandOpen((prev) => {
-      if (prev) setIsActionMode(false);
-      return !prev;
-    });
+  const openDebug = useCallback(() => {
+    if (settings.debugFabEnabled) {
+      setIsDebugOpen(true);
+    }
+  }, [settings.debugFabEnabled]);
+
+  const closeDebug = useCallback(() => {
+    setIsDebugOpen(false);
   }, []);
 
-  // Global keyboard shortcuts
+  // ===========================================================================
+  // Debug Panel Keyboard Shortcut (D key)
+  // ===========================================================================
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts when typing in input fields (except for command palette)
       const target = e.target as HTMLElement;
       const isInputField =
         target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
         target.isContentEditable;
-
-      // ⌘K to toggle command palette (search mode)
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        toggleCommand();
-        return;
-      }
-
-      // "/" to open command palette in action mode (when not in input field)
-      if (e.key === "/" && !isInputField && !isCommandOpen) {
-        e.preventDefault();
-        openCommand(true);
-        return;
-      }
 
       // "D" to toggle debug panel (when not in input field and command palette is closed)
       if (
@@ -534,9 +414,216 @@ export function Providers({ children }: { children: React.ReactNode }) {
         !(e.metaKey || e.ctrlKey || e.altKey)
       ) {
         e.preventDefault();
-        if (ambientSettings.debugFabEnabled) {
-          setDebugPanelOpen((v) => !v);
-        }
+        toggleDebug();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isCommandOpen, toggleDebug]);
+
+  return (
+    <LocationContext.Provider
+      value={{
+        locationMode: settings.locationMode,
+        location: locationQuery.data ?? null,
+        isLoading: locationQuery.isLoading,
+        isFetching: locationQuery.isFetching,
+        error: locationQuery.error?.message ?? null,
+        setLocationMode,
+        requestAccurateLocation: requestAccurateLocationAction,
+      }}
+    >
+      <WeatherContext.Provider
+        value={{
+          weather: weatherQuery.data ?? null,
+          gradient: computedGradient,
+          isLoading: weatherQuery.isLoading,
+          isFetching: weatherQuery.isFetching,
+          error: weatherQuery.error?.message ?? null,
+          isGradientEnabled: settings.weatherGradientEnabled,
+          setGradientEnabled,
+          isOverrideEnabled,
+          setOverrideEnabled: setIsOverrideEnabled,
+          debugOverride,
+          setDebugOverride,
+          refresh: refreshWeather,
+        }}
+      >
+        <DebugContext.Provider
+          value={{
+            isFABEnabled: settings.debugFabEnabled,
+            isOpen: isDebugOpen,
+            toggle: toggleDebug,
+            open: openDebug,
+            close: closeDebug,
+            toggleFAB: toggleDebugFAB,
+            setFABEnabled: setDebugFABEnabled,
+          }}
+        >
+          {children}
+        </DebugContext.Provider>
+      </WeatherContext.Provider>
+    </LocationContext.Provider>
+  );
+}
+
+// =============================================================================
+// Providers Component
+// Composes all context providers with React Query
+// =============================================================================
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  // ---------------------------------------------------------------------------
+  // Theme State
+  // ---------------------------------------------------------------------------
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  // ---------------------------------------------------------------------------
+  // Locale State
+  // ---------------------------------------------------------------------------
+  const [locale, setLocaleState] = useState<Locale>(defaultLocale);
+
+  // ---------------------------------------------------------------------------
+  // Command Palette State
+  // ---------------------------------------------------------------------------
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
+  const [isActionMode, setIsActionMode] = useState(false);
+
+  // ---------------------------------------------------------------------------
+  // Visitor State
+  // ---------------------------------------------------------------------------
+  const [lastVisited, setLastVisited] = useState<LastVisitedItem | null>(null);
+  const [lastVisitTime, setLastVisitTime] = useState<number | null>(null);
+  const [isReturningVisitor, setIsReturningVisitor] = useState(false);
+
+  // ---------------------------------------------------------------------------
+  // Ambient Settings (user preferences, persisted to localStorage)
+  // ---------------------------------------------------------------------------
+  const [settings, setSettingsState] =
+    useState<AmbientSettings>(getAmbientSettings);
+
+  const updateSettings = useCallback((partial: Partial<AmbientSettings>) => {
+    setSettingsState((prev) => {
+      const next = { ...prev, ...partial };
+      setAmbientSettings(next);
+      return next;
+    });
+  }, []);
+
+  // ===========================================================================
+  // Theme Initialization
+  // ===========================================================================
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const updateTheme = () => {
+      setTheme(mediaQuery.matches ? "dark" : "light");
+    };
+    updateTheme();
+    mediaQuery.addEventListener("change", updateTheme);
+    return () => mediaQuery.removeEventListener("change", updateTheme);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+  }, []);
+
+  // ===========================================================================
+  // Locale Initialization
+  // ===========================================================================
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: reading browser-only localStorage
+    setLocaleState(getStoredLocale());
+  }, []);
+
+  const setLocale = useCallback((newLocale: Locale) => {
+    setLocaleState(newLocale);
+    setStoredLocale(newLocale);
+  }, []);
+
+  // ===========================================================================
+  // Visitor Tracking
+  // ===========================================================================
+
+  useEffect(() => {
+    const stored = getVisitorStorage();
+    if (stored) {
+      setLastVisited(stored.lastVisited);
+      setLastVisitTime(stored.lastVisitTime);
+      setIsReturningVisitor(true);
+    }
+  }, []);
+
+  const daysSinceLastVisit = lastVisitTime
+    ? Math.floor((Date.now() - lastVisitTime) / (1000 * 60 * 60 * 24))
+    : null;
+
+  const recordVisit = useCallback((item: LastVisitedItem) => {
+    setLastVisited(item);
+    const now = Date.now();
+    setLastVisitTime(now);
+    setVisitorStorage({ lastVisited: item, lastVisitTime: now });
+  }, []);
+
+  const recordPageView = useCallback(() => {
+    const now = Date.now();
+    const stored = getVisitorStorage();
+    setVisitorStorage({
+      lastVisited: stored?.lastVisited || null,
+      lastVisitTime: now,
+    });
+  }, []);
+
+  // ===========================================================================
+  // Command Palette
+  // ===========================================================================
+
+  const openCommand = useCallback((actionMode = false) => {
+    setIsCommandOpen(true);
+    setIsActionMode(actionMode);
+  }, []);
+
+  const closeCommand = useCallback(() => {
+    setIsCommandOpen(false);
+    setIsActionMode(false);
+  }, []);
+
+  const toggleCommand = useCallback(() => {
+    setIsCommandOpen((prev) => {
+      if (prev) setIsActionMode(false);
+      return !prev;
+    });
+  }, []);
+
+  // ===========================================================================
+  // Global Keyboard Shortcuts
+  // ===========================================================================
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInputField =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable;
+
+      // ⌘K to toggle command palette
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        toggleCommand();
+        return;
+      }
+
+      // "/" to open command palette in action mode
+      if (e.key === "/" && !isInputField && !isCommandOpen) {
+        e.preventDefault();
+        openCommand(true);
         return;
       }
 
@@ -549,66 +636,53 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [
-    isCommandOpen,
-    toggleCommand,
-    closeCommand,
-    openCommand,
-    ambientSettings,
-    persistAmbientSettings,
-  ]);
+  }, [isCommandOpen, toggleCommand, closeCommand, openCommand]);
+
+  // ===========================================================================
+  // Render Provider Tree
+  // ===========================================================================
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <LocaleContext.Provider value={{ locale, setLocale }}>
-        <VisitorContext.Provider
-          value={{
-            lastVisited,
-            lastVisitTime,
-            isReturningVisitor,
-            daysSinceLastVisit,
-            recordVisit,
-            recordPageView,
-          }}
-        >
-          <AmbientContext.Provider
-            value={{
-              settings: ambientSettings,
-              location: ambientLocation,
-              weather: ambientWeather,
-              debugWeatherOverride,
-              debugWeatherOverrideEnabled,
-              debugPanelOpen,
-              hasAttemptedLocation,
-              hasAttemptedWeather,
-              isResolvingLocation,
-              isFetchingWeather,
-              error: ambientError,
-              setLocationMode,
-              setWeatherGradientEnabled,
-              setDebugFabEnabled,
-              setDebugPanelOpen,
-              setDebugWeatherOverride,
-              setDebugWeatherOverrideEnabled,
-              refresh,
-              requestAccurateLocation: requestAccurateLocationAction,
-            }}
-          >
-          <CommandPaletteContext.Provider
-            value={{
-              isOpen: isCommandOpen,
-              isActionMode,
-              open: openCommand,
-              close: closeCommand,
-              toggle: toggleCommand,
-              setActionMode: setIsActionMode,
-            }}
-          >
-            {children}
-          </CommandPaletteContext.Provider>
-          </AmbientContext.Provider>
-        </VisitorContext.Provider>
-      </LocaleContext.Provider>
-    </ThemeContext.Provider>
+    <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{ persister: queryPersister }}
+      >
+        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+          <LocaleContext.Provider value={{ locale, setLocale }}>
+            <VisitorContext.Provider
+              value={{
+                lastVisited,
+                lastVisitTime,
+                isReturningVisitor,
+                daysSinceLastVisit,
+                recordVisit,
+                recordPageView,
+              }}
+            >
+              <AmbientProviders
+                settings={settings}
+                updateSettings={updateSettings}
+                theme={theme}
+                isCommandOpen={isCommandOpen}
+              >
+                <CommandPaletteContext.Provider
+                  value={{
+                    isOpen: isCommandOpen,
+                    isActionMode,
+                    open: openCommand,
+                    close: closeCommand,
+                    toggle: toggleCommand,
+                    setActionMode: setIsActionMode,
+                  }}
+                >
+                  {children}
+                </CommandPaletteContext.Provider>
+              </AmbientProviders>
+            </VisitorContext.Provider>
+          </LocaleContext.Provider>
+        </ThemeContext.Provider>
+      </PersistQueryClientProvider>
+    </QueryClientProvider>
   );
 }

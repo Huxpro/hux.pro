@@ -35,27 +35,13 @@ flowchart TB
     Storage --> |"lastVisited"| Widgets
 ```
 
+
+
 ## Key Components
 
 ### 1. Hux as OS Voice (Greeting Layer)
 
-Hux speaks directly to the user, creating presence through address:
-
-| Scenario | Hux Says |
-
-|----------|----------|
-
-| First visit, morning | "good morning. what can i show you?" |
-
-| First visit, evening | "good evening. take your time." |
-
-| Returning, same day | "welcome back." |
-
-| Returning, read something | "welcome back. last time you were reading *[title]*." |
-
-| Returning, long gap (>7 days) | "it's been a while. here's what's new." |
-
-The voice is:
+Hux speaks directly to the user, creating presence through address:| Scenario | Hux Says ||----------|----------|| First visit, morning | "good morning. what can i show you?" || First visit, evening | "good evening. take your time." || Returning, same day | "welcome back." || Returning, read something | "welcome back. last time you were reading *[title]*." || Returning, long gap (>7 days) | "it's been a while. here's what's new." |The voice is:
 
 - Lowercase (calm, unhurried)
 - Brief (not chatty)
@@ -66,19 +52,7 @@ Implementation in [`app/page.tsx`](app/page.tsx) using client-side hooks with lo
 
 ### 2. Widget Grid (Bento-style)
 
-Responsive CSS Grid layout with three widget types:
-
-| Widget | Size | Content |
-
-|--------|------|---------|
-
-| Blog | Large (2x1) | 2-3 recent posts with dates, hover reveals description |
-
-| Talks | Medium (1x1) | Most recent talk with event name |
-
-| Career | Medium (1x1) | Current status with subtle ping animation |
-
-Styling: Glassmorphic cards following System UI aesthetic from [`docs/design-philosophy.md`](docs/design-philosophy.md):
+Responsive CSS Grid layout with three widget types:| Widget | Size | Content ||--------|------|---------|| Blog | Large (2x1) | 2-3 recent posts with dates, hover reveals description || Talks | Medium (1x1) | Most recent talk with event name || Career | Medium (1x1) | Current status with subtle ping animation |Styling: Glassmorphic cards following System UI aesthetic from [`docs/design-philosophy.md`](docs/design-philosophy.md):
 
 - `backdrop-blur-xl`, subtle borders, `bg-card/50`
 - Hover: slight lift, border brightens
@@ -113,9 +87,11 @@ interface VisitorContextType {
 }
 ```
 
+
+
 ## Layout Structure
 
-```
+```javascript
 ┌─────────────────────────────────────────────────────────────┐
 │                                                             │
 │                         λhux                                │  ← mono, small, muted
@@ -142,6 +118,8 @@ interface VisitorContextType {
 └─────────────────────────────────────────────────────────────┘
 ```
 
+
+
 ### Visual Hierarchy
 
 1. **System identifier** (`λhux`): Mono, small, muted—like a terminal prompt or OS watermark
@@ -151,36 +129,6 @@ interface VisitorContextType {
 
 ## Files to Modify
 
-| File | Changes |
-
-|------|---------|
-
-| [`app/page.tsx`](app/page.tsx) | Complete rewrite with new layout |
-
-| [`components/layout/command-palette.tsx`](components/layout/command-palette.tsx) | Add inline mode support |
-
-| [`components/layout/fab.tsx`](components/layout/fab.tsx) | Hide on homepage |
-
-| [`components/providers.tsx`](components/providers.tsx) | Add VisitorContext |
-
-| [`lib/i18n.ts`](lib/i18n.ts) | Add new translation keys |
-
-| [`app/globals.css`](app/globals.css) | Widget and grid styles |
+| File | Changes ||------|---------|| [`app/page.tsx`](app/page.tsx) | Complete rewrite with new layout || [`components/layout/command-palette.tsx`](components/layout/command-palette.tsx) | Add inline mode support || [`components/layout/fab.tsx`](components/layout/fab.tsx) | Hide on homepage || [`components/providers.tsx`](components/providers.tsx) | Add VisitorContext || [`lib/i18n.ts`](lib/i18n.ts) | Add new translation keys || [`app/globals.css`](app/globals.css) | Widget and grid styles |
 
 ## New Components
-
-| Component | Location | Purpose |
-
-|-----------|----------|---------|
-
-| `AmbientGreeting` | `app/page.tsx` (inline) | Time/context display |
-
-| `WidgetGrid` | `app/page.tsx` (inline) | Bento grid container |
-
-| `BlogWidget` | `app/page.tsx` (inline) | Recent posts widget |
-
-| `TalkWidget` | `app/page.tsx` (inline) | Recent talk widget |
-
-| `StatusWidget` | `app/page.tsx` (inline) | Career status widget |
-
-| `ConversationalPrompt` | `app/page.tsx` (inline) | Inline cmdk trigger |

@@ -1,8 +1,8 @@
 "use client";
 
-import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { WeatherWidget } from "@/components/ambient/weather-widget";
 import { PageSurface } from "@/components/layout/page-surface";
+import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { useLocale, useVisitor } from "@/components/providers";
 import { getLocalizedTitle } from "@/lib/content";
 import { blogPosts, talks } from "@/lib/data";

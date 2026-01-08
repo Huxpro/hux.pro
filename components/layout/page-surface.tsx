@@ -1,6 +1,6 @@
 "use client";
 
-import { useAmbient } from "@/components/providers";
+import { useWeather } from "@/components/providers";
 import { isWeatherGradientEnabledForPath } from "@/lib/ambient/route-config";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
@@ -13,10 +13,10 @@ export function PageSurface({
   className?: string;
 }) {
   const pathname = usePathname();
-  const { settings } = useAmbient();
+  const { isGradientEnabled } = useWeather();
 
   const gradientEnabled =
-    settings.weatherGradientEnabled && isWeatherGradientEnabledForPath(pathname);
+    isGradientEnabled && isWeatherGradientEnabledForPath(pathname);
 
   return (
     <div
