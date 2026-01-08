@@ -1,7 +1,6 @@
 "use client";
 
-import { useDebug, useTheme, useWeather } from "@/components/providers";
-import { getWeatherGradient } from "@/lib/ambient/gradient";
+import { useWeather } from "@/components/providers";
 import { isWeatherGradientEnabledForPath } from "@/lib/ambient/route-config";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
@@ -21,15 +20,11 @@ import { useEffect, useState } from "react";
  */
 export function WeatherGradientBackground() {
   const pathname = usePathname();
-  const { theme } = useTheme();
   const {
-    weather,
+    gradient,
     isGradientEnabled,
     isFetching,
-    isOverrideEnabled,
-    debugOverride,
   } = useWeather();
-  const { isFABEnabled } = useDebug();
 
   // Track the current and previous gradient for smooth transitions
   const [displayedGradient, setDisplayedGradient] = useState<string>("");
@@ -39,22 +34,7 @@ export function WeatherGradientBackground() {
   const enabled = isGradientEnabled && enabledForRoute;
 
   // Compute the target gradient based on current weather/override
-  const effectiveWeather = weather
-    ? {
-        ...weather,
-        ...(isFABEnabled && isOverrideEnabled && debugOverride
-          ? debugOverride
-          : null),
-      }
-    : null;
-
-  const targetGradient = effectiveWeather
-    ? getWeatherGradient({
-        condition: effectiveWeather.condition,
-        isDay: effectiveWeather.isDay,
-        theme,
-      }).backgroundImage
-    : "";
+  const targetGradient = gradient;
 
   // Update displayed gradient with smooth transition
   useEffect(() => {

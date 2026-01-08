@@ -1,119 +1,17 @@
 "use client";
 
+import { AmbientGreeting } from "@/components/ambient/ambient-greeting";
 import { WeatherWidget } from "@/components/ambient/weather-widget";
 import { PageSurface } from "@/components/layout/page-surface";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
-import { useLocale, useVisitor } from "@/components/providers";
+import { useLocale } from "@/components/providers";
 import { getLocalizedTitle } from "@/lib/content";
 import { blogPosts, talks } from "@/lib/data";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
-// =============================================================================
-// Time-based greeting logic
-// =============================================================================
-
-type TimeOfDay = "morning" | "afternoon" | "evening" | "night";
-
-function getTimeOfDay(): TimeOfDay {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) return "morning";
-  if (hour >= 12 && hour < 17) return "afternoon";
-  if (hour >= 17 && hour < 21) return "evening";
-  return "night";
-}
-
-function getGreetingKey(timeOfDay: TimeOfDay): string {
-  const map: Record<TimeOfDay, string> = {
-    morning: "greetingMorning",
-    afternoon: "greetingAfternoon",
-    evening: "greetingEvening",
-    night: "greetingNight",
-  };
-  return map[timeOfDay];
-}
-
-// =============================================================================
-// Ambient Greeting Component - Hux speaking to the user
-// =============================================================================
-
-function AmbientGreeting() {
-  const { locale } = useLocale();
-  const { lastVisited, isReturningVisitor, daysSinceLastVisit } = useVisitor();
-  const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("evening");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTimeOfDay(getTimeOfDay());
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    // Prevent hydration mismatch
-    return <div className="min-h-[120px]" />;
-  }
-
-  // Build the greeting message
-  const greetingKey = getGreetingKey(timeOfDay);
-  const timeGreeting = t(
-    locale,
-    greetingKey as keyof typeof import("@/lib/i18n").translations.en
-  );
-
-  // Determine contextual message
-  let contextMessage: React.ReactNode = null;
-
-  if (isReturningVisitor && lastVisited) {
-    // Returning visitor who read something before
-    if (daysSinceLastVisit !== null && daysSinceLastVisit > 7) {
-      // Long time no see
-      contextMessage = (
-        <span className="block mt-2 text-muted-foreground">
-          {t(locale, "greetingLongTime")}
-        </span>
-      );
-    } else {
-      // Recent visitor - show what they were reading
-      contextMessage = (
-        <span className="block mt-2">
-          <span className="text-muted-foreground">
-            {t(locale, "greetingLastReading")}{" "}
-          </span>
-          <span className="font-serif italic text-foreground">
-            {lastVisited.title}
-          </span>
-          <span className="text-muted-foreground">.</span>
-        </span>
-      );
-    }
-  } else if (isReturningVisitor) {
-    // Returning but hasn't read anything specific
-    contextMessage = (
-      <span className="block mt-2 text-muted-foreground">
-        {t(locale, "greetingWelcomeBack")}
-      </span>
-    );
-  }
-
-  return (
-    <div className="text-center mb-16">
-      {/* Time-based greeting - the main message */}
-      <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
-        {timeGreeting}
-      </h1>
-      {/* Contextual message */}
-      {contextMessage && (
-        <p className="mt-3 text-base sm:text-lg leading-relaxed">
-          {contextMessage}
-        </p>
-      )}
-    </div>
-  );
-}
+import { useState } from "react";
 
 // =============================================================================
 // Widget Components

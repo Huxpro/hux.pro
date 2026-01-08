@@ -42,6 +42,12 @@ export type NormalizedWeather = {
   weatherCode: number;
   condition: WeatherCondition;
   isDay?: boolean;
+  /**
+   * Sunrise/sunset timestamps (epoch ms) for the user's local day.
+   * Sourced from Open-Meteo daily forecast with `timezone=auto`.
+   */
+  sunriseMs?: number;
+  sunsetMs?: number;
   updatedAt: number; // epoch ms
 };
 
@@ -50,6 +56,10 @@ type OpenMeteoResponse = {
     temperature?: number;
     weathercode?: number;
     is_day?: number; // 1/0
+  };
+  daily?: {
+    sunrise?: string[];
+    sunset?: string[];
   };
 };
 
@@ -88,6 +98,10 @@ export async function fetchCurrentWeather(
     url.searchParams.set("latitude", String(lat));
     url.searchParams.set("longitude", String(lon));
     url.searchParams.set("current_weather", "true");
+    // Sunrise/sunset: used by ambient greeting + special gradients.
+    url.searchParams.set("daily", "sunrise,sunset");
+    url.searchParams.set("forecast_days", "1");
+    url.searchParams.set("timezone", "auto");
 
     const res = await fetch(url.toString(), {
       signal: controller.signal,
@@ -105,11 +119,20 @@ export async function fetchCurrentWeather(
     const isDay =
       typeof cw?.is_day === "number" ? cw.is_day === 1 : undefined;
 
+    const sunriseRaw = data.daily?.sunrise?.[0];
+    const sunsetRaw = data.daily?.sunset?.[0];
+    const sunriseMs =
+      typeof sunriseRaw === "string" ? new Date(sunriseRaw).getTime() : undefined;
+    const sunsetMs =
+      typeof sunsetRaw === "string" ? new Date(sunsetRaw).getTime() : undefined;
+
     return {
       temperatureC,
       weatherCode,
       condition: normalizeWeatherCode(weatherCode),
       isDay,
+      sunriseMs: Number.isFinite(sunriseMs) ? sunriseMs : undefined,
+      sunsetMs: Number.isFinite(sunsetMs) ? sunsetMs : undefined,
       updatedAt: Date.now(),
     };
   } finally {

@@ -1,6 +1,6 @@
 "use client";
 
-import { getWeatherGradient } from "@/lib/ambient/gradient";
+import { getSunEventGradient, getWeatherGradient } from "@/lib/ambient/gradient";
 import type { LocationMode, ResolvedLocation } from "@/lib/ambient/location";
 import { requestAccurateLocation } from "@/lib/ambient/location";
 import { useLocationQuery, useWeatherQuery } from "@/lib/ambient/queries";
@@ -13,6 +13,8 @@ import type {
   NormalizedWeather,
   WeatherCondition,
 } from "@/lib/ambient/weather";
+import type { AmbientPhase } from "@/lib/ambient/phase";
+import { deriveAmbientPhase } from "@/lib/ambient/phase";
 import {
   type Locale,
   defaultLocale,
@@ -140,6 +142,8 @@ interface LocationContextType {
   setLocationMode: (mode: LocationMode) => void;
   /** Request accurate location with user permission prompt */
   requestAccurateLocation: () => Promise<boolean>;
+  /** Force refetch location data */
+  refresh: () => void;
 }
 
 const LocationContext = createContext<LocationContextType | undefined>(
@@ -149,6 +153,37 @@ const LocationContext = createContext<LocationContextType | undefined>(
 export function useLocation() {
   const context = useContext(LocationContext);
   if (!context) throw new Error("useLocation must be used within Providers");
+  return context;
+}
+
+// =============================================================================
+// Ambient Time Context
+// Shared "now" + sunrise/sunset window state used by Greeting + Gradients + Debug
+// =============================================================================
+
+interface AmbientTimeContextType {
+  nowMs: number;
+  /** Derived phase from real time (and sunrise/sunset window if available) */
+  derivedPhase: AmbientPhase;
+  /** Effective phase (derived OR debug override) */
+  phase: AmbientPhase;
+  /** Whether phase override is active */
+  isOverrideEnabled: boolean;
+  /** Toggle phase override enabled state */
+  setOverrideEnabled: (enabled: boolean) => void;
+  /** Current override phase */
+  overridePhase: AmbientPhase;
+  /** Set override phase */
+  setOverridePhase: (phase: AmbientPhase) => void;
+}
+
+const AmbientTimeContext = createContext<AmbientTimeContextType | undefined>(
+  undefined
+);
+
+export function useAmbientTime() {
+  const context = useContext(AmbientTimeContext);
+  if (!context) throw new Error("useAmbientTime must be used within Providers");
   return context;
 }
 
@@ -278,6 +313,10 @@ function AmbientProviders({
   const [debugOverride, setDebugOverride] =
     useState<WeatherDebugOverride | null>(null);
   const [isOverrideEnabled, setIsOverrideEnabled] = useState(false);
+  const [timeOverridePhase, setTimeOverridePhase] =
+    useState<AmbientPhase>("morning");
+  const [isTimeOverrideEnabled, setIsTimeOverrideEnabled] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   // ===========================================================================
   // Location (React Query)
@@ -309,6 +348,10 @@ function AmbientProviders({
       }
     }, [updateSettings]);
 
+  const refreshLocation = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["location"] });
+  }, []);
+
   // ===========================================================================
   // Weather (React Query)
   // ===========================================================================
@@ -321,12 +364,40 @@ function AmbientProviders({
     queryClient.invalidateQueries({ queryKey: ["weather"] });
   }, []);
 
+  // Update "now" on an interval so sunrise/sunset windows can flip without reload.
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const derivedPhase = useMemo(() => {
+    const w = weatherQuery.data;
+    return deriveAmbientPhase({
+      nowMs,
+      sunriseMs: w?.sunriseMs,
+      sunsetMs: w?.sunsetMs,
+    });
+  }, [nowMs, weatherQuery.data]);
+
+  const effectivePhase: AmbientPhase =
+    settings.debugFabEnabled && isTimeOverrideEnabled
+      ? timeOverridePhase
+      : derivedPhase;
+
   // Compute gradient based on weather (or debug override) and theme
   const computedGradient = useMemo(() => {
     if (!settings.weatherGradientEnabled) return "";
 
+    // Sunrise/sunset special gradients have the highest priority.
+    if (effectivePhase === "sunrise" || effectivePhase === "sunset") {
+      return getSunEventGradient({
+        event: effectivePhase,
+        theme,
+      }).backgroundImage;
+    }
+
     // Use debug override if enabled
-    if (isOverrideEnabled && debugOverride) {
+    if (settings.debugFabEnabled && isOverrideEnabled && debugOverride) {
       return getWeatherGradient({
         condition: debugOverride.condition,
         isDay: debugOverride.isDay,
@@ -347,9 +418,11 @@ function AmbientProviders({
     return "";
   }, [
     settings.weatherGradientEnabled,
+    settings.debugFabEnabled,
     isOverrideEnabled,
     debugOverride,
     weatherQuery.data,
+    effectivePhase,
     theme,
   ]);
 
@@ -432,6 +505,7 @@ function AmbientProviders({
         error: locationQuery.error?.message ?? null,
         setLocationMode,
         requestAccurateLocation: requestAccurateLocationAction,
+        refresh: refreshLocation,
       }}
     >
       <WeatherContext.Provider
@@ -450,19 +524,31 @@ function AmbientProviders({
           refresh: refreshWeather,
         }}
       >
-        <DebugContext.Provider
+        <AmbientTimeContext.Provider
           value={{
-            isFABEnabled: settings.debugFabEnabled,
-            isOpen: isDebugOpen,
-            toggle: toggleDebug,
-            open: openDebug,
-            close: closeDebug,
-            toggleFAB: toggleDebugFAB,
-            setFABEnabled: setDebugFABEnabled,
+            nowMs,
+            derivedPhase,
+            phase: effectivePhase,
+            isOverrideEnabled: isTimeOverrideEnabled,
+            setOverrideEnabled: setIsTimeOverrideEnabled,
+            overridePhase: timeOverridePhase,
+            setOverridePhase: setTimeOverridePhase,
           }}
         >
-          {children}
-        </DebugContext.Provider>
+          <DebugContext.Provider
+            value={{
+              isFABEnabled: settings.debugFabEnabled,
+              isOpen: isDebugOpen,
+              toggle: toggleDebug,
+              open: openDebug,
+              close: closeDebug,
+              toggleFAB: toggleDebugFAB,
+              setFABEnabled: setDebugFABEnabled,
+            }}
+          >
+            {children}
+          </DebugContext.Provider>
+        </AmbientTimeContext.Provider>
       </WeatherContext.Provider>
     </LocationContext.Provider>
   );

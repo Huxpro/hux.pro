@@ -3,18 +3,38 @@
 import { WeatherIcon } from "@/components/ambient/weather-icon";
 import {
   useDebug,
+  useAmbientTime,
   useLocale,
+  useLocation,
   useTheme,
   useWeather,
 } from "@/components/providers";
-import { getWeatherGradient } from "@/lib/ambient/gradient";
+import {
+  getSunEventGradient,
+  getWeatherGradient,
+} from "@/lib/ambient/gradient";
 import {
   WEATHER_CONDITIONS,
   getWeatherConditionLabel,
 } from "@/lib/ambient/weather";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { Bug, ChevronUp, Cloud, Moon, Sun, X } from "lucide-react";
+import {
+  Bug,
+  ChevronUp,
+  Clock,
+  Cloud,
+  Haze,
+  Moon,
+  MoonStar,
+  RefreshCw,
+  Sun,
+  SunDim,
+  SunMedium,
+  Sunrise,
+  Sunset,
+  X,
+} from "lucide-react";
 
 // =============================================================================
 // Debug FAB Component
@@ -125,6 +145,8 @@ function DebugPanel() {
       {/* Scrollable content - max height with scroll on mobile */}
       <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
         <WeatherModule />
+        <AmbientTimeModule />
+        <RefetchModule />
       </div>
 
       {/* Footer */}
@@ -333,6 +355,251 @@ function WeatherModule() {
             })}
           </div>
         </div>
+      </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Ambient Time Module
+// Simulate sunrise/sunset window (affects Greeting + Gradient)
+// =============================================================================
+
+function AmbientTimeModule() {
+  const { locale } = useLocale();
+  const { theme } = useTheme();
+  const { weather } = useWeather();
+  const {
+    phase,
+    derivedPhase,
+    overridePhase,
+    isOverrideEnabled,
+    setOverrideEnabled,
+    setOverridePhase,
+  } = useAmbientTime();
+
+  const sunriseMs = weather?.sunriseMs;
+  const sunsetMs = weather?.sunsetMs;
+
+  const formatTime = (ms?: number) => {
+    if (typeof ms !== "number") return "--:--";
+    try {
+      return new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(new Date(ms));
+    } catch {
+      return "--:--";
+    }
+  };
+
+  const labelForPhase = (p: typeof phase) => {
+    const mapEn: Record<typeof phase, string> = {
+      sunrise: "Sunrise",
+      morning: "Morning",
+      afternoon: "Afternoon",
+      evening: "Evening",
+      sunset: "Sunset",
+      night: "Night",
+    };
+    const mapZh: Record<typeof phase, string> = {
+      sunrise: "日出",
+      morning: "早晨",
+      afternoon: "下午",
+      evening: "傍晚",
+      sunset: "日落",
+      night: "夜晚",
+    };
+    return locale === "zh" ? mapZh[p] : mapEn[p];
+  };
+
+  const PhaseButton = ({
+    p,
+    icon,
+    aria,
+    gradientBg,
+  }: {
+    p: typeof phase;
+    icon: React.ReactNode;
+    aria: string;
+    gradientBg?: string;
+  }) => {
+    const isSelected = isOverrideEnabled && overridePhase === p;
+    return (
+      <button
+        onClick={() => {
+          setOverridePhase(p);
+          setOverrideEnabled(true);
+        }}
+        className={cn(
+          "relative rounded-xl aspect-square",
+          "border transition-all duration-200",
+          "overflow-hidden",
+          isSelected
+            ? "border-foreground/60 ring-2 ring-foreground/50"
+            : "border-border/40 hover:border-border",
+          !isOverrideEnabled ? "opacity-70" : ""
+        )}
+        style={gradientBg ? { backgroundImage: gradientBg } : undefined}
+        aria-label={aria}
+        title={labelForPhase(p)}
+      >
+        {gradientBg ? (
+          <div className="absolute inset-0 bg-white/10 dark:bg-black/10" />
+        ) : (
+          <div className="absolute inset-0 bg-muted/10" />
+        )}
+        <div className="absolute inset-0 flex items-center justify-center text-foreground/70">
+          {icon}
+        </div>
+      </button>
+    );
+  };
+
+  const sunriseGradient = getSunEventGradient({
+    event: "sunrise",
+    theme,
+  }).backgroundImage;
+  const sunsetGradient = getSunEventGradient({
+    event: "sunset",
+    theme,
+  }).backgroundImage;
+
+  return (
+    <DebugSection
+      title={locale === "zh" ? "TIME OF DAY" : "TIME OF DAY"}
+      icon={<Clock className="h-4 w-4" />}
+      action={
+        <button
+          onClick={() => setOverrideEnabled(!isOverrideEnabled)}
+          className={cn(
+            "relative inline-flex h-5 w-9 items-center rounded-full border transition-colors",
+            isOverrideEnabled
+              ? "bg-green-500/90 border-green-500/70"
+              : "bg-muted/40 border-border/60"
+          )}
+          aria-pressed={isOverrideEnabled}
+          aria-label="Toggle time of day override"
+        >
+          <span
+            className={cn(
+              "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
+              isOverrideEnabled ? "translate-x-4" : "translate-x-0.5"
+            )}
+          />
+        </button>
+      }
+    >
+      <div className="space-y-3">
+        {/* Sunrise / Sunset times + current */}
+        <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1">
+              <Sunrise className="h-3.5 w-3.5" />
+              <span>{formatTime(sunriseMs)}</span>
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Sunset className="h-3.5 w-3.5" />
+              <span>{formatTime(sunsetMs)}</span>
+            </span>
+          </div>
+          <div className="text-right">
+            <span>{locale === "zh" ? "当前: " : "Current: "}</span>
+            <span className="text-foreground/80">
+              {labelForPhase(isOverrideEnabled ? phase : derivedPhase)}
+            </span>
+          </div>
+        </div>
+
+        {/* Phase buttons (icons only) */}
+        <div className="grid grid-cols-6 gap-1.5">
+          <PhaseButton
+            p="sunrise"
+            icon={<Sunrise className="h-3.5 w-3.5" />}
+            aria="Set phase to sunrise"
+            gradientBg={sunriseGradient}
+          />
+          <PhaseButton
+            p="morning"
+            icon={<Haze className="h-3.5 w-3.5" />}
+            aria="Set phase to morning"
+          />
+          <PhaseButton
+            p="afternoon"
+            icon={<SunMedium className="h-3.5 w-3.5" />}
+            aria="Set phase to afternoon"
+          />
+          <PhaseButton
+            p="sunset"
+            icon={<Sunset className="h-3.5 w-3.5" />}
+            aria="Set phase to sunset"
+            gradientBg={sunsetGradient}
+          />
+          <PhaseButton
+            p="evening"
+            icon={<Moon className="h-3.5 w-3.5" />}
+            aria="Set phase to evening"
+          />
+          <PhaseButton
+            p="night"
+            icon={<MoonStar className="h-3.5 w-3.5" />}
+            aria="Set phase to night"
+          />
+        </div>
+      </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Refetch Module
+// Force re-request location + weather
+// =============================================================================
+
+function RefetchModule() {
+  const { locale } = useLocale();
+  const { refresh: refreshLocation, isFetching: locationFetching } =
+    useLocation();
+  const { refresh: refreshWeather, isFetching: weatherFetching } = useWeather();
+
+  const busy = locationFetching || weatherFetching;
+
+  return (
+    <DebugSection
+      title={locale === "zh" ? "刷新" : "Refetch"}
+      icon={<RefreshCw className="h-4 w-4" />}
+    >
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => refreshLocation()}
+          className={cn(
+            "flex-1 rounded-lg border px-3 py-2",
+            "text-xs font-mono transition-colors",
+            "border-border/50 hover:border-border",
+            busy ? "opacity-60" : ""
+          )}
+          aria-label="Refetch location"
+        >
+          {locale === "zh" ? "重请求位置" : "Location"}
+        </button>
+        <button
+          onClick={() => refreshWeather()}
+          className={cn(
+            "flex-1 rounded-lg border px-3 py-2",
+            "text-xs font-mono transition-colors",
+            "border-border/50 hover:border-border",
+            busy ? "opacity-60" : ""
+          )}
+          aria-label="Refetch weather"
+        >
+          {locale === "zh" ? "重请求天气" : "Weather"}
+        </button>
+      </div>
+      <div className="mt-2 text-[10px] font-mono text-muted-foreground">
+        {locale === "zh"
+          ? "提示：天气刷新会同时刷新位置与天气。"
+          : "Note: Weather refresh invalidates both location and weather."}
       </div>
     </DebugSection>
   );
