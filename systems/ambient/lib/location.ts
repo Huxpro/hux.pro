@@ -8,7 +8,7 @@ export type ResolvedLocation = {
   city?: string;
   region?: string;
   country?: string;
-  updatedAt: number; // epoch ms
+  updatedAt: number;
 };
 
 type IpWhoIsResponse = {
@@ -84,8 +84,6 @@ export async function requestAccurateLocation(options?: {
     );
   });
 
-  // Best-effort reverse geocode so the UI can show a city name (like loe).
-  // We keep this optional to avoid hard failures due to network/CORS/rate-limits.
   let city: string | undefined;
   let country: string | undefined;
   try {
@@ -118,8 +116,6 @@ async function reverseGeocodeNominatim(
   lat: number,
   lon: number
 ): Promise<ReverseGeocodeResult> {
-  // Nominatim (OpenStreetMap) reverse geocoding.
-  // Note: browsers can't reliably set a custom User-Agent header; this is best-effort.
   const url = new URL("https://nominatim.openstreetmap.org/reverse");
   url.searchParams.set("lat", String(lat));
   url.searchParams.set("lon", String(lon));
@@ -149,7 +145,5 @@ export function formatLocationLabel(loc: Pick<
   ResolvedLocation,
   "city" | "region" | "country"
 >): string | null {
-  // UI convention: keep location compact; city is sufficient for the weather widget.
-  // Fall back to region/country if city is missing.
   return loc.city ?? loc.region ?? loc.country ?? null;
 }

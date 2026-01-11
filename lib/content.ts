@@ -1,5 +1,5 @@
 // Content types and helpers for MDX posts
-import type { Locale } from "./i18n";
+import type { Locale } from "@/lib/i18n";
 
 export type PostLanguage = "en" | "zh" | "both";
 

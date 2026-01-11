@@ -1,7 +1,7 @@
 "use client";
 
-import { useCommandPalette, useLocale } from "@/components/providers";
-import { t } from "@/lib/i18n";
+import { useLocale, t } from "@/services";
+import { useCommand } from "./provider";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { Command, Search } from "lucide-react";
@@ -9,7 +9,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export function FloatingActionButton() {
-  const { open } = useCommandPalette();
+  const { open } = useCommand();
   const pathname = usePathname();
   const { locale } = useLocale();
   const [mounted, setMounted] = useState(false);
@@ -28,8 +28,6 @@ export function FloatingActionButton() {
       className={cn(
         "fixed bottom-6 left-0 right-0 z-50 px-6",
         "flex pointer-events-none",
-        // Desktop: Always centered
-        // Mobile: Center on homepage, Right on others
         isHomepage ? "justify-center" : "justify-end"
       )}
     >
@@ -44,7 +42,7 @@ export function FloatingActionButton() {
           "shadow-lg shadow-black/5",
           isHomepage ? "text-muted-foreground" : "text-foreground",
           "hover:bg-card/70 hover:border-border transition-colors",
-          "h-12", // Consistent height
+          "h-12",
           "overflow-hidden",
           isHomepage
             ? "rounded-2xl pl-4 pr-6 md:px-4 w-auto md:w-full md:max-w-md active:scale-[1] focus:outline-none focus:ring-2 focus:ring-ring/20"
@@ -52,7 +50,7 @@ export function FloatingActionButton() {
         )}
         style={{ borderRadius: isHomepage ? 24 : 24 }}
         transition={{
-          layout: { duration: 0.4, ease: [0.32, 0.72, 0, 1] }, // Smooth fluid motion
+          layout: { duration: 0.4, ease: [0.32, 0.72, 0, 1] },
           borderRadius: { duration: 0.4 },
         }}
         aria-label="Open command palette"
@@ -77,12 +75,12 @@ export function FloatingActionButton() {
                 opacity: 1,
                 x: 0,
                 width: "auto",
-                transition: { duration: 0.3, delay: 0.1 }, // Stagger in
+                transition: { duration: 0.3, delay: 0.1 },
               }}
               exit={{
                 opacity: 0,
                 x: -10,
-                transition: { duration: 0.2 }, // Fast exit
+                transition: { duration: 0.2 },
               }}
               className="flex-1 text-left text-sm whitespace-nowrap overflow-hidden"
             >
@@ -115,7 +113,6 @@ export function FloatingActionButton() {
           )}
         </AnimatePresence>
 
-        {/* Command Badge for Homepage */}
         <AnimatePresence>
           {isHomepage && (
             <motion.div

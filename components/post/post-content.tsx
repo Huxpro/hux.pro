@@ -1,9 +1,8 @@
 "use client";
 
-import { useLocale } from "@/components/providers";
+import { useLocale, type Locale } from "@/services";
 import { SystemNav } from "@/components/ui/system-nav";
 import type { PostLanguage } from "@/lib/content";
-import type { Locale } from "@/lib/i18n";
 import { Languages } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
@@ -139,7 +138,7 @@ function PostContentInner({
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       {/* Language conflict dialog */}
       {showConflictDialog && urlLang && (
         <LanguageConflictDialog
@@ -202,7 +201,7 @@ function PostContentInner({
 // Loading skeleton
 function PostContentSkeleton() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <article className="mx-auto max-w-[680px] px-6 pt-16 pb-32">
         <div className="animate-pulse">
           <div className="h-4 w-24 bg-muted rounded mb-12" />

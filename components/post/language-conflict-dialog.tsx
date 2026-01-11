@@ -1,6 +1,6 @@
 "use client";
 
-import { localeNames, type Locale } from "@/lib/i18n";
+import { localeNames, type Locale } from "@/services";
 
 interface LanguageConflictDialogProps {
   sharedLang: Locale;

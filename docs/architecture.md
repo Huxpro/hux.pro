@@ -1,220 +1,124 @@
-# Technical Architecture
+# Architecture Overview
 
-## Stack
+This document describes the architectural structure of the hux.pro codebase, organized around **systems**, **services**, and **shared** components.
 
-| Layer           | Technology              |
-| --------------- | ----------------------- |
-| Framework       | Next.js 16 (App Router) |
-| Language        | TypeScript              |
-| Styling         | Tailwind CSS v4         |
-| Animations      | tw-animate-css          |
-| Command Palette | cmdk                    |
-| MDX             | next-mdx-remote         |
-| Data Fetching   | TanStack Query          |
-| Package Manager | pnpm                    |
-
-### Portability Rules
-
-✅ **Always:**
-- Server components (build-time)
-- `generateStaticParams` for dynamic routes
-- `"use client"` for interactivity
-- Static export compatible
-
-❌ **Avoid:**
-- API routes, Server Actions, Middleware
-- ISR, image optimization
-- Vendor-specific features
-
-## Project Structure
+## Directory Structure
 
 ```
-cursor/
-├── app/                    # Next.js App Router pages
-│   ├── layout.tsx          # Root layout with providers
-│   ├── page.tsx            # Homepage
-│   └── globals.css         # Tailwind + custom styles
-├── components/
-│   ├── ambient/            # Weather widget, gradient background
-│   ├── debug/              # DevTool FAB and panel
-│   ├── layout/             # Command palette, FAB, page surface
-│   ├── providers.tsx       # Global state providers
-│   └── mdx-components.tsx  # MDX component overrides
-├── content/
-│   ├── blog/               # MDX blog posts
-│   └── talks/              # MDX talk content
-├── lib/
-│   ├── ambient/            # Location, weather, gradient logic
-│   ├── query.ts            # TanStack Query setup
-│   ├── content.ts          # Content utilities
-│   ├── i18n.ts             # Translations
-│   └── utils.ts            # cn() and helpers
-└── docs/                   # This documentation
+project/
+├── app/                          # Next.js App Router pages
+├── systems/                      # Complex subsystems (UI + State + Logic)
+│   ├── ambient/                  # Weather-based ambient UI
+│   ├── command/                  # Command palette navigation
+│   └── devtool/                  # Developer tools for debugging
+├── services/                     # Simple state providers (no UI)
+│   ├── theme.tsx                 # Light/dark theme
+│   ├── locale.tsx                # i18n locale + translations
+│   ├── visitor.tsx               # Returning visitor tracking
+│   └── index.ts                  # Barrel exports
+├── shared/                       # Shared orchestration
+│   └── providers.tsx             # Root provider composition
+├── components/                   # Shared UI components
+│   ├── post/                     # Blog post components
+│   ├── home/                     # Homepage widgets
+│   ├── ui/                       # Generic UI components
+│   └── motion-primitives/        # Animation primitives
+├── lib/                          # Pure utilities (no React state)
+│   ├── content.ts                # Content helpers
+│   ├── data.ts                   # Static data
+│   ├── query.ts                  # React Query config
+│   ├── utils.ts                  # General utilities
+│   └── mdx*.ts                   # MDX processing
+└── docs/                         # Architecture documentation
 ```
 
-## State Management
+## Design Principles
 
-All global state is managed via React Context in `components/providers.tsx`:
+### 1. Systems vs Services vs Shared
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                     CONTEXT HIERARCHY                               │
-├─────────────────────────────────────────────────────────────────────┤
-│  QueryClientProvider (TanStack Query)                               │
-│  └── PersistQueryClientProvider                                     │
-│      └── ThemeContext (light/dark, system preference)               │
-│          └── LocaleContext (en/zh, localStorage)                    │
-│              └── VisitorContext (returning visitor tracking)        │
-│                  └── AmbientProviders                               │
-│                      ├── LocationContext (coordinates, mode)        │
-│                      ├── WeatherContext (weather, gradient)         │
-│                      └── DebugContext (DevTool FAB, panel)          │
-│                          └── CommandPaletteContext (open/close)     │
-└─────────────────────────────────────────────────────────────────────┘
-```
+| Category | Has UI? | Has State? | Has Logic? | Example |
+|----------|---------|------------|------------|---------|
+| **Systems** | ✅ | ✅ | ✅ | Ambient, Command, Devtool |
+| **Services** | ❌ | ✅ | ❌ | Theme, Locale, Visitor |
+| **Shared** | ✅ | ❌ | ❌ | PostList, SystemNav |
 
-### Context Summary
+### 2. Co-location
 
-| Context | Purpose | Persistence |
-|---------|---------|-------------|
-| Theme | Light/dark mode | System preference |
-| Locale | en/zh language | localStorage |
-| Visitor | Returning visitor detection | localStorage |
-| Location | GPS or IP-based coordinates | TanStack Query cache |
-| Weather | Weather data + gradient | TanStack Query cache |
-| Debug | DevTool FAB and panel visibility | localStorage |
-| CommandPalette | Open/close state | None (ephemeral) |
+Each system is a **self-contained feature** that bundles:
+- `provider.tsx` - React Context for state management
+- `components/` - UI components that consume the context
+- `lib/` - Pure utilities and data fetching
+- `index.ts` - Barrel exports for clean imports
 
-### Data Architecture
-
-Server state (fetched data) and client state (preferences) are separated:
+### 3. Data Flow
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│           TanStack Query Cache (Server State)                       │
-│  • Location data (lat, lon, city)                                   │
-│  • Weather data (temp, condition, isDay)                            │
-│  • Auto-persisted to localStorage                                   │
-├─────────────────────────────────────────────────────────────────────┤
-│           React Context (Client State)                              │
-│  • User preferences (locationMode, gradientEnabled)                 │
-│  • UI state (DevTool panel open)                                    │
-│  • Manually persisted to localStorage                               │
-└─────────────────────────────────────────────────────────────────────┘
+Services (simple state)
+    ↓
+Systems (complex subsystems)
+    ↓
+Components (shared UI)
 ```
 
-## Rendering Strategy
+The `shared/providers.tsx` orchestrates all providers in the correct order:
 
-| Page | Strategy |
-|------|----------|
-| `/` | Client-side (locale, time, visitor context) |
-| `/blog` | Client-side (filtering, hover states) |
-| `/blog/[slug]` | Static generation + client hydration |
-| `/career` | Client-side |
-| `/talks` | Client-side |
+1. **QueryClientProvider** - React Query for data fetching
+2. **ThemeProvider** - Light/dark theme
+3. **LocaleProvider** - i18n locale management
+4. **VisitorProvider** - Returning visitor tracking
+5. **CommandProvider** - Command palette state
+6. **DevtoolProvider** - Debug FAB and panel state
+7. **AmbientProvider** - Weather/location/time state
 
-## Homepage
+## Subsystems
 
-The homepage (`app/page.tsx`) creates an AI-native OS experience:
+### [Ambient System](./system-ambient.md)
+Weather-based ambient UI that creates a living, breathing interface.
 
-### AmbientGreeting
+### [Command System](./system-command.md)
+Command palette for keyboard-first navigation.
 
-Time-aware greeting that speaks to the user:
-- Detects time of day (morning/afternoon/evening/night)
-- Shows contextual message based on visitor history
-- Uses serif font for warmth
+### [Devtool System](./system-devtool.md)
+Developer tools for debugging ambient state.
 
-### Widget System
+## Import Conventions
 
-Bento-style CSS Grid with glassmorphic widgets:
+```typescript
+// Services (simple state)
+import { useLocale, useTheme, t } from "@/services";
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                       WIDGET GRID                                   │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌───────────────────────────────────┐ ┌─────────────────────────┐  │
-│  │                                   │ │      WeatherWidget      │  │
-│  │          BlogWidget               │ │  ┌───────────────────┐  │  │
-│  │  ┌─────────────────────────────┐  │ │  │ BEIJING           │  │  │
-│  │  │ Recent posts with dates     │  │ │  │ 23°          ⛅   │  │  │
-│  │  │ • Post title 1      Jan 5   │  │ │  │              Clear│  │  │
-│  │  │ • Post title 2      Jan 3   │  │ │  └───────────────────┘  │  │
-│  │  │ • Post title 3      Jan 1   │  │ └─────────────────────────┘  │
-│  │  └─────────────────────────────┘  │                              │
-│  │                        2x1 span   │ ┌─────────────────────────┐  │
-│  └───────────────────────────────────┘ │      StatusWidget       │  │
-│                                        │  ┌───────────────────┐  │  │
-│  ┌───────────────────────────────────┐ │  │ 🟢 Available      │  │  │
-│  │          TalkWidget               │ │  │    for work       │  │  │
-│  │  ┌─────────────────────────────┐  │ │  └───────────────────┘  │  │
-│  │  │ Latest talk with event      │  │ └─────────────────────────┘  │
-│  │  └─────────────────────────────┘  │                              │
-│  └───────────────────────────────────┘                              │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+// Systems (complex subsystems)
+import { AmbientProvider, useWeather } from "@/systems/ambient";
+import { CommandPalette, FloatingActionButton } from "@/systems/command";
+import { DevtoolFAB, useDevtool } from "@/systems/devtool";
+
+// Shared components
+import { Providers } from "@/shared/providers";
+
+// Pure utilities
+import { cn } from "@/lib/utils";
 ```
 
-| Widget | Content | Size |
-|--------|---------|------|
-| BlogWidget | 3 recent posts with dates | Large (2x1) |
-| WeatherWidget | Location + temperature + condition | Medium (1x1) |
-| StatusWidget | Current availability with ping | Medium (1x1) |
-| TalkWidget | Latest talk with event | Medium (1x1) |
+## Adding New Features
 
-### ConversationalPrompt
+### Adding a new Service
 
-Inline button that opens the command palette:
-- Replaces FAB on homepage
-- "what brings you here?" placeholder
-- Shows ⌘K hint on desktop
+1. Create `services/my-service.tsx` with provider and hook
+2. Export from `services/index.ts`
+3. Add to provider chain in `shared/providers.tsx`
 
-## Key Systems
+### Adding a new System
 
-### Ambient System
+1. Create `systems/my-system/` directory with:
+   - `provider.tsx` - Context and state
+   - `components/` - UI components
+   - `lib/` - Utilities (optional)
+   - `index.ts` - Barrel exports
+2. Export from `systems/index.ts`
+3. Add to provider chain in `shared/providers.tsx`
 
-Environment-aware location + weather experience with gradient backgrounds.
+### Adding a shared component
 
-See [Ambient System](./ambient-system.md).
-
-### Content System
-
-Bilingual MDX content with static generation.
-
-See [Content System](./content-system.md).
-
-### DevTool
-
-Floating debug panel for development and weather testing.
-
-See [DevTool](./devtool.md).
-
-### i18n System
-
-Bilingual support (English/Chinese):
-- UI text: centralized in `lib/i18n.ts`
-- Content: filename-based language detection (`*.en.mdx`, `*.zh.mdx`)
-- Locale switching: persisted to localStorage
-
-### Command Palette
-
-Built on `cmdk` library:
-- **Dual-mode**: Search mode and action mode
-- **Keyboard-first**: ⌘K to open, single-letter shortcuts
-- **Grouped results**: Navigation, Settings, Blog, Talks
-
-### CSS Architecture
-
-Using Tailwind CSS v4:
-- `@import "tailwindcss"` syntax
-- `@custom-variant dark` for dark mode
-- CSS Grid animations for smooth height transitions
-
-## Related Documentation
-
-- [Ambient System](./ambient-system.md) - Location, weather, and gradient
-- [Content System](./content-system.md) - MDX, i18n, and static generation
-- [DevTool](./devtool.md) - Debug panel and weather testing
-- [React Engineering](./react-engineering.md) - React patterns and conventions
-- [Design System](./design-system.md) - Visual design language
-- [Design Philosophy](./design-philosophy.md) - Product design rationale
+1. Create in `components/` directory
+2. Import services/systems as needed
+3. Use `"use client"` for client-side interactivity

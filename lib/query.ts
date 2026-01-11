@@ -1,4 +1,4 @@
-import type { LocationMode } from "@/lib/ambient/location";
+import type { LocationMode } from "@/systems/ambient/lib/location";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { QueryClient } from "@tanstack/react-query";
 

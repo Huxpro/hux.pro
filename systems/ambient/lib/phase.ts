@@ -1,5 +1,5 @@
-import { getTimeOfDay } from "@/lib/ambient/greeting";
-import { getSunEventInVisibleWindow } from "@/lib/ambient/sun";
+import { getTimeOfDay } from "./greeting";
+import { getSunEventInVisibleWindow } from "./sun";
 
 export type AmbientPhase =
   | "sunrise"

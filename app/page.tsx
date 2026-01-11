@@ -1,13 +1,10 @@
 "use client";
 
-import { AmbientGreeting } from "@/components/ambient/ambient-greeting";
-import { WeatherWidget } from "@/components/ambient/weather-widget";
-import { PageSurface } from "@/components/layout/page-surface";
+import { AmbientGreeting, WeatherWidget } from "@/systems/ambient";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
-import { useLocale } from "@/components/providers";
+import { useLocale, t } from "@/services";
 import { getLocalizedTitle } from "@/lib/content";
 import { blogPosts, talks } from "@/lib/data";
-import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -197,17 +194,15 @@ function ScrambleIdentifier() {
 
 export default function Home() {
   return (
-    <PageSurface>
-      <main className="mx-auto max-w-[680px] px-6 pt-24 pb-32">
-        {/* System identifier with scramble effect */}
-        <ScrambleIdentifier />
+    <main className="mx-auto max-w-[680px] px-6 pt-24 pb-32">
+      {/* System identifier with scramble effect */}
+      <ScrambleIdentifier />
 
-        {/* Hux speaking to the user */}
-        <AmbientGreeting />
+      {/* Hux speaking to the user */}
+      <AmbientGreeting />
 
-        {/* Widget grid */}
-        <WidgetGrid />
-      </main>
-    </PageSurface>
+      {/* Widget grid */}
+      <WidgetGrid />
+    </main>
   );
 }

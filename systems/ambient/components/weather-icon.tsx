@@ -1,6 +1,6 @@
 "use client";
 
-import { WEATHER_CONDITIONS, type WeatherCondition } from "@/lib/ambient/weather";
+import { WEATHER_CONDITIONS, type WeatherCondition } from "../lib/weather";
 import { cn } from "@/lib/utils";
 import {
   Cloud,
@@ -12,10 +12,6 @@ import {
   Sun,
 } from "lucide-react";
 
-/**
- * Small presentational component used by the weather widget and debug previews.
- * Keeps icon mapping in one place while the condition metadata lives in `WEATHER_CONDITIONS`.
- */
 export function WeatherIcon({
   condition,
   isDay,

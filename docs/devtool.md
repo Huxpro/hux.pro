@@ -80,10 +80,10 @@ The `D` shortcut only works when:
 
 Enable/disable via:
 - Command palette: Search "Debug" → Toggle
-- DevTool panel footer: "Disable FAB" button
-- Programmatically: `useDebug().setFABEnabled()`
+- DevTool panel footer: "Disable Devtool" button
+- Programmatically: `useDevtool().setEnabled()`
 
-Setting is persisted to `hux_ambient_settings` in localStorage.
+Setting is persisted to `hux_devtool` in localStorage.
 
 ## Architecture
 
@@ -92,13 +92,13 @@ Setting is persisted to `hux_ambient_settings` in localStorage.
 │                     DEVTOOL COMPONENTS                              │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│   components/debug/debug-panel.tsx                                  │
-│   ├── DebugFAB              Main export, renders FAB + Panel        │
-│   ├── DebugSection          Reusable section wrapper                │
-│   └── Weather condition grid                                        │
+│   systems/devtool/                                                  │
+│   ├── provider.tsx          DevtoolProvider + useDevtool hook       │
+│   ├── panel.tsx             DevtoolFAB + panel UI                   │
+│   └── index.ts              Barrel exports                          │
 │                                                                     │
 │   State lives in:                                                   │
-│   ├── DebugContext          FAB enabled, panel open                 │
+│   ├── DevtoolContext        Enabled state, panel open               │
 │   └── WeatherContext        Override condition, isDay               │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
@@ -107,14 +107,14 @@ Setting is persisted to `hux_ambient_settings` in localStorage.
 ### Context Interface
 
 ```typescript
-interface DebugContextType {
-  isFABEnabled: boolean;   // FAB visibility
+interface DevtoolContextType {
+  isEnabled: boolean;      // Whether devtool is enabled
   isOpen: boolean;         // Panel open state
   toggle: () => void;
   open: () => void;
   close: () => void;
-  toggleFAB: () => void;
-  setFABEnabled: (enabled: boolean) => void;
+  toggleEnabled: () => void;
+  setEnabled: (enabled: boolean) => void;
 }
 ```
 
@@ -139,6 +139,6 @@ The override is **ephemeral** - it resets on page refresh. This is intentional f
 
 | File | Purpose |
 |------|---------|
-| `components/debug/debug-panel.tsx` | FAB and panel UI |
-| `components/providers.tsx` | DebugContext provider |
-| `lib/ambient/settings.ts` | `debugFabEnabled` persistence |
+| `systems/devtool/provider.tsx` | DevtoolProvider + useDevtool |
+| `systems/devtool/panel.tsx` | FAB and panel UI |
+| `systems/devtool/index.ts` | Barrel exports |

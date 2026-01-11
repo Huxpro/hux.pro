@@ -1,10 +1,8 @@
 "use client";
 
-import { useLocale } from "@/components/providers";
-import { PageSurface } from "@/components/layout/page-surface";
+import { useLocale, t } from "@/services";
 import { SystemNav } from "@/components/ui/system-nav";
 import type { CareerEntry } from "@/lib/content";
-import { t } from "@/lib/i18n";
 
 // Sample career data with bilingual support
 const careerEntries: CareerEntry[] = [
@@ -50,65 +48,63 @@ export default function CareerPage() {
   const { locale } = useLocale();
 
   return (
-    <PageSurface>
-      <main className="mx-auto max-w-[680px] px-6 pt-16 pb-24">
-        {/* Back link - System UI */}
-        <SystemNav href="/" path="λhux" className="mb-12" />
+    <main className="mx-auto max-w-[680px] px-6 pt-16 pb-24">
+      {/* Back link - System UI */}
+      <SystemNav href="/" path="λhux" className="mb-12" />
 
-        {/* Header */}
-        <header className="mb-16">
-          <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
-            {t(locale, "careerTitle")}
-          </h1>
-        </header>
+      {/* Header */}
+      <header className="mb-16">
+        <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
+          {t(locale, "careerTitle")}
+        </h1>
+      </header>
 
-        {/* Timeline */}
-        <section className="space-y-12">
-          {careerEntries.map((entry, index) => {
-            const role =
-              locale === "zh" && entry.roleZh ? entry.roleZh : entry.role;
-            const company =
-              locale === "zh" && entry.companyZh
-                ? entry.companyZh
-                : entry.company;
-            const achievements =
-              locale === "zh" && entry.achievementsZh
-                ? entry.achievementsZh
-                : entry.achievements;
-            const endDate =
-              entry.endDate === "present"
-                ? locale === "zh"
-                  ? "至今"
-                  : "present"
-                : entry.endDate;
+      {/* Timeline */}
+      <section className="space-y-12">
+        {careerEntries.map((entry, index) => {
+          const role =
+            locale === "zh" && entry.roleZh ? entry.roleZh : entry.role;
+          const company =
+            locale === "zh" && entry.companyZh
+              ? entry.companyZh
+              : entry.company;
+          const achievements =
+            locale === "zh" && entry.achievementsZh
+              ? entry.achievementsZh
+              : entry.achievements;
+          const endDate =
+            entry.endDate === "present"
+              ? locale === "zh"
+                ? "至今"
+                : "present"
+              : entry.endDate;
 
-            return (
-              <article key={index} className="group">
-                {/* Date range */}
-                <div className="font-mono text-xs text-muted-foreground mb-2">
-                  {entry.startDate} — {endDate}
-                </div>
+          return (
+            <article key={index} className="group">
+              {/* Date range */}
+              <div className="font-mono text-xs text-muted-foreground mb-2">
+                {entry.startDate} — {endDate}
+              </div>
 
-                {/* Role & Company */}
-                <h2 className="text-xl font-medium text-foreground">{role}</h2>
-                <p className="text-muted-foreground mt-1">{company}</p>
+              {/* Role & Company */}
+              <h2 className="text-xl font-medium text-foreground">{role}</h2>
+              <p className="text-muted-foreground mt-1">{company}</p>
 
-                {/* Achievements */}
-                <ul className="mt-4 space-y-2">
-                  {achievements.map((achievement, i) => (
-                    <li
-                      key={i}
-                      className="text-foreground/80 leading-relaxed pl-4 border-l-2 border-border"
-                    >
-                      {achievement}
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            );
-          })}
-        </section>
-      </main>
-    </PageSurface>
+              {/* Achievements */}
+              <ul className="mt-4 space-y-2">
+                {achievements.map((achievement, i) => (
+                  <li
+                    key={i}
+                    className="text-foreground/80 leading-relaxed pl-4 border-l-2 border-border"
+                  >
+                    {achievement}
+                  </li>
+                ))}
+              </ul>
+            </article>
+          );
+        })}
+      </section>
+    </main>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { PostContent } from "@/components/post";
-import { useVisitor } from "@/components/providers";
+import { useVisitor } from "@/services";
 import type { PostLanguage } from "@/lib/content";
 import { useRef, type ReactNode } from "react";
 

@@ -1,8 +1,7 @@
-import { WeatherGradientBackground } from "@/components/ambient/weather-gradient-background";
-import { DebugFAB } from "@/components/debug/debug-panel";
-import { CommandPalette } from "@/components/layout/command-palette";
-import { FloatingActionButton } from "@/components/layout/fab";
-import { Providers } from "@/components/providers";
+import { AmbientSurface } from "@/systems/ambient";
+import { DevtoolFAB } from "@/systems/devtool";
+import { CommandPalette, FloatingActionButton } from "@/systems/command";
+import { Providers } from "@/shared/providers";
 import type { Metadata, Viewport } from "next";
 import {
   Inter,
@@ -66,9 +65,8 @@ export default function RootLayout({
         className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         <Providers>
-          <WeatherGradientBackground />
-          <DebugFAB />
-          {children}
+          <DevtoolFAB />
+          <AmbientSurface>{children}</AmbientSurface>
           <CommandPalette />
           <FloatingActionButton />
         </Providers>

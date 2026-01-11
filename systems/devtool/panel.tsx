@@ -1,23 +1,21 @@
 "use client";
 
-import { WeatherIcon } from "@/components/ambient/weather-icon";
-import {
-  useDebug,
-  useAmbientTime,
-  useLocale,
-  useLocation,
-  useTheme,
-  useWeather,
-} from "@/components/providers";
+import { WeatherIcon } from "@/systems/ambient/components/weather-icon";
+import { useLocale, useTheme, t } from "@/services";
+import { useAmbientTime, useLocation, useWeather } from "@/systems/ambient";
 import {
   getSunEventGradient,
   getWeatherGradient,
-} from "@/lib/ambient/gradient";
+} from "@/systems/ambient/lib/gradient";
+import {
+  GRADIENT_ROUTE_DEFAULTS,
+  matchRoutePattern,
+} from "@/systems/ambient/lib/route-config";
 import {
   WEATHER_CONDITIONS,
   getWeatherConditionLabel,
-} from "@/lib/ambient/weather";
-import { t } from "@/lib/i18n";
+} from "@/systems/ambient/lib/weather";
+import { useDevtool } from "./provider";
 import { cn } from "@/lib/utils";
 import {
   Bug,
@@ -25,32 +23,31 @@ import {
   Clock,
   Cloud,
   Haze,
+  Layers,
   Moon,
   MoonStar,
   RefreshCw,
+  RotateCcw,
   Sun,
-  SunDim,
   SunMedium,
   Sunrise,
   Sunset,
   X,
 } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 // =============================================================================
-// Debug FAB Component
-// A foldable floating action button for debug tools
+// Devtool FAB Component
+// A foldable floating action button for devtools
 // Positioned at top-right, similar to Next.js dev tools
-//
-// When collapsed: Shows "Debug" button with keyboard hint
-// When expanded: FAB hides, panel shows with close button
 // =============================================================================
 
-export function DebugFAB() {
+export function DevtoolFAB() {
   const { locale } = useLocale();
-  const { isFABEnabled, isOpen, toggle } = useDebug();
+  const { isEnabled, isOpen, toggle } = useDevtool();
 
-  // Don't render if FAB is not enabled
-  if (!isFABEnabled) return null;
+  // Don't render if devtool is not enabled
+  if (!isEnabled) return null;
 
   return (
     <div
@@ -75,7 +72,7 @@ export function DebugFAB() {
           // Size
           "h-10 px-4"
         )}
-        aria-label="Open debug panel"
+        aria-label="Open devtool panel"
       >
         <Bug className="h-4 w-4" />
         <span className="text-xs font-mono uppercase tracking-wider">
@@ -95,21 +92,23 @@ export function DebugFAB() {
             : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
         )}
       >
-        <DebugPanel />
+        <DevtoolPanel />
       </div>
     </div>
   );
 }
 
+// Legacy alias
+export const DebugFAB = DevtoolFAB;
+
 // =============================================================================
-// Debug Panel Component
+// Devtool Panel Component
 // The expanded panel containing debug modules
-// More compact layout with scrollable content
 // =============================================================================
 
-function DebugPanel() {
+function DevtoolPanel() {
   const { locale } = useLocale();
-  const { close, toggleFAB } = useDebug();
+  const { close, toggleEnabled } = useDevtool();
 
   return (
     <div
@@ -125,7 +124,7 @@ function DebugPanel() {
         <div className="flex items-center gap-2">
           <Bug className="h-4 w-4 text-foreground" />
           <span className="text-sm font-mono text-foreground">
-            {locale === "zh" ? "调试面板" : "Debug Panel"}
+            {locale === "zh" ? "调试面板" : "Devtool Panel"}
           </span>
           <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
             DEV
@@ -135,15 +134,16 @@ function DebugPanel() {
           <button
             onClick={close}
             className="p-1.5 rounded-lg hover:bg-muted transition-colors"
-            aria-label="Close debug panel"
+            aria-label="Close devtool panel"
           >
             <ChevronUp className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
       </div>
 
-      {/* Scrollable content - max height with scroll on mobile */}
+      {/* Scrollable content */}
       <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
+        <RouteGradientModule />
         <WeatherModule />
         <AmbientTimeModule />
         <RefetchModule />
@@ -156,11 +156,11 @@ function DebugPanel() {
             {locale === "zh" ? "按 D 切换" : "Press D to toggle"}
           </span>
           <button
-            onClick={toggleFAB}
+            onClick={toggleEnabled}
             className="flex items-center gap-1 font-mono hover:text-foreground transition-colors"
           >
             <X className="h-3 w-3" />
-            <span>{locale === "zh" ? "关闭 FAB" : "Disable FAB"}</span>
+            <span>{locale === "zh" ? "关闭调试" : "Disable Devtool"}</span>
           </button>
         </div>
       </div>
@@ -170,23 +170,16 @@ function DebugPanel() {
 
 // =============================================================================
 // Debug Section Component
-// Wrapper for individual debug tool sections
 // =============================================================================
 
 interface DebugSectionProps {
   title: string;
   icon?: React.ReactNode;
-  /** Optional action element to render on the right side of the header */
   action?: React.ReactNode;
   children: React.ReactNode;
 }
 
-export function DebugSection({
-  title,
-  icon,
-  action,
-  children,
-}: DebugSectionProps) {
+function DebugSection({ title, icon, action, children }: DebugSectionProps) {
   return (
     <div className="border-b border-border/30 last:border-b-0">
       <div className="px-4 py-2 bg-muted/20">
@@ -204,8 +197,102 @@ export function DebugSection({
 }
 
 // =============================================================================
+// Route Gradient Module
+// =============================================================================
+
+function RouteGradientModule() {
+  const { locale } = useLocale();
+  const pathname = usePathname();
+  const {
+    routeGradientPreferences,
+    setRouteGradientPreference,
+    clearRouteGradientPreference,
+    clearAllRouteGradientPreferences,
+  } = useWeather();
+
+  const currentPattern = matchRoutePattern(pathname);
+  const hasOverrides = Object.keys(routeGradientPreferences).length > 0;
+  const allPatterns = Object.keys(GRADIENT_ROUTE_DEFAULTS);
+
+  return (
+    <DebugSection
+      title={locale === "zh" ? "路由渐变" : "Route Gradient"}
+      icon={<Layers className="h-4 w-4" />}
+      action={
+        hasOverrides ? (
+          <button
+            onClick={clearAllRouteGradientPreferences}
+            className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground hover:text-foreground transition-colors"
+            title={locale === "zh" ? "重置所有" : "Reset all"}
+          >
+            <RotateCcw className="h-3 w-3" />
+          </button>
+        ) : null
+      }
+    >
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-1">
+          {allPatterns.map((pattern) => {
+            const defaultValue = GRADIENT_ROUTE_DEFAULTS[pattern];
+            const userPref = routeGradientPreferences[pattern];
+            const effective = userPref ?? defaultValue;
+            const isOverride = userPref !== undefined;
+            const isCurrent = pattern === currentPattern;
+
+            return (
+              <button
+                key={pattern}
+                onClick={() => {
+                  if (isOverride) {
+                    clearRouteGradientPreference(pattern);
+                  } else {
+                    setRouteGradientPreference(pattern, !defaultValue);
+                  }
+                }}
+                className={cn(
+                  "flex items-center justify-between px-2 py-1.5 rounded text-left",
+                  "text-[10px] font-mono transition-colors",
+                  "border",
+                  isCurrent
+                    ? "border-foreground/40 bg-foreground/10 ring-1 ring-foreground/20"
+                    : "border-border/30 hover:border-border/50"
+                )}
+              >
+                <span
+                  className={cn(
+                    "truncate",
+                    isCurrent ? "text-foreground font-medium" : "text-muted-foreground"
+                  )}
+                >
+                  {pattern}
+                  {isCurrent && " ←"}
+                </span>
+                <span
+                  className={cn(
+                    "ml-1 shrink-0",
+                    effective ? "text-green-500" : "text-muted-foreground/50",
+                    isOverride && "underline"
+                  )}
+                >
+                  {effective ? "ON" : "OFF"}
+                  {isOverride && "*"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="text-[10px] text-muted-foreground">
+          {locale === "zh"
+            ? "* = 用户覆盖（点击重置）"
+            : "* = user override (click to reset)"}
+        </div>
+      </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
 // Weather Module
-// Override weather conditions for testing gradient backgrounds
 // =============================================================================
 
 function WeatherModule() {
@@ -282,19 +369,12 @@ function WeatherModule() {
                       : "border-border/40 hover:border-border"
                   )}
                   style={{ backgroundImage: preview.backgroundImage }}
-                  aria-label={`Set day weather to ${getWeatherConditionLabel(
-                    condition,
-                    locale
-                  )}`}
+                  aria-label={`Set day weather to ${getWeatherConditionLabel(condition, locale)}`}
                   title={getWeatherConditionLabel(condition, locale)}
                 >
                   <div className="absolute inset-0 bg-white/10 dark:bg-black/10" />
                   <div className="absolute inset-0 flex items-center justify-center text-foreground/70">
-                    <WeatherIcon
-                      condition={condition}
-                      isDay={true}
-                      className="h-3.5 w-3.5"
-                    />
+                    <WeatherIcon condition={condition} isDay={true} className="h-3.5 w-3.5" />
                   </div>
                 </button>
               );
@@ -336,19 +416,12 @@ function WeatherModule() {
                       : "border-border/40 hover:border-border"
                   )}
                   style={{ backgroundImage: preview.backgroundImage }}
-                  aria-label={`Set night weather to ${getWeatherConditionLabel(
-                    condition,
-                    locale
-                  )}`}
+                  aria-label={`Set night weather to ${getWeatherConditionLabel(condition, locale)}`}
                   title={getWeatherConditionLabel(condition, locale)}
                 >
                   <div className="absolute inset-0 bg-white/10 dark:bg-black/10" />
                   <div className="absolute inset-0 flex items-center justify-center text-foreground/70">
-                    <WeatherIcon
-                      condition={condition}
-                      isDay={false}
-                      className="h-3.5 w-3.5"
-                    />
+                    <WeatherIcon condition={condition} isDay={false} className="h-3.5 w-3.5" />
                   </div>
                 </button>
               );
@@ -362,7 +435,6 @@ function WeatherModule() {
 
 // =============================================================================
 // Ambient Time Module
-// Simulate sunrise/sunset window (affects Greeting + Gradient)
 // =============================================================================
 
 function AmbientTimeModule() {
@@ -457,18 +529,12 @@ function AmbientTimeModule() {
     );
   };
 
-  const sunriseGradient = getSunEventGradient({
-    event: "sunrise",
-    theme,
-  }).backgroundImage;
-  const sunsetGradient = getSunEventGradient({
-    event: "sunset",
-    theme,
-  }).backgroundImage;
+  const sunriseGradient = getSunEventGradient({ event: "sunrise", theme }).backgroundImage;
+  const sunsetGradient = getSunEventGradient({ event: "sunset", theme }).backgroundImage;
 
   return (
     <DebugSection
-      title={locale === "zh" ? "TIME OF DAY" : "TIME OF DAY"}
+      title="TIME OF DAY"
       icon={<Clock className="h-4 w-4" />}
       action={
         <button
@@ -492,7 +558,6 @@ function AmbientTimeModule() {
       }
     >
       <div className="space-y-3">
-        {/* Sunrise / Sunset times + current */}
         <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1">
@@ -512,40 +577,13 @@ function AmbientTimeModule() {
           </div>
         </div>
 
-        {/* Phase buttons (icons only) */}
         <div className="grid grid-cols-6 gap-1.5">
-          <PhaseButton
-            p="sunrise"
-            icon={<Sunrise className="h-3.5 w-3.5" />}
-            aria="Set phase to sunrise"
-            gradientBg={sunriseGradient}
-          />
-          <PhaseButton
-            p="morning"
-            icon={<Haze className="h-3.5 w-3.5" />}
-            aria="Set phase to morning"
-          />
-          <PhaseButton
-            p="afternoon"
-            icon={<SunMedium className="h-3.5 w-3.5" />}
-            aria="Set phase to afternoon"
-          />
-          <PhaseButton
-            p="sunset"
-            icon={<Sunset className="h-3.5 w-3.5" />}
-            aria="Set phase to sunset"
-            gradientBg={sunsetGradient}
-          />
-          <PhaseButton
-            p="evening"
-            icon={<Moon className="h-3.5 w-3.5" />}
-            aria="Set phase to evening"
-          />
-          <PhaseButton
-            p="night"
-            icon={<MoonStar className="h-3.5 w-3.5" />}
-            aria="Set phase to night"
-          />
+          <PhaseButton p="sunrise" icon={<Sunrise className="h-3.5 w-3.5" />} aria="Set phase to sunrise" gradientBg={sunriseGradient} />
+          <PhaseButton p="morning" icon={<Haze className="h-3.5 w-3.5" />} aria="Set phase to morning" />
+          <PhaseButton p="afternoon" icon={<SunMedium className="h-3.5 w-3.5" />} aria="Set phase to afternoon" />
+          <PhaseButton p="sunset" icon={<Sunset className="h-3.5 w-3.5" />} aria="Set phase to sunset" gradientBg={sunsetGradient} />
+          <PhaseButton p="evening" icon={<Moon className="h-3.5 w-3.5" />} aria="Set phase to evening" />
+          <PhaseButton p="night" icon={<MoonStar className="h-3.5 w-3.5" />} aria="Set phase to night" />
         </div>
       </div>
     </DebugSection>
@@ -554,13 +592,11 @@ function AmbientTimeModule() {
 
 // =============================================================================
 // Refetch Module
-// Force re-request location + weather
 // =============================================================================
 
 function RefetchModule() {
   const { locale } = useLocale();
-  const { refresh: refreshLocation, isFetching: locationFetching } =
-    useLocation();
+  const { refresh: refreshLocation, isFetching: locationFetching } = useLocation();
   const { refresh: refreshWeather, isFetching: weatherFetching } = useWeather();
 
   const busy = locationFetching || weatherFetching;

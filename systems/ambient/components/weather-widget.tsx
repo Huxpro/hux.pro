@@ -1,16 +1,10 @@
 "use client";
 
-import { WeatherIcon } from "@/components/ambient/weather-icon";
-import {
-  useDebug,
-  useLocale,
-  useLocation,
-  useWeather,
-} from "@/components/providers";
-import { formatLocationLabel } from "@/lib/ambient/location";
-import type { WeatherCondition } from "@/lib/ambient/weather";
-import { getWeatherConditionLabel } from "@/lib/ambient/weather";
-import { t } from "@/lib/i18n";
+import { WeatherIcon } from "./weather-icon";
+import { useLocale, t } from "@/services";
+import { useDevtool } from "@/systems/devtool";
+import { useLocation, useWeather } from "../provider";
+import { formatLocationLabel, type WeatherCondition, getWeatherConditionLabel } from "../lib";
 import { cn } from "@/lib/utils";
 import { Loader2, Navigation } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -24,7 +18,6 @@ export function WeatherWidget() {
     condition: WeatherCondition;
     isDay?: boolean;
   } | null>(null);
-  // Mounted state to prevent hydration mismatch (locationMode reads from localStorage)
   const [mounted, setMounted] = useState(false);
 
   const {
@@ -37,6 +30,7 @@ export function WeatherWidget() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
   const {
     weather,
     isLoading: weatherLoading,
@@ -46,14 +40,12 @@ export function WeatherWidget() {
     isOverrideEnabled,
     debugOverride,
   } = useWeather();
-  const { isFABEnabled } = useDebug();
+  const { isEnabled: isDevtoolEnabled } = useDevtool();
 
-  // Show spinner during initial load or background refetch
   const isBootLoading = !weather && weatherLoading;
   const isReloading =
     locationLoading || locationFetching || weatherLoading || weatherFetching;
 
-  // City label: keep last-known city during reloads for a more "iOS widget" feel.
   const cityLabel = location ? formatLocationLabel(location) : null;
   useEffect(() => {
     if (!cityLabel) return;
@@ -63,15 +55,14 @@ export function WeatherWidget() {
   const displayCity = cityLabel ?? staleCity ?? t(locale, "widgetWeather");
 
   const effectiveCondition: WeatherCondition | undefined =
-    weather && isFABEnabled && isOverrideEnabled && debugOverride
+    weather && isDevtoolEnabled && isOverrideEnabled && debugOverride
       ? debugOverride.condition
       : weather?.condition;
   const effectiveIsDay: boolean | undefined =
-    weather && isFABEnabled && isOverrideEnabled && debugOverride
+    weather && isDevtoolEnabled && isOverrideEnabled && debugOverride
       ? debugOverride.isDay
       : weather?.isDay;
 
-  // Weather: keep last-known weather during reloads, but show a small spinner.
   useEffect(() => {
     if (!weather || !effectiveCondition) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -82,18 +73,14 @@ export function WeatherWidget() {
     });
   }, [weather, effectiveCondition, effectiveIsDay]);
 
-  /**
-   * Dev-only empty state trigger.
-   * Usage: append `?weather=empty` to any page URL (client-only).
-   */
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
     try {
       const params = new URLSearchParams(window.location.search);
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- dev-only: reading browser-only URL params
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDevForceEmpty(params.get("weather") === "empty");
     } catch {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- dev-only: fallback on parse failure
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDevForceEmpty(false);
     }
   }, []);
@@ -118,17 +105,12 @@ export function WeatherWidget() {
         "hover:border-border hover:bg-card/70"
       )}
     >
-      {/* iOS-style header row */}
       <div className="flex items-center justify-between">
-        {/* Top-left: city */}
         <div className="min-w-0">
           <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground truncate">
             {displayCity}
           </div>
         </div>
-
-        {/* Right side: geolocation icon OR spinner while reloading */}
-        {/* Only render after mount to avoid hydration mismatch (locationMode from localStorage) */}
         <div className="flex items-center gap-2">
           {isReloading ? (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -141,19 +123,15 @@ export function WeatherWidget() {
         </div>
       </div>
 
-      {/* Body */}
       {isBootLoading && !displayWeather ? (
         <div className="flex items-center justify-center py-6">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : displayWeather ? (
         <div className="mt-3 flex items-end justify-between gap-4">
-          {/* Bottom-left: temperature (drop C) */}
           <div className="font-serif text-4xl leading-none text-foreground tracking-tight tabular-nums">
             {Math.round(displayWeather.temperatureC)}°
           </div>
-
-          {/* Right column: top-right icon + bottom-right label */}
           <div className="flex flex-col items-end justify-between min-h-[52px]">
             <div className="text-foreground/80">
               <WeatherIcon

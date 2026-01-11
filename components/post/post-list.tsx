@@ -1,6 +1,6 @@
 "use client";
 
-import { useLocale } from "@/components/providers";
+import { useLocale, t } from "@/services";
 import { SystemNav } from "@/components/ui/system-nav";
 import {
   getAlternateLangLabel,
@@ -10,7 +10,6 @@ import {
   shouldShowPost,
   type Post,
 } from "@/lib/content";
-import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
@@ -45,7 +44,7 @@ export function PostList<T extends Post>({
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <main className="mx-auto max-w-[680px] px-6 pt-24 pb-32">
         {/* Back link - System UI */}
         <SystemNav href={backHref} path={backLabel} className="mb-16" />

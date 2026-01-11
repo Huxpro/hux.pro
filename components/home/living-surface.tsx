@@ -1,9 +1,8 @@
 "use client";
 
-import { useLocale } from "@/components/providers";
+import { useLocale, t } from "@/services";
 import { getLocalizedDescription, getLocalizedTitle } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
-import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 

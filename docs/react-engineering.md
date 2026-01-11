@@ -134,3 +134,104 @@ export const queryPersister = createSyncStoragePersister({
 This means returning visitors see cached data immediately, even before any network request.
 
 See [Ambient System](./ambient-system.md) for the full data flow.
+
+## Provider Architecture
+
+This project uses a **three-tier architecture** for React Context:
+
+- **Systems**: Complex subsystems with UI + State + Logic
+- **Services**: Simple state providers with no UI
+- **Shared**: Orchestration and reusable components
+
+See [Architecture Overview](./architecture.md) for the complete structure.
+
+### Directory Structure
+
+```
+systems/                      # Complex subsystems (UI + State + Logic)
+├── ambient/                  # Weather-based ambient UI
+├── command/                  # Command palette navigation
+└── devtool/                  # Developer tools
+
+services/                     # Simple state providers (no UI)
+├── theme.tsx                 # Light/dark theme
+├── locale.tsx                # i18n locale + translations
+├── visitor.tsx               # Returning visitor tracking
+└── index.ts
+
+shared/
+└── providers.tsx             # Root provider composition
+```
+
+### Design Principles
+
+1. **Systems vs Services**: Complex features with UI go in `systems/`, simple state-only providers go in `services/`
+
+2. **Co-location**: Each system bundles its provider, components, and utilities:
+   ```
+   systems/ambient/
+   ├── provider.tsx           # Context + state
+   ├── components/            # UI components
+   ├── lib/                   # Utilities
+   └── index.ts               # Barrel exports
+   ```
+
+3. **Thin orchestrator**: `shared/providers.tsx` composes all providers:
+   ```tsx
+   export function Providers({ children }) {
+     return (
+       <QueryClientProvider>
+         <ThemeProvider>
+           <LocaleProvider>
+             <VisitorProvider>
+               <CommandProvider>
+                 <DevtoolWrapper>
+                   <AmbientWrapper>{children}</AmbientWrapper>
+                 </DevtoolWrapper>
+               </CommandProvider>
+             </VisitorProvider>
+           </LocaleProvider>
+         </ThemeProvider>
+       </QueryClientProvider>
+     );
+   }
+   ```
+
+4. **Clean imports**: Each module has barrel exports:
+   ```tsx
+   // Services (simple state)
+   import { useLocale, useTheme, t } from "@/services";
+   
+   // Systems (complex subsystems)
+   import { useWeather, AmbientProvider } from "@/systems/ambient";
+   import { useCommand, CommandPalette } from "@/systems/command";
+   import { useDevtool, DevtoolFAB } from "@/systems/devtool";
+   ```
+
+### Subsystem Breakdown
+
+| Category | Location | Has UI? | Has State? | Examples |
+|----------|----------|---------|------------|----------|
+| **Systems** | `systems/` | ✅ | ✅ | Ambient, Command, Devtool |
+| **Services** | `services/` | ❌ | ✅ | Theme, Locale, Visitor |
+| **Shared** | `components/` | ✅ | ❌ | PostList, SystemNav |
+
+### Adding New Features
+
+**Adding a new Service** (simple state, no UI):
+1. Create `services/my-service.tsx`
+2. Export from `services/index.ts`
+3. Add to `shared/providers.tsx`
+
+**Adding a new System** (complex feature with UI):
+1. Create `systems/my-system/` with provider.tsx, components/, index.ts
+2. Export from `systems/index.ts`
+3. Add to `shared/providers.tsx`
+
+### Benefits
+
+- **Clear categorization**: Systems vs Services vs Shared
+- **Discoverability**: `systems/ambient/` contains everything ambient-related
+- **Testability**: Test individual systems in isolation
+- **Bundle efficiency**: Systems can be code-split with their features
+- **Reduced cognitive load**: Each file is focused on one concern

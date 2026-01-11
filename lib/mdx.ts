@@ -371,13 +371,22 @@ export function getDocSlugs(): string[] {
 
 /**
  * Get all docs with metadata (for listing pages)
+ * Returns only metadata, not the full content
  */
-export function getAllDocs(): DocWithContent[] {
+export function getAllDocs(): Doc[] {
   const slugs = getDocSlugs();
 
   return slugs
-    .map((slug) => getDocBySlug(slug))
-    .filter((doc): doc is DocWithContent => doc !== null)
+    .map((slug) => {
+      const doc = getDocBySlug(slug);
+      if (!doc) return null;
+
+      // Return just the metadata, not the content
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { content, contentZh, ...metadata } = doc;
+      return metadata as Doc;
+    })
+    .filter((doc): doc is Doc => doc !== null)
     .sort((a, b) => a.title.localeCompare(b.title));
 }
 

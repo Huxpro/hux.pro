@@ -1,3 +1,8 @@
+// =============================================================================
+// i18n - Internationalization utilities
+// Pure data and functions, no React state
+// =============================================================================
+
 export type Locale = "en" | "zh";
 
 export const defaultLocale: Locale = "en";
@@ -9,38 +14,22 @@ export const localeNames: Record<Locale, string> = {
   zh: "中文",
 };
 
-export function getStoredLocale(): Locale {
-  if (typeof window === "undefined") return defaultLocale;
-  const stored = localStorage.getItem("locale");
-  if (stored && locales.includes(stored as Locale)) {
-    return stored as Locale;
-  }
-  // First visit: detect from browser language
-  const browserLang = navigator.language.toLowerCase();
-  const detectedLocale: Locale = browserLang.startsWith("zh") ? "zh" : "en";
-  // Store the detected locale for future visits
-  localStorage.setItem("locale", detectedLocale);
-  return detectedLocale;
-}
+// =============================================================================
+// Translations
+// =============================================================================
 
-export function setStoredLocale(locale: Locale): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem("locale", locale);
-}
-
-// UI Translations
 export const translations = {
   en: {
     // Navigation
     home: "Home",
-    career: "Career", // Legacy, kept for compatibility
+    career: "Career",
     projects: "Projects",
-    blog: "Blog", // Legacy, kept for compatibility
+    blog: "Blog",
     prose: "Prose",
-    talks: "Talks", // Legacy, kept for compatibility
+    talks: "Talks",
     productions: "Productions",
 
-    // Homepage - Legacy (kept for compatibility)
+    // Homepage
     tagline:
       "Prose, profession, programming, production, projects—each a facet of a complete person.",
     currently: "Currently",
@@ -135,18 +124,23 @@ export const translations = {
     langConflictYourPreference: "Your preference is",
     langConflictReadIn: "Read in",
     langConflictKeep: "Keep",
+
+    // 404 Not Found
+    notFoundMessage: "you've wandered into the unwritten.",
+    notFoundHint: "This page doesn't exist, or perhaps it hasn't been written yet.",
+    notFoundReturn: "return home",
   },
   zh: {
     // Navigation
     home: "首页",
-    career: "职业", // Legacy, kept for compatibility
+    career: "职业",
     projects: "项目",
-    blog: "博客", // Legacy, kept for compatibility
+    blog: "博客",
     prose: "散文",
-    talks: "演讲", // Legacy, kept for compatibility
+    talks: "演讲",
     productions: "作品",
 
-    // Homepage - Legacy (kept for compatibility)
+    // Homepage
     tagline: "散文、职业、编程、生产、项目——一个完整人格的多重面向。",
     currently: "近况",
     currentStatus:
@@ -240,6 +234,11 @@ export const translations = {
     langConflictYourPreference: "您的偏好语言为",
     langConflictReadIn: "阅读",
     langConflictKeep: "保持",
+
+    // 404 Not Found
+    notFoundMessage: "你来到了没有知识的荒原",
+    notFoundHint: "这个页面不存在，或许它还未被书写。",
+    notFoundReturn: "返回首页",
   },
 } as const;
 

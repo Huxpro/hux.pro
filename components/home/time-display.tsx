@@ -1,6 +1,6 @@
 "use client";
 
-import { useLocale } from "@/components/providers";
+import { useLocale } from "@/services";
 import { useEffect, useState } from "react";
 
 export function TimeDisplay() {

@@ -1,4 +1,5 @@
-import type { AmbientPhase } from "@/lib/ambient/phase";
+import type { AmbientPhase } from "./phase";
+import type { TranslationKey } from "@/services/locale";
 
 export type TimeOfDay = "morning" | "afternoon" | "evening" | "night";
 
@@ -10,9 +11,7 @@ export function getTimeOfDay(nowMs: number): TimeOfDay {
   return "night";
 }
 
-export function getAmbientGreetingKeyFromPhase(
-  phase: AmbientPhase
-): keyof typeof import("@/lib/i18n").translations.en {
+export function getAmbientGreetingKeyFromPhase(phase: AmbientPhase): TranslationKey {
   switch (phase) {
     case "sunrise":
       return "greetingSunrise";
