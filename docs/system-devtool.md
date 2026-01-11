@@ -16,7 +16,7 @@ systems/devtool/
 ### FAB Toggle
 
 The devtool FAB can be enabled/disabled via:
-- Command palette (`D` in action mode)
+- Command palette (`D` in slash commands mode)
 - Settings in the command palette
 - Direct toggle in the devtool panel
 

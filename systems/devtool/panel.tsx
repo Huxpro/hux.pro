@@ -534,7 +534,7 @@ function AmbientTimeModule() {
 
   return (
     <DebugSection
-      title="TIME OF DAY"
+      title={t(locale, "devtoolTimeOfDay")}
       icon={<Clock className="h-4 w-4" />}
       action={
         <button

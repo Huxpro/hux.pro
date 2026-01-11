@@ -57,7 +57,7 @@ The Command Trigger (the floating button that opens the command palette) morphs 
 
 ## Command Palette
 
-The Command Palette (`⌘K`) is the centerpiece of the site's interaction model. It features a distinct "morphing" animation when switching between **Search Mode** and **Action Mode**.
+The Command Palette (`⌘K`) is the centerpiece of the site's interaction model. It features a distinct "morphing" animation when switching between **Search Mode** and **Slash Commands**.
 
 ### The "Grid Rows" Trick
 
@@ -72,7 +72,7 @@ We use a CSS Grid container and transition the `grid-template-rows` property fro
 ```tsx
 <div
   className="grid transition-all duration-300 ease-out"
-  style={{ gridTemplateRows: isActionMode ? "0fr" : "1fr" }}
+  style={{ gridTemplateRows: isSlashCommandsMode ? "0fr" : "1fr" }}
 >
   <div className="overflow-hidden">
     {/* Content goes here */}
@@ -91,8 +91,8 @@ While libraries like Framer Motion offer powerful physics-based springs, we opte
 
 The palette uses a single container that morphs its dimensions and content:
 
-1.  **Width**: Transitions between `max-w-[600px]` (Search) and `max-w-[400px]` (Action).
-2.  **Height**: The content areas (Search Results vs. Action List) use the Grid Trick to cross-fade and resize simultaneously.
+1.  **Width**: Transitions between `max-w-[600px]` (Search) and `max-w-[400px]` (Slash Commands).
+2.  **Height**: The content areas (Search Results vs. Slash Commands list) use the Grid Trick to cross-fade and resize simultaneously.
 3.  **Opacity**: Content fades in/out (`opacity-0` ↔ `opacity-100`) in sync with the grid transition.
 
 ## Standard Patterns

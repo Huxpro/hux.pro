@@ -9,11 +9,11 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 
 interface CommandContextType {
   isOpen: boolean;
-  isActionMode: boolean;
-  open: (actionMode?: boolean) => void;
+  isSlashCommandsMode: boolean;
+  open: (slashCommandsMode?: boolean) => void;
   close: () => void;
   toggle: () => void;
-  setActionMode: (mode: boolean) => void;
+  setSlashCommandsMode: (mode: boolean) => void;
 }
 
 const CommandContext = createContext<CommandContextType | undefined>(undefined);
@@ -29,21 +29,21 @@ export const useCommandPalette = useCommand;
 
 export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isActionMode, setIsActionMode] = useState(false);
+  const [isSlashCommandsMode, setIsSlashCommandsMode] = useState(false);
 
-  const open = useCallback((actionMode = false) => {
+  const open = useCallback((slashCommandsMode = false) => {
     setIsOpen(true);
-    setIsActionMode(actionMode);
+    setIsSlashCommandsMode(slashCommandsMode);
   }, []);
 
   const close = useCallback(() => {
     setIsOpen(false);
-    setIsActionMode(false);
+    setIsSlashCommandsMode(false);
   }, []);
 
   const toggle = useCallback(() => {
     setIsOpen((prev) => {
-      if (prev) setIsActionMode(false);
+      if (prev) setIsSlashCommandsMode(false);
       return !prev;
     });
   }, []);
@@ -64,7 +64,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // "/" to open command palette in action mode
+      // "/" to open command palette in slash commands mode
       if (e.key === "/" && !isInputField && !isOpen) {
         e.preventDefault();
         open(true);
@@ -86,11 +86,11 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
     <CommandContext.Provider
       value={{
         isOpen,
-        isActionMode,
+        isSlashCommandsMode,
         open,
         close,
         toggle,
-        setActionMode: setIsActionMode,
+        setSlashCommandsMode: setIsSlashCommandsMode,
       }}
     >
       {children}

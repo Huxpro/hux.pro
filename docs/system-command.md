@@ -17,18 +17,18 @@ systems/command/
 ### Dual Modes
 
 1. **Search Mode**: Fuzzy search across navigation, settings, and content
-2. **Action Mode**: Single-key shortcuts for quick actions
+2. **Slash Commands**: Single-key shortcuts for quick actions
 
 ### Keyboard Shortcuts
 
 | Key | Action |
 |-----|--------|
 | `⌘K` | Toggle command palette |
-| `/` | Open in action mode |
+| `/` | Open in slash commands mode |
 | `Esc` | Close palette |
-| `Backspace` | Exit action mode |
+| `Backspace` | Exit slash commands mode |
 
-### Action Mode Shortcuts
+### Slash Commands Shortcuts
 
 | Key | Action |
 |-----|--------|
@@ -77,11 +77,11 @@ Context-aware FAB that morphs based on route:
 ```typescript
 const {
   isOpen,
-  isActionMode,
+  isSlashCommandsMode,
   open,
   close,
   toggle,
-  setActionMode,
+  setSlashCommandsMode,
 } = useCommand();
 
 // Legacy alias also available

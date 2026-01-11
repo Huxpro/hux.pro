@@ -63,20 +63,21 @@ export const translations = {
     widgetViewAll: "view all",
 
     // Ambient (location / weather)
-    locationIp: "ip",
-    locationAccurate: "accurate",
+    locationIp: "IP",
+    locationAccurate: "Accurate",
     weatherUnavailable: "weather unavailable",
     timeDay: "day",
     timeNight: "night",
     settingsLocation: "Location",
     settingsGeolocation: "Geolocation",
-    settingsWeatherGradient: "Weather gradient",
-    settingsDebugPanel: "Debug panel",
-    stateOn: "on",
-    stateOff: "off",
+    settingsWeatherGradient: "Weather Gradient",
+    settingsDebugPanel: "Debug Panel",
+    stateOn: "On",
+    stateOff: "Off",
     debugOverride: "override",
     debugReal: "real",
     internalDocs: "Internal Docs",
+    devtoolTimeOfDay: "Time Of Day",
 
     // Career/Projects
     careerTitle: "Projects",
@@ -103,15 +104,16 @@ export const translations = {
     // Command Palette
     searchPlaceholder: "What are you looking for?",
     noResults: "No results found",
-    navigate: "navigate",
-    select: "select",
+    navigate: "Navigate",
+    select: "Select",
     navigation: "Navigation",
     settings: "Settings",
-    actions: "actions",
-    actionMode: "action mode",
-    backToSearch: "back",
+    actions: "Commands",
+    slashCommands: "Slash Commands",
+    backToSearch: "Back",
     appearance: "Appearance",
     languageLabel: "Language",
+    themeSystem: "System",
     themeDark: "Dark",
     themeLight: "Light",
     switchToDark: "Switch to Dark Mode",
@@ -127,7 +129,8 @@ export const translations = {
 
     // 404 Not Found
     notFoundMessage: "you've wandered into the unwritten.",
-    notFoundHint: "This page doesn't exist, or perhaps it hasn't been written yet.",
+    notFoundHint:
+      "This page doesn't exist, or perhaps it hasn't been written yet.",
     notFoundReturn: "return home",
   },
   zh: {
@@ -187,6 +190,7 @@ export const translations = {
     debugOverride: "覆盖",
     debugReal: "真实",
     internalDocs: "内部文档",
+    devtoolTimeOfDay: "昼夜时段",
 
     // Career/Projects
     careerTitle: "项目",
@@ -217,11 +221,12 @@ export const translations = {
     select: "选择",
     navigation: "导航",
     settings: "设置",
-    actions: "操作",
-    actionMode: "快捷操作",
+    actions: "命令",
+    slashCommands: "斜杠命令",
     backToSearch: "返回",
     appearance: "外观",
     languageLabel: "语言",
+    themeSystem: "跟随系统",
     themeDark: "深色",
     themeLight: "浅色",
     switchToDark: "切换到深色模式",

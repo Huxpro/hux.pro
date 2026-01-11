@@ -132,12 +132,12 @@ English and Chinese are treated as equal citizens, not as primary/translated con
 Information is revealed on demand rather than overwhelming upfront:
 
 - **Blog list**: Shows only title and date; hover reveals excerpt
-- **Command palette**: Search mode for browsing, action mode for quick access
+- **Command palette**: Search mode for browsing, slash commands for quick access
 - **Settings**: Integrated into command palette, not cluttering the main UI
 
 ## Inspirations
 
-- **Raycast**: Command palette UX, action mode concept
+- **Raycast**: Command palette UX, slash commands concept
 - **Linear**: Clean, monospace-accented typography
 - **Vercel**: Understated dark mode, attention to spacing
 - **iA Writer**: Prose-focused reading experience

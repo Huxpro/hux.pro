@@ -9,7 +9,9 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 
 interface ThemeContextType {
   theme: "light" | "dark";
+  preference: "light" | "dark" | "system";
   toggleTheme: () => void;
+  setThemePreference: (preference: "light" | "dark" | "system") => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -71,8 +73,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setStoredPreference(nextTheme);
   }, [theme]);
 
+  const setThemePreference = useCallback((nextPreference: ThemePreference) => {
+    setPreference(nextPreference);
+    setStoredPreference(nextPreference);
+    setTheme(getInitialTheme(nextPreference));
+  }, []);
+
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, preference, toggleTheme, setThemePreference }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -74,7 +74,7 @@ The command palette is the central navigation hub, inspired by Raycast, Spotligh
 | Method | Where | Action |
 |--------|-------|--------|
 | `⌘K` / `Ctrl+K` | Anywhere | Open in **Search Mode** |
-| `/` (anywhere) | Anywhere | Open in **Action Mode** |
+| `/` (anywhere) | Anywhere | Open in **Slash Commands** |
 | Conversational prompt | Homepage | Open in Search Mode |
 | FAB button | Non-homepage pages | Open in Search Mode |
 
@@ -94,7 +94,7 @@ The command palette has two distinct modes that morph smoothly between each othe
 - Shows all content with descriptions
 - Width: 600px
 
-#### Action Mode
+#### Slash Commands
 - Single-letter shortcuts for immediate actions
 - No search input—just press a letter
 - Minimal UI showing only available actions
@@ -114,10 +114,10 @@ When the search input is empty or unfocused:
 | `T` | Go to Talks |
 | `D` | Toggle Dark/Light mode |
 | `L` | Toggle Language |
-| `/` | Switch to Action Mode |
+| `/` | Switch to Slash Commands |
 | `Esc` | Close palette |
 
-#### In Action Mode
+#### In Slash Commands
 
 | Key | Action |
 |-----|--------|
@@ -138,7 +138,7 @@ When the search input is empty or unfocused:
 2. **Separation of concerns**: Search is for discovery; actions are for execution
 3. **Progressive disclosure**: Beginners use search; power users use actions
 
-#### Why `/` for Action Mode?
+#### Why `/` for Slash Commands?
 
 - Familiar from Vim, Slack, Discord
 - Single non-modifier key for quick access
@@ -155,10 +155,10 @@ Instead of opening/closing between modes, the palette **morphs**:
 
 **Search Mode:**
 ```
-↑↓ navigate   ↵ select   / actions          ⌘K
+↑↓ navigate   ↵ select   / commands         ⌘K
 ```
 
-**Action Mode:**
+**Slash Commands:**
 ```
 ⌫ back                                       /
 ```
