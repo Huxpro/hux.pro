@@ -29,6 +29,16 @@ export const queryClient = new QueryClient({
   },
 });
 
+declare global {
+  interface Window {
+    __TANSTACK_QUERY_CLIENT__?: import("@tanstack/react-query").QueryClient;
+  }
+}
+
+if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
+  window.__TANSTACK_QUERY_CLIENT__ = queryClient;
+}
+
 // =============================================================================
 // Cache Persistence
 // =============================================================================
