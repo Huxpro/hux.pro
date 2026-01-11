@@ -65,6 +65,9 @@ export async function requestAccurateLocation(options?: {
   if (typeof window === "undefined") {
     throw new Error("geolocation unavailable on server");
   }
+  if (window.isSecureContext === false) {
+    throw new Error("geolocation requires a secure context (HTTPS)");
+  }
   if (!("geolocation" in navigator)) {
     throw new Error("geolocation unsupported");
   }

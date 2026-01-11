@@ -7,6 +7,7 @@ import {
   getLocalizedDescription,
   getLocalizedReadingTime,
   getLocalizedTitle,
+  getPostHref,
   shouldShowPost,
   type Post,
 } from "@/lib/content";
@@ -100,7 +101,7 @@ export function PostList<T extends Post>({
                 onMouseLeave={() => setHoveredSlug(null)}
               >
                 <Link
-                  href={`${basePath}/${post.slug}`}
+                  href={getPostHref(post, locale, basePath)}
                   className={cn(
                     "flex items-baseline justify-between gap-4 py-4 -mx-4 px-4 rounded-lg transition-all duration-200",
                     isHovered && "bg-muted/50"

@@ -135,3 +135,35 @@ export function getAlternateLangLabel<T extends LocalizedContent>(
     return { locale: "en", label: "English" };
   }
 }
+
+/**
+ * Get the href for a post, including ?lang= for bilingual posts
+ */
+export function getPostHref<T extends LocalizedContent>(
+  post: T,
+  locale: Locale,
+  basePath: string
+): string {
+  const base = `${basePath}/${post.slug}`;
+  // Bilingual posts include ?lang= so URL is source of truth
+  if (post.language === "both") {
+    return `${base}?lang=${locale}`;
+  }
+  return base;
+}
+
+/**
+ * Resolve display locale for a post based on URL and system preference
+ */
+export function resolveDisplayLocale(
+  urlLang: Locale | null,
+  systemLocale: Locale,
+  postLanguage: PostLanguage
+): Locale {
+  // Single-language posts: always use that language
+  if (postLanguage === "en") return "en";
+  if (postLanguage === "zh") return "zh";
+
+  // Bilingual posts: URL param takes precedence, then system locale
+  return urlLang ?? systemLocale;
+}

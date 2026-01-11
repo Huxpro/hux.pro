@@ -18,6 +18,23 @@ import { deriveAmbientPhase } from "./lib/phase";
 import { queryClient } from "@/lib/query";
 import { useDevtool } from "@/systems/devtool";
 
+function formatGeolocationError(err: unknown): string {
+  if (err instanceof Error) return err.message || "Unknown error";
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object") {
+    const maybe = err as { name?: unknown; message?: unknown; code?: unknown };
+    const name = typeof maybe.name === "string" ? maybe.name : null;
+    const message = typeof maybe.message === "string" ? maybe.message : null;
+    const code = typeof maybe.code === "number" ? maybe.code : null;
+    const parts: string[] = [];
+    if (name) parts.push(name);
+    if (code !== null) parts.push(`code=${code}`);
+    if (message) parts.push(message);
+    return parts.join(" ") || "Unknown error";
+  }
+  return "Unknown error";
+}
+
 // =============================================================================
 // Location Context
 // =============================================================================
@@ -145,7 +162,12 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       await requestAccurateLocationFn();
       updateSettings({ locationMode: "accurate" });
       return true;
-    } catch {
+    } catch (err) {
+      const reason = formatGeolocationError(err);
+      console.error(
+        `[ambient] Failed to switch Geolocation to Accurate; falling back to IP. Reason: ${reason}`,
+        err
+      );
       updateSettings({ locationMode: "ip" });
       return false;
     }

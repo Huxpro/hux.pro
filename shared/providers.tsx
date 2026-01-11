@@ -10,6 +10,7 @@ import {
   VisitorProvider,
 } from "@/services";
 
+import { SystemSonner } from "@/components/ui/system-sonner";
 import { AmbientProvider } from "@/systems/ambient";
 import { CommandProvider, useCommand } from "@/systems/command";
 import { DevtoolProvider } from "@/systems/devtool";
@@ -49,7 +50,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <VisitorProvider>
             <CommandProvider>
               <DevtoolWrapper>
-                <AmbientWrapper>{children}</AmbientWrapper>
+                <AmbientWrapper>
+                  {children}
+                  <SystemSonner />
+                </AmbientWrapper>
               </DevtoolWrapper>
             </CommandProvider>
           </VisitorProvider>
