@@ -4,8 +4,16 @@
 
 import type { Locale } from "@/services/locale";
 
-export const GRADIENT_ROUTE_DEFAULTS: Record<string, boolean> = {
-  "/": true,
+// Device form factor type
+export type FormFactor = "desktop" | "mobile";
+
+// Route gradient config can be a boolean or device-specific
+export type RouteGradientConfig =
+  | boolean
+  | { desktop: boolean; mobile: boolean };
+
+export const GRADIENT_ROUTE_DEFAULTS: Record<string, RouteGradientConfig> = {
+  "/": { desktop: true, mobile: false },
   "/prose": false,
   "/prose/*": false,
   "/docs": false,
@@ -15,7 +23,7 @@ export const GRADIENT_ROUTE_DEFAULTS: Record<string, boolean> = {
   "/projects": false,
   "/blog": false,
   "/blog/*": false,
-  "/*": true,
+  "/*": { desktop: true, mobile: false },
 };
 
 export const KNOWN_ROUTE_PATTERNS = Object.keys(GRADIENT_ROUTE_DEFAULTS).filter(
@@ -47,8 +55,24 @@ export function matchRoutePattern(pathname: string): string {
   return "/*";
 }
 
-export function getRouteGradientDefault(pattern: string): boolean {
-  return GRADIENT_ROUTE_DEFAULTS[pattern] ?? GRADIENT_ROUTE_DEFAULTS["/*"];
+// Resolve a route config to a boolean based on form factor
+function resolveRouteConfig(
+  config: RouteGradientConfig,
+  formFactor: FormFactor
+): boolean {
+  if (typeof config === "boolean") {
+    return config;
+  }
+  return config[formFactor];
+}
+
+export function getRouteGradientDefault(
+  pattern: string,
+  formFactor: FormFactor = "desktop"
+): boolean {
+  const config =
+    GRADIENT_ROUTE_DEFAULTS[pattern] ?? GRADIENT_ROUTE_DEFAULTS["/*"];
+  return resolveRouteConfig(config, formFactor);
 }
 
 export function getRoutePatternLabel(pattern: string, locale: Locale): string {

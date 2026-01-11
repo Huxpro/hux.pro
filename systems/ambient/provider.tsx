@@ -5,7 +5,7 @@ import { getSunEventGradient, getWeatherGradient } from "./lib/gradient";
 import type { LocationMode, ResolvedLocation } from "./lib/location";
 import { requestAccurateLocation as requestAccurateLocationFn } from "./lib/location";
 import { useLocationQuery, useWeatherQuery } from "./lib/queries";
-import { matchRoutePattern } from "./lib/route-config";
+import { type FormFactor, matchRoutePattern } from "./lib/route-config";
 import {
   type AmbientSettings,
   getAmbientSettings,
@@ -100,7 +100,7 @@ interface WeatherContextType {
   debugOverride: WeatherDebugOverride | null;
   setDebugOverride: (override: WeatherDebugOverride | null) => void;
   refresh: () => void;
-  isGradientEnabledForPath: (pathname: string) => boolean;
+  isGradientEnabledForPath: (pathname: string, formFactor?: FormFactor) => boolean;
   getRoutePattern: (pathname: string) => string;
   routeGradientPreferences: Record<string, boolean>;
   setRouteGradientPreference: (pattern: string, enabled: boolean) => void;
@@ -231,7 +231,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   // Route Gradient Preferences
   const checkGradientEnabledForPath = useCallback(
-    (pathname: string) => checkGradientEnabled(pathname, settings),
+    (pathname: string, formFactor: FormFactor = "desktop") =>
+      checkGradientEnabled(pathname, settings, formFactor),
     [settings]
   );
 

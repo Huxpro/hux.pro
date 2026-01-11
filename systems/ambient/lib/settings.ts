@@ -1,5 +1,9 @@
 import type { LocationMode } from "./location";
-import { GRADIENT_ROUTE_DEFAULTS, matchRoutePattern } from "./route-config";
+import {
+  type FormFactor,
+  getRouteGradientDefault,
+  matchRoutePattern,
+} from "./route-config";
 
 // =============================================================================
 // Ambient Settings
@@ -58,10 +62,11 @@ export function setAmbientSettings(settings: AmbientSettings): void {
 
 export function isGradientEnabledForPath(
   pathname: string,
-  settings: AmbientSettings
+  settings: AmbientSettings,
+  formFactor: FormFactor = "desktop"
 ): boolean {
   const pattern = matchRoutePattern(pathname);
   const userPref = settings.routeGradientPreferences[pattern];
   if (userPref !== undefined) return userPref;
-  return GRADIENT_ROUTE_DEFAULTS[pattern] ?? GRADIENT_ROUTE_DEFAULTS["/*"];
+  return getRouteGradientDefault(pattern, formFactor);
 }
