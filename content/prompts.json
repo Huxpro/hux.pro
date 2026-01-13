@@ -1,0 +1,95 @@
+{
+  "quotes": [
+    {
+      "id": "alan-kay-predict-future",
+      "text": "The best way to predict the future is to invent it.",
+      "author": "Alan Kay",
+      "source": "PARC, 1971",
+      "commentary": "The ultimate form of agency. Not waiting for permission, not forecasting trends—just building what should exist."
+    },
+    {
+      "id": "dan-abramov-simple",
+      "text": "Make the complex simple, but not simpler.",
+      "author": "Dan Abramov",
+      "source": "Overreacted",
+      "commentary": "A reminder that simplification has a floor. The goal isn't minimal lines of code, but minimal cognitive load."
+    },
+    {
+      "id": "bret-victor-creators",
+      "text": "The most dangerous thought you can have as a creative person is to think you know what you're doing.",
+      "author": "Bret Victor",
+      "source": "The Future of Programming, 2013",
+      "commentary": "Stay a beginner. Expertise can become a prison—the best ideas come from naive questions."
+    }
+  ],
+  "principles": [
+    {
+      "id": "frameworks-discovered",
+      "statement": "Frameworks should be discovered, not invented.",
+      "topic": "architecture",
+      "shapedBy": ["Years of watching invented abstractions fail", "React's emergence from Facebook's actual needs"],
+      "reasoning": "Good frameworks emerge from solving real problems repeatedly. Invented frameworks solve imaginary problems elegantly."
+    },
+    {
+      "id": "demo-driven",
+      "statement": "Demo-driven, not spec-driven.",
+      "topic": "process",
+      "shapedBy": ["Dan Abramov", "Lynx team culture"],
+      "reasoning": "Specs describe what you think you want. Demos reveal what you actually need. Show me, don't tell me."
+    },
+    {
+      "id": "tools-for-thought",
+      "statement": "Build tools for thought, not tools for output.",
+      "topic": "product",
+      "shapedBy": ["Bret Victor", "Doug Engelbart"],
+      "reasoning": "The best tools don't just produce artifacts—they change how you think about the problem space."
+    }
+  ],
+  "people": [
+    {
+      "id": "dan-abramov",
+      "name": "Dan Abramov",
+      "context": "React Core Team",
+      "admire": [
+        "Demo-driven, not spec-driven",
+        "User perspective first",
+        "Makes complex things simple"
+      ],
+      "links": [
+        { "label": "overreacted.io", "url": "https://overreacted.io" },
+        { "label": "@dan_abramov", "url": "https://twitter.com/dan_abramov" }
+      ]
+    },
+    {
+      "id": "bret-victor",
+      "name": "Bret Victor",
+      "context": "Dynamicland",
+      "admire": [
+        "Relentless pursuit of better interfaces",
+        "Demos that change how you see the world",
+        "Unwilling to accept the status quo"
+      ],
+      "links": [
+        { "label": "worrydream.com", "url": "http://worrydream.com" }
+      ]
+    },
+    {
+      "id": "alan-kay",
+      "name": "Alan Kay",
+      "context": "Xerox PARC, Smalltalk",
+      "admire": [
+        "Invented the future he wanted to see",
+        "Thinking in decades, not quarters",
+        "Objects were about messaging, not data"
+      ],
+      "links": [
+        { "label": "Wikipedia", "url": "https://en.wikipedia.org/wiki/Alan_Kay" }
+      ]
+    }
+  ],
+  "meta": {
+    "tokenCount": 847,
+    "lastUpdated": "2024.03",
+    "model": "hux-v34"
+  }
+}
