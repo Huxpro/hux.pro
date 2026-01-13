@@ -132,6 +132,19 @@ export const translations = {
     notFoundHint:
       "This page doesn't exist, or perhaps it hasn't been written yet.",
     notFoundReturn: "return home",
+
+    // Eras / Timeline
+    erasTitle: "Timeline",
+    erasSubtitle:
+      "Version history of a career. Each era is a commit, each work item is a line of code.",
+    erasHead: "HEAD",
+    erasCurrent: "Current",
+    erasInit: "init",
+    erasSelectedWorks: "Selected Works",
+    erasRead: "Read",
+    erasVisit: "Visit",
+    erasWatch: "Watch",
+    erasSlides: "Slides",
   },
   zh: {
     // Navigation
@@ -244,6 +257,18 @@ export const translations = {
     notFoundMessage: "你来到了没有知识的荒原",
     notFoundHint: "这个页面不存在，或许它还未被书写。",
     notFoundReturn: "返回首页",
+
+    // Eras / Timeline
+    erasTitle: "时间线",
+    erasSubtitle: "职业生涯的版本历史。每一个时期都是一次提交，每一件作品都是一行代码。",
+    erasHead: "HEAD",
+    erasCurrent: "当前",
+    erasInit: "初始化",
+    erasSelectedWorks: "精选作品",
+    erasRead: "阅读",
+    erasVisit: "访问",
+    erasWatch: "观看",
+    erasSlides: "幻灯片",
   },
 } as const;
 

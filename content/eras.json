@@ -1,0 +1,283 @@
+{
+  "eras": [
+    {
+      "id": "current",
+      "title": { "en": "Current Chapter", "zh": "当前篇章" },
+      "tagline": { "en": "Building the Future", "zh": "构建未来" },
+      "narrative": {
+        "en": "Independent exploration at the intersection of AI, developer tools, and creative technology. Building personal operating systems and experimenting with new forms of human-computer interaction.",
+        "zh": "在人工智能、开发者工具和创意技术的交汇处进行独立探索。构建个人操作系统，探索人机交互的新形式。"
+      },
+      "startDate": "2024-01",
+      "accentColor": "oklch(0.7 0.15 200)"
+    },
+    {
+      "id": "lynx-era",
+      "title": { "en": "Lynx Era", "zh": "Lynx 时代" },
+      "tagline": { "en": "Cross-Platform at Scale", "zh": "大规模跨平台" },
+      "narrative": {
+        "en": "Leading the development of Lynx, a cross-platform UI framework powering experiences for billions of users across ByteDance's ecosystem.",
+        "zh": "领导 Lynx 跨平台 UI 框架的开发，为字节跳动生态系统中数十亿用户提供体验。"
+      },
+      "company": { "en": "ByteDance", "zh": "字节跳动" },
+      "keywords": {
+        "en": "Cross-Platform, React, Performance",
+        "zh": "跨平台, React, 性能优化"
+      },
+      "startDate": "2019-03",
+      "endDate": "2024-12",
+      "accentColor": "oklch(0.65 0.2 250)"
+    },
+    {
+      "id": "react-era",
+      "title": { "en": "React Era", "zh": "React 时代" },
+      "tagline": { "en": "The Framework Years", "zh": "框架岁月" },
+      "narrative": {
+        "en": "Contributing to the React ecosystem during its formative years. Working on core features, performance optimizations, and helping shape the future of component-based UI development.",
+        "zh": "在 React 生态系统的形成期做出贡献。参与核心功能开发、性能优化，帮助塑造基于组件的 UI 开发的未来。"
+      },
+      "company": { "en": "Meta", "zh": "Meta" },
+      "keywords": {
+        "en": "React, Open Source, JavaScript",
+        "zh": "React, 开源, JavaScript"
+      },
+      "startDate": "2016-06",
+      "endDate": "2019-02",
+      "accentColor": "oklch(0.7 0.2 220)"
+    },
+    {
+      "id": "early-days",
+      "title": { "en": "Early Days", "zh": "早期探索" },
+      "tagline": { "en": "Foundation Years", "zh": "奠基之年" },
+      "narrative": {
+        "en": "Learning the craft of software engineering. Building web applications, exploring mobile development, and discovering the joy of creating things with code.",
+        "zh": "学习软件工程的技艺。构建网络应用，探索移动开发，发现用代码创造事物的乐趣。"
+      },
+      "keywords": {
+        "en": "Web, Mobile, Learning",
+        "zh": "网页开发, 移动端, 学习"
+      },
+      "startDate": "2012-09",
+      "endDate": "2016-05",
+      "accentColor": "oklch(0.6 0.1 300)"
+    }
+  ],
+  "items": [
+    {
+      "id": "hux-pro",
+      "type": "project",
+      "eraId": "current",
+      "title": { "en": "Hux.Pro OS", "zh": "Hux.Pro 操作系统" },
+      "description": {
+        "en": "A personal operating system — ambient, contextual, AI-native.",
+        "zh": "个人操作系统 —— 环境感知、上下文感知、AI 原生。"
+      },
+      "date": "2024-06",
+      "tags": ["Next.js", "TypeScript", "AI"],
+      "links": [
+        { "url": "https://hux.pro", "label": "Website", "icon": "globe" }
+      ],
+      "techStack": ["Next.js", "TypeScript", "Tailwind"],
+      "commentary": {
+        "en": "The portfolio as living software. Not a resume, but a surface.",
+        "zh": "作品集即活的软件。不是简历，而是一个界面。"
+      }
+    },
+    {
+      "id": "vibing-ui-talk",
+      "type": "talk",
+      "eraId": "current",
+      "title": { "en": "Vibing UI with AI", "zh": "与 AI 共振的 UI" },
+      "description": {
+        "en": "Exploring the future of human-AI collaboration in interface design.",
+        "zh": "探索人机协作在界面设计中的未来。"
+      },
+      "date": "2024-03",
+      "conference": {
+        "name": "Shanghai Meetup",
+        "city": "Shanghai, China"
+      },
+      "tags": ["AI", "Design", "Future"]
+    },
+    {
+      "id": "react-last-framework",
+      "type": "post",
+      "eraId": "current",
+      "title": {
+        "en": "React as the Last Framework",
+        "zh": "React 作为最后的框架"
+      },
+      "description": {
+        "en": "Why the framework wars might be ending, and what comes next.",
+        "zh": "为什么框架之战可能即将结束，以及接下来会发生什么。"
+      },
+      "date": "2024-02",
+      "url": "/prose/react-last-framework",
+      "publication": { "name": "Personal Blog" },
+      "tags": ["React", "Frameworks", "Opinion"]
+    },
+    {
+      "id": "lynx-framework",
+      "type": "project",
+      "eraId": "lynx-era",
+      "title": { "en": "Lynx Framework", "zh": "Lynx 框架" },
+      "description": {
+        "en": "Cross-platform UI framework powering TikTok, Douyin, and more.",
+        "zh": "为 TikTok、抖音等产品提供动力的跨平台 UI 框架。"
+      },
+      "date": "2019-03",
+      "endDate": "2024-12",
+      "tags": ["Cross-Platform", "Performance", "React"],
+      "links": [
+        { "url": "https://lynxjs.dev", "label": "Website", "icon": "globe" },
+        {
+          "url": "https://github.com/nickhsine/nickhsine.github.io",
+          "label": "GitHub",
+          "icon": "github"
+        }
+      ],
+      "techStack": ["C++", "TypeScript", "React"],
+      "stats": { "users": "1B+" },
+      "commentary": {
+        "en": "The most impactful project of my career. Shipping to billions taught me what scale really means.",
+        "zh": "我职业生涯中最具影响力的项目。向数十亿用户交付让我理解了规模的真正含义。"
+      }
+    },
+    {
+      "id": "qcon-shanghai",
+      "type": "talk",
+      "eraId": "lynx-era",
+      "title": {
+        "en": "Cross-Platform at ByteDance Scale",
+        "zh": "字节跳动规模的跨平台开发"
+      },
+      "description": {
+        "en": "How we built and scaled Lynx to power experiences for billions.",
+        "zh": "我们如何构建和扩展 Lynx 以服务数十亿用户。"
+      },
+      "date": "2023-10",
+      "conference": {
+        "name": "QCon Shanghai",
+        "city": "Shanghai, China"
+      },
+      "video": {
+        "url": "https://youtube.com/watch?v=example",
+        "platform": "youtube"
+      },
+      "slides": { "url": "https://slides.com/example" },
+      "tags": ["Architecture", "Scale", "Performance"]
+    },
+    {
+      "id": "tech-lead-lynx",
+      "type": "role",
+      "eraId": "lynx-era",
+      "title": { "en": "Tech Lead, Lynx", "zh": "Lynx 技术负责人" },
+      "description": {
+        "en": "Leading architecture and developer experience for the Lynx platform.",
+        "zh": "领导 Lynx 平台的架构和开发者体验工作。"
+      },
+      "date": "2021-01",
+      "endDate": "2024-12",
+      "company": { "en": "ByteDance", "zh": "字节跳动" },
+      "roleTitle": { "en": "Tech Lead", "zh": "技术负责人" },
+      "tags": ["Leadership", "Architecture"]
+    },
+    {
+      "id": "design-systems-post",
+      "type": "post",
+      "eraId": "lynx-era",
+      "title": {
+        "en": "Building Design Systems That Scale",
+        "zh": "构建可扩展的设计系统"
+      },
+      "description": {
+        "en": "Lessons from building component libraries for massive teams.",
+        "zh": "为大规模团队构建组件库的经验教训。"
+      },
+      "date": "2022-08",
+      "url": "/prose/building-design-systems",
+      "publication": { "name": "Personal Blog" },
+      "tags": ["Design Systems", "Components", "Scale"]
+    },
+    {
+      "id": "react-core",
+      "type": "project",
+      "eraId": "react-era",
+      "title": { "en": "React Core", "zh": "React 核心" },
+      "description": {
+        "en": "Contributing to React's core features and performance.",
+        "zh": "为 React 核心功能和性能做出贡献。"
+      },
+      "date": "2017-01",
+      "endDate": "2019-02",
+      "tags": ["React", "Open Source", "Performance"],
+      "links": [
+        { "url": "https://react.dev", "label": "Website", "icon": "globe" },
+        {
+          "url": "https://github.com/facebook/react",
+          "label": "GitHub",
+          "icon": "github"
+        }
+      ],
+      "techStack": ["JavaScript", "Flow", "Jest"],
+      "stats": { "stars": 220000 },
+      "commentary": {
+        "en": "Working on React taught me that good abstractions are worth fighting for.",
+        "zh": "在 React 上工作让我明白，好的抽象值得为之奋斗。"
+      }
+    },
+    {
+      "id": "reactconf-2018",
+      "type": "talk",
+      "eraId": "react-era",
+      "title": { "en": "React Concurrent Mode", "zh": "React 并发模式" },
+      "description": {
+        "en": "Introducing the future of React rendering.",
+        "zh": "介绍 React 渲染的未来。"
+      },
+      "date": "2018-10",
+      "conference": {
+        "name": "ReactConf 2018",
+        "city": "Henderson, NV"
+      },
+      "video": {
+        "url": "https://youtube.com/watch?v=example",
+        "platform": "youtube"
+      },
+      "tags": ["React", "Performance", "Concurrent"]
+    },
+    {
+      "id": "meta-engineer",
+      "type": "role",
+      "eraId": "react-era",
+      "title": { "en": "Software Engineer, Meta", "zh": "Meta 软件工程师" },
+      "description": {
+        "en": "Member of the React Core team working on framework fundamentals.",
+        "zh": "React 核心团队成员，从事框架基础工作。"
+      },
+      "date": "2016-06",
+      "endDate": "2019-02",
+      "company": { "en": "Meta", "zh": "Meta" },
+      "roleTitle": { "en": "Software Engineer", "zh": "软件工程师" },
+      "tags": ["React", "Open Source"]
+    },
+    {
+      "id": "first-webapp",
+      "type": "project",
+      "eraId": "early-days",
+      "title": { "en": "First Web App", "zh": "第一个网页应用" },
+      "description": {
+        "en": "The project that started it all — a simple but meaningful beginning.",
+        "zh": "一切开始的地方 —— 简单但意义重大的开始。"
+      },
+      "date": "2013-05",
+      "tags": ["Web", "JavaScript", "Learning"],
+      "links": [],
+      "techStack": ["HTML", "CSS", "JavaScript"],
+      "commentary": {
+        "en": "Everyone starts somewhere. This was my somewhere.",
+        "zh": "每个人都有起点。这就是我的起点。"
+      }
+    }
+  ]
+}

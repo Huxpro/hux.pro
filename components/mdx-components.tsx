@@ -21,18 +21,58 @@
  * - Typography styles (font-size, font-weight, margins, colors)
  * - Visual styling (backgrounds, borders, spacing)
  *
+ * Component Categories:
+ * 1. HTML Element Overrides (lowercase) - get prose styles from .prose-article
+ * 2. Custom Embed Components (capitalized) - wrapped with .not-prose to escape prose styles
+ *
  * Note: This file is RSC-compatible. Client components (like HeadingWithLink)
  * are imported from separate files marked with "use client".
  *
- * @see app/globals.css - `.prose-article` section for all prose styling
+ * @see app/globals.css - `.prose-article` and `.not-prose` sections
  * @see docs/mdx.md - Documentation on MDX rendering
  */
 
 import { CodeBlock } from "@/components/code-block";
 import { HeadingWithLink } from "@/components/heading-link";
+import { WorkItemEmbed } from "@/components/eras";
 import type { MDXComponents } from "mdx/types";
 import Link from "next/link";
-import type { ComponentPropsWithoutRef } from "react";
+import type { ComponentPropsWithoutRef, ComponentType } from "react";
+
+// =============================================================================
+// Prose Escape Wrapper
+// =============================================================================
+
+/**
+ * HOC that wraps a component with .not-prose to escape prose styling.
+ * Adds a card-like container with border for visual consistency with
+ * other prose elements like tables and code blocks.
+ *
+ * Also sets embed-specific defaults:
+ * - showIcon: false (icons are for timeline context, not embeds)
+ *
+ * @example
+ * const sharedComponents = {
+ *   MyEmbed: withNotProse(MyEmbed),
+ * };
+ */
+function withNotProse<P extends object>(Component: ComponentType<P>) {
+  function WrappedComponent(props: P) {
+    // Set embed-specific defaults (can be overridden by props)
+    const embedProps = {
+      showIcon: false,
+      ...props,
+    } as P;
+
+    return (
+      <div className="not-prose my-6 rounded-lg border border-border bg-muted/5 overflow-hidden">
+        <Component {...embedProps} />
+      </div>
+    );
+  }
+  WrappedComponent.displayName = `withNotProse(${Component.displayName || Component.name || "Component"})`;
+  return WrappedComponent;
+}
 
 /**
  * Inline code component
@@ -92,7 +132,9 @@ function TableWrapper({ children }: { children: React.ReactNode }) {
  * Used by both useMDXComponents (for @next/mdx) and mdxComponents (for next-mdx-remote)
  */
 const sharedComponents: MDXComponents = {
-  // Semantic overrides only - no styling
+  // ---------------------------------------------------------------------------
+  // HTML Element Overrides (prose styles apply from .prose-article CSS)
+  // ---------------------------------------------------------------------------
   a: SmartLink,
   code: InlineCode,
   pre: CodeBlock,
@@ -101,6 +143,11 @@ const sharedComponents: MDXComponents = {
   h1: (props) => <HeadingWithLink level={1} {...props} />,
   h2: (props) => <HeadingWithLink level={2} {...props} />,
   h3: (props) => <HeadingWithLink level={3} {...props} />,
+
+  // ---------------------------------------------------------------------------
+  // Custom Embed Components (wrapped with .not-prose to escape prose styles)
+  // ---------------------------------------------------------------------------
+  WorkItemEmbed: withNotProse(WorkItemEmbed),
 };
 
 /**

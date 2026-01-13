@@ -302,8 +302,8 @@ export function getTalkBySlug(slug: string): TalkWithContent | null {
 
 const docsDirectory = path.join(process.cwd(), "docs");
 
-// Regex to match [slug].[lang].md pattern
-const DOC_LANG_FILE_REGEX = /^(.+)\.(en|zh)\.md$/;
+// Regex to match [slug].[lang].md or [slug].[lang].mdx pattern
+const DOC_LANG_FILE_REGEX = /^(.+)\.(en|zh)\.mdx?$/;
 
 /**
  * Extract title from markdown content (first # heading)
@@ -354,7 +354,8 @@ export function getDocSlugs(): string[] {
   const slugs = new Set<string>();
 
   for (const file of files) {
-    if (!file.endsWith(".md")) continue;
+    // Support both .md and .mdx files
+    if (!file.endsWith(".md") && !file.endsWith(".mdx")) continue;
 
     // Check for language-suffixed file pattern
     const langMatch = file.match(DOC_LANG_FILE_REGEX);
@@ -362,7 +363,7 @@ export function getDocSlugs(): string[] {
       slugs.add(langMatch[1]);
     } else {
       // Legacy pattern: [slug].md (no language suffix)
-      slugs.add(file.replace(/\.md$/, ""));
+      slugs.add(file.replace(/\.mdx?$/, ""));
     }
   }
 
@@ -395,10 +396,16 @@ export function getAllDocs(): Doc[] {
  * Supports both legacy [slug].md and bilingual [slug].[lang].md patterns
  */
 export function getDocBySlug(slug: string): DocWithContent | null {
-  // Check for bilingual files first
-  const enFilePath = path.join(docsDirectory, `${slug}.en.md`);
-  const zhFilePath = path.join(docsDirectory, `${slug}.zh.md`);
+  // Check for bilingual files first (prefer .mdx over .md)
+  const enMdxPath = path.join(docsDirectory, `${slug}.en.mdx`);
+  const zhMdxPath = path.join(docsDirectory, `${slug}.zh.mdx`);
+  const enMdPath = path.join(docsDirectory, `${slug}.en.md`);
+  const zhMdPath = path.join(docsDirectory, `${slug}.zh.md`);
   const legacyFilePath = path.join(docsDirectory, `${slug}.md`);
+
+  // Prefer .mdx files over .md files
+  const enFilePath = fs.existsSync(enMdxPath) ? enMdxPath : enMdPath;
+  const zhFilePath = fs.existsSync(zhMdxPath) ? zhMdxPath : zhMdPath;
 
   const hasEn = fs.existsSync(enFilePath);
   const hasZh = fs.existsSync(zhFilePath);

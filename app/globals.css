@@ -121,7 +121,7 @@
      These remain darker for proper contrast in overlays/modals */
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.87 0.00 0);
+  --primary: oklch(0.87 0 0);
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
@@ -172,52 +172,65 @@
   line-height: 1.75;
 }
 
-.prose-article p {
+/* =============================================================================
+   Prose Selectors with .not-prose Exclusion
+   =============================================================================
+   All prose selectors use :not(:where(.not-prose, .not-prose *)) to exclude
+   embedded components that have their own design system.
+
+   Pattern: .prose-article ELEMENT:not(:where(.not-prose, .not-prose *))
+   - :where() gives 0 specificity to the exclusion, keeping selector weight low
+   - :not() excludes .not-prose and all its descendants
+
+   @see components/mdx-components.tsx - withNotProse() HOC for embedding components
+   ============================================================================= */
+
+.prose-article p:not(:where(.not-prose, .not-prose *)) {
   @apply mb-6;
 }
 
-.prose-article h1 {
+.prose-article h1:not(:where(.not-prose, .not-prose *)) {
   @apply font-sans text-xl font-medium mt-14 mb-6 text-foreground first:mt-0;
 }
 
-.prose-article h2 {
+.prose-article h2:not(:where(.not-prose, .not-prose *)) {
   @apply font-sans text-lg font-medium mt-16 mb-6 text-foreground;
 }
 
-.prose-article h3 {
+.prose-article h3:not(:where(.not-prose, .not-prose *)) {
   @apply font-sans text-base font-medium mt-12 mb-4 text-foreground;
 }
 
-.prose-article a {
+.prose-article a:not(:where(.not-prose, .not-prose *)) {
   @apply text-foreground underline underline-offset-2 decoration-muted-foreground/50 hover:decoration-foreground transition-colors;
 }
 
-.prose-article strong {
+.prose-article strong:not(:where(.not-prose, .not-prose *)) {
   @apply font-semibold;
 }
 
-.prose-article em {
+.prose-article em:not(:where(.not-prose, .not-prose *)) {
   @apply font-serif italic;
 }
 
 /* Optical adjustment for Latin: Newsreader has smaller x-height than Inter */
-.prose-article[lang="en"] em {
+.prose-article[lang="en"] em:not(:where(.not-prose, .not-prose *)) {
   font-size: 17px;
 }
 
 /* Right spacing for Chinese italic to prevent overhang */
-.prose-article[lang="zh"] em {
+.prose-article[lang="zh"] em:not(:where(.not-prose, .not-prose *)) {
   margin-right: 0.1em;
 }
 
 /* Blockquote - Editorial hanging quotation marks style */
-.prose-article blockquote {
+.prose-article blockquote:not(:where(.not-prose, .not-prose *)) {
   @apply my-8 font-serif italic text-foreground/70 relative;
   padding-left: 0;
   border: none;
 }
 
-.prose-article blockquote::before {
+.prose-article blockquote:not(:where(.not-prose, .not-prose *))::before {
   content: "\201C";
   position: absolute;
   left: -0.5em;
@@ -229,71 +242,71 @@
   font-weight: 300;
 }
 
-.prose-article[lang="en"] blockquote {
+.prose-article[lang="en"] blockquote:not(:where(.not-prose, .not-prose *)) {
   font-size: 17px;
 }
 
 /* Lists - custom markers with absolute positioning for proper text flow */
-.prose-article ul,
-.prose-article ol {
+.prose-article ul:not(:where(.not-prose, .not-prose *)),
+.prose-article ol:not(:where(.not-prose, .not-prose *)) {
   @apply my-6;
   padding-left: 1.25em;
   list-style: none;
 }
 
-.prose-article ol {
+.prose-article ol:not(:where(.not-prose, .not-prose *)) {
   counter-reset: ol-counter;
 }
 
-.prose-article li {
+.prose-article li:not(:where(.not-prose, .not-prose *)) {
   @apply mb-2;
   position: relative;
   padding-left: 0;
 }
 
-.prose-article li::before {
+.prose-article li:not(:where(.not-prose, .not-prose *))::before {
   position: absolute;
   left: -1.25em;
   color: var(--muted-foreground);
 }
 
 /* Unordered list bullet */
-.prose-article ul > li::before {
+.prose-article ul:not(:where(.not-prose, .not-prose *)) > li::before {
   content: "•";
 }
 
 /* Ordered list number */
-.prose-article ol > li {
+.prose-article ol:not(:where(.not-prose, .not-prose *)) > li {
   counter-increment: ol-counter;
 }
 
-.prose-article ol > li::before {
+.prose-article ol:not(:where(.not-prose, .not-prose *)) > li::before {
   content: counter(ol-counter);
 }
 
 /* Nested lists - indentation and counter reset */
-.prose-article li ul,
-.prose-article li ol {
+.prose-article li:not(:where(.not-prose, .not-prose *)) ul,
+.prose-article li:not(:where(.not-prose, .not-prose *)) ol {
   @apply my-2;
   padding-left: 1.25em;
   margin-left: 0;
 }
 
-.prose-article li ol {
+.prose-article li:not(:where(.not-prose, .not-prose *)) ol {
   counter-reset: ol-counter;
 }
 
 /* Fix MDX paragraph wrapping in list items */
-.prose-article li > p {
+.prose-article li:not(:where(.not-prose, .not-prose *)) > p {
   @apply mb-0;
 }
 
-.prose-article li > p:first-child {
+.prose-article li:not(:where(.not-prose, .not-prose *)) > p:first-child {
   display: inline;
 }
 
 /* Horizontal rule */
-.prose-article hr {
+.prose-article hr:not(:where(.not-prose, .not-prose *)) {
   @apply my-12 border-border;
 }
 
@@ -302,43 +315,43 @@
   @apply overflow-x-auto my-6 rounded-lg border border-border;
 }
 
-.prose-article table {
+.prose-article table:not(:where(.not-prose, .not-prose *)) {
   @apply w-full border-collapse text-sm;
   margin: 0; /* Override any inherited margins */
 }
 
-.prose-article thead {
+.prose-article thead:not(:where(.not-prose, .not-prose *)) {
   @apply bg-muted/50;
 }
 
-.prose-article th {
+.prose-article th:not(:where(.not-prose, .not-prose *)) {
   @apply border-b border-border px-4 py-2 text-left font-semibold text-foreground;
 }
 
-.prose-article tr {
+.prose-article tr:not(:where(.not-prose, .not-prose *)) {
   @apply border-b border-border last:border-b-0;
 }
 
-.prose-article tbody tr:hover {
+.prose-article tbody:not(:where(.not-prose, .not-prose *)) tr:hover {
   @apply bg-muted/30;
 }
 
-.prose-article td {
+.prose-article td:not(:where(.not-prose, .not-prose *)) {
   @apply px-4 py-2;
 }
 
 /* Inline code */
-.prose-article code {
+.prose-article code:not(:where(.not-prose, .not-prose *)) {
   @apply font-mono text-sm bg-muted px-1.5 py-0.5 rounded;
 }
 
 /* Code blocks with rehype-pretty-code styling */
-.prose-article pre {
+.prose-article pre:not(:where(.not-prose, .not-prose *)) {
   @apply my-6 rounded-lg overflow-x-auto border border-border bg-muted/50;
   color: var(--shiki-light);
 }
 
-.prose-article pre code {
+.prose-article pre:not(:where(.not-prose, .not-prose *)) code {
   @apply bg-transparent p-0 text-sm;
   display: grid;
   min-width: 100%;
@@ -354,10 +367,10 @@
    We need to explicitly apply these variables to the properties.
 */
 
-/* Default (Light Mode) */
-.prose-article pre,
-.prose-article code,
-.prose-article span {
+/* Default (Light Mode) - only apply to actual code blocks, not component spans */
+.prose-article pre:not(:where(.not-prose, .not-prose *)),
+.prose-article code:not(:where(.not-prose, .not-prose *)),
+.prose-article pre:not(:where(.not-prose, .not-prose *)) span {
   color: var(--shiki-light);
   font-style: var(--shiki-light-font-style);
   font-weight: var(--shiki-light-font-weight);
@@ -365,9 +378,9 @@
 }
 
 /* Dark Mode */
-.dark .prose-article pre,
-.dark .prose-article code,
-.dark .prose-article span {
+.dark .prose-article pre:not(:where(.not-prose, .not-prose *)),
+.dark .prose-article code:not(:where(.not-prose, .not-prose *)),
+.dark .prose-article pre:not(:where(.not-prose, .not-prose *)) span {
   color: var(--shiki-dark);
   font-style: var(--shiki-dark-font-style);
   font-weight: var(--shiki-dark-font-weight);
@@ -375,59 +388,66 @@
 }
 
 /* Code block lines */
-.prose-article pre code > [data-line] {
+.prose-article pre:not(:where(.not-prose, .not-prose *)) code > [data-line] {
   @apply border-l-2 border-transparent;
 }
 
 /* Line highlighting */
-.prose-article pre code > .line--highlighted {
+.prose-article
+  pre:not(:where(.not-prose, .not-prose *))
+  code
+  > .line--highlighted {
   @apply bg-blue-500/10 border-l-blue-500;
 }
 
 /* Word/inline highlighting */
-.prose-article .word--highlighted {
+.prose-article .word--highlighted:not(:where(.not-prose, .not-prose *)) {
   @apply bg-blue-500/20 rounded px-1 py-0.5;
 }
 
 /* Diff lines */
-.prose-article pre code > [data-line-diff-add] {
+.prose-article
+  pre:not(:where(.not-prose, .not-prose *))
+  code
+  > [data-line-diff-add] {
   @apply bg-green-500/15 border-l-green-500;
 }
 
-.prose-article pre code > [data-line-diff-remove] {
+.prose-article
+  pre:not(:where(.not-prose, .not-prose *))
+  code
+  > [data-line-diff-remove] {
   @apply bg-red-500/15 border-l-red-500;
 }
 
 /* Line numbers (optional - can be enabled via data-line-numbers) */
-.prose-article pre[data-line-numbers] code > [data-line]::before {
+.prose-article
+  pre[data-line-numbers]:not(:where(.not-prose, .not-prose *))
+  code
+  > [data-line]::before {
   counter-increment: line;
   content: counter(line);
   @apply inline-block w-8 mr-4 text-right text-muted-foreground/40 select-none;
 }
 
-.prose-article hr {
-  @apply my-12 border-border;
-}
-
-.prose-article img {
+.prose-article img:not(:where(.not-prose, .not-prose *)) {
   @apply my-8 rounded-lg;
 }
 
-.prose-article figure {
+.prose-article figure:not(:where(.not-prose, .not-prose *)) {
   @apply my-8;
 }
 
-.prose-article figcaption {
+.prose-article figcaption:not(:where(.not-prose, .not-prose *)) {
   @apply mt-2 text-center text-sm text-muted-foreground;
 }
 
-
 /* Strikethrough (GFM) */
-.prose-article del {
+.prose-article del:not(:where(.not-prose, .not-prose *)) {
   @apply text-muted-foreground line-through;
 }
 
 /* Task lists (GFM) */
-.prose-article input[type="checkbox"] {
+.prose-article input[type="checkbox"]:not(:where(.not-prose, .not-prose *)) {
   @apply mr-2 rounded;
 }
