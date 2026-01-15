@@ -251,21 +251,25 @@ Configuration lives in `lib/ambient/route-config.ts`.
 │                      COMPONENT HIERARCHY                            │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│   Providers (components/providers.tsx)                              │
+│   Providers (shared/providers.tsx)                                  │
 │   └── QueryClientProvider (TanStack Query)                          │
-│       └── AmbientProviders                                          │
-│           ├── LocationContext.Provider                              │
-│           ├── WeatherContext.Provider                               │
-│           ├── AmbientTimeContext.Provider                           │
-│           └── DebugContext.Provider                                 │
+│       └── ThemeProvider                                             │
+│           └── LocaleProvider                                        │
+│               └── VisitorProvider                                   │
+│                   └── CommandProvider                               │
+│                       └── DevtoolProvider                           │
+│                           └── AmbientProvider                       │
+│                               ├── LocationContext                   │
+│                               ├── WeatherContext                    │
+│                               └── AmbientTimeContext                │
 │                                                                     │
 │   Consumers:                                                        │
 │   ├── AmbientGreeting        → useAmbientTime(), useVisitor()       │
 │   ├── WeatherWidget          → useLocation(), useWeather()          │
-│   ├── WeatherGradientBackground → useWeather(), useAmbientTime()    │
-│   ├── PageSurface            → useWeather() (for bg-transparent)    │
+│   ├── GradientBackground     → useWeather(), useAmbientTime()       │
+│   ├── AmbientSurface         → useWeather()                         │
 │   ├── CommandPalette         → useLocation(), useWeather()          │
-│   └── DebugPanel             → useDebug(), useWeather(),            │
+│   └── DevtoolPanel           → useDevtool(), useWeather(),          │
 │                                 useAmbientTime(), useLocation()     │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
@@ -370,16 +374,17 @@ Users can override via command palette or devtool panel.
 | File | Purpose |
 |------|---------|
 | `lib/query.ts` | TanStack Query client + persister |
-| `lib/ambient/queries.ts` | `useLocationQuery()`, `useWeatherQuery()` |
-| `lib/ambient/settings.ts` | User preference persistence |
-| `lib/ambient/location.ts` | IP + GPS location fetching |
-| `lib/ambient/weather.ts` | Open-Meteo API integration (incl. sunrise/sunset) |
-| `lib/ambient/gradient.ts` | Weather + sun event → OKLCH gradient mapping |
-| `lib/ambient/sun.ts` | Sunrise/sunset window detection |
-| `lib/ambient/phase.ts` | 6-phase ambient time model |
-| `lib/ambient/greeting.ts` | Time-based greeting logic |
-| `lib/ambient/route-config.ts` | Per-route gradient enablement |
-| `components/ambient/ambient-greeting.tsx` | Contextual greeting component |
-| `components/ambient/weather-widget.tsx` | iOS-style weather display |
-| `components/ambient/weather-gradient-background.tsx` | Background renderer |
-| `components/debug/debug-panel.tsx` | Debug FAB with time/weather/refetch modules |
+| `systems/ambient/lib/queries.ts` | `useLocationQuery()`, `useWeatherQuery()` |
+| `systems/ambient/lib/settings.ts` | User preference persistence |
+| `systems/ambient/lib/location.ts` | IP + GPS location fetching |
+| `systems/ambient/lib/weather.ts` | Open-Meteo API integration (incl. sunrise/sunset) |
+| `systems/ambient/lib/gradient.ts` | Weather + sun event → OKLCH gradient mapping |
+| `systems/ambient/lib/sun.ts` | Sunrise/sunset window detection |
+| `systems/ambient/lib/phase.ts` | 6-phase ambient time model |
+| `systems/ambient/lib/greeting.ts` | Time-based greeting logic |
+| `systems/ambient/lib/route-config.ts` | Per-route gradient enablement |
+| `systems/ambient/components/greeting.tsx` | Contextual greeting component |
+| `systems/ambient/components/weather-widget.tsx` | iOS-style weather display |
+| `systems/ambient/components/gradient-background.tsx` | Background gradient renderer |
+| `systems/ambient/components/surface.tsx` | Route-aware gradient container |
+| `systems/devtool/panel.tsx` | Debug FAB with time/weather/refetch modules |
