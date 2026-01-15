@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { SystemNav } from "@/components/ui/system-nav";
 import type { PromptsData, Quote, Principle, Person } from "@/lib/prompts";
 import { cn } from "@/lib/utils";
+import { useLocale, t } from "@/services";
 
 // Animation variants for expandable content
 const expandVariants = {
@@ -319,18 +320,18 @@ function PersonItem({ person }: { person: Person }) {
 }
 
 // Footer meta component
-function PromptFooter({ meta }: { meta: PromptsData["meta"] }) {
+function PromptFooter({ meta, locale }: { meta: PromptsData["meta"]; locale: "en" | "zh" }) {
   return (
     <div className="mt-20 py-4 px-4 rounded-lg border border-dashed border-muted-foreground/20">
       <div className="font-mono text-xs text-muted-foreground/50 space-y-1">
         <div>
-          tokens: <span className="text-muted-foreground/70">{meta.tokenCount}</span>
+          {t(locale, "promptMetaTokens")}: <span className="text-muted-foreground/70">{meta.tokenCount}</span>
         </div>
         <div>
-          last updated: <span className="text-muted-foreground/70">{meta.lastUpdated}</span>
+          {t(locale, "promptMetaLastUpdated")}: <span className="text-muted-foreground/70">{meta.lastUpdated}</span>
         </div>
         <div>
-          model: <span className="text-muted-foreground/70">{meta.model}</span>
+          {t(locale, "promptMetaModel")}: <span className="text-muted-foreground/70">{meta.model}</span>
         </div>
       </div>
     </div>
@@ -338,6 +339,8 @@ function PromptFooter({ meta }: { meta: PromptsData["meta"] }) {
 }
 
 export function PromptView({ data }: PromptViewProps) {
+  const { locale } = useLocale();
+
   return (
     <main className="mx-auto max-w-[680px] px-6 pt-24 pb-32">
       {/* Back link - System UI */}
@@ -346,10 +349,10 @@ export function PromptView({ data }: PromptViewProps) {
       {/* Header */}
       <header className="mb-12">
         <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
-          System Prompts
+          {t(locale, "promptPageTitle")}
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Quotes, principles, and people that shape how I think.
+          {t(locale, "promptPageSubtitle")}
         </p>
       </header>
 
@@ -378,7 +381,7 @@ export function PromptView({ data }: PromptViewProps) {
       </div>
 
       {/* Footer meta */}
-      <PromptFooter meta={data.meta} />
+      <PromptFooter meta={data.meta} locale={locale} />
     </main>
   );
 }
