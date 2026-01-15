@@ -348,6 +348,80 @@ Social media posts and threads.
 
 ---
 
+## Widget Primitives
+
+The widget system is built on composable primitives (shadcn-like pattern). These primitives provide consistent styling while allowing flexible composition.
+
+### WidgetShell
+
+The base container with card styling (rounded corners, backdrop blur, border, hover effects).
+
+<WidgetShell>
+  <div className="p-5">
+    <span className="text-sm text-muted-foreground">
+      WidgetShell provides the consistent card appearance used across all widgets.
+    </span>
+  </div>
+</WidgetShell>
+
+### WidgetHeader + WidgetTitle + WidgetLink
+
+Header bar with title and optional navigation arrow.
+
+<WidgetShell>
+  <WidgetHeader>
+    <WidgetTitle>Widget Title</WidgetTitle>
+    <WidgetLink href="/docs" />
+  </WidgetHeader>
+  <WidgetBody>
+    <span className="text-sm text-muted-foreground">
+      Content goes here. WidgetBody provides consistent padding.
+    </span>
+  </WidgetBody>
+</WidgetShell>
+
+### WidgetStatus
+
+Pulsing status indicator for "active" states (e.g., current role).
+
+<WidgetShell>
+  <WidgetHeader className="pb-3">
+    <div className="flex items-center gap-2">
+      <WidgetStatus />
+      <WidgetTitle>Currently Active</WidgetTitle>
+    </div>
+    <WidgetLink href="/log" variant="text" />
+  </WidgetHeader>
+  <WidgetBody>
+    <span className="text-sm text-muted-foreground">
+      Status indicator shows something is currently in progress.
+    </span>
+  </WidgetBody>
+</WidgetShell>
+
+### Custom Layout (Weather-style)
+
+WidgetShell with fully custom internal layout.
+
+<WidgetShell>
+  <div className="p-5">
+    <div className="flex items-center justify-between">
+      <WidgetTitle>San Francisco, CA</WidgetTitle>
+      <span className="text-xs text-muted-foreground">☀️</span>
+    </div>
+    <div className="mt-3 flex items-end justify-between gap-4">
+      <div className="font-serif text-4xl leading-none text-foreground tracking-tight tabular-nums">
+        22°
+      </div>
+      <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+        Clear
+      </div>
+    </div>
+  </div>
+</WidgetShell>
+
+---
+
 ## Stack Widgets
 
 Stack widgets are container components for displaying multiple items in horizontal or vertical layouts. They work well with compact CommitEmbed variants.

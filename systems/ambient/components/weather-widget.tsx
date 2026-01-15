@@ -5,7 +5,7 @@ import { useLocale, t } from "@/services";
 import { useDevtool } from "@/systems/devtool";
 import { useLocation, useWeather } from "../provider";
 import { formatLocationLabel, type WeatherCondition, getWeatherConditionLabel } from "../lib";
-import { cn } from "@/lib/utils";
+import { WidgetShell, WidgetTitle } from "@/components/ui/widget";
 import { Loader2, Navigation } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -96,73 +96,65 @@ export function WeatherWidget() {
     : staleWeather;
 
   return (
-    <div
-      className={cn(
-        "group relative p-5 rounded-2xl",
-        "bg-card/50 backdrop-blur-xl",
-        "border border-border/50",
-        "transition-all duration-300",
-        "hover:border-border hover:bg-card/70"
-      )}
-    >
-      <div className="flex items-center justify-between">
-        <div className="min-w-0">
-          <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground truncate">
-            {displayCity}
+    <WidgetShell>
+      <div className="p-5">
+        <div className="flex items-center justify-between">
+          <div className="min-w-0">
+            <WidgetTitle className="truncate">{displayCity}</WidgetTitle>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {isReloading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          ) : mounted && locationMode === "accurate" ? (
-            <Navigation
-              className="h-4 w-4 text-muted-foreground"
-              aria-label={t(locale, "locationAccurate")}
-            />
-          ) : null}
-        </div>
-      </div>
-
-      {isBootLoading && !displayWeather ? (
-        <div className="flex items-center justify-center py-6">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
-      ) : displayWeather ? (
-        <div className="mt-3 flex items-end justify-between gap-4">
-          <div className="font-serif text-4xl leading-none text-foreground tracking-tight tabular-nums">
-            {Math.round(displayWeather.temperatureC)}°
-          </div>
-          <div className="flex flex-col items-end justify-between min-h-[52px]">
-            <div className="text-foreground/80">
-              <WeatherIcon
-                condition={displayWeather.condition}
-                isDay={displayWeather.isDay !== false}
-                className="h-4 w-4"
+          <div className="flex items-center gap-2">
+            {isReloading ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            ) : mounted && locationMode === "accurate" ? (
+              <Navigation
+                className="h-4 w-4 text-muted-foreground"
+                aria-label={t(locale, "locationAccurate")}
               />
-            </div>
-            <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-              {getWeatherConditionLabel(displayWeather.condition, locale)}
-            </div>
+            ) : null}
           </div>
         </div>
-      ) : (
-        <div className="mt-3 space-y-2">
-          <div className="text-sm text-muted-foreground leading-relaxed">
-            {devForceEmpty ? "no data (dev)" : t(locale, "weatherUnavailable")}
+
+        {isBootLoading && !displayWeather ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-          {error && (
-            <div className="text-xs font-mono text-muted-foreground/80">
-              {error}
+        ) : displayWeather ? (
+          <div className="mt-3 flex items-end justify-between gap-4">
+            <div className="font-serif text-4xl leading-none text-foreground tracking-tight tabular-nums">
+              {Math.round(displayWeather.temperatureC)}°
             </div>
-          )}
-          <button
-            onClick={() => refresh()}
-            className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
-          >
-            retry
-          </button>
-        </div>
-      )}
-    </div>
+            <div className="flex flex-col items-end justify-between min-h-[52px]">
+              <div className="text-foreground/80">
+                <WeatherIcon
+                  condition={displayWeather.condition}
+                  isDay={displayWeather.isDay !== false}
+                  className="h-4 w-4"
+                />
+              </div>
+              <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+                {getWeatherConditionLabel(displayWeather.condition, locale)}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-2">
+            <div className="text-sm text-muted-foreground leading-relaxed">
+              {devForceEmpty ? "no data (dev)" : t(locale, "weatherUnavailable")}
+            </div>
+            {error && (
+              <div className="text-xs font-mono text-muted-foreground/80">
+                {error}
+              </div>
+            )}
+            <button
+              onClick={() => refresh()}
+              className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
+            >
+              retry
+            </button>
+          </div>
+        )}
+      </div>
+    </WidgetShell>
   );
 }

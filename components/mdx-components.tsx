@@ -35,6 +35,14 @@
 import { CodeBlock } from "@/components/code-block";
 import { HeadingWithLink } from "@/components/heading-link";
 import { HStackWidget, VStackWidget } from "@/components/home/featured-stack-widget";
+import {
+  WidgetShell,
+  WidgetHeader,
+  WidgetTitle,
+  WidgetBody,
+  WidgetLink,
+  WidgetStatus,
+} from "@/components/ui/widget";
 import { CommitEmbed } from "@/components/log";
 import type { MDXComponents } from "mdx/types";
 import Link from "next/link";
@@ -145,6 +153,16 @@ const sharedComponents: MDXComponents = {
   CommitEmbed: withNotProse(CommitEmbed),
   HStackWidget: withNotProse(HStackWidget),
   VStackWidget: withNotProse(VStackWidget),
+
+  // ---------------------------------------------------------------------------
+  // Widget Primitives (shadcn-like composable building blocks)
+  // ---------------------------------------------------------------------------
+  WidgetShell: withNotProse(WidgetShell),
+  WidgetHeader,
+  WidgetTitle,
+  WidgetBody,
+  WidgetLink,
+  WidgetStatus,
 };
 
 /**

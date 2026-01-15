@@ -1,8 +1,14 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import {
+  WidgetShell,
+  WidgetHeader,
+  WidgetTitle,
+  WidgetBody,
+  WidgetLink,
+} from "@/components/ui/widget";
 import { ArrowRight } from "lucide-react";
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type FeaturedStackWidgetProps = {
@@ -24,35 +30,17 @@ function StackShell({
   children: React.ReactNode;
 }) {
   return (
-    <div
-      className={cn(
-        "group relative rounded-2xl overflow-hidden",
-        "bg-card/50 backdrop-blur-xl",
-        "border border-border/50",
-        "transition-all duration-300",
-        "hover:border-border hover:bg-card/70",
-        className
-      )}
-    >
-      {/* Header (padding model: px/pt/pb, not outer p-*) */}
-      <div className="px-5 pt-5 pb-4 flex items-center justify-between">
-        <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-          {title}
-        </span>
+    <WidgetShell className={className}>
+      <WidgetHeader>
+        <WidgetTitle>{title}</WidgetTitle>
         {href ? (
-          <Link
-            href={href}
-            aria-label="View all"
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center"
-          >
-            <ArrowRight className="h-3 w-3" />
-          </Link>
+          <WidgetLink href={href} />
         ) : (
           <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
         )}
-      </div>
+      </WidgetHeader>
       {children}
-    </div>
+    </WidgetShell>
   );
 }
 
@@ -171,11 +159,11 @@ export function VStackWidget({
 
   return (
     <StackShell title={title} href={href} className={className}>
-      <div className="px-5 pb-5 space-y-3">
+      <WidgetBody className="space-y-3">
         {items.map((child, i) => (
           <div key={i}>{child}</div>
         ))}
-      </div>
+      </WidgetBody>
     </StackShell>
   );
 }

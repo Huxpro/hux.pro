@@ -348,6 +348,80 @@
 
 ---
 
+## Widget 原语
+
+Widget 系统基于可组合的原语构建（类似 shadcn 模式）。这些原语提供一致的样式，同时允许灵活组合。
+
+### WidgetShell
+
+带卡片样式的基础容器（圆角、背景模糊、边框、悬停效果）。
+
+<WidgetShell>
+  <div className="p-5">
+    <span className="text-sm text-muted-foreground">
+      WidgetShell 提供所有 Widget 使用的一致卡片外观。
+    </span>
+  </div>
+</WidgetShell>
+
+### WidgetHeader + WidgetTitle + WidgetLink
+
+带标题和可选导航箭头的头部栏。
+
+<WidgetShell>
+  <WidgetHeader>
+    <WidgetTitle>Widget 标题</WidgetTitle>
+    <WidgetLink href="/docs" />
+  </WidgetHeader>
+  <WidgetBody>
+    <span className="text-sm text-muted-foreground">
+      内容放在这里。WidgetBody 提供一致的内边距。
+    </span>
+  </WidgetBody>
+</WidgetShell>
+
+### WidgetStatus
+
+用于"活跃"状态的脉冲指示器（例如当前职位）。
+
+<WidgetShell>
+  <WidgetHeader className="pb-3">
+    <div className="flex items-center gap-2">
+      <WidgetStatus />
+      <WidgetTitle>当前活跃</WidgetTitle>
+    </div>
+    <WidgetLink href="/log" variant="text" />
+  </WidgetHeader>
+  <WidgetBody>
+    <span className="text-sm text-muted-foreground">
+      状态指示器表示某事正在进行中。
+    </span>
+  </WidgetBody>
+</WidgetShell>
+
+### 自定义布局（天气样式）
+
+WidgetShell 搭配完全自定义的内部布局。
+
+<WidgetShell>
+  <div className="p-5">
+    <div className="flex items-center justify-between">
+      <WidgetTitle>旧金山，加州</WidgetTitle>
+      <span className="text-xs text-muted-foreground">☀️</span>
+    </div>
+    <div className="mt-3 flex items-end justify-between gap-4">
+      <div className="font-serif text-4xl leading-none text-foreground tracking-tight tabular-nums">
+        22°
+      </div>
+      <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+        晴朗
+      </div>
+    </div>
+  </div>
+</WidgetShell>
+
+---
+
 ## Stack Widget 组件
 
 Stack Widget 是用于以水平或垂直布局显示多个项目的容器组件。与紧凑模式的 CommitEmbed 配合使用效果很好。
