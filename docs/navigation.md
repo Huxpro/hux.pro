@@ -180,3 +180,43 @@ Each page follows a consistent pattern:
 - Command palette is responsive (full width on small screens)
 - Touch-friendly tap targets (`h-12` minimum)
 - Widget grid stacks vertically on mobile
+
+## Technical Details: Scrollable Command Palette
+
+### Design Constraints
+
+The command palette needs to handle two distinct interaction models based on the device capabilities:
+
+1.  **Desktop Experience (macOS, Windows, Linux)**:
+    *   **Goal**: Mimic system-level tools like Raycast or Spotlight.
+    *   **Behavior**: The underlying page should remain visible and scrollable. The command palette floats on top using `position: fixed`.
+    *   **Reasoning**: This provides context preservation. Users can reference content on the page while using the command palette without the page jumping or locking.
+
+2.  **Touch Experience (iOS, iPadOS)**:
+    *   **Goal**: Prevent viewport instability and interaction conflicts.
+    *   **Behavior**: The page scroll must be locked, and the modal must use absolute positioning relative to the document body, calculated based on the current scroll position.
+    *   **Reasoning**:
+        *   **Virtual Keyboard**: On iOS, the virtual keyboard pushes the viewport. `position: fixed` elements can become detached or inaccessible.
+        *   **Rubber-banding**: System-level scroll elasticity can cause "double scrolling" if the body isn't locked.
+        *   **Safari Bars**: The dynamic address bar resizing on mobile Safari plays poorly with 100vh fixed overlays.
+
+### Implementation Details
+
+We use runtime device detection rather than media queries to accurately target these behaviors.
+
+```tsx
+// Detection logic
+const isAppleTouch = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+// Strategy 1: Desktop (Default)
+// - position: fixed
+// - inset: 0
+// - No scroll locking
+
+// Strategy 2: Apple Touch (iOS/iPadOS)
+// - position: absolute
+// - top: window.scrollY
+// - height: 100dvh
+// - document.body.style.overflow = "hidden" (Scroll locking active)
+```

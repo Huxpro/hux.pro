@@ -133,7 +133,7 @@ export const queryPersister = createSyncStoragePersister({
 
 This means returning visitors see cached data immediately, even before any network request.
 
-See [Ambient System](./ambient-system.md) for the full data flow.
+See [Ambient System](./system-ambient.md) for the full data flow.
 
 ## Provider Architecture
 
