@@ -185,6 +185,34 @@
    @see components/mdx-components.tsx - withNotProse() HOC for embedding components
    ============================================================================= */
 
+/* =============================================================================
+   .not-prose Spacing
+   =============================================================================
+   Embedded components (wrapped with .not-prose) need vertical margin to
+   separate them from surrounding prose content.
+   
+   However, when .not-prose elements are nested (e.g., CommitEmbed inside
+   VStackWidget), only the outermost element should have margin.
+   
+   Solution:
+   1. First rule: All .not-prose elements in prose context get margin
+   2. Second rule: Nested .not-prose elements reset margin (higher specificity)
+   
+   This keeps spacing logic in CSS rather than requiring React context or
+   component-level awareness of nesting.
+   ============================================================================= */
+
+/* First-level .not-prose in prose context gets vertical margin */
+.prose-article .not-prose {
+  @apply my-6;
+}
+
+/* Nested .not-prose elements reset margin - parent handles spacing */
+.not-prose .not-prose {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 .prose-article p:not(:where(.not-prose, .not-prose *)) {
   @apply mb-6;
 }

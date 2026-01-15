@@ -4,7 +4,7 @@
  * CommitEmbed - Unified commit display component
  *
  * Dispatches to type-specific embed components based on commit.type.
- * Can be used standalone in MDX or within the LogTimeline.
+ * Supports three display variants for different contexts.
  *
  * @see components/log/embeds/ - Individual embed components
  */
@@ -30,19 +30,30 @@ import {
 // Types
 // =============================================================================
 
+/**
+ * Display variants for CommitEmbed:
+ * - "timeline": Shows icon, timeline-optimized spacing, used in /log
+ * - "card": Standalone in prose/MDX, wrapped with border/bg frame
+ * - "bare": Minimal frameless version for use inside stacks/widgets
+ */
+export type CommitEmbedVariant = "timeline" | "card" | "bare";
+
 export interface CommitEmbedProps {
   /** The commit data to display */
   commit: Commit;
   /** Display locale for i18n */
   locale?: Locale;
-  /** Render compact embed variant (for stacks/widgets) */
-  compact?: boolean;
+  /**
+   * Display variant:
+   * - "timeline": Shows icon, for /log timeline
+   * - "card": Standalone with border/bg frame, for MDX (default)
+   * - "bare": Minimal frameless, for use inside stacks/widgets
+   */
+  variant?: CommitEmbedVariant;
   /** Whether to start in expanded state */
   defaultExpanded?: boolean;
   /** Optional className for custom styling */
   className?: string;
-  /** Show the type icon on the left (for timeline context) */
-  showIcon?: boolean;
 }
 
 // =============================================================================
@@ -52,18 +63,22 @@ export interface CommitEmbedProps {
 export function CommitEmbed({
   commit,
   locale = "en",
-  compact = false,
+  variant = "card",
   defaultExpanded = false,
   className,
-  showIcon = true,
 }: CommitEmbedProps) {
   const Icon = commitIcons[commit.type];
+
+  // Derive behavior from variant
+  const isBare = variant === "bare";
+  const isTimeline = variant === "timeline";
+  const isCard = variant === "card";
 
   // Dispatch to type-specific embed
   const content = (() => {
     switch (commit.type) {
       case "project":
-        return compact ? (
+        return isBare ? (
           <ProjectEmbedCompact commit={commit} locale={locale} />
         ) : (
           <ProjectEmbed
@@ -73,7 +88,7 @@ export function CommitEmbed({
           />
         );
       case "talk":
-        return compact ? (
+        return isBare ? (
           <TalkEmbedCompact commit={commit} locale={locale} />
         ) : (
           <TalkEmbed
@@ -83,7 +98,7 @@ export function CommitEmbed({
           />
         );
       case "post":
-        return compact ? (
+        return isBare ? (
           <PostEmbedCompact commit={commit} locale={locale} />
         ) : (
           <PostEmbed
@@ -93,7 +108,7 @@ export function CommitEmbed({
           />
         );
       case "role":
-        return compact ? (
+        return isBare ? (
           <RoleEmbedCompact commit={commit} locale={locale} />
         ) : (
           <RoleEmbed
@@ -103,7 +118,7 @@ export function CommitEmbed({
           />
         );
       case "social":
-        return compact ? (
+        return isBare ? (
           <SocialEmbedCompact commit={commit} locale={locale} />
         ) : (
           <SocialEmbed
@@ -117,44 +132,43 @@ export function CommitEmbed({
     }
   })();
 
-  return (
-    <div className={cn("group relative", className)}>
-      {/* Type icon (timeline context only) */}
-      {showIcon && (
-        <div className="absolute left-0 top-4 z-10 w-6 h-6 flex items-center justify-center">
-          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-        </div>
-      )}
-
-      {/* Content area */}
+  // Card variant: self-contained with border/bg frame
+  if (isCard) {
+    return (
       <div
         className={cn(
-          // Timeline mode: offset for icon, negative margin for tighter spacing
-          showIcon && "ml-6 -my-2",
-          // Shared styles
-          !compact && "p-4 rounded-lg transition-colors duration-200 hover:bg-muted/10"
+          "rounded-lg border border-border bg-muted/5 overflow-hidden",
+          "p-4",
+          className
+        )}
+      >
+        {content}
+      </div>
+    );
+  }
+
+  // Bare variant: minimal, no frame, for use inside containers
+  if (isBare) {
+    return <div className={className}>{content}</div>;
+  }
+
+  // Timeline variant: shows icon, timeline-optimized spacing
+  return (
+    <div className={cn("group relative", className)}>
+      {/* Type icon */}
+      <div className="absolute left-0 top-4 z-10 w-6 h-6 flex items-center justify-center">
+        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+      </div>
+
+      {/* Content area with icon offset */}
+      <div
+        className={cn(
+          "ml-6 -my-2",
+          "p-4 rounded-lg transition-colors duration-200 hover:bg-muted/10"
         )}
       >
         {content}
       </div>
     </div>
   );
-}
-
-// =============================================================================
-// Legacy Export
-// =============================================================================
-
-/**
- * TimelineItem - Wrapper for LogTimeline compatibility
- */
-export function TimelineItem({
-  commit,
-  locale,
-}: {
-  commit: Commit;
-  locale: Locale;
-  isFirst?: boolean;
-}) {
-  return <CommitEmbed commit={commit} locale={locale} showIcon={true} />;
 }

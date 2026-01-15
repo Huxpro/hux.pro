@@ -8,7 +8,7 @@ import {
   formatTagDateRange,
 } from "@/lib/log";
 import type { Locale } from "@/lib/i18n";
-import { TimelineItem } from "./commit-embed";
+import { CommitEmbed } from "./commit-embed";
 
 interface LogTimelineProps {
   data: {
@@ -90,12 +90,12 @@ export function LogTimeline({ data, locale }: LogTimelineProps) {
 
           {/* Commits for this tag */}
           <div className="space-y-0">
-            {commits.map((commit, commitIndex) => (
-              <TimelineItem
+            {commits.map((commit) => (
+              <CommitEmbed
                 key={commit.id}
                 commit={commit}
                 locale={locale}
-                isFirst={isFirst(tagIndex) && commitIndex === 0}
+                variant="timeline"
               />
             ))}
           </div>

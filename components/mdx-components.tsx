@@ -34,6 +34,7 @@
 
 import { CodeBlock } from "@/components/code-block";
 import { HeadingWithLink } from "@/components/heading-link";
+import { HStackWidget, VStackWidget } from "@/components/home/featured-stack-widget";
 import { CommitEmbed } from "@/components/log";
 import type { MDXComponents } from "mdx/types";
 import Link from "next/link";
@@ -45,28 +46,21 @@ import type { ComponentPropsWithoutRef, ComponentType, ReactNode } from "react";
 
 /**
  * HOC that wraps a component with .not-prose to escape prose styling.
- * Adds a card-like container with border for visual consistency with
- * other prose elements like tables and code blocks.
+ * 
+ * Spacing is handled by CSS rules in globals.css:
+ * - .prose-article .not-prose { margin } - first-level gets margin
+ * - .not-prose .not-prose { margin: 0 } - nested elements reset margin
+ * 
+ * This allows components to be used standalone or nested in stacks without
+ * double margin issues, keeping spacing logic in CSS rather than React.
  *
- * Also sets embed-specific defaults:
- * - showIcon: false (icons are for timeline context, not embeds)
- *
- * @example
- * const sharedComponents = {
- *   MyEmbed: withNotProse(MyEmbed),
- * };
+ * @see app/globals.css - .not-prose spacing rules
  */
 function withNotProse<P extends object>(Component: ComponentType<P>) {
   function WrappedComponent(props: P) {
-    // Set embed-specific defaults (can be overridden by props)
-    const embedProps = {
-      showIcon: false,
-      ...props,
-    } as P;
-
     return (
-      <div className="not-prose my-6 rounded-lg border border-border bg-muted/5 overflow-hidden">
-        <Component {...embedProps} />
+      <div className="not-prose">
+        <Component {...props} />
       </div>
     );
   }
@@ -146,8 +140,11 @@ const sharedComponents: MDXComponents = {
 
   // ---------------------------------------------------------------------------
   // Custom Embed Components (wrapped with .not-prose to escape prose styles)
+  // Components handle their own visual styling via variant props
   // ---------------------------------------------------------------------------
   CommitEmbed: withNotProse(CommitEmbed),
+  HStackWidget: withNotProse(HStackWidget),
+  VStackWidget: withNotProse(VStackWidget),
 };
 
 /**

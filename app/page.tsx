@@ -121,8 +121,7 @@ function GroupWidget({ group }: { group: Group }) {
             key={commit.id}
             commit={commit}
             locale={locale}
-            compact
-            showIcon={false}
+            variant="bare"
           />
         ))}
       </VStackWidget>
@@ -136,8 +135,7 @@ function GroupWidget({ group }: { group: Group }) {
           key={commit.id}
           commit={commit}
           locale={locale}
-          compact
-          showIcon={false}
+          variant="bare"
         />
       ))}
     </HStackWidget>

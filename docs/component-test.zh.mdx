@@ -1,0 +1,676 @@
+# 组件测试
+
+本文档展示所有类 Widget 组件及其变体。用作组件样式和行为验证的参考。
+
+---
+
+## CommitEmbed 组件
+
+`CommitEmbed` 组件可以在 MDX 内容中直接嵌入提交项目（工作记录）。支持 5 种类型，使用可区分联合类型保证类型安全。
+
+### 类型：项目 (Project)
+
+带链接、技术栈和统计数据的项目。
+
+#### 默认状态（折叠）
+
+<CommitEmbed
+  commit={{
+    id: "test-project-1",
+    type: "project",
+    tagId: "demo",
+    title: { en: "Design System Tokens", zh: "设计系统令牌" },
+    description: {
+      en: "A comprehensive design token system for building consistent, themeable UI components. Supports CSS variables, Tailwind, and multiple output formats.",
+      zh: "一个全面的设计令牌系统，用于构建一致的、可主题化的 UI 组件。支持 CSS 变量、Tailwind 和多种输出格式。"
+    },
+    date: "2024-01",
+    links: [
+      { url: "https://example.com/tokens", label: "网站", icon: "globe" },
+      { url: "https://github.com/example/tokens", label: "GitHub", icon: "github" }
+    ],
+    techStack: ["TypeScript", "CSS", "Tailwind"],
+    commentary: {
+      en: "This project taught me a lot about the importance of systematic design thinking.",
+      zh: "这个项目教会了我很多关于系统化设计思维的知识。"
+    },
+    stats: { stars: 1200, downloads: "50k/月" }
+  }}
+  locale="zh"
+/>
+
+#### 默认展开
+
+<CommitEmbed
+  commit={{
+    id: "test-project-2",
+    type: "project",
+    tagId: "demo",
+    title: { en: "React Component Library", zh: "React 组件库" },
+    description: {
+      en: "A minimal, accessible React component library with full TypeScript support and tree-shaking.",
+      zh: "一个简洁、无障碍的 React 组件库，完全支持 TypeScript 和 tree-shaking。"
+    },
+    date: "2023-06",
+    links: [
+      { url: "https://github.com/example/components", label: "GitHub", icon: "github" }
+    ],
+    techStack: ["React", "TypeScript", "Storybook"],
+    commentary: {
+      en: "Building this helped crystallize my thinking on API design.",
+      zh: "构建这个库帮助我理清了对 API 设计的思考。"
+    },
+    stats: { stars: 850 }
+  }}
+  locale="zh"
+  defaultExpanded={true}
+/>
+
+#### 最简形式（无可选字段）
+
+<CommitEmbed
+  commit={{
+    id: "test-project-3",
+    type: "project",
+    tagId: "demo",
+    title: { en: "CLI Tool", zh: "命令行工具" },
+    description: {
+      en: "A simple command-line utility for code scaffolding.",
+      zh: "一个简单的代码脚手架命令行工具。"
+    },
+    date: "2022-11",
+    links: [
+      { url: "https://example.com/cli", label: "文档", icon: "file" }
+    ]
+  }}
+  locale="zh"
+/>
+
+---
+
+### 类型：演讲 (Talk)
+
+带视频、幻灯片和会议信息的演讲。
+
+#### 完整演讲（视频 + 幻灯片）
+
+<CommitEmbed
+  commit={{
+    id: "test-talk-1",
+    type: "talk",
+    tagId: "demo",
+    title: { en: "Building Cross-Platform Apps at Scale", zh: "大规模构建跨平台应用" },
+    description: {
+      en: "A deep dive into cross-platform development strategies, covering shared codebases, platform-specific optimizations, and team organization.",
+      zh: "深入探讨跨平台开发策略，涵盖共享代码库、平台特定优化和团队组织。"
+    },
+    date: "2024-03",
+    conference: {
+      name: "ReactConf 2024",
+      city: "Las Vegas, NV",
+      url: "https://reactconf.com"
+    },
+    video: {
+      url: "https://youtube.com/watch?v=example",
+      platform: "youtube"
+    },
+    slides: {
+      url: "https://slides.example.com/talk"
+    },
+    commentary: {
+      en: "One of my favorite talks to give - the audience questions were incredibly insightful.",
+      zh: "这是我最喜欢做的演讲之一——观众的问题非常有洞察力。"
+    }
+  }}
+  locale="zh"
+/>
+
+#### 带缩略图的演讲
+
+<CommitEmbed
+  commit={{
+    id: "test-talk-2",
+    type: "talk",
+    tagId: "demo",
+    title: { en: "The Art of Developer Experience", zh: "开发者体验的艺术" },
+    description: {
+      en: "What makes developer tools delightful? Exploring ergonomics, feedback loops, and invisible design.",
+      zh: "是什么让开发者工具令人愉悦？探索人体工程学、反馈循环和隐形设计。"
+    },
+    date: "2023-09",
+    conference: {
+      name: "DevX Summit",
+      city: "San Francisco, CA"
+    },
+    video: {
+      url: "https://youtube.com/watch?v=dx-example",
+      thumbnail: "https://picsum.photos/320/180?random=1",
+      platform: "youtube"
+    }
+  }}
+  locale="zh"
+  defaultExpanded={true}
+/>
+
+#### 最简演讲（无视频/幻灯片）
+
+<CommitEmbed
+  commit={{
+    id: "test-talk-3",
+    type: "talk",
+    tagId: "demo",
+    title: { en: "Lightning Talk: CSS Tricks", zh: "闪电演讲：CSS 技巧" },
+    description: {
+      en: "5-minute lightning talk on advanced CSS patterns.",
+      zh: "关于高级 CSS 模式的 5 分钟闪电演讲。"
+    },
+    date: "2022-06",
+    conference: {
+      name: "CSS Day"
+    }
+  }}
+  locale="zh"
+/>
+
+---
+
+### 类型：文章 (Post)
+
+带出版信息的博客文章。
+
+#### 完整文章
+
+<CommitEmbed
+  commit={{
+    id: "test-post-1",
+    type: "post",
+    tagId: "demo",
+    title: { en: "The Art of Developer Experience", zh: "开发者体验的艺术" },
+    description: {
+      en: "Exploring what makes developer tools delightful to use, from API design to error messages.",
+      zh: "探索是什么让开发者工具令人愉悦，从 API 设计到错误消息。"
+    },
+    date: "2024-02",
+    url: "https://blog.example.com/dx-art",
+    publication: {
+      name: "Medium"
+    },
+    commentary: {
+      en: "Writing this helped me articulate ideas I had been thinking about for years.",
+      zh: "写这篇文章帮助我阐明了多年来一直在思考的想法。"
+    }
+  }}
+  locale="zh"
+/>
+
+#### 最简文章
+
+<CommitEmbed
+  commit={{
+    id: "test-post-2",
+    type: "post",
+    tagId: "demo",
+    title: { en: "Quick Tip: TypeScript Generics", zh: "快速提示：TypeScript 泛型" },
+    description: {
+      en: "A practical guide to TypeScript generics with real-world examples.",
+      zh: "TypeScript 泛型的实用指南，附有真实案例。"
+    },
+    date: "2023-08",
+    url: "https://dev.to/example/typescript-generics",
+    publication: {
+      name: "dev.to"
+    }
+  }}
+  locale="zh"
+/>
+
+---
+
+### 类型：职位 (Role)
+
+工作职位和职业历史。
+
+#### 完整职位（有结束日期）
+
+<CommitEmbed
+  commit={{
+    id: "test-role-1",
+    type: "role",
+    tagId: "demo",
+    title: { en: "Acme Corp", zh: "Acme 公司" },
+    description: {
+      en: "Led a team of 8 engineers building the next-generation design system and developer tools platform.",
+      zh: "领导一个由 8 名工程师组成的团队，构建下一代设计系统和开发者工具平台。"
+    },
+    date: "2022-01",
+    endDate: "2024-06",
+    company: { en: "Acme Corp", zh: "Acme 公司" },
+    roleTitle: { en: "Senior Staff Engineer", zh: "高级技术专家" },
+    location: "旧金山，加州",
+    url: "https://acme.example.com",
+    commentary: {
+      en: "An incredible journey of growth and learning.",
+      zh: "一段令人难以置信的成长和学习之旅。"
+    }
+  }}
+  locale="zh"
+/>
+
+#### 当前职位（进行中）
+
+<CommitEmbed
+  commit={{
+    id: "test-role-2",
+    type: "role",
+    tagId: "demo",
+    title: { en: "TechStart Inc", zh: "TechStart 公司" },
+    description: {
+      en: "Building the frontend infrastructure and developer experience for a fast-growing startup.",
+      zh: "为一家快速成长的初创公司构建前端基础设施和开发者体验。"
+    },
+    date: "2024-07",
+    endDate: "present",
+    company: { en: "TechStart Inc", zh: "TechStart 公司" },
+    roleTitle: { en: "Principal Engineer", zh: "首席工程师" },
+    location: "远程"
+  }}
+  locale="zh"
+  defaultExpanded={true}
+/>
+
+#### 最简职位
+
+<CommitEmbed
+  commit={{
+    id: "test-role-3",
+    type: "role",
+    tagId: "demo",
+    title: { en: "Freelance", zh: "自由职业" },
+    description: {
+      en: "Independent consulting on React architecture and design systems.",
+      zh: "React 架构和设计系统的独立咨询。"
+    },
+    date: "2021-01",
+    endDate: "2021-12",
+    company: { en: "Freelance", zh: "自由职业" },
+    roleTitle: { en: "Consultant", zh: "顾问" }
+  }}
+  locale="zh"
+/>
+
+---
+
+### 类型：社交 (Social)
+
+社交媒体帖子和推文串。
+
+#### Twitter/X 帖子
+
+<CommitEmbed
+  commit={{
+    id: "test-social-1",
+    type: "social",
+    tagId: "demo",
+    title: { en: "Thread on React Server Components", zh: "关于 React 服务器组件的推文串" },
+    description: {
+      en: "A viral thread explaining the mental model behind RSC and why it matters for the future of React.",
+      zh: "一个解释 RSC 背后心智模型以及它为何对 React 未来重要的热门推文串。"
+    },
+    date: "2024-01",
+    platform: "Twitter",
+    url: "https://twitter.com/example/status/123456789",
+    commentary: {
+      en: "This thread reached over 500k impressions - clearly struck a nerve!",
+      zh: "这个推文串达到了超过 50 万次展示——显然触动了大家！"
+    }
+  }}
+  locale="zh"
+/>
+
+#### 最简社交
+
+<CommitEmbed
+  commit={{
+    id: "test-social-2",
+    type: "social",
+    tagId: "demo",
+    title: { en: "Quick tip on CSS Grid", zh: "CSS Grid 小技巧" },
+    description: {
+      en: "Shared a useful CSS Grid pattern that went mini-viral.",
+      zh: "分享了一个有用的 CSS Grid 模式，小火了一把。"
+    },
+    date: "2023-05",
+    platform: "Bluesky",
+    url: "https://bsky.app/profile/example/post/abc"
+  }}
+  locale="zh"
+/>
+
+---
+
+## Stack Widget 组件
+
+Stack Widget 是用于以水平或垂直布局显示多个项目的容器组件。与紧凑模式的 CommitEmbed 配合使用效果很好。
+
+### VStackWidget（垂直堆叠）
+
+以一致的间距垂直排列显示项目。
+
+#### VStack 项目列表
+
+<VStackWidget title="精选项目" href="/projects">
+  <CommitEmbed
+    variant="bare"
+    commit={{
+      id: "vstack-project-1",
+      type: "project",
+      tagId: "demo",
+      title: { en: "Design Tokens", zh: "设计令牌" },
+      description: { en: "Systematic design token architecture", zh: "系统化设计令牌架构" },
+      date: "2024-01",
+      links: [{ url: "#", label: "查看", icon: "globe" }]
+    }}
+    locale="zh"
+  />
+  <CommitEmbed
+    variant="bare"
+    commit={{
+      id: "vstack-project-2",
+      type: "project",
+      tagId: "demo",
+      title: { en: "Component Library", zh: "组件库" },
+      description: { en: "Accessible React components with TypeScript", zh: "支持 TypeScript 的无障碍 React 组件" },
+      date: "2023-06",
+      links: [{ url: "#", label: "GitHub", icon: "github" }]
+    }}
+    locale="zh"
+  />
+  <CommitEmbed
+    variant="bare"
+    commit={{
+      id: "vstack-project-3",
+      type: "project",
+      tagId: "demo",
+      title: { en: "CLI Toolkit", zh: "CLI 工具包" },
+      description: { en: "Developer productivity tools", zh: "开发者生产力工具" },
+      date: "2023-01",
+      links: [{ url: "#", label: "npm", icon: "external" }]
+    }}
+    locale="zh"
+  />
+</VStackWidget>
+
+#### VStack 职位列表
+
+<VStackWidget title="工作经历" href="/career">
+  <CommitEmbed
+    variant="bare"
+    commit={{
+      id: "vstack-role-1",
+      type: "role",
+      tagId: "demo",
+      title: { en: "TechCorp", zh: "TechCorp" },
+      description: { en: "Frontend infrastructure", zh: "前端基础设施" },
+      date: "2024-01",
+      endDate: "present",
+      company: { en: "TechCorp", zh: "TechCorp" },
+      roleTitle: { en: "Staff Engineer", zh: "技术专家" }
+    }}
+    locale="zh"
+  />
+  <CommitEmbed
+    variant="bare"
+    commit={{
+      id: "vstack-role-2",
+      type: "role",
+      tagId: "demo",
+      title: { en: "StartupXYZ", zh: "StartupXYZ" },
+      description: { en: "Design systems lead", zh: "设计系统负责人" },
+      date: "2022-01",
+      endDate: "2023-12",
+      company: { en: "StartupXYZ", zh: "StartupXYZ" },
+      roleTitle: { en: "Senior Engineer", zh: "高级工程师" }
+    }}
+    locale="zh"
+  />
+</VStackWidget>
+
+#### VStack 文章列表
+
+<VStackWidget title="最近文章">
+  <CommitEmbed
+    variant="bare"
+    commit={{
+      id: "vstack-post-1",
+      type: "post",
+      tagId: "demo",
+      title: { en: "React Server Components Explained", zh: "React 服务器组件详解" },
+      description: { en: "A deep dive into RSC", zh: "深入探讨 RSC" },
+      date: "2024-02",
+      url: "#",
+      publication: { name: "Blog" }
+    }}
+    locale="zh"
+  />
+  <CommitEmbed
+    variant="bare"
+    commit={{
+      id: "vstack-post-2",
+      type: "post",
+      tagId: "demo",
+      title: { en: "TypeScript Best Practices", zh: "TypeScript 最佳实践" },
+      description: { en: "Patterns for maintainable code", zh: "可维护代码的模式" },
+      date: "2023-11",
+      url: "#",
+      publication: { name: "Medium" }
+    }}
+    locale="zh"
+  />
+</VStackWidget>
+
+---
+
+### HStackWidget（水平堆叠）
+
+以水平轮播形式显示项目，支持滑动吸附和分页点。
+
+#### HStack 演讲列表
+
+<HStackWidget title="演讲" href="/productions">
+  <CommitEmbed
+    variant="bare"
+    commit={{
+      id: "hstack-talk-1",
+      type: "talk",
+      tagId: "demo",
+      title: { en: "Cross-Platform at Scale", zh: "大规模跨平台开发" },
+      description: { en: "Scaling across platforms", zh: "跨平台扩展" },
+      date: "2024-03",
+      conference: { name: "ReactConf 2024" },
+      video: { url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=10" }
+    }}
+    locale="zh"
+  />
+  <CommitEmbed
+    variant="bare"
+    commit={{
+      id: "hstack-talk-2",
+      type: "talk",
+      tagId: "demo",
+      title: { en: "Design Systems Deep Dive", zh: "设计系统深入探讨" },
+      description: { en: "Building systematic UI", zh: "构建系统化 UI" },
+      date: "2023-09",
+      conference: { name: "CSS Day" },
+      video: { url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=11" }
+    }}
+    locale="zh"
+  />
+  <CommitEmbed
+    variant="bare"
+    commit={{
+      id: "hstack-talk-3",
+      type: "talk",
+      tagId: "demo",
+      title: { en: "DX That Sparks Joy", zh: "令人愉悦的开发者体验" },
+      description: { en: "Developer experience matters", zh: "开发者体验很重要" },
+      date: "2023-05",
+      conference: { name: "DevX Summit" },
+      video: { url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=12" }
+    }}
+    locale="zh"
+  />
+</HStackWidget>
+
+#### HStack 项目列表
+
+<HStackWidget title="项目" href="/projects">
+  <CommitEmbed
+    variant="bare"
+    commit={{
+      id: "hstack-project-1",
+      type: "project",
+      tagId: "demo",
+      title: { en: "Motion Library", zh: "动画库" },
+      description: { en: "Smooth animations for React", zh: "React 流畅动画" },
+      date: "2024-01",
+      links: [{ url: "#", label: "查看", icon: "globe" }]
+    }}
+    locale="zh"
+  />
+  <CommitEmbed
+    variant="bare"
+    commit={{
+      id: "hstack-project-2",
+      type: "project",
+      tagId: "demo",
+      title: { en: "Theme Engine", zh: "主题引擎" },
+      description: { en: "Dynamic theming system", zh: "动态主题系统" },
+      date: "2023-08",
+      links: [{ url: "#", label: "GitHub", icon: "github" }]
+    }}
+    locale="zh"
+  />
+</HStackWidget>
+
+---
+
+### 混合内容堆叠
+
+Stack 可以包含不同类型的提交，实现多样化内容展示。
+
+#### VStack 混合类型
+
+<VStackWidget title="精选内容">
+  <CommitEmbed
+    variant="bare"
+    commit={{
+      id: "mixed-project",
+      type: "project",
+      tagId: "demo",
+      title: { en: "Open Source Project", zh: "开源项目" },
+      description: { en: "A widely-used developer tool", zh: "广泛使用的开发工具" },
+      date: "2024-01",
+      links: [{ url: "#", label: "GitHub", icon: "github" }],
+      techStack: ["TypeScript", "React"]
+    }}
+    locale="zh"
+  />
+  <CommitEmbed
+    variant="bare"
+    commit={{
+      id: "mixed-talk",
+      type: "talk",
+      tagId: "demo",
+      title: { en: "Conference Keynote", zh: "大会主题演讲" },
+      description: { en: "Featured speaker at major conf", zh: "主要会议的特邀演讲者" },
+      date: "2023-10",
+      conference: { name: "TechConf 2023" }
+    }}
+    locale="zh"
+  />
+  <CommitEmbed
+    variant="bare"
+    commit={{
+      id: "mixed-post",
+      type: "post",
+      tagId: "demo",
+      title: { en: "Viral Blog Post", zh: "热门博客文章" },
+      description: { en: "100k+ readers", zh: "超过 10 万读者" },
+      date: "2023-06",
+      url: "#",
+      publication: { name: "dev.to" }
+    }}
+    locale="zh"
+  />
+</VStackWidget>
+
+---
+
+## Stack Widget 属性参考
+
+### HStackWidget / VStackWidget
+
+| 属性 | 类型 | 默认值 | 描述 |
+|------|------|--------|------|
+| `title` | `string` | 必填 | 标题（以等宽大写字体显示） |
+| `href` | `string` | - | 可选的"查看全部"链接 |
+| `children` | `ReactNode[]` | 必填 | 要显示的子元素 |
+| `className` | `string` | - | 自定义 CSS 类名 |
+
+### 行为差异
+
+| 特性 | HStackWidget | VStackWidget |
+|------|--------------|--------------|
+| 布局 | 水平滚动 | 垂直列表 |
+| 滚动 | 惯性吸附滚动 | 无滚动（全部可见） |
+| 分页 | 当项目 > 1 时显示点指示器 | 无 |
+| 适用场景 | 带缩略图的演讲、精选项目 | 列表、文字密集内容 |
+
+---
+
+## CommitEmbed 属性参考
+
+| 属性 | 类型 | 默认值 | 描述 |
+|------|------|--------|------|
+| `commit` | `Commit` | 必填 | 提交数据对象 |
+| `locale` | `"en" \| "zh"` | `"en"` | 显示语言 |
+| `variant` | `"timeline" \| "card" \| "bare"` | `"card"` | 显示变体（见下表） |
+| `defaultExpanded` | `boolean` | `false` | 默认展开状态 |
+| `className` | `string` | - | 自定义 CSS 类名 |
+
+### 变体参考
+
+| 变体 | 描述 | 使用场景 |
+|------|------|----------|
+| `timeline` | 显示图标，时间线优化间距 | /log 页面时间线 |
+| `card` | 独立卡片带边框/背景 | MDX 内容（默认） |
+| `bare` | 最简无框，紧凑内容 | Stack/Widget 内部 |
+
+---
+
+## 提交类型参考
+
+每种提交类型都有特定字段：
+
+### 通用字段（所有类型）
+
+- `id`：唯一标识符
+- `type`：类型标识（`"project"`、`"talk"`、`"post"`、`"role"`、`"social"`）
+- `tagId`：父标签/时代标识符
+- `date`：开始日期（`YYYY-MM` 或 `YYYY-MM-DD`）
+- `endDate`：可选的结束日期
+- `title`：`LocalizedString`（`{ en: string, zh: string }`）
+- `description`：`LocalizedString`
+- `commentary`：可选的 `LocalizedString`（个人备注）
+- `tags`：可选的字符串数组，用于分类
+- `listed`：可选的布尔值（默认 `true`）
+
+### 类型特定字段
+
+| 类型 | 必填字段 | 可选字段 |
+|------|----------|----------|
+| `project` | `links[]` | `techStack[]`、`stats` |
+| `talk` | `conference` | `video`、`slides` |
+| `post` | `url`、`publication` | - |
+| `role` | `company`、`roleTitle` | `location`、`url` |
+| `social` | `platform`、`url` | - |
