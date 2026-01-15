@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Shared UI primitives for work item embeds.
+ * Shared UI primitives for commit embeds.
  * These components are used across all embed types.
  */
 
@@ -14,7 +14,7 @@ import {
   Youtube,
   FileText,
 } from "lucide-react";
-import type { ItemLink } from "@/lib/eras";
+import type { ItemLink } from "@/lib/log";
 
 // =============================================================================
 // Link Icon

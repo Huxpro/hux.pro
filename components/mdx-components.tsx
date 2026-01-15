@@ -34,10 +34,10 @@
 
 import { CodeBlock } from "@/components/code-block";
 import { HeadingWithLink } from "@/components/heading-link";
-import { WorkItemEmbed } from "@/components/eras";
+import { CommitEmbed } from "@/components/log";
 import type { MDXComponents } from "mdx/types";
 import Link from "next/link";
-import type { ComponentPropsWithoutRef, ComponentType } from "react";
+import type { ComponentPropsWithoutRef, ComponentType, ReactNode } from "react";
 
 // =============================================================================
 // Prose Escape Wrapper
@@ -119,7 +119,7 @@ function SmartLink({
 /**
  * Table wrapper for horizontal scroll on small screens
  */
-function TableWrapper({ children }: { children: React.ReactNode }) {
+function TableWrapper({ children }: { children: ReactNode }) {
   return (
     <div className="prose-table-wrapper">
       <table>{children}</table>
@@ -147,7 +147,7 @@ const sharedComponents: MDXComponents = {
   // ---------------------------------------------------------------------------
   // Custom Embed Components (wrapped with .not-prose to escape prose styles)
   // ---------------------------------------------------------------------------
-  WorkItemEmbed: withNotProse(WorkItemEmbed),
+  CommitEmbed: withNotProse(CommitEmbed),
 };
 
 /**

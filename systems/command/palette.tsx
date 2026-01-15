@@ -11,6 +11,7 @@ import {
   Briefcase,
   Bug,
   FileText,
+  GitCommit,
   Hash,
   Home,
   Languages,
@@ -20,6 +21,7 @@ import {
   Moon,
   Search,
   Slash,
+  Sparkles,
   Sun,
   Waves,
 } from "lucide-react";
@@ -124,6 +126,20 @@ export function CommandPalette() {
       label: t(locale, "productions"),
       icon: <Mic className="h-4 w-4" />,
       onSelect: () => handleNavigation("/productions"),
+      section: "navigation",
+    },
+    {
+      key: "o",
+      label: t(locale, "log"),
+      icon: <GitCommit className="h-4 w-4" />,
+      onSelect: () => handleNavigation("/log"),
+      section: "navigation",
+    },
+    {
+      key: "p",
+      label: t(locale, "prompt"),
+      icon: <Sparkles className="h-4 w-4" />,
+      onSelect: () => handleNavigation("/prompt"),
       section: "navigation",
     },
     {
@@ -242,6 +258,12 @@ export function CommandPalette() {
           return;
         case "t":
           handleNavigation("/productions");
+          return;
+        case "o":
+          handleNavigation("/log");
+          return;
+        case "p":
+          handleNavigation("/prompt");
           return;
         case "i":
           handleNavigation("/docs");
@@ -522,6 +544,60 @@ export function CommandPalette() {
                     <span className="flex-1">{t(locale, "productions")}</span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       T
+                    </kbd>
+                  </Command.Item>
+                  <Command.Item
+                    value="log"
+                    keywords={[
+                      "log",
+                      "history",
+                      "timeline",
+                      "commits",
+                      "git",
+                      "career",
+                      "日志",
+                      "历史",
+                      "时间线",
+                      "提交",
+                    ]}
+                    onSelect={() => handleNavigation("/log")}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                      "text-sm cursor-pointer transition-colors",
+                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                      "hover:bg-accent/25"
+                    )}
+                  >
+                    <GitCommit className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1">{t(locale, "log")}</span>
+                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                      O
+                    </kbd>
+                  </Command.Item>
+                  <Command.Item
+                    value="prompt"
+                    keywords={[
+                      "prompt",
+                      "prompts",
+                      "ai",
+                      "system",
+                      "instructions",
+                      "提示词",
+                      "AI",
+                      "系统",
+                    ]}
+                    onSelect={() => handleNavigation("/prompt")}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                      "text-sm cursor-pointer transition-colors",
+                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                      "hover:bg-accent/25"
+                    )}
+                  >
+                    <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1">{t(locale, "prompt")}</span>
+                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                      P
                     </kbd>
                   </Command.Item>
                 </Command.Group>

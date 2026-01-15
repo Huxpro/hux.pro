@@ -1,4 +1,7 @@
-# Vibing Engineering UI with AI 
+# Vibing UI with Some Engineering
+
+- Pratical engineering tips for vibe coders
+- What engineering is still needed (and what's not)
 
 ## Starting with a Spec 
 
@@ -14,10 +17,33 @@ for logic task
 
 > No, you still need to think
 
+
+Code quality wise: a clear spec can give much better code > iterative 
+
+
 ## Experimentation (Tackling Randomness) (Feature Branching)
+
+Create multiple worktree - with Trae being subscription-based: just try more
 
 - multiple model
 - multiple rounds
+	- even same model can write dramatically different code 
+		- first round different, every message different (biased towards previous context)
+
+parallel agentic coding,
+
+Experiment with multiple worktree at once to experiment. 
+
+power user feature -- now popularized 
+
+https://stackoverflow.com/questions/31935776/what-would-i-use-git-worktree-for
+https://www.reddit.com/r/ProgrammerTIL/comments/mtjg0c/git_til_about_git_worktrees/
+
+VSCode just add first-class worktree support: https://code.visualstudio.com/docs/sourcecontrol/branches-worktrees#_working-with-git-worktrees
+- https://code.visualstudio.com/docs/sourcecontrol/branches-worktrees#_working-with-git-worktrees
+- https://code.visualstudio.com/updates/v1_103#_git-worktree-support
+
+Cursor automatically creates and manages git worktrees for parallel agents. Each agent runs in its own worktree with isolated files and changes, so agents can edit, build, and test code without stepping on each other. To run an agent in a worktree, select the worktree option from the agent dropdown.[](https://cursor.com/blog/agent-best-practices)
 
 ## Engineering: Make Architectural Decision Yourself (Make it Long-term Maintainable)
 
@@ -79,7 +105,9 @@ Was it source? No, it was test.
 
 Ask LLM to explain its architectures --> get back to "spec"
 
-Spec is now the "code", "code" is now the artifacts
+Spec is now the "code", "code" is now the artifacts 
+
+Source code size is now the "code size" (artifact size): expect dead code
 
 
 ## Subagents?
@@ -89,6 +117,13 @@ Saving context, purpose-built -- think it as "other roles / teammates"
 - Documentator 
 
 
+## Challenges for Vibe Coder: Performance (fast by default)
+
+there are a lot of nuances here:
+- a same seemingly outcome can be computed by different algorithms (time/space complexity)
+- a same algorithm can be performed at different places (thus different outcomes)
+	- client vs. server
+	- main thread vs background
 
 ## Verifiable still the Biggest Bottleneck 
 

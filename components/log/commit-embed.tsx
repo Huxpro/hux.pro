@@ -1,35 +1,42 @@
 "use client";
 
 /**
- * WorkItemEmbed - Unified work item display component
+ * CommitEmbed - Unified commit display component
  *
- * Dispatches to type-specific embed components based on item.type.
- * Can be used standalone in MDX or within the EraTimeline.
+ * Dispatches to type-specific embed components based on commit.type.
+ * Can be used standalone in MDX or within the LogTimeline.
  *
- * @see components/eras/embeds/ - Individual embed components
+ * @see components/log/embeds/ - Individual embed components
  */
 
 import { cn } from "@/lib/utils";
-import type { WorkItem } from "@/lib/eras";
+import type { Commit } from "@/lib/log";
 import type { Locale } from "@/lib/i18n";
-import { itemIcons } from "./icons";
+import { commitIcons } from "./icons";
 import {
   ProjectEmbed,
   TalkEmbed,
   PostEmbed,
   RoleEmbed,
   SocialEmbed,
+  ProjectEmbedCompact,
+  TalkEmbedCompact,
+  PostEmbedCompact,
+  RoleEmbedCompact,
+  SocialEmbedCompact,
 } from "./embeds";
 
 // =============================================================================
 // Types
 // =============================================================================
 
-export interface WorkItemEmbedProps {
-  /** The work item data to display */
-  item: WorkItem;
+export interface CommitEmbedProps {
+  /** The commit data to display */
+  commit: Commit;
   /** Display locale for i18n */
   locale?: Locale;
+  /** Render compact embed variant (for stacks/widgets) */
+  compact?: boolean;
   /** Whether to start in expanded state */
   defaultExpanded?: boolean;
   /** Optional className for custom styling */
@@ -42,54 +49,65 @@ export interface WorkItemEmbedProps {
 // Main Component
 // =============================================================================
 
-export function WorkItemEmbed({
-  item,
+export function CommitEmbed({
+  commit,
   locale = "en",
+  compact = false,
   defaultExpanded = false,
   className,
   showIcon = true,
-}: WorkItemEmbedProps) {
-  const Icon = itemIcons[item.type];
+}: CommitEmbedProps) {
+  const Icon = commitIcons[commit.type];
 
   // Dispatch to type-specific embed
   const content = (() => {
-    switch (item.type) {
+    switch (commit.type) {
       case "project":
-        return (
+        return compact ? (
+          <ProjectEmbedCompact commit={commit} locale={locale} />
+        ) : (
           <ProjectEmbed
-            item={item}
+            commit={commit}
             locale={locale}
             defaultExpanded={defaultExpanded}
           />
         );
       case "talk":
-        return (
+        return compact ? (
+          <TalkEmbedCompact commit={commit} locale={locale} />
+        ) : (
           <TalkEmbed
-            item={item}
+            commit={commit}
             locale={locale}
             defaultExpanded={defaultExpanded}
           />
         );
       case "post":
-        return (
+        return compact ? (
+          <PostEmbedCompact commit={commit} locale={locale} />
+        ) : (
           <PostEmbed
-            item={item}
+            commit={commit}
             locale={locale}
             defaultExpanded={defaultExpanded}
           />
         );
       case "role":
-        return (
+        return compact ? (
+          <RoleEmbedCompact commit={commit} locale={locale} />
+        ) : (
           <RoleEmbed
-            item={item}
+            commit={commit}
             locale={locale}
             defaultExpanded={defaultExpanded}
           />
         );
       case "social":
-        return (
+        return compact ? (
+          <SocialEmbedCompact commit={commit} locale={locale} />
+        ) : (
           <SocialEmbed
-            item={item}
+            commit={commit}
             locale={locale}
             defaultExpanded={defaultExpanded}
           />
@@ -114,8 +132,7 @@ export function WorkItemEmbed({
           // Timeline mode: offset for icon, negative margin for tighter spacing
           showIcon && "ml-6 -my-2",
           // Shared styles
-          "p-4 rounded-lg transition-colors duration-200",
-          "hover:bg-muted/10"
+          !compact && "p-4 rounded-lg transition-colors duration-200 hover:bg-muted/10"
         )}
       >
         {content}
@@ -129,16 +146,15 @@ export function WorkItemEmbed({
 // =============================================================================
 
 /**
- * TimelineItem - Legacy wrapper for EraTimeline compatibility
- * @deprecated Use WorkItemEmbed directly for new code
+ * TimelineItem - Wrapper for LogTimeline compatibility
  */
 export function TimelineItem({
-  item,
+  commit,
   locale,
 }: {
-  item: WorkItem;
+  commit: Commit;
   locale: Locale;
   isFirst?: boolean;
 }) {
-  return <WorkItemEmbed item={item} locale={locale} showIcon={true} />;
+  return <CommitEmbed commit={commit} locale={locale} showIcon={true} />;
 }

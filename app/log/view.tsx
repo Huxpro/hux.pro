@@ -2,17 +2,17 @@
 
 import { useLocale } from "@/services";
 import { SystemNav } from "@/components/ui/system-nav";
-import { EraTimeline } from "@/components/eras/era-timeline";
-import type { Era, WorkItem } from "@/lib/eras";
+import { LogTimeline } from "@/components/log/log-timeline";
+import type { Tag, Commit } from "@/lib/log";
 
-interface ErasViewProps {
+interface LogViewProps {
   data: {
-    era: Era;
-    items: WorkItem[];
+    tag: Tag;
+    commits: Commit[];
   }[];
 }
 
-export function ErasView({ data }: ErasViewProps) {
+export function LogView({ data }: LogViewProps) {
   const { locale } = useLocale();
 
   return (
@@ -28,7 +28,7 @@ export function ErasView({ data }: ErasViewProps) {
       </header>
 
       {/* Git Log Timeline */}
-      <EraTimeline data={data} locale={locale} />
+      <LogTimeline data={data} locale={locale} />
 
       {/* Footer / End marker */}
       <div className="mt-16 flex items-center gap-4">

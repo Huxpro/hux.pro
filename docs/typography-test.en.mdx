@@ -92,9 +92,9 @@ This paragraph combines *italic Newsreader text* with **bold Inter text** and **
 
 ---
 
-## WorkItemEmbed Component
+## CommitEmbed Component
 
-The `WorkItemEmbed` component allows embedding work items directly in MDX content. It supports 5 types: **project**, **talk**, **post**, **role**, and **social**.
+The `CommitEmbed` component allows embedding commits (work items) directly in MDX content. It supports 5 types: **project**, **talk**, **post**, **role**, and **social**.
 
 Each type uses:
 - `LocalizedString` objects for i18n: `{ en: "...", zh: "..." }`
@@ -103,11 +103,11 @@ Each type uses:
 
 ### Example: Project
 
-<WorkItemEmbed
-  item={{
+<CommitEmbed
+  commit={{
     id: "example-project",
     type: "project",
-    eraId: "demo",
+    tagId: "demo",
     title: { en: "Design System Tokens", zh: "设计系统令牌" },
     description: {
       en: "A comprehensive design token system for building consistent, themeable UI components. Supports CSS variables, Tailwind, and multiple output formats.",
@@ -130,11 +130,11 @@ Each type uses:
 
 ### Example: Talk
 
-<WorkItemEmbed
-  item={{
+<CommitEmbed
+  commit={{
     id: "example-talk",
     type: "talk",
-    eraId: "demo",
+    tagId: "demo",
     title: { en: "Building Cross-Platform Apps at Scale", zh: "大规模构建跨平台应用" },
     description: {
       en: "A deep dive into cross-platform development strategies, covering shared codebases, platform-specific optimizations, and team organization.",
@@ -163,11 +163,11 @@ Each type uses:
 
 ### Example: Post
 
-<WorkItemEmbed
-  item={{
+<CommitEmbed
+  commit={{
     id: "example-post",
     type: "post",
-    eraId: "demo",
+    tagId: "demo",
     title: { en: "The Art of Developer Experience", zh: "开发者体验的艺术" },
     description: {
       en: "Exploring what makes developer tools delightful to use, from API design to error messages.",
@@ -188,11 +188,11 @@ Each type uses:
 
 ### Example: Role
 
-<WorkItemEmbed
-  item={{
+<CommitEmbed
+  commit={{
     id: "example-role",
     type: "role",
-    eraId: "demo",
+    tagId: "demo",
     title: { en: "Acme Corp", zh: "Acme 公司" },
     description: {
       en: "Led a team of 8 engineers building the next-generation design system and developer tools platform.",

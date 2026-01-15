@@ -92,9 +92,9 @@ const typography = {
 
 ---
 
-## WorkItemEmbed 组件
+## CommitEmbed 组件
 
-`WorkItemEmbed` 组件允许在 MDX 内容中直接嵌入工作项目。支持 5 种类型：**project（项目）**、**talk（演讲）**、**post（文章）**、**role（职位）** 和 **social（社交）**。
+`CommitEmbed` 组件允许在 MDX 内容中直接嵌入提交（工作项目）。支持 5 种类型：**project（项目）**、**talk（演讲）**、**post（文章）**、**role（职位）** 和 **social（社交）**。
 
 每个类型使用：
 - `LocalizedString` 对象用于国际化：`{ en: "...", zh: "..." }`
@@ -103,11 +103,11 @@ const typography = {
 
 ### 示例：项目
 
-<WorkItemEmbed
-  item={{
+<CommitEmbed
+  commit={{
     id: "example-project",
     type: "project",
-    eraId: "demo",
+    tagId: "demo",
     title: { en: "Design System Tokens", zh: "设计系统令牌" },
     description: {
       en: "A comprehensive design token system for building consistent, themeable UI components.",
@@ -130,11 +130,11 @@ const typography = {
 
 ### 示例：演讲
 
-<WorkItemEmbed
-  item={{
+<CommitEmbed
+  commit={{
     id: "example-talk",
     type: "talk",
-    eraId: "demo",
+    tagId: "demo",
     title: { en: "Building Cross-Platform Apps at Scale", zh: "大规模构建跨平台应用" },
     description: {
       en: "A deep dive into cross-platform development strategies.",

@@ -1,7 +1,7 @@
 "use client";
 
 import { Toaster, toast } from "sonner";
-import type { ReactNode } from "react";
+import type { ReactElement } from "react";
 
 /**
  * System Sonner - Headless toast provider with custom styling
@@ -29,7 +29,7 @@ export function SystemSonner() {
  * Show a custom toast with full control over the UI
  */
 export function showCustomToast(
-  content: ReactNode | ((id: string | number) => ReactNode),
+  content: ReactElement | ((id: string | number) => ReactElement),
   options?: {
     duration?: number;
     id?: string;

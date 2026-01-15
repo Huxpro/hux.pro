@@ -28,6 +28,8 @@ export const translations = {
     prose: "Prose",
     talks: "Talks",
     productions: "Productions",
+    log: "Log",
+    prompt: "Prompt",
 
     // Homepage
     tagline:
@@ -133,18 +135,22 @@ export const translations = {
       "This page doesn't exist, or perhaps it hasn't been written yet.",
     notFoundReturn: "return home",
 
-    // Eras / Timeline
-    erasTitle: "Timeline",
-    erasSubtitle:
-      "Version history of a career. Each era is a commit, each work item is a line of code.",
-    erasHead: "HEAD",
-    erasCurrent: "Current",
-    erasInit: "init",
-    erasSelectedWorks: "Selected Works",
-    erasRead: "Read",
-    erasVisit: "Visit",
-    erasWatch: "Watch",
-    erasSlides: "Slides",
+    // Log / Timeline
+    logTitle: "Log",
+    logSubtitle:
+      "Commit history. Each tag marks a chapter, each commit is a piece of work.",
+    logHead: "HEAD",
+    logCurrent: "Current",
+    logInit: "git init",
+    logSelectedWorks: "Selected Works",
+    logRead: "Read",
+    logVisit: "Visit",
+    logWatch: "Watch",
+    logSlides: "Slides",
+
+    // Prompt
+    promptTitle: "Prompt",
+    promptSubtitle: "The system prompts that shape my AI interactions.",
   },
   zh: {
     // Navigation
@@ -155,6 +161,8 @@ export const translations = {
     prose: "散文",
     talks: "演讲",
     productions: "作品",
+    log: "日志",
+    prompt: "提示词",
 
     // Homepage
     tagline: "散文、职业、编程、生产、项目——一个完整人格的多重面向。",
@@ -258,17 +266,21 @@ export const translations = {
     notFoundHint: "这个页面不存在，或许它还未被书写。",
     notFoundReturn: "返回首页",
 
-    // Eras / Timeline
-    erasTitle: "时间线",
-    erasSubtitle: "职业生涯的版本历史。每一个时期都是一次提交，每一件作品都是一行代码。",
-    erasHead: "HEAD",
-    erasCurrent: "当前",
-    erasInit: "初始化",
-    erasSelectedWorks: "精选作品",
-    erasRead: "阅读",
-    erasVisit: "访问",
-    erasWatch: "观看",
-    erasSlides: "幻灯片",
+    // Log / Timeline
+    logTitle: "日志",
+    logSubtitle: "提交历史。每个标签标记一个篇章，每个提交都是一件作品。",
+    logHead: "HEAD",
+    logCurrent: "当前",
+    logInit: "git init",
+    logSelectedWorks: "精选作品",
+    logRead: "阅读",
+    logVisit: "访问",
+    logWatch: "观看",
+    logSlides: "幻灯片",
+
+    // Prompt
+    promptTitle: "提示词",
+    promptSubtitle: "塑造我 AI 交互的系统提示词。",
   },
 } as const;
 

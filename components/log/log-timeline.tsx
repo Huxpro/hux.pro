@@ -2,23 +2,23 @@
 
 import { cn } from "@/lib/utils";
 import {
-  type Era,
-  type WorkItem,
-  getLocalizedEraTitle,
-  formatEraDateRange,
-} from "@/lib/eras";
+  type Tag,
+  type Commit,
+  getLocalizedTagTitle,
+  formatTagDateRange,
+} from "@/lib/log";
 import type { Locale } from "@/lib/i18n";
-import { TimelineItem } from "./work-item-embed";
+import { TimelineItem } from "./commit-embed";
 
-interface EraTimelineProps {
+interface LogTimelineProps {
   data: {
-    era: Era;
-    items: WorkItem[];
+    tag: Tag;
+    commits: Commit[];
   }[];
   locale: Locale;
 }
 
-function formatEraBadge(title: string): string {
+function formatTagBadge(title: string): string {
   const t = title.toLowerCase();
   if (t.includes("lynx")) return "LYNX";
   if (t.includes("react")) return "REACT";
@@ -27,9 +27,9 @@ function formatEraBadge(title: string): string {
 
 /**
  * Git Log / Commit History style timeline.
- * Renders eras as branch separators and work items as commits.
+ * Renders tags as branch separators and commits as work items.
  */
-export function EraTimeline({ data, locale }: EraTimelineProps) {
+export function LogTimeline({ data, locale }: LogTimelineProps) {
   const isFirst = (index: number) => index === 0;
 
   return (
@@ -40,10 +40,10 @@ export function EraTimeline({ data, locale }: EraTimelineProps) {
         aria-hidden="true"
       />
 
-      {data.map(({ era, items }, eraIndex) => (
+      {data.map(({ tag, commits }, tagIndex) => (
         <div
-          key={era.id}
-          className={cn("relative", !isFirst(eraIndex) && "mt-8")}
+          key={tag.id}
+          className={cn("relative", !isFirst(tagIndex) && "mt-8")}
         >
           {/*
             Layout strategy:
@@ -56,46 +56,46 @@ export function EraTimeline({ data, locale }: EraTimelineProps) {
           <div className="sticky top-4 z-20 h-6 flex items-center pointer-events-none">
             <div className="inline-flex items-center bg-background/80 backdrop-blur px-3 py-0.5 border border-border rounded-full shadow-sm">
               <span className="font-mono text-xs font-medium text-foreground tracking-wide leading-none">
-                {isFirst(eraIndex)
+                {isFirst(tagIndex)
                   ? "HEAD"
-                  : formatEraBadge(getLocalizedEraTitle(era, locale))}
+                  : formatTagBadge(getLocalizedTagTitle(tag, locale))}
               </span>
             </div>
           </div>
 
-          {/* HEAD marker for current era - pulled up to align with sticky badge */}
-          {isFirst(eraIndex) && (
+          {/* HEAD marker for current tag - pulled up to align with sticky badge */}
+          {isFirst(tagIndex) && (
             <div className="h-6 flex items-center mb-6 -mt-6">
               {/* Spacer for the sticky badge - matches badge width */}
               <div className="w-[72px] shrink-0" />
               <span className="font-mono text-xs text-muted-foreground/60">
                 {locale === "zh" ? "当前" : "Current"}
                 {" · "}
-                {getLocalizedEraTitle(era, locale)}
+                {getLocalizedTagTitle(tag, locale)}
               </span>
             </div>
           )}
 
-          {/* Era Separator Header (for non-first eras) - pulled up to align */}
-          {!isFirst(eraIndex) && (
+          {/* Tag Separator Header (for non-first tags) - pulled up to align */}
+          {!isFirst(tagIndex) && (
             <div className="h-6 flex items-center mb-6 -mt-6">
               {/* Spacer for the sticky badge */}
               <div className="w-[72px] shrink-0" />
               <span className="flex-1 border-t border-dashed border-border/40" />
               <span className="font-mono text-[10px] text-muted-foreground/50 tracking-wide ml-3">
-                {formatEraDateRange(era, locale)}
+                {formatTagDateRange(tag, locale)}
               </span>
             </div>
           )}
 
-          {/* Work items for this era */}
+          {/* Commits for this tag */}
           <div className="space-y-0">
-            {items.map((item, itemIndex) => (
+            {commits.map((commit, commitIndex) => (
               <TimelineItem
-                key={item.id}
-                item={item}
+                key={commit.id}
+                commit={commit}
                 locale={locale}
-                isFirst={isFirst(eraIndex) && itemIndex === 0}
+                isFirst={isFirst(tagIndex) && commitIndex === 0}
               />
             ))}
           </div>

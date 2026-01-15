@@ -6,9 +6,9 @@ import {
   Briefcase,
   type LucideIcon,
 } from "lucide-react";
-import { type WorkItemType } from "@/lib/eras";
+import { type CommitType } from "@/lib/log";
 
-export const itemIcons: Record<WorkItemType, LucideIcon> = {
+export const commitIcons: Record<CommitType, LucideIcon> = {
   project: Package,
   talk: Mic,
   post: FileText,
