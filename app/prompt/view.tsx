@@ -54,13 +54,18 @@ function XmlTag({
   children,
   attributes,
   closing = false,
+  className,
 }: {
   children: string;
   attributes?: Record<string, string>;
   closing?: boolean;
+  className?: string;
 }) {
   return (
-    <span className="font-mono text-xs text-muted-foreground/60 select-none">
+    <span className={cn(
+      "font-mono text-xs text-muted-foreground/60 select-none transition-opacity duration-200",
+      className
+    )}>
       {closing ? "</" : "<"}
       {children}
       {attributes &&
@@ -92,16 +97,16 @@ function QuoteItem({ quote }: { quote: Quote }) {
   return (
     <div
       className={cn(
-        "group py-6 cursor-pointer transition-colors duration-200",
+        "group py-3 cursor-pointer transition-colors duration-200",
         "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg"
       )}
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="flex items-center gap-2">
-        <XmlTag>quote</XmlTag>
+        <XmlTag className={cn("opacity-0 group-hover:opacity-100", isExpanded && "opacity-100")}>quote</XmlTag>
         {quote.commentary && (
           <motion.span
-            className="text-muted-foreground/40 text-xs select-none"
+            className={cn("text-muted-foreground/40 text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200", isExpanded && "opacity-100")}
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
           >
@@ -110,7 +115,7 @@ function QuoteItem({ quote }: { quote: Quote }) {
         )}
       </div>
 
-      <div className="mt-4 mb-4 pl-6">
+      <div className="mt-2 mb-2">
         {/* Main quote - serif, large */}
         <blockquote className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed italic">
           &ldquo;{quote.text}&rdquo;
@@ -118,7 +123,7 @@ function QuoteItem({ quote }: { quote: Quote }) {
 
         {/* Attribution */}
         <p className="mt-3 text-sm text-muted-foreground">
-          — {quote.author}
+          {quote.author}
           {quote.source && (
             <span className="text-muted-foreground/60"> · {quote.source}</span>
           )}
@@ -145,7 +150,7 @@ function QuoteItem({ quote }: { quote: Quote }) {
         </AnimatePresence>
       </div>
 
-      <XmlTag closing>quote</XmlTag>
+      <XmlTag closing className={cn("opacity-0 group-hover:opacity-100", isExpanded && "opacity-100")}>quote</XmlTag>
     </div>
   );
 }
@@ -160,16 +165,16 @@ function PrincipleItem({ principle }: { principle: Principle }) {
   return (
     <div
       className={cn(
-        "group py-6 cursor-pointer transition-colors duration-200",
+        "group py-3 cursor-pointer transition-colors duration-200",
         "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg"
       )}
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="flex items-center gap-2">
-        <XmlTag attributes={attributes}>belief</XmlTag>
+        <XmlTag attributes={attributes} className={cn("opacity-0 group-hover:opacity-100", isExpanded && "opacity-100")}>belief</XmlTag>
         {hasExpandableContent && (
           <motion.span
-            className="text-muted-foreground/40 text-xs select-none"
+            className={cn("text-muted-foreground/40 text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200", isExpanded && "opacity-100")}
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
           >
@@ -178,7 +183,7 @@ function PrincipleItem({ principle }: { principle: Principle }) {
         )}
       </div>
 
-      <div className="mt-4 mb-4 pl-6">
+      <div className="mt-2 mb-2">
         {/* Main statement - serif, large */}
         <p className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed">
           {principle.statement}
@@ -215,7 +220,7 @@ function PrincipleItem({ principle }: { principle: Principle }) {
         </AnimatePresence>
       </div>
 
-      <XmlTag closing>belief</XmlTag>
+      <XmlTag closing className={cn("opacity-0 group-hover:opacity-100", isExpanded && "opacity-100")}>belief</XmlTag>
     </div>
   );
 }
@@ -229,16 +234,16 @@ function PersonItem({ person }: { person: Person }) {
   return (
     <div
       className={cn(
-        "group py-6 cursor-pointer transition-colors duration-200",
+        "group py-3 cursor-pointer transition-colors duration-200",
         "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg"
       )}
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="flex items-center gap-2">
-        <XmlTag>person</XmlTag>
+        <XmlTag className={cn("opacity-0 group-hover:opacity-100", isExpanded && "opacity-100")}>person</XmlTag>
         {hasExpandableContent && (
           <motion.span
-            className="text-muted-foreground/40 text-xs select-none"
+            className={cn("text-muted-foreground/40 text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200", isExpanded && "opacity-100")}
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
           >
@@ -247,7 +252,7 @@ function PersonItem({ person }: { person: Person }) {
         )}
       </div>
 
-      <div className="mt-4 mb-4 pl-6">
+      <div className="mt-2 mb-2">
         {/* Name - serif, large */}
         <p className="font-serif text-xl sm:text-2xl text-foreground">
           {person.name}
@@ -255,7 +260,7 @@ function PersonItem({ person }: { person: Person }) {
 
         {/* Context */}
         {person.context && (
-          <p className="mt-1 text-sm text-muted-foreground/60">
+          <p className="mt-1 text-sm text-muted-foreground">
             {person.context}
           </p>
         )}
@@ -313,7 +318,7 @@ function PersonItem({ person }: { person: Person }) {
         </AnimatePresence>
       </div>
 
-      <XmlTag closing>person</XmlTag>
+      <XmlTag closing className={cn("opacity-0 group-hover:opacity-100", isExpanded && "opacity-100")}>person</XmlTag>
     </div>
   );
 }
@@ -348,9 +353,6 @@ export function PromptView({ data }: PromptViewProps) {
         <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
           System Prompts
         </h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Quotes, principles, and people that shape how I think.
-        </p>
       </header>
 
       {/* System wrapper */}
