@@ -80,7 +80,7 @@ function ProcessingWidget() {
           <WidgetStatus />
           <WidgetTitle>{t(locale, "widgetStatus")}</WidgetTitle>
         </div>
-        <WidgetLink href="/log" label="View log" variant="text" />
+        <WidgetLink href="/log" label="View log" />
       </WidgetHeader>
       <WidgetBody>
         <RoleEmbedCompact commit={role} locale={locale} />
