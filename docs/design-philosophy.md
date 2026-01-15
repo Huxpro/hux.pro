@@ -148,9 +148,17 @@ Information is revealed on demand rather than overwhelming upfront:
 What this design explicitly avoids:
 
 - ❌ Hero images/illustrations
-- ❌ Gradient backgrounds
+- ❌ Decorative gradient backgrounds (marketing-style purple/pink blobs)
 - ❌ Animated blob shapes
 - ❌ Social proof/testimonials
 - ❌ Cookie banners and popups
 - ❌ Fixed navigation bars taking up vertical space
 - ❌ "AI slop" aesthetics (purple gradients, Inter font, generic layouts)
+
+**Note**: The [Ambient System](./ambient-system.md) uses contextual weather gradients that reflect real-world conditions. These are functional (indicating weather/time) rather than decorative.
+
+## See Also
+
+- [Design System](./design-system.md) — Typography, colors, and component patterns
+- [Motion & Animation](./motion.md) — Animation philosophy and implementation
+- [Navigation](./navigation.md) — Command palette and keyboard navigation UX

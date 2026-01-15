@@ -109,3 +109,8 @@ We use standard Next.js routing, but individual components (like the Command Pal
 /* Example utility usage */
 animate-in fade-in zoom-in-95 duration-200
 ```
+
+## See Also
+
+- [Navigation](./navigation.md) — Detailed UX design for command palette and floating action button
+- [Design Philosophy](./design-philosophy.md) — Overall design principles and aesthetic

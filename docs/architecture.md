@@ -72,13 +72,13 @@ The `shared/providers.tsx` orchestrates all providers in the correct order:
 
 ## Subsystems
 
-### [Ambient System](./system-ambient.md)
+### [Ambient System](./ambient-system.md)
 Weather-based ambient UI that creates a living, breathing interface.
 
-### [Command System](./system-command.md)
-Command palette for keyboard-first navigation.
+### [Command System](./navigation.md)
+Command palette and keyboard-first navigation.
 
-### [Devtool System](./system-devtool.md)
+### [Devtool System](./devtool.md)
 Developer tools for debugging ambient state.
 
 ## Import Conventions

@@ -285,3 +285,8 @@ Code blocks use minimal contrast to blend seamlessly with content:
 - **Syntax highlighting**: Uses shiki theme colors for tokens, but background is controlled by site theme
 
 This creates a subtle, cohesive look where code feels like part of the content rather than a separate element.
+
+## See Also
+
+- [Design Philosophy](./design-philosophy.md) — High-level vision and principles
+- [Content System](./content-system.md) — MDX pipeline and prose rendering
