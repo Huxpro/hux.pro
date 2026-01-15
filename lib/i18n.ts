@@ -149,8 +149,12 @@ export const translations = {
     logSlides: "Slides",
 
     // Prompt
-    promptTitle: "Prompt",
-    promptSubtitle: "The system prompts that shape my AI interactions.",
+    promptTitle: "System Prompts",
+    promptSubtitle: "Quotes, principles, and role models that shape my thinking.",
+    promptShapedBy: "shaped by",
+    promptTokens: "tokens",
+    promptLastUpdated: "last updated",
+    promptModel: "model",
   },
   zh: {
     // Navigation
@@ -279,8 +283,12 @@ export const translations = {
     logSlides: "幻灯片",
 
     // Prompt
-    promptTitle: "提示词",
-    promptSubtitle: "塑造我 AI 交互的系统提示词。",
+    promptTitle: "系统提示词",
+    promptSubtitle: "塑造我思维的名言、原则和榜样。",
+    promptShapedBy: "受启发于",
+    promptTokens: "tokens",
+    promptLastUpdated: "更新于",
+    promptModel: "模型",
   },
 } as const;
 

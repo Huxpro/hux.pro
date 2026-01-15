@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { SystemNav } from "@/components/ui/system-nav";
 import type { PromptsData, Quote, Principle, Person } from "@/lib/prompts";
 import { cn } from "@/lib/utils";
+import { useLocale, t } from "@/services";
 
 // Animation variants for expandable content
 const expandVariants = {
@@ -46,7 +47,8 @@ const contentVariants = {
 };
 
 interface PromptViewProps {
-  data: PromptsData;
+  dataEn: PromptsData;
+  dataZh: PromptsData;
 }
 
 // XML-style tag component
@@ -156,7 +158,7 @@ function QuoteItem({ quote }: { quote: Quote }) {
 }
 
 // Principle/Belief item component
-function PrincipleItem({ principle }: { principle: Principle }) {
+function PrincipleItem({ principle, shapedByLabel }: { principle: Principle; shapedByLabel: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const attributes = principle.topic ? { on: principle.topic } : undefined;
@@ -203,7 +205,7 @@ function PrincipleItem({ principle }: { principle: Principle }) {
                 <Divider />
                 {principle.shapedBy && principle.shapedBy.length > 0 && (
                   <p className="text-xs font-mono text-muted-foreground/60 mb-2">
-                    shaped by:{" "}
+                    {shapedByLabel}:{" "}
                     <span className="text-muted-foreground/80">
                       {principle.shapedBy.join(", ")}
                     </span>
@@ -324,25 +326,41 @@ function PersonItem({ person }: { person: Person }) {
 }
 
 // Footer meta component
-function PromptFooter({ meta }: { meta: PromptsData["meta"] }) {
+interface FooterLabels {
+  tokens: string;
+  lastUpdated: string;
+  model: string;
+}
+
+function PromptFooter({ meta, labels }: { meta: PromptsData["meta"]; labels: FooterLabels }) {
   return (
     <div className="mt-20 py-4 px-4 rounded-lg border border-dashed border-muted-foreground/20">
       <div className="font-mono text-xs text-muted-foreground/50 space-y-1">
         <div>
-          tokens: <span className="text-muted-foreground/70">{meta.tokenCount}</span>
+          {labels.tokens}: <span className="text-muted-foreground/70">{meta.tokenCount}</span>
         </div>
         <div>
-          last updated: <span className="text-muted-foreground/70">{meta.lastUpdated}</span>
+          {labels.lastUpdated}: <span className="text-muted-foreground/70">{meta.lastUpdated}</span>
         </div>
         <div>
-          model: <span className="text-muted-foreground/70">{meta.model}</span>
+          {labels.model}: <span className="text-muted-foreground/70">{meta.model}</span>
         </div>
       </div>
     </div>
   );
 }
 
-export function PromptView({ data }: PromptViewProps) {
+export function PromptView({ dataEn, dataZh }: PromptViewProps) {
+  const { locale } = useLocale();
+  const data = locale === "zh" ? dataZh : dataEn;
+
+  const shapedByLabel = t(locale, "promptShapedBy");
+  const footerLabels: FooterLabels = {
+    tokens: t(locale, "promptTokens"),
+    lastUpdated: t(locale, "promptLastUpdated"),
+    model: t(locale, "promptModel"),
+  };
+
   return (
     <main className="mx-auto max-w-[680px] px-6 pt-24 pb-32">
       {/* Back link - System UI */}
@@ -351,7 +369,7 @@ export function PromptView({ data }: PromptViewProps) {
       {/* Header */}
       <header className="mb-12">
         <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
-          System Prompts
+          {t(locale, "promptTitle")}
         </h1>
       </header>
 
@@ -367,7 +385,7 @@ export function PromptView({ data }: PromptViewProps) {
 
           {/* Principles */}
           {data.principles.map((principle) => (
-            <PrincipleItem key={principle.id} principle={principle} />
+            <PrincipleItem key={principle.id} principle={principle} shapedByLabel={shapedByLabel} />
           ))}
 
           {/* People */}
@@ -380,7 +398,7 @@ export function PromptView({ data }: PromptViewProps) {
       </div>
 
       {/* Footer meta */}
-      <PromptFooter meta={data.meta} />
+      <PromptFooter meta={data.meta} labels={footerLabels} />
     </main>
   );
 }

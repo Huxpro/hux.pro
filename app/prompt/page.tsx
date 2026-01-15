@@ -7,6 +7,8 @@ export const metadata = {
 };
 
 export default function PromptPage() {
-  const data = getPromptsData();
-  return <PromptView data={data} />;
+  // Load both locales at build time, client will select based on user preference
+  const dataEn = getPromptsData("en");
+  const dataZh = getPromptsData("zh");
+  return <PromptView dataEn={dataEn} dataZh={dataZh} />;
 }

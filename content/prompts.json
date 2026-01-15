@@ -2,59 +2,123 @@
   "quotes": [
     {
       "id": "alan-kay-predict-future",
-      "text": "The best way to predict the future is to invent it.",
+      "text": {
+        "en": "The best way to predict the future is to invent it.",
+        "zh": "预测未来的最好方法就是创造它。"
+      },
       "author": "Alan Kay",
       "source": "PARC, 1971",
-      "commentary": "The ultimate form of agency. Not waiting for permission, not forecasting trends—just building what should exist."
+      "commentary": {
+        "en": "The ultimate form of agency. Not waiting for permission, not forecasting trends—just building what should exist.",
+        "zh": "终极的主动性。不等待许可，不预测趋势——只是构建应该存在的事物。"
+      }
     },
     {
       "id": "dan-abramov-simple",
-      "text": "Make the complex simple, but not simpler.",
+      "text": {
+        "en": "Make the complex simple, but not simpler.",
+        "zh": "让复杂变简单，但不要过度简化。"
+      },
       "author": "Dan Abramov",
       "source": "Overreacted",
-      "commentary": "A reminder that simplification has a floor. The goal isn't minimal lines of code, but minimal cognitive load."
+      "commentary": {
+        "en": "A reminder that simplification has a floor. The goal isn't minimal lines of code, but minimal cognitive load.",
+        "zh": "提醒我们简化是有底线的。目标不是最少的代码行数，而是最小的认知负担。"
+      }
     },
     {
       "id": "bret-victor-creators",
-      "text": "The most dangerous thought you can have as a creative person is to think you know what you're doing.",
+      "text": {
+        "en": "The most dangerous thought you can have as a creative person is to think you know what you're doing.",
+        "zh": "作为创意工作者，你能有的最危险的想法就是认为自己知道自己在做什么。"
+      },
       "author": "Bret Victor",
       "source": "The Future of Programming, 2013",
-      "commentary": "Stay a beginner. Expertise can become a prison—the best ideas come from naive questions."
+      "commentary": {
+        "en": "Stay a beginner. Expertise can become a prison—the best ideas come from naive questions.",
+        "zh": "保持初学者心态。专业知识可能成为牢笼——最好的想法来自天真的问题。"
+      }
     }
   ],
   "principles": [
     {
       "id": "frameworks-discovered",
-      "statement": "Frameworks should be discovered, not invented.",
-      "topic": "architecture",
-      "shapedBy": ["Years of watching invented abstractions fail", "React's emergence from Facebook's actual needs"],
-      "reasoning": "Good frameworks emerge from solving real problems repeatedly. Invented frameworks solve imaginary problems elegantly."
+      "statement": {
+        "en": "Frameworks should be discovered, not invented.",
+        "zh": "框架应该被发现，而非发明。"
+      },
+      "topic": {
+        "en": "architecture",
+        "zh": "架构"
+      },
+      "shapedBy": {
+        "en": ["Years of watching invented abstractions fail", "React's emergence from Facebook's actual needs"],
+        "zh": ["多年来目睹发明的抽象层失败", "React 从 Facebook 实际需求中诞生"]
+      },
+      "reasoning": {
+        "en": "Good frameworks emerge from solving real problems repeatedly. Invented frameworks solve imaginary problems elegantly.",
+        "zh": "好的框架源于反复解决真实问题。发明的框架优雅地解决想象中的问题。"
+      }
     },
     {
       "id": "demo-driven",
-      "statement": "Demo-driven, not spec-driven.",
-      "topic": "process",
-      "shapedBy": ["Dan Abramov", "Lynx team culture"],
-      "reasoning": "Specs describe what you think you want. Demos reveal what you actually need. Show me, don't tell me."
+      "statement": {
+        "en": "Demo-driven, not spec-driven.",
+        "zh": "演示驱动，而非规格驱动。"
+      },
+      "topic": {
+        "en": "process",
+        "zh": "流程"
+      },
+      "shapedBy": {
+        "en": ["Dan Abramov", "Lynx team culture"],
+        "zh": ["Dan Abramov", "Lynx 团队文化"]
+      },
+      "reasoning": {
+        "en": "Specs describe what you think you want. Demos reveal what you actually need. Show me, don't tell me.",
+        "zh": "规格描述你认为你想要的。演示揭示你真正需要的。给我看，别告诉我。"
+      }
     },
     {
       "id": "tools-for-thought",
-      "statement": "Build tools for thought, not tools for output.",
-      "topic": "product",
-      "shapedBy": ["Bret Victor", "Doug Engelbart"],
-      "reasoning": "The best tools don't just produce artifacts—they change how you think about the problem space."
+      "statement": {
+        "en": "Build tools for thought, not tools for output.",
+        "zh": "构建思考的工具，而非产出的工具。"
+      },
+      "topic": {
+        "en": "product",
+        "zh": "产品"
+      },
+      "shapedBy": {
+        "en": ["Bret Victor", "Doug Engelbart"],
+        "zh": ["Bret Victor", "Doug Engelbart"]
+      },
+      "reasoning": {
+        "en": "The best tools don't just produce artifacts—they change how you think about the problem space.",
+        "zh": "最好的工具不只是产出产物——它们改变你思考问题空间的方式。"
+      }
     }
   ],
   "people": [
     {
       "id": "dan-abramov",
       "name": "Dan Abramov",
-      "context": "React Core Team",
-      "admire": [
-        "Demo-driven, not spec-driven",
-        "User perspective first",
-        "Makes complex things simple"
-      ],
+      "context": {
+        "en": "React Core Team",
+        "zh": "React 核心团队"
+      },
+      "admire": {
+        "en": [
+          "Demo-driven, not spec-driven",
+          "User perspective first",
+          "Makes complex things simple"
+        ],
+        "zh": [
+          "演示驱动，而非规格驱动",
+          "用户视角优先",
+          "让复杂的事情变简单"
+        ]
+      },
       "links": [
         { "label": "overreacted.io", "url": "https://overreacted.io" },
         { "label": "@dan_abramov", "url": "https://twitter.com/dan_abramov" }
@@ -63,12 +127,22 @@
     {
       "id": "bret-victor",
       "name": "Bret Victor",
-      "context": "Dynamicland",
-      "admire": [
-        "Relentless pursuit of better interfaces",
-        "Demos that change how you see the world",
-        "Unwilling to accept the status quo"
-      ],
+      "context": {
+        "en": "Dynamicland",
+        "zh": "Dynamicland"
+      },
+      "admire": {
+        "en": [
+          "Relentless pursuit of better interfaces",
+          "Demos that change how you see the world",
+          "Unwilling to accept the status quo"
+        ],
+        "zh": [
+          "不懈追求更好的界面",
+          "改变你看世界方式的演示",
+          "不愿接受现状"
+        ]
+      },
       "links": [
         { "label": "worrydream.com", "url": "http://worrydream.com" }
       ]
@@ -76,12 +150,22 @@
     {
       "id": "alan-kay",
       "name": "Alan Kay",
-      "context": "Xerox PARC, Smalltalk",
-      "admire": [
-        "Invented the future he wanted to see",
-        "Thinking in decades, not quarters",
-        "Objects were about messaging, not data"
-      ],
+      "context": {
+        "en": "Xerox PARC, Smalltalk",
+        "zh": "Xerox PARC, Smalltalk"
+      },
+      "admire": {
+        "en": [
+          "Invented the future he wanted to see",
+          "Thinking in decades, not quarters",
+          "Objects were about messaging, not data"
+        ],
+        "zh": [
+          "发明了他想看到的未来",
+          "以十年为单位思考，而非季度",
+          "对象是关于消息传递，而非数据"
+        ]
+      },
       "links": [
         { "label": "Wikipedia", "url": "https://en.wikipedia.org/wiki/Alan_Kay" }
       ]
