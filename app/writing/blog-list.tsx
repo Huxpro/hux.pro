@@ -2,7 +2,6 @@
 
 import { PageLayout } from "@/components/ui/page-layout";
 import { PostList } from "@/components/post";
-import { t, useLocale } from "@/services";
 import type { BlogPost } from "@/lib/content";
 
 interface BlogPostListProps {
@@ -18,10 +17,8 @@ function formatDate(dateStr: string) {
 }
 
 export function BlogPostList({ posts }: BlogPostListProps) {
-  const { locale } = useLocale();
-
   return (
-    <PageLayout title={t(locale, "blogTitle")}>
+    <PageLayout page="writing">
       <PostList
         posts={posts}
         basePath="/writing"

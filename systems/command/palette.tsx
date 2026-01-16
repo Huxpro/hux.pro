@@ -107,22 +107,22 @@ export function CommandPalette() {
       section: "navigation",
     },
     {
-      key: "b",
-      label: t(locale, "prose"),
+      key: "u",
+      label: t(locale, "writingTitle"),
       icon: <FileText className="h-4 w-4" />,
       onSelect: () => handleNavigation("/writing"),
       section: "navigation",
     },
     {
-      key: "o",
-      label: t(locale, "log"),
+      key: "x",
+      label: t(locale, "worksTitle"),
       icon: <GitCommit className="h-4 w-4" />,
       onSelect: () => handleNavigation("/works"),
       section: "navigation",
     },
     {
       key: "p",
-      label: t(locale, "prompt"),
+      label: t(locale, "promptsTitle"),
       icon: <Sparkles className="h-4 w-4" />,
       onSelect: () => handleNavigation("/prompt"),
       section: "navigation",
@@ -235,10 +235,10 @@ export function CommandPalette() {
         case "h":
           handleNavigation("/");
           return;
-        case "b":
+        case "u":
           handleNavigation("/writing");
           return;
-        case "o":
+        case "x":
           handleNavigation("/works");
           return;
         case "p":
@@ -458,6 +458,8 @@ export function CommandPalette() {
                       "posts",
                       "prose",
                       "articles",
+                      "文字",
+                      "写作",
                       "博客",
                       "文章",
                     ]}
@@ -470,9 +472,9 @@ export function CommandPalette() {
                     )}
                   >
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1">{t(locale, "writing")}</span>
+                    <span className="flex-1">{t(locale, "writingTitle")}</span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
-                      B
+                      U
                     </kbd>
                   </Command.Item>
                   <Command.Item
@@ -498,9 +500,9 @@ export function CommandPalette() {
                     )}
                   >
                     <GitCommit className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1">{t(locale, "works")}</span>
+                    <span className="flex-1">{t(locale, "worksTitle")}</span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
-                      O
+                      X
                     </kbd>
                   </Command.Item>
                   <Command.Item
@@ -511,6 +513,7 @@ export function CommandPalette() {
                       "ai",
                       "system",
                       "instructions",
+                      "系统提示词",
                       "提示词",
                       "AI",
                       "系统",
@@ -524,7 +527,7 @@ export function CommandPalette() {
                     )}
                   >
                     <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1">{t(locale, "prompt")}</span>
+                    <span className="flex-1">{t(locale, "promptsTitle")}</span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       P
                     </kbd>
@@ -709,7 +712,7 @@ export function CommandPalette() {
                   </Command.Item>
                 </Command.Group>
 
-                <Command.Group heading={t(locale, "writing")}>
+                <Command.Group heading={t(locale, "writingTitle")}>
                   {blogPosts.map((post) => (
                     <Command.Item
                       key={`blog-${post.slug}`}

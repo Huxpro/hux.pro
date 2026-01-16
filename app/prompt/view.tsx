@@ -1,49 +1,49 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { PageLayout } from "@/components/ui/page-layout";
-import type { PromptsData, Quote, Principle, Person } from "@/lib/prompts";
+import type { Person, Principle, PromptsData, Quote } from "@/lib/prompts";
 import { cn } from "@/lib/utils";
-import { useLocale, t } from "@/services";
+import { t, useLocale } from "@/services";
+import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
 
 // Animation variants for expandable content
 const expandVariants = {
-  initial: { 
-    height: 0, 
+  initial: {
+    height: 0,
     opacity: 0,
   },
-  animate: { 
-    height: "auto", 
+  animate: {
+    height: "auto",
     opacity: 1,
     transition: {
       height: { duration: 0.25, ease: [0.25, 0.1, 0.25, 1] as const },
-      opacity: { duration: 0.2, delay: 0.05 }
-    }
+      opacity: { duration: 0.2, delay: 0.05 },
+    },
   },
-  exit: { 
-    height: 0, 
+  exit: {
+    height: 0,
     opacity: 0,
     transition: {
       height: { duration: 0.2, ease: [0.25, 0.1, 0.25, 1] as const },
-      opacity: { duration: 0.1 }
-    }
-  }
+      opacity: { duration: 0.1 },
+    },
+  },
 };
 
 // Stagger children animation
 const contentVariants = {
   initial: { opacity: 0, y: -8 },
-  animate: { 
-    opacity: 1, 
+  animate: {
+    opacity: 1,
     y: 0,
-    transition: { duration: 0.2, ease: "easeOut" as const }
+    transition: { duration: 0.2, ease: "easeOut" as const },
   },
-  exit: { 
-    opacity: 0, 
+  exit: {
+    opacity: 0,
     y: -4,
-    transition: { duration: 0.1 }
-  }
+    transition: { duration: 0.1 },
+  },
 };
 
 interface PromptViewProps {
@@ -64,10 +64,12 @@ function XmlTag({
   className?: string;
 }) {
   return (
-    <span className={cn(
-      "font-mono text-xs text-muted-foreground/60 select-none transition-opacity duration-200",
-      className
-    )}>
+    <span
+      className={cn(
+        "font-mono text-xs text-muted-foreground/60 select-none transition-opacity duration-200",
+        className
+      )}
+    >
       {closing ? "</" : "<"}
       {children}
       {attributes &&
@@ -75,7 +77,9 @@ function XmlTag({
           <span key={key}>
             {" "}
             <span className="text-muted-foreground/40">{key}</span>=
-            <span className="text-muted-foreground/50">&quot;{value}&quot;</span>
+            <span className="text-muted-foreground/50">
+              &quot;{value}&quot;
+            </span>
           </span>
         ))}
       {">"}
@@ -105,10 +109,20 @@ function QuoteItem({ quote }: { quote: Quote }) {
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="flex items-center gap-2">
-        <XmlTag className={cn("opacity-0 group-hover:opacity-100", isExpanded && "opacity-100")}>quote</XmlTag>
+        <XmlTag
+          className={cn(
+            "opacity-0 group-hover:opacity-100",
+            isExpanded && "opacity-100"
+          )}
+        >
+          quote
+        </XmlTag>
         {quote.commentary && (
           <motion.span
-            className={cn("text-muted-foreground/40 text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200", isExpanded && "opacity-100")}
+            className={cn(
+              "text-muted-foreground/40 text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+              isExpanded && "opacity-100"
+            )}
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
           >
@@ -152,13 +166,27 @@ function QuoteItem({ quote }: { quote: Quote }) {
         </AnimatePresence>
       </div>
 
-      <XmlTag closing className={cn("opacity-0 group-hover:opacity-100", isExpanded && "opacity-100")}>quote</XmlTag>
+      <XmlTag
+        closing
+        className={cn(
+          "opacity-0 group-hover:opacity-100",
+          isExpanded && "opacity-100"
+        )}
+      >
+        quote
+      </XmlTag>
     </div>
   );
 }
 
 // Principle/Belief item component
-function PrincipleItem({ principle, shapedByLabel }: { principle: Principle; shapedByLabel: string }) {
+function PrincipleItem({
+  principle,
+  shapedByLabel,
+}: {
+  principle: Principle;
+  shapedByLabel: string;
+}) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const attributes = principle.topic ? { on: principle.topic } : undefined;
@@ -173,10 +201,21 @@ function PrincipleItem({ principle, shapedByLabel }: { principle: Principle; sha
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="flex items-center gap-2">
-        <XmlTag attributes={attributes} className={cn("opacity-0 group-hover:opacity-100", isExpanded && "opacity-100")}>belief</XmlTag>
+        <XmlTag
+          attributes={attributes}
+          className={cn(
+            "opacity-0 group-hover:opacity-100",
+            isExpanded && "opacity-100"
+          )}
+        >
+          belief
+        </XmlTag>
         {hasExpandableContent && (
           <motion.span
-            className={cn("text-muted-foreground/40 text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200", isExpanded && "opacity-100")}
+            className={cn(
+              "text-muted-foreground/40 text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+              isExpanded && "opacity-100"
+            )}
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
           >
@@ -222,7 +261,15 @@ function PrincipleItem({ principle, shapedByLabel }: { principle: Principle; sha
         </AnimatePresence>
       </div>
 
-      <XmlTag closing className={cn("opacity-0 group-hover:opacity-100", isExpanded && "opacity-100")}>belief</XmlTag>
+      <XmlTag
+        closing
+        className={cn(
+          "opacity-0 group-hover:opacity-100",
+          isExpanded && "opacity-100"
+        )}
+      >
+        belief
+      </XmlTag>
     </div>
   );
 }
@@ -242,10 +289,20 @@ function PersonItem({ person }: { person: Person }) {
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="flex items-center gap-2">
-        <XmlTag className={cn("opacity-0 group-hover:opacity-100", isExpanded && "opacity-100")}>person</XmlTag>
+        <XmlTag
+          className={cn(
+            "opacity-0 group-hover:opacity-100",
+            isExpanded && "opacity-100"
+          )}
+        >
+          person
+        </XmlTag>
         {hasExpandableContent && (
           <motion.span
-            className={cn("text-muted-foreground/40 text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200", isExpanded && "opacity-100")}
+            className={cn(
+              "text-muted-foreground/40 text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+              isExpanded && "opacity-100"
+            )}
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
           >
@@ -262,9 +319,7 @@ function PersonItem({ person }: { person: Person }) {
 
         {/* Context */}
         {person.context && (
-          <p className="mt-1 text-sm text-muted-foreground">
-            {person.context}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{person.context}</p>
         )}
 
         {/* Expandable detail */}
@@ -320,7 +375,15 @@ function PersonItem({ person }: { person: Person }) {
         </AnimatePresence>
       </div>
 
-      <XmlTag closing className={cn("opacity-0 group-hover:opacity-100", isExpanded && "opacity-100")}>person</XmlTag>
+      <XmlTag
+        closing
+        className={cn(
+          "opacity-0 group-hover:opacity-100",
+          isExpanded && "opacity-100"
+        )}
+      >
+        person
+      </XmlTag>
     </div>
   );
 }
@@ -332,18 +395,27 @@ interface FooterLabels {
   model: string;
 }
 
-function PromptFooter({ meta, labels }: { meta: PromptsData["meta"]; labels: FooterLabels }) {
+function PromptFooter({
+  meta,
+  labels,
+}: {
+  meta: PromptsData["meta"];
+  labels: FooterLabels;
+}) {
   return (
     <div className="mt-20 py-4 px-4 rounded-lg border border-dashed border-muted-foreground/20">
       <div className="font-mono text-xs text-muted-foreground/50 space-y-1">
         <div>
-          {labels.tokens}: <span className="text-muted-foreground/70">{meta.tokenCount}</span>
+          {labels.tokens}:{" "}
+          <span className="text-muted-foreground/70">{meta.tokenCount}</span>
         </div>
         <div>
-          {labels.lastUpdated}: <span className="text-muted-foreground/70">{meta.lastUpdated}</span>
+          {labels.lastUpdated}:{" "}
+          <span className="text-muted-foreground/70">{meta.lastUpdated}</span>
         </div>
         <div>
-          {labels.model}: <span className="text-muted-foreground/70">{meta.model}</span>
+          {labels.model}:{" "}
+          <span className="text-muted-foreground/70">{meta.model}</span>
         </div>
       </div>
     </div>
@@ -362,7 +434,7 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
   };
 
   return (
-    <PageLayout title={t(locale, "promptTitle")}>
+    <PageLayout page="prompts">
       {/* System wrapper */}
       <div className="relative">
         <XmlTag>system</XmlTag>
@@ -375,7 +447,11 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
 
           {/* Principles */}
           {data.principles.map((principle) => (
-            <PrincipleItem key={principle.id} principle={principle} shapedByLabel={shapedByLabel} />
+            <PrincipleItem
+              key={principle.id}
+              principle={principle}
+              shapedByLabel={shapedByLabel}
+            />
           ))}
 
           {/* People */}

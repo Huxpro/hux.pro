@@ -15,6 +15,24 @@ export const localeNames: Record<Locale, string> = {
 };
 
 // =============================================================================
+// Scramble Character Sets
+// Used by TextScramble for locale-appropriate random characters during animation
+// =============================================================================
+
+export const scrambleCharacterSets = {
+  en: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+  // Chinese sets derived from display + hover text combinations
+  zh: {
+    writing: "文字写作博客言之有物",
+    works: "工作作品集术业有专攻",
+    prompts: "系统提示词闻道有先后",
+    // Default fallback for other pages
+    default:
+      "的一是了不人有我他这个们中来上大为和国地到以说时要就出会可也你对生能而子",
+  },
+} as const;
+
+// =============================================================================
 // Translations
 // =============================================================================
 
@@ -25,13 +43,8 @@ export const translations = {
     career: "Career",
     projects: "Projects",
     blog: "Blog",
-    prose: "Prose",
-    writing: "Writing",
     talks: "Talks",
     productions: "Productions",
-    log: "Log",
-    works: "Works",
-    prompt: "Prompt",
 
     // Homepage
     tagline:
@@ -87,8 +100,9 @@ export const translations = {
     careerTitle: "Projects",
     careerSubtitle: "A narrative of roles, challenges, and growth.",
 
-    // Blog/Prose
-    blogTitle: "Prose",
+    // Blog/Prose (Writing page)
+    writingTitle: "Writing",
+    writingTitleHover: "Prose",
     blogSubtitle: "thoughts on craft, software, and practice",
     allLanguages: "All",
     backToWriting: "back to writing",
@@ -138,8 +152,9 @@ export const translations = {
       "This page doesn't exist, or perhaps it hasn't been written yet.",
     notFoundReturn: "return home",
 
-    // Log / Timeline
-    logTitle: "Log",
+    // Works page (Log / Timeline)
+    worksTitle: "Works",
+    worksTitleHover: "Profession",
     logSubtitle:
       "Commit history. Each tag marks a chapter, each commit is a piece of work.",
     logHead: "HEAD",
@@ -151,8 +166,9 @@ export const translations = {
     logWatch: "Watch",
     logSlides: "Slides",
 
-    // Prompt
-    promptTitle: "System Prompts",
+    // Prompts page
+    promptsTitle: "System Prompts",
+    promptsTitleHover: "Propositions",
     promptSubtitle:
       "Quotes, principles, and role models that shape my thinking.",
     promptShapedBy: "shaped by",
@@ -166,13 +182,8 @@ export const translations = {
     career: "职业",
     projects: "项目",
     blog: "博客",
-    prose: "散文",
-    writing: "写作",
     talks: "演讲",
     productions: "作品",
-    log: "日志",
-    works: "作品集",
-    prompt: "提示词",
 
     // Homepage
     tagline: "散文、职业、编程、生产、项目——一个完整人格的多重面向。",
@@ -227,8 +238,9 @@ export const translations = {
     careerTitle: "项目",
     careerSubtitle: "角色、挑战与成长的叙事。",
 
-    // Blog/Prose
-    blogTitle: "散文",
+    // Blog/Prose (Writing page)
+    writingTitle: "文字",
+    writingTitleHover: "要言之有物",
     blogSubtitle: "关于技艺、软件与实践的思考",
     allLanguages: "全部",
     backToWriting: "返回写作",
@@ -277,8 +289,9 @@ export const translations = {
     notFoundHint: "这个页面不存在，或许它还未被书写。",
     notFoundReturn: "返回首页",
 
-    // Log / Timeline
-    logTitle: "日志",
+    // Works page (Log / Timeline)
+    worksTitle: "工作",
+    worksTitleHover: "术业有专攻",
     logSubtitle: "提交历史。每个标签标记一个篇章，每个提交都是一件作品。",
     logHead: "HEAD",
     logCurrent: "当前",
@@ -289,8 +302,9 @@ export const translations = {
     logWatch: "观看",
     logSlides: "幻灯片",
 
-    // Prompt
-    promptTitle: "系统提示词",
+    // Prompts page
+    promptsTitle: "系统提示词",
+    promptsTitleHover: "闻道有先后",
     promptSubtitle: "塑造我思维的名言、原则和榜样。",
     promptShapedBy: "受启发于",
     promptTokens: "tokens",
@@ -303,4 +317,26 @@ export type TranslationKey = keyof typeof translations.en;
 
 export function t(locale: Locale, key: TranslationKey): string {
   return translations[locale][key];
+}
+
+// =============================================================================
+// Page Title Configuration
+// Used by PageLayout for scramble-enabled titles with i18n support
+// =============================================================================
+
+/** Page identifiers that have title + hover translations */
+export type ScramblePage = "writing" | "works" | "prompts";
+
+/** Get the appropriate Chinese character set for a page */
+export function getScrambleCharacterSet(
+  locale: Locale,
+  page?: ScramblePage
+): string {
+  if (locale === "en") {
+    return scrambleCharacterSets.en;
+  }
+  // For Chinese, use page-specific set or fallback to default
+  return page
+    ? scrambleCharacterSets.zh[page]
+    : scrambleCharacterSets.zh.default;
 }

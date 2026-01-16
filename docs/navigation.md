@@ -109,9 +109,10 @@ When the search input is empty or unfocused:
 | Key | Action |
 |-----|--------|
 | `H` | Go to Home |
-| `E` | Go to Career (Experience) |
-| `B` | Go to Blog |
-| `T` | Go to Talks |
+| `U` | Go to Writing |
+| `X` | Go to Works |
+| `P` | Go to Prompts |
+| `I` | Go to Docs (internal) |
 | `D` | Toggle Dark/Light mode |
 | `L` | Toggle Language |
 | `/` | Switch to Slash Commands |
@@ -122,9 +123,10 @@ When the search input is empty or unfocused:
 | Key | Action |
 |-----|--------|
 | `H` | Go to Home |
-| `E` | Go to Career |
-| `B` | Go to Blog |
-| `T` | Go to Talks |
+| `U` | Go to Writing |
+| `X` | Go to Works |
+| `P` | Go to Prompts |
+| `I` | Go to Docs (internal) |
 | `D` | Toggle Dark/Light mode |
 | `L` | Toggle Language |
 | `⌫` (Backspace) | Back to Search Mode |
@@ -178,7 +180,7 @@ Content pages (prose, log, prompt, docs) share a common layout structure via the
 
 ```tsx
 // app/writing/blog-list.tsx (app router level)
-<PageLayout title={t(locale, "blogTitle")}>
+<PageLayout page="writing">
   <PostList posts={posts} basePath="/writing" />
 </PageLayout>
 ```

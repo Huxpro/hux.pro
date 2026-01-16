@@ -16,7 +16,7 @@ export function WorksView({ data }: WorksViewProps) {
   const { locale } = useLocale();
 
   return (
-    <PageLayout title={t(locale, "logTitle")}>
+    <PageLayout page="works">
       {/* Git Log Timeline */}
       <LogTimeline data={data} locale={locale} />
 

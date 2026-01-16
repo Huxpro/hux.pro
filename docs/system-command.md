@@ -33,8 +33,8 @@ systems/command/
 | Key | Action |
 |-----|--------|
 | `H` | Go to Home |
-| `B` | Go to Writing |
-| `O` | Go to Works |
+| `U` | Go to Writing |
+| `X` | Go to Works |
 | `I` | Go to Docs (internal) |
 | `A` | Toggle appearance |
 | `L` | Toggle language |

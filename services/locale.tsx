@@ -3,22 +3,28 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import {
   defaultLocale,
+  getScrambleCharacterSet,
   localeNames,
   locales,
+  scrambleCharacterSets,
   t,
   translations,
   type Locale,
+  type ScramblePage,
   type TranslationKey,
 } from "@/lib/i18n";
 
 // Re-export i18n utilities for convenience
 export {
   defaultLocale,
+  getScrambleCharacterSet,
   localeNames,
   locales,
+  scrambleCharacterSets,
   t,
   translations,
   type Locale,
+  type ScramblePage,
   type TranslationKey,
 };
 

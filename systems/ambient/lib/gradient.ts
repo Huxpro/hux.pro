@@ -109,8 +109,8 @@ const WEATHER_PALETTE: Record<
 const SUN_PALETTE: Record<SunEvent, { dark: ColorTriple; light: ColorTriple }> = {
   sunrise: {
     dark: [
-      oklch(0.62, 0.11, 44.94, 0.5),
-      oklch(0.33, 0.03, 245),
+      oklch(0.87, 0.12, 52, 0.40),
+      oklch(0.48, 0.02, 245, 0.8),
       oklch(0.22, 0, 0),
     ],
     light: [
