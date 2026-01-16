@@ -390,7 +390,7 @@ Widget 系统基于可组合的原语构建（类似 shadcn 模式）。这些�
       <WidgetStatus />
       <WidgetTitle>当前活跃</WidgetTitle>
     </div>
-    <WidgetLink href="/log" variant="text" />
+    <WidgetLink href="/works" variant="text" />
   </WidgetHeader>
   <WidgetBody>
     <span className="text-sm text-muted-foreground">
@@ -432,7 +432,7 @@ Stack Widget 是用于以水平或垂直布局显示多个项目的容器组件�
 
 #### VStack 项目列表
 
-<VStackWidget title="精选项目" href="/projects">
+<VStackWidget title="精选作品" href="#">
   <CommitEmbed
     variant="bare"
     commit={{
@@ -550,7 +550,7 @@ Stack Widget 是用于以水平或垂直布局显示多个项目的容器组件�
 
 #### HStack 演讲列表
 
-<HStackWidget title="演讲" href="/productions">
+<HStackWidget title="演讲" href="#">
   <CommitEmbed
     variant="bare"
     commit={{
@@ -597,7 +597,7 @@ Stack Widget 是用于以水平或垂直布局显示多个项目的容器组件�
 
 #### HStack 项目列表
 
-<HStackWidget title="项目" href="/projects">
+<HStackWidget title="作品" href="#">
   <CommitEmbed
     variant="bare"
     commit={{
@@ -716,7 +716,7 @@ Stack 可以包含不同类型的提交，实现多样化内容展示。
 
 | 变体 | 描述 | 使用场景 |
 |------|------|----------|
-| `timeline` | 显示图标，时间线优化间距 | /log 页面时间线 |
+| `timeline` | 显示图标，时间线优化间距 | /works 页面时间线 |
 | `card` | 独立卡片带边框/背景 | MDX 内容（默认） |
 | `bare` | 最简无框，紧凑内容 | Stack/Widget 内部 |
 

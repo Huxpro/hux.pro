@@ -2,8 +2,6 @@
 // Route Gradient Configuration
 // =============================================================================
 
-import type { Locale } from "@/services/locale";
-
 // Device form factor type
 export type FormFactor = "desktop" | "mobile";
 
@@ -14,15 +12,11 @@ export type RouteGradientConfig =
 
 export const GRADIENT_ROUTE_DEFAULTS: Record<string, RouteGradientConfig> = {
   "/": { desktop: true, mobile: false },
-  "/prose": false,
-  "/prose/*": false,
+  "/writing": false,
+  "/writing/*": false,
+  "/works": false,
   "/docs": false,
   "/docs/*": false,
-  "/career": false,
-  "/productions": false,
-  "/projects": false,
-  "/blog": false,
-  "/blog/*": false,
   "/*": { desktop: true, mobile: false },
 };
 
@@ -73,22 +67,4 @@ export function getRouteGradientDefault(
   const config =
     GRADIENT_ROUTE_DEFAULTS[pattern] ?? GRADIENT_ROUTE_DEFAULTS["/*"];
   return resolveRouteConfig(config, formFactor);
-}
-
-export function getRoutePatternLabel(pattern: string, locale: Locale): string {
-  const labels: Record<string, { en: string; zh: string }> = {
-    "/": { en: "Home", zh: "首页" },
-    "/prose": { en: "Prose", zh: "散文" },
-    "/prose/*": { en: "Prose Posts", zh: "散文文章" },
-    "/docs": { en: "Docs", zh: "文档" },
-    "/docs/*": { en: "Doc Pages", zh: "文档页面" },
-    "/career": { en: "Career", zh: "职业" },
-    "/productions": { en: "Productions", zh: "作品" },
-    "/projects": { en: "Projects", zh: "项目" },
-    "/blog": { en: "Blog (legacy)", zh: "博客（旧）" },
-    "/blog/*": { en: "Blog Posts (legacy)", zh: "博客文章（旧）" },
-    "/*": { en: "Other (404)", zh: "其他（404）" },
-  };
-
-  return labels[pattern]?.[locale] ?? pattern;
 }

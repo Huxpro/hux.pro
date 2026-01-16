@@ -5,14 +5,14 @@ import { LogTimeline } from "@/components/log/log-timeline";
 import { t, useLocale } from "@/services";
 import type { Tag, Commit } from "@/lib/log";
 
-interface LogViewProps {
+interface WorksViewProps {
   data: {
     tag: Tag;
     commits: Commit[];
   }[];
 }
 
-export function LogView({ data }: LogViewProps) {
+export function WorksView({ data }: WorksViewProps) {
   const { locale } = useLocale();
 
   return (

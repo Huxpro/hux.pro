@@ -185,7 +185,7 @@ The gradient background is opt-in per route:
 | Route | Gradient | Rationale |
 |-------|----------|-----------|
 | `/` | ✅ Enabled | Homepage should feel alive |
-| `/blog/[slug]` | ❌ Disabled | Reading focus |
+| `/writing/[slug]` | ❌ Disabled | Reading focus |
 | `/career` | ❌ Disabled | Professional context |
 
 Configuration lives in `lib/ambient/route-config.ts`.

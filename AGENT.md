@@ -31,7 +31,7 @@
 | Command palette | `components/layout/command-palette.tsx` |
 | Global state | `components/providers.tsx` |
 | Translations | `lib/i18n.ts` |
-| Blog posts | `content/blog/*.mdx` |
+| Blog posts | `content/blog/*.mdx` (at /writing) |
 
 ### Design Tokens
 
@@ -57,7 +57,7 @@ duration-300 (morphing transitions)
 ## 3. Common Tasks
 
 ### Adding Content
-- Blog posts go in `content/blog/`.
+- Blog posts go in `content/blog/` (displayed at /writing).
 - Must include frontmatter (title, date, description, language).
 
 ### Modifying Design

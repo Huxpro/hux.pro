@@ -1,14 +1,14 @@
 import { getLogData } from "@/lib/log-server";
 import { sortTagsByDate, sortCommitsByDate, isCommitListed } from "@/lib/log";
-import { LogView } from "./view";
+import { WorksView } from "./view";
 
 export const metadata = {
-  title: "Log | Hux.Pro",
+  title: "Works | Hux.Pro",
   description:
     "Commit history — professional work as git log, tags marking each chapter.",
 };
 
-export default function LogPage() {
+export default function WorksPage() {
   const { tags, commits } = getLogData();
   const listedCommits = commits.filter(isCommitListed);
 
@@ -23,5 +23,5 @@ export default function LogPage() {
     ),
   }));
 
-  return <LogView data={data} />;
+  return <WorksView data={data} />;
 }

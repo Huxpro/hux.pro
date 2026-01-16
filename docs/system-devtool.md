@@ -101,8 +101,8 @@ Override gradient enabled state per route:
 ```typescript
 const { setRouteGradientPreference } = useWeather();
 
-// Enable gradient on /prose
-setRouteGradientPreference("/prose", true);
+// Enable gradient on /writing
+setRouteGradientPreference("/writing", true);
 ```
 
 ## Persistence

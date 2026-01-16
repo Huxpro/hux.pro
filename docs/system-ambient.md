@@ -144,7 +144,7 @@ Each route can have gradient enabled/disabled:
 | Route | Default |
 |-------|---------|
 | `/` (home) | ✅ ON |
-| `/prose/*` | ❌ OFF (reading focus) |
+| `/writing/*` | ❌ OFF (reading focus) |
 | `/docs/*` | ❌ OFF |
 | `/*` (fallback) | ✅ ON |
 

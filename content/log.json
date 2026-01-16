@@ -67,7 +67,7 @@
       "id": "home-featured-stack",
       "title": { "en": "Featured stack", "zh": "精选堆栈" },
       "layout": "h",
-      "href": "/log",
+      "href": "/works",
       "commitIds": [
         "hux-pro",
         "reactconf-2018",
@@ -81,7 +81,7 @@
       "id": "home-featured-list",
       "title": { "en": "Featured list", "zh": "精选列表" },
       "layout": "v",
-      "href": "/log",
+      "href": "/works",
       "commitIds": [
         "hux-pro",
         "lynx-framework",
@@ -93,21 +93,21 @@
       "id": "upcoming-talks",
       "title": { "en": "Upcoming talks", "zh": "即将进行的演讲" },
       "layout": "h",
-      "href": "/log",
+      "href": "/works",
       "query": { "type": "talk", "upcoming": true },
       "limit": 5
     },
     {
       "id": "featured-react-talks",
       "title": { "en": "Featured React talks", "zh": "精选 React 演讲" },
-      "href": "/log",
+      "href": "/works",
       "query": { "type": "talk", "tagsAny": ["React"] },
       "limit": 1
     },
     {
       "id": "featured-lynx-talks",
       "title": { "en": "Featured Lynx talks", "zh": "精选 Lynx 演讲" },
-      "href": "/log",
+      "href": "/works",
       "query": { "type": "talk", "tagId": "lynx-era" },
       "limit": 3
     }
@@ -162,7 +162,7 @@
         "zh": "为什么框架之战可能即将结束，以及接下来会发生什么。"
       },
       "date": "2024-02",
-      "url": "/prose/react-last-framework",
+      "url": "/writing/react-last-framework",
       "publication": { "name": "Personal Blog" },
       "tags": ["React", "Frameworks", "Opinion"]
     },
@@ -270,7 +270,7 @@
         "zh": "为大规模团队构建组件库的经验教训。"
       },
       "date": "2022-08",
-      "url": "/prose/building-design-systems",
+      "url": "/writing/building-design-systems",
       "publication": { "name": "Personal Blog" },
       "tags": ["Design Systems", "Components", "Scale"]
     },
@@ -368,7 +368,7 @@
       },
       "date": "2025-12",
       "listed": false,
-      "url": "/prose/scratchpad-interface-notes",
+      "url": "/writing/scratchpad-interface-notes",
       "publication": { "name": "Personal Notes" },
       "tags": ["Notes"]
     },

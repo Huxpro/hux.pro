@@ -32,7 +32,7 @@ import {
 
 /**
  * Display variants for CommitEmbed:
- * - "timeline": Shows icon, timeline-optimized spacing, used in /log
+ * - "timeline": Shows icon, timeline-optimized spacing, used in /works
  * - "card": Standalone in prose/MDX, wrapped with border/bg frame
  * - "bare": Minimal frameless version for use inside stacks/widgets
  */
@@ -45,7 +45,7 @@ export interface CommitEmbedProps {
   locale?: Locale;
   /**
    * Display variant:
-   * - "timeline": Shows icon, for /log timeline
+   * - "timeline": Shows icon, for /works timeline
    * - "card": Standalone with border/bg frame, for MDX (default)
    * - "bare": Minimal frameless, for use inside stacks/widgets
    */

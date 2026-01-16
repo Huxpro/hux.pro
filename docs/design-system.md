@@ -194,10 +194,8 @@ transition-colors duration-200
 
 **Path conventions:**
 - `λhux` – Root/home (brand identifier)
-- `/prose` – Prose list (blog posts)
+- `/writing` – Writing list (blog posts)
 - `/docs` – Documentation list
-- `/productions` – Productions list (talks)
-- `/projects` – Projects page
 
 **Usage:**
 ```tsx
@@ -206,8 +204,8 @@ import { SystemNav } from "@/components/ui/system-nav";
 // Back to home (shows "λhux", scrambles to "cd .." on hover)
 <SystemNav href="/" path="λhux" className="mb-12" />
 
-// Back to prose list (shows "/prose", scrambles to "cd .." on hover)
-<SystemNav href="/prose" path="/prose" className="mb-12" />
+// Back to writing list (shows "/writing", scrambles to "cd .." on hover)
+<SystemNav href="/writing" path="/writing" className="mb-12" />
 
 // Custom hover text
 <SystemNav href="/docs" path="/docs" hoverText="cd ~/docs" className="mb-12" />

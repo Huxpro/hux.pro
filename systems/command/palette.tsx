@@ -1,14 +1,13 @@
 "use client";
 
 import { getLocalizedDescription, getLocalizedTitle } from "@/lib/content";
-import { blogPosts, talks } from "@/lib/data";
+import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { localeNames, t, useLocale, useTheme } from "@/services";
 import { useLocation, useWeather } from "@/systems/ambient";
 import { useDevtool } from "@/systems/devtool";
 import { Command } from "cmdk";
 import {
-  Briefcase,
   Bug,
   FileText,
   GitCommit,
@@ -16,7 +15,6 @@ import {
   Home,
   Languages,
   MapPin,
-  Mic,
   Monitor,
   Moon,
   Search,
@@ -109,31 +107,17 @@ export function CommandPalette() {
       section: "navigation",
     },
     {
-      key: "e",
-      label: t(locale, "projects"),
-      icon: <Briefcase className="h-4 w-4" />,
-      onSelect: () => handleNavigation("/projects"),
-      section: "navigation",
-    },
-    {
       key: "b",
       label: t(locale, "prose"),
       icon: <FileText className="h-4 w-4" />,
-      onSelect: () => handleNavigation("/prose"),
-      section: "navigation",
-    },
-    {
-      key: "t",
-      label: t(locale, "productions"),
-      icon: <Mic className="h-4 w-4" />,
-      onSelect: () => handleNavigation("/productions"),
+      onSelect: () => handleNavigation("/writing"),
       section: "navigation",
     },
     {
       key: "o",
       label: t(locale, "log"),
       icon: <GitCommit className="h-4 w-4" />,
-      onSelect: () => handleNavigation("/log"),
+      onSelect: () => handleNavigation("/works"),
       section: "navigation",
     },
     {
@@ -251,17 +235,11 @@ export function CommandPalette() {
         case "h":
           handleNavigation("/");
           return;
-        case "e":
-          handleNavigation("/projects");
-          return;
         case "b":
-          handleNavigation("/prose");
-          return;
-        case "t":
-          handleNavigation("/productions");
+          handleNavigation("/writing");
           return;
         case "o":
-          handleNavigation("/log");
+          handleNavigation("/works");
           return;
         case "p":
           handleNavigation("/prompt");
@@ -473,43 +451,17 @@ export function CommandPalette() {
                     </kbd>
                   </Command.Item>
                   <Command.Item
-                    value="projects"
+                    value="writing"
                     keywords={[
-                      "projects",
-                      "career",
-                      "work",
-                      "job",
-                      "experience",
-                      "项目",
-                      "职业",
-                      "工作",
-                    ]}
-                    onSelect={() => handleNavigation("/projects")}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
-                      "text-sm cursor-pointer transition-colors",
-                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
-                      "hover:bg-accent/25"
-                    )}
-                  >
-                    <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1">{t(locale, "projects")}</span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
-                      E
-                    </kbd>
-                  </Command.Item>
-                  <Command.Item
-                    value="prose"
-                    keywords={[
-                      "prose",
+                      "writing",
                       "blog",
                       "posts",
-                      "writing",
+                      "prose",
                       "articles",
                       "博客",
                       "文章",
                     ]}
-                    onSelect={() => handleNavigation("/prose")}
+                    onSelect={() => handleNavigation("/writing")}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                       "text-sm cursor-pointer transition-colors",
@@ -518,50 +470,26 @@ export function CommandPalette() {
                     )}
                   >
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1">{t(locale, "prose")}</span>
+                    <span className="flex-1">{t(locale, "writing")}</span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       B
                     </kbd>
                   </Command.Item>
                   <Command.Item
-                    value="productions"
+                    value="works"
                     keywords={[
-                      "productions",
-                      "talks",
-                      "presentations",
-                      "speaking",
-                      "演讲",
-                      "分享",
-                    ]}
-                    onSelect={() => handleNavigation("/productions")}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
-                      "text-sm cursor-pointer transition-colors",
-                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
-                      "hover:bg-accent/25"
-                    )}
-                  >
-                    <Mic className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1">{t(locale, "productions")}</span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
-                      T
-                    </kbd>
-                  </Command.Item>
-                  <Command.Item
-                    value="log"
-                    keywords={[
+                      "works",
                       "log",
                       "history",
                       "timeline",
                       "commits",
                       "git",
                       "career",
+                      "作品",
                       "日志",
                       "历史",
-                      "时间线",
-                      "提交",
                     ]}
-                    onSelect={() => handleNavigation("/log")}
+                    onSelect={() => handleNavigation("/works")}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                       "text-sm cursor-pointer transition-colors",
@@ -570,7 +498,7 @@ export function CommandPalette() {
                     )}
                   >
                     <GitCommit className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1">{t(locale, "log")}</span>
+                    <span className="flex-1">{t(locale, "works")}</span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       O
                     </kbd>
@@ -781,7 +709,7 @@ export function CommandPalette() {
                   </Command.Item>
                 </Command.Group>
 
-                <Command.Group heading={t(locale, "prose")}>
+                <Command.Group heading={t(locale, "writing")}>
                   {blogPosts.map((post) => (
                     <Command.Item
                       key={`blog-${post.slug}`}
@@ -798,7 +726,7 @@ export function CommandPalette() {
                         "article",
                         "文章",
                       ].filter(Boolean)}
-                      onSelect={() => handleNavigation(`/prose/${post.slug}`)}
+                      onSelect={() => handleNavigation(`/writing/${post.slug}`)}
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                         "text-sm cursor-pointer transition-colors",
@@ -813,45 +741,6 @@ export function CommandPalette() {
                         </div>
                         <div className="text-xs text-muted-foreground truncate">
                           {getLocalizedDescription(post, locale)}
-                        </div>
-                      </div>
-                    </Command.Item>
-                  ))}
-                </Command.Group>
-
-                <Command.Group heading={t(locale, "productions")}>
-                  {talks.map((talk) => (
-                    <Command.Item
-                      key={`talk-${talk.id}`}
-                      value={`talk-${talk.id}`}
-                      keywords={[
-                        talk.title,
-                        talk.titleZh || "",
-                        talk.event,
-                        talk.description || "",
-                        talk.descriptionZh || "",
-                        "productions",
-                        "talk",
-                        "presentation",
-                        "演讲",
-                      ].filter(Boolean)}
-                      onSelect={() => handleNavigation("/productions")}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg",
-                        "text-sm cursor-pointer transition-colors",
-                        "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
-                        "hover:bg-accent/25"
-                      )}
-                    >
-                      <Mic className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="truncate">
-                          {locale === "zh" && talk.titleZh
-                            ? talk.titleZh
-                            : talk.title}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {talk.event}
                         </div>
                       </div>
                     </Command.Item>

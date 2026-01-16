@@ -40,11 +40,11 @@ function BlogStackWidget() {
   const recentPosts = blogPosts.slice(0, 3);
 
   return (
-    <VStackWidget title={t(locale, "widgetBlog")} href="/prose">
+    <VStackWidget title={t(locale, "widgetBlog")} href="/writing">
       {recentPosts.map((post) => (
         <Link
           key={post.slug}
-          href={`/prose/${post.slug}`}
+          href={`/writing/${post.slug}`}
           className="block group/item"
         >
           <div className="text-sm text-foreground group-hover/item:text-foreground/80 transition-colors truncate">
@@ -83,7 +83,7 @@ function ProcessingWidget() {
           <WidgetStatus />
           <WidgetTitle>{t(locale, "widgetStatus")}</WidgetTitle>
         </div>
-        <WidgetLink href="/log" label="View log" />
+        <WidgetLink href="/works" label="View works" />
       </WidgetHeader>
       <WidgetBody>
         <RoleEmbedCompact commit={role} locale={locale} />
@@ -99,7 +99,7 @@ function GroupWidget({ group }: { group: Group }) {
   if (commits.length === 0) return null;
 
   const title = localize(group.title, locale);
-  const href = group.href ?? "/log";
+  const href = group.href ?? "/works";
   const layout = group.layout ?? "h";
 
   if (layout === "v") {

@@ -69,7 +69,7 @@ interface BaseCommit {
   commentary?: LocalizedString;
   tags?: string[];
   /**
-   * Whether this commit should be shown in /log (and other index surfaces).
+   * Whether this commit should be shown in /works (and other index surfaces).
    * Defaults to true when omitted.
    */
   listed?: boolean;
@@ -497,4 +497,3 @@ export function isRoleCommit(commit: Commit): commit is RoleCommit {
 export function isSocialCommit(commit: Commit): commit is SocialCommit {
   return commit.type === "social";
 }
-

@@ -24,7 +24,7 @@ export function BlogPostList({ posts }: BlogPostListProps) {
     <PageLayout title={t(locale, "blogTitle")}>
       <PostList
         posts={posts}
-        basePath="/prose"
+        basePath="/writing"
         renderMeta={(post) => <time>{formatDate(post.date)}</time>}
       />
     </PageLayout>

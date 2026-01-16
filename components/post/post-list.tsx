@@ -16,7 +16,7 @@ import { useState, type ReactNode } from "react";
 
 interface PostListProps<T extends Post> {
   posts: T[];
-  basePath: string; // e.g., "/prose" or "/docs"
+  basePath: string; // e.g., "/writing" or "/docs"
 
   // Optional: render custom meta for each post (e.g., date)
   renderMeta?: (post: T) => ReactNode;

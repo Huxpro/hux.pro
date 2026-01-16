@@ -177,9 +177,9 @@ Each page follows a consistent pattern:
 Content pages (prose, log, prompt, docs) share a common layout structure via the `PageLayout` component. PageLayout is used at the **app router level** (in page views), not within reusable components.
 
 ```tsx
-// app/prose/blog-list.tsx (app router level)
+// app/writing/blog-list.tsx (app router level)
 <PageLayout title={t(locale, "blogTitle")}>
-  <PostList posts={posts} basePath="/prose" />
+  <PostList posts={posts} basePath="/writing" />
 </PageLayout>
 ```
 
@@ -250,7 +250,7 @@ Home                          Content Pages (using PageLayout)
    ```tsx
    import { Link } from "next-view-transitions";
    
-   <Link href="/prose">Blog</Link>
+   <Link href="/writing">Blog</Link>
    ```
 
 3. **Programmatic Navigation** - Use `useTransitionRouter`:

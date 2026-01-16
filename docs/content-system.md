@@ -42,9 +42,9 @@ The content system powers the blog and documentation with bilingual MDX content.
 │                    BILINGUAL URL HANDLING                           │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  /blog/my-post          → Uses system locale                        │
-│  /blog/my-post?lang=zh  → Forces Chinese (shareable URL)           │
-│  /blog/my-post?lang=en  → Forces English (shareable URL)           │
+│  /writing/my-post          → Uses system locale                        │
+│  /writing/my-post?lang=zh  → Forces Chinese (shareable URL)           │
+│  /writing/my-post?lang=en  → Forces English (shareable URL)           │
 │                                                                     │
 │  When ?lang= conflicts with system locale:                          │
 │    → Dialog asks user to choose preferred language                  │

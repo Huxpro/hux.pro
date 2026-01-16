@@ -57,8 +57,8 @@ export function BlogPostContent({
       language={language}
       readingTime={readingTime}
       readingTimeZh={readingTimeZh}
-      backHref="/prose"
-      backLabel="/prose"
+      backHref="/writing"
+      backLabel="/writing"
       headerMeta={<time>{formatDate(date)}</time>}
       onMount={handleMount}
     >

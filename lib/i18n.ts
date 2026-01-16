@@ -26,9 +26,11 @@ export const translations = {
     projects: "Projects",
     blog: "Blog",
     prose: "Prose",
+    writing: "Writing",
     talks: "Talks",
     productions: "Productions",
     log: "Log",
+    works: "Works",
     prompt: "Prompt",
 
     // Homepage
@@ -58,7 +60,7 @@ export const translations = {
     searchDesktop: "Search or / for commands",
 
     // Widget labels
-    widgetBlog: "/prose",
+    widgetBlog: "/writing",
     widgetTalks: "/productions",
     widgetStatus: "processing",
     widgetWeather: "weather",
@@ -99,6 +101,7 @@ export const translations = {
     slides: "Slides",
 
     // Docs
+    docs: "Docs",
     docsTitle: "Documentation",
     docsSubtitle: "technical architecture and design decisions",
     backToDocs: "back to docs",
@@ -150,7 +153,8 @@ export const translations = {
 
     // Prompt
     promptTitle: "System Prompts",
-    promptSubtitle: "Quotes, principles, and role models that shape my thinking.",
+    promptSubtitle:
+      "Quotes, principles, and role models that shape my thinking.",
     promptShapedBy: "shaped by",
     promptTokens: "tokens",
     promptLastUpdated: "last updated",
@@ -163,9 +167,11 @@ export const translations = {
     projects: "项目",
     blog: "博客",
     prose: "散文",
+    writing: "写作",
     talks: "演讲",
     productions: "作品",
     log: "日志",
+    works: "作品集",
     prompt: "提示词",
 
     // Homepage
@@ -194,7 +200,7 @@ export const translations = {
     searchDesktop: "搜索或使用 / 呼出命令",
 
     // Widget labels
-    widgetBlog: "/散文",
+    widgetBlog: "/写作",
     widgetTalks: "/作品",
     widgetStatus: "处理中",
     widgetWeather: "天气",
@@ -235,6 +241,7 @@ export const translations = {
     slides: "幻灯片",
 
     // Docs
+    docs: "文档",
     docsTitle: "文档",
     docsSubtitle: "技术架构与设计决策",
     backToDocs: "返回文档",

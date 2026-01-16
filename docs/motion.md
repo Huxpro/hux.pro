@@ -123,7 +123,7 @@ import { ViewTransitions } from "next-view-transitions";
 // Use library's Link component
 import { Link } from "next-view-transitions";
 
-<Link href="/prose">Blog</Link>
+<Link href="/writing">Blog</Link>
 ```
 
 #### Programmatic Navigation

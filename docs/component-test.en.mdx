@@ -10,7 +10,7 @@ The `CommitEmbed` component embeds commit items (work records) directly in MDX c
 
 ### Type: Project
 
-Projects with links, tech stack, and stats.
+Work with links, tech stack, and stats.
 
 #### Default (Collapsed)
 
@@ -390,7 +390,7 @@ Pulsing status indicator for "active" states (e.g., current role).
       <WidgetStatus />
       <WidgetTitle>Currently Active</WidgetTitle>
     </div>
-    <WidgetLink href="/log" variant="text" />
+    <WidgetLink href="/works" variant="text" />
   </WidgetHeader>
   <WidgetBody>
     <span className="text-sm text-muted-foreground">
@@ -430,9 +430,9 @@ Stack widgets are container components for displaying multiple items in horizont
 
 Displays items in a vertical list with consistent spacing.
 
-#### VStack with Projects
+#### VStack with Work
 
-<VStackWidget title="Featured Projects" href="/projects">
+<VStackWidget title="Featured Work" href="#">
   <CommitEmbed
     variant="bare"
     commit={{
@@ -550,7 +550,7 @@ Displays items in a horizontal carousel with snap scrolling and pagination dots.
 
 #### HStack with Talks
 
-<HStackWidget title="Speaking" href="/productions">
+<HStackWidget title="Speaking" href="#">
   <CommitEmbed
     variant="bare"
     commit={{
@@ -595,9 +595,9 @@ Displays items in a horizontal carousel with snap scrolling and pagination dots.
   />
 </HStackWidget>
 
-#### HStack with Projects
+#### HStack with Work
 
-<HStackWidget title="Projects" href="/projects">
+<HStackWidget title="Work" href="#">
   <CommitEmbed
     variant="bare"
     commit={{
@@ -716,7 +716,7 @@ Stacks can contain different types of commits for varied content.
 
 | Variant | Description | Use Case |
 |---------|-------------|----------|
-| `timeline` | Shows icon, timeline-optimized spacing | /log page timeline |
+| `timeline` | Shows icon, timeline-optimized spacing | /works page timeline |
 | `card` | Standalone with border/bg frame | MDX content (default) |
 | `bare` | Minimal frameless, compact content | Inside stacks/widgets |
 

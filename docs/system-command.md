@@ -33,9 +33,8 @@ systems/command/
 | Key | Action |
 |-----|--------|
 | `H` | Go to Home |
-| `E` | Go to Projects |
-| `B` | Go to Prose |
-| `T` | Go to Productions |
+| `B` | Go to Writing |
+| `O` | Go to Works |
 | `I` | Go to Docs (internal) |
 | `A` | Toggle appearance |
 | `L` | Toggle language |
@@ -92,7 +91,7 @@ const { ... } = useCommandPalette();
 
 The palette searches across:
 
-1. **Navigation**: Home, Projects, Prose, Productions, Docs
+1. **Navigation**: Home, Writing, Works, Docs
 2. **Settings**: Appearance, Language, Location, Gradient, Devtool
 3. **Blog Posts**: Title, description, tags (both languages)
 4. **Talks**: Title, event, description
