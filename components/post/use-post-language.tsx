@@ -3,7 +3,8 @@
 import { useLocale, type Locale } from "@/services";
 import { showCustomToast, dismissToast } from "@/components/ui/system-sonner";
 import { resolveDisplayLocale, type PostLanguage } from "@/lib/content";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTransitionRouter } from "next-view-transitions";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { LanguageConflictToast, LanguageSwitchToast } from "./language-toast";
 
@@ -36,7 +37,7 @@ export function usePostLanguage({
 }: UsePostLanguageOptions): UsePostLanguageReturn {
   const { locale: systemLocale } = useLocale();
   const searchParams = useSearchParams();
-  const router = useRouter();
+  const router = useTransitionRouter();
   const pathname = usePathname();
 
   const urlLang = searchParams.get("lang") as Locale | null;

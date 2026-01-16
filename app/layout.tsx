@@ -1,8 +1,9 @@
-import { AmbientSurface } from "@/systems/ambient";
-import { DevtoolFAB } from "@/systems/devtool";
-import { CommandPalette, FloatingActionButton } from "@/systems/command";
 import { Providers } from "@/shared/providers";
+import { AmbientSurface } from "@/systems/ambient";
+import { CommandPalette, FloatingActionButton } from "@/systems/command";
+import { DevtoolFAB } from "@/systems/devtool";
 import type { Metadata, Viewport } from "next";
+import { ViewTransitions } from "next-view-transitions";
 import {
   Inter,
   JetBrains_Mono,
@@ -60,17 +61,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
-      >
-        <Providers>
-          <DevtoolFAB />
-          <AmbientSurface>{children}</AmbientSurface>
-          <CommandPalette />
-          <FloatingActionButton />
-        </Providers>
-      </body>
-    </html>
+    <ViewTransitions>
+      <html lang="en" suppressHydrationWarning>
+        <body
+          className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+        >
+          <Providers>
+            <DevtoolFAB />
+            <AmbientSurface>{children}</AmbientSurface>
+            <CommandPalette />
+            <FloatingActionButton />
+          </Providers>
+        </body>
+      </html>
+    </ViewTransitions>
   );
 }

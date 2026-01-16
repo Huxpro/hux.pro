@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { SystemNav } from "@/components/ui/system-nav";
+import { PageLayout } from "@/components/ui/page-layout";
 import type { PromptsData, Quote, Principle, Person } from "@/lib/prompts";
 import { cn } from "@/lib/utils";
 import { useLocale, t } from "@/services";
@@ -362,17 +362,7 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
   };
 
   return (
-    <main className="mx-auto max-w-[680px] px-6 pt-24 pb-32">
-      {/* Back link - System UI */}
-      <SystemNav href="/" path="λhux" className="mb-16" />
-
-      {/* Header */}
-      <header className="mb-12">
-        <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
-          {t(locale, "promptTitle")}
-        </h1>
-      </header>
-
+    <PageLayout title={t(locale, "promptTitle")}>
       {/* System wrapper */}
       <div className="relative">
         <XmlTag>system</XmlTag>
@@ -399,6 +389,6 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
 
       {/* Footer meta */}
       <PromptFooter meta={data.meta} labels={footerLabels} />
-    </main>
+    </PageLayout>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import { useLocale, useVisitor, t } from "@/services";
-import { useAmbientTime } from "../provider";
-import { getAmbientGreetingKeyFromPhase } from "../lib/greeting";
+import { t, useLocale, useVisitor } from "@/services";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { getAmbientGreetingKeyFromPhase } from "../lib/greeting";
+import { useAmbientTime } from "../provider";
 
 export function AmbientGreeting() {
   const { locale } = useLocale();
@@ -20,15 +20,12 @@ export function AmbientGreeting() {
     [phase]
   );
 
-  if (!mounted) {
-    return <div className="min-h-[120px]" />;
-  }
-
   const timeGreeting = t(locale, greetingKey);
 
+  // Build context message only after mount to avoid hydration mismatch
   let contextMessage: ReactNode = null;
 
-  if (isReturningVisitor && lastVisited) {
+  if (mounted && isReturningVisitor && lastVisited) {
     if (daysSinceLastVisit !== null && daysSinceLastVisit > 7) {
       contextMessage = (
         <span className="block mt-2 text-muted-foreground">
@@ -48,7 +45,7 @@ export function AmbientGreeting() {
         </span>
       );
     }
-  } else if (isReturningVisitor) {
+  } else if (mounted && isReturningVisitor) {
     contextMessage = (
       <span className="block mt-2 text-muted-foreground">
         {t(locale, "greetingWelcomeBack")}

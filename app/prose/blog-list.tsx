@@ -1,6 +1,8 @@
 "use client";
 
+import { PageLayout } from "@/components/ui/page-layout";
 import { PostList } from "@/components/post";
+import { t, useLocale } from "@/services";
 import type { BlogPost } from "@/lib/content";
 
 interface BlogPostListProps {
@@ -16,14 +18,15 @@ function formatDate(dateStr: string) {
 }
 
 export function BlogPostList({ posts }: BlogPostListProps) {
+  const { locale } = useLocale();
+
   return (
-    <PostList
-      posts={posts}
-      title="blogTitle"
-      backHref="/"
-      backLabel="λhux"
-      basePath="/prose"
-      renderMeta={(post) => <time>{formatDate(post.date)}</time>}
-    />
+    <PageLayout title={t(locale, "blogTitle")}>
+      <PostList
+        posts={posts}
+        basePath="/prose"
+        renderMeta={(post) => <time>{formatDate(post.date)}</time>}
+      />
+    </PageLayout>
   );
 }

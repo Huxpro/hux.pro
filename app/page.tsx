@@ -1,32 +1,35 @@
 "use client";
 
-import { AmbientGreeting, WeatherWidget } from "@/systems/ambient";
-import { TextScramble } from "@/components/motion-primitives/text-scramble";
-import { HStackWidget, VStackWidget } from "@/components/home/featured-stack-widget";
 import {
-  WidgetShell,
-  WidgetHeader,
-  WidgetTitle,
-  WidgetBody,
-  WidgetLink,
-  WidgetStatus,
-} from "@/components/ui/widget";
+  HStackWidget,
+  VStackWidget,
+} from "@/components/home/featured-stack-widget";
 import { CommitEmbed } from "@/components/log";
-import { useLocale, t } from "@/services";
+import { RoleEmbedCompact } from "@/components/log/embeds";
+import { TextScramble } from "@/components/motion-primitives/text-scramble";
+import {
+  WidgetBody,
+  WidgetHeader,
+  WidgetLink,
+  WidgetShell,
+  WidgetStatus,
+  WidgetTitle,
+} from "@/components/ui/widget";
+import logData from "@/content/log.json";
 import { getLocalizedTitle } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-import { useState } from "react";
-import logData from "@/content/log.json";
+import type { Commit, Group, LogData, RoleCommit } from "@/lib/log";
 import {
-  localize,
-  resolveGroupCommits,
   isCommitListed,
   isRoleCommit,
+  localize,
+  resolveGroupCommits,
 } from "@/lib/log";
-import type { Commit, Group, LogData, RoleCommit } from "@/lib/log";
-import { RoleEmbedCompact } from "@/components/log/embeds";
+import { cn } from "@/lib/utils";
+import { t, useLocale } from "@/services";
+import { AmbientGreeting, WeatherWidget } from "@/systems/ambient";
+import { Link } from "next-view-transitions";
+import { useState } from "react";
 
 // =============================================================================
 // Widget Components
@@ -155,8 +158,9 @@ function ScrambleIdentifier() {
   const targetText = isHovered ? "λHUX" : "λhux";
 
   return (
-    <div className="text-center mb-12">
+    <div className="flex justify-center mb-12">
       <span
+        data-view-transition="site-identifier"
         className={cn(
           "font-mono text-xs tracking-wider relative inline-block cursor-default transition-colors duration-300",
           isHovered ? "text-foreground" : "text-muted-foreground"

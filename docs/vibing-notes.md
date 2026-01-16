@@ -20,6 +20,8 @@ for logic task
 
 Code quality wise: a clear spec can give much better code > iterative 
 
+If you are not sure: no spec, try to "iterate your idea" by chatting with the agent (or really, any AI) before coding: it's good to chat with your IDE so that you have the context there for free.
+
 
 ## Experimentation (Tackling Randomness) (Feature Branching)
 

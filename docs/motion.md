@@ -103,7 +103,72 @@ Hover effects are designed to be "weighty" but responsive.
 - **Links**: Opacity changes or subtle underlines.
 
 ### Page Transitions
-We use standard Next.js routing, but individual components (like the Command Palette or Modals) use `animate-in` and `fade-in` utility classes (powered by `tw-animate-css` and Tailwind) to enter the stage smoothly.
+
+We use the **View Transitions API** via `next-view-transitions` for smooth page-to-page navigation.
+
+#### Setup
+
+```tsx
+// app/layout.tsx
+import { ViewTransitions } from "next-view-transitions";
+
+<ViewTransitions>
+  <html>...</html>
+</ViewTransitions>
+```
+
+#### Link Navigation
+
+```tsx
+// Use library's Link component
+import { Link } from "next-view-transitions";
+
+<Link href="/prose">Blog</Link>
+```
+
+#### Programmatic Navigation
+
+```tsx
+import { useTransitionRouter } from "next-view-transitions";
+
+const router = useTransitionRouter();
+router.push("/path"); // Triggers view transition
+```
+
+#### Transition Styles
+
+```css
+/* Root content crossfades (200ms) */
+::view-transition-old(root) {
+  animation: fade-out 200ms ease-out both;
+}
+::view-transition-new(root) {
+  animation: fade-in 200ms ease-out both;
+}
+
+/* Shared elements morph position */
+[data-view-transition="site-identifier"] {
+  view-transition-name: site-identifier;
+}
+::view-transition-group(site-identifier) {
+  animation-duration: 300ms;
+}
+```
+
+#### Shared Elements
+
+Elements with matching `view-transition-name` morph between pages:
+
+```tsx
+// Add data attribute to matching elements
+<span data-view-transition="site-identifier">λhux</span>
+```
+
+The `λhux` identifier morphs from center (homepage) to left (content pages).
+
+### Component Animations
+
+Individual components (like the Command Palette or Modals) use `animate-in` and `fade-in` utility classes (powered by `tw-animate-css` and Tailwind) to enter the stage smoothly.
 
 ```css
 /* Example utility usage */

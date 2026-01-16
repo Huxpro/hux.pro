@@ -1,8 +1,8 @@
 "use client";
 
-import { useLocale } from "@/services";
-import { SystemNav } from "@/components/ui/system-nav";
+import { PageLayout } from "@/components/ui/page-layout";
 import { LogTimeline } from "@/components/log/log-timeline";
+import { t, useLocale } from "@/services";
 import type { Tag, Commit } from "@/lib/log";
 
 interface LogViewProps {
@@ -16,17 +16,7 @@ export function LogView({ data }: LogViewProps) {
   const { locale } = useLocale();
 
   return (
-    <main className="mx-auto max-w-[680px] px-6 pt-24 pb-32">
-      {/* Back link - System UI */}
-      <SystemNav href="/" path="λhux" className="mb-16" />
-
-      {/* Header */}
-      <header className="mb-20">
-        <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
-          {locale === "zh" ? "提交历史" : "Commit History"}
-        </h1>
-      </header>
-
+    <PageLayout title={t(locale, "logTitle")}>
       {/* Git Log Timeline */}
       <LogTimeline data={data} locale={locale} />
 
@@ -36,9 +26,9 @@ export function LogView({ data }: LogViewProps) {
           <div className="w-3 h-3 rounded-full border-2 border-muted-foreground/30" />
         </div>
         <span className="font-mono text-xs text-muted-foreground/40 tracking-wide">
-          git init
+          {t(locale, "logInit")}
         </span>
       </div>
-    </main>
+    </PageLayout>
   );
 }

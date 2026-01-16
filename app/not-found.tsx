@@ -3,7 +3,7 @@
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { useLocale, t } from "@/services";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import { useState } from "react";
 
 // =============================================================================

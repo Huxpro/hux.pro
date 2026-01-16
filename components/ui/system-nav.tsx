@@ -2,7 +2,7 @@
 
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import { useState } from "react";
 
 interface SystemNavProps {
@@ -59,16 +59,18 @@ export function SystemNav({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <TextScramble
-        trigger={true}
-        duration={0.4}
-        speed={0.02}
-        characterSet="λabcdefghijklmnopqrstuvwxyz/.~-_"
-        as="span"
-        className="inline-block pointer-events-none"
-      >
-        {displayText}
-      </TextScramble>
+      <span data-view-transition="site-identifier">
+        <TextScramble
+          trigger={true}
+          duration={0.4}
+          speed={0.02}
+          characterSet="λabcdefghijklmnopqrstuvwxyz/.~-_"
+          as="span"
+          className="inline-block pointer-events-none"
+        >
+          {displayText}
+        </TextScramble>
+      </span>
     </Link>
   );
 }

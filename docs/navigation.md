@@ -168,9 +168,137 @@ Instead of opening/closing between modes, the palette **morphs**:
 Each page follows a consistent pattern:
 
 1. **Back link** (top-left): Returns to parent page
-2. **Header**: Title + subtitle (centered for blog list)
+2. **Header**: Title + subtitle
 3. **Content area**: Main page content
 4. **No fixed navigation**: Command palette replaces traditional nav
+
+### PageLayout Component
+
+Content pages (prose, log, prompt, docs) share a common layout structure via the `PageLayout` component. PageLayout is used at the **app router level** (in page views), not within reusable components.
+
+```tsx
+// app/prose/blog-list.tsx (app router level)
+<PageLayout title={t(locale, "blogTitle")}>
+  <PostList posts={posts} basePath="/prose" />
+</PageLayout>
+```
+
+**Structure:**
+```
+┌─────────────────────────────────────────┐
+│  max-w-[680px] px-6 pt-24 pb-32         │
+│                                         │
+│  ┌─────────────────────────────────────┐│
+│  │ SystemNav (mb-16)                   ││
+│  │ "λhux" → "cd .." on hover           ││
+│  └─────────────────────────────────────┘│
+│                                         │
+│  ┌─────────────────────────────────────┐│
+│  │ <header> (mb-20)                    ││
+│  │ <h1> serif text-3xl/4xl             ││
+│  └─────────────────────────────────────┘│
+│                                         │
+│  {children}                             │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+**Props:**
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | `string` | required | Page title displayed in h1 |
+| `backHref` | `string` | `"/"` | Back navigation destination |
+| `backLabel` | `string` | `"λhux"` | Back navigation label |
+| `className` | `string` | - | Additional classes for main |
+| `children` | `ReactNode` | required | Page content |
+
+### View Transitions
+
+The site uses the browser's View Transitions API via the `next-view-transitions` library for smooth page-to-page animations.
+
+**Shared Element Mapping:**
+
+```
+Home                          Content Pages (using PageLayout)
+┌─────────────────┐          ┌─────────────────┐
+│  λhux ◄─────────────────────► λhux           │  ← shared element (morphs position)
+│  (centered)     │          │  (left-aligned) │
+│                 │          │                 │
+│  [greeting]     │          │  [page title]   │  ← crossfade
+│                 │          │                 │
+│  [widgets]      │          │  [content]      │  ← crossfade
+└─────────────────┘          └─────────────────┘
+```
+
+**Implementation:**
+
+1. **Library Setup** (`next-view-transitions`):
+   ```tsx
+   // app/layout.tsx
+   import { ViewTransitions } from "next-view-transitions";
+   
+   export default function RootLayout({ children }) {
+     return (
+       <ViewTransitions>
+         <html>...</html>
+       </ViewTransitions>
+     );
+   }
+   ```
+
+2. **Link Components** - Use library's Link for navigation:
+   ```tsx
+   import { Link } from "next-view-transitions";
+   
+   <Link href="/prose">Blog</Link>
+   ```
+
+3. **Programmatic Navigation** - Use `useTransitionRouter`:
+   ```tsx
+   import { useTransitionRouter } from "next-view-transitions";
+   
+   const router = useTransitionRouter();
+   router.push("/path"); // Triggers view transition
+   ```
+
+4. **Shared Elements** - Use `data-view-transition` attribute:
+   ```tsx
+   // Home page (centered)
+   <span data-view-transition="site-identifier">λhux</span>
+   
+   // Content pages (left-aligned, in SystemNav)
+   <span data-view-transition="site-identifier">λhux</span>
+   ```
+
+5. **CSS Animations** (`globals.css`):
+   ```css
+   /* Page content crossfades */
+   ::view-transition-old(root) {
+     animation: fade-out 200ms ease-out both;
+   }
+   ::view-transition-new(root) {
+     animation: fade-in 200ms ease-out both;
+   }
+   
+   /* Site identifier morphs position */
+   [data-view-transition="site-identifier"] {
+     view-transition-name: site-identifier;
+   }
+   ::view-transition-group(site-identifier) {
+     animation-duration: 300ms;
+     animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+   }
+   ```
+
+**How it works:**
+- `next-view-transitions` wraps navigation in `document.startViewTransition()`
+- Elements with `view-transition-name` become shared elements that morph position/size
+- Root content crossfades during transition
+- Falls back gracefully in unsupported browsers (instant navigation)
+
+**Browser Support:**
+- Chrome 111+, Edge 111+ (full support)
+- Safari, Firefox (graceful fallback to instant navigation)
 
 ## Mobile Considerations
 

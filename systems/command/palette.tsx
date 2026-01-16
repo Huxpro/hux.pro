@@ -25,7 +25,8 @@ import {
   Sun,
   Waves,
 } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { useTransitionRouter } from "next-view-transitions";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCommand } from "./provider";
 
@@ -43,7 +44,7 @@ export function CommandPalette() {
   } = useWeather();
   const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled } =
     useDevtool();
-  const router = useRouter();
+  const router = useTransitionRouter();
   const pathname = usePathname();
 
   const currentPattern = getRoutePattern(pathname);

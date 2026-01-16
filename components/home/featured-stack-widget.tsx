@@ -1,13 +1,13 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import {
-  WidgetShell,
-  WidgetHeader,
-  WidgetTitle,
   WidgetBody,
+  WidgetHeader,
   WidgetLink,
+  WidgetShell,
+  WidgetTitle,
 } from "@/components/ui/widget";
+import { cn } from "@/lib/utils";
 import { ArrowRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -170,4 +170,3 @@ export function VStackWidget({
 
 // Backwards-compatible alias
 export const FeaturedStackWidget = HStackWidget;
-

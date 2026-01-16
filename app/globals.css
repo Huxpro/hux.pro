@@ -190,14 +190,14 @@
    =============================================================================
    Embedded components (wrapped with .not-prose) need vertical margin to
    separate them from surrounding prose content.
-   
+
    However, when .not-prose elements are nested (e.g., CommitEmbed inside
    VStackWidget), only the outermost element should have margin.
-   
+
    Solution:
    1. First rule: All .not-prose elements in prose context get margin
    2. Second rule: Nested .not-prose elements reset margin (higher specificity)
-   
+
    This keeps spacing logic in CSS rather than requiring React context or
    component-level awareness of nesting.
    ============================================================================= */
@@ -478,4 +478,77 @@
 /* Task lists (GFM) */
 .prose-article input[type="checkbox"]:not(:where(.not-prose, .not-prose *)) {
   @apply mr-2 rounded;
+}
+
+/* =============================================================================
+   View Transition API Styles
+   =============================================================================
+   - Page content: horizontal slide (exit left, enter from right)
+   - Site identifier (λhux): shared element that morphs position
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   Page Content - Crossfade
+   ----------------------------------------------------------------------------- */
+
+::view-transition-group(root) {
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+}
+
+::view-transition-old(root) {
+  animation: fade-out 200ms ease-out both;
+}
+
+::view-transition-new(root) {
+  animation: fade-in 200ms ease-out both;
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* -----------------------------------------------------------------------------
+   Site Identifier (λhux) - Shared Element Transition
+   -----------------------------------------------------------------------------
+   The identifier morphs position from center (home) to left (content pages).
+   Uses view-transition-name to create a shared element that persists across
+   the page transition. */
+
+/* Apply view-transition-name via data attribute for flexibility */
+[data-view-transition="site-identifier"] {
+  view-transition-name: site-identifier;
+}
+
+/* The group handles position/size morphing automatically */
+::view-transition-group(site-identifier) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Simple crossfade for the element snapshots */
+::view-transition-old(site-identifier),
+::view-transition-new(site-identifier) {
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+  /* Prevent the element from being part of root transition */
+  mix-blend-mode: normal;
+}
+
+/* -----------------------------------------------------------------------------
+   Reduced Motion
+   ----------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }

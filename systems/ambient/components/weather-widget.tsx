@@ -1,18 +1,31 @@
 "use client";
 
-import { WeatherIcon } from "./weather-icon";
-import { useLocale, t } from "@/services";
+import {
+  WidgetBody,
+  WidgetHeader,
+  WidgetShell,
+  WidgetTitle,
+} from "@/components/ui/widget";
+import { t, useLocale } from "@/services";
 import { useDevtool } from "@/systems/devtool";
-import { useLocation, useWeather } from "../provider";
-import { formatLocationLabel, type WeatherCondition, getWeatherConditionLabel } from "../lib";
-import { WidgetShell, WidgetHeader, WidgetTitle, WidgetBody } from "@/components/ui/widget";
 import { Loader2, Navigation, Sunrise, Sunset } from "lucide-react";
 import { useEffect, useState } from "react";
+import {
+  formatLocationLabel,
+  getWeatherConditionLabel,
+  type WeatherCondition,
+} from "../lib";
+import { useLocation, useWeather } from "../provider";
+import { WeatherIcon } from "./weather-icon";
 
 /** Format milliseconds to HH:MM (24h) */
 function formatTime(ms: number): string {
   const date = new Date(ms);
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 export function WeatherWidget() {
@@ -170,7 +183,9 @@ export function WeatherWidget() {
         ) : (
           <div className="space-y-2">
             <div className="text-sm text-muted-foreground leading-relaxed">
-              {devForceEmpty ? "no data (dev)" : t(locale, "weatherUnavailable")}
+              {devForceEmpty
+                ? "no data (dev)"
+                : t(locale, "weatherUnavailable")}
             </div>
             {error && (
               <div className="text-xs font-mono text-muted-foreground/80">
