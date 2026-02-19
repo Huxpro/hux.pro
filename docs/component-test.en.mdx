@@ -1,76 +1,195 @@
 # Component Test
 
-This document demonstrates all widget-like components and their variants. Use this as a reference for component styling and behavior verification.
+This document demonstrates all widget-like components and their variants, organized from smallest composable units to larger compositions.
+
+## Terminology
+
+- **Media**: Atomic external content units (video, embed, link, image)
+- **Commit**: A work item (project, talk, post, role, social) that can have Media attached
+- **Embed**: Specifically the native social platform widgets (Twitter, Instagram, TikTok)
 
 ---
 
-## CommitEmbed Component
+## 1. Media
 
-The `CommitEmbed` component embeds commit items (work records) directly in MDX content. It supports 5 types with a discriminated union for type safety.
+Media components are the atomic building blocks for embedding external content. The `Media` component auto-detects platform and renders the appropriate embed.
+
+### Component Hierarchy
+
+```
+                    Media (unified entry)
+                           │
+             ┌─────────────┼─────────────┐
+             │             │             │
+           Video         Embed      LinkPreview
+             │             │
+      ┌──────┼──────┐  ┌───┴───┐
+      │      │      │  │   │   │
+  YouTube  Bili  Vimeo  X  IG TikTok
+```
+
+- **Media**: Unified entry point, auto-detects URL and routes to the appropriate component
+- **Video**: Video platforms with click-to-play thumbnails
+- **Embed**: Native social platform widgets using official SDKs
+- **LinkPreview**: OG card preview for other URLs
+
+### Media (Auto-Detection)
+
+<Playground>
+```tsx
+<Media url="https://www.youtube.com/watch?v=lGEMwh32soc" />
+```
+<Media url="https://www.youtube.com/watch?v=lGEMwh32soc" />
+</Playground>
+
+<Playground>
+```tsx
+<Media url="https://x.com/Huxpro/status/1502483206569807874" />
+```
+<Media url="https://x.com/Huxpro/status/1502483206569807874" />
+</Playground>
+
+<Playground>
+```tsx
+<Media url="https://lynxjs.org" />
+```
+<Media url="https://lynxjs.org" />
+</Playground>
+
+### Media (Forced Type)
+
+Use the `as` prop to force a specific rendering mode, bypassing auto-detection. This is useful when you want to render a URL differently than its detected type.
+
+#### Force Link Preview for YouTube
+
+<Playground>
+```tsx
+<Media url="https://www.youtube.com/watch?v=lGEMwh32soc" as="link" title="My YouTube Video" />
+```
+<Media url="https://www.youtube.com/watch?v=lGEMwh32soc" as="link" title="My YouTube Video" />
+</Playground>
+
+#### Force Embed with Theme
+
+<Playground>
+```tsx
+<Media url="https://x.com/Huxpro/status/1502483206569807874" as="embed" theme="light" />
+```
+<Media url="https://x.com/Huxpro/status/1502483206569807874" as="embed" theme="light" />
+</Playground>
+
+#### Force Video with Custom Thumbnail
+
+<Playground>
+```tsx
+<Media url="https://www.youtube.com/watch?v=lGEMwh32soc" as="video" thumbnail="https://picsum.photos/800/450?random=99" />
+```
+<Media url="https://www.youtube.com/watch?v=lGEMwh32soc" as="video" thumbnail="https://picsum.photos/800/450?random=99" />
+</Playground>
+
+---
+
+### Video
+
+Direct video embeds with click-to-play thumbnail.
+
+<Playground>
+```tsx
+<Video url="https://www.youtube.com/watch?v=lGEMwh32soc" platform="youtube" />
+```
+<Video url="https://www.youtube.com/watch?v=lGEMwh32soc" platform="youtube" />
+</Playground>
+
+<Playground>
+```tsx
+<Video url="https://www.bilibili.com/video/BV1A1XxYXERk/" platform="bilibili" />
+```
+<Video url="https://www.bilibili.com/video/BV1A1XxYXERk/" platform="bilibili" />
+</Playground>
+
+---
+
+### Embed (Social Platforms)
+
+Native social platform embeds using official SDKs/iframes.
+
+#### Twitter/X
+
+<Playground>
+```tsx
+<Embed url="https://x.com/Huxpro/status/1502483206569807874" />
+```
+<Embed url="https://x.com/Huxpro/status/1502483206569807874" />
+</Playground>
+
+#### Instagram
+
+<Playground>
+```tsx
+<Embed url="https://www.instagram.com/p/DMLLL61NyLt/" />
+```
+<Embed url="https://www.instagram.com/p/DMLLL61NyLt/" />
+</Playground>
+
+#### TikTok
+
+<Playground>
+```tsx
+<Embed url="https://www.tiktok.com/@huxpresso/photo/7509367085185666335" />
+```
+<Embed url="https://www.tiktok.com/@huxpresso/photo/7509367085185666335" />
+</Playground>
+
+---
+
+### Link / LinkPreview
+
+External links can render as buttons or rich OG preview cards.
+
+#### Link Button
+
+<Playground>
+```tsx
+<Link url="https://lynxjs.org" label="Website" icon="globe" />
+```
+<Link url="https://lynxjs.org" label="Website" icon="globe" />
+</Playground>
+
+#### LinkPreview (OG Card)
+
+<Playground>
+```tsx
+<LinkPreview url="https://lynxjs.org" />
+```
+<LinkPreview url="https://lynxjs.org" />
+</Playground>
+
+---
+
+### Figure
+
+Static image display (uses Next.js Image for optimization).
+
+<Playground>
+```tsx
+<Figure url="https://picsum.photos/800/400?random=1" alt="Sample image" />
+```
+<Figure url="https://picsum.photos/800/400?random=1" alt="Sample image" />
+</Playground>
+
+---
+
+## 2. Commit
+
+The `Commit` component renders work items. It supports 5 types with a discriminated union for type safety. (formerly `CommitEmbed`)
 
 ### Type: Project
 
-Work with links, tech stack, and stats.
-
-#### Default (Collapsed)
-
-<CommitEmbed
+<Playground>
+```tsx
+<Commit
   commit={{
     id: "test-project-1",
-    type: "project",
-    tagId: "demo",
-    title: { en: "Design System Tokens", zh: "设计系统令牌" },
-    description: {
-      en: "A comprehensive design token system for building consistent, themeable UI components. Supports CSS variables, Tailwind, and multiple output formats.",
-      zh: "一个全面的设计令牌系统，用于构建一致的、可主题化的 UI 组件。"
-    },
-    date: "2024-01",
-    links: [
-      { url: "https://example.com/tokens", label: "Website", icon: "globe" },
-      { url: "https://github.com/example/tokens", label: "GitHub", icon: "github" }
-    ],
-    techStack: ["TypeScript", "CSS", "Tailwind"],
-    commentary: {
-      en: "This project taught me a lot about the importance of systematic design thinking.",
-      zh: "这个项目教会了我很多关于系统化设计思维的知识。"
-    },
-    stats: { stars: 1200, downloads: "50k/mo" }
-  }}
-  locale="en"
-/>
-
-#### Expanded by Default
-
-<CommitEmbed
-  commit={{
-    id: "test-project-2",
-    type: "project",
-    tagId: "demo",
-    title: { en: "React Component Library", zh: "React 组件库" },
-    description: {
-      en: "A minimal, accessible React component library with full TypeScript support and tree-shaking.",
-      zh: "一个简洁、无障碍的 React 组件库，完全支持 TypeScript 和 tree-shaking。"
-    },
-    date: "2023-06",
-    links: [
-      { url: "https://github.com/example/components", label: "GitHub", icon: "github" }
-    ],
-    techStack: ["React", "TypeScript", "Storybook"],
-    commentary: {
-      en: "Building this helped crystallize my thinking on API design.",
-      zh: "构建这个库帮助我理清了对 API 设计的思考。"
-    },
-    stats: { stars: 850 }
-  }}
-  locale="en"
-  defaultExpanded={true}
-/>
-
-#### Minimal (No Optional Fields)
-
-<CommitEmbed
-  commit={{
-    id: "test-project-3",
     type: "project",
     tagId: "demo",
     title: { en: "CLI Tool", zh: "命令行工具" },
@@ -79,84 +198,39 @@ Work with links, tech stack, and stats.
       zh: "一个简单的代码脚手架命令行工具。"
     },
     date: "2022-11",
-    links: [
-      { url: "https://example.com/cli", label: "Docs", icon: "file" }
+    media: [
+      { type: "link", url: "https://example.com/cli", label: "Docs", icon: "file" }
     ]
   }}
   locale="en"
 />
-
----
+```
+<Commit
+  commit={{
+    id: "test-project-1",
+    type: "project",
+    tagId: "demo",
+    title: { en: "CLI Tool", zh: "命令行工具" },
+    description: {
+      en: "A simple command-line utility for code scaffolding.",
+      zh: "一个简单的代码脚手架命令行工具。"
+    },
+    date: "2022-11",
+    media: [
+      { type: "link", url: "https://example.com/cli", label: "Docs", icon: "file" }
+    ]
+  }}
+  locale="en"
+/>
+</Playground>
 
 ### Type: Talk
 
-Conference talks with video, slides, and conference info.
-
-#### Full Talk (Video + Slides)
-
-<CommitEmbed
+<Playground>
+```tsx
+<Commit
   commit={{
     id: "test-talk-1",
-    type: "talk",
-    tagId: "demo",
-    title: { en: "Building Cross-Platform Apps at Scale", zh: "大规模构建跨平台应用" },
-    description: {
-      en: "A deep dive into cross-platform development strategies, covering shared codebases, platform-specific optimizations, and team organization.",
-      zh: "深入探讨跨平台开发策略，涵盖共享代码库、平台特定优化和团队组织。"
-    },
-    date: "2024-03",
-    conference: {
-      name: "ReactConf 2024",
-      city: "Las Vegas, NV",
-      url: "https://reactconf.com"
-    },
-    video: {
-      url: "https://youtube.com/watch?v=example",
-      platform: "youtube"
-    },
-    slides: {
-      url: "https://slides.example.com/talk"
-    },
-    commentary: {
-      en: "One of my favorite talks to give - the audience questions were incredibly insightful.",
-      zh: "这是我最喜欢做的演讲之一——观众的问题非常有洞察力。"
-    }
-  }}
-  locale="en"
-/>
-
-#### Talk with Thumbnail
-
-<CommitEmbed
-  commit={{
-    id: "test-talk-2",
-    type: "talk",
-    tagId: "demo",
-    title: { en: "The Art of Developer Experience", zh: "开发者体验的艺术" },
-    description: {
-      en: "What makes developer tools delightful? Exploring ergonomics, feedback loops, and invisible design.",
-      zh: "是什么让开发者工具令人愉悦？探索人体工程学、反馈循环和隐形设计。"
-    },
-    date: "2023-09",
-    conference: {
-      name: "DevX Summit",
-      city: "San Francisco, CA"
-    },
-    video: {
-      url: "https://youtube.com/watch?v=dx-example",
-      thumbnail: "https://picsum.photos/320/180?random=1",
-      platform: "youtube"
-    }
-  }}
-  locale="en"
-  defaultExpanded={true}
-/>
-
-#### Minimal Talk (No Video/Slides)
-
-<CommitEmbed
-  commit={{
-    id: "test-talk-3",
     type: "talk",
     tagId: "demo",
     title: { en: "Lightning Talk: CSS Tricks", zh: "闪电演讲：CSS 技巧" },
@@ -165,49 +239,35 @@ Conference talks with video, slides, and conference info.
       zh: "关于高级 CSS 模式的 5 分钟闪电演讲。"
     },
     date: "2022-06",
-    conference: {
-      name: "CSS Day"
-    }
+    conference: { name: "CSS Day" }
   }}
   locale="en"
 />
-
----
+```
+<Commit
+  commit={{
+    id: "test-talk-1",
+    type: "talk",
+    tagId: "demo",
+    title: { en: "Lightning Talk: CSS Tricks", zh: "闪电演讲：CSS 技巧" },
+    description: {
+      en: "5-minute lightning talk on advanced CSS patterns.",
+      zh: "关于高级 CSS 模式的 5 分钟闪电演讲。"
+    },
+    date: "2022-06",
+    conference: { name: "CSS Day" }
+  }}
+  locale="en"
+/>
+</Playground>
 
 ### Type: Post
 
-Blog posts and articles with publication info.
-
-#### Full Post
-
-<CommitEmbed
+<Playground>
+```tsx
+<Commit
   commit={{
     id: "test-post-1",
-    type: "post",
-    tagId: "demo",
-    title: { en: "The Art of Developer Experience", zh: "开发者体验的艺术" },
-    description: {
-      en: "Exploring what makes developer tools delightful to use, from API design to error messages.",
-      zh: "探索是什么让开发者工具令人愉悦，从 API 设计到错误消息。"
-    },
-    date: "2024-02",
-    url: "https://blog.example.com/dx-art",
-    publication: {
-      name: "Medium"
-    },
-    commentary: {
-      en: "Writing this helped me articulate ideas I had been thinking about for years.",
-      zh: "写这篇文章帮助我阐明了多年来一直在思考的想法。"
-    }
-  }}
-  locale="en"
-/>
-
-#### Minimal Post
-
-<CommitEmbed
-  commit={{
-    id: "test-post-2",
     type: "post",
     tagId: "demo",
     title: { en: "Quick Tip: TypeScript Generics", zh: "快速提示：TypeScript 泛型" },
@@ -217,56 +277,42 @@ Blog posts and articles with publication info.
     },
     date: "2023-08",
     url: "https://dev.to/example/typescript-generics",
-    publication: {
-      name: "dev.to"
-    }
+    publication: { name: "dev.to" }
   }}
   locale="en"
 />
-
----
+```
+<Commit
+  commit={{
+    id: "test-post-1",
+    type: "post",
+    tagId: "demo",
+    title: { en: "Quick Tip: TypeScript Generics", zh: "快速提示：TypeScript 泛型" },
+    description: {
+      en: "A practical guide to TypeScript generics with real-world examples.",
+      zh: "TypeScript 泛型的实用指南，附有真实案例。"
+    },
+    date: "2023-08",
+    url: "https://dev.to/example/typescript-generics",
+    publication: { name: "dev.to" }
+  }}
+  locale="en"
+/>
+</Playground>
 
 ### Type: Role
 
-Job positions and career history.
-
-#### Full Role (with End Date)
-
-<CommitEmbed
+<Playground>
+```tsx
+<Commit
   commit={{
     id: "test-role-1",
     type: "role",
     tagId: "demo",
-    title: { en: "Acme Corp", zh: "Acme 公司" },
-    description: {
-      en: "Led a team of 8 engineers building the next-generation design system and developer tools platform.",
-      zh: "领导一个由 8 名工程师组成的团队，构建下一代设计系统和开发者工具平台。"
-    },
-    date: "2022-01",
-    endDate: "2024-06",
-    company: { en: "Acme Corp", zh: "Acme 公司" },
-    roleTitle: { en: "Senior Staff Engineer", zh: "高级技术专家" },
-    location: "San Francisco, CA",
-    url: "https://acme.example.com",
-    commentary: {
-      en: "An incredible journey of growth and learning.",
-      zh: "一段令人难以置信的成长和学习之旅。"
-    }
-  }}
-  locale="en"
-/>
-
-#### Current Role (Present)
-
-<CommitEmbed
-  commit={{
-    id: "test-role-2",
-    type: "role",
-    tagId: "demo",
     title: { en: "TechStart Inc", zh: "TechStart 公司" },
     description: {
-      en: "Building the frontend infrastructure and developer experience for a fast-growing startup.",
-      zh: "为一家快速成长的初创公司构建前端基础设施和开发者体验。"
+      en: "Building the frontend infrastructure and developer experience.",
+      zh: "构建前端基础设施和开发者体验。"
     },
     date: "2024-07",
     endDate: "present",
@@ -275,63 +321,35 @@ Job positions and career history.
     location: "Remote"
   }}
   locale="en"
-  defaultExpanded={true}
 />
-
-#### Minimal Role
-
-<CommitEmbed
+```
+<Commit
   commit={{
-    id: "test-role-3",
+    id: "test-role-1",
     type: "role",
     tagId: "demo",
-    title: { en: "Freelance", zh: "自由职业" },
+    title: { en: "TechStart Inc", zh: "TechStart 公司" },
     description: {
-      en: "Independent consulting on React architecture and design systems.",
-      zh: "React 架构和设计系统的独立咨询。"
+      en: "Building the frontend infrastructure and developer experience.",
+      zh: "构建前端基础设施和开发者体验。"
     },
-    date: "2021-01",
-    endDate: "2021-12",
-    company: { en: "Freelance", zh: "自由职业" },
-    roleTitle: { en: "Consultant", zh: "顾问" }
+    date: "2024-07",
+    endDate: "present",
+    company: { en: "TechStart Inc", zh: "TechStart 公司" },
+    roleTitle: { en: "Principal Engineer", zh: "首席工程师" },
+    location: "Remote"
   }}
   locale="en"
 />
-
----
+</Playground>
 
 ### Type: Social
 
-Social media posts and threads.
-
-#### Twitter/X Post
-
-<CommitEmbed
+<Playground>
+```tsx
+<Commit
   commit={{
     id: "test-social-1",
-    type: "social",
-    tagId: "demo",
-    title: { en: "Thread on React Server Components", zh: "关于 React 服务器组件的推文串" },
-    description: {
-      en: "A viral thread explaining the mental model behind RSC and why it matters for the future of React.",
-      zh: "一个解释 RSC 背后心智模型以及它为何对 React 未来重要的热门推文串。"
-    },
-    date: "2024-01",
-    platform: "Twitter",
-    url: "https://twitter.com/example/status/123456789",
-    commentary: {
-      en: "This thread reached over 500k impressions - clearly struck a nerve!",
-      zh: "这个推文串达到了超过 50 万次展示——显然触动了大家！"
-    }
-  }}
-  locale="en"
-/>
-
-#### Minimal Social
-
-<CommitEmbed
-  commit={{
-    id: "test-social-2",
     type: "social",
     tagId: "demo",
     title: { en: "Quick tip on CSS Grid", zh: "CSS Grid 小技巧" },
@@ -341,33 +359,429 @@ Social media posts and threads.
     },
     date: "2023-05",
     platform: "Bluesky",
-    url: "https://bsky.app/profile/example/post/abc"
+    media: [
+      { type: "embed", url: "https://bsky.app/profile/example/post/abc" }
+    ]
   }}
   locale="en"
 />
+```
+<Commit
+  commit={{
+    id: "test-social-1",
+    type: "social",
+    tagId: "demo",
+    title: { en: "Quick tip on CSS Grid", zh: "CSS Grid 小技巧" },
+    description: {
+      en: "Shared a useful CSS Grid pattern that went mini-viral.",
+      zh: "分享了一个有用的 CSS Grid 模式，小火了一把。"
+    },
+    date: "2023-05",
+    platform: "Bluesky",
+    media: [
+      { type: "embed", url: "https://bsky.app/profile/example/post/abc" }
+    ]
+  }}
+  locale="en"
+/>
+</Playground>
 
 ---
 
-## Widget Primitives
+### Commit + Media (Composition)
 
-The widget system is built on composable primitives (shadcn-like pattern). These primitives provide consistent styling while allowing flexible composition.
+Any commit type can compose with any media type via the `media` array.
 
-### WidgetShell
+#### Project + Video + Links
 
-The base container with card styling (rounded corners, backdrop blur, border, hover effects).
+<Playground>
+```tsx
+<Commit
+  commit={{
+    id: "test-project-video",
+    type: "project",
+    tagId: "demo",
+    title: { en: "Lynx Framework", zh: "Lynx 框架" },
+    description: {
+      en: "Cross-platform UI framework for building native apps with web technologies.",
+      zh: "使用 Web 技术构建原生应用的跨平台 UI 框架。"
+    },
+    date: "2025-01",
+    media: [
+      { type: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" },
+      { type: "link", url: "https://lynxjs.org", label: "Website" },
+      { type: "link", url: "https://github.com/nicify/nicify", label: "GitHub", icon: "github" }
+    ]
+  }}
+  locale="en"
+/>
+```
+<Commit
+  commit={{
+    id: "test-project-video",
+    type: "project",
+    tagId: "demo",
+    title: { en: "Lynx Framework", zh: "Lynx 框架" },
+    description: {
+      en: "Cross-platform UI framework for building native apps with web technologies.",
+      zh: "使用 Web 技术构建原生应用的跨平台 UI 框架。"
+    },
+    date: "2025-01",
+    media: [
+      { type: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" },
+      { type: "link", url: "https://lynxjs.org", label: "Website" },
+      { type: "link", url: "https://github.com/nicify/nicify", label: "GitHub", icon: "github" }
+    ]
+  }}
+  locale="en"
+/>
+</Playground>
 
+#### Talk + Video
+
+<Playground>
+```tsx
+<Commit
+  commit={{
+    id: "test-talk-video",
+    type: "talk",
+    tagId: "demo",
+    title: { en: "Cross Platform React", zh: "跨平台 React" },
+    description: {
+      en: "Building truly cross-platform apps with React.",
+      zh: "使用 React 构建真正的跨平台应用。"
+    },
+    date: "2024-05",
+    conference: { name: "React Conf 2024", url: "https://conf.react.dev" },
+    media: [
+      { type: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" }
+    ]
+  }}
+  locale="en"
+/>
+```
+<Commit
+  commit={{
+    id: "test-talk-video",
+    type: "talk",
+    tagId: "demo",
+    title: { en: "Cross Platform React", zh: "跨平台 React" },
+    description: {
+      en: "Building truly cross-platform apps with React.",
+      zh: "使用 React 构建真正的跨平台应用。"
+    },
+    date: "2024-05",
+    conference: { name: "React Conf 2024", url: "https://conf.react.dev" },
+    media: [
+      { type: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" }
+    ]
+  }}
+  locale="en"
+/>
+</Playground>
+
+#### Social + Native Embed
+
+<Playground>
+```tsx
+<Commit
+  commit={{
+    id: "test-social-embed",
+    type: "social",
+    tagId: "demo",
+    title: { en: "Announcing Lynx", zh: "Lynx 发布公告" },
+    description: {
+      en: "I've worked on this project for the past few years, and it's finally ready.",
+      zh: "我在这个项目上工作了好几年，终于可以发布了。"
+    },
+    date: "2022-03",
+    platform: "X",
+    media: [
+      { type: "embed", url: "https://x.com/Huxpro/status/1502483206569807874" }
+    ]
+  }}
+  locale="en"
+/>
+```
+<Commit
+  commit={{
+    id: "test-social-embed",
+    type: "social",
+    tagId: "demo",
+    title: { en: "Announcing Lynx", zh: "Lynx 发布公告" },
+    description: {
+      en: "I've worked on this project for the past few years, and it's finally ready.",
+      zh: "我在这个项目上工作了好几年，终于可以发布了。"
+    },
+    date: "2022-03",
+    platform: "X",
+    media: [
+      { type: "embed", url: "https://x.com/Huxpro/status/1502483206569807874" }
+    ]
+  }}
+  locale="en"
+/>
+</Playground>
+
+#### Role + Image
+
+<Playground>
+```tsx
+<Commit
+  commit={{
+    id: "test-role-image",
+    type: "role",
+    tagId: "demo",
+    company: { en: "Meta", zh: "Meta" },
+    roleTitle: { en: "Software Engineer", zh: "软件工程师" },
+    title: { en: "Meta", zh: "Meta" },
+    description: {
+      en: "Working on cross-platform infrastructure.",
+      zh: "从事跨平台基础设施工作。"
+    },
+    date: "2022-01",
+    endDate: "present",
+    location: "Menlo Park, CA",
+    media: [
+      { type: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/512px-Meta_Platforms_Inc._logo.svg.png", alt: "Meta logo" }
+    ]
+  }}
+  locale="en"
+/>
+```
+<Commit
+  commit={{
+    id: "test-role-image",
+    type: "role",
+    tagId: "demo",
+    company: { en: "Meta", zh: "Meta" },
+    roleTitle: { en: "Software Engineer", zh: "软件工程师" },
+    title: { en: "Meta", zh: "Meta" },
+    description: {
+      en: "Working on cross-platform infrastructure.",
+      zh: "从事跨平台基础设施工作。"
+    },
+    date: "2022-01",
+    endDate: "present",
+    location: "Menlo Park, CA",
+    media: [
+      { type: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/512px-Meta_Platforms_Inc._logo.svg.png", alt: "Meta logo" }
+    ]
+  }}
+  locale="en"
+/>
+</Playground>
+
+---
+
+### Commit Variants
+
+| Variant | Description | Use Case |
+|---------|-------------|----------|
+| `timeline` | Shows icon, timeline-optimized spacing | /works page |
+| `card` | Standalone with border/bg frame | MDX (default) |
+| `bare` | Minimal frameless | Inside widgets |
+
+---
+
+### Expandable Content (Fold/Unfold)
+
+Commits with `commentary`, `techStack`, or `stats` show a chevron button next to the title. Clicking it expands to reveal additional details. Use `defaultExpanded` to start in expanded state.
+
+#### Project with Commentary + TechStack + Stats
+
+<Playground>
+```tsx
+<Commit
+  commit={{
+    id: "test-expandable-1",
+    type: "project",
+    tagId: "demo",
+    title: { en: "Design System Core", zh: "设计系统核心" },
+    description: {
+      en: "A comprehensive design system with tokens, components, and documentation. Built for scale with automatic theme generation and cross-platform support.",
+      zh: "一个包含令牌、组件和文档的综合设计系统。支持自动主题生成和跨平台。"
+    },
+    date: "2024-03",
+    techStack: ["React", "TypeScript", "Tailwind", "Radix UI"],
+    stats: { stars: 2400, downloads: "50k/mo" },
+    commentary: {
+      en: "This project taught me the importance of constraint-based design. The best systems aren't the most flexible—they're the ones that make the right thing easy.",
+      zh: "这个项目让我学会了基于约束的设计的重要性。最好的系统不是最灵活的，而是让正确的事情变得容易的系统。"
+    },
+    media: [
+      { type: "link", url: "#", label: "Docs", icon: "file" },
+      { type: "link", url: "#", label: "GitHub", icon: "github" }
+    ]
+  }}
+  locale="en"
+/>
+```
+<Commit
+  commit={{
+    id: "test-expandable-1",
+    type: "project",
+    tagId: "demo",
+    title: { en: "Design System Core", zh: "设计系统核心" },
+    description: {
+      en: "A comprehensive design system with tokens, components, and documentation. Built for scale with automatic theme generation and cross-platform support.",
+      zh: "一个包含令牌、组件和文档的综合设计系统。支持自动主题生成和跨平台。"
+    },
+    date: "2024-03",
+    techStack: ["React", "TypeScript", "Tailwind", "Radix UI"],
+    stats: { stars: 2400, downloads: "50k/mo" },
+    commentary: {
+      en: "This project taught me the importance of constraint-based design. The best systems aren't the most flexible—they're the ones that make the right thing easy.",
+      zh: "这个项目让我学会了基于约束的设计的重要性。最好的系统不是最灵活的，而是让正确的事情变得容易的系统。"
+    },
+    media: [
+      { type: "link", url: "#", label: "Docs", icon: "file" },
+      { type: "link", url: "#", label: "GitHub", icon: "github" }
+    ]
+  }}
+  locale="en"
+/>
+</Playground>
+
+#### Default Expanded State
+
+Use `defaultExpanded={true}` to start with content already expanded.
+
+<Playground>
+```tsx
+<Commit
+  defaultExpanded={true}
+  commit={{
+    id: "test-expandable-2",
+    type: "project",
+    tagId: "demo",
+    title: { en: "Animation Library", zh: "动画库" },
+    description: {
+      en: "Physics-based animation primitives for React. Spring dynamics, gesture recognition, and declarative timeline control.",
+      zh: "基于物理的 React 动画原语。弹簧动力学、手势识别和声明式时间线控制。"
+    },
+    date: "2023-09",
+    techStack: ["React", "TypeScript", "WASM"],
+    commentary: {
+      en: "Animation is the soul of interface design. This library aims to make motion feel as natural as breathing.",
+      zh: "动画是界面设计的灵魂。这个库旨在让动效像呼吸一样自然。"
+    },
+    media: [
+      { type: "link", url: "#", label: "Playground", icon: "globe" }
+    ]
+  }}
+  locale="en"
+/>
+```
+<Commit
+  defaultExpanded={true}
+  commit={{
+    id: "test-expandable-2",
+    type: "project",
+    tagId: "demo",
+    title: { en: "Animation Library", zh: "动画库" },
+    description: {
+      en: "Physics-based animation primitives for React. Spring dynamics, gesture recognition, and declarative timeline control.",
+      zh: "基于物理的 React 动画原语。弹簧动力学、手势识别和声明式时间线控制。"
+    },
+    date: "2023-09",
+    techStack: ["React", "TypeScript", "WASM"],
+    commentary: {
+      en: "Animation is the soul of interface design. This library aims to make motion feel as natural as breathing.",
+      zh: "动画是界面设计的灵魂。这个库旨在让动效像呼吸一样自然。"
+    },
+    media: [
+      { type: "link", url: "#", label: "Playground", icon: "globe" }
+    ]
+  }}
+  locale="en"
+/>
+</Playground>
+
+#### Role with Commentary
+
+<Playground>
+```tsx
+<Commit
+  commit={{
+    id: "test-expandable-role",
+    type: "role",
+    tagId: "demo",
+    title: { en: "Acme Corp", zh: "Acme 公司" },
+    company: { en: "Acme Corp", zh: "Acme 公司" },
+    roleTitle: { en: "Staff Engineer", zh: "资深工程师" },
+    description: {
+      en: "Led the migration from legacy jQuery codebase to React, reducing bundle size by 60% and improving performance scores.",
+      zh: "领导了从传统 jQuery 代码库到 React 的迁移，减少了 60% 的包体积并提高了性能分数。"
+    },
+    date: "2020-03",
+    endDate: "2022-08",
+    location: "San Francisco, CA",
+    commentary: {
+      en: "The hardest part wasn't the technology—it was getting buy-in from stakeholders who'd invested years in the old system.",
+      zh: "最难的部分不是技术，而是让在旧系统上投入多年的利益相关者买账。"
+    }
+  }}
+  locale="en"
+/>
+```
+<Commit
+  commit={{
+    id: "test-expandable-role",
+    type: "role",
+    tagId: "demo",
+    title: { en: "Acme Corp", zh: "Acme 公司" },
+    company: { en: "Acme Corp", zh: "Acme 公司" },
+    roleTitle: { en: "Staff Engineer", zh: "资深工程师" },
+    description: {
+      en: "Led the migration from legacy jQuery codebase to React, reducing bundle size by 60% and improving performance scores.",
+      zh: "领导了从传统 jQuery 代码库到 React 的迁移，减少了 60% 的包体积并提高了性能分数。"
+    },
+    date: "2020-03",
+    endDate: "2022-08",
+    location: "San Francisco, CA",
+    commentary: {
+      en: "The hardest part wasn't the technology—it was getting buy-in from stakeholders who'd invested years in the old system.",
+      zh: "最难的部分不是技术，而是让在旧系统上投入多年的利益相关者买账。"
+    }
+  }}
+  locale="en"
+/>
+</Playground>
+
+---
+
+## 3. Widget
+
+Widgets are containers that compose multiple commits or custom content.
+
+### Widget Primitives
+
+#### WidgetShell
+
+<Playground>
+```tsx
 <WidgetShell>
   <div className="p-5">
     <span className="text-sm text-muted-foreground">
-      WidgetShell provides the consistent card appearance used across all widgets.
+      WidgetShell provides the consistent card appearance.
     </span>
   </div>
 </WidgetShell>
+```
+<WidgetShell>
+  <div className="p-5">
+    <span className="text-sm text-muted-foreground">
+      WidgetShell provides the consistent card appearance.
+    </span>
+  </div>
+</WidgetShell>
+</Playground>
 
-### WidgetHeader + WidgetTitle + WidgetLink
+#### WidgetHeader + WidgetTitle + WidgetLink
 
-Header bar with title and optional navigation arrow.
-
+<Playground>
+```tsx
 <WidgetShell>
   <WidgetHeader>
     <WidgetTitle>Widget Title</WidgetTitle>
@@ -375,376 +789,204 @@ Header bar with title and optional navigation arrow.
   </WidgetHeader>
   <WidgetBody>
     <span className="text-sm text-muted-foreground">
-      Content goes here. WidgetBody provides consistent padding.
+      Content goes here.
     </span>
   </WidgetBody>
 </WidgetShell>
+```
+<WidgetShell>
+  <WidgetHeader>
+    <WidgetTitle>Widget Title</WidgetTitle>
+    <WidgetLink href="/docs" />
+  </WidgetHeader>
+  <WidgetBody>
+    <span className="text-sm text-muted-foreground">
+      Content goes here.
+    </span>
+  </WidgetBody>
+</WidgetShell>
+</Playground>
 
-### WidgetStatus
+#### WidgetStatus
 
-Pulsing status indicator for "active" states (e.g., current role).
-
+<Playground>
+```tsx
 <WidgetShell>
   <WidgetHeader className="pb-3">
     <div className="flex items-center gap-2">
       <WidgetStatus />
       <WidgetTitle>Currently Active</WidgetTitle>
     </div>
-    <WidgetLink href="/works" variant="text" />
   </WidgetHeader>
-  <WidgetBody>
-    <span className="text-sm text-muted-foreground">
-      Status indicator shows something is currently in progress.
-    </span>
-  </WidgetBody>
 </WidgetShell>
-
-### Custom Layout (Weather-style)
-
-WidgetShell with fully custom internal layout.
-
+```
 <WidgetShell>
-  <div className="p-5">
-    <div className="flex items-center justify-between">
-      <WidgetTitle>San Francisco, CA</WidgetTitle>
-      <span className="text-xs text-muted-foreground">☀️</span>
+  <WidgetHeader className="pb-3">
+    <div className="flex items-center gap-2">
+      <WidgetStatus />
+      <WidgetTitle>Currently Active</WidgetTitle>
     </div>
-    <div className="mt-3 flex items-end justify-between gap-4">
-      <div className="font-serif text-4xl leading-none text-foreground tracking-tight tabular-nums">
-        22°
-      </div>
-      <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-        Clear
-      </div>
-    </div>
-  </div>
+  </WidgetHeader>
 </WidgetShell>
+</Playground>
 
 ---
 
-## Stack Widgets
+### VStackWidget
 
-Stack widgets are container components for displaying multiple items in horizontal or vertical layouts. They work well with compact CommitEmbed variants.
+Displays commits in a vertical list. Uses `variant="bare"` for compact rendering.
 
-### VStackWidget (Vertical Stack)
-
-Displays items in a vertical list with consistent spacing.
-
-#### VStack with Work
-
+<Playground>
+```tsx
 <VStackWidget title="Featured Work" href="#">
-  <CommitEmbed
+  <Commit
     variant="bare"
     commit={{
-      id: "vstack-project-1",
+      id: "vstack-1",
       type: "project",
       tagId: "demo",
       title: { en: "Design Tokens", zh: "设计令牌" },
       description: { en: "Systematic design token architecture", zh: "系统化设计令牌架构" },
       date: "2024-01",
-      links: [{ url: "#", label: "View", icon: "globe" }]
+      media: [{ type: "link", url: "#", label: "View", icon: "globe" }]
     }}
     locale="en"
   />
-  <CommitEmbed
+  <Commit
     variant="bare"
     commit={{
-      id: "vstack-project-2",
+      id: "vstack-2",
       type: "project",
       tagId: "demo",
       title: { en: "Component Library", zh: "组件库" },
-      description: { en: "Accessible React components with TypeScript", zh: "支持 TypeScript 的无障碍 React 组件" },
+      description: { en: "Accessible React components", zh: "无障碍 React 组件" },
       date: "2023-06",
-      links: [{ url: "#", label: "GitHub", icon: "github" }]
+      media: [{ type: "link", url: "#", label: "GitHub", icon: "github" }]
     }}
     locale="en"
   />
-  <CommitEmbed
+</VStackWidget>
+```
+<VStackWidget title="Featured Work" href="#">
+  <Commit
     variant="bare"
     commit={{
-      id: "vstack-project-3",
+      id: "vstack-1",
       type: "project",
       tagId: "demo",
-      title: { en: "CLI Toolkit", zh: "CLI 工具包" },
-      description: { en: "Developer productivity tools", zh: "开发者生产力工具" },
-      date: "2023-01",
-      links: [{ url: "#", label: "npm", icon: "external" }]
-    }}
-    locale="en"
-  />
-</VStackWidget>
-
-#### VStack with Roles
-
-<VStackWidget title="Experience" href="/career">
-  <CommitEmbed
-    variant="bare"
-    commit={{
-      id: "vstack-role-1",
-      type: "role",
-      tagId: "demo",
-      title: { en: "TechCorp", zh: "TechCorp" },
-      description: { en: "Frontend infrastructure", zh: "前端基础设施" },
+      title: { en: "Design Tokens", zh: "设计令牌" },
+      description: { en: "Systematic design token architecture", zh: "系统化设计令牌架构" },
       date: "2024-01",
-      endDate: "present",
-      company: { en: "TechCorp", zh: "TechCorp" },
-      roleTitle: { en: "Staff Engineer", zh: "技术专家" }
+      media: [{ type: "link", url: "#", label: "View", icon: "globe" }]
     }}
     locale="en"
   />
-  <CommitEmbed
+  <Commit
     variant="bare"
     commit={{
-      id: "vstack-role-2",
-      type: "role",
+      id: "vstack-2",
+      type: "project",
       tagId: "demo",
-      title: { en: "StartupXYZ", zh: "StartupXYZ" },
-      description: { en: "Design systems lead", zh: "设计系统负责人" },
-      date: "2022-01",
-      endDate: "2023-12",
-      company: { en: "StartupXYZ", zh: "StartupXYZ" },
-      roleTitle: { en: "Senior Engineer", zh: "高级工程师" }
+      title: { en: "Component Library", zh: "组件库" },
+      description: { en: "Accessible React components", zh: "无障碍 React 组件" },
+      date: "2023-06",
+      media: [{ type: "link", url: "#", label: "GitHub", icon: "github" }]
     }}
     locale="en"
   />
 </VStackWidget>
-
-#### VStack with Posts
-
-<VStackWidget title="Recent Writing">
-  <CommitEmbed
-    variant="bare"
-    commit={{
-      id: "vstack-post-1",
-      type: "post",
-      tagId: "demo",
-      title: { en: "React Server Components Explained", zh: "React 服务器组件详解" },
-      description: { en: "A deep dive into RSC", zh: "深入探讨 RSC" },
-      date: "2024-02",
-      url: "#",
-      publication: { name: "Blog" }
-    }}
-    locale="en"
-  />
-  <CommitEmbed
-    variant="bare"
-    commit={{
-      id: "vstack-post-2",
-      type: "post",
-      tagId: "demo",
-      title: { en: "TypeScript Best Practices", zh: "TypeScript 最佳实践" },
-      description: { en: "Patterns for maintainable code", zh: "可维护代码的模式" },
-      date: "2023-11",
-      url: "#",
-      publication: { name: "Medium" }
-    }}
-    locale="en"
-  />
-</VStackWidget>
+</Playground>
 
 ---
 
-### HStackWidget (Horizontal Stack)
+### HStackWidget
 
-Displays items in a horizontal carousel with snap scrolling and pagination dots.
+Displays commits in a horizontal carousel with snap scrolling.
 
-#### HStack with Talks
-
+<Playground>
+```tsx
 <HStackWidget title="Speaking" href="#">
-  <CommitEmbed
+  <Commit
     variant="bare"
     commit={{
-      id: "hstack-talk-1",
+      id: "hstack-1",
       type: "talk",
       tagId: "demo",
       title: { en: "Cross-Platform at Scale", zh: "大规模跨平台开发" },
       description: { en: "Scaling across platforms", zh: "跨平台扩展" },
       date: "2024-03",
       conference: { name: "ReactConf 2024" },
-      video: { url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=10" }
+      media: [{ type: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=10" }]
     }}
     locale="en"
   />
-  <CommitEmbed
+  <Commit
     variant="bare"
     commit={{
-      id: "hstack-talk-2",
+      id: "hstack-2",
       type: "talk",
       tagId: "demo",
       title: { en: "Design Systems Deep Dive", zh: "设计系统深入探讨" },
       description: { en: "Building systematic UI", zh: "构建系统化 UI" },
       date: "2023-09",
       conference: { name: "CSS Day" },
-      video: { url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=11" }
-    }}
-    locale="en"
-  />
-  <CommitEmbed
-    variant="bare"
-    commit={{
-      id: "hstack-talk-3",
-      type: "talk",
-      tagId: "demo",
-      title: { en: "DX That Sparks Joy", zh: "令人愉悦的开发者体验" },
-      description: { en: "Developer experience matters", zh: "开发者体验很重要" },
-      date: "2023-05",
-      conference: { name: "DevX Summit" },
-      video: { url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=12" }
+      media: [{ type: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=11" }]
     }}
     locale="en"
   />
 </HStackWidget>
-
-#### HStack with Work
-
-<HStackWidget title="Work" href="#">
-  <CommitEmbed
+```
+<HStackWidget title="Speaking" href="#">
+  <Commit
     variant="bare"
     commit={{
-      id: "hstack-project-1",
-      type: "project",
+      id: "hstack-1",
+      type: "talk",
       tagId: "demo",
-      title: { en: "Motion Library", zh: "动画库" },
-      description: { en: "Smooth animations for React", zh: "React 流畅动画" },
-      date: "2024-01",
-      links: [{ url: "#", label: "View", icon: "globe" }]
+      title: { en: "Cross-Platform at Scale", zh: "大规模跨平台开发" },
+      description: { en: "Scaling across platforms", zh: "跨平台扩展" },
+      date: "2024-03",
+      conference: { name: "ReactConf 2024" },
+      media: [{ type: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=10" }]
     }}
     locale="en"
   />
-  <CommitEmbed
+  <Commit
     variant="bare"
     commit={{
-      id: "hstack-project-2",
-      type: "project",
+      id: "hstack-2",
+      type: "talk",
       tagId: "demo",
-      title: { en: "Theme Engine", zh: "主题引擎" },
-      description: { en: "Dynamic theming system", zh: "动态主题系统" },
-      date: "2023-08",
-      links: [{ url: "#", label: "GitHub", icon: "github" }]
+      title: { en: "Design Systems Deep Dive", zh: "设计系统深入探讨" },
+      description: { en: "Building systematic UI", zh: "构建系统化 UI" },
+      date: "2023-09",
+      conference: { name: "CSS Day" },
+      media: [{ type: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=11" }]
     }}
     locale="en"
   />
 </HStackWidget>
+</Playground>
 
 ---
 
-### Mixed Content in Stacks
+## Quick Reference
 
-Stacks can contain different types of commits for varied content.
+### Media Types
 
-#### VStack with Mixed Types
+| Type | Properties | Description |
+|------|------------|-------------|
+| `video` | `url`, `platform` | YouTube, Bilibili |
+| `embed` | `url` | Twitter, Instagram, TikTok |
+| `link` | `url`, `label?`, `icon?`, `showPreview?` | External links |
+| `image` | `url`, `alt?` | Static images (Figure component) |
 
-<VStackWidget title="Highlights">
-  <CommitEmbed
-    variant="bare"
-    commit={{
-      id: "mixed-project",
-      type: "project",
-      tagId: "demo",
-      title: { en: "Open Source Project", zh: "开源项目" },
-      description: { en: "A widely-used developer tool", zh: "广泛使用的开发工具" },
-      date: "2024-01",
-      links: [{ url: "#", label: "GitHub", icon: "github" }],
-      techStack: ["TypeScript", "React"]
-    }}
-    locale="en"
-  />
-  <CommitEmbed
-    variant="bare"
-    commit={{
-      id: "mixed-talk",
-      type: "talk",
-      tagId: "demo",
-      title: { en: "Conference Keynote", zh: "大会主题演讲" },
-      description: { en: "Featured speaker at major conf", zh: "主要会议的特邀演讲者" },
-      date: "2023-10",
-      conference: { name: "TechConf 2023" }
-    }}
-    locale="en"
-  />
-  <CommitEmbed
-    variant="bare"
-    commit={{
-      id: "mixed-post",
-      type: "post",
-      tagId: "demo",
-      title: { en: "Viral Blog Post", zh: "热门博客文章" },
-      description: { en: "100k+ readers", zh: "超过 10 万读者" },
-      date: "2023-06",
-      url: "#",
-      publication: { name: "dev.to" }
-    }}
-    locale="en"
-  />
-</VStackWidget>
-
----
-
-## Stack Widget Props Reference
-
-### HStackWidget / VStackWidget
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `title` | `string` | required | Header title (displayed in mono uppercase) |
-| `href` | `string` | - | Optional link for "view all" arrow |
-| `children` | `ReactNode[]` | required | Child elements to display |
-| `className` | `string` | - | Additional CSS classes |
-
-### Behavior Differences
-
-| Feature | HStackWidget | VStackWidget |
-|---------|--------------|--------------|
-| Layout | Horizontal scroll | Vertical list |
-| Scroll | Snap scrolling with momentum | No scroll (all visible) |
-| Pagination | Dot indicators when > 1 item | None |
-| Best for | Talks with thumbnails, featured items | Lists, text-heavy content |
-
----
-
-## CommitEmbed Props Reference
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `commit` | `Commit` | required | The commit data object |
-| `locale` | `"en" \| "zh"` | `"en"` | Display locale for i18n |
-| `variant` | `"timeline" \| "card" \| "bare"` | `"card"` | Display variant (see below) |
-| `defaultExpanded` | `boolean` | `false` | Start in expanded state |
-| `className` | `string` | - | Additional CSS classes |
-
-### Variant Reference
-
-| Variant | Description | Use Case |
-|---------|-------------|----------|
-| `timeline` | Shows icon, timeline-optimized spacing | /works page timeline |
-| `card` | Standalone with border/bg frame | MDX content (default) |
-| `bare` | Minimal frameless, compact content | Inside stacks/widgets |
-
----
-
-## Commit Type Reference
-
-Each commit type has specific fields:
-
-### Common Fields (All Types)
-
-- `id`: Unique identifier
-- `type`: Discriminator (`"project"`, `"talk"`, `"post"`, `"role"`, `"social"`)
-- `tagId`: Parent tag/era identifier
-- `date`: Start date (`YYYY-MM` or `YYYY-MM-DD`)
-- `endDate`: Optional end date
-- `title`: `LocalizedString` (`{ en: string, zh: string }`)
-- `description`: `LocalizedString`
-- `commentary`: Optional `LocalizedString` (personal notes)
-- `tags`: Optional string array for categorization
-- `listed`: Optional boolean (default `true`)
-
-### Type-Specific Fields
+### Commit Types
 
 | Type | Required Fields | Optional Fields |
 |------|-----------------|-----------------|
-| `project` | `links[]` | `techStack[]`, `stats` |
-| `talk` | `conference` | `video`, `slides` |
-| `post` | `url`, `publication` | - |
-| `role` | `company`, `roleTitle` | `location`, `url` |
-| `social` | `platform`, `url` | - |
+| `project` | `media[]` | `techStack[]`, `stats` |
+| `talk` | `conference` | `media[]` |
+| `post` | `url`, `publication` | `media[]` |
+| `role` | `company`, `roleTitle` | `location`, `url`, `media[]` |
+| `social` | `platform` | `media[]` |

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { RoleCommit, ItemLink } from "@/lib/log";
+import type { RoleCommit } from "@/lib/log";
 import { localize, localizeOptional, formatCommitDate } from "@/lib/log";
 import type { Locale } from "@/lib/i18n";
 import {
@@ -34,7 +34,7 @@ export function RoleEmbed({
 
   const hasDetails = !!commentary;
 
-  const links: ItemLink[] = [];
+  const links: { url: string; label: string; icon: string }[] = [];
   if (commit.url) {
     links.push({
       url: commit.url,

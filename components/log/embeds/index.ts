@@ -1,20 +1,26 @@
-// Commit Embed Components
-// Type-specific components for rendering commits
+/**
+ * Commit Type Components
+ *
+ * Each commit type has its own rendering component.
+ * These are the "semantic" views of work items.
+ */
 
-export { ProjectEmbed } from "./project-embed";
-export { TalkEmbed } from "./talk-embed";
-export { PostEmbed } from "./post-embed";
-export { RoleEmbed } from "./role-embed";
-export { SocialEmbed } from "./social-embed";
+// Project
+export { ProjectEmbed as Project, ProjectEmbedCompact as ProjectCompact } from "./project-embed";
 
-// Compact variants (for Home stacks)
-export { ProjectEmbedCompact } from "./project-embed";
-export { TalkEmbedCompact } from "./talk-embed";
-export { PostEmbedCompact } from "./post-embed";
-export { RoleEmbedCompact } from "./role-embed";
-export { SocialEmbedCompact } from "./social-embed";
+// Talk
+export { TalkEmbed as Talk, TalkEmbedCompact as TalkCompact } from "./talk-embed";
 
-// Shared UI primitives
+// Post
+export { PostEmbed as Post, PostEmbedCompact as PostCompact } from "./post-embed";
+
+// Role
+export { RoleEmbed as Role, RoleEmbedCompact as RoleCompact } from "./role-embed";
+
+// Social
+export { SocialEmbed as Social, SocialEmbedCompact as SocialCompact } from "./social-embed";
+
+// Shared UI Primitives
 export {
   TitleRow,
   LinksRow,

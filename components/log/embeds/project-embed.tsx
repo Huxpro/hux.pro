@@ -6,6 +6,7 @@ import {
   localize,
   localizeOptional,
   formatCommitDate,
+  isLinkMedia,
 } from "@/lib/log";
 import type { Locale } from "@/lib/i18n";
 import {
@@ -36,6 +37,7 @@ export function ProjectEmbed({
   const commentary = localizeOptional(commit.commentary, locale);
   const date = formatCommitDate(commit, locale);
 
+  const links = (commit.media ?? []).filter(isLinkMedia);
   const hasDetails = !!(
     commentary ||
     (commit.techStack && commit.techStack.length > 0) ||
@@ -47,12 +49,12 @@ export function ProjectEmbed({
       <div className="flex items-baseline justify-between gap-4 flex-wrap">
         <TitleRow
           title={title}
-          url={commit.links[0]?.url}
+          url={links[0]?.url}
           hasDetails={hasDetails}
           isExpanded={isExpanded}
           onToggle={() => setIsExpanded(!isExpanded)}
         />
-        <LinksRow links={commit.links} />
+        <LinksRow links={links.map(m => ({ url: m.url, label: m.label || "", icon: m.icon }))} />
       </div>
 
       <Description text={description} isExpanded={isExpanded} />

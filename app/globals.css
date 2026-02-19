@@ -191,7 +191,7 @@
    Embedded components (wrapped with .not-prose) need vertical margin to
    separate them from surrounding prose content.
 
-   However, when .not-prose elements are nested (e.g., CommitEmbed inside
+   However, when .not-prose elements are nested (e.g., Commit inside
    VStackWidget), only the outermost element should have margin.
 
    Solution:

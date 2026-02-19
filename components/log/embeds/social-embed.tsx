@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { SocialCommit, ItemLink } from "@/lib/log";
+import type { SocialCommit } from "@/lib/log";
 import { localize, localizeOptional, formatCommitDate } from "@/lib/log";
 import type { Locale } from "@/lib/i18n";
 import {
@@ -12,11 +12,25 @@ import {
   Commentary,
   ExpandedContent,
 } from "./shared";
+import { MediaRenderer } from "../media";
 
 interface SocialEmbedProps {
   commit: SocialCommit;
   locale: Locale;
   defaultExpanded?: boolean;
+}
+
+/**
+ * Get platform icon name for LinkIcon component
+ */
+function getPlatformIcon(platform: string): string {
+  const p = platform.toLowerCase();
+  if (p === "twitter" || p === "x") return "x";
+  if (p === "youtube") return "youtube";
+  if (p === "instagram") return "instagram";
+  if (p === "tiktok") return "tiktok";
+  if (p === "github") return "github";
+  return "external";
 }
 
 export function SocialEmbed({
@@ -33,33 +47,50 @@ export function SocialEmbed({
 
   const hasDetails = !!commentary;
 
-  const links: ItemLink[] = [
-    {
-      url: commit.url,
-      label: commit.platform,
-      icon: "external",
-    },
-  ];
+  const media = commit.media ?? [];
+  const primaryUrl = media[0]?.url;
+
+  const links = primaryUrl
+    ? [
+        {
+          url: primaryUrl,
+          label: commit.platform,
+          icon: getPlatformIcon(commit.platform),
+        },
+      ]
+    : [];
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-baseline justify-between gap-4 flex-wrap">
-        <TitleRow
-          title={title}
-          url={commit.url}
-          hasDetails={hasDetails}
-          isExpanded={isExpanded}
-          onToggle={() => setIsExpanded(!isExpanded)}
-        />
-        <LinksRow links={links} />
+    <div className="space-y-3">
+      {/* Text content */}
+      <div className="space-y-2">
+        <div className="flex items-baseline justify-between gap-4 flex-wrap">
+          <TitleRow
+            title={title}
+            url={primaryUrl}
+            hasDetails={hasDetails}
+            isExpanded={isExpanded}
+            onToggle={() => setIsExpanded(!isExpanded)}
+          />
+          <LinksRow links={links} />
+        </div>
+
+        <MetaRow date={date} meta={commit.platform} />
+        <Description text={description} isExpanded={isExpanded} />
+
+        <ExpandedContent isExpanded={isExpanded}>
+          {commentary && <Commentary text={commentary} />}
+        </ExpandedContent>
       </div>
 
-      <MetaRow date={date} meta={commit.platform} />
-      <Description text={description} isExpanded={isExpanded} />
-
-      <ExpandedContent isExpanded={isExpanded}>
-        {commentary && <Commentary text={commentary} />}
-      </ExpandedContent>
+      {/* Media attachments */}
+      {media.length > 0 && (
+        <MediaRenderer
+          media={media}
+          layout="stack"
+          size="default"
+        />
+      )}
     </div>
   );
 }

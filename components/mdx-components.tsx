@@ -35,6 +35,7 @@
 import { CodeBlock } from "@/components/code-block";
 import { HeadingWithLink } from "@/components/heading-link";
 import { HStackWidget, VStackWidget } from "@/components/home/featured-stack-widget";
+import { Playground } from "@/components/playground";
 import {
   WidgetShell,
   WidgetHeader,
@@ -43,7 +44,16 @@ import {
   WidgetLink,
   WidgetStatus,
 } from "@/components/ui/widget";
-import { CommitEmbed } from "@/components/log";
+import {
+  Commit,
+  Media,
+  Video,
+  Embed,
+  Link as MediaLink,
+  LinkPreview,
+  Figure,
+  MediaRenderer,
+} from "@/components/log";
 import type { MDXComponents } from "mdx/types";
 import Link from "next/link";
 import type { ComponentPropsWithoutRef, ComponentType, ReactNode } from "react";
@@ -54,11 +64,11 @@ import type { ComponentPropsWithoutRef, ComponentType, ReactNode } from "react";
 
 /**
  * HOC that wraps a component with .not-prose to escape prose styling.
- * 
+ *
  * Spacing is handled by CSS rules in globals.css:
  * - .prose-article .not-prose { margin } - first-level gets margin
  * - .not-prose .not-prose { margin: 0 } - nested elements reset margin
- * 
+ *
  * This allows components to be used standalone or nested in stacks without
  * double margin issues, keeping spacing logic in CSS rather than React.
  *
@@ -147,12 +157,30 @@ const sharedComponents: MDXComponents = {
   h3: (props) => <HeadingWithLink level={3} {...props} />,
 
   // ---------------------------------------------------------------------------
-  // Custom Embed Components (wrapped with .not-prose to escape prose styles)
+  // Commit Components (work items)
   // Components handle their own visual styling via variant props
   // ---------------------------------------------------------------------------
-  CommitEmbed: withNotProse(CommitEmbed),
+  Commit: withNotProse(Commit),
   HStackWidget: withNotProse(HStackWidget),
   VStackWidget: withNotProse(VStackWidget),
+
+  // ---------------------------------------------------------------------------
+  // Media Components
+  // - Media: Unified entry point (auto-detects platform from URL)
+  // - Video: YouTube, Bilibili, Vimeo players
+  // - Embed: Native platform widgets (Twitter, Instagram, TikTok)
+  // - Link: External link button
+  // - LinkPreview: OG image preview cards
+  // - Figure: Static image display (uses Next.js Image)
+  // - MediaRenderer: Orchestrates multiple media items
+  // ---------------------------------------------------------------------------
+  Media: withNotProse(Media),
+  Video: withNotProse(Video),
+  Embed: withNotProse(Embed),
+  Link: withNotProse(MediaLink),
+  LinkPreview: withNotProse(LinkPreview),
+  Figure: withNotProse(Figure),
+  MediaRenderer: withNotProse(MediaRenderer),
 
   // ---------------------------------------------------------------------------
   // Widget Primitives (shadcn-like composable building blocks)
@@ -163,6 +191,13 @@ const sharedComponents: MDXComponents = {
   WidgetBody,
   WidgetLink,
   WidgetStatus,
+
+  // ---------------------------------------------------------------------------
+  // Docs: live code + preview playground
+  // ---------------------------------------------------------------------------
+  // NOTE: Do NOT wrap with `.not-prose` — we want prose code styles (Shiki vars)
+  // to apply to the source pane.
+  Playground,
 };
 
 /**
