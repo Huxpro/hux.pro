@@ -20,7 +20,7 @@
     "lucide-react": "^0.562.0",
     "motion": "^12.23.26",
     "next": "16.1.1",
-    "next-mdx-remote": "^5.0.0",
+    "next-mdx-remote": "^6.0.0",
     "next-view-transitions": "^0.3.5",
     "radix-ui": "^1.4.3",
     "react": "19.3.0-canary-65eec428-20251218",
@@ -43,7 +43,7 @@
     "eslint-config-next": "16.1.1",
     "tailwindcss": "^4",
     "types-react": "19.0.0-alpha.5",
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   },
   "packageManager": "pnpm@9.15.2+sha512.93e57b0126f0df74ce6bff29680394c0ba54ec47246b9cf321f0121d8d9bb03f750a705f24edc3c1180853afd7c2c3b94196d0a3d53d3e069d9e2793ef11f321"
 }

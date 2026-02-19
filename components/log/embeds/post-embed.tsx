@@ -11,6 +11,7 @@ import {
   Commentary,
   ExpandedContent,
 } from "./shared";
+import { MediaRenderer } from "../media";
 
 interface PostEmbedProps {
   commit: PostCommit;
@@ -31,28 +32,39 @@ export function PostEmbed({
   const date = formatCommitDate(commit, locale);
 
   const hasDetails = !!commentary;
+  const media = commit.media ?? [];
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-baseline justify-between gap-4 flex-wrap">
-        <TitleRow
-          title={title}
-          url={commit.url}
-          hasDetails={hasDetails}
-          isExpanded={isExpanded}
-          onToggle={() => setIsExpanded(!isExpanded)}
-        />
-        <span className="text-xs font-mono text-muted-foreground uppercase tracking-wide shrink-0">
-          {commit.publication.name}
-        </span>
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <div className="flex items-baseline justify-between gap-4 flex-wrap">
+          <TitleRow
+            title={title}
+            url={commit.url}
+            hasDetails={hasDetails}
+            isExpanded={isExpanded}
+            onToggle={() => setIsExpanded(!isExpanded)}
+          />
+          <span className="text-xs font-mono text-muted-foreground uppercase tracking-wide shrink-0">
+            {commit.publication.name}
+          </span>
+        </div>
+
+        <MetaRow date={date} />
+        <Description text={description} isExpanded={isExpanded} />
+
+        <ExpandedContent isExpanded={isExpanded}>
+          {commentary && <Commentary text={commentary} />}
+        </ExpandedContent>
       </div>
 
-      <MetaRow date={date} />
-      <Description text={description} isExpanded={isExpanded} />
-
-      <ExpandedContent isExpanded={isExpanded}>
-        {commentary && <Commentary text={commentary} />}
-      </ExpandedContent>
+      {media.length > 0 && (
+        <MediaRenderer
+          media={media}
+          layout="stack"
+          size="default"
+        />
+      )}
     </div>
   );
 }

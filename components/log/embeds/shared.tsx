@@ -11,11 +11,12 @@ import {
   ExternalLink,
   Github,
   Globe,
+  Instagram,
+  MessageCircle,
+  Twitter,
   Youtube,
   FileText,
 } from "lucide-react";
-import type { ItemLink } from "@/lib/log";
-
 // =============================================================================
 // Link Icon
 // =============================================================================
@@ -28,8 +29,18 @@ export function LinkIcon({ icon }: { icon?: string }) {
     case "website":
       return <Globe className="w-3 h-3" />;
     case "youtube":
+      return <Youtube className="w-3 h-3" />;
+    case "bilibili":
+    case "vimeo":
     case "video":
       return <Youtube className="w-3 h-3" />;
+    case "x":
+    case "twitter":
+      return <Twitter className="w-3 h-3" />;
+    case "instagram":
+      return <Instagram className="w-3 h-3" />;
+    case "tiktok":
+      return <MessageCircle className="w-3 h-3" />;
     case "slides":
     case "file":
       return <FileText className="w-3 h-3" />;
@@ -98,7 +109,7 @@ export function TitleRow({
 // =============================================================================
 
 interface LinksRowProps {
-  links: ItemLink[];
+  links: { url: string; label: string; icon?: string }[];
   className?: string;
 }
 

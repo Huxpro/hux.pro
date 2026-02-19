@@ -4,8 +4,8 @@ import {
   HStackWidget,
   VStackWidget,
 } from "@/components/home/featured-stack-widget";
-import { CommitEmbed } from "@/components/log";
-import { RoleEmbedCompact } from "@/components/log/embeds";
+import { Commit } from "@/components/log";
+import { RoleCompact } from "@/components/log/embeds";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import {
   WidgetBody,
@@ -18,7 +18,7 @@ import {
 import logData from "@/content/log.json";
 import { getLocalizedTitle } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
-import type { Commit, Group, LogData, RoleCommit } from "@/lib/log";
+import type { Commit as CommitData, Group, LogData, RoleCommit } from "@/lib/log";
 import {
   isCommitListed,
   isRoleCommit,
@@ -61,19 +61,19 @@ function BlogStackWidget() {
 
 const log = logData as unknown as LogData;
 
-function getCurrentRoleCommit(commits: Commit[]): RoleCommit | null {
+function getCurrentRoleCommit(commits: CommitData[]): RoleCommit | null {
   const roles = commits.filter(isRoleCommit).filter(isCommitListed);
   if (roles.length === 0) return null;
 
   const key = (c: RoleCommit) =>
-    c.endDate === "present" ? "9999-12" : c.endDate ?? c.date;
+    c.endDate === "present" ? "9999-12" : (c.endDate ?? c.date);
 
   return [...roles].sort((a, b) => key(b).localeCompare(key(a)))[0] ?? null;
 }
 
 function ProcessingWidget() {
   const { locale } = useLocale();
-  const role = getCurrentRoleCommit(log.commits as Commit[]);
+  const role = getCurrentRoleCommit(log.commits as CommitData[]);
   if (!role) return null;
 
   return (
@@ -86,7 +86,7 @@ function ProcessingWidget() {
         <WidgetLink href="/works" label="View works" />
       </WidgetHeader>
       <WidgetBody>
-        <RoleEmbedCompact commit={role} locale={locale} />
+        <RoleCompact commit={role} locale={locale} />
       </WidgetBody>
     </WidgetShell>
   );
@@ -95,7 +95,7 @@ function ProcessingWidget() {
 function GroupWidget({ group }: { group: Group }) {
   const { locale } = useLocale();
 
-  const commits = resolveGroupCommits(group, log.commits as Commit[]);
+  const commits = resolveGroupCommits(group, log.commits as CommitData[]);
   if (commits.length === 0) return null;
 
   const title = localize(group.title, locale);
@@ -106,7 +106,7 @@ function GroupWidget({ group }: { group: Group }) {
     return (
       <VStackWidget title={`/ ${title}`} href={href}>
         {commits.map((commit) => (
-          <CommitEmbed
+          <Commit
             key={commit.id}
             commit={commit}
             locale={locale}
@@ -120,7 +120,7 @@ function GroupWidget({ group }: { group: Group }) {
   return (
     <HStackWidget title={`/ ${title}`} href={href}>
       {commits.map((commit) => (
-        <CommitEmbed
+        <Commit
           key={commit.id}
           commit={commit}
           locale={locale}
@@ -132,16 +132,22 @@ function GroupWidget({ group }: { group: Group }) {
 }
 
 function WidgetGrid() {
+  const groups = (log.groups ?? []).filter((group) => !group.hidden);
+  const leftGroups = groups.filter((group) => group.column === "left");
+  const rightGroups = groups.filter((group) => group.column !== "left");
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-16">
-      {/* Blog widget spans full width on mobile, 2 cols on larger */}
-      <div className="sm:col-span-1">
+      <div className="space-y-4">
         <BlogStackWidget />
+        {leftGroups.map((group) => (
+          <GroupWidget key={group.id} group={group} />
+        ))}
       </div>
       <div className="space-y-4">
         <WeatherWidget />
         <ProcessingWidget />
-        {(log.groups ?? []).map((group) => (
+        {rightGroups.map((group) => (
           <GroupWidget key={group.id} group={group} />
         ))}
       </div>
@@ -163,7 +169,7 @@ function ScrambleIdentifier() {
         data-view-transition="site-identifier"
         className={cn(
           "font-mono text-xs tracking-wider relative inline-block cursor-default transition-colors duration-300",
-          isHovered ? "text-foreground" : "text-muted-foreground"
+          isHovered ? "text-foreground" : "text-muted-foreground",
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}

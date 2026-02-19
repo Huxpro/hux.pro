@@ -70,7 +70,7 @@ export function CodeBlock({
         data-theme={theme}
         data-language={language}
         className={cn(
-          "overflow-x-auto rounded-lg border border-border p-4 text-sm leading-relaxed",
+          "overflow-x-auto rounded-lg border border-border p-4 text-sm leading-normal",
           // Remove hardcoded background, use CSS variables handled in globals.css
           className
         )}

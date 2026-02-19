@@ -30,7 +30,7 @@ export function localize(str: LocalizedString, locale: Locale): string {
  */
 export function localizeOptional(
   str: LocalizedString | undefined,
-  locale: Locale
+  locale: Locale,
 ): string | undefined {
   return str ? str[locale] : undefined;
 }
@@ -40,16 +40,76 @@ export function localizeOptional(
 // Each commit is a work item in the git history
 // =============================================================================
 
-export type CommitType = "project" | "talk" | "post" | "social" | "role";
+export type CommitType = "project" | "talk" | "post" | "role" | "social";
+
+// =============================================================================
+// Media Types - Attachable to any Commit
+// =============================================================================
 
 /**
- * Common link structure used across commits
+ * Media types define HOW external content is rendered:
+ * - "video": YouTube/Bilibili/Vimeo iframe players
+ * - "embed": Native social platform embeds (Twitter, Instagram, TikTok)
+ * - "link": External link with optional OG preview
+ * - "image": Static image display
  */
-export interface ItemLink {
+export type MediaType = "video" | "embed" | "link" | "image";
+
+/**
+ * Video platforms with native iframe support
+ */
+export type VideoPlatform = "youtube" | "bilibili" | "vimeo";
+
+/**
+ * Platforms with native embed support (non-video)
+ */
+export type EmbedPlatform = "twitter" | "x" | "instagram" | "tiktok";
+
+/**
+ * Video media - YouTube, Bilibili, Vimeo with iframe players
+ */
+export interface VideoMedia {
+  type: "video";
   url: string;
-  label: string;
-  icon?: string; // lucide icon name
+  platform: VideoPlatform;
+  thumbnail?: string;
 }
+
+/**
+ * Embed media - Native social platform embeds (Twitter, Instagram, TikTok)
+ */
+export interface EmbedMedia {
+  type: "embed";
+  url: string;
+  platform?: EmbedPlatform; // Auto-detected from URL if not provided
+}
+
+/**
+ * Link media - External link with optional OG preview
+ */
+export interface LinkMedia {
+  type: "link";
+  url: string;
+  label?: string;
+  icon?: string;
+  /** Whether to fetch and render OG image preview */
+  showPreview?: boolean;
+}
+
+/**
+ * Image media - Static image display
+ */
+export interface ImageMedia {
+  type: "image";
+  url: string;
+  alt?: string;
+}
+
+/**
+ * Discriminated union of all media types.
+ * Use `media.type` to narrow and access type-specific fields.
+ */
+export type Media = VideoMedia | EmbedMedia | LinkMedia | ImageMedia;
 
 // -----------------------------------------------------------------------------
 // Base Commit
@@ -73,6 +133,11 @@ interface BaseCommit {
    * Defaults to true when omitted.
    */
   listed?: boolean;
+  /**
+   * Attached media - rendered as video players, embeds, OG previews, etc.
+   * Composable: any commit type can have any combination of media.
+   */
+  media?: Media[];
 }
 
 // -----------------------------------------------------------------------------
@@ -81,7 +146,6 @@ interface BaseCommit {
 
 export interface ProjectCommit extends BaseCommit {
   type: "project";
-  links: ItemLink[];
   techStack?: string[];
   stats?: {
     stars?: number;
@@ -100,14 +164,6 @@ export interface TalkCommit extends BaseCommit {
     name: string;
     city?: string;
     url?: string;
-  };
-  video?: {
-    url: string;
-    thumbnail?: string;
-    platform: "youtube" | "bilibili" | "other";
-  };
-  slides?: {
-    url: string;
   };
 }
 
@@ -137,13 +193,13 @@ export interface RoleCommit extends BaseCommit {
 }
 
 // -----------------------------------------------------------------------------
-// Social Commit (Tweet, Thread, etc.)
+// Social Commit (Social post / thread)
 // -----------------------------------------------------------------------------
 
 export interface SocialCommit extends BaseCommit {
   type: "social";
+  /** Display name of the platform (e.g. "X", "Twitter", "YouTube") */
   platform: string;
-  url: string;
 }
 
 // -----------------------------------------------------------------------------
@@ -156,8 +212,8 @@ export interface SocialCommit extends BaseCommit {
  *
  * @example
  * if (commit.type === "project") {
- *   // TypeScript knows commit.links exists here
- *   commit.links.forEach(link => console.log(link.url));
+ *   // TypeScript knows commit.techStack exists here
+ *   commit.techStack?.forEach(tech => console.log(tech));
  * }
  */
 export type Commit =
@@ -194,6 +250,7 @@ export interface Tag {
 // =============================================================================
 
 export type GroupLayout = "h" | "v";
+export type GroupColumn = "left" | "right";
 export type GroupSort = "dateAsc" | "dateDesc";
 
 export interface GroupQuery {
@@ -215,6 +272,8 @@ interface GroupBase {
   title: LocalizedString;
   href?: string;
   layout?: GroupLayout;
+  column?: GroupColumn;
+  hidden?: boolean;
   limit?: number;
   sort?: GroupSort;
   /**
@@ -259,14 +318,14 @@ export function getLocalizedTagline(tag: Tag, locale: Locale): string {
 
 export function getLocalizedCompany(
   tag: Tag,
-  locale: Locale
+  locale: Locale,
 ): string | undefined {
   return localizeOptional(tag.company, locale);
 }
 
 export function getLocalizedTagDescription(
   tag: Tag,
-  locale: Locale
+  locale: Locale,
 ): string | undefined {
   return localizeOptional(tag.narrative, locale);
 }
@@ -275,20 +334,23 @@ export function getLocalizedTagDescription(
 // Commit Localization Helpers
 // =============================================================================
 
-export function getLocalizedCommitTitle(commit: Commit, locale: Locale): string {
+export function getLocalizedCommitTitle(
+  commit: Commit,
+  locale: Locale,
+): string {
   return localize(commit.title, locale);
 }
 
 export function getLocalizedCommitDescription(
   commit: Commit,
-  locale: Locale
+  locale: Locale,
 ): string {
   return localize(commit.description, locale);
 }
 
 export function getLocalizedCommentary(
   commit: Commit,
-  locale: Locale
+  locale: Locale,
 ): string | undefined {
   return localizeOptional(commit.commentary, locale);
 }
@@ -304,7 +366,7 @@ export function getLocalizedCommentary(
 export function formatDateRange(
   startDate: string,
   endDate: string | undefined,
-  locale: Locale
+  locale: Locale,
 ): string {
   const startYear = new Date(startDate).getFullYear();
 
@@ -357,8 +419,8 @@ export function getCommitTypeLabel(type: CommitType, locale: Locale): string {
     project: { en: "Project", zh: "项目" },
     talk: { en: "Talk", zh: "演讲" },
     post: { en: "Post", zh: "文章" },
-    social: { en: "Social", zh: "社交" },
     role: { en: "Role", zh: "职位" },
+    social: { en: "Social", zh: "社交" },
   };
 
   return localize(labels[type], locale);
@@ -372,8 +434,8 @@ export function getCommitTypeIcon(type: CommitType): string {
     project: "●",
     talk: "○",
     post: "◆",
-    social: "◇",
     role: "■",
+    social: "▲",
   };
   return icons[type];
 }
@@ -432,16 +494,16 @@ function hasAllTags(commit: Commit, tagsAll: string[]): boolean {
 export function resolveGroupCommits(
   group: Group,
   commits: Commit[],
-  now: Date = new Date()
+  now: Date = new Date(),
 ): Commit[] {
   const includeUnlisted = group.includeUnlisted ?? false;
   const base = includeUnlisted ? commits : commits.filter(isCommitListed);
 
   const items: Commit[] =
     "commitIds" in group && group.commitIds
-      ? group.commitIds
+      ? (group.commitIds
           .map((id) => base.find((c) => c.id === id))
-          .filter(Boolean) as Commit[]
+          .filter(Boolean) as Commit[])
       : (() => {
           const q = group.query;
           const qIncludeUnlisted = q.includeUnlisted ?? false;
@@ -451,7 +513,7 @@ export function resolveGroupCommits(
             .filter((c) => (q.type ? c.type === q.type : true))
             .filter((c) => (q.tagId ? c.tagId === q.tagId : true))
             .filter((c) =>
-              q.excludeTypes ? !q.excludeTypes.includes(c.type) : true
+              q.excludeTypes ? !q.excludeTypes.includes(c.type) : true,
             )
             .filter((c) => (q.tagsAny ? hasAnyTag(c, q.tagsAny) : true))
             .filter((c) => (q.tagsAll ? hasAllTags(c, q.tagsAll) : true))
@@ -468,10 +530,14 @@ export function resolveGroupCommits(
     ("query" in group && group.query?.upcoming ? "dateAsc" : "dateDesc");
 
   const sorted = [...items].sort((a, b) =>
-    sort === "dateAsc" ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)
+    sort === "dateAsc"
+      ? a.date.localeCompare(b.date)
+      : b.date.localeCompare(a.date),
   );
 
-  return typeof group.limit === "number" ? sorted.slice(0, group.limit) : sorted;
+  return typeof group.limit === "number"
+    ? sorted.slice(0, group.limit)
+    : sorted;
 }
 
 // =============================================================================
@@ -496,4 +562,112 @@ export function isRoleCommit(commit: Commit): commit is RoleCommit {
 
 export function isSocialCommit(commit: Commit): commit is SocialCommit {
   return commit.type === "social";
+}
+
+// =============================================================================
+// Media Type Guards
+// =============================================================================
+
+export function isVideoMedia(media: Media): media is VideoMedia {
+  return media.type === "video";
+}
+
+export function isEmbedMedia(media: Media): media is EmbedMedia {
+  return media.type === "embed";
+}
+
+export function isLinkMedia(media: Media): media is LinkMedia {
+  return media.type === "link";
+}
+
+export function isImageMedia(media: Media): media is ImageMedia {
+  return media.type === "image";
+}
+
+// =============================================================================
+// Thumbnail Derivation
+// =============================================================================
+
+/**
+ * Extract YouTube video ID from URL
+ */
+function extractYouTubeId(url: string): string | null {
+  if (/^[\w-]{11}$/.test(url)) return url;
+
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.hostname.includes("youtu.be")) {
+      return urlObj.pathname.slice(1).split("?")[0] || null;
+    }
+    if (urlObj.pathname.includes("/watch")) {
+      return urlObj.searchParams.get("v");
+    }
+    if (urlObj.pathname.includes("/embed/")) {
+      return urlObj.pathname.split("/embed/")[1]?.split("?")[0] || null;
+    }
+    if (urlObj.pathname.includes("/shorts/")) {
+      return urlObj.pathname.split("/shorts/")[1]?.split("?")[0] || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get thumbnail URL for a single media item.
+ * Returns null for types that require async fetch (embeds, links without image).
+ *
+ * Derivation by type:
+ * - VideoMedia: YouTube thumbnail URL (derived from ID), or explicit thumbnail
+ * - ImageMedia: The image URL itself
+ * - EmbedMedia: null (would need OG fetch)
+ * - LinkMedia: null (would need OG fetch)
+ */
+export function getMediaThumbnail(media: Media): string | null {
+  switch (media.type) {
+    case "video":
+      // Use explicit thumbnail if provided
+      if (media.thumbnail) return media.thumbnail;
+      // Derive from YouTube URL
+      if (media.platform === "youtube") {
+        const id = extractYouTubeId(media.url);
+        return id ? `https://img.youtube.com/vi/${id}/maxresdefault.jpg` : null;
+      }
+      // Bilibili/Vimeo require API calls, return null
+      return null;
+
+    case "image":
+      // The image itself is the thumbnail
+      return media.url;
+
+    case "embed":
+    case "link":
+      // Would need async OG fetch
+      return null;
+  }
+}
+
+/**
+ * Get the primary thumbnail URL for a commit's media array.
+ * Tries each media item in order until one returns a thumbnail.
+ */
+export function getCommitThumbnail(commit: Commit): string | null {
+  for (const m of commit.media ?? []) {
+    const thumb = getMediaThumbnail(m);
+    if (thumb) return thumb;
+  }
+  return null;
+}
+
+/**
+ * Get the primary media item from a commit (for thumbnail display).
+ * For projects, prefers non-link media (videos, images) over plain links.
+ */
+export function getCommitPrimaryMedia(commit: Commit): Media | null {
+  const media = commit.media ?? [];
+  if (commit.type === "project") {
+    return media.find((m) => m.type !== "link") ?? media[0] ?? null;
+  }
+  return media[0] ?? null;
 }

@@ -1,46 +1,51 @@
 "use client";
 
 /**
- * CommitEmbed - Unified commit display component
+ * Commit Components
  *
- * Dispatches to type-specific embed components based on commit.type.
- * Supports three display variants for different contexts.
+ * Unified commit display system. Commits are work items (project, talk, post, etc.)
+ * that can have attached Media for external content.
  *
- * @see components/log/embeds/ - Individual embed components
+ * Terminology:
+ * - Commit: A work item (ProjectCommit, TalkCommit, etc.)
+ * - Media: Attached external content (video, embed, link, image)
+ *
+ * @see components/log/embeds/ - Individual commit type components
+ * @see components/log/media/ - Media rendering components
  */
 
-import { cn } from "@/lib/utils";
-import type { Commit } from "@/lib/log";
 import type { Locale } from "@/lib/i18n";
-import { commitIcons } from "./icons";
+import type { Commit as CommitData } from "@/lib/log";
+import { cn } from "@/lib/utils";
 import {
-  ProjectEmbed,
-  TalkEmbed,
-  PostEmbed,
-  RoleEmbed,
-  SocialEmbed,
-  ProjectEmbedCompact,
-  TalkEmbedCompact,
-  PostEmbedCompact,
-  RoleEmbedCompact,
-  SocialEmbedCompact,
+  Post,
+  PostCompact,
+  Project,
+  ProjectCompact,
+  Role,
+  RoleCompact,
+  Social,
+  SocialCompact,
+  Talk,
+  TalkCompact,
 } from "./embeds";
+import { commitIcons } from "./icons";
 
 // =============================================================================
 // Types
 // =============================================================================
 
 /**
- * Display variants for CommitEmbed:
+ * Display variants for Commit:
  * - "timeline": Shows icon, timeline-optimized spacing, used in /works
  * - "card": Standalone in prose/MDX, wrapped with border/bg frame
  * - "bare": Minimal frameless version for use inside stacks/widgets
  */
-export type CommitEmbedVariant = "timeline" | "card" | "bare";
+export type CommitVariant = "timeline" | "card" | "bare";
 
-export interface CommitEmbedProps {
+export interface CommitProps {
   /** The commit data to display */
-  commit: Commit;
+  commit: CommitData;
   /** Display locale for i18n */
   locale?: Locale;
   /**
@@ -49,7 +54,7 @@ export interface CommitEmbedProps {
    * - "card": Standalone with border/bg frame, for MDX (default)
    * - "bare": Minimal frameless, for use inside stacks/widgets
    */
-  variant?: CommitEmbedVariant;
+  variant?: CommitVariant;
   /** Whether to start in expanded state */
   defaultExpanded?: boolean;
   /** Optional className for custom styling */
@@ -60,13 +65,13 @@ export interface CommitEmbedProps {
 // Main Component
 // =============================================================================
 
-export function CommitEmbed({
+export function Commit({
   commit,
   locale = "en",
   variant = "card",
   defaultExpanded = false,
   className,
-}: CommitEmbedProps) {
+}: CommitProps) {
   const Icon = commitIcons[commit.type];
 
   // Derive behavior from variant
@@ -74,14 +79,14 @@ export function CommitEmbed({
   const isTimeline = variant === "timeline";
   const isCard = variant === "card";
 
-  // Dispatch to type-specific embed
+  // Dispatch to type-specific component
   const content = (() => {
     switch (commit.type) {
       case "project":
         return isBare ? (
-          <ProjectEmbedCompact commit={commit} locale={locale} />
+          <ProjectCompact commit={commit} locale={locale} />
         ) : (
-          <ProjectEmbed
+          <Project
             commit={commit}
             locale={locale}
             defaultExpanded={defaultExpanded}
@@ -89,9 +94,9 @@ export function CommitEmbed({
         );
       case "talk":
         return isBare ? (
-          <TalkEmbedCompact commit={commit} locale={locale} />
+          <TalkCompact commit={commit} locale={locale} />
         ) : (
-          <TalkEmbed
+          <Talk
             commit={commit}
             locale={locale}
             defaultExpanded={defaultExpanded}
@@ -99,9 +104,9 @@ export function CommitEmbed({
         );
       case "post":
         return isBare ? (
-          <PostEmbedCompact commit={commit} locale={locale} />
+          <PostCompact commit={commit} locale={locale} />
         ) : (
-          <PostEmbed
+          <Post
             commit={commit}
             locale={locale}
             defaultExpanded={defaultExpanded}
@@ -109,9 +114,9 @@ export function CommitEmbed({
         );
       case "role":
         return isBare ? (
-          <RoleEmbedCompact commit={commit} locale={locale} />
+          <RoleCompact commit={commit} locale={locale} />
         ) : (
-          <RoleEmbed
+          <Role
             commit={commit}
             locale={locale}
             defaultExpanded={defaultExpanded}
@@ -119,9 +124,9 @@ export function CommitEmbed({
         );
       case "social":
         return isBare ? (
-          <SocialEmbedCompact commit={commit} locale={locale} />
+          <SocialCompact commit={commit} locale={locale} />
         ) : (
-          <SocialEmbed
+          <Social
             commit={commit}
             locale={locale}
             defaultExpanded={defaultExpanded}
@@ -139,7 +144,7 @@ export function CommitEmbed({
         className={cn(
           "rounded-lg border border-border bg-muted/5 overflow-hidden",
           "p-4",
-          className
+          className,
         )}
       >
         {content}
@@ -164,7 +169,7 @@ export function CommitEmbed({
       <div
         className={cn(
           "ml-6 -my-2",
-          "p-4 rounded-lg transition-colors duration-200 hover:bg-muted/10"
+          "p-4 rounded-lg transition-colors duration-200 hover:bg-muted/10",
         )}
       >
         {content}
@@ -172,3 +177,4 @@ export function CommitEmbed({
     </div>
   );
 }
+
