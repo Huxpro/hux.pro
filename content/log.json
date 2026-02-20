@@ -193,7 +193,8 @@
       "tags": [
         "Next.js",
         "TypeScript",
-        "AI"
+        "AI",
+        "Tailwind"
       ],
       "media": [
         {
@@ -202,11 +203,6 @@
           "label": "Website",
           "icon": "globe"
         }
-      ],
-      "techStack": [
-        "Next.js",
-        "TypeScript",
-        "Tailwind"
       ],
       "commentary": {
         "en": "The portfolio as living software. Not a resume, but a surface.",
@@ -276,7 +272,9 @@
       "tags": [
         "Cross-Platform",
         "Performance",
-        "React"
+        "React",
+        "C++",
+        "TypeScript"
       ],
       "media": [
         {
@@ -291,11 +289,6 @@
           "label": "GitHub",
           "icon": "github"
         }
-      ],
-      "techStack": [
-        "C++",
-        "TypeScript",
-        "React"
       ],
       "stats": {
         "users": "1B+"
@@ -440,7 +433,10 @@
       "tags": [
         "React",
         "Open Source",
-        "Performance"
+        "Performance",
+        "JavaScript",
+        "Flow",
+        "Jest"
       ],
       "media": [
         {
@@ -455,11 +451,6 @@
           "label": "GitHub",
           "icon": "github"
         }
-      ],
-      "techStack": [
-        "JavaScript",
-        "Flow",
-        "Jest"
       ],
       "stats": {
         "stars": 220000
@@ -682,14 +673,11 @@
       "tags": [
         "Web",
         "JavaScript",
-        "Learning"
+        "Learning",
+        "HTML",
+        "CSS"
       ],
       "media": [],
-      "techStack": [
-        "HTML",
-        "CSS",
-        "JavaScript"
-      ],
       "commentary": {
         "en": "Everyone starts somewhere. This was my somewhere.",
         "zh": "每个人都有起点。这就是我的起点。"

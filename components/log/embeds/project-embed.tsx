@@ -14,7 +14,7 @@ import {
   LinksRow,
   Description,
   Commentary,
-  TechStack,
+  TagBadges,
   Stats,
   ExpandedContent,
 } from "./shared";
@@ -43,7 +43,7 @@ export function ProjectEmbed({
   const nonLinkMedia = media.filter((m) => !isLinkMedia(m));
   const hasDetails = !!(
     commentary ||
-    (commit.techStack && commit.techStack.length > 0) ||
+    (commit.tags && commit.tags.length > 0) ||
     commit.stats
   );
 
@@ -64,7 +64,7 @@ export function ProjectEmbed({
         <Description text={description} isExpanded={isExpanded} />
 
         <ExpandedContent isExpanded={isExpanded}>
-          {commit.techStack && <TechStack items={commit.techStack} />}
+          {commit.tags && commit.tags.length > 0 && <TagBadges items={commit.tags} />}
           {commit.stats && <Stats {...commit.stats} />}
           {commentary && <Commentary text={commentary} />}
         </ExpandedContent>

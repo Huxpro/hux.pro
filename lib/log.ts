@@ -146,7 +146,6 @@ interface BaseCommit {
 
 export interface ProjectCommit extends BaseCommit {
   type: "project";
-  techStack?: string[];
   stats?: {
     stars?: number;
     downloads?: string;
@@ -212,8 +211,8 @@ export interface SocialCommit extends BaseCommit {
  *
  * @example
  * if (commit.type === "project") {
- *   // TypeScript knows commit.techStack exists here
- *   commit.techStack?.forEach(tech => console.log(tech));
+ *   // TypeScript knows commit.stats exists here
+ *   console.log(commit.stats?.stars);
  * }
  */
 export type Commit =
@@ -468,6 +467,30 @@ export function sortTagsByDate(tags: Tag[]): Tag[] {
 
 export function isCommitListed(commit: Commit): boolean {
   return commit.listed !== false;
+}
+
+// =============================================================================
+// Timeline Data Derivation
+// =============================================================================
+
+export interface TimelineData {
+  tag: Tag;
+  commits: Commit[];
+}
+
+/**
+ * Build the timeline data structure from raw LogData.
+ * Single source of truth for /works rendering and editor preview.
+ */
+export function buildTimelineData(logData: LogData): TimelineData[] {
+  const listedCommits = logData.commits.filter(isCommitListed);
+  const sortedTags = sortTagsByDate(logData.tags);
+  return sortedTags.map((tag) => ({
+    tag,
+    commits: sortCommitsByDate(
+      listedCommits.filter((c) => c.tagId === tag.id)
+    ),
+  }));
 }
 
 // =============================================================================
