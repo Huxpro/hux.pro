@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import type { Commit, CommitType, Tag } from "@/lib/log";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import type { Commit, CommitType, Tag, Media, MediaType } from "@/lib/log";
+import { ArrowLeft, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 interface CommitEditorProps {
@@ -130,7 +130,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function defaultFieldsForType(type: CommitType): Partial<Commit> {
   switch (type) {
     case "project":
-      return { links: [], techStack: [] };
+      return {};
     case "talk":
       return { conference: { name: "" } };
     case "post":
@@ -141,7 +141,7 @@ function defaultFieldsForType(type: CommitType): Partial<Commit> {
         roleTitle: { en: "", zh: "" },
       };
     case "social":
-      return { platform: "", url: "" };
+      return { platform: "" };
   }
 }
 
@@ -409,6 +409,12 @@ function FormFields({
 
       {/* Type-specific fields */}
       <TypeSpecificFields commit={commit} onUpdate={onUpdate} />
+
+      {/* Media */}
+      <MediaSection
+        media={commit.media ?? []}
+        onChange={(media) => onUpdate({ media: media.length > 0 ? media : undefined })}
+      />
     </div>
   );
 }
@@ -430,19 +436,6 @@ function TypeSpecificFields({
         <>
           <SectionLabel>Project</SectionLabel>
           <Field
-            label="Tech Stack"
-            value={(commit.techStack ?? []).join(", ")}
-            onChange={(v) =>
-              onUpdate({
-                techStack: v
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter(Boolean),
-              })
-            }
-            placeholder="Comma-separated"
-          />
-          <Field
             label="Stars"
             value={commit.stats?.stars?.toString() ?? ""}
             onChange={(v) =>
@@ -463,15 +456,6 @@ function TypeSpecificFields({
               })
             }
           />
-          <SectionLabel>Links (use JSON tab for complex edits)</SectionLabel>
-          <div className="text-xs text-muted-foreground/50 font-mono pl-[88px]">
-            {commit.links.length} link(s)
-            {commit.links.map((l, i) => (
-              <div key={i} className="truncate">
-                {l.label}: {l.url}
-              </div>
-            ))}
-          </div>
         </>
       );
 
@@ -504,56 +488,6 @@ function TypeSpecificFields({
               onUpdate({
                 conference: { ...commit.conference, url: v || undefined },
               })
-            }
-          />
-          <SectionLabel>Video</SectionLabel>
-          <Field
-            label="Video URL"
-            value={commit.video?.url ?? ""}
-            onChange={(v) =>
-              onUpdate({
-                video: v
-                  ? {
-                      ...commit.video,
-                      url: v,
-                      platform: commit.video?.platform ?? "youtube",
-                    }
-                  : undefined,
-              })
-            }
-          />
-          <Field
-            label="Thumbnail"
-            value={commit.video?.thumbnail ?? ""}
-            onChange={(v) =>
-              onUpdate({
-                video: commit.video
-                  ? { ...commit.video, thumbnail: v || undefined }
-                  : undefined,
-              })
-            }
-          />
-          <SelectField
-            label="Platform"
-            value={commit.video?.platform ?? "youtube"}
-            options={[
-              { value: "youtube", label: "YouTube" },
-              { value: "bilibili", label: "Bilibili" },
-              { value: "other", label: "Other" },
-            ]}
-            onChange={(v) =>
-              onUpdate({
-                video: commit.video
-                  ? { ...commit.video, platform: v }
-                  : undefined,
-              })
-            }
-          />
-          <Field
-            label="Slides URL"
-            value={commit.slides?.url ?? ""}
-            onChange={(v) =>
-              onUpdate({ slides: v ? { url: v } : undefined })
             }
           />
         </>
@@ -634,15 +568,191 @@ function TypeSpecificFields({
             value={commit.platform}
             onChange={(v) => onUpdate({ platform: v })}
           />
-          <Field
-            label="URL"
-            value={commit.url}
-            onChange={(v) => onUpdate({ url: v })}
-          />
         </>
       );
 
     default:
       return null;
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Media section
+// ─────────────────────────────────────────────────────────────────────────────
+
+const mediaTypes: MediaType[] = ["video", "embed", "link", "image"];
+
+function defaultMedia(type: MediaType): Media {
+  switch (type) {
+    case "video":
+      return { type: "video", url: "", platform: "youtube" };
+    case "embed":
+      return { type: "embed", url: "" };
+    case "link":
+      return { type: "link", url: "" };
+    case "image":
+      return { type: "image", url: "" };
+  }
+}
+
+function MediaSection({
+  media,
+  onChange,
+}: {
+  media: Media[];
+  onChange: (media: Media[]) => void;
+}) {
+  const updateItem = (index: number, updated: Media) => {
+    const next = [...media];
+    next[index] = updated;
+    onChange(next);
+  };
+
+  const deleteItem = (index: number) => {
+    onChange(media.filter((_, i) => i !== index));
+  };
+
+  const addItem = () => {
+    onChange([...media, { type: "link", url: "" }]);
+  };
+
+  return (
+    <>
+      <div className="flex items-center justify-between">
+        <SectionLabel>Media</SectionLabel>
+        <button
+          onClick={addItem}
+          className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground rounded transition-colors"
+          title="Add media"
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      {media.length === 0 && (
+        <div className="text-xs text-muted-foreground/40 font-mono pl-[88px]">
+          No media attached
+        </div>
+      )}
+      {media.map((item, i) => (
+        <MediaItemEditor
+          key={i}
+          item={item}
+          onChange={(updated) => updateItem(i, updated)}
+          onDelete={() => deleteItem(i)}
+        />
+      ))}
+    </>
+  );
+}
+
+function MediaItemEditor({
+  item,
+  onChange,
+  onDelete,
+}: {
+  item: Media;
+  onChange: (item: Media) => void;
+  onDelete: () => void;
+}) {
+  const handleTypeChange = (newType: MediaType) => {
+    if (newType === item.type) return;
+    onChange({ ...defaultMedia(newType), url: item.url });
+  };
+
+  return (
+    <div className="border border-border/30 rounded p-2 space-y-1.5 relative">
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50">
+          {item.type}
+        </span>
+        <button
+          onClick={onDelete}
+          className="p-0.5 text-muted-foreground/30 hover:text-red-500 rounded transition-colors"
+          title="Remove media"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+      </div>
+
+      <SelectField
+        label="Type"
+        value={item.type}
+        options={mediaTypes.map((t) => ({ value: t, label: t }))}
+        onChange={(v) => handleTypeChange(v as MediaType)}
+      />
+      <Field
+        label="URL"
+        value={item.url}
+        onChange={(v) => onChange({ ...item, url: v } as Media)}
+        placeholder="https://..."
+      />
+
+      {/* Type-specific fields */}
+      {item.type === "video" && (
+        <>
+          <SelectField
+            label="Platform"
+            value={item.platform}
+            options={[
+              { value: "youtube", label: "YouTube" },
+              { value: "bilibili", label: "Bilibili" },
+              { value: "vimeo", label: "Vimeo" },
+            ]}
+            onChange={(v) => onChange({ ...item, platform: v as "youtube" | "bilibili" | "vimeo" })}
+          />
+          <Field
+            label="Thumbnail"
+            value={item.thumbnail ?? ""}
+            onChange={(v) => onChange({ ...item, thumbnail: v || undefined })}
+            placeholder="Thumbnail URL (optional)"
+          />
+        </>
+      )}
+
+      {item.type === "embed" && (
+        <SelectField
+          label="Platform"
+          value={item.platform ?? ""}
+          options={[
+            { value: "", label: "(auto-detect)" },
+            { value: "twitter", label: "Twitter / X" },
+            { value: "instagram", label: "Instagram" },
+            { value: "tiktok", label: "TikTok" },
+          ]}
+          onChange={(v) => onChange({ ...item, platform: (v || undefined) as "twitter" | "x" | "instagram" | "tiktok" | undefined })}
+        />
+      )}
+
+      {item.type === "link" && (
+        <>
+          <Field
+            label="Label"
+            value={item.label ?? ""}
+            onChange={(v) => onChange({ ...item, label: v || undefined })}
+            placeholder="Display text"
+          />
+          <Field
+            label="Icon"
+            value={item.icon ?? ""}
+            onChange={(v) => onChange({ ...item, icon: v || undefined })}
+            placeholder="github, globe, slides..."
+          />
+          <CheckField
+            label="Preview"
+            checked={item.showPreview ?? false}
+            onChange={(v) => onChange({ ...item, showPreview: v || undefined })}
+          />
+        </>
+      )}
+
+      {item.type === "image" && (
+        <Field
+          label="Alt"
+          value={item.alt ?? ""}
+          onChange={(v) => onChange({ ...item, alt: v || undefined })}
+          placeholder="Alt text"
+        />
+      )}
+    </div>
+  );
 }

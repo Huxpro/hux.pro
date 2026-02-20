@@ -10,6 +10,7 @@ import {
   MetaRow,
   Description,
   Commentary,
+  TagBadges,
   ExpandedContent,
 } from "./shared";
 import { MediaRenderer } from "../media";
@@ -33,7 +34,8 @@ export function RoleEmbed({
   const commentary = localizeOptional(commit.commentary, locale);
   const date = formatCommitDate(commit, locale);
 
-  const hasDetails = !!commentary;
+  const hasTags = (commit.tags ?? []).length > 0;
+  const hasDetails = !!(commentary || hasTags);
   const media = commit.media ?? [];
 
   const links: { url: string; label: string; icon: string }[] = [];
@@ -67,6 +69,7 @@ export function RoleEmbed({
         <Description text={description} isExpanded={isExpanded} />
 
         <ExpandedContent isExpanded={isExpanded}>
+          {hasTags && <TagBadges items={commit.tags!} />}
           {commentary && <Commentary text={commentary} />}
         </ExpandedContent>
       </div>

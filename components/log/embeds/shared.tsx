@@ -222,25 +222,25 @@ export function Commentary({ text, className }: CommentaryProps) {
 }
 
 // =============================================================================
-// Tech Stack Tags
+// Tag Badges
 // =============================================================================
 
-interface TechStackProps {
+interface TagBadgesProps {
   items: string[];
   className?: string;
 }
 
-export function TechStack({ items, className }: TechStackProps) {
+export function TagBadges({ items, className }: TagBadgesProps) {
   if (items.length === 0) return null;
 
   return (
     <div className={cn("flex flex-wrap gap-2", className)}>
-      {items.map((tech) => (
+      {items.map((tag) => (
         <span
-          key={tech}
+          key={tag}
           className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground/70 bg-muted/30 px-1.5 py-0.5 rounded-sm"
         >
-          {tech}
+          {tag}
         </span>
       ))}
     </div>

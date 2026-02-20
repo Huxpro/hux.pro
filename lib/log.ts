@@ -146,7 +146,6 @@ interface BaseCommit {
 
 export interface ProjectCommit extends BaseCommit {
   type: "project";
-  techStack?: string[];
   stats?: {
     stars?: number;
     downloads?: string;
@@ -212,8 +211,8 @@ export interface SocialCommit extends BaseCommit {
  *
  * @example
  * if (commit.type === "project") {
- *   // TypeScript knows commit.techStack exists here
- *   commit.techStack?.forEach(tech => console.log(tech));
+ *   // TypeScript knows commit.stats exists here
+ *   console.log(commit.stats?.stars);
  * }
  */
 export type Commit =

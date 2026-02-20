@@ -5,7 +5,7 @@ import type { LogData } from "@/lib/log";
 import type { Locale } from "@/lib/i18n";
 import { localize, sortTagsByDate, sortCommitsByDate } from "@/lib/log";
 import { commitIcons } from "@/components/log/icons";
-import { Plus, Settings } from "lucide-react";
+import { Plus, Settings, Film, Image, Link2, Code } from "lucide-react";
 
 interface CommitListProps {
   data: LogData;
@@ -94,6 +94,18 @@ export function CommitList({
                       {commit.listed === false && (
                         <span className="text-[10px] text-muted-foreground/40 italic">
                           unlisted
+                        </span>
+                      )}
+                      {(commit.media ?? []).length > 0 && (
+                        <span className="flex items-center gap-0.5 ml-auto">
+                          {(commit.media ?? []).map((m, i) => {
+                            const MIcon =
+                              m.type === "video" ? Film :
+                              m.type === "embed" ? Code :
+                              m.type === "image" ? Image :
+                              Link2;
+                            return <MIcon key={i} className="w-2.5 h-2.5 text-muted-foreground/40" />;
+                          })}
                         </span>
                       )}
                     </div>

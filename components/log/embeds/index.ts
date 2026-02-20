@@ -27,7 +27,7 @@ export {
   MetaRow,
   Description,
   Commentary,
-  TechStack,
+  TagBadges,
   Stats,
   ExpandedContent,
   LinkIcon,
