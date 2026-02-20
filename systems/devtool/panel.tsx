@@ -98,9 +98,6 @@ export function DevtoolFAB() {
   );
 }
 
-// Legacy alias
-export const DebugFAB = DevtoolFAB;
-
 // =============================================================================
 // Devtool Panel Component
 // The expanded panel containing debug modules

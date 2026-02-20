@@ -1,19 +1,19 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import {
-  type Tag,
-  type Commit,
-  getLocalizedTagTitle,
-  formatTagDateRange,
-} from "@/lib/log";
 import type { Locale } from "@/lib/i18n";
-import { CommitEmbed } from "./commit-embed";
+import {
+  type Commit as CommitData,
+  formatTagDateRange,
+  getLocalizedTagTitle,
+  type Tag,
+} from "@/lib/log";
+import { cn } from "@/lib/utils";
+import { Commit } from "./commit-embed";
 
 interface LogTimelineProps {
   data: {
     tag: Tag;
-    commits: Commit[];
+    commits: CommitData[];
   }[];
   locale: Locale;
 }
@@ -91,7 +91,7 @@ export function LogTimeline({ data, locale }: LogTimelineProps) {
           {/* Commits for this tag */}
           <div className="space-y-0">
             {commits.map((commit) => (
-              <CommitEmbed
+              <Commit
                 key={commit.id}
                 commit={commit}
                 locale={locale}

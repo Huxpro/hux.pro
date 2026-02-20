@@ -24,9 +24,6 @@ export function useCommand() {
   return context;
 }
 
-// Legacy alias for backward compatibility
-export const useCommandPalette = useCommand;
-
 export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSlashCommandsMode, setIsSlashCommandsMode] = useState(false);

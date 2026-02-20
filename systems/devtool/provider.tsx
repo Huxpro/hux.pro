@@ -61,9 +61,6 @@ export function useDevtool() {
   return context;
 }
 
-// Legacy alias for backward compatibility
-export const useDebug = useDevtool;
-
 interface DevtoolProviderProps {
   children: React.ReactNode;
   /** Whether the command palette is open (to disable 'D' shortcut) */

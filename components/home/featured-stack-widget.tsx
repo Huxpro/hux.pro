@@ -168,5 +168,3 @@ export function VStackWidget({
   );
 }
 
-// Backwards-compatible alias
-export const FeaturedStackWidget = HStackWidget;

@@ -6,6 +6,7 @@ import {
   localize,
   localizeOptional,
   formatCommitDate,
+  isLinkMedia,
 } from "@/lib/log";
 import type { Locale } from "@/lib/i18n";
 import {
@@ -17,6 +18,7 @@ import {
   Stats,
   ExpandedContent,
 } from "./shared";
+import { MediaRenderer } from "../media";
 
 interface ProjectEmbedProps {
   commit: ProjectCommit;
@@ -36,6 +38,9 @@ export function ProjectEmbed({
   const commentary = localizeOptional(commit.commentary, locale);
   const date = formatCommitDate(commit, locale);
 
+  const media = commit.media ?? [];
+  const links = media.filter(isLinkMedia);
+  const nonLinkMedia = media.filter((m) => !isLinkMedia(m));
   const hasDetails = !!(
     commentary ||
     (commit.techStack && commit.techStack.length > 0) ||
@@ -43,25 +48,35 @@ export function ProjectEmbed({
   );
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-baseline justify-between gap-4 flex-wrap">
-        <TitleRow
-          title={title}
-          url={commit.links[0]?.url}
-          hasDetails={hasDetails}
-          isExpanded={isExpanded}
-          onToggle={() => setIsExpanded(!isExpanded)}
-        />
-        <LinksRow links={commit.links} />
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <div className="flex items-baseline justify-between gap-4 flex-wrap">
+          <TitleRow
+            title={title}
+            url={links[0]?.url}
+            hasDetails={hasDetails}
+            isExpanded={isExpanded}
+            onToggle={() => setIsExpanded(!isExpanded)}
+          />
+          <LinksRow links={links.map(m => ({ url: m.url, label: m.label || "", icon: m.icon }))} />
+        </div>
+
+        <Description text={description} isExpanded={isExpanded} />
+
+        <ExpandedContent isExpanded={isExpanded}>
+          {commit.techStack && <TechStack items={commit.techStack} />}
+          {commit.stats && <Stats {...commit.stats} />}
+          {commentary && <Commentary text={commentary} />}
+        </ExpandedContent>
       </div>
 
-      <Description text={description} isExpanded={isExpanded} />
-
-      <ExpandedContent isExpanded={isExpanded}>
-        {commit.techStack && <TechStack items={commit.techStack} />}
-        {commit.stats && <Stats {...commit.stats} />}
-        {commentary && <Commentary text={commentary} />}
-      </ExpandedContent>
+      {nonLinkMedia.length > 0 && (
+        <MediaRenderer
+          media={nonLinkMedia}
+          layout="stack"
+          size="default"
+        />
+      )}
     </div>
   );
 }

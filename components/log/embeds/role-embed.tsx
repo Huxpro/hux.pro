@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { RoleCommit, ItemLink } from "@/lib/log";
+import type { RoleCommit } from "@/lib/log";
 import { localize, localizeOptional, formatCommitDate } from "@/lib/log";
 import type { Locale } from "@/lib/i18n";
 import {
@@ -12,6 +12,7 @@ import {
   Commentary,
   ExpandedContent,
 } from "./shared";
+import { MediaRenderer } from "../media";
 
 interface RoleEmbedProps {
   commit: RoleCommit;
@@ -33,8 +34,9 @@ export function RoleEmbed({
   const date = formatCommitDate(commit, locale);
 
   const hasDetails = !!commentary;
+  const media = commit.media ?? [];
 
-  const links: ItemLink[] = [];
+  const links: { url: string; label: string; icon: string }[] = [];
   if (commit.url) {
     links.push({
       url: commit.url,
@@ -44,28 +46,38 @@ export function RoleEmbed({
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-baseline justify-between gap-4 flex-wrap">
-        <TitleRow
-          title={company}
-          url={commit.url}
-          hasDetails={hasDetails}
-          isExpanded={isExpanded}
-          onToggle={() => setIsExpanded(!isExpanded)}
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <div className="flex items-baseline justify-between gap-4 flex-wrap">
+          <TitleRow
+            title={company}
+            url={commit.url}
+            hasDetails={hasDetails}
+            isExpanded={isExpanded}
+            onToggle={() => setIsExpanded(!isExpanded)}
+          />
+          <LinksRow links={links} />
+        </div>
+
+        <div className="text-sm text-muted-foreground font-medium">
+          {roleTitle}
+        </div>
+
+        <MetaRow date={date} meta={commit.location} />
+        <Description text={description} isExpanded={isExpanded} />
+
+        <ExpandedContent isExpanded={isExpanded}>
+          {commentary && <Commentary text={commentary} />}
+        </ExpandedContent>
+      </div>
+
+      {media.length > 0 && (
+        <MediaRenderer
+          media={media}
+          layout="stack"
+          size="default"
         />
-        <LinksRow links={links} />
-      </div>
-
-      <div className="text-sm text-muted-foreground font-medium">
-        {roleTitle}
-      </div>
-
-      <MetaRow date={date} meta={commit.location} />
-      <Description text={description} isExpanded={isExpanded} />
-
-      <ExpandedContent isExpanded={isExpanded}>
-        {commentary && <Commentary text={commentary} />}
-      </ExpandedContent>
+      )}
     </div>
   );
 }
