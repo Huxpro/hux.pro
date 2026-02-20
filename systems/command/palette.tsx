@@ -132,6 +132,10 @@ export function CommandPalette() {
       onSelect: () => handleNavigation("/docs"),
     },
     {
+      key: "e",
+      onSelect: () => handleNavigation("/editor"),
+    },
+    {
       key: "a",
       label: `${t(locale, "appearance")}: ${
         preference === "system"
@@ -246,6 +250,9 @@ export function CommandPalette() {
           return;
         case "i":
           handleNavigation("/docs");
+          return;
+        case "e":
+          handleNavigation("/editor");
           return;
         case "a": {
           const nextPreference =

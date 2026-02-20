@@ -471,6 +471,30 @@ export function isCommitListed(commit: Commit): boolean {
 }
 
 // =============================================================================
+// Timeline Data Derivation
+// =============================================================================
+
+export interface TimelineData {
+  tag: Tag;
+  commits: Commit[];
+}
+
+/**
+ * Build the timeline data structure from raw LogData.
+ * Single source of truth for /works rendering and editor preview.
+ */
+export function buildTimelineData(logData: LogData): TimelineData[] {
+  const listedCommits = logData.commits.filter(isCommitListed);
+  const sortedTags = sortTagsByDate(logData.tags);
+  return sortedTags.map((tag) => ({
+    tag,
+    commits: sortCommitsByDate(
+      listedCommits.filter((c) => c.tagId === tag.id)
+    ),
+  }));
+}
+
+// =============================================================================
 // Group Resolution
 // =============================================================================
 
