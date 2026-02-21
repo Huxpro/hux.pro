@@ -7,6 +7,10 @@ import remarkGfm from "remark-gfm";
  * Includes syntax highlighting via Shiki and GFM table support
  */
 export const mdxOptions: MDXRemoteProps["options"] = {
+  // All MDX sources are trusted first-party content, not user-generated.
+  // Disable the default JS expression sandboxing so that JSX attribute
+  // expressions like commit={{...}} and defaultExpanded={true} are preserved.
+  blockJS: false,
   mdxOptions: {
     remarkPlugins: [remarkGfm],
     rehypePlugins: [

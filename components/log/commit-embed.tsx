@@ -72,7 +72,6 @@ export function Commit({
   defaultExpanded = false,
   className,
 }: CommitProps) {
-  if (!commit) return null;
   const Icon = commitIcons[commit.type];
 
   // Derive behavior from variant
