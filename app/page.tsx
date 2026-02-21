@@ -5,7 +5,6 @@ import {
   VStackWidget,
 } from "@/components/home/featured-stack-widget";
 import { Commit } from "@/components/log";
-import { RoleCompact } from "@/components/log/embeds";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import {
   WidgetBody,
@@ -86,7 +85,7 @@ function ProcessingWidget() {
         <WidgetLink href="/works" label="View works" />
       </WidgetHeader>
       <WidgetBody>
-        <RoleCompact commit={role} locale={locale} />
+        <Commit commit={role} locale={locale} variant="bare" />
       </WidgetBody>
     </WidgetShell>
   );

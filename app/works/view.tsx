@@ -20,14 +20,9 @@ export function WorksView({ data }: WorksViewProps) {
       {/* Git Log Timeline */}
       <LogTimeline data={data} locale={locale} />
 
-      {/* Footer / End marker */}
-      <div className="mt-16 flex items-center gap-4">
-        <div className="w-6 h-6 flex items-center justify-center shrink-0">
-          <div className="w-3 h-3 rounded-full border-2 border-muted-foreground/30" />
-        </div>
-        <span className="font-mono text-xs text-muted-foreground/40 tracking-wide">
-          {t(locale, "logInit")}
-        </span>
+      {/* End marker — initial commit */}
+      <div className="mt-8 py-4 font-mono text-xs text-muted-foreground/30">
+        {t(locale, "logInit")}
       </div>
     </PageLayout>
   );

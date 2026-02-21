@@ -18,21 +18,19 @@ export { Commit } from "./commit-embed";
 export { commitIcons } from "./icons";
 
 // =============================================================================
-// Commit Type Components
+// Generic Commit Renderers
 // =============================================================================
 
-export {
-  Project,
-  Talk,
-  Post,
-  Role,
-  Social,
-  ProjectCompact,
-  TalkCompact,
-  PostCompact,
-  RoleCompact,
-  SocialCompact,
-} from "./embeds";
+export { CommitCard } from "./commit-card";
+export { CommitCompact } from "./commit-compact";
+export { TimelineCommit } from "./timeline-commit";
+
+// =============================================================================
+// Adapter
+// =============================================================================
+
+export { normalizeCommit } from "./commit-data";
+export type { NormalizedCommit, SimpleLink } from "./commit-data";
 
 // =============================================================================
 // Media Components

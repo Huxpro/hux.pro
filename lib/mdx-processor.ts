@@ -7,6 +7,9 @@ import remarkGfm from "remark-gfm";
  * Includes syntax highlighting via Shiki and GFM table support
  */
 export const mdxOptions: MDXRemoteProps["options"] = {
+  // Disable next-mdx-remote v6's default JS expression stripping since all MDX
+  // sources are trusted first-party docs, not user-generated content.
+  blockJS: false,
   mdxOptions: {
     remarkPlugins: [remarkGfm],
     rehypePlugins: [
