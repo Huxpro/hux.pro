@@ -69,7 +69,7 @@ export function TitleRow({
   onToggle,
 }: TitleRowProps) {
   return (
-    <h3 className="text-base font-medium text-foreground flex items-center gap-2">
+    <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
       {url ? (
         <a
           href={url}
@@ -128,7 +128,7 @@ export function LinksRow({ links, className }: LinksRowProps) {
           target="_blank"
           rel="noopener noreferrer"
           className={cn(
-            "inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors",
+            "inline-flex items-center gap-1 text-xs text-muted-foreground/50 transition-colors",
             link.icon === "youtube" || link.icon === "video"
               ? "hover:text-red-500"
               : "hover:text-foreground"
@@ -189,7 +189,7 @@ export function Description({
   return (
     <p
       className={cn(
-        "text-sm text-muted-foreground leading-relaxed",
+        "text-xs text-muted-foreground/60 leading-relaxed",
         !isExpanded && "line-clamp-2",
         className
       )}
@@ -210,14 +210,14 @@ interface CommentaryProps {
 
 export function Commentary({ text, className }: CommentaryProps) {
   return (
-    <div
+    <p
       className={cn(
-        "text-xs font-serif italic text-muted-foreground/80 pl-3 border-l-2 border-muted",
+        "text-xs italic text-muted-foreground/30 leading-relaxed",
         className
       )}
     >
-      "{text}"
-    </div>
+      &ldquo;{text}&rdquo;
+    </p>
   );
 }
 
@@ -234,11 +234,11 @@ export function TagBadges({ items, className }: TagBadgesProps) {
   if (items.length === 0) return null;
 
   return (
-    <div className={cn("flex flex-wrap gap-2", className)}>
+    <div className={cn("flex flex-wrap gap-x-3 gap-y-1", className)}>
       {items.map((tag) => (
         <span
           key={tag}
-          className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground/70 bg-muted/30 px-1.5 py-0.5 rounded-sm"
+          className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground/40"
         >
           {tag}
         </span>
@@ -268,12 +268,11 @@ export function Stats({ stars, downloads, users, className }: StatsProps) {
   if (items.length === 0) return null;
 
   return (
-    <div className={cn("flex items-center gap-4", className)}>
+    <div className={cn("flex items-center gap-3", className)}>
       {items.map((item) => (
-        <div key={item.label} className="text-xs text-muted-foreground">
-          <span className="font-mono">{item.value}</span>{" "}
-          <span className="text-muted-foreground/60">{item.label}</span>
-        </div>
+        <span key={item.label} className="text-xs font-mono text-muted-foreground/40">
+          {item.value} {item.label}
+        </span>
       ))}
     </div>
   );
@@ -292,7 +291,7 @@ export function ExpandedContent({ isExpanded, children }: ExpandedContentProps) 
   if (!isExpanded) return null;
 
   return (
-    <div className="mt-3 animate-in fade-in slide-in-from-top-1 duration-200 space-y-3">
+    <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-150 space-y-1.5">
       {children}
     </div>
   );

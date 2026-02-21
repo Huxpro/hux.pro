@@ -91,7 +91,7 @@ export function CommitCard({
 
         {/* Subtitle (e.g. roleTitle) */}
         {data.subtitle && (
-          <div className="text-sm text-muted-foreground font-medium">
+          <div className="text-xs text-muted-foreground/60">
             {data.subtitle}
           </div>
         )}

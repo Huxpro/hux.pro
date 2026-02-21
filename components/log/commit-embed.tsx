@@ -6,7 +6,7 @@
  * Normalizes type-specific commit data via the adapter, then dispatches
  * to the appropriate variant renderer:
  * - "timeline": Dense git-log row (TimelineCommit)
- * - "card": Full content with border frame (CommitCard)
+ * - "card": TimelineCommit in a border frame container
  * - "bare": Minimal compact for widgets (CommitCompact)
  */
 
@@ -15,7 +15,6 @@ import type { Commit as CommitData } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit } from "./timeline-commit";
-import { CommitCard } from "./commit-card";
 import { CommitCompact } from "./commit-compact";
 
 // =============================================================================
@@ -76,7 +75,7 @@ export function Commit({
             className,
           )}
         >
-          <CommitCard data={data} defaultExpanded={defaultExpanded} />
+          <TimelineCommit data={data} defaultExpanded={defaultExpanded} />
         </div>
       );
 

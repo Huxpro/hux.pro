@@ -21,7 +21,6 @@ export { commitIcons } from "./icons";
 // Generic Commit Renderers
 // =============================================================================
 
-export { CommitCard } from "./commit-card";
 export { CommitCompact } from "./commit-compact";
 export { TimelineCommit } from "./timeline-commit";
 
