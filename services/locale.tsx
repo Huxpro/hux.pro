@@ -65,6 +65,8 @@ function setStoredLocale(locale: Locale): void {
 interface LocaleContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
+  /** True after the real locale has been read from localStorage */
+  hydrated: boolean;
 }
 
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
@@ -77,10 +79,12 @@ export function useLocale() {
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(defaultLocale);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: reading browser-only localStorage
     setLocaleState(getStoredLocale());
+    setHydrated(true);
   }, []);
 
   const setLocale = useCallback((newLocale: Locale) => {
@@ -89,7 +93,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <LocaleContext.Provider value={{ locale, setLocale }}>
+    <LocaleContext.Provider value={{ locale, setLocale, hydrated }}>
       {children}
     </LocaleContext.Provider>
   );
