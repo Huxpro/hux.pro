@@ -2,13 +2,17 @@
 
 import { useLocale, type Locale } from "@/services";
 import { showCustomToast, dismissToast } from "@/components/ui/system-sonner";
-import { resolveDisplayLocale, type PostLanguage } from "@/lib/content";
+import type { PostLanguage } from "@/lib/content";
 import { useTransitionRouter } from "next-view-transitions";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { LanguageConflictToast, LanguageSwitchToast } from "./language-toast";
 
+/** SessionStorage key used to suppress conflict toast after intentional switch */
+const INTENTIONAL_SWITCH_KEY = "language-switch-intentional";
+
 interface UsePostLanguageOptions {
+  locale: Locale;
   language: PostLanguage;
 }
 
@@ -27,53 +31,65 @@ interface UsePostLanguageReturn {
  * Hook to manage bilingual post language state and toasts
  *
  * Handles:
- * - Hydration-aware conflict detection for shared links
- * - Showing conflict toast when URL lang differs from system preference
+ * - Conflict detection for shared links (route locale ≠ system preference)
  * - Showing feedback toast when user explicitly switches language
- * - Language switching via URL
+ * - Language switching via route navigation
+ *
+ * Hydration strategy:
+ * - Uses `hydrated` from LocaleProvider to wait for real systemLocale
+ *   (replaces the old hasMounted ref guard which relied on useSearchParams
+ *   triggering a re-render after Suspense)
+ * - Uses sessionStorage to distinguish intentional language switches from
+ *   shared links (refs are lost on route navigation since components remount)
  */
 export function usePostLanguage({
+  locale,
   language,
 }: UsePostLanguageOptions): UsePostLanguageReturn {
-  const { locale: systemLocale } = useLocale();
-  const searchParams = useSearchParams();
+  const { locale: systemLocale, hydrated } = useLocale();
   const router = useTransitionRouter();
   const pathname = usePathname();
 
-  const urlLang = searchParams.get("lang") as Locale | null;
   const isBilingual = language === "both";
+  const displayLocale = locale;
 
-  // Derive display locale from URL (source of truth for bilingual posts)
-  const displayLocale = resolveDisplayLocale(urlLang, systemLocale, language);
-
-  // Track hydration and conflict toast state
-  const hasMounted = useRef(false);
+  // Track conflict toast state
   const conflictToastShown = useRef(false);
   const conflictToastId = useRef<string | number | undefined>(undefined);
 
-  // Show conflict toast for shared links (after hydration, when URL lang differs from system)
+  // Show conflict toast for shared links.
+  // Waits for `hydrated` to ensure systemLocale is the real stored value,
+  // not the SSR default.
   useEffect(() => {
-    // Skip first render to wait for locale hydration
-    if (!hasMounted.current) {
-      hasMounted.current = true;
+    if (!hydrated) return;
+
+    // Check if this navigation was an intentional language switch
+    // (set by switchLanguage() or conflict toast choice before route navigation).
+    // Refs don't survive route changes since the component remounts.
+    const intentional = sessionStorage.getItem(INTENTIONAL_SWITCH_KEY);
+    if (intentional) {
+      sessionStorage.removeItem(INTENTIONAL_SWITCH_KEY);
+      conflictToastShown.current = true;
       return;
     }
 
-    const hasConflict = isBilingual && urlLang && urlLang !== systemLocale;
+    const hasConflict = isBilingual && locale !== systemLocale;
 
     if (hasConflict && !conflictToastShown.current) {
       conflictToastShown.current = true;
 
       const handleChoice = (chosenLang: Locale) => {
         dismissToast(conflictToastId.current);
-        if (chosenLang !== urlLang) {
-          router.replace(`${pathname}?lang=${chosenLang}`);
+        if (chosenLang !== locale) {
+          // Mark as intentional so the new page doesn't re-show conflict toast
+          sessionStorage.setItem(INTENTIONAL_SWITCH_KEY, "true");
+          router.replace(pathname.replace(/\/(en|zh)$/, `/${chosenLang}`));
         }
       };
 
       conflictToastId.current = showCustomToast(
         <LanguageConflictToast
-          sharedLang={urlLang}
+          sharedLang={locale}
           systemLang={systemLocale}
           onChoose={handleChoice}
         />,
@@ -87,20 +103,22 @@ export function usePostLanguage({
         dismissToast(conflictToastId.current);
       }
     };
-  }, [systemLocale, urlLang, isBilingual, pathname, router]);
+  }, [hydrated, systemLocale, locale, isBilingual, pathname, router]);
 
   // Compute alternate language info
   const alternateLocale = displayLocale === "en" ? "zh" : "en";
   const alternateLabel = displayLocale === "en" ? "中文版" : "English";
 
-  // Switch to alternate language via URL with feedback toast
+  // Switch to alternate language via route with feedback toast
   const switchLanguage = () => {
     // Dismiss any existing conflict toast
     dismissToast("language-conflict");
-    conflictToastShown.current = true; // Prevent conflict toast from showing
 
-    // Navigate to alternate language
-    router.push(`${pathname}?lang=${alternateLocale}`);
+    // Mark as intentional so the new page doesn't show conflict toast
+    sessionStorage.setItem(INTENTIONAL_SWITCH_KEY, "true");
+
+    // Navigate to alternate language route
+    router.push(pathname.replace(/\/(en|zh)$/, `/${alternateLocale}`));
 
     // Show feedback toast
     showCustomToast(

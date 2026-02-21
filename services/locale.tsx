@@ -33,6 +33,10 @@ export {
 // Manages current locale selection with localStorage persistence
 // =============================================================================
 
+function setLocaleCookie(locale: Locale): void {
+  document.cookie = `locale=${locale};path=/;max-age=31536000;SameSite=Lax`;
+}
+
 function getStoredLocale(): Locale {
   if (typeof window === "undefined") return defaultLocale;
   const stored = localStorage.getItem("locale");
@@ -44,12 +48,14 @@ function getStoredLocale(): Locale {
   const detectedLocale: Locale = browserLang.startsWith("zh") ? "zh" : "en";
   // Store the detected locale for future visits
   localStorage.setItem("locale", detectedLocale);
+  setLocaleCookie(detectedLocale);
   return detectedLocale;
 }
 
 function setStoredLocale(locale: Locale): void {
   if (typeof window === "undefined") return;
   localStorage.setItem("locale", locale);
+  setLocaleCookie(locale);
 }
 
 // =============================================================================
@@ -59,6 +65,8 @@ function setStoredLocale(locale: Locale): void {
 interface LocaleContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
+  /** True after the real locale has been read from localStorage */
+  hydrated: boolean;
 }
 
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
@@ -71,10 +79,12 @@ export function useLocale() {
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(defaultLocale);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: reading browser-only localStorage
     setLocaleState(getStoredLocale());
+    setHydrated(true);
   }, []);
 
   const setLocale = useCallback((newLocale: Locale) => {
@@ -83,7 +93,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <LocaleContext.Provider value={{ locale, setLocale }}>
+    <LocaleContext.Provider value={{ locale, setLocale, hydrated }}>
       {children}
     </LocaleContext.Provider>
   );

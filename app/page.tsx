@@ -15,7 +15,7 @@ import {
   WidgetTitle,
 } from "@/components/ui/widget";
 import logData from "@/content/log.json";
-import { getLocalizedTitle } from "@/lib/content";
+import { getLocalizedTitle, getPostHref } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
 import type { Commit as CommitData, Group, LogData, RoleCommit } from "@/lib/log";
 import {
@@ -43,7 +43,7 @@ function BlogStackWidget() {
       {recentPosts.map((post) => (
         <Link
           key={post.slug}
-          href={`/writing/${post.slug}`}
+          href={getPostHref(post, locale, "/writing")}
           className="block group/item"
         >
           <div className="text-sm text-foreground group-hover/item:text-foreground/80 transition-colors truncate">
