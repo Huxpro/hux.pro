@@ -7,13 +7,16 @@ This document describes the architectural structure of the hux.pro codebase, org
 ```
 project/
 ├── app/                          # Next.js App Router pages
+│   ├── writing/[slug]/[lang]/    # Per-locale static blog pages
+│   └── docs/[...slug]/           # Docs (locale as last catch-all segment)
+├── middleware.ts                  # Bare URL → /{cookie locale} redirect
 ├── systems/                      # Complex subsystems (UI + State + Logic)
 │   ├── ambient/                  # Weather-based ambient UI
 │   ├── command/                  # Command palette navigation
 │   └── devtool/                  # Developer tools for debugging
 ├── services/                     # Simple state providers (no UI)
 │   ├── theme.tsx                 # Light/dark theme
-│   ├── locale.tsx                # i18n locale + translations
+│   ├── locale.tsx                # i18n locale + translations (+ cookie sync)
 │   ├── visitor.tsx               # Returning visitor tracking
 │   └── index.ts                  # Barrel exports
 ├── shared/                       # Shared orchestration
@@ -24,7 +27,7 @@ project/
 │   ├── ui/                       # Generic UI components
 │   └── motion-primitives/        # Animation primitives
 ├── lib/                          # Pure utilities (no React state)
-│   ├── content.ts                # Content helpers
+│   ├── content.ts                # Content helpers (getPostHref, etc.)
 │   ├── data.ts                   # Static data
 │   ├── query.ts                  # React Query config
 │   ├── utils.ts                  # General utilities
