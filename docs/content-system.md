@@ -35,22 +35,40 @@ The content system powers the blog and documentation with bilingual MDX content.
 | `slug.zh.mdx` only | `"zh"` | Chinese-only post |
 | `slug.en.mdx` + `slug.zh.mdx` | `"both"` | True bilingual post |
 
-### URL Behavior
+### URL Behavior (Route-based Locale)
+
+Each language version has its own statically generated route:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    BILINGUAL URL HANDLING                           │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  /writing/my-post          → Uses system locale                        │
-│  /writing/my-post?lang=zh  → Forces Chinese (shareable URL)           │
-│  /writing/my-post?lang=en  → Forces English (shareable URL)           │
+│  /writing/my-post/en       → English version (static HTML)         │
+│  /writing/my-post/zh       → Chinese version (static HTML)         │
+│  /writing/my-post          → Middleware redirect → /{cookie locale} │
 │                                                                     │
-│  When ?lang= conflicts with system locale:                          │
-│    → Dialog asks user to choose preferred language                  │
+│  When route locale ≠ system locale (shared link scenario):         │
+│    → Non-blocking toast asks user to choose language               │
+│  When user clicks the language switcher:                           │
+│    → Feedback toast: "Viewing in X · Preference unchanged"         │
+│                                                                     │
+│  Single-language posts generate one route only:                    │
+│    /writing/en-only-post/en  (no /zh route exists)                 │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+**Why route-based instead of `?lang=` query params:**
+- Full static HTML per language — SEO crawlers see real content, not a Suspense skeleton
+- Build-time MDX error catching (no Suspense deferral hiding compilation failures)
+- Smaller payloads — only the requested language's MDX is rendered server-side
+- Proper `hreflang` alternate links via `generateMetadata`
+
+**Key infrastructure:**
+- `middleware.ts` — redirects bare URLs by reading the `locale` cookie (synced from localStorage by the locale service); falls back to `defaultLocale` ("en")
+- `getPostHref()` — all internal links must use this helper, which returns `/{locale}` for bilingual posts and `/{post.language}` for single-language posts
+- `usePostLanguage()` — manages conflict/switch toasts; uses `hydrated` flag from `LocaleProvider` to wait for real system locale, and `sessionStorage` to distinguish intentional switches from shared-link conflicts across route navigations
 
 ### Filtering Logic
 
@@ -73,14 +91,16 @@ content/*.mdx
     ↓
 gray-matter (frontmatter extraction)
     ↓
-next-mdx-remote/rsc (server-side compilation)
+next-mdx-remote/rsc (server-side compilation, blockJS: false)
     ├── remark-gfm (tables, GFM features)
     └── rehype-pretty-code (syntax highlighting)
     ↓
 React components (custom MDX components)
     ↓
-Rendered HTML
+Static HTML (one page per locale)
 ```
+
+**`blockJS: false`**: next-mdx-remote v6 defaults to `blockJS: true`, which strips JSX attribute expressions like `commit={{...}}` and `defaultExpanded={true}` while keeping string literals. Since all MDX is trusted first-party content, we disable this sandboxing. Without it, components receiving object/boolean props get `undefined`.
 
 ### Stack
 
@@ -143,21 +163,48 @@ MDX elements receive semantic overrides:
 
 ## Static Generation
 
-Blog posts are statically generated at build time:
+Each locale gets its own statically generated page:
+
+```
+Route structure:
+  app/writing/[slug]/[lang]/page.tsx   → /writing/my-post/en, /writing/my-post/zh
+  app/writing/[slug]/page.tsx          → redirect to /writing/my-post/{defaultLocale}
+  app/docs/[...slug]/page.tsx          → /docs/my-doc/en (locale is last catch-all segment)
+```
 
 ```typescript
-// Static params generated at build time
+// Bilingual posts generate two pages; mono-lingual posts generate one
 export function generateStaticParams() {
-  const slugs = getAllBlogSlugs();
-  return slugs.map((slug) => ({ slug }));
+  return slugs.flatMap((slug) => {
+    const post = getPost(slug);
+    if (post.language === "both") {
+      return locales.map((lang) => ({ slug, lang }));
+    }
+    return [{ slug, lang: post.language }];
+  });
 }
 
-// MDX content read at build time, rendered client-side
-export default async function BlogPost({ params }) {
-  const content = await getBlogContent(params.slug);
-  return <BlogPostContent {...content} />;
+// Server component renders ONE language's MDX (not both)
+export default async function BlogPostLangPage({ params }) {
+  const { slug, lang } = await params;
+  const post = getBlogPostBySlug(slug);
+  const content = lang === "zh" && post.contentZh ? post.contentZh : post.content;
+  return (
+    <BlogPostContent locale={lang} language={post.language}>
+      <MDXRenderer source={content} />
+    </BlogPostContent>
+  );
 }
 ```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `app/writing/[slug]/[lang]/page.tsx` | Per-locale static blog pages with `generateMetadata` (hreflang) |
+| `app/writing/[slug]/page.tsx` | Redirect stub for bare `/writing/slug` URLs |
+| `app/docs/[...slug]/page.tsx` | Docs page; parses locale from last catch-all segment |
+| `middleware.ts` | Redirects bare URLs to `/{cookie locale}` (307) |
 
 ## Why Not Fumadocs?
 

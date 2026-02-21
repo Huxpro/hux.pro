@@ -3,19 +3,18 @@
 import { PostContent } from "@/components/post";
 import { useVisitor } from "@/services";
 import type { PostLanguage } from "@/lib/content";
+import type { Locale } from "@/lib/i18n";
 import { useRef, type ReactNode } from "react";
 
 interface BlogPostContentProps {
   title: string;
   titleZh?: string;
   date: string;
+  locale: Locale;
   language: PostLanguage;
   readingTime?: string;
   readingTimeZh?: string;
-  children: {
-    en: ReactNode | null;
-    zh: ReactNode | null;
-  };
+  children: ReactNode;
 }
 
 // Format date like "oct 2024"
@@ -30,6 +29,7 @@ export function BlogPostContent({
   title,
   titleZh,
   date,
+  locale,
   language,
   readingTime,
   readingTimeZh,
@@ -54,6 +54,7 @@ export function BlogPostContent({
     <PostContent
       title={title}
       titleZh={titleZh}
+      locale={locale}
       language={language}
       readingTime={readingTime}
       readingTimeZh={readingTimeZh}
