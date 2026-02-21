@@ -67,7 +67,7 @@ export function PostContent({
 
   return (
     <div className="min-h-screen">
-      <article className="mx-auto max-w-[680px] px-6 pt-24 pb-32">
+      <article className="mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32">
         {/* Back link - System UI */}
         <SystemNav href={backHref} path={backLabel} className="mb-12" />
 

@@ -5,7 +5,6 @@ import {
   VStackWidget,
 } from "@/components/home/featured-stack-widget";
 import { Commit } from "@/components/log";
-import { RoleCompact } from "@/components/log/embeds";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import {
   WidgetBody,
@@ -86,7 +85,7 @@ function ProcessingWidget() {
         <WidgetLink href="/works" label="View works" />
       </WidgetHeader>
       <WidgetBody>
-        <RoleCompact commit={role} locale={locale} />
+        <Commit commit={role} locale={locale} variant="bare" />
       </WidgetBody>
     </WidgetShell>
   );
@@ -195,7 +194,7 @@ function ScrambleIdentifier() {
 
 export default function Home() {
   return (
-    <main className="mx-auto max-w-[680px] px-6 pt-24 pb-32">
+    <main className="mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32">
       {/* System identifier with scramble effect */}
       <ScrambleIdentifier />
 
