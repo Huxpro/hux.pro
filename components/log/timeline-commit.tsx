@@ -6,7 +6,7 @@
  * Summary: hash · icon · title · [link-icons] ··· date
  * Expanded: subtitle, description, links, tags, stats, commentary, media
  *
- * Responsive grid: [icon | content] on small, [hash | icon | content] on @sm+.
+ * 3-column grid: [hash | icon | content]. Hash column collapses on small containers.
  * Uses the same shared primitives as CommitCard to ensure visual sync.
  * Consumes NormalizedCommit — fully type-agnostic.
  */
@@ -17,7 +17,6 @@ import type { NormalizedCommit } from "./commit-data";
 import { commitIcons } from "./icons";
 import {
   LinkIcon,
-  LinksRow,
   Description,
   Commentary,
   TagBadges,
@@ -57,15 +56,17 @@ export function TimelineCommit({
       )}
       onClick={() => hasExpandableContent && setIsExpanded(!isExpanded)}
     >
-      {/* Grid: [icon][content] on small, [hash][icon][content] on @sm+ */}
+      {/* Grid: [hash][icon][content]. Hash column collapses when hidden. */}
       <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
         {/* Hash — own column, hidden on small containers */}
-        <span className="hidden @sm:inline font-mono text-xs text-muted-foreground/40 select-all pt-px">
+        <span className="hidden @sm:inline font-mono text-xs text-muted-foreground/40 select-all leading-5">
           {data.hash}
         </span>
 
-        {/* Icon — always visible, own column */}
-        <Icon className="w-3 h-3 text-muted-foreground/50 mt-0.5" />
+        {/* Icon — own column, wrapped to match text line-height */}
+        <span className="inline-flex items-center h-5">
+          <Icon className="w-3 h-3 text-muted-foreground/50" />
+        </span>
 
         {/* Primary row: title · [link-icons] ··· date */}
         <div className="flex items-center gap-2 min-w-0">
@@ -89,9 +90,12 @@ export function TimelineCommit({
             )}
           </span>
 
-          {/* Link indicators (icon-only, inline) */}
+          {/* Link indicators — icon-only in summary, icon+label when expanded */}
           <div
-            className="flex items-center gap-1.5 shrink-0"
+            className={cn(
+              "flex items-center shrink-0",
+              isExpanded ? "gap-3" : "gap-1.5",
+            )}
             onClick={(e) => e.stopPropagation()}
           >
             {data.links.map((link, i) => (
@@ -100,9 +104,12 @@ export function TimelineCommit({
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground/40 hover:text-foreground transition-colors"
+                className="inline-flex items-center gap-1 text-muted-foreground/40 hover:text-foreground transition-colors"
               >
                 <LinkIcon icon={link.icon} />
+                {isExpanded && (
+                  <span className="text-xs">{link.label}</span>
+                )}
               </a>
             ))}
           </div>
@@ -128,26 +135,21 @@ export function TimelineCommit({
               </div>
             )}
 
+            {data.nonLinkMedia.length > 0 && (
+              <MediaRenderer
+                media={data.nonLinkMedia}
+                layout="stack"
+                size="default"
+              />
+            )}
+
             <Description text={data.description} isExpanded />
 
-            {data.links.length > 0 && <LinksRow links={data.links} />}
+            {data.commentary && <Commentary text={data.commentary} />}
 
             {data.tags.length > 0 && <TagBadges items={data.tags} />}
 
             {data.stats && <Stats {...data.stats} />}
-
-            {data.commentary && <Commentary text={data.commentary} />}
-          </div>
-        )}
-
-        {/* Rich media (video, embed, image) — shown when expanded */}
-        {isExpanded && data.nonLinkMedia.length > 0 && (
-          <div className="col-start-2 @sm:col-start-3 mt-2">
-            <MediaRenderer
-              media={data.nonLinkMedia}
-              layout="stack"
-              size="default"
-            />
           </div>
         )}
       </div>

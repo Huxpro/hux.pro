@@ -53,11 +53,9 @@ export interface NormalizedCommit {
   tags: string[];
   stats?: { stars?: number; downloads?: string; users?: string };
 
-  // Media (split for rendering)
+  // Media
   links: SimpleLink[];
-  videoLinks: SimpleLink[];
   nonLinkMedia: Media[];
-  playableMedia: Media[];
 
   // Compact rendering
   thumbnail?: { url: string; linkUrl?: string };
@@ -69,31 +67,29 @@ export interface NormalizedCommit {
 // =============================================================================
 
 /**
- * Split media into video toggle links and regular links.
- * Video links are rendered as toggle buttons for inline player.
- * Applied to ALL commit types (not just talks).
+ * Extract link-like entries from media array.
+ * Both video media and link media become external links in the summary row.
  */
-export function partitionMediaLinks(
+export function extractMediaLinks(
   media: Media[],
   locale: Locale,
-): { videoLinks: SimpleLink[]; otherLinks: SimpleLink[] } {
-  const videoLinks: SimpleLink[] = [];
-  const otherLinks: SimpleLink[] = [];
+): SimpleLink[] {
+  const links: SimpleLink[] = [];
 
   for (const m of media) {
     if (isVideoMedia(m)) {
       const platformLabel: Record<string, string> = {
         bilibili: "Bilibili",
-        youtube: locale === "zh" ? "观看视频" : "YouTube",
+        youtube: "YouTube",
         vimeo: "Vimeo",
       };
-      videoLinks.push({
+      links.push({
         url: m.url,
         label: platformLabel[m.platform] ?? m.platform,
         icon: m.platform,
       });
     } else if (isLinkMedia(m)) {
-      otherLinks.push({
+      links.push({
         url: m.url,
         label: m.label || (locale === "zh" ? "链接" : "Link"),
         icon: m.icon || "external",
@@ -101,7 +97,7 @@ export function partitionMediaLinks(
     }
   }
 
-  return { videoLinks, otherLinks };
+  return links;
 }
 
 // =============================================================================
@@ -148,9 +144,8 @@ export function normalizeCommit(
   locale: Locale,
 ): NormalizedCommit {
   const media = commit.media ?? [];
-  const { videoLinks, otherLinks } = partitionMediaLinks(media, locale);
+  const mediaLinks = extractMediaLinks(media, locale);
   const nonLinkMedia = media.filter((m) => !isLinkMedia(m));
-  const playableMedia = media.filter(isVideoMedia);
 
   const title = localize(commit.title, locale);
   const description = localize(commit.description, locale);
@@ -174,10 +169,8 @@ export function normalizeCommit(
         tags,
         commentary,
         stats: commit.stats,
-        links: otherLinks,
-        videoLinks,
+        links: mediaLinks,
         nonLinkMedia,
-        playableMedia,
         thumbnail: thumbnail ? { ...thumbnail, linkUrl: primaryUrl } : undefined,
         secondaryLine: description,
       };
@@ -194,10 +187,8 @@ export function normalizeCommit(
         meta: commit.conference.name,
         tags,
         commentary,
-        links: otherLinks,
-        videoLinks,
+        links: mediaLinks,
         nonLinkMedia,
-        playableMedia,
         thumbnail,
         secondaryLine: date,
       };
@@ -214,10 +205,8 @@ export function normalizeCommit(
         meta: commit.publication.name,
         tags,
         commentary,
-        links: otherLinks,
-        videoLinks,
+        links: mediaLinks,
         nonLinkMedia,
-        playableMedia,
         thumbnail: thumbnail ? { ...thumbnail, linkUrl: commit.url } : undefined,
         secondaryLine: `${commit.publication.name} · ${date}`,
       };
@@ -228,7 +217,7 @@ export function normalizeCommit(
       const roleTitle = localize(commit.roleTitle, locale);
 
       // Build a website link if url exists
-      const roleLinks: SimpleLink[] = [...otherLinks];
+      const roleLinks: SimpleLink[] = [...mediaLinks];
       if (commit.url) {
         roleLinks.unshift({
           url: commit.url,
@@ -249,9 +238,7 @@ export function normalizeCommit(
         tags,
         commentary,
         links: roleLinks,
-        videoLinks,
         nonLinkMedia,
-        playableMedia,
         thumbnail: thumbnail
           ? { ...thumbnail, linkUrl: commit.url }
           : undefined,
@@ -271,7 +258,7 @@ export function normalizeCommit(
           icon: getPlatformIcon(commit.platform),
         });
       }
-      socialLinks.push(...otherLinks);
+      socialLinks.push(...mediaLinks);
 
       return {
         hash,
@@ -284,9 +271,7 @@ export function normalizeCommit(
         tags,
         commentary,
         links: socialLinks,
-        videoLinks,
         nonLinkMedia,
-        playableMedia,
         thumbnail: thumbnail ? { ...thumbnail, linkUrl: primaryUrl } : undefined,
         secondaryLine: `${commit.platform} · ${date}`,
       };
