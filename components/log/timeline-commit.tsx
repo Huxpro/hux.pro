@@ -50,8 +50,9 @@ export function TimelineCommit({
     <div
       id={data.hash}
       className={cn(
-        "group -mx-3 px-3 py-2.5 rounded-lg transition-colors duration-150 cursor-default",
-        "@container hover:bg-muted/10",
+        "group -mx-3 px-3 py-2.5 rounded-lg transition-colors duration-150",
+        hasExpandableContent ? "cursor-pointer" : "cursor-default",
+        "@container hover:bg-muted/20 active:bg-muted/30",
         className,
       )}
       onClick={() => hasExpandableContent && setIsExpanded(!isExpanded)}
@@ -71,23 +72,7 @@ export function TimelineCommit({
         {/* Primary row: title · [link-icons] ··· date */}
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-sm text-foreground min-w-0 flex-1">
-            {data.primaryUrl ? (
-              <a
-                href={data.primaryUrl}
-                target={data.primaryUrl.startsWith("/") ? undefined : "_blank"}
-                rel={
-                  data.primaryUrl.startsWith("/")
-                    ? undefined
-                    : "noopener noreferrer"
-                }
-                className="hover:underline decoration-1 underline-offset-4"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {data.title}
-              </a>
-            ) : (
-              data.title
-            )}
+            {data.title}
           </span>
 
           {/* Link indicators — icon-only in summary, icon+label when expanded */}
@@ -108,7 +93,7 @@ export function TimelineCommit({
               >
                 <LinkIcon icon={link.icon} />
                 {isExpanded && (
-                  <span className="text-xs">{link.label}</span>
+                  <span className="hidden @sm:inline text-xs">{link.label}</span>
                 )}
               </a>
             ))}
@@ -136,11 +121,13 @@ export function TimelineCommit({
             )}
 
             {data.nonLinkMedia.length > 0 && (
-              <MediaRenderer
-                media={data.nonLinkMedia}
-                layout="stack"
-                size="default"
-              />
+              <div onClick={(e) => e.stopPropagation()}>
+                <MediaRenderer
+                  media={data.nonLinkMedia}
+                  layout="stack"
+                  size="default"
+                />
+              </div>
             )}
 
             <Description text={data.description} isExpanded />

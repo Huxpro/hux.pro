@@ -194,7 +194,7 @@ function ScrambleIdentifier() {
 
 export default function Home() {
   return (
-    <main className="mx-auto max-w-[680px] px-6 pt-24 pb-32">
+    <main className="mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32">
       {/* System identifier with scramble effect */}
       <ScrambleIdentifier />
 

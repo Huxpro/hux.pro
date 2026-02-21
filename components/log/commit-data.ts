@@ -42,7 +42,6 @@ export interface NormalizedCommit {
   title: string;
   description: string;
   date: string;
-  primaryUrl?: string;
 
   // Type-derived metadata
   meta?: string;
@@ -120,7 +119,6 @@ function getPlatformIcon(platform: string): string {
 
 function deriveThumbnail(
   media: Media[],
-  primaryUrl?: string,
 ): { url: string; linkUrl?: string } | undefined {
   // Try video media first (YouTube thumbnails), then images
   for (const m of media) {
@@ -153,41 +151,50 @@ export function normalizeCommit(
   const date = formatCommitDate(commit, locale);
   const hash = computeCommitHash(commit.id);
   const tags = commit.tags ?? [];
-  const thumbnail = deriveThumbnail(media, undefined);
+  const thumbnail = deriveThumbnail(media);
 
   // Type-specific extraction
   switch (commit.type) {
     case "project": {
-      const primaryUrl = media.filter(isLinkMedia)[0]?.url;
+      const firstLinkUrl = media.filter(isLinkMedia)[0]?.url;
       return {
         hash,
         type: commit.type,
         title,
         description,
         date,
-        primaryUrl,
         tags,
         commentary,
         stats: commit.stats,
         links: mediaLinks,
         nonLinkMedia,
-        thumbnail: thumbnail ? { ...thumbnail, linkUrl: primaryUrl } : undefined,
+        thumbnail: thumbnail ? { ...thumbnail, linkUrl: firstLinkUrl } : undefined,
         secondaryLine: description,
       };
     }
 
     case "talk": {
+      // Add conference link if URL exists
+      const talkLinks: SimpleLink[] = [];
+      if (commit.conference.url) {
+        talkLinks.push({
+          url: commit.conference.url,
+          label: commit.conference.name,
+          icon: "globe",
+        });
+      }
+      talkLinks.push(...mediaLinks);
+
       return {
         hash,
         type: commit.type,
         title,
         description,
         date,
-        primaryUrl: commit.conference.url,
         meta: commit.conference.name,
         tags,
         commentary,
-        links: mediaLinks,
+        links: talkLinks,
         nonLinkMedia,
         thumbnail,
         secondaryLine: date,
@@ -195,17 +202,26 @@ export function normalizeCommit(
     }
 
     case "post": {
+      // Add post URL as a link
+      const postLinks: SimpleLink[] = [
+        {
+          url: commit.url,
+          label: commit.publication.name,
+          icon: "external",
+        },
+        ...mediaLinks,
+      ];
+
       return {
         hash,
         type: commit.type,
         title,
         description,
         date,
-        primaryUrl: commit.url,
         meta: commit.publication.name,
         tags,
         commentary,
-        links: mediaLinks,
+        links: postLinks,
         nonLinkMedia,
         thumbnail: thumbnail ? { ...thumbnail, linkUrl: commit.url } : undefined,
         secondaryLine: `${commit.publication.name} · ${date}`,
@@ -232,7 +248,6 @@ export function normalizeCommit(
         title: company,
         description,
         date,
-        primaryUrl: commit.url,
         meta: commit.location,
         subtitle: roleTitle,
         tags,
@@ -247,13 +262,13 @@ export function normalizeCommit(
     }
 
     case "social": {
-      const primaryUrl = media[0]?.url;
+      const socialPrimaryUrl = media[0]?.url;
 
       // Build platform link
       const socialLinks: SimpleLink[] = [];
-      if (primaryUrl) {
+      if (socialPrimaryUrl) {
         socialLinks.push({
-          url: primaryUrl,
+          url: socialPrimaryUrl,
           label: commit.platform,
           icon: getPlatformIcon(commit.platform),
         });
@@ -266,13 +281,12 @@ export function normalizeCommit(
         title,
         description,
         date,
-        primaryUrl,
         meta: commit.platform,
         tags,
         commentary,
         links: socialLinks,
         nonLinkMedia,
-        thumbnail: thumbnail ? { ...thumbnail, linkUrl: primaryUrl } : undefined,
+        thumbnail: thumbnail ? { ...thumbnail, linkUrl: socialPrimaryUrl } : undefined,
         secondaryLine: `${commit.platform} · ${date}`,
       };
     }

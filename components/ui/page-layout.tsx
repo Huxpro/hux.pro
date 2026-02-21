@@ -84,7 +84,7 @@ export function PageLayout({
   const currentText = isHovered ? hoverTitle : displayTitle;
 
   return (
-    <main className={cn("mx-auto max-w-[680px] px-6 pt-24 pb-32", className)}>
+    <main className={cn("mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32", className)}>
       {/* Back link - System UI */}
       <SystemNav href={backHref} path={backLabel} className="mb-16" />
 

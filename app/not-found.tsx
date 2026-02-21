@@ -85,7 +85,7 @@ export default function NotFound() {
   const { locale } = useLocale();
 
   return (
-    <main className="mx-auto max-w-[680px] px-6 pt-24 pb-32 min-h-screen flex flex-col justify-center">
+    <main className="mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32 min-h-screen flex flex-col justify-center">
       {/* 404 identifier with scramble effect */}
       <NotFoundIdentifier />
 
