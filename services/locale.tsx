@@ -33,6 +33,10 @@ export {
 // Manages current locale selection with localStorage persistence
 // =============================================================================
 
+function setLocaleCookie(locale: Locale): void {
+  document.cookie = `locale=${locale};path=/;max-age=31536000;SameSite=Lax`;
+}
+
 function getStoredLocale(): Locale {
   if (typeof window === "undefined") return defaultLocale;
   const stored = localStorage.getItem("locale");
@@ -44,12 +48,14 @@ function getStoredLocale(): Locale {
   const detectedLocale: Locale = browserLang.startsWith("zh") ? "zh" : "en";
   // Store the detected locale for future visits
   localStorage.setItem("locale", detectedLocale);
+  setLocaleCookie(detectedLocale);
   return detectedLocale;
 }
 
 function setStoredLocale(locale: Locale): void {
   if (typeof window === "undefined") return;
   localStorage.setItem("locale", locale);
+  setLocaleCookie(locale);
 }
 
 // =============================================================================

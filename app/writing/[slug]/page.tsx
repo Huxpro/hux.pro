@@ -1,7 +1,7 @@
-import { MDXRenderer } from "@/components/mdx-renderer";
 import { getBlogPostBySlug, getBlogSlugs } from "@/lib/mdx";
+import { defaultLocale } from "@/lib/i18n";
+import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
-import { BlogPostContent } from "./content";
 
 export function generateStaticParams() {
   const slugs = getBlogSlugs();
@@ -20,19 +20,8 @@ export default async function BlogPostPage({
     notFound();
   }
 
-  return (
-    <BlogPostContent
-      title={post.title}
-      titleZh={post.titleZh}
-      date={post.date}
-      language={post.language}
-      readingTime={post.readingTime}
-      readingTimeZh={post.readingTimeZh}
-    >
-      {{
-        en: post.content ? <MDXRenderer source={post.content} /> : null,
-        zh: post.contentZh ? <MDXRenderer source={post.contentZh} /> : null,
-      }}
-    </BlogPostContent>
-  );
+  // Redirect bare /writing/slug to /writing/slug/{locale}
+  // Middleware handles cookie-based locale preference;
+  // this is the fallback for direct static access
+  redirect(`/writing/${slug}/${defaultLocale}`);
 }

@@ -137,7 +137,7 @@ export function getAlternateLangLabel<T extends LocalizedContent>(
 }
 
 /**
- * Get the href for a post, including ?lang= for bilingual posts
+ * Get the href for a post with route-based locale suffix
  */
 export function getPostHref<T extends LocalizedContent>(
   post: T,
@@ -145,25 +145,10 @@ export function getPostHref<T extends LocalizedContent>(
   basePath: string
 ): string {
   const base = `${basePath}/${post.slug}`;
-  // Bilingual posts include ?lang= so URL is source of truth
+  // Bilingual posts: use the viewer's locale
   if (post.language === "both") {
-    return `${base}?lang=${locale}`;
+    return `${base}/${locale}`;
   }
-  return base;
-}
-
-/**
- * Resolve display locale for a post based on URL and system preference
- */
-export function resolveDisplayLocale(
-  urlLang: Locale | null,
-  systemLocale: Locale,
-  postLanguage: PostLanguage
-): Locale {
-  // Single-language posts: always use that language
-  if (postLanguage === "en") return "en";
-  if (postLanguage === "zh") return "zh";
-
-  // Bilingual posts: URL param takes precedence, then system locale
-  return urlLang ?? systemLocale;
+  // Single-language posts: link directly to the post's language
+  return `${base}/${post.language}`;
 }
