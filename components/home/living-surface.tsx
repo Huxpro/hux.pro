@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, t } from "@/services";
-import { getLocalizedDescription, getLocalizedTitle } from "@/lib/content";
+import { getLocalizedDescription, getLocalizedTitle, getPostHref } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -18,7 +18,7 @@ export function LivingSurface() {
   return (
     <div className="w-full max-w-md mx-auto my-12 animate-in slide-in-from-bottom-4 fade-in duration-1000 delay-300">
       <Link
-        href={`/writing/${latestPost.slug}`}
+        href={getPostHref(latestPost, locale, "/writing")}
         className={cn(
           "block p-6 rounded-2xl",
           "bg-card/50 backdrop-blur-sm border border-border/40",
