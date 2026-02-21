@@ -102,7 +102,7 @@ export function PostList<T extends Post>({
                   <div className="flex items-center gap-3">
                     <h2
                       className={cn(
-                        "text-base font-normal transition-colors duration-200",
+                        "text-sm sm:text-base font-normal transition-colors duration-200",
                         isHovered ? "text-foreground" : "text-foreground"
                       )}
                     >
