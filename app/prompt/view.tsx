@@ -103,9 +103,10 @@ function QuoteItem({ quote }: { quote: Quote }) {
   return (
     <div
       className={cn(
-        "group py-3 cursor-pointer transition-colors duration-200",
+        "prompt-item group py-3 cursor-pointer transition-colors duration-200",
         "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg"
       )}
+      {...(isExpanded ? { "data-expanded": "" } : {})}
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="flex items-center gap-2">
@@ -195,9 +196,10 @@ function PrincipleItem({
   return (
     <div
       className={cn(
-        "group py-3 cursor-pointer transition-colors duration-200",
+        "prompt-item group py-3 cursor-pointer transition-colors duration-200",
         "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg"
       )}
+      {...(isExpanded ? { "data-expanded": "" } : {})}
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="flex items-center gap-2">
@@ -283,9 +285,10 @@ function PersonItem({ person }: { person: Person }) {
   return (
     <div
       className={cn(
-        "group py-3 cursor-pointer transition-colors duration-200",
+        "prompt-item group py-3 cursor-pointer transition-colors duration-200",
         "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg"
       )}
+      {...(isExpanded ? { "data-expanded": "" } : {})}
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="flex items-center gap-2">

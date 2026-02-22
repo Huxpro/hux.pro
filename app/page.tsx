@@ -4,6 +4,7 @@ import {
   HStackWidget,
   VStackWidget,
 } from "@/components/home/featured-stack-widget";
+import { PromptWidget } from "@/components/home/prompt-widget";
 import { Commit } from "@/components/log";
 import { RoleCompact } from "@/components/log/embeds";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
@@ -140,6 +141,7 @@ function WidgetGrid() {
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-16">
       <div className="space-y-4">
         <BlogStackWidget />
+        <PromptWidget />
         {leftGroups.map((group) => (
           <GroupWidget key={group.id} group={group} />
         ))}

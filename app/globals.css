@@ -552,3 +552,37 @@
     animation: none !important;
   }
 }
+
+/* =============================================================================
+   Scroll-Driven Spotlight for Prompt Items
+   =============================================================================
+   Uses CSS scroll-driven animations (animation-timeline: view()) to dim
+   items near the viewport edges and spotlight the one near the center.
+   Gracefully degrades to full opacity in unsupported browsers.
+   ============================================================================= */
+
+@keyframes prompt-spotlight {
+  0%,
+  100% {
+    opacity: 0.05;
+  }
+  45%,
+  55% {
+    opacity: 1;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .prompt-item {
+    animation: prompt-spotlight linear both;
+    animation-timeline: view();
+  }
+
+  /* Hover / focus-within / expanded override: immediately reveal */
+  .prompt-item:hover,
+  .prompt-item:focus-within,
+  .prompt-item[data-expanded] {
+    animation: none;
+    opacity: 1 !important;
+  }
+}
