@@ -96,7 +96,11 @@ export function PageLayout({
         className
       )}
     >
-      <HeaderZone>
+      <HeaderZone
+        heightClassName={
+          variant === "reader" ? "min-h-44 sm:min-h-56" : undefined
+        }
+      >
         <div className="h-11 flex items-start">
           <SystemNav href={backHref} path={backLabel} />
         </div>
