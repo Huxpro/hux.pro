@@ -586,3 +586,42 @@
     opacity: 1 !important;
   }
 }
+
+/* =============================================================================
+   Hero Zone Fade (CSS Scroll-Driven)
+   ============================================================================= */
+
+@keyframes hero-zone-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .hero-zone-fade {
+    animation-name: hero-zone-fade;
+    animation-duration: 1ms;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    animation-timeline: scroll(root block);
+    /* Mobile header-zone default height (h-44 = 11rem) */
+    animation-range: 0 11rem;
+  }
+
+  @media (min-width: 768px) {
+    .hero-zone-fade {
+      /* Desktop: slightly faster fade than full zone (sm:h-56 = 14rem) */
+      animation-range: 0 9rem;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-zone-fade {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}

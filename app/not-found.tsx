@@ -1,6 +1,7 @@
 "use client";
 
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
+import { TITLE_POETIC } from "@/components/ui/header-zone";
 import { useLocale, t } from "@/services";
 import { cn } from "@/lib/utils";
 import { Link } from "next-view-transitions";
@@ -85,14 +86,13 @@ export default function NotFound() {
   const { locale } = useLocale();
 
   return (
-    <main className="mx-auto max-w-[680px] px-6 pt-6 sm:pt-24 pb-32 min-h-screen flex flex-col justify-center">
+    <main className="mx-auto max-w-[680px] px-6 pt-12 sm:pt-24 pb-32 sm:pb-40 min-h-screen flex flex-col justify-center">
       {/* 404 identifier with scramble effect */}
       <NotFoundIdentifier />
 
       {/* 404 Message - Hux speaking to the user */}
       <div className="text-center mb-16">
-        {/* The main message - using homepage serif typography */}
-        <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
+        <h1 className={`${TITLE_POETIC} text-foreground`}>
           {t(locale, "notFoundMessage")}
         </h1>
 

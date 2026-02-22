@@ -1,6 +1,7 @@
 "use client";
 
 import { HeaderZone } from "@/components/ui/header-zone";
+import { TITLE_POETIC, TITLE_READER } from "@/components/ui/header-zone";
 import { SystemNav } from "@/components/ui/system-nav";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,7 @@ import {
 } from "@/lib/i18n";
 import { useLocale } from "@/services";
 import { useState, type ReactNode } from "react";
+import { useHeroFade } from "./use-hero-fade";
 
 interface PageLayoutProps {
   /**
@@ -30,8 +32,10 @@ interface PageLayoutProps {
   backHref?: string;
   /** Back navigation label, defaults to "λhux" */
   backLabel?: string;
-  /** Content rendered between header and children (e.g., language filter) */
+  /** Content rendered below the title (e.g., meta row, language filter) */
   headerActions?: ReactNode;
+  /** Title typography variant */
+  variant?: "poetic" | "reader";
   /** Additional className for the main element */
   className?: string;
   /** Page content */
@@ -62,65 +66,97 @@ export function PageLayout({
   backHref = "/",
   backLabel = "λhux",
   headerActions,
+  variant = "poetic",
   className,
   children,
 }: PageLayoutProps) {
   const { locale } = useLocale();
   const [isHovered, setIsHovered] = useState(false);
+  const heroFadeStyle = useHeroFade();
 
-  // Determine if we're using scramble mode (page prop) or static mode (title prop)
   const useScramble = !!page;
 
-  // Get title and hover text from translations if using page prop
   const titleKey = page ? (`${page}Title` as TranslationKey) : undefined;
   const hoverKey = page ? (`${page}TitleHover` as TranslationKey) : undefined;
 
   const displayTitle = titleKey ? t(locale, titleKey) : title ?? "";
   const hoverTitle = hoverKey ? t(locale, hoverKey) : displayTitle;
 
-  // Get character set for scramble animation
   const characterSet = getScrambleCharacterSet(locale, page);
 
-  // Display text switches on hover
   const currentText = isHovered ? hoverTitle : displayTitle;
+  const titleClassName = cn(
+    "text-foreground",
+    variant === "reader" ? TITLE_READER : TITLE_POETIC,
+    useScramble && "cursor-default"
+  );
+
+  const titleJsx = (
+    <header
+      onMouseEnter={() => useScramble && setIsHovered(true)}
+      onMouseLeave={() => useScramble && setIsHovered(false)}
+    >
+      {useScramble ? (
+        <TextScramble
+          as="h1"
+          duration={0.5}
+          speed={0.03}
+          characterSet={characterSet}
+          className={titleClassName}
+        >
+          {currentText}
+        </TextScramble>
+      ) : (
+        <h1 className={titleClassName}>{displayTitle}</h1>
+      )}
+    </header>
+  );
 
   return (
-    <main className={cn("mx-auto max-w-[680px] px-6 pt-6 sm:pt-24 pb-32", className)}>
-      <HeaderZone>
-        <div className="h-11 flex items-start">
-          <SystemNav href={backHref} path={backLabel} />
-        </div>
-
-        <div className="flex-1 flex flex-col justify-center">
-          <div className="relative">
-            <header
-              onMouseEnter={() => useScramble && setIsHovered(true)}
-              onMouseLeave={() => useScramble && setIsHovered(false)}
-            >
-              {useScramble ? (
-                <TextScramble
-                  as="h1"
-                  duration={0.5}
-                  speed={0.03}
-                  characterSet={characterSet}
-                  className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight cursor-default"
-                >
-                  {currentText}
-                </TextScramble>
-              ) : (
-                <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
-                  {displayTitle}
-                </h1>
-              )}
-            </header>
-            {headerActions && (
-              <div className="absolute left-0 top-full mt-4">{headerActions}</div>
-            )}
+    <main
+      className={cn(
+        "mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32 sm:pb-40",
+        className
+      )}
+    >
+      {variant === "reader" ? (
+        <>
+          <div className="mb-12 sm:mb-14">
+            <SystemNav href={backHref} path={backLabel} className="mb-8 sm:mb-12" />
+            {titleJsx}
+            {headerActions && <div className="mt-4">{headerActions}</div>}
           </div>
-        </div>
-      </HeaderZone>
+          {children}
+        </>
+      ) : (
+        <>
+          <HeaderZone
+            className="hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
+            style={heroFadeStyle}
+          >
+            <div className="h-11 flex items-start">
+              <SystemNav href={backHref} path={backLabel} />
+            </div>
+            <div
+              className={cn(
+                "flex-1 flex flex-col justify-center",
+                headerActions && "pb-6 sm:pb-4"
+              )}
+            >
+              <div className="relative">
+                {titleJsx}
+                {headerActions && (
+                  <div className="absolute left-0 top-full w-max mt-2">
+                    {headerActions}
+                  </div>
+                )}
+              </div>
+            </div>
+          </HeaderZone>
+          <div className="relative z-20">{children}</div>
+        </>
+      )}
 
-      {children}
     </main>
   );
 }

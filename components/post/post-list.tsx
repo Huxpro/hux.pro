@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { MagneticContent } from "@/components/motion-primitives/magnetic-content";
 import { Link } from "next-view-transitions";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 interface LanguageFilterProps {
   includeOther: boolean;
@@ -27,14 +27,14 @@ export function LanguageFilter({
   const { locale } = useLocale();
 
   return (
-    <div className="flex items-center gap-1">
+    <span className="inline-flex items-center gap-0.5 font-mono text-xs select-none">
       <button
         onClick={() => setIncludeOther(false)}
         className={cn(
-          "px-2.5 py-1 text-xs font-mono rounded-md transition-colors",
+          "px-2 py-1 rounded transition-colors duration-200",
           !includeOther
-            ? "bg-foreground/10 text-foreground"
-            : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+            ? "bg-foreground/5 text-muted-foreground"
+            : "text-muted-foreground/40 hover:text-muted-foreground/60"
         )}
       >
         {locale === "en" ? "EN" : "中文"}
@@ -42,15 +42,15 @@ export function LanguageFilter({
       <button
         onClick={() => setIncludeOther(true)}
         className={cn(
-          "px-2.5 py-1 text-xs font-mono rounded-md transition-colors",
+          "px-2 py-1 rounded transition-colors duration-200",
           includeOther
-            ? "bg-foreground/10 text-foreground"
-            : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+            ? "bg-foreground/5 text-muted-foreground"
+            : "text-muted-foreground/40 hover:text-muted-foreground/60"
         )}
       >
         {t(locale, "allLanguages")}
       </button>
-    </div>
+    </span>
   );
 }
 
@@ -80,6 +80,7 @@ export function PostList<T extends Post>({
   renderMeta,
 }: PostListProps<T>) {
   const { locale } = useLocale();
+  const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
 
   const filteredPosts = posts.filter((post) =>
     shouldShowPost(post, locale, includeOther)
@@ -91,6 +92,7 @@ export function PostList<T extends Post>({
         {filteredPosts.map((post) => {
           const altLang = getAlternateLangLabel(post, locale);
           const description = getLocalizedDescription(post, locale);
+          const isHovered = hoveredSlug === post.slug;
           const showLangTag =
             includeOther &&
             post.language !== "both" &&
@@ -111,7 +113,12 @@ export function PostList<T extends Post>({
           );
 
           return (
-            <article key={post.slug} className="group relative">
+            <article
+              key={post.slug}
+              className="group relative"
+              onMouseEnter={() => setHoveredSlug(post.slug)}
+              onMouseLeave={() => setHoveredSlug(null)}
+            >
               <MagneticContent
                 content={cursorContent}
                 enabled={!!description}
@@ -119,22 +126,48 @@ export function PostList<T extends Post>({
               >
                 <Link
                   href={getPostHref(post, locale, basePath)}
-                  className="flex items-baseline justify-between gap-4 py-3 sm:py-4 -mx-4 px-4 rounded-lg transition-all duration-200 hover:bg-muted/50"
+                  className={cn(
+                    "flex items-baseline justify-between gap-4 py-3 sm:py-4 -mx-4 px-4 rounded-lg transition-all duration-200",
+                    isHovered && "bg-muted/50"
+                  )}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3">
-                      <h2 className="text-sm sm:text-base font-normal text-foreground">
-                        {getLocalizedTitle(post, locale)}
-                      </h2>
+                    <h2
+                      className={cn(
+                        "text-sm sm:text-base font-normal transition-colors duration-200",
+                        isHovered ? "text-foreground" : "text-foreground"
+                      )}
+                    >
+                      {getLocalizedTitle(post, locale)}
                       {showLangTag && (
-                        <span className="px-1.5 py-0.5 text-xs font-mono bg-foreground/10 text-muted-foreground rounded shrink-0">
+                        <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
                           {post.language === "en" ? "EN" : "中文"}
                         </span>
+                      )}
+                    </h2>
+
+                    <div
+                      className={cn(
+                        "overflow-hidden transition-all duration-300 ease-out",
+                        isHovered
+                          ? "max-h-24 opacity-100 mt-2"
+                          : "max-h-0 opacity-0 mt-0"
+                      )}
+                    >
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {description}
+                      </p>
+                      {altLang && (
+                        <p className="mt-1.5 text-xs text-muted-foreground">
+                          {t(locale, "alsoIn")}{" "}
+                          <span className="text-foreground/80">
+                            {altLang.label}
+                          </span>
+                        </p>
                       )}
                     </div>
                   </div>
 
-                  {/* Meta (date or reading time) */}
                   <span className="font-mono text-xs text-muted-foreground shrink-0">
                     {renderMeta
                       ? renderMeta(post)

@@ -17,7 +17,6 @@ interface BlogPostContentProps {
   children: ReactNode;
 }
 
-// Format date like "oct 2024"
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
   return date
@@ -38,7 +37,6 @@ export function BlogPostContent({
   const { recordVisit } = useVisitor();
   const hasRecordedVisit = useRef(false);
 
-  // Handle visit recording
   const handleMount = (slug: string, postTitle: string) => {
     if (!hasRecordedVisit.current) {
       hasRecordedVisit.current = true;
