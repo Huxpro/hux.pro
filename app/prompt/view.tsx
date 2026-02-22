@@ -67,7 +67,7 @@ function XmlTag({
     <span
       className={cn(
         "font-mono text-xs text-muted-foreground/60 select-none transition-opacity duration-200",
-        className
+        className,
       )}
     >
       {closing ? "</" : "<"}
@@ -104,7 +104,7 @@ function QuoteItem({ quote }: { quote: Quote }) {
     <div
       className={cn(
         "prompt-item group py-3 cursor-pointer transition-colors duration-200",
-        "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg"
+        "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg",
       )}
       {...(isExpanded ? { "data-expanded": "" } : {})}
       onClick={() => setIsExpanded(!isExpanded)}
@@ -113,7 +113,7 @@ function QuoteItem({ quote }: { quote: Quote }) {
         <XmlTag
           className={cn(
             "opacity-0 group-hover:opacity-100",
-            isExpanded && "opacity-100"
+            isExpanded && "opacity-100",
           )}
         >
           quote
@@ -122,7 +122,7 @@ function QuoteItem({ quote }: { quote: Quote }) {
           <motion.span
             className={cn(
               "text-muted-foreground/40 text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-              isExpanded && "opacity-100"
+              isExpanded && "opacity-100",
             )}
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
@@ -171,7 +171,7 @@ function QuoteItem({ quote }: { quote: Quote }) {
         closing
         className={cn(
           "opacity-0 group-hover:opacity-100",
-          isExpanded && "opacity-100"
+          isExpanded && "opacity-100",
         )}
       >
         quote
@@ -197,7 +197,7 @@ function PrincipleItem({
     <div
       className={cn(
         "prompt-item group py-3 cursor-pointer transition-colors duration-200",
-        "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg"
+        "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg",
       )}
       {...(isExpanded ? { "data-expanded": "" } : {})}
       onClick={() => setIsExpanded(!isExpanded)}
@@ -207,7 +207,7 @@ function PrincipleItem({
           attributes={attributes}
           className={cn(
             "opacity-0 group-hover:opacity-100",
-            isExpanded && "opacity-100"
+            isExpanded && "opacity-100",
           )}
         >
           belief
@@ -216,7 +216,7 @@ function PrincipleItem({
           <motion.span
             className={cn(
               "text-muted-foreground/40 text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-              isExpanded && "opacity-100"
+              isExpanded && "opacity-100",
             )}
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
@@ -267,7 +267,7 @@ function PrincipleItem({
         closing
         className={cn(
           "opacity-0 group-hover:opacity-100",
-          isExpanded && "opacity-100"
+          isExpanded && "opacity-100",
         )}
       >
         belief
@@ -286,7 +286,7 @@ function PersonItem({ person }: { person: Person }) {
     <div
       className={cn(
         "prompt-item group py-3 cursor-pointer transition-colors duration-200",
-        "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg"
+        "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg",
       )}
       {...(isExpanded ? { "data-expanded": "" } : {})}
       onClick={() => setIsExpanded(!isExpanded)}
@@ -295,7 +295,7 @@ function PersonItem({ person }: { person: Person }) {
         <XmlTag
           className={cn(
             "opacity-0 group-hover:opacity-100",
-            isExpanded && "opacity-100"
+            isExpanded && "opacity-100",
           )}
         >
           person
@@ -304,7 +304,7 @@ function PersonItem({ person }: { person: Person }) {
           <motion.span
             className={cn(
               "text-muted-foreground/40 text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-              isExpanded && "opacity-100"
+              isExpanded && "opacity-100",
             )}
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
@@ -382,7 +382,7 @@ function PersonItem({ person }: { person: Person }) {
         closing
         className={cn(
           "opacity-0 group-hover:opacity-100",
-          isExpanded && "opacity-100"
+          isExpanded && "opacity-100",
         )}
       >
         person
@@ -437,12 +437,10 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
   };
 
   return (
-    <PageLayout page="prompts">
+    <PageLayout page="prompts" headerActions={<XmlTag>system</XmlTag>}>
       {/* System wrapper */}
-      <div className="relative">
-        <XmlTag>system</XmlTag>
-
-        <div className="py-4 space-y-2">
+      <div className="relative -mt-4">
+        <div className="pb-4 space-y-2">
           {/* Quotes */}
           {data.quotes.map((quote) => (
             <QuoteItem key={quote.id} quote={quote} />

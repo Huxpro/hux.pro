@@ -26,14 +26,14 @@ export function LanguageFilter({
   const { locale } = useLocale();
 
   return (
-    <div className="flex items-center gap-1">
+    <span className="inline-flex items-center gap-0.5 font-mono text-xs select-none">
       <button
         onClick={() => setIncludeOther(false)}
         className={cn(
-          "px-2.5 py-1 text-xs font-mono rounded-md transition-colors",
+          "px-2 py-1 rounded transition-colors duration-200",
           !includeOther
-            ? "bg-foreground/10 text-foreground"
-            : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+            ? "bg-foreground/5 text-muted-foreground"
+            : "text-muted-foreground/40 hover:text-muted-foreground/60"
         )}
       >
         {locale === "en" ? "EN" : "中文"}
@@ -41,15 +41,15 @@ export function LanguageFilter({
       <button
         onClick={() => setIncludeOther(true)}
         className={cn(
-          "px-2.5 py-1 text-xs font-mono rounded-md transition-colors",
+          "px-2 py-1 rounded transition-colors duration-200",
           includeOther
-            ? "bg-foreground/10 text-foreground"
-            : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+            ? "bg-foreground/5 text-muted-foreground"
+            : "text-muted-foreground/40 hover:text-muted-foreground/60"
         )}
       >
         {t(locale, "allLanguages")}
       </button>
-    </div>
+    </span>
   );
 }
 
@@ -111,22 +111,19 @@ export function PostList<T extends Post>({
                 )}
               >
                 <div className="flex-1 min-w-0">
-                  {/* Title row */}
-                  <div className="flex items-center gap-3">
-                    <h2
-                      className={cn(
-                        "text-sm sm:text-base font-normal transition-colors duration-200",
-                        isHovered ? "text-foreground" : "text-foreground"
-                      )}
-                    >
-                      {getLocalizedTitle(post, locale)}
-                    </h2>
+                  <h2
+                    className={cn(
+                      "text-sm sm:text-base font-normal transition-colors duration-200",
+                      isHovered ? "text-foreground" : "text-foreground"
+                    )}
+                  >
+                    {getLocalizedTitle(post, locale)}
                     {showLangTag && (
-                      <span className="px-1.5 py-0.5 text-xs font-mono bg-foreground/10 text-muted-foreground rounded shrink-0">
+                      <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
                         {post.language === "en" ? "EN" : "中文"}
                       </span>
                     )}
-                  </div>
+                  </h2>
 
                   {/* Hover content: description and also-in */}
                   <div

@@ -3,6 +3,7 @@
 import { PageLayout } from "@/components/ui/page-layout";
 import { LogTimeline } from "@/components/log/log-timeline";
 import { t, useLocale } from "@/services";
+import { GitBranch } from "lucide-react";
 import type { Tag, Commit } from "@/lib/log";
 
 interface WorksViewProps {
@@ -16,7 +17,15 @@ export function WorksView({ data }: WorksViewProps) {
   const { locale } = useLocale();
 
   return (
-    <PageLayout page="works">
+    <PageLayout
+      page="works"
+      headerActions={
+        <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground/60">
+          <GitBranch className="h-3.5 w-3.5" />
+          <span>main</span>
+        </span>
+      }
+    >
       {/* Git Log Timeline */}
       <LogTimeline data={data} locale={locale} />
 
