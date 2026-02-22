@@ -7,6 +7,8 @@ import {
 import { PromptWidget } from "@/components/home/prompt-widget";
 import { Commit } from "@/components/log";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
+import { HeaderZone } from "@/components/ui/header-zone";
+import { useHeroFade } from "@/components/ui/use-hero-fade";
 import {
   WidgetBody,
   WidgetHeader,
@@ -18,15 +20,18 @@ import {
 import logData from "@/content/log.json";
 import { getLocalizedTitle, getPostHref } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
-import type { Commit as CommitData, Group, LogData, RoleCommit } from "@/lib/log";
+import type {
+  Commit as CommitData,
+  Group,
+  LogData,
+  RoleCommit,
+} from "@/lib/log";
 import {
   isCommitListed,
   isRoleCommit,
   localize,
   resolveGroupCommits,
 } from "@/lib/log";
-import { HeaderZone } from "@/components/ui/header-zone";
-import { useHeroFade } from "@/components/ui/use-hero-fade";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { AmbientGreeting, WeatherWidget } from "@/systems/ambient";
@@ -139,7 +144,7 @@ function WidgetGrid() {
   const rightGroups = groups.filter((group) => group.column !== "left");
 
   return (
-    <div className="relative z-20 grid grid-cols-1 sm:grid-cols-2 gap-4 mb-16">
+    <div className="relative z-20 grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 sm:pt-4 mb-16">
       <div className="space-y-4">
         <BlogStackWidget />
         <PromptWidget />
@@ -200,9 +205,9 @@ export default function Home() {
   const heroFadeStyle = useHeroFade();
 
   return (
-    <main className="mx-auto max-w-[680px] px-6 pt-12 sm:pt-24 pb-32 sm:pb-40">
+    <main className="mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32 sm:pb-40">
       <HeaderZone
-        className="hero-zone-fade sticky top-12 sm:top-24 z-10"
+        className="hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
         style={heroFadeStyle}
       >
         <div className="h-11 flex items-start justify-center">

@@ -115,7 +115,7 @@ export function PageLayout({
   return (
     <main
       className={cn(
-        "mx-auto max-w-[680px] px-6 pt-12 sm:pt-24 pb-32 sm:pb-40",
+        "mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32 sm:pb-40",
         className
       )}
     >
@@ -131,7 +131,7 @@ export function PageLayout({
       ) : (
         <>
           <HeaderZone
-            className="hero-zone-fade sticky top-12 sm:top-24 z-10"
+            className="hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
             style={heroFadeStyle}
           >
             <div className="h-11 flex items-start">

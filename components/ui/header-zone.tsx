@@ -24,7 +24,7 @@ interface HeaderZoneProps {
  */
 export function HeaderZone({
   children,
-  heightClassName = "h-44 sm:h-56",
+  heightClassName = "h-44 sm:h-48",
   className,
   style,
 }: HeaderZoneProps) {
