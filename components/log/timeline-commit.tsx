@@ -76,6 +76,7 @@ export function TimelineCommit({
         content={cursorPreview ?? null}
         onClick={rowOnClick}
         enabled={showCursorPreview}
+        hideNativeCursor={false}
         className={cn(
           "group -mx-3 px-3 py-2.5 rounded-lg transition-colors duration-150",
           rowOnClick ? "cursor-pointer" : "cursor-default",

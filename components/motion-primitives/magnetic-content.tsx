@@ -15,6 +15,8 @@ export interface MagneticContentProps {
   onClick?: (e: React.MouseEvent) => void;
   /** Whether to show the magnetic cursor (default: true). Click/href behavior is unaffected. */
   enabled?: boolean;
+  /** Whether to hide native cursor on hover when magnetic content is shown (default: true). */
+  hideNativeCursor?: boolean;
   /** Additional className for the wrapper */
   className?: string;
   /** Additional className for the cursor panel */
@@ -44,6 +46,7 @@ export function MagneticContent({
   external = true,
   onClick,
   enabled = true,
+  hideNativeCursor = true,
   className,
   cursorClassName,
   children,
@@ -77,7 +80,8 @@ export function MagneticContent({
     </>
   );
 
-  const cursorHideClass = showCursor ? "[&:hover]:cursor-none" : "";
+  const cursorHideClass =
+    showCursor && hideNativeCursor ? "[&:hover]:cursor-none" : "";
 
   // onClick takes priority over href
   if (onClick) {

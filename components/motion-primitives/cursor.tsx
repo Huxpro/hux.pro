@@ -16,6 +16,8 @@ export type CursorProps = {
   children: React.ReactNode;
   className?: string;
   springConfig?: SpringOptions;
+  /** Pixel offset from pointer to avoid covering hovered text/content */
+  offset?: { x: number; y: number };
   attachToParent?: boolean;
   transition?: Transition;
   variants?: {
@@ -30,6 +32,7 @@ export function Cursor({
   children,
   className,
   springConfig,
+  offset = { x: 16, y: 16 },
   attachToParent,
   variants,
   transition,
@@ -71,12 +74,18 @@ export function Cursor({
 
     // Check if mouse is already inside the parent (e.g. after re-mount or prop change)
     const isInside = parent.matches(":hover");
-    if (isInside) setIsHovering(true);
+    let rafId: number | null = null;
+    if (isInside) {
+      rafId = window.requestAnimationFrame(() => setIsHovering(true));
+    }
 
     parent.addEventListener("mouseenter", handleMouseEnter);
     parent.addEventListener("mouseleave", handleMouseLeave);
 
     return () => {
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
       parent.removeEventListener("mouseenter", handleMouseEnter);
       parent.removeEventListener("mouseleave", handleMouseLeave);
     };
@@ -91,8 +100,8 @@ export function Cursor({
       style={{
         x: cursorXSpring,
         y: cursorYSpring,
-        translateX: "-50%",
-        translateY: "-50%",
+        translateX: `${offset.x}px`,
+        translateY: `${offset.y}px`,
       }}
     >
       <AnimatePresence>
