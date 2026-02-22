@@ -85,9 +85,11 @@ export function PageLayout({
   const currentText = isHovered ? hoverTitle : displayTitle;
 
   return (
-    <main className={cn("mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32", className)}>
+    <main className={cn("mx-auto max-w-[680px] px-6 pt-6 sm:pt-24 pb-32", className)}>
       <HeaderZone>
-        <SystemNav href={backHref} path={backLabel} />
+        <div className="h-11 flex items-start">
+          <SystemNav href={backHref} path={backLabel} />
+        </div>
 
         <div className="flex-1 flex flex-col justify-center">
           <div className="relative">

@@ -11,9 +11,8 @@ interface HeaderZoneProps {
  *
  * Enforces a stable content-start position across all index/list pages
  * and the home page. Children should structure themselves as:
- * 1. Nav element at top (auto height)
- * 2. Title area using `flex-1 flex flex-col justify-center pb-12`
- *    for optical vertical centering (~40-45% from top)
+ * 1. A fixed-height top slot (e.g. nav/system identifier)
+ * 2. A `flex-1` title area centered vertically
  */
 export function HeaderZone({ children, className }: HeaderZoneProps) {
   return (

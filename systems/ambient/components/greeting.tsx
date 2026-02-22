@@ -59,7 +59,7 @@ export function AmbientGreeting() {
         {timeGreeting}
       </h1>
       {contextMessage && (
-        <p className="absolute left-0 right-0 top-full mt-3 text-base sm:text-lg leading-relaxed">
+        <p className="absolute left-0 right-0 top-full text-sm sm:text-base leading-relaxed">
           {contextMessage}
         </p>
       )}

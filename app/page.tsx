@@ -195,9 +195,11 @@ function ScrambleIdentifier() {
 
 export default function Home() {
   return (
-    <main className="mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32">
+    <main className="mx-auto max-w-[680px] px-6 pt-6 sm:pt-24 pb-32">
       <HeaderZone>
-        <ScrambleIdentifier />
+        <div className="h-11 flex items-start justify-center">
+          <ScrambleIdentifier />
+        </div>
         <div className="flex-1 flex flex-col items-center justify-center">
           <AmbientGreeting />
         </div>
