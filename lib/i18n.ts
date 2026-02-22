@@ -58,16 +58,16 @@ export const translations = {
     navigateHint: "to navigate anywhere",
 
     // Homepage - AI-Native OS Voice
-    greetingMorning: "good morning.",
-    greetingAfternoon: "good afternoon.",
-    greetingEvening: "good evening.",
-    greetingNight: "good night.",
-    greetingSunrise: "the sun is rising.",
-    greetingSunset: "the sun is setting.",
-    greetingWelcomeBack: "welcome back.",
-    greetingLongTime: "it's been a while.",
-    greetingLastReading: "last time you were reading",
-    greetingWhatsNew: "here's what's new.",
+    greetingMorning: "Good Morning",
+    greetingAfternoon: "Good Afternoon",
+    greetingEvening: "Good Evening",
+    greetingNight: "Good Night",
+    greetingSunrise: "Sun Is Rising",
+    greetingSunset: "Sun Is Setting",
+    greetingWelcomeBack: "Welcome Back",
+    greetingLongTime: "It's Been A While",
+    greetingLastReading: "Last Read",
+    greetingWhatsNew: "Here's What's New",
     promptPlaceholder: "What brings you to here?",
     searchMobile: "Search",
     searchDesktop: "Search or / for commands",
@@ -77,6 +77,7 @@ export const translations = {
     widgetTalks: "/productions",
     widgetStatus: "processing",
     widgetWeather: "weather",
+    widgetPrompt: "/prompts",
     widgetViewAll: "view all",
 
     // Ambient (location / weather)
@@ -215,6 +216,7 @@ export const translations = {
     widgetTalks: "/作品",
     widgetStatus: "处理中",
     widgetWeather: "天气",
+    widgetPrompt: "/提示词",
     widgetViewAll: "查看全部",
 
     // Ambient (location / weather)

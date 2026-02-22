@@ -1,6 +1,6 @@
 "use client";
 
-import { getLocalizedDescription, getLocalizedTitle } from "@/lib/content";
+import { getLocalizedDescription, getLocalizedTitle, getPostHref } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { localeNames, t, useLocale, useTheme } from "@/services";
@@ -736,7 +736,7 @@ export function CommandPalette() {
                         "article",
                         "文章",
                       ].filter(Boolean)}
-                      onSelect={() => handleNavigation(`/writing/${post.slug}`)}
+                      onSelect={() => handleNavigation(getPostHref(post, locale, "/writing"))}
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                         "text-sm cursor-pointer transition-colors",

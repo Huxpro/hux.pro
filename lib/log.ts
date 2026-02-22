@@ -407,6 +407,23 @@ export function formatTagDateRange(tag: Tag, locale: Locale): string {
 }
 
 // =============================================================================
+// Commit Hash
+// =============================================================================
+
+/**
+ * Compute a 7-character hex hash from a commit's id.
+ * Uses djb2 hashing — deterministic, stable, and visually git-like.
+ * The id is the canonical key so the hash won't change when content is edited.
+ */
+export function computeCommitHash(commitId: string): string {
+  let hash = 5381;
+  for (let i = 0; i < commitId.length; i++) {
+    hash = ((hash << 5) + hash + commitId.charCodeAt(i)) & 0xffffffff;
+  }
+  return (hash >>> 0).toString(16).padStart(7, "0").slice(0, 7);
+}
+
+// =============================================================================
 // Commit Type Helpers
 // =============================================================================
 

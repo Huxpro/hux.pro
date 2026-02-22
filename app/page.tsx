@@ -4,8 +4,8 @@ import {
   HStackWidget,
   VStackWidget,
 } from "@/components/home/featured-stack-widget";
+import { PromptWidget } from "@/components/home/prompt-widget";
 import { Commit } from "@/components/log";
-import { RoleCompact } from "@/components/log/embeds";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import {
   WidgetBody,
@@ -16,7 +16,7 @@ import {
   WidgetTitle,
 } from "@/components/ui/widget";
 import logData from "@/content/log.json";
-import { getLocalizedTitle } from "@/lib/content";
+import { getLocalizedTitle, getPostHref } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
 import type { Commit as CommitData, Group, LogData, RoleCommit } from "@/lib/log";
 import {
@@ -25,6 +25,7 @@ import {
   localize,
   resolveGroupCommits,
 } from "@/lib/log";
+import { HeaderZone } from "@/components/ui/header-zone";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { AmbientGreeting, WeatherWidget } from "@/systems/ambient";
@@ -44,7 +45,7 @@ function BlogStackWidget() {
       {recentPosts.map((post) => (
         <Link
           key={post.slug}
-          href={`/writing/${post.slug}`}
+          href={getPostHref(post, locale, "/writing")}
           className="block group/item"
         >
           <div className="text-sm text-foreground group-hover/item:text-foreground/80 transition-colors truncate">
@@ -86,7 +87,7 @@ function ProcessingWidget() {
         <WidgetLink href="/works" label="View works" />
       </WidgetHeader>
       <WidgetBody>
-        <RoleCompact commit={role} locale={locale} />
+        <Commit commit={role} locale={locale} variant="bare" />
       </WidgetBody>
     </WidgetShell>
   );
@@ -140,6 +141,7 @@ function WidgetGrid() {
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-16">
       <div className="space-y-4">
         <BlogStackWidget />
+        <PromptWidget />
         {leftGroups.map((group) => (
           <GroupWidget key={group.id} group={group} />
         ))}
@@ -164,7 +166,7 @@ function ScrambleIdentifier() {
   const targetText = isHovered ? "λHUX" : "λhux";
 
   return (
-    <div className="flex justify-center mb-12">
+    <div className="flex justify-center">
       <span
         data-view-transition="site-identifier"
         className={cn(
@@ -195,12 +197,15 @@ function ScrambleIdentifier() {
 
 export default function Home() {
   return (
-    <main className="mx-auto max-w-[680px] px-6 pt-24 pb-32">
-      {/* System identifier with scramble effect */}
-      <ScrambleIdentifier />
-
-      {/* Hux speaking to the user */}
-      <AmbientGreeting />
+    <main className="mx-auto max-w-[680px] px-6 pt-6 sm:pt-24 pb-32">
+      <HeaderZone>
+        <div className="h-11 flex items-start justify-center">
+          <ScrambleIdentifier />
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <AmbientGreeting />
+        </div>
+      </HeaderZone>
 
       {/* Widget grid */}
       <WidgetGrid />

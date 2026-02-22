@@ -7,9 +7,9 @@ import remarkGfm from "remark-gfm";
  * Includes syntax highlighting via Shiki and GFM table support
  */
 export const mdxOptions: MDXRemoteProps["options"] = {
-  // Disable next-mdx-remote v6's default JS sandboxing which strips JSX expression
-  // attributes (e.g. commit={{...}}, defaultExpanded={true}). All MDX sources are
-  // trusted first-party docs, not user-generated content.
+  // All MDX sources are trusted first-party content, not user-generated.
+  // Disable the default JS expression sandboxing so that JSX attribute
+  // expressions like commit={{...}} and defaultExpanded={true} are preserved.
   blockJS: false,
   mdxOptions: {
     remarkPlugins: [remarkGfm],

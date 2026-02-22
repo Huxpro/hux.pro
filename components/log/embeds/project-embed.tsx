@@ -12,6 +12,7 @@ import type { Locale } from "@/lib/i18n";
 import {
   TitleRow,
   LinksRow,
+  MetaRow,
   Description,
   Commentary,
   TagBadges,
@@ -61,6 +62,7 @@ export function ProjectEmbed({
           <LinksRow links={links.map(m => ({ url: m.url, label: m.label || "", icon: m.icon }))} />
         </div>
 
+        <MetaRow date={date} />
         <Description text={description} isExpanded={isExpanded} />
 
         <ExpandedContent isExpanded={isExpanded}>

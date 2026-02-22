@@ -1,8 +1,9 @@
 "use client";
 
 import { PageLayout } from "@/components/ui/page-layout";
-import { PostList } from "@/components/post";
+import { LanguageFilter, PostList } from "@/components/post";
 import type { BlogPost } from "@/lib/content";
+import { useState } from "react";
 
 interface BlogPostListProps {
   posts: BlogPost[];
@@ -17,11 +18,22 @@ function formatDate(dateStr: string) {
 }
 
 export function BlogPostList({ posts }: BlogPostListProps) {
+  const [includeOther, setIncludeOther] = useState(false);
+
   return (
-    <PageLayout page="writing">
+    <PageLayout
+      page="writing"
+      headerActions={
+        <LanguageFilter
+          includeOther={includeOther}
+          setIncludeOther={setIncludeOther}
+        />
+      }
+    >
       <PostList
         posts={posts}
         basePath="/writing"
+        includeOther={includeOther}
         renderMeta={(post) => <time>{formatDate(post.date)}</time>}
       />
     </PageLayout>
