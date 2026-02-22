@@ -24,6 +24,7 @@ import {
   localize,
   resolveGroupCommits,
 } from "@/lib/log";
+import { HeaderZone } from "@/components/ui/header-zone";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { AmbientGreeting, WeatherWidget } from "@/systems/ambient";
@@ -163,7 +164,7 @@ function ScrambleIdentifier() {
   const targetText = isHovered ? "λHUX" : "λhux";
 
   return (
-    <div className="flex justify-center mb-12">
+    <div className="flex justify-center">
       <span
         data-view-transition="site-identifier"
         className={cn(
@@ -195,11 +196,12 @@ function ScrambleIdentifier() {
 export default function Home() {
   return (
     <main className="mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32">
-      {/* System identifier with scramble effect */}
-      <ScrambleIdentifier />
-
-      {/* Hux speaking to the user */}
-      <AmbientGreeting />
+      <HeaderZone>
+        <ScrambleIdentifier />
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <AmbientGreeting />
+        </div>
+      </HeaderZone>
 
       {/* Widget grid */}
       <WidgetGrid />

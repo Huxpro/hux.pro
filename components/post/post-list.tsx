@@ -14,9 +14,49 @@ import { t, useLocale } from "@/services";
 import { Link } from "next-view-transitions";
 import { useState, type ReactNode } from "react";
 
+interface LanguageFilterProps {
+  includeOther: boolean;
+  setIncludeOther: (value: boolean) => void;
+}
+
+export function LanguageFilter({
+  includeOther,
+  setIncludeOther,
+}: LanguageFilterProps) {
+  const { locale } = useLocale();
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={() => setIncludeOther(false)}
+        className={cn(
+          "px-2.5 py-1 text-xs font-mono rounded-md transition-colors",
+          !includeOther
+            ? "bg-foreground/10 text-foreground"
+            : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+        )}
+      >
+        {locale === "en" ? "EN" : "中文"}
+      </button>
+      <button
+        onClick={() => setIncludeOther(true)}
+        className={cn(
+          "px-2.5 py-1 text-xs font-mono rounded-md transition-colors",
+          includeOther
+            ? "bg-foreground/10 text-foreground"
+            : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+        )}
+      >
+        {t(locale, "allLanguages")}
+      </button>
+    </div>
+  );
+}
+
 interface PostListProps<T extends Post> {
   posts: T[];
   basePath: string; // e.g., "/writing" or "/docs"
+  includeOther: boolean;
 
   // Optional: render custom meta for each post (e.g., date)
   renderMeta?: (post: T) => ReactNode;
@@ -35,10 +75,10 @@ interface PostListProps<T extends Post> {
 export function PostList<T extends Post>({
   posts,
   basePath,
+  includeOther,
   renderMeta,
 }: PostListProps<T>) {
   const { locale } = useLocale();
-  const [includeOther, setIncludeOther] = useState(false);
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
 
   const filteredPosts = posts.filter((post) =>
@@ -47,33 +87,6 @@ export function PostList<T extends Post>({
 
   return (
     <>
-      {/* Language filter pills */}
-      <div className="mb-8 flex items-center gap-1">
-        <button
-          onClick={() => setIncludeOther(false)}
-          className={cn(
-            "px-2.5 py-1 text-xs font-mono rounded-md transition-colors",
-            !includeOther
-              ? "bg-muted text-foreground"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-          )}
-        >
-          {locale === "en" ? "EN" : "中文"}
-        </button>
-        <button
-          onClick={() => setIncludeOther(true)}
-          className={cn(
-            "px-2.5 py-1 text-xs font-mono rounded-md transition-colors",
-            includeOther
-              ? "bg-muted text-foreground"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-          )}
-        >
-          {t(locale, "allLanguages")}
-        </button>
-      </div>
-
-      {/* Post list */}
       <section className="space-y-0">
         {filteredPosts.map((post) => {
           const altLang = getAlternateLangLabel(post, locale);
@@ -109,7 +122,7 @@ export function PostList<T extends Post>({
                       {getLocalizedTitle(post, locale)}
                     </h2>
                     {showLangTag && (
-                      <span className="px-1.5 py-0.5 text-xs font-mono bg-muted text-muted-foreground rounded shrink-0">
+                      <span className="px-1.5 py-0.5 text-xs font-mono bg-foreground/10 text-muted-foreground rounded shrink-0">
                         {post.language === "en" ? "EN" : "中文"}
                       </span>
                     )}
