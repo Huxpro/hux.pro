@@ -6,9 +6,6 @@
  */
 
 import { cn } from "@/lib/utils";
-import type { Commit } from "@/lib/log";
-import { getCommitThumbnail, localize } from "@/lib/log";
-import type { Locale } from "@/lib/i18n";
 import {
   ChevronDown,
   ExternalLink,
@@ -300,50 +297,3 @@ export function ExpandedContent({ isExpanded, children }: ExpandedContentProps) 
   );
 }
 
-// =============================================================================
-// Commit Cursor Preview (for magnetic cursor)
-// =============================================================================
-
-interface CommitCursorPreviewProps {
-  commit: Commit;
-  locale: Locale;
-}
-
-/**
- * Renders cursor-following preview content for a commit.
- * Shows thumbnail when available, otherwise a text summary.
- * Returns null if there's nothing meaningful to preview.
- */
-export function CommitCursorPreview({ commit, locale }: CommitCursorPreviewProps) {
-  const thumbnail = getCommitThumbnail(commit);
-  const description = localize(commit.description, locale);
-
-  if (thumbnail) {
-    return (
-      <div className="space-y-2">
-        <img
-          src={thumbnail}
-          alt=""
-          className="w-48 aspect-video object-cover rounded"
-          loading="lazy"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            if (target.src.includes("maxresdefault")) {
-              target.src = target.src.replace("maxresdefault", "hqdefault");
-            }
-          }}
-        />
-        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed max-w-[12rem]">
-          {description}
-        </p>
-      </div>
-    );
-  }
-
-  // Text-only preview for commits without thumbnails
-  return (
-    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed max-w-[14rem]">
-      {description}
-    </p>
-  );
-}

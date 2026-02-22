@@ -11,5 +11,4 @@ export {
   TagBadges,
   Stats,
   LinkIcon,
-  CommitCursorPreview,
 } from "./shared";

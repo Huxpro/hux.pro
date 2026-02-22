@@ -11,7 +11,8 @@ import {
 } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { MagneticContent } from "@/components/motion-primitives/magnetic-content";
+import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
+import type { Locale } from "@/lib/i18n";
 import { Link } from "next-view-transitions";
 import { useState, type ReactNode } from "react";
 
@@ -98,20 +99,6 @@ export function PostList<T extends Post>({
             post.language !== "both" &&
             post.language !== locale;
 
-          const cursorContent = (
-            <div className="space-y-1.5 max-w-[14rem]">
-              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
-                {description}
-              </p>
-              {altLang && (
-                <p className="text-[10px] text-muted-foreground/70">
-                  {t(locale, "alsoIn")}{" "}
-                  <span className="text-foreground/80">{altLang.label}</span>
-                </p>
-              )}
-            </div>
-          );
-
           return (
             <article
               key={post.slug}
@@ -119,10 +106,15 @@ export function PostList<T extends Post>({
               onMouseEnter={() => setHoveredSlug(post.slug)}
               onMouseLeave={() => setHoveredSlug(null)}
             >
-              <MagneticContent
-                content={cursorContent}
+              <MagneticPreview
+                preview={
+                  <PostPreview
+                    description={description}
+                    altLangLabel={altLang?.label}
+                    locale={locale}
+                  />
+                }
                 enabled={!!description}
-                className="block"
               >
                 <Link
                   href={getPostHref(post, locale, basePath)}
@@ -174,7 +166,7 @@ export function PostList<T extends Post>({
                       : getLocalizedReadingTime(post, locale)}
                   </span>
                 </Link>
-              </MagneticContent>
+              </MagneticPreview>
             </article>
           );
         })}
@@ -186,5 +178,33 @@ export function PostList<T extends Post>({
         </p>
       )}
     </>
+  );
+}
+
+// =============================================================================
+// Preview Content (for MagneticPreview)
+// =============================================================================
+
+function PostPreview({
+  description,
+  altLangLabel,
+  locale,
+}: {
+  description: string | undefined;
+  altLangLabel: string | undefined;
+  locale: Locale;
+}) {
+  return (
+    <div className="space-y-1.5 max-w-[14rem]">
+      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+        {description}
+      </p>
+      {altLangLabel && (
+        <p className="text-[10px] text-muted-foreground/70">
+          {t(locale, "alsoIn")}{" "}
+          <span className="text-foreground/80">{altLangLabel}</span>
+        </p>
+      )}
+    </div>
   );
 }

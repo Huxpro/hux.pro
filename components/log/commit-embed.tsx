@@ -12,12 +12,11 @@
 
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData } from "@/lib/log";
-import { getCommitPrimaryUrl } from "@/lib/log";
+import { getCommitPrimaryUrl, getCommitThumbnail, localize } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
-import { CommitCursorPreview } from "./embeds";
 
 // =============================================================================
 // Types
@@ -58,7 +57,7 @@ export function Commit({
 
   const data = normalizeCommit(commit, locale);
   const primaryUrl = getCommitPrimaryUrl(commit) ?? undefined;
-  const cursorPreview = <CommitCursorPreview commit={commit} locale={locale} />;
+  const cursorPreview = <CommitPreview commit={commit} locale={locale} />;
 
   switch (variant) {
     case "timeline":
@@ -88,4 +87,47 @@ export function Commit({
     case "bare":
       return <CommitCompact data={data} className={className} />;
   }
+}
+
+// =============================================================================
+// Preview Content (for MagneticPreview)
+// =============================================================================
+
+function CommitPreview({
+  commit,
+  locale,
+}: {
+  commit: CommitData;
+  locale: Locale;
+}) {
+  const thumbnail = getCommitThumbnail(commit);
+  const description = localize(commit.description, locale);
+
+  if (thumbnail) {
+    return (
+      <div className="space-y-2">
+        <img
+          src={thumbnail}
+          alt=""
+          className="w-48 aspect-video object-cover rounded"
+          loading="lazy"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            if (target.src.includes("maxresdefault")) {
+              target.src = target.src.replace("maxresdefault", "hqdefault");
+            }
+          }}
+        />
+        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed max-w-[12rem]">
+          {description}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed max-w-[14rem]">
+      {description}
+    </p>
+  );
 }
