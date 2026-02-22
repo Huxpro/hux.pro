@@ -1,9 +1,10 @@
 import { cn } from "@/lib/utils";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 interface HeaderZoneProps {
   children: ReactNode;
   className?: string;
+  style?: CSSProperties;
 }
 
 /**
@@ -14,8 +15,10 @@ interface HeaderZoneProps {
  * 1. A fixed-height top slot (e.g. nav/system identifier)
  * 2. A `flex-1` title area centered vertically
  */
-export function HeaderZone({ children, className }: HeaderZoneProps) {
+export function HeaderZone({ children, className, style }: HeaderZoneProps) {
   return (
-    <div className={cn("h-60 flex flex-col", className)}>{children}</div>
+    <div className={cn("h-60 flex flex-col", className)} style={style}>
+      {children}
+    </div>
   );
 }
