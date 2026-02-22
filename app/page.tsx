@@ -26,11 +26,12 @@ import {
   resolveGroupCommits,
 } from "@/lib/log";
 import { HeaderZone } from "@/components/ui/header-zone";
+import { useHeroFade } from "@/components/ui/use-hero-fade";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { AmbientGreeting, WeatherWidget } from "@/systems/ambient";
 import { Link } from "next-view-transitions";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 // =============================================================================
 // Widget Components
@@ -196,54 +197,13 @@ function ScrambleIdentifier() {
 // =============================================================================
 
 export default function Home() {
-  const [useJsFadeFallback, setUseJsFadeFallback] = useState(false);
-  const [fallbackOpacity, setFallbackOpacity] = useState(1);
-
-  useEffect(() => {
-    const supportsScrollTimeline =
-      typeof CSS !== "undefined" && CSS.supports("animation-timeline: scroll()");
-    if (supportsScrollTimeline) return;
-
-    const frame = window.requestAnimationFrame(() => {
-      setUseJsFadeFallback(true);
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
-
-  useEffect(() => {
-    if (!useJsFadeFallback) return;
-
-    const getFadeDistance = () =>
-      window.matchMedia("(min-width: 768px)").matches ? 144 : 176;
-
-    const updateHeroOpacity = () => {
-      const scrollTop =
-        window.pageYOffset || document.documentElement.scrollTop || 0;
-      const progress = Math.min(scrollTop / getFadeDistance(), 1);
-      setFallbackOpacity(1 - progress);
-    };
-
-    const frame = window.requestAnimationFrame(updateHeroOpacity);
-    window.addEventListener("scroll", updateHeroOpacity, { passive: true });
-    window.addEventListener("resize", updateHeroOpacity);
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", updateHeroOpacity);
-      window.removeEventListener("resize", updateHeroOpacity);
-    };
-  }, [useJsFadeFallback]);
+  const heroFadeStyle = useHeroFade();
 
   return (
     <main className="mx-auto max-w-[680px] px-6 pt-12 sm:pt-24 pb-32 sm:pb-40">
       <HeaderZone
-        className="home-hero-zone sticky top-12 sm:top-24 z-10"
-        style={
-          useJsFadeFallback
-            ? { opacity: fallbackOpacity, transition: "opacity 120ms linear" }
-            : undefined
-        }
+        className="hero-zone-fade sticky top-12 sm:top-24 z-10"
+        style={heroFadeStyle}
       >
         <div className="h-11 flex items-start justify-center">
           <ScrambleIdentifier />

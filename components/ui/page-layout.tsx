@@ -13,6 +13,7 @@ import {
 } from "@/lib/i18n";
 import { useLocale } from "@/services";
 import { useState, type ReactNode } from "react";
+import { useHeroFade } from "./use-hero-fade";
 
 interface PageLayoutProps {
   /**
@@ -71,6 +72,7 @@ export function PageLayout({
 }: PageLayoutProps) {
   const { locale } = useLocale();
   const [isHovered, setIsHovered] = useState(false);
+  const heroFadeStyle = useHeroFade();
 
   const useScramble = !!page;
 
@@ -89,6 +91,27 @@ export function PageLayout({
     useScramble && "cursor-default"
   );
 
+  const titleJsx = (
+    <header
+      onMouseEnter={() => useScramble && setIsHovered(true)}
+      onMouseLeave={() => useScramble && setIsHovered(false)}
+    >
+      {useScramble ? (
+        <TextScramble
+          as="h1"
+          duration={0.5}
+          speed={0.03}
+          characterSet={characterSet}
+          className={titleClassName}
+        >
+          {currentText}
+        </TextScramble>
+      ) : (
+        <h1 className={titleClassName}>{displayTitle}</h1>
+      )}
+    </header>
+  );
+
   return (
     <main
       className={cn(
@@ -96,54 +119,44 @@ export function PageLayout({
         className
       )}
     >
-      <HeaderZone
-        heightClassName={
-          variant === "reader" ? "min-h-44 sm:min-h-56" : undefined
-        }
-      >
-        <div className="h-11 flex items-start">
-          <SystemNav href={backHref} path={backLabel} />
-        </div>
-        <div
-          className={cn(
-            "flex-1 flex flex-col justify-center",
-            headerActions && "pb-6 sm:pb-4"
-          )}
-        >
-          <div className="relative">
-            <header
-              onMouseEnter={() => useScramble && setIsHovered(true)}
-              onMouseLeave={() => useScramble && setIsHovered(false)}
-            >
-              {useScramble ? (
-                <TextScramble
-                  as="h1"
-                  duration={0.5}
-                  speed={0.03}
-                  characterSet={characterSet}
-                  className={titleClassName}
-                >
-                  {currentText}
-                </TextScramble>
-              ) : (
-                <h1 className={titleClassName}>{displayTitle}</h1>
-              )}
-            </header>
-            {headerActions && (
-              <div
-                className={cn(
-                  "absolute left-0 top-full w-max",
-                  variant === "reader" ? "mt-4" : "mt-2"
-                )}
-              >
-                {headerActions}
-              </div>
-            )}
+      {variant === "reader" ? (
+        <>
+          <div className="mb-12 sm:mb-14">
+            <SystemNav href={backHref} path={backLabel} className="mb-8 sm:mb-12" />
+            {titleJsx}
+            {headerActions && <div className="mt-4">{headerActions}</div>}
           </div>
-        </div>
-      </HeaderZone>
+          {children}
+        </>
+      ) : (
+        <>
+          <HeaderZone
+            className="hero-zone-fade sticky top-12 sm:top-24 z-10"
+            style={heroFadeStyle}
+          >
+            <div className="h-11 flex items-start">
+              <SystemNav href={backHref} path={backLabel} />
+            </div>
+            <div
+              className={cn(
+                "flex-1 flex flex-col justify-center",
+                headerActions && "pb-6 sm:pb-4"
+              )}
+            >
+              <div className="relative">
+                {titleJsx}
+                {headerActions && (
+                  <div className="absolute left-0 top-full w-max mt-2">
+                    {headerActions}
+                  </div>
+                )}
+              </div>
+            </div>
+          </HeaderZone>
+          <div className="relative z-20">{children}</div>
+        </>
+      )}
 
-      {children}
     </main>
   );
 }

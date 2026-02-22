@@ -588,10 +588,10 @@
 }
 
 /* =============================================================================
-   Home Hero Fade (CSS Scroll-Driven)
+   Hero Zone Fade (CSS Scroll-Driven)
    ============================================================================= */
 
-@keyframes home-hero-fade {
+@keyframes hero-zone-fade {
   from {
     opacity: 1;
   }
@@ -601,8 +601,8 @@
 }
 
 @supports (animation-timeline: scroll()) {
-  .home-hero-zone {
-    animation-name: home-hero-fade;
+  .hero-zone-fade {
+    animation-name: hero-zone-fade;
     animation-duration: 1ms;
     animation-timing-function: linear;
     animation-fill-mode: both;
@@ -612,7 +612,7 @@
   }
 
   @media (min-width: 768px) {
-    .home-hero-zone {
+    .hero-zone-fade {
       /* Desktop: slightly faster fade than full zone (sm:h-56 = 14rem) */
       animation-range: 0 9rem;
     }
@@ -620,7 +620,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-hero-zone {
+  .hero-zone-fade {
     animation: none !important;
     opacity: 1 !important;
   }
