@@ -11,6 +11,7 @@ import {
 } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
+import { MagneticContent } from "@/components/motion-primitives/magnetic-content";
 import { Link } from "next-view-transitions";
 import { useState, type ReactNode } from "react";
 
@@ -27,7 +28,7 @@ interface PostListProps<T extends Post> {
  *
  * This component handles:
  * - Language filtering (current locale vs all)
- * - Post rendering with hover states
+ * - Post rendering with magnetic cursor previews
  * - Localized titles/descriptions
  *
  * Layout (PageLayout) should be handled at the app router level.
@@ -39,7 +40,6 @@ export function PostList<T extends Post>({
 }: PostListProps<T>) {
   const { locale } = useLocale();
   const [includeOther, setIncludeOther] = useState(false);
-  const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
 
   const filteredPosts = posts.filter((post) =>
     shouldShowPost(post, locale, includeOther)
@@ -77,74 +77,58 @@ export function PostList<T extends Post>({
       <section className="space-y-0">
         {filteredPosts.map((post) => {
           const altLang = getAlternateLangLabel(post, locale);
-          const isHovered = hoveredSlug === post.slug;
+          const description = getLocalizedDescription(post, locale);
           const showLangTag =
             includeOther &&
             post.language !== "both" &&
             post.language !== locale;
 
+          const cursorContent = (
+            <div className="space-y-1.5 max-w-[14rem]">
+              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+                {description}
+              </p>
+              {altLang && (
+                <p className="text-[10px] text-muted-foreground/70">
+                  {t(locale, "alsoIn")}{" "}
+                  <span className="text-foreground/80">{altLang.label}</span>
+                </p>
+              )}
+            </div>
+          );
+
           return (
-            <article
-              key={post.slug}
-              className="group relative"
-              onMouseEnter={() => setHoveredSlug(post.slug)}
-              onMouseLeave={() => setHoveredSlug(null)}
-            >
-              <Link
-                href={getPostHref(post, locale, basePath)}
-                className={cn(
-                  "flex items-baseline justify-between gap-4 py-4 -mx-4 px-4 rounded-lg transition-all duration-200",
-                  isHovered && "bg-muted/50"
-                )}
+            <article key={post.slug} className="group relative">
+              <MagneticContent
+                content={cursorContent}
+                enabled={!!description}
+                className="block"
               >
-                <div className="flex-1 min-w-0">
-                  {/* Title row */}
-                  <div className="flex items-center gap-3">
-                    <h2
-                      className={cn(
-                        "text-base font-normal transition-colors duration-200",
-                        isHovered ? "text-foreground" : "text-foreground"
-                      )}
-                    >
-                      {getLocalizedTitle(post, locale)}
-                    </h2>
-                    {showLangTag && (
-                      <span className="px-1.5 py-0.5 text-xs font-mono bg-muted text-muted-foreground rounded shrink-0">
-                        {post.language === "en" ? "EN" : "中文"}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Hover content: description and also-in */}
-                  <div
-                    className={cn(
-                      "overflow-hidden transition-all duration-300 ease-out",
-                      isHovered
-                        ? "max-h-24 opacity-100 mt-2"
-                        : "max-h-0 opacity-0 mt-0"
-                    )}
-                  >
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {getLocalizedDescription(post, locale)}
-                    </p>
-                    {altLang && (
-                      <p className="mt-1.5 text-xs text-muted-foreground">
-                        {t(locale, "alsoIn")}{" "}
-                        <span className="text-foreground/80">
-                          {altLang.label}
+                <Link
+                  href={getPostHref(post, locale, basePath)}
+                  className="flex items-baseline justify-between gap-4 py-4 -mx-4 px-4 rounded-lg transition-all duration-200 hover:bg-muted/50"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-base font-normal text-foreground">
+                        {getLocalizedTitle(post, locale)}
+                      </h2>
+                      {showLangTag && (
+                        <span className="px-1.5 py-0.5 text-xs font-mono bg-muted text-muted-foreground rounded shrink-0">
+                          {post.language === "en" ? "EN" : "中文"}
                         </span>
-                      </p>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* Meta (date or reading time) */}
-                <span className="font-mono text-xs text-muted-foreground shrink-0">
-                  {renderMeta
-                    ? renderMeta(post)
-                    : getLocalizedReadingTime(post, locale)}
-                </span>
-              </Link>
+                  {/* Meta (date or reading time) */}
+                  <span className="font-mono text-xs text-muted-foreground shrink-0">
+                    {renderMeta
+                      ? renderMeta(post)
+                      : getLocalizedReadingTime(post, locale)}
+                  </span>
+                </Link>
+              </MagneticContent>
             </article>
           );
         })}

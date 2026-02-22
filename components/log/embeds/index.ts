@@ -31,4 +31,5 @@ export {
   Stats,
   ExpandedContent,
   LinkIcon,
+  CommitCursorPreview,
 } from "./shared";

@@ -1,12 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { ChevronUp } from "lucide-react";
 import type { TalkCommit, Media } from "@/lib/log";
 import { localize, localizeOptional, formatCommitDate, isVideoMedia, isLinkMedia, getMediaThumbnail } from "@/lib/log";
 import type { Locale } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 import {
   TitleRow,
   LinksRow,
@@ -17,7 +14,6 @@ import {
   TagBadges,
   ExpandedContent,
 } from "./shared";
-import { MediaRenderer } from "../media";
 
 interface TalkEmbedProps {
   commit: TalkCommit;
@@ -25,18 +21,13 @@ interface TalkEmbedProps {
   defaultExpanded?: boolean;
 }
 
-/**
- * Split media into video toggle links and regular links.
- * Video links get an onClick handler instead of navigating.
- */
 type SimpleLink = { url: string; label: string; icon: string };
 
-function partitionMediaLinks(
+function collectMediaLinks(
   media: Media[],
   locale: "en" | "zh"
-): { videoLinks: SimpleLink[]; otherLinks: SimpleLink[] } {
-  const videoLinks: SimpleLink[] = [];
-  const otherLinks: SimpleLink[] = [];
+): SimpleLink[] {
+  const links: SimpleLink[] = [];
 
   for (const m of media) {
     if (isVideoMedia(m)) {
@@ -45,13 +36,13 @@ function partitionMediaLinks(
         youtube: locale === "zh" ? "观看视频" : "YouTube",
         vimeo: "Vimeo",
       };
-      videoLinks.push({
+      links.push({
         url: m.url,
         label: platformLabel[m.platform] ?? m.platform,
         icon: m.platform,
       });
     } else if (isLinkMedia(m)) {
-      otherLinks.push({
+      links.push({
         url: m.url,
         label: m.label || (locale === "zh" ? "链接" : "Link"),
         icon: m.icon || "external",
@@ -59,7 +50,7 @@ function partitionMediaLinks(
     }
   }
 
-  return { videoLinks, otherLinks };
+  return links;
 }
 
 export function TalkEmbed({
@@ -68,7 +59,6 @@ export function TalkEmbed({
   defaultExpanded = false,
 }: TalkEmbedProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-  const [showPlayer, setShowPlayer] = useState(false);
 
   const title = localize(commit.title, locale);
   const description = localize(commit.description, locale);
@@ -79,13 +69,10 @@ export function TalkEmbed({
   const hasDetails = !!(commentary || hasTags);
 
   const media = commit.media ?? [];
-  const { videoLinks, otherLinks } = partitionMediaLinks(media, locale);
-  const playableMedia = media.filter(isVideoMedia);
-  const hasPlayer = playableMedia.length > 0;
+  const allLinks = collectMediaLinks(media, locale);
 
   return (
     <div className="space-y-2">
-      {/* Compact text row - same density as other commit types */}
       <div className="space-y-2">
         <div className="flex items-baseline justify-between gap-4 flex-wrap">
           <TitleRow
@@ -96,33 +83,7 @@ export function TalkEmbed({
             onToggle={() => setIsExpanded(!isExpanded)}
           />
 
-          {/* Links: video toggles + regular links */}
-          <div
-            className="flex items-center gap-3 flex-wrap"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {videoLinks.map((link, i) => (
-              <button
-                key={`video-${i}`}
-                type="button"
-                onClick={() => setShowPlayer(!showPlayer)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 text-xs transition-colors",
-                  showPlayer
-                    ? "text-red-500"
-                    : "text-muted-foreground hover:text-red-500"
-                )}
-              >
-                {showPlayer ? (
-                  <ChevronUp className="w-3 h-3" />
-                ) : (
-                  <LinkIcon icon={link.icon} />
-                )}
-                <span>{link.label}</span>
-              </button>
-            ))}
-            <LinksRow links={otherLinks} />
-          </div>
+          <LinksRow links={allLinks} />
         </div>
 
         <MetaRow date={date} meta={commit.conference.name} />
@@ -133,26 +94,6 @@ export function TalkEmbed({
           {commentary && <Commentary text={commentary} />}
         </ExpandedContent>
       </div>
-
-      {/* Inline video expand - like a git diff unfold */}
-      <AnimatePresence initial={false}>
-        {showPlayer && hasPlayer && (
-          <motion.div
-            key="player"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
-            className="overflow-hidden"
-          >
-            <MediaRenderer
-              media={playableMedia}
-              layout="stack"
-              size="default"
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

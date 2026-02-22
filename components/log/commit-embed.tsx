@@ -14,9 +14,14 @@
  * @see components/log/media/ - Media rendering components
  */
 
+import { useState, useCallback } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData } from "@/lib/log";
+import { getCommitPrimaryUrl, getCommitExpandableMedia } from "@/lib/log";
 import { cn } from "@/lib/utils";
+import { MagneticContent } from "@/components/motion-primitives/magnetic-content";
+import { MediaRenderer } from "./media";
 import {
   Post,
   PostCompact,
@@ -28,6 +33,7 @@ import {
   SocialCompact,
   Talk,
   TalkCompact,
+  CommitCursorPreview,
 } from "./embeds";
 import { commitIcons } from "./icons";
 
@@ -73,6 +79,7 @@ export function Commit({
   className,
 }: CommitProps) {
   const Icon = commitIcons[commit.type];
+  const [isMediaExpanded, setIsMediaExpanded] = useState(false);
 
   // Derive behavior from variant
   const isBare = variant === "bare";
@@ -158,6 +165,15 @@ export function Commit({
   }
 
   // Timeline variant: shows icon, timeline-optimized spacing
+  const expandableMedia = getCommitExpandableMedia(commit);
+  const hasExpandableMedia = expandableMedia.length > 0;
+  const primaryUrl = getCommitPrimaryUrl(commit);
+  const cursorPreview = <CommitCursorPreview commit={commit} locale={locale} />;
+
+  const handleToggleMedia = useCallback(() => {
+    setIsMediaExpanded((prev) => !prev);
+  }, []);
+
   return (
     <div className={cn("group relative", className)}>
       {/* Type icon */}
@@ -166,15 +182,40 @@ export function Commit({
       </div>
 
       {/* Content area with icon offset */}
-      <div
+      <MagneticContent
+        content={cursorPreview}
+        onClick={hasExpandableMedia ? handleToggleMedia : undefined}
+        href={!hasExpandableMedia ? primaryUrl ?? undefined : undefined}
+        enabled={!isMediaExpanded}
         className={cn(
           "ml-6 -my-2",
           "p-4 rounded-lg transition-colors duration-200 hover:bg-muted/10",
         )}
       >
         {content}
-      </div>
+      </MagneticContent>
+
+      {/* Expandable media — unfolds on click for commits with rich media */}
+      <AnimatePresence initial={false}>
+        {isMediaExpanded && hasExpandableMedia && (
+          <motion.div
+            key="expanded-media"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="overflow-hidden ml-6"
+          >
+            <div className="pt-2 pb-4 px-4">
+              <MediaRenderer
+                media={expandableMedia}
+                layout="stack"
+                size="default"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
-
