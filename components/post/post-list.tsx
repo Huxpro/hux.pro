@@ -14,7 +14,7 @@ import { t, useLocale } from "@/services";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import type { Locale } from "@/lib/i18n";
 import { Link } from "next-view-transitions";
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 interface LanguageFilterProps {
   includeOther: boolean;
@@ -81,7 +81,6 @@ export function PostList<T extends Post>({
   renderMeta,
 }: PostListProps<T>) {
   const { locale } = useLocale();
-  const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
 
   const filteredPosts = posts.filter((post) =>
     shouldShowPost(post, locale, includeOther)
@@ -93,19 +92,13 @@ export function PostList<T extends Post>({
         {filteredPosts.map((post) => {
           const altLang = getAlternateLangLabel(post, locale);
           const description = getLocalizedDescription(post, locale);
-          const isHovered = hoveredSlug === post.slug;
           const showLangTag =
             includeOther &&
             post.language !== "both" &&
             post.language !== locale;
 
           return (
-            <article
-              key={post.slug}
-              className="group relative"
-              onMouseEnter={() => setHoveredSlug(post.slug)}
-              onMouseLeave={() => setHoveredSlug(null)}
-            >
+            <article key={post.slug} className="group relative">
               <MagneticPreview
                 preview={
                   <PostPreview
@@ -118,18 +111,10 @@ export function PostList<T extends Post>({
               >
                 <Link
                   href={getPostHref(post, locale, basePath)}
-                  className={cn(
-                    "flex items-baseline justify-between gap-4 py-3 sm:py-4 -mx-4 px-4 rounded-lg transition-all duration-200",
-                    isHovered && "bg-muted/50"
-                  )}
+                  className="flex items-baseline justify-between gap-4 py-3 sm:py-4 -mx-4 px-4 rounded-lg transition-colors duration-200 hover:bg-muted/50"
                 >
                   <div className="flex-1 min-w-0">
-                    <h2
-                      className={cn(
-                        "text-sm sm:text-base font-normal transition-colors duration-200",
-                        isHovered ? "text-foreground" : "text-foreground"
-                      )}
-                    >
+                    <h2 className="text-sm sm:text-base font-normal">
                       {getLocalizedTitle(post, locale)}
                       {showLangTag && (
                         <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
@@ -137,27 +122,6 @@ export function PostList<T extends Post>({
                         </span>
                       )}
                     </h2>
-
-                    <div
-                      className={cn(
-                        "overflow-hidden transition-all duration-300 ease-out",
-                        isHovered
-                          ? "max-h-24 opacity-100 mt-2"
-                          : "max-h-0 opacity-0 mt-0"
-                      )}
-                    >
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {description}
-                      </p>
-                      {altLang && (
-                        <p className="mt-1.5 text-xs text-muted-foreground">
-                          {t(locale, "alsoIn")}{" "}
-                          <span className="text-foreground/80">
-                            {altLang.label}
-                          </span>
-                        </p>
-                      )}
-                    </div>
                   </div>
 
                   <span className="font-mono text-xs text-muted-foreground shrink-0">

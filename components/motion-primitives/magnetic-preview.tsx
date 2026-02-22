@@ -60,7 +60,7 @@ export function MagneticPreview({
           variants={defaultVariants}
           transition={defaultTransition}
           springConfig={defaultSpringConfig}
-          className="overflow-hidden"
+          className="overflow-hidden rounded-lg"
         >
           <div
             className={cn(

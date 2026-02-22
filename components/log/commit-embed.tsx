@@ -12,7 +12,7 @@
 
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData } from "@/lib/log";
-import { getCommitPrimaryUrl, getCommitThumbnail, localize } from "@/lib/log";
+import { getCommitThumbnail, localize } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit } from "./timeline-commit";
@@ -56,7 +56,6 @@ export function Commit({
   }
 
   const data = normalizeCommit(commit, locale);
-  const primaryUrl = getCommitPrimaryUrl(commit) ?? undefined;
   const cursorPreview = <CommitPreview commit={commit} locale={locale} />;
 
   switch (variant) {
@@ -64,7 +63,6 @@ export function Commit({
       return (
         <TimelineCommit
           data={data}
-          primaryUrl={primaryUrl}
           cursorPreview={cursorPreview}
           defaultExpanded={defaultExpanded}
           className={className}

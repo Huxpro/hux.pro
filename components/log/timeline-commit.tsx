@@ -28,7 +28,6 @@ import { MediaRenderer } from "./media";
 interface TimelineCommitProps {
   data: NormalizedCommit;
   cursorPreview?: ReactNode;
-  primaryUrl?: string;
   defaultExpanded?: boolean;
   className?: string;
 }
@@ -36,13 +35,11 @@ interface TimelineCommitProps {
 export function TimelineCommit({
   data,
   cursorPreview,
-  primaryUrl,
   defaultExpanded = false,
   className,
 }: TimelineCommitProps) {
   const Icon = commitIcons[data.type];
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-  const hasPrimaryUrl = !!primaryUrl;
 
   const hasExpandableContent = !!(
     data.description ||
@@ -57,16 +54,7 @@ export function TimelineCommit({
     setIsExpanded((prev) => !prev);
   }, [hasExpandableContent]);
 
-  const handleOpenPrimaryUrl = useCallback(() => {
-    if (!primaryUrl) return;
-    window.open(primaryUrl, "_blank", "noopener,noreferrer");
-  }, [primaryUrl]);
-
-  const rowOnClick = hasExpandableContent
-    ? handleToggleExpanded
-    : hasPrimaryUrl
-      ? handleOpenPrimaryUrl
-      : undefined;
+  const rowOnClick = hasExpandableContent ? handleToggleExpanded : undefined;
 
   const showCursorPreview = !!cursorPreview && !isExpanded;
 
@@ -78,6 +66,87 @@ export function TimelineCommit({
       }
     },
     [],
+  );
+
+  const rowContent = (
+    <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+      <span className="hidden @sm:inline font-mono text-xs text-muted-foreground/40 select-all leading-5">
+        {data.hash}
+      </span>
+
+      <span className="inline-flex items-center h-5">
+        <Icon className="w-3 h-3 text-muted-foreground/50" />
+      </span>
+
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-sm text-foreground min-w-0 flex-1">
+          {data.title}
+        </span>
+
+        <div
+          className={cn(
+            "flex items-center shrink-0",
+            isExpanded ? "gap-3" : "gap-1.5",
+          )}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {data.links.map((link, i) => (
+            <a
+              key={`link-${i}`}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-muted-foreground/40 hover:text-foreground transition-colors"
+            >
+              <LinkIcon icon={link.icon} />
+              {isExpanded && (
+                <span className="hidden @sm:inline text-xs">
+                  {link.label}
+                </span>
+              )}
+            </a>
+          ))}
+        </div>
+
+        <span className="font-mono text-xs text-muted-foreground/50 shrink-0 ml-auto">
+          {data.date}
+        </span>
+      </div>
+
+      {data.meta && (
+        <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-muted-foreground/40">
+          {data.meta}
+        </div>
+      )}
+
+      {isExpanded && (
+        <div className="col-start-2 @sm:col-start-3 mt-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+          {data.subtitle && (
+            <div className="text-xs text-muted-foreground/60">
+              {data.subtitle}
+            </div>
+          )}
+
+          {data.nonLinkMedia.length > 0 && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <MediaRenderer
+                media={data.nonLinkMedia}
+                layout="stack"
+                size="default"
+              />
+            </div>
+          )}
+
+          <Description text={data.description} isExpanded />
+
+          {data.commentary && <Commentary text={data.commentary} />}
+
+          {data.tags.length > 0 && <TagBadges items={data.tags} />}
+
+          {data.stats && <Stats {...data.stats} />}
+        </div>
+      )}
+    </div>
   );
 
   return (
@@ -94,84 +163,7 @@ export function TimelineCommit({
             "@container hover:bg-muted/20 active:bg-muted/30",
           )}
         >
-          <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
-            <span className="hidden @sm:inline font-mono text-xs text-muted-foreground/40 select-all leading-5">
-              {data.hash}
-            </span>
-
-            <span className="inline-flex items-center h-5">
-              <Icon className="w-3 h-3 text-muted-foreground/50" />
-            </span>
-
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-sm text-foreground min-w-0 flex-1">
-                {data.title}
-              </span>
-
-              <div
-                className={cn(
-                  "flex items-center shrink-0",
-                  isExpanded ? "gap-3" : "gap-1.5",
-                )}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {data.links.map((link, i) => (
-                  <a
-                    key={`link-${i}`}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-muted-foreground/40 hover:text-foreground transition-colors"
-                  >
-                    <LinkIcon icon={link.icon} />
-                    {isExpanded && (
-                      <span className="hidden @sm:inline text-xs">
-                        {link.label}
-                      </span>
-                    )}
-                  </a>
-                ))}
-              </div>
-
-              <span className="font-mono text-xs text-muted-foreground/50 shrink-0 ml-auto">
-                {data.date}
-              </span>
-            </div>
-
-            {data.meta && (
-              <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-muted-foreground/40">
-                {data.meta}
-              </div>
-            )}
-
-            {isExpanded && (
-              <div className="col-start-2 @sm:col-start-3 mt-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
-                {data.subtitle && (
-                  <div className="text-xs text-muted-foreground/60">
-                    {data.subtitle}
-                  </div>
-                )}
-
-                {data.nonLinkMedia.length > 0 && (
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <MediaRenderer
-                      media={data.nonLinkMedia}
-                      layout="stack"
-                      size="default"
-                    />
-                  </div>
-                )}
-
-                <Description text={data.description} isExpanded />
-
-                {data.commentary && <Commentary text={data.commentary} />}
-
-                {data.tags.length > 0 && <TagBadges items={data.tags} />}
-
-                {data.stats && <Stats {...data.stats} />}
-              </div>
-            )}
-          </div>
+          {rowContent}
         </div>
       </MagneticPreview>
     </div>

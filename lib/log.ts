@@ -712,37 +712,3 @@ export function getCommitPrimaryMedia(commit: Commit): Media | null {
   return media[0] ?? null;
 }
 
-/**
- * Get the primary clickable URL for a commit.
- * Used to make entire commit rows clickable.
- */
-export function getCommitPrimaryUrl(commit: Commit): string | null {
-  switch (commit.type) {
-    case "talk": {
-      const videoMedia = (commit.media ?? []).find(isVideoMedia);
-      return videoMedia?.url ?? commit.conference.url ?? null;
-    }
-    case "project": {
-      const linkMedia = (commit.media ?? []).find(isLinkMedia);
-      return linkMedia?.url ?? null;
-    }
-    case "post":
-      return commit.url;
-    case "role":
-      return commit.url ?? null;
-    case "social": {
-      return (commit.media ?? [])[0]?.url ?? null;
-    }
-  }
-}
-
-/**
- * Get expandable (rich) media from a commit — video, embed, image.
- * These are media types that should be unfolded inline rather than navigated to.
- * Returns empty array if the commit only has link-type media.
- */
-export function getCommitExpandableMedia(commit: Commit): Media[] {
-  return (commit.media ?? []).filter(
-    (m) => isVideoMedia(m) || isEmbedMedia(m) || isImageMedia(m)
-  );
-}
