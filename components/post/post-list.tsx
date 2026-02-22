@@ -97,39 +97,42 @@ export function PostList<T extends Post>({
             post.language !== "both" &&
             post.language !== locale;
 
+          const preview = (
+            <PostPreview
+              description={description}
+              altLangLabel={altLang?.label}
+              locale={locale}
+            />
+          );
+
+          const postRow = (
+            <Link
+              href={getPostHref(post, locale, basePath)}
+              className="flex items-baseline justify-between gap-4 py-3 sm:py-4 -mx-4 px-4 rounded-lg transition-colors duration-200 hover:bg-muted/50"
+            >
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm sm:text-base font-normal">
+                  {getLocalizedTitle(post, locale)}
+                  {showLangTag && (
+                    <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
+                      {post.language === "en" ? "EN" : "中文"}
+                    </span>
+                  )}
+                </h2>
+              </div>
+
+              <span className="font-mono text-xs text-muted-foreground shrink-0">
+                {renderMeta
+                  ? renderMeta(post)
+                  : getLocalizedReadingTime(post, locale)}
+              </span>
+            </Link>
+          );
+
           return (
             <article key={post.slug} className="group relative">
-              <MagneticPreview
-                preview={
-                  <PostPreview
-                    description={description}
-                    altLangLabel={altLang?.label}
-                    locale={locale}
-                  />
-                }
-                enabled={!!description}
-              >
-                <Link
-                  href={getPostHref(post, locale, basePath)}
-                  className="flex items-baseline justify-between gap-4 py-3 sm:py-4 -mx-4 px-4 rounded-lg transition-colors duration-200 hover:bg-muted/50"
-                >
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-sm sm:text-base font-normal">
-                      {getLocalizedTitle(post, locale)}
-                      {showLangTag && (
-                        <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
-                          {post.language === "en" ? "EN" : "中文"}
-                        </span>
-                      )}
-                    </h2>
-                  </div>
-
-                  <span className="font-mono text-xs text-muted-foreground shrink-0">
-                    {renderMeta
-                      ? renderMeta(post)
-                      : getLocalizedReadingTime(post, locale)}
-                  </span>
-                </Link>
+              <MagneticPreview preview={preview} enabled={!!description}>
+                {postRow}
               </MagneticPreview>
             </article>
           );
