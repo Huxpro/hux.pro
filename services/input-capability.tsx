@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { deviceType, primaryInput } from "detect-it";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 interface InputCapabilityContextType {
   primaryInput: "mouse" | "touch";
@@ -11,8 +11,9 @@ interface InputCapabilityContextType {
   magneticPreviewEnabled: boolean;
 }
 
-const InputCapabilityContext =
-  createContext<InputCapabilityContextType | undefined>(undefined);
+const InputCapabilityContext = createContext<
+  InputCapabilityContextType | undefined
+>(undefined);
 
 function detectFineHoverPointer(): boolean {
   if (typeof window === "undefined") return false;
@@ -25,7 +26,9 @@ function detectFineHoverPointer(): boolean {
 export function useInputCapability() {
   const context = useContext(InputCapabilityContext);
   if (!context) {
-    throw new Error("useInputCapability must be used within InputCapabilityProvider");
+    throw new Error(
+      "useInputCapability must be used within InputCapabilityProvider",
+    );
   }
   return context;
 }
@@ -46,9 +49,7 @@ export function InputCapabilityProvider({
     const mediaFinePointer = window.matchMedia("(any-pointer: fine)");
 
     const handleMediaChange = () => {
-      setHasFineHoverPointer(
-        mediaHover.matches && mediaFinePointer.matches,
-      );
+      setHasFineHoverPointer(mediaHover.matches && mediaFinePointer.matches);
     };
 
     mediaHover.addEventListener("change", handleMediaChange);
@@ -91,11 +92,7 @@ export function InputCapabilityProvider({
       hasMousePointerInteraction,
       magneticPreviewEnabled,
     }),
-    [
-      hasFineHoverPointer,
-      hasMousePointerInteraction,
-      magneticPreviewEnabled,
-    ],
+    [hasFineHoverPointer, hasMousePointerInteraction, magneticPreviewEnabled],
   );
 
   return (
@@ -104,4 +101,3 @@ export function InputCapabilityProvider({
     </InputCapabilityContext.Provider>
   );
 }
-

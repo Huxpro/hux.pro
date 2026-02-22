@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
 import { cn } from "@/lib/utils";
 import { useInputCapability } from "@/services";
+import React from "react";
 import { Cursor } from "./cursor";
 
 export interface MagneticContentProps {
@@ -120,7 +120,5 @@ export function MagneticContent({
     );
   }
 
-  return (
-    <div className={cn(cursorHideClass, className)}>{inner}</div>
-  );
+  return <div className={cn(cursorHideClass, className)}>{inner}</div>;
 }
