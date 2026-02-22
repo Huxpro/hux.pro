@@ -2,6 +2,7 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
+import { useInputCapability } from "@/services";
 import { Cursor } from "./cursor";
 
 export interface MagneticContentProps {
@@ -51,7 +52,8 @@ export function MagneticContent({
   cursorClassName,
   children,
 }: MagneticContentProps) {
-  const showCursor = enabled;
+  const { magneticPreviewEnabled } = useInputCapability();
+  const showCursor = enabled && magneticPreviewEnabled;
 
   const cursorElement = showCursor ? (
     <Cursor
@@ -83,6 +85,13 @@ export function MagneticContent({
   const cursorHideClass =
     showCursor && hideNativeCursor ? "[&:hover]:cursor-none" : "";
 
+  const handleButtonKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      e.currentTarget.click();
+    }
+  };
+
   // onClick takes priority over href
   if (onClick) {
     return (
@@ -90,6 +99,7 @@ export function MagneticContent({
         role="button"
         tabIndex={0}
         onClick={onClick}
+        onKeyDown={handleButtonKeyDown}
         className={cn(cursorHideClass, className)}
       >
         {inner}

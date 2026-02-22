@@ -19,3 +19,4 @@ export {
   useVisitor,
   type LastVisitedItem,
 } from "./visitor";
+export { InputCapabilityProvider, useInputCapability } from "./input-capability";
