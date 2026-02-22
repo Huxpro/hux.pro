@@ -103,7 +103,6 @@ export function WeatherWidget() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setDevForceEmpty(params.get("weather") === "empty");
     } catch {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDevForceEmpty(false);
     }
   }, []);

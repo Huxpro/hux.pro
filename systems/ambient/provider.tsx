@@ -8,8 +8,10 @@ import { useLocationQuery, useWeatherQuery } from "./lib/queries";
 import { type FormFactor, matchRoutePattern } from "./lib/route-config";
 import {
   type AmbientSettings,
+  type WeatherGradientMode,
+  getRouteGradientOverrideForPath,
   getAmbientSettings,
-  isGradientEnabledForPath as checkGradientEnabled,
+  resolveGlobalSurfaceGradientEnabled,
   setAmbientSettings,
 } from "./lib/settings";
 import type { NormalizedWeather, WeatherCondition } from "./lib/weather";
@@ -92,6 +94,7 @@ interface WeatherDebugOverride {
 interface WeatherContextType {
   weather: NormalizedWeather | null;
   gradient: string;
+  gradientMode: WeatherGradientMode;
   isLoading: boolean;
   isFetching: boolean;
   error: string | null;
@@ -100,6 +103,9 @@ interface WeatherContextType {
   debugOverride: WeatherDebugOverride | null;
   setDebugOverride: (override: WeatherDebugOverride | null) => void;
   refresh: () => void;
+  setGradientMode: (mode: WeatherGradientMode) => void;
+  cycleGradientMode: () => void;
+  isSurfaceGradientEnabledGlobally: (formFactor?: FormFactor) => boolean;
   isGradientEnabledForPath: (pathname: string, formFactor?: FormFactor) => boolean;
   getRoutePattern: (pathname: string) => string;
   routeGradientPreferences: Record<string, boolean>;
@@ -109,11 +115,16 @@ interface WeatherContextType {
 }
 
 const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
+const GRADIENT_MODE_CYCLE: WeatherGradientMode[] = ["adaptive", "widget", "off"];
 
 export function useWeather() {
   const context = useContext(WeatherContext);
   if (!context) throw new Error("useWeather must be used within AmbientProvider");
   return context;
+}
+
+export function useOptionalWeather() {
+  return useContext(WeatherContext);
 }
 
 // =============================================================================
@@ -127,7 +138,7 @@ interface AmbientProviderProps {
 
 export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const { isEnabled: isDevtoolEnabled } = useDevtool();
-  
+
   // Ambient Settings
   const [settings, setSettingsState] = useState<AmbientSettings>(getAmbientSettings);
 
@@ -138,6 +149,21 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       return next;
     });
   }, []);
+
+  const setGradientMode = useCallback(
+    (mode: WeatherGradientMode) => {
+      if (mode === settings.weatherGradientMode) return;
+      updateSettings({ weatherGradientMode: mode });
+    },
+    [settings.weatherGradientMode, updateSettings]
+  );
+
+  const cycleGradientMode = useCallback(() => {
+    const currentIndex = GRADIENT_MODE_CYCLE.indexOf(settings.weatherGradientMode);
+    const nextIndex =
+      currentIndex < 0 ? 0 : (currentIndex + 1) % GRADIENT_MODE_CYCLE.length;
+    updateSettings({ weatherGradientMode: GRADIENT_MODE_CYCLE[nextIndex] });
+  }, [settings.weatherGradientMode, updateSettings]);
 
   // Debug override state (for weather and time)
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
@@ -230,10 +256,23 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   }, [isDevtoolEnabled, isOverrideEnabled, debugOverride, weatherQuery.data, effectivePhase, theme]);
 
   // Route Gradient Preferences
+  const isSurfaceGradientEnabledGlobally = useCallback(
+    (formFactor: FormFactor = "desktop") =>
+      resolveGlobalSurfaceGradientEnabled(settings.weatherGradientMode, formFactor),
+    [settings.weatherGradientMode]
+  );
+
   const checkGradientEnabledForPath = useCallback(
-    (pathname: string, formFactor: FormFactor = "desktop") =>
-      checkGradientEnabled(pathname, settings, formFactor),
-    [settings]
+    (pathname: string, formFactor: FormFactor = "desktop") => {
+      const globalEnabled = isSurfaceGradientEnabledGlobally(formFactor);
+
+      // Route-level overrides are devtool-only experiments.
+      if (!isDevtoolEnabled) return globalEnabled;
+
+      const routeOverride = getRouteGradientOverrideForPath(pathname, settings);
+      return routeOverride ?? globalEnabled;
+    },
+    [isDevtoolEnabled, isSurfaceGradientEnabledGlobally, settings]
   );
 
   const getRoutePattern = useCallback((pathname: string) => {
@@ -254,7 +293,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   const clearRouteGradientPreference = useCallback(
     (pattern: string) => {
-      const { [pattern]: _, ...rest } = settings.routeGradientPreferences;
+      const rest = { ...settings.routeGradientPreferences };
+      delete rest[pattern];
       updateSettings({ routeGradientPreferences: rest });
     },
     [settings.routeGradientPreferences, updateSettings]
@@ -281,6 +321,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
         value={{
           weather: weatherQuery.data ?? null,
           gradient: computedGradient,
+          gradientMode: settings.weatherGradientMode,
           isLoading: weatherQuery.isLoading,
           isFetching: weatherQuery.isFetching,
           error: weatherQuery.error?.message ?? null,
@@ -289,6 +330,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
           debugOverride,
           setDebugOverride,
           refresh: refreshWeather,
+          setGradientMode,
+          cycleGradientMode,
+          isSurfaceGradientEnabledGlobally,
           isGradientEnabledForPath: checkGradientEnabledForPath,
           getRoutePattern,
           routeGradientPreferences: settings.routeGradientPreferences,

@@ -8,6 +8,7 @@ import {
   getWeatherGradient,
 } from "@/systems/ambient/lib/gradient";
 import {
+  type FormFactor,
   GRADIENT_ROUTE_DEFAULTS,
   matchRoutePattern,
 } from "@/systems/ambient/lib/route-config";
@@ -205,11 +206,17 @@ function RouteGradientModule() {
     setRouteGradientPreference,
     clearRouteGradientPreference,
     clearAllRouteGradientPreferences,
+    isSurfaceGradientEnabledGlobally,
   } = useWeather();
 
   const currentPattern = matchRoutePattern(pathname);
   const hasOverrides = Object.keys(routeGradientPreferences).length > 0;
   const allPatterns = Object.keys(GRADIENT_ROUTE_DEFAULTS);
+  const formFactor: FormFactor =
+    typeof window !== "undefined" && !window.matchMedia("(min-width: 768px)").matches
+      ? "mobile"
+      : "desktop";
+  const defaultEnabled = isSurfaceGradientEnabledGlobally(formFactor);
 
   return (
     <DebugSection
@@ -230,9 +237,8 @@ function RouteGradientModule() {
       <div className="space-y-2">
         <div className="grid grid-cols-2 gap-1">
           {allPatterns.map((pattern) => {
-            const defaultValue = GRADIENT_ROUTE_DEFAULTS[pattern];
             const userPref = routeGradientPreferences[pattern];
-            const effective = userPref ?? defaultValue;
+            const effective = userPref ?? defaultEnabled;
             const isOverride = userPref !== undefined;
             const isCurrent = pattern === currentPattern;
 
@@ -243,7 +249,7 @@ function RouteGradientModule() {
                   if (isOverride) {
                     clearRouteGradientPreference(pattern);
                   } else {
-                    setRouteGradientPreference(pattern, !defaultValue);
+                    setRouteGradientPreference(pattern, !effective);
                   }
                 }}
                 className={cn(
