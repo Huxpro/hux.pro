@@ -196,34 +196,54 @@ function ScrambleIdentifier() {
 // =============================================================================
 
 export default function Home() {
-  const [heroOpacity, setHeroOpacity] = useState(1);
+  const [useJsFadeFallback, setUseJsFadeFallback] = useState(false);
+  const [fallbackOpacity, setFallbackOpacity] = useState(1);
 
   useEffect(() => {
+    const supportsScrollTimeline =
+      typeof CSS !== "undefined" && CSS.supports("animation-timeline: scroll()");
+    if (supportsScrollTimeline) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      setUseJsFadeFallback(true);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    if (!useJsFadeFallback) return;
+
     const getFadeDistance = () =>
-      window.matchMedia("(min-width: 768px)").matches ? 360 : 180;
+      window.matchMedia("(min-width: 768px)").matches ? 160 : 240;
 
     const updateHeroOpacity = () => {
       const scrollTop =
         window.pageYOffset || document.documentElement.scrollTop || 0;
       const progress = Math.min(scrollTop / getFadeDistance(), 1);
-      setHeroOpacity(1 - progress);
+      setFallbackOpacity(1 - progress);
     };
 
-    updateHeroOpacity();
+    const frame = window.requestAnimationFrame(updateHeroOpacity);
     window.addEventListener("scroll", updateHeroOpacity, { passive: true });
     window.addEventListener("resize", updateHeroOpacity);
 
     return () => {
+      window.cancelAnimationFrame(frame);
       window.removeEventListener("scroll", updateHeroOpacity);
       window.removeEventListener("resize", updateHeroOpacity);
     };
-  }, []);
+  }, [useJsFadeFallback]);
 
   return (
     <main className="mx-auto max-w-[680px] px-6 pt-6 sm:pt-24 pb-32">
       <HeaderZone
-        className="sticky top-6 sm:top-24 z-10"
-        style={{ opacity: heroOpacity, transition: "opacity 120ms linear" }}
+        className="home-hero-zone sticky top-6 sm:top-24 z-10"
+        style={
+          useJsFadeFallback
+            ? { opacity: fallbackOpacity, transition: "opacity 120ms linear" }
+            : undefined
+        }
       >
         <div className="h-11 flex items-start justify-center">
           <ScrambleIdentifier />

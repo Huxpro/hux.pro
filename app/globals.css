@@ -586,3 +586,42 @@
     opacity: 1 !important;
   }
 }
+
+/* =============================================================================
+   Home Hero Fade (CSS Scroll-Driven)
+   ============================================================================= */
+
+@keyframes home-hero-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .home-hero-zone {
+    animation-name: home-hero-fade;
+    animation-duration: 1ms;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    animation-timeline: scroll(root block);
+    /* h-60 = 15rem; finish fading when one hero-zone height has scrolled */
+    animation-range: 0 15rem;
+  }
+
+  @media (min-width: 768px) {
+    .home-hero-zone {
+      /* Desktop: shorter range so it fades faster */
+      animation-range: 0 10rem;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero-zone {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
