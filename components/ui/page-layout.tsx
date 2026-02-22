@@ -1,5 +1,6 @@
 "use client";
 
+import { HeaderZone } from "@/components/ui/header-zone";
 import { SystemNav } from "@/components/ui/system-nav";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,8 @@ interface PageLayoutProps {
   backHref?: string;
   /** Back navigation label, defaults to "λhux" */
   backLabel?: string;
+  /** Content rendered between header and children (e.g., language filter) */
+  headerActions?: ReactNode;
   /** Additional className for the main element */
   className?: string;
   /** Page content */
@@ -40,13 +43,10 @@ interface PageLayoutProps {
  *
  * Provides consistent structure across prose, log, prompt, and docs pages:
  * - Centered container (max-w-[680px])
+ * - Fixed-height HeaderZone for stable content-start position
  * - SystemNav back navigation
  * - Page header with title (with optional TextScramble animation)
  * - View Transition API integration for smooth page transitions
- *
- * The layout elements have view-transition-name properties that match
- * corresponding elements on the home page, enabling smooth morphing
- * animations when navigating between pages.
  *
  * @example
  * // With scramble animation (i18n-aware)
@@ -61,6 +61,7 @@ export function PageLayout({
   title,
   backHref = "/",
   backLabel = "λhux",
+  headerActions,
   className,
   children,
 }: PageLayoutProps) {
@@ -84,32 +85,40 @@ export function PageLayout({
   const currentText = isHovered ? hoverTitle : displayTitle;
 
   return (
-    <main className={cn("mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32", className)}>
-      {/* Back link - System UI */}
-      <SystemNav href={backHref} path={backLabel} className="mb-16" />
+    <main className={cn("mx-auto max-w-[680px] px-6 pt-6 sm:pt-24 pb-32", className)}>
+      <HeaderZone>
+        <div className="h-11 flex items-start">
+          <SystemNav href={backHref} path={backLabel} />
+        </div>
 
-      {/* Header */}
-      <header
-        className="mb-20"
-        onMouseEnter={() => useScramble && setIsHovered(true)}
-        onMouseLeave={() => useScramble && setIsHovered(false)}
-      >
-        {useScramble ? (
-          <TextScramble
-            as="h1"
-            duration={0.5}
-            speed={0.03}
-            characterSet={characterSet}
-            className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight cursor-default"
-          >
-            {currentText}
-          </TextScramble>
-        ) : (
-          <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
-            {displayTitle}
-          </h1>
-        )}
-      </header>
+        <div className="flex-1 flex flex-col justify-center">
+          <div className="relative">
+            <header
+              onMouseEnter={() => useScramble && setIsHovered(true)}
+              onMouseLeave={() => useScramble && setIsHovered(false)}
+            >
+              {useScramble ? (
+                <TextScramble
+                  as="h1"
+                  duration={0.5}
+                  speed={0.03}
+                  characterSet={characterSet}
+                  className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight cursor-default"
+                >
+                  {currentText}
+                </TextScramble>
+              ) : (
+                <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
+                  {displayTitle}
+                </h1>
+              )}
+            </header>
+            {headerActions && (
+              <div className="absolute left-0 top-full mt-4">{headerActions}</div>
+            )}
+          </div>
+        </div>
+      </HeaderZone>
 
       {children}
     </main>

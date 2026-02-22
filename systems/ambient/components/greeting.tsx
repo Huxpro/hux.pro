@@ -28,13 +28,13 @@ export function AmbientGreeting() {
   if (mounted && isReturningVisitor && lastVisited) {
     if (daysSinceLastVisit !== null && daysSinceLastVisit > 7) {
       contextMessage = (
-        <span className="block mt-2 text-muted-foreground">
+        <span className="mt-2 block w-full text-muted-foreground">
           {t(locale, "greetingLongTime")}
         </span>
       );
     } else {
       contextMessage = (
-        <span className="block mt-2">
+        <span className="mt-2 block w-full">
           <span className="text-muted-foreground">
             {t(locale, "greetingLastReading")}{" "}
           </span>
@@ -47,19 +47,19 @@ export function AmbientGreeting() {
     }
   } else if (mounted && isReturningVisitor) {
     contextMessage = (
-      <span className="block mt-2 text-muted-foreground">
+      <span className="mt-2 block w-full text-muted-foreground">
         {t(locale, "greetingWelcomeBack")}
       </span>
     );
   }
 
   return (
-    <div className="text-center mb-16">
+    <div className="relative w-full text-center">
       <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
         {timeGreeting}
       </h1>
       {contextMessage && (
-        <p className="mt-3 text-base sm:text-lg leading-relaxed">
+        <p className="absolute left-0 right-0 top-full text-sm sm:text-base leading-relaxed">
           {contextMessage}
         </p>
       )}
