@@ -215,7 +215,7 @@ export default function Home() {
     if (!useJsFadeFallback) return;
 
     const getFadeDistance = () =>
-      window.matchMedia("(min-width: 768px)").matches ? 160 : 240;
+      window.matchMedia("(min-width: 768px)").matches ? 144 : 176;
 
     const updateHeroOpacity = () => {
       const scrollTop =
@@ -236,9 +236,9 @@ export default function Home() {
   }, [useJsFadeFallback]);
 
   return (
-    <main className="mx-auto max-w-[680px] px-6 pt-6 sm:pt-24 pb-32">
+    <main className="mx-auto max-w-[680px] px-6 pt-12 sm:pt-24 pb-32 sm:pb-40">
       <HeaderZone
-        className="home-hero-zone sticky top-6 sm:top-24 z-10"
+        className="home-hero-zone sticky top-12 sm:top-24 z-10"
         style={
           useJsFadeFallback
             ? { opacity: fallbackOpacity, transition: "opacity 120ms linear" }
@@ -248,7 +248,7 @@ export default function Home() {
         <div className="h-11 flex items-start justify-center">
           <ScrambleIdentifier />
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center">
+        <div className="flex-1 flex flex-col items-center justify-center pb-6 sm:pb-4">
           <AmbientGreeting />
         </div>
       </HeaderZone>

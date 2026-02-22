@@ -1,6 +1,7 @@
 "use client";
 
 import { HeaderZone } from "@/components/ui/header-zone";
+import { TITLE_POETIC, TITLE_READER } from "@/components/ui/header-zone";
 import { SystemNav } from "@/components/ui/system-nav";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { cn } from "@/lib/utils";
@@ -30,8 +31,10 @@ interface PageLayoutProps {
   backHref?: string;
   /** Back navigation label, defaults to "λhux" */
   backLabel?: string;
-  /** Content rendered between header and children (e.g., language filter) */
+  /** Content rendered below the title (e.g., meta row, language filter) */
   headerActions?: ReactNode;
+  /** Title typography variant */
+  variant?: "poetic" | "reader";
   /** Additional className for the main element */
   className?: string;
   /** Page content */
@@ -62,36 +65,47 @@ export function PageLayout({
   backHref = "/",
   backLabel = "λhux",
   headerActions,
+  variant = "poetic",
   className,
   children,
 }: PageLayoutProps) {
   const { locale } = useLocale();
   const [isHovered, setIsHovered] = useState(false);
 
-  // Determine if we're using scramble mode (page prop) or static mode (title prop)
   const useScramble = !!page;
 
-  // Get title and hover text from translations if using page prop
   const titleKey = page ? (`${page}Title` as TranslationKey) : undefined;
   const hoverKey = page ? (`${page}TitleHover` as TranslationKey) : undefined;
 
   const displayTitle = titleKey ? t(locale, titleKey) : title ?? "";
   const hoverTitle = hoverKey ? t(locale, hoverKey) : displayTitle;
 
-  // Get character set for scramble animation
   const characterSet = getScrambleCharacterSet(locale, page);
 
-  // Display text switches on hover
   const currentText = isHovered ? hoverTitle : displayTitle;
+  const titleClassName = cn(
+    "text-foreground",
+    variant === "reader" ? TITLE_READER : TITLE_POETIC,
+    useScramble && "cursor-default"
+  );
 
   return (
-    <main className={cn("mx-auto max-w-[680px] px-6 pt-6 sm:pt-24 pb-32", className)}>
+    <main
+      className={cn(
+        "mx-auto max-w-[680px] px-6 pt-12 sm:pt-24 pb-32 sm:pb-40",
+        className
+      )}
+    >
       <HeaderZone>
         <div className="h-11 flex items-start">
           <SystemNav href={backHref} path={backLabel} />
         </div>
-
-        <div className="flex-1 flex flex-col justify-center">
+        <div
+          className={cn(
+            "flex-1 flex flex-col justify-center",
+            headerActions && "pb-6 sm:pb-4"
+          )}
+        >
           <div className="relative">
             <header
               onMouseEnter={() => useScramble && setIsHovered(true)}
@@ -103,18 +117,23 @@ export function PageLayout({
                   duration={0.5}
                   speed={0.03}
                   characterSet={characterSet}
-                  className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight cursor-default"
+                  className={titleClassName}
                 >
                   {currentText}
                 </TextScramble>
               ) : (
-                <h1 className="font-serif text-3xl sm:text-4xl text-foreground tracking-tight">
-                  {displayTitle}
-                </h1>
+                <h1 className={titleClassName}>{displayTitle}</h1>
               )}
             </header>
             {headerActions && (
-              <div className="absolute left-0 top-full mt-4">{headerActions}</div>
+              <div
+                className={cn(
+                  "absolute left-0 top-full w-max",
+                  variant === "reader" ? "mt-4" : "mt-2"
+                )}
+              >
+                {headerActions}
+              </div>
             )}
           </div>
         </div>

@@ -607,14 +607,14 @@
     animation-timing-function: linear;
     animation-fill-mode: both;
     animation-timeline: scroll(root block);
-    /* h-60 = 15rem; finish fading when one hero-zone height has scrolled */
-    animation-range: 0 15rem;
+    /* Mobile header-zone default height (h-44 = 11rem) */
+    animation-range: 0 11rem;
   }
 
   @media (min-width: 768px) {
     .home-hero-zone {
-      /* Desktop: shorter range so it fades faster */
-      animation-range: 0 10rem;
+      /* Desktop: slightly faster fade than full zone (sm:h-56 = 14rem) */
+      animation-range: 0 9rem;
     }
   }
 }

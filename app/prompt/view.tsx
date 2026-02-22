@@ -437,11 +437,9 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
   };
 
   return (
-    <PageLayout page="prompts">
+    <PageLayout page="prompts" headerActions={<XmlTag>system</XmlTag>}>
       {/* System wrapper */}
       <div className="relative">
-        <XmlTag>system</XmlTag>
-
         <div className="py-4 space-y-2">
           {/* Quotes */}
           {data.quotes.map((quote) => (
