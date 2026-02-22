@@ -12,10 +12,12 @@
 
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData } from "@/lib/log";
+import { getCommitPrimaryUrl } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
+import { CommitCursorPreview } from "./embeds";
 
 // =============================================================================
 // Types
@@ -55,12 +57,16 @@ export function Commit({
   }
 
   const data = normalizeCommit(commit, locale);
+  const primaryUrl = getCommitPrimaryUrl(commit) ?? undefined;
+  const cursorPreview = <CommitCursorPreview commit={commit} locale={locale} />;
 
   switch (variant) {
     case "timeline":
       return (
         <TimelineCommit
           data={data}
+          primaryUrl={primaryUrl}
+          cursorPreview={cursorPreview}
           defaultExpanded={defaultExpanded}
           className={className}
         />
