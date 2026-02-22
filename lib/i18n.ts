@@ -77,6 +77,7 @@ export const translations = {
     widgetTalks: "/productions",
     widgetStatus: "processing",
     widgetWeather: "weather",
+    widgetPrompt: "/prompts",
     widgetViewAll: "view all",
 
     // Ambient (location / weather)
@@ -215,6 +216,7 @@ export const translations = {
     widgetTalks: "/作品",
     widgetStatus: "处理中",
     widgetWeather: "天气",
+    widgetPrompt: "/提示词",
     widgetViewAll: "查看全部",
 
     // Ambient (location / weather)
