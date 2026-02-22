@@ -11,8 +11,10 @@ import {
 } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
+import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
+import type { Locale } from "@/lib/i18n";
 import { Link } from "next-view-transitions";
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 interface LanguageFilterProps {
   includeOther: boolean;
@@ -67,7 +69,7 @@ interface PostListProps<T extends Post> {
  *
  * This component handles:
  * - Language filtering (current locale vs all)
- * - Post rendering with hover states
+ * - Post rendering with magnetic cursor previews
  * - Localized titles/descriptions
  *
  * Layout (PageLayout) should be handled at the app router level.
@@ -79,7 +81,6 @@ export function PostList<T extends Post>({
   renderMeta,
 }: PostListProps<T>) {
   const { locale } = useLocale();
-  const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
 
   const filteredPosts = posts.filter((post) =>
     shouldShowPost(post, locale, includeOther)
@@ -90,71 +91,49 @@ export function PostList<T extends Post>({
       <section className="space-y-0">
         {filteredPosts.map((post) => {
           const altLang = getAlternateLangLabel(post, locale);
-          const isHovered = hoveredSlug === post.slug;
+          const description = getLocalizedDescription(post, locale);
           const showLangTag =
             includeOther &&
             post.language !== "both" &&
             post.language !== locale;
 
-          return (
-            <article
-              key={post.slug}
-              className="group relative"
-              onMouseEnter={() => setHoveredSlug(post.slug)}
-              onMouseLeave={() => setHoveredSlug(null)}
+          const preview = (
+            <PostPreview
+              description={description}
+              altLangLabel={altLang?.label}
+              locale={locale}
+            />
+          );
+
+          const postRow = (
+            <Link
+              href={getPostHref(post, locale, basePath)}
+              className="flex items-baseline justify-between gap-4 py-3 sm:py-4 -mx-4 px-4 rounded-lg transition-colors duration-200 hover:bg-muted/50"
             >
-              <Link
-                href={getPostHref(post, locale, basePath)}
-                className={cn(
-                  "flex items-baseline justify-between gap-4 py-4 -mx-4 px-4 rounded-lg transition-all duration-200",
-                  isHovered && "bg-muted/50"
-                )}
-              >
-                <div className="flex-1 min-w-0">
-                  <h2
-                    className={cn(
-                      "text-sm sm:text-base font-normal transition-colors duration-200",
-                      isHovered ? "text-foreground" : "text-foreground"
-                    )}
-                  >
-                    {getLocalizedTitle(post, locale)}
-                    {showLangTag && (
-                      <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
-                        {post.language === "en" ? "EN" : "中文"}
-                      </span>
-                    )}
-                  </h2>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm sm:text-base font-normal">
+                  {getLocalizedTitle(post, locale)}
+                  {showLangTag && (
+                    <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
+                      {post.language === "en" ? "EN" : "中文"}
+                    </span>
+                  )}
+                </h2>
+              </div>
 
-                  {/* Hover content: description and also-in */}
-                  <div
-                    className={cn(
-                      "overflow-hidden transition-all duration-300 ease-out",
-                      isHovered
-                        ? "max-h-24 opacity-100 mt-2"
-                        : "max-h-0 opacity-0 mt-0"
-                    )}
-                  >
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {getLocalizedDescription(post, locale)}
-                    </p>
-                    {altLang && (
-                      <p className="mt-1.5 text-xs text-muted-foreground">
-                        {t(locale, "alsoIn")}{" "}
-                        <span className="text-foreground/80">
-                          {altLang.label}
-                        </span>
-                      </p>
-                    )}
-                  </div>
-                </div>
+              <span className="font-mono text-xs text-muted-foreground shrink-0">
+                {renderMeta
+                  ? renderMeta(post)
+                  : getLocalizedReadingTime(post, locale)}
+              </span>
+            </Link>
+          );
 
-                {/* Meta (date or reading time) */}
-                <span className="font-mono text-xs text-muted-foreground shrink-0">
-                  {renderMeta
-                    ? renderMeta(post)
-                    : getLocalizedReadingTime(post, locale)}
-                </span>
-              </Link>
+          return (
+            <article key={post.slug} className="group relative">
+              <MagneticPreview preview={preview} enabled={!!description}>
+                {postRow}
+              </MagneticPreview>
             </article>
           );
         })}
@@ -166,5 +145,33 @@ export function PostList<T extends Post>({
         </p>
       )}
     </>
+  );
+}
+
+// =============================================================================
+// Preview Content (for MagneticPreview)
+// =============================================================================
+
+function PostPreview({
+  description,
+  altLangLabel,
+  locale,
+}: {
+  description: string | undefined;
+  altLangLabel: string | undefined;
+  locale: Locale;
+}) {
+  return (
+    <div className="space-y-1.5 max-w-[14rem]">
+      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+        {description}
+      </p>
+      {altLangLabel && (
+        <p className="text-[10px] text-muted-foreground/70">
+          {t(locale, "alsoIn")}{" "}
+          <span className="text-foreground/80">{altLangLabel}</span>
+        </p>
+      )}
+    </div>
   );
 }

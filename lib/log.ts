@@ -711,3 +711,4 @@ export function getCommitPrimaryMedia(commit: Commit): Media | null {
   }
   return media[0] ?? null;
 }
+

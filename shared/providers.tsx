@@ -4,6 +4,7 @@ import { queryClient, queryPersister } from "@/lib/query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 
 import {
+  InputCapabilityProvider,
   LocaleProvider,
   ThemeProvider,
   useTheme,
@@ -45,20 +46,22 @@ export function Providers({ children }: { children: React.ReactNode }) {
       client={queryClient}
       persistOptions={{ persister: queryPersister }}
     >
-      <ThemeProvider>
-        <LocaleProvider>
-          <VisitorProvider>
-            <CommandProvider>
-              <DevtoolWrapper>
-                <AmbientWrapper>
-                  {children}
-                  <SystemSonner />
-                </AmbientWrapper>
-              </DevtoolWrapper>
-            </CommandProvider>
-          </VisitorProvider>
-        </LocaleProvider>
-      </ThemeProvider>
+      <InputCapabilityProvider>
+        <ThemeProvider>
+          <LocaleProvider>
+            <VisitorProvider>
+              <CommandProvider>
+                <DevtoolWrapper>
+                  <AmbientWrapper>
+                    {children}
+                    <SystemSonner />
+                  </AmbientWrapper>
+                </DevtoolWrapper>
+              </CommandProvider>
+            </VisitorProvider>
+          </LocaleProvider>
+        </ThemeProvider>
+      </InputCapabilityProvider>
     </PersistQueryClientProvider>
   );
 }

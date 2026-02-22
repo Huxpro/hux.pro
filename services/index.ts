@@ -2,20 +2,20 @@
 // Services - Simple global state providers (no UI)
 // =============================================================================
 
-export { ThemeProvider, useTheme } from "./theme";
+export {
+  InputCapabilityProvider,
+  useInputCapability,
+} from "./input-capability";
 export {
   LocaleProvider,
-  useLocale,
-  t,
-  translations,
+  defaultLocale,
   localeNames,
   locales,
-  defaultLocale,
+  t,
+  translations,
+  useLocale,
   type Locale,
   type TranslationKey,
 } from "./locale";
-export {
-  VisitorProvider,
-  useVisitor,
-  type LastVisitedItem,
-} from "./visitor";
+export { ThemeProvider, useTheme } from "./theme";
+export { VisitorProvider, useVisitor, type LastVisitedItem } from "./visitor";

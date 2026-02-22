@@ -1,13 +1,12 @@
 "use client";
 
 /**
- * Shared UI primitives for commit embeds.
- * These components are used across all embed types.
+ * Shared UI primitives for commit rendering.
+ * Used by TimelineCommit and CommitCompact.
  */
 
 import { cn } from "@/lib/utils";
 import {
-  ChevronDown,
   ExternalLink,
   Github,
   Globe,
@@ -17,6 +16,7 @@ import {
   Youtube,
   FileText,
 } from "lucide-react";
+
 // =============================================================================
 // Link Icon
 // =============================================================================
@@ -47,128 +47,6 @@ export function LinkIcon({ icon }: { icon?: string }) {
     default:
       return <ExternalLink className="w-3 h-3" />;
   }
-}
-
-// =============================================================================
-// Title Row
-// =============================================================================
-
-interface TitleRowProps {
-  title: string;
-  url?: string;
-  hasDetails?: boolean;
-  isExpanded?: boolean;
-  onToggle?: () => void;
-}
-
-export function TitleRow({
-  title,
-  url,
-  hasDetails = false,
-  isExpanded = false,
-  onToggle,
-}: TitleRowProps) {
-  return (
-    <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
-      {url ? (
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hover:underline decoration-1 underline-offset-4"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {title}
-        </a>
-      ) : (
-        <span>{title}</span>
-      )}
-      {hasDetails && onToggle && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggle();
-          }}
-          className="p-0.5 -m-0.5 hover:bg-muted/30 rounded transition-colors"
-          aria-label={isExpanded ? "Collapse" : "Expand"}
-        >
-          <ChevronDown
-            className={cn(
-              "w-3.5 h-3.5 text-muted-foreground/50 transition-transform duration-200",
-              isExpanded && "rotate-180"
-            )}
-          />
-        </button>
-      )}
-    </h3>
-  );
-}
-
-// =============================================================================
-// Links Row
-// =============================================================================
-
-interface LinksRowProps {
-  links: { url: string; label: string; icon?: string }[];
-  className?: string;
-}
-
-export function LinksRow({ links, className }: LinksRowProps) {
-  if (links.length === 0) return null;
-
-  return (
-    <div
-      className={cn("flex items-center gap-3 flex-wrap", className)}
-      onClick={(e) => e.stopPropagation()}
-    >
-      {links.map((link, i) => (
-        <a
-          key={i}
-          href={link.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            "inline-flex items-center gap-1 text-xs text-muted-foreground/50 transition-colors",
-            link.icon === "youtube" || link.icon === "video"
-              ? "hover:text-red-500"
-              : "hover:text-foreground"
-          )}
-        >
-          <LinkIcon icon={link.icon} />
-          <span>{link.label}</span>
-        </a>
-      ))}
-    </div>
-  );
-}
-
-// =============================================================================
-// Meta Row
-// =============================================================================
-
-interface MetaRowProps {
-  date: string;
-  meta?: string;
-  className?: string;
-}
-
-export function MetaRow({ date, meta, className }: MetaRowProps) {
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-2 text-xs font-mono text-muted-foreground uppercase tracking-wide",
-        className
-      )}
-    >
-      {meta && (
-        <>
-          <span>{meta}</span>
-          <span>·</span>
-        </>
-      )}
-      <span>{date}</span>
-    </div>
-  );
 }
 
 // =============================================================================
@@ -274,25 +152,6 @@ export function Stats({ stars, downloads, users, className }: StatsProps) {
           {item.value} {item.label}
         </span>
       ))}
-    </div>
-  );
-}
-
-// =============================================================================
-// Expanded Content Wrapper
-// =============================================================================
-
-interface ExpandedContentProps {
-  isExpanded: boolean;
-  children: React.ReactNode;
-}
-
-export function ExpandedContent({ isExpanded, children }: ExpandedContentProps) {
-  if (!isExpanded) return null;
-
-  return (
-    <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-150 space-y-1.5">
-      {children}
     </div>
   );
 }
