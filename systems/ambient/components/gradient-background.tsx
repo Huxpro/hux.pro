@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { isIPhoneSafariBrowser } from "@/systems/ambient/lib/platform";
+import { EDGE_FADE_MASK, isIOSSafariBrowser } from "@/systems/ambient/lib/platform";
 import { useDevtool } from "@/systems/devtool";
 import { useState } from "react";
 import { useWeather } from "../provider";
@@ -10,28 +10,25 @@ interface WeatherGradientBackgroundProps {
   enabled: boolean;
 }
 
-const IOS_EDGE_FADE_DISTANCE_PX = 128;
-
 export function WeatherGradientBackground({
   enabled,
 }: WeatherGradientBackgroundProps) {
   const { displayedGradient, isGradientTransitioning, softEdgingEnabled } =
     useWeather();
   const { isEnabled: isDevtoolEnabled } = useDevtool();
-  const [isIPhoneSafari] = useState(isIPhoneSafariBrowser);
+  const [isIOSSafari] = useState(isIOSSafariBrowser);
 
   if (!displayedGradient) return null;
 
   const isVisible = enabled && !isGradientTransitioning;
-  const edgeFadeMask = `linear-gradient(180deg, transparent 0%, black calc(env(safe-area-inset-top) + ${IOS_EDGE_FADE_DISTANCE_PX}px), black calc(100% - env(safe-area-inset-bottom) - ${IOS_EDGE_FADE_DISTANCE_PX}px), transparent 100%)`;
   const shouldApplySoftEdging =
-    softEdgingEnabled && (isIPhoneSafari || isDevtoolEnabled);
+    softEdgingEnabled && (isIOSSafari || isDevtoolEnabled);
   const gradientStyle: React.CSSProperties = {
     backgroundImage: displayedGradient,
     ...(shouldApplySoftEdging
       ? {
-          WebkitMaskImage: edgeFadeMask,
-          maskImage: edgeFadeMask,
+          WebkitMaskImage: EDGE_FADE_MASK,
+          maskImage: EDGE_FADE_MASK,
           WebkitMaskRepeat: "no-repeat",
           maskRepeat: "no-repeat",
           WebkitMaskSize: "100% 100%",

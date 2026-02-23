@@ -1,6 +1,7 @@
 /**
  * Centralized scroll/resize tracker that simulates `background-attachment: fixed`
- * on iOS Safari where native support is broken.
+ * on iOS Safari where native support is broken, and applies viewport-relative
+ * soft-edging masks on any platform.
  *
  * One singleton instance handles ALL registered widget gradient overlays:
  *   - 1 set of event listeners (not N)
@@ -8,21 +9,36 @@
  *   - Direct DOM style writes (zero React re-renders)
  *
  * Usage (from a useEffect):
- *   return iosGradientTracker.register(shellElement, overlayElement);
+ *   return gradientTracker.register(shellElement, overlayElement, {
+ *     positionBackground: true,   // simulate background-attachment: fixed
+ *     edgeMask: EDGE_FADE_MASK,   // viewport-relative mask-image
+ *   });
  */
+
+interface TrackerOptions {
+  /** When true, set backgroundSize/Position to simulate fixed attachment. */
+  positionBackground?: boolean;
+  /** CSS mask-image value to apply with viewport-relative positioning. */
+  edgeMask?: string;
+}
 
 interface TrackedEntry {
   shell: HTMLElement;
   overlay: HTMLElement;
+  options: TrackerOptions;
 }
 
-class IOSGradientTracker {
+class GradientTracker {
   private entries = new Set<TrackedEntry>();
   private rafId = 0;
   private listening = false;
 
-  register(shell: HTMLElement, overlay: HTMLElement): () => void {
-    const entry: TrackedEntry = { shell, overlay };
+  register(
+    shell: HTMLElement,
+    overlay: HTMLElement,
+    options: TrackerOptions = {}
+  ): () => void {
+    const entry: TrackedEntry = { shell, overlay, options };
     this.entries.add(entry);
 
     if (!this.listening) this.startListening();
@@ -49,9 +65,8 @@ class IOSGradientTracker {
 
     // Phase 2 — batch write (no interleaved reads → no layout thrashing)
     for (const { entry, rect } of measured) {
-      entry.overlay.style.backgroundSize = size;
-      entry.overlay.style.backgroundPosition = `${-rect.left}px ${-rect.top}px`;
-      entry.overlay.style.backgroundRepeat = "no-repeat";
+      const pos = `${-rect.left}px ${-rect.top}px`;
+      this.applyStyles(entry, size, pos);
     }
   };
 
@@ -65,10 +80,31 @@ class IOSGradientTracker {
     const vw = window.visualViewport?.width ?? window.innerWidth;
     const vh = window.visualViewport?.height ?? window.innerHeight;
     const rect = entry.shell.getBoundingClientRect();
+    const size = `${vw}px ${vh}px`;
+    const pos = `${-rect.left}px ${-rect.top}px`;
+    this.applyStyles(entry, size, pos);
+  }
 
-    entry.overlay.style.backgroundSize = `${vw}px ${vh}px`;
-    entry.overlay.style.backgroundPosition = `${-rect.left}px ${-rect.top}px`;
-    entry.overlay.style.backgroundRepeat = "no-repeat";
+  private applyStyles(entry: TrackedEntry, size: string, pos: string) {
+    const s = entry.overlay.style;
+    const { positionBackground, edgeMask } = entry.options;
+
+    if (positionBackground) {
+      s.backgroundSize = size;
+      s.backgroundPosition = pos;
+      s.backgroundRepeat = "no-repeat";
+    }
+
+    if (edgeMask) {
+      s.setProperty("-webkit-mask-image", edgeMask);
+      s.maskImage = edgeMask;
+      s.setProperty("-webkit-mask-size", size);
+      s.maskSize = size;
+      s.setProperty("-webkit-mask-position", pos);
+      s.maskPosition = pos;
+      s.setProperty("-webkit-mask-repeat", "no-repeat");
+      s.maskRepeat = "no-repeat";
+    }
   }
 
   private startListening() {
@@ -92,4 +128,4 @@ class IOSGradientTracker {
   }
 }
 
-export const iosGradientTracker = new IOSGradientTracker();
+export const gradientTracker = new GradientTracker();
