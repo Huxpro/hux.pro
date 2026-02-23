@@ -11,51 +11,95 @@ export type ResolvedLocation = {
   updatedAt: number;
 };
 
-type IpWhoIsResponse = {
-  success?: boolean;
+type IpLocationResponse = {
+  // ipapi.co fields
   latitude?: number;
   longitude?: number;
-  lat?: number;
-  lon?: number;
   city?: string;
   region?: string;
+  country_name?: string;
+  error?: boolean;
+  // ipwho.is fields
+  success?: boolean;
+  lat?: number;
+  lon?: number;
   country?: string;
   message?: string;
 };
+
+type IpProvider = {
+  url: string;
+  name: string;
+  parse: (data: IpLocationResponse) => {
+    lat: number;
+    lon: number;
+    city?: string;
+    region?: string;
+    country?: string;
+  };
+};
+
+const IP_PROVIDERS: IpProvider[] = [
+  {
+    url: "https://ipapi.co/json/",
+    name: "ipapi.co",
+    parse: (data) => {
+      if (data.error) throw new Error("ipapi.co: request failed");
+      const lat = data.latitude;
+      const lon = data.longitude;
+      if (typeof lat !== "number" || typeof lon !== "number") {
+        throw new Error("ipapi.co: missing coordinates");
+      }
+      return { lat, lon, city: data.city, region: data.region, country: data.country_name };
+    },
+  },
+  {
+    url: "https://ipwho.is/",
+    name: "ipwho.is",
+    parse: (data) => {
+      if (data.success === false) {
+        throw new Error(data.message || "ipwho.is: request failed");
+      }
+      const lat = data.latitude ?? data.lat;
+      const lon = data.longitude ?? data.lon;
+      if (typeof lat !== "number" || typeof lon !== "number") {
+        throw new Error("ipwho.is: missing coordinates");
+      }
+      return { lat, lon, city: data.city, region: data.region, country: data.country };
+    },
+  },
+];
 
 export async function fetchIpLocation(options?: {
   timeoutMs?: number;
 }): Promise<ResolvedLocation> {
   const timeoutMs = options?.timeoutMs ?? 8000;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch("https://ipwho.is/", {
-      signal: controller.signal,
-      cache: "no-store",
-    });
-    if (!res.ok) throw new Error(`ipwho.is: HTTP ${res.status}`);
-    const data = (await res.json()) as IpWhoIsResponse;
-    if (data.success === false) {
-      throw new Error(data.message || "ipwho.is: request failed");
+  let lastError: Error | undefined;
+
+  for (const provider of IP_PROVIDERS) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(provider.url, {
+        signal: controller.signal,
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`${provider.name}: HTTP ${res.status}`);
+      const data = (await res.json()) as IpLocationResponse;
+      const parsed = provider.parse(data);
+      return {
+        source: "ip",
+        ...parsed,
+        updatedAt: Date.now(),
+      };
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error(String(e));
+    } finally {
+      clearTimeout(timeout);
     }
-    const lat = data.latitude ?? data.lat;
-    const lon = data.longitude ?? data.lon;
-    if (typeof lat !== "number" || typeof lon !== "number") {
-      throw new Error("ipwho.is: missing coordinates");
-    }
-    return {
-      source: "ip",
-      lat,
-      lon,
-      city: data.city,
-      region: data.region,
-      country: data.country,
-      updatedAt: Date.now(),
-    };
-  } finally {
-    clearTimeout(timeout);
   }
+
+  throw lastError ?? new Error("All IP location providers failed");
 }
 
 export async function requestAccurateLocation(options?: {
