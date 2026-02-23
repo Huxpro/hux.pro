@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { fixedBgTracker } from "@/systems/ambient/lib/fixed-bg-tracker";
-import { EDGE_FADE_MASK, isIOSBrowser } from "@/systems/ambient/lib/platform";
+import { isIOSBrowser } from "@/systems/ambient/lib/platform";
 import { useOptionalWeather } from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
 import { Link } from "next-view-transitions";
@@ -42,7 +42,7 @@ export function WidgetShell({
   const widgetGradientEnabled = weather?.widgetGradientEnabled ?? false;
   const displayedGradient = weather?.displayedGradient ?? "";
   const isTransitioning = weather?.isGradientTransitioning ?? false;
-  const softEdgingEnabled = weather?.softEdgingEnabled ?? false;
+  const edgeFadeMask = weather?.edgeFadeMask ?? null;
 
   const showOverlay = widgetGradientEnabled && !!displayedGradient;
   const isGradientVisible = showOverlay && !isTransitioning;
@@ -54,15 +54,15 @@ export function WidgetShell({
 
   useEffect(() => {
     if (!showOverlay) return;
-    if (!useTrackerForPositioning && !softEdgingEnabled) return;
+    if (!useTrackerForPositioning && !edgeFadeMask) return;
     const shell = shellRef.current;
     const overlay = overlayRef.current;
     if (!shell || !overlay) return;
     return fixedBgTracker.register(shell, overlay, {
       positionBackground: useTrackerForPositioning,
-      edgeMask: softEdgingEnabled ? EDGE_FADE_MASK : undefined,
+      edgeMask: edgeFadeMask ?? undefined,
     });
-  }, [showOverlay, useTrackerForPositioning, softEdgingEnabled]);
+  }, [showOverlay, useTrackerForPositioning, edgeFadeMask]);
 
   const overlayStyle: React.CSSProperties = {
     backgroundImage: displayedGradient,

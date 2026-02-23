@@ -12,7 +12,11 @@ import {
   getDefaultSettings,
   setAmbientSettings,
 } from "./lib/settings";
-import { isIOSBrowser } from "./lib/platform";
+import {
+  EDGE_FADE_MASK,
+  EDGE_FADE_MASK_HIGH_CONTRAST,
+  isIOSBrowser,
+} from "./lib/platform";
 import type { NormalizedWeather, WeatherCondition } from "./lib/weather";
 import type { AmbientPhase } from "./lib/phase";
 import { deriveAmbientPhase } from "./lib/phase";
@@ -107,6 +111,8 @@ interface WeatherContextType {
   fullGradientEnabled: boolean;
   widgetGradientEnabled: boolean;
   softEdgingEnabled: boolean;
+  /** Resolved CSS mask-image value, or null when soft-edging is off. */
+  edgeFadeMask: string | null;
   isLoading: boolean;
   isFetching: boolean;
   error: string | null;
@@ -271,6 +277,16 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const effectivePhase: AmbientPhase =
     isDevtoolEnabled && isTimeOverrideEnabled ? timeOverridePhase : derivedPhase;
 
+  // Resolve which edge-fade mask to use.
+  // Special case: dark-mode sunrise/sunset has high gradient-vs-background
+  // contrast, so we use a more aggressive (wider) fade to soften the edge.
+  const edgeFadeMask: string | null = softEdgingEnabled
+    ? theme === "dark" &&
+      (effectivePhase === "sunrise" || effectivePhase === "sunset")
+      ? EDGE_FADE_MASK_HIGH_CONTRAST
+      : EDGE_FADE_MASK
+    : null;
+
   // Compute gradient
   const computedGradient = useMemo(() => {
     if (effectivePhase === "sunrise" || effectivePhase === "sunset") {
@@ -348,6 +364,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
           fullGradientEnabled,
           widgetGradientEnabled,
           softEdgingEnabled,
+          edgeFadeMask,
           isLoading: weatherQuery.isLoading,
           isFetching: weatherQuery.isFetching,
           error: weatherQuery.error?.message ?? null,

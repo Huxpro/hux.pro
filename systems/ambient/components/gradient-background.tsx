@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { EDGE_FADE_MASK } from "@/systems/ambient/lib/platform";
 import { useWeather } from "../provider";
 
 interface WeatherGradientBackgroundProps {
@@ -11,7 +10,7 @@ interface WeatherGradientBackgroundProps {
 export function WeatherGradientBackground({
   enabled,
 }: WeatherGradientBackgroundProps) {
-  const { displayedGradient, isGradientTransitioning, softEdgingEnabled } =
+  const { displayedGradient, isGradientTransitioning, edgeFadeMask } =
     useWeather();
 
   if (!displayedGradient) return null;
@@ -19,10 +18,10 @@ export function WeatherGradientBackground({
   const isVisible = enabled && !isGradientTransitioning;
   const gradientStyle: React.CSSProperties = {
     backgroundImage: displayedGradient,
-    ...(softEdgingEnabled
+    ...(edgeFadeMask
       ? {
-          WebkitMaskImage: EDGE_FADE_MASK,
-          maskImage: EDGE_FADE_MASK,
+          WebkitMaskImage: edgeFadeMask,
+          maskImage: edgeFadeMask,
           WebkitMaskRepeat: "no-repeat",
           maskRepeat: "no-repeat",
           WebkitMaskSize: "100% 100%",
