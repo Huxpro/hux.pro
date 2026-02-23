@@ -94,6 +94,8 @@ interface WeatherDebugOverride {
 interface WeatherContextType {
   weather: NormalizedWeather | null;
   gradient: string;
+  displayedGradient: string;
+  isGradientTransitioning: boolean;
   gradientMode: WeatherGradientMode;
   softEdgingEnabled: boolean;
   isLoading: boolean;
@@ -270,6 +272,34 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     return "";
   }, [isDevtoolEnabled, isOverrideEnabled, debugOverride, weatherQuery.data, effectivePhase, theme]);
 
+  // Gradient transition: crossfade when gradient value changes.
+  // Centralized here so every consumer (full-page background, widget overlays)
+  // shares one transition instead of running independent state machines.
+  const [displayedGradient, setDisplayedGradient] = useState("");
+  const [isGradientTransitioning, setIsGradientTransitioning] = useState(false);
+
+  useEffect(() => {
+    if (weatherQuery.isFetching) return;
+    if (computedGradient === displayedGradient) return;
+    if (!computedGradient) return;
+
+    if (!displayedGradient) {
+      setDisplayedGradient(computedGradient);
+      return;
+    }
+
+    setIsGradientTransitioning(true);
+
+    const timeout = setTimeout(() => {
+      setDisplayedGradient(computedGradient);
+      requestAnimationFrame(() => {
+        setIsGradientTransitioning(false);
+      });
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [computedGradient, displayedGradient, weatherQuery.isFetching]);
+
   // Route Gradient Preferences
   const isSurfaceGradientEnabledGlobally = useCallback(
     (formFactor: FormFactor = "desktop") =>
@@ -336,6 +366,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
         value={{
           weather: weatherQuery.data ?? null,
           gradient: computedGradient,
+          displayedGradient,
+          isGradientTransitioning,
           gradientMode: settings.weatherGradientMode,
           softEdgingEnabled: settings.softEdgingEnabled,
           isLoading: weatherQuery.isLoading,

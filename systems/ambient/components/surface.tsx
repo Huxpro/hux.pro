@@ -31,7 +31,6 @@ export function AmbientSurface({ children }: { children: React.ReactNode }) {
   const { isGradientEnabledForPath } = useWeather();
   const formFactor = useFormFactor();
 
-  // Fully client-side: null formFactor means SSR or not yet mounted
   const enabled = formFactor
     ? isGradientEnabledForPath(pathname, formFactor)
     : false;
