@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
 import { useWeather } from "../provider";
 
 interface WeatherGradientBackgroundProps {
@@ -11,41 +10,25 @@ interface WeatherGradientBackgroundProps {
 export function WeatherGradientBackground({
   enabled,
 }: WeatherGradientBackgroundProps) {
-  const { gradient, isFetching } = useWeather();
-  const [displayedGradient, setDisplayedGradient] = useState<string>("");
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const { displayedGradient, isGradientTransitioning, edgeFadeMask } =
+    useWeather();
 
-  const targetGradient = gradient;
-
-  useEffect(() => {
-    if (isFetching) return;
-    if (targetGradient === displayedGradient) return;
-    if (!targetGradient) return;
-
-    if (!displayedGradient) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDisplayedGradient(targetGradient);
-      return;
-    }
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsTransitioning(true);
-
-    const timeout = setTimeout(() => {
-      setDisplayedGradient(targetGradient);
-      requestAnimationFrame(() => {
-        setIsTransitioning(false);
-      });
-    }, 300);
-
-    return () => clearTimeout(timeout);
-  }, [targetGradient, displayedGradient, isFetching]);
-
-  // Don't render until we have a gradient to show
   if (!displayedGradient) return null;
 
-  // Visible when enabled AND not transitioning between gradients
-  const isVisible = enabled && !isTransitioning;
+  const isVisible = enabled && !isGradientTransitioning;
+  const gradientStyle: React.CSSProperties = {
+    backgroundImage: displayedGradient,
+    ...(edgeFadeMask
+      ? {
+          WebkitMaskImage: edgeFadeMask,
+          maskImage: edgeFadeMask,
+          WebkitMaskRepeat: "no-repeat",
+          maskRepeat: "no-repeat",
+          WebkitMaskSize: "100% 100%",
+          maskSize: "100% 100%",
+        }
+      : {}),
+  };
 
   return (
     <div
@@ -55,7 +38,7 @@ export function WeatherGradientBackground({
         "transition-opacity duration-700 ease-in-out",
         isVisible ? "opacity-70 dark:opacity-85" : "opacity-0"
       )}
-      style={{ backgroundImage: displayedGradient }}
+      style={gradientStyle}
     />
   );
 }
