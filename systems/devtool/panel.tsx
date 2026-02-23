@@ -15,14 +15,16 @@ import {
   WEATHER_CONDITIONS,
   getWeatherConditionLabel,
 } from "@/systems/ambient/lib/weather";
-import { useDevtool } from "./provider";
+import { useDevtool, DRAGGABLE_INSTANCES } from "./provider";
 import { cn } from "@/lib/utils";
 import {
   Bug,
   ChevronUp,
   Clock,
   Cloud,
+  GripVertical,
   Haze,
+  MapPin,
   Layers,
   Moon,
   MoonStar,
@@ -34,6 +36,7 @@ import {
   Sunset,
   X,
 } from "lucide-react";
+import { withDraggable } from "@/systems/draggable";
 import { usePathname } from "next/navigation";
 
 // =============================================================================
@@ -42,7 +45,7 @@ import { usePathname } from "next/navigation";
 // Positioned at top-right, similar to Next.js dev tools
 // =============================================================================
 
-export function DevtoolFAB() {
+function DevtoolFABInner() {
   const { locale } = useLocale();
   const { isEnabled, isOpen, toggle } = useDevtool();
 
@@ -98,6 +101,10 @@ export function DevtoolFAB() {
   );
 }
 
+export const DevtoolFAB = withDraggable(DevtoolFABInner, {
+  id: "devtool",
+});
+
 // =============================================================================
 // Devtool Panel Component
 // The expanded panel containing debug modules
@@ -110,7 +117,7 @@ function DevtoolPanel() {
   return (
     <div
       className={cn(
-        "rounded-2xl overflow-hidden",
+        "rounded-2xl overflow-hidden cursor-default",
         "bg-popover/95 backdrop-blur-xl",
         "border border-border/50",
         "shadow-2xl shadow-black/20"
@@ -143,6 +150,7 @@ function DevtoolPanel() {
         <RouteGradientModule />
         <WeatherModule />
         <AmbientTimeModule />
+        <DraggableModule />
         <RefetchModule />
       </div>
 
@@ -582,6 +590,91 @@ function AmbientTimeModule() {
           <PhaseButton p="evening" icon={<Moon className="h-3.5 w-3.5" />} aria="Set phase to evening" />
           <PhaseButton p="night" icon={<MoonStar className="h-3.5 w-3.5" />} aria="Set phase to night" />
         </div>
+      </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Draggable Module
+// =============================================================================
+
+function DraggableModule() {
+  const { locale } = useLocale();
+  const { getDraggableConfig, setDraggableConfig } = useDevtool();
+
+  return (
+    <DebugSection
+      title={locale === "zh" ? "拖拽" : "Draggable"}
+      icon={<GripVertical className="h-4 w-4" />}
+    >
+      <div className="space-y-1.5">
+        {DRAGGABLE_INSTANCES.map((inst) => {
+          const config = getDraggableConfig(inst.id);
+          return (
+            <div
+              key={inst.id}
+              className="flex items-center justify-between gap-2"
+            >
+              <span className="text-xs font-mono text-muted-foreground truncate">
+                {locale === "zh" ? inst.labelZh : inst.labelEn}
+              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Persist toggle — only when drag is on */}
+                {config.draggable && (
+                  <button
+                    onClick={() =>
+                      setDraggableConfig(inst.id, "persist", !config.persist)
+                    }
+                    className={cn(
+                      "p-1 rounded transition-colors",
+                      config.persist
+                        ? "text-foreground bg-muted/60"
+                        : "text-muted-foreground/40 hover:text-muted-foreground"
+                    )}
+                    aria-label={`Toggle position save for ${inst.labelEn}`}
+                    title={
+                      locale === "zh"
+                        ? config.persist
+                          ? "记住位置"
+                          : "不记住位置"
+                        : config.persist
+                        ? "Save position"
+                        : "Don't save position"
+                    }
+                  >
+                    <MapPin className="h-3 w-3" />
+                  </button>
+                )}
+                {/* Drag toggle */}
+                <button
+                  onClick={() =>
+                    setDraggableConfig(
+                      inst.id,
+                      "draggable",
+                      !config.draggable
+                    )
+                  }
+                  className={cn(
+                    "relative inline-flex h-5 w-9 items-center rounded-full border transition-colors",
+                    config.draggable
+                      ? "bg-green-500/90 border-green-500/70"
+                      : "bg-muted/40 border-border/60"
+                  )}
+                  aria-pressed={config.draggable}
+                  aria-label={`Toggle draggable for ${inst.labelEn}`}
+                >
+                  <span
+                    className={cn(
+                      "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
+                      config.draggable ? "translate-x-4" : "translate-x-0.5"
+                    )}
+                  />
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </DebugSection>
   );

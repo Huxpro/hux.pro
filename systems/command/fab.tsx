@@ -7,8 +7,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Command, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { withDraggable } from "@/systems/draggable";
 
-export function FloatingActionButton() {
+function FloatingActionButtonInner() {
   const { open } = useCommand();
   const pathname = usePathname();
   const { locale } = useLocale();
@@ -132,3 +133,7 @@ export function FloatingActionButton() {
     </div>
   );
 }
+
+export const FloatingActionButton = withDraggable(FloatingActionButtonInner, {
+  id: "command-fab",
+});

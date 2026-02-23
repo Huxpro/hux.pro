@@ -10,26 +10,69 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 
 const DEVTOOL_STORAGE_KEY = "hux_devtool";
 
+// =============================================================================
+// Draggable Instance Config
+// =============================================================================
+
+export interface DraggableInstanceConfig {
+  draggable: boolean;
+  persist: boolean;
+}
+
+export const DRAGGABLE_DEFAULTS: Record<string, DraggableInstanceConfig> = {
+  devtool: { draggable: false, persist: false },
+  "command-fab": { draggable: true, persist: true },
+  "command-palette": { draggable: false, persist: false },
+};
+
+export const DRAGGABLE_INSTANCES = [
+  { id: "devtool", labelEn: "Debug Panel", labelZh: "调试面板" },
+  { id: "command-fab", labelEn: "Search Button", labelZh: "搜索按钮" },
+  { id: "command-palette", labelEn: "Command Palette", labelZh: "命令面板" },
+] as const;
+
+// =============================================================================
+// Settings persistence
+// =============================================================================
+
 interface DevtoolSettings {
   fabEnabled: boolean;
+  draggable: Record<string, Partial<DraggableInstanceConfig>>;
 }
 
 function getDevtoolSettings(): DevtoolSettings {
-  if (typeof window === "undefined") return { fabEnabled: false };
+  if (typeof window === "undefined") return { fabEnabled: false, draggable: {} };
   try {
     const stored = localStorage.getItem(DEVTOOL_STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      // Migrate from old format
+      if ("commandFabDraggable" in parsed && !("draggable" in parsed)) {
+        return {
+          fabEnabled: parsed.fabEnabled ?? false,
+          draggable: parsed.commandFabDraggable
+            ? { "command-fab": { draggable: true } }
+            : {},
+        };
+      }
+      return {
+        fabEnabled: parsed.fabEnabled ?? false,
+        draggable: parsed.draggable ?? {},
+      };
     }
   } catch {
     // Ignore
   }
-  return { fabEnabled: false };
+  return { fabEnabled: false, draggable: {} };
 }
 
-function setDevtoolSettings(settings: DevtoolSettings): void {
+function setDevtoolSettings(settings: Partial<DevtoolSettings>): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(DEVTOOL_STORAGE_KEY, JSON.stringify(settings));
+  const current = getDevtoolSettings();
+  localStorage.setItem(
+    DEVTOOL_STORAGE_KEY,
+    JSON.stringify({ ...current, ...settings })
+  );
 }
 
 // =============================================================================
@@ -51,6 +94,14 @@ interface DevtoolContextType {
   toggleEnabled: () => void;
   /** Set devtool enabled state directly */
   setEnabled: (enabled: boolean) => void;
+  /** Get draggable config for an instance (merged defaults + overrides) */
+  getDraggableConfig: (id: string) => DraggableInstanceConfig;
+  /** Set a single draggable config option for an instance */
+  setDraggableConfig: (
+    id: string,
+    key: keyof DraggableInstanceConfig,
+    value: boolean
+  ) => void;
 }
 
 const DevtoolContext = createContext<DevtoolContextType | undefined>(undefined);
@@ -70,12 +121,17 @@ interface DevtoolProviderProps {
 export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProviderProps) {
   const [isEnabled, setIsEnabledState] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [draggableOverrides, setDraggableOverrides] = useState<
+    Record<string, Partial<DraggableInstanceConfig>>
+  >({});
 
-  // Load enabled state from localStorage on mount
+  // Load state from localStorage on mount
   useEffect(() => {
     const settings = getDevtoolSettings();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: localStorage read
     setIsEnabledState(settings.fabEnabled);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: localStorage read
+    setDraggableOverrides(settings.draggable);
   }, []);
 
   const setEnabled = useCallback((enabled: boolean) => {
@@ -108,6 +164,29 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
   const close = useCallback(() => {
     setIsOpen(false);
   }, []);
+
+  const getDraggableConfig = useCallback(
+    (id: string): DraggableInstanceConfig => {
+      const defaults = DRAGGABLE_DEFAULTS[id] || {
+        draggable: false,
+        persist: false,
+      };
+      const overrides = draggableOverrides[id] || {};
+      return { ...defaults, ...overrides };
+    },
+    [draggableOverrides]
+  );
+
+  const setDraggableConfig = useCallback(
+    (id: string, key: keyof DraggableInstanceConfig, value: boolean) => {
+      setDraggableOverrides((prev) => {
+        const next = { ...prev, [id]: { ...prev[id], [key]: value } };
+        setDevtoolSettings({ draggable: next });
+        return next;
+      });
+    },
+    []
+  );
 
   // Keyboard shortcut: 'D' to toggle panel
   useEffect(() => {
@@ -144,6 +223,8 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
         close,
         toggleEnabled,
         setEnabled,
+        getDraggableConfig,
+        setDraggableConfig,
       }}
     >
       {children}

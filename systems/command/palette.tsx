@@ -25,10 +25,13 @@ import {
 } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useDraggable } from "@/systems/draggable";
 import { useCommand } from "./provider";
 
 export function CommandPalette() {
+  const drag = useDraggable("command-palette");
   const { isOpen, isSlashCommandsMode, close, setSlashCommandsMode } =
     useCommand();
   const { theme, preference, setThemePreference } = useTheme();
@@ -355,6 +358,38 @@ export function CommandPalette() {
         onPointerDown={isIOS ? close : undefined}
       />
 
+      <motion.div
+        drag={drag.isEnabled && !isIOS ? true : undefined}
+        dragControls={drag.dragControls}
+        dragListener={false}
+        dragMomentum={false}
+        onDragStart={drag.onDragStart}
+        onDragEnd={drag.onDragEnd}
+        style={
+          drag.isEnabled && !isIOS
+            ? { ...drag.motionStyle, touchAction: "none" as const }
+            : undefined
+        }
+        onPointerDown={
+          drag.isEnabled && !isIOS
+            ? (e: React.PointerEvent) => {
+                const target = e.target as HTMLElement;
+                if (
+                  target.closest("[data-drag-handle]") &&
+                  !target.closest("input, [cmdk-input]")
+                ) {
+                  drag.dragControls.start(e);
+                }
+              }
+            : undefined
+        }
+        onClickCapture={
+          drag.isEnabled && !isIOS
+            ? drag.preventClickAfterDrag
+            : undefined
+        }
+        className="w-full"
+      >
       <Command
         className={cn(
           "relative mx-4 transition-all duration-300 ease-out",
@@ -369,7 +404,11 @@ export function CommandPalette() {
         loop
         shouldFilter={!isSlashCommandsMode}
       >
-        <div className="border-b border-border/50">
+        <div
+          className="border-b border-border/50"
+          data-drag-handle
+          style={drag.isEnabled && !isIOS ? { cursor: "grab" } : undefined}
+        >
           <div
             className="grid transition-all duration-300 ease-out"
             style={{ gridTemplateRows: isSlashCommandsMode ? "0fr" : "1fr" }}
@@ -871,6 +910,7 @@ export function CommandPalette() {
           </div>
         </div>
       </Command>
+      </motion.div>
     </div>
   );
 }
