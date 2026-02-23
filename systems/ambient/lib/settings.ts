@@ -21,7 +21,7 @@ export function getDefaultSettings(): AmbientSettings {
 }
 
 export function getAmbientSettings(options?: {
-  isIOSSafari?: boolean;
+  isIOS?: boolean;
 }): AmbientSettings {
   if (typeof window === "undefined") {
     return getDefaultSettings();
@@ -30,10 +30,10 @@ export function getAmbientSettings(options?: {
   try {
     const stored = localStorage.getItem(SETTINGS_KEY);
     if (!stored) {
-      // No user preference stored yet — iOS Safari defaults to widget mode
+      // No user preference stored yet — iOS defaults to widget mode
       return {
         ...getDefaultSettings(),
-        ...(options?.isIOSSafari && { weatherGradientMode: "widget" as const }),
+        ...(options?.isIOS && { weatherGradientMode: "widget" as const }),
       };
     }
 

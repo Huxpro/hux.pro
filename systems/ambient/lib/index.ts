@@ -1,7 +1,7 @@
 // Ambient System - Library exports
 export * from "./gradient";
 export * from "./greeting";
-export * from "./ios-gradient-tracker";
+export * from "./fixed-bg-tracker";
 export * from "./location";
 export * from "./phase";
 export * from "./platform";

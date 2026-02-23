@@ -1,18 +1,23 @@
-export function isIOSSafariBrowser(): boolean {
+/**
+ * Detect any iOS browser.  All iOS browsers (Safari, Chrome, Firefox, Edge…)
+ * use the WebKit engine and share the same limitations — most notably
+ * `background-attachment: fixed` is unsupported.
+ */
+export function isIOSBrowser(): boolean {
   if (typeof window === "undefined") return false;
 
   const ua = navigator.userAgent;
   const isIOSDevice =
     /iP(hone|ad|od)/i.test(ua) ||
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  const isWebKit = /WebKit/i.test(ua);
-  const isOtherIOSBrowser = /CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
 
-  return isIOSDevice && isWebKit && !isOtherIOSBrowser;
+  return isIOSDevice;
 }
 
-/** @deprecated Use isIOSSafariBrowser instead */
-export const isIPhoneSafariBrowser = isIOSSafariBrowser;
+/** @deprecated Use isIOSBrowser instead */
+export const isIOSSafariBrowser = isIOSBrowser;
+/** @deprecated Use isIOSBrowser instead */
+export const isIPhoneSafariBrowser = isIOSBrowser;
 
 export const IOS_EDGE_FADE_DISTANCE_PX = 128;
 

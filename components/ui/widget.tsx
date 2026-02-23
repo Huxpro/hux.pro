@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { gradientTracker } from "@/systems/ambient/lib/ios-gradient-tracker";
-import { EDGE_FADE_MASK, isIOSSafariBrowser } from "@/systems/ambient/lib/platform";
+import { fixedBgTracker } from "@/systems/ambient/lib/fixed-bg-tracker";
+import { EDGE_FADE_MASK, isIOSBrowser } from "@/systems/ambient/lib/platform";
 import { useOptionalWeather } from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
 import { Link } from "next-view-transitions";
@@ -19,24 +19,13 @@ import { useEffect, useRef, useState } from "react";
  * the pre-computed displayedGradient from the provider context.
  * All transition logic is centralized — zero per-widget state machines.
  *
- * On desktop browsers the overlay uses background-attachment:fixed so every
- * widget "samples" the same viewport-sized gradient (hole-punch effect).
- * On iOS Safari where fixed-attachment is broken, a centralized tracker
- * batch-updates background-position via direct DOM writes (zero React
- * re-renders, no layout thrashing).
+ * Background positioning uses one of two mutually-exclusive strategies:
+ *   - Desktop: CSS `background-attachment: fixed` (zero JS overhead)
+ *   - iOS:     JS polyfill via fixedBgTracker (CSS is broken on all iOS browsers)
  *
- * Soft edging uses the same viewport-relative mask as the full-mode
- * full-page gradient, applied via the same tracker for consistent
- * viewport-aligned fading.
+ * Soft edging (viewport-relative mask) always goes through the tracker
+ * regardless of platform, and can coexist with the CSS strategy on desktop.
  */
-
-const WIDGET_GRADIENT_STYLE_DESKTOP: React.CSSProperties = {
-  backgroundAttachment: "fixed",
-  backgroundSize: "100vw 100vh",
-  backgroundPosition: "center",
-  backgroundRepeat: "no-repeat",
-};
-
 export function WidgetShell({
   className,
   style,
@@ -49,7 +38,6 @@ export function WidgetShell({
   const weather = useOptionalWeather();
   const shellRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const [isIOSSafari] = useState(isIOSSafariBrowser);
 
   const widgetGradientEnabled = weather?.widgetGradientEnabled ?? false;
   const displayedGradient = weather?.displayedGradient ?? "";
@@ -59,28 +47,31 @@ export function WidgetShell({
   const showOverlay = widgetGradientEnabled && !!displayedGradient;
   const isGradientVisible = showOverlay && !isTransitioning;
 
-  // iOS Safari: tracker handles background positioning (simulating fixed).
-  // Soft edging: tracker handles viewport-relative mask positioning.
-  // Both use the same batch read-write pattern for zero layout thrashing.
-  const needsTracker = isIOSSafari || softEdgingEnabled;
+  // background-attachment: fixed is broken on all iOS browsers.
+  // When true  → JS polyfill positions the background (no CSS fixed).
+  // When false → CSS fixed handles positioning (no JS polyfill).
+  const [useTrackerForPositioning] = useState(isIOSBrowser);
 
   useEffect(() => {
-    if (!needsTracker || !showOverlay) return;
+    if (!showOverlay) return;
+    if (!useTrackerForPositioning && !softEdgingEnabled) return;
     const shell = shellRef.current;
     const overlay = overlayRef.current;
     if (!shell || !overlay) return;
-    return gradientTracker.register(shell, overlay, {
-      positionBackground: isIOSSafari,
+    return fixedBgTracker.register(shell, overlay, {
+      positionBackground: useTrackerForPositioning,
       edgeMask: softEdgingEnabled ? EDGE_FADE_MASK : undefined,
     });
-  }, [needsTracker, showOverlay, isIOSSafari, softEdgingEnabled]);
+  }, [showOverlay, useTrackerForPositioning, softEdgingEnabled]);
 
-  // On desktop, use CSS background-attachment: fixed for gradient positioning.
-  // On iOS Safari, the tracker simulates fixed positioning instead (CSS is broken).
-  // The tracker may also be active for mask-only on desktop — that's fine alongside CSS.
   const overlayStyle: React.CSSProperties = {
     backgroundImage: displayedGradient,
-    ...(isIOSSafari ? undefined : WIDGET_GRADIENT_STYLE_DESKTOP),
+    ...(!useTrackerForPositioning && {
+      backgroundAttachment: "fixed",
+      backgroundSize: "100vw 100vh",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+    }),
   };
 
   return (

@@ -12,7 +12,7 @@ import {
   getDefaultSettings,
   setAmbientSettings,
 } from "./lib/settings";
-import { isIOSSafariBrowser } from "./lib/platform";
+import { isIOSBrowser } from "./lib/platform";
 import type { NormalizedWeather, WeatherCondition } from "./lib/weather";
 import type { AmbientPhase } from "./lib/phase";
 import { deriveAmbientPhase } from "./lib/phase";
@@ -152,7 +152,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: localStorage read
-    setSettingsState(getAmbientSettings({ isIOSSafari: isIOSSafariBrowser() }));
+    setSettingsState(getAmbientSettings({ isIOS: isIOSBrowser() }));
   }, []);
 
   const updateSettings = useCallback((partial: Partial<AmbientSettings>) => {
@@ -190,7 +190,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   // 3 resolved rendering flags.
   // DevTool overrides bypass all natural derivation.
-  const isIOSSafari = useMemo(() => isIOSSafariBrowser(), []);
+  const isIOS = useMemo(() => isIOSBrowser(), []);
 
   const fullGradientEnabled =
     isDevtoolEnabled && devtoolGradientOverrides.full !== undefined
@@ -205,7 +205,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const softEdgingEnabled =
     isDevtoolEnabled && devtoolGradientOverrides.softEdging !== undefined
       ? devtoolGradientOverrides.softEdging
-      : isIOSSafari;
+      : isIOS;
 
   // Debug override state (for weather and time)
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);

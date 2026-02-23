@@ -1,7 +1,6 @@
 /**
- * Centralized scroll/resize tracker that simulates `background-attachment: fixed`
- * on iOS Safari where native support is broken, and applies viewport-relative
- * soft-edging masks on any platform.
+ * JS polyfill for `background-attachment: fixed`, which is unsupported on iOS.
+ * Also handles viewport-relative soft-edging masks on any platform.
  *
  * One singleton instance handles ALL registered widget gradient overlays:
  *   - 1 set of event listeners (not N)
@@ -9,7 +8,7 @@
  *   - Direct DOM style writes (zero React re-renders)
  *
  * Usage (from a useEffect):
- *   return gradientTracker.register(shellElement, overlayElement, {
+ *   return fixedBgTracker.register(shellElement, overlayElement, {
  *     positionBackground: true,   // simulate background-attachment: fixed
  *     edgeMask: EDGE_FADE_MASK,   // viewport-relative mask-image
  *   });
@@ -28,7 +27,7 @@ interface TrackedEntry {
   options: TrackerOptions;
 }
 
-class GradientTracker {
+class FixedBgTracker {
   private entries = new Set<TrackedEntry>();
   private rafId = 0;
   private listening = false;
@@ -128,4 +127,4 @@ class GradientTracker {
   }
 }
 
-export const gradientTracker = new GradientTracker();
+export const fixedBgTracker = new FixedBgTracker();
