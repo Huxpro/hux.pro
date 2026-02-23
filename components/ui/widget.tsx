@@ -1,9 +1,12 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { iosGradientTracker } from "@/systems/ambient/lib/ios-gradient-tracker";
+import { isIOSSafariBrowser } from "@/systems/ambient/lib/platform";
 import { useOptionalWeather } from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
 import { Link } from "next-view-transitions";
+import { useEffect, useRef, useState } from "react";
 
 // =============================================================================
 // Widget Primitives (shadcn-like compound components)
@@ -12,14 +15,15 @@ import { Link } from "next-view-transitions";
 /**
  * WidgetShell - The outer container with consistent card styling.
  *
- * In "widget" gradient mode each card renders a CSS-only gradient overlay
- * using the pre-computed displayedGradient from the provider context.
- * All transition logic is centralized — zero per-widget state or effects.
+ * In "widget" gradient mode each card renders a gradient overlay using
+ * the pre-computed displayedGradient from the provider context.
+ * All transition logic is centralized — zero per-widget state machines.
  *
  * On desktop browsers the overlay uses background-attachment:fixed so every
  * widget "samples" the same viewport-sized gradient (hole-punch effect).
- * On iOS Safari where fixed-attachment is broken, the gradient fills each
- * card independently — visually acceptable on narrow mobile viewports.
+ * On iOS Safari where fixed-attachment is broken, a centralized tracker
+ * batch-updates background-position via direct DOM writes (zero React
+ * re-renders, no layout thrashing).
  */
 
 const WIDGET_GRADIENT_STYLE_DESKTOP: React.CSSProperties = {
@@ -39,6 +43,10 @@ export function WidgetShell({
   children: React.ReactNode;
 }) {
   const weather = useOptionalWeather();
+  const shellRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const [isIOSSafari] = useState(isIOSSafariBrowser);
+
   const isWidgetMode = weather?.gradientMode === "widget";
   const displayedGradient = weather?.displayedGradient ?? "";
   const isTransitioning = weather?.isGradientTransitioning ?? false;
@@ -46,8 +54,20 @@ export function WidgetShell({
   const showOverlay = isWidgetMode && !!displayedGradient;
   const isGradientVisible = showOverlay && !isTransitioning;
 
+  // On iOS Safari, register with the centralized tracker so it can
+  // batch-update backgroundPosition/Size on scroll — simulating the
+  // broken background-attachment:fixed via direct DOM writes.
+  useEffect(() => {
+    if (!isIOSSafari || !showOverlay) return;
+    const shell = shellRef.current;
+    const overlay = overlayRef.current;
+    if (!shell || !overlay) return;
+    return iosGradientTracker.register(shell, overlay);
+  }, [isIOSSafari, showOverlay]);
+
   return (
     <div
+      ref={shellRef}
       className={cn(
         "group relative rounded-2xl overflow-hidden",
         "border border-border/50",
@@ -61,6 +81,7 @@ export function WidgetShell({
     >
       {showOverlay && (
         <div
+          ref={overlayRef}
           aria-hidden="true"
           className={cn(
             "pointer-events-none absolute inset-0 -z-10",
@@ -69,7 +90,7 @@ export function WidgetShell({
           )}
           style={{
             backgroundImage: displayedGradient,
-            ...WIDGET_GRADIENT_STYLE_DESKTOP,
+            ...(isIOSSafari ? undefined : WIDGET_GRADIENT_STYLE_DESKTOP),
           }}
         />
       )}

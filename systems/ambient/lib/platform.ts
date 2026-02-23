@@ -1,10 +1,15 @@
-export function isIPhoneSafariBrowser(): boolean {
+export function isIOSSafariBrowser(): boolean {
   if (typeof window === "undefined") return false;
 
   const ua = navigator.userAgent;
-  const isIPhone = /iPhone/i.test(ua);
+  const isIOSDevice =
+    /iP(hone|ad|od)/i.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const isWebKit = /WebKit/i.test(ua);
   const isOtherIOSBrowser = /CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
 
-  return isIPhone && isWebKit && !isOtherIOSBrowser;
+  return isIOSDevice && isWebKit && !isOtherIOSBrowser;
 }
+
+/** @deprecated Use isIOSSafariBrowser instead */
+export const isIPhoneSafariBrowser = isIOSSafariBrowser;
