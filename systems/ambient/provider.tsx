@@ -5,15 +5,14 @@ import { getSunEventGradient, getWeatherGradient } from "./lib/gradient";
 import type { LocationMode, ResolvedLocation } from "./lib/location";
 import { requestAccurateLocation as requestAccurateLocationFn } from "./lib/location";
 import { useLocationQuery, useWeatherQuery } from "./lib/queries";
-import { type FormFactor, matchRoutePattern } from "./lib/route-config";
 import {
   type AmbientSettings,
   type WeatherGradientMode,
-  getRouteGradientOverrideForPath,
   getAmbientSettings,
-  resolveGlobalSurfaceGradientEnabled,
+  getDefaultSettings,
   setAmbientSettings,
 } from "./lib/settings";
+import { isIOSSafariBrowser } from "./lib/platform";
 import type { NormalizedWeather, WeatherCondition } from "./lib/weather";
 import type { AmbientPhase } from "./lib/phase";
 import { deriveAmbientPhase } from "./lib/phase";
@@ -91,12 +90,22 @@ interface WeatherDebugOverride {
   isDay: boolean;
 }
 
+/** DevTool-level overrides for the 3 rendering flags (ephemeral, not persisted). */
+export interface DevtoolGradientOverrides {
+  full?: boolean;
+  widget?: boolean;
+  softEdging?: boolean;
+}
+
 interface WeatherContextType {
   weather: NormalizedWeather | null;
   gradient: string;
   displayedGradient: string;
   isGradientTransitioning: boolean;
   gradientMode: WeatherGradientMode;
+  // 3 resolved rendering flags
+  fullGradientEnabled: boolean;
+  widgetGradientEnabled: boolean;
   softEdgingEnabled: boolean;
   isLoading: boolean;
   isFetching: boolean;
@@ -108,19 +117,12 @@ interface WeatherContextType {
   refresh: () => void;
   setGradientMode: (mode: WeatherGradientMode) => void;
   cycleGradientMode: () => void;
-  setSoftEdgingEnabled: (enabled: boolean) => void;
-  toggleSoftEdging: () => void;
-  isSurfaceGradientEnabledGlobally: (formFactor?: FormFactor) => boolean;
-  isGradientEnabledForPath: (pathname: string, formFactor?: FormFactor) => boolean;
-  getRoutePattern: (pathname: string) => string;
-  routeGradientPreferences: Record<string, boolean>;
-  setRouteGradientPreference: (pattern: string, enabled: boolean) => void;
-  clearRouteGradientPreference: (pattern: string) => void;
-  clearAllRouteGradientPreferences: () => void;
+  devtoolGradientOverrides: DevtoolGradientOverrides;
+  setDevtoolGradientOverrides: (overrides: DevtoolGradientOverrides) => void;
 }
 
 const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
-const GRADIENT_MODE_CYCLE: WeatherGradientMode[] = ["adaptive", "widget"];
+const GRADIENT_MODE_CYCLE: WeatherGradientMode[] = ["full", "widget", "off"];
 
 export function useWeather() {
   const context = useContext(WeatherContext);
@@ -144,8 +146,14 @@ interface AmbientProviderProps {
 export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const { isEnabled: isDevtoolEnabled } = useDevtool();
 
-  // Ambient Settings
-  const [settings, setSettingsState] = useState<AmbientSettings>(getAmbientSettings);
+  // Ambient Settings — initialize with defaults to match SSR, hydrate from
+  // localStorage in an effect to avoid hydration mismatches.
+  const [settings, setSettingsState] = useState<AmbientSettings>(getDefaultSettings);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: localStorage read
+    setSettingsState(getAmbientSettings({ isIOSSafari: isIOSSafariBrowser() }));
+  }, []);
 
   const updateSettings = useCallback((partial: Partial<AmbientSettings>) => {
     setSettingsState((prev) => {
@@ -163,24 +171,41 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [settings.weatherGradientMode, updateSettings]
   );
 
+  // DevTool gradient overrides (ephemeral, not persisted)
+  const [devtoolGradientOverrides, setDevtoolGradientOverrides] =
+    useState<DevtoolGradientOverrides>({});
+
   const cycleGradientMode = useCallback(() => {
+    // Clear devtool full/widget overrides so mode change is visible
+    setDevtoolGradientOverrides((prev) => ({
+      ...prev,
+      full: undefined,
+      widget: undefined,
+    }));
     const currentIndex = GRADIENT_MODE_CYCLE.indexOf(settings.weatherGradientMode);
     const nextIndex =
       currentIndex < 0 ? 0 : (currentIndex + 1) % GRADIENT_MODE_CYCLE.length;
     updateSettings({ weatherGradientMode: GRADIENT_MODE_CYCLE[nextIndex] });
   }, [settings.weatherGradientMode, updateSettings]);
 
-  const setSoftEdgingEnabled = useCallback(
-    (enabled: boolean) => {
-      if (enabled === settings.softEdgingEnabled) return;
-      updateSettings({ softEdgingEnabled: enabled });
-    },
-    [settings.softEdgingEnabled, updateSettings]
-  );
+  // 3 resolved rendering flags.
+  // DevTool overrides bypass all natural derivation.
+  const isIOSSafari = useMemo(() => isIOSSafariBrowser(), []);
 
-  const toggleSoftEdging = useCallback(() => {
-    updateSettings({ softEdgingEnabled: !settings.softEdgingEnabled });
-  }, [settings.softEdgingEnabled, updateSettings]);
+  const fullGradientEnabled =
+    isDevtoolEnabled && devtoolGradientOverrides.full !== undefined
+      ? devtoolGradientOverrides.full
+      : settings.weatherGradientMode === "full";
+
+  const widgetGradientEnabled =
+    isDevtoolEnabled && devtoolGradientOverrides.widget !== undefined
+      ? devtoolGradientOverrides.widget
+      : settings.weatherGradientMode === "widget";
+
+  const softEdgingEnabled =
+    isDevtoolEnabled && devtoolGradientOverrides.softEdging !== undefined
+      ? devtoolGradientOverrides.softEdging
+      : isIOSSafari;
 
   // Debug override state (for weather and time)
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
@@ -300,55 +325,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     return () => clearTimeout(timeout);
   }, [computedGradient, displayedGradient, weatherQuery.isFetching]);
 
-  // Route Gradient Preferences
-  const isSurfaceGradientEnabledGlobally = useCallback(
-    (formFactor: FormFactor = "desktop") =>
-      resolveGlobalSurfaceGradientEnabled(settings.weatherGradientMode, formFactor),
-    [settings.weatherGradientMode]
-  );
-
-  const checkGradientEnabledForPath = useCallback(
-    (pathname: string, formFactor: FormFactor = "desktop") => {
-      const globalEnabled = isSurfaceGradientEnabledGlobally(formFactor);
-
-      // Route-level overrides are devtool-only experiments.
-      if (!isDevtoolEnabled) return globalEnabled;
-
-      const routeOverride = getRouteGradientOverrideForPath(pathname, settings);
-      return routeOverride ?? globalEnabled;
-    },
-    [isDevtoolEnabled, isSurfaceGradientEnabledGlobally, settings]
-  );
-
-  const getRoutePattern = useCallback((pathname: string) => {
-    return matchRoutePattern(pathname);
-  }, []);
-
-  const setRouteGradientPreference = useCallback(
-    (pattern: string, enabled: boolean) => {
-      updateSettings({
-        routeGradientPreferences: {
-          ...settings.routeGradientPreferences,
-          [pattern]: enabled,
-        },
-      });
-    },
-    [settings.routeGradientPreferences, updateSettings]
-  );
-
-  const clearRouteGradientPreference = useCallback(
-    (pattern: string) => {
-      const rest = { ...settings.routeGradientPreferences };
-      delete rest[pattern];
-      updateSettings({ routeGradientPreferences: rest });
-    },
-    [settings.routeGradientPreferences, updateSettings]
-  );
-
-  const clearAllRouteGradientPreferences = useCallback(() => {
-    updateSettings({ routeGradientPreferences: {} });
-  }, [updateSettings]);
-
   return (
     <LocationContext.Provider
       value={{
@@ -369,7 +345,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
           displayedGradient,
           isGradientTransitioning,
           gradientMode: settings.weatherGradientMode,
-          softEdgingEnabled: settings.softEdgingEnabled,
+          fullGradientEnabled,
+          widgetGradientEnabled,
+          softEdgingEnabled,
           isLoading: weatherQuery.isLoading,
           isFetching: weatherQuery.isFetching,
           error: weatherQuery.error?.message ?? null,
@@ -380,15 +358,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
           refresh: refreshWeather,
           setGradientMode,
           cycleGradientMode,
-          setSoftEdgingEnabled,
-          toggleSoftEdging,
-          isSurfaceGradientEnabledGlobally,
-          isGradientEnabledForPath: checkGradientEnabledForPath,
-          getRoutePattern,
-          routeGradientPreferences: settings.routeGradientPreferences,
-          setRouteGradientPreference,
-          clearRouteGradientPreference,
-          clearAllRouteGradientPreferences,
+          devtoolGradientOverrides,
+          setDevtoolGradientOverrides,
         }}
       >
         <AmbientTimeContext.Provider

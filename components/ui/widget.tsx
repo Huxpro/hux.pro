@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { gradientTracker } from "@/systems/ambient/lib/ios-gradient-tracker";
 import { EDGE_FADE_MASK, isIOSSafariBrowser } from "@/systems/ambient/lib/platform";
 import { useOptionalWeather } from "@/systems/ambient/provider";
-import { useOptionalDevtool } from "@/systems/devtool";
 import { ArrowRight } from "lucide-react";
 import { Link } from "next-view-transitions";
 import { useEffect, useRef, useState } from "react";
@@ -26,7 +25,7 @@ import { useEffect, useRef, useState } from "react";
  * batch-updates background-position via direct DOM writes (zero React
  * re-renders, no layout thrashing).
  *
- * Soft edging uses the same viewport-relative mask as the adaptive-mode
+ * Soft edging uses the same viewport-relative mask as the full-mode
  * full-page gradient, applied via the same tracker for consistent
  * viewport-aligned fading.
  */
@@ -48,27 +47,22 @@ export function WidgetShell({
   children: React.ReactNode;
 }) {
   const weather = useOptionalWeather();
-  const devtool = useOptionalDevtool();
   const shellRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [isIOSSafari] = useState(isIOSSafariBrowser);
 
-  const isWidgetMode = weather?.gradientMode === "widget";
+  const widgetGradientEnabled = weather?.widgetGradientEnabled ?? false;
   const displayedGradient = weather?.displayedGradient ?? "";
   const isTransitioning = weather?.isGradientTransitioning ?? false;
-  const softEdgingEnabled = weather?.softEdgingEnabled ?? true;
-  const isDevtoolEnabled = devtool?.isEnabled ?? false;
+  const softEdgingEnabled = weather?.softEdgingEnabled ?? false;
 
-  const showOverlay = isWidgetMode && !!displayedGradient;
+  const showOverlay = widgetGradientEnabled && !!displayedGradient;
   const isGradientVisible = showOverlay && !isTransitioning;
-
-  const shouldApplySoftEdging =
-    softEdgingEnabled && (isIOSSafari || isDevtoolEnabled);
 
   // iOS Safari: tracker handles background positioning (simulating fixed).
   // Soft edging: tracker handles viewport-relative mask positioning.
   // Both use the same batch read-write pattern for zero layout thrashing.
-  const needsTracker = isIOSSafari || shouldApplySoftEdging;
+  const needsTracker = isIOSSafari || softEdgingEnabled;
 
   useEffect(() => {
     if (!needsTracker || !showOverlay) return;
@@ -77,15 +71,16 @@ export function WidgetShell({
     if (!shell || !overlay) return;
     return gradientTracker.register(shell, overlay, {
       positionBackground: isIOSSafari,
-      edgeMask: shouldApplySoftEdging ? EDGE_FADE_MASK : undefined,
+      edgeMask: softEdgingEnabled ? EDGE_FADE_MASK : undefined,
     });
-  }, [needsTracker, showOverlay, isIOSSafari, shouldApplySoftEdging]);
+  }, [needsTracker, showOverlay, isIOSSafari, softEdgingEnabled]);
 
-  // On desktop (non-iOS) without tracker, use CSS background-attachment: fixed.
-  // When tracker is active it handles positioning, so skip the static style.
+  // On desktop, use CSS background-attachment: fixed for gradient positioning.
+  // On iOS Safari, the tracker simulates fixed positioning instead (CSS is broken).
+  // The tracker may also be active for mask-only on desktop — that's fine alongside CSS.
   const overlayStyle: React.CSSProperties = {
     backgroundImage: displayedGradient,
-    ...(needsTracker ? undefined : WIDGET_GRADIENT_STYLE_DESKTOP),
+    ...(isIOSSafari ? undefined : WIDGET_GRADIENT_STYLE_DESKTOP),
   };
 
   return (
@@ -95,7 +90,7 @@ export function WidgetShell({
         "group relative rounded-2xl overflow-hidden",
         "border border-border/50",
         "transition-all duration-300",
-        isWidgetMode
+        widgetGradientEnabled
           ? "bg-transparent backdrop-blur-sm hover:bg-white/5 dark:hover:bg-white/5"
           : "bg-card/50 backdrop-blur-xl hover:border-border hover:bg-card/70",
         className

@@ -1,9 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { EDGE_FADE_MASK, isIOSSafariBrowser } from "@/systems/ambient/lib/platform";
-import { useDevtool } from "@/systems/devtool";
-import { useState } from "react";
+import { EDGE_FADE_MASK } from "@/systems/ambient/lib/platform";
 import { useWeather } from "../provider";
 
 interface WeatherGradientBackgroundProps {
@@ -15,17 +13,13 @@ export function WeatherGradientBackground({
 }: WeatherGradientBackgroundProps) {
   const { displayedGradient, isGradientTransitioning, softEdgingEnabled } =
     useWeather();
-  const { isEnabled: isDevtoolEnabled } = useDevtool();
-  const [isIOSSafari] = useState(isIOSSafariBrowser);
 
   if (!displayedGradient) return null;
 
   const isVisible = enabled && !isGradientTransitioning;
-  const shouldApplySoftEdging =
-    softEdgingEnabled && (isIOSSafari || isDevtoolEnabled);
   const gradientStyle: React.CSSProperties = {
     backgroundImage: displayedGradient,
-    ...(shouldApplySoftEdging
+    ...(softEdgingEnabled
       ? {
           WebkitMaskImage: EDGE_FADE_MASK,
           maskImage: EDGE_FADE_MASK,

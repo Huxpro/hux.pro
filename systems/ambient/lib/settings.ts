@@ -1,32 +1,28 @@
 import type { LocationMode } from "./location";
-import { type FormFactor, matchRoutePattern } from "./route-config";
 
 // =============================================================================
 // Ambient Settings
 // =============================================================================
 
-export type RouteGradientPreferences = Record<string, boolean>;
-export type WeatherGradientMode = "adaptive" | "off" | "widget";
+export type WeatherGradientMode = "full" | "off" | "widget";
 
 export interface AmbientSettings {
   locationMode: LocationMode;
   weatherGradientMode: WeatherGradientMode;
-  softEdgingEnabled: boolean;
-  routeGradientPreferences: RouteGradientPreferences;
 }
 
 const SETTINGS_KEY = "hux_ambient_settings";
 
-function getDefaultSettings(): AmbientSettings {
+export function getDefaultSettings(): AmbientSettings {
   return {
     locationMode: "ip",
-    weatherGradientMode: "adaptive",
-    softEdgingEnabled: true,
-    routeGradientPreferences: {},
+    weatherGradientMode: "full",
   };
 }
 
-export function getAmbientSettings(): AmbientSettings {
+export function getAmbientSettings(options?: {
+  isIOSSafari?: boolean;
+}): AmbientSettings {
   if (typeof window === "undefined") {
     return getDefaultSettings();
   }
@@ -34,27 +30,34 @@ export function getAmbientSettings(): AmbientSettings {
   try {
     const stored = localStorage.getItem(SETTINGS_KEY);
     if (!stored) {
-      return getDefaultSettings();
+      // No user preference stored yet — iOS Safari defaults to widget mode
+      return {
+        ...getDefaultSettings(),
+        ...(options?.isIOSSafari && { weatherGradientMode: "widget" as const }),
+      };
     }
 
-    const parsed = JSON.parse(stored) as Partial<AmbientSettings>;
+    const parsed = JSON.parse(stored) as Partial<AmbientSettings> & {
+      weatherGradientMode?: string;
+    };
     const defaults = getDefaultSettings();
+
+    // Migration: treat old "adaptive" as "full"
+    let mode = defaults.weatherGradientMode;
+    if (
+      parsed.weatherGradientMode === "full" ||
+      parsed.weatherGradientMode === "off" ||
+      parsed.weatherGradientMode === "widget"
+    ) {
+      mode = parsed.weatherGradientMode;
+    } else if (parsed.weatherGradientMode === "adaptive") {
+      mode = "full";
+    }
 
     return {
       locationMode:
         parsed.locationMode === "accurate" ? "accurate" : defaults.locationMode,
-      weatherGradientMode:
-        parsed.weatherGradientMode === "off" ||
-        parsed.weatherGradientMode === "widget" ||
-        parsed.weatherGradientMode === "adaptive"
-          ? parsed.weatherGradientMode
-          : defaults.weatherGradientMode,
-      softEdgingEnabled:
-        typeof parsed.softEdgingEnabled === "boolean"
-          ? parsed.softEdgingEnabled
-          : defaults.softEdgingEnabled,
-      routeGradientPreferences:
-        parsed.routeGradientPreferences ?? defaults.routeGradientPreferences,
+      weatherGradientMode: mode,
     };
   } catch {
     return getDefaultSettings();
@@ -69,20 +72,4 @@ export function setAmbientSettings(settings: AmbientSettings): void {
   } catch {
     // Ignore storage errors
   }
-}
-
-export function resolveGlobalSurfaceGradientEnabled(
-  mode: WeatherGradientMode,
-  formFactor: FormFactor = "desktop"
-): boolean {
-  if (mode !== "adaptive") return false;
-  return formFactor === "desktop";
-}
-
-export function getRouteGradientOverrideForPath(
-  pathname: string,
-  settings: AmbientSettings
-): boolean | undefined {
-  const pattern = matchRoutePattern(pathname);
-  return settings.routeGradientPreferences[pattern];
 }

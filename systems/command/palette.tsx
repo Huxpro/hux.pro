@@ -40,14 +40,14 @@ export function CommandPalette() {
   const router = useTransitionRouter();
 
   const gradientModeLabel =
-    gradientMode === "adaptive"
+    gradientMode === "full"
       ? locale === "zh"
-        ? "全屏背景"
-        : "Full Background"
+        ? "全屏"
+        : "Full"
       : gradientMode === "widget"
       ? locale === "zh"
-        ? "天气卡片背景"
-        : "Widget Background"
+        ? "卡片"
+        : "Widget"
       : t(locale, "stateOff");
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState("");
