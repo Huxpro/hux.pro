@@ -11,6 +11,7 @@ export type WeatherGradientMode = "adaptive" | "off" | "widget";
 export interface AmbientSettings {
   locationMode: LocationMode;
   weatherGradientMode: WeatherGradientMode;
+  softEdgingEnabled: boolean;
   routeGradientPreferences: RouteGradientPreferences;
 }
 
@@ -20,6 +21,7 @@ function getDefaultSettings(): AmbientSettings {
   return {
     locationMode: "ip",
     weatherGradientMode: "adaptive",
+    softEdgingEnabled: true,
     routeGradientPreferences: {},
   };
 }
@@ -47,6 +49,10 @@ export function getAmbientSettings(): AmbientSettings {
         parsed.weatherGradientMode === "adaptive"
           ? parsed.weatherGradientMode
           : defaults.weatherGradientMode,
+      softEdgingEnabled:
+        typeof parsed.softEdgingEnabled === "boolean"
+          ? parsed.softEdgingEnabled
+          : defaults.softEdgingEnabled,
       routeGradientPreferences:
         parsed.routeGradientPreferences ?? defaults.routeGradientPreferences,
     };

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { isIPhoneSafariBrowser } from "@/systems/ambient/lib/platform";
 import { useOptionalWeather } from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
 import { Link } from "next-view-transitions";
@@ -27,18 +28,10 @@ export function WidgetShell({
   const [displayedGradient, setDisplayedGradient] = useState<string>("");
   const [isGradientTransitioning, setIsGradientTransitioning] = useState(false);
   const [sampleRect, setSampleRect] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  const [isIOSSafari] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const ua = navigator.userAgent;
-    const isIOSDevice =
-      /iP(hone|ad|od)/i.test(ua) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    const isWebKit = /WebKit/i.test(ua);
-    const isOtherIOSBrowser = /CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
-    return isIOSDevice && isWebKit && !isOtherIOSBrowser;
-  });
+  const [isIPhoneSafari] = useState(isIPhoneSafariBrowser);
 
   const isWidgetGradientEnabled = weather?.gradientMode === "widget";
+  const softEdgingEnabled = weather?.softEdgingEnabled ?? true;
   const gradient = weather?.gradient ?? "";
   const isFetching = weather?.isFetching ?? false;
   const widgetEdgeFadeMask =
@@ -68,7 +61,7 @@ export function WidgetShell({
   }, [gradient, displayedGradient, isFetching]);
 
   useEffect(() => {
-    if (!isWidgetGradientEnabled || !isIOSSafari) return;
+    if (!isWidgetGradientEnabled || !isIPhoneSafari) return;
 
     let rafId = 0;
 
@@ -126,23 +119,28 @@ export function WidgetShell({
       viewport?.removeEventListener("scroll", scheduleUpdate);
       viewport?.removeEventListener("resize", scheduleUpdate);
     };
-  }, [isWidgetGradientEnabled, isIOSSafari]);
+  }, [isWidgetGradientEnabled, isIPhoneSafari]);
 
   const isGradientVisible = isWidgetGradientEnabled && !isGradientTransitioning;
+  const shouldApplySoftEdging = softEdgingEnabled && isIPhoneSafari;
   const widgetGradientStyle = displayedGradient
-    ? isIOSSafari
+    ? isIPhoneSafari
       ? {
           backgroundImage: displayedGradient,
           // iOS Safari has broken fixed-attachment behavior; sample by element offset.
           backgroundSize: `${sampleRect.width || 1}px ${sampleRect.height || 1}px`,
           backgroundPosition: `${-sampleRect.x}px ${-sampleRect.y}px`,
           backgroundRepeat: "no-repeat",
-          WebkitMaskImage: widgetEdgeFadeMask,
-          maskImage: widgetEdgeFadeMask,
-          WebkitMaskRepeat: "no-repeat",
-          maskRepeat: "no-repeat",
-          WebkitMaskSize: "100% 100%",
-          maskSize: "100% 100%",
+          ...(shouldApplySoftEdging
+            ? {
+                WebkitMaskImage: widgetEdgeFadeMask,
+                maskImage: widgetEdgeFadeMask,
+                WebkitMaskRepeat: "no-repeat",
+                maskRepeat: "no-repeat",
+                WebkitMaskSize: "100% 100%",
+                maskSize: "100% 100%",
+              }
+            : {}),
         }
       : {
           backgroundImage: displayedGradient,

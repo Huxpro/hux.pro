@@ -95,6 +95,7 @@ interface WeatherContextType {
   weather: NormalizedWeather | null;
   gradient: string;
   gradientMode: WeatherGradientMode;
+  softEdgingEnabled: boolean;
   isLoading: boolean;
   isFetching: boolean;
   error: string | null;
@@ -105,6 +106,8 @@ interface WeatherContextType {
   refresh: () => void;
   setGradientMode: (mode: WeatherGradientMode) => void;
   cycleGradientMode: () => void;
+  setSoftEdgingEnabled: (enabled: boolean) => void;
+  toggleSoftEdging: () => void;
   isSurfaceGradientEnabledGlobally: (formFactor?: FormFactor) => boolean;
   isGradientEnabledForPath: (pathname: string, formFactor?: FormFactor) => boolean;
   getRoutePattern: (pathname: string) => string;
@@ -164,6 +167,18 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       currentIndex < 0 ? 0 : (currentIndex + 1) % GRADIENT_MODE_CYCLE.length;
     updateSettings({ weatherGradientMode: GRADIENT_MODE_CYCLE[nextIndex] });
   }, [settings.weatherGradientMode, updateSettings]);
+
+  const setSoftEdgingEnabled = useCallback(
+    (enabled: boolean) => {
+      if (enabled === settings.softEdgingEnabled) return;
+      updateSettings({ softEdgingEnabled: enabled });
+    },
+    [settings.softEdgingEnabled, updateSettings]
+  );
+
+  const toggleSoftEdging = useCallback(() => {
+    updateSettings({ softEdgingEnabled: !settings.softEdgingEnabled });
+  }, [settings.softEdgingEnabled, updateSettings]);
 
   // Debug override state (for weather and time)
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
@@ -322,6 +337,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
           weather: weatherQuery.data ?? null,
           gradient: computedGradient,
           gradientMode: settings.weatherGradientMode,
+          softEdgingEnabled: settings.softEdgingEnabled,
           isLoading: weatherQuery.isLoading,
           isFetching: weatherQuery.isFetching,
           error: weatherQuery.error?.message ?? null,
@@ -332,6 +348,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
           refresh: refreshWeather,
           setGradientMode,
           cycleGradientMode,
+          setSoftEdgingEnabled,
+          toggleSoftEdging,
           isSurfaceGradientEnabledGlobally,
           isGradientEnabledForPath: checkGradientEnabledForPath,
           getRoutePattern,
