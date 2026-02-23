@@ -24,7 +24,6 @@ import {
   Waves,
 } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
-import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
@@ -38,18 +37,21 @@ export function CommandPalette() {
   const { locale, setLocale } = useLocale();
   const { locationMode, setLocationMode, requestAccurateLocation } =
     useLocation();
-  const {
-    isGradientEnabledForPath,
-    getRoutePattern,
-    setRouteGradientPreference,
-  } = useWeather();
+  const { gradientMode, cycleGradientMode } = useWeather();
   const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled } =
     useDevtool();
   const router = useTransitionRouter();
-  const pathname = usePathname();
 
-  const currentPattern = getRoutePattern(pathname);
-  const isCurrentRouteGradientEnabled = isGradientEnabledForPath(pathname);
+  const gradientModeLabel =
+    gradientMode === "full"
+      ? locale === "zh"
+        ? "全屏"
+        : "Full"
+      : gradientMode === "widget"
+      ? locale === "zh"
+        ? "卡片"
+        : "Widget"
+      : t(locale, "stateOff");
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -197,17 +199,10 @@ export function CommandPalette() {
     },
     {
       key: "w",
-      label: `${t(locale, "settingsWeatherGradient")} (${currentPattern}): ${
-        isCurrentRouteGradientEnabled
-          ? t(locale, "stateOn")
-          : t(locale, "stateOff")
-      }`,
+      label: `${t(locale, "settingsWeatherGradient")}: ${gradientModeLabel}`,
       icon: <Waves className="h-4 w-4" />,
       onSelect: () => {
-        setRouteGradientPreference(
-          currentPattern,
-          !isCurrentRouteGradientEnabled
-        );
+        cycleGradientMode();
         close();
       },
       section: "settings",
@@ -283,10 +278,7 @@ export function CommandPalette() {
           })();
           return;
         case "w":
-          setRouteGradientPreference(
-            currentPattern,
-            !isCurrentRouteGradientEnabled
-          );
+          cycleGradientMode();
           close();
           return;
         case "d":
@@ -309,12 +301,11 @@ export function CommandPalette() {
     setLocale,
     locale,
     locationMode,
-    currentPattern,
-    isCurrentRouteGradientEnabled,
+    gradientModeLabel,
     isDevtoolEnabled,
     requestAccurateLocation,
     setLocationMode,
-    setRouteGradientPreference,
+    cycleGradientMode,
     setDevtoolEnabled,
   ]);
 
@@ -696,17 +687,13 @@ export function CommandPalette() {
                       "weather",
                       "gradient",
                       "background",
+                      "widget",
                       "mood",
                       "天气",
                       "渐变",
                       "背景",
                     ]}
-                    onSelect={() =>
-                      setRouteGradientPreference(
-                        currentPattern,
-                        !isCurrentRouteGradientEnabled
-                      )
-                    }
+                    onSelect={() => cycleGradientMode()}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                       "text-sm cursor-pointer transition-colors",
@@ -716,11 +703,7 @@ export function CommandPalette() {
                   >
                     <Waves className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">
-                      {t(locale, "settingsWeatherGradient")}{" "}
-                      <span className="font-mono">({currentPattern})</span>:{" "}
-                      {isCurrentRouteGradientEnabled
-                        ? t(locale, "stateOn")
-                        : t(locale, "stateOff")}
+                      {t(locale, "settingsWeatherGradient")}: {gradientModeLabel}
                     </span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       W

@@ -112,6 +112,10 @@ export function useDevtool() {
   return context;
 }
 
+export function useOptionalDevtool() {
+  return useContext(DevtoolContext);
+}
+
 interface DevtoolProviderProps {
   children: React.ReactNode;
   /** Whether the command palette is open (to disable 'D' shortcut) */

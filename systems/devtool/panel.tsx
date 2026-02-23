@@ -3,14 +3,11 @@
 import { WeatherIcon } from "@/systems/ambient/components/weather-icon";
 import { useLocale, useTheme, t } from "@/services";
 import { useAmbientTime, useLocation, useWeather } from "@/systems/ambient";
+import type { DevtoolGradientOverrides } from "@/systems/ambient/provider";
 import {
   getSunEventGradient,
   getWeatherGradient,
 } from "@/systems/ambient/lib/gradient";
-import {
-  GRADIENT_ROUTE_DEFAULTS,
-  matchRoutePattern,
-} from "@/systems/ambient/lib/route-config";
 import {
   WEATHER_CONDITIONS,
   getWeatherConditionLabel,
@@ -29,7 +26,6 @@ import {
   Moon,
   MoonStar,
   RefreshCw,
-  RotateCcw,
   Sun,
   SunMedium,
   Sunrise,
@@ -37,7 +33,6 @@ import {
   X,
 } from "lucide-react";
 import { withDraggable } from "@/systems/draggable";
-import { usePathname } from "next/navigation";
 
 // =============================================================================
 // Devtool FAB Component
@@ -147,7 +142,7 @@ function DevtoolPanel() {
 
       {/* Scrollable content */}
       <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
-        <RouteGradientModule />
+        <GradientModule />
         <WeatherModule />
         <AmbientTimeModule />
         <DraggableModule />
@@ -182,9 +177,11 @@ interface DebugSectionProps {
   icon?: React.ReactNode;
   action?: React.ReactNode;
   children: React.ReactNode;
+  /** Tighter vertical padding for lightweight content (toggles, buttons) */
+  compact?: boolean;
 }
 
-function DebugSection({ title, icon, action, children }: DebugSectionProps) {
+function DebugSection({ title, icon, action, children, compact }: DebugSectionProps) {
   return (
     <div className="border-b border-border/30 last:border-b-0">
       <div className="px-4 py-2 bg-muted/20">
@@ -193,104 +190,110 @@ function DebugSection({ title, icon, action, children }: DebugSectionProps) {
             {icon}
             {title}
           </div>
-          {action}
+          <div className="flex items-center min-h-5">{action}</div>
         </div>
       </div>
-      <div className="p-3">{children}</div>
+      <div className={cn("px-4", compact ? "py-2" : "py-3")}>{children}</div>
     </div>
   );
 }
 
 // =============================================================================
-// Route Gradient Module
+// Gradient Module
 // =============================================================================
 
-function RouteGradientModule() {
+function GradientModule() {
   const { locale } = useLocale();
-  const pathname = usePathname();
   const {
-    routeGradientPreferences,
-    setRouteGradientPreference,
-    clearRouteGradientPreference,
-    clearAllRouteGradientPreferences,
+    gradientMode,
+    fullGradientEnabled,
+    widgetGradientEnabled,
+    softEdgingEnabled,
+    devtoolGradientOverrides,
+    setDevtoolGradientOverrides,
   } = useWeather();
 
-  const currentPattern = matchRoutePattern(pathname);
-  const hasOverrides = Object.keys(routeGradientPreferences).length > 0;
-  const allPatterns = Object.keys(GRADIENT_ROUTE_DEFAULTS);
+  const modeLabel =
+    gradientMode === "full"
+      ? locale === "zh" ? "全屏" : "Full"
+      : gradientMode === "widget"
+      ? locale === "zh" ? "卡片" : "Widget"
+      : locale === "zh" ? "关闭" : "Off";
+
+  const toggleOverride = (
+    key: keyof DevtoolGradientOverrides,
+    currentResolved: boolean
+  ) => {
+    const currentOverride = devtoolGradientOverrides[key];
+    // Cycle: auto → on → off → auto
+    let next: boolean | undefined;
+    if (currentOverride === undefined) {
+      next = !currentResolved; // override to opposite of natural
+    } else {
+      next = undefined; // clear override (back to auto)
+    }
+    setDevtoolGradientOverrides({ ...devtoolGradientOverrides, [key]: next });
+  };
+
+  const flags: {
+    key: keyof DevtoolGradientOverrides;
+    label: string;
+    resolved: boolean;
+  }[] = [
+    { key: "full", label: locale === "zh" ? "全屏" : "Full", resolved: fullGradientEnabled },
+    { key: "widget", label: locale === "zh" ? "卡片" : "Widget", resolved: widgetGradientEnabled },
+    { key: "softEdging", label: locale === "zh" ? "柔和边缘" : "Soft Edge", resolved: softEdgingEnabled },
+  ];
 
   return (
     <DebugSection
-      title={locale === "zh" ? "路由渐变" : "Route Gradient"}
+      title={locale === "zh" ? "渐变" : "Gradient"}
       icon={<Layers className="h-4 w-4" />}
+      compact
       action={
-        hasOverrides ? (
-          <button
-            onClick={clearAllRouteGradientPreferences}
-            className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground hover:text-foreground transition-colors"
-            title={locale === "zh" ? "重置所有" : "Reset all"}
-          >
-            <RotateCcw className="h-3 w-3" />
-          </button>
-        ) : null
+        <span className="text-[10px] font-mono text-muted-foreground">
+          {modeLabel}
+          <span className="ml-1 text-muted-foreground/40">W</span>
+        </span>
       }
     >
       <div className="space-y-2">
-        <div className="grid grid-cols-2 gap-1">
-          {allPatterns.map((pattern) => {
-            const defaultValue = GRADIENT_ROUTE_DEFAULTS[pattern];
-            const userPref = routeGradientPreferences[pattern];
-            const effective = userPref ?? defaultValue;
-            const isOverride = userPref !== undefined;
-            const isCurrent = pattern === currentPattern;
-
-            return (
-              <button
-                key={pattern}
-                onClick={() => {
-                  if (isOverride) {
-                    clearRouteGradientPreference(pattern);
-                  } else {
-                    setRouteGradientPreference(pattern, !defaultValue);
-                  }
-                }}
-                className={cn(
-                  "flex items-center justify-between px-2 py-1.5 rounded text-left",
-                  "text-[10px] font-mono transition-colors",
-                  "border",
-                  isCurrent
-                    ? "border-foreground/40 bg-foreground/10 ring-1 ring-foreground/20"
-                    : "border-border/30 hover:border-border/50"
+        {flags.map(({ key, label, resolved }) => {
+          const isOverridden = devtoolGradientOverrides[key] !== undefined;
+          return (
+            <div key={key} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+                  {label}
+                </span>
+                {isOverridden && (
+                  <span className="text-[9px] font-mono text-amber-500/70 uppercase">
+                    *
+                  </span>
                 )}
+              </div>
+              <button
+                onClick={() => toggleOverride(key, resolved)}
+                className={cn(
+                  "relative inline-flex h-5 w-9 items-center rounded-full border transition-colors",
+                  resolved
+                    ? "bg-green-500/90 border-green-500/70"
+                    : "bg-muted/40 border-border/60",
+                  isOverridden && "ring-1 ring-amber-500/40"
+                )}
+                aria-pressed={resolved}
+                aria-label={`Toggle ${label}`}
               >
                 <span
                   className={cn(
-                    "truncate",
-                    isCurrent ? "text-foreground font-medium" : "text-muted-foreground"
+                    "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
+                    resolved ? "translate-x-4" : "translate-x-0.5"
                   )}
-                >
-                  {pattern}
-                  {isCurrent && " ←"}
-                </span>
-                <span
-                  className={cn(
-                    "ml-1 shrink-0",
-                    effective ? "text-green-500" : "text-muted-foreground/50",
-                    isOverride && "underline"
-                  )}
-                >
-                  {effective ? "ON" : "OFF"}
-                  {isOverride && "*"}
-                </span>
+                />
               </button>
-            );
-          })}
-        </div>
-        <div className="text-[10px] text-muted-foreground">
-          {locale === "zh"
-            ? "* = 用户覆盖（点击重置）"
-            : "* = user override (click to reset)"}
-        </div>
+            </div>
+          );
+        })}
       </div>
     </DebugSection>
   );
@@ -563,7 +566,7 @@ function AmbientTimeModule() {
       }
     >
       <div className="space-y-3">
-        <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
+        <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1">
               <Sunrise className="h-3.5 w-3.5" />
@@ -695,13 +698,14 @@ function RefetchModule() {
     <DebugSection
       title={locale === "zh" ? "刷新" : "Refetch"}
       icon={<RefreshCw className="h-4 w-4" />}
+      compact
     >
       <div className="flex items-center gap-2">
         <button
           onClick={() => refreshLocation()}
           className={cn(
             "flex-1 rounded-lg border px-3 py-2",
-            "text-xs font-mono transition-colors",
+            "text-xs font-mono text-muted-foreground transition-colors",
             "border-border/50 hover:border-border",
             busy ? "opacity-60" : ""
           )}
@@ -713,7 +717,7 @@ function RefetchModule() {
           onClick={() => refreshWeather()}
           className={cn(
             "flex-1 rounded-lg border px-3 py-2",
-            "text-xs font-mono transition-colors",
+            "text-xs font-mono text-muted-foreground transition-colors",
             "border-border/50 hover:border-border",
             busy ? "opacity-60" : ""
           )}
