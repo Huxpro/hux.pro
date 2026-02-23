@@ -42,8 +42,8 @@ export function CommandPalette() {
   const gradientModeLabel =
     gradientMode === "adaptive"
       ? locale === "zh"
-        ? "桌面背景"
-        : "Desktop Background"
+        ? "全屏背景"
+        : "Full Background"
       : gradientMode === "widget"
       ? locale === "zh"
         ? "天气卡片背景"

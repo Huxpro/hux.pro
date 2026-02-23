@@ -8,6 +8,8 @@ interface WeatherGradientBackgroundProps {
   enabled: boolean;
 }
 
+const IOS_EDGE_FADE_DISTANCE_PX = 128;
+
 export function WeatherGradientBackground({
   enabled,
 }: WeatherGradientBackgroundProps) {
@@ -56,7 +58,7 @@ export function WeatherGradientBackground({
   // Visible when enabled AND not transitioning between gradients
   const isVisible = enabled && !isTransitioning;
   const edgeFadeMask =
-    "linear-gradient(180deg, transparent 0%, black calc(env(safe-area-inset-top) + 64px), black calc(100% - env(safe-area-inset-bottom) - 64px), transparent 100%)";
+    `linear-gradient(180deg, transparent 0%, black calc(env(safe-area-inset-top) + ${IOS_EDGE_FADE_DISTANCE_PX}px), black calc(100% - env(safe-area-inset-bottom) - ${IOS_EDGE_FADE_DISTANCE_PX}px), transparent 100%)`;
   const gradientStyle: React.CSSProperties = isIOSSafari
     ? {
         backgroundImage: displayedGradient,

@@ -41,6 +41,8 @@ export function WidgetShell({
   const isWidgetGradientEnabled = weather?.gradientMode === "widget";
   const gradient = weather?.gradient ?? "";
   const isFetching = weather?.isFetching ?? false;
+  const widgetEdgeFadeMask =
+    "linear-gradient(180deg, transparent 0%, black 20%, black 80%, transparent 100%)";
 
   useEffect(() => {
     if (isFetching) return;
@@ -135,6 +137,12 @@ export function WidgetShell({
           backgroundSize: `${sampleRect.width || 1}px ${sampleRect.height || 1}px`,
           backgroundPosition: `${-sampleRect.x}px ${-sampleRect.y}px`,
           backgroundRepeat: "no-repeat",
+          WebkitMaskImage: widgetEdgeFadeMask,
+          maskImage: widgetEdgeFadeMask,
+          WebkitMaskRepeat: "no-repeat",
+          maskRepeat: "no-repeat",
+          WebkitMaskSize: "100% 100%",
+          maskSize: "100% 100%",
         }
       : {
           backgroundImage: displayedGradient,

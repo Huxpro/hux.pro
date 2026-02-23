@@ -115,7 +115,7 @@ interface WeatherContextType {
 }
 
 const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
-const GRADIENT_MODE_CYCLE: WeatherGradientMode[] = ["adaptive", "widget", "off"];
+const GRADIENT_MODE_CYCLE: WeatherGradientMode[] = ["adaptive", "widget"];
 
 export function useWeather() {
   const context = useContext(WeatherContext);
