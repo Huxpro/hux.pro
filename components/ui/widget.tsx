@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useOptionalWeather } from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
 import { Link } from "next-view-transitions";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // =============================================================================
 // Widget Primitives (shadcn-like compound components)
@@ -23,8 +23,20 @@ export function WidgetShell({
   children: React.ReactNode;
 }) {
   const weather = useOptionalWeather();
+  const shellRef = useRef<HTMLDivElement | null>(null);
   const [displayedGradient, setDisplayedGradient] = useState<string>("");
   const [isGradientTransitioning, setIsGradientTransitioning] = useState(false);
+  const [sampleRect, setSampleRect] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [isIOSSafari] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const ua = navigator.userAgent;
+    const isIOSDevice =
+      /iP(hone|ad|od)/i.test(ua) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const isWebKit = /WebKit/i.test(ua);
+    const isOtherIOSBrowser = /CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
+    return isIOSDevice && isWebKit && !isOtherIOSBrowser;
+  });
 
   const isWidgetGradientEnabled = weather?.gradientMode === "widget";
   const gradient = weather?.gradient ?? "";
@@ -53,20 +65,90 @@ export function WidgetShell({
     return () => clearTimeout(timeout);
   }, [gradient, displayedGradient, isFetching]);
 
+  useEffect(() => {
+    if (!isWidgetGradientEnabled || !isIOSSafari) return;
+
+    let rafId = 0;
+
+    const updateSamplingRect = () => {
+      rafId = 0;
+      const el = shellRef.current;
+      if (!el) return;
+
+      const rect = el.getBoundingClientRect();
+      const viewport = window.visualViewport;
+      const width = viewport?.width ?? window.innerWidth;
+      const height = viewport?.height ?? window.innerHeight;
+
+      setSampleRect((prev) => {
+        const next = {
+          x: Math.round(rect.left),
+          y: Math.round(rect.top),
+          width: Math.round(width),
+          height: Math.round(height),
+        };
+        if (
+          prev.x === next.x &&
+          prev.y === next.y &&
+          prev.width === next.width &&
+          prev.height === next.height
+        ) {
+          return prev;
+        }
+        return next;
+      });
+    };
+
+    const scheduleUpdate = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(updateSamplingRect);
+    };
+
+    const viewport = window.visualViewport;
+    const resizeObserver = new ResizeObserver(scheduleUpdate);
+    if (shellRef.current) {
+      resizeObserver.observe(shellRef.current);
+    }
+
+    scheduleUpdate();
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+    viewport?.addEventListener("scroll", scheduleUpdate);
+    viewport?.addEventListener("resize", scheduleUpdate);
+
+    return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      resizeObserver.disconnect();
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+      viewport?.removeEventListener("scroll", scheduleUpdate);
+      viewport?.removeEventListener("resize", scheduleUpdate);
+    };
+  }, [isWidgetGradientEnabled, isIOSSafari]);
+
   const isGradientVisible = isWidgetGradientEnabled && !isGradientTransitioning;
   const widgetGradientStyle = displayedGradient
-    ? {
-        backgroundImage: displayedGradient,
-        // Keep viewport scale to preserve the same visual "hole-punch" feel.
-        backgroundSize: "100vw 100vh",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        backgroundAttachment: "fixed",
-      }
+    ? isIOSSafari
+      ? {
+          backgroundImage: displayedGradient,
+          // iOS Safari has broken fixed-attachment behavior; sample by element offset.
+          backgroundSize: `${sampleRect.width || 1}px ${sampleRect.height || 1}px`,
+          backgroundPosition: `${-sampleRect.x}px ${-sampleRect.y}px`,
+          backgroundRepeat: "no-repeat",
+        }
+      : {
+          backgroundImage: displayedGradient,
+          // Keep viewport scale to preserve the same visual "hole-punch" feel.
+          backgroundSize: "100vw 100vh",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          backgroundAttachment: "fixed",
+        }
     : undefined;
 
   return (
     <div
+      ref={shellRef}
       className={cn(
         "group relative isolate rounded-2xl overflow-hidden",
         "bg-card/50 backdrop-blur-xl",
