@@ -26,6 +26,10 @@ export function FloatingActionButton() {
   return (
     <div
       className={cn(
+        // bottom-6 (24px) — must stay aligned with BOTTOM_OFFSET_PX
+        // in components/ui/system-sonner.tsx so that toasts (language
+        // conflict dialog, language-switch feedback) share the same
+        // bottom baseline as the FAB.
         "fixed bottom-6 left-0 right-0 z-50 px-6",
         "flex pointer-events-none",
         isHomepage ? "justify-center" : "justify-end"

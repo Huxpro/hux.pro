@@ -127,6 +127,24 @@ max-width: 680px  /* ~65-75 characters per line */
 - **Paragraph spacing**: `mb-6`
 - **List item spacing**: `mb-2`
 
+### FAB / Toast Bottom Baseline
+
+The command FAB (`systems/command/fab.tsx`) and the Sonner toast layer
+(`components/ui/system-sonner.tsx`) share the same **24 px** (`bottom-6` /
+`BOTTOM_OFFSET_PX`) distance from the bottom of the viewport. This keeps
+the language-conflict dialog, language-switch toast, and the FAB visually
+aligned at the same baseline.
+
+| Element | Value | Source |
+|---------|-------|--------|
+| FAB | `bottom-6` (24 px) | Tailwind class in `fab.tsx` |
+| Toasts | `offset={BOTTOM_OFFSET_PX}` (24 px) | `system-sonner.tsx` |
+
+The FAB uses a Tailwind class (`bottom-6`) rather than importing the
+constant directly, so the two must be kept in sync manually. When
+changing this value, update **both** locations and the exported
+`BOTTOM_OFFSET_PX` constant.
+
 ## Interaction & Motion
 
 - **Motion is functional, not expressive**

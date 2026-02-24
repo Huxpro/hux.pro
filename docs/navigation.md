@@ -306,7 +306,7 @@ Home                          Content Pages (using PageLayout)
 
 - **Unified Command Trigger**: Same component morphs between prompt (homepage) and FAB (other pages)
 - **Compact prompt on mobile**: Shows only "Search" text instead of the full desktop message
-- **FAB position**: Bottom-right corner with consistent `bottom-6 right-6` positioning
+- **FAB position**: `bottom-6` (24 px) from the viewport edge, aligned with the toast layer (`BOTTOM_OFFSET_PX` in `system-sonner.tsx`)
 - Command palette is responsive (full width on small screens)
 - Touch-friendly tap targets (`h-12` minimum)
 - Widget grid stacks vertically on mobile
