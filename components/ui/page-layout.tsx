@@ -12,7 +12,7 @@ import {
   type TranslationKey,
 } from "@/lib/i18n";
 import { useLocale } from "@/services";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useHeroFade } from "./use-hero-fade";
 
 interface PageLayoutProps {
@@ -73,6 +73,16 @@ export function PageLayout({
   const { locale } = useLocale();
   const [isHovered, setIsHovered] = useState(false);
   const heroFadeStyle = useHeroFade();
+
+  // Toggle .post-content on <body> so CSS can show the scrollbar on mobile
+  useEffect(() => {
+    if (variant === "reader") {
+      document.body.classList.add("post-content");
+    } else {
+      document.body.classList.remove("post-content");
+    }
+    return () => document.body.classList.remove("post-content");
+  }, [variant]);
 
   const useScramble = !!page;
 

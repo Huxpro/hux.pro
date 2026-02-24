@@ -161,6 +161,25 @@
   }
 }
 
+/* =============================================================================
+   Hide Main Scrollbar on Mobile (Non-Post-Content Pages)
+   =============================================================================
+   On mobile, the body scrollbar is hidden for non-post-content pages
+   (home, writing list, docs list, prompts, works) to provide a cleaner,
+   app-like experience. Post content pages (.post-content) retain the scrollbar
+   for better reading UX.
+   ============================================================================= */
+
+@media (max-width: 767px) {
+  body:not(.post-content) {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  body:not(.post-content)::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Prose article typography
    Inspired by paco.me and ibelick.com:
    - Sans-serif headings (Inter) with reduced weight
