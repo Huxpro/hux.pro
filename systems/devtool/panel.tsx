@@ -15,13 +15,13 @@ import {
 import { useDevtool, DRAGGABLE_INSTANCES } from "./provider";
 import { cn } from "@/lib/utils";
 import {
+  Brain,
   Bug,
   ChevronUp,
   Clock,
   Cloud,
   GripVertical,
   Haze,
-  MapPin,
   Layers,
   Moon,
   MoonStar,
@@ -33,6 +33,7 @@ import {
   X,
 } from "lucide-react";
 import { withDraggable } from "@/systems/draggable";
+import { useEffect, useRef } from "react";
 
 // =============================================================================
 // Devtool FAB Component
@@ -42,7 +43,16 @@ import { withDraggable } from "@/systems/draggable";
 
 function DevtoolFABInner() {
   const { locale } = useLocale();
-  const { isEnabled, isOpen, toggle } = useDevtool();
+  const { isEnabled, isOpen, toggle, signalDragReset } = useDevtool();
+
+  // Reset drag position when devtool is toggled on (not fold/unfold)
+  const prevEnabledRef = useRef(isEnabled);
+  useEffect(() => {
+    if (isEnabled && !prevEnabledRef.current) {
+      signalDragReset("devtool");
+    }
+    prevEnabledRef.current = isEnabled;
+  }, [isEnabled, signalDragReset]);
 
   // Don't render if devtool is not enabled
   if (!isEnabled) return null;
@@ -646,7 +656,7 @@ function DraggableModule() {
                         : "Don't save position"
                     }
                   >
-                    <MapPin className="h-3 w-3" />
+                    <Brain className="h-3 w-3" />
                   </button>
                 )}
                 {/* Drag toggle */}

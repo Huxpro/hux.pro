@@ -50,13 +50,15 @@ function clearPosition(key: string): void {
 // =============================================================================
 
 export function useDraggable(id: string) {
-  const { getDraggableConfig } = useDevtool();
+  const { getDraggableConfig, getDragResetCounter } = useDevtool();
   const config = getDraggableConfig(id);
+  const resetCounter = getDragResetCounter(id);
 
   const dragControls = useDragControls();
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const isDraggingRef = useRef(false);
+  const prevResetCounterRef = useRef(resetCounter);
   const storageKey = `hux_drag_${id}`;
 
   // Restore persisted position
@@ -85,6 +87,17 @@ export function useDraggable(id: string) {
       clearPosition(storageKey);
     }
   }, [config.persist, storageKey, x, y]);
+
+  // Reset position when a component signals reopen (and persist is off)
+  useEffect(() => {
+    if (resetCounter !== prevResetCounterRef.current) {
+      prevResetCounterRef.current = resetCounter;
+      if (!config.persist) {
+        x.set(0);
+        y.set(0);
+      }
+    }
+  }, [resetCounter, config.persist, x, y]);
 
   const onDragStart = useCallback(() => {
     isDraggingRef.current = true;

@@ -38,9 +38,18 @@ export function CommandPalette() {
   const { locationMode, setLocationMode, requestAccurateLocation } =
     useLocation();
   const { gradientMode, cycleGradientMode } = useWeather();
-  const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled } =
+  const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled, signalDragReset } =
     useDevtool();
   const router = useTransitionRouter();
+
+  // Reset drag position on reopen (when persist is off, the hook handles the logic)
+  const prevOpenRef = useRef(false);
+  useEffect(() => {
+    if (isOpen && !prevOpenRef.current) {
+      signalDragReset("command-palette");
+    }
+    prevOpenRef.current = isOpen;
+  }, [isOpen, signalDragReset]);
 
   const gradientModeLabel =
     gradientMode === "full"
@@ -350,36 +359,32 @@ export function CommandPalette() {
       />
 
       <motion.div
-        drag={drag.isEnabled && !isIOS ? true : undefined}
+        drag={drag.isEnabled ? true : undefined}
         dragControls={drag.dragControls}
         dragListener={false}
         dragMomentum={false}
         onDragStart={drag.onDragStart}
         onDragEnd={drag.onDragEnd}
-        style={
-          drag.isEnabled && !isIOS
-            ? { ...drag.motionStyle, touchAction: "none" as const }
-            : undefined
-        }
+        style={drag.isEnabled ? drag.motionStyle : undefined}
         onPointerDown={
-          drag.isEnabled && !isIOS
+          drag.isEnabled
             ? (e: React.PointerEvent) => {
                 const target = e.target as HTMLElement;
-                if (
-                  target.closest("[data-drag-handle]") &&
-                  !target.closest("input, [cmdk-input]")
-                ) {
-                  drag.dragControls.start(e);
+                if (!target.closest("[data-drag-handle]")) return;
+                const isInput = target.closest("input, [cmdk-input]");
+                if (isInput && inputValue.length > 0) return;
+                if (isInput) {
+                  // Prevent focus so the empty input acts as a drag handle
+                  e.preventDefault();
                 }
+                drag.dragControls.start(e);
               }
             : undefined
         }
         onClickCapture={
-          drag.isEnabled && !isIOS
-            ? drag.preventClickAfterDrag
-            : undefined
+          drag.isEnabled ? drag.preventClickAfterDrag : undefined
         }
-        className="w-full"
+        className="w-full flex justify-center"
       >
       <Command
         className={cn(
@@ -398,7 +403,7 @@ export function CommandPalette() {
         <div
           className="border-b border-border/50"
           data-drag-handle
-          style={drag.isEnabled && !isIOS ? { cursor: "grab" } : undefined}
+          style={drag.isEnabled ? { cursor: "grab", touchAction: "none" } : undefined}
         >
           <div
             className="grid transition-all duration-300 ease-out"
@@ -421,7 +426,8 @@ export function CommandPalette() {
                     className={cn(
                       "w-full py-4 bg-transparent font-sans text-[16px] sm:text-sm",
                       "placeholder:text-muted-foreground/60",
-                      "outline-none"
+                      "outline-none",
+                      drag.isEnabled && inputValue.length === 0 && "cursor-grab"
                     )}
                   />
                 </div>

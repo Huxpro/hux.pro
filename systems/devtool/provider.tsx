@@ -20,7 +20,7 @@ export interface DraggableInstanceConfig {
 }
 
 export const DRAGGABLE_DEFAULTS: Record<string, DraggableInstanceConfig> = {
-  devtool: { draggable: false, persist: false },
+  devtool: { draggable: false, persist: true },
   "command-fab": { draggable: true, persist: true },
   "command-palette": { draggable: false, persist: false },
 };
@@ -102,6 +102,10 @@ interface DevtoolContextType {
     key: keyof DraggableInstanceConfig,
     value: boolean
   ) => void;
+  /** Get the reset counter for a draggable instance (used by useDraggable) */
+  getDragResetCounter: (id: string) => number;
+  /** Signal that a draggable instance should reset position (if persist is off) */
+  signalDragReset: (id: string) => void;
 }
 
 const DevtoolContext = createContext<DevtoolContextType | undefined>(undefined);
@@ -128,6 +132,7 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
   const [draggableOverrides, setDraggableOverrides] = useState<
     Record<string, Partial<DraggableInstanceConfig>>
   >({});
+  const [dragResetCounters, setDragResetCounters] = useState<Record<string, number>>({});
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -192,6 +197,15 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
     []
   );
 
+  const getDragResetCounter = useCallback(
+    (id: string) => dragResetCounters[id] ?? 0,
+    [dragResetCounters]
+  );
+
+  const signalDragReset = useCallback((id: string) => {
+    setDragResetCounters((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
+  }, []);
+
   // Keyboard shortcut: 'D' to toggle panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -229,6 +243,8 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
         setEnabled,
         getDraggableConfig,
         setDraggableConfig,
+        getDragResetCounter,
+        signalDragReset,
       }}
     >
       {children}
