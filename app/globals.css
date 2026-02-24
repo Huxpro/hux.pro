@@ -625,3 +625,23 @@
     opacity: 1 !important;
   }
 }
+
+/* =============================================================================
+   Hide Main Scrollbar on Mobile (Non-Post-Content Pages)
+   =============================================================================
+   On mobile, the main scrollbar is visually distracting on non-post-content
+   pages (home, listing pages, etc.). Post-content pages add the .post-content
+   class to <html> via useEffect in PostContent, which re-enables the scrollbar
+   so readers can track their position in long articles.
+   ============================================================================= */
+
+@media (max-width: 767px) {
+  html:not(.post-content) {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  html:not(.post-content)::-webkit-scrollbar {
+    display: none;
+  }
+}

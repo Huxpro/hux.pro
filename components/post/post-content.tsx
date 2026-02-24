@@ -8,6 +8,11 @@ import { usePathname } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { usePostLanguage } from "./use-post-language";
 
+// Tracks how many PostContent instances are currently mounted.
+// Prevents premature class removal during view transitions where the
+// incoming and outgoing post-content pages overlap briefly.
+let postContentMountCount = 0;
+
 interface PostContentProps {
   title: string;
   titleZh?: string;
@@ -43,6 +48,17 @@ export function PostContent({
 
   const { displayLocale, switchLanguage, hasAlternate, alternateLabel } =
     usePostLanguage({ locale, language });
+
+  useEffect(() => {
+    postContentMountCount++;
+    document.documentElement.classList.add("post-content");
+    return () => {
+      postContentMountCount--;
+      if (postContentMountCount === 0) {
+        document.documentElement.classList.remove("post-content");
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (onMount) {
