@@ -12,7 +12,7 @@ import {
   WEATHER_CONDITIONS,
   getWeatherConditionLabel,
 } from "@/systems/ambient/lib/weather";
-import { useDevtool, DRAGGABLE_INSTANCES } from "./provider";
+import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
 import { cn } from "@/lib/utils";
 import {
   Brain,
@@ -624,18 +624,27 @@ function DraggableModule() {
       <div className="space-y-1.5">
         {DRAGGABLE_INSTANCES.map((inst) => {
           const config = getDraggableConfig(inst.id);
+          const defaults = DRAGGABLE_DEFAULTS[inst.id] || { draggable: false, persist: false };
+          const dragOverridden = config.draggable !== defaults.draggable;
+          const persistOverridden = config.persist !== defaults.persist;
           return (
             <div
               key={inst.id}
               className="flex items-center justify-between gap-2"
             >
-              <span className="text-xs font-mono text-muted-foreground truncate">
-                {locale === "zh" ? inst.labelZh : inst.labelEn}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono text-muted-foreground truncate">
+                  {locale === "zh" ? inst.labelZh : inst.labelEn}
+                </span>
+                {(dragOverridden || persistOverridden) && (
+                  <span className="text-[9px] font-mono text-amber-500/70 uppercase">
+                    *
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-1.5 shrink-0">
-                {/* Persist toggle — only when drag is on */}
-                {config.draggable && (
-                  <button
+                {/* Persist toggle */}
+                <button
                     onClick={() =>
                       setDraggableConfig(inst.id, "persist", !config.persist)
                     }
@@ -643,7 +652,8 @@ function DraggableModule() {
                       "p-1 rounded transition-colors",
                       config.persist
                         ? "text-foreground bg-muted/60"
-                        : "text-muted-foreground/40 hover:text-muted-foreground"
+                        : "text-muted-foreground/40 hover:text-muted-foreground",
+                      persistOverridden && "ring-1 ring-amber-500/40"
                     )}
                     aria-label={`Toggle position save for ${inst.labelEn}`}
                     title={
@@ -658,7 +668,6 @@ function DraggableModule() {
                   >
                     <Brain className="h-3 w-3" />
                   </button>
-                )}
                 {/* Drag toggle */}
                 <button
                   onClick={() =>
@@ -672,7 +681,8 @@ function DraggableModule() {
                     "relative inline-flex h-5 w-9 items-center rounded-full border transition-colors",
                     config.draggable
                       ? "bg-green-500/90 border-green-500/70"
-                      : "bg-muted/40 border-border/60"
+                      : "bg-muted/40 border-border/60",
+                    dragOverridden && "ring-1 ring-amber-500/40"
                   )}
                   aria-pressed={config.draggable}
                   aria-label={`Toggle draggable for ${inst.labelEn}`}

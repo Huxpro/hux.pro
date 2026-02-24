@@ -161,6 +161,12 @@
   }
 }
 
+/* Force grabbing cursor on all elements during drag */
+html.dragging,
+html.dragging * {
+  cursor: grabbing !important;
+}
+
 /* Prose article typography
    Inspired by paco.me and ibelick.com:
    - Sans-serif headings (Inter) with reduced weight

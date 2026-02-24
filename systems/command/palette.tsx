@@ -429,7 +429,7 @@ export function CommandPalette() {
         <div
           className="border-b border-border/50"
           data-drag-handle
-          style={drag.isEnabled ? { cursor: "grab", touchAction: "none" } : undefined}
+          style={drag.isEnabled ? { touchAction: "none" } : undefined}
         >
           <div
             className="grid transition-all duration-300 ease-out"
@@ -453,7 +453,7 @@ export function CommandPalette() {
                       "w-full py-4 bg-transparent font-sans text-[16px] sm:text-sm",
                       "placeholder:text-muted-foreground/60",
                       "outline-none",
-                      drag.isEnabled && inputValue.length === 0 && "cursor-grab"
+                      drag.isEnabled && "cursor-default focus:cursor-text",
                     )}
                   />
                 </div>

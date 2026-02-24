@@ -101,11 +101,11 @@ export function useDraggable(id: string) {
 
   const onDragStart = useCallback(() => {
     isDraggingRef.current = true;
-    document.body.style.cursor = "grabbing";
+    document.documentElement.classList.add("dragging");
   }, []);
 
   const onDragEnd = useCallback(() => {
-    document.body.style.cursor = "";
+    document.documentElement.classList.remove("dragging");
     if (config.persist) {
       savePosition(storageKey, { x: x.get(), y: y.get() });
     }
@@ -190,7 +190,7 @@ export function withDraggable<P extends object>(
         onDragEnd={drag.onDragEnd}
       >
         <div
-          style={{ pointerEvents: "auto", cursor: "grab", touchAction: "none" }}
+          style={{ pointerEvents: "auto", touchAction: "none" }}
           onPointerDown={(e) => drag.startDrag(e, config.dragFilter)}
           onClickCapture={drag.preventClickAfterDrag}
         >
