@@ -35,6 +35,7 @@ import {
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { AmbientGreeting, WeatherWidget } from "@/systems/ambient";
+import { MusicWidget } from "@/systems/music";
 import { Link } from "next-view-transitions";
 import { useState } from "react";
 
@@ -154,6 +155,7 @@ function WidgetGrid() {
       </div>
       <div className="space-y-4">
         <WeatherWidget />
+        <MusicWidget />
         <ProcessingWidget />
         {rightGroups.map((group) => (
           <GroupWidget key={group.id} group={group} />

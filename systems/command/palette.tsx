@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { localeNames, t, useLocale, useTheme } from "@/services";
 import { useLocation, useWeather } from "@/systems/ambient";
 import { useDevtool } from "@/systems/devtool";
+import { useMusic } from "@/systems/music";
 import { Command } from "cmdk";
 import {
   Bug,
@@ -17,6 +18,7 @@ import {
   MapPin,
   Monitor,
   Moon,
+  Music,
   Search,
   Slash,
   Sparkles,
@@ -37,6 +39,8 @@ export function CommandPalette() {
   const { gradientMode, cycleGradientMode } = useWeather();
   const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled } =
     useDevtool();
+  const { isEnabled: isMusicEnabled, setEnabled: setMusicEnabled } =
+    useMusic();
   const router = useTransitionRouter();
 
   const gradientModeLabel =
@@ -205,6 +209,18 @@ export function CommandPalette() {
       section: "settings",
     },
     {
+      key: "m",
+      label: `${t(locale, "settingsMusic")}: ${
+        isMusicEnabled ? t(locale, "stateOn") : t(locale, "stateOff")
+      }`,
+      icon: <Music className="h-4 w-4" />,
+      onSelect: () => {
+        setMusicEnabled(!isMusicEnabled);
+        close();
+      },
+      section: "settings",
+    },
+    {
       key: "d",
       label: `${t(locale, "settingsDebugPanel")}: ${
         isDevtoolEnabled ? t(locale, "stateOn") : t(locale, "stateOff")
@@ -278,6 +294,10 @@ export function CommandPalette() {
           cycleGradientMode();
           close();
           return;
+        case "m":
+          setMusicEnabled(!isMusicEnabled);
+          close();
+          return;
         case "d":
           setDevtoolEnabled(!isDevtoolEnabled);
           close();
@@ -299,10 +319,12 @@ export function CommandPalette() {
     locale,
     locationMode,
     gradientModeLabel,
+    isMusicEnabled,
     isDevtoolEnabled,
     requestAccurateLocation,
     setLocationMode,
     cycleGradientMode,
+    setMusicEnabled,
     setDevtoolEnabled,
   ]);
 
@@ -668,6 +690,37 @@ export function CommandPalette() {
                     </span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       W
+                    </kbd>
+                  </Command.Item>
+                  <Command.Item
+                    value="music"
+                    keywords={[
+                      "music",
+                      "spotify",
+                      "now playing",
+                      "song",
+                      "track",
+                      "音乐",
+                      "歌曲",
+                      "播放",
+                    ]}
+                    onSelect={() => setMusicEnabled(!isMusicEnabled)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                      "text-sm cursor-pointer transition-colors",
+                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                      "hover:bg-accent/25"
+                    )}
+                  >
+                    <Music className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1">
+                      {t(locale, "settingsMusic")}:{" "}
+                      {isMusicEnabled
+                        ? t(locale, "stateOn")
+                        : t(locale, "stateOff")}
+                    </span>
+                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                      M
                     </kbd>
                   </Command.Item>
                   <Command.Item
