@@ -373,11 +373,37 @@ export function CommandPalette() {
                 if (!target.closest("[data-drag-handle]")) return;
                 const isInput = target.closest("input, [cmdk-input]");
                 if (isInput && inputValue.length > 0) return;
-                if (isInput) {
-                  // Prevent focus so the empty input acts as a drag handle
-                  e.preventDefault();
+                if (!isInput) {
+                  // Non-input part of drag handle: drag immediately
+                  drag.dragControls.start(e);
+                  return;
                 }
-                drag.dragControls.start(e);
+                // Empty input: disambiguate tap (→ focus) vs drag (→ move)
+                e.preventDefault();
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const threshold = 5;
+                const onMove = (moveE: PointerEvent) => {
+                  if (
+                    Math.abs(moveE.clientX - startX) + Math.abs(moveE.clientY - startY) >
+                    threshold
+                  ) {
+                    drag.dragControls.start(moveE);
+                    cleanup();
+                  }
+                };
+                const onUp = () => {
+                  inputRef.current?.focus();
+                  cleanup();
+                };
+                const cleanup = () => {
+                  document.removeEventListener("pointermove", onMove);
+                  document.removeEventListener("pointerup", onUp);
+                  document.removeEventListener("pointercancel", cleanup);
+                };
+                document.addEventListener("pointermove", onMove);
+                document.addEventListener("pointerup", onUp);
+                document.addEventListener("pointercancel", cleanup);
               }
             : undefined
         }

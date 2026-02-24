@@ -20,9 +20,13 @@ export interface DraggableInstanceConfig {
 }
 
 export const DRAGGABLE_DEFAULTS: Record<string, DraggableInstanceConfig> = {
-  devtool: { draggable: false, persist: true },
-  "command-fab": { draggable: true, persist: true },
-  "command-palette": { draggable: false, persist: false },
+  // Persistent tool panel — draggable and remembers position across sessions
+  devtool: { draggable: true, persist: true },
+  // Well-positioned by design — not draggable by default, but persist is pre-armed
+  // so enabling drag via devtools automatically remembers position
+  "command-fab": { draggable: false, persist: true },
+  // Transient overlay — draggable for convenience, but resets to center on each open
+  "command-palette": { draggable: true, persist: false },
 };
 
 export const DRAGGABLE_INSTANCES = [
