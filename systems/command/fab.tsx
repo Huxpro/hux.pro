@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { withDraggable } from "@/systems/draggable";
 
 function FloatingActionButtonInner() {
-  const { open } = useCommand();
+  const { toggle } = useCommand();
   const pathname = usePathname();
   const { locale } = useLocale();
   const [mounted, setMounted] = useState(false);
@@ -34,7 +34,7 @@ function FloatingActionButtonInner() {
     >
       <motion.button
         layout
-        onClick={() => open()}
+        onClick={() => toggle()}
         className={cn(
           "pointer-events-auto",
           "flex items-center gap-2",
