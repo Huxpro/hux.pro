@@ -7,12 +7,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Command, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useDraggable } from "@/systems/draggable";
 
 export function FloatingActionButton() {
-  const { open } = useCommand();
+  const { toggle } = useCommand();
   const pathname = usePathname();
   const { locale } = useLocale();
   const [mounted, setMounted] = useState(false);
+  const drag = useDraggable("command-fab");
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -20,10 +22,11 @@ export function FloatingActionButton() {
   }, []);
 
   const isHomepage = pathname === "/";
+  const isDraggable = drag.isEnabled && !isHomepage;
 
   if (!mounted) return null;
 
-  return (
+  const fab = (
     <div
       className={cn(
         "fixed bottom-6 left-0 right-0 z-50 px-6",
@@ -33,7 +36,7 @@ export function FloatingActionButton() {
     >
       <motion.button
         layout
-        onClick={() => open()}
+        onClick={() => toggle()}
         className={cn(
           "pointer-events-auto",
           "flex items-center gap-2",
@@ -130,5 +133,33 @@ export function FloatingActionButton() {
         </AnimatePresence>
       </motion.button>
     </div>
+  );
+
+  if (!isDraggable) return fab;
+
+  return (
+    <motion.div
+      style={{
+        ...drag.motionStyle,
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        pointerEvents: "none",
+      }}
+      drag
+      dragControls={drag.dragControls}
+      dragListener={false}
+      dragMomentum={false}
+      onDragStart={drag.onDragStart}
+      onDragEnd={drag.onDragEnd}
+    >
+      <div
+        style={{ pointerEvents: "auto", touchAction: "none" }}
+        onPointerDown={(e) => drag.startDrag(e)}
+        onClickCapture={drag.preventClickAfterDrag}
+      >
+        {fab}
+      </div>
+    </motion.div>
   );
 }

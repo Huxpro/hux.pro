@@ -24,10 +24,13 @@ import {
   Waves,
 } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
+import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useDraggable } from "@/systems/draggable";
 import { useCommand } from "./provider";
 
 export function CommandPalette() {
+  const drag = useDraggable("command-palette");
   const { isOpen, isSlashCommandsMode, close, setSlashCommandsMode } =
     useCommand();
   const { theme, preference, setThemePreference } = useTheme();
@@ -35,9 +38,18 @@ export function CommandPalette() {
   const { locationMode, setLocationMode, requestAccurateLocation } =
     useLocation();
   const { gradientMode, cycleGradientMode } = useWeather();
-  const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled } =
+  const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled, signalDragReset } =
     useDevtool();
   const router = useTransitionRouter();
+
+  // Reset drag position on reopen (when persist is off, the hook handles the logic)
+  const prevOpenRef = useRef(false);
+  useEffect(() => {
+    if (isOpen && !prevOpenRef.current) {
+      signalDragReset("command-palette");
+    }
+    prevOpenRef.current = isOpen;
+  }, [isOpen, signalDragReset]);
 
   const gradientModeLabel =
     gradientMode === "full"
@@ -346,6 +358,60 @@ export function CommandPalette() {
         onPointerDown={isIOS ? close : undefined}
       />
 
+      <motion.div
+        drag={drag.isEnabled ? true : undefined}
+        dragControls={drag.dragControls}
+        dragListener={false}
+        dragMomentum={false}
+        onDragStart={drag.onDragStart}
+        onDragEnd={drag.onDragEnd}
+        style={drag.isEnabled ? drag.motionStyle : undefined}
+        onPointerDown={
+          drag.isEnabled
+            ? (e: React.PointerEvent) => {
+                const target = e.target as HTMLElement;
+                if (!target.closest("[data-drag-handle]")) return;
+                const isInput = target.closest("input, [cmdk-input]");
+                if (isInput && inputValue.length > 0) return;
+                if (!isInput) {
+                  // Non-input part of drag handle: drag immediately
+                  drag.dragControls.start(e);
+                  return;
+                }
+                // Empty input: disambiguate tap (→ focus) vs drag (→ move)
+                e.preventDefault();
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const threshold = 5;
+                const onMove = (moveE: PointerEvent) => {
+                  if (
+                    Math.abs(moveE.clientX - startX) + Math.abs(moveE.clientY - startY) >
+                    threshold
+                  ) {
+                    drag.dragControls.start(moveE);
+                    cleanup();
+                  }
+                };
+                const onUp = () => {
+                  inputRef.current?.focus();
+                  cleanup();
+                };
+                const cleanup = () => {
+                  document.removeEventListener("pointermove", onMove);
+                  document.removeEventListener("pointerup", onUp);
+                  document.removeEventListener("pointercancel", cleanup);
+                };
+                document.addEventListener("pointermove", onMove);
+                document.addEventListener("pointerup", onUp);
+                document.addEventListener("pointercancel", cleanup);
+              }
+            : undefined
+        }
+        onClickCapture={
+          drag.isEnabled ? drag.preventClickAfterDrag : undefined
+        }
+        className="w-full flex justify-center"
+      >
       <Command
         className={cn(
           "relative mx-4 transition-all duration-300 ease-out",
@@ -360,7 +426,11 @@ export function CommandPalette() {
         loop
         shouldFilter={!isSlashCommandsMode}
       >
-        <div className="border-b border-border/50">
+        <div
+          className="border-b border-border/50"
+          data-drag-handle
+          style={drag.isEnabled ? { touchAction: "none" } : undefined}
+        >
           <div
             className="grid transition-all duration-300 ease-out"
             style={{ gridTemplateRows: isSlashCommandsMode ? "0fr" : "1fr" }}
@@ -382,7 +452,8 @@ export function CommandPalette() {
                     className={cn(
                       "w-full py-4 bg-transparent font-sans text-[16px] sm:text-sm",
                       "placeholder:text-muted-foreground/60",
-                      "outline-none"
+                      "outline-none",
+                      drag.isEnabled && "cursor-default focus:cursor-text",
                     )}
                   />
                 </div>
@@ -854,6 +925,7 @@ export function CommandPalette() {
           </div>
         </div>
       </Command>
+      </motion.div>
     </div>
   );
 }

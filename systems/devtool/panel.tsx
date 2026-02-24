@@ -12,13 +12,15 @@ import {
   WEATHER_CONDITIONS,
   getWeatherConditionLabel,
 } from "@/systems/ambient/lib/weather";
-import { useDevtool } from "./provider";
+import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
 import { cn } from "@/lib/utils";
 import {
+  Brain,
   Bug,
   ChevronUp,
   Clock,
   Cloud,
+  GripVertical,
   Haze,
   Layers,
   Moon,
@@ -30,6 +32,8 @@ import {
   Sunset,
   X,
 } from "lucide-react";
+import { withDraggable } from "@/systems/draggable";
+import { useEffect, useRef } from "react";
 
 // =============================================================================
 // Devtool FAB Component
@@ -37,9 +41,18 @@ import {
 // Positioned at top-right, similar to Next.js dev tools
 // =============================================================================
 
-export function DevtoolFAB() {
+function DevtoolFABInner() {
   const { locale } = useLocale();
-  const { isEnabled, isOpen, toggle } = useDevtool();
+  const { isEnabled, isOpen, toggle, signalDragReset } = useDevtool();
+
+  // Reset drag position when devtool is toggled on (not fold/unfold)
+  const prevEnabledRef = useRef(isEnabled);
+  useEffect(() => {
+    if (isEnabled && !prevEnabledRef.current) {
+      signalDragReset("devtool");
+    }
+    prevEnabledRef.current = isEnabled;
+  }, [isEnabled, signalDragReset]);
 
   // Don't render if devtool is not enabled
   if (!isEnabled) return null;
@@ -93,6 +106,10 @@ export function DevtoolFAB() {
   );
 }
 
+export const DevtoolFAB = withDraggable(DevtoolFABInner, {
+  id: "devtool",
+});
+
 // =============================================================================
 // Devtool Panel Component
 // The expanded panel containing debug modules
@@ -105,7 +122,7 @@ function DevtoolPanel() {
   return (
     <div
       className={cn(
-        "rounded-2xl overflow-hidden",
+        "rounded-2xl overflow-hidden cursor-default",
         "bg-popover/95 backdrop-blur-xl",
         "border border-border/50",
         "shadow-2xl shadow-black/20"
@@ -138,6 +155,7 @@ function DevtoolPanel() {
         <GradientModule />
         <WeatherModule />
         <AmbientTimeModule />
+        <DraggableModule />
         <RefetchModule />
       </div>
 
@@ -585,6 +603,101 @@ function AmbientTimeModule() {
           <PhaseButton p="evening" icon={<Moon className="h-3.5 w-3.5" />} aria="Set phase to evening" />
           <PhaseButton p="night" icon={<MoonStar className="h-3.5 w-3.5" />} aria="Set phase to night" />
         </div>
+      </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Draggable Module
+// =============================================================================
+
+function DraggableModule() {
+  const { locale } = useLocale();
+  const { getDraggableConfig, setDraggableConfig } = useDevtool();
+
+  return (
+    <DebugSection
+      title={locale === "zh" ? "拖拽" : "Draggable"}
+      icon={<GripVertical className="h-4 w-4" />}
+    >
+      <div className="space-y-1.5">
+        {DRAGGABLE_INSTANCES.map((inst) => {
+          const config = getDraggableConfig(inst.id);
+          const defaults = DRAGGABLE_DEFAULTS[inst.id] || { draggable: false, persist: false };
+          const dragOverridden = config.draggable !== defaults.draggable;
+          const persistOverridden = config.persist !== defaults.persist;
+          return (
+            <div
+              key={inst.id}
+              className="flex items-center justify-between gap-2"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono text-muted-foreground truncate">
+                  {locale === "zh" ? inst.labelZh : inst.labelEn}
+                </span>
+                {(dragOverridden || persistOverridden) && (
+                  <span className="text-[9px] font-mono text-amber-500/70 uppercase">
+                    *
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Persist toggle */}
+                <button
+                    onClick={() =>
+                      setDraggableConfig(inst.id, "persist", !config.persist)
+                    }
+                    className={cn(
+                      "p-1 rounded transition-colors",
+                      config.persist
+                        ? "text-foreground bg-muted/60"
+                        : "text-muted-foreground/40 hover:text-muted-foreground",
+                      persistOverridden && "ring-1 ring-amber-500/40"
+                    )}
+                    aria-label={`Toggle position save for ${inst.labelEn}`}
+                    title={
+                      locale === "zh"
+                        ? config.persist
+                          ? "记住位置"
+                          : "不记住位置"
+                        : config.persist
+                        ? "Save position"
+                        : "Don't save position"
+                    }
+                  >
+                    <Brain className="h-3 w-3" />
+                  </button>
+                {/* Drag toggle */}
+                <button
+                  onClick={() =>
+                    setDraggableConfig(
+                      inst.id,
+                      "draggable",
+                      !config.draggable
+                    )
+                  }
+                  className={cn(
+                    "relative inline-flex h-5 w-9 items-center rounded-full border transition-colors",
+                    config.draggable
+                      ? "bg-green-500/90 border-green-500/70"
+                      : "bg-muted/40 border-border/60",
+                    dragOverridden && "ring-1 ring-amber-500/40"
+                  )}
+                  aria-pressed={config.draggable}
+                  aria-label={`Toggle draggable for ${inst.labelEn}`}
+                >
+                  <span
+                    className={cn(
+                      "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
+                      config.draggable ? "translate-x-4" : "translate-x-0.5"
+                    )}
+                  />
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </DebugSection>
   );
