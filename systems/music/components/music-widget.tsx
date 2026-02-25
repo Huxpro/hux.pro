@@ -71,7 +71,7 @@ export function MusicWidget() {
     playerContainerRef,
   } = useMusic();
 
-  if (!isEnabled || !PLAYLIST_ID) return null;
+  if (!PLAYLIST_ID) return null;
 
   const isPlaying = playerState === "playing";
   const isLoading = playerState === "loading";

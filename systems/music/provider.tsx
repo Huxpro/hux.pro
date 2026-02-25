@@ -120,7 +120,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   // --- Initialize YouTube player ---
   useEffect(() => {
-    if (!settings.enabled || !PLAYLIST_ID || initedRef.current) return;
+    if (!PLAYLIST_ID || initedRef.current) return;
 
     // Wait for the container div to be in the DOM (the widget renders it)
     const container = playerContainerRef.current;
@@ -179,7 +179,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       playerRef.current = null;
       initedRef.current = false;
     };
-  }, [settings.enabled]);
+  }, []);
 
   // --- Progress polling (only while playing) ---
   useEffect(() => {

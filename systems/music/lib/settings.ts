@@ -2,9 +2,8 @@
 // Music System Settings — localStorage persistence
 // =============================================================================
 
-/** YouTube Music playlist ID from environment */
-export const PLAYLIST_ID =
-  process.env.NEXT_PUBLIC_YOUTUBE_PLAYLIST_ID ?? "";
+/** YouTube Music playlist ID (public playlist, hardcoded) */
+export const PLAYLIST_ID = "PL-jBC8h6o17TB-M8F9ekiJWJZjGnhD18H";
 
 export interface MusicSettings {
   enabled: boolean;

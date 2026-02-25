@@ -39,8 +39,11 @@ export function CommandPalette() {
   const { gradientMode, cycleGradientMode } = useWeather();
   const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled } =
     useDevtool();
-  const { isEnabled: isMusicEnabled, setEnabled: setMusicEnabled } =
-    useMusic();
+  const {
+    playerState: musicPlayerState,
+    play: musicPlay,
+    pause: musicPause,
+  } = useMusic();
   const router = useTransitionRouter();
 
   const gradientModeLabel =
@@ -211,11 +214,17 @@ export function CommandPalette() {
     {
       key: "m",
       label: `${t(locale, "settingsMusic")}: ${
-        isMusicEnabled ? t(locale, "stateOn") : t(locale, "stateOff")
+        musicPlayerState === "playing"
+          ? t(locale, "musicPause")
+          : t(locale, "musicPlay")
       }`,
       icon: <Music className="h-4 w-4" />,
       onSelect: () => {
-        setMusicEnabled(!isMusicEnabled);
+        if (musicPlayerState === "playing") {
+          musicPause();
+        } else {
+          musicPlay();
+        }
         close();
       },
       section: "settings",
@@ -295,7 +304,11 @@ export function CommandPalette() {
           close();
           return;
         case "m":
-          setMusicEnabled(!isMusicEnabled);
+          if (musicPlayerState === "playing") {
+            musicPause();
+          } else {
+            musicPlay();
+          }
           close();
           return;
         case "d":
@@ -319,12 +332,13 @@ export function CommandPalette() {
     locale,
     locationMode,
     gradientModeLabel,
-    isMusicEnabled,
+    musicPlayerState,
+    musicPlay,
+    musicPause,
     isDevtoolEnabled,
     requestAccurateLocation,
     setLocationMode,
     cycleGradientMode,
-    setMusicEnabled,
     setDevtoolEnabled,
   ]);
 
@@ -704,7 +718,13 @@ export function CommandPalette() {
                       "歌曲",
                       "播放",
                     ]}
-                    onSelect={() => setMusicEnabled(!isMusicEnabled)}
+                    onSelect={() => {
+                      if (musicPlayerState === "playing") {
+                        musicPause();
+                      } else {
+                        musicPlay();
+                      }
+                    }}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                       "text-sm cursor-pointer transition-colors",
@@ -715,9 +735,9 @@ export function CommandPalette() {
                     <Music className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">
                       {t(locale, "settingsMusic")}:{" "}
-                      {isMusicEnabled
-                        ? t(locale, "stateOn")
-                        : t(locale, "stateOff")}
+                      {musicPlayerState === "playing"
+                        ? t(locale, "musicPause")
+                        : t(locale, "musicPlay")}
                     </span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       M
