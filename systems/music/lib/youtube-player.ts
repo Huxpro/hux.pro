@@ -55,7 +55,8 @@ export function loadYouTubeAPI(): Promise<typeof YT> {
 
 /**
  * YouTube thumbnail URL from a video ID.
- * `mqdefault` is 320×180 — good for a small widget.
+ * `mqdefault` is 320×180 (native 16:9, no letterboxing) — clean for
+ * square album-art crops via object-fit:cover without scaling hacks.
  */
 export function getYouTubeThumbnail(videoId: string): string {
   return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;

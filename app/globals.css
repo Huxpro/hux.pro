@@ -625,3 +625,17 @@
     opacity: 1 !important;
   }
 }
+
+/* =============================================================================
+   EQ Bars — Apple Music style "now playing" indicator
+   ============================================================================= */
+
+@keyframes eq-bar {
+  0%,
+  100% {
+    transform: scaleY(0.6);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}

@@ -25,6 +25,10 @@ import {
 interface MusicContextType {
   track: MusicTrack | null;
   playerState: PlayerState;
+  /** Current playback position in seconds */
+  currentTime: number;
+  /** Total track duration in seconds */
+  duration: number;
   isEnabled: boolean;
   setEnabled: (enabled: boolean) => void;
   play: () => void;
@@ -75,7 +79,7 @@ function readTrack(player: YT.Player): MusicTrack | null {
     return {
       videoId: data.video_id,
       title: data.title || "",
-      artist: data.author || "",
+      artist: (data.author || "").replace(/ - Topic$/, ""),
       thumbnailUrl: getYouTubeThumbnail(data.video_id),
     };
   } catch {
@@ -108,6 +112,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   // --- Player state ---
   const [playerState, setPlayerState] = useState<PlayerState>("idle");
   const [track, setTrack] = useState<MusicTrack | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const playerRef = useRef<YT.Player | null>(null);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const initedRef = useRef(false);
@@ -175,6 +181,24 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     };
   }, [settings.enabled]);
 
+  // --- Progress polling (only while playing) ---
+  useEffect(() => {
+    if (playerState !== "playing" || !playerRef.current) return;
+    const poll = () => {
+      const p = playerRef.current;
+      if (!p) return;
+      try {
+        setCurrentTime(p.getCurrentTime());
+        setDuration(p.getDuration());
+      } catch {
+        /* player may be destroyed */
+      }
+    };
+    poll();
+    const id = setInterval(poll, 1000);
+    return () => clearInterval(id);
+  }, [playerState]);
+
   // --- Controls ---
   const play = useCallback(() => playerRef.current?.playVideo(), []);
   const pause = useCallback(() => playerRef.current?.pauseVideo(), []);
@@ -186,6 +210,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       value={{
         track,
         playerState,
+        currentTime,
+        duration,
         isEnabled: settings.enabled,
         setEnabled,
         play,
