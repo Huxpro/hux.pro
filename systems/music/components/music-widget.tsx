@@ -133,17 +133,17 @@ export function MusicWidget() {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 -ml-2 -mb-2">
                   <button
                     onClick={previous}
-                    className="text-muted-foreground hover:text-foreground transition-colors active:scale-[0.92]"
+                    className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 active:bg-accent/60 transition-colors active:scale-[0.92]"
                     aria-label="Previous track"
                   >
                     <Rewind className="h-3.5 w-3.5" />
                   </button>
                   <button
                     onClick={isPlaying ? pause : play}
-                    className="text-muted-foreground hover:text-foreground transition-colors active:scale-[0.92]"
+                    className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 active:bg-accent/60 transition-colors active:scale-[0.92]"
                     aria-label={isPlaying ? "Pause" : "Play"}
                   >
                     {isPlaying ? (
@@ -154,7 +154,7 @@ export function MusicWidget() {
                   </button>
                   <button
                     onClick={next}
-                    className="text-muted-foreground hover:text-foreground transition-colors active:scale-[0.92]"
+                    className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 active:bg-accent/60 transition-colors active:scale-[0.92]"
                     aria-label="Next track"
                   >
                     <FastForward className="h-3.5 w-3.5" />
@@ -179,7 +179,7 @@ export function MusicWidget() {
               </div>
               <button
                 onClick={play}
-                className="self-start text-muted-foreground hover:text-foreground transition-colors active:scale-[0.92]"
+                className="self-start -ml-2 -mb-2 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 active:bg-accent/60 transition-colors active:scale-[0.92]"
                 aria-label="Play"
               >
                 <Play className="h-4 w-4" />

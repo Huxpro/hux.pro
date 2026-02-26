@@ -117,6 +117,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const playerRef = useRef<YT.Player | null>(null);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const initedRef = useRef(false);
+  // Track pending skip so we can force playVideo() on iOS Safari
+  const pendingSkipRef = useRef(false);
 
   // --- Initialize YouTube player ---
   useEffect(() => {
@@ -157,8 +159,17 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
             },
             onStateChange: (event) => {
               if (destroyed) return;
-              setPlayerState(ytStateToPlayerState(event.data));
+              const mapped = ytStateToPlayerState(event.data);
+              setPlayerState(mapped);
               setTrack(readTrack(player));
+              // iOS Safari: nextVideo/previousVideo cues but doesn't auto-play.
+              // Force playback when the new track is ready after a skip.
+              if (pendingSkipRef.current && (mapped === "idle" || mapped === "paused")) {
+                pendingSkipRef.current = false;
+                player.playVideo();
+              } else if (mapped === "playing") {
+                pendingSkipRef.current = false;
+              }
             },
             onError: () => {
               if (destroyed) return;
@@ -202,8 +213,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   // --- Controls ---
   const play = useCallback(() => playerRef.current?.playVideo(), []);
   const pause = useCallback(() => playerRef.current?.pauseVideo(), []);
-  const next = useCallback(() => playerRef.current?.nextVideo(), []);
-  const previous = useCallback(() => playerRef.current?.previousVideo(), []);
+  const next = useCallback(() => {
+    pendingSkipRef.current = true;
+    playerRef.current?.nextVideo();
+  }, []);
+  const previous = useCallback(() => {
+    pendingSkipRef.current = true;
+    playerRef.current?.previousVideo();
+  }, []);
 
   return (
     <MusicContext.Provider
