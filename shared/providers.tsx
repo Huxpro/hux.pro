@@ -15,6 +15,7 @@ import { SystemSonner } from "@/components/ui/system-sonner";
 import { AmbientProvider } from "@/systems/ambient";
 import { CommandProvider, useCommand } from "@/systems/command";
 import { DevtoolProvider } from "@/systems/devtool";
+import { MusicProvider } from "@/systems/music";
 
 // =============================================================================
 // Internal Wrappers
@@ -53,8 +54,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
               <CommandProvider>
                 <DevtoolWrapper>
                   <AmbientWrapper>
-                    {children}
-                    <SystemSonner />
+                    <MusicProvider>
+                      {children}
+                      <SystemSonner />
+                    </MusicProvider>
                   </AmbientWrapper>
                 </DevtoolWrapper>
               </CommandProvider>

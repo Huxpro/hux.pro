@@ -78,6 +78,12 @@ export const translations = {
     widgetStatus: "processing",
     widgetWeather: "weather",
     widgetPrompt: "/prompts",
+    widgetMusic: "playing",
+    widgetMusicIdle: "music",
+    musicNotPlaying: "nothing playing",
+    settingsMusic: "Music",
+    musicPlay: "Play",
+    musicPause: "Pause",
     widgetViewAll: "view all",
 
     // Ambient (location / weather)
@@ -217,6 +223,12 @@ export const translations = {
     widgetStatus: "处理中",
     widgetWeather: "天气",
     widgetPrompt: "/提示词",
+    widgetMusic: "播放中",
+    widgetMusicIdle: "音乐",
+    musicNotPlaying: "暂无播放",
+    settingsMusic: "音乐",
+    musicPlay: "播放",
+    musicPause: "暂停",
     widgetViewAll: "查看全部",
 
     // Ambient (location / weather)
