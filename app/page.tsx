@@ -8,6 +8,7 @@ import { PromptWidget } from "@/components/home/prompt-widget";
 import { Commit } from "@/components/log";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { HeaderZone } from "@/components/ui/header-zone";
+import { MasonryGrid } from "@/components/ui/masonry-grid";
 import { useHeroFade } from "@/components/ui/use-hero-fade";
 import {
   WidgetBody,
@@ -141,27 +142,18 @@ function GroupWidget({ group }: { group: Group }) {
 
 function WidgetGrid() {
   const groups = (log.groups ?? []).filter((group) => !group.hidden);
-  const leftGroups = groups.filter((group) => group.column === "left");
-  const rightGroups = groups.filter((group) => group.column !== "left");
 
   return (
-    <div className="relative z-20 grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 sm:pt-4 mb-16">
-      <div className="space-y-4">
-        <BlogStackWidget />
-        <PromptWidget />
-        {leftGroups.map((group) => (
-          <GroupWidget key={group.id} group={group} />
-        ))}
-      </div>
-      <div className="space-y-4">
-        <WeatherWidget />
-        <MusicWidget />
-        <ProcessingWidget />
-        {rightGroups.map((group) => (
-          <GroupWidget key={group.id} group={group} />
-        ))}
-      </div>
-    </div>
+    <MasonryGrid className="relative z-20 pt-2 sm:pt-4 mb-16">
+      <WeatherWidget />
+      <BlogStackWidget />
+      <MusicWidget />
+      <ProcessingWidget />
+      <PromptWidget />
+      {groups.map((group) => (
+        <GroupWidget key={group.id} group={group} />
+      ))}
+    </MasonryGrid>
   );
 }
 
