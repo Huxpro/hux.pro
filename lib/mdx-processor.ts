@@ -1,6 +1,7 @@
 import type { MDXRemoteProps } from "next-mdx-remote/rsc";
 import rehypePrettyCode, { type Options as PrettyCodeOptions } from "rehype-pretty-code";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 
 /**
  * MDX options for server-side rendering with next-mdx-remote/rsc
@@ -12,7 +13,7 @@ export const mdxOptions: MDXRemoteProps["options"] = {
   // expressions like commit={{...}} and defaultExpanded={true} are preserved.
   blockJS: false,
   mdxOptions: {
-    remarkPlugins: [remarkGfm],
+    remarkPlugins: [remarkGfm, remarkMath],
     rehypePlugins: [
       [
         rehypePrettyCode as unknown as Parameters<typeof Array.prototype.push>[0],
