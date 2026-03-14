@@ -29,6 +29,7 @@ interface TimelineCommitProps {
   data: NormalizedCommit;
   cursorPreview?: ReactNode;
   defaultExpanded?: boolean;
+  showLangTag?: boolean;
   className?: string;
 }
 
@@ -36,6 +37,7 @@ export function TimelineCommit({
   data,
   cursorPreview,
   defaultExpanded = false,
+  showLangTag = false,
   className,
 }: TimelineCommitProps) {
   const Icon = commitIcons[data.type];
@@ -81,6 +83,11 @@ export function TimelineCommit({
       <div className="flex items-center gap-2 min-w-0">
         <span className="text-sm text-foreground min-w-0 flex-1">
           {data.title}
+          {showLangTag && data.lang && (
+            <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
+              {data.lang === "en" ? "EN" : "中文"}
+            </span>
+          )}
         </span>
 
         <div

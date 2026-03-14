@@ -29,6 +29,7 @@ export interface CommitProps {
   locale?: Locale;
   variant?: CommitVariant;
   defaultExpanded?: boolean;
+  showLangTag?: boolean;
   className?: string;
 }
 
@@ -41,6 +42,7 @@ export function Commit({
   locale = "en",
   variant = "card",
   defaultExpanded = false,
+  showLangTag = false,
   className,
 }: CommitProps) {
   // Runtime guard: MDX/JSON inputs can bypass static typing.
@@ -65,6 +67,7 @@ export function Commit({
           data={data}
           cursorPreview={cursorPreview}
           defaultExpanded={defaultExpanded}
+          showLangTag={showLangTag}
           className={className}
         />
       );

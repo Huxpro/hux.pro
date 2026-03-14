@@ -16,13 +16,14 @@ interface LogTimelineProps {
     commits: CommitData[];
   }[];
   locale: Locale;
+  includeOther?: boolean;
 }
 
 /**
  * Git Log / Commit History style timeline.
  * Renders tags as ref markers and commits as dense log entries.
  */
-export function LogTimeline({ data, locale }: LogTimelineProps) {
+export function LogTimeline({ data, locale, includeOther = false }: LogTimelineProps) {
   return (
     <div className="space-y-0">
       {data.map(({ tag, commits }, tagIndex) => (
@@ -52,6 +53,7 @@ export function LogTimeline({ data, locale }: LogTimelineProps) {
                 commit={commit}
                 locale={locale}
                 variant="timeline"
+                showLangTag={includeOther}
               />
             ))}
           </div>

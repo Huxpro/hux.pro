@@ -134,6 +134,11 @@ interface BaseCommit {
    */
   listed?: boolean;
   /**
+   * Language visibility: "en" = English only, "zh" = Chinese only.
+   * Defaults to both languages when omitted.
+   */
+  lang?: "en" | "zh";
+  /**
    * Attached media - rendered as video players, embeds, OG previews, etc.
    * Composable: any commit type can have any combination of media.
    */
@@ -484,6 +489,24 @@ export function sortTagsByDate(tags: Tag[]): Tag[] {
 
 export function isCommitListed(commit: Commit): boolean {
   return commit.listed !== false;
+}
+
+/**
+ * Check if a commit should be shown for a given locale and language filter.
+ * Mirrors the blog's `shouldShowPost` behavior:
+ * - No `lang` field (both) → always show
+ * - `lang` matches current locale → show
+ * - `includeOther` is true → show (with language tag)
+ */
+export function shouldShowCommit(
+  commit: Commit,
+  locale: Locale,
+  includeOther: boolean,
+): boolean {
+  if (!commit.lang) return true; // both languages
+  if (commit.lang === locale) return true;
+  if (includeOther) return true;
+  return false;
 }
 
 // =============================================================================

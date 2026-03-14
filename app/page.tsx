@@ -104,7 +104,8 @@ function ProcessingWidget() {
 function GroupWidget({ group }: { group: Group }) {
   const { locale } = useLocale();
 
-  const commits = resolveGroupCommits(group, log.commits as CommitData[]);
+  const allCommits = resolveGroupCommits(group, log.commits as CommitData[]);
+  const commits = allCommits.filter((c) => !c.lang || c.lang === locale);
   if (commits.length === 0) return null;
 
   const title = localize(group.title, locale);

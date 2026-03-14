@@ -43,6 +43,9 @@ export interface NormalizedCommit {
   description: string;
   date: string;
 
+  // Language visibility (undefined = both)
+  lang?: "en" | "zh";
+
   // Type-derived metadata
   meta?: string;
   subtitle?: string;
@@ -153,6 +156,8 @@ export function normalizeCommit(
   const tags = commit.tags ?? [];
   const thumbnail = deriveThumbnail(media);
 
+  const lang = commit.lang;
+
   // Type-specific extraction
   switch (commit.type) {
     case "project": {
@@ -161,6 +166,7 @@ export function normalizeCommit(
         hash,
         type: commit.type,
         title,
+        lang,
         description,
         date,
         tags,
@@ -189,6 +195,7 @@ export function normalizeCommit(
         hash,
         type: commit.type,
         title,
+        lang,
         description,
         date,
         meta: commit.conference.name,
@@ -216,6 +223,7 @@ export function normalizeCommit(
         hash,
         type: commit.type,
         title,
+        lang,
         description,
         date,
         meta: commit.publication.name,
@@ -246,6 +254,7 @@ export function normalizeCommit(
         hash,
         type: commit.type,
         title: company,
+        lang,
         description,
         date,
         meta: commit.location,
@@ -279,6 +288,7 @@ export function normalizeCommit(
         hash,
         type: commit.type,
         title,
+        lang,
         description,
         date,
         meta: commit.platform,
