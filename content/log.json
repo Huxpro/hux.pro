@@ -1,23 +1,6 @@
 {
   "tags": [
     {
-      "id": "current",
-      "title": {
-        "en": "Current Chapter",
-        "zh": "当前篇章"
-      },
-      "tagline": {
-        "en": "Building the Future",
-        "zh": "构建未来"
-      },
-      "narrative": {
-        "en": "Independent exploration at the intersection of AI, developer tools, and creative technology. Building personal operating systems and experimenting with new forms of human-computer interaction.",
-        "zh": "在人工智能、开发者工具和创意技术的交汇处进行独立探索。构建个人操作系统，探索人机交互的新形式。"
-      },
-      "startDate": "2024-01",
-      "accentColor": "oklch(0.7 0.15 200)"
-    },
-    {
       "id": "lynx-era",
       "title": {
         "en": "Lynx Era",
@@ -28,8 +11,8 @@
         "zh": "大规模跨平台"
       },
       "narrative": {
-        "en": "Leading the development of Lynx, a cross-platform UI framework powering experiences for billions of users across ByteDance's ecosystem.",
-        "zh": "领导 Lynx 跨平台 UI 框架的开发，为字节跳动生态系统中数十亿用户提供体验。"
+        "en": "Co-leading Lynx as architect in ByteDance's Web Infra Cross Platform team. Building cross-platform UI powering experiences for billions of users, while exploring AI-native interfaces and developer tools.",
+        "zh": "作为架构师共同领导字节跳动 Web Infra 跨平台团队的 Lynx 框架。构建服务数十亿用户的跨平台 UI，同时探索 AI 原生界面与开发者工具。"
       },
       "company": {
         "en": "ByteDance",
@@ -39,56 +22,55 @@
         "en": "Cross-Platform, React, Performance",
         "zh": "跨平台, React, 性能优化"
       },
-      "startDate": "2019-03",
-      "endDate": "2024-12",
+      "startDate": "2023-02",
       "accentColor": "oklch(0.65 0.2 250)"
     },
     {
       "id": "react-era",
       "title": {
-        "en": "React Era",
-        "zh": "React 时代"
+        "en": "React + PL Era",
+        "zh": "React + PL 时代"
       },
       "tagline": {
-        "en": "The Framework Years",
-        "zh": "框架岁月"
+        "en": "Compilers, Runtimes, and React",
+        "zh": "编译器、运行时与 React"
       },
       "narrative": {
-        "en": "Contributing to the React ecosystem during its formative years. Working on core features, performance optimizations, and helping shape the future of component-based UI development.",
-        "zh": "在 React 生态系统的形成期做出贡献。参与核心功能开发、性能优化，帮助塑造基于组件的 UI 开发的未来。"
+        "en": "From RIT's programming languages lab to Meta's React org. Built Hermes for iOS, co-founded React Forget as tech lead of the auto-memoization compiler, and shipped to billions through React Native.",
+        "zh": "从 RIT 编程语言实验室到 Meta React 团队。将 Hermes 引入 iOS，作为 React Forget 自动记忆化编译器的联合创始工程师及技术负责人，通过 React Native 服务数十亿用户。"
       },
       "company": {
         "en": "Meta",
         "zh": "Meta"
       },
       "keywords": {
-        "en": "React, Open Source, JavaScript",
-        "zh": "React, 开源, JavaScript"
+        "en": "React, Compilers, JavaScript Engines",
+        "zh": "React, 编译器, JavaScript 引擎"
       },
-      "startDate": "2016-06",
-      "endDate": "2019-02",
+      "startDate": "2017-08",
+      "endDate": "2022-10",
       "accentColor": "oklch(0.7 0.2 220)"
     },
     {
-      "id": "early-days",
+      "id": "pwa-era",
       "title": {
-        "en": "Early Days",
-        "zh": "早期探索"
+        "en": "PWA Era",
+        "zh": "PWA 时代"
       },
       "tagline": {
-        "en": "Foundation Years",
-        "zh": "奠基之年"
+        "en": "China's PWA Pioneer",
+        "zh": "中国 PWA 先驱"
       },
       "narrative": {
-        "en": "Learning the craft of software engineering. Building web applications, exploring mobile development, and discovering the joy of creating things with code.",
-        "zh": "学习软件工程的技艺。构建网络应用，探索移动开发，发现用代码创造事物的乐趣。"
+        "en": "From a CUC student building first web apps to leading mobile web teams. Consulted on China's first influential PWA at Ele.me, championed Progressive Web Apps through conference talks across China.",
+        "zh": "从中国传媒大学学生构建第一个网页应用到领导移动端 Web 团队。为饿了么中国首个有影响力的 PWA 提供咨询，在全国各大会议上推广 Progressive Web Apps。"
       },
       "keywords": {
-        "en": "Web, Mobile, Learning",
-        "zh": "网页开发, 移动端, 学习"
+        "en": "PWA, Mobile Web, Service Worker",
+        "zh": "PWA, 移动端 Web, Service Worker"
       },
       "startDate": "2012-09",
-      "endDate": "2016-05",
+      "endDate": "2017-07",
       "accentColor": "oklch(0.6 0.1 300)"
     }
   ],
@@ -105,8 +87,6 @@
       "href": "/works",
       "commitIds": [
         "hux-pro",
-        "reactconf-2018",
-        "react-last-framework",
         "qcon-shanghai",
         "tech-lead-lynx",
         "x-thread-lynx-perf"
@@ -125,7 +105,6 @@
       "commitIds": [
         "hux-pro",
         "lynx-framework",
-        "upcoming-react-native-os",
         "tech-lead-lynx"
       ]
     },
@@ -180,7 +159,7 @@
     {
       "id": "hux-pro",
       "type": "project",
-      "tagId": "current",
+      "tagId": "lynx-era",
       "title": {
         "en": "Hux.Pro OS",
         "zh": "Hux.Pro 操作系统"
@@ -210,49 +189,100 @@
       }
     },
     {
-      "id": "vibing-ui-talk",
+      "id": "qcon-shanghai",
       "type": "talk",
-      "tagId": "current",
+      "tagId": "lynx-era",
       "title": {
-        "en": "Vibing UI with AI",
-        "zh": "与 AI 共振的 UI"
+        "en": "Cross-Platform at ByteDance Scale",
+        "zh": "字节跳动规模的跨平台开发"
       },
       "description": {
-        "en": "Exploring the future of human-AI collaboration in interface design.",
-        "zh": "探索人机协作在界面设计中的未来。"
+        "en": "How we built and scaled Lynx to power experiences for billions.",
+        "zh": "我们如何构建和扩展 Lynx 以服务数十亿用户。"
       },
-      "date": "2024-03",
+      "date": "2023-10",
       "conference": {
-        "name": "Shanghai Meetup",
+        "name": "QCon Shanghai",
         "city": "Shanghai, China"
       },
       "tags": [
-        "AI",
-        "Design",
-        "Future"
+        "Architecture",
+        "Scale",
+        "Performance"
       ]
     },
     {
-      "id": "react-last-framework",
-      "type": "post",
-      "tagId": "current",
+      "id": "feday-2023",
+      "type": "talk",
+      "tagId": "lynx-era",
       "title": {
-        "en": "React as the Last Framework",
-        "zh": "React 作为最后的框架"
+        "en": "My Frontend Worldview",
+        "zh": "我的大前端世界观"
       },
       "description": {
-        "en": "Why the framework wars might be ending, and what comes next.",
-        "zh": "为什么框架之战可能即将结束，以及接下来会发生什么。"
+        "en": "A personal take on the past, present, and future of frontend engineering.",
+        "zh": "对大前端工程过去、现在与未来的个人视角。"
       },
-      "date": "2024-02",
-      "url": "/writing/react-last-framework",
-      "publication": {
-        "name": "Personal Blog"
+      "date": "2023-06",
+      "conference": {
+        "name": "FEDAY 2023",
+        "city": "Guangzhou, China"
       },
       "tags": [
-        "React",
-        "Frameworks",
+        "Frontend",
+        "Architecture",
         "Opinion"
+      ]
+    },
+    {
+      "id": "x-thread-lynx-perf",
+      "type": "social",
+      "tagId": "lynx-era",
+      "title": {
+        "en": "Thread: Tuning cross-platform performance",
+        "zh": "串：跨平台性能调优"
+      },
+      "description": {
+        "en": "Notes on layout, memory, and why small cuts matter at scale.",
+        "zh": "关于布局、内存，以及为什么在规模下微小的优化也很重要。"
+      },
+      "date": "2023-05-12",
+      "platform": "X",
+      "media": [
+        {
+          "type": "embed",
+          "url": "https://x.com/Huxpro/status/1502483206569807874"
+        }
+      ],
+      "tags": [
+        "Performance",
+        "Cross-Platform"
+      ]
+    },
+    {
+      "id": "tech-lead-lynx",
+      "type": "role",
+      "tagId": "lynx-era",
+      "title": {
+        "en": "Staff Engineer / Architect, Lynx",
+        "zh": "Lynx 架构师"
+      },
+      "description": {
+        "en": "Co-leading Lynx architecture and developer experience in ByteDance's Web Infra Cross Platform team.",
+        "zh": "在字节跳动 Web Infra 跨平台团队共同领导 Lynx 架构与开发者体验工作。"
+      },
+      "date": "2023-02",
+      "company": {
+        "en": "ByteDance",
+        "zh": "字节跳动"
+      },
+      "roleTitle": {
+        "en": "Staff Engineer / Architect",
+        "zh": "架构师"
+      },
+      "tags": [
+        "Leadership",
+        "Architecture"
       ]
     },
     {
@@ -267,8 +297,7 @@
         "en": "Cross-platform UI framework powering TikTok, Douyin, and more.",
         "zh": "为 TikTok、抖音等产品提供动力的跨平台 UI 框架。"
       },
-      "date": "2019-03",
-      "endDate": "2024-12",
+      "date": "2023-02",
       "tags": [
         "Cross-Platform",
         "Performance",
@@ -299,121 +328,161 @@
       }
     },
     {
-      "id": "qcon-shanghai",
-      "type": "talk",
-      "tagId": "lynx-era",
+      "id": "opensrc-pioneer-2022",
+      "type": "social",
+      "tagId": "react-era",
       "title": {
-        "en": "Cross-Platform at ByteDance Scale",
-        "zh": "字节跳动规模的跨平台开发"
+        "en": "China Open Source Pioneer 33",
+        "zh": "中国开源先锋 33 人"
       },
       "description": {
-        "en": "How we built and scaled Lynx to power experiences for billions.",
-        "zh": "我们如何构建和扩展 Lynx 以服务数十亿用户。"
+        "en": "Named one of 33 China Open Source Pioneers by SegmentFault.",
+        "zh": "被 SegmentFault 评选为中国开源先锋 33 人之一。"
       },
-      "date": "2023-10",
-      "conference": {
-        "name": "QCon Shanghai",
-        "city": "Shanghai, China"
-      },
-      "media": [
-        {
-          "type": "video",
-          "url": "https://youtube.com/watch?v=example",
-          "platform": "youtube",
-          "thumbnail": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg"
-        },
-        {
-          "type": "link",
-          "url": "https://hux.pro",
-          "label": "Slides",
-          "icon": "slides"
-        }
-      ],
+      "date": "2022-12",
+      "platform": "SegmentFault",
       "tags": [
-        "Architecture",
-        "Scale",
-        "Performance"
+        "Open Source",
+        "Recognition"
       ]
     },
     {
-      "id": "lynx-infra-talk",
+      "id": "coscon-2022",
       "type": "talk",
-      "tagId": "lynx-era",
+      "tagId": "react-era",
       "title": {
-        "en": "Lynx Infra: Rendering at 60fps",
-        "zh": "Lynx 基建：60fps 渲染之路"
+        "en": "React State of the Union",
+        "zh": "React 国情咨文"
       },
       "description": {
-        "en": "A deep dive into bridging, layout, and performance tuning for cross-platform UI.",
-        "zh": "深入解析跨平台 UI 的桥接、布局与性能调优。"
-      },
-      "date": "2022-06",
-      "conference": {
-        "name": "ByteDance Internal Tech Talk",
-        "city": "Beijing, China"
-      },
-      "media": [
-        {
-          "type": "video",
-          "url": "https://youtube.com/watch?v=example2",
-          "platform": "youtube",
-          "thumbnail": "https://i.ytimg.com/vi/aqz-KE-bpKQ/hqdefault.jpg"
-        }
-      ],
-      "tags": [
-        "Lynx",
-        "Performance",
-        "Rendering"
-      ]
-    },
-    {
-      "id": "tech-lead-lynx",
-      "type": "role",
-      "tagId": "lynx-era",
-      "title": {
-        "en": "Tech Lead, Lynx",
-        "zh": "Lynx 技术负责人"
-      },
-      "description": {
-        "en": "Leading architecture and developer experience for the Lynx platform.",
-        "zh": "领导 Lynx 平台的架构和开发者体验工作。"
+        "en": "A comprehensive overview of React's current state and future direction.",
+        "zh": "全面概述 React 现状与未来方向。"
       },
       "date": "2022-10",
-      "endDate": "2026-01",
-      "company": {
-        "en": "ByteDance",
-        "zh": "字节跳动"
-      },
-      "roleTitle": {
-        "en": "Architect",
-        "zh": "架构师"
+      "conference": {
+        "name": "COSCon 2022",
+        "city": "Online"
       },
       "tags": [
-        "Leadership",
-        "Architecture"
+        "React",
+        "Open Source"
       ]
     },
     {
-      "id": "design-systems-post",
-      "type": "post",
-      "tagId": "lynx-era",
+      "id": "gitee-cover-2022",
+      "type": "social",
+      "tagId": "react-era",
       "title": {
-        "en": "Building Design Systems That Scale",
-        "zh": "构建可扩展的设计系统"
+        "en": "Gitee Cover Story",
+        "zh": "Gitee 封面人物"
       },
       "description": {
-        "en": "Lessons from building component libraries for massive teams.",
-        "zh": "为大规模团队构建组件库的经验教训。"
+        "en": "Featured as a cover story on Gitee.",
+        "zh": "被 Gitee 评为封面人物。"
       },
       "date": "2022-08",
-      "url": "/writing/building-design-systems",
-      "publication": {
-        "name": "Personal Blog"
+      "platform": "Gitee",
+      "tags": [
+        "Open Source",
+        "Recognition"
+      ]
+    },
+    {
+      "id": "reactconf-2021-memo",
+      "type": "talk",
+      "tagId": "react-era",
+      "title": {
+        "en": "React without a Memo",
+        "zh": "没有 Memo 的 React"
+      },
+      "description": {
+        "en": "A practical talk about removing accidental complexity from React apps.",
+        "zh": "关于减少 React 应用偶然复杂度的实践分享。"
+      },
+      "date": "2021-09",
+      "conference": {
+        "name": "React Conf 2021",
+        "city": "Online"
       },
       "tags": [
-        "Design Systems",
-        "Components",
-        "Scale"
+        "React",
+        "Patterns"
+      ]
+    },
+    {
+      "id": "rnshow-hermes-2021",
+      "type": "talk",
+      "tagId": "react-era",
+      "title": {
+        "en": "The RN Show: Hermes for iOS",
+        "zh": "The RN Show：Hermes 登陆 iOS"
+      },
+      "description": {
+        "en": "Discussing bringing the Hermes JavaScript engine to iOS on The React Native Show podcast.",
+        "zh": "在 The React Native Show 播客上讨论将 Hermes JavaScript 引擎引入 iOS。"
+      },
+      "date": "2021-04",
+      "conference": {
+        "name": "The React Native Show Podcast"
+      },
+      "tags": [
+        "Hermes",
+        "React Native",
+        "iOS"
+      ]
+    },
+    {
+      "id": "react-forget",
+      "type": "project",
+      "tagId": "react-era",
+      "title": {
+        "en": "React Forget",
+        "zh": "React Forget"
+      },
+      "description": {
+        "en": "Auto-memoization compiler for React — founding engineer and tech lead.",
+        "zh": "React 自动记忆化编译器 —— 联合创始工程师及技术负责人。"
+      },
+      "date": "2021-01",
+      "endDate": "2022-10",
+      "tags": [
+        "React",
+        "Compiler",
+        "Performance",
+        "OCaml"
+      ],
+      "commentary": {
+        "en": "The project that taught me how compilers can reshape developer experience.",
+        "zh": "这个项目让我理解了编译器如何重塑开发者体验。"
+      }
+    },
+    {
+      "id": "hermes-engine",
+      "type": "project",
+      "tagId": "react-era",
+      "title": {
+        "en": "Hermes JavaScript Engine",
+        "zh": "Hermes JavaScript 引擎"
+      },
+      "description": {
+        "en": "JavaScript engine optimized for React Native. Led the effort to bring Hermes to iOS.",
+        "zh": "为 React Native 优化的 JavaScript 引擎。主导将 Hermes 引入 iOS 的工作。"
+      },
+      "date": "2020-03",
+      "endDate": "2022-10",
+      "tags": [
+        "JavaScript",
+        "Compiler",
+        "C++",
+        "React Native"
+      ],
+      "media": [
+        {
+          "type": "link",
+          "url": "https://github.com/nickhsine/nickhsine.github.io",
+          "label": "GitHub",
+          "icon": "github"
+        }
       ]
     },
     {
@@ -428,8 +497,8 @@
         "en": "Contributing to React's core features and performance.",
         "zh": "为 React 核心功能和性能做出贡献。"
       },
-      "date": "2017-01",
-      "endDate": "2019-02",
+      "date": "2020-03",
+      "endDate": "2022-10",
       "tags": [
         "React",
         "Open Source",
@@ -461,176 +530,6 @@
       }
     },
     {
-      "id": "reactconf-2018",
-      "type": "talk",
-      "tagId": "react-era",
-      "title": {
-        "en": "React Concurrent Mode",
-        "zh": "React 并发模式"
-      },
-      "description": {
-        "en": "Introducing the future of React rendering.",
-        "zh": "介绍 React 渲染的未来。"
-      },
-      "date": "2018-10",
-      "conference": {
-        "name": "ReactConf 2018",
-        "city": "Henderson, NV"
-      },
-      "media": [
-        {
-          "type": "video",
-          "url": "https://youtube.com/watch?v=example",
-          "platform": "youtube",
-          "thumbnail": "https://i.ytimg.com/vi/Tn6-PIqc4UM/hqdefault.jpg"
-        }
-      ],
-      "tags": [
-        "React",
-        "Performance",
-        "Concurrent"
-      ]
-    },
-    {
-      "id": "reactconf-2021-memo",
-      "type": "talk",
-      "tagId": "react-era",
-      "title": {
-        "en": "React without a Memo",
-        "zh": "没有 Memo 的 React"
-      },
-      "description": {
-        "en": "A practical talk about removing accidental complexity from React apps.",
-        "zh": "关于减少 React 应用偶然复杂度的实践分享。"
-      },
-      "date": "2021-09",
-      "conference": {
-        "name": "React Conf 2021",
-        "city": "Online"
-      },
-      "media": [
-        {
-          "type": "video",
-          "url": "https://youtube.com/watch?v=example3",
-          "platform": "youtube",
-          "thumbnail": "https://i.ytimg.com/vi/Ke90Tje7VS0/hqdefault.jpg"
-        }
-      ],
-      "tags": [
-        "React",
-        "Patterns"
-      ]
-    },
-    {
-      "id": "x-thread-lynx-perf",
-      "type": "social",
-      "tagId": "lynx-era",
-      "title": {
-        "en": "Thread: Tuning cross-platform performance",
-        "zh": "串：跨平台性能调优"
-      },
-      "description": {
-        "en": "Notes on layout, memory, and why small cuts matter at scale.",
-        "zh": "关于布局、内存，以及为什么在规模下微小的优化也很重要。"
-      },
-      "date": "2023-05-12",
-      "platform": "X",
-      "media": [
-        {
-          "type": "embed",
-          "url": "https://x.com/Huxpro/status/1502483206569807874"
-        }
-      ],
-      "tags": [
-        "Performance",
-        "Cross-Platform"
-      ]
-    },
-    {
-      "id": "private-scratchpad",
-      "type": "post",
-      "tagId": "current",
-      "title": {
-        "en": "Scratchpad: interface notes",
-        "zh": "随记：界面笔记"
-      },
-      "description": {
-        "en": "A small internal note used only when embedded elsewhere.",
-        "zh": "一个仅用于被引用的内部笔记。"
-      },
-      "date": "2025-12",
-      "listed": false,
-      "url": "/writing/scratchpad-interface-notes",
-      "publication": {
-        "name": "Personal Notes"
-      },
-      "tags": [
-        "Notes"
-      ]
-    },
-    {
-      "id": "upcoming-react-native-os",
-      "type": "talk",
-      "tagId": "current",
-      "title": {
-        "en": "AI-Native Operating Surfaces",
-        "zh": "AI 原生操作界面"
-      },
-      "description": {
-        "en": "Designing interfaces that adapt to context, intent, and agents.",
-        "zh": "设计能够适配上下文、意图与智能体的界面。"
-      },
-      "date": "2026-02-12",
-      "conference": {
-        "name": "Future of UI Meetup",
-        "city": "San Francisco, CA"
-      },
-      "media": [
-        {
-          "type": "video",
-          "url": "https://youtube.com/watch?v=example4",
-          "platform": "youtube",
-          "thumbnail": "https://i.ytimg.com/vi/oHg5SJYRHA0/hqdefault.jpg"
-        }
-      ],
-      "tags": [
-        "AI",
-        "UI",
-        "Systems"
-      ]
-    },
-    {
-      "id": "upcoming-lynx-next",
-      "type": "talk",
-      "tagId": "current",
-      "title": {
-        "en": "Lynx Next: Cross-Platform for Agents",
-        "zh": "Lynx Next：为智能体构建跨平台"
-      },
-      "description": {
-        "en": "What changes when your UI is consumed by both humans and agents.",
-        "zh": "当 UI 同时服务人类与智能体时，一切将如何改变。"
-      },
-      "date": "2026-04-03",
-      "conference": {
-        "name": "Cross-Platform Summit",
-        "city": "Shanghai, China"
-      },
-      "media": [
-        {
-          "type": "video",
-          "url": "https://youtube.com/watch?v=example5",
-          "platform": "youtube",
-          "thumbnail": "https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg"
-        }
-      ],
-      "tags": [
-        "Lynx",
-        "Cross-Platform",
-        "Agents"
-      ]
-    },
-    {
       "id": "meta-engineer",
       "type": "role",
       "tagId": "react-era",
@@ -639,11 +538,11 @@
         "zh": "Meta 软件工程师"
       },
       "description": {
-        "en": "Member of the React Core team working on framework fundamentals.",
-        "zh": "React 核心团队成员，从事框架基础工作。"
+        "en": "React Technologies team — Hermes JS engine, React Forget compiler (founding eng + tech lead).",
+        "zh": "React Technologies 团队 —— Hermes JS 引擎、React Forget 编译器（联合创始工程师 + 技术负责人）。"
       },
-      "date": "2016-06",
-      "endDate": "2019-02",
+      "date": "2020-03",
+      "endDate": "2022-10",
       "company": {
         "en": "Meta",
         "zh": "Meta"
@@ -654,13 +553,246 @@
       },
       "tags": [
         "React",
-        "Open Source"
+        "Compiler",
+        "JavaScript Engine"
+      ]
+    },
+    {
+      "id": "meta-intern-xros",
+      "type": "role",
+      "tagId": "react-era",
+      "title": {
+        "en": "Software Engineer Intern, Meta (XROS)",
+        "zh": "Meta 实习 (XROS)"
+      },
+      "description": {
+        "en": "Internship at Reality Lab Research, working on XROS.",
+        "zh": "在 Reality Lab Research 实习，从事 XROS 相关工作。"
+      },
+      "date": "2019-05",
+      "endDate": "2019-08",
+      "company": {
+        "en": "Meta",
+        "zh": "Meta"
+      },
+      "roleTitle": {
+        "en": "Software Engineer Intern",
+        "zh": "软件工程实习生"
+      },
+      "tags": [
+        "XR",
+        "Research"
+      ]
+    },
+    {
+      "id": "meta-intern-reasonml",
+      "type": "role",
+      "tagId": "react-era",
+      "title": {
+        "en": "Software Engineer Intern, Meta (ReasonML)",
+        "zh": "Meta 实习 (ReasonML)"
+      },
+      "description": {
+        "en": "Internship on ReasonML/ReScript team, working on Messenger Web.",
+        "zh": "在 ReasonML/ReScript 团队实习，参与 Messenger Web 开发。"
+      },
+      "date": "2018-05",
+      "endDate": "2018-08",
+      "company": {
+        "en": "Meta",
+        "zh": "Meta"
+      },
+      "roleTitle": {
+        "en": "Software Engineer Intern",
+        "zh": "软件工程实习生"
+      },
+      "tags": [
+        "ReasonML",
+        "OCaml",
+        "Messenger"
+      ]
+    },
+    {
+      "id": "rit-ms",
+      "type": "role",
+      "tagId": "react-era",
+      "title": {
+        "en": "M.S. Computer Science, RIT",
+        "zh": "RIT 计算机科学硕士"
+      },
+      "description": {
+        "en": "Master's in Computer Science at Rochester Institute of Technology, focusing on programming languages under Prof. Matthew Fluet.",
+        "zh": "在罗切斯特理工学院攻读计算机科学硕士，师从 Matthew Fluet 教授，专注编程语言方向。"
+      },
+      "date": "2017-08",
+      "endDate": "2019-12",
+      "company": {
+        "en": "Rochester Institute of Technology",
+        "zh": "罗切斯特理工学院"
+      },
+      "roleTitle": {
+        "en": "M.S. Student",
+        "zh": "硕士研究生"
+      },
+      "tags": [
+        "PL",
+        "Compiler",
+        "Education"
+      ]
+    },
+    {
+      "id": "jsconf-china-2017",
+      "type": "talk",
+      "tagId": "pwa-era",
+      "title": {
+        "en": "Upgrading to Progressive Web Apps",
+        "zh": "渐进式 Web 应用升级指南"
+      },
+      "description": {
+        "en": "A practical guide to upgrading existing web applications to Progressive Web Apps.",
+        "zh": "将现有网页应用升级为渐进式 Web 应用的实用指南。"
+      },
+      "date": "2017-07",
+      "conference": {
+        "name": "JSConf China 2017",
+        "city": "Shanghai, China"
+      },
+      "tags": [
+        "PWA",
+        "Service Worker",
+        "JavaScript"
+      ]
+    },
+    {
+      "id": "eleme-pwa",
+      "type": "role",
+      "tagId": "pwa-era",
+      "title": {
+        "en": "PWA Consultant, Ele.me",
+        "zh": "饿了么 PWA 顾问"
+      },
+      "description": {
+        "en": "Consulted on building China's first influential Progressive Web App.",
+        "zh": "指导构建中国首个有影响力的 Progressive Web App。"
+      },
+      "date": "2017-02",
+      "endDate": "2017-05",
+      "company": {
+        "en": "Ele.me",
+        "zh": "饿了么"
+      },
+      "roleTitle": {
+        "en": "PWA Consultant",
+        "zh": "PWA 顾问"
+      },
+      "tags": [
+        "PWA",
+        "Mobile Web",
+        "Consulting"
+      ]
+    },
+    {
+      "id": "gdg-devfest-2016",
+      "type": "talk",
+      "tagId": "pwa-era",
+      "title": {
+        "en": "Service Worker 101",
+        "zh": "Service Worker 101"
+      },
+      "description": {
+        "en": "An introduction to Service Workers and their role in Progressive Web Apps.",
+        "zh": "Service Worker 入门以及它在 Progressive Web Apps 中的角色。"
+      },
+      "date": "2016-11",
+      "conference": {
+        "name": "GDG DevFest Beijing 2016",
+        "city": "Beijing, China"
+      },
+      "tags": [
+        "PWA",
+        "Service Worker"
+      ]
+    },
+    {
+      "id": "qcon-shanghai-2016",
+      "type": "talk",
+      "tagId": "pwa-era",
+      "title": {
+        "en": "Progressive Web App",
+        "zh": "Progressive Web App"
+      },
+      "description": {
+        "en": "Introducing Progressive Web Apps to the Chinese developer community.",
+        "zh": "向中国开发者社区介绍 Progressive Web Apps。"
+      },
+      "date": "2016-10",
+      "conference": {
+        "name": "QCon Shanghai 2016",
+        "city": "Shanghai, China"
+      },
+      "tags": [
+        "PWA",
+        "Mobile Web"
+      ]
+    },
+    {
+      "id": "wepiao-lead",
+      "type": "role",
+      "tagId": "pwa-era",
+      "title": {
+        "en": "Software Engineer → Tech Lead Manager, WePiao",
+        "zh": "微影时代 工程师 → 技术经理"
+      },
+      "description": {
+        "en": "Frontend engineer growing into tech lead manager at Beijing Weiying (WePiao).",
+        "zh": "在北京微影时代（微票儿）从前端工程师成长为技术经理。"
+      },
+      "date": "2015-05",
+      "endDate": "2016-06",
+      "company": {
+        "en": "Beijing Weiying (WePiao)",
+        "zh": "北京微影时代（微票儿）"
+      },
+      "roleTitle": {
+        "en": "Software Engineer → Tech Lead Manager",
+        "zh": "工程师 → 技术经理"
+      },
+      "tags": [
+        "Mobile Web",
+        "Leadership"
+      ]
+    },
+    {
+      "id": "alitrip-engineer",
+      "type": "role",
+      "tagId": "pwa-era",
+      "title": {
+        "en": "Front-End Engineer, Alibaba (Alitrip)",
+        "zh": "阿里巴巴（阿里旅行）前端工程师"
+      },
+      "description": {
+        "en": "Front-end engineer intern at Alibaba's Alitrip (now Fliggy) travel platform.",
+        "zh": "在阿里巴巴旅行事业部（阿里旅行，现飞猪）担任前端实习工程师。"
+      },
+      "date": "2014-08",
+      "endDate": "2015-05",
+      "company": {
+        "en": "Alibaba",
+        "zh": "阿里巴巴"
+      },
+      "roleTitle": {
+        "en": "Front-End Engineer",
+        "zh": "前端工程师"
+      },
+      "tags": [
+        "Web",
+        "Mobile"
       ]
     },
     {
       "id": "first-webapp",
       "type": "project",
-      "tagId": "early-days",
+      "tagId": "pwa-era",
       "title": {
         "en": "First Web App",
         "zh": "第一个网页应用"
@@ -682,6 +814,34 @@
         "en": "Everyone starts somewhere. This was my somewhere.",
         "zh": "每个人都有起点。这就是我的起点。"
       }
+    },
+    {
+      "id": "cuc-ba",
+      "type": "role",
+      "tagId": "pwa-era",
+      "title": {
+        "en": "B.A. Digital Media Art, CUC",
+        "zh": "中国传媒大学 数字媒体艺术学士"
+      },
+      "description": {
+        "en": "Bachelor's in Digital Media Art at Communication University of China.",
+        "zh": "在中国传媒大学攻读数字媒体艺术本科学位。"
+      },
+      "date": "2012-09",
+      "endDate": "2016-06",
+      "company": {
+        "en": "Communication University of China",
+        "zh": "中国传媒大学"
+      },
+      "roleTitle": {
+        "en": "B.A. Student",
+        "zh": "本科生"
+      },
+      "tags": [
+        "Digital Media",
+        "Art",
+        "Education"
+      ]
     }
   ]
 }
