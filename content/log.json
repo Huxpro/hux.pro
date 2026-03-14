@@ -228,6 +228,13 @@
         "name": "FEDAY 2023",
         "city": "Guangzhou, China"
       },
+      "media": [
+        {
+          "type": "video",
+          "url": "https://www.bilibili.com/video/BV1SC4y1c7ju/",
+          "platform": "bilibili"
+        }
+      ],
       "tags": [
         "Frontend",
         "Architecture",
@@ -314,7 +321,7 @@
         },
         {
           "type": "link",
-          "url": "https://github.com/nickhsine/nickhsine.github.io",
+          "url": "https://github.com/lynx-family/lynx",
           "label": "GitHub",
           "icon": "github"
         }
@@ -341,6 +348,14 @@
       },
       "date": "2022-12",
       "platform": "SegmentFault",
+      "media": [
+        {
+          "type": "link",
+          "url": "https://segmentfault.com/a/1190000043208486",
+          "label": "Article",
+          "icon": "globe"
+        }
+      ],
       "tags": [
         "Open Source",
         "Recognition"
@@ -363,6 +378,13 @@
         "name": "COSCon 2022",
         "city": "Online"
       },
+      "media": [
+        {
+          "type": "video",
+          "url": "https://www.bilibili.com/video/BV1LY411Q7hC/",
+          "platform": "bilibili"
+        }
+      ],
       "tags": [
         "React",
         "Open Source"
@@ -382,6 +404,14 @@
       },
       "date": "2022-08",
       "platform": "Gitee",
+      "media": [
+        {
+          "type": "link",
+          "url": "https://gitee.com/gitee-stars/30",
+          "label": "Profile",
+          "icon": "globe"
+        }
+      ],
       "tags": [
         "Open Source",
         "Recognition"
@@ -404,6 +434,13 @@
         "name": "React Conf 2021",
         "city": "Online"
       },
+      "media": [
+        {
+          "type": "video",
+          "url": "https://youtu.be/lGEMwh32soc",
+          "platform": "youtube"
+        }
+      ],
       "tags": [
         "React",
         "Patterns"
@@ -425,6 +462,14 @@
       "conference": {
         "name": "The React Native Show Podcast"
       },
+      "media": [
+        {
+          "type": "link",
+          "url": "https://www.callstack.com/podcast-react-native-show",
+          "label": "Podcast",
+          "icon": "globe"
+        }
+      ],
       "tags": [
         "Hermes",
         "React Native",
@@ -479,7 +524,13 @@
       "media": [
         {
           "type": "link",
-          "url": "https://github.com/nickhsine/nickhsine.github.io",
+          "url": "https://hermesengine.dev",
+          "label": "Website",
+          "icon": "globe"
+        },
+        {
+          "type": "link",
+          "url": "https://github.com/facebook/hermes",
           "label": "GitHub",
           "icon": "github"
         }
@@ -657,6 +708,19 @@
         "name": "JSConf China 2017",
         "city": "Shanghai, China"
       },
+      "media": [
+        {
+          "type": "video",
+          "url": "https://www.youtube.com/watch?v=RWzMF-1fjJ8",
+          "platform": "youtube"
+        },
+        {
+          "type": "link",
+          "url": "https://huangxuan.me/jsconfcn2017/",
+          "label": "Slides",
+          "icon": "slides"
+        }
+      ],
       "tags": [
         "PWA",
         "Service Worker",
@@ -685,6 +749,14 @@
         "en": "PWA Consultant",
         "zh": "PWA 顾问"
       },
+      "media": [
+        {
+          "type": "link",
+          "url": "https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509",
+          "label": "Medium",
+          "icon": "globe"
+        }
+      ],
       "tags": [
         "PWA",
         "Mobile Web",
@@ -708,6 +780,14 @@
         "name": "GDG DevFest Beijing 2016",
         "city": "Beijing, China"
       },
+      "media": [
+        {
+          "type": "link",
+          "url": "https://huangxuan.me/2016/11/20/sw-101-gdgdf/",
+          "label": "Slides",
+          "icon": "slides"
+        }
+      ],
       "tags": [
         "PWA",
         "Service Worker"
@@ -730,6 +810,14 @@
         "name": "QCon Shanghai 2016",
         "city": "Shanghai, China"
       },
+      "media": [
+        {
+          "type": "link",
+          "url": "https://huangxuan.me/2016/10/20/pwa-qcon2016/",
+          "label": "Slides",
+          "icon": "slides"
+        }
+      ],
       "tags": [
         "PWA",
         "Mobile Web"
