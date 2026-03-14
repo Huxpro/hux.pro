@@ -76,13 +76,30 @@ function clampToViewport(
   return { x: cx, y: cy };
 }
 
+/** Find the first descendant with non-zero dimensions (handles collapsed wrappers). */
+function findMeasurableElement(el: HTMLElement): HTMLElement {
+  const rect = el.getBoundingClientRect();
+  if (rect.width > 0 && rect.height > 0) return el;
+  for (const child of el.children) {
+    if (child instanceof HTMLElement) {
+      const found = findMeasurableElement(child);
+      if (found !== child || (found.getBoundingClientRect().width > 0 && found.getBoundingClientRect().height > 0)) {
+        return found;
+      }
+    }
+  }
+  return el;
+}
+
 function animateToClampedPosition(
   contentEl: HTMLElement,
   x: MotionValue<number>,
   y: MotionValue<number>,
   onClamped?: (pos: StoredPosition) => void
 ) {
-  const rect = contentEl.getBoundingClientRect();
+  const measurable = findMeasurableElement(contentEl);
+  const rect = measurable.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return; // nothing visible to clamp
   const clamped = clampToViewport(rect, x.get(), y.get());
   if (clamped.x !== x.get() || clamped.y !== y.get()) {
     animate(x, clamped.x, SPRING_CONFIG);
@@ -182,14 +199,19 @@ export function useDraggable(id: string) {
     document.documentElement.classList.remove("dragging");
     // Clamp to viewport bounds, then persist
     if (contentRef.current) {
-      const rect = contentRef.current.getBoundingClientRect();
-      const clamped = clampToViewport(rect, x.get(), y.get());
-      if (clamped.x !== x.get() || clamped.y !== y.get()) {
-        animate(x, clamped.x, SPRING_CONFIG);
-        animate(y, clamped.y, SPRING_CONFIG);
-      }
-      if (config.persist) {
-        savePosition(storageKey, clamped);
+      const measurable = findMeasurableElement(contentRef.current);
+      const rect = measurable.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        const clamped = clampToViewport(rect, x.get(), y.get());
+        if (clamped.x !== x.get() || clamped.y !== y.get()) {
+          animate(x, clamped.x, SPRING_CONFIG);
+          animate(y, clamped.y, SPRING_CONFIG);
+        }
+        if (config.persist) {
+          savePosition(storageKey, clamped);
+        }
+      } else if (config.persist) {
+        savePosition(storageKey, { x: x.get(), y: y.get() });
       }
     } else if (config.persist) {
       savePosition(storageKey, { x: x.get(), y: y.get() });
