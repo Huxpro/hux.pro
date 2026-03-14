@@ -1,7 +1,13 @@
 "use client";
 
 import { useDevtool } from "@/systems/devtool";
-import { motion, useDragControls, useMotionValue } from "framer-motion";
+import {
+  animate,
+  motion,
+  useDragControls,
+  useMotionValue,
+  type MotionValue,
+} from "framer-motion";
 import { useCallback, useEffect, useRef, type ComponentType } from "react";
 
 // =============================================================================
@@ -46,6 +52,47 @@ function clearPosition(key: string): void {
 }
 
 // =============================================================================
+// Viewport boundary clamping
+// =============================================================================
+
+const VIEWPORT_MARGIN = 40; // px of content that must remain visible
+
+const SPRING_CONFIG = { type: "spring" as const, stiffness: 500, damping: 30 };
+
+function clampToViewport(
+  rect: DOMRect,
+  currentX: number,
+  currentY: number
+): { x: number; y: number } {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  let cx = currentX;
+  let cy = currentY;
+  if (rect.left > vw - VIEWPORT_MARGIN)
+    cx -= rect.left - (vw - VIEWPORT_MARGIN);
+  if (rect.right < VIEWPORT_MARGIN) cx += VIEWPORT_MARGIN - rect.right;
+  if (rect.top > vh - VIEWPORT_MARGIN)
+    cy -= rect.top - (vh - VIEWPORT_MARGIN);
+  if (rect.bottom < VIEWPORT_MARGIN) cy += VIEWPORT_MARGIN - rect.bottom;
+  return { x: cx, y: cy };
+}
+
+function animateToClampedPosition(
+  contentEl: HTMLElement,
+  x: MotionValue<number>,
+  y: MotionValue<number>,
+  onClamped?: (pos: StoredPosition) => void
+) {
+  const rect = contentEl.getBoundingClientRect();
+  const clamped = clampToViewport(rect, x.get(), y.get());
+  if (clamped.x !== x.get() || clamped.y !== y.get()) {
+    animate(x, clamped.x, SPRING_CONFIG);
+    animate(y, clamped.y, SPRING_CONFIG);
+    onClamped?.(clamped);
+  }
+}
+
+// =============================================================================
 // useDraggable hook
 // =============================================================================
 
@@ -57,17 +104,25 @@ export function useDraggable(id: string) {
   const dragControls = useDragControls();
   const x = useMotionValue(0);
   const y = useMotionValue(0);
+  const contentRef = useRef<HTMLElement>(null);
   const isDraggingRef = useRef(false);
   const prevResetCounterRef = useRef(resetCounter);
   const storageKey = `hux_drag_${id}`;
 
-  // Restore persisted position
+  // Restore persisted position & validate bounds
   useEffect(() => {
     if (!config.draggable || !config.persist) return;
     const saved = loadPosition(storageKey);
     if (saved) {
       x.set(saved.x);
       y.set(saved.y);
+      // Validate after layout — screen size may have changed
+      requestAnimationFrame(() => {
+        if (!contentRef.current) return;
+        animateToClampedPosition(contentRef.current, x, y, (clamped) =>
+          savePosition(storageKey, clamped)
+        );
+      });
     }
   }, [config.draggable, config.persist, storageKey, x, y]);
 
@@ -99,6 +154,26 @@ export function useDraggable(id: string) {
     }
   }, [resetCounter, config.persist, x, y]);
 
+  // Re-clamp on window resize
+  useEffect(() => {
+    if (!config.draggable) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const handleResize = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (!contentRef.current) return;
+        animateToClampedPosition(contentRef.current, x, y, (clamped) => {
+          if (config.persist) savePosition(storageKey, clamped);
+        });
+      }, 150);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [config.draggable, config.persist, storageKey, x, y]);
+
   const onDragStart = useCallback(() => {
     isDraggingRef.current = true;
     document.documentElement.classList.add("dragging");
@@ -106,7 +181,18 @@ export function useDraggable(id: string) {
 
   const onDragEnd = useCallback(() => {
     document.documentElement.classList.remove("dragging");
-    if (config.persist) {
+    // Clamp to viewport bounds, then persist
+    if (contentRef.current) {
+      const rect = contentRef.current.getBoundingClientRect();
+      const clamped = clampToViewport(rect, x.get(), y.get());
+      if (clamped.x !== x.get() || clamped.y !== y.get()) {
+        animate(x, clamped.x, SPRING_CONFIG);
+        animate(y, clamped.y, SPRING_CONFIG);
+      }
+      if (config.persist) {
+        savePosition(storageKey, clamped);
+      }
+    } else if (config.persist) {
       savePosition(storageKey, { x: x.get(), y: y.get() });
     }
     // Defer so click handlers fired in the same tick still see isDragging=true
@@ -140,6 +226,7 @@ export function useDraggable(id: string) {
 
   return {
     isEnabled: config.draggable,
+    contentRef,
     dragControls,
     motionStyle: { x, y },
     onDragStart,
@@ -190,6 +277,7 @@ export function withDraggable<P extends object>(
         onDragEnd={drag.onDragEnd}
       >
         <div
+          ref={drag.contentRef as React.RefObject<HTMLDivElement>}
           style={{ pointerEvents: "auto", touchAction: "none" }}
           onPointerDown={(e) => drag.startDrag(e, config.dragFilter)}
           onClickCapture={drag.preventClickAfterDrag}
