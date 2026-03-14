@@ -55,7 +55,7 @@ function clearPosition(key: string): void {
 // Viewport boundary clamping
 // =============================================================================
 
-const VIEWPORT_MARGIN = 40; // px of content that must remain visible
+const EDGE_INSET = 8; // px inset from viewport edges
 
 const SPRING_CONFIG = { type: "spring" as const, stiffness: 500, damping: 30 };
 
@@ -68,12 +68,11 @@ function clampToViewport(
   const vh = window.innerHeight;
   let cx = currentX;
   let cy = currentY;
-  if (rect.left > vw - VIEWPORT_MARGIN)
-    cx -= rect.left - (vw - VIEWPORT_MARGIN);
-  if (rect.right < VIEWPORT_MARGIN) cx += VIEWPORT_MARGIN - rect.right;
-  if (rect.top > vh - VIEWPORT_MARGIN)
-    cy -= rect.top - (vh - VIEWPORT_MARGIN);
-  if (rect.bottom < VIEWPORT_MARGIN) cy += VIEWPORT_MARGIN - rect.bottom;
+  // Keep entire element inside viewport (with inset)
+  if (rect.top < EDGE_INSET) cy += EDGE_INSET - rect.top;
+  if (rect.bottom > vh - EDGE_INSET) cy -= rect.bottom - (vh - EDGE_INSET);
+  if (rect.left < EDGE_INSET) cx += EDGE_INSET - rect.left;
+  if (rect.right > vw - EDGE_INSET) cx -= rect.right - (vw - EDGE_INSET);
   return { x: cx, y: cy };
 }
 
