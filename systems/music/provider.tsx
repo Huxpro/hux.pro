@@ -133,6 +133,15 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
     setPlayerState("loading");
 
+    // Timeout: if onReady never fires, fall back to error state so the
+    // widget escapes the loading skeleton and shows actionable feedback.
+    const timeout = setTimeout(() => {
+      if (!destroyed && !playerRef.current) {
+        console.warn("[Music] YouTube player timed out — onReady never fired. origin:", window.location.origin);
+        setPlayerState("error");
+      }
+    }, 15_000);
+
     loadYouTubeAPI()
       .then((YTApi) => {
         if (destroyed) return;
@@ -154,6 +163,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           events: {
             onReady: () => {
               if (destroyed) return;
+              clearTimeout(timeout);
               // Cue the playlist without auto-playing
               setPlayerState("idle");
               setTrack(readTrack(player));
@@ -172,8 +182,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
                 pendingSkipRef.current = false;
               }
             },
-            onError: () => {
+            onError: (event) => {
               if (destroyed) return;
+              clearTimeout(timeout);
+              console.warn("[Music] YouTube player error, code:", event.data, "origin:", window.location.origin);
               setPlayerState("error");
             },
           },
@@ -181,12 +193,17 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
         playerRef.current = player;
       })
-      .catch(() => {
-        if (!destroyed) setPlayerState("error");
+      .catch((err) => {
+        clearTimeout(timeout);
+        if (!destroyed) {
+          console.warn("[Music] Failed to load YouTube IFrame API:", err);
+          setPlayerState("error");
+        }
       });
 
     return () => {
       destroyed = true;
+      clearTimeout(timeout);
       playerRef.current?.destroy();
       playerRef.current = null;
       initedRef.current = false;

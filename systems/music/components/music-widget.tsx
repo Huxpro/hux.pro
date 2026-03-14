@@ -164,9 +164,20 @@ export function MusicWidget() {
             </div>
           </div>
         ) : playerState === "error" ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground leading-relaxed">
-            <Music className="h-4 w-4 shrink-0" />
-            <span>{t(locale, "musicNotPlaying")}</span>
+          <div className="flex gap-3">
+            <div className="w-18 h-18 rounded-lg bg-muted/30 flex items-center justify-center shrink-0">
+              <Music className="h-6 w-6 text-muted-foreground/30" />
+            </div>
+            <div className="min-w-0 flex-1 flex flex-col justify-center gap-1">
+              <div className="text-xs font-mono text-muted-foreground">
+                {t(locale, "musicNotPlaying")}
+              </div>
+              {typeof window !== "undefined" && (
+                <div className="text-[10px] font-mono text-muted-foreground/50 truncate">
+                  {window.location.host}
+                </div>
+              )}
+            </div>
           </div>
         ) : isIdle && !isLoading ? (
           <div className="flex gap-3">
