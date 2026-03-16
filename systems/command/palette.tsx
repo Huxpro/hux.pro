@@ -395,6 +395,7 @@ export function CommandPalette() {
       />
 
       <motion.div
+        ref={drag.contentRef as React.RefObject<HTMLDivElement>}
         drag={drag.isEnabled ? true : undefined}
         dragControls={drag.dragControls}
         dragListener={false}

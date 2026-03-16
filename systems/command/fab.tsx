@@ -154,6 +154,7 @@ export function FloatingActionButton() {
       onDragEnd={drag.onDragEnd}
     >
       <div
+        ref={drag.contentRef as React.RefObject<HTMLDivElement>}
         style={{ pointerEvents: "auto", touchAction: "none" }}
         onPointerDown={(e) => drag.startDrag(e)}
         onClickCapture={drag.preventClickAfterDrag}
