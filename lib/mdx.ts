@@ -234,6 +234,7 @@ export function getBlogPostBySlug(slug: string): BlogPostWithContent | null {
     description: (data.description as string) || "",
     descriptionZh,
     tags: (data.tags as string[]) || (zhData.tags as string[]) || [],
+    origin: (data.origin as string) || (zhData.origin as string) || undefined,
     content,
     contentZh,
     readingTime: readingTimeEn || readingTimeZh || "",

@@ -82,6 +82,7 @@ export default async function BlogPostLangPage({
       language={post.language}
       readingTime={post.readingTime}
       readingTimeZh={post.readingTimeZh}
+      origin={post.origin}
     >
       <MDXRenderer source={content} />
     </BlogPostContent>

@@ -26,6 +26,7 @@ export interface Post extends LocalizedContent {
 export interface BlogPost extends Post {
   date: string; // YYYY-MM-DD
   tags?: string[];
+  origin?: string; // Markdown string describing where this was first published
 }
 
 // Docs don't have extra fields beyond Post

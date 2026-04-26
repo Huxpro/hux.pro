@@ -14,6 +14,7 @@ interface BlogPostContentProps {
   language: PostLanguage;
   readingTime?: string;
   readingTimeZh?: string;
+  origin?: string;
   children: ReactNode;
 }
 
@@ -32,6 +33,7 @@ export function BlogPostContent({
   language,
   readingTime,
   readingTimeZh,
+  origin,
   children,
 }: BlogPostContentProps) {
   const { recordVisit } = useVisitor();
@@ -59,6 +61,7 @@ export function BlogPostContent({
       backHref="/writing"
       backLabel="/writing"
       headerMeta={<time>{formatDate(date)}</time>}
+      origin={origin}
       onMount={handleMount}
     >
       {children}
