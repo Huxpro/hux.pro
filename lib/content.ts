@@ -26,11 +26,17 @@ export interface Post extends LocalizedContent {
 export interface BlogPost extends Post {
   date: string; // YYYY-MM-DD
   tags?: string[];
-  origin?: string; // Markdown string describing where this was first published
+  origin?: string; // Markdown string describing provenance (from en file or zh-only)
+  originZh?: string; // Chinese version's origin (from zh file)
 }
 
 // Docs don't have extra fields beyond Post
 export type Doc = Post;
+
+export interface Note extends Post {
+  date: string;
+  category: string; // e.g. "sf-lf", "sf-plf", "data-rep"
+}
 
 export interface Talk {
   title: string;

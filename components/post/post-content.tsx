@@ -23,6 +23,7 @@ interface PostContentProps {
 
   headerMeta?: ReactNode;
   origin?: string;
+  originZh?: string;
 
   onMount?: (slug: string, title: string) => void;
 }
@@ -74,6 +75,7 @@ export function PostContent({
   backLabel,
   headerMeta,
   origin,
+  originZh,
   onMount,
 }: PostContentProps) {
   const pathname = usePathname();
@@ -93,8 +95,10 @@ export function PostContent({
   const displayTitle = displayLocale === "zh" && titleZh ? titleZh : title;
   const displayReadingTime =
     displayLocale === "zh" && readingTimeZh ? readingTimeZh : readingTime;
+  const displayOrigin =
+    displayLocale === "zh" && originZh ? originZh : origin;
   const hasHeaderMetaContent =
-    !!headerMeta || !!displayReadingTime || hasAlternate || !!origin;
+    !!headerMeta || !!displayReadingTime || hasAlternate || !!displayOrigin;
   const headerMetaRow = (
     <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground flex-wrap">
       {headerMeta}
@@ -121,10 +125,10 @@ export function PostContent({
         </>
       )}
 
-      {origin && (
+      {displayOrigin && (
         <>
           <span className="text-muted-foreground/40">·</span>
-          <span>{renderMarkdownLinks(origin)}</span>
+          <span>{renderMarkdownLinks(displayOrigin)}</span>
         </>
       )}
     </div>
