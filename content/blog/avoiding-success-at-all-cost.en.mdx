@@ -5,44 +5,58 @@ date: "2018-09-27"
 tags: ["Haskell", "笔记", "En"]
 ---
 
-"Avoiding success at all cost" is the informal motto behinds [Haskell](https://www.haskell.org/). It could be parenthesized in two ways, either "Avoiding (success at all cost)" or "(Avoiding sucess) (at all cost)". 
+"Avoiding success at all cost" is the informal motto behind [Haskell](https://www.haskell.org/), coined by Simon Peyton Jones. In his 2017 talk *[Escape from the Ivory Tower](https://www.youtube.com/watch?v=re96UgMk6GQ)*, he puts up this slide with a knowing grin, and the audience laughs, because the ambiguity is the point.
 
-I'm not going to interpret them directly but rather to share some thoughts on "the success vs. costs" basing on my very own understanding and experience.
+It can be read two ways: "Avoiding (success at all cost)", don't pursue popularity if it means compromising on what matters. Or "(Avoiding success) at all cost", stay niche, deliberately, so the research stays free.
+
+The punchline is that both readings are true, and they reinforce each other. Haskell stayed pure *because* it stayed small, and it stayed small *because* it stayed pure. That feedback loop, that willingness to trade adoption for integrity, is what made Haskell, Haskell.
 
 ### The success vs. cost of language design
 
-There're always trade offs (or compromises) in any software design, and programming language design has no exceptions.
+There are always tradeoffs in any software design, and programming language design has no exception.
 
-In other words, all language design decision that made them "successful" i.e. being popular and widely-used in industry or education for some reasons, all comes with their own "costs": being unsafe, limited expressiveness, or having bad performance, etc.
+Every language design decision that made a language "successful" (popular and widely used in industry or education) comes with its own "cost": being unsafe, limited in expressiveness, or having poor performance.
 
-Whether or not the "cost" is a problem really depends on scenarios, or their goals. For instances, Python/JavaScript are both very expressive and beginner-friendly by being dynamically-typed, sacrifing the type safety and performance. Java, in constrast, uses a much safer and optimization-friendly type system but being much less expressive. Another typicial comparison would be memory management in programming languages, where languages that are "managed" (by either ARC or Gabage Collector) could be much easier and safer (in terms of memory) for most programmers but also considerred slower than languages that are "closer to the metal". 
+Whether the "cost" is actually a problem depends on the scenario and the goal. Python and JavaScript are both expressive and beginner-friendly by being dynamically typed, sacrificing type safety and performance. Java, in contrast, uses a much safer, optimization-friendly type system but is far less expressive. A similar tradeoff shows up in memory management: "managed" languages (whether by ARC or garbage collector) are easier and safer for most programmers, but are considered slower than languages "closer to the metal."
 
-None of these "costs", or "differences", really prevent them from being immortally popular.
+None of these costs really prevent a language from becoming immortally popular. Most languages find a sweet spot, accept the tradeoff, and move on.
 
-For Haskell, the story becomes quite different: being research-oriented means the goal of this language is to pursue some "ultimate" things: the "ultimate" simplicity of intermediate representation, the "ultimate" type system where safety and expressiveness can coexist, the "ultimate" compilation speed and runtime performance, the "ultimate" concise and elegant concrete syntax, the "ultimate"...I don't know. But it has to be some "ultimate" things that is very difficult, probably endless and impossible, to achieve. 
+**Haskell refused that deal.**
 
-This, as a result, made all language decisions in Haskell became very hard and slow, because **almost nothing can be scarified**. That's why Haskell insisted to be lazy to "guard" the purity regardless of some problems of being "call-by-need"; a decent IO mechanisms is missing in the first 4 yrs after the project's start until P Walder found _Monad_; and the _Type Class_, which is first proposed in P Walder's 1989 paper, spent yrs long to implement and popularize.
+Being research-oriented means the goal is to pursue some "ultimate" things: the ultimate simplicity of intermediate representation, a type system where safety and expressiveness coexist, the ultimate compilation speed and runtime performance, the ultimate concise and elegant syntax... It has to be something very difficult, probably endless and impossible, to fully achieve.
 
-As a side note though, it doesn't mean there is no compromise in Haskell at all. It's just as minimized as it could be during its progress. When one audience asking why we have Haskell and OCaml, which're quite similar in very high level, both survived, SPJ replies:
+This made every language decision in Haskell very hard and very slow, because **almost nothing can be sacrificed**. That's why Haskell insisted on laziness to "guard" purity regardless of the problems of call-by-need. That's why a decent IO mechanism was missing for the first four years after the project started, until Philip Wadler found *Monads*. That's why *Type Classes*, first proposed in Wadler's 1989 paper, took years to implement and popularize.
+
+It doesn't mean there is no compromise in Haskell at all. It's just minimized as much as possible. When an audience member asked why both Haskell and OCaml, which look quite similar at a high level, have survived, SPJ replied:
 
 > There's just a different set of compromises.
 
 ### The success vs. cost of language design process
 
-Another common but extremely controversial (if not the most) topics of programming language design is about its design process: Would you prefer dictatorship or a committee (in other words, a dictatorship of many?)? Would you prefer being proprietary or standardized? In which form would you write the standards, in human nature language, pseudo code, or formal semantics? How many and how frequently breaking changes dare you make? Would you let open source community involve in?  
+Another common but extremely controversial topic of programming language design is about its design process: Would you prefer dictatorship or a committee (in other words, a dictatorship of many)? Would you prefer being proprietary or standardized? In which form would you write the standards: natural language, pseudo code, or formal semantics? How many and how frequently breaking changes dare you make? Would you let the open source community get involved?
 
-Again, I think there is no THE answer for all those questions. Majority of popular programming languages came and are still on going with very different paths.
+I think there is no single answer for all those questions. The majority of popular programming languages came about, and are still going, on very different paths.
 
-Python, whose creater, Guido van Rossum, known as the "Benevolent Dictator For Life" (BDFL), i.e. good kind of dictator, still play the central role (until July 2018) of the Python's development after Python getting popular and adapt a open source and community-based development model. This factor direcly contribute to the fact that Python 3, as a breaking (not completely backward-compatible and not easy to port) but good (in terms of language design and consistency) revision of the language can still be landed, despite of many communities' pressures. There're many language (Ruby, Perl, Elm) also choose to follow this route.
+Python, whose creator Guido van Rossum is known as the "Benevolent Dictator For Life" (BDFL), still played the central role (until July 2018) in Python's development after the language got popular and adopted an open source, community-based development model. This directly contributed to the fact that Python 3, a breaking (not completely backward-compatible and not easy to port) but good (in terms of language design and consistency) revision, could still be landed despite significant community pressure. Many languages (Ruby, Perl, Elm) also chose to follow this route.
 
-JavaScript, widely known as being created by Brendan Eich in 10 days, in comparision, quickly involved into a committee (TC39) and standardized (ECMAScript) language due to both the open nature of the Web and fast adoption of itself. But Brendan, as the creater, wasn't even powerful enough to push the committee landing ES4, which is also a breaking but much better revision, but ended up with the ES5 (Harmony), a backward-compatible, yet much less ambitious version due to many political "fights" between different parties (e.g. Mozilla, Microsoft, Yahoo etc.) thus the history wasn't changed. Even the latest rising and yearly releasing of the "modern" JavaScript (ES6 or ES2015, 2016, 2017...) are mainly driven by the new generation of committee parties (+ Google, Facebook, Airbnb etc.) and still in a very open and standardized way.
+JavaScript, widely known as being created by Brendan Eich in 10 days, in comparison quickly evolved into a committee-governed (TC39) and standardized (ECMAScript) language due to both the open nature of the Web and its own rapid adoption. But Brendan, as the creator, wasn't even powerful enough to push the committee into landing ES4, which was also a breaking but much better revision. Instead we got ES5 (Harmony), a backward-compatible yet much less ambitious version, due to many political fights between different parties (Mozilla, Microsoft, Yahoo, etc.), and history wasn't changed. Even the recent rise and yearly release of "modern" JavaScript (ES6/ES2015, 2016, 2017...) is mainly driven by the new generation of committee parties (plus Google, Facebook, Airbnb, etc.) and still in a very open and standardized way.
 
-As you can see here, even the history and progress of two rather similar languages can be so different, not to mention more proprietary languages such as Java from Sun/Oracle, C# from Microsoft, OC/Swift from Apple (though the latter was open sourced) or more academia and standardized language like SML and Scheme which both has a standard written in formal semantics.
+Even the history and progress of two rather similar languages can be so different, not to mention more proprietary languages such as Java from Sun/Oracle, C# from Microsoft, OC/Swift from Apple (though the latter was open sourced), or more academic and standardized languages like SML and Scheme, which both have standards written in formal semantics.
 
-So it's not not obvious that Haskell, also chose its own unique process to suit its unique goal. Although it backs on academia, it chose a rather practical/less-formal approach to define the language, i.e. the compiler implementation over standardization (plus many "formal" fragments among papers though), which is more like C++/OCaml from this point of view. It has a committee, but instead of being very open and conservative, it's more dictatorial (in terms of average users) and super aggressive in terms of making breaking changes. As a result however, it trained a group of very change-tolerant people in its community...All of these quirks and odds combined works very well and avoid the Haskell "becoming too success too quickly".
+So it's not surprising that Haskell also chose its own unique process to suit its unique goal. Although it's rooted in academia, it chose a rather practical, less formal approach to define the language: the compiler implementation over standardization (plus many "formal" fragments among papers), which is more like C++/OCaml from this point of view. It has a committee, but instead of being very open and conservative, it's more dictatorial (from the perspective of average users) and super aggressive in terms of making breaking changes. As a result, it trained a group of very change-tolerant people in its community. All of these quirks combined work very well and help Haskell avoid "becoming too successful too quickly."
+
+### The irony
+
+Here's what makes the motto so delicious: Haskell "avoided success," but its ideas didn't. They just showed up wearing other people's clothes.
+
+Monads became Promises and async/await. Type classes became Rust's traits. Algebraic data types became TypeScript's discriminated unions. Pattern matching is now shipping in Python, C#, and Java. Immutability as a default went mainstream through React and Elm. Even the `Maybe`/`Option` type, Haskell's answer to null, is now in Swift, Rust, Kotlin, and arguably every modern language designed after 2010.
+
+Haskell didn't mass-adopt. It mass-*pollinated*. The ivory tower turned out to be a lighthouse.
+
+I see echoes of this in my own world. React was mocked when JSX was first shown at JSConf 2013. Hooks were dismissed as black magic. Concurrent Mode broke backwards compatibility in the name of correctness. These choices made React harder to adopt, but they were the right ones.
 
 ### End thoughts
 
-To be fair, Haskell has alreay been very "successful" nowdays, in particular academia (for education, sexy type laboratory etc.) but also industry, either being used in real business or being very reputable among programmers (as being both hard and fun).
+SPJ titled his talk "Escape from the Ivory Tower." But I think the real escape was never about Haskell becoming an industry language. It was about Haskell's ideas escaping, into languages, frameworks, and mental models used by millions of programmers who may never write a line of Haskell.
 
-I am not confident and qualified to say Haskell is success in the right degree at the right time. But it's great to see it, after more than 20 and now almost 30 yrs, slowly figure out its very own way, to "Escape from the Ivory Tower", and keep going beyond.
+That might be the most successful way to avoid success.

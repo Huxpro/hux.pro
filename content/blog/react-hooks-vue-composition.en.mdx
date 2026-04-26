@@ -1,0 +1,193 @@
+---
+title: "React Is Not Vue, Obviously"
+description: "Thinking in React vs. Thinking in Vue"
+date: "2020-04-03"
+tags: ["知乎", "Web", "React"]
+origin: "AI-translated from [Chinese](/writing/react-hooks-vue-composition/zh)"
+---
+
+***Obviously?***
+
+Someone on [Zhihu](https://www.zhihu.com/question/378861485/answer/1125724740) (a Chinese Q&A platform similar to Quora) asked:
+
+> React Hooks feel counter-intuitive — the component function re-runs every render, `useState` relies on a global linked list under the hood, `useEffect`'s semantics aren't straightforward, and you need `useCallback` just to persist a function. Vue 3's Composition API borrowed some ideas from Hooks, but its approach feels more natural: `setup` runs once, and you return a render function, using plain JS closures to persist component state across renders. **Can React adopt Vue's approach to improve its own Hooks?**
+
+Well. ***No.*** They represent very different mental models. Many people only notice the superficial similarity while underestimating the fundamental differences in the broader paradigms of these two frameworks. Let me explain.
+
+"Frameworks/libraries are abstractions over programming languages" doesn't mean a framework's design can't transcend the idioms and paradigms of its implementation language.
+
+Thanks to several very Lisp-like characteristics of JavaScript — first-class functions, dynamic typing, a degree of macro support (e.g. Babel) — the evolution of frontend frameworks in recent years has increasingly resembled programming language design: frameworks have become a combination of specific syntax (composed of DSLs and APIs), semantics (selectively inherited from JavaScript plus those added by APIs), a runtime that powers the whole system, and the mental model it all expresses.
+
+## Vue 3, "Reactive (Closure-based) OOP"
+
+Let's start with Vue (in this post, "Vue" mainly refers to Vue with the Composition API).
+
+```ts
+const Counter = {
+  setup(initialProps) {
+    const count = reactive({count: 0}) // or `ref(0)`
+    const inc = () => { count.value++ }
+    return {count, inc}
+  }
+  template: "..."
+}
+```
+
+The semantic model Vue chose for components is the **object**: Composition API's `setup` is called only once and returns an object that gets merged onto the `Counter` component. This object and all its members are persistent references — including the state `count` captured in the `inc` closure. Rendering is the materialization of the component's `template` field.
+
+The core semantic Vue adds is **(mutable-data-based) reactivity**: the state `count` is a reactive object, `inc` mutates state by directly modifying `count`, and the result of a state change is that all watchers' logic runs — including re-rendering and executing side effects (`watchEffect`) — all driven by this reactive semantic.
+
+Some people (like the original questioner) ask: if we change it to return a `render` function and **directly use closures to hold component variables**, can you still call this an "object" semantic?
+
+```ts
+return (props) => <a onClick={inc}>{count.value}</a>
+```
+
+_Yes._ Vue's implementation needs to maintain the referential identity of this function and its closure to satisfy the semantic of persistent state — this is the classic JavaScript pattern of using closures to simulate private object properties[\[1\]](#ref_1). ("A closure is a poor man's object, and an object is a poor man's closure.")
+
+To help you understand, if we had a hypothetical Vue language...
+
+```ts
+// hypothetical Vue lang
+component Counter (props) {    // constructor
+  @reactive count = 0          // field
+  inc() { count.value ++ }     // method
+  render() { return <a onClick={inc}>{count.value}</a> }
+}
+```
+
+Starting to feel like class-based OOP, right? Except Vue's objects are based on singletons (or closures) rather than classes (or prototypes), and the members have been enchanted with reactive magic! Here we've shown how to conceptually reduce Vue to an OOP mental model. It's worth noting, though, that Vue's overall system (considering state management, data flow control) has a lot of FP influence, and still differs significantly from traditional OOP (e.g. Java) [\[2\]](#ref_2)[\[3\]](#ref_3).
+
+The core of Vue's runtime is dependency tracking. First, it makes the reactive semantic relatively implicit for users — dependencies are automatically collected, greatly reducing cognitive overhead. Second, its very fine-grained tracking combined with Vue's highly static templates allows re-rendering to be automatically and precisely targeted.
+
+To sum up, Vue's mental model for components is **"a self-reactive object that owns data and behavior."** Thinking along these lines makes it easier to understand: "Why can Vue use mutable data structures?", "Why does Vue need `ref` to wrap value types?", and the advantages mentioned in the RFC when comparing to React Hooks — "Why Vue feels closer to everyday JavaScript" (this one's subjective), "Why Vue has less GC pressure", "Why Vue doesn't need manual dependency declarations", and so on.
+
+## React, "Purely (Semi-Monadic/Algebraic) FP"
+
+Now let's look at React (in this post, "React" mainly refers to React with the Hooks API).
+
+```ts
+function Counter(props) {
+  const [count, setCount] = React.useState(0);
+  const inc = () => setCount(count + 1)
+  return <a onClick={inc}>{count}</a>
+}
+```
+
+The semantic model React chose for components is the **function** — every render is a real invocation of the `Counter` function. Each time, `useState` executes and retrieves the current state into `count` from React, and each time a new `inc` function is created (thus its closure captures the new `count` value).
+
+The core semantic React adds is a side-effect-controlled **evaluation context** — in plain terms, the React runtime environment: the state `count` must be retrieved from the React context each time, `inc` updates state by telling `setCount` to update the context's content, and a state change causes the function to be called again, at which point it gets new state from the new context, performs re-rendering, and schedules context-controlled side effects (`useEffect`).
+
+To help you understand, if we had a hypothetical React language...
+
+```ts
+// hypothetical React lang Ⅰ
+component Counter = (props) =>      // function
+  @context.state(1) {                  // context provides `get_or` and `put`
+    count <- get_or(0)              // get from context (or use default value)
+    let inc = () => put(count + 1)  // callback can update the context
+    return <a onClick={inc}>{count}</a>
+  }
+```
+
+Starting to feel like Monad-based Haskell, right? Except React has made the API so that you don't need to understand any of these complex concepts at all[\[4\]](#ref_4). If you're not familiar with Monads — a core concept in pure FP — let's loosely[\[5\]](#ref_5) treat it as the "context" described above. The reason I'm dropping the M-bomb is that Monads are widely regarded as the gold standard for handling side effects in pure FP, which helps us show how React can be reduced to pure FP.
+
+Some people (like [@题叶](//www.zhihu.com/people/790dccce26904cdcd11b0fad3bac37b7)) wonder: "This doesn't look like the 'pure functions' I know — is this really 'purely functional programming'?" Well, if we desugar the syntax:
+
+```ts
+component Counter = (props) =>
+  context.state(1).get_or(0).then([count, put] => {  // `then` is monadic bind.
+    let inc = () => put(count + 1)
+    return <a onClock={inc}>{count}</a>
+  }).unwrap() // assuming it's safe.
+```
+
+Remind you of something? Promises — also called Monads — that provide an asynchronous context?
+
+Simplifying even further (to an excessive degree), you can imagine the most straightforward state-passing style (in fact, back in 2018 the React team considered a similar API[\[6\]](#ref_6), and this is one of Seb's theoretical foundations[\[7\]](#ref_7)):
+
+```ts
+component Counter = (props, stateMap) => {
+  let count = stateMap.get(1, or=0);
+  let inc = () => stateMap.set(1, count + 1); // functional update
+  return <a onClick={inc}>{count}</a>
+}
+```
+
+However, what React is closer to and actively pursuing[\[8\]](#ref_8) in both implementation and API design is a relatively newer pure FP concept — **Algebraic Effects**. Despite the intimidating name, it's actually less ceremonious than Monads when it comes to describing side effects, and easier to understand. Dan has a very accessible blog post for JS developers[\[9\]](#ref_9) (also available in Chinese[\[10\]](#ref_10)). For now, think of it as "a resumable `try-catch`."
+
+To help you understand, if we yet again had a hypothetical React language...
+
+```ts
+// hypothetical React lang Ⅱ
+component Counter = (props) => {
+  let count = perform getState(1),or=0); // 1. `perform` "throw" effects to the context
+                                                // 4. resume with the continuation to here
+  let inc = () => perform putState(1, s=count + 1);
+  return <a onClick={inc}>{count}</a>
+}
+
+// call site
+try <Counter /> handle  // 2.try-handle pattern match effects
+                        // 3. get state from the context and then resume
+| getState(key, or) => resume with context.state(key) ?? or
+| putState(key, s) => context.state(key)=s; resume with void
+```
+
+Getting a feel for it now? We "throw" state changes out of the component to modify the "evaluation context," and then "resume" back...
+
+Even though React has worked very hard to lower the barrier of its API, its increasingly pure functional thinking does come across as quite "heretical" to many programmers.
+
+So why do we need "purely functional programming"? Beyond the benefits you might already know — declarative style, clear data flow, local reasoning, easy composition — the academic theory behind it gives it extremely high theoretical ceilings and growth potential in compile-time static analysis/optimization and runtime-friendly high-concurrency/high-parallelism. (Recent PL theory research has been absolutely dominated by functional programming.)
+
+React's current runtime focus is on cooperative multitasking, bringing concurrency and scheduling as foundational capabilities. Many people have only heard of high concurrency in backend systems, but something like a multi-tasking OS — the "ultimate UI" — is itself a high-concurrency scenario that relies on techniques like time-slicing and re-prioritizing for process scheduling. React wants to bring these techniques to UI developers (think Suspense, Selective Hydration, the new Fabric architecture in React Native). The first step was rewriting the runtime with a Fiber architecture that doesn't depend on the native call stack; the second step was Hooks, solving the problem that the Class API couldn't enforce purity strongly enough. Impure components under React's concurrent mode are highly susceptible to data races.
+
+To sum up, React's mental model for components is **"a pure function whose side effects are managed by the context."** Thinking along these lines makes it easier to understand: "Why does React favor immutable data structures?", "Why does `useEffect` run cleanup by default to maintain idempotency?", "Why does React need `useRef` as a cross-render ref cell mechanism for mutable refs?", "Why is React's performance optimization based on FP-style memoization like `useMemo` and `Memo`?", "Why does React need `useMemo` and `useCallback` to maintain referential identity?", and "Why does React use dependency arrays for cache invalidation?"
+
+## Addendum
+
+As far back as late 2016, I felt the ultimate difference (or one of them) between React and Vue was "mutable" vs. "immutable."
+
+![](https://pica.zhimg.com/50/v2-22e50932c60262bf381456de3017b217_720w.jpg?source=1940ef5c)
+
+Seb wrote in a brain dump[\[11\]](#ref_11) after Hooks was released, responding to some skepticism:
+
+> It's interesting because there are really two approaches evolving. There's a **mutable + change tracking** approach and there's an **immutability + referential equality testing** approach. It's difficult to mix and match them when you build new features on top. So that's why React has been pushing a bit harder on immutability lately to be able to build on top of it. Both have various tradeoffs but others are doing good research in other areas, so we've decided to focus on this direction and see where it leads us.
+
+I won't translate the whole thing (it's already in English!), but the gist is about the two main diverging paths in the broader frontend community:
+
+* Mutable + change tracking. Including Vue, Angular.
+* Immutable + referential equality. Including React, Elm, (Flutter?)
+
+This divergence is actually the dual of my earlier focus on "the semantic chosen for components":
+
+* The former enhances traditional Imperative Programming (including OOP) with Reactivity.
+* The latter is traditional Functional Programming's flowering in the UI domain (Functional Reactive Programming?), except React implements it in a way that somewhat "transcends the JavaScript language."
+
+These two paths are fundamentally different at their core, which is probably why React and Vue seem to be drifting further apart in everyone's eyes.
+
+That said, looking more recently at Svelte, SwiftUI[\[12\]](#ref_12), and Jetpack Compose[\[13\]](#ref_13), I'm starting to see some convergence. Props are always transient inputs whether they're destroyed with the View or passed as function arguments. State must always be persistent, whether it lives on a component instance or externally. As for detecting updates — mutable state scenarios like `array.push` are always hard to track, so everyone finds their own way: React wants to do it automatically via reference equality, Vue 3 via Proxy, but really as long as you can produce the change set it's fine. Vue 2/Svelte/SwiftUI/Compose all have users give hints manually, and don't they work perfectly well? Once you can compute the change set and pass it to the view layer, the view layer just needs to update (rerender/rebuild/recomposite).
+
+## Addendum 2
+
+If you're heavily relying on Flux (Vuex/Redux, whatever), Vue/React might look more like a dumb/passive rendering layer, and the differences I described above become less prominent — because most of the state management has already been moved to an outer layer.
+
+However, when you consider scenarios that require component encapsulation (i.e., components having private state, being self-contained) and the fact that React Hooks / Vue Composition APIs are taking over more side effects (beyond state — things like IO), this divergence will only become more and more apparent.
+
+That's all.
+
+## References
+
+1.  JavaScript 模块化七日谈 - 黄玄的博客 Hux Blog [https://huangxuan.me/2015/07/09/js-module-7day/](https://huangxuan.me/2015/07/09/js-module-7day/)
+2.  如何理解尤雨溪在 2019 VueConf 上所讲的 UI 类框架很少使用面向对象的特性这件事？- 黄玄的回答 [https://www.zhihu.com/question/328958700/answer/714287394](https://www.zhihu.com/question/328958700/answer/714287394)
+3.  前端是否适合使用面向对象的方式编程？- 黄玄的回答 [https://www.zhihu.com/question/329005869/answer/739525268](https://www.zhihu.com/question/329005869/answer/739525268)
+4.  React Hooks的引入会对之后的React项目开发产生什么影响？- 黄玄的回答 [https://www.zhihu.com/question/302916879/answer/536846510](https://www.zhihu.com/question/302916879/answer/536846510)
+5.  React's context composition is maintained at runtime via a linked list based on call order, rather than expressed through parameterized polymorphic layering (e.g. Monad Transformers) — you can see that both are linear.
+6.  State-passing Style Hooks [https://mobile.twitter.com/acdlite/status/971598256454098944](https://mobile.twitter.com/acdlite/status/971598256454098944)
+7.  [https://github.com/reactjs/react-basic](https://github.com/reactjs/react-basic)
+8.  You can think of context or Hooks invocation as a stack unwinding + resume continuation. Likewise, considering row polymorphism is also linear.
+9.  Algebraic Effects for the Rest of Us [https://overreacted.io/algebraic-effects-for-the-rest-of-us/](https://overreacted.io/algebraic-effects-for-the-rest-of-us/)
+10.  通俗易懂的代数效应 [https://overreacted.io/zh-hans/algebraic-effects-for-the-rest-of-us/](https://overreacted.io/zh-hans/algebraic-effects-for-the-rest-of-us/)
+11.  Why React [https://gist.github.com/sebmarkbage/a5ef436427437a98408672108df01919](https://gist.github.com/sebmarkbage/a5ef436427437a98408672108df01919)
+12.  [https://swiftwithmajid.com/2019/06/12/understanding-property-wrappers-in-swiftui/](https://swiftwithmajid.com/2019/06/12/understanding-property-wrappers-in-swiftui/)
+13.  [https://developer.android.com/jetpack/compose/state#remember](https://developer.android.com/jetpack/compose/state#remember)

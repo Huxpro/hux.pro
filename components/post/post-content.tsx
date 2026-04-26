@@ -22,8 +22,45 @@ interface PostContentProps {
   backLabel: string;
 
   headerMeta?: ReactNode;
+  origin?: string;
+  originZh?: string;
 
   onMount?: (slug: string, title: string) => void;
+}
+
+/**
+ * Render a markdown string with inline links as JSX.
+ * Supports `[text](url)` syntax only.
+ */
+function renderMarkdownLinks(md: string): ReactNode {
+  const parts: ReactNode[] = [];
+  const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(md)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(md.slice(lastIndex, match.index));
+    }
+    parts.push(
+      <a
+        key={match.index}
+        href={match[2]}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline underline-offset-2 decoration-muted-foreground/30 hover:text-foreground hover:decoration-foreground/40 transition-colors"
+      >
+        {match[1]}
+      </a>
+    );
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < md.length) {
+    parts.push(md.slice(lastIndex));
+  }
+
+  return parts;
 }
 
 export function PostContent({
@@ -37,6 +74,8 @@ export function PostContent({
   backHref,
   backLabel,
   headerMeta,
+  origin,
+  originZh,
   onMount,
 }: PostContentProps) {
   const pathname = usePathname();
@@ -56,10 +95,12 @@ export function PostContent({
   const displayTitle = displayLocale === "zh" && titleZh ? titleZh : title;
   const displayReadingTime =
     displayLocale === "zh" && readingTimeZh ? readingTimeZh : readingTime;
+  const displayOrigin =
+    displayLocale === "zh" && originZh ? originZh : origin;
   const hasHeaderMetaContent =
-    !!headerMeta || !!displayReadingTime || hasAlternate;
+    !!headerMeta || !!displayReadingTime || hasAlternate || !!displayOrigin;
   const headerMetaRow = (
-    <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground whitespace-nowrap">
+    <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground flex-wrap">
       {headerMeta}
 
       {displayReadingTime && (
@@ -81,6 +122,13 @@ export function PostContent({
             <Languages className="h-3 w-3" />
             <span>{alternateLabel}</span>
           </button>
+        </>
+      )}
+
+      {displayOrigin && (
+        <>
+          <span className="text-muted-foreground/40">·</span>
+          <span>{renderMarkdownLinks(displayOrigin)}</span>
         </>
       )}
     </div>
