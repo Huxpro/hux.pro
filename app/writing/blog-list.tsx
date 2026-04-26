@@ -3,7 +3,8 @@
 import { PageLayout } from "@/components/ui/page-layout";
 import { LanguageFilter, PostList } from "@/components/post";
 import type { BlogPost } from "@/lib/content";
-import { useState } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useCallback } from "react";
 
 interface BlogPostListProps {
   posts: BlogPost[];
@@ -18,7 +19,27 @@ function formatDate(dateStr: string) {
 }
 
 export function BlogPostList({ posts }: BlogPostListProps) {
-  const [includeOther, setIncludeOther] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const includeOther = searchParams.get("lang") === "all";
+
+  const setIncludeOther = useCallback(
+    (value: boolean) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value) {
+        params.set("lang", "all");
+      } else {
+        params.delete("lang");
+      }
+      const query = params.toString();
+      router.push(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
+    },
+    [searchParams, router, pathname]
+  );
 
   return (
     <PageLayout
