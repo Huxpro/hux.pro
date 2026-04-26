@@ -18,7 +18,7 @@ import {
   WidgetTitle,
 } from "@/components/ui/widget";
 import logData from "@/content/log.json";
-import { getLocalizedTitle, getPostHref } from "@/lib/content";
+import { getLocalizedTitle, getPostHref, shouldShowPost } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
 import type {
   Commit as CommitData,
@@ -44,7 +44,9 @@ import { useState } from "react";
 
 function BlogStackWidget() {
   const { locale } = useLocale();
-  const recentPosts = blogPosts.slice(0, 3);
+  const recentPosts = blogPosts
+    .filter((post) => shouldShowPost(post, locale, false))
+    .slice(0, 3);
 
   return (
     <VStackWidget title={t(locale, "widgetBlog")} href="/writing">
