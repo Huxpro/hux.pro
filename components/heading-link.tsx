@@ -65,7 +65,7 @@ export function HeadingWithLink({
       id={id || undefined}
       {...props}
       className={cn(
-        "group cursor-pointer inline-flex items-center gap-2",
+        "group cursor-pointer flex items-center gap-2",
         props.className
       )}
       onClick={handleClick}
