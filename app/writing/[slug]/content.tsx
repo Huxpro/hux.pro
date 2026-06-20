@@ -41,13 +41,14 @@ export function BlogPostContent({
   const { recordVisit } = useVisitor();
   const hasRecordedVisit = useRef(false);
 
-  const handleMount = (slug: string, postTitle: string) => {
+  const handleMount = (slug: string, postTitle: string, href: string) => {
     if (!hasRecordedVisit.current) {
       hasRecordedVisit.current = true;
       recordVisit({
         slug,
         title: postTitle,
         type: "blog",
+        href,
       });
     }
   };
