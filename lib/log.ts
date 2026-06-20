@@ -134,11 +134,32 @@ interface BaseCommit {
    */
   listed?: boolean;
   /**
+   * The work's own language (intrinsic metadata, e.g. the language a talk
+   * was delivered in, an article was written in). When this differs from
+   * the viewer's locale, a small badge (EN / ZH) is rendered on the row.
+   * Omit when not meaningful.
+   */
+  language?: CommitLanguage;
+  /**
+   * Which locale's listings should include this commit (visibility filter).
+   * Defaults to "both" — independent of `language`, since you may want to
+   * feature a Chinese talk in the English view.
+   */
+  listedIn?: CommitLanguage;
+  /**
    * Attached media - rendered as video players, embeds, OG previews, etc.
    * Composable: any commit type can have any combination of media.
    */
   media?: Media[];
 }
+
+/**
+ * The language of a work or its visibility scope.
+ * - "en" / "zh": the work is in that language, or visibility is restricted
+ *   to that locale.
+ * - "both": bilingual, or visible in both locales.
+ */
+export type CommitLanguage = "en" | "zh" | "both";
 
 // -----------------------------------------------------------------------------
 // Project Commit
@@ -242,6 +263,12 @@ export interface Tag {
   endDate?: string; // YYYY-MM or undefined for present
   coverImage?: string;
   accentColor?: string;
+  /**
+   * Hide dates for this tag (tag header range and per-commit dates).
+   * Used for ancillary sections like Education where the location
+   * is shown in the date slot instead.
+   */
+  hideDate?: boolean;
 }
 
 // =============================================================================
@@ -486,6 +513,37 @@ export function isCommitListed(commit: Commit): boolean {
   return commit.listed !== false;
 }
 
+/**
+ * True when the commit's `listedIn` scope includes the given locale.
+ * Commits with no `listedIn` field default to "both" (visible in any locale).
+ */
+export function isCommitListedIn(commit: Commit, locale: Locale): boolean {
+  const scope = commit.listedIn ?? "both";
+  return scope === "both" || scope === locale;
+}
+
+/**
+ * Combines `listed` (global hide) and `listedIn` (per-locale scope).
+ * The single visibility predicate for index surfaces.
+ */
+export function isCommitVisibleIn(commit: Commit, locale: Locale): boolean {
+  return isCommitListed(commit) && isCommitListedIn(commit, locale);
+}
+
+/**
+ * The badge label to show for a commit whose intrinsic language differs
+ * from the viewer's locale. Returns null when no badge should appear:
+ * no language set, language is "both", or language matches locale.
+ */
+export function getCommitLanguageBadge(
+  commit: Commit,
+  locale: Locale,
+): "EN" | "ZH" | null {
+  const lang = commit.language;
+  if (!lang || lang === "both" || lang === locale) return null;
+  return lang === "en" ? "EN" : "ZH";
+}
+
 // =============================================================================
 // Timeline Data Derivation
 // =============================================================================
@@ -498,15 +556,22 @@ export interface TimelineData {
 /**
  * Build the timeline data structure from raw LogData.
  * Single source of truth for /works rendering and editor preview.
+ *
+ * When `locale` is provided, commits are filtered by per-locale visibility
+ * (`listedIn`). Omit the locale to include every listed commit (useful for
+ * the editor preview).
  */
-export function buildTimelineData(logData: LogData): TimelineData[] {
-  const listedCommits = logData.commits.filter(isCommitListed);
+export function buildTimelineData(
+  logData: LogData,
+  locale?: Locale,
+): TimelineData[] {
+  const visible = logData.commits.filter((c) =>
+    locale ? isCommitVisibleIn(c, locale) : isCommitListed(c),
+  );
   const sortedTags = sortTagsByDate(logData.tags);
   return sortedTags.map((tag) => ({
     tag,
-    commits: sortCommitsByDate(
-      listedCommits.filter((c) => c.tagId === tag.id)
-    ),
+    commits: sortCommitsByDate(visible.filter((c) => c.tagId === tag.id)),
   }));
 }
 
@@ -535,9 +600,16 @@ export function resolveGroupCommits(
   group: Group,
   commits: Commit[],
   now: Date = new Date(),
+  locale?: Locale,
 ): Commit[] {
   const includeUnlisted = group.includeUnlisted ?? false;
-  const base = includeUnlisted ? commits : commits.filter(isCommitListed);
+  const localeScoped = (c: Commit) =>
+    !locale || isCommitListedIn(c, locale);
+
+  const listedFilter = (c: Commit) =>
+    (includeUnlisted || isCommitListed(c)) && localeScoped(c);
+
+  const base = commits.filter(listedFilter);
 
   const items: Commit[] =
     "commitIds" in group && group.commitIds
@@ -547,7 +619,9 @@ export function resolveGroupCommits(
       : (() => {
           const q = group.query;
           const qIncludeUnlisted = q.includeUnlisted ?? false;
-          const pool = qIncludeUnlisted ? commits : base;
+          const pool = (
+            qIncludeUnlisted ? commits.filter(localeScoped) : base
+          );
 
           return pool
             .filter((c) => (q.type ? c.type === q.type : true))

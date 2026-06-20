@@ -17,6 +17,7 @@ import {
   localizeOptional,
   formatCommitDate,
   computeCommitHash,
+  getCommitLanguageBadge,
   isVideoMedia,
   isLinkMedia,
   isImageMedia,
@@ -42,6 +43,9 @@ export interface NormalizedCommit {
   title: string;
   description: string;
   date: string;
+
+  /** "EN" / "ZH" when the work's language differs from the viewer's locale. */
+  languageBadge: "EN" | "ZH" | null;
 
   // Type-derived metadata
   meta?: string;
@@ -152,6 +156,7 @@ export function normalizeCommit(
   const hash = computeCommitHash(commit.id);
   const tags = commit.tags ?? [];
   const thumbnail = deriveThumbnail(media);
+  const languageBadge = getCommitLanguageBadge(commit, locale);
 
   // Type-specific extraction
   switch (commit.type) {
@@ -160,6 +165,7 @@ export function normalizeCommit(
       return {
         hash,
         type: commit.type,
+        languageBadge,
         title,
         description,
         date,
@@ -188,6 +194,7 @@ export function normalizeCommit(
       return {
         hash,
         type: commit.type,
+        languageBadge,
         title,
         description,
         date,
@@ -215,6 +222,7 @@ export function normalizeCommit(
       return {
         hash,
         type: commit.type,
+        languageBadge,
         title,
         description,
         date,
@@ -245,11 +253,12 @@ export function normalizeCommit(
       return {
         hash,
         type: commit.type,
-        title: company,
+        languageBadge,
+        title: roleTitle,
         description,
         date,
         meta: commit.location,
-        subtitle: roleTitle,
+        subtitle: company,
         tags,
         commentary,
         links: roleLinks,
@@ -257,7 +266,7 @@ export function normalizeCommit(
         thumbnail: thumbnail
           ? { ...thumbnail, linkUrl: commit.url }
           : undefined,
-        secondaryLine: roleTitle,
+        secondaryLine: company,
       };
     }
 
@@ -278,6 +287,7 @@ export function normalizeCommit(
       return {
         hash,
         type: commit.type,
+        languageBadge,
         title,
         description,
         date,

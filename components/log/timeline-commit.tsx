@@ -30,6 +30,7 @@ interface TimelineCommitProps {
   cursorPreview?: ReactNode;
   defaultExpanded?: boolean;
   className?: string;
+  hideDate?: boolean;
 }
 
 export function TimelineCommit({
@@ -37,6 +38,7 @@ export function TimelineCommit({
   cursorPreview,
   defaultExpanded = false,
   className,
+  hideDate = false,
 }: TimelineCommitProps) {
   const Icon = commitIcons[data.type];
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -81,6 +83,18 @@ export function TimelineCommit({
       <div className="flex items-center gap-2 min-w-0">
         <span className="text-sm text-foreground min-w-0 flex-1">
           {data.title}
+          {data.languageBadge && (
+            <span
+              className="ml-1.5 inline-flex items-center align-[2px] font-mono text-[10px] leading-none text-muted-foreground/60 border border-border/60 rounded-sm px-1 py-0.5"
+              title={
+                data.languageBadge === "EN"
+                  ? "In English"
+                  : "In Chinese"
+              }
+            >
+              {data.languageBadge}
+            </span>
+          )}
         </span>
 
         <div
@@ -108,12 +122,20 @@ export function TimelineCommit({
           ))}
         </div>
 
-        <span className="font-mono text-xs text-muted-foreground/50 shrink-0 ml-auto">
-          {data.date}
-        </span>
+        {hideDate ? (
+          data.meta && (
+            <span className="font-mono text-xs text-muted-foreground/50 shrink-0 ml-auto">
+              {data.meta}
+            </span>
+          )
+        ) : (
+          <span className="font-mono text-xs text-muted-foreground/50 shrink-0 ml-auto">
+            {data.date}
+          </span>
+        )}
       </div>
 
-      {data.meta && (
+      {!hideDate && data.meta && (
         <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-muted-foreground/40">
           {data.meta}
         </div>

@@ -72,6 +72,20 @@
       "startDate": "2012-09",
       "endDate": "2017-07",
       "accentColor": "oklch(0.6 0.1 300)"
+    },
+    {
+      "id": "education",
+      "title": {
+        "en": "Education",
+        "zh": "教育"
+      },
+      "tagline": {
+        "en": "Schools and degrees",
+        "zh": "求学经历"
+      },
+      "startDate": "2012-01",
+      "endDate": "2019-12",
+      "hideDate": true
     }
   ],
   "groups": [
@@ -209,7 +223,8 @@
         "Architecture",
         "Scale",
         "Performance"
-      ]
+      ],
+      "language": "zh"
     },
     {
       "id": "feday-2023",
@@ -239,7 +254,8 @@
         "Frontend",
         "Architecture",
         "Opinion"
-      ]
+      ],
+      "language": "zh"
     },
     {
       "id": "x-thread-lynx-perf",
@@ -388,7 +404,8 @@
       "tags": [
         "React",
         "Open Source"
-      ]
+      ],
+      "language": "zh"
     },
     {
       "id": "gitee-cover-2022",
@@ -444,7 +461,8 @@
       "tags": [
         "React",
         "Patterns"
-      ]
+      ],
+      "language": "en"
     },
     {
       "id": "rnshow-hermes-2021",
@@ -474,7 +492,8 @@
         "Hermes",
         "React Native",
         "iOS"
-      ]
+      ],
+      "language": "en"
     },
     {
       "id": "react-forget",
@@ -666,7 +685,7 @@
     {
       "id": "rit-ms",
       "type": "role",
-      "tagId": "react-era",
+      "tagId": "education",
       "title": {
         "en": "M.S. Computer Science, RIT",
         "zh": "RIT 计算机科学硕士"
@@ -682,14 +701,15 @@
         "zh": "罗切斯特理工学院"
       },
       "roleTitle": {
-        "en": "M.S. Student",
-        "zh": "硕士研究生"
+        "en": "M.S. Computer Science",
+        "zh": "计算机科学 硕士"
       },
       "tags": [
         "PL",
         "Compiler",
         "Education"
-      ]
+      ],
+      "location": "NY, USA"
     },
     {
       "id": "jsconf-china-2017",
@@ -725,7 +745,8 @@
         "PWA",
         "Service Worker",
         "JavaScript"
-      ]
+      ],
+      "language": "zh"
     },
     {
       "id": "eleme-pwa",
@@ -791,7 +812,8 @@
       "tags": [
         "PWA",
         "Service Worker"
-      ]
+      ],
+      "language": "zh"
     },
     {
       "id": "qcon-shanghai-2016",
@@ -821,19 +843,20 @@
       "tags": [
         "PWA",
         "Mobile Web"
-      ]
+      ],
+      "language": "zh"
     },
     {
       "id": "wepiao-lead",
       "type": "role",
       "tagId": "pwa-era",
       "title": {
-        "en": "Software Engineer → Tech Lead Manager, WePiao",
-        "zh": "微影时代 工程师 → 技术经理"
+        "en": "Tech Lead Manager, Web Infra, WePiao",
+        "zh": "微影时代 Web 基础架构 技术经理"
       },
       "description": {
-        "en": "Frontend engineer growing into tech lead manager at Beijing Weiying (WePiao).",
-        "zh": "在北京微影时代（微票儿）从前端工程师成长为技术经理。"
+        "en": "Founding engineer of the award-winning app Yupiaoer. Founded the Web Infra team. Led the company-wide tech stack migration to React.",
+        "zh": "获奖产品「娱票儿」创始工程师。组建 Web 基础架构团队。主导全公司技术栈向 React 的迁移。"
       },
       "date": "2015-05",
       "endDate": "2016-06",
@@ -842,11 +865,14 @@
         "zh": "北京微影时代（微票儿）"
       },
       "roleTitle": {
-        "en": "Software Engineer → Tech Lead Manager",
-        "zh": "工程师 → 技术经理"
+        "en": "Tech Lead Manager, Web Infra",
+        "zh": "Web 基础架构 技术经理"
       },
       "tags": [
-        "Mobile Web",
+        "Web",
+        "Mobile",
+        "React",
+        "React Native",
         "Leadership"
       ]
     },
@@ -857,10 +883,6 @@
       "title": {
         "en": "Front-End Engineer, Alibaba (Alitrip)",
         "zh": "阿里巴巴（阿里旅行）前端工程师"
-      },
-      "description": {
-        "en": "Front-end engineer intern at Alibaba's Alitrip (now Fliggy) travel platform.",
-        "zh": "在阿里巴巴旅行事业部（阿里旅行，现飞猪）担任前端实习工程师。"
       },
       "date": "2014-08",
       "endDate": "2015-05",
@@ -875,38 +897,16 @@
       "tags": [
         "Web",
         "Mobile"
-      ]
-    },
-    {
-      "id": "first-webapp",
-      "type": "project",
-      "tagId": "pwa-era",
-      "title": {
-        "en": "First Web App",
-        "zh": "第一个网页应用"
-      },
-      "description": {
-        "en": "The project that started it all — a simple but meaningful beginning.",
-        "zh": "一切开始的地方 —— 简单但意义重大的开始。"
-      },
-      "date": "2013-05",
-      "tags": [
-        "Web",
-        "JavaScript",
-        "Learning",
-        "HTML",
-        "CSS"
       ],
-      "media": [],
-      "commentary": {
-        "en": "Everyone starts somewhere. This was my somewhere.",
-        "zh": "每个人都有起点。这就是我的起点。"
+      "description": {
+        "en": "",
+        "zh": ""
       }
     },
     {
       "id": "cuc-ba",
       "type": "role",
-      "tagId": "pwa-era",
+      "tagId": "education",
       "title": {
         "en": "B.A. Digital Media Art, CUC",
         "zh": "中国传媒大学 数字媒体艺术学士"
@@ -922,14 +922,15 @@
         "zh": "中国传媒大学"
       },
       "roleTitle": {
-        "en": "B.A. Student",
-        "zh": "本科生"
+        "en": "B.A. Digital Media Arts",
+        "zh": "数字媒体艺术 学士"
       },
       "tags": [
         "Digital Media",
         "Art",
         "Education"
-      ]
+      ],
+      "location": "Beijing, China"
     }
   ]
 }

@@ -30,6 +30,7 @@ export interface CommitProps {
   variant?: CommitVariant;
   defaultExpanded?: boolean;
   className?: string;
+  hideDate?: boolean;
 }
 
 // =============================================================================
@@ -42,6 +43,7 @@ export function Commit({
   variant = "card",
   defaultExpanded = false,
   className,
+  hideDate = false,
 }: CommitProps) {
   // Runtime guard: MDX/JSON inputs can bypass static typing.
   if (
@@ -66,6 +68,7 @@ export function Commit({
           cursorPreview={cursorPreview}
           defaultExpanded={defaultExpanded}
           className={className}
+          hideDate={hideDate}
         />
       );
 
@@ -78,7 +81,11 @@ export function Commit({
             className,
           )}
         >
-          <TimelineCommit data={data} defaultExpanded={defaultExpanded} />
+          <TimelineCommit
+            data={data}
+            defaultExpanded={defaultExpanded}
+            hideDate={hideDate}
+          />
         </div>
       );
 

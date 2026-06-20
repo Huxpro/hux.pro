@@ -29,6 +29,7 @@ import type {
 } from "@/lib/log";
 import {
   isCommitListed,
+  isCommitVisibleIn,
   isRoleCommit,
   localize,
   resolveGroupCommits,
@@ -84,7 +85,10 @@ function getCurrentRoleCommit(commits: CommitData[]): RoleCommit | null {
 
 function ProcessingWidget() {
   const { locale } = useLocale();
-  const role = getCurrentRoleCommit(log.commits as CommitData[]);
+  const visible = (log.commits as CommitData[]).filter((c) =>
+    isCommitVisibleIn(c, locale),
+  );
+  const role = getCurrentRoleCommit(visible);
   if (!role) return null;
 
   return (
@@ -106,7 +110,12 @@ function ProcessingWidget() {
 function GroupWidget({ group }: { group: Group }) {
   const { locale } = useLocale();
 
-  const commits = resolveGroupCommits(group, log.commits as CommitData[]);
+  const commits = resolveGroupCommits(
+    group,
+    log.commits as CommitData[],
+    undefined,
+    locale,
+  );
   if (commits.length === 0) return null;
 
   const title = localize(group.title, locale);

@@ -39,9 +39,11 @@ export function LogTimeline({ data, locale }: LogTimelineProps) {
                 ? "HEAD"
                 : getLocalizedTagTitle(tag, locale).toUpperCase()}
             </span>
-            <span className="font-mono text-xs text-muted-foreground/50">
-              {formatTagDateRange(tag, locale)}
-            </span>
+            {!tag.hideDate && (
+              <span className="font-mono text-xs text-muted-foreground/50">
+                {formatTagDateRange(tag, locale)}
+              </span>
+            )}
           </div>
 
           {/* Commits */}
@@ -52,6 +54,7 @@ export function LogTimeline({ data, locale }: LogTimelineProps) {
                 commit={commit}
                 locale={locale}
                 variant="timeline"
+                hideDate={tag.hideDate}
               />
             ))}
           </div>

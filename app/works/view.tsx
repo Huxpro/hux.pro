@@ -1,20 +1,22 @@
 "use client";
 
+import { useMemo } from "react";
 import { PageLayout } from "@/components/ui/page-layout";
 import { LogTimeline } from "@/components/log/log-timeline";
 import { t, useLocale } from "@/services";
 import { GitBranch } from "lucide-react";
-import type { Tag, Commit } from "@/lib/log";
+import { buildTimelineData, type LogData } from "@/lib/log";
 
 interface WorksViewProps {
-  data: {
-    tag: Tag;
-    commits: Commit[];
-  }[];
+  logData: LogData;
 }
 
-export function WorksView({ data }: WorksViewProps) {
+export function WorksView({ logData }: WorksViewProps) {
   const { locale } = useLocale();
+  const data = useMemo(
+    () => buildTimelineData(logData, locale),
+    [logData, locale],
+  );
 
   return (
     <PageLayout

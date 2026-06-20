@@ -43,7 +43,17 @@ export function CommitCompact({ data, className }: CommitCompactProps) {
       )}
 
       <div className="space-y-1 min-w-0">
-        <div className="text-sm text-foreground truncate">{data.title}</div>
+        <div className="text-sm text-foreground truncate">
+          {data.title}
+          {data.languageBadge && (
+            <span
+              className="ml-1.5 inline-flex items-center align-[2px] font-mono text-[10px] leading-none text-muted-foreground/60 border border-border/60 rounded-sm px-1 py-0.5"
+              title={data.languageBadge === "EN" ? "In English" : "In Chinese"}
+            >
+              {data.languageBadge}
+            </span>
+          )}
+        </div>
         {data.secondaryLine && data.secondaryLine !== data.description && (
           <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide truncate">
             {data.secondaryLine}
