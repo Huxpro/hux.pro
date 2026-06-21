@@ -31,6 +31,8 @@ export interface CommitProps {
   defaultExpanded?: boolean;
   className?: string;
   hideDate?: boolean;
+  /** Pre-computed git-graph rail char for the timeline gutter. */
+  rail?: string;
 }
 
 // =============================================================================
@@ -44,6 +46,7 @@ export function Commit({
   defaultExpanded = false,
   className,
   hideDate = false,
+  rail,
 }: CommitProps) {
   // Runtime guard: MDX/JSON inputs can bypass static typing.
   if (
@@ -69,6 +72,7 @@ export function Commit({
           defaultExpanded={defaultExpanded}
           className={className}
           hideDate={hideDate}
+          rail={rail}
         />
       );
 

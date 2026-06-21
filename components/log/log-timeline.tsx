@@ -3,6 +3,7 @@
 import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
+  computeRailChars,
   formatTagDateRange,
   getLocalizedTagTitle,
   type Tag,
@@ -48,15 +49,19 @@ export function LogTimeline({ data, locale }: LogTimelineProps) {
 
           {/* Commits */}
           <div className="space-y-0">
-            {commits.map((commit) => (
-              <Commit
-                key={commit.id}
-                commit={commit}
-                locale={locale}
-                variant="timeline"
-                hideDate={tag.hideDate}
-              />
-            ))}
+            {(() => {
+              const rails = computeRailChars(commits);
+              return commits.map((commit, i) => (
+                <Commit
+                  key={commit.id}
+                  commit={commit}
+                  locale={locale}
+                  variant="timeline"
+                  hideDate={tag.hideDate}
+                  rail={rails[i]}
+                />
+              ));
+            })()}
           </div>
         </div>
       ))}

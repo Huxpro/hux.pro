@@ -31,6 +31,8 @@ interface TimelineCommitProps {
   defaultExpanded?: boolean;
   className?: string;
   hideDate?: boolean;
+  /** Git-graph rail char to draw in the gutter (`┌`, `│`, `●` or empty). */
+  rail?: string;
 }
 
 export function TimelineCommit({
@@ -39,6 +41,7 @@ export function TimelineCommit({
   defaultExpanded = false,
   className,
   hideDate = false,
+  rail,
 }: TimelineCommitProps) {
   const Icon = commitIcons[data.type];
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -71,9 +74,16 @@ export function TimelineCommit({
   );
 
   const rowContent = (
-    <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+    <div className="grid grid-cols-[auto_auto_1fr] @sm:grid-cols-[auto_auto_auto_1fr] gap-x-2 items-start">
       <span className="hidden @sm:inline font-mono text-xs text-muted-foreground/40 select-all leading-5">
         {data.hash}
+      </span>
+
+      <span
+        aria-hidden
+        className="inline-block w-[1ch] font-mono text-xs text-muted-foreground/30 leading-5 text-center"
+      >
+        {rail ?? ""}
       </span>
 
       <span className="inline-flex items-center h-5">
@@ -129,13 +139,13 @@ export function TimelineCommit({
       </div>
 
       {data.meta && (
-        <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-muted-foreground/40">
+        <div className="col-start-3 @sm:col-start-4 mt-1 text-xs font-mono text-muted-foreground/40">
           {data.meta}
         </div>
       )}
 
       {isExpanded && (
-        <div className="col-start-2 @sm:col-start-3 mt-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="col-start-3 @sm:col-start-4 mt-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
           {data.subtitle && (
             <div className="text-xs text-muted-foreground/60">
               {data.subtitle}
