@@ -123,9 +123,9 @@ export function TimelineCommit({
         </div>
 
         {hideDate ? (
-          data.meta && (
+          data.dateSlotOverride && (
             <span className="font-mono text-xs text-muted-foreground/50 shrink-0 ml-auto">
-              {data.meta}
+              {data.dateSlotOverride}
             </span>
           )
         ) : (
@@ -135,7 +135,7 @@ export function TimelineCommit({
         )}
       </div>
 
-      {!hideDate && data.meta && (
+      {data.meta && (
         <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-muted-foreground/40">
           {data.meta}
         </div>

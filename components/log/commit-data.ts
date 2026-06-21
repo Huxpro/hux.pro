@@ -51,6 +51,13 @@ export interface NormalizedCommit {
   meta?: string;
   subtitle?: string;
 
+  /**
+   * Optional label that replaces the date slot when the parent tag has
+   * `hideDate: true`. For role commits this is the location (e.g. city);
+   * other commit types leave it undefined.
+   */
+  dateSlotOverride?: string;
+
   // Expandable content
   commentary?: string;
   tags: string[];
@@ -257,8 +264,11 @@ export function normalizeCommit(
         title: roleTitle,
         description,
         date,
-        meta: commit.location,
-        subtitle: company,
+        // Company sits beneath the title (parallels talk's conference name).
+        // When tag.hideDate moves `location` into the date slot, the meta
+        // line stays as the institution.
+        meta: company,
+        dateSlotOverride: commit.location,
         tags,
         commentary,
         links: roleLinks,
