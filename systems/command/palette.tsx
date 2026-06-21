@@ -11,6 +11,7 @@ import { Command } from "cmdk";
 import {
   Bug,
   FileText,
+  FlaskConical,
   GitCommit,
   Hash,
   Home,
@@ -139,6 +140,13 @@ export function CommandPalette() {
       label: t(locale, "worksTitle"),
       icon: <GitCommit className="h-4 w-4" />,
       onSelect: () => handleNavigation("/works"),
+      section: "navigation",
+    },
+    {
+      key: "l",
+      label: t(locale, "labTitle"),
+      icon: <FlaskConical className="h-4 w-4" />,
+      onSelect: () => handleNavigation("/lab"),
       section: "navigation",
     },
     {
@@ -276,6 +284,9 @@ export function CommandPalette() {
           return;
         case "x":
           handleNavigation("/works");
+          return;
+        case "l":
+          handleNavigation("/lab");
           return;
         case "p":
           handleNavigation("/prompt");
@@ -609,6 +620,34 @@ export function CommandPalette() {
                     <span className="flex-1">{t(locale, "worksTitle")}</span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       X
+                    </kbd>
+                  </Command.Item>
+                  <Command.Item
+                    value="lab"
+                    keywords={[
+                      "lab",
+                      "demos",
+                      "prototypes",
+                      "experiments",
+                      "interactive",
+                      "playground",
+                      "实验",
+                      "原型",
+                      "交互",
+                      "demo",
+                    ]}
+                    onSelect={() => handleNavigation("/lab")}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                      "text-sm cursor-pointer transition-colors",
+                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                      "hover:bg-accent/25"
+                    )}
+                  >
+                    <FlaskConical className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1">{t(locale, "labTitle")}</span>
+                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                      L
                     </kbd>
                   </Command.Item>
                   <Command.Item

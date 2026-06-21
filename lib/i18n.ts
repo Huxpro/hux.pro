@@ -26,6 +26,7 @@ export const scrambleCharacterSets = {
     writing: "文字写作博客言之有物",
     works: "工作作品集术业有专攻",
     prompts: "系统提示词闻道有先后",
+    lab: "实验原型作格物而致知",
     // Default fallback for other pages
     default:
       "的一是了不人有我他这个们中来上大为和国地到以说时要就出会可也你对生能而子",
@@ -124,6 +125,12 @@ export const translations = {
     allLanguages: "All",
     backToWriting: "back to writing",
     alsoIn: "Also in",
+
+    // Lab/Prototypes (interactive demos & experiments)
+    labTitle: "Lab",
+    labTitleHover: "Prototypes",
+    labSubtitle: "Interactive experiments, demos, and things made for the web.",
+    labExternal: "external",
 
     // Talks/Productions
     talksTitle: "Productions",
@@ -336,6 +343,12 @@ export const translations = {
     logWatch: "观看",
     logSlides: "幻灯片",
 
+    // Lab/Prototypes (interactive demos & experiments)
+    labTitle: "实验",
+    labTitleHover: "格物而致知",
+    labSubtitle: "可在网页上把玩的交互实验、小样与原型。",
+    labExternal: "外链",
+
     // Prompts page
     promptsTitle: "系统提示词",
     promptsTitleHover: "闻道有先后",
@@ -359,7 +372,7 @@ export function t(locale: Locale, key: TranslationKey): string {
 // =============================================================================
 
 /** Page identifiers that have title + hover translations */
-export type ScramblePage = "writing" | "works" | "prompts";
+export type ScramblePage = "writing" | "works" | "prompts" | "lab";
 
 /** Get the appropriate Chinese character set for a page */
 export function getScrambleCharacterSet(

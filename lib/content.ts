@@ -40,6 +40,22 @@ export interface BlogPost extends Post {
 // Docs don't have extra fields beyond Post
 export type Doc = Post;
 
+// How a lab item is experienced:
+// - "inline":   a live React component rendered in the on-page canvas
+// - "embed":    an external page embedded via sandboxed <iframe> (href)
+// - "external": no detail page; the list row links straight out (href)
+export type LabType = "inline" | "embed" | "external";
+
+export interface LabItem extends Post {
+  date: string; // YYYY-MM
+  type: LabType;
+  href?: string; // iframe src (embed) or outbound URL (external)
+  credit?: string; // attribution, e.g. "after Josh Puckett"
+  creditZh?: string;
+  thumbnail?: string; // preview image path for hover/cards
+  tags?: string[];
+}
+
 export interface Note extends Post {
   date: string;
   category: string; // e.g. "sf-lf", "sf-plf", "data-rep"

@@ -1,0 +1,17 @@
+---
+title: "Spotlight"
+description: "A soft radial light that tracks the cursor — a study in pointer-driven gradients."
+date: "2026-06"
+type: "inline"
+tags: ["interaction", "css"]
+---
+
+A tiny study in making a surface feel **alive** under the cursor. The light is
+nothing but a `radial-gradient` whose center is bound to normalized pointer
+coordinates — no canvas, no WebGL, just one div re-rendering on `pointermove`.
+
+The interesting part isn't the gradient; it's the restraint. The glow only
+reaches full intensity while the pointer is inside, and fades back when it
+leaves, so the card reads as *responsive* rather than *busy*.
+
+Move your cursor across the canvas above to feel it.
