@@ -84,6 +84,8 @@ export const translations = {
     settingsMusic: "Music",
     musicPlay: "Play",
     musicPause: "Pause",
+    musicOpenControls: "Open music controls",
+    musicCollapse: "Collapse",
     widgetViewAll: "view all",
 
     // Ambient (location / weather)
@@ -229,6 +231,8 @@ export const translations = {
     settingsMusic: "音乐",
     musicPlay: "播放",
     musicPause: "暂停",
+    musicOpenControls: "打开音乐控制",
+    musicCollapse: "收起",
     widgetViewAll: "查看全部",
 
     // Ambient (location / weather)
