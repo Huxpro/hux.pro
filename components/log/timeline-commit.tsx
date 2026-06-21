@@ -84,14 +84,7 @@ export function TimelineCommit({
         <span className="text-sm text-foreground min-w-0 flex-1">
           {data.title}
           {data.languageBadge && (
-            <span
-              className="ml-1.5 inline-flex items-center align-[2px] font-mono text-[10px] leading-none text-muted-foreground/60 border border-border/60 rounded-sm px-1 py-0.5"
-              title={
-                data.languageBadge === "EN"
-                  ? "In English"
-                  : "In Chinese"
-              }
-            >
+            <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
               {data.languageBadge}
             </span>
           )}

@@ -534,14 +534,17 @@ export function isCommitVisibleIn(commit: Commit, locale: Locale): boolean {
  * The badge label to show for a commit whose intrinsic language differs
  * from the viewer's locale. Returns null when no badge should appear:
  * no language set, language is "both", or language matches locale.
+ *
+ * Mirrors the /writing list convention: each language is labeled in its
+ * own native form ("EN" / "中文") rather than ISO codes.
  */
 export function getCommitLanguageBadge(
   commit: Commit,
   locale: Locale,
-): "EN" | "ZH" | null {
+): "EN" | "中文" | null {
   const lang = commit.language;
   if (!lang || lang === "both" || lang === locale) return null;
-  return lang === "en" ? "EN" : "ZH";
+  return lang === "en" ? "EN" : "中文";
 }
 
 // =============================================================================

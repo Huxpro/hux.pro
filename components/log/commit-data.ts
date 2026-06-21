@@ -44,8 +44,8 @@ export interface NormalizedCommit {
   description: string;
   date: string;
 
-  /** "EN" / "ZH" when the work's language differs from the viewer's locale. */
-  languageBadge: "EN" | "ZH" | null;
+  /** "EN" / "中文" when the work's language differs from the viewer's locale. */
+  languageBadge: "EN" | "中文" | null;
 
   // Type-derived metadata
   meta?: string;
