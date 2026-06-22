@@ -207,7 +207,6 @@ export interface PostCommit extends BaseCommit {
 export interface RoleCommit extends BaseCommit {
   type: "role";
   company: LocalizedString;
-  roleTitle: LocalizedString;
   location?: string;
   url?: string;
 }

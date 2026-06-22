@@ -170,7 +170,20 @@ export function TimelineCommit({
 
       {data.meta && (
         <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-muted-foreground/40">
-          {data.meta}
+          {data.metaUrl ? (
+            <a
+              href={data.metaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              {data.meta}
+              <span aria-hidden className="text-[0.7rem]">↗</span>
+            </a>
+          ) : (
+            data.meta
+          )}
         </div>
       )}
 
