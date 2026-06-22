@@ -577,20 +577,32 @@ export interface TimelineData {
 }
 
 /**
- * Compute the right-side rail character for each commit in a tag,
- * producing an ASCII bracket that brackets a role and the projects /
- * talks done during it. Rendered right of the dates, so the corners
- * face LEFT toward the content.
+ * Per-commit rail info, used to render the right-side bracket on /works.
+ */
+export interface RailInfo {
+  /** ASCII char: ┐ (role top), │ (mid), ┘ (last), or "" when no rail. */
+  rail: string;
+  /** The role commit's id that owns this row's segment, or null when
+   *  the row has no rail (solo role or out-of-tenure commit). */
+  segmentId: string | null;
+}
+
+/**
+ * Compute the right-side rail bracket info for each commit in a tag.
+ * The bracket attaches a role (top, sorted by endDate) to every commit
+ * dated within its tenure, then wraps up at the last commit in the
+ * segment. Rendered right of the dates, corners face LEFT.
  *
  *   ┐  role anchor — top of a multi-commit segment; line goes down
  *   │  mid-segment
  *   ┘  last commit in the segment; wraps the line up-left
  *      (empty)  solo role with no projects, or no role context
- *
- * Returns a single-character string per commit (display index).
  */
-export function computeRailChars(commits: Commit[]): string[] {
-  const rail: string[] = new Array(commits.length).fill("");
+export function computeRail(commits: Commit[]): RailInfo[] {
+  const result: RailInfo[] = commits.map(() => ({
+    rail: "",
+    segmentId: null,
+  }));
 
   // roleContextAbove[i] = index of nearest role at or above commit i
   const roleContextAbove: number[] = new Array(commits.length).fill(-1);
@@ -616,16 +628,18 @@ export function computeRailChars(commits: Commit[]): string[] {
     // is meaningless visual noise.
     if (ctx === endIdx) continue;
 
+    result[i].segmentId = commits[ctx].id;
+
     if (commits[i].type === "role") {
-      rail[i] = "┐";
+      result[i].rail = "┐";
     } else if (i === endIdx) {
-      rail[i] = "┘";
+      result[i].rail = "┘";
     } else {
-      rail[i] = "│";
+      result[i].rail = "│";
     }
   }
 
-  return rail;
+  return result;
 }
 
 /**

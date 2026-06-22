@@ -33,6 +33,12 @@ export interface CommitProps {
   hideDate?: boolean;
   /** Pre-computed git-graph rail char for the timeline gutter. */
   rail?: string;
+  /** The role commit's id that owns this row's rail segment. */
+  segmentId?: string | null;
+  /** True when the parent timeline currently highlights this segment. */
+  isSegmentActive?: boolean;
+  /** Notify the parent that the user is hovering this role row. */
+  onSegmentHover?: (id: string | null) => void;
 }
 
 // =============================================================================
@@ -47,6 +53,9 @@ export function Commit({
   className,
   hideDate = false,
   rail,
+  segmentId,
+  isSegmentActive = false,
+  onSegmentHover,
 }: CommitProps) {
   // Runtime guard: MDX/JSON inputs can bypass static typing.
   if (
@@ -73,6 +82,10 @@ export function Commit({
           className={className}
           hideDate={hideDate}
           rail={rail}
+          isRole={commit.type === "role"}
+          segmentId={segmentId ?? null}
+          isSegmentActive={isSegmentActive}
+          onSegmentHover={onSegmentHover}
         />
       );
 

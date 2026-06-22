@@ -1,9 +1,10 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
-  computeRailChars,
+  computeRail,
   formatTagDateRange,
   getLocalizedTagTitle,
   type Tag,
@@ -24,6 +25,12 @@ interface LogTimelineProps {
  * Renders tags as ref markers and commits as dense log entries.
  */
 export function LogTimeline({ data, locale }: LogTimelineProps) {
+  const [activeSegment, setActiveSegment] = useState<string | null>(null);
+  const handleSegmentHover = useCallback(
+    (id: string | null) => setActiveSegment(id),
+    [],
+  );
+
   return (
     <div className="space-y-0">
       {data.map(({ tag, commits }, tagIndex) => (
@@ -50,7 +57,7 @@ export function LogTimeline({ data, locale }: LogTimelineProps) {
           {/* Commits */}
           <div className="space-y-0">
             {(() => {
-              const rails = computeRailChars(commits);
+              const railInfo = computeRail(commits);
               return commits.map((commit, i) => (
                 <Commit
                   key={commit.id}
@@ -58,7 +65,13 @@ export function LogTimeline({ data, locale }: LogTimelineProps) {
                   locale={locale}
                   variant="timeline"
                   hideDate={tag.hideDate}
-                  rail={rails[i]}
+                  rail={railInfo[i].rail}
+                  segmentId={railInfo[i].segmentId}
+                  isSegmentActive={
+                    railInfo[i].segmentId !== null &&
+                    railInfo[i].segmentId === activeSegment
+                  }
+                  onSegmentHover={handleSegmentHover}
                 />
               ));
             })()}

@@ -11,7 +11,7 @@
  * Consumes NormalizedCommit — fully type-agnostic.
  */
 
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { NormalizedCommit } from "./commit-data";
 import { commitIcons } from "./icons";
@@ -31,8 +31,16 @@ interface TimelineCommitProps {
   defaultExpanded?: boolean;
   className?: string;
   hideDate?: boolean;
-  /** Git-graph rail char to draw in the gutter (`┌`, `│`, `●` or empty). */
+  /** Git-graph rail char to draw on the right (`┐`, `│`, `┘` or empty). */
   rail?: string;
+  /** True when this row IS the role that owns its segment. */
+  isRole?: boolean;
+  /** The role id that owns this row's rail segment. */
+  segmentId?: string | null;
+  /** True when the parent timeline currently highlights this segment. */
+  isSegmentActive?: boolean;
+  /** Notify the parent that the user is hovering this role row. */
+  onSegmentHover?: (id: string | null) => void;
 }
 
 export function TimelineCommit({
@@ -42,6 +50,10 @@ export function TimelineCommit({
   className,
   hideDate = false,
   rail,
+  isRole = false,
+  segmentId = null,
+  isSegmentActive = false,
+  onSegmentHover,
 }: TimelineCommitProps) {
   const Icon = commitIcons[data.type];
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -74,6 +86,29 @@ export function TimelineCommit({
   );
 
   const hasRail = !!rail && rail !== "";
+  const railBg = isSegmentActive
+    ? "bg-muted-foreground/60"
+    : "bg-muted-foreground/15";
+
+  // Role rows light up their segment's rail when hovered or expanded.
+  // Track hover locally and combine with isExpanded; the effect syncs
+  // up to the parent (LogTimeline) which holds the active segment id.
+  const [isHovered, setIsHovered] = useState(false);
+  const handleRoleMouseEnter = useCallback(() => {
+    if (isRole) setIsHovered(true);
+  }, [isRole]);
+  const handleRoleMouseLeave = useCallback(() => {
+    if (isRole) setIsHovered(false);
+  }, [isRole]);
+
+  useEffect(() => {
+    if (!isRole || !segmentId) return;
+    if (isHovered || isExpanded) {
+      onSegmentHover?.(segmentId);
+    } else {
+      onSegmentHover?.(null);
+    }
+  }, [isRole, segmentId, isHovered, isExpanded, onSegmentHover]);
 
   const rowContent = (
     <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
@@ -178,6 +213,8 @@ export function TimelineCommit({
           tabIndex={rowOnClick ? 0 : undefined}
           onClick={rowOnClick}
           onKeyDown={rowOnClick ? handleKeyDown : undefined}
+          onMouseEnter={isRole ? handleRoleMouseEnter : undefined}
+          onMouseLeave={isRole ? handleRoleMouseLeave : undefined}
           className={cn(
             "group relative -mx-3 px-3 py-2.5 rounded-lg transition-colors duration-150",
             rowOnClick ? "cursor-pointer" : "cursor-default",
@@ -194,28 +231,41 @@ export function TimelineCommit({
 
                 ┐  bottom-half vertical + left tick at baseline
                 │  full-height vertical (both halves)
-                ┘  top-half vertical + left tick at baseline      */}
+                ┘  top-half vertical + left tick at baseline
+
+              The rail sits at /15 by default and lifts to /60 when its
+              owning role is hovered (acts as a "highlight branch"
+              affordance from git GUIs). */}
           {hasRail && (
             <>
               {/* Vertical, top half — for │ and ┘ */}
               {(rail === "│" || rail === "┘") && (
                 <span
                   aria-hidden
-                  className="pointer-events-none absolute right-0 top-0 h-5 w-px bg-muted-foreground/40"
+                  className={cn(
+                    "pointer-events-none absolute right-0 top-0 h-5 w-px transition-colors duration-150",
+                    railBg,
+                  )}
                 />
               )}
               {/* Vertical, bottom half — for │ and ┐ */}
               {(rail === "│" || rail === "┐") && (
                 <span
                   aria-hidden
-                  className="pointer-events-none absolute right-0 top-5 bottom-0 w-px bg-muted-foreground/40"
+                  className={cn(
+                    "pointer-events-none absolute right-0 top-5 bottom-0 w-px transition-colors duration-150",
+                    railBg,
+                  )}
                 />
               )}
               {/* Corner tick going left at the baseline — for ┐ and ┘ */}
               {(rail === "┐" || rail === "┘") && (
                 <span
                   aria-hidden
-                  className="pointer-events-none absolute right-0 top-5 h-px w-1.5 bg-muted-foreground/40"
+                  className={cn(
+                    "pointer-events-none absolute right-0 top-5 h-px w-1.5 transition-colors duration-150",
+                    railBg,
+                  )}
                 />
               )}
             </>
