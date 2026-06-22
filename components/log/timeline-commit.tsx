@@ -74,7 +74,6 @@ export function TimelineCommit({
   );
 
   const hasRail = !!rail && rail !== "";
-  const isRoleAnchor = rail === "●";
 
   const rowContent = (
     <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
@@ -186,18 +185,16 @@ export function TimelineCommit({
           )}
         >
           {rowContent}
-          {/* Rail spine — sits at the row's right edge and spans the row's
-              full height including py padding, so the line is continuous
-              across rows (no gaps from meta/subtitle). */}
+          {/* Right-side rail char: ┐ (role top) / │ (mid) / ┘ (last).
+              Drawn as a mono glyph at the row's right edge, aligned to
+              the title baseline. */}
           {hasRail && (
-            <div
+            <span
               aria-hidden
-              className="pointer-events-none absolute top-0 bottom-0 right-1 w-px bg-muted-foreground/30"
+              className="pointer-events-none absolute right-0 top-2.5 font-mono text-xs leading-5 text-muted-foreground/40 select-none"
             >
-              {isRoleAnchor && (
-                <span className="absolute top-[18px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-muted-foreground/60" />
-              )}
-            </div>
+              {rail}
+            </span>
           )}
         </div>
       </MagneticPreview>

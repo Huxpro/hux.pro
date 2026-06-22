@@ -488,18 +488,31 @@ export function getCommitTypeIcon(type: CommitType): string {
 // =============================================================================
 
 /**
- * Sort commits by date (most recent first). When two commits share a
- * date, roles sort LAST so a commit dated at the role's start date
- * appears above the role row in the timeline (and inherits it as its
- * rail context).
+ * Sort key for a commit. Roles use their `endDate` so they sit at the
+ * TOP of their tenure's segment (with all the projects/talks they did
+ * during that role appearing below). Ongoing roles (no endDate) sort
+ * at the very top.
+ */
+function commitSortKey(c: Commit): string {
+  if (c.type === "role") {
+    return c.endDate && c.endDate !== "present" ? c.endDate : "9999-12";
+  }
+  return c.date;
+}
+
+/**
+ * Sort commits by date (most recent first). Roles use their endDate so
+ * they anchor the top of their segment; non-roles use their own date.
+ * When two commits tie on the effective date, roles come FIRST so the
+ * role row appears above projects dated at its end date.
  */
 export function sortCommitsByDate<T extends Commit>(commits: T[]): T[] {
   return [...commits].sort((a, b) => {
-    const d = b.date.localeCompare(a.date);
+    const d = commitSortKey(b).localeCompare(commitSortKey(a));
     if (d !== 0) return d;
-    const aRole = a.type === "role" ? 1 : 0;
-    const bRole = b.type === "role" ? 1 : 0;
-    return aRole - bRole;
+    const aR = a.type === "role" ? 0 : 1;
+    const bR = b.type === "role" ? 0 : 1;
+    return aR - bR;
   });
 }
 
@@ -564,45 +577,54 @@ export interface TimelineData {
 }
 
 /**
- * Compute the gutter rail character for each commit in a tag's segment,
- * producing a git-graph style visual grouping that attaches commits to
- * the role they happened under.
+ * Compute the right-side rail character for each commit in a tag,
+ * producing an ASCII bracket that brackets a role and the projects /
+ * talks done during it. Rendered right of the dates, so the corners
+ * face LEFT toward the content.
  *
- * Commits are expected sorted newest → oldest (the same order they
- * render). A role anchors the BOTTOM of its segment; commits dated
- * after the role's start sit above it and share its rail.
+ *   ┐  role anchor — top of a multi-commit segment; line goes down
+ *   │  mid-segment
+ *   ┘  last commit in the segment; wraps the line up-left
+ *      (empty)  solo role with no projects, or no role context
  *
- *   ┌  topmost commit of a segment
- *   │  mid-segment commit
- *   ●  role anchor (bottom of segment)
- *      (empty)  commits with no role context (e.g. before any role)
- *
- * Returns an array of single-character strings indexed by `commits`.
+ * Returns a single-character string per commit (display index).
  */
 export function computeRailChars(commits: Commit[]): string[] {
   const rail: string[] = new Array(commits.length).fill("");
-  // For each commit, find the index of the next role at or below it.
-  const nextRoleAtOrBelow: number[] = new Array(commits.length).fill(-1);
-  let nextRoleIdx = -1;
-  for (let i = commits.length - 1; i >= 0; i--) {
-    if (commits[i].type === "role") nextRoleIdx = i;
-    nextRoleAtOrBelow[i] = nextRoleIdx;
-  }
+
+  // roleContextAbove[i] = index of nearest role at or above commit i
+  const roleContextAbove: number[] = new Array(commits.length).fill(-1);
+  let lastRole = -1;
   for (let i = 0; i < commits.length; i++) {
-    const roleIdx = nextRoleAtOrBelow[i];
-    if (roleIdx === -1) {
-      rail[i] = "";
-      continue;
-    }
-    if (i === roleIdx) {
-      rail[i] = "●";
-      continue;
-    }
-    // Top of a segment when previous row had a different role context
-    // (or this is the first row).
-    const prevRoleIdx = i === 0 ? -2 : nextRoleAtOrBelow[i - 1];
-    rail[i] = prevRoleIdx === roleIdx ? "│" : "┌";
+    if (commits[i].type === "role") lastRole = i;
+    roleContextAbove[i] = lastRole;
   }
+
+  // segmentEnd[ctx] = index of the bottom (oldest) commit in role ctx's
+  // segment, i.e. the last contiguous row whose context is still ctx.
+  const segmentEnd = new Map<number, number>();
+  for (let i = commits.length - 1; i >= 0; i--) {
+    const ctx = roleContextAbove[i];
+    if (ctx !== -1 && !segmentEnd.has(ctx)) segmentEnd.set(ctx, i);
+  }
+
+  for (let i = 0; i < commits.length; i++) {
+    const ctx = roleContextAbove[i];
+    if (ctx === -1) continue;
+    const endIdx = segmentEnd.get(ctx)!;
+    // Solo role (no descendants): leave blank — bracketing a single row
+    // is meaningless visual noise.
+    if (ctx === endIdx) continue;
+
+    if (commits[i].type === "role") {
+      rail[i] = "┐";
+    } else if (i === endIdx) {
+      rail[i] = "┘";
+    } else {
+      rail[i] = "│";
+    }
+  }
+
   return rail;
 }
 
