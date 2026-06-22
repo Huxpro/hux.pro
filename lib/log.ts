@@ -589,13 +589,17 @@ export interface RailInfo {
 /**
  * Compute the right-side rail bracket info for each commit in a tag.
  * The bracket attaches a role (top, sorted by endDate) to every commit
- * dated within its tenure, then wraps up at the last commit in the
- * segment. Rendered right of the dates, corners face LEFT.
+ * dated within its tenure window [role.date, role.endDate], then wraps
+ * up at the last in-tenure commit. Rendered right of the dates,
+ * corners face LEFT.
  *
  *   ┐  role anchor — top of a multi-commit segment; line goes down
  *   │  mid-segment
  *   ┘  last commit in the segment; wraps the line up-left
- *      (empty)  solo role with no projects, or no role context
+ *      (empty)  solo role, out-of-tenure commit, or no role context
+ *
+ * Tenure is compared at month granularity (YYYY-MM), so commits whose
+ * date includes a day still match by month.
  */
 export function computeRail(commits: Commit[]): RailInfo[] {
   const result: RailInfo[] = commits.map(() => ({
@@ -603,38 +607,52 @@ export function computeRail(commits: Commit[]): RailInfo[] {
     segmentId: null,
   }));
 
-  // roleContextAbove[i] = index of nearest role at or above commit i
-  const roleContextAbove: number[] = new Array(commits.length).fill(-1);
-  let lastRole = -1;
+  const month = (s: string) => s.slice(0, 7);
+
+  // Each non-role commit joins the nearest role above ONLY if its date
+  // falls inside that role's tenure. Otherwise it has no segment.
+  const segmentIdx: number[] = new Array(commits.length).fill(-1);
+  let currentRole = -1;
   for (let i = 0; i < commits.length; i++) {
-    if (commits[i].type === "role") lastRole = i;
-    roleContextAbove[i] = lastRole;
+    const c = commits[i];
+    if (c.type === "role") {
+      currentRole = i;
+      continue;
+    }
+    if (currentRole === -1) continue;
+    const role = commits[currentRole] as RoleCommit;
+    const start = month(role.date);
+    const end =
+      role.endDate && role.endDate !== "present"
+        ? month(role.endDate)
+        : "9999-12";
+    const cm = month(c.date);
+    if (cm >= start && cm <= end) {
+      segmentIdx[i] = currentRole;
+    }
   }
 
-  // segmentEnd[ctx] = index of the bottom (oldest) commit in role ctx's
-  // segment, i.e. the last contiguous row whose context is still ctx.
+  // segmentEnd[roleIdx] = index of the bottom (oldest) commit in that
+  // role's tenure window.
   const segmentEnd = new Map<number, number>();
   for (let i = commits.length - 1; i >= 0; i--) {
-    const ctx = roleContextAbove[i];
+    const ctx = segmentIdx[i];
     if (ctx !== -1 && !segmentEnd.has(ctx)) segmentEnd.set(ctx, i);
   }
 
   for (let i = 0; i < commits.length; i++) {
-    const ctx = roleContextAbove[i];
-    if (ctx === -1) continue;
-    const endIdx = segmentEnd.get(ctx)!;
-    // Solo role (no descendants): leave blank — bracketing a single row
-    // is meaningless visual noise.
-    if (ctx === endIdx) continue;
-
-    result[i].segmentId = commits[ctx].id;
-
     if (commits[i].type === "role") {
+      // Role only gets a rail when at least one commit below sits in
+      // its tenure window. Solo roles render no bracket.
+      const endIdx = segmentEnd.get(i);
+      if (endIdx === undefined) continue;
+      result[i].segmentId = commits[i].id;
       result[i].rail = "┐";
-    } else if (i === endIdx) {
-      result[i].rail = "┘";
-    } else {
-      result[i].rail = "│";
+    } else if (segmentIdx[i] !== -1) {
+      const ctx = segmentIdx[i];
+      const endIdx = segmentEnd.get(ctx)!;
+      result[i].segmentId = commits[ctx].id;
+      result[i].rail = i === endIdx ? "┘" : "│";
     }
   }
 
