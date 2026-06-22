@@ -185,16 +185,40 @@ export function TimelineCommit({
           )}
         >
           {rowContent}
-          {/* Right-side rail char: ┐ (role top) / │ (mid) / ┘ (last).
-              Drawn as a mono glyph at the row's right edge, aligned to
-              the title baseline. */}
+          {/* Right-side rail rendered as CSS borders so the vertical
+              connection through every row in a segment is truly
+              continuous (no gap from py padding or meta lines), while
+              still drawing visible corners at the role and the last
+              commit. The corner sits at the title baseline (~20px from
+              the row top).
+
+                ┐  bottom-half vertical + left tick at baseline
+                │  full-height vertical (both halves)
+                ┘  top-half vertical + left tick at baseline      */}
           {hasRail && (
-            <span
-              aria-hidden
-              className="pointer-events-none absolute right-0 top-2.5 font-mono text-xs leading-5 text-muted-foreground/40 select-none"
-            >
-              {rail}
-            </span>
+            <>
+              {/* Vertical, top half — for │ and ┘ */}
+              {(rail === "│" || rail === "┘") && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute right-0 top-0 h-5 w-px bg-muted-foreground/40"
+                />
+              )}
+              {/* Vertical, bottom half — for │ and ┐ */}
+              {(rail === "│" || rail === "┐") && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute right-0 top-5 bottom-0 w-px bg-muted-foreground/40"
+                />
+              )}
+              {/* Corner tick going left at the baseline — for ┐ and ┘ */}
+              {(rail === "┐" || rail === "┘") && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute right-0 top-5 h-px w-1.5 bg-muted-foreground/40"
+                />
+              )}
+            </>
           )}
         </div>
       </MagneticPreview>
