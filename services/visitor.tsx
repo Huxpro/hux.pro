@@ -11,6 +11,8 @@ export interface LastVisitedItem {
   slug: string;
   title: string;
   type: "blog" | "talk";
+  /** Full path to the visited item, e.g. /writing/my-post/en */
+  href?: string;
 }
 
 interface VisitorContextType {

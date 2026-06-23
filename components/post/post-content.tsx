@@ -25,7 +25,7 @@ interface PostContentProps {
   origin?: string;
   originZh?: string;
 
-  onMount?: (slug: string, title: string) => void;
+  onMount?: (slug: string, title: string, href: string) => void;
 }
 
 /**
@@ -87,7 +87,7 @@ export function PostContent({
     if (onMount) {
       const segments = pathname.split("/");
       const slug = segments[segments.length - 2] || "";
-      onMount(slug, title);
+      onMount(slug, title, pathname);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

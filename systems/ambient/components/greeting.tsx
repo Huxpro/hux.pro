@@ -1,6 +1,7 @@
 "use client";
 
 import { TITLE_POETIC } from "@/components/ui/header-zone";
+import Link from "next/link";
 import { t, useLocale, useVisitor } from "@/services";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { getAmbientGreetingKeyFromPhase } from "../lib/greeting";
@@ -33,14 +34,24 @@ export function AmbientGreeting() {
         </span>
       );
     } else {
+      const title = lastVisited.href ? (
+        <Link
+          href={lastVisited.href}
+          className="font-serif italic text-foreground decoration-foreground/30 decoration-1 underline-offset-4 transition-colors hover:underline hover:text-foreground/70"
+        >
+          {lastVisited.title}
+        </Link>
+      ) : (
+        <span className="font-serif italic text-foreground">
+          {lastVisited.title}
+        </span>
+      );
       contextMessage = (
         <span className="block w-full">
           <span className="text-muted-foreground">
             {t(locale, "greetingLastReading")}{" "}
           </span>
-          <span className="font-serif italic text-foreground">
-            {lastVisited.title}
-          </span>
+          {title}
           <span className="text-muted-foreground">.</span>
         </span>
       );
