@@ -90,14 +90,14 @@ export function TagEditor({ tag, onUpdate, onClose }: TagEditorProps) {
         placeholder="YYYY-MM or empty"
       />
 
-      {/* Fields not yet rendered in /works */}
       <Field
         label="Color"
         value={tag.accentColor ?? ""}
         onChange={(v) => update({ accentColor: v || undefined })}
         placeholder="oklch(...)"
-        dimmed
       />
+
+      {/* Fields not yet rendered in /works */}
       <Field
         label="Narr. EN"
         value={tag.narrative?.en ?? ""}
