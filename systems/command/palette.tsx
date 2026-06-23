@@ -143,14 +143,14 @@ export function CommandPalette() {
       section: "navigation",
     },
     {
-      key: "l",
+      key: "p",
       label: t(locale, "labTitle"),
       icon: <FlaskConical className="h-4 w-4" />,
       onSelect: () => handleNavigation("/lab"),
       section: "navigation",
     },
     {
-      key: "p",
+      key: "r",
       label: t(locale, "promptsTitle"),
       icon: <Sparkles className="h-4 w-4" />,
       onSelect: () => handleNavigation("/prompt"),
@@ -285,10 +285,10 @@ export function CommandPalette() {
         case "x":
           handleNavigation("/works");
           return;
-        case "l":
+        case "p":
           handleNavigation("/lab");
           return;
-        case "p":
+        case "r":
           handleNavigation("/prompt");
           return;
         case "i":
@@ -647,7 +647,7 @@ export function CommandPalette() {
                     <FlaskConical className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">{t(locale, "labTitle")}</span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
-                      L
+                      P
                     </kbd>
                   </Command.Item>
                   <Command.Item
@@ -674,7 +674,7 @@ export function CommandPalette() {
                     <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">{t(locale, "promptsTitle")}</span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
-                      P
+                      R
                     </kbd>
                   </Command.Item>
                 </Command.Group>
