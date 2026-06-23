@@ -9,37 +9,76 @@ import {
   WidgetStatus,
   WidgetTitle,
 } from "@/components/ui/widget";
+import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
+import { RefreshCw } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { Link } from "next-view-transitions";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+/** Fisher-Yates shuffle (returns new array) */
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const fadeVariants = {
+  initial: { opacity: 0, scale: 0.98 },
+  animate: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.3, ease: "easeOut" as const },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.98,
+    transition: { duration: 0.2, ease: "easeIn" as const },
+  },
+};
 
 /**
  * LabWidget — "living vitrine".
  *
  * Unlike the other dashboard widgets, which read out the state of something
  * alive elsewhere (weather, music, current commit), this one *is* the live
- * thing: a real lab demo runs in place. A different demo is featured on each
- * visit, so the homepage itself feels like an experiment that keeps changing.
+ * thing: a real lab demo runs in place, fully interactive.
  *
- * To avoid hydration mismatch, the first paint is deterministic (index 0);
- * the random pick happens after mount.
+ * The canvas is intentionally NOT a link, so poking the demo never navigates
+ * away. Navigation lives in the header arrow (→ /lab) and the filename caption
+ * (→ that demo's page). A refresh button cycles the featured demo, à la the
+ * prompt widget — manual only, so rotation never interrupts interaction.
+ *
+ * To avoid hydration mismatch, the order is deterministic on first paint and
+ * shuffled after mount.
  */
 export function LabWidget() {
   const { locale } = useLocale();
+
+  const [order, setOrder] = useState<string[]>(labWidgetDemos);
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
     if (labWidgetDemos.length > 1) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIndex(Math.floor(Math.random() * labWidgetDemos.length));
+      setOrder(shuffle(labWidgetDemos));
     }
   }, []);
 
-  if (labWidgetDemos.length === 0) return null;
+  const advance = useCallback(() => {
+    setIndex((i) => (i + 1) % order.length);
+  }, [order.length]);
 
-  const slug = labWidgetDemos[index] ?? labWidgetDemos[0];
+  if (order.length === 0) return null;
+
+  const slug = order[index % order.length];
   const Demo = labDemos[slug];
   if (!Demo) return null;
+
+  const canRotate = order.length > 1;
 
   return (
     <WidgetShell>
@@ -47,24 +86,45 @@ export function LabWidget() {
         <div className="flex items-center gap-2">
           <WidgetStatus />
           <WidgetTitle>{t(locale, "widgetLab")}</WidgetTitle>
+          {canRotate && (
+            <button
+              onClick={advance}
+              className={cn(
+                "text-muted-foreground hover:text-foreground text-xs",
+                "transition-colors duration-200 select-none"
+              )}
+              aria-label="Next demo"
+            >
+              <RefreshCw className="h-3 w-3" />
+            </button>
+          )}
         </div>
         <WidgetLink href="/lab" label="View lab" />
       </WidgetHeader>
       <WidgetBody>
+        <div className="h-44 overflow-hidden rounded-xl border border-border/60">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={slug}
+              variants={fadeVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="h-full"
+            >
+              <Demo />
+            </motion.div>
+          </AnimatePresence>
+        </div>
         <Link
           href={`/lab/${slug}/${locale}`}
           aria-label={`Open ${slug} in the lab`}
-          className="block group/stage"
+          className="mt-2.5 flex items-center justify-between font-mono text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          <div className="h-44 overflow-hidden rounded-xl border border-border/60">
-            <Demo />
-          </div>
-          <div className="mt-2.5 flex items-center justify-between font-mono text-xs text-muted-foreground">
-            <span>{slug}.tsx</span>
-            <span className="opacity-0 group-hover/stage:opacity-100 transition-opacity">
-              open →
-            </span>
-          </div>
+          <span>{slug}.tsx</span>
+          <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+            open →
+          </span>
         </Link>
       </WidgetBody>
     </WidgetShell>
