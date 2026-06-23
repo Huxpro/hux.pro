@@ -74,20 +74,22 @@ export function MusicDock() {
         )}
       </AnimatePresence>
 
+      {/* Collapsed pill — centered on its own fixed anchor so it never
+          reflows against the panel during the cross-fade. */}
       <div
-        className="fixed inset-x-0 top-0 z-50 flex justify-center px-4 pointer-events-none"
-        style={{ paddingTop: "max(env(safe-area-inset-top), 0.5rem)" }}
+        className="fixed left-1/2 z-50 -translate-x-1/2 pointer-events-none"
+        style={{ top: "max(env(safe-area-inset-top), 0.5rem)" }}
       >
-        {/* Collapsed pill */}
         <AnimatePresence>
           {!open && (
             <motion.button
               key="pill"
               onClick={() => setOpen(true)}
-              initial={{ opacity: 0, y: -12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.25, ease: EASE }}
+              initial={{ opacity: 0, scale: 0.9, y: -6 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -6 }}
+              transition={{ duration: 0.22, ease: EASE }}
+              style={{ transformOrigin: "top center" }}
               className={cn(
                 "pointer-events-auto flex items-center gap-2",
                 "h-9 pl-1.5 pr-2.5 rounded-full",
@@ -121,8 +123,14 @@ export function MusicDock() {
             </motion.button>
           )}
         </AnimatePresence>
+      </div>
 
-        {/* Expanded panel */}
+      {/* Expanded panel — same top-center anchor, also independently centered.
+          Zooms/fades from the top so the pill→panel swap reads as one morph. */}
+      <div
+        className="fixed left-1/2 z-50 -translate-x-1/2 pointer-events-none"
+        style={{ top: "max(env(safe-area-inset-top), 0.5rem)" }}
+      >
         <AnimatePresence>
           {open && (
             <motion.div
@@ -133,10 +141,11 @@ export function MusicDock() {
               onDragEnd={(_, info) => {
                 if (info.offset.y < -40) setOpen(false);
               }}
-              initial={{ opacity: 0, y: -16, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -16, scale: 0.97 }}
+              initial={{ opacity: 0, scale: 0.94, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: -10 }}
               transition={{ duration: 0.3, ease: EASE }}
+              style={{ transformOrigin: "top center" }}
               className={cn(
                 "pointer-events-auto w-[min(92vw,360px)] overflow-hidden",
                 "rounded-3xl bg-card/70 backdrop-blur-xl",
