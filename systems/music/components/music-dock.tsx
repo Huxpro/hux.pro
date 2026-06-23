@@ -107,11 +107,6 @@ export function MusicDock() {
                     alt=""
                     className="h-full w-full object-cover"
                   />
-                  {showEQ && (
-                    <span className="absolute inset-0 flex items-center justify-center bg-black/35">
-                      <EQBars className="text-white h-1.5" />
-                    </span>
-                  )}
                 </span>
               ) : (
                 <span className="h-6 w-6 rounded-full bg-muted/60 flex items-center justify-center shrink-0">
