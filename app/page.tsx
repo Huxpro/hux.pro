@@ -4,6 +4,7 @@ import {
   HStackWidget,
   VStackWidget,
 } from "@/components/home/featured-stack-widget";
+import { LabWidget } from "@/components/home/lab-widget";
 import { PromptWidget } from "@/components/home/prompt-widget";
 import { Commit } from "@/components/log";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
@@ -175,6 +176,7 @@ function WidgetGrid() {
     { id: "blog", node: <BlogStackWidget /> },
     { id: "music", node: <MusicWidget /> },
     ...(role ? [{ id: "status", node: <ProcessingWidget /> }] : []),
+    { id: "lab", node: <LabWidget /> },
     { id: "prompt", node: <PromptWidget /> },
     ...visibleGroups.map((group) => ({
       id: `group-${group.id}`,

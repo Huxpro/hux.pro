@@ -10,3 +10,12 @@ import { SpotlightDemo } from "./demos/spotlight";
 export const labDemos: Record<string, ComponentType> = {
   spotlight: SpotlightDemo,
 };
+
+/**
+ * Slugs eligible to be featured live in the homepage Lab widget.
+ *
+ * Must be (a) registered above and (b) "widget-safe": renders well at a small,
+ * variable height and reads as alive at rest (or invites interaction). Keep
+ * this curated — the home widget features exactly one at a time.
+ */
+export const labWidgetDemos: string[] = ["spotlight"];

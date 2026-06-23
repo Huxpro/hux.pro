@@ -31,7 +31,7 @@ export function SpotlightDemo() {
       onPointerMove={handleMove}
       onPointerEnter={() => setActive(true)}
       onPointerLeave={() => setActive(false)}
-      className="relative h-72 w-full overflow-hidden rounded-2xl bg-neutral-950 select-none cursor-crosshair"
+      className="relative h-full min-h-[11rem] w-full overflow-hidden rounded-2xl bg-neutral-950 select-none cursor-crosshair"
       style={{
         backgroundImage: `radial-gradient(240px circle at ${pos.x * 100}% ${
           pos.y * 100

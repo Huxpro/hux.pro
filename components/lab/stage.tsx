@@ -43,7 +43,7 @@ export function Stage({ slug, type, href, title, className }: StageProps) {
   const Demo = labDemos[slug];
   if (Demo) {
     return (
-      <div className={cn(frame, "p-4 sm:p-6")}>
+      <div className={cn(frame, "h-80 p-4 sm:p-6")}>
         <Demo />
       </div>
     );
