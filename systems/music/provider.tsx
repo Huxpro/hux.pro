@@ -35,8 +35,6 @@ interface MusicContextType {
   pause: () => void;
   next: () => void;
   previous: () => void;
-  /** Ref the widget should attach to its iframe container div */
-  playerContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
@@ -121,10 +119,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const pendingSkipRef = useRef(false);
 
   // --- Initialize YouTube player ---
+  // The container div is rendered by this provider (always mounted), so the
+  // player persists across route changes and audio never stops on navigation.
   useEffect(() => {
     if (!PLAYLIST_ID || initedRef.current) return;
 
-    // Wait for the container div to be in the DOM (the widget renders it)
     const container = playerContainerRef.current;
     if (!container) return;
 
@@ -235,10 +234,17 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         pause,
         next,
         previous,
-        playerContainerRef,
       }}
     >
       {children}
+      {/* Global YouTube player host — always mounted so playback persists
+          across navigation. Hidden off-screen; controlled via the API. */}
+      <div
+        ref={playerContainerRef}
+        className="fixed h-0 w-0 overflow-hidden pointer-events-none"
+        aria-hidden
+        style={{ left: -9999, top: -9999 }}
+      />
     </MusicContext.Provider>
   );
 }
