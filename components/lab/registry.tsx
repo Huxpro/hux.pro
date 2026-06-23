@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import { SpotlightDemo } from "./demos/spotlight";
+import { WaveDemo } from "./demos/wave";
 
 /**
  * Registry of inline lab demos.
@@ -9,6 +10,7 @@ import { SpotlightDemo } from "./demos/spotlight";
  */
 export const labDemos: Record<string, ComponentType> = {
   spotlight: SpotlightDemo,
+  wave: WaveDemo,
 };
 
 /**
@@ -18,4 +20,4 @@ export const labDemos: Record<string, ComponentType> = {
  * variable height and reads as alive at rest (or invites interaction). Keep
  * this curated — the home widget features exactly one at a time.
  */
-export const labWidgetDemos: string[] = ["spotlight"];
+export const labWidgetDemos: string[] = ["wave", "spotlight"];
