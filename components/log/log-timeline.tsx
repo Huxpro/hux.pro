@@ -53,8 +53,23 @@ interface TagBlockProps {
 
 function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
   const [activeBeam, setActiveBeam] = useState<BeamSpec | null>(null);
-  const handleBeamHover = useCallback(
-    (spec: BeamSpec | null) => setActiveBeam(spec),
+  const handleBeamSet = useCallback(
+    (spec: BeamSpec) => setActiveBeam(spec),
+    [],
+  );
+  // Stale-write guard: React runs sibling useEffects in document order,
+  // so a row higher up the list can fire its "set" before a row lower
+  // down fires its "clear" for the same hover transition. Ignore the
+  // clear if the active beam no longer matches the leaving row's spec.
+  const handleBeamClear = useCallback(
+    (spec: BeamSpec) =>
+      setActiveBeam((current) =>
+        current &&
+        current.fromHash === spec.fromHash &&
+        current.toHash === spec.toHash
+          ? null
+          : current,
+      ),
     [],
   );
 
@@ -164,7 +179,8 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
               railInfo[i].segmentId === activeBeam?.roleId
             }
             beamSpec={beamSpecs[i]}
-            onBeamHover={handleBeamHover}
+            onBeamSet={handleBeamSet}
+            onBeamClear={handleBeamClear}
           />
         ))}
         {activeBeam && (

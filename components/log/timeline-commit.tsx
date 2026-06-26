@@ -48,9 +48,14 @@ interface TimelineCommitProps {
   /** The beam this row emits when hovered (from this commit up to the
    *  role). When null, the row has nothing to beam. */
   beamSpec?: BeamSpec | null;
-  /** Notify the parent which beam (if any) to render — fires with the
-   *  spec on enter and null on leave/blur. */
-  onBeamHover?: (spec: BeamSpec | null) => void;
+  /** Notify the parent the row would like its beam rendered. */
+  onBeamSet?: (spec: BeamSpec) => void;
+  /** Notify the parent the row no longer wants its beam rendered. The
+   *  parent should ignore the call if its current beam doesn't match
+   *  this spec — guards against React effect-ordering race conditions
+   *  where a sibling's stale clear would otherwise overwrite a fresh
+   *  hover on another row. */
+  onBeamClear?: (spec: BeamSpec) => void;
 }
 
 export function TimelineCommit({
@@ -64,7 +69,8 @@ export function TimelineCommit({
   segmentId = null,
   isSegmentActive = false,
   beamSpec = null,
-  onBeamHover,
+  onBeamSet,
+  onBeamClear,
 }: TimelineCommitProps) {
   const Icon = commitIcons[data.type];
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -111,11 +117,13 @@ export function TimelineCommit({
   useEffect(() => {
     if (!participatesInSegment || !beamSpec) return;
     if (isHovered || isExpanded) {
-      onBeamHover?.(beamSpec);
+      onBeamSet?.(beamSpec);
     } else {
-      onBeamHover?.(null);
+      // Pass our own spec so the parent can guard against a stale clear
+      // (a sibling's later effect overwriting a fresh set on another row).
+      onBeamClear?.(beamSpec);
     }
-  }, [participatesInSegment, beamSpec, isHovered, isExpanded, onBeamHover]);
+  }, [participatesInSegment, beamSpec, isHovered, isExpanded, onBeamSet, onBeamClear]);
 
   const rowContent = (
     <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">

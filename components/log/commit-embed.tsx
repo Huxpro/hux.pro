@@ -39,8 +39,11 @@ export interface CommitProps {
   isSegmentActive?: boolean;
   /** The beam this row emits when hovered. */
   beamSpec?: BeamSpec | null;
-  /** Notify the parent which beam spec to render. */
-  onBeamHover?: (spec: BeamSpec | null) => void;
+  /** Notify the parent the row would like its beam rendered. */
+  onBeamSet?: (spec: BeamSpec) => void;
+  /** Notify the parent the row no longer wants its beam rendered.
+   *  Parent should ignore stale clears that don't match the current beam. */
+  onBeamClear?: (spec: BeamSpec) => void;
 }
 
 // =============================================================================
@@ -58,7 +61,8 @@ export function Commit({
   segmentId,
   isSegmentActive = false,
   beamSpec = null,
-  onBeamHover,
+  onBeamSet,
+  onBeamClear,
 }: CommitProps) {
   // Runtime guard: MDX/JSON inputs can bypass static typing.
   if (
@@ -89,7 +93,8 @@ export function Commit({
           segmentId={segmentId ?? null}
           isSegmentActive={isSegmentActive}
           beamSpec={beamSpec}
-          onBeamHover={onBeamHover}
+          onBeamSet={onBeamSet}
+          onBeamClear={onBeamClear}
         />
       );
 
