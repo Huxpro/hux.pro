@@ -78,13 +78,18 @@ export function TimelineConnector({
       // visually but pollutes the path string and forces extra repaints.
       const fromAbs = Math.round(fRect.top - cRect.top + BASELINE_PX);
       const toAbs = Math.round(tRect.top - cRect.top + BASELINE_PX);
-      if (fromAbs <= toAbs) {
-        // Source must be strictly below target to draw the up-going L.
+      // Same-row attachment is degenerate; skip.
+      if (fromAbs === toAbs) {
         setGeom(null);
         return;
       }
-      const top = toAbs - SVG_PAD_PX;
-      const height = fromAbs - toAbs + 2 * SVG_PAD_PX;
+      // Span both anchors regardless of vertical order — the source
+      // commit can sit ABOVE the role too (e.g. an award given after
+      // tenure ended). The L still traces commit → role; the path
+      // formula is symmetric, so the only thing we need to handle
+      // here is positioning the SVG box to enclose both endpoints.
+      const top = Math.min(fromAbs, toAbs) - SVG_PAD_PX;
+      const height = Math.abs(fromAbs - toAbs) + 2 * SVG_PAD_PX;
       setGeom({
         top,
         height,
@@ -158,9 +163,10 @@ function ConnectorPath({
   //   - Go up to the target's row (x = GUTTER_PX, y = toY)
   //   - Step left back to the role row's right edge (x = 0, y = toY)
   //
-  // Lengths sum: GUTTER_PX + (fromY - toY) + GUTTER_PX
+  // Lengths sum: GUTTER_PX + |fromY - toY| + GUTTER_PX (works for
+  // both upward and downward L — the path formula is the same).
   const d = `M 0 ${fromY} L ${GUTTER_PX} ${fromY} L ${GUTTER_PX} ${toY} L 0 ${toY}`;
-  const totalLength = GUTTER_PX + (fromY - toY) + GUTTER_PX;
+  const totalLength = GUTTER_PX + Math.abs(fromY - toY) + GUTTER_PX;
 
   return (
     <svg

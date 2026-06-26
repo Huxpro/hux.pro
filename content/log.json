@@ -350,6 +350,7 @@
       "id": "opensrc-pioneer-2022",
       "type": "social",
       "tagId": "react-era",
+      "attachedTo": "meta-engineer",
       "title": {
         "en": "China Open Source Pioneer 33",
         "zh": "中国开源先锋 33 人"
@@ -768,7 +769,6 @@
       "id": "qcon-shanghai-2016",
       "type": "talk",
       "tagId": "pwa-era",
-      "attachedTo": "eleme-pwa",
       "title": {
         "en": "Progressive Web App, Make Web Great Again",
         "zh": "Progressive Web App, 复兴序章"
