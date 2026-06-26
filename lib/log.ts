@@ -718,6 +718,40 @@ export function computeBeams(commits: Commit[]): BeamLink[] {
 }
 
 /**
+ * Compute beam descriptors for each tenure-based bracket — same visual
+ * particle stream as explicit attachments, just running along the
+ * spine of the existing `┐│┘` rail. Emits one beam per multi-commit
+ * segment, from the segment's last (`┘`) commit up to the role (`┐`).
+ */
+export function computeTenureBeams(
+  commits: Commit[],
+  railInfo: RailInfo[],
+): BeamLink[] {
+  const beams: BeamLink[] = [];
+  // roleIdx by segmentId, and the bottom-most "┘" index for each.
+  const roleIdxBySegment = new Map<string, number>();
+  const endIdxBySegment = new Map<string, number>();
+  for (let i = 0; i < commits.length; i++) {
+    const sid = railInfo[i].segmentId;
+    if (!sid) continue;
+    if (railInfo[i].rail === "┐") roleIdxBySegment.set(sid, i);
+    if (railInfo[i].rail === "┘") endIdxBySegment.set(sid, i);
+  }
+  for (const [sid, roleIdx] of roleIdxBySegment) {
+    const endIdx = endIdxBySegment.get(sid);
+    if (endIdx === undefined || endIdx <= roleIdx) continue;
+    beams.push({
+      fromIdx: endIdx,
+      toIdx: roleIdx,
+      fromHash: computeCommitHash(commits[endIdx].id),
+      toHash: computeCommitHash(commits[roleIdx].id),
+      roleId: sid,
+    });
+  }
+  return beams;
+}
+
+/**
  * Build the timeline data structure from raw LogData.
  * Single source of truth for /works rendering and editor preview.
  *

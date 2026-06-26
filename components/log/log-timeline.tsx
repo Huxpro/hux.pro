@@ -6,6 +6,7 @@ import {
   type Commit as CommitData,
   computeBeams,
   computeRail,
+  computeTenureBeams,
   formatTagDateRange,
   getLocalizedTagTitle,
   type Tag,
@@ -69,15 +70,16 @@ function TagBlock({
 }: TagBlockProps) {
   const { railInfo, beams } = useMemo(() => {
     const rail = computeRail(commits);
-    const links = computeBeams(commits);
+    const explicit = computeBeams(commits);
+    const tenure = computeTenureBeams(commits, rail);
     // Enrich rail so hovering a beam-source commit highlights its
     // target role's segment (mirroring how the bracket commits behave).
-    for (const b of links) {
+    for (const b of explicit) {
       if (rail[b.fromIdx].segmentId === null) {
         rail[b.fromIdx].segmentId = b.roleId;
       }
     }
-    return { railInfo: rail, beams: links };
+    return { railInfo: rail, beams: [...tenure, ...explicit] };
   }, [commits]);
 
   return (
