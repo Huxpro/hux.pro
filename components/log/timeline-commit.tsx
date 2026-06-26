@@ -88,7 +88,7 @@ export function TimelineCommit({
   const hasRail = !!rail && rail !== "";
   const railBg = isSegmentActive
     ? "bg-muted-foreground/60"
-    : "bg-muted-foreground/15";
+    : "bg-muted-foreground/25";
 
   // Any row that belongs to a segment lights it up on hover/expand.
   // Roles act as the "owning" anchor; non-role commits with a

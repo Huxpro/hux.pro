@@ -1,22 +1,22 @@
 "use client";
 
 /**
- * TimelineBeam — animated ASCII particle stream that connects a commit
- * to its explicitly-attached role across the right gutter.
+ * TimelineBeam — ASCII "comet" stream that climbs the right-gutter rail
+ * to connect a commit with its attached role.
  *
- * Geometry: measured from the source/target row DOM ids (commit hash).
- * Each row's rail tick sits at top=20px (the title baseline), so we
- * anchor the beam endpoints there.
+ * A comet is a vertical stack of 4 characters: a bright head (`╿`) plus
+ * three trailing `·` dots with descending static opacity. That gives a
+ * fixed spatial gradient. Each comet then animates as a unit from
+ * below the source row up past the target role, with a temporal fade
+ * in/out so it never abruptly appears or vanishes.
  *
- * Motion: a column of small `·` characters animates `top` from 100% to
- * 0% within the beam container, with opacity fade-in/fade-out. Particles
- * are staggered so the stream feels continuous.
- *
- * Hover gating: only animates when `active` is true (parent decides).
+ * Multiple comets stagger their animation so the stream reads as
+ * continuous, like Matrix rain in reverse. The static `┐│┘` bracket
+ * remains underneath as the at-rest track; the comet flies along it
+ * only when the segment is active (hover or expand).
  */
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
 
 interface TimelineBeamProps {
   fromHash: string;
@@ -29,11 +29,24 @@ interface Geom {
   height: number;
 }
 
-const PARTICLE_COUNT = 7;
-const DURATION_SEC = 1.4;
-// Baseline offset inside each commit row — matches the rail's `top-5`
-// anchor (20px = 1.25rem) so the beam ends align with the bracket tick.
+const COMET_COUNT = 3;
+const DURATION_SEC = 1.2;
+// Anchor the comet endpoints at the title baseline (matches the rail's
+// `top-5` corner tick, 20px = 1.25rem).
 const BASELINE_PX = 20;
+
+// Each comet = head + shaded-block tail. The Unicode block-shading
+// chars (▓▒░) are the canonical "fade" you see in classic terminal
+// progress bars and ANSI art — instantly readable as a beam of light
+// dissolving into noise. Pair with a half-block `▀` head so the tip
+// reads as direction-of-travel.
+const COMET_CHARS: { char: string; opacity: number; fontSize: string }[] = [
+  { char: "▀", opacity: 1.0, fontSize: "13px" },
+  { char: "▓", opacity: 0.75, fontSize: "12px" },
+  { char: "▒", opacity: 0.45, fontSize: "12px" },
+  { char: "░", opacity: 0.22, fontSize: "12px" },
+];
+const COMET_PX_HEIGHT = 56;
 
 export function TimelineBeam({
   fromHash,
@@ -81,39 +94,47 @@ export function TimelineBeam({
     <div
       ref={selfRef}
       aria-hidden
-      className="pointer-events-none absolute"
+      className="pointer-events-none absolute overflow-hidden"
       style={
         geom
           ? {
-              top: geom.top,
-              height: geom.height,
-              // Align with the right-edge rail. Row wrapper has -mx-3 so
-              // the rail sits 12px past the commits-container right edge.
-              right: "-12px",
-              width: 8,
+              top: geom.top - COMET_PX_HEIGHT / 4,
+              // Extend container slightly past both endpoints so the comet
+              // enters/exits with breathing room before its opacity fade.
+              height: geom.height + COMET_PX_HEIGHT / 2,
+              right: "-14px",
+              width: 18,
             }
           : { top: 0, right: 0, width: 0, height: 0, visibility: "hidden" }
       }
     >
       {geom &&
-        Array.from({ length: PARTICLE_COUNT }).map((_, i) => (
-          <span
-            key={i}
-            className={cn(
-              "beam-particle absolute right-0 font-mono leading-none text-foreground",
-              "transition-opacity duration-150",
-            )}
+        Array.from({ length: COMET_COUNT }).map((_, cometIndex) => (
+          <div
+            key={cometIndex}
+            className="beam-comet absolute right-0 flex flex-col items-end font-mono leading-none text-foreground"
             style={{
               top: "100%",
-              fontSize: "10px",
               opacity: 0,
               animation: active
-                ? `beam-particle ${DURATION_SEC}s linear ${(i / PARTICLE_COUNT) * DURATION_SEC}s infinite`
+                ? `beam-comet ${DURATION_SEC}s linear ${(cometIndex / COMET_COUNT) * DURATION_SEC}s infinite`
                 : "none",
             }}
           >
-            ·
-          </span>
+            {COMET_CHARS.map((c, i) => (
+              <span
+                key={i}
+                style={{
+                  fontSize: c.fontSize,
+                  opacity: c.opacity,
+                  lineHeight: 1,
+                  marginTop: i === 0 ? 0 : 1,
+                }}
+              >
+                {c.char}
+              </span>
+            ))}
+          </div>
         ))}
     </div>
   );
