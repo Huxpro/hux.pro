@@ -172,6 +172,20 @@ function ConnectorPath({
             "connector-draw 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards",
         }}
       />
+      {/* Attribution dot at the role end — the role is what this commit
+          "belongs to", so the dot anchors the relationship there, the
+          same way `git log --graph` uses `*` / `●` for the owning node. */}
+      <circle
+        cx={0}
+        cy={toY}
+        r={2}
+        fill="currentColor"
+        className="text-muted-foreground/50"
+        style={{
+          opacity: 0,
+          animation: "connector-dot 180ms ease-out 240ms forwards",
+        }}
+      />
     </svg>
   );
 }

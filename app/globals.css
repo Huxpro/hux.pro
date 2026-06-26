@@ -660,10 +660,20 @@ html.dragging * {
   }
 }
 
+@keyframes connector-dot {
+  to {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   svg path[style*="connector-draw"] {
     animation: none !important;
     stroke-dashoffset: 0 !important;
+  }
+  svg circle[style*="connector-dot"] {
+    animation: none !important;
+    opacity: 1 !important;
   }
 }
 
