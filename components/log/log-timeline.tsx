@@ -34,14 +34,7 @@ export function LogTimeline({ data, locale }: LogTimelineProps) {
               tagIndex > 0 && "mt-6 pt-6 border-t border-border/30",
             )}
           >
-            <span
-              className="inline-flex items-center bg-background/80 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border border-border rounded-full"
-              style={
-                tag.accentColor
-                  ? { color: tag.accentColor, borderColor: tag.accentColor }
-                  : undefined
-              }
-            >
+            <span className="inline-flex items-center bg-background/80 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border border-border rounded-full">
               {tagIndex === 0
                 ? "HEAD"
                 : getLocalizedTagTitle(tag, locale).toUpperCase()}
