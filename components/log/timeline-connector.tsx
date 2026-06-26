@@ -164,7 +164,7 @@ function ConnectorPath({
         strokeWidth={1}
         strokeLinecap="square"
         strokeLinejoin="miter"
-        className="text-foreground/70"
+        className="text-muted-foreground/50"
         style={{
           strokeDasharray: totalLength,
           strokeDashoffset: totalLength,
@@ -172,10 +172,13 @@ function ConnectorPath({
             "connector-draw 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards",
         }}
       />
-      {/* Terminator at the role end: a tiny inward-pointing arrow */}
+      {/* Terminator at the role end: a tiny left-pointing arrow that
+          points INTO the role row's content. Tip sits at x=0 (the line's
+          left edge, flush with the role's right margin); base spans
+          to the right along the gutter. */}
       <polygon
-        points={`0,${toY - 2.5} 3.5,${toY} 0,${toY + 2.5}`}
-        className="text-foreground/70"
+        points={`${GUTTER_PX - 3.5},${toY - 2.5} 0,${toY} ${GUTTER_PX - 3.5},${toY + 2.5}`}
+        className="text-muted-foreground/50"
         fill="currentColor"
         style={{
           opacity: 0,
