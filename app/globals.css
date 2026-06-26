@@ -648,10 +648,10 @@ html.dragging * {
 
 /* =============================================================================
    Timeline Connector — hover-only leader line that draws an L-shape from
-   a commit row to its role row, like a technical-drawing callout. The
-   `connector-draw` keyframe runs the stroke-dashoffset from full length
-   to zero so the line traces itself in once. `connector-tip` fades in
-   the terminator arrow after the line has nearly finished drawing.
+   a commit row to its role row. The `connector-draw` keyframe runs the
+   stroke-dashoffset from full length to zero so the line traces itself
+   in once and then sits static. No terminator decoration — the L's own
+   corner where it meets the role row is the endpoint.
    ============================================================================= */
 
 @keyframes connector-draw {
@@ -660,20 +660,10 @@ html.dragging * {
   }
 }
 
-@keyframes connector-tip {
-  to {
-    opacity: 1;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   svg path[style*="connector-draw"] {
     animation: none !important;
     stroke-dashoffset: 0 !important;
-  }
-  svg polygon[style*="connector-tip"] {
-    animation: none !important;
-    opacity: 1 !important;
   }
 }
 
