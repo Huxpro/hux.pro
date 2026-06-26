@@ -6,12 +6,13 @@
  *
  * Visual: a thin line that starts at the hovered row's right edge,
  * steps right into the gutter, runs up to the target role's row, and
- * terminates with a small left-pointing tick. It DRAWS itself in once
- * (~300ms ease-out-quart via stroke-dashoffset) on mount, then sits
- * static. No perpetual motion — the animation is the gesture, not a
- * loop.
+ * lands at a small attribution dot on the role-side corner. It draws
+ * itself in once on mount (stroke-dashoffset, eased-out) and the dot
+ * fades in just as the line completes. Crossfades to the next beam
+ * via AnimatePresence in the parent, so quick hover transitions feel
+ * continuous rather than restarted.
  *
- *     ◂──┐  ← role row (terminator on the left, line on the right)
+ *     ●──┐  ← role row (attribution dot)
  *        │
  *        │
  *     ───┘  ← hovered row (tick into the row's right edge)
@@ -20,6 +21,7 @@
  * positioned inside the TagBlock's relative container.
  */
 
+import { motion } from "motion/react";
 import { useLayoutEffect, useRef, useState } from "react";
 
 interface TimelineConnectorProps {
@@ -71,8 +73,11 @@ export function TimelineConnector({
       const cRect = container.getBoundingClientRect();
       const fRect = from.getBoundingClientRect();
       const tRect = to.getBoundingClientRect();
-      const fromAbs = fRect.top - cRect.top + BASELINE_PX;
-      const toAbs = tRect.top - cRect.top + BASELINE_PX;
+      // Round so the SVG `d` attribute keeps low coordinate precision
+      // (rendering-svg-precision): sub-pixel accuracy here adds nothing
+      // visually but pollutes the path string and forces extra repaints.
+      const fromAbs = Math.round(fRect.top - cRect.top + BASELINE_PX);
+      const toAbs = Math.round(tRect.top - cRect.top + BASELINE_PX);
       if (fromAbs <= toAbs) {
         // Source must be strictly below target to draw the up-going L.
         setGeom(null);
@@ -101,10 +106,18 @@ export function TimelineConnector({
   }, [fromHash, toHash]);
 
   return (
-    <div
+    // Wrapping the SVG box in motion.div gives us a cheap opacity-based
+    // enter/exit that AnimatePresence can drive — so when the cursor
+    // jumps between commits the old beam fades out as the new beam
+    // fades in, instead of vanishing and restarting.
+    <motion.div
       ref={selfRef}
       aria-hidden
       className="pointer-events-none absolute"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.14, ease: "easeOut" }}
       style={
         geom
           ? {
@@ -118,14 +131,13 @@ export function TimelineConnector({
     >
       {geom && (
         <ConnectorPath
-          key={`${fromHash}->${toHash}`}
           width={SVG_WIDTH}
           height={geom.height}
           fromY={geom.fromY}
           toY={geom.toY}
         />
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -169,7 +181,7 @@ function ConnectorPath({
           strokeDasharray: totalLength,
           strokeDashoffset: totalLength,
           animation:
-            "connector-draw 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards",
+            "connector-draw 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards",
         }}
       />
       {/* Attribution dot at the role end — the role is what this commit
@@ -183,7 +195,7 @@ function ConnectorPath({
         className="text-muted-foreground/50"
         style={{
           opacity: 0,
-          animation: "connector-dot 180ms ease-out 240ms forwards",
+          animation: "connector-dot 160ms ease-out 180ms forwards",
         }}
       />
     </svg>

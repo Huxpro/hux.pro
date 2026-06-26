@@ -12,6 +12,7 @@ import {
   type Tag,
 } from "@/lib/log";
 import { cn } from "@/lib/utils";
+import { AnimatePresence } from "motion/react";
 import { Commit } from "./commit-embed";
 import { TimelineConnector } from "./timeline-connector";
 import type { BeamSpec } from "./timeline-commit";
@@ -183,13 +184,15 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
             onBeamClear={handleBeamClear}
           />
         ))}
-        {activeBeam && (
-          <TimelineConnector
-            key={`${activeBeam.fromHash}->${activeBeam.toHash}`}
-            fromHash={activeBeam.fromHash}
-            toHash={activeBeam.toHash}
-          />
-        )}
+        <AnimatePresence>
+          {activeBeam && (
+            <TimelineConnector
+              key={`${activeBeam.fromHash}->${activeBeam.toHash}`}
+              fromHash={activeBeam.fromHash}
+              toHash={activeBeam.toHash}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
