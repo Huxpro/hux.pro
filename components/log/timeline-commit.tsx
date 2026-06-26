@@ -105,14 +105,31 @@ export function TimelineCommit({
   // Any row that has its own beam spec drives that beam when hovered
   // or expanded. Roles emit a "comprehensive" beam (segmentEnd → role),
   // members emit their own (this commit → role).
+  //
+  // Touch caveat: tapping a row fires a synthetic mouseenter that
+  // sticks isHovered=true and never unsticks on the same row (mouseleave
+  // only fires when the user taps elsewhere). That left the beam
+  // pinned on after collapsing on mobile. We use pointer events with
+  // a pointerType guard so only mouse/pen drive the hover state —
+  // touch is ignored and isExpanded becomes the sole signal on phones.
   const participatesInSegment = !!beamSpec;
   const [isHovered, setIsHovered] = useState(false);
-  const handleSegmentMouseEnter = useCallback(() => {
-    if (participatesInSegment) setIsHovered(true);
-  }, [participatesInSegment]);
-  const handleSegmentMouseLeave = useCallback(() => {
-    if (participatesInSegment) setIsHovered(false);
-  }, [participatesInSegment]);
+  const handleSegmentPointerEnter = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!participatesInSegment) return;
+      if (e.pointerType === "touch") return;
+      setIsHovered(true);
+    },
+    [participatesInSegment],
+  );
+  const handleSegmentPointerLeave = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!participatesInSegment) return;
+      if (e.pointerType === "touch") return;
+      setIsHovered(false);
+    },
+    [participatesInSegment],
+  );
 
   useEffect(() => {
     if (!participatesInSegment || !beamSpec) return;
@@ -241,11 +258,11 @@ export function TimelineCommit({
           tabIndex={rowOnClick ? 0 : undefined}
           onClick={rowOnClick}
           onKeyDown={rowOnClick ? handleKeyDown : undefined}
-          onMouseEnter={
-            participatesInSegment ? handleSegmentMouseEnter : undefined
+          onPointerEnter={
+            participatesInSegment ? handleSegmentPointerEnter : undefined
           }
-          onMouseLeave={
-            participatesInSegment ? handleSegmentMouseLeave : undefined
+          onPointerLeave={
+            participatesInSegment ? handleSegmentPointerLeave : undefined
           }
           className={cn(
             "group relative -mx-3 px-3 py-2.5 rounded-lg transition-colors duration-150",
