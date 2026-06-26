@@ -35,18 +35,17 @@ const DURATION_SEC = 1.2;
 // `top-5` corner tick, 20px = 1.25rem).
 const BASELINE_PX = 20;
 
-// Each comet = head + shaded-block tail. The Unicode block-shading
-// chars (▓▒░) are the canonical "fade" you see in classic terminal
-// progress bars and ANSI art — instantly readable as a beam of light
-// dissolving into noise. Pair with a half-block `▀` head so the tip
-// reads as direction-of-travel.
+// Each comet = head + vertical-bar tail. Thin glyphs (▴, ┃, │, ·) keep
+// the comet a single-pixel-wide column of light rather than a chunky
+// stack of dominoes. The small up-pointing triangle reads as direction
+// without adding visual weight.
 const COMET_CHARS: { char: string; opacity: number; fontSize: string }[] = [
-  { char: "▀", opacity: 1.0, fontSize: "13px" },
-  { char: "▓", opacity: 0.75, fontSize: "12px" },
-  { char: "▒", opacity: 0.45, fontSize: "12px" },
-  { char: "░", opacity: 0.22, fontSize: "12px" },
+  { char: "▴", opacity: 1.0, fontSize: "9px" },
+  { char: "┃", opacity: 0.7, fontSize: "11px" },
+  { char: "│", opacity: 0.4, fontSize: "11px" },
+  { char: "·", opacity: 0.18, fontSize: "10px" },
 ];
-const COMET_PX_HEIGHT = 56;
+const COMET_PX_HEIGHT = 44;
 
 export function TimelineBeam({
   fromHash,

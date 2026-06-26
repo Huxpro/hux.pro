@@ -5,8 +5,8 @@ import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
   computeBeams,
+  computeCommitHash,
   computeRail,
-  computeTenureBeams,
   formatTagDateRange,
   getLocalizedTagTitle,
   type Tag,
@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Commit } from "./commit-embed";
 import { TimelineBeam } from "./timeline-beam";
+import type { BeamSpec } from "./timeline-commit";
 
 interface LogTimelineProps {
   data: {
@@ -28,12 +29,6 @@ interface LogTimelineProps {
  * Renders tags as ref markers and commits as dense log entries.
  */
 export function LogTimeline({ data, locale }: LogTimelineProps) {
-  const [activeSegment, setActiveSegment] = useState<string | null>(null);
-  const handleSegmentHover = useCallback(
-    (id: string | null) => setActiveSegment(id),
-    [],
-  );
-
   return (
     <div className="space-y-0">
       {data.map(({ tag, commits }, tagIndex) => (
@@ -43,8 +38,6 @@ export function LogTimeline({ data, locale }: LogTimelineProps) {
           commits={commits}
           tagIndex={tagIndex}
           locale={locale}
-          activeSegment={activeSegment}
-          onSegmentHover={handleSegmentHover}
         />
       ))}
     </div>
@@ -56,30 +49,82 @@ interface TagBlockProps {
   commits: CommitData[];
   tagIndex: number;
   locale: Locale;
-  activeSegment: string | null;
-  onSegmentHover: (id: string | null) => void;
 }
 
-function TagBlock({
-  tag,
-  commits,
-  tagIndex,
-  locale,
-  activeSegment,
-  onSegmentHover,
-}: TagBlockProps) {
-  const { railInfo, beams } = useMemo(() => {
+function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
+  const [activeBeam, setActiveBeam] = useState<BeamSpec | null>(null);
+  const handleBeamHover = useCallback(
+    (spec: BeamSpec | null) => setActiveBeam(spec),
+    [],
+  );
+
+  // For each commit, compute the beam it should emit when hovered.
+  // - A tenure member or explicitly-attached commit emits a beam from
+  //   itself up to its role.
+  // - A role with members emits a "comprehensive" beam from its
+  //   segment-end commit up to itself, the same long span the bracket
+  //   already draws.
+  const { railInfo, beamSpecs } = useMemo(() => {
     const rail = computeRail(commits);
     const explicit = computeBeams(commits);
-    const tenure = computeTenureBeams(commits, rail);
-    // Enrich rail so hovering a beam-source commit highlights its
-    // target role's segment (mirroring how the bracket commits behave).
+
+    const specs: (BeamSpec | null)[] = commits.map(() => null);
+
+    // Tenure: find each role's segmentEnd; emit per-member and comprehensive.
+    const roleIdxBySegment = new Map<string, number>();
+    const endIdxBySegment = new Map<string, number>();
+    for (let i = 0; i < commits.length; i++) {
+      const sid = rail[i].segmentId;
+      if (!sid) continue;
+      if (rail[i].rail === "┐") roleIdxBySegment.set(sid, i);
+      if (rail[i].rail === "┘") endIdxBySegment.set(sid, i);
+    }
+    for (let i = 0; i < commits.length; i++) {
+      const sid = rail[i].segmentId;
+      if (!sid) continue;
+      const roleIdx = roleIdxBySegment.get(sid);
+      const endIdx = endIdxBySegment.get(sid);
+      if (roleIdx === undefined || endIdx === undefined) continue;
+      if (i === roleIdx) {
+        // Role hover → comprehensive beam (segmentEnd → role).
+        specs[i] = {
+          fromHash: computeCommitHash(commits[endIdx].id),
+          toHash: computeCommitHash(commits[roleIdx].id),
+          roleId: sid,
+        };
+      } else {
+        // Member hover → this commit → role.
+        specs[i] = {
+          fromHash: computeCommitHash(commits[i].id),
+          toHash: computeCommitHash(commits[roleIdx].id),
+          roleId: sid,
+        };
+      }
+    }
+
+    // Explicit attachedTo: enrich rail (so the bracket-active style
+    // still works) AND set a per-commit beam spec.
     for (const b of explicit) {
       if (rail[b.fromIdx].segmentId === null) {
         rail[b.fromIdx].segmentId = b.roleId;
       }
+      specs[b.fromIdx] = {
+        fromHash: b.fromHash,
+        toHash: b.toHash,
+        roleId: b.roleId,
+      };
+      // Also let the target role emit a beam back from this commit, so
+      // hovering the role lights up the explicit attachment.
+      if (specs[b.toIdx] === null) {
+        specs[b.toIdx] = {
+          fromHash: b.fromHash,
+          toHash: b.toHash,
+          roleId: b.roleId,
+        };
+      }
     }
-    return { railInfo: rail, beams: [...tenure, ...explicit] };
+
+    return { railInfo: rail, beamSpecs: specs };
   }, [commits]);
 
   return (
@@ -103,7 +148,7 @@ function TagBlock({
         )}
       </div>
 
-      {/* Commits — relative so beam overlays measure against this box. */}
+      {/* Commits — relative so the beam measures against this box. */}
       <div className="relative space-y-0">
         {commits.map((commit, i) => (
           <Commit
@@ -116,19 +161,20 @@ function TagBlock({
             segmentId={railInfo[i].segmentId}
             isSegmentActive={
               railInfo[i].segmentId !== null &&
-              railInfo[i].segmentId === activeSegment
+              railInfo[i].segmentId === activeBeam?.roleId
             }
-            onSegmentHover={onSegmentHover}
+            beamSpec={beamSpecs[i]}
+            onBeamHover={handleBeamHover}
           />
         ))}
-        {beams.map((b) => (
+        {activeBeam && (
           <TimelineBeam
-            key={`${b.fromHash}->${b.toHash}`}
-            fromHash={b.fromHash}
-            toHash={b.toHash}
-            active={activeSegment === b.roleId}
+            key={`${activeBeam.fromHash}->${activeBeam.toHash}`}
+            fromHash={activeBeam.fromHash}
+            toHash={activeBeam.toHash}
+            active
           />
-        ))}
+        )}
       </div>
     </div>
   );

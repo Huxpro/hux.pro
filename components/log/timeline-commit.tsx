@@ -25,6 +25,12 @@ import {
 } from "./embeds/shared";
 import { MediaRenderer } from "./media";
 
+export interface BeamSpec {
+  fromHash: string;
+  toHash: string;
+  roleId: string;
+}
+
 interface TimelineCommitProps {
   data: NormalizedCommit;
   cursorPreview?: ReactNode;
@@ -39,8 +45,12 @@ interface TimelineCommitProps {
   segmentId?: string | null;
   /** True when the parent timeline currently highlights this segment. */
   isSegmentActive?: boolean;
-  /** Notify the parent that the user is hovering this role row. */
-  onSegmentHover?: (id: string | null) => void;
+  /** The beam this row emits when hovered (from this commit up to the
+   *  role). When null, the row has nothing to beam. */
+  beamSpec?: BeamSpec | null;
+  /** Notify the parent which beam (if any) to render — fires with the
+   *  spec on enter and null on leave/blur. */
+  onBeamHover?: (spec: BeamSpec | null) => void;
 }
 
 export function TimelineCommit({
@@ -53,7 +63,8 @@ export function TimelineCommit({
   isRole = false,
   segmentId = null,
   isSegmentActive = false,
-  onSegmentHover,
+  beamSpec = null,
+  onBeamHover,
 }: TimelineCommitProps) {
   const Icon = commitIcons[data.type];
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -90,12 +101,10 @@ export function TimelineCommit({
     ? "bg-muted-foreground/60"
     : "bg-muted-foreground/25";
 
-  // Any row that belongs to a segment lights it up on hover/expand.
-  // Roles act as the "owning" anchor; non-role commits with a
-  // segmentId (either tenure-bracket members or beam sources) opt
-  // into the same hover sync so the bracket / beam brightens when
-  // the user mouses over any related row.
-  const participatesInSegment = !!segmentId;
+  // Any row that has its own beam spec drives that beam when hovered
+  // or expanded. Roles emit a "comprehensive" beam (segmentEnd → role),
+  // members emit their own (this commit → role).
+  const participatesInSegment = !!beamSpec;
   const [isHovered, setIsHovered] = useState(false);
   const handleSegmentMouseEnter = useCallback(() => {
     if (participatesInSegment) setIsHovered(true);
@@ -105,13 +114,13 @@ export function TimelineCommit({
   }, [participatesInSegment]);
 
   useEffect(() => {
-    if (!participatesInSegment || !segmentId) return;
+    if (!participatesInSegment || !beamSpec) return;
     if (isHovered || isExpanded) {
-      onSegmentHover?.(segmentId);
+      onBeamHover?.(beamSpec);
     } else {
-      onSegmentHover?.(null);
+      onBeamHover?.(null);
     }
-  }, [participatesInSegment, segmentId, isHovered, isExpanded, onSegmentHover]);
+  }, [participatesInSegment, beamSpec, isHovered, isExpanded, onBeamHover]);
 
   const rowContent = (
     <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">

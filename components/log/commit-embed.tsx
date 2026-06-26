@@ -15,7 +15,7 @@ import type { Commit as CommitData } from "@/lib/log";
 import { getCommitThumbnail, localize } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import { normalizeCommit } from "./commit-data";
-import { TimelineCommit } from "./timeline-commit";
+import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
 
 // =============================================================================
@@ -37,8 +37,10 @@ export interface CommitProps {
   segmentId?: string | null;
   /** True when the parent timeline currently highlights this segment. */
   isSegmentActive?: boolean;
-  /** Notify the parent that the user is hovering this role row. */
-  onSegmentHover?: (id: string | null) => void;
+  /** The beam this row emits when hovered. */
+  beamSpec?: BeamSpec | null;
+  /** Notify the parent which beam spec to render. */
+  onBeamHover?: (spec: BeamSpec | null) => void;
 }
 
 // =============================================================================
@@ -55,7 +57,8 @@ export function Commit({
   rail,
   segmentId,
   isSegmentActive = false,
-  onSegmentHover,
+  beamSpec = null,
+  onBeamHover,
 }: CommitProps) {
   // Runtime guard: MDX/JSON inputs can bypass static typing.
   if (
@@ -85,7 +88,8 @@ export function Commit({
           isRole={commit.type === "role"}
           segmentId={segmentId ?? null}
           isSegmentActive={isSegmentActive}
-          onSegmentHover={onSegmentHover}
+          beamSpec={beamSpec}
+          onBeamHover={onBeamHover}
         />
       );
 
