@@ -737,7 +737,7 @@
         "zh": "顾问专家，PWA"
       },
       "description": {
-        "en": "Consulted on building China's first influential Progressive Web App.",
+        "en": "Led the Ele.me PWA upgrade, pioneering the use of PWA techniques for Vue-based Multi-Page Apps (MPA). \n\nFeatured by web.dev and highlighted at Google I/O 2017.",
         "zh": "指导构建中国首个有影响力的 Progressive Web App。"
       },
       "date": "2017-02",
@@ -750,8 +750,12 @@
         {
           "type": "link",
           "url": "https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509",
-          "label": "Medium",
+          "label": "Blog",
           "icon": "globe"
+        },
+        {
+          "type": "embed",
+          "url": "https://web.dev/case-studies/eleme"
         }
       ],
       "tags": [
@@ -798,7 +802,7 @@
       "tagId": "pwa-era",
       "title": {
         "en": "Tech Lead Manager, Web Infra",
-        "zh": "Web 基础架构 技术经理"
+        "zh": "Web 基础架构团队主管"
       },
       "description": {
         "en": "Founding engineer of the award-winning app Yupiaoer. Founded the Web Infra team. Led the company-wide tech stack migration to React.",
