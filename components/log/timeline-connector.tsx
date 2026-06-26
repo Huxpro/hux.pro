@@ -1,0 +1,188 @@
+"use client";
+
+/**
+ * TimelineConnector — hover-only L-shaped leader line that points from
+ * a commit row to its role row, like a technical-drawing callout.
+ *
+ * Visual: a thin line that starts at the hovered row's right edge,
+ * steps right into the gutter, runs up to the target role's row, and
+ * terminates with a small left-pointing tick. It DRAWS itself in once
+ * (~300ms ease-out-quart via stroke-dashoffset) on mount, then sits
+ * static. No perpetual motion — the animation is the gesture, not a
+ * loop.
+ *
+ *     ◂──┐  ← role row (terminator on the left, line on the right)
+ *        │
+ *        │
+ *     ───┘  ← hovered row (tick into the row's right edge)
+ *
+ * Geometry measured from row DOM ids; the SVG overlay is absolutely
+ * positioned inside the TagBlock's relative container.
+ */
+
+import { useLayoutEffect, useRef, useState } from "react";
+
+interface TimelineConnectorProps {
+  fromHash: string;
+  toHash: string;
+}
+
+interface Geom {
+  /** Top of SVG box, relative to container. */
+  top: number;
+  /** SVG box height. */
+  height: number;
+  /** Y of the "from" anchor inside the SVG box. */
+  fromY: number;
+  /** Y of the "to" anchor inside the SVG box. */
+  toY: number;
+}
+
+// Anchor offset inside each row — matches the title baseline that the
+// old rail bracket used, so the line ends up at the visual reading line.
+const BASELINE_PX = 20;
+// How far the line extends to the right past the row's right edge.
+const GUTTER_PX = 8;
+// SVG box height padding so the terminator ticks aren't clipped.
+const SVG_PAD_PX = 6;
+// Width of the SVG box: just enough room for the gutter step + tick.
+const SVG_WIDTH = GUTTER_PX + 4;
+// Right offset of the SVG box from the commits container's right edge.
+// Row wrapper has -mx-3, so right-0 of a row sits 12px past the
+// container's right edge. We align our "from" anchor with that.
+const RIGHT_OFFSET_PX = -12 - GUTTER_PX;
+
+export function TimelineConnector({
+  fromHash,
+  toHash,
+}: TimelineConnectorProps) {
+  const selfRef = useRef<HTMLDivElement | null>(null);
+  const [geom, setGeom] = useState<Geom | null>(null);
+
+  useLayoutEffect(() => {
+    const self = selfRef.current;
+    const container = self?.parentElement;
+    if (!container) return;
+    const from = document.getElementById(fromHash);
+    const to = document.getElementById(toHash);
+    if (!from || !to) return;
+
+    const measure = () => {
+      const cRect = container.getBoundingClientRect();
+      const fRect = from.getBoundingClientRect();
+      const tRect = to.getBoundingClientRect();
+      const fromAbs = fRect.top - cRect.top + BASELINE_PX;
+      const toAbs = tRect.top - cRect.top + BASELINE_PX;
+      if (fromAbs <= toAbs) {
+        // Source must be strictly below target to draw the up-going L.
+        setGeom(null);
+        return;
+      }
+      const top = toAbs - SVG_PAD_PX;
+      const height = fromAbs - toAbs + 2 * SVG_PAD_PX;
+      setGeom({
+        top,
+        height,
+        fromY: fromAbs - top,
+        toY: toAbs - top,
+      });
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(container);
+    ro.observe(from);
+    ro.observe(to);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [fromHash, toHash]);
+
+  return (
+    <div
+      ref={selfRef}
+      aria-hidden
+      className="pointer-events-none absolute"
+      style={
+        geom
+          ? {
+              top: geom.top,
+              right: `${RIGHT_OFFSET_PX}px`,
+              width: SVG_WIDTH,
+              height: geom.height,
+            }
+          : { top: 0, right: 0, width: 0, height: 0, visibility: "hidden" }
+      }
+    >
+      {geom && (
+        <ConnectorPath
+          key={`${fromHash}->${toHash}`}
+          width={SVG_WIDTH}
+          height={geom.height}
+          fromY={geom.fromY}
+          toY={geom.toY}
+        />
+      )}
+    </div>
+  );
+}
+
+function ConnectorPath({
+  width,
+  height,
+  fromY,
+  toY,
+}: {
+  width: number;
+  height: number;
+  fromY: number;
+  toY: number;
+}) {
+  // Path:
+  //   - Start at the from row's right edge (x = 0, y = fromY)
+  //   - Step right into the gutter (x = GUTTER_PX, y = fromY)
+  //   - Go up to the target's row (x = GUTTER_PX, y = toY)
+  //   - Step left back to the role row's right edge (x = 0, y = toY)
+  //
+  // Lengths sum: GUTTER_PX + (fromY - toY) + GUTTER_PX
+  const d = `M 0 ${fromY} L ${GUTTER_PX} ${fromY} L ${GUTTER_PX} ${toY} L 0 ${toY}`;
+  const totalLength = GUTTER_PX + (fromY - toY) + GUTTER_PX;
+
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      style={{ display: "block", overflow: "visible" }}
+    >
+      <path
+        d={d}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1}
+        strokeLinecap="square"
+        strokeLinejoin="miter"
+        className="text-foreground/70"
+        style={{
+          strokeDasharray: totalLength,
+          strokeDashoffset: totalLength,
+          animation:
+            "connector-draw 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        }}
+      />
+      {/* Terminator at the role end: a tiny inward-pointing arrow */}
+      <polygon
+        points={`0,${toY - 2.5} 3.5,${toY} 0,${toY + 2.5}`}
+        className="text-foreground/70"
+        fill="currentColor"
+        style={{
+          opacity: 0,
+          animation:
+            "connector-tip 200ms ease-out 280ms forwards",
+        }}
+      />
+    </svg>
+  );
+}

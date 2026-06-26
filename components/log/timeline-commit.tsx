@@ -96,11 +96,6 @@ export function TimelineCommit({
     [],
   );
 
-  const hasRail = !!rail && rail !== "";
-  const railBg = isSegmentActive
-    ? "bg-muted-foreground/60"
-    : "bg-muted-foreground/25";
-
   // Any row that has its own beam spec drives that beam when hovered
   // or expanded. Roles emit a "comprehensive" beam (segmentEnd → role),
   // members emit their own (this commit → role).
@@ -251,54 +246,6 @@ export function TimelineCommit({
           )}
         >
           {rowContent}
-          {/* Right-side rail rendered as CSS borders so the vertical
-              connection through every row in a segment is truly
-              continuous (no gap from py padding or meta lines), while
-              still drawing visible corners at the role and the last
-              commit. The corner sits at the title baseline (~20px from
-              the row top).
-
-                ┐  bottom-half vertical + left tick at baseline
-                │  full-height vertical (both halves)
-                ┘  top-half vertical + left tick at baseline
-
-              The rail sits at /15 by default and lifts to /60 when its
-              owning role is hovered (acts as a "highlight branch"
-              affordance from git GUIs). */}
-          {hasRail && (
-            <>
-              {/* Vertical, top half — for │ and ┘ */}
-              {(rail === "│" || rail === "┘") && (
-                <span
-                  aria-hidden
-                  className={cn(
-                    "pointer-events-none absolute right-0 top-0 h-5 w-px transition-colors duration-150",
-                    railBg,
-                  )}
-                />
-              )}
-              {/* Vertical, bottom half — for │ and ┐ */}
-              {(rail === "│" || rail === "┐") && (
-                <span
-                  aria-hidden
-                  className={cn(
-                    "pointer-events-none absolute right-0 top-5 bottom-0 w-px transition-colors duration-150",
-                    railBg,
-                  )}
-                />
-              )}
-              {/* Corner tick going left at the baseline — for ┐ and ┘ */}
-              {(rail === "┐" || rail === "┘") && (
-                <span
-                  aria-hidden
-                  className={cn(
-                    "pointer-events-none absolute right-0 top-5 h-px w-1.5 transition-colors duration-150",
-                    railBg,
-                  )}
-                />
-              )}
-            </>
-          )}
         </div>
       </MagneticPreview>
     </div>

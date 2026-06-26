@@ -647,33 +647,33 @@ html.dragging * {
 }
 
 /* =============================================================================
-   Beam Comet — an ASCII "shooting star" that rises along the right-gutter
-   rail to connect a commit with its attached role. Each comet is a stack
-   of chars (bright head + fading dot tail) that animates as a single unit
-   from below the segment up past the role's baseline. Multiple comets
-   stagger so the stream feels continuous, like Matrix rain in reverse.
+   Timeline Connector — hover-only leader line that draws an L-shape from
+   a commit row to its role row, like a technical-drawing callout. The
+   `connector-draw` keyframe runs the stroke-dashoffset from full length
+   to zero so the line traces itself in once. `connector-tip` fades in
+   the terminator arrow after the line has nearly finished drawing.
    ============================================================================= */
 
-@keyframes beam-comet {
-  0% {
-    top: 100%;
-    opacity: 0;
+@keyframes connector-draw {
+  to {
+    stroke-dashoffset: 0;
   }
-  10% {
+}
+
+@keyframes connector-tip {
+  to {
     opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    top: -56px;
-    opacity: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .beam-comet {
+  svg path[style*="connector-draw"] {
     animation: none !important;
-    opacity: 0 !important;
+    stroke-dashoffset: 0 !important;
+  }
+  svg polygon[style*="connector-tip"] {
+    animation: none !important;
+    opacity: 1 !important;
   }
 }
+

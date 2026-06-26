@@ -13,7 +13,7 @@ import {
 } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import { Commit } from "./commit-embed";
-import { TimelineBeam } from "./timeline-beam";
+import { TimelineConnector } from "./timeline-connector";
 import type { BeamSpec } from "./timeline-commit";
 
 interface LogTimelineProps {
@@ -168,11 +168,10 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
           />
         ))}
         {activeBeam && (
-          <TimelineBeam
+          <TimelineConnector
             key={`${activeBeam.fromHash}->${activeBeam.toHash}`}
             fromHash={activeBeam.fromHash}
             toHash={activeBeam.toHash}
-            active
           />
         )}
       </div>
