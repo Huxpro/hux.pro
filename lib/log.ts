@@ -151,6 +151,16 @@ interface BaseCommit {
    * Composable: any commit type can have any combination of media.
    */
   media?: Media[];
+  /**
+   * Explicit role attachment.
+   * - `undefined` (default): use tenure auto-detect — a commit dated
+   *   within a role's [date, endDate] window joins that role's bracket.
+   * - `"<role-id>"`: force-attach to that role even if the commit is
+   *   outside its tenure window. Rendered as an animated beam when the
+   *   role is non-adjacent in the sort order.
+   * - `null`: force-detach — no rail or beam even if in tenure.
+   */
+  attachedTo?: string | null;
 }
 
 /**
@@ -587,6 +597,18 @@ export interface RailInfo {
 }
 
 /**
+ * A non-adjacent role attachment, rendered as an animated ASCII beam
+ * that climbs the right gutter from `fromIdx` row up to `toIdx` row.
+ */
+export interface BeamLink {
+  fromIdx: number;
+  toIdx: number;
+  fromHash: string;
+  toHash: string;
+  roleId: string;
+}
+
+/**
  * Compute the right-side rail bracket info for each commit in a tag.
  * The bracket attaches a role (top, sorted by endDate) to every commit
  * dated within its tenure window [role.date, role.endDate], then wraps
@@ -600,6 +622,11 @@ export interface RailInfo {
  *
  * Tenure is compared at month granularity (YYYY-MM), so commits whose
  * date includes a day still match by month.
+ *
+ * Honours `attachedTo`:
+ *   - `null`     → force-detach, no rail even if in tenure.
+ *   - `"<id>"`   → handled by computeBeams (drawn as a beam, not a bracket).
+ *   - undefined  → tenure auto-detect (default).
  */
 export function computeRail(commits: Commit[]): RailInfo[] {
   const result: RailInfo[] = commits.map(() => ({
@@ -610,7 +637,8 @@ export function computeRail(commits: Commit[]): RailInfo[] {
   const month = (s: string) => s.slice(0, 7);
 
   // Each non-role commit joins the nearest role above ONLY if its date
-  // falls inside that role's tenure. Otherwise it has no segment.
+  // falls inside that role's tenure AND it has not been explicitly
+  // re-targeted via attachedTo.
   const segmentIdx: number[] = new Array(commits.length).fill(-1);
   let currentRole = -1;
   for (let i = 0; i < commits.length; i++) {
@@ -619,6 +647,9 @@ export function computeRail(commits: Commit[]): RailInfo[] {
       currentRole = i;
       continue;
     }
+    // Explicit detach or re-target opts out of the bracket — beams cover
+    // the explicit-attach case visually.
+    if (c.attachedTo !== undefined) continue;
     if (currentRole === -1) continue;
     const role = commits[currentRole] as RoleCommit;
     const start = month(role.date);
@@ -642,8 +673,9 @@ export function computeRail(commits: Commit[]): RailInfo[] {
 
   for (let i = 0; i < commits.length; i++) {
     if (commits[i].type === "role") {
-      // Role only gets a rail when at least one commit below sits in
-      // its tenure window. Solo roles render no bracket.
+      // Role gets a bracket when at least one commit below sits in its
+      // tenure window. Solo roles render no bracket (beams handle their
+      // explicit attachments).
       const endIdx = segmentEnd.get(i);
       if (endIdx === undefined) continue;
       result[i].segmentId = commits[i].id;
@@ -657,6 +689,32 @@ export function computeRail(commits: Commit[]): RailInfo[] {
   }
 
   return result;
+}
+
+/**
+ * Compute explicit beam links: commits with `attachedTo: "<role-id>"`
+ * pointing at a role in the same tag's commit array. Rendered as an
+ * animated ASCII particle stream traveling up the right gutter.
+ *
+ * Skips when the target role is missing or not a role — silent fall
+ * through so a typo in JSON doesn't crash the render.
+ */
+export function computeBeams(commits: Commit[]): BeamLink[] {
+  const beams: BeamLink[] = [];
+  for (let i = 0; i < commits.length; i++) {
+    const c = commits[i];
+    if (typeof c.attachedTo !== "string") continue;
+    const toIdx = commits.findIndex((x) => x.id === c.attachedTo);
+    if (toIdx < 0 || commits[toIdx].type !== "role") continue;
+    beams.push({
+      fromIdx: i,
+      toIdx,
+      fromHash: computeCommitHash(c.id),
+      toHash: computeCommitHash(commits[toIdx].id),
+      roleId: commits[toIdx].id,
+    });
+  }
+  return beams;
 }
 
 /**

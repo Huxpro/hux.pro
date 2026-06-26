@@ -645,3 +645,32 @@ html.dragging * {
     transform: scaleY(1);
   }
 }
+
+/* =============================================================================
+   Beam Particle — animated ASCII dot streaming up the /works right gutter
+   to connect an explicitly-attached commit with its target role.
+   ============================================================================= */
+
+@keyframes beam-particle {
+  0% {
+    top: 100%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.9;
+  }
+  100% {
+    top: -4px;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beam-particle {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+}

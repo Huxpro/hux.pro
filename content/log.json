@@ -768,6 +768,7 @@
       "id": "qcon-shanghai-2016",
       "type": "talk",
       "tagId": "pwa-era",
+      "attachedTo": "eleme-pwa",
       "title": {
         "en": "Progressive Web App, Make Web Great Again",
         "zh": "Progressive Web App, 复兴序章"

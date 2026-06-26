@@ -90,25 +90,28 @@ export function TimelineCommit({
     ? "bg-muted-foreground/60"
     : "bg-muted-foreground/15";
 
-  // Role rows light up their segment's rail when hovered or expanded.
-  // Track hover locally and combine with isExpanded; the effect syncs
-  // up to the parent (LogTimeline) which holds the active segment id.
+  // Any row that belongs to a segment lights it up on hover/expand.
+  // Roles act as the "owning" anchor; non-role commits with a
+  // segmentId (either tenure-bracket members or beam sources) opt
+  // into the same hover sync so the bracket / beam brightens when
+  // the user mouses over any related row.
+  const participatesInSegment = !!segmentId;
   const [isHovered, setIsHovered] = useState(false);
-  const handleRoleMouseEnter = useCallback(() => {
-    if (isRole) setIsHovered(true);
-  }, [isRole]);
-  const handleRoleMouseLeave = useCallback(() => {
-    if (isRole) setIsHovered(false);
-  }, [isRole]);
+  const handleSegmentMouseEnter = useCallback(() => {
+    if (participatesInSegment) setIsHovered(true);
+  }, [participatesInSegment]);
+  const handleSegmentMouseLeave = useCallback(() => {
+    if (participatesInSegment) setIsHovered(false);
+  }, [participatesInSegment]);
 
   useEffect(() => {
-    if (!isRole || !segmentId) return;
+    if (!participatesInSegment || !segmentId) return;
     if (isHovered || isExpanded) {
       onSegmentHover?.(segmentId);
     } else {
       onSegmentHover?.(null);
     }
-  }, [isRole, segmentId, isHovered, isExpanded, onSegmentHover]);
+  }, [participatesInSegment, segmentId, isHovered, isExpanded, onSegmentHover]);
 
   const rowContent = (
     <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
@@ -226,8 +229,12 @@ export function TimelineCommit({
           tabIndex={rowOnClick ? 0 : undefined}
           onClick={rowOnClick}
           onKeyDown={rowOnClick ? handleKeyDown : undefined}
-          onMouseEnter={isRole ? handleRoleMouseEnter : undefined}
-          onMouseLeave={isRole ? handleRoleMouseLeave : undefined}
+          onMouseEnter={
+            participatesInSegment ? handleSegmentMouseEnter : undefined
+          }
+          onMouseLeave={
+            participatesInSegment ? handleSegmentMouseLeave : undefined
+          }
           className={cn(
             "group relative -mx-3 px-3 py-2.5 rounded-lg transition-colors duration-150",
             rowOnClick ? "cursor-pointer" : "cursor-default",
