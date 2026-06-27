@@ -83,6 +83,7 @@ function SingleMedia({
         platform={media.platform}
         theme={theme}
         size={size}
+        preview={media.preview}
         className={className}
       />
     );
@@ -90,7 +91,16 @@ function SingleMedia({
 
   if (isLinkMedia(media)) {
     if (showLinkPreviews && media.showPreview !== false) {
-      return <LinkPreview url={media.url} size={size} className={className} />;
+      return (
+        <LinkPreview
+          url={media.url}
+          size={size}
+          title={media.preview?.title}
+          description={media.preview?.description}
+          image={media.preview?.image}
+          className={className}
+        />
+      );
     }
     return <Link url={media.url} label={media.label} icon={media.icon} className={className} />;
   }
@@ -177,8 +187,8 @@ export function MediaRenderer({
         <div className={multipleEmbeds ? "@container" : undefined}>
           <div
             className={cn(
-              multipleEmbeds &&
-                "grid grid-cols-1 @md:grid-cols-2 gap-3 items-start"
+              // items-stretch (grid default) keeps tiled cards equal height
+              multipleEmbeds && "grid grid-cols-1 @md:grid-cols-2 gap-3"
             )}
           >
             {embeds.map((m, i) => (

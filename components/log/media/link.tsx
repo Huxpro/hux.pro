@@ -163,7 +163,7 @@ export function LinkPreview({
     return (
       <div
         className={cn(
-          "rounded-lg border border-border/50 bg-muted/5 overflow-hidden animate-pulse",
+          "flex flex-col h-full rounded-lg border border-border/50 bg-muted/5 overflow-hidden animate-pulse",
           sizeClasses[size],
           className
         )}
@@ -183,7 +183,9 @@ export function LinkPreview({
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "block rounded-lg border border-border/50 bg-muted/5 overflow-hidden",
+        // flex column + h-full lets cards stretch to equal heights when
+        // tiled in a grid row; the content area absorbs the extra space.
+        "flex flex-col h-full rounded-lg border border-border/50 bg-muted/5 overflow-hidden",
         "hover:bg-muted/10 hover:border-border/70 transition-colors",
         sizeClasses[size],
         className
@@ -191,7 +193,7 @@ export function LinkPreview({
     >
       {/* Image */}
       {image ? (
-        <div className="aspect-[2/1] bg-muted/20 overflow-hidden">
+        <div className="aspect-[2/1] bg-muted/20 overflow-hidden shrink-0">
           <img
             src={image}
             alt=""
@@ -200,13 +202,13 @@ export function LinkPreview({
           />
         </div>
       ) : (
-        <div className="aspect-[2/1] bg-muted/10 flex items-center justify-center">
+        <div className="aspect-[2/1] bg-muted/10 flex items-center justify-center shrink-0">
           <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
         </div>
       )}
 
       {/* Content */}
-      <div className="p-4 space-y-1">
+      <div className="flex-1 p-4 space-y-1">
         <div className="text-xs text-muted-foreground font-mono uppercase tracking-wide">
           {domain}
         </div>

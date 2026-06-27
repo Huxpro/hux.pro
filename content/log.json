@@ -750,7 +750,12 @@
       "media": [
         {
           "type": "embed",
-          "url": "https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509"
+          "url": "https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509",
+          "preview": {
+            "title": "Upgrading Ele.me to Progressive Web App",
+            "description": "Since the very first experiments that @Vue.js tweeted, we at Ele.me (the biggest food ordering and delivering company in China) have been…",
+            "image": "https://miro.medium.com/v2/resize:fit:1200/1*J2ONRSf1OYPZNjRDxJCxgA.png"
+          }
         },
         {
           "type": "embed",

@@ -76,12 +76,29 @@ export interface VideoMedia {
 }
 
 /**
+ * Manual preview metadata.
+ *
+ * Lets the author hardcode a link/embed's card so it doesn't depend on a
+ * live Open Graph crawl. Useful for sites that block server-side scraping
+ * (e.g. Medium returns 403 to non-browser requests) or where you simply
+ * want a curated title/image. When `title` and `image` are both present
+ * the live OG fetch is skipped entirely.
+ */
+export interface MediaPreview {
+  title?: string;
+  description?: string;
+  image?: string;
+}
+
+/**
  * Embed media - Native social platform embeds (Twitter, Instagram, TikTok)
  */
 export interface EmbedMedia {
   type: "embed";
   url: string;
   platform?: EmbedPlatform; // Auto-detected from URL if not provided
+  /** Manual card metadata for non-native embeds (link-preview fallback). */
+  preview?: MediaPreview;
 }
 
 /**
@@ -94,6 +111,8 @@ export interface LinkMedia {
   icon?: string;
   /** Whether to fetch and render OG image preview */
   showPreview?: boolean;
+  /** Manual card metadata; skips the live OG crawl when title+image set. */
+  preview?: MediaPreview;
 }
 
 /**
