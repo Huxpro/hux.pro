@@ -10,6 +10,7 @@
  * - "bare": Minimal compact for widgets (CommitCompact)
  */
 
+import type { ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData } from "@/lib/log";
 import { getCommitThumbnail, localize } from "@/lib/log";
@@ -77,14 +78,15 @@ export function Commit({
   }
 
   const data = normalizeCommit(commit, locale);
-  const cursorPreview = <CommitPreview commit={commit} locale={locale} />;
+  const preview = buildCommitPreview(commit, locale);
 
   switch (variant) {
     case "timeline":
       return (
         <TimelineCommit
           data={data}
-          cursorPreview={cursorPreview}
+          cursorPreview={preview?.node ?? null}
+          cursorPreviewPanelClassName={preview?.panelClassName}
           defaultExpanded={defaultExpanded}
           className={className}
           hideDate={hideDate}
@@ -124,23 +126,36 @@ export function Commit({
 // Preview Content (for MagneticPreview)
 // =============================================================================
 
-function CommitPreview({
-  commit,
-  locale,
-}: {
-  commit: CommitData;
-  locale: Locale;
-}) {
+interface CommitPreview {
+  node: ReactNode;
+  /** Extra class merged into the cursor-preview panel. */
+  panelClassName?: string;
+}
+
+/**
+ * Build the cursor-preview for a commit, or `null` when there is nothing
+ * worth showing (so the hover never renders an empty card).
+ *
+ * - With a thumbnail: a flush "poster" — just the image, framed by the
+ *   panel's own border for a hint of depth. No description, no padding.
+ * - Otherwise: the description text, if any.
+ */
+function buildCommitPreview(
+  commit: CommitData,
+  locale: Locale,
+): CommitPreview | null {
   const thumbnail = getCommitThumbnail(commit);
-  const description = localize(commit.description, locale);
 
   if (thumbnail) {
-    return (
-      <div className="space-y-2">
+    return {
+      // Drop the panel padding so the image sits flush; clip to the
+      // rounded frame so the border reads as the poster's edge.
+      panelClassName: "p-0 overflow-hidden",
+      node: (
         <img
           src={thumbnail}
           alt=""
-          className="w-48 aspect-video object-cover rounded"
+          className="block w-56 aspect-video object-cover"
           loading="lazy"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
@@ -149,16 +164,18 @@ function CommitPreview({
             }
           }}
         />
-        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed max-w-[12rem]">
-          {description}
-        </p>
-      </div>
-    );
+      ),
+    };
   }
 
-  return (
-    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed max-w-[14rem]">
-      {description}
-    </p>
-  );
+  const description = localize(commit.description, locale);
+  if (!description) return null;
+
+  return {
+    node: (
+      <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed max-w-[14rem]">
+        {description}
+      </p>
+    ),
+  };
 }

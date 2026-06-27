@@ -34,6 +34,8 @@ export interface BeamSpec {
 interface TimelineCommitProps {
   data: NormalizedCommit;
   cursorPreview?: ReactNode;
+  /** Extra class for the cursor-preview panel (e.g. flush poster framing). */
+  cursorPreviewPanelClassName?: string;
   defaultExpanded?: boolean;
   className?: string;
   hideDate?: boolean;
@@ -61,6 +63,7 @@ interface TimelineCommitProps {
 export function TimelineCommit({
   data,
   cursorPreview,
+  cursorPreviewPanelClassName,
   defaultExpanded = false,
   className,
   hideDate = false,
@@ -252,7 +255,11 @@ export function TimelineCommit({
 
   return (
     <div id={data.hash} className={className}>
-      <MagneticPreview preview={cursorPreview} enabled={showCursorPreview}>
+      <MagneticPreview
+        preview={cursorPreview}
+        enabled={showCursorPreview}
+        panelClassName={cursorPreviewPanelClassName}
+      >
         <div
           role={rowOnClick ? "button" : undefined}
           tabIndex={rowOnClick ? 0 : undefined}
