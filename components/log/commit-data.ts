@@ -253,6 +253,21 @@ export function normalizeCommit(
       };
     }
 
+    case "event": {
+      // Life events render bare — no meta line, no links, no expand.
+      return {
+        hash,
+        type: commit.type,
+        languageBadge,
+        title,
+        description,
+        date,
+        tags: [],
+        links: [],
+        nonLinkMedia: [],
+      };
+    }
+
     case "social": {
       const socialPrimaryUrl = media[0]?.url;
 

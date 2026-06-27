@@ -71,7 +71,8 @@ export function Commit({
       commit.type !== "talk" &&
       commit.type !== "post" &&
       commit.type !== "role" &&
-      commit.type !== "social")
+      commit.type !== "social" &&
+      commit.type !== "event")
   ) {
     return null;
   }
