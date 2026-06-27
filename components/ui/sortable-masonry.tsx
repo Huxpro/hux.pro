@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import {
   DndContext,
+  DragOverlay,
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
@@ -11,6 +12,7 @@ import {
   useSensor,
   useSensors,
   type DragOverEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -37,16 +39,15 @@ import { useEffect, useState, type ReactNode } from "react";
 // persisted to localStorage, so each visitor keeps their own layout.
 //
 // Why this shape:
-//   - CSS `columns` keeps all items in a single DOM container, so Framer
-//     Motion `layout` can FLIP-animate every card to its new slot — even
-//     across columns — when the order changes. It also renders correctly on
-//     the server (no JS measurement needed), which matters for static export.
-//   - dnd-kit owns the interaction (per-input sensors, collision detection,
-//     keyboard a11y). While a card is held, dnd-kit drives *its* transform so
-//     it tracks the pointer; every other card is positioned by Framer Motion
-//     `layout`. On release dnd-kit clears the transform and Framer FLIPs the
-//     card into its slot — so the two systems never disagree about where a
-//     card is (which is what breaks `DragOverlay`-based drop animations here).
+//   - CSS `columns` keeps every card in a single, SSR-renderable container
+//     (no JS measurement), which matters for static export.
+//   - This is dnd-kit's canonical sortable setup: the lifted card is a
+//     `DragOverlay` clone in a portal that simply tracks the cursor (so it can
+//     never "jump"), while the cards in the grid carry dnd-kit's own sort
+//     transforms to slide out of the way and to settle on drop. We deliberately
+//     do NOT layer Framer Motion `layout` on top — its FLIP projection mutates
+//     the DOM and, combined with live reordering inside CSS multicol, throws
+//     `removeChild` reconciliation errors.
 // =============================================================================
 
 export interface SortableWidget {
@@ -55,8 +56,6 @@ export interface SortableWidget {
   /** The rendered widget. */
   node: ReactNode;
 }
-
-const LAYOUT_SPRING = { type: "spring" as const, stiffness: 500, damping: 34 };
 
 // Mouse / trackpad: start dragging once the pointer travels 8px while pressed.
 // A plain click (no travel) still navigates links.
@@ -126,13 +125,9 @@ function SortableMasonryItem({
     useSortable({ id });
 
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
       data-widget-id={id}
-      // While held, dnd-kit owns the transform (cursor tracking) so Framer must
-      // stand down; on release Framer's layout takes over and FLIPs it home.
-      layout={!isDragging}
-      transition={LAYOUT_SPRING}
       {...attributes}
       {...listeners}
       // In edit mode a tap shouldn't navigate (iPad jiggle behaviour); swallow
@@ -147,32 +142,27 @@ function SortableMasonryItem({
       // text selection.
       className="mb-4 break-inside-avoid select-none"
       style={{
-        transform: isDragging ? CSS.Translate.toString(transform) : undefined,
-        transition: isDragging ? transition : undefined,
-        zIndex: isDragging ? 50 : undefined,
-        position: isDragging ? "relative" : undefined,
+        transform: CSS.Transform.toString(transform),
+        transition,
+        // The dragged card is represented by the DragOverlay clone; leave a
+        // blank placeholder in the flow so siblings know where the gap is.
+        opacity: isDragging ? 0 : 1,
         cursor: editing ? "grab" : undefined,
       }}
     >
-      {/* Inner wrapper owns the jiggle rotate + lift scale so they never fight
-          the layout/drag transform on the outer element. */}
+      {/* Inner wrapper owns the jiggle rotate so it never fights the sort
+          transform on the outer element. */}
       <div
-        className={cn(
-          editing && !isDragging && "widget-jiggle",
-          isDragging && "drop-shadow-2xl"
-        )}
-        style={{
-          ...(editing && !isDragging
+        className={cn(editing && !isDragging && "widget-jiggle")}
+        style={
+          editing && !isDragging
             ? { animationDelay: `${(index % 6) * 0.07}s` }
-            : {}),
-          ...(isDragging
-            ? { transform: "scale(1.03)", transition: "transform 140ms ease" }
-            : {}),
-        }}
+            : undefined
+        }
       >
         {children}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -197,6 +187,7 @@ export function SortableMasonry({
 
   const [order, setOrder] = useState<string[]>(ids);
   const [editing, setEditing] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   // Restore the persisted order on mount and whenever the widget set changes.
   useEffect(() => {
@@ -234,7 +225,8 @@ export function SortableMasonry({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  function handleDragStart() {
+  function handleDragStart(e: DragStartEvent) {
+    setActiveId(String(e.active.id));
     setEditing(true);
   }
 
@@ -250,21 +242,31 @@ export function SortableMasonry({
   }
 
   function handleDragEnd() {
+    setActiveId(null);
     setOrder((prev) => {
       saveOrder(storageKey, prev);
       return prev;
     });
   }
 
+  function handleDragCancel() {
+    setActiveId(null);
+  }
+
   const orderedIds = order.filter((id) => itemsById.has(id));
 
   return (
     <DndContext
+      // Stable id so dnd-kit's generated accessibility ids (DndDescribedBy-*)
+      // are deterministic across SSR and client — otherwise its internal
+      // counter mismatches and React reports an unpatchable hydration error.
+      id="hux-widget-grid"
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <SortableContext items={orderedIds} strategy={rectSortingStrategy}>
         <div
@@ -277,6 +279,18 @@ export function SortableMasonry({
           ))}
         </div>
       </SortableContext>
+
+      {/* The lifted card: a portal clone that tracks the cursor. */}
+      <DragOverlay>
+        {activeId ? (
+          <div
+            className="select-none drop-shadow-2xl"
+            style={{ transform: "scale(1.03)", cursor: "grabbing" }}
+          >
+            {itemsById.get(activeId)}
+          </div>
+        ) : null}
+      </DragOverlay>
 
       <AnimatePresence>
         {editing && (
