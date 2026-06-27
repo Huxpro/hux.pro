@@ -152,7 +152,15 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
           tagIndex > 0 && "mt-6 pt-6 border-t border-border/30",
         )}
       >
-        <span className="inline-flex items-center bg-background/80 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border border-border rounded-full">
+        {/* Frosted-glass fill: translucent + blurred so the ambient gradient
+            shows through and gets tinted per-theme rather than covered by a
+            flat opaque patch. The tint direction follows the theme — lighten
+            toward white in light mode (keeping the near-white chip it always
+            was), darken with black in dark mode (the "shade darker than the
+            page" look). Compositing a tint at alpha α over backdrop B gives a
+            uniform shift, so a solid background reads the same as before while
+            a gradient keeps its hue. */}
+        <span className="inline-flex items-center bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border border-border rounded-full">
           {tagIndex === 0
             ? "HEAD"
             : getLocalizedTagTitle(tag, locale).toUpperCase()}
