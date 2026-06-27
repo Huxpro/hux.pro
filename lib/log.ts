@@ -167,6 +167,15 @@ interface BaseCommit {
    * - `null`: force-detach — no rail or beam even if in tenure.
    */
   attachedTo?: string | null;
+  /**
+   * Per-commit override that hides the date column and renders the
+   * commit's location (for roles) instead. Useful for education
+   * entries that overlap with concurrent work and would otherwise
+   * highlight the overlap. When set on a role, also flips the sort
+   * key to `date` (enrollment) instead of `endDate` (graduation), so
+   * the row settles into its enrollment-year position.
+   */
+  hideDate?: boolean;
 }
 
 /**
@@ -523,9 +532,15 @@ export function getCommitTypeIcon(type: CommitType): string {
  * TOP of their tenure's segment (with all the projects/talks they did
  * during that role appearing below). Ongoing roles (no endDate) sort
  * at the very top.
+ *
+ * Roles flagged with `hideDate: true` (education entries that we don't
+ * want highlighting an overlap window) sort by `date` (enrollment)
+ * instead, so they settle into chronological position rather than
+ * anchoring the top of an unrelated tenure.
  */
 function commitSortKey(c: Commit): string {
   if (c.type === "role") {
+    if (c.hideDate) return c.date;
     return c.endDate && c.endDate !== "present" ? c.endDate : "9999-12";
   }
   return c.date;

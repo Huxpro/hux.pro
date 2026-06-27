@@ -72,20 +72,6 @@
       "startDate": "2012-09",
       "endDate": "2017-07",
       "accentColor": "oklch(0.6 0.1 300)"
-    },
-    {
-      "id": "education",
-      "title": {
-        "en": "Education",
-        "zh": "教育"
-      },
-      "tagline": {
-        "en": "Schools and degrees",
-        "zh": "求学经历"
-      },
-      "startDate": "2012-01",
-      "endDate": "2019-12",
-      "hideDate": true
     }
   ],
   "groups": [
@@ -565,55 +551,53 @@
     },
     {
       "id": "meta-intern-xros",
-      "type": "role",
+      "type": "project",
       "tagId": "react-era",
+      "attachedTo": "meta-engineer",
       "title": {
-        "en": "Software Engineer Intern",
-        "zh": "软件工程实习生"
+        "en": "XROS at Reality Labs Research",
+        "zh": "Reality Labs Research · XROS"
       },
       "description": {
-        "en": "Internship at Reality Lab Research, working on XROS.",
-        "zh": "在 Reality Lab Research 实习，从事 XROS 相关工作。"
+        "en": "Summer internship at Meta Reality Labs Research, working on XROS — an experimental operating system for XR.",
+        "zh": "Meta Reality Labs Research 暑期实习，参与面向 XR 的实验性操作系统 XROS。"
       },
       "date": "2019-05",
       "endDate": "2019-08",
-      "company": {
-        "en": "Meta",
-        "zh": "Meta"
-      },
       "tags": [
         "XR",
-        "Research"
+        "Operating System",
+        "Research",
+        "Internship"
       ]
     },
     {
       "id": "meta-intern-reasonml",
-      "type": "role",
+      "type": "project",
       "tagId": "react-era",
+      "attachedTo": "meta-engineer",
       "title": {
-        "en": "Software Engineer Intern",
-        "zh": "软件工程实习生"
+        "en": "Messenger Web on ReasonML",
+        "zh": "Messenger Web · ReasonML 团队"
       },
       "description": {
-        "en": "Internship on ReasonML/ReScript team, working on Messenger Web.",
-        "zh": "在 ReasonML/ReScript 团队实习，参与 Messenger Web 开发。"
+        "en": "Summer internship at Meta on the ReasonML / ReScript team, working on Messenger Web.",
+        "zh": "Meta ReasonML / ReScript 团队暑期实习，参与 Messenger Web 的开发。"
       },
       "date": "2018-05",
       "endDate": "2018-08",
-      "company": {
-        "en": "Meta",
-        "zh": "Meta"
-      },
       "tags": [
         "ReasonML",
         "OCaml",
-        "Messenger"
+        "Messenger",
+        "Internship"
       ]
     },
     {
       "id": "rit-ms",
       "type": "role",
-      "tagId": "education",
+      "tagId": "react-era",
+      "hideDate": true,
       "title": {
         "en": "M.S. Computer Science",
         "zh": "计算机科学 硕士"
@@ -791,7 +775,8 @@
     {
       "id": "cuc-ba",
       "type": "role",
-      "tagId": "education",
+      "tagId": "pwa-era",
+      "hideDate": true,
       "title": {
         "en": "B.A. Digital Media Arts",
         "zh": "数字媒体艺术 学士"

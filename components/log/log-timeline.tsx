@@ -174,7 +174,7 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
                 commit={commits[i]}
                 locale={locale}
                 variant="timeline"
-                hideDate={tag.hideDate}
+                hideDate={tag.hideDate || commits[i].hideDate}
                 rail={railInfo[i].rail}
                 segmentId={railInfo[i].segmentId}
                 isSegmentActive={
