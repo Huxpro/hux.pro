@@ -132,13 +132,23 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
     setPlayerState("loading");
 
+    // Safety net: if onReady never fires (e.g. the postMessage handshake
+    // silently fails), escape the loading skeleton so the widget shows
+    // actionable state instead of spinning forever.
+    const readyTimeout = setTimeout(() => {
+      if (!destroyed && !playerRef.current) setPlayerState("error");
+    }, 15_000);
+
     loadYouTubeAPI()
       .then((YTApi) => {
         if (destroyed) return;
 
         const player = new YTApi.Player(container, {
-          height: 0,
-          width: 0,
+          // The IFrame API requires a viewport of at least 200×200px for the
+          // postMessage handshake to complete — a 0×0 (or display:none) player
+          // never fires onReady. The host div is kept off-screen instead.
+          height: 200,
+          width: 200,
           playerVars: {
             listType: "playlist",
             list: PLAYLIST_ID,
@@ -148,10 +158,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
             modestbranding: 1,
             playsinline: 1,
             rel: 0,
+            // Recommended by the IFrame API to authorize the JS-API origin.
+            origin: window.location.origin,
           },
           events: {
             onReady: () => {
               if (destroyed) return;
+              clearTimeout(readyTimeout);
               // Cue the playlist without auto-playing
               setPlayerState("idle");
               setTrack(readTrack(player));
@@ -172,6 +185,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
             },
             onError: () => {
               if (destroyed) return;
+              clearTimeout(readyTimeout);
               setPlayerState("error");
             },
           },
@@ -180,11 +194,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         playerRef.current = player;
       })
       .catch(() => {
+        clearTimeout(readyTimeout);
         if (!destroyed) setPlayerState("error");
       });
 
     return () => {
       destroyed = true;
+      clearTimeout(readyTimeout);
       playerRef.current?.destroy();
       playerRef.current = null;
       initedRef.current = false;
@@ -238,12 +254,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     >
       {children}
       {/* Global YouTube player host — always mounted so playback persists
-          across navigation. Hidden off-screen; controlled via the API. */}
+          across navigation. Pushed off-screen (not collapsed to 0×0 or
+          display:none) so the player keeps the ≥200×200 viewport the IFrame
+          API needs to fire onReady, while staying invisible. */}
       <div
         ref={playerContainerRef}
-        className="fixed h-0 w-0 overflow-hidden pointer-events-none"
+        className="fixed pointer-events-none"
         aria-hidden
-        style={{ left: -9999, top: -9999 }}
+        style={{ left: -9999, top: -9999, width: 200, height: 200 }}
       />
     </MusicContext.Provider>
   );
