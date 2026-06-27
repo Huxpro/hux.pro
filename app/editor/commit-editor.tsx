@@ -212,6 +212,8 @@ function defaultFieldsForType(type: CommitType): Partial<Commit> {
       };
     case "social":
       return { platform: "" };
+    case "event":
+      return {};
   }
 }
 
@@ -374,7 +376,7 @@ function FormFields({
   onUpdate: (partial: Record<string, unknown>) => void;
   onTypeChange: (type: CommitType) => void;
 }) {
-  const commitTypes: CommitType[] = ["project", "talk", "post", "role", "social"];
+  const commitTypes: CommitType[] = ["project", "talk", "post", "role", "social", "event"];
 
   return (
     <div className="space-y-2">

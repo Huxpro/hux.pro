@@ -171,38 +171,6 @@
   ],
   "commits": [
     {
-      "id": "hux-pro",
-      "type": "project",
-      "tagId": "lynx-era",
-      "title": {
-        "en": "Hux.Pro OS",
-        "zh": "Hux.Pro 操作系统"
-      },
-      "description": {
-        "en": "A personal operating system — ambient, contextual, AI-native.",
-        "zh": "个人操作系统 —— 环境感知、上下文感知、AI 原生。"
-      },
-      "date": "2024-06",
-      "tags": [
-        "Next.js",
-        "TypeScript",
-        "AI",
-        "Tailwind"
-      ],
-      "media": [
-        {
-          "type": "link",
-          "url": "https://hux.pro",
-          "label": "Website",
-          "icon": "globe"
-        }
-      ],
-      "commentary": {
-        "en": "The portfolio as living software. Not a resume, but a surface.",
-        "zh": "作品集即活的软件。不是简历，而是一个界面。"
-      }
-    },
-    {
       "id": "qcon-shanghai",
       "type": "talk",
       "tagId": "lynx-era",
@@ -256,31 +224,6 @@
         "Opinion"
       ],
       "language": "zh"
-    },
-    {
-      "id": "x-thread-lynx-perf",
-      "type": "social",
-      "tagId": "lynx-era",
-      "title": {
-        "en": "Thread: Tuning cross-platform performance",
-        "zh": "串：跨平台性能调优"
-      },
-      "description": {
-        "en": "Notes on layout, memory, and why small cuts matter at scale.",
-        "zh": "关于布局、内存，以及为什么在规模下微小的优化也很重要。"
-      },
-      "date": "2023-05-12",
-      "platform": "X",
-      "media": [
-        {
-          "type": "embed",
-          "url": "https://x.com/Huxpro/status/1502483206569807874"
-        }
-      ],
-      "tags": [
-        "Performance",
-        "Cross-Platform"
-      ]
     },
     {
       "id": "tech-lead-lynx",
@@ -686,11 +629,10 @@
         "zh": "罗切斯特理工学院"
       },
       "tags": [
-        "PL",
-        "Compiler",
-        "Education"
+        "PLT",
+        "Compiler"
       ],
-      "location": "NY, USA"
+      "location": "New York, USA"
     },
     {
       "id": "jsconf-china-2017",
@@ -866,10 +808,67 @@
       },
       "tags": [
         "Digital Media",
-        "Art",
-        "Education"
+        "Design",
+        "Art"
       ],
       "location": "Beijing, China"
+    },
+    {
+      "id": "bilibili-sabbatical-2023",
+      "type": "social",
+      "tagId": "lynx-era",
+      "attachedTo": "event-career-break",
+      "title": {
+        "en": "Going home? Switching jobs? Taking time off? — Late-night reflections from a ten-year coder",
+        "zh": "回国？跳槽？休假？十年码农卷不动了夜聊人生感悟"
+      },
+      "description": {
+        "en": "A late-night Bilibili reflection during the career break between Meta and ByteDance.",
+        "zh": "Meta 与字节跳动之间的间隔期，深夜在 B 站聊聊职业感悟与人生选择。"
+      },
+      "date": "2023-01-19",
+      "platform": "Bilibili",
+      "media": [
+        {
+          "type": "video",
+          "url": "https://www.bilibili.com/video/BV1ky4y1R7Zm/",
+          "platform": "bilibili"
+        }
+      ],
+      "tags": [
+        "Career",
+        "Reflection",
+        "Sabbatical"
+      ],
+      "language": "zh"
+    },
+    {
+      "id": "event-career-break",
+      "type": "event",
+      "tagId": "lynx-era",
+      "date": "2022-11",
+      "title": {
+        "en": "Sabbatical in China",
+        "zh": "回国休整"
+      },
+      "description": {
+        "en": "",
+        "zh": ""
+      }
+    },
+    {
+      "id": "event-moved-to-us",
+      "type": "event",
+      "tagId": "react-era",
+      "date": "2017-08",
+      "title": {
+        "en": "moved to the US",
+        "zh": "搬到美国"
+      },
+      "description": {
+        "en": "",
+        "zh": ""
+      }
     }
   ]
 }

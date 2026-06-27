@@ -40,7 +40,13 @@ export function localizeOptional(
 // Each commit is a work item in the git history
 // =============================================================================
 
-export type CommitType = "project" | "talk" | "post" | "role" | "social";
+export type CommitType =
+  | "project"
+  | "talk"
+  | "post"
+  | "role"
+  | "social"
+  | "event";
 
 // =============================================================================
 // Media Types - Attachable to any Commit
@@ -232,6 +238,19 @@ export interface SocialCommit extends BaseCommit {
 }
 
 // -----------------------------------------------------------------------------
+// Event Commit (Life event / bracket marker — moves, graduations, joins)
+// -----------------------------------------------------------------------------
+
+/**
+ * An ambient life event that contextualizes nearby work commits but is
+ * not itself a "work artifact" — moves, graduations, tenure beginnings.
+ * Rendered as muted italic on the timeline, no links, no expand.
+ */
+export interface EventCommit extends BaseCommit {
+  type: "event";
+}
+
+// -----------------------------------------------------------------------------
 // Discriminated Union
 // -----------------------------------------------------------------------------
 
@@ -250,7 +269,8 @@ export type Commit =
   | TalkCommit
   | PostCommit
   | RoleCommit
-  | SocialCommit;
+  | SocialCommit
+  | EventCommit;
 
 // =============================================================================
 // Tag Types (formerly Era)
@@ -473,6 +493,7 @@ export function getCommitTypeLabel(type: CommitType, locale: Locale): string {
     post: { en: "Post", zh: "文章" },
     role: { en: "Role", zh: "职位" },
     social: { en: "Social", zh: "社交" },
+    event: { en: "Event", zh: "事件" },
   };
 
   return localize(labels[type], locale);
@@ -488,6 +509,7 @@ export function getCommitTypeIcon(type: CommitType): string {
     post: "◆",
     role: "■",
     social: "▲",
+    event: "·",
   };
   return icons[type];
 }
@@ -692,12 +714,14 @@ export function computeRail(commits: Commit[]): RailInfo[] {
 }
 
 /**
- * Compute explicit beam links: commits with `attachedTo: "<role-id>"`
- * pointing at a role in the same tag's commit array. Rendered as an
- * animated ASCII particle stream traveling up the right gutter.
+ * Compute explicit attachment links: commits with `attachedTo: "<id>"`
+ * pointing at another commit in the same tag. Rendered as a persistent
+ * connector line in the icon column (see TimelineConnector).
  *
- * Skips when the target role is missing or not a role — silent fall
- * through so a typo in JSON doesn't crash the render.
+ * Targets can be roles (an artifact attached to a tenure context) or
+ * events (an artifact attached to an ambient period like a sabbatical).
+ * Silently skips when the target is missing — a typo in JSON degrades
+ * to "no connector" rather than crashing.
  */
 export function computeBeams(commits: Commit[]): BeamLink[] {
   const beams: BeamLink[] = [];
@@ -705,7 +729,9 @@ export function computeBeams(commits: Commit[]): BeamLink[] {
     const c = commits[i];
     if (typeof c.attachedTo !== "string") continue;
     const toIdx = commits.findIndex((x) => x.id === c.attachedTo);
-    if (toIdx < 0 || commits[toIdx].type !== "role") continue;
+    if (toIdx < 0) continue;
+    const targetType = commits[toIdx].type;
+    if (targetType !== "role" && targetType !== "event") continue;
     beams.push({
       fromIdx: i,
       toIdx,
@@ -841,6 +867,10 @@ export function isRoleCommit(commit: Commit): commit is RoleCommit {
 
 export function isSocialCommit(commit: Commit): commit is SocialCommit {
   return commit.type === "social";
+}
+
+export function isEventCommit(commit: Commit): commit is EventCommit {
+  return commit.type === "event";
 }
 
 // =============================================================================

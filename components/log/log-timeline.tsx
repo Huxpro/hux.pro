@@ -5,14 +5,12 @@ import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
   computeBeams,
-  computeCommitHash,
   computeRail,
   formatTagDateRange,
   getLocalizedTagTitle,
   type Tag,
 } from "@/lib/log";
 import { cn } from "@/lib/utils";
-import { AnimatePresence } from "motion/react";
 import { Commit } from "./commit-embed";
 import { TimelineConnector } from "./timeline-connector";
 import type { BeamSpec } from "./timeline-commit";
@@ -74,73 +72,47 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
     [],
   );
 
-  // For each commit, compute the beam it should emit when hovered.
-  // - A tenure member or explicitly-attached commit emits a beam from
-  //   itself up to its role.
-  // - A role with members emits a "comprehensive" beam from its
-  //   segment-end commit up to itself, the same long span the bracket
-  //   already draws.
-  const { railInfo, beamSpecs } = useMemo(() => {
+  // Compute beam specs for explicit `attachedTo` attachments. Both
+  // endpoints (source + target) carry the same spec so hovering/
+  // focusing/expanding EITHER end brightens the connector line.
+  // Per-endpoint gap is derived from the commit's type so the line
+  // meets each endpoint at the right radius (role ring vs icon vs
+  // event dot).
+  const gapFor = (type: CommitData["type"]) =>
+    type === "role" ? 10 : type === "event" ? 3 : 7;
+
+  const { railInfo, beamSpecs, attachments } = useMemo(() => {
     const rail = computeRail(commits);
     const explicit = computeBeams(commits);
 
     const specs: (BeamSpec | null)[] = commits.map(() => null);
 
-    // Tenure: find each role's segmentEnd; emit per-member and comprehensive.
-    const roleIdxBySegment = new Map<string, number>();
-    const endIdxBySegment = new Map<string, number>();
-    for (let i = 0; i < commits.length; i++) {
-      const sid = rail[i].segmentId;
-      if (!sid) continue;
-      if (rail[i].rail === "┐") roleIdxBySegment.set(sid, i);
-      if (rail[i].rail === "┘") endIdxBySegment.set(sid, i);
-    }
-    for (let i = 0; i < commits.length; i++) {
-      const sid = rail[i].segmentId;
-      if (!sid) continue;
-      const roleIdx = roleIdxBySegment.get(sid);
-      const endIdx = endIdxBySegment.get(sid);
-      if (roleIdx === undefined || endIdx === undefined) continue;
-      if (i === roleIdx) {
-        // Role hover → comprehensive beam (segmentEnd → role).
-        specs[i] = {
-          fromHash: computeCommitHash(commits[endIdx].id),
-          toHash: computeCommitHash(commits[roleIdx].id),
-          roleId: sid,
-        };
-      } else {
-        // Member hover → this commit → role.
-        specs[i] = {
-          fromHash: computeCommitHash(commits[i].id),
-          toHash: computeCommitHash(commits[roleIdx].id),
-          roleId: sid,
-        };
-      }
-    }
+    const attachmentsWithGaps = explicit.map((b) => ({
+      ...b,
+      fromGap: gapFor(commits[b.fromIdx].type),
+      toGap: gapFor(commits[b.toIdx].type),
+    }));
 
-    // Explicit attachedTo: enrich rail (so the bracket-active style
-    // still works) AND set a per-commit beam spec.
     for (const b of explicit) {
       if (rail[b.fromIdx].segmentId === null) {
         rail[b.fromIdx].segmentId = b.roleId;
       }
-      specs[b.fromIdx] = {
+      const spec: BeamSpec = {
         fromHash: b.fromHash,
         toHash: b.toHash,
         roleId: b.roleId,
       };
-      // Also let the target role emit a beam back from this commit, so
-      // hovering the role lights up the explicit attachment.
+      specs[b.fromIdx] = spec;
       if (specs[b.toIdx] === null) {
-        specs[b.toIdx] = {
-          fromHash: b.fromHash,
-          toHash: b.toHash,
-          roleId: b.roleId,
-        };
+        specs[b.toIdx] = spec;
       }
     }
 
-    return { railInfo: rail, beamSpecs: specs };
+    return {
+      railInfo: rail,
+      beamSpecs: specs,
+      attachments: attachmentsWithGaps,
+    };
   }, [commits]);
 
   return (
@@ -172,35 +144,74 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
         )}
       </div>
 
-      {/* Commits — relative so the beam measures against this box. */}
+      {/* Commits — relative so the beam measures against this box.
+       *  Consecutive commits sharing a tenure segmentId are wrapped in
+       *  a `group/tenure` div so hovering/focusing/expanding ANY row in
+       *  the cluster brightens the rail and the role's ring. */}
       <div className="relative space-y-0">
-        {commits.map((commit, i) => (
-          <Commit
-            key={commit.id}
-            commit={commit}
-            locale={locale}
-            variant="timeline"
-            hideDate={tag.hideDate}
-            rail={railInfo[i].rail}
-            segmentId={railInfo[i].segmentId}
-            isSegmentActive={
-              railInfo[i].segmentId !== null &&
-              railInfo[i].segmentId === activeBeam?.roleId
+        {(() => {
+          type Run =
+            | { kind: "loose"; indices: number[] }
+            | { kind: "cluster"; segmentId: string; indices: number[] };
+          const runs: Run[] = [];
+          for (let i = 0; i < commits.length; i++) {
+            const sid = railInfo[i].segmentId;
+            const last = runs[runs.length - 1];
+            if (sid && last && last.kind === "cluster" && last.segmentId === sid) {
+              last.indices.push(i);
+            } else if (sid) {
+              runs.push({ kind: "cluster", segmentId: sid, indices: [i] });
+            } else if (last && last.kind === "loose") {
+              last.indices.push(i);
+            } else {
+              runs.push({ kind: "loose", indices: [i] });
             }
-            beamSpec={beamSpecs[i]}
-            onBeamSet={handleBeamSet}
-            onBeamClear={handleBeamClear}
+          }
+          return runs.map((run, runIdx) => {
+            const rows = run.indices.map((i) => (
+              <Commit
+                key={commits[i].id}
+                commit={commits[i]}
+                locale={locale}
+                variant="timeline"
+                hideDate={tag.hideDate}
+                rail={railInfo[i].rail}
+                segmentId={railInfo[i].segmentId}
+                isSegmentActive={
+                  railInfo[i].segmentId !== null &&
+                  railInfo[i].segmentId === activeBeam?.roleId
+                }
+                beamSpec={beamSpecs[i]}
+                onBeamSet={handleBeamSet}
+                onBeamClear={handleBeamClear}
+              />
+            ));
+            return run.kind === "cluster" ? (
+              <div key={`cluster-${run.segmentId}`} className="group/tenure">
+                {rows}
+              </div>
+            ) : (
+              <div key={`loose-${runIdx}`}>{rows}</div>
+            );
+          });
+        })()}
+        {/* Persistent back-point connectors — one per explicit
+         *  attachedTo. They run through the icon column (same visual
+         *  vocabulary as the tenure rail), dimmed by default and
+         *  brightened when EITHER endpoint is the activeBeam. */}
+        {attachments.map((a) => (
+          <TimelineConnector
+            key={`${a.fromHash}->${a.toHash}`}
+            fromHash={a.fromHash}
+            toHash={a.toHash}
+            fromGap={a.fromGap}
+            toGap={a.toGap}
+            isActive={
+              activeBeam?.fromHash === a.fromHash &&
+              activeBeam?.toHash === a.toHash
+            }
           />
         ))}
-        <AnimatePresence>
-          {activeBeam && (
-            <TimelineConnector
-              key={`${activeBeam.fromHash}->${activeBeam.toHash}`}
-              fromHash={activeBeam.fromHash}
-              toHash={activeBeam.toHash}
-            />
-          )}
-        </AnimatePresence>
       </div>
     </div>
   );

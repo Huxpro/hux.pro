@@ -4,6 +4,7 @@ import {
   FileText,
   MessageCircle,
   Briefcase,
+  Dot,
   type LucideIcon,
 } from "lucide-react";
 import { type CommitType } from "@/lib/log";
@@ -14,4 +15,5 @@ export const commitIcons: Record<CommitType, LucideIcon> = {
   post: FileText,
   social: MessageCircle,
   role: Briefcase,
+  event: Dot,
 };
