@@ -176,6 +176,13 @@ interface BaseCommit {
    * the row settles into its enrollment-year position.
    */
   hideDate?: boolean;
+  /**
+   * Override the default icon picked by commit type. Useful when
+   * the type is correct but the iconography wants a flavor — e.g.
+   * an education `role` rendered with `graduation-cap` instead of
+   * the default briefcase.
+   */
+  icon?: "graduation-cap";
 }
 
 /**

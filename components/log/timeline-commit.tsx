@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { NormalizedCommit } from "./commit-data";
-import { commitIcons } from "./icons";
+import { commitIcons, commitIconOverrides } from "./icons";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import {
   LinkIcon,
@@ -75,7 +75,9 @@ export function TimelineCommit({
   onBeamSet,
   onBeamClear,
 }: TimelineCommitProps) {
-  const Icon = commitIcons[data.type];
+  const Icon =
+    (data.iconOverride && commitIconOverrides[data.iconOverride]) ||
+    commitIcons[data.type];
   const isEvent = data.type === "event";
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 

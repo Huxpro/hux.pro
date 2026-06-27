@@ -38,6 +38,8 @@ export interface NormalizedCommit {
   // Identity
   hash: string;
   type: CommitType;
+  /** Optional icon override key (e.g. "graduation-cap"). */
+  iconOverride?: string;
 
   // Core content
   title: string;
@@ -174,6 +176,7 @@ export function normalizeCommit(
       return {
         hash,
         type: commit.type,
+        iconOverride: commit.icon,
         languageBadge,
         title,
         description,
@@ -192,6 +195,7 @@ export function normalizeCommit(
       return {
         hash,
         type: commit.type,
+        iconOverride: commit.icon,
         languageBadge,
         title,
         description,
@@ -211,6 +215,7 @@ export function normalizeCommit(
       return {
         hash,
         type: commit.type,
+        iconOverride: commit.icon,
         languageBadge,
         title,
         description,
@@ -232,6 +237,7 @@ export function normalizeCommit(
       return {
         hash,
         type: commit.type,
+        iconOverride: commit.icon,
         languageBadge,
         title,
         description,
@@ -258,6 +264,7 @@ export function normalizeCommit(
       return {
         hash,
         type: commit.type,
+        iconOverride: commit.icon,
         languageBadge,
         title,
         description,
@@ -285,6 +292,7 @@ export function normalizeCommit(
       return {
         hash,
         type: commit.type,
+        iconOverride: commit.icon,
         languageBadge,
         title,
         description,

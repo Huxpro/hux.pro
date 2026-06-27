@@ -598,6 +598,7 @@
       "type": "role",
       "tagId": "react-era",
       "hideDate": true,
+      "icon": "graduation-cap",
       "title": {
         "en": "M.S. Computer Science",
         "zh": "计算机科学 硕士"
@@ -777,6 +778,7 @@
       "type": "role",
       "tagId": "pwa-era",
       "hideDate": true,
+      "icon": "graduation-cap",
       "title": {
         "en": "B.A. Digital Media Arts",
         "zh": "数字媒体艺术 学士"
