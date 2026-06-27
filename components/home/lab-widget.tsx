@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/widget";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
+import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { RefreshCw } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Link } from "next-view-transitions";
@@ -60,6 +61,7 @@ export function LabWidget() {
 
   const [order, setOrder] = useState<string[]>(labWidgetDemos);
   const [index, setIndex] = useState(0);
+  const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
     if (labWidgetDemos.length > 1) {
@@ -102,30 +104,41 @@ export function LabWidget() {
         <WidgetLink href="/lab" label="View lab" />
       </WidgetHeader>
       <WidgetBody>
-        <div className="h-44 overflow-hidden rounded-xl border border-border/60">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={slug}
-              variants={fadeVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              className="h-full"
-            >
-              <Demo />
-            </motion.div>
-          </AnimatePresence>
-        </div>
-        <Link
-          href={`/lab/${slug}/${locale}`}
-          aria-label={`Open ${slug} in the lab`}
-          className="mt-2.5 flex items-center justify-between font-mono text-xs text-muted-foreground hover:text-foreground transition-colors"
+        <div
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
         >
-          <span>{slug}.tsx</span>
-          <span className="opacity-0 group-hover:opacity-100 transition-opacity">
-            open →
-          </span>
-        </Link>
+          <div className="h-44 overflow-hidden rounded-xl border border-border/60">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={slug}
+                variants={fadeVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className="h-full"
+              >
+                <Demo />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          <Link
+            href={`/lab/${slug}/${locale}`}
+            aria-label={`Open ${slug} in the lab`}
+            className="mt-2.5 inline-block font-mono text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <TextScramble
+              trigger={true}
+              duration={0.4}
+              speed={0.02}
+              characterSet="λabcdefghijklmnopqrstuvwxyz/.~-_"
+              as="span"
+              className="inline-block pointer-events-none"
+            >
+              {hovered ? `open ${slug}.tsx` : `${slug}.tsx`}
+            </TextScramble>
+          </Link>
+        </div>
       </WidgetBody>
     </WidgetShell>
   );
