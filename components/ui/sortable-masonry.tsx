@@ -5,7 +5,8 @@ import { t, useLocale } from "@/services";
 import {
   DndContext,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -27,16 +28,20 @@ import { useEffect, useState, type ReactNode } from "react";
 //
 // An iPad-springboard-style widget grid. Renders children into a responsive
 // CSS multi-column masonry (1 / 2 / 3 columns) and lets the visitor rearrange
-// them by *long-pressing* a widget — which lifts it and enters a jiggle "edit
-// mode" where everything is immediately draggable. The order is an array of
-// widget IDs persisted to localStorage, so each visitor keeps their own layout.
+// them, mirroring how iPadOS / macOS treat each pointer type:
+//   - Mouse / trackpad: a press-and-move *is* a drag straight away (no wait).
+//   - Touch: a plain swipe scrolls; you must long-press to pick a widget up,
+//     so dragging never fights the page scroll.
+// Dragging lifts the card and enters a jiggle "edit mode"; a click/tap on any
+// empty (non-widget) area leaves it. The order is an array of widget IDs
+// persisted to localStorage, so each visitor keeps their own layout.
 //
 // Why this shape:
 //   - CSS `columns` keeps all items in a single DOM container, so Framer
 //     Motion `layout` can FLIP-animate every card to its new slot — even
 //     across columns — when the order changes. It also renders correctly on
 //     the server (no JS measurement needed), which matters for static export.
-//   - dnd-kit owns the interaction (long-press sensor, collision detection,
+//   - dnd-kit owns the interaction (per-input sensors, collision detection,
 //     keyboard a11y). While a card is held, dnd-kit drives *its* transform so
 //     it tracks the pointer; every other card is positioned by Framer Motion
 //     `layout`. On release dnd-kit clears the transform and Framer FLIPs the
@@ -53,10 +58,14 @@ export interface SortableWidget {
 
 const LAYOUT_SPRING = { type: "spring" as const, stiffness: 500, damping: 34 };
 
-// Long-press threshold. Below this, a press is a normal tap/click (links work);
-// holding past it lifts the widget into edit mode. `tolerance` lets a touch
-// drift slightly (and scroll) before the hold is cancelled.
-const ACTIVATION = { delay: 200, tolerance: 8 };
+// Mouse / trackpad: start dragging once the pointer travels 8px while pressed.
+// A plain click (no travel) still navigates links.
+const MOUSE_ACTIVATION = { distance: 8 };
+
+// Touch: a plain swipe scrolls the page; only a 200ms long-press picks a widget
+// up. `tolerance` lets the finger drift a little during the hold without
+// cancelling (and a larger drift before the hold completes reverts to scroll).
+const TOUCH_ACTIVATION = { delay: 200, tolerance: 8 };
 
 // =============================================================================
 // Persistence
@@ -134,7 +143,9 @@ function SortableMasonryItem({
           e.stopPropagation();
         }
       }}
-      className="mb-4 break-inside-avoid"
+      // Widgets are tactile objects, not prose — never let a drag turn into a
+      // text selection.
+      className="mb-4 break-inside-avoid select-none"
       style={{
         transform: isDragging ? CSS.Translate.toString(transform) : undefined,
         transition: isDragging ? transition : undefined,
@@ -194,18 +205,32 @@ export function SortableMasonry({
     setOrder(reconcile(stored ?? ids, ids));
   }, [storageKey, idsKey]); // eslint-disable-line react-hooks/exhaustive-deps -- ids tracked via idsKey
 
-  // Escape leaves edit mode.
+  // Leave edit mode on Escape, or on a completed click/tap anywhere outside a
+  // widget (clicking another widget keeps you in edit mode so you can keep
+  // rearranging). A real drag doesn't emit a click, so this never fires mid-drag.
   useEffect(() => {
     if (!editing) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setEditing(false);
     };
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("[data-widget-id]")) return;
+      setEditing(false);
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    document.addEventListener("click", onClick);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("click", onClick);
+    };
   }, [editing]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: ACTIVATION }),
+    // Mouse / trackpad drags immediately; touch requires a long-press so plain
+    // swipes still scroll the page.
+    useSensor(MouseSensor, { activationConstraint: MOUSE_ACTIVATION }),
+    useSensor(TouchSensor, { activationConstraint: TOUCH_ACTIVATION }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
@@ -244,10 +269,6 @@ export function SortableMasonry({
       <SortableContext items={orderedIds} strategy={rectSortingStrategy}>
         <div
           className={cn("columns-1 sm:columns-2 lg:columns-3 gap-x-4", className)}
-          // Tapping empty space between cards leaves edit mode.
-          onPointerDown={(e) => {
-            if (editing && e.target === e.currentTarget) setEditing(false);
-          }}
         >
           {orderedIds.map((id, i) => (
             <SortableMasonryItem key={id} id={id} index={i} editing={editing}>
