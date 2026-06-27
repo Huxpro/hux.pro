@@ -598,6 +598,7 @@
       "type": "role",
       "tagId": "react-era",
       "hideDate": true,
+      "sortBy": "date",
       "icon": "graduation-cap",
       "title": {
         "en": "M.S. Computer Science",
@@ -778,6 +779,7 @@
       "type": "role",
       "tagId": "pwa-era",
       "hideDate": true,
+      "sortBy": "date",
       "icon": "graduation-cap",
       "title": {
         "en": "B.A. Digital Media Arts",

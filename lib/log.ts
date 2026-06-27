@@ -171,11 +171,20 @@ interface BaseCommit {
    * Per-commit override that hides the date column and renders the
    * commit's location (for roles) instead. Useful for education
    * entries that overlap with concurrent work and would otherwise
-   * highlight the overlap. When set on a role, also flips the sort
-   * key to `date` (enrollment) instead of `endDate` (graduation), so
-   * the row settles into its enrollment-year position.
+   * highlight the overlap. Orthogonal to `sortBy` — hiding the date
+   * is purely a display concern.
    */
   hideDate?: boolean;
+  /**
+   * Which date field anchors this commit in the timeline sort.
+   * - `"endDate"` (default for roles): role row sits at the top of
+   *   its tenure cluster.
+   * - `"date"`: row sits at its start date — e.g. an education entry
+   *   that should land at its enrollment year rather than anchor
+   *   the top of an unrelated cluster via its graduation year.
+   * - undefined: type default (`endDate` for roles, `date` otherwise).
+   */
+  sortBy?: "date" | "endDate";
   /**
    * Override the default icon picked by commit type. Useful when
    * the type is correct but the iconography wants a flavor — e.g.
@@ -535,19 +544,19 @@ export function getCommitTypeIcon(type: CommitType): string {
 // =============================================================================
 
 /**
- * Sort key for a commit. Roles use their `endDate` so they sit at the
- * TOP of their tenure's segment (with all the projects/talks they did
- * during that role appearing below). Ongoing roles (no endDate) sort
- * at the very top.
- *
- * Roles flagged with `hideDate: true` (education entries that we don't
- * want highlighting an overlap window) sort by `date` (enrollment)
- * instead, so they settle into chronological position rather than
- * anchoring the top of an unrelated tenure.
+ * Sort key for a commit. Honors the explicit `sortBy` field when set;
+ * otherwise falls back to type defaults: roles sit at the top of their
+ * tenure cluster by sorting on `endDate` (ongoing roles → "9999-12"),
+ * non-roles sort by their own `date`.
  */
 function commitSortKey(c: Commit): string {
+  const explicit = c.sortBy;
+  if (explicit === "date") return c.date;
+  if (explicit === "endDate") {
+    return c.endDate && c.endDate !== "present" ? c.endDate : "9999-12";
+  }
+  // Type defaults.
   if (c.type === "role") {
-    if (c.hideDate) return c.date;
     return c.endDate && c.endDate !== "present" ? c.endDate : "9999-12";
   }
   return c.date;
