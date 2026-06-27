@@ -10,6 +10,8 @@ import type { Locale } from "@/lib/i18n";
 import type {
   Commit,
   CommitType,
+  EmbedMedia,
+  EmbedPlatform,
   Media,
 } from "@/lib/log";
 import {
@@ -19,6 +21,7 @@ import {
   computeCommitHash,
   getCommitLanguageBadge,
   isVideoMedia,
+  isEmbedMedia,
   isLinkMedia,
   isImageMedia,
   getMediaThumbnail,
@@ -79,8 +82,62 @@ export interface NormalizedCommit {
 // =============================================================================
 
 /**
+ * Lightweight URL-based embed platform detection.
+ *
+ * Mirrors `detectEmbedPlatform` in media/embed.tsx but stays free of any
+ * client-only imports so it can run in this (RSC-friendly) adapter.
+ */
+function detectEmbedPlatformFromUrl(url: string): EmbedPlatform | null {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    if (host === "x.com" || host.endsWith(".x.com")) return "x";
+    if (host === "twitter.com" || host.endsWith(".twitter.com"))
+      return "twitter";
+    if (host === "instagram.com" || host.endsWith(".instagram.com"))
+      return "instagram";
+    if (host === "tiktok.com" || host.endsWith(".tiktok.com")) return "tiktok";
+  } catch {
+    // ignore malformed URLs
+  }
+  return null;
+}
+
+function getDomainLabel(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Build the summary-row entry for an embed.
+ *
+ * Embeds, like videos and links, get a clickable indicator in the folded
+ * row's right rail — so a collapsed commit signals "there's an embed here"
+ * even before it's expanded. Recognized social platforms reuse their brand
+ * icon; everything else (a Medium/web.dev-style preview card) falls back to
+ * a globe + domain label.
+ */
+function embedToLink(m: EmbedMedia): SimpleLink {
+  const platform = m.platform ?? detectEmbedPlatformFromUrl(m.url);
+  switch (platform) {
+    case "x":
+    case "twitter":
+      return { url: m.url, label: "X", icon: "x" };
+    case "instagram":
+      return { url: m.url, label: "Instagram", icon: "instagram" };
+    case "tiktok":
+      return { url: m.url, label: "TikTok", icon: "tiktok" };
+    default:
+      return { url: m.url, label: getDomainLabel(m.url), icon: "globe" };
+  }
+}
+
+/**
  * Extract link-like entries from media array.
- * Both video media and link media become external links in the summary row.
+ * Video, embed, and link media each become an external link in the summary
+ * row (the right-hand indicator rail shown when a commit is folded).
  */
 export function extractMediaLinks(
   media: Media[],
@@ -100,6 +157,8 @@ export function extractMediaLinks(
         label: platformLabel[m.platform] ?? m.platform,
         icon: m.platform,
       });
+    } else if (isEmbedMedia(m)) {
+      links.push(embedToLink(m));
     } else if (isLinkMedia(m)) {
       links.push({
         url: m.url,
@@ -256,7 +315,9 @@ export function normalizeCommit(
     case "social": {
       const socialPrimaryUrl = media[0]?.url;
 
-      // Build platform link
+      // Build platform link. The first media item is represented by the
+      // platform link itself, so the remaining items supply the extra
+      // rail indicators — avoids listing media[0] (often an embed) twice.
       const socialLinks: SimpleLink[] = [];
       if (socialPrimaryUrl) {
         socialLinks.push({
@@ -264,8 +325,10 @@ export function normalizeCommit(
           label: commit.platform,
           icon: getPlatformIcon(commit.platform),
         });
+        socialLinks.push(...extractMediaLinks(media.slice(1), locale));
+      } else {
+        socialLinks.push(...mediaLinks);
       }
-      socialLinks.push(...mediaLinks);
 
       return {
         hash,

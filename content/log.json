@@ -749,10 +749,8 @@
       },
       "media": [
         {
-          "type": "link",
-          "url": "https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509",
-          "label": "Blog",
-          "icon": "globe"
+          "type": "embed",
+          "url": "https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509"
         },
         {
           "type": "embed",

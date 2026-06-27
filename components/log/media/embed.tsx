@@ -100,7 +100,7 @@ export function Embed({
 
   // Unknown platform - fallback to link preview
   if (!platform) {
-    return <LinkPreview url={url} className={className} />;
+    return <LinkPreview url={url} size={size} className={className} />;
   }
 
   // Route to platform-specific implementation
@@ -136,7 +136,7 @@ export function Embed({
         />
       );
     default:
-      return <LinkPreview url={url} className={className} />;
+      return <LinkPreview url={url} size={size} className={className} />;
   }
 }
 
