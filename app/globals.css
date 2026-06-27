@@ -680,3 +680,31 @@ html.dragging * {
   }
 }
 
+/* =============================================================================
+   Widget Jiggle — iPad-springboard "edit mode" wobble applied to widgets
+   while the homepage grid is being rearranged. Lives on an inner wrapper so
+   it never competes with the layout transform Framer Motion drives.
+   ============================================================================= */
+
+@keyframes widget-jiggle {
+  0%,
+  100% {
+    transform: rotate(-0.55deg);
+  }
+  50% {
+    transform: rotate(0.55deg);
+  }
+}
+
+.widget-jiggle {
+  animation: widget-jiggle 0.33s ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .widget-jiggle {
+    animation: none !important;
+  }
+}
+
