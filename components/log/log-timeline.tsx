@@ -152,7 +152,13 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
           tagIndex > 0 && "mt-6 pt-6 border-t border-border/30",
         )}
       >
-        <span className="inline-flex items-center bg-background/80 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border border-border rounded-full">
+        {/* Fill is a translucent *darken* (semi-transparent black) rather
+            than an opaque tint. Compositing black at alpha α over a backdrop
+            B yields (1-α)·B — a pure multiplicative darken. On a solid
+            background that matches the old "shade darker than the page" look;
+            over the ambient weather gradient it darkens the gradient locally
+            (carrying its hue) instead of stamping a flat neutral patch. */}
+        <span className="inline-flex items-center bg-black/5 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border border-border rounded-full">
           {tagIndex === 0
             ? "HEAD"
             : getLocalizedTagTitle(tag, locale).toUpperCase()}
