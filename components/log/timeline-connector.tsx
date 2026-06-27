@@ -26,6 +26,12 @@ import { cn } from "@/lib/utils";
 interface TimelineConnectorProps {
   fromHash: string;
   toHash: string;
+  /** Gap (px) from source icon center where the line should start.
+   *  Match the row's iconGapPx — 7 for regular icons, 10 for role
+   *  rings, 3 for event dots. */
+  fromGap: number;
+  /** Gap (px) from target icon center where the line should end. */
+  toGap: number;
   isActive: boolean;
 }
 
@@ -36,21 +42,17 @@ interface Geom {
   x: number;
   /** SVG height = distance between the two endpoint icon centers. */
   height: number;
-  /** Gap (px) at the start so the line meets the source icon as a node. */
+  /** Gap (px) at the start so the line meets the top endpoint as a node. */
   gapStart: number;
-  /** Gap (px) at the end so the line meets the target icon (or its ring). */
+  /** Gap (px) at the end so the line meets the bottom endpoint. */
   gapEnd: number;
 }
-
-// Endpoint gaps — match the per-row rail's iconGapPx so the line
-// terminates the same way at icons and rings. Target is the role
-// (always has a ring at radius ~9) so it needs the larger gap.
-const SOURCE_GAP_PX = 7;
-const TARGET_GAP_PX = 10;
 
 export function TimelineConnector({
   fromHash,
   toHash,
+  fromGap,
+  toGap,
   isActive,
 }: TimelineConnectorProps) {
   const selfRef = useRef<HTMLDivElement | null>(null);
@@ -87,8 +89,8 @@ export function TimelineConnector({
         top,
         x: fx,
         height,
-        gapStart: sourceOnTop ? SOURCE_GAP_PX : TARGET_GAP_PX,
-        gapEnd: sourceOnTop ? TARGET_GAP_PX : SOURCE_GAP_PX,
+        gapStart: sourceOnTop ? fromGap : toGap,
+        gapEnd: sourceOnTop ? toGap : fromGap,
       });
     };
 
@@ -102,7 +104,7 @@ export function TimelineConnector({
       ro.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [fromHash, toHash]);
+  }, [fromHash, toHash, fromGap, toGap]);
 
   return (
     <div

@@ -817,6 +817,7 @@
       "id": "bilibili-sabbatical-2023",
       "type": "social",
       "tagId": "lynx-era",
+      "attachedTo": "event-career-break",
       "title": {
         "en": "Going home? Switching jobs? Taking time off? — Late-night reflections from a ten-year coder",
         "zh": "回国？跳槽？休假？十年码农卷不动了夜聊人生感悟"
@@ -840,6 +841,20 @@
         "Sabbatical"
       ],
       "language": "zh"
+    },
+    {
+      "id": "event-career-break",
+      "type": "event",
+      "tagId": "lynx-era",
+      "date": "2022-11",
+      "title": {
+        "en": "career break · sabbatical in China",
+        "zh": "职业间隔期 · 回国休整"
+      },
+      "description": {
+        "en": "",
+        "zh": ""
+      }
     },
     {
       "id": "event-moved-to-us",

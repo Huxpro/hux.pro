@@ -73,14 +73,25 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
   );
 
   // Compute beam specs for explicit `attachedTo` attachments. Both
-  // endpoints (source commit + target role) carry the same spec so
-  // hovering/focusing/expanding EITHER end brightens the connector
-  // line that links them.
+  // endpoints (source + target) carry the same spec so hovering/
+  // focusing/expanding EITHER end brightens the connector line.
+  // Per-endpoint gap is derived from the commit's type so the line
+  // meets each endpoint at the right radius (role ring vs icon vs
+  // event dot).
+  const gapFor = (type: CommitData["type"]) =>
+    type === "role" ? 10 : type === "event" ? 3 : 7;
+
   const { railInfo, beamSpecs, attachments } = useMemo(() => {
     const rail = computeRail(commits);
     const explicit = computeBeams(commits);
 
     const specs: (BeamSpec | null)[] = commits.map(() => null);
+
+    const attachmentsWithGaps = explicit.map((b) => ({
+      ...b,
+      fromGap: gapFor(commits[b.fromIdx].type),
+      toGap: gapFor(commits[b.toIdx].type),
+    }));
 
     for (const b of explicit) {
       if (rail[b.fromIdx].segmentId === null) {
@@ -97,7 +108,11 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
       }
     }
 
-    return { railInfo: rail, beamSpecs: specs, attachments: explicit };
+    return {
+      railInfo: rail,
+      beamSpecs: specs,
+      attachments: attachmentsWithGaps,
+    };
   }, [commits]);
 
   return (
@@ -181,6 +196,8 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
             key={`${a.fromHash}->${a.toHash}`}
             fromHash={a.fromHash}
             toHash={a.toHash}
+            fromGap={a.fromGap}
+            toGap={a.toGap}
             isActive={
               activeBeam?.fromHash === a.fromHash &&
               activeBeam?.toHash === a.toHash

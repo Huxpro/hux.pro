@@ -714,12 +714,14 @@ export function computeRail(commits: Commit[]): RailInfo[] {
 }
 
 /**
- * Compute explicit beam links: commits with `attachedTo: "<role-id>"`
- * pointing at a role in the same tag's commit array. Rendered as an
- * animated ASCII particle stream traveling up the right gutter.
+ * Compute explicit attachment links: commits with `attachedTo: "<id>"`
+ * pointing at another commit in the same tag. Rendered as a persistent
+ * connector line in the icon column (see TimelineConnector).
  *
- * Skips when the target role is missing or not a role — silent fall
- * through so a typo in JSON doesn't crash the render.
+ * Targets can be roles (an artifact attached to a tenure context) or
+ * events (an artifact attached to an ambient period like a sabbatical).
+ * Silently skips when the target is missing — a typo in JSON degrades
+ * to "no connector" rather than crashing.
  */
 export function computeBeams(commits: Commit[]): BeamLink[] {
   const beams: BeamLink[] = [];
@@ -727,7 +729,9 @@ export function computeBeams(commits: Commit[]): BeamLink[] {
     const c = commits[i];
     if (typeof c.attachedTo !== "string") continue;
     const toIdx = commits.findIndex((x) => x.id === c.attachedTo);
-    if (toIdx < 0 || commits[toIdx].type !== "role") continue;
+    if (toIdx < 0) continue;
+    const targetType = commits[toIdx].type;
+    if (targetType !== "role" && targetType !== "event") continue;
     beams.push({
       fromIdx: i,
       toIdx,
