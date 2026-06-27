@@ -17,6 +17,7 @@ import {
   localizeOptional,
   formatCommitDate,
   computeCommitHash,
+  getCommitLanguageBadge,
   isVideoMedia,
   isLinkMedia,
   isImageMedia,
@@ -43,9 +44,21 @@ export interface NormalizedCommit {
   description: string;
   date: string;
 
+  /** "EN" / "中文" when the work's language differs from the viewer's locale. */
+  languageBadge: "EN" | "中文" | null;
+
   // Type-derived metadata
   meta?: string;
+  /** When set, the meta line is rendered as an external link. */
+  metaUrl?: string;
   subtitle?: string;
+
+  /**
+   * Optional label that replaces the date slot when the parent tag has
+   * `hideDate: true`. For role commits this is the location (e.g. city);
+   * other commit types leave it undefined.
+   */
+  dateSlotOverride?: string;
 
   // Expandable content
   commentary?: string;
@@ -152,6 +165,7 @@ export function normalizeCommit(
   const hash = computeCommitHash(commit.id);
   const tags = commit.tags ?? [];
   const thumbnail = deriveThumbnail(media);
+  const languageBadge = getCommitLanguageBadge(commit, locale);
 
   // Type-specific extraction
   switch (commit.type) {
@@ -160,6 +174,7 @@ export function normalizeCommit(
       return {
         hash,
         type: commit.type,
+        languageBadge,
         title,
         description,
         date,
@@ -174,27 +189,18 @@ export function normalizeCommit(
     }
 
     case "talk": {
-      // Add conference link if URL exists
-      const talkLinks: SimpleLink[] = [];
-      if (commit.conference.url) {
-        talkLinks.push({
-          url: commit.conference.url,
-          label: commit.conference.name,
-          icon: "globe",
-        });
-      }
-      talkLinks.push(...mediaLinks);
-
       return {
         hash,
         type: commit.type,
+        languageBadge,
         title,
         description,
         date,
         meta: commit.conference.name,
+        metaUrl: commit.conference.url,
         tags,
         commentary,
-        links: talkLinks,
+        links: mediaLinks,
         nonLinkMedia,
         thumbnail,
         secondaryLine: date,
@@ -202,26 +208,18 @@ export function normalizeCommit(
     }
 
     case "post": {
-      // Add post URL as a link
-      const postLinks: SimpleLink[] = [
-        {
-          url: commit.url,
-          label: commit.publication.name,
-          icon: "external",
-        },
-        ...mediaLinks,
-      ];
-
       return {
         hash,
         type: commit.type,
+        languageBadge,
         title,
         description,
         date,
         meta: commit.publication.name,
+        metaUrl: commit.url,
         tags,
         commentary,
-        links: postLinks,
+        links: mediaLinks,
         nonLinkMedia,
         thumbnail: thumbnail ? { ...thumbnail, linkUrl: commit.url } : undefined,
         secondaryLine: `${commit.publication.name} · ${date}`,
@@ -230,34 +228,28 @@ export function normalizeCommit(
 
     case "role": {
       const company = localize(commit.company, locale);
-      const roleTitle = localize(commit.roleTitle, locale);
-
-      // Build a website link if url exists
-      const roleLinks: SimpleLink[] = [...mediaLinks];
-      if (commit.url) {
-        roleLinks.unshift({
-          url: commit.url,
-          label: locale === "zh" ? "网站" : "Website",
-          icon: "globe",
-        });
-      }
 
       return {
         hash,
         type: commit.type,
-        title: company,
+        languageBadge,
+        title,
         description,
         date,
-        meta: commit.location,
-        subtitle: roleTitle,
+        // Company sits beneath the title (parallels talk's conference name).
+        // When tag.hideDate moves `location` into the date slot, the meta
+        // line stays as the institution.
+        meta: company,
+        metaUrl: commit.url,
+        dateSlotOverride: commit.location,
         tags,
         commentary,
-        links: roleLinks,
+        links: mediaLinks,
         nonLinkMedia,
         thumbnail: thumbnail
           ? { ...thumbnail, linkUrl: commit.url }
           : undefined,
-        secondaryLine: roleTitle,
+        secondaryLine: company,
       };
     }
 
@@ -278,6 +270,7 @@ export function normalizeCommit(
       return {
         hash,
         type: commit.type,
+        languageBadge,
         title,
         description,
         date,

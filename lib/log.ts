@@ -134,11 +134,42 @@ interface BaseCommit {
    */
   listed?: boolean;
   /**
+   * The work's own language (intrinsic metadata, e.g. the language a talk
+   * was delivered in, an article was written in). When this differs from
+   * the viewer's locale, a small badge (EN / ZH) is rendered on the row.
+   * Omit when not meaningful.
+   */
+  language?: CommitLanguage;
+  /**
+   * Which locale's listings should include this commit (visibility filter).
+   * Defaults to "both" — independent of `language`, since you may want to
+   * feature a Chinese talk in the English view.
+   */
+  listedIn?: CommitLanguage;
+  /**
    * Attached media - rendered as video players, embeds, OG previews, etc.
    * Composable: any commit type can have any combination of media.
    */
   media?: Media[];
+  /**
+   * Explicit role attachment.
+   * - `undefined` (default): use tenure auto-detect — a commit dated
+   *   within a role's [date, endDate] window joins that role's bracket.
+   * - `"<role-id>"`: force-attach to that role even if the commit is
+   *   outside its tenure window. Rendered as an animated beam when the
+   *   role is non-adjacent in the sort order.
+   * - `null`: force-detach — no rail or beam even if in tenure.
+   */
+  attachedTo?: string | null;
 }
+
+/**
+ * The language of a work or its visibility scope.
+ * - "en" / "zh": the work is in that language, or visibility is restricted
+ *   to that locale.
+ * - "both": bilingual, or visible in both locales.
+ */
+export type CommitLanguage = "en" | "zh" | "both";
 
 // -----------------------------------------------------------------------------
 // Project Commit
@@ -186,7 +217,6 @@ export interface PostCommit extends BaseCommit {
 export interface RoleCommit extends BaseCommit {
   type: "role";
   company: LocalizedString;
-  roleTitle: LocalizedString;
   location?: string;
   url?: string;
 }
@@ -242,6 +272,12 @@ export interface Tag {
   endDate?: string; // YYYY-MM or undefined for present
   coverImage?: string;
   accentColor?: string;
+  /**
+   * Hide dates for this tag (tag header range and per-commit dates).
+   * Used for ancillary sections like Education where the location
+   * is shown in the date slot instead.
+   */
+  hideDate?: boolean;
 }
 
 // =============================================================================
@@ -461,11 +497,31 @@ export function getCommitTypeIcon(type: CommitType): string {
 // =============================================================================
 
 /**
- * Sort commits by date (most recent first)
+ * Sort key for a commit. Roles use their `endDate` so they sit at the
+ * TOP of their tenure's segment (with all the projects/talks they did
+ * during that role appearing below). Ongoing roles (no endDate) sort
+ * at the very top.
+ */
+function commitSortKey(c: Commit): string {
+  if (c.type === "role") {
+    return c.endDate && c.endDate !== "present" ? c.endDate : "9999-12";
+  }
+  return c.date;
+}
+
+/**
+ * Sort commits by date (most recent first). Roles use their endDate so
+ * they anchor the top of their segment; non-roles use their own date.
+ * When two commits tie on the effective date, roles come FIRST so the
+ * role row appears above projects dated at its end date.
  */
 export function sortCommitsByDate<T extends Commit>(commits: T[]): T[] {
   return [...commits].sort((a, b) => {
-    return b.date.localeCompare(a.date);
+    const d = commitSortKey(b).localeCompare(commitSortKey(a));
+    if (d !== 0) return d;
+    const aR = a.type === "role" ? 0 : 1;
+    const bR = b.type === "role" ? 0 : 1;
+    return aR - bR;
   });
 }
 
@@ -486,6 +542,40 @@ export function isCommitListed(commit: Commit): boolean {
   return commit.listed !== false;
 }
 
+/**
+ * True when the commit's `listedIn` scope includes the given locale.
+ * Commits with no `listedIn` field default to "both" (visible in any locale).
+ */
+export function isCommitListedIn(commit: Commit, locale: Locale): boolean {
+  const scope = commit.listedIn ?? "both";
+  return scope === "both" || scope === locale;
+}
+
+/**
+ * Combines `listed` (global hide) and `listedIn` (per-locale scope).
+ * The single visibility predicate for index surfaces.
+ */
+export function isCommitVisibleIn(commit: Commit, locale: Locale): boolean {
+  return isCommitListed(commit) && isCommitListedIn(commit, locale);
+}
+
+/**
+ * The badge label to show for a commit whose intrinsic language differs
+ * from the viewer's locale. Returns null when no badge should appear:
+ * no language set, language is "both", or language matches locale.
+ *
+ * Mirrors the /writing list convention: each language is labeled in its
+ * own native form ("EN" / "中文") rather than ISO codes.
+ */
+export function getCommitLanguageBadge(
+  commit: Commit,
+  locale: Locale,
+): "EN" | "中文" | null {
+  const lang = commit.language;
+  if (!lang || lang === "both" || lang === locale) return null;
+  return lang === "en" ? "EN" : "中文";
+}
+
 // =============================================================================
 // Timeline Data Derivation
 // =============================================================================
@@ -496,17 +586,157 @@ export interface TimelineData {
 }
 
 /**
+ * Per-commit rail info, used to render the right-side bracket on /works.
+ */
+export interface RailInfo {
+  /** ASCII char: ┐ (role top), │ (mid), ┘ (last), or "" when no rail. */
+  rail: string;
+  /** The role commit's id that owns this row's segment, or null when
+   *  the row has no rail (solo role or out-of-tenure commit). */
+  segmentId: string | null;
+}
+
+/**
+ * A non-adjacent role attachment, rendered as an animated ASCII beam
+ * that climbs the right gutter from `fromIdx` row up to `toIdx` row.
+ */
+export interface BeamLink {
+  fromIdx: number;
+  toIdx: number;
+  fromHash: string;
+  toHash: string;
+  roleId: string;
+}
+
+/**
+ * Compute the right-side rail bracket info for each commit in a tag.
+ * The bracket attaches a role (top, sorted by endDate) to every commit
+ * dated within its tenure window [role.date, role.endDate], then wraps
+ * up at the last in-tenure commit. Rendered right of the dates,
+ * corners face LEFT.
+ *
+ *   ┐  role anchor — top of a multi-commit segment; line goes down
+ *   │  mid-segment
+ *   ┘  last commit in the segment; wraps the line up-left
+ *      (empty)  solo role, out-of-tenure commit, or no role context
+ *
+ * Tenure is compared at month granularity (YYYY-MM), so commits whose
+ * date includes a day still match by month.
+ *
+ * Honours `attachedTo`:
+ *   - `null`     → force-detach, no rail even if in tenure.
+ *   - `"<id>"`   → handled by computeBeams (drawn as a beam, not a bracket).
+ *   - undefined  → tenure auto-detect (default).
+ */
+export function computeRail(commits: Commit[]): RailInfo[] {
+  const result: RailInfo[] = commits.map(() => ({
+    rail: "",
+    segmentId: null,
+  }));
+
+  const month = (s: string) => s.slice(0, 7);
+
+  // Each non-role commit joins the nearest role above ONLY if its date
+  // falls inside that role's tenure AND it has not been explicitly
+  // re-targeted via attachedTo.
+  const segmentIdx: number[] = new Array(commits.length).fill(-1);
+  let currentRole = -1;
+  for (let i = 0; i < commits.length; i++) {
+    const c = commits[i];
+    if (c.type === "role") {
+      currentRole = i;
+      continue;
+    }
+    // Explicit detach or re-target opts out of the bracket — beams cover
+    // the explicit-attach case visually.
+    if (c.attachedTo !== undefined) continue;
+    if (currentRole === -1) continue;
+    const role = commits[currentRole] as RoleCommit;
+    const start = month(role.date);
+    const end =
+      role.endDate && role.endDate !== "present"
+        ? month(role.endDate)
+        : "9999-12";
+    const cm = month(c.date);
+    if (cm >= start && cm <= end) {
+      segmentIdx[i] = currentRole;
+    }
+  }
+
+  // segmentEnd[roleIdx] = index of the bottom (oldest) commit in that
+  // role's tenure window.
+  const segmentEnd = new Map<number, number>();
+  for (let i = commits.length - 1; i >= 0; i--) {
+    const ctx = segmentIdx[i];
+    if (ctx !== -1 && !segmentEnd.has(ctx)) segmentEnd.set(ctx, i);
+  }
+
+  for (let i = 0; i < commits.length; i++) {
+    if (commits[i].type === "role") {
+      // Role gets a bracket when at least one commit below sits in its
+      // tenure window. Solo roles render no bracket (beams handle their
+      // explicit attachments).
+      const endIdx = segmentEnd.get(i);
+      if (endIdx === undefined) continue;
+      result[i].segmentId = commits[i].id;
+      result[i].rail = "┐";
+    } else if (segmentIdx[i] !== -1) {
+      const ctx = segmentIdx[i];
+      const endIdx = segmentEnd.get(ctx)!;
+      result[i].segmentId = commits[ctx].id;
+      result[i].rail = i === endIdx ? "┘" : "│";
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Compute explicit beam links: commits with `attachedTo: "<role-id>"`
+ * pointing at a role in the same tag's commit array. Rendered as an
+ * animated ASCII particle stream traveling up the right gutter.
+ *
+ * Skips when the target role is missing or not a role — silent fall
+ * through so a typo in JSON doesn't crash the render.
+ */
+export function computeBeams(commits: Commit[]): BeamLink[] {
+  const beams: BeamLink[] = [];
+  for (let i = 0; i < commits.length; i++) {
+    const c = commits[i];
+    if (typeof c.attachedTo !== "string") continue;
+    const toIdx = commits.findIndex((x) => x.id === c.attachedTo);
+    if (toIdx < 0 || commits[toIdx].type !== "role") continue;
+    beams.push({
+      fromIdx: i,
+      toIdx,
+      fromHash: computeCommitHash(c.id),
+      toHash: computeCommitHash(commits[toIdx].id),
+      roleId: commits[toIdx].id,
+    });
+  }
+  return beams;
+}
+
+
+/**
  * Build the timeline data structure from raw LogData.
  * Single source of truth for /works rendering and editor preview.
+ *
+ * When `locale` is provided, commits are filtered by per-locale visibility
+ * (`listedIn`). Omit the locale to include every listed commit (useful for
+ * the editor preview).
  */
-export function buildTimelineData(logData: LogData): TimelineData[] {
-  const listedCommits = logData.commits.filter(isCommitListed);
+export function buildTimelineData(
+  logData: LogData,
+  locale?: Locale,
+): TimelineData[] {
+  const visible = logData.commits.filter((c) =>
+    locale ? isCommitVisibleIn(c, locale) : isCommitListed(c),
+  );
   const sortedTags = sortTagsByDate(logData.tags);
   return sortedTags.map((tag) => ({
     tag,
-    commits: sortCommitsByDate(
-      listedCommits.filter((c) => c.tagId === tag.id)
-    ),
+    commits: sortCommitsByDate(visible.filter((c) => c.tagId === tag.id)),
   }));
 }
 
@@ -535,9 +765,16 @@ export function resolveGroupCommits(
   group: Group,
   commits: Commit[],
   now: Date = new Date(),
+  locale?: Locale,
 ): Commit[] {
   const includeUnlisted = group.includeUnlisted ?? false;
-  const base = includeUnlisted ? commits : commits.filter(isCommitListed);
+  const localeScoped = (c: Commit) =>
+    !locale || isCommitListedIn(c, locale);
+
+  const listedFilter = (c: Commit) =>
+    (includeUnlisted || isCommitListed(c)) && localeScoped(c);
+
+  const base = commits.filter(listedFilter);
 
   const items: Commit[] =
     "commitIds" in group && group.commitIds
@@ -547,7 +784,9 @@ export function resolveGroupCommits(
       : (() => {
           const q = group.query;
           const qIncludeUnlisted = q.includeUnlisted ?? false;
-          const pool = qIncludeUnlisted ? commits : base;
+          const pool = (
+            qIncludeUnlisted ? commits.filter(localeScoped) : base
+          );
 
           return pool
             .filter((c) => (q.type ? c.type === q.type : true))

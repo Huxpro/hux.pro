@@ -11,7 +11,7 @@
  * Consumes NormalizedCommit — fully type-agnostic.
  */
 
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { NormalizedCommit } from "./commit-data";
 import { commitIcons } from "./icons";
@@ -25,11 +25,37 @@ import {
 } from "./embeds/shared";
 import { MediaRenderer } from "./media";
 
+export interface BeamSpec {
+  fromHash: string;
+  toHash: string;
+  roleId: string;
+}
+
 interface TimelineCommitProps {
   data: NormalizedCommit;
   cursorPreview?: ReactNode;
   defaultExpanded?: boolean;
   className?: string;
+  hideDate?: boolean;
+  /** Git-graph rail char to draw on the right (`┐`, `│`, `┘` or empty). */
+  rail?: string;
+  /** True when this row IS the role that owns its segment. */
+  isRole?: boolean;
+  /** The role id that owns this row's rail segment. */
+  segmentId?: string | null;
+  /** True when the parent timeline currently highlights this segment. */
+  isSegmentActive?: boolean;
+  /** The beam this row emits when hovered (from this commit up to the
+   *  role). When null, the row has nothing to beam. */
+  beamSpec?: BeamSpec | null;
+  /** Notify the parent the row would like its beam rendered. */
+  onBeamSet?: (spec: BeamSpec) => void;
+  /** Notify the parent the row no longer wants its beam rendered. The
+   *  parent should ignore the call if its current beam doesn't match
+   *  this spec — guards against React effect-ordering race conditions
+   *  where a sibling's stale clear would otherwise overwrite a fresh
+   *  hover on another row. */
+  onBeamClear?: (spec: BeamSpec) => void;
 }
 
 export function TimelineCommit({
@@ -37,6 +63,14 @@ export function TimelineCommit({
   cursorPreview,
   defaultExpanded = false,
   className,
+  hideDate = false,
+  rail,
+  isRole = false,
+  segmentId = null,
+  isSegmentActive = false,
+  beamSpec = null,
+  onBeamSet,
+  onBeamClear,
 }: TimelineCommitProps) {
   const Icon = commitIcons[data.type];
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -68,6 +102,46 @@ export function TimelineCommit({
     [],
   );
 
+  // Any row that has its own beam spec drives that beam when hovered
+  // or expanded. Roles emit a "comprehensive" beam (segmentEnd → role),
+  // members emit their own (this commit → role).
+  //
+  // Touch caveat: tapping a row fires a synthetic mouseenter that
+  // sticks isHovered=true and never unsticks on the same row (mouseleave
+  // only fires when the user taps elsewhere). That left the beam
+  // pinned on after collapsing on mobile. We use pointer events with
+  // a pointerType guard so only mouse/pen drive the hover state —
+  // touch is ignored and isExpanded becomes the sole signal on phones.
+  const participatesInSegment = !!beamSpec;
+  const [isHovered, setIsHovered] = useState(false);
+  const handleSegmentPointerEnter = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!participatesInSegment) return;
+      if (e.pointerType === "touch") return;
+      setIsHovered(true);
+    },
+    [participatesInSegment],
+  );
+  const handleSegmentPointerLeave = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!participatesInSegment) return;
+      if (e.pointerType === "touch") return;
+      setIsHovered(false);
+    },
+    [participatesInSegment],
+  );
+
+  useEffect(() => {
+    if (!participatesInSegment || !beamSpec) return;
+    if (isHovered || isExpanded) {
+      onBeamSet?.(beamSpec);
+    } else {
+      // Pass our own spec so the parent can guard against a stale clear
+      // (a sibling's later effect overwriting a fresh set on another row).
+      onBeamClear?.(beamSpec);
+    }
+  }, [participatesInSegment, beamSpec, isHovered, isExpanded, onBeamSet, onBeamClear]);
+
   const rowContent = (
     <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
       <span className="hidden @sm:inline font-mono text-xs text-muted-foreground/40 select-all leading-5">
@@ -81,6 +155,11 @@ export function TimelineCommit({
       <div className="flex items-center gap-2 min-w-0">
         <span className="text-sm text-foreground min-w-0 flex-1">
           {data.title}
+          {data.languageBadge && (
+            <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
+              {data.languageBadge}
+            </span>
+          )}
         </span>
 
         <div
@@ -108,14 +187,35 @@ export function TimelineCommit({
           ))}
         </div>
 
-        <span className="font-mono text-xs text-muted-foreground/50 shrink-0 ml-auto">
-          {data.date}
-        </span>
+        {hideDate ? (
+          data.dateSlotOverride && (
+            <span className="font-mono text-xs text-muted-foreground/50 shrink-0 ml-auto">
+              {data.dateSlotOverride}
+            </span>
+          )
+        ) : (
+          <span className="font-mono text-xs text-muted-foreground/50 shrink-0 ml-auto">
+            {data.date}
+          </span>
+        )}
       </div>
 
       {data.meta && (
         <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-muted-foreground/40">
-          {data.meta}
+          {data.metaUrl ? (
+            <a
+              href={data.metaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              {data.meta}
+              <span aria-hidden className="text-[0.7rem]">↗</span>
+            </a>
+          ) : (
+            data.meta
+          )}
         </div>
       )}
 
@@ -146,6 +246,7 @@ export function TimelineCommit({
           {data.stats && <Stats {...data.stats} />}
         </div>
       )}
+
     </div>
   );
 
@@ -157,8 +258,14 @@ export function TimelineCommit({
           tabIndex={rowOnClick ? 0 : undefined}
           onClick={rowOnClick}
           onKeyDown={rowOnClick ? handleKeyDown : undefined}
+          onPointerEnter={
+            participatesInSegment ? handleSegmentPointerEnter : undefined
+          }
+          onPointerLeave={
+            participatesInSegment ? handleSegmentPointerLeave : undefined
+          }
           className={cn(
-            "group -mx-3 px-3 py-2.5 rounded-lg transition-colors duration-150",
+            "group relative -mx-3 px-3 py-2.5 rounded-lg transition-colors duration-150",
             rowOnClick ? "cursor-pointer" : "cursor-default",
             "@container hover:bg-muted/20 active:bg-muted/30",
           )}

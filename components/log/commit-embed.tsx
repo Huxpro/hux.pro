@@ -15,7 +15,7 @@ import type { Commit as CommitData } from "@/lib/log";
 import { getCommitThumbnail, localize } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import { normalizeCommit } from "./commit-data";
-import { TimelineCommit } from "./timeline-commit";
+import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
 
 // =============================================================================
@@ -30,6 +30,20 @@ export interface CommitProps {
   variant?: CommitVariant;
   defaultExpanded?: boolean;
   className?: string;
+  hideDate?: boolean;
+  /** Pre-computed git-graph rail char for the timeline gutter. */
+  rail?: string;
+  /** The role commit's id that owns this row's rail segment. */
+  segmentId?: string | null;
+  /** True when the parent timeline currently highlights this segment. */
+  isSegmentActive?: boolean;
+  /** The beam this row emits when hovered. */
+  beamSpec?: BeamSpec | null;
+  /** Notify the parent the row would like its beam rendered. */
+  onBeamSet?: (spec: BeamSpec) => void;
+  /** Notify the parent the row no longer wants its beam rendered.
+   *  Parent should ignore stale clears that don't match the current beam. */
+  onBeamClear?: (spec: BeamSpec) => void;
 }
 
 // =============================================================================
@@ -42,6 +56,13 @@ export function Commit({
   variant = "card",
   defaultExpanded = false,
   className,
+  hideDate = false,
+  rail,
+  segmentId,
+  isSegmentActive = false,
+  beamSpec = null,
+  onBeamSet,
+  onBeamClear,
 }: CommitProps) {
   // Runtime guard: MDX/JSON inputs can bypass static typing.
   if (
@@ -66,6 +87,14 @@ export function Commit({
           cursorPreview={cursorPreview}
           defaultExpanded={defaultExpanded}
           className={className}
+          hideDate={hideDate}
+          rail={rail}
+          isRole={commit.type === "role"}
+          segmentId={segmentId ?? null}
+          isSegmentActive={isSegmentActive}
+          beamSpec={beamSpec}
+          onBeamSet={onBeamSet}
+          onBeamClear={onBeamClear}
         />
       );
 
@@ -78,7 +107,11 @@ export function Commit({
             className,
           )}
         >
-          <TimelineCommit data={data} defaultExpanded={defaultExpanded} />
+          <TimelineCommit
+            data={data}
+            defaultExpanded={defaultExpanded}
+            hideDate={hideDate}
+          />
         </div>
       );
 

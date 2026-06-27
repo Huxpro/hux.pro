@@ -138,7 +138,6 @@ function defaultFieldsForType(type: CommitType): Partial<Commit> {
     case "role":
       return {
         company: { en: "", zh: "" },
-        roleTitle: { en: "", zh: "" },
       };
     case "social":
       return { platform: "" };
@@ -530,20 +529,6 @@ function TypeSpecificFields({
             value={commit.company.zh}
             onChange={(v) =>
               onUpdate({ company: { ...commit.company, zh: v } })
-            }
-          />
-          <Field
-            label="Role EN"
-            value={commit.roleTitle.en}
-            onChange={(v) =>
-              onUpdate({ roleTitle: { ...commit.roleTitle, en: v } })
-            }
-          />
-          <Field
-            label="Role ZH"
-            value={commit.roleTitle.zh}
-            onChange={(v) =>
-              onUpdate({ roleTitle: { ...commit.roleTitle, zh: v } })
             }
           />
           <Field

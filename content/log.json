@@ -72,6 +72,20 @@
       "startDate": "2012-09",
       "endDate": "2017-07",
       "accentColor": "oklch(0.6 0.1 300)"
+    },
+    {
+      "id": "education",
+      "title": {
+        "en": "Education",
+        "zh": "教育"
+      },
+      "tagline": {
+        "en": "Schools and degrees",
+        "zh": "求学经历"
+      },
+      "startDate": "2012-01",
+      "endDate": "2019-12",
+      "hideDate": true
     }
   ],
   "groups": [
@@ -209,7 +223,8 @@
         "Architecture",
         "Scale",
         "Performance"
-      ]
+      ],
+      "language": "zh"
     },
     {
       "id": "feday-2023",
@@ -239,7 +254,8 @@
         "Frontend",
         "Architecture",
         "Opinion"
-      ]
+      ],
+      "language": "zh"
     },
     {
       "id": "x-thread-lynx-perf",
@@ -271,8 +287,8 @@
       "type": "role",
       "tagId": "lynx-era",
       "title": {
-        "en": "Staff Engineer / Architect, Lynx",
-        "zh": "Lynx 架构师"
+        "en": "Staff Engineer / Architect",
+        "zh": "架构师"
       },
       "description": {
         "en": "Co-leading Lynx architecture and developer experience in ByteDance's Web Infra Cross Platform team.",
@@ -282,10 +298,6 @@
       "company": {
         "en": "ByteDance",
         "zh": "字节跳动"
-      },
-      "roleTitle": {
-        "en": "Staff Engineer / Architect",
-        "zh": "架构师"
       },
       "tags": [
         "Leadership",
@@ -338,6 +350,7 @@
       "id": "opensrc-pioneer-2022",
       "type": "social",
       "tagId": "react-era",
+      "attachedTo": "meta-engineer",
       "title": {
         "en": "China Open Source Pioneer 33",
         "zh": "中国开源先锋 33 人"
@@ -388,7 +401,8 @@
       "tags": [
         "React",
         "Open Source"
-      ]
+      ],
+      "language": "zh"
     },
     {
       "id": "gitee-cover-2022",
@@ -444,7 +458,8 @@
       "tags": [
         "React",
         "Patterns"
-      ]
+      ],
+      "language": "en"
     },
     {
       "id": "rnshow-hermes-2021",
@@ -474,7 +489,8 @@
         "Hermes",
         "React Native",
         "iOS"
-      ]
+      ],
+      "language": "en"
     },
     {
       "id": "react-forget",
@@ -585,8 +601,8 @@
       "type": "role",
       "tagId": "react-era",
       "title": {
-        "en": "Software Engineer, Meta",
-        "zh": "Meta 软件工程师"
+        "en": "Software Engineer",
+        "zh": "软件工程师"
       },
       "description": {
         "en": "React Technologies team — Hermes JS engine, React Forget compiler (founding eng + tech lead).",
@@ -597,10 +613,6 @@
       "company": {
         "en": "Meta",
         "zh": "Meta"
-      },
-      "roleTitle": {
-        "en": "Software Engineer",
-        "zh": "软件工程师"
       },
       "tags": [
         "React",
@@ -613,8 +625,8 @@
       "type": "role",
       "tagId": "react-era",
       "title": {
-        "en": "Software Engineer Intern, Meta (XROS)",
-        "zh": "Meta 实习 (XROS)"
+        "en": "Software Engineer Intern",
+        "zh": "软件工程实习生"
       },
       "description": {
         "en": "Internship at Reality Lab Research, working on XROS.",
@@ -626,10 +638,6 @@
         "en": "Meta",
         "zh": "Meta"
       },
-      "roleTitle": {
-        "en": "Software Engineer Intern",
-        "zh": "软件工程实习生"
-      },
       "tags": [
         "XR",
         "Research"
@@ -640,8 +648,8 @@
       "type": "role",
       "tagId": "react-era",
       "title": {
-        "en": "Software Engineer Intern, Meta (ReasonML)",
-        "zh": "Meta 实习 (ReasonML)"
+        "en": "Software Engineer Intern",
+        "zh": "软件工程实习生"
       },
       "description": {
         "en": "Internship on ReasonML/ReScript team, working on Messenger Web.",
@@ -653,10 +661,6 @@
         "en": "Meta",
         "zh": "Meta"
       },
-      "roleTitle": {
-        "en": "Software Engineer Intern",
-        "zh": "软件工程实习生"
-      },
       "tags": [
         "ReasonML",
         "OCaml",
@@ -666,10 +670,10 @@
     {
       "id": "rit-ms",
       "type": "role",
-      "tagId": "react-era",
+      "tagId": "education",
       "title": {
-        "en": "M.S. Computer Science, RIT",
-        "zh": "RIT 计算机科学硕士"
+        "en": "M.S. Computer Science",
+        "zh": "计算机科学 硕士"
       },
       "description": {
         "en": "Master's in Computer Science at Rochester Institute of Technology, focusing on programming languages under Prof. Matthew Fluet.",
@@ -681,15 +685,12 @@
         "en": "Rochester Institute of Technology",
         "zh": "罗切斯特理工学院"
       },
-      "roleTitle": {
-        "en": "M.S. Student",
-        "zh": "硕士研究生"
-      },
       "tags": [
         "PL",
         "Compiler",
         "Education"
-      ]
+      ],
+      "location": "NY, USA"
     },
     {
       "id": "jsconf-china-2017",
@@ -697,7 +698,7 @@
       "tagId": "pwa-era",
       "title": {
         "en": "Upgrading to Progressive Web Apps",
-        "zh": "渐进式 Web 应用升级指南"
+        "zh": "Upgrading to Progressive Web Apps"
       },
       "description": {
         "en": "A practical guide to upgrading existing web applications to Progressive Web Apps.",
@@ -725,18 +726,19 @@
         "PWA",
         "Service Worker",
         "JavaScript"
-      ]
+      ],
+      "language": "zh"
     },
     {
       "id": "eleme-pwa",
       "type": "role",
       "tagId": "pwa-era",
       "title": {
-        "en": "PWA Consultant, Ele.me",
-        "zh": "饿了么 PWA 顾问"
+        "en": "Visiting Tech Lead, PWA",
+        "zh": "顾问专家，PWA"
       },
       "description": {
-        "en": "Consulted on building China's first influential Progressive Web App.",
+        "en": "Led the Ele.me PWA upgrade, pioneering the use of PWA techniques for Vue-based Multi-Page Apps (MPA). \n\nFeatured by web.dev and highlighted at Google I/O 2017.",
         "zh": "指导构建中国首个有影响力的 Progressive Web App。"
       },
       "date": "2017-02",
@@ -745,16 +747,16 @@
         "en": "Ele.me",
         "zh": "饿了么"
       },
-      "roleTitle": {
-        "en": "PWA Consultant",
-        "zh": "PWA 顾问"
-      },
       "media": [
         {
           "type": "link",
           "url": "https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509",
-          "label": "Medium",
+          "label": "Blog",
           "icon": "globe"
+        },
+        {
+          "type": "embed",
+          "url": "https://web.dev/case-studies/eleme"
         }
       ],
       "tags": [
@@ -764,51 +766,22 @@
       ]
     },
     {
-      "id": "gdg-devfest-2016",
-      "type": "talk",
-      "tagId": "pwa-era",
-      "title": {
-        "en": "Service Worker 101",
-        "zh": "Service Worker 101"
-      },
-      "description": {
-        "en": "An introduction to Service Workers and their role in Progressive Web Apps.",
-        "zh": "Service Worker 入门以及它在 Progressive Web Apps 中的角色。"
-      },
-      "date": "2016-11",
-      "conference": {
-        "name": "GDG DevFest Beijing 2016",
-        "city": "Beijing, China"
-      },
-      "media": [
-        {
-          "type": "link",
-          "url": "https://huangxuan.me/2016/11/20/sw-101-gdgdf/",
-          "label": "Slides",
-          "icon": "slides"
-        }
-      ],
-      "tags": [
-        "PWA",
-        "Service Worker"
-      ]
-    },
-    {
       "id": "qcon-shanghai-2016",
       "type": "talk",
       "tagId": "pwa-era",
       "title": {
-        "en": "Progressive Web App",
-        "zh": "Progressive Web App"
+        "en": "Progressive Web App, Make Web Great Again",
+        "zh": "Progressive Web App, 复兴序章"
       },
       "description": {
         "en": "Introducing Progressive Web Apps to the Chinese developer community.",
-        "zh": "向中国开发者社区介绍 Progressive Web Apps。"
+        "zh": "关于 Native 与 Web 的纷争，从 Web 诞生之日起到现在就从未消停过。眼看这场战火在移动时代的方寸之间愈演愈烈，有的人坚定地站在了 Native 阵营，有的人则选择 Open Web 作为自己的信仰。近年来，随着融合与相互借鉴的声音成为主流，Hybrid、动态化与基于 Web 开发范式的跨平台解决方案百花齐放，而 Google Chrome 团队，也联合 Microsoft Edge、Mozilla Firefox、Opera 等一众浏览器厂商，给出了来自 Web 阵营的回应——Progressive Web App，向 Native 阵营吹响了反击的号角……"
       },
       "date": "2016-10",
       "conference": {
         "name": "QCon Shanghai 2016",
-        "city": "Shanghai, China"
+        "city": "Shanghai, China",
+        "url": "http://2016.qconshanghai.com/presentation/3111/"
       },
       "media": [
         {
@@ -821,19 +794,20 @@
       "tags": [
         "PWA",
         "Mobile Web"
-      ]
+      ],
+      "language": "zh"
     },
     {
       "id": "wepiao-lead",
       "type": "role",
       "tagId": "pwa-era",
       "title": {
-        "en": "Software Engineer → Tech Lead Manager, WePiao",
-        "zh": "微影时代 工程师 → 技术经理"
+        "en": "Tech Lead Manager, Web Infra",
+        "zh": "Web 基础架构团队主管"
       },
       "description": {
-        "en": "Frontend engineer growing into tech lead manager at Beijing Weiying (WePiao).",
-        "zh": "在北京微影时代（微票儿）从前端工程师成长为技术经理。"
+        "en": "Founding engineer of the award-winning app Yupiaoer. Founded the Web Infra team. Led the company-wide tech stack migration to React.",
+        "zh": "获奖产品「娱票儿」创始工程师。组建 Web 基础架构团队。主导全公司技术栈向 React 的迁移。"
       },
       "date": "2015-05",
       "endDate": "2016-06",
@@ -841,12 +815,11 @@
         "en": "Beijing Weiying (WePiao)",
         "zh": "北京微影时代（微票儿）"
       },
-      "roleTitle": {
-        "en": "Software Engineer → Tech Lead Manager",
-        "zh": "工程师 → 技术经理"
-      },
       "tags": [
-        "Mobile Web",
+        "Web",
+        "Mobile",
+        "React",
+        "React Native",
         "Leadership"
       ]
     },
@@ -855,12 +828,8 @@
       "type": "role",
       "tagId": "pwa-era",
       "title": {
-        "en": "Front-End Engineer, Alibaba (Alitrip)",
-        "zh": "阿里巴巴（阿里旅行）前端工程师"
-      },
-      "description": {
-        "en": "Front-end engineer intern at Alibaba's Alitrip (now Fliggy) travel platform.",
-        "zh": "在阿里巴巴旅行事业部（阿里旅行，现飞猪）担任前端实习工程师。"
+        "en": "Front-End Engineer",
+        "zh": "前端工程师"
       },
       "date": "2014-08",
       "endDate": "2015-05",
@@ -868,48 +837,22 @@
         "en": "Alibaba",
         "zh": "阿里巴巴"
       },
-      "roleTitle": {
-        "en": "Front-End Engineer",
-        "zh": "前端工程师"
-      },
       "tags": [
         "Web",
         "Mobile"
-      ]
-    },
-    {
-      "id": "first-webapp",
-      "type": "project",
-      "tagId": "pwa-era",
-      "title": {
-        "en": "First Web App",
-        "zh": "第一个网页应用"
-      },
-      "description": {
-        "en": "The project that started it all — a simple but meaningful beginning.",
-        "zh": "一切开始的地方 —— 简单但意义重大的开始。"
-      },
-      "date": "2013-05",
-      "tags": [
-        "Web",
-        "JavaScript",
-        "Learning",
-        "HTML",
-        "CSS"
       ],
-      "media": [],
-      "commentary": {
-        "en": "Everyone starts somewhere. This was my somewhere.",
-        "zh": "每个人都有起点。这就是我的起点。"
+      "description": {
+        "en": "",
+        "zh": ""
       }
     },
     {
       "id": "cuc-ba",
       "type": "role",
-      "tagId": "pwa-era",
+      "tagId": "education",
       "title": {
-        "en": "B.A. Digital Media Art, CUC",
-        "zh": "中国传媒大学 数字媒体艺术学士"
+        "en": "B.A. Digital Media Arts",
+        "zh": "数字媒体艺术 学士"
       },
       "description": {
         "en": "Bachelor's in Digital Media Art at Communication University of China.",
@@ -921,15 +864,12 @@
         "en": "Communication University of China",
         "zh": "中国传媒大学"
       },
-      "roleTitle": {
-        "en": "B.A. Student",
-        "zh": "本科生"
-      },
       "tags": [
         "Digital Media",
         "Art",
         "Education"
-      ]
+      ],
+      "location": "Beijing, China"
     }
   ]
 }

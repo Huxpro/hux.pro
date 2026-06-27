@@ -309,7 +309,7 @@
     id: "test-role-1",
     type: "role",
     tagId: "demo",
-    title: { en: "TechStart Inc", zh: "TechStart 公司" },
+    title: { en: "Principal Engineer", zh: "首席工程师" },
     description: {
       en: "Building the frontend infrastructure and developer experience.",
       zh: "构建前端基础设施和开发者体验。"
@@ -317,7 +317,6 @@
     date: "2024-07",
     endDate: "present",
     company: { en: "TechStart Inc", zh: "TechStart 公司" },
-    roleTitle: { en: "Principal Engineer", zh: "首席工程师" },
     location: "远程"
   }}
   locale="zh"
@@ -328,7 +327,7 @@
     id: "test-role-1",
     type: "role",
     tagId: "demo",
-    title: { en: "TechStart Inc", zh: "TechStart 公司" },
+    title: { en: "Principal Engineer", zh: "首席工程师" },
     description: {
       en: "Building the frontend infrastructure and developer experience.",
       zh: "构建前端基础设施和开发者体验。"
@@ -336,7 +335,6 @@
     date: "2024-07",
     endDate: "present",
     company: { en: "TechStart Inc", zh: "TechStart 公司" },
-    roleTitle: { en: "Principal Engineer", zh: "首席工程师" },
     location: "远程"
   }}
   locale="zh"
@@ -533,8 +531,7 @@
     type: "role",
     tagId: "demo",
     company: { en: "Meta", zh: "Meta" },
-    roleTitle: { en: "Software Engineer", zh: "软件工程师" },
-    title: { en: "Meta", zh: "Meta" },
+    title: { en: "Software Engineer", zh: "软件工程师" },
     description: {
       en: "Working on cross-platform infrastructure.",
       zh: "从事跨平台基础设施工作。"
@@ -555,8 +552,7 @@
     type: "role",
     tagId: "demo",
     company: { en: "Meta", zh: "Meta" },
-    roleTitle: { en: "Software Engineer", zh: "软件工程师" },
-    title: { en: "Meta", zh: "Meta" },
+    title: { en: "Software Engineer", zh: "软件工程师" },
     description: {
       en: "Working on cross-platform infrastructure.",
       zh: "从事跨平台基础设施工作。"
@@ -707,9 +703,8 @@
     id: "test-expandable-role",
     type: "role",
     tagId: "demo",
-    title: { en: "Acme Corp", zh: "Acme 公司" },
+    title: { en: "Staff Engineer", zh: "资深工程师" },
     company: { en: "Acme Corp", zh: "Acme 公司" },
-    roleTitle: { en: "Staff Engineer", zh: "资深工程师" },
     description: {
       en: "Led the migration from legacy jQuery codebase to React, reducing bundle size by 60% and improving performance scores.",
       zh: "领导了从传统 jQuery 代码库到 React 的迁移，减少了 60% 的包体积并提高了性能分数。"
@@ -730,9 +725,8 @@
     id: "test-expandable-role",
     type: "role",
     tagId: "demo",
-    title: { en: "Acme Corp", zh: "Acme 公司" },
+    title: { en: "Staff Engineer", zh: "资深工程师" },
     company: { en: "Acme Corp", zh: "Acme 公司" },
-    roleTitle: { en: "Staff Engineer", zh: "资深工程师" },
     description: {
       en: "Led the migration from legacy jQuery codebase to React, reducing bundle size by 60% and improving performance scores.",
       zh: "领导了从传统 jQuery 代码库到 React 的迁移，减少了 60% 的包体积并提高了性能分数。"
@@ -988,5 +982,5 @@ Widget 是组合多个提交或自定义内容的容器。
 | `project` | `media[]` | `techStack[]`, `stats` |
 | `talk` | `conference` | `media[]` |
 | `post` | `url`, `publication` | `media[]` |
-| `role` | `company`, `roleTitle` | `location`, `url`, `media[]` |
+| `role` | `company`, `title` | `location`, `url`, `media[]` |
 | `social` | `platform` | `media[]` |

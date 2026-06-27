@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useInputCapability } from "@/services";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Cursor } from "./cursor";
 
 export interface MagneticPreviewProps {
@@ -44,7 +44,12 @@ export function MagneticPreview({
   children,
 }: MagneticPreviewProps) {
   const { magneticPreviewEnabled } = useInputCapability();
-  const showPreview = enabled && magneticPreviewEnabled;
+  // Cursor follows the live pointer position, so it cannot match the SSR
+  // HTML on hydration. Gate it behind a mount flag so it only appears
+  // after hydration on the client.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const showPreview = mounted && enabled && magneticPreviewEnabled;
 
   return (
     <div
