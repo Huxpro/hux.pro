@@ -88,6 +88,12 @@ export const translations = {
     musicCollapse: "Collapse",
     widgetViewAll: "view all",
 
+    // Dock / Live Activities
+    dockCollapse: "Collapse",
+    phaseSunrise: "Sunrise",
+    phaseSunset: "Sunset",
+    phaseOpenDetails: "Open weather details",
+
     // Ambient (location / weather)
     locationIp: "IP",
     locationAccurate: "Accurate",
@@ -234,6 +240,12 @@ export const translations = {
     musicOpenControls: "打开音乐控制",
     musicCollapse: "收起",
     widgetViewAll: "查看全部",
+
+    // Dock / Live Activities
+    dockCollapse: "收起",
+    phaseSunrise: "日出",
+    phaseSunset: "日落",
+    phaseOpenDetails: "打开天气详情",
 
     // Ambient (location / weather)
     locationIp: "IP",

@@ -167,6 +167,15 @@ html.dragging * {
   cursor: grabbing !important;
 }
 
+/* Hide scrollbars while preserving scroll (e.g. the dock pill row) */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Prose article typography
    Inspired by paco.me and ibelick.com:
    - Sans-serif headings (Inter) with reduced weight
