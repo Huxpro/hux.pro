@@ -93,6 +93,15 @@ function saveOrder(key: string, order: string[]): void {
   }
 }
 
+function clearOrder(key: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Merge a stored order with the current set of widget IDs: keep the stored
  * order for IDs that still exist, drop ones that vanished, and append any new
@@ -206,7 +215,9 @@ export function SortableMasonry({
     };
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
-      if (target?.closest("[data-widget-id]")) return;
+      // Clicking a widget (keep rearranging) or the edit controls themselves
+      // (Reset stays in edit mode; Done has its own handler) shouldn't exit.
+      if (target?.closest("[data-widget-id], [data-edit-controls]")) return;
       setEditing(false);
     };
     window.addEventListener("keydown", onKey);
@@ -253,7 +264,14 @@ export function SortableMasonry({
     setActiveId(null);
   }
 
+  function handleReset() {
+    clearOrder(storageKey);
+    setOrder(ids); // back to the order widgets are declared in
+  }
+
   const orderedIds = order.filter((id) => itemsById.has(id));
+  // Only offer "Reset" once the layout actually diverges from the default.
+  const isCustomized = orderedIds.join("|") !== ids.filter((id) => itemsById.has(id)).join("|");
 
   return (
     <DndContext
@@ -292,18 +310,27 @@ export function SortableMasonry({
         ) : null}
       </DragOverlay>
 
+      {/* Edit-mode controls: a primary "Done" pill, with a quieter "Reset"
+          to its left once the layout has been customised. */}
       <AnimatePresence>
         {editing && (
           <motion.div
-            className="fixed inset-x-0 bottom-24 z-50 flex flex-col items-center gap-2"
+            data-edit-controls
+            className="fixed inset-x-0 bottom-24 z-50 flex items-center justify-center gap-4"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
             transition={{ duration: 0.2 }}
           >
-            <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
-              {t(locale, "widgetEditHint")}
-            </span>
+            {isCustomized && (
+              <button
+                type="button"
+                onClick={handleReset}
+                className="text-xs font-mono uppercase tracking-wider text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+              >
+                {t(locale, "widgetEditReset")}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setEditing(false)}
