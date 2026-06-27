@@ -11,7 +11,6 @@ import type {
   Commit,
   CommitType,
   EmbedMedia,
-  EmbedPlatform,
   Media,
 } from "@/lib/log";
 import {
@@ -26,6 +25,7 @@ import {
   isImageMedia,
   getMediaThumbnail,
 } from "@/lib/log";
+import { detectNativeEmbedPlatform } from "@/lib/og-core";
 
 // =============================================================================
 // Types
@@ -83,27 +83,6 @@ export interface NormalizedCommit {
 // Media Partitioning
 // =============================================================================
 
-/**
- * Lightweight URL-based embed platform detection.
- *
- * Mirrors `detectEmbedPlatform` in media/embed.tsx but stays free of any
- * client-only imports so it can run in this (RSC-friendly) adapter.
- */
-function detectEmbedPlatformFromUrl(url: string): EmbedPlatform | null {
-  try {
-    const host = new URL(url).hostname.replace(/^www\./, "");
-    if (host === "x.com" || host.endsWith(".x.com")) return "x";
-    if (host === "twitter.com" || host.endsWith(".twitter.com"))
-      return "twitter";
-    if (host === "instagram.com" || host.endsWith(".instagram.com"))
-      return "instagram";
-    if (host === "tiktok.com" || host.endsWith(".tiktok.com")) return "tiktok";
-  } catch {
-    // ignore malformed URLs
-  }
-  return null;
-}
-
 function getDomainLabel(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, "");
@@ -122,7 +101,7 @@ function getDomainLabel(url: string): string {
  * a globe + domain label.
  */
 function embedToLink(m: EmbedMedia): SimpleLink {
-  const platform = m.platform ?? detectEmbedPlatformFromUrl(m.url);
+  const platform = m.platform ?? detectNativeEmbedPlatform(m.url);
   switch (platform) {
     case "x":
     case "twitter":
