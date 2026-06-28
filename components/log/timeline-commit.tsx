@@ -157,7 +157,11 @@ export function TimelineCommit({
   // segment above only), `""` (no rail).
   const hasRailAbove = rail === "│" || rail === "┘";
   const hasRailBelow = rail === "│" || rail === "┐";
-  const isRoleAnchor = rail === "┐";
+  // A role row shows its anchor ring whenever it's part of a tenure
+  // cluster (i.e. has a rail char). The role might sit at the top
+  // (rail="┐"), bottom (rail="┘"), or middle (rail="│") of its cluster
+  // depending on `sortBy`; either way the ring marks it as the anchor.
+  const isRoleAnchor = isRole && rail !== "";
   // Distance from icon center where the line stops. Members: icon is
   // 12px (h-3) so 6px radius + 1px breathing room. Role: ring is 16px
   // (h-4) so 8px radius + 2px breathing room. Events: tiny 3px dot
