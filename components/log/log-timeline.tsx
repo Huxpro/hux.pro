@@ -5,6 +5,7 @@ import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
   computeBeams,
+  computeCommitHash,
   computeRail,
   formatTagDateRange,
   getLocalizedTagTitle,
@@ -85,37 +86,60 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
     const rail = computeRail(commits);
     const explicit = computeBeams(commits);
 
+    // Auto-inferred beams: every commit that computeRail put in a
+    // tenure cluster (via date-window overlap, not explicit attachedTo)
+    // gets its own beam to the role. The rail line still draws the
+    // continuous structure, but the *hover behaviour* is now
+    // per-connector — identical to explicit attachedTo. Hovering one
+    // member activates only that member's beam, not the whole cluster.
+    const inferred = (() => {
+      const out: ReturnType<typeof computeBeams> = [];
+      for (let i = 0; i < commits.length; i++) {
+        const sid = rail[i].segmentId;
+        if (!sid) continue;
+        if (commits[i].id === sid) continue; // skip the role itself
+        const roleIdx = commits.findIndex((c) => c.id === sid);
+        if (roleIdx === -1) continue;
+        out.push({
+          fromIdx: i,
+          toIdx: roleIdx,
+          fromHash: computeCommitHash(commits[i].id),
+          toHash: computeCommitHash(sid),
+          roleId: sid,
+        });
+      }
+      return out;
+    })();
+
+    const allBeams = [...explicit, ...inferred];
+
     const specs: (BeamSpec | null)[] = commits.map(() => null);
 
-    const attachmentsWithGaps = explicit.map((b) => ({
+    const attachmentsWithGaps = allBeams.map((b) => ({
       ...b,
       fromGap: gapFor(commits[b.fromIdx].type),
       toGap: gapFor(commits[b.toIdx].type),
     }));
 
-    // Attached sources DO NOT get segmentId enriched here — they
-    // would otherwise be pulled into the target's tenure-cluster
-    // wrapper, which means hovering an attached source would fire
-    // `group-hover/tenure` on the whole cluster and brighten the
-    // entire tenure rail. We want the attached source to ONLY
-    // brighten its own back-point connector (via `activeBeam`).
+    // Each beam endpoint stashes a BeamSpec so hover/focus/expand
+    // fires `activeBeam`. SOURCE specs carry their own fromHash for
+    // exact-match activation. TARGET specs carry the wildcard
+    // sentinel `"*"` so hovering the target lights up EVERY incoming
+    // connector, not just the first one stashed on its slot.
     //
-    // Each beam endpoint carries `(fromHash, toHash, roleId)` so
-    // the parent knows which side it represents. The TARGET stores
-    // a spec with no specific fromHash (sentinel `null`) so that
-    // hovering the target activates EVERY connector pointing at it,
-    // not just the first attachment that touched its slot.
-    for (const b of explicit) {
-      const sourceSpec: BeamSpec = {
+    // Note: explicit beams already detach attached sources from the
+    // tenure cluster wrapper (segmentId stayed null in computeRail).
+    // Inferred beams' sources DO have segmentId from the rail — we
+    // leave that alone so the visual rail line still draws through
+    // them. The cluster wrapper's `group-hover` no longer brightens
+    // the rail itself (those Tailwind variants were removed); only
+    // the role's ring brightens via group-hover, which is fine.
+    for (const b of allBeams) {
+      specs[b.fromIdx] = {
         fromHash: b.fromHash,
         toHash: b.toHash,
         roleId: b.roleId,
       };
-      specs[b.fromIdx] = sourceSpec;
-      // Multiple sources can target the same role/event. Stash a
-      // "target-only" spec on the first encounter — any later
-      // hover of the target activates all matching connectors via
-      // the wildcard fromHash check in TimelineConnector's parent.
       if (specs[b.toIdx] === null) {
         specs[b.toIdx] = {
           fromHash: "*",

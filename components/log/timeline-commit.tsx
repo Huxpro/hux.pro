@@ -202,26 +202,14 @@ export function TimelineCommit({
         {hasRailAbove && (
           <span
             aria-hidden
-            className={cn(
-              "pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200",
-              "bg-muted-foreground/10",
-              "group-hover/tenure:bg-muted-foreground/30",
-              "group-focus-within/tenure:bg-muted-foreground/30",
-              "group-has-[[data-expanded]]/tenure:bg-muted-foreground/30",
-            )}
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
             style={{ top: "-1000px", bottom: `calc(50% + ${iconGapPx}px)` }}
           />
         )}
         {hasRailBelow && (
           <span
             aria-hidden
-            className={cn(
-              "pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200",
-              "bg-muted-foreground/10",
-              "group-hover/tenure:bg-muted-foreground/30",
-              "group-focus-within/tenure:bg-muted-foreground/30",
-              "group-has-[[data-expanded]]/tenure:bg-muted-foreground/30",
-            )}
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
             style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
           />
         )}
