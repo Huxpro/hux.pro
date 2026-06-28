@@ -169,14 +169,19 @@ export function normalizeCommit(
   const thumbnail = deriveThumbnail(media);
   const languageBadge = getCommitLanguageBadge(commit, locale);
 
+  // Identity fields shared by every branch's return.
+  const identity = {
+    hash,
+    type: commit.type,
+    iconOverride: commit.icon,
+  };
+
   // Type-specific extraction
   switch (commit.type) {
     case "project": {
       const firstLinkUrl = media.filter(isLinkMedia)[0]?.url;
       return {
-        hash,
-        type: commit.type,
-        iconOverride: commit.icon,
+        ...identity,
         languageBadge,
         title,
         description,
@@ -193,9 +198,7 @@ export function normalizeCommit(
 
     case "talk": {
       return {
-        hash,
-        type: commit.type,
-        iconOverride: commit.icon,
+        ...identity,
         languageBadge,
         title,
         description,
@@ -213,9 +216,7 @@ export function normalizeCommit(
 
     case "post": {
       return {
-        hash,
-        type: commit.type,
-        iconOverride: commit.icon,
+        ...identity,
         languageBadge,
         title,
         description,
@@ -235,9 +236,7 @@ export function normalizeCommit(
       const company = localize(commit.company, locale);
 
       return {
-        hash,
-        type: commit.type,
-        iconOverride: commit.icon,
+        ...identity,
         languageBadge,
         title,
         description,
@@ -262,9 +261,7 @@ export function normalizeCommit(
     case "event": {
       // Life events render bare — no meta line, no links, no expand.
       return {
-        hash,
-        type: commit.type,
-        iconOverride: commit.icon,
+        ...identity,
         languageBadge,
         title,
         description,
@@ -290,9 +287,7 @@ export function normalizeCommit(
       socialLinks.push(...mediaLinks);
 
       return {
-        hash,
-        type: commit.type,
-        iconOverride: commit.icon,
+        ...identity,
         languageBadge,
         title,
         description,

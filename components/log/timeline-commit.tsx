@@ -26,7 +26,11 @@ import {
 import { MediaRenderer } from "./media";
 
 export interface BeamSpec {
-  fromHash: string;
+  /** Source hash, or null for a target-only spec — the latter
+   *  activates every connector that targets `toHash` (used so hovering
+   *  a role lights up all its incoming connectors, not just the first
+   *  attachment that happened to stash a spec on its slot). */
+  fromHash: string | null;
   toHash: string;
   roleId: string;
 }

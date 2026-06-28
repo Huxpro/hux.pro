@@ -56,6 +56,16 @@ interface Geom {
   gapEnd: number;
 }
 
+/**
+ * Bright when active; transparent when idle for inferred beams (the
+ * underlying rail provides the visual); dim otherwise.
+ */
+function railBgClass(isActive: boolean, hideWhenIdle: boolean): string {
+  if (isActive) return "bg-muted-foreground/30";
+  if (hideWhenIdle) return "bg-transparent";
+  return "bg-muted-foreground/10";
+}
+
 export function TimelineConnector({
   fromHash,
   toHash,
@@ -135,16 +145,7 @@ export function TimelineConnector({
       <span
         className={cn(
           "block w-full h-full transition-colors duration-200",
-          // Bright when active. When idle: inferred beams render
-          // transparent (the underlying rail handles the visual at
-          // /10, and a stacked dim connector would just darken the
-          // line near targets where many beams converge). Explicit
-          // attachedTo beams stay at /10 since they have no rail.
-          isActive
-            ? "bg-muted-foreground/30"
-            : hideWhenIdle
-              ? "bg-transparent"
-              : "bg-muted-foreground/10",
+          railBgClass(isActive, hideWhenIdle),
         )}
       />
     </div>

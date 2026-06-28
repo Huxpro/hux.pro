@@ -5,7 +5,7 @@ import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
   computeBeams,
-  computeCommitHash,
+  computeInferredBeams,
   computeRail,
   formatTagDateRange,
   getLocalizedTagTitle,
@@ -84,39 +84,13 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
 
   const { railInfo, beamSpecs, attachments } = useMemo(() => {
     const rail = computeRail(commits);
-    const explicit = computeBeams(commits);
-
-    // Auto-inferred beams: every commit that computeRail put in a
-    // tenure cluster (via date-window overlap, not explicit attachedTo)
-    // gets its own beam to the role. The rail line still draws the
-    // continuous structure, but the *hover behaviour* is now
-    // per-connector — identical to explicit attachedTo. Hovering one
-    // member activates only that member's beam, not the whole cluster.
-    const inferred = (() => {
-      const out: ReturnType<typeof computeBeams> = [];
-      for (let i = 0; i < commits.length; i++) {
-        const sid = rail[i].segmentId;
-        if (!sid) continue;
-        if (commits[i].id === sid) continue; // skip the role itself
-        const roleIdx = commits.findIndex((c) => c.id === sid);
-        if (roleIdx === -1) continue;
-        out.push({
-          fromIdx: i,
-          toIdx: roleIdx,
-          fromHash: computeCommitHash(commits[i].id),
-          toHash: computeCommitHash(sid),
-          roleId: sid,
-        });
-      }
-      return out;
-    })();
-
     const allBeams = [
-      ...explicit.map((b) => ({ ...b, inferred: false })),
-      ...inferred.map((b) => ({ ...b, inferred: true })),
+      ...computeBeams(commits).map((b) => ({ ...b, inferred: false })),
+      ...computeInferredBeams(commits, rail).map((b) => ({
+        ...b,
+        inferred: true,
+      })),
     ];
-
-    const specs: (BeamSpec | null)[] = commits.map(() => null);
 
     const attachmentsWithGaps = allBeams.map((b) => ({
       ...b,
@@ -125,18 +99,10 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
     }));
 
     // Each beam endpoint stashes a BeamSpec so hover/focus/expand
-    // fires `activeBeam`. SOURCE specs carry their own fromHash for
-    // exact-match activation. TARGET specs carry the wildcard
-    // sentinel `"*"` so hovering the target lights up EVERY incoming
-    // connector, not just the first one stashed on its slot.
-    //
-    // Note: explicit beams already detach attached sources from the
-    // tenure cluster wrapper (segmentId stayed null in computeRail).
-    // Inferred beams' sources DO have segmentId from the rail — we
-    // leave that alone so the visual rail line still draws through
-    // them. The cluster wrapper's `group-hover` no longer brightens
-    // the rail itself (those Tailwind variants were removed); only
-    // the role's ring brightens via group-hover, which is fine.
+    // fires `activeBeam`. Source specs carry their own fromHash for
+    // exact-match activation. Target specs use `fromHash: null` so
+    // hovering the target activates every incoming connector.
+    const specs: (BeamSpec | null)[] = commits.map(() => null);
     for (const b of allBeams) {
       specs[b.fromIdx] = {
         fromHash: b.fromHash,
@@ -145,7 +111,7 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
       };
       if (specs[b.toIdx] === null) {
         specs[b.toIdx] = {
-          fromHash: "*",
+          fromHash: null,
           toHash: b.toHash,
           roleId: b.roleId,
         };
@@ -251,24 +217,19 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
             fromGap={a.fromGap}
             toGap={a.toGap}
             // Inferred beams piggyback on the visible tenure rail —
-            // suppress their dim render so N connectors converging
-            // at the role don't darken the line through opacity
-            // stacking. Explicit attachedTo beams stay always-on.
+            // suppress their dim render so N converging connectors
+            // don't darken the line via opacity stacking.
             hideWhenIdle={a.inferred}
             isActive={
               !!activeBeam &&
               activeBeam.toHash === a.toHash &&
-              // Exact source-target match (hover/focus/expand on
-              // source) always activates. The wildcard `fromHash:
-              // "*"` (target hovered) activates only EXPLICIT
-              // attachedTo connectors — for inferred beams the
-              // role-hover instead brightens the whole rail via CSS
-              // (`.group/tenure:has(> [data-role-row]:hover)` rule),
-              // which has clean per-icon gaps. Activating every
-              // inferred connector via wildcard would paint a long
-              // overlapping line that crosses intermediate icons.
+              // Exact source match always activates. Target hover
+              // (fromHash null) activates ONLY explicit attachedTo
+              // connectors — for inferred beams the role-hover
+              // brightens the rail directly via CSS so we don't
+              // paint a long overlapping line through icons.
               (activeBeam.fromHash === a.fromHash ||
-                (activeBeam.fromHash === "*" && !a.inferred))
+                (activeBeam.fromHash === null && !a.inferred))
             }
           />
         ))}

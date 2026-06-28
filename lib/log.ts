@@ -763,23 +763,28 @@ export function computeRail(commits: Commit[]): RailInfo[] {
     assignment[i] = bestRole;
   }
 
-  // Build clusters: roleIdx -> [all row indices in cluster (role + members)]
+  // Build clusters in a single pass over the sorted commits. For each
+  // row, decide which cluster it belongs to: a non-role with assignment
+  // joins that role's cluster; a role that owns one or more assignments
+  // joins its own. The push order matches sort order, so the resulting
+  // index arrays are ascending without a follow-up sort.
+  const roleHasMembers = new Set<number>();
+  for (const r of assignment) if (r !== -1) roleHasMembers.add(r);
+
   const clusters = new Map<number, number[]>();
-  for (const roleIdx of roleWindows.keys()) {
-    clusters.set(roleIdx, [roleIdx]);
-  }
   for (let i = 0; i < commits.length; i++) {
-    const r = assignment[i];
-    if (r === -1) continue;
-    clusters.get(r)!.push(i);
+    const owner =
+      commits[i].type === "role" && roleHasMembers.has(i) ? i : assignment[i];
+    if (owner === -1) continue;
+    if (!clusters.has(owner)) clusters.set(owner, []);
+    clusters.get(owner)!.push(i);
   }
 
-  // Assign rail chars per cluster — topmost row in sorted-array order
-  // gets ┐, bottommost gets ┘, mids get │. Solo roles (single-element
-  // cluster) get no rail (no segment to anchor).
+  // Assign rail chars per cluster — topmost row gets ┐, bottommost
+  // gets ┘, mids get │. Solo roles (single-element clusters never
+  // reach here since they're not seeded above) get no rail.
   for (const [roleIdx, indices] of clusters) {
     if (indices.length < 2) continue;
-    indices.sort((a, b) => a - b);
     const topIdx = indices[0];
     const bottomIdx = indices[indices.length - 1];
     const id = commits[roleIdx].id;
@@ -790,6 +795,48 @@ export function computeRail(commits: Commit[]): RailInfo[] {
   }
 
   return result;
+}
+
+/**
+ * Derive inferred-tenure beams from a rail computation: every row
+ * `computeRail` slotted into a tenure cluster (segmentId set) gets a
+ * beam from itself to the role anchor, except the role itself.
+ *
+ * Pulled out so the UI doesn't have to walk the rail + look up roles
+ * by `findIndex` per row (which was O(N²) at the call site).
+ */
+export function computeInferredBeams(
+  commits: Commit[],
+  rail: RailInfo[],
+): BeamLink[] {
+  const idToIdx = new Map<string, number>();
+  for (let i = 0; i < commits.length; i++) idToIdx.set(commits[i].id, i);
+
+  const hashCache = new Map<string, string>();
+  const hashOf = (id: string) => {
+    const cached = hashCache.get(id);
+    if (cached !== undefined) return cached;
+    const h = computeCommitHash(id);
+    hashCache.set(id, h);
+    return h;
+  };
+
+  const beams: BeamLink[] = [];
+  for (let i = 0; i < commits.length; i++) {
+    const sid = rail[i].segmentId;
+    if (!sid) continue;
+    if (commits[i].id === sid) continue;
+    const toIdx = idToIdx.get(sid);
+    if (toIdx === undefined) continue;
+    beams.push({
+      fromIdx: i,
+      toIdx,
+      fromHash: hashOf(commits[i].id),
+      toHash: hashOf(sid),
+      roleId: sid,
+    });
+  }
+  return beams;
 }
 
 /**
