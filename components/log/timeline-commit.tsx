@@ -198,26 +198,16 @@ export function TimelineCommit({
         {hasRailAbove && (
           <span
             aria-hidden
-            className={cn(
-              "pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200",
-              "bg-muted-foreground/10",
-              "group-hover/tenure:bg-muted-foreground/30",
-              "group-focus-within/tenure:bg-muted-foreground/30",
-              "group-has-[[data-expanded]]/tenure:bg-muted-foreground/30",
-            )}
+            data-rail-above
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
             style={{ top: "-1000px", bottom: `calc(50% + ${iconGapPx}px)` }}
           />
         )}
         {hasRailBelow && (
           <span
             aria-hidden
-            className={cn(
-              "pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200",
-              "bg-muted-foreground/10",
-              "group-hover/tenure:bg-muted-foreground/30",
-              "group-focus-within/tenure:bg-muted-foreground/30",
-              "group-has-[[data-expanded]]/tenure:bg-muted-foreground/30",
-            )}
+            data-rail-below
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
             style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
           />
         )}
@@ -236,15 +226,10 @@ export function TimelineCommit({
           // wrapper gives the ring node 3px clearance from the 12px icon
           // so it reads as a distinct circle rather than a tight outline.
           <span
+            data-role-ring={isRoleAnchor ? "" : undefined}
             className={cn(
               "inline-flex items-center justify-center w-5 h-5 rounded-full transition-[box-shadow] duration-200",
-              isRoleAnchor && [
-                "ring-1 ring-inset",
-                "ring-muted-foreground/15",
-                "group-hover/tenure:ring-muted-foreground/40",
-                "group-focus-within/tenure:ring-muted-foreground/40",
-                "group-has-[[data-expanded]]/tenure:ring-muted-foreground/40",
-              ],
+              isRoleAnchor && "ring-1 ring-inset ring-muted-foreground/15",
             )}
           >
             <Icon className="w-3 h-3 text-muted-foreground/50" />
@@ -378,7 +363,7 @@ export function TimelineCommit({
   );
 
   return (
-    <div id={data.hash} className={className}>
+    <div id={data.hash} data-rail-row className={className}>
       <MagneticPreview
         preview={cursorPreview}
         enabled={showCursorPreview}
