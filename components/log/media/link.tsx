@@ -107,6 +107,9 @@ export function LinkPreview({
   const [ogData, setOgData] = useState<OGData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  // Fade the OG image in once it decodes, so a slow CDN (e.g. web.dev's
+  // origin) reveals smoothly instead of popping in.
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   useEffect(() => {
     // Skip fetch if all data is provided
@@ -157,6 +160,7 @@ export function LinkPreview({
   const title = ogData?.title || domain;
   const description = ogData?.description;
   const image = ogData?.image;
+  const compact = size === "compact";
 
   // Loading state
   if (isLoading) {
@@ -191,14 +195,23 @@ export function LinkPreview({
         className
       )}
     >
-      {/* Image */}
+      {/* Image — fades in on load over a muted placeholder */}
       {image ? (
         <div className="aspect-[2/1] bg-muted/20 overflow-hidden shrink-0">
           <img
             src={image}
             alt=""
-            className="w-full h-full object-cover"
             loading="lazy"
+            onLoad={() => setImgLoaded(true)}
+            // Catch images already warm in the browser cache, whose `load`
+            // may fire before React attaches the handler.
+            ref={(node) => {
+              if (node?.complete) setImgLoaded(true);
+            }}
+            className={cn(
+              "w-full h-full object-cover transition-opacity duration-500 ease-out",
+              imgLoaded ? "opacity-100" : "opacity-0",
+            )}
           />
         </div>
       ) : (
@@ -207,14 +220,33 @@ export function LinkPreview({
         </div>
       )}
 
-      {/* Content */}
-      <div className="flex-1 p-4 space-y-1">
-        <div className="text-xs text-muted-foreground font-mono uppercase tracking-wide">
+      {/* Content — tighter padding/type in compact so two cards fit a phone row */}
+      <div className={cn("flex-1 space-y-1", compact ? "p-2.5" : "p-4")}>
+        <div
+          className={cn(
+            "text-muted-foreground font-mono uppercase tracking-wide",
+            compact ? "text-[10px]" : "text-xs",
+          )}
+        >
           {domain}
         </div>
-        <h4 className="text-sm font-medium text-foreground line-clamp-2">{title}</h4>
+        <h4
+          className={cn(
+            "font-medium text-foreground line-clamp-2",
+            compact ? "text-xs leading-snug" : "text-sm",
+          )}
+        >
+          {title}
+        </h4>
         {description && (
-          <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>
+          <p
+            className={cn(
+              "text-muted-foreground line-clamp-2",
+              compact ? "text-[11px] leading-snug" : "text-xs",
+            )}
+          >
+            {description}
+          </p>
         )}
       </div>
     </a>
