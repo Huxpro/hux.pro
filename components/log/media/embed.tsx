@@ -12,7 +12,7 @@
  * - ./tiktok.tsx
  */
 
-import type { EmbedMedia, EmbedPlatform } from "@/lib/log";
+import type { EmbedMedia, EmbedPlatform, MediaPreview } from "@/lib/log";
 import { useTheme } from "@/services/theme";
 import { TwitterEmbed, extractTweetId, isTwitterUrl } from "./twitter";
 import { InstagramEmbed, extractInstagramId, isInstagramUrl } from "./instagram";
@@ -32,6 +32,8 @@ export interface EmbedProps {
   theme?: "light" | "dark";
   /** Size variant */
   size?: "compact" | "default" | "large";
+  /** Manual card metadata for the link-preview fallback (non-native embeds) */
+  preview?: MediaPreview;
   /** Additional CSS classes */
   className?: string;
 }
@@ -89,6 +91,7 @@ export function Embed({
   platform: platformProp,
   theme: themeProp,
   size = "default",
+  preview,
   className,
 }: EmbedProps) {
   // Use site theme from context, allow prop override
@@ -98,9 +101,19 @@ export function Embed({
   // Auto-detect platform if not provided
   const platform = platformProp || detectEmbedPlatform(url);
 
-  // Unknown platform - fallback to link preview
+  // Unknown platform - fallback to link preview (with optional manual
+  // metadata for sites that block server-side OG crawling, e.g. Medium).
   if (!platform) {
-    return <LinkPreview url={url} className={className} />;
+    return (
+      <LinkPreview
+        url={url}
+        size={size}
+        title={preview?.title}
+        description={preview?.description}
+        image={preview?.image}
+        className={className}
+      />
+    );
   }
 
   // Route to platform-specific implementation
@@ -136,7 +149,16 @@ export function Embed({
         />
       );
     default:
-      return <LinkPreview url={url} className={className} />;
+      return (
+        <LinkPreview
+          url={url}
+          size={size}
+          title={preview?.title}
+          description={preview?.description}
+          image={preview?.image}
+          className={className}
+        />
+      );
   }
 }
 

@@ -14,6 +14,21 @@ export interface OGData {
 }
 
 /**
+ * User-Agent used to fetch link previews.
+ *
+ * Many sites (Medium, X, etc.) gate their server-rendered HTML — and the
+ * Open Graph / Twitter Card tags that come with it — behind bot detection,
+ * returning 403 to a generic or unknown agent while serving the full
+ * markup to recognized link-unfurling crawlers. We therefore identify as
+ * one of those well-known crawlers so the same preview a Slack/Twitter/
+ * Facebook unfurl would get is available to us. (A plain "OGBot/1.0" or a
+ * vanilla desktop-browser UA both get a 403 from Medium, which is why the
+ * Medium blog link previewed as a bare domain before.)
+ */
+const CRAWLER_USER_AGENT =
+  "Mozilla/5.0 (compatible; Slackbot-LinkExpanding 1.0; +https://api.slack.com/robots)";
+
+/**
  * Fetch Open Graph metadata from a URL.
  * Returns basic info if OG tags aren't available.
  */
@@ -21,9 +36,12 @@ export async function fetchOGData(url: string): Promise<OGData> {
   try {
     const response = await fetch(url, {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; OGBot/1.0; +https://example.com/bot)",
+        "User-Agent": CRAWLER_USER_AGENT,
         Accept: "text/html,application/xhtml+xml",
+        // Prefer English markup — some sites (e.g. web.dev) localize OG
+        // tags by Accept-Language and would otherwise hand back the
+        // datacenter region's default locale.
+        "Accept-Language": "en-US,en;q=0.9",
       },
       next: { revalidate: 86400 }, // Cache for 24 hours
     });
@@ -120,17 +138,34 @@ export async function fetchOGData(url: string): Promise<OGData> {
 }
 
 /**
- * Decode HTML entities in a string
+ * Decode HTML entities in a string.
+ *
+ * Covers the named entities common in OG/title text (including `&nbsp;`,
+ * which web.dev embeds in its title and which previously rendered as a
+ * literal "&nbsp;|&nbsp;") plus decimal and hex numeric references.
  */
 function decodeHTMLEntities(str: string): string {
+  const named: Record<string, string> = {
+    "&amp;": "&",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&quot;": '"',
+    "&apos;": "'",
+    "&nbsp;": " ",
+    "&mdash;": "—",
+    "&ndash;": "–",
+    "&hellip;": "…",
+  };
+
   return str
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#x27;/g, "'")
-    .replace(/&#x2F;/g, "/");
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) =>
+      String.fromCodePoint(parseInt(hex, 16)),
+    )
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(
+      /&(?:amp|lt|gt|quot|apos|nbsp|mdash|ndash|hellip);/g,
+      (m) => named[m] ?? m,
+    );
 }
 
 /**

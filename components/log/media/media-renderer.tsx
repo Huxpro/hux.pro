@@ -12,10 +12,8 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/services/theme";
 import type {
   Media,
-  VideoMedia,
   EmbedMedia,
   LinkMedia,
-  ImageMedia,
 } from "@/lib/log";
 import {
   isVideoMedia,
@@ -52,6 +50,8 @@ interface SingleMediaProps {
   theme: "light" | "dark";
   size: "compact" | "default" | "large";
   showLinkPreviews: boolean;
+  /** Forwarded to the underlying renderer (e.g. to size a grid cell). */
+  className?: string;
 }
 
 // =============================================================================
@@ -63,6 +63,7 @@ function SingleMedia({
   theme,
   size,
   showLinkPreviews,
+  className,
 }: SingleMediaProps) {
   if (isVideoMedia(media)) {
     return (
@@ -76,14 +77,32 @@ function SingleMedia({
   }
 
   if (isEmbedMedia(media)) {
-    return <Embed url={media.url} platform={media.platform} theme={theme} size={size} />;
+    return (
+      <Embed
+        url={media.url}
+        platform={media.platform}
+        theme={theme}
+        size={size}
+        preview={media.preview}
+        className={className}
+      />
+    );
   }
 
   if (isLinkMedia(media)) {
     if (showLinkPreviews && media.showPreview !== false) {
-      return <LinkPreview url={media.url} size={size} />;
+      return (
+        <LinkPreview
+          url={media.url}
+          size={size}
+          title={media.preview?.title}
+          description={media.preview?.description}
+          image={media.preview?.image}
+          className={className}
+        />
+      );
     }
-    return <Link url={media.url} label={media.label} icon={media.icon} />;
+    return <Link url={media.url} label={media.label} icon={media.icon} className={className} />;
   }
 
   if (isImageMedia(media)) {
@@ -119,14 +138,20 @@ export function MediaRenderer({
     grid: "grid grid-cols-1 md:grid-cols-2 gap-4",
   };
 
-  // Separate links from rich media for better layout
-  const richMedia = media.filter(
-    (m) => isVideoMedia(m) || isEmbedMedia(m) || isImageMedia(m)
+  // Separate links from rich media for better layout.
+  // Embeds are split out from players (video/image): when a commit carries
+  // more than one embed, they tile side-by-side in a row (collapsing to a
+  // single column when the container is narrow) instead of stacking
+  // vertically. Players keep the vertical stack.
+  const embeds = media.filter(isEmbedMedia) as EmbedMedia[];
+  const players = media.filter(
+    (m) => isVideoMedia(m) || isImageMedia(m)
   );
   const links = media.filter(isLinkMedia) as LinkMedia[];
+  const hasRichMedia = embeds.length > 0 || players.length > 0;
 
   // If only links, render them inline
-  if (richMedia.length === 0 && links.length > 0) {
+  if (!hasRichMedia && links.length > 0) {
     return (
       <div className={cn("flex flex-wrap gap-3", className)}>
         {links.map((link, i) => (
@@ -142,18 +167,43 @@ export function MediaRenderer({
     );
   }
 
+  const multipleEmbeds = embeds.length > 1;
+
   return (
     <div className={cn(layoutClasses[layout], className)}>
-      {/* Rich media first */}
-      {richMedia.map((m, i) => (
+      {/* Players (video / image) — vertical stack */}
+      {players.map((m, i) => (
         <SingleMedia
-          key={`media-${i}`}
+          key={`player-${i}`}
           media={m}
           theme={theme}
           size={size}
           showLinkPreviews={showLinkPreviews}
         />
       ))}
+
+      {/* Embeds — tiled two-up on every screen (incl. mobile) when >1 */}
+      {embeds.length > 0 && (
+        <div>
+          <div
+            className={cn(
+              // grid default `items-stretch` keeps tiled cards equal height
+              multipleEmbeds && "grid grid-cols-2 gap-2.5"
+            )}
+          >
+            {embeds.map((m, i) => (
+              <SingleMedia
+                key={`embed-${i}`}
+                media={m}
+                theme={theme}
+                size={multipleEmbeds ? "compact" : size}
+                showLinkPreviews={showLinkPreviews}
+                className={multipleEmbeds ? "w-full max-w-none" : undefined}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Links at the end */}
       {links.length > 0 && (

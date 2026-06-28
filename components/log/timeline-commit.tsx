@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import type { Media } from "@/lib/log";
 import type { NormalizedCommit } from "./commit-data";
 import { commitIcons, commitIconOverrides } from "./icons";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
@@ -92,6 +93,13 @@ export function TimelineCommit({
     data.stats ||
     data.nonLinkMedia.length > 0
   );
+
+  // Embeds flagged `defaultShown` render once in a stable spot beneath the row
+  // (visible folded *and* expanded), so toggling never remounts them. The
+  // expanded block then renders only the remaining media — the rest of the
+  // embeds plus any video/image — so every embed is still seen once expanded.
+  const foldedEmbeds = data.foldedEmbeds as Media[];
+  const expandedMedia = data.nonLinkMedia.filter((m) => !foldedEmbeds.includes(m));
 
   const handleToggleExpanded = useCallback(() => {
     if (!hasExpandableContent) return;
@@ -280,7 +288,9 @@ export function TimelineCommit({
         <div
           className={cn(
             "flex items-center shrink-0",
-            isExpanded ? "gap-3" : "gap-1.5",
+            // Widen the gap only where the labels appear (@sm); on mobile the
+            // labels stay hidden, so keep the icons tight even when expanded.
+            isExpanded ? "gap-1.5 @sm:gap-3" : "gap-1.5",
           )}
           onClick={(e) => e.stopPropagation()}
         >
@@ -344,6 +354,17 @@ export function TimelineCommit({
         </div>
       )}
 
+      {/* Default-shown embeds: rendered once here whether folded or expanded,
+          so toggling the row never remounts them. */}
+      {data.foldedEmbeds.length > 0 && (
+        <div
+          className="col-start-2 @sm:col-start-3 mt-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <MediaRenderer media={data.foldedEmbeds} layout="stack" size="default" />
+        </div>
+      )}
+
       {isExpanded && (
         <div className="col-start-2 @sm:col-start-3 mt-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
           {data.subtitle && (
@@ -352,10 +373,11 @@ export function TimelineCommit({
             </div>
           )}
 
-          {data.nonLinkMedia.length > 0 && (
+          {/* Remaining media — embeds not already shown above, plus video/image. */}
+          {expandedMedia.length > 0 && (
             <div onClick={(e) => e.stopPropagation()}>
               <MediaRenderer
-                media={data.nonLinkMedia}
+                media={expandedMedia}
                 layout="stack"
                 size="default"
               />
