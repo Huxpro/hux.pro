@@ -33,6 +33,14 @@ interface TimelineConnectorProps {
   /** Gap (px) from target icon center where the line should end. */
   toGap: number;
   isActive: boolean;
+  /** When true, suppress the dim default render — the connector only
+   *  paints when active. Use for inferred (auto-tenure) beams where
+   *  the underlying rail already shows the relationship visually,
+   *  so a persistent dim connector would just stack with the rail
+   *  and darken the icon column near the target where many connectors
+   *  converge. Explicit attachedTo beams stay always-visible because
+   *  they have no underlying rail to lean on. */
+  hideWhenIdle?: boolean;
 }
 
 interface Geom {
@@ -54,6 +62,7 @@ export function TimelineConnector({
   fromGap,
   toGap,
   isActive,
+  hideWhenIdle = false,
 }: TimelineConnectorProps) {
   const selfRef = useRef<HTMLDivElement | null>(null);
   const [geom, setGeom] = useState<Geom | null>(null);
@@ -126,11 +135,16 @@ export function TimelineConnector({
       <span
         className={cn(
           "block w-full h-full transition-colors duration-200",
-          // Dim by default, bright when either endpoint is active —
-          // matches the tenure rail's `/10` → `/30` palette so the
-          // back-point reads as the same vocabulary, just spanning
-          // non-contiguous rows.
-          isActive ? "bg-muted-foreground/30" : "bg-muted-foreground/10",
+          // Bright when active. When idle: inferred beams render
+          // transparent (the underlying rail handles the visual at
+          // /10, and a stacked dim connector would just darken the
+          // line near targets where many beams converge). Explicit
+          // attachedTo beams stay at /10 since they have no rail.
+          isActive
+            ? "bg-muted-foreground/30"
+            : hideWhenIdle
+              ? "bg-transparent"
+              : "bg-muted-foreground/10",
         )}
       />
     </div>

@@ -111,7 +111,10 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
       return out;
     })();
 
-    const allBeams = [...explicit, ...inferred];
+    const allBeams = [
+      ...explicit.map((b) => ({ ...b, inferred: false })),
+      ...inferred.map((b) => ({ ...b, inferred: true })),
+    ];
 
     const specs: (BeamSpec | null)[] = commits.map(() => null);
 
@@ -247,6 +250,11 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
             toHash={a.toHash}
             fromGap={a.fromGap}
             toGap={a.toGap}
+            // Inferred beams piggyback on the visible tenure rail —
+            // suppress their dim render so N connectors converging
+            // at the role don't darken the line through opacity
+            // stacking. Explicit attachedTo beams stay always-on.
+            hideWhenIdle={a.inferred}
             isActive={
               // Either: the exact source-target pair is active (hover
               // on source), or the target is active with wildcard
