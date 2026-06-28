@@ -14,6 +14,15 @@ import { MousePointer2 } from "lucide-react";
 import { EditorToolbar } from "./toolbar";
 import { CommitEditor } from "./commit-editor";
 import { TagEditor } from "./tag-editor";
+import {
+  type EditorSelection,
+  createCommitSelection,
+  createTagSelection,
+  isCommitSelection,
+  selectionCommitId,
+  selectionMediaIndex,
+  selectionTagId,
+} from "./selection";
 
 interface EditorViewProps {
   initialData: LogData;
@@ -23,16 +32,18 @@ export function EditorView({ initialData }: EditorViewProps) {
   const [data, setData] = useState<LogData>(initialData);
   const [savedData, setSavedData] = useState<LogData>(initialData);
   const [mode, setMode] = useState<InspectMode>("inspect");
-  const [selectedCommitId, setSelectedCommitId] = useState<string | null>(null);
-  const [editingTag, setEditingTag] = useState<string | null>(null);
-  const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(
-    null
-  );
+  // One selection at a time — commit (optionally focused on a media item) or
+  // tag — modelled as a union so the states can't contradict each other.
+  const [selection, setSelection] = useState<EditorSelection>(null);
   const [saving, setSaving] = useState(false);
   const { locale } = useLocale();
 
   const isDirty = JSON.stringify(data) !== JSON.stringify(savedData);
   const inspecting = mode === "inspect";
+
+  const selectedCommitId = selectionCommitId(selection);
+  const selectedTagId = selectionTagId(selection);
+  const selectedMediaIndex = selectionMediaIndex(selection);
 
   // Derive preview data. `includeAll` surfaces every commit — including
   // `listed: false` ones — so unlisted entries stay selectable on the canvas
@@ -48,34 +59,27 @@ export function EditorView({ initialData }: EditorViewProps) {
   );
 
   const editingTagObj = useMemo(
-    () => data.tags.find((t) => t.id === editingTag) ?? null,
-    [data.tags, editingTag]
+    () => data.tags.find((t) => t.id === selectedTagId) ?? null,
+    [data.tags, selectedTagId]
   );
 
-  // --- Selection (commit / media / tag are mutually exclusive) ---
+  // --- Selection. Mutual exclusion is structural (the union can only hold
+  //     one kind), so each setter is a single assignment. ---
 
   const selectCommit = useCallback((id: string) => {
-    setSelectedCommitId(id);
-    setSelectedMediaIndex(null);
-    setEditingTag(null);
+    setSelection(createCommitSelection(id));
   }, []);
 
   const selectMedia = useCallback((commitId: string, mediaIndex: number) => {
-    setSelectedCommitId(commitId);
-    setSelectedMediaIndex(mediaIndex);
-    setEditingTag(null);
+    setSelection(createCommitSelection(commitId, mediaIndex));
   }, []);
 
   const selectTag = useCallback((id: string) => {
-    setEditingTag(id);
-    setSelectedCommitId(null);
-    setSelectedMediaIndex(null);
+    setSelection(createTagSelection(id));
   }, []);
 
   const clearSelection = useCallback(() => {
-    setSelectedCommitId(null);
-    setSelectedMediaIndex(null);
-    setEditingTag(null);
+    setSelection(null);
   }, []);
 
   const handleModeChange = useCallback(
@@ -141,16 +145,16 @@ export function EditorView({ initialData }: EditorViewProps) {
     }));
   }, []);
 
-  const handleDeleteCommit = useCallback(
-    (commitId: string) => {
-      setData((prev) => ({
-        ...prev,
-        commits: prev.commits.filter((c) => c.id !== commitId),
-      }));
-      if (selectedCommitId === commitId) clearSelection();
-    },
-    [selectedCommitId, clearSelection]
-  );
+  const handleDeleteCommit = useCallback((commitId: string) => {
+    setData((prev) => ({
+      ...prev,
+      commits: prev.commits.filter((c) => c.id !== commitId),
+    }));
+    // Drop the selection only if it pointed at the deleted commit.
+    setSelection((current) =>
+      isCommitSelection(current, commitId) ? null : current
+    );
+  }, []);
 
   const handleAddCommit = useCallback(
     (tagId: string) => {
@@ -203,7 +207,7 @@ export function EditorView({ initialData }: EditorViewProps) {
     () => ({
       mode,
       selectedCommitId,
-      editingTagId: editingTag,
+      editingTagId: selectedTagId,
       selectedMediaIndex,
       onSelectCommit: selectCommit,
       onSelectTag: selectTag,
@@ -213,7 +217,7 @@ export function EditorView({ initialData }: EditorViewProps) {
     [
       mode,
       selectedCommitId,
-      editingTag,
+      selectedTagId,
       selectedMediaIndex,
       selectCommit,
       selectTag,
