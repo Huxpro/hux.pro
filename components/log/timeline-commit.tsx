@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { NormalizedCommit } from "./commit-data";
-import { commitIcons } from "./icons";
+import { commitIcons, commitIconOverrides } from "./icons";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import {
   LinkIcon,
@@ -26,7 +26,11 @@ import {
 import { MediaRenderer } from "./media";
 
 export interface BeamSpec {
-  fromHash: string;
+  /** Source hash, or null for a target-only spec — the latter
+   *  activates every connector that targets `toHash` (used so hovering
+   *  a role lights up all its incoming connectors, not just the first
+   *  attachment that happened to stash a spec on its slot). */
+  fromHash: string | null;
   toHash: string;
   roleId: string;
 }
@@ -75,7 +79,9 @@ export function TimelineCommit({
   onBeamSet,
   onBeamClear,
 }: TimelineCommitProps) {
-  const Icon = commitIcons[data.type];
+  const Icon =
+    (data.iconOverride && commitIconOverrides[data.iconOverride]) ||
+    commitIcons[data.type];
   const isEvent = data.type === "event";
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -155,7 +161,11 @@ export function TimelineCommit({
   // segment above only), `""` (no rail).
   const hasRailAbove = rail === "│" || rail === "┘";
   const hasRailBelow = rail === "│" || rail === "┐";
-  const isRoleAnchor = rail === "┐";
+  // A role row shows its anchor ring whenever it's part of a tenure
+  // cluster (i.e. has a rail char). The role might sit at the top
+  // (rail="┐"), bottom (rail="┘"), or middle (rail="│") of its cluster
+  // depending on `sortBy`; either way the ring marks it as the anchor.
+  const isRoleAnchor = isRole && rail !== "";
   // Distance from icon center where the line stops. Members: icon is
   // 12px (h-3) so 6px radius + 1px breathing room. Role: ring is 16px
   // (h-4) so 8px radius + 2px breathing room. Events: tiny 3px dot
@@ -196,26 +206,16 @@ export function TimelineCommit({
         {hasRailAbove && (
           <span
             aria-hidden
-            className={cn(
-              "pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200",
-              "bg-muted-foreground/10",
-              "group-hover/tenure:bg-muted-foreground/30",
-              "group-focus-within/tenure:bg-muted-foreground/30",
-              "group-has-[[data-expanded]]/tenure:bg-muted-foreground/30",
-            )}
+            data-rail-above
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
             style={{ top: "-1000px", bottom: `calc(50% + ${iconGapPx}px)` }}
           />
         )}
         {hasRailBelow && (
           <span
             aria-hidden
-            className={cn(
-              "pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200",
-              "bg-muted-foreground/10",
-              "group-hover/tenure:bg-muted-foreground/30",
-              "group-focus-within/tenure:bg-muted-foreground/30",
-              "group-has-[[data-expanded]]/tenure:bg-muted-foreground/30",
-            )}
+            data-rail-below
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
             style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
           />
         )}
@@ -376,7 +376,12 @@ export function TimelineCommit({
   );
 
   return (
-    <div id={data.hash} className={className}>
+    <div
+      id={data.hash}
+      data-rail-row
+      data-role-row={isRoleAnchor ? "" : undefined}
+      className={className}
+    >
       <MagneticPreview
         preview={cursorPreview}
         enabled={showCursorPreview}

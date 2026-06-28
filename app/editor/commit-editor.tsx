@@ -411,6 +411,36 @@ function FormFields({
         checked={commit.listed !== false}
         onChange={(v) => onUpdate({ listed: v ? undefined : false })}
       />
+      <CheckField
+        label="Hide Date"
+        checked={commit.hideDate === true}
+        onChange={(v) => onUpdate({ hideDate: v ? true : undefined })}
+      />
+      <SelectField
+        label="Sort By"
+        value={commit.sortBy ?? ""}
+        options={[
+          { value: "", label: "default (endDate for roles, date otherwise)" },
+          { value: "date", label: "date (start)" },
+          { value: "endDate", label: "endDate" },
+        ]}
+        onChange={(v) =>
+          onUpdate({
+            sortBy: v === "" ? undefined : (v as "date" | "endDate"),
+          })
+        }
+      />
+      <SelectField
+        label="Icon"
+        value={commit.icon ?? ""}
+        options={[
+          { value: "", label: "default (by type)" },
+          { value: "graduation-cap", label: "graduation-cap" },
+        ]}
+        onChange={(v) =>
+          onUpdate({ icon: v === "" ? undefined : (v as "graduation-cap") })
+        }
+      />
 
       <SectionLabel>Title</SectionLabel>
       <Field

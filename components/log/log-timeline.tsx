@@ -5,6 +5,7 @@ import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
   computeBeams,
+  computeInferredBeams,
   computeRail,
   formatTagDateRange,
   getLocalizedTagTitle,
@@ -83,28 +84,37 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
 
   const { railInfo, beamSpecs, attachments } = useMemo(() => {
     const rail = computeRail(commits);
-    const explicit = computeBeams(commits);
+    const allBeams = [
+      ...computeBeams(commits).map((b) => ({ ...b, inferred: false })),
+      ...computeInferredBeams(commits, rail).map((b) => ({
+        ...b,
+        inferred: true,
+      })),
+    ];
 
-    const specs: (BeamSpec | null)[] = commits.map(() => null);
-
-    const attachmentsWithGaps = explicit.map((b) => ({
+    const attachmentsWithGaps = allBeams.map((b) => ({
       ...b,
       fromGap: gapFor(commits[b.fromIdx].type),
       toGap: gapFor(commits[b.toIdx].type),
     }));
 
-    for (const b of explicit) {
-      if (rail[b.fromIdx].segmentId === null) {
-        rail[b.fromIdx].segmentId = b.roleId;
-      }
-      const spec: BeamSpec = {
+    // Each beam endpoint stashes a BeamSpec so hover/focus/expand
+    // fires `activeBeam`. Source specs carry their own fromHash for
+    // exact-match activation. Target specs use `fromHash: null` so
+    // hovering the target activates every incoming connector.
+    const specs: (BeamSpec | null)[] = commits.map(() => null);
+    for (const b of allBeams) {
+      specs[b.fromIdx] = {
         fromHash: b.fromHash,
         toHash: b.toHash,
         roleId: b.roleId,
       };
-      specs[b.fromIdx] = spec;
       if (specs[b.toIdx] === null) {
-        specs[b.toIdx] = spec;
+        specs[b.toIdx] = {
+          fromHash: null,
+          toHash: b.toHash,
+          roleId: b.roleId,
+        };
       }
     }
 
@@ -174,7 +184,7 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
                 commit={commits[i]}
                 locale={locale}
                 variant="timeline"
-                hideDate={tag.hideDate}
+                hideDate={tag.hideDate || commits[i].hideDate}
                 rail={railInfo[i].rail}
                 segmentId={railInfo[i].segmentId}
                 isSegmentActive={
@@ -206,9 +216,20 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
             toHash={a.toHash}
             fromGap={a.fromGap}
             toGap={a.toGap}
+            // Inferred beams piggyback on the visible tenure rail —
+            // suppress their dim render so N converging connectors
+            // don't darken the line via opacity stacking.
+            hideWhenIdle={a.inferred}
             isActive={
-              activeBeam?.fromHash === a.fromHash &&
-              activeBeam?.toHash === a.toHash
+              !!activeBeam &&
+              activeBeam.toHash === a.toHash &&
+              // Exact source match always activates. Target hover
+              // (fromHash null) activates ONLY explicit attachedTo
+              // connectors — for inferred beams the role-hover
+              // brightens the rail directly via CSS so we don't
+              // paint a long overlapping line through icons.
+              (activeBeam.fromHash === a.fromHash ||
+                (activeBeam.fromHash === null && !a.inferred))
             }
           />
         ))}

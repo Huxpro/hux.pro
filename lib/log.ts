@@ -167,6 +167,31 @@ interface BaseCommit {
    * - `null`: force-detach — no rail or beam even if in tenure.
    */
   attachedTo?: string | null;
+  /**
+   * Per-commit override that hides the date column and renders the
+   * commit's location (for roles) instead. Useful for education
+   * entries that overlap with concurrent work and would otherwise
+   * highlight the overlap. Orthogonal to `sortBy` — hiding the date
+   * is purely a display concern.
+   */
+  hideDate?: boolean;
+  /**
+   * Which date field anchors this commit in the timeline sort.
+   * - `"endDate"` (default for roles): role row sits at the top of
+   *   its tenure cluster.
+   * - `"date"`: row sits at its start date — e.g. an education entry
+   *   that should land at its enrollment year rather than anchor
+   *   the top of an unrelated cluster via its graduation year.
+   * - undefined: type default (`endDate` for roles, `date` otherwise).
+   */
+  sortBy?: "date" | "endDate";
+  /**
+   * Override the default icon picked by commit type. Useful when
+   * the type is correct but the iconography wants a flavor — e.g.
+   * an education `role` rendered with `graduation-cap` instead of
+   * the default briefcase.
+   */
+  icon?: "graduation-cap";
 }
 
 /**
@@ -439,11 +464,23 @@ export function formatDateRange(
 }
 
 /**
- * Format a commit's date for display
+ * Format a commit's date for display.
+ *
+ * Roles always render a date range — even without an `endDate`, an
+ * open-ended role reads as `"2023 — Present"` so the row visibly
+ * communicates "still ongoing" rather than collapsing to a single
+ * month label (which would otherwise read like a one-off project).
+ *
+ * Non-roles fall back to a single `"Mon YYYY"` label when no endDate
+ * is set, since most projects/talks are one-shot events.
  */
 export function formatCommitDate(commit: Commit, locale: Locale): string {
   if (commit.endDate) {
     return formatDateRange(commit.date, commit.endDate, locale);
+  }
+
+  if (commit.type === "role") {
+    return formatDateRange(commit.date, undefined, locale);
   }
 
   const d = new Date(commit.date);
@@ -519,12 +556,18 @@ export function getCommitTypeIcon(type: CommitType): string {
 // =============================================================================
 
 /**
- * Sort key for a commit. Roles use their `endDate` so they sit at the
- * TOP of their tenure's segment (with all the projects/talks they did
- * during that role appearing below). Ongoing roles (no endDate) sort
- * at the very top.
+ * Sort key for a commit. Honors the explicit `sortBy` field when set;
+ * otherwise falls back to type defaults: roles sit at the top of their
+ * tenure cluster by sorting on `endDate` (ongoing roles → "9999-12"),
+ * non-roles sort by their own `date`.
  */
 function commitSortKey(c: Commit): string {
+  const explicit = c.sortBy;
+  if (explicit === "date") return c.date;
+  if (explicit === "endDate") {
+    return c.endDate && c.endDate !== "present" ? c.endDate : "9999-12";
+  }
+  // Type defaults.
   if (c.type === "role") {
     return c.endDate && c.endDate !== "present" ? c.endDate : "9999-12";
   }
@@ -532,18 +575,26 @@ function commitSortKey(c: Commit): string {
 }
 
 /**
- * Sort commits by date (most recent first). Roles use their endDate so
- * they anchor the top of their segment; non-roles use their own date.
- * When two commits tie on the effective date, roles come FIRST so the
- * role row appears above projects dated at its end date.
+ * Sort commits by date (most recent first). Tie-break order depends on
+ * the role's sort orientation:
+ *
+ * - Roles that sort by `endDate` (the default): role comes BEFORE
+ *   non-roles at tie, so the role row appears above its projects
+ *   dated at the same month — anchoring the TOP of the cluster.
+ * - Roles that sort by `date` (start): role comes AFTER non-roles at
+ *   tie, so the role row settles BELOW its same-month projects —
+ *   anchoring the BOTTOM of the cluster.
+ * - Non-roles: middle tier; order amongst themselves is stable.
  */
 export function sortCommitsByDate<T extends Commit>(commits: T[]): T[] {
+  const tier = (c: Commit) => {
+    if (c.type !== "role") return 1;
+    return c.sortBy === "date" ? 2 : 0;
+  };
   return [...commits].sort((a, b) => {
     const d = commitSortKey(b).localeCompare(commitSortKey(a));
     if (d !== 0) return d;
-    const aR = a.type === "role" ? 0 : 1;
-    const bR = b.type === "role" ? 0 : 1;
-    return aR - bR;
+    return tier(a) - tier(b);
   });
 }
 
@@ -631,19 +682,25 @@ export interface BeamLink {
 }
 
 /**
- * Compute the right-side rail bracket info for each commit in a tag.
- * The bracket attaches a role (top, sorted by endDate) to every commit
- * dated within its tenure window [role.date, role.endDate], then wraps
- * up at the last in-tenure commit. Rendered right of the dates,
- * corners face LEFT.
+ * Compute the rail bracket info for each commit in a tag.
  *
- *   ┐  role anchor — top of a multi-commit segment; line goes down
- *   │  mid-segment
- *   ┘  last commit in the segment; wraps the line up-left
+ * Each non-role commit is assigned to the role whose tenure window
+ * [role.date, role.endDate] contains it. When multiple roles overlap
+ * (e.g. an internship inside a school's larger window), the role with
+ * the SMALLEST window wins — most specific membership.
+ *
+ * Once members are assigned, each cluster (role + members) computes
+ * rail chars by POSITION in the sorted array, not by which row is the
+ * role. So whether the role anchors at the top (`sortBy: "endDate"`,
+ * the default) or the bottom (`sortBy: "date"`), the rail traces from
+ * the topmost row in the cluster down to the bottommost.
+ *
+ *   ┐  topmost row in cluster — line goes down only
+ *   │  mid-cluster row — line both directions
+ *   ┘  bottommost row in cluster — line goes up only
  *      (empty)  solo role, out-of-tenure commit, or no role context
  *
- * Tenure is compared at month granularity (YYYY-MM), so commits whose
- * date includes a day still match by month.
+ * Tenure compared at month granularity (YYYY-MM).
  *
  * Honours `attachedTo`:
  *   - `null`     → force-detach, no rail even if in tenure.
@@ -657,60 +714,129 @@ export function computeRail(commits: Commit[]): RailInfo[] {
   }));
 
   const month = (s: string) => s.slice(0, 7);
+  // Convert YYYY-MM to absolute month index for cheap window arithmetic.
+  // "9999-12" is the open-ended sentinel for ongoing roles; treat it as
+  // a very large number so the window size is large (less specific) and
+  // bounded date roles win the smallest-window comparison.
+  const monthIdx = (m: string): number => {
+    if (m === "9999-12") return Number.MAX_SAFE_INTEGER;
+    const [y, mo] = m.split("-").map(Number);
+    return y * 12 + (mo - 1);
+  };
 
-  // Each non-role commit joins the nearest role above ONLY if its date
-  // falls inside that role's tenure AND it has not been explicitly
-  // re-targeted via attachedTo.
-  const segmentIdx: number[] = new Array(commits.length).fill(-1);
-  let currentRole = -1;
+  // Index each role's tenure window.
+  type Window = { start: string; end: string; startIdx: number; endIdx: number };
+  const roleWindows = new Map<number, Window>();
   for (let i = 0; i < commits.length; i++) {
     const c = commits[i];
-    if (c.type === "role") {
-      currentRole = i;
-      continue;
-    }
-    // Explicit detach or re-target opts out of the bracket — beams cover
-    // the explicit-attach case visually.
-    if (c.attachedTo !== undefined) continue;
-    if (currentRole === -1) continue;
-    const role = commits[currentRole] as RoleCommit;
-    const start = month(role.date);
+    if (c.type !== "role") continue;
+    const r = c as RoleCommit;
+    const start = month(r.date);
     const end =
-      role.endDate && role.endDate !== "present"
-        ? month(role.endDate)
-        : "9999-12";
-    const cm = month(c.date);
-    if (cm >= start && cm <= end) {
-      segmentIdx[i] = currentRole;
-    }
+      r.endDate && r.endDate !== "present" ? month(r.endDate) : "9999-12";
+    roleWindows.set(i, {
+      start,
+      end,
+      startIdx: monthIdx(start),
+      endIdx: monthIdx(end),
+    });
   }
 
-  // segmentEnd[roleIdx] = index of the bottom (oldest) commit in that
-  // role's tenure window.
-  const segmentEnd = new Map<number, number>();
-  for (let i = commits.length - 1; i >= 0; i--) {
-    const ctx = segmentIdx[i];
-    if (ctx !== -1 && !segmentEnd.has(ctx)) segmentEnd.set(ctx, i);
-  }
-
+  // Assign each non-role commit (without explicit attachedTo) to the
+  // smallest-window role that contains its date.
+  const assignment: number[] = new Array(commits.length).fill(-1);
   for (let i = 0; i < commits.length; i++) {
-    if (commits[i].type === "role") {
-      // Role gets a bracket when at least one commit below sits in its
-      // tenure window. Solo roles render no bracket (beams handle their
-      // explicit attachments).
-      const endIdx = segmentEnd.get(i);
-      if (endIdx === undefined) continue;
-      result[i].segmentId = commits[i].id;
-      result[i].rail = "┐";
-    } else if (segmentIdx[i] !== -1) {
-      const ctx = segmentIdx[i];
-      const endIdx = segmentEnd.get(ctx)!;
-      result[i].segmentId = commits[ctx].id;
-      result[i].rail = i === endIdx ? "┘" : "│";
+    const c = commits[i];
+    if (c.type === "role") continue;
+    if (c.attachedTo !== undefined) continue;
+    const cm = month(c.date);
+    let bestRole = -1;
+    let bestSize = Infinity;
+    for (const [roleIdx, w] of roleWindows) {
+      if (cm < w.start || cm > w.end) continue;
+      const size = w.endIdx - w.startIdx;
+      if (size < bestSize) {
+        bestSize = size;
+        bestRole = roleIdx;
+      }
+    }
+    assignment[i] = bestRole;
+  }
+
+  // Build clusters in a single pass over the sorted commits. For each
+  // row, decide which cluster it belongs to: a non-role with assignment
+  // joins that role's cluster; a role that owns one or more assignments
+  // joins its own. The push order matches sort order, so the resulting
+  // index arrays are ascending without a follow-up sort.
+  const roleHasMembers = new Set<number>();
+  for (const r of assignment) if (r !== -1) roleHasMembers.add(r);
+
+  const clusters = new Map<number, number[]>();
+  for (let i = 0; i < commits.length; i++) {
+    const owner =
+      commits[i].type === "role" && roleHasMembers.has(i) ? i : assignment[i];
+    if (owner === -1) continue;
+    if (!clusters.has(owner)) clusters.set(owner, []);
+    clusters.get(owner)!.push(i);
+  }
+
+  // Assign rail chars per cluster — topmost row gets ┐, bottommost
+  // gets ┘, mids get │. Solo roles (single-element clusters never
+  // reach here since they're not seeded above) get no rail.
+  for (const [roleIdx, indices] of clusters) {
+    if (indices.length < 2) continue;
+    const topIdx = indices[0];
+    const bottomIdx = indices[indices.length - 1];
+    const id = commits[roleIdx].id;
+    for (const i of indices) {
+      result[i].segmentId = id;
+      result[i].rail = i === topIdx ? "┐" : i === bottomIdx ? "┘" : "│";
     }
   }
 
   return result;
+}
+
+/**
+ * Derive inferred-tenure beams from a rail computation: every row
+ * `computeRail` slotted into a tenure cluster (segmentId set) gets a
+ * beam from itself to the role anchor, except the role itself.
+ *
+ * Pulled out so the UI doesn't have to walk the rail + look up roles
+ * by `findIndex` per row (which was O(N²) at the call site).
+ */
+export function computeInferredBeams(
+  commits: Commit[],
+  rail: RailInfo[],
+): BeamLink[] {
+  const idToIdx = new Map<string, number>();
+  for (let i = 0; i < commits.length; i++) idToIdx.set(commits[i].id, i);
+
+  const hashCache = new Map<string, string>();
+  const hashOf = (id: string) => {
+    const cached = hashCache.get(id);
+    if (cached !== undefined) return cached;
+    const h = computeCommitHash(id);
+    hashCache.set(id, h);
+    return h;
+  };
+
+  const beams: BeamLink[] = [];
+  for (let i = 0; i < commits.length; i++) {
+    const sid = rail[i].segmentId;
+    if (!sid) continue;
+    if (commits[i].id === sid) continue;
+    const toIdx = idToIdx.get(sid);
+    if (toIdx === undefined) continue;
+    beams.push({
+      fromIdx: i,
+      toIdx,
+      fromHash: hashOf(commits[i].id),
+      toHash: hashOf(sid),
+      roleId: sid,
+    });
+  }
+  return beams;
 }
 
 /**

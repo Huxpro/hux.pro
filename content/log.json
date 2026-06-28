@@ -72,20 +72,6 @@
       "startDate": "2012-09",
       "endDate": "2017-07",
       "accentColor": "oklch(0.6 0.1 300)"
-    },
-    {
-      "id": "education",
-      "title": {
-        "en": "Education",
-        "zh": "教育"
-      },
-      "tagline": {
-        "en": "Schools and degrees",
-        "zh": "求学经历"
-      },
-      "startDate": "2012-01",
-      "endDate": "2019-12",
-      "hideDate": true
     }
   ],
   "groups": [
@@ -229,6 +215,7 @@
       "id": "tech-lead-lynx",
       "type": "role",
       "tagId": "lynx-era",
+      "sortBy": "date",
       "title": {
         "en": "Staff Engineer / Architect",
         "zh": "架构师"
@@ -543,6 +530,7 @@
       "id": "meta-engineer",
       "type": "role",
       "tagId": "react-era",
+      "sortBy": "date",
       "title": {
         "en": "Software Engineer",
         "zh": "软件工程师"
@@ -567,13 +555,14 @@
       "id": "meta-intern-xros",
       "type": "role",
       "tagId": "react-era",
+      "attachedTo": "rit-ms",
       "title": {
-        "en": "Software Engineer Intern",
-        "zh": "软件工程实习生"
+        "en": "Software Engineer Intern, XROS",
+        "zh": "软件工程实习生 · XROS"
       },
       "description": {
-        "en": "Internship at Reality Lab Research, working on XROS.",
-        "zh": "在 Reality Lab Research 实习，从事 XROS 相关工作。"
+        "en": "Summer internship at Meta Reality Labs Research, working on XROS — an experimental operating system for XR.",
+        "zh": "Meta Reality Labs Research 暑期实习，参与面向 XR 的实验性操作系统 XROS。"
       },
       "date": "2019-05",
       "endDate": "2019-08",
@@ -583,20 +572,23 @@
       },
       "tags": [
         "XR",
-        "Research"
+        "Operating System",
+        "Research",
+        "Internship"
       ]
     },
     {
       "id": "meta-intern-reasonml",
       "type": "role",
       "tagId": "react-era",
+      "attachedTo": "rit-ms",
       "title": {
-        "en": "Software Engineer Intern",
-        "zh": "软件工程实习生"
+        "en": "Software Engineer Intern, ReasonML",
+        "zh": "软件工程实习生 · ReasonML"
       },
       "description": {
-        "en": "Internship on ReasonML/ReScript team, working on Messenger Web.",
-        "zh": "在 ReasonML/ReScript 团队实习，参与 Messenger Web 开发。"
+        "en": "Summer internship at Meta on the ReasonML / ReScript team, working on Messenger Web.",
+        "zh": "Meta ReasonML / ReScript 团队暑期实习，参与 Messenger Web 的开发。"
       },
       "date": "2018-05",
       "endDate": "2018-08",
@@ -607,13 +599,17 @@
       "tags": [
         "ReasonML",
         "OCaml",
-        "Messenger"
+        "Messenger",
+        "Internship"
       ]
     },
     {
       "id": "rit-ms",
       "type": "role",
-      "tagId": "education",
+      "tagId": "react-era",
+      "hideDate": true,
+      "sortBy": "date",
+      "icon": "graduation-cap",
       "title": {
         "en": "M.S. Computer Science",
         "zh": "计算机科学 硕士"
@@ -743,6 +739,7 @@
       "id": "wepiao-lead",
       "type": "role",
       "tagId": "pwa-era",
+      "attachedTo": "cuc-ba",
       "title": {
         "en": "Tech Lead Manager, Web Infra",
         "zh": "Web 基础架构团队主管"
@@ -769,6 +766,7 @@
       "id": "alitrip-engineer",
       "type": "role",
       "tagId": "pwa-era",
+      "attachedTo": "cuc-ba",
       "title": {
         "en": "Front-End Engineer",
         "zh": "前端工程师"
@@ -791,7 +789,10 @@
     {
       "id": "cuc-ba",
       "type": "role",
-      "tagId": "education",
+      "tagId": "pwa-era",
+      "hideDate": true,
+      "sortBy": "date",
+      "icon": "graduation-cap",
       "title": {
         "en": "B.A. Digital Media Arts",
         "zh": "数字媒体艺术 学士"
@@ -860,7 +861,8 @@
       "id": "event-moved-to-us",
       "type": "event",
       "tagId": "react-era",
-      "date": "2017-08",
+      "attachedTo": "rit-ms",
+      "date": "2017-07",
       "title": {
         "en": "moved to the US",
         "zh": "搬到美国"

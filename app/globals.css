@@ -689,6 +689,23 @@ html.dragging * {
   }
 }
 
+/* Tenure rail: when the role row is hovered/focused/expanded, brighten
+   every rail span in its cluster. Member hover instead activates only
+   that member's connector via JS state. */
+
+.group\/tenure:has(> [data-role-row]:hover) [data-rail-above],
+.group\/tenure:has(> [data-role-row]:hover) [data-rail-below],
+.group\/tenure:has(> [data-role-row]:focus-within) [data-rail-above],
+.group\/tenure:has(> [data-role-row]:focus-within) [data-rail-below],
+.group\/tenure:has(> [data-role-row]:has([data-expanded])) [data-rail-above],
+.group\/tenure:has(> [data-role-row]:has([data-expanded])) [data-rail-below] {
+  background-color: color-mix(
+    in oklch,
+    var(--color-muted-foreground) 30%,
+    transparent
+  );
+}
+
 /* =============================================================================
    Widget Jiggle — iPad-springboard "edit mode" wobble applied to widgets
    while the homepage grid is being rearranged. Lives on an inner wrapper so
