@@ -310,6 +310,7 @@ export function normalizeCommit(
         tags: [],
         links: [],
         nonLinkMedia: [],
+        foldedEmbeds: [],
       };
     }
 
