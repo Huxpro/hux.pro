@@ -90,9 +90,12 @@ function InspectableMedia({
         }}
         className={cn(
           "absolute inset-0 z-20 rounded-lg cursor-pointer transition-all ring-inset",
+          // Selected reads through COLOR — a Figma-style editor blue ring +
+          // tint — rather than a heavier border. Hover stays a quiet grey
+          // outline at the same width, so blue is what signals "selected".
           selected
-            ? "ring-2 ring-foreground/40 bg-foreground/[0.03]"
-            : "ring-0 hover:ring-2 hover:ring-foreground/30 hover:bg-foreground/[0.02]",
+            ? "ring-2 ring-blue-500 bg-blue-500/10"
+            : "ring-0 hover:ring-2 hover:ring-foreground/25 hover:bg-foreground/[0.02]",
         )}
       />
     </div>

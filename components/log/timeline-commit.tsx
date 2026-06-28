@@ -491,13 +491,13 @@ export function TimelineCommit({
             isEvent ? "py-1" : "py-2.5",
             rowOnClick ? "cursor-pointer" : "cursor-default",
             "@container hover:bg-muted/20 active:bg-muted/30",
-            // Inspect: outline the row under the cursor (Figma-style), dim
-            // entries hidden from the public site, and mark the row currently
-            // open in the Inspector with a persistent ring + fill.
+            // Inspect: a quiet grey outline follows the cursor; the row open
+            // in the Inspector gets the Figma-style editor-blue ring + tint.
+            // Dim entries hidden from the public site.
             inspecting && "hover:ring-1 hover:ring-inset hover:ring-foreground/20",
             isUnlisted && "opacity-55",
             isSelected &&
-              "bg-muted/25 ring-1 ring-inset ring-foreground/30 hover:ring-foreground/30",
+              "bg-blue-500/10 ring-1 ring-inset ring-blue-500/70 hover:ring-blue-500/70",
           )}
         >
           {rowContent}

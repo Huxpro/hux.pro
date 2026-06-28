@@ -2,6 +2,7 @@
 
 import { Save, RotateCcw, Plus, MousePointer2, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/services";
 import type { InspectMode } from "@/components/log/timeline-edit-context";
 
 interface EditorToolbarProps {
@@ -23,6 +24,11 @@ export function EditorToolbar({
   onReset,
   onAddTag,
 }: EditorToolbarProps) {
+  const { locale } = useLocale();
+  const t =
+    locale === "zh"
+      ? { inspect: "检视", preview: "预览" }
+      : { inspect: "Inspect", preview: "Preview" };
   return (
     <div className="h-12 shrink-0 border-b border-border flex items-center justify-between px-4 bg-muted/5">
       <div className="flex items-center gap-3">
@@ -48,13 +54,13 @@ export function EditorToolbar({
             active={mode === "inspect"}
             onClick={() => onModeChange("inspect")}
             icon={<MousePointer2 className="w-3 h-3" />}
-            label="Inspect"
+            label={t.inspect}
           />
           <ModeButton
             active={mode === "preview"}
             onClick={() => onModeChange("preview")}
             icon={<Eye className="w-3 h-3" />}
-            label="Preview"
+            label={t.preview}
           />
         </div>
       </div>
