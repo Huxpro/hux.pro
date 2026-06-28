@@ -4,9 +4,13 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import type { LogData, Commit, Tag } from "@/lib/log";
 import { buildTimelineData } from "@/lib/log";
 import { LogTimeline } from "@/components/log/log-timeline";
-import { TimelineEditProvider } from "@/components/log/timeline-edit-context";
+import {
+  TimelineEditProvider,
+  type InspectMode,
+} from "@/components/log/timeline-edit-context";
 import { useLocale } from "@/services";
 import { toast } from "sonner";
+import { MousePointer2 } from "lucide-react";
 import { EditorToolbar } from "./toolbar";
 import { CommitEditor } from "./commit-editor";
 import { TagEditor } from "./tag-editor";
@@ -18,16 +22,21 @@ interface EditorViewProps {
 export function EditorView({ initialData }: EditorViewProps) {
   const [data, setData] = useState<LogData>(initialData);
   const [savedData, setSavedData] = useState<LogData>(initialData);
+  const [mode, setMode] = useState<InspectMode>("inspect");
   const [selectedCommitId, setSelectedCommitId] = useState<string | null>(null);
   const [editingTag, setEditingTag] = useState<string | null>(null);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(
+    null
+  );
   const [saving, setSaving] = useState(false);
   const { locale } = useLocale();
 
   const isDirty = JSON.stringify(data) !== JSON.stringify(savedData);
+  const inspecting = mode === "inspect";
 
   // Derive preview data. `includeAll` surfaces every commit — including
-  // `listed: false` ones — so unlisted entries stay clickable on the canvas
-  // now that there's no left-hand list to reach them from.
+  // `listed: false` ones — so unlisted entries stay selectable on the canvas
+  // (there's no separate list to reach them from).
   const previewData = useMemo(
     () => buildTimelineData(data, undefined, { includeAll: true }),
     [data]
@@ -43,34 +52,50 @@ export function EditorView({ initialData }: EditorViewProps) {
     [data.tags, editingTag]
   );
 
-  const drawerOpen = !!selectedCommit || !!editingTagObj;
+  // --- Selection (commit / media / tag are mutually exclusive) ---
 
-  // --- Selection (commit and tag editors are mutually exclusive) ---
-
-  const handleEditCommit = useCallback((id: string) => {
+  const selectCommit = useCallback((id: string) => {
     setSelectedCommitId(id);
+    setSelectedMediaIndex(null);
     setEditingTag(null);
   }, []);
 
-  const handleEditTag = useCallback((id: string) => {
+  const selectMedia = useCallback((commitId: string, mediaIndex: number) => {
+    setSelectedCommitId(commitId);
+    setSelectedMediaIndex(mediaIndex);
+    setEditingTag(null);
+  }, []);
+
+  const selectTag = useCallback((id: string) => {
     setEditingTag(id);
     setSelectedCommitId(null);
+    setSelectedMediaIndex(null);
   }, []);
 
-  const closeDrawer = useCallback(() => {
+  const clearSelection = useCallback(() => {
     setSelectedCommitId(null);
+    setSelectedMediaIndex(null);
     setEditingTag(null);
   }, []);
 
-  // Esc closes the editor drawer.
+  const handleModeChange = useCallback(
+    (next: InspectMode) => {
+      setMode(next);
+      // Leaving inspect drops the selection so Preview is a clean public view.
+      if (next === "preview") clearSelection();
+    },
+    [clearSelection]
+  );
+
+  // Esc clears the current selection (returns to the empty inspector).
   useEffect(() => {
-    if (!drawerOpen) return;
+    if (!inspecting) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeDrawer();
+      if (e.key === "Escape") clearSelection();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [drawerOpen, closeDrawer]);
+  }, [inspecting, clearSelection]);
 
   // --- Mutations ---
 
@@ -102,13 +127,12 @@ export function EditorView({ initialData }: EditorViewProps) {
       const fresh: LogData = await res.json();
       setData(fresh);
       setSavedData(fresh);
-      setSelectedCommitId(null);
-      setEditingTag(null);
+      clearSelection();
       toast.success("Reloaded from disk");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Reset failed");
     }
-  }, []);
+  }, [clearSelection]);
 
   const handleUpdateCommit = useCallback((updated: Commit) => {
     setData((prev) => ({
@@ -123,33 +147,34 @@ export function EditorView({ initialData }: EditorViewProps) {
         ...prev,
         commits: prev.commits.filter((c) => c.id !== commitId),
       }));
-      if (selectedCommitId === commitId) {
-        setSelectedCommitId(null);
-      }
+      if (selectedCommitId === commitId) clearSelection();
     },
-    [selectedCommitId]
+    [selectedCommitId, clearSelection]
   );
 
-  const handleAddCommit = useCallback((tagId: string) => {
-    const id = `new-${Date.now()}`;
-    const newCommit: Commit = {
-      type: "post",
-      id,
-      tagId,
-      date: new Date().toISOString().slice(0, 7),
-      title: { en: "New Entry", zh: "新条目" },
-      description: { en: "", zh: "" },
-      url: "",
-      publication: { name: "" },
-      tags: [],
-    };
-    setData((prev) => ({
-      ...prev,
-      commits: [...prev.commits, newCommit],
-    }));
-    setSelectedCommitId(id);
-    setEditingTag(null);
-  }, []);
+  const handleAddCommit = useCallback(
+    (tagId: string) => {
+      const id = `new-${Date.now()}`;
+      const newCommit: Commit = {
+        type: "post",
+        id,
+        tagId,
+        date: new Date().toISOString().slice(0, 7),
+        title: { en: "New Entry", zh: "新条目" },
+        description: { en: "", zh: "" },
+        url: "",
+        publication: { name: "" },
+        tags: [],
+      };
+      setData((prev) => ({
+        ...prev,
+        commits: [...prev.commits, newCommit],
+      }));
+      setMode("inspect");
+      selectCommit(id);
+    },
+    [selectCommit]
+  );
 
   const handleUpdateTag = useCallback((updated: Tag) => {
     setData((prev) => ({
@@ -170,19 +195,31 @@ export function EditorView({ initialData }: EditorViewProps) {
       ...prev,
       tags: [newTag, ...prev.tags],
     }));
-    setEditingTag(id);
-    setSelectedCommitId(null);
-  }, []);
+    setMode("inspect");
+    selectTag(id);
+  }, [selectTag]);
 
   const editContext = useMemo(
     () => ({
+      mode,
       selectedCommitId,
       editingTagId: editingTag,
-      onEditCommit: handleEditCommit,
-      onEditTag: handleEditTag,
+      selectedMediaIndex,
+      onSelectCommit: selectCommit,
+      onSelectTag: selectTag,
+      onSelectMedia: selectMedia,
       onAddCommit: handleAddCommit,
     }),
-    [selectedCommitId, editingTag, handleEditCommit, handleEditTag, handleAddCommit]
+    [
+      mode,
+      selectedCommitId,
+      editingTag,
+      selectedMediaIndex,
+      selectCommit,
+      selectTag,
+      selectMedia,
+      handleAddCommit,
+    ]
   );
 
   return (
@@ -191,23 +228,19 @@ export function EditorView({ initialData }: EditorViewProps) {
       <EditorToolbar
         isDirty={isDirty}
         saving={saving}
+        mode={mode}
+        onModeChange={handleModeChange}
         onSave={handleSave}
         onReset={handleReset}
         onAddTag={handleAddTag}
       />
 
-      {/* Canvas + editor drawer */}
+      {/* Canvas + Inspector */}
       <div className="flex-1 flex min-h-0">
-        {/* Preview canvas — the only way to pick what to edit. */}
+        {/* Preview canvas — selection surface in inspect mode, live public
+            render in preview mode. */}
         <div className="flex-1 overflow-y-auto p-8">
           <div className="max-w-2xl mx-auto">
-            {/* Hint: with no list, clicking the canvas is the way in. */}
-            <p className="mb-6 font-mono text-[11px] text-muted-foreground/40">
-              {locale === "zh"
-                ? "点击任意条目或章节即可编辑 · 章节旁的 + 可新增条目"
-                : "Click any entry or chapter to edit · use + beside a chapter to add"}
-            </p>
-
             <TimelineEditProvider value={editContext}>
               <LogTimeline data={previewData} locale={locale} />
             </TimelineEditProvider>
@@ -224,8 +257,9 @@ export function EditorView({ initialData }: EditorViewProps) {
           </div>
         </div>
 
-        {/* Editor drawer — docked right, slides in when something is selected. */}
-        {drawerOpen && (
+        {/* Inspector — docked whenever inspect mode is on. Shows an empty
+            prompt until something on the canvas is selected. */}
+        {inspecting && (
           <aside className="w-[480px] shrink-0 border-l border-border flex flex-col min-h-0 animate-in slide-in-from-right-4 fade-in duration-200">
             {selectedCommit ? (
               <CommitEditor
@@ -233,20 +267,41 @@ export function EditorView({ initialData }: EditorViewProps) {
                 tags={data.tags}
                 onUpdate={handleUpdateCommit}
                 onDelete={() => handleDeleteCommit(selectedCommit.id)}
-                onBack={closeDrawer}
+                onClose={clearSelection}
+                focusMediaIndex={selectedMediaIndex}
               />
             ) : editingTagObj ? (
               <div className="flex-1 overflow-y-auto">
                 <TagEditor
                   tag={editingTagObj}
                   onUpdate={handleUpdateTag}
-                  onClose={closeDrawer}
+                  onClose={clearSelection}
                 />
               </div>
-            ) : null}
+            ) : (
+              <EmptyInspector locale={locale} />
+            )}
           </aside>
         )}
       </div>
+    </div>
+  );
+}
+
+function EmptyInspector({ locale }: { locale: string }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center text-center px-8 gap-3">
+      <MousePointer2 className="w-6 h-6 text-muted-foreground/30" />
+      <p className="text-sm text-muted-foreground/60 max-w-[16rem]">
+        {locale === "zh"
+          ? "在左侧画布点击任意条目、章节或媒体即可在此编辑"
+          : "Click an entry, chapter, or media item on the canvas to edit it here"}
+      </p>
+      <p className="font-mono text-[11px] text-muted-foreground/35 max-w-[16rem]">
+        {locale === "zh"
+          ? "章节旁的 + 可新增条目 · 切到 Preview 可预览真实效果"
+          : "Use + beside a chapter to add · switch to Preview to see the live result"}
+      </p>
     </div>
   );
 }

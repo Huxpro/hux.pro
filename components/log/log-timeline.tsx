@@ -55,7 +55,10 @@ interface TagBlockProps {
 
 function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
   // Null on the public timeline; present only inside the editor preview.
+  // Selection affordances appear only in inspect mode — preview mode renders
+  // exactly like the public site.
   const edit = useTimelineEdit();
+  const inspecting = edit?.mode === "inspect";
   const isTagSelected = edit?.editingTagId === tag.id;
   // HEAD is the most-recent chapter; the public view labels it "HEAD" rather
   // than its title, but it still maps to a real, editable tag.
@@ -152,10 +155,10 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
             page" look). Compositing a tint at alpha α over backdrop B gives a
             uniform shift, so a solid background reads the same as before while
             a gradient keeps its hue. */}
-        {edit ? (
+        {inspecting && edit ? (
           <button
             type="button"
-            onClick={() => edit.onEditTag(tag.id)}
+            onClick={() => edit.onSelectTag(tag.id)}
             className={cn(
               "group/tag inline-flex items-center gap-1.5 bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full transition-colors",
               isTagSelected
@@ -184,7 +187,7 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
             {formatTagDateRange(tag, locale)}
           </span>
         )}
-        {edit && (
+        {inspecting && edit && (
           <button
             type="button"
             onClick={() => edit.onAddCommit(tag.id)}

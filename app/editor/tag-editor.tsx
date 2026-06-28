@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import type { Tag } from "@/lib/log";
-import { X } from "lucide-react";
+import { X, Tag as TagIcon } from "lucide-react";
 
 interface TagEditorProps {
   tag: Tag;
@@ -46,11 +46,24 @@ export function TagEditor({ tag, onUpdate, onClose }: TagEditorProps) {
 
   return (
     <div className="p-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-xs font-medium">Edit Tag</span>
+      {/* Inspector header — mirrors the commit inspector. */}
+      <div className="flex items-center justify-between gap-2 -mx-3 -mt-3 px-3 py-2 mb-1 border-b border-border">
+        <div className="min-w-0 flex items-center gap-2">
+          <TagIcon className="w-3.5 h-3.5 shrink-0 text-muted-foreground/60" />
+          <div className="min-w-0">
+            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50">
+              chapter
+            </div>
+            <div className="text-sm truncate leading-tight">
+              {tag.title.en || tag.id}
+            </div>
+          </div>
+        </div>
         <button
           onClick={onClose}
-          className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
+          className="p-1 text-muted-foreground/50 hover:text-foreground rounded transition-colors shrink-0"
+          title="Close inspector"
+          aria-label="Close inspector"
         >
           <X className="w-3.5 h-3.5" />
         </button>

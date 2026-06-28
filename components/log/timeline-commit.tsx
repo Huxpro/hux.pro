@@ -12,7 +12,6 @@
  */
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
 import type { NormalizedCommit } from "./commit-data";
@@ -65,16 +64,19 @@ interface TimelineCommitProps {
    *  hover on another row. */
   onBeamClear?: (spec: BeamSpec) => void;
 
-  // ── Editor-only props (unset on the public /works timeline) ──────────────
-  /** When true, the row becomes a select-to-edit target instead of an
-   *  expand/collapse toggle. */
-  editMode?: boolean;
-  /** True when this row is the one currently open in the editor drawer. */
+  // ── Inspect-mode props (unset on the public /works timeline) ─────────────
+  /** When true, the row is a selection target rather than an expand toggle. */
+  inspecting?: boolean;
+  /** True when this row is the one currently open in the Inspector. */
   isSelected?: boolean;
   /** True when the commit is hidden from the public site (`listed: false`). */
   isUnlisted?: boolean;
-  /** Open the editor for this commit (edit mode only). */
-  onEdit?: () => void;
+  /** Select this commit for inspection. */
+  onSelect?: () => void;
+  /** Select an individual media item (by its object) for inspection. */
+  onInspectMedia?: (media: Media) => void;
+  /** The media item currently focused in the Inspector, if any. */
+  selectedMedia?: Media | null;
 }
 
 export function TimelineCommit({
@@ -91,20 +93,22 @@ export function TimelineCommit({
   beamSpec = null,
   onBeamSet,
   onBeamClear,
-  editMode = false,
+  inspecting = false,
   isSelected = false,
   isUnlisted = false,
-  onEdit,
+  onSelect,
+  onInspectMedia,
+  selectedMedia = null,
 }: TimelineCommitProps) {
   const Icon =
     (data.iconOverride && commitIconOverrides[data.iconOverride]) ||
     commitIcons[data.type];
   const isEvent = data.type === "event";
-  // In edit mode the row is no longer a manual expand toggle — selection
-  // drives expansion instead, so the row you're editing renders its full
-  // public preview while the editor drawer is open beside it.
+  // While inspecting, the row is no longer a manual expand toggle — selection
+  // drives expansion instead, so the selected row renders its full public
+  // preview (and exposes its media for sub-selection) beside the Inspector.
   const [isExpandedState, setIsExpanded] = useState(defaultExpanded);
-  const isExpanded = editMode ? isSelected : isExpandedState;
+  const isExpanded = inspecting ? isSelected : isExpandedState;
 
   const hasExpandableContent = !!(
     data.description ||
@@ -126,17 +130,18 @@ export function TimelineCommit({
     setIsExpanded((prev) => !prev);
   }, [hasExpandableContent]);
 
-  // Edit mode: any row (even one with nothing to expand) is a click target
-  // that opens the editor. Read-only mode keeps the expand/collapse toggle.
-  const rowOnClick = editMode
-    ? onEdit
+  // Inspecting: any row (even one with nothing to expand) is a selection
+  // target. Otherwise (public site / preview mode) keep the expand toggle.
+  const rowOnClick = inspecting
+    ? onSelect
     : hasExpandableContent
       ? handleToggleExpanded
       : undefined;
 
-  // The cursor-preview hover card is a public-site nicety; suppress it in the
-  // editor so it doesn't fight the selection highlight and edit affordance.
-  const showCursorPreview = !editMode && !!cursorPreview && !isExpanded;
+  // The cursor-preview hover card is kept in BOTH modes — it doesn't conflict
+  // with selecting, and losing it on hover was a regression. It only hides
+  // once the row is expanded (selected), where the full content is visible.
+  const showCursorPreview = !!cursorPreview && !isExpanded;
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -333,6 +338,16 @@ export function TimelineCommit({
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
+              // While inspecting, a link selects its commit instead of
+              // navigating away from the editor.
+              onClick={
+                inspecting
+                  ? (e) => {
+                      e.preventDefault();
+                      onSelect?.();
+                    }
+                  : undefined
+              }
               className="inline-flex items-center gap-1 text-muted-foreground/40 hover:text-foreground transition-colors"
             >
               <LinkIcon icon={link.icon} />
@@ -343,27 +358,6 @@ export function TimelineCommit({
               )}
             </a>
           ))}
-          {editMode && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit?.();
-              }}
-              className={cn(
-                "inline-flex items-center text-muted-foreground/30 hover:text-foreground transition-all",
-                // Always visible for the selected row so the affordance stays
-                // anchored; otherwise it fades in on row hover.
-                isSelected
-                  ? "opacity-100 text-foreground"
-                  : "opacity-0 group-hover:opacity-100",
-              )}
-              title="Edit"
-              aria-label="Edit this entry"
-            >
-              <Pencil className="w-3 h-3" />
-            </button>
-          )}
         </div>
 
         {hideDate ? (
@@ -415,7 +409,14 @@ export function TimelineCommit({
           className="col-start-2 @sm:col-start-3 mt-2"
           onClick={(e) => e.stopPropagation()}
         >
-          <MediaRenderer media={data.foldedEmbeds} layout="stack" size="default" />
+          <MediaRenderer
+            media={data.foldedEmbeds}
+            layout="stack"
+            size="default"
+            inspecting={inspecting}
+            onInspect={onInspectMedia}
+            selectedMedia={selectedMedia}
+          />
         </div>
       )}
 
@@ -434,6 +435,9 @@ export function TimelineCommit({
                 media={expandedMedia}
                 layout="stack"
                 size="default"
+                inspecting={inspecting}
+                onInspect={onInspectMedia}
+                selectedMedia={selectedMedia}
               />
             </div>
           )}
@@ -487,10 +491,13 @@ export function TimelineCommit({
             isEvent ? "py-1" : "py-2.5",
             rowOnClick ? "cursor-pointer" : "cursor-default",
             "@container hover:bg-muted/20 active:bg-muted/30",
-            // Editor: dim entries hidden from the public site, and mark the
-            // row currently open in the drawer with a persistent ring + fill.
+            // Inspect: outline the row under the cursor (Figma-style), dim
+            // entries hidden from the public site, and mark the row currently
+            // open in the Inspector with a persistent ring + fill.
+            inspecting && "hover:ring-1 hover:ring-inset hover:ring-foreground/20",
             isUnlisted && "opacity-55",
-            isSelected && "bg-muted/25 ring-1 ring-inset ring-foreground/25",
+            isSelected &&
+              "bg-muted/25 ring-1 ring-inset ring-foreground/30 hover:ring-foreground/30",
           )}
         >
           {rowContent}

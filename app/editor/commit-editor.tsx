@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { Commit, CommitType, Tag, Media, MediaType } from "@/lib/log";
-import { ArrowLeft, Trash2, Plus } from "lucide-react";
+import { X, Trash2, Plus } from "lucide-react";
+import { commitIcons } from "@/components/log/icons";
 import { toast } from "sonner";
 
 interface CommitEditorProps {
@@ -11,7 +12,9 @@ interface CommitEditorProps {
   tags: Tag[];
   onUpdate: (commit: Commit) => void;
   onDelete: () => void;
-  onBack: () => void;
+  onClose: () => void;
+  /** When set, scroll to and highlight this media item (media-level inspect). */
+  focusMediaIndex?: number | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -226,13 +229,22 @@ export function CommitEditor({
   tags,
   onUpdate,
   onDelete,
-  onBack,
+  onClose,
+  focusMediaIndex = null,
 }: CommitEditorProps) {
   const [tab, setTab] = useState<"form" | "json">("form");
   const [jsonText, setJsonText] = useState(() =>
     JSON.stringify(commit, null, 2)
   );
   const [jsonError, setJsonError] = useState<string | null>(null);
+
+  // Media-level inspection always lands on the form (the JSON blob can't be
+  // scrolled to a single media item meaningfully).
+  useEffect(() => {
+    if (focusMediaIndex != null) setTab("form");
+  }, [focusMediaIndex]);
+
+  const TypeIcon = commitIcons[commit.type];
 
   // Sync JSON text when switching to JSON tab or when commit changes externally
   const switchToJson = () => {
@@ -281,16 +293,21 @@ export function CommitEditor({
 
   return (
     <div className="flex flex-col min-h-0 flex-1">
-      {/* Header */}
-      <div className="shrink-0 border-b border-border px-3 py-2 flex items-center justify-between">
-        <button
-          onClick={onBack}
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="w-3 h-3" />
-          Back
-        </button>
-        <div className="flex items-center gap-2">
+      {/* Inspector header — identifies the selection; × deselects (stays in
+          inspect mode). Leaving inspect entirely is the toolbar toggle. */}
+      <div className="shrink-0 border-b border-border px-3 py-2 flex items-center justify-between gap-2">
+        <div className="min-w-0 flex items-center gap-2">
+          <TypeIcon className="w-3.5 h-3.5 shrink-0 text-muted-foreground/60" />
+          <div className="min-w-0">
+            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50">
+              {commit.type}
+            </div>
+            <div className="text-sm truncate leading-tight">
+              {commit.title.en || commit.id}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
           <div className="flex border border-border/50 rounded overflow-hidden">
             <button
               onClick={() => setTab("form")}
@@ -321,6 +338,14 @@ export function CommitEditor({
             title="Delete commit"
           >
             <Trash2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={onClose}
+            className="p-1 text-muted-foreground/50 hover:text-foreground rounded transition-colors"
+            title="Close inspector"
+            aria-label="Close inspector"
+          >
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -354,6 +379,7 @@ export function CommitEditor({
             tags={tags}
             onUpdate={update}
             onTypeChange={handleTypeChange}
+            focusMediaIndex={focusMediaIndex}
           />
         )}
       </div>
@@ -370,11 +396,13 @@ function FormFields({
   tags,
   onUpdate,
   onTypeChange,
+  focusMediaIndex,
 }: {
   commit: Commit;
   tags: Tag[];
   onUpdate: (partial: Record<string, unknown>) => void;
   onTypeChange: (type: CommitType) => void;
+  focusMediaIndex?: number | null;
 }) {
   const commitTypes: CommitType[] = ["project", "talk", "post", "role", "social", "event"];
 
@@ -511,6 +539,7 @@ function FormFields({
       <MediaSection
         media={commit.media ?? []}
         onChange={(media) => onUpdate({ media: media.length > 0 ? media : undefined })}
+        focusIndex={focusMediaIndex}
       />
     </div>
   );
@@ -681,9 +710,11 @@ function defaultMedia(type: MediaType): Media {
 function MediaSection({
   media,
   onChange,
+  focusIndex,
 }: {
   media: Media[];
   onChange: (media: Media[]) => void;
+  focusIndex?: number | null;
 }) {
   const updateItem = (index: number, updated: Media) => {
     const next = [...media];
@@ -722,6 +753,7 @@ function MediaSection({
           item={item}
           onChange={(updated) => updateItem(i, updated)}
           onDelete={() => deleteItem(i)}
+          focused={focusIndex === i}
         />
       ))}
     </>
@@ -732,18 +764,37 @@ function MediaItemEditor({
   item,
   onChange,
   onDelete,
+  focused = false,
 }: {
   item: Media;
   onChange: (item: Media) => void;
   onDelete: () => void;
+  focused?: boolean;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Media-level inspect: when this item becomes the focus, bring it into view.
+  useEffect(() => {
+    if (focused && ref.current) {
+      ref.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [focused]);
+
   const handleTypeChange = (newType: MediaType) => {
     if (newType === item.type) return;
     onChange({ ...defaultMedia(newType), url: item.url });
   };
 
   return (
-    <div className="border border-border/30 rounded p-2 space-y-1.5 relative">
+    <div
+      ref={ref}
+      className={cn(
+        "border rounded p-2 space-y-1.5 relative transition-colors",
+        focused
+          ? "border-foreground/40 ring-1 ring-inset ring-foreground/30 bg-muted/15"
+          : "border-border/30",
+      )}
+    >
       <div className="flex items-center justify-between">
         <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50">
           {item.type}

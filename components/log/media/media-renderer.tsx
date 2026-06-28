@@ -8,6 +8,7 @@
  * based on the media type.
  */
 
+import { type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/services/theme";
 import type {
@@ -43,6 +44,59 @@ export interface MediaRendererProps {
   showLinkPreviews?: boolean;
   /** Additional CSS classes */
   className?: string;
+  /** Editor inspect mode: overlay each item with a click-to-select target
+   *  instead of letting it open/play. Unset on the public site. */
+  inspecting?: boolean;
+  /** Select an individual media item for inspection. */
+  onInspect?: (media: Media) => void;
+  /** The media item currently focused in the Inspector, if any. */
+  selectedMedia?: Media | null;
+}
+
+// =============================================================================
+// Inspect Overlay
+// =============================================================================
+
+/**
+ * Wraps a rendered media item so that, while inspecting, a transparent
+ * overlay captures the click (the video doesn't play, the link doesn't
+ * navigate) and selects the item instead — outlined on hover, ringed when
+ * selected. Outside inspect mode it renders the child untouched.
+ */
+function InspectableMedia({
+  media,
+  inspecting,
+  onInspect,
+  selected,
+  children,
+}: {
+  media: Media;
+  inspecting: boolean;
+  onInspect?: (media: Media) => void;
+  selected: boolean;
+  children: ReactNode;
+}) {
+  if (!inspecting) return <>{children}</>;
+  return (
+    <div className="relative">
+      {children}
+      <button
+        type="button"
+        aria-label="Inspect media"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onInspect?.(media);
+        }}
+        className={cn(
+          "absolute inset-0 z-20 rounded-lg cursor-pointer transition-all ring-inset",
+          selected
+            ? "ring-2 ring-foreground/40 bg-foreground/[0.03]"
+            : "ring-0 hover:ring-2 hover:ring-foreground/30 hover:bg-foreground/[0.02]",
+        )}
+      />
+    </div>
+  );
 }
 
 interface SingleMediaProps {
@@ -124,6 +178,9 @@ export function MediaRenderer({
   layout = "stack",
   showLinkPreviews = true,
   className,
+  inspecting = false,
+  onInspect,
+  selectedMedia = null,
 }: MediaRendererProps) {
   // Use site theme from context, allow prop override
   const { theme: siteTheme } = useTheme();
@@ -131,6 +188,20 @@ export function MediaRenderer({
   if (!media || media.length === 0) {
     return null;
   }
+
+  // Wrap a single rendered item in the inspect overlay (no-op when not
+  // inspecting). Keeps the four call sites below terse.
+  const wrap = (key: string, m: Media, node: ReactNode) => (
+    <InspectableMedia
+      key={key}
+      media={m}
+      inspecting={inspecting}
+      onInspect={onInspect}
+      selected={selectedMedia === m}
+    >
+      {node}
+    </InspectableMedia>
+  );
 
   const layoutClasses = {
     stack: "flex flex-col gap-4",
@@ -154,15 +225,18 @@ export function MediaRenderer({
   if (!hasRichMedia && links.length > 0) {
     return (
       <div className={cn("flex flex-wrap gap-3", className)}>
-        {links.map((link, i) => (
-          <SingleMedia
-            key={`link-${i}`}
-            media={link}
-            theme={theme}
-            size={size}
-            showLinkPreviews={showLinkPreviews}
-          />
-        ))}
+        {links.map((link, i) =>
+          wrap(
+            `link-${i}`,
+            link,
+            <SingleMedia
+              media={link}
+              theme={theme}
+              size={size}
+              showLinkPreviews={showLinkPreviews}
+            />,
+          ),
+        )}
       </div>
     );
   }
@@ -172,15 +246,18 @@ export function MediaRenderer({
   return (
     <div className={cn(layoutClasses[layout], className)}>
       {/* Players (video / image) — vertical stack */}
-      {players.map((m, i) => (
-        <SingleMedia
-          key={`player-${i}`}
-          media={m}
-          theme={theme}
-          size={size}
-          showLinkPreviews={showLinkPreviews}
-        />
-      ))}
+      {players.map((m, i) =>
+        wrap(
+          `player-${i}`,
+          m,
+          <SingleMedia
+            media={m}
+            theme={theme}
+            size={size}
+            showLinkPreviews={showLinkPreviews}
+          />,
+        ),
+      )}
 
       {/* Embeds — tiled two-up on every screen (incl. mobile) when >1 */}
       {embeds.length > 0 && (
@@ -191,16 +268,19 @@ export function MediaRenderer({
               multipleEmbeds && "grid grid-cols-2 gap-2.5"
             )}
           >
-            {embeds.map((m, i) => (
-              <SingleMedia
-                key={`embed-${i}`}
-                media={m}
-                theme={theme}
-                size={multipleEmbeds ? "compact" : size}
-                showLinkPreviews={showLinkPreviews}
-                className={multipleEmbeds ? "w-full max-w-none" : undefined}
-              />
-            ))}
+            {embeds.map((m, i) =>
+              wrap(
+                `embed-${i}`,
+                m,
+                <SingleMedia
+                  media={m}
+                  theme={theme}
+                  size={multipleEmbeds ? "compact" : size}
+                  showLinkPreviews={showLinkPreviews}
+                  className={multipleEmbeds ? "w-full max-w-none" : undefined}
+                />,
+              ),
+            )}
           </div>
         </div>
       )}
@@ -208,15 +288,18 @@ export function MediaRenderer({
       {/* Links at the end */}
       {links.length > 0 && (
         <div className="flex flex-wrap gap-3">
-          {links.map((link, i) => (
-            <SingleMedia
-              key={`link-${i}`}
-              media={link}
-              theme={theme}
-              size={size}
-              showLinkPreviews={showLinkPreviews}
-            />
-          ))}
+          {links.map((link, i) =>
+            wrap(
+              `link-${i}`,
+              link,
+              <SingleMedia
+                media={link}
+                theme={theme}
+                size={size}
+                showLinkPreviews={showLinkPreviews}
+              />,
+            ),
+          )}
         </div>
       )}
     </div>

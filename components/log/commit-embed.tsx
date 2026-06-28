@@ -12,7 +12,7 @@
 
 import type { ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
-import type { Commit as CommitData } from "@/lib/log";
+import type { Commit as CommitData, Media } from "@/lib/log";
 import { getCommitThumbnail, localize } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import { normalizeCommit } from "./commit-data";
@@ -85,6 +85,25 @@ export function Commit({
   const data = normalizeCommit(commit, locale);
   const preview = buildCommitPreview(commit, locale);
 
+  // Inspect-mode wiring (no-op on the public timeline, where `edit` is null).
+  const inspecting = edit?.mode === "inspect";
+  const isSelected = !!edit && edit.selectedCommitId === commit.id;
+  const selectedMedia =
+    inspecting && isSelected && edit && edit.selectedMediaIndex != null
+      ? commit.media?.[edit.selectedMediaIndex] ?? null
+      : null;
+  const onSelect =
+    inspecting && edit ? () => edit.onSelectCommit(commit.id) : undefined;
+  // nonLinkMedia/foldedEmbeds keep the original object references (they're
+  // produced via Array.filter), so identity lookup recovers the index.
+  const onInspectMedia =
+    inspecting && edit
+      ? (m: Media) => {
+          const idx = commit.media?.indexOf(m) ?? -1;
+          if (idx >= 0) edit.onSelectMedia(commit.id, idx);
+        }
+      : undefined;
+
   switch (variant) {
     case "timeline":
       return (
@@ -102,10 +121,12 @@ export function Commit({
           beamSpec={beamSpec}
           onBeamSet={onBeamSet}
           onBeamClear={onBeamClear}
-          editMode={!!edit}
-          isSelected={edit?.selectedCommitId === commit.id}
+          inspecting={inspecting}
+          isSelected={isSelected}
           isUnlisted={commit.listed === false}
-          onEdit={edit ? () => edit.onEditCommit(commit.id) : undefined}
+          onSelect={onSelect}
+          onInspectMedia={onInspectMedia}
+          selectedMedia={selectedMedia}
         />
       );
 
