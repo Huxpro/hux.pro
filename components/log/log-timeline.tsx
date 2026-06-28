@@ -93,18 +93,35 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
       toGap: gapFor(commits[b.toIdx].type),
     }));
 
+    // Attached sources DO NOT get segmentId enriched here — they
+    // would otherwise be pulled into the target's tenure-cluster
+    // wrapper, which means hovering an attached source would fire
+    // `group-hover/tenure` on the whole cluster and brighten the
+    // entire tenure rail. We want the attached source to ONLY
+    // brighten its own back-point connector (via `activeBeam`).
+    //
+    // Each beam endpoint carries `(fromHash, toHash, roleId)` so
+    // the parent knows which side it represents. The TARGET stores
+    // a spec with no specific fromHash (sentinel `null`) so that
+    // hovering the target activates EVERY connector pointing at it,
+    // not just the first attachment that touched its slot.
     for (const b of explicit) {
-      if (rail[b.fromIdx].segmentId === null) {
-        rail[b.fromIdx].segmentId = b.roleId;
-      }
-      const spec: BeamSpec = {
+      const sourceSpec: BeamSpec = {
         fromHash: b.fromHash,
         toHash: b.toHash,
         roleId: b.roleId,
       };
-      specs[b.fromIdx] = spec;
+      specs[b.fromIdx] = sourceSpec;
+      // Multiple sources can target the same role/event. Stash a
+      // "target-only" spec on the first encounter — any later
+      // hover of the target activates all matching connectors via
+      // the wildcard fromHash check in TimelineConnector's parent.
       if (specs[b.toIdx] === null) {
-        specs[b.toIdx] = spec;
+        specs[b.toIdx] = {
+          fromHash: "*",
+          toHash: b.toHash,
+          roleId: b.roleId,
+        };
       }
     }
 
@@ -207,8 +224,14 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
             fromGap={a.fromGap}
             toGap={a.toGap}
             isActive={
-              activeBeam?.fromHash === a.fromHash &&
-              activeBeam?.toHash === a.toHash
+              // Either: the exact source-target pair is active (hover
+              // on source), or the target is active with wildcard
+              // fromHash="*" (hover on target — light up every
+              // connector pointing at it).
+              !!activeBeam &&
+              activeBeam.toHash === a.toHash &&
+              (activeBeam.fromHash === a.fromHash ||
+                activeBeam.fromHash === "*")
             }
           />
         ))}
