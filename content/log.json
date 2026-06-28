@@ -215,6 +215,7 @@
       "id": "tech-lead-lynx",
       "type": "role",
       "tagId": "lynx-era",
+      "sortBy": "date",
       "title": {
         "en": "Staff Engineer / Architect",
         "zh": "架构师"
@@ -529,6 +530,7 @@
       "id": "meta-engineer",
       "type": "role",
       "tagId": "react-era",
+      "sortBy": "date",
       "title": {
         "en": "Software Engineer",
         "zh": "软件工程师"
