@@ -11,6 +11,7 @@ import type {
   Commit,
   CommitType,
   EmbedMedia,
+  EmbedPlatform,
   Media,
 } from "@/lib/log";
 import {
