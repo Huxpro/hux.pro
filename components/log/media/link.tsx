@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { ExternalLink as ExternalLinkIcon, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchOGData, type OGData } from "@/lib/og";
+import { getHostname } from "@/lib/og-core";
 import type { LinkMedia } from "@/lib/log";
 
 // =============================================================================
@@ -60,11 +61,7 @@ export interface LinkPreviewPropsFromMedia {
 // =============================================================================
 
 function getDomain(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
+  return getHostname(url) ?? url;
 }
 
 /**

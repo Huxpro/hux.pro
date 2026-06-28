@@ -23,15 +23,13 @@ import {
   mediaIsOGPreviewTarget,
   mediaNeedsLiveCrawl,
   type PreviewableMedia,
+  type SnapshotEntry,
 } from "../lib/og-core.ts";
 
-interface SnapshotEntry {
-  title?: string;
-  description?: string;
-  image?: string;
-  siteName?: string;
-}
 type Snapshot = Record<string, SnapshotEntry>;
+
+/** Stable field order for the serialized artifact. */
+const FIELDS = ["title", "description", "image", "siteName"] as const;
 
 const ROOT = process.cwd();
 const LOG_PATH = path.join(ROOT, "content", "log.json");
@@ -64,33 +62,17 @@ function collectTargets(): Target[] {
 
 // --- Serialization (deterministic) -------------------------------------------
 
-function pickEntry(d: {
-  title?: string;
-  description?: string;
-  image?: string;
-  siteName?: string;
-}): SnapshotEntry {
+/** Keep only truthy known fields, in a fixed order. */
+function pickEntry(d: Partial<SnapshotEntry>): SnapshotEntry {
   const e: SnapshotEntry = {};
-  if (d.title) e.title = d.title;
-  if (d.description) e.description = d.description;
-  if (d.image) e.image = d.image;
-  if (d.siteName) e.siteName = d.siteName;
+  for (const f of FIELDS) if (d[f]) e[f] = d[f];
   return e;
 }
 
+/** Sorted keys + per-entry field order → byte-stable, no-churn output. */
 function serialize(snap: Snapshot): string {
-  const sortedKeys = Object.keys(snap).sort();
   const ordered: Snapshot = {};
-  for (const k of sortedKeys) {
-    const e = snap[k];
-    // Order fields stably too.
-    const stable: SnapshotEntry = {};
-    if (e.title) stable.title = e.title;
-    if (e.description) stable.description = e.description;
-    if (e.image) stable.image = e.image;
-    if (e.siteName) stable.siteName = e.siteName;
-    ordered[k] = stable;
-  }
+  for (const k of Object.keys(snap).sort()) ordered[k] = pickEntry(snap[k]);
   return JSON.stringify(ordered, null, 2) + "\n";
 }
 
@@ -102,9 +84,11 @@ function entryUsable(e: SnapshotEntry): boolean {
 
 async function main() {
   const targets = collectTargets();
-  const existing: Snapshot = fs.existsSync(SNAPSHOT_PATH)
-    ? JSON.parse(fs.readFileSync(SNAPSHOT_PATH, "utf8"))
-    : {};
+  // Read the existing artifact once: parsed for lookups, raw kept for the diff.
+  const prevStr = fs.existsSync(SNAPSHOT_PATH)
+    ? fs.readFileSync(SNAPSHOT_PATH, "utf8")
+    : "";
+  const existing: Snapshot = prevStr ? JSON.parse(prevStr) : {};
 
   const next: Snapshot = {};
   const added: string[] = [];
@@ -123,9 +107,9 @@ async function main() {
 
     const res = await fetchOG(t.url);
     const prev = existing[t.url];
+    const entry = pickEntry(res.data);
 
-    if (res.ok && entryUsable(pickEntry(res.data))) {
-      const entry = pickEntry(res.data);
+    if (res.ok && entryUsable(entry)) {
       next[t.url] = entry;
       if (!prev) added.push(t.url);
       else if (JSON.stringify(pickEntry(prev)) !== JSON.stringify(entry))
@@ -144,9 +128,6 @@ async function main() {
   }
 
   const nextStr = serialize(next);
-  const prevStr = fs.existsSync(SNAPSHOT_PATH)
-    ? fs.readFileSync(SNAPSHOT_PATH, "utf8")
-    : "";
   const drifted = nextStr !== prevStr;
 
   // --- Report ---------------------------------------------------------------

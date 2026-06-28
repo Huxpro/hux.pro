@@ -11,13 +11,20 @@
  * crawl" true by construction, so drift detection compares like with like.
  */
 
-export interface OGData {
+/** The metadata fields a link preview is built from (sans the source URL). */
+export interface OGFields {
   title?: string;
   description?: string;
   image?: string;
   siteName?: string;
+}
+
+export interface OGData extends OGFields {
   url: string;
 }
+
+/** A snapshot entry is just the cached OG fields, keyed by URL elsewhere. */
+export type SnapshotEntry = OGFields;
 
 export interface OGFetchResult {
   /** True when the page was fetched successfully (HTTP 2xx). A 200 with no
@@ -43,8 +50,17 @@ export interface OGFetchResult {
  * (A plain "OGBot/1.0" or a vanilla desktop-browser UA both get a 403 from
  * Medium — which is why the Medium link previewed as a bare domain before.)
  */
-export const CRAWLER_USER_AGENT =
+const CRAWLER_USER_AGENT =
   "Mozilla/5.0 (compatible; Slackbot-LinkExpanding 1.0; +https://api.slack.com/robots)";
+
+/** Bare hostname (no leading `www.`), or undefined for a non-URL string. */
+export function getHostname(url: string): string | undefined {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Fetch and parse Open Graph metadata from a URL.
@@ -61,14 +77,6 @@ export async function fetchOG(
   url: string,
   revalidate?: number,
 ): Promise<OGFetchResult> {
-  const siteNameFromHost = (): string | undefined => {
-    try {
-      return new URL(url).hostname.replace(/^www\./, "");
-    } catch {
-      return undefined;
-    }
-  };
-
   try {
     const response = await fetch(url, {
       headers: {
@@ -90,7 +98,7 @@ export async function fetchOG(
         ok: false,
         status: response.status,
         error: `HTTP ${response.status}`,
-        data: { siteName: siteNameFromHost(), url },
+        data: { siteName: getHostname(url), url },
       };
     }
 
@@ -100,7 +108,7 @@ export async function fetchOG(
     return {
       ok: false,
       error: error instanceof Error ? error.message : String(error),
-      data: { siteName: siteNameFromHost(), url },
+      data: { siteName: getHostname(url), url },
     };
   }
 }
@@ -143,15 +151,7 @@ export function parseOG(html: string, url: string): OGData {
   }
 
   const image = getMetaContent("image");
-  const siteName =
-    getMetaContent("site_name") ||
-    (() => {
-      try {
-        return new URL(url).hostname.replace(/^www\./, "");
-      } catch {
-        return undefined;
-      }
-    })();
+  const siteName = getMetaContent("site_name") || getHostname(url);
 
   return {
     title,
@@ -195,6 +195,9 @@ export function decodeHTMLEntities(str: string): string {
 
 // =============================================================================
 // Media → preview classification (shared by runtime + snapshot script)
+//
+// These live here (rather than next to the media types in lib/log.ts) so they
+// stay free of framework imports and can run inside the Node snapshot script.
 // =============================================================================
 
 /** Embed platforms that render as native widgets (no OG preview needed). */
@@ -215,16 +218,14 @@ export function detectNativeEmbedPlatform(
   if (v === "instagram") return "instagram";
   if (v === "tiktok") return "tiktok";
   // URL host
-  try {
-    const host = new URL(urlOrPlatform).hostname.replace(/^www\./, "");
+  const host = getHostname(urlOrPlatform);
+  if (host) {
     if (host === "x.com" || host.endsWith(".x.com")) return "x";
     if (host === "twitter.com" || host.endsWith(".twitter.com"))
       return "twitter";
     if (host === "instagram.com" || host.endsWith(".instagram.com"))
       return "instagram";
     if (host === "tiktok.com" || host.endsWith(".tiktok.com")) return "tiktok";
-  } catch {
-    // not a URL — fall through
   }
   return null;
 }
@@ -234,7 +235,6 @@ export interface PreviewableMedia {
   type: string;
   url: string;
   platform?: string | null;
-  showPreview?: boolean;
   preview?: { title?: string; description?: string; image?: string };
 }
 

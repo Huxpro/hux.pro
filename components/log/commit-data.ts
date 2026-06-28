@@ -25,7 +25,7 @@ import {
   isImageMedia,
   getMediaThumbnail,
 } from "@/lib/log";
-import { detectNativeEmbedPlatform } from "@/lib/og-core";
+import { detectNativeEmbedPlatform, getHostname } from "@/lib/og-core";
 
 // =============================================================================
 // Types
@@ -84,11 +84,7 @@ export interface NormalizedCommit {
 // =============================================================================
 
 function getDomainLabel(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
+  return getHostname(url) ?? url;
 }
 
 /**

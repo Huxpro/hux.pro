@@ -1,7 +1,9 @@
 import fs from "fs";
 import path from "path";
 import type { LogData, Media, MediaPreview } from "@/lib/log";
-import { mediaIsOGPreviewTarget } from "@/lib/og-core";
+import { mediaIsOGPreviewTarget, type SnapshotEntry } from "@/lib/og-core";
+
+export type { SnapshotEntry };
 
 /**
  * Build-time OG snapshot.
@@ -13,13 +15,6 @@ import { mediaIsOGPreviewTarget } from "@/lib/og-core";
  * `pnpm og:check`. The file is intentionally timestamp-free and key-sorted so
  * it only changes when the *content* changes (no flaky churn).
  */
-
-export interface SnapshotEntry {
-  title?: string;
-  description?: string;
-  image?: string;
-  siteName?: string;
-}
 
 export type OGSnapshot = Record<string, SnapshotEntry>;
 
