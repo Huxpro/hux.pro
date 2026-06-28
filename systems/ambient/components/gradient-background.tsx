@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useWeather } from "../provider";
+import { GradientStack } from "./gradient-stack";
 
 interface WeatherGradientBackgroundProps {
   enabled: boolean;
@@ -10,25 +11,9 @@ interface WeatherGradientBackgroundProps {
 export function WeatherGradientBackground({
   enabled,
 }: WeatherGradientBackgroundProps) {
-  const { displayedGradient, isGradientTransitioning, edgeFadeMask } =
-    useWeather();
+  const { gradientLayers, edgeFadeMask } = useWeather();
 
-  if (!displayedGradient) return null;
-
-  const isVisible = enabled && !isGradientTransitioning;
-  const gradientStyle: React.CSSProperties = {
-    backgroundImage: displayedGradient,
-    ...(edgeFadeMask
-      ? {
-          WebkitMaskImage: edgeFadeMask,
-          maskImage: edgeFadeMask,
-          WebkitMaskRepeat: "no-repeat",
-          maskRepeat: "no-repeat",
-          WebkitMaskSize: "100% 100%",
-          maskSize: "100% 100%",
-        }
-      : {}),
-  };
+  if (gradientLayers.length === 0) return null;
 
   return (
     <div
@@ -36,9 +21,12 @@ export function WeatherGradientBackground({
       className={cn(
         "pointer-events-none fixed inset-0 -z-10",
         "transition-opacity duration-700 ease-in-out",
-        isVisible ? "opacity-70 dark:opacity-85" : "opacity-0"
+        enabled ? "opacity-70 dark:opacity-85" : "opacity-0"
       )}
-      style={gradientStyle}
-    />
+    >
+      {/* Full-page background is already viewport-fixed, so the edge mask is
+          applied statically (no per-frame tracking needed). */}
+      <GradientStack layers={gradientLayers} edgeMask={edgeFadeMask} />
+    </div>
   );
 }

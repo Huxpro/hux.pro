@@ -8,7 +8,10 @@ import { PromptWidget } from "@/components/home/prompt-widget";
 import { Commit } from "@/components/log";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { HeaderZone } from "@/components/ui/header-zone";
-import { MasonryGrid } from "@/components/ui/masonry-grid";
+import {
+  SortableMasonry,
+  type SortableWidget,
+} from "@/components/ui/sortable-masonry";
 import { useHeroFade } from "@/components/ui/use-hero-fade";
 import {
   WidgetBody,
@@ -152,19 +155,35 @@ function GroupWidget({ group }: { group: Group }) {
 }
 
 function WidgetGrid() {
-  const groups = (log.groups ?? []).filter((group) => !group.hidden);
+  const { locale } = useLocale();
+
+  // Resolve presence up-front so conditionally-empty widgets never occupy an
+  // empty, draggable slot in the masonry.
+  const visibleCommits = (log.commits as CommitData[]).filter((c) =>
+    isCommitVisibleIn(c, locale),
+  );
+  const role = getCurrentRoleCommit(visibleCommits);
+  const visibleGroups = (log.groups ?? []).filter(
+    (group) =>
+      !group.hidden &&
+      resolveGroupCommits(group, log.commits as CommitData[], undefined, locale)
+        .length > 0,
+  );
+
+  const items: SortableWidget[] = [
+    { id: "weather", node: <WeatherWidget /> },
+    { id: "blog", node: <BlogStackWidget /> },
+    { id: "music", node: <MusicWidget /> },
+    ...(role ? [{ id: "status", node: <ProcessingWidget /> }] : []),
+    { id: "prompt", node: <PromptWidget /> },
+    ...visibleGroups.map((group) => ({
+      id: `group-${group.id}`,
+      node: <GroupWidget group={group} />,
+    })),
+  ];
 
   return (
-    <MasonryGrid className="relative z-20 pt-2 sm:pt-4 mb-16">
-      <WeatherWidget />
-      <BlogStackWidget />
-      <MusicWidget />
-      <ProcessingWidget />
-      <PromptWidget />
-      {groups.map((group) => (
-        <GroupWidget key={group.id} group={group} />
-      ))}
-    </MasonryGrid>
+    <SortableMasonry items={items} className="relative z-20 pt-2 sm:pt-4 mb-16" />
   );
 }
 
@@ -210,21 +229,25 @@ export default function Home() {
   const heroFadeStyle = useHeroFade();
 
   return (
-    <main className="mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32 sm:pb-40">
-      <HeaderZone
-        className="hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
-        style={heroFadeStyle}
-      >
-        <div className="h-11 flex items-start justify-center">
-          <ScrambleIdentifier />
-        </div>
-        <div className="flex-1 flex flex-col items-center justify-center pb-6 sm:pb-4">
-          <AmbientGreeting />
-        </div>
-      </HeaderZone>
+    <main className="mx-auto w-full px-6 pt-16 sm:pt-24 pb-32 sm:pb-40">
+      <div className="mx-auto max-w-[680px]">
+        <HeaderZone
+          className="hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
+          style={heroFadeStyle}
+        >
+          <div className="h-11 flex items-start justify-center">
+            <ScrambleIdentifier />
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center pb-6 sm:pb-4">
+            <AmbientGreeting />
+          </div>
+        </HeaderZone>
+      </div>
 
-      {/* Widget grid */}
-      <WidgetGrid />
+      {/* Widget grid — widens to three columns on large screens */}
+      <div className="mx-auto max-w-[680px] lg:max-w-5xl">
+        <WidgetGrid />
+      </div>
     </main>
   );
 }

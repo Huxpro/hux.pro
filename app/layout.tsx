@@ -1,8 +1,9 @@
 import { Providers } from "@/shared/providers";
-import { AmbientSurface } from "@/systems/ambient";
+import { AmbientPhaseActivity, AmbientSurface } from "@/systems/ambient";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
 import { DevtoolFAB } from "@/systems/devtool";
-import { MusicDock } from "@/systems/music";
+import { Dock } from "@/systems/dock";
+import { MusicActivity } from "@/systems/music";
 import type { Metadata, Viewport } from "next";
 import { ViewTransitions } from "next-view-transitions";
 import {
@@ -70,7 +71,10 @@ export default function RootLayout({
           <Providers>
             <DevtoolFAB />
             <AmbientSurface>{children}</AmbientSurface>
-            <MusicDock />
+            <Dock>
+              <AmbientPhaseActivity />
+              <MusicActivity />
+            </Dock>
             <CommandPalette />
             <FloatingActionButton />
           </Providers>
