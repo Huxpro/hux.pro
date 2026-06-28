@@ -5,6 +5,15 @@ export type WeatherGradient = {
   backgroundImage: string;
 };
 
+/** One entry in the crossfade stack rendered by <GradientStack />. */
+export interface GradientLayerData {
+  id: number;
+  gradient: string;
+}
+
+/** Duration of a gradient crossfade, shared by the provider and renderer. */
+export const GRADIENT_CROSSFADE_MS = 700;
+
 export type SunEventGradient = {
   backgroundImage: string;
 };

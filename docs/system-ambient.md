@@ -10,14 +10,18 @@ systems/ambient/
 ├── components/
 │   ├── greeting.tsx              # Time-based greeting component
 │   ├── surface.tsx               # Route-aware gradient container
-│   ├── gradient-background.tsx   # Weather gradient renderer
+│   ├── gradient-background.tsx   # Full-page weather gradient renderer
+│   ├── gradient-stack.tsx        # Shared crossfade renderer (full-page + widgets)
 │   ├── weather-icon.tsx          # Weather condition icons
-│   ├── weather-widget.tsx        # iOS-style weather widget
+│   ├── weather-widget.tsx        # iOS-style weather widget (header + WeatherNow)
+│   ├── weather-now.tsx           # Shared weather body + useDisplayWeather()
+│   ├── phase-activity.tsx        # Sun-event notification (plugs into the Dock)
 │   └── index.ts                  # Component exports
 ├── lib/
-│   ├── gradient.ts               # OKLCH gradient generation
+│   ├── gradient.ts               # OKLCH gradient generation + crossfade types
 │   ├── greeting.ts               # Time-of-day helpers
 │   ├── location.ts               # IP/GPS location resolution
+│   ├── notification.ts           # Upcoming sun-event detection (lead-up + window)
 │   ├── phase.ts                  # Ambient phase derivation
 │   ├── queries.ts                # React Query hooks
 │   ├── route-config.ts           # Per-route gradient defaults
@@ -55,6 +59,32 @@ OKLCH-based gradients that respond to:
 - Day/night state
 - Light/dark theme
 - Sun events (special sunrise/sunset palettes)
+
+### Gradient Crossfade
+
+When the weather or phase changes, the gradient must morph — never snap. The
+provider keeps a **layer stack** (`gradientLayers`): each change pushes a new
+layer, and the shared `<GradientStack />` fades the newest layer in over the
+settled one beneath it, then the provider prunes back to the latest. This is a
+true crossfade (colors morph) rather than the old dip-to-background flash.
+
+One renderer (`gradient-stack.tsx`) serves both the full-page background and the
+per-widget overlays, so they transition identically. The iOS `fixedBgTracker`
+(background-attachment polyfill + viewport-relative edge mask) is applied per
+layer, so soft-edging keeps working mid-crossfade.
+
+### Phase Notification
+
+A heads-up that the ambient phase is about to change to sunrise/sunset. It is a
+**Dock Live Activity** (see `docs/system-dock.md`), not a bespoke widget:
+
+- **Pill** — a sun-event icon + the exact event time (e.g. `🌅 05:46`).
+- **Panel** — unfolds into the shared `<WeatherNow />` body, the same readout the
+  homepage weather widget uses.
+
+Visibility (`lib/notification.ts`): from ~90 min before the event through the end
+of its ±45 min window, then it hands off to the gradient + greeting. A forced
+sunrise/sunset phase from the devtool also surfaces it for testing.
 
 ## Components
 

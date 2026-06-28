@@ -4,6 +4,7 @@ import { WeatherIcon } from "@/systems/ambient/components/weather-icon";
 import { useLocale, useTheme, t } from "@/services";
 import { useAmbientTime, useLocation, useWeather } from "@/systems/ambient";
 import type { DevtoolGradientOverrides } from "@/systems/ambient/provider";
+import { formatClockTime } from "@/systems/ambient/lib/format";
 import {
   getSunEventGradient,
   getWeatherGradient,
@@ -471,18 +472,7 @@ function AmbientTimeModule() {
   const sunriseMs = weather?.sunriseMs;
   const sunsetMs = weather?.sunsetMs;
 
-  const formatTime = (ms?: number) => {
-    if (typeof ms !== "number") return "--:--";
-    try {
-      return new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }).format(new Date(ms));
-    } catch {
-      return "--:--";
-    }
-  };
+  const formatTime = (ms?: number) => formatClockTime(ms, locale);
 
   const labelForPhase = (p: typeof phase) => {
     const mapEn: Record<typeof phase, string> = {

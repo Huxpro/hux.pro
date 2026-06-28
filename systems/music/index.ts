@@ -3,5 +3,5 @@
 // =============================================================================
 
 export { MusicProvider, useMusic, useOptionalMusic } from "./provider";
-export { MusicWidget, MusicDock } from "./components";
+export { MusicWidget, MusicActivity } from "./components";
 export * from "./lib";

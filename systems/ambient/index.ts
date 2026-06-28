@@ -9,9 +9,12 @@ export { AmbientProvider, useLocation, useWeather, useAmbientTime } from "./prov
 export {
   AmbientGreeting,
   AmbientSurface,
+  AmbientPhaseActivity,
   WeatherGradientBackground,
   WeatherIcon,
   WeatherWidget,
+  WeatherNow,
+  useDisplayWeather,
 } from "./components";
 
 // Lib (for advanced usage / devtool panel)
