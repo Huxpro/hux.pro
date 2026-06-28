@@ -35,10 +35,6 @@ export interface CommitProps {
   hideDate?: boolean;
   /** Pre-computed git-graph rail char for the timeline gutter. */
   rail?: string;
-  /** The role commit's id that owns this row's rail segment. */
-  segmentId?: string | null;
-  /** True when the parent timeline currently highlights this segment. */
-  isSegmentActive?: boolean;
   /** The beam this row emits when hovered. */
   beamSpec?: BeamSpec | null;
   /** Notify the parent the row would like its beam rendered. */
@@ -60,8 +56,6 @@ export function Commit({
   className,
   hideDate = false,
   rail,
-  segmentId,
-  isSegmentActive = false,
   beamSpec = null,
   onBeamSet,
   onBeamClear,
@@ -116,8 +110,6 @@ export function Commit({
           hideDate={hideDate}
           rail={rail}
           isRole={commit.type === "role"}
-          segmentId={segmentId ?? null}
-          isSegmentActive={isSegmentActive}
           beamSpec={beamSpec}
           onBeamSet={onBeamSet}
           onBeamClear={onBeamClear}

@@ -48,10 +48,6 @@ interface TimelineCommitProps {
   rail?: string;
   /** True when this row IS the role that owns its segment. */
   isRole?: boolean;
-  /** The role id that owns this row's rail segment. */
-  segmentId?: string | null;
-  /** True when the parent timeline currently highlights this segment. */
-  isSegmentActive?: boolean;
   /** The beam this row emits when hovered (from this commit up to the
    *  role). When null, the row has nothing to beam. */
   beamSpec?: BeamSpec | null;
@@ -88,8 +84,6 @@ export function TimelineCommit({
   hideDate = false,
   rail,
   isRole = false,
-  segmentId = null,
-  isSegmentActive = false,
   beamSpec = null,
   onBeamSet,
   onBeamClear,
@@ -390,7 +384,15 @@ export function TimelineCommit({
               href={data.metaUrl}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
+              // stopPropagation keeps a click off the row's expand toggle; while
+              // inspecting the meta link selects the commit instead of opening.
+              onClick={(e) => {
+                e.stopPropagation();
+                if (inspecting) {
+                  e.preventDefault();
+                  onSelect?.();
+                }
+              }}
               className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
             >
               {data.meta}

@@ -10,7 +10,9 @@ import { toast } from "sonner";
 interface CommitEditorProps {
   commit: Commit;
   tags: Tag[];
-  onUpdate: (commit: Commit) => void;
+  /** `originalId` is the commit's id before this edit, so the parent can
+   *  match the record even when the id field itself is being renamed. */
+  onUpdate: (commit: Commit, originalId: string) => void;
   onDelete: () => void;
   onClose: () => void;
   /** When set, scroll to and highlight this media item (media-level inspect). */
@@ -259,7 +261,7 @@ export function CommitEditor({
       if (!parsed.id || !parsed.type || !parsed.tagId) {
         throw new Error("Missing required fields: id, type, tagId");
       }
-      onUpdate(parsed as Commit);
+      onUpdate(parsed as Commit, commit.id);
       setJsonError(null);
       setTab("form");
       toast.success("JSON applied");
@@ -269,7 +271,7 @@ export function CommitEditor({
   };
 
   const update = (partial: Record<string, unknown>) => {
-    onUpdate({ ...commit, ...partial } as Commit);
+    onUpdate({ ...commit, ...partial } as Commit, commit.id);
   };
 
   const handleTypeChange = (newType: CommitType) => {
@@ -284,11 +286,14 @@ export function CommitEditor({
       tags: commit.tags,
       listed: commit.listed,
     };
-    onUpdate({
-      ...base,
-      type: newType,
-      ...defaultFieldsForType(newType),
-    } as Commit);
+    onUpdate(
+      {
+        ...base,
+        type: newType,
+        ...defaultFieldsForType(newType),
+      } as Commit,
+      commit.id
+    );
   };
 
   return (

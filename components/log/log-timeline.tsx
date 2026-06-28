@@ -227,11 +227,6 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
                 variant="timeline"
                 hideDate={tag.hideDate || commits[i].hideDate}
                 rail={railInfo[i].rail}
-                segmentId={railInfo[i].segmentId}
-                isSegmentActive={
-                  railInfo[i].segmentId !== null &&
-                  railInfo[i].segmentId === activeBeam?.roleId
-                }
                 beamSpec={beamSpecs[i]}
                 onBeamSet={handleBeamSet}
                 onBeamClear={handleBeamClear}

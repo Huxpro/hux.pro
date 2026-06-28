@@ -6,7 +6,9 @@ import { X, Tag as TagIcon } from "lucide-react";
 
 interface TagEditorProps {
   tag: Tag;
-  onUpdate: (tag: Tag) => void;
+  /** `originalId` is the tag's id before this edit, so the parent can match
+   *  the record (and cascade commit tagIds) when the id is being renamed. */
+  onUpdate: (tag: Tag, originalId: string) => void;
   onClose: () => void;
 }
 
@@ -41,7 +43,7 @@ function Field({
 
 export function TagEditor({ tag, onUpdate, onClose }: TagEditorProps) {
   const update = (partial: Partial<Tag>) => {
-    onUpdate({ ...tag, ...partial });
+    onUpdate({ ...tag, ...partial }, tag.id);
   };
 
   return (
