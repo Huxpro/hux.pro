@@ -147,6 +147,9 @@ function SortableMasonryItem({
           e.stopPropagation();
         }
       }}
+      // A long-press (or right-click) on a widget should be a drag handle, not
+      // an OS context menu / Android link popup.
+      onContextMenu={(e) => e.preventDefault()}
       // Widgets are tactile objects, not prose — never let a drag turn into a
       // text selection.
       className="mb-4 break-inside-avoid select-none"
