@@ -901,13 +901,23 @@ export function computeBeams(commits: Commit[]): BeamLink[] {
  * When `locale` is provided, commits are filtered by per-locale visibility
  * (`listedIn`). Omit the locale to include every listed commit (useful for
  * the editor preview).
+ *
+ * Pass `{ includeAll: true }` to bypass all visibility filtering and surface
+ * every commit — including `listed: false` and locale-scoped ones. The editor
+ * uses this so unlisted entries stay selectable directly from the preview
+ * (otherwise they would have no on-canvas handle to click).
  */
 export function buildTimelineData(
   logData: LogData,
   locale?: Locale,
+  opts?: { includeAll?: boolean },
 ): TimelineData[] {
   const visible = logData.commits.filter((c) =>
-    locale ? isCommitVisibleIn(c, locale) : isCommitListed(c),
+    opts?.includeAll
+      ? true
+      : locale
+        ? isCommitVisibleIn(c, locale)
+        : isCommitListed(c),
   );
   const sortedTags = sortTagsByDate(logData.tags);
   return sortedTags.map((tag) => ({

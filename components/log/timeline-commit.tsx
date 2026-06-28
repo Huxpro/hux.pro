@@ -12,6 +12,7 @@
  */
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
 import type { NormalizedCommit } from "./commit-data";
@@ -63,6 +64,17 @@ interface TimelineCommitProps {
    *  where a sibling's stale clear would otherwise overwrite a fresh
    *  hover on another row. */
   onBeamClear?: (spec: BeamSpec) => void;
+
+  // ── Editor-only props (unset on the public /works timeline) ──────────────
+  /** When true, the row becomes a select-to-edit target instead of an
+   *  expand/collapse toggle. */
+  editMode?: boolean;
+  /** True when this row is the one currently open in the editor drawer. */
+  isSelected?: boolean;
+  /** True when the commit is hidden from the public site (`listed: false`). */
+  isUnlisted?: boolean;
+  /** Open the editor for this commit (edit mode only). */
+  onEdit?: () => void;
 }
 
 export function TimelineCommit({
@@ -79,12 +91,20 @@ export function TimelineCommit({
   beamSpec = null,
   onBeamSet,
   onBeamClear,
+  editMode = false,
+  isSelected = false,
+  isUnlisted = false,
+  onEdit,
 }: TimelineCommitProps) {
   const Icon =
     (data.iconOverride && commitIconOverrides[data.iconOverride]) ||
     commitIcons[data.type];
   const isEvent = data.type === "event";
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  // In edit mode the row is no longer a manual expand toggle — selection
+  // drives expansion instead, so the row you're editing renders its full
+  // public preview while the editor drawer is open beside it.
+  const [isExpandedState, setIsExpanded] = useState(defaultExpanded);
+  const isExpanded = editMode ? isSelected : isExpandedState;
 
   const hasExpandableContent = !!(
     data.description ||
@@ -106,9 +126,17 @@ export function TimelineCommit({
     setIsExpanded((prev) => !prev);
   }, [hasExpandableContent]);
 
-  const rowOnClick = hasExpandableContent ? handleToggleExpanded : undefined;
+  // Edit mode: any row (even one with nothing to expand) is a click target
+  // that opens the editor. Read-only mode keeps the expand/collapse toggle.
+  const rowOnClick = editMode
+    ? onEdit
+    : hasExpandableContent
+      ? handleToggleExpanded
+      : undefined;
 
-  const showCursorPreview = !!cursorPreview && !isExpanded;
+  // The cursor-preview hover card is a public-site nicety; suppress it in the
+  // editor so it doesn't fight the selection highlight and edit affordance.
+  const showCursorPreview = !editMode && !!cursorPreview && !isExpanded;
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -283,6 +311,11 @@ export function TimelineCommit({
               {data.languageBadge}
             </span>
           )}
+          {isUnlisted && (
+            <span className="ml-2 text-[10px] font-mono uppercase tracking-wider text-amber-500/80 align-baseline">
+              unlisted
+            </span>
+          )}
         </span>
 
         <div
@@ -310,6 +343,27 @@ export function TimelineCommit({
               )}
             </a>
           ))}
+          {editMode && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit?.();
+              }}
+              className={cn(
+                "inline-flex items-center text-muted-foreground/30 hover:text-foreground transition-all",
+                // Always visible for the selected row so the affordance stays
+                // anchored; otherwise it fades in on row hover.
+                isSelected
+                  ? "opacity-100 text-foreground"
+                  : "opacity-0 group-hover:opacity-100",
+              )}
+              title="Edit"
+              aria-label="Edit this entry"
+            >
+              <Pencil className="w-3 h-3" />
+            </button>
+          )}
         </div>
 
         {hideDate ? (
@@ -433,6 +487,10 @@ export function TimelineCommit({
             isEvent ? "py-1" : "py-2.5",
             rowOnClick ? "cursor-pointer" : "cursor-default",
             "@container hover:bg-muted/20 active:bg-muted/30",
+            // Editor: dim entries hidden from the public site, and mark the
+            // row currently open in the drawer with a persistent ring + fill.
+            isUnlisted && "opacity-55",
+            isSelected && "bg-muted/25 ring-1 ring-inset ring-foreground/25",
           )}
         >
           {rowContent}

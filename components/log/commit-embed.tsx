@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
+import { useTimelineEdit } from "./timeline-edit-context";
 
 // =============================================================================
 // Types
@@ -65,6 +66,9 @@ export function Commit({
   onBeamSet,
   onBeamClear,
 }: CommitProps) {
+  // Null on the public timeline; present only inside the editor preview.
+  const edit = useTimelineEdit();
+
   // Runtime guard: MDX/JSON inputs can bypass static typing.
   if (
     !commit ||
@@ -98,6 +102,10 @@ export function Commit({
           beamSpec={beamSpec}
           onBeamSet={onBeamSet}
           onBeamClear={onBeamClear}
+          editMode={!!edit}
+          isSelected={edit?.selectedCommitId === commit.id}
+          isUnlisted={commit.listed === false}
+          onEdit={edit ? () => edit.onEditCommit(commit.id) : undefined}
         />
       );
 

@@ -11,10 +11,12 @@ import {
   getLocalizedTagTitle,
   type Tag,
 } from "@/lib/log";
+import { Pencil, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Commit } from "./commit-embed";
 import { TimelineConnector } from "./timeline-connector";
 import type { BeamSpec } from "./timeline-commit";
+import { useTimelineEdit } from "./timeline-edit-context";
 
 interface LogTimelineProps {
   data: {
@@ -52,6 +54,14 @@ interface TagBlockProps {
 }
 
 function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
+  // Null on the public timeline; present only inside the editor preview.
+  const edit = useTimelineEdit();
+  const isTagSelected = edit?.editingTagId === tag.id;
+  // HEAD is the most-recent chapter; the public view labels it "HEAD" rather
+  // than its title, but it still maps to a real, editable tag.
+  const tagLabel =
+    tagIndex === 0 ? "HEAD" : getLocalizedTagTitle(tag, locale).toUpperCase();
+
   const [activeBeam, setActiveBeam] = useState<BeamSpec | null>(null);
   const handleBeamSet = useCallback(
     (spec: BeamSpec) => setActiveBeam(spec),
@@ -142,15 +152,48 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
             page" look). Compositing a tint at alpha α over backdrop B gives a
             uniform shift, so a solid background reads the same as before while
             a gradient keeps its hue. */}
-        <span className="inline-flex items-center bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border border-border rounded-full">
-          {tagIndex === 0
-            ? "HEAD"
-            : getLocalizedTagTitle(tag, locale).toUpperCase()}
-        </span>
+        {edit ? (
+          <button
+            type="button"
+            onClick={() => edit.onEditTag(tag.id)}
+            className={cn(
+              "group/tag inline-flex items-center gap-1.5 bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full transition-colors",
+              isTagSelected
+                ? "border-foreground/40 ring-1 ring-inset ring-foreground/25"
+                : "border-border hover:border-foreground/40",
+            )}
+            title="Edit chapter"
+          >
+            {tagLabel}
+            <Pencil
+              className={cn(
+                "w-2.5 h-2.5 transition-opacity",
+                isTagSelected
+                  ? "opacity-100"
+                  : "opacity-0 group-hover/tag:opacity-100",
+              )}
+            />
+          </button>
+        ) : (
+          <span className="inline-flex items-center bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border border-border rounded-full">
+            {tagLabel}
+          </span>
+        )}
         {!tag.hideDate && (
           <span className="font-mono text-xs text-muted-foreground/50">
             {formatTagDateRange(tag, locale)}
           </span>
+        )}
+        {edit && (
+          <button
+            type="button"
+            onClick={() => edit.onAddCommit(tag.id)}
+            className="inline-flex items-center justify-center text-muted-foreground/40 hover:text-foreground transition-colors"
+            title="Add entry to this chapter"
+            aria-label="Add entry to this chapter"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
         )}
       </div>
 
