@@ -41,6 +41,8 @@ export interface NormalizedCommit {
   // Identity
   hash: string;
   type: CommitType;
+  /** Optional icon override key (e.g. "graduation-cap"). */
+  iconOverride?: string;
 
   // Core content
   title: string;
@@ -204,13 +206,19 @@ export function normalizeCommit(
   const thumbnail = deriveThumbnail(media);
   const languageBadge = getCommitLanguageBadge(commit, locale);
 
+  // Identity fields shared by every branch's return.
+  const identity = {
+    hash,
+    type: commit.type,
+    iconOverride: commit.icon,
+  };
+
   // Type-specific extraction
   switch (commit.type) {
     case "project": {
       const firstLinkUrl = media.filter(isLinkMedia)[0]?.url;
       return {
-        hash,
-        type: commit.type,
+        ...identity,
         languageBadge,
         title,
         description,
@@ -228,8 +236,7 @@ export function normalizeCommit(
 
     case "talk": {
       return {
-        hash,
-        type: commit.type,
+        ...identity,
         languageBadge,
         title,
         description,
@@ -248,8 +255,7 @@ export function normalizeCommit(
 
     case "post": {
       return {
-        hash,
-        type: commit.type,
+        ...identity,
         languageBadge,
         title,
         description,
@@ -270,8 +276,7 @@ export function normalizeCommit(
       const company = localize(commit.company, locale);
 
       return {
-        hash,
-        type: commit.type,
+        ...identity,
         languageBadge,
         title,
         description,
@@ -294,6 +299,20 @@ export function normalizeCommit(
       };
     }
 
+    case "event": {
+      // Life events render bare — no meta line, no links, no expand.
+      return {
+        ...identity,
+        languageBadge,
+        title,
+        description,
+        date,
+        tags: [],
+        links: [],
+        nonLinkMedia: [],
+      };
+    }
+
     case "social": {
       const socialPrimaryUrl = media[0]?.url;
 
@@ -313,8 +332,7 @@ export function normalizeCommit(
       }
 
       return {
-        hash,
-        type: commit.type,
+        ...identity,
         languageBadge,
         title,
         description,

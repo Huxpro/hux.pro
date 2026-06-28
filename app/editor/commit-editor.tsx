@@ -124,6 +124,77 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// String-list section — repeatable add/remove rows for a string[] field,
+// styled to match the Media section so plural fields feel consistent.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function StringListSection({
+  label,
+  items,
+  onChange,
+  placeholder,
+  addTitle,
+}: {
+  label: string;
+  items: string[];
+  onChange: (items: string[]) => void;
+  placeholder?: string;
+  addTitle?: string;
+}) {
+  const updateItem = (index: number, value: string) => {
+    const next = [...items];
+    next[index] = value;
+    onChange(next);
+  };
+
+  const deleteItem = (index: number) => {
+    onChange(items.filter((_, i) => i !== index));
+  };
+
+  const addItem = () => {
+    onChange([...items, ""]);
+  };
+
+  return (
+    <>
+      <div className="flex items-center justify-between">
+        <SectionLabel>{label}</SectionLabel>
+        <button
+          onClick={addItem}
+          className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground rounded transition-colors"
+          title={addTitle ?? `Add ${label.toLowerCase()}`}
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      {items.length === 0 && (
+        <div className="text-xs text-muted-foreground/40 font-mono pl-[88px]">
+          No {label.toLowerCase()}
+        </div>
+      )}
+      {items.map((item, i) => (
+        <div key={i} className="flex items-center gap-2 pl-[88px]">
+          <input
+            type="text"
+            value={item}
+            onChange={(e) => updateItem(i, e.target.value)}
+            placeholder={placeholder}
+            className="flex-1 bg-transparent border border-border/50 rounded px-2 py-1 text-sm focus:outline-none focus:border-foreground/30 transition-colors"
+          />
+          <button
+            onClick={() => deleteItem(i)}
+            className="p-0.5 text-muted-foreground/30 hover:text-red-500 rounded transition-colors"
+            title={`Remove ${label.toLowerCase()}`}
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        </div>
+      ))}
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Type-specific field defaults for when changing commit type
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -141,6 +212,8 @@ function defaultFieldsForType(type: CommitType): Partial<Commit> {
       };
     case "social":
       return { platform: "" };
+    case "event":
+      return {};
   }
 }
 
@@ -303,7 +376,7 @@ function FormFields({
   onUpdate: (partial: Record<string, unknown>) => void;
   onTypeChange: (type: CommitType) => void;
 }) {
-  const commitTypes: CommitType[] = ["project", "talk", "post", "role", "social"];
+  const commitTypes: CommitType[] = ["project", "talk", "post", "role", "social", "event"];
 
   return (
     <div className="space-y-2">
@@ -337,6 +410,36 @@ function FormFields({
         label="Listed"
         checked={commit.listed !== false}
         onChange={(v) => onUpdate({ listed: v ? undefined : false })}
+      />
+      <CheckField
+        label="Hide Date"
+        checked={commit.hideDate === true}
+        onChange={(v) => onUpdate({ hideDate: v ? true : undefined })}
+      />
+      <SelectField
+        label="Sort By"
+        value={commit.sortBy ?? ""}
+        options={[
+          { value: "", label: "default (endDate for roles, date otherwise)" },
+          { value: "date", label: "date (start)" },
+          { value: "endDate", label: "endDate" },
+        ]}
+        onChange={(v) =>
+          onUpdate({
+            sortBy: v === "" ? undefined : (v as "date" | "endDate"),
+          })
+        }
+      />
+      <SelectField
+        label="Icon"
+        value={commit.icon ?? ""}
+        options={[
+          { value: "", label: "default (by type)" },
+          { value: "graduation-cap", label: "graduation-cap" },
+        ]}
+        onChange={(v) =>
+          onUpdate({ icon: v === "" ? undefined : (v as "graduation-cap") })
+        }
       />
 
       <SectionLabel>Title</SectionLabel>
@@ -391,19 +494,14 @@ function FormFields({
         multiline
       />
 
-      <SectionLabel>Tags</SectionLabel>
-      <Field
+      <StringListSection
         label="Tags"
-        value={(commit.tags ?? []).join(", ")}
-        onChange={(v) =>
-          onUpdate({
-            tags: v
-              .split(",")
-              .map((s) => s.trim())
-              .filter(Boolean),
-          })
+        items={commit.tags ?? []}
+        onChange={(tags) =>
+          onUpdate({ tags: tags.length > 0 ? tags : undefined })
         }
-        placeholder="Comma-separated"
+        placeholder="keyword"
+        addTitle="Add tag"
       />
 
       {/* Type-specific fields */}

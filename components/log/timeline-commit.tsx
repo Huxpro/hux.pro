@@ -15,7 +15,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
 import type { NormalizedCommit } from "./commit-data";
-import { commitIcons } from "./icons";
+import { commitIcons, commitIconOverrides } from "./icons";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import {
   LinkIcon,
@@ -27,7 +27,11 @@ import {
 import { MediaRenderer } from "./media";
 
 export interface BeamSpec {
-  fromHash: string;
+  /** Source hash, or null for a target-only spec — the latter
+   *  activates every connector that targets `toHash` (used so hovering
+   *  a role lights up all its incoming connectors, not just the first
+   *  attachment that happened to stash a spec on its slot). */
+  fromHash: string | null;
   toHash: string;
   roleId: string;
 }
@@ -35,6 +39,8 @@ export interface BeamSpec {
 interface TimelineCommitProps {
   data: NormalizedCommit;
   cursorPreview?: ReactNode;
+  /** Extra class for the cursor-preview panel (e.g. flush poster framing). */
+  cursorPreviewPanelClassName?: string;
   defaultExpanded?: boolean;
   className?: string;
   hideDate?: boolean;
@@ -62,6 +68,7 @@ interface TimelineCommitProps {
 export function TimelineCommit({
   data,
   cursorPreview,
+  cursorPreviewPanelClassName,
   defaultExpanded = false,
   className,
   hideDate = false,
@@ -73,7 +80,10 @@ export function TimelineCommit({
   onBeamSet,
   onBeamClear,
 }: TimelineCommitProps) {
-  const Icon = commitIcons[data.type];
+  const Icon =
+    (data.iconOverride && commitIconOverrides[data.iconOverride]) ||
+    commitIcons[data.type];
+  const isEvent = data.type === "event";
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   const hasExpandableContent = !!(
@@ -150,19 +160,124 @@ export function TimelineCommit({
     }
   }, [participatesInSegment, beamSpec, isHovered, isExpanded, onBeamSet, onBeamClear]);
 
+  // Git-graph rail drawn THROUGH the icon column as two separate
+  // absolutely-positioned segments — one above the icon, one below —
+  // each stopping a few px short of the icon's center so the icon sits
+  // in a natural gap on the line. No bg-mask needed; the line literally
+  // doesn't exist where the icon does. computeRail emits `┐` (role
+  // anchor — segment below only), `│` (mid — both), `┘` (segment end —
+  // segment above only), `""` (no rail).
+  const hasRailAbove = rail === "│" || rail === "┘";
+  const hasRailBelow = rail === "│" || rail === "┐";
+  // A role row shows its anchor ring whenever it's part of a tenure
+  // cluster (i.e. has a rail char). The role might sit at the top
+  // (rail="┐"), bottom (rail="┘"), or middle (rail="│") of its cluster
+  // depending on `sortBy`; either way the ring marks it as the anchor.
+  const isRoleAnchor = isRole && rail !== "";
+  // Distance from icon center where the line stops. Members: icon is
+  // 12px (h-3) so 6px radius + 1px breathing room. Role: ring is 16px
+  // (h-4) so 8px radius + 2px breathing room. Events: tiny 3px dot
+  // sits close to the line for visual continuity.
+  const iconGapPx = isEvent ? 3 : isRoleAnchor ? 10 : 7;
+
   const rowContent = (
     <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
-      <span className="hidden @sm:inline font-mono text-xs text-muted-foreground/40 select-all leading-5">
+      <span
+        className={cn(
+          "hidden @sm:inline font-mono text-xs select-all",
+          // Events render the hash transparent — no link, no reference,
+          // hash is noise. Keeping it occupies the column so titles
+          // stay aligned with adjacent commit rows. Leading also drops
+          // to text-xs's natural 16px so the event row stays compact.
+          isEvent ? "text-transparent leading-4" : "text-muted-foreground/40 leading-5",
+        )}
+      >
         {data.hash}
       </span>
 
-      <span className="inline-flex items-center h-5">
-        <Icon className="w-3 h-3 text-muted-foreground/50" />
+      <span
+        // data-rail-icon lets cross-row attachment lines measure this
+        // span's center to anchor their geometry (see TimelineConnector).
+        data-rail-icon
+        className={cn(
+          "relative inline-flex items-center justify-center w-5",
+          // Match the icon-span HEIGHT to the title row's line-height
+          // so the dot/icon sits on the title's vertical center.
+          // text-sm has line-height 20px (h-5); text-xs has 16px (h-4).
+          // WIDTH stays w-5 across all rows so the rail's x-center
+          // (left-1/2 of this span) is identical for every row —
+          // otherwise the event's narrower span would shift the line
+          // 2px left of the surrounding rail.
+          isEvent ? "h-4" : "h-5",
+        )}
+      >
+        {hasRailAbove && (
+          <span
+            aria-hidden
+            data-rail-above
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
+            style={{ top: "-1000px", bottom: `calc(50% + ${iconGapPx}px)` }}
+          />
+        )}
+        {hasRailBelow && (
+          <span
+            aria-hidden
+            data-rail-below
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
+            style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
+          />
+        )}
+        {isEvent ? (
+          // Events get a tiny CSS dot — quieter than any lucide icon
+          // and reads as "node on the rail" rather than "category icon".
+          <span
+            aria-hidden
+            className="block w-[3px] h-[3px] rounded-full bg-muted-foreground/30"
+          />
+        ) : (
+          // All icons live in the same-size invisible wrapper (w-5 h-5)
+          // so positions stay identical; the role's `ring-inset` draws a
+          // thin circle INSIDE the wrapper, keeping bounding boxes equal
+          // and signalling ownership purely through the ring. The 20px
+          // wrapper gives the ring node 3px clearance from the 12px icon
+          // so it reads as a distinct circle rather than a tight outline.
+          <span
+            className={cn(
+              "inline-flex items-center justify-center w-5 h-5 rounded-full transition-[box-shadow] duration-200",
+              isRoleAnchor && [
+                "ring-1 ring-inset",
+                "ring-muted-foreground/15",
+                "group-hover/tenure:ring-muted-foreground/40",
+                "group-focus-within/tenure:ring-muted-foreground/40",
+                "group-has-[[data-expanded]]/tenure:ring-muted-foreground/40",
+              ],
+            )}
+          >
+            <Icon className="w-3 h-3 text-muted-foreground/50" />
+          </span>
+        )}
       </span>
 
       <div className="flex items-center gap-2 min-w-0">
-        <span className="text-sm text-foreground min-w-0 flex-1">
-          {data.title}
+        <span
+          className={cn(
+            "min-w-0 flex-1",
+            // Events drop a tier in hierarchy: secondary/meta style.
+            // Font per script: CJK uses mono (matches meta line, no
+            // italic — italic on CJK reads as emphasis). English uses
+            // serif italic (the traditional typographic aside). Parens
+            // stay as a quiet stage-direction marker for both.
+            isEvent
+              ? cn(
+                  "text-xs text-muted-foreground/40",
+                  /[぀-ヿ一-鿿]/.test(data.title)
+                    ? "font-mono"
+                    : "italic font-serif",
+                )
+              : "text-sm text-foreground",
+          )}
+        >
+          {isEvent ? `(${data.title})` : data.title}
           {data.languageBadge && (
             <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
               {data.languageBadge}
@@ -204,7 +319,17 @@ export function TimelineCommit({
             </span>
           )
         ) : (
-          <span className="font-mono text-xs text-muted-foreground/50 shrink-0 ml-auto">
+          <span
+            className={cn(
+              "font-mono text-xs shrink-0 ml-auto",
+              // Date stays — the year is the meaning for life events
+              // (`moved to US, 2017`) — but pushed a tier quieter than
+              // siblings so the row reads as background context.
+              isEvent
+                ? "text-muted-foreground/30"
+                : "text-muted-foreground/50",
+            )}
+          >
             {data.date}
           </span>
         )}
@@ -273,8 +398,17 @@ export function TimelineCommit({
   );
 
   return (
-    <div id={data.hash} className={className}>
-      <MagneticPreview preview={cursorPreview} enabled={showCursorPreview}>
+    <div
+      id={data.hash}
+      data-rail-row
+      data-role-row={isRoleAnchor ? "" : undefined}
+      className={className}
+    >
+      <MagneticPreview
+        preview={cursorPreview}
+        enabled={showCursorPreview}
+        panelClassName={cursorPreviewPanelClassName}
+      >
         <div
           role={rowOnClick ? "button" : undefined}
           tabIndex={rowOnClick ? 0 : undefined}
@@ -286,8 +420,17 @@ export function TimelineCommit({
           onPointerLeave={
             participatesInSegment ? handleSegmentPointerLeave : undefined
           }
+          // `data-expanded` lets the tenure wrapper's group-has variant
+          // brighten the rail while the row is open — mobile-friendly,
+          // survives losing focus after a tap-to-expand.
+          data-expanded={isExpanded ? "" : undefined}
+          // overflow-hidden clips the rail segments at row bounds so
+          // they can't leak past the tenure cluster's last row.
           className={cn(
-            "group relative -mx-3 px-3 py-2.5 rounded-lg transition-colors duration-150",
+            "group relative -mx-3 px-3 rounded-lg transition-colors duration-150 overflow-hidden",
+            // Events get tighter vertical padding so they sit between
+            // commits as ambient annotations rather than as full rows.
+            isEvent ? "py-1" : "py-2.5",
             rowOnClick ? "cursor-pointer" : "cursor-default",
             "@container hover:bg-muted/20 active:bg-muted/30",
           )}

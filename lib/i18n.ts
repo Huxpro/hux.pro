@@ -80,6 +80,8 @@ export const translations = {
     widgetPrompt: "/prompts",
     widgetMusic: "playing",
     widgetMusicIdle: "music",
+    widgetEditDone: "Done",
+    widgetEditReset: "Reset",
     musicNotPlaying: "nothing playing",
     settingsMusic: "Music",
     musicPlay: "Play",
@@ -87,6 +89,12 @@ export const translations = {
     musicOpenControls: "Open music controls",
     musicCollapse: "Collapse",
     widgetViewAll: "view all",
+
+    // Dock / Live Activities
+    dockCollapse: "Collapse",
+    phaseSunrise: "Sunrise",
+    phaseSunset: "Sunset",
+    phaseOpenDetails: "Open weather details",
 
     // Ambient (location / weather)
     locationIp: "IP",
@@ -227,6 +235,8 @@ export const translations = {
     widgetPrompt: "/提示词",
     widgetMusic: "播放中",
     widgetMusicIdle: "音乐",
+    widgetEditDone: "完成",
+    widgetEditReset: "重置",
     musicNotPlaying: "暂无播放",
     settingsMusic: "音乐",
     musicPlay: "播放",
@@ -234,6 +244,12 @@ export const translations = {
     musicOpenControls: "打开音乐控制",
     musicCollapse: "收起",
     widgetViewAll: "查看全部",
+
+    // Dock / Live Activities
+    dockCollapse: "收起",
+    phaseSunrise: "日出",
+    phaseSunset: "日落",
+    phaseOpenDetails: "打开天气详情",
 
     // Ambient (location / weather)
     locationIp: "IP",

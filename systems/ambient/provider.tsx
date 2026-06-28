@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getSunEventGradient, getWeatherGradient } from "./lib/gradient";
+import { GRADIENT_CROSSFADE_MS, type GradientLayerData } from "./lib/gradient";
 import type { LocationMode, ResolvedLocation } from "./lib/location";
 import { requestAccurateLocation as requestAccurateLocationFn } from "./lib/location";
 import { useLocationQuery, useWeatherQuery } from "./lib/queries";
@@ -104,8 +105,8 @@ export interface DevtoolGradientOverrides {
 interface WeatherContextType {
   weather: NormalizedWeather | null;
   gradient: string;
-  displayedGradient: string;
-  isGradientTransitioning: boolean;
+  /** Crossfade stack: [...settled, newest]. Render via <GradientStack />. */
+  gradientLayers: GradientLayerData[];
   gradientMode: WeatherGradientMode;
   // 3 resolved rendering flags
   fullGradientEnabled: boolean;
@@ -265,6 +266,19 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     return () => window.clearInterval(id);
   }, []);
 
+  // Refetch weather when the local day rolls over. Open-Meteo returns a single
+  // forecast day, so a page left open overnight would otherwise keep yesterday's
+  // sunrise/sunset — staling everything derived from them (phase, gradient,
+  // greeting, and the phase notification). The minute tick above makes this fire
+  // within ~60s of midnight.
+  const lastDayRef = useRef(new Date().toDateString());
+  useEffect(() => {
+    const today = new Date(nowMs).toDateString();
+    if (lastDayRef.current === today) return;
+    lastDayRef.current = today;
+    queryClient.invalidateQueries({ queryKey: ["weather"] });
+  }, [nowMs]);
+
   const derivedPhase = useMemo(() => {
     const w = weatherQuery.data;
     return deriveAmbientPhase({
@@ -313,33 +327,35 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     return "";
   }, [isDevtoolEnabled, isOverrideEnabled, debugOverride, weatherQuery.data, effectivePhase, theme]);
 
-  // Gradient transition: crossfade when gradient value changes.
+  // Gradient transition: a true crossfade between layers (no dip-to-background).
   // Centralized here so every consumer (full-page background, widget overlays)
-  // shares one transition instead of running independent state machines.
-  const [displayedGradient, setDisplayedGradient] = useState("");
-  const [isGradientTransitioning, setIsGradientTransitioning] = useState(false);
+  // shares one stack instead of running independent state machines. When the
+  // gradient changes we push a new layer; <GradientStack /> fades it in over the
+  // settled one, then we prune back to the latest once the crossfade completes.
+  const [gradientLayers, setGradientLayers] = useState<GradientLayerData[]>([]);
+  const layerIdRef = useRef(0);
 
   useEffect(() => {
+    // Hold the current gradient while refetching (stale-while-revalidate).
     if (weatherQuery.isFetching) return;
-    if (computedGradient === displayedGradient) return;
     if (!computedGradient) return;
 
-    if (!displayedGradient) {
-      setDisplayedGradient(computedGradient);
-      return;
-    }
+    setGradientLayers((prev) => {
+      const top = prev[prev.length - 1];
+      if (top && top.gradient === computedGradient) return prev;
+      layerIdRef.current += 1;
+      return [...prev, { id: layerIdRef.current, gradient: computedGradient }];
+    });
+  }, [computedGradient, weatherQuery.isFetching]);
 
-    setIsGradientTransitioning(true);
-
+  // Prune to the newest layer once the crossfade settles.
+  useEffect(() => {
+    if (gradientLayers.length <= 1) return;
     const timeout = setTimeout(() => {
-      setDisplayedGradient(computedGradient);
-      requestAnimationFrame(() => {
-        setIsGradientTransitioning(false);
-      });
-    }, 300);
-
+      setGradientLayers((prev) => (prev.length <= 1 ? prev : prev.slice(-1)));
+    }, GRADIENT_CROSSFADE_MS + 50);
     return () => clearTimeout(timeout);
-  }, [computedGradient, displayedGradient, weatherQuery.isFetching]);
+  }, [gradientLayers]);
 
   return (
     <LocationContext.Provider
@@ -358,8 +374,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
         value={{
           weather: weatherQuery.data ?? null,
           gradient: computedGradient,
-          displayedGradient,
-          isGradientTransitioning,
+          gradientLayers,
           gradientMode: settings.weatherGradientMode,
           fullGradientEnabled,
           widgetGradientEnabled,
