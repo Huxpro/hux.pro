@@ -551,12 +551,12 @@
     },
     {
       "id": "meta-intern-xros",
-      "type": "project",
+      "type": "role",
       "tagId": "react-era",
-      "attachedTo": "meta-engineer",
+      "attachedTo": "rit-ms",
       "title": {
-        "en": "XROS at Reality Labs Research",
-        "zh": "Reality Labs Research · XROS"
+        "en": "Software Engineer Intern, XROS",
+        "zh": "软件工程实习生 · XROS"
       },
       "description": {
         "en": "Summer internship at Meta Reality Labs Research, working on XROS — an experimental operating system for XR.",
@@ -564,6 +564,10 @@
       },
       "date": "2019-05",
       "endDate": "2019-08",
+      "company": {
+        "en": "Meta",
+        "zh": "Meta"
+      },
       "tags": [
         "XR",
         "Operating System",
@@ -573,12 +577,12 @@
     },
     {
       "id": "meta-intern-reasonml",
-      "type": "project",
+      "type": "role",
       "tagId": "react-era",
-      "attachedTo": "meta-engineer",
+      "attachedTo": "rit-ms",
       "title": {
-        "en": "Messenger Web on ReasonML",
-        "zh": "Messenger Web · ReasonML 团队"
+        "en": "Software Engineer Intern, ReasonML",
+        "zh": "软件工程实习生 · ReasonML"
       },
       "description": {
         "en": "Summer internship at Meta on the ReasonML / ReScript team, working on Messenger Web.",
@@ -586,6 +590,10 @@
       },
       "date": "2018-05",
       "endDate": "2018-08",
+      "company": {
+        "en": "Meta",
+        "zh": "Meta"
+      },
       "tags": [
         "ReasonML",
         "OCaml",
@@ -729,6 +737,7 @@
       "id": "wepiao-lead",
       "type": "role",
       "tagId": "pwa-era",
+      "attachedTo": "cuc-ba",
       "title": {
         "en": "Tech Lead Manager, Web Infra",
         "zh": "Web 基础架构团队主管"
@@ -755,6 +764,7 @@
       "id": "alitrip-engineer",
       "type": "role",
       "tagId": "pwa-era",
+      "attachedTo": "cuc-ba",
       "title": {
         "en": "Front-End Engineer",
         "zh": "前端工程师"
