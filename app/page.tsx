@@ -163,7 +163,12 @@ function WidgetGrid() {
     isCommitVisibleIn(c, locale),
   );
   const role = getCurrentRoleCommit(visibleCommits);
-  const groups = (log.groups ?? []).filter((group) => !group.hidden);
+  const visibleGroups = (log.groups ?? []).filter(
+    (group) =>
+      !group.hidden &&
+      resolveGroupCommits(group, log.commits as CommitData[], undefined, locale)
+        .length > 0,
+  );
 
   const items: SortableWidget[] = [
     { id: "weather", node: <WeatherWidget /> },
@@ -171,20 +176,10 @@ function WidgetGrid() {
     { id: "music", node: <MusicWidget /> },
     ...(role ? [{ id: "status", node: <ProcessingWidget /> }] : []),
     { id: "prompt", node: <PromptWidget /> },
-    ...groups
-      .filter(
-        (group) =>
-          resolveGroupCommits(
-            group,
-            log.commits as CommitData[],
-            undefined,
-            locale,
-          ).length > 0,
-      )
-      .map((group) => ({
-        id: `group-${group.id}`,
-        node: <GroupWidget group={group} />,
-      })),
+    ...visibleGroups.map((group) => ({
+      id: `group-${group.id}`,
+      node: <GroupWidget group={group} />,
+    })),
   ];
 
   return (

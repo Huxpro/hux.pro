@@ -271,7 +271,8 @@ export function SortableMasonry({
 
   const orderedIds = order.filter((id) => itemsById.has(id));
   // Only offer "Reset" once the layout actually diverges from the default.
-  const isCustomized = orderedIds.join("|") !== ids.filter((id) => itemsById.has(id)).join("|");
+  // `idsKey` is already the default order joined, so compare against it.
+  const isCustomized = orderedIds.join("|") !== idsKey;
 
   return (
     <DndContext
@@ -316,6 +317,8 @@ export function SortableMasonry({
         {editing && (
           <motion.div
             data-edit-controls
+            // bottom-24 keeps these controls clear of the command bar (fixed at
+            // bottom-6); revisit if that bar moves.
             className="fixed inset-x-0 bottom-24 z-50 flex items-center justify-center gap-4"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
