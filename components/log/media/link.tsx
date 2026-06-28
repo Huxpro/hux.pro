@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { ExternalLink as ExternalLinkIcon, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchOGData, type OGData } from "@/lib/og";
+import { getHostname } from "@/lib/og-core";
 import type { LinkMedia } from "@/lib/log";
 
 // =============================================================================
@@ -60,10 +61,38 @@ export interface LinkPreviewPropsFromMedia {
 // =============================================================================
 
 function getDomain(url: string): string {
+  return getHostname(url) ?? url;
+}
+
+/**
+ * Stale-while-revalidate drift check (opt-in via NEXT_PUBLIC_OG_REVALIDATE=1).
+ *
+ * The card has already painted from the snapshot/manual preview ("stale");
+ * here we crawl live in the background ("revalidate") and warn if the live
+ * result differs, so you know to regenerate the snapshot (`pnpm og:snapshot`)
+ * — i.e. "invalidate the cache". Off by default to keep dev/prod fast and
+ * non-flaky. Crawl-blocked sites (Medium) simply fail the live fetch and are
+ * skipped silently.
+ */
+async function revalidateAgainstLive(
+  url: string,
+  shown: { title?: string; description?: string; image?: string },
+): Promise<void> {
   try {
-    return new URL(url).hostname.replace(/^www\./, "");
+    const live = await fetchOGData(url);
+    if (!live.title && !live.image) return; // couldn't crawl — nothing to compare
+    const diffs = (["title", "description", "image"] as const).filter(
+      (k) => (live[k] || "") !== (shown[k] || ""),
+    );
+    if (diffs.length) {
+      console.warn(
+        `[og] snapshot looks stale for ${url} (differs: ${diffs.join(", ")}). ` +
+          `Run \`pnpm og:snapshot\` to refresh.`,
+        { shown, live: { title: live.title, description: live.description, image: live.image } },
+      );
+    }
   } catch {
-    return url;
+    // Network/crawl failure — can't compare; leave the snapshot as-is.
   }
 }
 
@@ -104,29 +133,46 @@ export function LinkPreview({
   size = "default",
   className,
 }: LinkPreviewProps) {
-  const [ogData, setOgData] = useState<OGData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  // Fade the OG image in once it decodes, so a slow CDN (e.g. web.dev's
-  // origin) reveals smoothly instead of popping in.
+  // When a preview is already resolved (manual override or build-time
+  // snapshot, baked in server-side), seed state synchronously so the card
+  // paints immediately — no skeleton flash, no request-time crawl.
+  const hasResolvedPreview = !!(titleOverride && imageOverride);
+  const [ogData, setOgData] = useState<OGData | null>(
+    hasResolvedPreview
+      ? {
+          url,
+          title: titleOverride,
+          description: descOverride,
+          image: imageOverride,
+        }
+      : null,
+  );
+  const [isLoading, setIsLoading] = useState(!hasResolvedPreview);
+  // Fade the OG image in once it decodes, so a slow origin (e.g. web.dev's,
+  // which has high TTFB and no image CDN) reveals smoothly instead of popping.
   const [imgLoaded, setImgLoaded] = useState(false);
 
   useEffect(() => {
-    // Skip fetch if all data is provided
-    if (titleOverride && imageOverride) {
-      setOgData({
-        url,
-        title: titleOverride,
-        description: descOverride,
-        image: imageOverride,
-      });
-      setIsLoading(false);
+    // Resolved preview: nothing to fetch on the critical path. Optionally
+    // revalidate against the live crawl (opt-in) to flag a stale snapshot.
+    if (hasResolvedPreview) {
+      if (process.env.NEXT_PUBLIC_OG_REVALIDATE === "1") {
+        revalidateAgainstLive(url, {
+          title: titleOverride,
+          description: descOverride,
+          image: imageOverride,
+        });
+      }
       return;
     }
 
+    // No resolved preview (e.g. a brand-new link not yet snapshotted):
+    // fall back to a live crawl so dev still "just works".
+    let cancelled = false;
     const loadOgData = async () => {
       try {
         const data = await fetchOGData(url);
+        if (cancelled) return;
         setOgData({
           ...data,
           title: titleOverride || data.title,
@@ -134,21 +180,23 @@ export function LinkPreview({
           image: imageOverride || data.image,
         });
       } catch (error) {
+        if (cancelled) return;
         console.error("OG fetch error:", error);
-        setHasError(true);
-        // Still set basic data
         setOgData({
           url,
           title: titleOverride || getDomain(url),
           description: descOverride,
         });
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     loadOgData();
-  }, [url, titleOverride, descOverride, imageOverride]);
+    return () => {
+      cancelled = true;
+    };
+  }, [url, titleOverride, descOverride, imageOverride, hasResolvedPreview]);
 
   const sizeClasses = {
     compact: "max-w-sm",

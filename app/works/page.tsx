@@ -1,4 +1,5 @@
 import { getLogData } from "@/lib/log-server";
+import { enrichLogDataWithPreviews } from "@/lib/og-snapshot";
 import { WorksView } from "./view";
 
 export const metadata = {
@@ -8,6 +9,9 @@ export const metadata = {
 };
 
 export default function WorksPage() {
-  const logData = getLogData();
+  // Bake snapshot/manual link previews into the data server-side so cards
+  // render synchronously on the client (no request-time crawl, no skeleton
+  // flash). Un-snapshotted links fall back to a live fetch in the component.
+  const logData = enrichLogDataWithPreviews(getLogData());
   return <WorksView logData={logData} />;
 }

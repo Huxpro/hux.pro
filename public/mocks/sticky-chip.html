@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sticky chip · variants</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: oklch(0.985 0.003 270);
+        --fg: oklch(0.22 0.01 270);
+        --muted-1: oklch(0.55 0.01 270);
+        --muted-2: oklch(0.7 0.01 270);
+        --muted-3: oklch(0.86 0.01 270);
+        --line: oklch(0.92 0.005 270);
+        --line-strong: oklch(0.85 0.005 270);
+        --bytedance: oklch(0.65 0.2 250);
+        --meta: oklch(0.7 0.2 220);
+        --pwa: oklch(0.6 0.1 300);
+
+        --serif: "Newsreader", ui-serif, Georgia, serif;
+        --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--serif);
+        font-feature-settings: "ss01", "ss02";
+      }
+
+      .page {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: clamp(2rem, 5vw, 4rem) clamp(1.25rem, 4vw, 3rem) 6rem;
+      }
+
+      .page-head {
+        margin-bottom: 3rem;
+      }
+
+      .page-head h1 {
+        font-family: var(--serif);
+        font-weight: 400;
+        font-size: clamp(1.75rem, 3vw, 2.5rem);
+        letter-spacing: -0.02em;
+        margin: 0 0 0.4rem;
+      }
+
+      .page-head p {
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: var(--muted-1);
+        margin: 0;
+        letter-spacing: 0;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: clamp(1.25rem, 2vw, 2rem);
+      }
+
+      @media (max-width: 960px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .col {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .col-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .col-head .label {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--muted-1);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .col-head .pill {
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        color: var(--muted-2);
+        padding: 0.1rem 0.45rem;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        background: oklch(1 0 0 / 0.6);
+      }
+
+      .col-name {
+        font-family: var(--serif);
+        font-style: italic;
+        font-size: 1rem;
+        color: var(--muted-1);
+        margin-bottom: 1.25rem;
+      }
+
+      /* The scrolling demo frame */
+      .frame {
+        position: relative;
+        height: 520px;
+        overflow-y: auto;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        scroll-behavior: smooth;
+        /* scrollbar polish */
+        scrollbar-width: thin;
+        scrollbar-color: var(--muted-3) transparent;
+      }
+      .frame::-webkit-scrollbar {
+        width: 8px;
+      }
+      .frame::-webkit-scrollbar-thumb {
+        background: var(--muted-3);
+        border-radius: 999px;
+      }
+      .frame::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .frame-pad {
+        padding: 0 1.25rem 4rem;
+      }
+
+      /* ============================================================
+         Shared timeline content (commits) — kept identical across
+         variants so you can compare the chip differences only.
+         ============================================================ */
+      .era {
+        padding-top: 1.25rem;
+      }
+      .era + .era {
+        border-top: 1px solid var(--line);
+        margin-top: 1.5rem;
+      }
+
+      .commit {
+        display: grid;
+        grid-template-columns: 1.4rem 5rem 1fr auto;
+        column-gap: 0.75rem;
+        align-items: baseline;
+        padding: 0.55rem 0;
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        color: var(--fg);
+        line-height: 1.4;
+      }
+
+      .commit .rail {
+        font-family: var(--mono);
+        color: var(--muted-2);
+        text-align: center;
+      }
+      .commit .hash {
+        color: var(--muted-1);
+        font-size: 0.72rem;
+      }
+      .commit .msg {
+        color: var(--fg);
+      }
+      .commit .msg em {
+        font-style: normal;
+        color: var(--muted-1);
+      }
+      .commit .date {
+        color: var(--muted-2);
+        font-size: 0.7rem;
+        white-space: nowrap;
+      }
+
+      .commit.role .msg {
+        font-weight: 500;
+      }
+      .commit.role .badge {
+        display: inline-block;
+        font-size: 0.65rem;
+        padding: 0.05rem 0.4rem;
+        border-radius: 4px;
+        border: 1px solid var(--line-strong);
+        margin-left: 0.35rem;
+        color: var(--muted-1);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      /* ============================================================
+         VARIANT 1 — Stacked breadcrumb
+         ============================================================ */
+      .v1-chip {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        padding: 0.9rem 0 0.6rem;
+        background: linear-gradient(
+          to bottom,
+          var(--bg) 0%,
+          var(--bg) 80%,
+          oklch(0.985 0.003 270 / 0) 100%
+        );
+        backdrop-filter: blur(8px);
+      }
+
+      .v1-row {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+      }
+      .v1-row + .v1-row {
+        margin-top: 0.35rem;
+      }
+
+      .v1-chip .head {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        font-weight: 500;
+        padding: 0.15rem 0.55rem;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        background: oklch(1 0 0 / 0.85);
+        letter-spacing: 0.02em;
+      }
+
+      .v1-chip .ref {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--muted-1);
+      }
+      .v1-chip .ref b {
+        font-weight: 500;
+        color: var(--fg);
+      }
+      .v1-chip .date {
+        margin-left: auto;
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--muted-2);
+      }
+
+      .v1-chip .sub {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--muted-1);
+        padding-left: 1.1rem;
+        position: relative;
+        transition:
+          opacity 240ms cubic-bezier(0.2, 0.7, 0.2, 1),
+          transform 240ms cubic-bezier(0.2, 0.7, 0.2, 1),
+          filter 240ms;
+      }
+      .v1-chip .sub::before {
+        content: "↳";
+        position: absolute;
+        left: 0;
+        color: var(--muted-2);
+      }
+      .v1-chip .sub .role-name {
+        color: var(--fg);
+      }
+      .v1-chip .sub .role-tagline {
+        color: var(--muted-1);
+        margin-left: 0.4rem;
+      }
+      .v1-chip .sub.is-hidden {
+        opacity: 0;
+        transform: translateY(-2px);
+        filter: blur(2px);
+        pointer-events: none;
+      }
+
+      /* ============================================================
+         VARIANT 2 — Inline breadcrumb (single line, terminal-ish)
+         ============================================================ */
+      .v2-chip {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        padding: 1rem 0 0.7rem;
+        background: linear-gradient(
+          to bottom,
+          var(--bg) 0%,
+          var(--bg) 80%,
+          oklch(0.985 0.003 270 / 0) 100%
+        );
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .v2-chip .crumb {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--muted-1);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+      .v2-chip .crumb .head {
+        font-weight: 500;
+        padding: 0.1rem 0.5rem;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        background: oklch(1 0 0 / 0.85);
+        color: var(--fg);
+      }
+      .v2-chip .crumb .sep {
+        color: var(--muted-2);
+      }
+      .v2-chip .crumb .org {
+        font-weight: 500;
+        color: var(--fg);
+      }
+      .v2-chip .crumb .role {
+        font-style: normal;
+        color: var(--fg);
+        transition:
+          opacity 240ms,
+          transform 240ms,
+          filter 240ms;
+      }
+      .v2-chip .crumb .role.is-hidden {
+        opacity: 0;
+        transform: translateX(-4px);
+        filter: blur(2px);
+      }
+      .v2-chip .date {
+        margin-left: auto;
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--muted-2);
+      }
+
+      /* ============================================================
+         VARIANT 3 — Editorial split (era as serif, role as mono tag)
+         ============================================================ */
+      .v3-chip {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        padding: 1.2rem 0 0.7rem;
+        background: linear-gradient(
+          to bottom,
+          var(--bg) 0%,
+          var(--bg) 80%,
+          oklch(0.985 0.003 270 / 0) 100%
+        );
+        backdrop-filter: blur(8px);
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        column-gap: 1rem;
+        align-items: baseline;
+      }
+
+      .v3-chip .era-title {
+        font-family: var(--serif);
+        font-size: 1.1rem;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+      }
+      .v3-chip .era-title .ver {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--muted-2);
+        margin-right: 0.4rem;
+        font-weight: 400;
+      }
+      .v3-chip .role-tag {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--muted-1);
+        padding: 0.1rem 0.55rem;
+        border-radius: 4px;
+        border: 1px solid var(--line-strong);
+        background: oklch(1 0 0 / 0.6);
+        transition:
+          opacity 280ms cubic-bezier(0.2, 0.7, 0.2, 1),
+          transform 280ms cubic-bezier(0.2, 0.7, 0.2, 1);
+      }
+      .v3-chip .role-tag.is-hidden {
+        opacity: 0;
+        transform: translateY(-4px) scale(0.96);
+      }
+      .v3-chip .role-tag b {
+        color: var(--fg);
+        font-weight: 500;
+      }
+      .v3-chip .date {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--muted-2);
+        white-space: nowrap;
+      }
+
+      .v3-chip .accent {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 1px;
+        background: linear-gradient(
+          to right,
+          transparent 0%,
+          var(--line) 4%,
+          var(--line) 96%,
+          transparent 100%
+        );
+      }
+
+      /* Currently-active commit marker (visual hint of where the chip is "anchored") */
+      .commit.in-focus .rail::after {
+        content: "";
+      }
+      .commit[data-active="true"] .msg {
+        color: var(--fg);
+      }
+
+      /* Help / footnote */
+      .footnote {
+        margin-top: 3rem;
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--muted-1);
+        line-height: 1.6;
+      }
+      .footnote h3 {
+        font-family: var(--serif);
+        font-style: italic;
+        font-size: 0.95rem;
+        font-weight: 400;
+        color: var(--fg);
+        margin: 0 0 0.4rem;
+      }
+      .footnote .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.5rem;
+        margin-top: 1rem;
+      }
+      .footnote .grid > div {
+        border-top: 1px solid var(--line);
+        padding-top: 0.7rem;
+      }
+      .footnote .grid b {
+        color: var(--fg);
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="page-head">
+        <h1>Sticky chip — three breadcrumb sketches.</h1>
+        <p>scroll each panel · the role layer updates as you cross role boundaries</p>
+      </header>
+
+      <section class="grid">
+        <!-- =================================================================
+             VARIANT 1: Stacked breadcrumb
+             ================================================================= -->
+        <div class="col">
+          <div class="col-head">
+            <span class="label">Variant A</span>
+            <span class="pill">stacked</span>
+          </div>
+          <p class="col-name">era chip on top, role on a quiet second line</p>
+
+          <div class="frame" data-frame="v1">
+            <div class="v1-chip" data-chip="v1">
+              <div class="v1-row">
+                <span class="head">HEAD</span>
+                <span class="ref">·  <b data-era-name>lynx-era</b></span>
+                <span class="date" data-era-date>2023-02 — present</span>
+              </div>
+              <div class="v1-row">
+                <span class="sub" data-sub>
+                  <span class="role-name" data-role-name>@bytedance/tech-lead-lynx</span>
+                  <span class="role-tagline" data-role-tagline>cross-platform architect</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="frame-pad">
+              <!-- Lynx era -->
+              <div class="era" data-era="lynx-era" data-date="2023-02 — present" data-title="lynx-era">
+                <div class="commit role" data-role="tech-lead-lynx" data-role-name="@bytedance/tech-lead-lynx" data-role-tagline="cross-platform architect">
+                  <span class="rail">●</span>
+                  <span class="hash">9f3a2c1</span>
+                  <span class="msg"><b>Tech Lead, Lynx</b><span class="badge">role</span></span>
+                  <span class="date">Feb 23 — now</span>
+                </div>
+                <div class="commit"><span class="rail">│</span><span class="hash">a811f4e</span><span class="msg">Driving Lynx towards 1B users</span><span class="date">Q1 25</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">7d2c0b9</span><span class="msg">Open-sourced Lynx (lynxjs.org)</span><span class="date">Mar 25</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">3f0a182</span><span class="msg">Lynx Framework — internal v1</span><span class="date">2024</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">b8c44a0</span><span class="msg">QCon Shanghai — keynote</span><span class="date">2023</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">2e91d77</span><span class="msg">FEDay 2023 — talk</span><span class="date">2023</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">4a0166b</span><span class="msg">X thread · Lynx perf wins</span><span class="date">2023</span></div>
+                <div class="commit"><span class="rail">└</span><span class="hash">1c003be</span><span class="msg"><em>(tenure begins)</em></span><span class="date">Feb 23</span></div>
+              </div>
+
+              <!-- React era -->
+              <div class="era" data-era="react-era" data-date="2017-08 — 2022-10" data-title="react-era">
+                <div class="commit role" data-role="meta-engineer" data-role-name="@meta/react-engineer" data-role-tagline="hermes · react forget">
+                  <span class="rail">●</span>
+                  <span class="hash">d9a7711</span>
+                  <span class="msg"><b>Software Engineer, Meta</b><span class="badge">role</span></span>
+                  <span class="date">2019 — 22</span>
+                </div>
+                <div class="commit"><span class="rail">│</span><span class="hash">f44c00a</span><span class="msg">React Forget — co-founded</span><span class="date">2021</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">5b8e1a2</span><span class="msg">Hermes Engine — iOS launch</span><span class="date">2020</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">880f1d2</span><span class="msg">ReactConf 2021 — memo</span><span class="date">2021</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">221bb4d</span><span class="msg">RN Show · Hermes talk</span><span class="date">2021</span></div>
+                <div class="commit"><span class="rail">└</span><span class="hash">3a90017</span><span class="msg"><em>(joined React Core)</em></span><span class="date">2019</span></div>
+
+                <div class="commit role" data-role="meta-intern" data-role-name="@meta/intern" data-role-tagline="xros · reasonml">
+                  <span class="rail">●</span>
+                  <span class="hash">7e0c4b1</span>
+                  <span class="msg"><b>Intern, Meta (XROS · ReasonML)</b><span class="badge">role</span></span>
+                  <span class="date">2017 — 18</span>
+                </div>
+                <div class="commit"><span class="rail">│</span><span class="hash">0aac102</span><span class="msg">RIT — MS, Programming Languages</span><span class="date">2017—19</span></div>
+                <div class="commit"><span class="rail">└</span><span class="hash">cc1b340</span><span class="msg"><em>(moved to US)</em></span><span class="date">2017</span></div>
+              </div>
+
+              <!-- PWA era (no sub-chip — roles are themselves artifacts) -->
+              <div class="era" data-era="pwa-era" data-date="2012-09 — 2017-07" data-title="pwa-era" data-no-role="true">
+                <div class="commit"><span class="rail">●</span><span class="hash">e102b0f</span><span class="msg">Tech Lead Manager · Wepiao</span><span class="date">2017</span></div>
+                <div class="commit"><span class="rail">●</span><span class="hash">96f441a</span><span class="msg">Front End · Alibaba</span><span class="date">2016</span></div>
+                <div class="commit"><span class="rail">●</span><span class="hash">af00bd2</span><span class="msg">Upgrading Eleme to a PWA</span><span class="date">2016</span></div>
+                <div class="commit"><span class="rail">●</span><span class="hash">71c012a</span><span class="msg">JSConf China 2017 — talk</span><span class="date">2017</span></div>
+                <div class="commit"><span class="rail">●</span><span class="hash">8801aff</span><span class="msg">QCon Shanghai 2016 — talk</span><span class="date">2016</span></div>
+                <div class="commit"><span class="rail">●</span><span class="hash">12f00ba</span><span class="msg">CUC — undergraduate</span><span class="date">2012—16</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- =================================================================
+             VARIANT 2: Inline breadcrumb
+             ================================================================= -->
+        <div class="col">
+          <div class="col-head">
+            <span class="label">Variant B</span>
+            <span class="pill">inline</span>
+          </div>
+          <p class="col-name">one line, terminal-style path</p>
+
+          <div class="frame" data-frame="v2">
+            <div class="v2-chip" data-chip="v2">
+              <span class="crumb">
+                <span class="head">HEAD</span>
+                <span class="sep">▸</span>
+                <span class="org" data-era-name>lynx-era</span>
+                <span class="sep" data-role-sep>▸</span>
+                <span class="role" data-role-name>tech-lead-lynx</span>
+              </span>
+              <span class="date" data-era-date>2023-02 — present</span>
+            </div>
+
+            <div class="frame-pad">
+              <div class="era" data-era="lynx-era" data-date="2023-02 — present" data-title="lynx-era">
+                <div class="commit role" data-role="tech-lead-lynx" data-role-name="tech-lead-lynx">
+                  <span class="rail">●</span>
+                  <span class="hash">9f3a2c1</span>
+                  <span class="msg"><b>Tech Lead, Lynx</b><span class="badge">role</span></span>
+                  <span class="date">Feb 23 — now</span>
+                </div>
+                <div class="commit"><span class="rail">│</span><span class="hash">a811f4e</span><span class="msg">Driving Lynx towards 1B users</span><span class="date">Q1 25</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">7d2c0b9</span><span class="msg">Open-sourced Lynx (lynxjs.org)</span><span class="date">Mar 25</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">3f0a182</span><span class="msg">Lynx Framework — internal v1</span><span class="date">2024</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">b8c44a0</span><span class="msg">QCon Shanghai — keynote</span><span class="date">2023</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">2e91d77</span><span class="msg">FEDay 2023 — talk</span><span class="date">2023</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">4a0166b</span><span class="msg">X thread · Lynx perf wins</span><span class="date">2023</span></div>
+                <div class="commit"><span class="rail">└</span><span class="hash">1c003be</span><span class="msg"><em>(tenure begins)</em></span><span class="date">Feb 23</span></div>
+              </div>
+
+              <div class="era" data-era="react-era" data-date="2017-08 — 2022-10" data-title="react-era">
+                <div class="commit role" data-role="meta-engineer" data-role-name="meta-engineer">
+                  <span class="rail">●</span>
+                  <span class="hash">d9a7711</span>
+                  <span class="msg"><b>Software Engineer, Meta</b><span class="badge">role</span></span>
+                  <span class="date">2019 — 22</span>
+                </div>
+                <div class="commit"><span class="rail">│</span><span class="hash">f44c00a</span><span class="msg">React Forget — co-founded</span><span class="date">2021</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">5b8e1a2</span><span class="msg">Hermes Engine — iOS launch</span><span class="date">2020</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">880f1d2</span><span class="msg">ReactConf 2021 — memo</span><span class="date">2021</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">221bb4d</span><span class="msg">RN Show · Hermes talk</span><span class="date">2021</span></div>
+                <div class="commit"><span class="rail">└</span><span class="hash">3a90017</span><span class="msg"><em>(joined React Core)</em></span><span class="date">2019</span></div>
+
+                <div class="commit role" data-role="meta-intern" data-role-name="meta-intern">
+                  <span class="rail">●</span>
+                  <span class="hash">7e0c4b1</span>
+                  <span class="msg"><b>Intern, Meta</b><span class="badge">role</span></span>
+                  <span class="date">2017 — 18</span>
+                </div>
+                <div class="commit"><span class="rail">│</span><span class="hash">0aac102</span><span class="msg">RIT — MS, Programming Languages</span><span class="date">2017—19</span></div>
+                <div class="commit"><span class="rail">└</span><span class="hash">cc1b340</span><span class="msg"><em>(moved to US)</em></span><span class="date">2017</span></div>
+              </div>
+
+              <div class="era" data-era="pwa-era" data-date="2012-09 — 2017-07" data-title="pwa-era" data-no-role="true">
+                <div class="commit"><span class="rail">●</span><span class="hash">e102b0f</span><span class="msg">Tech Lead Manager · Wepiao</span><span class="date">2017</span></div>
+                <div class="commit"><span class="rail">●</span><span class="hash">96f441a</span><span class="msg">Front End · Alibaba</span><span class="date">2016</span></div>
+                <div class="commit"><span class="rail">●</span><span class="hash">af00bd2</span><span class="msg">Upgrading Eleme to a PWA</span><span class="date">2016</span></div>
+                <div class="commit"><span class="rail">●</span><span class="hash">71c012a</span><span class="msg">JSConf China 2017 — talk</span><span class="date">2017</span></div>
+                <div class="commit"><span class="rail">●</span><span class="hash">8801aff</span><span class="msg">QCon Shanghai 2016 — talk</span><span class="date">2016</span></div>
+                <div class="commit"><span class="rail">●</span><span class="hash">12f00ba</span><span class="msg">CUC — undergraduate</span><span class="date">2012—16</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- =================================================================
+             VARIANT 3: Editorial split — serif era title + mono role tag
+             ================================================================= -->
+        <div class="col">
+          <div class="col-head">
+            <span class="label">Variant C</span>
+            <span class="pill">editorial</span>
+          </div>
+          <p class="col-name">serif era headline, role floats as a small tag</p>
+
+          <div class="frame" data-frame="v3">
+            <div class="v3-chip" data-chip="v3">
+              <span class="era-title">
+                <span class="ver" data-era-ver>v3</span>
+                <span data-era-name>Cross-Platform at Scale</span>
+              </span>
+              <span class="role-tag" data-role-tag>
+                <span data-role-prefix>@bytedance/</span><b data-role-name>tech-lead-lynx</b>
+              </span>
+              <span class="date" data-era-date>2023 — present</span>
+              <span class="accent"></span>
+            </div>
+
+            <div class="frame-pad">
+              <div class="era" data-era="lynx-era" data-date="2023 — present" data-title="Cross-Platform at Scale" data-ver="v3" data-role-prefix="@bytedance/">
+                <div class="commit role" data-role="tech-lead-lynx" data-role-name="tech-lead-lynx">
+                  <span class="rail">●</span>
+                  <span class="hash">9f3a2c1</span>
+                  <span class="msg"><b>Tech Lead, Lynx</b><span class="badge">role</span></span>
+                  <span class="date">Feb 23 — now</span>
+                </div>
+                <div class="commit"><span class="rail">│</span><span class="hash">a811f4e</span><span class="msg">Driving Lynx towards 1B users</span><span class="date">Q1 25</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">7d2c0b9</span><span class="msg">Open-sourced Lynx (lynxjs.org)</span><span class="date">Mar 25</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">3f0a182</span><span class="msg">Lynx Framework — internal v1</span><span class="date">2024</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">b8c44a0</span><span class="msg">QCon Shanghai — keynote</span><span class="date">2023</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">2e91d77</span><span class="msg">FEDay 2023 — talk</span><span class="date">2023</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">4a0166b</span><span class="msg">X thread · Lynx perf wins</span><span class="date">2023</span></div>
+                <div class="commit"><span class="rail">└</span><span class="hash">1c003be</span><span class="msg"><em>(tenure begins)</em></span><span class="date">Feb 23</span></div>
+              </div>
+
+              <div class="era" data-era="react-era" data-date="2017 — 2022" data-title="Compilers, Runtimes &amp; React" data-ver="v2" data-role-prefix="@meta/">
+                <div class="commit role" data-role="meta-engineer" data-role-name="react-core">
+                  <span class="rail">●</span>
+                  <span class="hash">d9a7711</span>
+                  <span class="msg"><b>Software Engineer, Meta</b><span class="badge">role</span></span>
+                  <span class="date">2019 — 22</span>
+                </div>
+                <div class="commit"><span class="rail">│</span><span class="hash">f44c00a</span><span class="msg">React Forget — co-founded</span><span class="date">2021</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">5b8e1a2</span><span class="msg">Hermes Engine — iOS launch</span><span class="date">2020</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">880f1d2</span><span class="msg">ReactConf 2021 — memo</span><span class="date">2021</span></div>
+                <div class="commit"><span class="rail">│</span><span class="hash">221bb4d</span><span class="msg">RN Show · Hermes talk</span><span class="date">2021</span></div>
+                <div class="commit"><span class="rail">└</span><span class="hash">3a90017</span><span class="msg"><em>(joined React Core)</em></span><span class="date">2019</span></div>
+
+                <div class="commit role" data-role="meta-intern" data-role-name="intern">
+                  <span class="rail">●</span>
+                  <span class="hash">7e0c4b1</span>
+                  <span class="msg"><b>Intern, Meta</b><span class="badge">role</span></span>
+                  <span class="date">2017 — 18</span>
+                </div>
+                <div class="commit"><span class="rail">│</span><span class="hash">0aac102</span><span class="msg">RIT — MS, Programming Languages</span><span class="date">2017—19</span></div>
+                <div class="commit"><span class="rail">└</span><span class="hash">cc1b340</span><span class="msg"><em>(moved to US)</em></span><span class="date">2017</span></div>
+              </div>
+
+              <div class="era" data-era="pwa-era" data-date="2012 — 2017" data-title="China's PWA Pioneer" data-ver="v1" data-no-role="true">
+                <div class="commit"><span class="rail">●</span><span class="hash">e102b0f</span><span class="msg">Tech Lead Manager · Wepiao</span><span class="date">2017</span></div>
+                <div class="commit"><span class="rail">●</span><span class="hash">96f441a</span><span class="msg">Front End · Alibaba</span><span class="date">2016</span></div>
+                <div class="commit"><span class="rail">●</span><span class="hash">af00bd2</span><span class="msg">Upgrading Eleme to a PWA</span><span class="date">2016</span></div>
+                <div class="commit"><span class="rail">●</span><span class="hash">71c012a</span><span class="msg">JSConf China 2017 — talk</span><span class="date">2017</span></div>
+                <div class="commit"><span class="rail">●</span><span class="hash">8801aff</span><span class="msg">QCon Shanghai 2016 — talk</span><span class="date">2016</span></div>
+                <div class="commit"><span class="rail">●</span><span class="hash">12f00ba</span><span class="msg">CUC — undergraduate</span><span class="date">2012—16</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="footnote">
+        <h3>The nuance encoded here</h3>
+        <p>
+          Meta and ByteDance roles act as <b>context</b> for many work artifacts — so they earn a place in the sticky chip. The PWA era's roles (Wepiao TLM, Alibaba FE) are themselves the artifacts — so the chip stays a single era, no role substrate. Eleme's role and "Upgrading Eleme" collapse into the same commit.
+        </p>
+
+        <div class="grid">
+          <div>
+            <b>A · Stacked</b><br/>
+            Two-row sticky. Era + role on quieter second line.<br/>
+            Reads like <span style="font-family: var(--mono);">git status</span>.
+          </div>
+          <div>
+            <b>B · Inline</b><br/>
+            Single line breadcrumb, terminal path style.<br/>
+            <span style="font-family: var(--mono);">HEAD ▸ lynx-era ▸ tech-lead-lynx</span>
+          </div>
+          <div>
+            <b>C · Editorial</b><br/>
+            Serif era title (renamed from "Lynx Era" to its tagline) + tiny <span style="font-family: var(--mono);">@org/role</span> tag.<br/>
+            Most graceful when the chip is the only thing on screen.
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // For each frame, observe role commits and update the chip's role label.
+      function setupFrame(frame) {
+        const variant = frame.dataset.frame;
+        const chip = frame.querySelector("[data-chip]");
+        if (!chip) return;
+
+        const eras = [...frame.querySelectorAll("[data-era]")];
+        const roles = [...frame.querySelectorAll(".commit.role")];
+
+        // Build era boundaries (top offsets within the frame's scrollable content)
+        function recompute() {
+          const eraTops = eras.map((el) => ({ el, top: el.offsetTop }));
+          const roleTops = roles.map((el) => ({ el, top: el.offsetTop }));
+          return { eraTops, roleTops };
+        }
+        let { eraTops, roleTops } = recompute();
+        window.addEventListener("resize", () => ({ eraTops, roleTops } = recompute()));
+
+        function update() {
+          const y = frame.scrollTop + 40; // chip baseline
+          // current era = last era whose top <= y, else first
+          let era = eraTops[0]?.el;
+          for (const et of eraTops) {
+            if (et.top <= y) era = et.el;
+          }
+          if (!era) return;
+
+          // Update era fields
+          const eraName = era.dataset.title;
+          const eraDate = era.dataset.date;
+          chip.querySelectorAll("[data-era-name]").forEach((n) => (n.textContent = eraName));
+          chip.querySelectorAll("[data-era-date]").forEach((n) => (n.textContent = eraDate));
+          if (variant === "v3") {
+            const ver = era.dataset.ver || "";
+            const verEl = chip.querySelector("[data-era-ver]");
+            if (verEl) verEl.textContent = ver;
+            const prefixEl = chip.querySelector("[data-role-prefix]");
+            if (prefixEl) prefixEl.textContent = era.dataset.rolePrefix || "";
+          }
+
+          // Determine current role: the last role inside *this* era whose top <= y
+          const noRole = era.dataset.noRole === "true";
+          let role = null;
+          if (!noRole) {
+            const erasRoles = roleTops.filter((r) => era.contains(r.el));
+            for (const rt of erasRoles) {
+              if (rt.top <= y) role = rt.el;
+            }
+            if (!role && erasRoles.length > 0) role = erasRoles[0].el;
+          }
+
+          // Apply role to chip
+          const subEl = chip.querySelector("[data-sub]");
+          const sepEl = chip.querySelector("[data-role-sep]");
+          const tagEl = chip.querySelector("[data-role-tag]");
+          const roleNameEl = chip.querySelector("[data-role-name]");
+          const roleTaglineEl = chip.querySelector("[data-role-tagline]");
+
+          if (role) {
+            const rn = role.dataset.roleName || role.dataset.role;
+            const rt = role.dataset.roleTagline || "";
+            if (roleNameEl) roleNameEl.textContent = rn;
+            if (roleTaglineEl) roleTaglineEl.textContent = rt;
+            subEl && subEl.classList.remove("is-hidden");
+            sepEl && sepEl.classList.remove("is-hidden");
+            const roleSpan = chip.querySelector(".role");
+            roleSpan && roleSpan.classList.remove("is-hidden");
+            tagEl && tagEl.classList.remove("is-hidden");
+          } else {
+            subEl && subEl.classList.add("is-hidden");
+            sepEl && sepEl.classList.add("is-hidden");
+            const roleSpan = chip.querySelector(".role");
+            roleSpan && roleSpan.classList.add("is-hidden");
+            tagEl && tagEl.classList.add("is-hidden");
+          }
+        }
+
+        frame.addEventListener("scroll", update, { passive: true });
+        update();
+      }
+
+      document.querySelectorAll(".frame").forEach(setupFrame);
+    </script>
+  </body>
+</html>

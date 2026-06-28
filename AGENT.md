@@ -12,6 +12,7 @@
 | **Design System** | [docs/design-system.md](./docs/design-system.md) (Typography, colors) |
 | **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
 | **Architecture** | [docs/architecture.md](./docs/architecture.md) (Implementation details) |
+| **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Snapshot + manual preview + drift) |
 
 ## 2. Quick Start Context
 
