@@ -71,6 +71,8 @@ export interface NormalizedCommit {
   // Media
   links: SimpleLink[];
   nonLinkMedia: Media[];
+  /** Embeds flagged to render beneath the row while it's still folded. */
+  foldedEmbeds: EmbedMedia[];
 
   // Compact rendering
   thumbnail?: { url: string; linkUrl?: string };
@@ -216,6 +218,7 @@ export function normalizeCommit(
   const media = commit.media ?? [];
   const mediaLinks = extractMediaLinks(media, locale);
   const nonLinkMedia = media.filter((m) => !isLinkMedia(m));
+  const foldedEmbeds = media.filter(isEmbedMedia).filter((m) => m.defaultShown);
 
   const title = localize(commit.title, locale);
   const description = localize(commit.description, locale);
@@ -242,6 +245,7 @@ export function normalizeCommit(
         stats: commit.stats,
         links: mediaLinks,
         nonLinkMedia,
+        foldedEmbeds,
         thumbnail: thumbnail ? { ...thumbnail, linkUrl: firstLinkUrl } : undefined,
         secondaryLine: description,
       };
@@ -261,6 +265,7 @@ export function normalizeCommit(
         commentary,
         links: mediaLinks,
         nonLinkMedia,
+        foldedEmbeds,
         thumbnail,
         secondaryLine: date,
       };
@@ -280,6 +285,7 @@ export function normalizeCommit(
         commentary,
         links: mediaLinks,
         nonLinkMedia,
+        foldedEmbeds,
         thumbnail: thumbnail ? { ...thumbnail, linkUrl: commit.url } : undefined,
         secondaryLine: `${commit.publication.name} · ${date}`,
       };
@@ -305,6 +311,7 @@ export function normalizeCommit(
         commentary,
         links: mediaLinks,
         nonLinkMedia,
+        foldedEmbeds,
         thumbnail: thumbnail
           ? { ...thumbnail, linkUrl: commit.url }
           : undefined,
@@ -342,6 +349,7 @@ export function normalizeCommit(
         commentary,
         links: socialLinks,
         nonLinkMedia,
+        foldedEmbeds,
         thumbnail: thumbnail ? { ...thumbnail, linkUrl: socialPrimaryUrl } : undefined,
         secondaryLine: `${commit.platform} · ${date}`,
       };

@@ -182,13 +182,13 @@ export function MediaRenderer({
         />
       ))}
 
-      {/* Embeds — tiled in a responsive row when there's more than one */}
+      {/* Embeds — tiled two-up on every screen (incl. mobile) when >1 */}
       {embeds.length > 0 && (
-        <div className={multipleEmbeds ? "@container" : undefined}>
+        <div>
           <div
             className={cn(
-              // items-stretch (grid default) keeps tiled cards equal height
-              multipleEmbeds && "grid grid-cols-1 @md:grid-cols-2 gap-3"
+              // grid default `items-stretch` keeps tiled cards equal height
+              multipleEmbeds && "grid grid-cols-2 gap-2.5"
             )}
           >
             {embeds.map((m, i) => (

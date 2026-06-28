@@ -695,17 +695,24 @@ function MediaItemEditor({
       )}
 
       {item.type === "embed" && (
-        <SelectField
-          label="Platform"
-          value={item.platform ?? ""}
-          options={[
-            { value: "", label: "(auto-detect)" },
-            { value: "twitter", label: "Twitter / X" },
-            { value: "instagram", label: "Instagram" },
-            { value: "tiktok", label: "TikTok" },
-          ]}
-          onChange={(v) => onChange({ ...item, platform: (v || undefined) as "twitter" | "x" | "instagram" | "tiktok" | undefined })}
-        />
+        <>
+          <SelectField
+            label="Platform"
+            value={item.platform ?? ""}
+            options={[
+              { value: "", label: "(auto-detect)" },
+              { value: "twitter", label: "Twitter / X" },
+              { value: "instagram", label: "Instagram" },
+              { value: "tiktok", label: "TikTok" },
+            ]}
+            onChange={(v) => onChange({ ...item, platform: (v || undefined) as "twitter" | "x" | "instagram" | "tiktok" | undefined })}
+          />
+          <CheckField
+            label="Show folded"
+            checked={item.defaultShown ?? false}
+            onChange={(v) => onChange({ ...item, defaultShown: v || undefined })}
+          />
+        </>
       )}
 
       {item.type === "link" && (

@@ -99,6 +99,11 @@ export interface EmbedMedia {
   platform?: EmbedPlatform; // Auto-detected from URL if not provided
   /** Manual card metadata for non-native embeds (link-preview fallback). */
   preview?: MediaPreview;
+  /**
+   * Show this embed beneath the commit row even while it's folded. Fully
+   * expanding the row always reveals every embed regardless of this flag.
+   */
+  defaultShown?: boolean;
 }
 
 /**
