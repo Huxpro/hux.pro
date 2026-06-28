@@ -861,6 +861,7 @@
       "id": "event-moved-to-us",
       "type": "event",
       "tagId": "react-era",
+      "attachedTo": "rit-ms",
       "date": "2017-07",
       "title": {
         "en": "moved to the US",
