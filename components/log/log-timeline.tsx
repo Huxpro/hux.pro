@@ -11,7 +11,7 @@ import {
   getLocalizedTagTitle,
   type Tag,
 } from "@/lib/log";
-import { Pencil, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Commit } from "./commit-embed";
 import { TimelineConnector } from "./timeline-connector";
@@ -156,11 +156,14 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
             uniform shift, so a solid background reads the same as before while
             a gradient keeps its hue. */}
         {inspecting && edit ? (
+          // Same chip as the public view, promoted to a selection target.
+          // Affordance is the hover border + selected ring (matching commit
+          // rows) — no inline icon, so the chip keeps its public footprint.
           <button
             type="button"
             onClick={() => edit.onSelectTag(tag.id)}
             className={cn(
-              "group/tag inline-flex items-center gap-1.5 bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full transition-colors",
+              "inline-flex items-center bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full transition-colors",
               isTagSelected
                 ? "border-foreground/40 ring-1 ring-inset ring-foreground/25"
                 : "border-border hover:border-foreground/40",
@@ -168,14 +171,6 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
             title="Edit chapter"
           >
             {tagLabel}
-            <Pencil
-              className={cn(
-                "w-2.5 h-2.5 transition-opacity",
-                isTagSelected
-                  ? "opacity-100"
-                  : "opacity-0 group-hover/tag:opacity-100",
-              )}
-            />
           </button>
         ) : (
           <span className="inline-flex items-center bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border border-border rounded-full">

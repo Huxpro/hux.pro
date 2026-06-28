@@ -65,12 +65,3 @@ export function TimelineEditProvider({
 export function useTimelineEdit(): TimelineEditContextValue | null {
   return useContext(TimelineEditContext);
 }
-
-/**
- * Convenience: true only when the editor is mounted AND in inspect mode.
- * In "preview" mode this is false, so the timeline falls back to its exact
- * public behavior.
- */
-export function useIsInspecting(): boolean {
-  return useContext(TimelineEditContext)?.mode === "inspect";
-}
