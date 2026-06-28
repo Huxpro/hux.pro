@@ -680,3 +680,31 @@ html.dragging * {
   }
 }
 
+/* =============================================================================
+   Tenure rail — role-hover lights the cluster.
+
+   When the ROLE row is hovered/focused/expanded, brighten every rail
+   span across the cluster. (Hovering a member instead activates only
+   that member's connector via JS state — no rail brightening, no
+   line crossing intermediate icons.)
+
+   The selectors use `:has()` on the cluster wrapper to detect when any
+   descendant of a `data-role-row` is in the active state, then apply
+   the bright background to every rail span in the wrapper. The rails
+   each have their own per-icon gap built in, so the lit cluster reads
+   as a connected line with clean breaks at every node.
+   ============================================================================= */
+
+.group\/tenure:has(> [data-role-row]:hover) [data-rail-above],
+.group\/tenure:has(> [data-role-row]:hover) [data-rail-below],
+.group\/tenure:has(> [data-role-row]:focus-within) [data-rail-above],
+.group\/tenure:has(> [data-role-row]:focus-within) [data-rail-below],
+.group\/tenure:has(> [data-role-row]:has([data-expanded])) [data-rail-above],
+.group\/tenure:has(> [data-role-row]:has([data-expanded])) [data-rail-below] {
+  background-color: color-mix(
+    in oklch,
+    var(--color-muted-foreground) 30%,
+    transparent
+  );
+}
+

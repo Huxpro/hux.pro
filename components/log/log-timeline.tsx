@@ -256,14 +256,19 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
             // stacking. Explicit attachedTo beams stay always-on.
             hideWhenIdle={a.inferred}
             isActive={
-              // Either: the exact source-target pair is active (hover
-              // on source), or the target is active with wildcard
-              // fromHash="*" (hover on target — light up every
-              // connector pointing at it).
               !!activeBeam &&
               activeBeam.toHash === a.toHash &&
+              // Exact source-target match (hover/focus/expand on
+              // source) always activates. The wildcard `fromHash:
+              // "*"` (target hovered) activates only EXPLICIT
+              // attachedTo connectors — for inferred beams the
+              // role-hover instead brightens the whole rail via CSS
+              // (`.group/tenure:has(> [data-role-row]:hover)` rule),
+              // which has clean per-icon gaps. Activating every
+              // inferred connector via wildcard would paint a long
+              // overlapping line that crosses intermediate icons.
               (activeBeam.fromHash === a.fromHash ||
-                activeBeam.fromHash === "*")
+                (activeBeam.fromHash === "*" && !a.inferred))
             }
           />
         ))}

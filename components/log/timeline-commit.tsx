@@ -202,6 +202,7 @@ export function TimelineCommit({
         {hasRailAbove && (
           <span
             aria-hidden
+            data-rail-above
             className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
             style={{ top: "-1000px", bottom: `calc(50% + ${iconGapPx}px)` }}
           />
@@ -209,6 +210,7 @@ export function TimelineCommit({
         {hasRailBelow && (
           <span
             aria-hidden
+            data-rail-below
             className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
             style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
           />
@@ -370,7 +372,12 @@ export function TimelineCommit({
   );
 
   return (
-    <div id={data.hash} className={className}>
+    <div
+      id={data.hash}
+      data-rail-row
+      data-role-row={isRoleAnchor ? "" : undefined}
+      className={className}
+    >
       <MagneticPreview
         preview={cursorPreview}
         enabled={showCursorPreview}
