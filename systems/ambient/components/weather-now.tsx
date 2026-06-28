@@ -3,8 +3,12 @@
 import { t, useLocale } from "@/services";
 import { useDevtool } from "@/systems/devtool";
 import { Loader2, Sunrise, Sunset } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getWeatherConditionLabel, type WeatherCondition } from "../lib";
+import { useEffect, useMemo, useState } from "react";
+import {
+  formatClockTime,
+  getWeatherConditionLabel,
+  type WeatherCondition,
+} from "../lib";
 import { useWeather } from "../provider";
 
 // ---------------------------------------------------------------------------
@@ -50,17 +54,25 @@ export function useDisplayWeather() {
     ? debugOverride!.isDay
     : weather?.isDay;
 
+  const current = useMemo<DisplayWeather | null>(
+    () =>
+      weather && effectiveCondition
+        ? {
+            temperatureC: weather.temperatureC,
+            condition: effectiveCondition,
+            isDay: effectiveIsDay,
+            sunriseMs: weather.sunriseMs,
+            sunsetMs: weather.sunsetMs,
+          }
+        : null,
+    [weather, effectiveCondition, effectiveIsDay]
+  );
+
   useEffect(() => {
-    if (!weather || !effectiveCondition) return;
+    if (!current) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setStaleWeather({
-      temperatureC: weather.temperatureC,
-      condition: effectiveCondition,
-      isDay: effectiveIsDay,
-      sunriseMs: weather.sunriseMs,
-      sunsetMs: weather.sunsetMs,
-    });
-  }, [weather, effectiveCondition, effectiveIsDay]);
+    setStaleWeather(current);
+  }, [current]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
@@ -75,15 +87,7 @@ export function useDisplayWeather() {
 
   const displayWeather: DisplayWeather | null = devForceEmpty
     ? null
-    : weather && effectiveCondition
-    ? {
-        temperatureC: weather.temperatureC,
-        condition: effectiveCondition,
-        isDay: effectiveIsDay,
-        sunriseMs: weather.sunriseMs,
-        sunsetMs: weather.sunsetMs,
-      }
-    : staleWeather;
+    : current ?? staleWeather;
 
   return {
     displayWeather,
@@ -92,15 +96,6 @@ export function useDisplayWeather() {
     refresh,
     devForceEmpty,
   };
-}
-
-/** Format milliseconds to HH:MM (24h) */
-function formatTime(ms: number): string {
-  return new Date(ms).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
 }
 
 export function WeatherNow() {
@@ -135,13 +130,13 @@ export function WeatherNow() {
               {displayWeather.sunriseMs && (
                 <span className="flex items-center gap-1">
                   <Sunrise className="h-3 w-3" />
-                  {formatTime(displayWeather.sunriseMs)}
+                  {formatClockTime(displayWeather.sunriseMs, locale)}
                 </span>
               )}
               {displayWeather.sunsetMs && (
                 <span className="flex items-center gap-1">
                   <Sunset className="h-3 w-3" />
-                  {formatTime(displayWeather.sunsetMs)}
+                  {formatClockTime(displayWeather.sunsetMs, locale)}
                 </span>
               )}
             </div>

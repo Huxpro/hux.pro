@@ -3,7 +3,7 @@
 import { t, useLocale } from "@/services";
 import { LiveActivity } from "@/systems/dock";
 import { Sunrise, Sunset } from "lucide-react";
-import type { Locale } from "@/lib/i18n";
+import { formatClockTime } from "../lib";
 import { getUpcomingSunEvent } from "../lib/notification";
 import { useAmbientTime, useWeather } from "../provider";
 import { WeatherNow } from "./weather-now";
@@ -19,22 +19,6 @@ import { WeatherNow } from "./weather-now";
 // end of its ±window. The devtool time override also surfaces it so the
 // sunrise/sunset states are demoable at any hour.
 // ---------------------------------------------------------------------------
-
-function formatTime(ms: number, locale: Locale): string {
-  try {
-    return new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(new Date(ms));
-  } catch {
-    return new Date(ms).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-  }
-}
 
 export function AmbientPhaseActivity() {
   const { locale } = useLocale();
@@ -55,7 +39,7 @@ export function AmbientPhaseActivity() {
   const eventMs = event === "sunrise" ? sunriseMs : sunsetMs;
   const Icon = event === "sunrise" ? Sunrise : Sunset;
   const eventLabel = t(locale, event === "sunrise" ? "phaseSunrise" : "phaseSunset");
-  const timeLabel = typeof eventMs === "number" ? formatTime(eventMs, locale) : null;
+  const timeLabel = formatClockTime(eventMs, locale, "");
 
   return (
     <LiveActivity

@@ -105,10 +105,8 @@ export interface DevtoolGradientOverrides {
 interface WeatherContextType {
   weather: NormalizedWeather | null;
   gradient: string;
-  displayedGradient: string;
   /** Crossfade stack: [...settled, newest]. Render via <GradientStack />. */
   gradientLayers: GradientLayerData[];
-  isGradientTransitioning: boolean;
   gradientMode: WeatherGradientMode;
   // 3 resolved rendering flags
   fullGradientEnabled: boolean;
@@ -346,10 +344,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     return () => clearTimeout(timeout);
   }, [gradientLayers]);
 
-  const displayedGradient =
-    gradientLayers[gradientLayers.length - 1]?.gradient ?? "";
-  const isGradientTransitioning = gradientLayers.length > 1;
-
   return (
     <LocationContext.Provider
       value={{
@@ -367,9 +361,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
         value={{
           weather: weatherQuery.data ?? null,
           gradient: computedGradient,
-          displayedGradient,
           gradientLayers,
-          isGradientTransitioning,
           gradientMode: settings.weatherGradientMode,
           fullGradientEnabled,
           widgetGradientEnabled,
