@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useEffect } from "react";
 import { useDock } from "../provider";
 
 // ---------------------------------------------------------------------------
@@ -48,8 +49,12 @@ export function LiveActivity({
   collapseLabel,
   pillClassName,
 }: LiveActivityProps) {
-  const { isOpen, isAnyOpen, open, close } = useDock();
+  const { isOpen, isAnyOpen, open, close, registerActivity } = useDock();
   const expanded = isOpen(id);
+
+  // If this activity unmounts while expanded (e.g. its time window passes),
+  // collapse the dock so the scrim and pill-hiding don't get stuck.
+  useEffect(() => registerActivity(id), [id, registerActivity]);
 
   return (
     <>

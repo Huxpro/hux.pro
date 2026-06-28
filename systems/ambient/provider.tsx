@@ -266,6 +266,19 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     return () => window.clearInterval(id);
   }, []);
 
+  // Refetch weather when the local day rolls over. Open-Meteo returns a single
+  // forecast day, so a page left open overnight would otherwise keep yesterday's
+  // sunrise/sunset — staling everything derived from them (phase, gradient,
+  // greeting, and the phase notification). The minute tick above makes this fire
+  // within ~60s of midnight.
+  const lastDayRef = useRef(new Date().toDateString());
+  useEffect(() => {
+    const today = new Date(nowMs).toDateString();
+    if (lastDayRef.current === today) return;
+    lastDayRef.current = today;
+    queryClient.invalidateQueries({ queryKey: ["weather"] });
+  }, [nowMs]);
+
   const derivedPhase = useMemo(() => {
     const w = weatherQuery.data;
     return deriveAmbientPhase({

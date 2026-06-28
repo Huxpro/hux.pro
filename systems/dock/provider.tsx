@@ -30,6 +30,13 @@ interface DockContextType {
   open: (id: string) => void;
   close: () => void;
   toggle: (id: string) => void;
+  /**
+   * Tie an activity's lifecycle to the dock. Call on mount; run the returned
+   * teardown on unmount. If an activity disappears while it's the open one
+   * (e.g. a notification window passes), this collapses the dock so the scrim
+   * and pill-hiding don't get stuck on a phantom `openId`.
+   */
+  registerActivity: (id: string) => () => void;
 }
 
 const DockContext = createContext<DockContextType | undefined>(undefined);
@@ -51,6 +58,11 @@ export function DockProvider({ children }: { children: React.ReactNode }) {
     []
   );
   const isOpen = useCallback((id: string) => openId === id, [openId]);
+
+  const registerActivity = useCallback(
+    (id: string) => () => setOpenId((prev) => (prev === id ? null : prev)),
+    []
+  );
 
   // Collapse whenever the route changes (matches the old MusicDock behaviour).
   useEffect(() => {
@@ -77,6 +89,7 @@ export function DockProvider({ children }: { children: React.ReactNode }) {
         open,
         close,
         toggle,
+        registerActivity,
       }}
     >
       {children}
