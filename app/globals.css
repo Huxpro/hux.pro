@@ -680,3 +680,56 @@ html.dragging * {
   }
 }
 
+/* =============================================================================
+   Widget Jiggle — iPad-springboard "edit mode" wobble applied to widgets
+   while the homepage grid is being rearranged. Lives on an inner wrapper so
+   it never competes with the layout transform Framer Motion drives.
+   ============================================================================= */
+
+@keyframes widget-jiggle {
+  0%,
+  100% {
+    transform: rotate(-0.55deg);
+  }
+  50% {
+    transform: rotate(0.55deg);
+  }
+}
+
+.widget-jiggle {
+  animation: widget-jiggle 0.33s ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .widget-jiggle {
+    animation: none !important;
+  }
+}
+
+/* =============================================================================
+   Widget gesture suppression — homescreen widgets are draggable objects, not
+   documents. A long-press should start a reorder drag, never the OS's native
+   link "peek"/callout, text selection, or link/image drag-ghost. `select-none`
+   on the item handles selection; these cover the iOS touch callout and the
+   native drag image for any links/images inside a widget.
+   ============================================================================= */
+
+[data-widget-id],
+[data-widget-id] a,
+[data-widget-id] img {
+  -webkit-touch-callout: none;
+}
+
+[data-widget-id] {
+  /* No grey flash on tap — widgets respond via their own hover/drag states. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+[data-widget-id] a,
+[data-widget-id] img {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
