@@ -69,11 +69,13 @@ export function MagneticPreview({
         >
           <div
             className={cn(
-              // Translucent lifted surface — same recipe as the Command
-              // Palette (`bg-popover/75 backdrop-blur-xl`) and the Dock
-              // Live Activity (`bg-card/60 backdrop-blur-xl`) so every
-              // floating surface on the site reads as the same family.
-              "rounded-lg border border-border/60 bg-popover/75 backdrop-blur-xl shadow-lg",
+              // Translucent lifted surface — matches the Dock Live Activity
+              // expanded panel recipe (`bg-card/70 backdrop-blur-xl border
+              // border-border/50 shadow-2xl shadow-black/20`). In dark mode
+              // popover/card are *darker* than the page bg, so the lift
+              // comes from the colored shadow + border, not from "see-
+              // through-ness" — the blur is what makes it feel alive.
+              "rounded-lg border border-border/50 bg-card/70 backdrop-blur-xl shadow-2xl shadow-black/20",
               "p-3 max-w-xs",
               panelClassName,
             )}

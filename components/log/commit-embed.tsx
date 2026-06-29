@@ -267,14 +267,14 @@ function PeekCard({
       image={item.image}
       size="compact"
       fixedAspect={fixedAspect}
-      // Peek-specific chrome: low-opacity popover bg + heavy backdrop blur,
-      // matching the system-wide "translucent lifted surface" recipe used by
-      // the Command Palette (`bg-popover/75 backdrop-blur-xl`) and the Dock
-      // Live Activity (`bg-card/60 backdrop-blur-xl`). The single-peek and
-      // stacked-peek branches both strip the panel's own chrome
-      // (BARE_PANEL_CHROME), so the card itself supplies it.
+      // Peek-specific chrome — same recipe as the Dock Live Activity
+      // expanded panel (bg-card/70 + backdrop-blur-xl + border + heavy
+      // colored shadow). The single-peek and stacked-peek branches both
+      // strip the panel's own chrome (BARE_PANEL_CHROME), so the card has
+      // to supply it. In dark mode the lift is the shadow, not the bg —
+      // popover/card sit below the page bg's lightness.
       className={cn(
-        "bg-popover/75 backdrop-blur-xl shadow-md rounded-md",
+        "bg-card/70 backdrop-blur-xl border border-border/50 shadow-2xl shadow-black/20 rounded-md",
         className,
       )}
       onImgResolved={onResolved}
