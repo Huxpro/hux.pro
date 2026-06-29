@@ -91,15 +91,16 @@ export function TimelineCommit({
     data.commentary ||
     data.tags.length > 0 ||
     data.stats ||
-    data.nonLinkMedia.length > 0
+    data.expandedMedia.length > 0 ||
+    data.pinnedMedia.length > 0
   );
 
-  // Embeds flagged `defaultShown` render once in a stable spot beneath the row
-  // (visible folded *and* expanded), so toggling never remounts them. The
-  // expanded block then renders only the remaining media — the rest of the
-  // embeds plus any video/image — so every embed is still seen once expanded.
-  const foldedEmbeds = data.foldedEmbeds as Media[];
-  const expandedMedia = data.nonLinkMedia.filter((m) => !foldedEmbeds.includes(m));
+  // Pinned items render once in a stable spot beneath the row (visible
+  // folded *and* expanded), so toggling never remounts them. The expanded
+  // block renders the rest; normalizeCommit has already excluded pinned
+  // items from `expandedMedia`, so no further filtering is needed here.
+  const pinnedMedia = data.pinnedMedia as Media[];
+  const expandedMedia = data.expandedMedia;
 
   const handleToggleExpanded = useCallback(() => {
     if (!hasExpandableContent) return;
@@ -354,14 +355,14 @@ export function TimelineCommit({
         </div>
       )}
 
-      {/* Default-shown embeds: rendered once here whether folded or expanded,
-          so toggling the row never remounts them. */}
-      {data.foldedEmbeds.length > 0 && (
+      {/* Pinned items: rendered once here whether the row is folded or
+          expanded, so toggling never remounts them. */}
+      {data.pinnedMedia.length > 0 && (
         <div
           className="col-start-2 @sm:col-start-3 mt-2"
           onClick={(e) => e.stopPropagation()}
         >
-          <MediaRenderer media={data.foldedEmbeds} layout="stack" size="default" />
+          <MediaRenderer media={data.pinnedMedia} layout="stack" size="default" />
         </div>
       )}
 
@@ -373,7 +374,7 @@ export function TimelineCommit({
             </div>
           )}
 
-          {/* Remaining media — embeds not already shown above, plus video/image. */}
+          {/* Remaining media — everything that wasn't hoisted above the fold. */}
           {expandedMedia.length > 0 && (
             <div onClick={(e) => e.stopPropagation()}>
               <MediaRenderer

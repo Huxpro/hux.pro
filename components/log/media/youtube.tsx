@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ExternalImage } from "./external-image";
 
 // =============================================================================
 // Types
@@ -143,18 +144,9 @@ export function YouTubeEmbed({
         )}
         aria-label="Play YouTube video"
       >
-        <img
+        <ExternalImage
           src={thumbnailUrl}
-          alt=""
           className="absolute inset-0 w-full h-full object-cover"
-          loading="lazy"
-          onError={(e) => {
-            // Fallback to hqdefault if maxresdefault doesn't exist
-            const target = e.target as HTMLImageElement;
-            if (target.src.includes("maxresdefault")) {
-              target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-            }
-          }}
         />
 
         {/* Play button overlay */}

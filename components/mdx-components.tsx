@@ -48,9 +48,9 @@ import {
   Commit,
   Media,
   Video,
-  Embed,
+  SocialEmbed,
   Link as MediaLink,
-  LinkPreview,
+  LinkCard,
   Figure,
   MediaRenderer,
 } from "@/components/log";
@@ -166,19 +166,19 @@ const sharedComponents: MDXComponents = {
 
   // ---------------------------------------------------------------------------
   // Media Components
-  // - Media: Unified entry point (auto-detects platform from URL)
-  // - Video: YouTube, Bilibili, Vimeo players
-  // - Embed: Native platform widgets (Twitter, Instagram, TikTok)
-  // - Link: External link button
-  // - LinkPreview: OG image preview cards
+  // - Media: Unified entry point (auto-detects kind from URL)
+  // - Video: YouTube / Bilibili / Vimeo players
+  // - SocialEmbed: Native social widgets (X / Instagram / TikTok)
+  // - Link: External link pill
+  // - LinkCard: OG-style preview card (backed by the card pipeline)
   // - Figure: Static image display (uses Next.js Image)
   // - MediaRenderer: Orchestrates multiple media items
   // ---------------------------------------------------------------------------
   Media: withNotProse(Media),
   Video: withNotProse(Video),
-  Embed: withNotProse(Embed),
+  SocialEmbed: withNotProse(SocialEmbed),
   Link: withNotProse(MediaLink),
-  LinkPreview: withNotProse(LinkPreview),
+  LinkCard: withNotProse(LinkCard),
   Figure: withNotProse(Figure),
   MediaRenderer: withNotProse(MediaRenderer),
 

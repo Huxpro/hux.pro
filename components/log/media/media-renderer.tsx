@@ -3,27 +3,27 @@
 /**
  * MediaRenderer
  *
- * Orchestrates rendering of Media array attached to commits.
- * Automatically dispatches to Video, Embed, Link, or Figure components
- * based on the media type.
+ * Orchestrates rendering of a commit's Media array. Each item routes to its
+ * kind-specific component, then we layout by *pinned-ness* (pinned items
+ * hoist above the row's expanded block) and by visual family (cards / widgets
+ * tile two-up when there are multiple; players stack vertically; pills
+ * collapse into a chip row at the end).
  */
 
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/services/theme";
-import type {
-  Media,
-  EmbedMedia,
-  LinkMedia,
-} from "@/lib/log";
+import type { Media } from "@/lib/log";
 import {
   isVideoMedia,
-  isEmbedMedia,
+  isSocialEmbedMedia,
   isLinkMedia,
+  isLinkCard,
+  isLinkPill,
   isImageMedia,
 } from "@/lib/log";
 import { Video } from "./video";
-import { Embed } from "./embed";
-import { Link, LinkPreview } from "./link";
+import { SocialEmbed } from "./embed";
+import { Link, LinkCard } from "./link";
 import { Figure } from "./image";
 
 // =============================================================================
@@ -31,17 +31,15 @@ import { Figure } from "./image";
 // =============================================================================
 
 export interface MediaRendererProps {
-  /** Array of media items to render */
+  /** Array of media items to render. */
   media: Media[];
-  /** Theme for embeds */
+  /** Theme for social embeds. */
   theme?: "light" | "dark";
-  /** Size variant */
+  /** Size variant. */
   size?: "compact" | "default" | "large";
-  /** Layout direction */
+  /** Layout direction. */
   layout?: "stack" | "inline" | "grid";
-  /** Whether to show previews for links */
-  showLinkPreviews?: boolean;
-  /** Additional CSS classes */
+  /** Additional CSS classes. */
   className?: string;
 }
 
@@ -49,7 +47,6 @@ interface SingleMediaProps {
   media: Media;
   theme: "light" | "dark";
   size: "compact" | "default" | "large";
-  showLinkPreviews: boolean;
   /** Forwarded to the underlying renderer (e.g. to size a grid cell). */
   className?: string;
 }
@@ -58,13 +55,7 @@ interface SingleMediaProps {
 // Single Media Dispatcher
 // =============================================================================
 
-function SingleMedia({
-  media,
-  theme,
-  size,
-  showLinkPreviews,
-  className,
-}: SingleMediaProps) {
+function SingleMedia({ media, theme, size, className }: SingleMediaProps) {
   if (isVideoMedia(media)) {
     return (
       <Video
@@ -76,23 +67,22 @@ function SingleMedia({
     );
   }
 
-  if (isEmbedMedia(media)) {
+  if (isSocialEmbedMedia(media)) {
     return (
-      <Embed
+      <SocialEmbed
         url={media.url}
         platform={media.platform}
         theme={theme}
         size={size}
-        preview={media.preview}
         className={className}
       />
     );
   }
 
   if (isLinkMedia(media)) {
-    if (showLinkPreviews && media.showPreview !== false) {
+    if (media.present === "card") {
       return (
-        <LinkPreview
+        <LinkCard
           url={media.url}
           size={size}
           title={media.preview?.title}
@@ -102,14 +92,21 @@ function SingleMedia({
         />
       );
     }
-    return <Link url={media.url} label={media.label} icon={media.icon} className={className} />;
+    return (
+      <Link
+        url={media.url}
+        label={media.label}
+        icon={media.icon}
+        className={className}
+      />
+    );
   }
 
   if (isImageMedia(media)) {
     return <Figure url={media.url} alt={media.alt} size={size} />;
   }
 
-  // Unknown type - shouldn't happen with strict typing
+  // Exhaustive — should be unreachable under the discriminated union.
   return null;
 }
 
@@ -122,10 +119,9 @@ export function MediaRenderer({
   theme: themeProp,
   size = "default",
   layout = "stack",
-  showLinkPreviews = true,
   className,
 }: MediaRendererProps) {
-  // Use site theme from context, allow prop override
+  // Use site theme from context, allow prop override.
   const { theme: siteTheme } = useTheme();
   const theme = themeProp ?? siteTheme;
   if (!media || media.length === 0) {
@@ -138,83 +134,76 @@ export function MediaRenderer({
     grid: "grid grid-cols-1 md:grid-cols-2 gap-4",
   };
 
-  // Separate links from rich media for better layout.
-  // Embeds are split out from players (video/image): when a commit carries
-  // more than one embed, they tile side-by-side in a row (collapsing to a
-  // single column when the container is narrow) instead of stacking
-  // vertically. Players keep the vertical stack.
-  const embeds = media.filter(isEmbedMedia) as EmbedMedia[];
-  const players = media.filter(
-    (m) => isVideoMedia(m) || isImageMedia(m)
-  );
-  const links = media.filter(isLinkMedia) as LinkMedia[];
-  const hasRichMedia = embeds.length > 0 || players.length > 0;
+  // Partition by visual family. Cards (kind:link + present:card) and social
+  // widgets tile side-by-side when multiple; players (video / image) stack
+  // vertically; pills collapse into a chip row at the end. Pre-resolved by
+  // commit-data into the right buckets via the pinned flag.
+  const cards = media.filter((m) => isLinkCard(m) || isSocialEmbedMedia(m));
+  const players = media.filter((m) => isVideoMedia(m) || isImageMedia(m));
+  const pills = media.filter(isLinkPill);
+  const hasRichMedia = cards.length > 0 || players.length > 0;
 
-  // If only links, render them inline
-  if (!hasRichMedia && links.length > 0) {
+  // Pill-only renderings: inline chip row, no surrounding layout box.
+  if (!hasRichMedia && pills.length > 0) {
     return (
       <div className={cn("flex flex-wrap gap-3", className)}>
-        {links.map((link, i) => (
+        {pills.map((m, i) => (
           <SingleMedia
-            key={`link-${i}`}
-            media={link}
+            key={`pill-${i}`}
+            media={m}
             theme={theme}
             size={size}
-            showLinkPreviews={showLinkPreviews}
           />
         ))}
       </div>
     );
   }
 
-  const multipleEmbeds = embeds.length > 1;
+  const multipleCards = cards.length > 1;
 
   return (
     <div className={cn(layoutClasses[layout], className)}>
-      {/* Players (video / image) — vertical stack */}
+      {/* Players (video / image) — vertical stack. */}
       {players.map((m, i) => (
         <SingleMedia
           key={`player-${i}`}
           media={m}
           theme={theme}
           size={size}
-          showLinkPreviews={showLinkPreviews}
         />
       ))}
 
-      {/* Embeds — tiled two-up on every screen (incl. mobile) when >1 */}
-      {embeds.length > 0 && (
+      {/* Cards (link-cards + social widgets) — tile two-up when >1. */}
+      {cards.length > 0 && (
         <div>
           <div
             className={cn(
-              // grid default `items-stretch` keeps tiled cards equal height
-              multipleEmbeds && "grid grid-cols-2 gap-2.5"
+              // grid default `items-stretch` keeps tiled cards equal height.
+              multipleCards && "grid grid-cols-2 gap-2.5",
             )}
           >
-            {embeds.map((m, i) => (
+            {cards.map((m, i) => (
               <SingleMedia
-                key={`embed-${i}`}
+                key={`card-${i}`}
                 media={m}
                 theme={theme}
-                size={multipleEmbeds ? "compact" : size}
-                showLinkPreviews={showLinkPreviews}
-                className={multipleEmbeds ? "w-full max-w-none" : undefined}
+                size={multipleCards ? "compact" : size}
+                className={multipleCards ? "w-full max-w-none" : undefined}
               />
             ))}
           </div>
         </div>
       )}
 
-      {/* Links at the end */}
-      {links.length > 0 && (
+      {/* Pills at the end. */}
+      {pills.length > 0 && (
         <div className="flex flex-wrap gap-3">
-          {links.map((link, i) => (
+          {pills.map((m, i) => (
             <SingleMedia
-              key={`link-${i}`}
-              media={link}
+              key={`pill-${i}`}
+              media={m}
               theme={theme}
               size={size}
-              showLinkPreviews={showLinkPreviews}
             />
           ))}
         </div>

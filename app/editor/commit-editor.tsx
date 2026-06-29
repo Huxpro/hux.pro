@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import type { Commit, CommitType, Tag, Media, MediaType } from "@/lib/log";
+import type {
+  Commit,
+  CommitType,
+  Tag,
+  Media,
+  MediaKind,
+  LinkPresent,
+  VideoPlatform,
+  SocialEmbedPlatform,
+} from "@/lib/log";
 import { ArrowLeft, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -60,33 +69,71 @@ function Field({
   );
 }
 
-function SelectField({
+/**
+ * One-of-N picker for editor rows. Visually auto-adapts:
+ *   - options.length ≤ 4  → inline segmented control (one-click reach)
+ *   - options.length > 4   → native <select> (avoids the segmented row
+ *                            blowing past the panel width)
+ *
+ * The threshold lives here rather than at each call site so the editor's
+ * choice surface is consistent. Pass `variant="dropdown"` or `"segmented"`
+ * to override when a specific call site needs a fixed treatment.
+ *
+ * Generic T extends string lets each call site preserve its own union type
+ * (CommitType, MediaKind, LinkPresent, …) without unsafe casts.
+ */
+function ChoiceField<T extends string>({
   label,
   value,
   options,
   onChange,
+  variant = "auto",
 }: {
   label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (v: string) => void;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+  variant?: "auto" | "dropdown" | "segmented";
 }) {
+  const resolved =
+    variant === "auto" ? (options.length <= 4 ? "segmented" : "dropdown") : variant;
+
   return (
     <label className="flex items-center gap-2">
       <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 w-20 shrink-0 text-right">
         {label}
       </span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="flex-1 bg-transparent border border-border/50 rounded px-2 py-1 text-sm focus:outline-none focus:border-foreground/30 transition-colors"
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+      {resolved === "segmented" ? (
+        <div className="flex border border-border/50 rounded overflow-hidden">
+          {options.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => onChange(o.value)}
+              className={cn(
+                "px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-colors",
+                value === o.value
+                  ? "bg-muted/30 text-foreground"
+                  : "text-muted-foreground/60 hover:text-muted-foreground",
+              )}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value as T)}
+          className="flex-1 bg-transparent border border-border/50 rounded px-2 py-1 text-sm focus:outline-none focus:border-foreground/30 transition-colors"
+        >
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      )}
     </label>
   );
 }
@@ -382,13 +429,13 @@ function FormFields({
     <div className="space-y-2">
       {/* Core fields */}
       <Field label="ID" value={commit.id} onChange={(v) => onUpdate({ id: v })} />
-      <SelectField
+      <ChoiceField<CommitType>
         label="Type"
         value={commit.type}
         options={commitTypes.map((t) => ({ value: t, label: t }))}
-        onChange={(v) => onTypeChange(v as CommitType)}
+        onChange={onTypeChange}
       />
-      <SelectField
+      <ChoiceField
         label="Tag"
         value={commit.tagId}
         options={tags.map((t) => ({ value: t.id, label: t.title.en }))}
@@ -416,30 +463,24 @@ function FormFields({
         checked={commit.hideDate === true}
         onChange={(v) => onUpdate({ hideDate: v ? true : undefined })}
       />
-      <SelectField
+      <ChoiceField<"" | "date" | "endDate">
         label="Sort By"
         value={commit.sortBy ?? ""}
         options={[
-          { value: "", label: "default (endDate for roles, date otherwise)" },
-          { value: "date", label: "date (start)" },
+          { value: "", label: "default" },
+          { value: "date", label: "date" },
           { value: "endDate", label: "endDate" },
         ]}
-        onChange={(v) =>
-          onUpdate({
-            sortBy: v === "" ? undefined : (v as "date" | "endDate"),
-          })
-        }
+        onChange={(v) => onUpdate({ sortBy: v === "" ? undefined : v })}
       />
-      <SelectField
+      <ChoiceField<"" | "graduation-cap">
         label="Icon"
         value={commit.icon ?? ""}
         options={[
-          { value: "", label: "default (by type)" },
-          { value: "graduation-cap", label: "graduation-cap" },
+          { value: "", label: "default" },
+          { value: "graduation-cap", label: "grad-cap" },
         ]}
-        onChange={(v) =>
-          onUpdate({ icon: v === "" ? undefined : (v as "graduation-cap") })
-        }
+        onChange={(v) => onUpdate({ icon: v === "" ? undefined : v })}
       />
 
       <SectionLabel>Title</SectionLabel>
@@ -507,8 +548,10 @@ function FormFields({
       {/* Type-specific fields */}
       <TypeSpecificFields commit={commit} onUpdate={onUpdate} />
 
-      {/* Media */}
+      {/* Media — keyed by commit id so the section remounts and re-hydrates
+          its fat drafts when the user switches commits. */}
       <MediaSection
+        key={commit.id}
         media={commit.media ?? []}
         onChange={(media) => onUpdate({ media: media.length > 0 ? media : undefined })}
       />
@@ -663,19 +706,116 @@ function TypeSpecificFields({
 // Media section
 // ─────────────────────────────────────────────────────────────────────────────
 
-const mediaTypes: MediaType[] = ["video", "embed", "link", "image"];
+const mediaKinds: { value: MediaKind; label: string }[] = [
+  { value: "link", label: "link" },
+  { value: "social-embed", label: "social-embed" },
+  { value: "video", label: "video" },
+  { value: "image", label: "image" },
+];
 
-function defaultMedia(type: MediaType): Media {
-  switch (type) {
-    case "video":
-      return { type: "video", url: "", platform: "youtube" };
-    case "embed":
-      return { type: "embed", url: "" };
+/**
+ * Fat working state for the media-item editor.
+ *
+ * Two reasons we don't edit `Media` directly:
+ *  1. Switching kinds shouldn't drop sibling-kind fields. A user who pasted a
+ *     URL, picked a Bilibili platform, and then flipped to "link" should not
+ *     lose `url` and `platform` — flipping back must restore them.
+ *  2. Each kind's optional fields live side-by-side here without the
+ *     discriminated union narrowing them away. We serialize down to the active
+ *     `Media` shape only on output (`draftToMedia`), so saved JSON stays clean.
+ */
+interface MediaDraft {
+  kind: MediaKind;
+  url: string;
+  // link
+  present?: LinkPresent;
+  preview?: { title?: string; description?: string; image?: string };
+  label?: string;
+  icon?: string;
+  // social-embed
+  socialPlatform?: SocialEmbedPlatform;
+  // video
+  videoPlatform?: VideoPlatform;
+  thumbnail?: string;
+  // image
+  alt?: string;
+  // shared
+  pinned?: boolean;
+}
+
+function mediaToDraft(m: Media): MediaDraft {
+  const base = { url: m.url, pinned: m.pinned };
+  switch (m.kind) {
     case "link":
-      return { type: "link", url: "" };
+      return {
+        kind: "link",
+        ...base,
+        present: m.present,
+        preview: m.preview,
+        label: m.label,
+        icon: m.icon,
+      };
+    case "social-embed":
+      return {
+        kind: "social-embed",
+        ...base,
+        socialPlatform: m.platform,
+      };
+    case "video":
+      return {
+        kind: "video",
+        ...base,
+        videoPlatform: m.platform,
+        thumbnail: m.thumbnail,
+      };
     case "image":
-      return { type: "image", url: "" };
+      return { kind: "image", ...base, alt: m.alt };
   }
+}
+
+/** Narrow a fat draft down to the discriminated Media shape on save. */
+function draftToMedia(d: MediaDraft): Media {
+  // Pin only appears in saved JSON when explicitly true — matching `Pinned`'s
+  // `pinned?: true` shape and keeping log.json minimal.
+  const pinned = d.pinned ? { pinned: true as const } : {};
+  switch (d.kind) {
+    case "link":
+      return {
+        kind: "link",
+        url: d.url,
+        present: d.present ?? "pill",
+        ...(d.preview ? { preview: d.preview } : {}),
+        ...(d.label ? { label: d.label } : {}),
+        ...(d.icon ? { icon: d.icon } : {}),
+        ...pinned,
+      };
+    case "social-embed":
+      return {
+        kind: "social-embed",
+        url: d.url,
+        ...(d.socialPlatform ? { platform: d.socialPlatform } : {}),
+        ...pinned,
+      };
+    case "video":
+      return {
+        kind: "video",
+        url: d.url,
+        platform: d.videoPlatform ?? "youtube",
+        ...(d.thumbnail ? { thumbnail: d.thumbnail } : {}),
+        ...pinned,
+      };
+    case "image":
+      return {
+        kind: "image",
+        url: d.url,
+        ...(d.alt ? { alt: d.alt } : {}),
+        ...pinned,
+      };
+  }
+}
+
+function emptyDraft(): MediaDraft {
+  return { kind: "link", url: "", present: "pill" };
 }
 
 function MediaSection({
@@ -685,18 +825,31 @@ function MediaSection({
   media: Media[];
   onChange: (media: Media[]) => void;
 }) {
-  const updateItem = (index: number, updated: Media) => {
-    const next = [...media];
+  // Working draft state — one per row, hydrated once at mount.
+  //
+  // Drafts hold sibling-kind fields beyond what the narrowed Media union
+  // exposes (e.g. a `videoPlatform` survives the user flipping to `link` and
+  // back). The parent keys this section by commit id, so switching commits
+  // remounts and re-hydrates from that commit's media.
+  const [drafts, setDrafts] = useState<MediaDraft[]>(() => media.map(mediaToDraft));
+
+  const propagate = (nextDrafts: MediaDraft[]) => {
+    setDrafts(nextDrafts);
+    onChange(nextDrafts.map(draftToMedia));
+  };
+
+  const updateItem = (index: number, updated: MediaDraft) => {
+    const next = [...drafts];
     next[index] = updated;
-    onChange(next);
+    propagate(next);
   };
 
   const deleteItem = (index: number) => {
-    onChange(media.filter((_, i) => i !== index));
+    propagate(drafts.filter((_, i) => i !== index));
   };
 
   const addItem = () => {
-    onChange([...media, { type: "link", url: "" }]);
+    propagate([...drafts, emptyDraft()]);
   };
 
   return (
@@ -711,15 +864,15 @@ function MediaSection({
           <Plus className="w-3.5 h-3.5" />
         </button>
       </div>
-      {media.length === 0 && (
+      {drafts.length === 0 && (
         <div className="text-xs text-muted-foreground/40 font-mono pl-[88px]">
           No media attached
         </div>
       )}
-      {media.map((item, i) => (
+      {drafts.map((draft, i) => (
         <MediaItemEditor
           key={i}
-          item={item}
+          draft={draft}
           onChange={(updated) => updateItem(i, updated)}
           onDelete={() => deleteItem(i)}
         />
@@ -728,25 +881,29 @@ function MediaSection({
   );
 }
 
+const presentOptions: { value: LinkPresent; label: string }[] = [
+  { value: "pill", label: "pill" },
+  { value: "card", label: "card" },
+];
+
+
 function MediaItemEditor({
-  item,
+  draft,
   onChange,
   onDelete,
 }: {
-  item: Media;
-  onChange: (item: Media) => void;
+  draft: MediaDraft;
+  onChange: (draft: MediaDraft) => void;
   onDelete: () => void;
 }) {
-  const handleTypeChange = (newType: MediaType) => {
-    if (newType === item.type) return;
-    onChange({ ...defaultMedia(newType), url: item.url });
-  };
+  const set = (patch: Partial<MediaDraft>) => onChange({ ...draft, ...patch });
 
   return (
     <div className="border border-border/30 rounded p-2 space-y-1.5 relative">
       <div className="flex items-center justify-between">
         <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50">
-          {item.type}
+          {draft.kind}
+          {draft.kind === "link" && draft.present ? ` · ${draft.present}` : ""}
         </span>
         <button
           onClick={onDelete}
@@ -757,92 +914,123 @@ function MediaItemEditor({
         </button>
       </div>
 
-      <SelectField
-        label="Type"
-        value={item.type}
-        options={mediaTypes.map((t) => ({ value: t, label: t }))}
-        onChange={(v) => handleTypeChange(v as MediaType)}
+      <ChoiceField<MediaKind>
+        label="Kind"
+        value={draft.kind}
+        options={mediaKinds}
+        onChange={(v) => set({ kind: v })}
       />
       <Field
         label="URL"
-        value={item.url}
-        onChange={(v) => onChange({ ...item, url: v } as Media)}
+        value={draft.url}
+        onChange={(v) => set({ url: v })}
         placeholder="https://..."
       />
 
-      {/* Type-specific fields */}
-      {item.type === "video" && (
+      {/* Kind-specific fields. Sibling-kind values live in the draft and are
+          preserved across kind switches — only the active inputs are shown. */}
+      {draft.kind === "link" && (
         <>
-          <SelectField
+          <ChoiceField<LinkPresent>
+            label="Present"
+            value={draft.present ?? "pill"}
+            options={presentOptions}
+            onChange={(v) => set({ present: v })}
+          />
+          <Field
+            label="Label"
+            value={draft.label ?? ""}
+            onChange={(v) => set({ label: v || undefined })}
+            placeholder="Display text (pill)"
+          />
+          <Field
+            label="Icon"
+            value={draft.icon ?? ""}
+            onChange={(v) => set({ icon: v || undefined })}
+            placeholder="github, globe, slides... (pill)"
+          />
+          {draft.present === "card" && (
+            <>
+              <Field
+                label="Preview title"
+                value={draft.preview?.title ?? ""}
+                onChange={(v) =>
+                  set({
+                    preview: {
+                      ...draft.preview,
+                      title: v || undefined,
+                    },
+                  })
+                }
+                placeholder="Card title override"
+              />
+              <Field
+                label="Preview image"
+                value={draft.preview?.image ?? ""}
+                onChange={(v) =>
+                  set({
+                    preview: {
+                      ...draft.preview,
+                      image: v || undefined,
+                    },
+                  })
+                }
+                placeholder="Card image URL override"
+              />
+            </>
+          )}
+        </>
+      )}
+
+      {draft.kind === "social-embed" && (
+        <ChoiceField<"" | SocialEmbedPlatform>
+          label="Platform"
+          value={draft.socialPlatform ?? ""}
+          options={[
+            { value: "", label: "auto" },
+            { value: "twitter", label: "X" },
+            { value: "instagram", label: "IG" },
+            { value: "tiktok", label: "TikTok" },
+          ]}
+          onChange={(v) => set({ socialPlatform: v || undefined })}
+        />
+      )}
+
+      {draft.kind === "video" && (
+        <>
+          <ChoiceField<VideoPlatform>
             label="Platform"
-            value={item.platform}
+            value={draft.videoPlatform ?? "youtube"}
             options={[
               { value: "youtube", label: "YouTube" },
               { value: "bilibili", label: "Bilibili" },
               { value: "vimeo", label: "Vimeo" },
             ]}
-            onChange={(v) => onChange({ ...item, platform: v as "youtube" | "bilibili" | "vimeo" })}
+            onChange={(v) => set({ videoPlatform: v })}
           />
           <Field
             label="Thumbnail"
-            value={item.thumbnail ?? ""}
-            onChange={(v) => onChange({ ...item, thumbnail: v || undefined })}
+            value={draft.thumbnail ?? ""}
+            onChange={(v) => set({ thumbnail: v || undefined })}
             placeholder="Thumbnail URL (optional)"
           />
         </>
       )}
 
-      {item.type === "embed" && (
-        <>
-          <SelectField
-            label="Platform"
-            value={item.platform ?? ""}
-            options={[
-              { value: "", label: "(auto-detect)" },
-              { value: "twitter", label: "Twitter / X" },
-              { value: "instagram", label: "Instagram" },
-              { value: "tiktok", label: "TikTok" },
-            ]}
-            onChange={(v) => onChange({ ...item, platform: (v || undefined) as "twitter" | "x" | "instagram" | "tiktok" | undefined })}
-          />
-          <CheckField
-            label="Show folded"
-            checked={item.defaultShown ?? false}
-            onChange={(v) => onChange({ ...item, defaultShown: v || undefined })}
-          />
-        </>
-      )}
-
-      {item.type === "link" && (
-        <>
-          <Field
-            label="Label"
-            value={item.label ?? ""}
-            onChange={(v) => onChange({ ...item, label: v || undefined })}
-            placeholder="Display text"
-          />
-          <Field
-            label="Icon"
-            value={item.icon ?? ""}
-            onChange={(v) => onChange({ ...item, icon: v || undefined })}
-            placeholder="github, globe, slides..."
-          />
-          <CheckField
-            label="Preview"
-            checked={item.showPreview ?? false}
-            onChange={(v) => onChange({ ...item, showPreview: v || undefined })}
-          />
-        </>
-      )}
-
-      {item.type === "image" && (
+      {draft.kind === "image" && (
         <Field
           label="Alt"
-          value={item.alt ?? ""}
-          onChange={(v) => onChange({ ...item, alt: v || undefined })}
+          value={draft.alt ?? ""}
+          onChange={(v) => set({ alt: v || undefined })}
           placeholder="Alt text"
         />
       )}
+
+      <CheckField
+        label="Pinned"
+        checked={draft.pinned === true}
+        onChange={(v) => set({ pinned: v || undefined })}
+      />
     </div>
   );
 }

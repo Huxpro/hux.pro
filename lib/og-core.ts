@@ -62,6 +62,11 @@ export function getHostname(url: string): string | undefined {
   }
 }
 
+/** Hostname for display, falling back to the raw URL string when unparseable. */
+export function getDomainLabel(url: string): string {
+  return getHostname(url) ?? url;
+}
+
 /**
  * Fetch and parse Open Graph metadata from a URL.
  *
@@ -194,23 +199,23 @@ export function decodeHTMLEntities(str: string): string {
 }
 
 // =============================================================================
-// Media → preview classification (shared by runtime + snapshot script)
+// Media → card classification (shared by runtime + snapshot script)
 //
-// These live here (rather than next to the media types in lib/log.ts) so they
+// These live here (rather than next to the media kinds in lib/log.ts) so they
 // stay free of framework imports and can run inside the Node snapshot script.
 // =============================================================================
 
-/** Embed platforms that render as native widgets (no OG preview needed). */
-export type NativeEmbedPlatform = "twitter" | "x" | "instagram" | "tiktok";
+/** Social platforms that render as native widgets (no OG card needed). */
+export type SocialEmbedPlatform = "twitter" | "x" | "instagram" | "tiktok";
 
 /**
- * Detect a native embed platform from a URL or an explicit platform hint.
- * Returns null for everything else — those embeds fall back to a link-preview
- * card and therefore DO want OG metadata.
+ * Detect a social-embed platform from a URL or an explicit platform hint.
+ * Used by the editor / renderer to auto-classify a pasted URL when the author
+ * hasn't picked a platform.
  */
-export function detectNativeEmbedPlatform(
+export function detectSocialEmbedPlatform(
   urlOrPlatform: string,
-): NativeEmbedPlatform | null {
+): SocialEmbedPlatform | null {
   const v = urlOrPlatform.toLowerCase();
   // Explicit platform hint
   if (v === "x") return "x";
@@ -232,35 +237,168 @@ export function detectNativeEmbedPlatform(
 
 /** Minimal structural shape of a media item (works for typed Media or raw JSON). */
 export interface PreviewableMedia {
-  type: string;
+  kind: string;
   url: string;
-  platform?: string | null;
+  present?: string;
+  platform?: string;
   preview?: { title?: string; description?: string; image?: string };
+  thumbnail?: string;
 }
 
 /**
- * True when a media item renders as an OG-crawled preview card on the /works
- * timeline — i.e. a non-native embed (web.dev, Medium, …). It deliberately
- * EXCLUDES `link` media: in the dense git-log timeline links are compact
- * corner indicators (icon + label), not cards, so they neither need nor
- * trigger an OG crawl. This keeps the snapshot scoped to what actually
- * previews, so a non-crawlable plain link can't create a phantom "missing".
+ * True when a media item renders as an OG-style card on the /works timeline —
+ * i.e. a `link` media with `present: "card"`. Cards are exactly what the
+ * card pipeline (snapshot + manual override + live fallback) serves; pills
+ * and social widgets and video players are out of scope.
  */
-export function mediaIsOGPreviewTarget(m: PreviewableMedia): boolean {
-  if (m.type !== "embed") return false;
-  const platform = m.platform ?? detectNativeEmbedPlatform(m.url);
-  return platform == null; // non-native embed → link-preview fallback card
+export function mediaIsCardTarget(m: PreviewableMedia): boolean {
+  return m.kind === "link" && m.present === "card";
 }
 
 /**
- * True when a preview target needs a *live crawl* to build its card.
+ * True when a card target needs a *live crawl* to build its preview.
  * A complete manual `preview` (title + image) is authoritative and skips the
  * crawl entirely — the recovery path for sites that block crawling.
  */
 export function mediaNeedsLiveCrawl(m: PreviewableMedia): boolean {
-  if (!mediaIsOGPreviewTarget(m)) return false;
+  if (!mediaIsCardTarget(m)) return false;
   const manualComplete = !!(m.preview?.title && m.preview?.image);
   return !manualComplete;
+}
+
+// =============================================================================
+// Video covers (Bilibili / Vimeo) — derived at build time, snapshot-cached
+//
+// YouTube covers are derivable from the video ID at runtime
+// (`img.youtube.com/vi/{id}/maxresdefault.jpg`) so they don't need a snapshot.
+// Bilibili and Vimeo need an API call: Bilibili's `view` endpoint and Vimeo's
+// oEmbed. We do that once at build time so /works has zero runtime dependency
+// on third-party APIs for its covers — same shape as the card pipeline.
+// =============================================================================
+
+/**
+ * Extract a Bilibili BV ID from a Bilibili video URL. Returns null when the
+ * URL doesn't look like a Bilibili video page.
+ */
+export function extractBilibiliBvid(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (!u.hostname.toLowerCase().endsWith("bilibili.com")) return null;
+    const parts = u.pathname.split("/").filter(Boolean);
+    const videoIdx = parts.indexOf("video");
+    if (videoIdx < 0) return null;
+    const raw = parts[videoIdx + 1]?.trim();
+    if (raw && /^BV[0-9A-Za-z]+$/.test(raw)) return raw;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** Extract a numeric Vimeo video ID from a vimeo.com URL. */
+export function extractVimeoVideoId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (!u.hostname.toLowerCase().endsWith("vimeo.com")) return null;
+    const m = u.pathname.match(/\/(\d+)(?:[/?#]|$)/);
+    return m ? m[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Result of a video-cover fetch. Same `ok/error` shape as `fetchOG`. */
+export interface VideoCoverResult {
+  ok: boolean;
+  image?: string;
+  error?: string;
+}
+
+/**
+ * Fetch the cover image URL for a Bilibili video, by BV ID.
+ *
+ * Public web API; no auth. We send a browser-ish User-Agent because Bilibili's
+ * edge sometimes drops requests with the default Node fetch UA.
+ */
+export async function fetchBilibiliCover(
+  bvid: string,
+): Promise<VideoCoverResult> {
+  try {
+    const r = await fetch(
+      `https://api.bilibili.com/x/web-interface/view?bvid=${encodeURIComponent(bvid)}`,
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+          Referer: "https://www.bilibili.com/",
+        },
+      },
+    );
+    if (!r.ok) return { ok: false, error: `HTTP ${r.status}` };
+    const json = (await r.json()) as { code?: number; data?: { pic?: string } };
+    if (json.code !== 0) return { ok: false, error: `bilibili code ${json.code}` };
+    const pic = json.data?.pic;
+    if (!pic) return { ok: false, error: "no pic in payload" };
+    // Normalize to https so the browser doesn't block mixed content.
+    return { ok: true, image: pic.replace(/^http:\/\//, "https://") };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Fetch the cover image URL for a Vimeo video via the public oEmbed endpoint. */
+export async function fetchVimeoCover(url: string): Promise<VideoCoverResult> {
+  try {
+    const r = await fetch(
+      `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(url)}`,
+    );
+    if (!r.ok) return { ok: false, error: `HTTP ${r.status}` };
+    const json = (await r.json()) as { thumbnail_url?: string };
+    if (!json.thumbnail_url) return { ok: false, error: "no thumbnail_url" };
+    return {
+      ok: true,
+      image: json.thumbnail_url.replace(/^http:\/\//, "https://"),
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * True when a media item is a *video cover target* — i.e. needs an API call
+ * at build time to resolve its cover. YouTube is intentionally excluded: its
+ * cover is derivable from the video ID at runtime, so snapshotting it would
+ * be redundant churn.
+ */
+export function mediaIsVideoCoverTarget(m: PreviewableMedia): boolean {
+  if (m.kind !== "video") return false;
+  return m.platform === "bilibili" || m.platform === "vimeo";
+}
+
+/**
+ * True when a video cover target needs the API to be hit at build time.
+ * A manually-set `thumbnail` is authoritative and skips the API call.
+ */
+export function mediaNeedsCoverCrawl(m: PreviewableMedia): boolean {
+  if (!mediaIsVideoCoverTarget(m)) return false;
+  return !m.thumbnail;
+}
+
+/** Dispatch to the right per-platform fetcher for a video URL. */
+export async function fetchVideoCover(
+  m: PreviewableMedia,
+): Promise<VideoCoverResult> {
+  if (m.platform === "bilibili") {
+    const bvid = extractBilibiliBvid(m.url);
+    if (!bvid) return { ok: false, error: "could not parse BV ID" };
+    return fetchBilibiliCover(bvid);
+  }
+  if (m.platform === "vimeo") {
+    if (!extractVimeoVideoId(m.url))
+      return { ok: false, error: "could not parse Vimeo ID" };
+    return fetchVimeoCover(m.url);
+  }
+  return { ok: false, error: `unsupported platform ${m.platform}` };
 }
 
 // =============================================================================

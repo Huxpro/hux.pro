@@ -4,34 +4,34 @@ This document demonstrates all widget-like components and their variants, organi
 
 ## Terminology
 
-- **Media**: Atomic external content units (video, embed, link, image)
+- **Media**: External content attached to a commit. Four kinds: link, social-embed, video, image
 - **Commit**: A work item (project, talk, post, role, social) that can have Media attached
-- **Embed**: Specifically the native social platform widgets (Twitter, Instagram, TikTok)
+- **SocialEmbed**: Native social platform widgets (X / Instagram / TikTok), distinct from a card
 
 ---
 
 ## 1. Media
 
-Media components are the atomic building blocks for embedding external content. The `Media` component auto-detects platform and renders the appropriate embed.
+Media components are the atomic building blocks for embedding external content. The `Media` component auto-detects the URL and renders the appropriate kind.
 
 ### Component Hierarchy
 
 ```
                     Media (unified entry)
                            │
-             ┌─────────────┼─────────────┐
-             │             │             │
-           Video         Embed      LinkPreview
-             │             │
-      ┌──────┼──────┐  ┌───┴───┐
-      │      │      │  │   │   │
-  YouTube  Bili  Vimeo  X  IG TikTok
+       ┌──────────┬────────┴────────┬──────────┐
+       │          │                 │          │
+     Video    SocialEmbed   Link / LinkCard  Figure
+       │          │
+  ┌────┼────┐  ┌──┴───┐
+  │    │    │  │  │   │
+ YT  Bili Vimeo X IG TikTok
 ```
 
-- **Media**: Unified entry point, auto-detects URL and routes to the appropriate component
-- **Video**: Video platforms with click-to-play thumbnails
-- **Embed**: Native social platform widgets using official SDKs
-- **LinkPreview**: OG card preview for other URLs
+- **Media**: Unified entry point, auto-detects URL and routes to the right component
+- **Video**: Video platforms with click-to-play covers
+- **SocialEmbed**: Native social platform widgets using official SDKs
+- **Link / LinkCard**: Pill (corner indicator) vs card (OG-style block) for the same URL
 
 ### Media (Auto-Detection)
 
@@ -56,11 +56,11 @@ Media components are the atomic building blocks for embedding external content. 
 <Media url="https://lynxjs.org" />
 </Playground>
 
-### Media (Forced Type)
+### Media (Forced Kind)
 
-Use the `as` prop to force a specific rendering mode, bypassing auto-detection. This is useful when you want to render a URL differently than its detected type.
+Use the `as` prop to force a specific rendering kind, bypassing auto-detection. Useful when you want to render a URL differently than its detected kind.
 
-#### Force Link Preview for YouTube
+#### Force Link Pill for YouTube
 
 <Playground>
 ```tsx
@@ -69,13 +69,13 @@ Use the `as` prop to force a specific rendering mode, bypassing auto-detection. 
 <Media url="https://www.youtube.com/watch?v=lGEMwh32soc" as="link" title="My YouTube Video" />
 </Playground>
 
-#### Force Embed with Theme
+#### Force SocialEmbed with Theme
 
 <Playground>
 ```tsx
-<Media url="https://x.com/Huxpro/status/1502483206569807874" as="embed" theme="light" />
+<Media url="https://x.com/Huxpro/status/1502483206569807874" as="social-embed" theme="light" />
 ```
-<Media url="https://x.com/Huxpro/status/1502483206569807874" as="embed" theme="light" />
+<Media url="https://x.com/Huxpro/status/1502483206569807874" as="social-embed" theme="light" />
 </Playground>
 
 #### Force Video with Custom Thumbnail
@@ -109,44 +109,44 @@ Direct video embeds with click-to-play thumbnail.
 
 ---
 
-### Embed (Social Platforms)
+### SocialEmbed (Social Platforms)
 
-Native social platform embeds using official SDKs/iframes.
+Native social platform widgets using official SDKs/iframes.
 
 #### Twitter/X
 
 <Playground>
 ```tsx
-<Embed url="https://x.com/Huxpro/status/1502483206569807874" />
+<SocialEmbed url="https://x.com/Huxpro/status/1502483206569807874" />
 ```
-<Embed url="https://x.com/Huxpro/status/1502483206569807874" />
+<SocialEmbed url="https://x.com/Huxpro/status/1502483206569807874" />
 </Playground>
 
 #### Instagram
 
 <Playground>
 ```tsx
-<Embed url="https://www.instagram.com/p/DMLLL61NyLt/" />
+<SocialEmbed url="https://www.instagram.com/p/DMLLL61NyLt/" />
 ```
-<Embed url="https://www.instagram.com/p/DMLLL61NyLt/" />
+<SocialEmbed url="https://www.instagram.com/p/DMLLL61NyLt/" />
 </Playground>
 
 #### TikTok
 
 <Playground>
 ```tsx
-<Embed url="https://www.tiktok.com/@huxpresso/photo/7509367085185666335" />
+<SocialEmbed url="https://www.tiktok.com/@huxpresso/photo/7509367085185666335" />
 ```
-<Embed url="https://www.tiktok.com/@huxpresso/photo/7509367085185666335" />
+<SocialEmbed url="https://www.tiktok.com/@huxpresso/photo/7509367085185666335" />
 </Playground>
 
 ---
 
-### Link / LinkPreview
+### Link / LinkCard
 
-External links can render as buttons or rich OG preview cards.
+The same URL has two presentations: a pill (corner indicator) and a card (OG-style block).
 
-#### Link Button
+#### Link (pill)
 
 <Playground>
 ```tsx
@@ -155,13 +155,13 @@ External links can render as buttons or rich OG preview cards.
 <Link url="https://lynxjs.org" label="Website" icon="globe" />
 </Playground>
 
-#### LinkPreview (OG Card)
+#### LinkCard (OG-style card)
 
 <Playground>
 ```tsx
-<LinkPreview url="https://lynxjs.org" />
+<LinkCard url="https://lynxjs.org" />
 ```
-<LinkPreview url="https://lynxjs.org" />
+<LinkCard url="https://lynxjs.org" />
 </Playground>
 
 ---
@@ -199,7 +199,7 @@ The `Commit` component renders work items. It supports 5 types with a discrimina
     },
     date: "2022-11",
     media: [
-      { type: "link", url: "https://example.com/cli", label: "Docs", icon: "file" }
+      { kind: "link", url: "https://example.com/cli", present: "pill", label: "Docs", icon: "file" }
     ]
   }}
   locale="en"
@@ -217,7 +217,7 @@ The `Commit` component renders work items. It supports 5 types with a discrimina
     },
     date: "2022-11",
     media: [
-      { type: "link", url: "https://example.com/cli", label: "Docs", icon: "file" }
+      { kind: "link", url: "https://example.com/cli", present: "pill", label: "Docs", icon: "file" }
     ]
   }}
   locale="en"
@@ -358,7 +358,7 @@ The `Commit` component renders work items. It supports 5 types with a discrimina
     date: "2023-05",
     platform: "Bluesky",
     media: [
-      { type: "embed", url: "https://bsky.app/profile/example/post/abc" }
+      { kind: "link", url: "https://bsky.app/profile/example/post/abc", present: "card" }
     ]
   }}
   locale="en"
@@ -377,7 +377,7 @@ The `Commit` component renders work items. It supports 5 types with a discrimina
     date: "2023-05",
     platform: "Bluesky",
     media: [
-      { type: "embed", url: "https://bsky.app/profile/example/post/abc" }
+      { kind: "link", url: "https://bsky.app/profile/example/post/abc", present: "card" }
     ]
   }}
   locale="en"
@@ -406,9 +406,9 @@ Any commit type can compose with any media type via the `media` array.
     },
     date: "2025-01",
     media: [
-      { type: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" },
-      { type: "link", url: "https://lynxjs.org", label: "Website" },
-      { type: "link", url: "https://github.com/nicify/nicify", label: "GitHub", icon: "github" }
+      { kind: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" },
+      { kind: "link", url: "https://lynxjs.org", present: "pill", label: "Website" },
+      { kind: "link", url: "https://github.com/nicify/nicify", present: "pill", label: "GitHub", icon: "github" }
     ]
   }}
   locale="en"
@@ -426,9 +426,9 @@ Any commit type can compose with any media type via the `media` array.
     },
     date: "2025-01",
     media: [
-      { type: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" },
-      { type: "link", url: "https://lynxjs.org", label: "Website" },
-      { type: "link", url: "https://github.com/nicify/nicify", label: "GitHub", icon: "github" }
+      { kind: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" },
+      { kind: "link", url: "https://lynxjs.org", present: "pill", label: "Website" },
+      { kind: "link", url: "https://github.com/nicify/nicify", present: "pill", label: "GitHub", icon: "github" }
     ]
   }}
   locale="en"
@@ -452,7 +452,7 @@ Any commit type can compose with any media type via the `media` array.
     date: "2024-05",
     conference: { name: "React Conf 2024", url: "https://conf.react.dev" },
     media: [
-      { type: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" }
+      { kind: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" }
     ]
   }}
   locale="en"
@@ -471,7 +471,7 @@ Any commit type can compose with any media type via the `media` array.
     date: "2024-05",
     conference: { name: "React Conf 2024", url: "https://conf.react.dev" },
     media: [
-      { type: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" }
+      { kind: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" }
     ]
   }}
   locale="en"
@@ -495,7 +495,7 @@ Any commit type can compose with any media type via the `media` array.
     date: "2022-03",
     platform: "X",
     media: [
-      { type: "embed", url: "https://x.com/Huxpro/status/1502483206569807874" }
+      { kind: "social-embed", url: "https://x.com/Huxpro/status/1502483206569807874" }
     ]
   }}
   locale="en"
@@ -514,7 +514,7 @@ Any commit type can compose with any media type via the `media` array.
     date: "2022-03",
     platform: "X",
     media: [
-      { type: "embed", url: "https://x.com/Huxpro/status/1502483206569807874" }
+      { kind: "social-embed", url: "https://x.com/Huxpro/status/1502483206569807874" }
     ]
   }}
   locale="en"
@@ -540,7 +540,7 @@ Any commit type can compose with any media type via the `media` array.
     endDate: "present",
     location: "Menlo Park, CA",
     media: [
-      { type: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/512px-Meta_Platforms_Inc._logo.svg.png", alt: "Meta logo" }
+      { kind: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/512px-Meta_Platforms_Inc._logo.svg.png", alt: "Meta logo" }
     ]
   }}
   locale="en"
@@ -561,7 +561,7 @@ Any commit type can compose with any media type via the `media` array.
     endDate: "present",
     location: "Menlo Park, CA",
     media: [
-      { type: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/512px-Meta_Platforms_Inc._logo.svg.png", alt: "Meta logo" }
+      { kind: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/512px-Meta_Platforms_Inc._logo.svg.png", alt: "Meta logo" }
     ]
   }}
   locale="en"
@@ -606,8 +606,8 @@ Commits with `commentary`, `techStack`, or `stats` show a chevron button next to
       zh: "这个项目让我学会了基于约束的设计的重要性。最好的系统不是最灵活的，而是让正确的事情变得容易的系统。"
     },
     media: [
-      { type: "link", url: "#", label: "Docs", icon: "file" },
-      { type: "link", url: "#", label: "GitHub", icon: "github" }
+      { kind: "link", url: "#", present: "pill", label: "Docs", icon: "file" },
+      { kind: "link", url: "#", present: "pill", label: "GitHub", icon: "github" }
     ]
   }}
   locale="en"
@@ -631,8 +631,8 @@ Commits with `commentary`, `techStack`, or `stats` show a chevron button next to
       zh: "这个项目让我学会了基于约束的设计的重要性。最好的系统不是最灵活的，而是让正确的事情变得容易的系统。"
     },
     media: [
-      { type: "link", url: "#", label: "Docs", icon: "file" },
-      { type: "link", url: "#", label: "GitHub", icon: "github" }
+      { kind: "link", url: "#", present: "pill", label: "Docs", icon: "file" },
+      { kind: "link", url: "#", present: "pill", label: "GitHub", icon: "github" }
     ]
   }}
   locale="en"
@@ -663,7 +663,7 @@ Use `defaultExpanded={true}` to start with content already expanded.
       zh: "动画是界面设计的灵魂。这个库旨在让动效像呼吸一样自然。"
     },
     media: [
-      { type: "link", url: "#", label: "Playground", icon: "globe" }
+      { kind: "link", url: "#", present: "pill", label: "Playground", icon: "globe" }
     ]
   }}
   locale="en"
@@ -687,7 +687,7 @@ Use `defaultExpanded={true}` to start with content already expanded.
       zh: "动画是界面设计的灵魂。这个库旨在让动效像呼吸一样自然。"
     },
     media: [
-      { type: "link", url: "#", label: "Playground", icon: "globe" }
+      { kind: "link", url: "#", present: "pill", label: "Playground", icon: "globe" }
     ]
   }}
   locale="en"
@@ -842,7 +842,7 @@ Displays commits in a vertical list. Uses `variant="bare"` for compact rendering
       title: { en: "Design Tokens", zh: "设计令牌" },
       description: { en: "Systematic design token architecture", zh: "系统化设计令牌架构" },
       date: "2024-01",
-      media: [{ type: "link", url: "#", label: "View", icon: "globe" }]
+      media: [{ kind: "link", url: "#", present: "pill", label: "View", icon: "globe" }]
     }}
     locale="en"
   />
@@ -855,7 +855,7 @@ Displays commits in a vertical list. Uses `variant="bare"` for compact rendering
       title: { en: "Component Library", zh: "组件库" },
       description: { en: "Accessible React components", zh: "无障碍 React 组件" },
       date: "2023-06",
-      media: [{ type: "link", url: "#", label: "GitHub", icon: "github" }]
+      media: [{ kind: "link", url: "#", present: "pill", label: "GitHub", icon: "github" }]
     }}
     locale="en"
   />
@@ -871,7 +871,7 @@ Displays commits in a vertical list. Uses `variant="bare"` for compact rendering
       title: { en: "Design Tokens", zh: "设计令牌" },
       description: { en: "Systematic design token architecture", zh: "系统化设计令牌架构" },
       date: "2024-01",
-      media: [{ type: "link", url: "#", label: "View", icon: "globe" }]
+      media: [{ kind: "link", url: "#", present: "pill", label: "View", icon: "globe" }]
     }}
     locale="en"
   />
@@ -884,7 +884,7 @@ Displays commits in a vertical list. Uses `variant="bare"` for compact rendering
       title: { en: "Component Library", zh: "组件库" },
       description: { en: "Accessible React components", zh: "无障碍 React 组件" },
       date: "2023-06",
-      media: [{ type: "link", url: "#", label: "GitHub", icon: "github" }]
+      media: [{ kind: "link", url: "#", present: "pill", label: "GitHub", icon: "github" }]
     }}
     locale="en"
   />
@@ -910,7 +910,7 @@ Displays commits in a horizontal carousel with snap scrolling.
       description: { en: "Scaling across platforms", zh: "跨平台扩展" },
       date: "2024-03",
       conference: { name: "ReactConf 2024" },
-      media: [{ type: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=10" }]
+      media: [{ kind: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=10" }]
     }}
     locale="en"
   />
@@ -924,7 +924,7 @@ Displays commits in a horizontal carousel with snap scrolling.
       description: { en: "Building systematic UI", zh: "构建系统化 UI" },
       date: "2023-09",
       conference: { name: "CSS Day" },
-      media: [{ type: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=11" }]
+      media: [{ kind: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=11" }]
     }}
     locale="en"
   />
@@ -941,7 +941,7 @@ Displays commits in a horizontal carousel with snap scrolling.
       description: { en: "Scaling across platforms", zh: "跨平台扩展" },
       date: "2024-03",
       conference: { name: "ReactConf 2024" },
-      media: [{ type: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=10" }]
+      media: [{ kind: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=10" }]
     }}
     locale="en"
   />
@@ -955,7 +955,7 @@ Displays commits in a horizontal carousel with snap scrolling.
       description: { en: "Building systematic UI", zh: "构建系统化 UI" },
       date: "2023-09",
       conference: { name: "CSS Day" },
-      media: [{ type: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=11" }]
+      media: [{ kind: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=11" }]
     }}
     locale="en"
   />
@@ -966,13 +966,13 @@ Displays commits in a horizontal carousel with snap scrolling.
 
 ## Quick Reference
 
-### Media Types
+### Media Kinds
 
-| Type | Properties | Description |
+| Kind | Properties | Description |
 |------|------------|-------------|
-| `video` | `url`, `platform` | YouTube, Bilibili |
-| `embed` | `url` | Twitter, Instagram, TikTok |
-| `link` | `url`, `label?`, `icon?`, `showPreview?` | External links |
+| `link` | `url`, `present` (`pill` \| `card`), `preview?`, `label?`, `icon?` | URL as pill or OG card |
+| `social-embed` | `url`, `platform?` | X / Instagram / TikTok native widgets |
+| `video` | `url`, `platform`, `thumbnail?` | YouTube / Bilibili / Vimeo player |
 | `image` | `url`, `alt?` | Static images (Figure component) |
 
 ### Commit Types

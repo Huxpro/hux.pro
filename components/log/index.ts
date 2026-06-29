@@ -4,9 +4,11 @@
  * Git Log / Commit History style visualization of career history.
  *
  * Terminology:
- * - Commit: A work item (project, talk, post, role, social)
- * - Media: Attached external content (video, embed, link, image)
- * - Embed: Specifically the native social platform widgets (Twitter, Instagram, TikTok)
+ *  - Commit:      a work item (project / talk / post / role / social / event).
+ *  - Media:       attached external content. Four kinds: link, social-embed,
+ *                 video, image.
+ *  - Link card:   `kind:"link", present:"card"` — an OG-style preview block.
+ *  - SocialEmbed: native social platform widget (X / Instagram / TikTok).
  */
 
 // =============================================================================
@@ -40,9 +42,9 @@ export {
   MediaRenderer,
   MediaThumbnail,
   Video,
-  Embed,
+  SocialEmbed,
   Link,
-  LinkPreview,
+  LinkCard,
   Figure,
   YouTubeEmbed,
   BilibiliEmbed,
@@ -51,14 +53,14 @@ export {
   InstagramEmbed,
   TikTokEmbed,
   detectVideoPlatform,
-  detectEmbedPlatform,
+  detectSocialEmbedPlatform,
   type MediaProps,
   type MediaRendererProps,
   type MediaThumbnailProps,
   type VideoProps,
-  type EmbedProps,
+  type SocialEmbedProps,
   type LinkProps,
-  type LinkPreviewProps,
+  type LinkCardProps,
   type FigureProps,
   type YouTubeEmbedProps,
   type BilibiliEmbedProps,

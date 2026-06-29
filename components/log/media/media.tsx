@@ -1,21 +1,28 @@
 "use client";
 
 /**
- * Media Component
+ * Media — unified MDX entry point for a single piece of attached content.
  *
- * Unified entry point for rendering a single external content item.
- * Auto-detects platform from URL and dispatches to the appropriate renderer.
+ * Detects the kind from the URL and routes to the appropriate renderer.
+ * Authors can force a kind with `as`, and a card vs. pill presentation for
+ * link kinds with `present`.
  *
  * Usage:
- *   <Media url="https://youtu.be/..." />
- *   <Media url="https://x.com/..." as="embed" theme="light" />
- *   <Media url="https://example.com" as="link" title="My Site" />
+ *   <Media url="https://youtu.be/..." />                       (video)
+ *   <Media url="https://x.com/..." as="social-embed" />        (social widget)
+ *   <Media url="https://example.com" as="link" present="card" /> (OG card)
+ *   <Media url="https://example.com" as="link" present="pill" title="Site" />
  */
 
-import type { MediaType, VideoPlatform, EmbedPlatform } from "@/lib/log";
+import type {
+  MediaKind,
+  VideoPlatform,
+  SocialEmbedPlatform,
+  LinkPresent,
+} from "@/lib/log";
 import { Video, detectVideoPlatform } from "./video";
-import { Embed, detectEmbedPlatform } from "./embed";
-import { Link, LinkPreview } from "./link";
+import { SocialEmbed, detectSocialEmbedPlatform } from "./embed";
+import { Link, LinkCard } from "./link";
 import { Figure } from "./image";
 
 // =============================================================================
@@ -23,25 +30,25 @@ import { Figure } from "./image";
 // =============================================================================
 
 export interface MediaProps {
-  /** URL of the media content */
+  /** URL of the media content. */
   url: string;
-  /** Force a specific render type (auto-detected from URL if omitted) */
-  as?: MediaType;
-  /** Label text for link type */
+  /** Force a specific kind (auto-detected from URL if omitted). */
+  as?: MediaKind;
+  /** For `link` kind: pill (default) or card. */
+  present?: LinkPresent;
+  /** Label text for pill links. */
   title?: string;
-  /** Theme for embed type */
+  /** Theme for the social-embed kind. */
   theme?: "light" | "dark";
-  /** Thumbnail URL for video type */
+  /** Thumbnail URL for the video kind. */
   thumbnail?: string;
-  /** Platform hint (auto-detected if omitted) */
-  platform?: VideoPlatform | EmbedPlatform;
-  /** Alt text for image type */
+  /** Platform hint (auto-detected if omitted). */
+  platform?: VideoPlatform | SocialEmbedPlatform;
+  /** Alt text for the image kind. */
   alt?: string;
-  /** Whether to show a link preview card */
-  showPreview?: boolean;
-  /** Size variant */
+  /** Size variant. */
   size?: "compact" | "default" | "large";
-  /** Additional CSS classes */
+  /** Additional CSS classes. */
   className?: string;
 }
 
@@ -51,9 +58,9 @@ export interface MediaProps {
 
 const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i;
 
-function autoDetectType(url: string): MediaType {
+function autoDetectKind(url: string): MediaKind {
   if (detectVideoPlatform(url)) return "video";
-  if (detectEmbedPlatform(url)) return "embed";
+  if (detectSocialEmbedPlatform(url)) return "social-embed";
   if (IMAGE_EXTENSIONS.test(url)) return "image";
   return "link";
 }
@@ -65,22 +72,24 @@ function autoDetectType(url: string): MediaType {
 export function Media({
   url,
   as,
+  present = "pill",
   title,
   theme,
   thumbnail,
   platform,
   alt,
-  showPreview = true,
   size = "default",
   className,
 }: MediaProps) {
-  const type = as ?? autoDetectType(url);
+  const kind = as ?? autoDetectKind(url);
 
-  switch (type) {
+  switch (kind) {
     case "video": {
-      const videoPlatform = (platform as VideoPlatform) ?? detectVideoPlatform(url);
+      const videoPlatform =
+        (platform as VideoPlatform) ?? detectVideoPlatform(url);
       if (!videoPlatform) {
-        return <LinkPreview url={url} size={size} className={className} />;
+        // Misclassified URL — degrade to a card rather than silently failing.
+        return <LinkCard url={url} size={size} className={className} />;
       }
       return (
         <Video
@@ -93,12 +102,15 @@ export function Media({
       );
     }
 
-    case "embed": {
-      const embedPlatform = (platform as EmbedPlatform) ?? detectEmbedPlatform(url) ?? undefined;
+    case "social-embed": {
+      const socialPlatform =
+        (platform as SocialEmbedPlatform) ??
+        detectSocialEmbedPlatform(url) ??
+        undefined;
       return (
-        <Embed
+        <SocialEmbed
           url={url}
-          platform={embedPlatform}
+          platform={socialPlatform}
           theme={theme}
           size={size}
           className={className}
@@ -107,18 +119,20 @@ export function Media({
     }
 
     case "image":
-      return (
-        <Figure url={url} alt={alt} size={size} className={className} />
-      );
+      return <Figure url={url} alt={alt} size={size} className={className} />;
 
     case "link":
     default:
-      if (showPreview) {
+      if (present === "card") {
         return (
-          <LinkPreview url={url} title={title} size={size} className={className} />
+          <LinkCard
+            url={url}
+            title={title}
+            size={size}
+            className={className}
+          />
         );
       }
       return <Link url={url} label={title} className={className} />;
   }
 }
-

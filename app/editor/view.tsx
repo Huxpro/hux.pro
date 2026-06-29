@@ -3,6 +3,11 @@
 import { useState, useMemo, useCallback } from "react";
 import type { LogData, Commit, Tag } from "@/lib/log";
 import { buildTimelineData } from "@/lib/log";
+import {
+  enrichLogDataWithPreviews,
+  type OGSnapshot,
+} from "@/lib/og-enrich";
+import ogSnapshotJson from "@/content/og-snapshot.json";
 import { LogTimeline } from "@/components/log/log-timeline";
 import { useLocale } from "@/services";
 import { toast } from "sonner";
@@ -10,6 +15,12 @@ import { EditorToolbar } from "./toolbar";
 import { CommitList } from "./commit-list";
 import { CommitEditor } from "./commit-editor";
 import { TagEditor } from "./tag-editor";
+
+// Static-import the snapshot so the editor preview can resolve previews and
+// video covers client-side — the same merging /works does server-side. URLs
+// not in the snapshot still need `pnpm og:snapshot` to gain a baked preview;
+// the LinkCard component's runtime fetch is the third-tier fallback.
+const ogSnapshot = ogSnapshotJson as OGSnapshot;
 
 interface EditorViewProps {
   initialData: LogData;
@@ -23,10 +34,19 @@ export function EditorView({ initialData }: EditorViewProps) {
   const [saving, setSaving] = useState(false);
   const { locale } = useLocale();
 
-  const isDirty = JSON.stringify(data) !== JSON.stringify(savedData);
+  // Reference equality is enough: every edit clones the slice it touches,
+  // so `data === savedData` exactly tracks "no unsaved changes" without
+  // re-serializing the whole log on every keystroke.
+  const isDirty = data !== savedData;
 
-  // Derive preview data — same function used by /works
-  const previewData = useMemo(() => buildTimelineData(data), [data]);
+  // Derive preview data — runs the snapshot enrichment (same as /works does
+  // server-side) so flipping a media item to `present:"card"` immediately
+  // surfaces the OG cover in the hover/peek view, provided the URL is in the
+  // snapshot. URLs that aren't snapshotted yet need `pnpm og:snapshot`.
+  const previewData = useMemo(
+    () => buildTimelineData(enrichLogDataWithPreviews(data, ogSnapshot)),
+    [data],
+  );
 
   const selectedCommit = useMemo(
     () => data.commits.find((c) => c.id === selectedCommitId) ?? null,

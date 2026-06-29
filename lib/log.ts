@@ -53,42 +53,44 @@ export type CommitType =
 // =============================================================================
 
 /**
- * Media types define HOW external content is rendered:
- * - "video": YouTube/Bilibili/Vimeo iframe players
- * - "embed": Native social platform embeds (Twitter, Instagram, TikTok)
- * - "link": External link with optional OG preview
- * - "image": Static image display
+ * Media kinds, separated by *data shape*, not by visual treatment:
+ * - "link":         a URL with an optional OG-derived preview card. Presents
+ *                   as a pill (corner indicator) or card (full OG-style block).
+ * - "social-embed": a native social platform widget (X / Instagram / TikTok)
+ *                   that mounts the platform's own iframe/script.
+ * - "video":        a video player (YouTube / Bilibili / Vimeo iframe).
+ * - "image":        a static image asset.
+ *
+ * A discriminator field `kind` (not `type`, which is taken by CommitType) keeps
+ * the layer crisp: commits have types, media items have kinds.
  */
-export type MediaType = "video" | "embed" | "link" | "image";
+export type MediaKind = "link" | "social-embed" | "video" | "image";
 
 /**
- * Video platforms with native iframe support
+ * How a `link` renders. Two presentations, one data shape — the explicit
+ * acknowledgement that a "card" and a "pill" are the same URL with different
+ * dressings (this used to be split across `link` vs non-native `embed`).
  */
+export type LinkPresent = "pill" | "card";
+
+/** Video platforms with native iframe support. */
 export type VideoPlatform = "youtube" | "bilibili" | "vimeo";
 
-/**
- * Platforms with native embed support (non-video)
- */
-export type EmbedPlatform = "twitter" | "x" | "instagram" | "tiktok";
+// SocialEmbedPlatform's canonical definition lives in `lib/og-core` (the
+// Node snapshot script imports it from there, so it must stay framework-
+// agnostic). Re-import + re-export so the type is in scope for the Media
+// interfaces below and consumers can keep a single import source.
+import type { SocialEmbedPlatform } from "./og-core";
+export type { SocialEmbedPlatform };
 
 /**
- * Video media - YouTube, Bilibili, Vimeo with iframe players
- */
-export interface VideoMedia {
-  type: "video";
-  url: string;
-  platform: VideoPlatform;
-  thumbnail?: string;
-}
-
-/**
- * Manual preview metadata.
+ * Manual card metadata.
  *
- * Lets the author hardcode a link/embed's card so it doesn't depend on a
- * live Open Graph crawl. Useful for sites that block server-side scraping
- * (e.g. Medium returns 403 to non-browser requests) or where you simply
- * want a curated title/image. When `title` and `image` are both present
- * the live OG fetch is skipped entirely.
+ * Author-curated title/description/image used by the card pipeline as the
+ * tier-1 source of truth (beats build-time OG snapshot and runtime crawl).
+ * Useful for sites that block server-side scraping (Medium returns 403 to
+ * non-browser requests) or where you simply want a curated headline/image.
+ * When `title` and `image` are both present the live crawl is skipped.
  */
 export interface MediaPreview {
   title?: string;
@@ -97,49 +99,71 @@ export interface MediaPreview {
 }
 
 /**
- * Embed media - Native social platform embeds (Twitter, Instagram, TikTok)
+ * Pinned media is "always visible above the row's fold" — it stays beneath
+ * the row even while the row is collapsed (and renders in the expanded view
+ * too). Default is unpinned: only visible once the row is expanded.
+ *
+ * Meaningful for cards / videos / images. No-op for `pill` (those already
+ * live in the folded right rail) and `social-embed` (currently always
+ * expanded-only); the field is kept on every kind for schema uniformity.
+ *
+ * The hover peek view excludes pinned items — they're already on screen so
+ * peeking adds nothing. See `getCommitPeekItems`.
  */
-export interface EmbedMedia {
-  type: "embed";
-  url: string;
-  platform?: EmbedPlatform; // Auto-detected from URL if not provided
-  /** Manual card metadata for non-native embeds (link-preview fallback). */
-  preview?: MediaPreview;
-  /**
-   * Show this embed beneath the commit row even while it's folded. Fully
-   * expanding the row always reveals every embed regardless of this flag.
-   */
-  defaultShown?: boolean;
-}
+type Pinned = { pinned?: true };
 
 /**
- * Link media - External link with optional OG preview
+ * Link media — a URL with two presentations:
+ *  - `pill`: a compact corner indicator (icon + label) in the folded rail.
+ *  - `card`: an OG-style preview card (the card pipeline supplies title /
+ *    description / image; `preview` is the author-authoritative override).
+ *
+ * `label` / `icon` are pill-only display overrides; harmless on a card.
  */
-export interface LinkMedia {
-  type: "link";
+export interface LinkMedia extends Pinned {
+  kind: "link";
   url: string;
+  present: LinkPresent;
+  /** Manual card metadata; skips the runtime crawl when title+image set. */
+  preview?: MediaPreview;
+  /** Pill-only: label override (defaults to domain). */
   label?: string;
+  /** Pill-only: icon key (e.g. "github", "globe"). */
   icon?: string;
-  /** Whether to fetch and render OG image preview */
-  showPreview?: boolean;
-  /** Manual card metadata; skips the live OG crawl when title+image set. */
-  preview?: MediaPreview;
 }
 
 /**
- * Image media - Static image display
+ * Social embed — a native widget for X / Instagram / TikTok. Distinct kind
+ * from `link` because it's a live mini-app, not an OG card; it doesn't go
+ * through the card pipeline.
  */
-export interface ImageMedia {
-  type: "image";
+export interface SocialEmbedMedia extends Pinned {
+  kind: "social-embed";
+  url: string;
+  /** Platform hint; auto-detected from URL when omitted. */
+  platform?: SocialEmbedPlatform;
+}
+
+/** Video player — YouTube / Bilibili / Vimeo iframe with cover thumbnail. */
+export interface VideoMedia extends Pinned {
+  kind: "video";
+  url: string;
+  platform: VideoPlatform;
+  thumbnail?: string;
+}
+
+/** Static image asset. */
+export interface ImageMedia extends Pinned {
+  kind: "image";
   url: string;
   alt?: string;
 }
 
 /**
- * Discriminated union of all media types.
- * Use `media.type` to narrow and access type-specific fields.
+ * Discriminated union of all media kinds.
+ * Use `media.kind` to narrow and access kind-specific fields.
  */
-export type Media = VideoMedia | EmbedMedia | LinkMedia | ImageMedia;
+export type Media = LinkMedia | SocialEmbedMedia | VideoMedia | ImageMedia;
 
 // -----------------------------------------------------------------------------
 // Base Commit
@@ -1024,23 +1048,38 @@ export function isEventCommit(commit: Commit): commit is EventCommit {
 }
 
 // =============================================================================
-// Media Type Guards
+// Media Kind Guards
 // =============================================================================
 
-export function isVideoMedia(media: Media): media is VideoMedia {
-  return media.type === "video";
-}
-
-export function isEmbedMedia(media: Media): media is EmbedMedia {
-  return media.type === "embed";
-}
-
 export function isLinkMedia(media: Media): media is LinkMedia {
-  return media.type === "link";
+  return media.kind === "link";
+}
+
+export function isSocialEmbedMedia(media: Media): media is SocialEmbedMedia {
+  return media.kind === "social-embed";
+}
+
+export function isVideoMedia(media: Media): media is VideoMedia {
+  return media.kind === "video";
 }
 
 export function isImageMedia(media: Media): media is ImageMedia {
-  return media.type === "image";
+  return media.kind === "image";
+}
+
+/** A link that presents as an OG-style card (vs. a pill). */
+export function isLinkCard(media: Media): media is LinkMedia & { present: "card" } {
+  return media.kind === "link" && media.present === "card";
+}
+
+/** A link that presents as a corner-rail pill (vs. a card). */
+export function isLinkPill(media: Media): media is LinkMedia & { present: "pill" } {
+  return media.kind === "link" && media.present === "pill";
+}
+
+/** True when an item is pinned above the row's fold. */
+export function isPinnedMedia(media: Media): boolean {
+  return media.pinned === true;
 }
 
 // =============================================================================
@@ -1075,34 +1114,35 @@ function extractYouTubeId(url: string): string | null {
 
 /**
  * Get thumbnail URL for a single media item.
- * Returns null for types that require async fetch (embeds, links without image).
  *
- * Derivation by type:
- * - VideoMedia: YouTube thumbnail URL (derived from ID), or explicit thumbnail
- * - ImageMedia: The image URL itself
- * - EmbedMedia: null (would need OG fetch)
- * - LinkMedia: null (would need OG fetch)
+ * Derivation by kind:
+ * - VideoMedia:       explicit `thumbnail`, else YouTube's derived URL
+ *                     (Bilibili / Vimeo: must be explicit — no public derivation).
+ * - ImageMedia:       the image URL itself.
+ * - LinkMedia (card): the resolved `preview.image` (card pipeline writes this
+ *                     server-side from the OG snapshot + manual override).
+ * - LinkMedia (pill): null — pills don't carry a thumbnail.
+ * - SocialEmbedMedia: null — widgets render their own cover.
  */
 export function getMediaThumbnail(media: Media): string | null {
-  switch (media.type) {
+  switch (media.kind) {
     case "video":
-      // Use explicit thumbnail if provided
       if (media.thumbnail) return media.thumbnail;
-      // Derive from YouTube URL
       if (media.platform === "youtube") {
         const id = extractYouTubeId(media.url);
         return id ? `https://img.youtube.com/vi/${id}/maxresdefault.jpg` : null;
       }
-      // Bilibili/Vimeo require API calls, return null
       return null;
 
     case "image":
-      // The image itself is the thumbnail
       return media.url;
 
-    case "embed":
     case "link":
-      // Would need async OG fetch
+      // Cards may have a baked-in preview.image (resolved server-side from
+      // og-snapshot + manual override). Pills never carry one.
+      return media.present === "card" ? media.preview?.image ?? null : null;
+
+    case "social-embed":
       return null;
   }
 }
@@ -1120,13 +1160,77 @@ export function getCommitThumbnail(commit: Commit): string | null {
 }
 
 /**
+ * Get every thumbnail-able URL across a commit's media, preserving order.
+ *
+ * The hover "peek view" uses this to communicate richness: one thumbnail
+ * renders flat; two or more render as a stacked deck. Pills and social
+ * widgets contribute nothing (they have no native cover); videos and images
+ * always contribute; link cards contribute when a preview image is resolved.
+ */
+export function getCommitThumbnails(commit: Commit): string[] {
+  const out: string[] = [];
+  for (const m of commit.media ?? []) {
+    const t = getMediaThumbnail(m);
+    if (t) out.push(t);
+  }
+  return out;
+}
+
+/**
+ * Single entry in the hover-peek deck. Discriminated so the renderer can
+ * decide layout per item:
+ *  - `"card"`  → a mini OG-style preview (image + domain + title), used for
+ *                `kind:"link", present:"card"` media that has a resolved
+ *                preview image. Reads like the full LinkCard but at peek size.
+ *  - `"thumb"` → a bare cover image, used for videos and image media. The
+ *                player / asset IS the visual signal; no text strip needed.
+ */
+export type PeekItem =
+  | { kind: "card"; url: string; title?: string; description?: string; image: string }
+  | { kind: "thumb"; url: string; image: string };
+
+/**
+ * Collect peek-renderable items from a commit's media, preserving order.
+ *
+ * Reconciliation with `pinned`:
+ *   Peek = "what's *behind* the fold". Pinned media is already visible
+ *   inline in the row, so peeking at it adds nothing — we filter it out.
+ *   Concretely: a commit with 3 media (1 pinned, 2 default) peeks the 2
+ *   hidden ones; a commit whose media is *entirely* pinned peeks nothing
+ *   and falls back to the description. This keeps the peek's role crisp:
+ *   it surfaces what the user can't currently see.
+ */
+export function getCommitPeekItems(commit: Commit): PeekItem[] {
+  const out: PeekItem[] = [];
+  for (const m of commit.media ?? []) {
+    if (isPinnedMedia(m)) continue; // already visible inline; nothing to peek
+    if (isLinkMedia(m) && m.present === "card") {
+      const image = m.preview?.image;
+      if (image) {
+        out.push({
+          kind: "card",
+          url: m.url,
+          title: m.preview?.title,
+          description: m.preview?.description,
+          image,
+        });
+      }
+      continue;
+    }
+    const t = getMediaThumbnail(m);
+    if (t) out.push({ kind: "thumb", url: m.url, image: t });
+  }
+  return out;
+}
+
+/**
  * Get the primary media item from a commit (for thumbnail display).
- * For projects, prefers non-link media (videos, images) over plain links.
+ * For projects, prefers richer media (video / image / card) over plain pills.
  */
 export function getCommitPrimaryMedia(commit: Commit): Media | null {
   const media = commit.media ?? [];
   if (commit.type === "project") {
-    return media.find((m) => m.type !== "link") ?? media[0] ?? null;
+    return media.find((m) => !isLinkPill(m)) ?? media[0] ?? null;
   }
   return media[0] ?? null;
 }

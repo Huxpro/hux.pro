@@ -1,19 +1,19 @@
 /**
  * Media Component System
  *
- * Composable media rendering for commits.
- * Each component is strictly typed and renders a specific media type.
+ * Composable rendering for the four media kinds attached to commits.
  *
  * Terminology:
- * - Media: The abstract concept of attached content (video, embed, link, image)
- * - Video: YouTube/Bilibili/Vimeo iframe players
- * - Embed: Native social platform widgets (Twitter, Instagram, TikTok)
- * - Link: External link with optional OG preview
- * - Figure: Static image display (uses Next.js Image)
+ *  - Media:        the abstract concept of attached content. Four kinds.
+ *  - LinkMedia:    a URL presented as either a pill (corner indicator) or a
+ *                  card (OG-style preview block backed by the card pipeline).
+ *  - SocialEmbed:  a native social platform widget (X / Instagram / TikTok).
+ *  - VideoMedia:   YouTube / Bilibili / Vimeo iframe player with cover.
+ *  - ImageMedia:   static image asset (uses Next.js Image).
  *
  * Structure:
- * - Router components (Video, Embed) dispatch to platform-specific implementations
- * - Each platform has its own file with colocated logic
+ *  - Router components (SocialEmbed, Video) dispatch to platform-specific
+ *    implementations, each colocated in its own file.
  */
 
 // =============================================================================
@@ -38,21 +38,21 @@ export {
 } from "./video";
 
 export {
-  Embed,
-  EmbedFromMedia,
-  detectEmbedPlatform,
-  extractEmbedId,
-  type EmbedProps,
-  type EmbedPropsFromMedia,
+  SocialEmbed,
+  SocialEmbedFromMedia,
+  detectSocialEmbedPlatform,
+  extractSocialEmbedId,
+  type SocialEmbedProps,
+  type SocialEmbedPropsFromMedia,
 } from "./embed";
 
 export {
   Link,
-  LinkPreview,
+  LinkCard,
   LinkFromMedia,
-  LinkPreviewFromMedia,
+  LinkCardFromMedia,
   type LinkProps,
-  type LinkPreviewProps,
+  type LinkCardProps,
 } from "./link";
 
 export {
@@ -113,11 +113,13 @@ export {
 
 export type {
   Media as MediaData,
-  MediaType,
-  VideoMedia,
-  EmbedMedia,
+  MediaKind,
+  MediaPreview,
   LinkMedia,
+  LinkPresent,
+  SocialEmbedMedia,
+  VideoMedia,
   ImageMedia,
   VideoPlatform,
-  EmbedPlatform,
+  SocialEmbedPlatform,
 } from "@/lib/log";

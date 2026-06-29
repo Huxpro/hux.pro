@@ -199,7 +199,7 @@
       },
       "media": [
         {
-          "type": "video",
+          "kind": "video",
           "url": "https://www.bilibili.com/video/BV1SC4y1c7ju/",
           "platform": "bilibili"
         }
@@ -256,14 +256,16 @@
       ],
       "media": [
         {
-          "type": "link",
+          "kind": "link",
           "url": "https://lynxjs.dev",
+          "present": "pill",
           "label": "Website",
           "icon": "globe"
         },
         {
-          "type": "link",
+          "kind": "link",
           "url": "https://github.com/lynx-family/lynx",
+          "present": "pill",
           "label": "GitHub",
           "icon": "github"
         }
@@ -293,8 +295,9 @@
       "platform": "SegmentFault",
       "media": [
         {
-          "type": "link",
+          "kind": "link",
           "url": "https://segmentfault.com/a/1190000043208486",
+          "present": "card",
           "label": "Article",
           "icon": "globe"
         }
@@ -323,7 +326,7 @@
       },
       "media": [
         {
-          "type": "video",
+          "kind": "video",
           "url": "https://www.bilibili.com/video/BV1LY411Q7hC/",
           "platform": "bilibili"
         }
@@ -350,10 +353,14 @@
       "platform": "Gitee",
       "media": [
         {
-          "type": "link",
+          "kind": "link",
           "url": "https://gitee.com/gitee-stars/30",
+          "present": "card",
           "label": "Profile",
-          "icon": "globe"
+          "icon": "globe",
+          "preview": {
+            "image": "https://foruda.gitee.com/images/1665630388408453262/3741db0c_1850385.jpeg"
+          }
         }
       ],
       "tags": [
@@ -380,7 +387,7 @@
       },
       "media": [
         {
-          "type": "video",
+          "kind": "video",
           "url": "https://youtu.be/lGEMwh32soc",
           "platform": "youtube"
         }
@@ -409,8 +416,9 @@
       },
       "media": [
         {
-          "type": "link",
+          "kind": "link",
           "url": "https://www.callstack.com/podcast-react-native-show",
+          "present": "pill",
           "label": "Podcast",
           "icon": "globe"
         }
@@ -469,14 +477,16 @@
       ],
       "media": [
         {
-          "type": "link",
+          "kind": "link",
           "url": "https://hermesengine.dev",
+          "present": "pill",
           "label": "Website",
           "icon": "globe"
         },
         {
-          "type": "link",
+          "kind": "link",
           "url": "https://github.com/facebook/hermes",
+          "present": "pill",
           "label": "GitHub",
           "icon": "github"
         }
@@ -506,14 +516,16 @@
       ],
       "media": [
         {
-          "type": "link",
+          "kind": "link",
           "url": "https://react.dev",
+          "present": "pill",
           "label": "Website",
           "icon": "globe"
         },
         {
-          "type": "link",
+          "kind": "link",
           "url": "https://github.com/facebook/react",
+          "present": "pill",
           "label": "GitHub",
           "icon": "github"
         }
@@ -649,13 +661,14 @@
       },
       "media": [
         {
-          "type": "video",
+          "kind": "video",
           "url": "https://www.youtube.com/watch?v=RWzMF-1fjJ8",
           "platform": "youtube"
         },
         {
-          "type": "link",
+          "kind": "link",
           "url": "https://huangxuan.me/jsconfcn2017/",
+          "present": "pill",
           "label": "Slides",
           "icon": "slides"
         }
@@ -687,19 +700,21 @@
       },
       "media": [
         {
-          "type": "embed",
+          "kind": "link",
           "url": "https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509",
+          "present": "card",
           "preview": {
             "title": "Upgrading Ele.me to Progressive Web App",
             "description": "Since the very first experiments that @Vue.js tweeted, we at Ele.me (the biggest food ordering and delivering company in China) have been…",
             "image": "https://miro.medium.com/v2/resize:fit:1200/1*J2ONRSf1OYPZNjRDxJCxgA.png"
           },
-          "defaultShown": true
+          "pinned": true
         },
         {
-          "type": "embed",
+          "kind": "link",
           "url": "https://web.dev/case-studies/eleme",
-          "defaultShown": true
+          "present": "card",
+          "pinned": true
         }
       ],
       "tags": [
@@ -728,8 +743,9 @@
       },
       "media": [
         {
-          "type": "link",
+          "kind": "link",
           "url": "https://huangxuan.me/2016/10/20/pwa-qcon2016/",
+          "present": "pill",
           "label": "Slides",
           "icon": "slides"
         }
@@ -836,7 +852,7 @@
       "platform": "Bilibili",
       "media": [
         {
-          "type": "video",
+          "kind": "video",
           "url": "https://www.bilibili.com/video/BV1ky4y1R7Zm/",
           "platform": "bilibili"
         }
