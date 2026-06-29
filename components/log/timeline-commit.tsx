@@ -389,7 +389,14 @@ export function TimelineCommit({
       )}
 
       {isExpanded && (
-        <div className="col-start-2 @sm:col-start-3 mt-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+        // `data-row-body` marks the expanded content so the row's hover
+        // background can suppress itself while the cursor is inside it
+        // (see the `not-has-` clause on the outer row). Keeps the
+        // hover/active highlight tied to the fold/unfold trigger only.
+        <div
+          data-row-body
+          className="col-start-2 @sm:col-start-3 mt-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150"
+        >
           {data.subtitle && (
             <div className="text-xs text-muted-foreground/60">
               {data.subtitle}
@@ -458,7 +465,15 @@ export function TimelineCommit({
             // commits as ambient annotations rather than as full rows.
             isEvent ? "py-1" : "py-2.5",
             rowOnClick ? "cursor-pointer" : "cursor-default",
-            "@container hover:bg-muted/20 active:bg-muted/30",
+            "@container",
+            // Hover/active highlight is tied to the fold/unfold trigger
+            // only — when the cursor moves into the expanded body
+            // ([data-row-body]) the row no longer paints, so hovering a
+            // LinkCard / Video / Description doesn't drag the entire
+            // commit's background with it. `:has()` raises specificity
+            // enough that the negated form wins over the simple `:hover`.
+            "[&:hover:not(:has([data-row-body]:hover))]:bg-muted/20",
+            "[&:active:not(:has([data-row-body]:active))]:bg-muted/30",
             inspecting && "hover:ring-1 hover:ring-inset hover:ring-sky-500/35",
             isUnlisted && "opacity-55",
             isSelected &&
