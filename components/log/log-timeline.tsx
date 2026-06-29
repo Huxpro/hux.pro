@@ -24,13 +24,15 @@ interface LogTimelineProps {
     commits: CommitData[];
   }[];
   locale: Locale;
+  /** When toggled, every commit row syncs its expanded state to this value. */
+  expandAll?: boolean;
 }
 
 /**
  * Git Log / Commit History style timeline.
  * Renders tags as ref markers and commits as dense log entries.
  */
-export function LogTimeline({ data, locale }: LogTimelineProps) {
+export function LogTimeline({ data, locale, expandAll }: LogTimelineProps) {
   return (
     <div className="space-y-0">
       {data.map(({ tag, commits }, tagIndex) => (
@@ -40,6 +42,7 @@ export function LogTimeline({ data, locale }: LogTimelineProps) {
           commits={commits}
           tagIndex={tagIndex}
           locale={locale}
+          expandAll={expandAll}
         />
       ))}
     </div>
@@ -51,9 +54,10 @@ interface TagBlockProps {
   commits: CommitData[];
   tagIndex: number;
   locale: Locale;
+  expandAll?: boolean;
 }
 
-function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
+function TagBlock({ tag, commits, tagIndex, locale, expandAll }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
   const isTagSelected = edit?.editingTagId === tag.id;
@@ -216,6 +220,7 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
                 commit={commits[i]}
                 locale={locale}
                 variant="timeline"
+                expandAll={expandAll}
                 hideDate={tag.hideDate || commits[i].hideDate}
                 rail={railInfo[i].rail}
                 segmentId={railInfo[i].segmentId}
