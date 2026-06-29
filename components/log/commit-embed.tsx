@@ -341,17 +341,22 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
             }}
           >
             {item.kind === "card" ? (
-              // Stacked: every layer must be the same shape so the layered
-              // transforms overlap predictably.
+              // Stacked: every layer keeps the same shape so the layered
+              // transforms overlap predictably. The front layer's bg is
+              // forced opaque so back cards' content can't bleed *through*
+              // it — translucency only makes sense where the page bg sits
+              // behind, which is true for back cards (peeking from behind)
+              // but not for the front (a full card sits behind it).
               <PeekCard
                 item={item}
                 fixedAspect
+                className={isFront ? "bg-card" : undefined}
                 onResolved={() => markResolved(i)}
               />
             ) : (
               <PeekThumb
                 image={item.image}
-                className="aspect-video"
+                className={cn("aspect-video", isFront && "bg-muted")}
                 onResolved={() => markResolved(i)}
               />
             )}
