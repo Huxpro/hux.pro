@@ -332,7 +332,12 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
         return (
           <div
             key={i}
-            className={isFront ? "" : "absolute inset-0"}
+            // Front uses `relative` (not static) so its `zIndex` applies —
+            // `z-index` is a no-op on static elements, which would let the
+            // absolute back layers stack above the front regardless of value.
+            // Front being `relative` also keeps it in-flow so the container
+            // sizes to it.
+            className={isFront ? "relative" : "absolute inset-0"}
             style={{
               transform: `translate(${pose.dx}px, ${pose.dy}px) rotate(${pose.rot}deg) scale(${pose.scale})`,
               transformOrigin: "center center",
