@@ -436,14 +436,16 @@ export function LinkCard({
         domainLabel={domainLabel}
         languageBadge={languageBadge}
         className={cn(
-          // Hover matches the surrounding row pattern (timeline-commit:
-          // `hover:bg-muted/20 active:bg-muted/30`). The card merges with
-          // the hovered row visually — its content (image + title) keeps
-          // the affordance legible, and the unified surface reads as a
-          // single interactive target.
+          // The row's hover lives on its summary area only (see
+          // timeline-commit's `:not(:has([data-row-body]:hover))` gate),
+          // so the card carries its *own* feedback while it's hovered.
+          // Compound cue: brighter bg (/50 → /60), full border, and an
+          // inset ring that reads as a subtle lift without animating
+          // geometry — dark-theme bg-muted is low-contrast on its own,
+          // so the ring is what makes the affordance unmistakable.
           "h-full transition-colors duration-200",
-          "hover:bg-muted/20 hover:border-border",
-          "active:bg-muted/30",
+          "hover:bg-muted/50 hover:border-border hover:ring-1 hover:ring-inset hover:ring-border/60",
+          "active:bg-muted/60",
           className,
         )}
       />
