@@ -8,7 +8,7 @@
  * based on the media type.
  */
 
-import { type ReactNode } from "react";
+import { useState, type ReactNode, type MouseEvent } from "react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/services/theme";
 import type {
@@ -58,10 +58,16 @@ export interface MediaRendererProps {
 // =============================================================================
 
 /**
- * Wraps a rendered media item so that, while inspecting, a transparent
- * overlay captures the click (the video doesn't play, the link doesn't
- * navigate) and selects the item instead — outlined on hover, ringed when
- * selected. Outside inspect mode it renders the child untouched.
+ * Wraps a rendered media item so that, while inspecting, a transparent overlay
+ * captures clicks — single click selects the item (the video doesn't play, the
+ * link doesn't navigate), double click "enters" it.
+ *
+ * Entering is the Figma "double-click to enter" gesture: the overlay steps
+ * aside (the first double-click also replays its click on the control beneath,
+ * so the video plays / link opens immediately) and the media becomes fully
+ * interactive — you can scrub the now-playing video, etc. Clicking away (which
+ * moves the selection elsewhere) restores the overlay. Outside inspect mode the
+ * child renders untouched.
  */
 function InspectableMedia({
   media,
@@ -76,28 +82,61 @@ function InspectableMedia({
   selected: boolean;
   children: ReactNode;
 }) {
+  const [entered, setEntered] = useState(false);
+  // Leave "entered" interaction as soon as the selection moves off this item,
+  // so the select overlay comes back next time. Done with the "adjust state
+  // during render" pattern (a deselect resets entered) rather than an effect.
+  const [wasSelected, setWasSelected] = useState(selected);
+  if (wasSelected !== selected) {
+    setWasSelected(selected);
+    if (!selected) setEntered(false);
+  }
+
   if (!inspecting) return <>{children}</>;
+
+  const enterAndActivate = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onInspect?.(media);
+    setEntered(true);
+    // Replay the click on the real control under the cursor so this very
+    // double-click already plays the video / opens the link.
+    const overlay = e.currentTarget;
+    overlay.style.pointerEvents = "none";
+    const beneath = document.elementFromPoint(e.clientX, e.clientY);
+    if (beneath instanceof HTMLElement) beneath.click();
+  };
+
   return (
     <div className="relative">
       {children}
-      <button
-        type="button"
-        aria-label="Inspect media"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onInspect?.(media);
-        }}
-        className={cn(
-          "absolute inset-0 z-20 rounded-lg cursor-pointer transition-all ring-inset",
-          // Selected reads through COLOR — a Figma-style editor blue ring +
-          // tint — rather than a heavier border. Hover stays a quiet grey
-          // outline at the same width, so blue is what signals "selected".
-          selected
-            ? "ring-2 ring-blue-500 bg-blue-500/10"
-            : "ring-0 hover:ring-2 hover:ring-foreground/25 hover:bg-foreground/[0.02]",
-        )}
-      />
+      {entered ? (
+        // Entered: media is fully interactive; just a non-interactive outline
+        // marks it as the active item.
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-20 rounded-lg ring-1 ring-inset ring-blue-500"
+        />
+      ) : (
+        <button
+          type="button"
+          aria-label="Inspect media (double-click to open)"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onInspect?.(media);
+          }}
+          onDoubleClick={enterAndActivate}
+          className={cn(
+            "absolute inset-0 z-20 rounded-lg cursor-pointer transition-all ring-inset",
+            // Selection is signalled by a thin editor-blue outline — no fill
+            // mask. Hover is a quiet grey outline at the same width.
+            selected
+              ? "ring-1 ring-blue-500"
+              : "ring-0 hover:ring-1 hover:ring-foreground/30",
+          )}
+        />
+      )}
     </div>
   );
 }

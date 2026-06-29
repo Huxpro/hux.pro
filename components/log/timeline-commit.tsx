@@ -332,13 +332,22 @@ export function TimelineCommit({
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              // While inspecting, a link selects its commit instead of
-              // navigating away from the editor.
+              // While inspecting, a single click selects the commit instead of
+              // navigating; double-click opens the link (the normal behaviour).
               onClick={
                 inspecting
                   ? (e) => {
                       e.preventDefault();
                       onSelect?.();
+                    }
+                  : undefined
+              }
+              onDoubleClick={
+                inspecting
+                  ? (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      window.open(link.url, "_blank", "noopener,noreferrer");
                     }
                   : undefined
               }
@@ -385,7 +394,7 @@ export function TimelineCommit({
               target="_blank"
               rel="noopener noreferrer"
               // stopPropagation keeps a click off the row's expand toggle; while
-              // inspecting the meta link selects the commit instead of opening.
+              // inspecting a single click selects the commit, double-click opens.
               onClick={(e) => {
                 e.stopPropagation();
                 if (inspecting) {
@@ -393,6 +402,19 @@ export function TimelineCommit({
                   onSelect?.();
                 }
               }}
+              onDoubleClick={
+                inspecting
+                  ? (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      window.open(
+                        data.metaUrl,
+                        "_blank",
+                        "noopener,noreferrer",
+                      );
+                    }
+                  : undefined
+              }
               className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
             >
               {data.meta}
@@ -494,12 +516,12 @@ export function TimelineCommit({
             rowOnClick ? "cursor-pointer" : "cursor-default",
             "@container hover:bg-muted/20 active:bg-muted/30",
             // Inspect: a quiet grey outline follows the cursor; the row open
-            // in the Inspector gets the Figma-style editor-blue ring + tint.
+            // in the Inspector gets a thin editor-blue outline (no fill mask).
             // Dim entries hidden from the public site.
             inspecting && "hover:ring-1 hover:ring-inset hover:ring-foreground/20",
             isUnlisted && "opacity-55",
             isSelected &&
-              "bg-blue-500/10 ring-1 ring-inset ring-blue-500/70 hover:ring-blue-500/70",
+              "ring-1 ring-inset ring-blue-500/70 hover:ring-blue-500/70",
           )}
         >
           {rowContent}

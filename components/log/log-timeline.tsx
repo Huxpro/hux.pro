@@ -165,7 +165,7 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
             className={cn(
               "inline-flex items-center bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full transition-colors",
               isTagSelected
-                ? "border-blue-500 ring-1 ring-inset ring-blue-500/50"
+                ? "border-blue-500"
                 : "border-border hover:border-foreground/40",
             )}
             title="Edit chapter"

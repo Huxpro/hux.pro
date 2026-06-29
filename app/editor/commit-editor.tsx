@@ -796,7 +796,7 @@ function MediaItemEditor({
       className={cn(
         "border rounded p-2 space-y-1.5 relative transition-colors",
         focused
-          ? "border-blue-500/60 ring-1 ring-inset ring-blue-500/40 bg-blue-500/10"
+          ? "border-blue-500"
           : "border-border/30",
       )}
     >
