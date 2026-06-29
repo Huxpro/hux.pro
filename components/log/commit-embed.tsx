@@ -310,6 +310,9 @@ function PeekCard({
   className?: string;
   onResolved?: () => void;
 }) {
+  // Peek is purely visual — the click goes through the row's anchor — so
+  // we only need the caption swap, not the locale-aware URL pick.
+  const domainLabel = item.internal ? "/writing" : undefined;
   return (
     <CardFace
       url={item.url}
@@ -318,6 +321,7 @@ function PeekCard({
       image={item.image}
       size="compact"
       fixedAspect={fixedAspect}
+      domainLabel={domainLabel}
       // Peek-specific chrome — same recipe as the Dock Live Activity
       // expanded panel (bg-card/70 + backdrop-blur-xl + border + heavy
       // colored shadow). The single-peek and stacked-peek branches both

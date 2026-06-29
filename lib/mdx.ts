@@ -156,6 +156,53 @@ export function validateBlogContent(): {
 }
 
 /**
+ * `{ slug → PostLanguage }` for every blog post on disk. Used by the card
+ * enrichment pipeline to swap an internal `/writing/{slug}/{lang}` URL to
+ * the version that matches the viewer's locale.
+ *
+ * Memoized at module scope — blog content is fs-static within a process,
+ * and this would otherwise re-scan on every `/works` request.
+ */
+export type BlogLangManifest = Record<string, PostLanguage>;
+
+let blogLangManifestCache: BlogLangManifest | undefined;
+
+export function getBlogLangManifest(): BlogLangManifest {
+  if (blogLangManifestCache) return blogLangManifestCache;
+
+  const blogDir = path.join(contentDirectory, "blog");
+  const out: BlogLangManifest = {};
+
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(blogDir, { withFileTypes: true });
+  } catch {
+    return (blogLangManifestCache = out);
+  }
+
+  const langsOf = (en: boolean, zh: boolean): PostLanguage | null =>
+    en && zh ? "both" : en ? "en" : zh ? "zh" : null;
+
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      const dir = path.join(blogDir, entry.name);
+      const lang = langsOf(
+        fs.existsSync(path.join(dir, "index.en.mdx")),
+        fs.existsSync(path.join(dir, "index.zh.mdx")),
+      );
+      if (lang) out[entry.name] = lang;
+      continue;
+    }
+    const match = entry.name.match(LANG_FILE_REGEX);
+    if (!match) continue;
+    const [, slug, lang] = match;
+    out[slug] = out[slug] === (lang === "en" ? "zh" : "en") ? "both" : (lang as "en" | "zh");
+  }
+
+  return (blogLangManifestCache = out);
+}
+
+/**
  * Get all blog post slugs for static generation
  * Language is derived from filename, not frontmatter
  */

@@ -9,7 +9,14 @@
  * This file is intentionally fs-free so it survives a client bundle.
  */
 
-import type { LogData, Media, MediaPreview } from "@/lib/log";
+import type { Locale } from "@/lib/i18n";
+import type {
+  InternalLinkMeta,
+  LocaleUrls,
+  LogData,
+  Media,
+  MediaPreview,
+} from "@/lib/log";
 import {
   mediaIsCardTarget,
   mediaIsVideoCoverTarget,
@@ -17,6 +24,44 @@ import {
 } from "@/lib/og-core";
 
 export type OGSnapshot = Record<string, SnapshotEntry>;
+
+/** Slug → which language versions exist on disk. Mirrors `lib/mdx.ts`. */
+export type BlogLangManifest = Record<string, "en" | "zh" | "both">;
+
+const WRITING_URL_REGEX = /^\/writing\/([^/]+)\/(en|zh)\/?$/;
+
+function resolveInternal(
+  url: string,
+  manifest: BlogLangManifest,
+): InternalLinkMeta | undefined {
+  const match = url.match(WRITING_URL_REGEX);
+  if (!match) return undefined;
+  const slug = match[1];
+  const langs = manifest[slug];
+  if (!langs) return undefined;
+  const urls: LocaleUrls = {};
+  if (langs === "en" || langs === "both") urls.en = `/writing/${slug}/en`;
+  if (langs === "zh" || langs === "both") urls.zh = `/writing/${slug}/zh`;
+  return { kind: "writing", slug, urls };
+}
+
+/**
+ * Pick the URL of an internal post that matches the viewer's locale, falling
+ * back to whichever version exists. Returns the badge to flash when only the
+ * non-locale version is available — single source of truth for both the
+ * expanded card and the folded-rail pill so they can't drift.
+ */
+export function pickInternalLink(
+  internal: InternalLinkMeta,
+  locale: Locale,
+): { url: string | undefined; badge: "EN" | "中文" | null } {
+  const same = internal.urls[locale];
+  if (same) return { url: same, badge: null };
+  const other: Locale = locale === "en" ? "zh" : "en";
+  const fallback = internal.urls[other];
+  if (fallback) return { url: fallback, badge: other === "en" ? "EN" : "中文" };
+  return { url: undefined, badge: null };
+}
 
 /**
  * Resolve a card target's effective preview by layering, highest priority last:
@@ -68,6 +113,7 @@ function resolveVideoThumbnail(
 export function enrichLogDataWithPreviews(
   logData: LogData,
   snapshot: OGSnapshot,
+  blogManifest: BlogLangManifest = {},
 ): LogData {
   return {
     ...logData,
@@ -76,17 +122,24 @@ export function enrichLogDataWithPreviews(
       return {
         ...commit,
         media: commit.media.map((m) => {
-          const preview = resolvePreview(m, snapshot);
+          let next: Media = m;
+          const preview = resolvePreview(next, snapshot);
           if (preview) {
             // Cast: preview is only produced for link cards, but TS can't
             // narrow that from the predicate.
-            return { ...m, preview } as Media;
+            next = { ...next, preview } as Media;
           }
-          const thumbnail = resolveVideoThumbnail(m, snapshot);
+          const thumbnail = resolveVideoThumbnail(next, snapshot);
           if (thumbnail) {
-            return { ...m, thumbnail } as Media;
+            next = { ...next, thumbnail } as Media;
           }
-          return m;
+          if (next.kind === "link") {
+            const internal = resolveInternal(next.url, blogManifest);
+            if (internal) {
+              next = { ...next, internal } as Media;
+            }
+          }
+          return next;
         }),
       };
     }),

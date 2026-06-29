@@ -10,6 +10,7 @@ import type { Locale } from "@/lib/i18n";
 import type {
   Commit,
   CommitType,
+  InternalLinkMeta,
   Media,
 } from "@/lib/log";
 import {
@@ -26,6 +27,7 @@ import {
   isPinnedMedia,
   getMediaThumbnail,
 } from "@/lib/log";
+import { pickInternalLink } from "@/lib/og-enrich";
 import { detectSocialEmbedPlatform, getDomainLabel } from "@/lib/og-core";
 
 // =============================================================================
@@ -36,6 +38,12 @@ export interface SimpleLink {
   url: string;
   label: string;
   icon: string;
+  /**
+   * Pills derived from a `present:"card"` link: the icon stays (anchors the
+   * right-rail rhythm), but the label is suppressed on expand since the card
+   * itself prints the domain + title right below.
+   */
+  redundantWhenExpanded?: boolean;
 }
 
 export interface NormalizedCommit {
@@ -120,8 +128,25 @@ function socialEmbedToLink(m: {
  * row's rail symmetric whether the URL renders as an OG card or a native
  * widget. Falls back to a globe + domain label.
  */
-function linkCardToLink(m: { url: string }): SimpleLink {
-  return { url: m.url, label: getDomainLabel(m.url), icon: "globe" };
+function linkCardToLink(
+  m: { url: string; internal?: InternalLinkMeta },
+  locale: Locale,
+): SimpleLink {
+  if (m.internal) {
+    const { url } = pickInternalLink(m.internal, locale);
+    return {
+      url: url ?? m.url,
+      label: "/writing",
+      icon: "globe",
+      redundantWhenExpanded: true,
+    };
+  }
+  return {
+    url: m.url,
+    label: getDomainLabel(m.url),
+    icon: "globe",
+    redundantWhenExpanded: true,
+  };
 }
 
 /**
@@ -150,7 +175,7 @@ export function extractMediaLinks(
       links.push(socialEmbedToLink(m));
     } else if (isLinkMedia(m)) {
       if (m.present === "card") {
-        links.push(linkCardToLink(m));
+        links.push(linkCardToLink(m, locale));
       } else {
         links.push({
           url: m.url,

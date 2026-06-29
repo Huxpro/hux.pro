@@ -120,6 +120,19 @@ type Pinned = { pinned?: true };
  *
  * `label` / `icon` are pill-only display overrides; harmless on a card.
  */
+/** Per-locale URL map. Keys present are the locales a resource exists in. */
+export type LocaleUrls = Partial<Record<"en" | "zh", string>>;
+
+/**
+ * Set server-side at enrichment time for internal `/writing/{slug}/{lang}`
+ * URLs. Not author-authored; written by the enrichment pipeline.
+ */
+export interface InternalLinkMeta {
+  kind: "writing";
+  slug: string;
+  urls: LocaleUrls;
+}
+
 export interface LinkMedia extends Pinned {
   kind: "link";
   url: string;
@@ -130,6 +143,8 @@ export interface LinkMedia extends Pinned {
   label?: string;
   /** Pill-only: icon key (e.g. "github", "globe"). */
   icon?: string;
+  /** Resolved at enrichment time — see {@link InternalLinkMeta}. */
+  internal?: InternalLinkMeta;
 }
 
 /**
@@ -1191,7 +1206,14 @@ export function getCommitThumbnails(commit: Commit): string[] {
  *                player / asset IS the visual signal; no text strip needed.
  */
 export type PeekItem =
-  | { kind: "card"; url: string; title?: string; description?: string; image: string }
+  | {
+      kind: "card";
+      url: string;
+      title?: string;
+      description?: string;
+      image: string;
+      internal?: InternalLinkMeta;
+    }
   | { kind: "thumb"; url: string; image: string };
 
 /**
@@ -1218,6 +1240,7 @@ export function getCommitPeekItems(commit: Commit): PeekItem[] {
           title: m.preview?.title,
           description: m.preview?.description,
           image,
+          internal: m.internal,
         });
       }
       continue;

@@ -319,7 +319,7 @@ export function TimelineCommit({
               className="inline-flex items-center gap-1 text-muted-foreground/40 hover:text-foreground transition-colors"
             >
               <LinkIcon icon={link.icon} />
-              {isExpanded && (
+              {isExpanded && !link.redundantWhenExpanded && (
                 <span className="hidden @sm:inline text-xs">
                   {link.label}
                 </span>

@@ -15,7 +15,9 @@ import { cn } from "@/lib/utils";
 import { fetchOGData } from "@/lib/og";
 import type { OGData } from "@/lib/og-core";
 import { getDomainLabel, isArchivedUrl } from "@/lib/og-core";
-import type { LinkMedia } from "@/lib/log";
+import type { InternalLinkMeta, LinkMedia } from "@/lib/log";
+import { pickInternalLink } from "@/lib/og-enrich";
+import { useLocale } from "@/services";
 import { ExternalImage } from "./external-image";
 
 // =============================================================================
@@ -52,6 +54,8 @@ export interface LinkCardProps {
    * Non-mobile layouts are unchanged.
    */
   dense?: boolean;
+  /** Resolved at enrichment time — see {@link InternalLinkMeta}. */
+  internal?: InternalLinkMeta;
   /** Additional CSS classes */
   className?: string;
 }
@@ -154,6 +158,10 @@ export interface CardFaceProps {
   fixedAspect?: boolean;
   /** See `LinkCardProps.dense`. */
   dense?: boolean;
+  /** Caption override — internal-link cards print `/writing` here. */
+  domainLabel?: string;
+  /** "EN" / "中文" when the post is only available in the non-current locale. */
+  languageBadge?: "EN" | "中文" | null;
   className?: string;
   /** Fires when the foreground image resolves (load / cache-warm / error). */
   onImgResolved?: () => void;
@@ -173,11 +181,13 @@ export function CardFace({
   size = "default",
   fixedAspect = false,
   dense = false,
+  domainLabel,
+  languageBadge = null,
   className,
   onImgResolved,
 }: CardFaceProps) {
   const compact = size === "compact";
-  const domain = getDomainLabel(url);
+  const domain = domainLabel ?? getDomainLabel(url);
   const [imgLoaded, setImgLoaded] = useState(false);
   const handleResolved = () => {
     setImgLoaded(true);
@@ -242,6 +252,22 @@ export function CardFace({
           )}
         >
           <span className="truncate">{domain}</span>
+          {languageBadge && (
+            <span
+              className={cn(
+                "inline-flex items-center shrink-0",
+                "px-1.5 py-px rounded-sm border border-border/60",
+                "text-[10px] leading-none text-muted-foreground/90",
+              )}
+              title={
+                languageBadge === "EN"
+                  ? "This post is only available in English"
+                  : "本文仅有中文版本"
+              }
+            >
+              {languageBadge}
+            </span>
+          )}
           {isArchivedUrl(url) && (
             // Restrained tag — reuses the existing domain-row typography so
             // it sits on the same baseline; a hair-thin border keeps it
@@ -302,8 +328,14 @@ export function LinkCard({
   image: imageOverride,
   size = "default",
   dense = false,
+  internal,
   className,
 }: LinkCardProps) {
+  const { locale } = useLocale();
+  const resolved = internal ? pickInternalLink(internal, locale) : null;
+  const effectiveUrl = resolved?.url ?? url;
+  const domainLabel = internal ? "/writing" : undefined;
+  const languageBadge = resolved?.badge ?? null;
   // When a preview is already resolved (manual override or build-time
   // snapshot, baked in server-side), seed state synchronously so the card
   // paints immediately — no skeleton flash, no request-time crawl.
@@ -386,15 +418,23 @@ export function LinkCard({
 
   // Wrapper owns the `block` + clickability; CardFace owns the card geometry
   // (including `h-full` so it stretches to fill the anchor in tiled grids).
+  // Internal links stay in-tab; only external links get the new-tab treatment.
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+    <a
+      href={effectiveUrl}
+      target={internal ? undefined : "_blank"}
+      rel={internal ? undefined : "noopener noreferrer"}
+      className="block"
+    >
       <CardFace
-        url={url}
+        url={effectiveUrl}
         title={ogData?.title}
         description={ogData?.description}
         image={ogData?.image}
         size={size}
         dense={dense}
+        domainLabel={domainLabel}
+        languageBadge={languageBadge}
         className={cn(
           "h-full hover:bg-muted/10 hover:border-border/70 transition-colors",
           className,
