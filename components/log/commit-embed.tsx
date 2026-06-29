@@ -12,7 +12,7 @@
 
 import { useCallback, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
-import type { Commit as CommitData, PeekItem } from "@/lib/log";
+import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
 import { getCommitPeekItems, localize } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./media/external-image";
@@ -20,6 +20,7 @@ import { CardFace } from "./media/link";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
+import { useTimelineEdit } from "./timeline-edit-context";
 
 // =============================================================================
 // Types
@@ -67,6 +68,8 @@ export function Commit({
   onBeamSet,
   onBeamClear,
 }: CommitProps) {
+  const edit = useTimelineEdit();
+
   // Runtime guard: MDX/JSON inputs can bypass static typing.
   if (
     !commit ||
@@ -82,6 +85,21 @@ export function Commit({
 
   const data = normalizeCommit(commit, locale);
   const preview = buildCommitPreview(commit, locale);
+  const inspecting = edit?.mode === "inspect";
+  const isSelected = !!edit && edit.selectedCommitId === commit.id;
+  const selectedMedia =
+    inspecting && isSelected && edit && edit.selectedMediaIndex != null
+      ? commit.media?.[edit.selectedMediaIndex] ?? null
+      : null;
+  const onInspectCommit =
+    inspecting && edit ? () => edit.onSelectCommit(commit.id) : undefined;
+  const onInspectMedia =
+    inspecting && edit
+      ? (media: Media) => {
+          const index = commit.media?.indexOf(media) ?? -1;
+          if (index >= 0) edit.onSelectMedia(commit.id, index);
+        }
+      : undefined;
 
   switch (variant) {
     case "timeline":
@@ -100,6 +118,12 @@ export function Commit({
           beamSpec={beamSpec}
           onBeamSet={onBeamSet}
           onBeamClear={onBeamClear}
+          inspecting={inspecting}
+          isSelected={isSelected}
+          isUnlisted={commit.listed === false}
+          onInspectCommit={onInspectCommit}
+          onInspectMedia={onInspectMedia}
+          selectedMedia={selectedMedia}
         />
       );
 

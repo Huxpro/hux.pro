@@ -63,6 +63,12 @@ interface TimelineCommitProps {
    *  where a sibling's stale clear would otherwise overwrite a fresh
    *  hover on another row. */
   onBeamClear?: (spec: BeamSpec) => void;
+  inspecting?: boolean;
+  isSelected?: boolean;
+  isUnlisted?: boolean;
+  onInspectCommit?: () => void;
+  onInspectMedia?: (media: Media) => void;
+  selectedMedia?: Media | null;
 }
 
 export function TimelineCommit({
@@ -74,17 +80,22 @@ export function TimelineCommit({
   hideDate = false,
   rail,
   isRole = false,
-  segmentId = null,
-  isSegmentActive = false,
   beamSpec = null,
   onBeamSet,
   onBeamClear,
+  inspecting = false,
+  isSelected = false,
+  isUnlisted = false,
+  onInspectCommit,
+  onInspectMedia,
+  selectedMedia = null,
 }: TimelineCommitProps) {
   const Icon =
     (data.iconOverride && commitIconOverrides[data.iconOverride]) ||
     commitIcons[data.type];
   const isEvent = data.type === "event";
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [isExpandedState, setIsExpanded] = useState(defaultExpanded);
+  const isExpanded = inspecting ? isSelected : isExpandedState;
 
   const hasExpandableContent = !!(
     data.description ||
@@ -107,7 +118,11 @@ export function TimelineCommit({
     setIsExpanded((prev) => !prev);
   }, [hasExpandableContent]);
 
-  const rowOnClick = hasExpandableContent ? handleToggleExpanded : undefined;
+  const rowOnClick = inspecting
+    ? onInspectCommit
+    : hasExpandableContent
+      ? handleToggleExpanded
+      : undefined;
 
   const showCursorPreview = !!cursorPreview && !isExpanded;
 
@@ -357,12 +372,19 @@ export function TimelineCommit({
 
       {/* Pinned items: rendered once here whether the row is folded or
           expanded, so toggling never remounts them. */}
-      {data.pinnedMedia.length > 0 && (
+      {pinnedMedia.length > 0 && (
         <div
           className="col-start-2 @sm:col-start-3 mt-2"
           onClick={(e) => e.stopPropagation()}
         >
-          <MediaRenderer media={data.pinnedMedia} layout="stack" size="default" />
+          <MediaRenderer
+            media={pinnedMedia}
+            layout="stack"
+            size="default"
+            inspecting={inspecting}
+            onInspect={onInspectMedia}
+            selectedMedia={selectedMedia}
+          />
         </div>
       )}
 
@@ -381,6 +403,9 @@ export function TimelineCommit({
                 media={expandedMedia}
                 layout="stack"
                 size="default"
+                inspecting={inspecting}
+                onInspect={onInspectMedia}
+                selectedMedia={selectedMedia}
               />
             </div>
           )}
@@ -434,6 +459,10 @@ export function TimelineCommit({
             isEvent ? "py-1" : "py-2.5",
             rowOnClick ? "cursor-pointer" : "cursor-default",
             "@container hover:bg-muted/20 active:bg-muted/30",
+            inspecting && "hover:ring-1 hover:ring-inset hover:ring-sky-500/35",
+            isUnlisted && "opacity-55",
+            isSelected &&
+              "bg-sky-500/[0.06] ring-1 ring-inset ring-sky-500/70 hover:ring-sky-500/70",
           )}
         >
           {rowContent}

@@ -11,10 +11,12 @@ import {
   getLocalizedTagTitle,
   type Tag,
 } from "@/lib/log";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Commit } from "./commit-embed";
 import { TimelineConnector } from "./timeline-connector";
 import type { BeamSpec } from "./timeline-commit";
+import { useTimelineEdit } from "./timeline-edit-context";
 
 interface LogTimelineProps {
   data: {
@@ -52,6 +54,11 @@ interface TagBlockProps {
 }
 
 function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
+  const edit = useTimelineEdit();
+  const inspecting = edit?.mode === "inspect";
+  const isTagSelected = edit?.editingTagId === tag.id;
+  const tagLabel =
+    tagIndex === 0 ? "HEAD" : getLocalizedTagTitle(tag, locale).toUpperCase();
   const [activeBeam, setActiveBeam] = useState<BeamSpec | null>(null);
   const handleBeamSet = useCallback(
     (spec: BeamSpec) => setActiveBeam(spec),
@@ -142,15 +149,40 @@ function TagBlock({ tag, commits, tagIndex, locale }: TagBlockProps) {
             page" look). Compositing a tint at alpha α over backdrop B gives a
             uniform shift, so a solid background reads the same as before while
             a gradient keeps its hue. */}
-        <span className="inline-flex items-center bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border border-border rounded-full">
-          {tagIndex === 0
-            ? "HEAD"
-            : getLocalizedTagTitle(tag, locale).toUpperCase()}
-        </span>
+        {inspecting && edit ? (
+          <button
+            type="button"
+            onClick={() => edit.onSelectTag(tag.id)}
+            className={cn(
+              "inline-flex items-center bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full transition-colors",
+              isTagSelected
+                ? "border-sky-500/70 ring-1 ring-inset ring-sky-500/35 bg-sky-500/[0.05]"
+                : "border-border hover:border-sky-500/50",
+            )}
+            title="Inspect chapter"
+          >
+            {tagLabel}
+          </button>
+        ) : (
+          <span className="inline-flex items-center bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border border-border rounded-full">
+            {tagLabel}
+          </span>
+        )}
         {!tag.hideDate && (
           <span className="font-mono text-xs text-muted-foreground/50">
             {formatTagDateRange(tag, locale)}
           </span>
+        )}
+        {inspecting && edit && (
+          <button
+            type="button"
+            onClick={() => edit.onAddCommit(tag.id)}
+            className="inline-flex items-center justify-center text-muted-foreground/40 hover:text-foreground transition-colors"
+            title="Add entry"
+            aria-label="Add entry"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
         )}
       </div>
 

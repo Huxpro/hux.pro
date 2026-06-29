@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type {
   Commit,
@@ -12,7 +12,8 @@ import type {
   VideoPlatform,
   SocialEmbedPlatform,
 } from "@/lib/log";
-import { ArrowLeft, Trash2, Plus } from "lucide-react";
+import { X, Trash2, Plus } from "lucide-react";
+import { commitIcons } from "@/components/log/icons";
 import { toast } from "sonner";
 
 interface CommitEditorProps {
@@ -20,7 +21,9 @@ interface CommitEditorProps {
   tags: Tag[];
   onUpdate: (commit: Commit) => void;
   onDelete: () => void;
-  onBack: () => void;
+  onClose: () => void;
+  focusMediaIndex?: number | null;
+  onFocusMediaIndexChange?: (index: number | null) => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -273,13 +276,16 @@ export function CommitEditor({
   tags,
   onUpdate,
   onDelete,
-  onBack,
+  onClose,
+  focusMediaIndex = null,
+  onFocusMediaIndexChange,
 }: CommitEditorProps) {
   const [tab, setTab] = useState<"form" | "json">("form");
   const [jsonText, setJsonText] = useState(() =>
     JSON.stringify(commit, null, 2)
   );
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const TypeIcon = commitIcons[commit.type];
 
   // Sync JSON text when switching to JSON tab or when commit changes externally
   const switchToJson = () => {
@@ -328,18 +334,22 @@ export function CommitEditor({
 
   return (
     <div className="flex flex-col min-h-0 flex-1">
-      {/* Header */}
-      <div className="shrink-0 border-b border-border px-3 py-2 flex items-center justify-between">
-        <button
-          onClick={onBack}
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="w-3 h-3" />
-          Back
-        </button>
-        <div className="flex items-center gap-2">
+      <div className="shrink-0 border-b border-border px-3 py-2 flex items-center justify-between gap-2">
+        <div className="min-w-0 flex items-center gap-2">
+          <TypeIcon className="w-3.5 h-3.5 shrink-0 text-muted-foreground/60" />
+          <div className="min-w-0">
+            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50">
+              {commit.type}
+            </div>
+            <div className="text-sm truncate leading-tight">
+              {commit.title.en || commit.id}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
           <div className="flex border border-border/50 rounded overflow-hidden">
             <button
+              type="button"
               onClick={() => setTab("form")}
               className={cn(
                 "px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-colors",
@@ -351,6 +361,7 @@ export function CommitEditor({
               Form
             </button>
             <button
+              type="button"
               onClick={switchToJson}
               className={cn(
                 "px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-colors",
@@ -363,11 +374,21 @@ export function CommitEditor({
             </button>
           </div>
           <button
+            type="button"
             onClick={onDelete}
             className="p-1 text-muted-foreground/40 hover:text-red-500 rounded transition-colors"
             title="Delete commit"
           >
             <Trash2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 text-muted-foreground/50 hover:text-foreground rounded transition-colors"
+            title="Close inspector"
+            aria-label="Close inspector"
+          >
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -401,6 +422,8 @@ export function CommitEditor({
             tags={tags}
             onUpdate={update}
             onTypeChange={handleTypeChange}
+            focusMediaIndex={focusMediaIndex}
+            onFocusMediaIndexChange={onFocusMediaIndexChange}
           />
         )}
       </div>
@@ -417,11 +440,15 @@ function FormFields({
   tags,
   onUpdate,
   onTypeChange,
+  focusMediaIndex,
+  onFocusMediaIndexChange,
 }: {
   commit: Commit;
   tags: Tag[];
   onUpdate: (partial: Record<string, unknown>) => void;
   onTypeChange: (type: CommitType) => void;
+  focusMediaIndex?: number | null;
+  onFocusMediaIndexChange?: (index: number | null) => void;
 }) {
   const commitTypes: CommitType[] = ["project", "talk", "post", "role", "social", "event"];
 
@@ -554,6 +581,8 @@ function FormFields({
         key={commit.id}
         media={commit.media ?? []}
         onChange={(media) => onUpdate({ media: media.length > 0 ? media : undefined })}
+        focusIndex={focusMediaIndex}
+        onFocusIndexChange={onFocusMediaIndexChange}
       />
     </div>
   );
@@ -821,9 +850,13 @@ function emptyDraft(): MediaDraft {
 function MediaSection({
   media,
   onChange,
+  focusIndex,
+  onFocusIndexChange,
 }: {
   media: Media[];
   onChange: (media: Media[]) => void;
+  focusIndex?: number | null;
+  onFocusIndexChange?: (index: number | null) => void;
 }) {
   // Working draft state — one per row, hydrated once at mount.
   //
@@ -845,6 +878,13 @@ function MediaSection({
   };
 
   const deleteItem = (index: number) => {
+    if (focusIndex != null) {
+      if (focusIndex === index) {
+        onFocusIndexChange?.(null);
+      } else if (focusIndex > index) {
+        onFocusIndexChange?.(focusIndex - 1);
+      }
+    }
     propagate(drafts.filter((_, i) => i !== index));
   };
 
@@ -875,6 +915,7 @@ function MediaSection({
           draft={draft}
           onChange={(updated) => updateItem(i, updated)}
           onDelete={() => deleteItem(i)}
+          focused={focusIndex === i}
         />
       ))}
     </>
@@ -891,21 +932,39 @@ function MediaItemEditor({
   draft,
   onChange,
   onDelete,
+  focused = false,
 }: {
   draft: MediaDraft;
   onChange: (draft: MediaDraft) => void;
   onDelete: () => void;
+  focused?: boolean;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
   const set = (patch: Partial<MediaDraft>) => onChange({ ...draft, ...patch });
 
+  useEffect(() => {
+    if (focused && ref.current) {
+      ref.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [focused]);
+
   return (
-    <div className="border border-border/30 rounded p-2 space-y-1.5 relative">
+    <div
+      ref={ref}
+      className={cn(
+        "border rounded p-2 space-y-1.5 relative transition-colors",
+        focused
+          ? "border-sky-500/70 ring-1 ring-inset ring-sky-500/35 bg-sky-500/[0.05]"
+          : "border-border/30",
+      )}
+    >
       <div className="flex items-center justify-between">
         <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50">
           {draft.kind}
           {draft.kind === "link" && draft.present ? ` · ${draft.present}` : ""}
         </span>
         <button
+          type="button"
           onClick={onDelete}
           className="p-0.5 text-muted-foreground/30 hover:text-red-500 rounded transition-colors"
           title="Remove media"

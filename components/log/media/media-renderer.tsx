@@ -10,6 +10,8 @@
  * collapse into a chip row at the end).
  */
 
+import { type ReactNode } from "react";
+import { MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/services/theme";
 import type { Media } from "@/lib/log";
@@ -41,6 +43,70 @@ export interface MediaRendererProps {
   layout?: "stack" | "inline" | "grid";
   /** Additional CSS classes. */
   className?: string;
+  /** Editor inspect mode: reveal small selection handles without blocking media clicks. */
+  inspecting?: boolean;
+  /** Select an individual media item for inspection. */
+  onInspect?: (media: Media) => void;
+  /** The media item currently focused in the Inspector, if any. */
+  selectedMedia?: Media | null;
+}
+
+function InspectableMedia({
+  media,
+  inspecting,
+  selected,
+  inline = false,
+  onInspect,
+  children,
+}: {
+  media: Media;
+  inspecting: boolean;
+  selected: boolean;
+  inline?: boolean;
+  onInspect?: (media: Media) => void;
+  children: ReactNode;
+}) {
+  if (!inspecting) return <>{children}</>;
+
+  return (
+    <div
+      data-editor-interactive
+      className={cn(
+        "relative group/media",
+        inline ? "inline-flex rounded-md" : "rounded-lg",
+      )}
+    >
+      {children}
+      <span
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-0 z-10 ring-inset transition",
+          inline ? "rounded-md" : "rounded-lg",
+          selected
+            ? "ring-2 ring-sky-500/70 bg-sky-500/[0.04]"
+            : "ring-0 group-hover/media:ring-1 group-hover/media:ring-sky-500/35",
+        )}
+      />
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onInspect?.(media);
+        }}
+        className={cn(
+          "absolute right-1.5 top-1.5 z-20 inline-flex h-6 w-6 items-center justify-center rounded-md border border-border/70 bg-background/90 text-muted-foreground shadow-sm transition-opacity hover:text-foreground focus:opacity-100",
+          selected
+            ? "opacity-100 border-sky-500/70 text-sky-600 ring-1 ring-inset ring-sky-500/35 dark:text-sky-400"
+            : "opacity-0 group-hover/media:opacity-100 group-focus-within/media:opacity-100",
+        )}
+        title="Inspect media"
+        aria-label="Inspect media"
+      >
+        <MousePointer2 className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
 }
 
 interface SingleMediaProps {
@@ -120,6 +186,9 @@ export function MediaRenderer({
   size = "default",
   layout = "stack",
   className,
+  inspecting = false,
+  onInspect,
+  selectedMedia = null,
 }: MediaRendererProps) {
   // Use site theme from context, allow prop override.
   const { theme: siteTheme } = useTheme();
@@ -127,6 +196,24 @@ export function MediaRenderer({
   if (!media || media.length === 0) {
     return null;
   }
+
+  const wrap = (
+    key: string,
+    m: Media,
+    node: ReactNode,
+    inline = false,
+  ) => (
+    <InspectableMedia
+      key={key}
+      media={m}
+      inspecting={inspecting}
+      selected={selectedMedia === m}
+      inline={inline}
+      onInspect={onInspect}
+    >
+      {node}
+    </InspectableMedia>
+  );
 
   const layoutClasses = {
     stack: "flex flex-col gap-4",
@@ -147,14 +234,14 @@ export function MediaRenderer({
   if (!hasRichMedia && pills.length > 0) {
     return (
       <div className={cn("flex flex-wrap gap-3", className)}>
-        {pills.map((m, i) => (
-          <SingleMedia
-            key={`pill-${i}`}
-            media={m}
-            theme={theme}
-            size={size}
-          />
-        ))}
+        {pills.map((m, i) =>
+          wrap(
+            `pill-${i}`,
+            m,
+            <SingleMedia media={m} theme={theme} size={size} />,
+            true,
+          ),
+        )}
       </div>
     );
   }
@@ -164,14 +251,13 @@ export function MediaRenderer({
   return (
     <div className={cn(layoutClasses[layout], className)}>
       {/* Players (video / image) — vertical stack. */}
-      {players.map((m, i) => (
-        <SingleMedia
-          key={`player-${i}`}
-          media={m}
-          theme={theme}
-          size={size}
-        />
-      ))}
+      {players.map((m, i) =>
+        wrap(
+          `player-${i}`,
+          m,
+          <SingleMedia media={m} theme={theme} size={size} />,
+        ),
+      )}
 
       {/* Cards (link-cards + social widgets) — tile two-up when >1. */}
       {cards.length > 0 && (
@@ -182,15 +268,18 @@ export function MediaRenderer({
               multipleCards && "grid grid-cols-2 gap-2.5",
             )}
           >
-            {cards.map((m, i) => (
-              <SingleMedia
-                key={`card-${i}`}
-                media={m}
-                theme={theme}
-                size={multipleCards ? "compact" : size}
-                className={multipleCards ? "w-full max-w-none" : undefined}
-              />
-            ))}
+            {cards.map((m, i) =>
+              wrap(
+                `card-${i}`,
+                m,
+                <SingleMedia
+                  media={m}
+                  theme={theme}
+                  size={multipleCards ? "compact" : size}
+                  className={multipleCards ? "w-full max-w-none" : undefined}
+                />,
+              ),
+            )}
           </div>
         </div>
       )}
@@ -198,14 +287,14 @@ export function MediaRenderer({
       {/* Pills at the end. */}
       {pills.length > 0 && (
         <div className="flex flex-wrap gap-3">
-          {pills.map((m, i) => (
-            <SingleMedia
-              key={`pill-${i}`}
-              media={m}
-              theme={theme}
-              size={size}
-            />
-          ))}
+          {pills.map((m, i) =>
+            wrap(
+              `pill-${i}`,
+              m,
+              <SingleMedia media={m} theme={theme} size={size} />,
+              true,
+            ),
+          )}
         </div>
       )}
     </div>

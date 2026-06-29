@@ -929,9 +929,14 @@ export function computeBeams(commits: Commit[]): BeamLink[] {
 export function buildTimelineData(
   logData: LogData,
   locale?: Locale,
+  opts?: { includeAll?: boolean },
 ): TimelineData[] {
   const visible = logData.commits.filter((c) =>
-    locale ? isCommitVisibleIn(c, locale) : isCommitListed(c),
+    opts?.includeAll
+      ? true
+      : locale
+        ? isCommitVisibleIn(c, locale)
+        : isCommitListed(c),
   );
   const sortedTags = sortTagsByDate(logData.tags);
   return sortedTags.map((tag) => ({
@@ -1234,4 +1239,3 @@ export function getCommitPrimaryMedia(commit: Commit): Media | null {
   }
   return media[0] ?? null;
 }
-
