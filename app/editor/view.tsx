@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import {
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+  type MouseEvent,
+} from "react";
 import type { LogData, Commit, Tag } from "@/lib/log";
 import { buildTimelineData } from "@/lib/log";
 import {
@@ -9,10 +15,14 @@ import {
 } from "@/lib/og-enrich";
 import ogSnapshotJson from "@/content/og-snapshot.json";
 import { LogTimeline } from "@/components/log/log-timeline";
+import {
+  TimelineEditProvider,
+  type InspectMode,
+} from "@/components/log/timeline-edit-context";
 import { useLocale } from "@/services";
 import { toast } from "sonner";
+import { MousePointer2 } from "lucide-react";
 import { EditorToolbar } from "./toolbar";
-import { CommitList } from "./commit-list";
 import { CommitEditor } from "./commit-editor";
 import { TagEditor } from "./tag-editor";
 
@@ -21,6 +31,7 @@ import { TagEditor } from "./tag-editor";
 // not in the snapshot still need `pnpm og:snapshot` to gain a baked preview;
 // the LinkCard component's runtime fetch is the third-tier fallback.
 const ogSnapshot = ogSnapshotJson as OGSnapshot;
+const INSPECT_MIN_WIDTH = 1024;
 
 interface EditorViewProps {
   initialData: LogData;
@@ -29,8 +40,13 @@ interface EditorViewProps {
 export function EditorView({ initialData }: EditorViewProps) {
   const [data, setData] = useState<LogData>(initialData);
   const [savedData, setSavedData] = useState<LogData>(initialData);
+  const [mode, setMode] = useState<InspectMode>("preview");
   const [selectedCommitId, setSelectedCommitId] = useState<string | null>(null);
   const [editingTag, setEditingTag] = useState<string | null>(null);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(
+    null,
+  );
+  const [inspectDisabled, setInspectDisabled] = useState(false);
   const [saving, setSaving] = useState(false);
   const { locale } = useLocale();
 
@@ -38,20 +54,79 @@ export function EditorView({ initialData }: EditorViewProps) {
   // so `data === savedData` exactly tracks "no unsaved changes" without
   // re-serializing the whole log on every keystroke.
   const isDirty = data !== savedData;
+  const effectiveMode: InspectMode = inspectDisabled ? "preview" : mode;
+  const inspecting = effectiveMode === "inspect";
 
   // Derive preview data — runs the snapshot enrichment (same as /works does
   // server-side) so flipping a media item to `present:"card"` immediately
   // surfaces the OG cover in the hover/peek view, provided the URL is in the
   // snapshot. URLs that aren't snapshotted yet need `pnpm og:snapshot`.
   const previewData = useMemo(
-    () => buildTimelineData(enrichLogDataWithPreviews(data, ogSnapshot)),
-    [data],
+    () =>
+      buildTimelineData(
+        enrichLogDataWithPreviews(data, ogSnapshot),
+        inspecting ? undefined : locale,
+        inspecting ? { includeAll: true } : undefined,
+      ),
+    [data, inspecting, locale],
   );
 
   const selectedCommit = useMemo(
     () => data.commits.find((c) => c.id === selectedCommitId) ?? null,
     [data.commits, selectedCommitId]
   );
+
+  const editingTagObj = useMemo(
+    () => data.tags.find((t) => t.id === editingTag) ?? null,
+    [data.tags, editingTag],
+  );
+
+  const clearSelection = useCallback(() => {
+    setSelectedCommitId(null);
+    setEditingTag(null);
+    setSelectedMediaIndex(null);
+  }, []);
+
+  const selectCommit = useCallback((id: string) => {
+    setSelectedCommitId(id);
+    setEditingTag(null);
+    setSelectedMediaIndex(null);
+  }, []);
+
+  const selectMedia = useCallback((commitId: string, mediaIndex: number) => {
+    setSelectedCommitId(commitId);
+    setEditingTag(null);
+    setSelectedMediaIndex(mediaIndex);
+  }, []);
+
+  const selectTag = useCallback((id: string) => {
+    setEditingTag(id);
+    setSelectedCommitId(null);
+    setSelectedMediaIndex(null);
+  }, []);
+
+  const handleModeChange = useCallback(
+    (next: InspectMode) => {
+      if (next === "inspect" && inspectDisabled) return;
+      setMode(next);
+      if (next === "preview") clearSelection();
+    },
+    [inspectDisabled, clearSelection],
+  );
+
+  useEffect(() => {
+    const query = window.matchMedia(`(max-width: ${INSPECT_MIN_WIDTH - 1}px)`);
+    const syncInspectAvailability = () => setInspectDisabled(query.matches);
+    syncInspectAvailability();
+    query.addEventListener("change", syncInspectAvailability);
+    return () => query.removeEventListener("change", syncInspectAvailability);
+  }, []);
+
+  useEffect(() => {
+    if (!inspectDisabled || mode !== "inspect") return;
+    setMode("preview");
+    clearSelection();
+  }, [inspectDisabled, mode, clearSelection]);
 
   // --- Handlers ---
 
@@ -83,13 +158,12 @@ export function EditorView({ initialData }: EditorViewProps) {
       const fresh: LogData = await res.json();
       setData(fresh);
       setSavedData(fresh);
-      setSelectedCommitId(null);
-      setEditingTag(null);
+      clearSelection();
       toast.success("Reloaded from disk");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Reset failed");
     }
-  }, []);
+  }, [clearSelection]);
 
   const handleUpdateCommit = useCallback(
     (updated: Commit) => {
@@ -108,14 +182,15 @@ export function EditorView({ initialData }: EditorViewProps) {
         commits: prev.commits.filter((c) => c.id !== commitId),
       }));
       if (selectedCommitId === commitId) {
-        setSelectedCommitId(null);
+        clearSelection();
       }
     },
-    [selectedCommitId]
+    [selectedCommitId, clearSelection]
   );
 
   const handleAddCommit = useCallback(
     (tagId: string) => {
+      if (inspectDisabled) return;
       const id = `new-${Date.now()}`;
       const newCommit: Commit = {
         type: "post",
@@ -132,9 +207,10 @@ export function EditorView({ initialData }: EditorViewProps) {
         ...prev,
         commits: [...prev.commits, newCommit],
       }));
-      setSelectedCommitId(id);
+      setMode("inspect");
+      selectCommit(id);
     },
-    []
+    [inspectDisabled, selectCommit]
   );
 
   const handleUpdateTag = useCallback(
@@ -148,6 +224,7 @@ export function EditorView({ initialData }: EditorViewProps) {
   );
 
   const handleAddTag = useCallback(() => {
+    if (inspectDisabled) return;
     const id = `tag-${Date.now()}`;
     const newTag: Tag = {
       id,
@@ -159,8 +236,56 @@ export function EditorView({ initialData }: EditorViewProps) {
       ...prev,
       tags: [newTag, ...prev.tags],
     }));
-    setEditingTag(id);
-  }, []);
+    setMode("inspect");
+    selectTag(id);
+  }, [inspectDisabled, selectTag]);
+
+  const editContext = useMemo(
+    () => ({
+      mode: effectiveMode,
+      selectedCommitId,
+      editingTagId: editingTag,
+      selectedMediaIndex,
+      onSelectCommit: selectCommit,
+      onSelectTag: selectTag,
+      onSelectMedia: selectMedia,
+      onAddCommit: handleAddCommit,
+    }),
+    [
+      effectiveMode,
+      selectedCommitId,
+      editingTag,
+      selectedMediaIndex,
+      selectCommit,
+      selectTag,
+      selectMedia,
+      handleAddCommit,
+    ],
+  );
+
+  const handleCanvasClick = useCallback(
+    (e: MouseEvent<HTMLDivElement>) => {
+      if (!inspecting) return;
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      const interactive = target.closest(
+        [
+          "button",
+          "a",
+          "input",
+          "textarea",
+          "select",
+          "[role='button']",
+          "[data-editor-interactive]",
+        ].join(","),
+      );
+      if (interactive) return;
+
+      clearSelection();
+    },
+    [inspecting, clearSelection],
+  );
 
   return (
     <div className="h-dvh flex flex-col bg-background text-foreground">
@@ -168,51 +293,21 @@ export function EditorView({ initialData }: EditorViewProps) {
       <EditorToolbar
         isDirty={isDirty}
         saving={saving}
+        mode={effectiveMode}
+        inspectDisabled={inspectDisabled}
+        onModeChange={handleModeChange}
         onSave={handleSave}
         onReset={handleReset}
         onAddTag={handleAddTag}
       />
 
-      {/* Split pane */}
+      {/* Preview canvas + optional inspector */}
       <div className="flex-1 flex min-h-0">
-        {/* Editor panel */}
-        <div className="w-[480px] shrink-0 border-r border-border flex flex-col min-h-0">
-          {/* Tag editing */}
-          {editingTag && (
-            <div className="border-b border-border">
-              <TagEditor
-                tag={data.tags.find((t) => t.id === editingTag)!}
-                onUpdate={handleUpdateTag}
-                onClose={() => setEditingTag(null)}
-              />
-            </div>
-          )}
-
-          {/* Commit list + editor */}
-          {selectedCommit ? (
-            <CommitEditor
-              commit={selectedCommit}
-              tags={data.tags}
-              onUpdate={handleUpdateCommit}
-              onDelete={() => handleDeleteCommit(selectedCommit.id)}
-              onBack={() => setSelectedCommitId(null)}
-            />
-          ) : (
-            <CommitList
-              data={data}
-              locale={locale}
-              selectedId={selectedCommitId}
-              onSelect={setSelectedCommitId}
-              onAddCommit={handleAddCommit}
-              onEditTag={setEditingTag}
-            />
-          )}
-        </div>
-
-        {/* Preview panel */}
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-8" onClick={handleCanvasClick}>
           <div className="max-w-2xl mx-auto">
-            <LogTimeline data={previewData} locale={locale} />
+            <TimelineEditProvider value={editContext}>
+              <LogTimeline data={previewData} locale={locale} />
+            </TimelineEditProvider>
             {/* Footer marker, matching works page */}
             <div className="mt-16 flex items-center gap-4">
               <div className="w-6 h-6 flex items-center justify-center shrink-0">
@@ -224,7 +319,45 @@ export function EditorView({ initialData }: EditorViewProps) {
             </div>
           </div>
         </div>
+
+        {inspecting && (
+          <aside className="w-[480px] shrink-0 border-l border-border flex flex-col min-h-0 animate-in slide-in-from-right-4 fade-in duration-200">
+            {selectedCommit ? (
+              <CommitEditor
+                commit={selectedCommit}
+                tags={data.tags}
+                onUpdate={handleUpdateCommit}
+                onDelete={() => handleDeleteCommit(selectedCommit.id)}
+                onClose={clearSelection}
+                focusMediaIndex={selectedMediaIndex}
+                onFocusMediaIndexChange={setSelectedMediaIndex}
+              />
+            ) : editingTagObj ? (
+              <div className="flex-1 overflow-y-auto">
+                <TagEditor
+                  tag={editingTagObj}
+                  onUpdate={handleUpdateTag}
+                  onClose={clearSelection}
+                />
+              </div>
+            ) : (
+              <EmptyInspector />
+            )}
+          </aside>
+        )}
       </div>
+    </div>
+  );
+}
+
+function EmptyInspector() {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center text-center px-8 gap-2">
+      <MousePointer2 className="w-6 h-6 text-muted-foreground/30" />
+      <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/40">
+        Inspect mode
+      </div>
+      <div className="text-sm text-muted-foreground/60">No selection</div>
     </div>
   );
 }
