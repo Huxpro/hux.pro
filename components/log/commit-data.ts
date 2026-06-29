@@ -10,8 +10,6 @@ import type { Locale } from "@/lib/i18n";
 import type {
   Commit,
   CommitType,
-  EmbedMedia,
-  EmbedPlatform,
   Media,
 } from "@/lib/log";
 import {
@@ -21,12 +19,14 @@ import {
   computeCommitHash,
   getCommitLanguageBadge,
   isVideoMedia,
-  isEmbedMedia,
+  isSocialEmbedMedia,
   isLinkMedia,
+  isLinkPill,
   isImageMedia,
+  isPinnedMedia,
   getMediaThumbnail,
 } from "@/lib/log";
-import { detectNativeEmbedPlatform, getHostname } from "@/lib/og-core";
+import { detectSocialEmbedPlatform, getDomainLabel } from "@/lib/og-core";
 
 // =============================================================================
 // Types
@@ -72,10 +72,12 @@ export interface NormalizedCommit {
   stats?: { stars?: number; downloads?: string; users?: string };
 
   // Media
+  /** Pill-style links extracted for the folded right-rail indicators. */
   links: SimpleLink[];
-  nonLinkMedia: Media[];
-  /** Embeds flagged to render beneath the row while it's still folded. */
-  foldedEmbeds: EmbedMedia[];
+  /** Rich media (cards / widgets / players / images) shown when expanded. */
+  expandedMedia: Media[];
+  /** Items flagged `pinned: true` — shown beneath the row while folded. */
+  pinnedMedia: Media[];
 
   // Compact rendering
   thumbnail?: { url: string; linkUrl?: string };
@@ -86,21 +88,18 @@ export interface NormalizedCommit {
 // Media Partitioning
 // =============================================================================
 
-function getDomainLabel(url: string): string {
-  return getHostname(url) ?? url;
-}
-
 /**
- * Build the summary-row entry for an embed.
+ * Build the summary-row entry for a social embed.
  *
- * Embeds, like videos and links, get a clickable indicator in the folded
- * row's right rail — so a collapsed commit signals "there's an embed here"
- * even before it's expanded. Recognized social platforms reuse their brand
- * icon; everything else (a Medium/web.dev-style preview card) falls back to
- * a globe + domain label.
+ * Social embeds, like videos and pills, get a clickable indicator in the
+ * folded row's right rail — so a collapsed commit signals "there's a tweet/
+ * reel/clip here" even before expanded. We reuse the brand icon per platform.
  */
-function embedToLink(m: EmbedMedia): SimpleLink {
-  const platform = m.platform ?? detectNativeEmbedPlatform(m.url);
+function socialEmbedToLink(m: {
+  url: string;
+  platform?: string | null;
+}): SimpleLink {
+  const platform = m.platform ?? detectSocialEmbedPlatform(m.url);
   switch (platform) {
     case "x":
     case "twitter":
@@ -115,9 +114,19 @@ function embedToLink(m: EmbedMedia): SimpleLink {
 }
 
 /**
- * Extract link-like entries from media array.
- * Video, embed, and link media each become an external link in the summary
- * row (the right-hand indicator rail shown when a commit is folded).
+ * Build the summary-row entry for a link card (kind:"link", present:"card").
+ *
+ * Cards get a clickable indicator just like social embeds — keeps the folded
+ * row's rail symmetric whether the URL renders as an OG card or a native
+ * widget. Falls back to a globe + domain label.
+ */
+function linkCardToLink(m: { url: string }): SimpleLink {
+  return { url: m.url, label: getDomainLabel(m.url), icon: "globe" };
+}
+
+/**
+ * Extract link-like entries from the media array for the folded rail.
+ * Every kind contributes a pill except images, which are silent.
  */
 export function extractMediaLinks(
   media: Media[],
@@ -137,14 +146,18 @@ export function extractMediaLinks(
         label: platformLabel[m.platform] ?? m.platform,
         icon: m.platform,
       });
-    } else if (isEmbedMedia(m)) {
-      links.push(embedToLink(m));
+    } else if (isSocialEmbedMedia(m)) {
+      links.push(socialEmbedToLink(m));
     } else if (isLinkMedia(m)) {
-      links.push({
-        url: m.url,
-        label: m.label || (locale === "zh" ? "链接" : "Link"),
-        icon: m.icon || "external",
-      });
+      if (m.present === "card") {
+        links.push(linkCardToLink(m));
+      } else {
+        links.push({
+          url: m.url,
+          label: m.label || (locale === "zh" ? "链接" : "Link"),
+          icon: m.icon || "external",
+        });
+      }
     }
   }
 
@@ -169,19 +182,31 @@ function getPlatformIcon(platform: string): string {
 // Thumbnail Derivation
 // =============================================================================
 
+/**
+ * Pick a thumbnail for compact / card displays.
+ *
+ * Preference order:
+ *  1. Videos and images (richest visual signal, already baked-in URL).
+ *  2. Link cards with a resolved preview image (covers the case where an
+ *     embed-only project still has a meaningful cover via og-snapshot).
+ *
+ * Pills and social embeds never contribute a thumbnail.
+ */
 function deriveThumbnail(
   media: Media[],
 ): { url: string; linkUrl?: string } | undefined {
-  // Try video media first (YouTube thumbnails), then images
   for (const m of media) {
     if (isVideoMedia(m) || isImageMedia(m)) {
       const thumb = getMediaThumbnail(m);
-      if (thumb) {
-        return { url: thumb, linkUrl: m.url };
-      }
+      if (thumb) return { url: thumb, linkUrl: m.url };
     }
   }
-  // Fall back to link with explicit thumbnail (shouldn't happen, but safe)
+  for (const m of media) {
+    if (isLinkMedia(m) && m.present === "card") {
+      const thumb = getMediaThumbnail(m);
+      if (thumb) return { url: thumb, linkUrl: m.url };
+    }
+  }
   return undefined;
 }
 
@@ -195,8 +220,11 @@ export function normalizeCommit(
 ): NormalizedCommit {
   const media = commit.media ?? [];
   const mediaLinks = extractMediaLinks(media, locale);
-  const nonLinkMedia = media.filter((m) => !isLinkMedia(m));
-  const foldedEmbeds = media.filter(isEmbedMedia).filter((m) => m.defaultShown);
+  // Rich media (everything except pills) is what flows into the expanded
+  // block; folded-prominent items get hoisted above the row separately.
+  const richMedia = media.filter((m) => !isLinkPill(m));
+  const pinnedMedia = richMedia.filter(isPinnedMedia);
+  const expandedMedia = richMedia.filter((m) => !isPinnedMedia(m));
 
   const title = localize(commit.title, locale);
   const description = localize(commit.description, locale);
@@ -217,7 +245,7 @@ export function normalizeCommit(
   // Type-specific extraction
   switch (commit.type) {
     case "project": {
-      const firstLinkUrl = media.filter(isLinkMedia)[0]?.url;
+      const firstPillUrl = media.find(isLinkPill)?.url;
       return {
         ...identity,
         languageBadge,
@@ -228,9 +256,9 @@ export function normalizeCommit(
         commentary,
         stats: commit.stats,
         links: mediaLinks,
-        nonLinkMedia,
-        foldedEmbeds,
-        thumbnail: thumbnail ? { ...thumbnail, linkUrl: firstLinkUrl } : undefined,
+        expandedMedia,
+        pinnedMedia,
+        thumbnail: thumbnail ? { ...thumbnail, linkUrl: firstPillUrl } : undefined,
         secondaryLine: description,
       };
     }
@@ -247,8 +275,8 @@ export function normalizeCommit(
         tags,
         commentary,
         links: mediaLinks,
-        nonLinkMedia,
-        foldedEmbeds,
+        expandedMedia,
+        pinnedMedia,
         thumbnail,
         secondaryLine: date,
       };
@@ -266,8 +294,8 @@ export function normalizeCommit(
         tags,
         commentary,
         links: mediaLinks,
-        nonLinkMedia,
-        foldedEmbeds,
+        expandedMedia,
+        pinnedMedia,
         thumbnail: thumbnail ? { ...thumbnail, linkUrl: commit.url } : undefined,
         secondaryLine: `${commit.publication.name} · ${date}`,
       };
@@ -291,8 +319,8 @@ export function normalizeCommit(
         tags,
         commentary,
         links: mediaLinks,
-        nonLinkMedia,
-        foldedEmbeds,
+        expandedMedia,
+        pinnedMedia,
         thumbnail: thumbnail
           ? { ...thumbnail, linkUrl: commit.url }
           : undefined,
@@ -310,8 +338,8 @@ export function normalizeCommit(
         date,
         tags: [],
         links: [],
-        nonLinkMedia: [],
-        foldedEmbeds: [],
+        expandedMedia: [],
+        pinnedMedia: [],
       };
     }
 
@@ -343,8 +371,8 @@ export function normalizeCommit(
         tags,
         commentary,
         links: socialLinks,
-        nonLinkMedia,
-        foldedEmbeds,
+        expandedMedia,
+        pinnedMedia,
         thumbnail: thumbnail ? { ...thumbnail, linkUrl: socialPrimaryUrl } : undefined,
         secondaryLine: `${commit.platform} · ${date}`,
       };

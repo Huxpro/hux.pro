@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ExternalImage } from "./external-image";
 
 // =============================================================================
 // Types
@@ -120,11 +121,9 @@ export function VimeoEmbed({
         )}
         aria-label="Play Vimeo video"
       >
-        <img
+        <ExternalImage
           src={thumbnailUrl}
-          alt=""
           className="absolute inset-0 w-full h-full object-cover"
-          loading="lazy"
         />
 
         {/* Play button overlay */}

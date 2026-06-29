@@ -4,34 +4,34 @@
 
 ## 术语
 
-- **Media（媒体）**：原子级外部内容单元（视频、嵌入、链接、图片）
+- **Media（媒体）**：附加到 commit 的外部内容。四种 kind：link、social-embed、video、image
 - **Commit（提交）**：工作项（项目、演讲、文章、职位、社交），可附加媒体
-- **Embed（嵌入）**：特指原生社交平台小部件（Twitter、Instagram、TikTok）
+- **SocialEmbed（原生嵌入）**：原生社交平台 widget（X / Instagram / TikTok），与 card 区分
 
 ---
 
 ## 1. 媒体
 
-媒体组件是嵌入外部内容的原子构建块。`Media` 组件可自动检测平台并渲染适当的嵌入。
+媒体组件是嵌入外部内容的原子构建块。`Media` 组件可自动检测 URL 并按对应 kind 渲染。
 
 ### 组件层级
 
 ```
                     Media（统一入口）
                            │
-             ┌─────────────┼─────────────┐
-             │             │             │
-           Video         Embed      LinkPreview
-             │             │
-      ┌──────┼──────┐  ┌───┴───┐
-      │      │      │  │   │   │
-  YouTube  Bili  Vimeo  X  IG TikTok
+       ┌──────────┬────────┴────────┬──────────┐
+       │          │                 │          │
+     Video    SocialEmbed   Link / LinkCard  Figure
+       │          │
+  ┌────┼────┐  ┌──┴───┐
+  │    │    │  │  │   │
+ YT  Bili Vimeo X IG TikTok
 ```
 
 - **Media**：统一入口，自动检测 URL 并路由到对应组件
-- **Video**：视频平台，带点击播放的缩略图
-- **Embed**：使用官方 SDK 的原生社交平台嵌入
-- **LinkPreview**：其他 URL 的 OG 卡片预览
+- **Video**：视频平台，带点击播放的封面
+- **SocialEmbed**：使用官方 SDK 的原生社交平台 widget
+- **Link / LinkCard**：同一个 URL 的两种呈现 —— pill（角标）vs card（OG 卡片）
 
 ### Media（自动检测）
 
@@ -56,11 +56,11 @@
 <Media url="https://lynxjs.org" />
 </Playground>
 
-### Media（强制类型）
+### Media（强制 Kind）
 
-使用 `as` prop 可以强制指定渲染模式，跳过自动检测。当你想以不同于检测类型的方式渲染 URL 时很有用。
+使用 `as` prop 可以强制指定渲染 kind，跳过自动检测。当你想以不同于检测 kind 的方式渲染 URL 时很有用。
 
-#### 强制 YouTube 显示为链接预览
+#### 强制 YouTube 显示为 Link Pill
 
 <Playground>
 ```tsx
@@ -69,16 +69,16 @@
 <Media url="https://www.youtube.com/watch?v=lGEMwh32soc" as="link" title="我的 YouTube 视频" />
 </Playground>
 
-#### 强制嵌入并指定主题
+#### 强制 SocialEmbed 并指定主题
 
 <Playground>
 ```tsx
-<Media url="https://x.com/Huxpro/status/1502483206569807874" as="embed" theme="light" />
+<Media url="https://x.com/Huxpro/status/1502483206569807874" as="social-embed" theme="light" />
 ```
-<Media url="https://x.com/Huxpro/status/1502483206569807874" as="embed" theme="light" />
+<Media url="https://x.com/Huxpro/status/1502483206569807874" as="social-embed" theme="light" />
 </Playground>
 
-#### 强制视频并自定义缩略图
+#### 强制视频并自定义封面
 
 <Playground>
 ```tsx
@@ -109,44 +109,44 @@
 
 ---
 
-### Embed（社交平台）
+### SocialEmbed（社交平台）
 
-使用官方 SDK/iframe 的原生社交平台嵌入。
+使用官方 SDK / iframe 的原生社交平台 widget。
 
 #### Twitter/X
 
 <Playground>
 ```tsx
-<Embed url="https://x.com/Huxpro/status/1502483206569807874" />
+<SocialEmbed url="https://x.com/Huxpro/status/1502483206569807874" />
 ```
-<Embed url="https://x.com/Huxpro/status/1502483206569807874" />
+<SocialEmbed url="https://x.com/Huxpro/status/1502483206569807874" />
 </Playground>
 
 #### Instagram
 
 <Playground>
 ```tsx
-<Embed url="https://www.instagram.com/p/DMLLL61NyLt/" />
+<SocialEmbed url="https://www.instagram.com/p/DMLLL61NyLt/" />
 ```
-<Embed url="https://www.instagram.com/p/DMLLL61NyLt/" />
+<SocialEmbed url="https://www.instagram.com/p/DMLLL61NyLt/" />
 </Playground>
 
 #### TikTok
 
 <Playground>
 ```tsx
-<Embed url="https://www.tiktok.com/@huxpresso/photo/7509367085185666335" />
+<SocialEmbed url="https://www.tiktok.com/@huxpresso/photo/7509367085185666335" />
 ```
-<Embed url="https://www.tiktok.com/@huxpresso/photo/7509367085185666335" />
+<SocialEmbed url="https://www.tiktok.com/@huxpresso/photo/7509367085185666335" />
 </Playground>
 
 ---
 
-### Link / LinkPreview
+### Link / LinkCard
 
-外部链接可渲染为按钮或富 OG 预览卡片。
+同一个 URL 的两种呈现：pill（角标）和 card（OG 卡片）。
 
-#### Link 按钮
+#### Link（pill）
 
 <Playground>
 ```tsx
@@ -155,13 +155,13 @@
 <Link url="https://lynxjs.org" label="官网" icon="globe" />
 </Playground>
 
-#### LinkPreview（OG 卡片）
+#### LinkCard（OG 卡片）
 
 <Playground>
 ```tsx
-<LinkPreview url="https://lynxjs.org" />
+<LinkCard url="https://lynxjs.org" />
 ```
-<LinkPreview url="https://lynxjs.org" />
+<LinkCard url="https://lynxjs.org" />
 </Playground>
 
 ---
@@ -199,7 +199,7 @@
     },
     date: "2022-11",
     media: [
-      { type: "link", url: "https://example.com/cli", label: "文档", icon: "file" }
+      { kind: "link", url: "https://example.com/cli", present: "pill", label: "文档", icon: "file" }
     ]
   }}
   locale="zh"
@@ -217,7 +217,7 @@
     },
     date: "2022-11",
     media: [
-      { type: "link", url: "https://example.com/cli", label: "文档", icon: "file" }
+      { kind: "link", url: "https://example.com/cli", present: "pill", label: "文档", icon: "file" }
     ]
   }}
   locale="zh"
@@ -358,7 +358,7 @@
     date: "2023-05",
     platform: "Bluesky",
     media: [
-      { type: "embed", url: "https://bsky.app/profile/example/post/abc" }
+      { kind: "link", url: "https://bsky.app/profile/example/post/abc", present: "card" }
     ]
   }}
   locale="zh"
@@ -377,7 +377,7 @@
     date: "2023-05",
     platform: "Bluesky",
     media: [
-      { type: "embed", url: "https://bsky.app/profile/example/post/abc" }
+      { kind: "link", url: "https://bsky.app/profile/example/post/abc", present: "card" }
     ]
   }}
   locale="zh"
@@ -406,9 +406,9 @@
     },
     date: "2025-01",
     media: [
-      { type: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" },
-      { type: "link", url: "https://lynxjs.org", label: "官网" },
-      { type: "link", url: "https://github.com/nicify/nicify", label: "GitHub", icon: "github" }
+      { kind: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" },
+      { kind: "link", url: "https://lynxjs.org", present: "pill", label: "官网" },
+      { kind: "link", url: "https://github.com/nicify/nicify", present: "pill", label: "GitHub", icon: "github" }
     ]
   }}
   locale="zh"
@@ -426,9 +426,9 @@
     },
     date: "2025-01",
     media: [
-      { type: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" },
-      { type: "link", url: "https://lynxjs.org", label: "官网" },
-      { type: "link", url: "https://github.com/nicify/nicify", label: "GitHub", icon: "github" }
+      { kind: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" },
+      { kind: "link", url: "https://lynxjs.org", present: "pill", label: "官网" },
+      { kind: "link", url: "https://github.com/nicify/nicify", present: "pill", label: "GitHub", icon: "github" }
     ]
   }}
   locale="zh"
@@ -452,7 +452,7 @@
     date: "2024-05",
     conference: { name: "React Conf 2024", url: "https://conf.react.dev" },
     media: [
-      { type: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" }
+      { kind: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" }
     ]
   }}
   locale="zh"
@@ -471,7 +471,7 @@
     date: "2024-05",
     conference: { name: "React Conf 2024", url: "https://conf.react.dev" },
     media: [
-      { type: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" }
+      { kind: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" }
     ]
   }}
   locale="zh"
@@ -495,7 +495,7 @@
     date: "2022-03",
     platform: "X",
     media: [
-      { type: "embed", url: "https://x.com/Huxpro/status/1502483206569807874" }
+      { kind: "social-embed", url: "https://x.com/Huxpro/status/1502483206569807874" }
     ]
   }}
   locale="zh"
@@ -514,7 +514,7 @@
     date: "2022-03",
     platform: "X",
     media: [
-      { type: "embed", url: "https://x.com/Huxpro/status/1502483206569807874" }
+      { kind: "social-embed", url: "https://x.com/Huxpro/status/1502483206569807874" }
     ]
   }}
   locale="zh"
@@ -540,7 +540,7 @@
     endDate: "present",
     location: "Menlo Park, CA",
     media: [
-      { type: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/512px-Meta_Platforms_Inc._logo.svg.png", alt: "Meta logo" }
+      { kind: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/512px-Meta_Platforms_Inc._logo.svg.png", alt: "Meta logo" }
     ]
   }}
   locale="zh"
@@ -561,7 +561,7 @@
     endDate: "present",
     location: "Menlo Park, CA",
     media: [
-      { type: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/512px-Meta_Platforms_Inc._logo.svg.png", alt: "Meta logo" }
+      { kind: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/512px-Meta_Platforms_Inc._logo.svg.png", alt: "Meta logo" }
     ]
   }}
   locale="zh"
@@ -606,8 +606,8 @@
       zh: "这个项目让我学会了基于约束的设计的重要性。最好的系统不是最灵活的，而是让正确的事情变得容易的系统。"
     },
     media: [
-      { type: "link", url: "#", label: "文档", icon: "file" },
-      { type: "link", url: "#", label: "GitHub", icon: "github" }
+      { kind: "link", url: "#", present: "pill", label: "文档", icon: "file" },
+      { kind: "link", url: "#", present: "pill", label: "GitHub", icon: "github" }
     ]
   }}
   locale="zh"
@@ -631,8 +631,8 @@
       zh: "这个项目让我学会了基于约束的设计的重要性。最好的系统不是最灵活的，而是让正确的事情变得容易的系统。"
     },
     media: [
-      { type: "link", url: "#", label: "文档", icon: "file" },
-      { type: "link", url: "#", label: "GitHub", icon: "github" }
+      { kind: "link", url: "#", present: "pill", label: "文档", icon: "file" },
+      { kind: "link", url: "#", present: "pill", label: "GitHub", icon: "github" }
     ]
   }}
   locale="zh"
@@ -663,7 +663,7 @@
       zh: "动画是界面设计的灵魂。这个库旨在让动效像呼吸一样自然。"
     },
     media: [
-      { type: "link", url: "#", label: "演示", icon: "globe" }
+      { kind: "link", url: "#", present: "pill", label: "演示", icon: "globe" }
     ]
   }}
   locale="zh"
@@ -687,7 +687,7 @@
       zh: "动画是界面设计的灵魂。这个库旨在让动效像呼吸一样自然。"
     },
     media: [
-      { type: "link", url: "#", label: "演示", icon: "globe" }
+      { kind: "link", url: "#", present: "pill", label: "演示", icon: "globe" }
     ]
   }}
   locale="zh"
@@ -842,7 +842,7 @@ Widget 是组合多个提交或自定义内容的容器。
       title: { en: "Design Tokens", zh: "设计令牌" },
       description: { en: "Systematic design token architecture", zh: "系统化设计令牌架构" },
       date: "2024-01",
-      media: [{ type: "link", url: "#", label: "查看", icon: "globe" }]
+      media: [{ kind: "link", url: "#", present: "pill", label: "查看", icon: "globe" }]
     }}
     locale="zh"
   />
@@ -855,7 +855,7 @@ Widget 是组合多个提交或自定义内容的容器。
       title: { en: "Component Library", zh: "组件库" },
       description: { en: "Accessible React components", zh: "无障碍 React 组件" },
       date: "2023-06",
-      media: [{ type: "link", url: "#", label: "GitHub", icon: "github" }]
+      media: [{ kind: "link", url: "#", present: "pill", label: "GitHub", icon: "github" }]
     }}
     locale="zh"
   />
@@ -871,7 +871,7 @@ Widget 是组合多个提交或自定义内容的容器。
       title: { en: "Design Tokens", zh: "设计令牌" },
       description: { en: "Systematic design token architecture", zh: "系统化设计令牌架构" },
       date: "2024-01",
-      media: [{ type: "link", url: "#", label: "查看", icon: "globe" }]
+      media: [{ kind: "link", url: "#", present: "pill", label: "查看", icon: "globe" }]
     }}
     locale="zh"
   />
@@ -884,7 +884,7 @@ Widget 是组合多个提交或自定义内容的容器。
       title: { en: "Component Library", zh: "组件库" },
       description: { en: "Accessible React components", zh: "无障碍 React 组件" },
       date: "2023-06",
-      media: [{ type: "link", url: "#", label: "GitHub", icon: "github" }]
+      media: [{ kind: "link", url: "#", present: "pill", label: "GitHub", icon: "github" }]
     }}
     locale="zh"
   />
@@ -910,7 +910,7 @@ Widget 是组合多个提交或自定义内容的容器。
       description: { en: "Scaling across platforms", zh: "跨平台扩展" },
       date: "2024-03",
       conference: { name: "ReactConf 2024" },
-      media: [{ type: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=10" }]
+      media: [{ kind: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=10" }]
     }}
     locale="zh"
   />
@@ -924,7 +924,7 @@ Widget 是组合多个提交或自定义内容的容器。
       description: { en: "Building systematic UI", zh: "构建系统化 UI" },
       date: "2023-09",
       conference: { name: "CSS Day" },
-      media: [{ type: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=11" }]
+      media: [{ kind: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=11" }]
     }}
     locale="zh"
   />
@@ -941,7 +941,7 @@ Widget 是组合多个提交或自定义内容的容器。
       description: { en: "Scaling across platforms", zh: "跨平台扩展" },
       date: "2024-03",
       conference: { name: "ReactConf 2024" },
-      media: [{ type: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=10" }]
+      media: [{ kind: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=10" }]
     }}
     locale="zh"
   />
@@ -955,7 +955,7 @@ Widget 是组合多个提交或自定义内容的容器。
       description: { en: "Building systematic UI", zh: "构建系统化 UI" },
       date: "2023-09",
       conference: { name: "CSS Day" },
-      media: [{ type: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=11" }]
+      media: [{ kind: "video", url: "#", platform: "youtube", thumbnail: "https://picsum.photos/320/180?random=11" }]
     }}
     locale="zh"
   />
@@ -966,13 +966,13 @@ Widget 是组合多个提交或自定义内容的容器。
 
 ## 快速参考
 
-### 媒体类型
+### 媒体 Kind
 
-| 类型 | 属性 | 描述 |
+| Kind | 属性 | 描述 |
 |------|------|------|
-| `video` | `url`, `platform` | YouTube, Bilibili |
-| `embed` | `url` | Twitter, Instagram, TikTok |
-| `link` | `url`, `label?`, `icon?`, `showPreview?` | 外部链接 |
+| `link` | `url`, `present` (`pill` \| `card`), `preview?`, `label?`, `icon?` | URL 呈现为 pill 或 OG 卡片 |
+| `social-embed` | `url`, `platform?` | X / Instagram / TikTok 原生 widget |
+| `video` | `url`, `platform`, `thumbnail?` | YouTube / Bilibili / Vimeo 播放器 |
 | `image` | `url`, `alt?` | 静态图片（Figure 组件）|
 
 ### Commit 类型

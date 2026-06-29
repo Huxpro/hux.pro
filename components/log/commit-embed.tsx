@@ -10,11 +10,13 @@
  * - "bare": Minimal compact for widgets (CommitCompact)
  */
 
-import type { ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
-import type { Commit as CommitData } from "@/lib/log";
-import { getCommitThumbnail, localize } from "@/lib/log";
+import type { Commit as CommitData, PeekItem } from "@/lib/log";
+import { getCommitPeekItems, localize } from "@/lib/log";
 import { cn } from "@/lib/utils";
+import { ExternalImage } from "./media/external-image";
+import { CardFace } from "./media/link";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
@@ -133,39 +135,63 @@ interface CommitPreview {
   panelClassName?: string;
 }
 
+/** Strips the cursor-preview panel's bg / border / shadow / blur so the peek
+ *  content can supply its own. */
+const BARE_PANEL_CHROME =
+  "bg-transparent border-transparent shadow-none backdrop-blur-none";
+
 /**
- * Build the cursor-preview for a commit, or `null` when there is nothing
- * worth showing (so the hover never renders an empty card).
+ * Build the cursor-preview for a commit — a "peek view" that scales to how
+ * much media the commit carries. Returns `null` when there's nothing worth
+ * showing so the hover never renders an empty card.
  *
- * - With a thumbnail: a flush "poster" — just the image, framed by the
- *   panel's own border for a hint of depth. No description, no padding.
- * - Otherwise: the description text, if any.
+ * Three modes by media count:
+ *  - 2+ items: a deck-of-cards stack. Card-presented links render as mini
+ *    LinkCards (image + domain + title); videos / images render as bare
+ *    covers. Front card sharp; back cards rotated, scaled, and faded so they
+ *    peek out without overflowing the panel's rounded clip.
+ *  - 1 item:   a single instance of the same chrome — mini-card for a link,
+ *    flush poster for a video / image.
+ *  - 0 items:  the commit's description text, if any.
+ *
+ * Reconciliation with `pinned`: peek = "what's *behind* the fold". Pinned
+ * items are already visible inline, so the peek excludes them — see
+ * `getCommitPeekItems` for the exact filter rationale.
  */
 function buildCommitPreview(
   commit: CommitData,
   locale: Locale,
 ): CommitPreview | null {
-  const thumbnail = getCommitThumbnail(commit);
+  const items = getCommitPeekItems(commit);
 
-  if (thumbnail) {
+  if (items.length >= 2) {
     return {
-      // Drop the panel padding so the image sits flush; clip to the
-      // rounded frame so the border reads as the poster's edge.
+      // Strip the panel chrome so the rotated cards read as floating, not
+      // contained in another box — the rotation IS the visual signal of
+      // "there's more here" and a background defeats it. Generous padding
+      // (`p-8`) and a wider cap (`max-w-md`) give the back layers' translate
+      // + rotate enough room before the Cursor wrapper's
+      // `overflow-hidden rounded-lg` clip kicks in.
+      panelClassName: `p-8 max-w-md ${BARE_PANEL_CHROME}`,
+      node: <StackedPeek items={items} />,
+    };
+  }
+
+  if (items.length === 1) {
+    const item = items[0];
+    // Single mini-card brings its own border/shadow, so the panel stays flush.
+    // Single thumb keeps the panel's chrome and lets its border double as
+    // the poster's edge.
+    if (item.kind === "card") {
+      return {
+        panelClassName: `p-0 ${BARE_PANEL_CHROME}`,
+        // Single peek mirrors the expanded /works LinkCard: natural aspect.
+        node: <PeekCard item={item} className="w-72" />,
+      };
+    }
+    return {
       panelClassName: "p-0 overflow-hidden",
-      node: (
-        <img
-          src={thumbnail}
-          alt=""
-          className="block w-56 aspect-video object-cover"
-          loading="lazy"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            if (target.src.includes("maxresdefault")) {
-              target.src = target.src.replace("maxresdefault", "hqdefault");
-            }
-          }}
-        />
-      ),
+      node: <PeekThumb image={item.image} className="w-72 aspect-video" />,
     };
   }
 
@@ -179,4 +205,180 @@ function buildCommitPreview(
       </p>
     ),
   };
+}
+
+// Peek items render as `<div>` (never `<a>`) so they can sit inside the
+// row's own clickable wrapper without producing nested anchors.
+
+/** Bare cover image inside a soft card frame. Used for video / image media. */
+function PeekThumb({
+  image,
+  className,
+  onResolved,
+}: {
+  image: string;
+  className?: string;
+  onResolved?: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-md overflow-hidden border border-border/40 bg-muted/30 shadow-md",
+        className,
+      )}
+    >
+      {/* object-cover is safe for thumbnails: YouTube / Bilibili / Vimeo all
+          serve 16:9 covers, matching the aspect-video container. */}
+      <ExternalImage
+        src={image}
+        className="block w-full h-full object-cover"
+        loading="eager"
+        onResolved={onResolved}
+      />
+    </div>
+  );
+}
+
+/**
+ * Mini OG-style card for `kind:"link", present:"card"` media — a thin
+ * adapter over `CardFace` that picks the right slot shape per context:
+ *  - Single-item peek: natural aspect (matches the expanded `/works`
+ *    LinkCard so the hover and the row read as the same artifact).
+ *  - Stacked peek:     fixed `aspect-[2/1]` + blur backdrop, because the
+ *    layered `translate/rotate/scale` transforms need predictable
+ *    rectangles to overlap cleanly.
+ *
+ * Rendering as a `<div>` (CardFace's default element) means it can sit
+ * inside the row's clickable wrapper without nested anchors.
+ */
+function PeekCard({
+  item,
+  fixedAspect = false,
+  className,
+  onResolved,
+}: {
+  item: Extract<PeekItem, { kind: "card" }>;
+  fixedAspect?: boolean;
+  className?: string;
+  onResolved?: () => void;
+}) {
+  return (
+    <CardFace
+      url={item.url}
+      title={item.title}
+      description={item.description}
+      image={item.image}
+      size="compact"
+      fixedAspect={fixedAspect}
+      // Peek-specific chrome — same recipe as the Dock Live Activity
+      // expanded panel (bg-card/70 + backdrop-blur-xl + border + heavy
+      // colored shadow). The single-peek and stacked-peek branches both
+      // strip the panel's own chrome (BARE_PANEL_CHROME), so the card has
+      // to supply it. In dark mode the lift is the shadow, not the bg —
+      // popover/card sit below the page bg's lightness.
+      className={cn(
+        "bg-card/70 backdrop-blur-xl border border-border/50 shadow-2xl shadow-black/20 rounded-md",
+        className,
+      )}
+      onImgResolved={onResolved}
+    />
+  );
+}
+
+/**
+ * Stacked-card peek for commits with 2+ peek items. We show up to three
+ * front-to-back; the front item sharp; back ones translated, scaled down,
+ * rotated, and faded so they peek without escaping the panel clip. A "+N"
+ * badge surfaces the rest of the count when relevant.
+ *
+ * Reveal is gated on every image resolving (load OR error) so the layers
+ * appear together — Bilibili's CDN especially trickles in on a cold hover
+ * and a staggered reveal looks broken.
+ */
+function StackedPeek({ items }: { items: PeekItem[] }) {
+  const visible = items.slice(0, 3);
+  const overflow = items.length - visible.length;
+
+  const [resolved, setResolved] = useState<ReadonlySet<number>>(
+    () => new Set(),
+  );
+  const allReady = resolved.size >= visible.length;
+  const markResolved = useCallback((i: number) => {
+    setResolved((prev) => {
+      if (prev.has(i)) return prev;
+      const next = new Set(prev);
+      next.add(i);
+      return next;
+    });
+  }, []);
+
+  // Per-depth pose. Index 0 = front (items[0]); larger index = deeper.
+  // Tuned so back cards visibly peek out without busting the panel padding
+  // (p-8) — i=2's corner is ~30px past the front; needs >= 32px of slack.
+  const layers = [
+    { dx: 0, dy: 0, rot: 0, scale: 1, opacity: 1 }, //          front
+    { dx: 14, dy: 10, rot: 5, scale: 0.97, opacity: 0.92 }, //  middle
+    { dx: 28, dy: 18, rot: 9, scale: 0.94, opacity: 0.78 }, //  back
+  ];
+
+  return (
+    <div
+      className={cn(
+        "relative w-72 transition-opacity duration-200",
+        allReady ? "opacity-100" : "opacity-0",
+      )}
+    >
+      {visible.map((item, i) => {
+        const pose = layers[i];
+        const isFront = i === 0;
+        return (
+          <div
+            key={i}
+            // Front uses `relative` (not static) so its `zIndex` applies —
+            // `z-index` is a no-op on static elements, which would let the
+            // absolute back layers stack above the front regardless of value.
+            // Front being `relative` also keeps it in-flow so the container
+            // sizes to it.
+            className={isFront ? "relative" : "absolute inset-0"}
+            style={{
+              transform: `translate(${pose.dx}px, ${pose.dy}px) rotate(${pose.rot}deg) scale(${pose.scale})`,
+              transformOrigin: "center center",
+              opacity: pose.opacity,
+              zIndex: visible.length - i,
+            }}
+          >
+            {item.kind === "card" ? (
+              // Stacked: every layer keeps the same shape so the layered
+              // transforms overlap predictably. The front layer's bg is
+              // forced opaque so back cards' content can't bleed *through*
+              // it — translucency only makes sense where the page bg sits
+              // behind, which is true for back cards (peeking from behind)
+              // but not for the front (a full card sits behind it).
+              <PeekCard
+                item={item}
+                fixedAspect
+                className={isFront ? "bg-card" : undefined}
+                onResolved={() => markResolved(i)}
+              />
+            ) : (
+              <PeekThumb
+                image={item.image}
+                className={cn("aspect-video", isFront && "bg-muted")}
+                onResolved={() => markResolved(i)}
+              />
+            )}
+          </div>
+        );
+      })}
+
+      {overflow > 0 && (
+        <div
+          className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-sm bg-background/85 backdrop-blur-sm text-[10px] font-mono text-muted-foreground tracking-tight"
+          style={{ zIndex: visible.length + 1 }}
+        >
+          +{overflow}
+        </div>
+      )}
+    </div>
+  );
 }

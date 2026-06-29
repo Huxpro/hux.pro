@@ -69,7 +69,13 @@ export function MagneticPreview({
         >
           <div
             className={cn(
-              "rounded-lg border border-border/60 bg-popover/95 backdrop-blur-sm shadow-lg",
+              // Translucent lifted surface — matches the Dock Live Activity
+              // expanded panel recipe (`bg-card/70 backdrop-blur-xl border
+              // border-border/50 shadow-2xl shadow-black/20`). In dark mode
+              // popover/card are *darker* than the page bg, so the lift
+              // comes from the colored shadow + border, not from "see-
+              // through-ness" — the blur is what makes it feel alive.
+              "rounded-lg border border-border/50 bg-card/70 backdrop-blur-xl shadow-2xl shadow-black/20",
               "p-3 max-w-xs",
               panelClassName,
             )}

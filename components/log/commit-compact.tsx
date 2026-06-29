@@ -10,6 +10,7 @@
  */
 
 import type { NormalizedCommit } from "./commit-data";
+import { ExternalImage } from "./media/external-image";
 
 interface CommitCompactProps {
   data: NormalizedCommit;
@@ -27,17 +28,9 @@ export function CommitCompact({ data, className }: CommitCompactProps) {
           rel="noopener noreferrer"
           className="block w-full aspect-video rounded-lg overflow-hidden bg-muted/20 border border-border/50 hover:border-border transition-colors mb-2"
         >
-          <img
+          <ExternalImage
             src={data.thumbnail.url}
-            alt=""
             className="w-full h-full object-cover"
-            loading="lazy"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              if (target.src.includes("maxresdefault")) {
-                target.src = target.src.replace("maxresdefault", "hqdefault");
-              }
-            }}
           />
         </a>
       )}

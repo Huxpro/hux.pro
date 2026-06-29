@@ -1,19 +1,22 @@
 "use client";
 
 /**
- * Link Component
+ * Link rendering — two presentations for the same data shape (kind:"link"):
  *
- * External link rendering with optional OG preview.
- * - Link: Simple icon + text link
- * - LinkPreview: Full card with OG image, title, description
+ * - Link:     a pill — icon + text + external-link glyph. Used as the folded
+ *             rail indicator and as the inline chip in the expanded view.
+ * - LinkCard: an OG-style card with image, title, and description. Backed by
+ *             the card pipeline (manual preview > og-snapshot > live crawl).
  */
 
 import { useState, useEffect } from "react";
 import { ExternalLink as ExternalLinkIcon, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fetchOGData, type OGData } from "@/lib/og";
-import { getHostname } from "@/lib/og-core";
+import { fetchOGData } from "@/lib/og";
+import type { OGData } from "@/lib/og-core";
+import { getDomainLabel } from "@/lib/og-core";
 import type { LinkMedia } from "@/lib/log";
+import { ExternalImage } from "./external-image";
 
 // =============================================================================
 // Types
@@ -30,7 +33,7 @@ export interface LinkProps {
   className?: string;
 }
 
-export interface LinkPreviewProps {
+export interface LinkCardProps {
   /** Link URL */
   url: string;
   /** Override title (skips OG fetch for title) */
@@ -50,7 +53,7 @@ export interface LinkPropsFromMedia {
   className?: string;
 }
 
-export interface LinkPreviewPropsFromMedia {
+export interface LinkCardPropsFromMedia {
   media: LinkMedia;
   size?: "compact" | "default" | "large";
   className?: string;
@@ -60,9 +63,6 @@ export interface LinkPreviewPropsFromMedia {
 // Helpers
 // =============================================================================
 
-function getDomain(url: string): string {
-  return getHostname(url) ?? url;
-}
 
 /**
  * Stale-while-revalidate drift check (opt-in via NEXT_PUBLIC_OG_REVALIDATE=1).
@@ -101,7 +101,7 @@ async function revalidateAgainstLive(
 // =============================================================================
 
 export function Link({ url, label, icon, className }: LinkProps) {
-  const displayLabel = label || getDomain(url);
+  const displayLabel = label || getDomainLabel(url);
 
   return (
     <a
@@ -122,17 +122,150 @@ export function Link({ url, label, icon, className }: LinkProps) {
 }
 
 // =============================================================================
+// CardFace — presentational cover + caption + title block.
+// Shared between the expanded `LinkCard` on /works and the `PeekCard` in the
+// hover deck. `fixedAspect` exists because stacked peeks need predictable
+// rectangles for their layered transforms; expanded cards prefer natural
+// aspect so any publisher's OG image renders whole.
+// =============================================================================
+
+type CardFaceSize = "compact" | "default" | "large";
+
+export interface CardFaceProps {
+  url: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  size?: CardFaceSize;
+  /**
+   * Pin the image to a fixed `aspect-[2/1]` slot with a blurred backdrop of
+   * the same image filling any letterbox. Use for stacked layouts where the
+   * layered transforms need predictable rectangles. Default: false (natural
+   * aspect, no backdrop — the image's intrinsic dimensions size the slot).
+   */
+  fixedAspect?: boolean;
+  className?: string;
+  /** Fires when the foreground image resolves (load / cache-warm / error). */
+  onImgResolved?: () => void;
+}
+
+const sizeMaxW: Record<CardFaceSize, string> = {
+  compact: "max-w-sm",
+  default: "max-w-lg",
+  large: "max-w-2xl",
+};
+
+export function CardFace({
+  url,
+  title,
+  description,
+  image,
+  size = "default",
+  fixedAspect = false,
+  className,
+  onImgResolved,
+}: CardFaceProps) {
+  const compact = size === "compact";
+  const domain = getDomainLabel(url);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const handleResolved = () => {
+    setImgLoaded(true);
+    onImgResolved?.();
+  };
+  const fadeClass = cn(
+    "transition-opacity duration-500 ease-out",
+    imgLoaded ? "opacity-100" : "opacity-0",
+  );
+
+  let slot: React.ReactNode;
+  if (!image) {
+    slot = (
+      <div className="aspect-[2/1] bg-muted/10 flex items-center justify-center shrink-0">
+        <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
+      </div>
+    );
+  } else if (fixedAspect) {
+    // Backdrop is the same image, scaled up and heavily blurred so non-2:1
+    // aspects don't pin a hard letterbox against the card background.
+    slot = (
+      <div className="relative aspect-[2/1] bg-muted/20 overflow-hidden shrink-0">
+        <ExternalImage
+          src={image}
+          className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-60"
+        />
+        <ExternalImage
+          src={image}
+          className={cn("relative w-full h-full object-contain", fadeClass)}
+          loading="eager"
+          onResolved={handleResolved}
+        />
+      </div>
+    );
+  } else {
+    slot = (
+      <div className="bg-muted/20 overflow-hidden shrink-0">
+        <ExternalImage
+          src={image}
+          className={cn("block w-full h-auto", fadeClass)}
+          onResolved={handleResolved}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col rounded-lg border border-border/50 bg-muted/5 overflow-hidden",
+        sizeMaxW[size],
+        className,
+      )}
+    >
+      {slot}
+      <div className={cn("flex-1 space-y-1", compact ? "p-2.5" : "p-4")}>
+        <div
+          className={cn(
+            "text-muted-foreground font-mono uppercase tracking-wide",
+            compact ? "text-[10px]" : "text-xs",
+          )}
+        >
+          {domain}
+        </div>
+        <h4
+          className={cn(
+            "font-medium text-foreground line-clamp-2",
+            compact ? "text-xs leading-snug" : "text-sm",
+          )}
+        >
+          {title || domain}
+        </h4>
+        {description && (
+          <p
+            className={cn(
+              "text-muted-foreground line-clamp-2",
+              compact ? "text-[11px] leading-snug" : "text-xs",
+            )}
+          >
+            {description}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
 // Link Preview Component (with OG data)
 // =============================================================================
 
-export function LinkPreview({
+export function LinkCard({
   url,
   title: titleOverride,
   description: descOverride,
   image: imageOverride,
   size = "default",
   className,
-}: LinkPreviewProps) {
+}: LinkCardProps) {
   // When a preview is already resolved (manual override or build-time
   // snapshot, baked in server-side), seed state synchronously so the card
   // paints immediately — no skeleton flash, no request-time crawl.
@@ -148,9 +281,6 @@ export function LinkPreview({
       : null,
   );
   const [isLoading, setIsLoading] = useState(!hasResolvedPreview);
-  // Fade the OG image in once it decodes, so a slow origin (e.g. web.dev's,
-  // which has high TTFB and no image CDN) reveals smoothly instead of popping.
-  const [imgLoaded, setImgLoaded] = useState(false);
 
   useEffect(() => {
     // Resolved preview: nothing to fetch on the critical path. Optionally
@@ -184,7 +314,7 @@ export function LinkPreview({
         console.error("OG fetch error:", error);
         setOgData({
           url,
-          title: titleOverride || getDomain(url),
+          title: titleOverride || getDomainLabel(url),
           description: descOverride,
         });
       } finally {
@@ -198,26 +328,13 @@ export function LinkPreview({
     };
   }, [url, titleOverride, descOverride, imageOverride, hasResolvedPreview]);
 
-  const sizeClasses = {
-    compact: "max-w-sm",
-    default: "max-w-lg",
-    large: "max-w-2xl",
-  };
-
-  const domain = getDomain(url);
-  const title = ogData?.title || domain;
-  const description = ogData?.description;
-  const image = ogData?.image;
-  const compact = size === "compact";
-
-  // Loading state
   if (isLoading) {
     return (
       <div
         className={cn(
           "flex flex-col h-full rounded-lg border border-border/50 bg-muted/5 overflow-hidden animate-pulse",
-          sizeClasses[size],
-          className
+          sizeMaxW[size],
+          className,
         )}
       >
         <div className="aspect-[2/1] bg-muted/20" />
@@ -229,74 +346,21 @@ export function LinkPreview({
     );
   }
 
+  // Wrapper owns the `block` + clickability; CardFace owns the card geometry
+  // (including `h-full` so it stretches to fill the anchor in tiled grids).
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={cn(
-        // flex column + h-full lets cards stretch to equal heights when
-        // tiled in a grid row; the content area absorbs the extra space.
-        "flex flex-col h-full rounded-lg border border-border/50 bg-muted/5 overflow-hidden",
-        "hover:bg-muted/10 hover:border-border/70 transition-colors",
-        sizeClasses[size],
-        className
-      )}
-    >
-      {/* Image — fades in on load over a muted placeholder */}
-      {image ? (
-        <div className="aspect-[2/1] bg-muted/20 overflow-hidden shrink-0">
-          <img
-            src={image}
-            alt=""
-            loading="lazy"
-            onLoad={() => setImgLoaded(true)}
-            // Catch images already warm in the browser cache, whose `load`
-            // may fire before React attaches the handler.
-            ref={(node) => {
-              if (node?.complete) setImgLoaded(true);
-            }}
-            className={cn(
-              "w-full h-full object-cover transition-opacity duration-500 ease-out",
-              imgLoaded ? "opacity-100" : "opacity-0",
-            )}
-          />
-        </div>
-      ) : (
-        <div className="aspect-[2/1] bg-muted/10 flex items-center justify-center shrink-0">
-          <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
-        </div>
-      )}
-
-      {/* Content — tighter padding/type in compact so two cards fit a phone row */}
-      <div className={cn("flex-1 space-y-1", compact ? "p-2.5" : "p-4")}>
-        <div
-          className={cn(
-            "text-muted-foreground font-mono uppercase tracking-wide",
-            compact ? "text-[10px]" : "text-xs",
-          )}
-        >
-          {domain}
-        </div>
-        <h4
-          className={cn(
-            "font-medium text-foreground line-clamp-2",
-            compact ? "text-xs leading-snug" : "text-sm",
-          )}
-        >
-          {title}
-        </h4>
-        {description && (
-          <p
-            className={cn(
-              "text-muted-foreground line-clamp-2",
-              compact ? "text-[11px] leading-snug" : "text-xs",
-            )}
-          >
-            {description}
-          </p>
+    <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+      <CardFace
+        url={url}
+        title={ogData?.title}
+        description={ogData?.description}
+        image={ogData?.image}
+        size={size}
+        className={cn(
+          "h-full hover:bg-muted/10 hover:border-border/70 transition-colors",
+          className,
         )}
-      </div>
+      />
     </a>
   );
 }
@@ -313,10 +377,10 @@ export function LinkFromMedia({ media, className }: LinkPropsFromMedia) {
 /**
  * Convenience wrapper for LinkMedia with preview
  */
-export function LinkPreviewFromMedia({
+export function LinkCardFromMedia({
   media,
   size,
   className,
-}: LinkPreviewPropsFromMedia) {
-  return <LinkPreview url={media.url} size={size} className={className} />;
+}: LinkCardPropsFromMedia) {
+  return <LinkCard url={media.url} size={size} className={className} />;
 }

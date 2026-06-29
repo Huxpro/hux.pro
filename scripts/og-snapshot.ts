@@ -1,5 +1,5 @@
 /**
- * Build-time Open Graph snapshot generator.
+ * Build-time card snapshot generator.
  *
  *   node scripts/og-snapshot.ts          # crawl + write content/og-snapshot.json
  *   node scripts/og-snapshot.ts --check  # CI: re-crawl, diff, exit 1 on drift
@@ -7,10 +7,13 @@
  * Reuses the exact crawl/parse core the runtime Server Action uses
  * (lib/og-core.ts), so the snapshot equals what the server would fetch.
  *
+ * Targets: every `kind:"link", present:"card"` media item in log.json. Pills,
+ * social embeds, videos, and images do not pass through this pipeline.
+ *
  * Design goals (per request):
  *  - Same data as the live server crawl.
  *  - On crawl failure: never overwrite good data; if there's no prior entry
- *    and no manual `preview`, FAIL loudly so the link gets a manual preview
+ *    and no manual `preview`, FAIL loudly so the card gets a manual preview
  *    (the recovery path for crawl-blocked sites like Medium).
  *  - Deterministic, timestamp-free output → no flaky churn.
  *  - Report exactly what changed.
@@ -20,7 +23,10 @@ import fs from "fs";
 import path from "path";
 import {
   fetchOG,
-  mediaIsOGPreviewTarget,
+  fetchVideoCover,
+  mediaIsCardTarget,
+  mediaIsVideoCoverTarget,
+  mediaNeedsCoverCrawl,
   mediaNeedsLiveCrawl,
   type PreviewableMedia,
   type SnapshotEntry,
@@ -37,24 +43,45 @@ const SNAPSHOT_PATH = path.join(ROOT, "content", "og-snapshot.json");
 
 const CHECK = process.argv.includes("--check");
 
-// --- Collect every URL that renders as a link-preview card -------------------
+// --- Collect every URL that renders as a card or needs a video cover --------
+
+type TargetKind = "card" | "video-cover";
 
 interface Target {
   url: string;
-  needsCrawl: boolean; // false when a complete manual preview covers it
+  kind: TargetKind;
+  needsCrawl: boolean; // false when a manual override covers it
+  /** Snapshot of the media item itself — used by the video-cover fetcher
+   *  to pick the right per-platform API. Carries no runtime state beyond
+   *  what `og-core` reads. */
+  media: PreviewableMedia;
 }
 
 function collectTargets(): Target[] {
   const log = JSON.parse(fs.readFileSync(LOG_PATH, "utf8"));
   const byUrl = new Map<string, Target>();
+  const upsert = (t: Target) => {
+    const existing = byUrl.get(t.url);
+    if (!existing) byUrl.set(t.url, t);
+    else existing.needsCrawl = existing.needsCrawl || t.needsCrawl;
+  };
   for (const commit of log.commits ?? []) {
     for (const media of (commit.media ?? []) as PreviewableMedia[]) {
-      if (!mediaIsOGPreviewTarget(media)) continue;
-      const existing = byUrl.get(media.url);
-      const needsCrawl = mediaNeedsLiveCrawl(media);
-      // If any occurrence needs a crawl, the URL needs a crawl.
-      if (!existing) byUrl.set(media.url, { url: media.url, needsCrawl });
-      else existing.needsCrawl = existing.needsCrawl || needsCrawl;
+      if (mediaIsCardTarget(media)) {
+        upsert({
+          url: media.url,
+          kind: "card",
+          needsCrawl: mediaNeedsLiveCrawl(media),
+          media,
+        });
+      } else if (mediaIsVideoCoverTarget(media)) {
+        upsert({
+          url: media.url,
+          kind: "video-cover",
+          needsCrawl: mediaNeedsCoverCrawl(media),
+          media,
+        });
+      }
     }
   }
   return [...byUrl.values()];
@@ -82,12 +109,59 @@ function entryUsable(e: SnapshotEntry): boolean {
 
 // --- Main --------------------------------------------------------------------
 
+/** Crawl a single target; cards use OG, video covers use the platform API. */
+async function crawl(t: Target): Promise<{
+  entry: SnapshotEntry;
+  ok: boolean;
+  reason: string;
+}> {
+  if (t.kind === "card") {
+    const res = await fetchOG(t.url);
+    const entry = pickEntry(res.data);
+    const ok = res.ok && entryUsable(entry);
+    const reason = ok
+      ? ""
+      : res.ok
+        ? "no OG tags on page"
+        : res.error || "fetch failed";
+    return { entry, ok, reason };
+  }
+  const res = await fetchVideoCover(t.media);
+  const entry = pickEntry({ image: res.image });
+  const ok = res.ok && entryUsable(entry);
+  const reason = ok ? "" : res.error || "cover fetch failed";
+  return { entry, ok, reason };
+}
+
+/** Concurrency cap — keep us well under any per-host rate limits and CPU. */
+const CRAWL_CONCURRENCY = 5;
+
+async function mapWithLimit<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const i = cursor++;
+      out[i] = await fn(items[i]);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
 async function main() {
   const targets = collectTargets();
   // Read the existing artifact once: parsed for lookups, raw kept for the diff.
-  const prevStr = fs.existsSync(SNAPSHOT_PATH)
-    ? fs.readFileSync(SNAPSHOT_PATH, "utf8")
-    : "";
+  let prevStr = "";
+  try {
+    prevStr = fs.readFileSync(SNAPSHOT_PATH, "utf8");
+  } catch {
+    // Missing file is fine — first run.
+  }
   const existing: Snapshot = prevStr ? JSON.parse(prevStr) : {};
 
   const next: Snapshot = {};
@@ -98,26 +172,28 @@ async function main() {
   const manualSkipped: string[] = [];
   const missing: { url: string; reason: string }[] = [];
 
+  // Split out the manual-covered targets — they need no network and shouldn't
+  // burn a concurrency slot.
+  const toCrawl: Target[] = [];
   for (const t of targets) {
-    if (!t.needsCrawl) {
-      // Fully covered by a manual preview; not stored (manual wins at runtime).
-      manualSkipped.push(t.url);
-      continue;
-    }
+    if (t.needsCrawl) toCrawl.push(t);
+    else manualSkipped.push(t.url);
+  }
 
-    const res = await fetchOG(t.url);
+  const results = await mapWithLimit(toCrawl, CRAWL_CONCURRENCY, crawl);
+
+  for (let i = 0; i < toCrawl.length; i++) {
+    const t = toCrawl[i];
+    const { entry, ok, reason } = results[i];
     const prev = existing[t.url];
-    const entry = pickEntry(res.data);
 
-    if (res.ok && entryUsable(entry)) {
+    if (ok) {
       next[t.url] = entry;
       if (!prev) added.push(t.url);
       else if (JSON.stringify(pickEntry(prev)) !== JSON.stringify(entry))
         updated.push(t.url);
       else unchanged.push(t.url);
     } else {
-      // Couldn't get usable OG data.
-      const reason = res.ok ? "no OG tags on page" : res.error || "fetch failed";
       if (prev && entryUsable(prev)) {
         next[t.url] = pickEntry(prev); // preserve good prior data
         keptOnFailure.push(`${t.url} (${reason})`);
@@ -167,7 +243,7 @@ async function main() {
   // the author must add a `preview` to recover. Surfaced loudly, non-zero.
   if (missing.length) {
     log(
-      `✗ ${missing.length} embed(s) can't be crawled and have no manual preview.`,
+      `✗ ${missing.length} card(s) can't be crawled and have no manual preview.`,
     );
     log(
       `  Add "preview": { "title", "image", … } to that media item in content/log.json.`,

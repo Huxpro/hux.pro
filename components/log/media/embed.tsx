@@ -1,45 +1,45 @@
 "use client";
 
 /**
- * Embed Component
+ * SocialEmbed — router for native social platform widgets.
  *
- * Router component for native social platform embeds.
- * Dispatches to platform-specific implementations based on URL detection.
+ * Renders the X / Instagram / TikTok official embed in place. Distinct from a
+ * `link` card: this is a live mini-app, not OG metadata. Platform detection
+ * falls back to the URL host when the author hasn't picked a platform.
  *
  * Platform-specific logic is colocated in:
- * - ./twitter.tsx
- * - ./instagram.tsx
- * - ./tiktok.tsx
+ *  - ./twitter.tsx
+ *  - ./instagram.tsx
+ *  - ./tiktok.tsx
  */
 
-import type { EmbedMedia, EmbedPlatform, MediaPreview } from "@/lib/log";
+import type { SocialEmbedMedia, SocialEmbedPlatform } from "@/lib/log";
+import { detectSocialEmbedPlatform } from "@/lib/og-core";
 import { useTheme } from "@/services/theme";
-import { TwitterEmbed, extractTweetId, isTwitterUrl } from "./twitter";
-import { InstagramEmbed, extractInstagramId, isInstagramUrl } from "./instagram";
-import { TikTokEmbed, extractTikTokId, isTikTokUrl } from "./tiktok";
-import { LinkPreview } from "./link";
+import { TwitterEmbed, extractTweetId } from "./twitter";
+import { InstagramEmbed, extractInstagramId } from "./instagram";
+import { TikTokEmbed, extractTikTokId } from "./tiktok";
+import { Link } from "./link";
 
 // =============================================================================
 // Types
 // =============================================================================
 
-export interface EmbedProps {
-  /** URL to embed */
+export interface SocialEmbedProps {
+  /** URL of the post to embed. */
   url: string;
-  /** Platform (auto-detected from URL if not provided) */
-  platform?: EmbedPlatform;
-  /** Theme for the embed */
+  /** Platform hint; auto-detected from URL when omitted. */
+  platform?: SocialEmbedPlatform;
+  /** Theme for the embed. */
   theme?: "light" | "dark";
-  /** Size variant */
+  /** Size variant. */
   size?: "compact" | "default" | "large";
-  /** Manual card metadata for the link-preview fallback (non-native embeds) */
-  preview?: MediaPreview;
-  /** Additional CSS classes */
+  /** Additional CSS classes. */
   className?: string;
 }
 
-export interface EmbedPropsFromMedia {
-  media: EmbedMedia;
+export interface SocialEmbedPropsFromMedia {
+  media: SocialEmbedMedia;
   theme?: "light" | "dark";
   size?: "compact" | "default" | "large";
   className?: string;
@@ -49,26 +49,17 @@ export interface EmbedPropsFromMedia {
 // Platform Detection
 // =============================================================================
 
-/**
- * Detect embed platform from URL
- */
-export function detectEmbedPlatform(url: string): EmbedPlatform | null {
-  if (isTwitterUrl(url)) {
-    return new URL(url).hostname.includes("x.com") ? "x" : "twitter";
-  }
-  if (isInstagramUrl(url)) {
-    return "instagram";
-  }
-  if (isTikTokUrl(url)) {
-    return "tiktok";
-  }
-  return null;
-}
+// Re-export the og-core canonical detector so consumers of this module keep
+// a single import point. The `isTwitterUrl` / `isInstagramUrl` / `isTikTokUrl`
+// per-platform helpers stay around for components that need finer URL
+// inspection (e.g. extractTweetId's path grammar).
+export { detectSocialEmbedPlatform };
 
-/**
- * Extract post ID for any supported platform
- */
-export function extractEmbedId(url: string, platform: EmbedPlatform): string | null {
+/** Extract a post ID for any supported platform. */
+export function extractSocialEmbedId(
+  url: string,
+  platform: SocialEmbedPlatform,
+): string | null {
   switch (platform) {
     case "twitter":
     case "x":
@@ -86,37 +77,26 @@ export function extractEmbedId(url: string, platform: EmbedPlatform): string | n
 // Main Component
 // =============================================================================
 
-export function Embed({
+export function SocialEmbed({
   url,
   platform: platformProp,
   theme: themeProp,
   size = "default",
-  preview,
   className,
-}: EmbedProps) {
-  // Use site theme from context, allow prop override
+}: SocialEmbedProps) {
+  // Use site theme from context, allow prop override.
   const { theme: siteTheme } = useTheme();
   const theme = themeProp ?? siteTheme;
 
-  // Auto-detect platform if not provided
-  const platform = platformProp || detectEmbedPlatform(url);
+  const platform = platformProp || detectSocialEmbedPlatform(url);
 
-  // Unknown platform - fallback to link preview (with optional manual
-  // metadata for sites that block server-side OG crawling, e.g. Medium).
+  // Misclassified URL (e.g. the author picked "social-embed" then pasted a
+  // non-social URL). Degrade to a plain pill rather than guessing a card —
+  // cards only ever come from kind:"link", present:"card".
   if (!platform) {
-    return (
-      <LinkPreview
-        url={url}
-        size={size}
-        title={preview?.title}
-        description={preview?.description}
-        image={preview?.image}
-        className={className}
-      />
-    );
+    return <Link url={url} className={className} />;
   }
 
-  // Route to platform-specific implementation
   switch (platform) {
     case "twitter":
     case "x":
@@ -129,7 +109,8 @@ export function Embed({
         />
       );
     case "instagram":
-      // Key forces re-mount on theme change since embed.js doesn't support dynamic themes
+      // Key forces re-mount on theme change since embed.js doesn't support
+      // dynamic themes.
       return (
         <InstagramEmbed
           key={`instagram-${extractInstagramId(url)}-${theme}`}
@@ -149,24 +130,16 @@ export function Embed({
         />
       );
     default:
-      return (
-        <LinkPreview
-          url={url}
-          size={size}
-          title={preview?.title}
-          description={preview?.description}
-          image={preview?.image}
-          className={className}
-        />
-      );
+      return <Link url={url} className={className} />;
   }
 }
 
-/**
- * Convenience wrapper that accepts EmbedMedia directly
- */
-export function EmbedFromMedia({ media, ...props }: EmbedPropsFromMedia) {
-  return <Embed url={media.url} platform={media.platform} {...props} />;
+/** Convenience wrapper that accepts SocialEmbedMedia directly. */
+export function SocialEmbedFromMedia({
+  media,
+  ...props
+}: SocialEmbedPropsFromMedia) {
+  return <SocialEmbed url={media.url} platform={media.platform} {...props} />;
 }
 
 // =============================================================================

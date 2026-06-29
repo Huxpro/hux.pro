@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { LinkPreview } from "./link";
+import { LinkCard } from "./link";
 
 // =============================================================================
 // Types
@@ -126,7 +126,7 @@ export function TikTokEmbed({
 
   // Invalid URL or error - fallback to link preview
   if (!postId || hasError) {
-    return <LinkPreview url={url} title="TikTok" className={className} />;
+    return <LinkCard url={url} title="TikTok" className={className} />;
   }
 
   return (

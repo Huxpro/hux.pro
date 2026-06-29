@@ -17,8 +17,11 @@
 
 import { fetchOG, type OGData } from "@/lib/og-core";
 
-export type { OGData };
-
+// NOTE: a "use server" module may export only async functions. Re-exporting
+// a type works at the type level but Turbopack lowers `export type { ... }`
+// into a value re-export at runtime, throwing `OGData is not defined` when
+// the module is loaded. Consumers should import OGData from "@/lib/og-core"
+// directly.
 export async function fetchOGData(url: string): Promise<OGData> {
   const result = await fetchOG(url, 86400 /* 24h Next Data Cache TTL */);
   if (!result.ok) {

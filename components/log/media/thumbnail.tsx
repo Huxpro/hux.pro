@@ -11,6 +11,7 @@
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
 import { getMediaThumbnail } from "@/lib/log";
+import { ExternalImage } from "./external-image";
 
 // =============================================================================
 // Types
@@ -52,17 +53,10 @@ export function MediaThumbnail({
   };
 
   const inner = (
-    <img
+    <ExternalImage
       src={thumbnailUrl}
       alt={alt}
       className="w-full h-full object-cover"
-      loading="lazy"
-      onError={(e) => {
-        const target = e.target as HTMLImageElement;
-        if (target.src.includes("maxresdefault")) {
-          target.src = target.src.replace("maxresdefault", "hqdefault");
-        }
-      }}
     />
   );
 

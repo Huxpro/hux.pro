@@ -11,6 +11,7 @@
 import { useState, useMemo } from "react";
 import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ExternalImage } from "./external-image";
 
 // =============================================================================
 // Types
@@ -177,11 +178,9 @@ export function BilibiliEmbed({
         aria-label="Play Bilibili video"
       >
         {thumbnail ? (
-          <img
+          <ExternalImage
             src={thumbnail}
-            alt=""
             className="absolute inset-0 w-full h-full object-cover"
-            loading="lazy"
           />
         ) : (
           // Bilibili-branded placeholder when no custom thumbnail is available

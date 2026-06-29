@@ -1,8 +1,29 @@
 {
+  "https://gitee.com/gitee-stars/30": {
+    "title": "Gitee 封面人物:React 黄玄",
+    "description": "React 黄玄：不懂艺术的 B-Boy 不是 Swag 的程序员",
+    "image": "https://gitee.com/index/gitee-people/images/common-thumb.jpg",
+    "siteName": "Gitee"
+  },
+  "https://segmentfault.com/a/1190000043208486": {
+    "title": "权威发布丨2022 中国开源先锋 33 人之心尖上的开源人物",
+    "description": "开源社主办的 COSCon'22 中国开源年会上，我们也以「开源站在十字路口」为主论坛主题展开了讨论。面对机遇与挑战并存，分裂与合作共生，风云变幻的世界，我们...",
+    "image": "https://segmentfault.com/img/bVc5sFd?spec=cover",
+    "siteName": "segmentfault.com"
+  },
   "https://web.dev/case-studies/eleme": {
     "title": "Ele.me improves performance load times with a multi-page Progressive Web App  |  web.dev",
     "description": "Ele.me is the biggest food ordering and delivery company in mainland China. They built their Progressive Web App (PWA) as a multi-page app to improve its mobile web experience, making it faster and more reliable in flaky connections, while accommodating their operational needs to best serve their customers.",
     "image": "https://web.dev/static/images/social-wide.jpg",
     "siteName": "web.dev"
+  },
+  "https://www.bilibili.com/video/BV1LY411Q7hC/": {
+    "image": "https://i2.hdslb.com/bfs/archive/4c3f37e14fa699846fa526c129298f30d60f901f.jpg"
+  },
+  "https://www.bilibili.com/video/BV1SC4y1c7ju/": {
+    "image": "https://i2.hdslb.com/bfs/archive/fe0c80595fc3ec885ef6377ea4dd1133324eb94c.jpg"
+  },
+  "https://www.bilibili.com/video/BV1ky4y1R7Zm/": {
+    "image": "https://i1.hdslb.com/bfs/archive/bc1c58ea74186267875aff7770d03b409f8148f5.jpg"
   }
 }

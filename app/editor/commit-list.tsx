@@ -100,9 +100,9 @@ export function CommitList({
                         <span className="flex items-center gap-0.5 ml-auto">
                           {(commit.media ?? []).map((m, i) => {
                             const MIcon =
-                              m.type === "video" ? Film :
-                              m.type === "embed" ? Code :
-                              m.type === "image" ? Image :
+                              m.kind === "video" ? Film :
+                              m.kind === "social-embed" ? Code :
+                              m.kind === "image" ? Image :
                               Link2;
                             return <MIcon key={i} className="w-2.5 h-2.5 text-muted-foreground/40" />;
                           })}
