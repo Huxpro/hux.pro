@@ -261,9 +261,11 @@ export function CardFace({
         <h4
           className={cn(
             "font-medium text-foreground",
-            // Dense tiles hide the description on mobile, so the title is
-            // allowed to flow to 3 lines below `sm` to soak up the room.
-            dense ? "line-clamp-3 sm:line-clamp-2" : "line-clamp-2",
+            // Title is intentionally unclamped — publisher titles are the
+            // strongest at-a-glance signal and an ellipsis on the second
+            // line ("Multi-page Progressive Web App | …") obscures more
+            // than it saves. Card height grows to fit; the grid is `items-
+            // stretch` so siblings track the tallest tile naturally.
             compact ? "text-xs leading-snug" : "text-sm",
           )}
         >
@@ -274,9 +276,11 @@ export function CardFace({
             className={cn(
               "text-muted-foreground line-clamp-2",
               compact ? "text-[11px] leading-snug" : "text-xs",
-              // Dense tiles drop description on mobile to reduce visual
-              // noise when two cards stand side-by-side at narrow widths.
-              dense && "hidden sm:block",
+              // Dense tiles drop the description below `sm`. Must be
+              // `max-sm:hidden` (not `hidden sm:block`) — the latter
+              // overrides `line-clamp-2`'s required `display:-webkit-box`
+              // at the sm breakpoint, unclamping the desktop card.
+              dense && "max-sm:hidden",
             )}
           >
             {description}
