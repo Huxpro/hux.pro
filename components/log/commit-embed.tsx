@@ -190,19 +190,43 @@ function buildCommitPreview(
       };
     }
     return {
-      panelClassName: "p-0 overflow-hidden",
-      node: <PeekThumb image={item.image} className="w-72 aspect-video" />,
+      // `max-w-md` lifts the default `max-w-xs` cap so the 26rem content
+      // doesn't get clipped by the Cursor wrapper's overflow.
+      panelClassName: "p-0 max-w-md overflow-hidden",
+      // Matches the /writing peek card width (w-[26rem]) so video commits
+      // and post peeks read as the same hover-surface family.
+      node: <PeekThumb image={item.image} className="w-[26rem] aspect-video" />,
     };
   }
 
+  // No peekable media → fall back to a small designed card: description
+  // body + tags caption. Echoes the /writing peek's structure (editorial
+  // body + bottom mono-uppercase caption strip) at a smaller scale so the
+  // hover family reads as one design language.
   const description = localize(commit.description, locale);
-  if (!description) return null;
+  const tags = commit.tags;
+  const hasTags = !!(tags && tags.length);
+  if (!description && !hasTags) return null;
 
   return {
     node: (
-      <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed max-w-[14rem]">
-        {description}
-      </p>
+      <div className="w-72 space-y-3">
+        {description && (
+          <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+            {description}
+          </p>
+        )}
+        {hasTags && (
+          <div
+            className={cn(
+              "font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70 leading-relaxed",
+              description && "pt-3 border-t border-border/30",
+            )}
+          >
+            {tags!.join("  ·  ")}
+          </div>
+        )}
+      </div>
     ),
   };
 }

@@ -28,6 +28,13 @@ export interface BlogPost extends Post {
   tags?: string[];
   origin?: string; // Markdown string describing provenance (from en file or zh-only)
   originZh?: string; // Chinese version's origin (from zh file)
+  /** Plain-text excerpt extracted from the post body for hover previews —
+   *  markdown / MDX components stripped, whitespace collapsed, truncated. */
+  excerpt?: string;
+  excerptZh?: string;
+  /** First image URL referenced in the post body — used as the peek cover. */
+  cover?: string;
+  coverZh?: string;
 }
 
 // Docs don't have extra fields beyond Post
