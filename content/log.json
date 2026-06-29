@@ -651,8 +651,8 @@
         "zh": "Upgrading to Progressive Web Apps"
       },
       "description": {
-        "en": "A practical guide to upgrading existing web applications to Progressive Web Apps.",
-        "zh": "将现有网页应用升级为渐进式 Web 应用的实用指南。"
+        "en": "A practical guide to upgrading existing web applications to Progressive Web Apps. The YouTube recording is no longer available, but the slides — and the conference page — are still reachable via the Wayback Machine.",
+        "zh": "将现有网页应用升级为渐进式 Web 应用的实用指南。YouTube 上的演讲录像已下线，但幻灯片与会议官网仍可通过 Wayback Machine 访问。"
       },
       "date": "2017-07",
       "conference": {
@@ -661,16 +661,22 @@
       },
       "media": [
         {
-          "kind": "video",
-          "url": "https://www.youtube.com/watch?v=RWzMF-1fjJ8",
-          "platform": "youtube"
+          "kind": "link",
+          "url": "https://web.archive.org/web/20170724044527/http://2017.jsconf.cn/en/",
+          "present": "card",
+          "preview": {
+            "image": "https://foruda.gitee.com/images/1665628685847841393/b040376a_1850385.jpeg"
+          }
         },
         {
           "kind": "link",
-          "url": "https://huangxuan.me/jsconfcn2017/",
-          "present": "pill",
-          "label": "Slides",
-          "icon": "slides"
+          "url": "https://web.archive.org/web/20250527185142/https://huangxuan.me/jsconfcn2017/",
+          "present": "card",
+          "preview": {
+            "title": "Upgrading to Progressive Web Apps",
+            "description": "JSConf CN · Shanghai · July 2017 — slides by 黄玄 / @huxpro.",
+            "image": "/img/works/upgrading-to-pwa-cover.png"
+          }
         }
       ],
       "tags": [

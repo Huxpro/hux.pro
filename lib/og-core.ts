@@ -53,10 +53,45 @@ export interface OGFetchResult {
 const CRAWLER_USER_AGENT =
   "Mozilla/5.0 (compatible; Slackbot-LinkExpanding 1.0; +https://api.slack.com/robots)";
 
-/** Bare hostname (no leading `www.`), or undefined for a non-URL string. */
+/**
+ * If `url` is a Wayback Machine snapshot
+ * (`web.archive.org/web/{timestamp}[flags]/{originalURL}`), return the parsed
+ * parts; otherwise null.
+ *
+ * Used to "look through" archived URLs so the displayed domain and the
+ * archived treatment match the original source, not `web.archive.org`. The
+ * fetched HTML itself is unaffected — Wayback preserves the original
+ * `<meta>` tags verbatim, so OG parsing already returns the original
+ * title/description; only the hostname needs unwrapping.
+ */
+export function parseWaybackUrl(
+  url: string,
+): { timestamp: string; original: string } | null {
+  // /web/{14-digit-timestamp}{flags?}/{original-url}. Flags are 0–3 lowercase
+  // letters + optional underscore (e.g. `if_`, `im_`, `id_`).
+  const m = url.match(
+    /^https?:\/\/web\.archive\.org\/web\/(\d{14})[a-z_]{0,4}\/(.+)$/,
+  );
+  if (!m) return null;
+  return { timestamp: m[1], original: m[2] };
+}
+
+/** True when `url` is a Wayback Machine snapshot. */
+export function isArchivedUrl(url: string): boolean {
+  return parseWaybackUrl(url) !== null;
+}
+
+/**
+ * Bare hostname (no leading `www.`), or undefined for a non-URL string.
+ *
+ * Wayback URLs are unwrapped first so a snapshot of `https://2017.jsconf.cn/en/`
+ * reports `2017.jsconf.cn`, not `web.archive.org`.
+ */
 export function getHostname(url: string): string | undefined {
+  const wb = parseWaybackUrl(url);
+  const target = wb?.original ?? url;
   try {
-    return new URL(url).hostname.replace(/^www\./, "");
+    return new URL(target).hostname.replace(/^www\./, "");
   } catch {
     return undefined;
   }
