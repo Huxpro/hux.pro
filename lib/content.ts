@@ -88,51 +88,57 @@ export function shouldShowPost<T extends LocalizedContent>(
 }
 
 // =============================================================================
-// Tag Decorators
+// Tag Locale Visibility
 // -----------------------------------------------------------------------------
-// Most tags are content topics ("Web", "React", "UX/UI") and are shown to every
-// reader. A few tags are *decorators*: provenance / meta annotations that only
-// make sense to a reader of a particular locale —
-//   "译"   the piece is a translation (relevant only to zh readers)
-//   "知乎" originally answered on Zhihu, a Chinese Q&A site
-// Their per-locale visibility is declared here, in one place, exactly the way a
-// post's own locale visibility lives in `shouldShowPost` above — rather than
-// being special-cased ad-hoc at each render site. To scope a tag to a locale,
-// add an entry; everything not listed is a normal content tag, always visible.
+// Every tag is an ordinary tag; nothing here is a special kind of data. By
+// default a tag is visible in every locale. This table is the single source of
+// truth for the exceptions — exactly the way a post's own locale visibility
+// lives in `shouldShowPost` above, rather than being special-cased ad-hoc at
+// each render site. A tag listed here is shown ONLY in the locales given:
+//   "译"   the piece is a translation   → zh only
+//   "知乎" originally answered on Zhihu  → zh only
+// The mechanism is fully general — scope ANY tag to ANY locale by adding a row
+// (e.g. `Foo: ["en"]` for en-only, `Bar: []` to hide everywhere). A tag not
+// listed stays visible in every locale.
 // =============================================================================
 
-export interface TagDecorator {
-  /** The raw tag string exactly as authored in frontmatter. */
-  tag: string;
-  /** Locales this decorator is visible in. */
-  locales: Locale[];
-}
-
-export const tagDecorators: TagDecorator[] = [
-  { tag: "译", locales: ["zh"] },
-  { tag: "知乎", locales: ["zh"] },
-];
-
-const decoratorByTag = new Map(tagDecorators.map((d) => [d.tag, d]));
-
-/** Whether a tag is a declared decorator (vs. a normal content tag). */
-export function isTagDecorator(tag: string): boolean {
-  return decoratorByTag.has(tag);
-}
+export const tagLocaleVisibility: Record<string, Locale[]> = {
+  译: ["zh"],
+  知乎: ["zh"],
+};
 
 /**
- * Whether a tag should be visible in the given locale. Normal content tags are
- * always visible; decorator tags are visible only in the locales declared in
- * `tagDecorators`.
+ * Whether a tag should be visible in the given locale. A tag absent from
+ * `tagLocaleVisibility` is visible everywhere; a listed tag is visible only in
+ * its declared locales.
  */
 export function isTagVisible(tag: string, locale: Locale): boolean {
-  const decorator = decoratorByTag.get(tag);
-  return decorator ? decorator.locales.includes(locale) : true;
+  const locales = tagLocaleVisibility[tag];
+  return locales ? locales.includes(locale) : true;
 }
 
 /** Filter a tag list to those visible in the given locale, preserving order. */
 export function getVisibleTags(tags: string[], locale: Locale): string[] {
   return tags.filter((tag) => isTagVisible(tag, locale));
+}
+
+// =============================================================================
+// Tag Decorators (presentation only)
+// -----------------------------------------------------------------------------
+// A separate, smaller concern from visibility above: which tags read as
+// provenance/meta *annotations* and so render as a badge on the list row,
+// instead of living only in the hover peek. This is purely a display choice and
+// is deliberately independent of locale visibility — a tag can be locale-scoped
+// without being a decorator (e.g. an en-only topic tag), and a decorator is
+// still subject to the visibility table (a decorator hidden in this locale
+// won't render). 译 / 知乎 happen to be both, but each is configured on its own.
+// =============================================================================
+
+export const decoratorTags: ReadonlySet<string> = new Set(["译", "知乎"]);
+
+/** Whether a tag renders as a row-level decorator badge (vs. a plain tag). */
+export function isDecoratorTag(tag: string): boolean {
+  return decoratorTags.has(tag);
 }
 
 /**
