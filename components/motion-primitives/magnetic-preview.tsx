@@ -69,7 +69,11 @@ export function MagneticPreview({
         >
           <div
             className={cn(
-              "rounded-lg border border-border/60 bg-popover/95 backdrop-blur-sm shadow-lg",
+              // Translucent lifted surface — same recipe as the Command
+              // Palette (`bg-popover/75 backdrop-blur-xl`) and the Dock
+              // Live Activity (`bg-card/60 backdrop-blur-xl`) so every
+              // floating surface on the site reads as the same family.
+              "rounded-lg border border-border/60 bg-popover/75 backdrop-blur-xl shadow-lg",
               "p-3 max-w-xs",
               panelClassName,
             )}
