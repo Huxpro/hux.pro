@@ -98,7 +98,7 @@ Some people (like [@题叶](//www.zhihu.com/people/790dccce26904cdcd11b0fad3bac3
 component Counter = (props) =>
   context.state(1).get_or(0).then([count, put] => {  // `then` is monadic bind.
     let inc = () => put(count + 1)
-    return <a onClock={inc}>{count}</a>
+    return <a onClick={inc}>{count}</a>
   }).unwrap() // assuming it's safe.
 ```
 
@@ -121,7 +121,7 @@ To help you understand, if we yet again had a hypothetical React language...
 ```ts
 // hypothetical React lang Ⅱ
 component Counter = (props) => {
-  let count = perform getState(1),or=0); // 1. `perform` "throw" effects to the context
+  let count = perform getState(1, or=0); // 1. `perform` "throw" effects to the context
                                                 // 4. resume with the continuation to here
   let inc = () => perform putState(1, s=count + 1);
   return <a onClick={inc}>{count}</a>
