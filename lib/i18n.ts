@@ -173,7 +173,8 @@ export const translations = {
     worksTitle: "Works",
     worksTitleHover: "Profession",
     logSubtitle:
-      "Commit history. Each tag marks a chapter, each commit is a piece of work.",
+      "Commit history. Every commit is a project — each role is the identity I committed it as.",
+    committerAs: "as",
     logHead: "HEAD",
     logCurrent: "Current",
     logInit: "git init",
@@ -328,7 +329,8 @@ export const translations = {
     // Works page (Log / Timeline)
     worksTitle: "工作",
     worksTitleHover: "术业有专攻",
-    logSubtitle: "提交历史。每个标签标记一个篇章，每个提交都是一件作品。",
+    logSubtitle: "提交历史。每个提交都是一个项目——而每个身份，是我提交它时的署名。",
+    committerAs: "以",
     logHead: "HEAD",
     logCurrent: "当前",
     logInit: "git init",

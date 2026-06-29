@@ -599,6 +599,40 @@ export function getCommitTypeLabel(type: CommitType, locale: Locale): string {
   return localize(labels[type], locale);
 }
 
+// =============================================================================
+// Committers — roles reframed as "virtual committers" (git author/committer)
+// =============================================================================
+
+/**
+ * The bold idea behind /works: **every commit is a project**, and a `role`
+ * isn't a piece of work at all — it's the *identity the work was committed as*.
+ *
+ * Borrowing git's author/committer split: the real author is always "Hux",
+ * while each employment (or education) is the **virtual committer** stamped on
+ * the artifacts produced during its tenure. React Forget is committed "as a
+ * Meta Software Engineer"; Taobao / Alitrip "as an Alibaba Front-End Engineer".
+ *
+ * Roles stay modelled as `RoleCommit` — so the editor, the home widget, and
+ * the tenure rail keep working unchanged — but on the timeline they render as
+ * committer headers anchoring the cluster of artifacts they authored, rather
+ * than as work rows of their own.
+ */
+export type Employment = RoleCommit;
+
+/** True for the work-artifact commit types (everything a committer authors). */
+export function isArtifactCommit(commit: Commit): boolean {
+  return commit.type !== "role";
+}
+
+/**
+ * The single stable letter shown in a committer's avatar — the org's initial,
+ * the way a git remote avatars an org. Falls back to a neutral dot.
+ */
+export function getCommitterInitial(company: string): string {
+  const ch = company.trim().charAt(0);
+  return ch ? ch.toUpperCase() : "·";
+}
+
 /**
  * Get the icon character for commit type (for minimal ASCII display)
  */

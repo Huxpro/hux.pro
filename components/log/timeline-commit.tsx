@@ -12,6 +12,7 @@
  */
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
 import type { NormalizedCommit } from "./commit-data";
@@ -48,6 +49,8 @@ interface TimelineCommitProps {
   expandAll?: boolean;
   className?: string;
   hideDate?: boolean;
+  /** Owning tag's accent color — tints a committer (role) avatar. */
+  accent?: string;
   /** Git-graph rail char to draw on the right (`┐`, `│`, `┘` or empty). */
   rail?: string;
   /** True when this row IS the role that owns its segment. */
@@ -83,6 +86,7 @@ export function TimelineCommit({
   expandAll,
   className,
   hideDate = false,
+  accent,
   rail,
   isRole = false,
   beamSpec = null,
@@ -99,6 +103,9 @@ export function TimelineCommit({
     (data.iconOverride && commitIconOverrides[data.iconOverride]) ||
     commitIcons[data.type];
   const isEvent = data.type === "event";
+  // A role renders not as a work row but as a "virtual committer" header —
+  // the identity ("as {role} · {company}") the cluster below was authored as.
+  const committer = data.committer;
   const [isExpandedState, setIsExpanded] = useState(defaultExpanded);
   const isExpanded = inspecting ? isSelected : isExpandedState;
 
@@ -269,6 +276,39 @@ export function TimelineCommit({
             aria-hidden
             className="block w-[3px] h-[3px] rounded-full bg-muted-foreground/30"
           />
+        ) : committer ? (
+          // Committer avatar — the org's initial in a tinted, rounded chip,
+          // the way git avatars an author. It sits in the same w-5 h-5 slot
+          // as a normal icon so the tenure rail threads through it unchanged;
+          // the inset ring marks it as the cluster's anchor identity.
+          <span
+            aria-hidden
+            className={cn(
+              "inline-flex items-center justify-center w-5 h-5 rounded-[6px] text-[10px] font-mono font-semibold leading-none ring-1 ring-inset transition-[box-shadow] duration-200",
+              isRoleAnchor
+                ? [
+                    "ring-muted-foreground/20",
+                    "group-hover/tenure:ring-muted-foreground/45",
+                    "group-focus-within/tenure:ring-muted-foreground/45",
+                    "group-has-[[data-expanded]]/tenure:ring-muted-foreground/45",
+                  ]
+                : "ring-border",
+            )}
+            style={
+              accent
+                ? {
+                    backgroundColor: `color-mix(in oklch, ${accent} 16%, transparent)`,
+                    color: accent,
+                  }
+                : undefined
+            }
+          >
+            {committer.isEducation ? (
+              <GraduationCap className="w-3 h-3" />
+            ) : (
+              committer.initial
+            )}
+          </span>
         ) : (
           // All icons live in the same-size invisible wrapper (w-5 h-5)
           // so positions stay identical; the role's `ring-inset` draws a
@@ -312,11 +352,29 @@ export function TimelineCommit({
               : "text-sm text-foreground",
           )}
         >
-          {isEvent ? `(${data.title})` : data.title}
-          {data.languageBadge && (
-            <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
-              {data.languageBadge}
-            </span>
+          {committer ? (
+            // "as Front-End Engineer · Alibaba" — the identity trailer. The
+            // mono `as` keyword frames the role as a committer (not a work);
+            // the role title is foregrounded, the org sits a tier quieter.
+            <>
+              <span className="font-mono text-xs text-muted-foreground/40 mr-1.5 select-none">
+                {committer.prefix}
+              </span>
+              <span className="text-foreground/90">{committer.role}</span>
+              <span className="text-muted-foreground/45">
+                {" · "}
+                {committer.company}
+              </span>
+            </>
+          ) : (
+            <>
+              {isEvent ? `(${data.title})` : data.title}
+              {data.languageBadge && (
+                <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
+                  {data.languageBadge}
+                </span>
+              )}
+            </>
           )}
         </span>
 
@@ -370,7 +428,10 @@ export function TimelineCommit({
         )}
       </div>
 
-      {data.meta && (
+      {/* Committers already print their org inline in the trailer
+          ("as {role} · {company}"), so the meta sub-line would just repeat
+          it — suppress it for them. */}
+      {data.meta && !committer && (
         <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-muted-foreground/40">
           {data.metaUrl ? (
             <a

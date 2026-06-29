@@ -222,6 +222,7 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll }: TagBlockProps) 
                 variant="timeline"
                 expandAll={expandAll}
                 hideDate={tag.hideDate || commits[i].hideDate}
+                accent={tag.accentColor}
                 rail={railInfo[i].rail}
                 segmentId={railInfo[i].segmentId}
                 isSegmentActive={

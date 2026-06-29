@@ -38,6 +38,8 @@ export interface CommitProps {
   expandAll?: boolean;
   className?: string;
   hideDate?: boolean;
+  /** Owning tag's accent color — tints a role's committer avatar. */
+  accent?: string;
   /** Pre-computed git-graph rail char for the timeline gutter. */
   rail?: string;
   /** The role commit's id that owns this row's rail segment. */
@@ -65,6 +67,7 @@ export function Commit({
   expandAll,
   className,
   hideDate = false,
+  accent,
   rail,
   segmentId,
   isSegmentActive = false,
@@ -116,6 +119,7 @@ export function Commit({
           expandAll={expandAll}
           className={className}
           hideDate={hideDate}
+          accent={accent}
           rail={rail}
           isRole={commit.type === "role"}
           segmentId={segmentId ?? null}

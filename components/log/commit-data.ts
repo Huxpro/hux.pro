@@ -26,7 +26,9 @@ import {
   isImageMedia,
   isPinnedMedia,
   getMediaThumbnail,
+  getCommitterInitial,
 } from "@/lib/log";
+import { t } from "@/lib/i18n";
 import { pickInternalLink } from "@/lib/og-enrich";
 import { detectSocialEmbedPlatform, getDomainLabel } from "@/lib/og-core";
 
@@ -73,6 +75,27 @@ export interface NormalizedCommit {
    * other commit types leave it undefined.
    */
   dateSlotOverride?: string;
+
+  /**
+   * Present only for `role` commits. On the timeline a role renders as a
+   * "virtual committer" header (avatar + "as {role} · {company}") rather than
+   * a work row — this carries the identity fields that header needs. The git
+   * metaphor: the artifacts beneath were authored by Hux but *committed as*
+   * this employment.
+   */
+  committer?: {
+    /** Mono prefix word ("as" / "以") that frames the role as an identity. */
+    prefix: string;
+    /** The position title — the foregrounded part of the identity. */
+    role: string;
+    /** The org the work was committed under. */
+    company: string;
+    /** One-letter avatar (org initial). */
+    initial: string;
+    location?: string;
+    /** Education committers (degrees) get a graduation-cap avatar glyph. */
+    isEducation?: boolean;
+  };
 
   // Expandable content
   commentary?: string;
@@ -341,6 +364,16 @@ export function normalizeCommit(
         meta: company,
         metaUrl: commit.url,
         dateSlotOverride: commit.location,
+        // Timeline committer-header identity. `title` is the role; the avatar
+        // is the org's initial (or a grad-cap for degrees).
+        committer: {
+          prefix: t(locale, "committerAs"),
+          role: title,
+          company,
+          initial: getCommitterInitial(company),
+          location: commit.location,
+          isEducation: commit.icon === "graduation-cap",
+        },
         tags,
         commentary,
         links: mediaLinks,

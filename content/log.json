@@ -788,28 +788,24 @@
       ]
     },
     {
-      "id": "alitrip-engineer",
-      "type": "role",
+      "id": "alitrip-mobile-web",
+      "type": "project",
       "tagId": "pwa-era",
-      "attachedTo": "cuc-ba",
       "title": {
-        "en": "Front-End Engineer",
-        "zh": "前端工程师"
+        "en": "Taobao / Alitrip Mobile & Web",
+        "zh": "淘宝 / 阿里旅行 移动端与 Web"
       },
-      "date": "2014-08",
-      "endDate": "2015-05",
-      "company": {
-        "en": "Alibaba",
-        "zh": "阿里巴巴"
+      "date": "2015-03",
+      "description": {
+        "en": "Mobile & hybrid web for Taobao Travel as it span out into Alitrip — the H5 hybrid container, an offline \"virtual domain\" resource scheme, and the product thinking behind the spin-off.",
+        "zh": "「淘宝旅行」独立为「阿里旅行 · 去啊」期间的移动端与 Hybrid Web：H5 混合容器、资源离线化的「虚拟域」方案，以及独立成事业部背后的产品思路。"
       },
       "tags": [
         "Web",
-        "Mobile"
+        "Mobile",
+        "Hybrid"
       ],
-      "description": {
-        "en": "",
-        "zh": ""
-      },
+      "language": "zh",
       "media": [
         {
           "kind": "link",
@@ -842,6 +838,30 @@
           }
         }
       ]
+    },
+    {
+      "id": "alitrip-engineer",
+      "type": "role",
+      "tagId": "pwa-era",
+      "attachedTo": "cuc-ba",
+      "title": {
+        "en": "Front-End Engineer",
+        "zh": "前端工程师"
+      },
+      "date": "2014-08",
+      "endDate": "2015-05",
+      "company": {
+        "en": "Alibaba",
+        "zh": "阿里巴巴"
+      },
+      "tags": [
+        "Web",
+        "Mobile"
+      ],
+      "description": {
+        "en": "First job out of the internship — shipped mobile & hybrid web for Taobao Travel as it span out into the Alitrip business unit.",
+        "zh": "实习转正后的第一份工作——在「淘宝旅行」独立为「阿里旅行 · 去啊」事业部期间，参与其移动端与 Hybrid Web 的建设。"
+      }
     },
     {
       "id": "cuc-ba",
