@@ -6,6 +6,60 @@ import type { BlogPost, Doc, PostLanguage } from "./content";
 
 const contentDirectory = path.join(process.cwd(), "content");
 
+/**
+ * Find the first image URL referenced in the post body — used as the peek
+ * preview's cover so the hover surfaces the visual vibe alongside the text.
+ *
+ * Looks at three shapes, in order of how the codebase usually opens a post:
+ *  - `<Figure url="…"`  — the MDX Figure component (most common in this repo)
+ *  - `<img src="…"`     — raw HTML
+ *  - `![alt](url)`      — markdown image syntax
+ *
+ * Returns undefined when no image appears in the body.
+ */
+function extractFirstImage(content: string): string | undefined {
+  const figure = content.match(/<Figure[^>]*?\burl=["']([^"']+)["']/);
+  if (figure) return figure[1];
+  const img = content.match(/<img[^>]*?\bsrc=["']([^"']+)["']/);
+  if (img) return img[1];
+  const md = content.match(/!\[[^\]]*\]\(([^)]+)\)/);
+  if (md) return md[1];
+  return undefined;
+}
+
+/**
+ * Strip MDX / markdown to plain text for hover-preview excerpts.
+ *
+ * Order matters: code fences first (they contain markdown-looking text we
+ * shouldn't process), then JSX, then markdown syntax. After flattening we
+ * collapse whitespace and truncate at a word boundary when the text is
+ * Latin-script — for CJK we hard-truncate since there are no spaces.
+ */
+function extractExcerpt(content: string, maxChars = 320): string {
+  const text = content
+    .replace(/```[\s\S]*?```/g, "") // fenced code blocks
+    .replace(/`([^`]+)`/g, "$1") // inline code
+    .replace(/<[^>]+>/g, "") // JSX / HTML tags (including <Figure …/>)
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, "") // image markdown
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // link markdown → text
+    .replace(/^#{1,6}\s+/gm, "") // heading hashes
+    .replace(/(\*\*|__)([^*_]+)\1/g, "$2") // **bold** / __bold__
+    .replace(/(\*|_)([^*_]+)\1/g, "$2") // *italic* / _italic_
+    .replace(/^>\s+/gm, "") // blockquote
+    .replace(/^[-*+]\s+/gm, "") // unordered list marker
+    .replace(/^\d+\.\s+/gm, "") // ordered list marker
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (text.length <= maxChars) return text;
+  const cut = text.slice(0, maxChars);
+  const lastSpace = cut.lastIndexOf(" ");
+  // Honor word boundaries only when they're close enough to the end —
+  // otherwise we lose too much text on CJK content with rare spaces.
+  const head = lastSpace > maxChars * 0.8 ? cut.slice(0, lastSpace) : cut;
+  return head + "…";
+}
+
 // BlogPost already has readingTime from Post, just add content fields
 export interface BlogPostWithContent extends BlogPost {
   content: string;
@@ -225,6 +279,14 @@ export function getBlogPostBySlug(slug: string): BlogPostWithContent | null {
   const titleZh = hasZh ? (zhData.title as string) : undefined;
   const descriptionZh = hasZh ? (zhData.description as string) : undefined;
 
+  // Hover-preview extras — derived from the post body. excerpt feeds the
+  // peek's body excerpt; cover supplies the visual vibe. Both are per-locale
+  // because bilingual posts have separate bodies.
+  const excerpt = content ? extractExcerpt(content) : undefined;
+  const excerptZh = contentZh ? extractExcerpt(contentZh) : undefined;
+  const cover = content ? extractFirstImage(content) : undefined;
+  const coverZh = contentZh ? extractFirstImage(contentZh) : undefined;
+
   return {
     slug,
     language,
@@ -236,6 +298,10 @@ export function getBlogPostBySlug(slug: string): BlogPostWithContent | null {
     tags: (data.tags as string[]) || (zhData.tags as string[]) || [],
     origin: (data.origin as string) || (!hasEn && zhData.origin as string) || undefined,
     originZh: (zhData.origin as string) || undefined,
+    excerpt,
+    excerptZh,
+    cover,
+    coverZh,
     content,
     contentZh,
     readingTime: readingTimeEn || readingTimeZh || "",
