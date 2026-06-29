@@ -267,13 +267,14 @@ function PeekCard({
       image={item.image}
       size="compact"
       fixedAspect={fixedAspect}
-      // Peek-specific chrome: opaque popover bg + backdrop blur + soft
-      // shadow, matching the default magnetic-preview panel so the card
-      // reads as a lifted surface against the page underneath. The single-
-      // peek and stacked-peek branches both strip the panel's own chrome
-      // (BARE_PANEL_CHROME), so the card itself has to supply it.
+      // Peek-specific chrome: low-opacity popover bg + heavy backdrop blur,
+      // matching the system-wide "translucent lifted surface" recipe used by
+      // the Command Palette (`bg-popover/75 backdrop-blur-xl`) and the Dock
+      // Live Activity (`bg-card/60 backdrop-blur-xl`). The single-peek and
+      // stacked-peek branches both strip the panel's own chrome
+      // (BARE_PANEL_CHROME), so the card itself supplies it.
       className={cn(
-        "bg-popover/95 backdrop-blur-sm shadow-md rounded-md",
+        "bg-popover/75 backdrop-blur-xl shadow-md rounded-md",
         className,
       )}
       onImgResolved={onResolved}
