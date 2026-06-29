@@ -436,7 +436,14 @@ export function LinkCard({
         domainLabel={domainLabel}
         languageBadge={languageBadge}
         className={cn(
-          "h-full hover:bg-muted/10 hover:border-border/70 transition-colors",
+          // Hover matches the surrounding row pattern (timeline-commit:
+          // `hover:bg-muted/20 active:bg-muted/30`). The card merges with
+          // the hovered row visually — its content (image + title) keeps
+          // the affordance legible, and the unified surface reads as a
+          // single interactive target.
+          "h-full transition-colors duration-200",
+          "hover:bg-muted/20 hover:border-border",
+          "active:bg-muted/30",
           className,
         )}
       />
