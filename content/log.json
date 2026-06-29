@@ -707,14 +707,12 @@
             "title": "Upgrading Ele.me to Progressive Web App",
             "description": "Since the very first experiments that @Vue.js tweeted, we at Ele.me (the biggest food ordering and delivering company in China) have been…",
             "image": "https://miro.medium.com/v2/resize:fit:1200/1*J2ONRSf1OYPZNjRDxJCxgA.png"
-          },
-          "pinned": true
+          }
         },
         {
           "kind": "link",
           "url": "https://web.dev/case-studies/eleme",
-          "present": "card",
-          "pinned": true
+          "present": "card"
         }
       ],
       "tags": [
