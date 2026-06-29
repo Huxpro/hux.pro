@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ImageOff } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /**
  * ExternalImage — the canonical `<img>` for third-party cover URLs.
  *
- * Centralizes two cross-cutting concerns that are easy to forget in fresh
+ * Centralizes three cross-cutting concerns that are easy to forget in fresh
  * code and that fail silently when forgotten:
  *
  *  1. `referrerPolicy="no-referrer"`. Some origins gate the image response on
@@ -18,6 +20,12 @@ import { useEffect, useRef } from "react";
  *  2. YouTube's `maxresdefault.jpg → hqdefault.jpg` retry. `maxresdefault`
  *     404s for videos that were never uploaded in HD; `hqdefault` always
  *     exists. The fallback is a no-op for non-YouTube URLs.
+ *
+ *  3. Terminal-error fallback. On 404 / referrer-block / decode failure the
+ *     browser draws its own broken-image glyph (a blue "?" in Chrome) — that
+ *     is never the right look. We swap the `<img>` out for a neutral
+ *     placeholder slot keyed by the same className, so consumers don't have
+ *     to learn the failure protocol.
  *
  * Use this instead of a raw `<img>` whenever the URL is third-party. Local
  * assets (next.js Image, /public files) don't need it.
@@ -54,6 +62,7 @@ export function ExternalImage({
   // as an inline arrow (new identity every parent render).
   const imgRef = useRef<HTMLImageElement | null>(null);
   const firedRef = useRef(false);
+  const [errored, setErrored] = useState(false);
   const fire = () => {
     if (firedRef.current) return;
     firedRef.current = true;
@@ -61,11 +70,38 @@ export function ExternalImage({
   };
   // Cache-warm case: when the browser already has the image decoded, `load`
   // may fire before React attaches the listener, so check `complete` on mount.
+  // `naturalWidth === 0` on a complete image means the decode failed (cached
+  // 404 or broken bytes) — surface the placeholder in that case.
   useEffect(() => {
-    if (imgRef.current?.complete) fire();
+    const el = imgRef.current;
+    if (!el?.complete) return;
+    if (el.naturalWidth === 0) setErrored(true);
+    fire();
     // One-shot at mount; deps intentionally empty.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (errored) {
+    // `aspect-[2/1]` gives the slot a stable height even when the parent
+    // sized via `h-auto` (which would collapse without intrinsic content).
+    // For parents that already pin the height (e.g. `aspect-video`,
+    // `h-full`), tailwind-merge keeps theirs.
+    return (
+      <div
+        role="img"
+        aria-label={alt || undefined}
+        className={cn(
+          "aspect-[2/1] bg-muted/10 flex items-center justify-center",
+          className,
+        )}
+      >
+        <ImageOff
+          className="w-8 h-8 text-muted-foreground/30"
+          aria-hidden
+        />
+      </div>
+    );
+  }
 
   return (
     <img
@@ -84,6 +120,7 @@ export function ExternalImage({
           target.src = target.src.replace("maxresdefault", "hqdefault");
           return;
         }
+        setErrored(true);
         fire();
       }}
     />

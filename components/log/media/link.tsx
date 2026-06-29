@@ -14,7 +14,7 @@ import { ExternalLink as ExternalLinkIcon, Image as ImageIcon } from "lucide-rea
 import { cn } from "@/lib/utils";
 import { fetchOGData } from "@/lib/og";
 import type { OGData } from "@/lib/og-core";
-import { getDomainLabel } from "@/lib/og-core";
+import { getDomainLabel, isArchivedUrl } from "@/lib/og-core";
 import type { LinkMedia } from "@/lib/log";
 import { ExternalImage } from "./external-image";
 
@@ -225,11 +225,27 @@ export function CardFace({
       <div className={cn("flex-1 space-y-1", compact ? "p-2.5" : "p-4")}>
         <div
           className={cn(
+            "flex items-center gap-1.5",
             "text-muted-foreground font-mono uppercase tracking-wide",
             compact ? "text-[10px]" : "text-xs",
           )}
         >
-          {domain}
+          <span className="truncate">{domain}</span>
+          {isArchivedUrl(url) && (
+            // Restrained tag — reuses the existing domain-row typography so
+            // it sits on the same baseline; a hair-thin border keeps it
+            // distinct from the domain without shouting.
+            <span
+              className={cn(
+                "inline-flex items-center shrink-0",
+                "px-1.5 py-px rounded-sm border border-border/60",
+                "text-[10px] leading-none text-muted-foreground/90",
+              )}
+              title="Snapshot served via the Wayback Machine"
+            >
+              Archived
+            </span>
+          )}
         </div>
         <h4
           className={cn(
