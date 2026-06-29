@@ -267,7 +267,15 @@ function PeekCard({
       image={item.image}
       size="compact"
       fixedAspect={fixedAspect}
-      className={className}
+      // Peek-specific chrome: opaque popover bg + backdrop blur + soft
+      // shadow, matching the default magnetic-preview panel so the card
+      // reads as a lifted surface against the page underneath. The single-
+      // peek and stacked-peek branches both strip the panel's own chrome
+      // (BARE_PANEL_CHROME), so the card itself has to supply it.
+      className={cn(
+        "bg-popover/95 backdrop-blur-sm shadow-md rounded-md",
+        className,
+      )}
       onImgResolved={onResolved}
     />
   );
