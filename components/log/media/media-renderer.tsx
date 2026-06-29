@@ -115,13 +115,19 @@ interface SingleMediaProps {
   size: "compact" | "default" | "large";
   /** Forwarded to the underlying renderer (e.g. to size a grid cell). */
   className?: string;
+  /**
+   * Tile-density hint forwarded to LinkCard. Set when the renderer is laying
+   * out multiple cards side-by-side; LinkCard reads it to drop the
+   * description on mobile and let the title use the freed lines.
+   */
+  dense?: boolean;
 }
 
 // =============================================================================
 // Single Media Dispatcher
 // =============================================================================
 
-function SingleMedia({ media, theme, size, className }: SingleMediaProps) {
+function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps) {
   if (isVideoMedia(media)) {
     return (
       <Video
@@ -151,6 +157,7 @@ function SingleMedia({ media, theme, size, className }: SingleMediaProps) {
         <LinkCard
           url={media.url}
           size={size}
+          dense={dense}
           title={media.preview?.title}
           description={media.preview?.description}
           image={media.preview?.image}
@@ -276,6 +283,7 @@ export function MediaRenderer({
                   media={m}
                   theme={theme}
                   size={multipleCards ? "compact" : size}
+                  dense={multipleCards}
                   className={multipleCards ? "w-full max-w-none" : undefined}
                 />,
               ),

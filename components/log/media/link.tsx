@@ -44,6 +44,14 @@ export interface LinkCardProps {
   image?: string;
   /** Size variant */
   size?: "compact" | "default" | "large";
+  /**
+   * Tile-density hint. When true (set by MediaRenderer for the 2-up grid):
+   *  - Description is hidden on mobile and revealed at `sm` and up.
+   *  - Title gets an extra line on mobile to soak up the freed vertical
+   *    space, so it doesn't get eclipsed at narrow widths.
+   * Non-mobile layouts are unchanged.
+   */
+  dense?: boolean;
   /** Additional CSS classes */
   className?: string;
 }
@@ -144,6 +152,8 @@ export interface CardFaceProps {
    * aspect, no backdrop — the image's intrinsic dimensions size the slot).
    */
   fixedAspect?: boolean;
+  /** See `LinkCardProps.dense`. */
+  dense?: boolean;
   className?: string;
   /** Fires when the foreground image resolves (load / cache-warm / error). */
   onImgResolved?: () => void;
@@ -162,6 +172,7 @@ export function CardFace({
   image,
   size = "default",
   fixedAspect = false,
+  dense = false,
   className,
   onImgResolved,
 }: CardFaceProps) {
@@ -249,7 +260,10 @@ export function CardFace({
         </div>
         <h4
           className={cn(
-            "font-medium text-foreground line-clamp-2",
+            "font-medium text-foreground",
+            // Dense tiles hide the description on mobile, so the title is
+            // allowed to flow to 3 lines below `sm` to soak up the room.
+            dense ? "line-clamp-3 sm:line-clamp-2" : "line-clamp-2",
             compact ? "text-xs leading-snug" : "text-sm",
           )}
         >
@@ -260,6 +274,9 @@ export function CardFace({
             className={cn(
               "text-muted-foreground line-clamp-2",
               compact ? "text-[11px] leading-snug" : "text-xs",
+              // Dense tiles drop description on mobile to reduce visual
+              // noise when two cards stand side-by-side at narrow widths.
+              dense && "hidden sm:block",
             )}
           >
             {description}
@@ -280,6 +297,7 @@ export function LinkCard({
   description: descOverride,
   image: imageOverride,
   size = "default",
+  dense = false,
   className,
 }: LinkCardProps) {
   // When a preview is already resolved (manual override or build-time
@@ -372,6 +390,7 @@ export function LinkCard({
         description={ogData?.description}
         image={ogData?.image}
         size={size}
+        dense={dense}
         className={cn(
           "h-full hover:bg-muted/10 hover:border-border/70 transition-colors",
           className,
