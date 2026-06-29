@@ -115,13 +115,19 @@ interface SingleMediaProps {
   size: "compact" | "default" | "large";
   /** Forwarded to the underlying renderer (e.g. to size a grid cell). */
   className?: string;
+  /**
+   * Tile-density hint forwarded to LinkCard. Set when the renderer is laying
+   * out multiple cards side-by-side; LinkCard reads it to drop the
+   * description on mobile and let the title use the freed lines.
+   */
+  dense?: boolean;
 }
 
 // =============================================================================
 // Single Media Dispatcher
 // =============================================================================
 
-function SingleMedia({ media, theme, size, className }: SingleMediaProps) {
+function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps) {
   if (isVideoMedia(media)) {
     return (
       <Video
@@ -151,9 +157,11 @@ function SingleMedia({ media, theme, size, className }: SingleMediaProps) {
         <LinkCard
           url={media.url}
           size={size}
+          dense={dense}
           title={media.preview?.title}
           description={media.preview?.description}
           image={media.preview?.image}
+          internal={media.internal}
           className={className}
         />
       );
@@ -247,6 +255,9 @@ export function MediaRenderer({
   }
 
   const multipleCards = cards.length > 1;
+  // sm:3-col for 3 cards avoids an awkward 2 + 1 wrap; mobile keeps 2-col
+  // (3 would crush past readability).
+  const tripleCards = cards.length === 3;
 
   return (
     <div className={cn(layoutClasses[layout], className)}>
@@ -259,13 +270,15 @@ export function MediaRenderer({
         ),
       )}
 
-      {/* Cards (link-cards + social widgets) — tile two-up when >1. */}
+      {/* Cards (link-cards + social widgets) — tile two-up when >1;
+          three go side-by-side at sm+ to keep the row balanced. */}
       {cards.length > 0 && (
         <div>
           <div
             className={cn(
               // grid default `items-stretch` keeps tiled cards equal height.
               multipleCards && "grid grid-cols-2 gap-2.5",
+              tripleCards && "sm:grid-cols-3",
             )}
           >
             {cards.map((m, i) =>
@@ -276,6 +289,7 @@ export function MediaRenderer({
                   media={m}
                   theme={theme}
                   size={multipleCards ? "compact" : size}
+                  dense={multipleCards}
                   className={multipleCards ? "w-full max-w-none" : undefined}
                 />,
               ),

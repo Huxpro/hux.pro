@@ -809,7 +809,39 @@
       "description": {
         "en": "",
         "zh": ""
-      }
+      },
+      "media": [
+        {
+          "kind": "link",
+          "url": "/writing/taobao-hybrid-app/zh",
+          "present": "card",
+          "preview": {
+            "title": "Hybrid 架构下，加载本地 H5 资源后，如何处理 Ajax 请求？",
+            "description": "聊聊「虚拟域」与资源离线化",
+            "image": "/img/post-bg-taobao-hybrid.jpg"
+          }
+        },
+        {
+          "kind": "link",
+          "url": "/writing/alitrip-strategy/zh",
+          "present": "card",
+          "preview": {
+            "title": "聊聊「阿里旅行 · 去啊」",
+            "description": "聊聊在线旅行行业与老东家的产品思路",
+            "image": "/img/post-bg-alitrip.jpg"
+          }
+        },
+        {
+          "kind": "link",
+          "url": "/writing/see-u-ali/zh",
+          "present": "card",
+          "preview": {
+            "title": "See you, Alibaba",
+            "description": "再见，阿里。",
+            "image": "/img/post-bg-see-u-ali.jpg"
+          }
+        }
+      ]
     },
     {
       "id": "cuc-ba",

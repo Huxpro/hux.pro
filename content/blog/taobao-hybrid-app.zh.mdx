@@ -1,0 +1,53 @@
+---
+title: "Hybrid 架构下，加载本地 H5 资源后，如何处理 Ajax 请求？"
+description: "聊聊「虚拟域」与资源离线化"
+date: "2015-12-04"
+tags: ["知乎", "Hybrid", "前端"]
+origin: "转载自[我在知乎上的回答](https://www.zhihu.com/question/31316032/answer/75236718)"
+---
+
+<Figure url="/img/post-bg-taobao-hybrid.jpg" alt="Hybrid 架构下的虚拟域" size="large" />
+
+很荣幸在淘宝旅行时接触过类似的技术方案，简单回答一下题主提到的几个问题：
+
+首先，**什么是「虚拟域」？**
+直接上图吧：
+
+![虚拟域示意图](/img/in-post/post-taobao-hybrid-1.webp)
+
+**既然要做资源离线化，肯定要把所有的资源请求到发到本地。**
+
+题主引用的 1688 那篇博客，里面提到「使用 Device API」来请求本地资源。我猜测他其实说的是 FileSystem API（这货其实在 2010 年时已经从 Device API 工作组移入了 Web Application 工作组）或者是 Native 通过 JS Bridge 暴露出来的 Hybrid API。
+
+我个人觉得这样其实是有缺陷的 —— 如果你的资源请求都是通过 API「硬编码」来请求，那这货很明显在浏览器里跑不起来，当然，封装一层 Wrapper 兼容掉也行。
+
+不小心吐槽太多了……那么淘宝旅行采用的是什么方案呢？
+
+由于我们有大量现有的 codebase，不可能手动去替换各种 script, link 标签。可是这些标签请求的都是 taobao.com 域下的在线资源，Native App 本地里显然没有这个「域」（准确的说应该是 Domain Name），我们对着本地 IO 请求 taobao.com 肯定什么都拿不到。所以「虚拟域」就来了，**为了让一套 web 页面同时兼容浏览器和 Hybrid 容器等多种环境，我们希望不改变前端代码就可以做到「资源请求发到本地」。** 所以说白了「虚拟域」无非就是让 Native 认得这个域名而已，这样 Native 容器里好像就有了域一样。
+
+![虚拟域代理](/img/in-post/post-taobao-hybrid-2.webp)
+
+Native 认得域名了，就可以把该域下的请求转发到本地去拿。那么问题来了，Native 怎么知道哪些请求是需要被代理的，哪些又是不要的呢？**遍历一下文件目录生成一个映射表就好了，这里的虚拟域代理起到一个反向代理的作用，看一下 match 不 match 就知道该代理到哪去了。**
+
+![映射表](/img/in-post/post-taobao-hybrid-3.webp)
+
+**映射表的生成直接做在持续集成的流程里，构建工具在 build 时会帮你生成出来**，DX（开发者体验）非常的轻松且愉快，感谢工具小哥。
+
+## 2018 Update
+
+今天回顾旧回答的时候才发现其实当时自己并没有理解题主的第一二个问题。题主当时担心的可能是走 `file://` 协议的本地页面没有办法跨域访问 API 域名下的资源，所以才问 JSONP 能否解决这个问题？
+
+首先现在 CORS Ajax 已经很健全了，其次 JSONP 确实可以解决跨域问题，最后本文的方案其实是本地缓存了静态资源而非 Ajax，所以也绕过了这个问题 ;)
+
+---
+
+基本上就是这样。本来只想简单说下，洋洋洒洒也写了不少……
+你问我这些牛逼的图都是哪来的？我当然不会把内部的东西随便乱发啦。
+这些资源都是公开的，来自老大 [@拔赤](https://www.zhihu.com/people/64458d15a75902cd0425732b7b757705) 在 2015 QCon 的演讲《极致的 Hybrid》，另外牛逼的工具小哥 [@dickeylth](https://www.zhihu.com/people/3a19e5f33b105e9df56b5d6256fd940c) 在 2014 D2 上也演讲过这个话题～（欢迎两位大大补充和指正）
+
+完整的 PPT 在此：[极致的Hybrid-Con2015.pdf](http://vdisk.weibo.com/s/sWYf0noAplM/1433265285)
+
+最后，帮老东家和现东家都低调得打个小广告：
+阿里旅行-去啊 / 微信电影票长期招募前端开发高手加入，有志者邮件简历 bachi[at]taobao.com / huangxuan[at]wepiao.com
+
+以上～

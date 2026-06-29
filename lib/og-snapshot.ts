@@ -6,6 +6,7 @@ import {
   enrichLogDataWithPreviews as enrichPure,
   type OGSnapshot,
 } from "@/lib/og-enrich";
+import { getBlogLangManifest, type BlogLangManifest } from "@/lib/mdx";
 
 export type { SnapshotEntry, OGSnapshot };
 
@@ -44,6 +45,7 @@ export function loadOGSnapshot(): OGSnapshot {
 export function enrichLogDataWithPreviews(
   logData: LogData,
   snapshot: OGSnapshot = loadOGSnapshot(),
+  blogManifest: BlogLangManifest = getBlogLangManifest(),
 ): LogData {
-  return enrichPure(logData, snapshot);
+  return enrichPure(logData, snapshot, blogManifest);
 }
