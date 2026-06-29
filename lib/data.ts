@@ -184,7 +184,7 @@ export const blogPosts: BlogPostMeta[] = [
   {
     slug: "React-vs-Angular2",
     language: "zh",
-    title: "「译」React vs Angular 2：冰与火之歌",
+    title: "React vs Angular 2：冰与火之歌",
     description: "React versus Angular 2: There Will Be Blood",
     date: "2016-02-01",
     tags: ["Web", "JavaScript", "译"],
@@ -192,7 +192,7 @@ export const blogPosts: BlogPostMeta[] = [
   {
     slug: "ios9-safari-web",
     language: "zh",
-    title: "「译」iOS 9，为前端世界都带来了些什么？",
+    title: "iOS 9，为前端世界都带来了些什么？",
     description:
       "iOS 9, Safari and the Web: 3D Touch, new Responsive Web Design, Native integration and HTML5 APIs",
     date: "2015-12-15",
@@ -209,7 +209,7 @@ export const blogPosts: BlogPostMeta[] = [
   {
     slug: "js-version",
     language: "zh",
-    title: "「译」ES5, ES6, ES2016, ES.Next: JavaScript 的版本是怎么回事？",
+    title: "ES5, ES6, ES2016, ES.Next: JavaScript 的版本是怎么回事？",
     description:
       "ES5, ES6, ES2016, ES.Next: What's going on with JavaScript versioning?",
     date: "2015-09-22",

@@ -87,6 +87,54 @@ export function shouldShowPost<T extends LocalizedContent>(
   return false;
 }
 
+// =============================================================================
+// Tag Decorators
+// -----------------------------------------------------------------------------
+// Most tags are content topics ("Web", "React", "UX/UI") and are shown to every
+// reader. A few tags are *decorators*: provenance / meta annotations that only
+// make sense to a reader of a particular locale —
+//   "译"   the piece is a translation (relevant only to zh readers)
+//   "知乎" originally answered on Zhihu, a Chinese Q&A site
+// Their per-locale visibility is declared here, in one place, exactly the way a
+// post's own locale visibility lives in `shouldShowPost` above — rather than
+// being special-cased ad-hoc at each render site. To scope a tag to a locale,
+// add an entry; everything not listed is a normal content tag, always visible.
+// =============================================================================
+
+export interface TagDecorator {
+  /** The raw tag string exactly as authored in frontmatter. */
+  tag: string;
+  /** Locales this decorator is visible in. */
+  locales: Locale[];
+}
+
+export const tagDecorators: TagDecorator[] = [
+  { tag: "译", locales: ["zh"] },
+  { tag: "知乎", locales: ["zh"] },
+];
+
+const decoratorByTag = new Map(tagDecorators.map((d) => [d.tag, d]));
+
+/** Whether a tag is a declared decorator (vs. a normal content tag). */
+export function isTagDecorator(tag: string): boolean {
+  return decoratorByTag.has(tag);
+}
+
+/**
+ * Whether a tag should be visible in the given locale. Normal content tags are
+ * always visible; decorator tags are visible only in the locales declared in
+ * `tagDecorators`.
+ */
+export function isTagVisible(tag: string, locale: Locale): boolean {
+  const decorator = decoratorByTag.get(tag);
+  return decorator ? decorator.locales.includes(locale) : true;
+}
+
+/** Filter a tag list to those visible in the given locale, preserving order. */
+export function getVisibleTags(tags: string[], locale: Locale): string[] {
+  return tags.filter((tag) => isTagVisible(tag, locale));
+}
+
 /**
  * Get the display title based on locale
  */

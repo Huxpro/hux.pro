@@ -5,6 +5,7 @@ import {
   getLocalizedReadingTime,
   getLocalizedTitle,
   getPostHref,
+  getVisibleTags,
   shouldShowPost,
   type Post,
   type PostLanguage,
@@ -120,6 +121,11 @@ export function PostList<T extends Post>({
           const peekOrigin = pick(postExtras.originZh, postExtras.origin);
           const peekExcerpt = pick(postExtras.excerptZh, postExtras.excerpt);
           const peekCover = pick(postExtras.coverZh, postExtras.cover);
+          // Drop decorator tags (译 / 知乎) that aren't visible in this locale —
+          // their visibility is declared centrally in `tagDecorators`.
+          const peekTags = postExtras.tags
+            ? getVisibleTags(postExtras.tags, locale)
+            : undefined;
 
           const preview = (
             <PostPreview
@@ -127,7 +133,7 @@ export function PostList<T extends Post>({
               meta={{
                 language: post.language,
                 readingTime: getLocalizedReadingTime(post, locale),
-                tags: postExtras.tags,
+                tags: peekTags,
                 origin: peekOrigin,
                 excerpt: peekExcerpt,
                 cover: peekCover,
