@@ -6,6 +6,7 @@ import {
   getLocalizedTitle,
   getPostHref,
   getVisibleTags,
+  isTagDecorator,
   shouldShowPost,
   type Post,
   type PostLanguage,
@@ -126,6 +127,10 @@ export function PostList<T extends Post>({
           const peekTags = postExtras.tags
             ? getVisibleTags(postExtras.tags, locale)
             : undefined;
+          // Decorator tags (译 / 知乎) double as a visible row annotation —
+          // the calm replacement for the old hardcoded 「译」 title prefix.
+          // Only the locale-visible decorators surface here.
+          const rowDecorators = peekTags?.filter(isTagDecorator) ?? [];
 
           const preview = (
             <PostPreview
@@ -148,6 +153,14 @@ export function PostList<T extends Post>({
             >
               <div className="flex-1 min-w-0">
                 <h2 className="text-sm sm:text-base font-normal">
+                  {rowDecorators.map((tag) => (
+                    <span
+                      key={tag}
+                      className="mr-2 inline-block rounded bg-muted px-1.5 py-0.5 align-[0.1em] text-[10px] font-mono text-muted-foreground"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                   {getLocalizedTitle(post, locale)}
                   {showLangTag && (
                     <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
