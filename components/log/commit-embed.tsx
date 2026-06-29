@@ -168,10 +168,11 @@ function buildCommitPreview(
     return {
       // Strip the panel chrome so the rotated cards read as floating, not
       // contained in another box — the rotation IS the visual signal of
-      // "there's more here" and a background defeats it. `p-4` + `max-w-sm`
-      // give the back layers' translate + rotate room before the Cursor
-      // wrapper's `overflow-hidden rounded-lg` clip kicks in.
-      panelClassName: `p-4 max-w-sm ${BARE_PANEL_CHROME}`,
+      // "there's more here" and a background defeats it. Generous padding
+      // (`p-8`) and a wider cap (`max-w-md`) give the back layers' translate
+      // + rotate enough room before the Cursor wrapper's
+      // `overflow-hidden rounded-lg` clip kicks in.
+      panelClassName: `p-8 max-w-md ${BARE_PANEL_CHROME}`,
       node: <StackedPeek items={items} />,
     };
   }
@@ -312,14 +313,12 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
   }, []);
 
   // Per-depth pose. Index 0 = front (items[0]); larger index = deeper.
-  // Translation + rotation are tuned so back cards peek out clearly from
-  // behind the front rather than hiding under it. The panel padding (p-4)
-  // and max-w (sm) below give the back corners room before the Cursor
-  // wrapper's overflow clip kicks in.
+  // Tuned so back cards visibly peek out without busting the panel padding
+  // (p-8) — i=2's corner is ~30px past the front; needs >= 32px of slack.
   const layers = [
     { dx: 0, dy: 0, rot: 0, scale: 1, opacity: 1 }, //          front
-    { dx: 20, dy: 14, rot: 6, scale: 0.97, opacity: 0.92 }, //  middle
-    { dx: 40, dy: 26, rot: 11, scale: 0.94, opacity: 0.78 }, // back
+    { dx: 14, dy: 10, rot: 5, scale: 0.97, opacity: 0.92 }, //  middle
+    { dx: 28, dy: 18, rot: 9, scale: 0.94, opacity: 0.78 }, //  back
   ];
 
   return (
