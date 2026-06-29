@@ -42,6 +42,10 @@ interface TimelineCommitProps {
   /** Extra class for the cursor-preview panel (e.g. flush poster framing). */
   cursorPreviewPanelClassName?: string;
   defaultExpanded?: boolean;
+  /** Page-level "expand/collapse all" command. When its value flips, the
+   *  row syncs its expanded state to it; undefined leaves the row
+   *  self-controlled (card / bare contexts). */
+  expandAll?: boolean;
   className?: string;
   hideDate?: boolean;
   /** Git-graph rail char to draw on the right (`┐`, `│`, `┘` or empty). */
@@ -76,6 +80,7 @@ export function TimelineCommit({
   cursorPreview,
   cursorPreviewPanelClassName,
   defaultExpanded = false,
+  expandAll,
   className,
   hideDate = false,
   rail,
@@ -112,6 +117,20 @@ export function TimelineCommit({
   // items from `expandedMedia`, so no further filtering is needed here.
   const pinnedMedia = data.pinnedMedia as Media[];
   const expandedMedia = data.expandedMedia;
+
+  // Sync to the page-level "expand/collapse all" command without an effect:
+  // store the last seen value and reconcile during render when it flips, so
+  // a row toggled by hand stays put until the *next* global command. Rows
+  // with nothing to expand are left collapsed — expanding them shows nothing
+  // yet would suppress their hover peek (see `showCursorPreview`).
+  // (React's "adjusting state when a prop changes" pattern.)
+  const [lastExpandAll, setLastExpandAll] = useState(expandAll);
+  if (expandAll !== lastExpandAll) {
+    setLastExpandAll(expandAll);
+    if (expandAll !== undefined) {
+      setIsExpanded(expandAll && hasExpandableContent);
+    }
+  }
 
   const handleToggleExpanded = useCallback(() => {
     if (!hasExpandableContent) return;

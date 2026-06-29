@@ -33,6 +33,9 @@ export interface CommitProps {
   locale?: Locale;
   variant?: CommitVariant;
   defaultExpanded?: boolean;
+  /** Timeline-only: when this boolean flips, the row syncs its expanded
+   *  state to it (drives the page-level "expand/collapse all" control). */
+  expandAll?: boolean;
   className?: string;
   hideDate?: boolean;
   /** Pre-computed git-graph rail char for the timeline gutter. */
@@ -59,6 +62,7 @@ export function Commit({
   locale = "en",
   variant = "card",
   defaultExpanded = false,
+  expandAll,
   className,
   hideDate = false,
   rail,
@@ -109,6 +113,7 @@ export function Commit({
           cursorPreview={preview?.node ?? null}
           cursorPreviewPanelClassName={preview?.panelClassName}
           defaultExpanded={defaultExpanded}
+          expandAll={expandAll}
           className={className}
           hideDate={hideDate}
           rail={rail}
