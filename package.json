@@ -9,6 +9,7 @@
     "lint": "eslint",
     "og:snapshot": "node scripts/og-snapshot.ts",
     "og:check": "node scripts/og-snapshot.ts --check",
+    "og:fonts": "node scripts/og-fonts.mjs",
     "icon:generate": "node scripts/icon-generate.ts",
     "icon:check": "node scripts/icon-generate.ts --check"
   },
