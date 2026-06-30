@@ -16,12 +16,33 @@ from config) while remaining *editable*.
 | Config type + defaults + validation | `lib/icon/config.ts` |
 | Pure SVG renderer (`buildIconSvg`) | `lib/icon/render.ts` |
 | Glyph-subset font embedding | `lib/icon/fonts.ts` |
+| SVG → PNG / ICO rasterizer | `lib/icon/raster.ts` |
 | Asset generation (Node) | `lib/icon/generate.ts` |
-| Generated assets | `public/icons/icon.svg`, `public/icons/apple-icon.svg` |
+| Generated assets | `public/icons/{icon.svg,apple-icon.png,icon-192.png,icon-512.png}`, `app/favicon.ico` |
 | Editor ("Icon Studio") | `app/editor/icon` (hidden URL) |
 | Dev save API | `app/api/icon` |
 | CLI generator | `scripts/icon-generate.ts` |
+| Web manifest | `app/manifest.ts` → `/manifest.webmanifest` |
 | Wired into `<head>` | `app/layout.tsx` → `metadata.icons` |
+
+## Home-screen coverage
+
+Getting onto the home screen needs more than an SVG — each platform wants its
+own format, all generated from the one config:
+
+| Platform | What it uses | Asset |
+|----------|--------------|-------|
+| Browser tab (modern) | `<link rel=icon>` SVG | `public/icons/icon.svg` |
+| Browser tab (legacy) | `/favicon.ico` (16/32/48) | `app/favicon.ico` |
+| iOS "Add to Home Screen" | `apple-touch-icon` PNG (180) | `public/icons/apple-icon.png` |
+| Android / Chrome PWA install | web manifest → PNG 192/512 (+ maskable) | `app/manifest.ts` + `public/icons/icon-{192,512}.png` |
+
+PNGs and the `.ico` are rasterized from the SVG with **resvg** (`@resvg/resvg-js`,
+a dev-only dependency — the committed assets mean the deployed runtime never
+imports it). The wordmark font is handed to resvg as a buffer (its file loader
+doesn't decode woff2). The icon is a full-bleed background with a small centered
+mark, so the 512 doubles as the `maskable` icon — it survives platform masking
+without a separate safe-area render.
 
 ## The editor
 

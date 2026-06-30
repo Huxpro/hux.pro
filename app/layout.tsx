@@ -44,10 +44,14 @@ export const metadata: Metadata = {
   title: "Hux.Pro",
   description: "Prose, Profession, Programming, Production, Projects",
   // Generative app icon — authored in `/editor/icon`, rendered from
-  // `content/icon.json` into self-contained SVGs by `pnpm icon:generate`.
+  // `content/icon.json` by `pnpm icon:generate`. SVG for modern browser tabs,
+  // PNG apple-touch-icon for the iOS home screen; Android/PWA icons come from
+  // the web manifest (app/manifest.ts). favicon.ico covers legacy.
+  // `app/favicon.ico` is auto-linked by Next's file convention; we add the
+  // modern SVG and the iOS apple-touch-icon PNG on top.
   icons: {
     icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/icons/apple-icon.svg" }],
+    apple: [{ url: "/icons/apple-icon.png", sizes: "180x180" }],
   },
 };
 

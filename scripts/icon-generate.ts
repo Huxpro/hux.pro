@@ -42,28 +42,20 @@ async function main() {
   const config = readIconConfig();
 
   if (CHECK) {
+    // Only the SVG is structurally checked: the PNG/ICO bytes depend on the
+    // resvg version, so diffing them would flag false drift across machines.
     const fontFaceCss = (await fetchEmbeddedFontFace(config)) ?? undefined;
-    const targets = [
-      { name: "icon.svg", size: 512 },
-      { name: "apple-icon.svg", size: 180 },
-    ];
-    let drift = false;
-    for (const { name, size } of targets) {
-      const expected = buildIconSvg(config, { size, fontFaceCss });
-      const filePath = path.join(ICON_OUTPUT_DIR, name);
-      const actual = fs.existsSync(filePath)
-        ? fs.readFileSync(filePath, "utf8").trimEnd()
-        : "";
-      if (structural(actual) !== structural(expected)) {
-        console.error(`✗ Drift: public/icons/${name} is out of date`);
-        drift = true;
-      }
-    }
-    if (drift) {
+    const expected = buildIconSvg(config, { size: 512, fontFaceCss });
+    const filePath = path.join(ICON_OUTPUT_DIR, "icon.svg");
+    const actual = fs.existsSync(filePath)
+      ? fs.readFileSync(filePath, "utf8").trimEnd()
+      : "";
+    if (structural(actual) !== structural(expected)) {
+      console.error("✗ Drift: public/icons/icon.svg is out of date");
       console.error("Run `pnpm icon:generate` to regenerate.");
       process.exit(1);
     }
-    console.log("✓ Icon assets are up to date.");
+    console.log("✓ Icon SVG is up to date.");
     return;
   }
 
@@ -71,8 +63,13 @@ async function main() {
   console.log(`✓ Wrote ${result.files.join(", ")}`);
   console.log(
     result.fontEmbedded
-      ? "✓ Wordmark font embedded (self-contained)."
-      : "⚠ Font not embedded (offline?) — using platform fallback font.",
+      ? "✓ Wordmark font embedded in SVG (self-contained)."
+      : "⚠ Font not embedded (offline?) — SVG uses platform fallback font.",
+  );
+  console.log(
+    result.rasterized
+      ? "✓ PNG + favicon.ico rasterized."
+      : "⚠ Raster step skipped — home-screen PNGs not updated.",
   );
 }
 

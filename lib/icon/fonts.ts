@@ -67,6 +67,32 @@ async function fetchDataUri(
 }
 
 /**
+ * Fetch the raw wordmark font bytes (glyph-subset) for the rasterizer.
+ *
+ * Unlike the SVG path, the PNG renderer (resvg) doesn't read inline
+ * `@font-face`; it needs the font as a buffer. Returns the first subset source
+ * Google serves (woff2 or ttf — resvg handles both), or `null` on failure so
+ * the caller can fall back to a system mono font.
+ */
+export async function fetchFontBuffer(
+  config: IconConfig,
+): Promise<Uint8Array | null> {
+  const cssUrl = buildCssUrl(config);
+  if (!cssUrl) return null;
+  const css = await fetchText(cssUrl);
+  if (!css) return null;
+  const m = css.match(/url\((https:\/\/[^)]+)\)/i);
+  if (!m) return null;
+  try {
+    const res = await fetch(m[1], { headers: { "User-Agent": UA } });
+    if (!res.ok) return null;
+    return new Uint8Array(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch a self-contained `@font-face` block for the icon's wordmark, with the
  * font binary inlined as a data URI. Returns `null` on any failure so the
  * caller can render without it.

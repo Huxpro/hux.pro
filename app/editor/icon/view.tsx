@@ -129,9 +129,9 @@ export function IconEditorView({ initialConfig }: IconEditorViewProps) {
       if (!res.ok) throw new Error(json.error || "Save failed");
       setSavedConfig(config);
       toast.success(
-        json.fontEmbedded
-          ? "Saved · icons regenerated (font embedded)"
-          : "Saved · icons regenerated (font fallback — offline?)",
+        json.rasterized
+          ? "Saved · SVG + home-screen PNGs regenerated"
+          : "Saved · SVG written (raster skipped — offline?)",
       );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Save failed");
