@@ -5,6 +5,8 @@ import {
   getLocalizedReadingTime,
   getLocalizedTitle,
   getPostHref,
+  getVisibleTags,
+  isDecoratorTag,
   shouldShowPost,
   type Post,
   type PostLanguage,
@@ -120,6 +122,16 @@ export function PostList<T extends Post>({
           const peekOrigin = pick(postExtras.originZh, postExtras.origin);
           const peekExcerpt = pick(postExtras.excerptZh, postExtras.excerpt);
           const peekCover = pick(postExtras.coverZh, postExtras.cover);
+          // Drop decorator tags (译 / 知乎) that aren't visible in this locale —
+          // their visibility is declared centrally in `tagLocaleVisibility`.
+          const peekTags = postExtras.tags
+            ? getVisibleTags(postExtras.tags, locale)
+            : undefined;
+          // Decorator tags (译 / 知乎) double as a visible row annotation —
+          // the calm replacement for the old hardcoded 「译」 title prefix.
+          // peekTags is already locale-filtered, so only decorators visible in
+          // this locale surface here.
+          const rowDecorators = peekTags?.filter(isDecoratorTag) ?? [];
 
           const preview = (
             <PostPreview
@@ -127,7 +139,7 @@ export function PostList<T extends Post>({
               meta={{
                 language: post.language,
                 readingTime: getLocalizedReadingTime(post, locale),
-                tags: postExtras.tags,
+                tags: peekTags,
                 origin: peekOrigin,
                 excerpt: peekExcerpt,
                 cover: peekCover,
@@ -143,6 +155,19 @@ export function PostList<T extends Post>({
               <div className="flex-1 min-w-0">
                 <h2 className="text-sm sm:text-base font-normal">
                   {getLocalizedTitle(post, locale)}
+                  {rowDecorators.map((tag) => (
+                    // The leading NBSP + nowrap wrapper glue the badge to the
+                    // title's last word, so it wraps together with the title
+                    // instead of dropping onto a line by itself (the badge is
+                    // an inline-block, which otherwise has a break point before
+                    // it). The NBSP also supplies the gap — no left margin.
+                    <span key={tag} className="whitespace-nowrap">
+                      {" "}
+                      <span className="ml-0.5 inline-block rounded bg-foreground/5 px-1.5 py-0.5 align-[0.1em] text-[10px] font-mono text-muted-foreground">
+                        {tag}
+                      </span>
+                    </span>
+                  ))}
                   {showLangTag && (
                     <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
                       {post.language === "en" ? "EN" : "中文"}
