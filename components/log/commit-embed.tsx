@@ -198,10 +198,11 @@ function buildCommitPreview(
       // Strip the panel chrome so the rotated cards read as floating, not
       // contained in another box — the rotation IS the visual signal of
       // "there's more here" and a background defeats it. Generous padding
-      // (`p-8`) and a wider cap (`max-w-md`) give the back layers' translate
-      // + rotate enough room before the Cursor wrapper's
-      // `overflow-hidden rounded-lg` clip kicks in.
-      panelClassName: `p-8 max-w-md ${BARE_PANEL_CHROME}`,
+      // (`p-10`) and a wider cap (`max-w-md`) give the back layers' translate
+      // + rotate AND the deck's cohesive drop-shadow enough room before the
+      // Cursor wrapper's `overflow-hidden rounded-lg` clip kicks in — the
+      // shadow lives inside the clip, so it must fit within the padding.
+      panelClassName: `p-10 max-w-md ${BARE_PANEL_CHROME}`,
       node: <StackedPeek items={items} />,
     };
   }
@@ -382,6 +383,14 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
     <div
       className={cn(
         "relative w-72 transition-opacity duration-200",
+        // One cohesive shadow for the whole deck. The individual cards
+        // drop their own `shadow-2xl` (see below): three big per-card
+        // shadows compounded and darkened each other where the back cards
+        // peek out, and each got hard-clipped by the panel's
+        // `overflow-hidden`. A single `drop-shadow` on the container follows
+        // the deck's combined silhouette and stays small enough to fade
+        // softly inside the panel padding instead of cutting off.
+        "drop-shadow-[0_4px_10px_rgba(0,0,0,0.22)]",
         allReady ? "opacity-100" : "opacity-0",
       )}
     >
@@ -411,16 +420,21 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
               // it — translucency only makes sense where the page bg sits
               // behind, which is true for back cards (peeking from behind)
               // but not for the front (a full card sits behind it).
+              // `shadow-none` strips each card's own `shadow-2xl` — the deck
+              // casts one cohesive shadow from the container instead.
               <PeekCard
                 item={item}
                 fixedAspect
-                className={isFront ? "bg-card" : undefined}
+                className={cn("shadow-none", isFront && "bg-card")}
                 onResolved={() => markResolved(i)}
               />
             ) : (
               <PeekThumb
                 image={item.image}
-                className={cn("aspect-video", isFront && "bg-muted")}
+                className={cn(
+                  "aspect-video shadow-none",
+                  isFront && "bg-muted",
+                )}
                 onResolved={() => markResolved(i)}
               />
             )}
