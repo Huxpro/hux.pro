@@ -1,0 +1,22 @@
+{
+  "text": "hux",
+  "fontFamily": "serif",
+  "fontWeight": 500,
+  "fontSize": 0.46,
+  "letterSpacing": -0.02,
+  "italic": false,
+  "textTransform": "lower",
+  "textColor": "#ededed",
+  "offsetX": 0,
+  "offsetY": 0,
+  "background": {
+    "style": "dots",
+    "color": "#1a1a1a",
+    "textureColor": "#ffffff",
+    "textureOpacity": 0.06,
+    "scale": 0.5,
+    "angle": 45,
+    "gradientColor": "#2a2a2a"
+  },
+  "cornerRadius": 0
+}

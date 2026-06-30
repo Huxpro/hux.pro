@@ -43,6 +43,12 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Hux.Pro",
   description: "Prose, Profession, Programming, Production, Projects",
+  // Generative app icon — authored in `/editor/icon`, rendered from
+  // `content/icon.json` into self-contained SVGs by `pnpm icon:generate`.
+  icons: {
+    icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/icons/apple-icon.svg" }],
+  },
 };
 
 export const viewport: Viewport = {
