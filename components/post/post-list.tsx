@@ -158,7 +158,7 @@ export function PostList<T extends Post>({
                   {rowDecorators.map((tag) => (
                     <span
                       key={tag}
-                      className="ml-2 inline-block rounded bg-muted px-1.5 py-0.5 align-[0.1em] text-[10px] font-mono text-muted-foreground"
+                      className="ml-2 inline-block rounded bg-foreground/5 px-1.5 py-0.5 align-[0.1em] text-[10px] font-mono text-muted-foreground"
                     >
                       {tag}
                     </span>
