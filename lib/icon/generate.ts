@@ -12,9 +12,17 @@
 
 import fs from "fs";
 import path from "path";
-import { normalizeIconConfig, type IconConfig } from "./config.ts";
+import {
+  MONO_FONT_STACK,
+  normalizeIconConfig,
+  type IconConfig,
+} from "./config.ts";
 import { buildIconSvg } from "./render.ts";
-import { fetchEmbeddedFontFace, fetchFontBuffer } from "./fonts.ts";
+import {
+  fetchEmbeddedFontFace,
+  fetchFontBuffer,
+  fontFamilyName,
+} from "./fonts.ts";
 
 const ROOT = process.cwd();
 export const ICON_CONFIG_PATH = path.join(ROOT, "content", "icon.json");
@@ -92,16 +100,27 @@ export async function generateIconAssets(
   files.push(path.relative(ROOT, svgPath));
 
   // --- PNG / ICO (home-screen assets) --------------------------------------
+  // resvg matches fonts by their real family name (e.g. "JetBrains Mono Light"
+  // for the static 300 instance), so the raster SVG must request that exact
+  // name — not the generic "JetBrains Mono" the browser-facing SVG uses.
   const fontBuffer = await fetchFontBuffer(normalized);
+  const fontFamily = fontBuffer ? fontFamilyName(fontBuffer) : null;
+  const rasterFamily = fontFamily
+    ? `'${fontFamily}', ${MONO_FONT_STACK}`
+    : undefined;
+  const rasterSvg = (size: number) =>
+    buildIconSvg(normalized, { size, fontFamily: rasterFamily });
+
   let rasterized = false;
   try {
     const { rasterizeSvgToPng, encodeIco } = await import("./raster.ts");
 
     for (const { name, size } of PNG_TARGETS) {
       const png = await rasterizeSvgToPng(
-        buildIconSvg(normalized, { size }),
+        rasterSvg(size),
         size,
         fontBuffer,
+        fontFamily,
       );
       const outPath = path.join(ICON_OUTPUT_DIR, name);
       fs.writeFileSync(outPath, png);
@@ -111,9 +130,10 @@ export async function generateIconAssets(
     const icoEntries = [];
     for (const size of ICO_SIZES) {
       const png = await rasterizeSvgToPng(
-        buildIconSvg(normalized, { size }),
+        rasterSvg(size),
         size,
         fontBuffer,
+        fontFamily,
       );
       icoEntries.push({ size, png });
     }

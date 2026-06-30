@@ -100,6 +100,50 @@ export async function fetchFontBuffer(
 }
 
 /**
+ * Read the family name (`name` table, nameID 1) out of a TrueType/OpenType
+ * buffer. resvg matches fonts by this exact name, and Google's *static* weight
+ * instances are named with the weight baked in — the 300 file is
+ * "JetBrains Mono Light", not "JetBrains Mono" — so the rasterizer must be told
+ * the real name or it silently falls back to a system font. Returns `null` if
+ * the table can't be read.
+ */
+export function fontFamilyName(buffer: Uint8Array): string | null {
+  const buf = Buffer.from(buffer);
+  try {
+    const numTables = buf.readUInt16BE(4);
+    let nameOff = 0;
+    for (let i = 0; i < numTables; i++) {
+      const o = 12 + i * 16;
+      if (buf.toString("ascii", o, o + 4) === "name") {
+        nameOff = buf.readUInt32BE(o + 8);
+        break;
+      }
+    }
+    if (!nameOff) return null;
+    const count = buf.readUInt16BE(nameOff + 2);
+    const strOff = nameOff + buf.readUInt16BE(nameOff + 4);
+    let macFallback: string | null = null;
+    for (let i = 0; i < count; i++) {
+      const r = nameOff + 6 + i * 12;
+      const platformId = buf.readUInt16BE(r);
+      const nameId = buf.readUInt16BE(r + 6);
+      const len = buf.readUInt16BE(r + 8);
+      const off = buf.readUInt16BE(r + 10);
+      if (nameId !== 1) continue;
+      const raw = buf.subarray(strOff + off, strOff + off + len);
+      // Windows (3) / Unicode (0) strings are big-endian UTF-16.
+      if (platformId === 3 || platformId === 0) {
+        return Buffer.from(raw).swap16().toString("utf16le");
+      }
+      macFallback = macFallback ?? raw.toString("latin1");
+    }
+    return macFallback;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch a self-contained `@font-face` block for the icon's wordmark, with the
  * font binary inlined as a data URI. Returns `null` on any failure so the
  * caller can render without it.

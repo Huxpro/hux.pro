@@ -15,36 +15,59 @@
  * Node-only.
  */
 
+import fs from "fs";
+import os from "os";
+import path from "path";
+
 /**
- * Rasterize an SVG string to a square PNG of `size` px. `fontBuffer` is the
- * wordmark font (woff2 or ttf); when absent, resvg falls back to a system mono.
+ * Rasterize an SVG string to a square PNG of `size` px.
  *
- * The font is passed as a buffer: resvg's `fontBuffers` decodes woff2 (its
- * file-path loader does not). The option predates the package's type defs, so
- * it's built as a variable to avoid an excess-property check while still
- * reaching the native binding at runtime.
+ * `fontBuffer` is the wordmark TTF and `fontFamily` its real family name (see
+ * `fontFamilyName`). resvg loads fonts via `fontFiles` — `fontBuffers` is not a
+ * supported option in this version and, when passed, silently makes resvg load
+ * *system* fonts instead (rendering the wrong typeface). So we stage the TTF to
+ * a temp file, point resvg at it, and disable system fonts so it can only use
+ * ours. Without a font, resvg falls back to a system mono (better than blank).
  */
 export async function rasterizeSvgToPng(
   svg: string,
   size: number,
   fontBuffer: Uint8Array | null,
+  fontFamily: string | null,
 ): Promise<Buffer> {
   // Dynamic import keeps the native module out of any statically-bundled path.
   const { Resvg } = await import("@resvg/resvg-js");
 
-  const font = fontBuffer
-    ? {
-        fontBuffers: [fontBuffer],
-        defaultFontFamily: "JetBrains Mono",
-        loadSystemFonts: false,
+  const useFile = Boolean(fontBuffer && fontFamily);
+  let fontFile: string | undefined;
+  try {
+    if (useFile) {
+      fontFile = path.join(
+        os.tmpdir(),
+        `hux-icon-${size}-${process.pid}.ttf`,
+      );
+      fs.writeFileSync(fontFile, fontBuffer!);
+    }
+    const resvg = new Resvg(svg, {
+      fitTo: { mode: "width", value: size },
+      font: fontFile
+        ? {
+            fontFiles: [fontFile],
+            defaultFontFamily: fontFamily!,
+            loadSystemFonts: false,
+          }
+        : { defaultFontFamily: "monospace", loadSystemFonts: true },
+    });
+    return Buffer.from(resvg.render().asPng());
+  } finally {
+    if (fontFile) {
+      try {
+        fs.unlinkSync(fontFile);
+      } catch {
+        /* best-effort temp cleanup */
       }
-    : { defaultFontFamily: "monospace", loadSystemFonts: true };
-
-  const resvg = new Resvg(svg, {
-    fitTo: { mode: "width", value: size },
-    font,
-  });
-  return Buffer.from(resvg.render().asPng());
+    }
+  }
 }
 
 /**
