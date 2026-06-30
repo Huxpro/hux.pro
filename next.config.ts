@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   experimental: {
     viewTransition: true,
   },
+  // resvg is a native module used only by the icon generator (the dev save
+  // route imports it dynamically). Keep it out of the bundle.
+  serverExternalPackages: ["@resvg/resvg-js"],
   async redirects() {
     return [
       ...jekyllRedirects,
