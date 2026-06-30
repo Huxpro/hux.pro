@@ -53,20 +53,35 @@ export function Segmented<T extends string>({
   value,
   options,
   onChange,
+  columns,
 }: {
   value: T;
   options: { value: T; label: string }[];
   onChange: (value: T) => void;
+  /** Render as an even N-column grid instead of a single flex row. Use when
+   *  there are too many options to fit one row (e.g. the texture picker). */
+  columns?: number;
 }) {
   return (
-    <div className="flex flex-wrap gap-1 rounded-md border border-border/60 p-1">
+    <div
+      className={cn(
+        "gap-1 rounded-md border border-border/60 p-1",
+        columns ? "grid" : "flex flex-wrap",
+      )}
+      style={
+        columns
+          ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
+          : undefined
+      }
+    >
       {options.map((opt) => (
         <button
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
           className={cn(
-            "flex-1 rounded px-2 py-1 text-xs font-mono transition-colors",
+            "rounded px-2 py-1 text-xs font-mono transition-colors",
+            columns ? "" : "flex-1",
             value === opt.value
               ? "bg-foreground text-background"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/30",

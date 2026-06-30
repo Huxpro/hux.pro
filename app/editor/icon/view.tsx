@@ -9,6 +9,7 @@ import {
   TEXT_PRESETS,
   type IconBackground,
   type IconConfig,
+  type TextureSettings,
 } from "@/lib/icon/config";
 import { buildIconSvg } from "@/lib/icon/render";
 import {
@@ -40,7 +41,15 @@ function IconPreview({
   style?: React.CSSProperties;
 }) {
   const html = useMemo(
-    () => buildIconSvg(config, { size: 512, idPrefix }),
+    // `var(--font-mono)` → the exact JetBrains Mono instance next/font loaded
+    // site-wide, so the preview matches the rest of the site (and the embedded
+    // JetBrains Mono in the shipped asset) glyph-for-glyph.
+    () =>
+      buildIconSvg(config, {
+        size: 512,
+        idPrefix,
+        fontFamily: "var(--font-mono)",
+      }),
     [config, idPrefix],
   );
   return (
@@ -83,6 +92,30 @@ export function IconEditorView({ initialConfig }: IconEditorViewProps) {
       })),
     [],
   );
+
+  // Edit a parameter of the *active* texture only — keeps each texture's tuning
+  // independent (switching styles never carries another's values over).
+  const setTex = useCallback(
+    <K extends keyof TextureSettings>(key: K, value: TextureSettings[K]) =>
+      setConfig((prev) => {
+        const style = prev.background.style;
+        if (style === "solid") return prev;
+        return {
+          ...prev,
+          background: {
+            ...prev.background,
+            [style]: { ...prev.background[style], [key]: value },
+          },
+        };
+      }),
+    [],
+  );
+
+  // The active texture's settings (null for the plain solid fill).
+  const tex: TextureSettings | null =
+    config.background.style === "solid"
+      ? null
+      : config.background[config.background.style];
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -253,30 +286,6 @@ export function IconEditorView({ initialConfig }: IconEditorViewProps) {
               ))}
             </div>
 
-            <Field label="Typeface">
-              <Segmented
-                value={config.fontFamily}
-                onChange={(v) => set("fontFamily", v)}
-                options={[
-                  { value: "sans", label: "Sans" },
-                  { value: "serif", label: "Serif" },
-                  { value: "mono", label: "Mono" },
-                ]}
-              />
-            </Field>
-
-            <Field label="Case">
-              <Segmented
-                value={config.textTransform}
-                onChange={(v) => set("textTransform", v)}
-                options={[
-                  { value: "lower", label: "aa" },
-                  { value: "none", label: "Aa" },
-                  { value: "upper", label: "AA" },
-                ]}
-              />
-            </Field>
-
             <Field label="Weight" hint={String(config.fontWeight)}>
               <Slider
                 value={config.fontWeight}
@@ -344,6 +353,7 @@ export function IconEditorView({ initialConfig }: IconEditorViewProps) {
           <Section title="Background">
             <Field label="Texture">
               <Segmented
+                columns={3}
                 value={config.background.style}
                 onChange={(v) => setBg("style", v)}
                 options={[
@@ -364,62 +374,61 @@ export function IconEditorView({ initialConfig }: IconEditorViewProps) {
               />
             </Field>
 
-            {config.background.style === "gradient" ? (
+            {/* Per-texture controls — each texture keeps its own values. */}
+            {tex && config.background.style === "gradient" && (
               <Field label="Gradient end">
                 <ColorField
-                  value={config.background.gradientColor}
-                  onChange={(v) => setBg("gradientColor", v)}
+                  value={tex.gradientColor}
+                  onChange={(v) => setTex("gradientColor", v)}
                 />
               </Field>
-            ) : (
-              config.background.style !== "solid" && (
-                <>
-                  <Field label="Texture color">
-                    <ColorField
-                      value={config.background.textureColor}
-                      onChange={(v) => setBg("textureColor", v)}
-                    />
-                  </Field>
-                  <Field
-                    label="Texture opacity"
-                    hint={config.background.textureOpacity.toFixed(2)}
-                  >
-                    <Slider
-                      value={config.background.textureOpacity}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      onChange={(v) => setBg("textureOpacity", v)}
-                    />
-                  </Field>
-                  <Field
-                    label="Density"
-                    hint={config.background.scale.toFixed(2)}
-                  >
-                    <Slider
-                      value={config.background.scale}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      onChange={(v) => setBg("scale", v)}
-                    />
-                  </Field>
-                </>
-              )
             )}
 
-            {(config.background.style === "lines" ||
-              config.background.style === "gradient") && (
-              <Field label="Angle" hint={`${Math.round(config.background.angle)}°`}>
-                <Slider
-                  value={config.background.angle}
-                  min={0}
-                  max={360}
-                  step={1}
-                  onChange={(v) => setBg("angle", v)}
-                />
-              </Field>
+            {tex && config.background.style !== "gradient" && (
+              <>
+                <Field label="Texture color">
+                  <ColorField
+                    value={tex.textureColor}
+                    onChange={(v) => setTex("textureColor", v)}
+                  />
+                </Field>
+                <Field
+                  label="Texture opacity"
+                  hint={tex.textureOpacity.toFixed(2)}
+                >
+                  <Slider
+                    value={tex.textureOpacity}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    onChange={(v) => setTex("textureOpacity", v)}
+                  />
+                </Field>
+                <Field label="Density" hint={tex.scale.toFixed(2)}>
+                  <Slider
+                    value={tex.scale}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    onChange={(v) => setTex("scale", v)}
+                  />
+                </Field>
+              </>
             )}
+
+            {tex &&
+              (config.background.style === "lines" ||
+                config.background.style === "gradient") && (
+                <Field label="Angle" hint={`${Math.round(tex.angle)}°`}>
+                  <Slider
+                    value={tex.angle}
+                    min={0}
+                    max={360}
+                    step={1}
+                    onChange={(v) => setTex("angle", v)}
+                  />
+                </Field>
+              )}
           </Section>
 
           <Section title="Shape">

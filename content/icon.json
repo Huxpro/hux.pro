@@ -1,22 +1,50 @@
 {
-  "text": "hux",
-  "fontFamily": "serif",
-  "fontWeight": 500,
-  "fontSize": 0.46,
-  "letterSpacing": -0.02,
+  "text": "λHUX",
+  "fontWeight": 300,
+  "fontSize": 0.3,
+  "letterSpacing": 0.04,
   "italic": false,
-  "textTransform": "lower",
   "textColor": "#ededed",
   "offsetX": 0,
   "offsetY": 0,
   "background": {
-    "style": "dots",
+    "style": "grid",
     "color": "#1a1a1a",
-    "textureColor": "#ffffff",
-    "textureOpacity": 0.06,
-    "scale": 0.5,
-    "angle": 45,
-    "gradientColor": "#2a2a2a"
+    "dots": {
+      "textureColor": "#ffffff",
+      "textureOpacity": 0.06,
+      "scale": 0.5,
+      "angle": 0,
+      "gradientColor": "#2a2a2a"
+    },
+    "grid": {
+      "textureColor": "#ffffff",
+      "textureOpacity": 0.07,
+      "scale": 0.5,
+      "angle": 0,
+      "gradientColor": "#2a2a2a"
+    },
+    "lines": {
+      "textureColor": "#ffffff",
+      "textureOpacity": 0.05,
+      "scale": 0.4,
+      "angle": 45,
+      "gradientColor": "#2a2a2a"
+    },
+    "noise": {
+      "textureColor": "#ffffff",
+      "textureOpacity": 0.12,
+      "scale": 0.5,
+      "angle": 0,
+      "gradientColor": "#2a2a2a"
+    },
+    "gradient": {
+      "textureColor": "#ffffff",
+      "textureOpacity": 0,
+      "scale": 0.5,
+      "angle": 120,
+      "gradientColor": "#2a2a2a"
+    }
   },
   "cornerRadius": 0
 }

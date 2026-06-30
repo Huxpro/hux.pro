@@ -13,10 +13,7 @@
  * server-side (the dev save route, the build generator) — never in the browser.
  */
 
-import {
-  googleFontName,
-  type IconConfig,
-} from "./config.ts";
+import { MONO_GOOGLE_FONT, type IconConfig } from "./config.ts";
 
 // Identify as a modern browser so Google serves woff2; the `text=` subset keeps
 // the payload to the handful of glyphs actually drawn.
@@ -32,7 +29,7 @@ const MIME_BY_FORMAT: Record<string, string> = {
 
 /** Build the css2 query for a single family/weight/style + glyph subset. */
 function buildCssUrl(config: IconConfig): string | null {
-  const family = googleFontName(config.fontFamily).replace(/ /g, "+");
+  const family = MONO_GOOGLE_FONT.replace(/ /g, "+");
   // Only the unique glyphs we actually draw need to ship.
   const subset = Array.from(new Set(Array.from(config.text))).join("");
   if (!subset) return null;

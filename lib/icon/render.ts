@@ -14,9 +14,9 @@
  */
 
 import {
-  fontFamilyStack,
+  MONO_FONT_STACK,
   type IconConfig,
-  type IconTextTransform,
+  type TextureSettings,
 } from "./config.ts";
 
 export interface BuildIconOptions {
@@ -39,6 +39,13 @@ export interface BuildIconOptions {
    * to "icon" (fine for a standalone file).
    */
   idPrefix?: string;
+  /**
+   * Override the wordmark `font-family`. Defaults to the embeddable mono stack
+   * (`'JetBrains Mono', …`) used by the standalone asset. The editor passes
+   * `var(--font-mono)` so its on-page preview uses the *exact* JetBrains Mono
+   * instance `next/font` loaded site-wide — same typeface, guaranteed WYSIWYG.
+   */
+  fontFamily?: string;
 }
 
 /** XML-escape text content / attribute values. */
@@ -51,16 +58,11 @@ function esc(s: string): string {
     .replace(/'/g, "&apos;");
 }
 
-function applyCase(text: string, mode: IconTextTransform): string {
-  if (mode === "lower") return text.toLowerCase();
-  if (mode === "upper") return text.toUpperCase();
-  return text;
-}
-
 /**
  * Build the `<defs>` + background-overlay markup for the chosen texture.
  * Returns `{ defs, overlay }` so the caller can place defs once and the overlay
- * rect above the base fill.
+ * rect above the base fill. Reads the *active* style's own settings, so each
+ * texture renders with its independent tuning.
  */
 function buildBackground(
   config: IconConfig,
@@ -73,6 +75,10 @@ function buildBackground(
     bg.color,
   )}"/>`;
 
+  // The active texture's own parameters (undefined for the plain solid fill).
+  const tex: TextureSettings | undefined =
+    bg.style === "solid" ? undefined : bg[bg.style];
+
   // A clip so textures honor the baked corner radius.
   const clipId = `${idPrefix}Clip`;
   const gradId = `${idPrefix}Grad`;
@@ -81,13 +87,14 @@ function buildBackground(
   const clip = `<clipPath id="${clipId}"><rect width="${size}" height="${size}" rx="${rx}" ry="${rx}"/></clipPath>`;
   const wrap = (inner: string) => `<g clip-path="url(#${clipId})">${inner}</g>`;
 
-  if (bg.style === "solid") {
+  // Plain fill (and the type-narrowing guard for `tex` below).
+  if (bg.style === "solid" || !tex) {
     return { defs: clip, base, overlay: "" };
   }
 
   if (bg.style === "gradient") {
     // Angle → gradient vector on the unit square.
-    const rad = (bg.angle * Math.PI) / 180;
+    const rad = (tex.angle * Math.PI) / 180;
     const x2 = (Math.cos(rad) * 0.5 + 0.5).toFixed(4);
     const y2 = (Math.sin(rad) * 0.5 + 0.5).toFixed(4);
     const x1 = (0.5 - Math.cos(rad) * 0.5).toFixed(4);
@@ -96,7 +103,7 @@ function buildBackground(
       clip +
       `<linearGradient id="${gradId}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">` +
       `<stop offset="0" stop-color="${esc(bg.color)}"/>` +
-      `<stop offset="1" stop-color="${esc(bg.gradientColor)}"/>` +
+      `<stop offset="1" stop-color="${esc(tex.gradientColor)}"/>` +
       `</linearGradient>`;
     const overlay = `<rect width="${size}" height="${size}" rx="${rx}" ry="${rx}" fill="url(#${gradId})"/>`;
     return { defs, base, overlay };
@@ -105,7 +112,7 @@ function buildBackground(
   if (bg.style === "noise") {
     // feTurbulence fractal noise, tinted to the texture color and faded.
     // baseFrequency grows with `scale` for finer grain.
-    const freq = (0.4 + bg.scale * 1.4).toFixed(3);
+    const freq = (0.4 + tex.scale * 1.4).toFixed(3);
     const defs =
       clip +
       `<filter id="${noiseId}" x="0" y="0" width="100%" height="100%">` +
@@ -113,15 +120,15 @@ function buildBackground(
       `<feColorMatrix in="n" type="saturate" values="0"/>` +
       `</filter>`;
     const overlay = wrap(
-      `<rect width="${size}" height="${size}" filter="url(#${noiseId})" opacity="${bg.textureOpacity}" fill="${esc(
-        bg.textureColor,
+      `<rect width="${size}" height="${size}" filter="url(#${noiseId})" opacity="${tex.textureOpacity}" fill="${esc(
+        tex.textureColor,
       )}"/>`,
     );
     return { defs, base, overlay };
   }
 
   // Tiled patterns: dots / grid / lines. Tile size shrinks as scale grows.
-  const tile = Math.round(size * (0.18 - bg.scale * 0.13)); // ~ size*0.05–0.18
+  const tile = Math.round(size * (0.18 - tex.scale * 0.13)); // ~ size*0.05–0.18
   const t = Math.max(8, tile);
   let patternBody = "";
   let patternTransform = "";
@@ -130,27 +137,27 @@ function buildBackground(
     const r = Math.max(1, t * 0.12);
     patternBody = `<circle cx="${(t / 2).toFixed(2)}" cy="${(t / 2).toFixed(
       2,
-    )}" r="${r.toFixed(2)}" fill="${esc(bg.textureColor)}"/>`;
+    )}" r="${r.toFixed(2)}" fill="${esc(tex.textureColor)}"/>`;
   } else if (bg.style === "grid") {
     const w = Math.max(1, t * 0.04);
     patternBody =
       `<path d="M ${t} 0 L 0 0 0 ${t}" fill="none" stroke="${esc(
-        bg.textureColor,
+        tex.textureColor,
       )}" stroke-width="${w.toFixed(2)}"/>`;
   } else {
     // lines
     const w = Math.max(1, t * 0.18);
     patternBody = `<rect x="0" y="0" width="${(w).toFixed(
       2,
-    )}" height="${t}" fill="${esc(bg.textureColor)}"/>`;
-    patternTransform = ` patternTransform="rotate(${bg.angle})"`;
+    )}" height="${t}" fill="${esc(tex.textureColor)}"/>`;
+    patternTransform = ` patternTransform="rotate(${tex.angle})"`;
   }
 
   const defs =
     clip +
     `<pattern id="${texId}" width="${t}" height="${t}" patternUnits="userSpaceOnUse"${patternTransform}>${patternBody}</pattern>`;
   const overlay = wrap(
-    `<rect width="${size}" height="${size}" fill="url(#${texId})" opacity="${bg.textureOpacity}"/>`,
+    `<rect width="${size}" height="${size}" fill="url(#${texId})" opacity="${tex.textureOpacity}"/>`,
   );
   return { defs, base, overlay };
 }
@@ -174,7 +181,7 @@ export function buildIconSvg(
   const cx = size / 2 + config.offsetX * size;
   const cy = size / 2 + config.offsetY * size;
   const letterSpacingPx = config.letterSpacing * fontSizePx;
-  const text = applyCase(config.text, config.textTransform);
+  const text = config.text;
 
   const style = options.fontFaceCss
     ? `<style>${options.fontFaceCss}</style>`
@@ -184,7 +191,7 @@ export function buildIconSvg(
   // (cx, cy) across renderers far more reliably than dy hacks.
   const textEl =
     `<text x="${cx.toFixed(2)}" y="${cy.toFixed(2)}" ` +
-    `font-family="${fontFamilyStack(config.fontFamily)}" ` +
+    `font-family="${options.fontFamily ?? MONO_FONT_STACK}" ` +
     `font-size="${fontSizePx.toFixed(2)}" ` +
     `font-weight="${config.fontWeight}" ` +
     `font-style="${config.italic ? "italic" : "normal"}" ` +

@@ -30,10 +30,14 @@ exposes the levers; the left canvas previews live, at multiple sizes, and under
 round / square / app-tile masks. The preview inlines the SVG into the DOM so it
 renders with the site's actual font families — WYSIWYG against the shipped asset.
 
-**Typography:** wordmark text (+ quick presets), typeface (Sans / Serif / Mono),
-case, weight, size, tracking, X/Y nudge, italic, color.
-**Background:** texture (Solid / Dots / Grid / Lines / Noise / Gradient), base
-color, texture color + opacity, density, angle.
+**Typography:** wordmark text (+ quick presets), weight, size, tracking, X/Y
+nudge, italic, color. The wordmark is always set in the site's mono family and
+drawn verbatim — the icon is a terminal-style system mark, so typeface and
+casing are intentionally not levers.
+**Background:** texture (Solid / Dots / Grid / Lines / Noise / Gradient) and a
+shared base color. Each texture owns its *own* color / opacity / density / angle
+(and gradient end color), so switching styles never inherits another texture's
+tuning.
 **Shape:** baked corner radius (leave at 0 — most OSes apply their own mask).
 
 **Save** (dev only) writes `content/icon.json` *and* regenerates
@@ -46,9 +50,9 @@ pnpm icon:generate   # render public/icons/* from content/icon.json
 pnpm icon:check      # CI: fail if the committed assets are stale
 ```
 
-The generator embeds a glyph-subset of the wordmark's font (via the Google
-Fonts `text=` API) so the SVG is self-contained — the favicon renders in its own
-font even though it loads outside the page. Embedding is best-effort: offline,
+The generator embeds a glyph-subset of the wordmark's font — JetBrains Mono, via
+the Google Fonts `text=` API — so the SVG is self-contained: the favicon renders
+in its own font even though it loads outside the page. Embedding is best-effort: offline,
 the assets still generate and fall back to a platform font. `icon:check` ignores
 font-only differences (it compares the structural SVG) so a network blip in CI
 doesn't flag false drift.
