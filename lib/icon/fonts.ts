@@ -20,6 +20,11 @@ import { MONO_GOOGLE_FONT, type IconConfig } from "./config.ts";
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
+// A legacy UA makes Google serve a static TrueType (.ttf) instead of woff2.
+// resvg renders woff2 at the wrong weight (its decoder mishandles the subset),
+// so the *rasterizer* needs ttf; browsers get woff2 fine via the embedded SVG.
+const UA_LEGACY = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
+
 const MIME_BY_FORMAT: Record<string, string> = {
   woff2: "font/woff2",
   woff: "font/woff",
@@ -70,21 +75,23 @@ async function fetchDataUri(
  * Fetch the raw wordmark font bytes (glyph-subset) for the rasterizer.
  *
  * Unlike the SVG path, the PNG renderer (resvg) doesn't read inline
- * `@font-face`; it needs the font as a buffer. Returns the first subset source
- * Google serves (woff2 or ttf — resvg handles both), or `null` on failure so
- * the caller can fall back to a system mono font.
+ * `@font-face`; it needs the font as a buffer — and specifically a TrueType
+ * one, since resvg renders Google's woff2 subset at the wrong weight. The
+ * `UA_LEGACY` header makes Google return a static .ttf. Returns `null` on
+ * failure so the caller can fall back to a system mono font.
  */
 export async function fetchFontBuffer(
   config: IconConfig,
 ): Promise<Uint8Array | null> {
   const cssUrl = buildCssUrl(config);
   if (!cssUrl) return null;
-  const css = await fetchText(cssUrl);
-  if (!css) return null;
-  const m = css.match(/url\((https:\/\/[^)]+)\)/i);
-  if (!m) return null;
   try {
-    const res = await fetch(m[1], { headers: { "User-Agent": UA } });
+    const css = await (
+      await fetch(cssUrl, { headers: { "User-Agent": UA_LEGACY } })
+    ).text();
+    const m = css.match(/url\((https:\/\/[^)]+)\)/i);
+    if (!m) return null;
+    const res = await fetch(m[1], { headers: { "User-Agent": UA_LEGACY } });
     if (!res.ok) return null;
     return new Uint8Array(await res.arrayBuffer());
   } catch {
