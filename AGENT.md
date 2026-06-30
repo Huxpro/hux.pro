@@ -12,7 +12,8 @@
 | **Design System** | [docs/design-system.md](./docs/design-system.md) (Typography, colors) |
 | **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
 | **Architecture** | [docs/architecture.md](./docs/architecture.md) (Implementation details) |
-| **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Snapshot + manual preview + drift) |
+| **OG Images (ours)** | [docs/og-images.md](./docs/og-images.md) (Social cards we publish for our pages) |
+| **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Crawling *others'* OG for /works cards) |
 | **App Icon** | [docs/app-icon.md](./docs/app-icon.md) (Generative favicon + `/editor/icon` studio) |
 
 ## 2. Quick Start Context

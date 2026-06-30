@@ -2,7 +2,7 @@ import { getPromptsData } from "@/lib/prompts";
 import { PromptView } from "./view";
 
 export const metadata = {
-  title: "System Prompts | Hux.Pro",
+  title: "System Prompts",
   description: "Quotes, principles, and role models that shape my thinking.",
 };
 

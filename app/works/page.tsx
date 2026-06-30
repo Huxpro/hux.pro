@@ -3,7 +3,7 @@ import { enrichLogDataWithPreviews } from "@/lib/og-snapshot";
 import { WorksView } from "./view";
 
 export const metadata = {
-  title: "Works | Hux.Pro",
+  title: "Works",
   description:
     "Commit history — professional work as git log, tags marking each chapter.",
 };

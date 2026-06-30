@@ -41,7 +41,11 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hux.Pro",
+  metadataBase: new URL("https://hux.pro"),
+  title: {
+    default: "Hux.Pro",
+    template: "%s | Hux.Pro",
+  },
   description: "Prose, Profession, Programming, Production, Projects",
   // Generative app icon — authored in `/editor/icon`, rendered from
   // `content/icon.json` by `pnpm icon:generate`. SVG for modern browser tabs,
@@ -52,6 +56,14 @@ export const metadata: Metadata = {
   icons: {
     icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }],
     apple: [{ url: "/icons/apple-icon.png", sizes: "180x180" }],
+  },
+  openGraph: {
+    siteName: "Hux.Pro",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
   },
 };
 
