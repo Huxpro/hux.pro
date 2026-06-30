@@ -78,27 +78,30 @@ async function loadFonts(serifText: string, monoText: string): Promise<FontEntry
   const monoSubset = MONO_BASE + monoText;
   const serifSubset = SERIF_BASE + serifText;
 
+  // Weights mirror the live site: serif titles and the mono system layer both
+  // render at 400 (normal) — the deliberately light, editorial "quiet
+  // confidence" look (see app/layout.tsx + components/ui/header-zone.tsx).
   const jobs: Promise<FontEntry>[] = [
-    loadGoogleFont("Newsreader", 500, serifSubset).then((data) => ({
+    loadGoogleFont("Newsreader", 400, serifSubset).then((data) => ({
       name: "OgSerif",
       data,
-      weight: 500,
+      weight: 400,
       style: "normal",
     })),
-    loadGoogleFont("JetBrains Mono", 500, monoSubset).then((data) => ({
+    loadGoogleFont("JetBrains Mono", 400, monoSubset).then((data) => ({
       name: "OgMono",
       data,
-      weight: 500,
+      weight: 400,
       style: "normal",
     })),
   ];
 
   if (CJK_RE.test(serifText)) {
     jobs.push(
-      loadGoogleFont("Noto Serif SC", 600, serifSubset).then((data) => ({
+      loadGoogleFont("Noto Serif SC", 400, serifSubset).then((data) => ({
         name: "OgSerif",
         data,
-        weight: 600,
+        weight: 400,
         style: "normal",
       }))
     );
