@@ -156,11 +156,16 @@ export function PostList<T extends Post>({
                 <h2 className="text-sm sm:text-base font-normal">
                   {getLocalizedTitle(post, locale)}
                   {rowDecorators.map((tag) => (
-                    <span
-                      key={tag}
-                      className="ml-2 inline-block rounded bg-foreground/5 px-1.5 py-0.5 align-[0.1em] text-[10px] font-mono text-muted-foreground"
-                    >
-                      {tag}
+                    // The leading NBSP + nowrap wrapper glue the badge to the
+                    // title's last word, so it wraps together with the title
+                    // instead of dropping onto a line by itself (the badge is
+                    // an inline-block, which otherwise has a break point before
+                    // it). The NBSP also supplies the gap — no left margin.
+                    <span key={tag} className="whitespace-nowrap">
+                      {" "}
+                      <span className="ml-0.5 inline-block rounded bg-foreground/5 px-1.5 py-0.5 align-[0.1em] text-[10px] font-mono text-muted-foreground">
+                        {tag}
+                      </span>
                     </span>
                   ))}
                   {showLangTag && (
