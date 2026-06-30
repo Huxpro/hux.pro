@@ -113,14 +113,42 @@ export interface OgCardInput {
   cover?: string;
 }
 
-function titleSize(title: string): number {
-  // CJK glyphs are visually ~2× a Latin char; weight the length accordingly.
+// CJK glyphs are visually ~2× a Latin char; weight the length accordingly.
+function weightedLength(title: string): number {
   const cjk = (title.match(new RegExp(CJK_RE, "g")) || []).length;
-  const weighted = title.length + cjk;
-  if (weighted <= 20) return 92;
-  if (weighted <= 36) return 74;
-  if (weighted <= 60) return 58;
-  return 46;
+  return title.length + cjk;
+}
+
+// Tiers keep long titles large (they flow to up to 3 lines) instead of
+// shrinking hard to stay on 2 — so a short hero title and a long one don't
+// differ wildly in size.
+function titleSize(title: string): number {
+  const w = weightedLength(title);
+  if (w <= 20) return 92;
+  if (w <= 34) return 80;
+  if (w <= 52) return 70;
+  return 64;
+}
+
+// Satori (the engine behind next/og) does not honor `-webkit-line-clamp`, so we
+// cap the title to ~3 lines in JS as a safety net. Real titles never reach this
+// — the longest in the repo is 2 lines — it only guards pathological lengths.
+// Capacity ≈ (maxWidth / (0.5 · size)) weighted units per line, ×3 lines, with
+// a conservative factor for ragged word-wrap; truncate on a word boundary.
+function clampTitle(title: string, size: number): string {
+  const perLine = 1040 / (0.5 * size);
+  const budget = Math.floor(perLine * 3 * 0.9);
+  if (weightedLength(title) <= budget) return title;
+
+  let units = 0;
+  let out = "";
+  for (const ch of title) {
+    const w = CJK_RE.test(ch) ? 2 : 1;
+    if (units + w > budget) break;
+    units += w;
+    out += ch;
+  }
+  return out.replace(/[\s,.;:!?，。；：、]+$/, "") + "…";
 }
 
 function Card({
@@ -129,6 +157,8 @@ function Card({
   meta,
   coverUri,
 }: OgCardInput & { coverUri: string | null }) {
+  const size = titleSize(title);
+  const shownTitle = clampTitle(title, size);
   return (
     <div
       style={{
@@ -200,14 +230,14 @@ function Card({
           style={{
             display: "flex",
             fontFamily: "OgSerif",
-            fontSize: titleSize(title),
+            fontSize: size,
             lineHeight: 1.5,
             letterSpacing: -0.5,
             color: COLOR.fg,
-            maxWidth: 1000,
+            maxWidth: 1040,
           }}
         >
-          {title}
+          {shownTitle}
         </div>
         {meta ? (
           <div
