@@ -201,7 +201,7 @@ function Card({
             display: "flex",
             fontFamily: "OgSerif",
             fontSize: titleSize(title),
-            lineHeight: 1.1,
+            lineHeight: 1.5,
             letterSpacing: -0.5,
             color: COLOR.fg,
             maxWidth: 1000,
