@@ -221,12 +221,20 @@ function buildCommitPreview(
       };
     }
     return {
-      // `max-w-md` lifts the default `max-w-xs` cap so the PEEK_W content
-      // isn't clipped.
-      panelClassName: "p-0 max-w-md overflow-hidden",
-      // Same PEEK_W as the link / writing peeks so every hover surface reads
-      // as one family.
-      node: <PeekThumb image={item.image} className={cn(PEEK_W, "aspect-video")} />,
+      // Strip the panel chrome (like the single card peek) so the thumb is
+      // the *only* bordered surface. Keeping the default panel chrome here
+      // stacked the panel's border on top of the thumb's own border — a
+      // visible double edge between the cover and the shadow. `max-w-md`
+      // lifts the default `max-w-xs` cap so PEEK_W isn't clipped.
+      panelClassName: `p-0 max-w-md ${BARE_PANEL_CHROME}`,
+      // Same PEEK_W as the link / writing peeks; the thumb supplies its own
+      // border + PEEK_SHADOW so every hover surface reads as one family.
+      node: (
+        <PeekThumb
+          image={item.image}
+          className={cn(PEEK_W, "aspect-video", PEEK_SHADOW)}
+        />
+      ),
     };
   }
 
@@ -283,10 +291,10 @@ function PeekThumb({
   return (
     <div
       className={cn(
-        // No shadow here — standalone thumbs sit in the shared panel (which
-        // supplies PEEK_SHADOW); stacked thumbs get PEEK_SHADOW on the front
-        // layer only (see StackedPeek).
-        "rounded-lg overflow-hidden border border-border/40 bg-muted/30",
+        // Border matches the card peek / panel (border/50). Shadow is
+        // supplied per-use: the single video peek and the deck's front layer
+        // pass PEEK_SHADOW; deck back layers pass none.
+        "rounded-lg overflow-hidden border border-border/50 bg-muted/30",
         className,
       )}
     >
