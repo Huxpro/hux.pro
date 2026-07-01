@@ -10,7 +10,7 @@
  * collapse into a chip row at the end).
  */
 
-import { type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/services/theme";
@@ -185,6 +185,92 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
 }
 
 // =============================================================================
+// Card Scroll Rail — horizontal scroll-snap track for the three-card case.
+// =============================================================================
+
+/**
+ * Horizontal rail for exactly three cards. Bleeds one page gutter past the
+ * content column so the third card's edge peeks (see the tripleCards branch
+ * for the sizing trick), and carries scroll-position "shadow" gradients on
+ * both edges: the left fades in only once the rail is scrolled off its start
+ * (so card 1 isn't dimmed at rest), the right fades out once the end is
+ * reached (so the last card lands clear over the trailing whitespace).
+ */
+function CardScrollRail({ children }: { children: ReactNode }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [atStart, setAtStart] = useState(true);
+  const [atEnd, setAtEnd] = useState(false);
+
+  const sync = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setAtStart(el.scrollLeft <= 1);
+    // max <= 1 → nothing to scroll (defensive): treat as "at end" so the
+    // peek gradient doesn't linger with no content behind it.
+    setAtEnd(el.scrollLeft >= max - 1);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    sync();
+    el.addEventListener("scroll", sync, { passive: true });
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", sync);
+      ro.disconnect();
+    };
+  }, [sync]);
+
+  return (
+    <div className="@container/rail relative">
+      <div
+        ref={scrollRef}
+        className={cn(
+          // -mr-6 bleeds the track a full gutter past the column; pr-6 gives
+          // the trailing card the same gutter of scroll whitespace so it can
+          // rest clear of the fade at the end instead of jamming against the
+          // page edge.
+          "flex gap-2.5 -mr-6 pr-6",
+          "overflow-x-auto overscroll-x-contain",
+          // Proximity, not mandatory: two cards are visible, so the third
+          // card's start-snap lies past the max scroll offset; mandatory
+          // would keep yanking it back ("can't scroll to the last one").
+          "snap-x snap-proximity scroll-smooth no-scrollbar",
+        )}
+      >
+        {children}
+      </div>
+      {/* Left fade — appears only once scrolled off the start, softening
+          card 1's cut-off edge. */}
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-y-0 left-0 w-6",
+          "bg-gradient-to-r from-background to-transparent",
+          "transition-opacity duration-200",
+          atStart ? "opacity-0" : "opacity-100",
+        )}
+      />
+      {/* Right fade — over the gutter/peek; starts at the column edge so
+          card 2 and both gaps stay undimmed, and disappears at the end so the
+          last card reads clear over the pr-6 whitespace. */}
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-y-0 -right-6 w-6",
+          "bg-gradient-to-l from-background to-transparent",
+          "transition-opacity duration-200",
+          atEnd ? "opacity-0" : "opacity-100",
+        )}
+      />
+    </div>
+  );
+}
+
+// =============================================================================
 // Main Component
 // =============================================================================
 
@@ -288,44 +374,29 @@ export function MediaRenderer({
             // is the card width: it's measured against the container
             // (`100cqi`), NOT the bled track, so all three stay at their exact
             // 1/2-column size (uniform gaps) while only the track overflows.
-            // `@container/rail` is what makes `cqi` resolve to the two-card
-            // footprint. A left-fading gradient softens the peeked edge so the
-            // clipped third card reads as "more →" rather than a hard cut.
-            <div className="@container/rail relative">
-              <div
-                className={cn(
-                  "flex gap-2.5 -mr-6",
-                  "overflow-x-auto overscroll-x-contain",
-                  "snap-x snap-mandatory scroll-smooth no-scrollbar",
-                )}
-              >
-                {cards.map((m, i) => (
-                  <div
-                    key={`rail-${i}`}
-                    // Each card is exactly a two-up column: (100cqi − gap)/2.
-                    className="shrink-0 snap-start basis-[calc((100cqi_-_0.625rem)/2)]"
-                  >
-                    {wrap(
-                      `rail-card-${i}`,
-                      m,
-                      <SingleMedia
-                        media={m}
-                        theme={theme}
-                        size="compact"
-                        dense
-                        className="w-full max-w-none"
-                      />,
-                    )}
-                  </div>
-                ))}
-              </div>
-              {/* Right-edge fade — sits at the bled track edge (one gutter
-                  past the column), never intercepts scroll/clicks. */}
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-y-0 -right-6 w-12 bg-gradient-to-l from-background to-transparent"
-              />
-            </div>
+            // `CardScrollRail` owns that container plus the scroll-position
+            // edge fades; here we only size the cards.
+            <CardScrollRail>
+              {cards.map((m, i) => (
+                <div
+                  key={`rail-${i}`}
+                  // Each card is exactly a two-up column: (100cqi − gap)/2.
+                  className="shrink-0 snap-start basis-[calc((100cqi_-_0.625rem)/2)]"
+                >
+                  {wrap(
+                    `rail-card-${i}`,
+                    m,
+                    <SingleMedia
+                      media={m}
+                      theme={theme}
+                      size="compact"
+                      dense
+                      className="w-full max-w-none"
+                    />,
+                  )}
+                </div>
+              ))}
+            </CardScrollRail>
           ) : (
             <div
               className={cn(
