@@ -110,6 +110,27 @@ interface DevtoolContextType {
   getDragResetCounter: (id: string) => number;
   /** Signal that a draggable instance should reset position (if persist is off) */
   signalDragReset: (id: string) => void;
+  /** Frontmatter of the current route, or null when not on an inspectable page. */
+  pageMeta: DevtoolPageMeta | null;
+  /** Register / clear the current route's frontmatter (called by DevtoolPageMeta). */
+  setPageMeta: (meta: DevtoolPageMeta | null) => void;
+}
+
+// =============================================================================
+// Page Frontmatter channel
+// The current route can register its parsed frontmatter so the panel's
+// inspector can display it. Populated by <DevtoolPageMeta> on blog pages;
+// null everywhere else.
+// =============================================================================
+
+export interface DevtoolPageMeta {
+  /** Route context — e.g. blog slug + rendered locale. */
+  slug: string;
+  lang: string;
+  /** The post's language scope (`en` / `zh` / `both`), for the header badge. */
+  language?: string;
+  /** Verbatim frontmatter of the file rendered for this route. */
+  frontmatter: Record<string, unknown>;
 }
 
 const DevtoolContext = createContext<DevtoolContextType | undefined>(undefined);
@@ -137,6 +158,7 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
     Record<string, Partial<DraggableInstanceConfig>>
   >({});
   const [dragResetCounters, setDragResetCounters] = useState<Record<string, number>>({});
+  const [pageMeta, setPageMeta] = useState<DevtoolPageMeta | null>(null);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -249,6 +271,8 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
         setDraggableConfig,
         getDragResetCounter,
         signalDragReset,
+        pageMeta,
+        setPageMeta,
       }}
     >
       {children}

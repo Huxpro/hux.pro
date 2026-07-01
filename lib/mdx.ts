@@ -64,6 +64,11 @@ function extractExcerpt(content: string, maxChars = 320): string {
 export interface BlogPostWithContent extends BlogPost {
   content: string;
   contentZh?: string;
+  /** Raw parsed frontmatter of each locale's source file, verbatim — the YAML
+   *  the author actually wrote (before merge/derivation). Powers the devtool's
+   *  frontmatter inspector. `frontmatterZh` is undefined for en-only posts. */
+  frontmatter?: Record<string, unknown>;
+  frontmatterZh?: Record<string, unknown>;
 }
 
 // Doc already has readingTime from Post, just add content fields
@@ -355,6 +360,9 @@ export function getBlogPostBySlug(slug: string): BlogPostWithContent | null {
     coverAspect: (data.coverAspect as string) || undefined,
     content,
     contentZh,
+    // Verbatim frontmatter per locale for the devtool inspector.
+    frontmatter: hasEn ? enData : zhData,
+    frontmatterZh: hasZh ? zhData : undefined,
     readingTime: readingTimeEn || readingTimeZh || "",
     readingTimeZh,
   };

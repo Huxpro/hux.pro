@@ -16,11 +16,14 @@ import {
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
 import { cn } from "@/lib/utils";
 import {
+  Braces,
   Brain,
   Bug,
+  Check,
   ChevronUp,
   Clock,
   Cloud,
+  Copy,
   GripVertical,
   Haze,
   Layers,
@@ -34,7 +37,7 @@ import {
   X,
 } from "lucide-react";
 import { withDraggable } from "@/systems/draggable";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // =============================================================================
 // Devtool FAB Component
@@ -153,6 +156,7 @@ function DevtoolPanel() {
 
       {/* Scrollable content */}
       <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
+        <FrontmatterModule />
         <GradientModule />
         <WeatherModule />
         <AmbientTimeModule />
@@ -206,6 +210,112 @@ function DebugSection({ title, icon, action, children, compact }: DebugSectionPr
       </div>
       <div className={cn("px-4", compact ? "py-2" : "py-3")}>{children}</div>
     </div>
+  );
+}
+
+// =============================================================================
+// Frontmatter Module
+// Inspects the frontmatter of the current page (blog posts register theirs via
+// <DevtoolPageMeta>). Empty on pages that don't publish any.
+// =============================================================================
+
+/** Render a frontmatter value as a compact, legible string. */
+function formatFrontmatterValue(value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  if (Array.isArray(value)) {
+    return value.length ? value.map((v) => String(v)).join(", ") : "[]";
+  }
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function FrontmatterModule() {
+  const { locale } = useLocale();
+  const { pageMeta } = useDevtool();
+  const [copied, setCopied] = useState(false);
+
+  const entries = pageMeta ? Object.entries(pageMeta.frontmatter) : [];
+
+  const copy = async () => {
+    if (!pageMeta) return;
+    try {
+      await navigator.clipboard.writeText(
+        JSON.stringify(pageMeta.frontmatter, null, 2)
+      );
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      // Clipboard blocked (insecure context / permissions) — no-op.
+    }
+  };
+
+  return (
+    <DebugSection
+      title={locale === "zh" ? "元信息" : "Frontmatter"}
+      icon={<Braces className="h-4 w-4" />}
+      compact={!pageMeta}
+      action={
+        pageMeta ? (
+          <button
+            onClick={copy}
+            className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Copy frontmatter as JSON"
+            title={locale === "zh" ? "复制 JSON" : "Copy JSON"}
+          >
+            {copied ? (
+              <Check className="h-3 w-3 text-green-500" />
+            ) : (
+              <Copy className="h-3 w-3" />
+            )}
+            <span>{copied ? (locale === "zh" ? "已复制" : "Copied") : "JSON"}</span>
+          </button>
+        ) : null
+      }
+    >
+      {!pageMeta ? (
+        <div className="text-[10px] font-mono text-muted-foreground/60">
+          {locale === "zh" ? "当前非博客页面" : "No frontmatter on this page"}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {/* Route context — slug + which locale's file is rendered. */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-mono text-foreground/90 break-all">
+              {pageMeta.slug}
+            </span>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+              {pageMeta.lang}
+            </span>
+            {pageMeta.language && pageMeta.language !== pageMeta.lang && (
+              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/60 px-1.5 py-0.5 border border-border/50 rounded">
+                {pageMeta.language}
+              </span>
+            )}
+          </div>
+
+          {/* Frontmatter fields, in authored order. */}
+          {entries.length ? (
+            <div className="space-y-2 border-t border-border/30 pt-2.5">
+              {entries.map(([key, value]) => (
+                <div key={key} className="space-y-0.5">
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+                    {key}
+                  </div>
+                  <div className="text-xs font-mono text-foreground/80 break-words whitespace-pre-wrap">
+                    {formatFrontmatterValue(value)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-[10px] font-mono text-muted-foreground/60 border-t border-border/30 pt-2.5">
+              {locale === "zh" ? "无字段" : "No fields"}
+            </div>
+          )}
+        </div>
+      )}
+    </DebugSection>
   );
 }
 

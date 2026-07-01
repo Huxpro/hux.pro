@@ -5,6 +5,7 @@ import { getLocalizedDescription, getLocalizedTitle } from "@/lib/content";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { BlogPostContent } from "../content";
+import { DevtoolPageMeta } from "@/systems/devtool";
 
 export const dynamicParams = false;
 
@@ -73,19 +74,34 @@ export default async function BlogPostLangPage({
   const content =
     locale === "zh" && post.contentZh ? post.contentZh : post.content;
 
+  // Verbatim frontmatter for the locale being rendered — fed to the devtool
+  // inspector. Falls back to the primary file's frontmatter when a locale
+  // variant is absent.
+  const frontmatter =
+    (locale === "zh" ? post.frontmatterZh ?? post.frontmatter : post.frontmatter) ??
+    {};
+
   return (
-    <BlogPostContent
-      title={post.title}
-      titleZh={post.titleZh}
-      date={post.date}
-      locale={locale}
-      language={post.language}
-      readingTime={post.readingTime}
-      readingTimeZh={post.readingTimeZh}
-      origin={post.origin}
-      originZh={post.originZh}
-    >
-      <MDXRenderer source={content} />
-    </BlogPostContent>
+    <>
+      <DevtoolPageMeta
+        slug={slug}
+        lang={lang}
+        language={post.language}
+        frontmatter={frontmatter}
+      />
+      <BlogPostContent
+        title={post.title}
+        titleZh={post.titleZh}
+        date={post.date}
+        locale={locale}
+        language={post.language}
+        readingTime={post.readingTime}
+        readingTimeZh={post.readingTimeZh}
+        origin={post.origin}
+        originZh={post.originZh}
+      >
+        <MDXRenderer source={content} />
+      </BlogPostContent>
+    </>
   );
 }

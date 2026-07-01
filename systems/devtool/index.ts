@@ -2,5 +2,11 @@
 // Devtool System - Developer tools for debugging subsystems
 // =============================================================================
 
-export { DevtoolProvider, useDevtool, useOptionalDevtool } from "./provider";
+export {
+  DevtoolProvider,
+  useDevtool,
+  useOptionalDevtool,
+  type DevtoolPageMeta as DevtoolPageMetaData,
+} from "./provider";
 export { DevtoolFAB } from "./panel";
+export { DevtoolPageMeta } from "./page-meta";
