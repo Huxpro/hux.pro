@@ -11,7 +11,6 @@
 import { useState, useMemo } from "react";
 import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MEDIA_MAX_W } from "./sizes";
 import { ExternalImage } from "./external-image";
 
 // =============================================================================
@@ -137,7 +136,11 @@ export function BilibiliEmbed({
     [id, page]
   );
 
-  const sizeClasses = MEDIA_MAX_W;
+  const sizeClasses = {
+    compact: "max-w-md",
+    default: "",
+    large: "max-w-4xl",
+  };
 
   if (!id || !embedUrl) {
     return (

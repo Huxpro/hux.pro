@@ -8,7 +8,6 @@
 
 import NextImage from "next/image";
 import { cn } from "@/lib/utils";
-import { MEDIA_MAX_W } from "./sizes";
 import type { ImageMedia } from "@/lib/log";
 
 // =============================================================================
@@ -46,7 +45,11 @@ export function Figure({
   size = "default",
   className,
 }: FigureProps) {
-  const sizeClasses = MEDIA_MAX_W;
+  const sizeClasses = {
+    compact: "max-w-sm",
+    default: "max-w-lg",
+    large: "max-w-2xl",
+  };
 
   const aspectClasses = {
     auto: "",
