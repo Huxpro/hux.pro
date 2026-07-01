@@ -661,38 +661,6 @@
       "language": "en"
     },
     {
-      "id": "rnshow-hermes-2021",
-      "type": "talk",
-      "tagId": "react-era",
-      "title": {
-        "en": "The RN Show: Hermes for iOS",
-        "zh": "The RN Show：Hermes 登陆 iOS"
-      },
-      "description": {
-        "en": "Discussing bringing the Hermes JavaScript engine to iOS on The React Native Show podcast.",
-        "zh": "在 The React Native Show 播客上讨论将 Hermes JavaScript 引擎引入 iOS。"
-      },
-      "date": "2021-04",
-      "conference": {
-        "name": "The React Native Show Podcast"
-      },
-      "media": [
-        {
-          "kind": "link",
-          "url": "https://www.callstack.com/podcast-react-native-show",
-          "present": "pill",
-          "label": "Podcast",
-          "icon": "globe"
-        }
-      ],
-      "tags": [
-        "Hermes",
-        "React Native",
-        "iOS"
-      ],
-      "language": "en"
-    },
-    {
       "id": "hermes-engine",
       "type": "project",
       "tagId": "react-era",
