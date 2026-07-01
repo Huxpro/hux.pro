@@ -353,6 +353,14 @@ function PeekCard({
   );
 }
 
+// The deck's rotated/translated back cards add ~20–40px of overhang beyond
+// the front card, so a front card at the full PEEK_W (384) makes the deck
+// read wider and heavier than the flush single-card / video / writing peeks.
+// Size the front card DOWN so the deck's *perceived footprint* (front + fan
+// overhang) lands at ~PEEK_W. Stacks also carry more visual mass than a flat
+// card, so we aim a touch under.
+const DECK_FRONT_W = "w-[22rem]"; // 352px
+
 /**
  * Stacked-card peek for commits with 2+ peek items. We show up to three
  * front-to-back; the front item sharp; back ones translated, scaled down,
@@ -393,7 +401,7 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
     <div
       className={cn(
         "relative transition-opacity duration-200",
-        PEEK_W,
+        DECK_FRONT_W,
         allReady ? "opacity-100" : "opacity-0",
       )}
     >
