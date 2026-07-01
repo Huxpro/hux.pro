@@ -5,6 +5,39 @@
     "image": "https://gitee.com/index/gitee-people/images/common-thumb.jpg",
     "siteName": "Gitee"
   },
+  "https://lynxjs.org/next/blog/lynx-unlock-native-for-more": {
+    "title": "Lynx: Unlock Native for More - Lynx",
+    "description": "Today, we",
+    "image": "https://lynxjs.org/next/og/blog/en/lynx-unlock-native-for-more.png",
+    "siteName": "Lynx"
+  },
+  "https://lynxjs.org/next/zh/blog/lynx-unlock-native-for-more.html": {
+    "title": "Lynx：迈向原生体验 - Lynx",
+    "description": "今天，我们很高兴向大家介绍 Lynx 全家桶，它们是一系列希望帮助 Web 开发者复用现有经验，通过一套代码同时创建移动端原生界面与 Web 端界面的技术……",
+    "image": "https://lynxjs.org/next/og/blog/zh/lynx-unlock-native-for-more.png",
+    "siteName": "Lynx"
+  },
+  "https://react.dev/blog/2022/06/15/react-labs-what-we-have-been-working-on-june-2022#react-compiler": {
+    "title": "React Labs: What We've Been Working On – June 2022 – React",
+    "description": "The library for web and native user interfaces",
+    "image": "https://react.dev/images/og-blog.png",
+    "siteName": "react.dev"
+  },
+  "https://reactnative.dev/blog/2021/10/26/toward-hermes-being-the-default": {
+    "title": "Toward Hermes being the Default · React Native",
+    "siteName": "reactnative.dev"
+  },
+  "https://reasonml.github.io/": {
+    "title": "Reason · Reason lets you write simple, fast and quality type safe code while leveraging both the JavaScript & OCaml ecosystems.",
+    "description": "Reason lets you write simple, fast and quality type safe code while leveraging both the JavaScript & OCaml ecosystems.",
+    "siteName": "reasonml.github.io"
+  },
+  "https://rescript-lang.org/": {
+    "title": "The ReScript Programming Language",
+    "description": "JavaScript Made Simple for Humans and AI. ReScript is a strongly typed language that compiles to clean, efficient JavaScript that humans and AI tools can read and understand.",
+    "image": "https://rescript-lang.org/ogimage/index.png?url=%2F",
+    "siteName": "ReScript Documentation"
+  },
   "https://segmentfault.com/a/1190000043208486": {
     "title": "权威发布丨2022 中国开源先锋 33 人之心尖上的开源人物",
     "description": "开源社主办的 COSCon'22 中国开源年会上，我们也以「开源站在十字路口」为主论坛主题展开了讨论。面对机遇与挑战并存，分裂与合作共生，风云变幻的世界，我们...",
@@ -30,5 +63,32 @@
   },
   "https://www.bilibili.com/video/BV1ky4y1R7Zm/": {
     "image": "https://i1.hdslb.com/bfs/archive/bc1c58ea74186267875aff7770d03b409f8148f5.jpg"
+  },
+  "https://www.bilibili.com/video/BV1uz421d7Ch/": {
+    "image": "https://i0.hdslb.com/bfs/archive/4fcd1a0413cf414bd3a2fd3af2c91e57ce781584.jpg"
+  },
+  "https://www.callstack.com/podcasts/react-native-0-64-with-hermes-for-ios-ep-5": {
+    "title": "React Native 0.64 With Hermes for iOS",
+    "description": "Discover how Hermes boosts React Native performance on iOS and macOS, with insights into AOT, bytecode precompilation, and the future of Hermes support.",
+    "image": "https://cdn.prod.website-files.com/67e6c26f2d676c1963e098b9/682103eaf00515a9eae18e5c_682103e8998d91364e05e9c1_67eacbc61b4543c0d8ba01eb.webp",
+    "siteName": "callstack.com"
+  },
+  "https://www.meta.com/emerging-tech/orion/": {
+    "title": "Orion AI Glasses: The Future of AR Glasses Technology",
+    "description": "A decade in the making, recent groundbreaking innovations from Meta with Orion redefine what is possible for AR, AI and beyond.",
+    "image": "https://lookaside.fbsbx.com/elementpath/media/?media_id=535767592162374&version=1758876218",
+    "siteName": "Meta"
+  },
+  "https://www.theverge.com/2022/2/25/22950710/meta-vr-ar-os-team-xros-breakup-hyper-tuned-focus": {
+    "title": "Meta reportedly breaks up the 300-person team that was building a hybrid VR / AR OS",
+    "description": "From a centralized OS to “hyper-tuned” solutions",
+    "image": "https://platform.theverge.com/wp-content/uploads/sites/2/chorus/uploads/chorus_asset/file/22977157/acastro_211101_1777_meta_0003.jpg?quality=90&strip=all&crop=0%2C10.732984293194%2C100%2C78.534031413613&w=1200",
+    "siteName": "The Verge"
+  },
+  "https://www.ticketingbusinessforum.com/awards-2017-shortlists-revealed/": {
+    "title": "AWARDS: 2017 Shortlists Revealed",
+    "description": "Ticketing Technology Forum is delighted to announce the Ticketing Technology Awards 2017 finalists. We were inundated with submissions this year,...",
+    "image": "https://www.ticketingbusinessforum.com/wp-content/uploads/2017/01/FINALISTS-ARTICLE-FEATURE.jpg",
+    "siteName": "TheTicketingBusiness Forum"
   }
 }

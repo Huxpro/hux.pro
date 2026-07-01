@@ -14,6 +14,7 @@ import { type ReactNode } from "react";
 import { MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/services/theme";
+import { useLocale } from "@/services";
 import type { Media } from "@/lib/log";
 import {
   isVideoMedia,
@@ -128,6 +129,8 @@ interface SingleMediaProps {
 // =============================================================================
 
 function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps) {
+  const { locale } = useLocale();
+
   if (isVideoMedia(media)) {
     return (
       <Video
@@ -152,15 +155,20 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
   }
 
   if (isLinkMedia(media)) {
+    // Bilingual click-target + per-locale OG data. Both fall back to
+    // the primary `url` / `preview` when the locale variant is absent
+    // (populated by the enrichment pipeline from `urls`).
+    const url = media.urls?.[locale] ?? media.url;
+    const preview = media.previews?.[locale] ?? media.preview;
     if (media.present === "card") {
       return (
         <LinkCard
-          url={media.url}
+          url={url}
           size={size}
           dense={dense}
-          title={media.preview?.title}
-          description={media.preview?.description}
-          image={media.preview?.image}
+          title={preview?.title}
+          description={preview?.description}
+          image={preview?.image}
           internal={media.internal}
           className={className}
         />
@@ -168,7 +176,7 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
     }
     return (
       <Link
-        url={media.url}
+        url={url}
         label={media.label}
         icon={media.icon}
         className={className}

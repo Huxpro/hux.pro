@@ -51,7 +51,12 @@ export function WorksView({ logData }: WorksViewProps) {
       }
     >
       {/* Git Log Timeline */}
-      <LogTimeline data={data} locale={locale} expandAll={expandAll} />
+      <LogTimeline
+        data={data}
+        locale={locale}
+        expandAll={expandAll}
+        identities={logData.identities}
+      />
 
       {/* End marker — initial commit */}
       <div className="mt-8 py-4 font-mono text-xs text-muted-foreground/30">

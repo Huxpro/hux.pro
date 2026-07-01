@@ -26,6 +26,14 @@ import {
 } from "./embeds/shared";
 import { MediaRenderer } from "./media";
 
+/**
+ * Fallback handle for the expanded author block when a commit has no
+ * resolvable identity (e.g. personal talks / recognitions with
+ * `attachedTo: null`). The subtitle-row byline stays blank for those
+ * rows, but the author block still names the person once opened.
+ */
+const DEFAULT_AUTHOR_HANDLE = "hux";
+
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter
    *  activates every connector that targets `toHash` (used so hovering
@@ -67,6 +75,36 @@ interface TimelineCommitProps {
    *  where a sibling's stale clear would otherwise overwrite a fresh
    *  hover on another row. */
   onBeamClear?: (spec: BeamSpec) => void;
+  /** Git-author-style byline. Pre-localized in the timeline.
+   *
+   *  Layout: the handle sits right-aligned in the subtitle row, under
+   *  the row's date column. The row is reserved (same font-size /
+   *  line-height as a meta line) even when there's no left-side meta
+   *  to print, so vertical rhythm stays consistent across rows.
+   *
+   *  Sparse: `isClusterHead` rows render the byline at full opacity;
+   *  non-head rows render it transparent and fade in on cluster hover,
+   *  so the timeline reads as "one author per chapter" instead of
+   *  repeating the same `<jsx@fb.com>` on every line in a tenure run.
+   *
+   *  Expanded: the `expanded` payload feeds a `git log --pretty=fuller`
+   *  style block at the top of the row's expanded body. */
+  byline?: {
+    handle: string;
+    isClusterHead: boolean;
+    /**
+     * Effective team subtitle for a project row (set only when this is
+     * the first row in a same-team run). Rendered as the subtitle-row
+     * left cell when the commit has no venue meta of its own.
+     */
+    subtitle?: string;
+    expanded: {
+      title: string;
+      company: string;
+      location?: string;
+      description?: string;
+    };
+  } | null;
   inspecting?: boolean;
   isSelected?: boolean;
   isUnlisted?: boolean;
@@ -88,6 +126,7 @@ export function TimelineCommit({
   beamSpec = null,
   onBeamSet,
   onBeamClear,
+  byline = null,
   inspecting = false,
   isSelected = false,
   isUnlisted = false,
@@ -108,7 +147,8 @@ export function TimelineCommit({
     data.tags.length > 0 ||
     data.stats ||
     data.expandedMedia.length > 0 ||
-    data.pinnedMedia.length > 0
+    data.pinnedMedia.length > 0 ||
+    byline
   );
 
   // Pinned items render once in a stable spot beneath the row (visible
@@ -370,21 +410,59 @@ export function TimelineCommit({
         )}
       </div>
 
-      {data.meta && (
-        <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-muted-foreground/40">
-          {data.metaUrl ? (
-            <a
-              href={data.metaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+      {/*
+        Subtitle row: meta on the left, author byline right-aligned under
+        the date column. The row is rendered whenever EITHER half exists
+        — and importantly, when only the byline exists (project commit
+        without a venue meta), the empty left side still reserves the
+        full row height so vertical rhythm stays consistent across the
+        timeline.
+
+        Sparse byline: cluster-head rows print the handle at full
+        opacity; subsequent rows in the same author run render it with
+        opacity 0 and fade in on per-row hover (the row's own `group`
+        scope, not the cluster) so a stray cursor over one commit
+        doesn't light up the whole tenure. An expanded row keeps its
+        byline fully visible so the cluster's authorial context stays
+        on-screen while you read.
+      */}
+      {(data.meta || byline) && (
+        <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-muted-foreground/40 flex items-baseline justify-between gap-2">
+          <span className="min-w-0 truncate">
+            {data.meta ? (
+              data.metaUrl ? (
+                <a
+                  href={data.metaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                >
+                  {data.meta}
+                  <span aria-hidden className="text-[0.7rem]">↗</span>
+                </a>
+              ) : (
+                data.meta
+              )
+            ) : (
+              // Project subtitle fallback — set only on the first row
+              // of a same-team run so repeats stay blank (sparse). The
+              // left cell still exists to preserve baseline alignment
+              // with the right-aligned byline.
+              byline?.subtitle
+            )}
+          </span>
+          {byline && (
+            <span
+              className={cn(
+                "shrink-0 text-muted-foreground/55 transition-opacity duration-200",
+                byline.isClusterHead || isExpanded
+                  ? "opacity-100"
+                  : "opacity-0 group-hover:opacity-100",
+              )}
             >
-              {data.meta}
-              <span aria-hidden className="text-[0.7rem]">↗</span>
-            </a>
-          ) : (
-            data.meta
+              {byline.handle}
+            </span>
           )}
         </div>
       )}
@@ -416,6 +494,54 @@ export function TimelineCommit({
           data-row-body
           className="col-start-2 @sm:col-start-3 mt-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150"
         >
+          {/*
+            Author block — abbreviated `git log --pretty=fuller`:
+              Author:  <handle>
+              Role:    Title @ Company [· Location]
+                       Optional role description.
+            Rendered for every artifact-type row (project / talk / post
+            / social). When no employer identity resolved (personal
+            talks, awards), the Author line falls back to a bare
+            `<hux>` — the byline slot in the subtitle already stays
+            blank for those, but the expanded view still names the
+            person so digging in never leaves the reader wondering.
+            Role / description only when a resolved role provides them.
+          */}
+          {data.type !== "role" && data.type !== "event" && (
+            <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono pb-2.5 mb-1 border-b border-border/25">
+              <span className="text-muted-foreground/40">Author:</span>
+              <span className="text-muted-foreground/65">
+                &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;
+              </span>
+
+              {byline?.expanded.title && (
+                <>
+                  <span className="text-muted-foreground/40">Role:</span>
+                  <span className="text-muted-foreground/60">
+                    {byline.expanded.title}
+                    <span className="text-muted-foreground/35"> @ </span>
+                    {byline.expanded.company}
+                    {byline.expanded.location && (
+                      <>
+                        <span className="text-muted-foreground/30"> · </span>
+                        {byline.expanded.location}
+                      </>
+                    )}
+                  </span>
+                </>
+              )}
+
+              {byline?.expanded.description && (
+                <>
+                  <span />
+                  <span className="text-muted-foreground/50 mt-1 leading-relaxed">
+                    {byline.expanded.description}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+
           {data.subtitle && (
             <div className="text-xs text-muted-foreground/60">
               {data.subtitle}

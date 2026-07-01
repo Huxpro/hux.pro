@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import type { Tag, Commit, LogData } from "@/lib/log";
+import { normalizeLogData, type Tag, type Commit, type LogData, type RawLogData } from "@/lib/log";
 
 // =============================================================================
 // Data Loading
@@ -9,7 +9,10 @@ import type { Tag, Commit, LogData } from "@/lib/log";
 const contentDirectory = path.join(process.cwd(), "content");
 
 /**
- * Load all log data from content/log.json
+ * Load all log data from content/log.json and normalize the nested
+ * `identities[*].ranges` authoring shape into the flat runtime shape
+ * every downstream consumer expects (roles hoisted into `commits[]`,
+ * `identities` reduced to a metadata lookup).
  */
 export function getLogData(): LogData {
   const filePath = path.join(contentDirectory, "log.json");
@@ -19,7 +22,8 @@ export function getLogData(): LogData {
   }
 
   const fileContents = fs.readFileSync(filePath, "utf8");
-  return JSON.parse(fileContents) as LogData;
+  const raw = JSON.parse(fileContents) as RawLogData;
+  return normalizeLogData(raw);
 }
 
 /**

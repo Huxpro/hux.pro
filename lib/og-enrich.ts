@@ -64,6 +64,23 @@ export function pickInternalLink(
 }
 
 /**
+ * Merge preview sources by field priority (earlier args win). Returns
+ * undefined when every field ends up empty so the runtime can fall
+ * back to a live crawl instead of painting an empty card.
+ */
+function mergePreview(
+  ...sources: (Partial<MediaPreview> | undefined)[]
+): MediaPreview | undefined {
+  const merged: MediaPreview = {
+    title: sources.find((s) => s?.title)?.title,
+    description: sources.find((s) => s?.description)?.description,
+    image: sources.find((s) => s?.image)?.image,
+  };
+  if (!merged.title && !merged.description && !merged.image) return undefined;
+  return merged;
+}
+
+/**
  * Resolve a card target's effective preview by layering, highest priority last:
  *   snapshot entry  →  manual `preview` (author override wins per-field)
  * Returns undefined when there's nothing to show (the runtime will then live-
@@ -74,21 +91,10 @@ function resolvePreview(
   snapshot: OGSnapshot,
 ): MediaPreview | undefined {
   if (!mediaIsCardTarget(media)) return undefined;
-
-  const snap = snapshot[media.url];
   // Only link-cards reach here, and they carry `preview`; TS can't narrow the
   // union from the structural predicate, hence the cast.
   const manual = (media as { preview?: MediaPreview }).preview;
-  if (!snap && !manual) return undefined;
-
-  const merged = {
-    title: manual?.title ?? snap?.title,
-    description: manual?.description ?? snap?.description,
-    image: manual?.image ?? snap?.image,
-  };
-  // Drop entirely-empty results so the runtime knows to fall back.
-  if (!merged.title && !merged.description && !merged.image) return undefined;
-  return merged;
+  return mergePreview(manual, snapshot[media.url]);
 }
 
 /**
@@ -103,6 +109,33 @@ function resolveVideoThumbnail(
   if (!mediaIsVideoCoverTarget(media)) return undefined;
   if ((media as { thumbnail?: string }).thumbnail) return undefined; // manual wins
   return snapshot[media.url]?.image;
+}
+
+/**
+ * For a link-card with a `urls` locale map, resolve OG previews for
+ * every locale URL from the snapshot and pack them into a per-locale
+ * map. The client-side card renderer picks the entry matching the
+ * viewer's locale, falling back to the top-level `preview` when the
+ * per-locale entry is missing.
+ *
+ * Returns undefined for cards without a `urls` map, or when no per-
+ * locale URL yielded a usable snapshot entry.
+ */
+function resolvePreviewsByLocale(
+  media: Media,
+  snapshot: OGSnapshot,
+): Partial<Record<"en" | "zh", MediaPreview>> | undefined {
+  if (!mediaIsCardTarget(media)) return undefined;
+  const urls = (media as { urls?: Partial<Record<"en" | "zh", string>> }).urls;
+  if (!urls) return undefined;
+  const out: Partial<Record<"en" | "zh", MediaPreview>> = {};
+  for (const locale of ["en", "zh"] as const) {
+    const u = urls[locale];
+    if (!u) continue;
+    const entry = mergePreview(snapshot[u]);
+    if (entry) out[locale] = entry;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 /**
@@ -128,6 +161,10 @@ export function enrichLogDataWithPreviews(
             // Cast: preview is only produced for link cards, but TS can't
             // narrow that from the predicate.
             next = { ...next, preview } as Media;
+          }
+          const previews = resolvePreviewsByLocale(next, snapshot);
+          if (previews) {
+            next = { ...next, previews } as Media;
           }
           const thumbnail = resolveVideoThumbnail(next, snapshot);
           if (thumbnail) {

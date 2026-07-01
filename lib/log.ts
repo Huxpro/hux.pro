@@ -136,9 +136,27 @@ export interface InternalLinkMeta {
 export interface LinkMedia extends Pinned {
   kind: "link";
   url: string;
+  /**
+   * Optional per-locale URL variants for the same underlying resource
+   * (e.g. an EN and ZH page of the same blog post). When set, the card
+   * click-target and OG preview are picked based on the viewer's
+   * locale, falling back to `url` when the locale variant is absent.
+   *
+   * Author-authored. The snapshot pipeline crawls every URL in this
+   * map in addition to `url`; enrichment layers each URL's OG data
+   * into `previews[locale]` for the client to pick from.
+   */
+  urls?: LocaleUrls;
   present: LinkPresent;
   /** Manual card metadata; skips the runtime crawl when title+image set. */
   preview?: MediaPreview;
+  /**
+   * Per-locale OG previews, populated by `enrichLogDataWithPreviews`
+   * when the media has a `urls` map. Never author-authored — the
+   * enrichment pipeline writes it before the render layer reads it.
+   * When absent (single-URL cards), the top-level `preview` is used.
+   */
+  previews?: Partial<Record<"en" | "zh", MediaPreview>>;
   /** Pill-only: label override (defaults to domain). */
   label?: string;
   /** Pill-only: icon key (e.g. "github", "globe"). */
@@ -194,6 +212,27 @@ interface BaseCommit {
   endDate?: string; // YYYY-MM, YYYY-MM-DD, or "present"
   title: LocalizedString;
   description: LocalizedString;
+  /**
+   * Explicit identity attachment for this commit's `<handle>` byline
+   * and rail clustering. Set this when the commit falls outside any
+   * role's tenure window but should still count as authored under a
+   * given identity (e.g. an award received a month after leaving Meta).
+   *
+   * When absent, identity is resolved by walking `attachedTo` (if it
+   * points to a role) and then by smallest-window tenure auto-detect.
+   */
+  identityId?: string;
+  /**
+   * Sub-org / team the commit sits under. Renders as the row's
+   * subtitle chip on project rows — e.g. `"React Core team @ Meta"`,
+   * `"PLR @ Meta"`, `"Lynx @ ByteDance"`. Set on a project to override
+   * per-row; set on a role range to serve as the default for every
+   * project resolved under that role (Lynx-era projects inherit
+   * `Lynx @ ByteDance` without repeating the string). Sparse rendering
+   * blanks the chip when it repeats the previous project's team, so
+   * the line only prints where the value actually changes.
+   */
+  team?: LocalizedString;
   /** Personal reflection / liner notes */
   commentary?: LocalizedString;
   tags?: string[];
@@ -310,9 +349,44 @@ export interface PostCommit extends BaseCommit {
 
 export interface RoleCommit extends BaseCommit {
   type: "role";
+  /**
+   * Required for role commits: the identity this role is an instance of.
+   * Multiple roles can share the same `identityId` (Meta SWE + two
+   * summer interns all point to identity `"meta"`), which is how the
+   * rail clusters them into one continuous run — the identity IS the
+   * cross-tenure link.
+   *
+   * `handle` is stored on the identity only. `company` is copied onto
+   * the role by `normalizeLogData` at load time (from the identity's
+   * `company` or the range's optional `companyOverride`) so downstream
+   * row-rendering code can stay identity-map-agnostic.
+   */
+  identityId: string;
+  /**
+   * Company label shown on the row's meta line. On disk this field is
+   * NOT stored on the role range — it comes from the identity (or the
+   * range's `companyOverride`). `normalizeLogData` fills it in when
+   * flattening ranges into commits; `denormalizeLogData` strips it
+   * back out on save so it stays a single source of truth on the
+   * identity.
+   */
   company: LocalizedString;
+  /**
+   * Per-range override for `company` when a specific instance wants a
+   * different label than the identity's canonical one — e.g. a Meta
+   * intern at "Meta Reality Labs" while the identity stays "Meta".
+   */
+  companyOverride?: LocalizedString;
   location?: string;
   url?: string;
+  /**
+   * Suppress this role's own timeline row. The role still exists as a
+   * range within its identity (contributes to tenure inference and its
+   * `<handle>` still shows up on other commits in-window), it just
+   * doesn't take a row of its own — used when the identity's contained
+   * projects speak for the tenure and the role row would be redundant.
+   */
+  hideRow?: boolean;
 }
 
 // -----------------------------------------------------------------------------
@@ -438,13 +512,202 @@ export interface GroupByQuery extends GroupBase {
 
 export type Group = GroupByIds | GroupByQuery;
 
+// =============================================================================
+// Identity Types
+// =============================================================================
+
 /**
- * Combined data structure for loading from JSON
+ * An `Identity` is the persistent "who I was when I committed this" —
+ * a shared byline that can span multiple role instances. Two summer
+ * interns and a full-time engineer at Meta all point to the same
+ * identity (handle: `jsx@fb.com`, company: Meta); each role only
+ * differs in title / tenure / description / team.
+ *
+ * Metadata only — no ranges here at runtime; ranges are materialized
+ * into top-level role commits by `normalizeLogData` and carry an
+ * `identityId` back-reference for lookup.
+ */
+export interface Identity {
+  handle: string;
+  company: LocalizedString;
+  /** Rail / avatar accent color (oklch or any CSS color). Optional. */
+  accentColor?: string;
+}
+
+/**
+ * Authoring-only nested shape: an `Identity` plus its collected role
+ * ranges. On disk, `content/log.json` uses this — everything about
+ * "Meta" (handle, company, and every role instance under it) sits in
+ * one place. `normalizeLogData` flattens the ranges into `commits[]`
+ * so the downstream pipeline (sort / rail / groups / og) keeps
+ * operating on a plain flat commit array.
+ *
+ * `tagId` here is the identity-level default; any range may override.
+ */
+export interface RawIdentity extends Identity {
+  tagId?: string;
+  ranges?: RawRoleRange[];
+}
+
+/**
+ * A role range under an identity, as it appears on disk. All the
+ * BaseCommit + RoleCommit fields EXCEPT `type` and `identityId` —
+ * both are auto-injected by the normalizer. `tagId` may be omitted
+ * to inherit from the enclosing identity.
+ */
+export interface RawRoleRange
+  extends Omit<BaseCommit, "identityId" | "tagId"> {
+  tagId?: string;
+  companyOverride?: LocalizedString;
+  location?: string;
+  url?: string;
+  hideRow?: boolean;
+  icon?: "graduation-cap";
+  sortBy?: "date" | "endDate";
+}
+
+/**
+ * On-disk / editor-authoring shape. Read via `normalizeLogData` before
+ * handing to any downstream consumer.
+ */
+export interface RawLogData {
+  tags: Tag[];
+  groups?: Group[];
+  /**
+   * Nested identities keyed by short stable id (`meta`, `bytedance`,
+   * `rit`). Each identity carries its role ranges inline for
+   * co-located authoring — no way for a range to drift out of sync
+   * with its identity's handle/company.
+   */
+  identities?: Record<string, RawIdentity>;
+  commits: Commit[];
+}
+
+/**
+ * Runtime shape used by every downstream consumer. Roles from
+ * `identities[*].ranges` have been flattened into `commits` with
+ * `type: "role"` and `identityId` back-reference injected. The
+ * `identities` map is preserved as a metadata lookup (handle,
+ * company, accent color) — no ranges live inside it at runtime.
  */
 export interface LogData {
   tags: Tag[];
   groups?: Group[];
+  identities?: Record<string, Identity>;
   commits: Commit[];
+}
+
+// =============================================================================
+// Loader: nested-source → flat runtime
+// =============================================================================
+
+/**
+ * Flatten `raw.identities[*].ranges` into top-level role commits and
+ * strip the ranges from the identity map. Idempotent when given an
+ * already-flat `LogData` (no `identities` key, or identities present
+ * without `ranges`) so all read sites can call it unconditionally.
+ */
+export function normalizeLogData(raw: RawLogData | LogData): LogData {
+  const identityMeta: Record<string, Identity> = {};
+  const extraRoles: Commit[] = [];
+
+  const rawIdentities = raw.identities as
+    | Record<string, RawIdentity | Identity>
+    | undefined;
+
+  if (rawIdentities) {
+    for (const [id, def] of Object.entries(rawIdentities)) {
+      identityMeta[id] = {
+        handle: def.handle,
+        company: def.company,
+        accentColor: def.accentColor,
+      };
+      const ranges = (def as RawIdentity).ranges;
+      const defaultTagId = (def as RawIdentity).tagId;
+      if (!ranges) continue;
+      for (const range of ranges) {
+        // Copy `company` onto the runtime role from the identity (or
+        // the range's per-instance override). Storing it here keeps
+        // every row-rendering path identity-map-agnostic — commit-data,
+        // commit-card, editor forms all just read `role.company`.
+        const company = range.companyOverride ?? def.company;
+        const roleCommit = {
+          ...range,
+          type: "role" as const,
+          identityId: id,
+          tagId: range.tagId ?? defaultTagId ?? "",
+          company,
+        } as RoleCommit;
+        extraRoles.push(roleCommit);
+      }
+    }
+  }
+
+  return {
+    tags: raw.tags,
+    groups: raw.groups,
+    identities: Object.keys(identityMeta).length ? identityMeta : undefined,
+    commits: [...raw.commits, ...extraRoles],
+  };
+}
+
+/**
+ * Reverse of `normalizeLogData` for editor-save round-trips. Pulls
+ * every `type: "role"` commit with an `identityId` out of the flat
+ * `commits[]` and re-nests it under its identity's `ranges`. Non-role
+ * commits (and any orphan roles without a matching identity) stay in
+ * top-level `commits[]`.
+ *
+ * Preserves the nested-authoring shape on disk even after the editor
+ * saves — the flat runtime shape never touches `log.json`.
+ */
+export function denormalizeLogData(flat: LogData): RawLogData {
+  const identities: Record<string, RawIdentity> = {};
+
+  if (flat.identities) {
+    for (const [id, meta] of Object.entries(flat.identities)) {
+      identities[id] = {
+        handle: meta.handle,
+        company: meta.company,
+        accentColor: meta.accentColor,
+        ranges: [],
+      };
+    }
+  }
+
+  const restCommits: Commit[] = [];
+  for (const c of flat.commits) {
+    if (c.type === "role" && c.identityId && identities[c.identityId]) {
+      const idDef = identities[c.identityId];
+      // Strip fields that live on the identity (company, identityId,
+      // type) so they don't get duplicated in the on-disk range —
+      // the identity is the single source of truth.
+      const {
+        identityId: _idRef,
+        type: _type,
+        company: _company,
+        ...rangeFields
+      } = c;
+      idDef.ranges!.push(rangeFields as RawRoleRange);
+    } else {
+      restCommits.push(c);
+    }
+  }
+
+  // Prune the `ranges: []` field on identities that ended up empty so
+  // the serialized JSON stays compact.
+  for (const id of Object.keys(identities)) {
+    if (identities[id].ranges && identities[id].ranges!.length === 0) {
+      delete identities[id].ranges;
+    }
+  }
+
+  return {
+    tags: flat.tags,
+    groups: flat.groups,
+    identities: Object.keys(identities).length ? identities : undefined,
+    commits: restCommits,
+  };
 }
 
 // =============================================================================
@@ -747,28 +1010,22 @@ export interface BeamLink {
 /**
  * Compute the rail bracket info for each commit in a tag.
  *
- * Each non-role commit is assigned to the role whose tenure window
- * [role.date, role.endDate] contains it. When multiple roles overlap
- * (e.g. an internship inside a school's larger window), the role with
- * the SMALLEST window wins — most specific membership.
- *
- * Once members are assigned, each cluster (role + members) computes
- * rail chars by POSITION in the sorted array, not by which row is the
- * role. So whether the role anchors at the top (`sortBy: "endDate"`,
- * the default) or the bottom (`sortBy: "date"`), the rail traces from
- * the topmost row in the cluster down to the bottommost.
+ * Under the identity model, the rail groups **consecutive commits
+ * sharing the same resolved `identityId`** — the byline handle IS the
+ * clustering key. Two summer interns + a full-time engineer + all the
+ * projects during Meta tenure resolve to identity `"meta"` and form
+ * one continuous ┐│┘ bracket regardless of role-instance boundaries
+ * inside. When the identity changes (Meta → RIT), the rail breaks.
  *
  *   ┐  topmost row in cluster — line goes down only
  *   │  mid-cluster row — line both directions
  *   ┘  bottommost row in cluster — line goes up only
- *      (empty)  solo role, out-of-tenure commit, or no role context
+ *      (empty)  no cluster, or single-row identity, or no identity
  *
- * Tenure compared at month granularity (YYYY-MM).
- *
- * Honours `attachedTo`:
- *   - `null`     → force-detach, no rail even if in tenure.
- *   - `"<id>"`   → handled by computeBeams (drawn as a beam, not a bracket).
- *   - undefined  → tenure auto-detect (default).
+ * `segmentId` is set to the identity id for every clustered row
+ * (including single-row identities, so downstream can still identify
+ * "which cluster does this row belong to" for hover/selection).
+ * `rail` is only set when there's an actual bracket to draw.
  */
 export function computeRail(commits: Commit[]): RailInfo[] {
   const result: RailInfo[] = commits.map(() => ({
@@ -776,130 +1033,112 @@ export function computeRail(commits: Commit[]): RailInfo[] {
     segmentId: null,
   }));
 
-  const month = (s: string) => s.slice(0, 7);
-  // Convert YYYY-MM to absolute month index for cheap window arithmetic.
-  // "9999-12" is the open-ended sentinel for ongoing roles; treat it as
-  // a very large number so the window size is large (less specific) and
-  // bounded date roles win the smallest-window comparison.
-  const monthIdx = (m: string): number => {
-    if (m === "9999-12") return Number.MAX_SAFE_INTEGER;
-    const [y, mo] = m.split("-").map(Number);
-    return y * 12 + (mo - 1);
-  };
+  // Resolve identity for every commit. Non-role commits with no
+  // identity (attachedTo:null, or no tenure fit) come back as null —
+  // those rows are rail-less.
+  const iids: (string | null)[] = commits.map(
+    (c) => resolveIdentity(c, commits)?.identityId ?? null,
+  );
 
-  // Index each role's tenure window.
-  type Window = { start: string; end: string; startIdx: number; endIdx: number };
-  const roleWindows = new Map<number, Window>();
-  for (let i = 0; i < commits.length; i++) {
-    const c = commits[i];
-    if (c.type !== "role") continue;
-    const r = c as RoleCommit;
-    const start = month(r.date);
-    const end =
-      r.endDate && r.endDate !== "present" ? month(r.endDate) : "9999-12";
-    roleWindows.set(i, {
-      start,
-      end,
-      startIdx: monthIdx(start),
-      endIdx: monthIdx(end),
-    });
-  }
+  // Walk in sort order, grouping consecutive same-identity rows.
+  let i = 0;
+  while (i < commits.length) {
+    const iid = iids[i];
+    if (!iid) {
+      i += 1;
+      continue;
+    }
+    let j = i;
+    while (j + 1 < commits.length && iids[j + 1] === iid) j += 1;
 
-  // Assign each non-role commit (without explicit attachedTo) to the
-  // smallest-window role that contains its date.
-  const assignment: number[] = new Array(commits.length).fill(-1);
-  for (let i = 0; i < commits.length; i++) {
-    const c = commits[i];
-    if (c.type === "role") continue;
-    if (c.attachedTo !== undefined) continue;
-    const cm = month(c.date);
-    let bestRole = -1;
-    let bestSize = Infinity;
-    for (const [roleIdx, w] of roleWindows) {
-      if (cm < w.start || cm > w.end) continue;
-      const size = w.endIdx - w.startIdx;
-      if (size < bestSize) {
-        bestSize = size;
-        bestRole = roleIdx;
+    // Stamp segmentId for every row in the cluster (even single-row —
+    // preserves "belongs to identity X" for downstream lookups).
+    for (let k = i; k <= j; k++) result[k].segmentId = iid;
+
+    // Bracket glyphs only when there's actually more than one row to
+    // bracket. A solo commit has segmentId but no rail char.
+    if (j > i) {
+      for (let k = i; k <= j; k++) {
+        result[k].rail = k === i ? "┐" : k === j ? "┘" : "│";
       }
     }
-    assignment[i] = bestRole;
-  }
 
-  // Build clusters in a single pass over the sorted commits. For each
-  // row, decide which cluster it belongs to: a non-role with assignment
-  // joins that role's cluster; a role that owns one or more assignments
-  // joins its own. The push order matches sort order, so the resulting
-  // index arrays are ascending without a follow-up sort.
-  const roleHasMembers = new Set<number>();
-  for (const r of assignment) if (r !== -1) roleHasMembers.add(r);
-
-  const clusters = new Map<number, number[]>();
-  for (let i = 0; i < commits.length; i++) {
-    const owner =
-      commits[i].type === "role" && roleHasMembers.has(i) ? i : assignment[i];
-    if (owner === -1) continue;
-    if (!clusters.has(owner)) clusters.set(owner, []);
-    clusters.get(owner)!.push(i);
-  }
-
-  // Assign rail chars per cluster — topmost row gets ┐, bottommost
-  // gets ┘, mids get │. Solo roles (single-element clusters never
-  // reach here since they're not seeded above) get no rail.
-  for (const [roleIdx, indices] of clusters) {
-    if (indices.length < 2) continue;
-    const topIdx = indices[0];
-    const bottomIdx = indices[indices.length - 1];
-    const id = commits[roleIdx].id;
-    for (const i of indices) {
-      result[i].segmentId = id;
-      result[i].rail = i === topIdx ? "┐" : i === bottomIdx ? "┘" : "│";
-    }
+    i = j + 1;
   }
 
   return result;
 }
 
 /**
- * Derive inferred-tenure beams from a rail computation: every row
- * `computeRail` slotted into a tenure cluster (segmentId set) gets a
- * beam from itself to the role anchor, except the role itself.
+ * Re-derive rail glyphs after some rows are hidden (currently: roles
+ * with `hideRow: true`). The identity cluster (segmentId) is
+ * unchanged — we just shift the `┐` / `┘` top/bottom markers onto the
+ * first/last *visible* row in each cluster, and clear the hidden
+ * row's own rail so it contributes nothing to the gutter.
  *
- * Pulled out so the UI doesn't have to walk the rail + look up roles
- * by `findIndex` per row (which was O(N²) at the call site).
+ * Called after `computeRail` so the identity clustering stays derived
+ * from the full data (hidden roles still contribute their handle /
+ * tenure to identity resolution for surrounding commits).
  */
-export function computeInferredBeams(
+export function adjustRailForHidden(
   commits: Commit[],
   rail: RailInfo[],
-): BeamLink[] {
-  const idToIdx = new Map<string, number>();
-  for (let i = 0; i < commits.length; i++) idToIdx.set(commits[i].id, i);
+): RailInfo[] {
+  const isHidden = (c: Commit) => c.type === "role" && c.hideRow === true;
 
-  const hashCache = new Map<string, string>();
-  const hashOf = (id: string) => {
-    const cached = hashCache.get(id);
-    if (cached !== undefined) return cached;
-    const h = computeCommitHash(id);
-    hashCache.set(id, h);
-    return h;
-  };
-
-  const beams: BeamLink[] = [];
+  const hidden = new Set<number>();
   for (let i = 0; i < commits.length; i++) {
-    const sid = rail[i].segmentId;
-    if (!sid) continue;
-    if (commits[i].id === sid) continue;
-    const toIdx = idToIdx.get(sid);
-    if (toIdx === undefined) continue;
-    beams.push({
-      fromIdx: i,
-      toIdx,
-      fromHash: hashOf(commits[i].id),
-      toHash: hashOf(sid),
-      roleId: sid,
-    });
+    if (isHidden(commits[i])) hidden.add(i);
   }
-  return beams;
+  if (hidden.size === 0) return rail;
+
+  const result = rail.map((r) => ({ ...r }));
+
+  // Group visible rows by segmentId and re-stamp ┐ / │ / ┘.
+  const visibleBySegment = new Map<string, number[]>();
+  for (let i = 0; i < commits.length; i++) {
+    if (hidden.has(i)) continue;
+    const sid = result[i].segmentId;
+    if (!sid) continue;
+    if (!visibleBySegment.has(sid)) visibleBySegment.set(sid, []);
+    visibleBySegment.get(sid)!.push(i);
+  }
+  for (const [, indices] of visibleBySegment) {
+    if (indices.length < 2) {
+      // Hiding the role collapsed the cluster to a single visible row —
+      // no rail glyph (matches the "solo role" baseline).
+      for (const i of indices) result[i].rail = "";
+      continue;
+    }
+    const topIdx = indices[0];
+    const bottomIdx = indices[indices.length - 1];
+    for (const i of indices) {
+      result[i].rail = i === topIdx ? "┐" : i === bottomIdx ? "┘" : "│";
+    }
+  }
+
+  // Hidden rows themselves: drop rail/segmentId — they won't render
+  // anyway, but be defensive against downstream consumers that walk
+  // the array without checking visibility.
+  for (const i of hidden) {
+    result[i].rail = "";
+    result[i].segmentId = null;
+  }
+  return result;
+}
+
+/**
+ * Placeholder: identity clusters have no single anchor row to beam
+ * to, and cluster hover is CSS-only via `group/tenure`. Beams are
+ * only used for explicit `attachedTo` links (see `computeBeams`).
+ * Kept so consumers that mix inferred + explicit beams keep a stable
+ * shape at the call site.
+ */
+export function computeInferredBeams(
+  _commits: Commit[],
+  _rail: RailInfo[],
+): BeamLink[] {
+  return [];
 }
 
 /**
@@ -919,8 +1158,22 @@ export function computeBeams(commits: Commit[]): BeamLink[] {
     if (typeof c.attachedTo !== "string") continue;
     const toIdx = commits.findIndex((x) => x.id === c.attachedTo);
     if (toIdx < 0) continue;
+    // attachedTo can target any anchor row we're willing to draw a
+    // connector to: roles (tenure context), events (life markers),
+    // and projects (a talk pointing at the project it presents,
+    // an artifact pointing at its parent codebase, etc.). Skip
+    // targets that don't render as anchor rows (e.g. another talk).
     const targetType = commits[toIdx].type;
-    if (targetType !== "role" && targetType !== "event") continue;
+    if (
+      targetType !== "role" &&
+      targetType !== "event" &&
+      targetType !== "project"
+    )
+      continue;
+    // If the target is a hidden role, drop the beam — the connector
+    // has nothing to land on. (Projects don't have a hideRow flag.)
+    const target = commits[toIdx];
+    if (target.type === "role" && target.hideRow === true) continue;
     beams.push({
       fromIdx: i,
       toIdx,
@@ -930,6 +1183,136 @@ export function computeBeams(commits: Commit[]): BeamLink[] {
     });
   }
   return beams;
+}
+
+/**
+ * The result of resolving a commit's authorial context:
+ *  - `identityId` is the durable byline id — what the rail clusters
+ *    on and what feeds `<handle>` (via `identities[identityId].handle`).
+ *  - `role` is the specific role instance whose title / tenure /
+ *    description feed the expanded author block. Absent when no role
+ *    range in the same identity contains the commit's date (e.g. an
+ *    award received a month after the tenure ended and only linked via
+ *    explicit `identityId`).
+ */
+export interface ResolvedIdentity {
+  identityId: string;
+  role: RoleCommit | null;
+}
+
+// Cheap module-level helpers so identity resolution doesn't rebuild
+// them on every call. `9999-12` is the open-ended-tenure sentinel.
+const monthStr = (s: string) => s.slice(0, 7);
+const monthIdx = (m: string): number => {
+  if (m === "9999-12") return Number.MAX_SAFE_INTEGER;
+  const [y, mo] = m.split("-").map(Number);
+  return y * 12 + (mo - 1);
+};
+
+/**
+ * Per-commits-array cache of "roles grouped by their identityId" plus
+ * a flat "all roles" list. `resolveIdentity` gets called once per
+ * commit inside `computeRail` and again inside the byline builder —
+ * without this the role scan is O(N²) over the same commits array.
+ * A WeakMap keyed on the array reference lets both callers share the
+ * work without threading a new parameter through the public API.
+ */
+const roleIndexCache = new WeakMap<
+  Commit[],
+  { byIdentity: Map<string, RoleCommit[]>; all: RoleCommit[] }
+>();
+function getRoleIndex(commits: Commit[]) {
+  const cached = roleIndexCache.get(commits);
+  if (cached) return cached;
+  const byIdentity = new Map<string, RoleCommit[]>();
+  const all: RoleCommit[] = [];
+  for (const c of commits) {
+    if (c.type !== "role") continue;
+    const r = c as RoleCommit;
+    all.push(r);
+    const arr = byIdentity.get(r.identityId);
+    if (arr) arr.push(r);
+    else byIdentity.set(r.identityId, [r]);
+  }
+  const idx = { byIdentity, all };
+  roleIndexCache.set(commits, idx);
+  return idx;
+}
+
+/** Pick the tenure-smallest role in `pool` whose window contains `cm`. */
+function pickBestRole(pool: RoleCommit[], cm: string): RoleCommit | null {
+  let best: RoleCommit | null = null;
+  let bestSize = Infinity;
+  for (const r of pool) {
+    const start = monthStr(r.date);
+    const end =
+      r.endDate && r.endDate !== "present" ? monthStr(r.endDate) : "9999-12";
+    if (cm < start || cm > end) continue;
+    const size = monthIdx(end) - monthIdx(start);
+    if (size < bestSize) {
+      bestSize = size;
+      best = r;
+    }
+  }
+  return best;
+}
+
+/**
+ * Resolve the identity + specific role instance a commit was
+ * "committed as". Feeds both the byline (identity → handle) and the
+ * expanded author block (role → title / tenure / description).
+ *
+ * Resolution order:
+ *  1. `commit.identityId` explicitly set → use it. Role instance is
+ *     picked by smallest-window fit among that identity's ranges (or
+ *     null if none fit).
+ *  2. `commit` is itself a role → its own identity + itself as role.
+ *  3. `attachedTo: "<role-id>"` → that role's identity, that role as
+ *     the role instance.
+ *  4. `attachedTo: "<event-id>"` → fall through to tenure inference
+ *     (the event is a visual anchor, not an authorial identity).
+ *  5. `attachedTo: null` → explicit detach, no identity.
+ *  6. Tenure auto-detect: smallest-window role containing this
+ *     commit's date across ALL roles.
+ *
+ * Event commits themselves never resolve an identity.
+ */
+export function resolveIdentity(
+  commit: Commit,
+  commits: Commit[],
+): ResolvedIdentity | null {
+  if (commit.type === "event") return null;
+  if (commit.attachedTo === null && !commit.identityId) return null;
+
+  const cm = monthStr(commit.date);
+  const idx = getRoleIndex(commits);
+
+  // 1) Explicit identity on the commit.
+  if (commit.identityId) {
+    return {
+      identityId: commit.identityId,
+      role: pickBestRole(idx.byIdentity.get(commit.identityId) ?? [], cm),
+    };
+  }
+
+  // 2) Commit is a role itself.
+  if (commit.type === "role") {
+    return { identityId: commit.identityId, role: commit as RoleCommit };
+  }
+
+  // 3) attachedTo → role.
+  if (typeof commit.attachedTo === "string") {
+    const target = commits.find((c) => c.id === commit.attachedTo);
+    if (target && target.type === "role") {
+      const targetRole = target as RoleCommit;
+      return { identityId: targetRole.identityId, role: targetRole };
+    }
+    // attachedTo → event or missing: fall through to tenure inference.
+  }
+
+  // 4) Tenure auto-detect across ALL roles.
+  const best = pickBestRole(idx.all, cm);
+  return best ? { identityId: best.identityId, role: best } : null;
 }
 
 

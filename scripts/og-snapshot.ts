@@ -31,6 +31,7 @@ import {
   type PreviewableMedia,
   type SnapshotEntry,
 } from "../lib/og-core.ts";
+import { normalizeLogData, type RawLogData } from "../lib/log.ts";
 
 type Snapshot = Record<string, SnapshotEntry>;
 
@@ -58,7 +59,13 @@ interface Target {
 }
 
 function collectTargets(): Target[] {
-  const log = JSON.parse(fs.readFileSync(LOG_PATH, "utf8"));
+  // Normalize the nested `identities[*].ranges` authoring shape into the
+  // flat runtime `commits[]` before scanning — otherwise media attached
+  // to role instances (e.g. Alibaba intern's writing cards) never enters
+  // the crawl set. `normalizeLogData` is idempotent for already-flat
+  // input, so this is safe even before the identity migration lands.
+  const raw = JSON.parse(fs.readFileSync(LOG_PATH, "utf8")) as RawLogData;
+  const log = normalizeLogData(raw);
   const byUrl = new Map<string, Target>();
   const upsert = (t: Target) => {
     const existing = byUrl.get(t.url);
@@ -68,12 +75,31 @@ function collectTargets(): Target[] {
   for (const commit of log.commits ?? []) {
     for (const media of (commit.media ?? []) as PreviewableMedia[]) {
       if (mediaIsCardTarget(media)) {
+        // Primary URL always crawled.
         upsert({
           url: media.url,
           kind: "card",
           needsCrawl: mediaNeedsLiveCrawl(media),
           media,
         });
+        // Bilingual variants: each per-locale URL is its own card
+        // target so its OG data lands in the snapshot under its own
+        // key. `resolvePreviewsByLocale` picks them apart at
+        // enrichment time.
+        const urls = (media as { urls?: Record<string, string> }).urls;
+        if (urls) {
+          for (const localeUrl of Object.values(urls)) {
+            if (!localeUrl || localeUrl === media.url) continue;
+            upsert({
+              url: localeUrl,
+              kind: "card",
+              // Locale variants can't share the parent's manual
+              // preview override, so they always need a crawl.
+              needsCrawl: true,
+              media,
+            });
+          }
+        }
       } else if (mediaIsVideoCoverTarget(media)) {
         upsert({
           url: media.url,

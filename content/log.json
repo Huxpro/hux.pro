@@ -155,28 +155,289 @@
       "limit": 3
     }
   ],
+  "identities": {
+    "bytedance": {
+      "handle": "@bytedance",
+      "company": {
+        "en": "ByteDance",
+        "zh": "字节跳动"
+      },
+      "tagId": "lynx-era",
+      "ranges": [
+        {
+          "id": "tech-lead-lynx",
+          "sortBy": "date",
+          "title": {
+            "en": "Staff Engineer / Architect",
+            "zh": "架构师"
+          },
+          "description": {
+            "en": "Co-leading Lynx architecture and developer experience in ByteDance's Web Infra Cross Platform team.",
+            "zh": "在字节跳动 Web Infra 跨平台团队共同领导 Lynx 架构与开发者体验工作。"
+          },
+          "date": "2023-02",
+          "hideRow": true,
+          "team": {
+            "en": "Lynx @ ByteDance",
+            "zh": "Lynx @ 字节跳动"
+          },
+          "tags": [
+            "Leadership",
+            "Architecture"
+          ]
+        }
+      ]
+    },
+    "meta": {
+      "handle": "jsx@fb.com",
+      "company": {
+        "en": "Meta",
+        "zh": "Meta"
+      },
+      "tagId": "react-era",
+      "ranges": [
+        {
+          "id": "meta-engineer",
+          "sortBy": "date",
+          "title": {
+            "en": "Software Engineer",
+            "zh": "软件工程师"
+          },
+          "description": {
+            "en": "React Technologies team — Hermes JS engine, React Forget compiler (founding eng + tech lead).",
+            "zh": "React Technologies 团队 —— Hermes JS 引擎、React Forget 编译器（联合创始工程师 + 技术负责人）。"
+          },
+          "date": "2020-03",
+          "endDate": "2022-10",
+          "hideRow": true,
+          "tags": [
+            "React",
+            "Compiler",
+            "JavaScript Engine"
+          ]
+        },
+        {
+          "id": "meta-intern-xros",
+          "title": {
+            "en": "Software Engineer Intern, XROS",
+            "zh": "软件工程实习生 · XROS"
+          },
+          "description": {
+            "en": "Summer internship at Meta Reality Labs Research, working on XROS — an experimental operating system for XR.",
+            "zh": "Meta Reality Labs Research 暑期实习，参与面向 XR 的实验性操作系统 XROS。"
+          },
+          "date": "2019-05",
+          "endDate": "2019-08",
+          "hideRow": true,
+          "tags": [
+            "XR",
+            "Operating System",
+            "Research",
+            "Internship"
+          ]
+        },
+        {
+          "id": "meta-intern-reasonml",
+          "title": {
+            "en": "Software Engineer Intern, ReasonML",
+            "zh": "软件工程实习生 · ReasonML"
+          },
+          "description": {
+            "en": "Summer internship at Meta on the ReasonML / ReScript team, working on Messenger Web.",
+            "zh": "Meta ReasonML / ReScript 团队暑期实习，参与 Messenger Web 的开发。"
+          },
+          "date": "2018-05",
+          "endDate": "2018-08",
+          "hideRow": true,
+          "tags": [
+            "ReasonML",
+            "OCaml",
+            "Messenger",
+            "Internship"
+          ]
+        }
+      ]
+    },
+    "rit": {
+      "handle": "rit.edu",
+      "company": {
+        "en": "Rochester Institute of Technology",
+        "zh": "罗切斯特理工学院"
+      },
+      "tagId": "react-era",
+      "ranges": [
+        {
+          "id": "rit-ms",
+          "hideDate": true,
+          "sortBy": "date",
+          "icon": "graduation-cap",
+          "title": {
+            "en": "M.S. Computer Science",
+            "zh": "计算机科学 硕士"
+          },
+          "description": {
+            "en": "Master's in Computer Science at Rochester Institute of Technology, focusing on programming languages under Prof. Matthew Fluet.",
+            "zh": "在罗切斯特理工学院攻读计算机科学硕士，师从 Matthew Fluet 教授，专注编程语言方向。"
+          },
+          "date": "2017-08",
+          "endDate": "2019-12",
+          "tags": [
+            "PLT",
+            "Compiler"
+          ],
+          "location": "New York, USA"
+        }
+      ]
+    },
+    "eleme": {
+      "handle": "@eleme",
+      "company": {
+        "en": "Ele.me",
+        "zh": "饿了么"
+      },
+      "tagId": "pwa-era",
+      "ranges": [
+        {
+          "id": "eleme-visiting",
+          "title": {
+            "en": "Visiting Tech Lead, PWA",
+            "zh": "顾问专家，PWA"
+          },
+          "description": {
+            "en": "",
+            "zh": ""
+          },
+          "date": "2017-02",
+          "endDate": "2017-05",
+          "hideRow": true,
+          "team": {
+            "en": "Consulting @ Ele.me",
+            "zh": "顾问 @ 饿了么"
+          },
+          "tags": [
+            "PWA",
+            "Consulting"
+          ]
+        }
+      ]
+    },
+    "wepiao": {
+      "handle": "@wepiao",
+      "company": {
+        "en": "Beijing Weiying (WePiao)",
+        "zh": "北京微影时代（微票儿）"
+      },
+      "tagId": "pwa-era",
+      "ranges": [
+        {
+          "id": "wepiao-lead",
+          "title": {
+            "en": "Tech Lead Manager, Web Infra",
+            "zh": "Web 基础架构团队主管"
+          },
+          "description": {
+            "en": "Founding engineer of Yupiaoer. Founded the Web Infra team. Led the company-wide tech stack migration to React.",
+            "zh": "娱票儿创始工程师。组建 Web 基础架构团队。主导全公司技术栈向 React 的迁移。"
+          },
+          "date": "2015-05",
+          "endDate": "2016-06",
+          "hideRow": true,
+          "tags": [
+            "Leadership"
+          ]
+        }
+      ]
+    },
+    "alibaba": {
+      "handle": "@alibaba",
+      "company": {
+        "en": "Alibaba",
+        "zh": "阿里巴巴"
+      },
+      "tagId": "pwa-era",
+      "ranges": [
+        {
+          "id": "alitrip-engineer",
+          "title": {
+            "en": "Front-End Engineer",
+            "zh": "前端工程师"
+          },
+          "description": {
+            "en": "Front-end engineer on the Alitrip mobile web team, working across Taobao / Alitrip hybrid app patterns.",
+            "zh": "阿里旅行移动端 Web 前端工程师，参与淘宝 / 阿里旅行 Hybrid App 架构。"
+          },
+          "date": "2014-08",
+          "endDate": "2015-05",
+          "hideRow": true,
+          "tags": [
+            "Web",
+            "Mobile"
+          ]
+        }
+      ]
+    },
+    "cuc": {
+      "handle": "cuc.edu",
+      "company": {
+        "en": "Communication University of China",
+        "zh": "中国传媒大学"
+      },
+      "tagId": "pwa-era",
+      "ranges": [
+        {
+          "id": "cuc-ba",
+          "hideDate": true,
+          "sortBy": "date",
+          "icon": "graduation-cap",
+          "title": {
+            "en": "B.A. Digital Media Arts",
+            "zh": "数字媒体艺术 学士"
+          },
+          "description": {
+            "en": "Bachelor's in Digital Media Art at Communication University of China.",
+            "zh": "在中国传媒大学攻读数字媒体艺术本科学位。"
+          },
+          "date": "2012-09",
+          "endDate": "2016-06",
+          "tags": [
+            "Digital Media",
+            "Design",
+            "Art"
+          ],
+          "location": "Beijing, China"
+        }
+      ]
+    }
+  },
   "commits": [
     {
-      "id": "qcon-shanghai",
+      "id": "juejin-talk-2023",
       "type": "talk",
       "tagId": "lynx-era",
+      "attachedTo": null,
       "title": {
-        "en": "Cross-Platform at ByteDance Scale",
-        "zh": "字节跳动规模的跨平台开发"
+        "en": "Frontend is Dead, Long Live Frontend",
+        "zh": "前端已死，前端永生"
       },
       "description": {
-        "en": "How we built and scaled Lynx to power experiences for billions.",
-        "zh": "我们如何构建和扩展 Lynx 以服务数十亿用户。"
+        "en": "Annual tech keynote at Juejin 2023.",
+        "zh": "掘金年度技术演讲 2023。"
       },
-      "date": "2023-10",
+      "date": "2023-12",
       "conference": {
-        "name": "QCon Shanghai",
-        "city": "Shanghai, China"
+        "name": "掘金年度技术演讲 2023",
+        "url": "https://juejin.cn/meetings/talk2023"
       },
+      "media": [
+        {
+          "kind": "video",
+          "url": "https://www.bilibili.com/video/BV1uz421d7Ch/",
+          "platform": "bilibili"
+        }
+      ],
       "tags": [
-        "Architecture",
-        "Scale",
-        "Performance"
+        "Frontend",
+        "Opinion"
       ],
       "language": "zh"
     },
@@ -184,6 +445,7 @@
       "id": "feday-2023",
       "type": "talk",
       "tagId": "lynx-era",
+      "attachedTo": null,
       "title": {
         "en": "My Frontend Worldview",
         "zh": "我的大前端世界观"
@@ -210,29 +472,6 @@
         "Opinion"
       ],
       "language": "zh"
-    },
-    {
-      "id": "tech-lead-lynx",
-      "type": "role",
-      "tagId": "lynx-era",
-      "sortBy": "date",
-      "title": {
-        "en": "Staff Engineer / Architect",
-        "zh": "架构师"
-      },
-      "description": {
-        "en": "Co-leading Lynx architecture and developer experience in ByteDance's Web Infra Cross Platform team.",
-        "zh": "在字节跳动 Web Infra 跨平台团队共同领导 Lynx 架构与开发者体验工作。"
-      },
-      "date": "2023-02",
-      "company": {
-        "en": "ByteDance",
-        "zh": "字节跳动"
-      },
-      "tags": [
-        "Leadership",
-        "Architecture"
-      ]
     },
     {
       "id": "lynx-framework",
@@ -268,6 +507,15 @@
           "present": "pill",
           "label": "GitHub",
           "icon": "github"
+        },
+        {
+          "kind": "link",
+          "url": "https://lynxjs.org/next/blog/lynx-unlock-native-for-more",
+          "urls": {
+            "en": "https://lynxjs.org/next/blog/lynx-unlock-native-for-more",
+            "zh": "https://lynxjs.org/next/zh/blog/lynx-unlock-native-for-more.html"
+          },
+          "present": "card"
         }
       ],
       "stats": {
@@ -282,7 +530,6 @@
       "id": "opensrc-pioneer-2022",
       "type": "social",
       "tagId": "react-era",
-      "attachedTo": "meta-engineer",
       "title": {
         "en": "China Open Source Pioneer 33",
         "zh": "中国开源先锋 33 人"
@@ -311,6 +558,7 @@
       "id": "coscon-2022",
       "type": "talk",
       "tagId": "react-era",
+      "attachedTo": null,
       "title": {
         "en": "React State of the Union",
         "zh": "React 国情咨文"
@@ -341,6 +589,7 @@
       "id": "gitee-cover-2022",
       "type": "social",
       "tagId": "react-era",
+      "attachedTo": null,
       "title": {
         "en": "Gitee Cover Story",
         "zh": "Gitee 封面人物"
@@ -372,6 +621,7 @@
       "id": "reactconf-2021-memo",
       "type": "talk",
       "tagId": "react-era",
+      "attachedTo": "react-core",
       "title": {
         "en": "React without a Memo",
         "zh": "没有 Memo 的 React"
@@ -399,63 +649,6 @@
       "language": "en"
     },
     {
-      "id": "rnshow-hermes-2021",
-      "type": "talk",
-      "tagId": "react-era",
-      "title": {
-        "en": "The RN Show: Hermes for iOS",
-        "zh": "The RN Show：Hermes 登陆 iOS"
-      },
-      "description": {
-        "en": "Discussing bringing the Hermes JavaScript engine to iOS on The React Native Show podcast.",
-        "zh": "在 The React Native Show 播客上讨论将 Hermes JavaScript 引擎引入 iOS。"
-      },
-      "date": "2021-04",
-      "conference": {
-        "name": "The React Native Show Podcast"
-      },
-      "media": [
-        {
-          "kind": "link",
-          "url": "https://www.callstack.com/podcast-react-native-show",
-          "present": "pill",
-          "label": "Podcast",
-          "icon": "globe"
-        }
-      ],
-      "tags": [
-        "Hermes",
-        "React Native",
-        "iOS"
-      ],
-      "language": "en"
-    },
-    {
-      "id": "react-forget",
-      "type": "project",
-      "tagId": "react-era",
-      "title": {
-        "en": "React Forget",
-        "zh": "React Forget"
-      },
-      "description": {
-        "en": "Auto-memoization compiler for React — founding engineer and tech lead.",
-        "zh": "React 自动记忆化编译器 —— 联合创始工程师及技术负责人。"
-      },
-      "date": "2021-01",
-      "endDate": "2022-10",
-      "tags": [
-        "React",
-        "Compiler",
-        "Performance",
-        "OCaml"
-      ],
-      "commentary": {
-        "en": "The project that taught me how compilers can reshape developer experience.",
-        "zh": "这个项目让我理解了编译器如何重塑开发者体验。"
-      }
-    },
-    {
       "id": "hermes-engine",
       "type": "project",
       "tagId": "react-era",
@@ -464,11 +657,15 @@
         "zh": "Hermes JavaScript 引擎"
       },
       "description": {
-        "en": "JavaScript engine optimized for React Native. Led the effort to bring Hermes to iOS.",
-        "zh": "为 React Native 优化的 JavaScript 引擎。主导将 Hermes 引入 iOS 的工作。"
+        "en": "JavaScript engine optimized for React Native, built by the Programming Language & Runtime (PL&R) team. Led the effort to bring Hermes to iOS.",
+        "zh": "由 Programming Language & Runtime（PL&R）团队打造，为 React Native 优化的 JavaScript 引擎。主导将 Hermes 引入 iOS 的工作。"
       },
       "date": "2020-03",
-      "endDate": "2022-10",
+      "endDate": "2021-10",
+      "team": {
+        "en": "PLR @ Meta",
+        "zh": "PLR @ Meta"
+      },
       "tags": [
         "JavaScript",
         "Compiler",
@@ -489,6 +686,19 @@
           "present": "pill",
           "label": "GitHub",
           "icon": "github"
+        },
+        {
+          "kind": "link",
+          "url": "https://reactnative.dev/blog/2021/10/26/toward-hermes-being-the-default",
+          "present": "card",
+          "preview": {
+            "image": "https://reactnative.dev/img/logo-og.png"
+          }
+        },
+        {
+          "kind": "link",
+          "url": "https://www.callstack.com/podcasts/react-native-0-64-with-hermes-for-ios-ep-5",
+          "present": "card"
         }
       ]
     },
@@ -497,22 +707,27 @@
       "type": "project",
       "tagId": "react-era",
       "title": {
-        "en": "React Core",
-        "zh": "React 核心"
+        "en": "React Compiler (Forget)",
+        "zh": "React Compiler（Forget）"
       },
       "description": {
-        "en": "Contributing to React's core features and performance.",
-        "zh": "为 React 核心功能和性能做出贡献。"
+        "en": "Founding engineer of the React Compiler (formerly Forget), the auto-memoization compiler that reshapes React's authoring model.",
+        "zh": "React Compiler（原名 Forget）的联合创始工程师 —— 重塑 React 编写模型的自动记忆化编译器。"
       },
-      "date": "2020-03",
+      "date": "2021-08",
       "endDate": "2022-10",
+      "team": {
+        "en": "React Core team @ Meta",
+        "zh": "React Core 团队 @ Meta"
+      },
       "tags": [
         "React",
+        "Compiler",
         "Open Source",
         "Performance",
+        "OCaml",
         "JavaScript",
-        "Flow",
-        "Jest"
+        "Flow"
       ],
       "media": [
         {
@@ -528,119 +743,100 @@
           "present": "pill",
           "label": "GitHub",
           "icon": "github"
+        },
+        {
+          "kind": "link",
+          "url": "https://react.dev/blog/2022/06/15/react-labs-what-we-have-been-working-on-june-2022#react-compiler",
+          "present": "card"
         }
       ],
       "stats": {
         "stars": 220000
       },
       "commentary": {
-        "en": "Working on React taught me that good abstractions are worth fighting for.",
-        "zh": "在 React 上工作让我明白，好的抽象值得为之奋斗。"
+        "en": "Working on React taught me that good abstractions are worth fighting for — and that compilers can reshape the developer experience.",
+        "zh": "在 React 上工作让我明白，好的抽象值得为之奋斗，而编译器能够重塑开发者体验。"
       }
     },
     {
-      "id": "meta-engineer",
-      "type": "role",
+      "id": "xros-reality-labs",
+      "type": "project",
       "tagId": "react-era",
-      "sortBy": "date",
       "title": {
-        "en": "Software Engineer",
-        "zh": "软件工程师"
+        "en": "XROS PL and Frameworks",
+        "zh": "XROS PL 与框架"
       },
       "description": {
-        "en": "React Technologies team — Hermes JS engine, React Forget compiler (founding eng + tech lead).",
-        "zh": "React Technologies 团队 —— Hermes JS 引擎、React Forget 编译器（联合创始工程师 + 技术负责人）。"
-      },
-      "date": "2020-03",
-      "endDate": "2022-10",
-      "company": {
-        "en": "Meta",
-        "zh": "Meta"
-      },
-      "tags": [
-        "React",
-        "Compiler",
-        "JavaScript Engine"
-      ]
-    },
-    {
-      "id": "meta-intern-xros",
-      "type": "role",
-      "tagId": "react-era",
-      "attachedTo": "rit-ms",
-      "title": {
-        "en": "Software Engineer Intern, XROS",
-        "zh": "软件工程实习生 · XROS"
-      },
-      "description": {
-        "en": "Summer internship at Meta Reality Labs Research, working on XROS — an experimental operating system for XR.",
-        "zh": "Meta Reality Labs Research 暑期实习，参与面向 XR 的实验性操作系统 XROS。"
+        "en": "Summer 2019 internship. My manager framed it as: \"As part of Reality Labs Research (formerly Oculus Research), I led a research team building a new programming language and application framework specifically targeting all-day wearable, low power devices.\"",
+        "zh": "2019 年暑期实习。我的主管这样描述这个项目：\"As part of Reality Labs Research (formerly Oculus Research), I led a research team building a new programming language and application framework specifically targeting all-day wearable, low power devices.\""
       },
       "date": "2019-05",
       "endDate": "2019-08",
-      "company": {
-        "en": "Meta",
-        "zh": "Meta"
+      "team": {
+        "en": "Reality Labs Research @ Meta",
+        "zh": "Reality Labs Research @ Meta"
       },
       "tags": [
         "XR",
-        "Operating System",
-        "Research",
-        "Internship"
+        "Programming Language",
+        "Framework",
+        "Research"
+      ],
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://www.meta.com/emerging-tech/orion/",
+          "present": "card"
+        },
+        {
+          "kind": "link",
+          "url": "https://www.theverge.com/2022/2/25/22950710/meta-vr-ar-os-team-xros-breakup-hyper-tuned-focus",
+          "present": "card"
+        }
       ]
     },
     {
-      "id": "meta-intern-reasonml",
-      "type": "role",
+      "id": "reasonml",
+      "type": "project",
       "tagId": "react-era",
-      "attachedTo": "rit-ms",
       "title": {
-        "en": "Software Engineer Intern, ReasonML",
-        "zh": "软件工程实习生 · ReasonML"
+        "en": "ReasonML (now ReScript)",
+        "zh": "ReasonML（后更名为 ReScript）"
       },
       "description": {
-        "en": "Summer internship at Meta on the ReasonML / ReScript team, working on Messenger Web.",
-        "zh": "Meta ReasonML / ReScript 团队暑期实习，参与 Messenger Web 的开发。"
+        "en": "Contributor on the ReasonML team — an OCaml-syntax typed-JS toolchain that was later rebranded as ReScript. Worked on Messenger Web during the summer 2018 internship.",
+        "zh": "参与 ReasonML 团队 —— 基于 OCaml 语法的类型化 JavaScript 工具链，后更名为 ReScript。2018 年暑期实习期间参与 Messenger Web 开发。"
       },
       "date": "2018-05",
       "endDate": "2018-08",
-      "company": {
+      "team": {
         "en": "Meta",
         "zh": "Meta"
       },
       "tags": [
         "ReasonML",
+        "ReScript",
         "OCaml",
-        "Messenger",
-        "Internship"
-      ]
-    },
-    {
-      "id": "rit-ms",
-      "type": "role",
-      "tagId": "react-era",
-      "hideDate": true,
-      "sortBy": "date",
-      "icon": "graduation-cap",
-      "title": {
-        "en": "M.S. Computer Science",
-        "zh": "计算机科学 硕士"
-      },
-      "description": {
-        "en": "Master's in Computer Science at Rochester Institute of Technology, focusing on programming languages under Prof. Matthew Fluet.",
-        "zh": "在罗切斯特理工学院攻读计算机科学硕士，师从 Matthew Fluet 教授，专注编程语言方向。"
-      },
-      "date": "2017-08",
-      "endDate": "2019-12",
-      "company": {
-        "en": "Rochester Institute of Technology",
-        "zh": "罗切斯特理工学院"
-      },
-      "tags": [
-        "PLT",
         "Compiler"
       ],
-      "location": "New York, USA"
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://reasonml.github.io/",
+          "present": "card",
+          "preview": {
+            "image": "https://reasonml.github.io/img/reason.svg"
+          }
+        },
+        {
+          "kind": "link",
+          "url": "https://rescript-lang.org/",
+          "present": "card",
+          "preview": {
+            "image": "https://rescript-lang.org/Art-3-rescript-launch.avif"
+          }
+        }
+      ]
     },
     {
       "id": "jsconf-china-2017",
@@ -688,11 +884,12 @@
     },
     {
       "id": "eleme-pwa",
-      "type": "role",
+      "type": "project",
       "tagId": "pwa-era",
+      "attachedTo": "eleme-visiting",
       "title": {
-        "en": "Visiting Tech Lead, PWA",
-        "zh": "顾问专家，PWA"
+        "en": "Ele.me PWA",
+        "zh": "饿了么 PWA"
       },
       "description": {
         "en": "Led the Ele.me PWA upgrade, pioneering the use of PWA techniques for Vue-based Multi-Page Apps (MPA). \n\nFeatured by web.dev and highlighted at Google I/O 2017.",
@@ -700,10 +897,6 @@
       },
       "date": "2017-02",
       "endDate": "2017-05",
-      "company": {
-        "en": "Ele.me",
-        "zh": "饿了么"
-      },
       "media": [
         {
           "kind": "link",
@@ -723,93 +916,65 @@
       ],
       "tags": [
         "PWA",
-        "Mobile Web",
-        "Consulting"
+        "Mobile Web"
       ]
     },
     {
-      "id": "qcon-shanghai-2016",
-      "type": "talk",
+      "id": "yupiaoer",
+      "type": "project",
       "tagId": "pwa-era",
+      "identityId": "wepiao",
       "title": {
-        "en": "Progressive Web App, Make Web Great Again",
-        "zh": "Progressive Web App, 复兴序章"
+        "en": "Yupiaoer (娱票儿)",
+        "zh": "娱票儿"
       },
       "description": {
-        "en": "Introducing Progressive Web Apps to the Chinese developer community.",
-        "zh": "关于 Native 与 Web 的纷争，从 Web 诞生之日起到现在就从未消停过。眼看这场战火在移动时代的方寸之间愈演愈烈，有的人坚定地站在了 Native 阵营，有的人则选择 Open Web 作为自己的信仰。近年来，随着融合与相互借鉴的声音成为主流，Hybrid、动态化与基于 Web 开发范式的跨平台解决方案百花齐放，而 Google Chrome 团队，也联合 Microsoft Edge、Mozilla Firefox、Opera 等一众浏览器厂商，给出了来自 Web 阵营的回应——Progressive Web App，向 Native 阵营吹响了反击的号角……"
-      },
-      "date": "2016-10",
-      "conference": {
-        "name": "QCon Shanghai 2016",
-        "city": "Shanghai, China",
-        "url": "http://2016.qconshanghai.com/presentation/3111/"
-      },
-      "media": [
-        {
-          "kind": "link",
-          "url": "https://huangxuan.me/2016/10/20/pwa-qcon2016/",
-          "present": "pill",
-          "label": "Slides",
-          "icon": "slides"
-        }
-      ],
-      "tags": [
-        "PWA",
-        "Mobile Web"
-      ],
-      "language": "zh"
-    },
-    {
-      "id": "wepiao-lead",
-      "type": "role",
-      "tagId": "pwa-era",
-      "attachedTo": "cuc-ba",
-      "title": {
-        "en": "Tech Lead Manager, Web Infra",
-        "zh": "Web 基础架构团队主管"
-      },
-      "description": {
-        "en": "Founding engineer of the award-winning app Yupiaoer. Founded the Web Infra team. Led the company-wide tech stack migration to React.",
-        "zh": "获奖产品「娱票儿」创始工程师。组建 Web 基础架构团队。主导全公司技术栈向 React 的迁移。"
+        "en": "Award-winning ticket-buying app. Founding engineer; also founded the Web Infra team and led the company-wide tech stack migration to React.",
+        "zh": "获奖购票应用「娱票儿」。创始工程师，同时组建 Web 基础架构团队并主导全公司技术栈向 React 的迁移。"
       },
       "date": "2015-05",
       "endDate": "2016-06",
-      "company": {
-        "en": "Beijing Weiying (WePiao)",
-        "zh": "北京微影时代（微票儿）"
+      "team": {
+        "en": "Web Infra @ WePiao",
+        "zh": "Web 基础架构 @ 微影时代"
       },
       "tags": [
-        "Web",
         "Mobile",
         "React",
-        "React Native",
-        "Leadership"
+        "React Native"
+      ],
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://www.ticketingbusinessforum.com/awards-2017-shortlists-revealed/",
+          "present": "card"
+        }
       ]
     },
     {
-      "id": "alitrip-engineer",
-      "type": "role",
+      "id": "alitrip-mobile-web",
+      "type": "project",
       "tagId": "pwa-era",
-      "attachedTo": "cuc-ba",
+      "identityId": "alibaba",
       "title": {
-        "en": "Front-End Engineer",
-        "zh": "前端工程师"
+        "en": "Taobao / Alitrip Mobile Web",
+        "zh": "淘宝 / 阿里旅行 移动 Web"
+      },
+      "description": {
+        "en": "Hybrid app patterns for Taobao and Alitrip (later Fliggy) mobile web — offline resources, virtual domains for local H5, product strategy notes from the road.",
+        "zh": "淘宝与阿里旅行（后更名飞猪）移动端 Web 的 Hybrid App 架构 —— 本地资源离线化、H5 虚拟域，以及在职期间的行业观察。"
       },
       "date": "2014-08",
       "endDate": "2015-05",
-      "company": {
+      "team": {
         "en": "Alibaba",
         "zh": "阿里巴巴"
       },
       "tags": [
         "Web",
-        "Mobile"
+        "Mobile",
+        "Hybrid"
       ],
-      "description": {
-        "en": "",
-        "zh": ""
-      },
       "media": [
         {
           "kind": "link",
@@ -844,32 +1009,37 @@
       ]
     },
     {
-      "id": "cuc-ba",
-      "type": "role",
+      "id": "qcon-shanghai-2016",
+      "type": "talk",
       "tagId": "pwa-era",
-      "hideDate": true,
-      "sortBy": "date",
-      "icon": "graduation-cap",
       "title": {
-        "en": "B.A. Digital Media Arts",
-        "zh": "数字媒体艺术 学士"
+        "en": "Progressive Web App, Make Web Great Again",
+        "zh": "Progressive Web App, 复兴序章"
       },
       "description": {
-        "en": "Bachelor's in Digital Media Art at Communication University of China.",
-        "zh": "在中国传媒大学攻读数字媒体艺术本科学位。"
+        "en": "Introducing Progressive Web Apps to the Chinese developer community.",
+        "zh": "关于 Native 与 Web 的纷争，从 Web 诞生之日起到现在就从未消停过。眼看这场战火在移动时代的方寸之间愈演愈烈，有的人坚定地站在了 Native 阵营，有的人则选择 Open Web 作为自己的信仰。近年来，随着融合与相互借鉴的声音成为主流，Hybrid、动态化与基于 Web 开发范式的跨平台解决方案百花齐放，而 Google Chrome 团队，也联合 Microsoft Edge、Mozilla Firefox、Opera 等一众浏览器厂商，给出了来自 Web 阵营的回应——Progressive Web App，向 Native 阵营吹响了反击的号角……"
       },
-      "date": "2012-09",
-      "endDate": "2016-06",
-      "company": {
-        "en": "Communication University of China",
-        "zh": "中国传媒大学"
+      "date": "2016-10",
+      "conference": {
+        "name": "QCon Shanghai 2016",
+        "city": "Shanghai, China",
+        "url": "http://2016.qconshanghai.com/presentation/3111/"
       },
-      "tags": [
-        "Digital Media",
-        "Design",
-        "Art"
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://huangxuan.me/2016/10/20/pwa-qcon2016/",
+          "present": "pill",
+          "label": "Slides",
+          "icon": "slides"
+        }
       ],
-      "location": "Beijing, China"
+      "tags": [
+        "PWA",
+        "Mobile Web"
+      ],
+      "language": "zh"
     },
     {
       "id": "bilibili-sabbatical-2023",
