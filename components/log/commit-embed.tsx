@@ -17,7 +17,7 @@ import { getCommitPeekItems, localize } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./media/external-image";
 import { CardFace } from "./media/link";
-import { PEEK_SHADOW, PEEK_W } from "@/components/motion-primitives/magnetic-preview";
+import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
@@ -198,10 +198,10 @@ function buildCommitPreview(
     return {
       // Strip the panel chrome so the rotated cards read as floating, not
       // contained in another box — the rotation IS the visual signal of
-      // "there's more here" and a background defeats it. Padding (`p-8`) +
-      // a wider cap (`max-w-md`) give the back layers' translate + rotate
-      // room to peek out around the PEEK_W front card.
-      panelClassName: `p-8 max-w-md ${BARE_PANEL_CHROME}`,
+      // "there's more here" and a background defeats it. Padding (`p-8`)
+      // gives the back layers' translate + rotate room to peek out around
+      // the front card (the panel's default cap already fits it).
+      panelClassName: `p-8 ${BARE_PANEL_CHROME}`,
       node: <StackedPeek items={items} />,
     };
   }
@@ -213,25 +213,22 @@ function buildCommitPreview(
     // the poster's edge.
     if (item.kind === "card") {
       return {
-        // `max-w-sm` lifts the panel's default `max-w-xs` cap to fit the
-        // unified PEEK_W (384) card.
-        panelClassName: `p-0 max-w-sm ${BARE_PANEL_CHROME}`,
+        panelClassName: `p-0 ${BARE_PANEL_CHROME}`,
         // Single peek mirrors the expanded /works LinkCard: natural aspect.
-        node: <PeekCard item={item} className={PEEK_W} />,
+        node: <PeekCard item={item} className={cn(PEEK_W, "shadow-raised")} />,
       };
     }
     return {
       // Strip the panel chrome so the thumb is the only surface (keeping it
       // stacked the panel's border on top of the thumb's — a double edge).
-      // `max-w-md` lifts the default `max-w-xs` cap so PEEK_W isn't clipped.
-      panelClassName: `p-0 max-w-md ${BARE_PANEL_CHROME}`,
-      // A pure-media poster: cover + rounded clip + PEEK_SHADOW, no border
-      // (unlike the link/writing cards, whose border frames their text). The
-      // image bleeds to the rounded edge and the shadow does the lifting.
+      panelClassName: `p-0 ${BARE_PANEL_CHROME}`,
+      // A pure-media poster: cover + rounded clip + shadow, no border (unlike
+      // the link/writing cards, whose border frames their text). The image
+      // bleeds to the rounded edge and the shadow does the lifting.
       node: (
         <PeekThumb
           image={item.image}
-          className={cn(PEEK_W, "aspect-video border-0", PEEK_SHADOW)}
+          className={cn(PEEK_W, "aspect-video border-0 shadow-raised")}
         />
       ),
     };
@@ -250,8 +247,8 @@ function buildCommitPreview(
     // Unlike the other peeks (bare panel, content == PEEK_W), this fallback
     // uses the panel itself as the visible card, so PEEK_W goes on the PANEL
     // — otherwise its p-3 padding would make the outer box wider (408) than
-    // the flush 384 peeks. `max-w-none` clears the base `max-w-xs` cap.
-    panelClassName: `${PEEK_W} max-w-none`,
+    // the flush 384 peeks.
+    panelClassName: PEEK_W,
     node: (
       <div className="w-full space-y-3">
         {description && (
@@ -292,7 +289,7 @@ function PeekThumb({
       className={cn(
         // Border matches the card peek / panel (border/50). Shadow is
         // supplied per-use: the single video peek and the deck's front layer
-        // pass PEEK_SHADOW; deck back layers pass none.
+        // add `shadow-raised`; deck back layers stay flat.
         "rounded-lg overflow-hidden border border-border/50 bg-muted/30",
         className,
       )}
@@ -345,14 +342,13 @@ function PeekCard({
       fixedAspect={fixedAspect}
       domainLabel={domainLabel}
       // Peek-specific chrome — same recipe as the shared MagneticPreview
-      // panel (bg-card/70 + backdrop-blur-xl + border + the unified
-      // PEEK_SHADOW). The single-peek and stacked-peek branches both strip
-      // the panel's own chrome (BARE_PANEL_CHROME), so the card supplies it
-      // and stays in sync with every other peek. In dark mode the lift is
-      // the shadow + border, not the bg.
+      // panel (bg-card/70 + backdrop-blur-xl + border), minus the shadow:
+      // the single-peek and stacked-peek branches strip the panel's own
+      // chrome (BARE_PANEL_CHROME), so callers add `shadow-raised` per use
+      // (front / single) and deck back layers stay flat — same opt-in
+      // convention as PeekThumb.
       className={cn(
         "bg-card/70 backdrop-blur-xl border border-border/50 rounded-lg",
-        PEEK_SHADOW,
         className,
       )}
       onImgResolved={onResolved}
@@ -438,14 +434,14 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
               // it — translucency only makes sense where the page bg sits
               // behind, which is true for back cards (peeking from behind)
               // but not for the front (a full card sits behind it).
-              // Only the FRONT layer carries PEEK_SHADOW (inherited from
-              // PeekCard's base) — one soft shadow grounds the whole deck.
-              // Back layers force `shadow-none`: three stacked shadows would
-              // compound and darken each other where the cards peek out.
+              // Only the FRONT layer gets `shadow-raised` — one soft shadow
+              // grounds the whole deck. Back layers stay flat: three stacked
+              // shadows would compound and darken each other where the cards
+              // peek out.
               <PeekCard
                 item={item}
                 fixedAspect
-                className={cn(isFront ? "bg-card" : "shadow-none")}
+                className={isFront ? "bg-card shadow-raised" : undefined}
                 onResolved={() => markResolved(i)}
               />
             ) : (
@@ -453,7 +449,7 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
                 image={item.image}
                 className={cn(
                   "aspect-video",
-                  isFront && ["bg-muted", PEEK_SHADOW],
+                  isFront && ["bg-muted", "shadow-raised"],
                 )}
                 onResolved={() => markResolved(i)}
               />

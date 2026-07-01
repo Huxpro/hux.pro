@@ -19,15 +19,11 @@ export interface MagneticPreviewProps {
   children: React.ReactNode;
 }
 
-/**
- * Shared shadow for every hover-peek surface (writing post, works card /
- * video / details / stacked deck). Peeks sit at the `raised` elevation — the
- * same low lift as the FAB and the Live Activity pill — one level below the
- * `overlay` surfaces (command palette, Live Activity expanded). See the
- * elevation spec in globals.css. Exported so the works peeks (which strip the
- * panel chrome and supply their own on the card) stay in sync with the panel.
- */
-export const PEEK_SHADOW = "shadow-raised";
+// Peeks sit at the `raised` elevation — the same low lift as the FAB and the
+// Live Activity pill, one level below the `overlay` surfaces (command palette,
+// Live Activity expanded). Surfaces just use the `shadow-raised` utility
+// directly (see the elevation spec in globals.css); there's no separate peek
+// shadow token.
 
 /**
  * Unified content width for every hover-peek surface — link card, video /
@@ -91,7 +87,7 @@ export function MagneticPreview({
           // stacked deck looked flat. Each peek surface rounds its OWN
           // content (the panel/card carry their own `overflow-hidden`), so
           // the wrapper doesn't need to; leaving it unclipped lets the
-          // unified `PEEK_SHADOW` breathe.
+          // `shadow-raised` lift breathe.
         >
           <div
             className={cn(
@@ -102,8 +98,10 @@ export function MagneticPreview({
               // + border, not from "see-through-ness" — the blur is what
               // makes it feel alive.
               "rounded-lg border border-border/50 bg-card/70 backdrop-blur-xl",
-              PEEK_SHADOW,
-              "p-3 max-w-xs",
+              "shadow-raised",
+              // Default cap fits the unified peek width (PEEK_W = 384); peeks
+              // no longer need to lift a narrower default.
+              "p-3 max-w-md",
               panelClassName,
             )}
           >
