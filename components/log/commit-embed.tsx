@@ -59,7 +59,6 @@ export interface CommitProps {
     expanded: {
       title: string;
       company: string;
-      tenure: string;
       location?: string;
       description?: string;
     };

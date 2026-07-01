@@ -87,7 +87,6 @@ interface TimelineCommitProps {
     expanded: {
       title: string;
       company: string;
-      tenure: string;
       location?: string;
       description?: string;
     };
@@ -475,15 +474,14 @@ export function TimelineCommit({
           className="col-start-2 @sm:col-start-3 mt-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150"
         >
           {/*
-            Full author block — `git log --pretty=fuller` mapping:
+            Author block — abbreviated `git log --pretty=fuller`:
               Author:  <handle>
               Role:    Title @ Company [· Location]
-              Tenure:  YYYY-MM → YYYY-MM
                        Optional role description.
-            Label column is mono-fixed-width so values align, mirroring
-            git's tabular header. Sits above the commit's own body so
-            "who I was when I committed this" reads as metadata about
-            the commit, not part of it.
+            The commit's own date lives in the top-right column, so
+            duplicating tenure here was redundant for most rows. Kept
+            two labeled lines (Author / Role) so the mono grid still
+            reads as a metadata header, not free-form body.
           */}
           {byline && (
             <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono pb-2.5 mb-1 border-b border-border/25">
@@ -502,9 +500,6 @@ export function TimelineCommit({
                   </>
                 )}
               </span>
-
-              <span className="text-muted-foreground/40">Tenure:</span>
-              <span className="text-muted-foreground/60">{byline.expanded.tenure}</span>
 
               {byline.expanded.description && (
                 <>

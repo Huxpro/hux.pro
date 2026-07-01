@@ -8,7 +8,6 @@ import {
   computeBeams,
   computeInferredBeams,
   computeRail,
-  formatDateRange,
   formatTagDateRange,
   getLocalizedTagTitle,
   type Identity,
@@ -133,7 +132,6 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
       expanded: {
         title: string;
         company: string;
-        tenure: string;
         location?: string;
         description?: string;
       };
@@ -164,9 +162,6 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
         ? localize(role.companyOverride, locale)
         : localize(identity.company, locale);
       const title = role ? localize(role.title, locale) : "";
-      const tenure = role
-        ? formatDateRange(role.date, role.endDate, locale)
-        : "";
       const desc = role ? localize(role.description, locale) : "";
 
       bylinesArr[i] = {
@@ -175,7 +170,6 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
         expanded: {
           title,
           company,
-          tenure,
           location: role?.location,
           description: desc && desc.trim() ? desc : undefined,
         },
