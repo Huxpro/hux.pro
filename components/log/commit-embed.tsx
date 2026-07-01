@@ -240,10 +240,13 @@ function buildCommitPreview(
   if (!description && !hasTags) return null;
 
   return {
-    // `max-w-md` lifts the panel's default `max-w-xs` cap to fit PEEK_W.
-    panelClassName: "max-w-md",
+    // Unlike the other peeks (bare panel, content == PEEK_W), this fallback
+    // uses the panel itself as the visible card, so PEEK_W goes on the PANEL
+    // — otherwise its p-3 padding would make the outer box wider (408) than
+    // the flush 384 peeks. `max-w-none` clears the base `max-w-xs` cap.
+    panelClassName: `${PEEK_W} max-w-none`,
     node: (
-      <div className={cn(PEEK_W, "space-y-3")}>
+      <div className="w-full space-y-3">
         {description && (
           <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
             {description}
