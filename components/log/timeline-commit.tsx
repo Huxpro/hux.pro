@@ -453,7 +453,7 @@ export function TimelineCommit({
                   : "opacity-0 group-hover:opacity-100",
               )}
             >
-              &lt;{byline.handle}&gt;
+              {byline.handle}
             </span>
           )}
         </div>
