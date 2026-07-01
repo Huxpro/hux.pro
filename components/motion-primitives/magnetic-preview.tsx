@@ -19,6 +19,22 @@ export interface MagneticPreviewProps {
   children: React.ReactNode;
 }
 
+// Peeks sit at the `raised` elevation — the same low lift as the FAB and the
+// Live Activity pill, one level below the `overlay` surfaces (command palette,
+// Live Activity expanded). Surfaces just use the `shadow-raised` utility
+// directly (see the elevation spec in globals.css); there's no separate peek
+// shadow token.
+
+/**
+ * Unified content width for every hover-peek surface — link card, video /
+ * image poster, writing card, details fallback, and the stacked deck. A
+ * cursor-following preview wants to read clearly without feeling like a
+ * modal: 24rem / 384px fits a 16:9 poster (384×216) and a comfortable text
+ * measure, and reads as roomy for an OG card. One width → the peeks feel
+ * like one system. (Matches the `sm` step of the media size scale.)
+ */
+export const PEEK_W = "w-96"; // 24rem · 384px
+
 const defaultVariants = {
   initial: { opacity: 0, scale: 0.9, y: 8 },
   animate: { opacity: 1, scale: 1, y: 0 },
@@ -65,18 +81,27 @@ export function MagneticPreview({
           variants={defaultVariants}
           transition={defaultTransition}
           springConfig={defaultSpringConfig}
-          className="overflow-hidden rounded-lg"
+          // Intentionally NOT clipped. This wrapper used to carry
+          // `overflow-hidden rounded-lg`, which sheared the panel's soft
+          // shadow off at the rounded edge — that's why every peek but the
+          // stacked deck looked flat. Each peek surface rounds its OWN
+          // content (the panel/card carry their own `overflow-hidden`), so
+          // the wrapper doesn't need to; leaving it unclipped lets the
+          // `shadow-raised` lift breathe.
         >
           <div
             className={cn(
               // Translucent lifted surface — matches the Dock Live Activity
-              // expanded panel recipe (`bg-card/70 backdrop-blur-xl border
-              // border-border/50 shadow-2xl shadow-black/20`). In dark mode
-              // popover/card are *darker* than the page bg, so the lift
-              // comes from the colored shadow + border, not from "see-
-              // through-ness" — the blur is what makes it feel alive.
-              "rounded-lg border border-border/50 bg-card/70 backdrop-blur-xl shadow-2xl shadow-black/20",
-              "p-3 max-w-xs",
+              // expanded panel recipe (bg-card/70 + backdrop-blur-xl +
+              // border + a soft shadow). In dark mode popover/card are
+              // *darker* than the page bg, so the lift comes from the shadow
+              // + border, not from "see-through-ness" — the blur is what
+              // makes it feel alive.
+              "rounded-lg border border-border/50 bg-card/70 backdrop-blur-xl",
+              "shadow-raised",
+              // Default cap fits the unified peek width (PEEK_W = 384); peeks
+              // no longer need to lift a narrower default.
+              "p-3 max-w-md",
               panelClassName,
             )}
           >

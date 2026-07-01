@@ -17,6 +17,7 @@ import { getCommitPeekItems, localize } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./media/external-image";
 import { CardFace } from "./media/link";
+import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
@@ -212,11 +213,10 @@ function buildCommitPreview(
     return {
       // Strip the panel chrome so the rotated cards read as floating, not
       // contained in another box — the rotation IS the visual signal of
-      // "there's more here" and a background defeats it. Generous padding
-      // (`p-8`) and a wider cap (`max-w-md`) give the back layers' translate
-      // + rotate enough room before the Cursor wrapper's
-      // `overflow-hidden rounded-lg` clip kicks in.
-      panelClassName: `p-8 max-w-md ${BARE_PANEL_CHROME}`,
+      // "there's more here" and a background defeats it. Padding (`p-8`)
+      // gives the back layers' translate + rotate room to peek out around
+      // the front card (the panel's default cap already fits it).
+      panelClassName: `p-8 ${BARE_PANEL_CHROME}`,
       node: <StackedPeek items={items} />,
     };
   }
@@ -230,16 +230,22 @@ function buildCommitPreview(
       return {
         panelClassName: `p-0 ${BARE_PANEL_CHROME}`,
         // Single peek mirrors the expanded /works LinkCard: natural aspect.
-        node: <PeekCard item={item} className="w-72" />,
+        node: <PeekCard item={item} className={cn(PEEK_W, "shadow-raised")} />,
       };
     }
     return {
-      // `max-w-md` lifts the default `max-w-xs` cap so the 26rem content
-      // doesn't get clipped by the Cursor wrapper's overflow.
-      panelClassName: "p-0 max-w-md overflow-hidden",
-      // Matches the /writing peek card width (w-[26rem]) so video commits
-      // and post peeks read as the same hover-surface family.
-      node: <PeekThumb image={item.image} className="w-[26rem] aspect-video" />,
+      // Strip the panel chrome so the thumb is the only surface (keeping it
+      // stacked the panel's border on top of the thumb's — a double edge).
+      panelClassName: `p-0 ${BARE_PANEL_CHROME}`,
+      // A pure-media poster: cover + rounded clip + shadow, no border (unlike
+      // the link/writing cards, whose border frames their text). The image
+      // bleeds to the rounded edge and the shadow does the lifting.
+      node: (
+        <PeekThumb
+          image={item.image}
+          className={cn(PEEK_W, "aspect-video border-0 shadow-raised")}
+        />
+      ),
     };
   }
 
@@ -253,8 +259,13 @@ function buildCommitPreview(
   if (!description && !hasTags) return null;
 
   return {
+    // Unlike the other peeks (bare panel, content == PEEK_W), this fallback
+    // uses the panel itself as the visible card, so PEEK_W goes on the PANEL
+    // — otherwise its p-3 padding would make the outer box wider (408) than
+    // the flush 384 peeks.
+    panelClassName: PEEK_W,
     node: (
-      <div className="w-72 space-y-3">
+      <div className="w-full space-y-3">
         {description && (
           <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
             {description}
@@ -291,7 +302,10 @@ function PeekThumb({
   return (
     <div
       className={cn(
-        "rounded-md overflow-hidden border border-border/40 bg-muted/30 shadow-md",
+        // Border matches the card peek / panel (border/50). Shadow is
+        // supplied per-use: the single video peek and the deck's front layer
+        // add `shadow-raised`; deck back layers stay flat.
+        "rounded-lg overflow-hidden border border-border/50 bg-muted/30",
         className,
       )}
     >
@@ -342,20 +356,28 @@ function PeekCard({
       size="compact"
       fixedAspect={fixedAspect}
       domainLabel={domainLabel}
-      // Peek-specific chrome — same recipe as the Dock Live Activity
-      // expanded panel (bg-card/70 + backdrop-blur-xl + border + heavy
-      // colored shadow). The single-peek and stacked-peek branches both
-      // strip the panel's own chrome (BARE_PANEL_CHROME), so the card has
-      // to supply it. In dark mode the lift is the shadow, not the bg —
-      // popover/card sit below the page bg's lightness.
+      // Peek-specific chrome — same recipe as the shared MagneticPreview
+      // panel (bg-card/70 + backdrop-blur-xl + border), minus the shadow:
+      // the single-peek and stacked-peek branches strip the panel's own
+      // chrome (BARE_PANEL_CHROME), so callers add `shadow-raised` per use
+      // (front / single) and deck back layers stay flat — same opt-in
+      // convention as PeekThumb.
       className={cn(
-        "bg-card/70 backdrop-blur-xl border border-border/50 shadow-2xl shadow-black/20 rounded-md",
+        "bg-card/70 backdrop-blur-xl border border-border/50 rounded-lg",
         className,
       )}
       onImgResolved={onResolved}
     />
   );
 }
+
+// The deck's rotated/translated back cards add ~20–40px of overhang beyond
+// the front card, so a front card at the full PEEK_W (384) makes the deck
+// read wider and heavier than the flush single-card / video / writing peeks.
+// Size the front card DOWN so the deck's *perceived footprint* (front + fan
+// overhang) lands at ~PEEK_W. Stacks also carry more visual mass than a flat
+// card, so we aim a touch under.
+const DECK_FRONT_W = "w-[22rem]"; // 352px
 
 /**
  * Stacked-card peek for commits with 2+ peek items. We show up to three
@@ -396,7 +418,8 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
   return (
     <div
       className={cn(
-        "relative w-72 transition-opacity duration-200",
+        "relative transition-opacity duration-200",
+        DECK_FRONT_W,
         allReady ? "opacity-100" : "opacity-0",
       )}
     >
@@ -426,16 +449,23 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
               // it — translucency only makes sense where the page bg sits
               // behind, which is true for back cards (peeking from behind)
               // but not for the front (a full card sits behind it).
+              // Only the FRONT layer gets `shadow-raised` — one soft shadow
+              // grounds the whole deck. Back layers stay flat: three stacked
+              // shadows would compound and darken each other where the cards
+              // peek out.
               <PeekCard
                 item={item}
                 fixedAspect
-                className={isFront ? "bg-card" : undefined}
+                className={isFront ? "bg-card shadow-raised" : undefined}
                 onResolved={() => markResolved(i)}
               />
             ) : (
               <PeekThumb
                 image={item.image}
-                className={cn("aspect-video", isFront && "bg-muted")}
+                className={cn(
+                  "aspect-video",
+                  isFront && ["bg-muted", "shadow-raised"],
+                )}
                 onResolved={() => markResolved(i)}
               />
             )}

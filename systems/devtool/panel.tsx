@@ -74,7 +74,7 @@ function DevtoolFABInner() {
           "flex items-center gap-2 transition-all duration-300",
           "rounded-full",
           "bg-foreground text-background",
-          "shadow-lg shadow-black/20",
+          "shadow-raised",
           "hover:scale-105 active:scale-95",
           // Hide when expanded
           isOpen ? "opacity-0 pointer-events-none scale-75" : "opacity-100",
@@ -126,7 +126,7 @@ function DevtoolPanel() {
         "rounded-2xl overflow-hidden cursor-default",
         "bg-popover/95 backdrop-blur-xl",
         "border border-border/50",
-        "shadow-2xl shadow-black/20"
+        "shadow-overlay"
       )}
     >
       {/* Header */}

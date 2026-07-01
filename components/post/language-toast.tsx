@@ -19,7 +19,7 @@ export function LanguageConflictToast({
   onChoose,
 }: LanguageConflictToastProps) {
   return (
-    <div className="w-full max-w-md bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-200">
+    <div className="w-full max-w-md bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-overlay animate-in slide-in-from-bottom-4 fade-in duration-200">
       {/* Header */}
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-center gap-2 mb-2">
@@ -94,7 +94,7 @@ export function LanguageSwitchToast({
   const isSystemLang = currentLang === systemLang;
 
   return (
-    <div className="inline-flex items-center gap-3 px-4 py-3 bg-background/95 backdrop-blur-xl border border-border/50 rounded-full shadow-lg animate-in slide-in-from-bottom-2 fade-in duration-200">
+    <div className="inline-flex items-center gap-3 px-4 py-3 bg-background/95 backdrop-blur-xl border border-border/50 rounded-full shadow-raised animate-in slide-in-from-bottom-2 fade-in duration-200">
       <Languages className="w-4 h-4 text-muted-foreground" />
       <span className="text-sm text-muted-foreground">
         {systemLang === "en" ? (

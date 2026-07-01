@@ -45,6 +45,23 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  /* Elevation — app-wide shadow spec (two levels, à la Material elevation).
+     Use these instead of raw `shadow-lg/2xl + shadow-black/xx`, so every
+     floating surface reads on one of two heights:
+
+       shadow-raised  — resting floating controls + hover surfaces that sit
+                        just off the page: the FAB, the Live Activity pill,
+                        every hover peek. A quiet, low lift.
+       shadow-overlay — focus / modal surfaces that float clearly above
+                        content: the command palette, Live Activity expanded,
+                        toasts, the devtool panel. A stronger, higher lift.
+
+     Colour stays black in both themes; in dark mode the border does most of
+     the separating (a black shadow on a dark surface barely reads), matching
+     the existing FAB / Live Activity recipe. */
+  --shadow-raised: 0 4px 6px -4px rgb(0 0 0 / 0.05), 0 10px 15px -3px rgb(0 0 0 / 0.05);
+  --shadow-overlay: 0 25px 50px -12px rgb(0 0 0 / 0.2);
 }
 
 /* =============================================================================
