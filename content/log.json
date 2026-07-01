@@ -224,6 +224,7 @@
           },
           "date": "2019-05",
           "endDate": "2019-08",
+          "hideRow": true,
           "tags": [
             "XR",
             "Operating System",
@@ -243,6 +244,7 @@
           },
           "date": "2018-05",
           "endDate": "2018-08",
+          "hideRow": true,
           "tags": [
             "ReasonML",
             "OCaml",
