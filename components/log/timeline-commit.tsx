@@ -84,6 +84,12 @@ interface TimelineCommitProps {
   byline?: {
     handle: string;
     isClusterHead: boolean;
+    /**
+     * Effective team subtitle for a project row (set only when this is
+     * the first row in a same-team run). Rendered as the subtitle-row
+     * left cell when the commit has no venue meta of its own.
+     */
+    subtitle?: string;
     expanded: {
       title: string;
       company: string;
@@ -415,8 +421,8 @@ export function TimelineCommit({
       {(data.meta || byline) && (
         <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-muted-foreground/40 flex items-baseline justify-between gap-2">
           <span className="min-w-0 truncate">
-            {data.meta &&
-              (data.metaUrl ? (
+            {data.meta ? (
+              data.metaUrl ? (
                 <a
                   href={data.metaUrl}
                   target="_blank"
@@ -429,7 +435,14 @@ export function TimelineCommit({
                 </a>
               ) : (
                 data.meta
-              ))}
+              )
+            ) : (
+              // Project subtitle fallback — set only on the first row
+              // of a same-team run so repeats stay blank (sparse). The
+              // left cell still exists to preserve baseline alignment
+              // with the right-aligned byline.
+              byline?.subtitle
+            )}
           </span>
           {byline && (
             <span

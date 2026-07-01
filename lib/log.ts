@@ -204,6 +204,17 @@ interface BaseCommit {
    * points to a role) and then by smallest-window tenure auto-detect.
    */
   identityId?: string;
+  /**
+   * Sub-org / team the commit sits under. Renders as the row's
+   * subtitle chip on project rows — e.g. `"React Core team @ Meta"`,
+   * `"PLR @ Meta"`, `"Lynx @ ByteDance"`. Set on a project to override
+   * per-row; set on a role range to serve as the default for every
+   * project resolved under that role (Lynx-era projects inherit
+   * `Lynx @ ByteDance` without repeating the string). Sparse rendering
+   * blanks the chip when it repeats the previous project's team, so
+   * the line only prints where the value actually changes.
+   */
+  team?: LocalizedString;
   /** Personal reflection / liner notes */
   commentary?: LocalizedString;
   tags?: string[];

@@ -129,6 +129,15 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
     type Byline = {
       handle: string;
       isClusterHead: boolean;
+      /**
+       * Effective team subtitle for a project row, computed as
+       * `project.team ?? role.team`. Only set when the row is a project
+       * AND this is the first row in a contiguous same-team run —
+       * repeats render blank (sparse). Non-projects get undefined here
+       * (their subtitle comes from `data.meta` — talk conference,
+       * publication, platform).
+       */
+      subtitle?: string;
       expanded: {
         title: string;
         company: string;
@@ -138,8 +147,10 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
     };
     const bylinesArr: (Byline | null)[] = commits.map(() => null);
     let prevIdentityId: string | null = null;
+    let prevProjectTeam: string | null = null;
     for (let i = 0; i < commits.length; i++) {
-      const resolved = resolveIdentity(commits[i], commits);
+      const c = commits[i];
+      const resolved = resolveIdentity(c, commits);
       if (!resolved) {
         prevIdentityId = null;
         continue;
@@ -164,9 +175,30 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
       const title = role ? localize(role.title, locale) : "";
       const desc = role ? localize(role.description, locale) : "";
 
+      // Effective team subtitle: project override wins, otherwise
+      // inherits the role's team default. Sparse — blank the chip when
+      // it repeats the previous project's team so a Lynx-era run of
+      // 10 projects all inheriting `Lynx @ ByteDance` prints the chip
+      // once at the top and stays quiet after.
+      let subtitle: string | undefined;
+      if (c.type === "project") {
+        const teamRaw = c.team ?? role?.team;
+        const teamStr = teamRaw ? localize(teamRaw, locale) : undefined;
+        if (teamStr && teamStr !== prevProjectTeam) {
+          subtitle = teamStr;
+          prevProjectTeam = teamStr;
+        } else if (teamStr) {
+          // Same team as previous project — blank, but keep tracker.
+          prevProjectTeam = teamStr;
+        }
+        // (If teamStr is undefined we leave prevProjectTeam untouched
+        //  so a project with no team doesn't reset the streak.)
+      }
+
       bylinesArr[i] = {
         handle: identity.handle,
         isClusterHead,
+        subtitle,
         expanded: {
           title,
           company,

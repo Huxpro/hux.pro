@@ -177,6 +177,10 @@
           },
           "date": "2023-02",
           "hideRow": true,
+          "team": {
+            "en": "Lynx @ ByteDance",
+            "zh": "Lynx @ 字节跳动"
+          },
           "tags": [
             "Leadership",
             "Architecture"
@@ -697,11 +701,15 @@
         "zh": "Hermes JavaScript 引擎"
       },
       "description": {
-        "en": "JavaScript engine optimized for React Native. Led the effort to bring Hermes to iOS.",
-        "zh": "为 React Native 优化的 JavaScript 引擎。主导将 Hermes 引入 iOS 的工作。"
+        "en": "JavaScript engine optimized for React Native, built by the Programming Language & Runtime (PL&R) team. Led the effort to bring Hermes to iOS.",
+        "zh": "由 Programming Language & Runtime（PL&R）团队打造，为 React Native 优化的 JavaScript 引擎。主导将 Hermes 引入 iOS 的工作。"
       },
       "date": "2020-03",
       "endDate": "2022-10",
+      "team": {
+        "en": "PLR @ Meta",
+        "zh": "PLR @ Meta"
+      },
       "tags": [
         "JavaScript",
         "Compiler",
@@ -738,15 +746,19 @@
       "type": "project",
       "tagId": "react-era",
       "title": {
-        "en": "React Core & Forget Compiler",
-        "zh": "React 核心与 Forget 编译器"
+        "en": "React Compiler + React Core",
+        "zh": "React Compiler + React 核心"
       },
       "description": {
-        "en": "Contributing to React's core features and performance, plus co-founding the React Forget auto-memoization compiler as tech lead — the same team, two intertwined bets on how to reshape React's runtime and authoring model.",
-        "zh": "为 React 核心功能与性能做贡献；同时作为技术负责人共同创立 React Forget 自动记忆化编译器 —— 同一支团队的两条相互交织的路线，重塑 React 的运行时与编写模型。"
+        "en": "Founding engineer of the React Compiler (formerly Forget), the auto-memoization compiler — spent most of my Meta years on it. Also contributed to React core features and performance in parallel.",
+        "zh": "React Compiler（原名 Forget）的联合创始工程师 —— 自动记忆化编译器，在 Meta 期间的主线工作。并行贡献 React 核心功能与性能。"
       },
       "date": "2020-03",
       "endDate": "2022-10",
+      "team": {
+        "en": "React Core team @ Meta",
+        "zh": "React Core 团队 @ Meta"
+      },
       "tags": [
         "React",
         "Compiler",
@@ -770,6 +782,11 @@
           "present": "pill",
           "label": "GitHub",
           "icon": "github"
+        },
+        {
+          "kind": "link",
+          "url": "https://react.dev/blog/2022/06/15/react-labs-what-we-have-been-working-on-june-2022#react-compiler",
+          "present": "card"
         }
       ],
       "stats": {
@@ -785,18 +802,23 @@
       "type": "project",
       "tagId": "react-era",
       "title": {
-        "en": "Reality Labs Research",
-        "zh": "Reality Labs Research"
+        "en": "XROS PL and Frameworks",
+        "zh": "XROS PL 与框架"
       },
       "description": {
-        "en": "Summer 2019 internship at Meta Reality Labs Research on XROS — an experimental operating system for XR, ancestral to the OS eventually shipped in Meta's AR/VR line.",
-        "zh": "2019 年暑期在 Meta Reality Labs Research 实习，参与 XR 实验性操作系统 XROS —— 后续 Meta AR/VR 产品线所用系统的前身。"
+        "en": "Summer 2019 internship. My manager framed it as: \"As part of Reality Labs Research (formerly Oculus Research), I led a research team building a new programming language and application framework specifically targeting all-day wearable, low power devices.\"",
+        "zh": "2019 年暑期实习。我的主管这样描述这个项目：\"As part of Reality Labs Research (formerly Oculus Research), I led a research team building a new programming language and application framework specifically targeting all-day wearable, low power devices.\""
       },
       "date": "2019-05",
       "endDate": "2019-08",
+      "team": {
+        "en": "Reality Labs Research @ Meta",
+        "zh": "Reality Labs Research @ Meta"
+      },
       "tags": [
         "XR",
-        "Operating System",
+        "Programming Language",
+        "Framework",
         "Research"
       ],
       "media": [
@@ -817,15 +839,19 @@
       "type": "project",
       "tagId": "react-era",
       "title": {
-        "en": "ReasonML / ReScript",
-        "zh": "ReasonML / ReScript"
+        "en": "ReasonML (now ReScript)",
+        "zh": "ReasonML（后更名为 ReScript）"
       },
       "description": {
-        "en": "Contributor on the ReasonML / ReScript team — an OCaml-syntax typed-JS toolchain later rebranded as ReScript. Worked on Messenger Web during the summer 2018 internship.",
-        "zh": "参与 ReasonML / ReScript（后更名为 ReScript）团队 —— 基于 OCaml 语法的类型化 JavaScript 工具链。2018 年暑期实习期间参与 Messenger Web 开发。"
+        "en": "Contributor on the ReasonML team — an OCaml-syntax typed-JS toolchain that was later rebranded as ReScript. Worked on Messenger Web during the summer 2018 internship.",
+        "zh": "参与 ReasonML 团队 —— 基于 OCaml 语法的类型化 JavaScript 工具链，后更名为 ReScript。2018 年暑期实习期间参与 Messenger Web 开发。"
       },
       "date": "2018-05",
       "endDate": "2018-08",
+      "team": {
+        "en": "Meta",
+        "zh": "Meta"
+      },
       "tags": [
         "ReasonML",
         "ReScript",

@@ -5,6 +5,12 @@
     "image": "https://gitee.com/index/gitee-people/images/common-thumb.jpg",
     "siteName": "Gitee"
   },
+  "https://react.dev/blog/2022/06/15/react-labs-what-we-have-been-working-on-june-2022#react-compiler": {
+    "title": "React Labs: What We've Been Working On – June 2022 – React",
+    "description": "The library for web and native user interfaces",
+    "image": "https://react.dev/images/og-blog.png",
+    "siteName": "react.dev"
+  },
   "https://reactnative.dev/blog/2021/10/26/toward-hermes-being-the-default": {
     "title": "Toward Hermes being the Default · React Native",
     "siteName": "reactnative.dev"

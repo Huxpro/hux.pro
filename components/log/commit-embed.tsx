@@ -56,6 +56,7 @@ export interface CommitProps {
   byline?: {
     handle: string;
     isClusterHead: boolean;
+    subtitle?: string;
     expanded: {
       title: string;
       company: string;
