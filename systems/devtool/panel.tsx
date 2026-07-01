@@ -20,6 +20,7 @@ import {
   Brain,
   Bug,
   Check,
+  ChevronDown,
   ChevronUp,
   Clock,
   Cloud,
@@ -194,21 +195,55 @@ interface DebugSectionProps {
   children: React.ReactNode;
   /** Tighter vertical padding for lightweight content (toggles, buttons) */
   compact?: boolean;
+  /** Start collapsed. Default: expanded. */
+  defaultCollapsed?: boolean;
 }
 
-function DebugSection({ title, icon, action, children, compact }: DebugSectionProps) {
+function DebugSection({
+  title,
+  icon,
+  action,
+  children,
+  compact,
+  defaultCollapsed = false,
+}: DebugSectionProps) {
+  // In-memory collapse state — persists while the panel is mounted (i.e. while
+  // the devtool is enabled), resets on reload. The title is the natural click
+  // target; the `action` slot stays a separate sibling so its controls (toggles,
+  // copy) keep working without toggling the fold.
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+
   return (
     <div className="border-b border-border/30 last:border-b-0">
       <div className="px-4 py-2 bg-muted/20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground uppercase tracking-wider">
+        <div className="flex items-center justify-between gap-2">
+          <button
+            onClick={() => setCollapsed((c) => !c)}
+            className={cn(
+              "flex items-center gap-2 flex-1 min-w-0",
+              "text-xs font-mono text-muted-foreground uppercase tracking-wider",
+              "hover:text-foreground/80 transition-colors"
+            )}
+            aria-expanded={!collapsed}
+            aria-label={`Toggle ${title} section`}
+          >
+            <ChevronDown
+              className={cn(
+                "h-3 w-3 shrink-0 transition-transform duration-200",
+                collapsed && "-rotate-90"
+              )}
+            />
             {icon}
-            {title}
-          </div>
-          <div className="flex items-center min-h-5">{action}</div>
+            <span className="truncate">{title}</span>
+          </button>
+          {action && (
+            <div className="flex items-center min-h-5 shrink-0">{action}</div>
+          )}
         </div>
       </div>
-      <div className={cn("px-4", compact ? "py-2" : "py-3")}>{children}</div>
+      {!collapsed && (
+        <div className={cn("px-4", compact ? "py-2" : "py-3")}>{children}</div>
+      )}
     </div>
   );
 }
