@@ -25,18 +25,8 @@
  */
 
 import { cn } from "@/lib/utils";
+import { DEFAULT_COVER_ASPECT, type CoverFit } from "@/lib/content";
 import { ExternalImage } from "./external-image";
-
-/** How a peek cover fills its slot. See {@link PeekCover}. */
-export type CoverFit = "cover" | "natural";
-
-/**
- * Site-wide default aspect ratio for `fit="cover"` slots. Retune the whole
- * site's default from this single point; individual posts/commits override it
- * with `coverAspect` / `preview.aspect`. Any valid CSS `aspect-ratio` value
- * works (e.g. `"16 / 9"`, `"4 / 3"`, `"3 / 4"`, `"1 / 1"`).
- */
-export const DEFAULT_COVER_ASPECT = "16 / 9";
 
 export interface PeekCoverProps {
   /** Cover image URL (third-party — rendered via {@link ExternalImage}). */
@@ -70,33 +60,25 @@ export function PeekCover({
   loading = "eager",
   onResolved,
 }: PeekCoverProps) {
-  if (fit === "natural") {
-    // Intrinsic aspect: the image's own dimensions size the slot. `h-auto`
-    // lets it grow to the natural height so nothing is cropped.
-    return (
-      <div className={cn("bg-muted/20 overflow-hidden", className)}>
-        <ExternalImage
-          src={src}
-          className={cn("block w-full h-auto", imgClassName)}
-          loading={loading}
-          onResolved={onResolved}
-        />
-      </div>
-    );
-  }
-
-  // Fixed slot: a stable rectangle regardless of the image's real ratio; the
-  // image fills and is cropped. Inline `aspect-ratio` (rather than a Tailwind
-  // `aspect-[…]` class) keeps arbitrary author-supplied ratios out of the
-  // utility churn and works for any value.
+  // Two modes, one scaffold:
+  //  - natural: no fixed height — `h-auto` lets the image's intrinsic aspect
+  //    size the slot, so nothing is cropped.
+  //  - cover: a fixed-aspect rectangle the image fills and is cropped to.
+  //    Inline `aspect-ratio` (rather than a Tailwind `aspect-[…]` class) keeps
+  //    arbitrary author-supplied ratios out of the utility churn.
+  const isNatural = fit === "natural";
   return (
     <div
       className={cn("bg-muted/20 overflow-hidden", className)}
-      style={{ aspectRatio: aspect ?? DEFAULT_COVER_ASPECT }}
+      style={isNatural ? undefined : { aspectRatio: aspect ?? DEFAULT_COVER_ASPECT }}
     >
       <ExternalImage
         src={src}
-        className={cn("block w-full h-full object-cover", imgClassName)}
+        className={cn(
+          "block w-full",
+          isNatural ? "h-auto" : "h-full object-cover",
+          imgClassName
+        )}
         loading={loading}
         onResolved={onResolved}
       />

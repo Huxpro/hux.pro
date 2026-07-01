@@ -8,13 +8,14 @@ import {
   getVisibleTags,
   isDecoratorTag,
   shouldShowPost,
+  type CoverFit,
   type Post,
   type PostLanguage,
 } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { MagneticPreview, PEEK_W } from "@/components/motion-primitives/magnetic-preview";
-import { PeekCover, type CoverFit } from "@/components/log/media/peek-cover";
+import { PeekCover } from "@/components/log/media/peek-cover";
 import { useOptionalDevtool } from "@/systems/devtool/provider";
 import { Link } from "next-view-transitions";
 import { useEffect, type ReactNode } from "react";

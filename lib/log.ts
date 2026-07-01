@@ -82,10 +82,10 @@ export type VideoPlatform = "youtube" | "bilibili" | "vimeo";
 // interfaces below and consumers can keep a single import source.
 import type { SocialEmbedPlatform } from "./og-core";
 export type { SocialEmbedPlatform };
-// Type-only — erased at compile time, so this stays framework-agnostic for the
-// node snapshot script. Shared with the /writing peek so both hover surfaces
-// speak the same cover-fit vocabulary.
-import type { CoverFit } from "@/components/log/media/peek-cover";
+// Shared cover-fit vocabulary, from the framework-agnostic content layer, so
+// both hover surfaces (and the node snapshot script that imports this file)
+// speak the same language.
+import type { CoverFit } from "./content";
 export type { CoverFit };
 
 /**

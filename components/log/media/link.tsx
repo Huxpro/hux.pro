@@ -19,7 +19,8 @@ import type { InternalLinkMeta, LinkMedia } from "@/lib/log";
 import { pickInternalLink } from "@/lib/og-enrich";
 import { useLocale } from "@/services";
 import { ExternalImage } from "./external-image";
-import { PeekCover, type CoverFit } from "./peek-cover";
+import { PeekCover } from "./peek-cover";
+import type { CoverFit } from "@/lib/content";
 
 // =============================================================================
 // Types

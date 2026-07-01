@@ -18,16 +18,18 @@ export function DevtoolPageMeta({ slug, lang, language, frontmatter }: PageMeta)
   const devtool = useOptionalDevtool();
   const setPageMeta = devtool?.setPageMeta;
 
-  // Serialize to a stable key so the effect re-runs on real changes, not on the
-  // new object identity every render (frontmatter arrives fresh from the RSC
-  // boundary each time).
-  const key = JSON.stringify({ slug, lang, language, frontmatter });
+  // slug + lang identify exactly one source file, so they fully determine
+  // `frontmatter` — no need to serialize the object to detect changes. Keying on
+  // the primitives (vs the fresh-every-render object identity) also avoids
+  // walking the frontmatter on every render for every visitor.
+  const key = `${slug}|${lang}|${language ?? ""}`;
 
   useEffect(() => {
     if (!setPageMeta) return;
     setPageMeta({ slug, lang, language, frontmatter });
     return () => setPageMeta(null);
-    // key captures slug/lang/language/frontmatter; re-run only when it changes.
+    // `key` stands in for slug/lang/language/frontmatter; re-run only when it
+    // changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, setPageMeta]);
 

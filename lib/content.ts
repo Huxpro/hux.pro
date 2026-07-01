@@ -1,8 +1,27 @@
 // Content types and helpers for MDX posts
 import type { Locale } from "@/lib/i18n";
-import type { CoverFit } from "@/components/log/media/peek-cover";
 
 export type PostLanguage = "en" | "zh" | "both";
+
+/**
+ * How a peek cover fills its slot (see the `PeekCover` component):
+ *  - `"cover"`: fixed-aspect slot, image cropped to fill.
+ *  - `"natural"`: slot matches the image's intrinsic aspect (no crop).
+ *
+ * Lives here (framework-agnostic content layer) rather than in the client
+ * component, so `lib/*` and the node snapshot script can reference it without
+ * reaching across the framework boundary — the same reason `SocialEmbedPlatform`
+ * lives in `lib/og-core`. `PeekCover` imports these back from here.
+ */
+export type CoverFit = "cover" | "natural";
+
+/**
+ * Site-wide default aspect ratio for `coverFit: "cover"` slots. Retune the
+ * whole site's default from this single point; individual posts/commits
+ * override it with `coverAspect` / `preview.aspect`. Any valid CSS
+ * `aspect-ratio` value works (e.g. `"16 / 9"`, `"4 / 3"`, `"3 / 4"`, `"1 / 1"`).
+ */
+export const DEFAULT_COVER_ASPECT = "16 / 9";
 
 // ===== Base Types =====
 
