@@ -277,22 +277,24 @@ export function MediaRenderer({
         <div>
           {tripleCards ? (
             // Three cards → horizontal scroll-snap rail. The rail's *nominal*
-            // width is the content column, so it occupies the same footprint
-            // as a two-card row and the first two cards line up pixel-for-
-            // pixel with a two-card commit (e.g. "Upgrading to PWA"). The
-            // scroll *track* is then widened past that footprint — bleeding
-            // into the row's right gutter — so the third card's edge peeks
-            // through as the "there's more, swipe →" affordance.
+            // width is the content column, so the first two cards line up
+            // pixel-for-pixel with a two-card commit (e.g. "Upgrading to
+            // PWA"). The scroll *track* then bleeds one full page gutter
+            // (`-mr-6`, matching `<main>`'s `px-6`) past that footprint, so
+            // the third card's edge runs right up to the page edge on mobile
+            // and into the reading column's gutter on desktop.
             //
             // The trick that reconciles "keep two-up width" with "show a peek"
             // is the card width: it's measured against the container
-            // (`100cqi`), NOT the widened track, so the first two stay at
-            // their exact 1/2-column size while the track overflows. `@container/rail`
-            // is what makes `cqi` resolve to the two-card footprint.
-            <div className="@container/rail">
+            // (`100cqi`), NOT the bled track, so all three stay at their exact
+            // 1/2-column size (uniform gaps) while only the track overflows.
+            // `@container/rail` is what makes `cqi` resolve to the two-card
+            // footprint. A left-fading gradient softens the peeked edge so the
+            // clipped third card reads as "more →" rather than a hard cut.
+            <div className="@container/rail relative">
               <div
                 className={cn(
-                  "flex gap-2.5 w-[calc(100%_+_0.75rem)]",
+                  "flex gap-2.5 -mr-6",
                   "overflow-x-auto overscroll-x-contain",
                   "snap-x snap-mandatory scroll-smooth no-scrollbar",
                 )}
@@ -300,14 +302,8 @@ export function MediaRenderer({
                 {cards.map((m, i) => (
                   <div
                     key={`rail-${i}`}
-                    className={cn(
-                      // Each card is exactly a two-up column: (100cqi − gap)/2.
-                      "shrink-0 snap-start basis-[calc((100cqi_-_0.625rem)/2)]",
-                      // Nudge only the trailing card leftward so its edge lands
-                      // inside the gutter peek zone; the first two keep the full
-                      // gap so they stay aligned with a two-card row.
-                      i === cards.length - 1 && "-ml-1.5",
-                    )}
+                    // Each card is exactly a two-up column: (100cqi − gap)/2.
+                    className="shrink-0 snap-start basis-[calc((100cqi_-_0.625rem)/2)]"
                   >
                     {wrap(
                       `rail-card-${i}`,
@@ -323,6 +319,12 @@ export function MediaRenderer({
                   </div>
                 ))}
               </div>
+              {/* Right-edge fade — sits at the bled track edge (one gutter
+                  past the column), never intercepts scroll/clicks. */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 -right-6 w-12 bg-gradient-to-l from-background to-transparent"
+              />
             </div>
           ) : (
             <div

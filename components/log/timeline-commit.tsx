@@ -476,10 +476,15 @@ export function TimelineCommit({
           // brighten the rail while the row is open — mobile-friendly,
           // survives losing focus after a tap-to-expand.
           data-expanded={isExpanded ? "" : undefined}
-          // overflow-hidden clips the rail segments at row bounds so
-          // they can't leak past the tenure cluster's last row.
+          // Clip the rail segments vertically so they can't leak past the
+          // tenure cluster's last row — but only on the block axis. The
+          // inline axis stays visible so a three-card media rail can bleed
+          // into the page gutter (see MediaRenderer). `overflow-y: clip`
+          // keeps the vertical clip without turning the row into a scroll
+          // container; the cursor preview is `position: fixed`, so it was
+          // never clipped here anyway.
           className={cn(
-            "group relative -mx-3 px-3 rounded-lg transition-colors duration-150 overflow-hidden",
+            "group relative -mx-3 px-3 rounded-lg transition-colors duration-150 overflow-y-clip",
             // Events get tighter vertical padding so they sit between
             // commits as ambient annotations rather than as full rows.
             isEvent ? "py-1" : "py-2.5",
