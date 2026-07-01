@@ -221,18 +221,17 @@ function buildCommitPreview(
       };
     }
     return {
-      // Strip the panel chrome (like the single card peek) so the thumb is
-      // the *only* bordered surface. Keeping the default panel chrome here
-      // stacked the panel's border on top of the thumb's own border — a
-      // visible double edge between the cover and the shadow. `max-w-md`
-      // lifts the default `max-w-xs` cap so PEEK_W isn't clipped.
+      // Strip the panel chrome so the thumb is the only surface (keeping it
+      // stacked the panel's border on top of the thumb's — a double edge).
+      // `max-w-md` lifts the default `max-w-xs` cap so PEEK_W isn't clipped.
       panelClassName: `p-0 max-w-md ${BARE_PANEL_CHROME}`,
-      // Same PEEK_W as the link / writing peeks; the thumb supplies its own
-      // border + PEEK_SHADOW so every hover surface reads as one family.
+      // A pure-media poster: cover + rounded clip + PEEK_SHADOW, no border
+      // (unlike the link/writing cards, whose border frames their text). The
+      // image bleeds to the rounded edge and the shadow does the lifting.
       node: (
         <PeekThumb
           image={item.image}
-          className={cn(PEEK_W, "aspect-video", PEEK_SHADOW)}
+          className={cn(PEEK_W, "aspect-video border-0", PEEK_SHADOW)}
         />
       ),
     };
