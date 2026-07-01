@@ -13,7 +13,7 @@ import {
 } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
+import { MagneticPreview, PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import { ExternalImage } from "@/components/log/media/external-image";
 import { Link } from "next-view-transitions";
 import { type ReactNode } from "react";
@@ -279,7 +279,7 @@ function PostPreview({
   const hasTags = !!(meta.tags && meta.tags.length);
 
   return (
-    <div className="w-[26rem] max-w-full">
+    <div className={cn(PEEK_W, "max-w-full")}>
       {meta.cover && (
         <div className="aspect-video bg-muted/20 overflow-hidden">
           <ExternalImage

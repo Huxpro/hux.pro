@@ -17,7 +17,7 @@ import { getCommitPeekItems, localize } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./media/external-image";
 import { CardFace } from "./media/link";
-import { PEEK_SHADOW } from "@/components/motion-primitives/magnetic-preview";
+import { PEEK_SHADOW, PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
@@ -198,10 +198,9 @@ function buildCommitPreview(
     return {
       // Strip the panel chrome so the rotated cards read as floating, not
       // contained in another box — the rotation IS the visual signal of
-      // "there's more here" and a background defeats it. Generous padding
-      // (`p-8`) and a wider cap (`max-w-md`) give the back layers' translate
-      // + rotate enough room before the Cursor wrapper's
-      // `overflow-hidden rounded-lg` clip kicks in.
+      // "there's more here" and a background defeats it. Padding (`p-8`) +
+      // a wider cap (`max-w-md`) give the back layers' translate + rotate
+      // room to peek out around the PEEK_W front card.
       panelClassName: `p-8 max-w-md ${BARE_PANEL_CHROME}`,
       node: <StackedPeek items={items} />,
     };
@@ -214,18 +213,20 @@ function buildCommitPreview(
     // the poster's edge.
     if (item.kind === "card") {
       return {
-        panelClassName: `p-0 ${BARE_PANEL_CHROME}`,
+        // `max-w-sm` lifts the panel's default `max-w-xs` cap to fit the
+        // unified PEEK_W (384) card.
+        panelClassName: `p-0 max-w-sm ${BARE_PANEL_CHROME}`,
         // Single peek mirrors the expanded /works LinkCard: natural aspect.
-        node: <PeekCard item={item} className="w-72" />,
+        node: <PeekCard item={item} className={PEEK_W} />,
       };
     }
     return {
-      // `max-w-md` lifts the default `max-w-xs` cap so the 26rem content
-      // doesn't get clipped by the Cursor wrapper's overflow.
+      // `max-w-md` lifts the default `max-w-xs` cap so the PEEK_W content
+      // isn't clipped.
       panelClassName: "p-0 max-w-md overflow-hidden",
-      // Matches the /writing peek card width (w-[26rem]) so video commits
-      // and post peeks read as the same hover-surface family.
-      node: <PeekThumb image={item.image} className="w-[26rem] aspect-video" />,
+      // Same PEEK_W as the link / writing peeks so every hover surface reads
+      // as one family.
+      node: <PeekThumb image={item.image} className={cn(PEEK_W, "aspect-video")} />,
     };
   }
 
@@ -239,8 +240,10 @@ function buildCommitPreview(
   if (!description && !hasTags) return null;
 
   return {
+    // `max-w-md` lifts the panel's default `max-w-xs` cap to fit PEEK_W.
+    panelClassName: "max-w-md",
     node: (
-      <div className="w-72 space-y-3">
+      <div className={cn(PEEK_W, "space-y-3")}>
         {description && (
           <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
             {description}
@@ -386,7 +389,8 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
   return (
     <div
       className={cn(
-        "relative w-72 transition-opacity duration-200",
+        "relative transition-opacity duration-200",
+        PEEK_W,
         allReady ? "opacity-100" : "opacity-0",
       )}
     >
