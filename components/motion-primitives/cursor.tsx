@@ -11,6 +11,38 @@ import {
   type Variant,
 } from "motion/react";
 import { cn } from "@/lib/utils";
+import { getPreviewTuning } from "./preview-tuning";
+
+// --- Shared dwell "warmth" across every cursor preview on the page ----------
+// The first preview to open waits out the dwell (openDelay); once one is open,
+// moving to another item shows its preview immediately. Warmth lingers for a
+// short grace window after a preview closes, so sweeping between adjacent rows
+// stays instant — leaving the list long enough lets it cool down again. Both
+// timings are tunable at runtime via the devtool (see preview-tuning).
+let previewWarm = false;
+let warmthCoolTimer: number | null = null;
+
+function isPreviewWarm() {
+  return previewWarm;
+}
+
+function markPreviewOpen() {
+  previewWarm = true;
+  if (warmthCoolTimer !== null) {
+    window.clearTimeout(warmthCoolTimer);
+    warmthCoolTimer = null;
+  }
+}
+
+function markPreviewClosed() {
+  if (typeof window === "undefined") return;
+  // Re-entering within the grace window cancels this and keeps things warm.
+  if (warmthCoolTimer !== null) window.clearTimeout(warmthCoolTimer);
+  warmthCoolTimer = window.setTimeout(() => {
+    previewWarm = false;
+    warmthCoolTimer = null;
+  }, getPreviewTuning().graceMs);
+}
 
 export type CursorProps = {
   children: React.ReactNode;
@@ -94,8 +126,43 @@ export function Cursor({
   const cursorXSpring = useSpring(cursorX, springConfig || { duration: 0 });
   const cursorYSpring = useSpring(cursorY, springConfig || { duration: 0 });
 
-  const handleMouseEnter = useCallback(() => setIsHovering(true), []);
-  const handleMouseLeave = useCallback(() => setIsHovering(false), []);
+  // Dwell timer: open only after the pointer rests for the tuned dwell, so the
+  // panel doesn't flash while the pointer is just sweeping across rows. Once any
+  // preview is warm (see the shared singleton above) the dwell is skipped, so
+  // moving between items is instant. Closing is always immediate. The dwell only
+  // ever runs for attachToParent (preview) cursors, so reading it from the
+  // shared tuning store here doesn't affect plain cursor-followers.
+  const openTimer = useRef<number | null>(null);
+  const cancelOpen = useCallback(() => {
+    if (openTimer.current !== null) {
+      window.clearTimeout(openTimer.current);
+      openTimer.current = null;
+    }
+  }, []);
+  const open = useCallback(() => {
+    markPreviewOpen();
+    setIsHovering(true);
+  }, []);
+  const scheduleOpen = useCallback(() => {
+    if (openTimer.current !== null) return;
+    // Warm? skip the dwell. Cold? wait it out — only the first item pays it.
+    const delay = isPreviewWarm() ? 0 : getPreviewTuning().openDelay;
+    if (delay <= 0) {
+      open();
+      return;
+    }
+    openTimer.current = window.setTimeout(() => {
+      openTimer.current = null;
+      open();
+    }, delay);
+  }, [open]);
+
+  const handleMouseEnter = useCallback(() => scheduleOpen(), [scheduleOpen]);
+  const handleMouseLeave = useCallback(() => {
+    cancelOpen();
+    markPreviewClosed();
+    setIsHovering(false);
+  }, [cancelOpen]);
 
   useEffect(() => {
     if (!attachToParent || !cursorRef.current) return;
@@ -107,7 +174,7 @@ export function Cursor({
     const isInside = parent.matches(":hover");
     let rafId: number | null = null;
     if (isInside) {
-      rafId = window.requestAnimationFrame(() => setIsHovering(true));
+      rafId = window.requestAnimationFrame(() => scheduleOpen());
     }
 
     parent.addEventListener("mouseenter", handleMouseEnter);
@@ -117,10 +184,11 @@ export function Cursor({
       if (rafId !== null) {
         window.cancelAnimationFrame(rafId);
       }
+      cancelOpen();
       parent.removeEventListener("mouseenter", handleMouseEnter);
       parent.removeEventListener("mouseleave", handleMouseLeave);
     };
-  }, [attachToParent, handleMouseEnter, handleMouseLeave]);
+  }, [attachToParent, handleMouseEnter, handleMouseLeave, scheduleOpen, cancelOpen]);
 
   const isVisible = attachToParent ? isHovering : true;
 
