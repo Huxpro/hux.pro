@@ -214,7 +214,7 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
       attachments: attachmentsWithGaps,
       bylines: bylinesArr,
     };
-  }, [commits]);
+  }, [commits, identities, locale]);
 
   return (
     <div>
