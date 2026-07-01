@@ -310,6 +310,10 @@
           "date": "2017-02",
           "endDate": "2017-05",
           "hideRow": true,
+          "team": {
+            "en": "Consulting @ Ele.me",
+            "zh": "顾问 @ 饿了么"
+          },
           "tags": [
             "PWA",
             "Consulting"
@@ -332,16 +336,13 @@
             "zh": "Web 基础架构团队主管"
           },
           "description": {
-            "en": "Founding engineer of the award-winning app Yupiaoer. Founded the Web Infra team. Led the company-wide tech stack migration to React.",
-            "zh": "获奖产品「娱票儿」创始工程师。组建 Web 基础架构团队。主导全公司技术栈向 React 的迁移。"
+            "en": "Founding engineer of Yupiaoer. Founded the Web Infra team. Led the company-wide tech stack migration to React.",
+            "zh": "娱票儿创始工程师。组建 Web 基础架构团队。主导全公司技术栈向 React 的迁移。"
           },
           "date": "2015-05",
           "endDate": "2016-06",
+          "hideRow": true,
           "tags": [
-            "Web",
-            "Mobile",
-            "React",
-            "React Native",
             "Leadership"
           ]
         }
@@ -362,46 +363,15 @@
             "zh": "前端工程师"
           },
           "description": {
-            "en": "",
-            "zh": ""
+            "en": "Front-end engineer on the Alitrip mobile web team, working across Taobao / Alitrip hybrid app patterns.",
+            "zh": "阿里旅行移动端 Web 前端工程师，参与淘宝 / 阿里旅行 Hybrid App 架构。"
           },
           "date": "2014-08",
           "endDate": "2015-05",
+          "hideRow": true,
           "tags": [
             "Web",
             "Mobile"
-          ],
-          "media": [
-            {
-              "kind": "link",
-              "url": "/writing/taobao-hybrid-app/zh",
-              "present": "card",
-              "preview": {
-                "title": "Hybrid 架构下，加载本地 H5 资源后，如何处理 Ajax 请求？",
-                "description": "聊聊「虚拟域」与资源离线化",
-                "image": "/img/post-bg-taobao-hybrid.jpg"
-              }
-            },
-            {
-              "kind": "link",
-              "url": "/writing/alitrip-strategy/zh",
-              "present": "card",
-              "preview": {
-                "title": "聊聊「阿里旅行 · 去啊」",
-                "description": "聊聊在线旅行行业与老东家的产品思路",
-                "image": "/img/post-bg-alitrip.jpg"
-              }
-            },
-            {
-              "kind": "link",
-              "url": "/writing/see-u-ali/zh",
-              "present": "card",
-              "preview": {
-                "title": "See you, Alibaba",
-                "description": "再见，阿里。",
-                "image": "/img/post-bg-see-u-ali.jpg"
-              }
-            }
           ]
         }
       ]
@@ -441,28 +411,35 @@
   },
   "commits": [
     {
-      "id": "qcon-shanghai",
+      "id": "juejin-talk-2023",
       "type": "talk",
       "tagId": "lynx-era",
       "title": {
-        "en": "Cross-Platform at ByteDance Scale",
-        "zh": "字节跳动规模的跨平台开发"
+        "en": "Frontend is Dead, Long Live Frontend",
+        "zh": "前端已死，前端永生"
       },
       "description": {
-        "en": "How we built and scaled Lynx to power experiences for billions.",
-        "zh": "我们如何构建和扩展 Lynx 以服务数十亿用户。"
+        "en": "Annual tech keynote at Juejin 2023.",
+        "zh": "掘金年度技术演讲 2023。"
       },
-      "date": "2023-10",
+      "date": "2023-12",
       "conference": {
-        "name": "QCon Shanghai",
-        "city": "Shanghai, China"
+        "name": "掘金年度技术演讲 2023",
+        "url": "https://juejin.cn/meetings/talk2023"
       },
-      "tags": [
-        "Architecture",
-        "Scale",
-        "Performance"
+      "media": [
+        {
+          "kind": "video",
+          "url": "https://www.bilibili.com/video/BV1uz421d7Ch/",
+          "platform": "bilibili"
+        }
       ],
-      "language": "zh"
+      "tags": [
+        "Frontend",
+        "Opinion"
+      ],
+      "language": "zh",
+      "listedIn": "zh"
     },
     {
       "id": "feday-2023",
@@ -529,6 +506,15 @@
           "present": "pill",
           "label": "GitHub",
           "icon": "github"
+        },
+        {
+          "kind": "link",
+          "url": "https://lynxjs.org/next/blog/lynx-unlock-native-for-more",
+          "urls": {
+            "en": "https://lynxjs.org/next/blog/lynx-unlock-native-for-more",
+            "zh": "https://lynxjs.org/next/zh/blog/lynx-unlock-native-for-more.html"
+          },
+          "present": "card"
         }
       ],
       "stats": {
@@ -929,6 +915,95 @@
       "tags": [
         "PWA",
         "Mobile Web"
+      ]
+    },
+    {
+      "id": "yupiaoer",
+      "type": "project",
+      "tagId": "pwa-era",
+      "identityId": "wepiao",
+      "title": {
+        "en": "Yupiaoer (娱票儿)",
+        "zh": "娱票儿"
+      },
+      "description": {
+        "en": "Award-winning ticket-buying app. Founding engineer; also founded the Web Infra team and led the company-wide tech stack migration to React.",
+        "zh": "获奖购票应用「娱票儿」。创始工程师，同时组建 Web 基础架构团队并主导全公司技术栈向 React 的迁移。"
+      },
+      "date": "2015-05",
+      "endDate": "2016-06",
+      "team": {
+        "en": "Web Infra @ WePiao",
+        "zh": "Web 基础架构 @ 微影时代"
+      },
+      "tags": [
+        "Mobile",
+        "React",
+        "React Native"
+      ],
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://www.ticketingbusinessforum.com/awards-2017-shortlists-revealed/",
+          "present": "card"
+        }
+      ]
+    },
+    {
+      "id": "alitrip-mobile-web",
+      "type": "project",
+      "tagId": "pwa-era",
+      "identityId": "alibaba",
+      "title": {
+        "en": "Taobao / Alitrip Mobile Web",
+        "zh": "淘宝 / 阿里旅行 移动 Web"
+      },
+      "description": {
+        "en": "Hybrid app patterns for Taobao and Alitrip (later Fliggy) mobile web — offline resources, virtual domains for local H5, product strategy notes from the road.",
+        "zh": "淘宝与阿里旅行（后更名飞猪）移动端 Web 的 Hybrid App 架构 —— 本地资源离线化、H5 虚拟域，以及在职期间的行业观察。"
+      },
+      "date": "2014-08",
+      "endDate": "2015-05",
+      "team": {
+        "en": "Alibaba",
+        "zh": "阿里巴巴"
+      },
+      "tags": [
+        "Web",
+        "Mobile",
+        "Hybrid"
+      ],
+      "media": [
+        {
+          "kind": "link",
+          "url": "/writing/taobao-hybrid-app/zh",
+          "present": "card",
+          "preview": {
+            "title": "Hybrid 架构下，加载本地 H5 资源后，如何处理 Ajax 请求？",
+            "description": "聊聊「虚拟域」与资源离线化",
+            "image": "/img/post-bg-taobao-hybrid.jpg"
+          }
+        },
+        {
+          "kind": "link",
+          "url": "/writing/alitrip-strategy/zh",
+          "present": "card",
+          "preview": {
+            "title": "聊聊「阿里旅行 · 去啊」",
+            "description": "聊聊在线旅行行业与老东家的产品思路",
+            "image": "/img/post-bg-alitrip.jpg"
+          }
+        },
+        {
+          "kind": "link",
+          "url": "/writing/see-u-ali/zh",
+          "present": "card",
+          "preview": {
+            "title": "See you, Alibaba",
+            "description": "再见，阿里。",
+            "image": "/img/post-bg-see-u-ali.jpg"
+          }
+        }
       ]
     },
     {
