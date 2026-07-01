@@ -52,6 +52,12 @@
   "https://www.bilibili.com/video/BV1ky4y1R7Zm/": {
     "image": "https://i1.hdslb.com/bfs/archive/bc1c58ea74186267875aff7770d03b409f8148f5.jpg"
   },
+  "https://www.callstack.com/podcasts/react-native-0-64-with-hermes-for-ios-ep-5": {
+    "title": "React Native 0.64 With Hermes for iOS",
+    "description": "Discover how Hermes boosts React Native performance on iOS and macOS, with insights into AOT, bytecode precompilation, and the future of Hermes support.",
+    "image": "https://cdn.prod.website-files.com/67e6c26f2d676c1963e098b9/682103eaf00515a9eae18e5c_682103e8998d91364e05e9c1_67eacbc61b4543c0d8ba01eb.webp",
+    "siteName": "callstack.com"
+  },
   "https://www.meta.com/emerging-tech/orion/": {
     "title": "Orion AI Glasses: The Future of AR Glasses Technology",
     "description": "A decade in the making, recent groundbreaking innovations from Meta with Orion redefine what is possible for AR, AI and beyond.",

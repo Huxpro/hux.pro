@@ -705,7 +705,7 @@
         "zh": "由 Programming Language & Runtime（PL&R）团队打造，为 React Native 优化的 JavaScript 引擎。主导将 Hermes 引入 iOS 的工作。"
       },
       "date": "2020-03",
-      "endDate": "2022-10",
+      "endDate": "2021-10",
       "team": {
         "en": "PLR @ Meta",
         "zh": "PLR @ Meta"
@@ -738,6 +738,11 @@
           "preview": {
             "image": "https://reactnative.dev/img/logo-og.png"
           }
+        },
+        {
+          "kind": "link",
+          "url": "https://www.callstack.com/podcasts/react-native-0-64-with-hermes-for-ios-ep-5",
+          "present": "card"
         }
       ]
     },
