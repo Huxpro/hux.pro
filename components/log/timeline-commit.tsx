@@ -501,18 +501,27 @@ export function TimelineCommit({
               <span className="text-muted-foreground/40">Author:</span>
               <span className="text-muted-foreground/65">&lt;{byline.handle}&gt;</span>
 
-              <span className="text-muted-foreground/40">Role:</span>
-              <span className="text-muted-foreground/60">
-                {byline.expanded.title}
-                <span className="text-muted-foreground/35"> @ </span>
-                {byline.expanded.company}
-                {byline.expanded.location && (
-                  <>
-                    <span className="text-muted-foreground/30"> · </span>
-                    {byline.expanded.location}
-                  </>
-                )}
-              </span>
+              {/*
+                Role line only when we have a role title to anchor on.
+                Personal-identity commits (e.g. `hux.pro` byline with no
+                role instance) skip this — the handle IS the role.
+              */}
+              {byline.expanded.title && (
+                <>
+                  <span className="text-muted-foreground/40">Role:</span>
+                  <span className="text-muted-foreground/60">
+                    {byline.expanded.title}
+                    <span className="text-muted-foreground/35"> @ </span>
+                    {byline.expanded.company}
+                    {byline.expanded.location && (
+                      <>
+                        <span className="text-muted-foreground/30"> · </span>
+                        {byline.expanded.location}
+                      </>
+                    )}
+                  </span>
+                </>
+              )}
 
               {byline.expanded.description && (
                 <>
