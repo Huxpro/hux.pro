@@ -1135,8 +1135,22 @@ export function computeBeams(commits: Commit[]): BeamLink[] {
     if (typeof c.attachedTo !== "string") continue;
     const toIdx = commits.findIndex((x) => x.id === c.attachedTo);
     if (toIdx < 0) continue;
+    // attachedTo can target any anchor row we're willing to draw a
+    // connector to: roles (tenure context), events (life markers),
+    // and projects (a talk pointing at the project it presents,
+    // an artifact pointing at its parent codebase, etc.). Skip
+    // targets that don't render as anchor rows (e.g. another talk).
     const targetType = commits[toIdx].type;
-    if (targetType !== "role" && targetType !== "event") continue;
+    if (
+      targetType !== "role" &&
+      targetType !== "event" &&
+      targetType !== "project"
+    )
+      continue;
+    // If the target is a hidden role, drop the beam — the connector
+    // has nothing to land on. (Projects don't have a hideRow flag.)
+    const target = commits[toIdx];
+    if (target.type === "role" && target.hideRow === true) continue;
     beams.push({
       fromIdx: i,
       toIdx,

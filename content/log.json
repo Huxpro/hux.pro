@@ -627,6 +627,7 @@
       "id": "reactconf-2021-memo",
       "type": "talk",
       "tagId": "react-era",
+      "attachedTo": "react-core",
       "title": {
         "en": "React without a Memo",
         "zh": "没有 Memo 的 React"
@@ -686,31 +687,6 @@
       "language": "en"
     },
     {
-      "id": "react-forget",
-      "type": "project",
-      "tagId": "react-era",
-      "title": {
-        "en": "React Forget",
-        "zh": "React Forget"
-      },
-      "description": {
-        "en": "Auto-memoization compiler for React — founding engineer and tech lead.",
-        "zh": "React 自动记忆化编译器 —— 联合创始工程师及技术负责人。"
-      },
-      "date": "2021-01",
-      "endDate": "2022-10",
-      "tags": [
-        "React",
-        "Compiler",
-        "Performance",
-        "OCaml"
-      ],
-      "commentary": {
-        "en": "The project that taught me how compilers can reshape developer experience.",
-        "zh": "这个项目让我理解了编译器如何重塑开发者体验。"
-      }
-    },
-    {
       "id": "hermes-engine",
       "type": "project",
       "tagId": "react-era",
@@ -744,6 +720,11 @@
           "present": "pill",
           "label": "GitHub",
           "icon": "github"
+        },
+        {
+          "kind": "link",
+          "url": "https://reactnative.dev/blog/2021/10/26/toward-hermes-being-the-default",
+          "present": "card"
         }
       ]
     },
@@ -752,22 +733,23 @@
       "type": "project",
       "tagId": "react-era",
       "title": {
-        "en": "React Core",
-        "zh": "React 核心"
+        "en": "React Core & Forget Compiler",
+        "zh": "React 核心与 Forget 编译器"
       },
       "description": {
-        "en": "Contributing to React's core features and performance.",
-        "zh": "为 React 核心功能和性能做出贡献。"
+        "en": "Contributing to React's core features and performance, plus co-founding the React Forget auto-memoization compiler as tech lead — the same team, two intertwined bets on how to reshape React's runtime and authoring model.",
+        "zh": "为 React 核心功能与性能做贡献；同时作为技术负责人共同创立 React Forget 自动记忆化编译器 —— 同一支团队的两条相互交织的路线，重塑 React 的运行时与编写模型。"
       },
       "date": "2020-03",
       "endDate": "2022-10",
       "tags": [
         "React",
+        "Compiler",
         "Open Source",
         "Performance",
+        "OCaml",
         "JavaScript",
-        "Flow",
-        "Jest"
+        "Flow"
       ],
       "media": [
         {
@@ -789,9 +771,74 @@
         "stars": 220000
       },
       "commentary": {
-        "en": "Working on React taught me that good abstractions are worth fighting for.",
-        "zh": "在 React 上工作让我明白，好的抽象值得为之奋斗。"
+        "en": "Working on React taught me that good abstractions are worth fighting for — and that compilers can reshape the developer experience.",
+        "zh": "在 React 上工作让我明白，好的抽象值得为之奋斗，而编译器能够重塑开发者体验。"
       }
+    },
+    {
+      "id": "xros-reality-labs",
+      "type": "project",
+      "tagId": "react-era",
+      "title": {
+        "en": "Reality Labs Research",
+        "zh": "Reality Labs Research"
+      },
+      "description": {
+        "en": "Summer 2019 internship at Meta Reality Labs Research on XROS — an experimental operating system for XR, ancestral to the OS eventually shipped in Meta's AR/VR line.",
+        "zh": "2019 年暑期在 Meta Reality Labs Research 实习，参与 XR 实验性操作系统 XROS —— 后续 Meta AR/VR 产品线所用系统的前身。"
+      },
+      "date": "2019-05",
+      "endDate": "2019-08",
+      "tags": [
+        "XR",
+        "Operating System",
+        "Research"
+      ],
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://www.meta.com/emerging-tech/orion/",
+          "present": "card"
+        },
+        {
+          "kind": "link",
+          "url": "https://www.theverge.com/2022/2/25/22950710/meta-vr-ar-os-team-xros-breakup-hyper-tuned-focus",
+          "present": "card"
+        }
+      ]
+    },
+    {
+      "id": "reasonml",
+      "type": "project",
+      "tagId": "react-era",
+      "title": {
+        "en": "ReasonML / ReScript",
+        "zh": "ReasonML / ReScript"
+      },
+      "description": {
+        "en": "Contributor on the ReasonML / ReScript team — an OCaml-syntax typed-JS toolchain later rebranded as ReScript. Worked on Messenger Web during the summer 2018 internship.",
+        "zh": "参与 ReasonML / ReScript（后更名为 ReScript）团队 —— 基于 OCaml 语法的类型化 JavaScript 工具链。2018 年暑期实习期间参与 Messenger Web 开发。"
+      },
+      "date": "2018-05",
+      "endDate": "2018-08",
+      "tags": [
+        "ReasonML",
+        "ReScript",
+        "OCaml",
+        "Compiler"
+      ],
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://reasonml.github.io/",
+          "present": "card"
+        },
+        {
+          "kind": "link",
+          "url": "https://rescript-lang.org/",
+          "present": "card"
+        }
+      ]
     },
     {
       "id": "jsconf-china-2017",
