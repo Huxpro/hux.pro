@@ -454,7 +454,7 @@ export function CommandPalette() {
           "relative mx-4 transition-all duration-300 ease-out",
           "bg-popover/75 backdrop-blur-xl",
           "rounded-2xl border border-black/10 dark:border-white/10",
-          "shadow-2xl shadow-black/30",
+          "shadow-overlay",
           "outline-none",
           "animate-in fade-in-0 zoom-in-95 duration-200",
           isSlashCommandsMode ? "w-full max-w-[400px]" : "w-full max-w-[700px]",

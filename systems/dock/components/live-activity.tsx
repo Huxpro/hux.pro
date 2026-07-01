@@ -74,7 +74,7 @@ export function LiveActivity({
               "pointer-events-auto flex items-center gap-2 shrink-0",
               "h-9 pl-1.5 pr-2.5 rounded-full",
               "bg-card/60 backdrop-blur-xl border border-border/50",
-              "shadow-lg shadow-black/5",
+              "shadow-raised",
               "hover:bg-card/80 hover:border-border transition-colors",
               "active:scale-95",
               pillClassName
@@ -112,7 +112,7 @@ export function LiveActivity({
               "fixed left-1/2 z-50 -translate-x-1/2 pointer-events-auto",
               "w-[min(92vw,360px)] overflow-hidden",
               "rounded-3xl bg-card/70 backdrop-blur-xl",
-              "border border-border/50 shadow-2xl shadow-black/20"
+              "border border-border/50 shadow-overlay"
             )}
           >
             <div className="flex items-center justify-between px-5 pt-4 pb-3">

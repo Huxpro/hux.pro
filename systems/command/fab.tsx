@@ -42,7 +42,7 @@ export function FloatingActionButton() {
           "flex items-center gap-2",
           "bg-card/50 backdrop-blur-xl",
           "border border-border/50",
-          "shadow-lg shadow-black/5",
+          "shadow-raised",
           isHomepage ? "text-muted-foreground" : "text-foreground",
           "hover:bg-card/70 hover:border-border transition-colors",
           "h-12",

@@ -340,7 +340,7 @@ export function SortableMasonry({
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="rounded-full border border-border/60 bg-card/80 px-4 py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground shadow-lg backdrop-blur-xl transition-colors hover:text-foreground"
+              className="rounded-full border border-border/60 bg-card/80 px-4 py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground"
             >
               {t(locale, "widgetEditDone")}
             </button>

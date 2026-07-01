@@ -20,14 +20,14 @@ export interface MagneticPreviewProps {
 }
 
 /**
- * Unified soft shadow for every hover-peek surface (writing post, works
- * card / video / details / stacked deck). Deliberately lighter than the old
- * `shadow-2xl shadow-black/20`: enough to lift a white card off a white page
- * in light mode, quiet enough not to feel heavy in dark mode. Exported so the
- * works peeks (which strip the panel chrome and supply their own on the card)
- * stay in visual sync with the shared panel here.
+ * Shared shadow for every hover-peek surface (writing post, works card /
+ * video / details / stacked deck). Peeks sit at the `raised` elevation — the
+ * same low lift as the FAB and the Live Activity pill — one level below the
+ * `overlay` surfaces (command palette, Live Activity expanded). See the
+ * elevation spec in globals.css. Exported so the works peeks (which strip the
+ * panel chrome and supply their own on the card) stay in sync with the panel.
  */
-export const PEEK_SHADOW = "shadow-xl shadow-black/15";
+export const PEEK_SHADOW = "shadow-raised";
 
 /**
  * Unified content width for every hover-peek surface — link card, video /
