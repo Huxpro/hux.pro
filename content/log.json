@@ -751,14 +751,14 @@
       "type": "project",
       "tagId": "react-era",
       "title": {
-        "en": "React Compiler + React Core",
-        "zh": "React Compiler + React 核心"
+        "en": "React Compiler (Forget)",
+        "zh": "React Compiler（Forget）"
       },
       "description": {
-        "en": "Founding engineer of the React Compiler (formerly Forget), the auto-memoization compiler — spent most of my Meta years on it. Also contributed to React core features and performance in parallel.",
-        "zh": "React Compiler（原名 Forget）的联合创始工程师 —— 自动记忆化编译器，在 Meta 期间的主线工作。并行贡献 React 核心功能与性能。"
+        "en": "Founding engineer of the React Compiler (formerly Forget), the auto-memoization compiler that reshapes React's authoring model.",
+        "zh": "React Compiler（原名 Forget）的联合创始工程师 —— 重塑 React 编写模型的自动记忆化编译器。"
       },
-      "date": "2020-03",
+      "date": "2021-08",
       "endDate": "2022-10",
       "team": {
         "en": "React Core team @ Meta",
