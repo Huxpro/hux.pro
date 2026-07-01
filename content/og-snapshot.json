@@ -5,6 +5,18 @@
     "image": "https://gitee.com/index/gitee-people/images/common-thumb.jpg",
     "siteName": "Gitee"
   },
+  "https://lynxjs.org/next/blog/lynx-unlock-native-for-more": {
+    "title": "Lynx: Unlock Native for More - Lynx",
+    "description": "Today, we",
+    "image": "https://lynxjs.org/next/og/blog/en/lynx-unlock-native-for-more.png",
+    "siteName": "Lynx"
+  },
+  "https://lynxjs.org/next/zh/blog/lynx-unlock-native-for-more.html": {
+    "title": "Lynx：迈向原生体验 - Lynx",
+    "description": "今天，我们很高兴向大家介绍 Lynx 全家桶，它们是一系列希望帮助 Web 开发者复用现有经验，通过一套代码同时创建移动端原生界面与 Web 端界面的技术……",
+    "image": "https://lynxjs.org/next/og/blog/zh/lynx-unlock-native-for-more.png",
+    "siteName": "Lynx"
+  },
   "https://react.dev/blog/2022/06/15/react-labs-what-we-have-been-working-on-june-2022#react-compiler": {
     "title": "React Labs: What We've Been Working On – June 2022 – React",
     "description": "The library for web and native user interfaces",
@@ -52,6 +64,9 @@
   "https://www.bilibili.com/video/BV1ky4y1R7Zm/": {
     "image": "https://i1.hdslb.com/bfs/archive/bc1c58ea74186267875aff7770d03b409f8148f5.jpg"
   },
+  "https://www.bilibili.com/video/BV1uz421d7Ch/": {
+    "image": "https://i0.hdslb.com/bfs/archive/4fcd1a0413cf414bd3a2fd3af2c91e57ce781584.jpg"
+  },
   "https://www.callstack.com/podcasts/react-native-0-64-with-hermes-for-ios-ep-5": {
     "title": "React Native 0.64 With Hermes for iOS",
     "description": "Discover how Hermes boosts React Native performance on iOS and macOS, with insights into AOT, bytecode precompilation, and the future of Hermes support.",
@@ -69,5 +84,11 @@
     "description": "From a centralized OS to “hyper-tuned” solutions",
     "image": "https://platform.theverge.com/wp-content/uploads/sites/2/chorus/uploads/chorus_asset/file/22977157/acastro_211101_1777_meta_0003.jpg?quality=90&strip=all&crop=0%2C10.732984293194%2C100%2C78.534031413613&w=1200",
     "siteName": "The Verge"
+  },
+  "https://www.ticketingbusinessforum.com/awards-2017-shortlists-revealed/": {
+    "title": "AWARDS: 2017 Shortlists Revealed",
+    "description": "Ticketing Technology Forum is delighted to announce the Ticketing Technology Awards 2017 finalists. We were inundated with submissions this year,...",
+    "image": "https://www.ticketingbusinessforum.com/wp-content/uploads/2017/01/FINALISTS-ARTICLE-FEATURE.jpg",
+    "siteName": "TheTicketingBusiness Forum"
   }
 }

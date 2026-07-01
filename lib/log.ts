@@ -136,9 +136,27 @@ export interface InternalLinkMeta {
 export interface LinkMedia extends Pinned {
   kind: "link";
   url: string;
+  /**
+   * Optional per-locale URL variants for the same underlying resource
+   * (e.g. an EN and ZH page of the same blog post). When set, the card
+   * click-target and OG preview are picked based on the viewer's
+   * locale, falling back to `url` when the locale variant is absent.
+   *
+   * Author-authored. The snapshot pipeline crawls every URL in this
+   * map in addition to `url`; enrichment layers each URL's OG data
+   * into `previews[locale]` for the client to pick from.
+   */
+  urls?: LocaleUrls;
   present: LinkPresent;
   /** Manual card metadata; skips the runtime crawl when title+image set. */
   preview?: MediaPreview;
+  /**
+   * Per-locale OG previews, populated by `enrichLogDataWithPreviews`
+   * when the media has a `urls` map. Never author-authored — the
+   * enrichment pipeline writes it before the render layer reads it.
+   * When absent (single-URL cards), the top-level `preview` is used.
+   */
+  previews?: Partial<Record<"en" | "zh", MediaPreview>>;
   /** Pill-only: label override (defaults to domain). */
   label?: string;
   /** Pill-only: icon key (e.g. "github", "globe"). */

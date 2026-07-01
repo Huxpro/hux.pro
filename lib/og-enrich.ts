@@ -106,6 +106,39 @@ function resolveVideoThumbnail(
 }
 
 /**
+ * For a link-card with a `urls` locale map, resolve OG previews for
+ * every locale URL from the snapshot and pack them into a per-locale
+ * map. The client-side card renderer picks the entry matching the
+ * viewer's locale, falling back to the top-level `preview` when the
+ * per-locale entry is missing.
+ *
+ * Returns undefined for cards without a `urls` map, or when no per-
+ * locale URL yielded a usable snapshot entry.
+ */
+function resolvePreviewsByLocale(
+  media: Media,
+  snapshot: OGSnapshot,
+): Partial<Record<"en" | "zh", MediaPreview>> | undefined {
+  if (!mediaIsCardTarget(media)) return undefined;
+  const urls = (media as { urls?: Partial<Record<"en" | "zh", string>> }).urls;
+  if (!urls) return undefined;
+  const out: Partial<Record<"en" | "zh", MediaPreview>> = {};
+  for (const locale of ["en", "zh"] as const) {
+    const u = urls[locale];
+    if (!u) continue;
+    const snap = snapshot[u];
+    if (!snap) continue;
+    const entry: MediaPreview = {
+      title: snap.title,
+      description: snap.description,
+      image: snap.image,
+    };
+    if (entry.title || entry.description || entry.image) out[locale] = entry;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+/**
  * Return a copy of `logData` with previews/covers populated from the snapshot
  * (+ manual overrides). Call this before handing data to a renderer so cards
  * and video players render their covers synchronously.
@@ -128,6 +161,10 @@ export function enrichLogDataWithPreviews(
             // Cast: preview is only produced for link cards, but TS can't
             // narrow that from the predicate.
             next = { ...next, preview } as Media;
+          }
+          const previews = resolvePreviewsByLocale(next, snapshot);
+          if (previews) {
+            next = { ...next, previews } as Media;
           }
           const thumbnail = resolveVideoThumbnail(next, snapshot);
           if (thumbnail) {

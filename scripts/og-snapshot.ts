@@ -75,12 +75,31 @@ function collectTargets(): Target[] {
   for (const commit of log.commits ?? []) {
     for (const media of (commit.media ?? []) as PreviewableMedia[]) {
       if (mediaIsCardTarget(media)) {
+        // Primary URL always crawled.
         upsert({
           url: media.url,
           kind: "card",
           needsCrawl: mediaNeedsLiveCrawl(media),
           media,
         });
+        // Bilingual variants: each per-locale URL is its own card
+        // target so its OG data lands in the snapshot under its own
+        // key. `resolvePreviewsByLocale` picks them apart at
+        // enrichment time.
+        const urls = (media as { urls?: Record<string, string> }).urls;
+        if (urls) {
+          for (const localeUrl of Object.values(urls)) {
+            if (!localeUrl || localeUrl === media.url) continue;
+            upsert({
+              url: localeUrl,
+              kind: "card",
+              // Locale variants can't share the parent's manual
+              // preview override, so they always need a crawl.
+              needsCrawl: true,
+              media,
+            });
+          }
+        }
       } else if (mediaIsVideoCoverTarget(media)) {
         upsert({
           url: media.url,
