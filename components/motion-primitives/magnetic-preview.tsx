@@ -19,6 +19,16 @@ export interface MagneticPreviewProps {
   children: React.ReactNode;
 }
 
+/**
+ * Unified soft shadow for every hover-peek surface (writing post, works
+ * card / video / details / stacked deck). Deliberately lighter than the old
+ * `shadow-2xl shadow-black/20`: enough to lift a white card off a white page
+ * in light mode, quiet enough not to feel heavy in dark mode. Exported so the
+ * works peeks (which strip the panel chrome and supply their own on the card)
+ * stay in visual sync with the shared panel here.
+ */
+export const PEEK_SHADOW = "shadow-xl shadow-black/15";
+
 const defaultVariants = {
   initial: { opacity: 0, scale: 0.9, y: 8 },
   animate: { opacity: 1, scale: 1, y: 0 },
@@ -65,17 +75,24 @@ export function MagneticPreview({
           variants={defaultVariants}
           transition={defaultTransition}
           springConfig={defaultSpringConfig}
-          className="overflow-hidden rounded-lg"
+          // Intentionally NOT clipped. This wrapper used to carry
+          // `overflow-hidden rounded-lg`, which sheared the panel's soft
+          // shadow off at the rounded edge — that's why every peek but the
+          // stacked deck looked flat. Each peek surface rounds its OWN
+          // content (the panel/card carry their own `overflow-hidden`), so
+          // the wrapper doesn't need to; leaving it unclipped lets the
+          // unified `PEEK_SHADOW` breathe.
         >
           <div
             className={cn(
               // Translucent lifted surface — matches the Dock Live Activity
-              // expanded panel recipe (`bg-card/70 backdrop-blur-xl border
-              // border-border/50 shadow-2xl shadow-black/20`). In dark mode
-              // popover/card are *darker* than the page bg, so the lift
-              // comes from the colored shadow + border, not from "see-
-              // through-ness" — the blur is what makes it feel alive.
-              "rounded-lg border border-border/50 bg-card/70 backdrop-blur-xl shadow-2xl shadow-black/20",
+              // expanded panel recipe (bg-card/70 + backdrop-blur-xl +
+              // border + a soft shadow). In dark mode popover/card are
+              // *darker* than the page bg, so the lift comes from the shadow
+              // + border, not from "see-through-ness" — the blur is what
+              // makes it feel alive.
+              "rounded-lg border border-border/50 bg-card/70 backdrop-blur-xl",
+              PEEK_SHADOW,
               "p-3 max-w-xs",
               panelClassName,
             )}

@@ -17,6 +17,7 @@ import { getCommitPeekItems, localize } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./media/external-image";
 import { CardFace } from "./media/link";
+import { PEEK_SHADOW } from "@/components/motion-primitives/magnetic-preview";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
@@ -276,7 +277,10 @@ function PeekThumb({
   return (
     <div
       className={cn(
-        "rounded-md overflow-hidden border border-border/40 bg-muted/30 shadow-md",
+        // No shadow here — standalone thumbs sit in the shared panel (which
+        // supplies PEEK_SHADOW); stacked thumbs get PEEK_SHADOW on the front
+        // layer only (see StackedPeek).
+        "rounded-md overflow-hidden border border-border/40 bg-muted/30",
         className,
       )}
     >
@@ -327,14 +331,15 @@ function PeekCard({
       size="compact"
       fixedAspect={fixedAspect}
       domainLabel={domainLabel}
-      // Peek-specific chrome — same recipe as the Dock Live Activity
-      // expanded panel (bg-card/70 + backdrop-blur-xl + border + heavy
-      // colored shadow). The single-peek and stacked-peek branches both
-      // strip the panel's own chrome (BARE_PANEL_CHROME), so the card has
-      // to supply it. In dark mode the lift is the shadow, not the bg —
-      // popover/card sit below the page bg's lightness.
+      // Peek-specific chrome — same recipe as the shared MagneticPreview
+      // panel (bg-card/70 + backdrop-blur-xl + border + the unified
+      // PEEK_SHADOW). The single-peek and stacked-peek branches both strip
+      // the panel's own chrome (BARE_PANEL_CHROME), so the card supplies it
+      // and stays in sync with every other peek. In dark mode the lift is
+      // the shadow + border, not the bg.
       className={cn(
-        "bg-card/70 backdrop-blur-xl border border-border/50 shadow-2xl shadow-black/20 rounded-md",
+        "bg-card/70 backdrop-blur-xl border border-border/50 rounded-md",
+        PEEK_SHADOW,
         className,
       )}
       onImgResolved={onResolved}
@@ -411,24 +416,22 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
               // it — translucency only makes sense where the page bg sits
               // behind, which is true for back cards (peeking from behind)
               // but not for the front (a full card sits behind it).
-              // `shadow-none` strips each card's own `shadow-2xl`: stacked,
-              // the three big shadows compounded and darkened each other
-              // where the back cards peek out (and clipped hard against the
-              // panel's `overflow-hidden`). The deck now reads flat — border
-              // + fade + rotation — matching every other peek surface, whose
-              // panel shadow is clipped away by the same Cursor wrapper.
+              // Only the FRONT layer carries PEEK_SHADOW (inherited from
+              // PeekCard's base) — one soft shadow grounds the whole deck.
+              // Back layers force `shadow-none`: three stacked shadows would
+              // compound and darken each other where the cards peek out.
               <PeekCard
                 item={item}
                 fixedAspect
-                className={cn("shadow-none", isFront && "bg-card")}
+                className={cn(isFront ? "bg-card" : "shadow-none")}
                 onResolved={() => markResolved(i)}
               />
             ) : (
               <PeekThumb
                 image={item.image}
                 className={cn(
-                  "aspect-video shadow-none",
-                  isFront && "bg-muted",
+                  "aspect-video",
+                  isFront && ["bg-muted", PEEK_SHADOW],
                 )}
                 onResolved={() => markResolved(i)}
               />
