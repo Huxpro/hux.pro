@@ -155,16 +155,12 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
   }
 
   if (isLinkMedia(media)) {
+    // Bilingual click-target + per-locale OG data. Both fall back to
+    // the primary `url` / `preview` when the locale variant is absent
+    // (populated by the enrichment pipeline from `urls`).
+    const url = media.urls?.[locale] ?? media.url;
+    const preview = media.previews?.[locale] ?? media.preview;
     if (media.present === "card") {
-      // Bilingual card: pick the URL variant + per-locale OG preview
-      // for the viewer's locale, falling back to the top-level `url`
-      // and `preview` when the locale variant is absent. The
-      // enrichment pipeline populated `previews[locale]` from the
-      // snapshot when it saw a `urls` map.
-      const localeUrl = media.urls?.[locale];
-      const url = localeUrl ?? media.url;
-      const localePreview = media.previews?.[locale];
-      const preview = localePreview ?? media.preview;
       return (
         <LinkCard
           url={url}
@@ -178,11 +174,9 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
         />
       );
     }
-    // Pill: also honour `urls` map for locale-appropriate click-through.
-    const localeUrl = media.urls?.[locale];
     return (
       <Link
-        url={localeUrl ?? media.url}
+        url={url}
         label={media.label}
         icon={media.icon}
         className={className}

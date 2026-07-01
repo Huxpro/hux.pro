@@ -26,6 +26,14 @@ import {
 } from "./embeds/shared";
 import { MediaRenderer } from "./media";
 
+/**
+ * Fallback handle for the expanded author block when a commit has no
+ * resolvable identity (e.g. personal talks / recognitions with
+ * `attachedTo: null`). The subtitle-row byline stays blank for those
+ * rows, but the author block still names the person once opened.
+ */
+const DEFAULT_AUTHOR_HANDLE = "hux";
+
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter
    *  activates every connector that targets `toHash` (used so hovering
@@ -503,7 +511,7 @@ export function TimelineCommit({
             <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono pb-2.5 mb-1 border-b border-border/25">
               <span className="text-muted-foreground/40">Author:</span>
               <span className="text-muted-foreground/65">
-                &lt;{byline?.handle ?? "hux"}&gt;
+                &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;
               </span>
 
               {byline?.expanded.title && (

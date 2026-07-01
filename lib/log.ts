@@ -1128,17 +1128,11 @@ export function adjustRailForHidden(
 }
 
 /**
- * Under the identity-clustering model this returns an empty array —
- * identity clusters have no single "anchor row" to beam to (the
- * identity itself is metadata, not a row), and cluster-scoped hover
- * is handled purely in CSS via the `group/tenure` wrapper in
- * `LogTimeline`. The bracket glyphs from `computeRail` carry the
- * visual grouping on their own.
- *
- * The export is kept so `LogTimeline` and any other consumer can call
- * it without a shape change, and so `BeamLink` remains a stable
- * downstream type for `computeBeams` (explicit event / cross-cluster
- * attachments) to feed.
+ * Placeholder: identity clusters have no single anchor row to beam
+ * to, and cluster hover is CSS-only via `group/tenure`. Beams are
+ * only used for explicit `attachedTo` links (see `computeBeams`).
+ * Kept so consumers that mix inferred + explicit beams keep a stable
+ * shape at the call site.
  */
 export function computeInferredBeams(
   _commits: Commit[],
@@ -1206,6 +1200,63 @@ export interface ResolvedIdentity {
   role: RoleCommit | null;
 }
 
+// Cheap module-level helpers so identity resolution doesn't rebuild
+// them on every call. `9999-12` is the open-ended-tenure sentinel.
+const monthStr = (s: string) => s.slice(0, 7);
+const monthIdx = (m: string): number => {
+  if (m === "9999-12") return Number.MAX_SAFE_INTEGER;
+  const [y, mo] = m.split("-").map(Number);
+  return y * 12 + (mo - 1);
+};
+
+/**
+ * Per-commits-array cache of "roles grouped by their identityId" plus
+ * a flat "all roles" list. `resolveIdentity` gets called once per
+ * commit inside `computeRail` and again inside the byline builder —
+ * without this the role scan is O(N²) over the same commits array.
+ * A WeakMap keyed on the array reference lets both callers share the
+ * work without threading a new parameter through the public API.
+ */
+const roleIndexCache = new WeakMap<
+  Commit[],
+  { byIdentity: Map<string, RoleCommit[]>; all: RoleCommit[] }
+>();
+function getRoleIndex(commits: Commit[]) {
+  const cached = roleIndexCache.get(commits);
+  if (cached) return cached;
+  const byIdentity = new Map<string, RoleCommit[]>();
+  const all: RoleCommit[] = [];
+  for (const c of commits) {
+    if (c.type !== "role") continue;
+    const r = c as RoleCommit;
+    all.push(r);
+    const arr = byIdentity.get(r.identityId);
+    if (arr) arr.push(r);
+    else byIdentity.set(r.identityId, [r]);
+  }
+  const idx = { byIdentity, all };
+  roleIndexCache.set(commits, idx);
+  return idx;
+}
+
+/** Pick the tenure-smallest role in `pool` whose window contains `cm`. */
+function pickBestRole(pool: RoleCommit[], cm: string): RoleCommit | null {
+  let best: RoleCommit | null = null;
+  let bestSize = Infinity;
+  for (const r of pool) {
+    const start = monthStr(r.date);
+    const end =
+      r.endDate && r.endDate !== "present" ? monthStr(r.endDate) : "9999-12";
+    if (cm < start || cm > end) continue;
+    const size = monthIdx(end) - monthIdx(start);
+    if (size < bestSize) {
+      bestSize = size;
+      best = r;
+    }
+  }
+  return best;
+}
+
 /**
  * Resolve the identity + specific role instance a commit was
  * "committed as". Feeds both the byline (identity → handle) and the
@@ -1233,41 +1284,14 @@ export function resolveIdentity(
   if (commit.type === "event") return null;
   if (commit.attachedTo === null && !commit.identityId) return null;
 
-  const month = (s: string) => s.slice(0, 7);
-  const monthIdx = (m: string): number => {
-    if (m === "9999-12") return Number.MAX_SAFE_INTEGER;
-    const [y, mo] = m.split("-").map(Number);
-    return y * 12 + (mo - 1);
-  };
-  const cm = month(commit.date);
-
-  // Given a candidate identityId, pick the best-fitting role (by
-  // smallest tenure window containing commit's date) among roles that
-  // belong to that identity. Returns null if none fit.
-  const bestRoleForIdentity = (identityId: string): RoleCommit | null => {
-    let best: RoleCommit | null = null;
-    let bestSize = Infinity;
-    for (const c of commits) {
-      if (c.type !== "role") continue;
-      if (c.identityId !== identityId) continue;
-      const start = month(c.date);
-      const end =
-        c.endDate && c.endDate !== "present" ? month(c.endDate) : "9999-12";
-      if (cm < start || cm > end) continue;
-      const size = monthIdx(end) - monthIdx(start);
-      if (size < bestSize) {
-        bestSize = size;
-        best = c;
-      }
-    }
-    return best;
-  };
+  const cm = monthStr(commit.date);
+  const idx = getRoleIndex(commits);
 
   // 1) Explicit identity on the commit.
   if (commit.identityId) {
     return {
       identityId: commit.identityId,
-      role: bestRoleForIdentity(commit.identityId),
+      role: pickBestRole(idx.byIdentity.get(commit.identityId) ?? [], cm),
     };
   }
 
@@ -1287,20 +1311,7 @@ export function resolveIdentity(
   }
 
   // 4) Tenure auto-detect across ALL roles.
-  let best: RoleCommit | null = null;
-  let bestSize = Infinity;
-  for (const c of commits) {
-    if (c.type !== "role") continue;
-    const start = month(c.date);
-    const end =
-      c.endDate && c.endDate !== "present" ? month(c.endDate) : "9999-12";
-    if (cm < start || cm > end) continue;
-    const size = monthIdx(end) - monthIdx(start);
-    if (size < bestSize) {
-      bestSize = size;
-      best = c;
-    }
-  }
+  const best = pickBestRole(idx.all, cm);
   return best ? { identityId: best.identityId, role: best } : null;
 }
 

@@ -64,6 +64,23 @@ export function pickInternalLink(
 }
 
 /**
+ * Merge preview sources by field priority (earlier args win). Returns
+ * undefined when every field ends up empty so the runtime can fall
+ * back to a live crawl instead of painting an empty card.
+ */
+function mergePreview(
+  ...sources: (Partial<MediaPreview> | undefined)[]
+): MediaPreview | undefined {
+  const merged: MediaPreview = {
+    title: sources.find((s) => s?.title)?.title,
+    description: sources.find((s) => s?.description)?.description,
+    image: sources.find((s) => s?.image)?.image,
+  };
+  if (!merged.title && !merged.description && !merged.image) return undefined;
+  return merged;
+}
+
+/**
  * Resolve a card target's effective preview by layering, highest priority last:
  *   snapshot entry  →  manual `preview` (author override wins per-field)
  * Returns undefined when there's nothing to show (the runtime will then live-
@@ -74,21 +91,10 @@ function resolvePreview(
   snapshot: OGSnapshot,
 ): MediaPreview | undefined {
   if (!mediaIsCardTarget(media)) return undefined;
-
-  const snap = snapshot[media.url];
   // Only link-cards reach here, and they carry `preview`; TS can't narrow the
   // union from the structural predicate, hence the cast.
   const manual = (media as { preview?: MediaPreview }).preview;
-  if (!snap && !manual) return undefined;
-
-  const merged = {
-    title: manual?.title ?? snap?.title,
-    description: manual?.description ?? snap?.description,
-    image: manual?.image ?? snap?.image,
-  };
-  // Drop entirely-empty results so the runtime knows to fall back.
-  if (!merged.title && !merged.description && !merged.image) return undefined;
-  return merged;
+  return mergePreview(manual, snapshot[media.url]);
 }
 
 /**
@@ -126,14 +132,8 @@ function resolvePreviewsByLocale(
   for (const locale of ["en", "zh"] as const) {
     const u = urls[locale];
     if (!u) continue;
-    const snap = snapshot[u];
-    if (!snap) continue;
-    const entry: MediaPreview = {
-      title: snap.title,
-      description: snap.description,
-      image: snap.image,
-    };
-    if (entry.title || entry.description || entry.image) out[locale] = entry;
+    const entry = mergePreview(snapshot[u]);
+    if (entry) out[locale] = entry;
   }
   return Object.keys(out).length ? out : undefined;
 }
