@@ -31,6 +31,7 @@ import {
   type PreviewableMedia,
   type SnapshotEntry,
 } from "../lib/og-core.ts";
+import { normalizeLogData, type RawLogData } from "../lib/log.ts";
 
 type Snapshot = Record<string, SnapshotEntry>;
 
@@ -58,7 +59,13 @@ interface Target {
 }
 
 function collectTargets(): Target[] {
-  const log = JSON.parse(fs.readFileSync(LOG_PATH, "utf8"));
+  // Normalize the nested `identities[*].ranges` authoring shape into the
+  // flat runtime `commits[]` before scanning — otherwise media attached
+  // to role instances (e.g. Alibaba intern's writing cards) never enters
+  // the crawl set. `normalizeLogData` is idempotent for already-flat
+  // input, so this is safe even before the identity migration lands.
+  const raw = JSON.parse(fs.readFileSync(LOG_PATH, "utf8")) as RawLogData;
+  const log = normalizeLogData(raw);
   const byUrl = new Map<string, Target>();
   const upsert = (t: Target) => {
     const existing = byUrl.get(t.url);

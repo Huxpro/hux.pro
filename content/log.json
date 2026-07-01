@@ -724,7 +724,10 @@
         {
           "kind": "link",
           "url": "https://reactnative.dev/blog/2021/10/26/toward-hermes-being-the-default",
-          "present": "card"
+          "present": "card",
+          "preview": {
+            "image": "https://reactnative.dev/img/logo-og.png"
+          }
         }
       ]
     },
@@ -831,12 +834,18 @@
         {
           "kind": "link",
           "url": "https://reasonml.github.io/",
-          "present": "card"
+          "present": "card",
+          "preview": {
+            "image": "https://reasonml.github.io/img/reason.svg"
+          }
         },
         {
           "kind": "link",
           "url": "https://rescript-lang.org/",
-          "present": "card"
+          "present": "card",
+          "preview": {
+            "image": "https://rescript-lang.org/Art-3-rescript-launch.avif"
+          }
         }
       ]
     },
