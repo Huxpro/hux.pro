@@ -155,6 +155,284 @@
       "limit": 3
     }
   ],
+  "identities": {
+    "bytedance": {
+      "handle": "@bytedance",
+      "company": {
+        "en": "ByteDance",
+        "zh": "字节跳动"
+      },
+      "tagId": "lynx-era",
+      "ranges": [
+        {
+          "id": "tech-lead-lynx",
+          "sortBy": "date",
+          "title": {
+            "en": "Staff Engineer / Architect",
+            "zh": "架构师"
+          },
+          "description": {
+            "en": "Co-leading Lynx architecture and developer experience in ByteDance's Web Infra Cross Platform team.",
+            "zh": "在字节跳动 Web Infra 跨平台团队共同领导 Lynx 架构与开发者体验工作。"
+          },
+          "date": "2023-02",
+          "hideRow": true,
+          "tags": [
+            "Leadership",
+            "Architecture"
+          ]
+        }
+      ]
+    },
+    "meta": {
+      "handle": "jsx@fb.com",
+      "company": {
+        "en": "Meta",
+        "zh": "Meta"
+      },
+      "tagId": "react-era",
+      "ranges": [
+        {
+          "id": "meta-engineer",
+          "sortBy": "date",
+          "title": {
+            "en": "Software Engineer",
+            "zh": "软件工程师"
+          },
+          "description": {
+            "en": "React Technologies team — Hermes JS engine, React Forget compiler (founding eng + tech lead).",
+            "zh": "React Technologies 团队 —— Hermes JS 引擎、React Forget 编译器（联合创始工程师 + 技术负责人）。"
+          },
+          "date": "2020-03",
+          "endDate": "2022-10",
+          "hideRow": true,
+          "tags": [
+            "React",
+            "Compiler",
+            "JavaScript Engine"
+          ]
+        },
+        {
+          "id": "meta-intern-xros",
+          "title": {
+            "en": "Software Engineer Intern, XROS",
+            "zh": "软件工程实习生 · XROS"
+          },
+          "description": {
+            "en": "Summer internship at Meta Reality Labs Research, working on XROS — an experimental operating system for XR.",
+            "zh": "Meta Reality Labs Research 暑期实习，参与面向 XR 的实验性操作系统 XROS。"
+          },
+          "date": "2019-05",
+          "endDate": "2019-08",
+          "tags": [
+            "XR",
+            "Operating System",
+            "Research",
+            "Internship"
+          ]
+        },
+        {
+          "id": "meta-intern-reasonml",
+          "title": {
+            "en": "Software Engineer Intern, ReasonML",
+            "zh": "软件工程实习生 · ReasonML"
+          },
+          "description": {
+            "en": "Summer internship at Meta on the ReasonML / ReScript team, working on Messenger Web.",
+            "zh": "Meta ReasonML / ReScript 团队暑期实习，参与 Messenger Web 的开发。"
+          },
+          "date": "2018-05",
+          "endDate": "2018-08",
+          "tags": [
+            "ReasonML",
+            "OCaml",
+            "Messenger",
+            "Internship"
+          ]
+        }
+      ]
+    },
+    "rit": {
+      "handle": "huxpro@rit.edu",
+      "company": {
+        "en": "Rochester Institute of Technology",
+        "zh": "罗切斯特理工学院"
+      },
+      "tagId": "react-era",
+      "ranges": [
+        {
+          "id": "rit-ms",
+          "hideDate": true,
+          "sortBy": "date",
+          "icon": "graduation-cap",
+          "title": {
+            "en": "M.S. Computer Science",
+            "zh": "计算机科学 硕士"
+          },
+          "description": {
+            "en": "Master's in Computer Science at Rochester Institute of Technology, focusing on programming languages under Prof. Matthew Fluet.",
+            "zh": "在罗切斯特理工学院攻读计算机科学硕士，师从 Matthew Fluet 教授，专注编程语言方向。"
+          },
+          "date": "2017-08",
+          "endDate": "2019-12",
+          "tags": [
+            "PLT",
+            "Compiler"
+          ],
+          "location": "New York, USA"
+        }
+      ]
+    },
+    "eleme": {
+      "handle": "@eleme",
+      "company": {
+        "en": "Ele.me",
+        "zh": "饿了么"
+      },
+      "tagId": "pwa-era",
+      "ranges": [
+        {
+          "id": "eleme-visiting",
+          "title": {
+            "en": "Visiting Tech Lead, PWA",
+            "zh": "顾问专家，PWA"
+          },
+          "description": {
+            "en": "",
+            "zh": ""
+          },
+          "date": "2017-02",
+          "endDate": "2017-05",
+          "hideRow": true,
+          "tags": [
+            "PWA",
+            "Consulting"
+          ]
+        }
+      ]
+    },
+    "wepiao": {
+      "handle": "@wepiao",
+      "company": {
+        "en": "Beijing Weiying (WePiao)",
+        "zh": "北京微影时代（微票儿）"
+      },
+      "tagId": "pwa-era",
+      "ranges": [
+        {
+          "id": "wepiao-lead",
+          "title": {
+            "en": "Tech Lead Manager, Web Infra",
+            "zh": "Web 基础架构团队主管"
+          },
+          "description": {
+            "en": "Founding engineer of the award-winning app Yupiaoer. Founded the Web Infra team. Led the company-wide tech stack migration to React.",
+            "zh": "获奖产品「娱票儿」创始工程师。组建 Web 基础架构团队。主导全公司技术栈向 React 的迁移。"
+          },
+          "date": "2015-05",
+          "endDate": "2016-06",
+          "tags": [
+            "Web",
+            "Mobile",
+            "React",
+            "React Native",
+            "Leadership"
+          ]
+        }
+      ]
+    },
+    "alibaba": {
+      "handle": "@alibaba",
+      "company": {
+        "en": "Alibaba",
+        "zh": "阿里巴巴"
+      },
+      "tagId": "pwa-era",
+      "ranges": [
+        {
+          "id": "alitrip-engineer",
+          "title": {
+            "en": "Front-End Engineer",
+            "zh": "前端工程师"
+          },
+          "description": {
+            "en": "",
+            "zh": ""
+          },
+          "date": "2014-08",
+          "endDate": "2015-05",
+          "tags": [
+            "Web",
+            "Mobile"
+          ],
+          "media": [
+            {
+              "kind": "link",
+              "url": "/writing/taobao-hybrid-app/zh",
+              "present": "card",
+              "preview": {
+                "title": "Hybrid 架构下，加载本地 H5 资源后，如何处理 Ajax 请求？",
+                "description": "聊聊「虚拟域」与资源离线化",
+                "image": "/img/post-bg-taobao-hybrid.jpg"
+              }
+            },
+            {
+              "kind": "link",
+              "url": "/writing/alitrip-strategy/zh",
+              "present": "card",
+              "preview": {
+                "title": "聊聊「阿里旅行 · 去啊」",
+                "description": "聊聊在线旅行行业与老东家的产品思路",
+                "image": "/img/post-bg-alitrip.jpg"
+              }
+            },
+            {
+              "kind": "link",
+              "url": "/writing/see-u-ali/zh",
+              "present": "card",
+              "preview": {
+                "title": "See you, Alibaba",
+                "description": "再见，阿里。",
+                "image": "/img/post-bg-see-u-ali.jpg"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "cuc": {
+      "handle": "huxpro@cuc.edu",
+      "company": {
+        "en": "Communication University of China",
+        "zh": "中国传媒大学"
+      },
+      "tagId": "pwa-era",
+      "ranges": [
+        {
+          "id": "cuc-ba",
+          "hideDate": true,
+          "sortBy": "date",
+          "icon": "graduation-cap",
+          "title": {
+            "en": "B.A. Digital Media Arts",
+            "zh": "数字媒体艺术 学士"
+          },
+          "description": {
+            "en": "Bachelor's in Digital Media Art at Communication University of China.",
+            "zh": "在中国传媒大学攻读数字媒体艺术本科学位。"
+          },
+          "date": "2012-09",
+          "endDate": "2016-06",
+          "tags": [
+            "Digital Media",
+            "Design",
+            "Art"
+          ],
+          "location": "Beijing, China"
+        }
+      ]
+    }
+  },
   "commits": [
     {
       "id": "qcon-shanghai",
@@ -210,29 +488,6 @@
         "Opinion"
       ],
       "language": "zh"
-    },
-    {
-      "id": "tech-lead-lynx",
-      "type": "role",
-      "tagId": "lynx-era",
-      "sortBy": "date",
-      "title": {
-        "en": "Staff Engineer / Architect",
-        "zh": "架构师"
-      },
-      "description": {
-        "en": "Co-leading Lynx architecture and developer experience in ByteDance's Web Infra Cross Platform team.",
-        "zh": "在字节跳动 Web Infra 跨平台团队共同领导 Lynx 架构与开发者体验工作。"
-      },
-      "date": "2023-02",
-      "company": {
-        "en": "ByteDance",
-        "zh": "字节跳动"
-      },
-      "tags": [
-        "Leadership",
-        "Architecture"
-      ]
     },
     {
       "id": "lynx-framework",
@@ -539,110 +794,6 @@
       }
     },
     {
-      "id": "meta-engineer",
-      "type": "role",
-      "tagId": "react-era",
-      "sortBy": "date",
-      "title": {
-        "en": "Software Engineer",
-        "zh": "软件工程师"
-      },
-      "description": {
-        "en": "React Technologies team — Hermes JS engine, React Forget compiler (founding eng + tech lead).",
-        "zh": "React Technologies 团队 —— Hermes JS 引擎、React Forget 编译器（联合创始工程师 + 技术负责人）。"
-      },
-      "date": "2020-03",
-      "endDate": "2022-10",
-      "company": {
-        "en": "Meta",
-        "zh": "Meta"
-      },
-      "tags": [
-        "React",
-        "Compiler",
-        "JavaScript Engine"
-      ]
-    },
-    {
-      "id": "meta-intern-xros",
-      "type": "role",
-      "tagId": "react-era",
-      "attachedTo": "rit-ms",
-      "title": {
-        "en": "Software Engineer Intern, XROS",
-        "zh": "软件工程实习生 · XROS"
-      },
-      "description": {
-        "en": "Summer internship at Meta Reality Labs Research, working on XROS — an experimental operating system for XR.",
-        "zh": "Meta Reality Labs Research 暑期实习，参与面向 XR 的实验性操作系统 XROS。"
-      },
-      "date": "2019-05",
-      "endDate": "2019-08",
-      "company": {
-        "en": "Meta",
-        "zh": "Meta"
-      },
-      "tags": [
-        "XR",
-        "Operating System",
-        "Research",
-        "Internship"
-      ]
-    },
-    {
-      "id": "meta-intern-reasonml",
-      "type": "role",
-      "tagId": "react-era",
-      "attachedTo": "rit-ms",
-      "title": {
-        "en": "Software Engineer Intern, ReasonML",
-        "zh": "软件工程实习生 · ReasonML"
-      },
-      "description": {
-        "en": "Summer internship at Meta on the ReasonML / ReScript team, working on Messenger Web.",
-        "zh": "Meta ReasonML / ReScript 团队暑期实习，参与 Messenger Web 的开发。"
-      },
-      "date": "2018-05",
-      "endDate": "2018-08",
-      "company": {
-        "en": "Meta",
-        "zh": "Meta"
-      },
-      "tags": [
-        "ReasonML",
-        "OCaml",
-        "Messenger",
-        "Internship"
-      ]
-    },
-    {
-      "id": "rit-ms",
-      "type": "role",
-      "tagId": "react-era",
-      "hideDate": true,
-      "sortBy": "date",
-      "icon": "graduation-cap",
-      "title": {
-        "en": "M.S. Computer Science",
-        "zh": "计算机科学 硕士"
-      },
-      "description": {
-        "en": "Master's in Computer Science at Rochester Institute of Technology, focusing on programming languages under Prof. Matthew Fluet.",
-        "zh": "在罗切斯特理工学院攻读计算机科学硕士，师从 Matthew Fluet 教授，专注编程语言方向。"
-      },
-      "date": "2017-08",
-      "endDate": "2019-12",
-      "company": {
-        "en": "Rochester Institute of Technology",
-        "zh": "罗切斯特理工学院"
-      },
-      "tags": [
-        "PLT",
-        "Compiler"
-      ],
-      "location": "New York, USA"
-    },
-    {
       "id": "jsconf-china-2017",
       "type": "talk",
       "tagId": "pwa-era",
@@ -688,11 +839,12 @@
     },
     {
       "id": "eleme-pwa",
-      "type": "role",
+      "type": "project",
       "tagId": "pwa-era",
+      "attachedTo": "eleme-visiting",
       "title": {
-        "en": "Visiting Tech Lead, PWA",
-        "zh": "顾问专家，PWA"
+        "en": "Ele.me PWA",
+        "zh": "饿了么 PWA"
       },
       "description": {
         "en": "Led the Ele.me PWA upgrade, pioneering the use of PWA techniques for Vue-based Multi-Page Apps (MPA). \n\nFeatured by web.dev and highlighted at Google I/O 2017.",
@@ -700,10 +852,6 @@
       },
       "date": "2017-02",
       "endDate": "2017-05",
-      "company": {
-        "en": "Ele.me",
-        "zh": "饿了么"
-      },
       "media": [
         {
           "kind": "link",
@@ -723,8 +871,7 @@
       ],
       "tags": [
         "PWA",
-        "Mobile Web",
-        "Consulting"
+        "Mobile Web"
       ]
     },
     {
@@ -759,117 +906,6 @@
         "Mobile Web"
       ],
       "language": "zh"
-    },
-    {
-      "id": "wepiao-lead",
-      "type": "role",
-      "tagId": "pwa-era",
-      "attachedTo": "cuc-ba",
-      "title": {
-        "en": "Tech Lead Manager, Web Infra",
-        "zh": "Web 基础架构团队主管"
-      },
-      "description": {
-        "en": "Founding engineer of the award-winning app Yupiaoer. Founded the Web Infra team. Led the company-wide tech stack migration to React.",
-        "zh": "获奖产品「娱票儿」创始工程师。组建 Web 基础架构团队。主导全公司技术栈向 React 的迁移。"
-      },
-      "date": "2015-05",
-      "endDate": "2016-06",
-      "company": {
-        "en": "Beijing Weiying (WePiao)",
-        "zh": "北京微影时代（微票儿）"
-      },
-      "tags": [
-        "Web",
-        "Mobile",
-        "React",
-        "React Native",
-        "Leadership"
-      ]
-    },
-    {
-      "id": "alitrip-engineer",
-      "type": "role",
-      "tagId": "pwa-era",
-      "attachedTo": "cuc-ba",
-      "title": {
-        "en": "Front-End Engineer",
-        "zh": "前端工程师"
-      },
-      "date": "2014-08",
-      "endDate": "2015-05",
-      "company": {
-        "en": "Alibaba",
-        "zh": "阿里巴巴"
-      },
-      "tags": [
-        "Web",
-        "Mobile"
-      ],
-      "description": {
-        "en": "",
-        "zh": ""
-      },
-      "media": [
-        {
-          "kind": "link",
-          "url": "/writing/taobao-hybrid-app/zh",
-          "present": "card",
-          "preview": {
-            "title": "Hybrid 架构下，加载本地 H5 资源后，如何处理 Ajax 请求？",
-            "description": "聊聊「虚拟域」与资源离线化",
-            "image": "/img/post-bg-taobao-hybrid.jpg"
-          }
-        },
-        {
-          "kind": "link",
-          "url": "/writing/alitrip-strategy/zh",
-          "present": "card",
-          "preview": {
-            "title": "聊聊「阿里旅行 · 去啊」",
-            "description": "聊聊在线旅行行业与老东家的产品思路",
-            "image": "/img/post-bg-alitrip.jpg"
-          }
-        },
-        {
-          "kind": "link",
-          "url": "/writing/see-u-ali/zh",
-          "present": "card",
-          "preview": {
-            "title": "See you, Alibaba",
-            "description": "再见，阿里。",
-            "image": "/img/post-bg-see-u-ali.jpg"
-          }
-        }
-      ]
-    },
-    {
-      "id": "cuc-ba",
-      "type": "role",
-      "tagId": "pwa-era",
-      "hideDate": true,
-      "sortBy": "date",
-      "icon": "graduation-cap",
-      "title": {
-        "en": "B.A. Digital Media Arts",
-        "zh": "数字媒体艺术 学士"
-      },
-      "description": {
-        "en": "Bachelor's in Digital Media Art at Communication University of China.",
-        "zh": "在中国传媒大学攻读数字媒体艺术本科学位。"
-      },
-      "date": "2012-09",
-      "endDate": "2016-06",
-      "company": {
-        "en": "Communication University of China",
-        "zh": "中国传媒大学"
-      },
-      "tags": [
-        "Digital Media",
-        "Design",
-        "Art"
-      ],
-      "location": "Beijing, China"
     },
     {
       "id": "bilibili-sabbatical-2023",

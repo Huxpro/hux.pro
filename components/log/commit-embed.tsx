@@ -51,6 +51,19 @@ export interface CommitProps {
   /** Notify the parent the row no longer wants its beam rendered.
    *  Parent should ignore stale clears that don't match the current beam. */
   onBeamClear?: (spec: BeamSpec) => void;
+  /** Author byline for git-author-style rendering. Pre-localized in
+   *  the timeline so this component stays locale-agnostic. */
+  byline?: {
+    handle: string;
+    isClusterHead: boolean;
+    expanded: {
+      title: string;
+      company: string;
+      tenure: string;
+      location?: string;
+      description?: string;
+    };
+  } | null;
 }
 
 // =============================================================================
@@ -71,6 +84,7 @@ export function Commit({
   beamSpec = null,
   onBeamSet,
   onBeamClear,
+  byline = null,
 }: CommitProps) {
   const edit = useTimelineEdit();
 
@@ -123,6 +137,7 @@ export function Commit({
           beamSpec={beamSpec}
           onBeamSet={onBeamSet}
           onBeamClear={onBeamClear}
+          byline={byline}
           inspecting={inspecting}
           isSelected={isSelected}
           isUnlisted={commit.listed === false}

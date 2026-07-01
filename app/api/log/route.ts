@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import type { LogData } from "@/lib/log";
+import {
+  denormalizeLogData,
+  normalizeLogData,
+  type LogData,
+  type RawLogData,
+} from "@/lib/log";
 
 const LOG_PATH = path.join(process.cwd(), "content", "log.json");
 const BACKUP_DIR = path.join(process.cwd(), "content", ".backups");
@@ -12,8 +17,13 @@ export async function GET() {
   }
 
   try {
+    // Editor consumes the FLAT runtime shape so its commit-list, form,
+    // and preview all reason about a plain `commits[]`. Normalize on
+    // read; the reverse happens on POST to preserve nested authoring
+    // on disk.
     const data = fs.readFileSync(LOG_PATH, "utf8");
-    return NextResponse.json(JSON.parse(data));
+    const raw = JSON.parse(data) as RawLogData;
+    return NextResponse.json(normalizeLogData(raw));
   } catch {
     return NextResponse.json({ error: "Failed to read log.json" }, { status: 500 });
   }
@@ -39,9 +49,14 @@ export async function POST(request: NextRequest) {
       fs.copyFileSync(LOG_PATH, backupPath);
     }
 
+    // Editor sends the flat runtime shape; re-nest role commits under
+    // their identity's `ranges` so `log.json` keeps the authoring
+    // co-location that makes identity+ranges one visual unit on disk.
+    const onDisk = denormalizeLogData(body);
+
     // Atomic write: temp file + rename
     const tempPath = LOG_PATH + ".tmp";
-    fs.writeFileSync(tempPath, JSON.stringify(body, null, 2) + "\n", "utf8");
+    fs.writeFileSync(tempPath, JSON.stringify(onDisk, null, 2) + "\n", "utf8");
     fs.renameSync(tempPath, LOG_PATH);
 
     return NextResponse.json({ ok: true });

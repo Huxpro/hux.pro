@@ -27,7 +27,7 @@ import { blogPosts } from "@/lib/data";
 import type {
   Commit as CommitData,
   Group,
-  LogData,
+  RawLogData,
   RoleCommit,
 } from "@/lib/log";
 import {
@@ -35,6 +35,7 @@ import {
   isCommitVisibleIn,
   isRoleCommit,
   localize,
+  normalizeLogData,
   resolveGroupCommits,
 } from "@/lib/log";
 import { cn } from "@/lib/utils";
@@ -74,7 +75,7 @@ function BlogStackWidget() {
   );
 }
 
-const log = logData as unknown as LogData;
+const log = normalizeLogData(logData as unknown as RawLogData);
 
 function getCurrentRoleCommit(commits: CommitData[]): RoleCommit | null {
   const roles = commits.filter(isRoleCommit).filter(isCommitListed);
