@@ -255,9 +255,13 @@ export function getAllBlogPosts(): BlogPost[] {
       const post = getBlogPostBySlug(slug);
       if (!post) return null;
 
-      // Return just the metadata, not the content
+      // Return just the metadata, not the bodies. `contentZh` is only read on
+      // the article page, never on the list — dropping it here keeps the full
+      // Chinese bodies (~the bulk of the payload) out of the list page's
+      // client bundle. Frontmatter is kept: it's tiny and powers the devtool
+      // hover inspector.
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { content, readingTime, ...metadata } = post;
+      const { content, contentZh, readingTime, ...metadata } = post;
       return metadata as BlogPost;
     })
     .filter((post): post is BlogPost => post !== null)

@@ -15,8 +15,9 @@ import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { MagneticPreview, PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import { PeekCover, type CoverFit } from "@/components/log/media/peek-cover";
+import { useOptionalDevtool } from "@/systems/devtool/provider";
 import { Link } from "next-view-transitions";
-import { type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 interface LanguageFilterProps {
   includeOther: boolean;
@@ -84,6 +85,20 @@ export function PostList<T extends Post>({
 }: PostListProps<T>) {
   const { locale } = useLocale();
 
+  // Devtool hook: when the panel is enabled, hovering a row publishes that
+  // post's frontmatter to the shared inspector (same channel the article page
+  // uses). No-op — and zero cost — for normal visitors; the data is already in
+  // the list payload, so this adds no network. `useOptionalDevtool` keeps the
+  // component usable outside the provider (never throws).
+  const devtool = useOptionalDevtool();
+  const devtoolEnabled = devtool?.isEnabled ?? false;
+  const setPageMeta = devtool?.setPageMeta;
+  // Clear the inspector when leaving the list so it doesn't show a stale row.
+  useEffect(() => {
+    if (!setPageMeta) return;
+    return () => setPageMeta(null);
+  }, [setPageMeta]);
+
   const filteredPosts = posts.filter((post) =>
     shouldShowPost(post, locale, includeOther)
   );
@@ -112,6 +127,10 @@ export function PostList<T extends Post>({
             coverZh?: string;
             coverFit?: CoverFit;
             coverAspect?: string;
+            // Present on blog posts (kept in the list payload); undefined for
+            // Doc / Note. Powers the devtool hover inspector.
+            frontmatter?: Record<string, unknown>;
+            frontmatterZh?: Record<string, unknown>;
           };
           // Locale-aware pick with cross-language fallback: prefer the
           // viewer's locale, fall back to the other when missing. Otherwise a
@@ -194,8 +213,32 @@ export function PostList<T extends Post>({
           const peekEnabled =
             !!description || !!peekExcerpt || !!peekCover;
 
+          // Devtool inspector: on hover, publish this row's frontmatter for the
+          // locale it would open in. Only wired when the devtool is enabled and
+          // the post actually carries frontmatter (blog posts do; docs don't).
+          const rowLang = post.language === "both" ? locale : post.language;
+          const rowFrontmatter =
+            rowLang === "zh"
+              ? postExtras.frontmatterZh ?? postExtras.frontmatter
+              : postExtras.frontmatter;
+          const publishFrontmatter =
+            devtoolEnabled && rowFrontmatter && setPageMeta
+              ? () =>
+                  setPageMeta({
+                    slug: post.slug,
+                    lang: rowLang,
+                    language: post.language,
+                    frontmatter: rowFrontmatter,
+                  })
+              : undefined;
+
           return (
-            <article key={post.slug} className="group relative">
+            <article
+              key={post.slug}
+              className="group relative"
+              onMouseEnter={publishFrontmatter}
+              onFocus={publishFrontmatter}
+            >
               <MagneticPreview
                 preview={preview}
                 enabled={peekEnabled}
