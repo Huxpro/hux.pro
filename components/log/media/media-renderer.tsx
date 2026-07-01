@@ -341,10 +341,10 @@ export function MediaRenderer({
   }
 
   const multipleCards = cards.length > 1;
-  // Exactly three cards become a horizontal scroll-snap rail (see below):
-  // a 3-up grid crushes every card below readability on the desktop column
-  // and still wraps 2 + 1 on mobile.
-  const tripleCards = cards.length === 3;
+  // Three or more cards become a horizontal scroll-snap rail (see below):
+  // a multi-column grid crushes every card below readability on the desktop
+  // column and wraps awkwardly on mobile. Two cards keep the side-by-side grid.
+  const scrollRail = cards.length >= 3;
 
   return (
     <div className={cn(layoutClasses[layout], className)}>
@@ -357,22 +357,22 @@ export function MediaRenderer({
         ),
       )}
 
-      {/* Cards (link-cards + social widgets) — tile two-up when >1; exactly
-          three become a horizontal scroll-snap rail. */}
+      {/* Cards (link-cards + social widgets) — two tile side-by-side; three
+          or more become a horizontal scroll-snap rail. */}
       {cards.length > 0 && (
         <div>
-          {tripleCards ? (
-            // Three cards → horizontal scroll-snap rail. The rail's *nominal*
-            // width is the content column, so the first two cards line up
-            // pixel-for-pixel with a two-card commit (e.g. "Upgrading to
-            // PWA"). The scroll *track* then bleeds one full page gutter
+          {scrollRail ? (
+            // Three or more cards → horizontal scroll-snap rail. The rail's
+            // *nominal* width is the content column, so the first two cards
+            // line up pixel-for-pixel with a two-card commit (e.g. "Upgrading
+            // to PWA"). The scroll *track* then bleeds one full page gutter
             // (`-mr-6`, matching `<main>`'s `px-6`) past that footprint, so
-            // the third card's edge runs right up to the page edge on mobile
+            // the next card's edge runs right up to the page edge on mobile
             // and into the reading column's gutter on desktop.
             //
             // The trick that reconciles "keep two-up width" with "show a peek"
             // is the card width: it's measured against the container
-            // (`100cqi`), NOT the bled track, so all three stay at their exact
+            // (`100cqi`), NOT the bled track, so every card stays at its exact
             // 1/2-column size (uniform gaps) while only the track overflows.
             // `CardScrollRail` owns that container plus the scroll-position
             // edge fades; here we only size the cards.
