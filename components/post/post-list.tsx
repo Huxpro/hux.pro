@@ -14,7 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { MagneticPreview, PEEK_W } from "@/components/motion-primitives/magnetic-preview";
-import { ExternalImage } from "@/components/log/media/external-image";
+import { PeekCover, type CoverFit } from "@/components/log/media/peek-cover";
 import { Link } from "next-view-transitions";
 import { type ReactNode } from "react";
 
@@ -110,6 +110,8 @@ export function PostList<T extends Post>({
             excerptZh?: string;
             cover?: string;
             coverZh?: string;
+            coverFit?: CoverFit;
+            coverAspect?: string;
           };
           // Locale-aware pick with cross-language fallback: prefer the
           // viewer's locale, fall back to the other when missing. Otherwise a
@@ -143,6 +145,8 @@ export function PostList<T extends Post>({
                 origin: peekOrigin,
                 excerpt: peekExcerpt,
                 cover: peekCover,
+                coverFit: postExtras.coverFit,
+                coverAspect: postExtras.coverAspect,
               }}
             />
           );
@@ -230,6 +234,10 @@ interface PostPreviewMeta {
   origin?: string;
   excerpt?: string;
   cover?: string;
+  /** Peek-cover fill mode (frontmatter `coverFit`). Default: fixed cover. */
+  coverFit?: CoverFit;
+  /** Fixed-mode aspect override (frontmatter `coverAspect`). */
+  coverAspect?: string;
 }
 
 const LANGUAGE_LABEL: Record<PostLanguage, string> = {
@@ -282,13 +290,15 @@ function PostPreview({
   return (
     <div className={cn(PEEK_W, "max-w-full")}>
       {meta.cover && (
-        <div className="aspect-video bg-muted/20 overflow-hidden">
-          <ExternalImage
-            src={meta.cover}
-            className="block w-full h-full object-cover"
-            loading="eager"
-          />
-        </div>
+        // Shared cover slot — `fit`/`aspect` come from the post's frontmatter
+        // (`coverFit` / `coverAspect`). Default is a fixed cropped rectangle;
+        // `coverFit: natural` shows the whole cover at its own aspect (e.g. a
+        // tall portrait screenshot) instead of slicing it into a band.
+        <PeekCover
+          src={meta.cover}
+          fit={meta.coverFit}
+          aspect={meta.coverAspect}
+        />
       )}
 
       <div className="p-4 space-y-3">

@@ -1,5 +1,6 @@
 // Content types and helpers for MDX posts
 import type { Locale } from "@/lib/i18n";
+import type { CoverFit } from "@/components/log/media/peek-cover";
 
 export type PostLanguage = "en" | "zh" | "both";
 
@@ -35,6 +36,20 @@ export interface BlogPost extends Post {
   /** First image URL referenced in the post body — used as the peek cover. */
   cover?: string;
   coverZh?: string;
+  /**
+   * How the peek cover fills its slot (frontmatter `coverFit`):
+   *  - `"cover"` (default): fixed-aspect slot, image cropped to fill.
+   *  - `"natural"`: slot matches the cover's intrinsic aspect (no crop) —
+   *    use for portrait screenshots / framing-sensitive covers.
+   * Applies to both locales' covers. See {@link CoverFit} / PeekCover.
+   */
+  coverFit?: CoverFit;
+  /**
+   * Fixed-mode aspect ratio (frontmatter `coverAspect`), any CSS
+   * `aspect-ratio` value (e.g. `"3 / 4"`). Ignored when `coverFit` is
+   * `"natural"`. Defaults to the site-wide `DEFAULT_COVER_ASPECT`.
+   */
+  coverAspect?: string;
 }
 
 // Docs don't have extra fields beyond Post

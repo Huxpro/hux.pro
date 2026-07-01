@@ -349,6 +349,10 @@ export function getBlogPostBySlug(slug: string): BlogPostWithContent | null {
     excerptZh,
     cover,
     coverZh,
+    // Peek-cover fit is a display choice for the shared cover slot; a single
+    // value covers both locales (`data` already falls back to zh for zh-only).
+    coverFit: (data.coverFit as BlogPost["coverFit"]) || undefined,
+    coverAspect: (data.coverAspect as string) || undefined,
     content,
     contentZh,
     readingTime: readingTimeEn || readingTimeZh || "",

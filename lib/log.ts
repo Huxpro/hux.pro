@@ -82,6 +82,11 @@ export type VideoPlatform = "youtube" | "bilibili" | "vimeo";
 // interfaces below and consumers can keep a single import source.
 import type { SocialEmbedPlatform } from "./og-core";
 export type { SocialEmbedPlatform };
+// Type-only — erased at compile time, so this stays framework-agnostic for the
+// node snapshot script. Shared with the /writing peek so both hover surfaces
+// speak the same cover-fit vocabulary.
+import type { CoverFit } from "@/components/log/media/peek-cover";
+export type { CoverFit };
 
 /**
  * Manual card metadata.
@@ -96,6 +101,16 @@ export interface MediaPreview {
   title?: string;
   description?: string;
   image?: string;
+  /**
+   * How this card's image fills the hover-peek cover slot (see PeekCover):
+   *  - `"cover"` (default): fixed-aspect slot, image cropped to fill.
+   *  - `"natural"`: slot matches the image's intrinsic aspect (no crop).
+   * Only affects the single-item commit peek; the stacked deck always uses
+   * fixed rectangles so its layered transforms overlap cleanly.
+   */
+  fit?: CoverFit;
+  /** Fixed-mode aspect ratio (any CSS `aspect-ratio` value, e.g. `"3 / 4"`). */
+  aspect?: string;
 }
 
 /**
@@ -1596,6 +1611,10 @@ export type PeekItem =
       description?: string;
       image: string;
       internal?: InternalLinkMeta;
+      /** Author-chosen cover fill for the single-item peek. See MediaPreview. */
+      fit?: CoverFit;
+      /** Fixed-mode aspect override for the single-item peek. */
+      aspect?: string;
     }
   | { kind: "thumb"; url: string; image: string };
 
@@ -1624,6 +1643,8 @@ export function getCommitPeekItems(commit: Commit): PeekItem[] {
           description: m.preview?.description,
           image,
           internal: m.internal,
+          fit: m.preview?.fit,
+          aspect: m.preview?.aspect,
         });
       }
       continue;

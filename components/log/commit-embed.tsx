@@ -356,6 +356,10 @@ function PeekCard({
       image={item.image}
       size="compact"
       fixedAspect={fixedAspect}
+      // Single-item peek honors the author's cover-fit; the stacked deck sets
+      // `fixedAspect` above, which takes precedence (predictable rectangles).
+      fit={item.fit}
+      aspect={item.aspect}
       domainLabel={domainLabel}
       // Peek-specific chrome — same recipe as the shared MagneticPreview
       // panel (bg-card/70 + backdrop-blur-xl + border), minus the shadow:
