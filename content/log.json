@@ -156,13 +156,6 @@
     }
   ],
   "identities": {
-    "hux": {
-      "handle": "hux.pro",
-      "company": {
-        "en": "Personal",
-        "zh": "个人"
-      }
-    },
     "bytedance": {
       "handle": "@bytedance",
       "company": {
@@ -421,7 +414,7 @@
       "id": "juejin-talk-2023",
       "type": "talk",
       "tagId": "lynx-era",
-      "identityId": "hux",
+      "attachedTo": null,
       "title": {
         "en": "Frontend is Dead, Long Live Frontend",
         "zh": "前端已死，前端永生"
@@ -452,7 +445,7 @@
       "id": "feday-2023",
       "type": "talk",
       "tagId": "lynx-era",
-      "identityId": "hux",
+      "attachedTo": null,
       "title": {
         "en": "My Frontend Worldview",
         "zh": "我的大前端世界观"
@@ -537,7 +530,6 @@
       "id": "opensrc-pioneer-2022",
       "type": "social",
       "tagId": "react-era",
-      "identityId": "hux",
       "title": {
         "en": "China Open Source Pioneer 33",
         "zh": "中国开源先锋 33 人"
@@ -566,7 +558,7 @@
       "id": "coscon-2022",
       "type": "talk",
       "tagId": "react-era",
-      "identityId": "hux",
+      "attachedTo": null,
       "title": {
         "en": "React State of the Union",
         "zh": "React 国情咨文"
@@ -597,7 +589,7 @@
       "id": "gitee-cover-2022",
       "type": "social",
       "tagId": "react-era",
-      "identityId": "hux",
+      "attachedTo": null,
       "title": {
         "en": "Gitee Cover Story",
         "zh": "Gitee 封面人物"

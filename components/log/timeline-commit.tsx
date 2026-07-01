@@ -491,22 +491,22 @@ export function TimelineCommit({
               Author:  <handle>
               Role:    Title @ Company [· Location]
                        Optional role description.
-            The commit's own date lives in the top-right column, so
-            duplicating tenure here was redundant for most rows. Kept
-            two labeled lines (Author / Role) so the mono grid still
-            reads as a metadata header, not free-form body.
+            Rendered for every artifact-type row (project / talk / post
+            / social). When no employer identity resolved (personal
+            talks, awards), the Author line falls back to a bare
+            `<hux>` — the byline slot in the subtitle already stays
+            blank for those, but the expanded view still names the
+            person so digging in never leaves the reader wondering.
+            Role / description only when a resolved role provides them.
           */}
-          {byline && (
+          {data.type !== "role" && data.type !== "event" && (
             <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono pb-2.5 mb-1 border-b border-border/25">
               <span className="text-muted-foreground/40">Author:</span>
-              <span className="text-muted-foreground/65">&lt;{byline.handle}&gt;</span>
+              <span className="text-muted-foreground/65">
+                &lt;{byline?.handle ?? "hux"}&gt;
+              </span>
 
-              {/*
-                Role line only when we have a role title to anchor on.
-                Personal-identity commits (e.g. `hux.pro` byline with no
-                role instance) skip this — the handle IS the role.
-              */}
-              {byline.expanded.title && (
+              {byline?.expanded.title && (
                 <>
                   <span className="text-muted-foreground/40">Role:</span>
                   <span className="text-muted-foreground/60">
@@ -523,7 +523,7 @@ export function TimelineCommit({
                 </>
               )}
 
-              {byline.expanded.description && (
+              {byline?.expanded.description && (
                 <>
                   <span />
                   <span className="text-muted-foreground/50 mt-1 leading-relaxed">
