@@ -189,17 +189,20 @@ function DevtoolPanel() {
 // =============================================================================
 
 interface DebugSectionProps {
+  /** Stable id for persisting collapse state (locale-independent, unlike title). */
+  id: string;
   title: string;
   icon?: React.ReactNode;
   action?: React.ReactNode;
   children: React.ReactNode;
   /** Tighter vertical padding for lightweight content (toggles, buttons) */
   compact?: boolean;
-  /** Start collapsed. Default: expanded. */
+  /** Collapsed state when the user hasn't set one yet. Default: expanded. */
   defaultCollapsed?: boolean;
 }
 
 function DebugSection({
+  id,
   title,
   icon,
   action,
@@ -207,18 +210,19 @@ function DebugSection({
   compact,
   defaultCollapsed = false,
 }: DebugSectionProps) {
-  // In-memory collapse state — persists while the panel is mounted (i.e. while
-  // the devtool is enabled), resets on reload. The title is the natural click
-  // target; the `action` slot stays a separate sibling so its controls (toggles,
-  // copy) keep working without toggling the fold.
-  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  // Collapse state is persisted per-section in the devtool settings
+  // (localStorage), keyed by `id`, so folds survive reloads. The title is the
+  // natural click target; the `action` slot stays a separate sibling so its
+  // controls (toggles, copy) keep working without toggling the fold.
+  const { isSectionCollapsed, setSectionCollapsed } = useDevtool();
+  const collapsed = isSectionCollapsed(id, defaultCollapsed);
 
   return (
     <div className="border-b border-border/30 last:border-b-0">
       <div className="px-4 py-2 bg-muted/20">
         <div className="flex items-center justify-between gap-2">
           <button
-            onClick={() => setCollapsed((c) => !c)}
+            onClick={() => setSectionCollapsed(id, !collapsed)}
             className={cn(
               "flex items-center gap-2 flex-1 min-w-0",
               "text-xs font-mono text-muted-foreground uppercase tracking-wider",
@@ -287,6 +291,7 @@ function FrontmatterModule() {
 
   return (
     <DebugSection
+      id="frontmatter"
       title={locale === "zh" ? "元信息" : "Frontmatter"}
       icon={<Braces className="h-4 w-4" />}
       compact={!pageMeta}
@@ -403,6 +408,7 @@ function GradientModule() {
 
   return (
     <DebugSection
+      id="gradient"
       title={locale === "zh" ? "渐变" : "Gradient"}
       icon={<Layers className="h-4 w-4" />}
       compact
@@ -475,6 +481,7 @@ function WeatherModule() {
 
   return (
     <DebugSection
+      id="weather"
       title={t(locale, "widgetWeather")}
       icon={<Cloud className="h-4 w-4" />}
       action={
@@ -687,6 +694,7 @@ function AmbientTimeModule() {
 
   return (
     <DebugSection
+      id="time"
       title={t(locale, "devtoolTimeOfDay")}
       icon={<Clock className="h-4 w-4" />}
       action={
@@ -753,6 +761,7 @@ function DraggableModule() {
 
   return (
     <DebugSection
+      id="draggable"
       title={locale === "zh" ? "拖拽" : "Draggable"}
       icon={<GripVertical className="h-4 w-4" />}
     >
@@ -851,6 +860,7 @@ function RefetchModule() {
 
   return (
     <DebugSection
+      id="refetch"
       title={locale === "zh" ? "刷新" : "Refetch"}
       icon={<RefreshCw className="h-4 w-4" />}
       compact
