@@ -44,13 +44,38 @@ export function Cursor({
   const cursorY = useMotionValue(
     typeof window !== "undefined" ? window.innerHeight / 2 : 0
   );
+  // Horizontal offset stays fixed so the panel always sits in the same side
+  // gutter and never covers the reading column. Only the vertical offset is
+  // recomputed, to keep the panel on screen near the bottom edge.
+  const translateY = useMotionValue(offset.y);
   const cursorRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = useState(false);
+
+  // Vertical edge avoidance only: flip the panel above the pointer when it
+  // would spill off the bottom, then clamp against the top edge (panels taller
+  // than the viewport). The panel keeps its horizontal gutter position, so
+  // shifting it up never drops it over the reading column.
+  const recomputeOffsetY = useCallback(
+    (py: number) => {
+      if (typeof window === "undefined") return;
+      const margin = 8;
+      const h = cursorRef.current?.offsetHeight ?? 0;
+      const vh = window.innerHeight;
+
+      let ty = offset.y;
+      if (py + ty + h + margin > vh) ty = -offset.y - h;
+      if (py + ty < margin) ty = margin - py;
+
+      translateY.set(ty);
+    },
+    [offset.y, translateY]
+  );
 
   useEffect(() => {
     const updatePosition = (e: MouseEvent) => {
       cursorX.set(e.clientX);
       cursorY.set(e.clientY);
+      recomputeOffsetY(e.clientY);
       onPositionChange?.(e.clientX, e.clientY);
     };
 
@@ -58,7 +83,13 @@ export function Cursor({
     return () => {
       document.removeEventListener("mousemove", updatePosition);
     };
-  }, [cursorX, cursorY, onPositionChange]);
+  }, [cursorX, cursorY, recomputeOffsetY, onPositionChange]);
+
+  // Recompute once the panel mounts/measures so the first frame is already
+  // positioned correctly (the panel height is unknown until it renders).
+  useEffect(() => {
+    if (isHovering) recomputeOffsetY(cursorY.get());
+  }, [isHovering, recomputeOffsetY, cursorY]);
 
   const cursorXSpring = useSpring(cursorX, springConfig || { duration: 0 });
   const cursorYSpring = useSpring(cursorY, springConfig || { duration: 0 });
@@ -101,7 +132,7 @@ export function Cursor({
         x: cursorXSpring,
         y: cursorYSpring,
         translateX: `${offset.x}px`,
-        translateY: `${offset.y}px`,
+        translateY,
       }}
     >
       <AnimatePresence>
