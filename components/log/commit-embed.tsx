@@ -280,7 +280,7 @@ function PeekThumb({
         // No shadow here — standalone thumbs sit in the shared panel (which
         // supplies PEEK_SHADOW); stacked thumbs get PEEK_SHADOW on the front
         // layer only (see StackedPeek).
-        "rounded-md overflow-hidden border border-border/40 bg-muted/30",
+        "rounded-lg overflow-hidden border border-border/40 bg-muted/30",
         className,
       )}
     >
@@ -338,7 +338,7 @@ function PeekCard({
       // and stays in sync with every other peek. In dark mode the lift is
       // the shadow + border, not the bg.
       className={cn(
-        "bg-card/70 backdrop-blur-xl border border-border/50 rounded-md",
+        "bg-card/70 backdrop-blur-xl border border-border/50 rounded-lg",
         PEEK_SHADOW,
         className,
       )}

@@ -9,6 +9,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { MEDIA_MAX_W } from "./sizes";
 import { Link } from "./link";
 
 // =============================================================================
@@ -222,11 +223,7 @@ export function TwitterEmbed({
     };
   }, [tweetId, theme, embedKey]);
 
-  const sizeClasses = {
-    compact: "max-w-[325px]",
-    default: "max-w-[400px]",
-    large: "max-w-[500px]",
-  };
+  const sizeClasses = MEDIA_MAX_W;
 
   // Invalid URL or error - fallback to simple link (not OG preview, which would
   // also fail if the tweet is unavailable)

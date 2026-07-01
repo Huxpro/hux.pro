@@ -12,6 +12,7 @@
 import { useState, useEffect } from "react";
 import { ExternalLink as ExternalLinkIcon, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MEDIA_MAX_W } from "./sizes";
 import { fetchOGData } from "@/lib/og";
 import type { OGData } from "@/lib/og-core";
 import { getDomainLabel, isArchivedUrl } from "@/lib/og-core";
@@ -167,11 +168,8 @@ export interface CardFaceProps {
   onImgResolved?: () => void;
 }
 
-const sizeMaxW: Record<CardFaceSize, string> = {
-  compact: "max-w-sm",
-  default: "max-w-lg",
-  large: "max-w-2xl",
-};
+// Shared media width scale — see ./sizes.
+const sizeMaxW = MEDIA_MAX_W;
 
 export function CardFace({
   url,
