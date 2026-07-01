@@ -255,8 +255,9 @@ export function MediaRenderer({
   }
 
   const multipleCards = cards.length > 1;
-  // sm:3-col for 3 cards avoids an awkward 2 + 1 wrap; mobile keeps 2-col
-  // (3 would crush past readability).
+  // Exactly three cards become a horizontal scroll-snap rail (see below):
+  // a 3-up grid crushes every card below readability on the desktop column
+  // and still wraps 2 + 1 on mobile.
   const tripleCards = cards.length === 3;
 
   return (
@@ -270,31 +271,81 @@ export function MediaRenderer({
         ),
       )}
 
-      {/* Cards (link-cards + social widgets) — tile two-up when >1;
-          three go side-by-side at sm+ to keep the row balanced. */}
+      {/* Cards (link-cards + social widgets) — tile two-up when >1; exactly
+          three become a horizontal scroll-snap rail. */}
       {cards.length > 0 && (
         <div>
-          <div
-            className={cn(
-              // grid default `items-stretch` keeps tiled cards equal height.
-              multipleCards && "grid grid-cols-2 gap-2.5",
-              tripleCards && "sm:grid-cols-3",
-            )}
-          >
-            {cards.map((m, i) =>
-              wrap(
-                `card-${i}`,
-                m,
-                <SingleMedia
-                  media={m}
-                  theme={theme}
-                  size={multipleCards ? "compact" : size}
-                  dense={multipleCards}
-                  className={multipleCards ? "w-full max-w-none" : undefined}
-                />,
-              ),
-            )}
-          </div>
+          {tripleCards ? (
+            // Three cards → horizontal scroll-snap rail. The rail's *nominal*
+            // width is the content column, so it occupies the same footprint
+            // as a two-card row and the first two cards line up pixel-for-
+            // pixel with a two-card commit (e.g. "Upgrading to PWA"). The
+            // scroll *track* is then widened past that footprint — bleeding
+            // into the row's right gutter — so the third card's edge peeks
+            // through as the "there's more, swipe →" affordance.
+            //
+            // The trick that reconciles "keep two-up width" with "show a peek"
+            // is the card width: it's measured against the container
+            // (`100cqi`), NOT the widened track, so the first two stay at
+            // their exact 1/2-column size while the track overflows. `@container/rail`
+            // is what makes `cqi` resolve to the two-card footprint.
+            <div className="@container/rail">
+              <div
+                className={cn(
+                  "flex gap-2.5 w-[calc(100%_+_0.75rem)]",
+                  "overflow-x-auto overscroll-x-contain",
+                  "snap-x snap-mandatory scroll-smooth no-scrollbar",
+                )}
+              >
+                {cards.map((m, i) => (
+                  <div
+                    key={`rail-${i}`}
+                    className={cn(
+                      // Each card is exactly a two-up column: (100cqi − gap)/2.
+                      "shrink-0 snap-start basis-[calc((100cqi_-_0.625rem)/2)]",
+                      // Nudge only the trailing card leftward so its edge lands
+                      // inside the gutter peek zone; the first two keep the full
+                      // gap so they stay aligned with a two-card row.
+                      i === cards.length - 1 && "-ml-1.5",
+                    )}
+                  >
+                    {wrap(
+                      `rail-card-${i}`,
+                      m,
+                      <SingleMedia
+                        media={m}
+                        theme={theme}
+                        size="compact"
+                        dense
+                        className="w-full max-w-none"
+                      />,
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div
+              className={cn(
+                // grid default `items-stretch` keeps tiled cards equal height.
+                multipleCards && "grid grid-cols-2 gap-2.5",
+              )}
+            >
+              {cards.map((m, i) =>
+                wrap(
+                  `card-${i}`,
+                  m,
+                  <SingleMedia
+                    media={m}
+                    theme={theme}
+                    size={multipleCards ? "compact" : size}
+                    dense={multipleCards}
+                    className={multipleCards ? "w-full max-w-none" : undefined}
+                  />,
+                ),
+              )}
+            </div>
+          )}
         </div>
       )}
 
