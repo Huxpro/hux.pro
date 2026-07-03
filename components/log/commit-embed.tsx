@@ -180,10 +180,11 @@ interface CommitPreview {
   panelClassName?: string;
 }
 
-/** Strips the cursor-preview panel's bg / border / shadow / blur so the peek
- *  content can supply its own. */
+/** Strips the cursor-preview panel's bg / border / blur so the peek content
+ *  can supply its own. (The panel carries no shadow to strip — see the panel
+ *  base in magnetic-preview; the visible card/thumb casts the shadow.) */
 const BARE_PANEL_CHROME =
-  "bg-transparent border-transparent shadow-none backdrop-blur-none";
+  "bg-transparent border-transparent backdrop-blur-none";
 
 /**
  * Build the cursor-preview for a commit — a "peek view" that scales to how
@@ -262,8 +263,8 @@ function buildCommitPreview(
     // Unlike the other peeks (bare panel, content == PEEK_W), this fallback
     // uses the panel itself as the visible card, so PEEK_W goes on the PANEL
     // — otherwise its p-3 padding would make the outer box wider (408) than
-    // the flush 384 peeks.
-    panelClassName: PEEK_W,
+    // the flush 384 peeks. It's a visible card, so it opts into shadow-raised.
+    panelClassName: `${PEEK_W} shadow-raised`,
     node: (
       <div className="w-full space-y-3">
         {description && (

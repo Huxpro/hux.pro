@@ -197,8 +197,9 @@ export function PostList<T extends Post>({
                 enabled={peekEnabled}
                 // p-0 strips the default panel padding so the cover sits flush
                 // against the rounded panel edge; PostPreview owns its own
-                // internal padding around the text content.
-                panelClassName="p-0 overflow-hidden max-w-md"
+                // internal padding around the text content. The panel IS the
+                // visible card here, so it opts into shadow-raised.
+                panelClassName="p-0 overflow-hidden max-w-md shadow-raised"
               >
                 {postRow}
               </MagneticPreview>
