@@ -93,12 +93,14 @@ export function MagneticPreview({
             className={cn(
               // Translucent lifted surface — matches the Dock Live Activity
               // expanded panel recipe (bg-card/70 + backdrop-blur-xl +
-              // border + a soft shadow). In dark mode popover/card are
-              // *darker* than the page bg, so the lift comes from the shadow
-              // + border, not from "see-through-ness" — the blur is what
-              // makes it feel alive.
+              // border). No shadow here on purpose: the shadow belongs to
+              // whatever is the *visible* surface. Panel-as-card peeks
+              // (writing / details) add `shadow-raised` themselves; peeks
+              // that strip this chrome (deck / single card / video) let their
+              // inner card/thumb cast the shadow — so the deck, an irregular
+              // rotated stack, never gets a rectangular container shadow
+              // around it.
               "rounded-lg border border-border/50 bg-card/70 backdrop-blur-xl",
-              "shadow-raised",
               // Default cap fits the unified peek width (PEEK_W = 384); peeks
               // no longer need to lift a narrower default.
               "p-3 max-w-md",

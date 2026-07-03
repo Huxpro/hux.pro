@@ -180,10 +180,11 @@ interface CommitPreview {
   panelClassName?: string;
 }
 
-/** Strips the cursor-preview panel's bg / border / shadow / blur so the peek
- *  content can supply its own. */
+/** Strips the cursor-preview panel's bg / border / blur so the peek content
+ *  can supply its own. (The panel carries no shadow to strip — see the panel
+ *  base in magnetic-preview; the visible card/thumb casts the shadow.) */
 const BARE_PANEL_CHROME =
-  "bg-transparent border-transparent shadow-none backdrop-blur-none";
+  "bg-transparent border-transparent backdrop-blur-none";
 
 /**
  * Build the cursor-preview for a commit — a "peek view" that scales to how
@@ -262,8 +263,8 @@ function buildCommitPreview(
     // Unlike the other peeks (bare panel, content == PEEK_W), this fallback
     // uses the panel itself as the visible card, so PEEK_W goes on the PANEL
     // — otherwise its p-3 padding would make the outer box wider (408) than
-    // the flush 384 peeks.
-    panelClassName: PEEK_W,
+    // the flush 384 peeks. It's a visible card, so it opts into shadow-raised.
+    panelClassName: `${PEEK_W} shadow-raised`,
     node: (
       <div className="w-full space-y-3">
         {description && (
@@ -449,23 +450,23 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
               // it — translucency only makes sense where the page bg sits
               // behind, which is true for back cards (peeking from behind)
               // but not for the front (a full card sits behind it).
-              // Only the FRONT layer gets `shadow-raised` — one soft shadow
-              // grounds the whole deck. Back layers stay flat: three stacked
-              // shadows would compound and darken each other where the cards
-              // peek out.
+              // Every layer carries its own `shadow-raised` so the deck reads
+              // as real stacked cards — each lifted above the one behind it —
+              // not one silhouette with a single outer shadow. Safe now that
+              // the shadow is light (raised, black/5): each layer's wrapper
+              // opacity (0.92 / 0.78) also fades its shadow, so the back
+              // cards' shadows recede instead of compounding into mud (which
+              // the old heavy shadow-2xl did).
               <PeekCard
                 item={item}
                 fixedAspect
-                className={isFront ? "bg-card shadow-raised" : undefined}
+                className={cn("shadow-raised", isFront && "bg-card")}
                 onResolved={() => markResolved(i)}
               />
             ) : (
               <PeekThumb
                 image={item.image}
-                className={cn(
-                  "aspect-video",
-                  isFront && ["bg-muted", "shadow-raised"],
-                )}
+                className={cn("aspect-video shadow-raised", isFront && "bg-muted")}
                 onResolved={() => markResolved(i)}
               />
             )}
