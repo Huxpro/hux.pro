@@ -14,6 +14,12 @@ import {
   getWeatherConditionLabel,
 } from "@/systems/ambient/lib/weather";
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
+import {
+  usePreviewTuning,
+  setPreviewTuning,
+  resetPreviewTuning,
+  PREVIEW_TUNING_DEFAULTS,
+} from "@/components/motion-primitives/preview-tuning";
 import { cn } from "@/lib/utils";
 import {
   Braces,
@@ -30,7 +36,9 @@ import {
   Layers,
   Moon,
   MoonStar,
+  MousePointer2,
   RefreshCw,
+  RotateCcw,
   Sun,
   SunMedium,
   Sunrise,
@@ -161,6 +169,7 @@ function DevtoolPanel() {
         <GradientModule />
         <WeatherModule />
         <AmbientTimeModule />
+        <HoverPreviewModule />
         <DraggableModule />
         <RefetchModule />
       </div>
@@ -746,6 +755,105 @@ function AmbientTimeModule() {
           <PhaseButton p="evening" icon={<Moon className="h-3.5 w-3.5" />} aria="Set phase to evening" />
           <PhaseButton p="night" icon={<MoonStar className="h-3.5 w-3.5" />} aria="Set phase to night" />
         </div>
+      </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Hover Preview Module
+// Tunes the magnetic preview's dwell + warmth timings (see preview-tuning)
+// =============================================================================
+
+function TuneSlider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+          {label}
+        </span>
+        <span className="text-[10px] font-mono text-foreground/80 tabular-nums">
+          {value}ms
+        </span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full h-1 cursor-pointer accent-foreground"
+        aria-label={label}
+      />
+    </div>
+  );
+}
+
+function HoverPreviewModule() {
+  const { locale } = useLocale();
+  const tuning = usePreviewTuning();
+  const isOverridden =
+    tuning.openDelay !== PREVIEW_TUNING_DEFAULTS.openDelay ||
+    tuning.graceMs !== PREVIEW_TUNING_DEFAULTS.graceMs;
+
+  return (
+    <DebugSection
+      title={locale === "zh" ? "悬停预览" : "Hover Preview"}
+      icon={<MousePointer2 className="h-4 w-4" />}
+      action={
+        isOverridden ? (
+          <button
+            onClick={() => resetPreviewTuning()}
+            className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Reset hover preview timings"
+          >
+            <RotateCcw className="h-3 w-3" />
+            <span>{locale === "zh" ? "重置" : "Reset"}</span>
+          </button>
+        ) : (
+          <span className="text-[10px] font-mono text-muted-foreground/40">
+            {locale === "zh" ? "默认" : "Default"}
+          </span>
+        )
+      }
+    >
+      <div className="space-y-3">
+        <TuneSlider
+          label={locale === "zh" ? "首次延迟" : "Dwell"}
+          value={tuning.openDelay}
+          min={0}
+          max={600}
+          step={10}
+          onChange={(v) => setPreviewTuning({ openDelay: v })}
+        />
+        <TuneSlider
+          label={locale === "zh" ? "热区宽限" : "Grace"}
+          value={tuning.graceMs}
+          min={0}
+          max={1200}
+          step={20}
+          onChange={(v) => setPreviewTuning({ graceMs: v })}
+        />
+        <p className="text-[10px] font-mono leading-relaxed text-muted-foreground/70">
+          {locale === "zh"
+            ? "首次悬停需停留「首次延迟」后展示；展示后「热区宽限」内移到其他项即时展示。"
+            : "First hover waits out Dwell; once open, moving within Grace shows the next instantly."}
+        </p>
       </div>
     </DebugSection>
   );
