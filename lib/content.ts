@@ -3,6 +3,26 @@ import type { Locale } from "@/lib/i18n";
 
 export type PostLanguage = "en" | "zh" | "both";
 
+/**
+ * How a peek cover fills its slot (see the `PeekCover` component):
+ *  - `"cover"`: fixed-aspect slot, image cropped to fill.
+ *  - `"natural"`: slot matches the image's intrinsic aspect (no crop).
+ *
+ * Lives here (framework-agnostic content layer) rather than in the client
+ * component, so `lib/*` and the node snapshot script can reference it without
+ * reaching across the framework boundary — the same reason `SocialEmbedPlatform`
+ * lives in `lib/og-core`. `PeekCover` imports these back from here.
+ */
+export type CoverFit = "cover" | "natural";
+
+/**
+ * Site-wide default aspect ratio for `coverFit: "cover"` slots. Retune the
+ * whole site's default from this single point; individual posts/commits
+ * override it with `coverAspect` / `preview.aspect`. Any valid CSS
+ * `aspect-ratio` value works (e.g. `"16 / 9"`, `"4 / 3"`, `"3 / 4"`, `"1 / 1"`).
+ */
+export const DEFAULT_COVER_ASPECT = "16 / 9";
+
 // ===== Base Types =====
 
 // Minimal localized content (for search/command palette)
@@ -35,6 +55,20 @@ export interface BlogPost extends Post {
   /** First image URL referenced in the post body — used as the peek cover. */
   cover?: string;
   coverZh?: string;
+  /**
+   * How the peek cover fills its slot (frontmatter `coverFit`):
+   *  - `"cover"` (default): fixed-aspect slot, image cropped to fill.
+   *  - `"natural"`: slot matches the cover's intrinsic aspect (no crop) —
+   *    use for portrait screenshots / framing-sensitive covers.
+   * Applies to both locales' covers. See {@link CoverFit} / PeekCover.
+   */
+  coverFit?: CoverFit;
+  /**
+   * Fixed-mode aspect ratio (frontmatter `coverAspect`), any CSS
+   * `aspect-ratio` value (e.g. `"3 / 4"`). Ignored when `coverFit` is
+   * `"natural"`. Defaults to the site-wide `DEFAULT_COVER_ASPECT`.
+   */
+  coverAspect?: string;
 }
 
 // Docs don't have extra fields beyond Post

@@ -16,11 +16,15 @@ import {
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
 import { cn } from "@/lib/utils";
 import {
+  Braces,
   Brain,
   Bug,
+  Check,
+  ChevronDown,
   ChevronUp,
   Clock,
   Cloud,
+  Copy,
   GripVertical,
   Haze,
   Layers,
@@ -34,7 +38,7 @@ import {
   X,
 } from "lucide-react";
 import { withDraggable } from "@/systems/draggable";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // =============================================================================
 // Devtool FAB Component
@@ -153,6 +157,7 @@ function DevtoolPanel() {
 
       {/* Scrollable content */}
       <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
+        <FrontmatterModule />
         <GradientModule />
         <WeatherModule />
         <AmbientTimeModule />
@@ -184,28 +189,173 @@ function DevtoolPanel() {
 // =============================================================================
 
 interface DebugSectionProps {
+  /** Stable id for persisting collapse state (locale-independent, unlike title). */
+  id: string;
   title: string;
   icon?: React.ReactNode;
   action?: React.ReactNode;
   children: React.ReactNode;
   /** Tighter vertical padding for lightweight content (toggles, buttons) */
   compact?: boolean;
+  /** Collapsed state when the user hasn't set one yet. Default: expanded. */
+  defaultCollapsed?: boolean;
 }
 
-function DebugSection({ title, icon, action, children, compact }: DebugSectionProps) {
+function DebugSection({
+  id,
+  title,
+  icon,
+  action,
+  children,
+  compact,
+  defaultCollapsed = false,
+}: DebugSectionProps) {
+  // Collapse state is persisted per-section in the devtool settings
+  // (localStorage), keyed by `id`, so folds survive reloads. The title is the
+  // natural click target; the `action` slot stays a separate sibling so its
+  // controls (toggles, copy) keep working without toggling the fold.
+  const { isSectionCollapsed, setSectionCollapsed } = useDevtool();
+  const collapsed = isSectionCollapsed(id, defaultCollapsed);
+
   return (
     <div className="border-b border-border/30 last:border-b-0">
       <div className="px-4 py-2 bg-muted/20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground uppercase tracking-wider">
+        <div className="flex items-center justify-between gap-2">
+          <button
+            onClick={() => setSectionCollapsed(id, !collapsed)}
+            className={cn(
+              "flex items-center gap-2 flex-1 min-w-0",
+              "text-xs font-mono text-muted-foreground uppercase tracking-wider",
+              "hover:text-foreground/80 transition-colors"
+            )}
+            aria-expanded={!collapsed}
+            aria-label={`Toggle ${title} section`}
+          >
+            <ChevronDown
+              className={cn(
+                "h-3 w-3 shrink-0 transition-transform duration-200",
+                collapsed && "-rotate-90"
+              )}
+            />
             {icon}
-            {title}
-          </div>
-          <div className="flex items-center min-h-5">{action}</div>
+            <span className="truncate">{title}</span>
+          </button>
+          {action && (
+            <div className="flex items-center min-h-5 shrink-0">{action}</div>
+          )}
         </div>
       </div>
-      <div className={cn("px-4", compact ? "py-2" : "py-3")}>{children}</div>
+      {!collapsed && (
+        <div className={cn("px-4", compact ? "py-2" : "py-3")}>{children}</div>
+      )}
     </div>
+  );
+}
+
+// =============================================================================
+// Frontmatter Module
+// Inspects the frontmatter of the current page (blog posts register theirs via
+// <DevtoolPageMeta>). Empty on pages that don't publish any.
+// =============================================================================
+
+/** Render a frontmatter value as a compact, legible string. */
+function formatFrontmatterValue(value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  if (Array.isArray(value)) {
+    return value.length ? value.map((v) => String(v)).join(", ") : "[]";
+  }
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function FrontmatterModule() {
+  const { locale } = useLocale();
+  const { pageMeta } = useDevtool();
+  const [copied, setCopied] = useState(false);
+
+  const entries = pageMeta ? Object.entries(pageMeta.frontmatter) : [];
+
+  const copy = async () => {
+    if (!pageMeta) return;
+    try {
+      await navigator.clipboard.writeText(
+        JSON.stringify(pageMeta.frontmatter, null, 2)
+      );
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      // Clipboard blocked (insecure context / permissions) — no-op.
+    }
+  };
+
+  return (
+    <DebugSection
+      id="frontmatter"
+      title={locale === "zh" ? "元信息" : "Frontmatter"}
+      icon={<Braces className="h-4 w-4" />}
+      compact={!pageMeta}
+      action={
+        pageMeta ? (
+          <button
+            onClick={copy}
+            className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Copy frontmatter as JSON"
+            title={locale === "zh" ? "复制 JSON" : "Copy JSON"}
+          >
+            {copied ? (
+              <Check className="h-3 w-3 text-green-500" />
+            ) : (
+              <Copy className="h-3 w-3" />
+            )}
+            <span>{copied ? (locale === "zh" ? "已复制" : "Copied") : "JSON"}</span>
+          </button>
+        ) : null
+      }
+    >
+      {!pageMeta ? (
+        <div className="text-[10px] font-mono text-muted-foreground/60">
+          {locale === "zh" ? "当前非博客页面" : "No frontmatter on this page"}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {/* Route context — slug + which locale's file is rendered. */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-mono text-foreground/90 break-all">
+              {pageMeta.slug}
+            </span>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+              {pageMeta.lang}
+            </span>
+            {pageMeta.language && pageMeta.language !== pageMeta.lang && (
+              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/60 px-1.5 py-0.5 border border-border/50 rounded">
+                {pageMeta.language}
+              </span>
+            )}
+          </div>
+
+          {/* Frontmatter fields, in authored order. */}
+          {entries.length ? (
+            <div className="space-y-2 border-t border-border/30 pt-2.5">
+              {entries.map(([key, value]) => (
+                <div key={key} className="space-y-0.5">
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+                    {key}
+                  </div>
+                  <div className="text-xs font-mono text-foreground/80 break-words whitespace-pre-wrap">
+                    {formatFrontmatterValue(value)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-[10px] font-mono text-muted-foreground/60 border-t border-border/30 pt-2.5">
+              {locale === "zh" ? "无字段" : "No fields"}
+            </div>
+          )}
+        </div>
+      )}
+    </DebugSection>
   );
 }
 
@@ -258,6 +408,7 @@ function GradientModule() {
 
   return (
     <DebugSection
+      id="gradient"
       title={locale === "zh" ? "渐变" : "Gradient"}
       icon={<Layers className="h-4 w-4" />}
       compact
@@ -330,6 +481,7 @@ function WeatherModule() {
 
   return (
     <DebugSection
+      id="weather"
       title={t(locale, "widgetWeather")}
       icon={<Cloud className="h-4 w-4" />}
       action={
@@ -542,6 +694,7 @@ function AmbientTimeModule() {
 
   return (
     <DebugSection
+      id="time"
       title={t(locale, "devtoolTimeOfDay")}
       icon={<Clock className="h-4 w-4" />}
       action={
@@ -608,6 +761,7 @@ function DraggableModule() {
 
   return (
     <DebugSection
+      id="draggable"
       title={locale === "zh" ? "拖拽" : "Draggable"}
       icon={<GripVertical className="h-4 w-4" />}
     >
@@ -706,6 +860,7 @@ function RefetchModule() {
 
   return (
     <DebugSection
+      id="refetch"
       title={locale === "zh" ? "刷新" : "Refetch"}
       icon={<RefreshCw className="h-4 w-4" />}
       compact

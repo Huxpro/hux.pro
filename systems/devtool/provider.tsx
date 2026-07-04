@@ -42,10 +42,13 @@ export const DRAGGABLE_INSTANCES = [
 interface DevtoolSettings {
   fabEnabled: boolean;
   draggable: Record<string, Partial<DraggableInstanceConfig>>;
+  /** Per-section collapsed state, keyed by the section's stable id. */
+  collapsed: Record<string, boolean>;
 }
 
 function getDevtoolSettings(): DevtoolSettings {
-  if (typeof window === "undefined") return { fabEnabled: false, draggable: {} };
+  if (typeof window === "undefined")
+    return { fabEnabled: false, draggable: {}, collapsed: {} };
   try {
     const stored = localStorage.getItem(DEVTOOL_STORAGE_KEY);
     if (stored) {
@@ -57,17 +60,19 @@ function getDevtoolSettings(): DevtoolSettings {
           draggable: parsed.commandFabDraggable
             ? { "command-fab": { draggable: true } }
             : {},
+          collapsed: parsed.collapsed ?? {},
         };
       }
       return {
         fabEnabled: parsed.fabEnabled ?? false,
         draggable: parsed.draggable ?? {},
+        collapsed: parsed.collapsed ?? {},
       };
     }
   } catch {
     // Ignore
   }
-  return { fabEnabled: false, draggable: {} };
+  return { fabEnabled: false, draggable: {}, collapsed: {} };
 }
 
 function setDevtoolSettings(settings: Partial<DevtoolSettings>): void {
@@ -110,6 +115,31 @@ interface DevtoolContextType {
   getDragResetCounter: (id: string) => number;
   /** Signal that a draggable instance should reset position (if persist is off) */
   signalDragReset: (id: string) => void;
+  /** Frontmatter of the current route, or null when not on an inspectable page. */
+  pageMeta: DevtoolPageMeta | null;
+  /** Register / clear the current route's frontmatter (called by DevtoolPageMeta). */
+  setPageMeta: (meta: DevtoolPageMeta | null) => void;
+  /** Whether a panel section is collapsed. `fallback` applies when unset. */
+  isSectionCollapsed: (id: string, fallback?: boolean) => boolean;
+  /** Persist a section's collapsed state (survives reload). */
+  setSectionCollapsed: (id: string, collapsed: boolean) => void;
+}
+
+// =============================================================================
+// Page Frontmatter channel
+// The current route can register its parsed frontmatter so the panel's
+// inspector can display it. Populated by <DevtoolPageMeta> on blog pages;
+// null everywhere else.
+// =============================================================================
+
+export interface DevtoolPageMeta {
+  /** Route context — e.g. blog slug + rendered locale. */
+  slug: string;
+  lang: string;
+  /** The post's language scope (`en` / `zh` / `both`), for the header badge. */
+  language?: string;
+  /** Verbatim frontmatter of the file rendered for this route. */
+  frontmatter: Record<string, unknown>;
 }
 
 const DevtoolContext = createContext<DevtoolContextType | undefined>(undefined);
@@ -137,6 +167,10 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
     Record<string, Partial<DraggableInstanceConfig>>
   >({});
   const [dragResetCounters, setDragResetCounters] = useState<Record<string, number>>({});
+  const [pageMeta, setPageMeta] = useState<DevtoolPageMeta | null>(null);
+  const [collapsedSections, setCollapsedSections] = useState<
+    Record<string, boolean>
+  >({});
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -145,6 +179,10 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
     setIsEnabledState(settings.fabEnabled);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: localStorage read
     setDraggableOverrides(settings.draggable);
+    // Loaded in the same effect as `fabEnabled` (which gates the panel's
+    // render), so the panel's first paint already has the correct fold state
+    // — no expand→collapse flash.
+    setCollapsedSections(settings.collapsed);
   }, []);
 
   const setEnabled = useCallback((enabled: boolean) => {
@@ -210,6 +248,22 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
     setDragResetCounters((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
   }, []);
 
+  const isSectionCollapsed = useCallback(
+    (id: string, fallback = false) => collapsedSections[id] ?? fallback,
+    [collapsedSections]
+  );
+
+  const setSectionCollapsed = useCallback(
+    (id: string, collapsed: boolean) => {
+      setCollapsedSections((prev) => {
+        const next = { ...prev, [id]: collapsed };
+        setDevtoolSettings({ collapsed: next });
+        return next;
+      });
+    },
+    []
+  );
+
   // Keyboard shortcut: 'D' to toggle panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -249,6 +303,10 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
         setDraggableConfig,
         getDragResetCounter,
         signalDragReset,
+        pageMeta,
+        setPageMeta,
+        isSectionCollapsed,
+        setSectionCollapsed,
       }}
     >
       {children}

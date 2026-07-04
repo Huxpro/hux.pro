@@ -19,6 +19,8 @@ import type { InternalLinkMeta, LinkMedia } from "@/lib/log";
 import { pickInternalLink } from "@/lib/og-enrich";
 import { useLocale } from "@/services";
 import { ExternalImage } from "./external-image";
+import { PeekCover } from "./peek-cover";
+import type { CoverFit } from "@/lib/content";
 
 // =============================================================================
 // Types
@@ -156,6 +158,17 @@ export interface CardFaceProps {
    * aspect, no backdrop — the image's intrinsic dimensions size the slot).
    */
   fixedAspect?: boolean;
+  /**
+   * Cover fill for the natural (non-`fixedAspect`) slot:
+   *  - `"natural"` (default): the image's intrinsic aspect sizes the slot —
+   *    an OG card renders whole, never cropped.
+   *  - `"cover"`: a fixed-aspect slot (`aspect`, default 16:9) cropped to
+   *    fill. Opt-in via the commit media's `preview.fit`.
+   * `fixedAspect` (the stacked-deck letterbox) takes precedence when set.
+   */
+  fit?: CoverFit;
+  /** Fixed-mode (`fit:"cover"`) aspect override, any CSS `aspect-ratio`. */
+  aspect?: string;
   /** See `LinkCardProps.dense`. */
   dense?: boolean;
   /** Caption override — internal-link cards print `/writing` here. */
@@ -180,6 +193,8 @@ export function CardFace({
   image,
   size = "default",
   fixedAspect = false,
+  fit = "natural",
+  aspect,
   dense = false,
   domainLabel,
   languageBadge = null,
@@ -223,14 +238,19 @@ export function CardFace({
       </div>
     );
   } else {
+    // Natural + cover modes share the PeekCover primitive so the LinkCard peek
+    // and the /writing peek size covers identically. `fit:"cover"` gives a
+    // cropped fixed slot; the default `"natural"` keeps the OG image whole.
     slot = (
-      <div className="bg-muted/20 overflow-hidden shrink-0">
-        <ExternalImage
-          src={image}
-          className={cn("block w-full h-auto", fadeClass)}
-          onResolved={handleResolved}
-        />
-      </div>
+      <PeekCover
+        src={image}
+        fit={fit}
+        aspect={aspect}
+        className="shrink-0"
+        imgClassName={fadeClass}
+        loading="lazy"
+        onResolved={handleResolved}
+      />
     );
   }
 

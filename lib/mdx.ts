@@ -64,6 +64,11 @@ function extractExcerpt(content: string, maxChars = 320): string {
 export interface BlogPostWithContent extends BlogPost {
   content: string;
   contentZh?: string;
+  /** Raw parsed frontmatter of each locale's source file, verbatim — the YAML
+   *  the author actually wrote (before merge/derivation). Powers the devtool's
+   *  frontmatter inspector. `frontmatterZh` is undefined for en-only posts. */
+  frontmatter?: Record<string, unknown>;
+  frontmatterZh?: Record<string, unknown>;
 }
 
 // Doc already has readingTime from Post, just add content fields
@@ -250,9 +255,13 @@ export function getAllBlogPosts(): BlogPost[] {
       const post = getBlogPostBySlug(slug);
       if (!post) return null;
 
-      // Return just the metadata, not the content
+      // Return just the metadata, not the bodies. `contentZh` is only read on
+      // the article page, never on the list — dropping it here keeps the full
+      // Chinese bodies (~the bulk of the payload) out of the list page's
+      // client bundle. Frontmatter is kept: it's tiny and powers the devtool
+      // hover inspector.
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { content, readingTime, ...metadata } = post;
+      const { content, contentZh, readingTime, ...metadata } = post;
       return metadata as BlogPost;
     })
     .filter((post): post is BlogPost => post !== null)
@@ -349,8 +358,15 @@ export function getBlogPostBySlug(slug: string): BlogPostWithContent | null {
     excerptZh,
     cover,
     coverZh,
+    // Peek-cover fit is a display choice for the shared cover slot; a single
+    // value covers both locales (`data` already falls back to zh for zh-only).
+    coverFit: (data.coverFit as BlogPost["coverFit"]) || undefined,
+    coverAspect: (data.coverAspect as string) || undefined,
     content,
     contentZh,
+    // Verbatim frontmatter per locale for the devtool inspector.
+    frontmatter: hasEn ? enData : zhData,
+    frontmatterZh: hasZh ? zhData : undefined,
     readingTime: readingTimeEn || readingTimeZh || "",
     readingTimeZh,
   };
