@@ -326,6 +326,8 @@ export function EditorView({ initialData }: EditorViewProps) {
               <CommitEditor
                 commit={selectedCommit}
                 tags={data.tags}
+                commits={data.commits}
+                identities={data.identities}
                 onUpdate={handleUpdateCommit}
                 onDelete={() => handleDeleteCommit(selectedCommit.id)}
                 onClose={clearSelection}

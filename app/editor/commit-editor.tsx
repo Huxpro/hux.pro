@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import type {
   Commit,
   CommitType,
+  CommitLanguage,
+  Identity,
   Tag,
   Media,
   MediaKind,
@@ -19,6 +21,10 @@ import { toast } from "sonner";
 interface CommitEditorProps {
   commit: Commit;
   tags: Tag[];
+  /** All commits in the log — feeds the "Attach To" anchor picker. */
+  commits: Commit[];
+  /** Runtime identity map — feeds the "Identity" (identityId) picker. */
+  identities?: Record<string, Identity>;
   onUpdate: (commit: Commit) => void;
   onDelete: () => void;
   onClose: () => void;
@@ -274,6 +280,8 @@ function defaultFieldsForType(type: CommitType): Partial<Commit> {
 export function CommitEditor({
   commit,
   tags,
+  commits,
+  identities,
   onUpdate,
   onDelete,
   onClose,
@@ -314,6 +322,10 @@ export function CommitEditor({
   };
 
   const handleTypeChange = (newType: CommitType) => {
+    // Carry every type-agnostic BaseCommit field across the switch — only
+    // the discriminated, type-specific fields (conference / publication /
+    // stats / …) are replaced by `defaultFieldsForType`. Anything omitted
+    // here would be silently dropped when the user flips the type.
     const base = {
       id: commit.id,
       tagId: commit.tagId,
@@ -322,8 +334,17 @@ export function CommitEditor({
       title: commit.title,
       description: commit.description,
       commentary: commit.commentary,
+      team: commit.team,
       tags: commit.tags,
       listed: commit.listed,
+      listedIn: commit.listedIn,
+      language: commit.language,
+      hideDate: commit.hideDate,
+      sortBy: commit.sortBy,
+      icon: commit.icon,
+      identityId: commit.identityId,
+      attachedTo: commit.attachedTo,
+      media: commit.media,
     };
     onUpdate({
       ...base,
@@ -420,6 +441,8 @@ export function CommitEditor({
           <FormFields
             commit={commit}
             tags={tags}
+            commits={commits}
+            identities={identities}
             onUpdate={update}
             onTypeChange={handleTypeChange}
             focusMediaIndex={focusMediaIndex}
@@ -435,9 +458,15 @@ export function CommitEditor({
 // Form fields
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Sentinel select-value for `attachedTo: null` (force-detach). Commit ids
+ *  are kebab strings, so this never collides with a real id. */
+const DETACH = "—detach—";
+
 function FormFields({
   commit,
   tags,
+  commits,
+  identities,
   onUpdate,
   onTypeChange,
   focusMediaIndex,
@@ -445,6 +474,8 @@ function FormFields({
 }: {
   commit: Commit;
   tags: Tag[];
+  commits: Commit[];
+  identities?: Record<string, Identity>;
   onUpdate: (partial: Record<string, unknown>) => void;
   onTypeChange: (type: CommitType) => void;
   focusMediaIndex?: number | null;
@@ -452,9 +483,47 @@ function FormFields({
 }) {
   const commitTypes: CommitType[] = ["project", "talk", "post", "role", "social", "event"];
 
+  // Localized helper: write an optional LocalizedString field, collapsing
+  // back to `undefined` when both variants go empty (keeps log.json sparse).
+  const setLocalizedOptional = (
+    key: string,
+    current: { en: string; zh: string } | undefined,
+    lang: "en" | "zh",
+    value: string,
+  ) => {
+    const other = lang === "en" ? current?.zh ?? "" : current?.en ?? "";
+    const next = value || other ? { en: "", zh: "", ...current, [lang]: value } : undefined;
+    onUpdate({ [key]: next });
+  };
+
+  // Anchor candidates for `attachedTo`: roles / events / projects (the row
+  // types the connector can actually land on), excluding self. Labeled by
+  // title + type so the picker reads clearly.
+  const attachOptions: { value: string; label: string }[] = [
+    { value: "", label: "auto (tenure)" },
+    { value: DETACH, label: "detach (none)" },
+    ...commits
+      .filter(
+        (c) =>
+          c.id !== commit.id &&
+          (c.type === "role" || c.type === "event" || c.type === "project"),
+      )
+      .map((c) => ({ value: c.id, label: `${c.title.en || c.id} · ${c.type}` })),
+  ];
+  const attachValue =
+    commit.attachedTo === null ? DETACH : commit.attachedTo ?? "";
+
+  const identityOptions: { value: string; label: string }[] = [
+    { value: "", label: "auto" },
+    ...Object.entries(identities ?? {}).map(([id, meta]) => ({
+      value: id,
+      label: `${id} · ${meta.company.en}`,
+    })),
+  ];
+
   return (
     <div className="space-y-2">
-      {/* Core fields */}
+      {/* ── Identity ─────────────────────────────────────────────── */}
       <Field label="ID" value={commit.id} onChange={(v) => onUpdate({ id: v })} />
       <ChoiceField<CommitType>
         label="Type"
@@ -468,6 +537,18 @@ function FormFields({
         options={tags.map((t) => ({ value: t.id, label: t.title.en }))}
         onChange={(v) => onUpdate({ tagId: v })}
       />
+      <ChoiceField<"" | "graduation-cap">
+        label="Icon"
+        value={commit.icon ?? ""}
+        options={[
+          { value: "", label: "default" },
+          { value: "graduation-cap", label: "grad-cap" },
+        ]}
+        onChange={(v) => onUpdate({ icon: v === "" ? undefined : v })}
+      />
+
+      {/* ── Schedule ─────────────────────────────────────────────── */}
+      <SectionLabel>Schedule</SectionLabel>
       <Field
         label="Date"
         value={commit.date}
@@ -478,17 +559,7 @@ function FormFields({
         label="End Date"
         value={commit.endDate ?? ""}
         onChange={(v) => onUpdate({ endDate: v || undefined })}
-        placeholder="YYYY-MM or empty"
-      />
-      <CheckField
-        label="Listed"
-        checked={commit.listed !== false}
-        onChange={(v) => onUpdate({ listed: v ? undefined : false })}
-      />
-      <CheckField
-        label="Hide Date"
-        checked={commit.hideDate === true}
-        onChange={(v) => onUpdate({ hideDate: v ? true : undefined })}
+        placeholder="YYYY-MM, present, or empty"
       />
       <ChoiceField<"" | "date" | "endDate">
         label="Sort By"
@@ -500,14 +571,39 @@ function FormFields({
         ]}
         onChange={(v) => onUpdate({ sortBy: v === "" ? undefined : v })}
       />
-      <ChoiceField<"" | "graduation-cap">
-        label="Icon"
-        value={commit.icon ?? ""}
+      <CheckField
+        label="Hide Date"
+        checked={commit.hideDate === true}
+        onChange={(v) => onUpdate({ hideDate: v ? true : undefined })}
+      />
+
+      {/* ── Visibility & language ────────────────────────────────── */}
+      <SectionLabel>Visibility</SectionLabel>
+      <CheckField
+        label="Listed"
+        checked={commit.listed !== false}
+        onChange={(v) => onUpdate({ listed: v ? undefined : false })}
+      />
+      <ChoiceField<"" | CommitLanguage>
+        label="Listed In"
+        value={commit.listedIn ?? ""}
         options={[
-          { value: "", label: "default" },
-          { value: "graduation-cap", label: "grad-cap" },
+          { value: "", label: "both" },
+          { value: "en", label: "EN only" },
+          { value: "zh", label: "ZH only" },
         ]}
-        onChange={(v) => onUpdate({ icon: v === "" ? undefined : v })}
+        onChange={(v) => onUpdate({ listedIn: v === "" ? undefined : v })}
+      />
+      <ChoiceField<"" | CommitLanguage>
+        label="Language"
+        value={commit.language ?? ""}
+        options={[
+          { value: "", label: "—" },
+          { value: "en", label: "EN" },
+          { value: "zh", label: "中文" },
+          { value: "both", label: "both" },
+        ]}
+        onChange={(v) => onUpdate({ language: v === "" ? undefined : v })}
       />
 
       <SectionLabel>Title</SectionLabel>
@@ -540,26 +636,27 @@ function FormFields({
       <Field
         label="EN"
         value={commit.commentary?.en ?? ""}
-        onChange={(v) =>
-          onUpdate({
-            commentary: v || commit.commentary?.zh
-              ? { en: v, zh: commit.commentary?.zh ?? "" }
-              : undefined,
-          })
-        }
+        onChange={(v) => setLocalizedOptional("commentary", commit.commentary, "en", v)}
         multiline
       />
       <Field
         label="ZH"
         value={commit.commentary?.zh ?? ""}
-        onChange={(v) =>
-          onUpdate({
-            commentary: v || commit.commentary?.en
-              ? { en: commit.commentary?.en ?? "", zh: v }
-              : undefined,
-          })
-        }
+        onChange={(v) => setLocalizedOptional("commentary", commit.commentary, "zh", v)}
         multiline
+      />
+
+      <SectionLabel>Team</SectionLabel>
+      <Field
+        label="EN"
+        value={commit.team?.en ?? ""}
+        onChange={(v) => setLocalizedOptional("team", commit.team, "en", v)}
+        placeholder="Subtitle chip — e.g. Lynx @ ByteDance"
+      />
+      <Field
+        label="ZH"
+        value={commit.team?.zh ?? ""}
+        onChange={(v) => setLocalizedOptional("team", commit.team, "zh", v)}
       />
 
       <StringListSection
@@ -574,6 +671,25 @@ function FormFields({
 
       {/* Type-specific fields */}
       <TypeSpecificFields commit={commit} onUpdate={onUpdate} />
+
+      {/* ── Rail: identity clustering & explicit attachment ──────── */}
+      <SectionLabel>Rail</SectionLabel>
+      <ChoiceField
+        label="Identity"
+        value={commit.identityId ?? ""}
+        options={identityOptions}
+        onChange={(v) => onUpdate({ identityId: v === "" ? undefined : v })}
+      />
+      <ChoiceField
+        label="Attach To"
+        value={attachValue}
+        options={attachOptions}
+        onChange={(v) =>
+          onUpdate({
+            attachedTo: v === "" ? undefined : v === DETACH ? null : v,
+          })
+        }
+      />
 
       {/* Media — keyed by commit id so the section remounts and re-hydrates
           its fat drafts when the user switches commits. */}
@@ -624,6 +740,16 @@ function TypeSpecificFields({
                 stats: { ...commit.stats, users: v || undefined },
               })
             }
+          />
+          <Field
+            label="Downloads"
+            value={commit.stats?.downloads ?? ""}
+            onChange={(v) =>
+              onUpdate({
+                stats: { ...commit.stats, downloads: v || undefined },
+              })
+            }
+            placeholder="e.g. 1.2M"
           />
         </>
       );
@@ -680,6 +806,16 @@ function TypeSpecificFields({
               })
             }
           />
+          <Field
+            label="Logo"
+            value={commit.publication.logo ?? ""}
+            onChange={(v) =>
+              onUpdate({
+                publication: { ...commit.publication, logo: v || undefined },
+              })
+            }
+            placeholder="Logo URL (optional)"
+          />
         </>
       );
 
@@ -702,6 +838,31 @@ function TypeSpecificFields({
             }
           />
           <Field
+            label="Co. Ovr EN"
+            value={commit.companyOverride?.en ?? ""}
+            onChange={(v) =>
+              onUpdate({
+                companyOverride:
+                  v || commit.companyOverride?.zh
+                    ? { en: v, zh: commit.companyOverride?.zh ?? "" }
+                    : undefined,
+              })
+            }
+            placeholder="Per-range label override"
+          />
+          <Field
+            label="Co. Ovr ZH"
+            value={commit.companyOverride?.zh ?? ""}
+            onChange={(v) =>
+              onUpdate({
+                companyOverride:
+                  v || commit.companyOverride?.en
+                    ? { en: commit.companyOverride?.en ?? "", zh: v }
+                    : undefined,
+              })
+            }
+          />
+          <Field
             label="Location"
             value={commit.location ?? ""}
             onChange={(v) => onUpdate({ location: v || undefined })}
@@ -710,6 +871,11 @@ function TypeSpecificFields({
             label="URL"
             value={commit.url ?? ""}
             onChange={(v) => onUpdate({ url: v || undefined })}
+          />
+          <CheckField
+            label="Hide Row"
+            checked={commit.hideRow === true}
+            onChange={(v) => onUpdate({ hideRow: v ? true : undefined })}
           />
         </>
       );
