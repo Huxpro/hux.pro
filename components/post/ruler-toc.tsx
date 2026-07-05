@@ -277,13 +277,13 @@ const DESKTOP: TapeVariant = {
 
 const MOBILE: TapeVariant = {
   pitch: 44,
-  // Collapsed ticks must stay inside the content's 24px edge padding:
-  // 4px edge inset + 14px max tick + 2px drift = 20px reach, leaving a
-  // sliver of air between ruler and text.
-  drift: 2,
+  // Collapsed ticks must sit clearly inside the content's 24px edge
+  // padding: 4px edge inset + 12px max tick + 1px drift = 17px reach,
+  // leaving visible air between ruler and text.
+  drift: 1,
   minorDrift: 1,
-  tickBase: 9,
-  tickGrow: 5,
+  tickBase: 8,
+  tickGrow: 4,
   minorWidth: 4,
   // Labels only show during the full-screen takeover, so they may run
   // nearly edge to edge (80px covers ticks, gaps and the scale-up).
@@ -408,7 +408,11 @@ function TapeRow({
         onClick={onSelect}
         tabIndex={interactive ? 0 : -1}
         className={cn(
-          "touch-none truncate font-mono text-xs text-foreground focus:outline-none",
+          "touch-none font-mono text-xs text-foreground focus:outline-none",
+          // Takeover labels own the screen — let long titles wrap to two
+          // lines instead of ellipsizing (the point is reading them).
+          // Persistent gutter labels stay single-line.
+          overlay ? "line-clamp-2 leading-4" : "truncate",
           side === "right" ? "text-right" : "text-left",
           interactive
             ? "pointer-events-auto cursor-pointer"
