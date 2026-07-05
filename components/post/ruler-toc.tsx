@@ -247,11 +247,14 @@ const DESKTOP: TapeVariant = {
 
 const MOBILE: TapeVariant = {
   pitch: 44,
-  drift: -4,
-  minorDrift: -3,
-  tickBase: 12,
-  tickGrow: 8,
-  minorWidth: 5,
+  // Collapsed ticks must stay inside the content's 24px right padding:
+  // 4px edge offset + 14px max tick + 2px drift = 20px reach, leaving a
+  // sliver of air between ruler and text.
+  drift: -2,
+  minorDrift: -1,
+  tickBase: 9,
+  tickGrow: 5,
+  minorWidth: 4,
   // Labels only show during the full-screen takeover, so they may run
   // nearly edge to edge (96px covers ticks, gaps and the scale-up).
   labelMaxWidth: "min(310px, calc(100vw - 80px))",
