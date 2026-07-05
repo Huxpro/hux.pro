@@ -344,7 +344,7 @@ function TapeRow({
         onClick={onSelect}
         tabIndex={interactive ? 0 : -1}
         className={cn(
-          "truncate text-right font-mono text-xs text-foreground focus:outline-none",
+          "touch-none truncate text-right font-mono text-xs text-foreground focus:outline-none",
           interactive
             ? "pointer-events-auto cursor-pointer"
             : "pointer-events-none"
@@ -515,31 +515,40 @@ function MobileRuler({
     [sections.length]
   );
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (!e.isPrimary) return;
+  const handlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
+    if (!e.isPrimary || scrub.current) return;
+    // No pointer capture yet — a plain tap must keep its natural target so
+    // label buttons still receive their click.
     scrub.current = { id: e.pointerId, startY: e.clientY, active: false, index: 0 };
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      // Pointer already gone (or synthetic) — the gesture still works.
-    }
   };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+  const handlePointerMove = (e: React.PointerEvent<HTMLElement>) => {
     const s = scrub.current;
     if (!s || e.pointerId !== s.id) return;
     if (!s.active) {
       if (Math.abs(e.clientY - s.startY) < 6) return;
-      // Drag detected — take over progress and surface the labels.
+      // Drag detected — take over progress and surface the labels. Capturing
+      // here (not on pointerdown) retargets the rest of the gesture to the
+      // container, which also keeps the drag from ending in a stray click.
       s.active = true;
       lockRef.current = true;
       setOpen(true);
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // Pointer already gone (or synthetic) — the gesture still works.
+      }
     }
     s.index = indexFromY(e.clientY);
     progress.set(s.index);
   };
 
-  const endScrub = (e: React.PointerEvent<HTMLButtonElement>) => {
+  /**
+   * End a gesture: a drag snaps to the nearest section; a tap acts on what
+   * was pressed — the strip toggles, the scrim dismisses, labels are left
+   * to their own click handler.
+   */
+  const endScrub = (e: React.PointerEvent<HTMLElement>) => {
     const s = scrub.current;
     if (!s || e.pointerId !== s.id) return;
     scrub.current = null;
@@ -555,8 +564,20 @@ function MobileRuler({
         onJump(Math.round(s.index));
       }
     } else if (e.type !== "pointercancel") {
-      setOpen((o) => !o);
+      const pressed = e.target as HTMLElement;
+      if (pressed.closest("[data-ruler-strip]")) {
+        setOpen((o) => !o);
+      } else if (pressed.closest("[data-ruler-scrim]")) {
+        setOpen(false);
+      }
     }
+  };
+
+  const gestureHandlers = {
+    onPointerDown: handlePointerDown,
+    onPointerMove: handlePointerMove,
+    onPointerUp: endScrub,
+    onPointerCancel: endScrub,
   };
 
   return (
@@ -564,12 +585,17 @@ function MobileRuler({
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm xl:hidden"
+            // Full-screen gesture layer: the takeover is visual AND haptic.
+            // touch-none swallows native scrolling while open; dragging
+            // anywhere scrubs the tape (finger y maps onto the tape window,
+            // so pointing at a label's row selects it); a plain tap dismisses.
+            data-ruler-scrim
+            className="fixed inset-0 z-40 touch-none bg-background/60 backdrop-blur-sm xl:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            onClick={() => setOpen(false)}
+            {...gestureHandlers}
           />
         )}
       </AnimatePresence>
@@ -587,6 +613,9 @@ function MobileRuler({
           maskImage: TAPE_MASK,
           WebkitMaskImage: TAPE_MASK,
         }}
+        // Gestures bubble up here from the strip and the labels, so a drag
+        // that starts on any of them scrubs instead of scrolling the page.
+        {...gestureHandlers}
       >
         <Tape
           sections={sections}
@@ -605,12 +634,9 @@ function MobileRuler({
             touch-none hands the whole gesture to the pointer handlers. */}
         <button
           type="button"
+          data-ruler-strip
           aria-label="Table of contents"
           aria-expanded={open}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={endScrub}
-          onPointerCancel={endScrub}
           onClick={(e) => {
             // Pointer handlers own taps; keep click for keyboard only.
             if (e.detail === 0) setOpen((o) => !o);
