@@ -161,8 +161,8 @@ function DevtoolPanel() {
         </div>
       </div>
 
-      {/* Scrollable content */}
-      <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
+      {/* Scrollable content — overscroll stays inside the panel. */}
+      <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto overscroll-contain">
         <FrontmatterModule />
         <RulerModule />
         <GradientModule />

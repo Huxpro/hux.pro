@@ -40,6 +40,8 @@ export function FloatingActionButton() {
         className={cn(
           "pointer-events-auto",
           "flex items-center gap-2",
+          // Instant tap commit — no double-tap-zoom interception.
+          "touch-manipulation",
           "bg-card/50 backdrop-blur-xl",
           "border border-border/50",
           "shadow-raised",

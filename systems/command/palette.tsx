@@ -388,8 +388,12 @@ export function CommandPalette() {
       )}
       style={isIOS ? { top: scrollPosition, height: "100dvh" } : undefined}
     >
+      {/* Backdrop is a gesture surface, not just a click-catcher:
+          touch-none swallows native panning, so a swipe over it can't
+          scroll the page behind the open palette (which would desync the
+          iOS absolute-position anchor and read as broken elsewhere). */}
       <div
-        className="absolute inset-0 bg-transparent"
+        className="absolute inset-0 touch-none bg-transparent"
         onClick={!isIOS ? close : undefined}
         onPointerDown={isIOS ? close : undefined}
       />
@@ -456,6 +460,8 @@ export function CommandPalette() {
           "rounded-2xl border border-black/10 dark:border-white/10",
           "shadow-overlay",
           "outline-none",
+          // No double-tap-zoom interception — item taps commit instantly.
+          "touch-manipulation",
           "animate-in fade-in-0 zoom-in-95 duration-200",
           isSlashCommandsMode ? "w-full max-w-[400px]" : "w-full max-w-[700px]",
           "[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider"
@@ -463,11 +469,11 @@ export function CommandPalette() {
         loop
         shouldFilter={!isSlashCommandsMode}
       >
-        <div
-          className="border-b border-border/50"
-          data-drag-handle
-          style={drag.isEnabled ? { touchAction: "none" } : undefined}
-        >
+        {/* Non-scrolling chrome is touch-none so a swipe starting here
+            can't chain-scroll the page behind; only the results list
+            (touch-pan-y) pans. Also what hands the drag gesture to the
+            handle when dragging is enabled. */}
+        <div className="touch-none border-b border-border/50" data-drag-handle>
           <div
             className="grid transition-all duration-300 ease-out"
             style={{ gridTemplateRows: isSlashCommandsMode ? "0fr" : "1fr" }}
@@ -533,7 +539,10 @@ export function CommandPalette() {
             )}
           >
             <div className="overflow-hidden min-h-0">
-              <Command.List className="max-h-[360px] overflow-y-auto p-2">
+              {/* pan-y: this list only ever scrolls vertically;
+                  overscroll-contain: hitting its ends must not chain the
+                  rubber-band into the page behind the palette. */}
+              <Command.List className="max-h-[360px] touch-pan-y overflow-y-auto overscroll-contain p-2">
                 <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
                   {t(locale, "noResults")}
                 </Command.Empty>
@@ -897,7 +906,7 @@ export function CommandPalette() {
             )}
           >
             <div className="overflow-hidden min-h-0">
-              <div className="p-2">
+              <div className="touch-none p-2">
                 <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {t(locale, "navigation")}
                 </div>
@@ -935,7 +944,7 @@ export function CommandPalette() {
           </div>
         </div>
 
-        <div className="border-t border-border/50 text-xs text-muted-foreground">
+        <div className="touch-none border-t border-border/50 text-xs text-muted-foreground">
           <div
             className="grid transition-all duration-300 ease-out"
             style={{ gridTemplateRows: isSlashCommandsMode ? "0fr" : "1fr" }}
