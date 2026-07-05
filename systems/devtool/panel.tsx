@@ -14,6 +14,11 @@ import {
   getWeatherConditionLabel,
 } from "@/systems/ambient/lib/weather";
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
+import {
+  setRulerSide,
+  useRulerSide,
+  type RulerSide,
+} from "@/components/post/ruler-settings";
 import { cn } from "@/lib/utils";
 import {
   Braces,
@@ -31,6 +36,7 @@ import {
   Moon,
   MoonStar,
   RefreshCw,
+  Ruler,
   Sun,
   SunMedium,
   Sunrise,
@@ -158,6 +164,7 @@ function DevtoolPanel() {
       {/* Scrollable content */}
       <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
         <FrontmatterModule />
+        <RulerModule />
         <GradientModule />
         <WeatherModule />
         <AmbientTimeModule />
@@ -355,6 +362,59 @@ function FrontmatterModule() {
           )}
         </div>
       )}
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Ruler ToC Module
+// Switches which screen edge the reading ruler docks to. The setting
+// persists (localStorage) and applies even with the devtool disabled.
+// =============================================================================
+
+function RulerModule() {
+  const { locale } = useLocale();
+  const side = useRulerSide();
+
+  const sides: { value: RulerSide; label: string }[] = [
+    { value: "left", label: locale === "zh" ? "左" : "Left" },
+    { value: "right", label: locale === "zh" ? "右" : "Right" },
+  ];
+
+  return (
+    <DebugSection
+      id="ruler"
+      title={locale === "zh" ? "标尺目录" : "Ruler ToC"}
+      icon={<Ruler className="h-4 w-4" />}
+      compact
+      action={
+        <span className="text-[10px] font-mono text-muted-foreground uppercase">
+          {side}
+        </span>
+      }
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+          {locale === "zh" ? "停靠边缘" : "Dock edge"}
+        </span>
+        <div className="flex overflow-hidden rounded-md border border-border/60">
+          {sides.map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => setRulerSide(value)}
+              className={cn(
+                "px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
+                side === value
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              aria-pressed={side === value}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
     </DebugSection>
   );
 }

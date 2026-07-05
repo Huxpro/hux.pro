@@ -13,23 +13,30 @@ import {
 } from "motion/react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRulerSide, type RulerSide } from "./ruler-settings";
 
 /**
  * RulerToc — a scroll-driven "ruler" table of contents for article pages.
  *
- * Desktop (xl+): a vertical measuring tape fixed in the left gutter of the
- * reading column, strictly centered on the viewport. Section headings are
- * major ticks; the tape slides with scroll so the active section always
- * rests at the optical center. Distance from that reading line drives
- * opacity, a slight leftward drift, tick length and type scale — a
- * flat-but-dimensional dial, like a physical ruler read at its index line.
- * Hovering reveals every section label; clicking one scrolls to it.
+ * The ruler is a vertical measuring tape docked to a screen edge (left or
+ * right, devtool-switchable), strictly centered on the viewport — screen
+ * furniture, like a semantic scrollbar. Section headings are major ticks;
+ * the tape slides with scroll so the active section always rests at the
+ * optical center. Distance from that reading line drives opacity, a slight
+ * inward drift, tick length and type scale — a flat-but-dimensional dial,
+ * like a physical ruler read at its index line.
  *
- * Mobile (< xl): the same tape pinned to the right edge as a scrollbar-like
- * strip of bare ticks (the top edge belongs to the Dock, the bottom to the
- * FAB). It is directly manipulable: press and drag to scrub — labels
- * cascade in over a frosted scrim and the tape follows the finger — then
- * release to snap to the nearest section. A plain tap expands the list.
+ * Interaction adapts to pointer capability, not viewport width:
+ *
+ * Hover pointers (desktop): when the gutter is wide enough, labels are
+ * always readable near the reading line and hover brightens the rest.
+ * When the gutter is tight, the ruler collapses to bare ticks; hovering
+ * reveals the labels over a soft backdrop-blur veil that fades toward the
+ * content, so titles can run long without fighting the text behind them.
+ *
+ * Touch (mobile): bare ticks, directly manipulable — press and drag to
+ * scrub (labels cascade in over a frosted scrim while the tape follows
+ * the finger), release to snap to the nearest section; tap to expand.
  *
  * Headings are discovered from the rendered `.prose-article` DOM (h1/h2),
  * so it works with client-generated heading ids and both locales.
@@ -122,6 +129,19 @@ function useSections(): Section[] {
   return sections;
 }
 
+/** True on hover-capable fine pointers, false on touch, null before mount. */
+function useHoverPointer(): boolean | null {
+  const [capable, setCapable] = useState<boolean | null>(null);
+  useEffect(() => {
+    const query = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const update = () => setCapable(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return capable;
+}
+
 /**
  * Continuous reading progress in section-index space: 0 at the first
  * heading, n-1 at the last, linearly interpolated between anchors and
@@ -206,13 +226,23 @@ function useReadingProgress(
 }
 
 // =============================================================================
-// Tape row — one tick (with optional label) on the vertical ruler
+// Geometry — everything below is parametrized on the docked side
 // =============================================================================
+
+/** Distance from the screen edge to the tick spine, px. */
+const EDGE_INSET = {
+  // Desktop right docks next to the browser scrollbar — leave it a lane.
+  desktop: { right: 16, left: 10 },
+  mobile: { right: 4, left: 4 },
+} as const;
+
+const TAPE_MASK =
+  "linear-gradient(to bottom, transparent, black 22%, black 78%, transparent)";
 
 interface TapeVariant {
   /** Vertical distance between two section ticks, px. */
   pitch: number;
-  /** Leftward drift of the active row, px (major / minor). */
+  /** Inward drift of the active row (toward the content), px. */
   drift: number;
   minorDrift: number;
   /** Major tick length at rest / extra growth when active, px. */
@@ -226,50 +256,59 @@ interface TapeVariant {
   /**
    * How labels reveal:
    *  - "persistent": always readable near the reading line; the reveal
-   *    value raises the floor for the rest (desktop hover).
+   *    value raises the floor for the rest (roomy desktop).
    *  - "overlay": hidden until revealed, cascading outward from the
-   *    active section (mobile expanded/scrubbing state).
+   *    active section (touch takeover, tight-desktop hover).
    */
   labels: "persistent" | "overlay";
 }
 
 const DESKTOP: TapeVariant = {
   pitch: 56,
-  drift: -10,
-  minorDrift: -7,
+  drift: 10,
+  minorDrift: 7,
   tickBase: 22,
   tickGrow: 22,
   minorWidth: 10,
-  labelMaxWidth: 168,
+  labelMaxWidth: 300,
   activeScale: 1.14,
   labels: "persistent",
 };
 
 const MOBILE: TapeVariant = {
   pitch: 44,
-  // Collapsed ticks must stay inside the content's 24px right padding:
-  // 4px edge offset + 14px max tick + 2px drift = 20px reach, leaving a
+  // Collapsed ticks must stay inside the content's 24px edge padding:
+  // 4px edge inset + 14px max tick + 2px drift = 20px reach, leaving a
   // sliver of air between ruler and text.
-  drift: -2,
-  minorDrift: -1,
+  drift: 2,
+  minorDrift: 1,
   tickBase: 9,
   tickGrow: 5,
   minorWidth: 4,
   // Labels only show during the full-screen takeover, so they may run
-  // nearly edge to edge (96px covers ticks, gaps and the scale-up).
+  // nearly edge to edge (80px covers ticks, gaps and the scale-up).
   labelMaxWidth: "min(310px, calc(100vw - 80px))",
   activeScale: 1.08,
   labels: "overlay",
 };
+
+/** Desktop tick zone (base + growth) and label gap, for room math. */
+const DESKTOP_TICK_ZONE = DESKTOP.tickBase + DESKTOP.tickGrow;
+const LABEL_GAP = 12;
 
 /** Staggered reveal: items further from the reading line arrive later. */
 function cascade(r: number, d: number) {
   return Math.min(1, Math.max(0, r * 1.6 - 0.1 * d));
 }
 
+// =============================================================================
+// Tape row — one tick (with optional label), mirrored by side
+// =============================================================================
+
 function TapeRow({
   item,
   variant,
+  side,
   label,
   p,
   reveal,
@@ -279,6 +318,7 @@ function TapeRow({
 }: {
   item: RulerItem;
   variant: TapeVariant;
+  side: RulerSide;
   label?: string;
   p: MotionValue<number>;
   /** 0..1 — hover (desktop) or expanded/scrubbing (mobile). */
@@ -288,8 +328,12 @@ function TapeRow({
   onSelect?: () => void;
 }) {
   const isMajor = item.kind === "major";
-  const drift = reduced ? 0 : isMajor ? variant.drift : variant.minorDrift;
   const overlay = variant.labels === "overlay";
+  // +1 points from the docked edge toward the content.
+  const inward = side === "right" ? -1 : 1;
+  const drift = reduced
+    ? 0
+    : inward * (isMajor ? variant.drift : variant.minorDrift);
 
   const x = useTransform(p, (v) => drift * bell(item.index - v, 0.6));
   const tickWidth = useTransform(p, (v) =>
@@ -311,24 +355,27 @@ function TapeRow({
         : Math.max(0.12, 1 - 0.55 * d, r * 0.65);
     }
   );
-  // Overlay labels slide in from the tick side as they cascade.
+  // Overlay labels slide in from the tick spine as they cascade.
   const labelShift = useTransform(
     [p, reveal] as MotionValue<number>[],
     (latest) => {
       const [v, r] = latest as number[];
       if (!overlay || reduced) return 0;
-      return 14 * (1 - cascade(r, Math.abs(item.index - v)));
+      return -inward * 14 * (1 - cascade(r, Math.abs(item.index - v)));
     }
   );
   const labelScale = useTransform(p, (v) =>
     reduced ? 1 : 1 + (variant.activeScale - 1) * bell(item.index - v, 0.3)
   );
 
+  const rowDirection =
+    side === "right" ? "flex-row justify-end" : "flex-row-reverse justify-end";
+
   if (!isMajor) {
     return (
       <motion.div
         aria-hidden
-        className="absolute inset-x-0 flex justify-end"
+        className={cn("absolute inset-x-0 flex", rowDirection)}
         style={{ top: item.index * variant.pitch, x, y: "-50%" }}
       >
         <motion.span
@@ -341,7 +388,7 @@ function TapeRow({
 
   return (
     <motion.div
-      className="absolute inset-x-0 flex items-center justify-end gap-3"
+      className={cn("absolute inset-x-0 flex items-center gap-3", rowDirection)}
       style={{ top: item.index * variant.pitch, x, y: "-50%" }}
     >
       <motion.button
@@ -349,7 +396,8 @@ function TapeRow({
         onClick={onSelect}
         tabIndex={interactive ? 0 : -1}
         className={cn(
-          "touch-none truncate text-right font-mono text-xs text-foreground focus:outline-none",
+          "touch-none truncate font-mono text-xs text-foreground focus:outline-none",
+          side === "right" ? "text-right" : "text-left",
           interactive
             ? "pointer-events-auto cursor-pointer"
             : "pointer-events-none"
@@ -360,7 +408,7 @@ function TapeRow({
           opacity: labelOpacity,
           x: labelShift,
           scale: labelScale,
-          transformOrigin: "right center",
+          transformOrigin: side === "right" ? "right center" : "left center",
         }}
       >
         {label}
@@ -378,6 +426,8 @@ function Tape({
   sections,
   items,
   variant,
+  side,
+  edgeInset,
   p,
   reveal,
   interactive,
@@ -387,6 +437,9 @@ function Tape({
   sections: Section[];
   items: RulerItem[];
   variant: TapeVariant;
+  side: RulerSide;
+  /** Gap between the screen edge and the tick spine, px. */
+  edgeInset: number;
   p: MotionValue<number>;
   reveal: MotionValue<number>;
   interactive: boolean;
@@ -396,12 +449,20 @@ function Tape({
   const tapeY = useTransform(p, (v) => -v * variant.pitch);
 
   return (
-    <motion.div className="absolute inset-x-0 top-1/2" style={{ y: tapeY }}>
+    <motion.div
+      className="absolute top-1/2"
+      style={{
+        y: tapeY,
+        left: side === "left" ? edgeInset : 0,
+        right: side === "right" ? edgeInset : 0,
+      }}
+    >
       {items.map((item) => (
         <TapeRow
           key={`${item.kind}-${item.index}`}
           item={item}
           variant={variant}
+          side={side}
           label={
             item.kind === "major" ? sections[item.section]?.label : undefined
           }
@@ -418,65 +479,183 @@ function Tape({
   );
 }
 
-const TAPE_MASK =
-  "linear-gradient(to bottom, transparent, black 22%, black 78%, transparent)";
-
 // =============================================================================
-// Desktop — vertical ruler in the left gutter, labels on hover
+// Desktop — edge-docked ruler for hover pointers
 // =============================================================================
 
 function DesktopRuler({
   sections,
   items,
+  side,
   p,
   reduced,
   onJump,
 }: {
   sections: Section[];
   items: RulerItem[];
+  side: RulerSide;
   p: MotionValue<number>;
   reduced: boolean;
   onJump: (i: number) => void;
 }) {
-  const hover = useSpring(0, { stiffness: 260, damping: 30 });
+  const edgeInset = EDGE_INSET.desktop[side];
+  const navRef = useRef<HTMLElement>(null);
+  const [hovered, setHovered] = useState(false);
+
+  const reveal = useSpring(0, { stiffness: 220, damping: 28 });
+  useEffect(() => {
+    reveal.set(hovered ? 1 : 0);
+  }, [hovered, reveal]);
+
+  // Room between the tick spine and the content column decides the label
+  // mode: roomy gutters keep labels persistent; tight ones collapse to
+  // bare ticks and reveal on hover over a blur veil.
+  const [labelRoom, setLabelRoom] = useState<number | null>(null);
+  useEffect(() => {
+    const measure = () =>
+      setLabelRoom(
+        window.innerWidth / 2 -
+          340 - // content half (680px column)
+          edgeInset -
+          DESKTOP_TICK_ZONE -
+          LABEL_GAP -
+          16 // breathing room to the text
+      );
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [edgeInset]);
+
+  const persistent = (labelRoom ?? 0) >= 150;
+  const variant = useMemo<TapeVariant>(
+    () => ({
+      ...DESKTOP,
+      labels: persistent ? "persistent" : "overlay",
+      labelMaxWidth: persistent
+        ? Math.min(labelRoom ?? 0, 300)
+        : "min(300px, calc(100vw - 140px))",
+    }),
+    [persistent, labelRoom]
+  );
+
+  // Hover-out is tracked against the nav's rect (not element boundaries):
+  // the tape is pointer-events-none with scattered hit targets, so element
+  // enter/leave pairs would flicker crossing the gaps between labels.
+  useEffect(() => {
+    if (!hovered) return;
+    let raf = 0;
+    let lastX = 0;
+    let lastY = 0;
+    const onMove = (e: MouseEvent) => {
+      lastX = e.clientX;
+      lastY = e.clientY;
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const rect = navRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const margin = 24;
+        if (
+          lastX < rect.left - margin ||
+          lastX > rect.right + margin ||
+          lastY < rect.top - margin ||
+          lastY > rect.bottom + margin
+        ) {
+          setHovered(false);
+        }
+      });
+    };
+    window.addEventListener("mousemove", onMove);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      cancelAnimationFrame(raf);
+    };
+  }, [hovered]);
+
+  if (labelRoom === null) return null;
 
   return (
-    <nav
-      aria-label="Table of contents"
-      className="fixed top-1/2 z-30 hidden -translate-y-1/2 overflow-hidden xl:block"
-      style={{
-        right: "calc(50% + 388px)",
-        width: 248,
-        height: 440,
-        maskImage: TAPE_MASK,
-        WebkitMaskImage: TAPE_MASK,
-      }}
-      onMouseEnter={() => hover.set(1)}
-      onMouseLeave={() => hover.set(0)}
-      onFocusCapture={() => hover.set(1)}
-      onBlurCapture={() => hover.set(0)}
-    >
-      <Tape
-        sections={sections}
-        items={items}
-        variant={DESKTOP}
-        p={p}
-        reveal={hover}
-        interactive
-        reduced={reduced}
-        onJump={onJump}
-      />
-    </nav>
+    <>
+      {/* Blur veil for the tight-gutter reveal: labels run over the text,
+          so a backdrop blur fading toward the content keeps them legible
+          while preserving a soft edge transition. */}
+      <AnimatePresence>
+        {!persistent && hovered && (
+          <motion.div
+            aria-hidden
+            // Both fades live on the blurred element itself: a masked (or
+            // filtered/opacity) ANCESTOR would form a backdrop root and the
+            // blur would sample nothing but its own empty group.
+            className="pointer-events-none fixed top-1/2 z-30 -translate-y-1/2 bg-background/40 backdrop-blur-md"
+            style={{
+              [side]: 0,
+              width: "min(460px, 90vw)",
+              height: "min(640px, 86svh)",
+              maskImage: `linear-gradient(to bottom, transparent, black 18%, black 82%, transparent), linear-gradient(to ${
+                side === "right" ? "left" : "right"
+              }, black 55%, transparent)`,
+              WebkitMaskImage: `linear-gradient(to bottom, transparent, black 18%, black 82%, transparent), linear-gradient(to ${
+                side === "right" ? "left" : "right"
+              }, black 55%, transparent)`,
+              maskComposite: "intersect",
+              WebkitMaskComposite: "source-in",
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          />
+        )}
+      </AnimatePresence>
+
+      <nav
+        ref={navRef}
+        aria-label="Table of contents"
+        className="pointer-events-none fixed top-1/2 z-30 -translate-y-1/2 overflow-hidden"
+        style={{
+          [side]: 0,
+          width: "min(430px, calc(100vw - 48px))",
+          height: 440,
+          maskImage: TAPE_MASK,
+          WebkitMaskImage: TAPE_MASK,
+        }}
+        // Fires when the cursor enters any hit-testable child (edge strip
+        // or a revealed label); the rect tracker above handles leaving.
+        onMouseEnter={() => setHovered(true)}
+        onFocusCapture={() => setHovered(true)}
+        onBlurCapture={() => setHovered(false)}
+      >
+        <Tape
+          sections={sections}
+          items={items}
+          variant={variant}
+          side={side}
+          edgeInset={edgeInset}
+          p={p}
+          reveal={reveal}
+          interactive={persistent || hovered}
+          reduced={reduced}
+          onJump={onJump}
+        />
+        {/* Hover strip over the ticks — the collapsed ruler's hit area. */}
+        <div
+          aria-hidden
+          className="pointer-events-auto absolute inset-y-0"
+          style={{ [side]: 0, width: edgeInset + DESKTOP_TICK_ZONE + 8 }}
+        />
+      </nav>
+    </>
   );
 }
 
 // =============================================================================
-// Mobile — scrubbable tick strip on the right edge
+// Mobile — scrubbable tick strip on the docked edge
 // =============================================================================
 
 function MobileRuler({
   sections,
   items,
+  side,
   progress,
   smooth,
   lockRef,
@@ -485,6 +664,7 @@ function MobileRuler({
 }: {
   sections: Section[];
   items: RulerItem[];
+  side: RulerSide;
   /** Raw progress value — the scrub gesture writes straight into it. */
   progress: MotionValue<number>;
   /** Spring-smoothed progress that drives the tape. */
@@ -493,6 +673,7 @@ function MobileRuler({
   reduced: boolean;
   onJump: (i: number) => void;
 }) {
+  const edgeInset = EDGE_INSET.mobile[side];
   const [open, setOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const scrub = useRef<{
@@ -595,7 +776,7 @@ function MobileRuler({
             // anywhere scrubs the tape (finger y maps onto the tape window,
             // so pointing at a label's row selects it); a plain tap dismisses.
             data-ruler-scrim
-            className="fixed inset-0 z-40 touch-none bg-background/60 backdrop-blur-sm xl:hidden"
+            className="fixed inset-0 z-40 touch-none bg-background/60 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -609,10 +790,11 @@ function MobileRuler({
         ref={navRef}
         aria-label="Table of contents"
         className={cn(
-          "pointer-events-none fixed top-1/2 right-1 -translate-y-1/2 overflow-hidden xl:hidden",
+          "pointer-events-none fixed top-1/2 -translate-y-1/2 overflow-hidden",
           open ? "z-50" : "z-30"
         )}
         style={{
+          [side]: 0,
           // Wide enough for the takeover labels; the collapsed state only
           // paints ticks (labels sit at opacity 0, pointer-events none).
           width: "calc(100vw - 16px)",
@@ -628,6 +810,8 @@ function MobileRuler({
           sections={sections}
           items={items}
           variant={MOBILE}
+          side={side}
+          edgeInset={edgeInset}
           p={smooth}
           reveal={reveal}
           interactive={open}
@@ -648,7 +832,8 @@ function MobileRuler({
             // Pointer handlers own taps; keep click for keyboard only.
             if (e.detail === 0) setOpen((o) => !o);
           }}
-          className="pointer-events-auto absolute inset-y-0 right-0 w-10 cursor-pointer touch-none"
+          className="pointer-events-auto absolute inset-y-0 w-10 cursor-pointer touch-none"
+          style={{ [side]: 0 }}
         />
       </nav>
     </>
@@ -661,6 +846,8 @@ function MobileRuler({
 
 export function RulerToc() {
   const reduced = useReducedMotion() ?? false;
+  const side = useRulerSide();
+  const hoverPointer = useHoverPointer();
   const sections = useSections();
   const lockRef = useRef(false);
 
@@ -683,7 +870,7 @@ export function RulerToc() {
 
   /**
    * Animated jump: the tape rolls to the target section (via the spring)
-   * while the document glides underneath. The scroll lockRef keeps the two
+   * while the document glides underneath. The scroll lock keeps the two
    * from fighting; any user input cancels the glide immediately.
    */
   const jumpTo = useCallback(
@@ -729,26 +916,27 @@ export function RulerToc() {
     [sections, reduced, progress]
   );
 
-  if (sections.length < 2) return null;
+  if (sections.length < 2 || hoverPointer === null) return null;
 
-  return (
-    <>
-      <DesktopRuler
-        sections={sections}
-        items={items}
-        p={smooth}
-        reduced={reduced}
-        onJump={jumpTo}
-      />
-      <MobileRuler
-        sections={sections}
-        items={items}
-        progress={progress}
-        smooth={smooth}
-        lockRef={lockRef}
-        reduced={reduced}
-        onJump={jumpTo}
-      />
-    </>
+  return hoverPointer ? (
+    <DesktopRuler
+      sections={sections}
+      items={items}
+      side={side}
+      p={smooth}
+      reduced={reduced}
+      onJump={jumpTo}
+    />
+  ) : (
+    <MobileRuler
+      sections={sections}
+      items={items}
+      side={side}
+      progress={progress}
+      smooth={smooth}
+      lockRef={lockRef}
+      reduced={reduced}
+      onJump={jumpTo}
+    />
   );
 }
