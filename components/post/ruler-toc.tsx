@@ -253,6 +253,8 @@ interface TapeVariant {
   /** Label measure (any CSS max-width) and active magnification. */
   labelMaxWidth: number | string;
   activeScale: number;
+  /** Label type size classes. */
+  labelText: string;
   /**
    * How labels reveal:
    *  - "persistent": always readable near the reading line; the reveal
@@ -263,15 +265,21 @@ interface TapeVariant {
   labels: "persistent" | "overlay";
 }
 
+// Desktop geometry scales with the gutter (see DesktopRuler): these are
+// the laptop-width baselines; roomy screens interpolate toward the
+// generous end so the float breathes where space is free.
 const DESKTOP: TapeVariant = {
   pitch: 56,
-  drift: 10,
-  minorDrift: 7,
-  tickBase: 22,
-  tickGrow: 22,
-  minorWidth: 10,
+  drift: 8,
+  minorDrift: 5,
+  tickBase: 18,
+  tickGrow: 14,
+  minorWidth: 8,
   labelMaxWidth: 300,
-  activeScale: 1.14,
+  activeScale: 1.09,
+  // Finer than the mobile takeover — desktop labels are read at arm's
+  // length next to 16px prose.
+  labelText: "text-[11px]",
   labels: "persistent",
 };
 
@@ -289,6 +297,7 @@ const MOBILE: TapeVariant = {
   // nearly edge to edge (80px covers ticks, gaps and the scale-up).
   labelMaxWidth: "min(310px, calc(100vw - 80px))",
   activeScale: 1.08,
+  labelText: "text-xs",
   labels: "overlay",
 };
 
@@ -408,7 +417,8 @@ function TapeRow({
         onClick={onSelect}
         tabIndex={interactive ? 0 : -1}
         className={cn(
-          "touch-none font-mono text-xs text-foreground focus:outline-none",
+          "touch-none font-mono text-foreground focus:outline-none",
+          variant.labelText,
           // Takeover labels own the screen — let long titles wrap to two
           // lines instead of ellipsizing (the point is reading them).
           // Persistent gutter labels stay single-line.
@@ -551,17 +561,27 @@ function DesktopRuler({
     return () => window.removeEventListener("resize", measure);
   }, [edgeInset]);
 
-  const persistent = (labelRoom ?? 0) >= 150;
-  const variant = useMemo<TapeVariant>(
-    () => ({
+  // Persistent labels are a luxury of genuinely wide screens; laptops
+  // default to bare ticks and reveal on hover. The float amplitude also
+  // breathes with the gutter — generous on ultrawides, space-saving on
+  // laptop widths.
+  const persistent = (labelRoom ?? 0) >= 420;
+  const variant = useMemo<TapeVariant>(() => {
+    const room = labelRoom ?? 0;
+    const t = Math.min(1, Math.max(0, (room - 100) / 400));
+    return {
       ...DESKTOP,
+      drift: DESKTOP.drift + 8 * t,
+      minorDrift: DESKTOP.minorDrift + 4 * t,
+      tickBase: DESKTOP.tickBase + 6 * t,
+      tickGrow: DESKTOP.tickGrow + 12 * t,
+      activeScale: DESKTOP.activeScale + 0.07 * t,
       labels: persistent ? "persistent" : "overlay",
       labelMaxWidth: persistent
-        ? Math.min(labelRoom ?? 0, 300)
+        ? Math.min(room, 300)
         : "min(300px, calc(100vw - 140px))",
-    }),
-    [persistent, labelRoom]
-  );
+    };
+  }, [persistent, labelRoom]);
 
   // Hovering engages the ruler like a jog dial: the cursor's height scrubs
   // the tape (same mapping as the touch gesture), a click commits, and
