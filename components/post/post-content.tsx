@@ -6,6 +6,7 @@ import type { Locale } from "@/lib/i18n";
 import { Languages } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
+import { RulerToc } from "./ruler-toc";
 import { usePostLanguage } from "./use-post-language";
 
 interface PostContentProps {
@@ -24,6 +25,9 @@ interface PostContentProps {
   headerMeta?: ReactNode;
   origin?: string;
   originZh?: string;
+
+  /** Show the scroll-driven ruler table of contents */
+  toc?: boolean;
 
   onMount?: (slug: string, title: string, href: string) => void;
 }
@@ -76,6 +80,7 @@ export function PostContent({
   headerMeta,
   origin,
   originZh,
+  toc,
   onMount,
 }: PostContentProps) {
   const pathname = usePathname();
@@ -146,6 +151,7 @@ export function PostContent({
       <div className="prose-article" lang={displayLocale}>
         {children}
       </div>
+      {toc && <RulerToc />}
     </PageLayout>
   );
 }

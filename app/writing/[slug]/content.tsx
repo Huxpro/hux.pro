@@ -66,6 +66,7 @@ export function BlogPostContent({
       headerMeta={<time>{formatDate(date)}</time>}
       origin={origin}
       originZh={originZh}
+      toc
       onMount={handleMount}
     >
       {children}
