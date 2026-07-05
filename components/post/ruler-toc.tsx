@@ -301,6 +301,18 @@ function cascade(r: number, d: number) {
   return Math.min(1, Math.max(0, r * 1.6 - 0.1 * d));
 }
 
+/**
+ * Map a pointer's y inside the tape window to a fractional section index.
+ * A margin keeps the first/last sections reachable without hugging the
+ * window edges.
+ */
+function indexFromPointerY(rect: DOMRect, clientY: number, count: number) {
+  if (count < 2) return 0;
+  const pad = rect.height * 0.12;
+  const f = (clientY - rect.top - pad) / (rect.height - pad * 2);
+  return Math.max(0, Math.min(count - 1, f * (count - 1)));
+}
+
 // =============================================================================
 // Tape row — one tick (with optional label), mirrored by side
 // =============================================================================
@@ -487,14 +499,23 @@ function DesktopRuler({
   sections,
   items,
   side,
-  p,
+  progress,
+  smooth,
+  lockRef,
+  jumpingRef,
   reduced,
   onJump,
 }: {
   sections: Section[];
   items: RulerItem[];
   side: RulerSide;
-  p: MotionValue<number>;
+  /** Raw progress value — the hover scrub writes straight into it. */
+  progress: MotionValue<number>;
+  /** Spring-smoothed progress that drives the tape. */
+  smooth: MotionValue<number>;
+  lockRef: LockRef;
+  /** True while a jump animation owns the progress/scroll pair. */
+  jumpingRef: LockRef;
   reduced: boolean;
   onJump: (i: number) => void;
 }) {
@@ -538,11 +559,16 @@ function DesktopRuler({
     [persistent, labelRoom]
   );
 
+  // Hovering engages the ruler like a jog dial: the cursor's height scrubs
+  // the tape (same mapping as the touch gesture), a click commits, and
+  // leaving lets the tape spring back to the real reading position.
+  //
   // Hover-out is tracked against the nav's rect (not element boundaries):
   // the tape is pointer-events-none with scattered hit targets, so element
   // enter/leave pairs would flicker crossing the gaps between labels.
   useEffect(() => {
     if (!hovered) return;
+    lockRef.current = true;
     let raf = 0;
     let lastX = 0;
     let lastY = 0;
@@ -562,15 +588,27 @@ function DesktopRuler({
           lastY > rect.bottom + margin
         ) {
           setHovered(false);
+          return;
         }
+        // While a click's jump animation runs it owns the progress value;
+        // scrubbing resumes on the next move after it settles.
+        if (jumpingRef.current) return;
+        lockRef.current = true;
+        progress.set(indexFromPointerY(rect, lastY, sections.length));
       });
     };
     window.addEventListener("mousemove", onMove);
     return () => {
       window.removeEventListener("mousemove", onMove);
       cancelAnimationFrame(raf);
+      // Hand progress back to the scroll position — unless a committed
+      // jump is mid-flight and will resync on its own.
+      if (!jumpingRef.current) {
+        lockRef.current = false;
+        window.dispatchEvent(new Event("scroll"));
+      }
     };
-  }, [hovered]);
+  }, [hovered, sections.length, progress, lockRef, jumpingRef]);
 
   if (labelRoom === null) return null;
 
@@ -631,17 +669,19 @@ function DesktopRuler({
           variant={variant}
           side={side}
           edgeInset={edgeInset}
-          p={p}
+          p={smooth}
           reveal={reveal}
           interactive={persistent || hovered}
           reduced={reduced}
           onJump={onJump}
         />
-        {/* Hover strip over the ticks — the collapsed ruler's hit area. */}
+        {/* Hover strip over the ticks — the collapsed ruler's hit area.
+            Clicking it commits the dial's current selection. */}
         <div
           aria-hidden
-          className="pointer-events-auto absolute inset-y-0"
+          className="pointer-events-auto absolute inset-y-0 cursor-pointer"
           style={{ [side]: 0, width: edgeInset + DESKTOP_TICK_ZONE + 8 }}
+          onClick={() => onJump(Math.round(progress.get()))}
         />
       </nav>
     </>
@@ -691,12 +731,8 @@ function MobileRuler({
   const indexFromY = useCallback(
     (clientY: number) => {
       const rect = navRef.current?.getBoundingClientRect();
-      if (!rect || sections.length < 2) return 0;
-      // Keep a margin so the first/last sections are reachable with the
-      // finger still comfortably on screen.
-      const pad = rect.height * 0.12;
-      const f = (clientY - rect.top - pad) / (rect.height - pad * 2);
-      return Math.max(0, Math.min(sections.length - 1, f * (sections.length - 1)));
+      if (!rect) return 0;
+      return indexFromPointerY(rect, clientY, sections.length);
     },
     [sections.length]
   );
@@ -850,6 +886,8 @@ export function RulerToc() {
   const hoverPointer = useHoverPointer();
   const sections = useSections();
   const lockRef = useRef(false);
+  // Held while a committed jump animates, so hover-scrub yields to it.
+  const jumpingRef = useRef(false);
 
   const progress = useMotionValue(0);
   useReadingProgress(sections, progress, lockRef);
@@ -881,10 +919,12 @@ export function RulerToc() {
       if (el.id) window.history.replaceState(null, "", `#${el.id}`);
 
       lockRef.current = true;
+      jumpingRef.current = true;
       progress.set(i);
 
       if (reduced) {
         window.scrollTo(0, top);
+        jumpingRef.current = false;
         lockRef.current = false;
         window.dispatchEvent(new Event("scroll"));
         return;
@@ -897,6 +937,7 @@ export function RulerToc() {
         done = true;
         window.removeEventListener("wheel", stopOnInput);
         window.removeEventListener("touchmove", stopOnInput);
+        jumpingRef.current = false;
         lockRef.current = false;
         window.dispatchEvent(new Event("scroll"));
       };
@@ -923,7 +964,10 @@ export function RulerToc() {
       sections={sections}
       items={items}
       side={side}
-      p={smooth}
+      progress={progress}
+      smooth={smooth}
+      lockRef={lockRef}
+      jumpingRef={jumpingRef}
       reduced={reduced}
       onJump={jumpTo}
     />
