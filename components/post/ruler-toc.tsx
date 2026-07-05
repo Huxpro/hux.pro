@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import {
   AnimatePresence,
+  animate,
   motion,
   useMotionValue,
   useReducedMotion,
@@ -11,7 +12,7 @@ import {
   type MotionValue,
 } from "motion/react";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /**
  * RulerToc — a scroll-driven "ruler" table of contents for article pages.
@@ -26,9 +27,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
  *
  * Mobile (< xl): the same tape pinned to the right edge as a scrollbar-like
  * strip of bare ticks (the top edge belongs to the Dock, the bottom to the
- * FAB). Tapping the strip expands it in place — labels slide in over a
- * frosted scrim, mirroring the desktop hover state — and tapping a label
- * jumps to that section.
+ * FAB). It is directly manipulable: press and drag to scrub — labels
+ * cascade in over a frosted scrim and the tape follows the finger — then
+ * release to snap to the nearest section. A plain tap expands the list.
  *
  * Headings are discovered from the rendered `.prose-article` DOM (h1/h2),
  * so it works with client-generated heading ids and both locales.
@@ -42,6 +43,9 @@ interface Section {
 type RulerItem =
   | { kind: "major"; index: number; section: number }
   | { kind: "minor"; index: number };
+
+/** Mutable flag shared between scroll-tracking and programmatic motion. */
+type LockRef = { current: boolean };
 
 /** Bell curve around 0 — the "reading line" falloff. */
 function bell(d: number, spread: number) {
@@ -122,10 +126,15 @@ function useSections(): Section[] {
  * Continuous reading progress in section-index space: 0 at the first
  * heading, n-1 at the last, linearly interpolated between anchors and
  * guaranteed to reach the end at the bottom of the page.
+ *
+ * While `lockRef` is held (scrubbing, programmatic jumps) scroll events are
+ * ignored so the gesture/animation owns the progress value.
  */
-function useReadingProgress(sections: Section[]): MotionValue<number> {
-  const progress = useMotionValue(0);
-
+function useReadingProgress(
+  sections: Section[],
+  progress: MotionValue<number>,
+  lockRef: LockRef
+) {
   useEffect(() => {
     if (sections.length === 0) return;
 
@@ -143,6 +152,7 @@ function useReadingProgress(sections: Section[]): MotionValue<number> {
 
     const update = () => {
       raf = 0;
+      if (lockRef.current) return;
       // Late-loading media shifts offsets; re-measure when the page grows.
       if (document.documentElement.scrollHeight !== docHeight) measure();
 
@@ -192,9 +202,7 @@ function useReadingProgress(sections: Section[]): MotionValue<number> {
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", remeasure);
     };
-  }, [sections, progress]);
-
-  return progress;
+  }, [sections, progress, lockRef]);
 }
 
 // =============================================================================
@@ -212,11 +220,15 @@ interface TapeVariant {
   tickGrow: number;
   /** Minor tick length, px. */
   minorWidth: number;
+  /** Label measure and active magnification. */
+  labelMaxWidth: number;
+  activeScale: number;
   /**
    * How labels reveal:
    *  - "persistent": always readable near the reading line; the reveal
    *    value raises the floor for the rest (desktop hover).
-   *  - "overlay": hidden until revealed (mobile expanded state).
+   *  - "overlay": hidden until revealed, cascading outward from the
+   *    active section (mobile expanded/scrubbing state).
    */
   labels: "persistent" | "overlay";
 }
@@ -228,18 +240,27 @@ const DESKTOP: TapeVariant = {
   tickBase: 22,
   tickGrow: 22,
   minorWidth: 10,
+  labelMaxWidth: 168,
+  activeScale: 1.14,
   labels: "persistent",
 };
 
 const MOBILE: TapeVariant = {
   pitch: 44,
-  drift: -6,
-  minorDrift: -4,
-  tickBase: 14,
-  tickGrow: 12,
-  minorWidth: 6,
+  drift: -4,
+  minorDrift: -3,
+  tickBase: 12,
+  tickGrow: 8,
+  minorWidth: 5,
+  labelMaxWidth: 132,
+  activeScale: 1.08,
   labels: "overlay",
 };
+
+/** Staggered reveal: items further from the reading line arrive later. */
+function cascade(r: number, d: number) {
+  return Math.min(1, Math.max(0, r * 1.6 - 0.1 * d));
+}
 
 function TapeRow({
   item,
@@ -255,7 +276,7 @@ function TapeRow({
   variant: TapeVariant;
   label?: string;
   p: MotionValue<number>;
-  /** 0..1 — hover (desktop) or expanded (mobile). */
+  /** 0..1 — hover (desktop) or expanded/scrubbing (mobile). */
   reveal: MotionValue<number>;
   interactive: boolean;
   reduced: boolean;
@@ -281,12 +302,21 @@ function TapeRow({
       const [v, r] = latest as number[];
       const d = Math.abs(item.index - v);
       return overlay
-        ? r * Math.max(0.45, 1 - 0.35 * d)
+        ? cascade(r, d) * Math.max(0.45, 1 - 0.35 * d)
         : Math.max(0.12, 1 - 0.55 * d, r * 0.65);
     }
   );
+  // Overlay labels slide in from the tick side as they cascade.
+  const labelShift = useTransform(
+    [p, reveal] as MotionValue<number>[],
+    (latest) => {
+      const [v, r] = latest as number[];
+      if (!overlay || reduced) return 0;
+      return 14 * (1 - cascade(r, Math.abs(item.index - v)));
+    }
+  );
   const labelScale = useTransform(p, (v) =>
-    reduced ? 1 : 1 + 0.14 * bell(item.index - v, 0.3)
+    reduced ? 1 : 1 + (variant.activeScale - 1) * bell(item.index - v, 0.3)
   );
 
   if (!isMajor) {
@@ -314,12 +344,16 @@ function TapeRow({
         onClick={onSelect}
         tabIndex={interactive ? 0 : -1}
         className={cn(
-          // Cap width so the active 1.14× scale-up still fits the tape box.
-          "max-w-42 truncate text-right font-mono text-xs text-foreground focus:outline-none",
-          interactive ? "pointer-events-auto cursor-pointer" : "pointer-events-none"
+          "truncate text-right font-mono text-xs text-foreground focus:outline-none",
+          interactive
+            ? "pointer-events-auto cursor-pointer"
+            : "pointer-events-none"
         )}
         style={{
+          // Cap width so the active scale-up still fits the tape box.
+          maxWidth: variant.labelMaxWidth,
           opacity: labelOpacity,
+          x: labelShift,
           scale: labelScale,
           transformOrigin: "right center",
         }}
@@ -432,36 +466,98 @@ function DesktopRuler({
 }
 
 // =============================================================================
-// Mobile — scrollbar-like tick strip on the right edge, expands on tap
+// Mobile — scrubbable tick strip on the right edge
 // =============================================================================
 
 function MobileRuler({
   sections,
   items,
-  p,
+  progress,
+  smooth,
+  lockRef,
   reduced,
   onJump,
 }: {
   sections: Section[];
   items: RulerItem[];
-  p: MotionValue<number>;
+  /** Raw progress value — the scrub gesture writes straight into it. */
+  progress: MotionValue<number>;
+  /** Spring-smoothed progress that drives the tape. */
+  smooth: MotionValue<number>;
+  lockRef: LockRef;
   reduced: boolean;
   onJump: (i: number) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const reveal = useSpring(0, { stiffness: 300, damping: 32 });
+  const navRef = useRef<HTMLElement>(null);
+  const scrub = useRef<{
+    id: number;
+    startY: number;
+    active: boolean;
+    index: number;
+  } | null>(null);
 
+  const reveal = useSpring(0, { stiffness: 220, damping: 28 });
   useEffect(() => {
     reveal.set(open ? 1 : 0);
   }, [open, reveal]);
 
-  const jump = useCallback(
-    (i: number) => {
-      setOpen(false);
-      onJump(i);
+  const indexFromY = useCallback(
+    (clientY: number) => {
+      const rect = navRef.current?.getBoundingClientRect();
+      if (!rect || sections.length < 2) return 0;
+      // Keep a margin so the first/last sections are reachable with the
+      // finger still comfortably on screen.
+      const pad = rect.height * 0.12;
+      const f = (clientY - rect.top - pad) / (rect.height - pad * 2);
+      return Math.max(0, Math.min(sections.length - 1, f * (sections.length - 1)));
     },
-    [onJump]
+    [sections.length]
   );
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!e.isPrimary) return;
+    scrub.current = { id: e.pointerId, startY: e.clientY, active: false, index: 0 };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Pointer already gone (or synthetic) — the gesture still works.
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const s = scrub.current;
+    if (!s || e.pointerId !== s.id) return;
+    if (!s.active) {
+      if (Math.abs(e.clientY - s.startY) < 6) return;
+      // Drag detected — take over progress and surface the labels.
+      s.active = true;
+      lockRef.current = true;
+      setOpen(true);
+    }
+    s.index = indexFromY(e.clientY);
+    progress.set(s.index);
+  };
+
+  const endScrub = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const s = scrub.current;
+    if (!s || e.pointerId !== s.id) return;
+    scrub.current = null;
+
+    if (s.active) {
+      setOpen(false);
+      if (e.type === "pointercancel") {
+        // Gesture stolen by the system — resync with the real scroll.
+        lockRef.current = false;
+        window.dispatchEvent(new Event("scroll"));
+      } else {
+        // Snap to the nearest section; the jump animation owns the lockRef.
+        onJump(Math.round(s.index));
+      }
+    } else if (e.type !== "pointercancel") {
+      setOpen((o) => !o);
+    }
+  };
 
   return (
     <>
@@ -472,20 +568,21 @@ function MobileRuler({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.25 }}
             onClick={() => setOpen(false)}
           />
         )}
       </AnimatePresence>
 
       <nav
+        ref={navRef}
         aria-label="Table of contents"
         className={cn(
-          "pointer-events-none fixed top-1/2 right-2 -translate-y-1/2 overflow-hidden xl:hidden",
+          "pointer-events-none fixed top-1/2 right-1 -translate-y-1/2 overflow-hidden xl:hidden",
           open ? "z-50" : "z-30"
         )}
         style={{
-          width: 240,
+          width: 184,
           height: "min(400px, 62svh)",
           maskImage: TAPE_MASK,
           WebkitMaskImage: TAPE_MASK,
@@ -495,21 +592,31 @@ function MobileRuler({
           sections={sections}
           items={items}
           variant={MOBILE}
-          p={p}
+          p={smooth}
           reveal={reveal}
           interactive={open}
           reduced={reduced}
-          onJump={jump}
+          onJump={(i) => {
+            setOpen(false);
+            onJump(i);
+          }}
         />
-        {/* Tap strip over the ticks — the collapsed ruler's only hit area. */}
-        {!open && (
-          <button
-            type="button"
-            aria-label="Table of contents"
-            onClick={() => setOpen(true)}
-            className="pointer-events-auto absolute inset-y-0 right-0 w-10 cursor-pointer"
-          />
-        )}
+        {/* Scrub strip over the ticks — drag to seek, tap to expand.
+            touch-none hands the whole gesture to the pointer handlers. */}
+        <button
+          type="button"
+          aria-label="Table of contents"
+          aria-expanded={open}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={endScrub}
+          onPointerCancel={endScrub}
+          onClick={(e) => {
+            // Pointer handlers own taps; keep click for keyboard only.
+            if (e.detail === 0) setOpen((o) => !o);
+          }}
+          className="pointer-events-auto absolute inset-y-0 right-0 w-10 cursor-pointer touch-none"
+        />
       </nav>
     </>
   );
@@ -522,7 +629,10 @@ function MobileRuler({
 export function RulerToc() {
   const reduced = useReducedMotion() ?? false;
   const sections = useSections();
-  const progress = useReadingProgress(sections);
+  const lockRef = useRef(false);
+
+  const progress = useMotionValue(0);
+  useReadingProgress(sections, progress, lockRef);
 
   // A touch of lag gives the tape its flow; near-rigid when reduced motion.
   const smooth = useSpring(
@@ -538,15 +648,52 @@ export function RulerToc() {
     [sections.length, minorsPerGap]
   );
 
+  /**
+   * Animated jump: the tape rolls to the target section (via the spring)
+   * while the document glides underneath. The scroll lockRef keeps the two
+   * from fighting; any user input cancels the glide immediately.
+   */
   const jumpTo = useCallback(
     (i: number) => {
       const el = sections[i]?.el;
       if (!el) return;
-      const top = el.getBoundingClientRect().top + window.scrollY - 96;
-      window.scrollTo({ top, behavior: reduced ? "auto" : "smooth" });
+      const top = Math.max(0, el.getBoundingClientRect().top + window.scrollY - 96);
       if (el.id) window.history.replaceState(null, "", `#${el.id}`);
+
+      lockRef.current = true;
+      progress.set(i);
+
+      if (reduced) {
+        window.scrollTo(0, top);
+        lockRef.current = false;
+        window.dispatchEvent(new Event("scroll"));
+        return;
+      }
+
+      let done = false;
+      let stopOnInput = () => {};
+      const finish = () => {
+        if (done) return;
+        done = true;
+        window.removeEventListener("wheel", stopOnInput);
+        window.removeEventListener("touchmove", stopOnInput);
+        lockRef.current = false;
+        window.dispatchEvent(new Event("scroll"));
+      };
+      const controls = animate(window.scrollY, top, {
+        duration: Math.min(1.1, 0.5 + Math.abs(top - window.scrollY) / 8000),
+        ease: [0.32, 0.72, 0, 1],
+        onUpdate: (v) => window.scrollTo(0, v),
+      });
+      stopOnInput = () => {
+        controls.stop();
+        finish();
+      };
+      window.addEventListener("wheel", stopOnInput, { passive: true });
+      window.addEventListener("touchmove", stopOnInput, { passive: true });
+      controls.then(finish, finish);
     },
-    [sections, reduced]
+    [sections, reduced, progress]
   );
 
   if (sections.length < 2) return null;
@@ -563,7 +710,9 @@ export function RulerToc() {
       <MobileRuler
         sections={sections}
         items={items}
-        p={smooth}
+        progress={progress}
+        smooth={smooth}
+        lockRef={lockRef}
         reduced={reduced}
         onJump={jumpTo}
       />
