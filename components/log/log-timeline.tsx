@@ -73,6 +73,9 @@ interface TagBlockProps {
 function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
+  // Ghost-rendering of hidden-role rows is gated on the editor's global
+  // "show hidden" flag — off means the canvas matches production exactly.
+  const revealHidden = inspecting && edit?.showHidden === true;
   const isTagSelected = edit?.editingTagId === tag.id;
   const tagLabel =
     tagIndex === 0 ? "HEAD" : getLocalizedTagTitle(tag, locale).toUpperCase();
@@ -107,7 +110,12 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
     type === "role" ? 10 : type === "event" ? 3 : 7;
 
   const { railInfo, beamSpecs, attachments, bylines } = useMemo(() => {
-    const rail = adjustRailForHidden(commits, computeRail(commits));
+    // When hidden-role rows render as ghosts (see the render loop
+    // below), the rail must NOT re-anchor its ┐/┘ around them — the
+    // hidden row is visible and takes its natural place on the line.
+    const rail = revealHidden
+      ? computeRail(commits)
+      : adjustRailForHidden(commits, computeRail(commits));
     const allBeams = [
       ...computeBeams(commits).map((b) => ({ ...b, inferred: false })),
       ...computeInferredBeams(commits, rail).map((b) => ({
@@ -240,7 +248,7 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
       attachments: attachmentsWithGaps,
       bylines: bylinesArr,
     };
-  }, [commits, identities, locale]);
+  }, [commits, identities, locale, revealHidden]);
 
   return (
     <div>
@@ -313,7 +321,12 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
           const runs: Run[] = [];
           for (let i = 0; i < commits.length; i++) {
             const c = commits[i];
-            if (c.type === "role" && c.hideRow === true) continue;
+            // With the editor's "show hidden" flag on, hidden-role rows
+            // stay in the flow as ghosts (dimmed + "hidden row" badge)
+            // so they can be seen and selected; otherwise skip them,
+            // matching the public timeline.
+            if (c.type === "role" && c.hideRow === true && !revealHidden)
+              continue;
             const sid = railInfo[i].segmentId;
             const last = runs[runs.length - 1];
             if (sid && last && last.kind === "cluster" && last.segmentId === sid) {
@@ -348,7 +361,11 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
               />
             ));
             return run.kind === "cluster" ? (
-              <div key={`cluster-${run.segmentId}`} className="group/tenure">
+              // runIdx in the key: the same identity can produce two
+              // separate runs when a rail-less row splits the cluster
+              // (always possible; guaranteed once inspect mode renders
+              // hidden-role rows into the flow).
+              <div key={`cluster-${run.segmentId}-${runIdx}`} className="group/tenure">
                 {rows}
               </div>
             ) : (

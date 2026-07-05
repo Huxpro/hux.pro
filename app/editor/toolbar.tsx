@@ -1,14 +1,28 @@
 "use client";
 
-import { Check, MousePointer2, Plus, RotateCcw, Save } from "lucide-react";
+import {
+  Check,
+  Eye,
+  EyeOff,
+  MousePointer2,
+  Plus,
+  RotateCcw,
+  Save,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { InspectMode } from "@/components/log/timeline-edit-context";
+import type { Locale } from "@/lib/i18n";
 
 interface EditorToolbarProps {
   isDirty: boolean;
   saving: boolean;
   mode: InspectMode;
   inspectDisabled: boolean;
+  locale: Locale;
+  onLocaleChange: (locale: Locale) => void;
+  /** Inspect-mode flag: reveal hidden/unlisted rows as annotated ghosts. */
+  showHidden: boolean;
+  onShowHiddenChange: (show: boolean) => void;
   onModeChange: (mode: InspectMode) => void;
   onSave: () => void;
   onReset: () => void;
@@ -20,6 +34,10 @@ export function EditorToolbar({
   saving,
   mode,
   inspectDisabled,
+  locale,
+  onLocaleChange,
+  showHidden,
+  onShowHiddenChange,
   onModeChange,
   onSave,
   onReset,
@@ -72,6 +90,60 @@ export function EditorToolbar({
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Hidden-content switch — inspect-only. On: unlisted commits,
+            locale-scoped rows and hidden roles render as annotated
+            ghosts. Off: the canvas is exactly the public /works. */}
+        {inspecting && (
+          <button
+            type="button"
+            onClick={() => onShowHiddenChange(!showHidden)}
+            aria-pressed={showHidden}
+            title={
+              showHidden
+                ? "Showing hidden rows (unlisted / hidden roles) — click to preview as production"
+                : "Hidden rows are excluded, matching production — click to reveal them"
+            }
+            className={cn(
+              "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded border transition-colors",
+              showHidden
+                ? "border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10"
+                : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/20",
+            )}
+          >
+            {showHidden ? (
+              <Eye className="w-3 h-3" />
+            ) : (
+              <EyeOff className="w-3 h-3" />
+            )}
+            Hidden
+          </button>
+        )}
+
+        {/* Preview-locale switch — flip the canvas between EN and 中文 so
+            editing a ZH field shows its effect without leaving the editor.
+            Same locale service the site nav uses; the choice persists. */}
+        <div
+          className="flex border border-border/60 rounded overflow-hidden"
+          role="group"
+          aria-label="Preview locale"
+        >
+          {(["en", "zh"] as const).map((l) => (
+            <button
+              key={l}
+              type="button"
+              onClick={() => onLocaleChange(l)}
+              className={cn(
+                "px-2.5 py-1 text-xs font-mono transition-colors",
+                locale === l
+                  ? "bg-muted/40 text-foreground"
+                  : "text-muted-foreground/60 hover:text-foreground",
+              )}
+            >
+              {l === "en" ? "EN" : "中文"}
+            </button>
+          ))}
+        </div>
+
         <button
           type="button"
           onClick={onAddTag}

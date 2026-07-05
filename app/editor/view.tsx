@@ -17,6 +17,7 @@ import ogSnapshotJson from "@/content/og-snapshot.json";
 import { LogTimeline } from "@/components/log/log-timeline";
 import {
   TimelineEditProvider,
+  type InspectField,
   type InspectMode,
 } from "@/components/log/timeline-edit-context";
 import { useLocale } from "@/services";
@@ -46,9 +47,20 @@ export function EditorView({ initialData }: EditorViewProps) {
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(
     null,
   );
+  const [selectedField, setSelectedField] = useState<InspectField | null>(
+    null,
+  );
   const [inspectDisabled, setInspectDisabled] = useState(false);
   const [saving, setSaving] = useState(false);
-  const { locale } = useLocale();
+  // Bumped on out-of-band commit replacement (revert) so form sections
+  // holding local draft state (MediaSection) remount and re-hydrate —
+  // their `commit.id` key alone can't see the data change.
+  const [formEpoch, setFormEpoch] = useState(0);
+  // Inspect-mode global flag: reveal what production hides (unlisted /
+  // locale-scoped commits, hidden-role rows) as annotated ghost rows.
+  // Off = the canvas is exactly the public /works.
+  const [showHidden, setShowHidden] = useState(true);
+  const { locale, setLocale } = useLocale();
 
   // Reference equality is enough: every edit clones the slice it touches,
   // so `data === savedData` exactly tracks "no unsaved changes" without
@@ -61,19 +73,30 @@ export function EditorView({ initialData }: EditorViewProps) {
   // server-side) so flipping a media item to `present:"card"` immediately
   // surfaces the OG cover in the hover/peek view, provided the URL is in the
   // snapshot. URLs that aren't snapshotted yet need `pnpm og:snapshot`.
+  // includeAll (unlisted + locale-scoped commits in the flow) is gated
+  // on BOTH inspect mode and the "show hidden" toggle — flipping the
+  // toggle off makes the canvas production-faithful even while inspecting.
+  const revealHidden = inspecting && showHidden;
   const previewData = useMemo(
     () =>
       buildTimelineData(
         enrichLogDataWithPreviews(data, ogSnapshot),
-        inspecting ? undefined : locale,
-        inspecting ? { includeAll: true } : undefined,
+        revealHidden ? undefined : locale,
+        revealHidden ? { includeAll: true } : undefined,
       ),
-    [data, inspecting, locale],
+    [data, revealHidden, locale],
   );
 
   const selectedCommit = useMemo(
     () => data.commits.find((c) => c.id === selectedCommitId) ?? null,
     [data.commits, selectedCommitId]
+  );
+
+  // The on-disk version of the selected commit — feeds the inspector's
+  // dirty-field indicators ("what did I change?") and per-commit revert.
+  const savedCommit = useMemo(
+    () => savedData.commits.find((c) => c.id === selectedCommitId) ?? null,
+    [savedData.commits, selectedCommitId],
   );
 
   const editingTagObj = useMemo(
@@ -85,24 +108,35 @@ export function EditorView({ initialData }: EditorViewProps) {
     setSelectedCommitId(null);
     setEditingTag(null);
     setSelectedMediaIndex(null);
+    setSelectedField(null);
   }, []);
 
   const selectCommit = useCallback((id: string) => {
     setSelectedCommitId(id);
     setEditingTag(null);
     setSelectedMediaIndex(null);
+    setSelectedField(null);
   }, []);
 
   const selectMedia = useCallback((commitId: string, mediaIndex: number) => {
     setSelectedCommitId(commitId);
     setEditingTag(null);
     setSelectedMediaIndex(mediaIndex);
+    setSelectedField(null);
+  }, []);
+
+  const selectField = useCallback((commitId: string, field: InspectField) => {
+    setSelectedCommitId(commitId);
+    setEditingTag(null);
+    setSelectedMediaIndex(null);
+    setSelectedField(field);
   }, []);
 
   const selectTag = useCallback((id: string) => {
     setEditingTag(id);
     setSelectedCommitId(null);
     setSelectedMediaIndex(null);
+    setSelectedField(null);
   }, []);
 
   const handleModeChange = useCallback(
@@ -173,6 +207,31 @@ export function EditorView({ initialData }: EditorViewProps) {
       }));
     },
     []
+  );
+
+  // Per-commit undo: restore the selected commit to its on-disk state
+  // without touching other unsaved edits. Complements the dirty-field
+  // dots — "I see what I changed, and I can take just this back."
+  const handleRevertCommit = useCallback(
+    (commitId: string) => {
+      const saved = savedData.commits.find((c) => c.id === commitId);
+      if (!saved) return;
+      setData((prev) => {
+        const next = {
+          ...prev,
+          commits: prev.commits.map((c) => (c.id === commitId ? saved : c)),
+        };
+        // isDirty is reference equality — if this revert undid the LAST
+        // remaining change, snap back to the savedData reference so the
+        // "unsaved" chip clears. One JSON pass, only on revert.
+        return JSON.stringify(next) === JSON.stringify(savedData)
+          ? savedData
+          : next;
+      });
+      setFormEpoch((e) => e + 1);
+      toast.success("Commit reverted to saved state");
+    },
+    [savedData],
   );
 
   const handleDeleteCommit = useCallback(
@@ -246,9 +305,12 @@ export function EditorView({ initialData }: EditorViewProps) {
       selectedCommitId,
       editingTagId: editingTag,
       selectedMediaIndex,
+      selectedField,
+      showHidden,
       onSelectCommit: selectCommit,
       onSelectTag: selectTag,
       onSelectMedia: selectMedia,
+      onSelectField: selectField,
       onAddCommit: handleAddCommit,
     }),
     [
@@ -256,9 +318,12 @@ export function EditorView({ initialData }: EditorViewProps) {
       selectedCommitId,
       editingTag,
       selectedMediaIndex,
+      selectedField,
+      showHidden,
       selectCommit,
       selectTag,
       selectMedia,
+      selectField,
       handleAddCommit,
     ],
   );
@@ -295,6 +360,10 @@ export function EditorView({ initialData }: EditorViewProps) {
         saving={saving}
         mode={effectiveMode}
         inspectDisabled={inspectDisabled}
+        locale={locale}
+        onLocaleChange={setLocale}
+        showHidden={showHidden}
+        onShowHiddenChange={setShowHidden}
         onModeChange={handleModeChange}
         onSave={handleSave}
         onReset={handleReset}
@@ -306,7 +375,14 @@ export function EditorView({ initialData }: EditorViewProps) {
         <div className="flex-1 overflow-y-auto p-8" onClick={handleCanvasClick}>
           <div className="max-w-2xl mx-auto">
             <TimelineEditProvider value={editContext}>
-              <LogTimeline data={previewData} locale={locale} />
+              {/* identities must flow here just like /works does it —
+                  without the map every byline resolves null and the
+                  author block falls back to a bare <hux>. */}
+              <LogTimeline
+                data={previewData}
+                locale={locale}
+                identities={data.identities}
+              />
             </TimelineEditProvider>
             {/* Footer marker, matching works page */}
             <div className="mt-16 flex items-center gap-4">
@@ -325,14 +401,19 @@ export function EditorView({ initialData }: EditorViewProps) {
             {selectedCommit ? (
               <CommitEditor
                 commit={selectedCommit}
+                formEpoch={formEpoch}
+                savedCommit={savedCommit}
                 tags={data.tags}
                 commits={data.commits}
                 identities={data.identities}
                 onUpdate={handleUpdateCommit}
                 onDelete={() => handleDeleteCommit(selectedCommit.id)}
+                onRevert={() => handleRevertCommit(selectedCommit.id)}
                 onClose={clearSelection}
                 focusMediaIndex={selectedMediaIndex}
                 onFocusMediaIndexChange={setSelectedMediaIndex}
+                focusField={selectedField}
+                onFocusFieldChange={setSelectedField}
               />
             ) : editingTagObj ? (
               <div className="flex-1 overflow-y-auto">

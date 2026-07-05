@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
+import type { InspectField } from "./timeline-edit-context";
 import type { NormalizedCommit } from "./commit-data";
 import { commitIcons, commitIconOverrides } from "./icons";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
@@ -111,6 +112,62 @@ interface TimelineCommitProps {
   onInspectCommit?: () => void;
   onInspectMedia?: (media: Media) => void;
   selectedMedia?: Media | null;
+  /** Inspect a specific sub-element (title, description, date…) —
+   *  selects the commit and focuses the matching form field. */
+  onInspectField?: (field: InspectField) => void;
+  /** The field currently focused in the inspector (for highlight). */
+  selectedField?: InspectField | null;
+  /** Editor-only visibility annotations ("unlisted", "hidden row",
+   *  "en only"…) rendered as dashed chips after the title so inspect
+   *  mode shows WHY a row won't appear on the public /works. */
+  inspectBadges?: string[];
+}
+
+/**
+ * Editor-only wrapper that makes a row sub-element (title, date, meta,
+ * description…) individually inspectable — the field-level sibling of
+ * `InspectableMedia`. Hover shows a faint ring; click selects the commit
+ * and focuses the mapped form field instead of toggling the row.
+ * Renders children untouched outside inspect mode.
+ */
+function InspectableField({
+  field,
+  inspecting,
+  selected,
+  onInspectField,
+  block = false,
+  children,
+}: {
+  field: InspectField;
+  inspecting: boolean;
+  selected: boolean;
+  onInspectField?: (field: InspectField) => void;
+  /** Use a block-level wrapper (for description/commentary/tags rows). */
+  block?: boolean;
+  children: ReactNode;
+}) {
+  if (!inspecting || !onInspectField) return <>{children}</>;
+
+  const Tag = block ? "div" : "span";
+  return (
+    <Tag
+      data-editor-interactive
+      onClick={(e) => {
+        e.stopPropagation();
+        onInspectField(field);
+      }}
+      className={cn(
+        "cursor-pointer rounded-sm ring-inset transition-[box-shadow,background-color] duration-150",
+        block ? "block -mx-1 px-1" : "-mx-0.5 px-0.5",
+        selected
+          ? "ring-1 ring-sky-500/70 bg-sky-500/[0.07]"
+          : "hover:ring-1 hover:ring-sky-500/40 hover:bg-sky-500/[0.04]",
+      )}
+      title={`Inspect ${field}`}
+    >
+      {children}
+    </Tag>
+  );
 }
 
 export function TimelineCommit({
@@ -133,7 +190,12 @@ export function TimelineCommit({
   onInspectCommit,
   onInspectMedia,
   selectedMedia = null,
+  onInspectField,
+  selectedField = null,
+  inspectBadges = [],
 }: TimelineCommitProps) {
+  // Field wrappers only activate when a handler is present (editor).
+  const fieldSelected = (f: InspectField) => isSelected && selectedField === f;
   const Icon =
     (data.iconOverride && commitIconOverrides[data.iconOverride]) ||
     commitIcons[data.type];
@@ -352,10 +414,36 @@ export function TimelineCommit({
               : "text-sm text-foreground",
           )}
         >
-          {isEvent ? `(${data.title})` : data.title}
+          <InspectableField
+            field="title"
+            inspecting={inspecting}
+            selected={fieldSelected("title")}
+            onInspectField={onInspectField}
+          >
+            {isEvent ? `(${data.title})` : data.title}
+          </InspectableField>
           {data.languageBadge && (
             <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
-              {data.languageBadge}
+              <InspectableField
+                field="language"
+                inspecting={inspecting}
+                selected={fieldSelected("language")}
+                onInspectField={onInspectField}
+              >
+                {data.languageBadge}
+              </InspectableField>
+            </span>
+          )}
+          {inspecting && inspectBadges.length > 0 && (
+            <span className="ml-2 inline-flex items-center gap-1 align-baseline">
+              {inspectBadges.map((b) => (
+                <span
+                  key={b}
+                  className="text-[10px] font-mono uppercase tracking-wider text-amber-600/80 dark:text-amber-400/80 border border-dashed border-amber-500/40 rounded px-1 py-px leading-none"
+                >
+                  {b}
+                </span>
+              ))}
             </span>
           )}
         </span>
@@ -390,7 +478,14 @@ export function TimelineCommit({
         {hideDate ? (
           data.dateSlotOverride && (
             <span className="font-mono text-xs text-muted-foreground/50 shrink-0 ml-auto">
-              {data.dateSlotOverride}
+              <InspectableField
+                field="date"
+                inspecting={inspecting}
+                selected={fieldSelected("date")}
+                onInspectField={onInspectField}
+              >
+                {data.dateSlotOverride}
+              </InspectableField>
             </span>
           )
         ) : (
@@ -405,7 +500,14 @@ export function TimelineCommit({
                 : "text-muted-foreground/50",
             )}
           >
-            {data.date}
+            <InspectableField
+              field="date"
+              inspecting={inspecting}
+              selected={fieldSelected("date")}
+              onInspectField={onInspectField}
+            >
+              {data.date}
+            </InspectableField>
           </span>
         )}
       </div>
@@ -430,7 +532,7 @@ export function TimelineCommit({
         <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-muted-foreground/40 flex items-baseline justify-between gap-2">
           <span className="min-w-0 truncate">
             {data.meta ? (
-              data.metaUrl ? (
+              data.metaUrl && !inspecting ? (
                 <a
                   href={data.metaUrl}
                   target="_blank"
@@ -442,14 +544,33 @@ export function TimelineCommit({
                   <span aria-hidden className="text-[0.7rem]">↗</span>
                 </a>
               ) : (
-                data.meta
+                // Inspect mode: the meta link degrades to plain text so a
+                // click inspects the venue/company field instead of
+                // navigating away from the editor.
+                <InspectableField
+                  field="meta"
+                  inspecting={inspecting}
+                  selected={fieldSelected("meta")}
+                  onInspectField={onInspectField}
+                >
+                  {data.meta}
+                </InspectableField>
               )
             ) : (
               // Project subtitle fallback — set only on the first row
               // of a same-team run so repeats stay blank (sparse). The
               // left cell still exists to preserve baseline alignment
               // with the right-aligned byline.
-              byline?.subtitle
+              byline?.subtitle && (
+                <InspectableField
+                  field="team"
+                  inspecting={inspecting}
+                  selected={fieldSelected("team")}
+                  onInspectField={onInspectField}
+                >
+                  {byline.subtitle}
+                </InspectableField>
+              )
             )}
           </span>
           {byline && (
@@ -461,7 +582,14 @@ export function TimelineCommit({
                   : "opacity-0 group-hover:opacity-100",
               )}
             >
-              {byline.handle}
+              <InspectableField
+                field="author"
+                inspecting={inspecting}
+                selected={fieldSelected("author")}
+                onInspectField={onInspectField}
+              >
+                {byline.handle}
+              </InspectableField>
             </span>
           )}
         </div>
@@ -508,6 +636,13 @@ export function TimelineCommit({
             Role / description only when a resolved role provides them.
           */}
           {data.type !== "role" && data.type !== "event" && (
+            <InspectableField
+              field="author"
+              inspecting={inspecting}
+              selected={fieldSelected("author")}
+              onInspectField={onInspectField}
+              block
+            >
             <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono pb-2.5 mb-1 border-b border-border/25">
               <span className="text-muted-foreground/40">Author:</span>
               <span className="text-muted-foreground/65">
@@ -540,11 +675,19 @@ export function TimelineCommit({
                 </>
               )}
             </div>
+            </InspectableField>
           )}
 
           {data.subtitle && (
             <div className="text-xs text-muted-foreground/60">
-              {data.subtitle}
+              <InspectableField
+                field="team"
+                inspecting={inspecting}
+                selected={fieldSelected("team")}
+                onInspectField={onInspectField}
+              >
+                {data.subtitle}
+              </InspectableField>
             </div>
           )}
 
@@ -562,13 +705,51 @@ export function TimelineCommit({
             </div>
           )}
 
-          <Description text={data.description} isExpanded />
+          <InspectableField
+            field="description"
+            inspecting={inspecting}
+            selected={fieldSelected("description")}
+            onInspectField={onInspectField}
+            block
+          >
+            <Description text={data.description} isExpanded />
+          </InspectableField>
 
-          {data.commentary && <Commentary text={data.commentary} />}
+          {data.commentary && (
+            <InspectableField
+              field="commentary"
+              inspecting={inspecting}
+              selected={fieldSelected("commentary")}
+              onInspectField={onInspectField}
+              block
+            >
+              <Commentary text={data.commentary} />
+            </InspectableField>
+          )}
 
-          {data.tags.length > 0 && <TagBadges items={data.tags} />}
+          {data.tags.length > 0 && (
+            <InspectableField
+              field="tags"
+              inspecting={inspecting}
+              selected={fieldSelected("tags")}
+              onInspectField={onInspectField}
+              block
+            >
+              <TagBadges items={data.tags} />
+            </InspectableField>
+          )}
 
-          {data.stats && <Stats {...data.stats} />}
+          {data.stats && (
+            <InspectableField
+              field="stats"
+              inspecting={inspecting}
+              selected={fieldSelected("stats")}
+              onInspectField={onInspectField}
+              block
+            >
+              <Stats {...data.stats} />
+            </InspectableField>
+          )}
         </div>
       )}
 

@@ -20,7 +20,7 @@ import { CardFace } from "./media/link";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
-import { useTimelineEdit } from "./timeline-edit-context";
+import { useTimelineEdit, type InspectField } from "./timeline-edit-context";
 
 // =============================================================================
 // Types
@@ -118,6 +118,22 @@ export function Commit({
           if (index >= 0) edit.onSelectMedia(commit.id, index);
         }
       : undefined;
+  const onInspectField =
+    inspecting && edit
+      ? (field: InspectField) => edit.onSelectField(commit.id, field)
+      : undefined;
+
+  // Visibility annotations, editor-only: explain WHY this row won't
+  // show (or shows differently) on the public /works. The editor's
+  // inspect preview includes everything (`includeAll`), so without
+  // these chips a hidden row is indistinguishable from a public one.
+  const inspectBadges: string[] = [];
+  if (inspecting) {
+    if (commit.listed === false) inspectBadges.push("unlisted");
+    if (commit.type === "role" && commit.hideRow) inspectBadges.push("hidden row");
+    if (commit.listedIn === "en") inspectBadges.push("en only");
+    if (commit.listedIn === "zh") inspectBadges.push("zh only");
+  }
 
   switch (variant) {
     case "timeline":
@@ -140,10 +156,16 @@ export function Commit({
           byline={byline}
           inspecting={inspecting}
           isSelected={isSelected}
-          isUnlisted={commit.listed === false}
+          isUnlisted={
+            commit.listed === false ||
+            (inspecting && commit.type === "role" && commit.hideRow === true)
+          }
           onInspectCommit={onInspectCommit}
           onInspectMedia={onInspectMedia}
           selectedMedia={selectedMedia}
+          onInspectField={onInspectField}
+          selectedField={edit?.selectedField ?? null}
+          inspectBadges={inspectBadges}
         />
       );
 
