@@ -220,8 +220,8 @@ interface TapeVariant {
   tickGrow: number;
   /** Minor tick length, px. */
   minorWidth: number;
-  /** Label measure and active magnification. */
-  labelMaxWidth: number;
+  /** Label measure (any CSS max-width) and active magnification. */
+  labelMaxWidth: number | string;
   activeScale: number;
   /**
    * How labels reveal:
@@ -252,7 +252,9 @@ const MOBILE: TapeVariant = {
   tickBase: 12,
   tickGrow: 8,
   minorWidth: 5,
-  labelMaxWidth: 132,
+  // Labels only show during the full-screen takeover, so they may run
+  // nearly edge to edge (96px covers ticks, gaps and the scale-up).
+  labelMaxWidth: "min(310px, calc(100vw - 80px))",
   activeScale: 1.08,
   labels: "overlay",
 };
@@ -608,7 +610,9 @@ function MobileRuler({
           open ? "z-50" : "z-30"
         )}
         style={{
-          width: 184,
+          // Wide enough for the takeover labels; the collapsed state only
+          // paints ticks (labels sit at opacity 0, pointer-events none).
+          width: "calc(100vw - 16px)",
           height: "min(400px, 62svh)",
           maskImage: TAPE_MASK,
           WebkitMaskImage: TAPE_MASK,
