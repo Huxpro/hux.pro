@@ -117,6 +117,9 @@ export function CommandPalette() {
   const sheetOpacity = useTransform(dismissSpring, (p) => 1 - 0.85 * Math.abs(p));
   const sheetScale = useTransform(dismissSpring, (p) => 1 - 0.06 * Math.abs(p));
   const sheetY = useTransform(dismissSpring, (p) => 64 * p);
+  // The frosted scrim recedes with the toss — the whole takeover leaves
+  // as one object, not a panel peeling off a static veil.
+  const backdropOpacity = useTransform(dismissSpring, (p) => 1 - Math.abs(p));
   const sheetDrag = useRef<{
     id: number;
     startX: number;
@@ -543,14 +546,22 @@ export function CommandPalette() {
           touch-none swallows native panning, so a swipe over it can't
           scroll the page behind the open palette (which would desync the
           iOS absolute-position anchor and read as broken elsewhere).
+          On touch it's also a frosted scrim (the ruler takeover's visual
+          language) that recedes as the dismiss gesture scrubs.
           On iOS it still dismisses at pointerdown, but only while the
           keyboard is up — that tap races the keyboard teardown's
           viewport shift, so we act before the storm; without the
           keyboard, iOS taps resolve through the gesture's pointerup
           (sidestepping Safari's click synthesis on plain divs). */}
-      <div
+      <motion.div
         data-palette-backdrop
-        className="absolute inset-0 touch-none bg-transparent"
+        className={cn(
+          "absolute inset-0 touch-none",
+          primaryInput === "touch"
+            ? "bg-background/60 backdrop-blur-sm animate-in fade-in-0 duration-200"
+            : "bg-transparent"
+        )}
+        style={primaryInput === "touch" ? { opacity: backdropOpacity } : undefined}
         onClick={!isIOS ? close : undefined}
         onPointerDown={
           isIOS
