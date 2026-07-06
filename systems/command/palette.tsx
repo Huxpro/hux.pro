@@ -103,17 +103,19 @@ export function CommandPalette() {
 
   // ---------------------------------------------------------------------------
   // Touch dismiss — the palette behaves like a floating sheet: dragging
-  // down anywhere on the panel chrome (not the scrolling list) scrubs the
-  // summon animation in reverse. The finger's travel maps proportionally
-  // onto opacity + scale + a damped sink — the panel never docks to the
-  // screen edge (no safe-area collision), it dissolves in place. Release
-  // past the threshold (or a flick) commits; otherwise it springs back.
+  // in either vertical direction anywhere on the takeover (except the
+  // scrolling list) scrubs the summon animation in reverse. The finger's
+  // travel maps proportionally onto opacity + scale + a damped drift that
+  // follows the drag direction — the panel never docks to the screen edge
+  // (no safe-area collision), it dissolves in place. Release past the
+  // threshold (or a flick) commits; otherwise it springs back.
   // ---------------------------------------------------------------------------
   const SHEET_TRAVEL = 280;
+  // Signed progress: + is a downward toss, - an upward one.
   const dismiss = useMotionValue(0);
   const dismissSpring = useSpring(dismiss, { stiffness: 420, damping: 36 });
-  const sheetOpacity = useTransform(dismissSpring, (p) => 1 - 0.85 * p);
-  const sheetScale = useTransform(dismissSpring, (p) => 1 - 0.06 * p);
+  const sheetOpacity = useTransform(dismissSpring, (p) => 1 - 0.85 * Math.abs(p));
+  const sheetScale = useTransform(dismissSpring, (p) => 1 - 0.06 * Math.abs(p));
   const sheetY = useTransform(dismissSpring, (p) => 64 * p);
   const sheetDrag = useRef<{
     id: number;
@@ -132,6 +134,24 @@ export function CommandPalette() {
     }
   }, [isOpen, dismiss, dismissSpring]);
 
+  /**
+   * Close while swallowing the tap's trailing synthetic click. When the
+   * overlay unmounts between pointerup and click, the browser re-hit-tests
+   * and the click lands on whatever sat under the backdrop — usually the
+   * FAB, which would immediately reopen the palette.
+   */
+  const closeSwallowingGhostClick = useCallback(() => {
+    const swallow = (ev: MouseEvent) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+    };
+    document.addEventListener("click", swallow, { capture: true, once: true });
+    window.setTimeout(() => {
+      document.removeEventListener("click", swallow, { capture: true });
+    }, 500);
+    close();
+  }, [close]);
+
   const endSheetDrag = useCallback(
     (e: React.PointerEvent, commitAllowed: boolean) => {
       const s = sheetDrag.current;
@@ -144,21 +164,25 @@ export function CommandPalette() {
           commitAllowed &&
           (e.target as HTMLElement).closest("[data-palette-backdrop]")
         ) {
-          close();
+          closeSwallowingGhostClick();
         }
         return;
       }
       const p = dismiss.get();
-      if (commitAllowed && (p > 0.4 || s.vy > 0.5)) {
-        // Finish the reverse-summon, then unmount.
-        animate(dismiss, 1, { duration: 0.16, ease: "easeOut" }).then(() => {
-          close();
-        });
+      const flick = Math.abs(s.vy) > 0.5;
+      if (commitAllowed && (Math.abs(p) > 0.4 || flick)) {
+        // Finish the reverse-summon in the toss's direction, then unmount.
+        const direction = Math.sign(flick ? s.vy : p) || 1;
+        animate(dismiss, direction, { duration: 0.16, ease: "easeOut" }).then(
+          () => {
+            close();
+          }
+        );
       } else {
         dismiss.set(0); // the spring carries it home
       }
     },
-    [dismiss, close]
+    [dismiss, close, closeSwallowingGhostClick]
   );
 
   const sheetHandlers =
@@ -183,8 +207,13 @@ export function CommandPalette() {
             if (!s || e.pointerId !== s.id) return;
             const dy = e.clientY - s.startY;
             if (!s.active) {
-              // Downward intent only; taps and horizontal wobbles pass.
-              if (dy < 10 || Math.abs(e.clientX - s.startX) > dy) return;
+              // Vertical intent, either direction; taps and horizontal
+              // wobbles pass through.
+              if (
+                Math.abs(dy) < 10 ||
+                Math.abs(e.clientX - s.startX) > Math.abs(dy)
+              )
+                return;
               s.active = true;
               // Capture from drag detection (not pointerdown) so plain
               // taps keep their natural targets — and captured drags
@@ -199,7 +228,7 @@ export function CommandPalette() {
             s.vy = 0.8 * s.vy + 0.2 * ((e.clientY - s.lastY) / dt);
             s.lastY = e.clientY;
             s.lastT = e.timeStamp;
-            dismiss.set(Math.min(1, Math.max(0, dy / SHEET_TRAVEL)));
+            dismiss.set(Math.min(1, Math.max(-1, dy / SHEET_TRAVEL)));
           },
           onPointerUp: (e: React.PointerEvent) => endSheetDrag(e, true),
           onPointerCancel: (e: React.PointerEvent) => endSheetDrag(e, false),
@@ -526,7 +555,9 @@ export function CommandPalette() {
         onPointerDown={
           isIOS
             ? () => {
-                if (document.activeElement === inputRef.current) close();
+                if (document.activeElement === inputRef.current) {
+                  closeSwallowingGhostClick();
+                }
               }
             : undefined
         }
