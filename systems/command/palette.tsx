@@ -137,7 +137,17 @@ export function CommandPalette() {
       const s = sheetDrag.current;
       if (!s || e.pointerId !== s.id) return;
       sheetDrag.current = null;
-      if (!s.active) return;
+      if (!s.active) {
+        // Plain tap on the backdrop dismisses via pointerup — reliable on
+        // touch regardless of Safari's click-synthesis heuristics.
+        if (
+          commitAllowed &&
+          (e.target as HTMLElement).closest("[data-palette-backdrop]")
+        ) {
+          close();
+        }
+        return;
+      }
       const p = dismiss.get();
       if (commitAllowed && (p > 0.4 || s.vy > 0.5)) {
         // Finish the reverse-summon, then unmount.
@@ -493,15 +503,33 @@ export function CommandPalette() {
         isIOS ? "absolute inset-x-0" : "fixed inset-0"
       )}
       style={isIOS ? { top: scrollPosition, height: "100dvh" } : undefined}
+      // The dismiss scrub listens on the whole takeover, so a downward
+      // drag anywhere — backdrop or panel chrome — scrubs the palette
+      // away. Capturing to this container (which has no click handler)
+      // also means a captured drag can never end in a stray
+      // backdrop-click dismissal.
+      {...sheetHandlers}
     >
       {/* Backdrop is a gesture surface, not just a click-catcher:
           touch-none swallows native panning, so a swipe over it can't
           scroll the page behind the open palette (which would desync the
-          iOS absolute-position anchor and read as broken elsewhere). */}
+          iOS absolute-position anchor and read as broken elsewhere).
+          On iOS it still dismisses at pointerdown, but only while the
+          keyboard is up — that tap races the keyboard teardown's
+          viewport shift, so we act before the storm; without the
+          keyboard, iOS taps resolve through the gesture's pointerup
+          (sidestepping Safari's click synthesis on plain divs). */}
       <div
+        data-palette-backdrop
         className="absolute inset-0 touch-none bg-transparent"
         onClick={!isIOS ? close : undefined}
-        onPointerDown={isIOS ? close : undefined}
+        onPointerDown={
+          isIOS
+            ? () => {
+                if (document.activeElement === inputRef.current) close();
+              }
+            : undefined
+        }
       />
 
       <motion.div
@@ -559,12 +587,12 @@ export function CommandPalette() {
         }
         className="w-full flex justify-center"
       >
-      {/* Sheet layer — scrubbed by the touch dismiss gesture; identity on
-          pointer devices. Nested so it composes with devtool reposition. */}
+      {/* Sheet layer — scrubbed by the touch dismiss gesture (attached on
+          the takeover container above); identity on pointer devices.
+          Nested so it composes with devtool reposition. */}
       <motion.div
         className="w-full flex justify-center"
         style={{ opacity: sheetOpacity, scale: sheetScale, y: sheetY }}
-        {...sheetHandlers}
       >
       <Command
         className={cn(
