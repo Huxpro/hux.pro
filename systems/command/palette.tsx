@@ -3,7 +3,7 @@
 import { getLocalizedDescription, getLocalizedTitle, getPostHref } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
-import { localeNames, t, useLocale, useTheme } from "@/services";
+import { localeNames, t, useInputCapability, useLocale, useTheme } from "@/services";
 import { useLocation, useWeather } from "@/systems/ambient";
 import { useDevtool } from "@/systems/devtool";
 import { useMusic } from "@/systems/music";
@@ -26,15 +26,26 @@ import {
   Waves,
 } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
-import { motion } from "framer-motion";
+import {
+  animate,
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+} from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
 import { useCommand } from "./provider";
 
 export function CommandPalette() {
   const drag = useDraggable("command-palette");
+  const { primaryInput } = useInputCapability();
   const { isOpen, isSlashCommandsMode, close, setSlashCommandsMode } =
     useCommand();
+
+  // Devtool repositioning is a pointer affordance; on touch the same drag
+  // budget goes to the sheet-style dismiss gesture below.
+  const repositionEnabled = drag.isEnabled && primaryInput === "mouse";
   const { theme, preference, setThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
   const { locationMode, setLocationMode, requestAccurateLocation } =
@@ -89,6 +100,101 @@ export function CommandPalette() {
       document.body.style.overflow = "";
     };
   }, [isOpen, isIOS]);
+
+  // ---------------------------------------------------------------------------
+  // Touch dismiss — the palette behaves like a floating sheet: dragging
+  // down anywhere on the panel chrome (not the scrolling list) scrubs the
+  // summon animation in reverse. The finger's travel maps proportionally
+  // onto opacity + scale + a damped sink — the panel never docks to the
+  // screen edge (no safe-area collision), it dissolves in place. Release
+  // past the threshold (or a flick) commits; otherwise it springs back.
+  // ---------------------------------------------------------------------------
+  const SHEET_TRAVEL = 280;
+  const dismiss = useMotionValue(0);
+  const dismissSpring = useSpring(dismiss, { stiffness: 420, damping: 36 });
+  const sheetOpacity = useTransform(dismissSpring, (p) => 1 - 0.85 * p);
+  const sheetScale = useTransform(dismissSpring, (p) => 1 - 0.06 * p);
+  const sheetY = useTransform(dismissSpring, (p) => 64 * p);
+  const sheetDrag = useRef<{
+    id: number;
+    startX: number;
+    startY: number;
+    active: boolean;
+    lastY: number;
+    lastT: number;
+    vy: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      dismiss.jump(0);
+      dismissSpring.jump(0);
+    }
+  }, [isOpen, dismiss, dismissSpring]);
+
+  const endSheetDrag = useCallback(
+    (e: React.PointerEvent, commitAllowed: boolean) => {
+      const s = sheetDrag.current;
+      if (!s || e.pointerId !== s.id) return;
+      sheetDrag.current = null;
+      if (!s.active) return;
+      const p = dismiss.get();
+      if (commitAllowed && (p > 0.4 || s.vy > 0.5)) {
+        // Finish the reverse-summon, then unmount.
+        animate(dismiss, 1, { duration: 0.16, ease: "easeOut" }).then(() => {
+          close();
+        });
+      } else {
+        dismiss.set(0); // the spring carries it home
+      }
+    },
+    [dismiss, close]
+  );
+
+  const sheetHandlers =
+    primaryInput === "touch"
+      ? {
+          onPointerDown: (e: React.PointerEvent) => {
+            if (!e.isPrimary || sheetDrag.current) return;
+            // The results list owns vertical panning (touch-pan-y).
+            if ((e.target as HTMLElement).closest("[cmdk-list]")) return;
+            sheetDrag.current = {
+              id: e.pointerId,
+              startX: e.clientX,
+              startY: e.clientY,
+              active: false,
+              lastY: e.clientY,
+              lastT: e.timeStamp,
+              vy: 0,
+            };
+          },
+          onPointerMove: (e: React.PointerEvent) => {
+            const s = sheetDrag.current;
+            if (!s || e.pointerId !== s.id) return;
+            const dy = e.clientY - s.startY;
+            if (!s.active) {
+              // Downward intent only; taps and horizontal wobbles pass.
+              if (dy < 10 || Math.abs(e.clientX - s.startX) > dy) return;
+              s.active = true;
+              // Capture from drag detection (not pointerdown) so plain
+              // taps keep their natural targets — and captured drags
+              // can't end in stray clicks/focus.
+              try {
+                e.currentTarget.setPointerCapture(e.pointerId);
+              } catch {
+                // Pointer already gone — the gesture still works.
+              }
+            }
+            const dt = Math.max(1, e.timeStamp - s.lastT);
+            s.vy = 0.8 * s.vy + 0.2 * ((e.clientY - s.lastY) / dt);
+            s.lastY = e.clientY;
+            s.lastT = e.timeStamp;
+            dismiss.set(Math.min(1, Math.max(0, dy / SHEET_TRAVEL)));
+          },
+          onPointerUp: (e: React.PointerEvent) => endSheetDrag(e, true),
+          onPointerCancel: (e: React.PointerEvent) => endSheetDrag(e, false),
+        }
+      : undefined;
 
   useEffect(() => {
     if (isOpen && !isSlashCommandsMode) {
@@ -400,15 +506,15 @@ export function CommandPalette() {
 
       <motion.div
         ref={drag.contentRef as React.RefObject<HTMLDivElement>}
-        drag={drag.isEnabled ? true : undefined}
+        drag={repositionEnabled ? true : undefined}
         dragControls={drag.dragControls}
         dragListener={false}
         dragMomentum={false}
         onDragStart={drag.onDragStart}
         onDragEnd={drag.onDragEnd}
-        style={drag.isEnabled ? drag.motionStyle : undefined}
+        style={repositionEnabled ? drag.motionStyle : undefined}
         onPointerDown={
-          drag.isEnabled
+          repositionEnabled
             ? (e: React.PointerEvent) => {
                 const target = e.target as HTMLElement;
                 if (!target.closest("[data-drag-handle]")) return;
@@ -449,9 +555,16 @@ export function CommandPalette() {
             : undefined
         }
         onClickCapture={
-          drag.isEnabled ? drag.preventClickAfterDrag : undefined
+          repositionEnabled ? drag.preventClickAfterDrag : undefined
         }
         className="w-full flex justify-center"
+      >
+      {/* Sheet layer — scrubbed by the touch dismiss gesture; identity on
+          pointer devices. Nested so it composes with devtool reposition. */}
+      <motion.div
+        className="w-full flex justify-center"
+        style={{ opacity: sheetOpacity, scale: sheetScale, y: sheetY }}
+        {...sheetHandlers}
       >
       <Command
         className={cn(
@@ -496,7 +609,7 @@ export function CommandPalette() {
                       "w-full py-4 bg-transparent font-sans text-[16px] sm:text-sm",
                       "placeholder:text-muted-foreground/60",
                       "outline-none",
-                      drag.isEnabled && "cursor-default focus:cursor-text",
+                      repositionEnabled && "cursor-default focus:cursor-text",
                     )}
                   />
                 </div>
@@ -1008,6 +1121,7 @@ export function CommandPalette() {
           </div>
         </div>
       </Command>
+      </motion.div>
       </motion.div>
     </div>
   );
