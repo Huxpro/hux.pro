@@ -3,6 +3,7 @@
 import { useLocale, t } from "@/services";
 import { useCommand } from "./provider";
 import { cn } from "@/lib/utils";
+import { surface } from "@/components/ui/surface";
 import { AnimatePresence, motion } from "framer-motion";
 import { Command, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -40,9 +41,7 @@ export function FloatingActionButton() {
         className={cn(
           "pointer-events-auto",
           "flex items-center gap-2",
-          "bg-card/50 backdrop-blur-xl",
-          "border border-border/50",
-          "shadow-raised",
+          surface({ elevation: "raised", fill: 50 }),
           isHomepage ? "text-muted-foreground" : "text-foreground",
           "hover:bg-card/70 hover:border-border transition-colors",
           "h-12",

@@ -15,6 +15,7 @@ import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
 import { getCommitPeekItems, localize } from "@/lib/log";
 import { cn } from "@/lib/utils";
+import { surface } from "@/components/ui/surface";
 import { ExternalImage } from "./media/external-image";
 import { CardFace } from "./media/link";
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
@@ -361,14 +362,14 @@ function PeekCard({
       fit={item.fit}
       aspect={item.aspect}
       domainLabel={domainLabel}
-      // Peek-specific chrome — same recipe as the shared MagneticPreview
-      // panel (bg-card/70 + backdrop-blur-xl + border), minus the shadow:
-      // the single-peek and stacked-peek branches strip the panel's own
-      // chrome (BARE_PANEL_CHROME), so callers add `shadow-raised` per use
-      // (front / single) and deck back layers stay flat — same opt-in
+      // Peek-specific chrome — the shared glass `surface()` at the panel tier
+      // with no shadow: the single-peek and stacked-peek branches strip the
+      // panel's own chrome (BARE_PANEL_CHROME), so callers add `shadow-raised`
+      // per use (front / single) and deck back layers stay flat — same opt-in
       // convention as PeekThumb.
       className={cn(
-        "bg-card/70 backdrop-blur-xl border border-border/50 rounded-lg",
+        surface({ elevation: "none", fill: 70 }),
+        "rounded-lg",
         className,
       )}
       onImgResolved={onResolved}
