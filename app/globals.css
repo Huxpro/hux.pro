@@ -514,14 +514,21 @@ html.dragging * {
   aspect-ratio: 16 / 9;
 }
 
-/* Desktop "bleed out": on wide screens, let landscape media (videos) break
-   out of the 680px reading column and grow toward the viewport, Medium-style.
+/* Desktop "bleed out": on wide screens, let landscape media break out of the
+   680px reading column and grow toward the viewport, Medium-style. Applies to
+   video embeds and to images flagged data-bleed="true" (see components/
+   mdx-image.tsx — wide, high-res captures opt in automatically, overridable
+   per image with a #bleed / #no-bleed URL fragment).
+
    Stays viewport-centered via the margin-left:50% + translateX(-50%) trick
    (percentages resolve against the prose column, which is itself centered),
    caps at 60rem so it never sprawls on ultra-wide displays, and keeps a 7rem
-   gutter each side so it clears the fixed ruler ToC docked at the edge. */
+   gutter each side so it clears the fixed ruler ToC docked at the edge.
+   Images keep their natural aspect ratio (height stays auto); only the video
+   iframe is locked to 16:9 by the base rule above. */
 @media (min-width: 900px) {
-  .prose-article iframe:not(:where(.not-prose, .not-prose *)) {
+  .prose-article iframe:not(:where(.not-prose, .not-prose *)),
+  .prose-article img[data-bleed="true"]:not(:where(.not-prose, .not-prose *)) {
     width: min(60rem, 100vw - 14rem);
     max-width: none;
     margin-left: 50%;
