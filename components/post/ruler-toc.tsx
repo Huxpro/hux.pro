@@ -20,65 +20,108 @@ import { useRulerSide, type RulerSide } from "./ruler-settings";
  *
  * The ruler is a vertical measuring tape docked to a screen edge (left or
  * right, devtool-switchable), strictly centered on the viewport — screen
- * furniture, like a semantic scrollbar. Section headings are major ticks;
- * the tape slides with scroll so the active section always rests at the
- * optical center. Distance from that reading line drives opacity, a slight
- * inward drift, tick length and type scale — a flat-but-dimensional dial,
- * like a physical ruler read at its index line.
+ * furniture, like a semantic scrollbar. Section headings are ticks; the
+ * tape slides with scroll so the active section always rests at the optical
+ * center. Distance from that reading line drives opacity, a slight inward
+ * drift, tick length and type scale — a flat-but-dimensional dial, like a
+ * physical ruler read at its index line.
+ *
+ * Two orthogonal "distance" axes share the same bell falloff:
+ *  - Scroll distance is the dynamic near/far: how close a heading is to the
+ *    reading line right now.
+ *  - Tree depth is the static near/far: h1/h2 are majors (long ticks,
+ *    persistent labels), h3/h4 are subs (shorter ticks, quieter labels).
+ * Subs sit at their *real* scroll position between their parent major and
+ * the next one, so each article's ruler is a unique fingerprint — a dense
+ * cluster is a structurally busy section, a blank stretch a long narrative.
+ *
+ * Density is handled by a fisheye: near the reading line the tape locally
+ * expands (the bell moves from styling into *spacing*), so a section's
+ * subheadings unfurl as you read into them and compress when far away.
  *
  * Interaction adapts to pointer capability, not viewport width:
  *
- * Hover pointers (desktop): when the gutter is wide enough, labels are
- * always readable near the reading line and hover brightens the rest.
- * When the gutter is tight, the ruler collapses to bare ticks; hovering
- * reveals the labels over a soft backdrop-blur veil that fades toward the
- * content, so titles can run long without fighting the text behind them.
+ * Hover pointers (desktop): when the gutter is wide enough, major labels are
+ * always readable near the reading line and hover brightens the rest. When
+ * the gutter is tight, the ruler collapses to bare ticks; hovering reveals
+ * the labels over a soft backdrop-blur veil that fades toward the content,
+ * so titles can run long without fighting the text behind them.
  *
  * Touch (mobile): bare ticks, directly manipulable — press and drag to
- * scrub (labels cascade in over a frosted scrim while the tape follows
- * the finger), release to snap to the nearest section; tap to expand.
+ * scrub (labels cascade in over a frosted scrim while the tape follows the
+ * finger), release to snap to the nearest tick of any level; tap to expand.
  *
- * Headings are discovered from the rendered `.prose-article` DOM (h1/h2),
- * so it works with client-generated heading ids and both locales.
+ * Progress and the scrub/dial gesture live in a fractional heading-index
+ * space; subheadings are display-layer fractional positions on the same
+ * axis. Headings are discovered from the rendered `.prose-article` DOM
+ * (h1–h4), so it works with client-generated ids and both locales.
  */
 
-interface Section {
+type Level = 1 | 2 | 3 | 4;
+
+interface Heading {
   el: HTMLElement;
   label: string;
+  level: Level;
 }
 
 type RulerItem =
-  | { kind: "major"; index: number; section: number }
-  | { kind: "minor"; index: number };
+  // A real heading. `frac` is its position on the index axis: an integer for
+  // majors, a measured fraction between neighbouring majors for subs.
+  | { kind: "heading"; idx: number; level: Level; frac: number }
+  // Decorative tick past the first/last heading — no semantics, just the
+  // "tape continues" feel at the ends.
+  | { kind: "end"; frac: number };
+
+/** Measured model emitted from the scroll loop back into React. */
+interface RulerModel {
+  /** Fractional index per heading (parallel to the headings array). */
+  fracs: number[];
+  /** Largest reachable fractional index (the last heading). */
+  maxFrac: number;
+}
 
 /** Mutable flag shared between scroll-tracking and programmatic motion. */
 type LockRef = { current: boolean };
+
+/** Decorative ticks beyond the first/last heading, and their spacing. */
+const END_TICKS = 3;
+const END_STEP = 0.42;
 
 /** Bell curve around 0 — the "reading line" falloff. */
 function bell(d: number, spread: number) {
   return Math.exp(-(d * d) / spread);
 }
 
-/** Major + minor tick positions in section-index space, with ruler ends. */
-function buildItems(count: number, minorsPerGap: number): RulerItem[] {
-  const items: RulerItem[] = [];
-  const step = 1 / (minorsPerGap + 1);
-  for (let k = minorsPerGap; k >= 1; k--) {
-    items.push({ kind: "minor", index: -k * step });
-  }
-  for (let i = 0; i < count; i++) {
-    items.push({ kind: "major", index: i, section: i });
-    for (let k = 1; k <= minorsPerGap; k++) {
-      items.push({ kind: "minor", index: i + k * step });
-    }
-  }
-  return items;
+/**
+ * Fisheye remap of an index distance into tape units. Near the reading line
+ * the local spacing swells (slope 1 + gain/width at the centre); far away it
+ * relaxes to 1:1 with a constant offset. Built from tanh so the derivative is
+ * 1 + (gain/width)·sech² > 0 for *any* gain — always monotonic, so rows never
+ * reorder however hard we magnify. This lets a section whose whole body is
+ * subheadings unfurl enough to read when the reading line is inside it.
+ */
+function fisheye(d: number, gain: number, width: number) {
+  return d + gain * Math.tanh(d / width);
 }
 
-/** Scan the rendered article for section headings (h1/h2, prose only). */
-function useSections(): Section[] {
+/** True on hover-capable fine pointers, false on touch, null before mount. */
+function useHoverPointer(): boolean | null {
+  const [capable, setCapable] = useState<boolean | null>(null);
+  useEffect(() => {
+    const query = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const update = () => setCapable(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return capable;
+}
+
+/** Scan the rendered article for headings (h1–h4, prose only). */
+function useHeadings(): Heading[] {
   const pathname = usePathname();
-  const [sections, setSections] = useState<Section[]>([]);
+  const [headings, setHeadings] = useState<Heading[]>([]);
 
   useEffect(() => {
     let raf = 0;
@@ -87,23 +130,30 @@ function useSections(): Section[] {
     const scan = () => {
       const root = document.querySelector(".prose-article");
       const els = root
-        ? Array.from(root.querySelectorAll<HTMLElement>("h1, h2")).filter(
-            (el) => !el.closest(".not-prose")
-          )
+        ? Array.from(
+            root.querySelectorAll<HTMLElement>("h1, h2, h3, h4")
+          ).filter((el) => !el.closest(".not-prose"))
         : [];
-      const next = els.map((el) => ({
+      const next: Heading[] = els.map((el) => ({
         el,
-        // HeadingWithLink wraps text in a span next to the copy button —
-        // read the span so the copied "✓" never leaks into labels.
+        level: (Math.min(4, Math.max(1, Number(el.tagName[1]) || 2)) as Level),
+        // HeadingWithLink (h1–h3) wraps text in a span next to the copy
+        // button — read the span so the copied "✓" never leaks into labels.
+        // Plain h4 has no span, so textContent is safe.
         label: (
           el.querySelector(":scope > span")?.textContent ??
           el.textContent ??
           ""
         ).trim(),
       }));
-      setSections((prev) =>
+      setHeadings((prev) =>
         prev.length === next.length &&
-        prev.every((s, i) => s.el === next[i].el && s.label === next[i].label)
+        prev.every(
+          (s, i) =>
+            s.el === next[i].el &&
+            s.label === next[i].label &&
+            s.level === next[i].level
+        )
           ? prev
           : next
       );
@@ -126,48 +176,84 @@ function useSections(): Section[] {
     };
   }, [pathname]);
 
-  return sections;
-}
-
-/** True on hover-capable fine pointers, false on touch, null before mount. */
-function useHoverPointer(): boolean | null {
-  const [capable, setCapable] = useState<boolean | null>(null);
-  useEffect(() => {
-    const query = window.matchMedia("(hover: hover) and (pointer: fine)");
-    const update = () => setCapable(query.matches);
-    update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
-  return capable;
+  return headings;
 }
 
 /**
- * Continuous reading progress in section-index space: 0 at the first
- * heading, n-1 at the last, linearly interpolated between anchors and
- * guaranteed to reach the end at the bottom of the page.
+ * Continuous reading progress in fractional heading-index space: 0 at the
+ * first heading, rising to the last heading's fractional index at the bottom
+ * of the page, interpolated linearly between every heading's scroll anchor.
  *
- * While `lockRef` is held (scrubbing, programmatic jumps) scroll events are
- * ignored so the gesture/animation owns the progress value.
+ * Majors (h1/h2) sit at integers; subs (h3/h4) sit at a fraction between
+ * their parent major and the next major (or the document bottom for the
+ * final section — which is what makes a section whose entire body is
+ * subheadings reachable at all). Because a sub's fraction is proportional to
+ * its scroll offset, adding subs as anchors is a no-op for the interior of
+ * the tape and only extends interpolation through the tail.
+ *
+ * The measured fractions are emitted back to React via `setModel` for the
+ * render layer. While `lockRef` is held (scrubbing, jumps) scroll events are
+ * ignored so the gesture/animation owns the value.
  */
 function useReadingProgress(
-  sections: Section[],
+  headings: Heading[],
   progress: MotionValue<number>,
-  lockRef: LockRef
+  lockRef: LockRef,
+  setModel: (m: RulerModel) => void
 ) {
   useEffect(() => {
-    if (sections.length === 0) return;
+    if (headings.length === 0) return;
 
     let tops: number[] = [];
+    let fracs: number[] = [];
+    let maxFrac = 0;
     let docHeight = 0;
     let raf = 0;
+    let init = 0;
+    let prevFracs: number[] = [];
+    let prevMax = -1;
+
+    const emitIfChanged = () => {
+      const changed =
+        fracs.length !== prevFracs.length ||
+        Math.abs(maxFrac - prevMax) > 0.002 ||
+        fracs.some((f, i) => Math.abs(f - prevFracs[i]) > 0.002);
+      if (!changed) return;
+      prevFracs = fracs.slice();
+      prevMax = maxFrac;
+      setModel({ fracs: prevFracs, maxFrac });
+    };
 
     const measure = () => {
       const scrollY = window.scrollY;
-      tops = sections.map(
-        ({ el }) => el.getBoundingClientRect().top + scrollY
-      );
+      tops = headings.map(({ el }) => el.getBoundingClientRect().top + scrollY);
       docHeight = document.documentElement.scrollHeight;
+
+      // Assign each heading to a major index; collect major offsets.
+      const majorTops: number[] = [];
+      const majorOf: number[] = [];
+      let mi = -1;
+      headings.forEach((h, k) => {
+        if (h.level <= 2) {
+          mi++;
+          majorTops.push(tops[k]);
+        }
+        majorOf[k] = mi;
+      });
+
+      fracs = headings.map((h, k) => {
+        if (h.level <= 2) return majorOf[k];
+        const m = majorOf[k];
+        if (m < 0) return 0; // sub before any major (rare) — pin to start
+        const parentTop = majorTops[m];
+        const nextTop =
+          m + 1 < majorTops.length ? majorTops[m + 1] : docHeight;
+        const denom = Math.max(nextTop - parentTop, 1);
+        const t = Math.min(0.985, Math.max(0.015, (tops[k] - parentTop) / denom));
+        return m + t;
+      });
+      maxFrac = fracs.length ? fracs[fracs.length - 1] : 0;
+      emitIfChanged();
     };
 
     const update = () => {
@@ -175,31 +261,32 @@ function useReadingProgress(
       if (lockRef.current) return;
       // Late-loading media shifts offsets; re-measure when the page grows.
       if (document.documentElement.scrollHeight !== docHeight) measure();
+      const n = tops.length;
+      if (!n) return;
 
       const vh = window.innerHeight;
       const maxScroll = Math.max(docHeight - vh, 1);
       const readingLine = vh * 0.4;
 
-      // A section activates when its heading crosses the reading line.
-      // Clamp anchors into the scrollable range (back-propagated) so the
-      // last sections stay reachable on short tail content.
+      // A heading activates when it crosses the reading line. Clamp anchors
+      // into the scrollable range (back-propagated) so the final headings
+      // stay reachable on short tail content.
       const anchors = tops.map((t) => t - readingLine);
-      anchors[anchors.length - 1] = Math.min(
-        anchors[anchors.length - 1],
-        maxScroll
-      );
-      for (let i = anchors.length - 2; i >= 0; i--) {
+      anchors[n - 1] = Math.min(anchors[n - 1], maxScroll);
+      for (let i = n - 2; i >= 0; i--) {
         anchors[i] = Math.min(anchors[i], anchors[i + 1] - 1);
       }
 
       const y = window.scrollY;
-      let p = 0;
-      if (y >= anchors[anchors.length - 1]) {
-        p = anchors.length - 1;
+      let p = fracs[0] ?? 0;
+      if (y >= anchors[n - 1]) {
+        p = fracs[n - 1];
       } else if (y > anchors[0]) {
         let i = 0;
-        while (i < anchors.length - 2 && y >= anchors[i + 1]) i++;
-        p = i + (y - anchors[i]) / (anchors[i + 1] - anchors[i]);
+        while (i < n - 2 && y >= anchors[i + 1]) i++;
+        const seg = anchors[i + 1] - anchors[i];
+        const t = seg > 0 ? (y - anchors[i]) / seg : 0;
+        p = fracs[i] + t * (fracs[i + 1] - fracs[i]);
       }
       progress.set(p);
     };
@@ -212,17 +299,22 @@ function useReadingProgress(
       schedule();
     };
 
-    measure();
-    update();
+    // Defer the first measurement a frame so the emit (setState) never runs
+    // synchronously inside the effect body.
+    init = requestAnimationFrame(() => {
+      measure();
+      update();
+    });
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", remeasure);
 
     return () => {
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(init);
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", remeasure);
     };
-  }, [sections, progress, lockRef]);
+  }, [headings, progress, lockRef, setModel]);
 }
 
 // =============================================================================
@@ -240,27 +332,31 @@ const TAPE_MASK =
   "linear-gradient(to bottom, transparent, black 22%, black 78%, transparent)";
 
 interface TapeVariant {
-  /** Vertical distance between two section ticks, px. */
+  /** Vertical distance between two integer index steps, px. */
   pitch: number;
+  /** Fisheye magnification near the reading line (centre slope 1+gain/width). */
+  fisheyeGain: number;
+  fisheyeWidth: number;
   /** Inward drift of the active row (toward the content), px. */
   drift: number;
   minorDrift: number;
   /** Major tick length at rest / extra growth when active, px. */
   tickBase: number;
   tickGrow: number;
-  /** Minor tick length, px. */
+  /** Decorative end-tick length, px. */
   minorWidth: number;
   /** Label measure (any CSS max-width) and active magnification. */
   labelMaxWidth: number | string;
   activeScale: number;
-  /** Label type size classes. */
+  /** Major label type size class. */
   labelText: string;
   /**
-   * How labels reveal:
+   * How major labels reveal:
    *  - "persistent": always readable near the reading line; the reveal
    *    value raises the floor for the rest (roomy desktop).
    *  - "overlay": hidden until revealed, cascading outward from the
    *    active section (touch takeover, tight-desktop hover).
+   * Sub labels are always reveal-gated regardless of this.
    */
   labels: "persistent" | "overlay";
 }
@@ -270,6 +366,8 @@ interface TapeVariant {
 // generous end so the float breathes where space is free.
 const DESKTOP: TapeVariant = {
   pitch: 56,
+  fisheyeGain: 2.0,
+  fisheyeWidth: 0.52,
   drift: 8,
   minorDrift: 5,
   tickBase: 18,
@@ -285,6 +383,8 @@ const DESKTOP: TapeVariant = {
 
 const MOBILE: TapeVariant = {
   pitch: 44,
+  fisheyeGain: 1.9,
+  fisheyeWidth: 0.5,
   // Collapsed ticks must sit clearly inside the content's 24px edge
   // padding: 4px edge inset + 12px max tick + 1px drift = 17px reach,
   // leaving visible air between ruler and text.
@@ -305,25 +405,36 @@ const MOBILE: TapeVariant = {
 const DESKTOP_TICK_ZONE = DESKTOP.tickBase + DESKTOP.tickGrow;
 const LABEL_GAP = 12;
 
+/** Per-level tick geometry, expressed as fractions of the major tick. */
+function tickMetrics(variant: TapeVariant, level: Level) {
+  if (level <= 2) {
+    return { base: variant.tickBase, grow: variant.tickGrow };
+  }
+  if (level === 3) {
+    return { base: variant.tickBase * 0.52, grow: variant.tickGrow * 0.4 };
+  }
+  return { base: variant.tickBase * 0.32, grow: variant.tickGrow * 0.22 };
+}
+
 /** Staggered reveal: items further from the reading line arrive later. */
 function cascade(r: number, d: number) {
   return Math.min(1, Math.max(0, r * 1.6 - 0.1 * d));
 }
 
 /**
- * Map a pointer's y inside the tape window to a fractional section index.
- * A margin keeps the first/last sections reachable without hugging the
- * window edges.
+ * Map a pointer's y inside the tape window to a fractional index in
+ * [0, maxFrac]. A margin keeps the first/last headings reachable without
+ * hugging the window edges.
  */
-function indexFromPointerY(rect: DOMRect, clientY: number, count: number) {
-  if (count < 2) return 0;
+function indexFromPointerY(rect: DOMRect, clientY: number, maxFrac: number) {
+  if (maxFrac <= 0) return 0;
   const pad = rect.height * 0.12;
   const f = (clientY - rect.top - pad) / (rect.height - pad * 2);
-  return Math.max(0, Math.min(count - 1, f * (count - 1)));
+  return Math.max(0, Math.min(maxFrac, f * maxFrac));
 }
 
 // =============================================================================
-// Tape row — one tick (with optional label), mirrored by side
+// Tape row — one tick (with optional label), mirrored by side and by level
 // =============================================================================
 
 function TapeRow({
@@ -348,108 +459,141 @@ function TapeRow({
   reduced: boolean;
   onSelect?: () => void;
 }) {
-  const isMajor = item.kind === "major";
+  const frac = item.frac;
+  const level = item.kind === "heading" ? item.level : 0;
+  const isMajor = level > 0 && level <= 2;
+  const isSub = level >= 3;
   const overlay = variant.labels === "overlay";
   // +1 points from the docked edge toward the content.
   const inward = side === "right" ? -1 : 1;
-  const drift = reduced
+
+  // Fisheye: the tape's whole vertical layout is per-row now — no tape
+  // translate — so the reading-line neighbourhood can locally expand.
+  const gain = reduced ? 0 : variant.fisheyeGain;
+  const y = useTransform(
+    p,
+    (v) => fisheye(frac - v, gain, variant.fisheyeWidth) * variant.pitch
+  );
+
+  const driftAmt = reduced
     ? 0
     : inward * (isMajor ? variant.drift : variant.minorDrift);
+  const x = useTransform(p, (v) => driftAmt * bell(frac - v, 0.6));
 
-  const x = useTransform(p, (v) => drift * bell(item.index - v, 0.6));
-  const tickWidth = useTransform(p, (v) =>
-    isMajor
-      ? variant.tickBase +
-        (reduced ? 0 : variant.tickGrow * bell(item.index - v, 0.3))
-      : variant.minorWidth
+  const metrics = tickMetrics(variant, (level || 4) as Level);
+  const tickBase = isMajor || isSub ? metrics.base : variant.minorWidth;
+  const tickGrow = reduced ? 0 : isMajor || isSub ? metrics.grow : 0;
+  const tickWidth = useTransform(
+    p,
+    (v) => tickBase + tickGrow * bell(frac - v, 0.3)
   );
-  const tickOpacity = useTransform(p, (v) =>
-    isMajor ? Math.max(0.25, 1 - 0.55 * Math.abs(item.index - v)) : 0.25
-  );
+
+  const tickOpacity = useTransform(p, (v) => {
+    const d = Math.abs(frac - v);
+    if (isMajor) return Math.max(0.25, 1 - 0.55 * d);
+    if (level === 3) return Math.max(0.16, 0.5 - 0.4 * d);
+    if (level === 4) return Math.max(0.12, 0.34 - 0.4 * d);
+    return 0.22; // decorative end
+  });
+
   const labelOpacity = useTransform(
     [p, reveal] as MotionValue<number>[],
     (latest) => {
       const [v, r] = latest as number[];
-      const d = Math.abs(item.index - v);
-      return overlay
-        ? cascade(r, d) * Math.max(0.45, 1 - 0.35 * d)
-        : Math.max(0.12, 1 - 0.55 * d, r * 0.65);
+      const d = Math.abs(frac - v);
+      if (isMajor) {
+        return overlay
+          ? cascade(r, d) * Math.max(0.45, 1 - 0.35 * d)
+          : Math.max(0.12, 1 - 0.55 * d, r * 0.65);
+      }
+      if (level === 3) {
+        // Reveal-gated and windowed: quiet, cascades in on hover/takeover,
+        // and fades with distance so only the focused cluster shows — the
+        // fisheye is what separates neighbours near the reading line.
+        return cascade(r, d) * bell(d, 0.9) * 0.9;
+      }
+      // h4: no label by default; surfaces only when it is (near) the tick
+      // nearest the reading line, strengthened while revealing.
+      return Math.min(0.68, bell(d, 0.06)) * (0.4 + 0.55 * r);
     }
   );
-  // Overlay labels slide in from the tick spine as they cascade.
+
+  // Reveal-gated labels slide in from the tick spine as they cascade.
   const labelShift = useTransform(
     [p, reveal] as MotionValue<number>[],
     (latest) => {
       const [v, r] = latest as number[];
-      if (!overlay || reduced) return 0;
-      return -inward * 14 * (1 - cascade(r, Math.abs(item.index - v)));
+      if (reduced) return 0;
+      if (isMajor && !overlay) return 0;
+      return -inward * 14 * (1 - cascade(r, Math.abs(frac - v)));
     }
   );
   const labelScale = useTransform(p, (v) =>
-    reduced ? 1 : 1 + (variant.activeScale - 1) * bell(item.index - v, 0.3)
+    reduced
+      ? 1
+      : 1 +
+        (variant.activeScale - 1) * bell(frac - v, 0.3) * (isMajor ? 1 : 0.5)
   );
 
   const rowDirection =
     side === "right" ? "flex-row justify-end" : "flex-row-reverse justify-end";
+  const hasLabel = label !== undefined;
+  const labelText = isMajor ? variant.labelText : "text-[10px]";
+  const labelColor = isMajor ? "text-foreground" : "text-muted-foreground";
+  const spineColor = isMajor ? "bg-foreground" : "bg-muted-foreground";
 
-  if (!isMajor) {
-    return (
+  return (
+    // Outer element carries the fisheye offset; inner centres the row on it
+    // (px offset and a -50% self-centre can't share one transform).
+    <motion.div
+      aria-hidden={item.kind === "end" ? true : undefined}
+      className="absolute inset-x-0"
+      style={{ y }}
+    >
       <motion.div
-        aria-hidden
-        className={cn("absolute inset-x-0 flex", rowDirection)}
-        style={{ top: item.index * variant.pitch, x, y: "-50%" }}
+        className={cn("flex items-center", rowDirection, hasLabel && "gap-3")}
+        style={{ x, y: "-50%" }}
       >
+        {hasLabel && (
+          <motion.button
+            type="button"
+            onClick={onSelect}
+            tabIndex={interactive && isMajor ? 0 : -1}
+            className={cn(
+              "touch-none font-mono focus:outline-none",
+              labelText,
+              labelColor,
+              // Takeover labels own the screen — let long titles wrap to two
+              // lines instead of ellipsizing. Gutter labels stay single-line.
+              overlay ? "line-clamp-2 leading-4" : "truncate",
+              side === "right" ? "text-right" : "text-left",
+              interactive
+                ? "pointer-events-auto cursor-pointer"
+                : "pointer-events-none"
+            )}
+            style={{
+              maxWidth: variant.labelMaxWidth,
+              opacity: labelOpacity,
+              x: labelShift,
+              scale: labelScale,
+              transformOrigin: side === "right" ? "right center" : "left center",
+            }}
+          >
+            {label}
+          </motion.button>
+        )}
         <motion.span
-          className="h-px bg-muted-foreground"
+          aria-hidden
+          className={cn("h-px shrink-0", spineColor)}
           style={{ width: tickWidth, opacity: tickOpacity }}
         />
       </motion.div>
-    );
-  }
-
-  return (
-    <motion.div
-      className={cn("absolute inset-x-0 flex items-center gap-3", rowDirection)}
-      style={{ top: item.index * variant.pitch, x, y: "-50%" }}
-    >
-      <motion.button
-        type="button"
-        onClick={onSelect}
-        tabIndex={interactive ? 0 : -1}
-        className={cn(
-          "touch-none font-mono text-foreground focus:outline-none",
-          variant.labelText,
-          // Takeover labels own the screen — let long titles wrap to two
-          // lines instead of ellipsizing (the point is reading them).
-          // Persistent gutter labels stay single-line.
-          overlay ? "line-clamp-2 leading-4" : "truncate",
-          side === "right" ? "text-right" : "text-left",
-          interactive
-            ? "pointer-events-auto cursor-pointer"
-            : "pointer-events-none"
-        )}
-        style={{
-          // Cap width so the active scale-up still fits the tape box.
-          maxWidth: variant.labelMaxWidth,
-          opacity: labelOpacity,
-          x: labelShift,
-          scale: labelScale,
-          transformOrigin: side === "right" ? "right center" : "left center",
-        }}
-      >
-        {label}
-      </motion.button>
-      <motion.span
-        aria-hidden
-        className="h-px shrink-0 bg-foreground"
-        style={{ width: tickWidth, opacity: tickOpacity }}
-      />
     </motion.div>
   );
 }
 
 function Tape({
-  sections,
+  headings,
   items,
   variant,
   side,
@@ -460,7 +604,7 @@ function Tape({
   reduced,
   onJump,
 }: {
-  sections: Section[];
+  headings: Heading[];
   items: RulerItem[];
   variant: TapeVariant;
   side: RulerSide;
@@ -470,34 +614,31 @@ function Tape({
   reveal: MotionValue<number>;
   interactive: boolean;
   reduced: boolean;
-  onJump: (i: number) => void;
+  onJump: (idx: number) => void;
 }) {
-  const tapeY = useTransform(p, (v) => -v * variant.pitch);
-
   return (
     <motion.div
       className="absolute top-1/2"
       style={{
-        y: tapeY,
         left: side === "left" ? edgeInset : 0,
         right: side === "right" ? edgeInset : 0,
       }}
     >
       {items.map((item) => (
         <TapeRow
-          key={`${item.kind}-${item.index}`}
+          key={item.kind === "heading" ? `h${item.idx}` : `e${item.frac}`}
           item={item}
           variant={variant}
           side={side}
           label={
-            item.kind === "major" ? sections[item.section]?.label : undefined
+            item.kind === "heading" ? headings[item.idx]?.label : undefined
           }
           p={p}
           reveal={reveal}
           interactive={interactive}
           reduced={reduced}
           onSelect={
-            item.kind === "major" ? () => onJump(item.section) : undefined
+            item.kind === "heading" ? () => onJump(item.idx) : undefined
           }
         />
       ))}
@@ -510,19 +651,23 @@ function Tape({
 // =============================================================================
 
 function DesktopRuler({
-  sections,
+  headings,
   items,
   side,
+  maxFrac,
   progress,
   smooth,
   lockRef,
   jumpingRef,
   reduced,
   onJump,
+  nearest,
 }: {
-  sections: Section[];
+  headings: Heading[];
   items: RulerItem[];
   side: RulerSide;
+  /** Largest reachable fractional index — the scrub span. */
+  maxFrac: number;
   /** Raw progress value — the hover scrub writes straight into it. */
   progress: MotionValue<number>;
   /** Spring-smoothed progress that drives the tape. */
@@ -531,7 +676,9 @@ function DesktopRuler({
   /** True while a jump animation owns the progress/scroll pair. */
   jumpingRef: LockRef;
   reduced: boolean;
-  onJump: (i: number) => void;
+  onJump: (idx: number) => void;
+  /** Nearest heading index to a fractional value. */
+  nearest: (value: number) => number;
 }) {
   const edgeInset = EDGE_INSET.desktop[side];
   const navRef = useRef<HTMLElement>(null);
@@ -618,7 +765,7 @@ function DesktopRuler({
         // scrubbing resumes on the next move after it settles.
         if (jumpingRef.current) return;
         lockRef.current = true;
-        progress.set(indexFromPointerY(rect, lastY, sections.length));
+        progress.set(indexFromPointerY(rect, lastY, maxFrac));
       });
     };
     window.addEventListener("mousemove", onMove);
@@ -632,7 +779,7 @@ function DesktopRuler({
         window.dispatchEvent(new Event("scroll"));
       }
     };
-  }, [hovered, sections.length, progress, lockRef, jumpingRef]);
+  }, [hovered, maxFrac, progress, lockRef, jumpingRef]);
 
   if (labelRoom === null) return null;
 
@@ -688,7 +835,7 @@ function DesktopRuler({
         onBlurCapture={() => setHovered(false)}
       >
         <Tape
-          sections={sections}
+          headings={headings}
           items={items}
           variant={variant}
           side={side}
@@ -700,12 +847,13 @@ function DesktopRuler({
           onJump={onJump}
         />
         {/* Hover strip over the ticks — the collapsed ruler's hit area.
-            Clicking it commits the dial's current selection. */}
+            Clicking it commits the dial's current selection to the nearest
+            tick of any level. */}
         <div
           aria-hidden
           className="pointer-events-auto absolute inset-y-0 cursor-pointer"
           style={{ [side]: 0, width: edgeInset + DESKTOP_TICK_ZONE + 8 }}
-          onClick={() => onJump(Math.round(progress.get()))}
+          onClick={() => onJump(nearest(progress.get()))}
         />
       </nav>
     </>
@@ -717,25 +865,29 @@ function DesktopRuler({
 // =============================================================================
 
 function MobileRuler({
-  sections,
+  headings,
   items,
   side,
+  maxFrac,
   progress,
   smooth,
   lockRef,
   reduced,
   onJump,
+  nearest,
 }: {
-  sections: Section[];
+  headings: Heading[];
   items: RulerItem[];
   side: RulerSide;
+  maxFrac: number;
   /** Raw progress value — the scrub gesture writes straight into it. */
   progress: MotionValue<number>;
   /** Spring-smoothed progress that drives the tape. */
   smooth: MotionValue<number>;
   lockRef: LockRef;
   reduced: boolean;
-  onJump: (i: number) => void;
+  onJump: (idx: number) => void;
+  nearest: (value: number) => number;
 }) {
   const edgeInset = EDGE_INSET.mobile[side];
   const [open, setOpen] = useState(false);
@@ -756,9 +908,9 @@ function MobileRuler({
     (clientY: number) => {
       const rect = navRef.current?.getBoundingClientRect();
       if (!rect) return 0;
-      return indexFromPointerY(rect, clientY, sections.length);
+      return indexFromPointerY(rect, clientY, maxFrac);
     },
-    [sections.length]
+    [maxFrac]
   );
 
   const handlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
@@ -790,9 +942,9 @@ function MobileRuler({
   };
 
   /**
-   * End a gesture: a drag snaps to the nearest section; a tap acts on what
-   * was pressed — the strip toggles, the scrim dismisses, labels are left
-   * to their own click handler.
+   * End a gesture: a drag snaps to the nearest tick of any level; a tap acts
+   * on what was pressed — the strip toggles, the scrim dismisses, labels are
+   * left to their own click handler.
    */
   const endScrub = (e: React.PointerEvent<HTMLElement>) => {
     const s = scrub.current;
@@ -806,8 +958,8 @@ function MobileRuler({
         lockRef.current = false;
         window.dispatchEvent(new Event("scroll"));
       } else {
-        // Snap to the nearest section; the jump animation owns the lockRef.
-        onJump(Math.round(s.index));
+        // Snap to the nearest tick; the jump animation owns the lockRef.
+        onJump(nearest(s.index));
       }
     } else if (e.type !== "pointercancel") {
       const pressed = e.target as HTMLElement;
@@ -867,7 +1019,7 @@ function MobileRuler({
         {...gestureHandlers}
       >
         <Tape
-          sections={sections}
+          headings={headings}
           items={items}
           variant={MOBILE}
           side={side}
@@ -876,9 +1028,9 @@ function MobileRuler({
           reveal={reveal}
           interactive={open}
           reduced={reduced}
-          onJump={(i) => {
+          onJump={(idx) => {
             setOpen(false);
-            onJump(i);
+            onJump(idx);
           }}
         />
         {/* Scrub strip over the ticks — drag to seek, tap to expand.
@@ -908,13 +1060,14 @@ export function RulerToc() {
   const reduced = useReducedMotion() ?? false;
   const side = useRulerSide();
   const hoverPointer = useHoverPointer();
-  const sections = useSections();
+  const headings = useHeadings();
   const lockRef = useRef(false);
   // Held while a committed jump animates, so hover-scrub yields to it.
   const jumpingRef = useRef(false);
 
   const progress = useMotionValue(0);
-  useReadingProgress(sections, progress, lockRef);
+  const [model, setModel] = useState<RulerModel>({ fracs: [], maxFrac: 0 });
+  useReadingProgress(headings, progress, lockRef, setModel);
 
   // A touch of lag gives the tape its flow; near-rigid when reduced motion.
   const smooth = useSpring(
@@ -924,27 +1077,72 @@ export function RulerToc() {
       : { stiffness: 170, damping: 26, mass: 0.9 }
   );
 
-  const minorsPerGap = sections.length > 16 ? 1 : 2;
-  const items = useMemo(
-    () => buildItems(sections.length, minorsPerGap),
-    [sections.length, minorsPerGap]
+  // Structural fallback positions (major integer index; subs midway) drive
+  // the tape for the frame before offsets are measured, so it never flashes
+  // empty. `majorCount` gates rendering and mirrors the old h2-only guard.
+  const { fallback, majorCount } = useMemo(() => {
+    const fb: number[] = [];
+    let mi = -1;
+    headings.forEach((h, k) => {
+      if (h.level <= 2) {
+        mi++;
+        fb[k] = mi;
+      } else {
+        fb[k] = mi < 0 ? 0 : mi + 0.5;
+      }
+    });
+    return { fallback: fb, majorCount: mi + 1 };
+  }, [headings]);
+
+  const fracs =
+    model.fracs.length === headings.length ? model.fracs : fallback;
+  const maxFrac = model.maxFrac || fracs[fracs.length - 1] || 0;
+
+  const items = useMemo<RulerItem[]>(() => {
+    const list: RulerItem[] = [];
+    for (let k = END_TICKS; k >= 1; k--) {
+      list.push({ kind: "end", frac: -k * END_STEP });
+    }
+    headings.forEach((h, idx) => {
+      list.push({ kind: "heading", idx, level: h.level, frac: fracs[idx] ?? 0 });
+    });
+    for (let k = 1; k <= END_TICKS; k++) {
+      list.push({ kind: "end", frac: maxFrac + k * END_STEP });
+    }
+    return list;
+  }, [headings, fracs, maxFrac]);
+
+  const nearest = useCallback(
+    (value: number) => {
+      let best = 0;
+      let bd = Infinity;
+      for (let k = 0; k < headings.length; k++) {
+        const d = Math.abs((fracs[k] ?? 0) - value);
+        if (d < bd) {
+          bd = d;
+          best = k;
+        }
+      }
+      return best;
+    },
+    [headings, fracs]
   );
 
   /**
-   * Animated jump: the tape rolls to the target section (via the spring)
+   * Animated jump: the tape rolls to the target heading (via the spring)
    * while the document glides underneath. The scroll lock keeps the two
    * from fighting; any user input cancels the glide immediately.
    */
   const jumpTo = useCallback(
-    (i: number) => {
-      const el = sections[i]?.el;
+    (idx: number) => {
+      const el = headings[idx]?.el;
       if (!el) return;
       const top = Math.max(0, el.getBoundingClientRect().top + window.scrollY - 96);
       if (el.id) window.history.replaceState(null, "", `#${el.id}`);
 
       lockRef.current = true;
       jumpingRef.current = true;
-      progress.set(i);
+      progress.set(fracs[idx] ?? 0);
 
       if (reduced) {
         window.scrollTo(0, top);
@@ -978,33 +1176,37 @@ export function RulerToc() {
       window.addEventListener("touchmove", stopOnInput, { passive: true });
       controls.then(finish, finish);
     },
-    [sections, reduced, progress]
+    [headings, fracs, reduced, progress]
   );
 
-  if (sections.length < 2 || hoverPointer === null) return null;
+  if (majorCount < 2 || hoverPointer === null) return null;
 
   return hoverPointer ? (
     <DesktopRuler
-      sections={sections}
+      headings={headings}
       items={items}
       side={side}
+      maxFrac={maxFrac}
       progress={progress}
       smooth={smooth}
       lockRef={lockRef}
       jumpingRef={jumpingRef}
       reduced={reduced}
       onJump={jumpTo}
+      nearest={nearest}
     />
   ) : (
     <MobileRuler
-      sections={sections}
+      headings={headings}
       items={items}
       side={side}
+      maxFrac={maxFrac}
       progress={progress}
       smooth={smooth}
       lockRef={lockRef}
       reduced={reduced}
       onJump={jumpTo}
+      nearest={nearest}
     />
   );
 }
