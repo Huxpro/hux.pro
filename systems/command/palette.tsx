@@ -35,6 +35,7 @@ import {
 } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
+import { usePaletteLab } from "./palette-lab";
 import { useCommand } from "./provider";
 
 export function CommandPalette() {
@@ -46,6 +47,10 @@ export function CommandPalette() {
   // Devtool repositioning is a pointer affordance; on touch the same drag
   // budget goes to the sheet-style dismiss gesture below.
   const repositionEnabled = drag.isEnabled && primaryInput === "mouse";
+
+  // Safe Area Lab flags — see palette-lab.ts. Defaults reproduce current
+  // behavior; the devtool panel flips one suspect at a time on device.
+  const lab = usePaletteLab();
   const { theme, preference, setThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
   const { locationMode, setLocationMode, requestAccurateLocation } =
@@ -92,14 +97,29 @@ export function CommandPalette() {
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setScrollPosition(window.scrollY);
-      document.body.style.overflow = "hidden";
+      if (lab.bodyScrollLock) document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => {
       document.body.style.overflow = "";
     };
-  }, [isOpen, isIOS]);
+  }, [isOpen, isIOS, lab.bodyScrollLock]);
+
+  // Lab: declaring viewport-fit=cover replaces Safari's edge-to-edge
+  // heuristics with an explicit opt-in — applied live via the meta tag.
+  useEffect(() => {
+    const meta = document.querySelector<HTMLMetaElement>(
+      'meta[name="viewport"]'
+    );
+    if (!meta) return;
+    const parts = meta.content
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s && !s.startsWith("viewport-fit"));
+    if (lab.viewportFitCover) parts.push("viewport-fit=cover");
+    meta.content = parts.join(", ");
+  }, [lab.viewportFitCover]);
 
   // ---------------------------------------------------------------------------
   // Touch dismiss — the palette behaves like a floating sheet: dragging
@@ -532,9 +552,13 @@ export function CommandPalette() {
     <div
       className={cn(
         "z-[60] flex items-start justify-center pt-[20vh]",
-        isIOS ? "absolute inset-x-0" : "fixed inset-0"
+        isIOS && lab.dvhContainer ? "absolute inset-x-0" : "fixed inset-0"
       )}
-      style={isIOS ? { top: scrollPosition, height: "100dvh" } : undefined}
+      style={
+        isIOS && lab.dvhContainer
+          ? { top: scrollPosition, height: "100dvh" }
+          : undefined
+      }
       // The dismiss scrub listens on the whole takeover, so a downward
       // drag anywhere — backdrop or panel chrome — scrubs the palette
       // away. Capturing to this container (which has no click handler)
@@ -562,9 +586,14 @@ export function CommandPalette() {
       <motion.div
         data-palette-backdrop
         className={cn(
-          "fixed inset-0 touch-none",
+          "fixed inset-0",
+          lab.scrimTouchNone && "touch-none",
           primaryInput === "touch"
-            ? "bg-background/60 backdrop-blur-sm animate-in fade-in-0 duration-200"
+            ? cn(
+                lab.scrimDim && "bg-background/60",
+                lab.scrimBlur && "backdrop-blur-sm",
+                "animate-in fade-in-0 duration-200"
+              )
             : "bg-transparent"
         )}
         style={primaryInput === "touch" ? { opacity: backdropOpacity } : undefined}
@@ -645,7 +674,7 @@ export function CommandPalette() {
       <Command
         className={cn(
           "relative mx-4 transition-all duration-300 ease-out",
-          "bg-popover/75 backdrop-blur-xl",
+          lab.panelBlur ? "bg-popover/75 backdrop-blur-xl" : "bg-popover",
           "rounded-2xl border border-black/10 dark:border-white/10",
           "shadow-overlay",
           "outline-none",

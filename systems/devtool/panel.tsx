@@ -19,6 +19,11 @@ import {
   useRulerSide,
   type RulerSide,
 } from "@/components/post/ruler-settings";
+import {
+  setPaletteLabFlag,
+  usePaletteLab,
+  type PaletteLabFlags,
+} from "@/systems/command/palette-lab";
 import { cn } from "@/lib/utils";
 import {
   Braces,
@@ -37,6 +42,7 @@ import {
   MoonStar,
   RefreshCw,
   Ruler,
+  Smartphone,
   Sun,
   SunMedium,
   Sunrise,
@@ -165,6 +171,7 @@ function DevtoolPanel() {
       <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto overscroll-contain">
         <FrontmatterModule />
         <RulerModule />
+        <SafeAreaLabModule />
         <GradientModule />
         <WeatherModule />
         <AmbientTimeModule />
@@ -414,6 +421,69 @@ function RulerModule() {
             </button>
           ))}
         </div>
+      </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Safe Area Lab Module
+// Human-in-the-loop bisection of iOS Safari's safe-area clipping
+// heuristic: each switch isolates one suspect in the palette takeover.
+// Defaults reproduce shipped behavior.
+// =============================================================================
+
+function SafeAreaLabModule() {
+  const { locale } = useLocale();
+  const lab = usePaletteLab();
+
+  const flags: { key: keyof PaletteLabFlags; en: string; zh: string }[] = [
+    { key: "bodyScrollLock", en: "iOS body lock", zh: "iOS body 锁滚动" },
+    { key: "dvhContainer", en: "iOS dvh container", zh: "iOS dvh 容器" },
+    { key: "scrimBlur", en: "Scrim blur", zh: "遮罩模糊" },
+    { key: "scrimDim", en: "Scrim dim", zh: "遮罩压暗" },
+    { key: "scrimTouchNone", en: "Scrim touch-none", zh: "遮罩禁触控" },
+    { key: "panelBlur", en: "Panel blur", zh: "面板模糊" },
+    { key: "viewportFitCover", en: "viewport-fit=cover", zh: "viewport-fit=cover" },
+  ];
+
+  return (
+    <DebugSection
+      id="safe-area-lab"
+      title={locale === "zh" ? "安全区实验" : "Safe Area Lab"}
+      icon={<Smartphone className="h-4 w-4" />}
+      compact
+      defaultCollapsed
+    >
+      <div className="space-y-2">
+        {flags.map(({ key, en, zh }) => {
+          const on = lab[key];
+          return (
+            <div key={key} className="flex items-center justify-between">
+              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+                {locale === "zh" ? zh : en}
+              </span>
+              <button
+                onClick={() => setPaletteLabFlag(key, !on)}
+                className={cn(
+                  "relative inline-flex h-5 w-9 items-center rounded-full border transition-colors",
+                  on
+                    ? "bg-green-500/90 border-green-500/70"
+                    : "bg-muted/40 border-border/60"
+                )}
+                aria-pressed={on}
+                aria-label={`Toggle ${en}`}
+              >
+                <span
+                  className={cn(
+                    "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
+                    on ? "translate-x-4" : "translate-x-0.5"
+                  )}
+                />
+              </button>
+            </div>
+          );
+        })}
       </div>
     </DebugSection>
   );
