@@ -19,6 +19,10 @@ import {
   useRulerSide,
   type RulerSide,
 } from "@/components/post/ruler-settings";
+import {
+  setBleedEnabled,
+  useBleedEnabled,
+} from "@/components/post/bleed-settings";
 import { cn } from "@/lib/utils";
 import {
   Braces,
@@ -37,6 +41,7 @@ import {
   MoonStar,
   RefreshCw,
   Ruler,
+  SlidersHorizontal,
   Sun,
   SunMedium,
   Sunrise,
@@ -164,7 +169,7 @@ function DevtoolPanel() {
       {/* Scrollable content */}
       <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
         <FrontmatterModule />
-        <RulerModule />
+        <GlobalUIModule />
         <GradientModule />
         <WeatherModule />
         <AmbientTimeModule />
@@ -367,13 +372,16 @@ function FrontmatterModule() {
 }
 
 // =============================================================================
-// Ruler ToC Module
-// Switches which screen edge the reading ruler docks to. The setting
-// persists (localStorage) and applies even with the devtool disabled.
+// Global UI Module
+// Site-wide reading-surface variations. Each setting persists (localStorage)
+// and applies even with the devtool disabled — the panel is just the UI.
+//   · Bleed     — let wide media break out of the reading column on desktop
+//   · Ruler ToC — which screen edge the reading ruler docks to
 // =============================================================================
 
-function RulerModule() {
+function GlobalUIModule() {
   const { locale } = useLocale();
+  const bleed = useBleedEnabled();
   const side = useRulerSide();
 
   const sides: { value: RulerSide; label: string }[] = [
@@ -383,36 +391,60 @@ function RulerModule() {
 
   return (
     <DebugSection
-      id="ruler"
-      title={locale === "zh" ? "标尺目录" : "Ruler ToC"}
-      icon={<Ruler className="h-4 w-4" />}
+      id="global-ui"
+      title={locale === "zh" ? "全局 UI" : "Global UI"}
+      icon={<SlidersHorizontal className="h-4 w-4" />}
       compact
-      action={
-        <span className="text-[10px] font-mono text-muted-foreground uppercase">
-          {side}
-        </span>
-      }
     >
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-          {locale === "zh" ? "停靠边缘" : "Dock edge"}
-        </span>
-        <div className="flex overflow-hidden rounded-md border border-border/60">
-          {sides.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => setRulerSide(value)}
+      <div className="space-y-3">
+        {/* Bleed — wide media outset */}
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+            {locale === "zh" ? "满溢出血" : "Media bleed"}
+          </span>
+          <button
+            onClick={() => setBleedEnabled(!bleed)}
+            className={cn(
+              "relative inline-flex h-5 w-9 items-center rounded-full border transition-colors",
+              bleed
+                ? "bg-green-500/90 border-green-500/70"
+                : "bg-muted/40 border-border/60"
+            )}
+            aria-pressed={bleed}
+            aria-label="Toggle media bleed"
+          >
+            <span
               className={cn(
-                "px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
-                side === value
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
+                bleed ? "translate-x-4" : "translate-x-0.5"
               )}
-              aria-pressed={side === value}
-            >
-              {label}
-            </button>
-          ))}
+            />
+          </button>
+        </div>
+
+        {/* Ruler ToC — dock edge */}
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+            <Ruler className="h-3 w-3" />
+            {locale === "zh" ? "标尺停靠" : "Ruler dock"}
+          </span>
+          <div className="flex overflow-hidden rounded-md border border-border/60">
+            {sides.map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => setRulerSide(value)}
+                className={cn(
+                  "px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
+                  side === value
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                aria-pressed={side === value}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </DebugSection>

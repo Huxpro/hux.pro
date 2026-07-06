@@ -534,6 +534,21 @@ html.dragging * {
     margin-left: 50%;
     transform: translateX(-50%);
   }
+
+  /* Global dev-time kill switch: the devtool "Global UI" panel reflects the
+     bleed setting onto <html data-bleed-off>, which snaps every bleed element
+     back to column width. Higher specificity than the rule above, same query. */
+  :root[data-bleed-off]
+    .prose-article
+    iframe:not(:where(.not-prose, .not-prose *)),
+  :root[data-bleed-off]
+    .prose-article
+    img[data-bleed="true"]:not(:where(.not-prose, .not-prose *)) {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    transform: none;
+  }
 }
 
 .prose-article figure:not(:where(.not-prose, .not-prose *)) {

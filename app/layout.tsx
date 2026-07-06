@@ -1,3 +1,4 @@
+import { BleedRootSync } from "@/components/post/bleed-settings";
 import { Providers } from "@/shared/providers";
 import { AmbientPhaseActivity, AmbientSurface } from "@/systems/ambient";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
@@ -91,6 +92,7 @@ export default function RootLayout({
           className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
         >
           <Providers>
+            <BleedRootSync />
             <DevtoolFAB />
             <AmbientSurface>{children}</AmbientSurface>
             <Dock>
