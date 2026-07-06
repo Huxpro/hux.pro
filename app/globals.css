@@ -176,12 +176,17 @@
   body {
     @apply bg-background text-foreground;
   }
-  /* Lock the viewport horizontally — fixed overlays (ruler ToC, dock)
-     must never let the page pan sideways. `clip` (unlike `hidden`)
-     doesn't create a scroll container, so `position: sticky` keeps
-     working. */
-  html,
-  body {
+  /* Lock the viewport horizontally at the content level — the page must
+     never pan sideways. Deliberately NOT on html/body: root overflow
+     propagates to the viewport itself, which trips iOS Safari's
+     "this page manages its own viewport" heuristic — content stops
+     extending edge-to-edge under the toolbars and gets letterboxed
+     inside the safe areas. Clipping <main> catches stray content
+     overflow without touching viewport semantics; fixed overlays
+     (ruler, dock, palette) already clip themselves internally. `clip`
+     (unlike `hidden`) doesn't create a scroll container, so
+     `position: sticky` inside keeps working. */
+  main {
     overflow-x: clip;
   }
 }
