@@ -505,6 +505,15 @@ html.dragging * {
   @apply my-8 rounded-lg;
 }
 
+/* Raw embeds (e.g. YouTube <iframe>) authored directly in MDX.
+   The hardcoded width/height attributes overflow the viewport on mobile,
+   so force a responsive 16:9 box that never exceeds the content width. */
+.prose-article iframe:not(:where(.not-prose, .not-prose *)) {
+  @apply my-8 w-full max-w-full rounded-lg;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
 .prose-article figure:not(:where(.not-prose, .not-prose *)) {
   @apply my-8;
 }
