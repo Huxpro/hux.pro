@@ -514,6 +514,21 @@ html.dragging * {
   aspect-ratio: 16 / 9;
 }
 
+/* Desktop "bleed out": on wide screens, let landscape media (videos) break
+   out of the 680px reading column and grow toward the viewport, Medium-style.
+   Stays viewport-centered via the margin-left:50% + translateX(-50%) trick
+   (percentages resolve against the prose column, which is itself centered),
+   caps at 60rem so it never sprawls on ultra-wide displays, and keeps a 7rem
+   gutter each side so it clears the fixed ruler ToC docked at the edge. */
+@media (min-width: 900px) {
+  .prose-article iframe:not(:where(.not-prose, .not-prose *)) {
+    width: min(60rem, 100vw - 14rem);
+    max-width: none;
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
 .prose-article figure:not(:where(.not-prose, .not-prose *)) {
   @apply my-8;
 }
