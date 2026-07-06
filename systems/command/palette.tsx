@@ -35,7 +35,6 @@ import {
 } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
-import { usePaletteLab } from "./palette-lab";
 import { useCommand } from "./provider";
 
 export function CommandPalette() {
@@ -47,10 +46,6 @@ export function CommandPalette() {
   // Devtool repositioning is a pointer affordance; on touch the same drag
   // budget goes to the sheet-style dismiss gesture below.
   const repositionEnabled = drag.isEnabled && primaryInput === "mouse";
-
-  // Safe Area Lab flags — see palette-lab.ts. Defaults reproduce current
-  // behavior; the devtool panel flips one suspect at a time on device.
-  const lab = usePaletteLab();
   const { theme, preference, setThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
   const { locationMode, setLocationMode, requestAccurateLocation } =
@@ -97,29 +92,14 @@ export function CommandPalette() {
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setScrollPosition(window.scrollY);
-      if (lab.bodyScrollLock) document.body.style.overflow = "hidden";
+      document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => {
       document.body.style.overflow = "";
     };
-  }, [isOpen, isIOS, lab.bodyScrollLock]);
-
-  // Lab: declaring viewport-fit=cover replaces Safari's edge-to-edge
-  // heuristics with an explicit opt-in — applied live via the meta tag.
-  useEffect(() => {
-    const meta = document.querySelector<HTMLMetaElement>(
-      'meta[name="viewport"]'
-    );
-    if (!meta) return;
-    const parts = meta.content
-      .split(",")
-      .map((s) => s.trim())
-      .filter((s) => s && !s.startsWith("viewport-fit"));
-    if (lab.viewportFitCover) parts.push("viewport-fit=cover");
-    meta.content = parts.join(", ");
-  }, [lab.viewportFitCover]);
+  }, [isOpen, isIOS]);
 
   // ---------------------------------------------------------------------------
   // Touch dismiss — the palette behaves like a floating sheet: dragging
@@ -137,9 +117,6 @@ export function CommandPalette() {
   const sheetOpacity = useTransform(dismissSpring, (p) => 1 - 0.85 * Math.abs(p));
   const sheetScale = useTransform(dismissSpring, (p) => 1 - 0.06 * Math.abs(p));
   const sheetY = useTransform(dismissSpring, (p) => 64 * p);
-  // The frosted scrim recedes with the toss — the whole takeover leaves
-  // as one object, not a panel peeling off a static veil.
-  const backdropOpacity = useTransform(dismissSpring, (p) => 1 - Math.abs(p));
   const sheetDrag = useRef<{
     id: number;
     startX: number;
@@ -552,13 +529,9 @@ export function CommandPalette() {
     <div
       className={cn(
         "z-[60] flex items-start justify-center pt-[20vh]",
-        isIOS && lab.dvhContainer ? "absolute inset-x-0" : "fixed inset-0"
+        isIOS ? "absolute inset-x-0" : "fixed inset-0"
       )}
-      style={
-        isIOS && lab.dvhContainer
-          ? { top: scrollPosition, height: "100dvh" }
-          : undefined
-      }
+      style={isIOS ? { top: scrollPosition, height: "100dvh" } : undefined}
       // The dismiss scrub listens on the whole takeover, so a downward
       // drag anywhere — backdrop or panel chrome — scrubs the palette
       // away. Capturing to this container (which has no click handler)
@@ -570,33 +543,18 @@ export function CommandPalette() {
           touch-none swallows native panning, so a swipe over it can't
           scroll the page behind the open palette (which would desync the
           iOS absolute-position anchor and read as broken elsewhere).
-          On touch it's also a frosted scrim (the ruler takeover's visual
-          language) that recedes as the dismiss gesture scrubs. It is
-          position:fixed — matching the ruler scrim exactly — rather than
-          filling the iOS absolute+100dvh container: a backdrop-filter
-          layer whose bottom edge sits on the dvh boundary trips Safari
-          into clipping the bottom safe area (the toolbar can no longer
-          sample/extend the page beneath it), while a viewport-anchored
-          one doesn't.
+          Deliberately unpainted: a full-screen dim/blur here trips iOS
+          Safari's safe-area heuristics unpredictably (bottom letterbox,
+          flaky across sessions) — reverted until WebKit's behavior is
+          tractable. The dismiss gesture still owns this surface.
           On iOS it still dismisses at pointerdown, but only while the
           keyboard is up — that tap races the keyboard teardown's
           viewport shift, so we act before the storm; without the
           keyboard, iOS taps resolve through the gesture's pointerup
           (sidestepping Safari's click synthesis on plain divs). */}
-      <motion.div
+      <div
         data-palette-backdrop
-        className={cn(
-          "fixed inset-0",
-          lab.scrimTouchNone && "touch-none",
-          primaryInput === "touch"
-            ? cn(
-                lab.scrimDim && "bg-background/60",
-                lab.scrimBlur && "backdrop-blur-sm",
-                "animate-in fade-in-0 duration-200"
-              )
-            : "bg-transparent"
-        )}
-        style={primaryInput === "touch" ? { opacity: backdropOpacity } : undefined}
+        className="fixed inset-0 touch-none bg-transparent"
         onClick={!isIOS ? close : undefined}
         onPointerDown={
           isIOS
@@ -674,7 +632,7 @@ export function CommandPalette() {
       <Command
         className={cn(
           "relative mx-4 transition-all duration-300 ease-out",
-          lab.panelBlur ? "bg-popover/75 backdrop-blur-xl" : "bg-popover",
+          "bg-popover/75 backdrop-blur-xl",
           "rounded-2xl border border-black/10 dark:border-white/10",
           "shadow-overlay",
           "outline-none",
