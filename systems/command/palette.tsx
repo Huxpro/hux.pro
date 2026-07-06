@@ -547,7 +547,13 @@ export function CommandPalette() {
           scroll the page behind the open palette (which would desync the
           iOS absolute-position anchor and read as broken elsewhere).
           On touch it's also a frosted scrim (the ruler takeover's visual
-          language) that recedes as the dismiss gesture scrubs.
+          language) that recedes as the dismiss gesture scrubs. It is
+          position:fixed — matching the ruler scrim exactly — rather than
+          filling the iOS absolute+100dvh container: a backdrop-filter
+          layer whose bottom edge sits on the dvh boundary trips Safari
+          into clipping the bottom safe area (the toolbar can no longer
+          sample/extend the page beneath it), while a viewport-anchored
+          one doesn't.
           On iOS it still dismisses at pointerdown, but only while the
           keyboard is up — that tap races the keyboard teardown's
           viewport shift, so we act before the storm; without the
@@ -556,7 +562,7 @@ export function CommandPalette() {
       <motion.div
         data-palette-backdrop
         className={cn(
-          "absolute inset-0 touch-none",
+          "fixed inset-0 touch-none",
           primaryInput === "touch"
             ? "bg-background/60 backdrop-blur-sm animate-in fade-in-0 duration-200"
             : "bg-transparent"
