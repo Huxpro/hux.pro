@@ -19,16 +19,6 @@ import {
   Trash2,
   Plus,
   Undo2,
-  GitCommitHorizontal,
-  CaseSensitive,
-  CalendarDays,
-  Eye,
-  AlignLeft,
-  Quote,
-  Users,
-  Hash,
-  GitBranch,
-  Images,
   Film,
   Image as ImageIcon,
   Link2,
@@ -252,20 +242,15 @@ function CheckField({
 function SectionLabel({
   children,
   dirty = false,
-  icon: Icon,
   trailing,
 }: {
   children: React.ReactNode;
   dirty?: boolean;
-  /** Functional wayfinding icon — matches what this group controls in
-   *  the preview (calendar → date column, eye → visibility, etc.). */
-  icon?: LucideIcon;
   /** Trailing status chips (e.g. Visibility's active "unlisted" state). */
   trailing?: React.ReactNode;
 }) {
   return (
     <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/40 pt-2 flex items-center gap-1.5">
-      {Icon && <Icon className="w-3 h-3" />}
       {children}
       {dirty && <DirtyDot title="Section has unsaved changes" />}
       {trailing}
@@ -321,7 +306,11 @@ function Section({
       data-field-anchor={anchor}
       className={cn(
         "space-y-2 rounded-md transition-colors duration-300 scroll-mt-3",
-        focused && "ring-1 ring-inset ring-sky-500/50 bg-sky-500/[0.05] -mx-1.5 px-1.5 pb-1.5",
+        // Focus flash uses a left accent bar + faint wash, NOT a full
+        // ring — the ring is reserved for the *selected commit* in the
+        // canvas, and re-using it here would compete with that signal.
+        focused &&
+          "-mx-1.5 pl-2.5 pr-1.5 py-1.5 border-l-2 border-sky-500/70 bg-sky-500/[0.04]",
         className,
       )}
     >
@@ -349,46 +338,19 @@ const FIELD_ANCHORS: Record<InspectField, string> = {
 };
 
 /**
- * Per-type accent recipe for the type-scoped section card. The base
- * schema renders flat (labels + fields on the panel background); the
- * type-specific group sits inside a tinted, bordered card headed by the
- * commit-type icon — so "these fields exist because this is a project"
- * is legible at a glance, Figma component-property style.
+ * Per-type accent text color — used only on the small type glyph +
+ * label in the header and the type-fields group header. Deliberately
+ * NOT applied as a card border/background: a colored card would compete
+ * with the canvas's sky selection ring. Color rides the one element the
+ * user reads for meaning (the type icon, mirroring the rendered row).
  */
-const TYPE_ACCENTS: Record<
-  CommitType,
-  { border: string; bg: string; text: string }
-> = {
-  project: {
-    border: "border-emerald-500/30",
-    bg: "bg-emerald-500/[0.04]",
-    text: "text-emerald-600 dark:text-emerald-400",
-  },
-  talk: {
-    border: "border-violet-500/30",
-    bg: "bg-violet-500/[0.04]",
-    text: "text-violet-600 dark:text-violet-400",
-  },
-  post: {
-    border: "border-amber-500/30",
-    bg: "bg-amber-500/[0.04]",
-    text: "text-amber-600 dark:text-amber-400",
-  },
-  role: {
-    border: "border-sky-600/30",
-    bg: "bg-sky-600/[0.04]",
-    text: "text-sky-700 dark:text-sky-400",
-  },
-  social: {
-    border: "border-pink-500/30",
-    bg: "bg-pink-500/[0.04]",
-    text: "text-pink-600 dark:text-pink-400",
-  },
-  event: {
-    border: "border-border/60",
-    bg: "bg-muted/20",
-    text: "text-muted-foreground",
-  },
+const TYPE_ACCENT_TEXT: Record<CommitType, string> = {
+  project: "text-emerald-600 dark:text-emerald-400",
+  talk: "text-violet-600 dark:text-violet-400",
+  post: "text-amber-600 dark:text-amber-400",
+  role: "text-sky-700 dark:text-sky-400",
+  social: "text-pink-600 dark:text-pink-400",
+  event: "text-muted-foreground",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -403,7 +365,6 @@ function StringListSection({
   placeholder,
   addTitle,
   dirty = false,
-  icon,
 }: {
   label: string;
   items: string[];
@@ -411,7 +372,6 @@ function StringListSection({
   placeholder?: string;
   addTitle?: string;
   dirty?: boolean;
-  icon?: LucideIcon;
 }) {
   const updateItem = (index: number, value: string) => {
     const next = [...items];
@@ -430,7 +390,7 @@ function StringListSection({
   return (
     <>
       <div className="flex items-center justify-between">
-        <SectionLabel icon={icon} dirty={dirty}>{label}</SectionLabel>
+        <SectionLabel dirty={dirty}>{label}</SectionLabel>
         <button
           onClick={addItem}
           className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground rounded transition-colors"
@@ -583,22 +543,17 @@ export function CommitEditor({
     <div className="flex flex-col min-h-0 flex-1">
       <div className="shrink-0 border-b border-border px-3 py-2 flex items-center justify-between gap-2">
         <div className="min-w-0 flex items-center gap-2">
-          {/* Type icon + label wear the type's accent — the same color
-              the type-fields card uses below, so "what am I editing"
-              reads consistently from header to card. */}
+          {/* Type glyph wears the type accent (the one bit of color that
+              carries meaning — it's the same icon the row renders); the
+              label stays neutral. */}
           <TypeIcon
             className={cn(
               "w-3.5 h-3.5 shrink-0",
-              TYPE_ACCENTS[commit.type].text,
+              TYPE_ACCENT_TEXT[commit.type],
             )}
           />
           <div className="min-w-0">
-            <div
-              className={cn(
-                "font-mono text-[10px] uppercase tracking-wider",
-                TYPE_ACCENTS[commit.type].text,
-              )}
-            >
+            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50">
               {commit.type}
             </div>
             <div className="text-sm truncate leading-tight">
@@ -821,7 +776,6 @@ function FormFields({
       {/* ── Commit: hash (id), row icon (type), chapter (tag) ────── */}
       <Section anchor="identity" focused={focusAnchor === "identity"}>
         <SectionLabel
-          icon={GitCommitHorizontal}
           dirty={
             dirty("id") || dirty("type") || dirty("tagId") || dirty("icon")
           }
@@ -863,7 +817,6 @@ function FormFields({
       {/* ── Title line: text + inline language badge ─────────────── */}
       <Section anchor="title" focused={focusAnchor === "title"}>
         <SectionLabel
-          icon={CaseSensitive}
           dirty={dirty("title") || dirty("language")}
         >
           Title
@@ -899,7 +852,6 @@ function FormFields({
       {/* ── Date column (right edge of the title line) ───────────── */}
       <Section anchor="schedule" focused={focusAnchor === "schedule"}>
         <SectionLabel
-          icon={CalendarDays}
           dirty={
             dirty("date") ||
             dirty("endDate") ||
@@ -943,17 +895,15 @@ function FormFields({
       </Section>
 
       {/* ── Meta line: the type-scoped fields (venue / publication /
-          company / platform) print as the row's second line. Tinted
-          card marks "these exist because this is a {type}". */}
+          company / platform) print as the row's second line. A neutral
+          bordered group — the ONLY color is the type glyph in its
+          header (the same icon the row renders), so type identity reads
+          without a colored card competing with the canvas selection. */}
       {commit.type !== "event" && (
         <Section
           anchor="type"
           focused={focusAnchor === "type"}
-          className={cn(
-            "border rounded-md p-2.5",
-            TYPE_ACCENTS[commit.type].border,
-            TYPE_ACCENTS[commit.type].bg,
-          )}
+          className="border border-border/50 rounded-md p-2.5"
         >
           <TypeSectionHeader commit={commit} savedCommit={savedCommit} />
           <TypeSpecificFields
@@ -966,7 +916,7 @@ function FormFields({
 
       {/* ── Subtitle row (left): team chip for projects ──────────── */}
       <Section anchor="team" focused={focusAnchor === "team"}>
-        <SectionLabel icon={Users} dirty={dirty("team")}>
+        <SectionLabel dirty={dirty("team")}>
           Team
         </SectionLabel>
         <Field
@@ -987,7 +937,6 @@ function FormFields({
       {/* ── Subtitle row (right) + expanded author block ─────────── */}
       <Section anchor="rail" focused={focusAnchor === "rail"}>
         <SectionLabel
-          icon={GitBranch}
           dirty={dirty("identityId") || dirty("attachedTo")}
         >
           Rail
@@ -1027,7 +976,7 @@ function FormFields({
 
       {/* ── Expanded body text ────────────────────────────────────── */}
       <Section anchor="description" focused={focusAnchor === "description"}>
-        <SectionLabel icon={AlignLeft} dirty={dirty("description")}>
+        <SectionLabel dirty={dirty("description")}>
           Description
         </SectionLabel>
         <Field
@@ -1047,7 +996,7 @@ function FormFields({
       </Section>
 
       <Section anchor="commentary" focused={focusAnchor === "commentary"}>
-        <SectionLabel icon={Quote} dirty={dirty("commentary")}>
+        <SectionLabel dirty={dirty("commentary")}>
           Commentary
         </SectionLabel>
         <Field
@@ -1069,7 +1018,6 @@ function FormFields({
       <Section anchor="tags" focused={focusAnchor === "tags"}>
         <StringListSection
           label="Tags"
-          icon={Hash}
           dirty={dirty("tags")}
           items={commit.tags ?? []}
           onChange={(tags) =>
@@ -1085,7 +1033,6 @@ function FormFields({
           amber chips echo the canvas badges 1:1. */}
       <Section anchor="visibility" focused={focusAnchor === "visibility"}>
         <SectionLabel
-          icon={Eye}
           dirty={dirty("listed") || dirty("listedIn")}
           trailing={
             <>
@@ -1144,15 +1091,12 @@ function TypeSectionHeader({
   );
 
   return (
-    <div
-      className={cn(
-        "flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider",
-        TYPE_ACCENTS[commit.type].text,
-      )}
-    >
-      <TypeIcon className="w-3 h-3" />
+    <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50">
+      {/* Only the glyph is accented — it's the actual rendered row icon,
+          so its color is information, not decoration. */}
+      <TypeIcon className={cn("w-3 h-3", TYPE_ACCENT_TEXT[commit.type])} />
       {commit.type}
-      <span className="opacity-50 normal-case">· type fields</span>
+      <span className="opacity-70 normal-case">· type fields</span>
       {typeDirty && <DirtyDot title="Type fields have unsaved changes" />}
     </div>
   );
@@ -1679,7 +1623,7 @@ function MediaSection({
   return (
     <>
       <div className="flex items-center justify-between">
-        <SectionLabel icon={Images} dirty={dirty}>Media</SectionLabel>
+        <SectionLabel dirty={dirty}>Media</SectionLabel>
         <button
           onClick={addItem}
           className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground rounded transition-colors"
