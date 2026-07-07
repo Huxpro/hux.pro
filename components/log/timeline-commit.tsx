@@ -92,6 +92,7 @@ interface TimelineCommitProps {
    *  style block at the top of the row's expanded body. */
   byline?: {
     handle: string;
+    identityId: string;
     isClusterHead: boolean;
     /**
      * Effective team subtitle for a project row (set only when this is
@@ -117,6 +118,10 @@ interface TimelineCommitProps {
   onInspectField?: (field: InspectField) => void;
   /** The field currently focused in the inspector (for highlight). */
   selectedField?: InspectField | null;
+  /** Open the IdentityEditor for an id — fired by clicking a handle. */
+  onInspectIdentity?: (id: string) => void;
+  /** Identity currently open in the IdentityEditor (for highlight). */
+  selectedIdentityId?: string | null;
   /** Editor-only visibility annotations ("unlisted", "hidden row",
    *  "en only"…) rendered as dashed chips after the title so inspect
    *  mode shows WHY a row won't appear on the public /works. */
@@ -192,10 +197,15 @@ export function TimelineCommit({
   selectedMedia = null,
   onInspectField,
   selectedField = null,
+  onInspectIdentity,
+  selectedIdentityId = null,
   inspectBadges = [],
 }: TimelineCommitProps) {
   // Field wrappers only activate when a handler is present (editor).
   const fieldSelected = (f: InspectField) => isSelected && selectedField === f;
+  // A handle is "active" when its identity is open in the IdentityEditor.
+  const identityActive =
+    !!byline && !!selectedIdentityId && byline.identityId === selectedIdentityId;
   const Icon =
     (data.iconOverride && commitIconOverrides[data.iconOverride]) ||
     commitIcons[data.type];
@@ -582,14 +592,26 @@ export function TimelineCommit({
                   : "opacity-0 group-hover:opacity-100",
               )}
             >
-              <InspectableField
-                field="author"
-                inspecting={inspecting}
-                selected={fieldSelected("author")}
-                onInspectField={onInspectField}
-              >
-                {byline.handle}
-              </InspectableField>
+              {onInspectIdentity ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onInspectIdentity(byline.identityId);
+                  }}
+                  className={cn(
+                    "cursor-pointer rounded-sm -mx-0.5 px-0.5 ring-inset transition-[box-shadow,background-color]",
+                    identityActive
+                      ? "ring-1 ring-violet-500/70 bg-violet-500/[0.10]"
+                      : "hover:ring-1 hover:ring-violet-500/45 hover:bg-violet-500/[0.06]",
+                  )}
+                  title="Inspect identity"
+                >
+                  {byline.handle}
+                </button>
+              ) : (
+                byline.handle
+              )}
             </span>
           )}
         </div>

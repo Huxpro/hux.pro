@@ -4,6 +4,7 @@ import {
   Check,
   Eye,
   EyeOff,
+  Fingerprint,
   MousePointer2,
   Plus,
   RotateCcw,
@@ -28,6 +29,8 @@ interface EditorToolbarProps {
   onSave: () => void;
   onReset: () => void;
   onAddTag: () => void;
+  /** Open the IdentityEditor (identities are the non-commit data layer). */
+  onOpenIdentity: () => void;
 }
 
 export function EditorToolbar({
@@ -43,6 +46,7 @@ export function EditorToolbar({
   onSave,
   onReset,
   onAddTag,
+  onOpenIdentity,
 }: EditorToolbarProps) {
   const inspecting = mode === "inspect";
 
@@ -142,6 +146,21 @@ export function EditorToolbar({
             </button>
           ))}
         </div>
+
+        <button
+          type="button"
+          onClick={onOpenIdentity}
+          disabled={inspectDisabled}
+          title={
+            inspectDisabled
+              ? "Identity editor is disabled on small screens"
+              : "Inspect identities — the non-commit data layer (handle / company / tenures)"
+          }
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono text-muted-foreground hover:text-foreground hover:bg-muted/20 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Fingerprint className="w-3 h-3" />
+          Identity
+        </button>
 
         <button
           type="button"

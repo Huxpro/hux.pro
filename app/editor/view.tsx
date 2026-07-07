@@ -23,9 +23,11 @@ import {
 import { useLocale } from "@/services";
 import { toast } from "sonner";
 import { MousePointer2 } from "lucide-react";
+import type { Identity } from "@/lib/log";
 import { EditorToolbar } from "./toolbar";
 import { CommitEditor } from "./commit-editor";
 import { TagEditor } from "./tag-editor";
+import { IdentityEditor } from "./identity-editor";
 
 // Static-import the snapshot so the editor preview can resolve previews and
 // video covers client-side — the same merging /works does server-side. URLs
@@ -44,6 +46,9 @@ export function EditorView({ initialData }: EditorViewProps) {
   const [mode, setMode] = useState<InspectMode>("preview");
   const [selectedCommitId, setSelectedCommitId] = useState<string | null>(null);
   const [editingTag, setEditingTag] = useState<string | null>(null);
+  const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(
+    null,
+  );
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(
     null,
   );
@@ -109,6 +114,7 @@ export function EditorView({ initialData }: EditorViewProps) {
     setEditingTag(null);
     setSelectedMediaIndex(null);
     setSelectedField(null);
+    setSelectedIdentityId(null);
   }, []);
 
   const selectCommit = useCallback((id: string) => {
@@ -116,6 +122,7 @@ export function EditorView({ initialData }: EditorViewProps) {
     setEditingTag(null);
     setSelectedMediaIndex(null);
     setSelectedField(null);
+    setSelectedIdentityId(null);
   }, []);
 
   const selectMedia = useCallback((commitId: string, mediaIndex: number) => {
@@ -123,6 +130,7 @@ export function EditorView({ initialData }: EditorViewProps) {
     setEditingTag(null);
     setSelectedMediaIndex(mediaIndex);
     setSelectedField(null);
+    setSelectedIdentityId(null);
   }, []);
 
   const selectField = useCallback((commitId: string, field: InspectField) => {
@@ -130,6 +138,17 @@ export function EditorView({ initialData }: EditorViewProps) {
     setEditingTag(null);
     setSelectedMediaIndex(null);
     setSelectedField(field);
+    setSelectedIdentityId(null);
+  }, []);
+
+  // Selecting an identity is exclusive with commit/tag selection — it
+  // swaps the inspector to the IdentityEditor.
+  const selectIdentity = useCallback((id: string) => {
+    setSelectedIdentityId(id);
+    setSelectedCommitId(null);
+    setEditingTag(null);
+    setSelectedMediaIndex(null);
+    setSelectedField(null);
   }, []);
 
   const selectTag = useCallback((id: string) => {
@@ -137,6 +156,7 @@ export function EditorView({ initialData }: EditorViewProps) {
     setSelectedCommitId(null);
     setSelectedMediaIndex(null);
     setSelectedField(null);
+    setSelectedIdentityId(null);
   }, []);
 
   const handleModeChange = useCallback(
@@ -282,6 +302,41 @@ export function EditorView({ initialData }: EditorViewProps) {
     []
   );
 
+  const selectedIdentity = useMemo(
+    () =>
+      selectedIdentityId
+        ? data.identities?.[selectedIdentityId] ?? null
+        : null,
+    [data.identities, selectedIdentityId],
+  );
+
+  // Identity metadata (handle / company / accentColor) lives on the
+  // `identities` map — its role ranges are separate commits. Editing
+  // here updates the map; denormalizeLogData re-nests on save.
+  const handleUpdateIdentity = useCallback(
+    (id: string, partial: Partial<Identity>) => {
+      setData((prev) => {
+        const cur = prev.identities?.[id];
+        if (!cur) return prev;
+        return {
+          ...prev,
+          identities: { ...prev.identities, [id]: { ...cur, ...partial } },
+        };
+      });
+    },
+    [],
+  );
+
+  const handleOpenIdentity = useCallback(() => {
+    if (inspectDisabled) return;
+    const first = selectedCommit?.type === "role"
+      ? (selectedCommit.identityId as string)
+      : Object.keys(data.identities ?? {})[0];
+    if (!first) return;
+    setMode("inspect");
+    selectIdentity(first);
+  }, [inspectDisabled, data.identities, selectedCommit, selectIdentity]);
+
   const handleAddTag = useCallback(() => {
     if (inspectDisabled) return;
     const id = `tag-${Date.now()}`;
@@ -306,11 +361,13 @@ export function EditorView({ initialData }: EditorViewProps) {
       editingTagId: editingTag,
       selectedMediaIndex,
       selectedField,
+      selectedIdentityId,
       showHidden,
       onSelectCommit: selectCommit,
       onSelectTag: selectTag,
       onSelectMedia: selectMedia,
       onSelectField: selectField,
+      onSelectIdentity: selectIdentity,
       onAddCommit: handleAddCommit,
     }),
     [
@@ -319,11 +376,13 @@ export function EditorView({ initialData }: EditorViewProps) {
       editingTag,
       selectedMediaIndex,
       selectedField,
+      selectedIdentityId,
       showHidden,
       selectCommit,
       selectTag,
       selectMedia,
       selectField,
+      selectIdentity,
       handleAddCommit,
     ],
   );
@@ -368,6 +427,7 @@ export function EditorView({ initialData }: EditorViewProps) {
         onSave={handleSave}
         onReset={handleReset}
         onAddTag={handleAddTag}
+        onOpenIdentity={handleOpenIdentity}
       />
 
       {/* Preview canvas + optional inspector */}
@@ -414,6 +474,20 @@ export function EditorView({ initialData }: EditorViewProps) {
                 onFocusMediaIndexChange={setSelectedMediaIndex}
                 focusField={selectedField}
                 onFocusFieldChange={setSelectedField}
+              />
+            ) : selectedIdentity && selectedIdentityId ? (
+              <IdentityEditor
+                identityId={selectedIdentityId}
+                identity={selectedIdentity}
+                identities={data.identities ?? {}}
+                commits={data.commits}
+                locale={locale}
+                onUpdate={(partial) =>
+                  handleUpdateIdentity(selectedIdentityId, partial)
+                }
+                onSelectIdentity={selectIdentity}
+                onSelectCommit={selectCommit}
+                onClose={clearSelection}
               />
             ) : editingTagObj ? (
               <div className="flex-1 overflow-y-auto">

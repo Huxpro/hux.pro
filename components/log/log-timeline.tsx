@@ -136,6 +136,9 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
     // per-row hover so the page reads as "one identity per chapter".
     type Byline = {
       handle: string;
+      /** Resolved identity id — lets the editor open the IdentityEditor
+       *  when the handle is clicked in inspect mode. */
+      identityId: string;
       isClusterHead: boolean;
       /**
        * Effective team subtitle for a project row, computed as
@@ -205,6 +208,7 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
 
       bylinesArr[i] = {
         handle: identity.handle,
+        identityId: resolved.identityId,
         isClusterHead,
         subtitle,
         expanded: {

@@ -29,6 +29,8 @@ export interface TimelineEditContextValue {
   selectedMediaIndex: number | null;
   /** Form field the inspector should scroll to / highlight, if any. */
   selectedField: InspectField | null;
+  /** Identity currently open in the IdentityEditor, if any. */
+  selectedIdentityId: string | null;
   /**
    * Inspect-mode global flag: render rows the public site hides
    * (hidden-role rows, unlisted / locale-scoped commits) as annotated
@@ -40,6 +42,8 @@ export interface TimelineEditContextValue {
   onSelectMedia: (commitId: string, mediaIndex: number) => void;
   /** Select a commit and focus one of its form fields in the inspector. */
   onSelectField: (commitId: string, field: InspectField) => void;
+  /** Open the IdentityEditor for an identity id (e.g. a byline click). */
+  onSelectIdentity: (id: string) => void;
   onAddCommit: (tagId: string) => void;
 }
 

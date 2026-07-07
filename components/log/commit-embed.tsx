@@ -55,6 +55,7 @@ export interface CommitProps {
    *  the timeline so this component stays locale-agnostic. */
   byline?: {
     handle: string;
+    identityId: string;
     isClusterHead: boolean;
     subtitle?: string;
     expanded: {
@@ -122,6 +123,10 @@ export function Commit({
     inspecting && edit
       ? (field: InspectField) => edit.onSelectField(commit.id, field)
       : undefined;
+  const onInspectIdentity =
+    inspecting && edit
+      ? (id: string) => edit.onSelectIdentity(id)
+      : undefined;
 
   // Visibility annotations, editor-only: explain WHY this row won't
   // show (or shows differently) on the public /works. The editor's
@@ -164,7 +169,9 @@ export function Commit({
           onInspectMedia={onInspectMedia}
           selectedMedia={selectedMedia}
           onInspectField={onInspectField}
+          onInspectIdentity={onInspectIdentity}
           selectedField={edit?.selectedField ?? null}
+          selectedIdentityId={edit?.selectedIdentityId ?? null}
           inspectBadges={inspectBadges}
         />
       );
