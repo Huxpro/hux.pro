@@ -99,6 +99,7 @@ function Field({
   placeholder,
   multiline,
   dirty = false,
+  dimmed = false,
 }: {
   label: string;
   value: string;
@@ -107,12 +108,14 @@ function Field({
   multiline?: boolean;
   /** Show the amber "modified since save" dot next to the label. */
   dirty?: boolean;
+  /** Field has no render outlet for this commit type — fade it back. */
+  dimmed?: boolean;
 }) {
   const cls =
     "flex-1 bg-transparent border border-border/50 rounded px-2 py-1 text-sm focus:outline-none focus:border-foreground/30 transition-colors";
 
   return (
-    <label className="flex items-start gap-2">
+    <label className={cn("flex items-start gap-2", dimmed && "opacity-40")}>
       <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 w-20 shrink-0 text-right pt-1.5 inline-flex items-center justify-end gap-1">
         {dirty && <DirtyDot />}
         {label}
@@ -243,17 +246,25 @@ function SectionLabel({
   children,
   dirty = false,
   trailing,
+  note,
 }: {
   children: React.ReactNode;
   dirty?: boolean;
   /** Trailing status chips (e.g. Visibility's active "unlisted" state). */
   trailing?: React.ReactNode;
+  /** Muted right-aligned annotation — used to say "not rendered here". */
+  note?: string;
 }) {
   return (
-    <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/40 pt-2 flex items-center gap-1.5">
+    <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/40 flex items-center gap-1.5">
       {children}
       {dirty && <DirtyDot title="Section has unsaved changes" />}
       {trailing}
+      {note && (
+        <span className="ml-auto normal-case tracking-normal text-muted-foreground/40 italic">
+          {note}
+        </span>
+      )}
     </div>
   );
 }
@@ -284,11 +295,18 @@ function StateChip({ children }: { children: React.ReactNode }) {
 function Section({
   anchor,
   focused = false,
+  dimmed = false,
+  divider = true,
   className,
   children,
 }: {
   anchor: string;
   focused?: boolean;
+  /** No render outlet for this commit type — fade the whole group. */
+  dimmed?: boolean;
+  /** Draw the bottom separation rule (like the icon.json editor). Off
+   *  for self-bordered groups (the type card) and the final section. */
+  divider?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
@@ -305,12 +323,19 @@ function Section({
       ref={ref}
       data-field-anchor={anchor}
       className={cn(
-        "space-y-2 rounded-md transition-colors duration-300 scroll-mt-3",
+        "space-y-2 transition-[opacity,background-color] duration-300 scroll-mt-3",
+        // Section rhythm: a hairline rule below each group, echoing the
+        // icon.json editor's sectioning so the panel reads as discrete
+        // blocks rather than one long field stream.
+        divider && "border-b border-border/50 pb-4",
+        // Dimmed = this field/group has no render outlet for the current
+        // commit type (same signal the tag editor uses for unused JSON).
+        dimmed && "opacity-45",
         // Focus flash uses a left accent bar + faint wash, NOT a full
         // ring — the ring is reserved for the *selected commit* in the
         // canvas, and re-using it here would compete with that signal.
         focused &&
-          "-mx-1.5 pl-2.5 pr-1.5 py-1.5 border-l-2 border-sky-500/70 bg-sky-500/[0.04]",
+          "-mx-1.5 rounded-md pl-2.5 pr-1.5 py-1.5 border-l-2 border-l-sky-500/70 bg-sky-500/[0.04]",
         className,
       )}
     >
@@ -365,6 +390,7 @@ function StringListSection({
   placeholder,
   addTitle,
   dirty = false,
+  note,
 }: {
   label: string;
   items: string[];
@@ -372,6 +398,7 @@ function StringListSection({
   placeholder?: string;
   addTitle?: string;
   dirty?: boolean;
+  note?: string;
 }) {
   const updateItem = (index: number, value: string) => {
     const next = [...items];
@@ -390,7 +417,7 @@ function StringListSection({
   return (
     <>
       <div className="flex items-center justify-between">
-        <SectionLabel dirty={dirty}>{label}</SectionLabel>
+        <SectionLabel dirty={dirty} note={note}>{label}</SectionLabel>
         <button
           onClick={addItem}
           className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground rounded transition-colors"
@@ -765,6 +792,27 @@ function FormFields({
     })),
   ];
 
+  // Render-outlet model — which groups have NO visible effect for THIS
+  // commit type, so we fade them the way the tag editor fades unused
+  // JSON. Grounded in the actual renderers:
+  //  - `team` renders only as the project subtitle chip; a role's team
+  //    is the inherited default for its child projects, so it counts as
+  //    live on role too. Dead on talk / post / social.
+  //  - events render bare (title / description / date) — normalizeCommit
+  //    forces their tags & media empty and never surfaces commentary.
+  const isEvent = commit.type === "event";
+  const teamRendered = commit.type === "project" || commit.type === "role";
+  const sectionDead = (anchor: string): boolean => {
+    if (isEvent) return ["commentary", "tags", "media", "team"].includes(anchor);
+    if (anchor === "team") return !teamRendered;
+    return false;
+  };
+  const deadNote = (anchor: string): string | undefined => {
+    if (!sectionDead(anchor)) return undefined;
+    if (anchor === "team" && !isEvent) return "project rows only";
+    return "not rendered · event";
+  };
+
   // Section order mirrors the row's actual render order — the panel
   // reads top-to-bottom the way the canvas does:
   //   hash/icon → title(+badge) → date → meta line (type) → team →
@@ -772,7 +820,7 @@ function FormFields({
   // Publishing controls (Visibility) affect *whether* the row renders,
   // not how — they close the form.
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* ── Commit: hash (id), row icon (type), chapter (tag) ────── */}
       <Section anchor="identity" focused={focusAnchor === "identity"}>
         <SectionLabel
@@ -903,6 +951,7 @@ function FormFields({
         <Section
           anchor="type"
           focused={focusAnchor === "type"}
+          divider={false}
           className="border border-border/50 rounded-md p-2.5"
         >
           <TypeSectionHeader commit={commit} savedCommit={savedCommit} />
@@ -915,8 +964,12 @@ function FormFields({
       )}
 
       {/* ── Subtitle row (left): team chip for projects ──────────── */}
-      <Section anchor="team" focused={focusAnchor === "team"}>
-        <SectionLabel dirty={dirty("team")}>
+      <Section
+        anchor="team"
+        focused={focusAnchor === "team"}
+        dimmed={sectionDead("team")}
+      >
+        <SectionLabel dirty={dirty("team")} note={deadNote("team")}>
           Team
         </SectionLabel>
         <Field
@@ -965,14 +1018,17 @@ function FormFields({
           Keyed by commit id (+ epoch) so the section remounts and
           re-hydrates its fat drafts when the user switches commits OR
           the commit is replaced out-of-band (revert / JSON apply). */}
-      <MediaSection
-        key={`${commit.id}:${draftsEpoch}`}
-        media={commit.media ?? []}
-        dirty={dirty("media")}
-        onChange={(media) => onUpdate({ media: media.length > 0 ? media : undefined })}
-        focusIndex={focusMediaIndex}
-        onFocusIndexChange={onFocusMediaIndexChange}
-      />
+      <Section anchor="media" dimmed={sectionDead("media")}>
+        <MediaSection
+          key={`${commit.id}:${draftsEpoch}`}
+          media={commit.media ?? []}
+          dirty={dirty("media")}
+          note={deadNote("media")}
+          onChange={(media) => onUpdate({ media: media.length > 0 ? media : undefined })}
+          focusIndex={focusMediaIndex}
+          onFocusIndexChange={onFocusMediaIndexChange}
+        />
+      </Section>
 
       {/* ── Expanded body text ────────────────────────────────────── */}
       <Section anchor="description" focused={focusAnchor === "description"}>
@@ -995,8 +1051,12 @@ function FormFields({
         />
       </Section>
 
-      <Section anchor="commentary" focused={focusAnchor === "commentary"}>
-        <SectionLabel dirty={dirty("commentary")}>
+      <Section
+        anchor="commentary"
+        focused={focusAnchor === "commentary"}
+        dimmed={sectionDead("commentary")}
+      >
+        <SectionLabel dirty={dirty("commentary")} note={deadNote("commentary")}>
           Commentary
         </SectionLabel>
         <Field
@@ -1015,10 +1075,15 @@ function FormFields({
         />
       </Section>
 
-      <Section anchor="tags" focused={focusAnchor === "tags"}>
+      <Section
+        anchor="tags"
+        focused={focusAnchor === "tags"}
+        dimmed={sectionDead("tags")}
+      >
         <StringListSection
           label="Tags"
           dirty={dirty("tags")}
+          note={deadNote("tags")}
           items={commit.tags ?? []}
           onChange={(tags) =>
             onUpdate({ tags: tags.length > 0 ? tags : undefined })
@@ -1031,7 +1096,11 @@ function FormFields({
       {/* ── Publishing: controls whether the row appears at all —
           not part of the row's anatomy, so it closes the form. The
           amber chips echo the canvas badges 1:1. */}
-      <Section anchor="visibility" focused={focusAnchor === "visibility"}>
+      <Section
+        anchor="visibility"
+        focused={focusAnchor === "visibility"}
+        divider={false}
+      >
         <SectionLabel
           dirty={dirty("listed") || dirty("listedIn")}
           trailing={
@@ -1177,6 +1246,8 @@ function TypeSpecificFields({
                 conference: { ...commit.conference, city: v || undefined },
               })
             }
+            placeholder="Not rendered yet"
+            dimmed
           />
           <Field
             label="Conf URL"
@@ -1217,7 +1288,8 @@ function TypeSpecificFields({
                 publication: { ...commit.publication, logo: v || undefined },
               })
             }
-            placeholder="Logo URL (optional)"
+            placeholder="Not rendered yet"
+            dimmed
           />
         </>
       );
@@ -1575,12 +1647,14 @@ function MediaSection({
   focusIndex,
   onFocusIndexChange,
   dirty = false,
+  note,
 }: {
   media: Media[];
   onChange: (media: Media[]) => void;
   focusIndex?: number | null;
   onFocusIndexChange?: (index: number | null) => void;
   dirty?: boolean;
+  note?: string;
 }) {
   // Working draft state — one per row, hydrated once at mount.
   //
@@ -1623,7 +1697,7 @@ function MediaSection({
   return (
     <>
       <div className="flex items-center justify-between">
-        <SectionLabel dirty={dirty}>Media</SectionLabel>
+        <SectionLabel dirty={dirty} note={note}>Media</SectionLabel>
         <button
           onClick={addItem}
           className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground rounded transition-colors"
