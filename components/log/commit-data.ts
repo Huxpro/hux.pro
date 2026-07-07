@@ -260,11 +260,20 @@ export function normalizeCommit(
   const thumbnail = deriveThumbnail(media);
   const languageBadge = getCommitLanguageBadge(commit, locale);
 
+  // The graduation-cap glyph is derived from `isEducation`, not a
+  // hand-picked icon field — so "this is a degree" is the single source
+  // of truth and the row icon follows. Any legacy `icon` still wins as a
+  // fallback for non-role commits (none in the data today).
+  const iconOverride =
+    commit.type === "role" && commit.isEducation
+      ? "graduation-cap"
+      : commit.icon;
+
   // Identity fields shared by every branch's return.
   const identity = {
     hash,
     type: commit.type,
-    iconOverride: commit.icon,
+    iconOverride,
   };
 
   // Type-specific extraction

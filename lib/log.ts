@@ -387,6 +387,16 @@ export interface RoleCommit extends BaseCommit {
    * projects speak for the tenure and the role row would be redundant.
    */
   hideRow?: boolean;
+  /**
+   * Marks an education tenure (a degree) rather than an employment one.
+   * Currently the single source for the graduation-cap glyph — the row
+   * icon is derived from this, not hand-picked. Education roles tend to
+   * render their own visible row (they have no contained projects to
+   * speak for them) and anchor at their start date. Kept as a boolean
+   * (not a separate commit type) so employment/education stay one shape
+   * while their one real rendering difference stays explicit.
+   */
+  isEducation?: boolean;
 }
 
 // -----------------------------------------------------------------------------
@@ -562,6 +572,7 @@ export interface RawRoleRange
   location?: string;
   url?: string;
   hideRow?: boolean;
+  isEducation?: boolean;
   icon?: "graduation-cap";
   sortBy?: "date" | "endDate";
 }

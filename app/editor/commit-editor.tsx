@@ -19,6 +19,7 @@ import {
   Trash2,
   Plus,
   Undo2,
+  Info,
   Film,
   Image as ImageIcon,
   Link2,
@@ -161,6 +162,7 @@ function ChoiceField<T extends string>({
   onChange,
   variant = "auto",
   dirty = false,
+  labelHint,
 }: {
   label: string;
   value: T;
@@ -169,6 +171,9 @@ function ChoiceField<T extends string>({
   variant?: "auto" | "dropdown" | "segmented";
   /** Show the amber "modified since save" dot next to the label. */
   dirty?: boolean;
+  /** Optional info tooltip (native title) shown on an ⓘ beside the label —
+   *  used to explain non-obvious option semantics like Sort By's default. */
+  labelHint?: string;
 }) {
   const resolved =
     variant === "auto" ? (options.length <= 4 ? "segmented" : "dropdown") : variant;
@@ -176,6 +181,11 @@ function ChoiceField<T extends string>({
   return (
     <label className="flex items-center gap-2">
       <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 w-20 shrink-0 text-right inline-flex items-center justify-end gap-1">
+        {labelHint && (
+          <span title={labelHint} className="cursor-help inline-flex" aria-label={labelHint}>
+            <Info className="w-3 h-3 text-muted-foreground/40 hover:text-muted-foreground" />
+          </span>
+        )}
         {dirty && <DirtyDot />}
         {label}
       </span>
@@ -850,16 +860,6 @@ function FormFields({
           onChange={(v) => onUpdate({ tagId: v })}
           dirty={dirty("tagId")}
         />
-        <ChoiceField<"" | "graduation-cap">
-          label="Icon"
-          value={commit.icon ?? ""}
-          options={[
-            { value: "", label: "default" },
-            { value: "graduation-cap", label: "grad-cap" },
-          ]}
-          onChange={(v) => onUpdate({ icon: v === "" ? undefined : v })}
-          dirty={dirty("icon")}
-        />
       </Section>
 
       {/* ── Title line: text + inline language badge ─────────────── */}
@@ -926,6 +926,11 @@ function FormFields({
         <ChoiceField<"" | "date" | "endDate">
           label="Sort By"
           value={commit.sortBy ?? ""}
+          labelHint={
+            commit.type === "role"
+              ? "Which date anchors this row in the timeline. default → endDate: a role sits at the TOP of its tenure cluster (open-ended roles sort as if ending in the far future). date: anchors at its start instead — used for education entries."
+              : "Which date anchors this row in the timeline. default → date: sorts by the commit's own date. endDate: sorts by the end of its range instead."
+          }
           options={[
             { value: "", label: "default" },
             { value: "date", label: "date" },
@@ -1151,7 +1156,7 @@ function TypeSectionHeader({
     project: ["stats"],
     talk: ["conference"],
     post: ["url", "publication"],
-    role: ["company", "companyOverride", "location", "url", "hideRow"],
+    role: ["company", "companyOverride", "location", "url", "hideRow", "isEducation"],
     social: ["platform"],
     event: [],
   };
@@ -1355,6 +1360,14 @@ function TypeSpecificFields({
             checked={commit.hideRow === true}
             onChange={(v) => onUpdate({ hideRow: v ? true : undefined })}
             dirty={dirty("hideRow")}
+          />
+          {/* Education tenure — the single source for the grad-cap glyph
+              (replaces the old free-form icon override). */}
+          <CheckField
+            label="Is Education"
+            checked={commit.isEducation === true}
+            onChange={(v) => onUpdate({ isEducation: v ? true : undefined })}
+            dirty={dirty("isEducation")}
           />
         </>
       );

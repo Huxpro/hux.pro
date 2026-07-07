@@ -162,7 +162,6 @@
         "en": "ByteDance",
         "zh": "字节跳动"
       },
-      "tagId": "lynx-era",
       "ranges": [
         {
           "id": "tech-lead-lynx",
@@ -184,7 +183,8 @@
           "tags": [
             "Leadership",
             "Architecture"
-          ]
+          ],
+          "tagId": "lynx-era"
         }
       ]
     },
@@ -194,7 +194,6 @@
         "en": "Meta",
         "zh": "Meta"
       },
-      "tagId": "react-era",
       "ranges": [
         {
           "id": "meta-engineer",
@@ -214,7 +213,8 @@
             "React",
             "Compiler",
             "JavaScript Engine"
-          ]
+          ],
+          "tagId": "react-era"
         },
         {
           "id": "meta-intern-xros",
@@ -234,7 +234,9 @@
             "Operating System",
             "Research",
             "Internship"
-          ]
+          ],
+          "tagId": "react-era",
+          "sortBy": "date"
         },
         {
           "id": "meta-intern-reasonml",
@@ -254,7 +256,9 @@
             "OCaml",
             "Messenger",
             "Internship"
-          ]
+          ],
+          "tagId": "react-era",
+          "sortBy": "date"
         }
       ]
     },
@@ -264,13 +268,12 @@
         "en": "Rochester Institute of Technology",
         "zh": "罗切斯特理工学院"
       },
-      "tagId": "react-era",
       "ranges": [
         {
           "id": "rit-ms",
           "hideDate": true,
           "sortBy": "date",
-          "icon": "graduation-cap",
+          "isEducation": true,
           "title": {
             "en": "M.S. Computer Science",
             "zh": "计算机科学 硕士"
@@ -285,7 +288,8 @@
             "PLT",
             "Compiler"
           ],
-          "location": "New York, USA"
+          "location": "New York, USA",
+          "tagId": "react-era"
         }
       ]
     },
@@ -295,7 +299,6 @@
         "en": "Ele.me",
         "zh": "饿了么"
       },
-      "tagId": "pwa-era",
       "ranges": [
         {
           "id": "eleme-visiting",
@@ -317,7 +320,9 @@
           "tags": [
             "PWA",
             "Consulting"
-          ]
+          ],
+          "tagId": "pwa-era",
+          "sortBy": "date"
         }
       ]
     },
@@ -327,7 +332,6 @@
         "en": "Beijing Weiying (WePiao)",
         "zh": "北京微影时代（微票儿）"
       },
-      "tagId": "pwa-era",
       "ranges": [
         {
           "id": "wepiao-lead",
@@ -344,7 +348,9 @@
           "hideRow": true,
           "tags": [
             "Leadership"
-          ]
+          ],
+          "tagId": "pwa-era",
+          "sortBy": "date"
         }
       ]
     },
@@ -354,7 +360,6 @@
         "en": "Alibaba",
         "zh": "阿里巴巴"
       },
-      "tagId": "pwa-era",
       "ranges": [
         {
           "id": "alitrip-engineer",
@@ -372,7 +377,9 @@
           "tags": [
             "Web",
             "Mobile"
-          ]
+          ],
+          "tagId": "pwa-era",
+          "sortBy": "date"
         }
       ]
     },
@@ -382,13 +389,12 @@
         "en": "Communication University of China",
         "zh": "中国传媒大学"
       },
-      "tagId": "pwa-era",
       "ranges": [
         {
           "id": "cuc-ba",
           "hideDate": true,
           "sortBy": "date",
-          "icon": "graduation-cap",
+          "isEducation": true,
           "title": {
             "en": "B.A. Digital Media Arts",
             "zh": "数字媒体艺术 学士"
@@ -404,7 +410,8 @@
             "Design",
             "Art"
           ],
-          "location": "Beijing, China"
+          "location": "Beijing, China",
+          "tagId": "pwa-era"
         }
       ]
     }
