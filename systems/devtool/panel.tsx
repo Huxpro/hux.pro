@@ -25,6 +25,7 @@ import {
 } from "@/components/post/bleed-settings";
 import { cn } from "@/lib/utils";
 import {
+  BookOpen,
   Braces,
   Brain,
   Bug,
@@ -40,8 +41,6 @@ import {
   Moon,
   MoonStar,
   RefreshCw,
-  Ruler,
-  SlidersHorizontal,
   Sun,
   SunMedium,
   Sunrise,
@@ -169,7 +168,7 @@ function DevtoolPanel() {
       {/* Scrollable content */}
       <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
         <FrontmatterModule />
-        <GlobalUIModule />
+        <ReadingModule />
         <GradientModule />
         <WeatherModule />
         <AmbientTimeModule />
@@ -372,14 +371,14 @@ function FrontmatterModule() {
 }
 
 // =============================================================================
-// Global UI Module
-// Site-wide reading-surface variations. Each setting persists (localStorage)
+// Reading Module
+// Article reading-surface variations. Each setting persists (localStorage)
 // and applies even with the devtool disabled — the panel is just the UI.
 //   · Bleed     — let wide media break out of the reading column on desktop
 //   · Ruler ToC — which screen edge the reading ruler docks to
 // =============================================================================
 
-function GlobalUIModule() {
+function ReadingModule() {
   const { locale } = useLocale();
   const bleed = useBleedEnabled();
   const side = useRulerSide();
@@ -391,9 +390,9 @@ function GlobalUIModule() {
 
   return (
     <DebugSection
-      id="global-ui"
-      title={locale === "zh" ? "全局 UI" : "Global UI"}
-      icon={<SlidersHorizontal className="h-4 w-4" />}
+      id="reading"
+      title={locale === "zh" ? "阅读" : "Reading"}
+      icon={<BookOpen className="h-4 w-4" />}
       compact
     >
       <div className="space-y-3">
@@ -424,8 +423,7 @@ function GlobalUIModule() {
 
         {/* Ruler ToC — dock edge */}
         <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-            <Ruler className="h-3 w-3" />
+          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
             {locale === "zh" ? "标尺停靠" : "Ruler dock"}
           </span>
           <div className="flex overflow-hidden rounded-md border border-border/60">

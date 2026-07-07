@@ -535,7 +535,7 @@ html.dragging * {
     transform: translateX(-50%);
   }
 
-  /* Global dev-time kill switch: the devtool "Global UI" panel reflects the
+  /* Global dev-time kill switch: the devtool "Reading" panel reflects the
      bleed setting onto <html data-bleed-off>, which snaps every bleed element
      back to column width. Higher specificity than the rule above, same query. */
   :root[data-bleed-off]
