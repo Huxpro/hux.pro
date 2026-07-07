@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { InspectMode } from "@/components/log/timeline-edit-context";
 import type { Locale } from "@/lib/i18n";
+import { EditorSurfaceNav } from "./surface-nav";
 
 interface EditorToolbarProps {
   isDirty: boolean;
@@ -48,9 +49,7 @@ export function EditorToolbar({
   return (
     <div className="h-12 shrink-0 border-b border-border flex items-center justify-between px-4 bg-muted/5">
       <div className="flex items-center gap-3">
-        <span className="font-mono text-sm font-medium tracking-wide">
-          log.json
-        </span>
+        <EditorSurfaceNav current="log" />
         {isDirty && (
           <span className="text-[10px] font-mono uppercase tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
             unsaved
