@@ -414,7 +414,6 @@
       "id": "d2-2025-lynx",
       "type": "talk",
       "tagId": "lynx-era",
-      "attachedTo": null,
       "title": {
         "en": "Lynx: Making ByteDance Beat Across Platforms",
         "zh": "Lynx：让字节跨端跳动"
@@ -446,7 +445,6 @@
       "id": "react-summit-2025-unlock-native",
       "type": "talk",
       "tagId": "lynx-era",
-      "attachedTo": null,
       "title": {
         "en": "Lynx: Unlock Native for More",
         "zh": "Lynx：解锁更多原生可能"
@@ -485,7 +483,6 @@
       "id": "react-universe-2025-two-threads",
       "type": "talk",
       "tagId": "lynx-era",
-      "attachedTo": null,
       "title": {
         "en": "React for Two Threads",
         "zh": "为双线程而生的 React"
@@ -524,7 +521,6 @@
       "id": "react-advanced-2025-lynx-ui",
       "type": "talk",
       "tagId": "lynx-era",
-      "attachedTo": null,
       "title": {
         "en": "lynx-ui: Best Lynx in Components",
         "zh": "lynx-ui：组件中的最佳 Lynx"
@@ -558,7 +554,6 @@
       "id": "react-advanced-2025-panel",
       "type": "talk",
       "tagId": "lynx-era",
-      "attachedTo": null,
       "title": {
         "en": "Panel: Write Once, Render Anywhere",
         "zh": "圆桌讨论：一次编写，处处渲染"
@@ -592,7 +587,6 @@
       "id": "juejin-talk-2023",
       "type": "talk",
       "tagId": "lynx-era",
-      "attachedTo": null,
       "title": {
         "en": "Frontend is Dead, Long Live Frontend",
         "zh": "前端已死，前端永生"
@@ -623,7 +617,6 @@
       "id": "feday-2023",
       "type": "talk",
       "tagId": "lynx-era",
-      "attachedTo": null,
       "title": {
         "en": "My Frontend Worldview",
         "zh": "我的大前端世界观"
