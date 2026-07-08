@@ -411,6 +411,184 @@
   },
   "commits": [
     {
+      "id": "d2-2025-lynx",
+      "type": "talk",
+      "tagId": "lynx-era",
+      "attachedTo": null,
+      "title": {
+        "en": "Lynx: Making ByteDance Beat Across Platforms",
+        "zh": "Lynx：让字节跨端跳动"
+      },
+      "description": {
+        "en": "As client-side products mature and fragment, cross-platform has become the default choice for many developers and companies. Yet UI-framework innovation is converging, cross-platform approaches look increasingly alike, and the market is settling into a fixed shape. Against this backdrop, why did Lynx — the cross-platform technology ByteDance nurtured for years — decide to go open source? This talk lifts the veil on Lynx and explores the insights and future of cross-platform together.",
+        "zh": "伴随终端业务的成熟和碎片化，跨端已成为众多开发者和企业的首选。但同时，UI 框架的创新在收敛，跨端思路大同小异，市场格局趋于固化。在这个背景下，字节孕育多年的跨端技术 —— Lynx，为何决定走向开源？本演讲将揭开 Lynx 的“神秘面纱”，与你一同探寻跨端的洞见与未来。"
+      },
+      "date": "2025-03",
+      "conference": {
+        "name": "第 19 届 D2 终端技术大会",
+        "url": "https://d2.alibabatech.com/"
+      },
+      "media": [
+        {
+          "kind": "video",
+          "url": "https://www.bilibili.com/video/BV1A1XxYXERk",
+          "platform": "bilibili"
+        }
+      ],
+      "tags": [
+        "Cross-Platform",
+        "Open Source",
+        "Lynx"
+      ],
+      "language": "zh"
+    },
+    {
+      "id": "react-summit-2025-unlock-native",
+      "type": "talk",
+      "tagId": "lynx-era",
+      "attachedTo": null,
+      "title": {
+        "en": "Lynx: Unlock Native for More",
+        "zh": "Lynx：解锁更多原生可能"
+      },
+      "description": {
+        "en": "Lynx, a new cross-platform stack adopted by the TikTok app that empowers teams to ship truly native UIs to mobile and web from a single codebase using their existing web skills like CSS and React, has recently been open sourced. In this talk, we'll explore what makes Lynx familiar and what sets it apart from other cross-platform technologies; we'll take a closer look at its dual-threaded design, and how that enables Lynx's instant launches and silky-smooth interactions, plus a sneak peek at what's next for Lynx.",
+        "zh": "Lynx 是 TikTok 应用采用的全新跨平台技术栈，让团队用 CSS、React 等既有的 Web 技能，从同一套代码交付面向移动端与 Web 的真正原生 UI，并已于近期开源。本次演讲将探讨 Lynx 为何既熟悉又与众不同，深入其双线程架构，看它如何带来瞬时启动与丝滑交互，并预告 Lynx 的下一步。"
+      },
+      "date": "2025-06",
+      "conference": {
+        "name": "React Summit",
+        "city": "Amsterdam, Netherlands",
+        "url": "https://gitnation.com/contents/lynx-unlock-native-for-more"
+      },
+      "media": [
+        {
+          "kind": "video",
+          "url": "https://youtu.be/l2dByiwiQcM",
+          "platform": "youtube"
+        },
+        {
+          "kind": "link",
+          "url": "https://gitnation.com/contents/lynx-unlock-native-for-more",
+          "present": "card"
+        }
+      ],
+      "tags": [
+        "Cross-Platform",
+        "React",
+        "Performance",
+        "Lynx"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "react-universe-2025-two-threads",
+      "type": "talk",
+      "tagId": "lynx-era",
+      "attachedTo": null,
+      "title": {
+        "en": "React for Two Threads",
+        "zh": "为双线程而生的 React"
+      },
+      "description": {
+        "en": "For over a decade, we've lived in a universe where programming UIs with React on the client-side, from event handling to rendering, has been ruled by a single JavaScript thread. But what if React had been born differently? What if, from day one, it had been designed to fully embrace two threads? What benefits would that unlock? What challenges would we face? And what new features, abstractions, and patterns might emerge? What if this isn't just imagination... but something that exists today?",
+        "zh": "十多年来，我们身处这样一个宇宙：在客户端用 React 编写 UI，从事件处理到渲染，始终由单一 JavaScript 线程主宰。但如果 React 生来不同呢？如果从第一天起，它就被设计为彻底拥抱两个线程呢？这会解锁哪些收益？我们又会面临什么挑战？会涌现出哪些新特性、抽象与范式？而这一切如果不只是想象，而是今天已然存在的现实呢？"
+      },
+      "date": "2025-09",
+      "conference": {
+        "name": "React Universe Conf",
+        "city": "Wrocław, Poland",
+        "url": "https://www.reactuniverseconf.com/"
+      },
+      "media": [
+        {
+          "kind": "video",
+          "url": "https://youtu.be/-uUcYrl51JM",
+          "platform": "youtube"
+        },
+        {
+          "kind": "video",
+          "url": "https://youtu.be/L_u08K7xc18",
+          "platform": "youtube"
+        }
+      ],
+      "tags": [
+        "React",
+        "Architecture",
+        "Cross-Platform",
+        "Lynx"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "react-advanced-2025-lynx-ui",
+      "type": "talk",
+      "tagId": "lynx-era",
+      "attachedTo": null,
+      "title": {
+        "en": "lynx-ui: Best Lynx in Components",
+        "zh": "lynx-ui：组件中的最佳 Lynx"
+      },
+      "description": {
+        "en": "Ready-to-use components are vital to delivering user interfaces with velocity and scale. Introducing lynx-ui, the newest member of the Lynx family of cross-platform technologies behind TikTok. By taking advantage of Lynx's dual-threaded architecture, it offers high performance and native-graded interactivity. Join us to learn how we built it, and how it unlocks Lynx to scale across a massive range of products, even faster.",
+        "zh": "开箱即用的组件对于高速、规模化地交付用户界面至关重要。让我们隆重介绍 lynx-ui —— TikTok 背后 Lynx 跨平台技术家族的最新成员。借助 Lynx 的双线程架构，它带来高性能与原生级的交互体验。一起来了解我们如何构建它，以及它如何让 Lynx 更快地扩展到海量产品之中。"
+      },
+      "date": "2025-11",
+      "conference": {
+        "name": "React Advanced London",
+        "city": "London, UK",
+        "url": "https://reactadvanced.com/"
+      },
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://gitnation.com/contents/lynx-ui-dual-threaded-ui-with-lynx",
+          "present": "card"
+        }
+      ],
+      "tags": [
+        "Cross-Platform",
+        "Design System",
+        "React",
+        "Lynx"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "react-advanced-2025-panel",
+      "type": "talk",
+      "tagId": "lynx-era",
+      "attachedTo": null,
+      "title": {
+        "en": "Panel: Write Once, Render Anywhere",
+        "zh": "圆桌讨论：一次编写，处处渲染"
+      },
+      "description": {
+        "en": "A panel discussion at React Advanced London on the promise and reality of cross-platform UI — writing once and rendering natively everywhere.",
+        "zh": "React Advanced London 上的圆桌讨论，探讨跨平台 UI 的愿景与现实——一次编写，在各端原生渲染。"
+      },
+      "date": "2025-11",
+      "conference": {
+        "name": "React Advanced London",
+        "city": "London, UK",
+        "url": "https://reactadvanced.com/"
+      },
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://gitnation.com/contents/panel-discussion-3239",
+          "present": "card"
+        }
+      ],
+      "tags": [
+        "Cross-Platform",
+        "React",
+        "Panel",
+        "Lynx"
+      ],
+      "language": "en"
+    },
+    {
       "id": "juejin-talk-2023",
       "type": "talk",
       "tagId": "lynx-era",
