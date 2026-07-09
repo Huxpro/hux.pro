@@ -1,4 +1,3 @@
-import { BleedRootSync } from "@/components/post/bleed-settings";
 import { ReadingRootSync } from "@/components/post/reading-settings";
 import { Providers } from "@/shared/providers";
 import { AmbientPhaseActivity, AmbientSurface } from "@/systems/ambient";
@@ -93,7 +92,6 @@ export default function RootLayout({
           className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
         >
           <Providers>
-            <BleedRootSync />
             <ReadingRootSync />
             <DevtoolFAB />
             <AmbientSurface>{children}</AmbientSurface>

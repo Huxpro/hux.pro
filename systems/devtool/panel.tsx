@@ -22,8 +22,6 @@ import {
 import {
   setBleedEnabled,
   useBleedEnabled,
-} from "@/components/post/bleed-settings";
-import {
   setReadingFont,
   setReadingMeasure,
   setReadingFocus,
