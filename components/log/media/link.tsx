@@ -10,11 +10,7 @@
  */
 
 import { useState, useEffect } from "react";
-import {
-  ExternalLink as ExternalLinkIcon,
-  Image as ImageIcon,
-  Play,
-} from "lucide-react";
+import { ExternalLink as ExternalLinkIcon, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchOGData } from "@/lib/og";
 import type { OGData } from "@/lib/og-core";
@@ -24,6 +20,7 @@ import { pickInternalLink } from "@/lib/og-enrich";
 import { useLocale } from "@/services";
 import { ExternalImage } from "./external-image";
 import { PeekCover } from "./peek-cover";
+import { PlayBadge } from "./play-badge";
 import type { CoverFit } from "@/lib/content";
 
 // =============================================================================
@@ -269,26 +266,10 @@ export function CardFace({
         className,
       )}
     >
-      {isVideo ? (
-        <div className="relative shrink-0">
-          {slot}
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <span
-              className={cn(
-                "flex items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm ring-1 ring-white/25",
-                compact ? "h-9 w-9" : "h-12 w-12",
-              )}
-            >
-              <Play
-                className={cn("translate-x-px", compact ? "h-4 w-4" : "h-5 w-5")}
-                fill="currentColor"
-              />
-            </span>
-          </div>
-        </div>
-      ) : (
-        slot
-      )}
+      <div className="relative shrink-0">
+        {slot}
+        {isVideo && <PlayBadge size={compact ? "compact" : "default"} />}
+      </div>
       <div className={cn("flex-1 space-y-1", compact ? "p-2.5" : "p-4")}>
         <div
           className={cn(

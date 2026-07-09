@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type {
   Commit,
@@ -682,16 +682,17 @@ function detectRailHole(commit: Commit, tagCommits: Commit[]): string | null {
   const sorted = sortCommitsByDate(tagCommits);
   const idx = sorted.findIndex((c) => c.id === commit.id);
   if (idx < 0) return null;
-  let above: string | null = null;
-  for (let i = idx - 1; i >= 0; i--) {
-    const r = resolveIdentity(sorted[i], tagCommits);
-    if (r) { above = r.identityId; break; }
-  }
-  let below: string | null = null;
-  for (let i = idx + 1; i < sorted.length; i++) {
-    const r = resolveIdentity(sorted[i], tagCommits);
-    if (r) { below = r.identityId; break; }
-  }
+  // Identity of the nearest identity-bearing neighbour, walking `step` rows
+  // at a time (−1 = up, +1 = down).
+  const nearest = (step: number): string | null => {
+    for (let i = idx + step; i >= 0 && i < sorted.length; i += step) {
+      const r = resolveIdentity(sorted[i], tagCommits);
+      if (r) return r.identityId;
+    }
+    return null;
+  };
+  const above = nearest(-1);
+  const below = nearest(1);
   return above && below && above === below ? above : null;
 }
 
@@ -707,12 +708,17 @@ function IdentityRailSection({
   onUpdate: (partial: Record<string, unknown>) => void;
 }) {
   // Rails are computed per-tag (buildTimelineData filters by tag before
-  // computeRail), so resolve within the commit's own tag for parity.
-  const tagCommits = commits.filter((c) => c.tagId === commit.tagId);
-  const resolution = describeResolution(commit, tagCommits, identities);
-  const hole = detectRailHole(commit, tagCommits);
-
-  const roles = tagCommits.filter((c): c is RoleCommit => c.type === "role");
+  // computeRail), so resolve within the commit's own tag for parity. Derived
+  // together in one memo so the filter / sort / identity resolutions don't
+  // re-run on unrelated re-renders of the inspector.
+  const { resolution, hole, roles } = useMemo(() => {
+    const tagCommits = commits.filter((c) => c.tagId === commit.tagId);
+    return {
+      resolution: describeResolution(commit, tagCommits, identities),
+      hole: detectRailHole(commit, tagCommits),
+      roles: tagCommits.filter((c): c is RoleCommit => c.type === "role"),
+    };
+  }, [commit, commits, identities]);
   const identityIds = Object.keys(identities);
   const editable = commit.type !== "role" && commit.type !== "event";
 

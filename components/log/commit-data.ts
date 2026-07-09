@@ -225,9 +225,10 @@ function deriveThumbnail(
   media: Media[],
 ): { url: string; linkUrl?: string; isVideo?: boolean } | undefined {
   for (const m of media) {
-    if (isVideoMedia(m) || isImageMedia(m)) {
+    const isVideo = isVideoMedia(m);
+    if (isVideo || isImageMedia(m)) {
       const thumb = getMediaThumbnail(m);
-      if (thumb) return { url: thumb, linkUrl: m.url, isVideo: isVideoMedia(m) };
+      if (thumb) return { url: thumb, linkUrl: m.url, isVideo };
     }
   }
   for (const m of media) {
