@@ -10,11 +10,15 @@
  */
 
 import { useState, useEffect } from "react";
-import { ExternalLink as ExternalLinkIcon, Image as ImageIcon } from "lucide-react";
+import {
+  ExternalLink as ExternalLinkIcon,
+  Image as ImageIcon,
+  Play,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchOGData } from "@/lib/og";
 import type { OGData } from "@/lib/og-core";
-import { getDomainLabel, isArchivedUrl } from "@/lib/og-core";
+import { getDomainLabel, isArchivedUrl, isVideoLinkHost } from "@/lib/og-core";
 import type { InternalLinkMeta, LinkMedia } from "@/lib/log";
 import { pickInternalLink } from "@/lib/og-enrich";
 import { useLocale } from "@/services";
@@ -203,6 +207,9 @@ export function CardFace({
 }: CardFaceProps) {
   const compact = size === "compact";
   const domain = domainLabel ?? getDomainLabel(url);
+  // Talk-recording links (GitNation) get a play affordance so the card reads
+  // as the video it is, even though it renders as an OG card.
+  const isVideo = isVideoLinkHost(url);
   const [imgLoaded, setImgLoaded] = useState(false);
   const handleResolved = () => {
     setImgLoaded(true);
@@ -262,7 +269,26 @@ export function CardFace({
         className,
       )}
     >
-      {slot}
+      {isVideo ? (
+        <div className="relative shrink-0">
+          {slot}
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <span
+              className={cn(
+                "flex items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm ring-1 ring-white/25",
+                compact ? "h-9 w-9" : "h-12 w-12",
+              )}
+            >
+              <Play
+                className={cn("translate-x-px", compact ? "h-4 w-4" : "h-5 w-5")}
+                fill="currentColor"
+              />
+            </span>
+          </div>
+        </div>
+      ) : (
+        slot
+      )}
       <div className={cn("flex-1 space-y-1", compact ? "p-2.5" : "p-4")}>
         <div
           className={cn(

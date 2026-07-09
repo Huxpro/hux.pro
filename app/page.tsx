@@ -38,6 +38,8 @@ import {
   normalizeLogData,
   resolveGroupCommits,
 } from "@/lib/log";
+import { enrichLogDataWithPreviews, type OGSnapshot } from "@/lib/og-enrich";
+import ogSnapshotJson from "@/content/og-snapshot.json";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { AmbientGreeting, WeatherWidget } from "@/systems/ambient";
@@ -75,7 +77,13 @@ function BlogStackWidget() {
   );
 }
 
-const log = normalizeLogData(logData as unknown as RawLogData);
+// Enrich with OG previews (same as /works and the editor preview do) so link
+// cards resolve their cover image from the snapshot — otherwise widget covers
+// that rely on OG images (e.g. GitNation talk cards) render empty.
+const log = enrichLogDataWithPreviews(
+  normalizeLogData(logData as unknown as RawLogData),
+  ogSnapshotJson as OGSnapshot,
+);
 
 function getCurrentRoleCommit(commits: CommitData[]): RoleCommit | null {
   const roles = commits.filter(isRoleCommit).filter(isCommitListed);
