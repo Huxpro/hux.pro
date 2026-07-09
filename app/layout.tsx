@@ -1,3 +1,4 @@
+import { ReadingRootSync } from "@/components/post/reading-settings";
 import { Providers } from "@/shared/providers";
 import { AmbientPhaseActivity, AmbientSurface } from "@/systems/ambient";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
@@ -91,6 +92,7 @@ export default function RootLayout({
           className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
         >
           <Providers>
+            <ReadingRootSync />
             <DevtoolFAB />
             <AmbientSurface>{children}</AmbientSurface>
             <Dock>

@@ -19,8 +19,21 @@ import {
   useRulerSide,
   type RulerSide,
 } from "@/components/post/ruler-settings";
+import {
+  setBleedEnabled,
+  useBleedEnabled,
+  setReadingFont,
+  setReadingMeasure,
+  setReadingFocus,
+  useReadingFont,
+  useReadingMeasure,
+  useReadingFocus,
+  type ReadingFont,
+  type ReadingMeasure,
+} from "@/components/post/reading-settings";
 import { cn } from "@/lib/utils";
 import {
+  BookOpen,
   Braces,
   Brain,
   Bug,
@@ -36,7 +49,6 @@ import {
   Moon,
   MoonStar,
   RefreshCw,
-  Ruler,
   Sun,
   SunMedium,
   Sunrise,
@@ -164,7 +176,7 @@ function DevtoolPanel() {
       {/* Scrollable content */}
       <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
         <FrontmatterModule />
-        <RulerModule />
+        <ReadingModule />
         <GradientModule />
         <WeatherModule />
         <AmbientTimeModule />
@@ -367,53 +379,154 @@ function FrontmatterModule() {
 }
 
 // =============================================================================
-// Ruler ToC Module
-// Switches which screen edge the reading ruler docks to. The setting
-// persists (localStorage) and applies even with the devtool disabled.
+// Reading Module
+// Article reading-surface variations. Each setting persists (localStorage)
+// and applies even with the devtool disabled — the panel is just the UI.
+//   · Typeface  — body copy: sans or serif
+//   · Measure   — reading column width: narrow / default / wide
+//   · Bleed     — let wide media break out of the reading column on desktop
+//   · Focus     — dim every block but the one at the reading line
+//   · Ruler ToC — which screen edge the reading ruler docks to
 // =============================================================================
 
-function RulerModule() {
+/** Compact label + control row shared by the reading settings. */
+function PanelRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+        {label}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+/** Pill on/off switch, matching the gradient/weather toggles. */
+function PanelToggle({
+  on,
+  onClick,
+  label,
+}: {
+  on: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
+        on ? "bg-green-500/90 border-green-500/70" : "bg-muted/40 border-border/60"
+      )}
+      aria-pressed={on}
+      aria-label={label}
+    >
+      <span
+        className={cn(
+          "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
+          on ? "translate-x-4" : "translate-x-0.5"
+        )}
+      />
+    </button>
+  );
+}
+
+/** Segmented single-select, matching the ruler dock control. */
+function PanelSegmented<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: { value: T; label: string; title?: string }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="flex shrink-0 overflow-hidden rounded-md border border-border/60">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          onClick={() => onChange(o.value)}
+          title={o.title}
+          className={cn(
+            "px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
+            value === o.value
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+          aria-pressed={value === o.value}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ReadingModule() {
   const { locale } = useLocale();
+  const zh = locale === "zh";
+  const font = useReadingFont();
+  const measure = useReadingMeasure();
+  const bleed = useBleedEnabled();
+  const focus = useReadingFocus();
   const side = useRulerSide();
 
+  const fonts: { value: ReadingFont; label: string }[] = [
+    { value: "sans", label: zh ? "无衬线" : "Sans" },
+    { value: "serif", label: zh ? "衬线" : "Serif" },
+  ];
+  const measures: { value: ReadingMeasure; label: string; title: string }[] = [
+    { value: "narrow", label: zh ? "窄" : "S", title: zh ? "窄" : "Narrow" },
+    { value: "default", label: zh ? "中" : "M", title: zh ? "标准" : "Default" },
+    { value: "wide", label: zh ? "宽" : "L", title: zh ? "宽" : "Wide" },
+  ];
   const sides: { value: RulerSide; label: string }[] = [
-    { value: "left", label: locale === "zh" ? "左" : "Left" },
-    { value: "right", label: locale === "zh" ? "右" : "Right" },
+    { value: "left", label: zh ? "左" : "Left" },
+    { value: "right", label: zh ? "右" : "Right" },
   ];
 
   return (
     <DebugSection
-      id="ruler"
-      title={locale === "zh" ? "标尺目录" : "Ruler ToC"}
-      icon={<Ruler className="h-4 w-4" />}
+      id="reading"
+      title={zh ? "阅读" : "Reading"}
+      icon={<BookOpen className="h-4 w-4" />}
       compact
-      action={
-        <span className="text-[10px] font-mono text-muted-foreground uppercase">
-          {side}
-        </span>
-      }
     >
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-          {locale === "zh" ? "停靠边缘" : "Dock edge"}
-        </span>
-        <div className="flex overflow-hidden rounded-md border border-border/60">
-          {sides.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => setRulerSide(value)}
-              className={cn(
-                "px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
-                side === value
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-              aria-pressed={side === value}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      <div className="space-y-3">
+        <PanelRow label={zh ? "字体" : "Typeface"}>
+          <PanelSegmented value={font} options={fonts} onChange={setReadingFont} />
+        </PanelRow>
+        <PanelRow label={zh ? "宽度" : "Measure"}>
+          <PanelSegmented
+            value={measure}
+            options={measures}
+            onChange={setReadingMeasure}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "满溢出血" : "Media bleed"}>
+          <PanelToggle
+            on={bleed}
+            onClick={() => setBleedEnabled(!bleed)}
+            label="Toggle media bleed"
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "专注模式" : "Focus mode"}>
+          <PanelToggle
+            on={focus}
+            onClick={() => setReadingFocus(!focus)}
+            label="Toggle focus mode"
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "标尺停靠" : "Ruler dock"}>
+          <PanelSegmented value={side} options={sides} onChange={setRulerSide} />
+        </PanelRow>
       </div>
     </DebugSection>
   );

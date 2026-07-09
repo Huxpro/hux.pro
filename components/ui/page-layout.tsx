@@ -114,6 +114,7 @@ export function PageLayout({
 
   return (
     <main
+      data-variant={variant}
       className={cn(
         "mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32 sm:pb-40",
         className

@@ -34,6 +34,7 @@
 
 import { CodeBlock } from "@/components/code-block";
 import { HeadingWithLink } from "@/components/heading-link";
+import { MdxImage } from "@/components/mdx-image";
 import { HStackWidget, VStackWidget } from "@/components/home/featured-stack-widget";
 import { Playground } from "@/components/playground";
 import {
@@ -151,6 +152,9 @@ const sharedComponents: MDXComponents = {
   code: InlineCode,
   pre: CodeBlock,
   table: TableWrapper,
+  // Auto-decides "bleed out" from intrinsic dimensions; override per image
+  // with a #bleed / #no-bleed URL fragment. @see components/mdx-image.tsx
+  img: MdxImage,
   // HeadingWithLink is a client component for interactive copy-link functionality
   h1: (props) => <HeadingWithLink level={1} {...props} />,
   h2: (props) => <HeadingWithLink level={2} {...props} />,

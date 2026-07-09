@@ -505,6 +505,80 @@ html.dragging * {
   @apply my-8 rounded-lg;
 }
 
+/* Raw embeds (e.g. YouTube <iframe>) authored directly in MDX.
+   The hardcoded width/height attributes overflow the viewport on mobile,
+   so force a responsive 16:9 box that never exceeds the content width. */
+.prose-article iframe:not(:where(.not-prose, .not-prose *)) {
+  @apply my-8 w-full max-w-full rounded-lg;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+/* Desktop "bleed out": on wide screens, let landscape media break out of the
+   680px reading column and grow toward the viewport, Medium-style. Applies to
+   video embeds and to images flagged data-bleed="true" (see components/
+   mdx-image.tsx — wide, high-res captures opt in automatically, overridable
+   per image with a #bleed / #no-bleed URL fragment).
+
+   Stays viewport-centered via the margin-left:50% + translateX(-50%) trick
+   (percentages resolve against the prose column, which is itself centered),
+   caps at 60rem so it never sprawls on ultra-wide displays, and keeps a 7rem
+   gutter each side so it clears the fixed ruler ToC docked at the edge.
+   Images keep their natural aspect ratio (height stays auto); only the video
+   iframe is locked to 16:9 by the base rule above. */
+@media (min-width: 900px) {
+  .prose-article iframe:not(:where(.not-prose, .not-prose *)),
+  .prose-article img[data-bleed="true"]:not(:where(.not-prose, .not-prose *)) {
+    width: min(60rem, 100vw - 14rem);
+    max-width: none;
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* Global dev-time kill switch: the devtool "Reading" panel reflects the
+     bleed setting onto <html data-bleed-off>, which snaps every bleed element
+     back to column width. Higher specificity than the rule above, same query. */
+  :root[data-bleed-off]
+    .prose-article
+    iframe:not(:where(.not-prose, .not-prose *)),
+  :root[data-bleed-off]
+    .prose-article
+    img[data-bleed="true"]:not(:where(.not-prose, .not-prose *)) {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    transform: none;
+  }
+}
+
+/* =============================================================================
+   Reading settings — devtool "Reading" panel, reflected onto <html data-*>.
+   ============================================================================= */
+
+/* Body typeface: serif mode swaps prose body copy to the serif stack. Headings
+   keep their explicit `font-sans`; code/quote/em keep their own families. */
+:root[data-reading-font="serif"] .prose-article {
+  @apply font-serif;
+}
+
+/* Reading measure: widen/narrow the reader column. Only the reader variant's
+   container is affected; poetic pages (home, lists) keep their width. */
+:root[data-reading-measure="narrow"] main[data-variant="reader"] {
+  max-width: 600px;
+}
+:root[data-reading-measure="wide"] main[data-variant="reader"] {
+  max-width: 760px;
+}
+
+/* Focus mode: dim every prose block except the one at the reading line, which
+   ReadingRootSync flags by removing `.reading-dim`. */
+:root[data-reading-focus] .prose-article > * {
+  transition: opacity 0.5s ease;
+}
+:root[data-reading-focus] .prose-article > .reading-dim {
+  opacity: 0.28;
+}
+
 .prose-article figure:not(:where(.not-prose, .not-prose *)) {
   @apply my-8;
 }
