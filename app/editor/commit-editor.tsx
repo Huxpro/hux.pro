@@ -623,6 +623,8 @@ function FormFields({
 
 const ATTACH_AUTO = "__auto__";
 const ATTACH_DETACH = "__detach__";
+const ROLE_PREFIX = "role:";
+const IDENT_PREFIX = "id:";
 
 type Resolution =
   | { kind: "identity"; identityId: string; handle?: string; accent?: string; source: string }
@@ -714,17 +716,27 @@ function IdentityRailSection({
   const identityIds = Object.keys(identities);
   const editable = commit.type !== "role" && commit.type !== "event";
 
-  const attachValue =
-    commit.attachedTo === null
+  // ONE mutually-exclusive control for both axes. `identityId` and
+  // `attachedTo` overlap (and `identityId` silently wins in resolveIdentity),
+  // so exposing them as two independent fields invites contradictory state
+  // (e.g. Detach + an identity override). Collapse them into a single choice —
+  // Auto / Detach / pin-to-role / pin-to-identity — that can't contradict
+  // itself: picking any option clears the other field.
+  const anchorValue = commit.identityId
+    ? IDENT_PREFIX + commit.identityId
+    : commit.attachedTo === null
       ? ATTACH_DETACH
       : typeof commit.attachedTo === "string"
-        ? commit.attachedTo
+        ? ROLE_PREFIX + commit.attachedTo
         : ATTACH_AUTO;
 
-  const onAttachChange = (v: string) => {
-    if (v === ATTACH_AUTO) onUpdate({ attachedTo: undefined });
-    else if (v === ATTACH_DETACH) onUpdate({ attachedTo: null });
-    else onUpdate({ attachedTo: v });
+  const onAnchorChange = (v: string) => {
+    if (v === ATTACH_DETACH) onUpdate({ attachedTo: null, identityId: undefined });
+    else if (v.startsWith(ROLE_PREFIX))
+      onUpdate({ attachedTo: v.slice(ROLE_PREFIX.length), identityId: undefined });
+    else if (v.startsWith(IDENT_PREFIX))
+      onUpdate({ identityId: v.slice(IDENT_PREFIX.length), attachedTo: undefined });
+    else onUpdate({ attachedTo: undefined, identityId: undefined }); // Auto
   };
 
   return (
@@ -777,37 +789,37 @@ function IdentityRailSection({
       )}
 
       {editable && (
-        <>
-          <ChoiceField
-            label="Rail"
-            variant="dropdown"
-            value={attachValue}
-            options={[
-              { value: ATTACH_AUTO, label: "Auto (tenure)" },
-              { value: ATTACH_DETACH, label: "Detach (off rail)" },
-              ...roles.map((r) => ({
-                value: r.id,
-                label: `Attach → ${r.title.en || r.id}`,
-              })),
-            ]}
-            onChange={onAttachChange}
-          />
-          <ChoiceField
-            label="Identity"
-            variant="dropdown"
-            value={commit.identityId ?? ATTACH_AUTO}
-            options={[
-              { value: ATTACH_AUTO, label: "Auto (resolve)" },
-              ...identityIds.map((id) => ({
-                value: id,
-                label: identities[id].handle,
-              })),
-            ]}
-            onChange={(v) =>
-              onUpdate({ identityId: v === ATTACH_AUTO ? undefined : v })
-            }
-          />
-        </>
+        <label className="flex items-center gap-2">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 w-20 shrink-0 text-right">
+            Anchor
+          </span>
+          <select
+            value={anchorValue}
+            onChange={(e) => onAnchorChange(e.target.value)}
+            className="flex-1 bg-transparent border border-border/50 rounded px-2 py-1 text-sm focus:outline-none focus:border-foreground/30 transition-colors"
+          >
+            <option value={ATTACH_AUTO}>Auto (tenure)</option>
+            <option value={ATTACH_DETACH}>Detach (off rail)</option>
+            {roles.length > 0 && (
+              <optgroup label="Pin to role (rail / beam)">
+                {roles.map((r) => (
+                  <option key={r.id} value={ROLE_PREFIX + r.id}>
+                    {r.title.en || r.id}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {identityIds.length > 0 && (
+              <optgroup label="Pin to identity (byline)">
+                {identityIds.map((id) => (
+                  <option key={id} value={IDENT_PREFIX + id}>
+                    {identities[id].handle}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        </label>
       )}
     </>
   );
