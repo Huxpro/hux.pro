@@ -151,6 +151,20 @@
         "tagId": "lynx-era"
       },
       "limit": 6
+    },
+    {
+      "id": "featured-personal-talks",
+      "title": {
+        "en": "Featured personal talks",
+        "zh": "精选个人分享"
+      },
+      "column": "left",
+      "href": "/works",
+      "commitIds": [
+        "bilibili-sabbatical-2023",
+        "juejin-talk-2023",
+        "feday-2023"
+      ]
     }
   ],
   "identities": {
