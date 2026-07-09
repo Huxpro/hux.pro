@@ -323,17 +323,20 @@ export function MediaRenderer({
     grid: "grid grid-cols-1 md:grid-cols-2 gap-4",
   };
 
-  // Partition by visual family. Cards (kind:link + present:card) and social
-  // widgets tile side-by-side when multiple; players (video / image) stack
-  // vertically; pills collapse into a chip row at the end. Pre-resolved by
-  // commit-data into the right buckets via the pinned flag.
-  const cards = media.filter((m) => isLinkCard(m) || isSocialEmbedMedia(m));
-  const players = media.filter((m) => isVideoMedia(m) || isImageMedia(m));
+  // Partition into "rich" media (videos / images / link-cards / social
+  // widgets — anything with a real cover) and pills. Rich items keep their
+  // authored order so a video + card interleave the way the author wrote them.
+  const rich = media.filter(
+    (m) =>
+      isVideoMedia(m) ||
+      isImageMedia(m) ||
+      isLinkCard(m) ||
+      isSocialEmbedMedia(m),
+  );
   const pills = media.filter(isLinkPill);
-  const hasRichMedia = cards.length > 0 || players.length > 0;
 
   // Pill-only renderings: inline chip row, no surrounding layout box.
-  if (!hasRichMedia && pills.length > 0) {
+  if (rich.length === 0 && pills.length > 0) {
     return (
       <div className={cn("flex flex-wrap gap-3", className)}>
         {pills.map((m, i) =>
@@ -348,86 +351,51 @@ export function MediaRenderer({
     );
   }
 
-  const multipleCards = cards.length > 1;
-  // Three or more cards become a horizontal scroll-snap rail (see below):
-  // a multi-column grid crushes every card below readability on the desktop
-  // column and wraps awkwardly on mobile. Two cards keep the side-by-side grid.
-  const scrollRail = cards.length >= 3;
+  // 2+ rich items — regardless of family — become a horizontal scroll-snap
+  // rail rather than a vertical stack. Two videos, a video + a card, or three
+  // cards all read as a compact side-by-side row instead of a tall pile. A
+  // single rich item renders full-width as before (big player / full card).
+  const useRail = rich.length >= 2;
 
   return (
     <div className={cn(layoutClasses[layout], className)}>
-      {/* Players (video / image) — vertical stack. */}
-      {players.map((m, i) =>
-        wrap(
-          `player-${i}`,
-          m,
-          <SingleMedia media={m} theme={theme} size={size} />,
-        ),
-      )}
-
-      {/* Cards (link-cards + social widgets) — two tile side-by-side; three
-          or more become a horizontal scroll-snap rail. */}
-      {cards.length > 0 && (
-        <div>
-          {scrollRail ? (
-            // Three or more cards → horizontal scroll-snap rail. The rail's
-            // *nominal* width is the content column, so the first two cards
-            // line up pixel-for-pixel with a two-card commit (e.g. "Upgrading
-            // to PWA"). The scroll *track* then bleeds one full page gutter
-            // (`-mr-6`, matching `<main>`'s `px-6`) past that footprint, so
-            // the next card's edge runs right up to the page edge on mobile
-            // and into the reading column's gutter on desktop.
-            //
-            // The trick that reconciles "keep two-up width" with "show a peek"
-            // is the card width: it's measured against the container
-            // (`100cqi`), NOT the bled track, so every card stays at its exact
-            // 1/2-column size (uniform gaps) while only the track overflows.
-            // `CardScrollRail` owns that container plus the scroll-position
-            // edge fades; here we only size the cards.
-            <CardScrollRail>
-              {cards.map((m, i) => (
-                <div
-                  key={`rail-${i}`}
-                  // Each card is exactly a two-up column: (100cqi − gap)/2.
-                  className="shrink-0 snap-start basis-[calc((100cqi_-_0.625rem)/2)]"
-                >
-                  {wrap(
-                    `rail-card-${i}`,
-                    m,
-                    <SingleMedia
-                      media={m}
-                      theme={theme}
-                      size="compact"
-                      dense
-                      className="w-full max-w-none"
-                    />,
-                  )}
-                </div>
-              ))}
-            </CardScrollRail>
-          ) : (
+      {useRail ? (
+        // The rail's *nominal* width is the content column, so the first two
+        // items line up pixel-for-pixel with a two-item commit. The scroll
+        // *track* bleeds one full page gutter (`-mr-6`, matching `<main>`'s
+        // `px-6`) past that footprint so the next item's edge peeks at the
+        // page edge. Each cell is measured against the container (`100cqi`),
+        // NOT the bled track, so every cell stays exactly 1/2-column.
+        // `self-start` lets each cell keep its natural height, so a 16:9 video
+        // next to a taller card doesn't get stretched out of aspect.
+        <CardScrollRail>
+          {rich.map((m, i) => (
             <div
-              className={cn(
-                // grid default `items-stretch` keeps tiled cards equal height.
-                multipleCards && "grid grid-cols-2 gap-2.5",
-              )}
+              key={`rail-${i}`}
+              className="shrink-0 self-start snap-start basis-[calc((100cqi_-_0.625rem)/2)]"
             >
-              {cards.map((m, i) =>
-                wrap(
-                  `card-${i}`,
-                  m,
-                  <SingleMedia
-                    media={m}
-                    theme={theme}
-                    size={multipleCards ? "compact" : size}
-                    dense={multipleCards}
-                    className={multipleCards ? "w-full max-w-none" : undefined}
-                  />,
-                ),
+              {wrap(
+                `rail-item-${i}`,
+                m,
+                <SingleMedia
+                  media={m}
+                  theme={theme}
+                  size="compact"
+                  dense
+                  className="w-full max-w-none"
+                />,
               )}
             </div>
-          )}
-        </div>
+          ))}
+        </CardScrollRail>
+      ) : (
+        rich.map((m, i) =>
+          wrap(
+            `rich-${i}`,
+            m,
+            <SingleMedia media={m} theme={theme} size={size} />,
+          ),
+        )
       )}
 
       {/* Pills at the end. */}

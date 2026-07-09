@@ -28,7 +28,11 @@ import {
   getMediaThumbnail,
 } from "@/lib/log";
 import { pickInternalLink } from "@/lib/og-enrich";
-import { detectSocialEmbedPlatform, getDomainLabel } from "@/lib/og-core";
+import {
+  detectSocialEmbedPlatform,
+  getDomainLabel,
+  isVideoLinkHost,
+} from "@/lib/og-core";
 
 // =============================================================================
 // Types
@@ -88,7 +92,7 @@ export interface NormalizedCommit {
   pinnedMedia: Media[];
 
   // Compact rendering
-  thumbnail?: { url: string; linkUrl?: string };
+  thumbnail?: { url: string; linkUrl?: string; isVideo?: boolean };
   secondaryLine?: string;
 }
 
@@ -219,17 +223,20 @@ function getPlatformIcon(platform: string): string {
  */
 function deriveThumbnail(
   media: Media[],
-): { url: string; linkUrl?: string } | undefined {
+): { url: string; linkUrl?: string; isVideo?: boolean } | undefined {
   for (const m of media) {
-    if (isVideoMedia(m) || isImageMedia(m)) {
+    const isVideo = isVideoMedia(m);
+    if (isVideo || isImageMedia(m)) {
       const thumb = getMediaThumbnail(m);
-      if (thumb) return { url: thumb, linkUrl: m.url };
+      if (thumb) return { url: thumb, linkUrl: m.url, isVideo };
     }
   }
   for (const m of media) {
     if (isLinkMedia(m) && m.present === "card") {
       const thumb = getMediaThumbnail(m);
-      if (thumb) return { url: thumb, linkUrl: m.url };
+      // A card cover pointing at a talk-recording host (GitNation) reads as a
+      // video in the compact cover, matching the play affordance on the card.
+      if (thumb) return { url: thumb, linkUrl: m.url, isVideo: isVideoLinkHost(m.url) };
     }
   }
   return undefined;

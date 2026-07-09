@@ -5,6 +5,24 @@
     "image": "https://gitee.com/index/gitee-people/images/common-thumb.jpg",
     "siteName": "Gitee"
   },
+  "https://gitnation.com/contents/lynx-ui-dual-threaded-ui-with-lynx": {
+    "title": "lynx-ui: Best Lynx in Components",
+    "description": "Shun discusses challenges in building React components for production, especially for mobile web; explores building complex mobile apps like TikTok with LYNX technology; introduces Lynx UI components for native user experiences; showcases customizable interactions with Lynx UI, including custom animation with MTS logic; demonstrates building composable dialog components and customizable design integration; extends Design System to TikTok with MotionJS adaptation and sponsorship announcement; introduces LYNX UI Theme LUNA and upcoming multi-platform app release.",
+    "image": "https://gn-portal-og-images.vercel.app/lynx-ui-dual-threaded-ui-with-lynx?v3-1765339363498",
+    "siteName": "gitnation.com"
+  },
+  "https://gitnation.com/contents/lynx-unlock-native-for-more": {
+    "title": "Lynx: Unlock Native for More by Xuan Huang",
+    "description": "Shen's first English talk at a conference introducing Lynx project with viral success, Lynx leveraging web technologies for multi-platform development, bridging web strengths with native capabilities, enhancing development capabilities with native UI elements, instant rendering, MTS enabling man-thread scripting and CSS support, exploration of Tailwind integration, embracing Haskell in Lynx for cross-platform thinking.",
+    "image": "https://gn-portal-og-images.vercel.app/lynx-unlock-native-for-more?v3-1750864013686",
+    "siteName": "gitnation.com"
+  },
+  "https://gitnation.com/contents/panel-discussion-3239": {
+    "title": "Panel Discussion: Write Once, Render Anywhere",
+    "description": "Taz Singh, experienced JavaScript developer, recalls early struggles with JavaScript for video games. Transitioned to React development after initial skepticism. Explored React Native for mobile app development and React Native web. Introducing Nicola Corti, Jorge, and Swan from React teams. Swan questioned on moving from React to Linx. Discussion on React, Linx, and shared experiences. Discussing the challenges and importance of open source advocacy and aligning internal priorities with external ecosystem growth at big tech companies like Meta and ByteDance. Discussing the alignment of internal priorities with external ecosystem growth and the challenges faced in open-sourcing technologies at ByteDance and Meta. React Native's focus on React, combined with efforts to make web technologies work effectively, showcases diverse perspectives in enhancing technology solutions and fostering collaborative learning. Amazon's groundbreaking shipping of React Native, coupled with a democratic approach to React's evolution, signals the next chapter for the ecosystem and community. AI's impact on cross-platform development, the use of agents for React and React Native, and challenges in maintaining app parity between platforms. AI's role in UI frameworks evolution and the importance of human-centric design for AI integration, gratitude for open-source contributions.",
+    "image": "https://gn-portal-og-images.vercel.app/panel-discussion-3239?v3-1765261277756",
+    "siteName": "gitnation.com"
+  },
   "https://lynxjs.org/next/blog/lynx-unlock-native-for-more": {
     "title": "Lynx: Unlock Native for More - Lynx",
     "description": "Today, we",
@@ -54,6 +72,9 @@
     "description": "Ele.me is the biggest food ordering and delivery company in mainland China. They built their Progressive Web App (PWA) as a multi-page app to improve its mobile web experience, making it faster and more reliable in flaky connections, while accommodating their operational needs to best serve their customers.",
     "image": "https://web.dev/static/images/social-wide.jpg",
     "siteName": "web.dev"
+  },
+  "https://www.bilibili.com/video/BV1A1XxYXERk": {
+    "image": "https://i1.hdslb.com/bfs/archive/a83de40a3936f6ec3adad3a7f99502d76f0f78b2.jpg"
   },
   "https://www.bilibili.com/video/BV1LY411Q7hC/": {
     "image": "https://i2.hdslb.com/bfs/archive/4c3f37e14fa699846fa526c129298f30d60f901f.jpg"

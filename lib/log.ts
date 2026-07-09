@@ -974,19 +974,24 @@ export function isCommitVisibleIn(commit: Commit, locale: Locale): boolean {
 }
 
 /**
- * The badge label to show for a commit whose intrinsic language differs
- * from the viewer's locale. Returns null when no badge should appear:
- * no language set, language is "both", or language matches locale.
+ * The badge label ("EN" / "中文", native form, not ISO codes) for a commit's
+ * intrinsic language. Returns null when no badge should appear: no language
+ * set, or language is "both".
  *
- * Mirrors the /writing list convention: each language is labeled in its
- * own native form ("EN" / "中文") rather than ISO codes.
+ * A talk is delivered in one language and can't be translated, so its badge
+ * is always shown — the language is intrinsic information the viewer should
+ * see regardless of their own locale. For translatable works (posts, whose
+ * text has both an EN and a 中文 version), the badge only flags a *mismatch*
+ * — i.e. "this piece isn't in your locale" — so it stays silent when the
+ * language already matches the viewer.
  */
 export function getCommitLanguageBadge(
   commit: Commit,
   locale: Locale,
 ): "EN" | "中文" | null {
   const lang = commit.language;
-  if (!lang || lang === "both" || lang === locale) return null;
+  if (!lang || lang === "both") return null;
+  if (commit.type !== "talk" && lang === locale) return null;
   return lang === "en" ? "EN" : "中文";
 }
 

@@ -103,6 +103,19 @@ export function getDomainLabel(url: string): string {
 }
 
 /**
+ * True when a link points at a talk-recording host — a page that IS a video
+ * even though we render it as an OG card (no embeddable iframe / derivable
+ * cover, unlike YouTube/Bilibili). Used to give such cards a "video-ish" play
+ * affordance so a GitNation talk reads like the recording it is.
+ */
+const VIDEO_LINK_HOSTS = ["gitnation.com"];
+export function isVideoLinkHost(url: string): boolean {
+  const host = getHostname(url)?.toLowerCase();
+  if (!host) return false;
+  return VIDEO_LINK_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
+}
+
+/**
  * Fetch and parse Open Graph metadata from a URL.
  *
  * Never throws — failures are reported via `ok: false` so callers can decide

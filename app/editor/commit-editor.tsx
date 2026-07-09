@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type {
   Commit,
@@ -11,14 +11,21 @@ import type {
   LinkPresent,
   VideoPlatform,
   SocialEmbedPlatform,
+  Identity,
+  RoleCommit,
 } from "@/lib/log";
-import { X, Trash2, Plus } from "lucide-react";
+import { resolveIdentity, sortCommitsByDate } from "@/lib/log";
+import { X, Trash2, Plus, Unlink, GitBranch, AlertTriangle } from "lucide-react";
 import { commitIcons } from "@/components/log/icons";
 import { toast } from "sonner";
 
 interface CommitEditorProps {
   commit: Commit;
   tags: Tag[];
+  /** All commits (roles included) — powers live identity/rail resolution. */
+  commits: Commit[];
+  /** Identity metadata lookup — powers the readout + override dropdown. */
+  identities: Record<string, Identity>;
   onUpdate: (commit: Commit) => void;
   onDelete: () => void;
   onClose: () => void;
@@ -274,6 +281,8 @@ function defaultFieldsForType(type: CommitType): Partial<Commit> {
 export function CommitEditor({
   commit,
   tags,
+  commits,
+  identities,
   onUpdate,
   onDelete,
   onClose,
@@ -420,6 +429,8 @@ export function CommitEditor({
           <FormFields
             commit={commit}
             tags={tags}
+            commits={commits}
+            identities={identities}
             onUpdate={update}
             onTypeChange={handleTypeChange}
             focusMediaIndex={focusMediaIndex}
@@ -438,6 +449,8 @@ export function CommitEditor({
 function FormFields({
   commit,
   tags,
+  commits,
+  identities,
   onUpdate,
   onTypeChange,
   focusMediaIndex,
@@ -445,6 +458,8 @@ function FormFields({
 }: {
   commit: Commit;
   tags: Tag[];
+  commits: Commit[];
+  identities: Record<string, Identity>;
   onUpdate: (partial: Record<string, unknown>) => void;
   onTypeChange: (type: CommitType) => void;
   focusMediaIndex?: number | null;
@@ -508,6 +523,13 @@ function FormFields({
           { value: "graduation-cap", label: "grad-cap" },
         ]}
         onChange={(v) => onUpdate({ icon: v === "" ? undefined : v })}
+      />
+
+      <IdentityRailSection
+        commit={commit}
+        commits={commits}
+        identities={identities}
+        onUpdate={onUpdate}
       />
 
       <SectionLabel>Title</SectionLabel>
@@ -585,6 +607,227 @@ function FormFields({
         onFocusIndexChange={onFocusMediaIndexChange}
       />
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Identity & Rail section
+//
+// Surfaces the otherwise-invisible identity/rail system: which identity a
+// commit resolves to (and *why* — tenure vs explicit vs attached vs detached),
+// a control to attach/detach/override it, and a warning when a detached commit
+// punches a hole in an otherwise-continuous identity cluster. Mirrors the
+// runtime logic in `resolveIdentity` / `computeRail` so the editor readout
+// matches what /works actually renders.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ATTACH_AUTO = "__auto__";
+const ATTACH_DETACH = "__detach__";
+const ROLE_PREFIX = "role:";
+const IDENT_PREFIX = "id:";
+
+type Resolution =
+  | { kind: "identity"; identityId: string; handle?: string; accent?: string; source: string }
+  | { kind: "detached"; note: string }
+  | { kind: "none"; note: string };
+
+/** Resolve a commit's effective identity + a human label for *why*. */
+function describeResolution(
+  commit: Commit,
+  tagCommits: Commit[],
+  identities: Record<string, Identity>,
+): Resolution {
+  if (commit.type === "event") {
+    return { kind: "none", note: "Events never join a rail." };
+  }
+  const resolved = resolveIdentity(commit, tagCommits);
+  if (!resolved) {
+    if (commit.attachedTo === null) {
+      return { kind: "detached", note: "Force-detached (attachedTo: null)." };
+    }
+    return { kind: "none", note: "No role covers this date — nothing to attach to." };
+  }
+  const ident = identities[resolved.identityId];
+  let source: string;
+  if (commit.type === "role") {
+    source = "role — anchors this cluster";
+  } else if (commit.identityId) {
+    source = "explicit identityId";
+  } else if (
+    typeof commit.attachedTo === "string" &&
+    tagCommits.some((c) => c.id === commit.attachedTo && c.type === "role")
+  ) {
+    source = `attached → ${commit.attachedTo}`;
+  } else {
+    source = resolved.role ? `tenure → ${resolved.role.id}` : "tenure";
+  }
+  return {
+    kind: "identity",
+    identityId: resolved.identityId,
+    handle: ident?.handle,
+    accent: ident?.accentColor,
+    source,
+  };
+}
+
+/**
+ * Detect the exact failure mode of hand-authored `attachedTo: null`: a
+ * detached row whose nearest identity-bearing neighbours (above and below,
+ * in render sort order within its tag) belong to the SAME identity. Such a
+ * row sits *inside* that identity's bracket and breaks the continuous rail.
+ * Returns the identity id it interrupts, or null.
+ */
+function detectRailHole(commit: Commit, tagCommits: Commit[]): string | null {
+  if (resolveIdentity(commit, tagCommits)) return null; // only detached rows
+  const sorted = sortCommitsByDate(tagCommits);
+  const idx = sorted.findIndex((c) => c.id === commit.id);
+  if (idx < 0) return null;
+  // Identity of the nearest identity-bearing neighbour, walking `step` rows
+  // at a time (−1 = up, +1 = down).
+  const nearest = (step: number): string | null => {
+    for (let i = idx + step; i >= 0 && i < sorted.length; i += step) {
+      const r = resolveIdentity(sorted[i], tagCommits);
+      if (r) return r.identityId;
+    }
+    return null;
+  };
+  const above = nearest(-1);
+  const below = nearest(1);
+  return above && below && above === below ? above : null;
+}
+
+function IdentityRailSection({
+  commit,
+  commits,
+  identities,
+  onUpdate,
+}: {
+  commit: Commit;
+  commits: Commit[];
+  identities: Record<string, Identity>;
+  onUpdate: (partial: Record<string, unknown>) => void;
+}) {
+  // Rails are computed per-tag (buildTimelineData filters by tag before
+  // computeRail), so resolve within the commit's own tag for parity. Derived
+  // together in one memo so the filter / sort / identity resolutions don't
+  // re-run on unrelated re-renders of the inspector.
+  const { resolution, hole, roles } = useMemo(() => {
+    const tagCommits = commits.filter((c) => c.tagId === commit.tagId);
+    return {
+      resolution: describeResolution(commit, tagCommits, identities),
+      hole: detectRailHole(commit, tagCommits),
+      roles: tagCommits.filter((c): c is RoleCommit => c.type === "role"),
+    };
+  }, [commit, commits, identities]);
+  const identityIds = Object.keys(identities);
+  const editable = commit.type !== "role" && commit.type !== "event";
+
+  // ONE mutually-exclusive control for both axes. `identityId` and
+  // `attachedTo` overlap (and `identityId` silently wins in resolveIdentity),
+  // so exposing them as two independent fields invites contradictory state
+  // (e.g. Detach + an identity override). Collapse them into a single choice —
+  // Auto / Detach / pin-to-role / pin-to-identity — that can't contradict
+  // itself: picking any option clears the other field.
+  const anchorValue = commit.identityId
+    ? IDENT_PREFIX + commit.identityId
+    : commit.attachedTo === null
+      ? ATTACH_DETACH
+      : typeof commit.attachedTo === "string"
+        ? ROLE_PREFIX + commit.attachedTo
+        : ATTACH_AUTO;
+
+  const onAnchorChange = (v: string) => {
+    if (v === ATTACH_DETACH) onUpdate({ attachedTo: null, identityId: undefined });
+    else if (v.startsWith(ROLE_PREFIX))
+      onUpdate({ attachedTo: v.slice(ROLE_PREFIX.length), identityId: undefined });
+    else if (v.startsWith(IDENT_PREFIX))
+      onUpdate({ identityId: v.slice(IDENT_PREFIX.length), attachedTo: undefined });
+    else onUpdate({ attachedTo: undefined, identityId: undefined }); // Auto
+  };
+
+  return (
+    <>
+      <SectionLabel>Identity &amp; Rail</SectionLabel>
+
+      {/* Live resolved readout — the missing "why". */}
+      <div className="flex items-start gap-2">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 w-20 shrink-0 text-right pt-0.5">
+          Resolved
+        </span>
+        <div className="flex-1 text-xs">
+          {resolution.kind === "identity" ? (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <GitBranch className="w-3 h-3 text-muted-foreground/50 shrink-0" />
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: resolution.accent ?? "var(--muted-foreground)" }}
+              />
+              <span className="font-medium">{resolution.handle ?? resolution.identityId}</span>
+              <span className="font-mono text-[10px] text-muted-foreground/60">
+                {resolution.source}
+              </span>
+            </div>
+          ) : resolution.kind === "detached" ? (
+            <div className="flex items-center gap-1.5 text-muted-foreground/70">
+              <Unlink className="w-3 h-3 shrink-0" />
+              <span>{resolution.note}</span>
+            </div>
+          ) : (
+            <span className="text-muted-foreground/50">{resolution.note}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Rail-hole warning — the juejin/feday mistake, caught in-editor. */}
+      {hole && (
+        <div className="flex items-start gap-2">
+          <span className="w-20 shrink-0" />
+          <div className="flex-1 flex items-start gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-600 dark:text-amber-400">
+            <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+            <span>
+              Detached, but sits inside the{" "}
+              <span className="font-medium">{identities[hole]?.handle ?? hole}</span>{" "}
+              cluster — this breaks the continuous rail. Set{" "}
+              <span className="font-mono">Rail</span> to Auto to reconnect it.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {editable && (
+        <label className="flex items-center gap-2">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 w-20 shrink-0 text-right">
+            Anchor
+          </span>
+          <select
+            value={anchorValue}
+            onChange={(e) => onAnchorChange(e.target.value)}
+            className="flex-1 bg-transparent border border-border/50 rounded px-2 py-1 text-sm focus:outline-none focus:border-foreground/30 transition-colors"
+          >
+            <option value={ATTACH_AUTO}>Auto (tenure)</option>
+            <option value={ATTACH_DETACH}>Detach (off rail)</option>
+            {roles.length > 0 && (
+              <optgroup label="Pin to role (rail / beam)">
+                {roles.map((r) => (
+                  <option key={r.id} value={ROLE_PREFIX + r.id}>
+                    {r.title.en || r.id}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {identityIds.length > 0 && (
+              <optgroup label="Pin to identity (byline)">
+                {identityIds.map((id) => (
+                  <option key={id} value={IDENT_PREFIX + id}>
+                    {identities[id].handle}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        </label>
+      )}
+    </>
   );
 }
 

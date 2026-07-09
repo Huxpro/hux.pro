@@ -14,12 +14,13 @@ import { ExternalLink as ExternalLinkIcon, Image as ImageIcon } from "lucide-rea
 import { cn } from "@/lib/utils";
 import { fetchOGData } from "@/lib/og";
 import type { OGData } from "@/lib/og-core";
-import { getDomainLabel, isArchivedUrl } from "@/lib/og-core";
+import { getDomainLabel, isArchivedUrl, isVideoLinkHost } from "@/lib/og-core";
 import type { InternalLinkMeta, LinkMedia } from "@/lib/log";
 import { pickInternalLink } from "@/lib/og-enrich";
 import { useLocale } from "@/services";
 import { ExternalImage } from "./external-image";
 import { PeekCover } from "./peek-cover";
+import { PlayBadge } from "./play-badge";
 import type { CoverFit } from "@/lib/content";
 
 // =============================================================================
@@ -203,6 +204,9 @@ export function CardFace({
 }: CardFaceProps) {
   const compact = size === "compact";
   const domain = domainLabel ?? getDomainLabel(url);
+  // Talk-recording links (GitNation) get a play affordance so the card reads
+  // as the video it is, even though it renders as an OG card.
+  const isVideo = isVideoLinkHost(url);
   const [imgLoaded, setImgLoaded] = useState(false);
   const handleResolved = () => {
     setImgLoaded(true);
@@ -262,7 +266,10 @@ export function CardFace({
         className,
       )}
     >
-      {slot}
+      <div className="relative shrink-0">
+        {slot}
+        {isVideo && <PlayBadge size={compact ? "compact" : "default"} />}
+      </div>
       <div className={cn("flex-1 space-y-1", compact ? "p-2.5" : "p-4")}>
         <div
           className={cn(
