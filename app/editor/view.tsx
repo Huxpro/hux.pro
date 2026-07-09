@@ -306,7 +306,11 @@ export function EditorView({ initialData }: EditorViewProps) {
         <div className="flex-1 overflow-y-auto p-8" onClick={handleCanvasClick}>
           <div className="max-w-2xl mx-auto">
             <TimelineEditProvider value={editContext}>
-              <LogTimeline data={previewData} locale={locale} />
+              <LogTimeline
+                data={previewData}
+                locale={locale}
+                identities={data.identities}
+              />
             </TimelineEditProvider>
             {/* Footer marker, matching works page */}
             <div className="mt-16 flex items-center gap-4">
