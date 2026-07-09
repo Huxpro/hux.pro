@@ -459,7 +459,7 @@
       "tagId": "lynx-era",
       "title": {
         "en": "Lynx: Unlock Native for More",
-        "zh": "Lynx：解锁更多原生可能"
+        "zh": "Lynx: Unlock Native for More"
       },
       "description": {
         "en": "Lynx, a new cross-platform stack adopted by the TikTok app that empowers teams to ship truly native UIs to mobile and web from a single codebase using their existing web skills like CSS and React, has recently been open sourced. In this talk, we'll explore what makes Lynx familiar and what sets it apart from other cross-platform technologies; we'll take a closer look at its dual-threaded design, and how that enables Lynx's instant launches and silky-smooth interactions, plus a sneak peek at what's next for Lynx.",
@@ -497,7 +497,7 @@
       "tagId": "lynx-era",
       "title": {
         "en": "React for Two Threads",
-        "zh": "为双线程而生的 React"
+        "zh": "React for Two Threads"
       },
       "description": {
         "en": "For over a decade, we've lived in a universe where programming UIs with React on the client-side, from event handling to rendering, has been ruled by a single JavaScript thread. But what if React had been born differently? What if, from day one, it had been designed to fully embrace two threads? What benefits would that unlock? What challenges would we face? And what new features, abstractions, and patterns might emerge? What if this isn't just imagination... but something that exists today?",
@@ -530,7 +530,7 @@
       "tagId": "lynx-era",
       "title": {
         "en": "React for Two Threads · Interview",
-        "zh": "《为双线程而生的 React》· 访谈"
+        "zh": "React for Two Threads · Interview"
       },
       "description": {
         "en": "A companion interview at React Universe Conf, going behind the scenes of React for Two Threads and Lynx's dual-threaded design.",
@@ -562,7 +562,7 @@
       "tagId": "lynx-era",
       "title": {
         "en": "lynx-ui: Best Lynx in Components",
-        "zh": "lynx-ui：组件中的最佳 Lynx"
+        "zh": "lynx-ui: Best Lynx in Components"
       },
       "description": {
         "en": "Ready-to-use components are vital to delivering user interfaces with velocity and scale. Introducing lynx-ui, the newest member of the Lynx family of cross-platform technologies behind TikTok. By taking advantage of Lynx's dual-threaded architecture, it offers high performance and native-graded interactivity. Join us to learn how we built it, and how it unlocks Lynx to scale across a massive range of products, even faster.",
@@ -595,7 +595,7 @@
       "tagId": "lynx-era",
       "title": {
         "en": "Panel: Write Once, Render Anywhere",
-        "zh": "圆桌讨论：一次编写，处处渲染"
+        "zh": "Panel: Write Once, Render Anywhere"
       },
       "description": {
         "en": "A panel discussion at React Advanced London on the promise and reality of cross-platform UI — writing once and rendering natively everywhere.",
@@ -834,7 +834,7 @@
       "attachedTo": "react-core",
       "title": {
         "en": "React without a Memo",
-        "zh": "没有 Memo 的 React"
+        "zh": "React without a Memo"
       },
       "description": {
         "en": "A practical talk about removing accidental complexity from React apps.",
