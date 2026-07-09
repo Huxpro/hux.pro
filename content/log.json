@@ -138,7 +138,7 @@
           "React"
         ]
       },
-      "limit": 1
+      "limit": 6
     },
     {
       "id": "featured-lynx-talks",
@@ -152,7 +152,7 @@
         "type": "talk",
         "tagId": "lynx-era"
       },
-      "limit": 3
+      "limit": 5
     }
   ],
   "identities": {

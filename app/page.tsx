@@ -136,7 +136,7 @@ function GroupWidget({ group }: { group: Group }) {
 
   if (layout === "v") {
     return (
-      <VStackWidget title={`/ ${title}`} href={href}>
+      <VStackWidget title={title} href={href}>
         {commits.map((commit) => (
           <Commit
             key={commit.id}
@@ -150,7 +150,7 @@ function GroupWidget({ group }: { group: Group }) {
   }
 
   return (
-    <HStackWidget title={`/ ${title}`} href={href}>
+    <HStackWidget title={title} href={href}>
       {commits.map((commit) => (
         <Commit
           key={commit.id}
