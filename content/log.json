@@ -132,13 +132,11 @@
       },
       "column": "left",
       "href": "/works",
-      "query": {
-        "type": "talk",
-        "tagsAny": [
-          "React"
-        ]
-      },
-      "limit": 6
+      "commitIds": [
+        "react-universe-2025-two-threads",
+        "coscon-2022",
+        "reactconf-2021-memo"
+      ]
     },
     {
       "id": "featured-lynx-talks",
@@ -152,7 +150,7 @@
         "type": "talk",
         "tagId": "lynx-era"
       },
-      "limit": 5
+      "limit": 6
     }
   ],
   "identities": {
@@ -502,11 +500,6 @@
           "kind": "video",
           "url": "https://youtu.be/-uUcYrl51JM",
           "platform": "youtube"
-        },
-        {
-          "kind": "video",
-          "url": "https://youtu.be/L_u08K7xc18",
-          "platform": "youtube"
         }
       ],
       "tags": [
@@ -514,6 +507,38 @@
         "Architecture",
         "Cross-Platform",
         "Lynx"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "react-universe-2025-interview",
+      "type": "talk",
+      "tagId": "lynx-era",
+      "title": {
+        "en": "React for Two Threads · Interview",
+        "zh": "《为双线程而生的 React》· 访谈"
+      },
+      "description": {
+        "en": "A companion interview at React Universe Conf, going behind the scenes of React for Two Threads and Lynx's dual-threaded design.",
+        "zh": "React Universe 大会的配套访谈，聊聊《为双线程而生的 React》与 Lynx 双线程设计的台前幕后。"
+      },
+      "date": "2025-09",
+      "conference": {
+        "name": "React Universe Conf",
+        "city": "Wrocław, Poland",
+        "url": "https://www.reactuniverseconf.com/"
+      },
+      "media": [
+        {
+          "kind": "video",
+          "url": "https://youtu.be/L_u08K7xc18",
+          "platform": "youtube"
+        }
+      ],
+      "tags": [
+        "Lynx",
+        "React",
+        "Interview"
       ],
       "language": "en"
     },
