@@ -12,6 +12,7 @@ import { useState, useMemo } from "react";
 import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./external-image";
+import { VideoModal } from "./video-modal";
 
 // =============================================================================
 // Types
@@ -129,7 +130,7 @@ export function BilibiliEmbed({
   size = "default",
   className,
 }: BilibiliEmbedProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const id = useMemo(() => parseBilibiliId(url), [url]);
   const embedUrl = useMemo(
     () => (id ? getEmbedUrl(id, page) : null),
@@ -161,13 +162,14 @@ export function BilibiliEmbed({
     );
   }
 
-  // Cover state: show thumbnail (or branded placeholder) with play button
-  if (!isPlaying) {
-    const idLabel = id.kind === "bvid" ? id.bvid : `av${id.aid}`;
-    return (
+  // Cover state: show thumbnail (or branded placeholder) with play button.
+  // Clicking opens the fullscreen autoplay modal.
+  const idLabel = id.kind === "bvid" ? id.bvid : `av${id.aid}`;
+  return (
+    <>
       <button
         type="button"
-        onClick={() => setIsPlaying(true)}
+        onClick={() => setIsOpen(true)}
         className={cn(
           "relative w-full aspect-video rounded-lg overflow-hidden",
           "border border-border/50",
@@ -202,27 +204,16 @@ export function BilibiliEmbed({
           </div>
         </div>
       </button>
-    );
-  }
 
-  // Player state: replace cover with the iframe after click
-  return (
-    <div
-      className={cn(
-        "relative w-full aspect-video rounded-lg overflow-hidden bg-black",
-        sizeClasses[size],
-        className
-      )}
-    >
-      <iframe
+      <VideoModal
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
         src={embedUrl}
         title="Bilibili video player"
-        allow="fullscreen"
-        allowFullScreen
-        scrolling="no"
+        allow="autoplay; fullscreen"
         sandbox="allow-scripts allow-same-origin allow-popups"
-        className="absolute inset-0 w-full h-full border-0"
+        scrolling="no"
       />
-    </div>
+    </>
   );
 }

@@ -11,6 +11,7 @@ import { useState } from "react";
 import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./external-image";
+import { VideoModal } from "./video-modal";
 
 // =============================================================================
 // Types
@@ -100,7 +101,7 @@ export function YouTubeEmbed({
   size = "default",
   className,
 }: YouTubeEmbedProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const videoId = extractYouTubeId(url);
 
   if (!videoId) {
@@ -129,12 +130,12 @@ export function YouTubeEmbed({
     large: "max-w-4xl",
   };
 
-  // Show thumbnail with play button
-  if (!isPlaying) {
-    return (
+  // Thumbnail cover — clicking opens the fullscreen autoplay modal.
+  return (
+    <>
       <button
         type="button"
-        onClick={() => setIsPlaying(true)}
+        onClick={() => setIsOpen(true)}
         className={cn(
           "relative w-full aspect-video rounded-lg overflow-hidden",
           "bg-muted/20 border border-border/50",
@@ -156,25 +157,14 @@ export function YouTubeEmbed({
           </div>
         </div>
       </button>
-    );
-  }
 
-  // Show embedded player
-  return (
-    <div
-      className={cn(
-        "relative w-full aspect-video rounded-lg overflow-hidden bg-black",
-        sizeClasses[size],
-        className
-      )}
-    >
-      <iframe
+      <VideoModal
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
         src={getEmbedUrl(videoId)}
         title="YouTube video player"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        className="absolute inset-0 w-full h-full"
       />
-    </div>
+    </>
   );
 }

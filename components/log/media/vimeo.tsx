@@ -11,6 +11,7 @@ import { useState } from "react";
 import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./external-image";
+import { VideoModal } from "./video-modal";
 
 // =============================================================================
 // Types
@@ -76,7 +77,7 @@ export function VimeoEmbed({
   size = "default",
   className,
 }: VimeoEmbedProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const videoId = extractVimeoId(url);
 
   if (!videoId) {
@@ -106,12 +107,12 @@ export function VimeoEmbed({
     large: "max-w-4xl",
   };
 
-  // Show thumbnail with play button (click-to-play pattern)
-  if (!isPlaying) {
-    return (
+  // Thumbnail cover — clicking opens the fullscreen autoplay modal.
+  return (
+    <>
       <button
         type="button"
-        onClick={() => setIsPlaying(true)}
+        onClick={() => setIsOpen(true)}
         className={cn(
           "relative w-full aspect-video rounded-lg overflow-hidden",
           "bg-muted/20 border border-border/50",
@@ -133,25 +134,14 @@ export function VimeoEmbed({
           </div>
         </div>
       </button>
-    );
-  }
 
-  // Show embedded player after click
-  return (
-    <div
-      className={cn(
-        "relative w-full aspect-video rounded-lg overflow-hidden bg-black",
-        sizeClasses[size],
-        className
-      )}
-    >
-      <iframe
+      <VideoModal
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
         src={getEmbedUrl(videoId)}
         title="Vimeo video player"
         allow="autoplay; fullscreen; picture-in-picture"
-        allowFullScreen
-        className="absolute inset-0 w-full h-full border-0"
       />
-    </div>
+    </>
   );
 }
