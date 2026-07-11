@@ -7,11 +7,10 @@
  * Supports thumbnail preview before loading the iframe.
  */
 
-import { useState } from "react";
 import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./external-image";
-import { VideoModal } from "./video-modal";
+import { PlayableVideoEmbed } from "./playable-embed";
 
 // =============================================================================
 // Types
@@ -101,7 +100,6 @@ export function YouTubeEmbed({
   size = "default",
   className,
 }: YouTubeEmbedProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const videoId = extractYouTubeId(url);
 
   if (!videoId) {
@@ -124,47 +122,20 @@ export function YouTubeEmbed({
 
   const thumbnailUrl = getThumbnailUrl(videoId, thumbnail);
 
-  const sizeClasses = {
-    compact: "max-w-md",
-    default: "",
-    large: "max-w-4xl",
-  };
-
-  // Thumbnail cover — clicking opens the fullscreen autoplay modal.
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className={cn(
-          "relative w-full aspect-video rounded-lg overflow-hidden",
-          "bg-muted/20 border border-border/50",
-          "group cursor-pointer",
-          sizeClasses[size],
-          className
-        )}
-        aria-label="Play YouTube video"
-      >
+    <PlayableVideoEmbed
+      embedUrl={getEmbedUrl(videoId)}
+      title="YouTube video player"
+      label="Play YouTube video"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      size={size}
+      className={className}
+      cover={
         <ExternalImage
           src={thumbnailUrl}
           className="absolute inset-0 w-full h-full object-cover"
         />
-
-        {/* Play button overlay */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
-          <div className="w-16 h-16 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-black/50 transition-all">
-            <Play className="w-7 h-7 text-white fill-white ml-1" />
-          </div>
-        </div>
-      </button>
-
-      <VideoModal
-        open={isOpen}
-        onClose={() => setIsOpen(false)}
-        src={getEmbedUrl(videoId)}
-        title="YouTube video player"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      />
-    </>
+      }
+    />
   );
 }

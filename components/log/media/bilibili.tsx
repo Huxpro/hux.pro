@@ -8,11 +8,10 @@
  * the iframe. Supports BV and AV IDs, and multi-page videos.
  */
 
-import { useState, useMemo } from "react";
-import { Play } from "lucide-react";
+import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./external-image";
-import { VideoModal } from "./video-modal";
+import { PlayableVideoEmbed } from "./playable-embed";
 
 // =============================================================================
 // Types
@@ -130,18 +129,11 @@ export function BilibiliEmbed({
   size = "default",
   className,
 }: BilibiliEmbedProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const id = useMemo(() => parseBilibiliId(url), [url]);
   const embedUrl = useMemo(
     () => (id ? getEmbedUrl(id, page) : null),
     [id, page]
   );
-
-  const sizeClasses = {
-    compact: "max-w-md",
-    default: "",
-    large: "max-w-4xl",
-  };
 
   if (!id || !embedUrl) {
     return (
@@ -162,30 +154,26 @@ export function BilibiliEmbed({
     );
   }
 
-  // Cover state: show thumbnail (or branded placeholder) with play button.
-  // Clicking opens the fullscreen autoplay modal.
+  // Cover: thumbnail, or a Bilibili-branded placeholder when none is available.
   const idLabel = id.kind === "bvid" ? id.bvid : `av${id.aid}`;
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className={cn(
-          "relative w-full aspect-video rounded-lg overflow-hidden",
-          "border border-border/50",
-          "group cursor-pointer",
-          sizeClasses[size],
-          className
-        )}
-        aria-label="Play Bilibili video"
-      >
-        {thumbnail ? (
+    <PlayableVideoEmbed
+      embedUrl={embedUrl}
+      title="Bilibili video player"
+      label="Play Bilibili video"
+      allow="autoplay; fullscreen"
+      sandbox="allow-scripts allow-same-origin allow-popups"
+      scrolling="no"
+      size={size}
+      className={className}
+      coverClassName=""
+      cover={
+        thumbnail ? (
           <ExternalImage
             src={thumbnail}
             className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
-          // Bilibili-branded placeholder when no custom thumbnail is available
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#00a1d6]/8">
             {/* Bilibili wordmark-style label */}
             <span className="text-[#00a1d6]/40 text-xs font-mono tracking-widest uppercase select-none">
@@ -195,25 +183,8 @@ export function BilibiliEmbed({
               {idLabel}
             </span>
           </div>
-        )}
-
-        {/* Play button overlay */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
-          <div className="w-16 h-16 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-black/50 transition-all">
-            <Play className="w-7 h-7 text-white fill-white ml-1" />
-          </div>
-        </div>
-      </button>
-
-      <VideoModal
-        open={isOpen}
-        onClose={() => setIsOpen(false)}
-        src={embedUrl}
-        title="Bilibili video player"
-        allow="autoplay; fullscreen"
-        sandbox="allow-scripts allow-same-origin allow-popups"
-        scrolling="no"
-      />
-    </>
+        )
+      }
+    />
   );
 }

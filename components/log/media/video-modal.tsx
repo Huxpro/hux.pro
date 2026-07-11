@@ -3,8 +3,8 @@
 /**
  * VideoModal
  *
- * Full-screen lightbox that plays a directly-playable video (YouTube / Vimeo /
- * Bilibili) inside a centered iframe. The player is sized to the largest 16:9
+ * Desktop (sm+) lightbox that plays a directly-playable video (YouTube / Vimeo
+ * / Bilibili) inside a centered iframe. The player is sized to the largest 16:9
  * box that fits within ~80% of the viewport, so it reads big without touching
  * the edges. Autoplay is expected to be baked into the `src` — the iframe is
  * only ever mounted after an explicit user click, so browsers allow it.
@@ -12,6 +12,9 @@
  * Dismissal: backdrop click, the close button, or the Escape key. Body scroll
  * is locked while open. Rendered through a portal so the overlay escapes any
  * transformed / overflow-clipped ancestor in the timeline.
+ *
+ * On mobile the player instead stays in place and dims its surroundings — see
+ * VideoSpotlight — so this modal is only mounted on the sm+ playback path.
  */
 
 import { useEffect, useSyncExternalStore } from "react";
@@ -77,10 +80,10 @@ export function VideoModal({
   return createPortal(
     <AnimatePresence>
       {open && (
-        // z above the draggable command FAB (z 9999) so theater mode truly
-        // owns the screen and nothing floats over the video.
+        // z above the draggable command FAB (z 9999) so nothing floats over
+        // the video while the modal is open.
         <motion.div
-          className="fixed inset-0 z-[10000] flex items-center justify-center p-0 sm:p-4"
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -90,10 +93,8 @@ export function VideoModal({
           aria-modal="true"
           aria-label={title}
         >
-          {/* Backdrop. On mobile it's a fully-opaque "theater" black that owns
-              the whole screen; on sm+ it's a dimmed, blurred overlay behind the
-              floating player. */}
-          <div className="absolute inset-0 bg-black sm:bg-black/80 sm:backdrop-blur-sm" />
+          {/* Backdrop — dimmed, blurred overlay behind the floating player. */}
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
           {/* Close button — sits above the player, top-right of the viewport. */}
           <button
@@ -109,16 +110,12 @@ export function VideoModal({
             <X className="h-5 w-5" />
           </button>
 
-          {/* Player: the largest 16:9 box that fits the allotted screen.
-              - Mobile (theater): fills the viewport — min(100vw, 100vh*16/9)
-                ≈ min(100vw, 177.78vh), edge-to-edge with no chrome.
-              - sm+: floats at ~80% — min(80vw, 80vh*16/9) ≈ min(80vw, 142.22vh).
-              The vh term caps width so height never overflows in either mode. */}
+          {/* Player: largest 16:9 box within ~80vw × ~80vh.
+              80vh * 16/9 ≈ 142.22vh caps the width so height never exceeds 80vh. */}
           <motion.div
             className={cn(
-              "relative aspect-video overflow-hidden bg-black",
-              "w-[min(100vw,177.78vh)] sm:w-[min(80vw,142.22vh)]",
-              "rounded-none sm:rounded-xl sm:shadow-2xl sm:ring-1 sm:ring-white/10",
+              "relative w-[min(80vw,142.22vh)] aspect-video overflow-hidden rounded-xl bg-black",
+              "shadow-2xl ring-1 ring-white/10",
             )}
             initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1 }}
