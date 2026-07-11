@@ -15,6 +15,7 @@
 | **OG Images (ours)** | [docs/og-images.md](./docs/og-images.md) (Social cards we publish for our pages) |
 | **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Crawling *others'* OG for /works cards) |
 | **App Icon** | [docs/app-icon.md](./docs/app-icon.md) (Generative favicon + `/editor/icon` studio) |
+| **App Shelf** | [docs/app-shelf.md](./docs/app-shelf.md) (Home-screen icons linking to external projects) |
 
 ## 2. Quick Start Context
 

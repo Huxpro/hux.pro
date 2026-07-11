@@ -1,0 +1,24 @@
+{
+  "apps": [
+    {
+      "id": "react",
+      "title": "React",
+      "url": "https://react.dev"
+    },
+    {
+      "id": "lynx",
+      "title": "Lynx",
+      "url": "https://lynxjs.org"
+    },
+    {
+      "id": "lynx-flappy-bird",
+      "title": "Flappy Bird",
+      "url": "https://huangxuan.me/lynx-flappy-bird/"
+    },
+    {
+      "id": "vue-lynx",
+      "title": "Vue Lynx",
+      "url": "https://vue.lynxjs.org"
+    }
+  ]
+}
