@@ -77,8 +77,10 @@ export function VideoModal({
   return createPortal(
     <AnimatePresence>
       {open && (
+        // z above the draggable command FAB (z 9999) so theater mode truly
+        // owns the screen and nothing floats over the video.
         <motion.div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-0 sm:p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -88,8 +90,10 @@ export function VideoModal({
           aria-modal="true"
           aria-label={title}
         >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          {/* Backdrop. On mobile it's a fully-opaque "theater" black that owns
+              the whole screen; on sm+ it's a dimmed, blurred overlay behind the
+              floating player. */}
+          <div className="absolute inset-0 bg-black sm:bg-black/80 sm:backdrop-blur-sm" />
 
           {/* Close button — sits above the player, top-right of the viewport. */}
           <button
@@ -105,12 +109,16 @@ export function VideoModal({
             <X className="h-5 w-5" />
           </button>
 
-          {/* Player: largest 16:9 box within ~80vw × ~80vh.
-              80vh * 16/9 ≈ 142.22vh caps the width so height never exceeds 80vh. */}
+          {/* Player: the largest 16:9 box that fits the allotted screen.
+              - Mobile (theater): fills the viewport — min(100vw, 100vh*16/9)
+                ≈ min(100vw, 177.78vh), edge-to-edge with no chrome.
+              - sm+: floats at ~80% — min(80vw, 80vh*16/9) ≈ min(80vw, 142.22vh).
+              The vh term caps width so height never overflows in either mode. */}
           <motion.div
             className={cn(
-              "relative w-[min(80vw,142.22vh)] aspect-video overflow-hidden rounded-xl bg-black",
-              "shadow-2xl ring-1 ring-white/10",
+              "relative aspect-video overflow-hidden bg-black",
+              "w-[min(100vw,177.78vh)] sm:w-[min(80vw,142.22vh)]",
+              "rounded-none sm:rounded-xl sm:shadow-2xl sm:ring-1 sm:ring-white/10",
             )}
             initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1 }}
