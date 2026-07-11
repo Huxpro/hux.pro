@@ -34,6 +34,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 // =============================================================================
 // AppShelf
@@ -79,15 +80,20 @@ function iconFillsTile(entry: AppIconSnapshot[string] | undefined): boolean {
 /** The tile + label, sans interactivity — shared by the grid and the overlay. */
 function AppIconVisual({ app }: { app: AppLink }) {
   const entry = ICONS[app.id];
+  const fills = iconFillsTile(entry);
   return (
     <span className="flex w-full flex-col items-center">
       <span
         className={cn(
           "block h-16 w-16 overflow-hidden rounded-[22.5%]",
-          // Icons composite on white, like Safari's add-to-home-screen tiles —
-          // dark glyphs stay visible in dark mode and transparency looks
-          // intentional. The border keeps white-on-white tiles defined.
-          "bg-white border border-black/8 dark:border-white/12",
+          "border border-black/8 dark:border-white/12",
+          // Padded glyph icons composite on a white plate, like Safari's
+          // add-to-home-screen tiles — dark glyphs stay visible in dark mode
+          // and transparency looks intentional. Full-bleed icons bring their
+          // own background, and a plate behind them would seep through the
+          // rounded clip's antialiased edge as a light fringe (very visible
+          // around dark icons in dark mode), so they get no plate.
+          !fills && "bg-white",
           "transition-transform duration-200 group-hover/app:scale-105",
         )}
       >
@@ -99,7 +105,7 @@ function AppIconVisual({ app }: { app: AppLink }) {
             draggable={false}
             className={cn(
               "h-full w-full",
-              iconFillsTile(entry) ? "object-cover" : "object-contain p-3",
+              fills ? "object-cover" : "object-contain p-3",
             )}
           />
         ) : (
@@ -173,14 +179,18 @@ function SortableAppIcon({ id }: { id: string }) {
 
 export function AppShelf() {
   const edit = useMasonryEdit();
+  const editing = edit?.editing ?? false;
   const [order, setOrder] = useState<string[]>(DEFAULT_IDS);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   // Restore the persisted icon order on mount.
   useEffect(() => {
     const stored = loadOrder(STORAGE_KEY);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only: reading localStorage
     setOrder(reconcile(stored ?? DEFAULT_IDS, DEFAULT_IDS));
+    setMounted(true); // gate the overlay portal to the client
+
   }, []);
 
   const sensors = useSensors(
@@ -244,26 +254,54 @@ export function AppShelf() {
       onDragCancel={() => setActiveId(null)}
     >
       <SortableContext items={order} strategy={rectSortingStrategy}>
-        {/* Chrome-less on purpose: icons sit directly on the page surface,
-            the way springboard icons sit on wallpaper next to widget cards. */}
-        <div className="grid grid-cols-4 gap-x-2 gap-y-5 px-1 py-2">
+        {/* Chrome-less at rest: icons sit directly on the page surface, the
+            way springboard icons sit on wallpaper next to widget cards. But
+            the shelf IS one draggable group, so — like iOS's Siri Suggestions
+            platter — a translucent card materializes behind the icons
+            whenever the group is "held": on hover (pointer affordance), in
+            jiggle edit mode, and on the lifted drag clone. Padding is static
+            so the platter never shifts the icons. */}
+        <div
+          className={cn(
+            "grid grid-cols-4 gap-x-2 gap-y-5 rounded-2xl border px-2 py-3",
+            "transition-colors duration-300",
+            // In dark mode --card is *darker* than --background, so a card
+            // tint alone would read as a hole, not a lift — add a faint white
+            // wash there instead (same trick as WidgetShell's hover).
+            editing
+              ? "border-border/60 bg-card/60 shadow-raised backdrop-blur-sm dark:bg-white/6"
+              : "border-transparent hover:border-border/40 hover:bg-card/40 dark:hover:bg-white/4",
+          )}
+        >
           {order.map((id) =>
             APPS_BY_ID.has(id) ? <SortableAppIcon key={id} id={id} /> : null,
           )}
         </div>
       </SortableContext>
 
-      {/* The lifted icon: a portal clone that tracks the cursor. */}
-      <DragOverlay>
-        {activeId && APPS_BY_ID.has(activeId) ? (
-          <div
-            className="select-none drop-shadow-xl"
-            style={{ transform: "scale(1.1)", cursor: "grabbing" }}
-          >
-            <AppIconVisual app={APPS_BY_ID.get(activeId)!} />
-          </div>
-        ) : null}
-      </DragOverlay>
+      {/* The lifted icon: a clone that tracks the cursor. Unlike the masonry
+          (whose DndContext has no transformed ancestors), the shelf lives
+          inside a masonry item that gets a `rotate` transform in jiggle mode.
+          DragOverlay positions itself with `position: fixed`, and a
+          transformed ancestor becomes the containing block for fixed
+          elements — displacing both the visible clone and dnd-kit's
+          collision rect (which broke cross-row sorting). Portal the overlay
+          to <body> so it never sits under a transform. Client-gated: portals
+          can't render during SSR. */}
+      {mounted &&
+        createPortal(
+          <DragOverlay>
+            {activeId && APPS_BY_ID.has(activeId) ? (
+              <div
+                className="select-none drop-shadow-xl"
+                style={{ transform: "scale(1.1)", cursor: "grabbing" }}
+              >
+                <AppIconVisual app={APPS_BY_ID.get(activeId)!} />
+              </div>
+            ) : null}
+          </DragOverlay>,
+          document.body,
+        )}
     </DndContext>
   );
 }

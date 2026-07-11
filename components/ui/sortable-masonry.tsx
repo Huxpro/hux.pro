@@ -106,6 +106,17 @@ export function useMasonryEdit(): MasonryEditContextValue | null {
   return useContext(MasonryEditContext);
 }
 
+/**
+ * What the DragOverlay clone sees: it is being "held", so editing-styled
+ * affordances render, but registration is a no-op — the clone is a visual
+ * copy and must never own (or, on unmount, tear down) a section slot.
+ */
+const CLONE_EDIT_CONTEXT: MasonryEditContextValue = {
+  editing: true,
+  enterEdit: () => {},
+  registerSection: () => () => {},
+};
+
 // =============================================================================
 // Sortable item
 // =============================================================================
@@ -323,12 +334,15 @@ export function SortableMasonry({
       </SortableContext>
 
       {/* The lifted card: a portal clone that tracks the cursor. The clone is
-          purely visual, so it gets a null edit context — otherwise a dragged
-          app shelf would register a second "app-shelf" section and, on drop,
-          its unmount would tear down the real shelf's registration. */}
+          purely visual, so it gets the inert CLONE_EDIT_CONTEXT — it must not
+          register sections (otherwise a dragged app shelf would register a
+          second "app-shelf" and, on drop, its unmount would tear down the
+          real shelf's registration), but it should *look* held, so
+          editing-styled affordances like the shelf platter stay visible
+          while lifted. */}
       <DragOverlay>
         {activeId ? (
-          <MasonryEditContext.Provider value={null}>
+          <MasonryEditContext.Provider value={CLONE_EDIT_CONTEXT}>
             <div
               className="select-none drop-shadow-2xl"
               style={{ transform: "scale(1.03)", cursor: "grabbing" }}

@@ -56,7 +56,28 @@ are a *nested* dnd-kit sortable with its own persisted order
   post-drop click that would otherwise open the dropped icon's link.
 - The shared **Reset** control restores the icon order too (the shelf
   registers itself as a masonry *section*).
+- The inner `DragOverlay` is **portaled to `<body>`**. This is load-bearing:
+  in jiggle mode the masonry item wrapper carries a `rotate` transform, and a
+  transformed ancestor becomes the containing block for the overlay's
+  `position: fixed` — displacing both the visible clone and dnd-kit's
+  collision rect, which silently broke cross-row sorting.
 
-Tiles composite on white (like Safari's add-to-home-screen), so transparent
-dark glyphs stay visible in dark mode. Square icons ≥160px render full-bleed;
-small or non-square favicons render padded and centered.
+**Group hint (Siri-Suggestions platter).** The shelf is chrome-less at rest,
+but a translucent rounded platter materializes behind the icons whenever the
+group is "held": on hover, in edit mode, and on the lifted drag clone (the
+masonry's `DragOverlay` provides an inert editing-styled context so the clone
+keeps the platter without registering a duplicate section). In dark mode the
+platter uses a faint white wash — `--card` is darker than `--background`
+there, so a card tint alone would read as a hole rather than a lift.
+
+**Tiles.** Padded glyph icons composite on a white plate (like Safari's
+add-to-home-screen), so transparent dark glyphs stay visible in dark mode.
+Square icons ≥160px render full-bleed *without* the plate — behind a
+full-bleed icon the plate would seep through the rounded clip's antialiased
+edge as a light fringe. Small or non-square favicons render padded and
+centered.
+
+**Icon counts.** The grid is a fixed four columns with natural flow, so a
+non-multiple-of-four count behaves like a springboard page: the partial last
+row stays left-aligned in consistent column positions (verified with 3 and 5
+apps, including cross-row drags in both directions).
