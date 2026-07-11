@@ -45,10 +45,15 @@ export function CommitCompact({ data, className }: CommitCompactProps) {
       )}
 
       <div className="space-y-1 min-w-0">
-        <div className="text-sm text-foreground truncate">
-          {data.title}
+        {/* Title truncates, but the language badge stays pinned and visible
+            (shrink-0) — a talk's language must not get clipped with a long
+            title. */}
+        <div className="flex items-baseline gap-2 min-w-0">
+          <span className="text-sm text-foreground truncate min-w-0">
+            {data.title}
+          </span>
           {data.languageBadge && (
-            <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
+            <span className="shrink-0 text-xs font-mono text-muted-foreground/40">
               {data.languageBadge}
             </span>
           )}
