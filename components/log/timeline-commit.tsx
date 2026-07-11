@@ -25,6 +25,8 @@ import {
   Stats,
 } from "./embeds/shared";
 import { MediaRenderer } from "./media";
+import { useSlidesPlayer } from "./media/slides-player";
+import { resolveSlidesEmbedUrl } from "./media/slides";
 
 /**
  * Fallback handle for the expanded author block when a commit has no
@@ -134,6 +136,7 @@ export function TimelineCommit({
   onInspectMedia,
   selectedMedia = null,
 }: TimelineCommitProps) {
+  const slidesPlayer = useSlidesPlayer();
   const Icon =
     (data.iconOverride && commitIconOverrides[data.iconOverride]) ||
     commitIcons[data.type];
@@ -369,22 +372,46 @@ export function TimelineCommit({
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          {data.links.map((link, i) => (
-            <a
-              key={`link-${i}`}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-muted-foreground/40 hover:text-foreground transition-colors"
-            >
-              <LinkIcon icon={link.icon} />
-              {isExpanded && !link.redundantWhenExpanded && (
-                <span className="hidden @sm:inline text-xs">
-                  {link.label}
-                </span>
-              )}
-            </a>
-          ))}
+          {data.links.map((link, i) => {
+            const className =
+              "inline-flex items-center gap-1 text-muted-foreground/40 hover:text-foreground transition-colors";
+            const label = isExpanded && !link.redundantWhenExpanded && (
+              <span className="hidden @sm:inline text-xs">{link.label}</span>
+            );
+
+            if (link.playSlides && slidesPlayer.hasProvider) {
+              return (
+                <button
+                  key={`link-${i}`}
+                  type="button"
+                  onClick={() =>
+                    slidesPlayer.open({
+                      url: resolveSlidesEmbedUrl(link.url),
+                      title: link.label,
+                    })
+                  }
+                  className={className}
+                  aria-label={`Play slides: ${link.label}`}
+                >
+                  <LinkIcon icon={link.icon} />
+                  {label}
+                </button>
+              );
+            }
+
+            return (
+              <a
+                key={`link-${i}`}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={className}
+              >
+                <LinkIcon icon={link.icon} />
+                {label}
+              </a>
+            );
+          })}
         </div>
 
         {hideDate ? (

@@ -5,10 +5,11 @@
  *
  * Terminology:
  *  - Commit:      a work item (project / talk / post / role / social / event).
- *  - Media:       attached external content. Four kinds: link, social-embed,
- *                 video, image.
+ *  - Media:       attached external content. Kinds: link, social-embed,
+ *                 video, slides, image.
  *  - Link card:   `kind:"link", present:"card"` — an OG-style preview block.
  *  - SocialEmbed: native social platform widget (X / Instagram / TikTok).
+ *  - Slides:      HTML reveal.js deck played in an ~80% in-site modal.
  */
 
 // =============================================================================
@@ -42,6 +43,8 @@ export {
   MediaRenderer,
   MediaThumbnail,
   Video,
+  Slides,
+  SlidesPlayerProvider,
   SocialEmbed,
   Link,
   LinkCard,
@@ -54,10 +57,12 @@ export {
   TikTokEmbed,
   detectVideoPlatform,
   detectSocialEmbedPlatform,
+  isPlayableSlidesUrl,
   type MediaProps,
   type MediaRendererProps,
   type MediaThumbnailProps,
   type VideoProps,
+  type SlidesProps,
   type SocialEmbedProps,
   type LinkProps,
   type LinkCardProps,

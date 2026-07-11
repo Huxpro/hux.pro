@@ -24,6 +24,7 @@ import { Video, detectVideoPlatform } from "./video";
 import { SocialEmbed, detectSocialEmbedPlatform } from "./embed";
 import { Link, LinkCard } from "./link";
 import { Figure } from "./image";
+import { Slides, isPlayableSlidesUrl } from "./slides";
 
 // =============================================================================
 // Types
@@ -40,7 +41,7 @@ export interface MediaProps {
   title?: string;
   /** Theme for the social-embed kind. */
   theme?: "light" | "dark";
-  /** Thumbnail URL for the video kind. */
+  /** Thumbnail URL for the video / slides kinds. */
   thumbnail?: string;
   /** Platform hint (auto-detected if omitted). */
   platform?: VideoPlatform | SocialEmbedPlatform;
@@ -61,6 +62,7 @@ const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i;
 function autoDetectKind(url: string): MediaKind {
   if (detectVideoPlatform(url)) return "video";
   if (detectSocialEmbedPlatform(url)) return "social-embed";
+  if (isPlayableSlidesUrl(url)) return "slides";
   if (IMAGE_EXTENSIONS.test(url)) return "image";
   return "link";
 }
@@ -101,6 +103,17 @@ export function Media({
         />
       );
     }
+
+    case "slides":
+      return (
+        <Slides
+          url={url}
+          thumbnail={thumbnail}
+          title={title}
+          size={size}
+          className={className}
+        />
+      );
 
     case "social-embed": {
       const socialPlatform =

@@ -59,12 +59,14 @@ export type CommitType =
  * - "social-embed": a native social platform widget (X / Instagram / TikTok)
  *                   that mounts the platform's own iframe/script.
  * - "video":        a video player (YouTube / Bilibili / Vimeo iframe).
+ * - "slides":       a reveal.js / HTML slide deck played in an ~80% modal
+ *                   iframe (e.g. huangxuan.me decks from Yanshuo.io).
  * - "image":        a static image asset.
  *
  * A discriminator field `kind` (not `type`, which is taken by CommitType) keeps
  * the layer crisp: commits have types, media items have kinds.
  */
-export type MediaKind = "link" | "social-embed" | "video" | "image";
+export type MediaKind = "link" | "social-embed" | "video" | "slides" | "image";
 
 /**
  * How a `link` renders. Two presentations, one data shape — the explicit
@@ -118,8 +120,8 @@ export interface MediaPreview {
  * the row even while the row is collapsed (and renders in the expanded view
  * too). Default is unpinned: only visible once the row is expanded.
  *
- * Meaningful for cards / videos / images. No-op for `pill` (those already
- * live in the folded right rail) and `social-embed` (currently always
+ * Meaningful for cards / videos / slides / images. No-op for `pill` (those
+ * already live in the folded right rail) and `social-embed` (currently always
  * expanded-only); the field is kept on every kind for schema uniformity.
  *
  * The hover peek view excludes pinned items — they're already on screen so
@@ -200,6 +202,21 @@ export interface VideoMedia extends Pinned {
   thumbnail?: string;
 }
 
+/**
+ * HTML slide deck — typically a reveal.js export (Yanshuo.io / self-hosted).
+ * Renders as a cover with a play affordance; click opens the in-site
+ * SlideModal (~80% viewport iframe) so visitors never leave the page.
+ */
+export interface SlidesMedia extends Pinned {
+  kind: "slides";
+  /** Direct URL of the playable deck (not the wrapping blog/keynote page). */
+  url: string;
+  /** Cover image for the thumbnail / peek / compact surfaces. */
+  thumbnail?: string;
+  /** Accessible title for the modal iframe. */
+  title?: string;
+}
+
 /** Static image asset. */
 export interface ImageMedia extends Pinned {
   kind: "image";
@@ -211,7 +228,12 @@ export interface ImageMedia extends Pinned {
  * Discriminated union of all media kinds.
  * Use `media.kind` to narrow and access kind-specific fields.
  */
-export type Media = LinkMedia | SocialEmbedMedia | VideoMedia | ImageMedia;
+export type Media =
+  | LinkMedia
+  | SocialEmbedMedia
+  | VideoMedia
+  | SlidesMedia
+  | ImageMedia;
 
 // -----------------------------------------------------------------------------
 // Base Commit
@@ -1486,6 +1508,10 @@ export function isVideoMedia(media: Media): media is VideoMedia {
   return media.kind === "video";
 }
 
+export function isSlidesMedia(media: Media): media is SlidesMedia {
+  return media.kind === "slides";
+}
+
 export function isImageMedia(media: Media): media is ImageMedia {
   return media.kind === "image";
 }
@@ -1541,6 +1567,7 @@ function extractYouTubeId(url: string): string | null {
  * Derivation by kind:
  * - VideoMedia:       explicit `thumbnail`, else YouTube's derived URL
  *                     (Bilibili / Vimeo: must be explicit — no public derivation).
+ * - SlidesMedia:      explicit `thumbnail` (decks don't expose a public cover API).
  * - ImageMedia:       the image URL itself.
  * - LinkMedia (card): the resolved `preview.image` (card pipeline writes this
  *                     server-side from the OG snapshot + manual override).
@@ -1556,6 +1583,9 @@ export function getMediaThumbnail(media: Media): string | null {
         return id ? `https://img.youtube.com/vi/${id}/maxresdefault.jpg` : null;
       }
       return null;
+
+    case "slides":
+      return media.thumbnail ?? null;
 
     case "image":
       return media.url;
