@@ -11,7 +11,9 @@
     "og:check": "node scripts/og-snapshot.ts --check",
     "og:fonts": "node scripts/og-fonts.mjs",
     "icon:generate": "node scripts/icon-generate.ts",
-    "icon:check": "node scripts/icon-generate.ts --check"
+    "icon:check": "node scripts/icon-generate.ts --check",
+    "apps:snapshot": "node scripts/app-icon-snapshot.ts",
+    "apps:check": "node scripts/app-icon-snapshot.ts --check"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

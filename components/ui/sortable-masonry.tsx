@@ -23,7 +23,23 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  MOUSE_ACTIVATION,
+  TOUCH_ACTIVATION,
+  clearOrder,
+  loadOrder,
+  reconcile,
+  saveOrder,
+} from "./sortable-order";
 
 // =============================================================================
 // SortableMasonry
@@ -57,63 +73,49 @@ export interface SortableWidget {
   node: ReactNode;
 }
 
-// Mouse / trackpad: start dragging once the pointer travels 8px while pressed.
-// A plain click (no travel) still navigates links.
-const MOUSE_ACTIVATION = { distance: 8 };
-
-// Touch: a plain swipe scrolls the page; only a 200ms long-press picks a widget
-// up. `tolerance` lets the finger drift a little during the hold without
-// cancelling (and a larger drift before the hold completes reverts to scroll).
-const TOUCH_ACTIVATION = { delay: 200, tolerance: 8 };
-
 // =============================================================================
-// Persistence
+// Edit-mode context
+//
+// Widgets with their *own* inner drag surface (the app shelf's icon grid) need
+// to cooperate with the masonry's single edit mode: an inner drag should enter
+// the same jiggle state (which also makes the item wrapper swallow the click
+// that fires after a drop — otherwise dropping an icon would navigate its
+// link), and the shared "Reset" control should restore inner layouts too.
 // =============================================================================
 
-function loadOrder(key: string): string[] | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed.filter((v) => typeof v === "string");
-    }
-  } catch {
-    // ignore
-  }
-  return null;
+export interface MasonrySection {
+  /** Restore this section's default order (called by the masonry's Reset). */
+  reset: () => void;
+  /** True when the section's layout diverges from its default. */
+  isCustomized: boolean;
 }
 
-function saveOrder(key: string, order: string[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(key, JSON.stringify(order));
-  } catch {
-    // ignore
-  }
+interface MasonryEditContextValue {
+  /** True while the grid is in jiggle edit mode. */
+  editing: boolean;
+  /** Enter edit mode (inner drag surfaces call this on their drag start). */
+  enterEdit: () => void;
+  /** Register an inner drag surface; returns an unregister cleanup. */
+  registerSection: (id: string, section: MasonrySection) => () => void;
 }
 
-function clearOrder(key: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.removeItem(key);
-  } catch {
-    // ignore
-  }
+const MasonryEditContext = createContext<MasonryEditContextValue | null>(null);
+
+/** Null outside a SortableMasonry — callers degrade to standalone behavior. */
+export function useMasonryEdit(): MasonryEditContextValue | null {
+  return useContext(MasonryEditContext);
 }
 
 /**
- * Merge a stored order with the current set of widget IDs: keep the stored
- * order for IDs that still exist, drop ones that vanished, and append any new
- * widgets at the end. Keeps a saved layout stable as widgets come and go.
+ * What the DragOverlay clone sees: it is being "held", so editing-styled
+ * affordances render, but registration is a no-op — the clone is a visual
+ * copy and must never own (or, on unmount, tear down) a section slot.
  */
-function reconcile(stored: string[], all: string[]): string[] {
-  const allSet = new Set(all);
-  const kept = stored.filter((id) => allSet.has(id));
-  const keptSet = new Set(kept);
-  const added = all.filter((id) => !keptSet.has(id));
-  return [...kept, ...added];
-}
+const CLONE_EDIT_CONTEXT: MasonryEditContextValue = {
+  editing: true,
+  enterEdit: () => {},
+  registerSection: () => () => {},
+};
 
 // =============================================================================
 // Sortable item
@@ -200,6 +202,31 @@ export function SortableMasonry({
   const [order, setOrder] = useState<string[]>(ids);
   const [editing, setEditing] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [sections, setSections] = useState<Map<string, MasonrySection>>(
+    () => new Map(),
+  );
+
+  const enterEdit = useCallback(() => setEditing(true), []);
+  const registerSection = useCallback(
+    (id: string, section: MasonrySection) => {
+      setSections((prev) => new Map(prev).set(id, section));
+      return () => {
+        setSections((prev) => {
+          // Only the registration that owns the slot may clear it — a stale
+          // cleanup (e.g. from a re-render race) must not clobber a newer one.
+          if (prev.get(id) !== section) return prev;
+          const next = new Map(prev);
+          next.delete(id);
+          return next;
+        });
+      };
+    },
+    [],
+  );
+  const editContext = useMemo(
+    () => ({ editing, enterEdit, registerSection }),
+    [editing, enterEdit, registerSection],
+  );
 
   // Restore the persisted order on mount and whenever the widget set changes.
   useEffect(() => {
@@ -270,14 +297,18 @@ export function SortableMasonry({
   function handleReset() {
     clearOrder(storageKey);
     setOrder(ids); // back to the order widgets are declared in
+    for (const section of sections.values()) section.reset();
   }
 
   const orderedIds = order.filter((id) => itemsById.has(id));
-  // Only offer "Reset" once the layout actually diverges from the default.
-  // `idsKey` is already the default order joined, so compare against it.
-  const isCustomized = orderedIds.join("|") !== idsKey;
+  // Only offer "Reset" once some layout actually diverges from its default.
+  // `idsKey` is already the default order joined, so compare against it;
+  // inner drag surfaces (sections) report their own divergence.
+  const isCustomized =
+    orderedIds.join("|") !== idsKey ||
+    [...sections.values()].some((s) => s.isCustomized);
 
-  return (
+  const grid = (
     <DndContext
       // Stable id so dnd-kit's generated accessibility ids (DndDescribedBy-*)
       // are deterministic across SSR and client — otherwise its internal
@@ -302,15 +333,23 @@ export function SortableMasonry({
         </div>
       </SortableContext>
 
-      {/* The lifted card: a portal clone that tracks the cursor. */}
+      {/* The lifted card: a portal clone that tracks the cursor. The clone is
+          purely visual, so it gets the inert CLONE_EDIT_CONTEXT — it must not
+          register sections (otherwise a dragged app shelf would register a
+          second "app-shelf" and, on drop, its unmount would tear down the
+          real shelf's registration), but it should *look* held, so
+          editing-styled affordances like the shelf platter stay visible
+          while lifted. */}
       <DragOverlay>
         {activeId ? (
-          <div
-            className="select-none drop-shadow-2xl"
-            style={{ transform: "scale(1.03)", cursor: "grabbing" }}
-          >
-            {itemsById.get(activeId)}
-          </div>
+          <MasonryEditContext.Provider value={CLONE_EDIT_CONTEXT}>
+            <div
+              className="select-none drop-shadow-2xl"
+              style={{ transform: "scale(1.03)", cursor: "grabbing" }}
+            >
+              {itemsById.get(activeId)}
+            </div>
+          </MasonryEditContext.Provider>
         ) : null}
       </DragOverlay>
 
@@ -348,5 +387,11 @@ export function SortableMasonry({
         )}
       </AnimatePresence>
     </DndContext>
+  );
+
+  return (
+    <MasonryEditContext.Provider value={editContext}>
+      {grid}
+    </MasonryEditContext.Provider>
   );
 }

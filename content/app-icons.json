@@ -1,0 +1,34 @@
+{
+  "lynx": {
+    "url": "https://lynxjs.org",
+    "file": "/app-icons/lynx.png",
+    "source": "icon",
+    "iconUrl": "https://lynxjs.org/favicon.png",
+    "width": 80,
+    "height": 84
+  },
+  "lynx-flappy-bird": {
+    "url": "https://huangxuan.me/lynx-flappy-bird/",
+    "file": "/app-icons/lynx-flappy-bird.png",
+    "source": "manifest",
+    "iconUrl": "https://huangxuan.me/lynx-flappy-bird/app-icon-512.png",
+    "width": 512,
+    "height": 512
+  },
+  "react": {
+    "url": "https://react.dev",
+    "file": "/app-icons/react.png",
+    "source": "manifest",
+    "iconUrl": "https://react.dev/android-chrome-384x384.png",
+    "width": 384,
+    "height": 384
+  },
+  "vue-lynx": {
+    "url": "https://vue.lynxjs.org",
+    "file": "/app-icons/vue-lynx.png",
+    "source": "icon",
+    "iconUrl": "https://vue.lynxjs.org/favicon.png",
+    "width": 80,
+    "height": 84
+  }
+}

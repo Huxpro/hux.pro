@@ -1,5 +1,6 @@
 "use client";
 
+import { AppShelf } from "@/components/home/app-shelf";
 import {
   HStackWidget,
   VStackWidget,
@@ -180,6 +181,7 @@ function WidgetGrid() {
   );
 
   const items: SortableWidget[] = [
+    { id: "apps", node: <AppShelf /> },
     { id: "weather", node: <WeatherWidget /> },
     { id: "blog", node: <BlogStackWidget /> },
     { id: "music", node: <MusicWidget /> },
