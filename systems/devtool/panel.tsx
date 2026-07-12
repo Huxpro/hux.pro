@@ -31,11 +31,6 @@ import {
   type ReadingFont,
   type ReadingMeasure,
 } from "@/components/post/reading-settings";
-import {
-  setMobileVideoMode,
-  useMobileVideoMode,
-  type MobileVideoMode,
-} from "@/components/log/media/video-settings";
 import { cn } from "@/lib/utils";
 import {
   BookOpen,
@@ -48,7 +43,6 @@ import {
   Clock,
   Cloud,
   Copy,
-  Film,
   GripVertical,
   Haze,
   Layers,
@@ -183,7 +177,6 @@ function DevtoolPanel() {
       <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
         <FrontmatterModule />
         <ReadingModule />
-        <VideoModule />
         <GradientModule />
         <WeatherModule />
         <AmbientTimeModule />
@@ -534,56 +527,6 @@ function ReadingModule() {
         <PanelRow label={zh ? "标尺停靠" : "Ruler dock"}>
           <PanelSegmented value={side} options={sides} onChange={setRulerSide} />
         </PanelRow>
-      </div>
-    </DebugSection>
-  );
-}
-
-// =============================================================================
-// Video Module
-// Mobile in-place playback strategy for directly-playable videos. Persists
-// (localStorage) and applies even with the devtool disabled — the panel is
-// just the UI. Only affects mobile (< sm); desktop uses the centered modal.
-// =============================================================================
-
-function VideoModule() {
-  const { locale } = useLocale();
-  const zh = locale === "zh";
-  const mode = useMobileVideoMode();
-
-  const modes: { value: MobileVideoMode; label: string; title: string }[] = [
-    {
-      value: "lock",
-      label: zh ? "锁定" : "Lock",
-      title: zh
-        ? "固定遮罩 + 锁定滚动（页面冻结）"
-        : "Fixed scrim, page scroll locked",
-    },
-    {
-      value: "follow",
-      label: zh ? "跟随" : "Follow",
-      title: zh
-        ? "遮罩随内容滚动（页面可滚）"
-        : "Scrim follows scroll (page scrollable)",
-    },
-  ];
-
-  return (
-    <DebugSection
-      id="video"
-      title={zh ? "视频（移动端）" : "Video (Mobile)"}
-      icon={<Film className="h-4 w-4" />}
-      compact
-    >
-      <div className="space-y-2">
-        <PanelRow label={zh ? "聚焦方式" : "Spotlight"}>
-          <PanelSegmented value={mode} options={modes} onChange={setMobileVideoMode} />
-        </PanelRow>
-        <div className="text-[10px] font-mono text-muted-foreground/60">
-          {zh
-            ? "仅移动端（<640px）就地播放时生效"
-            : "Applies to mobile (< 640px) in-place playback"}
-        </div>
       </div>
     </DebugSection>
   );

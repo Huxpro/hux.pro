@@ -13,8 +13,8 @@
  * is locked while open. Rendered through a portal so the overlay escapes any
  * transformed / overflow-clipped ancestor in the timeline.
  *
- * On mobile the player instead stays in place and dims its surroundings — see
- * VideoSpotlight — so this modal is only mounted on the sm+ playback path.
+ * On mobile the player instead plays in place, so this modal is only mounted
+ * on the sm+ playback path.
  */
 
 import { useEffect, useSyncExternalStore } from "react";

@@ -11,21 +11,13 @@
  * Playback is responsive:
  *  - sm+ (desktop / tablet): opens VideoModal — a centered ~80% lightbox.
  *  - < sm (mobile): plays the iframe *in place*, swapping the cover for the
- *    player, and dims the surroundings via VideoSpotlight. The video never
- *    leaves its spot in the timeline.
+ *    player. The video stays exactly where it sits in the timeline.
  */
 
-import {
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VideoModal } from "./video-modal";
-import { VideoSpotlight } from "./video-spotlight";
-import { useMobileVideoMode } from "./video-settings";
 
 const MOBILE_QUERY = "(max-width: 639px)";
 
@@ -89,8 +81,6 @@ export function PlayableVideoEmbed({
 }: PlayableVideoEmbedProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const isMobile = useIsMobile();
-  const mobileMode = useMobileVideoMode();
-  const playerRef = useRef<HTMLDivElement>(null);
 
   const boxClasses = cn(
     "relative w-full aspect-video rounded-lg overflow-hidden",
@@ -98,29 +88,21 @@ export function PlayableVideoEmbed({
     className,
   );
 
-  // Mobile + playing: the iframe takes the cover's place and VideoSpotlight
-  // dims everything around it. The player stays exactly where the card is.
+  // Mobile + playing: the iframe simply takes the cover's place and plays where
+  // the card sits — no modal, no dimming.
   if (isMobile && isPlaying) {
     return (
-      <>
-        <div ref={playerRef} className={cn(boxClasses, "bg-black")}>
-          <iframe
-            src={embedUrl}
-            title={title}
-            allow={allow}
-            allowFullScreen
-            sandbox={sandbox}
-            scrolling={scrolling}
-            className="absolute inset-0 h-full w-full border-0"
-          />
-        </div>
-        <VideoSpotlight
-          open
-          targetRef={playerRef}
-          mode={mobileMode}
-          onClose={() => setIsPlaying(false)}
+      <div className={cn(boxClasses, "bg-black")}>
+        <iframe
+          src={embedUrl}
+          title={title}
+          allow={allow}
+          allowFullScreen
+          sandbox={sandbox}
+          scrolling={scrolling}
+          className="absolute inset-0 h-full w-full border-0"
         />
-      </>
+      </div>
     );
   }
 
