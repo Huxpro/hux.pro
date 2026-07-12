@@ -25,6 +25,7 @@ import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VideoModal } from "./video-modal";
 import { VideoSpotlight } from "./video-spotlight";
+import { useMobileVideoMode } from "./video-settings";
 
 const MOBILE_QUERY = "(max-width: 639px)";
 
@@ -88,6 +89,7 @@ export function PlayableVideoEmbed({
 }: PlayableVideoEmbedProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const isMobile = useIsMobile();
+  const mobileMode = useMobileVideoMode();
   const playerRef = useRef<HTMLDivElement>(null);
 
   const boxClasses = cn(
@@ -115,6 +117,7 @@ export function PlayableVideoEmbed({
         <VideoSpotlight
           open
           targetRef={playerRef}
+          mode={mobileMode}
           onClose={() => setIsPlaying(false)}
         />
       </>
