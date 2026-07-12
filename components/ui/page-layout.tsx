@@ -107,7 +107,16 @@ export function PageLayout({
           {currentText}
         </TextScramble>
       ) : (
-        <h1 className={titleClassName}>{displayTitle}</h1>
+        // Reader pages (articles) name their title `post-title` so the hovered
+        // list-row title morphs into it on open. Gated to `reader` so a poetic
+        // page's scramble title never collides with a hovered row's h2 that
+        // also claims the name (see globals.css).
+        <h1
+          className={titleClassName}
+          data-post-title={variant === "reader" ? "" : undefined}
+        >
+          {displayTitle}
+        </h1>
       )}
     </header>
   );

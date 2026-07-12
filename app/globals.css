@@ -659,6 +659,43 @@ html.dragging * {
 }
 
 /* -----------------------------------------------------------------------------
+   Post Title - Shared Element Transition (list row → article header)
+   -----------------------------------------------------------------------------
+   Opening a post from /writing (or /docs) reads as the title you were peeking
+   rising into place: the hovered row's <h2> lifts and grows into the article's
+   header <h1>, while the peek panel and the rest of the page dissolve with the
+   root crossfade. The peek reveals; the morph opens — one continuous gesture.
+
+   Only ONE element may own `post-title` per snapshot:
+   - list page    → the clicked row's h2 is tagged imperatively in its onClick
+                    (`tagTitleForTransition`, post-list.tsx) right before the
+                    old-page snapshot; the poetic page h1 is never named.
+   - article page → only the reader header h1 (no post rows present), named
+                    here.
+
+   Reduced-motion is handled globally below (all VT animations disabled), so
+   the open falls back to an instant navigation there. */
+
+h1[data-post-title] {
+  view-transition-name: post-title;
+}
+
+/* Match the site-identifier morph curve so the two shared elements feel like
+   one motion language. */
+::view-transition-group(post-title) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Crossfade the two title snapshots quickly (faster than the box morph) so the
+   size change reads as one title growing, not a double-exposure of two sizes. */
+::view-transition-old(post-title),
+::view-transition-new(post-title) {
+  animation-duration: 180ms;
+  animation-timing-function: ease-out;
+}
+
+/* -----------------------------------------------------------------------------
    Reduced Motion
    ----------------------------------------------------------------------------- */
 

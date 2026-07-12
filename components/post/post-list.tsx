@@ -18,7 +18,7 @@ import { MagneticPreview, PEEK_W } from "@/components/motion-primitives/magnetic
 import { PeekCover } from "@/components/log/media/peek-cover";
 import { useOptionalDevtool } from "@/systems/devtool/provider";
 import { Link } from "next-view-transitions";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, type MouseEvent, type ReactNode } from "react";
 
 interface LanguageFilterProps {
   includeOther: boolean;
@@ -104,6 +104,28 @@ export function PostList<T extends Post>({
     shouldShowPost(post, locale, includeOther)
   );
 
+  // Tag the clicked row's title as the shared element that morphs into the
+  // article's <h1> on open. This runs inside next-view-transitions' Link
+  // onClick, which invokes props.onClick *before* it calls startViewTransition
+  // (which snapshots the old page synchronously) — so writing the name here
+  // guarantees it's present in the old snapshot. A CSS `:hover` name is not
+  // reliable: the pointer's `:hover` state isn't guaranteed at that synchronous
+  // snapshot, so the title never got extracted and the morph silently fell back
+  // to a plain crossfade.
+  const tagTitleForTransition = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (!("startViewTransition" in document)) return;
+    const link = e.currentTarget;
+    // Only one element may own `post-title` per snapshot. Clear any stale name
+    // left by a previous, cancelled open before claiming it for this row.
+    link
+      .closest("section")
+      ?.querySelectorAll<HTMLElement>("[data-post-title]")
+      .forEach((el) => el.style.removeProperty("view-transition-name"));
+    link
+      .querySelector<HTMLElement>("[data-post-title]")
+      ?.style.setProperty("view-transition-name", "post-title");
+  };
+
   return (
     <>
       <section className="space-y-0">
@@ -174,10 +196,16 @@ export function PostList<T extends Post>({
           const postRow = (
             <Link
               href={getPostHref(post, locale, basePath)}
+              onClick={tagTitleForTransition}
               className="flex items-baseline justify-between gap-4 py-3 sm:py-4 -mx-4 px-4 rounded-lg transition-colors duration-200 hover:bg-muted/50"
             >
               <div className="flex-1 min-w-0">
-                <h2 className="text-sm sm:text-base font-normal">
+                {/* `data-post-title` marks this title as the shared element that
+                    morphs into the article header on open. `tagTitleForTransition`
+                    (the row's onClick) gives it the `post-title`
+                    view-transition-name at click time so it lifts + grows into
+                    the article's <h1>. */}
+                <h2 data-post-title className="text-sm sm:text-base font-normal">
                   {getLocalizedTitle(post, locale)}
                   {rowDecorators.map((tag) => (
                     // The leading NBSP + nowrap wrapper glue the badge to the
