@@ -535,7 +535,7 @@ export function TimelineCommit({
             Role / description only when a resolved role provides them.
           */}
           {data.type !== "role" && data.type !== "event" && (
-            <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono pb-2.5 mb-1 border-b border-border/25">
+            <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono pb-2.5 mb-1">
               <span className="text-muted-foreground/40">Author:</span>
               <span className="text-muted-foreground/65">
                 &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;

@@ -388,7 +388,13 @@ export function MediaRenderer({
           {rich.map((m, i) => (
             <div
               key={`rail-${i}`}
-              className="shrink-0 self-start snap-start basis-[calc((100cqi_-_0.625rem)/2)]"
+              // `min-w-0` is load-bearing: without it a flex item's default
+              // `min-width:auto` lets a text-heavy cell (a link card's title)
+              // push past its `basis`, so the card cell grows wider than the
+              // text-less video/slides cell beside it — unequal tiles and an
+              // overflow that clips the peek. Pinning min-width keeps every
+              // cell exactly one half-column.
+              className="min-w-0 shrink-0 self-start snap-start basis-[calc((100cqi_-_0.625rem)/2)]"
             >
               {wrap(
                 `rail-item-${i}`,
