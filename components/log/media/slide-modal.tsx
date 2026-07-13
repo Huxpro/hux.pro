@@ -19,6 +19,17 @@ import { AnimatePresence, motion } from "motion/react";
 import { ExternalLink, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/**
+ * On-media control recipe — the same dark disc + hairline white ring as
+ * PlayBadge, so the player's chrome reads as one system with the covers that
+ * open it. `h-10` sizes both the round close button and the pill.
+ */
+const CHROME_BTN = cn(
+  "inline-flex h-10 items-center rounded-full",
+  "bg-black/55 text-white/90 ring-1 ring-white/25 backdrop-blur-sm",
+  "transition-colors hover:bg-black/70 hover:text-white",
+);
+
 export interface SlideModalProps {
   /** Whether the modal is open. */
   open: boolean;
@@ -75,9 +86,11 @@ export function SlideModal({ open, onClose, src, title }: SlideModalProps) {
           aria-label={title}
         >
           {/* Backdrop. Mobile theater = opaque black; sm+ = dimmed blur. */}
-          <div className="absolute inset-0 bg-black sm:bg-black/80 sm:backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black sm:bg-black/80 sm:backdrop-blur-md" />
 
-          {/* Chrome — close + optional fullscreen escape hatch. */}
+          {/* Chrome — close + optional fullscreen escape hatch. Shares the
+              on-media control recipe with PlayBadge (dark disc, hairline
+              white ring) so covers and the player read as one system. */}
           <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
             <a
               href={src}
@@ -85,24 +98,18 @@ export function SlideModal({ open, onClose, src, title }: SlideModalProps) {
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
               aria-label="Open slides fullscreen"
-              className={cn(
-                "inline-flex h-10 items-center gap-1.5 rounded-full px-3",
-                "bg-white/10 text-sm text-white/80 backdrop-blur-sm",
-                "transition-colors hover:bg-white/20 hover:text-white",
-              )}
+              className={cn(CHROME_BTN, "gap-1.5 px-3")}
             >
               <ExternalLink className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Fullscreen</span>
+              <span className="hidden font-mono text-[11px] uppercase tracking-wider sm:inline">
+                Fullscreen
+              </span>
             </a>
             <button
               type="button"
               onClick={onClose}
               aria-label="Close slides"
-              className={cn(
-                "inline-flex h-10 w-10 items-center justify-center",
-                "rounded-full bg-white/10 text-white/80 backdrop-blur-sm",
-                "transition-colors hover:bg-white/20 hover:text-white",
-              )}
+              className={cn(CHROME_BTN, "w-10 justify-center")}
             >
               <X className="h-5 w-5" />
             </button>
@@ -116,7 +123,10 @@ export function SlideModal({ open, onClose, src, title }: SlideModalProps) {
             className={cn(
               "relative aspect-video overflow-hidden bg-black",
               "w-[min(100vw,177.78vh)] sm:w-[min(80vw,142.22vh)]",
-              "rounded-none sm:rounded-xl sm:shadow-2xl sm:ring-1 sm:ring-white/10",
+              // shadow-overlay = app elevation token for modal surfaces; the
+              // white ring does the separating in dark mode (shadow barely
+              // reads on a dark backdrop), per the elevation spec.
+              "rounded-none sm:rounded-xl sm:shadow-overlay sm:ring-1 sm:ring-white/15",
             )}
             initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1 }}

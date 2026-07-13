@@ -178,7 +178,7 @@ export function Slides({
         <span
           className={cn(
             "absolute bottom-2 left-2 inline-flex items-center gap-1",
-            "rounded-md bg-black/55 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-white/90 backdrop-blur-sm",
+            "rounded-md bg-black/55 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-white/90 ring-1 ring-white/15 backdrop-blur-sm",
           )}
         >
           <Presentation className="h-3 w-3" />
