@@ -29,6 +29,25 @@ export interface OpenSlidesOptions {
   title?: string;
 }
 
+/**
+ * Desktop keeps the in-site theater modal; phones open the deck in a new tab
+ * instead. reveal.js decks are keyboard/gesture-driven and read poorly in a
+ * cramped mobile iframe, and the native tab gives real fullscreen + the
+ * browser's own controls. The 640px cutoff matches the modal's own `sm:`
+ * breakpoint (below which it was an edge-to-edge takeover anyway).
+ */
+export function prefersSlidesModal(): boolean {
+  if (typeof window === "undefined" || !window.matchMedia) return true;
+  return window.matchMedia("(min-width: 640px)").matches;
+}
+
+/** Open a deck in a new browser tab (mobile fallback / non-modal path). */
+export function openSlidesInNewTab(url: string): void {
+  if (typeof window !== "undefined") {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
+
 interface SlidesPlayerContextValue {
   open: (opts: OpenSlidesOptions) => void;
   close: () => void;
@@ -47,6 +66,11 @@ export function SlidesPlayerProvider({ children }: { children: ReactNode }) {
   const [active, setActive] = useState<OpenSlidesOptions | null>(null);
 
   const open = useCallback((opts: OpenSlidesOptions) => {
+    // Phones bypass the modal and open the deck in its own tab.
+    if (!prefersSlidesModal()) {
+      openSlidesInNewTab(opts.url);
+      return;
+    }
     setActive(opts);
   }, []);
 

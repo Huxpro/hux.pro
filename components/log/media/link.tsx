@@ -245,11 +245,18 @@ export function CardFace({
     // Natural + cover modes share the PeekCover primitive so the LinkCard peek
     // and the /writing peek size covers identically. `fit:"cover"` gives a
     // cropped fixed slot; the default `"natural"` keeps the OG image whole.
+    //
+    // In the 2-up rail (`dense`), a natural-aspect OG image — often tall —
+    // balloons the card so it towers over the 16:9 video/slides cover beside
+    // it. There, crop the cover to the same 16:9 slot so the two tiles' covers
+    // line up and the card is only taller by its caption block. Full-width
+    // single cards keep the whole image (natural).
+    const railCover = dense && fit === "natural";
     slot = (
       <PeekCover
         src={image}
-        fit={fit}
-        aspect={aspect}
+        fit={railCover ? "cover" : fit}
+        aspect={railCover ? "16 / 9" : aspect}
         className="shrink-0"
         imgClassName={fadeClass}
         loading="lazy"

@@ -15,7 +15,11 @@ import { cn } from "@/lib/utils";
 import type { SlidesMedia } from "@/lib/log";
 import { ExternalImage } from "./external-image";
 import { PlayBadge } from "./play-badge";
-import { useSlidesPlayer } from "./slides-player";
+import {
+  useSlidesPlayer,
+  prefersSlidesModal,
+  openSlidesInNewTab,
+} from "./slides-player";
 import { SlideModal } from "./slide-modal";
 
 // =============================================================================
@@ -133,11 +137,17 @@ export function Slides({
   };
 
   const play = () => {
+    // Inside the provider, `open` already routes phones to a new tab.
     if (player.hasProvider) {
       player.open({ url: embedUrl, title: label });
-    } else {
-      setLocalOpen(true);
+      return;
     }
+    // Standalone (MDX) path: mirror that decision locally.
+    if (!prefersSlidesModal()) {
+      openSlidesInNewTab(embedUrl);
+      return;
+    }
+    setLocalOpen(true);
   };
 
   return (
