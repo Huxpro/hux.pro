@@ -23,11 +23,13 @@ import {
   isLinkCard,
   isLinkPill,
   isImageMedia,
+  isSlidesMedia,
 } from "@/lib/log";
 import { Video } from "./video";
 import { SocialEmbed } from "./embed";
 import { Link, LinkCard } from "./link";
 import { Figure } from "./image";
+import { Slides } from "./slides";
 
 // =============================================================================
 // Types
@@ -138,6 +140,18 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
         platform={media.platform}
         thumbnail={media.thumbnail}
         size={size}
+      />
+    );
+  }
+
+  if (isSlidesMedia(media)) {
+    return (
+      <Slides
+        url={media.url}
+        thumbnail={media.thumbnail}
+        title={media.title}
+        size={size}
+        className={className}
       />
     );
   }
@@ -323,12 +337,14 @@ export function MediaRenderer({
     grid: "grid grid-cols-1 md:grid-cols-2 gap-4",
   };
 
-  // Partition into "rich" media (videos / images / link-cards / social
-  // widgets — anything with a real cover) and pills. Rich items keep their
-  // authored order so a video + card interleave the way the author wrote them.
+  // Partition into "rich" media (videos / slides / images / link-cards /
+  // social widgets — anything with a real cover) and pills. Rich items keep
+  // their authored order so a video + card interleave the way the author
+  // wrote them.
   const rich = media.filter(
     (m) =>
       isVideoMedia(m) ||
+      isSlidesMedia(m) ||
       isImageMedia(m) ||
       isLinkCard(m) ||
       isSocialEmbedMedia(m),
@@ -372,7 +388,13 @@ export function MediaRenderer({
           {rich.map((m, i) => (
             <div
               key={`rail-${i}`}
-              className="shrink-0 self-start snap-start basis-[calc((100cqi_-_0.625rem)/2)]"
+              // `min-w-0` is load-bearing: without it a flex item's default
+              // `min-width:auto` lets a text-heavy cell (a link card's title)
+              // push past its `basis`, so the card cell grows wider than the
+              // text-less video/slides cell beside it — unequal tiles and an
+              // overflow that clips the peek. Pinning min-width keeps every
+              // cell exactly one half-column.
+              className="min-w-0 shrink-0 self-start snap-start basis-[calc((100cqi_-_0.625rem)/2)]"
             >
               {wrap(
                 `rail-item-${i}`,

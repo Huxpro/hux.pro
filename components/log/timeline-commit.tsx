@@ -25,6 +25,8 @@ import {
   Stats,
 } from "./embeds/shared";
 import { MediaRenderer } from "./media";
+import { useSlidesPlayer } from "./media/slides-player";
+import { resolveSlidesEmbedUrl } from "./media/slides";
 
 /**
  * Fallback handle for the expanded author block when a commit has no
@@ -134,6 +136,7 @@ export function TimelineCommit({
   onInspectMedia,
   selectedMedia = null,
 }: TimelineCommitProps) {
+  const slidesPlayer = useSlidesPlayer();
   const Icon =
     (data.iconOverride && commitIconOverrides[data.iconOverride]) ||
     commitIcons[data.type];
@@ -369,22 +372,46 @@ export function TimelineCommit({
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          {data.links.map((link, i) => (
-            <a
-              key={`link-${i}`}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-muted-foreground/40 hover:text-foreground transition-colors"
-            >
-              <LinkIcon icon={link.icon} />
-              {isExpanded && !link.redundantWhenExpanded && (
-                <span className="hidden @sm:inline text-xs">
-                  {link.label}
-                </span>
-              )}
-            </a>
-          ))}
+          {data.links.map((link, i) => {
+            const className =
+              "inline-flex items-center gap-1 text-muted-foreground/40 hover:text-foreground transition-colors";
+            const label = isExpanded && !link.redundantWhenExpanded && (
+              <span className="hidden @sm:inline text-xs">{link.label}</span>
+            );
+
+            if (link.playSlides && slidesPlayer.hasProvider) {
+              return (
+                <button
+                  key={`link-${i}`}
+                  type="button"
+                  onClick={() =>
+                    slidesPlayer.open({
+                      url: resolveSlidesEmbedUrl(link.url),
+                      title: link.label,
+                    })
+                  }
+                  className={className}
+                  aria-label={`Play slides: ${link.label}`}
+                >
+                  <LinkIcon icon={link.icon} />
+                  {label}
+                </button>
+              );
+            }
+
+            return (
+              <a
+                key={`link-${i}`}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={className}
+              >
+                <LinkIcon icon={link.icon} />
+                {label}
+              </a>
+            );
+          })}
         </div>
 
         {hideDate ? (
@@ -508,7 +535,7 @@ export function TimelineCommit({
             Role / description only when a resolved role provides them.
           */}
           {data.type !== "role" && data.type !== "event" && (
-            <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono pb-2.5 mb-1 border-b border-border/25">
+            <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono pb-2.5 mb-1">
               <span className="text-muted-foreground/40">Author:</span>
               <span className="text-muted-foreground/65">
                 &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;

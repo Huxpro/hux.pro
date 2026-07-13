@@ -21,6 +21,7 @@ import { Commit } from "./commit-embed";
 import { TimelineConnector } from "./timeline-connector";
 import type { BeamSpec } from "./timeline-commit";
 import { useTimelineEdit } from "./timeline-edit-context";
+import { SlidesPlayerProvider } from "./media/slides-player";
 
 interface LogTimelineProps {
   data: {
@@ -45,19 +46,21 @@ interface LogTimelineProps {
  */
 export function LogTimeline({ data, locale, expandAll, identities }: LogTimelineProps) {
   return (
-    <div className="space-y-0">
-      {data.map(({ tag, commits }, tagIndex) => (
-        <TagBlock
-          key={tag.id}
-          tag={tag}
-          commits={commits}
-          tagIndex={tagIndex}
-          locale={locale}
-          expandAll={expandAll}
-          identities={identities}
-        />
-      ))}
-    </div>
+    <SlidesPlayerProvider>
+      <div className="space-y-0">
+        {data.map(({ tag, commits }, tagIndex) => (
+          <TagBlock
+            key={tag.id}
+            tag={tag}
+            commits={commits}
+            tagIndex={tagIndex}
+            locale={locale}
+            expandAll={expandAll}
+            identities={identities}
+          />
+        ))}
+      </div>
+    </SlidesPlayerProvider>
   );
 }
 

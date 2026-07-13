@@ -982,6 +982,7 @@ const mediaKinds: { value: MediaKind; label: string }[] = [
   { value: "link", label: "link" },
   { value: "social-embed", label: "social-embed" },
   { value: "video", label: "video" },
+  { value: "slides", label: "slides" },
   { value: "image", label: "image" },
 ];
 
@@ -1009,6 +1010,8 @@ interface MediaDraft {
   // video
   videoPlatform?: VideoPlatform;
   thumbnail?: string;
+  // slides
+  slidesTitle?: string;
   // image
   alt?: string;
   // shared
@@ -1039,6 +1042,13 @@ function mediaToDraft(m: Media): MediaDraft {
         ...base,
         videoPlatform: m.platform,
         thumbnail: m.thumbnail,
+      };
+    case "slides":
+      return {
+        kind: "slides",
+        ...base,
+        thumbnail: m.thumbnail,
+        slidesTitle: m.title,
       };
     case "image":
       return { kind: "image", ...base, alt: m.alt };
@@ -1074,6 +1084,14 @@ function draftToMedia(d: MediaDraft): Media {
         url: d.url,
         platform: d.videoPlatform ?? "youtube",
         ...(d.thumbnail ? { thumbnail: d.thumbnail } : {}),
+        ...pinned,
+      };
+    case "slides":
+      return {
+        kind: "slides",
+        url: d.url,
+        ...(d.thumbnail ? { thumbnail: d.thumbnail } : {}),
+        ...(d.slidesTitle ? { title: d.slidesTitle } : {}),
         ...pinned,
       };
     case "image":
@@ -1315,6 +1333,23 @@ function MediaItemEditor({
             value={draft.thumbnail ?? ""}
             onChange={(v) => set({ thumbnail: v || undefined })}
             placeholder="Thumbnail URL (optional)"
+          />
+        </>
+      )}
+
+      {draft.kind === "slides" && (
+        <>
+          <Field
+            label="Title"
+            value={draft.slidesTitle ?? ""}
+            onChange={(v) => set({ slidesTitle: v || undefined })}
+            placeholder="Deck title (modal)"
+          />
+          <Field
+            label="Thumbnail"
+            value={draft.thumbnail ?? ""}
+            onChange={(v) => set({ thumbnail: v || undefined })}
+            placeholder="Cover image URL (optional)"
           />
         </>
       )}

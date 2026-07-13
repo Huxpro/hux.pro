@@ -20,6 +20,7 @@ import {
   computeCommitHash,
   getCommitLanguageBadge,
   isVideoMedia,
+  isSlidesMedia,
   isSocialEmbedMedia,
   isLinkMedia,
   isLinkPill,
@@ -48,6 +49,11 @@ export interface SimpleLink {
    * itself prints the domain + title right below.
    */
   redundantWhenExpanded?: boolean;
+  /**
+   * When set, the rail affordance opens the in-site slides player instead of
+   * navigating away. Used for `kind:"slides"` media.
+   */
+  playSlides?: boolean;
 }
 
 export interface NormalizedCommit {
@@ -175,6 +181,13 @@ export function extractMediaLinks(
         label: platformLabel[m.platform] ?? m.platform,
         icon: m.platform,
       });
+    } else if (isSlidesMedia(m)) {
+      links.push({
+        url: m.url,
+        label: m.title || "Slides",
+        icon: "slides",
+        playSlides: true,
+      });
     } else if (isSocialEmbedMedia(m)) {
       links.push(socialEmbedToLink(m));
     } else if (isLinkMedia(m)) {
@@ -225,7 +238,7 @@ function deriveThumbnail(
   media: Media[],
 ): { url: string; linkUrl?: string; isVideo?: boolean } | undefined {
   for (const m of media) {
-    const isVideo = isVideoMedia(m);
+    const isVideo = isVideoMedia(m) || isSlidesMedia(m);
     if (isVideo || isImageMedia(m)) {
       const thumb = getMediaThumbnail(m);
       if (thumb) return { url: thumb, linkUrl: m.url, isVideo };

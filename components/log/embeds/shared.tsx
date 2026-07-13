@@ -12,6 +12,7 @@ import {
   Globe,
   Instagram,
   MessageCircle,
+  Presentation,
   Twitter,
   Youtube,
   FileText,
@@ -42,6 +43,7 @@ export function LinkIcon({ icon }: { icon?: string }) {
     case "tiktok":
       return <MessageCircle className="w-3 h-3" />;
     case "slides":
+      return <Presentation className="w-3 h-3" />;
     case "file":
       return <FileText className="w-3 h-3" />;
     default:
