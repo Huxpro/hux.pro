@@ -150,7 +150,68 @@ React 从第一天起就把 `setState` 定义成「**请求**一次重渲染」�
 
 这个承诺在浏览器里成立，是因为 layout 和 JavaScript 住在同一根线程上，`getBoundingClientRect()` 可以强制同步排版。而在 pre-Fabric 的 React Native 上，这个位置根本不存在：`useLayoutEffect` 确实在 commit 后同步执行了，但此刻它身处 JS 线程——真正的视图还在异步桥的另一头排队，Yoga 还没跑，`measure()` 只能给你一个异步回调。于是「测量、再定位」必然横跨两帧，tooltip 闪一下，是那个年代 RN 开发者的集体记忆。**位置性 API 的时刻表是照着同步宿主排的；桥一异步，时刻表作废。**这也是 Fabric 重写渲染器的卖点之一：C++ 共享的 Shadow Tree 加上 JSI 同步调用，让「在 `useLayoutEffect` 里同步测量、赶在这一帧显示前再渲染一次」重新成为可能——React 花了一整代架构，才把这个「位置」在异步宿主上重新造出来。
 
-Lynx 给了另一个方向的答案。它不把「布局刚完成」这个时刻搬到 BG 线程来，而是**把你的代码搬到时刻所在的线程去**：MTS（Main Thread Script）允许把一小段函数标记为 `'main thread'`，直接在主线程上响应 [`main-thread:bindlayoutchange`](https://lynxjs.org/react/lifecycle.html)——布局结果就在手边，同步读、同步改，一帧之内完成。所以 ReactLynx 干脆宣布不支持 `useLayoutEffect`（所有生命周期都在 BG 线程异步执行），官方文档把 React 那个 Tooltip 例子原样重写成了 MTS 版：
+值得较真一下 Fabric 到底「造」出了什么。新架构把 Shadow Tree 挪进 C++（两根线程共享的不可变树），用 JSI 取代异步桥，于是 commit 期间 Yoga 布局同步完成，`useLayoutEffect` 里的 `measure()` 通过 JSI 同步读到刚提交的树；在里面 `setState`，React 走同步 lane 立刻再来一轮。对应关系是：浏览器里的「两次 render、两次 DOM commit、一次 paint」，在 Fabric 里变成「**两次 render、两次 shadow commit、一次 frame**」——React 语义上的 commit 发生了两次，用户可见的上屏只有一次。代价也和浏览器完全一致：双倍工作必须塞进一帧的预算，塞不进就是掉帧（jank）而不是闪烁（flicker）。Fabric 忠实复刻了 `useLayoutEffect`，连缺点都一起复刻了。
+
+<svg viewBox="0 0 720 448" data-bleed="true" role="img" aria-label="浏览器与 Fabric 下 useLayoutEffect 的时序对比">
+  <defs>
+    <marker id="ah-fab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+    </marker>
+    <marker id="ah-fab-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" opacity="0.35" />
+    </marker>
+  </defs>
+  <g fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace" fontSize="11">
+    <text x="40" y="36" fill="currentColor" fontSize="13">浏览器 — 单线程</text>
+    <line x1="40" y1="96" x2="688" y2="96" stroke="currentColor" opacity="0.35" markerEnd="url(#ah-fab-dim)" />
+    <rect x="58" y="83" width="76" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="96" y="100" textAnchor="middle" fill="currentColor" opacity="0.8">render ①</text>
+    <rect x="146" y="83" width="96" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="194" y="100" textAnchor="middle" fill="currentColor" opacity="0.8">commit ①·DOM</text>
+    <text x="332" y="74" textAnchor="middle" fill="currentColor" opacity="0.55" fontSize="10">useLayoutEffect</text>
+    <rect x="254" y="83" width="156" height="26" rx="4" fill="var(--background)" stroke="currentColor" />
+    <text x="332" y="100" textAnchor="middle" fill="currentColor">measure + setState</text>
+    <rect x="422" y="83" width="76" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="460" y="100" textAnchor="middle" fill="currentColor" opacity="0.8">render ②</text>
+    <rect x="510" y="83" width="96" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="558" y="100" textAnchor="middle" fill="currentColor" opacity="0.8">commit ②·DOM</text>
+    <circle cx="646" cy="96" r="5" fill="currentColor" />
+    <text x="646" y="126" textAnchor="middle" fill="currentColor">paint ✓</text>
+    <text x="40" y="156" fill="currentColor" opacity="0.55">两次 render · 两次 commit · 一次 paint —— 全部压在一次绘制之前</text>
+    <text x="40" y="212" fill="currentColor" fontSize="13">Fabric — 双线程</text>
+    <text x="40" y="248" fill="currentColor" opacity="0.5" fontSize="10">JS 线程</text>
+    <line x1="40" y1="272" x2="688" y2="272" stroke="currentColor" opacity="0.35" markerEnd="url(#ah-fab-dim)" />
+    <rect x="58" y="259" width="72" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="94" y="276" textAnchor="middle" fill="currentColor" opacity="0.8">render ①</text>
+    <rect x="140" y="259" width="122" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="201" y="276" textAnchor="middle" fill="currentColor" opacity="0.8">commit ①·Yoga 布局</text>
+    <text x="358" y="250" textAnchor="middle" fill="currentColor" opacity="0.55" fontSize="10">useLayoutEffect</text>
+    <rect x="262" y="259" width="192" height="26" rx="4" fill="var(--background)" stroke="currentColor" />
+    <text x="358" y="276" textAnchor="middle" fill="currentColor">measure（JSI 同步）+ setState</text>
+    <rect x="462" y="259" width="72" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="498" y="276" textAnchor="middle" fill="currentColor" opacity="0.8">render ②</text>
+    <rect x="544" y="259" width="100" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="594" y="276" textAnchor="middle" fill="currentColor" opacity="0.8">commit ②·布局</text>
+    <text x="40" y="348" fill="currentColor" opacity="0.5" fontSize="10">UI 线程</text>
+    <line x1="40" y1="372" x2="688" y2="372" stroke="currentColor" opacity="0.35" markerEnd="url(#ah-fab-dim)" />
+    <line x1="201" y1="285" x2="266" y2="357" stroke="currentColor" strokeDasharray="4 4" opacity="0.3" markerEnd="url(#ah-fab-dim)" />
+    <rect x="238" y="359" width="88" height="26" rx="4" fill="var(--background)" stroke="currentColor" strokeDasharray="4 4" opacity="0.3" />
+    <text x="282" y="376" textAnchor="middle" fill="currentColor" opacity="0.35">mount ①</text>
+    <text x="282" y="404" textAnchor="middle" fill="currentColor" opacity="0.4" fontSize="10">中间树 · 未上屏</text>
+    <line x1="594" y1="285" x2="600" y2="357" stroke="currentColor" opacity="0.6" markerEnd="url(#ah-fab)" />
+    <rect x="558" y="359" width="88" height="26" rx="4" fill="var(--background)" stroke="currentColor" />
+    <text x="602" y="376" textAnchor="middle" fill="currentColor">mount ②</text>
+    <circle cx="672" cy="372" r="5" fill="currentColor" />
+    <text x="664" y="404" textAnchor="middle" fill="currentColor">frame ✓</text>
+    <text x="40" y="436" fill="currentColor" opacity="0.55">两次 render · 两次 shadow commit · 一次 frame —— 中间树永远不被显示</text>
+  </g>
+</svg>
+
+但也仅此而已。事件依然要跨线程送回 JS 排队，JS 依然是那根唯一的、会忙的线程，渲染的指挥中心也依然在 JS——Fabric 重造的是「commit 之后能同步读布局」这一个位置，而不是线程本身的消失。手势跟手、逐帧动画这类 frame-time 的需求，它无能为力；证据是 Reanimated 的 worklet（把 JS 函数搬到 UI 线程逐帧执行）在 Fabric 时代不仅没有退役，反而成了正统。说得刻薄一点，「线程不感知」在这里多少有点偷换命题的味道：Fabric 解决的是「布局数据在哪根线程」，而真正的问题——**你的代码在哪根线程**——原封不动。
+
+于是 Fabric 时代的 RN 实际上是一套新的双轨制：commit-time 的工作走「占位置」，槽位被造在了你的线程上；frame-time 的工作走「搬代码」，worklet 把你送到 UI 线程去。
+
+Lynx 则走了另一条双轨制，方向感与 Fabric 相反：**它不向程序员隐藏线程，而是把双线程这个「问题」直接摊开，连同解决它的能力一起交出来。**MTS（Main Thread Script）允许把一小段函数标记为 `'main thread'`，搬到主线程上执行——比如直接响应 [`main-thread:bindlayoutchange`](https://lynxjs.org/react/lifecycle.html)：布局结果就在手边，同步读、同步改，一帧之内完成；frame-time 和 commit-time 在这里本来就是同一根时间线，不需要两套机制。所以 ReactLynx 干脆宣布不支持 `useLayoutEffect`（所有生命周期都在 BG 线程异步执行），官方文档把 React 那个 Tooltip 例子原样重写成了 MTS 版：
 
 ```jsx
 <view
@@ -162,12 +223,12 @@ Lynx 给了另一个方向的答案。它不把「布局刚完成」这个时刻
 />
 ```
 
-（pre-Fabric 时代的 RN 社区其实早就发明了同款解法——Reanimated 的 worklet 就是把 JS 函数搬到 UI 线程执行，Lynx 的 MTS 正是这一思路的体系化。）
+这条路线的前身正是 RN 社区的 Reanimated——Lynx 把 worklet 从社区补丁扶正成了框架的一等公民。把 programmability 交出来，也就把能力彻底交出来了；赌注则押在**架构约束**上：worklet 必须显式标记、闭包能捕获什么有一套明确规则、跨线程通信走受控的通道——用限制去引导正确的写法，迫近可组合性，而不是假装线程不存在。
 
 于是那张对比图上其实有三格，而不是两格：
 
 - **等时间（Vue）**：让时刻穿过桥来找你的代码——桥必须给回执，于是有了 ack 和 latch；
-- **占位置（React）**：把代码放在时刻的槽位上——槽位必须在你的线程上存在，于是有了 Fabric；
+- **占位置（React）**：把代码放在时刻的槽位上——槽位必须在你的线程上存在，于是有了 Fabric；而 Fabric 只造出了 commit-time 的槽位；
 - **搬代码（MTS / worklet）**：干脆把代码送到时刻所在的线程——代价是这段代码离开了你的组件世界，闭包、状态、能 import 什么，全部要重新立规矩。
 
 第三格也不免费：worklet 是一段被序列化后传送过桥的孤岛，它看得见布局，却摸不到你的 store。但它揭示了这场讨论的底层不变量——**「时刻」只诞生在布局发生的那根线程上。你可以等它的信使（ack），可以订它的座位（effect），也可以亲自搬过去住（worklet），但没有任何框架魔法能让同一个时刻同时存在于两根线程上。**
