@@ -1,0 +1,175 @@
+---
+title: "nextTick 的账单"
+description: "The Bill for nextTick — 当 Vue 的时间承诺遇上双线程"
+date: "2026-07-16"
+tags: ["Web", "Vue", "React", "Lynx"]
+---
+
+最近在给 [vue-lynx](https://github.com/Huxpro/vue-lynx)（我把 Vue 3 移植到 [Lynx](https://lynxjs.org) 上的自定义渲染器）修 bug 的过程中，接连撞上了两个谜团。它们表面上毫无关系，最后却把我引向了同一个问题：**框架应该向用户承诺「时间」吗？**
+
+第一个谜团是一行红色的报错。在 LynxExplorer 里打开用 Tailwind 重写的 HackerNews demo，屏幕一片空白，控制台里躺着 `9901: page ui not found when create UI`。
+
+第二个谜团更诡异：修完第一个 bug 之后页面渲染出来了，但所有路由转场永远停在半路——`await nextTick()` 之后的代码，一行都没有执行过。
+
+## 一、引擎比你先到
+
+先说第一个谜团，它是这次探案的引子。
+
+Lynx 和 DOM 有一个根本的不同：**原生的 `<page>` 根节点不是你创建的**。引擎在你的第一行 JavaScript 跑起来之前，就把它创建好了。所以当用户在模板里写下 `<page class="app">`，而一个老实的自定义渲染器把它当作普通元素、向引擎发出「创建一个 page」的指令时，引擎只能拒绝：page 已经有了，你不能再造一个。
+
+上游的 ReactLynx 是怎么处理的？它在编译期就把 `<page>` 特殊对待——根上的 `<page>` 不产生「创建」，只把属性合并到那个既有的根节点上。我们最终的方案同构：编译器把 `<page>` 改写成一个「透明组件」，运行时不创建任何原生元素，只是把 class、样式、事件**认领**（claim）到那个已经存在的根上，卸载时再交还。
+
+这个谜团本身不难，但它埋下了本文的主题：**在双线程的世界里，框架与宿主的关系变了——有些东西你不再拥有，只能借用。**第二个谜团把这一点推向了极端。
+
+## 二、永远等不到的回执
+
+交代一下背景。Lynx 是双线程架构：你的 Vue 代码跑在 Background Thread（BG）上，操作的只是一棵内存里的影子树；真正的原生元素活在 Main Thread（MT）上。BG 把变更打包成一批 ops，通过 `callLepusMethod('vuePatchUpdate', ops, callback)` **异步**地寄过线程边界。
+
+标准 Vue 的 `nextTick()` 只需要等调度器 flush——因为 DOM 变更是同步的，flush 完 DOM 就真的更新完了，用户可以放心测量布局。但在 vue-lynx 里，flush 完成只意味着 ops「已寄出」。如果 `nextTick` 在这里就 resolve，用户接着查询元素就会扑空。所以 vue-lynx 的 `nextTick` 多等一程：把 `callLepusMethod` 的回调当作回执（ack），等主线程真正应用完再兑现。
+
+<svg viewBox="0 0 720 368" style={{width: "100%", height: "auto"}} role="img" aria-label="vue-lynx 双线程 flush 时序图">
+  <defs>
+    <marker id="ah-solid" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+    </marker>
+    <marker id="ah-dash" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" opacity="0.55" />
+    </marker>
+  </defs>
+  <g fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace" fontSize="12">
+    <rect x="115" y="16" width="170" height="44" rx="4" fill="none" stroke="currentColor" opacity="0.6" />
+    <text x="200" y="34" textAnchor="middle" fill="currentColor">Background Thread</text>
+    <text x="200" y="50" textAnchor="middle" fill="currentColor" opacity="0.55" fontSize="11">Vue runtime · 影子树</text>
+    <rect x="455" y="16" width="170" height="44" rx="4" fill="none" stroke="currentColor" opacity="0.6" />
+    <text x="540" y="34" textAnchor="middle" fill="currentColor">Main Thread</text>
+    <text x="540" y="50" textAnchor="middle" fill="currentColor" opacity="0.55" fontSize="11">原生 Lynx 元素</text>
+    <line x1="200" y1="60" x2="200" y2="352" stroke="currentColor" strokeDasharray="4 4" opacity="0.3" />
+    <line x1="540" y1="60" x2="540" y2="352" stroke="currentColor" strokeDasharray="4 4" opacity="0.3" />
+    <circle cx="200" cy="96" r="4" fill="currentColor" />
+    <text x="184" y="100" textAnchor="end" fill="currentColor">count.value++（同步返回）</text>
+    <circle cx="200" cy="140" r="4" fill="currentColor" />
+    <text x="184" y="144" textAnchor="end" fill="currentColor">调度器 flush · 打包 ops</text>
+    <text x="184" y="162" textAnchor="end" fill="currentColor" opacity="0.55" fontSize="11">标准 Vue 在此即 resolve</text>
+    <line x1="200" y1="196" x2="533" y2="196" stroke="currentColor" markerEnd="url(#ah-solid)" />
+    <text x="366" y="188" textAnchor="middle" fill="currentColor">callLepusMethod(vuePatchUpdate, ops, cb)</text>
+    <rect x="533" y="196" width="14" height="70" rx="2" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeOpacity="0.5" />
+    <text x="558" y="226" fill="currentColor">applyOps()</text>
+    <text x="558" y="244" fill="currentColor" opacity="0.55" fontSize="11">创建 / 更新原生元素</text>
+    <line x1="533" y1="266" x2="207" y2="266" stroke="currentColor" strokeDasharray="5 4" opacity="0.55" markerEnd="url(#ah-dash)" />
+    <text x="366" y="288" textAnchor="middle" fill="currentColor" opacity="0.7">回执 ack — cb()</text>
+    <circle cx="200" cy="330" r="5" fill="currentColor" />
+    <text x="216" y="334" fill="currentColor">vue-lynx 的 nextTick 在此 resolve ✓</text>
+    <path d="M 660 196 C 676 196 676 196 676 214 L 676 248 C 676 266 676 266 660 266" fill="none" stroke="currentColor" opacity="0.4" />
+    <text x="700" y="222" textAnchor="middle" fill="currentColor" opacity="0.55" fontSize="11" transform="rotate(90 700 222)">这段距离在 DOM 上不存在</text>
+  </g>
+</svg>
+
+而第二个谜团的真相是：我们测试用的那台 source build 的 Explorer，`vuePatchUpdate` 被成功地应用了，**但回调从来没有被调用过**。回执永远不来，promise 永远 pending，转场永远卡死。
+
+修法看起来很简单：加一个 50ms 的兜底 timer，等不到回执就自己 resolve。但 code review 立刻指出了问题——无条件的兜底，等于**拿所有引擎上的正确性去换个别引擎上的活性（liveness）**：健康引擎应用一个大批次超过 50ms 时（低端设备首屏很常见），timer 会抢先 resolve，用户又会查询到尚未物化的元素，而且这比卡死难排查得多。最终落地的是一个锁存（latch）：
+
+```ts
+// 一旦观察到引擎回过一次真实回执，就永久信任它，不再挂兜底 timer
+app?.callLepusMethod?.('vuePatchUpdate', { data }, () => {
+  engineAckObserved = true;  // 健康引擎从此回到严格保证
+  ack.resolve();
+});
+```
+
+回头看这条复杂度链，每一层都是被现实逼出来的：
+
+```text
+异步线程边界      →  需要回执，保住 nextTick 的语义
+引擎不回执        →  需要兜底 timer，保住活性
+timer 误伤健康引擎 →  需要 latch，只对坏引擎降级
+```
+
+写完这段代码之后，一个问题开始萦绕不去：ReactLynx 每天在生产环境里跑，**它怎么没被这个引擎缺陷咬到？**
+
+## 三、React 从未签过这份合同
+
+去上游 [lynx-stack](https://github.com/lynx-family/lynx-stack) 里翻 ReactLynx 的源码，答案让我愣了一下。同一个回调就在那里——ReactLynx 发 patch 也走 `callLepusMethod`：
+
+```js
+// @lynx-js/react — lifecycle/patch/commit.js
+lynx.getNativeApp().callLepusMethod(LifecycleConstant.patchUpdate, obj, () => {
+  const commitTask = globalCommitTaskMap.get(commitTaskId);
+  if (commitTask) {
+    commitTask();  // 延迟回收已移除的 snapshot 实例
+    globalCommitTaskMap.delete(commitTaskId);
+  }
+});
+```
+
+但这个回调只做一件事：清理。它不兑现任何用户可见的 promise。整个 ReactLynx runtime 里没有 `nextTick`、没有 `waitForFlush`、没有任何「等主线程应用完」的公开 API。
+
+于是同一个引擎缺陷砸在两个框架上，后果天差地别：在 ReactLynx 里，是一次无人察觉的延迟回收；在 vue-lynx 里，是用户可见的死锁。**区别不在实现，在契约——React 不是解决了这个问题，而是从未签过这份合同。**
+
+## 四、等时间，还是占位置
+
+为什么 React 敢不签？这要回到两个框架的状态模型。
+
+Vue 的响应式基于可变数据（mutation）：`count.value++` 是同步的命令式写入，DOM 效果却被批到 microtask 里。**写入同步、生效异步**，中间这条时间缝隙用户是感知得到的，框架必须给个交代。`nextTick` 就是那个交代——它本质上是把宿主的 event loop 直接暴露给了用户：「我保证，这个 microtask 之后，你的修改已经落在 DOM 上」。在浏览器里，这个承诺几乎免费：DOM 变更本来就是同步的，框架只需要在自己的 watcher 队列排干之后放行。
+
+React 从第一天起就把 `setState` 定义成「**请求**一次重渲染」而不是「修改状态」——state is a snapshot。API 从没承诺过「什么时候生效」，所以也不欠用户一个时间性的答案。React 给的是**位置性**的答案：不告诉你「何时刷完」，而是提供一些保证站在「已提交」这个位置上的钩子——`ref` 回调、`useLayoutEffect`、`useEffect`。你不能 `await` 到那个时刻，但你可以把代码**放置**在那个时刻。
+
+<svg viewBox="0 0 720 312" style={{width: "100%", height: "auto"}} role="img" aria-label="等时间与占位置两种 API 形态的对比">
+  <defs>
+    <marker id="ah-cmp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+    </marker>
+  </defs>
+  <g fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace" fontSize="12">
+    <line x1="360" y1="24" x2="360" y2="288" stroke="currentColor" opacity="0.15" />
+    <text x="40" y="40" fill="currentColor" fontSize="13">Vue — 等时间（temporal）</text>
+    <line x1="40" y1="176" x2="316" y2="176" stroke="currentColor" opacity="0.5" markerEnd="url(#ah-cmp)" />
+    <circle cx="72" cy="176" r="4" fill="currentColor" />
+    <text x="72" y="200" textAnchor="middle" fill="currentColor" opacity="0.7" fontSize="11">状态写入</text>
+    <circle cx="160" cy="176" r="4" fill="currentColor" />
+    <text x="160" y="200" textAnchor="middle" fill="currentColor" opacity="0.7" fontSize="11">flush</text>
+    <circle cx="252" cy="176" r="5" fill="currentColor" />
+    <text x="252" y="200" textAnchor="middle" fill="currentColor" fontSize="11">宿主应用完成</text>
+    <path d="M 96 96 C 180 96 252 116 258 164" fill="none" stroke="currentColor" opacity="0.6" strokeDasharray="5 4" markerEnd="url(#ah-cmp)" />
+    <text x="88" y="86" fill="currentColor">await nextTick()</text>
+    <text x="40" y="268" fill="currentColor" opacity="0.55" fontSize="11">用户代码等到「那个时刻」</text>
+    <text x="404" y="40" fill="currentColor" fontSize="13">React — 占位置（positional）</text>
+    <rect x="404" y="72" width="130" height="36" rx="4" fill="none" stroke="currentColor" opacity="0.45" />
+    <text x="469" y="94" textAnchor="middle" fill="currentColor" opacity="0.7">render</text>
+    <rect x="404" y="124" width="130" height="36" rx="4" fill="none" stroke="currentColor" />
+    <text x="469" y="146" textAnchor="middle" fill="currentColor">commit</text>
+    <rect x="404" y="176" width="130" height="36" rx="4" fill="none" stroke="currentColor" opacity="0.45" />
+    <text x="469" y="198" textAnchor="middle" fill="currentColor" opacity="0.7">passive effects</text>
+    <line x1="469" y1="108" x2="469" y2="122" stroke="currentColor" opacity="0.5" markerEnd="url(#ah-cmp)" />
+    <line x1="469" y1="160" x2="469" y2="174" stroke="currentColor" opacity="0.5" markerEnd="url(#ah-cmp)" />
+    <line x1="560" y1="142" x2="538" y2="142" stroke="currentColor" opacity="0.6" strokeDasharray="5 4" markerEnd="url(#ah-cmp)" />
+    <text x="568" y="138" fill="currentColor" fontSize="11">ref 回调</text>
+    <text x="568" y="154" fill="currentColor" fontSize="11">useLayoutEffect</text>
+    <line x1="560" y1="194" x2="538" y2="194" stroke="currentColor" opacity="0.6" strokeDasharray="5 4" markerEnd="url(#ah-cmp)" />
+    <text x="568" y="198" fill="currentColor" fontSize="11">useEffect</text>
+    <text x="404" y="268" fill="currentColor" opacity="0.55" fontSize="11">用户代码被放进「那个位置」</text>
+  </g>
+</svg>
+
+这不是洁癖，而是为调度器保留自由度的深思熟虑。如果 React 承诺了「`await` 之后宿主树一定反映你的更新」，后来的一切都做不成：跨事件的 automatic batching、可中断可重启的并发渲染、transition 的优先级车道——在并发模型里，一次更新可能被打断、重放、被更高优先级超越，甚至**不存在一个良定义的「after」**。时间性的 API 一旦发布，就会被 Hyrum's Law 锁死：总有用户代码依赖「microtask 后一切就绪」，调度器从此再也不能变。React 把调度视为核心竞争力（Fiber 的全部意义），代价就是绝不出售 timing——唯一的例外 `flushSync`，被刻意起了个吓人的名字放在文档的角落里。
+
+而这份克制换来的最大红利是**可移植性**。React Native 和 Lynx 是同构问题：JS 线程与 UI 线程之间隔着一座异步的桥。因为 React 从没承诺过「何时上屏」，同一套心智模型搬到 RN 上语义零破损——测量布局走异步的 measure 回调，和 DOM 版的心智一致。Vue 的 `nextTick` 契约在浏览器上几乎免费，但搬到异步双线程上，就要**在最贵的环境里兑现最强的承诺**。这就是那张账单。React 通过从不签合同，躲掉了它。
+
+## 五、没有免费的一边
+
+说到这里，必须替 Vue 说句公道话：它的选择同样自洽，而非「没抽象好」。
+
+Vue 的血统里有 jQuery 时代的渐进增强——「改完就测」的命令式互操作是一等公民，template ref 拿到的就是裸元素。而且细粒度响应式让「flush 之后」这个时刻**良定义且便宜**：watcher 队列在一个 microtask 里排干，确实存在一个确定的「after」可以卖。Vue 卖了这个承诺，因为在它的模型里，它卖得起。
+
+React 的做法也远非免费——复杂度只是换了个地方付账：`useEffect` 与 `useLayoutEffect` 的时序困惑、「为什么我测到的布局是旧的」、ref 回调的心智负担，以及那个不得不存在的 `flushSync`。**一边是框架在内部消化时序（vue-lynx 里那一百行 flush.ts），一边是把时序困惑分摊给每一个用户。复杂度不会消失，只会转移。**
+
+## 尾声
+
+给 Vue 的用户和实现者留一个观察：如果有一天 Vue 走向可中断的并发渲染，`nextTick` 那个「确定的 after」会先于一切成为障碍——到时候大概也得走 React 的老路，引导用户从「等时间」迁移到「占位置」。也许再过几年，`nextTick` 会像今天的 `flushSync` 一样，顶着一个劝退的名字活在文档的角落里。
+
+而对我自己，这次最大的收获是换了一副眼镜：**评价一个 API，不只看它给了用户什么能力，还要看它替框架签下了什么合同。**有些合同在签订的那天几乎免费，利息却要在十年后的另一个宿主环境里才开始计——
+
+`nextTick` 的账单，是我在 Lynx 上替 Vue 付的。
+
+---
+
+*本文的工程细节来自 [vue-lynx#226](https://github.com/Huxpro/vue-lynx/pull/226)：显式 `<page>` 根节点的复用，与 flush 回执的 latch 机制。从 code review、上游源码考据到行文成稿，与 Claude 协作完成。*
