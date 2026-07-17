@@ -38,6 +38,19 @@
         "en": "Stay a beginner. Expertise can become a prison—the best ideas come from naive questions.",
         "zh": "保持初学者心态。专业知识可能成为牢笼——最好的想法来自天真的问题。"
       }
+    },
+    {
+      "id": "billie-jean-king-pressure",
+      "text": {
+        "en": "Pressure is a privilege.",
+        "zh": "压力是一种荣幸。"
+      },
+      "author": "Billie Jean King",
+      "source": "Fed Cup, 2000",
+      "commentary": {
+        "en": "\"Pressure is a privilege, and champions adjust.\" If you feel the pressure, it means you earned your way to a moment that matters. Reframe the weight as proof you belong.",
+        "zh": "\"压力是一种荣幸，而冠军懂得调整。\" 如果你感受到压力，说明你已经凭实力赢得了这个重要的时刻。把这份重量重新理解为你有资格在场的证明。"
+      }
     }
   ],
   "principles": [
