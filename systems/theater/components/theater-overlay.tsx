@@ -10,7 +10,6 @@ import {
   PictureInPicture2,
   X,
 } from "lucide-react";
-import { useRef } from "react";
 import { Link } from "next-view-transitions";
 import { useTheater } from "../provider";
 import { AlbumTabs } from "./album-tabs";
@@ -19,10 +18,12 @@ import { PlaylistRail } from "./playlist-rail";
 // ---------------------------------------------------------------------------
 // TheaterOverlay — the immersive desktop modal chrome.
 //
-// The video itself is the provider's persistent <Stage />; this draws the
-// backdrop, the album switcher + window controls (top), edge track arrows, and
-// the playlist rail (bottom), all aligned to the same stage rect so the whole
-// thing reads as one "app window" — like opening a system app on iPad.
+// The video itself is the provider's persistent <Stage /> (z-10002). This draws
+// the backdrop (z-10000, below the stage) and the chrome (z-10005, above it):
+// album switcher + window controls, edge track arrows, and the playlist rail.
+// Crucially every chrome layer is a top-level fixed sibling — NOT nested inside
+// the backdrop — so its z-index actually sits above the stage rather than being
+// trapped in the backdrop's (lower) stacking context.
 // ---------------------------------------------------------------------------
 
 const CHROME_BTN = cn(
@@ -37,6 +38,8 @@ export function TheaterOverlay() {
     minimized,
     albums,
     albumIndex,
+    trackIndex,
+    album,
     track,
     rect,
     selectAlbum,
@@ -45,60 +48,45 @@ export function TheaterOverlay() {
     toPip,
     minimize,
     close,
-    trackIndex,
-    album,
   } = useTheater();
 
-  const wheelLock = useRef(0);
   const open = mode === "theater" && !minimized;
 
   const hasPrev = albumIndex > 0 || trackIndex > 0;
   const hasNext =
     trackIndex < (album?.tracks.length ?? 0) - 1 || albumIndex < albums.length - 1;
 
-  const onWheel = (e: React.WheelEvent) => {
-    const now = Date.now();
-    if (now - wheelLock.current < 400) return;
-    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    if (Math.abs(delta) < 12) return;
-    wheelLock.current = now;
-    if (delta > 0) next();
-    else previous();
-  };
-
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          className="fixed inset-0 z-[10000]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-          role="dialog"
-          aria-modal="true"
-          aria-label={track?.title ?? "Video player"}
-        >
-          {/* Backdrop — click to close; wheel to browse tracks. */}
-          <div
-            className="absolute inset-0 bg-black/80 backdrop-blur-md"
+        <>
+          {/* Backdrop — below the stage; click to close. */}
+          <motion.div
+            key="backdrop"
+            className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
             onClick={close}
-            onWheel={onWheel}
+            role="presentation"
           />
 
-          {/* Chrome container aligned to the stage rect. pointer-events-none so
-              the video (native YouTube controls) stays clickable; children opt
-              back in. */}
-          <div
-            className="pointer-events-none fixed z-[10004]"
+          {/* Chrome over the video — album tabs + window controls + arrows. */}
+          <motion.div
+            key="chrome-top"
+            className="pointer-events-none fixed z-[10005]"
             style={{
               top: rect.top,
               left: rect.left,
               width: rect.width,
               height: rect.height,
             }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut", delay: 0.02 }}
           >
-            {/* Top gradient bar: album tabs + window controls. */}
             <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 rounded-t-xl bg-gradient-to-b from-black/60 to-transparent p-3">
               <div className="pointer-events-auto">
                 <AlbumTabs
@@ -131,7 +119,6 @@ export function TheaterOverlay() {
               </div>
             </div>
 
-            {/* Edge track arrows. */}
             <button
               aria-label="Previous video"
               onClick={previous}
@@ -154,17 +141,21 @@ export function TheaterOverlay() {
             >
               <ChevronRight className="h-6 w-6" />
             </button>
-          </div>
+          </motion.div>
 
           {/* Title + playlist rail beneath the video. */}
-          <div
-            className="pointer-events-none fixed inset-x-0 z-[10004]"
+          <motion.div
+            key="chrome-bottom"
+            className="fixed inset-x-0 z-[10005]"
             style={{ top: rect.top + rect.height + 16 }}
-            onWheel={onWheel}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2, ease: "easeOut", delay: 0.04 }}
           >
-            <div className="mx-auto w-[min(92vw,900px)] px-2">
+            <div className="mx-auto w-[min(90vw,900px)] px-2">
               {track && (
-                <div className="pointer-events-auto mb-2 flex items-baseline justify-between gap-3">
+                <div className="mb-2 flex items-baseline justify-between gap-3">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium text-white">
                       {track.title}
@@ -186,12 +177,10 @@ export function TheaterOverlay() {
                   )}
                 </div>
               )}
-              <div className="pointer-events-auto">
-                <PlaylistRail />
-              </div>
+              <PlaylistRail />
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </>
       )}
     </AnimatePresence>
   );

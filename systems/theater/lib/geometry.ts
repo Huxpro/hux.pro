@@ -8,7 +8,7 @@
 // in the same render so they stay pixel-aligned while animating and dragging.
 // =============================================================================
 
-import type { StageRect, TheaterMode } from "./types";
+import type { StageRect } from "./types";
 
 const ASPECT = 9 / 16;
 /** Gap from the viewport edge for the floating PiP window. */
@@ -39,17 +39,29 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-/** Largest centered 16:9 box that fits the theater budget (~70% height). */
+/** Vertical budget reserved beneath the theater video for the playlist rail. */
+export const THEATER_RAIL_H = 168;
+const THEATER_GAP = 16;
+const THEATER_MARGIN = 28;
+
+/**
+ * Largest 16:9 box that fits within ~90vw and the height left after reserving
+ * the playlist rail, then the whole group (video + rail) is centered. Mirrors
+ * PR #71's "largest 16:9 within budget" sizing so the player reads big and
+ * clean, while still leaving room for the album's track rail below.
+ */
 export function theaterRect(vp: Viewport): StageRect {
-  const maxHeight = vp.height * 0.7;
-  const maxWidth = vp.width * 0.92;
+  const maxWidth = vp.width * 0.9;
+  const maxHeight =
+    vp.height - THEATER_RAIL_H - THEATER_GAP - THEATER_MARGIN * 2;
   let width = Math.min(maxWidth, maxHeight / ASPECT);
   let height = width * ASPECT;
   if (height > maxHeight) {
     height = maxHeight;
     width = height / ASPECT;
   }
-  const top = Math.max((vp.height - height) / 2 - vp.height * 0.03, 56);
+  const groupHeight = height + THEATER_GAP + THEATER_RAIL_H;
+  const top = Math.max((vp.height - groupHeight) / 2, THEATER_MARGIN);
   const left = (vp.width - width) / 2;
   return { top, left, width, height };
 }
@@ -81,18 +93,16 @@ export function pipRect(vp: Viewport, offset: { x: number; y: number }): StageRe
   return { top, left, width, height };
 }
 
-/** Off-screen parking spot that keeps the player mounted (audio alive). */
-export function parkedRect(vp: Viewport): StageRect {
-  const width = pipWidth(vp);
-  return { top: -9999, left: -9999, width, height: width * ASPECT };
-}
-
+/**
+ * The stage's rect for a *visible* mode. Hidden states (closed / minimized)
+ * don't move the stage off-screen anymore — they keep it at its mode's rect and
+ * just fade + scale it out (so opening is a clean in-place morph, not a fly-in
+ * from a parked corner), while the still-mounted iframe keeps audio alive.
+ */
 export function stageRectFor(
-  mode: TheaterMode,
+  mode: "theater" | "pip",
   vp: Viewport,
   offset: { x: number; y: number },
 ): StageRect {
-  if (mode === "theater") return theaterRect(vp);
-  if (mode === "pip") return pipRect(vp, offset);
-  return parkedRect(vp);
+  return mode === "pip" ? pipRect(vp, offset) : theaterRect(vp);
 }

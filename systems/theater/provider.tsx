@@ -12,6 +12,7 @@ import {
 import { usePathname } from "next/navigation";
 import { useOptionalMusic } from "@/systems/music";
 import type { VideoPlatform } from "@/lib/log";
+import { useInputCapability } from "@/services";
 import { readViewport, stageRectFor, type Viewport } from "./lib/geometry";
 import { adHocAlbum } from "./lib/albums";
 import {
@@ -137,6 +138,7 @@ function ytPhase(state: YT.PlayerState): PlayerPhase {
 export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const music = useOptionalMusic();
   const pathname = usePathname();
+  const { primaryInput } = useInputCapability();
 
   // --- Playlist + mode state ---
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -155,28 +157,33 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const [viewport, setViewport] = useState<Viewport>(() => readViewport());
   const [pipOffset, setPipOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
-  const [isCoarse, setIsCoarse] = useState(false);
+
+  // Touch-primary devices (and very narrow windows) get the floating PiP by
+  // default rather than the heavy theater takeover. Uses the app's canonical
+  // input-capability service (detect-it) instead of a raw hover media query,
+  // which is unreliable (e.g. always "hover: none" in headless Chrome).
+  const isCoarse = primaryInput === "touch" || viewport.width < 640;
 
   const album = albums[albumIndex] ?? null;
   const track = album?.tracks[trackIndex] ?? null;
 
   const effectiveMode: TheaterMode = minimized ? "closed" : mode;
+  // The stage always sits at a *visible* mode's rect; hidden states fade/scale
+  // it out in place rather than moving it, so opening reads as a clean morph.
+  const geomMode: "theater" | "pip" =
+    mode === "pip" ? "pip" : isCoarse ? "pip" : "theater";
   const rect = useMemo(
-    () => stageRectFor(effectiveMode, viewport, pipOffset),
-    [effectiveMode, viewport, pipOffset],
+    () => stageRectFor(geomMode, viewport, pipOffset),
+    [geomMode, viewport, pipOffset],
   );
+  const visible = mode !== "closed" && !minimized;
 
-  // --- Device class + viewport tracking ---
+  // --- Viewport tracking (drives stage geometry) ---
   useEffect(() => {
-    const coarse = window.matchMedia("(hover: none), (pointer: coarse)");
     const sync = () => setViewport(readViewport());
-    setIsCoarse(coarse.matches);
-    const onCoarse = () => setIsCoarse(coarse.matches);
-    coarse.addEventListener("change", onCoarse);
     window.addEventListener("resize", sync);
     window.addEventListener("orientationchange", sync);
     return () => {
-      coarse.removeEventListener("change", onCoarse);
       window.removeEventListener("resize", sync);
       window.removeEventListener("orientationchange", sync);
     };
@@ -517,65 +524,17 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     [albumIndex, clampTrack],
   );
 
-  // --- Global keyboard shortcuts while the player is on screen ---
+  // Escape closes the player (a standard modal affordance). Track/album
+  // navigation via keyboard and scroll is intentionally omitted on desktop —
+  // clicking the album tabs / playlist rail / arrows is the single, clear path.
   useEffect(() => {
     if (effectiveMode === "closed") return;
     const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && /input|textarea|select/i.test(target.tagName)) return;
-      switch (e.key) {
-        case "Escape":
-          if (mode === "theater") toPip();
-          else close();
-          break;
-        case "ArrowRight":
-          e.preventDefault();
-          next();
-          break;
-        case "ArrowLeft":
-          e.preventDefault();
-          previous();
-          break;
-        case "ArrowDown":
-          if (mode === "theater" && albums.length > 1) {
-            e.preventDefault();
-            selectAlbum((albumIndex + 1) % albums.length);
-          }
-          break;
-        case "ArrowUp":
-          if (mode === "theater" && albums.length > 1) {
-            e.preventDefault();
-            selectAlbum((albumIndex - 1 + albums.length) % albums.length);
-          }
-          break;
-        case " ":
-          e.preventDefault();
-          togglePlay();
-          break;
-        case "p":
-        case "P":
-          if (mode === "theater") toPip();
-          else toTheater();
-          break;
-        default:
-          break;
-      }
+      if (e.key === "Escape") close();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [
-    effectiveMode,
-    mode,
-    albums.length,
-    albumIndex,
-    next,
-    previous,
-    selectAlbum,
-    togglePlay,
-    toPip,
-    toTheater,
-    close,
-  ]);
+  }, [effectiveMode, close]);
 
   const value: TheaterContextValue = {
     albums,
@@ -622,7 +581,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
         rect={rect}
         track={track}
         active={mode !== "closed"}
-        visible={effectiveMode !== "closed"}
+        visible={visible}
         dragging={dragging}
       />
     </TheaterContext.Provider>

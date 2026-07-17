@@ -48,20 +48,33 @@ export function Stage({
     <motion.div
       aria-hidden={!visible}
       className={cn(
-        "theater-stage fixed z-[10002] overflow-hidden bg-black",
-        "rounded-none sm:rounded-xl",
+        "theater-stage fixed z-[10002] overflow-hidden bg-black rounded-xl",
         visible
           ? "shadow-overlay ring-1 ring-white/15 pointer-events-auto"
           : "pointer-events-none",
       )}
+      style={{ transformOrigin: "center center" }}
+      initial={false}
       animate={{
         top: rect.top,
         left: rect.left,
         width: rect.width,
         height: rect.height,
         opacity: visible ? 1 : 0,
+        scale: visible ? 1 : 0.96,
       }}
-      transition={dragging ? { duration: 0 } : { duration: 0.34, ease: EASE }}
+      transition={
+        dragging
+          ? { duration: 0 }
+          : {
+              // Position/size morphs (theater ⇄ PiP) glide; show/hide is a
+              // short, clean fade + scale in place — no fly-in from a corner.
+              duration: 0.34,
+              ease: EASE,
+              opacity: { duration: 0.18, ease: "easeOut" },
+              scale: { duration: 0.22, ease: "easeOut" },
+            }
+      }
     >
       {/* YouTube host — always mounted so the IFrame API instance persists. */}
       <div
