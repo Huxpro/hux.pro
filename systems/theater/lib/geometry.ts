@@ -39,30 +39,39 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-/** Vertical budget reserved beneath the theater video for the playlist rail. */
-export const THEATER_RAIL_H = 168;
-const THEATER_GAP = 16;
-const THEATER_MARGIN = 28;
+// Chrome lives *around* the video, not on top of it, so the video rect is the
+// largest 16:9 that leaves these margins free: a control bar above, the title +
+// playlist rail below, and prev/next arrow gutters on the sides.
+export const THEATER_TOP_BAR = 52; // album switcher + window controls
+export const THEATER_BOTTOM = 176; // title + playlist rail
+export const THEATER_SIDE = 68; // prev / next arrow gutters
+const THEATER_MARGIN = 16;
 
 /**
- * Largest 16:9 box that fits within ~90vw and the height left after reserving
- * the playlist rail, then the whole group (video + rail) is centered. Mirrors
- * PR #71's "largest 16:9 within budget" sizing so the player reads big and
- * clean, while still leaving room for the album's track rail below.
+ * A contained, floating video — deliberately kept to ~62vh / ~74vw (smaller
+ * than an edge-to-edge takeover, echoing PR #71's floating lightbox feel) and
+ * centered within the band left between the top bar and the bottom rail, so the
+ * surrounding chrome has room to sit around it rather than over it.
  */
 export function theaterRect(vp: Viewport): StageRect {
-  const maxWidth = vp.width * 0.9;
-  const maxHeight =
-    vp.height - THEATER_RAIL_H - THEATER_GAP - THEATER_MARGIN * 2;
+  const maxWidth = Math.min(
+    vp.width - 2 * (THEATER_SIDE + THEATER_MARGIN),
+    vp.width * 0.76,
+  );
+  const maxHeight = Math.min(
+    vp.height - THEATER_TOP_BAR - THEATER_BOTTOM - 2 * THEATER_MARGIN,
+    vp.height * 0.66,
+  );
   let width = Math.min(maxWidth, maxHeight / ASPECT);
   let height = width * ASPECT;
   if (height > maxHeight) {
     height = maxHeight;
     width = height / ASPECT;
   }
-  const groupHeight = height + THEATER_GAP + THEATER_RAIL_H;
-  const top = Math.max((vp.height - groupHeight) / 2, THEATER_MARGIN);
   const left = (vp.width - width) / 2;
+  const bandTop = THEATER_TOP_BAR + THEATER_MARGIN;
+  const bandBottom = vp.height - THEATER_BOTTOM - THEATER_MARGIN;
+  const top = Math.max(bandTop + (bandBottom - bandTop - height) / 2, bandTop);
   return { top, left, width, height };
 }
 

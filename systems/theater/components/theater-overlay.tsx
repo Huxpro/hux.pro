@@ -18,19 +18,20 @@ import { PlaylistRail } from "./playlist-rail";
 // ---------------------------------------------------------------------------
 // TheaterOverlay — the immersive desktop modal chrome.
 //
-// The video itself is the provider's persistent <Stage /> (z-10002). This draws
-// the backdrop (z-10000, below the stage) and the chrome (z-10005, above it):
-// album switcher + window controls, edge track arrows, and the playlist rail.
-// Crucially every chrome layer is a top-level fixed sibling — NOT nested inside
-// the backdrop — so its z-index actually sits above the stage rather than being
-// trapped in the backdrop's (lower) stacking context.
+// The video is the provider's persistent <Stage /> (z-10002). Every piece of
+// system UI (album switcher, window controls, prev/next arrows, title, playlist
+// rail) sits in the MARGINS *around* the video — never on top of it — so the
+// player surface stays clean. Each chrome layer is a top-level fixed sibling at
+// z-10005 (above the stage), positioned relative to the shared stage rect.
 // ---------------------------------------------------------------------------
 
 const CHROME_BTN = cn(
   "inline-flex h-9 w-9 items-center justify-center rounded-full",
-  "bg-black/55 text-white/90 ring-1 ring-white/25 backdrop-blur-sm",
-  "transition-colors hover:bg-black/70 hover:text-white active:scale-95",
+  "bg-card/70 text-foreground/80 ring-1 ring-border/60 backdrop-blur-xl",
+  "transition-colors hover:bg-card hover:text-foreground active:scale-95",
 );
+
+const FADE = { duration: 0.18, ease: "easeOut" as const };
 
 export function TheaterOverlay() {
   const {
@@ -56,6 +57,8 @@ export function TheaterOverlay() {
   const hasNext =
     trackIndex < (album?.tracks.length ?? 0) - 1 || albumIndex < albums.length - 1;
 
+  const midY = rect.top + rect.height / 2;
+
   return (
     <AnimatePresence>
       {open && (
@@ -67,93 +70,97 @@ export function TheaterOverlay() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
+            transition={FADE}
             onClick={close}
             role="presentation"
           />
 
-          {/* Chrome over the video — album tabs + window controls + arrows. */}
+          {/* Top bar ABOVE the video: album switcher (left) + window controls
+              (right), spanning the video's width. */}
           <motion.div
-            key="chrome-top"
-            className="pointer-events-none fixed z-[10005]"
-            style={{
-              top: rect.top,
-              left: rect.left,
-              width: rect.width,
-              height: rect.height,
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18, ease: "easeOut", delay: 0.02 }}
+            key="topbar"
+            className="fixed z-[10005] flex items-end justify-between gap-2"
+            style={{ left: rect.left, width: rect.width, top: rect.top - 44, height: 40 }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            transition={FADE}
           >
-            <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 rounded-t-xl bg-gradient-to-b from-black/60 to-transparent p-3">
-              <div className="pointer-events-auto">
-                <AlbumTabs
-                  albums={albums}
-                  activeIndex={albumIndex}
-                  onSelect={selectAlbum}
-                />
-              </div>
-              <div className="pointer-events-auto flex items-center gap-1.5">
-                {track?.url && (
-                  <a
-                    href={track.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Open on source site"
-                    className={CHROME_BTN}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                )}
-                <button aria-label="Picture in picture" className={CHROME_BTN} onClick={toPip}>
-                  <PictureInPicture2 className="h-4 w-4" />
-                </button>
-                <button aria-label="Minimize" className={CHROME_BTN} onClick={minimize}>
-                  <Minimize2 className="h-4 w-4" />
-                </button>
-                <button aria-label="Close" className={CHROME_BTN} onClick={close}>
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
+            <AlbumTabs
+              albums={albums}
+              activeIndex={albumIndex}
+              onSelect={selectAlbum}
+            />
+            <div className="flex items-center gap-1.5">
+              {track?.url && (
+                <a
+                  href={track.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Open on source site"
+                  className={CHROME_BTN}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              )}
+              <button aria-label="Picture in picture" className={CHROME_BTN} onClick={toPip}>
+                <PictureInPicture2 className="h-4 w-4" />
+              </button>
+              <button aria-label="Minimize" className={CHROME_BTN} onClick={minimize}>
+                <Minimize2 className="h-4 w-4" />
+              </button>
+              <button aria-label="Close" className={CHROME_BTN} onClick={close}>
+                <X className="h-5 w-5" />
+              </button>
             </div>
-
-            <button
-              aria-label="Previous video"
-              onClick={previous}
-              disabled={!hasPrev}
-              className={cn(
-                CHROME_BTN,
-                "pointer-events-auto absolute left-2 top-1/2 -translate-y-1/2 h-11 w-11 disabled:opacity-0",
-              )}
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
-            <button
-              aria-label="Next video"
-              onClick={next}
-              disabled={!hasNext}
-              className={cn(
-                CHROME_BTN,
-                "pointer-events-auto absolute right-2 top-1/2 -translate-y-1/2 h-11 w-11 disabled:opacity-0",
-              )}
-            >
-              <ChevronRight className="h-6 w-6" />
-            </button>
           </motion.div>
 
-          {/* Title + playlist rail beneath the video. */}
+          {/* Prev / next arrows in the side gutters, BESIDE the video. */}
+          {hasPrev && (
+            <motion.button
+              key="prev"
+              aria-label="Previous video"
+              onClick={previous}
+              className={cn(CHROME_BTN, "fixed z-[10005] h-11 w-11")}
+              style={{ top: midY - 22, left: rect.left - 52 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={FADE}
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </motion.button>
+          )}
+          {hasNext && (
+            <motion.button
+              key="next"
+              aria-label="Next video"
+              onClick={next}
+              className={cn(CHROME_BTN, "fixed z-[10005] h-11 w-11")}
+              style={{ top: midY - 22, left: rect.left + rect.width + 8 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={FADE}
+            >
+              <ChevronRight className="h-6 w-6" />
+            </motion.button>
+          )}
+
+          {/* Title + playlist rail BELOW the video. */}
           <motion.div
-            key="chrome-bottom"
+            key="bottom"
             className="fixed inset-x-0 z-[10005]"
             style={{ top: rect.top + rect.height + 16 }}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
-            transition={{ duration: 0.2, ease: "easeOut", delay: 0.04 }}
+            transition={{ ...FADE, delay: 0.03 }}
           >
-            <div className="mx-auto w-[min(90vw,900px)] px-2">
+            <div
+              className="mx-auto px-2"
+              style={{ width: Math.min(rect.width + 96, 960) }}
+            >
               {track && (
                 <div className="mb-2 flex items-baseline justify-between gap-3">
                   <div className="min-w-0">
