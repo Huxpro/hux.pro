@@ -25,6 +25,11 @@ export interface YouTubeEmbedProps {
   size?: "compact" | "default" | "large";
   /** Additional CSS classes */
   className?: string;
+  /**
+   * When provided, clicking the cover invokes this instead of playing inline —
+   * used to hand off playback to the immersive theater / PiP player.
+   */
+  onPlay?: () => void;
 }
 
 // =============================================================================
@@ -99,6 +104,7 @@ export function YouTubeEmbed({
   thumbnail,
   size = "default",
   className,
+  onPlay,
 }: YouTubeEmbedProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const videoId = extractYouTubeId(url);
@@ -134,7 +140,7 @@ export function YouTubeEmbed({
     return (
       <button
         type="button"
-        onClick={() => setIsPlaying(true)}
+        onClick={() => (onPlay ? onPlay() : setIsPlaying(true))}
         className={cn(
           "relative w-full aspect-video rounded-lg overflow-hidden",
           "bg-muted/20 border border-border/50",

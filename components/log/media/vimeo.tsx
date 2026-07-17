@@ -25,6 +25,8 @@ export interface VimeoEmbedProps {
   size?: "compact" | "default" | "large";
   /** Additional CSS classes */
   className?: string;
+  /** Hand off playback to the immersive theater / PiP player instead of inline. */
+  onPlay?: () => void;
 }
 
 // =============================================================================
@@ -75,6 +77,7 @@ export function VimeoEmbed({
   thumbnail,
   size = "default",
   className,
+  onPlay,
 }: VimeoEmbedProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const videoId = extractVimeoId(url);
@@ -111,7 +114,7 @@ export function VimeoEmbed({
     return (
       <button
         type="button"
-        onClick={() => setIsPlaying(true)}
+        onClick={() => (onPlay ? onPlay() : setIsPlaying(true))}
         className={cn(
           "relative w-full aspect-video rounded-lg overflow-hidden",
           "bg-muted/20 border border-border/50",

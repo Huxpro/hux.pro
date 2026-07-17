@@ -1,0 +1,10 @@
+export { AlbumTabs } from "./album-tabs";
+export { PlaylistRail } from "./playlist-rail";
+export { Stage } from "./stage";
+export { TheaterActivity } from "./theater-activity";
+export { TheaterOverlay } from "./theater-overlay";
+export { PipOverlay } from "./pip-overlay";
+export { TrackThumb } from "./track-thumb";
+export { VideoControls } from "./video-controls";
+export { TheaterSurfaces } from "./surfaces";
+export { TheaterRegistrar } from "./registrar";
