@@ -33,6 +33,17 @@ export const ALBUM_GROUP_IDS = [
   "featured-personal-talks",
 ] as const;
 
+/**
+ * Short, tab-friendly album names. The underlying group titles ("Featured
+ * React talks", …) are too long for a segmented switcher, so each album gets a
+ * concise label — the three albums the spec names: React / Lynx / Personal.
+ */
+const ALBUM_LABELS: Record<string, { en: string; zh: string }> = {
+  "featured-react-talks": { en: "React", zh: "React" },
+  "featured-lynx-talks": { en: "Lynx", zh: "Lynx" },
+  "featured-personal-talks": { en: "Personal", zh: "个人" },
+};
+
 const log = enrichLogDataWithPreviews(
   normalizeLogData(logData as unknown as RawLogData),
   ogSnapshotJson as OGSnapshot,
@@ -83,7 +94,9 @@ export function buildTalkAlbums(locale: Locale): Album[] {
       .map((c) => commitToTrack(c, locale))
       .filter((t): t is Track => t !== null);
     if (tracks.length === 0) continue;
-    albums.push({ id: group.id, title: localize(group.title, locale), tracks });
+    const label = ALBUM_LABELS[group.id];
+    const title = label ? label[locale] : localize(group.title, locale);
+    albums.push({ id: group.id, title, tracks });
   }
   return albums;
 }
