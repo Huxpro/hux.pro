@@ -366,14 +366,46 @@ function ascii(buf: Uint8Array, start: number, end: number): string {
 // Snapshot shapes (shared by the script and the UI)
 // -----------------------------------------------------------------------------
 
+/**
+ * How an app runs inside a chrome window:
+ *   - "web"  — an ordinary web page, loaded in an `<iframe>`.
+ *   - "lynx" — a Lynx app bundle (`.web.bundle`), rendered by `@lynx-js/web-core`'s
+ *              `<lynx-view>` element (a "Lynx Player").
+ */
+export type AppRuntime = "web" | "lynx";
+
+/**
+ * The authoring framework behind a Lynx bundle. Purely cosmetic here — it tints
+ * the little Lynx badge on the app icon so React-Lynx and Vue-Lynx apps read
+ * apart at a glance. Ignored for `runtime: "web"`.
+ */
+export type AppFlavor = "react" | "vue";
+
 /** One app-link as authored in `content/apps.json`. */
 export interface AppLink {
   /** Stable id — also the icon's filename under /app-icons/. */
   id: string;
   /** Display label under the tile. */
   title: string;
-  /** External destination. */
+  /**
+   * Canonical destination. For `runtime: "web"` it's the page the window
+   * iframes; for either runtime it's the "Open externally" target and the URL
+   * the build-time icon snapshot resolves the tile art from.
+   */
   url: string;
+  /**
+   * What opens when the icon is tapped. Defaults to `"web"` (an iframe window).
+   * `"lynx"` opens the Lynx Player pointed at {@link bundleUrl}.
+   */
+  runtime?: AppRuntime;
+  /** Lynx authoring framework — badge tint only. See {@link AppFlavor}. */
+  flavor?: AppFlavor;
+  /**
+   * For `runtime: "lynx"`: the `.web.bundle` the player loads. A site-local
+   * `/…` path is served from /public; an `http(s)` URL is loaded cross-origin.
+   * Falls back to {@link url} when omitted.
+   */
+  bundleUrl?: string;
   /**
    * Manual icon override — the recovery path for sites whose declared icon is
    * wrong or unfetchable (same philosophy as og-snapshot's manual `preview`).

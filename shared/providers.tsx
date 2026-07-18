@@ -17,6 +17,7 @@ import { CommandProvider, useCommand } from "@/systems/command";
 import { DevtoolProvider } from "@/systems/devtool";
 import { MusicProvider } from "@/systems/music";
 import { TheaterProvider } from "@/systems/theater";
+import { WindowProvider } from "@/systems/windows";
 
 // =============================================================================
 // Internal Wrappers
@@ -57,8 +58,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
                   <AmbientWrapper>
                     <MusicProvider>
                       <TheaterProvider>
-                        {children}
-                        <SystemSonner />
+                        <WindowProvider>
+                          {children}
+                          <SystemSonner />
+                        </WindowProvider>
                       </TheaterProvider>
                     </MusicProvider>
                   </AmbientWrapper>

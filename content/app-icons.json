@@ -1,4 +1,25 @@
 {
+  "lynx-react-counter": {
+    "url": "https://lynxjs.org",
+    "file": "/app-icons/lynx-react-counter.png",
+    "source": "manual",
+    "width": 512,
+    "height": 512
+  },
+  "lynx-react-picker": {
+    "url": "https://lynxjs.org",
+    "file": "/app-icons/lynx-react-picker.png",
+    "source": "manual",
+    "width": 512,
+    "height": 512
+  },
+  "lynx-vue-counter": {
+    "url": "https://vue.lynxjs.org",
+    "file": "/app-icons/lynx-vue-counter.png",
+    "source": "manual",
+    "width": 512,
+    "height": 512
+  },
   "lynx": {
     "url": "https://lynxjs.org",
     "file": "/app-icons/lynx.png",

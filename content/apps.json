@@ -1,23 +1,54 @@
 {
   "apps": [
     {
+      "id": "lynx-react-counter",
+      "title": "Counter",
+      "runtime": "lynx",
+      "flavor": "react",
+      "bundleUrl": "/lynx/react-counter.web.bundle",
+      "url": "https://lynxjs.org",
+      "icon": "/app-icons/lynx-react-counter.png"
+    },
+    {
+      "id": "lynx-react-picker",
+      "title": "Vibe Picker",
+      "runtime": "lynx",
+      "flavor": "react",
+      "bundleUrl": "/lynx/react-picker.web.bundle",
+      "url": "https://lynxjs.org",
+      "icon": "/app-icons/lynx-react-picker.png"
+    },
+    {
+      "id": "lynx-vue-counter",
+      "title": "Vue Counter",
+      "runtime": "lynx",
+      "flavor": "vue",
+      "bundleUrl": "/lynx/vue-counter.web.bundle",
+      "url": "https://vue.lynxjs.org",
+      "icon": "/app-icons/lynx-vue-counter.png"
+    },
+    {
+      "id": "lynx-flappy-bird",
+      "title": "Flappy Bird",
+      "runtime": "web",
+      "url": "https://huangxuan.me/lynx-flappy-bird/"
+    },
+    {
       "id": "react",
       "title": "React",
+      "runtime": "web",
       "url": "https://react.dev"
     },
     {
       "id": "lynx",
       "title": "Lynx",
+      "runtime": "web",
       "url": "https://lynxjs.org"
-    },
-    {
-      "id": "lynx-flappy-bird",
-      "title": "Flappy Bird",
-      "url": "https://huangxuan.me/lynx-flappy-bird/"
     },
     {
       "id": "vue-lynx",
       "title": "Vue Lynx",
+      "runtime": "web",
       "url": "https://vue.lynxjs.org"
     }
   ]
