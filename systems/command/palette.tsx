@@ -11,6 +11,7 @@ import { Command } from "cmdk";
 import {
   Bug,
   FileText,
+  FlaskConical,
   GitCommit,
   Hash,
   Home,
@@ -143,6 +144,13 @@ export function CommandPalette() {
     },
     {
       key: "p",
+      label: t(locale, "labTitle"),
+      icon: <FlaskConical className="h-4 w-4" />,
+      onSelect: () => handleNavigation("/lab"),
+      section: "navigation",
+    },
+    {
+      key: "r",
       label: t(locale, "promptsTitle"),
       icon: <Sparkles className="h-4 w-4" />,
       onSelect: () => handleNavigation("/prompt"),
@@ -278,6 +286,9 @@ export function CommandPalette() {
           handleNavigation("/works");
           return;
         case "p":
+          handleNavigation("/lab");
+          return;
+        case "r":
           handleNavigation("/prompt");
           return;
         case "i":
@@ -612,6 +623,34 @@ export function CommandPalette() {
                     </kbd>
                   </Command.Item>
                   <Command.Item
+                    value="lab"
+                    keywords={[
+                      "lab",
+                      "demos",
+                      "prototypes",
+                      "experiments",
+                      "interactive",
+                      "playground",
+                      "实验",
+                      "原型",
+                      "交互",
+                      "demo",
+                    ]}
+                    onSelect={() => handleNavigation("/lab")}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                      "text-sm cursor-pointer transition-colors",
+                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                      "hover:bg-accent/25"
+                    )}
+                  >
+                    <FlaskConical className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1">{t(locale, "labTitle")}</span>
+                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                      P
+                    </kbd>
+                  </Command.Item>
+                  <Command.Item
                     value="prompt"
                     keywords={[
                       "prompt",
@@ -635,7 +674,7 @@ export function CommandPalette() {
                     <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">{t(locale, "promptsTitle")}</span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
-                      P
+                      R
                     </kbd>
                   </Command.Item>
                 </Command.Group>

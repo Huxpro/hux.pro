@@ -2,7 +2,7 @@ import fs from "fs";
 import matter from "gray-matter";
 import path from "path";
 import readingTime from "reading-time";
-import type { BlogPost, Doc, PostLanguage } from "./content";
+import type { BlogPost, Doc, LabItem, LabType, PostLanguage } from "./content";
 
 const contentDirectory = path.join(process.cwd(), "content");
 
@@ -367,6 +367,136 @@ export function getBlogPostBySlug(slug: string): BlogPostWithContent | null {
     // Verbatim frontmatter per locale for the devtool inspector.
     frontmatter: hasEn ? enData : zhData,
     frontmatterZh: hasZh ? zhData : undefined,
+    readingTime: readingTimeEn || readingTimeZh || "",
+    readingTimeZh,
+  };
+}
+
+// ===== Lab / Prototypes =====
+
+const labDirectory = path.join(contentDirectory, "lab");
+
+// LabItem already has readingTime from Post, just add content fields
+export interface LabItemWithContent extends LabItem {
+  content: string;
+  contentZh?: string;
+}
+
+/**
+ * Get all lab slugs for static generation.
+ * Mirrors the blog convention: [slug].(en|zh).mdx or directory with index.
+ */
+export function getLabSlugs(): string[] {
+  if (!fs.existsSync(labDirectory)) {
+    return [];
+  }
+
+  const files = fs.readdirSync(labDirectory);
+  const slugs = new Set<string>();
+
+  for (const file of files) {
+    const filePath = path.join(labDirectory, file);
+    const stat = fs.statSync(filePath);
+
+    if (stat.isDirectory()) {
+      const hasEnIndex = fs.existsSync(path.join(filePath, "index.en.mdx"));
+      const hasZhIndex = fs.existsSync(path.join(filePath, "index.zh.mdx"));
+      if (hasEnIndex || hasZhIndex) {
+        slugs.add(file);
+      }
+    } else if (file.endsWith(".mdx")) {
+      const match = file.match(LANG_FILE_REGEX);
+      if (match) {
+        slugs.add(match[1]);
+      }
+    }
+  }
+
+  return Array.from(slugs);
+}
+
+/**
+ * Get all lab items with metadata (for the listing page).
+ */
+export function getAllLabItems(): LabItem[] {
+  const slugs = getLabSlugs();
+
+  return slugs
+    .map((slug) => {
+      const item = getLabItemBySlug(slug);
+      if (!item) return null;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { content, contentZh, ...metadata } = item;
+      return metadata as LabItem;
+    })
+    .filter((item): item is LabItem => item !== null)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+/**
+ * Get a single lab item by slug with full content.
+ * Language is derived from file existence, frontmatter carries the lab metadata.
+ */
+export function getLabItemBySlug(slug: string): LabItemWithContent | null {
+  const dirPath = path.join(labDirectory, slug);
+  const isDirectory =
+    fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory();
+
+  const enFilePath = isDirectory
+    ? path.join(dirPath, "index.en.mdx")
+    : path.join(labDirectory, `${slug}.en.mdx`);
+  const zhFilePath = isDirectory
+    ? path.join(dirPath, "index.zh.mdx")
+    : path.join(labDirectory, `${slug}.zh.mdx`);
+
+  const hasEn = fs.existsSync(enFilePath);
+  const hasZh = fs.existsSync(zhFilePath);
+
+  if (!hasEn && !hasZh) {
+    return null;
+  }
+
+  const language: PostLanguage = hasEn && hasZh ? "both" : hasEn ? "en" : "zh";
+
+  let content = "";
+  let enData: Record<string, unknown> = {};
+  let readingTimeEn = "";
+  if (hasEn) {
+    const parsed = matter(fs.readFileSync(enFilePath, "utf8"));
+    enData = parsed.data;
+    content = parsed.content;
+    readingTimeEn = readingTime(content).text;
+  }
+
+  let contentZh: string | undefined;
+  let zhData: Record<string, unknown> = {};
+  let readingTimeZh: string | undefined;
+  if (hasZh) {
+    const parsed = matter(fs.readFileSync(zhFilePath, "utf8"));
+    zhData = parsed.data;
+    contentZh = parsed.content;
+    readingTimeZh = readingTime(contentZh).text;
+  }
+
+  // Prefer English frontmatter; fall back to Chinese for zh-only items.
+  const data = hasEn ? enData : zhData;
+
+  return {
+    slug,
+    language,
+    title: (data.title as string) || slug,
+    titleZh: hasZh ? (zhData.title as string) : undefined,
+    date: (data.date as string) || (zhData.date as string) || "",
+    type: ((data.type as LabType) || (zhData.type as LabType) || "inline"),
+    href: (data.href as string) || (zhData.href as string) || undefined,
+    credit: (data.credit as string) || undefined,
+    creditZh: (zhData.credit as string) || undefined,
+    thumbnail: (data.thumbnail as string) || (zhData.thumbnail as string) || undefined,
+    description: (data.description as string) || "",
+    descriptionZh: hasZh ? (zhData.description as string) : undefined,
+    tags: (data.tags as string[]) || (zhData.tags as string[]) || [],
+    content,
+    contentZh,
     readingTime: readingTimeEn || readingTimeZh || "",
     readingTimeZh,
   };
