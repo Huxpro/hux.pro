@@ -3,7 +3,7 @@
 import { getLocalizedDescription, getLocalizedTitle, getPostHref } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
-import { localeNames, t, useLocale, useTheme } from "@/services";
+import { localeNames, t, useInputCapability, useLocale, useTheme } from "@/services";
 import { useLocation, useWeather } from "@/systems/ambient";
 import { useDevtool } from "@/systems/devtool";
 import { useMusic } from "@/systems/music";
@@ -26,15 +26,26 @@ import {
   Waves,
 } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
-import { motion } from "framer-motion";
+import {
+  animate,
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+} from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
 import { useCommand } from "./provider";
 
 export function CommandPalette() {
   const drag = useDraggable("command-palette");
+  const { primaryInput } = useInputCapability();
   const { isOpen, isSlashCommandsMode, close, setSlashCommandsMode } =
     useCommand();
+
+  // Devtool repositioning is a pointer affordance; on touch the same drag
+  // budget goes to the sheet-style dismiss gesture below.
+  const repositionEnabled = drag.isEnabled && primaryInput === "mouse";
   const { theme, preference, setThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
   const { locationMode, setLocationMode, requestAccurateLocation } =
@@ -89,6 +100,140 @@ export function CommandPalette() {
       document.body.style.overflow = "";
     };
   }, [isOpen, isIOS]);
+
+  // ---------------------------------------------------------------------------
+  // Touch dismiss — the palette behaves like a floating sheet: dragging
+  // in either vertical direction anywhere on the takeover (except the
+  // scrolling list) scrubs the summon animation in reverse. The finger's
+  // travel maps proportionally onto opacity + scale + a damped drift that
+  // follows the drag direction — the panel never docks to the screen edge
+  // (no safe-area collision), it dissolves in place. Release past the
+  // threshold (or a flick) commits; otherwise it springs back.
+  // ---------------------------------------------------------------------------
+  const SHEET_TRAVEL = 280;
+  // Signed progress: + is a downward toss, - an upward one.
+  const dismiss = useMotionValue(0);
+  const dismissSpring = useSpring(dismiss, { stiffness: 420, damping: 36 });
+  const sheetOpacity = useTransform(dismissSpring, (p) => 1 - 0.85 * Math.abs(p));
+  const sheetScale = useTransform(dismissSpring, (p) => 1 - 0.06 * Math.abs(p));
+  const sheetY = useTransform(dismissSpring, (p) => 64 * p);
+  const sheetDrag = useRef<{
+    id: number;
+    startX: number;
+    startY: number;
+    active: boolean;
+    lastY: number;
+    lastT: number;
+    vy: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      dismiss.jump(0);
+      dismissSpring.jump(0);
+    }
+  }, [isOpen, dismiss, dismissSpring]);
+
+  /**
+   * Close while swallowing the tap's trailing synthetic click. When the
+   * overlay unmounts between pointerup and click, the browser re-hit-tests
+   * and the click lands on whatever sat under the backdrop — usually the
+   * FAB, which would immediately reopen the palette.
+   */
+  const closeSwallowingGhostClick = useCallback(() => {
+    const swallow = (ev: MouseEvent) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+    };
+    document.addEventListener("click", swallow, { capture: true, once: true });
+    window.setTimeout(() => {
+      document.removeEventListener("click", swallow, { capture: true });
+    }, 500);
+    close();
+  }, [close]);
+
+  const endSheetDrag = useCallback(
+    (e: React.PointerEvent, commitAllowed: boolean) => {
+      const s = sheetDrag.current;
+      if (!s || e.pointerId !== s.id) return;
+      sheetDrag.current = null;
+      if (!s.active) {
+        // Plain tap on the backdrop dismisses via pointerup — reliable on
+        // touch regardless of Safari's click-synthesis heuristics.
+        if (
+          commitAllowed &&
+          (e.target as HTMLElement).closest("[data-palette-backdrop]")
+        ) {
+          closeSwallowingGhostClick();
+        }
+        return;
+      }
+      const p = dismiss.get();
+      const flick = Math.abs(s.vy) > 0.5;
+      if (commitAllowed && (Math.abs(p) > 0.4 || flick)) {
+        // Finish the reverse-summon in the toss's direction, then unmount.
+        const direction = Math.sign(flick ? s.vy : p) || 1;
+        animate(dismiss, direction, { duration: 0.16, ease: "easeOut" }).then(
+          () => {
+            close();
+          }
+        );
+      } else {
+        dismiss.set(0); // the spring carries it home
+      }
+    },
+    [dismiss, close, closeSwallowingGhostClick]
+  );
+
+  const sheetHandlers =
+    primaryInput === "touch"
+      ? {
+          onPointerDown: (e: React.PointerEvent) => {
+            if (!e.isPrimary || sheetDrag.current) return;
+            // The results list owns vertical panning (touch-pan-y).
+            if ((e.target as HTMLElement).closest("[cmdk-list]")) return;
+            sheetDrag.current = {
+              id: e.pointerId,
+              startX: e.clientX,
+              startY: e.clientY,
+              active: false,
+              lastY: e.clientY,
+              lastT: e.timeStamp,
+              vy: 0,
+            };
+          },
+          onPointerMove: (e: React.PointerEvent) => {
+            const s = sheetDrag.current;
+            if (!s || e.pointerId !== s.id) return;
+            const dy = e.clientY - s.startY;
+            if (!s.active) {
+              // Vertical intent, either direction; taps and horizontal
+              // wobbles pass through.
+              if (
+                Math.abs(dy) < 10 ||
+                Math.abs(e.clientX - s.startX) > Math.abs(dy)
+              )
+                return;
+              s.active = true;
+              // Capture from drag detection (not pointerdown) so plain
+              // taps keep their natural targets — and captured drags
+              // can't end in stray clicks/focus.
+              try {
+                e.currentTarget.setPointerCapture(e.pointerId);
+              } catch {
+                // Pointer already gone — the gesture still works.
+              }
+            }
+            const dt = Math.max(1, e.timeStamp - s.lastT);
+            s.vy = 0.8 * s.vy + 0.2 * ((e.clientY - s.lastY) / dt);
+            s.lastY = e.clientY;
+            s.lastT = e.timeStamp;
+            dismiss.set(Math.min(1, Math.max(-1, dy / SHEET_TRAVEL)));
+          },
+          onPointerUp: (e: React.PointerEvent) => endSheetDrag(e, true),
+          onPointerCancel: (e: React.PointerEvent) => endSheetDrag(e, false),
+        }
+      : undefined;
 
   useEffect(() => {
     if (isOpen && !isSlashCommandsMode) {
@@ -387,24 +532,52 @@ export function CommandPalette() {
         isIOS ? "absolute inset-x-0" : "fixed inset-0"
       )}
       style={isIOS ? { top: scrollPosition, height: "100dvh" } : undefined}
+      // The dismiss scrub listens on the whole takeover, so a downward
+      // drag anywhere — backdrop or panel chrome — scrubs the palette
+      // away. Capturing to this container (which has no click handler)
+      // also means a captured drag can never end in a stray
+      // backdrop-click dismissal.
+      {...sheetHandlers}
     >
+      {/* Backdrop is a gesture surface, not just a click-catcher:
+          touch-none swallows native panning, so a swipe over it can't
+          scroll the page behind the open palette (which would desync the
+          iOS absolute-position anchor and read as broken elsewhere).
+          Deliberately unpainted: a full-screen dim/blur here trips iOS
+          Safari's safe-area heuristics unpredictably (bottom letterbox,
+          flaky across sessions) — reverted until WebKit's behavior is
+          tractable. The dismiss gesture still owns this surface.
+          On iOS it still dismisses at pointerdown, but only while the
+          keyboard is up — that tap races the keyboard teardown's
+          viewport shift, so we act before the storm; without the
+          keyboard, iOS taps resolve through the gesture's pointerup
+          (sidestepping Safari's click synthesis on plain divs). */}
       <div
-        className="absolute inset-0 bg-transparent"
+        data-palette-backdrop
+        className="fixed inset-0 touch-none bg-transparent"
         onClick={!isIOS ? close : undefined}
-        onPointerDown={isIOS ? close : undefined}
+        onPointerDown={
+          isIOS
+            ? () => {
+                if (document.activeElement === inputRef.current) {
+                  closeSwallowingGhostClick();
+                }
+              }
+            : undefined
+        }
       />
 
       <motion.div
         ref={drag.contentRef as React.RefObject<HTMLDivElement>}
-        drag={drag.isEnabled ? true : undefined}
+        drag={repositionEnabled ? true : undefined}
         dragControls={drag.dragControls}
         dragListener={false}
         dragMomentum={false}
         onDragStart={drag.onDragStart}
         onDragEnd={drag.onDragEnd}
-        style={drag.isEnabled ? drag.motionStyle : undefined}
+        style={repositionEnabled ? drag.motionStyle : undefined}
         onPointerDown={
-          drag.isEnabled
+          repositionEnabled
             ? (e: React.PointerEvent) => {
                 const target = e.target as HTMLElement;
                 if (!target.closest("[data-drag-handle]")) return;
@@ -445,9 +618,16 @@ export function CommandPalette() {
             : undefined
         }
         onClickCapture={
-          drag.isEnabled ? drag.preventClickAfterDrag : undefined
+          repositionEnabled ? drag.preventClickAfterDrag : undefined
         }
         className="w-full flex justify-center"
+      >
+      {/* Sheet layer — scrubbed by the touch dismiss gesture (attached on
+          the takeover container above); identity on pointer devices.
+          Nested so it composes with devtool reposition. */}
+      <motion.div
+        className="w-full flex justify-center"
+        style={{ opacity: sheetOpacity, scale: sheetScale, y: sheetY }}
       >
       <Command
         className={cn(
@@ -456,6 +636,8 @@ export function CommandPalette() {
           "rounded-2xl border border-black/10 dark:border-white/10",
           "shadow-overlay",
           "outline-none",
+          // No double-tap-zoom interception — item taps commit instantly.
+          "touch-manipulation",
           "animate-in fade-in-0 zoom-in-95 duration-200",
           isSlashCommandsMode ? "w-full max-w-[400px]" : "w-full max-w-[700px]",
           "[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider"
@@ -463,11 +645,11 @@ export function CommandPalette() {
         loop
         shouldFilter={!isSlashCommandsMode}
       >
-        <div
-          className="border-b border-border/50"
-          data-drag-handle
-          style={drag.isEnabled ? { touchAction: "none" } : undefined}
-        >
+        {/* Non-scrolling chrome is touch-none so a swipe starting here
+            can't chain-scroll the page behind; only the results list
+            (touch-pan-y) pans. Also what hands the drag gesture to the
+            handle when dragging is enabled. */}
+        <div className="touch-none border-b border-border/50" data-drag-handle>
           <div
             className="grid transition-all duration-300 ease-out"
             style={{ gridTemplateRows: isSlashCommandsMode ? "0fr" : "1fr" }}
@@ -490,7 +672,7 @@ export function CommandPalette() {
                       "w-full py-4 bg-transparent font-sans text-[16px] sm:text-sm",
                       "placeholder:text-muted-foreground/60",
                       "outline-none",
-                      drag.isEnabled && "cursor-default focus:cursor-text",
+                      repositionEnabled && "cursor-default focus:cursor-text",
                     )}
                   />
                 </div>
@@ -533,7 +715,10 @@ export function CommandPalette() {
             )}
           >
             <div className="overflow-hidden min-h-0">
-              <Command.List className="max-h-[360px] overflow-y-auto p-2">
+              {/* pan-y: this list only ever scrolls vertically;
+                  overscroll-contain: hitting its ends must not chain the
+                  rubber-band into the page behind the palette. */}
+              <Command.List className="max-h-[360px] touch-pan-y overflow-y-auto overscroll-contain p-2">
                 <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
                   {t(locale, "noResults")}
                 </Command.Empty>
@@ -897,7 +1082,7 @@ export function CommandPalette() {
             )}
           >
             <div className="overflow-hidden min-h-0">
-              <div className="p-2">
+              <div className="touch-none p-2">
                 <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {t(locale, "navigation")}
                 </div>
@@ -935,7 +1120,7 @@ export function CommandPalette() {
           </div>
         </div>
 
-        <div className="border-t border-border/50 text-xs text-muted-foreground">
+        <div className="touch-none border-t border-border/50 text-xs text-muted-foreground">
           <div
             className="grid transition-all duration-300 ease-out"
             style={{ gridTemplateRows: isSlashCommandsMode ? "0fr" : "1fr" }}
@@ -999,6 +1184,7 @@ export function CommandPalette() {
           </div>
         </div>
       </Command>
+      </motion.div>
       </motion.div>
     </div>
   );

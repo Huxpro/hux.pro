@@ -21,11 +21,13 @@ function DockSurface({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {/* Transparent scrim — tap anywhere to collapse (matches command palette). */}
+      {/* Transparent scrim — tap anywhere to collapse (matches command
+          palette). touch-none makes it a real gesture surface: swiping
+          over it can't scroll the page behind the expanded activity. */}
       <AnimatePresence>
         {isAnyOpen && (
           <motion.div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-40 touch-none"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
