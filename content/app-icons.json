@@ -30,5 +30,40 @@
     "iconUrl": "https://vue.lynxjs.org/favicon.png",
     "width": 80,
     "height": 84
+  },
+  "hello-world": {
+    "url": "https://lynxjs.org",
+    "file": "/app-icons/lynx.png",
+    "source": "manual",
+    "width": 80,
+    "height": 84
+  },
+  "animation": {
+    "url": "https://lynxjs.org",
+    "file": "/app-icons/lynx.png",
+    "source": "manual",
+    "width": 80,
+    "height": 84
+  },
+  "bankcards": {
+    "url": "https://lynxjs.org",
+    "file": "/app-icons/lynx.png",
+    "source": "manual",
+    "width": 80,
+    "height": 84
+  },
+  "Vuehello-world": {
+    "url": "https://vue.lynxjs.org",
+    "file": "/app-icons/vue-lynx.png",
+    "source": "manual",
+    "width": 80,
+    "height": 84
+  },
+  "Vuetodomvc": {
+    "url": "https://vue.lynxjs.org",
+    "file": "/app-icons/vue-lynx.png",
+    "source": "manual",
+    "width": 80,
+    "height": 84
   }
 }

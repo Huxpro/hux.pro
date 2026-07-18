@@ -11,6 +11,27 @@
       "url": "https://lynxjs.org"
     },
     {
+      "id": "hello-world",
+      "title": "Hello World",
+      "url": "https://lynxjs.org",
+      "lynxExample": "hello-world",
+      "icon": "/app-icons/lynx.png"
+    },
+    {
+      "id": "animation",
+      "title": "Animation",
+      "url": "https://lynxjs.org",
+      "lynxExample": "animation",
+      "icon": "/app-icons/lynx.png"
+    },
+    {
+      "id": "bankcards",
+      "title": "Bank Cards",
+      "url": "https://lynxjs.org",
+      "lynxExample": "bankcards",
+      "icon": "/app-icons/lynx.png"
+    },
+    {
       "id": "lynx-flappy-bird",
       "title": "Flappy Bird",
       "url": "https://huangxuan.me/lynx-flappy-bird/"
@@ -19,6 +40,20 @@
       "id": "vue-lynx",
       "title": "Vue Lynx",
       "url": "https://vue.lynxjs.org"
+    },
+    {
+      "id": "Vuehello-world",
+      "title": "Vue Hello",
+      "url": "https://vue.lynxjs.org",
+      "lynxExample": "Vuehello-world",
+      "icon": "/app-icons/vue-lynx.png"
+    },
+    {
+      "id": "Vuetodomvc",
+      "title": "TodoMVC",
+      "url": "https://vue.lynxjs.org",
+      "lynxExample": "Vuetodomvc",
+      "icon": "/app-icons/vue-lynx.png"
     }
   ]
 }

@@ -80,6 +80,7 @@ export const translations = {
     widgetPrompt: "/prompts",
     widgetMusic: "playing",
     widgetMusicIdle: "music",
+    widgetLynxApps: "lynx apps",
     widgetEditDone: "Done",
     widgetEditReset: "Reset",
     musicNotPlaying: "nothing playing",
@@ -89,6 +90,8 @@ export const translations = {
     musicOpenControls: "Open music controls",
     musicCollapse: "Collapse",
     widgetViewAll: "view all",
+    lynxAppsOpen: "Open Lynx app",
+    lynxAppsGroup: "Lynx Apps",
 
     // Dock / Live Activities
     dockCollapse: "Collapse",
@@ -237,6 +240,7 @@ export const translations = {
     widgetPrompt: "/提示词",
     widgetMusic: "播放中",
     widgetMusicIdle: "音乐",
+    widgetLynxApps: "lynx 应用",
     widgetEditDone: "完成",
     widgetEditReset: "重置",
     musicNotPlaying: "暂无播放",
@@ -246,6 +250,8 @@ export const translations = {
     musicOpenControls: "打开音乐控制",
     musicCollapse: "收起",
     widgetViewAll: "查看全部",
+    lynxAppsOpen: "打开 Lynx 应用",
+    lynxAppsGroup: "Lynx 应用",
 
     // Dock / Live Activities
     dockCollapse: "收起",

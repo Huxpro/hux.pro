@@ -12,14 +12,24 @@ Apps live in [`content/apps.json`](../content/apps.json):
 ```json
 {
   "apps": [
-    { "id": "react", "title": "React", "url": "https://react.dev" }
+    { "id": "react", "title": "React", "url": "https://react.dev" },
+    {
+      "id": "hello-world",
+      "title": "Hello World",
+      "url": "https://lynxjs.org",
+      "lynxExample": "hello-world",
+      "icon": "/app-icons/lynx.png"
+    }
   ]
 }
 ```
 
 - `id` — stable identifier; also names the icon file under `public/app-icons/`.
 - `title` — the label under the tile.
-- `url` — external destination (opens in a new tab).
+- `url` — external destination (opens in a new tab). Also the icon-crawl source.
+- `lynxExample` *(optional)* — when set, the shelf opens this Lynx example in a
+  floating player window (`systems/lynx-apps` + `@lynx-js/go-web` preview mode)
+  instead of navigating to `url`.
 - `icon` *(optional)* — manual override when the site's declared icon is wrong
   or unfetchable: a site-local `/img/…` path is used as-is; an `https://…` URL
   is downloaded. Same recovery philosophy as og-snapshot's manual `preview`.

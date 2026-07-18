@@ -53,5 +53,8 @@ next-env.d.ts
 # Generated content
 .source/
 
+# Lynx example bundles (materialized by `pnpm lynx:examples` / prebuild)
+/public/lynx-examples/
+
 # Editor backups
 content/.backups/

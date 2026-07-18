@@ -4,6 +4,7 @@ import { AmbientPhaseActivity, AmbientSurface } from "@/systems/ambient";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
 import { DevtoolFAB } from "@/systems/devtool";
 import { Dock } from "@/systems/dock";
+import { LynxWindowManager } from "@/systems/lynx-apps/components/window-manager";
 import { MusicActivity } from "@/systems/music";
 import type { Metadata, Viewport } from "next";
 import { ViewTransitions } from "next-view-transitions";
@@ -99,6 +100,7 @@ export default function RootLayout({
               <AmbientPhaseActivity />
               <MusicActivity />
             </Dock>
+            <LynxWindowManager />
             <CommandPalette />
             <FloatingActionButton />
           </Providers>

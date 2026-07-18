@@ -15,6 +15,7 @@ import { SystemSonner } from "@/components/ui/system-sonner";
 import { AmbientProvider } from "@/systems/ambient";
 import { CommandProvider, useCommand } from "@/systems/command";
 import { DevtoolProvider } from "@/systems/devtool";
+import { LynxAppsProvider } from "@/systems/lynx-apps";
 import { MusicProvider } from "@/systems/music";
 
 // =============================================================================
@@ -55,8 +56,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 <DevtoolWrapper>
                   <AmbientWrapper>
                     <MusicProvider>
-                      {children}
-                      <SystemSonner />
+                      <LynxAppsProvider>
+                        {children}
+                        <SystemSonner />
+                      </LynxAppsProvider>
                     </MusicProvider>
                   </AmbientWrapper>
                 </DevtoolWrapper>

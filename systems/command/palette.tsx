@@ -6,9 +6,11 @@ import { cn } from "@/lib/utils";
 import { localeNames, t, useLocale, useTheme } from "@/services";
 import { useLocation, useWeather } from "@/systems/ambient";
 import { useDevtool } from "@/systems/devtool";
+import { LYNX_APPS, useOptionalLynxApps } from "@/systems/lynx-apps";
 import { useMusic } from "@/systems/music";
 import { Command } from "cmdk";
 import {
+  AppWindow,
   Bug,
   FileText,
   GitCommit,
@@ -47,6 +49,7 @@ export function CommandPalette() {
     play: musicPlay,
     pause: musicPause,
   } = useMusic();
+  const lynxApps = useOptionalLynxApps();
   const router = useTransitionRouter();
 
   // Reset drag position on reopen (when persist is off, the hook handles the logic)
@@ -639,6 +642,46 @@ export function CommandPalette() {
                     </kbd>
                   </Command.Item>
                 </Command.Group>
+
+                {lynxApps && (
+                  <Command.Group heading={t(locale, "lynxAppsGroup")}>
+                    {LYNX_APPS.map((app) => {
+                      const title =
+                        locale === "zh" ? app.title.zh : app.title.en;
+                      return (
+                        <Command.Item
+                          key={app.id}
+                          value={`lynx-app-${app.id}`}
+                          keywords={[
+                            "lynx",
+                            "app",
+                            app.id,
+                            app.framework,
+                            title,
+                            app.title.en,
+                            app.title.zh,
+                          ]}
+                          onSelect={() => {
+                            lynxApps.openApp(app.id);
+                            close();
+                          }}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                            "text-sm cursor-pointer transition-colors",
+                            "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                            "hover:bg-accent/25",
+                          )}
+                        >
+                          <AppWindow className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="flex-1">{title}</span>
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                            {app.framework}
+                          </span>
+                        </Command.Item>
+                      );
+                    })}
+                  </Command.Group>
+                )}
 
                 <Command.Group heading={t(locale, "settings")}>
                   <Command.Item

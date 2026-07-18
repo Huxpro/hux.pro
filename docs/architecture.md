@@ -13,6 +13,7 @@ project/
 ├── systems/                      # Complex subsystems (UI + State + Logic)
 │   ├── ambient/                  # Weather-based ambient UI
 │   ├── command/                  # Command palette navigation
+│   ├── lynx-apps/                # Lynx Player app windows (go-web preview)
 │   └── devtool/                  # Developer tools for debugging
 ├── services/                     # Simple state providers (no UI)
 │   ├── theme.tsx                 # Light/dark theme
@@ -83,6 +84,9 @@ Command palette for keyboard-first navigation.
 
 ### [Devtool System](./system-devtool.md)
 Developer tools for debugging ambient state.
+
+### [Lynx Apps System](./system-lynx-apps.md)
+Homescreen Lynx apps opened as floating windows via `@lynx-js/go-web` preview mode.
 
 ## Import Conventions
 

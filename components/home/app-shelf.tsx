@@ -5,6 +5,7 @@ import appsJson from "@/content/apps.json";
 import type { AppIconSnapshot, AppLink } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useMasonryEdit } from "@/components/ui/sortable-masonry";
+import { useOptionalLynxApps } from "@/systems/lynx-apps";
 import {
   MOUSE_ACTIVATION,
   TOUCH_ACTIVATION,
@@ -128,6 +129,7 @@ function AppIconVisual({ app }: { app: AppLink }) {
 
 function SortableAppIcon({ id }: { id: string }) {
   const app = APPS_BY_ID.get(id)!;
+  const lynxApps = useOptionalLynxApps();
   const { setNodeRef, attributes, listeners, isDragging, transform, transition } =
     useSortable({ id });
 
@@ -147,6 +149,11 @@ function SortableAppIcon({ id }: { id: string }) {
     return guarded;
   }, [listeners]);
 
+  const openLynx =
+    app.lynxExample && lynxApps
+      ? () => lynxApps.openApp(app.lynxExample!)
+      : undefined;
+
   return (
     <div
       ref={setNodeRef}
@@ -160,15 +167,26 @@ function SortableAppIcon({ id }: { id: string }) {
         opacity: isDragging ? 0 : 1,
       }}
     >
-      <a
-        href={app.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        draggable={false}
-        className="group/app block outline-none"
-      >
-        <AppIconVisual app={app} />
-      </a>
+      {openLynx ? (
+        <button
+          type="button"
+          onClick={openLynx}
+          draggable={false}
+          className="group/app block outline-none"
+        >
+          <AppIconVisual app={app} />
+        </button>
+      ) : (
+        <a
+          href={app.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          draggable={false}
+          className="group/app block outline-none"
+        >
+          <AppIconVisual app={app} />
+        </a>
+      )}
     </div>
   );
 }

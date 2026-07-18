@@ -372,8 +372,17 @@ export interface AppLink {
   id: string;
   /** Display label under the tile. */
   title: string;
-  /** External destination. */
-  url: string;
+  /**
+   * External destination (new tab). Also used as the icon-crawl source URL.
+   * Optional when `lynxExample` is set (in-window Lynx Player launch).
+   */
+  url?: string;
+  /**
+   * When set, the shelf opens this Lynx example in a floating player window
+   * via `@lynx-js/go-web` preview mode (`systems/lynx-apps`) instead of
+   * navigating to `url`.
+   */
+  lynxExample?: string;
   /**
    * Manual icon override — the recovery path for sites whose declared icon is
    * wrong or unfetchable (same philosophy as og-snapshot's manual `preview`).
