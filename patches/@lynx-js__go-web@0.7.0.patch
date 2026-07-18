@@ -1,0 +1,35 @@
+diff --git a/src/example-preview/components/code.tsx b/src/example-preview/components/code.tsx
+index 062fa5e22f5881d4b07773556547b7930293b37b..5be94ea0ff293d0c453c2ac4e1769de67d9d5f4f 100644
+--- a/src/example-preview/components/code.tsx
++++ b/src/example-preview/components/code.tsx
+@@ -38,20 +38,23 @@ export function Code({
+         setIsFirstShowCode(false);
+         if (firstHighlight > 3) {
+           setTimeout(() => {
+-            const container = containerRef.current;
+-            if (container) {
+-              const firstHighlightElement = containerRef.current.querySelector(
++            const codeContainer = containerRef.current;
++            if (codeContainer) {
++              const firstHighlightElement = codeContainer.querySelector(
+                 `pre.shiki code span.highlighted`,
+               );
+ 
+               if (firstHighlightElement) {
+-                const container = containerRef.current.parentElement;
+-                if (container) {
++                const scrollContainer = codeContainer.parentElement;
++                if (scrollContainer) {
+                   const offsetTop =
+                     firstHighlightElement.getBoundingClientRect().top -
+-                    containerRef.current.getBoundingClientRect().top -
++                    codeContainer.getBoundingClientRect().top -
+                     50;
+-                  container.scrollTo({ top: offsetTop, behavior: 'smooth' });
++                  scrollContainer.scrollTo({
++                    top: offsetTop,
++                    behavior: 'smooth',
++                  });
+                 }
+               }
+             }

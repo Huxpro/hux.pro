@@ -38,6 +38,11 @@ const ICONS_DIR = path.join(ROOT, "public", "app-icons");
 
 const CHECK = process.argv.includes("--check");
 
+/** Stable key stored on snapshot entries (for staleness checks). */
+function snapshotUrl(app: AppLink): string {
+  return app.url ?? `lynx:${app.lynxExample}`;
+}
+
 function readApps(): AppLink[] {
   const raw = JSON.parse(fs.readFileSync(APPS_PATH, "utf8")) as {
     apps?: AppLink[];
@@ -45,8 +50,17 @@ function readApps(): AppLink[] {
   const apps = raw.apps ?? [];
   const ids = new Set<string>();
   for (const app of apps) {
-    if (!app.id || !app.title || !app.url)
-      throw new Error(`apps.json entry missing id/title/url: ${JSON.stringify(app)}`);
+    if (!app.id || !app.title)
+      throw new Error(`apps.json entry missing id/title: ${JSON.stringify(app)}`);
+    if (!app.url && !app.lynxExample)
+      throw new Error(
+        `apps.json entry needs url or lynxExample: ${JSON.stringify(app)}`,
+      );
+    // Lynx-only shelf apps have no crawlable URL — require a manual icon.
+    if (!app.url && !app.icon)
+      throw new Error(
+        `lynx-only app "${app.id}" needs a manual icon (no url to discover from)`,
+      );
     if (!/^[a-z0-9-]+$/.test(app.id))
       throw new Error(`app id must be [a-z0-9-]: "${app.id}" (it names the icon file)`);
     if (ids.has(app.id)) throw new Error(`duplicate app id: "${app.id}"`);
@@ -115,7 +129,7 @@ async function resolve(app: AppLink): Promise<ResolveResult> {
     }
     return {
       entry: {
-        url: app.url,
+        url: snapshotUrl(app),
         file: app.icon,
         source: "manual",
         width: sniffed?.width,
@@ -131,7 +145,7 @@ async function resolve(app: AppLink): Promise<ResolveResult> {
     return {
       bytes: icon.bytes,
       entry: {
-        url: app.url,
+        url: snapshotUrl(app),
         file: `/app-icons/${app.id}.${icon.ext}`,
         source: "manual",
         iconUrl: app.icon,
@@ -142,6 +156,11 @@ async function resolve(app: AppLink): Promise<ResolveResult> {
   }
 
   // Discovery: try candidates in declared-preference order, first image wins.
+  if (!app.url) {
+    return {
+      error: `no url to discover icon from (add manual icon for "${app.id}")`,
+    };
+  }
   const discovery = await discoverAppIcon(app.url);
   const failures: string[] = [];
   for (const candidate of discovery.candidates) {
@@ -153,7 +172,7 @@ async function resolve(app: AppLink): Promise<ResolveResult> {
     return {
       bytes: icon.bytes,
       entry: {
-        url: app.url,
+        url: snapshotUrl(app),
         file: `/app-icons/${app.id}.${icon.ext}`,
         source: candidate.source,
         iconUrl: candidate.url,
@@ -198,7 +217,7 @@ function check(apps: AppLink[], snapshot: AppIconSnapshot): void {
       problems.push(`"${app.id}" has no snapshot entry`);
       continue;
     }
-    if (entry.url !== app.url)
+    if (entry.url !== snapshotUrl(app))
       problems.push(`"${app.id}" URL changed (snapshot has ${entry.url})`);
     if (!entryUsable(entry))
       problems.push(`"${app.id}" icon file missing: ${entry.file}`);
