@@ -859,7 +859,9 @@ html.dragging * {
 }
 
 /* =============================================================================
-   Lynx Player — go-web preview-only host inside app windows
+   Lynx Player — direct <lynx-view> host (no go-web / Semi chrome)
+   Keep rules minimal: broad attribute selectors previously matched inside
+   example trees and crushed their layout CSS.
    ============================================================================= */
 
 .lynx-player {
@@ -868,45 +870,9 @@ html.dragging * {
   min-height: 0;
 }
 
-.lynx-player > * {
-  height: 100% !important;
-  max-height: 100%;
-}
-
-/* Prefer a chromeless player surface: hide go-web's example chrome. */
-.lynx-player [class*="footer"],
-.lynx-player [class*="open-in"],
-.lynx-player [class*="preview-tabs"],
-.lynx-player [class*="preview-header"],
-.lynx-player .semi-radio-group,
-.lynx-player .semi-radio,
-.lynx-player .semi-button {
-  display: none !important;
-}
-
-.lynx-player [class*="box"],
-.lynx-player [class*="container"],
-.lynx-player [class*="content"],
-.lynx-player [class*="preview-wrap"],
-.lynx-player [class*="preview-wrap-content"],
-.lynx-player [class*="preview-body"],
-.lynx-player [class*="preview-panel"] {
-  border: none !important;
-  border-radius: 0 !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  flex: 1 1 auto !important;
-}
-
-.lynx-player [class*="content"] {
-  padding: 0 !important;
-}
-
 .lynx-player lynx-view {
-  display: flex !important;
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 100% !important;
-  flex: 1 1 auto !important;
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 

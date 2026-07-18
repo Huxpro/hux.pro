@@ -78,15 +78,77 @@ function iconFillsTile(entry: AppIconSnapshot[string] | undefined): boolean {
   return entry.width === entry.height && entry.width >= 160;
 }
 
+/**
+ * Tiny bottom-right corner fold distinguishing in-window Lynx apps from
+ * external Web links — a triangle tab with a 8px glyph inside.
+ */
+function AppKindBadge({ kind }: { kind: "lynx" | "web" }) {
+  const label = kind === "lynx" ? "Lynx app" : "Web app";
+  return (
+    <span
+      className="pointer-events-none absolute bottom-0 right-0 h-5 w-5"
+      aria-label={label}
+      title={label}
+    >
+      <svg
+        viewBox="0 0 20 20"
+        className="absolute inset-0 h-full w-full drop-shadow-sm"
+        aria-hidden
+      >
+        {/* Bottom-right triangle tab */}
+        <path
+          d="M20 0v20H0z"
+          className={
+            kind === "lynx"
+              ? "fill-neutral-900/88 dark:fill-neutral-100/90"
+              : "fill-neutral-700/80 dark:fill-neutral-200/85"
+          }
+        />
+      </svg>
+      <span
+        className={cn(
+          "absolute bottom-[1px] right-[1px] flex h-2.5 w-2.5 items-center justify-center",
+          kind === "lynx"
+            ? "text-white dark:text-neutral-900"
+            : "text-white dark:text-neutral-900",
+        )}
+        aria-hidden
+      >
+        {kind === "lynx" ? (
+          // Compact “L” diamond — reads as Lynx without needing a logo asset
+          <svg viewBox="0 0 10 10" className="h-2 w-2" fill="currentColor">
+            <path d="M5 0.6 9.4 5 5 9.4.6 5z" />
+          </svg>
+        ) : (
+          // External / web arrow
+          <svg
+            viewBox="0 0 10 10"
+            className="h-2 w-2"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3.2 6.8 6.8 3.2" />
+            <path d="M4 3.2h2.8V6" />
+          </svg>
+        )}
+      </span>
+    </span>
+  );
+}
+
 /** The tile + label, sans interactivity — shared by the grid and the overlay. */
 function AppIconVisual({ app }: { app: AppLink }) {
   const entry = ICONS[app.id];
   const fills = iconFillsTile(entry);
+  const kind: "lynx" | "web" = app.lynxExample ? "lynx" : "web";
   return (
     <span className="flex w-full flex-col items-center">
       <span
         className={cn(
-          "block h-16 w-16 overflow-hidden rounded-[22.5%]",
+          "relative block h-16 w-16 overflow-hidden rounded-[22.5%]",
           "border border-black/8 dark:border-white/12",
           // Padded glyph icons composite on a white plate, like Safari's
           // add-to-home-screen tiles — dark glyphs stay visible in dark mode
@@ -115,6 +177,7 @@ function AppIconVisual({ app }: { app: AppLink }) {
             {app.title.charAt(0)}
           </span>
         )}
+        <AppKindBadge kind={kind} />
       </span>
       <span className="mt-1.5 block max-w-18 truncate text-center text-[11px] leading-tight text-muted-foreground">
         {app.title}

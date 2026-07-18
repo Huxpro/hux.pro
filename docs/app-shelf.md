@@ -28,7 +28,7 @@ Apps live in [`content/apps.json`](../content/apps.json):
 - `title` — the label under the tile.
 - `url` — external destination (opens in a new tab). Also the icon-crawl source.
 - `lynxExample` *(optional)* — when set, the shelf opens this Lynx example in a
-  floating player window (`systems/lynx-apps` + `@lynx-js/go-web` preview mode)
+  floating player window (`systems/lynx-apps` + `@lynx-js/web-core` `<lynx-view>`)
   instead of navigating to `url`.
 - `icon` *(optional)* — manual override when the site's declared icon is wrong
   or unfetchable: a site-local `/img/…` path is used as-is; an `https://…` URL

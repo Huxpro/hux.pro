@@ -24,12 +24,11 @@ const LynxPlayer = dynamic(
 
 const EDGE = 12;
 
-const TRAFFIC = {
-  close: "#ff5f57",
-  minimize: "#febc2e",
-  zoom: "#28c840",
-} as const;
-
+/**
+ * Floating app window — iPadOS Stage Manager–inspired chrome:
+ * continuous large radius, frosted thin top bar, centered ••• drag affordance,
+ * trailing close / minimize. No macOS traffic lights.
+ */
 export function AppWindow({ win }: { win: OpenAppWindow }) {
   const { locale } = useLocale();
   const { focusedId, focusWindow, closeWindow, minimizeWindow } = useLynxApps();
@@ -90,82 +89,92 @@ export function AppWindow({ win }: { win: OpenAppWindow }) {
       dragMomentum={false}
       onDragEnd={clamp}
       style={{ x, y, width, height, zIndex: win.zIndex }}
-      initial={{ opacity: 0, scale: 0.94 }}
+      initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      transition={{ type: "spring", stiffness: 420, damping: 28 }}
+      exit={{ opacity: 0, scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 420, damping: 30 }}
       onPointerDown={() => focusWindow(win.instanceId)}
       className={cn(
-        "fixed left-0 top-0 flex flex-col overflow-hidden rounded-2xl",
-        "bg-card/80 backdrop-blur-2xl",
-        "border border-border/60",
-        "shadow-2xl shadow-black/40",
-        focused ? "ring-1 ring-foreground/15" : "opacity-95",
+        // iPadOS continuous corner + soft Stage Manager elevation
+        "fixed left-0 top-0 flex flex-col overflow-hidden rounded-[22px]",
+        "bg-background",
+        "border border-black/10 dark:border-white/12",
+        "shadow-overlay",
+        focused ? "ring-1 ring-black/8 dark:ring-white/10" : "opacity-[0.97]",
       )}
     >
-      {/* Title bar — drag handle */}
+      {/* Thin frosted title bar */}
       <div
         onPointerDown={(e) => {
           focusWindow(win.instanceId);
           controls.start(e);
         }}
         className={cn(
-          "flex h-11 shrink-0 cursor-grab items-center gap-3 px-3 active:cursor-grabbing",
-          "border-b border-border/50",
+          "relative flex h-11 shrink-0 cursor-grab items-center px-3 active:cursor-grabbing",
+          "bg-card/70 backdrop-blur-xl",
+          "border-b border-black/6 dark:border-white/8",
           "select-none touch-none",
         )}
       >
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            aria-label="Close"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => closeWindow(win.instanceId)}
-            className="group flex h-3 w-3 items-center justify-center rounded-full hover:brightness-110"
-            style={{ background: TRAFFIC.close }}
+        {/* Leading accent pip (app identity, not a traffic light) */}
+        <div
+          className="h-2.5 w-2.5 shrink-0 rounded-full"
+          style={{ background: app.accent }}
+          aria-hidden
+        />
+
+        {/* Centered Stage Manager–style ••• drag affordance + title */}
+        <div className="pointer-events-none absolute inset-x-0 flex flex-col items-center justify-center">
+          <div
+            className="mb-0.5 flex items-center gap-[3px]"
+            aria-hidden
           >
-            <X
-              className="h-2 w-2 text-black/60 opacity-0 group-hover:opacity-100"
-              strokeWidth={3}
-            />
-          </button>
+            <span className="h-[3px] w-[3px] rounded-full bg-foreground/35" />
+            <span className="h-[3px] w-[3px] rounded-full bg-foreground/35" />
+            <span className="h-[3px] w-[3px] rounded-full bg-foreground/35" />
+          </div>
+          <div className="max-w-[60%] truncate text-[11px] font-medium tracking-wide text-foreground/80">
+            {title}
+          </div>
+        </div>
+
+        {/* Trailing window controls */}
+        <div className="ml-auto flex items-center gap-0.5">
           <button
             type="button"
             aria-label="Minimize"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={() => minimizeWindow(win.instanceId)}
-            className="group flex h-3 w-3 items-center justify-center rounded-full hover:brightness-110"
-            style={{ background: TRAFFIC.minimize }}
+            className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-full",
+              "text-muted-foreground transition-colors",
+              "hover:bg-black/6 hover:text-foreground",
+              "dark:hover:bg-white/10",
+              "active:scale-95",
+            )}
           >
-            <Minus
-              className="h-2 w-2 text-black/60 opacity-0 group-hover:opacity-100"
-              strokeWidth={3}
-            />
+            <Minus className="h-3.5 w-3.5" strokeWidth={2.25} />
           </button>
-          <span
-            className="h-3 w-3 rounded-full"
-            style={{ background: TRAFFIC.zoom }}
-          />
+          <button
+            type="button"
+            aria-label="Close"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={() => closeWindow(win.instanceId)}
+            className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-full",
+              "text-muted-foreground transition-colors",
+              "hover:bg-black/6 hover:text-foreground",
+              "dark:hover:bg-white/10",
+              "active:scale-95",
+            )}
+          >
+            <X className="h-3.5 w-3.5" strokeWidth={2.25} />
+          </button>
         </div>
-
-        <div className="min-w-0 flex-1 text-center">
-          <div className="truncate text-xs font-medium text-foreground/90">
-            {title}
-          </div>
-          <div className="truncate font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            {app.framework === "vue" ? "VueLynx" : "ReactLynx"}
-          </div>
-        </div>
-
-        <div
-          className="h-6 w-6 shrink-0 rounded-md"
-          style={{ background: app.accent }}
-          aria-hidden
-        />
       </div>
 
-      {/* Player surface */}
-      <div className="relative min-h-0 flex-1 bg-background">
+      {/* Player surface — edge-to-edge under the bar */}
+      <div className="relative min-h-0 flex-1 bg-black">
         <LynxPlayer app={app} />
       </div>
     </motion.div>
