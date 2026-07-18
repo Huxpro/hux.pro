@@ -49,6 +49,8 @@ Current samples: `hello-world`, `animation`, `bankcards`, `Vuehello-world`,
 
 - Player loads `@lynx-js/web-core/client` on demand and resolves
   `public/lynx-examples/{id}/example-metadata.json` for the `.web.bundle`.
-- Window chrome is Stage Manager–inspired (••• drag affordance, trailing
-  close/minimize) — not macOS traffic lights.
+- Window chrome is Stage Manager–inspired: floating ••• pill (drag + menu
+  with Close/Minimize) over edge-to-edge content — not macOS traffic lights.
+- `pnpm lynx:shadow-css` (also `predev` / `prebuild`) flattens web-core’s
+  `in_shadow.css` so Webpack can inject real layout CSS into `<lynx-view>`.
 - Player + window chrome are dynamically imported so the homepage stays light.

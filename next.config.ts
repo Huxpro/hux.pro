@@ -1,5 +1,11 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 import { jekyllRedirects } from "./lib/jekyll-redirects";
+
+const lynxShadowCss = path.join(
+  process.cwd(),
+  "systems/lynx-apps/lib/lynx-shadow.bundle.css",
+);
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -25,6 +31,36 @@ const nextConfig: NextConfig = {
         "import.meta.env.SSG_MD": "undefined",
       }),
     );
+
+    // @lynx-js/web-core does `import css from '…/in_shadow.css?inline'` (Vite).
+    // Webpack turns `?inline` into a content-hash stub, so Lynx's shadow root
+    // never gets web-elements layout CSS (flex-direction etc.). Replace with
+    // a pre-flattened bundle and emit it as a raw string module — must win
+    // against Next's CSS `oneOf` chain.
+    config.plugins.push(
+      new webpack.NormalModuleReplacementPlugin(
+        /in_shadow\.css(?:\?inline)?$/,
+        lynxShadowCss,
+      ),
+    );
+    const oneOfRule = config.module.rules.find(
+      (rule: unknown): rule is { oneOf: unknown[] } =>
+        typeof rule === "object" &&
+        rule !== null &&
+        Array.isArray((rule as { oneOf?: unknown }).oneOf),
+    );
+    if (oneOfRule) {
+      oneOfRule.oneOf.unshift({
+        test: /lynx-shadow\.bundle\.css$/,
+        type: "asset/source",
+      });
+    } else {
+      config.module.rules.unshift({
+        test: /lynx-shadow\.bundle\.css$/,
+        type: "asset/source",
+      });
+    }
+
     // @lynx-js/web-core wasm loader uses top-level await.
     config.experiments = {
       ...config.experiments,

@@ -859,9 +859,8 @@ html.dragging * {
 }
 
 /* =============================================================================
-   Lynx Player — direct <lynx-view> host (no go-web / Semi chrome)
-   Keep rules minimal: broad attribute selectors previously matched inside
-   example trees and crushed their layout CSS.
+   Lynx Player — direct <lynx-view> host
+   Do NOT force `display` on lynx-view: web-core toggles none→flex itself.
    ============================================================================= */
 
 .lynx-player {
@@ -871,7 +870,6 @@ html.dragging * {
 }
 
 .lynx-player lynx-view {
-  display: block;
   width: 100%;
   height: 100%;
 }

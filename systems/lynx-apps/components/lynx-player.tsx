@@ -106,7 +106,7 @@ export function LynxPlayer({ app }: { app: LynxApp }) {
         transform-vh={true}
         transform-vw={true}
         style={{
-          display: "block",
+          // Leave `display` to web-core (none → flex). Only size + units.
           width: "100%",
           height: "100%",
           // Container-relative units for Lynx (matches go-web responsive mode).

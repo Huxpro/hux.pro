@@ -25,9 +25,9 @@ const LynxPlayer = dynamic(
 const EDGE = 12;
 
 /**
- * Floating app window — iPadOS Stage Manager–inspired chrome:
- * continuous large radius, frosted thin top bar, centered ••• drag affordance,
- * trailing close / minimize. No macOS traffic lights.
+ * Floating app window — iPadOS Stage Manager–inspired:
+ * continuous large radius, edge-to-edge content, floating ••• control
+ * pill (drag + close/minimize). No macOS traffic lights / title strip.
  */
 export function AppWindow({ win }: { win: OpenAppWindow }) {
   const { locale } = useLocale();
@@ -42,6 +42,7 @@ export function AppWindow({ win }: { win: OpenAppWindow }) {
     width: app?.window.width ?? 390,
     height: app?.window.height ?? 720,
   });
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!app) return;
@@ -93,88 +94,100 @@ export function AppWindow({ win }: { win: OpenAppWindow }) {
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ type: "spring", stiffness: 420, damping: 30 }}
-      onPointerDown={() => focusWindow(win.instanceId)}
+      onPointerDown={() => {
+        focusWindow(win.instanceId);
+        setMenuOpen(false);
+      }}
       className={cn(
-        // iPadOS continuous corner + soft Stage Manager elevation
-        "fixed left-0 top-0 flex flex-col overflow-hidden rounded-[22px]",
-        "bg-background",
-        "border border-black/10 dark:border-white/12",
+        "fixed left-0 top-0 overflow-hidden rounded-[22px]",
+        "bg-black",
+        "border border-black/10 dark:border-white/14",
         "shadow-overlay",
-        focused ? "ring-1 ring-black/8 dark:ring-white/10" : "opacity-[0.97]",
+        focused ? "ring-1 ring-black/10 dark:ring-white/12" : "opacity-[0.97]",
       )}
     >
-      {/* Thin frosted title bar */}
-      <div
-        onPointerDown={(e) => {
-          focusWindow(win.instanceId);
-          controls.start(e);
-        }}
-        className={cn(
-          "relative flex h-11 shrink-0 cursor-grab items-center px-3 active:cursor-grabbing",
-          "bg-card/70 backdrop-blur-xl",
-          "border-b border-black/6 dark:border-white/8",
-          "select-none touch-none",
-        )}
-      >
-        {/* Leading accent pip (app identity, not a traffic light) */}
-        <div
-          className="h-2.5 w-2.5 shrink-0 rounded-full"
-          style={{ background: app.accent }}
-          aria-hidden
-        />
-
-        {/* Centered Stage Manager–style ••• drag affordance + title */}
-        <div className="pointer-events-none absolute inset-x-0 flex flex-col items-center justify-center">
-          <div
-            className="mb-0.5 flex items-center gap-[3px]"
-            aria-hidden
-          >
-            <span className="h-[3px] w-[3px] rounded-full bg-foreground/35" />
-            <span className="h-[3px] w-[3px] rounded-full bg-foreground/35" />
-            <span className="h-[3px] w-[3px] rounded-full bg-foreground/35" />
-          </div>
-          <div className="max-w-[60%] truncate text-[11px] font-medium tracking-wide text-foreground/80">
-            {title}
-          </div>
-        </div>
-
-        {/* Trailing window controls */}
-        <div className="ml-auto flex items-center gap-0.5">
+      {/* Stage Manager ••• pill — floats over content */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center pt-2.5">
+        <div className="pointer-events-auto relative">
           <button
             type="button"
-            aria-label="Minimize"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => minimizeWindow(win.instanceId)}
+            aria-label={`${title} window menu`}
+            aria-expanded={menuOpen}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              focusWindow(win.instanceId);
+              controls.start(e);
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen((v) => !v);
+            }}
             className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-full",
-              "text-muted-foreground transition-colors",
-              "hover:bg-black/6 hover:text-foreground",
-              "dark:hover:bg-white/10",
-              "active:scale-95",
+              "flex h-7 items-center gap-2 rounded-full px-3",
+              "bg-white/75 dark:bg-black/55",
+              "backdrop-blur-xl",
+              "border border-black/8 dark:border-white/12",
+              "shadow-raised",
+              "cursor-grab active:cursor-grabbing",
+              "touch-none select-none",
+              "transition-colors hover:bg-white/90 dark:hover:bg-black/70",
             )}
           >
-            <Minus className="h-3.5 w-3.5" strokeWidth={2.25} />
+            <span className="flex items-center gap-[3px]" aria-hidden>
+              <span className="h-[3.5px] w-[3.5px] rounded-full bg-foreground/50" />
+              <span className="h-[3.5px] w-[3.5px] rounded-full bg-foreground/50" />
+              <span className="h-[3.5px] w-[3.5px] rounded-full bg-foreground/50" />
+            </span>
+            <span className="max-w-[9rem] truncate text-[11px] font-medium text-foreground/80">
+              {title}
+            </span>
           </button>
-          <button
-            type="button"
-            aria-label="Close"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => closeWindow(win.instanceId)}
-            className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-full",
-              "text-muted-foreground transition-colors",
-              "hover:bg-black/6 hover:text-foreground",
-              "dark:hover:bg-white/10",
-              "active:scale-95",
-            )}
-          >
-            <X className="h-3.5 w-3.5" strokeWidth={2.25} />
-          </button>
+
+          {menuOpen && (
+            <div
+              role="menu"
+              className={cn(
+                "absolute left-1/2 top-full mt-1.5 w-36 -translate-x-1/2",
+                "overflow-hidden rounded-xl",
+                "bg-white/90 dark:bg-neutral-900/90",
+                "backdrop-blur-xl",
+                "border border-black/8 dark:border-white/12",
+                "shadow-overlay",
+                "py-1",
+              )}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  minimizeWindow(win.instanceId);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-foreground hover:bg-black/5 dark:hover:bg-white/10"
+              >
+                <Minus className="h-3.5 w-3.5 opacity-60" strokeWidth={2.25} />
+                Minimize
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  closeWindow(win.instanceId);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-foreground hover:bg-black/5 dark:hover:bg-white/10"
+              >
+                <X className="h-3.5 w-3.5 opacity-60" strokeWidth={2.25} />
+                Close
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Player surface — edge-to-edge under the bar */}
-      <div className="relative min-h-0 flex-1 bg-black">
+      {/* Full-bleed player */}
+      <div className="h-full w-full">
         <LynxPlayer app={app} />
       </div>
     </motion.div>
