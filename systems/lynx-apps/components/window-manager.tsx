@@ -10,7 +10,7 @@ const AppWindow = dynamic(
 );
 
 /**
- * Renders floating Lynx app windows above the page surface.
+ * Renders floating app windows (Lynx bundles + web iframes) above the page.
  */
 export function LynxWindowManager() {
   const { windows } = useLynxApps();

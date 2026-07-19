@@ -26,13 +26,16 @@ Apps live in [`content/apps.json`](../content/apps.json):
 
 - `id` — stable identifier; also names the icon file under `public/app-icons/`.
 - `title` — the label under the tile.
-- `url` — external destination (opens in a new tab). Also the icon-crawl source.
-- `lynxExample` *(optional)* — when set, the shelf opens this Lynx example in a
-  floating player window (`systems/lynx-apps` + `@lynx-js/web-core` `<lynx-view>`)
-  instead of navigating to `url`.
+- `url` — external destination (iframe inside the floating Stage Manager–style
+  chrome) and the icon-crawl source. Window menu still offers “Open in browser”.
+- `lynxExample` *(optional)* — when set, the shelf opens this Lynx example via
+  `<lynx-view>` in the same chrome instead of iframing `url`.
 - `icon` *(optional)* — manual override when the site's declared icon is wrong
   or unfetchable: a site-local `/img/…` path is used as-is; an `https://…` URL
   is downloaded. Same recovery philosophy as og-snapshot's manual `preview`.
+
+**Kind footnotes** on each tile: Lynx mark on a React-cyan or Vue-green chip
+for in-window Lynx apps; globe chip for Web (iframe) apps.
 
 ## Icon pipeline (build-time, static-export friendly)
 

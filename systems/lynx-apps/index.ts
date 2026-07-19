@@ -6,3 +6,4 @@ export {
   useLynxApps,
   useOptionalLynxApps,
 } from "./provider";
+export type { OpenWebAppInput } from "./provider";

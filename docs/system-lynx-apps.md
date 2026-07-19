@@ -1,18 +1,21 @@
 # Lynx Apps System
 
-Floating **Lynx Player** windows that load real Lynx `.web.bundle`s via
-[`@lynx-js/web-core`](https://www.npmjs.com/package/@lynx-js/web-core)
-`<lynx-view>` (no go-web / Semi chrome — keeps example CSS intact).
+Floating **app windows** (iPadOS Stage Manager–style chrome) that host either:
+
+- **Lynx** — real `.web.bundle`s via
+  [`@lynx-js/web-core`](https://www.npmjs.com/package/@lynx-js/web-core)
+  `<lynx-view>` (no go-web / Semi chrome — keeps example CSS intact), or
+- **Web** — an iframe of the shelf entry’s `url` (menu: Open in browser).
 
 ## Mental model
 
-Homescreen **App Shelf** icons (`content/apps.json` with `lynxExample`) →
-open an iPadOS-style app window → `<lynx-view>` loads the example’s
-same-origin `.web.bundle`. Shelf tiles wear a tiny bottom-right triangle
-badge: diamond = in-window Lynx, arrow = external Web.
+Homescreen **App Shelf** icons (`content/apps.json`) → open a floating window:
 
-External shelf links (React, Lynx docs, Flappy Bird, …) still open in a new
-tab; only entries with `lynxExample` use the in-window player.
+- `lynxExample` set → Lynx Player (`<lynx-view>` + same-origin bundle)
+- otherwise `url` → Web Player (iframe)
+
+Shelf tiles wear a bottom-right kind chip: **Lynx mark** on React-cyan /
+Vue-green for Lynx apps, **globe** for Web apps.
 
 ## Layout
 
@@ -23,7 +26,8 @@ systems/lynx-apps/
 ├── components/
 │   ├── window-manager.tsx    # mounts open windows
 │   ├── app-window.tsx        # iPadOS-style title bar + drag chrome
-│   └── lynx-player.tsx       # direct <lynx-view> host
+│   ├── lynx-player.tsx       # direct <lynx-view> host
+│   └── web-player.tsx        # iframe host for shelf web apps
 └── index.ts
 ```
 

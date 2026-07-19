@@ -5,7 +5,7 @@ import appsJson from "@/content/apps.json";
 import type { AppIconSnapshot, AppLink } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useMasonryEdit } from "@/components/ui/sortable-masonry";
-import { useOptionalLynxApps } from "@/systems/lynx-apps";
+import { getLynxApp, useOptionalLynxApps } from "@/systems/lynx-apps";
 import {
   MOUSE_ACTIVATION,
   TOUCH_ACTIVATION,
@@ -36,13 +36,17 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  AppKindBadge,
+  type AppKindBadgeKind,
+} from "@/components/home/app-kind-badge";
 
 // =============================================================================
 // AppShelf
 //
-// An iPad-springboard row of app icons: external links to projects, each
-// wearing the icon its site declares for home-screen use (resolved at build
-// time by `pnpm apps:snapshot` — see scripts/app-icon-snapshot.ts). The shelf
+// An iPad-springboard row of app icons: each opens in a floating window
+// (Lynx <lynx-view> or web iframe) wearing the icon its site declares for
+// home-screen use (resolved at build time by `pnpm apps:snapshot`). The shelf
 // itself is one widget in the home masonry, so it drags alongside widgets;
 // the icons *inside* it form a nested drag surface with its own persisted
 // order, exactly like rearranging apps around widgets on iPadOS.
@@ -78,65 +82,17 @@ function iconFillsTile(entry: AppIconSnapshot[string] | undefined): boolean {
   return entry.width === entry.height && entry.width >= 160;
 }
 
-/**
- * Tiny bottom-right corner fold distinguishing in-window Lynx apps from
- * external Web links — triangle tab + glyph. Colors diverge on purpose so
- * the kinds read at a glance on a busy shelf.
- */
-function AppKindBadge({ kind }: { kind: "lynx" | "web" }) {
-  const label = kind === "lynx" ? "Lynx app" : "Web app";
-  return (
-    <span
-      className="pointer-events-none absolute bottom-0 right-0 h-6 w-6"
-      aria-label={label}
-      title={label}
-    >
-      <svg
-        viewBox="0 0 24 24"
-        className="absolute inset-0 h-full w-full"
-        aria-hidden
-      >
-        <path
-          d="M24 0v24H0z"
-          className={
-            kind === "lynx" ? "fill-[#ff5a1f]" : "fill-neutral-900/80"
-          }
-        />
-      </svg>
-      <span
-        className="absolute bottom-[2px] right-[2px] flex h-3 w-3 items-center justify-center text-white"
-        aria-hidden
-      >
-        {kind === "lynx" ? (
-          // Filled diamond — Lynx
-          <svg viewBox="0 0 10 10" className="h-2.5 w-2.5" fill="currentColor">
-            <path d="M5 0.8 9.2 5 5 9.2.8 5z" />
-          </svg>
-        ) : (
-          // External / web arrow
-          <svg
-            viewBox="0 0 10 10"
-            className="h-2.5 w-2.5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M3 7 7 3" />
-            <path d="M4 3h3v3" />
-          </svg>
-        )}
-      </span>
-    </span>
-  );
+function shelfKind(app: AppLink): AppKindBadgeKind {
+  if (!app.lynxExample) return "web";
+  const framework = getLynxApp(app.lynxExample)?.framework;
+  return framework === "vue" ? "lynx-vue" : "lynx-react";
 }
 
 /** The tile + label, sans interactivity — shared by the grid and the overlay. */
 function AppIconVisual({ app }: { app: AppLink }) {
   const entry = ICONS[app.id];
   const fills = iconFillsTile(entry);
-  const kind: "lynx" | "web" = app.lynxExample ? "lynx" : "web";
+  const kind = shelfKind(app);
   return (
     <span className="flex w-full flex-col items-center">
       <span
@@ -205,10 +161,16 @@ function SortableAppIcon({ id }: { id: string }) {
     return guarded;
   }, [listeners]);
 
-  const openLynx =
-    app.lynxExample && lynxApps
-      ? () => lynxApps.openApp(app.lynxExample!)
-      : undefined;
+  const openInWindow = () => {
+    if (!lynxApps) return;
+    if (app.lynxExample) {
+      lynxApps.openApp(app.lynxExample);
+      return;
+    }
+    if (app.url) {
+      lynxApps.openWebApp({ id: app.id, title: app.title, url: app.url });
+    }
+  };
 
   return (
     <div
@@ -223,26 +185,14 @@ function SortableAppIcon({ id }: { id: string }) {
         opacity: isDragging ? 0 : 1,
       }}
     >
-      {openLynx ? (
-        <button
-          type="button"
-          onClick={openLynx}
-          draggable={false}
-          className="group/app block outline-none"
-        >
-          <AppIconVisual app={app} />
-        </button>
-      ) : (
-        <a
-          href={app.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          draggable={false}
-          className="group/app block outline-none"
-        >
-          <AppIconVisual app={app} />
-        </a>
-      )}
+      <button
+        type="button"
+        onClick={openInWindow}
+        draggable={false}
+        className="group/app block outline-none"
+      >
+        <AppIconVisual app={app} />
+      </button>
     </div>
   );
 }

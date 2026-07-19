@@ -373,14 +373,15 @@ export interface AppLink {
   /** Display label under the tile. */
   title: string;
   /**
-   * External destination (new tab). Also used as the icon-crawl source URL.
-   * Optional when `lynxExample` is set (in-window Lynx Player launch).
+   * External destination. Used as the icon-crawl source URL and as the iframe
+   * src when opening a Web app in the floating window chrome (`systems/lynx-apps`).
+   * Optional when `lynxExample` is set (Lynx Player launch).
    */
   url?: string;
   /**
    * When set, the shelf opens this Lynx example in a floating player window
-   * via `@lynx-js/go-web` preview mode (`systems/lynx-apps`) instead of
-   * navigating to `url`.
+   * (`systems/lynx-apps` + `@lynx-js/web-core` `<lynx-view>`) instead of
+   * loading `url` in an iframe.
    */
   lynxExample?: string;
   /**
