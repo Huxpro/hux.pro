@@ -5,7 +5,7 @@ import appsJson from "@/content/apps.json";
 import type { AppIconSnapshot, AppLink } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useMasonryEdit } from "@/components/ui/sortable-masonry";
-import { getLynxApp, useOptionalLynxApps } from "@/systems/lynx-apps";
+import { useOptionalLynxApps } from "@/systems/lynx-apps";
 import {
   MOUSE_ACTIVATION,
   TOUCH_ACTIVATION,
@@ -36,10 +36,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-  AppKindBadge,
-  type AppKindBadgeKind,
-} from "@/components/home/app-kind-badge";
 
 // =============================================================================
 // AppShelf
@@ -82,17 +78,10 @@ function iconFillsTile(entry: AppIconSnapshot[string] | undefined): boolean {
   return entry.width === entry.height && entry.width >= 160;
 }
 
-function shelfKind(app: AppLink): AppKindBadgeKind {
-  if (!app.lynxExample) return "web";
-  const framework = getLynxApp(app.lynxExample)?.framework;
-  return framework === "vue" ? "lynx-vue" : "lynx-react";
-}
-
 /** The tile + label, sans interactivity — shared by the grid and the overlay. */
 function AppIconVisual({ app }: { app: AppLink }) {
   const entry = ICONS[app.id];
   const fills = iconFillsTile(entry);
-  const kind = shelfKind(app);
   return (
     <span className="flex w-full flex-col items-center">
       <span
@@ -126,7 +115,6 @@ function AppIconVisual({ app }: { app: AppLink }) {
             {app.title.charAt(0)}
           </span>
         )}
-        <AppKindBadge kind={kind} />
       </span>
       <span className="mt-1.5 block max-w-18 truncate text-center text-[11px] leading-tight text-muted-foreground">
         {app.title}

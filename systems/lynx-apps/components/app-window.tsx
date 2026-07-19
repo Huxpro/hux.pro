@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  AppKindInfo,
+  kindForWindow,
+} from "@/components/home/app-kind-info";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { animate, motion, useDragControls, useMotionValue } from "framer-motion";
@@ -169,7 +173,7 @@ export function AppWindow({ win }: { win: OpenAppWindow }) {
             <div
               role="menu"
               className={cn(
-                "absolute left-1/2 top-full mt-1.5 w-40 -translate-x-1/2",
+                "absolute left-1/2 top-full mt-1.5 w-44 -translate-x-1/2",
                 "overflow-hidden rounded-xl",
                 "bg-white/90 dark:bg-neutral-900/90",
                 "backdrop-blur-xl",
@@ -179,6 +183,9 @@ export function AppWindow({ win }: { win: OpenAppWindow }) {
               )}
               onPointerDown={(e) => e.stopPropagation()}
             >
+              <div className="border-b border-black/6 px-3 py-2 dark:border-white/8">
+                <AppKindInfo kind={kindForWindow(win.kind, win.appId)} />
+              </div>
               {win.kind === "web" && win.url && (
                 <a
                   role="menuitem"

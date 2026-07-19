@@ -34,8 +34,9 @@ Apps live in [`content/apps.json`](../content/apps.json):
   or unfetchable: a site-local `/img/…` path is used as-is; an `https://…` URL
   is downloaded. Same recovery philosophy as og-snapshot's manual `preview`.
 
-**Kind footnotes** on each tile: Lynx mark on a React-cyan or Vue-green chip
-for in-window Lynx apps; globe chip for Web (iframe) apps.
+Tech stack (ReactLynx / VueLynx / Web) lives in the window **••• menu** and
+minimized Live Activity panel — not on the shelf icons — so springboard tiles
+stay clean.
 
 ## Icon pipeline (build-time, static-export friendly)
 

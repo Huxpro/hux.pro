@@ -74,6 +74,7 @@ These match the product spec for multiple simultaneous activities:
 |----------|--------|------|------------|
 | Music | `systems/music/components/music-activity.tsx` | album art + EQ | `<NowPlaying />` |
 | Ambient phase | `systems/ambient/components/phase-activity.tsx` | sun icon + time | `<WeatherNow />` |
+| Minimized apps | `systems/lynx-apps/components/minimized-apps-activity.tsx` | app icon + title | tech stack + Restore / Close |
 
 Both reuse the same shared body component that their homepage widget uses
 (`NowPlaying`, `WeatherNow`), so the dock panel and the grid widget never drift.
