@@ -9,24 +9,24 @@ import { Window } from "./window";
 //
 // A single fixed, full-viewport layer mounted once at the app root. It's
 // `pointer-events: none` so it never intercepts clicks meant for the page;
-// each window re-enables pointer events for itself. Minimized windows drop out
-// of the render (AnimatePresence plays their exit) but stay in the manager, so
-// tapping their icon brings them back.
+// each window re-enables pointer events for itself.
+//
+// Every open window is rendered here — *including minimized ones*. A minimized
+// window isn't unmounted; it genies down to opacity 0 but stays in the DOM so
+// its iframe / <lynx-view> keeps running and its state survives (a counter at 5
+// comes back at 5). AnimatePresence is only for open ⇄ close (mount/unmount).
 // =============================================================================
 
 export function WindowLayer() {
-  const { windows, lastExit } = useWindows();
-  const visible = windows.filter((w) => w.mode !== "minimized");
+  const { windows } = useWindows();
 
   return (
     <div
       className="pointer-events-none fixed inset-0 z-40"
-      aria-hidden={visible.length === 0}
+      aria-hidden={windows.length === 0}
     >
-      {/* `custom` carries the last exit reason so each leaving window animates
-          the right way: minimize genies up toward the dock, close shrinks. */}
-      <AnimatePresence custom={lastExit}>
-        {visible.map((win) => (
+      <AnimatePresence>
+        {windows.map((win) => (
           <Window key={win.id} win={win} />
         ))}
       </AnimatePresence>

@@ -84,12 +84,15 @@ their stacking, nothing visual (same split as the Dock system):
   mental model, not "⌘N a new document".
 - **Focus = z-order.** A monotonic counter bumps the focused window above all
   others; `focusedId` is simply the highest-`z` non-minimized window.
-- **Minimize** genies the window up toward the dock's live-activity band and
+- **Minimize** genies the window down toward the dock's live-activity band and
   parks it there as a pill (`components/minimized-dock.tsx`, rendered as a
   `<Dock>` child so it shares the row with the music / ambient activities).
-  Tapping the pill — or the app's shelf icon (`openApp`) — restores and focuses
-  it. The genie vs shrink-in-place distinction is driven by `lastExit`, passed
-  to the window layer's `<AnimatePresence custom>`.
+  Tapping the pill — or the app's shelf icon (`openApp`) — springs it back and
+  focuses it. Crucially, **minimize is not an unmount**: the layer keeps every
+  window (minimized included) mounted and just animates it to opacity 0 +
+  `inert`, so its iframe / `<lynx-view>` keeps running and **its state is
+  preserved** (a counter at 5 restores at 5). Only **close** unmounts — that's
+  the sole `<AnimatePresence>` exit (a shrink in place).
 - **Zoom** toggles maximize ⇄ restore, stashing the pre-maximize rect.
 - **Esc** closes the front window. A window `resize` listener re-clamps every
   window (and re-fits maximized ones) to the working area.

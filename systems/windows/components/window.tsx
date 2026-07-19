@@ -78,6 +78,7 @@ export function Window({ win }: { win: WindowInstance }) {
   const [gesturing, setGesturing] = useState(false);
   const focused = focusedId === win.id;
   const maximized = win.mode === "maximized";
+  const minimized = win.mode === "minimized";
 
   // Write geometry to the node directly — the fast path during a gesture.
   const paint = useCallback((rect: Rect) => {
@@ -153,32 +154,32 @@ export function Window({ win }: { win: WindowInstance }) {
       ref={ref}
       role="dialog"
       aria-label={win.app.title}
+      aria-hidden={minimized || undefined}
+      // `inert` while minimized: hidden windows keep running (state preserved)
+      // but shouldn't be focusable or take pointer/tab input.
+      inert={minimized || undefined}
       initial={{ opacity: 0, scale: 0.94 }}
-      animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-      exit="exit"
-      // Exit depends on WHY the window left (AnimatePresence `custom` from the
-      // layer): a minimize genies up toward the dock's live-activity band; a
-      // plain close just shrinks in place.
-      variants={{
-        exit: (last: { id: string; kind: "close" | "minimize" } | null) => {
-          if (last?.kind === "minimize" && last.id === win.id) {
-            const vp = getViewport();
-            return {
+      // Minimize/restore is NOT a mount/unmount — the window stays mounted (so
+      // its iframe / <lynx-view> and state survive) and just animates: it
+      // genies down toward the dock's live-activity band (scale → 0, up to the
+      // top-center) and springs back on restore.
+      animate={
+        minimized
+          ? {
               opacity: 0,
               scale: 0.08,
-              x: vp.width / 2 - (win.rect.x + win.rect.width / 2),
+              x: getViewport().width / 2 - (win.rect.x + win.rect.width / 2),
               y: 16 - win.rect.y,
-              transition: { duration: 0.42, ease: [0.32, 0.72, 0, 1] },
-            };
-          }
-          return {
-            opacity: 0,
-            scale: 0.94,
-            transition: { duration: 0.15 },
-          };
-        },
-      }}
-      transition={{ type: "spring", stiffness: 520, damping: 34, mass: 0.7 }}
+            }
+          : { opacity: 1, scale: 1, x: 0, y: 0 }
+      }
+      // Exit is only for close (a genuine unmount): shrink in place.
+      exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
+      transition={
+        minimized
+          ? { duration: 0.42, ease: [0.32, 0.72, 0, 1] }
+          : { type: "spring", stiffness: 520, damping: 34, mass: 0.7 }
+      }
       onPointerDownCapture={() => focus(win.id)}
       style={{
         position: "absolute",
@@ -187,7 +188,7 @@ export function Window({ win }: { win: WindowInstance }) {
         width: win.rect.width,
         height: win.rect.height,
         zIndex: win.z,
-        pointerEvents: "auto",
+        pointerEvents: minimized ? "none" : "auto",
         // Instant during gestures; a soft ease when the manager moves us
         // (maximize / restore / resize-clamp).
         transition: gesturing
