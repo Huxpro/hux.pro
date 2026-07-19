@@ -133,6 +133,32 @@ installed (it dynamically imports `@lynx-js/lynx-core/web` for the background
 thread). No COOP/COEP headers are required; the bundle is served same-origin
 from `public/` so the Worker fetch isn't cross-origin.
 
+### Shadow-root layout CSS
+
+`web-core` styles each `<lynx-view>` shadow root by importing its layout CSS
+Vite-style — `import css from '…/in_shadow.css?inline'` — and Blob-ing that
+string into a `<link>`. Under **Turbopack** (and Webpack) `?inline` does *not*
+yield the CSS string: the `.css` module's default export is `undefined`, so the
+Blob becomes the literal text `"undefined"` and the shadow root gets **no**
+web-elements layout CSS — flex defaults silently break (a `<view>` renders
+`flex-direction: row` instead of Lynx's `column`). `in_shadow.css` also opens
+with `@import url("@lynx-js/web-elements/index.css")`, a bare specifier a
+Blob-URL stylesheet could never resolve anyway.
+
+Because this repo builds with **Turbopack**, the usual Webpack fix
+(`NormalModuleReplacementPlugin` + `asset/source`) doesn't apply. Instead:
+
+1. `pnpm lynx:shadow-css` (`scripts/lynx-shadow-css-bundle.mjs`) recursively
+   flattens `in_shadow.css` + every `@import` (bare *and* relative) into one
+   self-contained string, emitted as `systems/windows/lib/lynx-shadow-css.ts`.
+   `predev` / `prebuild` regenerate it so CI stays consistent.
+2. `lynx-player.tsx` injects that string as a `<style>` into each shadow root
+   itself (first child, so a card's own styles still win) — bundler-agnostic,
+   and it sidesteps web-core's broken `?inline` path entirely.
+
+Verified: after the fix a fresh `x-view` in the shadow root computes
+`flex-direction: column` (244 rules applied) instead of the broken `row`.
+
 ## Opening from the shelf
 
 `components/home/app-shelf.tsx` icons stay real anchors to each app's `url`, so
