@@ -49,6 +49,12 @@ interface WindowContextType {
   /** The id of the front-most (focused) non-minimized window, or null. */
   focusedId: string | null;
   isOpen: (id: string) => boolean;
+  /**
+   * Why the last window left the desktop — drives the exit animation (a close
+   * shrinks in place; a minimize genies up toward the dock). Consumed as
+   * AnimatePresence `custom` by the window layer.
+   */
+  lastExit: { id: string; kind: "close" | "minimize" } | null;
 }
 
 const WindowContext = createContext<WindowContextType | undefined>(undefined);
@@ -66,6 +72,9 @@ export function useOptionalWindows() {
 
 export function WindowProvider({ children }: { children: React.ReactNode }) {
   const [windows, setWindows] = useState<WindowInstance[]>([]);
+  const [lastExit, setLastExit] = useState<
+    { id: string; kind: "close" | "minimize" } | null
+  >(null);
   // Monotonic z counter — every focus bumps the target above all others.
   const zRef = useRef(1);
   // How many windows have been opened this session, for the cascade offset.
@@ -113,10 +122,12 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
   );
 
   const close = useCallback((id: string) => {
+    setLastExit({ id, kind: "close" });
     setWindows((prev) => prev.filter((w) => w.id !== id));
   }, []);
 
   const minimize = useCallback((id: string) => {
+    setLastExit({ id, kind: "minimize" });
     setWindows((prev) =>
       prev.map((w) => (w.id === id ? { ...w, mode: "minimized" } : w)),
     );
@@ -216,6 +227,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
       setRect,
       focusedId,
       isOpen,
+      lastExit,
     }),
     [
       windows,
@@ -228,6 +240,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
       setRect,
       focusedId,
       isOpen,
+      lastExit,
     ],
   );
 

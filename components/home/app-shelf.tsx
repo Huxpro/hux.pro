@@ -79,7 +79,14 @@ function iconFillsTile(entry: AppIconSnapshot[string] | undefined): boolean {
 }
 
 /** The tile + label, sans interactivity — shared by the grid and the overlay. */
-function AppIconVisual({ app }: { app: AppLink }) {
+function AppIconVisual({
+  app,
+  revealBadge = false,
+}: {
+  app: AppLink;
+  /** Force the runtime badge visible (jiggle-edit mode, drag clone). */
+  revealBadge?: boolean;
+}) {
   const entry = ICONS[app.id];
   const fills = iconFillsTile(entry);
   return (
@@ -119,11 +126,21 @@ function AppIconVisual({ app }: { app: AppLink }) {
             </span>
           )}
         </span>
-        {/* Runtime marker: web globe, or the Lynx head tinted by flavour. */}
+        {/* Runtime marker: web globe, or the Lynx head tinted by flavour.
+            Kept off the resting springboard for a cleaner look — it fades in on
+            hover / keyboard-focus (pointer users) and whenever the shelf is in
+            jiggle-edit mode (the touch path, reached by long-press). It's always
+            shown in a window's title bar, so the info is never truly hidden. */}
         <AppBadgeFor
           app={app}
           size={20}
-          className="pointer-events-none absolute -bottom-1 -right-1"
+          className={cn(
+            "pointer-events-none absolute -bottom-1 -right-1",
+            "transition-all duration-200",
+            "group-hover/app:opacity-100 group-hover/app:scale-100",
+            "group-focus-visible/app:opacity-100 group-focus-visible/app:scale-100",
+            revealBadge ? "opacity-100 scale-100" : "opacity-0 scale-90",
+          )}
         />
       </span>
       <span className="mt-1.5 block max-w-18 truncate text-center text-[11px] leading-tight text-muted-foreground">
@@ -137,7 +154,13 @@ function AppIconVisual({ app }: { app: AppLink }) {
 // Sortable icon
 // -----------------------------------------------------------------------------
 
-function SortableAppIcon({ id }: { id: string }) {
+function SortableAppIcon({
+  id,
+  revealBadge = false,
+}: {
+  id: string;
+  revealBadge?: boolean;
+}) {
   const app = APPS_BY_ID.get(id)!;
   const windows = useOptionalWindows();
   const { setNodeRef, attributes, listeners, isDragging, transform, transition } =
@@ -197,7 +220,7 @@ function SortableAppIcon({ id }: { id: string }) {
         }}
         className="group/app block outline-none"
       >
-        <AppIconVisual app={app} />
+        <AppIconVisual app={app} revealBadge={revealBadge} />
       </a>
     </div>
   );
@@ -304,7 +327,9 @@ export function AppShelf() {
           )}
         >
           {order.map((id) =>
-            APPS_BY_ID.has(id) ? <SortableAppIcon key={id} id={id} /> : null,
+            APPS_BY_ID.has(id) ? (
+              <SortableAppIcon key={id} id={id} revealBadge={editing} />
+            ) : null,
           )}
         </div>
       </SortableContext>
@@ -326,7 +351,7 @@ export function AppShelf() {
                 className="select-none drop-shadow-xl"
                 style={{ transform: "scale(1.1)", cursor: "grabbing" }}
               >
-                <AppIconVisual app={APPS_BY_ID.get(activeId)!} />
+                <AppIconVisual app={APPS_BY_ID.get(activeId)!} revealBadge />
               </div>
             ) : null}
           </DragOverlay>,

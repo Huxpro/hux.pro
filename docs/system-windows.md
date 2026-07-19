@@ -68,7 +68,11 @@ way iOS overlays a glyph on Clip / AR / web-clip icons:
 - **Lynx · Vue** → the Lynx head, tinted Vue green (`#42b883`).
 
 Flavour is colour-only, so React-Lynx and Vue-Lynx read apart at a glance
-without a second glyph. The same badge appears in each window's title bar.
+without a second glyph. To keep the resting springboard clean, the badge is
+**not** stamped on the tile permanently — it fades in on hover / keyboard-focus
+(pointer users) and whenever the shelf is in jiggle-edit mode (the touch path,
+via long-press). It's always shown in a window's title bar and on its minimized
+dock pill, so the runtime is never truly hidden.
 
 ## The manager
 
@@ -80,8 +84,12 @@ their stacking, nothing visual (same split as the Dock system):
   mental model, not "⌘N a new document".
 - **Focus = z-order.** A monotonic counter bumps the focused window above all
   others; `focusedId` is simply the highest-`z` non-minimized window.
-- **Minimize** keeps the window in the manager but drops it from the render;
-  tapping its icon (`openApp` → restore) brings it back.
+- **Minimize** genies the window up toward the dock's live-activity band and
+  parks it there as a pill (`components/minimized-dock.tsx`, rendered as a
+  `<Dock>` child so it shares the row with the music / ambient activities).
+  Tapping the pill — or the app's shelf icon (`openApp`) — restores and focuses
+  it. The genie vs shrink-in-place distinction is driven by `lastExit`, passed
+  to the window layer's `<AnimatePresence custom>`.
 - **Zoom** toggles maximize ⇄ restore, stashing the pre-maximize rect.
 - **Esc** closes the front window. A window `resize` listener re-clamps every
   window (and re-fits maximized ones) to the working area.

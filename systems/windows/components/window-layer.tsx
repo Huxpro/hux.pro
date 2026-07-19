@@ -15,7 +15,7 @@ import { Window } from "./window";
 // =============================================================================
 
 export function WindowLayer() {
-  const { windows } = useWindows();
+  const { windows, lastExit } = useWindows();
   const visible = windows.filter((w) => w.mode !== "minimized");
 
   return (
@@ -23,7 +23,9 @@ export function WindowLayer() {
       className="pointer-events-none fixed inset-0 z-40"
       aria-hidden={visible.length === 0}
     >
-      <AnimatePresence>
+      {/* `custom` carries the last exit reason so each leaving window animates
+          the right way: minimize genies up toward the dock, close shrinks. */}
+      <AnimatePresence custom={lastExit}>
         {visible.map((win) => (
           <Window key={win.id} win={win} />
         ))}

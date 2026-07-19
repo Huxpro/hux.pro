@@ -12,5 +12,10 @@ export {
   useWindows,
   useOptionalWindows,
 } from "./provider";
-export { WindowLayer, AppBadge, AppBadgeFor } from "./components";
+export {
+  WindowLayer,
+  MinimizedWindows,
+  AppBadge,
+  AppBadgeFor,
+} from "./components";
 export * from "./lib";

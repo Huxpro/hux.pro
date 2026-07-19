@@ -154,8 +154,30 @@ export function Window({ win }: { win: WindowInstance }) {
       role="dialog"
       aria-label={win.app.title}
       initial={{ opacity: 0, scale: 0.94 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.94 }}
+      animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+      exit="exit"
+      // Exit depends on WHY the window left (AnimatePresence `custom` from the
+      // layer): a minimize genies up toward the dock's live-activity band; a
+      // plain close just shrinks in place.
+      variants={{
+        exit: (last: { id: string; kind: "close" | "minimize" } | null) => {
+          if (last?.kind === "minimize" && last.id === win.id) {
+            const vp = getViewport();
+            return {
+              opacity: 0,
+              scale: 0.08,
+              x: vp.width / 2 - (win.rect.x + win.rect.width / 2),
+              y: 16 - win.rect.y,
+              transition: { duration: 0.42, ease: [0.32, 0.72, 0, 1] },
+            };
+          }
+          return {
+            opacity: 0,
+            scale: 0.94,
+            transition: { duration: 0.15 },
+          };
+        },
+      }}
       transition={{ type: "spring", stiffness: 520, damping: 34, mass: 0.7 }}
       onPointerDownCapture={() => focus(win.id)}
       style={{
