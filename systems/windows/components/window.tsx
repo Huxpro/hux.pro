@@ -72,7 +72,7 @@ function resizeRect(dir: ResizeDir, base: Rect, dx: number, dy: number): Rect {
 }
 
 export function Window({ win }: { win: WindowInstance }) {
-  const { focus, setRect, focusedId } = useWindows();
+  const { focus, setRect, focusedId, toggleMaximize } = useWindows();
   const ref = useRef<HTMLDivElement>(null);
   const gesture = useRef<GestureState | null>(null);
   const [gesturing, setGesturing] = useState(false);
@@ -236,6 +236,7 @@ export function Window({ win }: { win: WindowInstance }) {
       {!maximized && (
         <div
           onPointerDown={(e) => e.button === 0 && armPointer(e, { onDragStart: beginDrag })}
+          onDoubleClick={() => toggleMaximize(win.id)}
           style={{ touchAction: "none" }}
           className="absolute inset-x-0 top-0 z-20 h-4 cursor-grab"
         />
