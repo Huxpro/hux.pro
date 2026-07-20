@@ -31,7 +31,8 @@
       "id": "lynx-flappy-bird",
       "title": "Flappy Bird",
       "runtime": "web",
-      "url": "https://huangxuan.me/lynx-flappy-bird/"
+      "url": "https://huangxuan.me/lynx-flappy-bird/",
+      "size": "portrait"
     },
     {
       "id": "react",

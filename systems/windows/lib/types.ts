@@ -1,4 +1,5 @@
 import type { AppLink } from "@/lib/app-icon-core";
+import type { SizePreset } from "./geometry";
 
 // =============================================================================
 // Window system — shared types
@@ -13,15 +14,14 @@ export interface Rect {
 }
 
 /**
- * A window's display state, mirroring the three macOS "traffic light" outcomes:
- *   - "normal"    — floating at its {@link WindowInstance.rect}.
- *   - "minimized" — hidden from the layer (genie'd away); still open, still in
- *                   the z-stack, reachable by tapping its icon again.
- *   - "maximized" — filled to the working area; the pre-maximize rect is kept
- *                   in {@link WindowInstance.restoreRect} so a second click on
- *                   the green light springs it back.
+ * Whether a window is on the desktop or tucked into the dock. Size (including
+ * the maximized/"max" state) is tracked separately via {@link SizePreset}, so
+ * this is just the presence axis.
+ *   - "normal"    — floating on the desktop at its {@link WindowInstance.rect}.
+ *   - "minimized" — genied into the dock; still mounted (state preserved),
+ *                   reachable by tapping its pill / icon.
  */
-export type WindowMode = "normal" | "minimized" | "maximized";
+export type WindowMode = "normal" | "minimized";
 
 /** One open app window. Identified by the app id (one window per app). */
 export interface WindowInstance {
@@ -30,8 +30,12 @@ export interface WindowInstance {
   app: AppLink;
   rect: Rect;
   mode: WindowMode;
+  /** Current size preset; `"max"` is the maximized state. */
+  sizePreset: SizePreset;
   /** Stacking order; the focused window holds the highest value. */
   z: number;
-  /** The pre-maximize rect, restored when un-maximizing. */
+  /** Rect to return to when leaving "max". */
   restoreRect?: Rect;
+  /** Preset to return to when leaving "max". */
+  restorePreset?: SizePreset;
 }

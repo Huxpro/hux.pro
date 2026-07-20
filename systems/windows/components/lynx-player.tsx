@@ -8,9 +8,13 @@
 import "@lynx-js/web-elements/index.css";
 import "@lynx-js/web-core/client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { LynxViewElement } from "@lynx-js/web-core/client";
 import { LYNX_SHADOW_CSS } from "../lib/lynx-shadow-css";
+
+// Monotonic per-instance group id so concurrent Lynx windows never share (and
+// collide on) a background Worker.
+let GROUP_COUNTER = 41;
 
 // =============================================================================
 // LynxPlayer — a Lynx Player: renders a `.web.bundle` via <lynx-view>
@@ -46,7 +50,13 @@ function injectShadowCss(el: LynxViewElement): boolean {
 
 export default function LynxPlayer({ url }: { url: string }) {
   const ref = useRef<LynxViewElement | null>(null);
+  const groupRef = useRef(0);
+  if (!groupRef.current) groupRef.current = (GROUP_COUNTER += 1);
   const [error, setError] = useState<string | null>(null);
+
+  // Serve local built-in bundles from our origin; remote (online) URLs pass
+  // through untouched. Same-origin keeps the Worker fetch off the CORS path.
+  const src = url.startsWith("/") ? window.location.origin + url : url;
 
   // Inject the shadow CSS as soon as the shadow root exists. The custom element
   // upgrades synchronously on connect, but the root can lag a frame, so poll a
@@ -95,9 +105,25 @@ export default function LynxPlayer({ url }: { url: string }) {
   return (
     <lynx-view
       ref={ref}
-      url={url}
-      // Fill the window body; the bundle drives its own internal layout.
-      style={{ display: "block", height: "100%", width: "100%" }}
+      key={src}
+      url={src}
+      lynx-group-id={groupRef.current}
+      transform-vh
+      transform-vw
+      // Fill the window body and make Lynx's rpx / vh / vw units resolve against
+      // this container (not the page), so a real Lynx card scales to the window
+      // instead of the viewport — matching go-web's responsive mode.
+      style={
+        {
+          display: "block",
+          height: "100%",
+          width: "100%",
+          containerType: "size",
+          "--rpx-unit": "calc(100cqw / 750)",
+          "--vh-unit": "1cqh",
+          "--vw-unit": "1cqw",
+        } as CSSProperties
+      }
     />
   );
 }

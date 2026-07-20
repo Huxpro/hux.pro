@@ -16,6 +16,11 @@ type LynxViewProps = HTMLAttributes<LynxViewElement> & {
   width?: "auto" | string;
   "global-props"?: string;
   "init-data"?: string;
+  /** Share one background Worker across cards; unique per player here. */
+  "lynx-group-id"?: string | number;
+  /** Map Lynx vh/vw units onto our container-query units. */
+  "transform-vh"?: boolean | string;
+  "transform-vw"?: boolean | string;
 };
 
 declare module "react" {

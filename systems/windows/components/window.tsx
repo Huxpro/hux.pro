@@ -1,34 +1,33 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { animate, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWindows } from "../provider";
 import {
   MIN_SIZE,
-  TITLE_BAR_H,
   clampDrag,
   clampRect,
   getViewport,
+  workingArea,
 } from "../lib/geometry";
 import type { Rect, WindowInstance } from "../lib/types";
 import { AppFrame } from "./app-frame";
-import { AppBadgeFor } from "./app-badge";
-import { TrafficLights } from "./traffic-lights";
+import { WindowChrome } from "./window-chrome";
 
 // =============================================================================
-// Window — one draggable / resizable "chrome" around an app
+// Window — one draggable / resizable app window
 //
-// The macOS/iPadOS window: a title bar with traffic-light controls that you
-// grab to drag, eight resize edges, and a body that hosts the app frame
-// (iframe for web apps, the Lynx Player for Lynx apps).
-//
+// Edge-to-edge content with a floating chrome pill on top (see WindowChrome).
 // Gestures write geometry straight to the DOM node for the duration of the
 // drag/resize (no per-frame React churn — iframes/Workers hate re-rendering),
-// then commit the final rect to the provider once on pointer-up. A transparent
-// "shield" over the body during a gesture stops the iframe from swallowing the
-// pointer stream (an iframe eats pointermove, which would freeze the drag the
-// instant the cursor crossed into it).
+// then commit once on pointer-up. A transparent "shield" over the body during a
+// gesture stops the iframe from swallowing the pointer stream.
+//
+// Drag is intentionally *free* — you can pull a window mostly off-screen — and
+// on release it springs back just far enough to keep the chrome grabbable, with
+// a small overshoot as a friendly "edge" hint (we never force the whole app to
+// stay on-screen, unlike some implementations).
 // =============================================================================
 
 type ResizeDir = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
@@ -40,16 +39,15 @@ interface GestureState {
   rect: Rect;
 }
 
-/** Resize handle definitions: direction → positioning + cursor classes. */
 const HANDLES: { dir: ResizeDir; className: string }[] = [
-  { dir: "n", className: "top-0 inset-x-3 h-1.5 cursor-ns-resize" },
-  { dir: "s", className: "bottom-0 inset-x-3 h-1.5 cursor-ns-resize" },
-  { dir: "e", className: "right-0 inset-y-3 w-1.5 cursor-ew-resize" },
-  { dir: "w", className: "left-0 inset-y-3 w-1.5 cursor-ew-resize" },
-  { dir: "nw", className: "top-0 left-0 h-3 w-3 cursor-nwse-resize" },
-  { dir: "ne", className: "top-0 right-0 h-3 w-3 cursor-nesw-resize" },
-  { dir: "sw", className: "bottom-0 left-0 h-3 w-3 cursor-nesw-resize" },
-  { dir: "se", className: "bottom-0 right-0 h-3 w-3 cursor-nwse-resize" },
+  { dir: "n", className: "top-0 inset-x-4 h-1.5 cursor-ns-resize" },
+  { dir: "s", className: "bottom-0 inset-x-4 h-1.5 cursor-ns-resize" },
+  { dir: "e", className: "right-0 inset-y-4 w-1.5 cursor-ew-resize" },
+  { dir: "w", className: "left-0 inset-y-4 w-1.5 cursor-ew-resize" },
+  { dir: "nw", className: "top-0 left-0 h-3.5 w-3.5 cursor-nwse-resize" },
+  { dir: "ne", className: "top-0 right-0 h-3.5 w-3.5 cursor-nesw-resize" },
+  { dir: "sw", className: "bottom-0 left-0 h-3.5 w-3.5 cursor-nesw-resize" },
+  { dir: "se", className: "bottom-0 right-0 h-3.5 w-3.5 cursor-nwse-resize" },
 ];
 
 /** Apply a resize delta to a rect, honouring the minimum size + anchor edges. */
@@ -71,16 +69,15 @@ function resizeRect(dir: ResizeDir, base: Rect, dx: number, dy: number): Rect {
 }
 
 export function Window({ win }: { win: WindowInstance }) {
-  const { focus, close, minimize, toggleMaximize, setRect, focusedId } =
-    useWindows();
+  const { focus, setRect, focusedId } = useWindows();
   const ref = useRef<HTMLDivElement>(null);
   const gesture = useRef<GestureState | null>(null);
   const [gesturing, setGesturing] = useState(false);
   const focused = focusedId === win.id;
-  const maximized = win.mode === "maximized";
+  const maximized = win.sizePreset === "max";
   const minimized = win.mode === "minimized";
+  const isLynx = win.app.runtime === "lynx";
 
-  // Write geometry to the node directly — the fast path during a gesture.
   const paint = useCallback((rect: Rect) => {
     const el = ref.current;
     if (!el) return;
@@ -106,10 +103,10 @@ export function Window({ win }: { win: WindowInstance }) {
     [maximized, focus, win.id, win.rect],
   );
 
-  // Global pointer listeners live for the duration of a gesture only.
   useEffect(() => {
     if (!gesturing) return;
     const vp = getViewport();
+    const area = workingArea(vp);
 
     const onMove = (e: PointerEvent) => {
       const g = gesture.current;
@@ -117,7 +114,13 @@ export function Window({ win }: { win: WindowInstance }) {
       const dx = e.clientX - g.startX;
       const dy = e.clientY - g.startY;
       if (g.kind === "drag") {
-        paint(clampDrag({ ...g.rect, x: g.rect.x + dx, y: g.rect.y + dy }, vp));
+        // Free horizontally + downward; only pin the top so the chrome can't
+        // slide above the reachable area. Release springs the rest back.
+        paint({
+          ...g.rect,
+          x: g.rect.x + dx,
+          y: Math.max(area.y, g.rect.y + dy),
+        });
       } else {
         paint(clampRect(resizeRect(g.kind, g.rect, dx, dy), vp));
       }
@@ -127,16 +130,43 @@ export function Window({ win }: { win: WindowInstance }) {
       const el = ref.current;
       const g = gesture.current;
       gesture.current = null;
-      setGesturing(false);
-      if (el && g) {
-        // Read back what we painted and commit it as the new committed rect.
-        setRect(win.id, {
-          x: el.offsetLeft,
-          y: el.offsetTop,
-          width: el.offsetWidth,
-          height: el.offsetHeight,
-        });
+      if (!el || !g) {
+        setGesturing(false);
+        return;
       }
+      const painted: Rect = {
+        x: el.offsetLeft,
+        y: el.offsetTop,
+        width: el.offsetWidth,
+        height: el.offsetHeight,
+      };
+      if (g.kind === "drag") {
+        const { rect: target, clamped } = clampDrag(painted, vp);
+        if (clamped) {
+          // Spring back with a little overshoot — the "edge" hint. Keep
+          // `gesturing` true so the CSS transition stays off and the shield
+          // stays up until the bounce settles.
+          animate(painted.x, target.x, {
+            type: "spring",
+            stiffness: 700,
+            damping: 20,
+            onUpdate: (v) => ref.current && (ref.current.style.left = `${v}px`),
+          });
+          animate(painted.y, target.y, {
+            type: "spring",
+            stiffness: 700,
+            damping: 20,
+            onUpdate: (v) => ref.current && (ref.current.style.top = `${v}px`),
+            onComplete: () => {
+              setGesturing(false);
+              setRect(win.id, target);
+            },
+          });
+          return;
+        }
+      }
+      setGesturing(false);
+      setRect(win.id, painted);
     };
 
     window.addEventListener("pointermove", onMove);
@@ -155,14 +185,10 @@ export function Window({ win }: { win: WindowInstance }) {
       role="dialog"
       aria-label={win.app.title}
       aria-hidden={minimized || undefined}
-      // `inert` while minimized: hidden windows keep running (state preserved)
-      // but shouldn't be focusable or take pointer/tab input.
       inert={minimized || undefined}
       initial={{ opacity: 0, scale: 0.94 }}
-      // Minimize/restore is NOT a mount/unmount — the window stays mounted (so
-      // its iframe / <lynx-view> and state survive) and just animates: it
-      // genies down toward the dock's live-activity band (scale → 0, up to the
-      // top-center) and springs back on restore.
+      // Minimize/restore keeps the window MOUNTED (state preserved) — it genies
+      // toward the dock band and springs back, never unmounts.
       animate={
         minimized
           ? {
@@ -173,7 +199,6 @@ export function Window({ win }: { win: WindowInstance }) {
             }
           : { opacity: 1, scale: 1, x: 0, y: 0 }
       }
-      // Exit is only for close (a genuine unmount): shrink in place.
       exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
       transition={
         minimized
@@ -189,53 +214,32 @@ export function Window({ win }: { win: WindowInstance }) {
         height: win.rect.height,
         zIndex: win.z,
         pointerEvents: minimized ? "none" : "auto",
-        // Instant during gestures; a soft ease when the manager moves us
-        // (maximize / restore / resize-clamp).
         transition: gesturing
           ? "none"
           : "left .28s cubic-bezier(.22,1,.36,1), top .28s cubic-bezier(.22,1,.36,1), width .28s cubic-bezier(.22,1,.36,1), height .28s cubic-bezier(.22,1,.36,1)",
       }}
       className={cn(
-        "flex flex-col overflow-hidden rounded-xl",
-        "border border-black/10 bg-card/95 backdrop-blur-xl dark:border-white/12",
-        focused ? "shadow-overlay" : "shadow-raised",
-        maximized && "rounded-lg",
+        "overflow-hidden",
+        maximized ? "rounded-2xl" : "rounded-[22px]",
+        "border border-black/10 dark:border-white/14",
+        isLynx ? "bg-black" : "bg-background",
+        focused ? "shadow-overlay ring-1 ring-black/5 dark:ring-white/10" : "shadow-raised",
       )}
     >
-      {/* Title bar — grab surface. Double-click zooms, like macOS. */}
-      <div
-        onPointerDown={(e) => beginGesture("drag", e)}
-        onDoubleClick={() => toggleMaximize(win.id)}
-        style={{ height: TITLE_BAR_H, touchAction: "none" }}
-        className={cn(
-          "relative flex shrink-0 items-center gap-3 px-3 select-none",
-          "border-b border-black/6 dark:border-white/8",
-          focused ? "bg-black/[0.03] dark:bg-white/[0.04]" : "bg-transparent",
-        )}
-      >
-        <TrafficLights
-          onClose={() => close(win.id)}
-          onMinimize={() => minimize(win.id)}
-          onZoom={() => toggleMaximize(win.id)}
-        />
-        {/* Centered title + runtime badge. */}
-        <div className="pointer-events-none absolute inset-x-0 flex items-center justify-center gap-1.5">
-          <AppBadgeFor app={win.app} size={13} />
-          <span className="max-w-[60%] truncate text-[12px] font-medium text-foreground/70">
-            {win.app.title}
-          </span>
-        </div>
+      {/* Edge-to-edge content */}
+      <div className="absolute inset-0">
+        <AppFrame app={win.app} />
       </div>
 
-      {/* Body — the app frame, plus a gesture shield. */}
-      <div className="relative flex-1 overflow-hidden bg-background">
-        <AppFrame app={win.app} />
-        {gesturing && (
-          // Swallows pointer events so the iframe/lynx-view can't hijack the
-          // in-flight drag/resize.
-          <div className="absolute inset-0 z-10" style={{ cursor: "inherit" }} />
-        )}
-      </div>
+      {/* Floating chrome pill */}
+      <WindowChrome
+        win={win}
+        focused={focused}
+        onDragPointerDown={(e) => beginGesture("drag", e)}
+      />
+
+      {/* Gesture shield — stops the iframe/lynx-view eating the pointer stream. */}
+      {gesturing && <div className="absolute inset-0 z-20" style={{ cursor: "inherit" }} />}
 
       {/* Resize edges — hidden while maximized. */}
       {!maximized &&
@@ -244,7 +248,7 @@ export function Window({ win }: { win: WindowInstance }) {
             key={h.dir}
             onPointerDown={(e) => beginGesture(h.dir, e)}
             style={{ touchAction: "none" }}
-            className={cn("absolute z-20", h.className)}
+            className={cn("absolute z-30", h.className)}
           />
         ))}
     </motion.div>

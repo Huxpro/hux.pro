@@ -401,11 +401,18 @@ export interface AppLink {
   /** Lynx authoring framework — badge tint only. See {@link AppFlavor}. */
   flavor?: AppFlavor;
   /**
-   * For `runtime: "lynx"`: the `.web.bundle` the player loads. A site-local
-   * `/…` path is served from /public; an `http(s)` URL is loaded cross-origin.
+   * For `runtime: "lynx"`: the `.web.bundle` the player loads.
+   *   - a site-local `/…` path → a **built-in** (offline) bundle from /public
+   *   - an `http(s)://…` URL   → an **online** bundle fetched at open time
    * Falls back to {@link url} when omitted.
    */
   bundleUrl?: string;
+  /**
+   * Preferred window size preset when the app opens. Defaults to `portrait`
+   * for Lynx apps and `landscape` for web apps. Must stay in sync with
+   * `SizePreset` in `systems/windows/lib/geometry.ts`.
+   */
+  size?: "portrait" | "landscape" | "max";
   /**
    * Manual icon override — the recovery path for sites whose declared icon is
    * wrong or unfetchable (same philosophy as og-snapshot's manual `preview`).
