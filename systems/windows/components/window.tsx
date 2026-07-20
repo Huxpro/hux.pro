@@ -76,12 +76,10 @@ export function Window({ win }: { win: WindowInstance }) {
   const ref = useRef<HTMLDivElement>(null);
   const gesture = useRef<GestureState | null>(null);
   const [gesturing, setGesturing] = useState(false);
-  const [hint, setHint] = useState<"move" | "resize" | null>(null);
   const focused = focusedId === win.id;
   const maximized = win.sizePreset === "max";
   const minimized = win.mode === "minimized";
   const isLynx = win.app.runtime === "lynx";
-  const showHint = !!hint || gesturing;
 
   const paint = useCallback((rect: Rect) => {
     const el = ref.current;
@@ -221,17 +219,11 @@ export function Window({ win }: { win: WindowInstance }) {
           : "left .28s cubic-bezier(.22,1,.36,1), top .28s cubic-bezier(.22,1,.36,1), width .28s cubic-bezier(.22,1,.36,1), height .28s cubic-bezier(.22,1,.36,1)",
       }}
       className={cn(
-        "overflow-hidden transition-shadow",
+        "overflow-hidden",
         maximized ? "rounded-2xl" : "rounded-[22px]",
         "border border-black/10 dark:border-white/14",
         isLynx ? "bg-black" : "bg-background",
-        focused ? "shadow-overlay" : "shadow-raised",
-        // Soft border feedback: brighter ring on drag/resize hover + active gesture.
-        showHint
-          ? "ring-2 ring-black/15 dark:ring-white/25"
-          : focused
-            ? "ring-1 ring-black/5 dark:ring-white/10"
-            : "ring-0",
+        focused ? "shadow-overlay ring-1 ring-black/5 dark:ring-white/10" : "shadow-raised",
       )}
     >
       {/* Edge-to-edge content */}
@@ -244,15 +236,13 @@ export function Window({ win }: { win: WindowInstance }) {
       {!maximized && (
         <div
           onPointerDown={(e) => e.button === 0 && armPointer(e, { onDragStart: beginDrag })}
-          onPointerEnter={() => setHint("move")}
-          onPointerLeave={() => setHint(null)}
           style={{ touchAction: "none" }}
           className="absolute inset-x-0 top-0 z-20 h-4 cursor-grab"
         />
       )}
 
       {/* Floating chrome pill */}
-      <WindowChrome win={win} focused={focused} beginDrag={beginDrag} onHint={setHint} />
+      <WindowChrome win={win} focused={focused} beginDrag={beginDrag} />
 
       {/* Gesture shield — stops the iframe/lynx-view eating the pointer stream. */}
       {gesturing && <div className="absolute inset-0 z-30" style={{ cursor: "inherit" }} />}
@@ -263,8 +253,6 @@ export function Window({ win }: { win: WindowInstance }) {
           <div
             key={h.dir}
             onPointerDown={(e) => beginResize(h.dir, e)}
-            onPointerEnter={() => setHint("resize")}
-            onPointerLeave={() => setHint(null)}
             style={{ touchAction: "none" }}
             className={cn("absolute z-30", h.className)}
           />

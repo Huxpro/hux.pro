@@ -79,12 +79,10 @@ export function WindowChrome({
   win,
   focused,
   beginDrag,
-  onHint,
 }: {
   win: WindowInstance;
   focused: boolean;
   beginDrag: (clientX: number, clientY: number) => void;
-  onHint: (hint: "move" | null) => void;
 }) {
   const { close, minimize, toggleMaximize, setSizePreset } = useWindows();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -140,8 +138,6 @@ export function WindowChrome({
       <div className="pointer-events-auto relative">
         <div
           onPointerDown={onPillPointerDown}
-          onPointerEnter={() => onHint("move")}
-          onPointerLeave={() => onHint(null)}
           onContextMenu={(e) => {
             e.preventDefault();
             setMenuOpen((v) => !v);
@@ -182,7 +178,7 @@ export function WindowChrome({
               style={{ transformOrigin: "top center" }}
               onPointerDown={(e) => e.stopPropagation()}
               className={cn(
-                "absolute left-1/2 top-full mt-1.5 w-52 -translate-x-1/2 p-1",
+                "absolute left-1/2 top-full mt-1.5 w-52 -translate-x-1/2 p-1 select-none",
                 "rounded-2xl border border-black/8 dark:border-white/12",
                 "bg-white/90 shadow-overlay backdrop-blur-xl dark:bg-neutral-900/90",
               )}

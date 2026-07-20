@@ -5,14 +5,12 @@ import { cn } from "@/lib/utils";
 // =============================================================================
 // TrafficLights — the window control dots (close · minimize · zoom)
 //
-// iPadOS/macOS-style, and deliberately *stable*: the three dots never move or
-// resize, so they're easy mouse targets. Only their paint changes —
+// iPadOS-style. At rest the three dots are *small* (like a ••• pill) —
 //   • passive (unfocused) window → monotone grey dots
-//   • active  (focused)  window → the red / amber / green traffic lights
-//   • pointer hover              → the ×/−/+ glyphs fade in (no layout shift)
-//
-// On touch the dots are inert (pointer-events off) so a tap falls through to the
-// pill and opens the window menu; on pointer devices each dot is a real button.
+//   • active  (focused)  window → red / amber / green dots
+// On a pointer device, hovering the pill grows them into full-size buttons and
+// fades in the ×/−/+ glyphs (an intentional affordance). On touch they stay
+// small and inert, so a tap falls through to the pill and opens the menu.
 // =============================================================================
 
 function Light({
@@ -39,11 +37,14 @@ function Light({
         onClick();
       }}
       className={cn(
-        "flex h-3 w-3 items-center justify-center rounded-full text-black/55",
-        "transition-colors active:scale-90",
+        "flex items-center justify-center rounded-full text-black/55",
+        "transition-all duration-150 active:scale-90",
+        // Small at rest; grow to a comfortable button on hover (pointer only).
+        "h-[6px] w-[6px]",
+        "[@media(hover:hover)]:group-hover/chrome:h-3 [@media(hover:hover)]:group-hover/chrome:w-3",
         // Inert on touch → tap reaches the pill (menu); live on pointer devices.
         "pointer-events-none [@media(hover:hover)]:pointer-events-auto",
-        active ? activeColor : "bg-black/25 dark:bg-white/30",
+        active ? activeColor : "bg-black/30 dark:bg-white/35",
       )}
     >
       <span className="opacity-0 transition-opacity [@media(hover:hover)]:group-hover/chrome:opacity-100">
@@ -66,7 +67,7 @@ export function TrafficLights({
 }) {
   const stroke = "h-2 w-2 stroke-[2.5]";
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-[5px] transition-all duration-150 [@media(hover:hover)]:group-hover/chrome:gap-2">
       <Light
         active={active}
         activeColor="bg-[#ff5f57] hover:brightness-95"
