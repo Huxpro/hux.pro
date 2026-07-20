@@ -11,6 +11,7 @@ import {
   getViewport,
   workingArea,
 } from "../lib/geometry";
+import { armPointer } from "../lib/pointer";
 import type { Rect, WindowInstance } from "../lib/types";
 import { AppFrame } from "./app-frame";
 import { WindowChrome } from "./window-chrome";
@@ -18,16 +19,17 @@ import { WindowChrome } from "./window-chrome";
 // =============================================================================
 // Window — one draggable / resizable app window
 //
-// Edge-to-edge content with a floating chrome pill on top (see WindowChrome).
-// Gestures write geometry straight to the DOM node for the duration of the
-// drag/resize (no per-frame React churn — iframes/Workers hate re-rendering),
-// then commit once on pointer-up. A transparent "shield" over the body during a
-// gesture stops the iframe from swallowing the pointer stream.
+// Edge-to-edge content with a floating dots pill on top (WindowChrome). You can
+// also grab a thin band along the top edge to drag (a tolerance around the
+// chrome). Gestures write geometry straight to the DOM node for the gesture's
+// duration (no per-frame React churn — iframes/Workers hate re-rendering), then
+// commit once on pointer-up. A "shield" over the body during a gesture stops the
+// iframe from swallowing the pointer stream.
 //
-// Drag is intentionally *free* — you can pull a window mostly off-screen — and
-// on release it springs back just far enough to keep the chrome grabbable, with
-// a small overshoot as a friendly "edge" hint (we never force the whole app to
-// stay on-screen, unlike some implementations).
+// Drag is *free* — you can tuck a window mostly off-screen — and on release it
+// springs back just enough to keep the chrome grabbable, with a small overshoot
+// as a friendly edge hint. Hovering the drag band or a resize edge (and any
+// active gesture) softly lights the window's border as feedback.
 // =============================================================================
 
 type ResizeDir = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
@@ -39,8 +41,9 @@ interface GestureState {
   rect: Rect;
 }
 
+// No `n` edge handle: the top edge is the drag-tolerance band (below), so
+// top-height resize lives on the nw/ne corners instead.
 const HANDLES: { dir: ResizeDir; className: string }[] = [
-  { dir: "n", className: "top-0 inset-x-4 h-1.5 cursor-ns-resize" },
   { dir: "s", className: "bottom-0 inset-x-4 h-1.5 cursor-ns-resize" },
   { dir: "e", className: "right-0 inset-y-4 w-1.5 cursor-ew-resize" },
   { dir: "w", className: "left-0 inset-y-4 w-1.5 cursor-ew-resize" },
@@ -73,10 +76,12 @@ export function Window({ win }: { win: WindowInstance }) {
   const ref = useRef<HTMLDivElement>(null);
   const gesture = useRef<GestureState | null>(null);
   const [gesturing, setGesturing] = useState(false);
+  const [hint, setHint] = useState<"move" | "resize" | null>(null);
   const focused = focusedId === win.id;
   const maximized = win.sizePreset === "max";
   const minimized = win.mode === "minimized";
   const isLynx = win.app.runtime === "lynx";
+  const showHint = !!hint || gesturing;
 
   const paint = useCallback((rect: Rect) => {
     const el = ref.current;
@@ -87,17 +92,25 @@ export function Window({ win }: { win: WindowInstance }) {
     el.style.height = `${rect.height}px`;
   }, []);
 
-  const beginGesture = useCallback(
-    (kind: GestureState["kind"], e: React.PointerEvent) => {
-      if (maximized) return; // maximized windows don't drag/resize
+  // Seed a drag from an explicit point (the pill / top band arm it after a
+  // small threshold so a tap doesn't jerk the window).
+  const beginDrag = useCallback(
+    (clientX: number, clientY: number) => {
+      if (maximized) return;
+      focus(win.id);
+      gesture.current = { kind: "drag", startX: clientX, startY: clientY, rect: win.rect };
+      setGesturing(true);
+    },
+    [maximized, focus, win.id, win.rect],
+  );
+
+  // Resize handles start their gesture immediately on pointer-down.
+  const beginResize = useCallback(
+    (dir: ResizeDir, e: React.PointerEvent) => {
+      if (maximized) return;
       e.preventDefault();
       focus(win.id);
-      gesture.current = {
-        kind,
-        startX: e.clientX,
-        startY: e.clientY,
-        rect: win.rect,
-      };
+      gesture.current = { kind: dir, startX: e.clientX, startY: e.clientY, rect: win.rect };
       setGesturing(true);
     },
     [maximized, focus, win.id, win.rect],
@@ -114,13 +127,7 @@ export function Window({ win }: { win: WindowInstance }) {
       const dx = e.clientX - g.startX;
       const dy = e.clientY - g.startY;
       if (g.kind === "drag") {
-        // Free horizontally + downward; only pin the top so the chrome can't
-        // slide above the reachable area. Release springs the rest back.
-        paint({
-          ...g.rect,
-          x: g.rect.x + dx,
-          y: Math.max(area.y, g.rect.y + dy),
-        });
+        paint({ ...g.rect, x: g.rect.x + dx, y: Math.max(area.y, g.rect.y + dy) });
       } else {
         paint(clampRect(resizeRect(g.kind, g.rect, dx, dy), vp));
       }
@@ -143,9 +150,6 @@ export function Window({ win }: { win: WindowInstance }) {
       if (g.kind === "drag") {
         const { rect: target, clamped } = clampDrag(painted, vp);
         if (clamped) {
-          // Spring back with a little overshoot — the "edge" hint. Keep
-          // `gesturing` true so the CSS transition stays off and the shield
-          // stays up until the bounce settles.
           animate(painted.x, target.x, {
             type: "spring",
             stiffness: 700,
@@ -187,8 +191,6 @@ export function Window({ win }: { win: WindowInstance }) {
       aria-hidden={minimized || undefined}
       inert={minimized || undefined}
       initial={{ opacity: 0, scale: 0.94 }}
-      // Minimize/restore keeps the window MOUNTED (state preserved) — it genies
-      // toward the dock band and springs back, never unmounts.
       animate={
         minimized
           ? {
@@ -219,11 +221,17 @@ export function Window({ win }: { win: WindowInstance }) {
           : "left .28s cubic-bezier(.22,1,.36,1), top .28s cubic-bezier(.22,1,.36,1), width .28s cubic-bezier(.22,1,.36,1), height .28s cubic-bezier(.22,1,.36,1)",
       }}
       className={cn(
-        "overflow-hidden",
+        "overflow-hidden transition-shadow",
         maximized ? "rounded-2xl" : "rounded-[22px]",
         "border border-black/10 dark:border-white/14",
         isLynx ? "bg-black" : "bg-background",
-        focused ? "shadow-overlay ring-1 ring-black/5 dark:ring-white/10" : "shadow-raised",
+        focused ? "shadow-overlay" : "shadow-raised",
+        // Soft border feedback: brighter ring on drag/resize hover + active gesture.
+        showHint
+          ? "ring-2 ring-black/15 dark:ring-white/25"
+          : focused
+            ? "ring-1 ring-black/5 dark:ring-white/10"
+            : "ring-0",
       )}
     >
       {/* Edge-to-edge content */}
@@ -231,22 +239,32 @@ export function Window({ win }: { win: WindowInstance }) {
         <AppFrame app={win.app} />
       </div>
 
+      {/* Top-edge drag tolerance — grab near the top border to move. Sits below
+          the resize handles (so the very top edge still resizes) and the pill. */}
+      {!maximized && (
+        <div
+          onPointerDown={(e) => e.button === 0 && armPointer(e, { onDragStart: beginDrag })}
+          onPointerEnter={() => setHint("move")}
+          onPointerLeave={() => setHint(null)}
+          style={{ touchAction: "none" }}
+          className="absolute inset-x-0 top-0 z-20 h-4 cursor-grab"
+        />
+      )}
+
       {/* Floating chrome pill */}
-      <WindowChrome
-        win={win}
-        focused={focused}
-        onDragPointerDown={(e) => beginGesture("drag", e)}
-      />
+      <WindowChrome win={win} focused={focused} beginDrag={beginDrag} onHint={setHint} />
 
       {/* Gesture shield — stops the iframe/lynx-view eating the pointer stream. */}
-      {gesturing && <div className="absolute inset-0 z-20" style={{ cursor: "inherit" }} />}
+      {gesturing && <div className="absolute inset-0 z-30" style={{ cursor: "inherit" }} />}
 
       {/* Resize edges — hidden while maximized. */}
       {!maximized &&
         HANDLES.map((h) => (
           <div
             key={h.dir}
-            onPointerDown={(e) => beginGesture(h.dir, e)}
+            onPointerDown={(e) => beginResize(h.dir, e)}
+            onPointerEnter={() => setHint("resize")}
+            onPointerLeave={() => setHint(null)}
             style={{ touchAction: "none" }}
             className={cn("absolute z-30", h.className)}
           />

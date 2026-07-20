@@ -3,20 +3,27 @@
 import { cn } from "@/lib/utils";
 
 // =============================================================================
-// TrafficLights — the macOS window controls (close · minimize · zoom)
+// TrafficLights — the window control dots (close · minimize · zoom)
 //
-// Three coloured lozenges on the left of the title bar. Their glyphs (×, −, +)
-// only appear on group hover, exactly like macOS, so at rest they read as calm
-// dots. Each is a real <button> for keyboard + a11y.
+// iPadOS/macOS-style, and deliberately *stable*: the three dots never move or
+// resize, so they're easy mouse targets. Only their paint changes —
+//   • passive (unfocused) window → monotone grey dots
+//   • active  (focused)  window → the red / amber / green traffic lights
+//   • pointer hover              → the ×/−/+ glyphs fade in (no layout shift)
+//
+// On touch the dots are inert (pointer-events off) so a tap falls through to the
+// pill and opens the window menu; on pointer devices each dot is a real button.
 // =============================================================================
 
 function Light({
-  color,
+  active,
+  activeColor,
   label,
   onClick,
   glyph,
 }: {
-  color: string;
+  active: boolean;
+  activeColor: string;
   label: string;
   onClick: () => void;
   glyph: React.ReactNode;
@@ -24,21 +31,22 @@ function Light({
   return (
     <button
       type="button"
+      data-window-control
       aria-label={label}
       title={label}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      // Keep the title-bar drag from starting on a control press.
-      onPointerDown={(e) => e.stopPropagation()}
       className={cn(
-        "flex h-3 w-3 items-center justify-center rounded-full",
-        "text-black/55 transition-transform active:scale-90",
-        color,
+        "flex h-3 w-3 items-center justify-center rounded-full text-black/55",
+        "transition-colors active:scale-90",
+        // Inert on touch → tap reaches the pill (menu); live on pointer devices.
+        "pointer-events-none [@media(hover:hover)]:pointer-events-auto",
+        active ? activeColor : "bg-black/25 dark:bg-white/30",
       )}
     >
-      <span className="opacity-0 transition-opacity group-hover/lights:opacity-100">
+      <span className="opacity-0 transition-opacity [@media(hover:hover)]:group-hover/chrome:opacity-100">
         {glyph}
       </span>
     </button>
@@ -46,19 +54,22 @@ function Light({
 }
 
 export function TrafficLights({
+  active,
   onClose,
   onMinimize,
   onZoom,
 }: {
+  active: boolean;
   onClose: () => void;
   onMinimize: () => void;
   onZoom: () => void;
 }) {
   const stroke = "h-2 w-2 stroke-[2.5]";
   return (
-    <div className="group/lights flex items-center gap-2">
+    <div className="flex items-center gap-2">
       <Light
-        color="bg-[#ff5f57] hover:brightness-95"
+        active={active}
+        activeColor="bg-[#ff5f57] hover:brightness-95"
         label="Close"
         onClick={onClose}
         glyph={
@@ -68,7 +79,8 @@ export function TrafficLights({
         }
       />
       <Light
-        color="bg-[#febc2e] hover:brightness-95"
+        active={active}
+        activeColor="bg-[#febc2e] hover:brightness-95"
         label="Minimize"
         onClick={onMinimize}
         glyph={
@@ -78,7 +90,8 @@ export function TrafficLights({
         }
       />
       <Light
-        color="bg-[#28c840] hover:brightness-95"
+        active={active}
+        activeColor="bg-[#28c840] hover:brightness-95"
         label="Zoom"
         onClick={onZoom}
         glyph={

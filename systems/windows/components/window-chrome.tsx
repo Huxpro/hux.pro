@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Check,
-  ChevronDown,
   ExternalLink,
   Maximize2,
   Minus,
@@ -16,24 +15,19 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { SizePreset } from "../lib/geometry";
+import { armPointer } from "../lib/pointer";
 import type { WindowInstance } from "../lib/types";
 import { useWindows } from "../provider";
-import { AppBadgeFor } from "./app-badge";
 import { TrafficLights } from "./traffic-lights";
 
 // =============================================================================
-// WindowChrome — the adaptive floating control pill (Stage Manager–style)
+// WindowChrome — the floating control pill (iPadOS window controls)
 //
-// Edge-to-edge content, one small translucent pill floating at top-center:
-//
-//   • Rest         → just the app icon (+ a caret on touch). It's the drag
-//                     handle. No title, so it stays out of the way.
-//   • Desktop hover→ morphs (as a group) into mouse-friendly chrome:
-//                     traffic lights + icon + title + caret.
-//   • Caret / right-click → a menu: size presets, open-in-browser, min, close.
-//
-// Drag and menu are deliberately on *different* targets (pill body vs. caret),
-// so touching the pill to drag can never accidentally pop the menu open.
+// A single glassy pill at top-center holding three *stable* dots (see
+// TrafficLights). No title, no caret. The pill is also the primary drag handle.
+// The window menu is opened by a long-press, a clean tap (no drag), or
+// right-click — never by a stray touch, since drag/tap/long-press are all
+// disambiguated by armPointer. The app's title/identity lives inside the menu.
 // =============================================================================
 
 const ICONS = appIconSnapshot as AppIconSnapshot;
@@ -46,10 +40,7 @@ function iconSrc(win: WindowInstance): string | undefined {
   );
 }
 
-const PRESET_META: Record<
-  SizePreset,
-  { label: string; Icon: typeof Smartphone }
-> = {
+const PRESET_META: Record<SizePreset, { label: string; Icon: typeof Smartphone }> = {
   portrait: { label: "Portrait", Icon: Smartphone },
   landscape: { label: "Landscape", Icon: Monitor },
   max: { label: "Maximize", Icon: Maximize2 },
@@ -77,9 +68,7 @@ function MenuItem({
       onPointerDown={(e) => e.stopPropagation()}
       className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-xs text-foreground hover:bg-black/6 dark:hover:bg-white/10"
     >
-      <span className="flex h-4 w-4 items-center justify-center opacity-70">
-        {icon}
-      </span>
+      <span className="flex h-4 w-4 items-center justify-center opacity-70">{icon}</span>
       <span className="flex-1">{children}</span>
       {active && <Check className="h-3.5 w-3.5 opacity-80" />}
     </button>
@@ -89,19 +78,27 @@ function MenuItem({
 export function WindowChrome({
   win,
   focused,
-  onDragPointerDown,
+  beginDrag,
+  onHint,
 }: {
   win: WindowInstance;
   focused: boolean;
-  onDragPointerDown: (e: React.PointerEvent) => void;
+  beginDrag: (clientX: number, clientY: number) => void;
+  onHint: (hint: "move" | null) => void;
 }) {
   const { close, minimize, toggleMaximize, setSizePreset } = useWindows();
   const [menuOpen, setMenuOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const suppressClick = useRef(false);
   const src = iconSrc(win);
   const isWeb = win.app.runtime !== "lynx";
+  const kind =
+    win.app.runtime === "lynx"
+      ? win.app.flavor === "vue"
+        ? "Lynx · Vue"
+        : "Lynx · React"
+      : "Web";
 
-  // Close the menu on outside-tap / Escape.
   useEffect(() => {
     if (!menuOpen) return;
     const onDown = (e: PointerEvent) => {
@@ -116,102 +113,64 @@ export function WindowChrome({
     };
   }, [menuOpen]);
 
-  const icon = src ? (
-    // eslint-disable-next-line @next/next/no-img-element -- tiny local static asset
-    <img
-      src={src}
-      alt=""
-      draggable={false}
-      className="h-[18px] w-[18px] rounded-[5px] object-cover"
-    />
-  ) : (
-    <span className="flex h-[18px] w-[18px] items-center justify-center rounded-[5px] bg-muted text-[9px] font-mono text-muted-foreground">
-      {win.app.title.charAt(0)}
-    </span>
-  );
+  const onPillPointerDown = (e: React.PointerEvent) => {
+    // Left button / touch / pen only; let right-click go to the context menu.
+    if (e.button !== 0) return;
+    armPointer(e, {
+      onDragStart: beginDrag,
+      onTap: (target) => {
+        // A tap on a live control (desktop dot) is that control's job, not the
+        // menu's. On touch the dots are inert, so any tap lands here → menu.
+        if ((target as HTMLElement)?.closest?.("[data-window-control]")) return;
+        setMenuOpen((v) => !v);
+      },
+      onLongPress: () => {
+        // Long-press always opens the menu; swallow the click it would trigger.
+        suppressClick.current = true;
+        setMenuOpen(true);
+      },
+    });
+  };
 
   return (
     <div
       ref={wrapRef}
-      className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center pt-2"
+      className="pointer-events-none absolute inset-x-0 top-0 z-40 flex justify-center pt-2"
     >
       <div className="pointer-events-auto relative">
-        {/* The pill. Body = drag handle; lights + title reveal on desktop hover
-            (as a group); caret opens the menu. */}
         <div
-          onPointerDown={onDragPointerDown}
+          onPointerDown={onPillPointerDown}
+          onPointerEnter={() => onHint("move")}
+          onPointerLeave={() => onHint(null)}
           onContextMenu={(e) => {
             e.preventDefault();
             setMenuOpen((v) => !v);
           }}
+          onClickCapture={(e) => {
+            if (suppressClick.current) {
+              e.preventDefault();
+              e.stopPropagation();
+              suppressClick.current = false;
+            }
+          }}
           className={cn(
-            "group/chrome flex items-center gap-1.5 rounded-full px-2 py-1",
+            "group/chrome flex items-center rounded-full px-2.5 py-1.5",
             "cursor-grab touch-none select-none active:cursor-grabbing",
             "border backdrop-blur-xl transition-colors",
             "bg-white/70 dark:bg-black/55",
             focused
               ? "border-black/10 shadow-raised dark:border-white/14"
               : "border-black/6 dark:border-white/8",
-            "hover:bg-white/90 dark:hover:bg-black/70",
           )}
         >
-          {/* Traffic lights — collapsed at rest, morph in together on hover
-              (hover-capable pointers only). */}
-          <div
-            className={cn(
-              "flex items-center overflow-hidden",
-              "max-w-0 opacity-0 transition-all duration-200",
-              "[@media(hover:hover)]:group-hover/chrome:max-w-24",
-              "[@media(hover:hover)]:group-hover/chrome:opacity-100",
-              "[@media(hover:hover)]:group-hover/chrome:mr-0.5",
-            )}
-            // Lights are their own buttons — don't start a drag from them.
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            <TrafficLights
-              onClose={() => close(win.id)}
-              onMinimize={() => minimize(win.id)}
-              onZoom={() => toggleMaximize(win.id)}
-            />
-          </div>
-
-          {icon}
-
-          {/* Title — hidden at rest, revealed on desktop hover. */}
-          <span
-            className={cn(
-              "overflow-hidden whitespace-nowrap text-[11px] font-medium text-foreground/80",
-              "max-w-0 opacity-0 transition-all duration-200",
-              "[@media(hover:hover)]:group-hover/chrome:max-w-40",
-              "[@media(hover:hover)]:group-hover/chrome:opacity-100",
-              "[@media(hover:hover)]:group-hover/chrome:ml-0.5",
-            )}
-          >
-            {win.app.title}
-          </span>
-
-          {/* Caret → menu. Always visible on touch; hover-revealed on desktop. */}
-          <button
-            type="button"
-            aria-label="Window menu"
-            aria-expanded={menuOpen}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              setMenuOpen((v) => !v);
-            }}
-            className={cn(
-              "flex h-4 w-4 items-center justify-center rounded-full text-foreground/60",
-              "hover:text-foreground",
-              "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/chrome:opacity-100",
-              "transition-opacity",
-            )}
-          >
-            <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.25} />
-          </button>
+          <TrafficLights
+            active={focused}
+            onClose={() => close(win.id)}
+            onMinimize={() => minimize(win.id)}
+            onZoom={() => toggleMaximize(win.id)}
+          />
         </div>
 
-        {/* Dropdown menu */}
         <AnimatePresence>
           {menuOpen && (
             <motion.div
@@ -223,25 +182,37 @@ export function WindowChrome({
               style={{ transformOrigin: "top center" }}
               onPointerDown={(e) => e.stopPropagation()}
               className={cn(
-                "absolute left-1/2 top-full mt-1.5 w-48 -translate-x-1/2 p-1",
+                "absolute left-1/2 top-full mt-1.5 w-52 -translate-x-1/2 p-1",
                 "rounded-2xl border border-black/8 dark:border-white/12",
                 "bg-white/90 shadow-overlay backdrop-blur-xl dark:bg-neutral-900/90",
               )}
             >
-              {/* Tech-stack context */}
-              <div className="flex items-center gap-2 px-2.5 py-1.5">
-                <AppBadgeFor app={win.app} size={16} />
-                <span className="text-[11px] font-medium text-muted-foreground">
-                  {win.app.runtime === "lynx"
-                    ? win.app.flavor === "vue"
-                      ? "Lynx · Vue"
-                      : "Lynx · React"
-                    : "Web"}
-                </span>
+              {/* App identity — the title lives here, as the first menu item. */}
+              <div className="flex items-center gap-2.5 px-2 py-1.5">
+                {src ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- tiny local asset
+                  <img
+                    src={src}
+                    alt=""
+                    className="h-7 w-7 rounded-[7px] object-cover"
+                    draggable={false}
+                  />
+                ) : (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-muted text-[11px] font-mono text-muted-foreground">
+                    {win.app.title.charAt(0)}
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-foreground">
+                    {win.app.title}
+                  </div>
+                  <div className="truncate text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                    {kind}
+                  </div>
+                </div>
               </div>
               <div className="my-1 h-px bg-black/6 dark:bg-white/8" />
 
-              {/* Size presets */}
               {(["portrait", "landscape", "max"] as SizePreset[]).map((p) => {
                 const { label, Icon } = PRESET_META[p];
                 return (

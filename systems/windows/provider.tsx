@@ -297,8 +297,9 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
       ) {
         return;
       }
-      // Command palette open (cmdk) — let it consume the Escape first.
-      if (document.querySelector("[cmdk-root]")) return;
+      // Let an open overlay consume Escape first — the command palette (cmdk)
+      // or a window's own menu — instead of nuking the window behind it.
+      if (document.querySelector("[cmdk-root], [role='menu']")) return;
       close(focusedId);
     };
     document.addEventListener("keydown", onKey);
