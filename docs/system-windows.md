@@ -1,8 +1,9 @@
 # Window System — chrome windows for apps
 
-Tapping an app on the home-screen **app shelf** opens it in a draggable,
-resizable **chrome window** — the macOS/iPadOS "open an app on the desktop"
-metaphor. One window frame hosts two runtimes:
+Tapping an app (home-screen **app shelf** or the ⌘K palette) opens it in a
+draggable, resizable window — the macOS/iPadOS "open an app" metaphor, in a
+Stage-Manager key: edge-to-edge content under a single floating **pill**. One
+window frame hosts two runtimes:
 
 - **Web apps** load in an `<iframe>`.
 - **Lynx apps** load in a **Lynx Player** — `@lynx-js/web-core`'s `<lynx-view>`
@@ -19,29 +20,38 @@ systems/windows/
 ├── provider.tsx                # WindowProvider + useWindows (state machine)
 ├── lib/
 │   ├── types.ts                # WindowInstance, Rect, WindowMode
-│   └── geometry.ts             # placement, clamping, working area
+│   ├── geometry.ts             # size presets, placement, clamps, working area
+│   └── lynx-shadow-css.ts      # generated: flattened web-elements layout CSS
 ├── components/
 │   ├── window-layer.tsx        # <WindowLayer> — the fixed "desktop" surface
-│   ├── window.tsx              # <Window> — drag / resize / traffic lights
+│   ├── window.tsx              # <Window> — drag / resize / edge-bounce
+│   ├── window-chrome.tsx       # the adaptive pill (rest ⇄ hover morph + menu)
 │   ├── traffic-lights.tsx      # close · minimize · zoom controls
+│   ├── minimized-dock.tsx      # <MinimizedWindows> — dock pills (direct restore)
 │   ├── app-frame.tsx           # runtime switch: WebFrame vs LynxFrame
 │   ├── web-frame.tsx           # <iframe> + "won't embed" fallback
 │   ├── lynx-frame.tsx          # ssr:false boundary around the player
 │   ├── lynx-player.tsx         # <lynx-view> — the Lynx Player
-│   └── app-badge.tsx           # runtime marker drawn on each app icon
+│   └── app-badge.tsx           # runtime marker (hover-revealed on shelf tiles)
 ├── lynx-view.d.ts              # <lynx-view> JSX typing
 └── index.ts
 ```
 
 ## The app model
 
-Apps are authored in [`content/apps.json`](../content/apps.json). Two fields
-drive the window system (see `AppLink` in `lib/app-icon-core.ts`):
+Apps are authored in [`content/apps.json`](../content/apps.json) — the
+**built-in registry**. Fields that drive the window system (see `AppLink` in
+`lib/app-icon-core.ts`):
 
 - `runtime` — `"web"` (default, an iframe) or `"lynx"` (the Lynx Player).
 - `flavor` — for Lynx apps, `"react"` or `"vue"`. Cosmetic: it tints the badge.
-- `bundleUrl` — for Lynx apps, the `.web.bundle` the player loads (falls back
-  to `url`). `url` stays the canonical "open externally" target for every app.
+- `bundleUrl` — the Lynx `.web.bundle`. Two sources, unified:
+  - a local `/…` path → **built-in** (offline), served from `public/`;
+  - an `http(s)://…` URL → **online**, fetched at open time.
+  The player origin-resolves local paths and passes remote ones through.
+- `size` — preferred size preset (`portrait` / `landscape` / `max`); defaults to
+  `portrait` for Lynx, `landscape` for web.
+- `url` — canonical "open externally" target for every app.
 
 ```json
 {
@@ -56,7 +66,8 @@ drive the window system (see `AppLink` in `lib/app-icon-core.ts`):
 
 The demo Lynx bundles under `public/lynx/` are built with `@lynx-js/rspeedy`
 (the `web` environment target emits `main.web.bundle`) from small React-Lynx
-and Vue-Lynx apps, then served as static assets.
+and Vue-Lynx apps, then served as static assets. Beyond the registry, any
+bundle can be opened **over-the-air** by URL (`openBundleUrl`) — see Launching.
 
 ## Runtime badge
 
@@ -93,33 +104,60 @@ their stacking, nothing visual (same split as the Dock system):
   `inert`, so its iframe / `<lynx-view>` keeps running and **its state is
   preserved** (a counter at 5 restores at 5). Only **close** unmounts — that's
   the sole `<AnimatePresence>` exit (a shrink in place).
-- **Zoom** toggles maximize ⇄ restore, stashing the pre-maximize rect.
-- **Esc** closes the front window. A window `resize` listener re-clamps every
-  window (and re-fits maximized ones) to the working area.
+- **Size** is a preset (`portrait` / `landscape` / `max`), set via `setSizePreset`
+  / `cycleSize`; `"max"` is the maximized state. **Zoom** (green light / double
+  click) toggles `max` ⇄ the previous preset, stashing the pre-max rect.
+- **Esc** closes the front window — but not while the ⌘K palette is open or a
+  field is focused, so dismissing an overlay never nukes the window behind it.
+  A window `resize` listener re-fits maximized windows and clamps the rest.
 
-`geometry.ts` holds the pure math: a **working area** inset from the viewport,
-a **cascade** so stacked opens fan out, and two clamps — `clampRect` (keep a
-window fully inside, used on resize) and `clampDrag` (macOS-style: let a window
-hang off the edges but never lose its title bar).
+### Sizing
+
+`geometry.ts` holds the pure math. The **working area** insets from the viewport
+with a taller *top* inset (`DOCK_BAND`) so windows — and a maximized window's
+top edge — clear the top-center live-activity dock. Presets:
+
+- `portrait` — a phone-shaped card (Lynx / mobile web);
+- `landscape` — a wide card (docs, desktop web);
+- `max` — the whole working area (keeps the roomy top inset — a deliberate
+  "留白", not literally fullscreen).
+
+On phones every non-max preset fills the stage (and clears the dock by
+construction). Clamps: `clampRect` (keep a window fully inside, used on resize)
+and `clampDrag` (lenient — let a window hang off the edges, only guaranteeing
+the chrome stays grabbable).
 
 ## The chrome
 
-`window.tsx` renders one window. The load-bearing detail is gesture handling:
+Content is **edge-to-edge**; a single translucent **pill** floats at top-center
+(`window-chrome.tsx`), Stage-Manager style:
 
-- **Drag** (title bar) and **resize** (eight edges) write geometry **straight
-  to the DOM node** for the duration of the gesture — no per-frame React
-  churn, which iframes and Web Workers repaint badly on. The final rect is
-  committed to the provider once, on pointer-up.
-- A transparent **gesture shield** covers the body while dragging/resizing.
-  Without it, the iframe swallows the `pointermove` stream the instant the
-  cursor crosses into it and the drag freezes.
-- Position/size changes the *manager* makes (maximize, restore, resize-clamp)
-  ride a CSS transition; gestures switch it off so dragging stays 1:1.
+- **Rest** → just the app icon (no title). It's the drag handle.
+- **Desktop hover** → the pill *morphs, as a group*, into mouse-friendly chrome:
+  traffic-lights + icon + title + a caret. (Group morph, not per-button — macOS
+  reveals the light set together; per-button morphing would shift click targets
+  as the cursor moves.)
+- **Touch** → the pill stays a compact icon + caret.
+- The **menu** (size presets, Open in browser, Minimize, Close) hangs off the
+  caret / right-click — deliberately a *different* target from the drag surface,
+  so touching the pill to drag never accidentally pops the menu open.
+
+Gesture handling in `window.tsx`:
+
+- **Drag** (the pill) and **resize** (eight edges) write geometry **straight to
+  the DOM node** for the gesture's duration — no per-frame React churn, which
+  iframes and Web Workers repaint badly on — then commit once on pointer-up.
+- Drag is **free**: you can tuck a window mostly off-screen. On release it
+  springs back just far enough to keep the chrome grabbable, with a small
+  overshoot as a friendly **edge bounce** (we never force the whole app to stay
+  on-screen).
+- A transparent **gesture shield** covers the body while dragging/resizing, so
+  the iframe can't swallow the `pointermove` stream and freeze the drag.
 
 `WindowLayer` is a single `position: fixed; inset: 0` surface mounted once at
-the app root (in `app/layout.tsx`). It's `pointer-events: none` so it never
-steals clicks from the page; each window re-enables events for itself.
-`AnimatePresence` plays the open/close spring.
+the app root (in `app/layout.tsx`), `pointer-events: none` so it never steals
+page clicks. It sits at `z-40` — below the dock (`z-50`) and the command palette
+(`z-60`), so ⌘K always wins. `AnimatePresence` plays the open/close spring.
 
 ## The runtimes
 
@@ -141,8 +179,15 @@ import "@lynx-js/web-core/client";         // registers <lynx-view> + runtime
 
 — off the server entirely. `@lynx-js/web-core` also needs `@lynx-js/lynx-core`
 installed (it dynamically imports `@lynx-js/lynx-core/web` for the background
-thread). No COOP/COEP headers are required; the bundle is served same-origin
-from `public/` so the Worker fetch isn't cross-origin.
+thread). No COOP/COEP headers are required; built-in bundles are served
+same-origin from `public/` so the Worker fetch isn't cross-origin.
+
+Two fidelity details let *arbitrary* Lynx cards (not just our inline-styled
+demos) render correctly: a **per-instance `lynx-group-id`** so concurrent
+windows never share a background Worker, and **container-query units**
+(`container-type: size` + `--rpx-unit: calc(100cqw / 750)`, `transform-vh/vw`)
+so Lynx's `rpx` / `vh` / `vw` resolve against the *window* rather than the
+viewport — a real card scales to the window it's in.
 
 ### Shadow-root layout CSS
 
@@ -170,11 +215,26 @@ Because this repo builds with **Turbopack**, the usual Webpack fix
 Verified: after the fix a fresh `x-view` in the shadow root computes
 `flex-direction: column` (244 rules applied) instead of the broken `row`.
 
-## Opening from the shelf
+## Launching
 
-`components/home/app-shelf.tsx` icons stay real anchors to each app's `url`, so
-⌘/middle-click still opens the site in a new tab and the tile is a proper link
-at rest. A plain left-click is intercepted (`useOptionalWindows().openApp`) to
-open the chrome window instead — progressive enhancement, and it composes with
-the shelf's existing nested drag-to-reorder without swallowing either gesture.
+Three ways in, all routing through `useWindows()`:
+
+- **Shelf.** `components/home/app-shelf.tsx` icons stay real anchors to each
+  app's `url`, so ⌘/middle-click still opens the site in a new tab. A plain
+  left-click is intercepted (`openApp`) to open the window instead —
+  progressive enhancement that composes with the shelf's drag-to-reorder.
+- **Command palette.** An "Apps" group in ⌘K (`systems/command/palette.tsx`),
+  placed after Writing (low priority, like blog posts) and searchable by
+  title / runtime / flavor. Plus a "Load Lynx bundle from URL…" action.
+- **Over-the-air.** `openBundleUrl(url)` opens an ad-hoc Lynx window for any
+  `.web.bundle` URL. Reachable from the palette action above and from the
+  DevTool.
+
+## DevTool inspector
+
+The DevTool panel (`systems/devtool/panel.tsx`) has an **Apps** section: an
+OTA bundle-URL input + Load, a live list of open windows with full metadata
+(runtime, flavor, source, size preset, rect, bundle/url), and the registry with
+Open / open-externally. Handy for inspecting *any* app's config and for loading
+a bundle you're iterating on.
 ```

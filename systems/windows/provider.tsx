@@ -281,11 +281,25 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
     return visible.reduce((a, b) => (a.z >= b.z ? a : b)).id;
   }, [windows]);
 
-  // Esc closes the front-most window (matches the Dock's Esc-to-collapse).
+  // Esc closes the front-most window — but not while another overlay owns the
+  // Escape (the command palette), nor while typing in a field, so closing a
+  // palette/menu never also nukes the window behind it.
   useEffect(() => {
     if (!focusedId) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close(focusedId);
+      if (e.key !== "Escape") return;
+      const t = e.target as HTMLElement | null;
+      if (
+        t &&
+        (t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.isContentEditable)
+      ) {
+        return;
+      }
+      // Command palette open (cmdk) — let it consume the Escape first.
+      if (document.querySelector("[cmdk-root]")) return;
+      close(focusedId);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
