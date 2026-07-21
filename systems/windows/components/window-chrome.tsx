@@ -22,15 +22,16 @@ import { useWindows } from "../provider";
 // =============================================================================
 // WindowChrome — the window controls
 //
-// Adaptive placement, so it feels native on both platforms:
-//   • Desktop (pointer) → a top-LEFT cluster of dots, macOS-style. At rest the
-//     dots are small; hover grows them into ×/−/+ buttons and reveals the app
-//     title. Hovering the green (zoom) dot drops a size menu (the macOS Sequoia
-//     tiling-menu pattern). Right-click / clicking the title opens the full menu.
-//   • Mobile (touch)   → a centered dots pill; a tap opens the full menu.
+// Native per platform:
+//   • Desktop (pointer) → a top-LEFT cluster of full-size dots that stay dim &
+//     grey (chromeless pill) until you hover, then light up to the red/amber/
+//     green traffic lights on a glass pill with ×/−/+ glyphs and the app title.
+//   • Mobile (touch)    → a small, centred, always-grey dots pill (the dots are
+//     never individually tappable on touch, so they read as an indicator; a tap
+//     opens the full menu).
 //
-// Drag/tap/long-press are disambiguated by armPointer, so a press to drag never
-// pops a menu. The app's identity lives in the title (hover) and the menu.
+// Menu: right-click, a tap on the title, or a long-press (incl. long-pressing a
+// dot). Drag/tap/long-press are disambiguated by armPointer.
 // =============================================================================
 
 const ICONS = appIconSnapshot as AppIconSnapshot;
@@ -49,16 +50,21 @@ const PRESET_META: Record<SizePreset, { label: string; Icon: typeof Smartphone }
   max: { label: "Maximize", Icon: Maximize2 },
 };
 
-/** One traffic-light dot: small at rest, grows to a glyph button on hover. */
+/**
+ * One traffic-light dot. Small & grey on touch; on desktop it's always full
+ * size but dim-grey until the pill is hovered, then it takes its colour (active
+ * window only) and reveals its glyph.
+ */
 function Dot({
   active,
-  activeColor,
+  colorHover,
   label,
   onClick,
   glyph,
 }: {
   active: boolean;
-  activeColor: string;
+  /** e.g. `[@media(hover:hover)]:group-hover/chrome:bg-[#ff5f57]` */
+  colorHover: string;
   label: string;
   onClick: () => void;
   glyph: React.ReactNode;
@@ -74,11 +80,17 @@ function Dot({
         onClick();
       }}
       className={cn(
-        "flex items-center justify-center rounded-full text-black/55",
-        "h-[6px] w-[6px] transition-all duration-150 active:scale-90",
-        "[@media(hover:hover)]:group-hover/chrome:h-3 [@media(hover:hover)]:group-hover/chrome:w-3",
+        "flex cursor-pointer items-center justify-center rounded-full text-black/55",
+        "transition-all duration-150 active:scale-90",
+        // Small on touch; always full-size on desktop.
+        "h-[6px] w-[6px] [@media(hover:hover)]:h-3 [@media(hover:hover)]:w-3",
+        // Inert on touch → tap reaches the pill (menu); live on pointer devices.
         "pointer-events-none [@media(hover:hover)]:pointer-events-auto",
-        active ? activeColor : "bg-black/30 dark:bg-white/35",
+        // Grey base. On desktop: dim at rest, full opacity on hover; coloured
+        // only on hover of an active window.
+        "bg-black/30 dark:bg-white/35",
+        "[@media(hover:hover)]:opacity-45 [@media(hover:hover)]:group-hover/chrome:opacity-100",
+        active && colorHover,
       )}
     >
       <span className="opacity-0 transition-opacity [@media(hover:hover)]:group-hover/chrome:opacity-100">
@@ -160,12 +172,13 @@ export function WindowChrome({
     armPointer(e, {
       onDragStart: beginDrag,
       onTap: (target) => {
-        // Tap on a live dot is that dot's job; tap elsewhere on the pill (e.g.
-        // the title) opens the menu. On touch the dots are inert → always menu.
+        // Tap on a live dot is that dot's job; tap on the title (or the pill)
+        // opens the menu. On touch the dots are inert → always menu.
         if ((target as HTMLElement)?.closest?.("[data-window-control]")) return;
         setMenuOpen((v) => !v);
       },
       onLongPress: () => {
+        // Long-press anywhere (incl. a dot) opens the menu; swallow the click.
         suppressClick.current = true;
         setMenuOpen(true);
       },
@@ -182,7 +195,7 @@ export function WindowChrome({
       ref={wrapRef}
       className={cn(
         "pointer-events-none absolute inset-x-0 top-0 z-40 flex pt-2",
-        // Centered on touch; anchored top-left on pointer devices (macOS).
+        // Centred on touch; anchored top-left on pointer devices (macOS).
         "justify-center px-2.5 [@media(hover:hover)]:justify-start",
       )}
     >
@@ -201,44 +214,47 @@ export function WindowChrome({
             }
           }}
           className={cn(
-            "group/chrome flex items-center gap-[5px] rounded-full px-2.5 py-1.5",
-            "cursor-grab touch-none select-none active:cursor-grabbing",
-            "border backdrop-blur-xl transition-colors",
-            "bg-white/70 dark:bg-black/55",
-            "[@media(hover:hover)]:group-hover/chrome:gap-2",
+            "group/chrome flex items-center rounded-full px-2.5 py-1.5",
+            "cursor-grab touch-none select-none backdrop-blur-xl transition-all duration-200 active:cursor-grabbing",
+            // Mobile: always a glass pill.
+            "border bg-white/70 dark:bg-black/55",
             focused
               ? "border-black/10 shadow-raised dark:border-white/14"
               : "border-black/6 dark:border-white/8",
+            // Desktop: chromeless at rest, glass on hover.
+            "[@media(hover:hover)]:border-transparent [@media(hover:hover)]:bg-transparent [@media(hover:hover)]:shadow-none",
+            "[@media(hover:hover)]:group-hover/chrome:border-black/10 [@media(hover:hover)]:group-hover/chrome:bg-white/80 [@media(hover:hover)]:group-hover/chrome:shadow-raised",
+            "dark:[@media(hover:hover)]:group-hover/chrome:border-white/14 dark:[@media(hover:hover)]:group-hover/chrome:bg-black/60",
           )}
         >
-          <Dot
-            active={focused}
-            activeColor="bg-[#ff5f57] hover:brightness-95"
-            label="Close"
-            onClick={() => close(win.id)}
-            glyph={
-              <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
-                <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" stroke="currentColor" fill="none" strokeLinecap="round" />
-              </svg>
-            }
-          />
-          <Dot
-            active={focused}
-            activeColor="bg-[#febc2e] hover:brightness-95"
-            label="Minimize"
-            onClick={() => minimize(win.id)}
-            glyph={
-              <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
-                <path d="M2.2 5h5.6" stroke="currentColor" fill="none" strokeLinecap="round" />
-              </svg>
-            }
-          />
-
-          {/* Green (zoom): click toggles max; hover drops a size menu. */}
-          <div className="group/zoom relative flex items-center">
+          {/* Dots — grouped so the title never adds a gap at rest (keeps the
+              collapsed mobile pill symmetric). */}
+          <div className="flex items-center gap-[5px] [@media(hover:hover)]:gap-2">
             <Dot
               active={focused}
-              activeColor="bg-[#28c840] hover:brightness-95"
+              colorHover="[@media(hover:hover)]:group-hover/chrome:bg-[#ff5f57]"
+              label="Close"
+              onClick={() => close(win.id)}
+              glyph={
+                <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
+                  <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" stroke="currentColor" fill="none" strokeLinecap="round" />
+                </svg>
+              }
+            />
+            <Dot
+              active={focused}
+              colorHover="[@media(hover:hover)]:group-hover/chrome:bg-[#febc2e]"
+              label="Minimize"
+              onClick={() => minimize(win.id)}
+              glyph={
+                <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
+                  <path d="M2.2 5h5.6" stroke="currentColor" fill="none" strokeLinecap="round" />
+                </svg>
+              }
+            />
+            <Dot
+              active={focused}
+              colorHover="[@media(hover:hover)]:group-hover/chrome:bg-[#28c840]"
               label="Zoom"
               onClick={() => toggleMaximize(win.id)}
               glyph={
@@ -247,50 +263,25 @@ export function WindowChrome({
                 </svg>
               }
             />
-            {/* Size flyout — appears on hovering the green dot (pointer only).
-                The `pt-2` is a hover bridge so the pointer can travel into it. */}
-            <div
-              className={cn(
-                "pointer-events-none absolute left-1/2 top-full z-50 -translate-x-1/2 pt-2 opacity-0",
-                "transition-opacity duration-150",
-                "[@media(hover:hover)]:group-hover/zoom:pointer-events-auto",
-                "[@media(hover:hover)]:group-hover/zoom:opacity-100",
-              )}
-              onPointerDown={(e) => e.stopPropagation()}
-            >
-              <div className="w-40 rounded-2xl border border-black/8 bg-white/90 p-1 shadow-overlay backdrop-blur-xl dark:border-white/12 dark:bg-neutral-900/90">
-                {(["portrait", "landscape", "max"] as SizePreset[]).map((pr) => {
-                  const { label, Icon } = PRESET_META[pr];
-                  return (
-                    <MenuItem
-                      key={pr}
-                      icon={<Icon className="h-3.5 w-3.5" strokeWidth={2.1} />}
-                      active={win.sizePreset === pr}
-                      onSelect={() => setSize(pr)}
-                    >
-                      {label}
-                    </MenuItem>
-                  );
-                })}
-              </div>
-            </div>
           </div>
 
-          {/* App title — revealed on hover (identity + a visible menu target). */}
+          {/* App title — revealed on hover; its colour lifts on its own hover as
+              a "clickable → opens the menu" hint. */}
           <span
             className={cn(
-              "overflow-hidden whitespace-nowrap text-[11px] font-medium text-foreground/80",
-              "max-w-0 opacity-0 transition-all duration-200",
+              "cursor-pointer overflow-hidden whitespace-nowrap text-[11px] font-medium",
+              "text-foreground/70 transition-all duration-200 hover:text-foreground",
+              "max-w-0 opacity-0",
               "[@media(hover:hover)]:group-hover/chrome:max-w-40",
               "[@media(hover:hover)]:group-hover/chrome:opacity-100",
-              "[@media(hover:hover)]:group-hover/chrome:ml-1",
+              "[@media(hover:hover)]:group-hover/chrome:ml-2",
             )}
           >
             {win.app.title}
           </span>
         </div>
 
-        {/* Full menu — right-click / tap / long-press. */}
+        {/* Full menu — right-click / tap-title / long-press. */}
         <AnimatePresence>
           {menuOpen && (
             <motion.div

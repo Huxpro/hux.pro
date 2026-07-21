@@ -25,8 +25,7 @@ systems/windows/
 ├── components/
 │   ├── window-layer.tsx        # <WindowLayer> — the fixed "desktop" surface
 │   ├── window.tsx              # <Window> — drag / resize / edge-bounce
-│   ├── window-chrome.tsx       # the adaptive pill (rest ⇄ hover morph + menu)
-│   ├── traffic-lights.tsx      # close · minimize · zoom controls
+│   ├── window-chrome.tsx       # the control dots (top-left desktop / centre mobile)
 │   ├── minimized-dock.tsx      # <MinimizedWindows> — dock pills (direct restore)
 │   ├── app-frame.tsx           # runtime switch: WebFrame vs LynxFrame
 │   ├── web-frame.tsx           # <iframe> + "won't embed" fallback
@@ -82,8 +81,8 @@ Flavour is colour-only, so React-Lynx and Vue-Lynx read apart at a glance
 without a second glyph. To keep the resting springboard clean, the badge is
 **not** stamped on the tile permanently — it fades in on hover / keyboard-focus
 (pointer users) and whenever the shelf is in jiggle-edit mode (the touch path,
-via long-press). It's always shown in a window's title bar and on its minimized
-dock pill, so the runtime is never truly hidden.
+via long-press). The runtime is also named in the window menu's header and on
+its minimized dock pill, so it's never truly hidden.
 
 ## The manager
 
@@ -129,24 +128,32 @@ the chrome stays grabbable).
 
 ## The chrome
 
-Content is **edge-to-edge**; a single translucent **pill** floats at top-center
-(`window-chrome.tsx`), Stage-Manager style:
+Content is **edge-to-edge**; the controls (`window-chrome.tsx`) are the classic
+red/amber/green dots, placed to feel native per platform:
 
-- **Rest** → just the app icon (no title). It's the drag handle.
-- **Desktop hover** → the pill *morphs, as a group*, into mouse-friendly chrome:
-  traffic-lights + icon + title + a caret. (Group morph, not per-button — macOS
-  reveals the light set together; per-button morphing would shift click targets
-  as the cursor moves.)
-- **Touch** → the pill stays a compact icon + caret.
-- The **menu** (size presets, Open in browser, Minimize, Close) hangs off the
-  caret / right-click — deliberately a *different* target from the drag surface,
-  so touching the pill to drag never accidentally pops the menu open.
+- **Desktop (pointer)** → a top-**left** cluster (macOS). The dots are always
+  full-size but sit **dim grey on a chromeless (invisible) pill** at rest; on
+  hover the pill fills in with glass, the dots take their colour (only for the
+  active window — a passive window's dots stay grey), and the ×/−/+ glyphs plus
+  the app **title** fade in. Nothing changes position between states, so the
+  buttons are stable mouse targets.
+- **Mobile (touch)** → a small, **centred**, always-grey ••• pill. The dots are
+  inert on touch (an indicator, not three tiny targets); a tap opens the menu.
+
+The window **menu** (title header + size presets + Open in browser + Minimize +
+Close) opens via **right-click**, a **tap on the title**, or a **long-press**
+(including long-pressing a dot) — never from a stray touch, since armPointer
+(`lib/pointer.ts`) disambiguates *tap → menu*, *hold → menu*, *move → drag*.
+There's deliberately **no caret**. Clicking the green dot zooms; double-clicking
+the top band zooms too.
 
 Gesture handling in `window.tsx`:
 
-- **Drag** (the pill) and **resize** (eight edges) write geometry **straight to
-  the DOM node** for the gesture's duration — no per-frame React churn, which
-  iframes and Web Workers repaint badly on — then commit once on pointer-up.
+- **Drag** (the pill, or a thin band along the top edge — a grab tolerance) and
+  **resize** (edges + corners; top-height resize lives on the top corners since
+  the top edge is the drag band) write geometry **straight to the DOM node** for
+  the gesture's duration — no per-frame React churn, which iframes and Web
+  Workers repaint badly on — then commit once on pointer-up.
 - Drag is **free**: you can tuck a window mostly off-screen. On release it
   springs back just far enough to keep the chrome grabbable, with a small
   overshoot as a friendly **edge bounce** (we never force the whole app to stay
