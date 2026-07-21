@@ -1,8 +1,13 @@
 "use client";
 
 import appIconSnapshot from "@/content/app-icons.json";
-import type { AppIconSnapshot } from "@/lib/app-icon-core";
+import {
+  resolveAppIconSrc,
+  runtimeLabel,
+  type AppIconSnapshot,
+} from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
+import { useInputCapability } from "@/services";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Check,
@@ -37,14 +42,6 @@ import { useWindows } from "../provider";
 
 const ICONS = appIconSnapshot as AppIconSnapshot;
 const MENU_W = 208; // w-52
-
-function iconSrc(win: WindowInstance): string | undefined {
-  return (
-    ICONS[win.app.id]?.file ??
-    win.app.icon ??
-    (win.app.runtime === "lynx" ? "/app-icons/lynx.png" : undefined)
-  );
-}
 
 const PRESET_META: Record<SizePreset, { label: string; Icon: typeof Smartphone }> = {
   portrait: { label: "Portrait", Icon: Smartphone },
@@ -134,6 +131,47 @@ function MenuItem({
 
 const stroke = "h-2 w-2 stroke-[2.5]";
 
+// The three traffic lights, in macOS order (close · minimize · zoom). `action`
+// keys into the per-window dispatch built inside the component. Colours are the
+// on-hover fills (active window only); glyphs show on hover.
+const DOTS: {
+  label: string;
+  action: "close" | "minimize" | "zoom";
+  colorHover: string;
+  glyph: React.ReactNode;
+}[] = [
+  {
+    label: "Close",
+    action: "close",
+    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-[#ff5f57]",
+    glyph: (
+      <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
+        <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" stroke="currentColor" fill="none" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    label: "Minimize",
+    action: "minimize",
+    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-[#febc2e]",
+    glyph: (
+      <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
+        <path d="M2.2 5h5.6" stroke="currentColor" fill="none" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    label: "Zoom",
+    action: "zoom",
+    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-[#28c840]",
+    glyph: (
+      <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
+        <path d="M5 2.2v5.6M2.2 5h5.6" stroke="currentColor" fill="none" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+];
+
 export function WindowChrome({
   win,
   focused,
@@ -147,6 +185,9 @@ export function WindowChrome({
   beginDrag: (clientX: number, clientY: number) => void;
 }) {
   const { close, minimize, toggleMaximize, setSizePreset } = useWindows();
+  // Canonical hover-capability read (not a raw `(hover: hover)` media query,
+  // which is unreliable — e.g. always `hover: none` in headless Chrome).
+  const { hasFineHoverPointer } = useInputCapability();
   const pillRef = useRef<HTMLDivElement>(null);
   const suppressClick = useRef(false);
   const [menu, setMenu] = useState<{
@@ -158,27 +199,25 @@ export function WindowChrome({
   // what gives the mobile pill its glass look when there's no hover to trigger it.
   const interacting = gesturing || !!menu;
 
-  const src = iconSrc(win);
+  const src = resolveAppIconSrc(win.app, ICONS);
   const isWeb = win.app.runtime !== "lynx";
-  const kind =
-    win.app.runtime === "lynx"
-      ? win.app.flavor === "vue"
-        ? "Lynx · Vue"
-        : "Lynx · React"
-      : "Web";
+  const kind = runtimeLabel(win.app);
 
   const openMenu = () => {
     const r = pillRef.current?.getBoundingClientRect();
     if (!r) return;
     // Desktop (top-left pill) → left-aligned under the pill; touch (centred
     // pill) → centred under it. Clamped into the viewport either way.
-    const pointer = window.matchMedia("(hover: hover)").matches;
-    const desired = pointer ? r.left : r.left + r.width / 2 - MENU_W / 2;
+    const desired = hasFineHoverPointer ? r.left : r.left + r.width / 2 - MENU_W / 2;
     const left = Math.min(
       Math.max(desired, 8),
       window.innerWidth - MENU_W - 8,
     );
-    setMenu({ left, top: r.bottom + 6, origin: pointer ? "top left" : "top center" });
+    setMenu({
+      left,
+      top: r.bottom + 6,
+      origin: hasFineHoverPointer ? "top left" : "top center",
+    });
   };
   const closeMenu = () => setMenu(null);
   const toggleMenu = () => (menu ? closeMenu() : openMenu());
@@ -209,6 +248,9 @@ export function WindowChrome({
     setSizePreset(win.id, pr);
     closeMenu();
   };
+
+  // Per-window dispatch the DOTS array keys into by `action`.
+  const dotAction = { close, minimize, zoom: toggleMaximize };
 
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-40 flex justify-center px-2.5 pt-2 [@media(hover:hover)]:justify-start">
@@ -244,44 +286,20 @@ export function WindowChrome({
               ),
         )}
       >
-        {/* Dots grouped so the title never adds a gap at rest (mobile symmetry). */}
+        {/* Dots grouped so the title never adds a gap at rest (mobile symmetry).
+            Order is load-bearing (close · minimize · zoom, like macOS). */}
         <div className="flex items-center gap-[5px] [@media(hover:hover)]:gap-2">
-          <Dot
-            active={focused}
-            interacting={interacting}
-            colorHover="[@media(hover:hover)]:group-hover/chrome:bg-[#ff5f57]"
-            label="Close"
-            onClick={() => close(win.id)}
-            glyph={
-              <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
-                <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" stroke="currentColor" fill="none" strokeLinecap="round" />
-              </svg>
-            }
-          />
-          <Dot
-            active={focused}
-            interacting={interacting}
-            colorHover="[@media(hover:hover)]:group-hover/chrome:bg-[#febc2e]"
-            label="Minimize"
-            onClick={() => minimize(win.id)}
-            glyph={
-              <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
-                <path d="M2.2 5h5.6" stroke="currentColor" fill="none" strokeLinecap="round" />
-              </svg>
-            }
-          />
-          <Dot
-            active={focused}
-            interacting={interacting}
-            colorHover="[@media(hover:hover)]:group-hover/chrome:bg-[#28c840]"
-            label="Zoom"
-            onClick={() => toggleMaximize(win.id)}
-            glyph={
-              <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
-                <path d="M5 2.2v5.6M2.2 5h5.6" stroke="currentColor" fill="none" strokeLinecap="round" />
-              </svg>
-            }
-          />
+          {DOTS.map((dot) => (
+            <Dot
+              key={dot.label}
+              active={focused}
+              interacting={interacting}
+              colorHover={dot.colorHover}
+              label={dot.label}
+              onClick={() => dotAction[dot.action](win.id)}
+              glyph={dot.glyph}
+            />
+          ))}
         </div>
 
         {/* App title — revealed on hover; brightens on its own hover (clickable). */}

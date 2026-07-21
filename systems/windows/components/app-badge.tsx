@@ -1,6 +1,6 @@
 "use client";
 
-import type { AppFlavor, AppLink, AppRuntime } from "@/lib/app-icon-core";
+import { runtimeLabel, type AppFlavor, type AppLink, type AppRuntime } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 
 // =============================================================================
@@ -73,13 +73,13 @@ function specFor(runtime: AppRuntime, flavor?: AppFlavor): BadgeSpec {
       // React blue vs Vue green — the whole point of the flavour tint.
       bg: vue ? "bg-[#42b883]" : "bg-[#149eca]",
       glyph: <LynxMark className="h-[70%] w-[70%] text-white" />,
-      label: vue ? "Lynx · Vue" : "Lynx · React",
+      label: runtimeLabel({ runtime, flavor }),
     };
   }
   return {
     bg: "bg-zinc-600 dark:bg-zinc-500",
     glyph: <WebMark className="h-[58%] w-[58%] text-white" />,
-    label: "Web",
+    label: runtimeLabel({ runtime, flavor }),
   };
 }
 

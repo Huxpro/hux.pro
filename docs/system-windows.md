@@ -111,9 +111,9 @@ their stacking, nothing visual (same split as the Dock system):
   `inert`, so its iframe / `<lynx-view>` keeps running and **its state is
   preserved** (a counter at 5 restores at 5). Only **close** unmounts — that's
   the sole `<AnimatePresence>` exit (a shrink in place).
-- **Size** is a preset (`portrait` / `landscape` / `max`), set via `setSizePreset`
-  / `cycleSize`; `"max"` is the maximized state. **Zoom** (green light / double
-  click) toggles `max` ⇄ the previous preset, stashing the pre-max rect.
+- **Size** is a preset (`portrait` / `landscape` / `max`), set via `setSizePreset`;
+  `"max"` is the maximized state. **Zoom** (green light / double click) toggles
+  `max` ⇄ the previous preset, stashing the pre-max rect.
 - **Esc** closes the front window — but not while the ⌘K palette is open or a
   field is focused, so dismissing an overlay never nukes the window behind it.
   A window `resize` listener re-fits maximized windows and clamps the rest.

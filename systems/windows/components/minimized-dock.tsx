@@ -1,7 +1,7 @@
 "use client";
 
 import appIconSnapshot from "@/content/app-icons.json";
-import type { AppIconSnapshot } from "@/lib/app-icon-core";
+import { resolveAppIconSrc, type AppIconSnapshot } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { useWindows } from "../provider";
@@ -23,8 +23,7 @@ import { AppBadgeFor } from "./app-badge";
 const ICONS = appIconSnapshot as AppIconSnapshot;
 
 function PillIcon({ win }: { win: WindowInstance }) {
-  const entry = ICONS[win.app.id];
-  const src = entry?.file ?? win.app.icon;
+  const src = resolveAppIconSrc(win.app, ICONS);
   return (
     <span className="relative block h-6 w-6 shrink-0">
       <span className="block h-6 w-6 overflow-hidden rounded-[7px] border border-black/8 bg-white dark:border-white/12">

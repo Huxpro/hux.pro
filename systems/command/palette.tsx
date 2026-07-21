@@ -1,7 +1,7 @@
 "use client";
 
 import appsJson from "@/content/apps.json";
-import type { AppLink } from "@/lib/app-icon-core";
+import { runtimeLabel, type AppLink } from "@/lib/app-icon-core";
 import { getLocalizedDescription, getLocalizedTitle, getPostHref } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -897,12 +897,7 @@ export function CommandPalette() {
                 {windows && (
                   <Command.Group heading={t(locale, "appsGroup")}>
                     {apps.map((app) => {
-                      const kind =
-                        app.runtime === "lynx"
-                          ? app.flavor === "vue"
-                            ? "Lynx · Vue"
-                            : "Lynx · React"
-                          : "Web";
+                      const kind = runtimeLabel(app);
                       return (
                         <Command.Item
                           key={`app-${app.id}`}

@@ -16,7 +16,6 @@ import {
   getViewport,
   placeWindow,
   presetRect,
-  SIZE_PRESETS,
   workingArea,
   type SizePreset,
   type Viewport,
@@ -49,15 +48,12 @@ interface WindowContextType {
   toggleMaximize: (id: string) => void;
   /** Set an explicit size preset (portrait / landscape / max). */
   setSizePreset: (id: string, preset: SizePreset) => void;
-  /** Advance to the next size preset. */
-  cycleSize: (id: string) => void;
   /** Restore a minimized window without spawning (used by the shelf tap). */
   restore: (id: string) => void;
   /** Commit a window's geometry after a drag / resize gesture. */
   setRect: (id: string, rect: Rect) => void;
   /** The id of the front-most (focused) non-minimized window, or null. */
   focusedId: string | null;
-  isOpen: (id: string) => boolean;
 }
 
 const WindowContext = createContext<WindowContextType | undefined>(undefined);
@@ -125,12 +121,16 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
 
   const focus = useCallback(
     (id: string) => {
-      const z = nextZ();
-      setWindows((prev) =>
-        prev.some((w) => w.id === id)
-          ? prev.map((w) => (w.id === id ? { ...w, z } : w))
-          : prev,
-      );
+      setWindows((prev) => {
+        const target = prev.find((w) => w.id === id);
+        if (!target) return prev;
+        // Already front-most → no-op. `focus` fires on every pointer-down on a
+        // window, so skipping the state churn when nothing changes avoids a
+        // full window-tree (and shelf) re-render per click on the active window.
+        const maxZ = prev.reduce((m, w) => Math.max(m, w.z), 0);
+        if (target.z === maxZ) return prev;
+        return prev.map((w) => (w.id === id ? { ...w, z: nextZ() } : w));
+      });
     },
     [nextZ],
   );
@@ -208,22 +208,6 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
     [nextZ],
   );
 
-  const cycleSize = useCallback(
-    (id: string) => {
-      const z = nextZ();
-      const vp = getViewport();
-      setWindows((prev) =>
-        prev.map((w) => {
-          if (w.id !== id) return w;
-          const next =
-            SIZE_PRESETS[(SIZE_PRESETS.indexOf(w.sizePreset) + 1) % SIZE_PRESETS.length];
-          return applyPreset(w, next, vp, z);
-        }),
-      );
-    },
-    [nextZ],
-  );
-
   const toggleMaximize = useCallback(
     (id: string) => {
       const z = nextZ();
@@ -253,26 +237,30 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
     setWindows((prev) => prev.map((w) => (w.id === id ? { ...w, rect } : w)));
   }, []);
 
-  const isOpen = useCallback(
-    (id: string) => windows.some((w) => w.id === id),
-    [windows],
-  );
-
   // Keep maximized windows glued to the working area, and clamp the rest, when
-  // the viewport changes size.
+  // the viewport changes size. Coalesced to one rAF so a resize *drag* (which
+  // fires many events/sec) re-lays-out the layer at most once per frame.
   useEffect(() => {
+    let raf = 0;
     const onResize = () => {
-      const vp = getViewport();
-      setWindows((prev) =>
-        prev.map((w) =>
-          w.sizePreset === "max"
-            ? { ...w, rect: workingArea(vp) }
-            : { ...w, rect: clampRect(w.rect, vp) },
-        ),
-      );
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const vp = getViewport();
+        setWindows((prev) =>
+          prev.map((w) =>
+            w.sizePreset === "max"
+              ? { ...w, rect: workingArea(vp) }
+              : { ...w, rect: clampRect(w.rect, vp) },
+          ),
+        );
+      });
     };
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, []);
 
   const focusedId = useMemo(() => {
@@ -316,11 +304,9 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
       minimize,
       toggleMaximize,
       setSizePreset,
-      cycleSize,
       restore,
       setRect,
       focusedId,
-      isOpen,
     }),
     [
       windows,
@@ -331,11 +317,9 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
       minimize,
       toggleMaximize,
       setSizePreset,
-      cycleSize,
       restore,
       setRect,
       focusedId,
-      isOpen,
     ],
   );
 

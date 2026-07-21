@@ -33,8 +33,6 @@ export const CHROME_H = 34;
  */
 export type SizePreset = "portrait" | "landscape" | "max";
 
-export const SIZE_PRESETS: SizePreset[] = ["portrait", "landscape", "max"];
-
 export interface Viewport {
   width: number;
   height: number;

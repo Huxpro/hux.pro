@@ -437,3 +437,37 @@ export interface AppIconSnapshotEntry {
 }
 
 export type AppIconSnapshot = Record<string, AppIconSnapshotEntry>;
+
+// -----------------------------------------------------------------------------
+// App-model derivations (single source for label / icon resolution)
+// -----------------------------------------------------------------------------
+
+/**
+ * Human runtime label for an app — the one string every surface shows for
+ * "how it runs" (window menu, ⌘K, the badge's aria-label). Flavour is only a
+ * tint elsewhere, but it names the label here so React-Lynx and Vue-Lynx read
+ * apart. Single source so the badge, menu, and palette never drift.
+ */
+export function runtimeLabel(app: Pick<AppLink, "runtime" | "flavor">): string {
+  if ((app.runtime ?? "web") === "lynx") {
+    return app.flavor === "vue" ? "Lynx · Vue" : "Lynx · React";
+  }
+  return "Web";
+}
+
+/**
+ * Resolve the tile-art `src` for an app: the build-time snapshot wins, then a
+ * manual `icon` override, then a per-runtime fallback (the Lynx mark for Lynx
+ * apps). Callers that need the snapshot *entry* itself (e.g. full-bleed vs
+ * padded sizing) should read the snapshot directly.
+ */
+export function resolveAppIconSrc(
+  app: AppLink,
+  snapshot: AppIconSnapshot,
+): string | undefined {
+  return (
+    snapshot[app.id]?.file ??
+    app.icon ??
+    (app.runtime === "lynx" ? "/app-icons/lynx.png" : undefined)
+  );
+}
