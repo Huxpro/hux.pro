@@ -91,14 +91,14 @@ export function TheaterOverlay() {
               activeIndex={albumIndex}
               onSelect={selectAlbum}
             />
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               {track?.url && (
                 <a
                   href={track.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Open on source site"
-                  className={CHROME_BTN}
+                  className={cn(CHROME_BTN, "mr-1")}
                 >
                   <ExternalLink className="h-4 w-4" />
                 </a>
@@ -184,7 +184,7 @@ export function TheaterOverlay() {
                   )}
                 </div>
               )}
-              <PlaylistRail />
+              <PlaylistRail tone="onDark" />
             </div>
           </motion.div>
         </>

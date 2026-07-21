@@ -12,10 +12,19 @@ import { TrackThumb } from "./track-thumb";
 // playlist experience the spec calls for.
 // ---------------------------------------------------------------------------
 
-export function PlaylistRail({ className }: { className?: string }) {
+export function PlaylistRail({
+  className,
+  tone = "default",
+}: {
+  className?: string;
+  /** `onDark` forces light labels for the always-dark theater backdrop. */
+  tone?: "default" | "onDark";
+}) {
   const { album, trackIndex, selectTrack } = useTheater();
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
+  const titleColor = tone === "onDark" ? "text-white/90" : "text-foreground/90";
+  const subColor = tone === "onDark" ? "text-white/50" : "text-muted-foreground";
 
   useEffect(() => {
     activeRef.current?.scrollIntoView({
@@ -48,11 +57,16 @@ export function PlaylistRail({ className }: { className?: string }) {
             )}
           >
             <TrackThumb track={track} active={active} showBadge={!active} />
-            <div className="mt-1.5 truncate text-xs text-foreground/90">
+            <div className={cn("mt-1.5 truncate text-xs", titleColor)}>
               {track.title}
             </div>
             {track.subtitle && (
-              <div className="truncate text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
+              <div
+                className={cn(
+                  "truncate text-[10px] font-mono uppercase tracking-wide",
+                  subColor,
+                )}
+              >
                 {track.subtitle}
               </div>
             )}
