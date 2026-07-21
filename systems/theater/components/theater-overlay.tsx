@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "next-view-transitions";
+import { useEffect, useRef } from "react";
 import { useTheater } from "../provider";
 import { AlbumTabs } from "./album-tabs";
 import { PlaylistRail } from "./playlist-rail";
@@ -25,10 +26,14 @@ import { PlaylistRail } from "./playlist-rail";
 // z-10005 (above the stage), positioned relative to the shared stage rect.
 // ---------------------------------------------------------------------------
 
+// The theater backdrop is always dark, so its window controls use the shared
+// on-media control recipe — dark disc + hairline white ring — matching the
+// PlayBadge covers that open the player and the sibling slide modal, instead of
+// theme-aware card chrome that would flip to light discs in light mode.
 const CHROME_BTN = cn(
   "inline-flex h-9 w-9 items-center justify-center rounded-full",
-  "bg-card/70 text-foreground/80 ring-1 ring-border/60 backdrop-blur-xl",
-  "transition-colors hover:bg-card hover:text-foreground active:scale-95",
+  "bg-black/55 text-white/90 ring-1 ring-white/25 backdrop-blur-sm",
+  "transition-colors hover:bg-black/70 hover:text-white active:scale-95",
 );
 
 const FADE = { duration: 0.18, ease: "easeOut" as const };
@@ -39,10 +44,10 @@ export function TheaterOverlay() {
     minimized,
     albums,
     albumIndex,
-    trackIndex,
-    album,
     track,
     rect,
+    hasPrev,
+    hasNext,
     selectAlbum,
     next,
     previous,
@@ -53,17 +58,31 @@ export function TheaterOverlay() {
 
   const open = mode === "theater" && !minimized;
 
-  const hasPrev = albumIndex > 0 || trackIndex > 0;
-  const hasNext =
-    trackIndex < (album?.tracks.length ?? 0) - 1 || albumIndex < albums.length - 1;
-
   const midY = rect.top + rect.height / 2;
+
+  // Focus management: move focus into the modal when it opens (the close
+  // button) and restore it to the trigger when it closes, so keyboard / screen
+  // reader users aren't stranded on the now-hidden page behind the backdrop.
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    returnFocusRef.current = document.activeElement as HTMLElement | null;
+    // Wait for the enter animation's first frame so the target is focusable.
+    const id = requestAnimationFrame(() => closeRef.current?.focus());
+    return () => {
+      cancelAnimationFrame(id);
+      returnFocusRef.current?.focus?.();
+    };
+  }, [open]);
 
   return (
     <AnimatePresence>
       {open && (
         <>
-          {/* Backdrop — below the stage; click to close. */}
+          {/* Backdrop — below the stage; click to close. Carries the modal
+              semantics: the chrome pieces are fixed siblings, so this scrim is
+              the single element that represents the theater surface. */}
           <motion.div
             key="backdrop"
             className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md"
@@ -72,7 +91,9 @@ export function TheaterOverlay() {
             exit={{ opacity: 0 }}
             transition={FADE}
             onClick={close}
-            role="presentation"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Video theater"
           />
 
           {/* Top bar ABOVE the video: album switcher (left) + window controls
@@ -90,6 +111,7 @@ export function TheaterOverlay() {
               albums={albums}
               activeIndex={albumIndex}
               onSelect={selectAlbum}
+              tone="onDark"
             />
             <div className="flex items-center gap-2">
               {track?.url && (
@@ -109,7 +131,12 @@ export function TheaterOverlay() {
               <button aria-label="Minimize" className={CHROME_BTN} onClick={minimize}>
                 <Minimize2 className="h-4 w-4" />
               </button>
-              <button aria-label="Close" className={CHROME_BTN} onClick={close}>
+              <button
+                ref={closeRef}
+                aria-label="Close"
+                className={CHROME_BTN}
+                onClick={close}
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>

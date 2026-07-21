@@ -32,6 +32,9 @@ export function PipOverlay() {
     phase,
     rect,
     isCoarse,
+    isYouTube,
+    hasPrev,
+    hasNext,
     pipOffset,
     togglePlay,
     next,
@@ -41,19 +44,10 @@ export function PipOverlay() {
     close,
     setPipOffset,
     setDragging,
-    albumIndex,
-    trackIndex,
-    album,
-    albums,
   } = useTheater();
 
   const open = mode === "pip" && !minimized;
-  const isYouTube = track?.platform === "youtube" && !!track.videoId;
   const isPlaying = phase === "playing";
-
-  const hasPrev = albumIndex > 0 || trackIndex > 0;
-  const hasNext =
-    trackIndex < (album?.tracks.length ?? 0) - 1 || albumIndex < albums.length - 1;
 
   const dragState = useRef<{ x: number; y: number; ox: number; oy: number } | null>(
     null,

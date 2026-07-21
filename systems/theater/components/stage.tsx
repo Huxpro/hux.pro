@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useMemo } from "react";
 import { embedUrlFor } from "../lib/player";
 import type { StageRect, Track } from "../lib/types";
@@ -47,6 +47,7 @@ export function Stage({
     () => (track && !isYouTube ? embedUrlFor(track.url, track.platform) : null),
     [track, isYouTube],
   );
+  const reduced = useReducedMotion();
 
   return (
     <motion.div
@@ -68,19 +69,22 @@ export function Stage({
         width: rect.width,
         height: rect.height,
         opacity: visible ? 1 : 0,
-        scale: visible ? 1 : 0.96,
+        // Reduced motion: no scale pop — a plain crossfade in place.
+        scale: reduced ? 1 : visible ? 1 : 0.96,
       }}
       transition={
         dragging
           ? { duration: 0 }
-          : {
-              // Position/size morphs (theater ⇄ PiP) glide; show/hide is a
-              // short, clean fade + scale in place — no fly-in from a corner.
-              duration: 0.34,
-              ease: EASE,
-              opacity: { duration: 0.18, ease: "easeOut" },
-              scale: { duration: 0.22, ease: "easeOut" },
-            }
+          : reduced
+            ? { duration: 0, opacity: { duration: 0.12 } }
+            : {
+                // Position/size morphs (theater ⇄ PiP) glide; show/hide is a
+                // short, clean fade + scale in place — no fly-in from a corner.
+                duration: 0.34,
+                ease: EASE,
+                opacity: { duration: 0.18, ease: "easeOut" },
+                scale: { duration: 0.22, ease: "easeOut" },
+              }
       }
     >
       {/* YouTube host — always mounted so the IFrame API instance persists. */}

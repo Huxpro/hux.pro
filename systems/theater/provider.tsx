@@ -73,6 +73,11 @@ interface TheaterContextValue {
   duration: number;
   /** True on touch/coarse-pointer devices — theater falls back to PiP. */
   isCoarse: boolean;
+  /** True when the current track is a JS-API-controllable YouTube video. */
+  isYouTube: boolean;
+  /** Whether track navigation is available in each direction. */
+  hasPrev: boolean;
+  hasNext: boolean;
   /** Geometry of the persistent stage in the current mode. */
   rect: StageRect;
   pipOffset: { x: number; y: number };
@@ -166,6 +171,14 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
 
   const album = albums[albumIndex] ?? null;
   const track = album?.tracks[trackIndex] ?? null;
+
+  // Derived once here so every surface (theater / PiP / Live Activity) reads
+  // identical navigation + capability state instead of recomputing it.
+  const isYouTube = track?.platform === "youtube" && !!track.videoId;
+  const hasPrev = albumIndex > 0 || trackIndex > 0;
+  const hasNext =
+    trackIndex < (album?.tracks.length ?? 0) - 1 ||
+    albumIndex < albums.length - 1;
 
   const effectiveMode: TheaterMode = minimized ? "closed" : mode;
   // The stage always sits at a *visible* mode's rect; hidden states fade/scale
@@ -364,10 +377,13 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const open = useCallback(
     ({ albums: next, albumIndex: ai = 0, trackIndex: ti = 0, mode: m }: OpenOptions) => {
       if (next.length === 0) return;
+      const clampedAi = Math.min(Math.max(ai, 0), next.length - 1);
+      const tracks = next[clampedAi]?.tracks ?? [];
       setAlbums(next);
-      setAlbumIndex(Math.min(Math.max(ai, 0), next.length - 1));
-      const tracks = next[ai]?.tracks ?? [];
+      setAlbumIndex(clampedAi);
       setTrackIndex(Math.min(Math.max(ti, 0), Math.max(tracks.length - 1, 0)));
+      setCurrentTime(0);
+      setDuration(0);
       setMinimized(false);
       setPipOffset({ x: 0, y: 0 });
       setMode(resolveMode(m));
@@ -488,6 +504,10 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       if (tracks.length === 0) return;
       setAlbumIndex(ai);
       setTrackIndex(Math.min(Math.max(ti, 0), tracks.length - 1));
+      // A new track starts at 0 — clear the old position/length so the scrubber
+      // never flashes the previous track's progress before the poll catches up.
+      setCurrentTime(0);
+      setDuration(0);
     },
     [albums],
   );
@@ -514,6 +534,23 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       /* noop */
     }
   }, []);
+
+  // Auto-advance to the next track when a video finishes, so an album plays
+  // through like a real playlist. Only YouTube reports "ended" (other platforms
+  // keep native in-iframe controls); at the end of the last album it just stops.
+  // A ref latches each "ended" episode: `phase` lingers on "ended" across the
+  // track switch (the next video's state arrives async) while `next`'s identity
+  // changes, so without the latch the effect would re-fire and skip tracks.
+  const endHandledRef = useRef(false);
+  useEffect(() => {
+    if (phase !== "ended") {
+      endHandledRef.current = false;
+      return;
+    }
+    if (endHandledRef.current || !hasNext) return;
+    endHandledRef.current = true;
+    next();
+  }, [phase, hasNext, next]);
 
   const selectAlbum = useCallback(
     (index: number) => clampTrack(index, 0),
@@ -549,6 +586,9 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     currentTime,
     duration,
     isCoarse,
+    isYouTube,
+    hasPrev,
+    hasNext,
     rect,
     pipOffset,
     dragging,

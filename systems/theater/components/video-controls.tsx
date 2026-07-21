@@ -22,33 +22,48 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
     phase,
     currentTime,
     duration,
-    albums,
-    albumIndex,
-    trackIndex,
-    album,
+    isYouTube,
+    hasPrev,
+    hasNext,
     togglePlay,
     next,
     previous,
     seek,
   } = useTheater();
 
-  const isYouTube = track?.platform === "youtube" && !!track.videoId;
   const isPlaying = phase === "playing";
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-
-  const hasPrev = albumIndex > 0 || trackIndex > 0;
-  const hasNext =
-    trackIndex < (album?.tracks.length ?? 0) - 1 || albumIndex < albums.length - 1;
 
   const pip = variant === "pip";
   const iconBtn =
     "inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors active:scale-[0.92] disabled:opacity-30 disabled:pointer-events-none";
 
+  const scrubbable = isYouTube && duration > 0;
+
   const onScrub = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isYouTube || duration <= 0) return;
+    if (!scrubbable) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = (e.clientX - rect.left) / rect.width;
     seek(Math.min(Math.max(ratio, 0), 1) * duration);
+  };
+
+  // Keyboard scrubbing: ←/→ nudge 5s, ↑/↓ 10s, Home/End jump to the ends.
+  const onScrubKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!scrubbable) return;
+    const step =
+      e.key === "ArrowUp" || e.key === "ArrowDown"
+        ? 10
+        : e.key === "ArrowLeft" || e.key === "ArrowRight"
+          ? 5
+          : 0;
+    let target: number | null = null;
+    if (e.key === "ArrowLeft" || e.key === "ArrowDown") target = currentTime - step;
+    else if (e.key === "ArrowRight" || e.key === "ArrowUp") target = currentTime + step;
+    else if (e.key === "Home") target = 0;
+    else if (e.key === "End") target = duration;
+    if (target === null) return;
+    e.preventDefault();
+    seek(Math.min(Math.max(target, 0), duration));
   };
 
   return (
@@ -59,8 +74,16 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
             {formatTime(currentTime)}
           </span>
           <div
+            role="slider"
+            aria-label="Seek"
+            aria-valuemin={0}
+            aria-valuemax={Math.round(duration)}
+            aria-valuenow={Math.round(currentTime)}
+            aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
+            tabIndex={scrubbable ? 0 : -1}
             onClick={onScrub}
-            className="group/scrub relative h-2 flex-1 cursor-pointer"
+            onKeyDown={onScrubKey}
+            className="group/scrub relative h-2 flex-1 cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
           >
             <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-muted-foreground/25" />
             <div
