@@ -28,6 +28,51 @@
       "icon": "/app-icons/lynx-vue-counter.png"
     },
     {
+      "id": "lynx-example-react-hello-world",
+      "title": "Hello World",
+      "runtime": "lynx",
+      "flavor": "react",
+      "bundleUrl": "/lynx-examples/react-hello-world/main.web.bundle",
+      "url": "https://github.com/lynx-family/lynx-examples",
+      "icon": "/app-icons/lynx-example-react-hello-world.png"
+    },
+    {
+      "id": "lynx-example-react-animation",
+      "title": "Animation",
+      "runtime": "lynx",
+      "flavor": "react",
+      "bundleUrl": "/lynx-examples/react-animation/keyframe_animation.web.bundle",
+      "url": "https://github.com/lynx-family/lynx-examples",
+      "icon": "/app-icons/lynx-example-react-animation.png"
+    },
+    {
+      "id": "lynx-example-react-bankcards",
+      "title": "Bank Cards",
+      "runtime": "lynx",
+      "flavor": "react",
+      "bundleUrl": "/lynx-examples/react-bankcards/final.web.bundle",
+      "url": "https://github.com/lynx-family/lynx-examples",
+      "icon": "/app-icons/lynx-example-react-bankcards.png"
+    },
+    {
+      "id": "lynx-example-vue-hello-world",
+      "title": "Vue Hello World",
+      "runtime": "lynx",
+      "flavor": "vue",
+      "bundleUrl": "/lynx-examples/vue-hello-world/main.web.bundle",
+      "url": "https://github.com/lynx-family/lynx-examples",
+      "icon": "/app-icons/lynx-example-vue-hello-world.png"
+    },
+    {
+      "id": "lynx-example-vue-todomvc",
+      "title": "TodoMVC",
+      "runtime": "lynx",
+      "flavor": "vue",
+      "bundleUrl": "/lynx-examples/vue-todomvc/main.web.bundle",
+      "url": "https://github.com/lynx-family/lynx-examples",
+      "icon": "/app-icons/lynx-example-vue-todomvc.png"
+    },
+    {
       "id": "lynx-flappy-bird",
       "title": "Flappy Bird",
       "runtime": "web",

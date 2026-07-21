@@ -243,7 +243,7 @@ export function Window({ win }: { win: WindowInstance }) {
       )}
 
       {/* Floating chrome pill */}
-      <WindowChrome win={win} focused={focused} beginDrag={beginDrag} />
+      <WindowChrome win={win} focused={focused} gesturing={gesturing} beginDrag={beginDrag} />
 
       {/* Gesture shield — stops the iframe/lynx-view eating the pointer stream. */}
       {gesturing && <div className="absolute inset-0 z-30" style={{ cursor: "inherit" }} />}

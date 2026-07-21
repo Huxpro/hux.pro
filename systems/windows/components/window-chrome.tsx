@@ -55,12 +55,15 @@ const PRESET_META: Record<SizePreset, { label: string; Icon: typeof Smartphone }
 /** A traffic-light dot: dim grey at rest, coloured (active window) on hover. */
 function Dot({
   active,
+  interacting,
   colorHover,
   label,
   onClick,
   glyph,
 }: {
   active: boolean;
+  /** Window is being dragged/resized or its menu is open → controls "wake up". */
+  interacting: boolean;
   colorHover: string;
   label: string;
   onClick: () => void;
@@ -84,9 +87,12 @@ function Dot({
         // Inert on touch → tap reaches the pill (menu); live on pointer devices.
         "pointer-events-none [@media(hover:hover)]:pointer-events-auto",
         // Grey base (no `dark:`, to avoid out-specifying the hover colour in
-        // dark mode). Dim at rest on desktop; full + coloured (active) on hover.
+        // dark mode). Dim at rest on both platforms; full when interacting, and
+        // coloured (active window only) on desktop hover.
         "bg-zinc-500",
-        "[@media(hover:hover)]:opacity-40 [@media(hover:hover)]:group-hover/chrome:opacity-100",
+        interacting
+          ? "opacity-100"
+          : "opacity-40 [@media(hover:hover)]:group-hover/chrome:opacity-100",
         active && colorHover,
       )}
     >
@@ -131,16 +137,26 @@ const stroke = "h-2 w-2 stroke-[2.5]";
 export function WindowChrome({
   win,
   focused,
+  gesturing,
   beginDrag,
 }: {
   win: WindowInstance;
   focused: boolean;
+  /** A drag/resize gesture is in progress. */
+  gesturing: boolean;
   beginDrag: (clientX: number, clientY: number) => void;
 }) {
   const { close, minimize, toggleMaximize, setSizePreset } = useWindows();
   const pillRef = useRef<HTMLDivElement>(null);
   const suppressClick = useRef(false);
-  const [menu, setMenu] = useState<{ left: number; top: number } | null>(null);
+  const [menu, setMenu] = useState<{
+    left: number;
+    top: number;
+    origin: string;
+  } | null>(null);
+  // The pill "wakes up" (glass + full-opacity dots) while interacting — this is
+  // what gives the mobile pill its glass look when there's no hover to trigger it.
+  const interacting = gesturing || !!menu;
 
   const src = iconSrc(win);
   const isWeb = win.app.runtime !== "lynx";
@@ -154,12 +170,15 @@ export function WindowChrome({
   const openMenu = () => {
     const r = pillRef.current?.getBoundingClientRect();
     if (!r) return;
-    const centerX = r.left + r.width / 2;
+    // Desktop (top-left pill) → left-aligned under the pill; touch (centred
+    // pill) → centred under it. Clamped into the viewport either way.
+    const pointer = window.matchMedia("(hover: hover)").matches;
+    const desired = pointer ? r.left : r.left + r.width / 2 - MENU_W / 2;
     const left = Math.min(
-      Math.max(centerX - MENU_W / 2, 8),
+      Math.max(desired, 8),
       window.innerWidth - MENU_W - 8,
     );
-    setMenu({ left, top: r.bottom + 6 });
+    setMenu({ left, top: r.bottom + 6, origin: pointer ? "top left" : "top center" });
   };
   const closeMenu = () => setMenu(null);
   const toggleMenu = () => (menu ? closeMenu() : openMenu());
@@ -210,21 +229,26 @@ export function WindowChrome({
         className={cn(
           "group/chrome pointer-events-auto flex cursor-default items-center rounded-full px-2.5 py-1.5",
           "touch-none select-none transition-all duration-200",
-          // Default = fully transparent (this is the desktop rest state).
-          "border border-transparent bg-transparent shadow-none",
-          // Mobile: always a glass pill.
-          "[@media(hover:none)]:border-black/8 [@media(hover:none)]:bg-white/70 [@media(hover:none)]:shadow-raised [@media(hover:none)]:backdrop-blur-xl",
-          "dark:[@media(hover:none)]:border-white/12 dark:[@media(hover:none)]:bg-black/55",
-          // Desktop: glass only on hover. `hover:` (not group-hover) because
-          // this element *is* the group — group-hover would target descendants.
-          "[@media(hover:hover)]:hover:border-black/10 [@media(hover:hover)]:hover:bg-white/80 [@media(hover:hover)]:hover:shadow-raised [@media(hover:hover)]:hover:backdrop-blur-xl",
-          "dark:[@media(hover:hover)]:hover:border-white/14 dark:[@media(hover:hover)]:hover:bg-black/60",
+          // Two states, kept mutually exclusive so light/dark utilities never
+          // fight on specificity:
+          interacting
+            ? // Interacting (drag / menu open) → glass, on either platform.
+              "border-black/10 bg-white/80 shadow-raised backdrop-blur-xl dark:border-white/14 dark:bg-black/60"
+            : cn(
+                // Idle → fully transparent (both platforms).
+                "border-transparent bg-transparent shadow-none",
+                // …except desktop hover, which lights the glass. `hover:` (not
+                // group-hover) since this element *is* the group.
+                "[@media(hover:hover)]:hover:border-black/10 [@media(hover:hover)]:hover:bg-white/80 [@media(hover:hover)]:hover:shadow-raised [@media(hover:hover)]:hover:backdrop-blur-xl",
+                "dark:[@media(hover:hover)]:hover:border-white/14 dark:[@media(hover:hover)]:hover:bg-black/60",
+              ),
         )}
       >
         {/* Dots grouped so the title never adds a gap at rest (mobile symmetry). */}
         <div className="flex items-center gap-[5px] [@media(hover:hover)]:gap-2">
           <Dot
             active={focused}
+            interacting={interacting}
             colorHover="[@media(hover:hover)]:group-hover/chrome:bg-[#ff5f57]"
             label="Close"
             onClick={() => close(win.id)}
@@ -236,6 +260,7 @@ export function WindowChrome({
           />
           <Dot
             active={focused}
+            interacting={interacting}
             colorHover="[@media(hover:hover)]:group-hover/chrome:bg-[#febc2e]"
             label="Minimize"
             onClick={() => minimize(win.id)}
@@ -247,6 +272,7 @@ export function WindowChrome({
           />
           <Dot
             active={focused}
+            interacting={interacting}
             colorHover="[@media(hover:hover)]:group-hover/chrome:bg-[#28c840]"
             label="Zoom"
             onClick={() => toggleMaximize(win.id)}
@@ -296,7 +322,7 @@ export function WindowChrome({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -4, scale: 0.97 }}
                   transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
-                  style={{ left: menu.left, top: menu.top, transformOrigin: "top center" }}
+                  style={{ left: menu.left, top: menu.top, transformOrigin: menu.origin }}
                   onPointerDown={(e) => e.stopPropagation()}
                   className={cn(
                     "fixed z-[56] w-52 select-none p-1",

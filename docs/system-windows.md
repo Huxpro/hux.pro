@@ -65,8 +65,20 @@ Apps are authored in [`content/apps.json`](../content/apps.json) — the
 
 The demo Lynx bundles under `public/lynx/` are built with `@lynx-js/rspeedy`
 (the `web` environment target emits `main.web.bundle`) from small React-Lynx
-and Vue-Lynx apps, then served as static assets. Beyond the registry, any
-bundle can be opened **over-the-air** by URL (`openBundleUrl`) — see Launching.
+and Vue-Lynx apps, then served as static assets.
+
+The bundles under `public/lynx-examples/` are the **official** Lynx examples —
+they're vendored, not authored here: the `@lynx-example/*` (ReactLynx) and
+`@vue-lynx-example/*` (Vue-Lynx) npm packages each ship a prebuilt
+`dist/*.web.bundle`, so `pnpm lynx:examples`
+([`scripts/lynx-examples-prepare.mjs`](../scripts/lynx-examples-prepare.mjs))
+just `npm pack`s each package and copies its web bundle into `public/`. Their
+`apps.json` entries point `bundleUrl` at those local paths — same "built-in
+(offline)" path as the demos above — and the same bundles could equally be
+loaded **online** by URL.
+
+Beyond the registry, any bundle can be opened **over-the-air** by URL
+(`openBundleUrl`) — see Launching.
 
 ## Runtime badge
 

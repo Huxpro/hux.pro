@@ -20,6 +20,41 @@
     "width": 512,
     "height": 512
   },
+  "lynx-example-react-hello-world": {
+    "url": "https://github.com/lynx-family/lynx-examples",
+    "file": "/app-icons/lynx-example-react-hello-world.png",
+    "source": "manual",
+    "width": 512,
+    "height": 512
+  },
+  "lynx-example-react-animation": {
+    "url": "https://github.com/lynx-family/lynx-examples",
+    "file": "/app-icons/lynx-example-react-animation.png",
+    "source": "manual",
+    "width": 512,
+    "height": 512
+  },
+  "lynx-example-react-bankcards": {
+    "url": "https://github.com/lynx-family/lynx-examples",
+    "file": "/app-icons/lynx-example-react-bankcards.png",
+    "source": "manual",
+    "width": 512,
+    "height": 512
+  },
+  "lynx-example-vue-hello-world": {
+    "url": "https://github.com/lynx-family/lynx-examples",
+    "file": "/app-icons/lynx-example-vue-hello-world.png",
+    "source": "manual",
+    "width": 512,
+    "height": 512
+  },
+  "lynx-example-vue-todomvc": {
+    "url": "https://github.com/lynx-family/lynx-examples",
+    "file": "/app-icons/lynx-example-vue-todomvc.png",
+    "source": "manual",
+    "width": 512,
+    "height": 512
+  },
   "lynx": {
     "url": "https://lynxjs.org",
     "file": "/app-icons/lynx.png",
