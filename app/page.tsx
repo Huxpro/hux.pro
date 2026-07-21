@@ -5,6 +5,7 @@ import {
   HStackWidget,
   VStackWidget,
 } from "@/components/home/featured-stack-widget";
+import { FeaturedTalksWidget } from "@/components/home/featured-talks-widget";
 import { PromptWidget } from "@/components/home/prompt-widget";
 import { Commit } from "@/components/log";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
@@ -45,6 +46,7 @@ import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { AmbientGreeting, WeatherWidget } from "@/systems/ambient";
 import { MusicWidget } from "@/systems/music";
+import { ALBUM_GROUP_IDS } from "@/systems/theater/lib/albums";
 import { Link } from "next-view-transitions";
 import { useState } from "react";
 
@@ -173,9 +175,14 @@ function WidgetGrid() {
     isCommitVisibleIn(c, locale),
   );
   const role = getCurrentRoleCommit(visibleCommits);
+  // The three featured talk groups (React / Lynx / Personal) are now unified
+  // into the single album-switching FeaturedTalksWidget, so exclude them from
+  // the generic group rendering.
+  const albumGroupIds = new Set<string>(ALBUM_GROUP_IDS);
   const visibleGroups = (log.groups ?? []).filter(
     (group) =>
       !group.hidden &&
+      !albumGroupIds.has(group.id) &&
       resolveGroupCommits(group, log.commits as CommitData[], undefined, locale)
         .length > 0,
   );
@@ -186,6 +193,7 @@ function WidgetGrid() {
     { id: "blog", node: <BlogStackWidget /> },
     { id: "music", node: <MusicWidget /> },
     ...(role ? [{ id: "status", node: <ProcessingWidget /> }] : []),
+    { id: "featured-talks", node: <FeaturedTalksWidget /> },
     { id: "prompt", node: <PromptWidget /> },
     ...visibleGroups.map((group) => ({
       id: `group-${group.id}`,

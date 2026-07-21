@@ -34,6 +34,8 @@ export interface VideoProps {
   size?: "compact" | "default" | "large";
   /** Additional CSS classes */
   className?: string;
+  /** Hand off playback to the immersive theater / PiP player instead of inline. */
+  onPlay?: () => void;
 }
 
 export interface VideoPropsFromMedia {
@@ -95,6 +97,7 @@ export function Video({
   thumbnail,
   size = "default",
   className,
+  onPlay,
 }: VideoProps) {
   // Route to platform-specific implementation
   switch (platform) {
@@ -105,6 +108,7 @@ export function Video({
           thumbnail={thumbnail}
           size={size}
           className={className}
+          onPlay={onPlay}
         />
       );
     case "bilibili":
@@ -114,6 +118,7 @@ export function Video({
           thumbnail={thumbnail}
           size={size}
           className={className}
+          onPlay={onPlay}
         />
       );
     case "vimeo":
@@ -123,6 +128,7 @@ export function Video({
           thumbnail={thumbnail}
           size={size}
           className={className}
+          onPlay={onPlay}
         />
       );
     default:

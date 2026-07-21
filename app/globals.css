@@ -201,6 +201,16 @@ html.dragging * {
   display: none;
 }
 
+/* Theater stage — the YouTube IFrame API injects an <iframe> sized by the
+   width/height player options; force it to fill the morphing stage so the
+   video stays responsive as the stage animates between theater and PiP. */
+.theater-stage iframe {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 /* Prose article typography
    Inspired by paco.me and ibelick.com:
    - Sans-serif headings (Inter) with reduced weight

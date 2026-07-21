@@ -15,6 +15,7 @@ import { MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/services/theme";
 import { useLocale } from "@/services";
+import { useOptionalTheater } from "@/systems/theater";
 import type { Media } from "@/lib/log";
 import {
   isVideoMedia,
@@ -132,6 +133,7 @@ interface SingleMediaProps {
 
 function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps) {
   const { locale } = useLocale();
+  const theater = useOptionalTheater();
 
   if (isVideoMedia(media)) {
     return (
@@ -140,6 +142,16 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
         platform={media.platform}
         thumbnail={media.thumbnail}
         size={size}
+        onPlay={
+          theater
+            ? () =>
+                theater.openVideo({
+                  url: media.url,
+                  platform: media.platform,
+                  thumbnail: media.thumbnail,
+                })
+            : undefined
+        }
       />
     );
   }

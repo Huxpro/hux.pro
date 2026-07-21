@@ -5,6 +5,11 @@ import { CommandPalette, FloatingActionButton } from "@/systems/command";
 import { DevtoolFAB } from "@/systems/devtool";
 import { Dock } from "@/systems/dock";
 import { MusicActivity } from "@/systems/music";
+import {
+  TheaterActivity,
+  TheaterRegistrar,
+  TheaterSurfaces,
+} from "@/systems/theater";
 import type { Metadata, Viewport } from "next";
 import { ViewTransitions } from "next-view-transitions";
 import {
@@ -98,7 +103,10 @@ export default function RootLayout({
             <Dock>
               <AmbientPhaseActivity />
               <MusicActivity />
+              <TheaterActivity />
             </Dock>
+            <TheaterRegistrar />
+            <TheaterSurfaces />
             <CommandPalette />
             <FloatingActionButton />
           </Providers>
