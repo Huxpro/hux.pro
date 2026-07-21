@@ -28,6 +28,9 @@ interface StageProps {
   /** Stage is on-screen (false when parked / minimized / closed). */
   visible: boolean;
   dragging: boolean;
+  /** In PiP the control bar sits directly below, so the video is flat-bottomed
+   *  and shares a continuous border with the bar (reads as one window). */
+  pip: boolean;
 }
 
 export function Stage({
@@ -37,6 +40,7 @@ export function Stage({
   active,
   visible,
   dragging,
+  pip,
 }: StageProps) {
   const isYouTube = track?.platform === "youtube" && !!track.videoId;
   const embedUrl = useMemo(
@@ -48,10 +52,13 @@ export function Stage({
     <motion.div
       aria-hidden={!visible}
       className={cn(
-        "theater-stage fixed z-[10002] overflow-hidden bg-black rounded-xl",
-        visible
-          ? "shadow-overlay ring-1 ring-white/15 pointer-events-auto"
-          : "pointer-events-none",
+        "theater-stage fixed z-[10002] overflow-hidden bg-black",
+        // PiP: flat bottom + a top/side border so it butts up against the
+        // control bar as a single window. Theater: fully rounded, hairline ring.
+        pip ? "rounded-t-xl" : "rounded-xl",
+        visible && "shadow-overlay pointer-events-auto",
+        visible && (pip ? "border border-b-0 border-border/60" : "ring-1 ring-white/15"),
+        !visible && "pointer-events-none",
       )}
       style={{ transformOrigin: "center center" }}
       initial={false}

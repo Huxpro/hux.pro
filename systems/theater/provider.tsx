@@ -583,6 +583,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
         active={mode !== "closed"}
         visible={visible}
         dragging={dragging}
+        pip={geomMode === "pip"}
       />
     </TheaterContext.Provider>
   );
