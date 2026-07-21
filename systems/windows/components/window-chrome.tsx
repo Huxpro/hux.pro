@@ -141,8 +141,6 @@ export function WindowChrome({
   const pillRef = useRef<HTMLDivElement>(null);
   const suppressClick = useRef(false);
   const [menu, setMenu] = useState<{ left: number; top: number } | null>(null);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
 
   const src = iconSrc(win);
   const isWeb = win.app.runtime !== "lynx";
@@ -276,8 +274,10 @@ export function WindowChrome({
       </div>
 
       {/* Modal menu — portaled to <body> so its scrim covers everything (incl.
-          iframes) and it's never clipped by the window. */}
-      {mounted &&
+          iframes) and it's never clipped by the window. WindowChrome only ever
+          renders client-side (windows open on interaction), so `document` is
+          always present here. */}
+      {typeof document !== "undefined" &&
         createPortal(
           <AnimatePresence>
             {menu && (
