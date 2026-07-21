@@ -45,37 +45,33 @@ Apps are authored in [`content/apps.json`](../content/apps.json) — the
 - `runtime` — `"web"` (default, an iframe) or `"lynx"` (the Lynx Player).
 - `flavor` — for Lynx apps, `"react"` or `"vue"`. Cosmetic: it tints the badge.
 - `bundleUrl` — the Lynx `.web.bundle`. Two sources, unified:
-  - a local `/…` path → **built-in** (offline), served from `public/`;
-  - an `http(s)://…` URL → **online**, fetched at open time.
-  The player origin-resolves local paths and passes remote ones through.
+  - an `http(s)://…` URL → **online**, fetched at open time (the current apps);
+  - a local `/…` path → **built-in** (offline), served from `public/`.
+  The player passes remote URLs through untouched and origin-resolves local
+  paths, so the same registry field supports either without a code change.
 - `size` — preferred size preset (`portrait` / `landscape` / `max`); defaults to
   `portrait` for Lynx, `landscape` for web.
 - `url` — canonical "open externally" target for every app.
 
 ```json
 {
-  "id": "lynx-react-counter",
-  "title": "Counter",
+  "id": "busy-week",
+  "title": "BusyWeek",
   "runtime": "lynx",
   "flavor": "react",
-  "bundleUrl": "/lynx/react-counter.web.bundle",
-  "url": "https://lynxjs.org"
+  "bundleUrl": "https://busy-week.vercel.app/main.web.bundle",
+  "url": "https://busy-week.vercel.app/"
 }
 ```
 
-The demo Lynx bundles under `public/lynx/` are built with `@lynx-js/rspeedy`
-(the `web` environment target emits `main.web.bundle`) from small React-Lynx
-and Vue-Lynx apps, then served as static assets.
-
-The bundles under `public/lynx-examples/` are the **official** Lynx examples —
-they're vendored, not authored here: the `@lynx-example/*` (ReactLynx) and
-`@vue-lynx-example/*` (Vue-Lynx) npm packages each ship a prebuilt
-`dist/*.web.bundle`, so `pnpm lynx:examples`
-([`scripts/lynx-examples-prepare.mjs`](../scripts/lynx-examples-prepare.mjs))
-just `npm pack`s each package and copies its web bundle into `public/`. Their
-`apps.json` entries point `bundleUrl` at those local paths — same "built-in
-(offline)" path as the demos above — and the same bundles could equally be
-loaded **online** by URL.
+The one Lynx app in the registry today —
+[BusyWeek](https://busy-week.vercel.app), a real ReactLynx todo app — loads
+its bundle **online**, straight from its deployed origin (which serves the
+`.web.bundle` with `Access-Control-Allow-Origin: *`). `@lynx-js/web-core`
+fetches and decodes it at open time in its background loader thread; nothing
+is vendored into this repo. Local built-in bundles (a `/…` path under
+`public/`) are still fully supported by the same field — there just aren't any
+checked in right now.
 
 Beyond the registry, any bundle can be opened **over-the-air** by URL
 (`openBundleUrl`) — see Launching.
@@ -198,8 +194,12 @@ import "@lynx-js/web-core/client";         // registers <lynx-view> + runtime
 
 — off the server entirely. `@lynx-js/web-core` also needs `@lynx-js/lynx-core`
 installed (it dynamically imports `@lynx-js/lynx-core/web` for the background
-thread). No COOP/COEP headers are required; built-in bundles are served
-same-origin from `public/` so the Worker fetch isn't cross-origin.
+thread). No COOP/COEP headers are required. The bundle fetch happens in
+web-core's background loader thread: a **built-in** (`/…`) bundle is served
+same-origin from `public/`, and an **online** (`http(s)://…`) bundle is
+fetched cross-origin, so the remote host must send permissive CORS —
+BusyWeek's origin serves its `.web.bundle` with
+`Access-Control-Allow-Origin: *`.
 
 Two fidelity details let *arbitrary* Lynx cards (not just our inline-styled
 demos) render correctly: a **per-instance `lynx-group-id`** so concurrent
