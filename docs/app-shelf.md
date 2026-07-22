@@ -1,9 +1,13 @@
 # App Shelf — home-screen icons for external projects
 
 The homepage widget grid includes an **app shelf**: a row of iPad-springboard
-style icons that deep-link to external projects (React, Lynx, Lynx Flappy
-Bird, Vue Lynx, …). Each icon is the artwork the target site *itself*
-declares for home-screen use.
+style icons for apps (React, Lynx, Lynx Flappy Bird, Vue Lynx, plus bundled
+Lynx demos). Each icon is the artwork the target site *itself* declares for
+home-screen use, wearing a small **runtime badge** in the corner.
+
+Tapping a tile opens the app in a **chrome window** (see the
+[Window System](./system-windows)) — web apps in an iframe, Lynx apps in a
+Lynx Player. ⌘/middle-click still opens the app's `url` in a new tab.
 
 ## Authoring
 
@@ -19,7 +23,11 @@ Apps live in [`content/apps.json`](../content/apps.json):
 
 - `id` — stable identifier; also names the icon file under `public/app-icons/`.
 - `title` — the label under the tile.
-- `url` — external destination (opens in a new tab).
+- `url` — canonical destination (the "open externally" target, and what the
+  icon snapshot resolves tile art from).
+- `runtime` *(optional)* — `"web"` (default) or `"lynx"`; picks the window
+  body. `flavor` / `bundleUrl` extend this for Lynx apps — see the
+  [Window System](./system-windows) doc.
 - `icon` *(optional)* — manual override when the site's declared icon is wrong
   or unfetchable: a site-local `/img/…` path is used as-is; an `https://…` URL
   is downloaded. Same recovery philosophy as og-snapshot's manual `preview`.

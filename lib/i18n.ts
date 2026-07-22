@@ -123,6 +123,10 @@ export const translations = {
     careerTitle: "Projects",
     careerSubtitle: "A narrative of roles, challenges, and growth.",
 
+    // Apps (window launcher)
+    appsGroup: "Apps",
+    appsLoadBundle: "Load Lynx bundle from URL…",
+
     // Blog/Prose (Writing page)
     writingTitle: "Writing",
     writingTitleHover: "Prose",
@@ -285,6 +289,10 @@ export const translations = {
     // Career/Projects
     careerTitle: "项目",
     careerSubtitle: "角色、挑战与成长的叙事。",
+
+    // Apps (window launcher)
+    appsGroup: "应用",
+    appsLoadBundle: "从 URL 加载 Lynx 包…",
 
     // Blog/Prose (Writing page)
     writingTitle: "文字",

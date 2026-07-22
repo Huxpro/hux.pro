@@ -1,0 +1,41 @@
+import type { AppLink } from "@/lib/app-icon-core";
+import type { SizePreset } from "./geometry";
+
+// =============================================================================
+// Window system — shared types
+// =============================================================================
+
+/** Position + size of a window, in viewport (client) pixels. */
+export interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Whether a window is on the desktop or tucked into the dock. Size (including
+ * the maximized/"max" state) is tracked separately via {@link SizePreset}, so
+ * this is just the presence axis.
+ *   - "normal"    — floating on the desktop at its {@link WindowInstance.rect}.
+ *   - "minimized" — genied into the dock; still mounted (state preserved),
+ *                   reachable by tapping its pill / icon.
+ */
+export type WindowMode = "normal" | "minimized";
+
+/** One open app window. Identified by the app id (one window per app). */
+export interface WindowInstance {
+  /** Same as the app id — one live window per app, tapping again just focuses. */
+  id: string;
+  app: AppLink;
+  rect: Rect;
+  mode: WindowMode;
+  /** Current size preset; `"max"` is the maximized state. */
+  sizePreset: SizePreset;
+  /** Stacking order; the focused window holds the highest value. */
+  z: number;
+  /** Rect to return to when leaving "max". */
+  restoreRect?: Rect;
+  /** Preset to return to when leaving "max". */
+  restorePreset?: SizePreset;
+}

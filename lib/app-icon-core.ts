@@ -366,14 +366,53 @@ function ascii(buf: Uint8Array, start: number, end: number): string {
 // Snapshot shapes (shared by the script and the UI)
 // -----------------------------------------------------------------------------
 
+/**
+ * How an app runs inside a chrome window:
+ *   - "web"  — an ordinary web page, loaded in an `<iframe>`.
+ *   - "lynx" — a Lynx app bundle (`.web.bundle`), rendered by `@lynx-js/web-core`'s
+ *              `<lynx-view>` element (a "Lynx Player").
+ */
+export type AppRuntime = "web" | "lynx";
+
+/**
+ * The authoring framework behind a Lynx bundle. Purely cosmetic here — it tints
+ * the little Lynx badge on the app icon so React-Lynx and Vue-Lynx apps read
+ * apart at a glance. Ignored for `runtime: "web"`.
+ */
+export type AppFlavor = "react" | "vue";
+
 /** One app-link as authored in `content/apps.json`. */
 export interface AppLink {
   /** Stable id — also the icon's filename under /app-icons/. */
   id: string;
   /** Display label under the tile. */
   title: string;
-  /** External destination. */
+  /**
+   * Canonical destination. For `runtime: "web"` it's the page the window
+   * iframes; for either runtime it's the "Open externally" target and the URL
+   * the build-time icon snapshot resolves the tile art from.
+   */
   url: string;
+  /**
+   * What opens when the icon is tapped. Defaults to `"web"` (an iframe window).
+   * `"lynx"` opens the Lynx Player pointed at {@link bundleUrl}.
+   */
+  runtime?: AppRuntime;
+  /** Lynx authoring framework — badge tint only. See {@link AppFlavor}. */
+  flavor?: AppFlavor;
+  /**
+   * For `runtime: "lynx"`: the `.web.bundle` the player loads.
+   *   - a site-local `/…` path → a **built-in** (offline) bundle from /public
+   *   - an `http(s)://…` URL   → an **online** bundle fetched at open time
+   * Falls back to {@link url} when omitted.
+   */
+  bundleUrl?: string;
+  /**
+   * Preferred window size preset when the app opens. Defaults to `portrait`
+   * for Lynx apps and `landscape` for web apps. Must stay in sync with
+   * `SizePreset` in `systems/windows/lib/geometry.ts`.
+   */
+  size?: "portrait" | "landscape" | "max";
   /**
    * Manual icon override — the recovery path for sites whose declared icon is
    * wrong or unfetchable (same philosophy as og-snapshot's manual `preview`).
@@ -398,3 +437,37 @@ export interface AppIconSnapshotEntry {
 }
 
 export type AppIconSnapshot = Record<string, AppIconSnapshotEntry>;
+
+// -----------------------------------------------------------------------------
+// App-model derivations (single source for label / icon resolution)
+// -----------------------------------------------------------------------------
+
+/**
+ * Human runtime label for an app — the one string every surface shows for
+ * "how it runs" (window menu, ⌘K, the badge's aria-label). Flavour is only a
+ * tint elsewhere, but it names the label here so React-Lynx and Vue-Lynx read
+ * apart. Single source so the badge, menu, and palette never drift.
+ */
+export function runtimeLabel(app: Pick<AppLink, "runtime" | "flavor">): string {
+  if ((app.runtime ?? "web") === "lynx") {
+    return app.flavor === "vue" ? "Lynx · Vue" : "Lynx · React";
+  }
+  return "Web";
+}
+
+/**
+ * Resolve the tile-art `src` for an app: the build-time snapshot wins, then a
+ * manual `icon` override, then a per-runtime fallback (the Lynx mark for Lynx
+ * apps). Callers that need the snapshot *entry* itself (e.g. full-bleed vs
+ * padded sizing) should read the snapshot directly.
+ */
+export function resolveAppIconSrc(
+  app: AppLink,
+  snapshot: AppIconSnapshot,
+): string | undefined {
+  return (
+    snapshot[app.id]?.file ??
+    app.icon ??
+    (app.runtime === "lynx" ? "/app-icons/lynx.png" : undefined)
+  );
+}

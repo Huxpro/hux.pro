@@ -1,24 +1,33 @@
 {
   "apps": [
     {
+      "id": "busy-week",
+      "title": "BusyWeek",
+      "runtime": "lynx",
+      "flavor": "react",
+      "bundleUrl": "https://busy-week.vercel.app/main.web.bundle",
+      "url": "https://busy-week.vercel.app/",
+      "size": "portrait",
+      "icon": "/app-icons/busy-week.png"
+    },
+    {
+      "id": "lynx-flappy-bird",
+      "title": "Flappy Bird",
+      "runtime": "web",
+      "url": "https://huangxuan.me/lynx-flappy-bird/",
+      "size": "portrait"
+    },
+    {
       "id": "react",
       "title": "React",
+      "runtime": "web",
       "url": "https://react.dev"
     },
     {
       "id": "lynx",
       "title": "Lynx",
+      "runtime": "web",
       "url": "https://lynxjs.org"
-    },
-    {
-      "id": "lynx-flappy-bird",
-      "title": "Flappy Bird",
-      "url": "https://huangxuan.me/lynx-flappy-bird/"
-    },
-    {
-      "id": "vue-lynx",
-      "title": "Vue Lynx",
-      "url": "https://vue.lynxjs.org"
     }
   ]
 }

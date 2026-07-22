@@ -4,6 +4,7 @@ import appIconSnapshot from "@/content/app-icons.json";
 import appsJson from "@/content/apps.json";
 import type { AppIconSnapshot, AppLink } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
+import { AppBadgeFor, useOptionalWindows } from "@/systems/windows";
 import { useMasonryEdit } from "@/components/ui/sortable-masonry";
 import {
   MOUSE_ACTIVATION,
@@ -78,42 +79,69 @@ function iconFillsTile(entry: AppIconSnapshot[string] | undefined): boolean {
 }
 
 /** The tile + label, sans interactivity — shared by the grid and the overlay. */
-function AppIconVisual({ app }: { app: AppLink }) {
+function AppIconVisual({
+  app,
+  revealBadge = false,
+}: {
+  app: AppLink;
+  /** Force the runtime badge visible (jiggle-edit mode, drag clone). */
+  revealBadge?: boolean;
+}) {
   const entry = ICONS[app.id];
   const fills = iconFillsTile(entry);
   return (
     <span className="flex w-full flex-col items-center">
-      <span
-        className={cn(
-          "block h-16 w-16 overflow-hidden rounded-[22.5%]",
-          "border border-black/8 dark:border-white/12",
-          // Padded glyph icons composite on a white plate, like Safari's
-          // add-to-home-screen tiles — dark glyphs stay visible in dark mode
-          // and transparency looks intentional. Full-bleed icons bring their
-          // own background, and a plate behind them would seep through the
-          // rounded clip's antialiased edge as a light fringe (very visible
-          // around dark icons in dark mode), so they get no plate.
-          !fills && "bg-white",
-          "transition-transform duration-200 group-hover/app:scale-105",
-        )}
-      >
-        {entry ? (
-          // eslint-disable-next-line @next/next/no-img-element -- tiny local static asset; next/image adds nothing for a 64px tile
-          <img
-            src={entry.file}
-            alt=""
-            draggable={false}
-            className={cn(
-              "h-full w-full",
-              fills ? "object-cover" : "object-contain p-3",
-            )}
-          />
-        ) : (
-          // No snapshot yet (run `pnpm apps:snapshot`) — a monogram tile.
-          <span className="flex h-full w-full items-center justify-center font-mono text-xl text-neutral-400">
-            {app.title.charAt(0)}
-          </span>
-        )}
+      {/* Relative wrapper anchors the runtime badge to the tile corner; the
+          tile itself clips its art, so the badge lives outside the clip. */}
+      <span className="relative block h-16 w-16">
+        <span
+          className={cn(
+            "block h-16 w-16 overflow-hidden rounded-[22.5%]",
+            "border border-black/8 dark:border-white/12",
+            // Padded glyph icons composite on a white plate, like Safari's
+            // add-to-home-screen tiles — dark glyphs stay visible in dark mode
+            // and transparency looks intentional. Full-bleed icons bring their
+            // own background, and a plate behind them would seep through the
+            // rounded clip's antialiased edge as a light fringe (very visible
+            // around dark icons in dark mode), so they get no plate.
+            !fills && "bg-white",
+            "transition-transform duration-200 group-hover/app:scale-105",
+          )}
+        >
+          {entry ? (
+            // eslint-disable-next-line @next/next/no-img-element -- tiny local static asset; next/image adds nothing for a 64px tile
+            <img
+              src={entry.file}
+              alt=""
+              draggable={false}
+              className={cn(
+                "h-full w-full",
+                fills ? "object-cover" : "object-contain p-3",
+              )}
+            />
+          ) : (
+            // No snapshot yet (run `pnpm apps:snapshot`) — a monogram tile.
+            <span className="flex h-full w-full items-center justify-center font-mono text-xl text-neutral-400">
+              {app.title.charAt(0)}
+            </span>
+          )}
+        </span>
+        {/* Runtime marker: web globe, or the Lynx head tinted by flavour.
+            Kept off the resting springboard for a cleaner look — it fades in on
+            hover / keyboard-focus (pointer users) and whenever the shelf is in
+            jiggle-edit mode (the touch path, reached by long-press). It's always
+            shown in a window's title bar, so the info is never truly hidden. */}
+        <AppBadgeFor
+          app={app}
+          size={20}
+          className={cn(
+            "pointer-events-none absolute -bottom-1 -right-1",
+            "transition-all duration-200",
+            "group-hover/app:opacity-100 group-hover/app:scale-100",
+            "group-focus-visible/app:opacity-100 group-focus-visible/app:scale-100",
+            revealBadge ? "opacity-100 scale-100" : "opacity-0 scale-90",
+          )}
+        />
       </span>
       <span className="mt-1.5 block max-w-18 truncate text-center text-[11px] leading-tight text-muted-foreground">
         {app.title}
@@ -126,8 +154,15 @@ function AppIconVisual({ app }: { app: AppLink }) {
 // Sortable icon
 // -----------------------------------------------------------------------------
 
-function SortableAppIcon({ id }: { id: string }) {
+function SortableAppIcon({
+  id,
+  revealBadge = false,
+}: {
+  id: string;
+  revealBadge?: boolean;
+}) {
   const app = APPS_BY_ID.get(id)!;
+  const windows = useOptionalWindows();
   const { setNodeRef, attributes, listeners, isDragging, transform, transition } =
     useSortable({ id });
 
@@ -160,14 +195,32 @@ function SortableAppIcon({ id }: { id: string }) {
         opacity: isDragging ? 0 : 1,
       }}
     >
+      {/* An anchor to the app's canonical URL, so ⌘/middle-click still opens
+          it in a real tab and the icon is a proper link at rest. A plain
+          left-click is intercepted to open the app in a chrome window instead. */}
       <a
         href={app.url}
         target="_blank"
         rel="noopener noreferrer"
         draggable={false}
+        onClick={(e) => {
+          // Let the browser handle new-tab intents and non-primary buttons.
+          if (
+            !windows ||
+            e.metaKey ||
+            e.ctrlKey ||
+            e.shiftKey ||
+            e.altKey ||
+            e.button !== 0
+          ) {
+            return;
+          }
+          e.preventDefault();
+          windows.openApp(app);
+        }}
         className="group/app block outline-none"
       >
-        <AppIconVisual app={app} />
+        <AppIconVisual app={app} revealBadge={revealBadge} />
       </a>
     </div>
   );
@@ -274,7 +327,9 @@ export function AppShelf() {
           )}
         >
           {order.map((id) =>
-            APPS_BY_ID.has(id) ? <SortableAppIcon key={id} id={id} /> : null,
+            APPS_BY_ID.has(id) ? (
+              <SortableAppIcon key={id} id={id} revealBadge={editing} />
+            ) : null,
           )}
         </div>
       </SortableContext>
@@ -296,7 +351,7 @@ export function AppShelf() {
                 className="select-none drop-shadow-xl"
                 style={{ transform: "scale(1.1)", cursor: "grabbing" }}
               >
-                <AppIconVisual app={APPS_BY_ID.get(activeId)!} />
+                <AppIconVisual app={APPS_BY_ID.get(activeId)!} revealBadge />
               </div>
             ) : null}
           </DragOverlay>,

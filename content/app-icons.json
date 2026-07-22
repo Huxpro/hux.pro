@@ -23,12 +23,12 @@
     "width": 384,
     "height": 384
   },
-  "vue-lynx": {
-    "url": "https://vue.lynxjs.org",
-    "file": "/app-icons/vue-lynx.png",
-    "source": "icon",
-    "iconUrl": "https://vue.lynxjs.org/favicon.png",
-    "width": 80,
-    "height": 84
+  "busy-week": {
+    "url": "https://busy-week.vercel.app/",
+    "file": "/app-icons/busy-week.png",
+    "source": "manifest",
+    "iconUrl": "https://busy-week.vercel.app/icons/icon-192.png",
+    "width": 192,
+    "height": 192
   }
 }

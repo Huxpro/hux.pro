@@ -1,5 +1,7 @@
 "use client";
 
+import appsJson from "@/content/apps.json";
+import { runtimeLabel, type AppLink } from "@/lib/app-icon-core";
 import { getLocalizedDescription, getLocalizedTitle, getPostHref } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -7,14 +9,17 @@ import { localeNames, t, useLocale, useTheme } from "@/services";
 import { useLocation, useWeather } from "@/systems/ambient";
 import { useDevtool } from "@/systems/devtool";
 import { useMusic } from "@/systems/music";
+import { useOptionalWindows } from "@/systems/windows";
 import { Command } from "cmdk";
 import {
+  AppWindow,
   Bug,
   FileText,
   GitCommit,
   Hash,
   Home,
   Languages,
+  Link2,
   MapPin,
   Monitor,
   Moon,
@@ -47,6 +52,8 @@ export function CommandPalette() {
     play: musicPlay,
     pause: musicPause,
   } = useMusic();
+  const windows = useOptionalWindows();
+  const apps = (appsJson as { apps: AppLink[] }).apps;
   const router = useTransitionRouter();
 
   // Reset drag position on reopen (when persist is off, the hook handles the logic)
@@ -886,6 +893,58 @@ export function CommandPalette() {
                     </Command.Item>
                   ))}
                 </Command.Group>
+
+                {windows && (
+                  <Command.Group heading={t(locale, "appsGroup")}>
+                    {apps.map((app) => {
+                      const kind = runtimeLabel(app);
+                      return (
+                        <Command.Item
+                          key={`app-${app.id}`}
+                          value={`app-${app.id}`}
+                          keywords={[app.title, app.id, "app", kind, app.runtime ?? "web"]}
+                          onSelect={() => {
+                            windows.openApp(app);
+                            close();
+                          }}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                            "text-sm cursor-pointer transition-colors",
+                            "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                            "hover:bg-accent/25"
+                          )}
+                        >
+                          <AppWindow className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="flex-1 truncate">{app.title}</span>
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground shrink-0">
+                            {kind}
+                          </span>
+                        </Command.Item>
+                      );
+                    })}
+                    <Command.Item
+                      key="app-load-bundle"
+                      value="app-load-bundle"
+                      keywords={["lynx", "bundle", "url", "over the air", "ota", "load"]}
+                      onSelect={() => {
+                        const url = window.prompt(
+                          "Lynx .web.bundle URL (over-the-air)",
+                        );
+                        if (url) windows.openBundleUrl(url.trim());
+                        close();
+                      }}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                        "text-sm cursor-pointer transition-colors",
+                        "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                        "hover:bg-accent/25"
+                      )}
+                    >
+                      <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="flex-1">{t(locale, "appsLoadBundle")}</span>
+                    </Command.Item>
+                  </Command.Group>
+                )}
               </Command.List>
             </div>
           </div>

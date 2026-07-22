@@ -14,6 +14,9 @@ import {
   getWeatherConditionLabel,
 } from "@/systems/ambient/lib/weather";
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
+import { useOptionalWindows } from "@/systems/windows";
+import appsJson from "@/content/apps.json";
+import type { AppLink } from "@/lib/app-icon-core";
 import {
   setRulerSide,
   useRulerSide,
@@ -33,10 +36,12 @@ import {
 } from "@/components/post/reading-settings";
 import { cn } from "@/lib/utils";
 import {
+  AppWindow,
   BookOpen,
   Braces,
   Brain,
   Bug,
+  ExternalLink,
   Check,
   ChevronDown,
   ChevronUp,
@@ -181,6 +186,7 @@ function DevtoolPanel() {
         <WeatherModule />
         <AmbientTimeModule />
         <DraggableModule />
+        <AppsModule />
         <RefetchModule />
       </div>
 
@@ -200,6 +206,144 @@ function DevtoolPanel() {
         </div>
       </div>
     </div>
+  );
+}
+
+// =============================================================================
+// Apps Module — inspect app windows + registry, and load a bundle over-the-air
+// =============================================================================
+
+function MetaRow({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex justify-between gap-2">
+      <span className="text-muted-foreground">{k}</span>
+      <span className="truncate text-right text-foreground/80">{v}</span>
+    </div>
+  );
+}
+
+function AppsModule() {
+  const win = useOptionalWindows();
+  const apps = (appsJson as { apps: AppLink[] }).apps;
+  const [url, setUrl] = useState("");
+  if (!win) return null;
+
+  const sourceOf = (app: AppLink) =>
+    app.runtime === "lynx"
+      ? app.bundleUrl?.startsWith("http")
+        ? "online"
+        : "built-in"
+      : "web";
+
+  const loadOta = () => {
+    const u = url.trim();
+    if (u) {
+      win.openBundleUrl(u);
+      setUrl("");
+    }
+  };
+
+  return (
+    <DebugSection
+      id="apps"
+      title="Apps"
+      icon={<AppWindow className="h-3 w-3" />}
+      defaultCollapsed
+    >
+      <div className="space-y-3 px-4 py-3">
+        {/* Over-the-air bundle loader */}
+        <div className="space-y-1.5">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            Load bundle (OTA)
+          </div>
+          <div className="flex gap-1.5">
+            <input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && loadOta()}
+              placeholder="https://…/main.web.bundle"
+              spellCheck={false}
+              className="min-w-0 flex-1 rounded-md border border-border/60 bg-muted/30 px-2 py-1 text-[11px] font-mono text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+            <button
+              onClick={loadOta}
+              className="shrink-0 rounded-md border border-border/60 bg-muted/40 px-2 py-1 text-[11px] font-mono text-foreground hover:bg-muted"
+            >
+              Load
+            </button>
+          </div>
+        </div>
+
+        {/* Live windows */}
+        {win.windows.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+              Open windows ({win.windows.length})
+            </div>
+            {win.windows.map((w) => (
+              <div
+                key={w.id}
+                className="space-y-0.5 rounded-lg border border-border/50 bg-muted/20 p-2 text-[11px] font-mono"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="truncate text-foreground">{w.app.title}</span>
+                  <span className="text-muted-foreground">{w.mode}</span>
+                </div>
+                <MetaRow k="runtime" v={w.app.runtime ?? "web"} />
+                {w.app.flavor && <MetaRow k="flavor" v={w.app.flavor} />}
+                <MetaRow k="source" v={sourceOf(w.app)} />
+                <MetaRow k="size" v={w.sizePreset} />
+                <MetaRow
+                  k="rect"
+                  v={`${Math.round(w.rect.x)},${Math.round(w.rect.y)} · ${Math.round(w.rect.width)}×${Math.round(w.rect.height)}`}
+                />
+                {w.app.bundleUrl && <MetaRow k="bundle" v={w.app.bundleUrl} />}
+                {w.app.runtime !== "lynx" && <MetaRow k="url" v={w.app.url} />}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Registry */}
+        <div className="space-y-1.5">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            Registry ({apps.length})
+          </div>
+          {apps.map((app) => (
+            <div
+              key={app.id}
+              className="flex items-center gap-2 rounded-lg border border-border/40 px-2 py-1.5"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-xs text-foreground">{app.title}</div>
+                <div className="truncate text-[10px] font-mono text-muted-foreground">
+                  {sourceOf(app)} ·{" "}
+                  {app.runtime === "lynx" ? (app.flavor ?? "react") : "web"} ·{" "}
+                  {app.size ?? "auto"}
+                </div>
+              </div>
+              <button
+                onClick={() => win.openApp(app)}
+                className="shrink-0 rounded-md border border-border/60 bg-muted/40 px-2 py-1 text-[10px] font-mono text-foreground hover:bg-muted"
+              >
+                Open
+              </button>
+              {app.runtime !== "lynx" && (
+                <a
+                  href={app.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 rounded-md p-1 text-muted-foreground hover:text-foreground"
+                  aria-label={`Open ${app.title} externally`}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </DebugSection>
   );
 }
 

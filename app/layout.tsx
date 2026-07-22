@@ -10,6 +10,7 @@ import {
   TheaterRegistrar,
   TheaterSurfaces,
 } from "@/systems/theater";
+import { MinimizedWindows, WindowLayer } from "@/systems/windows";
 import type { Metadata, Viewport } from "next";
 import { ViewTransitions } from "next-view-transitions";
 import {
@@ -100,10 +101,12 @@ export default function RootLayout({
             <ReadingRootSync />
             <DevtoolFAB />
             <AmbientSurface>{children}</AmbientSurface>
+            <WindowLayer />
             <Dock>
               <AmbientPhaseActivity />
               <MusicActivity />
               <TheaterActivity />
+              <MinimizedWindows />
             </Dock>
             <TheaterRegistrar />
             <TheaterSurfaces />
