@@ -508,6 +508,7 @@ export function TimelineCommit({
             inspecting={inspecting}
             onInspect={onInspectMedia}
             selectedMedia={selectedMedia}
+            videoContext={{ title: data.title, subtitle: data.subtitle }}
           />
         </div>
       )}
@@ -585,6 +586,7 @@ export function TimelineCommit({
                 inspecting={inspecting}
                 onInspect={onInspectMedia}
                 selectedMedia={selectedMedia}
+                videoContext={{ title: data.title, subtitle: data.subtitle }}
               />
             </div>
           )}

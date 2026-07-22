@@ -77,8 +77,23 @@ function commitToTrack(commit: Commit, locale: Locale): Track | null {
   };
 }
 
+// Albums are a pure function of locale over static module data, but several
+// surfaces build them independently (home widget, registrar). Memoize per
+// locale so the work runs once and every caller shares one array reference —
+// which also keeps the widget's `open({ albums })` referentially aligned with
+// the registered albums.
+const albumsCache = new Map<Locale, Album[]>();
+
 /** Build the three home albums for the given locale, dropping empty ones. */
 export function buildTalkAlbums(locale: Locale): Album[] {
+  const cached = albumsCache.get(locale);
+  if (cached) return cached;
+  const built = buildTalkAlbumsUncached(locale);
+  albumsCache.set(locale, built);
+  return built;
+}
+
+function buildTalkAlbumsUncached(locale: Locale): Album[] {
   const groups = log.groups ?? [];
   const albums: Album[] = [];
   for (const groupId of ALBUM_GROUP_IDS) {

@@ -53,6 +53,13 @@ export interface MediaRendererProps {
   onInspect?: (media: Media) => void;
   /** The media item currently focused in the Inspector, if any. */
   selectedMedia?: Media | null;
+  /**
+   * Display context for the immersive player when a video here is opened as a
+   * one-off (i.e. it isn't part of a curated album). Supplies the track's
+   * title / subtitle so the player never falls back to a bare "Video" label —
+   * matters most for Bilibili / Vimeo, which expose no JS-API metadata.
+   */
+  videoContext?: { title?: string; subtitle?: string };
 }
 
 function InspectableMedia({
@@ -117,6 +124,8 @@ interface SingleMediaProps {
   media: Media;
   theme: "light" | "dark";
   size: "compact" | "default" | "large";
+  /** Title / subtitle handed to the theater for one-off video playback. */
+  videoContext?: { title?: string; subtitle?: string };
   /** Forwarded to the underlying renderer (e.g. to size a grid cell). */
   className?: string;
   /**
@@ -131,7 +140,14 @@ interface SingleMediaProps {
 // Single Media Dispatcher
 // =============================================================================
 
-function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps) {
+function SingleMedia({
+  media,
+  theme,
+  size,
+  videoContext,
+  className,
+  dense,
+}: SingleMediaProps) {
   const { locale } = useLocale();
   const theater = useOptionalTheater();
 
@@ -149,6 +165,8 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
                   url: media.url,
                   platform: media.platform,
                   thumbnail: media.thumbnail,
+                  title: videoContext?.title,
+                  subtitle: videoContext?.subtitle,
                 })
             : undefined
         }
@@ -317,6 +335,7 @@ export function MediaRenderer({
   inspecting = false,
   onInspect,
   selectedMedia = null,
+  videoContext,
 }: MediaRendererProps) {
   // Use site theme from context, allow prop override.
   const { theme: siteTheme } = useTheme();
@@ -416,6 +435,7 @@ export function MediaRenderer({
                   theme={theme}
                   size="compact"
                   dense
+                  videoContext={videoContext}
                   className="w-full max-w-none"
                 />,
               )}
@@ -427,7 +447,12 @@ export function MediaRenderer({
           wrap(
             `rich-${i}`,
             m,
-            <SingleMedia media={m} theme={theme} size={size} />,
+            <SingleMedia
+              media={m}
+              theme={theme}
+              size={size}
+              videoContext={videoContext}
+            />,
           ),
         )
       )}
