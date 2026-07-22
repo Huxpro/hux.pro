@@ -5,11 +5,11 @@ import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import {
   BAND_LABEL,
-  BLUR_PX,
   STATUS_META,
   SURFACES,
   bandOf,
   surfaceStyle,
+  toBlurPx,
   type Plane,
   type Shadow,
   type SurfaceSpec,
@@ -119,6 +119,7 @@ const NUDGE: Record<string, [number, number]> = {
   devtool: [-3, 0],
   "toast-bug": [3.4, -2],
   peek: [4, 0],
+  "pip-overlay": [0, 2.5],
 };
 
 function plotPos(spec: SurfaceSpec): { x: number; y: number } {
@@ -337,7 +338,10 @@ function DetailPane({ spec }: { spec: SurfaceSpec }) {
             </span>
           }
         />
-        <Metric label="blur" value={`${BLUR_PX[spec.blur]}px · ${spec.blur}`} />
+        <Metric
+          label="blur"
+          value={`${toBlurPx(spec.blur)}px${typeof spec.blur === "string" ? ` · ${spec.blur}` : " · xl"}`}
+        />
         <Metric label="shadow (z)" value={spec.shadow} />
         <Metric
           label="border"

@@ -14,9 +14,24 @@
 //     plane) is translucent *by function* — its whole job is to dim.
 //
 // Everything else (base colour token, border, blur) is derived from where a
-// surface sits on these two axes. This file is the single source those points
-// are plotted and rendered from.
+// surface sits on these two axes.
+//
+// L1 — STAY CONNECTED TO REALITY. The *sanctioned* glass surfaces below are not
+// re-transcribed here: they are built from `glassSpec()` in components/ui/surface.ts
+// — the same authority `surface()` renders from — so the plot literally cannot
+// disagree with what the primitive ships. Shadow values come from the same CSS
+// vars the site uses (var(--shadow-*)). The remaining entries are documented
+// *exceptions* the primitive doesn't (and shouldn't) express — popover modals,
+// off-token media/window chrome, scrims, and one historical bug — and are the
+// only hand-authored numbers on the page.
 // =============================================================================
+
+import {
+  GLASS_FILLS,
+  glassSpec,
+  type Elevation,
+  type Fill,
+} from "@/components/ui/surface";
 
 /** Which CSS colour-var family a surface belongs to — a declaration of layer, not a colour choice. */
 export type Plane = "background" | "card" | "popover" | "media";
@@ -29,20 +44,29 @@ export type Blur = "none" | "sm" | "md" | "xl";
 
 export const BLUR_PX: Record<Blur, number> = { none: 0, sm: 4, md: 12, xl: 24 };
 
+/** Normalize a blur (bucket or raw px) to px. */
+export function toBlurPx(b: Blur | number): number {
+  return typeof b === "number" ? b : BLUR_PX[b];
+}
+
+// Shadow values are owned by globals.css (--shadow-*); reference them by var so
+// the specimens render the exact site shadows and never carry a stale copy.
 export const SHADOW_CSS: Record<Shadow, string> = {
   none: "none",
-  raised:
-    "0 4px 6px -4px rgb(0 0 0 / 0.05), 0 10px 15px -3px rgb(0 0 0 / 0.05)",
-  overlay: "0 25px 50px -12px rgb(0 0 0 / 0.2)",
+  raised: "var(--shadow-raised)",
+  overlay: "var(--shadow-overlay)",
 };
 
 /** The three presence bands α falls into. */
 export type Band = "scrim" | "glass" | "solid";
 
+/** Top of the sanctioned glass band — derived from surface()'s allowed fills. */
+export const GLASS_MAX = Math.max(...GLASS_FILLS);
+
 export function bandOf(plane: Plane, alpha: number): Band {
   // On the content plane a low α is a scrim (translucent on purpose to dim).
   if (plane === "background" && alpha <= 65) return "scrim";
-  if (alpha <= 72) return "glass";
+  if (alpha <= GLASS_MAX) return "glass";
   return "solid";
 }
 
@@ -61,7 +85,8 @@ export interface SurfaceSpec {
   plane: Plane;
   /** Fill opacity α, 0–100. */
   alpha: number;
-  blur: Blur;
+  /** Frost radius — a bucket ("xl") or raw px (24, when derived from glassSpec). */
+  blur: Blur | number;
   shadow: Shadow;
   /** Border opacity 0–100, or null for no border. */
   border: number | null;
@@ -81,7 +106,37 @@ export interface SurfaceSpec {
   status?: "canonical" | "fixed" | "drift" | "bug" | "special";
 }
 
+/** Fields a catalogue entry supplies on top of its derived surface shape. */
+type SurfaceMeta = Pick<
+  SurfaceSpec,
+  "id" | "name" | "file" | "radius" | "z" | "role" | "note" | "status"
+>;
+
+/**
+ * Build a *sanctioned* entry straight from `glassSpec()` — the same authority
+ * `surface()` renders from. plane / α / blur / border / shadow are never typed
+ * out here, so a sanctioned node cannot disagree with the shipped primitive.
+ */
+function glass(fill: Fill, elevation: Elevation, meta: SurfaceMeta): SurfaceSpec {
+  const s = glassSpec({ fill, elevation });
+  return {
+    plane: s.plane,
+    alpha: s.alpha,
+    blur: s.blurPx,
+    shadow: elevation,
+    border: s.borderAlpha,
+    ...meta,
+  };
+}
+
 // The catalogue — every backdrop-blur surface found in the audit, placed by (A, Z).
+//
+// Two kinds of entry:
+//   • glass(...)  — SANCTIONED. Derived from glassSpec(); guaranteed to match
+//     surface(). If the primitive's recipe changes, these move with it.
+//   • { ... }     — DOCUMENTED EXCEPTION. Off-token planes (media, window),
+//     popover modals, scrims, and one historical bug: things surface() doesn't
+//     express. These are the only hand-authored numbers on the page.
 export const SURFACES: SurfaceSpec[] = [
   {
     id: "content",
@@ -158,111 +213,76 @@ export const SURFACES: SurfaceSpec[] = [
     note: "background/95 — 几乎实心的内容色板。它是 chrome，不是浮层。lang toast 旧 bug 正是错穿了这一层的物理。",
     status: "special",
   },
-  {
+  glass(50, "raised", {
     id: "fab",
     name: "Command FAB",
     file: "systems/command/fab.tsx",
-    plane: "card",
-    alpha: 50,
-    blur: "xl",
-    shadow: "raised",
-    border: 50,
     radius: 24,
     z: 1,
     role: "常驻的浮空动作按钮",
     note: "最轻的 glass：α=50 透得最多。raised 的低飘 + xl frost = 一个明确的浮空 object。",
     status: "canonical",
-  },
-  {
+  }),
+  glass(50, "none", {
     id: "widget",
     name: "Homepage Widget",
     file: "components/ui/widget.tsx",
-    plane: "card",
-    alpha: 50,
-    blur: "xl",
-    shadow: "none",
-    border: 50,
     radius: 16,
     z: 0.6,
     role: "首页玻璃卡片（hover 升到 70）",
     note: "静息时 α=50、无影贴地；hover 时 α→70 并浮起。它是唯一一个会沿 A 轴移动的 surface。",
     status: "canonical",
-  },
-  {
+  }),
+  glass(60, "raised", {
     id: "live-pill",
     name: "Live Activity · Pill",
     file: "dock/live-activity.tsx",
-    plane: "card",
-    alpha: 60,
-    blur: "xl",
-    shadow: "raised",
-    border: 50,
     radius: 999,
     z: 1,
     role: "折叠态的环境状态胶囊",
     note: "compact 形态：ambient、raised。报状态，不打断你。lang switch toast 现在就映射到这一档。",
     status: "canonical",
-  },
-  {
+  }),
+  glass(70, "overlay", {
     id: "live-panel",
     name: "Live Activity · Panel",
     file: "dock/live-activity.tsx",
-    plane: "card",
-    alpha: 70,
-    blur: "xl",
-    shadow: "overlay",
-    border: 50,
     radius: 28,
     z: 2,
     role: "展开态的活动面板",
     note: "expanded 形态：仍是 glass(70)，但升到 overlay。系统里『需要注意』的最高一档 ambient 面板。",
     status: "canonical",
-  },
-  {
+  }),
+  glass(70, "none", {
     id: "peek",
     name: "Magnetic Peek",
     file: "motion-primitives/magnetic-preview.tsx",
-    plane: "card",
-    alpha: 70,
-    blur: "xl",
-    shadow: "none",
-    border: 50,
     radius: 8,
     z: 1.5,
     role: "hover 预览面板（影子委托给内层）",
     note: "α/blur 都是 panel 档，但 shadow=none：影子被让给真正可见的内卡片。飘得高，却故意不自己投影。",
     status: "canonical",
-  },
-  {
+  }),
+  glass(60, "raised", {
     id: "toast-switch",
     name: "Lang Switch Toast ✓",
     file: "post/language-toast.tsx",
-    plane: "card",
-    alpha: 60,
-    blur: "xl",
-    shadow: "raised",
-    border: 50,
     radius: 999,
     z: 1,
     role: "切换语言后的环境反馈",
     note: "本次修复：从 background/95 迁到 card/60 — 精确落回 Live Activity 的 pill 档。",
     status: "fixed",
-  },
-  {
+  }),
+  glass(70, "overlay", {
     id: "toast-conflict",
     name: "Lang Conflict Toast ✓",
     file: "post/language-toast.tsx",
-    plane: "card",
-    alpha: 70,
-    blur: "xl",
-    shadow: "overlay",
-    border: 50,
     radius: 12,
     z: 2,
     role: "分享链接语言冲突的决策卡",
     note: "本次修复：迁到 card/70 + overlay — 对齐 Live Activity 的 panel 档：需决策 = 更高的 z。",
     status: "fixed",
-  },
+  }),
   {
     id: "toast-bug",
     name: "Lang Toast (旧 · bug)",
@@ -291,6 +311,21 @@ export const SURFACES: SurfaceSpec[] = [
     z: 1,
     role: "编辑态的完成按钮",
     note: "轻微漂移：card/80 + border/60。比 glass 档更实一点 — 也许是想让按钮读起来更『硬』，也可能只是没对齐。",
+    status: "drift",
+  },
+  {
+    id: "pip-overlay",
+    name: "Theater PiP 控制条",
+    file: "systems/theater/components/pip-overlay.tsx",
+    plane: "card",
+    alpha: 85,
+    blur: "xl",
+    shadow: "overlay",
+    border: 60,
+    radius: 12,
+    z: 2,
+    role: "画中画的悬浮控制条（较新）",
+    note: "新证据：card 平面正伸进 solid 档。card/85 已越过 glass 上限(70) — 一个想读得更实的控制条，也是 surface() 尚未表达、正等着被界定的『solid card control』新档。",
     status: "drift",
   },
   {
