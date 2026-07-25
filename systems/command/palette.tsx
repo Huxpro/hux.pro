@@ -1061,8 +1061,8 @@ export function CommandPalette() {
                   </kbd>
                   {t(locale, "backToSearch")}
                 </span>
-                <span className="font-mono text-[10px] uppercase tracking-wider">
-                  OTA
+                <span className="text-[11px] text-muted-foreground">
+                  {t(locale, "appsLoadBundleOverTheAir")}
                 </span>
               </div>
             </div>

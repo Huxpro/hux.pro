@@ -304,6 +304,7 @@ export const translations = {
     appsLoadBundlePlaceholder: "https://…/main.web.bundle",
     appsLoadBundleOpen: "打开",
     appsLoadBundleInvalid: "这不太像是一个有效的包地址",
+    appsLoadBundleOverTheAir: "空中下载",
 
     // Blog/Prose (Writing page)
     writingTitle: "文字",
