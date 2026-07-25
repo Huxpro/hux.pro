@@ -3,7 +3,6 @@
 import { t, useLocale } from "@/services";
 import { LiveActivity } from "@/systems/dock";
 import { Music } from "lucide-react";
-import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PLAYLIST_ID } from "../lib/settings";
 import { useMusic } from "../provider";
@@ -12,15 +11,15 @@ import { EQBars, NowPlaying } from "./now-playing";
 // ---------------------------------------------------------------------------
 // Music Activity — the global "now playing" Live Activity.
 //
-// The homepage already shows the full MusicWidget in its grid, so this activity
-// only appears elsewhere. It plugs the music player into the shared Dock: a
-// collapsed pill (album art + EQ) that unfolds into the same <NowPlaying /> card
-// used by the homepage widget. All the pill/panel/scrim/drag mechanics live in
-// <LiveActivity /> — this file only supplies music-specific content.
+// Plugs the music player into the shared Dock: a collapsed pill (album art +
+// EQ) that unfolds into the same <NowPlaying /> card used by the homepage
+// widget. Shown on every route — including the homepage, alongside the grid
+// MusicWidget — so playback stays visible in the Live Activity band. All the
+// pill/panel/scrim/drag mechanics live in <LiveActivity />; this file only
+// supplies music-specific content.
 // ---------------------------------------------------------------------------
 
 export function MusicActivity() {
-  const pathname = usePathname();
   const { locale } = useLocale();
   const { track, playerState, isEnabled } = useMusic();
   const [mounted, setMounted] = useState(false);
@@ -31,8 +30,8 @@ export function MusicActivity() {
   }, []);
 
   if (!mounted) return null;
-  // Homepage renders the widget inline; no playlist / disabled → nothing to dock.
-  if (!PLAYLIST_ID || !isEnabled || pathname === "/") return null;
+  // No playlist / disabled → nothing to dock.
+  if (!PLAYLIST_ID || !isEnabled) return null;
 
   const isPlaying = playerState === "playing";
   const isLoading = playerState === "loading";
