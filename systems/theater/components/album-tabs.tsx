@@ -44,8 +44,10 @@ export function AlbumTabs({
       className={cn(
         // Tight outer shell — little track padding, no inter-item gap.
         // Labels carry the breathing room instead (Apple camera picker).
+        // Track fill is a touch stronger so the control reads as one capsule
+        // on light widget glass, not three floating labels.
         "inline-flex items-center rounded-full p-0.5",
-        "border border-border/40 bg-black/[0.04] dark:bg-white/[0.06]",
+        "border border-border/50 bg-foreground/[0.06] dark:bg-white/[0.08]",
         className,
       )}
     >
