@@ -1,13 +1,16 @@
-# App Shelf — home-screen icons for external projects
+# App Folder — home-screen folder for external projects
 
-The homepage widget grid includes an **app shelf**: a row of iPad-springboard
-style icons for apps (React, Lynx, Lynx Flappy Bird, Vue Lynx, plus bundled
-Lynx demos). Each icon is the artwork the target site *itself* declares for
-home-screen use, wearing a small **runtime badge** in the corner.
+The homepage widget grid includes an **app folder**: an iPad-style springboard
+of icons for apps (React, Lynx, Lynx Flappy Bird, BusyWeek, …). Each icon is
+the artwork the target site *itself* declares for home-screen use, wearing a
+small **runtime badge** in the corner.
 
 Tapping a tile opens the app in a **chrome window** (see the
 [Window System](./system-windows)) — web apps in an iframe, Lynx apps in a
 Lynx Player. ⌘/middle-click still opens the app's `url` in a new tab.
+
+When the catalog outgrows one page, the folder **snap-scrolls** into pages —
+horizontal (`axis: "x"`, default, like iOS folders) or vertical (`axis: "y"`).
 
 ## Authoring
 
@@ -50,42 +53,61 @@ serves only local static assets — no runtime crawling, no hotlinking.
 Failures never delete a good prior icon; an app with no fetchable icon and no
 manual `icon` fails the run loudly.
 
-## Rendering
+## Shared app UI
 
-`components/home/app-shelf.tsx` renders the shelf as one chrome-less item in
-the home `SortableMasonry`, so it drags alongside widgets. The icons inside
-are a *nested* dnd-kit sortable with its own persisted order
-(`localStorage["hux_app_order"]`):
+| Piece | Location |
+|-------|----------|
+| Catalog + folder layout helpers | `lib/apps.ts` |
+| Tile art (icon + badge + label) | `components/apps/app-tile.tsx` |
+| Snap-scrollable folder widget | `components/apps/app-folder.tsx` |
+| ⌘K Apps grid / list | `systems/command/apps-launcher.tsx` |
+
+`AppTile` is the single icon visual used by the folder, the command launcher,
+and (via the same fill/pad rules) the minimized dock pills.
+
+## Rendering — App Folder
+
+`components/apps/app-folder.tsx` renders as one chrome-less item in the home
+`SortableMasonry`, so it drags alongside widgets. Icons inside are a *nested*
+dnd-kit sortable with its own persisted order (`localStorage["hux_app_order"]`):
 
 - Pointer presses on icons stop propagation, so dragging an icon never lifts
-  the whole shelf (the shelf still lifts from its empty areas).
+  the whole folder (the folder still lifts from its empty areas).
 - An inner drag enters the masonry's shared jiggle edit mode (via
   `useMasonryEdit()`), which also makes the item wrapper swallow the
   post-drop click that would otherwise open the dropped icon's link.
-- The shared **Reset** control restores the icon order too (the shelf
-  registers itself as a masonry *section*).
+- The shared **Reset** control restores the icon order too (the folder
+  registers itself as a masonry *section* under id `"app-shelf"` for
+  backwards-compatible persistence).
 - The inner `DragOverlay` is **portaled to `<body>`**. This is load-bearing:
   in jiggle mode the masonry item wrapper carries a `rotate` transform, and a
   transformed ancestor becomes the containing block for the overlay's
   `position: fixed` — displacing both the visible clone and dnd-kit's
   collision rect, which silently broke cross-row sorting.
 
-**Group hint (Siri-Suggestions platter).** The shelf is chrome-less at rest,
+**Pages.** Default layout is **4 columns × 2 rows** per page (`axis: "x"`).
+Pass `layout={{ columns, rows, axis }}` to change capacity or scroll direction.
+When `apps.length` fits one page, snap scrolling and page dots stay dormant.
+Overflow splits the ordered id list into fixed-capacity pages; the last page
+may be short (left-aligned), like a springboard.
+
+**Group hint (Siri-Suggestions platter).** The folder is chrome-less at rest,
 but a translucent rounded platter materializes behind the icons whenever the
-group is "held": on hover, in edit mode, and on the lifted drag clone (the
-masonry's `DragOverlay` provides an inert editing-styled context so the clone
-keeps the platter without registering a duplicate section). In dark mode the
-platter uses a faint white wash — `--card` is darker than `--background`
-there, so a card tint alone would read as a hole rather than a lift.
+group is "held": on hover, in edit mode, and on the lifted drag clone. In dark
+mode the platter uses a faint white wash — `--card` is darker than
+`--background` there, so a card tint alone would read as a hole rather than a
+lift.
 
 **Tiles.** Padded glyph icons composite on a white plate (like Safari's
 add-to-home-screen), so transparent dark glyphs stay visible in dark mode.
-Square icons ≥160px render full-bleed *without* the plate — behind a
-full-bleed icon the plate would seep through the rounded clip's antialiased
-edge as a light fringe. Small or non-square favicons render padded and
-centered.
+Square icons ≥160px render full-bleed *without* the plate.
 
-**Icon counts.** The grid is a fixed four columns with natural flow, so a
-non-multiple-of-four count behaves like a springboard page: the partial last
-row stays left-aligned in consistent column positions (verified with 3 and 5
-apps, including cross-row drags in both directions).
+## Command palette — Spotlight launcher
+
+⌘K is dual-purpose: command search **and** an app launcher (see
+[Command System](./system-command)).
+
+- **Browse (empty query):** dedicated Apps **icon grid** at the top of the
+  palette — real snapshot icons, not generic glyphs.
+- **Search (non-empty query):** compact Apps **list rows** with the same
+  icons, filtered by title / runtime / keywords via cmdk.

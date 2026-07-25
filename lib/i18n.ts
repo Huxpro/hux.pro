@@ -123,7 +123,7 @@ export const translations = {
     careerTitle: "Projects",
     careerSubtitle: "A narrative of roles, challenges, and growth.",
 
-    // Apps (window launcher)
+    // Apps (window launcher / Spotlight)
     appsGroup: "Apps",
     appsLoadBundle: "Load Lynx bundle from URL…",
 

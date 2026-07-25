@@ -1,7 +1,7 @@
 "use client";
 
-import appIconSnapshot from "@/content/app-icons.json";
-import { resolveAppIconSrc, type AppIconSnapshot } from "@/lib/app-icon-core";
+import { APP_ICONS, iconFillsTile } from "@/lib/apps";
+import { resolveAppIconSrc } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { useWindows } from "../provider";
@@ -20,22 +20,9 @@ import { AppBadgeFor } from "./app-badge";
 // pill row alongside the other activities.
 // =============================================================================
 
-const ICONS = appIconSnapshot as AppIconSnapshot;
-
-/**
- * Full-bleed vs padded: square, purpose-drawn app icons fill edge-to-edge;
- * small/glyph favicons sit on a white plate. Same rule as the homepage shelf —
- * a plate or stroke behind a dark full-bleed icon reads as a white fringe in
- * the Live Activity band.
- */
-function iconFillsTile(entry: AppIconSnapshot[string] | undefined): boolean {
-  if (!entry?.width || !entry?.height) return false;
-  return entry.width === entry.height && entry.width >= 160;
-}
-
 function PillIcon({ win }: { win: WindowInstance }) {
-  const entry = ICONS[win.app.id];
-  const src = resolveAppIconSrc(win.app, ICONS);
+  const entry = APP_ICONS[win.app.id];
+  const src = resolveAppIconSrc(win.app, APP_ICONS);
   const fills = iconFillsTile(entry);
   return (
     <span className="relative block h-6 w-6 shrink-0">

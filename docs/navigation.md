@@ -67,7 +67,7 @@ All states maintain `h-12` (48px) height to eliminate vertical jitter during tra
 
 ## Command Palette
 
-The command palette is the central navigation hub, inspired by Raycast, Spotlight, and VS Code.
+The command palette is the central navigation hub, inspired by Raycast, Spotlight, and VS Code. It is dual-purpose: universal search **and** an app launcher (icon grid when idle, icon list when typing — see [Command System](./system-command)).
 
 ### Opening Methods
 
