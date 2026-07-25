@@ -118,7 +118,7 @@ export function FeaturedTalksWidget() {
                 key={i}
                 className={cn(
                   "h-1.5 rounded-full transition-all duration-200",
-                  i === activeCard ? "w-3 bg-foreground/60" : "w-1.5 bg-foreground/20",
+                  i === activeCard ? "w-3 bg-foreground/45" : "w-1.5 bg-foreground/15",
                 )}
               />
             ))}

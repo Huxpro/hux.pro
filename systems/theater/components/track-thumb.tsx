@@ -9,6 +9,10 @@ import type { Track } from "../lib/types";
 // TrackThumb — a video cover with a play affordance. Bilibili/Vimeo tracks
 // often lack a public cover, so we fall back to a branded placeholder rather
 // than an empty box, keeping the album rails visually consistent.
+//
+// Glass capsule chrome: translucent white play (not a black stamp), hairline
+// active edge (not a heavy ring) so selection is readable without stealing
+// focus from the cover.
 // ---------------------------------------------------------------------------
 
 const PLATFORM_LABEL: Record<Track["platform"], string> = {
@@ -39,7 +43,11 @@ export function TrackThumb({
       className={cn(
         "relative aspect-video w-full overflow-hidden rounded-lg bg-muted/20",
         "border transition-colors",
-        active ? "border-foreground/70 ring-1 ring-foreground/40" : "border-border/50",
+        // Hairline selection — readable for the playlist rail without the
+        // old double ring fighting the cover art.
+        active
+          ? "border-white/55 dark:border-white/40"
+          : "border-border/40",
         className,
       )}
     >
@@ -61,8 +69,15 @@ export function TrackThumb({
         </div>
       )}
       {showBadge && (
-        <div className="absolute inset-0 bg-black/10 transition-colors group-hover/thumb:bg-black/25">
-          <PlayBadge size="compact" />
+        <div
+          className={cn(
+            "absolute inset-0 bg-black/0 transition-colors group-hover/thumb:bg-black/10",
+            // When this track is the current one, let the cover win — play
+            // returns on hover so the affordance is still discoverable.
+            active && "opacity-0 group-hover/thumb:opacity-100",
+          )}
+        >
+          <PlayBadge size="compact" tone="glass" />
         </div>
       )}
     </div>
