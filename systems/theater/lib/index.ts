@@ -7,4 +7,6 @@ export {
   GLASS_ON_DARK_CLUSTER,
   GLASS_ON_DARK_BTN,
   GLASS_ON_DARK_ORB,
+  GLASS_ON_DARK_TRACK,
+  GLASS_ON_DARK_PILL,
 } from "./chrome";
