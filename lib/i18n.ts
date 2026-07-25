@@ -131,6 +131,7 @@ export const translations = {
     appsLoadBundlePlaceholder: "https://…/main.web.bundle",
     appsLoadBundleOpen: "Open",
     appsLoadBundleInvalid: "That doesn’t look like a bundle URL",
+    appsLoadBundleOverTheAir: "over the air",
 
     // Blog/Prose (Writing page)
     writingTitle: "Writing",
