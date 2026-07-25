@@ -11,6 +11,11 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "next-view-transitions";
+import {
+  GLASS_ON_DARK_BTN,
+  GLASS_ON_DARK_CLUSTER,
+  GLASS_ON_DARK_ORB,
+} from "../lib/chrome";
 import { useTheater } from "../provider";
 import { AlbumTabs } from "./album-tabs";
 import { PlaylistRail } from "./playlist-rail";
@@ -23,13 +28,14 @@ import { PlaylistRail } from "./playlist-rail";
 // rail) sits in the MARGINS *around* the video — never on top of it — so the
 // player surface stays clean. Each chrome layer is a top-level fixed sibling at
 // z-10005 (above the stage), positioned relative to the shared stage rect.
+//
+// Glass language matches AlbumTabs / Featured Talks (frosted track + pill):
+// window controls share one iPadOS-style cluster; gutters are airier so the
+// stage reads as the hero rather than a ring of tight circles.
 // ---------------------------------------------------------------------------
 
-const CHROME_BTN = cn(
-  "inline-flex h-9 w-9 items-center justify-center rounded-full",
-  "bg-card/70 text-foreground/80 ring-1 ring-border/60 backdrop-blur-xl",
-  "transition-colors hover:bg-card hover:text-foreground active:scale-95",
-);
+/** Hit target inside the clustered toolbar (~44pt). */
+const CLUSTER_BTN = cn(GLASS_ON_DARK_BTN, "h-10 w-10");
 
 const FADE = { duration: 0.18, ease: "easeOut" as const };
 
@@ -75,12 +81,12 @@ export function TheaterOverlay() {
             role="presentation"
           />
 
-          {/* Top bar ABOVE the video: album switcher (left) + window controls
-              (right), spanning the video's width. */}
+          {/* Top bar ABOVE the video: album switcher (left) + clustered
+              window controls (right). Extra air vs the old 44/40 hug. */}
           <motion.div
             key="topbar"
-            className="fixed z-[10005] flex items-end justify-between gap-2"
-            style={{ left: rect.left, width: rect.width, top: rect.top - 44, height: 40 }}
+            className="fixed z-[10005] flex items-end justify-between gap-4"
+            style={{ left: rect.left, width: rect.width, top: rect.top - 56, height: 44 }}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 6 }}
@@ -91,44 +97,44 @@ export function TheaterOverlay() {
               activeIndex={albumIndex}
               onSelect={selectAlbum}
             />
-            <div className="flex items-center gap-2">
+            <div className={GLASS_ON_DARK_CLUSTER}>
               {track?.url && (
                 <a
                   href={track.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Open on source site"
-                  className={cn(CHROME_BTN, "mr-1")}
+                  className={CLUSTER_BTN}
                 >
                   <ExternalLink className="h-4 w-4" />
                 </a>
               )}
-              <button aria-label="Picture in picture" className={CHROME_BTN} onClick={toPip}>
+              <button aria-label="Picture in picture" className={CLUSTER_BTN} onClick={toPip}>
                 <PictureInPicture2 className="h-4 w-4" />
               </button>
-              <button aria-label="Minimize" className={CHROME_BTN} onClick={minimize}>
+              <button aria-label="Minimize" className={CLUSTER_BTN} onClick={minimize}>
                 <Minimize2 className="h-4 w-4" />
               </button>
-              <button aria-label="Close" className={CHROME_BTN} onClick={close}>
+              <button aria-label="Close" className={CLUSTER_BTN} onClick={close}>
                 <X className="h-5 w-5" />
               </button>
             </div>
           </motion.div>
 
-          {/* Prev / next arrows in the side gutters, BESIDE the video. */}
+          {/* Prev / next — frosted orbs with wider gutters. */}
           {hasPrev && (
             <motion.button
               key="prev"
               aria-label="Previous video"
               onClick={previous}
-              className={cn(CHROME_BTN, "fixed z-[10005] h-11 w-11")}
-              style={{ top: midY - 22, left: rect.left - 52 }}
+              className={cn(GLASS_ON_DARK_ORB, "fixed z-[10005] h-11 w-11")}
+              style={{ top: midY - 22, left: rect.left - 64 }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={FADE}
             >
-              <ChevronLeft className="h-6 w-6" />
+              <ChevronLeft className="h-5 w-5" />
             </motion.button>
           )}
           {hasNext && (
@@ -136,14 +142,14 @@ export function TheaterOverlay() {
               key="next"
               aria-label="Next video"
               onClick={next}
-              className={cn(CHROME_BTN, "fixed z-[10005] h-11 w-11")}
-              style={{ top: midY - 22, left: rect.left + rect.width + 8 }}
+              className={cn(GLASS_ON_DARK_ORB, "fixed z-[10005] h-11 w-11")}
+              style={{ top: midY - 22, left: rect.left + rect.width + 20 }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={FADE}
             >
-              <ChevronRight className="h-6 w-6" />
+              <ChevronRight className="h-5 w-5" />
             </motion.button>
           )}
 
@@ -151,7 +157,7 @@ export function TheaterOverlay() {
           <motion.div
             key="bottom"
             className="fixed inset-x-0 z-[10005]"
-            style={{ top: rect.top + rect.height + 16 }}
+            style={{ top: rect.top + rect.height + 24 }}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
@@ -159,10 +165,10 @@ export function TheaterOverlay() {
           >
             <div
               className="mx-auto px-2"
-              style={{ width: Math.min(rect.width + 96, 960) }}
+              style={{ width: Math.min(rect.width + 120, 960) }}
             >
               {track && (
-                <div className="mb-2 flex items-baseline justify-between gap-3">
+                <div className="mb-3 flex items-baseline justify-between gap-3">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium text-white">
                       {track.title}
@@ -184,7 +190,7 @@ export function TheaterOverlay() {
                   )}
                 </div>
               )}
-              <PlaylistRail tone="onDark" />
+              <PlaylistRail tone="onDark" className="gap-4" />
             </div>
           </motion.div>
         </>

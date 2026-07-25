@@ -14,14 +14,14 @@ import {
 import { useMemo, useState } from "react";
 
 // =============================================================================
-// Theater chrome variants — pick-one gallery
+// Theater chrome variants — reference gallery
 //
-// Static mockups of the fullscreen theater margins (top tabs/controls, side
-// arrows, bottom title + rail). Production overlay stays untouched until a
-// letter is chosen. Focus: modern iOS / iPadOS glass + more generous spacing.
+// Static mockups of the fullscreen theater margins. Production now ships the
+// "Frosted system": A’s clustered toolbar material (same glass as AlbumTabs /
+// Featured Talks) with D’s airier gutters. Other letters remain for comparison.
 // =============================================================================
 
-type VariantId = "current" | "toolbar" | "liquid" | "bar" | "airy";
+type VariantId = "shipped" | "current" | "toolbar" | "liquid" | "bar" | "airy";
 
 const VARIANTS: {
   id: VariantId;
@@ -30,39 +30,46 @@ const VARIANTS: {
   pitch: string;
 }[] = [
   {
-    id: "current",
-    name: "Current",
-    inspo: "Baseline",
+    id: "shipped",
+    name: "★ Shipped · Frosted system (A material + D air)",
+    inspo: "AlbumTabs / Featured Talks glass",
     pitch:
-      "Four tight circular discs, 8–12px gutters, chrome hugs the stage. Readable but dense — the “strong circles” feel.",
+      "Same frosted track + pill as the homepage widget. Window controls share one glass capsule; gutters match D’s air. This is production.",
+  },
+  {
+    id: "current",
+    name: "Old baseline",
+    inspo: "Pre-redesign",
+    pitch:
+      "Four tight circular discs, 8–12px gutters, chrome hugs the stage — the dense “strong circles” feel.",
   },
   {
     id: "toolbar",
     name: "A · Frosted Toolbar",
     inspo: "iPadOS floating toolbar",
     pitch:
-      "Window controls share one glass capsule (not four lonely circles). 44pt targets, ~24px air from the stage, softer white glass on dark.",
+      "Window controls share one glass capsule. Material matches the widget; spacing moderate.",
   },
   {
     id: "liquid",
     name: "B · Liquid Glass",
     inspo: "visionOS / recent iOS glass",
     pitch:
-      "Lighter, more refractive fill + specular rim. Larger soft orbs for prev/next, pushed farther into the gutter. Maximum blur, quieter icons.",
+      "More refractive fill + specular rim. Larger soft orbs, pushed farther into the gutter.",
   },
   {
     id: "bar",
     name: "C · Continuous Bar",
     inspo: "macOS / tvOS chrome bar",
     pitch:
-      "Top becomes one frosted strip spanning the stage (tabs left, controls right). Bottom playlist sits on a glass shelf. Clearest hierarchy.",
+      "Top frosted strip + bottom glass playlist shelf. Clearest hierarchy, different from widget tabs.",
   },
   {
     id: "airy",
     name: "D · Airy Minimal",
     inspo: "Apple TV + Photos immersive",
     pitch:
-      "Most spacing, lightest material. Controls float with wide margins; playlist thumbs breathe. Selection stays hairline — video stays hero.",
+      "Maximum spacing, lightest material. Spacing inspiration for the shipped system.",
   },
 ];
 
@@ -93,8 +100,9 @@ export function TheaterVariantsView() {
           </h1>
           <p className="max-w-2xl text-sm text-white/55 leading-relaxed">
             Fullscreen theater margins — album tabs, window controls, prev/next,
-            title, playlist. Goal: modern iOS/iPadOS glass, more air around the
-            video, fewer “strong circles.” Pick a letter (or mix).
+            title, playlist. Production uses the frosted system at the top
+            (same glass as the Featured Talks AlbumTabs, clustered controls,
+            airier gutters). Other variants stay for comparison.
           </p>
         </header>
 
@@ -230,7 +238,7 @@ function TheaterMock({
 
         {/* Bottom */}
         <div style={{ marginTop: spacing.bottomGap }}>
-          {(variant === "bar" || variant === "liquid") && (
+          {variant === "bar" || variant === "liquid" ? (
             <div
               className={cn(
                 "rounded-2xl p-4",
@@ -239,7 +247,7 @@ function TheaterMock({
                   : "bg-white/[0.04] ring-1 ring-white/8 backdrop-blur-xl",
               )}
             >
-              <TitleRow track={track} airy={variant === "airy"} />
+              <TitleRow track={track} />
               <PlaylistMock
                 variant={variant}
                 tracks={tracks}
@@ -247,10 +255,9 @@ function TheaterMock({
                 onSelect={onSelectTrack}
               />
             </div>
-          )}
-          {variant !== "bar" && variant !== "liquid" && (
+          ) : (
             <>
-              <TitleRow track={track} airy={variant === "airy"} />
+              <TitleRow track={track} airy={variant === "airy" || variant === "shipped"} />
               <PlaylistMock
                 variant={variant}
                 tracks={tracks}
@@ -269,6 +276,7 @@ const SPACING: Record<
   VariantId,
   { padX: number; padY: number; topGap: number; topH: number; sideGap: number; bottomGap: number }
 > = {
+  shipped: { padX: 64, padY: 40, topGap: 24, topH: 44, sideGap: 20, bottomGap: 28 },
   current: { padX: 48, padY: 28, topGap: 12, topH: 36, sideGap: 8, bottomGap: 16 },
   toolbar: { padX: 56, padY: 36, topGap: 20, topH: 44, sideGap: 16, bottomGap: 24 },
   liquid: { padX: 64, padY: 40, topGap: 24, topH: 48, sideGap: 20, bottomGap: 28 },
@@ -363,28 +371,28 @@ function WindowControls({ variant }: { variant: VariantId }) {
     );
   }
 
-  if (variant === "toolbar" || variant === "airy") {
+  if (variant === "shipped" || variant === "toolbar" || variant === "airy") {
     return (
       <div
         className={cn(
-          "inline-flex items-center rounded-full p-1 backdrop-blur-2xl",
+          "inline-flex items-center rounded-full p-1 backdrop-blur-xl",
           variant === "airy"
             ? "gap-0.5 bg-white/[0.06] ring-1 ring-white/12"
-            : "gap-1 bg-white/[0.10] ring-1 ring-white/18",
+            : variant === "shipped"
+              ? "gap-0.5 bg-white/[0.08] ring-1 ring-white/15"
+              : "gap-1 bg-white/[0.10] ring-1 ring-white/18",
         )}
       >
-        {icons.map(({ Icon, label }, i) => (
+        {icons.map(({ Icon, label }) => (
           <span
             key={label}
             title={label}
             className={cn(
               "inline-flex items-center justify-center rounded-full text-white/85 transition-colors",
               variant === "airy" ? "h-9 w-9" : "h-10 w-10",
-              i === 0 && "mr-0.5",
-              label === "Close" && "hover:bg-white/10",
             )}
           >
-            <Icon className={label === "Close" ? "h-4.5 w-4.5" : "h-4 w-4"} />
+            <Icon className={label === "Close" ? "h-5 w-5" : "h-4 w-4"} />
           </span>
         ))}
       </div>
@@ -524,9 +532,17 @@ function PlaylistMock({
   onSelect: (i: number) => void;
 }) {
   const gap =
-    variant === "airy" ? "gap-5" : variant === "liquid" || variant === "toolbar" ? "gap-4" : "gap-3";
+    variant === "airy" || variant === "shipped"
+      ? "gap-4"
+      : variant === "liquid" || variant === "toolbar"
+        ? "gap-4"
+        : "gap-3";
   const width =
-    variant === "airy" ? "w-44" : variant === "liquid" ? "w-42" : "w-40";
+    variant === "airy" || variant === "shipped"
+      ? "w-44"
+      : variant === "liquid"
+        ? "w-[10.5rem]"
+        : "w-40";
 
   return (
     <div className={cn("flex overflow-x-auto no-scrollbar", gap)}>

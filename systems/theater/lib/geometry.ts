@@ -42,9 +42,10 @@ function clamp(value: number, min: number, max: number): number {
 // Chrome lives *around* the video, not on top of it, so the video rect is the
 // largest 16:9 that leaves these margins free: a control bar above, the title +
 // playlist rail below, and prev/next arrow gutters on the sides.
-export const THEATER_TOP_BAR = 52; // album switcher + window controls
-export const THEATER_BOTTOM = 176; // title + playlist rail
-export const THEATER_SIDE = 68; // prev / next arrow gutters
+// Sized for the frosted-toolbar chrome (taller top band, wider side air).
+export const THEATER_TOP_BAR = 64; // album switcher + clustered window controls
+export const THEATER_BOTTOM = 192; // title + playlist rail
+export const THEATER_SIDE = 80; // prev / next arrow gutters
 const THEATER_MARGIN = 16;
 
 /**

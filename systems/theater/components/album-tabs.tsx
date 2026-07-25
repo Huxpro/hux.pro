@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { motion, useReducedMotion } from "framer-motion";
 import { useId } from "react";
+import { GLASS_PILL, GLASS_TRACK } from "../lib/chrome";
 import type { Album } from "../lib/types";
 
 // ---------------------------------------------------------------------------
@@ -12,7 +13,8 @@ import type { Album } from "../lib/types";
 //
 // Apple camera-mode capsule: tight outer shell, roomy label padding, and a
 // single sliding glass pill (layoutId) that travels between options — selection
-// is motion, not a hard cut.
+// is motion, not a hard cut. Material tokens live in lib/chrome.ts so theater
+// window controls share the same frosted language.
 // ---------------------------------------------------------------------------
 
 const EASE = [0.32, 0.72, 0, 1] as const;
@@ -44,10 +46,8 @@ export function AlbumTabs({
       className={cn(
         // Tight outer shell — little track padding, no inter-item gap.
         // Labels carry the breathing room instead (Apple camera picker).
-        // Track fill is a touch stronger so the control reads as one capsule
-        // on light widget glass, not three floating labels.
         "inline-flex items-center rounded-full p-0.5",
-        "border border-border/50 bg-foreground/[0.06] dark:bg-white/[0.08]",
+        GLASS_TRACK,
         className,
       )}
     >
@@ -64,7 +64,7 @@ export function AlbumTabs({
               "relative isolate font-mono uppercase tracking-wider",
               "transition-colors duration-200",
               // Roomy label padding inside the capsule.
-              size === "sm" ? "px-3.5 py-1.5 text-[10px]" : "px-4.5 py-2 text-xs",
+              size === "sm" ? "px-3.5 py-1.5 text-[10px]" : "px-4 py-2 text-xs",
               active
                 ? "text-foreground"
                 : "text-muted-foreground/70 hover:text-muted-foreground",
@@ -73,12 +73,7 @@ export function AlbumTabs({
             {active && (
               <motion.span
                 layoutId={pillId}
-                className={cn(
-                  "absolute inset-0 -z-10 rounded-full",
-                  "bg-card/90 shadow-sm ring-1 ring-border/50 backdrop-blur-xl",
-                  // Soft top rim — reads slightly raised, like the camera pill.
-                  "before:pointer-events-none before:absolute before:inset-x-1 before:top-px before:h-px before:rounded-full before:bg-white/35 dark:before:bg-white/20",
-                )}
+                className={cn("absolute inset-0 -z-10 rounded-full", GLASS_PILL)}
                 transition={
                   reduceMotion
                     ? { duration: 0 }
