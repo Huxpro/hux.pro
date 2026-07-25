@@ -10,7 +10,7 @@ dual-purpose: a universal search **and** an **app launcher**.
 systems/command/
 ├── provider.tsx       # CommandProvider with keyboard shortcuts
 ├── palette.tsx        # Command palette UI (cmdk-based)
-├── apps-launcher.tsx  # Spotlight-style Apps grid + icon list
+├── apps-launcher.tsx  # Spotlight-style horizontal Apps strip
 ├── fab.tsx            # Floating action button trigger
 └── index.ts           # Barrel exports
 ```
@@ -25,15 +25,13 @@ systems/command/
 ### App launcher (Spotlight-style)
 
 When the Window system is mounted, ⌘K also launches apps from
-`content/apps.json`:
+`content/apps.json` via a headerless **horizontal icon strip**
+(`systems/command/apps-launcher.tsx`):
 
-| Query state | Apps presentation |
-|-------------|-------------------|
-| Empty | Dedicated **icon grid** (browse / Launchpad-ish) at the top of the list |
-| Non-empty | Compact **icon + title** rows in the Apps group (cmdk-filtered) |
-
-Both surfaces use the shared `AppTile` (`components/apps/app-tile.tsx`) so tile
-art matches the home App Folder. Selecting an app calls `windows.openApp`.
+- Same presentation for browse and search — cmdk filters icons in place
+- Strip scrolls horizontally when the catalog overflows
+- Group hides entirely when no app matches the query
+- Real snapshot tiles via shared `AppTile`
 
 ### Keyboard Shortcuts
 
@@ -105,7 +103,7 @@ const {
 
 The palette searches across:
 
-1. **Apps**: Title, id, runtime (icon grid when idle; icon list when typing)
+1. **Apps**: Horizontal icon strip (filtered in place; hidden when no match)
 2. **Navigation**: Home, Writing, Works, Docs
 3. **Settings**: Appearance, Language, Location, Gradient, Music, Devtool
 4. **Blog Posts**: Title, description, tags (both languages)

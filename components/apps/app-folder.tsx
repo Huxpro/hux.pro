@@ -323,11 +323,15 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
   if (APPS.length === 0) return null;
 
   const needsPages = pageCount > 1;
-  // Fixed page footprint so scroll-snap has a stable target. Icon tile is
-  // 64px + ~22px label + row gap; keep in sync with AppTile lg + gap-y-5.
+  // Single page: natural grid height (no forced empty rows — `repeat(rows)`
+  // plus row-gap was leaving a phantom gap under a short catalog).
+  // Multi page: lock row count so every snap page shares one footprint
+  // (8 / 12 / 16 icons → pages of `columns × rows`, last page may be short).
   const pageStyle: CSSProperties = {
     gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
-    gridTemplateRows: `repeat(${layout.rows}, auto)`,
+    ...(needsPages
+      ? { gridTemplateRows: `repeat(${layout.rows}, auto)` }
+      : null),
   };
 
   return (

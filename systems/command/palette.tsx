@@ -30,7 +30,7 @@ import { useTransitionRouter } from "next-view-transitions";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
-import { CommandAppsGrid, CommandAppsList } from "./apps-launcher";
+import { CommandAppsStrip } from "./apps-launcher";
 import { useCommand } from "./provider";
 
 export function CommandPalette() {
@@ -73,9 +73,6 @@ export function CommandPalette() {
       : t(locale, "stateOff");
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState("");
-  // Empty query → Spotlight-style Apps grid (launcher). Any query → compact
-  // icon list that participates in cmdk fuzzy filter like other groups.
-  const appsBrowseMode = inputValue.trim().length === 0;
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isIOS] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -546,11 +543,9 @@ export function CommandPalette() {
                   {t(locale, "noResults")}
                 </Command.Empty>
 
-                {/* Dual-purpose Spotlight: browse mode leads with an Apps
-                    springboard so ⌘K is an app launcher as much as a search. */}
-                {windows && appsBrowseMode && (
-                  <CommandAppsGrid onLaunch={close} />
-                )}
+                {/* Dual-purpose Spotlight: horizontal Apps strip (same UI for
+                    browse + search; cmdk hides the group when nothing matches). */}
+                {windows && <CommandAppsStrip onLaunch={close} />}
 
                 <Command.Group heading={t(locale, "navigation")}>
                   <Command.Item
@@ -899,9 +894,6 @@ export function CommandPalette() {
                   ))}
                 </Command.Group>
 
-                {windows && !appsBrowseMode && (
-                  <CommandAppsList onLaunch={close} />
-                )}
               </Command.List>
             </div>
           </div>

@@ -87,6 +87,13 @@ dnd-kit sortable with its own persisted order (`localStorage["hux_app_order"]`):
 
 **Pages.** Default layout is **4 columns × 2 rows** per page (`axis: "x"`).
 Pass `layout={{ columns, rows, axis }}` to change capacity or scroll direction.
+
+| Catalog size | Behavior |
+|--------------|----------|
+| ≤ 8 (one page) | Natural-height grid — no snap, no page dots, no empty second-row gap |
+| 9–16 | Two snap pages (8 + remainder); dots under the folder |
+| 17–24 | Three pages; same pattern |
+
 When `apps.length` fits one page, snap scrolling and page dots stay dormant.
 Overflow splits the ordered id list into fixed-capacity pages; the last page
 may be short (left-aligned), like a springboard.
@@ -107,7 +114,6 @@ Square icons ≥160px render full-bleed *without* the plate.
 ⌘K is dual-purpose: command search **and** an app launcher (see
 [Command System](./system-command)).
 
-- **Browse (empty query):** dedicated Apps **icon grid** at the top of the
-  palette — real snapshot icons, not generic glyphs.
-- **Search (non-empty query):** compact Apps **list rows** with the same
-  icons, filtered by title / runtime / keywords via cmdk.
+- Headerless **horizontal icon strip** (tight fixed pitch; scrolls when needed)
+- Same UI while typing — unmatched apps filter out; empty strip hides the group
+- Real snapshot icons via `AppTile`

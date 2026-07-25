@@ -243,9 +243,9 @@ Three ways in, all routing through `useWindows()`:
   left-click is intercepted (`openApp`) to open the window instead —
   progressive enhancement that composes with the folder's drag-to-reorder and
   snap-paged overflow.
-- **Command palette.** Spotlight-style Apps surfaces in ⌘K
-  (`systems/command/apps-launcher.tsx`): an icon **grid** when the query is
-  empty (launcher), and an icon **list** when searching. Plus a "Load Lynx
+- **Command palette.** Spotlight-style Apps strip in ⌘K
+  (`systems/command/apps-launcher.tsx`): a headerless horizontal icon row
+  (same for browse + search; hidden when nothing matches). Plus a "Load Lynx
   bundle from URL…" action.
 - **Over-the-air.** `openBundleUrl(url)` opens an ad-hoc Lynx window for any
   `.web.bundle` URL. Reachable from the palette action above and from the
