@@ -38,3 +38,13 @@ export const GLASS_ON_DARK_ORB = cn(
   GLASS_ON_DARK_BTN,
   "bg-white/[0.08] ring-1 ring-white/15 backdrop-blur-xl",
 );
+
+/** Always-dark theater: album-tab track (same material as the control cluster). */
+export const GLASS_ON_DARK_TRACK = cn(
+  "bg-white/[0.08] ring-1 ring-white/15 backdrop-blur-xl",
+);
+
+/** Always-dark theater: selected album pill — soft glass, not theme `bg-card`. */
+export const GLASS_ON_DARK_PILL = cn(
+  "bg-white/20 shadow-sm ring-1 ring-white/25 backdrop-blur-xl",
+);

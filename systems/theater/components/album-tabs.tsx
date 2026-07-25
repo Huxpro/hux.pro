@@ -3,7 +3,12 @@
 import { cn } from "@/lib/utils";
 import { motion, useReducedMotion } from "framer-motion";
 import { useId } from "react";
-import { GLASS_PILL, GLASS_TRACK } from "../lib/chrome";
+import {
+  GLASS_ON_DARK_PILL,
+  GLASS_ON_DARK_TRACK,
+  GLASS_PILL,
+  GLASS_TRACK,
+} from "../lib/chrome";
 import type { Album } from "../lib/types";
 
 // ---------------------------------------------------------------------------
@@ -15,6 +20,9 @@ import type { Album } from "../lib/types";
 // single sliding glass pill (layoutId) that travels between options — selection
 // is motion, not a hard cut. Material tokens live in lib/chrome.ts so theater
 // window controls share the same frosted language.
+//
+// `tone="onDark"` forces theater-safe glass (site light mode would otherwise
+// paint a bright `bg-card` pill that fights the always-dark backdrop).
 // ---------------------------------------------------------------------------
 
 const EASE = [0.32, 0.72, 0, 1] as const;
@@ -25,6 +33,8 @@ interface AlbumTabsProps {
   onSelect: (index: number) => void;
   className?: string;
   size?: "sm" | "md";
+  /** Force light-on-dark glass (theater). Default is theme-aware (homepage). */
+  tone?: "default" | "onDark";
 }
 
 export function AlbumTabs({
@@ -33,10 +43,12 @@ export function AlbumTabs({
   onSelect,
   className,
   size = "sm",
+  tone = "default",
 }: AlbumTabsProps) {
   const reduceMotion = useReducedMotion();
   // Unique per mount so homepage + theater don't fight over one layoutId.
   const pillId = useId();
+  const onDark = tone === "onDark";
 
   if (albums.length <= 1) return null;
 
@@ -47,7 +59,7 @@ export function AlbumTabs({
         // Tight outer shell — little track padding, no inter-item gap.
         // Labels carry the breathing room instead (Apple camera picker).
         "inline-flex items-center rounded-full p-0.5",
-        GLASS_TRACK,
+        onDark ? GLASS_ON_DARK_TRACK : GLASS_TRACK,
         className,
       )}
     >
@@ -65,15 +77,22 @@ export function AlbumTabs({
               "transition-colors duration-200",
               // Roomy label padding inside the capsule.
               size === "sm" ? "px-3.5 py-1.5 text-[10px]" : "px-4 py-2 text-xs",
-              active
-                ? "text-foreground"
-                : "text-muted-foreground/70 hover:text-muted-foreground",
+              onDark
+                ? active
+                  ? "text-white"
+                  : "text-white/45 hover:text-white/70"
+                : active
+                  ? "text-foreground"
+                  : "text-muted-foreground/70 hover:text-muted-foreground",
             )}
           >
             {active && (
               <motion.span
                 layoutId={pillId}
-                className={cn("absolute inset-0 -z-10 rounded-full", GLASS_PILL)}
+                className={cn(
+                  "absolute inset-0 -z-10 rounded-full",
+                  onDark ? GLASS_ON_DARK_PILL : GLASS_PILL,
+                )}
                 transition={
                   reduceMotion
                     ? { duration: 0 }

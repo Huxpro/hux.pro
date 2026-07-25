@@ -24,20 +24,20 @@ import { PlaylistRail } from "./playlist-rail";
 // ---------------------------------------------------------------------------
 // TheaterOverlay — the immersive desktop modal chrome.
 //
-// The video is the provider's persistent <Stage /> (z-10002). System UI sits
-// in the MARGINS around it. By default the experience is immersive: chrome is
-// hidden on entry and while watching. It reveals only on intent — pointer
-// movement, hovering a chrome zone, or keyboard focus — then auto-hides again
-// once the pointer rests (while playing). Paused / ended keeps chrome up so
-// browsing the playlist feels intentional, not flickery.
+// Default is immersive: chrome hidden. Reveal only on clear intent —
+// hovering a margin hit-zone (toolbar / arrows / playlist bands) or a
+// keyboard shortcut — never on ambient pointer jitter. Auto-hides quickly
+// after the pointer leaves chrome, whether playing or paused.
 // ---------------------------------------------------------------------------
 
 /** Hit target inside the clustered toolbar (~44pt). */
 const CLUSTER_BTN = cn(GLASS_ON_DARK_BTN, "h-10 w-10");
 
 const FADE = { duration: 0.18, ease: "easeOut" as const };
-/** How long after the last intent before chrome tucks away while playing. */
-const HIDE_AFTER_MS = 2400;
+/** Idle before chrome tucks away once the pointer leaves a chrome zone. */
+const HIDE_AFTER_MS = 1100;
+/** Ignore edge-hovers right after open so the opening click doesn't flash chrome. */
+const OPEN_GRACE_MS = 450;
 
 export function TheaterOverlay() {
   const {
@@ -49,7 +49,6 @@ export function TheaterOverlay() {
     album,
     track,
     rect,
-    phase,
     selectAlbum,
     next,
     previous,
@@ -66,9 +65,9 @@ export function TheaterOverlay() {
 
   const midY = rect.top + rect.height / 2;
 
-  // Immersive chrome: revealed by intent, auto-hidden while playing.
   const [chromeVisible, setChromeVisible] = useState(false);
   const pinnedRef = useRef(false);
+  const openedAtRef = useRef(0);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearHideTimer = useCallback(() => {
@@ -80,17 +79,11 @@ export function TheaterOverlay() {
 
   const scheduleHide = useCallback(() => {
     clearHideTimer();
-    // Stay up while paused/ended, or while the pointer is over chrome.
-    if (pinnedRef.current || phase !== "playing") return;
+    if (pinnedRef.current) return;
     hideTimerRef.current = setTimeout(() => {
       if (!pinnedRef.current) setChromeVisible(false);
     }, HIDE_AFTER_MS);
-  }, [clearHideTimer, phase]);
-
-  const revealChrome = useCallback(() => {
-    setChromeVisible(true);
-    scheduleHide();
-  }, [scheduleHide]);
+  }, [clearHideTimer]);
 
   // Reset to immersive whenever theater opens.
   useEffect(() => {
@@ -102,41 +95,29 @@ export function TheaterOverlay() {
     }
     setChromeVisible(false);
     pinnedRef.current = false;
+    openedAtRef.current = Date.now();
     clearHideTimer();
   }, [open, clearHideTimer]);
 
-  // Re-evaluate auto-hide when playback phase changes (e.g. pause → keep up).
+  // Keyboard is an intentional reveal (←/→ also useful once chrome is up).
   useEffect(() => {
     if (!open) return;
-    if (phase !== "playing") {
-      clearHideTimer();
-      // If the user already revealed chrome, keep it for browsing.
-      return;
-    }
-    if (chromeVisible) scheduleHide();
-  }, [phase, open, chromeVisible, scheduleHide, clearHideTimer]);
-
-  // Global intent: move / key / click near the stage reveals chrome.
-  useEffect(() => {
-    if (!open) return;
-
-    const onPointerMove = () => revealChrome();
     const onKeyDown = (e: KeyboardEvent) => {
-      // Esc is handled by the dock / provider elsewhere; any other key is intent.
       if (e.key === "Escape") return;
-      revealChrome();
+      pinnedRef.current = false;
+      setChromeVisible(true);
+      scheduleHide();
     };
-
-    window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("keydown", onKeyDown);
     return () => {
-      window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("keydown", onKeyDown);
       clearHideTimer();
     };
-  }, [open, revealChrome, clearHideTimer]);
+  }, [open, scheduleHide, clearHideTimer]);
 
   const pinChrome = useCallback(() => {
+    // Opening click / cursor still in the margin for a beat — don't flash.
+    if (Date.now() - openedAtRef.current < OPEN_GRACE_MS) return;
     pinnedRef.current = true;
     clearHideTimer();
     setChromeVisible(true);
@@ -163,8 +144,8 @@ export function TheaterOverlay() {
             role="presentation"
           />
 
-          {/* Invisible edge hit-zones — hovering the margins is an intent to
-              reach toolbar / arrows / playlist without requiring a prior move. */}
+          {/* Margin hit-zones — the only pointer path to reveal chrome.
+              Hovering the video itself (iframe) does not show UI. */}
           <div
             aria-hidden
             className="fixed z-[10004]"
@@ -212,7 +193,6 @@ export function TheaterOverlay() {
           <AnimatePresence>
             {chromeVisible && (
               <>
-                {/* Top bar — album switcher + clustered window controls. */}
                 <motion.div
                   key="topbar"
                   className="fixed z-[10005] flex items-end justify-between gap-4"
@@ -233,6 +213,7 @@ export function TheaterOverlay() {
                     albums={albums}
                     activeIndex={albumIndex}
                     onSelect={selectAlbum}
+                    tone="onDark"
                   />
                   <div className={GLASS_ON_DARK_CLUSTER}>
                     {track?.url && (
@@ -266,7 +247,6 @@ export function TheaterOverlay() {
                   </div>
                 </motion.div>
 
-                {/* Prev / next — frosted orbs with wider gutters. */}
                 {hasPrev && (
                   <motion.button
                     key="prev"
@@ -302,7 +282,6 @@ export function TheaterOverlay() {
                   </motion.button>
                 )}
 
-                {/* Title + playlist — same left/width as the stage. */}
                 <motion.div
                   key="bottom"
                   className="fixed z-[10005]"
