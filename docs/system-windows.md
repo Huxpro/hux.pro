@@ -238,13 +238,15 @@ Verified: after the fix a fresh `x-view` in the shadow root computes
 
 Three ways in, all routing through `useWindows()`:
 
-- **Shelf.** `components/home/app-shelf.tsx` icons stay real anchors to each
+- **Folder.** `components/apps/app-folder.tsx` icons stay real anchors to each
   app's `url`, so ⌘/middle-click still opens the site in a new tab. A plain
   left-click is intercepted (`openApp`) to open the window instead —
-  progressive enhancement that composes with the shelf's drag-to-reorder.
-- **Command palette.** An "Apps" group in ⌘K (`systems/command/palette.tsx`),
-  placed after Writing (low priority, like blog posts) and searchable by
-  title / runtime / flavor. Plus a "Load Lynx bundle from URL…" action.
+  progressive enhancement that composes with the folder's drag-to-reorder and
+  snap-paged overflow.
+- **Command palette.** Spotlight-style Apps strip in ⌘K
+  (`systems/command/apps-launcher.tsx`): a headerless horizontal icon row
+  (same for browse + search; hidden when nothing matches). **Load…** opens an
+  in-palette glass form (URL only) instead of `window.prompt`.
 - **Over-the-air.** `openBundleUrl(url)` opens an ad-hoc Lynx window for any
   `.web.bundle` URL. Reachable from the palette action above and from the
   DevTool.

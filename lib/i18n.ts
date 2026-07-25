@@ -123,9 +123,15 @@ export const translations = {
     careerTitle: "Projects",
     careerSubtitle: "A narrative of roles, challenges, and growth.",
 
-    // Apps (window launcher)
+    // Apps (window launcher / Spotlight)
     appsGroup: "Apps",
     appsLoadBundle: "Load Lynx bundle from URL…",
+    appsLoadBundleTitle: "Open a Lynx bundle",
+    appsLoadBundleHint: "Loads any Lynx for Web bundle from the internet",
+    appsLoadBundlePlaceholder: "https://…/main.web.bundle",
+    appsLoadBundleOpen: "Open",
+    appsLoadBundleInvalid: "That doesn’t look like a bundle URL",
+    appsLoadBundleOverTheAir: "over the air",
 
     // Blog/Prose (Writing page)
     writingTitle: "Writing",
@@ -293,6 +299,12 @@ export const translations = {
     // Apps (window launcher)
     appsGroup: "应用",
     appsLoadBundle: "从 URL 加载 Lynx 包…",
+    appsLoadBundleTitle: "打开 Lynx 包",
+    appsLoadBundleHint: "从互联网加载任意 Lynx for Web 包",
+    appsLoadBundlePlaceholder: "https://…/main.web.bundle",
+    appsLoadBundleOpen: "打开",
+    appsLoadBundleInvalid: "这不太像是一个有效的包地址",
+    appsLoadBundleOverTheAir: "空中下载",
 
     // Blog/Prose (Writing page)
     writingTitle: "文字",

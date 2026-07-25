@@ -1,6 +1,8 @@
 # Command System
 
-The command system provides **keyboard-first navigation** through a modal command palette, inspired by tools like Raycast and VS Code.
+The command system provides **keyboard-first navigation** through a modal
+command palette, inspired by macOS Spotlight, Raycast, and VS Code. It is
+dual-purpose: a universal search **and** an **app launcher**.
 
 ## Overview
 
@@ -8,6 +10,8 @@ The command system provides **keyboard-first navigation** through a modal comman
 systems/command/
 ├── provider.tsx       # CommandProvider with keyboard shortcuts
 ├── palette.tsx        # Command palette UI (cmdk-based)
+├── apps-launcher.tsx  # Spotlight-style horizontal Apps strip
+├── load-bundle-panel.tsx  # System UI OTA Lynx bundle form
 ├── fab.tsx            # Floating action button trigger
 └── index.ts           # Barrel exports
 ```
@@ -16,8 +20,19 @@ systems/command/
 
 ### Dual Modes
 
-1. **Search Mode**: Fuzzy search across navigation, settings, and content
+1. **Search Mode**: Fuzzy search across navigation, settings, content, and apps
 2. **Slash Commands**: Single-key shortcuts for quick actions
+
+### App launcher (Spotlight-style)
+
+When the Window system is mounted, ⌘K also launches apps from
+`content/apps.json` via a headerless **horizontal icon strip**
+(`systems/command/apps-launcher.tsx`):
+
+- Same presentation for browse and search — cmdk filters icons in place
+- Strip scrolls horizontally when the catalog overflows
+- Group hides entirely when no app matches the query
+- Real snapshot tiles via shared `AppTile`
 
 ### Keyboard Shortcuts
 
@@ -55,7 +70,8 @@ The main palette component using [cmdk](https://cmdk.paco.me/):
 Features:
 - Search across all navigation targets
 - Settings quick actions
-- Blog posts and talks search
+- Blog posts search
+- Apps launcher with real app icons (grid + list)
 - Bilingual search (EN/中文 keywords)
 
 ### FloatingActionButton
@@ -82,19 +98,16 @@ const {
   toggle,
   setSlashCommandsMode,
 } = useCommand();
-
-// Legacy alias also available
-const { ... } = useCommandPalette();
 ```
 
 ## Searchable Content
 
 The palette searches across:
 
-1. **Navigation**: Home, Writing, Works, Docs
-2. **Settings**: Appearance, Language, Location, Gradient, Devtool
-3. **Blog Posts**: Title, description, tags (both languages)
-4. **Talks**: Title, event, description
+1. **Apps**: Horizontal icon strip (filtered in place; hidden when no match)
+2. **Navigation**: Home, Writing, Works, Docs
+3. **Settings**: Appearance, Language, Location, Gradient, Music, Devtool
+4. **Blog Posts**: Title, description, tags (both languages)
 
 ## iOS Compatibility
 
