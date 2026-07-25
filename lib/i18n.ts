@@ -126,11 +126,11 @@ export const translations = {
     // Apps (window launcher / Spotlight)
     appsGroup: "Apps",
     appsLoadBundle: "Load Lynx bundle from URL…",
-    appsLoadBundleTitle: "Load Lynx bundle",
-    appsLoadBundleHint: "Paste a .web.bundle URL to open over the air",
+    appsLoadBundleTitle: "Open a Lynx bundle",
+    appsLoadBundleHint: "Paste a link — we’ll open it in a window",
+    appsLoadBundlePlaceholder: "https://…/main.web.bundle",
     appsLoadBundleOpen: "Open",
-    appsLoadBundleCancel: "Cancel",
-    appsLoadBundleInvalid: "Enter an http(s) URL or a /local path",
+    appsLoadBundleInvalid: "That doesn’t look like a bundle URL",
 
     // Blog/Prose (Writing page)
     writingTitle: "Writing",
@@ -298,11 +298,11 @@ export const translations = {
     // Apps (window launcher)
     appsGroup: "应用",
     appsLoadBundle: "从 URL 加载 Lynx 包…",
-    appsLoadBundleTitle: "加载 Lynx 包",
-    appsLoadBundleHint: "粘贴 .web.bundle 地址，以 OTA 方式打开",
+    appsLoadBundleTitle: "打开 Lynx 包",
+    appsLoadBundleHint: "粘贴链接，我们会在窗口里打开它",
+    appsLoadBundlePlaceholder: "https://…/main.web.bundle",
     appsLoadBundleOpen: "打开",
-    appsLoadBundleCancel: "取消",
-    appsLoadBundleInvalid: "请输入 http(s) 地址或 /本地路径",
+    appsLoadBundleInvalid: "这不太像是一个有效的包地址",
 
     // Blog/Prose (Writing page)
     writingTitle: "文字",

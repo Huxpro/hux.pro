@@ -3,16 +3,14 @@
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { useOptionalWindows } from "@/systems/windows";
-import { Link2, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 // =============================================================================
-// LoadBundlePanel — System UI form for OTA Lynx bundles
+// LoadBundlePanel — inviting OTA Lynx open form inside ⌘K chrome
 //
-// Lives inside the command-palette chrome (same glass surface as search /
-// slash). The only input is the bundle URL — title is derived from the path,
-// and React/Vue flavour is a property of the bundle itself (authored in
-// apps.json for known apps), not something the loader chooses.
+// One field (the bundle URL), one action (Open), one way out (← / Esc).
+// Title is derived from the path; flavour belongs to the bundle.
 // =============================================================================
 
 function isPlausibleBundleUrl(value: string): boolean {
@@ -22,7 +20,6 @@ function isPlausibleBundleUrl(value: string): boolean {
     const u = new URL(v);
     return u.protocol === "http:" || u.protocol === "https:";
   } catch {
-    // Allow site-local paths (/…/main.web.bundle) for built-in bundles.
     return v.startsWith("/");
   }
 }
@@ -57,14 +54,13 @@ export function LoadBundlePanel({
   };
 
   return (
-    <div className="p-3 sm:p-4">
-      {/* Header — back + title, mirrors slash-mode chrome density */}
-      <div className="mb-3 flex items-center gap-2 px-1">
+    <div className="px-3 pb-3 pt-3 sm:px-4 sm:pb-4">
+      <div className="mb-4 flex items-start gap-2">
         <button
           type="button"
           onClick={onBack}
           className={cn(
-            "inline-flex h-8 w-8 items-center justify-center rounded-lg",
+            "mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
             "text-muted-foreground transition-colors",
             "hover:bg-accent/40 hover:text-foreground",
           )}
@@ -72,22 +68,25 @@ export function LoadBundlePanel({
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium text-foreground">
+        <div className="min-w-0 pt-1">
+          <div className="text-sm font-medium text-foreground">
             {t(locale, "appsLoadBundleTitle")}
           </div>
-          <div className="truncate text-[11px] text-muted-foreground">
+          <div className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
             {t(locale, "appsLoadBundleHint")}
           </div>
         </div>
       </div>
 
-      {/* URL field — mono, glass inset; the only loader input */}
-      <label className="block px-1">
-        <span className="mb-1.5 block text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-          URL
-        </span>
+      {/* Invite: one paste field + Open, same glass inset language as ⌘K */}
+      <div
+        className={cn(
+          "flex items-stretch gap-2 rounded-2xl border bg-muted/30 p-1.5 pl-3",
+          "transition-colors focus-within:border-border focus-within:bg-muted/45",
+          "focus-within:ring-1 focus-within:ring-ring/40",
+          showError ? "border-destructive/50" : "border-border/60",
+        )}
+      >
         <input
           ref={inputRef}
           value={url}
@@ -104,63 +103,39 @@ export function LoadBundlePanel({
               onBack();
             }
           }}
-          placeholder="https://…/main.web.bundle"
+          placeholder={t(locale, "appsLoadBundlePlaceholder")}
           spellCheck={false}
           autoCapitalize="off"
           autoCorrect="off"
+          aria-invalid={showError}
           className={cn(
-            "w-full rounded-xl border bg-muted/30 px-3 py-2.5",
+            "min-w-0 flex-1 bg-transparent py-2",
             "font-mono text-[13px] text-foreground",
-            "placeholder:text-muted-foreground/50",
-            "outline-none transition-colors",
-            "focus:border-border focus:bg-muted/45 focus:ring-1 focus:ring-ring/40",
-            showError
-              ? "border-destructive/50"
-              : "border-border/60",
+            "placeholder:font-sans placeholder:text-muted-foreground/55",
+            "outline-none",
           )}
         />
-        {showError && (
-          <span className="mt-1.5 block text-[11px] text-destructive/90">
-            {t(locale, "appsLoadBundleInvalid")}
-          </span>
-        )}
-      </label>
-
-      {/* Actions */}
-      <div className="mt-5 flex items-center justify-between gap-3 px-1">
-        <span className="text-[11px] text-muted-foreground">
-          <kbd className="mr-1 rounded bg-muted/50 px-1.5 py-0.5 font-mono text-[10px]">
-            ↵
-          </kbd>
-          {t(locale, "select")}
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onBack}
-            className={cn(
-              "rounded-xl px-3 py-2 text-sm text-muted-foreground",
-              "transition-colors hover:bg-accent/30 hover:text-foreground",
-            )}
-          >
-            {t(locale, "appsLoadBundleCancel")}
-          </button>
-          <button
-            type="button"
-            onClick={submit}
-            disabled={!valid}
-            className={cn(
-              "rounded-xl px-4 py-2 text-sm font-medium",
-              "border border-border/60 bg-foreground text-background",
-              "transition-opacity",
-              "disabled:cursor-not-allowed disabled:opacity-35",
-              "hover:opacity-90 active:opacity-80",
-            )}
-          >
-            {t(locale, "appsLoadBundleOpen")}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!valid}
+          className={cn(
+            "shrink-0 rounded-xl px-3.5 text-sm font-medium",
+            "bg-foreground text-background",
+            "transition-opacity",
+            "disabled:cursor-not-allowed disabled:opacity-30",
+            "hover:opacity-90 active:opacity-80",
+          )}
+        >
+          {t(locale, "appsLoadBundleOpen")}
+        </button>
       </div>
+
+      {showError && (
+        <p className="mt-2 px-1 text-[11px] text-destructive/90">
+          {t(locale, "appsLoadBundleInvalid")}
+        </p>
+      )}
     </div>
   );
 }
