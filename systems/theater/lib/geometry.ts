@@ -49,10 +49,15 @@ export const THEATER_SIDE = 80; // prev / next arrow gutters
 const THEATER_MARGIN = 16;
 
 /**
- * A contained, floating video — deliberately kept to ~62vh / ~74vw (smaller
- * than an edge-to-edge takeover, echoing PR #71's floating lightbox feel) and
- * centered within the band left between the top bar and the bottom rail, so the
- * surrounding chrome has room to sit around it rather than over it.
+ * Adaptive stage size for theater mode.
+ *
+ * Fit the largest 16:9 rect that still leaves chrome margins free, then cap
+ * so it stays a floating lightbox (not edge-to-edge):
+ *   - width  ≤ min(viewport − side gutters, 76vw)
+ *   - height ≤ min(viewport − top/bottom chrome, 66vh)
+ * Centered in the band between the top bar and the playlist rail. Top bar,
+ * side arrows, and the playlist all read this same `rect`, so they stay
+ * edge-aligned as the viewport changes.
  */
 export function theaterRect(vp: Viewport): StageRect {
   const maxWidth = Math.min(

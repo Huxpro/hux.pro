@@ -153,45 +153,47 @@ export function TheaterOverlay() {
             </motion.button>
           )}
 
-          {/* Title + playlist rail BELOW the video. */}
+          {/* Title + playlist rail BELOW the video — same left/width as the
+              stage (and top bar), so adaptive video width never drifts from
+              the chrome beneath it. */}
           <motion.div
             key="bottom"
-            className="fixed inset-x-0 z-[10005]"
-            style={{ top: rect.top + rect.height + 24 }}
+            className="fixed z-[10005]"
+            style={{
+              left: rect.left,
+              width: rect.width,
+              top: rect.top + rect.height + 24,
+            }}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={{ ...FADE, delay: 0.03 }}
           >
-            <div
-              className="mx-auto px-2"
-              style={{ width: Math.min(rect.width + 120, 960) }}
-            >
-              {track && (
-                <div className="mb-3 flex items-baseline justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-white">
-                      {track.title}
-                    </div>
-                    {track.subtitle && (
-                      <div className="truncate text-xs font-mono uppercase tracking-wide text-white/50">
-                        {track.subtitle}
-                      </div>
-                    )}
+            {track && (
+              <div className="mb-3 flex items-baseline justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-white">
+                    {track.title}
                   </div>
-                  {track.href && (
-                    <Link
-                      href={track.href}
-                      onClick={close}
-                      className="shrink-0 text-xs font-mono uppercase tracking-wide text-white/50 hover:text-white transition-colors"
-                    >
-                      /works →
-                    </Link>
+                  {track.subtitle && (
+                    <div className="truncate text-xs font-mono uppercase tracking-wide text-white/50">
+                      {track.subtitle}
+                    </div>
                   )}
                 </div>
-              )}
-              <PlaylistRail tone="onDark" className="gap-4" />
-            </div>
+                {track.href && (
+                  <Link
+                    href={track.href}
+                    onClick={close}
+                    className="shrink-0 text-xs font-mono uppercase tracking-wide text-white/50 hover:text-white transition-colors"
+                  >
+                    /works →
+                  </Link>
+                )}
+              </div>
+            )}
+            {/* px-0: rail must share the stage edge; thumbs scroll inside. */}
+            <PlaylistRail tone="onDark" className="gap-4 px-0" />
           </motion.div>
         </>
       )}
