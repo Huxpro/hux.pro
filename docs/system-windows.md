@@ -246,7 +246,7 @@ Three ways in, all routing through `useWindows()`:
 - **Command palette.** Spotlight-style Apps strip in ⌘K
   (`systems/command/apps-launcher.tsx`): a headerless horizontal icon row
   (same for browse + search; hidden when nothing matches). **Load…** opens an
-  in-palette glass form (URL + React/Vue flavour) instead of `window.prompt`.
+  in-palette glass form (URL only) instead of `window.prompt`.
 - **Over-the-air.** `openBundleUrl(url)` opens an ad-hoc Lynx window for any
   `.web.bundle` URL. Reachable from the palette action above and from the
   DevTool.

@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { useOptionalWindows } from "@/systems/windows";
-import type { AppFlavor } from "@/lib/app-icon-core";
 import { Link2, ArrowLeft } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -11,8 +10,9 @@ import { useEffect, useRef, useState } from "react";
 // LoadBundlePanel — System UI form for OTA Lynx bundles
 //
 // Lives inside the command-palette chrome (same glass surface as search /
-// slash). Replaces window.prompt with a mono URL field + flavour chips that
-// match the runtime badge language on app tiles.
+// slash). The only input is the bundle URL — title is derived from the path,
+// and React/Vue flavour is a property of the bundle itself (authored in
+// apps.json for known apps), not something the loader chooses.
 // =============================================================================
 
 function isPlausibleBundleUrl(value: string): boolean {
@@ -38,7 +38,6 @@ export function LoadBundlePanel({
   const windows = useOptionalWindows();
   const inputRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState("");
-  const [flavor, setFlavor] = useState<AppFlavor>("react");
   const [touched, setTouched] = useState(false);
 
   useEffect(() => {
@@ -53,7 +52,7 @@ export function LoadBundlePanel({
     setTouched(true);
     const trimmed = url.trim();
     if (!windows || !isPlausibleBundleUrl(trimmed)) return;
-    windows.openBundleUrl(trimmed, { flavor });
+    windows.openBundleUrl(trimmed);
     onLoaded();
   };
 
@@ -84,7 +83,7 @@ export function LoadBundlePanel({
         </div>
       </div>
 
-      {/* URL field — mono, glass inset */}
+      {/* URL field — mono, glass inset; the only loader input */}
       <label className="block px-1">
         <span className="mb-1.5 block text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
           URL
@@ -127,33 +126,6 @@ export function LoadBundlePanel({
         )}
       </label>
 
-      {/* Flavour — same React-blue / Vue-green language as AppBadge */}
-      <div className="mt-4 px-1">
-        <div className="mb-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-          {t(locale, "appsLoadBundleFlavor")}
-        </div>
-        <div
-          className={cn(
-            "inline-flex rounded-xl border border-border/50 bg-muted/25 p-0.5",
-          )}
-          role="group"
-          aria-label={t(locale, "appsLoadBundleFlavor")}
-        >
-          <FlavorChip
-            active={flavor === "react"}
-            onClick={() => setFlavor("react")}
-            activeClass="bg-[#149eca] text-white"
-            label="React"
-          />
-          <FlavorChip
-            active={flavor === "vue"}
-            onClick={() => setFlavor("vue")}
-            activeClass="bg-[#42b883] text-white"
-            label="Vue"
-          />
-        </div>
-      </div>
-
       {/* Actions */}
       <div className="mt-5 flex items-center justify-between gap-3 px-1">
         <span className="text-[11px] text-muted-foreground">
@@ -190,33 +162,5 @@ export function LoadBundlePanel({
         </div>
       </div>
     </div>
-  );
-}
-
-function FlavorChip({
-  active,
-  onClick,
-  activeClass,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  activeClass: string;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "rounded-[10px] px-3 py-1.5 text-xs font-medium transition-colors",
-        active
-          ? activeClass
-          : "text-muted-foreground hover:text-foreground",
-      )}
-    >
-      {label}
-    </button>
   );
 }
