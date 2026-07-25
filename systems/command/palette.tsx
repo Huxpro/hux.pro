@@ -1,7 +1,5 @@
 "use client";
 
-import appsJson from "@/content/apps.json";
-import { runtimeLabel, type AppLink } from "@/lib/app-icon-core";
 import { getLocalizedDescription, getLocalizedTitle, getPostHref } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -12,14 +10,12 @@ import { useMusic } from "@/systems/music";
 import { useOptionalWindows } from "@/systems/windows";
 import { Command } from "cmdk";
 import {
-  AppWindow,
   Bug,
   FileText,
   GitCommit,
   Hash,
   Home,
   Languages,
-  Link2,
   MapPin,
   Monitor,
   Moon,
@@ -34,11 +30,13 @@ import { useTransitionRouter } from "next-view-transitions";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
+import { CommandAppsStrip } from "./apps-launcher";
+import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
 
 export function CommandPalette() {
   const drag = useDraggable("command-palette");
-  const { isOpen, isSlashCommandsMode, close, setSlashCommandsMode } =
+  const { isOpen, isSlashCommandsMode, isLoadBundleMode, close, setSlashCommandsMode, setLoadBundleMode } =
     useCommand();
   const { theme, preference, setThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
@@ -53,7 +51,6 @@ export function CommandPalette() {
     pause: musicPause,
   } = useMusic();
   const windows = useOptionalWindows();
-  const apps = (appsJson as { apps: AppLink[] }).apps;
   const router = useTransitionRouter();
 
   // Reset drag position on reopen (when persist is off, the hook handles the logic)
@@ -263,7 +260,7 @@ export function CommandPalette() {
   ];
 
   useEffect(() => {
-    if (!isOpen || !isSlashCommandsMode) return;
+    if (!isOpen || !isSlashCommandsMode || isLoadBundleMode) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Backspace") {
@@ -342,6 +339,7 @@ export function CommandPalette() {
   }, [
     isOpen,
     isSlashCommandsMode,
+    isLoadBundleMode,
     setSlashCommandsMode,
     handleNavigation,
     preference,
@@ -466,14 +464,22 @@ export function CommandPalette() {
           "shadow-overlay",
           "outline-none",
           "animate-in fade-in-0 zoom-in-95 duration-200",
-          isSlashCommandsMode ? "w-full max-w-[400px]" : "w-full max-w-[700px]",
+          isLoadBundleMode
+            ? "w-full max-w-[440px]"
+            : isSlashCommandsMode
+            ? "w-full max-w-[400px]"
+            : "w-full max-w-[700px]",
           "[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider"
         )}
         loop
-        shouldFilter={!isSlashCommandsMode}
+        shouldFilter={!isSlashCommandsMode && !isLoadBundleMode}
       >
+        {/* Search / slash header — collapsed in load-bundle mode (panel owns chrome). */}
         <div
-          className="border-b border-border/50"
+          className={cn(
+            "border-b border-border/50",
+            isLoadBundleMode && "hidden",
+          )}
           data-drag-handle
           style={drag.isEnabled ? { touchAction: "none" } : undefined}
         >
@@ -533,10 +539,29 @@ export function CommandPalette() {
         </div>
 
         <div className="relative">
+          {/* Load-bundle form — System UI panel inside the same glass shell */}
           <div
             className={cn(
               "grid transition-all duration-300 ease-out",
-              isSlashCommandsMode
+              isLoadBundleMode
+                ? "grid-rows-[1fr] opacity-100"
+                : "grid-rows-[0fr] opacity-0 pointer-events-none",
+            )}
+          >
+            <div className="overflow-hidden min-h-0" data-drag-handle>
+              {isLoadBundleMode && (
+                <LoadBundlePanel
+                  onBack={() => setLoadBundleMode(false)}
+                  onLoaded={close}
+                />
+              )}
+            </div>
+          </div>
+
+          <div
+            className={cn(
+              "grid transition-all duration-300 ease-out",
+              isSlashCommandsMode || isLoadBundleMode
                 ? "grid-rows-[0fr] opacity-0 pointer-events-none"
                 : "grid-rows-[1fr] opacity-100"
             )}
@@ -546,6 +571,10 @@ export function CommandPalette() {
                 <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
                   {t(locale, "noResults")}
                 </Command.Empty>
+
+                {/* Dual-purpose Spotlight: horizontal Apps strip (same UI for
+                    browse + search; cmdk hides the group when nothing matches). */}
+                {windows && <CommandAppsStrip onLaunch={close} />}
 
                 <Command.Group heading={t(locale, "navigation")}>
                   <Command.Item
@@ -894,57 +923,6 @@ export function CommandPalette() {
                   ))}
                 </Command.Group>
 
-                {windows && (
-                  <Command.Group heading={t(locale, "appsGroup")}>
-                    {apps.map((app) => {
-                      const kind = runtimeLabel(app);
-                      return (
-                        <Command.Item
-                          key={`app-${app.id}`}
-                          value={`app-${app.id}`}
-                          keywords={[app.title, app.id, "app", kind, app.runtime ?? "web"]}
-                          onSelect={() => {
-                            windows.openApp(app);
-                            close();
-                          }}
-                          className={cn(
-                            "flex items-center gap-3 px-3 py-2.5 rounded-lg",
-                            "text-sm cursor-pointer transition-colors",
-                            "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
-                            "hover:bg-accent/25"
-                          )}
-                        >
-                          <AppWindow className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="flex-1 truncate">{app.title}</span>
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground shrink-0">
-                            {kind}
-                          </span>
-                        </Command.Item>
-                      );
-                    })}
-                    <Command.Item
-                      key="app-load-bundle"
-                      value="app-load-bundle"
-                      keywords={["lynx", "bundle", "url", "over the air", "ota", "load"]}
-                      onSelect={() => {
-                        const url = window.prompt(
-                          "Lynx .web.bundle URL (over-the-air)",
-                        );
-                        if (url) windows.openBundleUrl(url.trim());
-                        close();
-                      }}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg",
-                        "text-sm cursor-pointer transition-colors",
-                        "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
-                        "hover:bg-accent/25"
-                      )}
-                    >
-                      <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span className="flex-1">{t(locale, "appsLoadBundle")}</span>
-                    </Command.Item>
-                  </Command.Group>
-                )}
               </Command.List>
             </div>
           </div>
@@ -952,7 +930,7 @@ export function CommandPalette() {
           <div
             className={cn(
               "grid transition-all duration-300 ease-out",
-              isSlashCommandsMode
+              isSlashCommandsMode && !isLoadBundleMode
                 ? "grid-rows-[1fr] opacity-100"
                 : "grid-rows-[0fr] opacity-0 pointer-events-none"
             )}
@@ -999,12 +977,17 @@ export function CommandPalette() {
         <div className="border-t border-border/50 text-xs text-muted-foreground">
           <div
             className="grid transition-all duration-300 ease-out"
-            style={{ gridTemplateRows: isSlashCommandsMode ? "0fr" : "1fr" }}
+            style={{
+              gridTemplateRows:
+                isSlashCommandsMode || isLoadBundleMode ? "0fr" : "1fr",
+            }}
           >
             <div className="overflow-hidden">
               <div
                 className="flex items-center justify-between px-4 py-2 transition-opacity duration-300 ease-out"
-                style={{ opacity: isSlashCommandsMode ? 0 : 1 }}
+                style={{
+                  opacity: isSlashCommandsMode || isLoadBundleMode ? 0 : 1,
+                }}
               >
                 <div className="flex items-center gap-4">
                   <span className="flex items-center gap-1 font-sans">
@@ -1039,12 +1022,17 @@ export function CommandPalette() {
           </div>
           <div
             className="grid transition-all duration-300 ease-out"
-            style={{ gridTemplateRows: isSlashCommandsMode ? "1fr" : "0fr" }}
+            style={{
+              gridTemplateRows:
+                isSlashCommandsMode && !isLoadBundleMode ? "1fr" : "0fr",
+            }}
           >
             <div className="overflow-hidden">
               <div
                 className="flex items-center justify-between px-4 py-2 transition-opacity duration-300 ease-out"
-                style={{ opacity: isSlashCommandsMode ? 1 : 0 }}
+                style={{
+                  opacity: isSlashCommandsMode && !isLoadBundleMode ? 1 : 0,
+                }}
               >
                 <span className="flex items-center gap-1 font-sans">
                   <kbd className="px-1.5 py-0.5 font-mono bg-muted/50 rounded">
@@ -1055,6 +1043,27 @@ export function CommandPalette() {
                 <kbd className="px-1.5 py-0.5 font-mono bg-muted/50 rounded">
                   /
                 </kbd>
+              </div>
+            </div>
+          </div>
+          <div
+            className="grid transition-all duration-300 ease-out"
+            style={{ gridTemplateRows: isLoadBundleMode ? "1fr" : "0fr" }}
+          >
+            <div className="overflow-hidden">
+              <div
+                className="flex items-center justify-between px-4 py-2 transition-opacity duration-300 ease-out"
+                style={{ opacity: isLoadBundleMode ? 1 : 0 }}
+              >
+                <span className="flex items-center gap-1 font-sans">
+                  <kbd className="px-1.5 py-0.5 font-mono bg-muted/50 rounded">
+                    esc
+                  </kbd>
+                  {t(locale, "backToSearch")}
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  {t(locale, "appsLoadBundleOverTheAir")}
+                </span>
               </div>
             </div>
           </div>
