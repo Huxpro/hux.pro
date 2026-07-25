@@ -117,3 +117,5 @@ Square icons ≥160px render full-bleed *without* the plate.
 - Headerless **horizontal icon strip** (tight fixed pitch; scrolls when needed)
 - Same UI while typing — unmatched apps filter out; empty strip hides the group
 - Real snapshot icons via `AppTile`
+- **Load…** opens an in-palette System UI form (`load-bundle-panel.tsx`) —
+  mono URL field + React/Vue flavour chips — instead of `window.prompt`

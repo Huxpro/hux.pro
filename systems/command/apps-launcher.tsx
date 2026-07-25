@@ -8,6 +8,7 @@ import { useLocale } from "@/services";
 import { useOptionalWindows } from "@/systems/windows";
 import { Command } from "cmdk";
 import { Link2 } from "lucide-react";
+import { useCommand } from "./provider";
 
 // =============================================================================
 // CommandAppsStrip — Spotlight-style horizontal app launcher
@@ -30,6 +31,7 @@ const itemClass = cn(
 export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
   const windows = useOptionalWindows();
   const { locale } = useLocale();
+  const { openLoadBundle } = useCommand();
   if (!windows || APPS.length === 0) return null;
 
   return (
@@ -79,11 +81,8 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
             "apps",
           ]}
           onSelect={() => {
-            const url = window.prompt(
-              "Lynx .web.bundle URL (over-the-air)",
-            );
-            if (url) windows.openBundleUrl(url.trim());
-            onLaunch();
+            // Stay inside the palette chrome — morph into the Load Bundle panel.
+            openLoadBundle();
           }}
           className={itemClass}
         >

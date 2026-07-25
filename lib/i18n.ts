@@ -126,6 +126,12 @@ export const translations = {
     // Apps (window launcher / Spotlight)
     appsGroup: "Apps",
     appsLoadBundle: "Load Lynx bundle from URL…",
+    appsLoadBundleTitle: "Load Lynx bundle",
+    appsLoadBundleHint: "Paste a .web.bundle URL to open over the air",
+    appsLoadBundleFlavor: "Flavor",
+    appsLoadBundleOpen: "Open",
+    appsLoadBundleCancel: "Cancel",
+    appsLoadBundleInvalid: "Enter an http(s) URL or a /local path",
 
     // Blog/Prose (Writing page)
     writingTitle: "Writing",
@@ -293,6 +299,12 @@ export const translations = {
     // Apps (window launcher)
     appsGroup: "应用",
     appsLoadBundle: "从 URL 加载 Lynx 包…",
+    appsLoadBundleTitle: "加载 Lynx 包",
+    appsLoadBundleHint: "粘贴 .web.bundle 地址，以 OTA 方式打开",
+    appsLoadBundleFlavor: "框架",
+    appsLoadBundleOpen: "打开",
+    appsLoadBundleCancel: "取消",
+    appsLoadBundleInvalid: "请输入 http(s) 地址或 /本地路径",
 
     // Blog/Prose (Writing page)
     writingTitle: "文字",

@@ -11,6 +11,7 @@ systems/command/
 ├── provider.tsx       # CommandProvider with keyboard shortcuts
 ├── palette.tsx        # Command palette UI (cmdk-based)
 ├── apps-launcher.tsx  # Spotlight-style horizontal Apps strip
+├── load-bundle-panel.tsx  # System UI OTA Lynx bundle form
 ├── fab.tsx            # Floating action button trigger
 └── index.ts           # Barrel exports
 ```

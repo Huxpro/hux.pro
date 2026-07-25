@@ -10,10 +10,13 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 interface CommandContextType {
   isOpen: boolean;
   isSlashCommandsMode: boolean;
+  isLoadBundleMode: boolean;
   open: (slashCommandsMode?: boolean) => void;
   close: () => void;
   toggle: () => void;
   setSlashCommandsMode: (mode: boolean) => void;
+  openLoadBundle: () => void;
+  setLoadBundleMode: (mode: boolean) => void;
 }
 
 const CommandContext = createContext<CommandContextType | undefined>(undefined);
@@ -27,22 +30,44 @@ export function useCommand() {
 export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSlashCommandsMode, setIsSlashCommandsMode] = useState(false);
+  const [isLoadBundleMode, setIsLoadBundleMode] = useState(false);
 
   const open = useCallback((slashCommandsMode = false) => {
     setIsOpen(true);
     setIsSlashCommandsMode(slashCommandsMode);
+    setIsLoadBundleMode(false);
   }, []);
 
   const close = useCallback(() => {
     setIsOpen(false);
     setIsSlashCommandsMode(false);
+    setIsLoadBundleMode(false);
   }, []);
 
   const toggle = useCallback(() => {
     setIsOpen((prev) => {
-      if (prev) setIsSlashCommandsMode(false);
+      if (prev) {
+        setIsSlashCommandsMode(false);
+        setIsLoadBundleMode(false);
+      }
       return !prev;
     });
+  }, []);
+
+  const setSlashCommandsMode = useCallback((mode: boolean) => {
+    setIsSlashCommandsMode(mode);
+    if (mode) setIsLoadBundleMode(false);
+  }, []);
+
+  const setLoadBundleMode = useCallback((mode: boolean) => {
+    setIsLoadBundleMode(mode);
+    if (mode) setIsSlashCommandsMode(false);
+  }, []);
+
+  const openLoadBundle = useCallback(() => {
+    setIsOpen(true);
+    setIsSlashCommandsMode(false);
+    setIsLoadBundleMode(true);
   }, []);
 
   // Global Keyboard Shortcuts
@@ -68,8 +93,13 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Escape to close command palette
+      // Escape: load-bundle → back to search; otherwise close
       if (e.key === "Escape" && isOpen) {
+        if (isLoadBundleMode) {
+          e.preventDefault();
+          setIsLoadBundleMode(false);
+          return;
+        }
         close();
         return;
       }
@@ -77,17 +107,20 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, toggle, close, open]);
+  }, [isOpen, isLoadBundleMode, toggle, close, open]);
 
   return (
     <CommandContext.Provider
       value={{
         isOpen,
         isSlashCommandsMode,
+        isLoadBundleMode,
         open,
         close,
         toggle,
-        setSlashCommandsMode: setIsSlashCommandsMode,
+        setSlashCommandsMode,
+        openLoadBundle,
+        setLoadBundleMode,
       }}
     >
       {children}

@@ -31,11 +31,12 @@ import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
 import { CommandAppsStrip } from "./apps-launcher";
+import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
 
 export function CommandPalette() {
   const drag = useDraggable("command-palette");
-  const { isOpen, isSlashCommandsMode, close, setSlashCommandsMode } =
+  const { isOpen, isSlashCommandsMode, isLoadBundleMode, close, setSlashCommandsMode, setLoadBundleMode } =
     useCommand();
   const { theme, preference, setThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
@@ -259,7 +260,7 @@ export function CommandPalette() {
   ];
 
   useEffect(() => {
-    if (!isOpen || !isSlashCommandsMode) return;
+    if (!isOpen || !isSlashCommandsMode || isLoadBundleMode) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Backspace") {
@@ -338,6 +339,7 @@ export function CommandPalette() {
   }, [
     isOpen,
     isSlashCommandsMode,
+    isLoadBundleMode,
     setSlashCommandsMode,
     handleNavigation,
     preference,
@@ -462,14 +464,22 @@ export function CommandPalette() {
           "shadow-overlay",
           "outline-none",
           "animate-in fade-in-0 zoom-in-95 duration-200",
-          isSlashCommandsMode ? "w-full max-w-[400px]" : "w-full max-w-[700px]",
+          isLoadBundleMode
+            ? "w-full max-w-[440px]"
+            : isSlashCommandsMode
+            ? "w-full max-w-[400px]"
+            : "w-full max-w-[700px]",
           "[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider"
         )}
         loop
-        shouldFilter={!isSlashCommandsMode}
+        shouldFilter={!isSlashCommandsMode && !isLoadBundleMode}
       >
+        {/* Search / slash header — collapsed in load-bundle mode (panel owns chrome). */}
         <div
-          className="border-b border-border/50"
+          className={cn(
+            "border-b border-border/50",
+            isLoadBundleMode && "hidden",
+          )}
           data-drag-handle
           style={drag.isEnabled ? { touchAction: "none" } : undefined}
         >
@@ -529,10 +539,29 @@ export function CommandPalette() {
         </div>
 
         <div className="relative">
+          {/* Load-bundle form — System UI panel inside the same glass shell */}
           <div
             className={cn(
               "grid transition-all duration-300 ease-out",
-              isSlashCommandsMode
+              isLoadBundleMode
+                ? "grid-rows-[1fr] opacity-100"
+                : "grid-rows-[0fr] opacity-0 pointer-events-none",
+            )}
+          >
+            <div className="overflow-hidden min-h-0" data-drag-handle>
+              {isLoadBundleMode && (
+                <LoadBundlePanel
+                  onBack={() => setLoadBundleMode(false)}
+                  onLoaded={close}
+                />
+              )}
+            </div>
+          </div>
+
+          <div
+            className={cn(
+              "grid transition-all duration-300 ease-out",
+              isSlashCommandsMode || isLoadBundleMode
                 ? "grid-rows-[0fr] opacity-0 pointer-events-none"
                 : "grid-rows-[1fr] opacity-100"
             )}
@@ -901,7 +930,7 @@ export function CommandPalette() {
           <div
             className={cn(
               "grid transition-all duration-300 ease-out",
-              isSlashCommandsMode
+              isSlashCommandsMode && !isLoadBundleMode
                 ? "grid-rows-[1fr] opacity-100"
                 : "grid-rows-[0fr] opacity-0 pointer-events-none"
             )}
@@ -948,12 +977,17 @@ export function CommandPalette() {
         <div className="border-t border-border/50 text-xs text-muted-foreground">
           <div
             className="grid transition-all duration-300 ease-out"
-            style={{ gridTemplateRows: isSlashCommandsMode ? "0fr" : "1fr" }}
+            style={{
+              gridTemplateRows:
+                isSlashCommandsMode || isLoadBundleMode ? "0fr" : "1fr",
+            }}
           >
             <div className="overflow-hidden">
               <div
                 className="flex items-center justify-between px-4 py-2 transition-opacity duration-300 ease-out"
-                style={{ opacity: isSlashCommandsMode ? 0 : 1 }}
+                style={{
+                  opacity: isSlashCommandsMode || isLoadBundleMode ? 0 : 1,
+                }}
               >
                 <div className="flex items-center gap-4">
                   <span className="flex items-center gap-1 font-sans">
@@ -988,12 +1022,17 @@ export function CommandPalette() {
           </div>
           <div
             className="grid transition-all duration-300 ease-out"
-            style={{ gridTemplateRows: isSlashCommandsMode ? "1fr" : "0fr" }}
+            style={{
+              gridTemplateRows:
+                isSlashCommandsMode && !isLoadBundleMode ? "1fr" : "0fr",
+            }}
           >
             <div className="overflow-hidden">
               <div
                 className="flex items-center justify-between px-4 py-2 transition-opacity duration-300 ease-out"
-                style={{ opacity: isSlashCommandsMode ? 1 : 0 }}
+                style={{
+                  opacity: isSlashCommandsMode && !isLoadBundleMode ? 1 : 0,
+                }}
               >
                 <span className="flex items-center gap-1 font-sans">
                   <kbd className="px-1.5 py-0.5 font-mono bg-muted/50 rounded">
@@ -1004,6 +1043,27 @@ export function CommandPalette() {
                 <kbd className="px-1.5 py-0.5 font-mono bg-muted/50 rounded">
                   /
                 </kbd>
+              </div>
+            </div>
+          </div>
+          <div
+            className="grid transition-all duration-300 ease-out"
+            style={{ gridTemplateRows: isLoadBundleMode ? "1fr" : "0fr" }}
+          >
+            <div className="overflow-hidden">
+              <div
+                className="flex items-center justify-between px-4 py-2 transition-opacity duration-300 ease-out"
+                style={{ opacity: isLoadBundleMode ? 1 : 0 }}
+              >
+                <span className="flex items-center gap-1 font-sans">
+                  <kbd className="px-1.5 py-0.5 font-mono bg-muted/50 rounded">
+                    esc
+                  </kbd>
+                  {t(locale, "backToSearch")}
+                </span>
+                <span className="font-mono text-[10px] uppercase tracking-wider">
+                  OTA
+                </span>
               </div>
             </div>
           </div>

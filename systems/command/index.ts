@@ -10,3 +10,4 @@ export {
   CommandAppsGrid,
   CommandAppsList,
 } from "./apps-launcher";
+export { LoadBundlePanel } from "./load-bundle-panel";
