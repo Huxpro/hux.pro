@@ -22,14 +22,41 @@ import { AppBadgeFor } from "./app-badge";
 
 const ICONS = appIconSnapshot as AppIconSnapshot;
 
+/**
+ * Full-bleed vs padded: square, purpose-drawn app icons fill edge-to-edge;
+ * small/glyph favicons sit on a white plate. Same rule as the homepage shelf —
+ * a plate or stroke behind a dark full-bleed icon reads as a white fringe in
+ * the Live Activity band.
+ */
+function iconFillsTile(entry: AppIconSnapshot[string] | undefined): boolean {
+  if (!entry?.width || !entry?.height) return false;
+  return entry.width === entry.height && entry.width >= 160;
+}
+
 function PillIcon({ win }: { win: WindowInstance }) {
+  const entry = ICONS[win.app.id];
   const src = resolveAppIconSrc(win.app, ICONS);
+  const fills = iconFillsTile(entry);
   return (
     <span className="relative block h-6 w-6 shrink-0">
-      <span className="block h-6 w-6 overflow-hidden rounded-[7px] border border-black/8 bg-white dark:border-white/12">
+      <span
+        className={cn(
+          "block h-6 w-6 overflow-hidden rounded-[7px]",
+          // Glyph icons need a plate so dark marks stay visible; full-bleed
+          // icons bring their own background — no border, no plate.
+          !fills && "bg-white",
+        )}
+      >
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element -- tiny local static asset
-          <img src={src} alt="" className="h-full w-full object-cover" />
+          <img
+            src={src}
+            alt=""
+            className={cn(
+              "h-full w-full",
+              fills ? "object-cover" : "object-contain p-0.5",
+            )}
+          />
         ) : (
           <span className="flex h-full w-full items-center justify-center font-mono text-[10px] text-neutral-400">
             {win.app.title.charAt(0)}
