@@ -29,6 +29,12 @@ interface MusicContextType {
   currentTime: number;
   /** Total track duration in seconds */
   duration: number;
+  /**
+   * True after the user has started playback at least once this session.
+   * Cueing the playlist alone does not set this — used to park the music
+   * Live Activity only once listening has begun.
+   */
+  hasPlayed: boolean;
   isEnabled: boolean;
   setEnabled: (enabled: boolean) => void;
   play: () => void;
@@ -112,6 +118,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [track, setTrack] = useState<MusicTrack | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [hasPlayed, setHasPlayed] = useState(false);
   const playerRef = useRef<YT.Player | null>(null);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const initedRef = useRef(false);
@@ -174,6 +181,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
               const mapped = ytStateToPlayerState(event.data);
               setPlayerState(mapped);
               setTrack(readTrack(player));
+              if (mapped === "playing") setHasPlayed(true);
               // iOS Safari: nextVideo/previousVideo cues but doesn't auto-play.
               // Force playback when the new track is ready after a skip.
               if (pendingSkipRef.current && (mapped === "idle" || mapped === "paused")) {
@@ -226,7 +234,12 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, [playerState]);
 
   // --- Controls ---
-  const play = useCallback(() => playerRef.current?.playVideo(), []);
+  const play = useCallback(() => {
+    // Mark on the user gesture so the Live Activity can appear while the
+    // player is still buffering — not only after YouTube reports PLAYING.
+    setHasPlayed(true);
+    playerRef.current?.playVideo();
+  }, []);
   const pause = useCallback(() => playerRef.current?.pauseVideo(), []);
   const next = useCallback(() => {
     pendingSkipRef.current = true;
@@ -244,6 +257,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         playerState,
         currentTime,
         duration,
+        hasPlayed,
         isEnabled: settings.enabled,
         setEnabled,
         play,
