@@ -13,15 +13,16 @@ import { EQBars, NowPlaying } from "./now-playing";
 //
 // Plugs the music player into the shared Dock: a collapsed pill (album art +
 // EQ) that unfolds into the same <NowPlaying /> card used by the homepage
-// widget. Shown on every route — including the homepage, alongside the grid
-// MusicWidget — so playback stays visible in the Live Activity band. All the
-// pill/panel/scrim/drag mechanics live in <LiveActivity />; this file only
-// supplies music-specific content.
+// widget. Appears only after the user has started playback at least once
+// (`hasPlayed`) — including on the homepage alongside MusicWidget — then stays
+// for the session (playing, paused, or ended). Cueing the playlist alone does
+// not show it. Pill/panel/scrim/drag mechanics live in <LiveActivity />; this
+// file only supplies music-specific content.
 // ---------------------------------------------------------------------------
 
 export function MusicActivity() {
   const { locale } = useLocale();
-  const { track, playerState, isEnabled } = useMusic();
+  const { track, playerState, isEnabled, hasPlayed } = useMusic();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -30,8 +31,8 @@ export function MusicActivity() {
   }, []);
 
   if (!mounted) return null;
-  // No playlist / disabled → nothing to dock.
-  if (!PLAYLIST_ID || !isEnabled) return null;
+  // No playlist / disabled / never played → nothing to dock.
+  if (!PLAYLIST_ID || !isEnabled || !hasPlayed) return null;
 
   const isPlaying = playerState === "playing";
   const isLoading = playerState === "loading";
