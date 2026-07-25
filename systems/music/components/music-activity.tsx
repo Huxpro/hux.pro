@@ -13,25 +13,32 @@ import { EQBars, NowPlaying } from "./now-playing";
 //
 // Plugs the music player into the shared Dock: a collapsed pill (album art +
 // EQ) that unfolds into the same <NowPlaying /> card used by the homepage
-// widget. Shown on every route — including the homepage, alongside the grid
-// MusicWidget — so playback stays visible in the Live Activity band. All the
-// pill/panel/scrim/drag mechanics live in <LiveActivity />; this file only
-// supplies music-specific content.
+// widget. Appears only after the user has started playback at least once —
+// including on the homepage alongside MusicWidget — then stays for the
+// session (playing, paused, or ended). All pill/panel/scrim/drag mechanics
+// live in <LiveActivity />; this file only supplies music-specific content.
 // ---------------------------------------------------------------------------
 
 export function MusicActivity() {
   const { locale } = useLocale();
   const { track, playerState, isEnabled } = useMusic();
   const [mounted, setMounted] = useState(false);
+  // Cueing the playlist sets `track` without playing; wait for real playback
+  // before parking a Live Activity in the dock.
+  const [hasPlayed, setHasPlayed] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (playerState === "playing") setHasPlayed(true);
+  }, [playerState]);
+
   if (!mounted) return null;
-  // No playlist / disabled → nothing to dock.
-  if (!PLAYLIST_ID || !isEnabled) return null;
+  // No playlist / disabled / never played → nothing to dock.
+  if (!PLAYLIST_ID || !isEnabled || !hasPlayed) return null;
 
   const isPlaying = playerState === "playing";
   const isLoading = playerState === "loading";
