@@ -1,8 +1,8 @@
 "use client";
 
-import { SystemNav } from "@/components/ui/system-nav";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
+import { EditorSwitcher } from "../editor-switcher";
 import {
   BAND_LABEL,
   STATUS_META,
@@ -641,7 +641,34 @@ function Playground() {
 }
 
 // ---------------------------------------------------------------------------
-export function SurfaceLabView() {
+// The surface.ts editor — a peer of the log.json / icon.json editors under
+// /editor. It edits the same source of truth `surface()` renders from: the lab
+// reads the sanctioned recipe via glassSpec() (see model.ts), so what it shows
+// is what the primitive ships. Write-back to surface.ts is the next step; for
+// now the canvas is read-only-derived.
+// ---------------------------------------------------------------------------
+export function SurfaceEditor() {
+  return (
+    <div className="flex min-h-dvh flex-col bg-background text-foreground">
+      <div className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-muted/5 px-4">
+        <div className="flex items-center gap-3">
+          <EditorSwitcher current="surface" />
+          <span
+            className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+            title="The sanctioned tiers are derived from surface() via glassSpec(); editing the source is the next step."
+          >
+            derived · read-only
+          </span>
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <SurfaceLabBody />
+      </div>
+    </div>
+  );
+}
+
+function SurfaceLabBody() {
   const [selected, setSelected] = useState("live-panel");
   const [showBands, setShowBands] = useState(true);
   const spec = useMemo(
@@ -650,9 +677,7 @@ export function SurfaceLabView() {
   );
 
   return (
-    <main className="mx-auto max-w-5xl px-6 pt-16 pb-32">
-      <SystemNav href="/" path="λhux" className="mb-10" />
-
+    <main className="mx-auto max-w-5xl px-6 pt-10 pb-32">
       <header className="mb-10">
         <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-3">
           design system · lab

@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
  * ── The recipe as data ──────────────────────────────────────────────────────
  * The invariants below are the machine-readable twin of the class output. Any
  * non-CSS consumer that needs the *numbers* behind a surface (the design lab at
- * /lab/surface plots and renders from them) reads `glassSpec()` rather than
+ * /editor/surface plots and renders from them) reads `glassSpec()` rather than
  * re-transcribing the recipe — so the doc and the primitive can never drift.
  */
 
