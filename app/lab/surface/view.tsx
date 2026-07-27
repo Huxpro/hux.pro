@@ -120,6 +120,7 @@ const NUDGE: Record<string, [number, number]> = {
   "toast-bug": [3.4, -2],
   peek: [4, 0],
   "pip-overlay": [0, 2.5],
+  "glass-capsule": [0, -3],
 };
 
 function plotPos(spec: SurfaceSpec): { x: number; y: number } {
