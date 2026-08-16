@@ -15,6 +15,11 @@ import {
 } from "@/systems/ambient/lib/weather";
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
 import { useOptionalWindows } from "@/systems/windows";
+import { useOptionalMusic } from "@/systems/music/provider";
+import {
+  isMusicMockEnabled,
+  setMusicMockEnabled,
+} from "@/systems/music/lib/mock";
 import appsJson from "@/content/apps.json";
 import type { AppLink } from "@/lib/app-icon-core";
 import {
@@ -53,6 +58,7 @@ import {
   Layers,
   Moon,
   MoonStar,
+  Music,
   RefreshCw,
   Sun,
   SunMedium,
@@ -185,6 +191,7 @@ function DevtoolPanel() {
         <GradientModule />
         <WeatherModule />
         <AmbientTimeModule />
+        <MusicModule />
         <DraggableModule />
         <AppsModule />
         <RefetchModule />
@@ -1063,6 +1070,72 @@ function AmbientTimeModule() {
           <PhaseButton p="evening" icon={<Moon className="h-3.5 w-3.5" />} aria="Set phase to evening" />
           <PhaseButton p="night" icon={<MoonStar className="h-3.5 w-3.5" />} aria="Set phase to night" />
         </div>
+      </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Music Module
+// Inspect the global player state and toggle the offline mock backend
+// (`hux_music_mock` — see systems/music/lib/mock.ts). The provider reads the
+// flag only at init, so flipping it reloads the page.
+// =============================================================================
+
+function MusicModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const music = useOptionalMusic();
+  // Hydration-safe read of the localStorage flag.
+  const [mock, setMock] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: localStorage read
+    setMock(isMusicMockEnabled());
+  }, []);
+
+  const toggleMock = () => {
+    setMusicMockEnabled(!mock);
+    window.location.reload();
+  };
+
+  return (
+    <DebugSection
+      id="music"
+      title={t(locale, "settingsMusic")}
+      icon={<Music className="h-4 w-4" />}
+      compact
+      defaultCollapsed
+      action={
+        mock ? (
+          <span className="text-[10px] font-mono text-amber-500/70 uppercase">
+            mock
+          </span>
+        ) : null
+      }
+    >
+      <div className="space-y-3">
+        <PanelRow label={zh ? "模拟播放器" : "Mock player"}>
+          <PanelToggle on={mock} onClick={toggleMock} label="Toggle music mock" />
+        </PanelRow>
+        <div className="text-[10px] font-mono text-muted-foreground">
+          {zh
+            ? "离线夹具驱动整个音乐系统（无需 YouTube）。切换会重载页面。"
+            : "Offline fixture drives the whole music system (no YouTube). Toggling reloads the page."}
+        </div>
+        {music && (
+          <div className="space-y-1 border-t border-border/30 pt-2 text-[11px] font-mono">
+            <MetaRow k="state" v={music.playerState} />
+            <MetaRow k="track" v={music.track?.title || "—"} />
+            <MetaRow
+              k="playlist"
+              v={
+                music.playlist.length
+                  ? `${music.playlistIndex + 1} / ${music.playlist.length}`
+                  : "—"
+              }
+            />
+          </div>
+        )}
       </div>
     </DebugSection>
   );
