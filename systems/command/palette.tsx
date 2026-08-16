@@ -16,6 +16,7 @@ import {
   Hash,
   Home,
   Languages,
+  ListMusic,
   MapPin,
   Monitor,
   Moon,
@@ -49,6 +50,7 @@ export function CommandPalette() {
     playerState: musicPlayerState,
     play: musicPlay,
     pause: musicPause,
+    openPlaylist: openMusicPlaylist,
   } = useMusic();
   const windows = useOptionalWindows();
   const router = useTransitionRouter();
@@ -241,6 +243,16 @@ export function CommandPalette() {
         } else {
           musicPlay();
         }
+        close();
+      },
+      section: "settings",
+    },
+    {
+      key: "q",
+      label: t(locale, "musicOpenPlaylist"),
+      icon: <ListMusic className="h-4 w-4" />,
+      onSelect: () => {
+        openMusicPlaylist();
         close();
       },
       section: "settings",
@@ -851,6 +863,37 @@ export function CommandPalette() {
                     </span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       M
+                    </kbd>
+                  </Command.Item>
+                  <Command.Item
+                    value="music-playlist"
+                    keywords={[
+                      "playlist",
+                      "music",
+                      "queue",
+                      "browse",
+                      "tracks",
+                      "播放列表",
+                      "歌单",
+                      "音乐",
+                    ]}
+                    onSelect={() => {
+                      openMusicPlaylist();
+                      close();
+                    }}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                      "text-sm cursor-pointer transition-colors",
+                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                      "hover:bg-accent/25"
+                    )}
+                  >
+                    <ListMusic className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1">
+                      {t(locale, "musicOpenPlaylist")}
+                    </span>
+                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                      Q
                     </kbd>
                   </Command.Item>
                   <Command.Item

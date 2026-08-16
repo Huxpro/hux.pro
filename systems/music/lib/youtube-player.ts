@@ -140,6 +140,7 @@ declare global {
       stopVideo(): void;
       nextVideo(): void;
       previousVideo(): void;
+      playVideoAt(index: number): void;
       getPlayerState(): PlayerState;
       getVideoData(): VideoData;
       getCurrentTime(): number;

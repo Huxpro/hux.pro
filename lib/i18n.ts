@@ -94,6 +94,12 @@ export const translations = {
     musicPause: "Pause",
     musicOpenControls: "Open music controls",
     musicCollapse: "Collapse",
+    musicPlaylist: "playlist",
+    musicOpenPlaylist: "Browse playlist",
+    musicClosePlaylist: "Close playlist",
+    musicOpenOnYouTube: "Open on YouTube",
+    musicPlaylistEmpty: "Playlist unavailable",
+    musicTrack: "Track",
     widgetViewAll: "view all",
 
     // Dock / Live Activities
@@ -267,6 +273,12 @@ export const translations = {
     musicPause: "暂停",
     musicOpenControls: "打开音乐控制",
     musicCollapse: "收起",
+    musicPlaylist: "播放列表",
+    musicOpenPlaylist: "浏览播放列表",
+    musicClosePlaylist: "关闭播放列表",
+    musicOpenOnYouTube: "在 YouTube 打开",
+    musicPlaylistEmpty: "播放列表不可用",
+    musicTrack: "曲目",
     widgetViewAll: "查看全部",
 
     // Dock / Live Activities
