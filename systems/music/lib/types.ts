@@ -10,6 +10,18 @@ export type MusicTrack = {
   thumbnailUrl: string;
 };
 
+/**
+ * One entry of the loaded playlist. Video IDs come from the player at
+ * runtime (authoritative order); title/author are resolved lazily from
+ * oEmbed and may be null until (or unless) resolution succeeds.
+ */
+export type PlaylistEntry = {
+  videoId: string;
+  title: string | null;
+  author: string | null;
+  thumbnailUrl: string;
+};
+
 /** Simplified player state for the UI */
 export type PlayerState =
   | "idle" // No player / not initialized

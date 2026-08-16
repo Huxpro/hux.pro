@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { FastForward, Music, Pause, Play, Rewind } from "lucide-react";
+import { FastForward, ListMusic, Music, Pause, Play, Rewind } from "lucide-react";
 import { useState } from "react";
 import { useMusic } from "../provider";
 
@@ -58,6 +58,7 @@ export function NowPlaying() {
     pause,
     next,
     previous,
+    openPlaylist,
   } = useMusic();
 
   const isPlaying = playerState === "playing";
@@ -132,6 +133,13 @@ export function NowPlaying() {
               >
                 <FastForward className="h-3.5 w-3.5" />
               </button>
+              <button
+                onClick={openPlaylist}
+                className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 active:bg-accent/60 transition-colors active:scale-[0.92]"
+                aria-label={t(locale, "musicOpenPlaylist")}
+              >
+                <ListMusic className="h-3.5 w-3.5" />
+              </button>
             </div>
           )}
         </div>
@@ -158,13 +166,22 @@ export function NowPlaying() {
           <div className="text-xs font-mono text-muted-foreground">
             {t(locale, "musicNotPlaying")}
           </div>
-          <button
-            onClick={play}
-            className="self-start -ml-2 -mb-2 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 active:bg-accent/60 transition-colors active:scale-[0.92]"
-            aria-label="Play"
-          >
-            <Play className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1 self-start -ml-2 -mb-2">
+            <button
+              onClick={play}
+              className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 active:bg-accent/60 transition-colors active:scale-[0.92]"
+              aria-label="Play"
+            >
+              <Play className="h-4 w-4" />
+            </button>
+            <button
+              onClick={openPlaylist}
+              className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 active:bg-accent/60 transition-colors active:scale-[0.92]"
+              aria-label={t(locale, "musicOpenPlaylist")}
+            >
+              <ListMusic className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     );

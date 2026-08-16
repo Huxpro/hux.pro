@@ -4,7 +4,7 @@ import { AmbientPhaseActivity, AmbientSurface } from "@/systems/ambient";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
 import { DevtoolFAB } from "@/systems/devtool";
 import { Dock } from "@/systems/dock";
-import { MusicActivity } from "@/systems/music";
+import { MusicActivity, MusicPlaylistSheet } from "@/systems/music";
 import {
   TheaterActivity,
   TheaterRegistrar,
@@ -108,6 +108,7 @@ export default function RootLayout({
               <TheaterActivity />
               <MinimizedWindows />
             </Dock>
+            <MusicPlaylistSheet />
             <TheaterRegistrar />
             <TheaterSurfaces />
             <CommandPalette />

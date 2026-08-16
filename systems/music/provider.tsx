@@ -8,8 +8,19 @@ import {
   useRef,
   useState,
 } from "react";
-import type { MusicTrack, PlayerState } from "./lib/types";
+import type { MusicTrack, PlayerState, PlaylistEntry } from "./lib/types";
 import { loadYouTubeAPI, getYouTubeThumbnail } from "./lib/youtube-player";
+import {
+  cacheTrackMeta,
+  getCachedTrackMeta,
+  normalizeAuthor,
+  resolveTrackMetas,
+} from "./lib/track-meta";
+import {
+  MOCK_DURATION,
+  MOCK_PLAYLIST,
+  isMusicMockEnabled,
+} from "./lib/mock";
 import {
   type MusicSettings,
   PLAYLIST_ID,
@@ -41,6 +52,17 @@ interface MusicContextType {
   pause: () => void;
   next: () => void;
   previous: () => void;
+  // --- Playlist browsing ---
+  /** Ordered playlist entries (empty until the player reports them). */
+  playlist: PlaylistEntry[];
+  /** Index of the current track within `playlist`, -1 when unknown. */
+  playlistIndex: number;
+  /** Jump to (and play) the playlist entry at `index`. */
+  playAt: (index: number) => void;
+  /** Whether the global playlist sheet is open. */
+  isPlaylistOpen: boolean;
+  openPlaylist: () => void;
+  closePlaylist: () => void;
 }
 
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
@@ -80,15 +102,33 @@ function readTrack(player: YT.Player): MusicTrack | null {
   try {
     const data = player.getVideoData();
     if (!data?.video_id) return null;
-    return {
+    const track = {
       videoId: data.video_id,
       title: data.title || "",
-      artist: (data.author || "").replace(/ - Topic$/, ""),
+      artist: normalizeAuthor(data.author || ""),
       thumbnailUrl: getYouTubeThumbnail(data.video_id),
     };
+    // Free metadata: whatever plays gets remembered for the playlist browser.
+    if (track.title) {
+      cacheTrackMeta(track.videoId, { title: track.title, author: track.artist });
+    }
+    return track;
   } catch {
     return null;
   }
+}
+
+/** Map raw playlist video IDs to entries, joining any cached metadata. */
+function toEntries(videoIds: string[]): PlaylistEntry[] {
+  return videoIds.map((videoId) => {
+    const meta = getCachedTrackMeta(videoId);
+    return {
+      videoId,
+      title: meta?.title ?? null,
+      author: meta?.author ?? null,
+      thumbnailUrl: getYouTubeThumbnail(videoId),
+    };
+  });
 }
 
 // =============================================================================
@@ -119,17 +159,68 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [hasPlayed, setHasPlayed] = useState(false);
+  const [playlist, setPlaylist] = useState<PlaylistEntry[]>([]);
+  const [playlistIndex, setPlaylistIndex] = useState(-1);
+  const [isPlaylistOpen, setPlaylistOpen] = useState(false);
   const playerRef = useRef<YT.Player | null>(null);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const initedRef = useRef(false);
   // Track pending skip so we can force playVideo() on iOS Safari
   const pendingSkipRef = useRef(false);
+  // Offline mock mode (dev / headless verification) — see lib/mock.ts.
+  const mockRef = useRef(false);
+  const mockIndexRef = useRef(0);
 
-  // --- Initialize YouTube player ---
+  // --- Playlist sync (real player only) ---
+  // The IFrame API populates getPlaylist() asynchronously after cueing, so
+  // this is safe to call often: it only commits state when something changed.
+  const syncPlaylist = useCallback(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    try {
+      const ids = player.getPlaylist() ?? [];
+      if (ids.length > 0) {
+        setPlaylist((prev) =>
+          prev.length === ids.length &&
+          prev.every((e, i) => e.videoId === ids[i])
+            ? prev
+            : toEntries(ids),
+        );
+      }
+      setPlaylistIndex(player.getPlaylistIndex());
+    } catch {
+      /* player not ready */
+    }
+  }, []);
+
+  // --- Initialize player (or mock) ---
   // The container div is rendered by this provider (always mounted), so the
   // player persists across route changes and audio never stops on navigation.
   useEffect(() => {
     if (!PLAYLIST_ID || initedRef.current) return;
+
+    // Mock mode: skip the IFrame API entirely; drive the same state machine
+    // from a fixture so every music surface works offline. Synchronous
+    // setState is deliberate here — same client-only hydration pattern as
+    // the settings load above (the flag lives in localStorage).
+    if (isMusicMockEnabled()) {
+      initedRef.current = true;
+      mockRef.current = true;
+      const entry = MOCK_PLAYLIST[0];
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setPlaylist(MOCK_PLAYLIST);
+      setPlaylistIndex(0);
+      setTrack({
+        videoId: entry.videoId,
+        title: entry.title ?? "",
+        artist: entry.author ?? "",
+        thumbnailUrl: entry.thumbnailUrl,
+      });
+      setDuration(MOCK_DURATION);
+      setPlayerState("idle");
+      /* eslint-enable react-hooks/set-state-in-effect */
+      return;
+    }
 
     const container = playerContainerRef.current;
     if (!container) return;
@@ -145,6 +236,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     const readyTimeout = setTimeout(() => {
       if (!destroyed && !playerRef.current) setPlayerState("error");
     }, 15_000);
+
+    // getPlaylist() starts returning data some time after cueing — poll
+    // until it lands, then stop.
+    let playlistPoll: ReturnType<typeof setInterval> | null = null;
 
     loadYouTubeAPI()
       .then((YTApi) => {
@@ -175,12 +270,24 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
               // Cue the playlist without auto-playing
               setPlayerState("idle");
               setTrack(readTrack(player));
+              playlistPoll = setInterval(() => {
+                syncPlaylist();
+                try {
+                  if ((player.getPlaylist() ?? []).length > 0 && playlistPoll) {
+                    clearInterval(playlistPoll);
+                    playlistPoll = null;
+                  }
+                } catch {
+                  /* keep polling */
+                }
+              }, 500);
             },
             onStateChange: (event) => {
               if (destroyed) return;
               const mapped = ytStateToPlayerState(event.data);
               setPlayerState(mapped);
               setTrack(readTrack(player));
+              syncPlaylist();
               if (mapped === "playing") setHasPlayed(true);
               // iOS Safari: nextVideo/previousVideo cues but doesn't auto-play.
               // Force playback when the new track is ready after a skip.
@@ -209,15 +316,26 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     return () => {
       destroyed = true;
       clearTimeout(readyTimeout);
+      if (playlistPoll) clearInterval(playlistPoll);
       playerRef.current?.destroy();
       playerRef.current = null;
       initedRef.current = false;
     };
-  }, []);
+  }, [syncPlaylist]);
 
   // --- Progress polling (only while playing) ---
   useEffect(() => {
-    if (playerState !== "playing" || !playerRef.current) return;
+    if (playerState !== "playing") return;
+
+    // Mock: tick a fake clock.
+    if (mockRef.current) {
+      const id = setInterval(() => {
+        setCurrentTime((t) => Math.min(t + 1, MOCK_DURATION));
+      }, 1000);
+      return () => clearInterval(id);
+    }
+
+    if (!playerRef.current) return;
     const poll = () => {
       const p = playerRef.current;
       if (!p) return;
@@ -233,22 +351,97 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(id);
   }, [playerState]);
 
+  // --- Lazy title resolution ---
+  // Only once the playlist browser is opened (never on plain page load) —
+  // resolves missing titles via oEmbed with bounded concurrency, filling
+  // rows in progressively. Results are cached in localStorage, so this
+  // fires real requests at most once per video ever.
+  useEffect(() => {
+    if (!isPlaylistOpen || mockRef.current) return;
+    const missing = playlist.filter((e) => !e.title).map((e) => e.videoId);
+    if (missing.length === 0) return;
+    return resolveTrackMetas(missing, (videoId, meta) => {
+      setPlaylist((prev) =>
+        prev.map((e) =>
+          e.videoId === videoId
+            ? { ...e, title: meta.title, author: meta.author }
+            : e,
+        ),
+      );
+    });
+  }, [isPlaylistOpen, playlist]);
+
   // --- Controls ---
   const play = useCallback(() => {
     // Mark on the user gesture so the Live Activity can appear while the
     // player is still buffering — not only after YouTube reports PLAYING.
     setHasPlayed(true);
+    if (mockRef.current) {
+      setPlayerState("playing");
+      return;
+    }
     playerRef.current?.playVideo();
   }, []);
-  const pause = useCallback(() => playerRef.current?.pauseVideo(), []);
+  const pause = useCallback(() => {
+    if (mockRef.current) {
+      setPlayerState("paused");
+      return;
+    }
+    playerRef.current?.pauseVideo();
+  }, []);
+
+  const mockJumpTo = useCallback((index: number) => {
+    const entry = MOCK_PLAYLIST[index];
+    if (!entry) return;
+    mockIndexRef.current = index;
+    setPlaylistIndex(index);
+    setTrack({
+      videoId: entry.videoId,
+      title: entry.title ?? "",
+      artist: entry.author ?? "",
+      thumbnailUrl: entry.thumbnailUrl,
+    });
+    setCurrentTime(0);
+    setHasPlayed(true);
+    setPlayerState("playing");
+  }, []);
+
   const next = useCallback(() => {
+    if (mockRef.current) {
+      mockJumpTo((mockIndexRef.current + 1) % MOCK_PLAYLIST.length);
+      return;
+    }
     pendingSkipRef.current = true;
     playerRef.current?.nextVideo();
-  }, []);
+  }, [mockJumpTo]);
   const previous = useCallback(() => {
+    if (mockRef.current) {
+      mockJumpTo(
+        (mockIndexRef.current - 1 + MOCK_PLAYLIST.length) %
+          MOCK_PLAYLIST.length,
+      );
+      return;
+    }
     pendingSkipRef.current = true;
     playerRef.current?.previousVideo();
-  }, []);
+  }, [mockJumpTo]);
+
+  const playAt = useCallback(
+    (index: number) => {
+      if (mockRef.current) {
+        mockJumpTo(index);
+        return;
+      }
+      // Same iOS-Safari guard as next/previous: playVideoAt may only cue.
+      pendingSkipRef.current = true;
+      setHasPlayed(true);
+      playerRef.current?.playVideoAt(index);
+    },
+    [mockJumpTo],
+  );
+
+  const openPlaylist = useCallback(() => setPlaylistOpen(true), []);
+  const closePlaylist = useCallback(() => setPlaylistOpen(false), []);
 
   return (
     <MusicContext.Provider
@@ -264,6 +457,12 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         pause,
         next,
         previous,
+        playlist,
+        playlistIndex,
+        playAt,
+        isPlaylistOpen,
+        openPlaylist,
+        closePlaylist,
       }}
     >
       {children}
