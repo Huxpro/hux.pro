@@ -68,3 +68,8 @@ duration-300 (morphing transitions)
 - Use `app/globals.css` for global variables.
 - Use Tailwind utility classes for component styling.
 - Avoid introducing new colors; stick to the grayscale system.
+
+### Testing the Music System Offline
+- Set `localStorage.hux_music_mock = "1"` **before app scripts run** (e.g. Playwright `context.addInitScript()`), or flip "Mock player" in the Devtool panel → Music section.
+- The flag makes `MusicProvider` skip the YouTube IFrame API and drive every music surface (home widget, Live Activity, playlist sheet) from the committed fixture in `systems/music/lib/mock.ts` — play/pause/skip/select all work with zero network.
+- Use this for headless-browser verification in sandboxes where `youtube.com` is unreachable. Never enabled by default; real visitors always get the real player.

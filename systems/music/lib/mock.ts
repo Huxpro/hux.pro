@@ -23,6 +23,21 @@ export function isMusicMockEnabled(): boolean {
   }
 }
 
+/**
+ * Persist the mock flag. The provider only reads it during initialization,
+ * so callers (e.g. the Devtool panel) must reload the page for a change to
+ * take effect.
+ */
+export function setMusicMockEnabled(enabled: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (enabled) localStorage.setItem(MOCK_FLAG_KEY, "1");
+    else localStorage.removeItem(MOCK_FLAG_KEY);
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 /** Deterministic gradient "album art" so mock rows read like real thumbnails. */
 function mockThumbnail(index: number): string {
   const hue = (index * 47) % 360;
