@@ -24,9 +24,11 @@ export function isMusicMockEnabled(): boolean {
 }
 
 /**
- * Persist the mock flag. The provider only reads it during initialization,
- * so callers (e.g. the Devtool panel) must reload the page for a change to
- * take effect.
+ * Persist the mock flag. This raw setter only writes localStorage — for a
+ * live backend swap in a running page, go through the provider's
+ * `setMockEnabled` (which persists via this and re-runs its init effect).
+ * Preload flows (Playwright `addInitScript`) set the raw key directly
+ * before the app boots.
  */
 export function setMusicMockEnabled(enabled: boolean): void {
   if (typeof window === "undefined") return;

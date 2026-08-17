@@ -20,6 +20,7 @@ import {
   MOCK_DURATION,
   MOCK_PLAYLIST,
   isMusicMockEnabled,
+  setMusicMockEnabled,
 } from "./lib/mock";
 import {
   type MusicSettings,
@@ -52,6 +53,15 @@ interface MusicContextType {
   pause: () => void;
   next: () => void;
   previous: () => void;
+  /**
+   * Offline mock backend (dev / headless verification — see lib/mock.ts).
+   * Toggling hot-swaps the backend in place: the current player is torn
+   * down, playback state is reset, and the other backend initializes —
+   * no page reload. The flag is persisted so preload flows (Playwright
+   * `addInitScript`) and later visits agree.
+   */
+  isMockEnabled: boolean;
+  setMockEnabled: (enabled: boolean) => void;
   // --- Playlist browsing ---
   /** Ordered playlist entries (empty until the player reports them). */
   playlist: PlaylistEntry[];
@@ -153,6 +163,17 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  // --- Mock backend flag ---
+  // Lazy-initialized straight from localStorage (false on the server): safe
+  // without the usual hydration effect because no markup depends on it — it
+  // only steers effects and control callbacks. Changing it re-runs the init
+  // effect below, which swaps backends in place.
+  const [isMockEnabled, setMockState] = useState(isMusicMockEnabled);
+  const setMockEnabled = useCallback((enabled: boolean) => {
+    setMusicMockEnabled(enabled); // persist for preload flows / next visits
+    setMockState(enabled);
+  }, []);
+
   // --- Player state ---
   const [playerState, setPlayerState] = useState<PlayerState>("idle");
   const [track, setTrack] = useState<MusicTrack | null>(null);
@@ -196,18 +217,32 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   // --- Initialize player (or mock) ---
   // The container div is rendered by this provider (always mounted), so the
   // player persists across route changes and audio never stops on navigation.
+  // Re-runs when `isMockEnabled` flips: the cleanup tears the old backend
+  // down and the next run initializes the other one — a live backend swap.
   useEffect(() => {
     if (!PLAYLIST_ID || initedRef.current) return;
 
+    // Reset every cross-backend bit so a swap starts from scratch (all
+    // no-ops on first mount). `hasPlayed` matters most: leaving it true
+    // would park the Live Activity for a player that never played.
+    // Synchronous setState is deliberate throughout this effect — same
+    // client-only init pattern as the settings load above.
+    pendingSkipRef.current = false;
+    mockIndexRef.current = 0;
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setHasPlayed(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setTrack(null);
+    setPlaylist([]);
+    setPlaylistIndex(-1);
+
     // Mock mode: skip the IFrame API entirely; drive the same state machine
-    // from a fixture so every music surface works offline. Synchronous
-    // setState is deliberate here — same client-only hydration pattern as
-    // the settings load above (the flag lives in localStorage).
-    if (isMusicMockEnabled()) {
+    // from a fixture so every music surface works offline.
+    if (isMockEnabled) {
       initedRef.current = true;
       mockRef.current = true;
       const entry = MOCK_PLAYLIST[0];
-      /* eslint-disable react-hooks/set-state-in-effect */
       setPlaylist(MOCK_PLAYLIST);
       setPlaylistIndex(0);
       setTrack({
@@ -218,8 +253,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       });
       setDuration(MOCK_DURATION);
       setPlayerState("idle");
-      /* eslint-enable react-hooks/set-state-in-effect */
-      return;
+      return () => {
+        initedRef.current = false;
+        mockRef.current = false;
+      };
     }
 
     const container = playerContainerRef.current;
@@ -229,6 +266,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     initedRef.current = true;
 
     setPlayerState("loading");
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     // Safety net: if onReady never fires (e.g. the postMessage handshake
     // silently fails), escape the loading skeleton so the widget shows
@@ -321,7 +359,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       playerRef.current = null;
       initedRef.current = false;
     };
-  }, [syncPlaylist]);
+  }, [isMockEnabled, syncPlaylist]);
 
   // --- Progress polling (only while playing) ---
   useEffect(() => {
@@ -457,6 +495,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         pause,
         next,
         previous,
+        isMockEnabled,
+        setMockEnabled,
         playlist,
         playlistIndex,
         playAt,
