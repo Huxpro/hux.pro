@@ -16,10 +16,6 @@ import {
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
-import {
-  isMusicMockEnabled,
-  setMusicMockEnabled,
-} from "@/systems/music/lib/mock";
 import appsJson from "@/content/apps.json";
 import type { AppLink } from "@/lib/app-icon-core";
 import {
@@ -1078,25 +1074,16 @@ function AmbientTimeModule() {
 // =============================================================================
 // Music Module
 // Inspect the global player state and toggle the offline mock backend
-// (`hux_music_mock` — see systems/music/lib/mock.ts). The provider reads the
-// flag only at init, so flipping it reloads the page.
+// (`hux_music_mock` — see systems/music/lib/mock.ts). Toggling hot-swaps the
+// backend in place via the provider (teardown → reset → re-init), no reload.
 // =============================================================================
 
 function MusicModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
   const music = useOptionalMusic();
-  // Hydration-safe read of the localStorage flag.
-  const [mock, setMock] = useState(false);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: localStorage read
-    setMock(isMusicMockEnabled());
-  }, []);
-
-  const toggleMock = () => {
-    setMusicMockEnabled(!mock);
-    window.location.reload();
-  };
+  const mock = music?.isMockEnabled ?? false;
+  const toggleMock = () => music?.setMockEnabled(!mock);
 
   return (
     <DebugSection
@@ -1119,8 +1106,8 @@ function MusicModule() {
         </PanelRow>
         <div className="text-[10px] font-mono text-muted-foreground">
           {zh
-            ? "离线夹具驱动整个音乐系统（无需 YouTube）。切换会重载页面。"
-            : "Offline fixture drives the whole music system (no YouTube). Toggling reloads the page."}
+            ? "离线夹具驱动整个音乐系统（无需 YouTube）。切换立即生效并重置播放状态。"
+            : "Offline fixture drives the whole music system (no YouTube). Takes effect instantly; playback state resets."}
         </div>
         {music && (
           <div className="space-y-1 border-t border-border/30 pt-2 text-[11px] font-mono">
