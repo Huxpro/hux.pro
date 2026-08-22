@@ -69,6 +69,7 @@ export function TheaterOverlay() {
   const pinnedRef = useRef(false);
   const openedAtRef = useRef(0);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const chromeRootRef = useRef<HTMLDivElement | null>(null);
 
   const clearHideTimer = useCallback(() => {
     if (hideTimerRef.current) {
@@ -87,23 +88,97 @@ export function TheaterOverlay() {
 
   // Reset to immersive whenever theater opens.
   useEffect(() => {
-    if (!open) {
-      setChromeVisible(false);
-      pinnedRef.current = false;
-      clearHideTimer();
-      return;
-    }
+    // This is an intentional session reset when the external theater mode
+    // changes; keeping the previous session's visible chrome causes a flash.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setChromeVisible(false);
     pinnedRef.current = false;
-    openedAtRef.current = Date.now();
     clearHideTimer();
+    if (open) openedAtRef.current = Date.now();
   }, [open, clearHideTimer]);
 
-  // Keyboard is an intentional reveal (←/→ also useful once chrome is up).
+  // Return keyboard users to the element that launched the theater.
+  useEffect(() => {
+    if (!open) return;
+    const trigger =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    return () => {
+      requestAnimationFrame(() => {
+        if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+      });
+    };
+  }, [open]);
+
+  const chromeFocusables = useCallback(() => {
+    const root = chromeRootRef.current;
+    if (!root) return [];
+    const chrome = Array.from(
+      root.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((element) => !element.hasAttribute("disabled"));
+    const stageFrames = Array.from(
+      document.querySelectorAll<HTMLIFrameElement>(".theater-stage iframe"),
+    ).filter((frame) => !frame.closest(".opacity-0"));
+    return [...chrome, ...stageFrames];
+  }, []);
+
+  // If focus exits a cross-origin player frame, redirect it back into the
+  // theater rather than allowing it to fall through to the obscured page.
+  useEffect(() => {
+    if (!open || !chromeVisible) return;
+    const onFocusIn = (event: FocusEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      const inChrome = chromeRootRef.current?.contains(target);
+      const inStage = document.querySelector(".theater-stage")?.contains(target);
+      if (inChrome || inStage) return;
+      requestAnimationFrame(() => chromeFocusables()[0]?.focus());
+    };
+    document.addEventListener("focusin", onFocusIn);
+    return () => document.removeEventListener("focusin", onFocusIn);
+  }, [open, chromeVisible, chromeFocusables]);
+
+  // Keyboard is an intentional reveal. Trap Tab inside the modal chrome so
+  // focus never falls through to the page hidden behind the theater.
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") return;
+
+      if (e.key === "Tab") {
+        const focusables = chromeFocusables();
+
+        if (!chromeVisible || focusables.length === 0) {
+          e.preventDefault();
+          pinnedRef.current = true;
+          clearHideTimer();
+          setChromeVisible(true);
+          requestAnimationFrame(() => {
+            const next = chromeFocusables();
+            (e.shiftKey ? next.at(-1) : next[0])?.focus();
+          });
+          return;
+        }
+
+        const first = focusables[0];
+        const active = document.activeElement;
+        const current = focusables.indexOf(active as HTMLElement);
+        const next = e.shiftKey
+          ? (current <= 0 ? focusables.length : current) - 1
+          : (current + 1) % focusables.length;
+        e.preventDefault();
+        (current === -1
+          ? e.shiftKey
+            ? focusables.at(-1)
+            : first
+          : focusables[next]
+        )?.focus();
+        pinnedRef.current = true;
+        clearHideTimer();
+        return;
+      }
+
       pinnedRef.current = false;
       setChromeVisible(true);
       scheduleHide();
@@ -113,7 +188,13 @@ export function TheaterOverlay() {
       window.removeEventListener("keydown", onKeyDown);
       clearHideTimer();
     };
-  }, [open, scheduleHide, clearHideTimer]);
+  }, [
+    open,
+    chromeVisible,
+    chromeFocusables,
+    scheduleHide,
+    clearHideTimer,
+  ]);
 
   const pinChrome = useCallback(() => {
     // Opening click / cursor still in the margin for a beat — don't flash.
@@ -141,6 +222,7 @@ export function TheaterOverlay() {
             exit={{ opacity: 0 }}
             transition={FADE}
             onClick={close}
+            onPointerEnter={unpinChrome}
             role="presentation"
           />
 
@@ -192,7 +274,18 @@ export function TheaterOverlay() {
 
           <AnimatePresence>
             {chromeVisible && (
-              <>
+              <div
+                ref={chromeRootRef}
+                className="contents"
+                role="toolbar"
+                aria-label="Video theater controls"
+                onFocusCapture={pinChrome}
+                onBlurCapture={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) {
+                    unpinChrome();
+                  }
+                }}
+              >
                 <motion.div
                   key="topbar"
                   className="fixed z-[10005] flex items-end justify-between gap-4"
@@ -322,7 +415,7 @@ export function TheaterOverlay() {
                   )}
                   <PlaylistRail tone="onDark" className="gap-4 px-0" />
                 </motion.div>
-              </>
+              </div>
             )}
           </AnimatePresence>
         </>

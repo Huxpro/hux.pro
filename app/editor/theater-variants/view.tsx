@@ -80,6 +80,11 @@ export function TheaterVariantsView() {
   const album = albums[albumIndex] ?? albums[0];
   const track = album?.tracks[trackIndex] ?? album?.tracks[0];
 
+  const selectAlbum = (index: number) => {
+    setAlbumIndex(index);
+    setTrackIndex(0);
+  };
+
   if (!album || !track) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-16 text-sm text-muted-foreground">
@@ -122,7 +127,7 @@ export function TheaterVariantsView() {
               variant={v.id}
               albums={albums.map((a) => a.title)}
               albumIndex={albumIndex}
-              onSelectAlbum={setAlbumIndex}
+              onSelectAlbum={selectAlbum}
               tracks={album.tracks}
               trackIndex={trackIndex}
               onSelectTrack={setTrackIndex}
