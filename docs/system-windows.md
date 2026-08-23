@@ -22,6 +22,7 @@ systems/windows/
 │   ├── types.ts                # WindowInstance, Rect, WindowMode
 │   ├── geometry.ts             # size presets, placement, clamps, working area
 │   ├── page-scroll-lock.ts     # ref-counted page-scroll lock (no scroll-through)
+│   ├── touch-scroll-guard.ts   # per-gesture scroll ownership where hover can't reach
 │   └── lynx-shadow-css.ts      # generated: flattened web-elements layout CSS
 ├── components/
 │   ├── window-layer.tsx        # <WindowLayer> — the fixed "desktop" surface
@@ -172,11 +173,13 @@ Gesture handling in `window.tsx`:
 
 ### Scroll ownership
 
-An open window **swallows the page scroll behind it**. Without that, a wheel or
-flick the app inside doesn't consume — it hit the end of its list, or it never
-scrolled at all (Flappy Bird, a BusyWeek card) — *chains* up to the nearest
-ancestor scroller, which is the site underneath: scrolling "through" the window
-into the page behind it. Native app windows never do that.
+An open window **swallows the page scroll while it owns the gesture**. Without
+that, a wheel or flick the app inside doesn't consume — it hit the end of its
+list, or it never scrolled at all (Flappy Bird, a BusyWeek card) — *chains* up
+to the nearest ancestor scroller, which is the site underneath: scrolling
+"through" the window into the page behind it. Native app windows never do that.
+Scrolling **outside** a window still scrolls the page, as it always did — this
+is scoped ownership, not a modal lock.
 
 The gesture can't be intercepted from out here. For an `<iframe>` the wheel /
 touch events are dispatched **inside the child frame** and never reach this
@@ -184,22 +187,30 @@ document, and `overscroll-behavior: contain` on our side of the boundary — the
 frame, its wrapper, the window, `<html>` — doesn't stop the chain either
 (verified in Chromium). What does: leaving the leftover scroll nowhere to land.
 `lib/page-scroll-lock.ts` makes the root unscrollable (`html.window-scroll-lock`
-in `globals.css`, vertical axis only) while a window owns the pointer, and pads
-back the width the root scrollbar gives up so the page doesn't reflow. Scrollers
-*inside* the app keep working — only the chain out of it is cut.
+in `globals.css`, vertical axis only) and pads back the width the root scrollbar
+gives up, so nothing reflows. It's ref-counted, and toggles a class rather than
+inline styles, so overlapping holders (and the body locks Radix / Vaul dialogs
+apply) nest safely. Scrollers *inside* the app keep working — only the chain out
+of them is cut.
 
-Who holds the lock, and when:
+Who holds it comes down to what the input can tell us:
 
-| Input | Held while |
-|-------|-----------|
-| Pointer (mouse / pen) | the cursor is inside a window — the page behind stays scrollable everywhere else |
-| Touch | any non-minimized window is open |
+**Pointer** — a cursor says where it is at all times, so each window takes the
+lock on `pointerenter` and drops it on `pointerleave` (`window.tsx`). Cursor
+inside the window: the app owns the scroll. Cursor anywhere else: the page does.
 
-Touch has no hover, and a finger landing inside a cross-origin iframe fires no
-event in this document at all — so there's nothing to hover-detect. On phones a
-window fills the stage anyway, so an open window simply owns the scroll. The
-lock is ref-counted, and toggles a class rather than inline styles, so
-overlapping windows (and the body locks Radix / Vaul dialogs apply) nest safely.
+**Touch** — no hover, and a finger landing inside a cross-origin iframe fires
+**no event in this document at all**: the one gesture we most need to know about
+is the one we can't see. So the belief is inverted
+(`lib/touch-scroll-guard.ts`, installed by the layer while a non-minimized
+window is open): hold the lock by default — an unseen touch is assumed to be
+inside the app — and hand it back for any gesture we *can* see that landed
+outside every window (hit-tested via `[data-window]`), which by definition
+belongs to the page. Releasing synchronously on `touchstart` is early enough for
+that same swipe to scroll; the lock returns once the scroll settles, momentum
+included, ready for the next invisible one. A `wheel` outside a window hands it
+back the same way, for a touch-primary device driving a trackpad (an iPad with a
+Magic Keyboard); the guard is off entirely when `primaryInput` is `mouse`.
 
 `WindowLayer` is a single `position: fixed; inset: 0` surface mounted once at
 the app root (in `app/layout.tsx`), `pointer-events: none` so it never steals
