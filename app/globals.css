@@ -192,6 +192,16 @@ html.dragging * {
   cursor: grabbing !important;
 }
 
+/* Page scroll lock — held while an app window owns the pointer, so a scroll
+   inside its iframe / Lynx Player can't chain through to the page behind it
+   (see systems/windows/lib/page-scroll-lock.ts). Only the vertical axis is
+   set — the horizontal one keeps clipping either way. The gutter padding
+   replaces the width the root scrollbar gives up, so nothing reflows. */
+html.window-scroll-lock {
+  overflow-y: hidden;
+  padding-right: var(--window-scroll-gutter, 0px);
+}
+
 /* Hide scrollbars while preserving scroll (e.g. the dock pill row) */
 .no-scrollbar {
   scrollbar-width: none;

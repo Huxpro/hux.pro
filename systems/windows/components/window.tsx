@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useInputCapability } from "@/services";
 import { animate, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWindows } from "../provider";
@@ -11,6 +12,7 @@ import {
   getViewport,
   workingArea,
 } from "../lib/geometry";
+import { lockPageScroll } from "../lib/page-scroll-lock";
 import { armPointer } from "../lib/pointer";
 import type { Rect, WindowInstance } from "../lib/types";
 import { AppFrame } from "./app-frame";
@@ -30,6 +32,10 @@ import { WindowChrome } from "./window-chrome";
 // springs back just enough to keep the chrome grabbable, with a small overshoot
 // as a friendly edge hint. Hovering the drag band or a resize edge (and any
 // active gesture) softly lights the window's border as feedback.
+//
+// A window also *swallows* the page scroll behind it while it owns the pointer
+// (lockPageScroll) — otherwise a wheel/flick that the app inside doesn't
+// consume chains straight through to the site underneath.
 // =============================================================================
 
 type ResizeDir = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
@@ -80,6 +86,25 @@ export function Window({ win }: { win: WindowInstance }) {
   const maximized = win.sizePreset === "max";
   const minimized = win.mode === "minimized";
   const isLynx = win.app.runtime === "lynx";
+
+  // Scroll ownership. On a pointer device the window claims the page scroll
+  // only while the cursor is inside it, so the site behind stays scrollable
+  // everywhere else. Touch has no hover — and worse, a finger landing inside a
+  // cross-origin iframe fires *no* event over here — so on touch an open
+  // window (which fills the stage anyway) holds the lock outright.
+  const { primaryInput } = useInputCapability();
+  // Hover is stored alongside the minimized flag it was seen under: minimizing
+  // yanks the window out from under the cursor with no leave event (it goes
+  // pointer-events: none), so a flip resets the stale hover during render.
+  const [hover, setHover] = useState({ inside: false, minimized });
+  if (hover.minimized !== minimized) setHover({ inside: false, minimized });
+  const ownsPageScroll =
+    !minimized && (primaryInput === "touch" || hover.inside);
+
+  useEffect(() => {
+    if (!ownsPageScroll) return;
+    return lockPageScroll();
+  }, [ownsPageScroll]);
 
   const paint = useCallback((rect: Rect) => {
     const el = ref.current;
@@ -206,6 +231,8 @@ export function Window({ win }: { win: WindowInstance }) {
           : { type: "spring", stiffness: 520, damping: 34, mass: 0.7 }
       }
       onPointerDownCapture={() => focus(win.id)}
+      onPointerEnter={() => setHover({ inside: true, minimized })}
+      onPointerLeave={() => setHover({ inside: false, minimized })}
       style={{
         position: "absolute",
         left: win.rect.x,
