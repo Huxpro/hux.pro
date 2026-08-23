@@ -213,18 +213,34 @@ export function TheaterOverlay() {
     <AnimatePresence>
       {open && (
         <>
-          {/* Backdrop — below the stage; click to close. */}
+          {/* Backdrop — below the stage; click to close.
+
+              The fixed element itself stays transparent: iOS 26 Safari samples
+              fixed elements to tint its Liquid Glass status bar and bottom
+              toolbar, so a coloured `fixed inset-0` backdrop bleeds into the
+              chrome. The glass is painted by the absolute child, which bleeds
+              past the top and bottom of the visual viewport so the toolbars
+              sample real backdrop rather than the scrim's cut-off edge. */}
           <motion.div
             key="backdrop"
-            className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={FADE}
+            className="fixed inset-0 z-[10000]"
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
             onClick={close}
             onPointerEnter={unpinChrome}
             role="presentation"
-          />
+          >
+            {/* Opacity animates here, not on the fixed parent: an
+                opacity-animated ancestor forms a backdrop root and the blur
+                would sample nothing but its own empty group. */}
+            <motion.div
+              aria-hidden
+              className="absolute inset-x-0 -top-32 -bottom-32 bg-black/80 backdrop-blur-md"
+              variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
+              transition={FADE}
+            />
+          </motion.div>
 
           {/* Margin hit-zones — the only pointer path to reveal chrome.
               Hovering the video itself (iframe) does not show UI. */}

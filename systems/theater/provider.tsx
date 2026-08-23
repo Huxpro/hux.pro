@@ -11,6 +11,7 @@ import {
 } from "react";
 import { usePathname } from "next/navigation";
 import { useOptionalMusic } from "@/systems/music";
+import { useScrollLock } from "@/lib/scroll-lock";
 import type { VideoPlatform } from "@/lib/log";
 import { useInputCapability } from "@/services";
 import { readViewport, stageRectFor, type Viewport } from "./lib/geometry";
@@ -329,15 +330,10 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, track?.id, track?.platform, track?.title, albumIndex, trackIndex]);
 
-  // --- Body scroll lock while the theater modal owns the screen ---
-  useEffect(() => {
-    if (effectiveMode !== "theater") return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [effectiveMode]);
+  // --- Scroll lock while the theater modal owns the screen ---
+  // Gesture-level, never `body { overflow: hidden }`: collapsing the document
+  // height breaks iOS 26 Safari's chrome compositor. See lib/scroll-lock.ts.
+  useScrollLock(effectiveMode === "theater");
 
   // Collapse to PiP (keep playing) on route change so the theater modal never
   // strands the user mid-navigation.

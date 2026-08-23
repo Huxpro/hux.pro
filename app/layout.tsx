@@ -1,4 +1,6 @@
+import { GlassRunway } from "@/components/layout/glass-runway";
 import { ReadingRootSync } from "@/components/post/reading-settings";
+import { THEME_INIT_SCRIPT } from "@/services";
 import { Providers } from "@/shared/providers";
 import { AmbientPhaseActivity, AmbientSurface } from "@/systems/ambient";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
@@ -74,6 +76,14 @@ export const metadata: Metadata = {
   },
 };
 
+// `viewportFit: "cover"` emits `viewport-fit=cover`, which is what lets the
+// page paint under the notch and under Safari's toolbars — a prerequisite for
+// the iOS 26 Liquid Glass fixes, though not sufficient on its own.
+//
+// `themeColor` is kept for Android/Chrome and the PWA shell ONLY. Safari 26
+// ignores it when tinting the Liquid Glass status bar and bottom toolbar — it
+// samples the root CSS background-color instead, which is set explicitly on
+// html/body via `--root-bg` in app/globals.css. Do not rely on this list.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -94,10 +104,17 @@ export default function RootLayout({
   return (
     <ViewTransitions>
       <html lang="en" suppressHydrationWarning>
+        <head>
+          {/* Lands the `dark` class on <html> before the first paint, so the
+              root colour Safari samples for its chrome is right from frame
+              one. See services/theme.tsx. */}
+          <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        </head>
         <body
           className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
         >
           <Providers>
+            <GlassRunway />
             <ReadingRootSync />
             <DevtoolFAB />
             <AmbientSurface>{children}</AmbientSurface>

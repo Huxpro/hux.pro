@@ -3,6 +3,7 @@
 import { getLocalizedDescription, getLocalizedTitle, getPostHref } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
+import { SCROLL_LOCK_ALLOW, useScrollLock } from "@/lib/scroll-lock";
 import { localeNames, t, useLocale, useTheme } from "@/services";
 import { useLocation, useWeather } from "@/systems/ambient";
 import { useDevtool } from "@/systems/devtool";
@@ -76,25 +77,17 @@ export function CommandPalette() {
       : t(locale, "stateOff");
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState("");
-  const [scrollPosition, setScrollPosition] = useState(0);
   const [isIOS] = useState(() => {
     if (typeof window === "undefined") return false;
     return /iPhone|iPod/.test(navigator.userAgent);
   });
 
-  useEffect(() => {
-    if (!isIOS) return;
-    if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setScrollPosition(window.scrollY);
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen, isIOS]);
+  // Gesture-level lock. This used to be `body { overflow: hidden }` on iOS,
+  // which collapsed the document height. That broke `position: fixed` (so the
+  // overlay needed an absolute + scrollY + 100dvh workaround) and starved iOS
+  // 26 Safari's Liquid Glass compositor, leaving a tinted band behind the
+  // bottom toolbar. See lib/scroll-lock.ts.
+  useScrollLock(isOpen);
 
   useEffect(() => {
     if (isOpen && !isSlashCommandsMode) {
@@ -399,13 +392,15 @@ export function CommandPalette() {
 
   return (
     <div
-      className={cn(
-        // Above the theater/PiP surfaces (z-[10000]+) — the command palette is
-        // the primary nav and must always sit on top.
-        "z-[10050] flex items-start justify-center pt-[20vh]",
-        isIOS ? "absolute inset-x-0" : "fixed inset-0"
-      )}
-      style={isIOS ? { top: scrollPosition, height: "100dvh" } : undefined}
+      // Above the theater/PiP surfaces (z-[10000]+) — the command palette is
+      // the primary nav and must always sit on top.
+      //
+      // Plain `fixed inset-0` on every platform now that the scroll lock no
+      // longer collapses the document height — iOS no longer needs the
+      // absolute + scrollY + 100dvh workaround. The shell carries no colour of
+      // its own (iOS 26 Safari samples fixed elements to tint its toolbars);
+      // the visible panel is the motion.div below.
+      className="fixed inset-0 z-[10050] flex items-start justify-center pt-[20vh]"
     >
       <div
         className="absolute inset-0 bg-transparent"
@@ -579,7 +574,12 @@ export function CommandPalette() {
             )}
           >
             <div className="overflow-hidden min-h-0">
-              <Command.List className="max-h-[360px] overflow-y-auto p-2">
+              {/* Opts this subtree back out of the gesture scroll lock so the
+                  results list still scrolls while the palette owns the page. */}
+              <Command.List
+                {...SCROLL_LOCK_ALLOW}
+                className="max-h-[360px] overflow-y-auto p-2"
+              >
                 <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
                   {t(locale, "noResults")}
                 </Command.Empty>
