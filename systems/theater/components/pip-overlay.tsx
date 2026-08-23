@@ -87,7 +87,10 @@ export function PipOverlay() {
       {open && (
         <motion.div
           key="pip-controls"
-          className="fixed z-[10004] flex items-center gap-1 rounded-b-xl border border-t-0 border-border/60 bg-card/85 px-2 shadow-overlay backdrop-blur-xl"
+          // Glass lives on the absolute child below — a fixed element's own
+          // background / backdrop-filter tints iOS 26 Safari's chrome, and this
+          // bar parks near the bottom edge.
+          className="fixed z-[10004] flex items-center gap-1 rounded-b-xl px-2 shadow-overlay"
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
@@ -99,6 +102,11 @@ export function PipOverlay() {
             height: PIP_CONTROLS_H,
           }}
         >
+          <div
+            aria-hidden
+            className="absolute inset-0 -z-10 rounded-b-xl border border-t-0 border-border/60 bg-card/85 backdrop-blur-xl"
+          />
+
           {/* Drag handle + title. */}
           <div
             onPointerDown={onPointerDown}

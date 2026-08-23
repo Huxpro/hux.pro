@@ -111,10 +111,18 @@ export function LiveActivity({
             className={cn(
               "fixed left-1/2 z-50 -translate-x-1/2 pointer-events-auto",
               "w-[min(92vw,360px)] overflow-hidden",
-              "rounded-3xl bg-card/70 backdrop-blur-xl",
-              "border border-border/50 shadow-overlay"
+              "rounded-3xl shadow-overlay"
             )}
           >
+            {/* Glass on an absolute child, not on the fixed element: this
+                panel sits right under the status bar, and iOS 26 Safari tints
+                its Liquid Glass chrome from a fixed element's own
+                background-color / backdrop-filter. */}
+            <div
+              aria-hidden
+              className="absolute inset-0 -z-10 rounded-3xl border border-border/50 bg-card/70 backdrop-blur-xl"
+            />
+
             <div className="flex items-center justify-between px-5 pt-4 pb-3">
               <div className="flex items-center gap-2 min-w-0">{title}</div>
               <button

@@ -836,13 +836,17 @@ function MobileRuler({
             // anywhere scrubs the tape (finger y maps onto the tape window,
             // so pointing at a label's row selects it); a plain tap dismisses.
             data-ruler-scrim
-            className="fixed inset-0 z-40 touch-none bg-background/60 backdrop-blur-sm"
+            className="fixed inset-0 z-40 touch-none"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
             {...gestureHandlers}
-          />
+          >
+            {/* Wash on a bleeding child, not on the fixed element — see
+                `.overlay-bleed` in globals.css (iOS 26 Liquid Glass). */}
+            <div aria-hidden className="overlay-bleed bg-background/60 backdrop-blur-sm" />
+          </motion.div>
         )}
       </AnimatePresence>
 

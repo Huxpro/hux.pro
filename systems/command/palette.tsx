@@ -1,5 +1,6 @@
 "use client";
 
+import { holdScrollGestures } from "@/lib/overlay-scroll";
 import { getLocalizedDescription, getLocalizedTitle, getPostHref } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -82,18 +83,16 @@ export function CommandPalette() {
     return /iPhone|iPod/.test(navigator.userAgent);
   });
 
+  // iOS parks the palette absolutely at the current scroll offset (a fixed
+  // overlay fights the on-screen keyboard there). The page is held still by
+  // cancelling gestures inside the palette shell rather than by locking the
+  // body — an unscrollable document is what strands iOS 26 Safari's Liquid
+  // Glass toolbars with nothing to composite (see lib/overlay-scroll.ts).
   useEffect(() => {
-    if (!isIOS) return;
-    if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setScrollPosition(window.scrollY);
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
+    if (!isIOS || !isOpen) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setScrollPosition(window.scrollY);
+    return holdScrollGestures();
   }, [isOpen, isIOS]);
 
   useEffect(() => {

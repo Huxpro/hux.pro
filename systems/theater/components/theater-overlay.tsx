@@ -216,7 +216,7 @@ export function TheaterOverlay() {
           {/* Backdrop — below the stage; click to close. */}
           <motion.div
             key="backdrop"
-            className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md"
+            className="fixed inset-0 z-[10000]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -224,7 +224,12 @@ export function TheaterOverlay() {
             onClick={close}
             onPointerEnter={unpinChrome}
             role="presentation"
-          />
+          >
+            {/* The dim + blur go on a child that bleeds past the visual
+                viewport: iOS 26 Safari tints its toolbars from the fixed
+                element itself, and samples pixels from beyond the edges. */}
+            <div aria-hidden className="overlay-bleed bg-black/80 backdrop-blur-md" />
+          </motion.div>
 
           {/* Margin hit-zones — the only pointer path to reveal chrome.
               Hovering the video itself (iframe) does not show UI. */}

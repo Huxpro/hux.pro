@@ -81,7 +81,12 @@ export function MusicPlaylistSheet() {
       direction={direction}
     >
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 z-[60] bg-black/25 dark:bg-black/45" />
+        <Drawer.Overlay className="fixed inset-0 z-[60]">
+          <div
+            aria-hidden
+            className="overlay-bleed bg-black/25 dark:bg-black/45"
+          />
+        </Drawer.Overlay>
         <Drawer.Content
           aria-describedby={undefined}
           style={

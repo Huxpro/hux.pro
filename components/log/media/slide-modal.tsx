@@ -15,6 +15,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { holdScrollGestures } from "@/lib/overlay-scroll";
 import { AnimatePresence, motion } from "motion/react";
 import { ExternalLink, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -58,12 +59,14 @@ export function SlideModal({ open, onClose, src, title }: SlideModalProps) {
     };
     document.addEventListener("keydown", onKeyDown);
 
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // Hold the page still by cancelling gestures, not by locking the body:
+    // an unscrollable document is what leaves iOS 26 Safari's toolbars with
+    // nothing to composite (see lib/overlay-scroll.ts).
+    const releaseGestures = holdScrollGestures();
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = prevOverflow;
+      releaseGestures();
     };
   }, [open, onClose]);
 
@@ -85,8 +88,10 @@ export function SlideModal({ open, onClose, src, title }: SlideModalProps) {
           aria-modal="true"
           aria-label={title}
         >
-          {/* Backdrop. Mobile theater = opaque black; sm+ = dimmed blur. */}
-          <div className="absolute inset-0 bg-black sm:bg-black/80 sm:backdrop-blur-md" />
+          {/* Backdrop. Mobile theater = opaque black; sm+ = dimmed blur. It
+              bleeds past the visual viewport so iOS 26 Safari's toolbars
+              sample real pixels instead of the page behind. */}
+          <div className="overlay-bleed bg-black sm:bg-black/80 sm:backdrop-blur-md" />
 
           {/* Chrome — close + optional fullscreen escape hatch. Shares the
               on-media control recipe with PlayBadge (dark disc, hairline

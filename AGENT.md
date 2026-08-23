@@ -16,6 +16,7 @@
 | **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Crawling *others'* OG for /works cards) |
 | **App Icon** | [docs/app-icon.md](./docs/app-icon.md) (Generative favicon + `/editor/icon` studio) |
 | **App Folder** | [docs/app-shelf.md](./docs/app-shelf.md) (Home-screen snap-paged app folder) |
+| **iOS Liquid Glass** | [docs/ios-liquid-glass.md](./docs/ios-liquid-glass.md) (Safari 26 viewport/chrome rules) |
 
 ## 2. Quick Start Context
 

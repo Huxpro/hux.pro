@@ -224,8 +224,13 @@ export function Window({ win }: { win: WindowInstance }) {
               scale: 0.08,
               x: getViewport().width / 2 - (win.rect.x + win.rect.width / 2),
               y: 16 - win.rect.y,
+              // Once the genie lands, stop painting entirely. A transparent
+              // but still-composited fixed layer tints iOS 26 Safari's Liquid
+              // Glass chrome; `visibility` (not `display`) keeps the box — and
+              // the app inside it — alive, which minimize promises.
+              transitionEnd: { visibility: "hidden" },
             }
-          : { opacity: 1, scale: 1, x: 0, y: 0 }
+          : { opacity: 1, scale: 1, x: 0, y: 0, visibility: "visible" }
       }
       exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
       transition={

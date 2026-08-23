@@ -173,6 +173,22 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* iOS 26 Safari samples an explicit *root* colour to tint its Liquid Glass
+     toolbars — it ignores `theme-color`, and a transparent root falls back to
+     white, which is what leaves a pale band behind the bottom search bar and
+     the top status area. So paint both html and body, and declare
+     `color-scheme` so the UA canvas underneath agrees with the theme. The
+     fixed ambient gradient can't stand in for this: at scrollY 0 Safari
+     samples the background-*colour*, not whatever media is painted over it. */
+  :root {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  html {
+    background-color: var(--background);
+  }
   body {
     @apply bg-background text-foreground;
   }
@@ -200,6 +216,20 @@ html.dragging * {
 html.window-scroll-lock {
   overflow-y: hidden;
   padding-right: var(--window-scroll-gutter, 0px);
+}
+
+/* Backdrop layer for a fixed overlay — iOS 26 Liquid Glass rules.
+   Two things are going on:
+   1. A fixed element that carries its own background-color / backdrop-filter
+      gets sampled by Safari's toolbars and tints them. The fixed element stays
+      transparent; its visual goes on an absolute child (this class).
+   2. Safari samples from *past* the visual viewport, so a backdrop that stops
+      at the edges leaves the chrome sampling nothing. Bleed it above and
+      below; controls stay inside via safe-area padding. */
+.overlay-bleed {
+  position: absolute;
+  inset-inline: 0;
+  inset-block: calc(-1 * var(--overlay-bleed, 15vh));
 }
 
 /* Hide scrollbars while preserving scroll (e.g. the dock pill row) */

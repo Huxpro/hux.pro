@@ -52,7 +52,10 @@ export function Stage({
     <motion.div
       aria-hidden={!visible}
       className={cn(
-        "theater-stage fixed z-[10002] overflow-hidden bg-black",
+        // No background on the fixed element itself (iOS 26 Safari tints its
+        // Liquid Glass chrome from one); the black plate is the absolute child
+        // below, clipped by this box's own rounding.
+        "theater-stage fixed z-[10002] overflow-hidden",
         // PiP: flat bottom + a top/side border so it butts up against the
         // control bar as a single window. Theater: fully rounded, hairline ring.
         pip ? "rounded-t-xl" : "rounded-xl",
@@ -69,6 +72,12 @@ export function Stage({
         height: rect.height,
         opacity: visible ? 1 : 0,
         scale: visible ? 1 : 0.96,
+        // A parked stage stays mounted (the player must survive), but a
+        // faded-out fixed layer with a black plate still tints iOS 26
+        // Safari's chrome — so stop painting it once it's away.
+        ...(visible
+          ? { visibility: "visible" }
+          : { transitionEnd: { visibility: "hidden" } }),
       }}
       transition={
         dragging
@@ -83,6 +92,8 @@ export function Stage({
             }
       }
     >
+      <div aria-hidden className="absolute inset-0 -z-10 bg-black" />
+
       {/* YouTube host — always mounted so the IFrame API instance persists. */}
       <div
         ref={hostRef}

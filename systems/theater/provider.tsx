@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { usePathname } from "next/navigation";
+import { holdScrollGestures } from "@/lib/overlay-scroll";
 import { useOptionalMusic } from "@/systems/music";
 import type { VideoPlatform } from "@/lib/log";
 import { useInputCapability } from "@/services";
@@ -329,14 +330,15 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, track?.id, track?.platform, track?.title, albumIndex, trackIndex]);
 
-  // --- Body scroll lock while the theater modal owns the screen ---
+  // --- Hold the page still while the theater modal owns the screen ---
+  // Not a body overflow lock: iOS 26 Safari needs a scrollable document to
+  // composite its Liquid Glass toolbars, and a fullscreen modal that takes
+  // that away is exactly what leaves a white band behind them. Gestures are
+  // cancelled at the document instead — the theater spans several fixed
+  // layers (backdrop, stage, chrome), so the whole screen is its shell.
   useEffect(() => {
     if (effectiveMode !== "theater") return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return holdScrollGestures();
   }, [effectiveMode]);
 
   // Collapse to PiP (keep playing) on route change so the theater modal never
