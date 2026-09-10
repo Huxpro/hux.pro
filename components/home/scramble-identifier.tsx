@@ -32,7 +32,7 @@ function IdentifierWing({
       className={cn(
         "pointer-events-none absolute inset-y-0 flex items-center whitespace-nowrap",
         "text-muted-foreground",
-        side === "left" ? "right-full pr-[0.65em]" : "left-full pl-[0.65em]",
+        side === "left" ? "right-full pr-[0.5em]" : "left-full pl-[0.5em]",
       )}
       initial={false}
       animate={
@@ -90,10 +90,11 @@ export function ScrambleIdentifier() {
     <div className="flex justify-center">
       <span
         className={cn(
-          "relative inline-flex items-center justify-center",
+          "inline-flex items-center justify-center",
           "font-mono text-xs tracking-wider cursor-default select-none",
-          // Symmetric padding so the hover target covers the exposed wings
-          // without shifting the centered λHUX mark.
+          // Padding enlarges the hover target so the pointer can sit on the
+          // wings without leaving. It must NOT be the positioning containing
+          // block, or the wings would sit out at the padding edge.
           "px-[4.75rem] py-2",
           "transition-colors duration-300",
           isHovered ? "text-foreground" : "text-muted-foreground",
@@ -102,27 +103,29 @@ export function ScrambleIdentifier() {
         onMouseLeave={() => setIsHovered(false)}
         aria-label={wingsVisible ? t(locale, "identifierExpanded") : "λhux"}
       >
-        <IdentifierWing side="left" visible={wingsVisible} reduced={reduced}>
-          {left}
-        </IdentifierWing>
-        <span
-          data-view-transition="site-identifier"
-          className="relative inline-block"
-        >
-          <TextScramble
-            trigger={true}
-            duration={0.6}
-            speed={0.03}
-            characterSet="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?"
-            as="span"
-            className="inline-block"
+        <span className="relative inline-flex items-center">
+          <IdentifierWing side="left" visible={wingsVisible} reduced={reduced}>
+            {left}
+          </IdentifierWing>
+          <span
+            data-view-transition="site-identifier"
+            className="relative inline-block"
           >
-            {core}
-          </TextScramble>
+            <TextScramble
+              trigger={true}
+              duration={0.6}
+              speed={0.03}
+              characterSet="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?"
+              as="span"
+              className="inline-block"
+            >
+              {core}
+            </TextScramble>
+          </span>
+          <IdentifierWing side="right" visible={wingsVisible} reduced={reduced}>
+            {right}
+          </IdentifierWing>
         </span>
-        <IdentifierWing side="right" visible={wingsVisible} reduced={reduced}>
-          {right}
-        </IdentifierWing>
       </span>
     </div>
   );
