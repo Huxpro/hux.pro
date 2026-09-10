@@ -7,8 +7,8 @@ import {
 } from "@/components/home/featured-stack-widget";
 import { FeaturedTalksWidget } from "@/components/home/featured-talks-widget";
 import { PromptWidget } from "@/components/home/prompt-widget";
+import { ScrambleIdentifier } from "@/components/home/scramble-identifier";
 import { Commit } from "@/components/log";
-import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { HeaderZone } from "@/components/ui/header-zone";
 import {
   SortableMasonry,
@@ -42,13 +42,11 @@ import {
 } from "@/lib/log";
 import { enrichLogDataWithPreviews, type OGSnapshot } from "@/lib/og-enrich";
 import ogSnapshotJson from "@/content/og-snapshot.json";
-import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { AmbientGreeting, WeatherWidget } from "@/systems/ambient";
 import { MusicWidget } from "@/systems/music";
 import { ALBUM_GROUP_IDS } from "@/systems/theater/lib/albums";
 import { Link } from "next-view-transitions";
-import { useState } from "react";
 
 // =============================================================================
 // Widget Components
@@ -203,40 +201,6 @@ function WidgetGrid() {
 
   return (
     <SortableMasonry items={items} className="relative z-20 pt-2 sm:pt-4 mb-16" />
-  );
-}
-
-// =============================================================================
-// Text Scramble System Identifier Component
-// =============================================================================
-
-function ScrambleIdentifier() {
-  const [isHovered, setIsHovered] = useState(false);
-  const targetText = isHovered ? "λHUX" : "λhux";
-
-  return (
-    <div className="flex justify-center">
-      <span
-        data-view-transition="site-identifier"
-        className={cn(
-          "font-mono text-xs tracking-wider relative inline-block cursor-default transition-colors duration-300",
-          isHovered ? "text-foreground" : "text-muted-foreground",
-        )}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <TextScramble
-          trigger={true}
-          duration={0.6}
-          speed={0.03}
-          characterSet="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?"
-          as="span"
-          className="inline-block"
-        >
-          {targetText}
-        </TextScramble>
-      </span>
-    </div>
   );
 }
 
