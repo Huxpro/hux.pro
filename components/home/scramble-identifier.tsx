@@ -72,15 +72,18 @@ export function ScrambleIdentifier() {
   const [wingsVisible, setWingsVisible] = useState(false);
 
   useEffect(() => {
-    if (!isHovered) {
-      setWingsVisible(false);
-      return;
-    }
+    if (!isHovered) return;
 
     const delay = reduced ? 0 : WING_DWELL_MS;
     const id = window.setTimeout(() => setWingsVisible(true), delay);
     return () => window.clearTimeout(id);
   }, [isHovered, reduced]);
+
+  const onEnter = () => setIsHovered(true);
+  const onLeave = () => {
+    setIsHovered(false);
+    setWingsVisible(false);
+  };
 
   const core = isHovered ? "λHUX" : "λhux";
   const left = t(locale, "identifierWingLeft");
@@ -99,8 +102,8 @@ export function ScrambleIdentifier() {
           "transition-colors duration-300",
           isHovered ? "text-foreground" : "text-muted-foreground",
         )}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={onEnter}
+        onMouseLeave={onLeave}
         aria-label={wingsVisible ? t(locale, "identifierExpanded") : "λhux"}
       >
         <span className="relative inline-flex items-center">
