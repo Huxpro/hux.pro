@@ -232,30 +232,30 @@ const WEATHER_MOD: Record<WeatherCondition, WeatherMod> = {
     cool: 0.08,
   },
   fog: {
-    cloudCover: 0.42,
+    cloudCover: 0.48,
     cloudScale: 0.85,
     cloudSpeed: 0.01,
-    fog: 0.72,
+    fog: 0.78,
     wind: 0.06,
     rain: 0,
     snow: 0,
     thunder: 0,
-    dim: 0.88,
-    saturate: 0.45,
-    cool: 0.12,
+    dim: 0.78,
+    saturate: 0.32,
+    cool: 0.22,
   },
   rain: {
-    cloudCover: 0.88,
+    cloudCover: 0.9,
     cloudScale: 1.45,
     cloudSpeed: 0.04,
-    fog: 0.18,
+    fog: 0.22,
     wind: 0.45,
     rain: 1,
     snow: 0,
     thunder: 0,
-    dim: 0.7,
-    saturate: 0.72,
-    cool: 0.16,
+    dim: 0.52,
+    saturate: 0.55,
+    cool: 0.42,
   },
   snow: {
     cloudCover: 0.7,
@@ -274,22 +274,22 @@ const WEATHER_MOD: Record<WeatherCondition, WeatherMod> = {
     cloudCover: 0.96,
     cloudScale: 1.55,
     cloudSpeed: 0.05,
-    fog: 0.16,
+    fog: 0.2,
     wind: 0.62,
     rain: 0.72,
     snow: 0,
     thunder: 1,
-    dim: 0.52,
-    saturate: 0.85,
-    cool: 0.1,
+    dim: 0.38,
+    saturate: 0.9,
+    cool: 0.28,
   },
 };
 
 function applyWeatherToSky(plate: SkyPlate, weather: WeatherMod): SkyPlate {
-  const coolTint = rgb(160, 190, 220);
-  const stormTint = rgb(48, 42, 78);
+  const coolTint = rgb(92, 118, 150);
+  const stormTint = rgb(36, 32, 62);
   const tint = weather.thunder > 0 ? stormTint : coolTint;
-  const t = Math.max(weather.cool, weather.thunder * 0.35);
+  const t = Math.max(weather.cool, weather.thunder * 0.55);
 
   return {
     ...plate,

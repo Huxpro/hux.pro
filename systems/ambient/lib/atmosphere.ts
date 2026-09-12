@@ -258,6 +258,24 @@ export interface AtmosphereRenderer {
   destroy: () => void;
 }
 
+/** Compile the sky shader on a throwaway canvas so we never lock the live one. */
+export function isAtmosphereGLAvailable(): boolean {
+  if (typeof document === "undefined") return false;
+  const probe = document.createElement("canvas");
+  const gl = probe.getContext("webgl", {
+    failIfMajorPerformanceCaveat: false,
+    alpha: false,
+  });
+  if (!gl) return false;
+  const vs = compile(gl, gl.VERTEX_SHADER, VERT);
+  const fs = compile(gl, gl.FRAGMENT_SHADER, FRAG);
+  const ok = !!(vs && fs);
+  if (vs) gl.deleteShader(vs);
+  if (fs) gl.deleteShader(fs);
+  gl.getExtension("WEBGL_lose_context")?.loseContext();
+  return ok;
+}
+
 export function createAtmosphereRenderer(
   canvas: HTMLCanvasElement
 ): AtmosphereRenderer | null {

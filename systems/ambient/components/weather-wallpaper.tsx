@@ -3,7 +3,11 @@
 import { useTheme } from "@/services";
 import { useDevtool } from "@/systems/devtool";
 import { useEffect, useMemo, useRef } from "react";
-import { createAtmosphereRenderer } from "../lib/atmosphere";
+import {
+  createAtmosphereRenderer,
+  isAtmosphereGLAvailable,
+} from "../lib/atmosphere";
+import { createAtmosphere2DRenderer } from "../lib/atmosphere-2d";
 import { isIOSBrowser } from "../lib/platform";
 import {
   approachAtmosphere,
@@ -83,7 +87,9 @@ export function WeatherWallpaper({ enabled, onReady }: WeatherWallpaperProps) {
     const fxEl = fxRef.current;
     if (!skyEl || !fxEl || !enabled || !hasScene) return;
 
-    const sky = createAtmosphereRenderer(skyEl);
+    const sky = isAtmosphereGLAvailable()
+      ? createAtmosphereRenderer(skyEl)
+      : createAtmosphere2DRenderer(skyEl);
     if (!sky) {
       onReadyRef.current?.(false);
       return;

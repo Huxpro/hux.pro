@@ -69,7 +69,9 @@ A rainy sunset is an amber horizon with rain on top, not a swapped rain plate.
 Uniforms morph exponentially (~700ms) so condition/phase changes never snap.
 
 `prefers-reduced-motion: reduce` freezes the shader clock and skips particles.
-WebGL failure is silent: the CSS grade stays visible.
+If WebGL is missing the same atmosphere draws in Canvas 2D (sky plate, sun/moon,
+cloud banks, stars) plus the particle layer. CSS grade remains the last-resort
+fallback and the widget renderer.
 
 Widgets keep the CSS stack (no canvas) so iOS `fixedBgTracker` still works.
 
