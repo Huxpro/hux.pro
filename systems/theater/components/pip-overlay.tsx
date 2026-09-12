@@ -87,7 +87,7 @@ export function PipOverlay() {
       {open && (
         <motion.div
           key="pip-controls"
-          className="fixed z-[10004] flex items-center gap-1 rounded-b-xl border border-t-0 border-border/60 bg-card/85 px-2 shadow-overlay backdrop-blur-xl"
+          className="fixed z-[10004] flex items-center gap-1 rounded-b-xl border border-t-0 border-border/60 bg-glass-sheet px-2 shadow-overlay backdrop-blur-xl"
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}

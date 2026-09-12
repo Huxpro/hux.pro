@@ -1,6 +1,7 @@
 "use client";
 
 import { useTheme } from "@/services";
+import { usePathname } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -15,6 +16,7 @@ import {
   resolveCatalogPair,
   resolvePairVariant,
   resolveWallpaperSrc,
+  wallpaperDocumentClassNames,
   wallpaperLabel,
   type ThemeVariant,
   type WallpaperAppearance,
@@ -83,6 +85,7 @@ export function useOptionalWallpaper() {
 
 export function WallpaperProvider({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
+  const pathname = usePathname();
   const [settings, setSettingsState] = useState<WallpaperSettings>(
     getDefaultWallpaperSettings
   );
@@ -184,6 +187,16 @@ export function WallpaperProvider({ children }: { children: React.ReactNode }) {
       }),
     [kind, pair, appearance]
   );
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const { image, read } = wallpaperDocumentClassNames(kind, pathname);
+    root.classList.toggle("wallpaper-image", image);
+    root.classList.toggle("wallpaper-read", read);
+    return () => {
+      root.classList.remove("wallpaper-image", "wallpaper-read");
+    };
+  }, [kind, pathname]);
 
   return (
     <WallpaperContext.Provider

@@ -59,7 +59,7 @@ export function WidgetShell({
         "transition-all duration-300",
         widgetGradientEnabled
           ? "bg-transparent backdrop-blur-sm hover:bg-white/5 dark:hover:bg-white/5"
-          : "bg-card/50 backdrop-blur-xl hover:border-border hover:bg-card/70",
+          : "bg-glass backdrop-blur-xl hover:border-border hover:bg-glass-hover",
         className
       )}
       style={style}

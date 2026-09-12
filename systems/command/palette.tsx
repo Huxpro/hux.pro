@@ -483,7 +483,7 @@ export function CommandPalette() {
       <Command
         className={cn(
           "relative mx-4 transition-all duration-300 ease-out",
-          "bg-popover/75 backdrop-blur-xl",
+          "bg-glass-popover backdrop-blur-xl",
           "rounded-2xl border border-black/10 dark:border-white/10",
           "shadow-overlay",
           "outline-none",

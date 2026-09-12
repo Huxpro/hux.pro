@@ -350,8 +350,8 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
             "relative rounded-2xl border px-2 py-3",
             "transition-colors duration-300",
             editing
-              ? "border-border/60 bg-card/60 shadow-raised backdrop-blur-sm dark:bg-white/6"
-              : "border-transparent hover:border-border/40 hover:bg-card/40 dark:hover:bg-white/4",
+              ? "border-border/60 bg-glass-strong shadow-raised backdrop-blur-sm"
+              : "border-transparent hover:border-border/40 hover:bg-glass dark:hover:bg-white/4",
             className,
           )}
         >

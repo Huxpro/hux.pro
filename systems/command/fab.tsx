@@ -40,11 +40,11 @@ export function FloatingActionButton() {
         className={cn(
           "pointer-events-auto",
           "flex items-center gap-2",
-          "bg-card/50 backdrop-blur-xl",
+          "bg-glass backdrop-blur-xl",
           "border border-border/50",
           "shadow-raised",
           isHomepage ? "text-muted-foreground" : "text-foreground",
-          "hover:bg-card/70 hover:border-border transition-colors",
+          "hover:bg-glass-hover hover:border-border transition-colors",
           "h-12",
           "overflow-hidden",
           isHomepage

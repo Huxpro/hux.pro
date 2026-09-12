@@ -218,13 +218,16 @@ Glassmorphic cards used on the homepage for content discovery:
 ```css
 /* Base widget styling */
 p-5 rounded-2xl
-bg-card/50 backdrop-blur-xl
+bg-glass backdrop-blur-xl
 border border-border/50
 transition-all duration-300
 
 /* Hover state */
-hover:border-border hover:bg-card/70
+hover:border-border hover:bg-glass-hover
 ```
+
+`--glass*` defaults match the old `bg-card/50` fill. Image wallpaper thins
+them via `html.wallpaper-image` (see [system-wallpaper.md](./system-wallpaper.md)).
 
 Widget headers use monospace uppercase labels:
 ```css
@@ -239,7 +242,7 @@ The homepage search entry point styled as a dialogue invitation:
 /* Container */
 w-full max-w-md
 flex items-center gap-3 px-5 py-4
-bg-card/50 backdrop-blur-xl
+bg-glass backdrop-blur-xl
 border border-border/50 rounded-2xl
 
 /* Placeholder text */

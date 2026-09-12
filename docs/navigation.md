@@ -33,9 +33,9 @@ Previously, the FAB and Conversational Prompt were separate components with diff
 All variants share the "frosted glass" aesthetic:
 
 ```tsx
-"bg-card/50 backdrop-blur-xl",
+"bg-glass backdrop-blur-xl",
 "border border-border/50",
-"shadow-lg shadow-black/5"
+"shadow-raised"
 ```
 
 #### Animation Strategy

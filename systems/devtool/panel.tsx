@@ -19,6 +19,7 @@ import { useOptionalMusic } from "@/systems/music/provider";
 import {
   WALLPAPER_CATALOG,
   useOptionalWallpaper,
+  wallpaperDocumentClassNames,
   type WallpaperAppearance,
   type WallpaperKind,
 } from "@/systems/wallpaper";
@@ -70,6 +71,7 @@ import {
   X,
 } from "lucide-react";
 import { withDraggable } from "@/systems/draggable";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 // =============================================================================
@@ -942,7 +944,9 @@ function WeatherModule() {
 function WallpaperModule() {
   const { locale } = useLocale();
   const wallpaper = useOptionalWallpaper();
+  const pathname = usePathname();
   if (!wallpaper) return null;
+  const surface = wallpaperDocumentClassNames(wallpaper.kind, pathname);
 
   const zh = locale === "zh";
   const kinds: { value: WallpaperKind; label: string }[] = [
@@ -1022,6 +1026,9 @@ function WallpaperModule() {
           {zh ? "当前: " : "Now: "}
           <span className="text-foreground/80">
             {wallpaper.label(locale)} · {wallpaper.variant}
+            {surface.image
+              ? ` · ${surface.read ? (zh ? "阅读" : "read") : zh ? "桌面" : "desktop"}`
+              : ""}
           </span>
         </div>
         <div className="grid grid-cols-4 gap-1.5">

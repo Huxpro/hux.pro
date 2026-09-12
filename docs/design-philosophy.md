@@ -22,7 +22,7 @@ Hux.Pro is a personal website that embodies an **"AI-Native OS" aesthetic**—th
 ### System/App UI
 > "Linear-like productivity surface inside a calm editorial space"
 
-- Frosted glass: `backdrop-blur: blur()`, 0.7–0.9 opacity
+- Frosted glass: `backdrop-blur` + `--glass` fill (Regular on a solid page; Thin when an image wallpaper is behind it — no Liquid Glass special effects)
 - Layered shadows: ambient + directional
 - Subtle gradients suggesting light source
 - Micro-animations that feel physical

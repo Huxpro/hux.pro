@@ -37,6 +37,23 @@ systems/wallpaper/
 - `kind === "image"` → image wallpaper
 - otherwise → solid `bg-background`
 
+## Image wallpaper treatments
+
+Image wallpaper is two surfaces, after Apple's lock screen vs Notification
+Center / Music now-playing:
+
+| Route | Treatment | Why |
+|-------|-----------|-----|
+| `/` (desktop) | Sharp photo, light scrim (`bg-background/8–16`), **thin** glass | The wallpaper is the hero. Regular Liquid Glass fill is too milky / too inky on a photo. |
+| Other pages (reading) | Photo is `scale-[1.12]` + `blur-[40px]`, then a veil + edge vignette | A sharp photo fights body text. Defocus + overlay separate figure from ground without boxing the article. |
+
+Glass fill lives in `--glass*` tokens (`bg-glass`, `bg-glass-hover`, …).
+Defaults match the old `bg-card/50` recipe. `html.wallpaper-image` thins them
+to a Thin / Ultra Thin vibrancy wash (~20–26% fill). Blur stays ordinary
+`backdrop-blur` — no specular highlights or lens distortion.
+
+`WallpaperProvider` toggles `html.wallpaper-image` and `html.wallpaper-read`.
+
 ## Light / Dark pairs
 
 Every built-in wallpaper is a **pair**. Appearance:

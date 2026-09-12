@@ -38,6 +38,15 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  /* System glass fills. Defaults match the old bg-card/50… recipes.
+     `html.wallpaper-image` thins them to a vibrancy-style wash. */
+  --color-glass: var(--glass);
+  --color-glass-hover: var(--glass-hover);
+  --color-glass-strong: var(--glass-strong);
+  --color-glass-strong-hover: var(--glass-strong-hover);
+  --color-glass-overlay: var(--glass-overlay);
+  --color-glass-sheet: var(--glass-sheet);
+  --color-glass-popover: var(--glass-popover);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -123,6 +132,15 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Frosted glass — Regular material when there is no photo behind it. */
+  --glass: color-mix(in oklab, var(--card) 50%, transparent);
+  --glass-hover: color-mix(in oklab, var(--card) 70%, transparent);
+  --glass-strong: color-mix(in oklab, var(--card) 60%, transparent);
+  --glass-strong-hover: color-mix(in oklab, var(--card) 80%, transparent);
+  --glass-overlay: color-mix(in oklab, var(--card) 70%, transparent);
+  --glass-sheet: color-mix(in oklab, var(--card) 85%, transparent);
+  --glass-popover: color-mix(in oklab, var(--popover) 75%, transparent);
 }
 
 .dark {
@@ -167,6 +185,59 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  --glass: color-mix(in oklab, var(--card) 50%, transparent);
+  --glass-hover: color-mix(in oklab, var(--card) 70%, transparent);
+  --glass-strong: color-mix(in oklab, var(--card) 60%, transparent);
+  --glass-strong-hover: color-mix(in oklab, var(--card) 80%, transparent);
+  --glass-overlay: color-mix(in oklab, var(--card) 70%, transparent);
+  --glass-sheet: color-mix(in oklab, var(--card) 85%, transparent);
+  --glass-popover: color-mix(in oklab, var(--popover) 75%, transparent);
+}
+
+/* Image wallpaper — Thin / Ultra Thin vibrancy, not Regular Liquid Glass.
+   Fill drops so white is not milky and black is not a slab. Blur stays
+   ordinary `backdrop-blur`; no specular highlights or lens distortion. */
+html.wallpaper-image {
+  --glass: color-mix(in oklab, var(--card) 20%, transparent);
+  --glass-hover: color-mix(in oklab, var(--card) 32%, transparent);
+  --glass-strong: color-mix(in oklab, var(--card) 26%, transparent);
+  --glass-strong-hover: color-mix(in oklab, var(--card) 38%, transparent);
+  --glass-overlay: color-mix(in oklab, var(--card) 36%, transparent);
+  --glass-sheet: color-mix(in oklab, var(--card) 46%, transparent);
+  --glass-popover: color-mix(in oklab, var(--popover) 38%, transparent);
+}
+
+html.dark.wallpaper-image {
+  --glass: color-mix(in oklab, var(--card) 26%, transparent);
+  --glass-hover: color-mix(in oklab, var(--card) 38%, transparent);
+  --glass-strong: color-mix(in oklab, var(--card) 32%, transparent);
+  --glass-strong-hover: color-mix(in oklab, var(--card) 44%, transparent);
+  --glass-overlay: color-mix(in oklab, var(--card) 42%, transparent);
+  --glass-sheet: color-mix(in oklab, var(--card) 52%, transparent);
+  --glass-popover: color-mix(in oklab, var(--popover) 44%, transparent);
+}
+
+/* Content pages: recede the photo at the edges so the reading column is
+   the figure. Full-bleed wash — no card, no radius, no boxed article. */
+.wallpaper-read-vignette {
+  background: radial-gradient(
+    ellipse 72% 62% at 50% 36%,
+    transparent 10%,
+    color-mix(in oklab, var(--background) 32%, transparent) 100%
+  );
+}
+
+.dark .wallpaper-read-vignette {
+  background: radial-gradient(
+    ellipse 72% 62% at 50% 36%,
+    transparent 8%,
+    color-mix(in oklab, var(--background) 40%, transparent) 100%
+  );
+}
+
+html.wallpaper-read .prose-article {
+  @apply text-foreground/90;
 }
 
 @layer base {
