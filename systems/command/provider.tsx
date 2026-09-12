@@ -11,12 +11,15 @@ interface CommandContextType {
   isOpen: boolean;
   isSlashCommandsMode: boolean;
   isLoadBundleMode: boolean;
+  isWallpaperMode: boolean;
   open: (slashCommandsMode?: boolean) => void;
   close: () => void;
   toggle: () => void;
   setSlashCommandsMode: (mode: boolean) => void;
   openLoadBundle: () => void;
   setLoadBundleMode: (mode: boolean) => void;
+  openWallpaper: () => void;
+  setWallpaperMode: (mode: boolean) => void;
 }
 
 const CommandContext = createContext<CommandContextType | undefined>(undefined);
@@ -31,43 +34,69 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSlashCommandsMode, setIsSlashCommandsMode] = useState(false);
   const [isLoadBundleMode, setIsLoadBundleMode] = useState(false);
+  const [isWallpaperMode, setIsWallpaperMode] = useState(false);
+
+  const resetPanels = useCallback(() => {
+    setIsSlashCommandsMode(false);
+    setIsLoadBundleMode(false);
+    setIsWallpaperMode(false);
+  }, []);
 
   const open = useCallback((slashCommandsMode = false) => {
     setIsOpen(true);
     setIsSlashCommandsMode(slashCommandsMode);
     setIsLoadBundleMode(false);
+    setIsWallpaperMode(false);
   }, []);
 
   const close = useCallback(() => {
     setIsOpen(false);
-    setIsSlashCommandsMode(false);
-    setIsLoadBundleMode(false);
-  }, []);
+    resetPanels();
+  }, [resetPanels]);
 
   const toggle = useCallback(() => {
     setIsOpen((prev) => {
-      if (prev) {
-        setIsSlashCommandsMode(false);
-        setIsLoadBundleMode(false);
-      }
+      if (prev) resetPanels();
       return !prev;
     });
-  }, []);
+  }, [resetPanels]);
 
   const setSlashCommandsMode = useCallback((mode: boolean) => {
     setIsSlashCommandsMode(mode);
-    if (mode) setIsLoadBundleMode(false);
+    if (mode) {
+      setIsLoadBundleMode(false);
+      setIsWallpaperMode(false);
+    }
   }, []);
 
   const setLoadBundleMode = useCallback((mode: boolean) => {
     setIsLoadBundleMode(mode);
-    if (mode) setIsSlashCommandsMode(false);
+    if (mode) {
+      setIsSlashCommandsMode(false);
+      setIsWallpaperMode(false);
+    }
+  }, []);
+
+  const setWallpaperMode = useCallback((mode: boolean) => {
+    setIsWallpaperMode(mode);
+    if (mode) {
+      setIsSlashCommandsMode(false);
+      setIsLoadBundleMode(false);
+    }
   }, []);
 
   const openLoadBundle = useCallback(() => {
     setIsOpen(true);
     setIsSlashCommandsMode(false);
     setIsLoadBundleMode(true);
+    setIsWallpaperMode(false);
+  }, []);
+
+  const openWallpaper = useCallback(() => {
+    setIsOpen(true);
+    setIsSlashCommandsMode(false);
+    setIsLoadBundleMode(false);
+    setIsWallpaperMode(true);
   }, []);
 
   // Global Keyboard Shortcuts
@@ -93,11 +122,16 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Escape: load-bundle → back to search; otherwise close
+      // Escape: secondary panel → back to search; otherwise close
       if (e.key === "Escape" && isOpen) {
         if (isLoadBundleMode) {
           e.preventDefault();
           setIsLoadBundleMode(false);
+          return;
+        }
+        if (isWallpaperMode) {
+          e.preventDefault();
+          setIsWallpaperMode(false);
           return;
         }
         close();
@@ -107,7 +141,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isLoadBundleMode, toggle, close, open]);
+  }, [isOpen, isLoadBundleMode, isWallpaperMode, toggle, close, open]);
 
   return (
     <CommandContext.Provider
@@ -115,12 +149,15 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         isOpen,
         isSlashCommandsMode,
         isLoadBundleMode,
+        isWallpaperMode,
         open,
         close,
         toggle,
         setSlashCommandsMode,
         openLoadBundle,
         setLoadBundleMode,
+        openWallpaper,
+        setWallpaperMode,
       }}
     >
       {children}

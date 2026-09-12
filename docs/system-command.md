@@ -12,6 +12,7 @@ systems/command/
 ├── palette.tsx        # Command palette UI (cmdk-based)
 ├── apps-launcher.tsx  # Spotlight-style horizontal Apps strip
 ├── load-bundle-panel.tsx  # System UI OTA Lynx bundle form
+│                              # Wallpaper picker is systems/wallpaper/components/wallpaper-panel.tsx
 ├── fab.tsx            # Floating action button trigger
 └── index.ts           # Barrel exports
 ```
@@ -54,7 +55,7 @@ When the Window system is mounted, ⌘K also launches apps from
 | `A` | Toggle appearance |
 | `L` | Toggle language |
 | `G` | Toggle geolocation |
-| `W` | Toggle weather gradient |
+| `W` | Open wallpaper picker (secondary window) |
 | `D` | Toggle devtool FAB |
 
 ## Components
@@ -106,7 +107,7 @@ The palette searches across:
 
 1. **Apps**: Horizontal icon strip (filtered in place; hidden when no match)
 2. **Navigation**: Home, Writing, Works, Docs
-3. **Settings**: Appearance, Language, Location, Gradient, Music, Devtool
+3. **Settings**: Appearance, Language, Location, Wallpaper, Music, Devtool
 4. **Blog Posts**: Title, description, tags (both languages)
 
 ## iOS Compatibility

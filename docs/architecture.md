@@ -13,6 +13,7 @@ project/
 ├── systems/                      # Complex subsystems (UI + State + Logic)
 │   ├── ambient/                  # Weather-based ambient UI
 │   ├── command/                  # Command palette navigation
+│   ├── wallpaper/                # Weather + image wallpaper surface
 │   └── devtool/                  # Developer tools for debugging
 ├── services/                     # Simple state providers (no UI)
 │   ├── theme.tsx                 # Light/dark theme
@@ -72,6 +73,7 @@ The `shared/providers.tsx` orchestrates all providers in the correct order:
 5. **CommandProvider** - Command palette state
 6. **DevtoolProvider** - Debug FAB and panel state
 7. **AmbientProvider** - Weather/location/time state
+8. **WallpaperProvider** - Wallpaper kind (weather / image) + pair + appearance
 
 ## Subsystems
 
@@ -80,6 +82,9 @@ Weather-based ambient UI that creates a living, breathing interface.
 
 ### [Command System](./system-command.md)
 Command palette for keyboard-first navigation.
+
+### [Wallpaper System](./system-wallpaper.md)
+Weather gradients and Apple image pairs as mutually exclusive full-page backgrounds.
 
 ### [Devtool System](./system-devtool.md)
 Developer tools for debugging ambient state.
@@ -93,6 +98,7 @@ import { useLocale, useTheme, t } from "@/services";
 // Systems (complex subsystems)
 import { AmbientProvider, useWeather } from "@/systems/ambient";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
+import { WallpaperProvider, useWallpaper } from "@/systems/wallpaper";
 import { DevtoolFAB, useDevtool } from "@/systems/devtool";
 
 // Shared components

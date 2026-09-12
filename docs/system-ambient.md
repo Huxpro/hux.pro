@@ -2,6 +2,10 @@
 
 The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day.
 
+The full-page weather gradient is one **wallpaper kind**. Image pairs live in
+the [wallpaper system](./system-wallpaper.md) and are mutually exclusive with
+it. The sunrise / sunset Dock Live Activity is not a wallpaper and is unaffected.
+
 ## Overview
 
 ```

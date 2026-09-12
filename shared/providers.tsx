@@ -17,6 +17,7 @@ import { CommandProvider, useCommand } from "@/systems/command";
 import { DevtoolProvider } from "@/systems/devtool";
 import { MusicProvider } from "@/systems/music";
 import { TheaterProvider } from "@/systems/theater";
+import { WallpaperProvider } from "@/systems/wallpaper";
 import { WindowProvider } from "@/systems/windows";
 
 // =============================================================================
@@ -27,7 +28,11 @@ import { WindowProvider } from "@/systems/windows";
 function AmbientWrapper({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
 
-  return <AmbientProvider theme={theme}>{children}</AmbientProvider>;
+  return (
+    <AmbientProvider theme={theme}>
+      <WallpaperProvider>{children}</WallpaperProvider>
+    </AmbientProvider>
+  );
 }
 
 function DevtoolWrapper({ children }: { children: React.ReactNode }) {

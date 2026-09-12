@@ -16,6 +16,12 @@ import {
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
+import {
+  WALLPAPER_CATALOG,
+  useOptionalWallpaper,
+  type WallpaperAppearance,
+  type WallpaperKind,
+} from "@/systems/wallpaper";
 import appsJson from "@/content/apps.json";
 import type { AppLink } from "@/lib/app-icon-core";
 import {
@@ -51,6 +57,7 @@ import {
   Copy,
   GripVertical,
   Haze,
+  Image as ImageIcon,
   Layers,
   Moon,
   MoonStar,
@@ -185,6 +192,7 @@ function DevtoolPanel() {
         <FrontmatterModule />
         <ReadingModule />
         <GradientModule />
+        <WallpaperModule />
         <WeatherModule />
         <AmbientTimeModule />
         <MusicModule />
@@ -918,6 +926,146 @@ function WeatherModule() {
               );
             })}
           </div>
+        </div>
+      </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Wallpaper Module
+// Inspect and swap the mutually exclusive background kinds (weather / image).
+// Edits persist like gradient mode; the override toggle is ephemeral so a
+// pair can be previewed without writing localStorage.
+// =============================================================================
+
+function WallpaperModule() {
+  const { locale } = useLocale();
+  const wallpaper = useOptionalWallpaper();
+  if (!wallpaper) return null;
+
+  const zh = locale === "zh";
+  const kinds: { value: WallpaperKind; label: string }[] = [
+    { value: "weather", label: zh ? "天气" : "Weather" },
+    { value: "image", label: zh ? "图片" : "Image" },
+  ];
+  const appearances: { value: WallpaperAppearance; label: string }[] = [
+    { value: "auto", label: t(locale, "wallpaperAuto") },
+    { value: "light", label: t(locale, "themeLight") },
+    { value: "dark", label: t(locale, "themeDark") },
+  ];
+
+  const hasOverride =
+    wallpaper.debugOverride.kind !== undefined ||
+    wallpaper.debugOverride.imageId !== undefined ||
+    wallpaper.debugOverride.appearance !== undefined;
+
+  return (
+    <DebugSection
+      id="wallpaper"
+      title={t(locale, "settingsWallpaper")}
+      icon={<ImageIcon className="h-4 w-4" />}
+      action={
+        <button
+          onClick={() =>
+            wallpaper.setDebugOverride(hasOverride ? {} : { kind: wallpaper.kind })
+          }
+          className={cn(
+            "relative inline-flex h-5 w-9 items-center rounded-full border transition-colors",
+            hasOverride
+              ? "bg-green-500/90 border-green-500/70"
+              : "bg-muted/40 border-border/60"
+          )}
+          aria-pressed={hasOverride}
+          aria-label="Toggle wallpaper override"
+        >
+          <span
+            className={cn(
+              "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
+              hasOverride ? "translate-x-4" : "translate-x-0.5"
+            )}
+          />
+        </button>
+      }
+    >
+      <div className="space-y-3">
+        <PanelRow label={zh ? "类型" : "Kind"}>
+          <PanelSegmented
+            value={wallpaper.kind}
+            options={kinds}
+            onChange={(kind) => {
+              if (hasOverride) {
+                wallpaper.setDebugOverride({ ...wallpaper.debugOverride, kind });
+              } else {
+                wallpaper.setKind(kind);
+              }
+            }}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "外观" : "Appearance"}>
+          <PanelSegmented
+            value={wallpaper.appearance}
+            options={appearances}
+            onChange={(appearance) => {
+              if (hasOverride) {
+                wallpaper.setDebugOverride({
+                  ...wallpaper.debugOverride,
+                  appearance,
+                });
+              } else {
+                wallpaper.setAppearance(appearance);
+              }
+            }}
+          />
+        </PanelRow>
+        <div className="text-[10px] font-mono text-muted-foreground">
+          {zh ? "当前: " : "Now: "}
+          <span className="text-foreground/80">
+            {wallpaper.label(locale)} · {wallpaper.variant}
+          </span>
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {WALLPAPER_CATALOG.map((pair) => {
+            const selected =
+              wallpaper.kind === "image" && wallpaper.imageId === pair.id;
+            const thumb =
+              wallpaper.variant === "dark" ? pair.dark.thumb : pair.light.thumb;
+            return (
+              <button
+                key={pair.id}
+                type="button"
+                onClick={() => {
+                  if (hasOverride) {
+                    wallpaper.setDebugOverride({
+                      ...wallpaper.debugOverride,
+                      kind: "image",
+                      imageId: pair.id,
+                    });
+                  } else {
+                    wallpaper.selectImage(pair.id);
+                  }
+                }}
+                className={cn(
+                  "relative overflow-hidden rounded-lg aspect-square border transition-all",
+                  selected
+                    ? "border-foreground/60 ring-2 ring-foreground/50"
+                    : "border-border/40 hover:border-border"
+                )}
+                title={pair.name}
+                aria-label={`Set wallpaper to ${pair.name}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={thumb}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              </button>
+            );
+          })}
+        </div>
+        <div className="text-[10px] font-mono text-muted-foreground break-all">
+          {wallpaper.kind === "image" ? wallpaper.src : zh ? "天气渐变" : "weather gradient"}
         </div>
       </div>
     </DebugSection>

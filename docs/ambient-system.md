@@ -2,6 +2,8 @@
 
 The ambient system creates an environment-aware experience by sensing the user's location, weather, and time of day to personalize the UI with contextual greetings and atmospheric gradients.
 
+The weather gradient is one wallpaper kind. Image pairs and the picker live in the [wallpaper system](./system-wallpaper.md). The sunrise / sunset Dock notification is independent of which wallpaper is showing.
+
 ## Product Design
 
 ### Core Experience

@@ -3,7 +3,13 @@
 // =============================================================================
 
 // Provider and hooks
-export { AmbientProvider, useLocation, useWeather, useAmbientTime } from "./provider";
+export {
+  AmbientProvider,
+  useLocation,
+  useWeather,
+  useOptionalWeather,
+  useAmbientTime,
+} from "./provider";
 
 // Components
 export {

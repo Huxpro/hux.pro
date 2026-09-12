@@ -45,9 +45,10 @@ Floating action button that expands into the debug panel:
 Debug modules for the ambient system:
 
 1. **Route Gradient**: Toggle gradient per route pattern
-2. **Weather**: Override weather condition (day/night × 6 conditions)
-3. **Time of Day**: Override ambient phase
-4. **Refetch**: Force re-fetch location/weather
+2. **Wallpaper**: Kind (weather / image), pair, Auto/Light/Dark, ephemeral override
+3. **Weather**: Override weather condition (day/night × 6 conditions)
+4. **Time of Day**: Override ambient phase
+5. **Refetch**: Force re-fetch location/weather
 
 ## Hooks
 

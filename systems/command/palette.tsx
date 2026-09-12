@@ -7,6 +7,7 @@ import { localeNames, t, useLocale, useTheme } from "@/services";
 import { useLocation, useWeather } from "@/systems/ambient";
 import { useDevtool } from "@/systems/devtool";
 import { useMusic } from "@/systems/music";
+import { WallpaperPanel, useWallpaper } from "@/systems/wallpaper";
 import { useOptionalWindows } from "@/systems/windows";
 import { Command } from "cmdk";
 import {
@@ -15,6 +16,7 @@ import {
   GitCommit,
   Hash,
   Home,
+  Image as ImageIcon,
   Languages,
   ListMusic,
   MapPin,
@@ -25,7 +27,6 @@ import {
   Slash,
   Sparkles,
   Sun,
-  Waves,
 } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
 import { motion } from "framer-motion";
@@ -37,13 +38,24 @@ import { useCommand } from "./provider";
 
 export function CommandPalette() {
   const drag = useDraggable("command-palette");
-  const { isOpen, isSlashCommandsMode, isLoadBundleMode, close, setSlashCommandsMode, setLoadBundleMode } =
-    useCommand();
+  const {
+    isOpen,
+    isSlashCommandsMode,
+    isLoadBundleMode,
+    isWallpaperMode,
+    close,
+    setSlashCommandsMode,
+    setLoadBundleMode,
+    setWallpaperMode,
+    openWallpaper,
+  } = useCommand();
   const { theme, preference, setThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
   const { locationMode, setLocationMode, requestAccurateLocation } =
     useLocation();
-  const { gradientMode, cycleGradientMode } = useWeather();
+  const { gradientMode } = useWeather();
+  const wallpaper = useWallpaper();
+  const isSecondaryPanel = isLoadBundleMode || isWallpaperMode;
   const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled, signalDragReset } =
     useDevtool();
   const {
@@ -74,6 +86,7 @@ export function CommandPalette() {
         ? "卡片"
         : "Widget"
       : t(locale, "stateOff");
+  const wallpaperLabel = wallpaper.label(locale, gradientModeLabel);
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -221,11 +234,10 @@ export function CommandPalette() {
     },
     {
       key: "w",
-      label: `${t(locale, "settingsWeatherGradient")}: ${gradientModeLabel}`,
-      icon: <Waves className="h-4 w-4" />,
+      label: `${t(locale, "settingsWallpaper")}: ${wallpaperLabel}`,
+      icon: <ImageIcon className="h-4 w-4" />,
       onSelect: () => {
-        cycleGradientMode();
-        close();
+        openWallpaper();
       },
       section: "settings",
     },
@@ -272,7 +284,7 @@ export function CommandPalette() {
   ];
 
   useEffect(() => {
-    if (!isOpen || !isSlashCommandsMode || isLoadBundleMode) return;
+    if (!isOpen || !isSlashCommandsMode || isSecondaryPanel) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Backspace") {
@@ -328,8 +340,7 @@ export function CommandPalette() {
           })();
           return;
         case "w":
-          cycleGradientMode();
-          close();
+          openWallpaper();
           return;
         case "m":
           if (musicPlayerState === "playing") {
@@ -352,6 +363,7 @@ export function CommandPalette() {
     isOpen,
     isSlashCommandsMode,
     isLoadBundleMode,
+    isSecondaryPanel,
     setSlashCommandsMode,
     handleNavigation,
     preference,
@@ -367,7 +379,7 @@ export function CommandPalette() {
     isDevtoolEnabled,
     requestAccurateLocation,
     setLocationMode,
-    cycleGradientMode,
+    openWallpaper,
     setDevtoolEnabled,
   ]);
 
@@ -476,7 +488,9 @@ export function CommandPalette() {
           "shadow-overlay",
           "outline-none",
           "animate-in fade-in-0 zoom-in-95 duration-200",
-          isLoadBundleMode
+          isWallpaperMode
+            ? "w-full max-w-[640px]"
+            : isLoadBundleMode
             ? "w-full max-w-[440px]"
             : isSlashCommandsMode
             ? "w-full max-w-[400px]"
@@ -484,13 +498,13 @@ export function CommandPalette() {
           "[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider"
         )}
         loop
-        shouldFilter={!isSlashCommandsMode && !isLoadBundleMode}
+        shouldFilter={!isSlashCommandsMode && !isSecondaryPanel}
       >
-        {/* Search / slash header — collapsed in load-bundle mode (panel owns chrome). */}
+        {/* Search / slash header — collapsed in secondary panels (panel owns chrome). */}
         <div
           className={cn(
             "border-b border-border/50",
-            isLoadBundleMode && "hidden",
+            isSecondaryPanel && "hidden",
           )}
           data-drag-handle
           style={drag.isEnabled ? { touchAction: "none" } : undefined}
@@ -570,10 +584,26 @@ export function CommandPalette() {
             </div>
           </div>
 
+          {/* Wallpaper picker — secondary window inside the same glass shell */}
           <div
             className={cn(
               "grid transition-all duration-300 ease-out",
-              isSlashCommandsMode || isLoadBundleMode
+              isWallpaperMode
+                ? "grid-rows-[1fr] opacity-100"
+                : "grid-rows-[0fr] opacity-0 pointer-events-none",
+            )}
+          >
+            <div className="overflow-hidden min-h-0" data-drag-handle>
+              {isWallpaperMode && (
+                <WallpaperPanel onBack={() => setWallpaperMode(false)} />
+              )}
+            </div>
+          </div>
+
+          <div
+            className={cn(
+              "grid transition-all duration-300 ease-out",
+              isSlashCommandsMode || isSecondaryPanel
                 ? "grid-rows-[0fr] opacity-0 pointer-events-none"
                 : "grid-rows-[1fr] opacity-100"
             )}
@@ -801,18 +831,22 @@ export function CommandPalette() {
                     </kbd>
                   </Command.Item>
                   <Command.Item
-                    value="weather-gradient"
+                    value="wallpaper"
                     keywords={[
+                      "wallpaper",
+                      "background",
                       "weather",
                       "gradient",
-                      "background",
                       "widget",
                       "mood",
+                      "macos",
+                      "ios",
+                      "壁纸",
+                      "背景",
                       "天气",
                       "渐变",
-                      "背景",
                     ]}
-                    onSelect={() => cycleGradientMode()}
+                    onSelect={() => openWallpaper()}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                       "text-sm cursor-pointer transition-colors",
@@ -820,9 +854,9 @@ export function CommandPalette() {
                       "hover:bg-accent/25"
                     )}
                   >
-                    <Waves className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <ImageIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">
-                      {t(locale, "settingsWeatherGradient")}: {gradientModeLabel}
+                      {t(locale, "settingsWallpaper")}: {wallpaperLabel}
                     </span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       W
@@ -973,7 +1007,7 @@ export function CommandPalette() {
           <div
             className={cn(
               "grid transition-all duration-300 ease-out",
-              isSlashCommandsMode && !isLoadBundleMode
+              isSlashCommandsMode && !isSecondaryPanel
                 ? "grid-rows-[1fr] opacity-100"
                 : "grid-rows-[0fr] opacity-0 pointer-events-none"
             )}
@@ -1022,14 +1056,14 @@ export function CommandPalette() {
             className="grid transition-all duration-300 ease-out"
             style={{
               gridTemplateRows:
-                isSlashCommandsMode || isLoadBundleMode ? "0fr" : "1fr",
+                isSlashCommandsMode || isSecondaryPanel ? "0fr" : "1fr",
             }}
           >
             <div className="overflow-hidden">
               <div
                 className="flex items-center justify-between px-4 py-2 transition-opacity duration-300 ease-out"
                 style={{
-                  opacity: isSlashCommandsMode || isLoadBundleMode ? 0 : 1,
+                  opacity: isSlashCommandsMode || isSecondaryPanel ? 0 : 1,
                 }}
               >
                 <div className="flex items-center gap-4">
@@ -1067,14 +1101,14 @@ export function CommandPalette() {
             className="grid transition-all duration-300 ease-out"
             style={{
               gridTemplateRows:
-                isSlashCommandsMode && !isLoadBundleMode ? "1fr" : "0fr",
+                isSlashCommandsMode && !isSecondaryPanel ? "1fr" : "0fr",
             }}
           >
             <div className="overflow-hidden">
               <div
                 className="flex items-center justify-between px-4 py-2 transition-opacity duration-300 ease-out"
                 style={{
-                  opacity: isSlashCommandsMode && !isLoadBundleMode ? 1 : 0,
+                  opacity: isSlashCommandsMode && !isSecondaryPanel ? 1 : 0,
                 }}
               >
                 <span className="flex items-center gap-1 font-sans">
@@ -1091,12 +1125,12 @@ export function CommandPalette() {
           </div>
           <div
             className="grid transition-all duration-300 ease-out"
-            style={{ gridTemplateRows: isLoadBundleMode ? "1fr" : "0fr" }}
+            style={{ gridTemplateRows: isSecondaryPanel ? "1fr" : "0fr" }}
           >
             <div className="overflow-hidden">
               <div
                 className="flex items-center justify-between px-4 py-2 transition-opacity duration-300 ease-out"
-                style={{ opacity: isLoadBundleMode ? 1 : 0 }}
+                style={{ opacity: isSecondaryPanel ? 1 : 0 }}
               >
                 <span className="flex items-center gap-1 font-sans">
                   <kbd className="px-1.5 py-0.5 font-mono bg-muted/50 rounded">
@@ -1105,7 +1139,9 @@ export function CommandPalette() {
                   {t(locale, "backToSearch")}
                 </span>
                 <span className="text-[11px] text-muted-foreground">
-                  {t(locale, "appsLoadBundleOverTheAir")}
+                  {isWallpaperMode
+                    ? t(locale, "settingsWallpaper")
+                    : t(locale, "appsLoadBundleOverTheAir")}
                 </span>
               </div>
             </div>
