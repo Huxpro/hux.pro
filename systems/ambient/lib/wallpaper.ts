@@ -63,11 +63,15 @@ function mix3(a: Vec3, b: Vec3, t: number): Vec3 {
   return [mix(a[0], b[0], t), mix(a[1], b[1], t), mix(a[2], b[2], t)];
 }
 
+function clamp01(n: number): number {
+  return Math.max(0, Math.min(1, n));
+}
+
 function lift(c: Vec3, amount: number): Vec3 {
   return [
-    mix(c[0], 1, amount),
-    mix(c[1], 1, amount),
-    mix(c[2], 1, amount),
+    clamp01(mix(c[0], 1, amount)),
+    clamp01(mix(c[1], 1, amount)),
+    clamp01(mix(c[2], 1, amount)),
   ];
 }
 
@@ -78,9 +82,9 @@ function shade(c: Vec3, amount: number): Vec3 {
 function saturate(c: Vec3, amount: number): Vec3 {
   const l = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
   return [
-    mix(l, c[0], amount),
-    mix(l, c[1], amount),
-    mix(l, c[2], amount),
+    clamp01(mix(l, c[0], amount)),
+    clamp01(mix(l, c[1], amount)),
+    clamp01(mix(l, c[2], amount)),
   ];
 }
 
@@ -333,14 +337,31 @@ function cloudColors(sky: SkyPlate, weather: WeatherMod, isDay: boolean): {
   };
 }
 
+function skyPhaseFor(phase: AmbientPhase, isDay: boolean): AmbientPhase {
+  if (phase === "sunrise" || phase === "sunset") return phase;
+  if (isDay) {
+    return phase === "evening" || phase === "night" ? "afternoon" : phase;
+  }
+  return phase === "morning" || phase === "afternoon" ? "night" : phase;
+}
+
 export function resolveAtmosphere(input: WallpaperSceneInput): AtmosphereParams {
   const weather = WEATHER_MOD[input.condition];
-  const plate = applyWeatherToSky(PHASE_SKY[input.phase], weather);
+  const plate = applyWeatherToSky(PHASE_SKY[skyPhaseFor(input.phase, input.isDay)], weather);
   const clouds = cloudColors(plate, weather, input.isDay);
 
-  // Light theme: high-key wash so editorial type stays readable.
-  const liftAmt = input.theme === "light" ? (input.isDay ? 0.58 : 0.42) : 0;
-  const liftSky = (c: Vec3, extra = 0) => (liftAmt > 0 ? lift(c, liftAmt + extra) : c);
+  // Light theme stays high-key for type contrast, but keep chroma so
+  // weather still reads (a pale blue sky, not a white wash).
+  const weatherWeight = Math.min(
+    1,
+    weather.rain + weather.snow + weather.fog * 0.6 + weather.thunder
+  );
+  const liftAmt =
+    input.theme === "light"
+      ? (input.isDay ? 0.26 : 0.2) * (1 - weatherWeight * 0.45)
+      : 0;
+  const liftSky = (c: Vec3, extra = 0) =>
+    liftAmt > 0 ? saturate(lift(c, Math.max(0, liftAmt + extra)), 1.12) : c;
 
   return {
     zenith: liftSky(plate.zenith),

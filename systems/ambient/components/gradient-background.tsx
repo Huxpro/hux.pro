@@ -43,7 +43,7 @@ export function WeatherGradientBackground({
       className={cn(
         "pointer-events-none fixed inset-0 -z-10",
         "transition-opacity duration-700 ease-in-out",
-        enabled ? "opacity-75 dark:opacity-90" : "opacity-0"
+        enabled ? "opacity-90 dark:opacity-95" : "opacity-0"
       )}
       style={maskStyle}
     >

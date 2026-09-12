@@ -286,8 +286,8 @@ export function createParticleRenderer(
             seedRain(cssW, cssH, d);
             d.y = -d.len;
           }
-          ctx.strokeStyle = `rgba(210, 224, 240, ${d.alpha * rainAmt})`;
-          ctx.lineWidth = d.width;
+          ctx.strokeStyle = `rgba(70, 92, 122, ${0.28 + d.alpha * 0.55 * rainAmt})`;
+          ctx.lineWidth = d.width * 1.35;
           ctx.beginPath();
           ctx.moveTo(d.x, d.y);
           ctx.lineTo(d.x + wx * 0.05, d.y + d.len);
@@ -308,10 +308,13 @@ export function createParticleRenderer(
           }
           if (f.x < -8) f.x = cssW + 6;
           if (f.x > cssW + 8) f.x = -6;
-          ctx.fillStyle = `rgba(246, 250, 255, ${f.alpha * snowAmt})`;
+          ctx.fillStyle = `rgba(255, 255, 255, ${0.45 + f.alpha * 0.5 * snowAmt})`;
+          ctx.strokeStyle = `rgba(160, 180, 205, ${0.25 * snowAmt})`;
+          ctx.lineWidth = 0.6;
           ctx.beginPath();
-          ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+          ctx.arc(f.x, f.y, f.r * 1.15, 0, Math.PI * 2);
           ctx.fill();
+          ctx.stroke();
         }
       }
 

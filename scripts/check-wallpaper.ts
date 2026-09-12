@@ -91,6 +91,19 @@ for (const condition of conditions) {
         assert(params.moonGlow > 0.4, "night moon");
       }
       if (phase === "sunset") assert(params.sunGlow > 0.2, "sunset glow");
+      if (condition === "clear" && phase === "morning" && theme === "dark") {
+        const night = resolveAtmosphere({
+          condition,
+          phase,
+          theme,
+          isDay: false,
+        });
+        assert(
+          night.zenith[2] < params.zenith[2] || night.zenith[0] < params.zenith[0],
+          "night override should darken a morning plate"
+        );
+        assert(night.stars > 0.3, "night override stars");
+      }
 
       signatures.add(
         [params.zenith, params.horizon, params.rain, params.snow, params.stars]

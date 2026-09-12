@@ -99,7 +99,7 @@ export function createAtmosphere2DRenderer(
     ctx.fillStyle = bloom;
     ctx.fillRect(0, 0, cssW, cssH);
 
-    const coreR = r * (size * 4.2 + 0.008);
+    const coreR = r * (size * 6.5 + 0.012);
     const core = ctx.createRadialGradient(px, py, 0, px, py, coreR);
     core.addColorStop(0, rgba(color, 0.95));
     core.addColorStop(0.45, rgba(color, 0.55));
@@ -136,7 +136,7 @@ export function createAtmosphere2DRenderer(
       const ry = bank.ry * cssH * (0.9 + p.cloudCover * 0.3);
       const col = bank.shade > 0.5 ? p.cloudLight : p.cloudShade;
       const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
-      g.addColorStop(0, rgba(col, 0.22 + p.cloudCover * 0.38));
+      g.addColorStop(0, rgba(col, 0.32 + p.cloudCover * 0.48));
       g.addColorStop(1, rgba(col, 0));
       ctx.fillStyle = g;
       ctx.beginPath();
