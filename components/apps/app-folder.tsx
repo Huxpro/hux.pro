@@ -149,7 +149,7 @@ function AppLaunchLink({
         e.preventDefault();
         windows.openApp(app);
       }}
-      className="group/app block outline-none"
+      className="group/app relative z-0 block overflow-visible outline-none hover:z-10 focus-visible:z-10"
     >
       {children}
     </a>
@@ -347,7 +347,7 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
       <SortableContext items={order} strategy={rectSortingStrategy}>
         <div
           className={cn(
-            "relative rounded-2xl border px-2 py-3",
+            "relative rounded-2xl border px-1 py-1.5",
             "transition-colors duration-300",
             editing
               ? "border-border/60 bg-card/60 shadow-raised backdrop-blur-sm dark:bg-white/6"
@@ -360,11 +360,14 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
             className={cn(
               // Hide scrollbars — page dots are the affordance; snap does the rest.
               "no-scrollbar",
+              // Hover scale (105%) + the corner badge hang a few px off the
+              // 64px tile. Keep that overflow visible on a single page so the
+              // art isn't sheared; snap pages still have to clip, so each
+              // page grid carries matching padding below.
               needsPages && layout.axis === "x" &&
                 "flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden",
               needsPages && layout.axis === "y" &&
                 "flex flex-col snap-y snap-mandatory overflow-y-auto overflow-x-hidden",
-              !needsPages && "overflow-hidden",
             )}
             style={
               needsPages && layout.axis === "y"
@@ -380,6 +383,9 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
                 key={`page-${pi}`}
                 className={cn(
                   "grid gap-x-2 gap-y-5",
+                  // Room for the tile's hover scale + badge overhang so
+                  // overflow-x/y on a snap scroller can't clip the art.
+                  "px-1 py-1.5",
                   needsPages && "w-full shrink-0 snap-start snap-always",
                 )}
                 style={pageStyle}
