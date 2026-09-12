@@ -9,16 +9,18 @@ systems/ambient/
 ├── provider.tsx                  # AmbientProvider (Location + Weather + Time contexts)
 ├── components/
 │   ├── greeting.tsx              # Time-based greeting component
-│   ├── surface.tsx               # Route-aware gradient container
-│   ├── gradient-background.tsx   # Full-page weather gradient renderer
-│   ├── gradient-stack.tsx        # Shared crossfade renderer (full-page + widgets)
+│   ├── surface.tsx               # Route-aware wallpaper container
+│   ├── gradient-background.tsx   # Full-page living wallpaper + CSS underlay
+│   ├── weather-wallpaper.tsx     # WebGL sky + particle weather layer
+│   ├── gradient-stack.tsx        # Shared CSS crossfade renderer (widgets + fallback)
 │   ├── weather-icon.tsx          # Weather condition icons
 │   ├── weather-widget.tsx        # iOS-style weather widget (header + WeatherNow)
 │   ├── weather-now.tsx           # Shared weather body + useDisplayWeather()
 │   ├── phase-activity.tsx        # Sun-event notification (plugs into the Dock)
 │   └── index.ts                  # Component exports
 ├── lib/
-│   ├── gradient.ts               # OKLCH gradient generation + crossfade types
+│   ├── atmosphere.ts             # Sun position + living wallpaper scene
+│   ├── gradient.ts               # OKLCH gradient underlay + crossfade types
 │   ├── greeting.ts               # Time-of-day helpers
 │   ├── location.ts               # IP/GPS location resolution
 │   ├── notification.ts           # Upcoming sun-event detection (lead-up + window)
@@ -29,6 +31,9 @@ systems/ambient/
 │   ├── sun.ts                    # Sunrise/sunset calculations
 │   ├── weather.ts                # Weather API integration
 │   └── index.ts                  # Lib exports
+├── wallpaper/
+│   ├── shaders.ts                # Atmospheric sky + cloud fragment shader
+│   └── engine.ts                 # WebGL + 2D particle runtime
 └── index.ts                      # System barrel exports
 ```
 
@@ -46,19 +51,43 @@ type AmbientPhase = "sunrise" | "morning" | "afternoon" | "evening" | "sunset" |
 
 ### Weather Conditions
 
-Normalized weather conditions from Open-Meteo API:
+Normalized weather from Open-Meteo, including intensity, cloud cover, wind,
+and precipitation so the wallpaper can vary within a condition:
 
 ```typescript
-type WeatherCondition = "clear" | "cloudy" | "fog" | "rain" | "snow" | "thunder";
+type WeatherCondition =
+  | "clear" | "partlyCloudy" | "cloudy" | "fog"
+  | "drizzle" | "rain" | "snow" | "thunder";
+type WeatherIntensity = "light" | "moderate" | "heavy";
 ```
+
+### Living Wallpaper
+
+The full-page background is a time-aware atmospheric scene, not a static wash:
+
+- **Sky shader** — zenith/horizon/haze interpolate from sun elevation; sun and
+  moon sit on a real arc; stars fade in after dusk
+- **Volumetric-looking clouds** — FBM coverage, softness, and lighting follow
+  condition + wind
+- **Particles** — drizzle, rain streaks, snow, fog wisps, lightning bolts
+- **Time sensitivity** — sun position is derived from sunrise/sunset every 15s
+  and lerps, so golden hour is a continuous state, not a binary day/night flag
+- **Sun + weather composite** — sunrise rain keeps the warm horizon and adds a
+  cool weather veil (the old system replaced weather entirely during sun events)
+
+`prefers-reduced-motion` freezes the sky and disables particles. If WebGL2 is
+unavailable the CSS underlay remains the visible wallpaper.
+
+Widgets keep the enhanced OKLCH gradient stack (phase-aware, weather-veiled sun
+events) so `background-attachment: fixed` / the iOS tracker still work.
 
 ### Gradient System
 
-OKLCH-based gradients that respond to:
+OKLCH-based underlay used by widgets and as a WebGL fallback. Responds to:
 - Weather condition
-- Day/night state
+- Ambient phase (morning / afternoon / evening / night geometry)
 - Light/dark theme
-- Sun events (special sunrise/sunset palettes)
+- Sun events composited with the current weather veil
 
 ### Gradient Crossfade
 
@@ -190,9 +219,9 @@ Open-Meteo API → useWeatherQuery
        ↓ (sunrise/sunset times)
 deriveAmbientPhase → phase
        ↓
-getWeatherGradient → CSS gradient
+getAmbientGradient + buildWallpaperScene
        ↓
-WeatherGradientBackground
+WeatherGradientBackground (CSS underlay + living wallpaper)
 ```
 
 ## Caching

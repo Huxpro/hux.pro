@@ -832,7 +832,7 @@ function WeatherModule() {
             <Sun className="h-3 w-3" />
             <span>{t(locale, "timeDay")}</span>
           </div>
-          <div className="grid grid-cols-6 gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5">
             {Object.keys(WEATHER_CONDITIONS).map((k) => {
               const condition = k as keyof typeof WEATHER_CONDITIONS;
               const isSelected =
@@ -879,7 +879,7 @@ function WeatherModule() {
             <Moon className="h-3 w-3" />
             <span>{t(locale, "timeNight")}</span>
           </div>
-          <div className="grid grid-cols-6 gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5">
             {Object.keys(WEATHER_CONDITIONS).map((k) => {
               const condition = k as keyof typeof WEATHER_CONDITIONS;
               const isSelected =

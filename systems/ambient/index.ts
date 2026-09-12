@@ -11,6 +11,7 @@ export {
   AmbientSurface,
   AmbientPhaseActivity,
   WeatherGradientBackground,
+  WeatherWallpaper,
   WeatherIcon,
   WeatherWidget,
   WeatherNow,

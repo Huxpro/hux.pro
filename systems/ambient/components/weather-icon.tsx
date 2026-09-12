@@ -4,10 +4,12 @@ import { WEATHER_CONDITIONS, type WeatherCondition } from "../lib/weather";
 import { cn } from "@/lib/utils";
 import {
   Cloud,
+  CloudDrizzle,
   CloudFog,
   CloudLightning,
   CloudRain,
   CloudSnow,
+  CloudSun,
   Moon,
   Sun,
 } from "lucide-react";
@@ -27,8 +29,12 @@ export function WeatherIcon({
   switch (iconKey) {
     case "Sun":
       return isDay ? <Sun {...iconProps} /> : <Moon {...iconProps} />;
+    case "CloudSun":
+      return isDay ? <CloudSun {...iconProps} /> : <Cloud {...iconProps} />;
     case "Cloud":
       return <Cloud {...iconProps} />;
+    case "CloudDrizzle":
+      return <CloudDrizzle {...iconProps} />;
     case "CloudFog":
       return <CloudFog {...iconProps} />;
     case "CloudRain":

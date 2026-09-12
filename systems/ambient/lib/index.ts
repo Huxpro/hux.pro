@@ -1,4 +1,5 @@
 // Ambient System - Library exports
+export * from "./atmosphere";
 export * from "./format";
 export * from "./gradient";
 export * from "./greeting";

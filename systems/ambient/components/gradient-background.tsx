@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useWeather } from "../provider";
 import { GradientStack } from "./gradient-stack";
+import { WeatherWallpaper } from "./weather-wallpaper";
 
 interface WeatherGradientBackgroundProps {
   enabled: boolean;
@@ -11,9 +12,9 @@ interface WeatherGradientBackgroundProps {
 export function WeatherGradientBackground({
   enabled,
 }: WeatherGradientBackgroundProps) {
-  const { gradientLayers, edgeFadeMask } = useWeather();
+  const { gradientLayers, edgeFadeMask, wallpaperScene } = useWeather();
 
-  if (gradientLayers.length === 0) return null;
+  if (gradientLayers.length === 0 && !wallpaperScene) return null;
 
   return (
     <div
@@ -21,12 +22,17 @@ export function WeatherGradientBackground({
       className={cn(
         "pointer-events-none fixed inset-0 -z-10",
         "transition-opacity duration-700 ease-in-out",
-        enabled ? "opacity-70 dark:opacity-85" : "opacity-0"
+        enabled ? "opacity-80 dark:opacity-90" : "opacity-0"
       )}
     >
-      {/* Full-page background is already viewport-fixed, so the edge mask is
-          applied statically (no per-frame tracking needed). */}
+      {/* CSS underlay doubles as the widget-matching fallback while the
+          living wallpaper (WebGL sky + particles) fades in on top. */}
       <GradientStack layers={gradientLayers} edgeMask={edgeFadeMask} />
+      <WeatherWallpaper
+        scene={wallpaperScene}
+        enabled={enabled}
+        edgeMask={edgeFadeMask}
+      />
     </div>
   );
 }

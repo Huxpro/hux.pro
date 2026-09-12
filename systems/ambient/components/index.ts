@@ -1,6 +1,7 @@
 export { AmbientGreeting } from "./greeting";
 export { AmbientSurface } from "./surface";
 export { WeatherGradientBackground } from "./gradient-background";
+export { WeatherWallpaper } from "./weather-wallpaper";
 export { WeatherIcon } from "./weather-icon";
 export { WeatherWidget } from "./weather-widget";
 export { WeatherNow, useDisplayWeather } from "./weather-now";

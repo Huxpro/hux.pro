@@ -24,12 +24,12 @@ The ambient system makes the homepage feel **alive** - like an iOS widget that r
 │   │               Clear  │                                          │
 │   └──────────────────────┘                                          │
 │                                                                     │
-│   🎨  Background Gradient                                           │
-│   The page background subtly reflects the weather and time of day.  │
-│   Sunrise window → hopeful peach/gold tones                         │
-│   Sunset window → nostalgic amber with purple sky                   │
-│   Clear morning → warm golden tones                                 │
-│   Rainy evening → cool blue-grey tones                              │
+│   🎨  Living Wallpaper                                              │
+│   A cinematic, time-aware sky (WebGL atmosphere + weather particles)│
+│   approaching iOS lock-screen weather quality.                      │
+│   Sunrise + rain → gold horizon under a cool rain veil              │
+│   Clear night → moon, stars, deep indigo                            │
+│   Thunder → dark cumulonimbus + lightning                           │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -225,8 +225,10 @@ Configuration lives in `lib/ambient/route-config.ts`.
 | `lib/ambient/queries.ts` | `useLocationQuery()`, `useWeatherQuery()` |
 | `lib/ambient/settings.ts` | User preference persistence |
 | `lib/ambient/location.ts` | IP + GPS location fetching |
-| `lib/ambient/weather.ts` | Open-Meteo API integration (incl. sunrise/sunset) |
-| `lib/ambient/gradient.ts` | Weather + sun event → OKLCH gradient mapping |
+| `systems/ambient/lib/weather.ts` | Open-Meteo integration (condition, intensity, wind, cover) |
+| `systems/ambient/lib/atmosphere.ts` | Sun position + living wallpaper scene |
+| `systems/ambient/lib/gradient.ts` | Weather + sun event → OKLCH underlay |
+| `systems/ambient/wallpaper/` | WebGL sky shader + particle engine |
 | `lib/ambient/sun.ts` | Sunrise/sunset window detection |
 | `lib/ambient/phase.ts` | 6-phase ambient time model |
 | `lib/ambient/greeting.ts` | Time-based greeting logic |
@@ -247,8 +249,8 @@ The debug panel (press `D` to toggle) provides tools for testing ambient states:
 │                                                                     │
 │   WEATHER                                              [Toggle] ○   │
 │   ┌─────────────────────────────────────────────────────────────┐   │
-│   │ DAY:   ☀️ ☁️ 🌫️ 🌧️ ❄️ ⛈️  (6 conditions × gradient preview)   │   │
-│   │ NIGHT: 🌙 ☁️ 🌫️ 🌧️ ❄️ ⛈️  (6 conditions × gradient preview)   │   │
+│   │ DAY:   8 conditions × wallpaper preview (incl. partly cloudy, drizzle) │
+│   │ NIGHT: 8 conditions × wallpaper preview                                 │
 │   └─────────────────────────────────────────────────────────────┘   │
 │                                                                     │
 │   TIME OF DAY                                          [Toggle] ○   │

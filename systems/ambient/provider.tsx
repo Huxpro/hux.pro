@@ -1,7 +1,11 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { getSunEventGradient, getWeatherGradient } from "./lib/gradient";
+import {
+  buildWallpaperScene,
+  type WallpaperScene,
+} from "./lib/atmosphere";
+import { getAmbientGradient } from "./lib/gradient";
 import { GRADIENT_CROSSFADE_MS, type GradientLayerData } from "./lib/gradient";
 import type { LocationMode, ResolvedLocation } from "./lib/location";
 import { requestAccurateLocation as requestAccurateLocationFn } from "./lib/location";
@@ -107,6 +111,8 @@ interface WeatherContextType {
   gradient: string;
   /** Crossfade stack: [...settled, newest]. Render via <GradientStack />. */
   gradientLayers: GradientLayerData[];
+  /** Living wallpaper scene for the full-page WebGL + particle renderer. */
+  wallpaperScene: WallpaperScene | null;
   gradientMode: WeatherGradientMode;
   // 3 resolved rendering flags
   fullGradientEnabled: boolean;
@@ -260,9 +266,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     queryClient.invalidateQueries({ queryKey: ["weather"] });
   }, []);
 
-  // Update "now" every minute
+  // Tick often enough that the sun crawls across the sky instead of jumping.
   useEffect(() => {
-    const id = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    const id = window.setInterval(() => setNowMs(Date.now()), 15_000);
     return () => window.clearInterval(id);
   }, []);
 
@@ -301,31 +307,55 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       : EDGE_FADE_MASK
     : null;
 
-  // Compute gradient
-  const computedGradient = useMemo(() => {
-    if (effectivePhase === "sunrise" || effectivePhase === "sunset") {
-      return getSunEventGradient({ event: effectivePhase, theme }).backgroundImage;
-    }
+  const overrideActive =
+    isDevtoolEnabled && isOverrideEnabled && !!debugOverride;
+  const effectiveCondition: WeatherCondition | undefined = overrideActive
+    ? debugOverride!.condition
+    : weatherQuery.data?.condition;
+  const effectiveIsDay: boolean | undefined = overrideActive
+    ? debugOverride!.isDay
+    : weatherQuery.data?.isDay;
 
-    if (isDevtoolEnabled && isOverrideEnabled && debugOverride) {
-      return getWeatherGradient({
-        condition: debugOverride.condition,
-        isDay: debugOverride.isDay,
-        theme,
-      }).backgroundImage;
-    }
+  const computedGradient = useMemo(() => {
+    return getAmbientGradient({
+      condition: effectiveCondition,
+      isDay: effectiveIsDay,
+      theme,
+      phase: effectivePhase,
+    });
+  }, [effectiveCondition, effectiveIsDay, effectivePhase, theme]);
+
+  const wallpaperScene = useMemo(() => {
+    const hasSunEvent =
+      effectivePhase === "sunrise" || effectivePhase === "sunset";
+    if (!effectiveCondition && !hasSunEvent) return null;
 
     const weather = weatherQuery.data;
-    if (weather) {
-      return getWeatherGradient({
-        condition: weather.condition,
-        isDay: weather.isDay,
-        theme,
-      }).backgroundImage;
-    }
-
-    return "";
-  }, [isDevtoolEnabled, isOverrideEnabled, debugOverride, weatherQuery.data, effectivePhase, theme]);
+    return buildWallpaperScene({
+      condition: effectiveCondition ?? "clear",
+      intensity: overrideActive ? "moderate" : weather?.intensity,
+      cloudCover: overrideActive ? undefined : weather?.cloudCover,
+      precipitationMm: overrideActive ? undefined : weather?.precipitationMm,
+      windSpeedKmh: overrideActive ? undefined : weather?.windSpeedKmh,
+      theme,
+      phase: effectivePhase,
+      nowMs,
+      sunriseMs: weather?.sunriseMs,
+      sunsetMs: weather?.sunsetMs,
+      isDay: effectiveIsDay,
+      lockSunToPhase: isDevtoolEnabled && isTimeOverrideEnabled,
+    });
+  }, [
+    effectiveCondition,
+    effectiveIsDay,
+    effectivePhase,
+    isDevtoolEnabled,
+    isTimeOverrideEnabled,
+    nowMs,
+    overrideActive,
+    theme,
+    weatherQuery.data,
+  ]);
 
   // Gradient transition: a true crossfade between layers (no dip-to-background).
   // Centralized here so every consumer (full-page background, widget overlays)
@@ -375,6 +405,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
           weather: weatherQuery.data ?? null,
           gradient: computedGradient,
           gradientLayers,
+          wallpaperScene,
           gradientMode: settings.weatherGradientMode,
           fullGradientEnabled,
           widgetGradientEnabled,
