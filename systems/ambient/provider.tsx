@@ -18,10 +18,11 @@ import {
   getWallpaperBackground,
   getWallpaperOrDefault,
   resolveAppearance,
+  WALLPAPER_MISMATCH_OPACITY,
   WALLPAPER_OPACITY,
   type Wallpaper,
   type WallpaperAppearance,
-  type WallpaperSource,
+  type WallpaperKind,
 } from "./lib/wallpaper";
 import {
   EDGE_FADE_MASK,
@@ -99,32 +100,36 @@ export function useAmbientTime() {
 // =============================================================================
 // Wallpaper Context
 //
-// The background is one stack fed by exactly one source (see lib/wallpaper.ts),
-// so "weather" and "picture" are mutually exclusive by construction — there is
+// The background is one stack fed by exactly one kind (see lib/wallpaper.ts),
+// so "weather" and "image" are mutually exclusive by construction — there is
 // no state in which both can paint. Everything here persists to the same
 // localStorage blob as the rest of the ambient settings.
 // =============================================================================
 
 interface WallpaperContextType {
-  /** Which source currently feeds the background stack. */
-  source: WallpaperSource;
-  setSource: (source: WallpaperSource) => void;
-  /** Selected built-in (meaningful when source === "picture"). */
+  /** Which kind currently feeds the background stack. */
+  kind: WallpaperKind;
+  setKind: (kind: WallpaperKind) => void;
+  /** Selected built-in pair (meaningful when kind === "image"). */
   wallpaper: Wallpaper;
   wallpapers: Wallpaper[];
-  /** Selects a picture wallpaper AND switches the source to it. */
+  /** Selects a pair AND switches the background kind to it. */
   selectWallpaper: (id: string) => void;
+  /** Selects a pair and pins the half to show — the tile's sun/moon buttons. */
+  selectWallpaperVariant: (id: string, variant: "light" | "dark") => void;
   appearance: WallpaperAppearance;
   setAppearance: (appearance: WallpaperAppearance) => void;
   /** Which half of the pair "auto" lands on right now. */
   resolvedAppearance: "light" | "dark";
   /**
    * Opacity the background should render at, already resolved for the active
-   * source, medium and theme. Weather gradients and vector wallpapers sit
-   * higher than photographs, which carry far more contrast; a pair pinned
-   * against the theme is pulled right back so text keeps its contrast.
+   * kind, appearance and theme. Photographs carry far more contrast than the
+   * weather gradients; a pair pinned against the theme is pulled right back so
+   * text keeps its contrast.
    */
   opacity: number;
+  /** The file currently painting, for the devtool readout. */
+  src: string | null;
   /** Secondary window — the wallpaper picker. */
   isPickerOpen: boolean;
   openPicker: () => void;
@@ -236,21 +241,34 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   );
 
   // --- Wallpaper -----------------------------------------------------------
-  // Switching the source swaps what feeds the background stack; the stack
-  // itself crossfades, so weather → picture reads as a dissolve rather than a
-  // cut. Picking a wallpaper from the picker implies switching to it, which is
-  // what makes "one background at a time" feel like a single choice.
-  const setWallpaperSource = useCallback(
-    (source: WallpaperSource) => {
-      if (source === settings.wallpaperSource) return;
-      updateSettings({ wallpaperSource: source });
+  // Switching the kind swaps what feeds the background stack; the stack itself
+  // crossfades, so weather → image reads as a dissolve rather than a cut.
+  // Picking a wallpaper from the picker implies switching to it, which is what
+  // makes "one background at a time" feel like a single choice.
+  const setWallpaperKind = useCallback(
+    (kind: WallpaperKind) => {
+      if (kind === settings.wallpaperKind) return;
+      updateSettings({ wallpaperKind: kind });
     },
-    [settings.wallpaperSource, updateSettings]
+    [settings.wallpaperKind, updateSettings]
   );
 
   const selectWallpaper = useCallback(
     (id: string) => {
-      updateSettings({ wallpaperId: id, wallpaperSource: "picture" });
+      updateSettings({ wallpaperId: id, wallpaperKind: "image" });
+    },
+    [updateSettings]
+  );
+
+  // The sun/moon buttons on a tile: choose the pair and pin that half, in one
+  // gesture, exactly as macOS Settings does.
+  const selectWallpaperVariant = useCallback(
+    (id: string, variant: "light" | "dark") => {
+      updateSettings({
+        wallpaperId: id,
+        wallpaperKind: "image",
+        wallpaperAppearance: variant,
+      });
     },
     [updateSettings]
   );
@@ -272,18 +290,17 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     () => getWallpaperOrDefault(settings.wallpaperId),
     [settings.wallpaperId]
   );
-  const isPictureSource = settings.wallpaperSource === "picture";
+  const isImageKind = settings.wallpaperKind === "image";
   const resolvedAppearance = resolveAppearance(settings.wallpaperAppearance, theme);
 
-  // Weather gradients are vector artwork by nature, so they share the artwork
-  // weighting. Pinning a pair against the app theme puts light artwork under
-  // light text; the pin is the user's call so we keep it, but pulled right back
-  // to a tint with the themed page background carrying the contrast.
+  // Pinning a pair against the app theme puts light artwork under light text;
+  // the pin is the user's call so we keep it, but pulled right back to a tint
+  // with the themed page background carrying the contrast.
   const wallpaperOpacity = useMemo(() => {
-    if (!isPictureSource) return WALLPAPER_OPACITY.artwork[theme];
-    if (resolvedAppearance !== theme) return theme === "dark" ? 0.3 : 0.25;
-    return WALLPAPER_OPACITY[activeWallpaper.medium][theme];
-  }, [isPictureSource, activeWallpaper, resolvedAppearance, theme]);
+    if (!isImageKind) return WALLPAPER_OPACITY.weather[theme];
+    if (resolvedAppearance !== theme) return WALLPAPER_MISMATCH_OPACITY[theme];
+    return WALLPAPER_OPACITY.image[theme];
+  }, [isImageKind, resolvedAppearance, theme]);
 
   // DevTool gradient overrides (ephemeral, not persisted)
   const [devtoolGradientOverrides, setDevtoolGradientOverrides] =
@@ -408,18 +425,25 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       : EDGE_FADE_MASK
     : null;
 
-  // Compute the background. Exactly one source wins — a picture wallpaper
-  // replaces the weather gradient outright rather than stacking over it. The
-  // sun-event Live Activity is unaffected either way: it renders in the Dock
-  // from weather + phase and never reads this.
+  /** The active pair resolved for the current appearance, or null on weather. */
+  const resolvedImage = useMemo(
+    () =>
+      isImageKind
+        ? getWallpaperBackground({
+            wallpaper: activeWallpaper,
+            appearance: settings.wallpaperAppearance,
+            theme,
+          })
+        : null,
+    [isImageKind, activeWallpaper, settings.wallpaperAppearance, theme]
+  );
+
+  // Compute the background. Exactly one kind wins — an image wallpaper replaces
+  // the weather gradient outright rather than stacking over it. The sun-event
+  // Live Activity is unaffected either way: it renders in the Dock from weather
+  // + phase and never reads this.
   const computedGradient = useMemo(() => {
-    if (isPictureSource) {
-      return getWallpaperBackground({
-        wallpaper: activeWallpaper,
-        appearance: settings.wallpaperAppearance,
-        theme,
-      }).backgroundImage;
-    }
+    if (resolvedImage) return resolvedImage.backgroundImage;
 
     if (effectivePhase === "sunrise" || effectivePhase === "sunset") {
       return getSunEventGradient({ event: effectivePhase, theme }).backgroundImage;
@@ -444,9 +468,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
     return "";
   }, [
-    isPictureSource,
-    activeWallpaper,
-    settings.wallpaperAppearance,
+    resolvedImage,
     isDevtoolEnabled,
     isOverrideEnabled,
     debugOverride,
@@ -455,17 +477,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     theme,
   ]);
 
-  /** Picture wallpapers may be real image files, which must cover the frame. */
-  const computedCover = useMemo(
-    () =>
-      isPictureSource &&
-      getWallpaperBackground({
-        wallpaper: activeWallpaper,
-        appearance: settings.wallpaperAppearance,
-        theme,
-      }).cover,
-    [isPictureSource, activeWallpaper, settings.wallpaperAppearance, theme]
-  );
+  /** Images must cover the frame; the weather gradient already fills it. */
+  const computedCover = resolvedImage?.cover ?? false;
+  const wallpaperSrc = resolvedImage?.src ?? null;
 
   // Gradient transition: a true crossfade between layers (no dip-to-background).
   // Centralized here so every consumer (full-page background, widget overlays)
@@ -477,8 +491,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   useEffect(() => {
     // Hold the current gradient while refetching (stale-while-revalidate).
-    // A picture wallpaper needs no network, so it never waits on weather.
-    if (!isPictureSource && weatherQuery.isFetching) return;
+    // A image wallpaper needs no network, so it never waits on weather.
+    if (!isImageKind && weatherQuery.isFetching) return;
     if (!computedGradient) return;
 
     setGradientLayers((prev) => {
@@ -490,7 +504,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
         { id: layerIdRef.current, gradient: computedGradient, cover: computedCover },
       ];
     });
-  }, [computedGradient, computedCover, isPictureSource, weatherQuery.isFetching]);
+  }, [computedGradient, computedCover, isImageKind, weatherQuery.isFetching]);
 
   // Prune to the newest layer once the crossfade settles.
   useEffect(() => {
@@ -551,15 +565,17 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
         >
           <WallpaperContext.Provider
             value={{
-              source: settings.wallpaperSource,
-              setSource: setWallpaperSource,
+              kind: settings.wallpaperKind,
+              setKind: setWallpaperKind,
               wallpaper: activeWallpaper,
               wallpapers: BUILT_IN_WALLPAPERS,
               selectWallpaper,
+              selectWallpaperVariant,
               appearance: settings.wallpaperAppearance,
               setAppearance: setWallpaperAppearance,
               resolvedAppearance,
               opacity: wallpaperOpacity,
+              src: wallpaperSrc,
               isPickerOpen,
               openPicker,
               closePicker,

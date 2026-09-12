@@ -97,64 +97,40 @@ sunrise/sunset phase from the devtool also surfaces it for testing.
 The background is **one layer stack fed by exactly one source**:
 
 ```typescript
-type WallpaperSource = "weather" | "picture";
+type WallpaperKind = "weather" | "image";
 ```
 
 - `weather` — the live weather / sun-event gradient (`lib/gradient.ts`).
-- `picture` — a fixed wallpaper from the built-in catalog (`lib/wallpaper.ts`).
+- `image` — a fixed Apple pair from the built-in catalog (`lib/wallpaper.ts`).
 
-Because there is a single stack and a single source, the two are **mutually
+Because there is a single stack and a single kind, the two are **mutually
 exclusive by construction** — there is no state in which both paint, and nothing
-has to arbitrate between them. Switching source pushes a new layer, so
-weather → picture dissolves through the same crossfade as a weather change.
+has to arbitrate between them. Switching kind pushes a new layer, so
+weather → image dissolves through the same crossfade as a weather change.
 
 The sun-event Live Activity is unaffected: it renders in the Dock from weather +
 phase and never reads the background, so sunrise and sunset still announce
-themselves under a picture wallpaper.
+themselves under an image wallpaper.
 
 ### Built-ins
 
-The catalog holds two media, and the distinction is load-bearing — a photograph
-carries far more contrast than vector artwork, so they render at different
-opacities (`WALLPAPER_OPACITY`).
+Apple's own default macOS and iOS wallpapers, as light/dark pairs — the artwork
+each release is recognised by. Eleven pairs: macOS Tahoe, Sequoia, Sonoma,
+Ventura, Monterey and Big Sur; iOS 27, 18, 17, 14 and 13.
 
-**Artwork (8).** Wallpapers evoking the default desktops of each macOS/iOS
-release (Big Sur → Tahoe, plus iOS Aurora and Sunset). These are **original CSS
-artwork** — layered radial blooms in the same OKLCH language as the weather
-gradients — not Apple's image files, which are copyrighted and would add tens of
-megabytes of binaries to a static site. As vectors they cost ~1KB each, stay
-crisp at any resolution and need no network.
-
-**Photographs (3).** `Limb`, `Ember` and `Icefall` — NASA imagery, public domain
-under NASA's media usage guidelines. Downloaded and encoded by
-`scripts/wallpaper-fetch.mjs`; the encoded WebP files are committed so a build
-never depends on nasa.gov.
-
-| | Light half | Dark half |
-|---|---|---|
-| **Limb** | Cloud field over the Indian Ocean | First rays of an orbital sunrise |
-| **Ember** | Fog over the Namib dune field | The Sun clearing the limb |
-| **Icefall** | Jakobshavn calving front | An orbital sunset fading out |
-
-They were curated on a measurement, not taste alone: behind body copy what hurts
-is not brightness but **detail**, so every frame is empty — a limb, a field, a
-void — with one tonal direction. That criterion also explains the size of the
-set. Scoring the whole candidate pool for luminance and detail turned up plenty
-of dark frames that qualify and very few light ones: orbital photography is
-overwhelmingly dark material, and a fourth pair (Voyager's *Pale Blue Dot*) was
-cut because no light half of it survived a readability check against real text.
+They are committed as WebP (long edge ≤ 2560 at q80) with 480px thumbnails that
+picker tiles and devtool swatches resolve to, so opening the picker costs tens of
+kilobytes rather than the megabyte the full set weighs. Provenance for every
+pair — source URL, and HEIC frame index where the pair came out of one file —
+lives in `public/wallpapers/sources.json`.
 
 ```bash
-pnpm wallpapers:fetch          # download missing, encode into public/wallpapers
-pnpm wallpapers:fetch --force  # re-download everything
-pnpm wallpapers:fetch --report # luminance / detail per file — the curation data
-pnpm wallpapers:check          # CI: committed files are current
+pnpm wallpapers:check   # every pair present, decodes, and within budget
 ```
 
-Adding one: put its NASA ID in `SOURCES` in the script, run it, then add the
-entry to `PHOTO_WALLPAPERS` with the `base` colour the script prints. Each photo
-also gets a `-thumb.webp` rendition; picker tiles resolve to it, so opening the
-picker costs tens of kilobytes rather than the whole catalog.
+**Apple retains rights to this artwork.** It is committed for a personal site,
+not licensed onward; the archives the frames were pulled from do not license
+Apple's images either, and their repository licenses are not asserted to do so.
 
 ### Light/dark pairs
 
@@ -175,9 +151,9 @@ and the widget overlay as `useWallpaper().opacity`:
 
 | | Light theme | Dark theme |
 |---|---|---|
-| Weather gradient / artwork | 0.60 | 0.75 |
-| Photograph | 0.35 | 0.75 |
-| Pinned against the theme | 0.25 | 0.30 |
+| Weather gradient | 0.70 | 0.85 |
+| Image wallpaper | 0.42 | 0.62 |
+| Pinned against the theme | 0.22 | 0.28 |
 
 ### Placement
 
@@ -203,6 +179,12 @@ The picker itself is a secondary window (`wallpaper-sheet.tsx`) built on vaul,
 mounted once in the root layout and shaped like the music playlist sheet: a
 bottom action sheet on narrow viewports, a right-edge floating panel on wide
 ones.
+
+Its tiles are **macOS Settings pair cards**: a 16:10 split of the light and dark
+originals, sun / moon buttons on each half that select the pair *and* pin that
+variant in one gesture, a check when selected, and `Name` + `macOS · 2020`
+underneath. Weather leads the grid at full width — it is a wallpaper too, but
+the only live one, so it earns its own row.
 
 ## Components
 
@@ -277,14 +259,17 @@ const {
 
 ```typescript
 const {
-  source,              // "weather" | "picture"
-  setSource,
-  wallpaper,           // The selected built-in
-  wallpapers,          // The whole catalog
-  selectWallpaper,     // Selects AND switches source to "picture"
-  appearance,          // "auto" | "light" | "dark"
+  kind,                   // "weather" | "image"
+  setKind,
+  wallpaper,              // The selected pair
+  wallpapers,             // The whole catalog
+  selectWallpaper,        // Selects AND switches kind to "image"
+  selectWallpaperVariant, // …and pins a half — the tile's sun/moon buttons
+  appearance,             // "auto" | "light" | "dark"
   setAppearance,
-  resolvedAppearance,  // Which half "auto" lands on right now
+  resolvedAppearance,     // Which half "auto" lands on right now
+  opacity,                // Resolved for kind, appearance and theme
+  src,                    // The file currently painting, for the devtool
   isPickerOpen,
   openPicker,
   closePicker,
@@ -308,10 +293,10 @@ const {
 ## Data Flow
 
 ```
-                                    wallpaperSource
+                                     wallpaperKind
                                           │
         ┌─────────────────────────────────┴──────────────────┐
-        │ "weather"                                "picture" │
+        │ "weather"                                  "image" │
         ▼                                                    ▼
 IP Location API → useLocationQuery                  BUILT_IN_WALLPAPERS
         ↓                                                    ↓

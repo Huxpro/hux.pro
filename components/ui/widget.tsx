@@ -20,7 +20,7 @@ import { useState } from "react";
  *
  * In "widget" placement each card renders a crossfading overlay of whatever the
  * active wallpaper is (the shared <GradientStack />) bound to the provider's
- * layer stack — a weather gradient or a picture wallpaper alike. All transition
+ * layer stack — a weather gradient or a image wallpaper alike. All transition
  * logic is centralized — zero per-widget state machines.
  *
  * Background positioning uses one of two mutually-exclusive strategies:
