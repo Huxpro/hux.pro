@@ -304,10 +304,12 @@ export function WallpaperPanel({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <div className="max-h-[min(62vh,560px)] space-y-5 overflow-y-auto pr-0.5">
-        <WeatherTile selected={kind === "weather"} />
-        <PairGrid title={t(locale, "wallpaperMacOS")} pairs={macos} />
-        <PairGrid title={t(locale, "wallpaperIOS")} pairs={ios} />
+      <div className="max-h-[min(62vh,560px)] overflow-y-auto pr-0.5">
+        <div className="space-y-5 pb-6">
+          <WeatherTile selected={kind === "weather"} />
+          <PairGrid title={t(locale, "wallpaperMacOS")} pairs={macos} />
+          <PairGrid title={t(locale, "wallpaperIOS")} pairs={ios} />
+        </div>
       </div>
     </div>
   );
