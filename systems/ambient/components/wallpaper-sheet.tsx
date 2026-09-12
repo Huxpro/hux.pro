@@ -237,6 +237,9 @@ export function WallpaperSheet() {
     { value: "off", label: t(locale, "wallpaperPlacementOff") },
   ];
 
+  const vectors = wallpapers.filter((w) => w.medium === "artwork");
+  const photos = wallpapers.filter((w) => w.medium === "photo");
+
   const appearances = WALLPAPER_APPEARANCES.map((value) => ({
     value,
     label: getWallpaperAppearanceLabel(value, locale),
@@ -315,7 +318,7 @@ export function WallpaperSheet() {
 
             {/* One grid, one selection — weather is simply the first tile. */}
             <SectionLabel>{t(locale, "wallpaperChoose")}</SectionLabel>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3">
               <Tile
                 active={source === "weather"}
                 onClick={() => setSource("weather")}
@@ -333,7 +336,7 @@ export function WallpaperSheet() {
                 </span>
               </Tile>
 
-              {wallpapers.map((w) => (
+              {vectors.map((w) => (
                 <WallpaperTile
                   key={w.id}
                   wallpaper={w}
@@ -344,6 +347,46 @@ export function WallpaperSheet() {
                 />
               ))}
             </div>
+
+            {/* Photographs sit in their own group: a different medium, and the
+                one that comes with provenance worth showing. */}
+            {photos.length > 0 && (
+              <>
+                <div className="pt-5">
+                  <SectionLabel>{t(locale, "wallpaperPhotographs")}</SectionLabel>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {photos.map((w) => (
+                    <WallpaperTile
+                      key={w.id}
+                      wallpaper={w}
+                      appearance={appearance}
+                      theme={theme}
+                      active={source === "picture" && activeWallpaper.id === w.id}
+                      onSelect={() => selectWallpaper(w.id)}
+                    />
+                  ))}
+                </div>
+                <p className="px-1 pt-2 text-[11px] leading-snug text-muted-foreground/70">
+                  {t(locale, "wallpaperPhotographsNote")}
+                </p>
+              </>
+            )}
+
+            {/* Provenance for whatever is selected. Public domain asks for no
+                credit; showing it anyway is the interesting part. */}
+            {source === "picture" && activeWallpaper.credit && (
+              <div className="mt-4 rounded-xl border border-border/40 bg-muted/20 px-3 py-2.5">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  {activeWallpaper.credit}
+                </div>
+                {activeWallpaper.caption && (
+                  <p className="pt-1 text-[11px] leading-snug text-foreground/70">
+                    {activeWallpaper.caption[locale]}
+                  </p>
+                )}
+              </div>
+            )}
 
             <p className="px-1 pt-4 text-[11px] leading-snug text-muted-foreground/70">
               {t(locale, "wallpaperFooterNote")}

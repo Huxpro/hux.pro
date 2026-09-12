@@ -818,6 +818,7 @@ function WallpaperModule() {
     appearance,
     setAppearance,
     resolvedAppearance,
+    opacity,
     openPicker,
   } = useWallpaper();
   const { gradientMode } = useWeather();
@@ -835,7 +836,7 @@ function WallpaperModule() {
   const isPicture = source === "picture";
   // What the background is actually painting right now, in one line.
   const resolvedLabel = isPicture
-    ? `${wallpaper.name} · ${resolvedAppearance}`
+    ? `${wallpaper.name} · ${resolvedAppearance} · ${wallpaper.medium}`
     : zh
     ? "天气渐变"
     : "weather gradient";
@@ -869,6 +870,7 @@ function WallpaperModule() {
         <div className="space-y-1 rounded-md border border-border/40 bg-muted/20 px-2 py-1.5 text-[10px] font-mono">
           <MetaRow k={zh ? "正在渲染" : "painting"} v={resolvedLabel} />
           <MetaRow k={zh ? "位置" : "placement"} v={gradientMode} />
+          <MetaRow k={zh ? "不透明度" : "opacity"} v={opacity.toFixed(2)} />
         </div>
 
         {/* Swatch grid — each shows the pair, light half over dark half. */}
@@ -884,7 +886,7 @@ function WallpaperModule() {
                 <button
                   key={w.id}
                   onClick={() => selectWallpaper(w.id)}
-                  title={`${w.name} · ${w.family} ${w.year}`}
+                  title={`${w.name} · ${w.family} ${w.year} · ${w.medium}`}
                   aria-label={`Preview the ${w.name} wallpaper`}
                   aria-pressed={active}
                   className={cn(

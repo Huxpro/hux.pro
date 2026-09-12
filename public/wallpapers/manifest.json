@@ -1,0 +1,70 @@
+{
+  "sources": [
+    {
+      "slug": "limb-light",
+      "nasaId": "iss038e036501",
+      "credit": "NASA / ISS Expedition 38",
+      "caption": "Cloud field over the southwestern Indian Ocean, 2014",
+      "base": "rgb(216 214 210)",
+      "width": 1920,
+      "height": 1275,
+      "bytes": 218410,
+      "thumbBytes": 10794
+    },
+    {
+      "slug": "limb-dark",
+      "nasaId": "iss061e123824",
+      "credit": "NASA / ISS Expedition 61",
+      "caption": "First rays of an orbital sunrise on Earth's limb, 2020",
+      "base": "rgb(10 14 17)",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 16722,
+      "thumbBytes": 2394
+    },
+    {
+      "slug": "ember-light",
+      "nasaId": "s44-79-046",
+      "credit": "NASA / STS-44",
+      "caption": "Fog bank over the Namib Desert dune field, 1991",
+      "base": "rgb(148 135 130)",
+      "width": 1920,
+      "height": 1900,
+      "bytes": 326806,
+      "thumbBytes": 24726
+    },
+    {
+      "slug": "ember-dark",
+      "nasaId": "iss028e007274",
+      "credit": "NASA / ISS Expedition 28",
+      "caption": "The Sun peeking over the limb of the Earth, 2011",
+      "base": "rgb(57 67 75)",
+      "width": 1920,
+      "height": 1275,
+      "bytes": 17458,
+      "thumbBytes": 1606
+    },
+    {
+      "slug": "icefall-light",
+      "nasaId": "GSFC_20171208_Archive_e001754",
+      "credit": "NASA / GSFC / Jefferson Beck (Operation IceBridge)",
+      "caption": "Calving front of the Jakobshavn Glacier, Greenland, 2012",
+      "base": "rgb(175 174 167)",
+      "width": 1920,
+      "height": 1265,
+      "bytes": 474170,
+      "thumbBytes": 30748
+    },
+    {
+      "slug": "icefall-dark",
+      "nasaId": "iss069e025337",
+      "credit": "NASA / ISS Expedition 69",
+      "caption": "Last rays of an orbital sunset silhouetting cloud tops, 2023",
+      "base": "rgb(3 5 9)",
+      "width": 1920,
+      "height": 1078,
+      "bytes": 11608,
+      "thumbBytes": 1260
+    }
+  ]
+}
