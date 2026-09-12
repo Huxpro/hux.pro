@@ -1,3 +1,4 @@
+import { DEFAULT_WALLPAPER, parseWallpaper, type WallpaperSettings } from "../../wallpaper/catalog.ts";
 import type { LocationMode } from "./location";
 
 // =============================================================================
@@ -8,6 +9,7 @@ export type WeatherGradientMode = "full" | "off" | "widget";
 
 export interface AmbientSettings {
   locationMode: LocationMode;
+  wallpaper: WallpaperSettings;
   weatherGradientMode: WeatherGradientMode;
 }
 
@@ -16,6 +18,7 @@ const SETTINGS_KEY = "hux_ambient_settings";
 export function getDefaultSettings(): AmbientSettings {
   return {
     locationMode: "ip",
+    wallpaper: { ...DEFAULT_WALLPAPER },
     weatherGradientMode: "full",
   };
 }
@@ -40,6 +43,7 @@ export function getAmbientSettings(options?: {
     const parsed = JSON.parse(stored) as Partial<AmbientSettings> & {
       weatherGradientMode?: string;
     };
+    if (!parsed || typeof parsed !== "object") return getDefaultSettings();
     const defaults = getDefaultSettings();
 
     // Migration: treat old "adaptive" as "full"
@@ -58,6 +62,7 @@ export function getAmbientSettings(options?: {
       locationMode:
         parsed.locationMode === "accurate" ? "accurate" : defaults.locationMode,
       weatherGradientMode: mode,
+      wallpaper: parseWallpaper(parsed?.wallpaper, mode === "off"),
     };
   } catch {
     return getDefaultSettings();

@@ -54,7 +54,7 @@ When the Window system is mounted, ⌘K also launches apps from
 | `A` | Toggle appearance |
 | `L` | Toggle language |
 | `G` | Toggle geolocation |
-| `W` | Toggle weather gradient |
+| `W` | Open wallpaper settings |
 | `D` | Toggle devtool FAB |
 
 ## Components
@@ -106,7 +106,7 @@ The palette searches across:
 
 1. **Apps**: Horizontal icon strip (filtered in place; hidden when no match)
 2. **Navigation**: Home, Writing, Works, Docs
-3. **Settings**: Appearance, Language, Location, Gradient, Music, Devtool
+3. **Settings**: Appearance, Language, Location, Wallpaper, Music, Devtool
 4. **Blog Posts**: Title, description, tags (both languages)
 
 ## iOS Compatibility
@@ -115,3 +115,9 @@ Special handling for iOS Safari:
 - Scroll position preservation on open
 - Delayed autofocus to prevent keyboard jump
 - Touch-friendly backdrop dismissal
+
+### Wallpaper settings
+
+The Wallpaper command opens a responsive secondary window for Weather, Image and
+Plain sources. It includes Apple light/dark pairs, custom pair selection and Auto
+appearance. Escape returns to search. See [Wallpaper System](./system-wallpaper.md).

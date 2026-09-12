@@ -1,8 +1,10 @@
 "use client";
 
+import { WALLPAPERS, type WallpaperAppearance, type WallpaperId, type WallpaperSource } from "@/systems/wallpaper/catalog";
+import { useCommand } from "@/systems/command/provider";
 import { WeatherIcon } from "@/systems/ambient/components/weather-icon";
 import { useLocale, useTheme, t } from "@/services";
-import { useAmbientTime, useLocation, useWeather } from "@/systems/ambient";
+import { useAmbientTime, useLocation, useWeather, useWallpaper } from "@/systems/ambient";
 import type { DevtoolGradientOverrides } from "@/systems/ambient/provider";
 import { formatClockTime } from "@/systems/ambient/lib/format";
 import {
@@ -184,6 +186,7 @@ function DevtoolPanel() {
       <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
         <FrontmatterModule />
         <ReadingModule />
+        <WallpaperModule />
         <GradientModule />
         <WeatherModule />
         <AmbientTimeModule />
@@ -683,6 +686,63 @@ function ReadingModule() {
 // Gradient Module
 // =============================================================================
 
+function WallpaperModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const { effective, resolved, debugOverride, setDebugOverride, isDebugging } = useWallpaper();
+  const { openWallpaper } = useCommand();
+  const selectClass = "min-h-9 max-w-[60%] rounded-md border border-border bg-background px-2 text-xs text-foreground";
+  return (
+    <DebugSection id="wallpaper" title={zh ? "壁纸" : "Wallpaper"} icon={<Layers className="h-4 w-4" />} compact>
+      <div className="space-y-3">
+        <label className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          {zh ? "预览类型" : "Preview source"}
+          <select aria-label="Wallpaper preview source" className={selectClass} value={debugOverride.source ?? "saved"} onChange={(e) => {
+            const rest = { ...debugOverride }; delete rest.source;
+            setDebugOverride(e.target.value === "saved" ? rest : { ...rest, source: e.target.value as WallpaperSource });
+          }}>
+            <option value="saved">{zh ? "使用已保存设置" : "Saved preference"}</option>
+            <option value="weather">{zh ? "天气" : "Weather"}</option>
+            <option value="image">{zh ? "图片" : "Image"}</option>
+            <option value="none">{zh ? "纯色" : "Plain"}</option>
+          </select>
+        </label>
+        <label className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          {zh ? "预览配对" : "Preview pair"}
+          <select aria-label="Wallpaper preview pair" className={selectClass} value={debugOverride.light === debugOverride.dark ? debugOverride.light ?? "saved" : "saved"} onChange={(e) => {
+            const rest = { ...debugOverride }; delete rest.light; delete rest.dark;
+            setDebugOverride(e.target.value === "saved" ? rest : { ...rest, source: "image", light: e.target.value as WallpaperId, dark: e.target.value as WallpaperId });
+          }}>
+            <option value="saved">{zh ? "使用已保存设置" : "Saved preference"}</option>
+            {WALLPAPERS.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+          </select>
+        </label>
+        <label className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          {zh ? "预览外观" : "Preview appearance"}
+          <select aria-label="Wallpaper preview appearance" className={selectClass} value={debugOverride.appearance ?? "saved"} onChange={(e) => {
+            const rest = { ...debugOverride }; delete rest.appearance;
+            setDebugOverride(e.target.value === "saved" ? rest : { ...rest, appearance: e.target.value as WallpaperAppearance });
+          }}>
+            <option value="saved">{zh ? "使用已保存设置" : "Saved preference"}</option>
+            <option value="auto">{zh ? "自动" : "Auto"}</option>
+            <option value="light">{zh ? "浅色" : "Light"}</option>
+            <option value="dark">{zh ? "深色" : "Dark"}</option>
+          </select>
+        </label>
+        <div className="space-y-1 text-[10px] font-mono">
+          <MetaRow k="source" v={effective.source} />
+          {effective.source === "image" && <><MetaRow k="variant" v={resolved.variant} /><MetaRow k="asset" v={resolved.src} /></>}
+        </div>
+        <p className="text-[10px] leading-relaxed text-muted-foreground">{zh ? "预览不会保存。可在时间模块中模拟日出日落，同时检查提醒。" : "Previews are not saved. Use Time of Day to test sunrise/sunset notifications alongside the wallpaper."}</p>
+        <div className="flex justify-between gap-2">
+          <button onClick={openWallpaper} className="min-h-9 text-xs underline underline-offset-4">{zh ? "打开壁纸设置" : "Open wallpaper settings"}</button>
+          <button disabled={!isDebugging} onClick={() => setDebugOverride({})} className="min-h-9 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40">{zh ? "重置预览" : "Reset preview"}</button>
+        </div>
+      </div>
+    </DebugSection>
+  );
+}
+
 function GradientModule() {
   const { locale } = useLocale();
   const {
@@ -735,7 +795,7 @@ function GradientModule() {
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
           {modeLabel}
-          <span className="ml-1 text-muted-foreground/40">W</span>
+
         </span>
       }
     >

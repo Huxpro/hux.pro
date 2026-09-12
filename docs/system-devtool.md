@@ -123,3 +123,11 @@ DevtoolProvider
     ↓ reads/writes
 AmbientProvider (useWeather, useAmbientTime)
 ```
+
+## Wallpaper previews
+
+The Wallpaper section previews source, Apple pair and appearance without saving,
+and shows the resolved image path. Reset preview restores saved preferences. Use
+Time Of Day overrides to verify sunrise/sunset notifications while image wallpaper
+is active. Gradient overrides cannot put weather behind an image. See
+[Wallpaper System](./system-wallpaper.md).

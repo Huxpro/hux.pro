@@ -1,0 +1,150 @@
+{
+  "author": "Apple Inc.",
+  "note": "Original macOS and iOS wallpapers. Apple retains rights to the artwork; archive repository licenses are not asserted to license Apple artwork. WebP derivatives resized to at most 2400px; thumbnails at most 480px. HEIC frames are zero-indexed.",
+  "assets": [
+    {
+      "file": "big-sur-light.webp",
+      "source": "https://media.githubusercontent.com/media/benediktkr/Deeeee-macOS-Wallpapers/2b05d4fb7a447845e93da0753eac5f3ddc217017/macOS/11%20-%20Big%20Sur/Big%20Sur%20Graphic.heic",
+      "frame": 0,
+      "width": 2400,
+      "height": 2400,
+      "bytes": 46274,
+      "sha256": "2bb28be35d4a84c227a54aa0da3882e2d42f3c22868c662a4b3c7456f69e3d6d"
+    },
+    {
+      "file": "big-sur-light-thumb.webp",
+      "source": "https://media.githubusercontent.com/media/benediktkr/Deeeee-macOS-Wallpapers/2b05d4fb7a447845e93da0753eac5f3ddc217017/macOS/11%20-%20Big%20Sur/Big%20Sur%20Graphic.heic",
+      "frame": 0,
+      "width": 480,
+      "height": 480,
+      "bytes": 4296,
+      "sha256": "cefa4e5d2259faa481e23f39efc77ba734148d1b946a089dc5a77b22da930b49"
+    },
+    {
+      "file": "big-sur-dark.webp",
+      "source": "https://media.githubusercontent.com/media/benediktkr/Deeeee-macOS-Wallpapers/2b05d4fb7a447845e93da0753eac5f3ddc217017/macOS/11%20-%20Big%20Sur/Big%20Sur%20Graphic.heic",
+      "frame": 1,
+      "width": 2400,
+      "height": 2400,
+      "bytes": 42610,
+      "sha256": "876799559ccf0a8e367b0ee969e6e9aad3f87ce1faad2d9144a8dc79488422cf"
+    },
+    {
+      "file": "big-sur-dark-thumb.webp",
+      "source": "https://media.githubusercontent.com/media/benediktkr/Deeeee-macOS-Wallpapers/2b05d4fb7a447845e93da0753eac5f3ddc217017/macOS/11%20-%20Big%20Sur/Big%20Sur%20Graphic.heic",
+      "frame": 1,
+      "width": 480,
+      "height": 480,
+      "bytes": 3794,
+      "sha256": "2357e4cbca0f3ab80cffbe93e88d7bb37f365f89d748ae05fdebd236b84f27f6"
+    },
+    {
+      "file": "monterey-light.webp",
+      "source": "https://media.githubusercontent.com/media/benediktkr/Deeeee-macOS-Wallpapers/2b05d4fb7a447845e93da0753eac5f3ddc217017/macOS/12%20-%20Monterey/Monterey%20Graphic.heic",
+      "frame": 0,
+      "width": 2400,
+      "height": 2400,
+      "bytes": 45284,
+      "sha256": "2c1927881b64b1bf5ae48d67861f29ea327b3fe3e7c34d10d1b50985a52b5186"
+    },
+    {
+      "file": "monterey-light-thumb.webp",
+      "source": "https://media.githubusercontent.com/media/benediktkr/Deeeee-macOS-Wallpapers/2b05d4fb7a447845e93da0753eac5f3ddc217017/macOS/12%20-%20Monterey/Monterey%20Graphic.heic",
+      "frame": 0,
+      "width": 480,
+      "height": 480,
+      "bytes": 4100,
+      "sha256": "95b6d2e5200f991f2fb32e1ce25389dbadaf07b663a29b8d6d474fedae7b5efb"
+    },
+    {
+      "file": "monterey-dark.webp",
+      "source": "https://media.githubusercontent.com/media/benediktkr/Deeeee-macOS-Wallpapers/2b05d4fb7a447845e93da0753eac5f3ddc217017/macOS/12%20-%20Monterey/Monterey%20Graphic.heic",
+      "frame": 1,
+      "width": 2400,
+      "height": 2400,
+      "bytes": 35796,
+      "sha256": "35be0e712fcaa5d1911a42520edeae8764395cc549cbea936ee3da446d24b112"
+    },
+    {
+      "file": "monterey-dark-thumb.webp",
+      "source": "https://media.githubusercontent.com/media/benediktkr/Deeeee-macOS-Wallpapers/2b05d4fb7a447845e93da0753eac5f3ddc217017/macOS/12%20-%20Monterey/Monterey%20Graphic.heic",
+      "frame": 1,
+      "width": 480,
+      "height": 480,
+      "bytes": 2902,
+      "sha256": "ff396c0bc9c2a21bb3c76afa5e22b990ce8a62a64c87353f569ff2b3ca2892e1"
+    },
+    {
+      "file": "ios-13-light.webp",
+      "source": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2013/Stills/1211.WWDC_2019_Light-414w-896h%403x~iphone.heic",
+      "frame": 0,
+      "width": 2400,
+      "height": 2400,
+      "bytes": 75752,
+      "sha256": "dd0fffb413b3203289ffb24bd07388765b766116cbeefa24760e28bfe7316158"
+    },
+    {
+      "file": "ios-13-light-thumb.webp",
+      "source": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2013/Stills/1211.WWDC_2019_Light-414w-896h%403x~iphone.heic",
+      "frame": 0,
+      "width": 480,
+      "height": 480,
+      "bytes": 5468,
+      "sha256": "c5b27c01b789ab1e64b7048bbdd140fdb085e9319e5f9d5f8cc529f9b02fa7ec"
+    },
+    {
+      "file": "ios-13-dark.webp",
+      "source": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2013/Stills/1212.WWDC_2019_Dark-414w-896h%403x~iphone.heic",
+      "frame": 0,
+      "width": 2400,
+      "height": 2400,
+      "bytes": 106828,
+      "sha256": "925c02262b342ab505a65e3976d1602787d6b177bd8e3e6326bffcd5ccfb4fcf"
+    },
+    {
+      "file": "ios-13-dark-thumb.webp",
+      "source": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2013/Stills/1212.WWDC_2019_Dark-414w-896h%403x~iphone.heic",
+      "frame": 0,
+      "width": 480,
+      "height": 480,
+      "bytes": 5810,
+      "sha256": "e4ffe7062facd627fd6c65bdf162909b912b65480dd89af53a258bc029237ca5"
+    },
+    {
+      "file": "ios-14-light.webp",
+      "source": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2014/Stills/1511.WWDC_2020_Warm_Light-414w-896h%403x~iphone.heic",
+      "frame": 0,
+      "width": 2400,
+      "height": 2400,
+      "bytes": 124256,
+      "sha256": "7ec02fdcc54c7af2a82370a2f8e1cb086a676fecbb82bb09f7e8d2f0d1ac7da9"
+    },
+    {
+      "file": "ios-14-light-thumb.webp",
+      "source": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2014/Stills/1511.WWDC_2020_Warm_Light-414w-896h%403x~iphone.heic",
+      "frame": 0,
+      "width": 480,
+      "height": 480,
+      "bytes": 2982,
+      "sha256": "16eb8d4edf7b3aa2f6a4ea9a45cee888189ee66af881c8a60b39bf901df16bfb"
+    },
+    {
+      "file": "ios-14-dark.webp",
+      "source": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2014/Stills/1512.WWDC_2020_Warm_Dark-414w-896h%403x~iphone.heic",
+      "frame": 0,
+      "width": 2400,
+      "height": 2400,
+      "bytes": 54210,
+      "sha256": "4ef3c4bac1c03e7ad083a0b10cf344891e0548717726289b1fcee00720b038a4"
+    },
+    {
+      "file": "ios-14-dark-thumb.webp",
+      "source": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2014/Stills/1512.WWDC_2020_Warm_Dark-414w-896h%403x~iphone.heic",
+      "frame": 0,
+      "width": 480,
+      "height": 480,
+      "bytes": 2706,
+      "sha256": "a70526afeb768c2036b7464d66d31bf9391a3c2948c291628592cc709cf5693a"
+    }
+  ]
+}

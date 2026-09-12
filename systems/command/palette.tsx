@@ -4,7 +4,7 @@ import { getLocalizedDescription, getLocalizedTitle, getPostHref } from "@/lib/c
 import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { localeNames, t, useLocale, useTheme } from "@/services";
-import { useLocation, useWeather } from "@/systems/ambient";
+import { useLocation, useWallpaper } from "@/systems/ambient";
 import { useDevtool } from "@/systems/devtool";
 import { useMusic } from "@/systems/music";
 import { useOptionalWindows } from "@/systems/windows";
@@ -25,25 +25,26 @@ import {
   Slash,
   Sparkles,
   Sun,
-  Waves,
+  ImageIcon,
 } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
 import { CommandAppsStrip } from "./apps-launcher";
+import { WallpaperPanel } from "../wallpaper/panel";
 import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
 
 export function CommandPalette() {
   const drag = useDraggable("command-palette");
-  const { isOpen, isSlashCommandsMode, isLoadBundleMode, close, setSlashCommandsMode, setLoadBundleMode } =
+  const { isOpen, isSlashCommandsMode, isLoadBundleMode, isWallpaperMode, openWallpaper, backFromWallpaper, close, setSlashCommandsMode, setLoadBundleMode } =
     useCommand();
   const { theme, preference, setThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
   const { locationMode, setLocationMode, requestAccurateLocation } =
     useLocation();
-  const { gradientMode, cycleGradientMode } = useWeather();
+  const { effective: wallpaper } = useWallpaper();
   const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled, signalDragReset } =
     useDevtool();
   const {
@@ -64,16 +65,10 @@ export function CommandPalette() {
     prevOpenRef.current = isOpen;
   }, [isOpen, signalDragReset]);
 
-  const gradientModeLabel =
-    gradientMode === "full"
-      ? locale === "zh"
-        ? "全屏"
-        : "Full"
-      : gradientMode === "widget"
-      ? locale === "zh"
-        ? "卡片"
-        : "Widget"
-      : t(locale, "stateOff");
+  const wallpaperLabel = locale === "zh" ? "壁纸" : "Wallpaper";
+  const wallpaperSourceLabel = wallpaper.source === "weather" ? (locale === "zh" ? "天气" : "Weather")
+    : wallpaper.source === "image" ? (locale === "zh" ? "图片" : "Image")
+    : (locale === "zh" ? "纯色" : "Plain");
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -97,7 +92,7 @@ export function CommandPalette() {
   }, [isOpen, isIOS]);
 
   useEffect(() => {
-    if (isOpen && !isSlashCommandsMode) {
+    if (isOpen && !isSlashCommandsMode && !isWallpaperMode) {
       if (isIOS) return;
       setTimeout(() => {
         inputRef.current?.focus();
@@ -107,7 +102,7 @@ export function CommandPalette() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setInputValue("");
     }
-  }, [isOpen, isSlashCommandsMode, isIOS]);
+  }, [isOpen, isSlashCommandsMode, isWallpaperMode, isIOS]);
 
   const handleNavigation = useCallback(
     (path: string) => {
@@ -221,12 +216,9 @@ export function CommandPalette() {
     },
     {
       key: "w",
-      label: `${t(locale, "settingsWeatherGradient")}: ${gradientModeLabel}`,
-      icon: <Waves className="h-4 w-4" />,
-      onSelect: () => {
-        cycleGradientMode();
-        close();
-      },
+      label: `${wallpaperLabel}: ${wallpaperSourceLabel}`,
+      icon: <ImageIcon className="h-4 w-4" />,
+      onSelect: openWallpaper,
       section: "settings",
     },
     {
@@ -328,8 +320,7 @@ export function CommandPalette() {
           })();
           return;
         case "w":
-          cycleGradientMode();
-          close();
+          openWallpaper();
           return;
         case "m":
           if (musicPlayerState === "playing") {
@@ -360,14 +351,13 @@ export function CommandPalette() {
     setLocale,
     locale,
     locationMode,
-    gradientModeLabel,
     musicPlayerState,
     musicPlay,
     musicPause,
     isDevtoolEnabled,
     requestAccurateLocation,
     setLocationMode,
-    cycleGradientMode,
+    openWallpaper,
     setDevtoolEnabled,
   ]);
 
@@ -402,7 +392,8 @@ export function CommandPalette() {
       className={cn(
         // Above the theater/PiP surfaces (z-[10000]+) — the command palette is
         // the primary nav and must always sit on top.
-        "z-[10050] flex items-start justify-center pt-[20vh]",
+        "z-[10050] flex items-start justify-center",
+        isWallpaperMode ? "pt-[max(1rem,env(safe-area-inset-top))] sm:pt-[8dvh]" : "pt-[20vh]",
         isIOS ? "absolute inset-x-0" : "fixed inset-0"
       )}
       style={isIOS ? { top: scrollPosition, height: "100dvh" } : undefined}
@@ -468,6 +459,9 @@ export function CommandPalette() {
         }
         className="w-full flex justify-center"
       >
+      {isWallpaperMode ? (
+        <WallpaperPanel onBack={backFromWallpaper} onClose={close} />
+      ) : (
       <Command
         className={cn(
           "relative mx-4 transition-all duration-300 ease-out",
@@ -801,8 +795,13 @@ export function CommandPalette() {
                     </kbd>
                   </Command.Item>
                   <Command.Item
-                    value="weather-gradient"
+                    value="wallpaper"
                     keywords={[
+                      "wallpaper",
+                      "apple",
+                      "macos",
+                      "ios",
+                      "壁纸",
                       "weather",
                       "gradient",
                       "background",
@@ -812,7 +811,7 @@ export function CommandPalette() {
                       "渐变",
                       "背景",
                     ]}
-                    onSelect={() => cycleGradientMode()}
+                    onSelect={openWallpaper}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                       "text-sm cursor-pointer transition-colors",
@@ -820,9 +819,9 @@ export function CommandPalette() {
                       "hover:bg-accent/25"
                     )}
                   >
-                    <Waves className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <ImageIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">
-                      {t(locale, "settingsWeatherGradient")}: {gradientModeLabel}
+                      {wallpaperLabel}: {wallpaperSourceLabel}
                     </span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       W
@@ -1112,6 +1111,7 @@ export function CommandPalette() {
           </div>
         </div>
       </Command>
+      )}
       </motion.div>
     </div>
   );

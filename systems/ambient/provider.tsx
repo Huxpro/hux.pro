@@ -24,6 +24,8 @@ import { deriveAmbientPhase } from "./lib/phase";
 import { queryClient } from "@/lib/query";
 import { useDevtool } from "@/systems/devtool";
 
+import { resolveWallpaper, type WallpaperSettings } from "../wallpaper/catalog";
+
 function formatGeolocationError(err: unknown): string {
   if (err instanceof Error) return err.message || "Unknown error";
   if (typeof err === "string") return err;
@@ -141,6 +143,23 @@ export function useOptionalWeather() {
   return useContext(WeatherContext);
 }
 
+interface WallpaperContextType {
+  settings: WallpaperSettings;
+  effective: WallpaperSettings;
+  resolved: ReturnType<typeof resolveWallpaper>;
+  update: (partial: Partial<WallpaperSettings>) => void;
+  debugOverride: Partial<WallpaperSettings>;
+  setDebugOverride: (override: Partial<WallpaperSettings>) => void;
+  isDebugging: boolean;
+}
+
+const WallpaperContext = createContext<WallpaperContextType | undefined>(undefined);
+export function useWallpaper() {
+  const context = useContext(WallpaperContext);
+  if (!context) throw new Error("useWallpaper must be used within AmbientProvider");
+  return context;
+}
+
 // =============================================================================
 // AmbientProvider
 // =============================================================================
@@ -172,10 +191,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   const setGradientMode = useCallback(
     (mode: WeatherGradientMode) => {
-      if (mode === settings.weatherGradientMode) return;
-      updateSettings({ weatherGradientMode: mode });
+      updateSettings({ weatherGradientMode: mode, wallpaper: { ...settings.wallpaper, source: mode === "off" ? "none" : "weather" } });
     },
-    [settings.weatherGradientMode, updateSettings]
+    [settings.wallpaper, updateSettings]
   );
 
   // DevTool gradient overrides (ephemeral, not persisted)
@@ -192,22 +210,43 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     const currentIndex = GRADIENT_MODE_CYCLE.indexOf(settings.weatherGradientMode);
     const nextIndex =
       currentIndex < 0 ? 0 : (currentIndex + 1) % GRADIENT_MODE_CYCLE.length;
-    updateSettings({ weatherGradientMode: GRADIENT_MODE_CYCLE[nextIndex] });
-  }, [settings.weatherGradientMode, updateSettings]);
+    const mode = GRADIENT_MODE_CYCLE[nextIndex];
+    updateSettings({ weatherGradientMode: mode, wallpaper: { ...settings.wallpaper, source: mode === "off" ? "none" : "weather" } });
+  }, [settings.weatherGradientMode, settings.wallpaper, updateSettings]);
 
+  const [wallpaperDebugOverride, setWallpaperDebugOverride] = useState<Partial<WallpaperSettings>>({});
+  const effectiveWallpaper = isDevtoolEnabled
+    ? { ...settings.wallpaper, ...wallpaperDebugOverride }
+    : settings.wallpaper;
+  const updateWallpaper = useCallback((partial: Partial<WallpaperSettings>) => {
+    setWallpaperDebugOverride({});
+    setDevtoolGradientOverrides((prev) => ({ ...prev, full: undefined, widget: undefined }));
+    setSettingsState((prev) => {
+      const next = {
+        ...prev,
+        wallpaper: { ...prev.wallpaper, ...partial },
+        weatherGradientMode: partial.source === "weather" && prev.weatherGradientMode === "off"
+          ? "full" as const : prev.weatherGradientMode,
+      };
+      setAmbientSettings(next);
+      return next;
+    });
+  }, []);
+
+  // Weather rendering never overrides an image or a plain wallpaper.
   // 3 resolved rendering flags.
   // DevTool overrides bypass all natural derivation.
   const isIOS = useMemo(() => isIOSBrowser(), []);
 
-  const fullGradientEnabled =
+  const fullGradientEnabled = effectiveWallpaper.source === "weather" && (
     isDevtoolEnabled && devtoolGradientOverrides.full !== undefined
       ? devtoolGradientOverrides.full
-      : settings.weatherGradientMode === "full";
+      : settings.weatherGradientMode === "full");
 
-  const widgetGradientEnabled =
+  const widgetGradientEnabled = effectiveWallpaper.source === "weather" && (
     isDevtoolEnabled && devtoolGradientOverrides.widget !== undefined
       ? devtoolGradientOverrides.widget
-      : settings.weatherGradientMode === "widget";
+      : settings.weatherGradientMode === "widget");
 
   const softEdgingEnabled =
     isDevtoolEnabled && devtoolGradientOverrides.softEdging !== undefined
@@ -405,7 +444,17 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
             setOverridePhase: setTimeOverridePhase,
           }}
         >
-          {children}
+          <WallpaperContext.Provider value={{
+            settings: settings.wallpaper,
+            effective: effectiveWallpaper,
+            resolved: resolveWallpaper(effectiveWallpaper, theme),
+            update: updateWallpaper,
+            debugOverride: wallpaperDebugOverride,
+            setDebugOverride: setWallpaperDebugOverride,
+            isDebugging: isDevtoolEnabled && Object.keys(wallpaperDebugOverride).length > 0,
+          }}>
+            {children}
+          </WallpaperContext.Provider>
         </AmbientTimeContext.Provider>
       </WeatherContext.Provider>
     </LocationContext.Provider>
