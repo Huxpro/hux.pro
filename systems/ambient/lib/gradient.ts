@@ -5,10 +5,21 @@ export type WeatherGradient = {
   backgroundImage: string;
 };
 
-/** One entry in the crossfade stack rendered by <GradientStack />. */
+/**
+ * One entry in the crossfade stack rendered by <GradientStack />.
+ *
+ * The stack is source-agnostic: a layer is whatever the active wallpaper source
+ * produced — a weather/sun-event gradient, or a picture wallpaper — so switching
+ * sources crossfades through the same machinery as a weather change.
+ */
 export interface GradientLayerData {
   id: number;
   gradient: string;
+  /**
+   * Size the layer to cover the frame instead of stretching it. Picture
+   * wallpapers need this; CSS-gradient layers already fill their box.
+   */
+  cover?: boolean;
 }
 
 /** Duration of a gradient crossfade, shared by the provider and renderer. */

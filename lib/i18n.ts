@@ -121,6 +121,23 @@ export const translations = {
     settingsGeolocation: "Geolocation",
     settingsWeatherGradient: "Weather Gradient",
     settingsDebugPanel: "Debug Panel",
+
+    // Wallpaper (background picker)
+    settingsWallpaper: "Wallpaper",
+    wallpaperTitle: "wallpaper",
+    wallpaperClose: "Close wallpaper picker",
+    wallpaperChoose: "Background",
+    wallpaperWeather: "Weather",
+    wallpaperLive: "Live",
+    wallpaperAppearance: "Appearance",
+    wallpaperAppearanceHint:
+      "Every wallpaper ships as a light/dark pair. Auto follows the app theme.",
+    wallpaperPlacement: "Placement",
+    wallpaperPlacementFull: "Full",
+    wallpaperPlacementWidget: "Widget",
+    wallpaperPlacementOff: "Off",
+    wallpaperFooterNote:
+      "One background at a time — picking a wallpaper replaces the weather gradient. Sunrise and sunset still announce themselves in the Dock.",
     stateOn: "On",
     stateOff: "Off",
     debugOverride: "override",
@@ -304,6 +321,22 @@ export const translations = {
     settingsGeolocation: "地理定位",
     settingsWeatherGradient: "天气渐变",
     settingsDebugPanel: "调试面板",
+
+    // Wallpaper (background picker)
+    settingsWallpaper: "壁纸",
+    wallpaperTitle: "壁纸",
+    wallpaperClose: "关闭壁纸选择器",
+    wallpaperChoose: "背景",
+    wallpaperWeather: "天气",
+    wallpaperLive: "实时",
+    wallpaperAppearance: "外观",
+    wallpaperAppearanceHint: "每张壁纸都是浅色 / 深色一对，自动模式跟随应用主题。",
+    wallpaperPlacement: "显示位置",
+    wallpaperPlacementFull: "全屏",
+    wallpaperPlacementWidget: "卡片",
+    wallpaperPlacementOff: "关闭",
+    wallpaperFooterNote:
+      "同一时间只显示一个背景 —— 选择壁纸即会替换天气渐变。日出日落提醒仍会照常出现在 Dock 中。",
     stateOn: "开",
     stateOff: "关",
     debugOverride: "覆盖",

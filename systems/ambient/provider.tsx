@@ -14,6 +14,15 @@ import {
   setAmbientSettings,
 } from "./lib/settings";
 import {
+  BUILT_IN_WALLPAPERS,
+  getWallpaperBackground,
+  getWallpaperOrDefault,
+  resolveAppearance,
+  type Wallpaper,
+  type WallpaperAppearance,
+  type WallpaperSource,
+} from "./lib/wallpaper";
+import {
   EDGE_FADE_MASK,
   EDGE_FADE_MASK_HIGH_CONTRAST,
   isIOSBrowser,
@@ -84,6 +93,46 @@ export function useAmbientTime() {
   const context = useContext(AmbientTimeContext);
   if (!context) throw new Error("useAmbientTime must be used within AmbientProvider");
   return context;
+}
+
+// =============================================================================
+// Wallpaper Context
+//
+// The background is one stack fed by exactly one source (see lib/wallpaper.ts),
+// so "weather" and "picture" are mutually exclusive by construction — there is
+// no state in which both can paint. Everything here persists to the same
+// localStorage blob as the rest of the ambient settings.
+// =============================================================================
+
+interface WallpaperContextType {
+  /** Which source currently feeds the background stack. */
+  source: WallpaperSource;
+  setSource: (source: WallpaperSource) => void;
+  /** Selected built-in (meaningful when source === "picture"). */
+  wallpaper: Wallpaper;
+  wallpapers: Wallpaper[];
+  /** Selects a picture wallpaper AND switches the source to it. */
+  selectWallpaper: (id: string) => void;
+  appearance: WallpaperAppearance;
+  setAppearance: (appearance: WallpaperAppearance) => void;
+  /** Which half of the pair "auto" lands on right now. */
+  resolvedAppearance: "light" | "dark";
+  /** Secondary window — the wallpaper picker. */
+  isPickerOpen: boolean;
+  openPicker: () => void;
+  closePicker: () => void;
+}
+
+const WallpaperContext = createContext<WallpaperContextType | undefined>(undefined);
+
+export function useWallpaper() {
+  const context = useContext(WallpaperContext);
+  if (!context) throw new Error("useWallpaper must be used within AmbientProvider");
+  return context;
+}
+
+export function useOptionalWallpaper() {
+  return useContext(WallpaperContext);
 }
 
 // =============================================================================
@@ -177,6 +226,45 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     },
     [settings.weatherGradientMode, updateSettings]
   );
+
+  // --- Wallpaper -----------------------------------------------------------
+  // Switching the source swaps what feeds the background stack; the stack
+  // itself crossfades, so weather → picture reads as a dissolve rather than a
+  // cut. Picking a wallpaper from the picker implies switching to it, which is
+  // what makes "one background at a time" feel like a single choice.
+  const setWallpaperSource = useCallback(
+    (source: WallpaperSource) => {
+      if (source === settings.wallpaperSource) return;
+      updateSettings({ wallpaperSource: source });
+    },
+    [settings.wallpaperSource, updateSettings]
+  );
+
+  const selectWallpaper = useCallback(
+    (id: string) => {
+      updateSettings({ wallpaperId: id, wallpaperSource: "picture" });
+    },
+    [updateSettings]
+  );
+
+  const setWallpaperAppearance = useCallback(
+    (appearance: WallpaperAppearance) => {
+      if (appearance === settings.wallpaperAppearance) return;
+      updateSettings({ wallpaperAppearance: appearance });
+    },
+    [settings.wallpaperAppearance, updateSettings]
+  );
+
+  // Secondary window (the picker sheet). Ephemeral — never persisted.
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const openPicker = useCallback(() => setIsPickerOpen(true), []);
+  const closePicker = useCallback(() => setIsPickerOpen(false), []);
+
+  const activeWallpaper = useMemo(
+    () => getWallpaperOrDefault(settings.wallpaperId),
+    [settings.wallpaperId]
+  );
+  const isPictureSource = settings.wallpaperSource === "picture";
 
   // DevTool gradient overrides (ephemeral, not persisted)
   const [devtoolGradientOverrides, setDevtoolGradientOverrides] =
@@ -301,8 +389,19 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       : EDGE_FADE_MASK
     : null;
 
-  // Compute gradient
+  // Compute the background. Exactly one source wins — a picture wallpaper
+  // replaces the weather gradient outright rather than stacking over it. The
+  // sun-event Live Activity is unaffected either way: it renders in the Dock
+  // from weather + phase and never reads this.
   const computedGradient = useMemo(() => {
+    if (isPictureSource) {
+      return getWallpaperBackground({
+        wallpaper: activeWallpaper,
+        appearance: settings.wallpaperAppearance,
+        theme,
+      }).backgroundImage;
+    }
+
     if (effectivePhase === "sunrise" || effectivePhase === "sunset") {
       return getSunEventGradient({ event: effectivePhase, theme }).backgroundImage;
     }
@@ -325,7 +424,29 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     }
 
     return "";
-  }, [isDevtoolEnabled, isOverrideEnabled, debugOverride, weatherQuery.data, effectivePhase, theme]);
+  }, [
+    isPictureSource,
+    activeWallpaper,
+    settings.wallpaperAppearance,
+    isDevtoolEnabled,
+    isOverrideEnabled,
+    debugOverride,
+    weatherQuery.data,
+    effectivePhase,
+    theme,
+  ]);
+
+  /** Picture wallpapers may be real image files, which must cover the frame. */
+  const computedCover = useMemo(
+    () =>
+      isPictureSource &&
+      getWallpaperBackground({
+        wallpaper: activeWallpaper,
+        appearance: settings.wallpaperAppearance,
+        theme,
+      }).cover,
+    [isPictureSource, activeWallpaper, settings.wallpaperAppearance, theme]
+  );
 
   // Gradient transition: a true crossfade between layers (no dip-to-background).
   // Centralized here so every consumer (full-page background, widget overlays)
@@ -337,16 +458,20 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   useEffect(() => {
     // Hold the current gradient while refetching (stale-while-revalidate).
-    if (weatherQuery.isFetching) return;
+    // A picture wallpaper needs no network, so it never waits on weather.
+    if (!isPictureSource && weatherQuery.isFetching) return;
     if (!computedGradient) return;
 
     setGradientLayers((prev) => {
       const top = prev[prev.length - 1];
       if (top && top.gradient === computedGradient) return prev;
       layerIdRef.current += 1;
-      return [...prev, { id: layerIdRef.current, gradient: computedGradient }];
+      return [
+        ...prev,
+        { id: layerIdRef.current, gradient: computedGradient, cover: computedCover },
+      ];
     });
-  }, [computedGradient, weatherQuery.isFetching]);
+  }, [computedGradient, computedCover, isPictureSource, weatherQuery.isFetching]);
 
   // Prune to the newest layer once the crossfade settles.
   useEffect(() => {
@@ -405,7 +530,26 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
             setOverridePhase: setTimeOverridePhase,
           }}
         >
-          {children}
+          <WallpaperContext.Provider
+            value={{
+              source: settings.wallpaperSource,
+              setSource: setWallpaperSource,
+              wallpaper: activeWallpaper,
+              wallpapers: BUILT_IN_WALLPAPERS,
+              selectWallpaper,
+              appearance: settings.wallpaperAppearance,
+              setAppearance: setWallpaperAppearance,
+              resolvedAppearance: resolveAppearance(
+                settings.wallpaperAppearance,
+                theme
+              ),
+              isPickerOpen,
+              openPicker,
+              closePicker,
+            }}
+          >
+            {children}
+          </WallpaperContext.Provider>
         </AmbientTimeContext.Provider>
       </WeatherContext.Provider>
     </LocationContext.Provider>
