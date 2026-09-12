@@ -11,4 +11,5 @@ export * from "./queries";
 export * from "./route-config";
 export * from "./settings";
 export * from "./sun";
+export * from "./wallpaper";
 export * from "./weather";
