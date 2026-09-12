@@ -215,9 +215,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   }, [settings.weatherGradientMode, settings.wallpaper, updateSettings]);
 
   const [wallpaperDebugOverride, setWallpaperDebugOverride] = useState<Partial<WallpaperSettings>>({});
-  const effectiveWallpaper = isDevtoolEnabled
+  const effectiveWallpaper = useMemo(() => isDevtoolEnabled
     ? { ...settings.wallpaper, ...wallpaperDebugOverride }
-    : settings.wallpaper;
+    : settings.wallpaper, [isDevtoolEnabled, settings.wallpaper, wallpaperDebugOverride]);
   const updateWallpaper = useCallback((partial: Partial<WallpaperSettings>) => {
     setWallpaperDebugOverride({});
     setDevtoolGradientOverrides((prev) => ({ ...prev, full: undefined, widget: undefined }));
@@ -396,6 +396,16 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     return () => clearTimeout(timeout);
   }, [gradientLayers]);
 
+  const wallpaperContextValue = useMemo(() => ({
+    settings: settings.wallpaper,
+    effective: effectiveWallpaper,
+    resolved: resolveWallpaper(effectiveWallpaper, theme),
+    update: updateWallpaper,
+    debugOverride: wallpaperDebugOverride,
+    setDebugOverride: setWallpaperDebugOverride,
+    isDebugging: isDevtoolEnabled && Object.keys(wallpaperDebugOverride).length > 0,
+  }), [settings.wallpaper, effectiveWallpaper, theme, updateWallpaper, wallpaperDebugOverride, isDevtoolEnabled]);
+
   return (
     <LocationContext.Provider
       value={{
@@ -444,15 +454,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
             setOverridePhase: setTimeOverridePhase,
           }}
         >
-          <WallpaperContext.Provider value={{
-            settings: settings.wallpaper,
-            effective: effectiveWallpaper,
-            resolved: resolveWallpaper(effectiveWallpaper, theme),
-            update: updateWallpaper,
-            debugOverride: wallpaperDebugOverride,
-            setDebugOverride: setWallpaperDebugOverride,
-            isDebugging: isDevtoolEnabled && Object.keys(wallpaperDebugOverride).length > 0,
-          }}>
+          <WallpaperContext.Provider value={wallpaperContextValue}>
             {children}
           </WallpaperContext.Provider>
         </AmbientTimeContext.Provider>

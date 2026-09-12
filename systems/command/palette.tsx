@@ -94,9 +94,10 @@ export function CommandPalette() {
   useEffect(() => {
     if (isOpen && !isSlashCommandsMode && !isWallpaperMode) {
       if (isIOS) return;
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         inputRef.current?.focus();
       }, 50);
+      return () => clearTimeout(timeout);
     }
     if (!isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect

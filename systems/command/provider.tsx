@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 // =============================================================================
 // Command System Provider
@@ -58,14 +58,10 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggle = useCallback(() => {
-    setIsOpen((prev) => {
-      if (prev) {
-        setIsWallpaperMode(false);
-        setIsSlashCommandsMode(false);
-        setIsLoadBundleMode(false);
-      }
-      return !prev;
-    });
+    setIsOpen((prev) => !prev);
+    setIsWallpaperMode(false);
+    setIsSlashCommandsMode(false);
+    setIsLoadBundleMode(false);
   }, []);
 
   const setSlashCommandsMode = useCallback((mode: boolean) => {
@@ -131,23 +127,18 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, isLoadBundleMode, isWallpaperMode, toggle, close, open]);
 
+  const value = useMemo(() => ({
+    isOpen, isSlashCommandsMode, isLoadBundleMode, isWallpaperMode,
+    openWallpaper, backFromWallpaper, open, close, toggle,
+    setSlashCommandsMode, openLoadBundle, setLoadBundleMode,
+  }), [
+    isOpen, isSlashCommandsMode, isLoadBundleMode, isWallpaperMode,
+    openWallpaper, backFromWallpaper, open, close, toggle,
+    setSlashCommandsMode, openLoadBundle, setLoadBundleMode,
+  ]);
+
   return (
-    <CommandContext.Provider
-      value={{
-        isOpen,
-        isSlashCommandsMode,
-        isLoadBundleMode,
-        isWallpaperMode,
-        openWallpaper,
-        backFromWallpaper,
-        open,
-        close,
-        toggle,
-        setSlashCommandsMode,
-        openLoadBundle,
-        setLoadBundleMode,
-      }}
-    >
+    <CommandContext.Provider value={value}>
       {children}
     </CommandContext.Provider>
   );
