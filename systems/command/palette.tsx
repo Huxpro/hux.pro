@@ -4,7 +4,7 @@ import { getLocalizedDescription, getLocalizedTitle, getPostHref } from "@/lib/c
 import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { localeNames, t, useLocale, useTheme } from "@/services";
-import { useLocation, useWeather } from "@/systems/ambient";
+import { useLocation, useWallpaper, useWeather } from "@/systems/ambient";
 import { useDevtool } from "@/systems/devtool";
 import { useMusic } from "@/systems/music";
 import { useOptionalWindows } from "@/systems/windows";
@@ -15,6 +15,7 @@ import {
   GitCommit,
   Hash,
   Home,
+  Image as ImageIcon,
   Languages,
   ListMusic,
   MapPin,
@@ -44,6 +45,8 @@ export function CommandPalette() {
   const { locationMode, setLocationMode, requestAccurateLocation } =
     useLocation();
   const { gradientMode, cycleGradientMode } = useWeather();
+  const { source: wallpaperSource, wallpaper, openPicker: openWallpaperPicker } =
+    useWallpaper();
   const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled, signalDragReset } =
     useDevtool();
   const {
@@ -74,6 +77,8 @@ export function CommandPalette() {
         ? "卡片"
         : "Widget"
       : t(locale, "stateOff");
+  const wallpaperLabel =
+    wallpaperSource === "picture" ? wallpaper.name : t(locale, "wallpaperWeather");
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -230,6 +235,16 @@ export function CommandPalette() {
       section: "settings",
     },
     {
+      key: "b",
+      label: `${t(locale, "settingsWallpaper")}: ${wallpaperLabel}`,
+      icon: <ImageIcon className="h-4 w-4" />,
+      onSelect: () => {
+        openWallpaperPicker();
+        close();
+      },
+      section: "settings",
+    },
+    {
       key: "m",
       label: `${t(locale, "settingsMusic")}: ${
         musicPlayerState === "playing"
@@ -333,6 +348,10 @@ export function CommandPalette() {
           return;
         case "q":
           openMusicPlaylist();
+          setOpen(false);
+          return;
+        case "b":
+          openWallpaperPicker();
           close();
           return;
         case "m":
@@ -373,6 +392,8 @@ export function CommandPalette() {
     setLocationMode,
     cycleGradientMode,
     openMusicPlaylist,
+    wallpaperLabel,
+    openWallpaperPicker,
     setDevtoolEnabled,
   ]);
 
@@ -831,6 +852,38 @@ export function CommandPalette() {
                     </span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       W
+                    </kbd>
+                  </Command.Item>
+                  <Command.Item
+                    value="wallpaper"
+                    keywords={[
+                      "wallpaper",
+                      "background",
+                      "picture",
+                      "desktop",
+                      "macos",
+                      "ios",
+                      "壁纸",
+                      "背景",
+                      "桌面",
+                    ]}
+                    onSelect={() => {
+                      openWallpaperPicker();
+                      close();
+                    }}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                      "text-sm cursor-pointer transition-colors",
+                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                      "hover:bg-accent/25"
+                    )}
+                  >
+                    <ImageIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1">
+                      {t(locale, "settingsWallpaper")}: {wallpaperLabel}
+                    </span>
+                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                      B
                     </kbd>
                   </Command.Item>
                   <Command.Item

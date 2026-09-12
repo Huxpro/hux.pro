@@ -51,10 +51,11 @@ Floating action button that expands into the debug panel:
 
 Debug modules for the ambient system:
 
-1. **Route Gradient**: Toggle gradient per route pattern
-2. **Weather**: Override weather condition (day/night × 6 conditions)
-3. **Time of Day**: Override ambient phase
-4. **Refetch**: Force re-fetch location/weather
+1. **Gradient**: Override the resolved placement flags (full / widget / soft edge)
+2. **Wallpaper**: Background source, light/dark appearance, built-in hot-swap
+3. **Weather**: Override weather condition (day/night × 6 conditions)
+4. **Time of Day**: Override ambient phase
+5. **Refetch**: Force re-fetch location/weather
 
 ## Hooks
 
@@ -101,16 +102,21 @@ setOverridePhase("sunset");
 setOverrideEnabled(true);
 ```
 
-### Route Gradient Override
+### Wallpaper Debugging
 
-Override gradient enabled state per route:
+The Wallpaper module drives the real (persisted) settings rather than an
+ephemeral override, so the panel and the picker sheet can never disagree:
 
 ```typescript
-const { setRouteGradientPreference } = useWeather();
+const { setSource, selectWallpaper, setAppearance } = useWallpaper();
 
-// Enable gradient on /writing
-setRouteGradientPreference("/writing", true);
+setSource("picture");        // Swap the background source, crossfaded
+selectWallpaper("monterey"); // Hot-swap the built-in, no reload
+setAppearance("dark");       // Pin a half of the light/dark pair
 ```
+
+It also reads out what is actually painting (`Sequoia · dark`) and the resolved
+placement, which is the fastest way to see why a background looks wrong.
 
 ## Persistence
 

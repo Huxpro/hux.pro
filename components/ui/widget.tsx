@@ -1,9 +1,13 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/services";
 import { GradientStack } from "@/systems/ambient/components/gradient-stack";
 import { isIOSBrowser } from "@/systems/ambient/lib/platform";
-import { useOptionalWeather } from "@/systems/ambient/provider";
+import {
+  useOptionalWallpaper,
+  useOptionalWeather,
+} from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
 import { Link, useTransitionRouter } from "next-view-transitions";
 import { useCallback, useState, type MouseEvent } from "react";
@@ -24,9 +28,10 @@ import { landsOnOwnAction } from "./widget-surface";
  * still reach the page through the visible `WidgetLink` — the shell itself
  * deliberately adds no tab stop.
  *
- * In "widget" gradient mode each card renders a crossfading gradient overlay
- * (the shared <GradientStack />) bound to the provider's layer stack. All
- * transition logic is centralized — zero per-widget state machines.
+ * In "widget" placement each card renders a crossfading overlay of whatever the
+ * active wallpaper is (the shared <GradientStack />) bound to the provider's
+ * layer stack — a weather gradient or a picture wallpaper alike. All transition
+ * logic is centralized — zero per-widget state machines.
  *
  * Background positioning uses one of two mutually-exclusive strategies:
  *   - Desktop: CSS `background-attachment: fixed` (zero JS overhead)
@@ -50,6 +55,8 @@ export function WidgetShell({
   children: React.ReactNode;
 }) {
   const weather = useOptionalWeather();
+  const wallpaper = useOptionalWallpaper();
+  const { theme } = useTheme();
   const router = useTransitionRouter();
   const tappable = !!href || !!onOpen;
 
@@ -79,6 +86,11 @@ export function WidgetShell({
   const edgeFadeMask = weather?.edgeFadeMask ?? null;
 
   const showOverlay = widgetGradientEnabled && gradientLayers.length > 0;
+
+  // Same readability guard as the full-page background: a wallpaper pinned to
+  // the opposite appearance is pulled back so card text keeps its contrast.
+  const isPinnedAgainstTheme =
+    wallpaper?.source === "picture" && wallpaper.resolvedAppearance !== theme;
 
   // background-attachment: fixed is broken on all iOS browsers.
   // When true  → JS polyfill positions the background (no CSS fixed).
@@ -111,7 +123,9 @@ export function WidgetShell({
           aria-hidden="true"
           className={cn(
             "pointer-events-none absolute inset-0 -z-10",
-            "opacity-70 dark:opacity-85"
+            isPinnedAgainstTheme
+              ? "opacity-25 dark:opacity-30"
+              : "opacity-70 dark:opacity-85"
           )}
         >
           <GradientStack

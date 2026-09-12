@@ -17,7 +17,9 @@ import { GRADIENT_CROSSFADE_MS, type GradientLayerData } from "../lib/gradient";
 // One renderer serves both the full-page background and the per-widget overlays,
 // so they share identical transition behaviour — and the iOS `fixedBgTracker`
 // (background-attachment polyfill + viewport-relative edge mask) keeps working
-// per layer.
+// per layer. It is also source-agnostic: weather gradients and picture
+// wallpapers are both just a `background-image`, which is what lets the two
+// crossfade into each other when the wallpaper source changes.
 // ---------------------------------------------------------------------------
 
 interface GradientLayerProps {
@@ -33,6 +35,8 @@ interface GradientLayerProps {
   edgeMask: string | null;
   /** Desktop widget: native background-attachment: fixed via CSS. */
   cssFixedAttachment: boolean;
+  /** Picture wallpaper: scale to cover rather than stretch. */
+  cover: boolean;
 }
 
 function GradientLayer({
@@ -43,6 +47,7 @@ function GradientLayer({
   positionBackground,
   edgeMask,
   cssFixedAttachment,
+  cover,
 }: GradientLayerProps) {
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -63,6 +68,15 @@ function GradientLayer({
   if (cssFixedAttachment) {
     style.backgroundAttachment = "fixed";
     style.backgroundSize = "100vw 100vh";
+    style.backgroundPosition = "center";
+    style.backgroundRepeat = "no-repeat";
+  }
+
+  // Picture wallpapers must keep their aspect ratio. `cover` is layered so the
+  // flat base underneath still stretches — see buildVariant() in lib/wallpaper.
+  // It comes last so it wins over the widget sizing above.
+  if (cover) {
+    style.backgroundSize = "cover, 100% 100%";
     style.backgroundPosition = "center";
     style.backgroundRepeat = "no-repeat";
   }
@@ -120,6 +134,7 @@ export function GradientStack({
           positionBackground={positionBackground}
           edgeMask={edgeMask}
           cssFixedAttachment={cssFixedAttachment}
+          cover={layer.cover ?? false}
         />
       ))}
     </>

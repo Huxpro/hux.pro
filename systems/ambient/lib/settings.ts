@@ -1,14 +1,33 @@
 import type { LocationMode } from "./location";
+import {
+  DEFAULT_WALLPAPER_ID,
+  getWallpaper,
+  type WallpaperAppearance,
+  type WallpaperSource,
+} from "./wallpaper";
 
 // =============================================================================
 // Ambient Settings
 // =============================================================================
 
+/**
+ * Where the wallpaper paints. Named for weather because that was the only
+ * source when it shipped; it now governs whichever source is active.
+ *   full   — behind the whole page
+ *   widget — only inside widget cards
+ *   off    — nowhere (the global background kill switch)
+ */
 export type WeatherGradientMode = "full" | "off" | "widget";
 
 export interface AmbientSettings {
   locationMode: LocationMode;
   weatherGradientMode: WeatherGradientMode;
+  /** Which source feeds the single background stack. */
+  wallpaperSource: WallpaperSource;
+  /** Selected built-in, used when `wallpaperSource === "picture"`. */
+  wallpaperId: string;
+  /** Which half of the wallpaper's light/dark pair to show. */
+  wallpaperAppearance: WallpaperAppearance;
 }
 
 const SETTINGS_KEY = "hux_ambient_settings";
@@ -17,6 +36,9 @@ export function getDefaultSettings(): AmbientSettings {
   return {
     locationMode: "ip",
     weatherGradientMode: "full",
+    wallpaperSource: "weather",
+    wallpaperId: DEFAULT_WALLPAPER_ID,
+    wallpaperAppearance: "auto",
   };
 }
 
@@ -39,6 +61,8 @@ export function getAmbientSettings(options?: {
 
     const parsed = JSON.parse(stored) as Partial<AmbientSettings> & {
       weatherGradientMode?: string;
+      wallpaperSource?: string;
+      wallpaperAppearance?: string;
     };
     const defaults = getDefaultSettings();
 
@@ -54,10 +78,26 @@ export function getAmbientSettings(options?: {
       mode = "full";
     }
 
+    // Unknown / removed wallpaper ids fall back rather than blanking the page.
+    const wallpaperId =
+      typeof parsed.wallpaperId === "string" && getWallpaper(parsed.wallpaperId)
+        ? parsed.wallpaperId
+        : defaults.wallpaperId;
+
     return {
       locationMode:
         parsed.locationMode === "accurate" ? "accurate" : defaults.locationMode,
       weatherGradientMode: mode,
+      wallpaperSource:
+        parsed.wallpaperSource === "picture"
+          ? "picture"
+          : defaults.wallpaperSource,
+      wallpaperId,
+      wallpaperAppearance:
+        parsed.wallpaperAppearance === "light" ||
+        parsed.wallpaperAppearance === "dark"
+          ? parsed.wallpaperAppearance
+          : defaults.wallpaperAppearance,
     };
   } catch {
     return getDefaultSettings();

@@ -1,6 +1,10 @@
 import { ReadingRootSync } from "@/components/post/reading-settings";
 import { Providers } from "@/shared/providers";
-import { AmbientPhaseActivity, AmbientSurface } from "@/systems/ambient";
+import {
+  AmbientPhaseActivity,
+  AmbientSurface,
+  WallpaperSheet,
+} from "@/systems/ambient";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
 import { DevtoolFAB } from "@/systems/devtool";
 import { Dock } from "@/systems/dock";
@@ -109,6 +113,7 @@ export default function RootLayout({
               <MinimizedWindows />
             </Dock>
             <MusicPlaylistSheet />
+            <WallpaperSheet />
             <TheaterRegistrar />
             <TheaterSurfaces />
             <CommandPalette />
