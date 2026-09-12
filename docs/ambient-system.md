@@ -24,12 +24,12 @@ The ambient system makes the homepage feel **alive** - like an iOS widget that r
 │   │               Clear  │                                          │
 │   └──────────────────────┘                                          │
 │                                                                     │
-│   🎨  Background Gradient                                           │
-│   The page background subtly reflects the weather and time of day.  │
-│   Sunrise window → hopeful peach/gold tones                         │
-│   Sunset window → nostalgic amber with purple sky                   │
-│   Clear morning → warm golden tones                                 │
-│   Rainy evening → cool blue-grey tones                              │
+│   🎨  Weather Wallpaper                                             │
+│   Full-page iOS-style atmosphere: shader sky + weather particles.   │
+│   Sunrise → peach horizon, low sun, warm cloud light                │
+│   Sunset → amber / rose / violet with crepuscular rays              │
+│   Clear night → moon halo and stars                                 │
+│   Rain / snow / thunder → live precipitation over the sky plate     │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```

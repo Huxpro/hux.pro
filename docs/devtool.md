@@ -37,7 +37,7 @@ The DevTool provides a floating debug panel for development and testing.
 
 ### Weather Override
 
-Test the ambient weather gradient with any weather condition:
+Test the ambient weather wallpaper (shader sky + particles) and CSS grade with any weather condition:
 
 | Category | Conditions |
 |----------|------------|
@@ -47,7 +47,8 @@ Test the ambient weather gradient with any weather condition:
 | Storm | Thunderstorm |
 | Snow | Snow, Heavy Snow, Sleet |
 
-Combined with Day/Night toggle to preview all gradient variations.
+Combined with Day/Night and Time of Day overrides to preview every
+phase × weather atmosphere (rain at sunset, clear night, thunder, …).
 
 ### Debug State
 
