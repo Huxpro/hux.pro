@@ -15,9 +15,9 @@ import {
 } from "@/systems/ambient/lib/weather";
 import {
   getWallpaperAppearanceLabel,
-  getWallpaperPair,
   WALLPAPER_APPEARANCES,
   type WallpaperAppearance,
+  type WallpaperKind,
 } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
 import { useOptionalWindows } from "@/systems/windows";
@@ -799,19 +799,21 @@ function GradientModule() {
 // =============================================================================
 // Wallpaper Module
 //
-// Debugs the OTHER half of the background: which source is feeding the single
+// Debugs the OTHER half of the background: which kind is feeding the single
 // wallpaper stack, and which half of the active pair is on screen. The swatch
-// grid mirrors the weather condition grid below — click to hot-swap the live
-// background, no reload. Every control here writes the same persisted setting
-// the picker sheet does, so the panel and the sheet can never disagree.
+// grid hot-swaps the live background with no reload, and the footer prints the
+// resolved asset so a wrong-looking background can be traced to a file.
+//
+// Every control writes the same persisted setting the picker sheet does, so the
+// panel and the sheet can never disagree.
 // =============================================================================
 
 function WallpaperModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
   const {
-    source,
-    setSource,
+    kind,
+    setKind,
     wallpaper,
     wallpapers,
     selectWallpaper,
@@ -819,13 +821,14 @@ function WallpaperModule() {
     setAppearance,
     resolvedAppearance,
     opacity,
+    src,
     openPicker,
   } = useWallpaper();
-  const { gradientMode } = useWeather();
+  const { gradientMode, fullGradientEnabled, widgetGradientEnabled } = useWeather();
 
-  const sources: { value: "weather" | "picture"; label: string }[] = [
+  const kinds: { value: WallpaperKind; label: string }[] = [
     { value: "weather", label: zh ? "天气" : "Weather" },
-    { value: "picture", label: zh ? "图片" : "Picture" },
+    { value: "image", label: zh ? "图片" : "Image" },
   ];
   const appearances: { value: WallpaperAppearance; label: string }[] =
     WALLPAPER_APPEARANCES.map((value) => ({
@@ -833,30 +836,43 @@ function WallpaperModule() {
       label: getWallpaperAppearanceLabel(value, locale),
     }));
 
-  const isPicture = source === "picture";
-  // What the background is actually painting right now, in one line.
-  const resolvedLabel = isPicture
-    ? `${wallpaper.name} · ${resolvedAppearance} · ${wallpaper.medium}`
-    : zh
-    ? "天气渐变"
-    : "weather gradient";
+  const isImage = kind === "image";
+  const placement = fullGradientEnabled
+    ? zh
+      ? "全屏"
+      : "desktop"
+    : widgetGradientEnabled
+      ? zh
+        ? "卡片"
+        : "widget"
+      : zh
+        ? "关闭"
+        : "off";
+
+  // One line that answers "what am I actually looking at".
+  const now = [
+    isImage ? wallpaper.name : zh ? "天气" : "Weather",
+    getWallpaperAppearanceLabel(appearance, locale),
+    resolvedAppearance,
+    placement,
+  ].join(" · ");
 
   return (
     <DebugSection
       id="wallpaper"
-      title={zh ? "壁纸" : "Wallpaper"}
+      title={t(locale, "settingsWallpaper")}
       icon={<ImageIcon className="h-4 w-4" />}
       compact
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
-          {isPicture ? wallpaper.id : "weather"}
+          {isImage ? wallpaper.id : "weather"}
           <span className="ml-1 text-muted-foreground/40">B</span>
         </span>
       }
     >
       <div className="space-y-3">
-        <PanelRow label={zh ? "来源" : "Source"}>
-          <PanelSegmented value={source} options={sources} onChange={setSource} />
+        <PanelRow label={zh ? "类型" : "Kind"}>
+          <PanelSegmented value={kind} options={kinds} onChange={setKind} />
         </PanelRow>
         <PanelRow label={zh ? "外观" : "Appearance"}>
           <PanelSegmented
@@ -866,51 +882,46 @@ function WallpaperModule() {
           />
         </PanelRow>
 
-        {/* Resolved state — the one line worth reading when something looks off. */}
-        <div className="space-y-1 rounded-md border border-border/40 bg-muted/20 px-2 py-1.5 text-[10px] font-mono">
-          <MetaRow k={zh ? "正在渲染" : "painting"} v={resolvedLabel} />
-          <MetaRow k={zh ? "位置" : "placement"} v={gradientMode} />
-          <MetaRow k={zh ? "不透明度" : "opacity"} v={opacity.toFixed(2)} />
+        <div className="text-[10px] font-mono text-muted-foreground">
+          {zh ? "当前: " : "Now: "}
+          <span className="text-foreground/80">{now}</span>
+          <span className="ml-1.5 text-muted-foreground/50">
+            @{opacity.toFixed(2)}
+          </span>
         </div>
 
-        {/* Swatch grid — each shows the pair, light half over dark half. */}
-        <div className="space-y-1.5">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-            {zh ? "内置壁纸" : "Built-ins"}
-          </div>
-          <div className="grid grid-cols-4 gap-1.5">
-            {wallpapers.map((w) => {
-              const pair = getWallpaperPair(w);
-              const active = isPicture && w.id === wallpaper.id;
-              return (
-                <button
-                  key={w.id}
-                  onClick={() => selectWallpaper(w.id)}
-                  title={`${w.name} · ${w.family} ${w.year} · ${w.medium}`}
-                  aria-label={`Preview the ${w.name} wallpaper`}
-                  aria-pressed={active}
-                  className={cn(
-                    "relative h-10 overflow-hidden rounded-md border transition-all",
-                    active
-                      ? "border-foreground/50 ring-1 ring-foreground/30"
-                      : "border-border/50 hover:border-border"
-                  )}
-                >
-                  <span
-                    className="absolute inset-y-0 left-0 w-1/2"
-                    style={{ backgroundImage: pair.light.backgroundImage }}
-                  />
-                  <span
-                    className="absolute inset-y-0 right-0 w-1/2"
-                    style={{ backgroundImage: pair.dark.backgroundImage }}
-                  />
-                  <span className="absolute inset-x-0 bottom-0 truncate bg-background/70 px-1 text-[8px] font-mono leading-3 text-foreground/80">
-                    {w.name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        {/* Swatch grid — the half currently resolved, so the row mirrors the
+            page rather than showing a variant that is not on screen. */}
+        <div className="grid grid-cols-4 gap-1.5">
+          {wallpapers.map((w) => {
+            const selected = isImage && w.id === wallpaper.id;
+            const thumb =
+              resolvedAppearance === "dark" ? w.dark.thumb : w.light.thumb;
+            return (
+              <button
+                key={w.id}
+                type="button"
+                onClick={() => selectWallpaper(w.id)}
+                title={`${w.name} · ${w.platform} ${w.year}`}
+                aria-label={`Set wallpaper to ${w.name}`}
+                aria-pressed={selected}
+                className={cn(
+                  "relative aspect-square overflow-hidden rounded-lg border transition-all",
+                  selected
+                    ? "border-foreground/60 ring-2 ring-foreground/50"
+                    : "border-border/40 hover:border-border"
+                )}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={thumb}
+                  alt=""
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              </button>
+            );
+          })}
         </div>
 
         <button
@@ -918,20 +929,20 @@ function WallpaperModule() {
           className="flex w-full items-center justify-center gap-1.5 rounded-md border border-border/60 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
         >
           <ExternalLink className="h-3 w-3" />
-          {zh ? "打开壁纸选择器" : "Open picker sheet"}
+          {zh ? "打开壁纸选择器" : "Open picker"}
         </button>
 
-        {/* The invariant this module exists to make visible. */}
-        <p className="text-[10px] leading-snug text-muted-foreground/60">
-          {zh
-            ? "同一时间只有一个来源在渲染背景；日出日落提醒独立于此，不受影响。"
-            : "Exactly one source paints the background; the sunrise/sunset activity is independent of it."}
-        </p>
+        {/* The resolved asset — the fastest way to trace a wrong background. */}
+        <div className="break-all text-[10px] font-mono text-muted-foreground">
+          {isImage ? src : zh ? "天气渐变" : "weather gradient"}
+          {!isImage && gradientMode === "off" && (
+            <span className="text-muted-foreground/50"> (placement off)</span>
+          )}
+        </div>
       </div>
     </DebugSection>
   );
 }
-
 // =============================================================================
 // Weather Module
 // =============================================================================

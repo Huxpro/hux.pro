@@ -15,8 +15,7 @@
     "og:fonts": "node scripts/og-fonts.mjs",
     "icon:generate": "node scripts/icon-generate.ts",
     "icon:check": "node scripts/icon-generate.ts --check",
-    "wallpapers:fetch": "node scripts/wallpaper-fetch.mjs",
-    "wallpapers:check": "node scripts/wallpaper-fetch.mjs --check",
+    "wallpapers:check": "node scripts/wallpaper-check.mjs",
     "apps:snapshot": "node scripts/app-icon-snapshot.ts",
     "apps:check": "node scripts/app-icon-snapshot.ts --check"
   },

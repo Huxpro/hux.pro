@@ -3,7 +3,7 @@ import {
   DEFAULT_WALLPAPER_ID,
   getWallpaper,
   type WallpaperAppearance,
-  type WallpaperSource,
+  type WallpaperKind,
 } from "./wallpaper";
 
 // =============================================================================
@@ -22,9 +22,9 @@ export type WeatherGradientMode = "full" | "off" | "widget";
 export interface AmbientSettings {
   locationMode: LocationMode;
   weatherGradientMode: WeatherGradientMode;
-  /** Which source feeds the single background stack. */
-  wallpaperSource: WallpaperSource;
-  /** Selected built-in, used when `wallpaperSource === "picture"`. */
+  /** Which kind feeds the single background stack. */
+  wallpaperKind: WallpaperKind;
+  /** Selected built-in pair, used when `wallpaperKind === "image"`. */
   wallpaperId: string;
   /** Which half of the wallpaper's light/dark pair to show. */
   wallpaperAppearance: WallpaperAppearance;
@@ -36,7 +36,7 @@ export function getDefaultSettings(): AmbientSettings {
   return {
     locationMode: "ip",
     weatherGradientMode: "full",
-    wallpaperSource: "weather",
+    wallpaperKind: "weather",
     wallpaperId: DEFAULT_WALLPAPER_ID,
     wallpaperAppearance: "auto",
   };
@@ -61,6 +61,7 @@ export function getAmbientSettings(options?: {
 
     const parsed = JSON.parse(stored) as Partial<AmbientSettings> & {
       weatherGradientMode?: string;
+      wallpaperKind?: string;
       wallpaperSource?: string;
       wallpaperAppearance?: string;
     };
@@ -88,10 +89,11 @@ export function getAmbientSettings(options?: {
       locationMode:
         parsed.locationMode === "accurate" ? "accurate" : defaults.locationMode,
       weatherGradientMode: mode,
-      wallpaperSource:
-        parsed.wallpaperSource === "picture"
-          ? "picture"
-          : defaults.wallpaperSource,
+      // `wallpaperSource: "picture"` was the field's first spelling.
+      wallpaperKind:
+        parsed.wallpaperKind === "image" || parsed.wallpaperSource === "picture"
+          ? "image"
+          : defaults.wallpaperKind,
       wallpaperId,
       wallpaperAppearance:
         parsed.wallpaperAppearance === "light" ||

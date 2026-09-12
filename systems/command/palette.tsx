@@ -45,7 +45,7 @@ export function CommandPalette() {
   const { locationMode, setLocationMode, requestAccurateLocation } =
     useLocation();
   const { gradientMode, cycleGradientMode } = useWeather();
-  const { source: wallpaperSource, wallpaper, openPicker: openWallpaperPicker } =
+  const { kind: wallpaperKind, wallpaper, openPicker: openWallpaperPicker } =
     useWallpaper();
   const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled, signalDragReset } =
     useDevtool();
@@ -78,7 +78,7 @@ export function CommandPalette() {
         : "Widget"
       : t(locale, "stateOff");
   const wallpaperLabel =
-    wallpaperSource === "picture" ? wallpaper.name : t(locale, "wallpaperWeather");
+    wallpaperKind === "image" ? wallpaper.name : t(locale, "wallpaperWeather");
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -859,7 +859,7 @@ export function CommandPalette() {
                     keywords={[
                       "wallpaper",
                       "background",
-                      "picture",
+                      "image",
                       "desktop",
                       "macos",
                       "ios",

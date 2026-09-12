@@ -1,0 +1,65 @@
+{
+  "author": "Apple Inc.",
+  "note": "Apple's default macOS and iOS wallpapers, as light/dark pairs. Apple retains rights to this artwork; it is committed here for a personal site, not licensed onward. The archives the frames were pulled from do not license Apple's images either, and their repository licenses are not asserted to do so. Derivatives: WebP, at most 2560px on the long edge (quality 80), thumbnails at most 480px (quality 72). HEIC frames are zero-indexed.",
+  "imported": [
+    "Huxpro/hux.pro#97 — official Apple HEIC graphic pairs (big-sur, monterey, ios-13, ios-14)",
+    "Huxpro/hux.pro#96 — macOS/iOS release pairs (tahoe, sequoia, sonoma, ventura, ios-27, ios-18, ios-17)"
+  ],
+  "pairs": [
+    {
+      "id": "tahoe", "name": "Tahoe", "platform": "macOS", "year": 2025,
+      "light": "https://wallpapers.poutanen.dev/macos-tahoe-light.jpg",
+      "dark": "https://wallpapers.poutanen.dev/macos-tahoe-dark.jpg"
+    },
+    {
+      "id": "sequoia", "name": "Sequoia", "platform": "macOS", "year": 2024,
+      "light": "https://wallpapers.poutanen.dev/15-Sequoia-Light-6K.jpg",
+      "dark": "https://wallpapers.poutanen.dev/15-Sequoia-Dark-6K.jpg"
+    },
+    {
+      "id": "sonoma", "name": "Sonoma", "platform": "macOS", "year": 2023,
+      "light": "https://wallpapers.poutanen.dev/14-Sonoma-Light.jpg",
+      "dark": "https://wallpapers.poutanen.dev/14-Sonoma-Dark.jpg"
+    },
+    {
+      "id": "ventura", "name": "Ventura", "platform": "macOS", "year": 2022,
+      "light": "https://wallpapers.poutanen.dev/13-Ventura-Light.jpg",
+      "dark": "https://wallpapers.poutanen.dev/13-Ventura-Dark.jpg"
+    },
+    {
+      "id": "monterey", "name": "Monterey", "platform": "macOS", "year": 2021,
+      "source": "https://media.githubusercontent.com/media/benediktkr/Deeeee-macOS-Wallpapers/2b05d4fb7a447845e93da0753eac5f3ddc217017/macOS/12%20-%20Monterey/Monterey%20Graphic.heic",
+      "lightFrame": 0, "darkFrame": 1
+    },
+    {
+      "id": "big-sur", "name": "Big Sur", "platform": "macOS", "year": 2020,
+      "source": "https://media.githubusercontent.com/media/benediktkr/Deeeee-macOS-Wallpapers/2b05d4fb7a447845e93da0753eac5f3ddc217017/macOS/11%20-%20Big%20Sur/Big%20Sur%20Graphic.heic",
+      "lightFrame": 0, "darkFrame": 1
+    },
+    {
+      "id": "ios-27", "name": "iOS 27", "platform": "iOS", "year": 2026,
+      "light": "https://wallpapers.poutanen.dev/iOS27-Home-Light.png",
+      "dark": "https://wallpapers.poutanen.dev/iOS27-Home-Dark.png"
+    },
+    {
+      "id": "ios-18", "name": "iOS 18", "platform": "iOS", "year": 2024,
+      "light": "https://wallpapers.poutanen.dev/ios-18-light.png",
+      "dark": "https://wallpapers.poutanen.dev/ios-18-dark.png"
+    },
+    {
+      "id": "ios-17", "name": "iOS 17", "platform": "iOS", "year": 2023,
+      "light": "https://wallpapers.poutanen.dev/iOS-17-Light.jpg",
+      "dark": "https://wallpapers.poutanen.dev/iOS-17-Dark.jpg"
+    },
+    {
+      "id": "ios-14", "name": "iOS 14", "platform": "iOS", "year": 2020,
+      "light": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2014/Stills/1511.WWDC_2020_Warm_Light-414w-896h%403x~iphone.heic",
+      "dark": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2014/Stills/1512.WWDC_2020_Warm_Dark-414w-896h%403x~iphone.heic"
+    },
+    {
+      "id": "ios-13", "name": "iOS 13", "platform": "iOS", "year": 2019,
+      "light": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2013/Stills/1211.WWDC_2019_Light-414w-896h%403x~iphone.heic",
+      "dark": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2013/Stills/1212.WWDC_2019_Dark-414w-896h%403x~iphone.heic"
+    }
+  ]
+}

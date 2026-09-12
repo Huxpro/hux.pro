@@ -2,14 +2,15 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale, useTheme } from "@/services";
-import { Check, Cloud, X } from "lucide-react";
+import { Check, Cloud, Moon, Sun, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Drawer } from "vaul";
 import { getWeatherGradient } from "../lib/gradient";
 import type { WeatherGradientMode } from "../lib/settings";
 import {
   getWallpaperAppearanceLabel,
-  getWallpaperPair,
+  getWallpaperPairPreview,
+  getWallpapersByPlatform,
   resolveAppearance,
   WALLPAPER_APPEARANCES,
   type Wallpaper,
@@ -22,26 +23,27 @@ import { useWallpaper, useWeather } from "../provider";
 //
 // Mounted once in the root layout; any trigger summons it via `openPicker()`
 // (the command palette today, the devtool panel too). Built on vaul and shaped
-// exactly like the music playlist sheet, so the two secondary windows read as
-// one idiom:
-//   • Mobile  — action sheet climbing from the bottom, resting at ~78dvh.
+// like the music playlist sheet, so the two secondary windows read as one
+// idiom:
+//   • Mobile  — action sheet climbing from the bottom, resting at ~80dvh.
 //   • Desktop — floating panel sliding in from the right edge.
+//
+// Tiles are macOS Settings pair cards: a 16:10 split of the light and dark
+// originals, sun / moon on each half to pin that variant, a check when
+// selected, and "Name" · "macOS · 2020" underneath.
 //
 // The grid leads with a live Weather tile, because weather is not a different
 // feature from wallpaper — it is the one wallpaper that changes on its own.
-// Picking any tile switches the background source to it, which is the whole of
+// Picking any tile switches the background kind to it, which is the whole of
 // the mutual-exclusion rule expressed as a single tap.
 // ---------------------------------------------------------------------------
 
 /** Ring of padding between the floating panel and the screen edges. */
 const EDGE_GAP = "0.75rem";
 
-/** Tiles preview at phone proportions — the shape a wallpaper is judged in. */
-const TILE_ASPECT = "9 / 14";
-
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="px-1 pb-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+    <div className="px-0.5 pb-2 text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
       {children}
     </div>
   );
@@ -61,13 +63,14 @@ function Segmented<T extends string>({
       {options.map((o) => (
         <button
           key={o.value}
+          type="button"
           onClick={() => onChange(o.value)}
           aria-pressed={value === o.value}
           className={cn(
             "flex-1 px-2 py-1.5 text-[11px] font-mono uppercase tracking-wider transition-colors",
             value === o.value
               ? "bg-accent text-accent-foreground"
-              : "text-muted-foreground hover:text-foreground hover:bg-accent/30"
+              : "text-muted-foreground hover:bg-accent/30 hover:text-foreground"
           )}
         >
           {o.label}
@@ -77,120 +80,180 @@ function Segmented<T extends string>({
   );
 }
 
-/** Shared tile chrome: preview surface + caption + selected state. */
-function Tile({
+/**
+ * The sun / moon buttons in the corners of a pair card. Tapping one both
+ * selects the pair and pins that half — one gesture, as macOS Settings does it.
+ */
+function VariantChip({
+  variant,
   active,
-  onClick,
   label,
-  sublabel,
-  ariaLabel,
-  children,
+  onSelect,
 }: {
+  variant: "light" | "dark";
   active: boolean;
-  onClick: () => void;
   label: string;
-  sublabel: string;
-  ariaLabel: string;
-  children: React.ReactNode;
+  onSelect: () => void;
 }) {
+  const Icon = variant === "light" ? Sun : Moon;
   return (
     <button
-      onClick={onClick}
+      type="button"
+      onClick={onSelect}
+      aria-label={label}
       aria-pressed={active}
-      aria-label={ariaLabel}
-      className="group text-left"
+      className={cn(
+        "absolute bottom-2 z-10 flex size-6 items-center justify-center rounded-full transition-colors",
+        variant === "light" ? "left-2" : "right-2",
+        active
+          ? "bg-white text-black shadow-sm"
+          : "bg-black/40 text-white ring-1 ring-white/35 backdrop-blur-[2px] hover:bg-black/55"
+      )}
     >
-      <span
-        style={{ aspectRatio: TILE_ASPECT }}
-        className={cn(
-          "relative block w-full overflow-hidden rounded-xl border transition-all",
-          active
-            ? "border-foreground/40 ring-2 ring-foreground/20"
-            : "border-border/50 group-hover:border-border group-active:scale-[0.98]"
-        )}
-      >
-        {children}
-        {active && (
-          <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground/85 text-background shadow">
-            <Check className="h-3 w-3" strokeWidth={3} />
-          </span>
-        )}
-      </span>
-      <span className="mt-1.5 block truncate text-xs text-foreground/90">
-        {label}
-      </span>
-      <span className="block truncate text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-        {sublabel}
-      </span>
+      <Icon className="size-3" strokeWidth={2.25} />
     </button>
   );
 }
 
+/** Shared card chrome, so the Weather tile and the pair cards read as one set. */
+function TileFrame({
+  selected,
+  children,
+}: {
+  selected: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative aspect-[16/10] overflow-hidden rounded-[18px]",
+        "ring-1 transition-[box-shadow,ring-color] duration-200",
+        selected
+          ? "ring-2 ring-foreground/70"
+          : "ring-black/10 group-hover:ring-black/20 dark:ring-white/15 dark:group-hover:ring-white/30"
+      )}
+    >
+      {children}
+      {selected && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute right-2.5 top-2.5 z-10 flex size-6 items-center justify-center rounded-full bg-white text-black shadow-sm"
+        >
+          <Check className="size-3.5" strokeWidth={2.5} />
+        </span>
+      )}
+    </div>
+  );
+}
+
+function TileCaption({ name, meta }: { name: string; meta: string }) {
+  return (
+    <div className="mt-2 flex items-baseline justify-between gap-2 px-0.5">
+      <span className="truncate text-[13px] font-medium text-foreground">
+        {name}
+      </span>
+      <span className="shrink-0 text-[11px] text-muted-foreground">{meta}</span>
+    </div>
+  );
+}
+
+/** Warm the full-size pair on hover so applying it is instant. */
+function preload(src: string) {
+  if (typeof window === "undefined") return;
+  const img = new window.Image();
+  img.src = src;
+}
+
 /**
- * A picture tile. When appearance is "auto" the preview is split down the
- * middle — light on the left, dark on the right — so the pair is visible as a
- * pair. A pinned appearance previews only that half.
+ * A pair card. Both halves are always visible — light left, dark right —
+ * because the pair is what you are choosing; which half shows is the separate
+ * Appearance control above, or the sun/moon chips here.
  */
 function WallpaperTile({
   wallpaper,
+  selected,
   appearance,
-  theme,
-  active,
-  onSelect,
 }: {
   wallpaper: Wallpaper;
+  selected: boolean;
   appearance: WallpaperAppearance;
-  theme: "light" | "dark";
-  active: boolean;
-  onSelect: () => void;
 }) {
-  const pair = getWallpaperPair(wallpaper);
-  const half = resolveAppearance(appearance, theme);
-  const isAuto = appearance === "auto";
+  const { locale } = useLocale();
+  const { selectWallpaper, selectWallpaperVariant } = useWallpaper();
+  const preview = getWallpaperPairPreview(wallpaper);
+  const meta = `${wallpaper.platform} · ${wallpaper.year}`;
 
   return (
-    <Tile
-      active={active}
-      onClick={onSelect}
-      label={wallpaper.name}
-      sublabel={`${wallpaper.family} · ${wallpaper.year}`}
-      ariaLabel={`Use the ${wallpaper.name} wallpaper`}
+    <div
+      className="group min-w-0"
+      onMouseEnter={() => {
+        preload(wallpaper.light.src);
+        preload(wallpaper.dark.src);
+      }}
     >
-      {isAuto ? (
-        <>
-          <span
-            className="absolute inset-y-0 left-0 w-1/2"
-            style={{
-              backgroundImage: pair.light.backgroundImage,
-              backgroundSize: pair.light.cover ? "cover, 100% 100%" : undefined,
-              // Each half previews the full artwork, not half of it.
-              backgroundPosition: "left center",
-              backgroundRepeat: "no-repeat",
-            }}
-          />
-          <span
-            className="absolute inset-y-0 right-0 w-1/2"
-            style={{
-              backgroundImage: pair.dark.backgroundImage,
-              backgroundSize: pair.dark.cover ? "cover, 100% 100%" : undefined,
-              backgroundPosition: "right center",
-              backgroundRepeat: "no-repeat",
-            }}
-          />
-          <span className="absolute inset-y-0 left-1/2 w-px bg-background/40" />
-        </>
-      ) : (
-        <span
+      <TileFrame selected={selected}>
+        <button
+          type="button"
+          onClick={() => selectWallpaper(wallpaper.id)}
+          aria-pressed={selected}
+          aria-label={`Use the ${wallpaper.name} wallpaper — ${meta}`}
           className="absolute inset-0"
-          style={{
-            backgroundImage: pair[half].backgroundImage,
-            backgroundSize: pair[half].cover ? "cover, 100% 100%" : undefined,
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-          }}
+        >
+          <span
+            className="absolute inset-y-0 left-0 w-1/2 bg-cover bg-center"
+            style={{ backgroundImage: preview.light.backgroundImage }}
+          />
+          <span
+            className="absolute inset-y-0 right-0 w-1/2 bg-cover bg-center"
+            style={{ backgroundImage: preview.dark.backgroundImage }}
+          />
+        </button>
+
+        <VariantChip
+          variant="light"
+          active={selected && appearance === "light"}
+          label={`${wallpaper.name} — ${t(locale, "wallpaperUseLight")}`}
+          onSelect={() => selectWallpaperVariant(wallpaper.id, "light")}
         />
-      )}
-    </Tile>
+        <VariantChip
+          variant="dark"
+          active={selected && appearance === "dark"}
+          label={`${wallpaper.name} — ${t(locale, "wallpaperUseDark")}`}
+          onSelect={() => selectWallpaperVariant(wallpaper.id, "dark")}
+        />
+      </TileFrame>
+      <TileCaption name={wallpaper.name} meta={meta} />
+    </div>
+  );
+}
+
+function PairGrid({
+  title,
+  wallpapers,
+  activeId,
+  isImage,
+  appearance,
+}: {
+  title: string;
+  wallpapers: Wallpaper[];
+  activeId: string;
+  isImage: boolean;
+  appearance: WallpaperAppearance;
+}) {
+  return (
+    <div className="pt-5">
+      <SectionLabel>{title}</SectionLabel>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-4">
+        {wallpapers.map((w) => (
+          <WallpaperTile
+            key={w.id}
+            wallpaper={w}
+            selected={isImage && activeId === w.id}
+            appearance={appearance}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -198,11 +261,9 @@ export function WallpaperSheet() {
   const { locale } = useLocale();
   const { theme } = useTheme();
   const {
-    source,
-    setSource,
+    kind,
+    setKind,
     wallpaper: activeWallpaper,
-    wallpapers,
-    selectWallpaper,
     appearance,
     setAppearance,
     isPickerOpen,
@@ -223,8 +284,8 @@ export function WallpaperSheet() {
   }, []);
 
   // The Weather tile previews what is actually live right now. It follows the
-  // app theme rather than the appearance control above, because that control
-  // picks a half of a fixed pair — the weather gradient has no such pair.
+  // app theme rather than the appearance control, because that control picks a
+  // half of a fixed pair — the weather gradient has no such pair.
   const weatherPreview = getWeatherGradient({
     condition: weather?.condition ?? "clear",
     isDay: weather?.isDay ?? true,
@@ -237,13 +298,12 @@ export function WallpaperSheet() {
     { value: "off", label: t(locale, "wallpaperPlacementOff") },
   ];
 
-  const vectors = wallpapers.filter((w) => w.medium === "artwork");
-  const photos = wallpapers.filter((w) => w.medium === "photo");
-
   const appearances = WALLPAPER_APPEARANCES.map((value) => ({
     value,
     label: getWallpaperAppearanceLabel(value, locale),
   }));
+
+  const isImage = kind === "image";
 
   return (
     <Drawer.Root
@@ -268,8 +328,8 @@ export function WallpaperSheet() {
             "rounded-3xl bg-card/85 backdrop-blur-xl",
             "border border-border/50 shadow-overlay",
             isWide
-              ? "top-3 bottom-3 right-3 w-[min(92vw,380px)]"
-              : "inset-x-3 h-[78dvh]"
+              ? "bottom-3 right-3 top-3 w-[min(94vw,420px)]"
+              : "inset-x-3 h-[80dvh]"
           )}
         >
           {/* Grabber — mobile affordance for the drag-to-dismiss gesture */}
@@ -279,7 +339,7 @@ export function WallpaperSheet() {
             </div>
           )}
 
-          <div className="flex shrink-0 items-center justify-between px-5 pt-3 pb-2">
+          <div className="flex shrink-0 items-center justify-between px-5 pb-2 pt-3">
             <Drawer.Title className="truncate text-xs font-mono uppercase tracking-wider text-muted-foreground">
               {t(locale, "wallpaperTitle")}
             </Drawer.Title>
@@ -294,20 +354,20 @@ export function WallpaperSheet() {
 
           <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-5">
             {/* Appearance — which half of a light/dark pair is shown. */}
-            <div className="pt-1 pb-4">
+            <div className="pb-4 pt-1">
               <SectionLabel>{t(locale, "wallpaperAppearance")}</SectionLabel>
               <Segmented
                 value={appearance}
                 options={appearances}
                 onChange={setAppearance}
               />
-              <p className="px-1 pt-1.5 text-[11px] leading-snug text-muted-foreground/80">
+              <p className="px-0.5 pt-1.5 text-[11px] leading-snug text-muted-foreground/80">
                 {t(locale, "wallpaperAppearanceHint")}
               </p>
             </div>
 
             {/* Placement — where the active wallpaper paints, or nowhere. */}
-            <div className="pb-4">
+            <div>
               <SectionLabel>{t(locale, "wallpaperPlacement")}</SectionLabel>
               <Segmented
                 value={gradientMode}
@@ -316,81 +376,60 @@ export function WallpaperSheet() {
               />
             </div>
 
-            {/* One grid, one selection — weather is simply the first tile. */}
-            <SectionLabel>{t(locale, "wallpaperChoose")}</SectionLabel>
-            <div className="grid grid-cols-2 gap-3">
-              <Tile
-                active={source === "weather"}
-                onClick={() => setSource("weather")}
-                label={t(locale, "wallpaperWeather")}
-                sublabel={t(locale, "wallpaperLive")}
-                ariaLabel={t(locale, "wallpaperWeather")}
-              >
-                <span
-                  className="absolute inset-0"
-                  style={{ backgroundImage: weatherPreview }}
+            {/* Weather leads the grid at full width: it is a wallpaper too, but
+                the only one that is live, so it earns its own row. */}
+            <div className="pt-5">
+              <SectionLabel>{t(locale, "wallpaperChoose")}</SectionLabel>
+              <div className="group">
+                <TileFrame selected={!isImage}>
+                  <button
+                    type="button"
+                    onClick={() => setKind("weather")}
+                    aria-pressed={!isImage}
+                    aria-label={t(locale, "wallpaperWeather")}
+                    className="absolute inset-0"
+                  >
+                    <span
+                      className="absolute inset-0"
+                      style={{ backgroundImage: weatherPreview }}
+                    />
+                    <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/35 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-white ring-1 ring-white/25 backdrop-blur-[2px]">
+                      <Cloud className="size-3" />
+                      {t(locale, "wallpaperLive")}
+                    </span>
+                  </button>
+                </TileFrame>
+                <TileCaption
+                  name={t(locale, "wallpaperWeather")}
+                  meta={t(locale, "wallpaperWeatherMeta")}
                 />
-                <span className="absolute inset-x-0 bottom-0 flex items-center gap-1 p-2 text-[10px] font-mono uppercase tracking-wider text-foreground/70">
-                  <Cloud className="h-3 w-3" />
-                  {t(locale, "wallpaperLive")}
-                </span>
-              </Tile>
-
-              {vectors.map((w) => (
-                <WallpaperTile
-                  key={w.id}
-                  wallpaper={w}
-                  appearance={appearance}
-                  theme={theme}
-                  active={source === "picture" && activeWallpaper.id === w.id}
-                  onSelect={() => selectWallpaper(w.id)}
-                />
-              ))}
+              </div>
             </div>
 
-            {/* Photographs sit in their own group: a different medium, and the
-                one that comes with provenance worth showing. */}
-            {photos.length > 0 && (
-              <>
-                <div className="pt-5">
-                  <SectionLabel>{t(locale, "wallpaperPhotographs")}</SectionLabel>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {photos.map((w) => (
-                    <WallpaperTile
-                      key={w.id}
-                      wallpaper={w}
-                      appearance={appearance}
-                      theme={theme}
-                      active={source === "picture" && activeWallpaper.id === w.id}
-                      onSelect={() => selectWallpaper(w.id)}
-                    />
-                  ))}
-                </div>
-                <p className="px-1 pt-2 text-[11px] leading-snug text-muted-foreground/70">
-                  {t(locale, "wallpaperPhotographsNote")}
-                </p>
-              </>
-            )}
+            <PairGrid
+              title="macOS"
+              wallpapers={getWallpapersByPlatform("macOS")}
+              activeId={activeWallpaper.id}
+              isImage={isImage}
+              appearance={appearance}
+            />
+            <PairGrid
+              title="iOS"
+              wallpapers={getWallpapersByPlatform("iOS")}
+              activeId={activeWallpaper.id}
+              isImage={isImage}
+              appearance={appearance}
+            />
 
-            {/* Provenance for whatever is selected. Public domain asks for no
-                credit; showing it anyway is the interesting part. */}
-            {source === "picture" && activeWallpaper.credit && (
-              <div className="mt-4 rounded-xl border border-border/40 bg-muted/20 px-3 py-2.5">
-                <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                  {activeWallpaper.credit}
-                </div>
-                {activeWallpaper.caption && (
-                  <p className="pt-1 text-[11px] leading-snug text-foreground/70">
-                    {activeWallpaper.caption[locale]}
-                  </p>
-                )}
-              </div>
-            )}
-
-            <p className="px-1 pt-4 text-[11px] leading-snug text-muted-foreground/70">
+            <p className="px-0.5 pt-5 text-[11px] leading-snug text-muted-foreground/70">
               {t(locale, "wallpaperFooterNote")}
             </p>
+            {isImage && (
+              <p className="px-0.5 pt-1.5 text-[10px] font-mono text-muted-foreground/50">
+                {activeWallpaper.name} ·{" "}
+                {resolveAppearance(appearance, theme)} · {t(locale, "wallpaperCredit")}
+              </p>
+            )}
           </div>
         </Drawer.Content>
       </Drawer.Portal>
