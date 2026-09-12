@@ -197,6 +197,43 @@ export function createParticleRenderer(
     while (puffs.length < puffCount) puffs.push(seedPuff(cssW, cssH));
   };
 
+  const drawStaticWeather = (
+    context: CanvasRenderingContext2D,
+    w: number,
+    h: number,
+    p: AtmosphereParams
+  ) => {
+    if (p.rain > 0.02) {
+      context.lineCap = "round";
+      const n = Math.floor(90 * p.rain);
+      for (let i = 0; i < n; i++) {
+        const x = ((i * 97) % 1000) / 1000 * (w + 40) - 20;
+        const y = ((i * 53) % 1000) / 1000 * h;
+        context.strokeStyle = `rgba(55, 75, 105, ${0.28 + p.rain * 0.25})`;
+        context.lineWidth = 1.4;
+        context.beginPath();
+        context.moveTo(x, y);
+        context.lineTo(x + p.wind * 8, y + 16);
+        context.stroke();
+      }
+    }
+    if (p.snow > 0.02) {
+      const n = Math.floor(70 * p.snow);
+      for (let i = 0; i < n; i++) {
+        const x = ((i * 67) % 1000) / 1000 * w;
+        const y = ((i * 41) % 1000) / 1000 * h;
+        context.fillStyle = `rgba(255, 255, 255, ${0.55 + p.snow * 0.25})`;
+        context.beginPath();
+        context.arc(x, y, 1.6 + (i % 3), 0, Math.PI * 2);
+        context.fill();
+      }
+    }
+    if (p.fog > 0.08) {
+      context.fillStyle = rgb(p.haze, p.fog * 0.22);
+      context.fillRect(0, 0, w, h);
+    }
+  };
+
   return {
     setParams(next) {
       params = next;
@@ -217,16 +254,17 @@ export function createParticleRenderer(
       lastMs = nowMs;
       ctx.clearRect(0, 0, cssW, cssH);
 
-      if (reducedMotion) {
-        flash *= 0.85;
-        return flash;
-      }
-
       const wind = params.wind;
       const rainAmt = params.rain;
       const snowAmt = params.snow;
       const fogAmt = params.fog;
       const cover = params.cloudCover;
+
+      if (reducedMotion) {
+        drawStaticWeather(ctx, cssW, cssH, params);
+        flash *= 0.85;
+        return flash;
+      }
 
       if (cover > 0.2) {
         for (const puff of puffs) {
@@ -286,8 +324,8 @@ export function createParticleRenderer(
             seedRain(cssW, cssH, d);
             d.y = -d.len;
           }
-          ctx.strokeStyle = `rgba(70, 92, 122, ${0.28 + d.alpha * 0.55 * rainAmt})`;
-          ctx.lineWidth = d.width * 1.35;
+          ctx.strokeStyle = `rgba(48, 68, 98, ${0.38 + d.alpha * 0.5 * rainAmt})`;
+          ctx.lineWidth = d.width * 1.6;
           ctx.beginPath();
           ctx.moveTo(d.x, d.y);
           ctx.lineTo(d.x + wx * 0.05, d.y + d.len);
