@@ -71,6 +71,9 @@ export const translations = {
     promptPlaceholder: "What brings you to here?",
     searchMobile: "Search",
     searchDesktop: "Search or / for commands",
+    identifierWingLeft: "The",
+    identifierWingRight: "OS",
+    identifierExpanded: "The λHUX OS",
 
     // Widget labels
     widgetBlog: "/writing",
@@ -250,6 +253,9 @@ export const translations = {
     promptPlaceholder: "想找什么？",
     searchMobile: "搜索",
     searchDesktop: "搜索或使用 / 呼出命令",
+    identifierWingLeft: "操作",
+    identifierWingRight: "系统",
+    identifierExpanded: "操作 λHUX 系统",
 
     // Widget labels
     widgetBlog: "/写作",
