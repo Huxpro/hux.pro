@@ -22,7 +22,7 @@ export function WeatherGradientBackground({
       className={cn(
         "pointer-events-none fixed inset-0 -z-10",
         "transition-opacity duration-700 ease-in-out",
-        enabled ? "opacity-80 dark:opacity-90" : "opacity-0"
+        enabled ? "opacity-80 dark:opacity-100" : "opacity-0"
       )}
     >
       {/* CSS underlay doubles as the widget-matching fallback while the

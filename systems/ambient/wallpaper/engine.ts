@@ -102,9 +102,9 @@ function styleLayer(canvas: HTMLCanvasElement) {
 
 function particleBudget(scene: WallpaperScene, width: number): number {
   const area = Math.min(width / 1280, 1.35);
-  if (scene.precipKind === 1) return Math.round(220 * scene.precipRate * area);
-  if (scene.precipKind === 2) return Math.round(280 * scene.precipRate * area);
-  if (scene.precipKind === 3) return Math.round(140 * scene.precipRate * area);
+  if (scene.precipKind === 1) return Math.round(280 * scene.precipRate * area);
+  if (scene.precipKind === 2) return Math.round(360 * scene.precipRate * area);
+  if (scene.precipKind === 3) return Math.round(180 * scene.precipRate * area);
   if (scene.fogDensity > 0.2) return Math.round(14 * scene.fogDensity);
   return 0;
 }

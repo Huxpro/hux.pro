@@ -144,39 +144,39 @@ type SkyKeyframe = { elev: number; zenith: RGB; horizon: RGB; haze: RGB };
 const DARK_SKY: SkyKeyframe[] = [
   {
     elev: -0.5,
-    zenith: [0.045, 0.05, 0.12],
-    horizon: [0.05, 0.055, 0.11],
-    haze: [0.07, 0.08, 0.14],
+    zenith: [0.03, 0.035, 0.1],
+    horizon: [0.04, 0.045, 0.12],
+    haze: [0.06, 0.07, 0.14],
   },
   {
     elev: -0.12,
-    zenith: [0.07, 0.08, 0.2],
-    horizon: [0.22, 0.14, 0.28],
-    haze: [0.16, 0.12, 0.22],
+    zenith: [0.06, 0.07, 0.22],
+    horizon: [0.28, 0.14, 0.32],
+    haze: [0.18, 0.12, 0.26],
   },
   {
     elev: 0.02,
-    zenith: [0.1, 0.14, 0.36],
-    horizon: [0.92, 0.48, 0.22],
-    haze: [0.72, 0.38, 0.28],
+    zenith: [0.14, 0.16, 0.42],
+    horizon: [1, 0.52, 0.2],
+    haze: [0.86, 0.42, 0.26],
   },
   {
     elev: 0.22,
-    zenith: [0.16, 0.3, 0.62],
-    horizon: [0.62, 0.58, 0.52],
-    haze: [0.55, 0.52, 0.5],
+    zenith: [0.18, 0.34, 0.7],
+    horizon: [0.7, 0.56, 0.48],
+    haze: [0.62, 0.5, 0.46],
   },
   {
     elev: 0.55,
-    zenith: [0.14, 0.36, 0.72],
-    horizon: [0.42, 0.64, 0.82],
-    haze: [0.4, 0.58, 0.74],
+    zenith: [0.12, 0.4, 0.82],
+    horizon: [0.4, 0.68, 0.9],
+    haze: [0.36, 0.6, 0.82],
   },
   {
     elev: 1,
-    zenith: [0.12, 0.38, 0.78],
-    horizon: [0.38, 0.66, 0.86],
-    haze: [0.36, 0.6, 0.8],
+    zenith: [0.08, 0.36, 0.86],
+    horizon: [0.34, 0.7, 0.94],
+    haze: [0.3, 0.62, 0.88],
   },
 ];
 
@@ -461,10 +461,16 @@ export function buildWallpaperScene(input: WallpaperSceneInput): WallpaperScene 
       ? clamp(0.55 + input.precipitationMm * 0.18, 0.55, 1.2)
       : 1;
 
+  const stormMute =
+    input.condition === "thunder" || input.condition === "rain"
+      ? 0.45
+      : input.condition === "cloudy" || input.condition === "fog"
+        ? 0.65
+        : 1;
   const warmth =
-    input.phase === "sunrise" || input.phase === "sunset"
+    (input.phase === "sunrise" || input.phase === "sunset"
       ? 1
-      : clamp(1 - Math.abs(sun.elevation) * 2.4, 0, 0.55);
+      : clamp(1 - Math.abs(sun.elevation) * 2.4, 0, 0.55)) * stormMute;
 
   const above = clamp(sun.elevation, 0, 1);
   const night = clamp(-sun.elevation, 0, 1);
@@ -496,9 +502,9 @@ export function buildWallpaperScene(input: WallpaperSceneInput): WallpaperScene 
     sunAzimuth: sun.azimuth,
     moonElevation: moon.elevation,
     moonAzimuth: moon.azimuth,
-    sunScale: lerp(0.7, 1.15, above),
-    moonScale: lerp(0.85, 1.05, night),
-    sunGlow: clamp(0.15 + above * 0.85 + warmth * 0.35, 0, 1.4) * (1 - cloudCover * 0.55),
+    sunScale: lerp(1.35, 0.88, above),
+    moonScale: lerp(0.95, 1.15, night),
+    sunGlow: clamp(0.35 + above * 0.7 + warmth * 0.55, 0, 1.7) * (1 - cloudCover * 0.4),
     starOpacity: clamp(night * 1.15 - cloudCover * 0.55, 0, 1) * (input.theme === "dark" ? 1 : 0.22),
     cloudCover,
     cloudSoftness: base.cloudSoftness,
