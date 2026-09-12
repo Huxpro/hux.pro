@@ -1,12 +1,12 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { t, useLocale, useTheme } from "@/services";
+import { t, useLocale } from "@/services";
 import { useWeather } from "@/systems/ambient";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Check, Moon, Sun } from "lucide-react";
 import {
   getWallpaperPairsBySource,
-  resolveWallpaperSrc,
+  wallpaperPlatformLabel,
   type WallpaperAppearance,
   type WallpaperPair,
 } from "../lib";
@@ -15,8 +15,9 @@ import { useWallpaper } from "../provider";
 // =============================================================================
 // WallpaperPanel — secondary ⌘K window for picking a wallpaper.
 //
-// Weather and image are the two kinds. Image tiles are light/dark pairs;
-// appearance Auto follows the site theme. Responsive 2/3-col grid.
+// Image tiles follow the macOS Settings pair card: a 16:10 split of the
+// light and dark originals, sun / moon on each half, a check when selected,
+// and "Name" · "macOS · 2020" underneath.
 // =============================================================================
 
 function preload(src: string) {
@@ -129,78 +130,122 @@ function WeatherTile({ selected }: { selected: boolean }) {
   );
 }
 
-function ImageTile({ pair }: { pair: WallpaperPair }) {
-  const { locale } = useLocale();
-  const { theme } = useTheme();
-  const { kind, imageId, appearance, selectImage } = useWallpaper();
-  const selected = kind === "image" && imageId === pair.id;
-  const name = locale === "zh" ? pair.nameZh : pair.name;
-
-  const lightThumb = pair.light.thumb;
-  const darkThumb = pair.dark.thumb;
-  const preview =
-    appearance === "auto"
-      ? null
-      : resolveWallpaperSrc(pair, appearance, theme, { thumb: true });
-
+function VariantChip({
+  variant,
+  active,
+  label,
+  onSelect,
+}: {
+  variant: "light" | "dark";
+  active: boolean;
+  label: string;
+  onSelect: () => void;
+}) {
+  const Icon = variant === "light" ? Sun : Moon;
   return (
     <button
       type="button"
-      onClick={() => selectImage(pair.id)}
+      onClick={onSelect}
+      aria-label={label}
+      aria-pressed={active}
+      className={cn(
+        "absolute z-10 flex size-6 items-center justify-center rounded-full",
+        "transition-colors",
+        variant === "light" ? "bottom-2 left-2" : "bottom-2 right-2",
+        active
+          ? "bg-white text-black shadow-sm"
+          : "bg-black/40 text-white ring-1 ring-white/35 backdrop-blur-[2px] hover:bg-black/55"
+      )}
+    >
+      <Icon className="size-3" strokeWidth={2.25} />
+    </button>
+  );
+}
+
+function ImageTile({ pair }: { pair: WallpaperPair }) {
+  const { locale } = useLocale();
+  const { kind, imageId, appearance, selectImage, setAppearance } =
+    useWallpaper();
+  const selected = kind === "image" && imageId === pair.id;
+  const name = locale === "zh" ? pair.nameZh : pair.name;
+  const platform = wallpaperPlatformLabel(pair.source);
+
+  const choosePair = () => selectImage(pair.id);
+  const chooseVariant = (variant: "light" | "dark") => {
+    selectImage(pair.id);
+    setAppearance(variant);
+  };
+
+  return (
+    <div
+      className="group min-w-0"
       onMouseEnter={() => {
         preload(pair.light.src);
         preload(pair.dark.src);
       }}
-      className={cn(
-        "group flex flex-col gap-1.5 text-left",
-        "rounded-xl outline-none",
-        "focus-visible:ring-2 focus-visible:ring-ring/50"
-      )}
-      aria-pressed={selected}
     >
       <div
         className={cn(
-          "relative overflow-hidden rounded-xl border",
-          "aspect-[4/3] sm:aspect-[5/4]",
-          "transition-all duration-200",
+          "relative aspect-[16/10] overflow-hidden rounded-[18px]",
+          "ring-1 transition-[box-shadow,ring-color] duration-200",
           selected
-            ? "border-foreground/60 ring-2 ring-foreground/40"
-            : "border-border/50 group-hover:border-border"
+            ? "ring-2 ring-white/80 dark:ring-white/70"
+            : "ring-black/10 group-hover:ring-black/20 dark:ring-white/15 dark:group-hover:ring-white/30"
         )}
       >
-        {preview ? (
-          // eslint-disable-next-line @next/next/no-img-element
+        <button
+          type="button"
+          onClick={choosePair}
+          aria-pressed={selected}
+          aria-label={`${name} — ${platform} · ${pair.year}`}
+          className="absolute inset-0"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={preview}
+            src={pair.light.thumb}
             alt=""
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-y-0 left-0 h-full w-1/2 object-cover"
           />
-        ) : (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={lightThumb}
-              alt=""
-              className="absolute inset-0 h-full w-1/2 object-cover object-left"
-            />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={darkThumb}
-              alt=""
-              className="absolute inset-y-0 right-0 h-full w-1/2 object-cover object-right"
-            />
-          </>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={pair.dark.thumb}
+            alt=""
+            className="absolute inset-y-0 right-0 h-full w-1/2 object-cover"
+          />
+        </button>
+
+        <VariantChip
+          variant="light"
+          active={selected && appearance === "light"}
+          label={t(locale, "wallpaperUseLight")}
+          onSelect={() => chooseVariant("light")}
+        />
+        <VariantChip
+          variant="dark"
+          active={selected && appearance === "dark"}
+          label={t(locale, "wallpaperUseDark")}
+          onSelect={() => chooseVariant("dark")}
+        />
+
+        {selected && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute top-2.5 right-2.5 z-10 flex size-6 items-center justify-center rounded-full bg-white text-black shadow-sm"
+          >
+            <Check className="size-3.5" strokeWidth={2.5} />
+          </span>
         )}
       </div>
-      <div className="min-w-0 px-0.5">
-        <div className="truncate text-[12px] font-medium text-foreground">
+
+      <div className="mt-2 flex items-baseline justify-between gap-2 px-0.5">
+        <span className="truncate text-[13px] font-medium text-foreground">
           {name}
-        </div>
-        <div className="truncate text-[10px] font-mono text-muted-foreground">
-          {pair.release}
-        </div>
+        </span>
+        <span className="shrink-0 text-[11px] text-muted-foreground">
+          {platform} · {pair.year}
+        </span>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -212,11 +257,11 @@ function PairGrid({
   pairs: WallpaperPair[];
 }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
         {title}
       </div>
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-4">
         {pairs.map((pair) => (
           <ImageTile key={pair.id} pair={pair} />
         ))}
@@ -259,7 +304,7 @@ export function WallpaperPanel({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <div className="max-h-[min(58vh,520px)] space-y-4 overflow-y-auto pr-0.5">
+      <div className="max-h-[min(62vh,560px)] space-y-5 overflow-y-auto pr-0.5">
         <WeatherTile selected={kind === "weather"} />
         <PairGrid title={t(locale, "wallpaperMacOS")} pairs={macos} />
         <PairGrid title={t(locale, "wallpaperIOS")} pairs={ios} />

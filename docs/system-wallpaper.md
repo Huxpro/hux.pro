@@ -69,13 +69,22 @@ Every built-in wallpaper is a **pair**. Appearance:
 ## Built-in catalog
 
 Compressed into `public/wallpapers/<id>/{light,dark}.jpg` (+ thumbs).
-Regenerate with `bash scripts/fetch-wallpapers.sh`.
+Photo pairs regenerate with `bash scripts/fetch-wallpapers.sh`. Official
+graphic pairs (Monterey, Big Sur, iOS 14, iOS 13) come from
+[PR #97](https://github.com/Huxpro/hux.pro/pull/97); provenance is in
+`public/wallpapers/sources.json`.
 
-**macOS:** Tahoe (26), Sequoia (15), Sonoma (14), Ventura (13), Big Sur (11)
+**macOS:** Tahoe (2025), Sequoia (2024), Sonoma (2023), Ventura (2022),
+Monterey (2021), Big Sur (2020)
 
-**iOS:** iOS 27, iOS 18, iOS 17
+**iOS:** iOS 27 (2026), iOS 18 (2024), iOS 17 (2023), iOS 14 (2020),
+iOS 13 (2019)
 
-Images are Apple stock wallpapers, kept small (≈2 MB total) for the site.
+The ⌘K picker tiles are macOS Settings pair cards: a 16:10 split of the
+light and dark originals, sun / moon to lock a variant, a check when
+selected, and `Name` + `macOS · 2020` underneath.
+
+Images are Apple stock wallpapers, kept small (≈2.5 MB total) for the site.
 
 ## Commands
 
@@ -83,7 +92,7 @@ Images are Apple stock wallpapers, kept small (≈2 MB total) for the site.
 same pattern as Load Bundle. The picker:
 
 1. Selects Weather (and Full / Widget / Off) **or** an image pair
-2. Sets Auto / Light / Dark for the pair
+2. Sets Auto / Light / Dark for the pair — or tap the sun / moon on a tile
 3. Esc / ← returns to search without closing ⌘K
 
 ## Devtool

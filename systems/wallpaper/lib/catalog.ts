@@ -18,8 +18,8 @@ export interface WallpaperPair {
   name: string;
   nameZh: string;
   source: WallpaperSource;
-  /** Release the default wallpaper shipped with. */
-  release: string;
+  /** Calendar year the wallpaper shipped. */
+  year: string;
   light: WallpaperAsset;
   dark: WallpaperAsset;
 }
@@ -38,7 +38,7 @@ export const WALLPAPER_CATALOG: WallpaperPair[] = [
     name: "Tahoe",
     nameZh: "Tahoe",
     source: "macos",
-    release: "macOS 26",
+    year: "2025",
     ...pairAssets("tahoe"),
   },
   {
@@ -46,7 +46,7 @@ export const WALLPAPER_CATALOG: WallpaperPair[] = [
     name: "Sequoia",
     nameZh: "Sequoia",
     source: "macos",
-    release: "macOS 15",
+    year: "2024",
     ...pairAssets("sequoia"),
   },
   {
@@ -54,7 +54,7 @@ export const WALLPAPER_CATALOG: WallpaperPair[] = [
     name: "Sonoma",
     nameZh: "Sonoma",
     source: "macos",
-    release: "macOS 14",
+    year: "2023",
     ...pairAssets("sonoma"),
   },
   {
@@ -62,15 +62,23 @@ export const WALLPAPER_CATALOG: WallpaperPair[] = [
     name: "Ventura",
     nameZh: "Ventura",
     source: "macos",
-    release: "macOS 13",
+    year: "2022",
     ...pairAssets("ventura"),
+  },
+  {
+    id: "monterey",
+    name: "Monterey",
+    nameZh: "Monterey",
+    source: "macos",
+    year: "2021",
+    ...pairAssets("monterey"),
   },
   {
     id: "big-sur",
     name: "Big Sur",
     nameZh: "Big Sur",
     source: "macos",
-    release: "macOS 11",
+    year: "2020",
     ...pairAssets("big-sur"),
   },
   {
@@ -78,7 +86,7 @@ export const WALLPAPER_CATALOG: WallpaperPair[] = [
     name: "iOS 27",
     nameZh: "iOS 27",
     source: "ios",
-    release: "iOS 27",
+    year: "2026",
     ...pairAssets("ios-27"),
   },
   {
@@ -86,7 +94,7 @@ export const WALLPAPER_CATALOG: WallpaperPair[] = [
     name: "iOS 18",
     nameZh: "iOS 18",
     source: "ios",
-    release: "iOS 18",
+    year: "2024",
     ...pairAssets("ios-18"),
   },
   {
@@ -94,8 +102,24 @@ export const WALLPAPER_CATALOG: WallpaperPair[] = [
     name: "iOS 17",
     nameZh: "iOS 17",
     source: "ios",
-    release: "iOS 17",
+    year: "2023",
     ...pairAssets("ios-17"),
+  },
+  {
+    id: "ios-14",
+    name: "iOS 14",
+    nameZh: "iOS 14",
+    source: "ios",
+    year: "2020",
+    ...pairAssets("ios-14"),
+  },
+  {
+    id: "ios-13",
+    name: "iOS 13",
+    nameZh: "iOS 13",
+    source: "ios",
+    year: "2019",
+    ...pairAssets("ios-13"),
   },
 ];
 
@@ -111,4 +135,8 @@ export function getWallpaperPairsBySource(
   source: WallpaperSource
 ): WallpaperPair[] {
   return WALLPAPER_CATALOG.filter((pair) => pair.source === source);
+}
+
+export function wallpaperPlatformLabel(source: WallpaperSource): string {
+  return source === "macos" ? "macOS" : "iOS";
 }

@@ -41,7 +41,9 @@ scale_pair tahoe   "$BASE/macos-tahoe-light.jpg"     "$BASE/macos-tahoe-dark.jpg
 scale_pair sequoia "$BASE/15-Sequoia-Light-6K.jpg"   "$BASE/15-Sequoia-Dark-6K.jpg"
 scale_pair sonoma  "$BASE/14-Sonoma-Light.jpg"       "$BASE/14-Sonoma-Dark.jpg"
 scale_pair ventura "$BASE/13-Ventura-Light.jpg"      "$BASE/13-Ventura-Dark.jpg"
-scale_pair big-sur "$BASE/macOS-Big-Sur-Light.jpg"   "$BASE/macOS-Big-Sur-Dark.jpg"
+# monterey / big-sur / ios-14 / ios-13 are official Apple graphics imported
+# from Huxpro/hux.pro#97 (see public/wallpapers/sources.json). They are
+# committed; this script does not re-fetch HEIC frames.
 
 # iOS / iPadOS default pairs
 scale_pair ios-27  "$BASE/iOS27-Home-Light.png"      "$BASE/iOS27-Home-Dark.png"

@@ -1,0 +1,36 @@
+{
+  "author": "Apple Inc.",
+  "note": "Official graphic pairs imported from Huxpro/hux.pro#97. Apple retains rights to the artwork. JPEG derivatives live at public/wallpapers/<id>/{light,dark}.jpg. HEIC frames are zero-indexed.",
+  "pairs": [
+    {
+      "id": "big-sur",
+      "year": "2020",
+      "platform": "macOS",
+      "source": "https://media.githubusercontent.com/media/benediktkr/Deeeee-macOS-Wallpapers/2b05d4fb7a447845e93da0753eac5f3ddc217017/macOS/11%20-%20Big%20Sur/Big%20Sur%20Graphic.heic",
+      "lightFrame": 0,
+      "darkFrame": 1
+    },
+    {
+      "id": "monterey",
+      "year": "2021",
+      "platform": "macOS",
+      "source": "https://media.githubusercontent.com/media/benediktkr/Deeeee-macOS-Wallpapers/2b05d4fb7a447845e93da0753eac5f3ddc217017/macOS/12%20-%20Monterey/Monterey%20Graphic.heic",
+      "lightFrame": 0,
+      "darkFrame": 1
+    },
+    {
+      "id": "ios-13",
+      "year": "2019",
+      "platform": "iOS",
+      "light": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2013/Stills/1211.WWDC_2019_Light-414w-896h%403x~iphone.heic",
+      "dark": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2013/Stills/1212.WWDC_2019_Dark-414w-896h%403x~iphone.heic"
+    },
+    {
+      "id": "ios-14",
+      "year": "2020",
+      "platform": "iOS",
+      "light": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2014/Stills/1511.WWDC_2020_Warm_Light-414w-896h%403x~iphone.heic",
+      "dark": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2014/Stills/1512.WWDC_2020_Warm_Dark-414w-896h%403x~iphone.heic"
+    }
+  ]
+}

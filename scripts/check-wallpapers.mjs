@@ -10,10 +10,13 @@ const ids = [
   "sequoia",
   "sonoma",
   "ventura",
+  "monterey",
   "big-sur",
   "ios-27",
   "ios-18",
   "ios-17",
+  "ios-14",
+  "ios-13",
 ];
 
 const files = ids.flatMap((id) => [
