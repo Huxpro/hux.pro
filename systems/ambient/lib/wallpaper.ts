@@ -68,23 +68,34 @@ interface WallpaperArtwork {
   angle?: number;
 }
 
-/** A real image file (e.g. `/wallpapers/mine.jpg`), painted over a base color. */
+/** A real image file (e.g. `/wallpapers/mine.webp`), painted over a base color. */
 interface WallpaperPicture {
   kind: "picture";
   url: string;
   /** Average color, shown under/around the image while it loads. */
   base: string;
+  /** Tiny rendition for picker tiles, so opening it costs KB and not MB. */
+  thumbUrl?: string;
 }
+
+/** How much contrast a wallpaper's artwork carries, which sets its opacity. */
+export type WallpaperMedium = "artwork" | "photo";
 
 export type WallpaperVariant = WallpaperArtwork | WallpaperPicture;
 
 export interface Wallpaper {
   id: string;
-  /** Release name — a proper noun, shown untranslated. */
+  /** Release or subject name — a proper noun, shown untranslated. */
   name: string;
-  family: "macOS" | "iOS";
-  /** Release year, shown as the subtitle next to the family. */
+  family: "macOS" | "iOS" | "NASA";
+  /** Year, shown as the subtitle next to the family. */
   year: number;
+  /** Photographs need more restraint than vector artwork. */
+  medium: WallpaperMedium;
+  /** Source credit, shown in the picker. Public domain needs none — we give it. */
+  credit?: string;
+  /** One line on what the pair actually shows. */
+  caption?: { en: string; zh: string };
   /** The light/dark pair. "auto" picks between these by theme. */
   light: WallpaperVariant;
   dark: WallpaperVariant;
@@ -96,6 +107,19 @@ export interface ResolvedWallpaper {
   /** Picture variants must cover the frame; artwork already fills it. */
   cover: boolean;
 }
+
+/**
+ * Opacity the background layer renders a wallpaper at, per medium and theme.
+ * Photographs carry far more contrast than the vector artwork, and light mode
+ * has the least headroom of all — measured against real body copy, not guessed.
+ */
+export const WALLPAPER_OPACITY: Record<
+  WallpaperMedium,
+  { light: number; dark: number }
+> = {
+  artwork: { light: 0.6, dark: 0.75 },
+  photo: { light: 0.35, dark: 0.75 },
+};
 
 function oklch(L: number, C: number, H: number, alpha?: number): string {
   return alpha !== undefined
@@ -111,17 +135,23 @@ function art(
   return { kind: "artwork", base, blooms, angle };
 }
 
+function photo(url: string, base: string): WallpaperPicture {
+  // Thumbs are written alongside the full file by scripts/wallpaper-fetch.mjs.
+  return { kind: "picture", url, base, thumbUrl: url.replace(/\.webp$/, "-thumb.webp") };
+}
+
 // -----------------------------------------------------------------------------
 // Built-in catalog
 // -----------------------------------------------------------------------------
 
-export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
+const VECTOR_WALLPAPERS: Wallpaper[] = [
   {
     // Big Sur: the coastal dawn — a warm sun off to one side, cool ridge below.
     id: "big-sur",
     name: "Big Sur",
     family: "macOS",
     year: 2020,
+    medium: "artwork",
     light: art(
       [oklch(0.93, 0.05, 230), oklch(0.98, 0.012, 90)],
       [
@@ -145,6 +175,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     name: "Monterey",
     family: "macOS",
     year: 2021,
+    medium: "artwork",
     light: art(
       [oklch(0.98, 0.008, 250), oklch(0.96, 0.02, 300)],
       [
@@ -168,6 +199,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     name: "Ventura",
     family: "macOS",
     year: 2022,
+    medium: "artwork",
     light: art(
       [oklch(0.97, 0.02, 200), oklch(0.99, 0.006, 220)],
       [
@@ -191,6 +223,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     name: "Sonoma",
     family: "macOS",
     year: 2023,
+    medium: "artwork",
     light: art(
       [oklch(0.98, 0.015, 320), oklch(0.97, 0.025, 60)],
       [
@@ -214,6 +247,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     name: "Sequoia",
     family: "macOS",
     year: 2024,
+    medium: "artwork",
     light: art(
       [oklch(0.97, 0.02, 170), oklch(0.98, 0.02, 85)],
       [
@@ -237,6 +271,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     name: "Tahoe",
     family: "macOS",
     year: 2025,
+    medium: "artwork",
     light: art(
       [oklch(0.99, 0.006, 230), oklch(0.96, 0.025, 215)],
       [
@@ -260,6 +295,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     name: "Aurora",
     family: "iOS",
     year: 2022,
+    medium: "artwork",
     light: art(
       [oklch(0.99, 0.005, 280), oklch(0.95, 0.035, 285)],
       [
@@ -283,6 +319,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     name: "Sunset",
     family: "iOS",
     year: 2023,
+    medium: "artwork",
     light: art(
       [oklch(0.98, 0.025, 70), oklch(0.95, 0.04, 20)],
       [
@@ -300,6 +337,65 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
       ]
     ),
   },
+];
+
+/**
+ * Photographic wallpapers. Files come from `scripts/wallpaper-fetch.mjs`; the
+ * `base` colours are the ones that script measured and wrote to
+ * `public/wallpapers/manifest.json`, so the frame is never bare while a photo
+ * decodes. All NASA, all public domain.
+ */
+const PHOTO_WALLPAPERS: Wallpaper[] = [
+  {
+    // A daylight cloud field, and the same atmosphere seen edge-on at dawn.
+    id: "limb",
+    name: "Limb",
+    family: "NASA",
+    year: 2020,
+    medium: "photo",
+    credit: "NASA · ISS Expedition 38 / 61",
+    caption: {
+      en: "A cloud field over the Indian Ocean; the first rays of an orbital sunrise.",
+      zh: "印度洋上空的云场；轨道日出的第一缕光。",
+    },
+    light: photo("/wallpapers/limb-light.webp", "rgb(216 214 210)"),
+    dark: photo("/wallpapers/limb-dark.webp", "rgb(10 14 17)"),
+  },
+  {
+    // The warm pair: desert fog by day, the Sun clearing the limb at dawn.
+    id: "ember",
+    name: "Ember",
+    family: "NASA",
+    year: 2011,
+    medium: "photo",
+    credit: "NASA · STS-44 / ISS Expedition 28",
+    caption: {
+      en: "Fog over the Namib dune field; the Sun clearing the limb of the Earth.",
+      zh: "纳米布沙丘上的雾；越过地球边缘的太阳。",
+    },
+    light: photo("/wallpapers/ember-light.webp", "rgb(148 135 130)"),
+    dark: photo("/wallpapers/ember-dark.webp", "rgb(57 67 75)"),
+  },
+  {
+    // The neutral pair — closest to the site's own grayscale.
+    id: "icefall",
+    name: "Icefall",
+    family: "NASA",
+    year: 2023,
+    medium: "photo",
+    credit: "NASA · Operation IceBridge / ISS Expedition 69",
+    caption: {
+      en: "The calving front of Jakobshavn Glacier; an orbital sunset fading out.",
+      zh: "雅各布港冰川的崩解前缘；正在消退的轨道日落。",
+    },
+    light: photo("/wallpapers/icefall-light.webp", "rgb(175 174 167)"),
+    dark: photo("/wallpapers/icefall-dark.webp", "rgb(3 5 9)"),
+  },
+];
+
+export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
+  ...VECTOR_WALLPAPERS,
+  ...PHOTO_WALLPAPERS,
 ];
 
 export const DEFAULT_WALLPAPER_ID = BUILT_IN_WALLPAPERS[0].id;
@@ -321,12 +417,16 @@ export function resolveAppearance(
   return appearance === "auto" ? theme : appearance;
 }
 
-function buildVariant(variant: WallpaperVariant): ResolvedWallpaper {
+function buildVariant(
+  variant: WallpaperVariant,
+  options?: { preview?: boolean }
+): ResolvedWallpaper {
   if (variant.kind === "picture") {
+    const url = (options?.preview && variant.thumbUrl) || variant.url;
     return {
       // The flat base sits under the image so the frame is never bare while it
       // decodes (and shows through any letterboxing on odd aspect ratios).
-      backgroundImage: `url("${variant.url}"), linear-gradient(180deg, ${variant.base} 0%, ${variant.base} 100%)`,
+      backgroundImage: `url("${url}"), linear-gradient(180deg, ${variant.base} 0%, ${variant.base} 100%)`,
       cover: true,
     };
   }
@@ -352,12 +452,20 @@ export function getWallpaperBackground(params: {
   return buildVariant(params.wallpaper[half]);
 }
 
-/** Both halves at once — for pair previews in the picker and the devtool. */
+/**
+ * Both halves at once — for pair previews in the picker and the devtool.
+ * Previews resolve to the thumb rendition, so opening the picker pulls tens of
+ * kilobytes rather than the whole photographic catalog.
+ */
 export function getWallpaperPair(wallpaper: Wallpaper): {
   light: ResolvedWallpaper;
   dark: ResolvedWallpaper;
 } {
-  return { light: buildVariant(wallpaper.light), dark: buildVariant(wallpaper.dark) };
+  const preview = { preview: true };
+  return {
+    light: buildVariant(wallpaper.light, preview),
+    dark: buildVariant(wallpaper.dark, preview),
+  };
 }
 
 export function getWallpaperAppearanceLabel(

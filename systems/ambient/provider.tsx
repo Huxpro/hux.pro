@@ -18,6 +18,7 @@ import {
   getWallpaperBackground,
   getWallpaperOrDefault,
   resolveAppearance,
+  WALLPAPER_OPACITY,
   type Wallpaper,
   type WallpaperAppearance,
   type WallpaperSource,
@@ -117,6 +118,13 @@ interface WallpaperContextType {
   setAppearance: (appearance: WallpaperAppearance) => void;
   /** Which half of the pair "auto" lands on right now. */
   resolvedAppearance: "light" | "dark";
+  /**
+   * Opacity the background should render at, already resolved for the active
+   * source, medium and theme. Weather gradients and vector wallpapers sit
+   * higher than photographs, which carry far more contrast; a pair pinned
+   * against the theme is pulled right back so text keeps its contrast.
+   */
+  opacity: number;
   /** Secondary window — the wallpaper picker. */
   isPickerOpen: boolean;
   openPicker: () => void;
@@ -265,6 +273,17 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [settings.wallpaperId]
   );
   const isPictureSource = settings.wallpaperSource === "picture";
+  const resolvedAppearance = resolveAppearance(settings.wallpaperAppearance, theme);
+
+  // Weather gradients are vector artwork by nature, so they share the artwork
+  // weighting. Pinning a pair against the app theme puts light artwork under
+  // light text; the pin is the user's call so we keep it, but pulled right back
+  // to a tint with the themed page background carrying the contrast.
+  const wallpaperOpacity = useMemo(() => {
+    if (!isPictureSource) return WALLPAPER_OPACITY.artwork[theme];
+    if (resolvedAppearance !== theme) return theme === "dark" ? 0.3 : 0.25;
+    return WALLPAPER_OPACITY[activeWallpaper.medium][theme];
+  }, [isPictureSource, activeWallpaper, resolvedAppearance, theme]);
 
   // DevTool gradient overrides (ephemeral, not persisted)
   const [devtoolGradientOverrides, setDevtoolGradientOverrides] =
@@ -539,10 +558,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
               selectWallpaper,
               appearance: settings.wallpaperAppearance,
               setAppearance: setWallpaperAppearance,
-              resolvedAppearance: resolveAppearance(
-                settings.wallpaperAppearance,
-                theme
-              ),
+              resolvedAppearance,
+              opacity: wallpaperOpacity,
               isPickerOpen,
               openPicker,
               closePicker,

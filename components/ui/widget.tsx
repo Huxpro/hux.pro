@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/services";
 import { GradientStack } from "@/systems/ambient/components/gradient-stack";
 import { isIOSBrowser } from "@/systems/ambient/lib/platform";
 import {
@@ -41,7 +40,6 @@ export function WidgetShell({
 }) {
   const weather = useOptionalWeather();
   const wallpaper = useOptionalWallpaper();
-  const { theme } = useTheme();
   // Callback ref kept in state so the GradientStack re-renders (and its per-layer
   // tracker registrations run) once the card element is actually attached.
   const [shellEl, setShellEl] = useState<HTMLDivElement | null>(null);
@@ -52,10 +50,9 @@ export function WidgetShell({
 
   const showOverlay = widgetGradientEnabled && gradientLayers.length > 0;
 
-  // Same readability guard as the full-page background: a wallpaper pinned to
-  // the opposite appearance is pulled back so card text keeps its contrast.
-  const isPinnedAgainstTheme =
-    wallpaper?.source === "picture" && wallpaper.resolvedAppearance !== theme;
+  // Weight resolved by the provider, exactly as the full-page background does
+  // it — medium, theme and any appearance pin already accounted for.
+  const overlayOpacity = wallpaper?.opacity ?? 0.7;
 
   // background-attachment: fixed is broken on all iOS browsers.
   // When true  → JS polyfill positions the background (no CSS fixed).
@@ -80,11 +77,9 @@ export function WidgetShell({
         <div
           aria-hidden="true"
           className={cn(
-            "pointer-events-none absolute inset-0 -z-10",
-            isPinnedAgainstTheme
-              ? "opacity-25 dark:opacity-30"
-              : "opacity-70 dark:opacity-85"
+            "pointer-events-none absolute inset-0 -z-10"
           )}
+          style={{ opacity: overlayOpacity }}
         >
           <GradientStack
             layers={gradientLayers}

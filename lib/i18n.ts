@@ -132,6 +132,9 @@ export const translations = {
     wallpaperAppearance: "Appearance",
     wallpaperAppearanceHint:
       "Every wallpaper ships as a light/dark pair. Auto follows the app theme.",
+    wallpaperPhotographs: "Photographs",
+    wallpaperPhotographsNote:
+      "NASA imagery, public domain. Chosen for empty frames — a limb, a field, a void — so nothing competes with the words on top.",
     wallpaperPlacement: "Placement",
     wallpaperPlacementFull: "Full",
     wallpaperPlacementWidget: "Widget",
@@ -331,6 +334,9 @@ export const translations = {
     wallpaperLive: "实时",
     wallpaperAppearance: "外观",
     wallpaperAppearanceHint: "每张壁纸都是浅色 / 深色一对，自动模式跟随应用主题。",
+    wallpaperPhotographs: "摄影",
+    wallpaperPhotographsNote:
+      "NASA 影像，公有领域。挑选的都是空旷的画面——地平线、雪原、虚空——不与其上的文字争夺注意力。",
     wallpaperPlacement: "显示位置",
     wallpaperPlacementFull: "全屏",
     wallpaperPlacementWidget: "卡片",
