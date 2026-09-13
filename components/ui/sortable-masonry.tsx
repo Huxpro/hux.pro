@@ -125,11 +125,14 @@ function SortableMasonryItem({
   id,
   index,
   editing,
+  revealing,
   children,
 }: {
   id: string;
   index: number;
   editing: boolean;
+  /** True during the grid's first-paint reveal; each card fades up in turn. */
+  revealing: boolean;
   children: ReactNode;
 }) {
   const { setNodeRef, attributes, listeners, isDragging, transform, transition } =
@@ -167,11 +170,20 @@ function SortableMasonryItem({
       {/* Inner wrapper owns the jiggle rotate so it never fights the sort
           transform on the outer element. */}
       <div
-        className={cn(editing && !isDragging && "widget-jiggle")}
+        className={cn(
+          editing && !isDragging && "widget-jiggle",
+          // First-paint reveal: pure CSS so it starts with the server HTML,
+          // before hydration. Cards rise in reading order, ~70ms apart.
+          // `motion-reduce` collapses it to a plain appearance.
+          revealing &&
+            "animate-in fade-in slide-in-from-bottom-3 fill-mode-both duration-500 ease-out motion-reduce:animate-none",
+        )}
         style={
           editing && !isDragging
             ? { animationDelay: `${(index % 6) * 0.07}s` }
-            : undefined
+            : revealing
+              ? { animationDelay: `${index * REVEAL_STAGGER_MS}ms` }
+              : undefined
         }
       >
         {children}
@@ -179,6 +191,11 @@ function SortableMasonryItem({
     </div>
   );
 }
+
+/** Gap between consecutive cards in the first-paint reveal. */
+const REVEAL_STAGGER_MS = 70;
+/** Duration of one card's reveal (matches `duration-500`). */
+const REVEAL_DURATION_MS = 500;
 
 // =============================================================================
 // SortableMasonry
@@ -201,6 +218,15 @@ export function SortableMasonry({
 
   const [order, setOrder] = useState<string[]>(ids);
   const [editing, setEditing] = useState(false);
+  // The reveal classes stay on only while the entrance runs; afterwards they
+  // come off so a later reorder (which moves DOM nodes, restarting any CSS
+  // animation on them) never replays the entrance.
+  const [revealing, setRevealing] = useState(true);
+  useEffect(() => {
+    const total = ids.length * REVEAL_STAGGER_MS + REVEAL_DURATION_MS + 100;
+    const timer = window.setTimeout(() => setRevealing(false), total);
+    return () => window.clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- one-shot on mount
   const [activeId, setActiveId] = useState<string | null>(null);
   const [sections, setSections] = useState<Map<string, MasonrySection>>(
     () => new Map(),
@@ -326,7 +352,13 @@ export function SortableMasonry({
           className={cn("columns-1 sm:columns-2 lg:columns-3 gap-x-4", className)}
         >
           {orderedIds.map((id, i) => (
-            <SortableMasonryItem key={id} id={id} index={i} editing={editing}>
+            <SortableMasonryItem
+              key={id}
+              id={id}
+              index={i}
+              editing={editing}
+              revealing={revealing}
+            >
               {itemsById.get(id)}
             </SortableMasonryItem>
           ))}
