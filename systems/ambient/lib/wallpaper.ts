@@ -36,7 +36,7 @@
 
 export type WallpaperKind = "weather" | "image";
 
-export type WallpaperPlatform = "macOS" | "iOS";
+export type WallpaperPlatform = "macOS" | "iPadOS" | "iOS";
 
 export interface WallpaperAsset {
   /** Full-size WebP, at most 2560px on the long edge. */
@@ -54,6 +54,23 @@ export interface Wallpaper {
   platform: WallpaperPlatform;
   /** Release year, shown as the caption next to the platform. */
   year: number;
+  /**
+   * Overrides the `platform · year` caption.
+   *
+   * The caption says where the artwork comes from, so it should not repeat what
+   * the name already said: the iPadOS colourways are named for the release, and
+   * "iPadOS 18 Violet — iPadOS · 2024" both stutters and overflows the tile.
+   */
+  caption?: string;
+  /**
+   * The artwork is a PHONE wallpaper, so the files are tall.
+   *
+   * Worth surfacing rather than hiding: a 0.46 aspect painted across a desktop
+   * viewport is cropped hard — you see a slice of the middle, not the picture.
+   * The picker and the devtool mark these with a phone glyph so the crop is a
+   * known trade rather than a surprise.
+   */
+  portrait?: boolean;
   /** The light/dark pair. "auto" picks between these by theme. */
   light: WallpaperAsset;
   dark: WallpaperAsset;
@@ -172,10 +189,43 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     ...pair("big-sur", "rgb(123 101 140)", "rgb(74 36 71)"),
   },
   {
+    id: "ipados-18-violet",
+    name: "iPadOS 18 Violet",
+    platform: "iPadOS",
+    year: 2024,
+    caption: "2024",
+    ...pair("ipados-18-violet", "rgb(123 97 152)", "rgb(63 45 59)"),
+  },
+  {
+    id: "ipados-18-indigo",
+    name: "iPadOS 18 Indigo",
+    platform: "iPadOS",
+    year: 2024,
+    caption: "2024",
+    ...pair("ipados-18-indigo", "rgb(69 106 174)", "rgb(46 53 79)"),
+  },
+  {
+    id: "ipados-18-blue",
+    name: "iPadOS 18 Blue",
+    platform: "iPadOS",
+    year: 2024,
+    caption: "2024",
+    ...pair("ipados-18-blue", "rgb(91 131 173)", "rgb(35 49 92)"),
+  },
+  {
+    id: "ipados-18-teal",
+    name: "iPadOS 18 Teal",
+    platform: "iPadOS",
+    year: 2024,
+    caption: "2024",
+    ...pair("ipados-18-teal", "rgb(79 130 142)", "rgb(34 55 75)"),
+  },
+  {
     id: "ios-27",
     name: "iOS 27",
     platform: "iOS",
     year: 2026,
+    portrait: true,
     ...pair("ios-27", "rgb(118 109 112)", "rgb(41 44 64)"),
   },
   {
@@ -183,6 +233,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     name: "iOS 18",
     platform: "iOS",
     year: 2024,
+    portrait: true,
     ...pair("ios-18", "rgb(71 106 128)", "rgb(7 11 15)"),
   },
   {

@@ -114,9 +114,20 @@ themselves under an image wallpaper.
 
 ### Built-ins
 
-Apple's own default macOS and iOS wallpapers, as light/dark pairs — the artwork
-each release is recognised by. Eleven pairs: macOS Tahoe, Sequoia, Sonoma,
-Ventura, Monterey and Big Sur; iOS 27, 18, 17, 14 and 13.
+Apple's own default macOS, iPadOS and iOS wallpapers, as light/dark pairs — the
+artwork each release is recognised by. Fifteen pairs: macOS Tahoe, Sequoia,
+Sonoma, Ventura, Monterey and Big Sur; iPadOS 18 in its four colourways
+(Violet, Indigo, Blue, Teal); iOS 27, 18, 17, 14 and 13.
+
+The iPadOS colourways are named for the colour rather than the release, and
+their caption is the year alone: the tile would otherwise read "iPadOS 18
+Violet — iPadOS · 2024", which both stutters and overflows.
+
+Two pairs are **phone** artwork, so their files are tall (≈0.46). Painted
+across a desktop viewport that is cropped to a vertical slice of the middle, so
+the picker caption and the devtool swatch mark them with a phone glyph — the
+tiles are all the same 16:10 card and could not otherwise show it. The flag is
+`portrait` on the catalog entry.
 
 They are committed as WebP (long edge ≤ 2560 at q80) with 480px thumbnails that
 picker tiles and devtool swatches resolve to, so opening the picker costs tens of
@@ -166,6 +177,14 @@ source is active):
 | `full` | Behind the whole page |
 | `widget` | Only inside widget cards (each a viewport-aligned window onto it) |
 | `off` | Nowhere — the global background kill switch |
+
+**Soft edging** — the top/bottom fade, on by default on iOS — is a *weather*
+affordance and is gated to it. It exists to hide a seam: the gradient is a
+synthetic wash, and where it stops against the page background there is a line.
+A photograph has no such seam, so the fade does not soften an edge, it deletes a
+strip of the picture — and in light mode it deletes it to pure white, which
+reads as a bleached band rather than a vignette. The devtool switch can still
+force it on.
 
 ### Triggers
 
@@ -265,11 +284,10 @@ const {
   wallpaper,              // The selected pair
   wallpapers,             // The whole catalog
   selectWallpaper,        // Selects AND switches kind to "image"
-  selectWallpaperVariant, // …and pins a half — the tile's sun/moon buttons
-  appearance,             // "auto" | "light" | "dark"
-  setAppearance,
-  resolvedAppearance,     // Which half "auto" lands on right now
-  opacity,                // Resolved for kind, appearance and theme
+  variant,                // Which half the app theme lands on right now
+  opacity,                // Resolved for kind and theme
+  veil,                   // The scrim/reading veil alpha over an image
+  blurred,                // Whether this route defocuses the wallpaper
   src,                    // The file currently painting, for the devtool
   isPickerOpen,
   openPicker,

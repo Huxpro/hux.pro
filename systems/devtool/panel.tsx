@@ -64,6 +64,7 @@ import {
   MoonStar,
   Music,
   RefreshCw,
+  Smartphone,
   Sun,
   SunMedium,
   Sunrise,
@@ -866,7 +867,9 @@ function WallpaperModule() {
                 key={w.id}
                 type="button"
                 onClick={() => selectWallpaper(w.id)}
-                title={`${w.name} · ${w.platform} ${w.year}`}
+                title={`${w.name} · ${w.platform} ${w.year}${
+                  w.portrait ? " · portrait" : ""
+                }`}
                 aria-label={`Set wallpaper to ${w.name}`}
                 aria-pressed={selected}
                 className={cn(
@@ -883,6 +886,15 @@ function WallpaperModule() {
                   loading="lazy"
                   className="absolute inset-0 h-full w-full object-cover"
                 />
+                {/* Tall source: the swatch is square, so nothing else in this
+                    grid would tell you the full-size file is a phone crop. */}
+                {w.portrait && (
+                  <Smartphone
+                    aria-hidden
+                    className="absolute bottom-0.5 right-0.5 h-2.5 w-2.5 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]"
+                    strokeWidth={2.5}
+                  />
+                )}
               </button>
             );
           })}
