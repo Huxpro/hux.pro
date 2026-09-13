@@ -179,14 +179,20 @@ carry it; nothing is inferred from the pointer type at runtime.
 
 - **App icons / widgets** — a long-press picks the object up (400ms hold,
   10px tolerance, `TOUCH_ACTIVATION`). No system callout, no selection.
+  Strictly: a press only *starts* a pickup on the widget's own surface — the
+  part whose tap is the whole-widget action. A press on a descendant with its
+  own tap (a row link, a button, a tab, an input) belongs to that control:
+  it scrolls, previews, or presses, and never lifts the card. In edit mode
+  the whole card is a handle again, like an iOS jiggle.
 - **Content** (prose, the `/writing` list, `/works` rows) — browser defaults.
   A long-press on a link still opens the system preview; text stays
   selectable. Only the press wash is added.
 - **System chrome** — nothing: not selectable, no callout.
 
-While the home grid is in edit mode the command bar steps aside and the
-**Done** pill takes its slot (`home-edit-store.ts`, shared `layoutId`), the
-way iOS trades the dock for Done.
+While the home grid is in edit mode the **Done** / **Reset** controls float
+above the command bar on desktop; on phones the bar fades out
+(`home-edit-store.ts`) and the controls take the bottom of the screen, where
+the thumb is. Same quiet pill as the rest of the chrome — no inverted fills.
 
 ## Components
 

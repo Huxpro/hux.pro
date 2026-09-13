@@ -6,19 +6,11 @@ import { useSyncExternalStore } from "react";
 // Home edit-mode store
 //
 // The widget grid owns jiggle edit mode, but the bottom of the home screen is
-// shared with the command bar (systems/command/fab.tsx). iOS swaps the dock
-// for a "Done" button while the home screen is being edited; we do the same,
-// so the two surfaces need one bit of shared state. A module store keeps it
-// out of the provider tree — the masonry writes, the command bar reads.
+// shared with the command bar (systems/command/fab.tsx). On phones the bar
+// fades out while the grid is being edited so the edit controls can sit at
+// the bottom, so the two surfaces need one bit of shared state. A module
+// store keeps it out of the provider tree — the masonry writes, the bar reads.
 // =============================================================================
-
-/**
- * Shared Framer `layoutId` between the command bar and the edit-mode "Done"
- * pill: both occupy the bottom-centre slot of the home screen, one at a time,
- * so the swap animates as a single pill changing shape rather than two
- * unrelated fades.
- */
-export const HOME_BOTTOM_PILL = "home-bottom-pill";
 
 let editing = false;
 const listeners = new Set<() => void>();

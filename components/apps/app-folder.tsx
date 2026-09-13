@@ -431,7 +431,7 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
               <div
                 // Pops from the held size (1.08, see usePressHold above) to
                 // its floating size, so pickup reads as one motion.
-                className="widget-lift select-none drop-shadow-xl"
+                className="widget-lift select-none drop-shadow-xl pointer-events-none"
                 style={
                   {
                     "--press-hold-scale": 1.08,

@@ -8,7 +8,7 @@ import { Command, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
-import { HOME_BOTTOM_PILL, useHomeEditing } from "@/components/ui/home-edit-store";
+import { useHomeEditing } from "@/components/ui/home-edit-store";
 
 export function FloatingActionButton() {
   const { toggle } = useCommand();
@@ -16,9 +16,9 @@ export function FloatingActionButton() {
   const { locale } = useLocale();
   const [mounted, setMounted] = useState(false);
   const drag = useDraggable("command-fab");
-  // While the home grid is in jiggle edit mode its "Done" pill takes this
-  // slot (iOS swaps the dock for "Done" the same way); the bar steps aside and
-  // hands its shape over through the shared layoutId.
+  // While the home grid is in jiggle edit mode, the bar fades out on phones
+  // so the grid's edit controls can take the bottom of the screen (on wider
+  // screens they float above it and the bar stays put).
   const homeEditing = useHomeEditing();
 
   useEffect(() => {
@@ -39,14 +39,13 @@ export function FloatingActionButton() {
         isHomepage ? "justify-center" : "justify-end"
       )}
     >
-      <AnimatePresence>
-      {!(isHomepage && homeEditing) && (
       <motion.button
         layout
-        layoutId={isHomepage ? HOME_BOTTOM_PILL : undefined}
         onClick={() => toggle()}
         className={cn(
           "pressable pointer-events-auto",
+          "transition-[background-color,border-color,color,opacity,transform] duration-200",
+          isHomepage && homeEditing && "max-md:pointer-events-none max-md:opacity-0",
           "flex items-center gap-2",
           "bg-card/50 backdrop-blur-xl",
           "border border-border/50",
@@ -56,7 +55,6 @@ export function FloatingActionButton() {
           // Touch-down: the bar darkens on the same frame as the press, the
           // way an iOS search field does, and eases back on release.
           "active:bg-card/80 active:border-border active:text-foreground",
-          "transition-[background-color,border-color,color,transform]",
           "h-12",
           "overflow-hidden",
           isHomepage
@@ -64,8 +62,6 @@ export function FloatingActionButton() {
             : "rounded-[24px] w-12 md:w-auto md:px-4 justify-center active:scale-95"
         )}
         style={{ borderRadius: isHomepage ? 24 : 24 }}
-        initial={false}
-        exit={{ opacity: 0, transition: { duration: 0.15 } }}
         transition={{
           layout: { duration: 0.4, ease: [0.32, 0.72, 0, 1] },
           borderRadius: { duration: 0.4 },
@@ -146,8 +142,6 @@ export function FloatingActionButton() {
           )}
         </AnimatePresence>
       </motion.button>
-      )}
-      </AnimatePresence>
     </div>
   );
 
