@@ -8,7 +8,7 @@ import {
 import { FeaturedTalksWidget } from "@/components/home/featured-talks-widget";
 import {
   ProcessingWidget,
-  buildProcessingChapters,
+  buildProcessingCommits,
 } from "@/components/home/processing-widget";
 import { PromptWidget } from "@/components/home/prompt-widget";
 import { ScrambleIdentifier } from "@/components/home/scramble-identifier";
@@ -119,7 +119,7 @@ function WidgetGrid() {
 
   // Resolve presence up-front so conditionally-empty widgets never occupy an
   // empty, draggable slot in the masonry.
-  const processingChapters = buildProcessingChapters(log, locale);
+  const processingCommits = buildProcessingCommits(log, locale);
   // The three featured talk groups (React / Lynx / Personal) are now unified
   // into the single album-switching FeaturedTalksWidget, so exclude them from
   // the generic group rendering.
@@ -139,12 +139,12 @@ function WidgetGrid() {
     { id: "music", node: <MusicWidget /> },
     // Keeps the legacy "status" id so visitors' persisted grid order survives
     // the widget's change of shape.
-    ...(processingChapters.length > 0
+    ...(processingCommits.length > 0
       ? [
           {
             id: "status",
             node: (
-              <ProcessingWidget log={log} chapters={processingChapters} />
+              <ProcessingWidget log={log} commits={processingCommits} />
             ),
           },
         ]

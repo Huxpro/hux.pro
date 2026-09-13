@@ -7,8 +7,8 @@
  * title / link-pill / date summary line and `<handle>` byline, same
  * expanded `git log --pretty=fuller` author block — minus everything that
  * needs page-width real estate (hash column, cursor peek, pinned/expanded
- * media, inspect mode). Tapping a row folds the author / description /
- * tags / stats block in and out; attachments never render here.
+ * media, inspect mode). Tapping a row folds the author / description
+ * block in and out; attachments, tags and stats never render here.
  *
  * Consumes NormalizedCommit — fully type-agnostic.
  */
@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { commitIcons, commitIconOverrides } from "./icons";
-import { LinkIcon, Description, TagBadges, Stats } from "./embeds/shared";
+import { LinkIcon, Description } from "./embeds/shared";
 
 const DEFAULT_AUTHOR_HANDLE = "hux";
 
@@ -54,9 +54,7 @@ export function TimelineMini({
   // rows from drowning the title in globes.
   const links = data.links.filter((l) => !l.redundantWhenExpanded);
 
-  const hasExpandableContent =
-    !isEvent &&
-    !!(data.description || data.tags.length > 0 || data.stats || byline);
+  const hasExpandableContent = !isEvent && !!(data.description || byline);
 
   const handleToggle = useCallback(() => {
     if (!hasExpandableContent) return;
@@ -102,7 +100,7 @@ export function TimelineMini({
         className,
       )}
     >
-      <div className="grid grid-cols-[auto_1fr] gap-x-2 items-start">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 items-start">
         <span
           data-rail-icon
           className={cn(
@@ -284,10 +282,6 @@ export function TimelineMini({
             {data.description && (
               <Description text={data.description} isExpanded />
             )}
-
-            {data.tags.length > 0 && <TagBadges items={data.tags} />}
-
-            {data.stats && <Stats {...data.stats} />}
           </div>
         )}
       </div>
