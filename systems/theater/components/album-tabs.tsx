@@ -23,8 +23,8 @@ import type { Album } from "../lib/types";
 // is motion, not a hard cut. Material tokens live in lib/chrome.ts so theater
 // window controls share the same frosted language.
 //
-// `tone="onDark"` forces theater-safe glass (site light mode would otherwise
-// paint a bright `bg-card` pill that fights the always-dark backdrop).
+// `tone="onDark"` is the same dark-widget language (dim track + dark stamp),
+// forced so site light mode cannot paint a bright `bg-card` on the black stage.
 // ---------------------------------------------------------------------------
 
 const EASE = [0.32, 0.72, 0, 1] as const;

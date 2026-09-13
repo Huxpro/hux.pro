@@ -28,18 +28,21 @@ export const GLASS_CLUSTER = cn(
 );
 
 /**
- * Widget-desktop rest: a hairline track. Hovering the control or the parent
- * `group` card deepens the same frame — it does not appear from nothing.
- * Live Activity stays fully raised (`GLASS_TRACK`).
+ * Widget rest vs hover — inverted per theme, opacity so gradient cards show through.
+ *
+ * Light: a hairline frame at rest, ink deepens on hover.
+ * Dark: more frameless / dim at rest; hover only approaches the raised
+ * `GLASS_TRACK` wash (`white/08`), never brighter than that.
  */
 export const GLASS_TRACK_FLAT = cn(
   "border border-border/30 bg-foreground/[0.03]",
-  "dark:border-white/10 dark:bg-white/[0.08]",
+  "dark:border-white/6 dark:bg-white/[0.03]",
+  "backdrop-blur-xl",
   "transition-[background-color,border-color,box-shadow] duration-200",
   "hover:border-border/50 hover:bg-foreground/[0.08]",
   "group-hover:border-border/50 group-hover:bg-foreground/[0.08]",
-  "dark:hover:border-white/15 dark:hover:bg-white/[0.12]",
-  "dark:group-hover:border-white/15 dark:group-hover:bg-white/[0.12]",
+  "dark:hover:border-white/10 dark:hover:bg-white/[0.06]",
+  "dark:group-hover:border-white/10 dark:group-hover:bg-white/[0.06]",
 );
 
 export const GLASS_CLUSTER_FLAT = cn(
@@ -47,13 +50,16 @@ export const GLASS_CLUSTER_FLAT = cn(
   GLASS_TRACK_FLAT,
 );
 
-/** Selected pill: faint at rest in light; dark stamp on the gray track in dark. */
+/** Selected pill: light lift in light mode; dark stamp in dark mode. */
 export const GLASS_PILL_FLAT = cn(
   "bg-card/70 ring-1 ring-border/30",
-  "dark:bg-card dark:shadow-sm dark:ring-white/10",
+  "dark:bg-card/80 dark:ring-white/8 dark:shadow-none",
+  "backdrop-blur-xl",
   "transition-[background-color,box-shadow] duration-200",
   "hover:bg-card hover:shadow-sm hover:ring-border/50",
   "group-hover:bg-card group-hover:shadow-sm group-hover:ring-border/50",
+  "dark:hover:bg-card dark:hover:ring-white/10",
+  "dark:group-hover:bg-card dark:group-hover:ring-white/10",
 );
 
 /** Theme-aware icon button inside a cluster (or standalone orb). */
@@ -97,12 +103,16 @@ export const GLASS_ON_DARK_ORB = cn(
   "bg-white/[0.08] ring-1 ring-white/15 backdrop-blur-xl",
 );
 
-/** Always-dark theater: album-tab track (same material as the control cluster). */
+/**
+ * Always-dark theater album tabs — same language as dark-mode widget tabs
+ * (dim / frameless track + dark stamp). Not the brighter window-toolbar glass.
+ */
 export const GLASS_ON_DARK_TRACK = cn(
-  "bg-white/[0.08] ring-1 ring-white/15 backdrop-blur-xl",
+  "border border-white/6 bg-white/[0.03] backdrop-blur-xl",
+  "hover:border-white/10 hover:bg-white/[0.06]",
 );
 
-/** Always-dark theater: selected album pill — soft glass, not theme `bg-card`. */
+/** Always-dark theater: dark selected stamp, not a white chip. */
 export const GLASS_ON_DARK_PILL = cn(
-  "bg-white/20 shadow-sm ring-1 ring-white/25 backdrop-blur-xl",
+  "bg-black/55 shadow-sm ring-1 ring-white/8 backdrop-blur-xl",
 );
