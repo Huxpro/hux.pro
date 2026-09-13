@@ -132,6 +132,7 @@ export function PostList<T extends Post>({
             // Doc / Note. Powers the devtool hover inspector.
             frontmatter?: Record<string, unknown>;
             frontmatterZh?: Record<string, unknown>;
+            featured?: boolean;
           };
           // Locale-aware pick with cross-language fallback: prefer the
           // viewer's locale, fall back to the other when missing. Otherwise a
@@ -154,6 +155,13 @@ export function PostList<T extends Post>({
           // peekTags is already locale-filtered, so only decorators visible in
           // this locale surface here.
           const rowDecorators = peekTags?.filter(isDecoratorTag) ?? [];
+          // `featured` renders in the same badge as the provenance decorators:
+          // like 译 / 知乎 it is a fact about the piece (editorial, not
+          // viewer-relative), whereas the EN / 中文 tag below is a transient
+          // filter-state hint and deliberately stays plain and quiet.
+          const rowBadges = postExtras.featured
+            ? [...rowDecorators, t(locale, "writingFeatured")]
+            : rowDecorators;
 
           const preview = (
             <PostPreview
@@ -179,7 +187,7 @@ export function PostList<T extends Post>({
               <div className="flex-1 min-w-0">
                 <h2 className="text-sm sm:text-base font-normal">
                   {getLocalizedTitle(post, locale)}
-                  {rowDecorators.map((tag) => (
+                  {rowBadges.map((tag) => (
                     // The leading NBSP + nowrap wrapper glue the badge to the
                     // title's last word, so it wraps together with the title
                     // instead of dropping onto a line by itself (the badge is

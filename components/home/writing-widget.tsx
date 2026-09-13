@@ -15,6 +15,7 @@ import {
   type BlogPostSummary,
 } from "@/lib/content";
 import type { Locale } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { Link } from "next-view-transitions";
 import { useMemo } from "react";
@@ -24,35 +25,42 @@ import { useMemo } from "react";
 //
 // A vertical snap stack (same body as the projects widget) of the posts
 // worth surfacing: the latest few — so the widget always says what's new —
-// plus every post flagged `featured` in its frontmatter, so the evergreen
-// pieces don't scroll out of reach as new ones land. The union is sorted by
-// date, so it still reads as a timeline rather than two lists stapled
-// together. Rows echo the /writing list (title + lowercase mono date) and
-// the /works rows (date at the muted/50 tier) so the two widgets share one
-// metadata register.
+// then, under a hairline, every post flagged `featured` in its frontmatter,
+// so the evergreen pieces don't scroll out of reach as new ones land. Rows
+// echo the /writing list (title + lowercase mono date) and the /works rows
+// (date at the muted/50 tier) so the two widgets share one metadata register.
 // ---------------------------------------------------------------------------
 
 /** How many of the newest posts are always kept, featured or not. */
 const LATEST_COUNT = 3;
 
+export interface WritingSelection {
+  /** The newest posts, in date order. */
+  latest: BlogPostSummary[];
+  /** Curated `featured` posts not already in `latest`, in date order. */
+  featured: BlogPostSummary[];
+}
+
 export function selectWritingPosts(
   posts: BlogPostSummary[],
   locale: Locale,
-): BlogPostSummary[] {
-  const visible = posts.filter((post) => shouldShowPost(post, locale, false));
-  const picked = new Map<string, BlogPostSummary>();
-  for (const post of visible.slice(0, LATEST_COUNT)) picked.set(post.slug, post);
-  for (const post of visible) if (post.featured) picked.set(post.slug, post);
-  return [...picked.values()].sort((a, b) => b.date.localeCompare(a.date));
+): WritingSelection {
+  const visible = posts
+    .filter((post) => shouldShowPost(post, locale, false))
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const latest = visible.slice(0, LATEST_COUNT);
+  const seen = new Set(latest.map((p) => p.slug));
+  const featured = visible.filter((p) => p.featured && !seen.has(p.slug));
+  return { latest, featured };
 }
 
-export function WritingWidget({ posts: allPosts }: { posts: BlogPostSummary[] }) {
+export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
   const { locale } = useLocale();
-  const posts = useMemo(
-    () => selectWritingPosts(allPosts, locale),
-    [allPosts, locale],
+  const { latest, featured } = useMemo(
+    () => selectWritingPosts(posts, locale),
+    [posts, locale],
   );
-  if (posts.length === 0) return null;
+  if (latest.length === 0 && featured.length === 0) return null;
 
   return (
     <WidgetShell>
@@ -62,24 +70,58 @@ export function WritingWidget({ posts: allPosts }: { posts: BlogPostSummary[] })
       </WidgetHeader>
 
       <WidgetScrollBody className="max-h-64">
-        {posts.map((post) => (
-          <Link
-            key={post.slug}
-            href={getPostHref(post, locale, "/writing")}
-            className="snap-start flex items-baseline gap-3 -mx-2 px-2 py-2 rounded-lg transition-colors duration-150 hover:bg-muted/20"
-          >
-            <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-              {getLocalizedTitle(post, locale)}
-            </span>
-            <time
-              dateTime={post.date}
-              className="shrink-0 font-mono text-xs text-muted-foreground/50"
-            >
-              {formatPostDate(post.date)}
-            </time>
-          </Link>
+        {latest.map((post) => (
+          <PostRow key={post.slug} post={post} locale={locale} />
         ))}
+
+        {featured.length > 0 && (
+          <>
+            {/* Section break between "what's new" and "what's worth
+                reading": a hairline plus an annotation in the same voice as
+                the log's event rows — serif italic in parens (mono for CJK),
+                a stage direction rather than a heading. Not a snap stop. */}
+            {latest.length > 0 && (
+              <div className="mt-1 mb-0.5 pt-2 border-t border-border/30">
+                <span
+                  className={cn(
+                    "block px-0 py-1 text-xs text-muted-foreground/40",
+                    /[぀-ヿ一-鿿]/.test(t(locale, "writingFeatured"))
+                      ? "font-mono"
+                      : "italic font-serif",
+                  )}
+                >
+                  ({t(locale, "writingFeatured")})
+                </span>
+              </div>
+            )}
+            {featured.map((post) => (
+              <PostRow key={post.slug} post={post} locale={locale} />
+            ))}
+          </>
+        )}
       </WidgetScrollBody>
     </WidgetShell>
+  );
+}
+
+function PostRow({ post, locale }: { post: BlogPostSummary; locale: Locale }) {
+  return (
+    <Link
+      href={getPostHref(post, locale, "/writing")}
+      className="snap-start flex items-baseline gap-3 -mx-2 px-2 py-2 rounded-lg transition-colors duration-150 hover:bg-muted/20"
+    >
+      {/* Titles are the content here, so they wrap (two lines max) instead
+          of truncating like a project name would; the date stays on the
+          first baseline. */}
+      <span className="min-w-0 flex-1 line-clamp-2 text-sm text-foreground">
+        {getLocalizedTitle(post, locale)}
+      </span>
+      <time
+        dateTime={post.date}
+        className="shrink-0 font-mono text-xs text-muted-foreground/50"
+      >
+        {formatPostDate(post.date)}
+      </time>
+    </Link>
   );
 }
