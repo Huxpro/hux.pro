@@ -502,25 +502,15 @@ function SideArrow({
 
 function TitleRow({ track, airy }: { track: Track; airy?: boolean }) {
   return (
-    <div
-      className={cn(
-        "mb-3 flex items-baseline justify-between gap-3",
-        airy && "mb-4",
-      )}
-    >
-      <div className="min-w-0">
-        <div className={cn("truncate font-medium text-white", airy ? "text-base" : "text-sm")}>
-          {track.title}
-        </div>
-        {track.subtitle && (
-          <div className="truncate text-xs font-mono uppercase tracking-wide text-white/45">
-            {track.subtitle}
-          </div>
-        )}
+    <div className={cn("mb-3 min-w-0", airy && "mb-4")}>
+      <div className={cn("truncate font-medium text-white", airy ? "text-base" : "text-sm")}>
+        {track.title}
       </div>
-      <span className="shrink-0 text-xs font-mono uppercase tracking-wide text-white/40">
-        Works →
-      </span>
+      {track.subtitle && (
+        <div className="truncate text-xs font-mono uppercase tracking-wide text-white/45">
+          {track.subtitle}
+        </div>
+      )}
     </div>
   );
 }

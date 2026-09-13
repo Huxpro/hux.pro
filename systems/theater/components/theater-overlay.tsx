@@ -8,9 +8,7 @@ import {
   ExternalLink,
   X,
 } from "lucide-react";
-import { Link } from "next-view-transitions";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { t, useLocale } from "@/services";
 import { GLASS_ON_DARK_BTN, GLASS_ON_DARK_CLUSTER, GLASS_ON_DARK_ORB } from "../lib/chrome";
 import { THEATER_BOTTOM, THEATER_TOP_BAR } from "../lib/geometry";
 import { useTheater } from "../provider";
@@ -51,7 +49,6 @@ export function TheaterOverlay() {
     close,
     isCoarse,
   } = useTheater();
-  const { locale } = useLocale();
 
   const open = mode === "theater" && !minimized;
 
@@ -315,22 +312,11 @@ export function TheaterOverlay() {
                       <div className="truncate text-sm font-medium text-white">
                         {track.title}
                       </div>
-                      <div className="mt-0.5 flex items-baseline gap-2">
-                        {track.subtitle && (
-                          <div className="truncate text-xs font-mono uppercase tracking-wide text-white/50">
-                            {track.subtitle}
-                          </div>
-                        )}
-                        {track.href && (
-                          <Link
-                            href={track.href}
-                            onClick={close}
-                            className="shrink-0 text-xs font-mono uppercase tracking-wide text-white/50 hover:text-white transition-colors"
-                          >
-                            {t(locale, "theaterWorksLink")} →
-                          </Link>
-                        )}
-                      </div>
+                      {track.subtitle && (
+                        <div className="mt-0.5 truncate text-xs font-mono uppercase tracking-wide text-white/50">
+                          {track.subtitle}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div />

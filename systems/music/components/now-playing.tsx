@@ -134,10 +134,10 @@ export function NowPlaying({
 
   if (track) {
     return (
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3.5">
         {/* Album art — mqdefault is 16:9, object-cover crops to square */}
         <div
-          className="h-18 w-18 overflow-hidden rounded-lg shrink-0"
+          className="h-22 w-22 overflow-hidden rounded-lg shrink-0"
           onMouseEnter={() => setShowProgress(true)}
           onMouseLeave={() => setShowProgress(false)}
         >
@@ -148,13 +148,13 @@ export function NowPlaying({
           />
         </div>
 
-        <div className="flex h-18 min-w-0 flex-1 flex-col justify-between">
+        <div className="flex h-22 min-w-0 flex-1 flex-col justify-between py-0.5">
           <div className="min-w-0">
             <div className="truncate text-sm font-medium leading-snug text-foreground">
               {track.title}
             </div>
             {track.artist && (
-              <div className="mt-0.5 truncate text-xs font-mono text-muted-foreground">
+              <div className="mt-1 truncate text-xs font-mono text-muted-foreground">
                 {track.artist}
               </div>
             )}
@@ -200,11 +200,11 @@ export function NowPlaying({
 
   if (isIdle && !isLoading) {
     return (
-      <div className="flex items-start gap-3">
-        <div className="flex h-18 w-18 shrink-0 items-center justify-center rounded-lg bg-muted/30">
+      <div className="flex items-start gap-3.5">
+        <div className="flex h-22 w-22 shrink-0 items-center justify-center rounded-lg bg-muted/30">
           <Music className="h-6 w-6 text-muted-foreground/30" />
         </div>
-        <div className="flex h-18 min-w-0 flex-1 flex-col justify-between">
+        <div className="flex h-22 min-w-0 flex-1 flex-col justify-between py-0.5">
           <div className="text-xs font-mono text-muted-foreground">
             {t(locale, "musicNotPlaying")}
           </div>
@@ -223,9 +223,9 @@ export function NowPlaying({
 
   // loading skeleton
   return (
-    <div className="flex items-start gap-3">
-      <div className="h-18 w-18 shrink-0 animate-pulse rounded-lg bg-muted" />
-      <div className="flex h-18 min-w-0 flex-1 flex-col justify-between">
+    <div className="flex items-start gap-3.5">
+      <div className="h-22 w-22 shrink-0 animate-pulse rounded-lg bg-muted" />
+      <div className="flex h-22 min-w-0 flex-1 flex-col justify-between py-0.5">
         <div>
           <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
           <div className="mt-1.5 h-3 w-1/2 animate-pulse rounded bg-muted" />
