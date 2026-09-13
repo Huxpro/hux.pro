@@ -105,20 +105,37 @@ export const WALLPAPER_OPACITY: Record<
 };
 
 /**
- * The veil drawn OVER an image wallpaper.
+ * What is drawn OVER an image wallpaper, in two parts.
  *
- * Two strengths, because they answer different questions:
+ * `VEIL` is flat — it dims the whole frame equally, which is what protects a
+ * prose column and what "dim home" used to be made of entirely. `VIGNETTE` is
+ * radial, dark at the margins and clear through the middle.
  *
- *   scrim   the optional home-screen dim. A whisper — it takes the edge off a
- *           loud wallpaper without pretending the page is a document.
+ * Most of the weight lives in the vignette on purpose. A flat wash spends its
+ * whole budget flattening the picture: everything recedes by the same amount,
+ * so nothing recedes *relative* to anything. Moving that same budget into the
+ * radial buys depth for free — the middle comes back to nearly its own colour
+ * while the shoulders fall away, which is what a desktop actually looks like
+ * and the reason macOS ships photographs with the light in the centre.
+ *
+ * Two strengths of each, because they answer different questions:
+ *
+ *   scrim   the home screen. Almost no flat component at all: the picture is
+ *           the content, and the vignette alone is enough to seat the widgets
+ *           on it rather than leave them floating on raw artwork.
  *   reading enough that a prose column wins, and no more. The BLUR is what
- *           actually protects legibility here; the veil only has to stop the
- *           remaining colour from shouting, so it can stay well under the
+ *           actually protects legibility here; these two only have to stop the
+ *           remaining colour from shouting, so they stay well under the
  *           ~0.45/0.55 the same idea usually gets built with.
  */
 export const WALLPAPER_VEIL = {
-  scrim: { light: 0.08, dark: 0.14 },
-  reading: { light: 0.28, dark: 0.34 },
+  scrim: { light: 0.03, dark: 0.05 },
+  reading: { light: 0.26, dark: 0.3 },
+} as const;
+
+export const WALLPAPER_VIGNETTE = {
+  scrim: { light: 0.3, dark: 0.4 },
+  reading: { light: 0.32, dark: 0.4 },
 } as const;
 
 // -----------------------------------------------------------------------------
