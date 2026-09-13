@@ -249,7 +249,7 @@ html.dark.glass-clear {
   background: radial-gradient(
     ellipse 72% 62% at 50% 36%,
     transparent 10%,
-    color-mix(in oklab, var(--background) 34%, transparent) 100%
+    color-mix(in oklab, var(--background) 22%, transparent) 100%
   );
 }
 
@@ -257,7 +257,7 @@ html.dark.glass-clear {
   background: radial-gradient(
     ellipse 72% 62% at 50% 36%,
     transparent 8%,
-    color-mix(in oklab, var(--background) 42%, transparent) 100%
+    color-mix(in oklab, var(--background) 28%, transparent) 100%
   );
 }
 

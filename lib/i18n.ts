@@ -149,8 +149,7 @@ export const translations = {
     wallpaperPlacementFull: "Full",
     wallpaperPlacementWidget: "Widget",
     wallpaperPlacementOff: "Off",
-    wallpaperFooterNote:
-      "One background at a time — picking a wallpaper replaces the weather gradient. Sunrise and sunset still announce themselves in the Dock. Wallpapers are Apple's; rights remain theirs.",
+    wallpaperFooterNote: "Wallpapers are Apple's; rights remain theirs.",
     stateOn: "On",
     stateOff: "Off",
     debugOverride: "override",
@@ -361,8 +360,7 @@ export const translations = {
     wallpaperPlacementFull: "全屏",
     wallpaperPlacementWidget: "卡片",
     wallpaperPlacementOff: "关闭",
-    wallpaperFooterNote:
-      "同一时间只显示一个背景 —— 选择壁纸即会替换天气渐变。日出日落提醒仍会照常出现在 Dock 中。壁纸版权归 Apple 所有。",
+    wallpaperFooterNote: "壁纸版权归 Apple 所有。",
     stateOn: "开",
     stateOff: "关",
     debugOverride: "覆盖",
