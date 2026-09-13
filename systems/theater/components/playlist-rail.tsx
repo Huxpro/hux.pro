@@ -17,7 +17,7 @@ export function PlaylistRail({
   tone = "default",
 }: {
   className?: string;
-  /** `onDark` forces light labels for the always-dark theater backdrop. */
+  /** `onDark` forces light labels (editor mocks / forced-dark stages). */
   tone?: "default" | "onDark";
 }) {
   const { album, trackIndex, selectTrack } = useTheater();
@@ -52,7 +52,8 @@ export function PlaylistRail({
             ref={active ? activeRef : undefined}
             onClick={() => selectTrack(i)}
             className={cn(
-              "group/thumb w-40 shrink-0 text-left transition-opacity",
+              "group/thumb w-40 shrink-0 text-left outline-none transition-opacity",
+              "focus-visible:opacity-100",
               active ? "opacity-100" : "opacity-70 hover:opacity-100",
             )}
           >

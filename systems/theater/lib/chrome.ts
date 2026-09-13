@@ -6,9 +6,16 @@ import { cn } from "@/lib/utils";
 // Matches AlbumTabs (Featured Talks widget): frosted track + lifted pill, not
 // inverted black stamps or four lonely discs. Shared by talks (widget, theater,
 // PiP, Live Activity) and music (widget + Live Activity) so playback chrome
-// is one system. Theater (always-dark) uses on-dark tokens; the others stay
-// theme-aware.
+// is one system. Theater chrome follows the site theme (same as PiP); the
+// video stage stays black. On-dark tokens remain for forced-dark contexts
+// (editor mocks, optional `tone="onDark"`).
 // =============================================================================
+
+/** Page veil under the theater stage — dim, not a blackout. */
+export const THEATER_BACKDROP = cn(
+  "bg-black/30 backdrop-blur-sm",
+  "dark:bg-black/20",
+);
 
 /** Theme-aware track (homepage widget + AlbumTabs). */
 export const GLASS_TRACK = cn(
@@ -66,6 +73,7 @@ export const GLASS_PILL_FLAT = cn(
 export const GLASS_BTN = cn(
   "inline-flex items-center justify-center rounded-full",
   "text-muted-foreground transition-colors",
+  "outline-none focus-visible:bg-foreground/[0.08] focus-visible:text-foreground",
   "hover:bg-foreground/[0.06] hover:text-foreground active:scale-95",
   "disabled:opacity-30 disabled:pointer-events-none",
 );
@@ -81,7 +89,14 @@ export const GLASS_ACTION = cn(
   "inline-flex items-center justify-center gap-1.5 rounded-full",
   "text-xs font-mono uppercase tracking-wider",
   "text-muted-foreground transition-colors",
+  "outline-none focus-visible:bg-foreground/[0.08] focus-visible:text-foreground",
   "hover:text-foreground active:scale-[0.98]",
+);
+
+/** Theme-aware freestanding prev/next orb. */
+export const GLASS_ORB = cn(
+  GLASS_BTN,
+  "bg-card/75 text-foreground shadow-sm ring-1 ring-border/40 backdrop-blur-xl",
 );
 
 /** Always-dark theater: clustered control capsule (iPadOS toolbar). */
@@ -94,6 +109,7 @@ export const GLASS_ON_DARK_CLUSTER = cn(
 export const GLASS_ON_DARK_BTN = cn(
   "inline-flex items-center justify-center rounded-full",
   "text-white/80 transition-colors",
+  "outline-none focus-visible:bg-white/10 focus-visible:text-white",
   "hover:bg-white/10 hover:text-white active:scale-95",
 );
 

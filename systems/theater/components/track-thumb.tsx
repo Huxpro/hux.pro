@@ -46,7 +46,7 @@ export function TrackThumb({
         // Hairline selection — readable for the playlist rail without the
         // old double ring fighting the cover art.
         active
-          ? "border-white/55 dark:border-white/40"
+          ? "border-foreground/35 dark:border-white/40"
           : "border-border/40",
         className,
       )}

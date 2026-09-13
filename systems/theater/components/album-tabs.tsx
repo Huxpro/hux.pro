@@ -23,8 +23,8 @@ import type { Album } from "../lib/types";
 // is motion, not a hard cut. Material tokens live in lib/chrome.ts so theater
 // window controls share the same frosted language.
 //
-// `tone="onDark"` is the same dark-widget language (dim track + dark stamp),
-// forced so site light mode cannot paint a bright `bg-card` on the black stage.
+// `tone="onDark"` is the dim dark-stamp language, forced for editor mocks
+// and any stage that cannot follow the site theme.
 // ---------------------------------------------------------------------------
 
 const EASE = [0.32, 0.72, 0, 1] as const;
@@ -82,16 +82,16 @@ export function AlbumTabs({
             onClick={() => onSelect(i)}
             className={cn(
               "relative isolate font-mono uppercase tracking-wider",
-              "transition-colors duration-200",
+              "outline-none transition-colors duration-200",
               // Roomy label padding inside the capsule.
               size === "sm" ? "px-3.5 py-1.5 text-[10px]" : "px-4 py-2 text-xs",
               onDark
                 ? active
                   ? "text-white"
-                  : "text-white/45 hover:text-white/70"
+                  : "text-white/45 hover:text-white/70 focus-visible:text-white/80"
                 : active
                   ? "text-foreground"
-                  : "text-muted-foreground/70 hover:text-muted-foreground",
+                  : "text-muted-foreground/70 hover:text-muted-foreground focus-visible:text-foreground",
             )}
           >
             {active && (

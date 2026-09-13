@@ -129,7 +129,8 @@ export function SurfaceSwitch({
                     )
                   : cn(
                       "inline-flex h-7 w-7 items-center justify-center rounded-full",
-                      "transition-colors",
+                      "outline-none transition-colors",
+                      "focus-visible:bg-foreground/[0.08] focus-visible:text-foreground",
                       active
                         ? "text-foreground"
                         : "cursor-pointer text-muted-foreground hover:text-foreground",

@@ -9,7 +9,12 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { GLASS_ON_DARK_BTN, GLASS_ON_DARK_CLUSTER, GLASS_ON_DARK_ORB } from "../lib/chrome";
+import {
+  GLASS_BTN,
+  GLASS_CLUSTER,
+  GLASS_ORB,
+  THEATER_BACKDROP,
+} from "../lib/chrome";
 import { THEATER_BOTTOM, THEATER_TOP_BAR } from "../lib/geometry";
 import { useTheater } from "../provider";
 import { AlbumTabs } from "./album-tabs";
@@ -216,7 +221,7 @@ export function TheaterOverlay() {
           {/* Backdrop — below the stage; click to close. */}
           <motion.div
             key="backdrop"
-            className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md"
+            className={cn("fixed inset-0 z-[10000]", THEATER_BACKDROP)}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -309,11 +314,11 @@ export function TheaterOverlay() {
                 >
                   {track ? (
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium text-white">
+                      <div className="truncate text-sm font-medium text-foreground drop-shadow-sm">
                         {track.title}
                       </div>
                       {track.subtitle && (
-                        <div className="mt-0.5 truncate text-xs font-mono uppercase tracking-wide text-white/50">
+                        <div className="mt-0.5 truncate text-xs font-mono uppercase tracking-wide text-muted-foreground drop-shadow-sm">
                           {track.subtitle}
                         </div>
                       )}
@@ -321,21 +326,20 @@ export function TheaterOverlay() {
                   ) : (
                     <div />
                   )}
-                  <div className={cn(GLASS_ON_DARK_CLUSTER, "shrink-0")}>
+                  <div className={cn(GLASS_CLUSTER, "shrink-0")}>
                     {track?.url && (
                       <a
                         href={track.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="Open on source site"
-                        className={cn(GLASS_ON_DARK_BTN, "h-8 w-8")}
+                        className={cn(GLASS_BTN, "h-8 w-8")}
                       >
                         <ExternalLink className="h-4 w-4" />
                       </a>
                     )}
                     <SurfaceSwitch
                       current="theater"
-                      tone="onDark"
                       framed={false}
                       onSelect={(surface) => {
                         if (surface === "pip") toPip();
@@ -344,7 +348,7 @@ export function TheaterOverlay() {
                     />
                     <button
                       aria-label="Close"
-                      className={cn(GLASS_ON_DARK_BTN, "h-8 w-8")}
+                      className={cn(GLASS_BTN, "h-8 w-8")}
                       onClick={close}
                     >
                       <X className="h-4 w-4" />
@@ -357,7 +361,7 @@ export function TheaterOverlay() {
                     key="prev"
                     aria-label="Previous video"
                     onClick={previous}
-                    className={cn(GLASS_ON_DARK_ORB, "fixed z-[10005] h-11 w-11")}
+                    className={cn(GLASS_ORB, "fixed z-[10005] h-11 w-11")}
                     style={{
                       top: midY - 22,
                       left: overlayArrows ? rect.left + 12 : rect.left - 64,
@@ -377,7 +381,7 @@ export function TheaterOverlay() {
                     key="next"
                     aria-label="Next video"
                     onClick={next}
-                    className={cn(GLASS_ON_DARK_ORB, "fixed z-[10005] h-11 w-11")}
+                    className={cn(GLASS_ORB, "fixed z-[10005] h-11 w-11")}
                     style={{
                       top: midY - 22,
                       left: overlayArrows
@@ -414,10 +418,9 @@ export function TheaterOverlay() {
                     albums={albums}
                     activeIndex={albumIndex}
                     onSelect={selectAlbum}
-                    tone="onDark"
                     className="mb-3"
                   />
-                  <PlaylistRail tone="onDark" className="gap-4 px-0" />
+                  <PlaylistRail className="gap-4 px-0" />
                 </motion.div>
               </div>
             )}
