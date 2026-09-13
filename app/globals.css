@@ -257,26 +257,60 @@ html.dark.glass-clear {
    the ambient provider whenever an image wallpaper paints full-page.
 ----------------------------------------------------------------------------- */
 html.wallpaper-image:not(.dark) {
-  /* 2.05:1 → ~4.1:1 on bare wallpaper, ~6.5:1 on a glass card. */
-  --muted-foreground: oklch(0.42 0 0);
+  /* iOS vibrancy labels, borrowed from #96: a near-black that is not pure
+     black and carries a trace of the cool cast a label picks up over glass.
+     Pure #0a0a0a on a photograph reads as ink dropped on a print. */
+  --label: oklch(0.2 0.016 260);
+  --label-secondary: oklch(0.36 0.018 260);
+
+  --foreground: var(--label);
+  --card-foreground: var(--label);
+  --popover-foreground: var(--label);
+  --accent-foreground: var(--label);
+  --secondary-foreground: var(--label);
+  /* 2.05:1 → ~5:1 on bare wallpaper. */
+  --muted-foreground: var(--label-secondary);
+
   /* A near-white hairline is invisible on a photo; a light surface floating on
      one is edged by shadow, not by a lighter line. */
-  --border: oklch(0.35 0 0 / 18%);
-  --input: oklch(0.35 0 0 / 22%);
-  --ring: oklch(0.45 0 0);
+  --border: oklch(0.42 0.02 260 / 22%);
+  --input: oklch(0.42 0.02 260 / 26%);
+  --ring: oklch(0.45 0.02 260);
 }
 
-/* Text with nothing but the wallpaper behind it.
-   A token re-base can only aim at the AVERAGE ground; a photograph has bright
-   patches too, and a springboard label can land on any of them. macOS shades
-   its desktop labels rather than picking a colour that survives every possible
-   pixel, and so do we — a halo in the page's own ground colour, which is the
-   surface the label would have had if it had one. Only while a photo is up:
-   over the weather wash there is nothing to defend against. */
-html.wallpaper-image .desktop-label {
+/* Text with nothing but the wallpaper behind it — the greeting, the springboard
+   labels. A token re-base can only aim at the AVERAGE ground, and a photograph
+   has bright patches too.
+
+   The shape of the fix matters more than its strength. A tight, opaque shadow
+   embosses the type and reads as a sticker; what works is a LIFT — a half-pixel
+   white hairline that separates the glyph edge, over a wide, faint bloom in the
+   page's own paper colour, which is the surface the text would have had if it
+   had one. Nothing here touches the wallpaper. Light only: dark mode's ground
+   already sits close to a dark photo, so there is nothing to defend against. */
+html.wallpaper-image:not(.dark) .ambient-hero {
   text-shadow:
-    0 0 3px var(--background),
-    0 1px 5px color-mix(in oklab, var(--background) 70%, transparent);
+    0 0.5px 0 color-mix(in oklab, white 50%, transparent),
+    0 10px 32px color-mix(in oklab, var(--background) 40%, transparent);
+}
+
+/* Springboard labels are the harder case, and not because the halo was too
+   weak — a wider, denser one just reads as a grey smudge box behind the word.
+   They were failing because they were drawn in the SECONDARY tier, and a
+   photograph has dark patches as well as bright ones: nothing at 0.36 survives
+   landing on the dark green of Sonoma's hillside.
+
+   An app's name is not metadata, and on a photo it has no card to sit on, so it
+   steps up to the primary label tier and carries itself — which is what macOS
+   does with desktop labels. The bloom then only has to soften the edge, so it
+   stays small enough not to be seen. This one works in both themes: the paper
+   colour it blooms in is white in light and near-black in dark, which is
+   exactly the halo each one wants. */
+html.wallpaper-image .desktop-label {
+  color: var(--foreground);
+  text-shadow:
+    0 0.5px 0 color-mix(in oklab, var(--background) 50%, transparent),
+    0 0 12px color-mix(in oklab, var(--background) 65%, transparent);
 }
 
 /* -----------------------------------------------------------------------------
