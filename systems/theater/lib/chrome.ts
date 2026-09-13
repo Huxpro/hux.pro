@@ -31,18 +31,18 @@ export const GLASS_CLUSTER = cn(
  * Widget rest vs hover — inverted per theme, opacity so gradient cards show through.
  *
  * Light: a hairline frame at rest, ink deepens on hover.
- * Dark: more frameless / dim at rest; hover only approaches the raised
- * `GLASS_TRACK` wash (`white/08`), never brighter than that.
+ * Dark: no visible border at rest (fill only); hover brings a whisper of
+ * edge + wash, never brighter than raised `GLASS_TRACK` (`white/08`).
  */
 export const GLASS_TRACK_FLAT = cn(
   "border border-border/30 bg-foreground/[0.03]",
-  "dark:border-white/5 dark:bg-white/[0.02]",
+  "dark:border-transparent dark:bg-white/[0.02]",
   "backdrop-blur-xl",
   "transition-[background-color,border-color,box-shadow] duration-200",
   "hover:border-border/50 hover:bg-foreground/[0.08]",
   "group-hover:border-border/50 group-hover:bg-foreground/[0.08]",
-  "dark:hover:border-white/8 dark:hover:bg-white/[0.05]",
-  "dark:group-hover:border-white/8 dark:group-hover:bg-white/[0.05]",
+  "dark:hover:border-white/[0.06] dark:hover:bg-white/[0.05]",
+  "dark:group-hover:border-white/[0.06] dark:group-hover:bg-white/[0.05]",
 );
 
 export const GLASS_CLUSTER_FLAT = cn(
@@ -53,13 +53,13 @@ export const GLASS_CLUSTER_FLAT = cn(
 /** Selected pill: light lift in light mode; dark stamp in dark mode. */
 export const GLASS_PILL_FLAT = cn(
   "bg-card/70 ring-1 ring-border/30",
-  "dark:bg-card/80 dark:ring-white/8 dark:shadow-none",
+  "dark:bg-card/80 dark:ring-transparent dark:shadow-none",
   "backdrop-blur-xl",
-  "transition-[background-color,box-shadow] duration-200",
+  "transition-[background-color,box-shadow,ring-color] duration-200",
   "hover:bg-card hover:shadow-sm hover:ring-border/50",
   "group-hover:bg-card group-hover:shadow-sm group-hover:ring-border/50",
-  "dark:hover:bg-card dark:hover:ring-white/10",
-  "dark:group-hover:bg-card dark:group-hover:ring-white/10",
+  "dark:hover:bg-card dark:hover:ring-white/[0.06]",
+  "dark:group-hover:bg-card dark:group-hover:ring-white/[0.06]",
 );
 
 /** Theme-aware icon button inside a cluster (or standalone orb). */
@@ -108,11 +108,11 @@ export const GLASS_ON_DARK_ORB = cn(
  * (dim / frameless track + dark stamp). Not the brighter window-toolbar glass.
  */
 export const GLASS_ON_DARK_TRACK = cn(
-  "border border-white/5 bg-white/[0.02] backdrop-blur-xl",
-  "hover:border-white/8 hover:bg-white/[0.05]",
+  "border border-transparent bg-white/[0.02] backdrop-blur-xl",
+  "hover:border-white/[0.06] hover:bg-white/[0.05]",
 );
 
 /** Always-dark theater: dark selected stamp, not a white chip. */
 export const GLASS_ON_DARK_PILL = cn(
-  "bg-black/55 shadow-sm ring-1 ring-white/8 backdrop-blur-xl",
+  "bg-black/55 shadow-sm ring-1 ring-transparent backdrop-blur-xl",
 );
