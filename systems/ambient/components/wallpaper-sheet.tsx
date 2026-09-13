@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale, useTheme } from "@/services";
-import { Check, Cloud, Moon, Sun } from "lucide-react";
+import { Check, Cloud, Moon, Smartphone, Sun } from "lucide-react";
 import {
   ADAPTIVE_PRESENTATION,
   AdaptiveSurface,
@@ -133,13 +133,38 @@ function TileFrame({
   );
 }
 
-function TileCaption({ name, meta }: { name: string; meta: string }) {
+/**
+ * Name on the left, platform + year on the right.
+ *
+ * A phone glyph rides in front of the platform on the tall pairs. A phone
+ * wallpaper on a desktop viewport is cropped to a vertical slice of itself, so
+ * the shape of the source is worth knowing BEFORE you pick it — the tile can't
+ * show it, because every tile is the same 16:10 card.
+ */
+function TileCaption({
+  name,
+  meta,
+  portrait,
+}: {
+  name: string;
+  meta: string;
+  portrait?: boolean;
+}) {
   return (
     <div className="mt-2 flex items-baseline justify-between gap-2 px-0.5">
       <span className="truncate text-[13px] font-medium text-foreground">
         {name}
       </span>
-      <span className="shrink-0 text-[11px] text-muted-foreground">{meta}</span>
+      <span className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
+        {portrait && (
+          <Smartphone
+            aria-hidden
+            className="size-3 translate-y-[0.5px] opacity-70"
+            strokeWidth={2}
+          />
+        )}
+        {meta}
+      </span>
     </div>
   );
 }
@@ -165,7 +190,7 @@ function WallpaperTile({
 }) {
   const { selectWallpaper } = useWallpaper();
   const preview = getWallpaperPairPreview(wallpaper);
-  const meta = `${wallpaper.platform} · ${wallpaper.year}`;
+  const meta = wallpaper.caption ?? `${wallpaper.platform} · ${wallpaper.year}`;
 
   return (
     <div
@@ -180,7 +205,9 @@ function WallpaperTile({
           type="button"
           onClick={() => selectWallpaper(wallpaper.id)}
           aria-pressed={selected}
-          aria-label={`Use the ${wallpaper.name} wallpaper — ${meta}`}
+          aria-label={`Use the ${wallpaper.name} wallpaper — ${meta}${
+            wallpaper.portrait ? ", a portrait phone wallpaper" : ""
+          }`}
           className="absolute inset-0"
         >
           <span
@@ -195,7 +222,11 @@ function WallpaperTile({
         <VariantMark variant="light" />
         <VariantMark variant="dark" />
       </TileFrame>
-      <TileCaption name={wallpaper.name} meta={meta} />
+      <TileCaption
+        name={wallpaper.name}
+        meta={meta}
+        portrait={wallpaper.portrait}
+      />
     </div>
   );
 }

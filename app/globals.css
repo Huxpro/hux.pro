@@ -239,6 +239,47 @@ html.dark.glass-clear {
 }
 
 /* -----------------------------------------------------------------------------
+   Light mode on a photograph
+   A light theme's ground is the END of its scale, so a wallpaper can only move
+   it one way — down — and the whole text ramp goes with it. Measured on the
+   home screen over Sonoma: the page ground falls from 255 to ~170, and
+   `--muted-foreground`, a comfortable 4.7:1 on white, lands at 2.05:1. The
+   small text (app labels, dates, widget captions) stops existing.
+
+   Dark mode has no equivalent problem. Its ground is already near ITS extreme,
+   a dark wallpaper lands within a few points of it, and the same tokens hold —
+   which is why this block is light-only.
+
+   Re-base the ramp rather than bleach the picture. Turning the wallpaper pale
+   enough to rescue a white-calibrated palette costs the picture everything and
+   still lands short; moving the secondary tier down to the ground it is
+   actually on costs nothing visible on a card and fixes the bare text. Set by
+   the ambient provider whenever an image wallpaper paints full-page.
+----------------------------------------------------------------------------- */
+html.wallpaper-image:not(.dark) {
+  /* 2.05:1 → ~4.1:1 on bare wallpaper, ~6.5:1 on a glass card. */
+  --muted-foreground: oklch(0.42 0 0);
+  /* A near-white hairline is invisible on a photo; a light surface floating on
+     one is edged by shadow, not by a lighter line. */
+  --border: oklch(0.35 0 0 / 18%);
+  --input: oklch(0.35 0 0 / 22%);
+  --ring: oklch(0.45 0 0);
+}
+
+/* Text with nothing but the wallpaper behind it.
+   A token re-base can only aim at the AVERAGE ground; a photograph has bright
+   patches too, and a springboard label can land on any of them. macOS shades
+   its desktop labels rather than picking a colour that survives every possible
+   pixel, and so do we — a halo in the page's own ground colour, which is the
+   surface the label would have had if it had one. Only while a photo is up:
+   over the weather wash there is nothing to defend against. */
+html.wallpaper-image .desktop-label {
+  text-shadow:
+    0 0 3px var(--background),
+    0 1px 5px color-mix(in oklab, var(--background) 70%, transparent);
+}
+
+/* -----------------------------------------------------------------------------
    Reading surfaces under an image wallpaper
    Home is the desktop: the photo stays sharp and the widgets float on it. Every
    other route is a reading surface, so the photo recedes — defocused behind a

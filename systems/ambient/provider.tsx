@@ -345,10 +345,40 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       ? devtoolGradientOverrides.widget
       : settings.weatherGradientMode === "widget";
 
+  // Soft edging fades the background out at the top and bottom of the viewport.
+  // That exists to hide a SEAM: the weather gradient is a synthetic wash, and
+  // where it stops against the page background there is a line. A photograph
+  // has no such seam — fading it into the page ground does not soften an edge,
+  // it deletes a strip of the picture, and in light mode it deletes it to pure
+  // white, which reads as a bleached band rather than a vignette. So it is a
+  // weather affordance, structurally. The devtool can still force it on: the
+  // panel exists to see what the setting cannot express.
   const softEdgingEnabled =
     isDevtoolEnabled && devtoolGradientOverrides.softEdging !== undefined
       ? devtoolGradientOverrides.softEdging
-      : isIOS;
+      : isIOS && !isImageKind;
+
+  /**
+   * Mark the document while a photograph is painting behind the page.
+   *
+   * A light theme's ground is the END of its scale — pure white — so its text
+   * ramp has nowhere to hide when the ground moves. Put Sonoma behind it and
+   * the page ground drops from 255 to ~170; `--muted-foreground`, which is a
+   * comfortable 4.7:1 on white, collapses to 2.05:1 and the small text simply
+   * vanishes. Dark mode never shows this: its ground is already near ITS
+   * extreme, and a dark wallpaper lands within a few points of it, so the same
+   * tokens hold.
+   *
+   * The fix belongs in the foreground, not the background. Washing the picture
+   * pale enough to rescue a white-calibrated ramp defeats the point of picking
+   * a picture; re-basing the ramp for the ground it is actually on does not.
+   * `app/globals.css` hangs the light-mode overrides off this class.
+   */
+  useEffect(() => {
+    const on = isImageKind && fullGradientEnabled;
+    document.documentElement.classList.toggle("wallpaper-image", on);
+    return () => document.documentElement.classList.remove("wallpaper-image");
+  }, [isImageKind, fullGradientEnabled]);
 
   // Debug override state (for weather and time)
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
