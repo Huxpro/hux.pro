@@ -8,6 +8,7 @@ import {
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
+  getClientRect,
   useDraggable,
   useSensor,
   useSensors,
@@ -688,6 +689,11 @@ export function SortableMasonry({
       // counter mismatches and React reports an unpatchable hydration error.
       id="hux-widget-grid"
       sensors={sensors}
+      // Cards are positioned *entirely* by `transform`, so dnd-kit's default
+      // transform-agnostic measurement would place every one of them at the
+      // container's top-left — and the lifted clone would appear a whole slot
+      // away from the cursor. Measure where the card actually is on screen.
+      measuring={{ draggable: { measure: getClientRect } }}
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
