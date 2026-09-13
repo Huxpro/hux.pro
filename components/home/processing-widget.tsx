@@ -27,9 +27,8 @@ import { useMemo } from "react";
 //
 // The vertical sibling of FeaturedTalksWidget's horizontal stack: the same
 // commits as /works, in the same order, rendered as one snap-scrolling
-// column of dense git-log rows. Talks and social posts are left out (talks
-// have their own featured card; interviews / coverage are noise at this
-// size), so what remains is the project / role spine of the log — with
+// column of dense git-log rows. Only projects render (talks have their own
+// featured card; posts, roles and events are noise at this size) — with
 // link pills, author bylines and the expanded Author / Role block intact,
 // and attachments (cards, videos, slides) stripped for the footprint.
 //
@@ -38,28 +37,25 @@ import { useMemo } from "react";
 // `normalizeCommit`), so the widget can't drift from the page.
 // ---------------------------------------------------------------------------
 
-/** Commit types the mini timeline hides. */
-const EXCLUDED_TYPES: ReadonlySet<CommitData["type"]> = new Set([
-  "talk",
-  "social",
-]);
-
 /**
- * The commits the widget renders, newest first across every chapter.
- * Hidden roles stay in the list (they anchor rails / bylines) but never
- * render. Exported so the home grid can gate the widget's presence before
- * mounting the masonry slot.
+ * The commits the widget renders: projects only, newest first across every
+ * chapter. Roles are carried along as hidden rows — they never render, but
+ * they still anchor the tenure rail and resolve each project's byline.
+ * Exported so the home grid can gate the widget's presence before mounting
+ * the masonry slot.
  */
 export function buildProcessingCommits(
   log: LogData,
   locale: Locale,
 ): CommitData[] {
   const commits = buildTimelineData(log, locale).flatMap(({ commits }) =>
-    commits.filter((c) => !EXCLUDED_TYPES.has(c.type)),
+    commits.flatMap((c): CommitData[] => {
+      if (c.type === "project") return [c];
+      if (c.type === "role") return [{ ...c, hideRow: true }];
+      return [];
+    }),
   );
-  return commits.some((c) => !(c.type === "role" && c.hideRow === true))
-    ? commits
-    : [];
+  return commits.some((c) => c.type === "project") ? commits : [];
 }
 
 interface ProcessingWidgetProps {
@@ -124,7 +120,7 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
       {/* Vertical snapping stack — the column analogue of the talks widget's
           horizontal card row. The scroll port is inset by the rows' hover
           bleed (-mx-2) so their rounded highlight isn't clipped at the left
-          edge; events don't snap so a fling never lands on an annotation. */}
+          edge. */}
       <div className="px-5 pb-4">
         <div
           className={cn(
@@ -143,9 +139,7 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
                 isRole={commits[i].type === "role"}
                 byline={bylines[i]}
                 hideDate={hideDateFor(commits[i])}
-                className={
-                  commits[i].type === "event" ? "snap-align-none" : "snap-start"
-                }
+                className="snap-start"
               />
             ));
             return run.kind === "cluster" ? (
