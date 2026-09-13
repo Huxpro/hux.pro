@@ -331,6 +331,10 @@ export function CommandPalette() {
           cycleGradientMode();
           close();
           return;
+        case "q":
+          openMusicPlaylist();
+          close();
+          return;
         case "m":
           if (musicPlayerState === "playing") {
             musicPause();
@@ -368,6 +372,7 @@ export function CommandPalette() {
     requestAccurateLocation,
     setLocationMode,
     cycleGradientMode,
+    openMusicPlaylist,
     setDevtoolEnabled,
   ]);
 
