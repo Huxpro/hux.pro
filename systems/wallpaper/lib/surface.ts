@@ -8,16 +8,18 @@ export function isWallpaperHomePath(pathname: string): boolean {
 }
 
 /**
- * Document classes for image wallpaper:
+ * Document classes for the living background:
+ * - `wallpaper-surface` — weather or image; remaps light System type tokens
  * - `wallpaper-image` — thin the System UI glass (home + inner pages)
  * - `wallpaper-read`  — defocus + veil the photo so prose can sit on top
  */
 export function wallpaperDocumentClassNames(
   kind: WallpaperKind,
   pathname: string
-): { image: boolean; read: boolean } {
+): { surface: boolean; image: boolean; read: boolean } {
   const image = kind === "image";
   return {
+    surface: kind === "weather" || image,
     image,
     read: image && !isWallpaperHomePath(pathname),
   };

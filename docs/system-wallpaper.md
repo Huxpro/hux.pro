@@ -52,7 +52,9 @@ Defaults match the old `bg-card/50` recipe. `html.wallpaper-image` thins them
 to a Thin / Ultra Thin vibrancy wash (~20–26% fill). Blur stays ordinary
 `backdrop-blur` — no specular highlights or lens distortion.
 
-`WallpaperProvider` toggles `html.wallpaper-image` and `html.wallpaper-read`.
+`WallpaperProvider` toggles `html.wallpaper-surface` (weather or image),
+`html.wallpaper-image`, and `html.wallpaper-read`. Light living surfaces
+remap System type to `--label*` and use a luma frost instead of white tissue.
 
 ## Glass material
 
@@ -62,8 +64,8 @@ same names as iOS 26.1 Settings → Display & Brightness → Liquid Glass:
 
 | Material | EN / 中文 | When image wallpaper is on |
 |----------|-----------|----------------------------|
-| `clear` | Clear / 透明 | Thin vibrancy (~20–26% fill). Default. |
-| `tinted` | Tinted / 色调 | Original Regular fill (`bg-card/50`). |
+| `clear` | Clear / 透明 | Light: dimming luma frost over media (HIG Clear + dimming). Dark: thin vibrancy. Default. |
+| `tinted` | Tinted / 色调 | Regular fill. Light uses the same luma frost as System glass; dark keeps the original card mix. |
 
 `G` in ⌘K cycles them. Devtool **Wallpaper → Glass** sets them directly.
 `html.glass-tinted` disables the Clear thinning. Weather wallpaper already

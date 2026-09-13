@@ -65,7 +65,7 @@ export function AmbientGreeting() {
   }
 
   return (
-    <div className="relative w-full text-center">
+    <div className="ambient-hero relative w-full text-center">
       <h1 className={`${TITLE_POETIC} text-foreground`}>
         {timeGreeting}
       </h1>

@@ -205,12 +205,18 @@ export function WallpaperProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    const { image, read } = wallpaperDocumentClassNames(kind, pathname);
+    const { surface, image, read } = wallpaperDocumentClassNames(kind, pathname);
+    root.classList.toggle("wallpaper-surface", surface);
     root.classList.toggle("wallpaper-image", image);
     root.classList.toggle("wallpaper-read", read);
     root.classList.toggle("glass-tinted", glass === "tinted");
     return () => {
-      root.classList.remove("wallpaper-image", "wallpaper-read", "glass-tinted");
+      root.classList.remove(
+        "wallpaper-surface",
+        "wallpaper-image",
+        "wallpaper-read",
+        "glass-tinted"
+      );
     };
   }, [kind, pathname, glass]);
 

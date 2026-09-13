@@ -64,6 +64,10 @@ OKLCH-based gradients that respond to:
 - Light/dark theme
 - Sun events (special sunrise/sunset palettes)
 
+Dark palettes are unchanged. Light palettes keep a tinted horizon (never
+paper-white) so chroma and soft-edge have something to fade. Light soft-edge
+uses a radial vignette (`EDGE_FADE_MASK_LIGHT`); dark keeps the vertical strip.
+
 ### Gradient Crossfade
 
 When the weather or phase changes, the gradient must morph — never snap. The

@@ -56,61 +56,63 @@ const WEATHER_PALETTE: Record<
   clear: {
     day: {
       dark: [oklch(0.38, 0.08, HUE.blue), oklch(0.24, 0.04, 260), BASE.dark],
-      light: [oklch(0.97, 0.05, 95), oklch(0.95, 0.03, HUE.skyBlue), BASE.light],
+      /* Light skies keep air, not paper. Horizon is a tinted wash — never
+         BASE.light — so chroma and soft-edge have something to fade. */
+      light: [oklch(0.78, 0.11, 85), oklch(0.74, 0.09, HUE.skyBlue), oklch(0.86, 0.05, 215)],
     },
     night: {
       dark: [oklch(0.3, 0.06, HUE.blue), oklch(0.2, 0.03, HUE.indigo), BASE.dark],
-      light: [oklch(0.94, 0.03, 270), oklch(0.96, 0.02, HUE.blue), BASE.light],
+      light: [oklch(0.62, 0.08, 275), oklch(0.72, 0.06, HUE.blue), oklch(0.82, 0.04, 245)],
     },
   },
   cloudy: {
     day: {
       dark: [oklch(0.33, 0.03, HUE.blue), oklch(0.24, 0.02, 260), BASE.dark],
-      light: [oklch(0.9, 0.03, HUE.cloudBlue), oklch(0.965, 0.018, 230), oklch(0.985, 0.01, HUE.cloudBlue)],
+      light: [oklch(0.72, 0.035, HUE.cloudBlue), oklch(0.80, 0.028, 230), oklch(0.88, 0.018, HUE.cloudBlue)],
     },
     night: {
       dark: [oklch(0.3, 0.035, 255), oklch(0.22, 0.02, 260), BASE.dark],
-      light: [oklch(0.89, 0.03, HUE.blue), oklch(0.955, 0.02, 245), oklch(0.983, 0.01, HUE.blue)],
+      light: [oklch(0.64, 0.04, HUE.blue), oklch(0.74, 0.03, 245), oklch(0.84, 0.02, HUE.blue)],
     },
   },
   fog: {
     day: {
       dark: [oklch(0.34, 0.025, 215), oklch(0.205, 0.015, HUE.blue), BASE.dark],
-      light: [oklch(0.92, 0.018, 205), oklch(0.97, 0.012, HUE.cyan), oklch(0.985, 0.008, 205)],
+      light: [oklch(0.76, 0.025, 205), oklch(0.84, 0.018, HUE.cyan), oklch(0.90, 0.012, 205)],
     },
     night: {
       dark: [oklch(0.32, 0.03, 225), oklch(0.215, 0.018, HUE.blue), BASE.dark],
-      light: [oklch(0.91, 0.018, 225), oklch(0.96, 0.012, 220), oklch(0.983, 0.008, 225)],
+      light: [oklch(0.68, 0.028, 225), oklch(0.78, 0.02, 220), oklch(0.86, 0.014, 225)],
     },
   },
   rain: {
     day: {
       dark: [oklch(0.3, 0.07, HUE.blue), oklch(0.22, 0.05, 255), BASE.dark],
-      light: [oklch(0.95, 0.03, HUE.blue), oklch(0.97, 0.02, HUE.cyan), BASE.light],
+      light: [oklch(0.70, 0.055, HUE.blue), oklch(0.78, 0.04, HUE.cyan), oklch(0.86, 0.025, 230)],
     },
     night: {
       dark: [oklch(0.3, 0.07, HUE.blue), oklch(0.22, 0.05, 255), BASE.dark],
-      light: [oklch(0.95, 0.03, HUE.blue), oklch(0.97, 0.02, HUE.cyan), BASE.light],
+      light: [oklch(0.62, 0.06, HUE.blue), oklch(0.72, 0.045, HUE.cyan), oklch(0.82, 0.028, 230)],
     },
   },
   snow: {
     day: {
       dark: [oklch(0.34, 0.04, HUE.lavender), oklch(0.22, 0.025, 260), BASE.dark],
-      light: [oklch(0.95, 0.03, HUE.lavender), oklch(0.98, 0.02, 275), oklch(0.985, 0.014, HUE.lavender)],
+      light: [oklch(0.78, 0.04, HUE.lavender), oklch(0.86, 0.025, 275), oklch(0.92, 0.016, HUE.lavender)],
     },
     night: {
       dark: [oklch(0.32, 0.045, HUE.twilight), oklch(0.215, 0.028, 270), BASE.dark],
-      light: [oklch(0.94, 0.03, HUE.twilight), oklch(0.97, 0.02, HUE.lavender), oklch(0.983, 0.014, HUE.twilight)],
+      light: [oklch(0.70, 0.045, HUE.twilight), oklch(0.80, 0.03, HUE.lavender), oklch(0.88, 0.02, HUE.twilight)],
     },
   },
   thunder: {
     day: {
       dark: [oklch(0.28, 0.1, 275), oklch(0.21, 0.05, 260), BASE.dark],
-      light: [oklch(0.94, 0.04, HUE.lavender), oklch(0.96, 0.02, HUE.blue), BASE.light],
+      light: [oklch(0.68, 0.07, HUE.lavender), oklch(0.76, 0.04, HUE.blue), oklch(0.85, 0.02, 255)],
     },
     night: {
       dark: [oklch(0.28, 0.1, 275), oklch(0.21, 0.05, 260), BASE.dark],
-      light: [oklch(0.94, 0.04, HUE.lavender), oklch(0.96, 0.02, HUE.blue), BASE.light],
+      light: [oklch(0.58, 0.08, HUE.lavender), oklch(0.68, 0.05, HUE.blue), oklch(0.80, 0.025, 255)],
     },
   },
 };
@@ -123,9 +125,9 @@ const SUN_PALETTE: Record<SunEvent, { dark: ColorTriple; light: ColorTriple }> =
       oklch(0.22, 0, 0),
     ],
     light: [
-      oklch(0.94, 0.11, HUE.peach),
-      oklch(0.92, 0.06, HUE.cloudBlue),
-      oklch(0.985, 0.018, HUE.warmBase),
+      oklch(0.82, 0.14, HUE.peach),
+      oklch(0.76, 0.08, HUE.cloudBlue),
+      oklch(0.88, 0.05, HUE.warmBase),
     ],
   },
   sunset: {
@@ -135,9 +137,9 @@ const SUN_PALETTE: Record<SunEvent, { dark: ColorTriple; light: ColorTriple }> =
       oklch(0.34, 0.02, HUE.violet, 0.78),
     ],
     light: [
-      oklch(0.93, 0.11, HUE.amber),
-      oklch(0.91, 0.08, 25),
-      oklch(0.98, 0.02, 50),
+      oklch(0.80, 0.14, HUE.amber),
+      oklch(0.74, 0.10, 25),
+      oklch(0.88, 0.04, 50),
     ],
   },
 };

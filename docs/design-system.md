@@ -87,6 +87,7 @@ Used for interactive components, overlays, and the command palette. These are in
 | `--popover` / `--popover-foreground` | Modal/overlay backgrounds (command palette) |
 | `--accent` / `--accent-foreground` | Hover and selected states |
 | `--muted` / `--muted-foreground` | Secondary text, kbd backgrounds |
+| `--label` / `--label-secondary` / `--label-tertiary` | Vibrancy-style System labels on glass. Light living surfaces (`html.wallpaper-surface`) remap `--foreground` / `--muted-foreground` to these so type is not locked to paper gray. |
 | `--border` / `--input` / `--ring` | Form elements, borders, focus rings |
 | `--primary` / `--secondary` | Button variants |
 | `--destructive` | Destructive actions |
@@ -226,8 +227,11 @@ transition-all duration-300
 hover:border-border hover:bg-glass-hover
 ```
 
-`--glass*` defaults match the old `bg-card/50` fill (Tinted). Image
-wallpaper + Glass: Clear thins them via `html.wallpaper-image`
+Light `--glass*` mixes a cool luma frost (slightly darkens bright media)
+instead of bleaching toward paper-white — Regular glass in the HIG
+adjusts luminosity so labels stay legible. Dark still mixes `--card`.
+Image wallpaper + Glass: Clear uses a darker luma frost (a dimming
+layer, not more white tissue) via `html.wallpaper-image`
 (see [system-wallpaper.md](./system-wallpaper.md)).
 
 Widget headers use monospace uppercase labels:

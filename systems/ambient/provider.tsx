@@ -16,6 +16,7 @@ import {
 import {
   EDGE_FADE_MASK,
   EDGE_FADE_MASK_HIGH_CONTRAST,
+  EDGE_FADE_MASK_LIGHT,
   isIOSBrowser,
 } from "./lib/platform";
 import type { NormalizedWeather, WeatherCondition } from "./lib/weather";
@@ -298,7 +299,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     ? theme === "dark" &&
       (effectivePhase === "sunrise" || effectivePhase === "sunset")
       ? EDGE_FADE_MASK_HIGH_CONTRAST
-      : EDGE_FADE_MASK
+      : theme === "light"
+        ? EDGE_FADE_MASK_LIGHT
+        : EDGE_FADE_MASK
     : null;
 
   // Compute gradient

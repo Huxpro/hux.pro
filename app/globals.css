@@ -30,6 +30,9 @@
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
+  --color-label: var(--label);
+  --color-label-secondary: var(--label-secondary);
+  --color-label-tertiary: var(--label-tertiary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
@@ -108,6 +111,11 @@
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
+  /* Vibrancy-style labels for System UI on glass (iOS HIG materials).
+     Paper/editorial pages keep --foreground / --muted-foreground. */
+  --label: oklch(0.20 0.016 260);
+  --label-secondary: oklch(0.36 0.018 260);
+  --label-tertiary: oklch(0.46 0.014 260);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.58 0.22 27);
@@ -133,14 +141,17 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
-  /* Frosted glass — Regular material when there is no photo behind it. */
-  --glass: color-mix(in oklab, var(--card) 50%, transparent);
-  --glass-hover: color-mix(in oklab, var(--card) 70%, transparent);
-  --glass-strong: color-mix(in oklab, var(--card) 60%, transparent);
-  --glass-strong-hover: color-mix(in oklab, var(--card) 80%, transparent);
-  --glass-overlay: color-mix(in oklab, var(--card) 70%, transparent);
-  --glass-sheet: color-mix(in oklab, var(--card) 85%, transparent);
-  --glass-popover: color-mix(in oklab, var(--popover) 75%, transparent);
+  /* Frosted glass — Regular. Light mixes a cool luma frost (slightly
+     darkens bright media) instead of bleaching toward paper-white.
+     Dark keeps the original card mix. */
+  --glass-luma: oklch(0.86 0.014 250);
+  --glass: color-mix(in oklab, var(--glass-luma) 36%, transparent);
+  --glass-hover: color-mix(in oklab, var(--glass-luma) 50%, transparent);
+  --glass-strong: color-mix(in oklab, var(--glass-luma) 44%, transparent);
+  --glass-strong-hover: color-mix(in oklab, var(--glass-luma) 58%, transparent);
+  --glass-overlay: color-mix(in oklab, var(--glass-luma) 50%, transparent);
+  --glass-sheet: color-mix(in oklab, var(--glass-luma) 64%, transparent);
+  --glass-popover: color-mix(in oklab, var(--glass-luma) 56%, transparent);
 }
 
 .dark {
@@ -162,6 +173,9 @@
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
+  --label: oklch(0.93 0 0);
+  --label-secondary: oklch(0.708 0 0);
+  --label-tertiary: oklch(0.62 0 0);
   --accent: oklch(0.32 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
@@ -195,18 +209,30 @@
   --glass-popover: color-mix(in oklab, var(--popover) 75%, transparent);
 }
 
-/* Image wallpaper + Glass: Clear — Thin / Ultra Thin vibrancy on every
-   `--glass*` System UI surface (widgets, FAB, dock, palette, …).
-   Tinted (`html.glass-tinted`) keeps the Regular fill above (original
-   bg-card/50). Blur stays ordinary `backdrop-blur`. */
+/* Living surface (weather or image wallpaper): System type follows the
+   material. iOS Regular glass adjusts luminosity so labels stay legible;
+   we remap paper tokens to vibrancy-style labels in light only. */
+html.wallpaper-surface:not(.dark) {
+  --foreground: var(--label);
+  --card-foreground: var(--label);
+  --popover-foreground: var(--label);
+  --accent-foreground: var(--label);
+  --secondary-foreground: var(--label);
+  --muted-foreground: var(--label-secondary);
+  --border: oklch(0.42 0.02 260 / 22%);
+}
+
+/* Clear over media: HIG wants a dimming layer, not more white tissue.
+   Light Clear uses a darker luma frost so wallpaper chroma survives. */
 html.wallpaper-image:not(.glass-tinted) {
-  --glass: color-mix(in oklab, var(--card) 20%, transparent);
-  --glass-hover: color-mix(in oklab, var(--card) 32%, transparent);
-  --glass-strong: color-mix(in oklab, var(--card) 26%, transparent);
-  --glass-strong-hover: color-mix(in oklab, var(--card) 38%, transparent);
-  --glass-overlay: color-mix(in oklab, var(--card) 36%, transparent);
-  --glass-sheet: color-mix(in oklab, var(--card) 46%, transparent);
-  --glass-popover: color-mix(in oklab, var(--popover) 38%, transparent);
+  --glass-luma: oklch(0.78 0.018 250);
+  --glass: color-mix(in oklab, var(--glass-luma) 24%, transparent);
+  --glass-hover: color-mix(in oklab, var(--glass-luma) 36%, transparent);
+  --glass-strong: color-mix(in oklab, var(--glass-luma) 30%, transparent);
+  --glass-strong-hover: color-mix(in oklab, var(--glass-luma) 42%, transparent);
+  --glass-overlay: color-mix(in oklab, var(--glass-luma) 38%, transparent);
+  --glass-sheet: color-mix(in oklab, var(--glass-luma) 48%, transparent);
+  --glass-popover: color-mix(in oklab, var(--glass-luma) 40%, transparent);
 }
 
 html.dark.wallpaper-image:not(.glass-tinted) {
@@ -239,6 +265,14 @@ html.dark.wallpaper-image:not(.glass-tinted) {
 
 html.wallpaper-read .prose-article {
   @apply text-foreground/90;
+}
+
+/* Hero type sits on the wallpaper, not on glass. A quiet halo keeps
+   dark labels readable over bright sky without boxing the greeting. */
+html.wallpaper-surface:not(.dark) .ambient-hero {
+  text-shadow:
+    0 0.5px 0 color-mix(in oklab, white 50%, transparent),
+    0 10px 32px color-mix(in oklab, var(--background) 40%, transparent);
 }
 
 @layer base {

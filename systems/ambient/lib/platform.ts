@@ -41,3 +41,11 @@ export const EDGE_FADE_MASK = buildEdgeFadeMask(IOS_EDGE_FADE_DISTANCE_PX);
 export const EDGE_FADE_MASK_HIGH_CONTRAST = buildEdgeFadeMask(
   IOS_EDGE_FADE_DISTANCE_HIGH_CONTRAST_PX
 );
+
+/**
+ * Light-mode soft edge. A vertical strip fade into paper-white is invisible
+ * when the sky is already airy — a radial vignette lets the atmosphere sit
+ * on the page and fall off on every side.
+ */
+export const EDGE_FADE_MASK_LIGHT =
+  "radial-gradient(ellipse 92% 84% at 50% 42%, black 28%, black 55%, transparent 100%)";
