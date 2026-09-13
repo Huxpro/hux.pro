@@ -153,14 +153,29 @@ vec3 applyRays(vec2 uv, vec3 sky) {
   return sky;
 }
 
+// Soft circular stars. The old grid-cell step() lit a whole texel and
+// read as scattered squares (especially at 1x DPR / the 2D fallback).
+vec3 starLayer(vec2 uv, vec2 scale, float threshold, float weight) {
+  vec2 g = uv * scale;
+  vec2 id = floor(g);
+  vec2 f = fract(g) - 0.5;
+  float n = hash(id + scale * 0.13);
+  float keep = smoothstep(threshold, min(1.0, threshold + 0.035), n);
+  if (keep <= 0.0) return vec3(0.0);
+  float twinkle = 0.72 + 0.28 * sin(uTime * mix(0.35, 1.4, n) + n * 22.0);
+  float d = length(f);
+  float size = mix(0.045, 0.16, n * n);
+  float core = smoothstep(size, size * 0.12, d);
+  float glow = exp(-d * 11.0) * mix(0.28, 0.7, n);
+  float star = (core * 0.9 + glow) * keep * twinkle * uStars * weight;
+  return vec3(0.82, 0.88, 1.0) * star;
+}
+
 vec3 applyStars(vec2 uv, vec3 sky) {
   if (uStars < 0.01) return sky;
-  vec2 gp = floor(uv * vec2(260.0, 180.0));
-  float h = hash(gp);
-  float twinkle = 0.55 + 0.45 * sin(uTime * (1.4 + h * 2.2) + h * 40.0);
-  float star = step(0.9966, h) * smoothstep(0.9966, 1.0, h) * twinkle;
-  float fade = smoothstep(0.15, 0.55, uv.y);
-  sky += vec3(0.92, 0.95, 1.0) * star * uStars * fade * 1.8;
+  float fade = smoothstep(0.05, 0.46, uv.y);
+  sky += starLayer(uv, vec2(78.0, 52.0), 0.935, 0.95) * fade;
+  sky += starLayer(uv, vec2(38.0, 26.0), 0.972, 1.45) * fade;
   return sky;
 }
 

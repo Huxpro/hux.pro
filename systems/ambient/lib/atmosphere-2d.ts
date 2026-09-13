@@ -110,20 +110,31 @@ export function createAtmosphere2DRenderer(
     ctx.fill();
   };
 
-  const drawStars = (p: AtmosphereParams) => {
+  const drawStars = (p: AtmosphereParams, t: number) => {
     if (p.stars < 0.02) return;
-    const count = Math.floor(90 * p.stars);
-    ctx.fillStyle = `rgba(236, 242, 255, ${0.55 * p.stars})`;
+    const count = Math.floor(70 * p.stars);
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
     for (let i = 0; i < count; i++) {
+      const seed = hash(i * 8.8);
+      // Skip the dimmest seeds so the field stays sparse like iOS Weather.
+      if (seed < 0.22) continue;
       const x = hash(i * 2.3) * cssW;
-      const y = hash(i * 4.1) * cssH * 0.62;
-      const r = 0.4 + hash(i * 8.8) * 1.3;
-      ctx.globalAlpha = 0.25 + hash(i * 9.9) * 0.75 * p.stars;
+      const y = hash(i * 4.1) * cssH * 0.56;
+      const twinkle =
+        timeScale <= 0 ? 1 : 0.72 + 0.28 * Math.sin(t * (0.4 + seed * 1.3) + seed * 18);
+      const bright = (0.2 + seed * 0.8) * p.stars * twinkle;
+      const glowR = 2.4 + seed * seed * 5.5;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, glowR);
+      g.addColorStop(0, `rgba(255, 255, 255, ${0.72 * bright})`);
+      g.addColorStop(0.22, `rgba(214, 226, 255, ${0.28 * bright})`);
+      g.addColorStop(1, "rgba(170, 196, 255, 0)");
+      ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.arc(x, y, glowR, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.globalAlpha = 1;
+    ctx.restore();
   };
 
   const drawClouds = (p: AtmosphereParams, t: number) => {
@@ -196,7 +207,7 @@ export function createAtmosphere2DRenderer(
       if (!startMs) startMs = nowMs;
       const t = ((nowMs - startMs) / 1000) * timeScale;
       fillSky(params);
-      drawStars(params);
+      drawStars(params, t);
       drawRays(params);
       drawOrb(params.sunPos[0], params.sunPos[1], params.sunColor, params.sunSize, params.sunGlow);
       drawOrb(params.moonPos[0], params.moonPos[1], params.moonColor, params.moonSize, params.moonGlow);
