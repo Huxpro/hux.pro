@@ -317,7 +317,12 @@ function buildAsset(asset: WallpaperAsset, preview: boolean): ResolvedWallpaper 
 export function getWallpaperBackground(params: {
   wallpaper: Wallpaper;
   theme: "light" | "dark";
-  /** Preview surfaces resolve to the thumb rendition. */
+  /**
+   * Resolve to the 480px thumb instead of the full-size file.
+   *
+   * For picker tiles and devtool swatches, which are small — and for the
+   * blurred reading layer, where a 40px blur erases the difference anyway.
+   */
   preview?: boolean;
 }): ResolvedWallpaper {
   return buildAsset(params.wallpaper[params.theme], params.preview ?? false);

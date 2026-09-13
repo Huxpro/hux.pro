@@ -459,13 +459,29 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       : EDGE_FADE_MASK
     : null;
 
-  /** The active pair resolved for the current appearance, or null on weather. */
+  /**
+   * The active pair resolved for the current theme, or null on weather.
+   *
+   * A blurred reading page resolves to the THUMB. The layer there is scaled to
+   * 110% under a 40px blur, which destroys every pixel of detail the full-size
+   * file was carrying — measured over the whole viewport, the 480px rendition
+   * differs from the 2560px one by 0.15/255 on average and 2/255 at worst, in
+   * both themes, for a tenth of the bytes (46KB → 4KB).
+   *
+   * Only when blurred. In `widget` placement, and on the home screen, the photo
+   * paints SHARP inside a card or across the page, and there the thumb is a
+   * visibly soft upscale rather than a free win.
+   */
   const resolvedImage = useMemo(
     () =>
       isImageKind
-        ? getWallpaperBackground({ wallpaper: activeWallpaper, theme })
+        ? getWallpaperBackground({
+            wallpaper: activeWallpaper,
+            theme,
+            preview: isBlurred,
+          })
         : null,
-    [isImageKind, activeWallpaper, theme]
+    [isImageKind, activeWallpaper, theme, isBlurred]
   );
 
   // Compute the background. Exactly one kind wins — an image wallpaper replaces
