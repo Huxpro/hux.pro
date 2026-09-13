@@ -261,7 +261,7 @@ html.wallpaper-image:not(.dark) {
   --popover-foreground: var(--label);
   --accent-foreground: var(--label);
   --secondary-foreground: var(--label);
-  /* 2.05:1 → ~5:1 on bare wallpaper. */
+  /* 2.05:1 → 4.71:1 on bare wallpaper — measured, not estimated. */
   --muted-foreground: var(--label-secondary);
 
   /* A near-white hairline is invisible on a photo; a light surface floating on
