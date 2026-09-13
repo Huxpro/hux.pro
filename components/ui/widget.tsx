@@ -109,22 +109,28 @@ export function WidgetHeader({
 }
 
 /**
- * WidgetTitle - Consistent title typography
+ * WidgetTitle - Consistent title typography.
+ *
+ * `signal` prefixes the pulsing status dot (see WidgetStatus) so any widget
+ * can flag itself as live / in-progress without composing the dot by hand.
  */
 export function WidgetTitle({
   className,
+  signal = false,
   children,
 }: {
   className?: string;
+  signal?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <span
       className={cn(
-        "text-xs font-mono uppercase tracking-wider text-muted-foreground",
+        "inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground",
         className
       )}
     >
+      {signal && <WidgetStatus />}
       {children}
     </span>
   );

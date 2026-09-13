@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
+import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { commitIcons, commitIconOverrides } from "./icons";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
@@ -91,22 +92,7 @@ interface TimelineCommitProps {
    *
    *  Expanded: the `expanded` payload feeds a `git log --pretty=fuller`
    *  style block at the top of the row's expanded body. */
-  byline?: {
-    handle: string;
-    isClusterHead: boolean;
-    /**
-     * Effective team subtitle for a project row (set only when this is
-     * the first row in a same-team run). Rendered as the subtitle-row
-     * left cell when the commit has no venue meta of its own.
-     */
-    subtitle?: string;
-    expanded: {
-      title: string;
-      company: string;
-      location?: string;
-      description?: string;
-    };
-  } | null;
+  byline?: Byline | null;
   inspecting?: boolean;
   isSelected?: boolean;
   isUnlisted?: boolean;
