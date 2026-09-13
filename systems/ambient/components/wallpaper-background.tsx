@@ -27,7 +27,8 @@ interface WallpaperBackgroundProps {
 }
 
 export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
-  const { layers, edgeMask, opacity, veil, vignette, blurred } = useWallpaper();
+  const { layers, edgeMask, opacity, veil, vignette, vignetteSpread, blurred } =
+    useWallpaper();
 
   if (layers.length === 0) return null;
 
@@ -67,7 +68,12 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
       {vignette > 0 && (
         <div
           className="wallpaper-vignette absolute inset-0 transition-opacity duration-500"
-          style={{ "--wallpaper-vignette": vignette } as CSSProperties}
+          style={
+            {
+              "--wallpaper-vignette": vignette,
+              "--wallpaper-vignette-spread": vignetteSpread,
+            } as CSSProperties
+          }
         />
       )}
     </div>
