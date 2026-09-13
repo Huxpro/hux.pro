@@ -45,6 +45,25 @@ export function clearOrder(key: string): void {
   }
 }
 
+// -----------------------------------------------------------------------------
+// Hidden items — a second, independent list beside the order. Hiding leaves
+// the item's slot in the stored order untouched, so restoring it later puts
+// it back where the visitor had it.
+// -----------------------------------------------------------------------------
+
+export function hiddenKey(storageKey: string): string {
+  return `${storageKey}_hidden`;
+}
+
+export function loadHidden(storageKey: string): string[] {
+  return loadOrder(hiddenKey(storageKey)) ?? [];
+}
+
+export function saveHidden(storageKey: string, hidden: string[]): void {
+  if (hidden.length === 0) clearOrder(hiddenKey(storageKey));
+  else saveOrder(hiddenKey(storageKey), hidden);
+}
+
 /**
  * Merge a stored order with the current set of item IDs: keep the stored
  * order for IDs that still exist, drop ones that vanished, and append any new

@@ -23,6 +23,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { AnimatePresence, motion } from "framer-motion";
+import { Minus } from "lucide-react";
 import {
   createContext,
   useCallback,
@@ -36,8 +37,10 @@ import {
   MOUSE_ACTIVATION,
   TOUCH_ACTIVATION,
   clearOrder,
+  loadHidden,
   loadOrder,
   reconcile,
+  saveHidden,
   saveOrder,
 } from "./sortable-order";
 
@@ -125,11 +128,16 @@ function SortableMasonryItem({
   id,
   index,
   editing,
+  onHide,
+  hideLabel,
   children,
 }: {
   id: string;
   index: number;
   editing: boolean;
+  /** Hide this widget (edit mode only). */
+  onHide: (id: string) => void;
+  hideLabel: string;
   children: ReactNode;
 }) {
   const { setNodeRef, attributes, listeners, isDragging, transform, transition } =
@@ -144,7 +152,10 @@ function SortableMasonryItem({
       // In edit mode a tap shouldn't navigate (iPad jiggle behaviour); swallow
       // clicks that bubble up from links inside the widget.
       onClickCapture={(e) => {
-        if (editing) {
+        // The remove badge is the one control that must still work in
+        // edit mode — it *is* an edit-mode control.
+        const target = e.target as HTMLElement | null;
+        if (editing && !target?.closest("[data-widget-remove]")) {
           e.preventDefault();
           e.stopPropagation();
         }
@@ -154,7 +165,7 @@ function SortableMasonryItem({
       onContextMenu={(e) => e.preventDefault()}
       // Widgets are tactile objects, not prose — never let a drag turn into a
       // text selection.
-      className="mb-4 break-inside-avoid select-none"
+      className="relative mb-4 break-inside-avoid select-none"
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -176,6 +187,36 @@ function SortableMasonryItem({
       >
         {children}
       </div>
+
+      {/* iOS-style remove badge: a small frosted disc in the card's top-left
+          corner while the grid jiggles. Hiding is reversible from the edit
+          controls ("show n hidden") and from Reset.
+
+          It sits *inside* the card on purpose: an absolutely positioned child
+          that pokes outside its item box (the iOS "-top-1.5 -left-1.5" look)
+          makes Chromium abandon column balancing and stack every widget in
+          the first column. */}
+      {editing && !isDragging && (
+        <button
+          type="button"
+          data-widget-remove
+          aria-label={hideLabel}
+          title={hideLabel}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onHide(id);
+          }}
+          className={cn(
+            "absolute left-2 top-2 z-20 inline-flex h-5 w-5 items-center justify-center rounded-full",
+            "border border-border/60 bg-card/90 text-muted-foreground shadow-raised backdrop-blur-xl",
+            "transition-colors hover:text-foreground",
+            "animate-in fade-in zoom-in-75 duration-150",
+          )}
+        >
+          <Minus className="h-3 w-3" />
+        </button>
+      )}
     </div>
   );
 }
@@ -200,6 +241,7 @@ export function SortableMasonry({
   const itemsById = new Map(items.map((i) => [i.id, i.node]));
 
   const [order, setOrder] = useState<string[]>(ids);
+  const [hidden, setHidden] = useState<string[]>([]);
   const [editing, setEditing] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [sections, setSections] = useState<Map<string, MasonrySection>>(
@@ -233,6 +275,7 @@ export function SortableMasonry({
     const stored = loadOrder(storageKey);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only: reading localStorage + syncing to the current widget set
     setOrder(reconcile(stored ?? ids, ids));
+    setHidden(loadHidden(storageKey).filter((id) => ids.includes(id)));
   }, [storageKey, idsKey]); // eslint-disable-line react-hooks/exhaustive-deps -- ids tracked via idsKey
 
   // Leave edit mode on Escape, or on a completed click/tap anywhere outside a
@@ -297,15 +340,37 @@ export function SortableMasonry({
   function handleReset() {
     clearOrder(storageKey);
     setOrder(ids); // back to the order widgets are declared in
+    setHidden([]);
+    saveHidden(storageKey, []);
     for (const section of sections.values()) section.reset();
   }
 
-  const orderedIds = order.filter((id) => itemsById.has(id));
+  const hideWidget = useCallback(
+    (id: string) => {
+      setHidden((prev) => {
+        if (prev.includes(id)) return prev;
+        const next = [...prev, id];
+        saveHidden(storageKey, next);
+        return next;
+      });
+    },
+    [storageKey],
+  );
+
+  function handleShowHidden() {
+    setHidden([]);
+    saveHidden(storageKey, []);
+  }
+
+  const orderedIds = order.filter(
+    (id) => itemsById.has(id) && !hidden.includes(id),
+  );
   // Only offer "Reset" once some layout actually diverges from its default.
   // `idsKey` is already the default order joined, so compare against it;
   // inner drag surfaces (sections) report their own divergence.
   const isCustomized =
-    orderedIds.join("|") !== idsKey ||
+    order.filter((id) => itemsById.has(id)).join("|") !== idsKey ||
+    hidden.length > 0 ||
     [...sections.values()].some((s) => s.isCustomized);
 
   const grid = (
@@ -326,7 +391,14 @@ export function SortableMasonry({
           className={cn("columns-1 sm:columns-2 lg:columns-3 gap-x-4", className)}
         >
           {orderedIds.map((id, i) => (
-            <SortableMasonryItem key={id} id={id} index={i} editing={editing}>
+            <SortableMasonryItem
+              key={id}
+              id={id}
+              index={i}
+              editing={editing}
+              onHide={hideWidget}
+              hideLabel={t(locale, "widgetHide")}
+            >
               {itemsById.get(id)}
             </SortableMasonryItem>
           ))}
@@ -367,6 +439,18 @@ export function SortableMasonry({
             exit={{ opacity: 0, y: 12 }}
             transition={{ duration: 0.2 }}
           >
+            {hidden.length > 0 && (
+              <button
+                type="button"
+                onClick={handleShowHidden}
+                className="text-xs font-mono uppercase tracking-wider text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+              >
+                {t(locale, "widgetEditShowHidden").replace(
+                  "{n}",
+                  String(hidden.length),
+                )}
+              </button>
+            )}
             {isCustomized && (
               <button
                 type="button"
