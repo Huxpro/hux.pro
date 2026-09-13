@@ -120,6 +120,35 @@ All content is constrained to a comfortable reading measure:
 max-width: 680px  /* ~65-75 characters per line */
 ```
 
+### Home Screen Grid
+
+The home screen is a *composition*, not a document: identifier → greeting →
+widget grid. Two rules keep it at home on any display (`app/page.tsx`,
+`components/ui/sortable-masonry.tsx`):
+
+- **Centered when there is room.** `main` is `min-h-svh` and the composition
+  carries auto margins, so it settles optically centered on tall screens
+  (iPad Pro portrait, large desktops) and snaps back to the top-anchored
+  layout the moment the content outgrows the viewport — phones, tablets and
+  normal laptops are unchanged.
+- **More widgets, not bigger ones.** Column count and container width move
+  together so a widget stays ~330px wide at every step, iPad-springboard
+  style:
+
+  | Breakpoint | Columns | Container |
+  |---|---|---|
+  | — | 1 | 680px |
+  | `sm` | 2 | 680px |
+  | `lg` | 3 | 1024px |
+  | `roomy` | 3 (4 with ≥ 8 widgets) | 1152px (1344px) |
+
+  The fourth column waits for enough widgets to fill it: CSS multicol
+  balances by height, so a fourth column over a handful of cards reads as a
+  lopsided, half-empty grid. `roomy:` (defined in `globals.css`) is the last
+  step's gate — ≥ 96rem wide **and** ≥ 1000px tall, since the point is to
+  spend space the screen actually has spare; a short ultrawide is already
+  scrolling and keeps the familiar desktop board.
+
 ### Vertical Rhythm
 
 - **Page padding**: `pt-24 pb-32` (generous breathing room)

@@ -45,7 +45,7 @@ import {
 // SortableMasonry
 //
 // An iPad-springboard-style widget grid. Renders children into a responsive
-// CSS multi-column masonry (1 / 2 / 3 columns) and lets the visitor rearrange
+// CSS multi-column masonry (1 / 2 / 3 / 4 columns) and lets the visitor rearrange
 // them, mirroring how iPadOS / macOS treat each pointer type:
 //   - Mouse / trackpad: a press-and-move *is* a drag straight away (no wait).
 //   - Touch: a plain swipe scrolls; you must long-press to pick a widget up,
@@ -57,6 +57,12 @@ import {
 // Why this shape:
 //   - CSS `columns` keeps every card in a single, SSR-renderable container
 //     (no JS measurement), which matters for static export.
+//   - Column *count* grows with the screen, column *width* doesn't: like an
+//     iPad Pro springboard, a bigger display shows more widgets rather than
+//     stretched ones. Each step therefore pairs a column count with a
+//     container max-width (see `gridScale`), so a column keeps roughly the
+//     same width as the screen grows and the grid stays centered in whatever
+//     space is left over.
 //   - This is dnd-kit's canonical sortable setup: the lifted card is a
 //     `DragOverlay` clone in a portal that simply tracks the cursor (so it can
 //     never "jump"), while the cards in the grid carry dnd-kit's own sort
@@ -116,6 +122,44 @@ const CLONE_EDIT_CONTEXT: MasonryEditContextValue = {
   enterEdit: () => {},
   registerSection: () => () => {},
 };
+
+// =============================================================================
+// Responsive scale
+//
+// Column count and container width move together so the widgets themselves
+// never stretch or shrink with the screen — only how many fit per row changes.
+//
+//   <sm    1 column   @ 680px     phone
+//   sm     2 columns  @ 680px     tablet / small laptop   (~332px per column)
+//   lg     3 columns  @ 1024px    desktop                 (~331px per column)
+//   roomy  4 columns  @ 1344px    large / ultrawide       (~324px per column)
+//          3 columns  @ 1152px    …with few widgets       (~373px per column)
+//
+// The fourth column only unlocks once there are enough widgets to fill it:
+// CSS multicol balances by height, so with a handful of cards a fourth column
+// takes a single widget and leaves a lopsided, half-empty grid. Below that
+// threshold an ultrawide screen instead gets three slightly roomier columns —
+// still far narrower than the ~630px a widget already renders at on a phone in
+// landscape, so nothing has to be re-tuned.
+//
+// The last step is gated on `roomy:` (wide *and* tall, see globals.css), not
+// width alone: it exists to spend space the screen actually has spare, so a
+// short ultrawide — already scrolling — keeps the familiar desktop board.
+// =============================================================================
+
+const MIN_ITEMS_FOR_FOUR_COLUMNS = 8;
+
+function gridScale(count: number) {
+  return count >= MIN_ITEMS_FOR_FOUR_COLUMNS
+    ? {
+        width: "max-w-[680px] lg:max-w-5xl roomy:max-w-[84rem]",
+        columns: "columns-1 sm:columns-2 lg:columns-3 roomy:columns-4",
+      }
+    : {
+        width: "max-w-[680px] lg:max-w-5xl roomy:max-w-6xl",
+        columns: "columns-1 sm:columns-2 lg:columns-3",
+      };
+}
 
 // =============================================================================
 // Sortable item
@@ -301,6 +345,7 @@ export function SortableMasonry({
   }
 
   const orderedIds = order.filter((id) => itemsById.has(id));
+  const scale = gridScale(orderedIds.length);
   // Only offer "Reset" once some layout actually diverges from its default.
   // `idsKey` is already the default order joined, so compare against it;
   // inner drag surfaces (sections) report their own divergence.
@@ -322,14 +367,14 @@ export function SortableMasonry({
       onDragCancel={handleDragCancel}
     >
       <SortableContext items={orderedIds} strategy={rectSortingStrategy}>
-        <div
-          className={cn("columns-1 sm:columns-2 lg:columns-3 gap-x-4", className)}
-        >
-          {orderedIds.map((id, i) => (
-            <SortableMasonryItem key={id} id={id} index={i} editing={editing}>
-              {itemsById.get(id)}
-            </SortableMasonryItem>
-          ))}
+        <div className={cn("mx-auto w-full", scale.width)}>
+          <div className={cn(scale.columns, "gap-x-4", className)}>
+            {orderedIds.map((id, i) => (
+              <SortableMasonryItem key={id} id={id} index={i} editing={editing}>
+                {itemsById.get(id)}
+              </SortableMasonryItem>
+            ))}
+          </div>
         </div>
       </SortableContext>
 

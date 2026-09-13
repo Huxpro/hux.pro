@@ -143,23 +143,36 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
   const heroFadeStyle = useHeroFade();
 
   return (
-    <main className="mx-auto w-full px-6 pt-16 sm:pt-24 pb-32 sm:pb-40">
-      <div className="mx-auto max-w-[680px]">
-        <HeaderZone
-          className="hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
-          style={heroFadeStyle}
-        >
-          <div className="h-11 flex items-start justify-center">
-            <ScrambleIdentifier />
-          </div>
-          <div className="flex-1 flex flex-col items-center justify-center pb-6 sm:pb-4">
-            <AmbientGreeting />
-          </div>
-        </HeaderZone>
-      </div>
+    // The home screen is one composition (identifier → greeting → widget grid),
+    // not a document that starts at the top. `min-h-svh` + auto margins on the
+    // inner block let it sit optically centered in the viewport once there is
+    // room to spare (tall desktops, iPad Pro portrait) while collapsing to the
+    // old top-anchored layout the moment the content is taller than the screen
+    // — phones, tablets and normal laptops lay out exactly as before.
+    // Auto margins (rather than `justify-center`) are what make that safe: an
+    // overflowing composition still starts at the top edge instead of being
+    // clipped above it.
+    <main className="mx-auto flex min-h-svh w-full flex-col px-6 pt-16 sm:pt-24 pb-32 sm:pb-40">
+      <div className="my-auto w-full">
+        <div className="mx-auto max-w-[680px]">
+          <HeaderZone
+            // Identifier → greeting → grid is a fixed rhythm: the hero keeps
+            // its default height at every size, so only the composition as a
+            // whole moves when there is room to spare, never its internals.
+            className="hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
+            style={heroFadeStyle}
+          >
+            <div className="h-11 flex items-start justify-center">
+              <ScrambleIdentifier />
+            </div>
+            <div className="flex-1 flex flex-col items-center justify-center pb-6 sm:pb-4">
+              <AmbientGreeting />
+            </div>
+          </HeaderZone>
+        </div>
 
-      {/* Widget grid — widens to three columns on large screens */}
-      <div className="mx-auto max-w-[680px] lg:max-w-5xl">
+        {/* Widget grid — owns its own responsive width so column count and
+            container width stay in step (see SortableMasonry's `gridScale`). */}
         <WidgetGrid posts={posts} />
       </div>
     </main>
