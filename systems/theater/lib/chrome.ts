@@ -34,12 +34,12 @@ export const GLASS_CLUSTER = cn(
  */
 export const GLASS_TRACK_FLAT = cn(
   "border border-border/30 bg-foreground/[0.03]",
-  "dark:border-white/12 dark:bg-white/[0.04]",
+  "dark:border-white/10 dark:bg-white/[0.08]",
   "transition-[background-color,border-color,box-shadow] duration-200",
   "hover:border-border/50 hover:bg-foreground/[0.08]",
   "group-hover:border-border/50 group-hover:bg-foreground/[0.08]",
-  "dark:hover:border-white/20 dark:hover:bg-white/[0.10]",
-  "dark:group-hover:border-white/20 dark:group-hover:bg-white/[0.10]",
+  "dark:hover:border-white/15 dark:hover:bg-white/[0.12]",
+  "dark:group-hover:border-white/15 dark:group-hover:bg-white/[0.12]",
 );
 
 export const GLASS_CLUSTER_FLAT = cn(
@@ -47,11 +47,11 @@ export const GLASS_CLUSTER_FLAT = cn(
   GLASS_TRACK_FLAT,
 );
 
-/** Selected pill: faint at rest, lifts when the control or widget is hovered. */
+/** Selected pill: faint at rest in light; dark stamp on the gray track in dark. */
 export const GLASS_PILL_FLAT = cn(
   "bg-card/70 ring-1 ring-border/30",
-  "dark:bg-white/10 dark:ring-white/15",
-  "transition-[background-color,box-shadow,ring-color] duration-200",
+  "dark:bg-card dark:shadow-sm dark:ring-white/10",
+  "transition-[background-color,box-shadow] duration-200",
   "hover:bg-card hover:shadow-sm hover:ring-border/50",
   "group-hover:bg-card group-hover:shadow-sm group-hover:ring-border/50",
 );
