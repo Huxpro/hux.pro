@@ -28,15 +28,18 @@ export const GLASS_CLUSTER = cn(
 );
 
 /**
- * Widget-desktop rest state: no track, no fill. Hovering the control — or
- * the parent `group` card — brings the same track back as Live Activity.
+ * Widget-desktop rest: a hairline track. Hovering the control or the parent
+ * `group` card deepens the same frame — it does not appear from nothing.
+ * Live Activity stays fully raised (`GLASS_TRACK`).
  */
 export const GLASS_TRACK_FLAT = cn(
-  "border border-transparent",
+  "border border-border/30 bg-foreground/[0.03]",
+  "dark:border-white/12 dark:bg-white/[0.04]",
   "transition-[background-color,border-color,box-shadow] duration-200",
   "hover:border-border/50 hover:bg-foreground/[0.08]",
   "group-hover:border-border/50 group-hover:bg-foreground/[0.08]",
-  "dark:hover:bg-white/[0.10] dark:group-hover:bg-white/[0.10]",
+  "dark:hover:border-white/20 dark:hover:bg-white/[0.10]",
+  "dark:group-hover:border-white/20 dark:group-hover:bg-white/[0.10]",
 );
 
 export const GLASS_CLUSTER_FLAT = cn(
@@ -44,10 +47,13 @@ export const GLASS_CLUSTER_FLAT = cn(
   GLASS_TRACK_FLAT,
 );
 
-/** Selected pill that only lifts when the control or parent widget is hovered. */
+/** Selected pill: faint at rest, lifts when the control or widget is hovered. */
 export const GLASS_PILL_FLAT = cn(
-  "hover:bg-card hover:shadow-sm hover:ring-1 hover:ring-border/50",
-  "group-hover:bg-card group-hover:shadow-sm group-hover:ring-1 group-hover:ring-border/50",
+  "bg-card/70 ring-1 ring-border/30",
+  "dark:bg-white/10 dark:ring-white/15",
+  "transition-[background-color,box-shadow,ring-color] duration-200",
+  "hover:bg-card hover:shadow-sm hover:ring-border/50",
+  "group-hover:bg-card group-hover:shadow-sm group-hover:ring-border/50",
 );
 
 /** Theme-aware icon button inside a cluster (or standalone orb). */

@@ -62,7 +62,7 @@ function MusicTransport({
   onPlaylist: () => void;
   playlistLabel: string;
   idle?: boolean;
-  /** Live Activity keeps the framed cluster; the homepage widget stays flat until hover. */
+  /** Live Activity keeps the raised cluster; the homepage widget uses a light frame. */
   raised?: boolean;
 }) {
   return (
@@ -110,7 +110,7 @@ function MusicTransport({
 export function NowPlaying({
   raised = true,
 }: {
-  /** Live Activity keeps the framed cluster; the homepage widget stays flat until hover. */
+  /** Live Activity keeps the raised cluster; the homepage widget uses a light frame. */
   raised?: boolean;
 }) {
   const { locale } = useLocale();

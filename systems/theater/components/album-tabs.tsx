@@ -38,7 +38,7 @@ interface AlbumTabsProps {
   /** Force light-on-dark glass (theater). Default is theme-aware (homepage). */
   tone?: "default" | "onDark";
   /**
-   * Homepage widgets stay frameless until the card is hovered.
+   * Homepage widgets use a light frame that deepens on hover.
    * Theater / Live Activity keep the raised track.
    */
   raised?: boolean;
