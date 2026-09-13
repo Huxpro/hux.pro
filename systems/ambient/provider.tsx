@@ -116,6 +116,12 @@ export interface DevtoolPlacementOverrides {
   full?: boolean;
   widget?: boolean;
   softEdging?: boolean;
+  /** Draw the radial vignette at all. */
+  vignette?: boolean;
+  /** Alpha at the farthest corner. */
+  vignetteAlpha?: number;
+  /** Scales the ellipse; below 1 pulls full strength inside the viewport. */
+  vignetteSpread?: number;
 }
 
 interface WallpaperContextType {
@@ -154,10 +160,12 @@ interface WallpaperContextType {
    */
   veil: number;
   /**
-   * Alpha of the radial vignette over the wallpaper, at the far corners. This
-   * is where most of the dimming budget lives — see WALLPAPER_VIGNETTE.
+   * Alpha of the radial vignette over the wallpaper, at the farthest corner.
+   * This is where most of the dimming budget lives — see WALLPAPER_VIGNETTE.
    */
   vignette: number;
+  /** Ellipse scale. 1 is the shipped geometry; below 1 tightens the falloff. */
+  vignetteSpread: number;
   /** Whether the wallpaper should be defocused right now. */
   blurred: boolean;
   /** The reading/desktop treatment flags, for the devtool. */
@@ -317,7 +325,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const dimOn = reading ? settings.wallpaperReadingDim : settings.wallpaperDimHome;
   const dimming = isImageKind && dimOn ? treatment : null;
   const veilAlpha = dimming ? WALLPAPER_VEIL[dimming][theme] : 0;
-  const vignetteAlpha = dimming ? WALLPAPER_VIGNETTE[dimming][theme] : 0;
 
   // DevTool gradient overrides (ephemeral, not persisted)
   const [devtoolOverrides, setDevtoolOverrides] =
@@ -336,6 +343,23 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     isDevtoolEnabled && devtoolOverrides.widget !== undefined
       ? devtoolOverrides.widget
       : settings.wallpaperPlacement === "widget";
+
+  // The vignette is dimming like the veil is, so it follows the same switches —
+  // but the devtool can override its strength and its geometry independently,
+  // because "is it even on" and "is it reaching the edges" are different
+  // questions and the second one is not visible from the first.
+  const vignetteAlpha =
+    isDevtoolEnabled && devtoolOverrides.vignette === false
+      ? 0
+      : isDevtoolEnabled && devtoolOverrides.vignetteAlpha !== undefined
+        ? devtoolOverrides.vignetteAlpha
+        : dimming
+          ? WALLPAPER_VIGNETTE[dimming][theme]
+          : 0;
+  const vignetteSpread =
+    isDevtoolEnabled && devtoolOverrides.vignetteSpread !== undefined
+      ? devtoolOverrides.vignetteSpread
+      : 1;
 
   // Soft edging fades the background out at the top and bottom of the viewport.
   // That exists to hide a SEAM: the weather gradient is a synthetic wash, and
@@ -646,6 +670,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       opacity: wallpaperOpacity,
       veil: veilAlpha,
       vignette: vignetteAlpha,
+      vignetteSpread,
       blurred: isBlurred,
       dimHome: settings.wallpaperDimHome,
       setDimHome,
@@ -678,6 +703,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       wallpaperOpacity,
       veilAlpha,
       vignetteAlpha,
+      vignetteSpread,
       isBlurred,
       setDimHome,
       setReadingBlur,

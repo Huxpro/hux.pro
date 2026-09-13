@@ -316,8 +316,18 @@ html.wallpaper-image .desktop-label {
    card, no radius, no boxed article.
 ----------------------------------------------------------------------------- */
 .wallpaper-vignette {
+  /*
+   * `--wallpaper-vignette` is the alpha at the FARTHEST corner, and `-spread`
+   * scales the ellipse. Spread matters more than it looks: at the shipped 72%
+   * × 62% the ellipse is wider than a 1440px viewport, so the left and right
+   * edges sit at only 0.69 along the gradient and receive 0.26 of a configured
+   * 0.40 — a third of the strength quietly goes off-screen, on the two edges
+   * the eye actually reads as a vignette. Shrinking the spread pulls full
+   * strength back inside the frame.
+   */
   background: radial-gradient(
-    ellipse 72% 62% at 50% 36%,
+    ellipse calc(72% * var(--wallpaper-vignette-spread, 1))
+      calc(62% * var(--wallpaper-vignette-spread, 1)) at 50% 36%,
     transparent 10%,
     color-mix(
       in oklab,
