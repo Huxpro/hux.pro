@@ -5,10 +5,7 @@ import { useTheme } from "@/services";
 import { GradientStack } from "@/systems/ambient/components/gradient-stack";
 import { isIOSBrowser } from "@/systems/ambient/lib/platform";
 import { WALLPAPER_OPACITY } from "@/systems/ambient/lib/wallpaper";
-import {
-  useOptionalWallpaper,
-  useOptionalWeather,
-} from "@/systems/ambient/provider";
+import { useOptionalWallpaper } from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
 import { Link } from "next-view-transitions";
 import { useState } from "react";
@@ -40,18 +37,17 @@ export function WidgetShell({
   style?: React.CSSProperties;
   children: React.ReactNode;
 }) {
-  const weather = useOptionalWeather();
   const wallpaper = useOptionalWallpaper();
   const { theme } = useTheme();
   // Callback ref kept in state so the GradientStack re-renders (and its per-layer
   // tracker registrations run) once the card element is actually attached.
   const [shellEl, setShellEl] = useState<HTMLDivElement | null>(null);
 
-  const widgetGradientEnabled = weather?.widgetGradientEnabled ?? false;
-  const gradientLayers = weather?.gradientLayers ?? [];
-  const edgeFadeMask = weather?.edgeFadeMask ?? null;
+  const widgetEnabled = wallpaper?.widgetEnabled ?? false;
+  const layers = wallpaper?.layers ?? [];
+  const edgeMask = wallpaper?.edgeMask ?? null;
 
-  const showOverlay = widgetGradientEnabled && gradientLayers.length > 0;
+  const showOverlay = widgetEnabled && layers.length > 0;
 
   // Weight resolved by the provider, exactly as the full-page background does
   // it — kind and theme already accounted for. The fallback is the same token
@@ -72,7 +68,7 @@ export function WidgetShell({
         "group relative rounded-2xl overflow-hidden",
         "border border-border/50",
         "transition-all duration-300",
-        widgetGradientEnabled
+        widgetEnabled
           ? "bg-transparent backdrop-blur-sm hover:bg-white/5 dark:hover:bg-white/5"
           : "bg-glass backdrop-blur-xl hover:border-border hover:bg-glass-hover",
         className
@@ -86,10 +82,10 @@ export function WidgetShell({
           style={{ opacity: overlayOpacity }}
         >
           <GradientStack
-            layers={gradientLayers}
+            layers={layers}
             shell={shellEl}
             positionBackground={useTrackerForPositioning}
-            edgeMask={edgeFadeMask}
+            edgeMask={edgeMask}
             cssFixedAttachment={!useTrackerForPositioning}
           />
         </div>

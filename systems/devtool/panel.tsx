@@ -787,15 +787,13 @@ function WallpaperModule() {
     readingDim,
     setReadingDim,
     openPicker,
+    placement,
+    fullEnabled,
+    widgetEnabled,
+    softEdgeEnabled,
+    devtoolOverrides,
+    setDevtoolOverrides,
   } = useWallpaper();
-  const {
-    gradientMode,
-    fullGradientEnabled,
-    widgetGradientEnabled,
-    softEdgingEnabled,
-    devtoolGradientOverrides,
-    setDevtoolGradientOverrides,
-  } = useWeather();
 
   const isImage = kind === "image";
   const reading = isReadingSurface({ kind, pathname });
@@ -810,33 +808,33 @@ function WallpaperModule() {
       key: "full",
       label: zh ? "全屏" : "Full",
       aria: "Toggle full-page wallpaper",
-      on: fullGradientEnabled,
+      on: fullEnabled,
     },
     {
       key: "widget",
       label: zh ? "卡片" : "Widget",
       aria: "Toggle widget wallpaper",
-      on: widgetGradientEnabled,
+      on: widgetEnabled,
     },
     {
       key: "softEdging",
       label: zh ? "柔和边缘" : "Soft edge",
       aria: "Toggle soft edging",
-      on: softEdgingEnabled,
+      on: softEdgeEnabled,
     },
   ] as const;
   const overrideFlag = (key: (typeof placements)[number]["key"], on: boolean) =>
-    setDevtoolGradientOverrides({ ...devtoolGradientOverrides, [key]: on });
+    setDevtoolOverrides({ ...devtoolOverrides, [key]: on });
   const isOverridden = (key: (typeof placements)[number]["key"]) =>
-    devtoolGradientOverrides[key] !== undefined;
-  const clearOverrides = () => setDevtoolGradientOverrides({});
+    devtoolOverrides[key] !== undefined;
+  const clearOverrides = () => setDevtoolOverrides({});
   const anyOverride = placements.some((p) => isOverridden(p.key));
 
   // One line that answers "what am I actually looking at".
   const now = [
     isImage ? wallpaper.name : zh ? "天气" : "Weather",
     variant,
-    isImage ? (reading ? (zh ? "阅读" : "read") : zh ? "桌面" : "desktop") : gradientMode,
+    isImage ? (reading ? (zh ? "阅读" : "read") : zh ? "桌面" : "desktop") : placement,
   ].join(" · ");
 
   return (
@@ -949,8 +947,8 @@ function WallpaperModule() {
               className="w-full text-left text-[10px] font-mono text-amber-500/70 transition-colors hover:text-amber-400"
             >
               {zh
-                ? `* 已覆盖设置（${gradientMode}）· 点击恢复`
-                : `* overriding the setting (${gradientMode}) · click to clear`}
+                ? `* 已覆盖设置（${placement}）· 点击恢复`
+                : `* overriding the setting (${placement}) · click to clear`}
             </button>
           )}
         </div>

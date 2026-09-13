@@ -17,7 +17,7 @@ export const GLASS_TRACK = cn(
 
 /** Theme-aware selected / control pill. */
 export const GLASS_PILL = cn(
-  "bg-card/90 shadow-sm ring-1 ring-border/50 backdrop-blur-xl",
+  "bg-glass-sheet shadow-sm ring-1 ring-border/50 backdrop-blur-xl",
 );
 
 /** Always-dark theater: clustered control capsule (iPadOS toolbar). */

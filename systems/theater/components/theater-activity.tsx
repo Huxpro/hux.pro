@@ -101,7 +101,7 @@ export function TheaterActivity() {
           <button
             onClick={returnToPip}
             aria-label={t(locale, "theaterReturnPip")}
-            className="flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border/60 bg-card/60 py-2 text-xs font-mono uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+            className="flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border/60 bg-glass-strong py-2 text-xs font-mono uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
           >
             <PictureInPicture2 className="h-3.5 w-3.5 shrink-0" />
             {t(locale, "theaterPip")}
@@ -110,7 +110,7 @@ export function TheaterActivity() {
             <button
               onClick={returnToTheater}
               aria-label={t(locale, "theaterExpand")}
-              className="flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border/60 bg-card/60 py-2 text-xs font-mono uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+              className="flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border/60 bg-glass-strong py-2 text-xs font-mono uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
             >
               <Maximize2 className="h-3.5 w-3.5 shrink-0" />
               {t(locale, "theaterExpand")}

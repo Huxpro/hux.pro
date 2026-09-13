@@ -8,7 +8,7 @@ import { requestAccurateLocation as requestAccurateLocationFn } from "./lib/loca
 import { useLocationQuery, useWeatherQuery } from "./lib/queries";
 import {
   type AmbientSettings,
-  type WeatherGradientMode,
+  type WallpaperPlacement,
   getAmbientSettings,
   getDefaultSettings,
   setAmbientSettings,
@@ -107,6 +107,17 @@ export function useAmbientTime() {
 // localStorage blob as the rest of the ambient settings.
 // =============================================================================
 
+/**
+ * DevTool-level overrides for the three resolved placement flags (ephemeral).
+ * The persisted setting can only be one of them; the panel exists to see the
+ * combinations it cannot express.
+ */
+export interface DevtoolPlacementOverrides {
+  full?: boolean;
+  widget?: boolean;
+  softEdging?: boolean;
+}
+
 interface WallpaperContextType {
   /** Which kind currently feeds the background stack. */
   kind: WallpaperKind;
@@ -118,6 +129,20 @@ interface WallpaperContextType {
   selectWallpaper: (id: string) => void;
   /** Which half of the pair is showing — always the app theme. */
   variant: "light" | "dark";
+  /** Where the active wallpaper paints. */
+  placement: WallpaperPlacement;
+  setPlacement: (placement: WallpaperPlacement) => void;
+  /** Resolved from `placement`, or from a devtool override when one is set. */
+  fullEnabled: boolean;
+  widgetEnabled: boolean;
+  softEdgeEnabled: boolean;
+  /** Crossfade stack: [...settled, newest]. Render via <GradientStack />. */
+  layers: GradientLayerData[];
+  /** Resolved CSS mask-image value, or null when soft-edging is off. */
+  edgeMask: string | null;
+  /** Ephemeral devtool overrides for the three resolved flags. */
+  devtoolOverrides: DevtoolPlacementOverrides;
+  setDevtoolOverrides: (overrides: DevtoolPlacementOverrides) => void;
   /**
    * Opacity the wallpaper layer paints at. Images paint at full strength; the
    * weather gradient is a wash and sits below it.
@@ -171,25 +196,8 @@ interface WeatherDebugOverride {
   isDay: boolean;
 }
 
-/** DevTool-level overrides for the 3 rendering flags (ephemeral, not persisted). */
-export interface DevtoolGradientOverrides {
-  full?: boolean;
-  widget?: boolean;
-  softEdging?: boolean;
-}
-
 interface WeatherContextType {
   weather: NormalizedWeather | null;
-  gradient: string;
-  /** Crossfade stack: [...settled, newest]. Render via <GradientStack />. */
-  gradientLayers: GradientLayerData[];
-  gradientMode: WeatherGradientMode;
-  // 3 resolved rendering flags
-  fullGradientEnabled: boolean;
-  widgetGradientEnabled: boolean;
-  softEdgingEnabled: boolean;
-  /** Resolved CSS mask-image value, or null when soft-edging is off. */
-  edgeFadeMask: string | null;
   isLoading: boolean;
   isFetching: boolean;
   error: string | null;
@@ -198,14 +206,9 @@ interface WeatherContextType {
   debugOverride: WeatherDebugOverride | null;
   setDebugOverride: (override: WeatherDebugOverride | null) => void;
   refresh: () => void;
-  setGradientMode: (mode: WeatherGradientMode) => void;
-  cycleGradientMode: () => void;
-  devtoolGradientOverrides: DevtoolGradientOverrides;
-  setDevtoolGradientOverrides: (overrides: DevtoolGradientOverrides) => void;
 }
 
 const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
-const GRADIENT_MODE_CYCLE: WeatherGradientMode[] = ["full", "widget", "off"];
 
 export function useWeather() {
   const context = useContext(WeatherContext);
@@ -246,12 +249,12 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     });
   }, []);
 
-  const setGradientMode = useCallback(
-    (mode: WeatherGradientMode) => {
-      if (mode === settings.weatherGradientMode) return;
-      updateSettings({ weatherGradientMode: mode });
+  const setPlacement = useCallback(
+    (placement: WallpaperPlacement) => {
+      if (placement === settings.wallpaperPlacement) return;
+      updateSettings({ wallpaperPlacement: placement });
     },
-    [settings.weatherGradientMode, updateSettings]
+    [settings.wallpaperPlacement, updateSettings]
   );
 
   // --- Wallpaper -----------------------------------------------------------
@@ -317,35 +320,22 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const vignetteAlpha = dimming ? WALLPAPER_VIGNETTE[dimming][theme] : 0;
 
   // DevTool gradient overrides (ephemeral, not persisted)
-  const [devtoolGradientOverrides, setDevtoolGradientOverrides] =
-    useState<DevtoolGradientOverrides>({});
-
-  const cycleGradientMode = useCallback(() => {
-    // Clear devtool full/widget overrides so mode change is visible
-    setDevtoolGradientOverrides((prev) => ({
-      ...prev,
-      full: undefined,
-      widget: undefined,
-    }));
-    const currentIndex = GRADIENT_MODE_CYCLE.indexOf(settings.weatherGradientMode);
-    const nextIndex =
-      currentIndex < 0 ? 0 : (currentIndex + 1) % GRADIENT_MODE_CYCLE.length;
-    updateSettings({ weatherGradientMode: GRADIENT_MODE_CYCLE[nextIndex] });
-  }, [settings.weatherGradientMode, updateSettings]);
+  const [devtoolOverrides, setDevtoolOverrides] =
+    useState<DevtoolPlacementOverrides>({});
 
   // 3 resolved rendering flags.
   // DevTool overrides bypass all natural derivation.
   const isIOS = useMemo(() => isIOSBrowser(), []);
 
-  const fullGradientEnabled =
-    isDevtoolEnabled && devtoolGradientOverrides.full !== undefined
-      ? devtoolGradientOverrides.full
-      : settings.weatherGradientMode === "full";
+  const fullEnabled =
+    isDevtoolEnabled && devtoolOverrides.full !== undefined
+      ? devtoolOverrides.full
+      : settings.wallpaperPlacement === "full";
 
-  const widgetGradientEnabled =
-    isDevtoolEnabled && devtoolGradientOverrides.widget !== undefined
-      ? devtoolGradientOverrides.widget
-      : settings.weatherGradientMode === "widget";
+  const widgetEnabled =
+    isDevtoolEnabled && devtoolOverrides.widget !== undefined
+      ? devtoolOverrides.widget
+      : settings.wallpaperPlacement === "widget";
 
   // Soft edging fades the background out at the top and bottom of the viewport.
   // That exists to hide a SEAM: the weather gradient is a synthetic wash, and
@@ -355,9 +345,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // white, which reads as a bleached band rather than a vignette. So it is a
   // weather affordance, structurally. The devtool can still force it on: the
   // panel exists to see what the setting cannot express.
-  const softEdgingEnabled =
-    isDevtoolEnabled && devtoolGradientOverrides.softEdging !== undefined
-      ? devtoolGradientOverrides.softEdging
+  const softEdgeEnabled =
+    isDevtoolEnabled && devtoolOverrides.softEdging !== undefined
+      ? devtoolOverrides.softEdging
       : isIOS && !isImageKind;
 
   /**
@@ -377,10 +367,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
    * `app/globals.css` hangs the light-mode overrides off this class.
    */
   useEffect(() => {
-    const on = isImageKind && fullGradientEnabled;
+    const on = isImageKind && fullEnabled;
     document.documentElement.classList.toggle("wallpaper-image", on);
     return () => document.documentElement.classList.remove("wallpaper-image");
-  }, [isImageKind, fullGradientEnabled]);
+  }, [isImageKind, fullEnabled]);
 
   // Debug override state (for weather and time)
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
@@ -462,7 +452,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // Resolve which edge-fade mask to use.
   // Special case: dark-mode sunrise/sunset has high gradient-vs-background
   // contrast, so we use a more aggressive (wider) fade to soften the edge.
-  const edgeFadeMask: string | null = softEdgingEnabled
+  const edgeMask: string | null = softEdgeEnabled
     ? theme === "dark" &&
       (effectivePhase === "sunrise" || effectivePhase === "sunset")
       ? EDGE_FADE_MASK_HIGH_CONTRAST
@@ -526,7 +516,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // shares one stack instead of running independent state machines. When the
   // gradient changes we push a new layer; <GradientStack /> fades it in over the
   // settled one, then we prune back to the latest once the crossfade completes.
-  const [gradientLayers, setGradientLayers] = useState<GradientLayerData[]>([]);
+  const [layers, setGradientLayers] = useState<GradientLayerData[]>([]);
   const layerIdRef = useRef(0);
 
   useEffect(() => {
@@ -548,12 +538,12 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   // Prune to the newest layer once the crossfade settles.
   useEffect(() => {
-    if (gradientLayers.length <= 1) return;
+    if (layers.length <= 1) return;
     const timeout = setTimeout(() => {
       setGradientLayers((prev) => (prev.length <= 1 ? prev : prev.slice(-1)));
     }, GRADIENT_CROSSFADE_MS + 50);
     return () => clearTimeout(timeout);
-  }, [gradientLayers]);
+  }, [layers]);
 
   // Memoised, because this provider re-renders often — the 60s clock tick, every
   // React Query transition, every crossfade push and prune, and (since the
@@ -587,13 +577,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const weatherValue = useMemo(
     () => ({
       weather: weatherQuery.data ?? null,
-      gradient: computedGradient,
-      gradientLayers,
-      gradientMode: settings.weatherGradientMode,
-      fullGradientEnabled,
-      widgetGradientEnabled,
-      softEdgingEnabled,
-      edgeFadeMask,
       isLoading: weatherQuery.isLoading,
       isFetching: weatherQuery.isFetching,
       error: weatherQuery.error?.message ?? null,
@@ -602,29 +585,15 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       debugOverride,
       setDebugOverride,
       refresh: refreshWeather,
-      setGradientMode,
-      cycleGradientMode,
-      devtoolGradientOverrides,
-      setDevtoolGradientOverrides,
     }),
     [
       weatherQuery.data,
       weatherQuery.isLoading,
       weatherQuery.isFetching,
       weatherQuery.error,
-      computedGradient,
-      gradientLayers,
-      settings.weatherGradientMode,
-      fullGradientEnabled,
-      widgetGradientEnabled,
-      softEdgingEnabled,
-      edgeFadeMask,
       isOverrideEnabled,
       debugOverride,
       refreshWeather,
-      setGradientMode,
-      cycleGradientMode,
-      devtoolGradientOverrides,
     ]
   );
 
@@ -649,6 +618,15 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       wallpapers: BUILT_IN_WALLPAPERS,
       selectWallpaper,
       variant: theme,
+      placement: settings.wallpaperPlacement,
+      setPlacement,
+      fullEnabled,
+      widgetEnabled,
+      softEdgeEnabled,
+      layers,
+      edgeMask,
+      devtoolOverrides,
+      setDevtoolOverrides,
       opacity: wallpaperOpacity,
       veil: veilAlpha,
       vignette: vignetteAlpha,
@@ -666,6 +644,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     }),
     [
       settings.wallpaperKind,
+      settings.wallpaperPlacement,
       settings.wallpaperDimHome,
       settings.wallpaperReadingBlur,
       settings.wallpaperReadingDim,
@@ -673,6 +652,13 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       activeWallpaper,
       selectWallpaper,
       theme,
+      setPlacement,
+      fullEnabled,
+      widgetEnabled,
+      softEdgeEnabled,
+      layers,
+      edgeMask,
+      devtoolOverrides,
       wallpaperOpacity,
       veilAlpha,
       vignetteAlpha,

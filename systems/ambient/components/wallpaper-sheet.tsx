@@ -9,7 +9,7 @@ import {
   useSurfaceContext,
 } from "@/systems/surface";
 import { getWeatherGradient } from "../lib/gradient";
-import type { WeatherGradientMode } from "../lib/settings";
+import type { WallpaperPlacement } from "../lib/settings";
 import {
   getWallpaperPairPreview,
   isPhoneWallpaper,
@@ -330,12 +330,11 @@ function WallpaperPickerBody({
   activeId: string;
 }) {
   const { locale } = useLocale();
-  const { gradientMode, setGradientMode } = useWeather();
-  const { wallpapers } = useWallpaper();
+  const { wallpapers, placement, setPlacement } = useWallpaper();
   const { isWindow } = useSurfaceContext();
   const columns = isWindow ? 3 : 2;
 
-  const placements: { value: WeatherGradientMode; label: string }[] = [
+  const options: { value: WallpaperPlacement; label: string }[] = [
     { value: "full", label: t(locale, "wallpaperPlacementFull") },
     { value: "widget", label: t(locale, "wallpaperPlacementWidget") },
     { value: "off", label: t(locale, "wallpaperPlacementOff") },
@@ -348,9 +347,9 @@ function WallpaperPickerBody({
       <div className="pb-4 pt-1">
         <CompactRow
           label={t(locale, "wallpaperPlacement")}
-          value={gradientMode}
-          options={placements}
-          onChange={setGradientMode}
+          value={placement}
+          options={options}
+          onChange={setPlacement}
         />
       </div>
 

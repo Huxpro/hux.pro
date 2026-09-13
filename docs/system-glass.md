@@ -41,10 +41,18 @@ token follows along for free:
 | `bg-glass-overlay` | Live Activity panels |
 | `bg-glass-sheet` | Adaptive surfaces (picker, playlist) |
 | `bg-glass-popover` | Command palette, devtool panel |
+| `GLASS_PANEL` (`lib/glass.ts`) | The lifted peek panel, shared by two callers |
 
 **Adding a surface:** use a glass token instead of `bg-card/NN`. That is the
 whole contract — a surface that hardcodes its own alpha simply won't respond to
 the setting, which is the bug this system exists to prevent.
+
+And it is a *checked* contract, not a promise. This paragraph used to assert
+that every floating surface already followed it, which had quietly become false
+for eleven of them — theater chrome, minimized windows, the app folder, the
+commit embed, the 404 card and more all stayed opaque slabs when you switched to
+Clear. Prose cannot notice the twelfth, so `no-restricted-syntax` in
+`eslint.config.mjs` bans `bg-card/` and `bg-popover/` outside `lib/glass.ts`.
 
 ## Triggers
 
