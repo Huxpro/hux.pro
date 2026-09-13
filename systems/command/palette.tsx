@@ -11,6 +11,7 @@ import { WallpaperPanel, useWallpaper } from "@/systems/wallpaper";
 import { useOptionalWindows } from "@/systems/windows";
 import { Command } from "cmdk";
 import {
+  Blend,
   Bug,
   FileText,
   GitCommit,
@@ -215,7 +216,7 @@ export function CommandPalette() {
       section: "settings",
     },
     {
-      key: "g",
+      key: "f",
       label: `${t(locale, "settingsGeolocation")}: ${
         locationMode === "accurate"
           ? t(locale, "locationAccurate")
@@ -238,6 +239,20 @@ export function CommandPalette() {
       icon: <ImageIcon className="h-4 w-4" />,
       onSelect: () => {
         openWallpaper();
+      },
+      section: "settings",
+    },
+    {
+      key: "g",
+      label: `${t(locale, "settingsGlass")}: ${
+        wallpaper.glass === "tinted"
+          ? t(locale, "glassTinted")
+          : t(locale, "glassClear")
+      }`,
+      icon: <Blend className="h-4 w-4" />,
+      onSelect: () => {
+        wallpaper.toggleGlass();
+        close();
       },
       section: "settings",
     },
@@ -329,7 +344,7 @@ export function CommandPalette() {
           setLocale(locale === "en" ? "zh" : "en");
           close();
           return;
-        case "g":
+        case "f":
           void (async () => {
             if (locationMode === "ip") {
               await requestAccurateLocation();
@@ -338,6 +353,10 @@ export function CommandPalette() {
             }
             close();
           })();
+          return;
+        case "g":
+          wallpaper.toggleGlass();
+          close();
           return;
         case "w":
           openWallpaper();
@@ -381,6 +400,7 @@ export function CommandPalette() {
     setLocationMode,
     openWallpaper,
     setDevtoolEnabled,
+    wallpaper,
   ]);
 
   useEffect(() => {
@@ -827,7 +847,7 @@ export function CommandPalette() {
                         : t(locale, "locationIp")}
                     </span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
-                      G
+                      F
                     </kbd>
                   </Command.Item>
                   <Command.Item
@@ -860,6 +880,42 @@ export function CommandPalette() {
                     </span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       W
+                    </kbd>
+                  </Command.Item>
+                  <Command.Item
+                    value="glass"
+                    keywords={[
+                      "glass",
+                      "clear",
+                      "tinted",
+                      "material",
+                      "liquid",
+                      "vibrancy",
+                      "玻璃",
+                      "透明",
+                      "色调",
+                      "材质",
+                    ]}
+                    onSelect={() => {
+                      wallpaper.toggleGlass();
+                      close();
+                    }}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                      "text-sm cursor-pointer transition-colors",
+                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                      "hover:bg-accent/25"
+                    )}
+                  >
+                    <Blend className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1">
+                      {t(locale, "settingsGlass")}:{" "}
+                      {wallpaper.glass === "tinted"
+                        ? t(locale, "glassTinted")
+                        : t(locale, "glassClear")}
+                    </span>
+                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                      G
                     </kbd>
                   </Command.Item>
                   <Command.Item

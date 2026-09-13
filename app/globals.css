@@ -195,10 +195,11 @@
   --glass-popover: color-mix(in oklab, var(--popover) 75%, transparent);
 }
 
-/* Image wallpaper — Thin / Ultra Thin vibrancy, not Regular Liquid Glass.
-   Fill drops so white is not milky and black is not a slab. Blur stays
-   ordinary `backdrop-blur`; no specular highlights or lens distortion. */
-html.wallpaper-image {
+/* Image wallpaper + Glass: Clear — Thin / Ultra Thin vibrancy on every
+   `--glass*` System UI surface (widgets, FAB, dock, palette, …).
+   Tinted (`html.glass-tinted`) keeps the Regular fill above (original
+   bg-card/50). Blur stays ordinary `backdrop-blur`. */
+html.wallpaper-image:not(.glass-tinted) {
   --glass: color-mix(in oklab, var(--card) 20%, transparent);
   --glass-hover: color-mix(in oklab, var(--card) 32%, transparent);
   --glass-strong: color-mix(in oklab, var(--card) 26%, transparent);
@@ -208,7 +209,7 @@ html.wallpaper-image {
   --glass-popover: color-mix(in oklab, var(--popover) 38%, transparent);
 }
 
-html.dark.wallpaper-image {
+html.dark.wallpaper-image:not(.glass-tinted) {
   --glass: color-mix(in oklab, var(--card) 26%, transparent);
   --glass-hover: color-mix(in oklab, var(--card) 38%, transparent);
   --glass-strong: color-mix(in oklab, var(--card) 32%, transparent);

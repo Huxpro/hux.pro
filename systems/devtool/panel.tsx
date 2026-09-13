@@ -20,6 +20,7 @@ import {
   WALLPAPER_CATALOG,
   useOptionalWallpaper,
   wallpaperDocumentClassNames,
+  type GlassMaterial,
   type WallpaperAppearance,
   type WallpaperKind,
 } from "@/systems/wallpaper";
@@ -958,6 +959,10 @@ function WallpaperModule() {
     { value: "light", label: t(locale, "themeLight") },
     { value: "dark", label: t(locale, "themeDark") },
   ];
+  const glasses: { value: GlassMaterial; label: string }[] = [
+    { value: "clear", label: t(locale, "glassClear") },
+    { value: "tinted", label: t(locale, "glassTinted") },
+  ];
 
   const hasOverride =
     wallpaper.debugOverride.kind !== undefined ||
@@ -1020,6 +1025,13 @@ function WallpaperModule() {
                 wallpaper.setAppearance(appearance);
               }
             }}
+          />
+        </PanelRow>
+        <PanelRow label={t(locale, "settingsGlass")}>
+          <PanelSegmented
+            value={wallpaper.glass}
+            options={glasses}
+            onChange={(glass) => wallpaper.setGlass(glass)}
           />
         </PanelRow>
         <div className="text-[10px] font-mono text-muted-foreground">

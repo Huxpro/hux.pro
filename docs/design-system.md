@@ -226,8 +226,9 @@ transition-all duration-300
 hover:border-border hover:bg-glass-hover
 ```
 
-`--glass*` defaults match the old `bg-card/50` fill. Image wallpaper thins
-them via `html.wallpaper-image` (see [system-wallpaper.md](./system-wallpaper.md)).
+`--glass*` defaults match the old `bg-card/50` fill (Tinted). Image
+wallpaper + Glass: Clear thins them via `html.wallpaper-image`
+(see [system-wallpaper.md](./system-wallpaper.md)).
 
 Widget headers use monospace uppercase labels:
 ```css

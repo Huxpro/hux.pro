@@ -18,6 +18,8 @@ import {
   resolveWallpaperSrc,
   wallpaperDocumentClassNames,
   wallpaperLabel,
+  toggleGlassMaterial,
+  type GlassMaterial,
   type ThemeVariant,
   type WallpaperAppearance,
   type WallpaperKind,
@@ -50,6 +52,8 @@ interface WallpaperContextType {
   kind: WallpaperKind;
   imageId: string;
   appearance: WallpaperAppearance;
+  /** iOS Liquid Glass material. Clear thins `--glass*` on image wallpaper. */
+  glass: GlassMaterial;
   pair: WallpaperPair;
   /** Resolved light/dark variant after auto + theme. */
   variant: ThemeVariant;
@@ -60,6 +64,8 @@ interface WallpaperContextType {
   setKind: (kind: WallpaperKind) => void;
   setImageId: (id: string) => void;
   setAppearance: (appearance: WallpaperAppearance) => void;
+  setGlass: (glass: GlassMaterial) => void;
+  toggleGlass: () => void;
   selectWeather: () => void;
   selectImage: (id: string) => void;
   label: (locale: "en" | "zh", weatherModeLabel?: string) => string;
@@ -130,6 +136,18 @@ export function WallpaperProvider({ children }: { children: React.ReactNode }) {
     [settings.appearance, updateSettings]
   );
 
+  const setGlass = useCallback(
+    (glass: GlassMaterial) => {
+      if (glass === settings.glass) return;
+      updateSettings({ glass });
+    },
+    [settings.glass, updateSettings]
+  );
+
+  const toggleGlass = useCallback(() => {
+    updateSettings({ glass: toggleGlassMaterial(settings.glass) });
+  }, [settings.glass, updateSettings]);
+
   const selectWeather = useCallback(() => {
     updateSettings({ kind: "weather" });
   }, [updateSettings]);
@@ -145,6 +163,7 @@ export function WallpaperProvider({ children }: { children: React.ReactNode }) {
   const kind = debugOverride.kind ?? settings.kind;
   const imageId = debugOverride.imageId ?? settings.imageId;
   const appearance = debugOverride.appearance ?? settings.appearance;
+  const glass = settings.glass;
   const pair = useMemo(() => resolveCatalogPair(imageId), [imageId]);
   const variant = resolvePairVariant(appearance, theme);
   const src = resolveWallpaperSrc(pair, appearance, theme);
@@ -193,10 +212,11 @@ export function WallpaperProvider({ children }: { children: React.ReactNode }) {
     const { image, read } = wallpaperDocumentClassNames(kind, pathname);
     root.classList.toggle("wallpaper-image", image);
     root.classList.toggle("wallpaper-read", read);
+    root.classList.toggle("glass-tinted", glass === "tinted");
     return () => {
-      root.classList.remove("wallpaper-image", "wallpaper-read");
+      root.classList.remove("wallpaper-image", "wallpaper-read", "glass-tinted");
     };
-  }, [kind, pathname]);
+  }, [kind, pathname, glass]);
 
   return (
     <WallpaperContext.Provider
@@ -204,6 +224,7 @@ export function WallpaperProvider({ children }: { children: React.ReactNode }) {
         kind,
         imageId,
         appearance,
+        glass,
         pair,
         variant,
         src,
@@ -212,6 +233,8 @@ export function WallpaperProvider({ children }: { children: React.ReactNode }) {
         setKind,
         setImageId,
         setAppearance,
+        setGlass,
+        toggleGlass,
         selectWeather,
         selectImage,
         label,

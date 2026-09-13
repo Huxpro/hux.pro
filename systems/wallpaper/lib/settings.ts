@@ -9,11 +9,18 @@ import { DEFAULT_WALLPAPER_ID, getWallpaperPair } from "./catalog";
 
 export type WallpaperKind = "weather" | "image";
 export type WallpaperAppearance = "auto" | "light" | "dark";
+/** iOS Liquid Glass materials: Clear (thin) vs Tinted (original Regular fill). */
+export type GlassMaterial = "clear" | "tinted";
 
 export interface WallpaperSettings {
   kind: WallpaperKind;
   imageId: string;
   appearance: WallpaperAppearance;
+  glass: GlassMaterial;
+}
+
+export function toggleGlassMaterial(current: GlassMaterial): GlassMaterial {
+  return current === "clear" ? "tinted" : "clear";
 }
 
 const SETTINGS_KEY = "hux_wallpaper";
@@ -23,6 +30,7 @@ export function getDefaultWallpaperSettings(): WallpaperSettings {
     kind: "weather",
     imageId: DEFAULT_WALLPAPER_ID,
     appearance: "auto",
+    glass: "clear",
   };
 }
 
@@ -70,6 +78,10 @@ export function normalizeWallpaperSettings(
     typeof parsed.imageId === "string" && getWallpaperPair(parsed.imageId)
       ? parsed.imageId
       : defaults.imageId;
+  const glass: GlassMaterial =
+    parsed.glass === "tinted" || parsed.glass === "clear"
+      ? parsed.glass
+      : defaults.glass;
 
-  return { kind, imageId, appearance };
+  return { kind, imageId, appearance, glass };
 }

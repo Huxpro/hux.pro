@@ -54,7 +54,8 @@ When the Window system is mounted, ⌘K also launches apps from
 | `I` | Go to Docs (internal) |
 | `A` | Toggle appearance |
 | `L` | Toggle language |
-| `G` | Toggle geolocation |
+| `F` | Toggle geolocation |
+| `G` | Toggle Glass (Clear / Tinted) |
 | `W` | Open wallpaper picker (secondary window) |
 | `D` | Toggle devtool FAB |
 

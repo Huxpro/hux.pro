@@ -54,6 +54,23 @@ to a Thin / Ultra Thin vibrancy wash (~20–26% fill). Blur stays ordinary
 
 `WallpaperProvider` toggles `html.wallpaper-image` and `html.wallpaper-read`.
 
+## Glass material
+
+`--glass*` tokens paint **every** System UI frosted surface (homepage
+widgets, FAB, dock, palette, sheets) — not per-widget. Two materials,
+same names as iOS 26.1 Settings → Display & Brightness → Liquid Glass:
+
+| Material | EN / 中文 | When image wallpaper is on |
+|----------|-----------|----------------------------|
+| `clear` | Clear / 透明 | Thin vibrancy (~20–26% fill). Default. |
+| `tinted` | Tinted / 色调 | Original Regular fill (`bg-card/50`). |
+
+`G` in ⌘K cycles them. Devtool **Wallpaper → Glass** sets them directly.
+`html.glass-tinted` disables the Clear thinning. Weather wallpaper already
+uses Regular fill, so the two materials look the same there.
+
+Persisted on `localStorage.hux_wallpaper.glass`.
+
 ## Light / Dark pairs
 
 Every built-in wallpaper is a **pair**. Appearance:
@@ -103,6 +120,6 @@ preview a pair without writing `localStorage`.
 
 ## Persistence
 
-`localStorage.hux_wallpaper` → `{ kind, imageId, appearance }`
+`localStorage.hux_wallpaper` → `{ kind, imageId, appearance, glass }`
 
 Override state in the Devtool is ephemeral (clears on refresh).
