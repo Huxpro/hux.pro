@@ -2,8 +2,9 @@
 
 import { cn } from "@/lib/utils";
 import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
-import { useTheater } from "../provider";
+import { GLASS_CLUSTER, GLASS_CLUSTER_BTN, GLASS_PILL } from "../lib/chrome";
 import { formatTime } from "../lib/player";
+import { useTheater } from "../provider";
 
 // ---------------------------------------------------------------------------
 // VideoControls — transport controls bound to the global player. Full controls
@@ -41,8 +42,6 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
     trackIndex < (album?.tracks.length ?? 0) - 1 || albumIndex < albums.length - 1;
 
   const pip = variant === "pip";
-  const iconBtn =
-    "inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors active:scale-[0.92] disabled:opacity-30 disabled:pointer-events-none";
 
   const onScrub = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isYouTube || duration <= 0) return;
@@ -74,45 +73,44 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
         </div>
       )}
 
-      <div className={cn("flex items-center", pip ? "justify-between" : "justify-center gap-2")}>
-        <button
-          onClick={previous}
-          disabled={!hasPrev}
-          aria-label="Previous video"
-          className={cn(iconBtn, pip ? "h-8 w-8" : "h-9 w-9")}
-        >
-          <SkipBack className={pip ? "h-4 w-4" : "h-5 w-5"} fill="currentColor" />
-        </button>
-
-        {isYouTube ? (
+      <div className={cn("flex items-center justify-center", pip && "px-0.5")}>
+        <div className={GLASS_CLUSTER}>
           <button
-            onClick={togglePlay}
-            aria-label={isPlaying ? "Pause" : "Play"}
-            className={cn(
-              "inline-flex items-center justify-center rounded-full bg-foreground text-background transition-transform active:scale-95",
-              pip ? "h-9 w-9" : "h-11 w-11",
-            )}
+            onClick={previous}
+            disabled={!hasPrev}
+            aria-label="Previous video"
+            className={GLASS_CLUSTER_BTN}
           >
-            {isPlaying ? (
-              <Pause className={pip ? "h-4 w-4" : "h-5 w-5"} fill="currentColor" />
-            ) : (
-              <Play className={cn("translate-x-px", pip ? "h-4 w-4" : "h-5 w-5")} fill="currentColor" />
-            )}
+            <SkipBack className="h-3.5 w-3.5" fill="currentColor" />
           </button>
-        ) : (
-          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-            {track?.platform}
-          </span>
-        )}
 
-        <button
-          onClick={next}
-          disabled={!hasNext}
-          aria-label="Next video"
-          className={cn(iconBtn, pip ? "h-8 w-8" : "h-9 w-9")}
-        >
-          <SkipForward className={pip ? "h-4 w-4" : "h-5 w-5"} fill="currentColor" />
-        </button>
+          {isYouTube ? (
+            <button
+              onClick={togglePlay}
+              aria-label={isPlaying ? "Pause" : "Play"}
+              className={cn(GLASS_CLUSTER_BTN, GLASS_PILL, "text-foreground")}
+            >
+              {isPlaying ? (
+                <Pause className="h-3.5 w-3.5" fill="currentColor" />
+              ) : (
+                <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />
+              )}
+            </button>
+          ) : (
+            <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+              {track?.platform}
+            </span>
+          )}
+
+          <button
+            onClick={next}
+            disabled={!hasNext}
+            aria-label="Next video"
+            className={GLASS_CLUSTER_BTN}
+          >
+            <SkipForward className="h-3.5 w-3.5" fill="currentColor" />
+          </button>
+        </div>
       </div>
     </div>
   );

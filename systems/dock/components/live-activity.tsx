@@ -38,6 +38,8 @@ interface LiveActivityProps {
   collapseLabel: string;
   /** Extra classes for the collapsed pill. */
   pillClassName?: string;
+  /** Extra classes for the expanded panel (e.g. widget-matched radius). */
+  panelClassName?: string;
 }
 
 export function LiveActivity({
@@ -48,6 +50,7 @@ export function LiveActivity({
   openLabel,
   collapseLabel,
   pillClassName,
+  panelClassName,
 }: LiveActivityProps) {
   const { isOpen, isAnyOpen, open, close, registerActivity } = useDock();
   const expanded = isOpen(id);
@@ -73,9 +76,9 @@ export function LiveActivity({
             className={cn(
               "pointer-events-auto flex items-center gap-2 shrink-0",
               "h-9 pl-1.5 pr-2.5 rounded-full",
-              "bg-card/60 backdrop-blur-xl border border-border/50",
+              "border border-border/50 bg-card/50 backdrop-blur-xl",
               "shadow-raised",
-              "hover:bg-card/80 hover:border-border transition-colors",
+              "hover:border-border hover:bg-card/70 transition-colors",
               "active:scale-95",
               pillClassName
             )}
@@ -111,15 +114,15 @@ export function LiveActivity({
             className={cn(
               "fixed left-1/2 z-50 -translate-x-1/2 pointer-events-auto",
               "w-[min(92vw,360px)] overflow-hidden",
-              "rounded-3xl bg-card/70 backdrop-blur-xl",
-              "border border-border/50 shadow-overlay"
+              "rounded-2xl border border-border/50 bg-card/50 shadow-overlay backdrop-blur-xl",
+              panelClassName,
             )}
           >
             <div className="flex items-center justify-between px-5 pt-4 pb-3">
               <div className="flex items-center gap-2 min-w-0">{title}</div>
               <button
                 onClick={close}
-                className="-mr-2 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 active:bg-accent/60 transition-colors active:scale-[0.92]"
+                className="-mr-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground active:scale-95"
                 aria-label={collapseLabel}
               >
                 <ChevronUp className="h-4 w-4" />

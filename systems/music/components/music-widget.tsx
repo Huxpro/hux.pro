@@ -33,7 +33,7 @@ export function MusicWidget() {
 
   return (
     <WidgetShell>
-      <WidgetHeader>
+      <WidgetHeader className="pb-3">
         <div className="flex items-center gap-2 min-w-0">
           {showEQ && <EQBars className="text-green-500" />}
           <WidgetTitle className="truncate">
@@ -42,8 +42,8 @@ export function MusicWidget() {
         </div>
       </WidgetHeader>
 
-      <WidgetBody>
-        <NowPlaying />
+      <WidgetBody className="pb-6">
+        <NowPlaying raised={false} />
       </WidgetBody>
     </WidgetShell>
   );

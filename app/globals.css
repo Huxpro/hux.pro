@@ -171,7 +171,14 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+  :focus-visible {
+    outline: 1px solid color-mix(in oklch, var(--foreground) 25%, transparent);
+    outline-offset: 2px;
   }
   body {
     @apply bg-background text-foreground;

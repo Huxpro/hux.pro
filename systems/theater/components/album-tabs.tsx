@@ -7,7 +7,9 @@ import {
   GLASS_ON_DARK_PILL,
   GLASS_ON_DARK_TRACK,
   GLASS_PILL,
+  GLASS_PILL_FLAT,
   GLASS_TRACK,
+  GLASS_TRACK_FLAT,
 } from "../lib/chrome";
 import type { Album } from "../lib/types";
 
@@ -21,8 +23,8 @@ import type { Album } from "../lib/types";
 // is motion, not a hard cut. Material tokens live in lib/chrome.ts so theater
 // window controls share the same frosted language.
 //
-// `tone="onDark"` forces theater-safe glass (site light mode would otherwise
-// paint a bright `bg-card` pill that fights the always-dark backdrop).
+// `tone="onDark"` is the dim dark-stamp language, forced for editor mocks
+// and any stage that cannot follow the site theme.
 // ---------------------------------------------------------------------------
 
 const EASE = [0.32, 0.72, 0, 1] as const;
@@ -35,6 +37,11 @@ interface AlbumTabsProps {
   size?: "sm" | "md";
   /** Force light-on-dark glass (theater). Default is theme-aware (homepage). */
   tone?: "default" | "onDark";
+  /**
+   * Homepage widgets use a light frame that deepens on hover.
+   * Theater / Live Activity keep the raised track.
+   */
+  raised?: boolean;
 }
 
 export function AlbumTabs({
@@ -44,6 +51,7 @@ export function AlbumTabs({
   className,
   size = "sm",
   tone = "default",
+  raised = true,
 }: AlbumTabsProps) {
   const reduceMotion = useReducedMotion();
   // Unique per mount so homepage + theater don't fight over one layoutId.
@@ -59,7 +67,7 @@ export function AlbumTabs({
         // Tight outer shell — little track padding, no inter-item gap.
         // Labels carry the breathing room instead (Apple camera picker).
         "inline-flex items-center rounded-full p-0.5",
-        onDark ? GLASS_ON_DARK_TRACK : GLASS_TRACK,
+        onDark ? GLASS_ON_DARK_TRACK : raised ? GLASS_TRACK : GLASS_TRACK_FLAT,
         className,
       )}
     >
@@ -74,16 +82,16 @@ export function AlbumTabs({
             onClick={() => onSelect(i)}
             className={cn(
               "relative isolate font-mono uppercase tracking-wider",
-              "transition-colors duration-200",
+              "outline-none transition-colors duration-200",
               // Roomy label padding inside the capsule.
               size === "sm" ? "px-3.5 py-1.5 text-[10px]" : "px-4 py-2 text-xs",
               onDark
                 ? active
                   ? "text-white"
-                  : "text-white/45 hover:text-white/70"
+                  : "text-white/45 hover:text-white/70 focus-visible:text-white/80"
                 : active
                   ? "text-foreground"
-                  : "text-muted-foreground/70 hover:text-muted-foreground",
+                  : "text-muted-foreground/70 hover:text-muted-foreground focus-visible:text-foreground",
             )}
           >
             {active && (
@@ -91,7 +99,11 @@ export function AlbumTabs({
                 layoutId={pillId}
                 className={cn(
                   "absolute inset-0 -z-10 rounded-full",
-                  onDark ? GLASS_ON_DARK_PILL : GLASS_PILL,
+                  onDark
+                    ? GLASS_ON_DARK_PILL
+                    : raised
+                      ? GLASS_PILL
+                      : GLASS_PILL_FLAT,
                 )}
                 transition={
                   reduceMotion

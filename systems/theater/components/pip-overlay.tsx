@@ -1,18 +1,13 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Maximize2,
-  Minus,
-  Pause,
-  Play,
-  SkipBack,
-  SkipForward,
-  X,
-} from "lucide-react";
+import { Pause, Play, SkipBack, SkipForward, X } from "lucide-react";
 import { useRef } from "react";
+import { GLASS_CLUSTER, GLASS_CLUSTER_BTN, GLASS_PILL } from "../lib/chrome";
 import { PIP_CONTROLS_H } from "../lib/geometry";
 import { useTheater } from "../provider";
+import { SurfaceSwitch } from "./surface-switch";
 
 // ---------------------------------------------------------------------------
 // PipOverlay — the floating, draggable Picture-in-Picture window.
@@ -22,6 +17,10 @@ import { useTheater } from "../provider";
 // <Stage />; this renders the control bar beneath it and owns the drag. On
 // tablet+ it can expand back to theater; everywhere it can minimize to a Live
 // Activity (keep listening) or close.
+//
+// Chrome matches Featured Talks / theater. The SurfaceSwitch pill marks PiP
+// as the current view; Theater / Audio are the only moves. Close sits in the
+// same capsule — it ends the session, it is not a view.
 // ---------------------------------------------------------------------------
 
 export function PipOverlay() {
@@ -79,15 +78,17 @@ export function PipOverlay() {
     setDragging(false);
   };
 
-  const barBtn =
-    "inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors active:scale-95 disabled:opacity-30 disabled:pointer-events-none";
-
   return (
     <AnimatePresence>
       {open && (
         <motion.div
           key="pip-controls"
-          className="fixed z-[10004] flex items-center gap-1 rounded-b-xl border border-t-0 border-border/60 bg-card/85 px-2 shadow-overlay backdrop-blur-xl"
+          className={cn(
+            "fixed z-[10004] flex items-center gap-1.5 px-1.5",
+            // Same frosted card as WidgetShell; flat top so it joins the stage.
+            "rounded-b-2xl border border-t-0 border-border/50",
+            "bg-card/50 shadow-overlay backdrop-blur-xl",
+          )}
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
@@ -99,24 +100,28 @@ export function PipOverlay() {
             height: PIP_CONTROLS_H,
           }}
         >
-          {/* Drag handle + title. */}
+          {/* Drag handle + title — WidgetTitle voice. */}
           <div
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             className="flex min-w-0 flex-1 cursor-grab touch-none items-center gap-2 active:cursor-grabbing"
           >
-            <span className="text-[11px] font-medium text-foreground/90 truncate">
+            <span className="truncate px-1.5 text-xs text-foreground/90">
               {track?.title ?? "Video"}
             </span>
           </div>
 
-          <div className="flex shrink-0 items-center">
-            <button onClick={previous} disabled={!hasPrev} aria-label="Previous" className={barBtn}>
+          <div className={GLASS_CLUSTER}>
+            <button onClick={previous} disabled={!hasPrev} aria-label="Previous" className={GLASS_CLUSTER_BTN}>
               <SkipBack className="h-3.5 w-3.5" fill="currentColor" />
             </button>
             {isYouTube && (
-              <button onClick={togglePlay} aria-label={isPlaying ? "Pause" : "Play"} className={barBtn}>
+              <button
+                onClick={togglePlay}
+                aria-label={isPlaying ? "Pause" : "Play"}
+                className={cn(GLASS_CLUSTER_BTN, GLASS_PILL, "text-foreground")}
+              >
                 {isPlaying ? (
                   <Pause className="h-3.5 w-3.5" fill="currentColor" />
                 ) : (
@@ -124,19 +129,23 @@ export function PipOverlay() {
                 )}
               </button>
             )}
-            <button onClick={next} disabled={!hasNext} aria-label="Next" className={barBtn}>
+            <button onClick={next} disabled={!hasNext} aria-label="Next" className={GLASS_CLUSTER_BTN}>
               <SkipForward className="h-3.5 w-3.5" fill="currentColor" />
             </button>
-            {theaterAvailable && (
-              <button onClick={toTheater} aria-label="Expand to theater" className={barBtn}>
-                <Maximize2 className="h-3.5 w-3.5" />
-              </button>
-            )}
-            <button onClick={minimize} aria-label="Minimize" className={barBtn}>
-              <Minus className="h-4 w-4" />
-            </button>
-            <button onClick={close} aria-label="Close" className={barBtn}>
-              <X className="h-4 w-4" />
+          </div>
+
+          <div className={GLASS_CLUSTER}>
+            <SurfaceSwitch
+              current="pip"
+              theaterAvailable={theaterAvailable}
+              framed={false}
+              onSelect={(surface) => {
+                if (surface === "theater") toTheater();
+                if (surface === "mini") minimize();
+              }}
+            />
+            <button onClick={close} aria-label="Close" className={GLASS_CLUSTER_BTN}>
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         </motion.div>
