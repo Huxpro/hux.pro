@@ -58,7 +58,7 @@ function AuthorBlock({
       {byline?.expanded.title && (
         <>
           <span className="text-muted-foreground/40">Role:</span>
-          <span className="min-w-0 text-muted-foreground/60">
+          <span className="min-w-0 truncate text-muted-foreground/60">
             {byline.expanded.title}
             <span className="text-muted-foreground/35"> @ </span>
             {byline.expanded.company}
@@ -296,18 +296,10 @@ export function TimelineCommit({
   const iconGapPx = isEvent ? 3 : isRoleAnchor ? 10 : 7;
 
   const rowContent = (
-    <div
-      className={cn(
-        "grid gap-x-2 items-start",
-        isWidget
-          ? "grid-cols-[auto_auto_1fr]"
-          : "grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr]",
-      )}
-    >
+    <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
       <span
         className={cn(
-          isWidget ? "inline" : "hidden @sm:inline",
-          "font-mono text-xs select-all",
+          "hidden @sm:inline font-mono text-xs select-all",
           // Events render the hash transparent — no link, no reference,
           // hash is noise. Keeping it occupies the column so titles
           // stay aligned with adjacent commit rows. Leading also drops
@@ -397,7 +389,7 @@ export function TimelineCommit({
                     ? "font-mono"
                     : "italic font-serif",
                 )
-              : "text-sm text-foreground",
+              : cn("text-sm text-foreground", isWidget && "truncate"),
           )}
         >
           {isEvent ? `(${data.title})` : data.title}
@@ -502,7 +494,7 @@ export function TimelineCommit({
         <div
           className={cn(
             "mt-1 text-xs font-mono text-muted-foreground/40 flex items-baseline justify-between gap-2",
-            isWidget ? "col-start-3" : "col-start-2 @sm:col-start-3",
+            "col-start-2 @sm:col-start-3",
           )}
         >
           <span className="min-w-0 truncate">
@@ -545,7 +537,7 @@ export function TimelineCommit({
       )}
 
       {isWidget && data.type !== "role" && data.type !== "event" && (
-        <div className="col-start-3">
+        <div className="col-start-2 @sm:col-start-3">
           <AuthorBlock byline={byline} compact />
         </div>
       )}
