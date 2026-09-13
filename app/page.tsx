@@ -6,6 +6,10 @@ import {
   VStackWidget,
 } from "@/components/home/featured-stack-widget";
 import { FeaturedTalksWidget } from "@/components/home/featured-talks-widget";
+import {
+  ProcessingWidget,
+  buildProcessingChapters,
+} from "@/components/home/processing-widget";
 import { PromptWidget } from "@/components/home/prompt-widget";
 import { ScrambleIdentifier } from "@/components/home/scramble-identifier";
 import { Commit } from "@/components/log";
@@ -15,31 +19,11 @@ import {
   type SortableWidget,
 } from "@/components/ui/sortable-masonry";
 import { useHeroFade } from "@/components/ui/use-hero-fade";
-import {
-  WidgetBody,
-  WidgetHeader,
-  WidgetLink,
-  WidgetShell,
-  WidgetStatus,
-  WidgetTitle,
-} from "@/components/ui/widget";
 import logData from "@/content/log.json";
 import { getLocalizedTitle, getPostHref, shouldShowPost } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
-import type {
-  Commit as CommitData,
-  Group,
-  RawLogData,
-  RoleCommit,
-} from "@/lib/log";
-import {
-  isCommitListed,
-  isCommitVisibleIn,
-  isRoleCommit,
-  localize,
-  normalizeLogData,
-  resolveGroupCommits,
-} from "@/lib/log";
+import type { Commit as CommitData, Group, RawLogData } from "@/lib/log";
+import { localize, normalizeLogData, resolveGroupCommits } from "@/lib/log";
 import { enrichLogDataWithPreviews, type OGSnapshot } from "@/lib/og-enrich";
 import ogSnapshotJson from "@/content/og-snapshot.json";
 import { t, useLocale } from "@/services";
@@ -85,40 +69,6 @@ const log = enrichLogDataWithPreviews(
   normalizeLogData(logData as unknown as RawLogData),
   ogSnapshotJson as OGSnapshot,
 );
-
-function getCurrentRoleCommit(commits: CommitData[]): RoleCommit | null {
-  const roles = commits.filter(isRoleCommit).filter(isCommitListed);
-  if (roles.length === 0) return null;
-
-  const key = (c: RoleCommit) =>
-    c.endDate === "present" ? "9999-12" : (c.endDate ?? c.date);
-
-  return [...roles].sort((a, b) => key(b).localeCompare(key(a)))[0] ?? null;
-}
-
-function ProcessingWidget() {
-  const { locale } = useLocale();
-  const visible = (log.commits as CommitData[]).filter((c) =>
-    isCommitVisibleIn(c, locale),
-  );
-  const role = getCurrentRoleCommit(visible);
-  if (!role) return null;
-
-  return (
-    <WidgetShell>
-      <WidgetHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <WidgetStatus />
-          <WidgetTitle>{t(locale, "widgetStatus")}</WidgetTitle>
-        </div>
-        <WidgetLink href="/works" label="View works" />
-      </WidgetHeader>
-      <WidgetBody>
-        <Commit commit={role} locale={locale} variant="bare" />
-      </WidgetBody>
-    </WidgetShell>
-  );
-}
 
 function GroupWidget({ group }: { group: Group }) {
   const { locale } = useLocale();
@@ -169,10 +119,7 @@ function WidgetGrid() {
 
   // Resolve presence up-front so conditionally-empty widgets never occupy an
   // empty, draggable slot in the masonry.
-  const visibleCommits = (log.commits as CommitData[]).filter((c) =>
-    isCommitVisibleIn(c, locale),
-  );
-  const role = getCurrentRoleCommit(visibleCommits);
+  const processingChapters = buildProcessingChapters(log, locale);
   // The three featured talk groups (React / Lynx / Personal) are now unified
   // into the single album-switching FeaturedTalksWidget, so exclude them from
   // the generic group rendering.
@@ -190,7 +137,18 @@ function WidgetGrid() {
     { id: "weather", node: <WeatherWidget /> },
     { id: "blog", node: <BlogStackWidget /> },
     { id: "music", node: <MusicWidget /> },
-    ...(role ? [{ id: "status", node: <ProcessingWidget /> }] : []),
+    // Keeps the legacy "status" id so visitors' persisted grid order survives
+    // the widget's change of shape.
+    ...(processingChapters.length > 0
+      ? [
+          {
+            id: "status",
+            node: (
+              <ProcessingWidget log={log} chapters={processingChapters} />
+            ),
+          },
+        ]
+      : []),
     { id: "featured-talks", node: <FeaturedTalksWidget /> },
     { id: "prompt", node: <PromptWidget /> },
     ...visibleGroups.map((group) => ({
