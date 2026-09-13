@@ -95,6 +95,9 @@ export function TimelineMini({
         "group relative -mx-2 px-2 rounded-lg transition-colors duration-150 overflow-y-clip",
         isEvent ? "py-1" : "py-2",
         hasExpandableContent ? "cursor-pointer" : "cursor-default",
+        // Keyboard focus reuses the hover wash instead of the UA outline,
+        // which reads as a heavy box inside the card.
+        "outline-none focus-visible:bg-muted/20",
         "[&:hover:not(:has([data-row-body]:hover))]:bg-muted/20",
         "[&:active:not(:has([data-row-body]:active))]:bg-muted/30",
         className,
