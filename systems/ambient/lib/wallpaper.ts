@@ -1,5 +1,3 @@
-import type { Locale } from "@/lib/i18n";
-
 // =============================================================================
 // Wallpaper — the background catalog
 //
@@ -19,6 +17,10 @@ import type { Locale } from "@/lib/i18n";
 // reads weather + phase directly and never touches the background, so it keeps
 // announcing sunrise/sunset under an image wallpaper too.
 //
+// Every wallpaper is a light/dark pair, and which half shows always follows the
+// app theme. That is not a setting: pinning a half only ever produced light
+// artwork under light text.
+//
 // ## The images
 //
 // Apple's own macOS and iOS default wallpapers, as light/dark pairs — the
@@ -33,18 +35,6 @@ import type { Locale } from "@/lib/i18n";
 // =============================================================================
 
 export type WallpaperKind = "weather" | "image";
-
-/**
- * Which half of a wallpaper's light/dark pair to show.
- * "auto" follows the app theme — the macOS Dynamic Desktop behaviour.
- */
-export type WallpaperAppearance = "auto" | "light" | "dark";
-
-export const WALLPAPER_APPEARANCES: WallpaperAppearance[] = [
-  "auto",
-  "light",
-  "dark",
-];
 
 export type WallpaperPlatform = "macOS" | "iOS";
 
@@ -90,13 +80,6 @@ export const WALLPAPER_OPACITY: Record<
   weather: { light: 0.7, dark: 0.85 },
   image: { light: 0.42, dark: 0.62 },
 };
-
-/**
- * A pair pinned against the app theme puts light artwork under light text. The
- * pin is the user's call so we keep it, but pulled right back to a tint with
- * the themed page background carrying the contrast.
- */
-export const WALLPAPER_MISMATCH_OPACITY = { light: 0.22, dark: 0.28 } as const;
 
 // -----------------------------------------------------------------------------
 // Catalog
@@ -219,14 +202,6 @@ export function getWallpapersByPlatform(platform: WallpaperPlatform): Wallpaper[
   return BUILT_IN_WALLPAPERS.filter((w) => w.platform === platform);
 }
 
-/** Which half of the pair an appearance resolves to under the current theme. */
-export function resolveAppearance(
-  appearance: WallpaperAppearance,
-  theme: "light" | "dark"
-): "light" | "dark" {
-  return appearance === "auto" ? theme : appearance;
-}
-
 function buildAsset(asset: WallpaperAsset, preview: boolean): ResolvedWallpaper {
   const url = preview ? asset.thumb : asset.src;
   return {
@@ -238,16 +213,21 @@ function buildAsset(asset: WallpaperAsset, preview: boolean): ResolvedWallpaper 
   };
 }
 
-/** Resolve a wallpaper to a renderable background for the given appearance. */
+/**
+ * Resolve a wallpaper to a renderable background.
+ *
+ * Which half of the pair shows always follows the app theme — the macOS
+ * Dynamic Desktop behaviour. There is deliberately no way to pin a half: the
+ * only thing pinning ever bought was light artwork under light text, and the
+ * damping needed to rescue that made the wallpaper a ghost anyway.
+ */
 export function getWallpaperBackground(params: {
   wallpaper: Wallpaper;
-  appearance: WallpaperAppearance;
   theme: "light" | "dark";
   /** Preview surfaces resolve to the thumb rendition. */
   preview?: boolean;
 }): ResolvedWallpaper {
-  const half = resolveAppearance(params.appearance, params.theme);
-  return buildAsset(params.wallpaper[half], params.preview ?? false);
+  return buildAsset(params.wallpaper[params.theme], params.preview ?? false);
 }
 
 /**
@@ -265,12 +245,3 @@ export function getWallpaperPairPreview(wallpaper: Wallpaper): {
   };
 }
 
-export function getWallpaperAppearanceLabel(
-  appearance: WallpaperAppearance,
-  locale: Locale
-): string {
-  const zh = locale === "zh";
-  if (appearance === "light") return zh ? "浅色" : "Light";
-  if (appearance === "dark") return zh ? "深色" : "Dark";
-  return zh ? "自动" : "Auto";
-}

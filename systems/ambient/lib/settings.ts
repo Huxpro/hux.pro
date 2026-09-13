@@ -2,7 +2,6 @@ import type { LocationMode } from "./location";
 import {
   DEFAULT_WALLPAPER_ID,
   getWallpaper,
-  type WallpaperAppearance,
   type WallpaperKind,
 } from "./wallpaper";
 
@@ -26,8 +25,6 @@ export interface AmbientSettings {
   wallpaperKind: WallpaperKind;
   /** Selected built-in pair, used when `wallpaperKind === "image"`. */
   wallpaperId: string;
-  /** Which half of the wallpaper's light/dark pair to show. */
-  wallpaperAppearance: WallpaperAppearance;
 }
 
 const SETTINGS_KEY = "hux_ambient_settings";
@@ -38,7 +35,6 @@ export function getDefaultSettings(): AmbientSettings {
     weatherGradientMode: "full",
     wallpaperKind: "weather",
     wallpaperId: DEFAULT_WALLPAPER_ID,
-    wallpaperAppearance: "auto",
   };
 }
 
@@ -63,7 +59,6 @@ export function getAmbientSettings(options?: {
       weatherGradientMode?: string;
       wallpaperKind?: string;
       wallpaperSource?: string;
-      wallpaperAppearance?: string;
     };
     const defaults = getDefaultSettings();
 
@@ -95,11 +90,6 @@ export function getAmbientSettings(options?: {
           ? "image"
           : defaults.wallpaperKind,
       wallpaperId,
-      wallpaperAppearance:
-        parsed.wallpaperAppearance === "light" ||
-        parsed.wallpaperAppearance === "dark"
-          ? parsed.wallpaperAppearance
-          : defaults.wallpaperAppearance,
     };
   } catch {
     return getDefaultSettings();

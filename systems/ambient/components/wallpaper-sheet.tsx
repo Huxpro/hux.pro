@@ -2,19 +2,18 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale, useTheme } from "@/services";
-import { Check, Cloud, Moon, Sun, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Drawer } from "vaul";
+import { Check, Cloud, Moon, Sun } from "lucide-react";
+import {
+  ADAPTIVE_PRESENTATION,
+  AdaptiveSurface,
+  useSurfaceContext,
+} from "@/systems/surface";
 import { getWeatherGradient } from "../lib/gradient";
 import type { WeatherGradientMode } from "../lib/settings";
 import {
-  getWallpaperAppearanceLabel,
+  BUILT_IN_WALLPAPERS,
   getWallpaperPairPreview,
-  getWallpapersByPlatform,
-  resolveAppearance,
-  WALLPAPER_APPEARANCES,
   type Wallpaper,
-  type WallpaperAppearance,
 } from "../lib/wallpaper";
 import { useWallpaper, useWeather } from "../provider";
 
@@ -22,24 +21,19 @@ import { useWallpaper, useWeather } from "../provider";
 // WallpaperSheet — the secondary window behind the Wallpaper command.
 //
 // Mounted once in the root layout; any trigger summons it via `openPicker()`
-// (the command palette today, the devtool panel too). Built on vaul and shaped
-// like the music playlist sheet, so the two secondary windows read as one
-// idiom:
-//   • Mobile  — action sheet climbing from the bottom, resting at ~80dvh.
-//   • Desktop — floating panel sliding in from the right edge.
+// (the command palette today, the devtool panel too). Its shape is delegated to
+// <AdaptiveSurface> (systems/surface): bottom sheet on a phone, side panel on a
+// tablet, a draggable centred window on a desktop. This file only decides what
+// goes inside it.
 //
 // Tiles are macOS Settings pair cards: a 16:10 split of the light and dark
-// originals, sun / moon on each half to pin that variant, a check when
-// selected, and "Name" · "macOS · 2020" underneath.
+// originals, a sun / moon marking each half, a check when selected, and
+// "Name" · "macOS · 2020" underneath.
 //
-// The grid leads with a live Weather tile, because weather is not a different
-// feature from wallpaper — it is the one wallpaper that changes on its own.
-// Picking any tile switches the background kind to it, which is the whole of
-// the mutual-exclusion rule expressed as a single tap.
+// Weather is the FIRST tile in the same grid at the same size, not a banner of
+// its own — it is one of the wallpapers, just the only one that moves. A
+// separate row said the opposite.
 // ---------------------------------------------------------------------------
-
-/** Ring of padding between the floating panel and the screen edges. */
-const EDGE_GAP = "0.75rem";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -49,73 +43,66 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Segmented<T extends string>({
+/** Compact label + segmented control on one line, like the devtool's rows. */
+function CompactRow<T extends string>({
+  label,
   value,
   options,
   onChange,
 }: {
+  label: string;
   value: T;
   options: { value: T; label: string }[];
   onChange: (value: T) => void;
 }) {
   return (
-    <div className="flex overflow-hidden rounded-lg border border-border/60">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          onClick={() => onChange(o.value)}
-          aria-pressed={value === o.value}
-          className={cn(
-            "flex-1 px-2 py-1.5 text-[11px] font-mono uppercase tracking-wider transition-colors",
-            value === o.value
-              ? "bg-accent text-accent-foreground"
-              : "text-muted-foreground hover:bg-accent/30 hover:text-foreground"
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
+    <div className="flex items-center justify-between gap-3 px-0.5">
+      <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+        {label}
+      </span>
+      <div className="flex shrink-0 overflow-hidden rounded-md border border-border/60">
+        {options.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => onChange(o.value)}
+            aria-pressed={value === o.value}
+            className={cn(
+              "px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
+              value === o.value
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground hover:bg-accent/30 hover:text-foreground"
+            )}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
 
 /**
- * The sun / moon buttons in the corners of a pair card. Tapping one both
- * selects the pair and pins that half — one gesture, as macOS Settings does it.
+ * Marks which half of the pair is which. An indicator, not a control: the half
+ * that shows always follows the app theme, so there is nothing here to pick.
  */
-function VariantChip({
-  variant,
-  active,
-  label,
-  onSelect,
-}: {
-  variant: "light" | "dark";
-  active: boolean;
-  label: string;
-  onSelect: () => void;
-}) {
+function VariantMark({ variant }: { variant: "light" | "dark" }) {
   const Icon = variant === "light" ? Sun : Moon;
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-label={label}
-      aria-pressed={active}
+    <span
+      aria-hidden
       className={cn(
-        "absolute bottom-2 z-10 flex size-6 items-center justify-center rounded-full transition-colors",
-        variant === "light" ? "left-2" : "right-2",
-        active
-          ? "bg-white text-black shadow-sm"
-          : "bg-black/40 text-white ring-1 ring-white/35 backdrop-blur-[2px] hover:bg-black/55"
+        "absolute bottom-2 z-10 flex size-5 items-center justify-center rounded-full",
+        "bg-black/35 text-white ring-1 ring-white/25 backdrop-blur-[2px]",
+        variant === "light" ? "left-2" : "right-2"
       )}
     >
-      <Icon className="size-3" strokeWidth={2.25} />
-    </button>
+      <Icon className="size-2.5" strokeWidth={2.25} />
+    </span>
   );
 }
 
-/** Shared card chrome, so the Weather tile and the pair cards read as one set. */
+/** Shared card chrome, so Weather and the pair cards read as one set. */
 function TileFrame({
   selected,
   children,
@@ -166,20 +153,17 @@ function preload(src: string) {
 
 /**
  * A pair card. Both halves are always visible — light left, dark right —
- * because the pair is what you are choosing; which half shows is the separate
- * Appearance control above, or the sun/moon chips here.
+ * because the pair is what you are choosing; which half shows is the theme's
+ * business, not yours.
  */
 function WallpaperTile({
   wallpaper,
   selected,
-  appearance,
 }: {
   wallpaper: Wallpaper;
   selected: boolean;
-  appearance: WallpaperAppearance;
 }) {
-  const { locale } = useLocale();
-  const { selectWallpaper, selectWallpaperVariant } = useWallpaper();
+  const { selectWallpaper } = useWallpaper();
   const preview = getWallpaperPairPreview(wallpaper);
   const meta = `${wallpaper.platform} · ${wallpaper.year}`;
 
@@ -208,89 +192,97 @@ function WallpaperTile({
             style={{ backgroundImage: preview.dark.backgroundImage }}
           />
         </button>
-
-        <VariantChip
-          variant="light"
-          active={selected && appearance === "light"}
-          label={`${wallpaper.name} — ${t(locale, "wallpaperUseLight")}`}
-          onSelect={() => selectWallpaperVariant(wallpaper.id, "light")}
-        />
-        <VariantChip
-          variant="dark"
-          active={selected && appearance === "dark"}
-          label={`${wallpaper.name} — ${t(locale, "wallpaperUseDark")}`}
-          onSelect={() => selectWallpaperVariant(wallpaper.id, "dark")}
-        />
+        <VariantMark variant="light" />
+        <VariantMark variant="dark" />
       </TileFrame>
       <TileCaption name={wallpaper.name} meta={meta} />
     </div>
   );
 }
 
-function PairGrid({
-  title,
-  wallpapers,
-  activeId,
-  isImage,
-  appearance,
-}: {
-  title: string;
-  wallpapers: Wallpaper[];
-  activeId: string;
-  isImage: boolean;
-  appearance: WallpaperAppearance;
-}) {
+/** The live one. Same frame, same size, first in the grid. */
+function WeatherTile({ selected }: { selected: boolean }) {
+  const { locale } = useLocale();
+  const { theme } = useTheme();
+  const { setKind } = useWallpaper();
+  const { weather } = useWeather();
+
+  // Previews what is actually live right now, in the current theme.
+  const preview = getWeatherGradient({
+    condition: weather?.condition ?? "clear",
+    isDay: weather?.isDay ?? true,
+    theme,
+  }).backgroundImage;
+
   return (
-    <div className="pt-5">
-      <SectionLabel>{title}</SectionLabel>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-4">
-        {wallpapers.map((w) => (
-          <WallpaperTile
-            key={w.id}
-            wallpaper={w}
-            selected={isImage && activeId === w.id}
-            appearance={appearance}
-          />
-        ))}
-      </div>
+    <div className="group min-w-0">
+      <TileFrame selected={selected}>
+        <button
+          type="button"
+          onClick={() => setKind("weather")}
+          aria-pressed={selected}
+          aria-label={t(locale, "wallpaperWeather")}
+          className="absolute inset-0"
+        >
+          <span className="absolute inset-0" style={{ backgroundImage: preview }} />
+          <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/35 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-white ring-1 ring-white/25 backdrop-blur-[2px]">
+            <Cloud className="size-3" />
+            {t(locale, "wallpaperLive")}
+          </span>
+        </button>
+      </TileFrame>
+      <TileCaption
+        name={t(locale, "wallpaperWeather")}
+        meta={t(locale, "wallpaperWeatherMeta")}
+      />
     </div>
   );
 }
 
 export function WallpaperSheet() {
   const { locale } = useLocale();
-  const { theme } = useTheme();
   const {
     kind,
-    setKind,
     wallpaper: activeWallpaper,
-    appearance,
-    setAppearance,
     isPickerOpen,
     openPicker,
     closePicker,
   } = useWallpaper();
-  const { weather, gradientMode, setGradientMode } = useWeather();
 
-  // Right-side panel on wide viewports, bottom sheet otherwise. Tracked via
-  // matchMedia so a resize (or rotation) picks the right edge next open.
-  const [isWide, setIsWide] = useState(false);
-  useEffect(() => {
-    const media = window.matchMedia("(min-width: 640px)");
-    const sync = () => setIsWide(media.matches);
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
+  return (
+    <AdaptiveSurface
+      id="surface-wallpaper"
+      open={isPickerOpen}
+      onOpenChange={(open) => (open ? openPicker() : closePicker())}
+      presentation={ADAPTIVE_PRESENTATION}
+      title={t(locale, "wallpaperTitle")}
+      closeLabel={t(locale, "wallpaperClose")}
+      windowWidth="min(92vw, 620px)"
+    >
+      <WallpaperPickerBody
+        isImage={kind === "image"}
+        activeId={activeWallpaper.id}
+      />
+    </AdaptiveSurface>
+  );
+}
 
-  // The Weather tile previews what is actually live right now. It follows the
-  // app theme rather than the appearance control, because that control picks a
-  // half of a fixed pair — the weather gradient has no such pair.
-  const weatherPreview = getWeatherGradient({
-    condition: weather?.condition ?? "clear",
-    isDay: weather?.isDay ?? true,
-    theme,
-  }).backgroundImage;
+/**
+ * The picker's content, unaware of which shape it landed in beyond the one
+ * thing that genuinely differs: a desktop window is wide enough for three
+ * columns of pair cards, a phone sheet is not.
+ */
+function WallpaperPickerBody({
+  isImage,
+  activeId,
+}: {
+  isImage: boolean;
+  activeId: string;
+}) {
+  const { locale } = useLocale();
+  const { gradientMode, setGradientMode } = useWeather();
+  const { isWindow } = useSurfaceContext();
+  const columns = isWindow ? 3 : 2;
 
   const placements: { value: WeatherGradientMode; label: string }[] = [
     { value: "full", label: t(locale, "wallpaperPlacementFull") },
@@ -298,141 +290,37 @@ export function WallpaperSheet() {
     { value: "off", label: t(locale, "wallpaperPlacementOff") },
   ];
 
-  const appearances = WALLPAPER_APPEARANCES.map((value) => ({
-    value,
-    label: getWallpaperAppearanceLabel(value, locale),
-  }));
-
-  const isImage = kind === "image";
-
   return (
-    <Drawer.Root
-      open={isPickerOpen}
-      onOpenChange={(open) => (open ? openPicker() : closePicker())}
-      direction={isWide ? "right" : "bottom"}
-    >
-      <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 z-[60] bg-black/25 dark:bg-black/45" />
-        <Drawer.Content
-          aria-describedby={undefined}
-          style={
-            {
-              "--initial-transform": `calc(100% + ${EDGE_GAP})`,
-              ...(!isWide && {
-                bottom: `max(env(safe-area-inset-bottom), ${EDGE_GAP})`,
-              }),
-            } as React.CSSProperties
-          }
-          className={cn(
-            "fixed z-[61] flex flex-col overflow-hidden outline-none",
-            "rounded-3xl bg-card/85 backdrop-blur-xl",
-            "border border-border/50 shadow-overlay",
-            isWide
-              ? "bottom-3 right-3 top-3 w-[min(94vw,420px)]"
-              : "inset-x-3 h-[80dvh]"
-          )}
-        >
-          {/* Grabber — mobile affordance for the drag-to-dismiss gesture */}
-          {!isWide && (
-            <div className="flex justify-center pt-2">
-              <span className="h-1 w-9 rounded-full bg-muted-foreground/25" />
-            </div>
-          )}
+    <>
+      {/* Placement — where the active wallpaper paints, or nowhere. One compact
+          row: it is a modifier, not the thing you came here for. */}
+      <div className="pb-4 pt-1">
+        <CompactRow
+          label={t(locale, "wallpaperPlacement")}
+          value={gradientMode}
+          options={placements}
+          onChange={setGradientMode}
+        />
+      </div>
 
-          <div className="flex shrink-0 items-center justify-between px-5 pb-2 pt-3">
-            <Drawer.Title className="truncate text-xs font-mono uppercase tracking-wider text-muted-foreground">
-              {t(locale, "wallpaperTitle")}
-            </Drawer.Title>
-            <button
-              onClick={closePicker}
-              aria-label={t(locale, "wallpaperClose")}
-              className="-mr-2 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+      <SectionLabel>{t(locale, "wallpaperChoose")}</SectionLabel>
+      <div
+        className="grid gap-x-3 gap-y-4"
+        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      >
+        <WeatherTile selected={!isImage} />
+        {BUILT_IN_WALLPAPERS.map((w) => (
+          <WallpaperTile
+            key={w.id}
+            wallpaper={w}
+            selected={isImage && activeId === w.id}
+          />
+        ))}
+      </div>
 
-          <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-5">
-            {/* Appearance — which half of a light/dark pair is shown. */}
-            <div className="pb-4 pt-1">
-              <SectionLabel>{t(locale, "wallpaperAppearance")}</SectionLabel>
-              <Segmented
-                value={appearance}
-                options={appearances}
-                onChange={setAppearance}
-              />
-              <p className="px-0.5 pt-1.5 text-[11px] leading-snug text-muted-foreground/80">
-                {t(locale, "wallpaperAppearanceHint")}
-              </p>
-            </div>
-
-            {/* Placement — where the active wallpaper paints, or nowhere. */}
-            <div>
-              <SectionLabel>{t(locale, "wallpaperPlacement")}</SectionLabel>
-              <Segmented
-                value={gradientMode}
-                options={placements}
-                onChange={setGradientMode}
-              />
-            </div>
-
-            {/* Weather leads the grid at full width: it is a wallpaper too, but
-                the only one that is live, so it earns its own row. */}
-            <div className="pt-5">
-              <SectionLabel>{t(locale, "wallpaperChoose")}</SectionLabel>
-              <div className="group">
-                <TileFrame selected={!isImage}>
-                  <button
-                    type="button"
-                    onClick={() => setKind("weather")}
-                    aria-pressed={!isImage}
-                    aria-label={t(locale, "wallpaperWeather")}
-                    className="absolute inset-0"
-                  >
-                    <span
-                      className="absolute inset-0"
-                      style={{ backgroundImage: weatherPreview }}
-                    />
-                    <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/35 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-white ring-1 ring-white/25 backdrop-blur-[2px]">
-                      <Cloud className="size-3" />
-                      {t(locale, "wallpaperLive")}
-                    </span>
-                  </button>
-                </TileFrame>
-                <TileCaption
-                  name={t(locale, "wallpaperWeather")}
-                  meta={t(locale, "wallpaperWeatherMeta")}
-                />
-              </div>
-            </div>
-
-            <PairGrid
-              title="macOS"
-              wallpapers={getWallpapersByPlatform("macOS")}
-              activeId={activeWallpaper.id}
-              isImage={isImage}
-              appearance={appearance}
-            />
-            <PairGrid
-              title="iOS"
-              wallpapers={getWallpapersByPlatform("iOS")}
-              activeId={activeWallpaper.id}
-              isImage={isImage}
-              appearance={appearance}
-            />
-
-            <p className="px-0.5 pt-5 text-[11px] leading-snug text-muted-foreground/70">
-              {t(locale, "wallpaperFooterNote")}
-            </p>
-            {isImage && (
-              <p className="px-0.5 pt-1.5 text-[10px] font-mono text-muted-foreground/50">
-                {activeWallpaper.name} ·{" "}
-                {resolveAppearance(appearance, theme)} · {t(locale, "wallpaperCredit")}
-              </p>
-            )}
-          </div>
-        </Drawer.Content>
-      </Drawer.Portal>
-    </Drawer.Root>
+      <p className="px-0.5 pt-5 text-[11px] leading-snug text-muted-foreground/70">
+        {t(locale, "wallpaperFooterNote")}
+      </p>
+    </>
   );
 }

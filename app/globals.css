@@ -18,6 +18,17 @@
   --font-serif: var(--font-serif-latin), var(--font-serif-cjk), serif;
   --font-mono: var(--font-mono);
   --color-sidebar-ring: var(--sidebar-ring);
+  /* System glass fills. Every floating System UI surface — widgets, the
+     command palette, the devtool, Live Activities, adaptive surfaces — paints
+     with these rather than its own bg-card/NN, so one setting can restyle the
+     whole material at once. See `Glass` in docs/system-glass.md. */
+  --color-glass: var(--glass);
+  --color-glass-hover: var(--glass-hover);
+  --color-glass-strong: var(--glass-strong);
+  --color-glass-strong-hover: var(--glass-strong-hover);
+  --color-glass-overlay: var(--glass-overlay);
+  --color-glass-sheet: var(--glass-sheet);
+  --color-glass-popover: var(--glass-popover);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
@@ -131,6 +142,16 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Tinted (色调) — the default material. Fills carry enough of the card
+     colour to read as a surface in their own right. */
+  --glass: color-mix(in oklab, var(--card) 50%, transparent);
+  --glass-hover: color-mix(in oklab, var(--card) 70%, transparent);
+  --glass-strong: color-mix(in oklab, var(--card) 60%, transparent);
+  --glass-strong-hover: color-mix(in oklab, var(--card) 80%, transparent);
+  --glass-overlay: color-mix(in oklab, var(--card) 70%, transparent);
+  --glass-sheet: color-mix(in oklab, var(--card) 85%, transparent);
+  --glass-popover: color-mix(in oklab, var(--popover) 75%, transparent);
 }
 
 .dark {
@@ -175,6 +196,69 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* Tinted (色调) — the default material. Fills carry enough of the card
+     colour to read as a surface in their own right. */
+  --glass: color-mix(in oklab, var(--card) 50%, transparent);
+  --glass-hover: color-mix(in oklab, var(--card) 70%, transparent);
+  --glass-strong: color-mix(in oklab, var(--card) 60%, transparent);
+  --glass-strong-hover: color-mix(in oklab, var(--card) 80%, transparent);
+  --glass-overlay: color-mix(in oklab, var(--card) 70%, transparent);
+  --glass-sheet: color-mix(in oklab, var(--card) 85%, transparent);
+  --glass-popover: color-mix(in oklab, var(--popover) 75%, transparent);
+}
+
+
+/* -----------------------------------------------------------------------------
+   Glass: Clear (透明)
+   iOS 26's other Liquid Glass option. Fill drops to a vibrancy-style wash so
+   white stops reading as milky and black stops reading as a slab, and whatever
+   is behind the surface — a wallpaper, the page — comes through as the colour.
+   The blur stays ordinary `backdrop-blur`: no specular highlights, no lens
+   distortion, nothing that pretends to be a physical lens.
+----------------------------------------------------------------------------- */
+html.glass-clear {
+  --glass: color-mix(in oklab, var(--card) 20%, transparent);
+  --glass-hover: color-mix(in oklab, var(--card) 32%, transparent);
+  --glass-strong: color-mix(in oklab, var(--card) 26%, transparent);
+  --glass-strong-hover: color-mix(in oklab, var(--card) 38%, transparent);
+  --glass-overlay: color-mix(in oklab, var(--card) 36%, transparent);
+  --glass-sheet: color-mix(in oklab, var(--card) 46%, transparent);
+  --glass-popover: color-mix(in oklab, var(--popover) 40%, transparent);
+}
+
+/* Dark mode needs a touch more fill at the same perceived transparency. */
+html.dark.glass-clear {
+  --glass: color-mix(in oklab, var(--card) 26%, transparent);
+  --glass-hover: color-mix(in oklab, var(--card) 38%, transparent);
+  --glass-strong: color-mix(in oklab, var(--card) 32%, transparent);
+  --glass-strong-hover: color-mix(in oklab, var(--card) 44%, transparent);
+  --glass-overlay: color-mix(in oklab, var(--card) 42%, transparent);
+  --glass-sheet: color-mix(in oklab, var(--card) 52%, transparent);
+  --glass-popover: color-mix(in oklab, var(--popover) 46%, transparent);
+}
+
+/* -----------------------------------------------------------------------------
+   Reading surfaces under an image wallpaper
+   Home is the desktop: the photo stays sharp and the widgets float on it. Every
+   other route is a reading surface, so the photo recedes — defocused behind a
+   veil, with an edge vignette that leaves the prose column as the figure. No
+   card, no radius, no boxed article.
+----------------------------------------------------------------------------- */
+.wallpaper-read-vignette {
+  background: radial-gradient(
+    ellipse 72% 62% at 50% 36%,
+    transparent 10%,
+    color-mix(in oklab, var(--background) 34%, transparent) 100%
+  );
+}
+
+.dark .wallpaper-read-vignette {
+  background: radial-gradient(
+    ellipse 72% 62% at 50% 36%,
+    transparent 8%,
+    color-mix(in oklab, var(--background) 42%, transparent) 100%
+  );
 }
 
 @layer base {

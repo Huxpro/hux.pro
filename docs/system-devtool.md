@@ -52,10 +52,11 @@ Floating action button that expands into the debug panel:
 Debug modules for the ambient system:
 
 1. **Gradient**: Override the resolved placement flags (full / widget / soft edge)
-2. **Wallpaper**: Background kind, light/dark appearance, pair hot-swap, resolved asset
-3. **Weather**: Override weather condition (day/night × 6 conditions)
-4. **Time of Day**: Override ambient phase
-5. **Refetch**: Force re-fetch location/weather
+2. **Wallpaper**: Background kind, pair hot-swap, resolved asset
+3. **Glass**: Material — Tinted (色调) / Clear (透明)
+4. **Weather**: Override weather condition (day/night × 6 conditions)
+5. **Time of Day**: Override ambient phase
+6. **Refetch**: Force re-fetch location/weather
 
 ## Hooks
 
@@ -108,16 +109,16 @@ The Wallpaper module drives the real (persisted) settings rather than an
 ephemeral override, so the panel and the picker sheet can never disagree:
 
 ```typescript
-const { setKind, selectWallpaper, setAppearance } = useWallpaper();
+const { setKind, selectWallpaper } = useWallpaper();
 
 setKind("image");            // Swap the background kind, crossfaded
 selectWallpaper("monterey"); // Hot-swap the pair, no reload
-setAppearance("dark");       // Pin a half of the light/dark pair
 ```
 
-It reads out what is actually painting — `Now: Sonoma · Auto · dark · desktop
-@0.62` — and prints the resolved asset path underneath, which is the fastest way
-to trace a wrong-looking background to a file.
+It reads out what is actually painting — `Now: Sonoma · dark · full · desktop
+@0.62`, where the last field says whether this route is the desktop or a reading
+surface — and prints the resolved asset path underneath, which is the fastest
+way to trace a wrong-looking background to a file.
 
 ## Persistence
 

@@ -93,5 +93,6 @@ const { mode, isWindow, close } = useSurfaceContext();
 | Surface | Presentation | Notes |
 |---------|--------------|-------|
 | Music playlist | `ADAPTIVE_PRESENTATION` | macOS-sized window (980×620), track list breaks into columns |
+| Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode |
 
 Adding a second is: register a draggable id, pick a presentation, pass content.

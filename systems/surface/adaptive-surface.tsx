@@ -77,7 +77,7 @@ export interface AdaptiveSurfaceProps {
 /** The glass shell every shape shares. */
 const SHELL = [
   "flex flex-col overflow-hidden outline-none",
-  "rounded-3xl bg-card/85 backdrop-blur-xl",
+  "rounded-3xl bg-glass-sheet backdrop-blur-xl",
   "border border-border/50 shadow-overlay",
 ].join(" ");
 

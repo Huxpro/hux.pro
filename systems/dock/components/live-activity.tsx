@@ -76,10 +76,10 @@ export function LiveActivity({
             className={cn(
               "pointer-events-auto flex items-center gap-2 shrink-0",
               "h-9 pl-1.5 pr-2.5 rounded-full",
-              "border border-border/50 bg-card/50 backdrop-blur-xl",
+              "border border-border/50 bg-glass backdrop-blur-xl",
               "shadow-raised",
-              "hover:border-border hover:bg-card/70 transition-colors",
-              "pressable active:border-border active:bg-card/70 active:scale-95",
+              "hover:border-border hover:bg-glass-hover transition-colors",
+              "pressable active:border-border active:bg-glass-hover active:scale-95",
               pillClassName
             )}
             aria-label={openLabel}
@@ -114,7 +114,7 @@ export function LiveActivity({
             className={cn(
               "fixed left-1/2 z-50 -translate-x-1/2 pointer-events-auto",
               "w-[min(92vw,360px)] overflow-hidden",
-              "rounded-2xl border border-border/50 bg-card/50 shadow-overlay backdrop-blur-xl",
+              "rounded-2xl border border-border/50 bg-glass shadow-overlay backdrop-blur-xl",
               panelClassName,
             )}
           >

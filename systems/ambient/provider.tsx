@@ -17,11 +17,8 @@ import {
   BUILT_IN_WALLPAPERS,
   getWallpaperBackground,
   getWallpaperOrDefault,
-  resolveAppearance,
-  WALLPAPER_MISMATCH_OPACITY,
   WALLPAPER_OPACITY,
   type Wallpaper,
-  type WallpaperAppearance,
   type WallpaperKind,
 } from "./lib/wallpaper";
 import {
@@ -115,17 +112,12 @@ interface WallpaperContextType {
   wallpapers: Wallpaper[];
   /** Selects a pair AND switches the background kind to it. */
   selectWallpaper: (id: string) => void;
-  /** Selects a pair and pins the half to show — the tile's sun/moon buttons. */
-  selectWallpaperVariant: (id: string, variant: "light" | "dark") => void;
-  appearance: WallpaperAppearance;
-  setAppearance: (appearance: WallpaperAppearance) => void;
-  /** Which half of the pair "auto" lands on right now. */
-  resolvedAppearance: "light" | "dark";
+  /** Which half of the pair is showing — always the app theme. */
+  variant: "light" | "dark";
   /**
    * Opacity the background should render at, already resolved for the active
-   * kind, appearance and theme. Photographs carry far more contrast than the
-   * weather gradients; a pair pinned against the theme is pulled right back so
-   * text keeps its contrast.
+   * kind and theme. Photographs carry far more contrast than the weather
+   * gradients, and light mode has the least headroom.
    */
   opacity: number;
   /** The file currently painting, for the devtool readout. */
@@ -260,26 +252,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [updateSettings]
   );
 
-  // The sun/moon buttons on a tile: choose the pair and pin that half, in one
-  // gesture, exactly as macOS Settings does.
-  const selectWallpaperVariant = useCallback(
-    (id: string, variant: "light" | "dark") => {
-      updateSettings({
-        wallpaperId: id,
-        wallpaperKind: "image",
-        wallpaperAppearance: variant,
-      });
-    },
-    [updateSettings]
-  );
-
-  const setWallpaperAppearance = useCallback(
-    (appearance: WallpaperAppearance) => {
-      if (appearance === settings.wallpaperAppearance) return;
-      updateSettings({ wallpaperAppearance: appearance });
-    },
-    [settings.wallpaperAppearance, updateSettings]
-  );
 
   // Secondary window (the picker sheet). Ephemeral — never persisted.
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -291,16 +263,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [settings.wallpaperId]
   );
   const isImageKind = settings.wallpaperKind === "image";
-  const resolvedAppearance = resolveAppearance(settings.wallpaperAppearance, theme);
 
-  // Pinning a pair against the app theme puts light artwork under light text;
-  // the pin is the user's call so we keep it, but pulled right back to a tint
-  // with the themed page background carrying the contrast.
-  const wallpaperOpacity = useMemo(() => {
-    if (!isImageKind) return WALLPAPER_OPACITY.weather[theme];
-    if (resolvedAppearance !== theme) return WALLPAPER_MISMATCH_OPACITY[theme];
-    return WALLPAPER_OPACITY.image[theme];
-  }, [isImageKind, resolvedAppearance, theme]);
+  const wallpaperOpacity = isImageKind
+    ? WALLPAPER_OPACITY.image[theme]
+    : WALLPAPER_OPACITY.weather[theme];
 
   // DevTool gradient overrides (ephemeral, not persisted)
   const [devtoolGradientOverrides, setDevtoolGradientOverrides] =
@@ -429,13 +395,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const resolvedImage = useMemo(
     () =>
       isImageKind
-        ? getWallpaperBackground({
-            wallpaper: activeWallpaper,
-            appearance: settings.wallpaperAppearance,
-            theme,
-          })
+        ? getWallpaperBackground({ wallpaper: activeWallpaper, theme })
         : null,
-    [isImageKind, activeWallpaper, settings.wallpaperAppearance, theme]
+    [isImageKind, activeWallpaper, theme]
   );
 
   // Compute the background. Exactly one kind wins — an image wallpaper replaces
@@ -570,10 +532,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
               wallpaper: activeWallpaper,
               wallpapers: BUILT_IN_WALLPAPERS,
               selectWallpaper,
-              selectWallpaperVariant,
-              appearance: settings.wallpaperAppearance,
-              setAppearance: setWallpaperAppearance,
-              resolvedAppearance,
+              variant: theme,
               opacity: wallpaperOpacity,
               src: wallpaperSrc,
               isPickerOpen,
