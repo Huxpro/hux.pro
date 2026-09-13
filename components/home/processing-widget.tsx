@@ -109,7 +109,9 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
   return (
     <WidgetShell>
       <WidgetHeader className="pb-2">
-        <WidgetTitle>{t(locale, "widgetStatus")}</WidgetTitle>
+        <WidgetTitle count={commits.filter((c) => c.type === "project").length}>
+          {t(locale, "widgetStatus")}
+        </WidgetTitle>
         <WidgetLink href="/works" label="View works" />
       </WidgetHeader>
 

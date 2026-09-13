@@ -60,12 +60,17 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
     () => selectWritingPosts(posts, locale),
     [posts, locale],
   );
+  // Everything /writing would list in this locale — the number behind the arrow.
+  const total = useMemo(
+    () => posts.filter((post) => shouldShowPost(post, locale, false)).length,
+    [posts, locale],
+  );
   if (latest.length === 0 && featured.length === 0) return null;
 
   return (
     <WidgetShell>
       <WidgetHeader className="pb-2">
-        <WidgetTitle>{t(locale, "widgetBlog")}</WidgetTitle>
+        <WidgetTitle count={total}>{t(locale, "widgetBlog")}</WidgetTitle>
         <WidgetLink href="/writing" />
       </WidgetHeader>
 

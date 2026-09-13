@@ -203,7 +203,7 @@ export function PromptWidget() {
     <WidgetShell>
       <WidgetHeader>
         <div className="flex items-center gap-2">
-          <WidgetTitle>{t(locale, "widgetPrompt")}</WidgetTitle>
+          <WidgetTitle count={items.length}>{t(locale, "widgetPrompt")}</WidgetTitle>
           <button
             onClick={handleNext}
             className={cn(

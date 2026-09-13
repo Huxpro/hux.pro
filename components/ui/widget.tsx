@@ -113,14 +113,20 @@ export function WidgetHeader({
  *
  * `signal` prefixes the pulsing status dot (see WidgetStatus) so any widget
  * can flag itself as live / in-progress without composing the dot by hand.
+ *
+ * `count` suffixes a quiet tabular figure — the same "PLAYLIST 12" caption
+ * the playlist sheet uses — so a widget can say how much sits behind it
+ * (posts, projects, talks in the album) without a sentence.
  */
 export function WidgetTitle({
   className,
   signal = false,
+  count,
   children,
 }: {
   className?: string;
   signal?: boolean;
+  count?: number;
   children: React.ReactNode;
 }) {
   return (
@@ -132,6 +138,11 @@ export function WidgetTitle({
     >
       {signal && <WidgetStatus />}
       {children}
+      {typeof count === "number" && count > 0 && (
+        <span className="text-muted-foreground/50 tabular-nums tracking-normal">
+          {count}
+        </span>
+      )}
     </span>
   );
 }

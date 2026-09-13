@@ -67,7 +67,9 @@ export function FeaturedTalksWidget() {
   return (
     <WidgetShell>
       <WidgetHeader className="pb-3">
-        <WidgetTitle>{t(locale, "widgetFeaturedTalks")}</WidgetTitle>
+        <WidgetTitle count={album.tracks.length}>
+          {t(locale, "widgetFeaturedTalks")}
+        </WidgetTitle>
         <WidgetLink href="/works" />
       </WidgetHeader>
 
