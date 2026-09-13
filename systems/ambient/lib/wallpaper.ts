@@ -69,17 +69,31 @@ export interface ResolvedWallpaper {
 }
 
 /**
- * Opacity the background layer renders at, per kind and theme. Photographs
- * carry far more contrast than the weather gradients, and light mode has the
- * least headroom — measured against real body copy, not guessed.
+ * How strongly the wallpaper layer itself paints.
+ *
+ * An image wallpaper paints at FULL STRENGTH. It is a photograph someone chose;
+ * showing it at half opacity over the page background is not "tasteful
+ * restraint", it is a washed-out picture. The home screen is a desktop — the
+ * picture is the content, and the widgets float on it.
+ *
+ * The weather gradient is different in kind: a wash, authored to sit under
+ * content, and it reads as intended below full strength.
  */
 export const WALLPAPER_OPACITY: Record<
   WallpaperKind,
   { light: number; dark: number }
 > = {
   weather: { light: 0.7, dark: 0.85 },
-  image: { light: 0.42, dark: 0.62 },
+  image: { light: 1, dark: 1 },
 };
+
+/**
+ * The veil drawn OVER an image wallpaper when the page has to be read rather
+ * than looked at. Paired with the blur, this is all the contrast a reading
+ * column needs — deliberately lighter than dimming the whole picture, which is
+ * what the layer opacity used to do to every route alike.
+ */
+export const WALLPAPER_VEIL = { light: 0.42, dark: 0.5 } as const;
 
 // -----------------------------------------------------------------------------
 // Catalog

@@ -1,8 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { usePathname } from "next/navigation";
-import { isReadingSurface } from "../lib/reading-surface";
 import { useWallpaper, useWeather } from "../provider";
 import { GradientStack } from "./gradient-stack";
 
@@ -14,13 +12,12 @@ import { GradientStack } from "./gradient-stack";
 // is what keeps them mutually exclusive — there is one layer, not several that
 // have to be arbitrated.
 //
-// How strongly it paints is resolved upstream (`useWallpaper().opacity`), since
-// the right weight depends on the kind and the theme together: photographs
-// carry far more contrast than a gradient, and light mode has the least
-// headroom.
-//
-// On reading surfaces an image wallpaper also recedes — defocused, and vignetted
-// at the edges — so the prose column stays the figure. See lib/reading-surface.
+// An image wallpaper paints at FULL STRENGTH. On the home screen that is the
+// whole treatment: the picture is the content, sharp and untinted, with the
+// widgets floating on it. Reading pages recede it instead — a defocus and a
+// veil over the top, which costs far less of the picture than dimming the layer
+// itself on every route alike. All three parts are switchable in the devtool
+// (see lib/reading-surface.ts) because it is a taste call.
 // ---------------------------------------------------------------------------
 
 interface WallpaperBackgroundProps {
@@ -29,10 +26,7 @@ interface WallpaperBackgroundProps {
 
 export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   const { gradientLayers, edgeFadeMask } = useWeather();
-  const { kind, opacity } = useWallpaper();
-  const pathname = usePathname();
-
-  const reading = isReadingSurface({ kind, pathname });
+  const { opacity, veil, blurred } = useWallpaper();
 
   if (gradientLayers.length === 0) return null;
 
@@ -50,7 +44,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
           "absolute inset-0 transition-[filter,transform] duration-500",
           // Scale past the frame so the blur has pixels to sample at the edges
           // instead of fading into nothing.
-          reading && "scale-110 blur-2xl"
+          blurred && "scale-110 blur-2xl"
         )}
       >
         {/* Full-page background is already viewport-fixed, so the edge mask is
@@ -58,9 +52,18 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         <GradientStack layers={gradientLayers} edgeMask={edgeFadeMask} />
       </div>
 
-      {/* Edge vignette — recedes the photo at the margins so the reading column
-          reads as the figure. Full-bleed wash; no card, no radius. */}
-      {reading && <div className="wallpaper-read-vignette absolute inset-0" />}
+      {/* The veil, and an edge vignette under it that recedes the picture at
+          the margins so the reading column reads as the figure. Full-bleed —
+          no card, no radius. */}
+      {veil > 0 && (
+        <>
+          <div
+            className="absolute inset-0 bg-background transition-opacity duration-500"
+            style={{ opacity: veil }}
+          />
+          <div className="wallpaper-read-vignette absolute inset-0" />
+        </>
+      )}
     </div>
   );
 }

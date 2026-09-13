@@ -18,6 +18,7 @@ import {
   getWallpaperBackground,
   getWallpaperOrDefault,
   WALLPAPER_OPACITY,
+  WALLPAPER_VEIL,
   type Wallpaper,
   type WallpaperKind,
 } from "./lib/wallpaper";
@@ -29,6 +30,8 @@ import {
 import type { NormalizedWeather, WeatherCondition } from "./lib/weather";
 import type { AmbientPhase } from "./lib/phase";
 import { deriveAmbientPhase } from "./lib/phase";
+import { usePathname } from "next/navigation";
+import { isReadingSurface } from "./lib/reading-surface";
 import { queryClient } from "@/lib/query";
 import { useDevtool } from "@/systems/devtool";
 
@@ -115,11 +118,24 @@ interface WallpaperContextType {
   /** Which half of the pair is showing — always the app theme. */
   variant: "light" | "dark";
   /**
-   * Opacity the background should render at, already resolved for the active
-   * kind and theme. Photographs carry far more contrast than the weather
-   * gradients, and light mode has the least headroom.
+   * Opacity the wallpaper layer paints at. Images paint at full strength; the
+   * weather gradient is a wash and sits below it.
    */
   opacity: number;
+  /**
+   * Alpha of the veil drawn OVER the wallpaper, or 0 for none. Non-zero on a
+   * reading page (or on home with `dimHome` on) and only for image wallpapers.
+   */
+  veil: number;
+  /** Whether the wallpaper should be defocused right now. */
+  blurred: boolean;
+  /** The reading/desktop treatment flags, for the devtool. */
+  dimHome: boolean;
+  setDimHome: (value: boolean) => void;
+  readingBlur: boolean;
+  setReadingBlur: (value: boolean) => void;
+  readingDim: boolean;
+  setReadingDim: (value: boolean) => void;
   /** The file currently painting, for the devtool readout. */
   src: string | null;
   /** Secondary window — the wallpaper picker. */
@@ -267,6 +283,31 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const wallpaperOpacity = isImageKind
     ? WALLPAPER_OPACITY.image[theme]
     : WALLPAPER_OPACITY.weather[theme];
+
+  const setDimHome = useCallback(
+    (value: boolean) => updateSettings({ wallpaperDimHome: value }),
+    [updateSettings]
+  );
+  const setReadingBlur = useCallback(
+    (value: boolean) => updateSettings({ wallpaperReadingBlur: value }),
+    [updateSettings]
+  );
+  const setReadingDim = useCallback(
+    (value: boolean) => updateSettings({ wallpaperReadingDim: value }),
+    [updateSettings]
+  );
+
+  // Home is the desktop: the picture stays sharp and untinted, because that is
+  // the whole point of choosing one. Reading pages recede it instead — a veil
+  // plus a defocus, which together cost far less of the image than the flat
+  // half-opacity this used to apply to every route alike.
+  const pathname = usePathname();
+  const reading = isReadingSurface({ kind: settings.wallpaperKind, pathname });
+  const isBlurred = isImageKind && reading && settings.wallpaperReadingBlur;
+  const veilAlpha =
+    isImageKind && ((reading && settings.wallpaperReadingDim) || (!reading && settings.wallpaperDimHome))
+      ? WALLPAPER_VEIL[theme]
+      : 0;
 
   // DevTool gradient overrides (ephemeral, not persisted)
   const [devtoolGradientOverrides, setDevtoolGradientOverrides] =
@@ -534,6 +575,14 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
               selectWallpaper,
               variant: theme,
               opacity: wallpaperOpacity,
+              veil: veilAlpha,
+              blurred: isBlurred,
+              dimHome: settings.wallpaperDimHome,
+              setDimHome,
+              readingBlur: settings.wallpaperReadingBlur,
+              setReadingBlur,
+              readingDim: settings.wallpaperReadingDim,
+              setReadingDim,
               src: wallpaperSrc,
               isPickerOpen,
               openPicker,

@@ -10,7 +10,6 @@ import {
   useTheme,
 } from "@/services";
 import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
-import type { DevtoolGradientOverrides } from "@/systems/ambient/provider";
 import { formatClockTime } from "@/systems/ambient/lib/format";
 import {
   getSunEventGradient,
@@ -20,7 +19,6 @@ import {
   WEATHER_CONDITIONS,
   getWeatherConditionLabel,
 } from "@/systems/ambient/lib/weather";
-import type { WallpaperKind } from "@/systems/ambient/lib/wallpaper";
 import { isReadingSurface } from "@/systems/ambient/lib/reading-surface";
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
 import { useOptionalWindows } from "@/systems/windows";
@@ -61,7 +59,6 @@ import {
   GripVertical,
   Haze,
   Image as ImageIcon,
-  Layers,
   Layers2,
   Moon,
   MoonStar,
@@ -203,7 +200,6 @@ function DevtoolPanel() {
       <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
         <FrontmatterModule />
         <ReadingModule />
-        <GradientModule />
         <WallpaperModule />
         <GlassModule />
         <WeatherModule />
@@ -701,108 +697,6 @@ function ReadingModule() {
 }
 
 // =============================================================================
-// Gradient Module
-// =============================================================================
-
-function GradientModule() {
-  const { locale } = useLocale();
-  const {
-    gradientMode,
-    fullGradientEnabled,
-    widgetGradientEnabled,
-    softEdgingEnabled,
-    devtoolGradientOverrides,
-    setDevtoolGradientOverrides,
-  } = useWeather();
-
-  const modeLabel =
-    gradientMode === "full"
-      ? locale === "zh" ? "全屏" : "Full"
-      : gradientMode === "widget"
-      ? locale === "zh" ? "卡片" : "Widget"
-      : locale === "zh" ? "关闭" : "Off";
-
-  const toggleOverride = (
-    key: keyof DevtoolGradientOverrides,
-    currentResolved: boolean
-  ) => {
-    const currentOverride = devtoolGradientOverrides[key];
-    // Cycle: auto → on → off → auto
-    let next: boolean | undefined;
-    if (currentOverride === undefined) {
-      next = !currentResolved; // override to opposite of natural
-    } else {
-      next = undefined; // clear override (back to auto)
-    }
-    setDevtoolGradientOverrides({ ...devtoolGradientOverrides, [key]: next });
-  };
-
-  const flags: {
-    key: keyof DevtoolGradientOverrides;
-    label: string;
-    resolved: boolean;
-  }[] = [
-    { key: "full", label: locale === "zh" ? "全屏" : "Full", resolved: fullGradientEnabled },
-    { key: "widget", label: locale === "zh" ? "卡片" : "Widget", resolved: widgetGradientEnabled },
-    { key: "softEdging", label: locale === "zh" ? "柔和边缘" : "Soft Edge", resolved: softEdgingEnabled },
-  ];
-
-  return (
-    <DebugSection
-      id="gradient"
-      title={locale === "zh" ? "渐变" : "Gradient"}
-      icon={<Layers className="h-4 w-4" />}
-      compact
-      action={
-        <span className="text-[10px] font-mono text-muted-foreground">
-          {modeLabel}
-          <span className="ml-1 text-muted-foreground/40">W</span>
-        </span>
-      }
-    >
-      <div className="space-y-2">
-        {flags.map(({ key, label, resolved }) => {
-          const isOverridden = devtoolGradientOverrides[key] !== undefined;
-          return (
-            <div key={key} className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-                  {label}
-                </span>
-                {isOverridden && (
-                  <span className="text-[9px] font-mono text-amber-500/70 uppercase">
-                    *
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={() => toggleOverride(key, resolved)}
-                className={cn(
-                  "relative inline-flex h-5 w-9 items-center rounded-full border transition-colors",
-                  resolved
-                    ? "bg-green-500/90 border-green-500/70"
-                    : "bg-muted/40 border-border/60",
-                  isOverridden && "ring-1 ring-amber-500/40"
-                )}
-                aria-pressed={resolved}
-                aria-label={`Toggle ${label}`}
-              >
-                <span
-                  className={cn(
-                    "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
-                    resolved ? "translate-x-4" : "translate-x-0.5"
-                  )}
-                />
-              </button>
-            </div>
-          );
-        })}
-      </div>
-    </DebugSection>
-  );
-}
-
-// =============================================================================
 // Glass Module
 //
 // The material every floating System UI surface is made of. Two options, the
@@ -856,13 +750,15 @@ function GlassModule() {
 // =============================================================================
 // Wallpaper Module
 //
-// Debugs the OTHER half of the background: which kind is feeding the single
-// wallpaper stack, and which half of the active pair is on screen. The swatch
-// grid hot-swaps the live background with no reload, and the footer prints the
-// resolved asset so a wrong-looking background can be traced to a file.
+// Everything about the background lives here, because everything about the
+// background is now one system. The swatch grid leads with Weather — it is the
+// first wallpaper, not a separate "kind" to pick first — and the rest are the
+// Apple pairs. Below it, the rendering flags as plain switches: where the
+// wallpaper paints, and how much of it survives on a reading page.
 //
-// Every control writes the same persisted setting the picker sheet does, so the
-// panel and the sheet can never disagree.
+// Placement and the reading treatment write persisted settings, so the panel
+// and the picker sheet can never disagree. Soft edging has no persisted setting
+// (it is derived from the platform), so it stays a devtool override.
 // =============================================================================
 
 function WallpaperModule() {
@@ -877,41 +773,43 @@ function WallpaperModule() {
     selectWallpaper,
     variant,
     opacity,
+    veil,
+    blurred,
     src,
+    dimHome,
+    setDimHome,
+    readingBlur,
+    setReadingBlur,
+    readingDim,
+    setReadingDim,
     openPicker,
   } = useWallpaper();
-  const { gradientMode, fullGradientEnabled, widgetGradientEnabled } = useWeather();
-
-  const kinds: { value: WallpaperKind; label: string }[] = [
-    { value: "weather", label: zh ? "天气" : "Weather" },
-    { value: "image", label: zh ? "图片" : "Image" },
-  ];
+  const {
+    gradientMode,
+    setGradientMode,
+    fullGradientEnabled,
+    widgetGradientEnabled,
+    softEdgingEnabled,
+    devtoolGradientOverrides,
+    setDevtoolGradientOverrides,
+  } = useWeather();
 
   const isImage = kind === "image";
-  const placement = fullGradientEnabled
-    ? zh
-      ? "全屏"
-      : "full"
-    : widgetGradientEnabled
-      ? zh
-        ? "卡片"
-        : "widget"
-      : zh
-        ? "关闭"
-        : "off";
-
-  // Home is the desktop; every other route recedes the photo for reading.
   const reading = isReadingSurface({ kind, pathname });
+
+  // Full and Widget are the two placements, shown as switches rather than a
+  // segmented control: turning one on turns the other off, both off is "off".
+  const setPlacement = (next: "full" | "widget", on: boolean) => {
+    setDevtoolGradientOverrides({ ...devtoolGradientOverrides, full: undefined, widget: undefined });
+    setGradientMode(on ? next : "off");
+  };
 
   // One line that answers "what am I actually looking at".
   const now = [
     isImage ? wallpaper.name : zh ? "天气" : "Weather",
     variant,
-    placement,
-    isImage ? (reading ? (zh ? "阅读" : "read") : zh ? "桌面" : "desktop") : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+    isImage ? (reading ? (zh ? "阅读" : "read") : zh ? "桌面" : "desktop") : gradientMode,
+  ].join(" · ");
 
   return (
     <DebugSection
@@ -927,21 +825,35 @@ function WallpaperModule() {
       }
     >
       <div className="space-y-3">
-        <PanelRow label={zh ? "类型" : "Kind"}>
-          <PanelSegmented value={kind} options={kinds} onChange={setKind} />
-        </PanelRow>
-
         <div className="text-[10px] font-mono text-muted-foreground">
           {zh ? "当前: " : "Now: "}
           <span className="text-foreground/80">{now}</span>
           <span className="ml-1.5 text-muted-foreground/50">
             @{opacity.toFixed(2)}
+            {veil > 0 && ` −${veil.toFixed(2)}`}
+            {blurred && " blur"}
           </span>
         </div>
 
-        {/* Swatch grid — the half currently showing, so the row mirrors the
-            page rather than a variant that is not on screen. */}
+        {/* Weather is the first cell, not a separate control above the grid:
+            picking a background is one choice, and this is that choice. */}
         <div className="grid grid-cols-4 gap-1.5">
+          <button
+            type="button"
+            onClick={() => setKind("weather")}
+            title={zh ? "天气" : "Weather"}
+            aria-label="Set wallpaper to Weather"
+            aria-pressed={!isImage}
+            className={cn(
+              "relative aspect-square overflow-hidden rounded-lg border transition-all",
+              "flex items-center justify-center bg-muted/30",
+              !isImage
+                ? "border-foreground/60 ring-2 ring-foreground/50"
+                : "border-border/40 hover:border-border"
+            )}
+          >
+            <Cloud className="h-3.5 w-3.5 text-foreground/70" />
+          </button>
           {wallpapers.map((w) => {
             const selected = isImage && w.id === wallpaper.id;
             return (
@@ -971,6 +883,67 @@ function WallpaperModule() {
           })}
         </div>
 
+        {/* Where it paints. */}
+        <div className="space-y-2 border-t border-border/30 pt-2.5">
+          <PanelRow label={zh ? "全屏" : "Full"}>
+            <PanelToggle
+              on={fullGradientEnabled}
+              onClick={() => setPlacement("full", !fullGradientEnabled)}
+              label="Toggle full-page wallpaper"
+            />
+          </PanelRow>
+          <PanelRow label={zh ? "卡片" : "Widget"}>
+            <PanelToggle
+              on={widgetGradientEnabled}
+              onClick={() => setPlacement("widget", !widgetGradientEnabled)}
+              label="Toggle widget wallpaper"
+            />
+          </PanelRow>
+          <PanelRow label={zh ? "柔和边缘" : "Soft edge"}>
+            <PanelToggle
+              on={softEdgingEnabled}
+              onClick={() =>
+                setDevtoolGradientOverrides({
+                  ...devtoolGradientOverrides,
+                  softEdging:
+                    devtoolGradientOverrides.softEdging === undefined
+                      ? !softEdgingEnabled
+                      : undefined,
+                })
+              }
+              label="Toggle soft edging"
+            />
+          </PanelRow>
+        </div>
+
+        {/* How much of it survives where. Home defaults to none of this. */}
+        <div className="space-y-2 border-t border-border/30 pt-2.5">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+            {zh ? "图片处理" : "Image treatment"}
+          </div>
+          <PanelRow label={zh ? "首页压暗" : "Dim home"}>
+            <PanelToggle
+              on={dimHome}
+              onClick={() => setDimHome(!dimHome)}
+              label="Toggle dimming on the home screen"
+            />
+          </PanelRow>
+          <PanelRow label={zh ? "二级页虚化" : "Reading blur"}>
+            <PanelToggle
+              on={readingBlur}
+              onClick={() => setReadingBlur(!readingBlur)}
+              label="Toggle blur on reading pages"
+            />
+          </PanelRow>
+          <PanelRow label={zh ? "二级页压暗" : "Reading dim"}>
+            <PanelToggle
+              on={readingDim}
+              onClick={() => setReadingDim(!readingDim)}
+              label="Toggle dimming on reading pages"
+            />
+          </PanelRow>
+        </div>
+
         <button
           onClick={openPicker}
           className="flex w-full items-center justify-center gap-1.5 rounded-md border border-border/60 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
@@ -982,9 +955,6 @@ function WallpaperModule() {
         {/* The resolved asset — the fastest way to trace a wrong background. */}
         <div className="break-all text-[10px] font-mono text-muted-foreground">
           {isImage ? src : zh ? "天气渐变" : "weather gradient"}
-          {gradientMode === "off" && (
-            <span className="text-muted-foreground/50"> (placement off)</span>
-          )}
         </div>
       </div>
     </DebugSection>
