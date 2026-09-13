@@ -154,7 +154,7 @@ export function NowPlaying({
               {track.title}
             </div>
             {track.artist && (
-              <div className="mt-1 truncate text-xs font-mono text-muted-foreground">
+              <div className="mt-0.5 truncate text-xs font-mono text-muted-foreground">
                 {track.artist}
               </div>
             )}
