@@ -144,7 +144,9 @@
   --sidebar-ring: oklch(0.708 0 0);
 
   /* Tinted (色调) — the default material. Fills carry enough of the card
-     colour to read as a surface in their own right. */
+     colour to read as a surface in their own right. Defined once: the formula
+     is theme-independent, and `--card` under `.dark` does the rest. Only Clear
+     needs a genuine dark override. */
   --glass: color-mix(in oklab, var(--card) 50%, transparent);
   --glass-hover: color-mix(in oklab, var(--card) 70%, transparent);
   --glass-strong: color-mix(in oklab, var(--card) 60%, transparent);
@@ -197,15 +199,6 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 
-  /* Tinted (色调) — the default material. Fills carry enough of the card
-     colour to read as a surface in their own right. */
-  --glass: color-mix(in oklab, var(--card) 50%, transparent);
-  --glass-hover: color-mix(in oklab, var(--card) 70%, transparent);
-  --glass-strong: color-mix(in oklab, var(--card) 60%, transparent);
-  --glass-strong-hover: color-mix(in oklab, var(--card) 80%, transparent);
-  --glass-overlay: color-mix(in oklab, var(--card) 70%, transparent);
-  --glass-sheet: color-mix(in oklab, var(--card) 85%, transparent);
-  --glass-popover: color-mix(in oklab, var(--popover) 75%, transparent);
 }
 
 

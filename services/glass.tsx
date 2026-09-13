@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 // =============================================================================
 // Glass — the material every floating System UI surface is made of.
@@ -81,21 +88,16 @@ export function GlassProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const toggle = useCallback(() => {
-    setMaterialState((prev) => {
-      const next = prev === "clear" ? "tinted" : "clear";
-      try {
-        localStorage.setItem(STORAGE_KEY, next);
-      } catch {
-        // Ignore storage errors
-      }
-      return next;
-    });
-  }, []);
-
-  return (
-    <GlassContext.Provider value={{ material, setMaterial, toggle }}>
-      {children}
-    </GlassContext.Provider>
+  // One write path to the stored key, so persistence can only be wrong once.
+  const toggle = useCallback(
+    () => setMaterial(material === "clear" ? "tinted" : "clear"),
+    [material, setMaterial]
   );
+
+  const value = useMemo(
+    () => ({ material, setMaterial, toggle }),
+    [material, setMaterial, toggle]
+  );
+
+  return <GlassContext.Provider value={value}>{children}</GlassContext.Provider>;
 }

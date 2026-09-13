@@ -47,11 +47,6 @@ export const ADAPTIVE_PRESENTATION: SurfacePresentation = {
   lg: "window",
 };
 
-/** Always a drawer — for surfaces that should never float free. */
-export const DRAWER_PRESENTATION: SurfacePresentation = {
-  base: "sheet",
-  sm: "panel",
-};
 
 function resolve(presentation: SurfacePresentation, width: number): SurfaceMode {
   if (width >= SURFACE_BREAKPOINTS.lg) {

@@ -68,33 +68,32 @@ photo behind a 680px prose column is a competing figure.
 
 The distinction is the point. An image wallpaper paints at opacity 1 — showing a
 photograph someone chose at half strength is not restraint, it is a washed-out
-picture — and the reading treatment is a veil *over* it rather than a dimming
-*of* it.
+picture — so what varies is drawn **over** it,
+as two overlays — a flat veil that dims the whole frame, and a radial vignette
+dark at the margins and clear through the middle. `WALLPAPER_VEIL` and
+`WALLPAPER_VIGNETTE` in `lib/wallpaper.ts` hold one pair of each (`scrim` for
+the home screen, `reading` for everywhere else); the numbers live there and are
+deliberately not copied here, because a copy only ever drifts.
 
-| | Light | Dark |
-|---|---|---|
-| Wallpaper layer (image) | 1.00 | 1.00 |
-| Home scrim (`Dim home`, on by default) | 0.08 | 0.14 |
-| Reading veil | 0.28 | 0.34 |
-| Reading vignette, at the far edges only | 0.22 | 0.28 |
+The shape is what matters, and it is the same in both places: **most of the
+weight sits in the radial.** A flat wash spends its whole budget flattening the
+picture — everything recedes by the same amount, so nothing recedes *relative*
+to anything, and you get a photo with the life taken out rather than a photo
+with depth. Move the same total into the radial and the middle comes back to
+nearly its own colour while the shoulders fall away, which is what a desktop
+looks like and why Apple ships wallpapers with the light in the centre. The home
+scrim keeps almost no flat component at all.
 
-The reading numbers are deliberately well under the ~0.45/0.55 this idea usually
-gets built with, because **the blur is what protects legibility** — the veil
-only has to stop the remaining colour from shouting. Spend it there and the
-wallpaper survives the trip to an inner page instead of turning grey.
-
-The home scrim is a different quantity, not a weaker application of the same
-one: a whisper that takes the edge off a loud wallpaper and seats the widgets on
-it rather than leaving them floating on raw artwork. Wiring both to one value
-made "dim home" mean "make home look like a reading page", which is not what
-anyone wants from it.
+Both are well under the ~0.45/0.55 this idea usually gets built with, because on
+a reading page **the blur is what protects legibility** — the overlays only have
+to stop the remaining colour from shouting.
 
 `lib/reading-surface.ts` owns the predicate; `wallpaper-background.tsx` applies
 the blur, the veil and the vignette (the vignette's alpha arrives as the
 `--wallpaper-vignette` custom property, so both strengths stay in
 `lib/wallpaper.ts` with the rest of the numbers). All three parts are devtool switches
 (`Dim home`, `Reading blur`, `Reading dim`) because it is a taste call and the
-only way to settle one is to look at both. The weather gradient opts out
+only way to settle one is to look at it. The weather gradient opts out
 entirely — it has no detail to compete with.
 
 ## Light mode on a photograph

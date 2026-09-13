@@ -26,7 +26,6 @@ export { AdaptiveSurface, useSurfaceContext } from "./adaptive-surface";
 export type { AdaptiveSurfaceProps } from "./adaptive-surface";
 export {
   ADAPTIVE_PRESENTATION,
-  DRAWER_PRESENTATION,
   SURFACE_BREAKPOINTS,
   useSurfaceMode,
 } from "./presentation";

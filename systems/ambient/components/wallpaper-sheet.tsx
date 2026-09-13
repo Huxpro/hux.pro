@@ -11,7 +11,6 @@ import {
 import { getWeatherGradient } from "../lib/gradient";
 import type { WeatherGradientMode } from "../lib/settings";
 import {
-  BUILT_IN_WALLPAPERS,
   getWallpaperPairPreview,
   isPhoneWallpaper,
   type Wallpaper,
@@ -84,6 +83,14 @@ function CompactRow<T extends string>({
 }
 
 /**
+ * The chip a glyph gets when it sits on artwork rather than on a surface.
+ * Named once because there are three of them — the two variant marks, the
+ * Weather badge, and the devtool's phone swatch, which imports this.
+ */
+export const ARTWORK_CHIP =
+  "bg-black/35 text-white ring-1 ring-white/25 backdrop-blur-[2px]";
+
+/**
  * Marks which half of the pair is which. An indicator, not a control: the half
  * that shows always follows the app theme, so there is nothing here to pick.
  */
@@ -94,7 +101,7 @@ function VariantMark({ variant }: { variant: "light" | "dark" }) {
       aria-hidden
       className={cn(
         "absolute bottom-2 z-10 flex size-5 items-center justify-center rounded-full",
-        "bg-black/35 text-white ring-1 ring-white/25 backdrop-blur-[2px]",
+        ARTWORK_CHIP,
         variant === "light" ? "left-2" : "right-2"
       )}
     >
@@ -170,9 +177,17 @@ function TileCaption({
   );
 }
 
-/** Warm the full-size pair on hover so applying it is instant. */
+/**
+ * Warm the half that will actually be applied, once.
+ *
+ * Both halves used to be fetched, which is twice the bytes for a picture the
+ * theme rules out: `getWallpaperBackground` always resolves `wallpaper[theme]`.
+ * Sweeping the grid pulled the entire catalog to make one tile instant.
+ */
+const warmed = new Set<string>();
 function preload(src: string) {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || warmed.has(src)) return;
+  warmed.add(src);
   const img = new window.Image();
   img.src = src;
 }
@@ -189,17 +204,14 @@ function WallpaperTile({
   wallpaper: Wallpaper;
   selected: boolean;
 }) {
-  const { selectWallpaper } = useWallpaper();
+  const { selectWallpaper, variant } = useWallpaper();
   const preview = getWallpaperPairPreview(wallpaper);
   const meta = wallpaper.caption ?? `${wallpaper.platform} · ${wallpaper.year}`;
 
   return (
     <div
       className="group min-w-0"
-      onMouseEnter={() => {
-        preload(wallpaper.light.src);
-        preload(wallpaper.dark.src);
-      }}
+      onMouseEnter={() => preload(wallpaper[variant].src)}
     >
       <TileFrame selected={selected}>
         <button
@@ -257,7 +269,13 @@ function WeatherTile({ selected }: { selected: boolean }) {
           className="absolute inset-0"
         >
           <span className="absolute inset-0" style={{ backgroundImage: preview }} />
-          <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/35 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-white ring-1 ring-white/25 backdrop-blur-[2px]">
+          <span
+            className={cn(
+              "absolute bottom-2 left-2 flex items-center gap-1 rounded-full px-2 py-0.5",
+              "text-[10px] font-mono uppercase tracking-wider",
+              ARTWORK_CHIP
+            )}
+          >
             <Cloud className="size-3" />
             {t(locale, "wallpaperLive")}
           </span>
@@ -313,6 +331,7 @@ function WallpaperPickerBody({
 }) {
   const { locale } = useLocale();
   const { gradientMode, setGradientMode } = useWeather();
+  const { wallpapers } = useWallpaper();
   const { isWindow } = useSurfaceContext();
   const columns = isWindow ? 3 : 2;
 
@@ -341,7 +360,7 @@ function WallpaperPickerBody({
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
         <WeatherTile selected={!isImage} />
-        {BUILT_IN_WALLPAPERS.map((w) => (
+        {wallpapers.map((w) => (
           <WallpaperTile
             key={w.id}
             wallpaper={w}

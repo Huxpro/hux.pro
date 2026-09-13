@@ -4,7 +4,13 @@ import { cn } from "@/lib/utils";
 import { useDraggable } from "@/systems/draggable";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
-import { createContext, useContext, useEffect } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+} from "react";
 import { createPortal } from "react-dom";
 import { Drawer } from "vaul";
 import { useSurfaceMode, type SurfaceMode, type SurfacePresentation } from "./presentation";
@@ -152,6 +158,7 @@ function SurfaceWindow({
     motionStyle,
     onDragStart,
     onDragEnd,
+    preventClickAfterDrag,
   } = useDraggable(id);
 
   // Escape closes, matching every other overlay in the app.
@@ -190,6 +197,9 @@ function SurfaceWindow({
             dragMomentum={false}
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
+            // Releasing a header drag over the content must not activate it —
+            // the same guard the command palette uses.
+            onClickCapture={preventClickAfterDrag}
             onPointerDown={
               isDraggable
                 ? (e: React.PointerEvent) => {
@@ -314,11 +324,14 @@ export function AdaptiveSurface({
   ...props
 }: AdaptiveSurfaceProps) {
   const mode = useSurfaceMode(presentation);
-  const value = {
-    mode,
-    isWindow: mode === "window",
-    close: () => props.onOpenChange(false),
-  };
+  const { onOpenChange } = props;
+  const close = useCallback(() => onOpenChange(false), [onOpenChange]);
+  // Memoised: the surface re-renders whenever its owner does, and its content
+  // is the whole picker grid.
+  const value = useMemo(
+    () => ({ mode, isWindow: mode === "window", close }),
+    [mode, close]
+  );
 
   return (
     <SurfaceContext.Provider value={value}>

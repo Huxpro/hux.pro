@@ -1,5 +1,6 @@
 "use client";
 
+import { ARTWORK_CHIP } from "@/systems/ambient/components/wallpaper-sheet";
 import { WeatherIcon } from "@/systems/ambient/components/weather-icon";
 import {
   GLASS_MATERIALS,
@@ -804,13 +805,32 @@ function WallpaperModule() {
   // devtool exists precisely to see combinations the setting cannot express —
   // both on at once included. They drive the ephemeral overrides, which is what
   // those were for; the persisted mode follows only when nothing is overridden.
-  const overrideFlag = (key: "full" | "widget" | "softEdging", on: boolean) =>
+  const placements = [
+    {
+      key: "full",
+      label: zh ? "全屏" : "Full",
+      aria: "Toggle full-page wallpaper",
+      on: fullGradientEnabled,
+    },
+    {
+      key: "widget",
+      label: zh ? "卡片" : "Widget",
+      aria: "Toggle widget wallpaper",
+      on: widgetGradientEnabled,
+    },
+    {
+      key: "softEdging",
+      label: zh ? "柔和边缘" : "Soft edge",
+      aria: "Toggle soft edging",
+      on: softEdgingEnabled,
+    },
+  ] as const;
+  const overrideFlag = (key: (typeof placements)[number]["key"], on: boolean) =>
     setDevtoolGradientOverrides({ ...devtoolGradientOverrides, [key]: on });
-  const isOverridden = (key: "full" | "widget" | "softEdging") =>
+  const isOverridden = (key: (typeof placements)[number]["key"]) =>
     devtoolGradientOverrides[key] !== undefined;
   const clearOverrides = () => setDevtoolGradientOverrides({});
-  const anyOverride =
-    isOverridden("full") || isOverridden("widget") || isOverridden("softEdging");
+  const anyOverride = placements.some((p) => isOverridden(p.key));
 
   // One line that answers "what am I actually looking at".
   const now = [
@@ -898,7 +918,7 @@ function WallpaperModule() {
                     aria-hidden
                     className={cn(
                       "absolute bottom-0.5 right-0.5 flex size-3.5 items-center justify-center rounded-full",
-                      "bg-black/35 text-white ring-1 ring-white/25 backdrop-blur-[2px]"
+                      ARTWORK_CHIP
                     )}
                   >
                     <Smartphone className="size-2" strokeWidth={2.25} />
@@ -911,33 +931,18 @@ function WallpaperModule() {
 
         {/* Where it paints. */}
         <div className="space-y-2 border-t border-border/30 pt-2.5">
-          <PanelRow
-            label={`${zh ? "全屏" : "Full"}${isOverridden("full") ? " *" : ""}`}
-          >
-            <PanelToggle
-              on={fullGradientEnabled}
-              onClick={() => overrideFlag("full", !fullGradientEnabled)}
-              label="Toggle full-page wallpaper"
-            />
-          </PanelRow>
-          <PanelRow
-            label={`${zh ? "卡片" : "Widget"}${isOverridden("widget") ? " *" : ""}`}
-          >
-            <PanelToggle
-              on={widgetGradientEnabled}
-              onClick={() => overrideFlag("widget", !widgetGradientEnabled)}
-              label="Toggle widget wallpaper"
-            />
-          </PanelRow>
-          <PanelRow
-            label={`${zh ? "柔和边缘" : "Soft edge"}${isOverridden("softEdging") ? " *" : ""}`}
-          >
-            <PanelToggle
-              on={softEdgingEnabled}
-              onClick={() => overrideFlag("softEdging", !softEdgingEnabled)}
-              label="Toggle soft edging"
-            />
-          </PanelRow>
+          {placements.map((p) => (
+            <PanelRow
+              key={p.key}
+              label={`${p.label}${isOverridden(p.key) ? " *" : ""}`}
+            >
+              <PanelToggle
+                on={p.on}
+                onClick={() => overrideFlag(p.key, !p.on)}
+                label={p.aria}
+              />
+            </PanelRow>
+          ))}
           {anyOverride && (
             <button
               onClick={clearOverrides}

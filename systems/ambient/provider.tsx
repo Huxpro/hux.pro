@@ -310,15 +310,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const pathname = usePathname();
   const reading = isReadingSurface({ kind: settings.wallpaperKind, pathname });
   const isBlurred = isImageKind && reading && settings.wallpaperReadingBlur;
-  const dimming = !isImageKind
-    ? null
-    : reading
-      ? settings.wallpaperReadingDim
-        ? ("reading" as const)
-        : null
-      : settings.wallpaperDimHome
-        ? ("scrim" as const)
-        : null;
+  const treatment = reading ? ("reading" as const) : ("scrim" as const);
+  const dimOn = reading ? settings.wallpaperReadingDim : settings.wallpaperDimHome;
+  const dimming = isImageKind && dimOn ? treatment : null;
   const veilAlpha = dimming ? WALLPAPER_VEIL[dimming][theme] : 0;
   const vignetteAlpha = dimming ? WALLPAPER_VIGNETTE[dimming][theme] : 0;
 
@@ -561,78 +555,143 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     return () => clearTimeout(timeout);
   }, [gradientLayers]);
 
+  // Memoised, because this provider re-renders often — the 60s clock tick, every
+  // React Query transition, every crossfade push and prune, and (since the
+  // reading surface moved in here) every navigation. A fresh object literal on
+  // any of those would re-render every consumer app-wide: the background, every
+  // widget card, the palette, the dock, the devtool. The setters are already
+  // useCallback-stable, so the memo actually holds.
+  const locationValue = useMemo(
+    () => ({
+      locationMode: settings.locationMode,
+      location: locationQuery.data ?? null,
+      isLoading: locationQuery.isLoading,
+      isFetching: locationQuery.isFetching,
+      error: locationQuery.error?.message ?? null,
+      setLocationMode,
+      requestAccurateLocation: requestAccurateLocationAction,
+      refresh: refreshLocation,
+    }),
+    [
+      settings.locationMode,
+      locationQuery.data,
+      locationQuery.isLoading,
+      locationQuery.isFetching,
+      locationQuery.error,
+      setLocationMode,
+      requestAccurateLocationAction,
+      refreshLocation,
+    ]
+  );
+
+  const weatherValue = useMemo(
+    () => ({
+      weather: weatherQuery.data ?? null,
+      gradient: computedGradient,
+      gradientLayers,
+      gradientMode: settings.weatherGradientMode,
+      fullGradientEnabled,
+      widgetGradientEnabled,
+      softEdgingEnabled,
+      edgeFadeMask,
+      isLoading: weatherQuery.isLoading,
+      isFetching: weatherQuery.isFetching,
+      error: weatherQuery.error?.message ?? null,
+      isOverrideEnabled,
+      setOverrideEnabled: setIsOverrideEnabled,
+      debugOverride,
+      setDebugOverride,
+      refresh: refreshWeather,
+      setGradientMode,
+      cycleGradientMode,
+      devtoolGradientOverrides,
+      setDevtoolGradientOverrides,
+    }),
+    [
+      weatherQuery.data,
+      weatherQuery.isLoading,
+      weatherQuery.isFetching,
+      weatherQuery.error,
+      computedGradient,
+      gradientLayers,
+      settings.weatherGradientMode,
+      fullGradientEnabled,
+      widgetGradientEnabled,
+      softEdgingEnabled,
+      edgeFadeMask,
+      isOverrideEnabled,
+      debugOverride,
+      refreshWeather,
+      setGradientMode,
+      cycleGradientMode,
+      devtoolGradientOverrides,
+    ]
+  );
+
+  const timeValue = useMemo(
+    () => ({
+      nowMs,
+      derivedPhase,
+      phase: effectivePhase,
+      isOverrideEnabled: isTimeOverrideEnabled,
+      setOverrideEnabled: setIsTimeOverrideEnabled,
+      overridePhase: timeOverridePhase,
+      setOverridePhase: setTimeOverridePhase,
+    }),
+    [nowMs, derivedPhase, effectivePhase, isTimeOverrideEnabled, timeOverridePhase]
+  );
+
+  const wallpaperValue = useMemo(
+    () => ({
+      kind: settings.wallpaperKind,
+      setKind: setWallpaperKind,
+      wallpaper: activeWallpaper,
+      wallpapers: BUILT_IN_WALLPAPERS,
+      selectWallpaper,
+      variant: theme,
+      opacity: wallpaperOpacity,
+      veil: veilAlpha,
+      vignette: vignetteAlpha,
+      blurred: isBlurred,
+      dimHome: settings.wallpaperDimHome,
+      setDimHome,
+      readingBlur: settings.wallpaperReadingBlur,
+      setReadingBlur,
+      readingDim: settings.wallpaperReadingDim,
+      setReadingDim,
+      src: wallpaperSrc,
+      isPickerOpen,
+      openPicker,
+      closePicker,
+    }),
+    [
+      settings.wallpaperKind,
+      settings.wallpaperDimHome,
+      settings.wallpaperReadingBlur,
+      settings.wallpaperReadingDim,
+      setWallpaperKind,
+      activeWallpaper,
+      selectWallpaper,
+      theme,
+      wallpaperOpacity,
+      veilAlpha,
+      vignetteAlpha,
+      isBlurred,
+      setDimHome,
+      setReadingBlur,
+      setReadingDim,
+      wallpaperSrc,
+      isPickerOpen,
+      openPicker,
+      closePicker,
+    ]
+  );
+
   return (
-    <LocationContext.Provider
-      value={{
-        locationMode: settings.locationMode,
-        location: locationQuery.data ?? null,
-        isLoading: locationQuery.isLoading,
-        isFetching: locationQuery.isFetching,
-        error: locationQuery.error?.message ?? null,
-        setLocationMode,
-        requestAccurateLocation: requestAccurateLocationAction,
-        refresh: refreshLocation,
-      }}
-    >
-      <WeatherContext.Provider
-        value={{
-          weather: weatherQuery.data ?? null,
-          gradient: computedGradient,
-          gradientLayers,
-          gradientMode: settings.weatherGradientMode,
-          fullGradientEnabled,
-          widgetGradientEnabled,
-          softEdgingEnabled,
-          edgeFadeMask,
-          isLoading: weatherQuery.isLoading,
-          isFetching: weatherQuery.isFetching,
-          error: weatherQuery.error?.message ?? null,
-          isOverrideEnabled,
-          setOverrideEnabled: setIsOverrideEnabled,
-          debugOverride,
-          setDebugOverride,
-          refresh: refreshWeather,
-          setGradientMode,
-          cycleGradientMode,
-          devtoolGradientOverrides,
-          setDevtoolGradientOverrides,
-        }}
-      >
-        <AmbientTimeContext.Provider
-          value={{
-            nowMs,
-            derivedPhase,
-            phase: effectivePhase,
-            isOverrideEnabled: isTimeOverrideEnabled,
-            setOverrideEnabled: setIsTimeOverrideEnabled,
-            overridePhase: timeOverridePhase,
-            setOverridePhase: setTimeOverridePhase,
-          }}
-        >
-          <WallpaperContext.Provider
-            value={{
-              kind: settings.wallpaperKind,
-              setKind: setWallpaperKind,
-              wallpaper: activeWallpaper,
-              wallpapers: BUILT_IN_WALLPAPERS,
-              selectWallpaper,
-              variant: theme,
-              opacity: wallpaperOpacity,
-              veil: veilAlpha,
-              vignette: vignetteAlpha,
-              blurred: isBlurred,
-              dimHome: settings.wallpaperDimHome,
-              setDimHome,
-              readingBlur: settings.wallpaperReadingBlur,
-              setReadingBlur,
-              readingDim: settings.wallpaperReadingDim,
-              setReadingDim,
-              src: wallpaperSrc,
-              isPickerOpen,
-              openPicker,
-              closePicker,
-            }}
-          >
+    <LocationContext.Provider value={locationValue}>
+      <WeatherContext.Provider value={weatherValue}>
+        <AmbientTimeContext.Provider value={timeValue}>
+          <WallpaperContext.Provider value={wallpaperValue}>
             {children}
           </WallpaperContext.Provider>
         </AmbientTimeContext.Provider>

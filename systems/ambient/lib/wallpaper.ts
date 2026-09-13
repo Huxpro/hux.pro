@@ -202,7 +202,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     platform: "iPadOS",
     year: 2024,
     caption: "2024",
-    ...pair("ipados-18-violet", "rgb(123 97 152)", "rgb(63 45 59)"),
+    ...pair("ipados-18-violet", "rgb(122 97 151)", "rgb(64 45 60)"),
   },
   {
     id: "ipados-18-indigo",
@@ -210,7 +210,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     platform: "iPadOS",
     year: 2024,
     caption: "2024",
-    ...pair("ipados-18-indigo", "rgb(69 106 174)", "rgb(46 53 79)"),
+    ...pair("ipados-18-indigo", "rgb(69 106 173)", "rgb(47 54 79)"),
   },
   {
     id: "ipados-18-blue",
@@ -218,7 +218,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     platform: "iPadOS",
     year: 2024,
     caption: "2024",
-    ...pair("ipados-18-blue", "rgb(91 131 173)", "rgb(35 49 92)"),
+    ...pair("ipados-18-blue", "rgb(91 132 173)", "rgb(36 49 92)"),
   },
   {
     id: "ipados-18-teal",
@@ -226,7 +226,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     platform: "iPadOS",
     year: 2024,
     caption: "2024",
-    ...pair("ipados-18-teal", "rgb(79 130 142)", "rgb(34 55 75)"),
+    ...pair("ipados-18-teal", "rgb(80 130 143)", "rgb(34 55 75)"),
   },
   {
     id: "ios-27",
@@ -293,10 +293,6 @@ export function getWallpaper(id: string): Wallpaper | null {
 /** The stored id, falling back to the default when it no longer exists. */
 export function getWallpaperOrDefault(id: string): Wallpaper {
   return BY_ID.get(id) ?? BUILT_IN_WALLPAPERS[0];
-}
-
-export function getWallpapersByPlatform(platform: WallpaperPlatform): Wallpaper[] {
-  return BUILT_IN_WALLPAPERS.filter((w) => w.platform === platform);
 }
 
 function buildAsset(asset: WallpaperAsset, preview: boolean): ResolvedWallpaper {
