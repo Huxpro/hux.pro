@@ -13,7 +13,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import type { Media } from "@/lib/log";
+import type { CommitByline, Media } from "@/lib/log";
 import type { NormalizedCommit } from "./commit-data";
 import { commitIcons, commitIconOverrides } from "./icons";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
@@ -35,6 +35,54 @@ import { resolveSlidesEmbedUrl } from "./media/slides";
  * rows, but the author block still names the person once opened.
  */
 const DEFAULT_AUTHOR_HANDLE = "hux";
+
+function AuthorBlock({
+  byline,
+  compact = false,
+}: {
+  byline: CommitByline | null;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono",
+        compact ? "mt-1.5" : "pb-2.5 mb-1",
+      )}
+    >
+      <span className="text-muted-foreground/40">Author:</span>
+      <span className="text-muted-foreground/65">
+        &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;
+      </span>
+
+      {byline?.expanded.title && (
+        <>
+          <span className="text-muted-foreground/40">Role:</span>
+          <span className="min-w-0 text-muted-foreground/60">
+            {byline.expanded.title}
+            <span className="text-muted-foreground/35"> @ </span>
+            {byline.expanded.company}
+            {byline.expanded.location && (
+              <>
+                <span className="text-muted-foreground/30"> · </span>
+                {byline.expanded.location}
+              </>
+            )}
+          </span>
+        </>
+      )}
+
+      {!compact && byline?.expanded.description && (
+        <>
+          <span />
+          <span className="text-muted-foreground/50 mt-1 leading-relaxed">
+            {byline.expanded.description}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
 
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter
@@ -77,36 +125,16 @@ interface TimelineCommitProps {
    *  where a sibling's stale clear would otherwise overwrite a fresh
    *  hover on another row. */
   onBeamClear?: (spec: BeamSpec) => void;
-  /** Git-author-style byline. Pre-localized in the timeline.
-   *
-   *  Layout: the handle sits right-aligned in the subtitle row, under
-   *  the row's date column. The row is reserved (same font-size /
-   *  line-height as a meta line) even when there's no left-side meta
-   *  to print, so vertical rhythm stays consistent across rows.
-   *
-   *  Sparse: `isClusterHead` rows render the byline at full opacity;
-   *  non-head rows render it transparent and fade in on cluster hover,
-   *  so the timeline reads as "one author per chapter" instead of
-   *  repeating the same `<jsx@fb.com>` on every line in a tenure run.
-   *
-   *  Expanded: the `expanded` payload feeds a `git log --pretty=fuller`
-   *  style block at the top of the row's expanded body. */
-  byline?: {
-    handle: string;
-    isClusterHead: boolean;
-    /**
-     * Effective team subtitle for a project row (set only when this is
-     * the first row in a same-team run). Rendered as the subtitle-row
-     * left cell when the commit has no venue meta of its own.
-     */
-    subtitle?: string;
-    expanded: {
-      title: string;
-      company: string;
-      location?: string;
-      description?: string;
-    };
-  } | null;
+  /** Git-author-style byline. Pre-localized by the parent
+   *  (`buildCommitBylines` on /works, `resolveCommitByline` on isolated
+   *  cards). See {@link CommitByline} for the field contract. */
+  byline?: CommitByline | null;
+  /**
+   * `"widget"` is the home processing-card presentation: a miniature
+   * /works row (title, links, author, role) with no attachments, no
+   * expand, and no git-graph chrome. Default `"full"` is the timeline.
+   */
+  presentation?: "full" | "widget";
   inspecting?: boolean;
   isSelected?: boolean;
   isUnlisted?: boolean;
@@ -129,6 +157,7 @@ export function TimelineCommit({
   onBeamSet,
   onBeamClear,
   byline = null,
+  presentation = "full",
   inspecting = false,
   isSelected = false,
   isUnlisted = false,
@@ -141,25 +170,33 @@ export function TimelineCommit({
     (data.iconOverride && commitIconOverrides[data.iconOverride]) ||
     commitIcons[data.type];
   const isEvent = data.type === "event";
+  const isWidget = presentation === "widget";
   const [isExpandedState, setIsExpanded] = useState(defaultExpanded);
-  const isExpanded = inspecting ? isSelected : isExpandedState;
+  const isExpanded = isWidget
+    ? false
+    : inspecting
+      ? isSelected
+      : isExpandedState;
 
-  const hasExpandableContent = !!(
-    data.description ||
-    data.commentary ||
-    data.tags.length > 0 ||
-    data.stats ||
-    data.expandedMedia.length > 0 ||
-    data.pinnedMedia.length > 0 ||
-    byline
-  );
+  const hasExpandableContent =
+    !isWidget &&
+    !!(
+      data.description ||
+      data.commentary ||
+      data.tags.length > 0 ||
+      data.stats ||
+      data.expandedMedia.length > 0 ||
+      data.pinnedMedia.length > 0 ||
+      byline
+    );
 
   // Pinned items render once in a stable spot beneath the row (visible
   // folded *and* expanded), so toggling never remounts them. The expanded
   // block renders the rest; normalizeCommit has already excluded pinned
   // items from `expandedMedia`, so no further filtering is needed here.
-  const pinnedMedia = data.pinnedMedia as Media[];
-  const expandedMedia = data.expandedMedia;
+  // Widget cards never show attachments — links stay in the folded rail.
+  const pinnedMedia = isWidget ? [] : (data.pinnedMedia as Media[]);
+  const expandedMedia = isWidget ? [] : data.expandedMedia;
 
   // Sync to the page-level "expand/collapse all" command without an effect:
   // store the last seen value and reconcile during render when it flips, so
@@ -186,7 +223,7 @@ export function TimelineCommit({
       ? handleToggleExpanded
       : undefined;
 
-  const showCursorPreview = !!cursorPreview && !isExpanded;
+  const showCursorPreview = !isWidget && !!cursorPreview && !isExpanded;
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -208,7 +245,7 @@ export function TimelineCommit({
   // pinned on after collapsing on mobile. We use pointer events with
   // a pointerType guard so only mouse/pen drive the hover state —
   // touch is ignored and isExpanded becomes the sole signal on phones.
-  const participatesInSegment = !!beamSpec;
+  const participatesInSegment = !isWidget && !!beamSpec;
   const [isHovered, setIsHovered] = useState(false);
   const handleSegmentPointerEnter = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -245,8 +282,8 @@ export function TimelineCommit({
   // doesn't exist where the icon does. computeRail emits `┐` (role
   // anchor — segment below only), `│` (mid — both), `┘` (segment end —
   // segment above only), `""` (no rail).
-  const hasRailAbove = rail === "│" || rail === "┘";
-  const hasRailBelow = rail === "│" || rail === "┐";
+  const hasRailAbove = !isWidget && (rail === "│" || rail === "┘");
+  const hasRailBelow = !isWidget && (rail === "│" || rail === "┐");
   // A role row shows its anchor ring whenever it's part of a tenure
   // cluster (i.e. has a rail char). The role might sit at the top
   // (rail="┐"), bottom (rail="┘"), or middle (rail="│") of its cluster
@@ -259,10 +296,18 @@ export function TimelineCommit({
   const iconGapPx = isEvent ? 3 : isRoleAnchor ? 10 : 7;
 
   const rowContent = (
-    <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+    <div
+      className={cn(
+        "grid gap-x-2 items-start",
+        isWidget
+          ? "grid-cols-[auto_auto_1fr]"
+          : "grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr]",
+      )}
+    >
       <span
         className={cn(
-          "hidden @sm:inline font-mono text-xs select-all",
+          isWidget ? "inline" : "hidden @sm:inline",
+          "font-mono text-xs select-all",
           // Events render the hash transparent — no link, no reference,
           // hash is noise. Keeping it occupies the column so titles
           // stay aligned with adjacent commit rows. Leading also drops
@@ -454,7 +499,12 @@ export function TimelineCommit({
         on-screen while you read.
       */}
       {(data.meta || byline) && (
-        <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-muted-foreground/40 flex items-baseline justify-between gap-2">
+        <div
+          className={cn(
+            "mt-1 text-xs font-mono text-muted-foreground/40 flex items-baseline justify-between gap-2",
+            isWidget ? "col-start-3" : "col-start-2 @sm:col-start-3",
+          )}
+        >
           <span className="min-w-0 truncate">
             {data.meta ? (
               data.metaUrl ? (
@@ -483,7 +533,7 @@ export function TimelineCommit({
             <span
               className={cn(
                 "shrink-0 text-muted-foreground/55 transition-opacity duration-200",
-                byline.isClusterHead || isExpanded
+                byline.isClusterHead || isExpanded || isWidget
                   ? "opacity-100"
                   : "opacity-0 group-hover:opacity-100",
               )}
@@ -491,6 +541,12 @@ export function TimelineCommit({
               {byline.handle}
             </span>
           )}
+        </div>
+      )}
+
+      {isWidget && data.type !== "role" && data.type !== "event" && (
+        <div className="col-start-3">
+          <AuthorBlock byline={byline} compact />
         </div>
       )}
 
@@ -535,38 +591,7 @@ export function TimelineCommit({
             Role / description only when a resolved role provides them.
           */}
           {data.type !== "role" && data.type !== "event" && (
-            <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono pb-2.5 mb-1">
-              <span className="text-muted-foreground/40">Author:</span>
-              <span className="text-muted-foreground/65">
-                &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;
-              </span>
-
-              {byline?.expanded.title && (
-                <>
-                  <span className="text-muted-foreground/40">Role:</span>
-                  <span className="text-muted-foreground/60">
-                    {byline.expanded.title}
-                    <span className="text-muted-foreground/35"> @ </span>
-                    {byline.expanded.company}
-                    {byline.expanded.location && (
-                      <>
-                        <span className="text-muted-foreground/30"> · </span>
-                        {byline.expanded.location}
-                      </>
-                    )}
-                  </span>
-                </>
-              )}
-
-              {byline?.expanded.description && (
-                <>
-                  <span />
-                  <span className="text-muted-foreground/50 mt-1 leading-relaxed">
-                    {byline.expanded.description}
-                  </span>
-                </>
-              )}
-            </div>
+            <AuthorBlock byline={byline} />
           )}
 
           {data.subtitle && (
@@ -640,7 +665,7 @@ export function TimelineCommit({
             "group relative -mx-3 px-3 rounded-lg transition-colors duration-150 overflow-y-clip",
             // Events get tighter vertical padding so they sit between
             // commits as ambient annotations rather than as full rows.
-            isEvent ? "py-1" : "py-2.5",
+            isWidget ? "py-1.5" : isEvent ? "py-1" : "py-2.5",
             rowOnClick ? "cursor-pointer" : "cursor-default",
             "@container",
             // Hover/active highlight is tied to the fold/unfold trigger

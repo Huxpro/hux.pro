@@ -6,6 +6,7 @@ import {
   VStackWidget,
 } from "@/components/home/featured-stack-widget";
 import { FeaturedTalksWidget } from "@/components/home/featured-talks-widget";
+import { ProcessingWidget } from "@/components/home/processing-widget";
 import { PromptWidget } from "@/components/home/prompt-widget";
 import { ScrambleIdentifier } from "@/components/home/scramble-identifier";
 import { Commit } from "@/components/log";
@@ -15,14 +16,6 @@ import {
   type SortableWidget,
 } from "@/components/ui/sortable-masonry";
 import { useHeroFade } from "@/components/ui/use-hero-fade";
-import {
-  WidgetBody,
-  WidgetHeader,
-  WidgetLink,
-  WidgetShell,
-  WidgetStatus,
-  WidgetTitle,
-} from "@/components/ui/widget";
 import logData from "@/content/log.json";
 import { getLocalizedTitle, getPostHref, shouldShowPost } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
@@ -30,12 +23,8 @@ import type {
   Commit as CommitData,
   Group,
   RawLogData,
-  RoleCommit,
 } from "@/lib/log";
 import {
-  isCommitListed,
-  isCommitVisibleIn,
-  isRoleCommit,
   localize,
   normalizeLogData,
   resolveGroupCommits,
@@ -86,40 +75,6 @@ const log = enrichLogDataWithPreviews(
   ogSnapshotJson as OGSnapshot,
 );
 
-function getCurrentRoleCommit(commits: CommitData[]): RoleCommit | null {
-  const roles = commits.filter(isRoleCommit).filter(isCommitListed);
-  if (roles.length === 0) return null;
-
-  const key = (c: RoleCommit) =>
-    c.endDate === "present" ? "9999-12" : (c.endDate ?? c.date);
-
-  return [...roles].sort((a, b) => key(b).localeCompare(key(a)))[0] ?? null;
-}
-
-function ProcessingWidget() {
-  const { locale } = useLocale();
-  const visible = (log.commits as CommitData[]).filter((c) =>
-    isCommitVisibleIn(c, locale),
-  );
-  const role = getCurrentRoleCommit(visible);
-  if (!role) return null;
-
-  return (
-    <WidgetShell>
-      <WidgetHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <WidgetStatus />
-          <WidgetTitle>{t(locale, "widgetStatus")}</WidgetTitle>
-        </div>
-        <WidgetLink href="/works" label="View works" />
-      </WidgetHeader>
-      <WidgetBody>
-        <Commit commit={role} locale={locale} variant="bare" />
-      </WidgetBody>
-    </WidgetShell>
-  );
-}
-
 function GroupWidget({ group }: { group: Group }) {
   const { locale } = useLocale();
 
@@ -169,10 +124,6 @@ function WidgetGrid() {
 
   // Resolve presence up-front so conditionally-empty widgets never occupy an
   // empty, draggable slot in the masonry.
-  const visibleCommits = (log.commits as CommitData[]).filter((c) =>
-    isCommitVisibleIn(c, locale),
-  );
-  const role = getCurrentRoleCommit(visibleCommits);
   // The three featured talk groups (React / Lynx / Personal) are now unified
   // into the single album-switching FeaturedTalksWidget, so exclude them from
   // the generic group rendering.
@@ -184,13 +135,12 @@ function WidgetGrid() {
       resolveGroupCommits(group, log.commits as CommitData[], undefined, locale)
         .length > 0,
   );
-
   const items: SortableWidget[] = [
     { id: "apps", node: <AppFolder /> },
     { id: "weather", node: <WeatherWidget /> },
     { id: "blog", node: <BlogStackWidget /> },
     { id: "music", node: <MusicWidget /> },
-    ...(role ? [{ id: "status", node: <ProcessingWidget /> }] : []),
+    { id: "status", node: <ProcessingWidget /> },
     { id: "featured-talks", node: <FeaturedTalksWidget /> },
     { id: "prompt", node: <PromptWidget /> },
     ...visibleGroups.map((group) => ({

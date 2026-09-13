@@ -1242,6 +1242,31 @@ export interface ResolvedIdentity {
   role: RoleCommit | null;
 }
 
+/**
+ * Git-author-style byline shown on a commit row. Handle + company come
+ * from the shared identity; title / location / description come from
+ * the specific role instance that owns this commit's date.
+ *
+ * Pre-localized — renderers stay locale-agnostic.
+ */
+export interface CommitByline {
+  handle: string;
+  isClusterHead: boolean;
+  /**
+   * Effective team subtitle for a project row
+   * (`project.team ?? role.team`). Sparse on the full timeline (set
+   * only on the first row of a same-team run); always set when the
+   * row is rendered in isolation (widget cards).
+   */
+  subtitle?: string;
+  expanded: {
+    title: string;
+    company: string;
+    location?: string;
+    description?: string;
+  };
+}
+
 // Cheap module-level helpers so identity resolution doesn't rebuild
 // them on every call. `9999-12` is the open-ended-tenure sentinel.
 const monthStr = (s: string) => s.slice(0, 7);
@@ -1357,6 +1382,102 @@ export function resolveIdentity(
   return best ? { identityId: best.identityId, role: best } : null;
 }
 
+/**
+ * Resolve a single commit's author byline (handle + role). Returns
+ * null when the commit has no identity (events, explicit detach, or
+ * a missing identity map entry).
+ *
+ * `isClusterHead` is always `true` here — the caller that renders a
+ * contiguous run (the /works timeline) overlays sparse clustering via
+ * {@link buildCommitBylines}. Isolated surfaces (home widgets) keep
+ * the handle / team subtitle visible on every card.
+ */
+export function resolveCommitByline(
+  commit: Commit,
+  commits: Commit[],
+  identities: Record<string, Identity> | undefined,
+  locale: Locale,
+): CommitByline | null {
+  const resolved = resolveIdentity(commit, commits);
+  if (!resolved) return null;
+  const identity = identities?.[resolved.identityId];
+  if (!identity) return null;
+
+  const role = resolved.role;
+  const company = role?.companyOverride
+    ? localize(role.companyOverride, locale)
+    : localize(identity.company, locale);
+  const title = role ? localize(role.title, locale) : "";
+  const desc = role ? localize(role.description, locale) : "";
+
+  let subtitle: string | undefined;
+  if (commit.type === "project") {
+    const teamRaw = commit.team ?? role?.team;
+    subtitle = teamRaw ? localize(teamRaw, locale) : undefined;
+  }
+
+  return {
+    handle: identity.handle,
+    isClusterHead: true,
+    subtitle,
+    expanded: {
+      title,
+      company,
+      location: role?.location,
+      description: desc && desc.trim() ? desc : undefined,
+    },
+  };
+}
+
+/**
+ * Per-row bylines for a contiguous timeline run. Same payload as
+ * {@link resolveCommitByline}, plus sparse clustering:
+ *  - `isClusterHead` is true only on the first row of a same-identity
+ *    run, so the handle prints once per chapter.
+ *  - Project team subtitles print only when the team changes.
+ */
+export function buildCommitBylines(
+  commits: Commit[],
+  identities: Record<string, Identity> | undefined,
+  locale: Locale,
+): (CommitByline | null)[] {
+  const bylines: (CommitByline | null)[] = commits.map(() => null);
+  let prevIdentityId: string | null = null;
+  let prevProjectTeam: string | null = null;
+
+  for (let i = 0; i < commits.length; i++) {
+    const commit = commits[i];
+    const resolved = resolveIdentity(commit, commits);
+    if (!resolved) {
+      prevIdentityId = null;
+      continue;
+    }
+    const byline = resolveCommitByline(commit, commits, identities, locale);
+    if (!byline) {
+      prevIdentityId = null;
+      continue;
+    }
+
+    const isClusterHead = resolved.identityId !== prevIdentityId;
+    prevIdentityId = resolved.identityId;
+
+    let subtitle: string | undefined;
+    if (commit.type === "project") {
+      const teamStr = byline.subtitle;
+      if (teamStr && teamStr !== prevProjectTeam) {
+        subtitle = teamStr;
+        prevProjectTeam = teamStr;
+      } else if (teamStr) {
+        prevProjectTeam = teamStr;
+      }
+    }
+
+    bylines[i] = { ...byline, isClusterHead, subtitle };
+  }
+
+  return bylines;
+}
+
 
 /**
  * Build the timeline data structure from raw LogData.
@@ -1470,6 +1591,21 @@ export function resolveGroupCommits(
 
 export function isProjectCommit(commit: Commit): commit is ProjectCommit {
   return commit.type === "project";
+}
+
+/**
+ * Listed, locale-visible project commits — the home processing
+ * widget's data source. Talks are excluded (they already have their
+ * own featured-talks widget); roles / posts / social / events stay
+ * off the stack so the card stays a miniature /works project log.
+ */
+export function getWidgetProjectCommits(
+  commits: Commit[],
+  locale: Locale,
+): Commit[] {
+  return sortCommitsByDate(
+    commits.filter((c) => isProjectCommit(c) && isCommitVisibleIn(c, locale)),
+  );
 }
 
 export function isTalkCommit(commit: Commit): commit is TalkCommit {

@@ -8,11 +8,18 @@
  * - "timeline": Dense git-log row (TimelineCommit)
  * - "card": TimelineCommit in a border frame container
  * - "bare": Minimal compact for widgets (CommitCompact)
+ * - "mini": Miniature /works row for the home processing stack
+ *   (title, links, author, role — no attachments)
  */
 
 import { useCallback, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
-import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
+import type {
+  Commit as CommitData,
+  CommitByline,
+  Media,
+  PeekItem,
+} from "@/lib/log";
 import { getCommitPeekItems, localize } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./media/external-image";
@@ -27,7 +34,7 @@ import { useTimelineEdit } from "./timeline-edit-context";
 // Types
 // =============================================================================
 
-export type CommitVariant = "timeline" | "card" | "bare";
+export type CommitVariant = "timeline" | "card" | "bare" | "mini";
 
 export interface CommitProps {
   commit: CommitData;
@@ -52,19 +59,9 @@ export interface CommitProps {
   /** Notify the parent the row no longer wants its beam rendered.
    *  Parent should ignore stale clears that don't match the current beam. */
   onBeamClear?: (spec: BeamSpec) => void;
-  /** Author byline for git-author-style rendering. Pre-localized in
-   *  the timeline so this component stays locale-agnostic. */
-  byline?: {
-    handle: string;
-    isClusterHead: boolean;
-    subtitle?: string;
-    expanded: {
-      title: string;
-      company: string;
-      location?: string;
-      description?: string;
-    };
-  } | null;
+  /** Author byline for git-author-style rendering. Pre-localized by
+   *  the parent so this component stays locale-agnostic. */
+  byline?: CommitByline | null;
 }
 
 // =============================================================================
@@ -167,6 +164,17 @@ export function Commit({
 
     case "bare":
       return <CommitCompact data={data} className={className} />;
+
+    case "mini":
+      return (
+        <TimelineCommit
+          data={data}
+          presentation="widget"
+          hideDate={hideDate}
+          byline={byline}
+          className={className}
+        />
+      );
   }
 }
 
