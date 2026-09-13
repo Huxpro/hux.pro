@@ -14,8 +14,9 @@
 // past the size budget an ambient background should cost.
 //
 // Adding a pair: download the originals, encode them as
-// `public/wallpapers/<id>/{light,dark}.webp` plus `.thumb.webp` (WebP, long
-// edge ≤ 2560 at q80; thumbs ≤ 480 at q72), record the source URLs in
+// `public/wallpapers/<id>/{light,dark}.webp` plus `.thumb.webp` (WebP at q80,
+// width ≤ 2560 and height ≤ 3600, never upscaled; thumbs ≤ 480 at q72), record
+// the source URLs in
 // `sources.json`, then add the entry to `BUILT_IN_WALLPAPERS` in
 // `systems/ambient/lib/wallpaper.ts` with the base colours this script prints.
 // =============================================================================
@@ -30,7 +31,19 @@ const DIR = path.join(process.cwd(), "public", "wallpapers");
 /** A full-size wallpaper past this is too heavy for an ambient background. */
 const MAX_FULL_KB = 120;
 const MAX_THUMB_KB = 16;
-const MAX_EDGE = 2560;
+
+/**
+ * Bounds on the committed pixels, and they are NOT a square box on purpose.
+ *
+ * A single "long edge ≤ 2560" cap is wrong for portrait artwork. The long edge
+ * of a phone wallpaper is its height, which nothing on a desktop ever needs —
+ * capping it there left iOS 27 at 1178px wide when Apple ships it at 1320, and
+ * iOS 18's dark half at 1182 from a 2580px source. Width is what a viewport
+ * actually spends, so width gets the real budget and height only has to keep
+ * the file from running away.
+ */
+const MAX_WIDTH = 2560;
+const MAX_HEIGHT = 3600;
 
 async function main() {
   const manifest = JSON.parse(
@@ -79,9 +92,9 @@ async function main() {
           `${pair.id}/${variant} thumb: ${thumbKb}KB exceeds ${MAX_THUMB_KB}KB`
         );
       }
-      if (Math.max(meta.width, meta.height) > MAX_EDGE) {
+      if (meta.width > MAX_WIDTH || meta.height > MAX_HEIGHT) {
         problems.push(
-          `${pair.id}/${variant}: ${meta.width}x${meta.height} exceeds ${MAX_EDGE}px`
+          `${pair.id}/${variant}: ${meta.width}x${meta.height} exceeds ${MAX_WIDTH}x${MAX_HEIGHT}`
         );
       }
 
