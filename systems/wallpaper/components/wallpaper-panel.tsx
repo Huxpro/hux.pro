@@ -35,7 +35,7 @@ function TileChrome({
   return (
     <div
       className={cn(
-        "relative aspect-[16/10] overflow-hidden rounded-[18px]",
+        "relative aspect-[16/10] overflow-hidden rounded-[18px] [container-type:size]",
         "ring-1 transition-[box-shadow,ring-color] duration-200",
         selected
           ? "ring-2 ring-white/80 dark:ring-white/70"
@@ -83,11 +83,21 @@ function WeatherTile() {
           }}
           aria-pressed={selected}
           aria-label={t(locale, "wallpaperWeather")}
-          className="absolute inset-0"
+          className="absolute inset-0 overflow-hidden"
         >
+          {/* Scale the viewport-sized weather gradient into the 16:10 card so
+              the 900px radials match the homepage instead of washing out. */}
           <span
-            className="absolute inset-0"
-            style={gradient ? { backgroundImage: gradient } : undefined}
+            aria-hidden
+            className="pointer-events-none absolute left-0 top-0 h-[100vh] w-[100vw] origin-top-left"
+            style={
+              gradient
+                ? {
+                    backgroundImage: gradient,
+                    transform: "scale(calc(100cqw / 100vw))",
+                  }
+                : undefined
+            }
           />
         </button>
       </TileChrome>
