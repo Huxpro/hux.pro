@@ -4,9 +4,9 @@ import { cn } from "@/lib/utils";
 // Theater / talks glass chrome — one material system
 //
 // Matches AlbumTabs (Featured Talks widget): frosted track + lifted pill, not
-// inverted black stamps or four lonely discs. Shared by the widget, theater
-// toolbar, PiP bar, and the talks Live Activity so the four surfaces read as
-// one system. Theater (always-dark) uses on-dark tokens; the others stay
+// inverted black stamps or four lonely discs. Shared by talks (widget, theater,
+// PiP, Live Activity) and music (widget + Live Activity) so playback chrome
+// is one system. Theater (always-dark) uses on-dark tokens; the others stay
 // theme-aware.
 // =============================================================================
 

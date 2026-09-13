@@ -2,19 +2,12 @@
 
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Maximize2,
-  Minus,
-  Pause,
-  Play,
-  SkipBack,
-  SkipForward,
-  X,
-} from "lucide-react";
+import { Pause, Play, SkipBack, SkipForward, X } from "lucide-react";
 import { useRef } from "react";
 import { GLASS_BTN, GLASS_CLUSTER, GLASS_PILL } from "../lib/chrome";
 import { PIP_CONTROLS_H } from "../lib/geometry";
 import { useTheater } from "../provider";
+import { SurfaceSwitch } from "./surface-switch";
 
 // ---------------------------------------------------------------------------
 // PipOverlay — the floating, draggable Picture-in-Picture window.
@@ -25,8 +18,9 @@ import { useTheater } from "../provider";
 // tablet+ it can expand back to theater; everywhere it can minimize to a Live
 // Activity (keep listening) or close.
 //
-// Chrome matches Featured Talks / theater: frosted track + clustered round
-// buttons, not a flat card bar with squared icon hits.
+// Chrome matches Featured Talks / theater. The SurfaceSwitch pill marks PiP
+// as the current view; Theater / Mini are the only moves. Close is outside
+// the switcher — it ends the session, it is not a view.
 // ---------------------------------------------------------------------------
 
 const CLUSTER_BTN = cn(GLASS_BTN, "h-7 w-7");
@@ -142,19 +136,17 @@ export function PipOverlay() {
             </button>
           </div>
 
-          <div className={GLASS_CLUSTER}>
-            {theaterAvailable && (
-              <button onClick={toTheater} aria-label="Expand to theater" className={CLUSTER_BTN}>
-                <Maximize2 className="h-3.5 w-3.5" />
-              </button>
-            )}
-            <button onClick={minimize} aria-label="Minimize" className={CLUSTER_BTN}>
-              <Minus className="h-3.5 w-3.5" />
-            </button>
-            <button onClick={close} aria-label="Close" className={CLUSTER_BTN}>
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          <SurfaceSwitch
+            current="pip"
+            theaterAvailable={theaterAvailable}
+            onSelect={(surface) => {
+              if (surface === "theater") toTheater();
+              if (surface === "mini") minimize();
+            }}
+          />
+          <button onClick={close} aria-label="Close" className={CLUSTER_BTN}>
+            <X className="h-3.5 w-3.5" />
+          </button>
         </motion.div>
       )}
     </AnimatePresence>

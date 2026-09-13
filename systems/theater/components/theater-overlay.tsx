@@ -6,20 +6,15 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
-  Minimize2,
-  PictureInPicture2,
   X,
 } from "lucide-react";
 import { Link } from "next-view-transitions";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  GLASS_ON_DARK_BTN,
-  GLASS_ON_DARK_CLUSTER,
-  GLASS_ON_DARK_ORB,
-} from "../lib/chrome";
+import { GLASS_ON_DARK_ORB } from "../lib/chrome";
 import { useTheater } from "../provider";
 import { AlbumTabs } from "./album-tabs";
 import { PlaylistRail } from "./playlist-rail";
+import { SurfaceSwitch } from "./surface-switch";
 
 // ---------------------------------------------------------------------------
 // TheaterOverlay — the immersive desktop modal chrome.
@@ -29,9 +24,6 @@ import { PlaylistRail } from "./playlist-rail";
 // keyboard shortcut — never on ambient pointer jitter. Auto-hides quickly
 // after the pointer leaves chrome, whether playing or paused.
 // ---------------------------------------------------------------------------
-
-/** Hit target inside the clustered toolbar (~44pt). */
-const CLUSTER_BTN = cn(GLASS_ON_DARK_BTN, "h-10 w-10");
 
 const FADE = { duration: 0.18, ease: "easeOut" as const };
 /** Idle before chrome tucks away once the pointer leaves a chrome zone. */
@@ -316,33 +308,31 @@ export function TheaterOverlay() {
                     onSelect={selectAlbum}
                     tone="onDark"
                   />
-                  <div className={GLASS_ON_DARK_CLUSTER}>
+                  <div className="flex items-center gap-1.5">
                     {track?.url && (
                       <a
                         href={track.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="Open on source site"
-                        className={CLUSTER_BTN}
+                        className={cn(GLASS_ON_DARK_ORB, "h-10 w-10")}
                       >
                         <ExternalLink className="h-4 w-4" />
                       </a>
                     )}
+                    <SurfaceSwitch
+                      current="theater"
+                      tone="onDark"
+                      onSelect={(surface) => {
+                        if (surface === "pip") toPip();
+                        if (surface === "mini") minimize();
+                      }}
+                    />
                     <button
-                      aria-label="Picture in picture"
-                      className={CLUSTER_BTN}
-                      onClick={toPip}
+                      aria-label="Close"
+                      className={cn(GLASS_ON_DARK_ORB, "h-10 w-10")}
+                      onClick={close}
                     >
-                      <PictureInPicture2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      aria-label="Minimize"
-                      className={CLUSTER_BTN}
-                      onClick={minimize}
-                    >
-                      <Minimize2 className="h-4 w-4" />
-                    </button>
-                    <button aria-label="Close" className={CLUSTER_BTN} onClick={close}>
                       <X className="h-5 w-5" />
                     </button>
                   </div>

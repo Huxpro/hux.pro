@@ -1,23 +1,21 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { LiveActivity, useDock } from "@/systems/dock";
 import { EQBars } from "@/systems/music/components/now-playing";
-import { Maximize2, PictureInPicture2, Video } from "lucide-react";
+import { Video } from "lucide-react";
 import { useEffect, useState } from "react";
-import { GLASS_ACTION, GLASS_PILL, GLASS_TRACK } from "../lib/chrome";
 import { useTheater } from "../provider";
+import { SurfaceSwitch } from "./surface-switch";
 import { TrackThumb } from "./track-thumb";
 import { VideoControls } from "./video-controls";
 
 // ---------------------------------------------------------------------------
-// TheaterActivity — the minimized form of the video system.
+// TheaterActivity — Mini view of the video system.
 //
-// When PiP is minimized, the video parks off-screen but keeps playing (audio),
-// and this Live Activity takes over: a collapsed pill (cover + EQ) that unfolds
-// into transport controls plus "return to PiP / theater" — exactly the Music
-// widget's minimize-but-keep-listening behavior, reused for video.
+// Exclusive with Theater and PiP. The video parks off-screen but keeps
+// playing (audio). A Live Activity pill unfolds into transport + a
+// SurfaceSwitch whose lifted pill is Mini (current), not an action.
 // ---------------------------------------------------------------------------
 
 export function TheaterActivity() {
@@ -38,13 +36,10 @@ export function TheaterActivity() {
   const isLoading = phase === "loading";
   const showEQ = isPlaying || isLoading;
 
-  const returnToPip = () => {
+  const go = (surface: "theater" | "pip") => {
     closeDock();
-    restore();
-  };
-  const returnToTheater = () => {
-    closeDock();
-    toTheater();
+    if (surface === "pip") restore();
+    else toTheater();
   };
 
   return (
@@ -78,13 +73,9 @@ export function TheaterActivity() {
     >
       <div className="space-y-3 px-5 pb-3">
         <div className="flex gap-3">
-          <button
-            onClick={returnToPip}
-            className="w-24 shrink-0 group/thumb"
-            aria-label={t(locale, "theaterReturnPip")}
-          >
-            <TrackThumb track={track} />
-          </button>
+          <div className="w-24 shrink-0">
+            <TrackThumb track={track} showBadge={false} />
+          </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-medium text-foreground">
               {track.title}
@@ -99,35 +90,15 @@ export function TheaterActivity() {
 
         <VideoControls variant="pip" />
 
-        {theaterAvailable ? (
-          <div className={cn("flex w-full items-center rounded-full p-0.5", GLASS_TRACK)}>
-            <button
-              onClick={returnToPip}
-              aria-label={t(locale, "theaterReturnPip")}
-              className={cn(GLASS_ACTION, GLASS_PILL, "h-8 flex-1 text-foreground")}
-            >
-              <PictureInPicture2 className="h-3.5 w-3.5 shrink-0" />
-              {t(locale, "theaterPip")}
-            </button>
-            <button
-              onClick={returnToTheater}
-              aria-label={t(locale, "theaterExpand")}
-              className={cn(GLASS_ACTION, "h-8 flex-1")}
-            >
-              <Maximize2 className="h-3.5 w-3.5 shrink-0" />
-              {t(locale, "theaterExpand")}
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={returnToPip}
-            aria-label={t(locale, "theaterReturnPip")}
-            className={cn(GLASS_ACTION, GLASS_PILL, "h-8 w-full text-foreground")}
-          >
-            <PictureInPicture2 className="h-3.5 w-3.5 shrink-0" />
-            {t(locale, "theaterPip")}
-          </button>
-        )}
+        <SurfaceSwitch
+          current="mini"
+          theaterAvailable={theaterAvailable}
+          labels
+          onSelect={(surface) => {
+            if (surface === "pip") go("pip");
+            if (surface === "theater") go("theater");
+          }}
+        />
       </div>
     </LiveActivity>
   );
