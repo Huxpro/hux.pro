@@ -225,10 +225,9 @@ export default function Home() {
       <div className="my-auto w-full">
         <div className="mx-auto max-w-[680px]">
           <HeaderZone
-            // The hero grows with the viewport on tall screens so the greeting
-            // keeps its distance from the grid instead of the whole block
-            // reading as one dense slab floating in the middle.
-            heightClassName="h-44 sm:h-48 lg:h-[clamp(12rem,20svh,17rem)]"
+            // Identifier → greeting → grid is a fixed rhythm: the hero keeps
+            // its default height at every size, so only the composition as a
+            // whole moves when there is room to spare, never its internals.
             className="hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
             style={heroFadeStyle}
           >
