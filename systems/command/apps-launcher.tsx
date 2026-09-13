@@ -39,7 +39,7 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
       <div
         className={cn(
           // Fixed-pitch icon strip: tight on desktop, scrolls when needed.
-          "no-scrollbar flex gap-0.5 overflow-x-auto px-1.5 py-1",
+          "no-scrollbar flex gap-0.5 overflow-x-auto px-1.5 py-1.5",
         )}
       >
         {APPS.map((app) => {

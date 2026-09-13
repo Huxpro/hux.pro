@@ -65,38 +65,49 @@ export function AppTile({
   const px = TILE_PX[size];
 
   return (
-    <span className={cn("flex w-full flex-col items-center", className)}>
-      <span className="relative block" style={{ width: px, height: px }}>
+    <span className={cn("flex w-full flex-col items-center overflow-visible", className)}>
+      <span className="relative block overflow-visible" style={{ width: px, height: px }}>
+        {/* Scale a wrapper *outside* the rounded clip so overflow:hidden +
+            transform don't shear the squircle (or the badge that hangs off
+            the corner) against a clipping ancestor. */}
         <span
           className={cn(
-            "block overflow-hidden",
-            RADIUS[size],
-            "border border-black/8 dark:border-white/12",
-            // Padded glyphs need a white plate; full-bleed icons bring their
-            // own background (a plate would fringe the rounded clip).
-            !fills && "bg-white",
-            "transition-transform duration-200 group-hover/app:scale-105",
+            "block origin-center",
+            "transition-transform duration-200",
+            "group-hover/app:scale-105 group-focus-visible/app:scale-105",
           )}
-          style={{ width: px, height: px }}
         >
-          {src ? (
-            // eslint-disable-next-line @next/next/no-img-element -- tiny local static asset; next/image adds nothing at these sizes
-            <img
-              src={src}
-              alt=""
-              draggable={false}
-              className={cn(
-                "h-full w-full",
-                fills ? "object-cover" : cn("object-contain", PAD[size]),
-              )}
-            />
-          ) : (
-            <span className="flex h-full w-full items-center justify-center font-mono text-neutral-400"
-              style={{ fontSize: Math.max(12, px * 0.35) }}
-            >
-              {app.title.charAt(0)}
-            </span>
-          )}
+          <span
+            className={cn(
+              "block overflow-hidden",
+              RADIUS[size],
+              "border border-black/8 dark:border-white/12",
+              // Padded glyphs need a white plate; full-bleed icons bring their
+              // own background (a plate would fringe the rounded clip).
+              !fills && "bg-white",
+            )}
+            style={{ width: px, height: px }}
+          >
+            {src ? (
+              // eslint-disable-next-line @next/next/no-img-element -- tiny local static asset; next/image adds nothing at these sizes
+              <img
+                src={src}
+                alt=""
+                draggable={false}
+                className={cn(
+                  "h-full w-full",
+                  fills ? "object-cover" : cn("object-contain", PAD[size]),
+                )}
+              />
+            ) : (
+              <span
+                className="flex h-full w-full items-center justify-center font-mono text-neutral-400"
+                style={{ fontSize: Math.max(12, px * 0.35) }}
+              >
+                {app.title.charAt(0)}
+              </span>
+            )}
+          </span>
         </span>
         <AppBadgeFor
           app={app}
