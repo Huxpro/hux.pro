@@ -11,11 +11,12 @@ import { cn } from "@/lib/utils";
 // (editor mocks, optional `tone="onDark"`).
 // =============================================================================
 
-/** Page veil under the theater stage — a clean dim, no blur (blur kills chroma). */
-export const THEATER_BACKDROP = cn(
-  "bg-black/20",
-  "dark:bg-black/15",
-);
+/**
+ * Page veil under the theater stage. Same frosted card as WidgetShell and
+ * Live Activity (`bg-card` + `backdrop-blur-xl`), a notch lighter than their
+ * `/50` fill so a full-page wash doesn't black out the homepage.
+ */
+export const THEATER_BACKDROP = cn("bg-card/40 backdrop-blur-xl");
 
 /** Theme-aware track (homepage widget + AlbumTabs). */
 export const GLASS_TRACK = cn(
