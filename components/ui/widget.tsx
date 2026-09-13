@@ -1,8 +1,10 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/services";
 import { GradientStack } from "@/systems/ambient/components/gradient-stack";
 import { isIOSBrowser } from "@/systems/ambient/lib/platform";
+import { WALLPAPER_OPACITY } from "@/systems/ambient/lib/wallpaper";
 import {
   useOptionalWallpaper,
   useOptionalWeather,
@@ -55,6 +57,7 @@ export function WidgetShell({
 }) {
   const weather = useOptionalWeather();
   const wallpaper = useOptionalWallpaper();
+  const { theme } = useTheme();
   const router = useTransitionRouter();
   const tappable = !!href || !!onOpen;
 
@@ -86,8 +89,11 @@ export function WidgetShell({
   const showOverlay = widgetGradientEnabled && gradientLayers.length > 0;
 
   // Weight resolved by the provider, exactly as the full-page background does
-  // it — medium, theme and any appearance pin already accounted for.
-  const overlayOpacity = wallpaper?.opacity ?? 0.7;
+  // it — kind and theme already accounted for. The fallback is the same token
+  // the provider would have read, not a second copy of the number: a widget
+  // rendered outside the provider used to silently get the light value in dark
+  // mode.
+  const overlayOpacity = wallpaper?.opacity ?? WALLPAPER_OPACITY.weather[theme];
 
   // background-attachment: fixed is broken on all iOS browsers.
   // When true  → JS polyfill positions the background (no CSS fixed).
@@ -118,9 +124,7 @@ export function WidgetShell({
       {showOverlay && (
         <div
           aria-hidden="true"
-          className={cn(
-            "pointer-events-none absolute inset-0 -z-10"
-          )}
+          className="pointer-events-none absolute inset-0 -z-10"
           style={{ opacity: overlayOpacity }}
         >
           <GradientStack

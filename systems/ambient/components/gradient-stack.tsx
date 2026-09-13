@@ -73,7 +73,7 @@ function GradientLayer({
   }
 
   // Picture wallpapers must keep their aspect ratio. `cover` is layered so the
-  // flat base underneath still stretches — see buildVariant() in lib/wallpaper.
+  // flat base underneath still stretches — see buildAsset() in lib/wallpaper.
   // It comes last so it wins over the widget sizing above.
   if (cover) {
     style.backgroundSize = "cover, 100% 100%";

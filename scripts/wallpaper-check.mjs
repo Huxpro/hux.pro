@@ -16,15 +16,50 @@
 // Adding a pair: download the originals, encode them as
 // `public/wallpapers/<id>/{light,dark}.webp` plus `.thumb.webp` (WebP at q80,
 // width ≤ 2560 and height ≤ 3600, never upscaled; thumbs ≤ 480 at q72), record
-// the source URLs in
-// `sources.json`, then add the entry to `BUILT_IN_WALLPAPERS` in
-// `systems/ambient/lib/wallpaper.ts` with the base colours this script prints.
+// the source URLs in `sources.json`, then add the entry to
+// `BUILT_IN_WALLPAPERS` in `systems/ambient/lib/wallpaper.ts` with the base
+// colours this script prints — it checks them back, and it checks that the two
+// lists name the same pairs, so neither can drift unnoticed.
 // =============================================================================
 
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import sharp from "sharp";
+
+/**
+ * Parse the catalog's `base` colours out of the TS source.
+ *
+ * The script computes each pair's average colour anyway; printing it and
+ * trusting a human to paste it back means a re-encode silently leaves the
+ * committed value wrong — and that value is what paints under the image while
+ * it decodes, so the drift shows up as a colour flash on exactly the slow
+ * connections it exists for. Compare instead.
+ */
+async function readCatalogBases() {
+  const src = await fs.readFile(
+    path.join(process.cwd(), "systems", "ambient", "lib", "wallpaper.ts"),
+    "utf8"
+  );
+  const bases = new Map();
+  const re = /\.\.\.pair\(\s*"([^"]+)",\s*"([^"]+)",\s*"([^"]+)"\s*\)/g;
+  for (const [, id, light, dark] of src.matchAll(re)) {
+    bases.set(id, { light, dark });
+  }
+  return bases;
+}
+
+/**
+ * Two `rgb(r g b)` strings within a channel or two of each other.
+ *
+ * Exact equality would fail on resampling noise between sharp builds; the point
+ * is to catch a base left behind by a re-encode, which moves by tens.
+ */
+function nearlyEqual(a, b, tolerance = 3) {
+  const parse = (v) => (v.match(/\d+/g) ?? []).map(Number);
+  const [x, y] = [parse(a), parse(b)];
+  return x.length === 3 && y.length === 3 && x.every((n, i) => Math.abs(n - y[i]) <= tolerance);
+}
 
 const DIR = path.join(process.cwd(), "public", "wallpapers");
 
@@ -50,8 +85,20 @@ async function main() {
     await fs.readFile(path.join(DIR, "sources.json"), "utf8")
   );
 
+  const catalogBases = await readCatalogBases();
   const problems = [];
   let total = 0;
+
+  for (const pair of manifest.pairs) {
+    if (!catalogBases.has(pair.id)) {
+      problems.push(`${pair.id}: in sources.json but not in BUILT_IN_WALLPAPERS`);
+    }
+  }
+  for (const id of catalogBases.keys()) {
+    if (!manifest.pairs.some((p) => p.id === id)) {
+      problems.push(`${id}: in BUILT_IN_WALLPAPERS but not in sources.json — unchecked`);
+    }
+  }
 
   console.log(
     "pair".padEnd(18),
@@ -90,6 +137,12 @@ async function main() {
       if (thumbKb > MAX_THUMB_KB) {
         problems.push(
           `${pair.id}/${variant} thumb: ${thumbKb}KB exceeds ${MAX_THUMB_KB}KB`
+        );
+      }
+      const declared = catalogBases.get(pair.id)?.[variant];
+      if (declared && !nearlyEqual(declared, base)) {
+        problems.push(
+          `${pair.id}/${variant}: catalog base ${declared} but the file averages ${base}`
         );
       }
       if (meta.width > MAX_WIDTH || meta.height > MAX_HEIGHT) {
