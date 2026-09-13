@@ -223,11 +223,12 @@ export function useDraggable(id: string) {
   }, [config.persist, storageKey, x, y]);
 
   const startDrag = useCallback(
-    (e: React.PointerEvent, filter?: string) => {
-      if (filter) {
-        const target = e.target as HTMLElement;
-        if (target.closest(filter)) return;
-      }
+    (e: React.PointerEvent, filter?: string, handle?: string) => {
+      const target = e.target as HTMLElement;
+      // With a handle, only pointer-downs inside it start a drag — everything
+      // else (sliders, inputs, scrollable content) keeps its own gestures.
+      if (handle && !target.closest(handle)) return;
+      if (filter && target.closest(filter)) return;
       dragControls.start(e);
     },
     [dragControls]
@@ -269,7 +270,16 @@ export function useDraggable(id: string) {
 
 export function withDraggable<P extends object>(
   WrappedComponent: ComponentType<P>,
-  config: { id: string; dragFilter?: string }
+  config: {
+    id: string;
+    /** Selector for descendants that must *not* start a drag. */
+    dragFilter?: string;
+    /**
+     * Selector for the only descendants that *may* start a drag (a header
+     * bar, a grip). Without it the whole component is a drag surface.
+     */
+    dragHandle?: string;
+  }
 ) {
   const displayName =
     WrappedComponent.displayName || WrappedComponent.name || "Component";
@@ -299,8 +309,15 @@ export function withDraggable<P extends object>(
       >
         <div
           ref={drag.contentRef as React.RefObject<HTMLDivElement>}
-          style={{ pointerEvents: "auto", touchAction: "none" }}
-          onPointerDown={(e) => drag.startDrag(e, config.dragFilter)}
+          style={{
+            pointerEvents: "auto",
+            // With a handle, the handle element owns `touch-action: none`
+            // so the rest of the surface can still scroll on touch.
+            touchAction: config.dragHandle ? undefined : "none",
+          }}
+          onPointerDown={(e) =>
+            drag.startDrag(e, config.dragFilter, config.dragHandle)
+          }
           onClickCapture={drag.preventClickAfterDrag}
         >
           <WrappedComponent {...props} />

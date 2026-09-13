@@ -13,6 +13,13 @@ systems/devtool/
 
 ## Key Features
 
+### Dragging
+
+Only the collapsed pill and the panel's title bar are drag handles
+(`withDraggable(..., { dragHandle: "[data-drag-handle]" })`); the module
+bodies keep their own gestures so range inputs, text fields and scrolling
+inside the panel work.
+
 ### FAB Toggle
 
 The devtool FAB can be enabled/disabled via:
