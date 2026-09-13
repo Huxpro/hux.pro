@@ -11,10 +11,10 @@ import { cn } from "@/lib/utils";
 // (editor mocks, optional `tone="onDark"`).
 // =============================================================================
 
-/** Page veil under the theater stage — dim, not a blackout. */
+/** Page veil under the theater stage — a clean dim, no blur (blur kills chroma). */
 export const THEATER_BACKDROP = cn(
-  "bg-black/30 backdrop-blur-sm",
-  "dark:bg-black/20",
+  "bg-black/20",
+  "dark:bg-black/15",
 );
 
 /** Theme-aware track (homepage widget + AlbumTabs). */
