@@ -14,6 +14,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
 import { getCommitPeekItems, localize } from "@/lib/log";
+import { GLASS_PANEL } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./media/external-image";
 import { CardFace } from "./media/link";
@@ -352,16 +353,12 @@ function PeekCard({
       fit={item.fit}
       aspect={item.aspect}
       domainLabel={domainLabel}
-      // Peek-specific chrome — same recipe as the shared MagneticPreview
-      // panel (bg-card/70 + backdrop-blur-xl + border), minus the shadow:
-      // the single-peek and stacked-peek branches strip the panel's own
-      // chrome (BARE_PANEL_CHROME), so callers add `shadow-raised` per use
-      // (front / single) and deck back layers stay flat — same opt-in
-      // convention as PeekThumb.
-      className={cn(
-        "bg-card/70 backdrop-blur-xl border border-border/50 rounded-lg",
-        className,
-      )}
+      // Peek-specific chrome — the shared panel recipe, minus the shadow: the
+      // single-peek and stacked-peek branches strip the panel's own chrome
+      // (BARE_PANEL_CHROME), so callers add `shadow-raised` per use (front /
+      // single) and deck back layers stay flat — same opt-in convention as
+      // PeekThumb.
+      className={cn(GLASS_PANEL, className)}
       onImgResolved={onResolved}
     />
   );

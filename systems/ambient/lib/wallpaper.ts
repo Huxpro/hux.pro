@@ -11,7 +11,7 @@
 //
 // Mutual exclusivity is therefore structural, not a rule anyone has to remember:
 // there is a single stack, and a single kind feeds it. Where that stack paints
-// (full page / widget cards / nowhere) stays the job of `weatherGradientMode`.
+// (full page / widget cards / nowhere) is `wallpaperPlacement`.
 //
 // The sun-event Live Activity (systems/ambient/components/phase-activity.tsx)
 // reads weather + phase directly and never touches the background, so it keeps

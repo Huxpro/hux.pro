@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 
 import { cn } from "@/lib/utils";
-import { useWallpaper, useWeather } from "../provider";
+import { useWallpaper } from "../provider";
 import { GradientStack } from "./gradient-stack";
 
 // ---------------------------------------------------------------------------
@@ -27,10 +27,9 @@ interface WallpaperBackgroundProps {
 }
 
 export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
-  const { gradientLayers, edgeFadeMask } = useWeather();
-  const { opacity, veil, vignette, blurred } = useWallpaper();
+  const { layers, edgeMask, opacity, veil, vignette, blurred } = useWallpaper();
 
-  if (gradientLayers.length === 0) return null;
+  if (layers.length === 0) return null;
 
   return (
     <div
@@ -51,7 +50,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
       >
         {/* Full-page background is already viewport-fixed, so the edge mask is
             applied statically (no per-frame tracking needed). */}
-        <GradientStack layers={gradientLayers} edgeMask={edgeFadeMask} />
+        <GradientStack layers={layers} edgeMask={edgeMask} />
       </div>
 
       {/* Two overlays, and the split is the whole point: a flat wash that dims

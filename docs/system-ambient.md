@@ -202,9 +202,7 @@ on top of it are is a separate setting again — see
 
 ### Placement
 
-Where the active wallpaper paints is `weatherGradientMode` (named for weather
-because that was the only source when it shipped; it now governs whichever
-source is active):
+Where the active wallpaper paints is `wallpaperPlacement`:
 
 | Mode | Effect |
 |------|--------|
@@ -292,7 +290,6 @@ const {
 ```typescript
 const {
   weather,             // NormalizedWeather | null
-  gradient,            // CSS gradient string
   isLoading,
   isFetching,
   error,
@@ -300,14 +297,13 @@ const {
   debugOverride,
   setDebugOverride,
   refresh,
-  gradientMode,        // Placement: "full" | "widget" | "off"
-  setGradientMode,
-  cycleGradientMode,
-  gradientLayers,      // The shared crossfade stack (any source)
-  fullGradientEnabled,
-  widgetGradientEnabled,
 } = useWeather();
 ```
+
+Weather data, and nothing else. The background stack used to live here too —
+weather was the only thing that could paint one — which meant
+`WallpaperBackground` read two contexts to draw one wallpaper and every reader
+had to hold "weather = wallpaper" in their head. It moved.
 
 ### useWallpaper
 
@@ -319,9 +315,25 @@ const {
   wallpapers,             // The whole catalog
   selectWallpaper,        // Selects AND switches kind to "image"
   variant,                // Which half the app theme lands on right now
+  placement,              // "full" | "widget" | "off"
+  setPlacement,
+  fullEnabled,            // Resolved from placement, or a devtool override
+  widgetEnabled,
+  softEdgeEnabled,
+  layers,                 // The shared crossfade stack (either kind)
+  edgeMask,               // CSS mask-image, or null
+  devtoolOverrides,       // Ephemeral, devtool only
+  setDevtoolOverrides,
   opacity,                // Resolved for kind and theme
-  veil,                   // The scrim/reading veil alpha over an image
+  veil,                   // The flat veil alpha over an image
+  vignette,               // The radial vignette alpha, at the far corners
   blurred,                // Whether this route defocuses the wallpaper
+  dimHome,                // The three image-treatment switches
+  setDimHome,
+  readingBlur,
+  setReadingBlur,
+  readingDim,
+  setReadingDim,
   src,                    // The file currently painting, for the devtool
   isPickerOpen,
   openPicker,
@@ -353,15 +365,15 @@ const {
         ▼                                                    ▼
 IP Location API → useLocationQuery                  BUILT_IN_WALLPAPERS
         ↓                                                    ↓
-Open-Meteo API → useWeatherQuery                   wallpaperAppearance
-        ↓                                             + app theme
+Open-Meteo API → useWeatherQuery                        app theme
+        ↓                                                    ↓
         ↓ (sunrise/sunset times)                           ↓
 deriveAmbientPhase → phase                     getWallpaperBackground
         ↓                                                    ↓
 getWeatherGradient / getSunEventGradient                     │
         └──────────────────────┬─────────────────────────────┘
                                ▼
-                       gradientLayers (one stack, crossfaded)
+                    wallpaper.layers (one stack, crossfaded)
                                ▼
               WallpaperBackground (full) / WidgetShell (widget)
 ```

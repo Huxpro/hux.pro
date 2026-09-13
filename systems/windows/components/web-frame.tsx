@@ -45,7 +45,7 @@ export function WebFrame({ url, title }: { url: string; title: string }) {
       />
 
       {stalled && !loaded && (
-        <div className="absolute inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-black/10 bg-card/95 px-4 py-3 backdrop-blur-md dark:border-white/10">
+        <div className="absolute inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-black/10 bg-glass-sheet px-4 py-3 backdrop-blur-md dark:border-white/10">
           <p className="text-xs text-muted-foreground">
             This site may block embedding.
           </p>

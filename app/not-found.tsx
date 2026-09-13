@@ -54,11 +54,11 @@ function ReturnHomeButton() {
         href="/"
         className={cn(
           "inline-flex items-center gap-2 px-5 py-3 rounded-2xl",
-          "bg-card/50 backdrop-blur-xl",
+          "bg-glass backdrop-blur-xl",
           "border border-border/50",
           "text-sm text-foreground",
           "transition-all duration-300",
-          "hover:border-border hover:bg-card/70"
+          "hover:border-border hover:bg-glass-hover"
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}

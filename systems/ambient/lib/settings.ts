@@ -10,17 +10,17 @@ import {
 // =============================================================================
 
 /**
- * Where the wallpaper paints. Named for weather because that was the only
- * source when it shipped; it now governs whichever source is active.
+ * Where the active wallpaper paints.
+ *
  *   full   — behind the whole page
  *   widget — only inside widget cards
  *   off    — nowhere (the global background kill switch)
  */
-export type WeatherGradientMode = "full" | "off" | "widget";
+export type WallpaperPlacement = "full" | "off" | "widget";
 
 export interface AmbientSettings {
   locationMode: LocationMode;
-  weatherGradientMode: WeatherGradientMode;
+  wallpaperPlacement: WallpaperPlacement;
   /** Which kind feeds the single background stack. */
   wallpaperKind: WallpaperKind;
   /** Selected built-in pair, used when `wallpaperKind === "image"`. */
@@ -43,7 +43,7 @@ const SETTINGS_KEY = "hux_ambient_settings";
 export function getDefaultSettings(): AmbientSettings {
   return {
     locationMode: "ip",
-    weatherGradientMode: "full",
+    wallpaperPlacement: "full",
     wallpaperKind: "weather",
     wallpaperId: DEFAULT_WALLPAPER_ID,
     wallpaperDimHome: true,
@@ -65,27 +65,30 @@ export function getAmbientSettings(options?: {
       // No user preference stored yet — iOS defaults to widget mode
       return {
         ...getDefaultSettings(),
-        ...(options?.isIOS && { weatherGradientMode: "widget" as const }),
+        ...(options?.isIOS && { wallpaperPlacement: "widget" as const }),
       };
     }
 
     const parsed = JSON.parse(stored) as Partial<AmbientSettings> & {
+      /** Legacy field names, still read so an existing visitor keeps their setup. */
       weatherGradientMode?: string;
       wallpaperKind?: string;
       wallpaperSource?: string;
     };
     const defaults = getDefaultSettings();
 
-    // Migration: treat old "adaptive" as "full"
-    let mode = defaults.weatherGradientMode;
+    // `weatherGradientMode` was the field's name while the weather gradient was
+    // the only thing that could paint; "adaptive" was a mode it used to have.
+    const storedPlacement = parsed.wallpaperPlacement ?? parsed.weatherGradientMode;
+    let placement = defaults.wallpaperPlacement;
     if (
-      parsed.weatherGradientMode === "full" ||
-      parsed.weatherGradientMode === "off" ||
-      parsed.weatherGradientMode === "widget"
+      storedPlacement === "full" ||
+      storedPlacement === "off" ||
+      storedPlacement === "widget"
     ) {
-      mode = parsed.weatherGradientMode;
-    } else if (parsed.weatherGradientMode === "adaptive") {
-      mode = "full";
+      placement = storedPlacement;
+    } else if (storedPlacement === "adaptive") {
+      placement = "full";
     }
 
     // Unknown / removed wallpaper ids fall back rather than blanking the page.
@@ -97,7 +100,7 @@ export function getAmbientSettings(options?: {
     return {
       locationMode:
         parsed.locationMode === "accurate" ? "accurate" : defaults.locationMode,
-      weatherGradientMode: mode,
+      wallpaperPlacement: placement,
       // `wallpaperSource: "picture"` was the field's first spelling.
       wallpaperKind:
         parsed.wallpaperKind === "image" || parsed.wallpaperSource === "picture"

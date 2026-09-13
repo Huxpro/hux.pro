@@ -26,7 +26,7 @@ export const GLASS_TRACK = cn(
 
 /** Theme-aware selected / control pill. */
 export const GLASS_PILL = cn(
-  "bg-card/90 shadow-sm ring-1 ring-border/50 backdrop-blur-xl",
+  "bg-glass-sheet shadow-sm ring-1 ring-border/50 backdrop-blur-xl",
 );
 
 /** Theme-aware clustered toolbar (PiP + Live Activity). Same capsule as theater. */
