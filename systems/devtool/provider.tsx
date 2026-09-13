@@ -29,6 +29,7 @@ export const DRAGGABLE_DEFAULTS: Record<string, DraggableInstanceConfig> = {
   "command-palette": { draggable: true, persist: false },
   // Adaptive surfaces in their desktop "window" shape. Same posture as the
   // palette: drag it out of the way while you work, back to centre next open.
+  "surface-wallpaper": { draggable: true, persist: false },
   "surface-playlist": { draggable: true, persist: false },
 };
 
@@ -37,7 +38,8 @@ export const DRAGGABLE_INSTANCES = [
   { id: "command-fab", labelEn: "Search Button", labelZh: "搜索按钮" },
   { id: "command-palette", labelEn: "Command Palette", labelZh: "命令面板" },
   // Adaptive surfaces are only draggable in their desktop "window" shape; the
-  // sheet and panel shapes ignore this entry.
+  // sheet and panel shapes ignore these entries.
+  { id: "surface-wallpaper", labelEn: "Wallpaper Window", labelZh: "壁纸窗口" },
   { id: "surface-playlist", labelEn: "Playlist Window", labelZh: "播放列表窗口" },
 ] as const;
 

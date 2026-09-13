@@ -127,8 +127,15 @@ When the search input is empty or unfocused:
 | `X` | Go to Works |
 | `P` | Go to Prompts |
 | `I` | Go to Docs (internal) |
-| `D` | Toggle Dark/Light mode |
+| `E` | Go to Editor |
+| `A` | Cycle Appearance (system → dark → light) |
 | `L` | Toggle Language |
+| `O` | Toggle geolOcation (IP ↔ accurate) |
+| `W` | Open the Wallpaper picker |
+| `G` | Toggle Glass material (Tinted ↔ Clear) |
+| `M` | Play / pause Music |
+| `Q` | Open the playlist browser |
+| `D` | Toggle the Devtool panel |
 | `⌫` (Backspace) | Back to Search Mode |
 | `Esc` | Close palette |
 

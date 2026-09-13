@@ -1,5 +1,6 @@
 "use client";
 
+import { GLASS_PANEL } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { useInputCapability } from "@/services";
 import React, { useEffect, useState } from "react";
@@ -91,16 +92,14 @@ export function MagneticPreview({
         >
           <div
             className={cn(
-              // Translucent lifted surface — matches the Dock Live Activity
-              // expanded panel recipe (bg-card/70 + backdrop-blur-xl +
-              // border). No shadow here on purpose: the shadow belongs to
-              // whatever is the *visible* surface. Panel-as-card peeks
-              // (writing / details) add `shadow-raised` themselves; peeks
-              // that strip this chrome (deck / single card / video) let their
-              // inner card/thumb cast the shadow — so the deck, an irregular
-              // rotated stack, never gets a rectangular container shadow
-              // around it.
-              "rounded-lg border border-border/50 bg-card/70 backdrop-blur-xl",
+              // Translucent lifted surface. No shadow here on purpose: the
+              // shadow belongs to whatever is the *visible* surface.
+              // Panel-as-card peeks (writing / details) add `shadow-raised`
+              // themselves; peeks that strip this chrome (deck / single card /
+              // video) let their inner card/thumb cast the shadow — so the
+              // deck, an irregular rotated stack, never gets a rectangular
+              // container shadow around it.
+              GLASS_PANEL,
               // Default cap fits the unified peek width (PEEK_W = 384); peeks
               // no longer need to lift a narrower default.
               "p-3 max-w-md",

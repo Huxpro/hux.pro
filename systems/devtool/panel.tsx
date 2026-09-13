@@ -1,9 +1,16 @@
 "use client";
 
+import { ARTWORK_CHIP } from "@/systems/ambient/components/wallpaper-sheet";
 import { WeatherIcon } from "@/systems/ambient/components/weather-icon";
-import { useLocale, useTheme, t } from "@/services";
-import { useAmbientTime, useLocation, useWeather } from "@/systems/ambient";
-import type { DevtoolGradientOverrides } from "@/systems/ambient/provider";
+import {
+  GLASS_MATERIALS,
+  getGlassLabel,
+  t,
+  useLocale,
+  useOptionalGlass,
+  useTheme,
+} from "@/services";
+import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
 import { formatClockTime } from "@/systems/ambient/lib/format";
 import {
   getSunEventGradient,
@@ -13,6 +20,8 @@ import {
   WEATHER_CONDITIONS,
   getWeatherConditionLabel,
 } from "@/systems/ambient/lib/weather";
+import { isReadingSurface } from "@/systems/ambient/lib/reading-surface";
+import { isPhoneWallpaper } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
@@ -51,17 +60,20 @@ import {
   Copy,
   GripVertical,
   Haze,
-  Layers,
+  Image as ImageIcon,
+  Layers2,
   Moon,
   MoonStar,
   Music,
   RefreshCw,
+  Smartphone,
   Sun,
   SunMedium,
   Sunrise,
   Sunset,
   X,
 } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { withDraggable } from "@/systems/draggable";
 import { useEffect, useRef, useState } from "react";
 
@@ -157,7 +169,7 @@ function DevtoolPanel() {
     <div
       className={cn(
         "rounded-2xl overflow-hidden cursor-default",
-        "bg-popover/95 backdrop-blur-xl",
+        "bg-glass-popover backdrop-blur-xl",
         "border border-border/50",
         "shadow-overlay"
       )}
@@ -191,7 +203,8 @@ function DevtoolPanel() {
       <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
         <FrontmatterModule />
         <ReadingModule />
-        <GradientModule />
+        <WallpaperModule />
+        <GlassModule />
         <WeatherModule />
         <AmbientTimeModule />
         <MusicModule />
@@ -591,6 +604,54 @@ function PanelToggle({
   );
 }
 
+/**
+ * How much of the vignette's strength the left and right edges actually see.
+ *
+ * The gradient runs from `transparent 10%` to full at 100% of an ellipse
+ * `72% * spread` wide. A viewport edge sits half a viewport from the centre, so
+ * it lands at `0.5 / (0.72 * spread)` along that ellipse — past 1 it clamps,
+ * below 1 it is short.
+ */
+function sideFraction(spread: number): number {
+  const position = Math.min(1, 0.5 / (0.72 * spread));
+  return Math.max(0, (position - 0.1) / 0.9);
+}
+
+/** Continuous value, for the things you settle by dragging rather than typing. */
+function PanelRange({
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  label,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+  label: string;
+}) {
+  return (
+    <div className="flex shrink-0 items-center gap-2">
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        aria-label={label}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="h-1 w-24 cursor-pointer appearance-none rounded-full bg-muted accent-foreground"
+      />
+      <span className="w-8 text-right text-[10px] font-mono tabular-nums text-muted-foreground">
+        {value.toFixed(2)}
+      </span>
+    </div>
+  );
+}
+
 /** Segmented single-select, matching the ruler dock control. */
 function PanelSegmented<T extends string>({
   value,
@@ -687,107 +748,368 @@ function ReadingModule() {
 }
 
 // =============================================================================
-// Gradient Module
+// Glass Module
+//
+// The material every floating System UI surface is made of. Two options, the
+// same two iOS 26 offers — Tinted (色调) and Clear (透明) — and the same effect:
+// one class on <html> swapping a handful of CSS variables, so nothing
+// re-renders and every `bg-glass*` surface follows along.
 // =============================================================================
 
-function GradientModule() {
+function GlassModule() {
   const { locale } = useLocale();
-  const {
-    gradientMode,
-    fullGradientEnabled,
-    widgetGradientEnabled,
-    softEdgingEnabled,
-    devtoolGradientOverrides,
-    setDevtoolGradientOverrides,
-  } = useWeather();
+  const zh = locale === "zh";
+  const glass = useOptionalGlass();
+  if (!glass) return null;
 
-  const modeLabel =
-    gradientMode === "full"
-      ? locale === "zh" ? "全屏" : "Full"
-      : gradientMode === "widget"
-      ? locale === "zh" ? "卡片" : "Widget"
-      : locale === "zh" ? "关闭" : "Off";
-
-  const toggleOverride = (
-    key: keyof DevtoolGradientOverrides,
-    currentResolved: boolean
-  ) => {
-    const currentOverride = devtoolGradientOverrides[key];
-    // Cycle: auto → on → off → auto
-    let next: boolean | undefined;
-    if (currentOverride === undefined) {
-      next = !currentResolved; // override to opposite of natural
-    } else {
-      next = undefined; // clear override (back to auto)
-    }
-    setDevtoolGradientOverrides({ ...devtoolGradientOverrides, [key]: next });
-  };
-
-  const flags: {
-    key: keyof DevtoolGradientOverrides;
-    label: string;
-    resolved: boolean;
-  }[] = [
-    { key: "full", label: locale === "zh" ? "全屏" : "Full", resolved: fullGradientEnabled },
-    { key: "widget", label: locale === "zh" ? "卡片" : "Widget", resolved: widgetGradientEnabled },
-    { key: "softEdging", label: locale === "zh" ? "柔和边缘" : "Soft Edge", resolved: softEdgingEnabled },
-  ];
+  const options = GLASS_MATERIALS.map((value) => ({
+    value,
+    label: getGlassLabel(value, locale),
+  }));
 
   return (
     <DebugSection
-      id="gradient"
-      title={locale === "zh" ? "渐变" : "Gradient"}
-      icon={<Layers className="h-4 w-4" />}
+      id="glass"
+      title={t(locale, "settingsGlass")}
+      icon={<Layers2 className="h-4 w-4" />}
       compact
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
-          {modeLabel}
-          <span className="ml-1 text-muted-foreground/40">W</span>
+          {glass.material}
+          <span className="ml-1 text-muted-foreground/40">G</span>
         </span>
       }
     >
       <div className="space-y-2">
-        {flags.map(({ key, label, resolved }) => {
-          const isOverridden = devtoolGradientOverrides[key] !== undefined;
-          return (
-            <div key={key} className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-                  {label}
-                </span>
-                {isOverridden && (
-                  <span className="text-[9px] font-mono text-amber-500/70 uppercase">
-                    *
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={() => toggleOverride(key, resolved)}
-                className={cn(
-                  "relative inline-flex h-5 w-9 items-center rounded-full border transition-colors",
-                  resolved
-                    ? "bg-green-500/90 border-green-500/70"
-                    : "bg-muted/40 border-border/60",
-                  isOverridden && "ring-1 ring-amber-500/40"
-                )}
-                aria-pressed={resolved}
-                aria-label={`Toggle ${label}`}
-              >
-                <span
-                  className={cn(
-                    "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
-                    resolved ? "translate-x-4" : "translate-x-0.5"
-                  )}
-                />
-              </button>
-            </div>
-          );
-        })}
+        <PanelRow label={zh ? "材质" : "Material"}>
+          <PanelSegmented
+            value={glass.material}
+            options={options}
+            onChange={glass.setMaterial}
+          />
+        </PanelRow>
+        <p className="text-[10px] leading-snug text-muted-foreground/60">
+          {zh
+            ? "透明：接近无填充的通透质感，背后的壁纸直接透出来。色调：当前这种带卡片底色的材质。"
+            : "Clear thins every surface to a vibrancy wash so the wallpaper reads through it. Tinted keeps the card fill."}
+        </p>
       </div>
     </DebugSection>
   );
 }
 
+// =============================================================================
+// Wallpaper Module
+//
+// Everything about the background lives here, because everything about the
+// background is now one system. The swatch grid leads with Weather — it is the
+// first wallpaper, not a separate "kind" to pick first — and the rest are the
+// Apple pairs. Below it, the rendering flags as plain switches: where the
+// wallpaper paints, and how much of it survives on a reading page.
+//
+// Placement and the reading treatment write persisted settings, so the panel
+// and the picker sheet can never disagree. Soft edging has no persisted setting
+// (it is derived from the platform), so it stays a devtool override.
+// =============================================================================
+
+function WallpaperModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const pathname = usePathname();
+  const {
+    kind,
+    setKind,
+    wallpaper,
+    wallpapers,
+    selectWallpaper,
+    variant,
+    opacity,
+    veil,
+    vignette,
+    vignetteSpread,
+    blurred,
+    src,
+    dimHome,
+    setDimHome,
+    readingBlur,
+    setReadingBlur,
+    readingDim,
+    setReadingDim,
+    openPicker,
+    placement,
+    fullEnabled,
+    widgetEnabled,
+    softEdgeEnabled,
+    devtoolOverrides,
+    setDevtoolOverrides,
+  } = useWallpaper();
+
+  const isImage = kind === "image";
+  const reading = isReadingSurface({ kind, pathname });
+
+  // Full and Widget are independent switches here, not two halves of one
+  // segmented control: the persisted setting can only be one of them, but the
+  // devtool exists precisely to see combinations the setting cannot express —
+  // both on at once included. They drive the ephemeral overrides, which is what
+  // those were for; the persisted mode follows only when nothing is overridden.
+  const placements = [
+    {
+      key: "full",
+      label: zh ? "全屏" : "Full",
+      aria: "Toggle full-page wallpaper",
+      on: fullEnabled,
+    },
+    {
+      key: "widget",
+      label: zh ? "卡片" : "Widget",
+      aria: "Toggle widget wallpaper",
+      on: widgetEnabled,
+    },
+    {
+      key: "softEdging",
+      label: zh ? "柔和边缘" : "Soft edge",
+      aria: "Toggle soft edging",
+      on: softEdgeEnabled,
+    },
+  ] as const;
+  const overrideFlag = (key: (typeof placements)[number]["key"], on: boolean) =>
+    setDevtoolOverrides({ ...devtoolOverrides, [key]: on });
+  const isOverridden = (key: (typeof placements)[number]["key"]) =>
+    devtoolOverrides[key] !== undefined;
+  const clearOverrides = () => setDevtoolOverrides({});
+  const anyOverride = placements.some((p) => isOverridden(p.key));
+  const vignetteOverridden =
+    devtoolOverrides.vignetteAlpha !== undefined ||
+    devtoolOverrides.vignetteSpread !== undefined;
+
+  // One line that answers "what am I actually looking at".
+  const now = [
+    isImage ? wallpaper.name : zh ? "天气" : "Weather",
+    variant,
+    isImage ? (reading ? (zh ? "阅读" : "read") : zh ? "桌面" : "desktop") : placement,
+  ].join(" · ");
+
+  return (
+    <DebugSection
+      id="wallpaper"
+      title={t(locale, "settingsWallpaper")}
+      icon={<ImageIcon className="h-4 w-4" />}
+      compact
+      action={
+        <span className="text-[10px] font-mono text-muted-foreground">
+          {isImage ? wallpaper.id : "weather"}
+          <span className="ml-1 text-muted-foreground/40">W</span>
+        </span>
+      }
+    >
+      <div className="space-y-3">
+        <div className="text-[10px] font-mono text-muted-foreground">
+          {zh ? "当前: " : "Now: "}
+          <span className="text-foreground/80">{now}</span>
+          <span className="ml-1.5 text-muted-foreground/50">
+            @{opacity.toFixed(2)}
+            {(veil > 0 || vignette > 0) &&
+              ` −${veil.toFixed(2)}/${vignette.toFixed(2)}`}
+            {blurred && " blur"}
+          </span>
+        </div>
+
+        {/* Weather is the first cell, not a separate control above the grid:
+            picking a background is one choice, and this is that choice. */}
+        <div className="grid grid-cols-4 gap-1.5">
+          <button
+            type="button"
+            onClick={() => setKind("weather")}
+            title={zh ? "天气" : "Weather"}
+            aria-label="Set wallpaper to Weather"
+            aria-pressed={!isImage}
+            className={cn(
+              "relative aspect-square overflow-hidden rounded-lg border transition-all",
+              "flex items-center justify-center bg-muted/30",
+              !isImage
+                ? "border-foreground/60 ring-2 ring-foreground/50"
+                : "border-border/40 hover:border-border"
+            )}
+          >
+            <Cloud className="h-3.5 w-3.5 text-foreground/70" />
+          </button>
+          {wallpapers.map((w) => {
+            const selected = isImage && w.id === wallpaper.id;
+            return (
+              <button
+                key={w.id}
+                type="button"
+                onClick={() => selectWallpaper(w.id)}
+                title={`${w.name} · ${w.platform} ${w.year}${
+                  isPhoneWallpaper(w) ? " · phone" : ""
+                }`}
+                aria-label={`Set wallpaper to ${w.name}`}
+                aria-pressed={selected}
+                className={cn(
+                  "relative aspect-square overflow-hidden rounded-lg border transition-all",
+                  selected
+                    ? "border-foreground/60 ring-2 ring-foreground/50"
+                    : "border-border/40 hover:border-border"
+                )}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={w[variant].thumb}
+                  alt=""
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                {/* Phone artwork: the swatch is square, so nothing else in
+                    this grid would tell you it is a phone wallpaper. Same
+                    chip the picker's sun/moon marks use, so a glyph over
+                    artwork always arrives the same way. */}
+                {isPhoneWallpaper(w) && (
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "absolute bottom-0.5 right-0.5 flex size-3.5 items-center justify-center rounded-full",
+                      ARTWORK_CHIP
+                    )}
+                  >
+                    <Smartphone className="size-2" strokeWidth={2.25} />
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Where it paints. */}
+        <div className="space-y-2 border-t border-border/30 pt-2.5">
+          {placements.map((p) => (
+            <PanelRow
+              key={p.key}
+              label={`${p.label}${isOverridden(p.key) ? " *" : ""}`}
+            >
+              <PanelToggle
+                on={p.on}
+                onClick={() => overrideFlag(p.key, !p.on)}
+                label={p.aria}
+              />
+            </PanelRow>
+          ))}
+          {anyOverride && (
+            <button
+              onClick={clearOverrides}
+              className="w-full text-left text-[10px] font-mono text-amber-500/70 transition-colors hover:text-amber-400"
+            >
+              {zh
+                ? `* 已覆盖设置（${placement}）· 点击恢复`
+                : `* overriding the setting (${placement}) · click to clear`}
+            </button>
+          )}
+        </div>
+
+        {/* How much of it survives where. Home defaults to none of this. */}
+        <div className="space-y-2 border-t border-border/30 pt-2.5">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+            {zh ? "图片处理" : "Image treatment"}
+          </div>
+          <PanelRow label={zh ? "首页压暗" : "Dim home"}>
+            <PanelToggle
+              on={dimHome}
+              onClick={() => setDimHome(!dimHome)}
+              label="Toggle dimming on the home screen"
+            />
+          </PanelRow>
+          <PanelRow label={zh ? "二级页虚化" : "Reading blur"}>
+            <PanelToggle
+              on={readingBlur}
+              onClick={() => setReadingBlur(!readingBlur)}
+              label="Toggle blur on reading pages"
+            />
+          </PanelRow>
+          <PanelRow label={zh ? "二级页压暗" : "Reading dim"}>
+            <PanelToggle
+              on={readingDim}
+              onClick={() => setReadingDim(!readingDim)}
+              label="Toggle dimming on reading pages"
+            />
+          </PanelRow>
+        </div>
+
+        {/* The shape of the soft edge on a photograph. Its on/off is the Soft
+            edge switch above — there is only one, because two switches for one
+            mask is how the toggle ended up dead. Spread is here because the
+            strength alone cannot tell you whether it lands inside the
+            viewport. */}
+        <div className="space-y-2 border-t border-border/30 pt-2.5">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+            {zh ? "暗角（柔和边缘的形状）" : "Vignette · soft edge shape"}
+            {vignetteOverridden ? " *" : ""}
+          </div>
+          <PanelRow label={zh ? "强度" : "Strength"}>
+            <PanelRange
+              value={vignette}
+              min={0}
+              max={0.9}
+              step={0.02}
+              onChange={(v) =>
+                setDevtoolOverrides({ ...devtoolOverrides, vignetteAlpha: v })
+              }
+              label="Vignette strength at the farthest corner"
+            />
+          </PanelRow>
+          <PanelRow label={zh ? "范围" : "Spread"}>
+            <PanelRange
+              value={vignetteSpread}
+              min={0.4}
+              max={1.4}
+              step={0.02}
+              onChange={(v) =>
+                setDevtoolOverrides({ ...devtoolOverrides, vignetteSpread: v })
+              }
+              label="Vignette ellipse scale"
+            />
+          </PanelRow>
+          {vignetteOverridden && (
+            <button
+              onClick={() =>
+                setDevtoolOverrides({
+                  ...devtoolOverrides,
+                  vignetteAlpha: undefined,
+                  vignetteSpread: undefined,
+                })
+              }
+              className="w-full text-left text-[10px] font-mono text-amber-500/70 transition-colors hover:text-amber-400"
+            >
+              {zh ? "* 已覆盖 · 点击恢复" : "* overriding · click to clear"}
+            </button>
+          )}
+          {/* At spread 1 the ellipse is wider than the viewport, so the left and
+              right edges only reach ~0.69 along the gradient and receive about
+              two thirds of the strength. That shortfall is invisible from the
+              strength number alone, so print what the sides actually get. */}
+          <div className="text-[10px] font-mono text-muted-foreground/70">
+            {zh ? "两侧实得" : "sides receive"}{" "}
+            {(vignette * sideFraction(vignetteSpread)).toFixed(3)} /{" "}
+            {vignette.toFixed(2)}
+            {sideFraction(vignetteSpread) < 0.95 &&
+              ` (${Math.round(sideFraction(vignetteSpread) * 100)}%)`}
+          </div>
+        </div>
+
+        <button
+          onClick={openPicker}
+          className="flex w-full items-center justify-center gap-1.5 rounded-md border border-border/60 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+        >
+          <ExternalLink className="h-3 w-3" />
+          {zh ? "打开壁纸选择器" : "Open picker"}
+        </button>
+
+        {/* The resolved asset — the fastest way to trace a wrong background. */}
+        <div className="break-all text-[10px] font-mono text-muted-foreground">
+          {isImage ? src : zh ? "天气渐变" : "weather gradient"}
+        </div>
+      </div>
+    </DebugSection>
+  );
+}
 // =============================================================================
 // Weather Module
 // =============================================================================

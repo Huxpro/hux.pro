@@ -2,6 +2,10 @@
 
 The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day.
 
+It also owns the page background — the **wallpaper**. Weather is not a separate
+background feature; it is the one wallpaper that changes on its own. See
+[Wallpaper](#wallpaper) below.
+
 ## Overview
 
 ```
@@ -9,8 +13,9 @@ systems/ambient/
 ├── provider.tsx                  # AmbientProvider (Location + Weather + Time contexts)
 ├── components/
 │   ├── greeting.tsx              # Time-based greeting component
-│   ├── surface.tsx               # Route-aware gradient container
-│   ├── gradient-background.tsx   # Full-page weather gradient renderer
+│   ├── surface.tsx               # Page container + full-page wallpaper mount
+│   ├── wallpaper-background.tsx  # Full-page wallpaper renderer (any source)
+│   ├── wallpaper-sheet.tsx       # Wallpaper picker (secondary window, vaul)
 │   ├── gradient-stack.tsx        # Shared crossfade renderer (full-page + widgets)
 │   ├── weather-icon.tsx          # Weather condition icons
 │   ├── weather-widget.tsx        # iOS-style weather widget (header + WeatherNow)
@@ -24,8 +29,9 @@ systems/ambient/
 │   ├── notification.ts           # Upcoming sun-event detection (lead-up + window)
 │   ├── phase.ts                  # Ambient phase derivation
 │   ├── queries.ts                # React Query hooks
-│   ├── route-config.ts           # Per-route gradient defaults
+│   ├── route-config.ts           # Form-factor types
 │   ├── settings.ts               # User preference persistence
+│   ├── wallpaper.ts              # Wallpaper sources + built-in catalog
 │   ├── sun.ts                    # Sunrise/sunset calculations
 │   ├── weather.ts                # Weather API integration
 │   └── index.ts                  # Lib exports
@@ -86,19 +92,164 @@ Visibility (`lib/notification.ts`): from ~90 min before the event through the en
 of its ±45 min window, then it hands off to the gradient + greeting. A forced
 sunrise/sunset phase from the devtool also surfaces it for testing.
 
+## Wallpaper
+
+The background is **one layer stack fed by exactly one source**:
+
+```typescript
+type WallpaperKind = "weather" | "image";
+```
+
+- `weather` — the live weather / sun-event gradient (`lib/gradient.ts`).
+- `image` — a fixed Apple pair from the built-in catalog (`lib/wallpaper.ts`).
+
+Because there is a single stack and a single kind, the two are **mutually
+exclusive by construction** — there is no state in which both paint, and nothing
+has to arbitrate between them. Switching kind pushes a new layer, so
+weather → image dissolves through the same crossfade as a weather change.
+
+The sun-event Live Activity is unaffected: it renders in the Dock from weather +
+phase and never reads the background, so sunrise and sunset still announce
+themselves under an image wallpaper.
+
+### Built-ins
+
+Apple's own default macOS, iPadOS and iOS wallpapers, as light/dark pairs — the
+artwork each release is recognised by. Fifteen pairs: macOS Tahoe, Sequoia,
+Sonoma, Ventura, Monterey and Big Sur; iPadOS 18 in its four colourways
+(Violet, Indigo, Blue, Teal); iOS 27, 18, 17, 14 and 13.
+
+The iPadOS colourways are named for the colour rather than the release, and
+their caption is the year alone: the tile would otherwise read "iPadOS 18
+Violet — iPadOS · 2024", which both stutters and overflows.
+
+The **iOS** pairs are phone artwork, and a desktop viewport can only show a crop
+of one, so the picker caption and the devtool swatch mark them with a phone
+glyph — the tiles are all the same 16:10 card and could not otherwise show it.
+`isPhoneWallpaper()` derives it from the platform rather than storing a flag,
+because a stored one drifted: it was set by hand on the pairs whose *files* are
+tall, which made the glyph mean "portrait encoding" instead of "phone
+wallpaper".
+
+Not every phone wallpaper is a tall file, and nothing here was cropped to make
+it square. **Apple ships most of these stills on a square canvas** and lets the
+device crop; the `414w-896h@3x~iphone` in a filename is the target device, not
+the artwork's shape. Verified against the sources by parsing the HEIC `ispe`
+boxes directly:
+
+| | Source | Committed |
+|---|---|---|
+| iOS 27 | 1320×2868 png | 1320×2868 |
+| iOS 18 light | 1480×3192 png | 1480×3192 |
+| iOS 18 dark | 2580×5592 png | 1661×3600 |
+| iOS 17 | 2048×2048 jpg | 2048×2048 |
+| iOS 14 | 3072×3072 heic | 2400×2400 |
+| iOS 13 | 3186×3186 heic | 2400×2400 |
+
+1320×2868 is Apple's own asset size for iOS 27 — iClarified, 9to5Mac and
+wallpapers.poutanen.dev all publish exactly that, so it is the ceiling, not a
+sourcing failure. 4kwallpapers' iOS 18 set is *lower* (1290×2796) than the
+sources already recorded here.
+
+Every one is the source aspect, downscaled at most. The two tall pairs simply
+came from Apple as tall files, and they crop hardest on a desktop.
+
+They are committed as WebP at q80, bounded to **2560 wide by 3600 tall** and
+never upscaled, with 480px thumbnails that picker tiles and devtool swatches
+resolve to, so opening the picker costs tens of kilobytes rather than the
+megabyte the full set weighs.
+
+That bound is deliberately not a square box. A single "long edge ≤ 2560" cap
+reads as neutral but is not: the long edge of phone artwork is its height, which
+nothing on a desktop ever needs, so the cap spends the whole budget there and
+starves the width. It had iOS 27 at 1178px wide when Apple ships it at 1320, and
+iOS 18's dark half at 1182 from a 2580px source. Width is what a viewport
+actually spends, so width gets the real budget and height only has to keep the
+file from running away. Provenance for every
+pair — source URL, and HEIC frame index where the pair came out of one file —
+lives in `public/wallpapers/sources.json`.
+
+```bash
+pnpm wallpapers:check   # every pair present, decodes, and within budget
+```
+
+**Apple retains rights to this artwork.** It is committed for a personal site,
+not licensed onward; the archives the frames were pulled from do not license
+Apple's images either, and their repository licenses are not asserted to do so.
+
+### Light/dark pairs
+
+Every wallpaper ships as a pair, and which half shows **always follows the app
+theme** — the macOS Dynamic Desktop behaviour. That is deliberately not a
+setting. Pinning a half only ever produced light artwork under light text, and
+the damping needed to rescue that made the wallpaper a ghost; the tiles keep a
+sun / moon on each half as an indicator, not a control.
+
+Opacity is resolved once, in the provider, and read by both the full-page layer
+and the widget overlay as `useWallpaper().opacity`:
+
+| | Light theme | Dark theme |
+|---|---|---|
+| Weather gradient | 0.70 | 0.85 |
+| Image wallpaper | 1.00 | 1.00 |
+
+An image wallpaper paints at **full strength**: it is a picture someone chose,
+and the home screen is a desktop. Reading pages recede it with a veil and a
+defocus instead of dimming the layer — see
+[Reading surfaces](./system-glass.md#reading-surfaces). How *solid* the surfaces
+on top of it are is a separate setting again — see
+[docs/system-glass.md](./system-glass.md).
+
+### Placement
+
+Where the active wallpaper paints is `wallpaperPlacement`:
+
+| Mode | Effect |
+|------|--------|
+| `full` | Behind the whole page |
+| `widget` | Only inside widget cards (each a viewport-aligned window onto it) |
+| `off` | Nowhere — the global background kill switch |
+
+**Soft edging** — the top/bottom fade, on by default on iOS — is a *weather*
+affordance and is gated to it. It exists to hide a seam: the gradient is a
+synthetic wash, and where it stops against the page background there is a line.
+A photograph has no such seam, so the fade does not soften an edge, it deletes a
+strip of the picture — and in light mode it deletes it to pure white, which
+reads as a bleached band rather than a vignette. The devtool switch can still
+force it on.
+
+### Triggers
+
+| Surface | How |
+|---------|-----|
+| Command palette | `Wallpaper: <name>` (⌘K), or `/` then `W` |
+| Devtool panel | Wallpaper module — the whole background system in one place |
+| Anywhere in code | `useWallpaper().openPicker()` |
+
+The picker itself is a secondary window (`wallpaper-sheet.tsx`) built on vaul,
+mounted once in the root layout and shaped like the music playlist sheet: a
+bottom action sheet on narrow viewports, a right-edge floating panel on wide
+ones.
+
+Its tiles are **macOS Settings pair cards**: a 16:10 split of the light and dark
+originals, a sun / moon marking each half, a check when selected, and `Name` +
+`macOS · 2020` underneath. Weather is the **first tile in the same grid at the
+same size** — it is one of the wallpapers, just the only one that moves. Where
+the wallpaper paints sits above the grid as one compact row: a modifier, not the
+thing you came here for.
+
 ## Components
 
 ### AmbientSurface
 
-Wraps page content with the weather gradient background:
+Wraps page content with the wallpaper background:
 
 ```tsx
 <AmbientSurface>{children}</AmbientSurface>
 ```
 
-- Checks route-based gradient preferences
-- Renders gradient when enabled
-- Falls back to solid background when disabled
+- Renders `<WallpaperBackground />` when placement is `full`
+- Falls back to the solid themed background otherwise
 
 ### AmbientGreeting
 
@@ -139,7 +290,6 @@ const {
 ```typescript
 const {
   weather,             // NormalizedWeather | null
-  gradient,            // CSS gradient string
   isLoading,
   isFetching,
   error,
@@ -147,10 +297,48 @@ const {
   debugOverride,
   setDebugOverride,
   refresh,
-  isGradientEnabledForPath,
-  routeGradientPreferences,
-  setRouteGradientPreference,
 } = useWeather();
+```
+
+Weather data, and nothing else. The background stack used to live here too —
+weather was the only thing that could paint one — which meant
+`WallpaperBackground` read two contexts to draw one wallpaper and every reader
+had to hold "weather = wallpaper" in their head. It moved.
+
+### useWallpaper
+
+```typescript
+const {
+  kind,                   // "weather" | "image"
+  setKind,
+  wallpaper,              // The selected pair
+  wallpapers,             // The whole catalog
+  selectWallpaper,        // Selects AND switches kind to "image"
+  variant,                // Which half the app theme lands on right now
+  placement,              // "full" | "widget" | "off"
+  setPlacement,
+  fullEnabled,            // Resolved from placement, or a devtool override
+  widgetEnabled,
+  softEdgeEnabled,
+  layers,                 // The shared crossfade stack (either kind)
+  edgeMask,               // CSS mask-image, or null
+  devtoolOverrides,       // Ephemeral, devtool only
+  setDevtoolOverrides,
+  opacity,                // Resolved for kind and theme
+  veil,                   // The flat veil alpha over an image
+  vignette,               // The radial vignette alpha, at the far corners
+  blurred,                // Whether this route defocuses the wallpaper
+  dimHome,                // The three image-treatment switches
+  setDimHome,
+  readingBlur,
+  setReadingBlur,
+  readingDim,
+  setReadingDim,
+  src,                    // The file currently painting, for the devtool
+  isPickerOpen,
+  openPicker,
+  closePicker,
+} = useWallpaper();
 ```
 
 ### useAmbientTime
@@ -167,32 +355,36 @@ const {
 } = useAmbientTime();
 ```
 
-## Route-Based Gradients
-
-Each route can have gradient enabled/disabled:
-
-| Route | Default |
-|-------|---------|
-| `/` (home) | ✅ ON |
-| `/writing/*` | ❌ OFF (reading focus) |
-| `/docs/*` | ❌ OFF |
-| `/*` (fallback) | ✅ ON |
-
-Users can override via command palette or devtool panel.
-
 ## Data Flow
 
 ```
-IP Location API → useLocationQuery
-       ↓
-Open-Meteo API → useWeatherQuery
-       ↓
-       ↓ (sunrise/sunset times)
-deriveAmbientPhase → phase
-       ↓
-getWeatherGradient → CSS gradient
-       ↓
-WeatherGradientBackground
+                                     wallpaperKind
+                                          │
+        ┌─────────────────────────────────┴──────────────────┐
+        │ "weather"                                  "image" │
+        ▼                                                    ▼
+IP Location API → useLocationQuery                  BUILT_IN_WALLPAPERS
+        ↓                                                    ↓
+Open-Meteo API → useWeatherQuery                        app theme
+        ↓                                                    ↓
+        ↓ (sunrise/sunset times)                           ↓
+deriveAmbientPhase → phase                     getWallpaperBackground
+        ↓                                                    ↓
+getWeatherGradient / getSunEventGradient                     │
+        └──────────────────────┬─────────────────────────────┘
+                               ▼
+                    wallpaper.layers (one stack, crossfaded)
+                               ▼
+              WallpaperBackground (full) / WidgetShell (widget)
+```
+
+Both branches feed the same stack, which is what makes "one background at a
+time" a structural property rather than a rule.
+
+The sun-event phase runs alongside this and never touches the background:
+
+```
+phase → AmbientPhaseActivity → Dock Live Activity
 ```
 
 ## Caching

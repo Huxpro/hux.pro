@@ -3,8 +3,15 @@
 import { getLocalizedDescription, getLocalizedTitle, getPostHref } from "@/lib/content";
 import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
-import { localeNames, t, useLocale, useTheme } from "@/services";
-import { useLocation, useWeather } from "@/systems/ambient";
+import {
+  getGlassLabel,
+  localeNames,
+  t,
+  useGlass,
+  useLocale,
+  useTheme,
+} from "@/services";
+import { useLocation, useWallpaper } from "@/systems/ambient";
 import { useDevtool } from "@/systems/devtool";
 import { useMusic } from "@/systems/music";
 import { useOptionalWindows } from "@/systems/windows";
@@ -15,6 +22,8 @@ import {
   GitCommit,
   Hash,
   Home,
+  Image as ImageIcon,
+  Layers2,
   Languages,
   ListMusic,
   MapPin,
@@ -25,7 +34,6 @@ import {
   Slash,
   Sparkles,
   Sun,
-  Waves,
 } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
 import { motion } from "framer-motion";
@@ -43,7 +51,9 @@ export function CommandPalette() {
   const { locale, setLocale } = useLocale();
   const { locationMode, setLocationMode, requestAccurateLocation } =
     useLocation();
-  const { gradientMode, cycleGradientMode } = useWeather();
+  const { kind: wallpaperKind, wallpaper, openPicker: openWallpaperPicker } =
+    useWallpaper();
+  const { material: glassMaterial, toggle: toggleGlass } = useGlass();
   const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled, signalDragReset } =
     useDevtool();
   const {
@@ -64,16 +74,9 @@ export function CommandPalette() {
     prevOpenRef.current = isOpen;
   }, [isOpen, signalDragReset]);
 
-  const gradientModeLabel =
-    gradientMode === "full"
-      ? locale === "zh"
-        ? "全屏"
-        : "Full"
-      : gradientMode === "widget"
-      ? locale === "zh"
-        ? "卡片"
-        : "Widget"
-      : t(locale, "stateOff");
+  const glassLabel = getGlassLabel(glassMaterial, locale);
+  const wallpaperLabel =
+    wallpaperKind === "image" ? wallpaper.name : t(locale, "wallpaperWeather");
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -202,7 +205,7 @@ export function CommandPalette() {
       section: "settings",
     },
     {
-      key: "g",
+      key: "o",
       label: `${t(locale, "settingsGeolocation")}: ${
         locationMode === "accurate"
           ? t(locale, "locationAccurate")
@@ -221,10 +224,20 @@ export function CommandPalette() {
     },
     {
       key: "w",
-      label: `${t(locale, "settingsWeatherGradient")}: ${gradientModeLabel}`,
-      icon: <Waves className="h-4 w-4" />,
+      label: `${t(locale, "settingsWallpaper")}: ${wallpaperLabel}`,
+      icon: <ImageIcon className="h-4 w-4" />,
       onSelect: () => {
-        cycleGradientMode();
+        openWallpaperPicker();
+        close();
+      },
+      section: "settings",
+    },
+    {
+      key: "g",
+      label: `${t(locale, "settingsGlass")}: ${glassLabel}`,
+      icon: <Layers2 className="h-4 w-4" />,
+      onSelect: () => {
+        toggleGlass();
         close();
       },
       section: "settings",
@@ -317,7 +330,7 @@ export function CommandPalette() {
           setLocale(locale === "en" ? "zh" : "en");
           close();
           return;
-        case "g":
+        case "o":
           void (async () => {
             if (locationMode === "ip") {
               await requestAccurateLocation();
@@ -328,7 +341,11 @@ export function CommandPalette() {
           })();
           return;
         case "w":
-          cycleGradientMode();
+          openWallpaperPicker();
+          close();
+          return;
+        case "g":
+          toggleGlass();
           close();
           return;
         case "q":
@@ -364,14 +381,16 @@ export function CommandPalette() {
     setLocale,
     locale,
     locationMode,
-    gradientModeLabel,
     musicPlayerState,
     musicPlay,
     musicPause,
     isDevtoolEnabled,
     requestAccurateLocation,
     setLocationMode,
-    cycleGradientMode,
+    wallpaperLabel,
+    openWallpaperPicker,
+    glassLabel,
+    toggleGlass,
     openMusicPlaylist,
     setDevtoolEnabled,
   ]);
@@ -476,7 +495,7 @@ export function CommandPalette() {
       <Command
         className={cn(
           "relative mx-4 transition-all duration-300 ease-out",
-          "bg-popover/75 backdrop-blur-xl",
+          "bg-glass-popover backdrop-blur-xl",
           "rounded-2xl border border-black/10 dark:border-white/10",
           "shadow-overlay",
           "outline-none",
@@ -802,22 +821,28 @@ export function CommandPalette() {
                         : t(locale, "locationIp")}
                     </span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
-                      G
+                      O
                     </kbd>
                   </Command.Item>
                   <Command.Item
-                    value="weather-gradient"
+                    value="wallpaper"
                     keywords={[
-                      "weather",
-                      "gradient",
+                      "wallpaper",
                       "background",
-                      "widget",
-                      "mood",
+                      "image",
+                      "desktop",
+                      "macos",
+                      "ios",
+                      "壁纸",
+                      "背景",
                       "天气",
                       "渐变",
-                      "背景",
+                      "桌面",
                     ]}
-                    onSelect={() => cycleGradientMode()}
+                    onSelect={() => {
+                      openWallpaperPicker();
+                      close();
+                    }}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg",
                       "text-sm cursor-pointer transition-colors",
@@ -825,12 +850,42 @@ export function CommandPalette() {
                       "hover:bg-accent/25"
                     )}
                   >
-                    <Waves className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <ImageIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">
-                      {t(locale, "settingsWeatherGradient")}: {gradientModeLabel}
+                      {t(locale, "settingsWallpaper")}: {wallpaperLabel}
                     </span>
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       W
+                    </kbd>
+                  </Command.Item>
+                  <Command.Item
+                    value="glass"
+                    keywords={[
+                      "glass",
+                      "material",
+                      "clear",
+                      "tinted",
+                      "translucent",
+                      "liquid glass",
+                      "玻璃",
+                      "材质",
+                      "透明",
+                      "色调",
+                    ]}
+                    onSelect={() => toggleGlass()}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                      "text-sm cursor-pointer transition-colors",
+                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                      "hover:bg-accent/25"
+                    )}
+                  >
+                    <Layers2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1">
+                      {t(locale, "settingsGlass")}: {glassLabel}
+                    </span>
+                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                      G
                     </kbd>
                   </Command.Item>
                   <Command.Item
