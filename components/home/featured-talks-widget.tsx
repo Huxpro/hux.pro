@@ -96,7 +96,10 @@ export function FeaturedTalksWidget() {
               onClick={() =>
                 open({ albums, albumIndex: activeAlbum, trackIndex: i })
               }
-              className="group/thumb w-[86%] max-w-[200px] shrink-0 snap-start text-left"
+              className={cn(
+                "group/thumb w-[86%] max-w-[200px] shrink-0 snap-start rounded-xl text-left",
+                "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
+              )}
             >
               <TrackThumb track={track} />
               <div className="mt-2 truncate text-sm text-foreground">
