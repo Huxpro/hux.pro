@@ -17,9 +17,9 @@ interface HeaderZoneProps {
 /**
  * HeaderZone - Fixed-height header region for consistent page layout.
  *
- * Enforces a stable content-start position across index/list pages.
- * The homepage uses HomeStage instead (height-aware springboard).
- * Children should structure themselves as:
+ * Enforces a stable content-start position across index/list pages
+ * and the homepage voice (identifier + greeting). Children should
+ * structure themselves as:
  * 1. A fixed-height top slot (e.g. nav/system identifier)
  * 2. A `flex-1` title area centered vertically
  */

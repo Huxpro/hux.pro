@@ -9,11 +9,12 @@ import { FeaturedTalksWidget } from "@/components/home/featured-talks-widget";
 import {
   HomeStage,
   HomeStageBoard,
-  HomeStageChrome,
+  HomeStageCluster,
 } from "@/components/home/home-stage";
 import { PromptWidget } from "@/components/home/prompt-widget";
 import { ScrambleIdentifier } from "@/components/home/scramble-identifier";
 import { Commit } from "@/components/log";
+import { HeaderZone } from "@/components/ui/header-zone";
 import {
   SortableMasonry,
   type SortableWidget,
@@ -203,7 +204,9 @@ function WidgetGrid() {
     })),
   ];
 
-  return <SortableMasonry items={items} />;
+  return (
+    <SortableMasonry items={items} className="pt-2 sm:pt-4" />
+  );
 }
 
 // =============================================================================
@@ -215,16 +218,25 @@ export default function Home() {
 
   return (
     <HomeStage>
-      <HomeStageChrome style={heroFadeStyle}>
-        <div className="h-11 flex items-start justify-center">
-          <ScrambleIdentifier />
+      <HomeStageCluster>
+        <div className="mx-auto max-w-[680px]">
+          <HeaderZone
+            className="hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
+            style={heroFadeStyle}
+          >
+            <div className="h-11 flex items-start justify-center">
+              <ScrambleIdentifier />
+            </div>
+            <div className="flex-1 flex flex-col items-center justify-center pb-6 sm:pb-4">
+              <AmbientGreeting />
+            </div>
+          </HeaderZone>
         </div>
-        <AmbientGreeting />
-      </HomeStageChrome>
 
-      <HomeStageBoard>
-        <WidgetGrid />
-      </HomeStageBoard>
+        <HomeStageBoard>
+          <WidgetGrid />
+        </HomeStageBoard>
+      </HomeStageCluster>
     </HomeStage>
   );
 }

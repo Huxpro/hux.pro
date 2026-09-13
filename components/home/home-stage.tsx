@@ -1,48 +1,36 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 /**
  * HomeStage — the homepage springboard.
  *
- * On short viewports (phone, tablet, typical laptop) the stage is just the
- * existing top-aligned stack: identifier, greeting, widgets, then dock
- * clearance. Extra height is what iPadOS does when the same home screen
- * lands on an iPad Pro — leftover canvas becomes *stage margin* that
- * optically centers the widget board between the voice and the search bar,
- * and a large-canvas density pass widens the board and opens the gaps so
- * the extra pixels are used, not left as a void.
+ * Identifier, greeting, and the widget board are one cluster. Their
+ * internal spacing is the original HeaderZone geometry (hux in the top
+ * slot, greeting centered in the remaining zone, then the masonry) and
+ * does not change with viewport height. Extra canvas on a tall screen
+ * becomes equal springs above and below the *whole* cluster, so the
+ * grid can sit in the optical middle without the voice drifting away
+ * from it.
  *
- * The centering is flex-grow, not a height media query, so it cannot
- * regress a screen that already fills: if chrome + board + dock clearance
- * exceed the viewport, the board-area stays content-sized and the page
- * scrolls exactly as before.
+ * Springs only consume leftover space. If chrome + board + dock
+ * clearance already fill the viewport, the top spring collapses to the
+ * original `pt-16 / pt-24` and the page scrolls as before.
  */
 export function HomeStage({ children }: { children: ReactNode }) {
   return <main className="home-stage">{children}</main>;
 }
 
-export function HomeStageChrome({
-  children,
-  style,
-}: {
-  children: ReactNode;
-  style?: CSSProperties;
-}) {
+export function HomeStageCluster({ children }: { children: ReactNode }) {
   return (
-    <div
-      className="home-stage-chrome hero-zone-fade sticky top-0 z-10"
-      style={style}
-    >
-      <div className="home-stage-voice">{children}</div>
-    </div>
+    <>
+      <div className="home-stage-spring home-stage-spring-top" aria-hidden />
+      <div className="home-stage-cluster">{children}</div>
+      <div className="home-stage-spring" aria-hidden />
+    </>
   );
 }
 
 export function HomeStageBoard({ children }: { children: ReactNode }) {
-  return (
-    <div className="home-stage-board-area">
-      <div className="home-stage-board relative z-20">{children}</div>
-    </div>
-  );
+  return <div className="home-stage-board relative z-20">{children}</div>;
 }

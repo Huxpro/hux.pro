@@ -1,7 +1,6 @@
 "use client";
 
 import { TITLE_POETIC } from "@/components/ui/header-zone";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { t, useLocale, useVisitor } from "@/services";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
@@ -70,19 +69,11 @@ export function AmbientGreeting() {
       <h1 className={`${TITLE_POETIC} text-foreground`}>
         {timeGreeting}
       </h1>
-      {/*
-        In-flow slot (not absolute) so HomeStage can size the chrome from
-        real content. min-height holds the returning-visitor line so the
-        board doesn't jump after hydration.
-      */}
-      <p
-        className={cn(
-          "mt-2 text-sm sm:text-base leading-relaxed min-h-[1.5em]",
-          !contextMessage && "invisible",
-        )}
-      >
-        {contextMessage ?? "\u00a0"}
-      </p>
+      {contextMessage && (
+        <p className="absolute left-0 right-0 top-full mt-2 text-sm sm:text-base leading-relaxed">
+          {contextMessage}
+        </p>
+      )}
     </div>
   );
 }
