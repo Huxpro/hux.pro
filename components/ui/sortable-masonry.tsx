@@ -9,17 +9,21 @@ import {
   MouseSensor,
   TouchSensor,
   closestCenter,
+  pointerWithin,
+  rectIntersection,
+  useDroppable,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  arrayMove,
   rectSortingStrategy,
   sortableKeyboardCoordinates,
   useSortable,
+  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { AnimatePresence, motion } from "framer-motion";
@@ -29,59 +33,58 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
-import { HANDOFF, setHomeEditing } from "./home-edit-store";
 import {
   MOUSE_ACTIVATION,
   TOUCH_ACTIVATION,
+  chunkIntoColumns,
   clearOrder,
-  guardActivators,
-  loadOrder,
+  flattenColumns,
+  layoutsEqual,
+  loadLayouts,
   reconcile,
-  saveOrder,
+  reconcileLayout,
+  saveLayouts,
+  type ColumnLayout,
 } from "./sortable-order";
-import { usePressHold } from "./use-press-hold";
-import { landsOnOwnAction } from "./widget-surface";
 
 // =============================================================================
 // SortableMasonry
 //
-// An iPad-springboard-style widget grid. Renders children into a responsive
-// CSS multi-column masonry (1 / 2 / 3 / 4 columns) and lets the visitor rearrange
-// them, mirroring how iPadOS / macOS treat each pointer type:
+// An iPad-springboard-style widget grid. Renders widgets into a responsive
+// 1 / 2 / 3 column grid and lets the visitor rearrange them, mirroring how
+// iPadOS / macOS treat each pointer type:
 //   - Mouse / trackpad: a press-and-move *is* a drag straight away (no wait).
 //   - Touch: a plain swipe scrolls; you must long-press to pick a widget up,
-//     so dragging never fights the page scroll. The held card grows slowly for
-//     the length of the hold (iOS's "about to lift" tell) and pops up once
-//     the drag activates.
-// A press only counts as a pickup when it lands on the widget's *own*
-// surface — the part whose tap is the whole-widget action (title, padding,
-// static text). Rows, links, buttons and inputs carry their own tap, so a
-// press-and-hold on them is theirs (scroll the list, open the link preview,
-// press the button) and never lifts the card. In edit mode, like an iOS
-// jiggle, the whole card is a handle again.
+//     so dragging never fights the page scroll.
 // Dragging lifts the card and enters a jiggle "edit mode"; a click/tap on any
-// empty (non-widget) area, or the "Done" pill, leaves it. The order is an array of widget IDs
-// persisted to localStorage, so each visitor keeps their own layout.
+// empty (non-widget) area leaves it. The layout is persisted to localStorage,
+// so each visitor keeps their own arrangement.
 //
 // Why this shape:
-//   - CSS `columns` keeps every card in a single, SSR-renderable container
-//     (no JS measurement), which matters for static export.
-//   - Column *count* grows with the screen, column *width* doesn't: like an
-//     iPad Pro springboard, a bigger display shows more widgets rather than
-//     stretched ones. Each step therefore pairs a column count with a
-//     container max-width (see `gridScale`), so a column keeps roughly the
-//     same width as the screen grows and the grid stays centered in whatever
-//     space is left over.
-//   - This is dnd-kit's canonical sortable setup: the lifted card is a
-//     `DragOverlay` clone in a portal that simply tracks the cursor (so it can
-//     never "jump"), while the cards in the grid carry dnd-kit's own sort
-//     transforms to slide out of the way and to settle on drop. We deliberately
-//     do NOT layer Framer Motion `layout` on top — its FLIP projection mutates
-//     the DOM and, combined with live reordering inside CSS multicol, throws
-//     `removeChild` reconciliation errors.
+//   - Placement is *explicit*: the layout is one list of widget IDs per column
+//     (`string[][]`), not one flat sequence. Columns are plain flex children,
+//     so each one is exactly as tall as what the visitor put in it — a middle
+//     column can be the tallest, a column can be left half empty, and nothing
+//     reflows into a neighbouring column on its own. (CSS `columns`, which
+//     this used to use, auto-balances column heights: a widget's column was
+//     *derived* from the running height, never chosen, so "make the middle
+//     column taller" was simply not expressible.)
+//   - Layouts are kept per column count, so an arrangement made on a wide
+//     screen survives a visit at phone width.
+//   - Before hydration (and with JS off) the grid still renders as a plain CSS
+//     multi-column in declaration order, which needs no measurement and keeps
+//     the page useful for static export / crawlers.
+//   - This is dnd-kit's canonical multi-container sortable setup: the lifted
+//     card is a `DragOverlay` clone in a portal that simply tracks the cursor
+//     (so it can never "jump"), while the cards in the grid carry dnd-kit's own
+//     sort transforms to slide out of the way and to settle on drop. We
+//     deliberately do NOT layer Framer Motion `layout` on top — its FLIP
+//     projection mutates the DOM and throws `removeChild` reconciliation
+//     errors when combined with live reordering.
 // =============================================================================
 
 export interface SortableWidget {
@@ -89,6 +92,38 @@ export interface SortableWidget {
   id: string;
   /** The rendered widget. */
   node: ReactNode;
+}
+
+/** Droppable id prefix for a whole column (used for its empty tail area). */
+const COLUMN_PREFIX = "column:";
+
+/**
+ * Column count per breakpoint, widest first — mirrors the Tailwind breakpoints
+ * the pre-hydration fallback uses (`sm:columns-2 lg:columns-3`).
+ */
+const COLUMN_BREAKPOINTS: { query: string; count: number }[] = [
+  { query: "(min-width: 1024px)", count: 3 },
+  { query: "(min-width: 640px)", count: 2 },
+];
+
+/** Live column count; `null` until mounted (server render has no viewport). */
+function useColumnCount(): number | null {
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const lists = COLUMN_BREAKPOINTS.map((bp) => window.matchMedia(bp.query));
+    const sync = () => {
+      const hit = COLUMN_BREAKPOINTS.findIndex((_, i) => lists[i].matches);
+      setCount(hit === -1 ? 1 : COLUMN_BREAKPOINTS[hit].count);
+    };
+    sync();
+    for (const list of lists) list.addEventListener("change", sync);
+    return () => {
+      for (const list of lists) list.removeEventListener("change", sync);
+    };
+  }, []);
+
+  return count;
 }
 
 // =============================================================================
@@ -136,41 +171,35 @@ const CLONE_EDIT_CONTEXT: MasonryEditContextValue = {
 };
 
 // =============================================================================
-// Responsive scale
-//
-// Column count and container width move together so the widgets themselves
-// never stretch or shrink with the screen — only how many fit per row changes.
-//
-//   <sm    1 column   @ 680px     phone
-//   sm     2 columns  @ 680px     tablet / small laptop   (~332px per column)
-//   lg     3 columns  @ 1024px    desktop                 (~331px per column)
-//   roomy  4 columns  @ 1344px    large / ultrawide       (~324px per column)
-//          3 columns  @ 1152px    …with few widgets       (~373px per column)
-//
-// The fourth column only unlocks once there are enough widgets to fill it:
-// CSS multicol balances by height, so with a handful of cards a fourth column
-// takes a single widget and leaves a lopsided, half-empty grid. Below that
-// threshold an ultrawide screen instead gets three slightly roomier columns —
-// still far narrower than the ~630px a widget already renders at on a phone in
-// landscape, so nothing has to be re-tuned.
-//
-// The last step is gated on `roomy:` (wide *and* tall, see globals.css), not
-// width alone: it exists to spend space the screen actually has spare, so a
-// short ultrawide — already scrolling — keeps the familiar desktop board.
+// Layout helpers
 // =============================================================================
 
-const MIN_ITEMS_FOR_FOUR_COLUMNS = 8;
+/** Column + row index of an ID, or null when it isn't placed. */
+function locate(layout: ColumnLayout, id: string): [number, number] | null {
+  for (let col = 0; col < layout.length; col++) {
+    const row = layout[col].indexOf(id);
+    if (row !== -1) return [col, row];
+  }
+  return null;
+}
 
-function gridScale(count: number) {
-  return count >= MIN_ITEMS_FOR_FOUR_COLUMNS
-    ? {
-        width: "max-w-[680px] lg:max-w-5xl roomy:max-w-[84rem]",
-        columns: "columns-1 sm:columns-2 lg:columns-3 roomy:columns-4",
-      }
-    : {
-        width: "max-w-[680px] lg:max-w-5xl roomy:max-w-6xl",
-        columns: "columns-1 sm:columns-2 lg:columns-3",
-      };
+/** Move `id` to `column` at `index`, returning a new layout. */
+function place(
+  layout: ColumnLayout,
+  id: string,
+  column: number,
+  index: number,
+): ColumnLayout {
+  const from = locate(layout, id);
+  if (!from || !layout[column]) return layout;
+
+  const next = layout.map((col) => [...col]);
+  next[from[0]].splice(from[1], 1);
+  // Removing from the same column above the target shifts the target up by one.
+  const target =
+    from[0] === column && from[1] < index ? index - 1 : index;
+  next[column].splice(Math.max(0, Math.min(target, next[column].length)), 0, id);
+  return next;
 }
 
 // =============================================================================
@@ -190,29 +219,13 @@ function SortableMasonryItem({
 }) {
   const { setNodeRef, attributes, listeners, isDragging, transform, transition } =
     useSortable({ id });
-  const hold = usePressHold(TOUCH_ACTIVATION);
-
-  // Gate every press activator on where the press landed: a control's press
-  // is the control's. Edit mode lifts the gate.
-  const keepForControl = (e: React.SyntheticEvent) =>
-    !editing && landsOnOwnAction(e);
-  const guardedListeners = useMemo(
-    () => guardActivators(listeners, keepForControl),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- keepForControl only closes over `editing`
-    [listeners, editing],
-  );
 
   return (
     <div
       ref={setNodeRef}
       data-widget-id={id}
       {...attributes}
-      {...guardedListeners}
-      onPointerDown={(e) => {
-        if (keepForControl(e)) return;
-        hold.onPointerDown(e);
-        listeners?.onPointerDown?.(e);
-      }}
+      {...listeners}
       // In edit mode a tap shouldn't navigate (iPad jiggle behaviour); swallow
       // clicks that bubble up from links inside the widget.
       onClickCapture={(e) => {
@@ -236,22 +249,48 @@ function SortableMasonryItem({
         cursor: editing ? "grab" : undefined,
       }}
     >
-      {/* Three transforms, three wrappers, so none fights another: the outer
-          element carries dnd-kit's sort transform, this one the slow
-          press-and-hold grow, the innermost the jiggle rotate. */}
-      <div {...hold.holdProps}>
-        <div
-          className={cn(editing && !isDragging && "widget-jiggle")}
-          style={
-            editing && !isDragging
-              ? { animationDelay: `${(index % 6) * 0.07}s` }
-              : undefined
-          }
-        >
-          {children}
-        </div>
+      {/* Inner wrapper owns the jiggle rotate so it never fights the sort
+          transform on the outer element. */}
+      <div
+        className={cn(editing && !isDragging && "widget-jiggle")}
+        style={
+          editing && !isDragging
+            ? { animationDelay: `${(index % 6) * 0.07}s` }
+            : undefined
+        }
+      >
+        {children}
       </div>
     </div>
+  );
+}
+
+// =============================================================================
+// Column
+//
+// A droppable, independently-tall stack. Its droppable area stretches to the
+// full grid height (flex `stretch`), so the empty space under a short column
+// is a valid drop target: that is what lets a visitor deliberately grow one
+// column past its neighbours.
+// =============================================================================
+
+function MasonryColumn({
+  index,
+  ids,
+  children,
+}: {
+  index: number;
+  ids: string[];
+  children: ReactNode;
+}) {
+  const { setNodeRef } = useDroppable({ id: `${COLUMN_PREFIX}${index}` });
+
+  return (
+    <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+      <div ref={setNodeRef} className="min-w-0 flex-1">
+        {children}
+      </div>
+    </SortableContext>
   );
 }
 
@@ -274,12 +313,21 @@ export function SortableMasonry({
   const idsKey = ids.join("|");
   const itemsById = new Map(items.map((i) => [i.id, i.node]));
 
-  const [order, setOrder] = useState<string[]>(ids);
+  const columnCount = useColumnCount();
+  const mounted = columnCount !== null;
+  const columns = columnCount ?? 1;
+
+  const [layout, setLayout] = useState<ColumnLayout>(() =>
+    chunkIntoColumns(ids, 1),
+  );
   const [editing, setEditing] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [sections, setSections] = useState<Map<string, MasonrySection>>(
     () => new Map(),
   );
+  // Every column count the visitor has arranged, so switching widths (or
+  // rotating a phone) and coming back restores what they set up there.
+  const storedRef = useRef<Record<number, ColumnLayout>>({});
 
   const enterEdit = useCallback(() => setEditing(true), []);
   const registerSection = useCallback(
@@ -303,18 +351,39 @@ export function SortableMasonry({
     [editing, enterEdit, registerSection],
   );
 
-  // Restore the persisted order on mount and whenever the widget set changes.
-  useEffect(() => {
-    const stored = loadOrder(storageKey);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only: reading localStorage + syncing to the current widget set
-    setOrder(reconcile(stored ?? ids, ids));
-  }, [storageKey, idsKey]); // eslint-disable-line react-hooks/exhaustive-deps -- ids tracked via idsKey
+  const defaultLayout = useMemo(
+    () => chunkIntoColumns(ids, columns),
+    [idsKey, columns], // eslint-disable-line react-hooks/exhaustive-deps -- ids tracked via idsKey
+  );
 
-  // Tell the command bar to step aside while editing (see home-edit-store).
+  // Restore the persisted layout on mount, and re-derive it whenever the column
+  // count or the widget set changes.
   useEffect(() => {
-    setHomeEditing(editing);
-    return () => setHomeEditing(false);
-  }, [editing]);
+    if (!mounted) return;
+    const stored = loadLayouts(storageKey);
+    storedRef.current = stored.byCount;
+
+    const exact = stored.byCount[columns];
+    // No arrangement for this width yet: carry over the nearest one the
+    // visitor *did* make (widest first) rather than snapping to the default.
+    const nearest = exact
+      ? undefined
+      : Object.keys(stored.byCount)
+          .map(Number)
+          .sort((a, b) => b - a)
+          .map((n) => stored.byCount[n])[0];
+
+    const base = exact
+      ? exact
+      : nearest
+        ? chunkIntoColumns(flattenColumns(nearest), columns)
+        : stored.flat
+          ? // Legacy v1 payload: one flat sequence, chunked column-major.
+            chunkIntoColumns(reconcile(stored.flat, ids), columns)
+          : defaultLayout;
+
+    setLayout(reconcileLayout(base, ids, columns));
+  }, [storageKey, idsKey, columns, mounted, defaultLayout]); // eslint-disable-line react-hooks/exhaustive-deps -- ids tracked via idsKey
 
   // Leave edit mode on Escape, or on a completed click/tap anywhere outside a
   // widget (clicking another widget keeps you in edit mode so you can keep
@@ -347,6 +416,45 @@ export function SortableMasonry({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // Resolve what the pointer is over, widget first. Falling back to the nearest
+  // widget *within the hovered column* (rather than to the column itself) keeps
+  // the gaps between cards from yanking the held widget to the column's end;
+  // the column only wins when it has nothing else to offer, i.e. it is empty —
+  // which is precisely how a widget gets dropped into an empty column.
+  const collisionDetection = useCallback<CollisionDetection>(
+    (args) => {
+      const pointer = pointerWithin(args);
+      const hits = pointer.length > 0 ? pointer : rectIntersection(args);
+
+      const widget = hits.find(
+        (hit) => !String(hit.id).startsWith(COLUMN_PREFIX),
+      );
+      if (widget) return [widget];
+
+      const column = hits.find((hit) =>
+        String(hit.id).startsWith(COLUMN_PREFIX),
+      );
+      if (column) {
+        const index = Number(String(column.id).slice(COLUMN_PREFIX.length));
+        const siblings = new Set(layout[index] ?? []);
+        siblings.delete(String(args.active.id));
+        if (siblings.size > 0) {
+          const nearest = closestCenter({
+            ...args,
+            droppableContainers: args.droppableContainers.filter((c) =>
+              siblings.has(String(c.id)),
+            ),
+          });
+          if (nearest.length > 0) return nearest;
+        }
+        return [column];
+      }
+
+      return closestCenter(args);
+    },
+    [layout],
+  );
+
   function handleDragStart(e: DragStartEvent) {
     setActiveId(String(e.active.id));
     setEditing(true);
@@ -354,19 +462,53 @@ export function SortableMasonry({
 
   function handleDragOver(e: DragOverEvent) {
     const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    setOrder((prev) => {
-      const from = prev.indexOf(String(active.id));
-      const to = prev.indexOf(String(over.id));
-      if (from === -1 || to === -1) return prev;
-      return arrayMove(prev, from, to);
+    if (!over) return;
+    const draggedId = String(active.id);
+    const overId = String(over.id);
+
+    setLayout((prev) => {
+      const from = locate(prev, draggedId);
+      if (!from) return prev;
+
+      let column: number;
+      let index: number;
+
+      if (overId.startsWith(COLUMN_PREFIX)) {
+        column = Number(overId.slice(COLUMN_PREFIX.length));
+        if (!Number.isInteger(column) || !prev[column]) return prev;
+        index = prev[column].length;
+      } else {
+        if (overId === draggedId) return prev;
+        const target = locate(prev, overId);
+        if (!target) return prev;
+        column = target[0];
+        // Insert above or below the hovered widget depending on which half of
+        // it the held card has reached — the usual "cross the midpoint" rule,
+        // so a hover near an edge doesn't flip the order back and forth.
+        const held = active.rect.current.translated;
+        const below = held
+          ? held.top + held.height / 2 > over.rect.top + over.rect.height / 2
+          : false;
+        index = target[1] + (below ? 1 : 0);
+      }
+
+      const next = place(prev, draggedId, column, index);
+      return layoutsEqual(next, prev) ? prev : next;
     });
   }
 
+  const persist = useCallback(
+    (next: ColumnLayout) => {
+      storedRef.current = { ...storedRef.current, [columns]: next };
+      saveLayouts(storageKey, storedRef.current);
+    },
+    [columns, storageKey],
+  );
+
   function handleDragEnd() {
     setActiveId(null);
-    setOrder((prev) => {
-      saveOrder(storageKey, prev);
+    setLayout((prev) => {
+      persist(prev);
       return prev;
     });
   }
@@ -377,18 +519,31 @@ export function SortableMasonry({
 
   function handleReset() {
     clearOrder(storageKey);
-    setOrder(ids); // back to the order widgets are declared in
+    storedRef.current = {};
+    setLayout(defaultLayout); // back to the placement widgets are declared in
     for (const section of sections.values()) section.reset();
   }
 
-  const orderedIds = order.filter((id) => itemsById.has(id));
-  const scale = gridScale(orderedIds.length);
+  // Only render widgets that still exist, and never render one twice.
+  const placed = useMemo(() => {
+    const seen = new Set<string>();
+    return layout.map((col) =>
+      col.filter((id) => {
+        if (!itemsById.has(id) || seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      }),
+    );
+  }, [layout, idsKey]); // eslint-disable-line react-hooks/exhaustive-deps -- itemsById tracked via idsKey
+
   // Only offer "Reset" once some layout actually diverges from its default.
-  // `idsKey` is already the default order joined, so compare against it;
-  // inner drag surfaces (sections) report their own divergence.
+  // Inner drag surfaces (sections) report their own divergence.
   const isCustomized =
-    orderedIds.join("|") !== idsKey ||
+    (mounted && !layoutsEqual(placed, defaultLayout)) ||
     [...sections.values()].some((s) => s.isCustomized);
+
+  // Running index across columns, purely to stagger the jiggle animation.
+  let jiggleIndex = 0;
 
   const grid = (
     <DndContext
@@ -397,23 +552,47 @@ export function SortableMasonry({
       // counter mismatches and React reports an unpatchable hydration error.
       id="hux-widget-grid"
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <SortableContext items={orderedIds} strategy={rectSortingStrategy}>
-        <div className={cn("mx-auto w-full", scale.width)}>
-          <div className={cn(scale.columns, "gap-x-4", className)}>
-            {orderedIds.map((id, i) => (
+      {mounted ? (
+        <div className={cn("flex gap-x-4", className)}>
+          {placed.map((columnIds, col) => (
+            <MasonryColumn key={col} index={col} ids={columnIds}>
+              {columnIds.map((id) => (
+                <SortableMasonryItem
+                  key={id}
+                  id={id}
+                  index={jiggleIndex++}
+                  editing={editing}
+                >
+                  {itemsById.get(id)}
+                </SortableMasonryItem>
+              ))}
+            </MasonryColumn>
+          ))}
+        </div>
+      ) : (
+        // Pre-hydration / no-JS: a plain CSS multi-column in declaration order.
+        // Needs no viewport measurement, so it is correct at every width.
+        <SortableContext items={ids} strategy={rectSortingStrategy}>
+          <div
+            className={cn(
+              "columns-1 sm:columns-2 lg:columns-3 gap-x-4",
+              className,
+            )}
+          >
+            {ids.map((id, i) => (
               <SortableMasonryItem key={id} id={id} index={i} editing={editing}>
                 {itemsById.get(id)}
               </SortableMasonryItem>
             ))}
           </div>
-        </div>
-      </SortableContext>
+        </SortableContext>
+      )}
 
       {/* The lifted card: a portal clone that tracks the cursor. The clone is
           purely visual, so it gets the inert CLONE_EDIT_CONTEXT — it must not
@@ -426,15 +605,8 @@ export function SortableMasonry({
         {activeId ? (
           <MasonryEditContext.Provider value={CLONE_EDIT_CONTEXT}>
             <div
-              // Pops from the held size (the press-and-hold grow ends at
-              // 1.03) to its floating size, so pickup reads as one motion.
-              // `pointer-events-none`: the clone is under the finger when a
-              // hold is released without moving, and the click a touch
-              // release synthesises would otherwise land on a link inside
-              // the clone (which lives in a portal, outside the item's
-              // click-swallowing wrapper) and navigate.
-              className="widget-lift select-none drop-shadow-2xl pointer-events-none"
-              style={{ cursor: "grabbing" }}
+              className="select-none drop-shadow-2xl"
+              style={{ transform: "scale(1.03)", cursor: "grabbing" }}
             >
               {itemsById.get(activeId)}
             </div>
@@ -442,33 +614,25 @@ export function SortableMasonry({
         ) : null}
       </DragOverlay>
 
-      {/* Edit-mode controls: a "Done" pill, with a quieter "Reset" to its
-          left once the layout has been customised. On desktop they float
-          above the command bar (fixed at bottom-6). On phones the command bar
-          fades out for the duration of edit mode (see systems/command/fab.tsx)
-          and the controls take its place at the bottom, where the thumb is. */}
+      {/* Edit-mode controls: a primary "Done" pill, with a quieter "Reset"
+          to its left once the layout has been customised. */}
       <AnimatePresence>
         {editing && (
           <motion.div
             data-edit-controls
-            className="system-chrome fixed inset-x-0 bottom-6 md:bottom-24 z-50 flex items-center justify-center gap-4 px-6"
-            // Sequenced with the command bar's fade (see HANDOFF): the
-            // controls rise in once the bar has gone, and sink out before
-            // it comes back. On desktop the bar stays put, so the delay is
-            // simply a beat after the drag started.
+            // bottom-24 keeps these controls clear of the command bar (fixed at
+            // bottom-6); revisit if that bar moves.
+            className="fixed inset-x-0 bottom-24 z-50 flex items-center justify-center gap-4"
             initial={{ opacity: 0, y: 12 }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              transition: { duration: HANDOFF.in, delay: HANDOFF.delay },
-            }}
-            exit={{ opacity: 0, y: 12, transition: { duration: HANDOFF.out } }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.2 }}
           >
             {isCustomized && (
               <button
                 type="button"
                 onClick={handleReset}
-                className="pressable text-xs font-mono uppercase tracking-wider text-tertiary-foreground transition-colors hover:text-muted-foreground active:text-foreground"
+                className="text-xs font-mono uppercase tracking-wider text-muted-foreground/60 transition-colors hover:text-muted-foreground"
               >
                 {t(locale, "widgetEditReset")}
               </button>
@@ -476,7 +640,7 @@ export function SortableMasonry({
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="pressable rounded-full border border-border/60 bg-glass-strong-hover px-5 py-2.5 md:px-4 md:py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground active:bg-card active:text-foreground"
+              className="rounded-full border border-border/60 bg-card/80 px-4 py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground"
             >
               {t(locale, "widgetEditDone")}
             </button>
