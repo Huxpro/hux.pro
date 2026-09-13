@@ -96,35 +96,35 @@ Both are well under the ~0.45/0.55 this idea usually gets built with, because on
 a reading page **the blur is what protects legibility** — the overlays only have
 to stop the remaining colour from shouting.
 
-### The vignette's strength is not what the sides get
+### The vignette is a mask, not an overlay
 
-The ellipse is `72% × 62%`, and 72% of a 1440px viewport is 1037px of radius
-from a centre 720px in. So the left and right edges sit at only **0.69** along
-the gradient and receive about **two thirds** of the configured alpha; full
-strength lands on the bottom corners, off to the side of where the eye reads a
-vignette. That shortfall is invisible from the strength number, which is why
-the devtool prints what the sides actually get and gives you a **spread** knob
-next to strength — scaling the ellipse below 1 pulls full strength back inside
-the frame (at 0.70 the sides receive 99% instead of 66%). Measured on Sonoma
-against the same frame with the vignette off:
+This is the part that decides whether the effect reads at all, and it took two
+tries to get right. An **overlay** paints the page colour on top at some alpha:
+at 0.40 the most it can ever do is remove 40% of the picture and muddy the rest.
+A **mask** deletes the layer and lets the page show through clean, all the way to
+100%. Same geometry, incomparable result — the overlay version measured as
+working and still looked like nothing was happening.
 
-| strength | spread | sides | centre |
-|---|---|---|---|
-| 0.40 | 1.00 (shipped) | 0.82 | 1.00 |
-| 0.40 | 0.70 | 0.73 | 1.00 |
-| 0.70 | 1.00 | 0.69 | 0.93 |
-| 0.90 | 0.55 | 0.37 | 0.93 |
+So the radial falloff is `mask-image` on the wallpaper layer itself
+(`buildRadialEdgeMask`, from #96's `EDGE_FADE_MASK_LIGHT`), and the devtool's
+Vignette section drives it: **On**, **Strength** (how much of the picture is gone
+at the farthest corner) and **Spread** (the ellipse scale). Spread earns its keep
+— at 1 the ellipse is wider than a 1440px viewport, so the left and right edges
+sit at only 0.69 along the gradient and receive two thirds of the strength, on
+the two edges the eye actually reads. The panel prints what the sides get next to
+what was asked for.
 
-Dividing the dimmed frame by the undimmed one is the trick that makes this
-readable at all: the wallpaper's own content cancels, leaving only the overlay.
+### Soft edging: two shapes, one name
 
-A blurred reading page also resolves the layer to the **480px thumb** rather
-than the full-size file. A 40px blur over a 110% scale destroys every pixel of
-detail the big file was carrying: measured across the whole viewport the two
-differ by 0.15/255 on average and 2/255 at worst, in both themes, for a tenth of
-the bytes (46KB → 4KB). Only when blurred — in `widget` placement and on the
-home screen the photo paints sharp, and there the thumb is a soft upscale rather
-than a free win.
+| | Shape | Why |
+|---|---|---|
+| Image wallpaper, any theme | radial | The picture sits on the page and falls off on every side |
+| Weather, **light** | radial | A vertical strip fading into paper-white is invisible when the sky is already pale |
+| Weather, **dark** | vertical strip | The page ground sits close to the gradient, so a strip already reads as a vignette |
+
+Light and dark were never one implementation, which is the answer to "why does
+dark look right and light look like nothing". #96 hit the same wall and split it
+the same way.
 
 `lib/reading-surface.ts` owns the predicate; `wallpaper-background.tsx` applies
 the blur, the veil and the vignette (the vignette's alpha arrives as the

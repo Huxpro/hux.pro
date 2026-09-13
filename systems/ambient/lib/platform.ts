@@ -41,3 +41,33 @@ export const EDGE_FADE_MASK = buildEdgeFadeMask(IOS_EDGE_FADE_DISTANCE_PX);
 export const EDGE_FADE_MASK_HIGH_CONTRAST = buildEdgeFadeMask(
   IOS_EDGE_FADE_DISTANCE_HIGH_CONTRAST_PX
 );
+
+/**
+ * The radial soft edge — the picture sitting ON the page and falling off on
+ * every side, rather than being tinted toward it.
+ *
+ * Taken from #96, which is where the "centre bright, edges dark" look actually
+ * comes from: not an overlay but a MASK. That distinction is the whole effect.
+ * An overlay paints the page colour on top at some alpha, so the wallpaper is
+ * still there underneath, muddied — 0.40 alpha is the most it can ever remove.
+ * A mask deletes the layer outright and lets the page show through clean, all
+ * the way to 100%. On a photograph the difference is not subtle.
+ *
+ * It is also the reason a radial edge suits a photo where the vertical strip
+ * does not. The strip cuts a band off the top and bottom, which reads as a
+ * printing error; falling off on every side reads as a vignette.
+ *
+ * @param spread   scales the ellipse. Below 1 pulls the falloff inside the
+ *                 viewport, where the eye actually reads it.
+ * @param strength how much of the picture is gone at the farthest corner.
+ *                 1 removes it entirely, which is what #96 does.
+ */
+export function buildRadialEdgeMask(spread: number, strength: number): string {
+  const rx = (92 * spread).toFixed(1);
+  const ry = (84 * spread).toFixed(1);
+  const remaining = Math.max(0, 1 - strength).toFixed(3);
+  return (
+    `radial-gradient(ellipse ${rx}% ${ry}% at 50% 42%, ` +
+    `black 28%, black 55%, rgb(0 0 0 / ${remaining}) 100%)`
+  );
+}
