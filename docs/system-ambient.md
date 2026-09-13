@@ -139,18 +139,33 @@ boxes directly:
 
 | | Source | Committed |
 |---|---|---|
-| iOS 27 | 1178×2560 png | 1178×2560 |
-| iOS 18 | 1186×2560 png | 1186×2560 |
+| iOS 27 | 1320×2868 png | 1320×2868 |
+| iOS 18 light | 1480×3192 png | 1480×3192 |
+| iOS 18 dark | 2580×5592 png | 1661×3600 |
 | iOS 17 | 2048×2048 jpg | 2048×2048 |
 | iOS 14 | 3072×3072 heic | 2400×2400 |
 | iOS 13 | 3186×3186 heic | 2400×2400 |
 
+1320×2868 is Apple's own asset size for iOS 27 — iClarified, 9to5Mac and
+wallpapers.poutanen.dev all publish exactly that, so it is the ceiling, not a
+sourcing failure. 4kwallpapers' iOS 18 set is *lower* (1290×2796) than the
+sources already recorded here.
+
 Every one is the source aspect, downscaled at most. The two tall pairs simply
 came from Apple as tall files, and they crop hardest on a desktop.
 
-They are committed as WebP (long edge ≤ 2560 at q80) with 480px thumbnails that
-picker tiles and devtool swatches resolve to, so opening the picker costs tens of
-kilobytes rather than the megabyte the full set weighs. Provenance for every
+They are committed as WebP at q80, bounded to **2560 wide by 3600 tall** and
+never upscaled, with 480px thumbnails that picker tiles and devtool swatches
+resolve to, so opening the picker costs tens of kilobytes rather than the
+megabyte the full set weighs.
+
+That bound is deliberately not a square box. A single "long edge ≤ 2560" cap
+reads as neutral but is not: the long edge of phone artwork is its height, which
+nothing on a desktop ever needs, so the cap spends the whole budget there and
+starves the width. It had iOS 27 at 1178px wide when Apple ships it at 1320, and
+iOS 18's dark half at 1182 from a 2580px source. Width is what a viewport
+actually spends, so width gets the real budget and height only has to keep the
+file from running away. Provenance for every
 pair — source URL, and HEIC frame index where the pair came out of one file —
 lives in `public/wallpapers/sources.json`.
 
