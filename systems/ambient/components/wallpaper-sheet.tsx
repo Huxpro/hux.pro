@@ -13,6 +13,7 @@ import type { WeatherGradientMode } from "../lib/settings";
 import {
   BUILT_IN_WALLPAPERS,
   getWallpaperPairPreview,
+  isPhoneWallpaper,
   type Wallpaper,
 } from "../lib/wallpaper";
 import { useWallpaper, useWeather } from "../provider";
@@ -136,19 +137,19 @@ function TileFrame({
 /**
  * Name on the left, platform + year on the right.
  *
- * A phone glyph rides in front of the platform on the tall pairs. A phone
- * wallpaper on a desktop viewport is cropped to a vertical slice of itself, so
- * the shape of the source is worth knowing BEFORE you pick it — the tile can't
- * show it, because every tile is the same 16:10 card.
+ * A phone glyph rides in front of the platform on the iOS pairs. Phone artwork
+ * on a desktop viewport is a crop of itself, and that is worth knowing BEFORE
+ * you pick it — the tile can't show it, because every tile is the same 16:10
+ * card whatever shape the file is.
  */
 function TileCaption({
   name,
   meta,
-  portrait,
+  phone,
 }: {
   name: string;
   meta: string;
-  portrait?: boolean;
+  phone?: boolean;
 }) {
   return (
     <div className="mt-2 flex items-baseline justify-between gap-2 px-0.5">
@@ -156,7 +157,7 @@ function TileCaption({
         {name}
       </span>
       <span className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
-        {portrait && (
+        {phone && (
           <Smartphone
             aria-hidden
             className="size-3 translate-y-[0.5px] opacity-70"
@@ -206,7 +207,7 @@ function WallpaperTile({
           onClick={() => selectWallpaper(wallpaper.id)}
           aria-pressed={selected}
           aria-label={`Use the ${wallpaper.name} wallpaper — ${meta}${
-            wallpaper.portrait ? ", a portrait phone wallpaper" : ""
+            isPhoneWallpaper(wallpaper) ? ", a phone wallpaper" : ""
           }`}
           className="absolute inset-0"
         >
@@ -225,7 +226,7 @@ function WallpaperTile({
       <TileCaption
         name={wallpaper.name}
         meta={meta}
-        portrait={wallpaper.portrait}
+        phone={isPhoneWallpaper(wallpaper)}
       />
     </div>
   );

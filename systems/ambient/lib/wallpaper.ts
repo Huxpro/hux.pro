@@ -62,15 +62,6 @@ export interface Wallpaper {
    * "iPadOS 18 Violet — iPadOS · 2024" both stutters and overflows the tile.
    */
   caption?: string;
-  /**
-   * The artwork is a PHONE wallpaper, so the files are tall.
-   *
-   * Worth surfacing rather than hiding: a 0.46 aspect painted across a desktop
-   * viewport is cropped hard — you see a slice of the middle, not the picture.
-   * The picker and the devtool mark these with a phone glyph so the crop is a
-   * known trade rather than a surprise.
-   */
-  portrait?: boolean;
   /** The light/dark pair. "auto" picks between these by theme. */
   light: WallpaperAsset;
   dark: WallpaperAsset;
@@ -242,7 +233,6 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     name: "iOS 27",
     platform: "iOS",
     year: 2026,
-    portrait: true,
     ...pair("ios-27", "rgb(118 109 112)", "rgb(41 44 64)"),
   },
   {
@@ -250,7 +240,6 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     name: "iOS 18",
     platform: "iOS",
     year: 2024,
-    portrait: true,
     ...pair("ios-18", "rgb(71 106 128)", "rgb(7 11 15)"),
   },
   {
@@ -275,6 +264,23 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     ...pair("ios-13", "rgb(227 122 82)", "rgb(98 13 31)"),
   },
 ];
+
+/**
+ * Is this phone artwork?
+ *
+ * Derived, not stored. It was a flag once, set by hand on the pairs whose files
+ * happen to be tall — which quietly made it mean "this file is portrait" rather
+ * than "this is a phone wallpaper". Those are not the same thing: iOS 13, 14
+ * and 17 are phone wallpapers too, but they were centre-cropped to square on
+ * import, so they lost a glyph that describes the artwork, not the encoding.
+ *
+ * The glyph says phone, so it means phone. Every iOS wallpaper is one, and
+ * every one of them shows a crop of itself on a desktop viewport — the tall
+ * files just crop harder.
+ */
+export function isPhoneWallpaper(wallpaper: Wallpaper): boolean {
+  return wallpaper.platform === "iOS";
+}
 
 export const DEFAULT_WALLPAPER_ID = BUILT_IN_WALLPAPERS[0].id;
 
