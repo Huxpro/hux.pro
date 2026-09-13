@@ -6,9 +6,26 @@ import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { Command, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useDraggable } from "@/systems/draggable";
-import { useHomeEditing } from "@/components/ui/home-edit-store";
+import { HANDOFF, useHomeEditing } from "@/components/ui/home-edit-store";
+
+// Below `md` the bar and the grid's edit controls share the bottom of the
+// screen; above it the controls float over the bar. Mirrors the `md:`
+// breakpoint the bar's own layout switches on.
+const COMPACT_QUERY = "(max-width: 767px)";
+
+function useCompactViewport(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mql = window.matchMedia(COMPACT_QUERY);
+      mql.addEventListener("change", onChange);
+      return () => mql.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(COMPACT_QUERY).matches,
+    () => false,
+  );
+}
 
 export function FloatingActionButton() {
   const { toggle } = useCommand();
@@ -18,8 +35,11 @@ export function FloatingActionButton() {
   const drag = useDraggable("command-fab");
   // While the home grid is in jiggle edit mode, the bar fades out on phones
   // so the grid's edit controls can take the bottom of the screen (on wider
-  // screens they float above it and the bar stays put).
+  // screens they float above it and the bar stays put). The fade is
+  // sequenced with the controls' entrance/exit (HANDOFF), so each direction
+  // is a hand-off rather than a crossfade.
   const homeEditing = useHomeEditing();
+  const compact = useCompactViewport();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -28,6 +48,7 @@ export function FloatingActionButton() {
 
   const isHomepage = pathname === "/";
   const isDraggable = drag.isEnabled && !isHomepage;
+  const yielding = isHomepage && homeEditing && compact;
 
   if (!mounted) return null;
 
@@ -44,8 +65,8 @@ export function FloatingActionButton() {
         onClick={() => toggle()}
         className={cn(
           "pressable pointer-events-auto",
-          "transition-[background-color,border-color,color,opacity,transform] duration-200",
-          isHomepage && homeEditing && "max-md:pointer-events-none max-md:opacity-0",
+          "transition-[background-color,border-color,color,transform] duration-200",
+          yielding && "pointer-events-none",
           "flex items-center gap-2",
           "bg-card/50 backdrop-blur-xl",
           "border border-border/50",
@@ -62,9 +83,13 @@ export function FloatingActionButton() {
             : "rounded-[24px] w-12 md:w-auto md:px-4 justify-center active:scale-95"
         )}
         style={{ borderRadius: isHomepage ? 24 : 24 }}
+        animate={{ opacity: yielding ? 0 : 1 }}
         transition={{
           layout: { duration: 0.4, ease: [0.32, 0.72, 0, 1] },
           borderRadius: { duration: 0.4 },
+          opacity: yielding
+            ? { duration: HANDOFF.out }
+            : { duration: HANDOFF.in, delay: HANDOFF.delay },
         }}
         aria-label="Open command palette"
       >

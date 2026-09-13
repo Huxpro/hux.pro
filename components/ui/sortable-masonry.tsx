@@ -32,7 +32,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { setHomeEditing } from "./home-edit-store";
+import { HANDOFF, setHomeEditing } from "./home-edit-store";
 import {
   MOUSE_ACTIVATION,
   TOUCH_ACTIVATION,
@@ -474,10 +474,17 @@ export function SortableMasonry({
           <motion.div
             data-edit-controls
             className="system-chrome fixed inset-x-0 bottom-6 md:bottom-24 z-50 flex items-center justify-center gap-4 px-6"
+            // Sequenced with the command bar's fade (see HANDOFF): the
+            // controls rise in once the bar has gone, and sink out before
+            // it comes back. On desktop the bar stays put, so the delay is
+            // simply a beat after the drag started.
             initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
-            transition={{ duration: 0.2 }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              transition: { duration: HANDOFF.in, delay: HANDOFF.delay },
+            }}
+            exit={{ opacity: 0, y: 12, transition: { duration: HANDOFF.out } }}
           >
             {isCustomized && (
               <button
