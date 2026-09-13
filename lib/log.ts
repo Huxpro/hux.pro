@@ -60,7 +60,7 @@ export type CommitType =
  *                   that mounts the platform's own iframe/script.
  * - "video":        a video player (YouTube / Bilibili / Vimeo iframe).
  * - "slides":       a reveal.js / HTML slide deck played in an ~80% modal
- *                   iframe (e.g. huangxuan.me decks from Yanshuo.io).
+ *                   iframe (e.g. huxpro.github.io decks from Yanshuo.io).
  * - "image":        a static image asset.
  *
  * A discriminator field `kind` (not `type`, which is taken by CommitType) keeps
