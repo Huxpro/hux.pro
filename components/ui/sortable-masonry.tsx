@@ -154,7 +154,7 @@ function SortableMasonryItem({
       onContextMenu={(e) => e.preventDefault()}
       // Widgets are tactile objects, not prose — never let a drag turn into a
       // text selection.
-      className="mb-4 break-inside-avoid select-none"
+      className="mb-[var(--home-gap-y,1rem)] break-inside-avoid select-none"
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -323,7 +323,10 @@ export function SortableMasonry({
     >
       <SortableContext items={orderedIds} strategy={rectSortingStrategy}>
         <div
-          className={cn("columns-1 sm:columns-2 lg:columns-3 gap-x-4", className)}
+          className={cn(
+            "columns-1 sm:columns-2 lg:columns-3 gap-x-[var(--home-gap-x,1rem)]",
+            className,
+          )}
         >
           {orderedIds.map((id, i) => (
             <SortableMasonryItem key={id} id={id} index={i} editing={editing}>

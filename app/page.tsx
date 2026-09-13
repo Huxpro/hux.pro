@@ -6,10 +6,14 @@ import {
   VStackWidget,
 } from "@/components/home/featured-stack-widget";
 import { FeaturedTalksWidget } from "@/components/home/featured-talks-widget";
+import {
+  HomeStage,
+  HomeStageBoard,
+  HomeStageChrome,
+} from "@/components/home/home-stage";
 import { PromptWidget } from "@/components/home/prompt-widget";
 import { ScrambleIdentifier } from "@/components/home/scramble-identifier";
 import { Commit } from "@/components/log";
-import { HeaderZone } from "@/components/ui/header-zone";
 import {
   SortableMasonry,
   type SortableWidget,
@@ -199,9 +203,7 @@ function WidgetGrid() {
     })),
   ];
 
-  return (
-    <SortableMasonry items={items} className="relative z-20 pt-2 sm:pt-4 mb-16" />
-  );
+  return <SortableMasonry items={items} />;
 }
 
 // =============================================================================
@@ -212,25 +214,17 @@ export default function Home() {
   const heroFadeStyle = useHeroFade();
 
   return (
-    <main className="mx-auto w-full px-6 pt-16 sm:pt-24 pb-32 sm:pb-40">
-      <div className="mx-auto max-w-[680px]">
-        <HeaderZone
-          className="hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
-          style={heroFadeStyle}
-        >
-          <div className="h-11 flex items-start justify-center">
-            <ScrambleIdentifier />
-          </div>
-          <div className="flex-1 flex flex-col items-center justify-center pb-6 sm:pb-4">
-            <AmbientGreeting />
-          </div>
-        </HeaderZone>
-      </div>
+    <HomeStage>
+      <HomeStageChrome style={heroFadeStyle}>
+        <div className="h-11 flex items-start justify-center">
+          <ScrambleIdentifier />
+        </div>
+        <AmbientGreeting />
+      </HomeStageChrome>
 
-      {/* Widget grid — widens to three columns on large screens */}
-      <div className="mx-auto max-w-[680px] lg:max-w-5xl">
+      <HomeStageBoard>
         <WidgetGrid />
-      </div>
-    </main>
+      </HomeStageBoard>
+    </HomeStage>
   );
 }
