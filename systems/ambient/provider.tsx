@@ -117,8 +117,6 @@ export interface DevtoolPlacementOverrides {
   full?: boolean;
   widget?: boolean;
   softEdging?: boolean;
-  /** Draw the radial vignette at all. */
-  vignette?: boolean;
   /** Alpha at the farthest corner. */
   vignetteAlpha?: number;
   /** Scales the ellipse; below 1 pulls full strength inside the viewport. */
@@ -350,35 +348,30 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // because "is it even on" and "is it reaching the edges" are different
   // questions and the second one is not visible from the first.
   const vignetteAlpha =
-    isDevtoolEnabled && devtoolOverrides.vignette === false
-      ? 0
-      : isDevtoolEnabled && devtoolOverrides.vignetteAlpha !== undefined
-        ? devtoolOverrides.vignetteAlpha
-        : dimming
-          ? WALLPAPER_VIGNETTE[dimming][theme]
-          : 0;
+    isDevtoolEnabled && devtoolOverrides.vignetteAlpha !== undefined
+      ? devtoolOverrides.vignetteAlpha
+      : dimming
+        ? WALLPAPER_VIGNETTE[dimming][theme]
+        : WALLPAPER_VIGNETTE.scrim[theme];
   const vignetteSpread =
     isDevtoolEnabled && devtoolOverrides.vignetteSpread !== undefined
       ? devtoolOverrides.vignetteSpread
       : 1;
 
-  // Soft edging fades the background out at the edges of the viewport, and the
-  // SHAPE of that fade is what decides whether it suits a photograph.
+  // Soft edging fades the background out at the edges of the viewport. ONE
+  // switch, for both kinds — the kind only decides the shape of the fade, and
+  // when it decided the switch too the toggle was simply dead on an image
+  // wallpaper, which is not a state a debug panel is allowed to be in.
   //
-  // The vertical strip hides a seam: the weather gradient is a synthetic wash,
-  // and where it stops against the page background there is a line. On a photo
-  // it does the opposite — it cuts a band off the top and bottom, in light mode
-  // to pure white, which reads as a printing error. That is why it used to be
-  // gated off for images entirely.
-  //
-  // A RADIAL fade is a different thing wearing the same name: the picture falls
-  // off on every side, which is a vignette rather than a cut. That is what an
-  // image wallpaper gets, and it is the Vignette section below that drives it —
-  // so this switch stays weather's.
+  // Default on wherever it helps: on a phone at any kind (a full-bleed
+  // background running under the notch and the home indicator is what it was
+  // added for), and on a photograph at any size, because the radial fade IS the
+  // vignette there. A weather gradient on a desktop is the one case that never
+  // wanted it — nothing is running off an edge that a 128px strip would fix.
   const softEdgeEnabled =
     isDevtoolEnabled && devtoolOverrides.softEdging !== undefined
       ? devtoolOverrides.softEdging
-      : isIOS && !isImageKind;
+      : isIOS || isImageKind;
 
   /**
    * Mark the document while a photograph is painting behind the page.
@@ -492,21 +485,26 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
    * the way to 100%. Same geometry, incomparable effect — which is why the
    * overlay version of this felt like it was not working.
    */
-  const edgeMask: string | null = isImageKind
-    ? vignetteAlpha > 0
+  /**
+   * One switch, three shapes.
+   *
+   * The photograph's is a MASK rather than an overlay, and that is the whole
+   * reason it reads: an overlay paints the page colour on top at some alpha, so
+   * at 0.40 the most it can do is remove 40% of the picture and muddy the rest;
+   * a mask deletes the layer and lets the page show through clean.
+   *
+   * Light and dark were never one implementation for the gradient either.
+   * Dark's page ground sits close to the wash, so a vertical strip fading into
+   * it reads as a vignette; light's ground is paper-white and a pale sky fading
+   * into it is invisible. #96 hit this and split it the same way.
+   */
+  const edgeMask: string | null = !softEdgeEnabled
+    ? null
+    : isImageKind
       ? buildRadialEdgeMask(vignetteSpread, vignetteAlpha)
-      : null
-    : !softEdgeEnabled
-      ? null
       : theme === "light"
-        ? // Light mode gets the round one too, and for the same reason #96 gave:
-          // a vertical strip fading into paper-white is invisible when the sky
-          // is already pale. The two themes were never really one
-          // implementation — dark's page ground sits close to the gradient, so
-          // a strip reads as a vignette there and as nothing here.
-          buildRadialEdgeMask(1, 1)
-        : theme === "dark" &&
-            (effectivePhase === "sunrise" || effectivePhase === "sunset")
+        ? buildRadialEdgeMask(1, 1)
+        : effectivePhase === "sunrise" || effectivePhase === "sunset"
           ? EDGE_FADE_MASK_HIGH_CONTRAST
           : EDGE_FADE_MASK;
 

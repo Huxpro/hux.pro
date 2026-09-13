@@ -879,7 +879,6 @@ function WallpaperModule() {
   const clearOverrides = () => setDevtoolOverrides({});
   const anyOverride = placements.some((p) => isOverridden(p.key));
   const vignetteOverridden =
-    devtoolOverrides.vignette !== undefined ||
     devtoolOverrides.vignetteAlpha !== undefined ||
     devtoolOverrides.vignetteSpread !== undefined;
 
@@ -1034,28 +1033,16 @@ function WallpaperModule() {
           </PanelRow>
         </div>
 
-        {/* The vignette carries most of the dimming, and neither of its two
-            failure modes is visible from the other: it can be off, or it can be
-            on and spending its strength outside the viewport. One switch and
-            two numbers, so you can tell which. */}
+        {/* The shape of the soft edge on a photograph. Its on/off is the Soft
+            edge switch above — there is only one, because two switches for one
+            mask is how the toggle ended up dead. Spread is here because the
+            strength alone cannot tell you whether it lands inside the
+            viewport. */}
         <div className="space-y-2 border-t border-border/30 pt-2.5">
           <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
-            {zh ? "暗角" : "Vignette"}
+            {zh ? "暗角（柔和边缘的形状）" : "Vignette · soft edge shape"}
             {vignetteOverridden ? " *" : ""}
           </div>
-          <PanelRow label={zh ? "开启" : "On"}>
-            <PanelToggle
-              on={vignette > 0}
-              onClick={() =>
-                setDevtoolOverrides({
-                  ...devtoolOverrides,
-                  vignette: !(vignette > 0),
-                  vignetteAlpha: undefined,
-                })
-              }
-              label="Toggle the wallpaper vignette"
-            />
-          </PanelRow>
           <PanelRow label={zh ? "强度" : "Strength"}>
             <PanelRange
               value={vignette}
@@ -1063,11 +1050,7 @@ function WallpaperModule() {
               max={0.9}
               step={0.02}
               onChange={(v) =>
-                setDevtoolOverrides({
-                  ...devtoolOverrides,
-                  vignette: true,
-                  vignetteAlpha: v,
-                })
+                setDevtoolOverrides({ ...devtoolOverrides, vignetteAlpha: v })
               }
               label="Vignette strength at the farthest corner"
             />
@@ -1089,7 +1072,6 @@ function WallpaperModule() {
               onClick={() =>
                 setDevtoolOverrides({
                   ...devtoolOverrides,
-                  vignette: undefined,
                   vignetteAlpha: undefined,
                   vignetteSpread: undefined,
                 })
