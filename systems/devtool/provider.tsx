@@ -27,12 +27,18 @@ export const DRAGGABLE_DEFAULTS: Record<string, DraggableInstanceConfig> = {
   "command-fab": { draggable: false, persist: true },
   // Transient overlay — draggable for convenience, but resets to center on each open
   "command-palette": { draggable: true, persist: false },
+  // Adaptive surfaces in their desktop "window" shape. Same posture as the
+  // palette: drag it out of the way while you work, back to centre next open.
+  "surface-playlist": { draggable: true, persist: false },
 };
 
 export const DRAGGABLE_INSTANCES = [
   { id: "devtool", labelEn: "Debug Panel", labelZh: "调试面板" },
   { id: "command-fab", labelEn: "Search Button", labelZh: "搜索按钮" },
   { id: "command-palette", labelEn: "Command Palette", labelZh: "命令面板" },
+  // Adaptive surfaces are only draggable in their desktop "window" shape; the
+  // sheet and panel shapes ignore this entry.
+  { id: "surface-playlist", labelEn: "Playlist Window", labelZh: "播放列表窗口" },
 ] as const;
 
 // =============================================================================

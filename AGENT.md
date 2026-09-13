@@ -11,6 +11,7 @@
 | **Design Philosophy** | [docs/design-philosophy.md](./docs/design-philosophy.md) (Core principles) |
 | **Design System** | [docs/design-system.md](./docs/design-system.md) (Typography, colors) |
 | **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
+| **Secondary Surfaces** | [docs/system-surface.md](./docs/system-surface.md) (sheet / panel / window, per viewport) |
 | **Architecture** | [docs/architecture.md](./docs/architecture.md) (Implementation details) |
 | **OG Images (ours)** | [docs/og-images.md](./docs/og-images.md) (Social cards we publish for our pages) |
 | **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Crawling *others'* OG for /works cards) |
