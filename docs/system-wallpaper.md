@@ -92,8 +92,9 @@ Monterey (2021), Big Sur (2020)
 iOS 13 (2019)
 
 The ⌘K picker is one grid of 16:10 Settings cards. **Weather** is the
-first tile (live gradient, same size as Tahoe). Image tiles split light /
-dark, with a check when selected and `Name` + `macOS · 2020` underneath.
+first tile — same size as Tahoe, with a live light/dark split of the
+current condition. Image tiles split light / dark, with a check when
+selected and `Name` + `macOS · 2020` underneath.
 
 Images are Apple stock wallpapers, kept small (≈2.5 MB total) for the site.
 
