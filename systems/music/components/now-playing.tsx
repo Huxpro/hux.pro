@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
+import { GLASS_BTN, GLASS_CLUSTER, GLASS_PILL } from "@/systems/theater/lib/chrome";
 import { FastForward, ListMusic, Music, Pause, Play, Rewind } from "lucide-react";
 import { useState } from "react";
 import { useMusic } from "../provider";
@@ -36,6 +37,55 @@ function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+const TRANSPORT_BTN = cn(GLASS_BTN, "h-7 w-7");
+
+function MusicTransport({
+  isPlaying,
+  onPrevious,
+  onPlayPause,
+  onNext,
+  onPlaylist,
+  playlistLabel,
+  idle = false,
+}: {
+  isPlaying: boolean;
+  onPrevious?: () => void;
+  onPlayPause: () => void;
+  onNext?: () => void;
+  onPlaylist: () => void;
+  playlistLabel: string;
+  idle?: boolean;
+}) {
+  return (
+    <div className={GLASS_CLUSTER}>
+      {!idle && (
+        <button onClick={onPrevious} aria-label="Previous track" className={TRANSPORT_BTN}>
+          <Rewind className="h-3.5 w-3.5" />
+        </button>
+      )}
+      <button
+        onClick={onPlayPause}
+        aria-label={isPlaying ? "Pause" : "Play"}
+        className={cn(TRANSPORT_BTN, GLASS_PILL, "text-foreground")}
+      >
+        {isPlaying ? (
+          <Pause className="h-3.5 w-3.5" fill="currentColor" />
+        ) : (
+          <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />
+        )}
+      </button>
+      {!idle && (
+        <button onClick={onNext} aria-label="Next track" className={TRANSPORT_BTN}>
+          <FastForward className="h-3.5 w-3.5" />
+        </button>
+      )}
+      <button onClick={onPlaylist} aria-label={playlistLabel} className={TRANSPORT_BTN}>
+        <ListMusic className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -107,40 +157,14 @@ export function NowPlaying() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-1 -ml-2 -mb-2">
-              <button
-                onClick={previous}
-                className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 active:bg-accent/60 transition-colors active:scale-[0.92]"
-                aria-label="Previous track"
-              >
-                <Rewind className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={isPlaying ? pause : play}
-                className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 active:bg-accent/60 transition-colors active:scale-[0.92]"
-                aria-label={isPlaying ? "Pause" : "Play"}
-              >
-                {isPlaying ? (
-                  <Pause className="h-4 w-4" />
-                ) : (
-                  <Play className="h-4 w-4" />
-                )}
-              </button>
-              <button
-                onClick={next}
-                className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 active:bg-accent/60 transition-colors active:scale-[0.92]"
-                aria-label="Next track"
-              >
-                <FastForward className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={openPlaylist}
-                className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 active:bg-accent/60 transition-colors active:scale-[0.92]"
-                aria-label={t(locale, "musicOpenPlaylist")}
-              >
-                <ListMusic className="h-3.5 w-3.5" />
-              </button>
-            </div>
+            <MusicTransport
+              isPlaying={isPlaying}
+              onPrevious={previous}
+              onPlayPause={isPlaying ? pause : play}
+              onNext={next}
+              onPlaylist={openPlaylist}
+              playlistLabel={t(locale, "musicOpenPlaylist")}
+            />
           )}
         </div>
       </div>
@@ -166,22 +190,13 @@ export function NowPlaying() {
           <div className="text-xs font-mono text-muted-foreground">
             {t(locale, "musicNotPlaying")}
           </div>
-          <div className="flex items-center gap-1 self-start -ml-2 -mb-2">
-            <button
-              onClick={play}
-              className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 active:bg-accent/60 transition-colors active:scale-[0.92]"
-              aria-label="Play"
-            >
-              <Play className="h-4 w-4" />
-            </button>
-            <button
-              onClick={openPlaylist}
-              className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 active:bg-accent/60 transition-colors active:scale-[0.92]"
-              aria-label={t(locale, "musicOpenPlaylist")}
-            >
-              <ListMusic className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          <MusicTransport
+            isPlaying={false}
+            onPlayPause={play}
+            onPlaylist={openPlaylist}
+            playlistLabel={t(locale, "musicOpenPlaylist")}
+            idle
+          />
         </div>
       </div>
     );
