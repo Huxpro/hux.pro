@@ -519,7 +519,7 @@ function TitleRow({ track, airy }: { track: Track; airy?: boolean }) {
         )}
       </div>
       <span className="shrink-0 text-xs font-mono uppercase tracking-wide text-white/40">
-        /works →
+        Works →
       </span>
     </div>
   );

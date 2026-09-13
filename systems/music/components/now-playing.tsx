@@ -2,7 +2,13 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { GLASS_BTN, GLASS_CLUSTER, GLASS_PILL } from "@/systems/theater/lib/chrome";
+import {
+  GLASS_BTN,
+  GLASS_CLUSTER,
+  GLASS_CLUSTER_FLAT,
+  GLASS_PILL,
+  GLASS_PILL_FLAT,
+} from "@/systems/theater/lib/chrome";
 import { FastForward, ListMusic, Music, Pause, Play, Rewind } from "lucide-react";
 import { useState } from "react";
 import { useMusic } from "../provider";
@@ -49,6 +55,7 @@ function MusicTransport({
   onPlaylist,
   playlistLabel,
   idle = false,
+  raised = true,
 }: {
   isPlaying: boolean;
   onPrevious?: () => void;
@@ -57,9 +64,11 @@ function MusicTransport({
   onPlaylist: () => void;
   playlistLabel: string;
   idle?: boolean;
+  /** Live Activity keeps the framed cluster; the homepage widget stays flat until hover. */
+  raised?: boolean;
 }) {
   return (
-    <div className={GLASS_CLUSTER}>
+    <div className={raised ? GLASS_CLUSTER : GLASS_CLUSTER_FLAT}>
       {!idle && (
         <button onClick={onPrevious} aria-label="Previous track" className={TRANSPORT_BTN}>
           <Rewind className="h-3.5 w-3.5" />
@@ -68,7 +77,11 @@ function MusicTransport({
       <button
         onClick={onPlayPause}
         aria-label={isPlaying ? "Pause" : "Play"}
-        className={cn(TRANSPORT_BTN, GLASS_PILL, "text-foreground")}
+        className={cn(
+          TRANSPORT_BTN,
+          "text-foreground",
+          raised ? GLASS_PILL : GLASS_PILL_FLAT,
+        )}
       >
         {isPlaying ? (
           <Pause className="h-3.5 w-3.5" fill="currentColor" />
@@ -96,7 +109,12 @@ function MusicTransport({
 // states stay identical everywhere.
 // ---------------------------------------------------------------------------
 
-export function NowPlaying() {
+export function NowPlaying({
+  raised = true,
+}: {
+  /** Live Activity keeps the framed cluster; the homepage widget stays flat until hover. */
+  raised?: boolean;
+}) {
   const { locale } = useLocale();
   const [showProgress, setShowProgress] = useState(false);
   const {
@@ -118,40 +136,41 @@ export function NowPlaying() {
 
   if (track) {
     return (
-      <div className="flex gap-3">
+      <div className="flex items-start gap-3.5">
         {/* Album art — mqdefault is 16:9, object-cover crops to square */}
         <div
-          className="w-18 h-18 rounded-lg overflow-hidden shrink-0"
+          className="h-16 w-16 overflow-hidden rounded-lg shrink-0"
           onMouseEnter={() => setShowProgress(true)}
           onMouseLeave={() => setShowProgress(false)}
         >
           <img
             src={track.thumbnailUrl}
             alt={track.title}
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover"
           />
         </div>
 
-        {/* Right: title/artist top-aligned, controls bottom-aligned */}
-        <div className="min-w-0 flex-1 flex flex-col justify-between">
-          <div>
-            <div className="text-sm text-foreground font-medium truncate leading-snug">
+        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-medium leading-snug text-foreground">
               {track.title}
             </div>
-            <div className="text-xs font-mono text-muted-foreground truncate mt-0.5">
-              {track.artist}
-            </div>
+            {track.artist && (
+              <div className="mt-1 truncate text-xs font-mono leading-relaxed text-muted-foreground">
+                {track.artist}
+              </div>
+            )}
           </div>
 
           {showProgress && duration > 0 ? (
-            <div className="space-y-1">
-              <div className="h-0.5 rounded-full bg-muted overflow-hidden">
+            <div className="space-y-1.5">
+              <div className="h-0.5 overflow-hidden rounded-full bg-muted">
                 <div
                   className="h-full rounded-full bg-foreground/50 transition-[width] duration-1000 ease-linear"
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <div className="flex justify-between text-[10px] font-mono text-muted-foreground tabular-nums">
+              <div className="flex justify-between font-mono text-[10px] tabular-nums text-muted-foreground">
                 <span>{formatTime(currentTime)}</span>
                 <span>-{formatTime(Math.max(0, duration - currentTime))}</span>
               </div>
@@ -164,6 +183,7 @@ export function NowPlaying() {
               onNext={next}
               onPlaylist={openPlaylist}
               playlistLabel={t(locale, "musicOpenPlaylist")}
+              raised={raised}
             />
           )}
         </div>
@@ -182,12 +202,12 @@ export function NowPlaying() {
 
   if (isIdle && !isLoading) {
     return (
-      <div className="flex gap-3">
-        <div className="w-18 h-18 rounded-lg bg-muted/30 flex items-center justify-center shrink-0">
+      <div className="flex items-start gap-3.5">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-muted/30">
           <Music className="h-6 w-6 text-muted-foreground/30" />
         </div>
-        <div className="min-w-0 flex-1 flex flex-col justify-between">
-          <div className="text-xs font-mono text-muted-foreground">
+        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+          <div className="text-xs font-mono leading-relaxed text-muted-foreground">
             {t(locale, "musicNotPlaying")}
           </div>
           <MusicTransport
@@ -196,6 +216,7 @@ export function NowPlaying() {
             onPlaylist={openPlaylist}
             playlistLabel={t(locale, "musicOpenPlaylist")}
             idle
+            raised={raised}
           />
         </div>
       </div>
@@ -204,14 +225,14 @@ export function NowPlaying() {
 
   // loading skeleton
   return (
-    <div className="flex gap-3">
-      <div className="w-18 h-18 rounded-lg bg-muted animate-pulse shrink-0" />
-      <div className="min-w-0 flex-1 flex flex-col justify-between">
+    <div className="flex items-start gap-3.5">
+      <div className="h-16 w-16 shrink-0 animate-pulse rounded-lg bg-muted" />
+      <div className="flex min-w-0 flex-1 flex-col gap-2.5">
         <div>
-          <div className="h-4 w-3/4 rounded bg-muted animate-pulse" />
-          <div className="h-3 w-1/2 rounded bg-muted animate-pulse mt-1.5" />
+          <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+          <div className="mt-1.5 h-3 w-1/2 animate-pulse rounded bg-muted" />
         </div>
-        <div className="h-3.5 w-16 rounded bg-muted animate-pulse" />
+        <div className="h-7 w-28 animate-pulse rounded-full bg-muted/70" />
       </div>
     </div>
   );

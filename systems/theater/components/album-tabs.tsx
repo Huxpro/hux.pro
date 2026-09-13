@@ -7,7 +7,9 @@ import {
   GLASS_ON_DARK_PILL,
   GLASS_ON_DARK_TRACK,
   GLASS_PILL,
+  GLASS_PILL_FLAT,
   GLASS_TRACK,
+  GLASS_TRACK_FLAT,
 } from "../lib/chrome";
 import type { Album } from "../lib/types";
 
@@ -35,6 +37,11 @@ interface AlbumTabsProps {
   size?: "sm" | "md";
   /** Force light-on-dark glass (theater). Default is theme-aware (homepage). */
   tone?: "default" | "onDark";
+  /**
+   * Homepage widgets stay frameless until the card is hovered.
+   * Theater / Live Activity keep the raised track.
+   */
+  raised?: boolean;
 }
 
 export function AlbumTabs({
@@ -44,6 +51,7 @@ export function AlbumTabs({
   className,
   size = "sm",
   tone = "default",
+  raised = true,
 }: AlbumTabsProps) {
   const reduceMotion = useReducedMotion();
   // Unique per mount so homepage + theater don't fight over one layoutId.
@@ -59,7 +67,7 @@ export function AlbumTabs({
         // Tight outer shell — little track padding, no inter-item gap.
         // Labels carry the breathing room instead (Apple camera picker).
         "inline-flex items-center rounded-full p-0.5",
-        onDark ? GLASS_ON_DARK_TRACK : GLASS_TRACK,
+        onDark ? GLASS_ON_DARK_TRACK : raised ? GLASS_TRACK : GLASS_TRACK_FLAT,
         className,
       )}
     >
@@ -91,7 +99,11 @@ export function AlbumTabs({
                 layoutId={pillId}
                 className={cn(
                   "absolute inset-0 -z-10 rounded-full",
-                  onDark ? GLASS_ON_DARK_PILL : GLASS_PILL,
+                  onDark
+                    ? GLASS_ON_DARK_PILL
+                    : raised
+                      ? GLASS_PILL
+                      : GLASS_PILL_FLAT,
                 )}
                 transition={
                   reduceMotion

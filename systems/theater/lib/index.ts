@@ -4,8 +4,11 @@ export { resolveVideoId, enableIframeFullscreen } from "./player";
 export { theaterAvailable, THEATER_MIN_WIDTH, THEATER_MIN_HEIGHT } from "./geometry";
 export {
   GLASS_TRACK,
+  GLASS_TRACK_FLAT,
   GLASS_PILL,
+  GLASS_PILL_FLAT,
   GLASS_CLUSTER,
+  GLASS_CLUSTER_FLAT,
   GLASS_BTN,
   GLASS_ACTION,
   GLASS_ON_DARK_CLUSTER,
