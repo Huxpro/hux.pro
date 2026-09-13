@@ -96,6 +96,14 @@ Both are well under the ~0.45/0.55 this idea usually gets built with, because on
 a reading page **the blur is what protects legibility** — the overlays only have
 to stop the remaining colour from shouting.
 
+A blurred reading page also resolves the layer to the **480px thumb** rather
+than the full-size file. A 40px blur over a 110% scale destroys every pixel of
+detail the big file was carrying: measured across the whole viewport the two
+differ by 0.15/255 on average and 2/255 at worst, in both themes, for a tenth of
+the bytes (46KB → 4KB). Only when blurred — in `widget` placement and on the
+home screen the photo paints sharp, and there the thumb is a soft upscale rather
+than a free win.
+
 `lib/reading-surface.ts` owns the predicate; `wallpaper-background.tsx` applies
 the blur, the veil and the vignette (the vignette's alpha arrives as the
 `--wallpaper-vignette` custom property, so both strengths stay in
