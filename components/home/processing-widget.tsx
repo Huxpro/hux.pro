@@ -7,7 +7,6 @@ import {
   WidgetHeader,
   WidgetLink,
   WidgetShell,
-  WidgetStatus,
   WidgetTitle,
 } from "@/components/ui/widget";
 import type { Locale } from "@/lib/i18n";
@@ -110,10 +109,7 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
   return (
     <WidgetShell>
       <WidgetHeader className="pb-2">
-        <div className="flex items-center gap-2">
-          <WidgetStatus />
-          <WidgetTitle>{t(locale, "widgetStatus")}</WidgetTitle>
-        </div>
+        <WidgetTitle>{t(locale, "widgetStatus")}</WidgetTitle>
         <WidgetLink href="/works" label="View works" />
       </WidgetHeader>
 
