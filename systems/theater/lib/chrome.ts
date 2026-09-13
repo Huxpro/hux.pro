@@ -27,6 +27,27 @@ export const GLASS_CLUSTER = cn(
   GLASS_TRACK,
 );
 
+/**
+ * Widget-desktop rest state: no track, no fill. The parent `group` hover
+ * (the homepage card) brings the frame back. Live Activity stays raised.
+ */
+export const GLASS_TRACK_FLAT = cn(
+  "border border-transparent",
+  "transition-[background-color,border-color,backdrop-filter,box-shadow] duration-200",
+  "group-hover:border-border/50 group-hover:bg-foreground/[0.06] group-hover:backdrop-blur-xl",
+  "dark:group-hover:bg-white/[0.08]",
+);
+
+export const GLASS_CLUSTER_FLAT = cn(
+  "inline-flex items-center gap-0.5 rounded-full p-0.5",
+  GLASS_TRACK_FLAT,
+);
+
+/** Selected pill that only lifts when the parent widget is hovered. */
+export const GLASS_PILL_FLAT = cn(
+  "group-hover:bg-card/90 group-hover:shadow-sm group-hover:ring-1 group-hover:ring-border/50 group-hover:backdrop-blur-xl",
+);
+
 /** Theme-aware icon button inside a cluster (or standalone orb). */
 export const GLASS_BTN = cn(
   "inline-flex items-center justify-center rounded-full",

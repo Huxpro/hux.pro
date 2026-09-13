@@ -70,7 +70,7 @@ export function MusicActivity() {
         </>
       }
     >
-      <div className="px-5 pb-3">
+      <div className="px-5 pb-4">
         <NowPlaying />
       </div>
     </LiveActivity>

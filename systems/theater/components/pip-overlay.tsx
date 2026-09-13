@@ -19,8 +19,8 @@ import { SurfaceSwitch } from "./surface-switch";
 // Activity (keep listening) or close.
 //
 // Chrome matches Featured Talks / theater. The SurfaceSwitch pill marks PiP
-// as the current view; Theater / Mini are the only moves. Close is outside
-// the switcher — it ends the session, it is not a view.
+// as the current view; Theater / Audio are the only moves. Close sits in the
+// same capsule — it ends the session, it is not a view.
 // ---------------------------------------------------------------------------
 
 const CLUSTER_BTN = cn(GLASS_BTN, "h-7 w-7");
@@ -136,17 +136,20 @@ export function PipOverlay() {
             </button>
           </div>
 
-          <SurfaceSwitch
-            current="pip"
-            theaterAvailable={theaterAvailable}
-            onSelect={(surface) => {
-              if (surface === "theater") toTheater();
-              if (surface === "mini") minimize();
-            }}
-          />
-          <button onClick={close} aria-label="Close" className={CLUSTER_BTN}>
-            <X className="h-3.5 w-3.5" />
-          </button>
+          <div className={GLASS_CLUSTER}>
+            <SurfaceSwitch
+              current="pip"
+              theaterAvailable={theaterAvailable}
+              framed={false}
+              onSelect={(surface) => {
+                if (surface === "theater") toTheater();
+                if (surface === "mini") minimize();
+              }}
+            />
+            <button onClick={close} aria-label="Close" className={CLUSTER_BTN}>
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

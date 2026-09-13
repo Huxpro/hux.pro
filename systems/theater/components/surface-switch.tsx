@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { motion, useReducedMotion } from "framer-motion";
-import { Maximize2, Minimize2, PictureInPicture2 } from "lucide-react";
+import { Maximize2, PictureInPicture2, Volume2 } from "lucide-react";
 import { useId } from "react";
 import {
   GLASS_ACTION,
@@ -15,11 +15,11 @@ import {
 } from "../lib/chrome";
 
 // ---------------------------------------------------------------------------
-// SurfaceSwitch — the exclusive player views: Theater · PiP · Mini.
+// SurfaceSwitch — the exclusive player views: Theater · PiP · Audio.
 //
 // Only one surface can be up at a time. The lifted pill is the *current*
 // view (not an action). The other segments are the only legal moves.
-// Close / source-link stay outside this control — they are not views.
+// Audio is the minimized Live Activity — video parks, sound keeps playing.
 // ---------------------------------------------------------------------------
 
 export type TheaterSurface = "theater" | "pip" | "mini";
@@ -29,7 +29,7 @@ const EASE = [0.32, 0.72, 0, 1] as const;
 const ICONS = {
   theater: Maximize2,
   pip: PictureInPicture2,
-  mini: Minimize2,
+  mini: Volume2,
 } as const;
 
 const LABEL_KEY = {
@@ -45,6 +45,11 @@ interface SurfaceSwitchProps {
   tone?: "default" | "onDark";
   /** Text labels (Live Activity). Icon-only in the tight PiP / theater bars. */
   labels?: boolean;
+  /**
+   * When false, no outer track — parent already provides the capsule
+   * (one window toolbar instead of nested glass).
+   */
+  framed?: boolean;
   className?: string;
   onSelect: (surface: TheaterSurface) => void;
 }
@@ -54,6 +59,7 @@ export function SurfaceSwitch({
   theaterAvailable = true,
   tone = "default",
   labels = false,
+  framed = true,
   className,
   onSelect,
 }: SurfaceSwitchProps) {
@@ -71,8 +77,9 @@ export function SurfaceSwitch({
       role="radiogroup"
       aria-label={t(locale, "theaterSurfaceGroup")}
       className={cn(
-        "inline-flex items-center rounded-full p-0.5",
-        onDark ? GLASS_ON_DARK_TRACK : GLASS_TRACK,
+        "inline-flex items-center",
+        framed && "rounded-full p-0.5",
+        framed && (onDark ? GLASS_ON_DARK_TRACK : GLASS_TRACK),
         labels && "w-full",
         className,
       )}

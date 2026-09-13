@@ -10,7 +10,9 @@ import {
 } from "lucide-react";
 import { Link } from "next-view-transitions";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { GLASS_ON_DARK_ORB } from "../lib/chrome";
+import { t, useLocale } from "@/services";
+import { GLASS_ON_DARK_BTN, GLASS_ON_DARK_CLUSTER, GLASS_ON_DARK_ORB } from "../lib/chrome";
+import { THEATER_TOP_BAR } from "../lib/geometry";
 import { useTheater } from "../provider";
 import { AlbumTabs } from "./album-tabs";
 import { PlaylistRail } from "./playlist-rail";
@@ -49,6 +51,7 @@ export function TheaterOverlay() {
     close,
     isCoarse,
   } = useTheater();
+  const { locale } = useLocale();
 
   const open = mode === "theater" && !minimized;
 
@@ -231,7 +234,12 @@ export function TheaterOverlay() {
           <div
             aria-hidden
             className="fixed z-[10004]"
-            style={{ left: rect.left, width: rect.width, top: rect.top - 64, height: 64 }}
+            style={{
+              left: rect.left,
+              width: rect.width,
+              top: rect.top - THEATER_TOP_BAR,
+              height: THEATER_TOP_BAR,
+            }}
             onPointerEnter={pinChrome}
             onPointerLeave={unpinChrome}
           />
@@ -242,7 +250,7 @@ export function TheaterOverlay() {
               left: rect.left,
               width: rect.width,
               top: rect.top + rect.height,
-              height: 200,
+              height: 248,
             }}
             onPointerEnter={pinChrome}
             onPointerLeave={unpinChrome}
@@ -288,12 +296,12 @@ export function TheaterOverlay() {
               >
                 <motion.div
                   key="topbar"
-                  className="fixed z-[10005] flex items-end justify-between gap-4"
+                  className="fixed z-[10005] flex items-end justify-end"
                   style={{
                     left: rect.left,
                     width: rect.width,
-                    top: rect.top - 56,
-                    height: 44,
+                    top: rect.top - 52,
+                    height: 40,
                   }}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -302,20 +310,14 @@ export function TheaterOverlay() {
                   onPointerEnter={pinChrome}
                   onPointerLeave={unpinChrome}
                 >
-                  <AlbumTabs
-                    albums={albums}
-                    activeIndex={albumIndex}
-                    onSelect={selectAlbum}
-                    tone="onDark"
-                  />
-                  <div className="flex items-center gap-1.5">
+                  <div className={GLASS_ON_DARK_CLUSTER}>
                     {track?.url && (
                       <a
                         href={track.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="Open on source site"
-                        className={cn(GLASS_ON_DARK_ORB, "h-10 w-10")}
+                        className={cn(GLASS_ON_DARK_BTN, "h-8 w-8")}
                       >
                         <ExternalLink className="h-4 w-4" />
                       </a>
@@ -323,6 +325,7 @@ export function TheaterOverlay() {
                     <SurfaceSwitch
                       current="theater"
                       tone="onDark"
+                      framed={false}
                       onSelect={(surface) => {
                         if (surface === "pip") toPip();
                         if (surface === "mini") minimize();
@@ -330,10 +333,10 @@ export function TheaterOverlay() {
                     />
                     <button
                       aria-label="Close"
-                      className={cn(GLASS_ON_DARK_ORB, "h-10 w-10")}
+                      className={cn(GLASS_ON_DARK_BTN, "h-8 w-8")}
                       onClick={close}
                     >
-                      <X className="h-5 w-5" />
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 </motion.div>
@@ -414,11 +417,18 @@ export function TheaterOverlay() {
                           onClick={close}
                           className="shrink-0 text-xs font-mono uppercase tracking-wide text-white/50 hover:text-white transition-colors"
                         >
-                          /works →
+                          {t(locale, "theaterWorksLink")} →
                         </Link>
                       )}
                     </div>
                   )}
+                  <AlbumTabs
+                    albums={albums}
+                    activeIndex={albumIndex}
+                    onSelect={selectAlbum}
+                    tone="onDark"
+                    className="mb-3"
+                  />
                   <PlaylistRail tone="onDark" className="gap-4 px-0" />
                 </motion.div>
               </div>

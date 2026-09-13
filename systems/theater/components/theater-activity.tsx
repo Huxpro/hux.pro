@@ -11,11 +11,11 @@ import { TrackThumb } from "./track-thumb";
 import { VideoControls } from "./video-controls";
 
 // ---------------------------------------------------------------------------
-// TheaterActivity — Mini view of the video system.
+// TheaterActivity — Audio view of the video system.
 //
-// Exclusive with Theater and PiP. The video parks off-screen but keeps
-// playing (audio). A Live Activity pill unfolds into transport + a
-// SurfaceSwitch whose lifted pill is Mini (current), not an action.
+// Exclusive with Theater and PiP. The video parks off-screen; only sound
+// keeps playing. A Live Activity pill unfolds into transport + a
+// SurfaceSwitch whose lifted pill is Audio (current), not an action.
 // ---------------------------------------------------------------------------
 
 export function TheaterActivity() {
@@ -71,17 +71,17 @@ export function TheaterActivity() {
         </>
       }
     >
-      <div className="space-y-3 px-5 pb-3">
-        <div className="flex gap-3">
+      <div className="space-y-3.5 px-5 pb-4">
+        <div className="flex items-start gap-3.5">
           <div className="w-24 shrink-0">
             <TrackThumb track={track} showBadge={false} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium text-foreground">
+            <div className="truncate text-sm font-medium leading-snug text-foreground">
               {track.title}
             </div>
             {track.subtitle && (
-              <div className="truncate text-xs font-mono uppercase tracking-wide text-muted-foreground mt-0.5">
+              <div className="mt-1 truncate text-xs font-mono uppercase leading-relaxed tracking-wide text-muted-foreground">
                 {track.subtitle}
               </div>
             )}
