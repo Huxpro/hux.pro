@@ -37,6 +37,7 @@ import {
   MOUSE_ACTIVATION,
   TOUCH_ACTIVATION,
   clearOrder,
+  guardActivators,
   loadOrder,
   reconcile,
   saveOrder,
@@ -208,21 +209,15 @@ function SortableMasonryItem({
     useSortable({ id });
   const hold = usePressHold(TOUCH_ACTIVATION);
 
-  // Gate every press activator (mouse, touch, pointer) on where the press
-  // landed: a control's press is the control's. Edit mode lifts the gate.
-  const guardedListeners = useMemo(() => {
-    if (!listeners) return undefined;
-    const guarded: typeof listeners = { ...listeners };
-    for (const key of ["onMouseDown", "onTouchStart", "onPointerDown"]) {
-      const original = guarded[key];
-      if (!original) continue;
-      guarded[key] = (event: React.SyntheticEvent) => {
-        if (!editing && pressLandsOnControl(event)) return;
-        original(event);
-      };
-    }
-    return guarded;
-  }, [listeners, editing]);
+  // Gate every press activator on where the press landed: a control's press
+  // is the control's. Edit mode lifts the gate.
+  const keepForControl = (e: React.SyntheticEvent) =>
+    !editing && pressLandsOnControl(e);
+  const guardedListeners = useMemo(
+    () => guardActivators(listeners, keepForControl),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keepForControl only closes over `editing`
+    [listeners, editing],
+  );
 
   return (
     <div
@@ -231,9 +226,9 @@ function SortableMasonryItem({
       {...attributes}
       {...guardedListeners}
       onPointerDown={(e) => {
-        if (!editing && pressLandsOnControl(e)) return;
+        if (keepForControl(e)) return;
         hold.onPointerDown(e);
-        guardedListeners?.onPointerDown?.(e);
+        listeners?.onPointerDown?.(e);
       }}
       // In edit mode a tap shouldn't navigate (iPad jiggle behaviour); swallow
       // clicks that bubble up from links inside the widget.

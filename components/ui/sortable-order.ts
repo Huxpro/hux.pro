@@ -17,6 +17,30 @@ export const MOUSE_ACTIVATION = { distance: 8 };
 // cancelling; a larger drift before the hold completes reverts to scroll.
 export const TOUCH_ACTIVATION = { delay: 400, tolerance: 10 };
 
+/**
+ * Wrap dnd-kit's press activators (`onMouseDown`, `onTouchStart`) so a press
+ * the caller wants to keep for itself never reaches the sensor. `intercept`
+ * runs first with the event; return true to swallow the press. Pointer-down
+ * is left alone: both sortable surfaces re-wire it inline, because the
+ * press-and-hold grow has to see the same event.
+ */
+export function guardActivators<L extends Record<string, unknown> | undefined>(
+  listeners: L,
+  intercept: (event: React.SyntheticEvent) => boolean,
+): L {
+  if (!listeners) return listeners;
+  const guarded = { ...listeners } as Record<string, unknown>;
+  for (const key of ["onMouseDown", "onTouchStart"]) {
+    const original = guarded[key];
+    if (typeof original !== "function") continue;
+    guarded[key] = (event: React.SyntheticEvent) => {
+      if (intercept(event)) return;
+      original(event);
+    };
+  }
+  return guarded as L;
+}
+
 export function loadOrder(key: string): string[] | null {
   if (typeof window === "undefined") return null;
   try {

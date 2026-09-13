@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // =============================================================================
 // usePressHold
@@ -19,8 +19,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // =============================================================================
 
 export interface PressHold {
-  /** True while a touch/pen press is being held in place. */
-  holding: boolean;
   /** Attach to the pressable element. */
   onPointerDown: (e: React.PointerEvent) => void;
   /** Props that paint the grow — spread onto the element that should scale. */
@@ -35,7 +33,6 @@ export function usePressHold({
   delay,
   tolerance,
   scale = 1.03,
-  enabled = true,
 }: {
   /** The sensor's activation delay: the grow lasts exactly this long. */
   delay: number;
@@ -43,14 +40,13 @@ export function usePressHold({
   tolerance: number;
   /** Target scale at the end of the hold. */
   scale?: number;
-  enabled?: boolean;
 }): PressHold {
   const [holding, setHolding] = useState(false);
   const cancelRef = useRef<(() => void) | null>(null);
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (!enabled || !e.isPrimary || e.pointerType === "mouse") return;
+      if (!e.isPrimary || e.pointerType === "mouse") return;
       cancelRef.current?.();
 
       const startX = e.clientX;
@@ -76,21 +72,26 @@ export function usePressHold({
       cancelRef.current = end;
       setHolding(true);
     },
-    [enabled, tolerance],
+    [tolerance],
   );
 
   useEffect(() => () => cancelRef.current?.(), []);
 
+  const style = useMemo(
+    () =>
+      ({
+        "--press-hold-duration": `${delay}ms`,
+        "--press-hold-scale": scale,
+      }) as React.CSSProperties,
+    [delay, scale],
+  );
+
   return {
-    holding,
     onPointerDown,
     holdProps: {
       className: "press-hold",
       "data-holding": holding ? "" : undefined,
-      style: {
-        "--press-hold-duration": `${delay}ms`,
-        "--press-hold-scale": scale,
-      } as React.CSSProperties,
+      style,
     },
   };
 }

@@ -887,14 +887,10 @@ html.dragging * {
    browser defaults so a long-press on a link still previews it.
    ============================================================================= */
 
-.system-chrome,
-.system-chrome * {
+.system-chrome {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
-}
-
-.system-chrome {
   -webkit-tap-highlight-color: transparent;
 }
 

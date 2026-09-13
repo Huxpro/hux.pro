@@ -15,16 +15,18 @@ import { HANDOFF, useHomeEditing } from "@/components/ui/home-edit-store";
 // breakpoint the bar's own layout switches on.
 const COMPACT_QUERY = "(max-width: 767px)";
 
+let compactMql: MediaQueryList | null = null;
+const getCompactMql = () => (compactMql ??= window.matchMedia(COMPACT_QUERY));
+const subscribeCompact = (onChange: () => void) => {
+  const mql = getCompactMql();
+  mql.addEventListener("change", onChange);
+  return () => mql.removeEventListener("change", onChange);
+};
+const getCompact = () => getCompactMql().matches;
+const getCompactServer = () => false;
+
 function useCompactViewport(): boolean {
-  return useSyncExternalStore(
-    (onChange) => {
-      const mql = window.matchMedia(COMPACT_QUERY);
-      mql.addEventListener("change", onChange);
-      return () => mql.removeEventListener("change", onChange);
-    },
-    () => window.matchMedia(COMPACT_QUERY).matches,
-    () => false,
-  );
+  return useSyncExternalStore(subscribeCompact, getCompact, getCompactServer);
 }
 
 export function FloatingActionButton() {
@@ -79,7 +81,10 @@ export function FloatingActionButton() {
           "h-12",
           "overflow-hidden",
           isHomepage
-            ? "rounded-2xl pl-4 pr-6 md:px-4 w-auto md:w-full md:max-w-md active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-ring/20"
+            // No press scale on the homepage bar: it is a backdrop-blur
+            // surface, and a transform makes the compositor re-blur every
+            // frame of the press. The colour wash above is the feedback.
+            ? "rounded-2xl pl-4 pr-6 md:px-4 w-auto md:w-full md:max-w-md focus:outline-none focus:ring-2 focus:ring-ring/20"
             : "rounded-[24px] w-12 md:w-auto md:px-4 justify-center active:scale-95"
         )}
         style={{ borderRadius: isHomepage ? 24 : 24 }}

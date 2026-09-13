@@ -7,6 +7,7 @@ import {
   MOUSE_ACTIVATION,
   TOUCH_ACTIVATION,
   clearOrder,
+  guardActivators,
   loadOrder,
   reconcile,
   saveOrder,
@@ -65,6 +66,12 @@ import { createPortal } from "react-dom";
 
 const STORAGE_KEY = "hux_app_order";
 
+// iOS grows a held icon a touch more than a held widget — it's smaller, so the
+// same absolute lift needs a larger ratio to register. The lifted clone pops
+// from the held size to the lift size, so the two must agree.
+const ICON_HOLD_SCALE = 1.08;
+const ICON_LIFT_SCALE = 1.15;
+
 export interface AppFolderProps {
   /** Override page layout; defaults to 4×2 horizontal pages. */
   layout?: Partial<AppFolderLayout>;
@@ -85,26 +92,19 @@ function SortableAppIcon({
   const app = APPS_BY_ID.get(id)!;
   const { setNodeRef, attributes, listeners, isDragging, transform, transition } =
     useSortable({ id });
-  // iOS grows a held icon a touch more than a held widget — it's smaller, so
-  // the same absolute lift needs a larger ratio to register.
-  const hold = usePressHold({ ...TOUCH_ACTIVATION, scale: 1.08 });
+  const hold = usePressHold({ ...TOUCH_ACTIVATION, scale: ICON_HOLD_SCALE });
 
   // Pointer presses on an icon must not bubble to the masonry item wrapper,
   // where they would activate the *outer* sortable and lift the whole folder
   // (and start the folder's own press-and-hold grow).
-  const guardedListeners = useMemo(() => {
-    if (!listeners) return undefined;
-    const guarded: typeof listeners = { ...listeners };
-    for (const key of ["onMouseDown", "onTouchStart", "onPointerDown"]) {
-      const original = guarded[key];
-      if (!original) continue;
-      guarded[key] = (event: React.SyntheticEvent) => {
+  const guardedListeners = useMemo(
+    () =>
+      guardActivators(listeners, (event) => {
         event.stopPropagation();
-        original(event);
-      };
-    }
-    return guarded;
-  }, [listeners]);
+        return false;
+      }),
+    [listeners],
+  );
 
   return (
     <div
@@ -114,7 +114,7 @@ function SortableAppIcon({
       onPointerDown={(e) => {
         e.stopPropagation();
         hold.onPointerDown(e);
-        guardedListeners?.onPointerDown?.(e);
+        listeners?.onPointerDown?.(e);
       }}
       className="flex justify-center"
       style={{
@@ -429,13 +429,13 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
           <DragOverlay>
             {activeId && APPS_BY_ID.has(activeId) ? (
               <div
-                // Pops from the held size (1.08, see usePressHold above) to
-                // its floating size, so pickup reads as one motion.
+                // Pops from the held size to its floating size, so pickup
+                // reads as one motion.
                 className="widget-lift select-none drop-shadow-xl pointer-events-none"
                 style={
                   {
-                    "--press-hold-scale": 1.08,
-                    "--lift-scale": 1.15,
+                    "--press-hold-scale": ICON_HOLD_SCALE,
+                    "--lift-scale": ICON_LIFT_SCALE,
                     cursor: "grabbing",
                   } as CSSProperties
                 }

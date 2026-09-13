@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
+import { PRESS_CARD } from "../lib/chrome";
 import { useTheater } from "../provider";
 import { TrackThumb } from "./track-thumb";
 
@@ -52,12 +53,9 @@ export function PlaylistRail({
             ref={active ? activeRef : undefined}
             onClick={() => selectTrack(i)}
             className={cn(
-              // Same card press as the Featured Talks thumbnails: full
-              // opacity and a slight sink under the finger, spring back on
-              // release.
-              "group/thumb pressable w-40 shrink-0 text-left outline-none",
-              "transition-[opacity,transform] duration-200",
-              "focus-visible:opacity-100 active:opacity-100 active:scale-[0.97]",
+              "group/thumb w-40 shrink-0 text-left outline-none",
+              PRESS_CARD,
+              "focus-visible:opacity-100 active:opacity-100",
               active ? "opacity-100" : "opacity-70 hover:opacity-100",
             )}
           >
