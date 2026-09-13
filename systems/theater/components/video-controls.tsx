@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
-import { GLASS_BTN, GLASS_CLUSTER, GLASS_PILL } from "../lib/chrome";
+import { GLASS_BTN, GLASS_CLUSTER, GLASS_PILL } from "@/components/ui/glass";
 import { formatTime } from "../lib/player";
 import { useTheater } from "../provider";
 

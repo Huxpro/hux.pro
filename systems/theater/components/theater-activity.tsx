@@ -93,7 +93,6 @@ export function TheaterActivity() {
         <SurfaceSwitch
           current="mini"
           theaterAvailable={theaterAvailable}
-          labels
           onSelect={(surface) => {
             if (surface === "pip") go("pip");
             if (surface === "theater") go("theater");

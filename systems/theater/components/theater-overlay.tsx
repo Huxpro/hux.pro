@@ -12,11 +12,11 @@ import { Link } from "next-view-transitions";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { t, useLocale } from "@/services";
 import { GLASS_ON_DARK_BTN, GLASS_ON_DARK_CLUSTER, GLASS_ON_DARK_ORB } from "../lib/chrome";
-import { THEATER_TOP_BAR } from "../lib/geometry";
+import { THEATER_BOTTOM, THEATER_TOP_BAR } from "../lib/geometry";
+import { SURFACE_ICON, SURFACE_LABEL_KEY } from "../lib/surfaces";
 import { useTheater } from "../provider";
 import { AlbumTabs } from "./album-tabs";
 import { PlaylistRail } from "./playlist-rail";
-import { SurfaceSwitch } from "./surface-switch";
 
 // ---------------------------------------------------------------------------
 // TheaterOverlay — the immersive desktop modal chrome.
@@ -26,6 +26,14 @@ import { SurfaceSwitch } from "./surface-switch";
 // keyboard shortcut — never on ambient pointer jitter. Auto-hides quickly
 // after the pointer leaves chrome, whether playing or paused.
 // ---------------------------------------------------------------------------
+
+/**
+ * Hit target inside the clustered toolbar (~44pt). The chrome auto-hides and
+ * the theater opens on tablets, so these stay touch-sized.
+ */
+const CLUSTER_BTN = cn(GLASS_ON_DARK_BTN, "h-10 w-10");
+const PipIcon = SURFACE_ICON.pip;
+const MiniIcon = SURFACE_ICON.mini;
 
 const FADE = { duration: 0.18, ease: "easeOut" as const };
 /** Idle before chrome tucks away once the pointer leaves a chrome zone. */
@@ -52,6 +60,11 @@ export function TheaterOverlay() {
     isCoarse,
   } = useTheater();
   const { locale } = useLocale();
+  const goLabel = (surface: "pip" | "mini") =>
+    t(locale, "theaterSurfaceGo").replace(
+      "{surface}",
+      t(locale, SURFACE_LABEL_KEY[surface]),
+    );
 
   const open = mode === "theater" && !minimized;
 
@@ -250,7 +263,7 @@ export function TheaterOverlay() {
               left: rect.left,
               width: rect.width,
               top: rect.top + rect.height,
-              height: 248,
+              height: THEATER_BOTTOM,
             }}
             onPointerEnter={pinChrome}
             onPointerLeave={unpinChrome}
@@ -300,8 +313,8 @@ export function TheaterOverlay() {
                   style={{
                     left: rect.left,
                     width: rect.width,
-                    top: rect.top - 52,
-                    height: 40,
+                    top: rect.top - 56,
+                    height: 44,
                   }}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -310,6 +323,8 @@ export function TheaterOverlay() {
                   onPointerEnter={pinChrome}
                   onPointerLeave={unpinChrome}
                 >
+                  {/* Source · the two moves away from Theater · close.
+                      Icon-only, so no "current view" segment — see SurfaceSwitch. */}
                   <div className={GLASS_ON_DARK_CLUSTER}>
                     {track?.url && (
                       <a
@@ -317,26 +332,19 @@ export function TheaterOverlay() {
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="Open on source site"
-                        className={cn(GLASS_ON_DARK_BTN, "h-8 w-8")}
+                        className={CLUSTER_BTN}
                       >
                         <ExternalLink className="h-4 w-4" />
                       </a>
                     )}
-                    <SurfaceSwitch
-                      current="theater"
-                      tone="onDark"
-                      framed={false}
-                      onSelect={(surface) => {
-                        if (surface === "pip") toPip();
-                        if (surface === "mini") minimize();
-                      }}
-                    />
-                    <button
-                      aria-label="Close"
-                      className={cn(GLASS_ON_DARK_BTN, "h-8 w-8")}
-                      onClick={close}
-                    >
-                      <X className="h-4 w-4" />
+                    <button aria-label={goLabel("pip")} className={CLUSTER_BTN} onClick={toPip}>
+                      <PipIcon className="h-4 w-4" />
+                    </button>
+                    <button aria-label={goLabel("mini")} className={CLUSTER_BTN} onClick={minimize}>
+                      <MiniIcon className="h-4 w-4" />
+                    </button>
+                    <button aria-label="Close" className={CLUSTER_BTN} onClick={close}>
+                      <X className="h-5 w-5" />
                     </button>
                   </div>
                 </motion.div>
@@ -399,8 +407,11 @@ export function TheaterOverlay() {
                   onPointerEnter={pinChrome}
                   onPointerLeave={unpinChrome}
                 >
-                  {track && (
-                    <div className="mb-3 flex items-baseline justify-between gap-3">
+                  {/* Title row: what's playing on the left, the album switcher
+                      on the right — it filters the rail directly beneath, and
+                      sharing the row keeps the stage at full height. */}
+                  <div className="mb-3 flex items-center justify-between gap-4">
+                    {track && (
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium text-white">
                           {track.title}
@@ -411,24 +422,25 @@ export function TheaterOverlay() {
                           </div>
                         )}
                       </div>
-                      {track.href && (
+                    )}
+                    <div className="flex shrink-0 items-center gap-4">
+                      <AlbumTabs
+                        albums={albums}
+                        activeIndex={albumIndex}
+                        onSelect={selectAlbum}
+                        tone="onDark"
+                      />
+                      {track?.href && (
                         <Link
                           href={track.href}
                           onClick={close}
                           className="shrink-0 text-xs font-mono uppercase tracking-wide text-white/50 hover:text-white transition-colors"
                         >
-                          {t(locale, "theaterWorksLink")} →
+                          /works →
                         </Link>
                       )}
                     </div>
-                  )}
-                  <AlbumTabs
-                    albums={albums}
-                    activeIndex={albumIndex}
-                    onSelect={selectAlbum}
-                    tone="onDark"
-                    className="mb-3"
-                  />
+                  </div>
                   <PlaylistRail tone="onDark" className="gap-4 px-0" />
                 </motion.div>
               </div>

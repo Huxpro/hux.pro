@@ -1,73 +1,21 @@
 import { cn } from "@/lib/utils";
 
 // =============================================================================
-// Theater / talks glass chrome — one material system
+// Theater glass chrome — the always-dark half of one material system
 //
-// Matches AlbumTabs (Featured Talks widget): frosted track + lifted pill, not
-// inverted black stamps or four lonely discs. Shared by talks (widget, theater,
-// PiP, Live Activity) and music (widget + Live Activity) so playback chrome
-// is one system. Theater (always-dark) uses on-dark tokens; the others stay
-// theme-aware.
+// The theme-aware tokens (track, pill, cluster, button) live in
+// `components/ui/glass.ts` because music and the dock share them. Theater
+// surfaces sit on an always-dark backdrop, so the on-dark tokens below force
+// light glass there regardless of the site theme.
 // =============================================================================
 
-/** Theme-aware track (homepage widget + AlbumTabs). */
-export const GLASS_TRACK = cn(
-  "border border-border/50 bg-foreground/[0.06] dark:bg-white/[0.08]",
-  "backdrop-blur-xl",
-);
-
-/** Theme-aware selected / control pill. */
-export const GLASS_PILL = cn(
-  "bg-card/90 shadow-sm ring-1 ring-border/50 backdrop-blur-xl",
-);
-
-/** Theme-aware clustered toolbar (PiP + Live Activity). Same capsule as theater. */
-export const GLASS_CLUSTER = cn(
-  "inline-flex items-center gap-0.5 rounded-full p-0.5",
+export {
+  GLASS_ACTION,
+  GLASS_BTN,
+  GLASS_CLUSTER,
+  GLASS_PILL,
   GLASS_TRACK,
-);
-
-/**
- * Widget-desktop rest state: no track, no fill. Hovering the control — or
- * the parent `group` card — brings the same track back as Live Activity.
- */
-export const GLASS_TRACK_FLAT = cn(
-  "border border-transparent",
-  "transition-[background-color,border-color,box-shadow] duration-200",
-  "hover:border-border/50 hover:bg-foreground/[0.08]",
-  "group-hover:border-border/50 group-hover:bg-foreground/[0.08]",
-  "dark:hover:bg-white/[0.10] dark:group-hover:bg-white/[0.10]",
-);
-
-export const GLASS_CLUSTER_FLAT = cn(
-  "inline-flex items-center gap-0.5 rounded-full p-0.5",
-  GLASS_TRACK_FLAT,
-);
-
-/** Selected pill that only lifts when the control or parent widget is hovered. */
-export const GLASS_PILL_FLAT = cn(
-  "hover:bg-card hover:shadow-sm hover:ring-1 hover:ring-border/50",
-  "group-hover:bg-card group-hover:shadow-sm group-hover:ring-1 group-hover:ring-border/50",
-);
-
-/** Theme-aware icon button inside a cluster (or standalone orb). */
-export const GLASS_BTN = cn(
-  "inline-flex items-center justify-center rounded-full",
-  "text-muted-foreground transition-colors",
-  "hover:bg-foreground/[0.06] hover:text-foreground active:scale-95",
-  "disabled:opacity-30 disabled:pointer-events-none",
-);
-
-/**
- * Theme-aware text action (PiP / Theater chips). Mono + tracking match
- * AlbumTabs and WidgetTitle.
- */
-export const GLASS_ACTION = cn(
-  "inline-flex items-center justify-center gap-1.5 rounded-full",
-  "text-xs font-mono uppercase tracking-wider",
-  "text-muted-foreground transition-colors",
-  "hover:text-foreground active:scale-[0.98]",
-);
+} from "@/components/ui/glass";
 
 /** Always-dark theater: clustered control capsule (iPadOS toolbar). */
 export const GLASS_ON_DARK_CLUSTER = cn(

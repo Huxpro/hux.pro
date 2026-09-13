@@ -76,7 +76,6 @@ export function FeaturedTalksWidget() {
           albums={albums}
           activeIndex={activeAlbum}
           onSelect={setActiveAlbum}
-          raised={false}
         />
       </div>
 

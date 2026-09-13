@@ -2,13 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import {
-  GLASS_BTN,
-  GLASS_CLUSTER,
-  GLASS_CLUSTER_FLAT,
-  GLASS_PILL,
-  GLASS_PILL_FLAT,
-} from "@/systems/theater/lib/chrome";
+import { GLASS_BTN, GLASS_CLUSTER, GLASS_PILL } from "@/components/ui/glass";
 import { FastForward, ListMusic, Music, Pause, Play, Rewind } from "lucide-react";
 import { useState } from "react";
 import { useMusic } from "../provider";
@@ -55,7 +49,6 @@ function MusicTransport({
   onPlaylist,
   playlistLabel,
   idle = false,
-  raised = true,
 }: {
   isPlaying: boolean;
   onPrevious?: () => void;
@@ -64,11 +57,9 @@ function MusicTransport({
   onPlaylist: () => void;
   playlistLabel: string;
   idle?: boolean;
-  /** Live Activity keeps the framed cluster; the homepage widget stays flat until hover. */
-  raised?: boolean;
 }) {
   return (
-    <div className={raised ? GLASS_CLUSTER : GLASS_CLUSTER_FLAT}>
+    <div className={cn(GLASS_CLUSTER, "self-start")}>
       {!idle && (
         <button onClick={onPrevious} aria-label="Previous track" className={TRANSPORT_BTN}>
           <Rewind className="h-3.5 w-3.5" />
@@ -77,11 +68,7 @@ function MusicTransport({
       <button
         onClick={onPlayPause}
         aria-label={isPlaying ? "Pause" : "Play"}
-        className={cn(
-          TRANSPORT_BTN,
-          "text-foreground",
-          raised ? GLASS_PILL : GLASS_PILL_FLAT,
-        )}
+        className={cn(TRANSPORT_BTN, GLASS_PILL, "text-foreground")}
       >
         {isPlaying ? (
           <Pause className="h-3.5 w-3.5" fill="currentColor" />
@@ -109,12 +96,7 @@ function MusicTransport({
 // states stay identical everywhere.
 // ---------------------------------------------------------------------------
 
-export function NowPlaying({
-  raised = true,
-}: {
-  /** Live Activity keeps the framed cluster; the homepage widget stays flat until hover. */
-  raised?: boolean;
-}) {
+export function NowPlaying() {
   const { locale } = useLocale();
   const [showProgress, setShowProgress] = useState(false);
   const {
@@ -183,7 +165,6 @@ export function NowPlaying({
               onNext={next}
               onPlaylist={openPlaylist}
               playlistLabel={t(locale, "musicOpenPlaylist")}
-              raised={raised}
             />
           )}
         </div>
@@ -216,7 +197,6 @@ export function NowPlaying({
             onPlaylist={openPlaylist}
             playlistLabel={t(locale, "musicOpenPlaylist")}
             idle
-            raised={raised}
           />
         </div>
       </div>

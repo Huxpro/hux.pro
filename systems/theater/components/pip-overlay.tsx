@@ -1,13 +1,14 @@
 "use client";
 
+import { GLASS_BTN, GLASS_CLUSTER, GLASS_PILL } from "@/components/ui/glass";
 import { cn } from "@/lib/utils";
+import { t, useLocale } from "@/services";
 import { AnimatePresence, motion } from "framer-motion";
 import { Pause, Play, SkipBack, SkipForward, X } from "lucide-react";
 import { useRef } from "react";
-import { GLASS_BTN, GLASS_CLUSTER, GLASS_PILL } from "../lib/chrome";
 import { PIP_CONTROLS_H } from "../lib/geometry";
+import { SURFACE_ICON, SURFACE_LABEL_KEY } from "../lib/surfaces";
 import { useTheater } from "../provider";
-import { SurfaceSwitch } from "./surface-switch";
 
 // ---------------------------------------------------------------------------
 // PipOverlay — the floating, draggable Picture-in-Picture window.
@@ -18,12 +19,14 @@ import { SurfaceSwitch } from "./surface-switch";
 // tablet+ it can expand back to theater; everywhere it can minimize to a Live
 // Activity (keep listening) or close.
 //
-// Chrome matches Featured Talks / theater. The SurfaceSwitch pill marks PiP
-// as the current view; Theater / Audio are the only moves. Close sits in the
-// same capsule — it ends the session, it is not a view.
+// Chrome matches Featured Talks / theater: a frosted bar with two round
+// capsules — transport, then window (the moves away from PiP: Theater / Audio,
+// plus close). Icon-only, so no "current view" segment — see SurfaceSwitch.
 // ---------------------------------------------------------------------------
 
 const CLUSTER_BTN = cn(GLASS_BTN, "h-7 w-7");
+const TheaterIcon = SURFACE_ICON.theater;
+const MiniIcon = SURFACE_ICON.mini;
 
 export function PipOverlay() {
   const {
@@ -50,6 +53,12 @@ export function PipOverlay() {
 
   const open = mode === "pip" && !minimized;
   const isYouTube = track?.platform === "youtube" && !!track.videoId;
+  const { locale } = useLocale();
+  const goLabel = (surface: "theater" | "mini") =>
+    t(locale, "theaterSurfaceGo").replace(
+      "{surface}",
+      t(locale, SURFACE_LABEL_KEY[surface]),
+    );
   const isPlaying = phase === "playing";
 
   const hasPrev = albumIndex > 0 || trackIndex > 0;
@@ -137,15 +146,14 @@ export function PipOverlay() {
           </div>
 
           <div className={GLASS_CLUSTER}>
-            <SurfaceSwitch
-              current="pip"
-              theaterAvailable={theaterAvailable}
-              framed={false}
-              onSelect={(surface) => {
-                if (surface === "theater") toTheater();
-                if (surface === "mini") minimize();
-              }}
-            />
+            {theaterAvailable && (
+              <button onClick={toTheater} aria-label={goLabel("theater")} className={CLUSTER_BTN}>
+                <TheaterIcon className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <button onClick={minimize} aria-label={goLabel("mini")} className={CLUSTER_BTN}>
+              <MiniIcon className="h-3.5 w-3.5" />
+            </button>
             <button onClick={close} aria-label="Close" className={CLUSTER_BTN}>
               <X className="h-3.5 w-3.5" />
             </button>
