@@ -121,7 +121,7 @@ export function NowPlaying() {
       <div className="flex gap-3.5">
         {/* Album art — mqdefault is 16:9, object-cover crops to square */}
         <div
-          className="h-18 w-18 overflow-hidden rounded-lg shrink-0"
+          className="h-20 w-20 overflow-hidden rounded-lg shrink-0"
           onMouseEnter={() => setShowProgress(true)}
           onMouseLeave={() => setShowProgress(false)}
         >
@@ -134,7 +134,9 @@ export function NowPlaying() {
 
         {/* Title / artist top-aligned, transport on the art's bottom edge —
             the column is exactly as tall as the art, so the capsule never
-            hangs below it whether or not an artist line is present. */}
+            hangs below it whether or not an artist line is present. The art
+            is 80px on purpose: two text lines + a 32px capsule leave ~10px
+            of air between artist and controls instead of stacking tight. */}
         <div className="flex min-w-0 flex-1 flex-col justify-between">
           <div className="min-w-0">
             <div className="truncate text-sm font-medium leading-snug text-foreground">
@@ -187,7 +189,7 @@ export function NowPlaying() {
   if (isIdle && !isLoading) {
     return (
       <div className="flex gap-3.5">
-        <div className="flex h-18 w-18 shrink-0 items-center justify-center rounded-lg bg-muted/30">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-muted/30">
           <Music className="h-6 w-6 text-muted-foreground/30" />
         </div>
         <div className="flex min-w-0 flex-1 flex-col justify-between">
@@ -209,7 +211,7 @@ export function NowPlaying() {
   // loading skeleton
   return (
     <div className="flex gap-3.5">
-      <div className="h-18 w-18 shrink-0 animate-pulse rounded-lg bg-muted" />
+      <div className="h-20 w-20 shrink-0 animate-pulse rounded-lg bg-muted" />
       <div className="flex min-w-0 flex-1 flex-col justify-between">
         <div>
           <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
