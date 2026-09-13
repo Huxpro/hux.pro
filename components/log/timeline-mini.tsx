@@ -163,7 +163,7 @@ export function TimelineMini({
                 : "text-sm text-foreground",
             )}
           >
-            {isEvent ? `(${data.title})` : data.title}
+            {data.title}
             {data.languageBadge && (
               <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
                 {data.languageBadge}

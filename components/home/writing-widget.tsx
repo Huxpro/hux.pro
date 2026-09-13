@@ -15,7 +15,6 @@ import {
   type BlogPostSummary,
 } from "@/lib/content";
 import type { Locale } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { Link } from "next-view-transitions";
 import { useMemo } from "react";
@@ -77,21 +76,12 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
         {featured.length > 0 && (
           <>
             {/* Section break between "what's new" and "what's worth
-                reading": a hairline plus an annotation in the same voice as
-                the log's event rows — serif italic in parens (mono for CJK),
-                a stage direction rather than a heading. Not a snap stop. */}
+                reading": a hairline, then the featured label set exactly like
+                the widget's own title so it reads as a second heading — the
+                same header-to-first-row rhythm as the top of the card. */}
             {latest.length > 0 && (
-              <div className="mt-1 mb-0.5 pt-2 border-t border-border/30">
-                <span
-                  className={cn(
-                    "block px-0 py-1 text-xs text-muted-foreground/40",
-                    /[぀-ヿ一-鿿]/.test(t(locale, "writingFeatured"))
-                      ? "font-mono"
-                      : "italic font-serif",
-                  )}
-                >
-                  ({t(locale, "writingFeatured")})
-                </span>
+              <div className="mt-3 pt-4 pb-2 border-t border-border/30">
+                <WidgetTitle>{t(locale, "writingFeatured")}</WidgetTitle>
               </div>
             )}
             {featured.map((post) => (
