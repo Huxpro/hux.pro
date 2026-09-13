@@ -329,8 +329,7 @@ export function TimelineCommit({
             // Events drop a tier in hierarchy: secondary/meta style.
             // Font per script: CJK uses mono (matches meta line, no
             // italic — italic on CJK reads as emphasis). English uses
-            // serif italic (the traditional typographic aside). Parens
-            // stay as a quiet stage-direction marker for both.
+            // serif italic (the traditional typographic aside).
             isEvent
               ? cn(
                   "text-xs text-muted-foreground/40",
@@ -341,7 +340,7 @@ export function TimelineCommit({
               : "text-sm text-foreground",
           )}
         >
-          {isEvent ? `(${data.title})` : data.title}
+          {data.title}
           {data.languageBadge && (
             <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
               {data.languageBadge}

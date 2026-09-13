@@ -6,6 +6,7 @@ import { TimelineMini } from "@/components/log/timeline-mini";
 import {
   WidgetHeader,
   WidgetLink,
+  WidgetScrollBody,
   WidgetShell,
   WidgetTitle,
 } from "@/components/ui/widget";
@@ -17,7 +18,6 @@ import {
   buildTimelineData,
   computeRail,
 } from "@/lib/log";
-import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { useMemo } from "react";
 
@@ -114,41 +114,29 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
       </WidgetHeader>
 
       {/* Vertical snapping stack — the column analogue of the talks widget's
-          horizontal card row. The scroll port runs flush to the card's bottom
-          edge (no outer padding; the mask fades the tail out) and is inset by
-          the rows' hover bleed (-mx-2) so their rounded highlight isn't
-          clipped at the left edge. */}
-      <div className="px-5">
-        <div
-          className={cn(
-            "relative -mx-2 px-2 pb-4 h-64",
-            "overflow-y-auto snap-y snap-mandatory scroll-smooth",
-            "no-scrollbar",
-            "[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
-          )}
-        >
-          {runs.map((run, runIdx) => {
-            const nodes = run.indices.map((i) => (
-              <TimelineMini
-                key={commits[i].id}
-                data={rows[i]}
-                rail={railInfo[i].rail}
-                isRole={commits[i].type === "role"}
-                byline={bylines[i]}
-                hideDate={hideDateFor(commits[i])}
-                className="snap-start"
-              />
-            ));
-            return run.kind === "cluster" ? (
-              <div key={`cluster-${run.segmentId}`} className="group/tenure">
-                {nodes}
-              </div>
-            ) : (
-              <div key={`loose-${runIdx}`}>{nodes}</div>
-            );
-          })}
-        </div>
-      </div>
+          horizontal card row. */}
+      <WidgetScrollBody>
+        {runs.map((run, runIdx) => {
+          const nodes = run.indices.map((i) => (
+            <TimelineMini
+              key={commits[i].id}
+              data={rows[i]}
+              rail={railInfo[i].rail}
+              isRole={commits[i].type === "role"}
+              byline={bylines[i]}
+              hideDate={hideDateFor(commits[i])}
+              className="snap-start"
+            />
+          ));
+          return run.kind === "cluster" ? (
+            <div key={`cluster-${run.segmentId}`} className="group/tenure">
+              {nodes}
+            </div>
+          ) : (
+            <div key={`loose-${runIdx}`}>{nodes}</div>
+          );
+        })}
+      </WidgetScrollBody>
     </WidgetShell>
   );
 }
