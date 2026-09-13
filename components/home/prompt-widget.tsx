@@ -207,7 +207,7 @@ export function PromptWidget() {
           <button
             onClick={handleNext}
             className={cn(
-              "text-muted-foreground hover:text-foreground text-xs",
+              "pressable text-muted-foreground hover:text-foreground active:text-foreground text-xs",
               "transition-colors duration-200 select-none"
             )}
             aria-label="Next prompt"

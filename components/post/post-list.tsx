@@ -182,7 +182,7 @@ export function PostList<T extends Post>({
           const postRow = (
             <Link
               href={getPostHref(post, locale, basePath)}
-              className="flex items-baseline justify-between gap-4 py-3 sm:py-4 -mx-4 px-4 rounded-lg transition-colors duration-200 hover:bg-muted/50"
+              className="pressable flex items-baseline justify-between gap-4 py-3 sm:py-4 -mx-4 px-4 rounded-lg transition-colors duration-200 hover:bg-muted/50 active:bg-muted/60"
             >
               <div className="flex-1 min-w-0">
                 <h2 className="text-sm sm:text-base font-normal">

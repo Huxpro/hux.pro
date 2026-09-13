@@ -8,6 +8,7 @@ import { Command, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
+import { HOME_BOTTOM_PILL, useHomeEditing } from "@/components/ui/home-edit-store";
 
 export function FloatingActionButton() {
   const { toggle } = useCommand();
@@ -15,6 +16,10 @@ export function FloatingActionButton() {
   const { locale } = useLocale();
   const [mounted, setMounted] = useState(false);
   const drag = useDraggable("command-fab");
+  // While the home grid is in jiggle edit mode its "Done" pill takes this
+  // slot (iOS swaps the dock for "Done" the same way); the bar steps aside and
+  // hands its shape over through the shared layoutId.
+  const homeEditing = useHomeEditing();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -29,29 +34,38 @@ export function FloatingActionButton() {
   const fab = (
     <div
       className={cn(
-        "fixed bottom-6 left-0 right-0 z-50 px-6",
+        "system-chrome fixed bottom-6 left-0 right-0 z-50 px-6",
         "flex pointer-events-none",
         isHomepage ? "justify-center" : "justify-end"
       )}
     >
+      <AnimatePresence>
+      {!(isHomepage && homeEditing) && (
       <motion.button
         layout
+        layoutId={isHomepage ? HOME_BOTTOM_PILL : undefined}
         onClick={() => toggle()}
         className={cn(
-          "pointer-events-auto",
+          "pressable pointer-events-auto",
           "flex items-center gap-2",
           "bg-card/50 backdrop-blur-xl",
           "border border-border/50",
           "shadow-raised",
           isHomepage ? "text-muted-foreground" : "text-foreground",
-          "hover:bg-card/70 hover:border-border transition-colors",
+          "hover:bg-card/70 hover:border-border",
+          // Touch-down: the bar darkens on the same frame as the press, the
+          // way an iOS search field does, and eases back on release.
+          "active:bg-card/80 active:border-border active:text-foreground",
+          "transition-[background-color,border-color,color,transform]",
           "h-12",
           "overflow-hidden",
           isHomepage
-            ? "rounded-2xl pl-4 pr-6 md:px-4 w-auto md:w-full md:max-w-md active:scale-[1] focus:outline-none focus:ring-2 focus:ring-ring/20"
+            ? "rounded-2xl pl-4 pr-6 md:px-4 w-auto md:w-full md:max-w-md active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-ring/20"
             : "rounded-[24px] w-12 md:w-auto md:px-4 justify-center active:scale-95"
         )}
         style={{ borderRadius: isHomepage ? 24 : 24 }}
+        initial={false}
+        exit={{ opacity: 0, transition: { duration: 0.15 } }}
         transition={{
           layout: { duration: 0.4, ease: [0.32, 0.72, 0, 1] },
           borderRadius: { duration: 0.4 },
@@ -132,6 +146,8 @@ export function FloatingActionButton() {
           )}
         </AnimatePresence>
       </motion.button>
+      )}
+      </AnimatePresence>
     </div>
   );
 

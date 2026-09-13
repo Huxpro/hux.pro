@@ -110,7 +110,9 @@ function PostRow({ post, locale }: { post: BlogPostSummary; locale: Locale }) {
   return (
     <Link
       href={getPostHref(post, locale, "/writing")}
-      className="snap-start flex items-baseline gap-3 -mx-2 px-2 py-2 rounded-lg transition-colors duration-150 hover:bg-muted/20"
+      // `pressable` + `active:` — the row washes on touch-down, not only on
+      // hover (which touch devices never see), and eases back on release.
+      className="pressable snap-start flex items-baseline gap-3 -mx-2 px-2 py-2 rounded-lg transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35"
     >
       {/* Titles are the content here, so they wrap (two lines max) instead
           of truncating like a project name would; the date stays on the

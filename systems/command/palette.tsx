@@ -407,7 +407,7 @@ export function CommandPalette() {
       className={cn(
         // Above the theater/PiP surfaces (z-[10000]+) — the command palette is
         // the primary nav and must always sit on top.
-        "z-[10050] flex items-start justify-center pt-[20vh]",
+        "system-chrome z-[10050] flex items-start justify-center pt-[20vh]",
         isIOS ? "absolute inset-x-0" : "fixed inset-0"
       )}
       style={isIOS ? { top: scrollPosition, height: "100dvh" } : undefined}

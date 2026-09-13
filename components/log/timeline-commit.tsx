@@ -622,7 +622,7 @@ export function TimelineCommit({
           // container; the cursor preview is `position: fixed`, so it was
           // never clipped here anyway.
           className={cn(
-            "group relative -mx-3 px-3 rounded-lg transition-colors duration-150 overflow-y-clip",
+            "group pressable relative -mx-3 px-3 rounded-lg transition-colors duration-150 overflow-y-clip",
             // Events get tighter vertical padding so they sit between
             // commits as ambient annotations rather than as full rows.
             isEvent ? "py-1" : "py-2.5",

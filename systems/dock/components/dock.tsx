@@ -43,7 +43,7 @@ function DockSurface({ children }: { children: React.ReactNode }) {
       {/* Pill row. Outer centers; inner scrolls. Splitting the two avoids the
           flexbox `justify-center` + `overflow` clipping bug. */}
       <div
-        className="fixed left-0 right-0 z-50 flex justify-center pointer-events-none"
+        className="system-chrome fixed left-0 right-0 z-50 flex justify-center pointer-events-none"
         style={{ top: "max(env(safe-area-inset-top), 0.5rem)" }}
       >
         <div

@@ -92,7 +92,7 @@ export function TimelineMini({
       onKeyDown={hasExpandableContent ? handleKeyDown : undefined}
       data-expanded={isExpanded ? "" : undefined}
       className={cn(
-        "group relative -mx-2 px-2 rounded-lg transition-colors duration-150 overflow-y-clip",
+        "group pressable relative -mx-2 px-2 rounded-lg transition-colors duration-150 overflow-y-clip",
         isEvent ? "py-1" : "py-2",
         hasExpandableContent ? "cursor-pointer" : "cursor-default",
         // Keyboard focus reuses the hover wash instead of the UA outline,

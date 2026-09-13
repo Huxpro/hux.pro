@@ -96,9 +96,12 @@ export function FeaturedTalksWidget() {
               onClick={() =>
                 open({ albums, albumIndex: activeAlbum, trackIndex: i })
               }
+              // Cards sink slightly under the finger (iOS card press) and
+              // spring back on release.
               className={cn(
-                "group/thumb w-[86%] max-w-[200px] shrink-0 snap-start rounded-xl text-left",
+                "group/thumb pressable w-[86%] max-w-[200px] shrink-0 snap-start rounded-xl text-left",
                 "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
+                "transition-transform duration-200 active:scale-[0.97]",
               )}
             >
               <TrackThumb track={track} />

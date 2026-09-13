@@ -164,6 +164,30 @@ widget grid. Two rules keep it at home on any display (`app/page.tsx`,
 
 > If motion doesn't explain something, remove it.
 
+### Touch
+
+Touch gets the iOS contract, not a mouse's. Three classes in `globals.css`
+carry it; nothing is inferred from the pointer type at runtime.
+
+| Class | Where | What it does |
+|---|---|---|
+| `pressable` | Rows, links, buttons, tiles — anything with a `hover:` wash | Pair with an `active:` colour/scale. The `:active` rule zeroes the transition so the highlight lands on the **touch-down frame** (Tailwind's `hover:` is gated on `(hover: hover)`, so a finger otherwise gets nothing); release eases out through the element's own `transition-*`. |
+| `system-chrome` | Navigation, command bar, dock, palette, edit controls | OS chrome: no text selection, no long-press callout, no grey tap flash. Text fields inside keep their caret. |
+| `press-hold` | Widgets and app icons (via `usePressHold`) | The visual half of a long-press: the held object grows slowly for the sensor's whole activation delay, then pops to its lifted size (`widget-lift`). Letting go or scrolling eases it back. |
+
+**Long-press semantics, by surface:**
+
+- **App icons / widgets** — a long-press picks the object up (400ms hold,
+  10px tolerance, `TOUCH_ACTIVATION`). No system callout, no selection.
+- **Content** (prose, the `/writing` list, `/works` rows) — browser defaults.
+  A long-press on a link still opens the system preview; text stays
+  selectable. Only the press wash is added.
+- **System chrome** — nothing: not selectable, no callout.
+
+While the home grid is in edit mode the command bar steps aside and the
+**Done** pill takes its slot (`home-edit-store.ts`, shared `layoutId`), the
+way iOS trades the dock for Done.
+
 ## Components
 
 ### Pills / Tags

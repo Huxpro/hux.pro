@@ -32,6 +32,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { HOME_BOTTOM_PILL, setHomeEditing } from "./home-edit-store";
 import {
   MOUSE_ACTIVATION,
   TOUCH_ACTIVATION,
@@ -40,6 +41,7 @@ import {
   reconcile,
   saveOrder,
 } from "./sortable-order";
+import { usePressHold } from "./use-press-hold";
 
 // =============================================================================
 // SortableMasonry
@@ -49,9 +51,12 @@ import {
 // them, mirroring how iPadOS / macOS treat each pointer type:
 //   - Mouse / trackpad: a press-and-move *is* a drag straight away (no wait).
 //   - Touch: a plain swipe scrolls; you must long-press to pick a widget up,
-//     so dragging never fights the page scroll.
+//     so dragging never fights the page scroll. The held card grows slowly for
+//     the length of the hold (iOS's "about to lift" tell) and pops up once
+//     the drag activates.
 // Dragging lifts the card and enters a jiggle "edit mode"; a click/tap on any
-// empty (non-widget) area leaves it. The order is an array of widget IDs
+// empty (non-widget) area, or the "Done" pill that takes the command bar's
+// place at the bottom of the screen, leaves it. The order is an array of widget IDs
 // persisted to localStorage, so each visitor keeps their own layout.
 //
 // Why this shape:
@@ -178,6 +183,7 @@ function SortableMasonryItem({
 }) {
   const { setNodeRef, attributes, listeners, isDragging, transform, transition } =
     useSortable({ id });
+  const hold = usePressHold(TOUCH_ACTIVATION);
 
   return (
     <div
@@ -185,6 +191,10 @@ function SortableMasonryItem({
       data-widget-id={id}
       {...attributes}
       {...listeners}
+      onPointerDown={(e) => {
+        hold.onPointerDown(e);
+        listeners?.onPointerDown?.(e);
+      }}
       // In edit mode a tap shouldn't navigate (iPad jiggle behaviour); swallow
       // clicks that bubble up from links inside the widget.
       onClickCapture={(e) => {
@@ -208,17 +218,20 @@ function SortableMasonryItem({
         cursor: editing ? "grab" : undefined,
       }}
     >
-      {/* Inner wrapper owns the jiggle rotate so it never fights the sort
-          transform on the outer element. */}
-      <div
-        className={cn(editing && !isDragging && "widget-jiggle")}
-        style={
-          editing && !isDragging
-            ? { animationDelay: `${(index % 6) * 0.07}s` }
-            : undefined
-        }
-      >
-        {children}
+      {/* Three transforms, three wrappers, so none fights another: the outer
+          element carries dnd-kit's sort transform, this one the slow
+          press-and-hold grow, the innermost the jiggle rotate. */}
+      <div {...hold.holdProps}>
+        <div
+          className={cn(editing && !isDragging && "widget-jiggle")}
+          style={
+            editing && !isDragging
+              ? { animationDelay: `${(index % 6) * 0.07}s` }
+              : undefined
+          }
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -278,6 +291,12 @@ export function SortableMasonry({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only: reading localStorage + syncing to the current widget set
     setOrder(reconcile(stored ?? ids, ids));
   }, [storageKey, idsKey]); // eslint-disable-line react-hooks/exhaustive-deps -- ids tracked via idsKey
+
+  // Tell the command bar to step aside while editing (see home-edit-store).
+  useEffect(() => {
+    setHomeEditing(editing);
+    return () => setHomeEditing(false);
+  }, [editing]);
 
   // Leave edit mode on Escape, or on a completed click/tap anywhere outside a
   // widget (clicking another widget keeps you in edit mode so you can keep
@@ -389,8 +408,10 @@ export function SortableMasonry({
         {activeId ? (
           <MasonryEditContext.Provider value={CLONE_EDIT_CONTEXT}>
             <div
-              className="select-none drop-shadow-2xl"
-              style={{ transform: "scale(1.03)", cursor: "grabbing" }}
+              // Pops from the held size (the press-and-hold grow ends at
+              // 1.03) to its floating size, so pickup reads as one motion.
+              className="widget-lift select-none drop-shadow-2xl"
+              style={{ cursor: "grabbing" }}
             >
               {itemsById.get(activeId)}
             </div>
@@ -398,37 +419,52 @@ export function SortableMasonry({
         ) : null}
       </DragOverlay>
 
-      {/* Edit-mode controls: a primary "Done" pill, with a quieter "Reset"
-          to its left once the layout has been customised. */}
+      {/* Edit-mode controls. iOS swaps the dock for a "Done" button while the
+          home screen is being edited; here the command bar (fixed at
+          bottom-6, see systems/command/fab.tsx) steps aside and the "Done"
+          pill morphs out of it into the same slot — the shared `layoutId`
+          drives that hand-off. "Reset" sits to its left, quieter, once the
+          layout has been customised. */}
       <AnimatePresence>
         {editing && (
-          <motion.div
+          <div
             data-edit-controls
-            // bottom-24 keeps these controls clear of the command bar (fixed at
-            // bottom-6); revisit if that bar moves.
-            className="fixed inset-x-0 bottom-24 z-50 flex items-center justify-center gap-4"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
-            transition={{ duration: 0.2 }}
+            className="system-chrome fixed inset-x-0 bottom-6 z-50 flex items-center justify-center gap-5 px-6"
           >
             {isCustomized && (
-              <button
+              <motion.button
                 type="button"
                 onClick={handleReset}
-                className="text-xs font-mono uppercase tracking-wider text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+                className="pressable text-xs font-mono uppercase tracking-wider text-muted-foreground/60 transition-colors hover:text-muted-foreground active:text-foreground"
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0, transition: { delay: 0.15 } }}
+                exit={{ opacity: 0, x: 8, transition: { duration: 0.12 } }}
               >
                 {t(locale, "widgetEditReset")}
-              </button>
+              </motion.button>
             )}
-            <button
+            <motion.button
               type="button"
+              layoutId={HOME_BOTTOM_PILL}
               onClick={() => setEditing(false)}
-              className="rounded-full border border-border/60 bg-card/80 px-4 py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground"
+              className={cn(
+                "pressable flex h-12 items-center justify-center rounded-2xl px-7",
+                "bg-foreground text-background shadow-raised",
+                "text-sm font-medium",
+                "transition-[transform,opacity] hover:opacity-90 active:scale-95",
+              )}
+              style={{ borderRadius: 24 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
+              transition={{
+                layout: { duration: 0.4, ease: [0.32, 0.72, 0, 1] },
+                opacity: { duration: 0.2 },
+              }}
             >
               {t(locale, "widgetEditDone")}
-            </button>
-          </motion.div>
+            </motion.button>
+          </div>
         )}
       </AnimatePresence>
     </DndContext>

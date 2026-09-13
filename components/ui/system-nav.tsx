@@ -45,6 +45,8 @@ export function SystemNav({
         "transition-colors duration-200",
         // Ensure pointer events work during animation
         "pointer-events-auto cursor-pointer",
+        // OS chrome: no text selection / callout; press lands instantly.
+        "system-chrome pressable",
         // Mobile touch optimization
         // Larger touch target with negative margin to maintain visual position
         "relative inline-flex items-center justify-start",

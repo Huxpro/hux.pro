@@ -79,7 +79,7 @@ export function LiveActivity({
               "border border-border/50 bg-card/50 backdrop-blur-xl",
               "shadow-raised",
               "hover:border-border hover:bg-card/70 transition-colors",
-              "active:scale-95",
+              "pressable active:border-border active:bg-card/70 active:scale-95",
               pillClassName
             )}
             aria-label={openLabel}

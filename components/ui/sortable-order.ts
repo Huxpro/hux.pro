@@ -8,10 +8,14 @@
 // A plain click (no travel) still navigates links.
 export const MOUSE_ACTIVATION = { distance: 8 };
 
-// Touch: a plain swipe scrolls the page; only a 200ms long-press picks an item
-// up. `tolerance` lets the finger drift a little during the hold without
-// cancelling (and a larger drift before the hold completes reverts to scroll).
-export const TOUCH_ACTIVATION = { delay: 200, tolerance: 8 };
+// Touch: a plain swipe scrolls the page; only a long-press picks an item up.
+// 400ms sits between a tap and iOS's own ~500ms home-screen hold — long enough
+// that a slow tap or the start of a scroll never lifts anything, short enough
+// to still feel like a response to the press. The held item grows for the
+// whole delay (see `usePressHold`) so the pickup is foreshadowed rather than
+// sudden. `tolerance` lets the finger drift a little during the hold without
+// cancelling; a larger drift before the hold completes reverts to scroll.
+export const TOUCH_ACTIVATION = { delay: 400, tolerance: 10 };
 
 export function loadOrder(key: string): string[] | null {
   if (typeof window === "undefined") return null;
