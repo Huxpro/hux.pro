@@ -110,7 +110,7 @@ export function SurfaceSwitch({
       role="radiogroup"
       aria-label={t(locale, "theaterSurfaceGroup")}
       className={cn(
-        "relative inline-flex items-center",
+        "system-chrome relative inline-flex items-center",
         framed && "rounded-full p-0.5",
         framed && (onDark ? GLASS_ON_DARK_TRACK : GLASS_TRACK),
         labels && "w-full",
@@ -181,11 +181,17 @@ export function SurfaceSwitch({
                     )
                   : cn(
                       "inline-flex h-7 w-7 items-center justify-center rounded-full",
-                      "outline-none transition-colors",
+                      // Same press contract as GLASS_BTN, minus its hover
+                      // fill (the lifted pill is the fill here).
+                      "pressable outline-none transition-colors duration-200",
+                      "relative before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-['']",
                       "focus-visible:bg-foreground/[0.08] focus-visible:text-foreground",
                       active
                         ? "text-foreground"
-                        : "cursor-pointer text-muted-foreground hover:text-foreground",
+                        : cn(
+                            "cursor-pointer text-muted-foreground hover:text-foreground",
+                            "active:bg-foreground/[0.08] active:text-foreground",
+                          ),
                     ),
             )}
           >

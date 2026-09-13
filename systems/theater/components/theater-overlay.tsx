@@ -298,7 +298,7 @@ export function TheaterOverlay() {
               >
                 <motion.div
                   key="topbar"
-                  className="fixed z-[10005] flex items-end justify-between gap-4"
+                  className="system-chrome fixed z-[10005] flex items-end justify-between gap-4"
                   style={{
                     left: rect.left,
                     width: rect.width,
@@ -401,7 +401,7 @@ export function TheaterOverlay() {
 
                 <motion.div
                   key="bottom"
-                  className="fixed z-[10005]"
+                  className="system-chrome fixed z-[10005]"
                   style={{
                     left: rect.left,
                     width: rect.width,

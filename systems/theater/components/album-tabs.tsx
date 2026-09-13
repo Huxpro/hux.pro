@@ -82,16 +82,18 @@ export function AlbumTabs({
             onClick={() => onSelect(i)}
             className={cn(
               "relative isolate font-mono uppercase tracking-wider",
-              "outline-none transition-colors duration-200",
+              // `pressable`: the label brightens on the touch-down frame, not
+              // only on hover, and eases back on release.
+              "pressable outline-none transition-colors duration-200",
               // Roomy label padding inside the capsule.
               size === "sm" ? "px-3.5 py-1.5 text-[10px]" : "px-4 py-2 text-xs",
               onDark
                 ? active
                   ? "text-white"
-                  : "text-white/45 hover:text-white/70 focus-visible:text-white/80"
+                  : "text-white/45 hover:text-white/70 focus-visible:text-white/80 active:text-white"
                 : active
                   ? "text-foreground"
-                  : "text-muted-foreground/70 hover:text-muted-foreground focus-visible:text-foreground",
+                  : "text-muted-foreground/70 hover:text-muted-foreground focus-visible:text-foreground active:text-foreground",
             )}
           >
             {active && (

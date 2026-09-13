@@ -84,7 +84,8 @@ export function PipOverlay() {
         <motion.div
           key="pip-controls"
           className={cn(
-            "fixed z-[10004] flex items-center gap-1.5 px-1.5",
+            // OS chrome: nothing here is text to select or a link to preview.
+            "system-chrome fixed z-[10004] flex items-center gap-1.5 px-1.5",
             // Same frosted card as WidgetShell; flat top so it joins the stage.
             "rounded-b-2xl border border-t-0 border-border/50",
             "bg-card/50 shadow-overlay backdrop-blur-xl",

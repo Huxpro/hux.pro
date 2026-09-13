@@ -70,13 +70,30 @@ export const GLASS_PILL_FLAT = cn(
   "dark:group-hover:bg-card dark:group-hover:ring-white/[0.06]",
 );
 
-/** Theme-aware icon button inside a cluster (or standalone orb). */
+/**
+ * Touch hit extension for the small (28–32px) cluster controls: the visible
+ * disc stays as drawn, the tappable area grows 6px above and below (never
+ * sideways, where a neighbour sits 2px away). Brings a 28px button to ~40px
+ * of finger room without loosening the cluster.
+ */
+const GLASS_HIT = cn(
+  "relative before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-['']",
+);
+
+/**
+ * Theme-aware icon button inside a cluster (or standalone orb).
+ * `pressable` + `active:` — the wash lands on the touch-down frame (see
+ * globals.css); hover alone never reaches a finger.
+ */
 export const GLASS_BTN = cn(
   "inline-flex items-center justify-center rounded-full",
-  "text-muted-foreground transition-colors",
+  "pressable text-muted-foreground",
+  "transition-[color,background-color,transform] duration-200",
   "outline-none focus-visible:bg-foreground/[0.08] focus-visible:text-foreground",
-  "hover:bg-foreground/[0.06] hover:text-foreground active:scale-95",
+  "hover:bg-foreground/[0.06] hover:text-foreground",
+  "active:bg-foreground/[0.08] active:text-foreground active:scale-95",
   "disabled:opacity-30 disabled:pointer-events-none",
+  GLASS_HIT,
 );
 
 /** Shared icon-button size for music + watching Live Activity clusters. */
@@ -89,9 +106,12 @@ export const GLASS_CLUSTER_BTN = cn(GLASS_BTN, "h-7 w-7");
 export const GLASS_ACTION = cn(
   "inline-flex items-center justify-center gap-1.5 rounded-full",
   "text-xs font-mono uppercase tracking-wider",
-  "text-muted-foreground transition-colors",
+  "pressable text-muted-foreground",
+  "transition-[color,background-color,transform] duration-200",
   "outline-none focus-visible:bg-foreground/[0.08] focus-visible:text-foreground",
-  "hover:text-foreground active:scale-[0.98]",
+  "hover:text-foreground",
+  "active:bg-foreground/[0.06] active:text-foreground active:scale-[0.98]",
+  GLASS_HIT,
 );
 
 /** Theme-aware freestanding prev/next orb. */
@@ -109,9 +129,12 @@ export const GLASS_ON_DARK_CLUSTER = cn(
 /** Always-dark theater: icon button inside a cluster (or standalone orb). */
 export const GLASS_ON_DARK_BTN = cn(
   "inline-flex items-center justify-center rounded-full",
-  "text-white/80 transition-colors",
+  "pressable text-white/80",
+  "transition-[color,background-color,transform] duration-200",
   "outline-none focus-visible:bg-white/10 focus-visible:text-white",
-  "hover:bg-white/10 hover:text-white active:scale-95",
+  "hover:bg-white/10 hover:text-white",
+  "active:bg-white/15 active:text-white active:scale-95",
+  GLASS_HIT,
 );
 
 /** Always-dark theater: freestanding prev/next orb. */
