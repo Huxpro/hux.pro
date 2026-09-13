@@ -117,16 +117,47 @@ enough to rescue a white-calibrated ramp costs the picture everything and still
 lands short of AA; re-basing the ramp for the ground it is actually on costs
 nothing visible and fixes it. The ambient provider puts `wallpaper-image` on
 `<html>` whenever an image wallpaper paints full-page, and `globals.css` hangs
-light-only overrides off it — `--muted-foreground` to `oklch(0.42)`, and the
-near-white `--border` / `--input` / `--ring` hairlines to dark ones, because a
-light surface floating on a photo is edged by shadow, not by a lighter line.
+light-only overrides off it — a pair of **iOS vibrancy labels** taken from #96:
 
-Result: 2.05:1 → **3.66:1**, marginally *better* than what dark mode has always
-had (3.38:1).
+```css
+--label:           oklch(0.2 0.016 260);   /* → foreground and friends */
+--label-secondary: oklch(0.36 0.018 260);  /* → muted-foreground */
+```
 
-A token re-base can only aim at the average ground, though, and a photograph
-has bright patches too. Springboard labels sit directly on the wallpaper with
-no card under them — the one place where the ground can be any colour at all —
-so they also carry `.desktop-label`, a halo in the page's own ground colour.
-macOS shades its desktop labels for exactly this reason. It applies only while
-a photo is up; over the weather wash there is nothing to defend against.
+Not pure black: a label over glass picks up a trace of cool cast, and `#0a0a0a`
+on a photograph reads as ink dropped on a print. The near-white `--border` /
+`--input` / `--ring` hairlines go dark for the same reason a light surface
+floating on a photo is edged by shadow rather than by a lighter line.
+
+Result: **2.05:1 → 4.71:1** — full AA, on a ground the palette was never
+designed for.
+
+### Text with no card under it
+
+The greeting and the springboard labels sit directly on the wallpaper. A token
+re-base can only aim at the average ground, and a photograph has both bright
+patches and dark ones, so these two need something more — but *not* more
+shadow. A tight, opaque halo embosses the type and reads as a sticker; widening
+and darkening it just turns it into a grey smudge box behind the word.
+
+The greeting takes #96's **hero lift**, which is the shape that works: a
+half-pixel white hairline separating the glyph edge, over a wide, faint bloom in
+the page's own paper colour — the surface the text would have had if it had one.
+Nothing about it touches the wallpaper.
+
+```css
+html.wallpaper-image:not(.dark) .ambient-hero {
+  text-shadow:
+    0 0.5px 0 color-mix(in oklab, white 50%, transparent),
+    0 10px 32px color-mix(in oklab, var(--background) 40%, transparent);
+}
+```
+
+The springboard labels turned out not to be a halo problem at all. They were
+drawn in the *secondary* tier, and nothing at `0.36` survives landing on the
+dark green of Sonoma's hillside. An app's name is not metadata, and on a photo
+it has no card to sit on, so `.desktop-label` steps up to the primary label tier
+and carries itself — which is what macOS does with desktop labels. The bloom
+then only has to soften the edge, so it stays small enough not to be seen, and
+it works in **both** themes: the paper colour it blooms in is white in light and
+near-black in dark, which is exactly the halo each one wants.
