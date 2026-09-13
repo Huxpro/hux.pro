@@ -21,7 +21,7 @@ import { VideoControls } from "./video-controls";
 export function TheaterActivity() {
   const { locale } = useLocale();
   const { close: closeDock } = useDock();
-  const { minimized, track, phase, restore, toTheater, theaterAvailable } =
+  const { minimized, track, phase, toPip, toTheater, theaterAvailable } =
     useTheater();
   const [mounted, setMounted] = useState(false);
 
@@ -38,7 +38,7 @@ export function TheaterActivity() {
 
   const go = (surface: "theater" | "pip") => {
     closeDock();
-    if (surface === "pip") restore();
+    if (surface === "pip") toPip();
     else toTheater();
   };
 
