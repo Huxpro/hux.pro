@@ -259,44 +259,52 @@ export function VStackWidget({
       className={className}
     >
       <div className="pb-5">
-        <div
-          ref={scrollRef}
-          className={cn(
-            "px-5",
-            "overflow-y-auto overscroll-contain",
-            "flex flex-col gap-3",
-            "snap-y snap-mandatory",
-            "scroll-smooth",
-            "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-            !viewportH && "max-h-[9.5rem]",
-          )}
-          style={viewportH ? { height: viewportH } : undefined}
-        >
-          {items.map((child, i) => (
-            <div key={i} className="snap-start shrink-0" data-carousel-card>
-              {child}
-            </div>
-          ))}
-        </div>
-
-        {items.length > 1 && (
-          <div className="flex items-center justify-center gap-1.5 pt-3">
-            {items.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => scrollToIndex(i)}
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full transition-all duration-200",
-                  i === activeIndex
-                    ? "bg-foreground/60 w-3"
-                    : "bg-foreground/20 hover:bg-foreground/40",
-                )}
-                aria-label={`Go to slide ${i + 1}`}
-              />
+        <div className="flex items-stretch gap-1.5 pr-3">
+          <div
+            ref={scrollRef}
+            className={cn(
+              "min-w-0 flex-1 pl-5 pr-2",
+              "overflow-y-auto overscroll-contain",
+              "flex flex-col gap-3",
+              "snap-y snap-mandatory",
+              "scroll-smooth",
+              "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+              !viewportH && "max-h-[9.5rem]",
+            )}
+            style={viewportH ? { height: viewportH } : undefined}
+          >
+            {items.map((child, i) => (
+              <div key={i} className="snap-start shrink-0" data-carousel-card>
+                {child}
+              </div>
             ))}
           </div>
-        )}
+
+          {items.length > 1 && (
+            <div
+              className="flex shrink-0 flex-col items-center justify-center gap-1.5"
+              role="tablist"
+              aria-orientation="vertical"
+              aria-label="Project pages"
+            >
+              {items.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => scrollToIndex(i)}
+                  className={cn(
+                    "w-1.5 rounded-full transition-all duration-200",
+                    i === activeIndex
+                      ? "h-3 bg-foreground/60"
+                      : "h-1.5 bg-foreground/20 hover:bg-foreground/40",
+                  )}
+                  aria-label={`Go to slide ${i + 1}`}
+                  aria-current={i === activeIndex ? "true" : undefined}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </StackShell>
   );
