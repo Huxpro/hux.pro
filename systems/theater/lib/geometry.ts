@@ -43,8 +43,8 @@ function clamp(value: number, min: number, max: number): number {
 // largest 16:9 that leaves these margins free: a control bar above, the title +
 // playlist rail below, and prev/next arrow gutters on the sides.
 // Sized for the frosted-toolbar chrome (taller top band, wider side air).
-export const THEATER_TOP_BAR = 56; // window chrome only (surface + close)
-export const THEATER_BOTTOM = 248; // title + album tabs + playlist rail
+export const THEATER_TOP_BAR = 64; // title + conf + window chrome
+export const THEATER_BOTTOM = 200; // album tabs + playlist rail
 export const THEATER_SIDE = 80; // prev / next arrow gutters
 const THEATER_MARGIN = 16;
 

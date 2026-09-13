@@ -88,7 +88,7 @@ export function TheaterActivity() {
           </div>
         </div>
 
-        <VideoControls variant="pip" />
+        <VideoControls />
 
         <SurfaceSwitch
           current="mini"

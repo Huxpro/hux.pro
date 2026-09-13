@@ -42,7 +42,7 @@ export function MusicWidget() {
         </div>
       </WidgetHeader>
 
-      <WidgetBody className="pb-6">
+      <WidgetBody>
         <NowPlaying raised={false} />
       </WidgetBody>
     </WidgetShell>

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { Pause, Play, SkipBack, SkipForward, X } from "lucide-react";
 import { useRef } from "react";
-import { GLASS_BTN, GLASS_CLUSTER, GLASS_PILL } from "../lib/chrome";
+import { GLASS_CLUSTER, GLASS_CLUSTER_BTN, GLASS_PILL } from "../lib/chrome";
 import { PIP_CONTROLS_H } from "../lib/geometry";
 import { useTheater } from "../provider";
 import { SurfaceSwitch } from "./surface-switch";
@@ -22,8 +22,6 @@ import { SurfaceSwitch } from "./surface-switch";
 // as the current view; Theater / Audio are the only moves. Close sits in the
 // same capsule — it ends the session, it is not a view.
 // ---------------------------------------------------------------------------
-
-const CLUSTER_BTN = cn(GLASS_BTN, "h-7 w-7");
 
 export function PipOverlay() {
   const {
@@ -115,14 +113,14 @@ export function PipOverlay() {
           </div>
 
           <div className={GLASS_CLUSTER}>
-            <button onClick={previous} disabled={!hasPrev} aria-label="Previous" className={CLUSTER_BTN}>
+            <button onClick={previous} disabled={!hasPrev} aria-label="Previous" className={GLASS_CLUSTER_BTN}>
               <SkipBack className="h-3.5 w-3.5" fill="currentColor" />
             </button>
             {isYouTube && (
               <button
                 onClick={togglePlay}
                 aria-label={isPlaying ? "Pause" : "Play"}
-                className={cn(CLUSTER_BTN, GLASS_PILL, "text-foreground")}
+                className={cn(GLASS_CLUSTER_BTN, GLASS_PILL, "text-foreground")}
               >
                 {isPlaying ? (
                   <Pause className="h-3.5 w-3.5" fill="currentColor" />
@@ -131,7 +129,7 @@ export function PipOverlay() {
                 )}
               </button>
             )}
-            <button onClick={next} disabled={!hasNext} aria-label="Next" className={CLUSTER_BTN}>
+            <button onClick={next} disabled={!hasNext} aria-label="Next" className={GLASS_CLUSTER_BTN}>
               <SkipForward className="h-3.5 w-3.5" fill="currentColor" />
             </button>
           </div>
@@ -146,7 +144,7 @@ export function PipOverlay() {
                 if (surface === "mini") minimize();
               }}
             />
-            <button onClick={close} aria-label="Close" className={CLUSTER_BTN}>
+            <button onClick={close} aria-label="Close" className={GLASS_CLUSTER_BTN}>
               <X className="h-3.5 w-3.5" />
             </button>
           </div>

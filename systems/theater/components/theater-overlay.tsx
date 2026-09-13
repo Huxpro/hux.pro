@@ -12,7 +12,7 @@ import { Link } from "next-view-transitions";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { t, useLocale } from "@/services";
 import { GLASS_ON_DARK_BTN, GLASS_ON_DARK_CLUSTER, GLASS_ON_DARK_ORB } from "../lib/chrome";
-import { THEATER_TOP_BAR } from "../lib/geometry";
+import { THEATER_BOTTOM, THEATER_TOP_BAR } from "../lib/geometry";
 import { useTheater } from "../provider";
 import { AlbumTabs } from "./album-tabs";
 import { PlaylistRail } from "./playlist-rail";
@@ -250,7 +250,7 @@ export function TheaterOverlay() {
               left: rect.left,
               width: rect.width,
               top: rect.top + rect.height,
-              height: 248,
+              height: THEATER_BOTTOM,
             }}
             onPointerEnter={pinChrome}
             onPointerLeave={unpinChrome}
@@ -296,12 +296,12 @@ export function TheaterOverlay() {
               >
                 <motion.div
                   key="topbar"
-                  className="fixed z-[10005] flex items-end justify-end"
+                  className="fixed z-[10005] flex items-end justify-between gap-4"
                   style={{
                     left: rect.left,
                     width: rect.width,
-                    top: rect.top - 52,
-                    height: 40,
+                    top: rect.top - 56,
+                    height: 44,
                   }}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -310,7 +310,32 @@ export function TheaterOverlay() {
                   onPointerEnter={pinChrome}
                   onPointerLeave={unpinChrome}
                 >
-                  <div className={GLASS_ON_DARK_CLUSTER}>
+                  {track ? (
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium text-white">
+                        {track.title}
+                      </div>
+                      <div className="mt-0.5 flex items-baseline gap-2">
+                        {track.subtitle && (
+                          <div className="truncate text-xs font-mono uppercase tracking-wide text-white/50">
+                            {track.subtitle}
+                          </div>
+                        )}
+                        {track.href && (
+                          <Link
+                            href={track.href}
+                            onClick={close}
+                            className="shrink-0 text-xs font-mono uppercase tracking-wide text-white/50 hover:text-white transition-colors"
+                          >
+                            {t(locale, "theaterWorksLink")} →
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+                  <div className={cn(GLASS_ON_DARK_CLUSTER, "shrink-0")}>
                     {track?.url && (
                       <a
                         href={track.url}
@@ -399,29 +424,6 @@ export function TheaterOverlay() {
                   onPointerEnter={pinChrome}
                   onPointerLeave={unpinChrome}
                 >
-                  {track && (
-                    <div className="mb-3 flex items-baseline justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-white">
-                          {track.title}
-                        </div>
-                        {track.subtitle && (
-                          <div className="truncate text-xs font-mono uppercase tracking-wide text-white/50">
-                            {track.subtitle}
-                          </div>
-                        )}
-                      </div>
-                      {track.href && (
-                        <Link
-                          href={track.href}
-                          onClick={close}
-                          className="shrink-0 text-xs font-mono uppercase tracking-wide text-white/50 hover:text-white transition-colors"
-                        >
-                          {t(locale, "theaterWorksLink")} →
-                        </Link>
-                      )}
-                    </div>
-                  )}
                   <AlbumTabs
                     albums={albums}
                     activeIndex={albumIndex}

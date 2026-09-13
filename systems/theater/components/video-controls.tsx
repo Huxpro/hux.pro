@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
-import { GLASS_BTN, GLASS_CLUSTER, GLASS_PILL } from "../lib/chrome";
+import { GLASS_CLUSTER, GLASS_CLUSTER_BTN, GLASS_PILL } from "../lib/chrome";
 import { formatTime } from "../lib/player";
 import { useTheater } from "../provider";
 
@@ -42,7 +42,6 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
     trackIndex < (album?.tracks.length ?? 0) - 1 || albumIndex < albums.length - 1;
 
   const pip = variant === "pip";
-  const iconBtn = cn(GLASS_BTN, pip ? "h-8 w-8" : "h-9 w-9");
 
   const onScrub = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isYouTube || duration <= 0) return;
@@ -80,21 +79,21 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
             onClick={previous}
             disabled={!hasPrev}
             aria-label="Previous video"
-            className={iconBtn}
+            className={GLASS_CLUSTER_BTN}
           >
-            <SkipBack className={pip ? "h-4 w-4" : "h-5 w-5"} fill="currentColor" />
+            <SkipBack className="h-3.5 w-3.5" fill="currentColor" />
           </button>
 
           {isYouTube ? (
             <button
               onClick={togglePlay}
               aria-label={isPlaying ? "Pause" : "Play"}
-              className={cn(iconBtn, GLASS_PILL, "text-foreground", !pip && "h-10 w-10")}
+              className={cn(GLASS_CLUSTER_BTN, GLASS_PILL, "text-foreground")}
             >
               {isPlaying ? (
-                <Pause className={pip ? "h-4 w-4" : "h-5 w-5"} fill="currentColor" />
+                <Pause className="h-3.5 w-3.5" fill="currentColor" />
               ) : (
-                <Play className={cn("translate-x-px", pip ? "h-4 w-4" : "h-5 w-5")} fill="currentColor" />
+                <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />
               )}
             </button>
           ) : (
@@ -107,9 +106,9 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
             onClick={next}
             disabled={!hasNext}
             aria-label="Next video"
-            className={iconBtn}
+            className={GLASS_CLUSTER_BTN}
           >
-            <SkipForward className={pip ? "h-4 w-4" : "h-5 w-5"} fill="currentColor" />
+            <SkipForward className="h-3.5 w-3.5" fill="currentColor" />
           </button>
         </div>
       </div>

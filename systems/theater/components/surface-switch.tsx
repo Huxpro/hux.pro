@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { motion, useReducedMotion } from "framer-motion";
-import { Maximize2, PictureInPicture2, Volume2 } from "lucide-react";
+import { Maximize2, Minimize2, PictureInPicture2, Volume2 } from "lucide-react";
 import { useId } from "react";
 import {
   GLASS_ACTION,
@@ -19,7 +19,9 @@ import {
 //
 // Only one surface can be up at a time. The lifted pill is the *current*
 // view (not an action). The other segments are the only legal moves.
-// Audio is the minimized Live Activity — video parks, sound keeps playing.
+// In theater / PiP the Audio move is a Minimize icon (the action) with a
+// "keep listening" hint. In the Live Activity the same view shows Volume2
+// + Audio / 声音 — that surface already *is* the audio activity.
 // ---------------------------------------------------------------------------
 
 export type TheaterSurface = "theater" | "pip" | "mini";
@@ -29,6 +31,7 @@ const EASE = [0.32, 0.72, 0, 1] as const;
 const ICONS = {
   theater: Maximize2,
   pip: PictureInPicture2,
+  /** Live Activity: this *is* the audio view, so Volume2. */
   mini: Volume2,
 } as const;
 
@@ -86,10 +89,15 @@ export function SurfaceSwitch({
     >
       {surfaces.map((surface) => {
         const active = surface === current;
-        const Icon = ICONS[surface];
+        const Icon =
+          surface === "mini" && !labels ? Minimize2 : ICONS[surface];
         const label = t(locale, LABEL_KEY[surface]);
         const named = (key: "theaterSurfaceNow" | "theaterSurfaceGo") =>
           t(locale, key).replace("{surface}", label);
+        const hint =
+          surface === "mini" && !labels
+            ? t(locale, "theaterSurfaceMiniHint")
+            : undefined;
 
         return (
           <button
@@ -97,7 +105,10 @@ export function SurfaceSwitch({
             type="button"
             role="radio"
             aria-checked={active}
-            aria-label={active ? named("theaterSurfaceNow") : named("theaterSurfaceGo")}
+            aria-label={
+              hint ?? (active ? named("theaterSurfaceNow") : named("theaterSurfaceGo"))
+            }
+            title={hint}
             tabIndex={active ? -1 : 0}
             onClick={() => {
               if (!active) onSelect(surface);
@@ -107,7 +118,7 @@ export function SurfaceSwitch({
               labels
                 ? cn(
                     GLASS_ACTION,
-                    "h-8 flex-1",
+                    "h-7 flex-1",
                     active ? "text-foreground" : "cursor-pointer",
                   )
                 : onDark

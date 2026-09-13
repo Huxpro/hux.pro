@@ -23,7 +23,7 @@ export const GLASS_PILL = cn(
 
 /** Theme-aware clustered toolbar (PiP + Live Activity). Same capsule as theater. */
 export const GLASS_CLUSTER = cn(
-  "inline-flex items-center gap-0.5 rounded-full p-0.5",
+  "inline-flex w-fit items-center gap-0.5 rounded-full p-0.5",
   GLASS_TRACK,
 );
 
@@ -40,7 +40,7 @@ export const GLASS_TRACK_FLAT = cn(
 );
 
 export const GLASS_CLUSTER_FLAT = cn(
-  "inline-flex items-center gap-0.5 rounded-full p-0.5",
+  "inline-flex w-fit items-center gap-0.5 rounded-full p-0.5",
   GLASS_TRACK_FLAT,
 );
 
@@ -57,6 +57,9 @@ export const GLASS_BTN = cn(
   "hover:bg-foreground/[0.06] hover:text-foreground active:scale-95",
   "disabled:opacity-30 disabled:pointer-events-none",
 );
+
+/** Shared icon-button size for music + watching Live Activity clusters. */
+export const GLASS_CLUSTER_BTN = cn(GLASS_BTN, "h-7 w-7");
 
 /**
  * Theme-aware text action (PiP / Theater chips). Mono + tracking match

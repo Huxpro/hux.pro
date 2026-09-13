@@ -3,8 +3,8 @@
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import {
-  GLASS_BTN,
   GLASS_CLUSTER,
+  GLASS_CLUSTER_BTN,
   GLASS_CLUSTER_FLAT,
   GLASS_PILL,
   GLASS_PILL_FLAT,
@@ -45,8 +45,6 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-const TRANSPORT_BTN = cn(GLASS_BTN, "h-7 w-7");
-
 function MusicTransport({
   isPlaying,
   onPrevious,
@@ -70,7 +68,7 @@ function MusicTransport({
   return (
     <div className={raised ? GLASS_CLUSTER : GLASS_CLUSTER_FLAT}>
       {!idle && (
-        <button onClick={onPrevious} aria-label="Previous track" className={TRANSPORT_BTN}>
+        <button onClick={onPrevious} aria-label="Previous track" className={GLASS_CLUSTER_BTN}>
           <Rewind className="h-3.5 w-3.5" />
         </button>
       )}
@@ -78,7 +76,7 @@ function MusicTransport({
         onClick={onPlayPause}
         aria-label={isPlaying ? "Pause" : "Play"}
         className={cn(
-          TRANSPORT_BTN,
+          GLASS_CLUSTER_BTN,
           "text-foreground",
           raised ? GLASS_PILL : GLASS_PILL_FLAT,
         )}
@@ -90,11 +88,11 @@ function MusicTransport({
         )}
       </button>
       {!idle && (
-        <button onClick={onNext} aria-label="Next track" className={TRANSPORT_BTN}>
+        <button onClick={onNext} aria-label="Next track" className={GLASS_CLUSTER_BTN}>
           <FastForward className="h-3.5 w-3.5" />
         </button>
       )}
-      <button onClick={onPlaylist} aria-label={playlistLabel} className={TRANSPORT_BTN}>
+      <button onClick={onPlaylist} aria-label={playlistLabel} className={GLASS_CLUSTER_BTN}>
         <ListMusic className="h-3.5 w-3.5" />
       </button>
     </div>
@@ -136,10 +134,10 @@ export function NowPlaying({
 
   if (track) {
     return (
-      <div className="flex items-start gap-3.5">
+      <div className="flex items-start gap-3">
         {/* Album art — mqdefault is 16:9, object-cover crops to square */}
         <div
-          className="h-16 w-16 overflow-hidden rounded-lg shrink-0"
+          className="h-18 w-18 overflow-hidden rounded-lg shrink-0"
           onMouseEnter={() => setShowProgress(true)}
           onMouseLeave={() => setShowProgress(false)}
         >
@@ -150,20 +148,20 @@ export function NowPlaying({
           />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+        <div className="flex h-18 min-w-0 flex-1 flex-col justify-between">
           <div className="min-w-0">
             <div className="truncate text-sm font-medium leading-snug text-foreground">
               {track.title}
             </div>
             {track.artist && (
-              <div className="mt-1 truncate text-xs font-mono leading-relaxed text-muted-foreground">
+              <div className="mt-0.5 truncate text-xs font-mono text-muted-foreground">
                 {track.artist}
               </div>
             )}
           </div>
 
           {showProgress && duration > 0 ? (
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="h-0.5 overflow-hidden rounded-full bg-muted">
                 <div
                   className="h-full rounded-full bg-foreground/50 transition-[width] duration-1000 ease-linear"
@@ -202,12 +200,12 @@ export function NowPlaying({
 
   if (isIdle && !isLoading) {
     return (
-      <div className="flex items-start gap-3.5">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-muted/30">
+      <div className="flex items-start gap-3">
+        <div className="flex h-18 w-18 shrink-0 items-center justify-center rounded-lg bg-muted/30">
           <Music className="h-6 w-6 text-muted-foreground/30" />
         </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
-          <div className="text-xs font-mono leading-relaxed text-muted-foreground">
+        <div className="flex h-18 min-w-0 flex-1 flex-col justify-between">
+          <div className="text-xs font-mono text-muted-foreground">
             {t(locale, "musicNotPlaying")}
           </div>
           <MusicTransport
@@ -225,9 +223,9 @@ export function NowPlaying({
 
   // loading skeleton
   return (
-    <div className="flex items-start gap-3.5">
-      <div className="h-16 w-16 shrink-0 animate-pulse rounded-lg bg-muted" />
-      <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+    <div className="flex items-start gap-3">
+      <div className="h-18 w-18 shrink-0 animate-pulse rounded-lg bg-muted" />
+      <div className="flex h-18 min-w-0 flex-1 flex-col justify-between">
         <div>
           <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
           <div className="mt-1.5 h-3 w-1/2 animate-pulse rounded bg-muted" />
