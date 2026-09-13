@@ -1076,7 +1076,7 @@
         },
         {
           "kind": "slides",
-          "url": "https://huangxuan.me/jsconfcn2017/",
+          "url": "https://huxpro.github.io/jsconfcn2017/",
           "title": "Upgrading to Progressive Web Apps",
           "thumbnail": "/img/works/upgrading-to-pwa-cover.png"
         }
@@ -1235,7 +1235,7 @@
       "media": [
         {
           "kind": "slides",
-          "url": "https://huangxuan.me/pwa-qcon2016/",
+          "url": "https://huxpro.github.io/pwa-qcon2016/",
           "title": "Progressive Web Apps, Make Web Great Again",
           "thumbnail": "/img/works/pwa-qcon2016-cover.png"
         }
