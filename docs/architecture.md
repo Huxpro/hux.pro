@@ -88,27 +88,38 @@ Developer tools for debugging ambient state.
 
 The homepage widget grid is an iPad-springboard surface where **placement is
 explicit**: the layout is one list of widget IDs *per column* (`string[][]`),
-not one flat sequence, and columns are plain flex children.
+not one flat sequence.
 
 - A column is exactly as tall as what the visitor put in it. The middle column
   can be the tallest, a column can be left empty, and nothing reflows into a
   neighbour on its own. (It used to be CSS `columns`, which auto-balances
   column heights — a widget's column was *derived* from the running height,
   never chosen, so "make the middle column taller" wasn't expressible.)
-- Each column's empty tail is a drop target (columns stretch to the grid's
-  height), which is how a widget is dropped past the end of a short column or
-  into an emptied one.
-- Drop resolution prefers the widget under the pointer; in the gaps between
-  cards it falls back to the *nearest widget in the hovered column* rather
-  than to the column itself, so hovering a gap never yanks the held card to
-  the column's end. Order flips only once the held card crosses a neighbour's
-  midpoint.
+- **Every widget keeps its DOM node, in one stable parent, forever.** The grid
+  is a single relative container; cards are absolutely positioned and move by
+  `transform` alone, so React never reorders or reparents them. This is
+  load-bearing, not an optimisation: widgets own live, stateful DOM (the talks
+  widget hosts the theater's persistent YouTube player node, the app folder
+  portals its own drag overlay), and unmounting that mid-drag threw
+  `removeChild` / update-depth errors that took the page down.
+- Card heights come from a `ResizeObserver`, so a widget that grows (an image
+  loading, weather arriving) just pushes the cards under it down.
+- Drop placement is computed from our own geometry — the pointer against the
+  measured slots — not from dnd-kit droppables, so nothing about the drag
+  depends on dnd-kit re-measuring a grid that is moving underneath it. Since
+  the slots already include the held card's own slot, insertion is naturally
+  hysteretic: a card changes places only once the pointer crosses a
+  neighbour's midpoint, so the layout settles instead of flip-flopping.
+- dnd-kit still provides the sensors (mouse drags at once, touch needs a
+  long-press so swipes still scroll), the activation constraints and the
+  lifted `DragOverlay` clone.
 - Layouts persist per column count under `localStorage["hux_widget_order"]`
   (`{ v: 2, cols: { "1" | "2" | "3": string[][] } }`; the legacy flat v1 array
   is still read). An unvisited width inherits the widest arranged one rather
   than snapping back to the default.
-- Before hydration (and with JS off) the grid renders as a plain CSS
-  multi-column in declaration order — no measurement, correct at every width.
+- Before the cards have been measured (and with JS off) the grid renders as a
+  plain CSS multi-column in declaration order — same container, same children,
+  only the styling differs, so switching modes costs no remount.
 
 ## Import Conventions
 
