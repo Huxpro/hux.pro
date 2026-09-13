@@ -115,6 +115,14 @@
 
   /* --- Layout --- */
   --radius: 0.625rem;
+
+  /* Colour iOS 26 Safari samples for its Liquid Glass status bar / toolbar.
+     Tracks --background (which .dark redefines on the same <html> element),
+     so one declaration covers both themes. */
+  --root-bg: var(--background);
+  /* Top scroll runway — see `html.has-glass-runway` below. */
+  --glass-runway: 96px;
+
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -173,9 +181,38 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  /* --- Root colour (iOS 26 Safari "Liquid Glass") ---------------------------
+
+     Safari 26 tints its status bar and its bottom search/tab bar by SAMPLING
+     the page's root background-color. It ignores <meta name="theme-color">
+     for that tinting, and a transparent <html> resolves to white — which is
+     where the white/black band behind the Safari chrome came from.
+
+     So the colour is stated explicitly, on BOTH html and body, via a single
+     `--root-bg` token. Never leave either transparent.
+
+     Note this is deliberately a flat *colour*, not the ambient gradient: at
+     scrollY = 0 Safari samples the CSS background-color rather than a fixed
+     background-image layer. The ambient gradient already edge-fades to
+     transparent on iOS (see systems/ambient/lib/platform.ts), so the flat
+     token below is genuinely what shows through behind the chrome. */
+  html,
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--root-bg);
   }
+  body {
+    @apply text-foreground;
+  }
+  /* Keep form controls and the overscroll gutter on the same side as the
+     sampled root colour. */
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
   /* Lock the viewport horizontally — fixed overlays (ruler ToC, dock)
      must never let the page pan sideways. `clip` (unlike `hidden`)
      doesn't create a scroll container, so `position: sticky` keeps
@@ -184,6 +221,38 @@
   body {
     overflow-x: clip;
   }
+}
+
+/* --- Scroll runway (iOS 26 Safari) -----------------------------------------
+
+   A page that cannot scroll leaves Safari pinned at scrollY = 0, where it has
+   no composited page pixels to put behind the top status area and falls back
+   to the sampled root colour. Giving the document a small top runway and
+   scrolling to it means scroll is non-zero and Safari composites real content.
+
+   The padding and the scroll cancel each other out, so nothing moves visually.
+   Applied only where it's needed — see components/layout/glass-runway.tsx. */
+html.has-glass-runway body {
+  /* Padding, not margin: a top margin on <body> can collapse through <html>,
+     which offsets the canvas without adding any scrollable height — the one
+     thing the runway exists to create. Padding also means the strip is
+     painted with body's own --root-bg, so it stays invisible. */
+  padding-top: var(--glass-runway);
+}
+
+/* --- Gesture scroll lock ---------------------------------------------------
+
+   Modal surfaces must NOT use `body { overflow: hidden }`: that collapses the
+   document's scrollable height, and Safari 26's viewport/chrome compositor
+   then has nothing to work with — the toolbar area goes flat white/black and
+   fixed overlays drift. Instead the document stays scrollable and the
+   *gestures* are blocked inside the app shell (see lib/scroll-lock.ts).
+
+   `overscroll-behavior: none` stops the rubber-band from chaining out to the
+   document while a modal owns the screen. */
+html[data-scroll-locked],
+html[data-scroll-locked] body {
+  overscroll-behavior: none;
 }
 
 /* Force grabbing cursor on all elements during drag */

@@ -29,10 +29,16 @@ export function FloatingActionButton() {
   const fab = (
     <div
       className={cn(
-        "fixed bottom-6 left-0 right-0 z-50 px-6",
+        "fixed left-0 right-0 z-50 px-6",
         "flex pointer-events-none",
         isHomepage ? "justify-center" : "justify-end"
       )}
+      // `viewport-fit=cover` lets the page paint under the home indicator and
+      // under Safari's bottom search bar, so the offset has to be moved back
+      // inward by the safe-area inset — otherwise the FAB sits beneath the
+      // Safari chrome. The wrapper itself stays transparent (the glass is on
+      // the button), so it never tints the toolbar.
+      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 1.5rem)" }}
     >
       <motion.button
         layout

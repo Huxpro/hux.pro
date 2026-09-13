@@ -81,7 +81,16 @@ export function MusicPlaylistSheet() {
       direction={direction}
     >
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 z-[60] bg-black/25 dark:bg-black/45" />
+        {/* The dimming lives on an absolute child, not on the fixed overlay:
+            iOS 26 Safari samples fixed elements to tint its Liquid Glass
+            toolbars. Bled past the viewport edges so the dim runs under the
+            Safari chrome instead of stopping short of it. */}
+        <Drawer.Overlay className="fixed inset-0 z-[60]">
+          <div
+            aria-hidden
+            className="absolute inset-x-0 -top-32 -bottom-32 bg-black/25 dark:bg-black/45"
+          />
+        </Drawer.Overlay>
         <Drawer.Content
           aria-describedby={undefined}
           style={

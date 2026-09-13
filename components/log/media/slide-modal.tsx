@@ -8,8 +8,8 @@
  * reads big without leaving the site; on phones it takes over as a theater
  * mode (edge-to-edge), matching the video modal.
  *
- * Dismissal: backdrop click, the close button, or Escape. Body scroll is
- * locked while open. Portalled so the overlay escapes any transformed /
+ * Dismissal: backdrop click, the close button, or Escape. Page scroll is
+ * gesture-locked while open (never `body { overflow: hidden }`). Portalled so the overlay escapes any transformed /
  * overflow-clipped ancestor in the timeline.
  */
 
@@ -18,6 +18,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { ExternalLink, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useScrollLock } from "@/lib/scroll-lock";
 
 /**
  * On-media control recipe — the same dark disc + hairline white ring as
@@ -58,14 +59,13 @@ export function SlideModal({ open, onClose, src, title }: SlideModalProps) {
     };
     document.addEventListener("keydown", onKeyDown);
 
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = prevOverflow;
     };
   }, [open, onClose]);
+
+  // Gesture lock rather than `body { overflow: hidden }` — see lib/scroll-lock.ts.
+  useScrollLock(open);
 
   if (!mounted) return null;
 
@@ -85,13 +85,27 @@ export function SlideModal({ open, onClose, src, title }: SlideModalProps) {
           aria-modal="true"
           aria-label={title}
         >
-          {/* Backdrop. Mobile theater = opaque black; sm+ = dimmed blur. */}
-          <div className="absolute inset-0 bg-black sm:bg-black/80 sm:backdrop-blur-md" />
+          {/* Backdrop. Mobile theater = opaque black; sm+ = dimmed blur.
+              Lives on an absolute child (never on the `fixed` parent, which
+              iOS 26 Safari samples to tint its Liquid Glass chrome) and bleeds
+              past the top and bottom of the visual viewport, so the backdrop
+              runs under the Safari toolbars instead of stopping at their edge
+              and leaving a gap. */}
+          <div className="absolute inset-x-0 -top-32 -bottom-32 bg-black sm:bg-black/80 sm:backdrop-blur-md" />
 
           {/* Chrome — close + optional fullscreen escape hatch. Shares the
               on-media control recipe with PlayBadge (dark disc, hairline
               white ring) so covers and the player read as one system. */}
-          <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
+          {/* The backdrop deliberately bleeds under the Safari chrome, so the
+              controls have to come back inward by the safe-area insets or they
+              end up beneath the status bar / rounded corners. */}
+          <div
+            className="absolute z-10 flex items-center gap-2"
+            style={{
+              top: "calc(env(safe-area-inset-top, 0px) + 1rem)",
+              right: "calc(env(safe-area-inset-right, 0px) + 1rem)",
+            }}
+          >
             <a
               href={src}
               target="_blank"

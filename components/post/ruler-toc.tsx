@@ -835,14 +835,32 @@ function MobileRuler({
             // touch-none swallows native scrolling while open; dragging
             // anywhere scrubs the tape (finger y maps onto the tape window,
             // so pointing at a label's row selects it); a plain tap dismisses.
+            //
+            // This element carries NO background and NO backdrop-filter of its
+            // own: iOS 26 Safari samples fixed elements to tint its Liquid
+            // Glass toolbars, so a coloured `fixed inset-0` scrim bleeds
+            // straight into the chrome. The glass lives on the absolute child
+            // below instead.
             data-ruler-scrim
-            className="fixed inset-0 z-40 touch-none bg-background/60 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-40 touch-none"
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
             {...gestureHandlers}
-          />
+          >
+            {/* The visible glass. Bled past the top and bottom of the visual
+                viewport so the Safari toolbars sample real blurred backdrop
+                instead of running off the end of the scrim and leaving a gap.
+                Opacity is animated HERE rather than on the fixed parent: an
+                opacity-animated ancestor forms a backdrop root, and the blur
+                would then sample nothing but its own empty group. */}
+            <motion.div
+              aria-hidden
+              className="absolute inset-x-0 -top-32 -bottom-32 bg-background/60 backdrop-blur-sm"
+              variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
+              transition={{ duration: 0.25 }}
+            />
+          </motion.div>
         )}
       </AnimatePresence>
 

@@ -27,6 +27,20 @@ type ThemePreference = Theme | "system";
 
 const THEME_STORAGE_KEY = "hux_theme";
 
+/**
+ * Blocking snippet injected into <head> so the `dark` class lands on <html>
+ * BEFORE the first paint.
+ *
+ * This is not just about a flash of light content: iOS 26 Safari samples the
+ * root background-color to tint its Liquid Glass status bar and bottom
+ * toolbar, and it samples early. Applying the theme in an effect meant the
+ * first painted root colour was always the light one, so the chrome kept a
+ * white cast on a dark page.
+ *
+ * Kept in lock step with `getStoredPreference` / `getSystemTheme` below.
+ */
+export const THEME_INIT_SCRIPT = `(function(){try{var p=localStorage.getItem("${THEME_STORAGE_KEY}");var d=p==="dark"||((p==="system"||p===null)&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d)}catch(e){}})()`;
+
 function getSystemTheme(): Theme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }

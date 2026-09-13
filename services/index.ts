@@ -17,5 +17,5 @@ export {
   type Locale,
   type TranslationKey,
 } from "./locale";
-export { ThemeProvider, useTheme } from "./theme";
+export { ThemeProvider, useTheme, THEME_INIT_SCRIPT } from "./theme";
 export { VisitorProvider, useVisitor, type LastVisitedItem } from "./visitor";
