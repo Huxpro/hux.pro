@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Pause, Play, SkipBack, SkipForward, X } from "lucide-react";
 import { useRef } from "react";
 import { PIP_CONTROLS_H } from "../lib/geometry";
-import { SURFACE_ICON, SURFACE_LABEL_KEY } from "../lib/surfaces";
+import { MINI_MOVE_ICON, SURFACE_ICON, SURFACE_LABEL_KEY } from "../lib/surfaces";
 import { useTheater } from "../provider";
 
 // ---------------------------------------------------------------------------
@@ -26,7 +26,7 @@ import { useTheater } from "../provider";
 
 const CLUSTER_BTN = cn(GLASS_BTN, "h-7 w-7");
 const TheaterIcon = SURFACE_ICON.theater;
-const MiniIcon = SURFACE_ICON.mini;
+const MiniIcon = MINI_MOVE_ICON;
 
 export function PipOverlay() {
   const {
@@ -54,7 +54,7 @@ export function PipOverlay() {
   const open = mode === "pip" && !minimized;
   const isYouTube = track?.platform === "youtube" && !!track.videoId;
   const { locale } = useLocale();
-  const goLabel = (surface: "theater" | "mini") =>
+  const goLabel = (surface: "theater") =>
     t(locale, "theaterSurfaceGo").replace(
       "{surface}",
       t(locale, SURFACE_LABEL_KEY[surface]),
@@ -151,7 +151,12 @@ export function PipOverlay() {
                 <TheaterIcon className="h-3.5 w-3.5" />
               </button>
             )}
-            <button onClick={minimize} aria-label={goLabel("mini")} className={CLUSTER_BTN}>
+            <button
+              onClick={minimize}
+              aria-label={t(locale, "theaterMinimizeToAudio")}
+              title={t(locale, "theaterMinimizeToAudio")}
+              className={CLUSTER_BTN}
+            >
               <MiniIcon className="h-3.5 w-3.5" />
             </button>
             <button onClick={close} aria-label="Close" className={CLUSTER_BTN}>

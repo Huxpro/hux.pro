@@ -13,7 +13,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { t, useLocale } from "@/services";
 import { GLASS_ON_DARK_BTN, GLASS_ON_DARK_CLUSTER, GLASS_ON_DARK_ORB } from "../lib/chrome";
 import { THEATER_BOTTOM, THEATER_TOP_BAR } from "../lib/geometry";
-import { SURFACE_ICON, SURFACE_LABEL_KEY } from "../lib/surfaces";
+import { MINI_MOVE_ICON, SURFACE_ICON, SURFACE_LABEL_KEY } from "../lib/surfaces";
 import { useTheater } from "../provider";
 import { AlbumTabs } from "./album-tabs";
 import { PlaylistRail } from "./playlist-rail";
@@ -33,7 +33,7 @@ import { PlaylistRail } from "./playlist-rail";
  */
 const CLUSTER_BTN = cn(GLASS_ON_DARK_BTN, "h-10 w-10");
 const PipIcon = SURFACE_ICON.pip;
-const MiniIcon = SURFACE_ICON.mini;
+const MiniIcon = MINI_MOVE_ICON;
 
 const FADE = { duration: 0.18, ease: "easeOut" as const };
 /** Idle before chrome tucks away once the pointer leaves a chrome zone. */
@@ -60,7 +60,7 @@ export function TheaterOverlay() {
     isCoarse,
   } = useTheater();
   const { locale } = useLocale();
-  const goLabel = (surface: "pip" | "mini") =>
+  const goLabel = (surface: "pip") =>
     t(locale, "theaterSurfaceGo").replace(
       "{surface}",
       t(locale, SURFACE_LABEL_KEY[surface]),
@@ -309,7 +309,7 @@ export function TheaterOverlay() {
               >
                 <motion.div
                   key="topbar"
-                  className="fixed z-[10005] flex items-end justify-end"
+                  className="fixed z-[10005] flex items-end justify-between gap-6"
                   style={{
                     left: rect.left,
                     width: rect.width,
@@ -323,9 +323,26 @@ export function TheaterOverlay() {
                   onPointerEnter={pinChrome}
                   onPointerLeave={unpinChrome}
                 >
+                  {/* What's playing, top-left — window-title position, so the
+                      band under the stage is purely the album browser. */}
+                  <div className="min-w-0 pb-1">
+                    {track && (
+                      <>
+                        <div className="truncate text-sm font-medium text-white">
+                          {track.title}
+                        </div>
+                        {track.subtitle && (
+                          <div className="truncate text-xs font-mono uppercase tracking-wide text-white/50">
+                            {track.subtitle}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
                   {/* Source · the two moves away from Theater · close.
                       Icon-only, so no "current view" segment — see SurfaceSwitch. */}
-                  <div className={GLASS_ON_DARK_CLUSTER}>
+                  <div className={cn(GLASS_ON_DARK_CLUSTER, "shrink-0")}>
                     {track?.url && (
                       <a
                         href={track.url}
@@ -340,7 +357,12 @@ export function TheaterOverlay() {
                     <button aria-label={goLabel("pip")} className={CLUSTER_BTN} onClick={toPip}>
                       <PipIcon className="h-4 w-4" />
                     </button>
-                    <button aria-label={goLabel("mini")} className={CLUSTER_BTN} onClick={minimize}>
+                    <button
+                      aria-label={t(locale, "theaterMinimizeToAudio")}
+                      title={t(locale, "theaterMinimizeToAudio")}
+                      className={CLUSTER_BTN}
+                      onClick={minimize}
+                    >
                       <MiniIcon className="h-4 w-4" />
                     </button>
                     <button aria-label="Close" className={CLUSTER_BTN} onClick={close}>
@@ -407,39 +429,24 @@ export function TheaterOverlay() {
                   onPointerEnter={pinChrome}
                   onPointerLeave={unpinChrome}
                 >
-                  {/* Title row: what's playing on the left, the album switcher
-                      on the right — it filters the rail directly beneath, and
-                      sharing the row keeps the stage at full height. */}
+                  {/* Album switcher filters the rail directly beneath it;
+                      /works is the way out to the full archive. */}
                   <div className="mb-3 flex items-center justify-between gap-4">
-                    {track && (
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-white">
-                          {track.title}
-                        </div>
-                        {track.subtitle && (
-                          <div className="truncate text-xs font-mono uppercase tracking-wide text-white/50">
-                            {track.subtitle}
-                          </div>
-                        )}
-                      </div>
+                    <AlbumTabs
+                      albums={albums}
+                      activeIndex={albumIndex}
+                      onSelect={selectAlbum}
+                      tone="onDark"
+                    />
+                    {track?.href && (
+                      <Link
+                        href={track.href}
+                        onClick={close}
+                        className="shrink-0 text-xs font-mono uppercase tracking-wide text-white/50 hover:text-white transition-colors"
+                      >
+                        /works →
+                      </Link>
                     )}
-                    <div className="flex shrink-0 items-center gap-4">
-                      <AlbumTabs
-                        albums={albums}
-                        activeIndex={albumIndex}
-                        onSelect={selectAlbum}
-                        tone="onDark"
-                      />
-                      {track?.href && (
-                        <Link
-                          href={track.href}
-                          onClick={close}
-                          className="shrink-0 text-xs font-mono uppercase tracking-wide text-white/50 hover:text-white transition-colors"
-                        >
-                          /works →
-                        </Link>
-                      )}
-                    </div>
                   </div>
                   <PlaylistRail tone="onDark" className="gap-4 px-0" />
                 </motion.div>

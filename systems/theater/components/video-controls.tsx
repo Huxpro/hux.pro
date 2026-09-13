@@ -42,7 +42,10 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
     trackIndex < (album?.tracks.length ?? 0) - 1 || albumIndex < albums.length - 1;
 
   const pip = variant === "pip";
-  const iconBtn = cn(GLASS_BTN, pip ? "h-8 w-8" : "h-9 w-9");
+  // Live Activity ("pip") sizes match MusicTransport exactly — h-7 hits,
+  // 3.5 icons — so the two dock panels read as one button family.
+  const iconBtn = cn(GLASS_BTN, pip ? "h-7 w-7" : "h-9 w-9");
+  const icon = pip ? "h-3.5 w-3.5" : "h-5 w-5";
 
   const onScrub = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isYouTube || duration <= 0) return;
@@ -82,7 +85,7 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
             aria-label="Previous video"
             className={iconBtn}
           >
-            <SkipBack className={pip ? "h-4 w-4" : "h-5 w-5"} fill="currentColor" />
+            <SkipBack className={icon} fill="currentColor" />
           </button>
 
           {isYouTube ? (
@@ -92,9 +95,9 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
               className={cn(iconBtn, GLASS_PILL, "text-foreground", !pip && "h-10 w-10")}
             >
               {isPlaying ? (
-                <Pause className={pip ? "h-4 w-4" : "h-5 w-5"} fill="currentColor" />
+                <Pause className={icon} fill="currentColor" />
               ) : (
-                <Play className={cn("translate-x-px", pip ? "h-4 w-4" : "h-5 w-5")} fill="currentColor" />
+                <Play className={cn("translate-x-px", icon)} fill="currentColor" />
               )}
             </button>
           ) : (
@@ -109,7 +112,7 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
             aria-label="Next video"
             className={iconBtn}
           >
-            <SkipForward className={pip ? "h-4 w-4" : "h-5 w-5"} fill="currentColor" />
+            <SkipForward className={icon} fill="currentColor" />
           </button>
         </div>
       </div>
