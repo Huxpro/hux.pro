@@ -15,6 +15,7 @@ import {
   type BlogPostSummary,
 } from "@/lib/content";
 import type { Locale } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { Link } from "next-view-transitions";
 import { useMemo } from "react";
@@ -76,12 +77,23 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
         {featured.length > 0 && (
           <>
             {/* Section break between "what's new" and "what's worth
-                reading": a hairline, then the featured label set exactly like
-                the widget's own title so it reads as a second heading — the
-                same header-to-first-row rhythm as the top of the card. */}
+                reading". The label is a *subordinate* heading, not a second
+                widget title: the log's event-row voice (serif italic; mono
+                for CJK, where italic reads as emphasis) one tier fainter
+                than an event, on the header-to-first-row rhythm of the card
+                so the featured run reads as a second paragraph. */}
             {latest.length > 0 && (
-              <div className="mt-3 pt-4 pb-2 border-t border-border/30">
-                <WidgetTitle>{t(locale, "writingFeatured")}</WidgetTitle>
+              <div className="mt-3 pt-4 pb-1.5 border-t border-border/30">
+                <span
+                  className={cn(
+                    "block text-xs text-muted-foreground/30",
+                    /[぀-ヿ一-鿿]/.test(t(locale, "writingFeatured"))
+                      ? "font-mono"
+                      : "italic font-serif",
+                  )}
+                >
+                  {t(locale, "writingFeatured")}
+                </span>
               </div>
             )}
             {featured.map((post) => (
