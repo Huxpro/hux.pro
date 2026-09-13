@@ -754,6 +754,108 @@ html.dragging * {
 }
 
 /* =============================================================================
+   Home Stage — homepage springboard (iPhone → iPad Pro)
+
+   Default tokens match the previous fixed paddings so phone / tablet /
+   normal-laptop layouts stay put. When the viewport is taller than the
+   stack, `.home-stage-board-area` grows and `justify-content: center`
+   optically centers the widget board between the voice and the search bar.
+
+   Large-canvas queries (3-col + tall) then spend the leftover pixels:
+   wider board, airier gutters, more inset — the iPad Pro density step,
+   not a 4th column and not a scale() that would blur type.
+   ============================================================================= */
+
+.home-stage {
+  --home-pad-x: 1.5rem; /* px-6 */
+  --home-pad-top: 4rem; /* pt-16 */
+  --home-pad-bottom: 8rem; /* pb-32 — clears the fixed search bar */
+  --home-voice-gap: 1rem;
+  --home-mid-min: 1.5rem;
+  --home-gap-x: 1rem;
+  --home-gap-y: 1rem;
+  --home-board-max: 42.5rem; /* 680px — same measure as inner pages */
+
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-inline: var(--home-pad-x);
+  padding-bottom: var(--home-pad-bottom);
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .home-stage {
+    --home-pad-top: 6rem; /* pt-24 */
+    --home-pad-bottom: 10rem; /* pb-40 */
+    --home-voice-gap: 1.25rem;
+    --home-mid-min: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-stage {
+    --home-board-max: 64rem; /* max-w-5xl — 3-col board */
+  }
+}
+
+/* iPad Pro portrait / 1440p-class: 3 columns and real leftover height. */
+@media (min-width: 1024px) and (min-height: 1100px) {
+  .home-stage {
+    --home-pad-x: 2.5rem;
+    --home-pad-top: 7rem;
+    --home-pad-bottom: 11rem;
+    --home-voice-gap: 1.5rem;
+    --home-mid-min: 2.5rem;
+    --home-gap-x: 1.5rem;
+    --home-gap-y: 1.25rem;
+    --home-board-max: 72rem; /* max-w-6xl */
+  }
+}
+
+/* Wide + tall desktop: spend a bit more width, keep the 3-col rhythm. */
+@media (min-width: 1440px) and (min-height: 1100px) {
+  .home-stage {
+    --home-pad-x: 3rem;
+    --home-gap-x: 1.75rem;
+    --home-gap-y: 1.5rem;
+    --home-board-max: 80rem; /* max-w-7xl */
+  }
+}
+
+.home-stage-chrome {
+  flex: 0 0 auto;
+  padding-top: var(--home-pad-top);
+}
+
+.home-stage-voice {
+  width: 100%;
+  max-width: 42.5rem;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--home-voice-gap);
+}
+
+.home-stage-board-area {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  justify-content: safe center;
+  padding-top: var(--home-mid-min);
+}
+
+.home-stage-board {
+  width: 100%;
+  max-width: var(--home-board-max);
+  margin-inline: auto;
+}
+
+/* =============================================================================
    EQ Bars — Apple Music style "now playing" indicator
    ============================================================================= */
 
