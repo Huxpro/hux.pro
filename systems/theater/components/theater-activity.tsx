@@ -3,25 +3,25 @@
 import { t, useLocale } from "@/services";
 import { LiveActivity, useDock } from "@/systems/dock";
 import { EQBars } from "@/systems/music/components/now-playing";
-import { Maximize2, PictureInPicture2, Video } from "lucide-react";
+import { Video } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTheater } from "../provider";
+import { SurfaceSwitch } from "./surface-switch";
 import { TrackThumb } from "./track-thumb";
 import { VideoControls } from "./video-controls";
 
 // ---------------------------------------------------------------------------
-// TheaterActivity — the minimized form of the video system.
+// TheaterActivity — Audio view of the video system.
 //
-// When PiP is minimized, the video parks off-screen but keeps playing (audio),
-// and this Live Activity takes over: a collapsed pill (cover + EQ) that unfolds
-// into transport controls plus "return to PiP / theater" — exactly the Music
-// widget's minimize-but-keep-listening behavior, reused for video.
+// Exclusive with Theater and PiP. The video parks off-screen; only sound
+// keeps playing. A Live Activity pill unfolds into transport + a
+// SurfaceSwitch whose lifted pill is Audio (current), not an action.
 // ---------------------------------------------------------------------------
 
 export function TheaterActivity() {
   const { locale } = useLocale();
   const { close: closeDock } = useDock();
-  const { minimized, track, phase, restore, toTheater, theaterAvailable } =
+  const { minimized, track, phase, toPip, toTheater, theaterAvailable } =
     useTheater();
   const [mounted, setMounted] = useState(false);
 
@@ -36,13 +36,10 @@ export function TheaterActivity() {
   const isLoading = phase === "loading";
   const showEQ = isPlaying || isLoading;
 
-  const returnToPip = () => {
+  const go = (surface: "theater" | "pip") => {
     closeDock();
-    restore();
-  };
-  const returnToTheater = () => {
-    closeDock();
-    toTheater();
+    if (surface === "pip") toPip();
+    else toTheater();
   };
 
   return (
@@ -74,49 +71,34 @@ export function TheaterActivity() {
         </>
       }
     >
-      <div className="space-y-3 px-5 pb-3">
-        <div className="flex gap-3">
-          <button
-            onClick={returnToPip}
-            className="w-24 shrink-0 group/thumb"
-            aria-label={t(locale, "theaterReturnPip")}
-          >
-            <TrackThumb track={track} />
-          </button>
+      <div className="space-y-3.5 px-5 pb-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-24 shrink-0">
+            <TrackThumb track={track} showBadge={false} />
+          </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium text-foreground">
+            <div className="truncate text-sm font-medium leading-snug text-foreground">
               {track.title}
             </div>
             {track.subtitle && (
-              <div className="truncate text-xs font-mono uppercase tracking-wide text-muted-foreground mt-0.5">
+              <div className="mt-1 truncate text-xs font-mono uppercase leading-relaxed tracking-wide text-muted-foreground">
                 {track.subtitle}
               </div>
             )}
           </div>
         </div>
 
-        <VideoControls variant="pip" />
+        <VideoControls />
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={returnToPip}
-            aria-label={t(locale, "theaterReturnPip")}
-            className="flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border/60 bg-card/60 py-2 text-xs font-mono uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <PictureInPicture2 className="h-3.5 w-3.5 shrink-0" />
-            {t(locale, "theaterPip")}
-          </button>
-          {theaterAvailable && (
-            <button
-              onClick={returnToTheater}
-              aria-label={t(locale, "theaterExpand")}
-              className="flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border/60 bg-card/60 py-2 text-xs font-mono uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <Maximize2 className="h-3.5 w-3.5 shrink-0" />
-              {t(locale, "theaterExpand")}
-            </button>
-          )}
-        </div>
+        <SurfaceSwitch
+          current="mini"
+          theaterAvailable={theaterAvailable}
+          labels
+          onSelect={(surface) => {
+            if (surface === "pip") go("pip");
+            if (surface === "theater") go("theater");
+          }}
+        />
       </div>
     </LiveActivity>
   );
