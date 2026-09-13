@@ -126,11 +126,27 @@ Violet — iPadOS · 2024", which both stutters and overflows.
 The **iOS** pairs are phone artwork, and a desktop viewport can only show a crop
 of one, so the picker caption and the devtool swatch mark them with a phone
 glyph — the tiles are all the same 16:10 card and could not otherwise show it.
-`isPhoneWallpaper()` derives it from the platform rather than storing a flag:
-the flag version was set by hand on the pairs whose *files* are tall (iOS 27 and
-18, at ≈0.46), which quietly made the glyph mean "portrait encoding" instead of
-"phone wallpaper" and dropped it from iOS 13, 14 and 17 — phone artwork that was
-centre-cropped to square on import. The tall files just crop harder.
+`isPhoneWallpaper()` derives it from the platform rather than storing a flag,
+because a stored one drifted: it was set by hand on the pairs whose *files* are
+tall, which made the glyph mean "portrait encoding" instead of "phone
+wallpaper".
+
+Not every phone wallpaper is a tall file, and nothing here was cropped to make
+it square. **Apple ships most of these stills on a square canvas** and lets the
+device crop; the `414w-896h@3x~iphone` in a filename is the target device, not
+the artwork's shape. Verified against the sources by parsing the HEIC `ispe`
+boxes directly:
+
+| | Source | Committed |
+|---|---|---|
+| iOS 27 | 1178×2560 png | 1178×2560 |
+| iOS 18 | 1186×2560 png | 1186×2560 |
+| iOS 17 | 2048×2048 jpg | 2048×2048 |
+| iOS 14 | 3072×3072 heic | 2400×2400 |
+| iOS 13 | 3186×3186 heic | 2400×2400 |
+
+Every one is the source aspect, downscaled at most. The two tall pairs simply
+came from Apple as tall files, and they crop hardest on a desktop.
 
 They are committed as WebP (long edge ≤ 2560 at q80) with 480px thumbnails that
 picker tiles and devtool swatches resolve to, so opening the picker costs tens of
