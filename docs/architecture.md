@@ -112,7 +112,10 @@ not one flat sequence.
   neighbour's midpoint, so the layout settles instead of flip-flopping.
 - dnd-kit still provides the sensors (mouse drags at once, touch needs a
   long-press so swipes still scroll), the activation constraints and the
-  lifted `DragOverlay` clone.
+  lifted `DragOverlay` clone. It must be told to measure draggables with
+  `getClientRect`: its default is *transform-agnostic*, and since a card's
+  position is nothing but a transform, the default would put every card at the
+  container's top-left and the lifted clone a whole slot away from the cursor.
 - Layouts persist per column count under `localStorage["hux_widget_order"]`
   (`{ v: 2, cols: { "1" | "2" | "3": string[][] } }`; the legacy flat v1 array
   is still read). An unvisited width inherits the widest arranged one rather
