@@ -55,6 +55,7 @@ export function TheaterOverlay() {
     toPip,
     minimize,
     close,
+    isCoarse,
   } = useTheater();
 
   const open = mode === "theater" && !minimized;
@@ -64,6 +65,9 @@ export function TheaterOverlay() {
     trackIndex < (album?.tracks.length ?? 0) - 1 || albumIndex < albums.length - 1;
 
   const midY = rect.top + rect.height / 2;
+  // Compact / tablet theater hugs the edges — overlay arrows on the video
+  // instead of parking them in side gutters that no longer exist.
+  const overlayArrows = rect.left < 72;
 
   const [chromeVisible, setChromeVisible] = useState(false);
   const pinnedRef = useRef(false);
@@ -79,23 +83,26 @@ export function TheaterOverlay() {
   }, []);
 
   const scheduleHide = useCallback(() => {
+    // Touch / tablet: no hover, so chrome stays up for the session.
+    if (isCoarse) return;
     clearHideTimer();
     if (pinnedRef.current) return;
     hideTimerRef.current = setTimeout(() => {
       if (!pinnedRef.current) setChromeVisible(false);
     }, HIDE_AFTER_MS);
-  }, [clearHideTimer]);
+  }, [clearHideTimer, isCoarse]);
 
-  // Reset to immersive whenever theater opens.
+  // Reset chrome whenever theater opens. Desktop starts immersive (hidden);
+  // touch / tablet keeps chrome visible because there is no hover-to-reveal.
   useEffect(() => {
     // This is an intentional session reset when the external theater mode
     // changes; keeping the previous session's visible chrome causes a flash.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setChromeVisible(false);
-    pinnedRef.current = false;
+    setChromeVisible(isCoarse);
+    pinnedRef.current = isCoarse;
     clearHideTimer();
     if (open) openedAtRef.current = Date.now();
-  }, [open, clearHideTimer]);
+  }, [open, isCoarse, clearHideTimer]);
 
   // Return keyboard users to the element that launched the theater.
   useEffect(() => {
@@ -205,9 +212,10 @@ export function TheaterOverlay() {
   }, [clearHideTimer]);
 
   const unpinChrome = useCallback(() => {
+    if (isCoarse) return;
     pinnedRef.current = false;
     scheduleHide();
-  }, [scheduleHide]);
+  }, [isCoarse, scheduleHide]);
 
   return (
     <AnimatePresence>
@@ -346,7 +354,10 @@ export function TheaterOverlay() {
                     aria-label="Previous video"
                     onClick={previous}
                     className={cn(GLASS_ON_DARK_ORB, "fixed z-[10005] h-11 w-11")}
-                    style={{ top: midY - 22, left: rect.left - 64 }}
+                    style={{
+                      top: midY - 22,
+                      left: overlayArrows ? rect.left + 12 : rect.left - 64,
+                    }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -363,7 +374,12 @@ export function TheaterOverlay() {
                     aria-label="Next video"
                     onClick={next}
                     className={cn(GLASS_ON_DARK_ORB, "fixed z-[10005] h-11 w-11")}
-                    style={{ top: midY - 22, left: rect.left + rect.width + 20 }}
+                    style={{
+                      top: midY - 22,
+                      left: overlayArrows
+                        ? rect.left + rect.width - 56
+                        : rect.left + rect.width + 20,
+                    }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}

@@ -49,24 +49,41 @@ export const THEATER_SIDE = 80; // prev / next arrow gutters
 const THEATER_MARGIN = 16;
 
 /**
+ * Theater chrome (top bar + playlist rail + a watchable 16:9 stage) needs a
+ * tablet-class viewport. Phones — including landscape — stay on PiP.
+ * Matches Tailwind `md` / iPad mini portrait (768×1024).
+ */
+export const THEATER_MIN_WIDTH = 768;
+export const THEATER_MIN_HEIGHT = 500;
+
+/** True when the viewport can host the immersive theater modal. */
+export function theaterAvailable(vp: Viewport): boolean {
+  return vp.width >= THEATER_MIN_WIDTH && vp.height >= THEATER_MIN_HEIGHT;
+}
+
+/**
  * Adaptive stage size for theater mode.
  *
  * Fit the largest 16:9 rect that still leaves chrome margins free, then cap
- * so it stays a floating lightbox (not edge-to-edge):
- *   - width  ≤ min(viewport − side gutters, 76vw)
- *   - height ≤ min(viewport − top/bottom chrome, 66vh)
+ * so desktop stays a floating lightbox (76vw / 66vh). Tablet / short
+ * viewports drop the airy cap and hug the edges (94vw / 80vh) so the
+ * player reads as fullscreen rather than a small card.
  * Centered in the band between the top bar and the playlist rail. Top bar,
  * side arrows, and the playlist all read this same `rect`, so they stay
  * edge-aligned as the viewport changes.
  */
 export function theaterRect(vp: Viewport): StageRect {
+  // Tablet / short desktop: use more of the screen so the player reads as
+  // fullscreen rather than a small floating card (desktop keeps the airy cap).
+  const compact = vp.width < 1100 || vp.height < 820;
+  const side = compact ? 16 : THEATER_SIDE + THEATER_MARGIN;
   const maxWidth = Math.min(
-    vp.width - 2 * (THEATER_SIDE + THEATER_MARGIN),
-    vp.width * 0.76,
+    vp.width - 2 * side,
+    vp.width * (compact ? 0.94 : 0.76),
   );
   const maxHeight = Math.min(
     vp.height - THEATER_TOP_BAR - THEATER_BOTTOM - 2 * THEATER_MARGIN,
-    vp.height * 0.66,
+    vp.height * (compact ? 0.8 : 0.66),
   );
   let width = Math.min(maxWidth, maxHeight / ASPECT);
   let height = width * ASPECT;

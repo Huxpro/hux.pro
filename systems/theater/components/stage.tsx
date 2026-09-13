@@ -61,6 +61,13 @@ export function Stage({
         !visible && "pointer-events-none",
       )}
       style={{ transformOrigin: "center center" }}
+      // A leftover `transform: scale(1)` containing-block blocks the Fullscreen
+      // API, which is why iPad YouTube controls fall back to PiP. Drop the
+      // transform once the morph has settled at scale 1.
+      transformTemplate={({ scale }, generated) => {
+        const s = typeof scale === "number" ? scale : 1;
+        return s === 1 ? "none" : generated;
+      }}
       initial={false}
       animate={{
         top: rect.top,

@@ -17,10 +17,10 @@ import { useTheater } from "../provider";
 // ---------------------------------------------------------------------------
 // PipOverlay — the floating, draggable Picture-in-Picture window.
 //
-// Universal across desktop (toggled from the theater) and mobile (the default,
-// since a full-screen takeover is too heavy on phones). The video is the shared
+// Universal across desktop (toggled from the theater) and phones (the default,
+// since a full-screen takeover is too heavy there). The video is the shared
 // <Stage />; this renders the control bar beneath it and owns the drag. On
-// desktop it can expand back to theater; everywhere it can minimize to a Live
+// tablet+ it can expand back to theater; everywhere it can minimize to a Live
 // Activity (keep listening) or close.
 // ---------------------------------------------------------------------------
 
@@ -31,7 +31,7 @@ export function PipOverlay() {
     track,
     phase,
     rect,
-    isCoarse,
+    theaterAvailable,
     pipOffset,
     togglePlay,
     next,
@@ -127,7 +127,7 @@ export function PipOverlay() {
             <button onClick={next} disabled={!hasNext} aria-label="Next" className={barBtn}>
               <SkipForward className="h-3.5 w-3.5" fill="currentColor" />
             </button>
-            {!isCoarse && (
+            {theaterAvailable && (
               <button onClick={toTheater} aria-label="Expand to theater" className={barBtn}>
                 <Maximize2 className="h-3.5 w-3.5" />
               </button>
