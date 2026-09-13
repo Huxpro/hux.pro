@@ -123,11 +123,14 @@ The iPadOS colourways are named for the colour rather than the release, and
 their caption is the year alone: the tile would otherwise read "iPadOS 18
 Violet — iPadOS · 2024", which both stutters and overflows.
 
-Two pairs are **phone** artwork, so their files are tall (≈0.46). Painted
-across a desktop viewport that is cropped to a vertical slice of the middle, so
-the picker caption and the devtool swatch mark them with a phone glyph — the
-tiles are all the same 16:10 card and could not otherwise show it. The flag is
-`portrait` on the catalog entry.
+The **iOS** pairs are phone artwork, and a desktop viewport can only show a crop
+of one, so the picker caption and the devtool swatch mark them with a phone
+glyph — the tiles are all the same 16:10 card and could not otherwise show it.
+`isPhoneWallpaper()` derives it from the platform rather than storing a flag:
+the flag version was set by hand on the pairs whose *files* are tall (iOS 27 and
+18, at ≈0.46), which quietly made the glyph mean "portrait encoding" instead of
+"phone wallpaper" and dropped it from iOS 13, 14 and 17 — phone artwork that was
+centre-cropped to square on import. The tall files just crop harder.
 
 They are committed as WebP (long edge ≤ 2560 at q80) with 480px thumbnails that
 picker tiles and devtool swatches resolve to, so opening the picker costs tens of

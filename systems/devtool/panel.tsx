@@ -20,6 +20,7 @@ import {
   getWeatherConditionLabel,
 } from "@/systems/ambient/lib/weather";
 import { isReadingSurface } from "@/systems/ambient/lib/reading-surface";
+import { isPhoneWallpaper } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
@@ -870,7 +871,7 @@ function WallpaperModule() {
                 type="button"
                 onClick={() => selectWallpaper(w.id)}
                 title={`${w.name} · ${w.platform} ${w.year}${
-                  w.portrait ? " · portrait" : ""
+                  isPhoneWallpaper(w) ? " · phone" : ""
                 }`}
                 aria-label={`Set wallpaper to ${w.name}`}
                 aria-pressed={selected}
@@ -888,11 +889,11 @@ function WallpaperModule() {
                   loading="lazy"
                   className="absolute inset-0 h-full w-full object-cover"
                 />
-                {/* Tall source: the swatch is square, so nothing else in this
-                    grid would tell you the full-size file is a phone crop. Same
+                {/* Phone artwork: the swatch is square, so nothing else in
+                    this grid would tell you it is a phone wallpaper. Same
                     chip the picker's sun/moon marks use, so a glyph over
                     artwork always arrives the same way. */}
-                {w.portrait && (
+                {isPhoneWallpaper(w) && (
                   <span
                     aria-hidden
                     className={cn(
