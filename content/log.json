@@ -696,6 +696,7 @@
         "zh": "为 TikTok、抖音等产品提供动力的跨平台 UI 框架。"
       },
       "date": "2023-02",
+      "endDate": "present",
       "tags": [
         "Cross-Platform",
         "Performance",
@@ -1076,7 +1077,7 @@
         },
         {
           "kind": "slides",
-          "url": "https://huangxuan.me/jsconfcn2017/",
+          "url": "https://huxpro.github.io/jsconfcn2017/",
           "title": "Upgrading to Progressive Web Apps",
           "thumbnail": "/img/works/upgrading-to-pwa-cover.png"
         }
@@ -1235,7 +1236,7 @@
       "media": [
         {
           "kind": "slides",
-          "url": "https://huangxuan.me/pwa-qcon2016/",
+          "url": "https://huxpro.github.io/pwa-qcon2016/",
           "title": "Progressive Web Apps, Make Web Great Again",
           "thumbnail": "/img/works/pwa-qcon2016-cover.png"
         }

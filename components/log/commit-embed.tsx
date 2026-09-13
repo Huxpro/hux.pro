@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { ExternalImage } from "./media/external-image";
 import { CardFace } from "./media/link";
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
+import type { Byline } from "./bylines";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
@@ -54,17 +55,7 @@ export interface CommitProps {
   onBeamClear?: (spec: BeamSpec) => void;
   /** Author byline for git-author-style rendering. Pre-localized in
    *  the timeline so this component stays locale-agnostic. */
-  byline?: {
-    handle: string;
-    isClusterHead: boolean;
-    subtitle?: string;
-    expanded: {
-      title: string;
-      company: string;
-      location?: string;
-      description?: string;
-    };
-  } | null;
+  byline?: Byline | null;
 }
 
 // =============================================================================

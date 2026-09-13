@@ -109,22 +109,28 @@ export function WidgetHeader({
 }
 
 /**
- * WidgetTitle - Consistent title typography
+ * WidgetTitle - Consistent title typography.
+ *
+ * `signal` prefixes the pulsing status dot (see WidgetStatus) so any widget
+ * can flag itself as live / in-progress without composing the dot by hand.
  */
 export function WidgetTitle({
   className,
+  signal = false,
   children,
 }: {
   className?: string;
+  signal?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <span
       className={cn(
-        "text-xs font-mono uppercase tracking-wider text-muted-foreground",
+        "inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground",
         className
       )}
     >
+      {signal && <WidgetStatus />}
       {children}
     </span>
   );
@@ -141,6 +147,40 @@ export function WidgetBody({
   children: React.ReactNode;
 }) {
   return <div className={cn("px-5 pb-5", className)}>{children}</div>;
+}
+
+/**
+ * WidgetScrollBody - A vertically snapping stack body.
+ *
+ * The column analogue of the horizontal card stack: rows snap under the
+ * header, the tail fades out under a mask instead of ending on padding, and
+ * the scroll port is inset by the rows' hover bleed (`-mx-2`) so a row's
+ * rounded highlight isn't clipped at the card's left edge. Rows should carry
+ * `snap-start` and the `-mx-2 px-2` bleed themselves.
+ */
+export function WidgetScrollBody({
+  className,
+  children,
+}: {
+  /** Height goes here — defaults to a fixed `h-64`; pass `max-h-*` for a
+   *  stack that should only scroll once it overflows. */
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="px-5">
+      <div
+        className={cn(
+          "relative -mx-2 px-2 pb-7",
+          "overflow-y-auto snap-y snap-mandatory scroll-smooth no-scrollbar",
+          "[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
+          className ?? "h-64"
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  );
 }
 
 /**

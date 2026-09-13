@@ -26,6 +26,9 @@ export { commitIcons } from "./icons";
 
 export { CommitCompact } from "./commit-compact";
 export { TimelineCommit } from "./timeline-commit";
+export { TimelineMini } from "./timeline-mini";
+export { computeBylines } from "./bylines";
+export type { Byline } from "./bylines";
 
 // =============================================================================
 // Adapter

@@ -69,6 +69,48 @@ export interface BlogPost extends Post {
    * `"natural"`. Defaults to the site-wide `DEFAULT_COVER_ASPECT`.
    */
   coverAspect?: string;
+  /**
+   * Frontmatter `featured: true` — curated onto the home writing widget
+   * alongside the latest posts. Mirrored in `lib/data.ts` for the client.
+   */
+  featured?: boolean;
+}
+
+/**
+ * Format a post date the way every writing surface prints it — the list,
+ * the article header and the home widget: `"apr 2021"` (lowercase short
+ * month + year, always en-US so it reads as a quiet mono caption in both
+ * locales).
+ */
+export function formatPostDate(dateStr: string): string {
+  return new Date(dateStr)
+    .toLocaleDateString("en-US", { month: "short", year: "numeric" })
+    .toLowerCase();
+}
+
+/**
+ * The row-level slice of a blog post — what list-like client surfaces (the
+ * home writing widget) need, without excerpts, covers or raw frontmatter.
+ * Built server-side from `getAllBlogPosts()` so the client payload stays
+ * small and the data is the real frontmatter, not a hand-kept mirror.
+ */
+export type BlogPostSummary = Pick<
+  BlogPost,
+  "slug" | "language" | "title" | "titleZh" | "description" | "date" | "featured"
+>;
+
+export function toBlogPostSummaries(posts: BlogPost[]): BlogPostSummary[] {
+  return posts.map(
+    ({ slug, language, title, titleZh, description, date, featured }) => ({
+      slug,
+      language,
+      title,
+      titleZh,
+      description,
+      date,
+      featured,
+    }),
+  );
 }
 
 // Docs don't have extra fields beyond Post

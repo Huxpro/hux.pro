@@ -13,9 +13,15 @@ import { usePathname } from "next/navigation";
 import { useOptionalMusic } from "@/systems/music";
 import type { VideoPlatform } from "@/lib/log";
 import { useInputCapability } from "@/services";
-import { readViewport, stageRectFor, type Viewport } from "./lib/geometry";
+import {
+  readViewport,
+  stageRectFor,
+  theaterAvailable as theaterFits,
+  type Viewport,
+} from "./lib/geometry";
 import { adHocAlbum } from "./lib/albums";
 import {
+  enableIframeFullscreen,
   loadYouTubeAPI,
   resolveVideoId,
   type YTPlayerExt,
@@ -43,7 +49,7 @@ interface OpenOptions {
   albums: Album[];
   albumIndex?: number;
   trackIndex?: number;
-  /** Force a mode; otherwise theater on desktop, PiP on touch/coarse. */
+  /** Force a mode; otherwise theater on tablet+/desktop, PiP on phones. */
   mode?: TheaterMode;
 }
 
@@ -71,8 +77,10 @@ interface TheaterContextValue {
   phase: PlayerPhase;
   currentTime: number;
   duration: number;
-  /** True on touch/coarse-pointer devices — theater falls back to PiP. */
+  /** True on touch/coarse-pointer devices — theater chrome stays visible. */
   isCoarse: boolean;
+  /** Viewport is large enough for the immersive theater (tablet+ / desktop). */
+  theaterAvailable: boolean;
   /** Geometry of the persistent stage in the current mode. */
   rect: StageRect;
   pipOffset: { x: number; y: number };
@@ -158,11 +166,11 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const [pipOffset, setPipOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
 
-  // Touch-primary devices (and very narrow windows) get the floating PiP by
-  // default rather than the heavy theater takeover. Uses the app's canonical
-  // input-capability service (detect-it) instead of a raw hover media query,
-  // which is unreliable (e.g. always "hover: none" in headless Chrome).
+  // Touch vs mouse only affects chrome (hover-to-reveal vs always-on). Mode
+  // selection is viewport-sized: phones get PiP, tablet+ gets theater — an
+  // iPad is touch-primary but has plenty of room for the immersive modal.
   const isCoarse = primaryInput === "touch" || viewport.width < 640;
+  const theaterAvailable = theaterFits(viewport);
 
   const album = albums[albumIndex] ?? null;
   const track = album?.tracks[trackIndex] ?? null;
@@ -170,8 +178,9 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const effectiveMode: TheaterMode = minimized ? "closed" : mode;
   // The stage always sits at a *visible* mode's rect; hidden states fade/scale
   // it out in place rather than moving it, so opening reads as a clean morph.
+  // If theater is requested on a phone-sized viewport, keep PiP geometry.
   const geomMode: "theater" | "pip" =
-    mode === "pip" ? "pip" : isCoarse ? "pip" : "theater";
+    mode === "theater" && theaterAvailable ? "theater" : "pip";
   const rect = useMemo(
     () => stageRectFor(geomMode, viewport, pipOffset),
     [geomMode, viewport, pipOffset],
@@ -212,12 +221,14 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
             controls: 1,
             modestbranding: 1,
             playsinline: 1,
+            fs: 1,
             rel: 0,
             origin: window.location.origin,
           },
           events: {
             onReady: () => {
               readyRef.current = true;
+              enableIframeFullscreen(host);
               const pending = pendingVideoRef.current;
               if (pending) {
                 pendingVideoRef.current = null;
@@ -232,8 +243,25 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
           },
         }) as YTPlayerExt;
         playerRef.current = player;
+        enableIframeFullscreen(host);
       })
       .catch(() => setPhase("error"));
+  }, []);
+
+  // YouTube (and other embeds) inject their iframe after first paint — keep
+  // the fullscreen allow-list patched so iPad doesn't fall back to PiP.
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    enableIframeFullscreen(host);
+    const obs = new MutationObserver(() => enableIframeFullscreen(host));
+    obs.observe(host, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["allow"],
+    });
+    return () => obs.disconnect();
   }, []);
 
   // Load / stop the underlying player as the current track or mode changes.
@@ -349,16 +377,25 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     }
   }, [pathname]);
 
+  // Phone-sized (or short) viewports can't host theater chrome — drop to PiP
+  // rather than rendering a crushed modal if the window is resized / rotated.
+  useEffect(() => {
+    if (!theaterAvailable) {
+      setMode((m) => (m === "theater" ? "pip" : m));
+    }
+  }, [theaterAvailable]);
+
   // ---------------------------------------------------------------------------
   // Actions
   // ---------------------------------------------------------------------------
 
   const resolveMode = useCallback(
     (requested?: TheaterMode): TheaterMode => {
+      if (requested === "theater" && !theaterAvailable) return "pip";
       if (requested) return requested;
-      return isCoarse ? "pip" : "theater";
+      return theaterAvailable ? "theater" : "pip";
     },
-    [isCoarse],
+    [theaterAvailable],
   );
 
   const open = useCallback(
@@ -460,8 +497,8 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   }, []);
   const toTheater = useCallback(() => {
     setMinimized(false);
-    setMode(isCoarse ? "pip" : "theater");
-  }, [isCoarse]);
+    setMode(theaterAvailable ? "theater" : "pip");
+  }, [theaterAvailable]);
 
   const play = useCallback(() => {
     try {
@@ -549,6 +586,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     currentTime,
     duration,
     isCoarse,
+    theaterAvailable,
     rect,
     pipOffset,
     dragging,
