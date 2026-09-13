@@ -16,7 +16,8 @@
     "icon:generate": "node scripts/icon-generate.ts",
     "icon:check": "node scripts/icon-generate.ts --check",
     "apps:snapshot": "node scripts/app-icon-snapshot.ts",
-    "apps:check": "node scripts/app-icon-snapshot.ts --check"
+    "apps:check": "node scripts/app-icon-snapshot.ts --check",
+    "wallpaper:check": "node --experimental-strip-types scripts/check-wallpaper.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

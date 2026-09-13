@@ -10,8 +10,9 @@ systems/ambient/
 ├── components/
 │   ├── greeting.tsx              # Time-based greeting component
 │   ├── surface.tsx               # Route-aware gradient container
-│   ├── gradient-background.tsx   # Full-page weather gradient renderer
+│   ├── gradient-background.tsx   # Full-page compositor (CSS grade + wallpaper)
 │   ├── gradient-stack.tsx        # Shared crossfade renderer (full-page + widgets)
+│   ├── weather-wallpaper.tsx     # WebGL sky + particle weather (iOS-style)
 │   ├── weather-icon.tsx          # Weather condition icons
 │   ├── weather-widget.tsx        # iOS-style weather widget (header + WeatherNow)
 │   ├── weather-now.tsx           # Shared weather body + useDisplayWeather()
@@ -19,6 +20,9 @@ systems/ambient/
 │   └── index.ts                  # Component exports
 ├── lib/
 │   ├── gradient.ts               # OKLCH gradient generation + crossfade types
+│   ├── wallpaper.ts              # Atmosphere params from phase × weather × theme
+│   ├── atmosphere.ts             # WebGL sky shader (clouds, sun/moon, stars)
+│   ├── weather-particles.ts      # Canvas rain / snow / fog / lightning
 │   ├── greeting.ts               # Time-of-day helpers
 │   ├── location.ts               # IP/GPS location resolution
 │   ├── notification.ts           # Upcoming sun-event detection (lead-up + window)
@@ -51,6 +55,26 @@ Normalized weather conditions from Open-Meteo API:
 ```typescript
 type WeatherCondition = "clear" | "cloudy" | "fog" | "rain" | "snow" | "thunder";
 ```
+
+### Wallpaper System
+
+The full-page background is a layered atmosphere, aiming at iOS Weather:
+
+1. **CSS grade** — richer 4-stop OKLCH radials (also used by widgets + fallback)
+2. **WebGL sky** — horizon-to-zenith plate, sun/moon bloom, FBM clouds, rays, stars, fog
+3. **Particles** — rain streaks, snow, near-field cloud puffs, fog wisps, lightning
+
+Sky color follows **phase** (sunrise → night). Precipitation follows **weather**.
+A rainy sunset is an amber horizon with rain on top, not a swapped rain plate.
+Uniforms morph exponentially (~700ms) so condition/phase changes never snap.
+
+`prefers-reduced-motion: reduce` freezes the shader clock and draws a static
+rain/snow field instead of animating particles.
+If WebGL is missing the same atmosphere draws in Canvas 2D (sky plate, sun/moon,
+cloud banks, stars) plus the particle layer. CSS grade remains the last-resort
+fallback and the widget renderer.
+
+Widgets keep the CSS stack (no canvas) so iOS `fixedBgTracker` still works.
 
 ### Gradient System
 
@@ -190,7 +214,8 @@ Open-Meteo API → useWeatherQuery
        ↓ (sunrise/sunset times)
 deriveAmbientPhase → phase
        ↓
-getWeatherGradient → CSS gradient
+getWeatherGradient → CSS grade (widgets + fallback)
+resolveAtmosphere  → WebGL sky + particles (full page)
        ↓
 WeatherGradientBackground
 ```
