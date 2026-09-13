@@ -21,7 +21,8 @@ import { VideoControls } from "./video-controls";
 export function TheaterActivity() {
   const { locale } = useLocale();
   const { close: closeDock } = useDock();
-  const { minimized, track, phase, restore, toTheater, isCoarse } = useTheater();
+  const { minimized, track, phase, restore, toTheater, theaterAvailable } =
+    useTheater();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -105,7 +106,7 @@ export function TheaterActivity() {
             <PictureInPicture2 className="h-3.5 w-3.5 shrink-0" />
             {t(locale, "theaterPip")}
           </button>
-          {!isCoarse && (
+          {theaterAvailable && (
             <button
               onClick={returnToTheater}
               aria-label={t(locale, "theaterExpand")}

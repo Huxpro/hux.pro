@@ -86,6 +86,26 @@ export function embedUrlFor(url: string, platform: VideoPlatform): string | null
   return null;
 }
 
+const FULLSCREEN_ALLOW =
+  "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen";
+
+/**
+ * YouTube's IFrame API builds the embed without a reliable `allow=fullscreen`
+ * token. On iPad / iOS that makes the native fullscreen control fall back to
+ * Picture-in-Picture. Patch the iframe as soon as it exists.
+ */
+export function enableIframeFullscreen(root: HTMLElement | null): void {
+  if (!root) return;
+  const iframe = root.querySelector("iframe");
+  if (!iframe) return;
+  iframe.setAttribute("allowfullscreen", "true");
+  iframe.setAttribute("webkitallowfullscreen", "true");
+  const allow = iframe.getAttribute("allow") ?? "";
+  if (!/(^|[;\s])fullscreen($|[;\s])/.test(allow)) {
+    iframe.setAttribute("allow", allow ? `${allow}; fullscreen` : FULLSCREEN_ALLOW);
+  }
+}
+
 /** Format seconds as `m:ss`. */
 export function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";

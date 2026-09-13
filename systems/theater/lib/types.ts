@@ -45,9 +45,9 @@ export interface Album {
 /**
  * Where the player is currently surfaced:
  *  - `closed`  — not shown; player stopped.
- *  - `theater` — the large desktop modal (immersive).
- *  - `pip`     — the floating Picture-in-Picture window (mobile default, or a
- *                desktop fallback toggled from theater).
+ *  - `theater` — the large immersive modal (tablet+ / desktop default).
+ *  - `pip`     — the floating Picture-in-Picture window (phone default, or a
+ *                fallback toggled from theater).
  */
 export type TheaterMode = "closed" | "theater" | "pip";
 
