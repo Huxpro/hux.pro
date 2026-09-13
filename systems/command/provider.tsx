@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 // =============================================================================
 // Command System Provider
@@ -11,6 +11,9 @@ interface CommandContextType {
   isOpen: boolean;
   isSlashCommandsMode: boolean;
   isLoadBundleMode: boolean;
+  isWallpaperMode: boolean;
+  openWallpaper: () => void;
+  backFromWallpaper: () => void;
   open: (slashCommandsMode?: boolean) => void;
   close: () => void;
   toggle: () => void;
@@ -31,41 +34,49 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSlashCommandsMode, setIsSlashCommandsMode] = useState(false);
   const [isLoadBundleMode, setIsLoadBundleMode] = useState(false);
+  const [isWallpaperMode, setIsWallpaperMode] = useState(false);
+  const backFromWallpaper = useCallback(() => setIsWallpaperMode(false), []);
+  const openWallpaper = useCallback(() => {
+    setIsOpen(true);
+    setIsWallpaperMode(true);
+    setIsSlashCommandsMode(false);
+    setIsLoadBundleMode(false);
+  }, []);
 
   const open = useCallback((slashCommandsMode = false) => {
     setIsOpen(true);
+    setIsWallpaperMode(false);
     setIsSlashCommandsMode(slashCommandsMode);
     setIsLoadBundleMode(false);
   }, []);
 
   const close = useCallback(() => {
     setIsOpen(false);
+    setIsWallpaperMode(false);
     setIsSlashCommandsMode(false);
     setIsLoadBundleMode(false);
   }, []);
 
   const toggle = useCallback(() => {
-    setIsOpen((prev) => {
-      if (prev) {
-        setIsSlashCommandsMode(false);
-        setIsLoadBundleMode(false);
-      }
-      return !prev;
-    });
+    setIsOpen((prev) => !prev);
+    setIsWallpaperMode(false);
+    setIsSlashCommandsMode(false);
+    setIsLoadBundleMode(false);
   }, []);
 
   const setSlashCommandsMode = useCallback((mode: boolean) => {
     setIsSlashCommandsMode(mode);
-    if (mode) setIsLoadBundleMode(false);
+    if (mode) { setIsLoadBundleMode(false); setIsWallpaperMode(false); }
   }, []);
 
   const setLoadBundleMode = useCallback((mode: boolean) => {
     setIsLoadBundleMode(mode);
-    if (mode) setIsSlashCommandsMode(false);
+    if (mode) { setIsSlashCommandsMode(false); setIsWallpaperMode(false); }
   }, []);
 
   const openLoadBundle = useCallback(() => {
     setIsOpen(true);
+    setIsWallpaperMode(false);
     setIsSlashCommandsMode(false);
     setIsLoadBundleMode(true);
   }, []);
@@ -93,6 +104,13 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // Escape: wallpaper and load-bundle return to search.
+      if (e.key === "Escape" && isOpen && isWallpaperMode) {
+        e.preventDefault();
+        setIsWallpaperMode(false);
+        return;
+      }
+
       // Escape: load-bundle → back to search; otherwise close
       if (e.key === "Escape" && isOpen) {
         if (isLoadBundleMode) {
@@ -107,22 +125,20 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isLoadBundleMode, toggle, close, open]);
+  }, [isOpen, isLoadBundleMode, isWallpaperMode, toggle, close, open]);
+
+  const value = useMemo(() => ({
+    isOpen, isSlashCommandsMode, isLoadBundleMode, isWallpaperMode,
+    openWallpaper, backFromWallpaper, open, close, toggle,
+    setSlashCommandsMode, openLoadBundle, setLoadBundleMode,
+  }), [
+    isOpen, isSlashCommandsMode, isLoadBundleMode, isWallpaperMode,
+    openWallpaper, backFromWallpaper, open, close, toggle,
+    setSlashCommandsMode, openLoadBundle, setLoadBundleMode,
+  ]);
 
   return (
-    <CommandContext.Provider
-      value={{
-        isOpen,
-        isSlashCommandsMode,
-        isLoadBundleMode,
-        open,
-        close,
-        toggle,
-        setSlashCommandsMode,
-        openLoadBundle,
-        setLoadBundleMode,
-      }}
-    >
+    <CommandContext.Provider value={value}>
       {children}
     </CommandContext.Provider>
   );
