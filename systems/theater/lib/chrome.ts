@@ -4,9 +4,10 @@ import { cn } from "@/lib/utils";
 // Theater / talks glass chrome — one material system
 //
 // Matches AlbumTabs (Featured Talks widget): frosted track + lifted pill, not
-// inverted black stamps or four lonely discs. Theater surfaces sit on an
-// always-dark backdrop, so on-dark tokens force light glass there; theme-aware
-// tokens keep the homepage widget looking correct in light/dark.
+// inverted black stamps or four lonely discs. Shared by the widget, theater
+// toolbar, PiP bar, and the talks Live Activity so the four surfaces read as
+// one system. Theater (always-dark) uses on-dark tokens; the others stay
+// theme-aware.
 // =============================================================================
 
 /** Theme-aware track (homepage widget + AlbumTabs). */
@@ -18,6 +19,31 @@ export const GLASS_TRACK = cn(
 /** Theme-aware selected / control pill. */
 export const GLASS_PILL = cn(
   "bg-card/90 shadow-sm ring-1 ring-border/50 backdrop-blur-xl",
+);
+
+/** Theme-aware clustered toolbar (PiP + Live Activity). Same capsule as theater. */
+export const GLASS_CLUSTER = cn(
+  "inline-flex items-center gap-0.5 rounded-full p-0.5",
+  GLASS_TRACK,
+);
+
+/** Theme-aware icon button inside a cluster (or standalone orb). */
+export const GLASS_BTN = cn(
+  "inline-flex items-center justify-center rounded-full",
+  "text-muted-foreground transition-colors",
+  "hover:bg-foreground/[0.06] hover:text-foreground active:scale-95",
+  "disabled:opacity-30 disabled:pointer-events-none",
+);
+
+/**
+ * Theme-aware text action (PiP / Theater chips). Mono + tracking match
+ * AlbumTabs and WidgetTitle.
+ */
+export const GLASS_ACTION = cn(
+  "inline-flex items-center justify-center gap-1.5 rounded-full",
+  "text-xs font-mono uppercase tracking-wider",
+  "text-muted-foreground transition-colors",
+  "hover:text-foreground active:scale-[0.98]",
 );
 
 /** Always-dark theater: clustered control capsule (iPadOS toolbar). */

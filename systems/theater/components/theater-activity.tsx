@@ -1,10 +1,12 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { LiveActivity, useDock } from "@/systems/dock";
 import { EQBars } from "@/systems/music/components/now-playing";
 import { Maximize2, PictureInPicture2, Video } from "lucide-react";
 import { useEffect, useState } from "react";
+import { GLASS_ACTION, GLASS_PILL, GLASS_TRACK } from "../lib/chrome";
 import { useTheater } from "../provider";
 import { TrackThumb } from "./track-thumb";
 import { VideoControls } from "./video-controls";
@@ -97,26 +99,35 @@ export function TheaterActivity() {
 
         <VideoControls variant="pip" />
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={returnToPip}
-            aria-label={t(locale, "theaterReturnPip")}
-            className="flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border/60 bg-card/60 py-2 text-xs font-mono uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <PictureInPicture2 className="h-3.5 w-3.5 shrink-0" />
-            {t(locale, "theaterPip")}
-          </button>
-          {theaterAvailable && (
+        {theaterAvailable ? (
+          <div className={cn("flex w-full items-center rounded-full p-0.5", GLASS_TRACK)}>
+            <button
+              onClick={returnToPip}
+              aria-label={t(locale, "theaterReturnPip")}
+              className={cn(GLASS_ACTION, GLASS_PILL, "h-8 flex-1 text-foreground")}
+            >
+              <PictureInPicture2 className="h-3.5 w-3.5 shrink-0" />
+              {t(locale, "theaterPip")}
+            </button>
             <button
               onClick={returnToTheater}
               aria-label={t(locale, "theaterExpand")}
-              className="flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border/60 bg-card/60 py-2 text-xs font-mono uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+              className={cn(GLASS_ACTION, "h-8 flex-1")}
             >
               <Maximize2 className="h-3.5 w-3.5 shrink-0" />
               {t(locale, "theaterExpand")}
             </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <button
+            onClick={returnToPip}
+            aria-label={t(locale, "theaterReturnPip")}
+            className={cn(GLASS_ACTION, GLASS_PILL, "h-8 w-full text-foreground")}
+          >
+            <PictureInPicture2 className="h-3.5 w-3.5 shrink-0" />
+            {t(locale, "theaterPip")}
+          </button>
+        )}
       </div>
     </LiveActivity>
   );
