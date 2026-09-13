@@ -350,10 +350,6 @@ export function CommandPalette() {
           return;
         case "q":
           openMusicPlaylist();
-          setOpen(false);
-          return;
-        case "b":
-          openWallpaperPicker();
           close();
           return;
         case "m":
@@ -391,7 +387,6 @@ export function CommandPalette() {
     isDevtoolEnabled,
     requestAccurateLocation,
     setLocationMode,
-    cycleGradientMode,
     wallpaperLabel,
     openWallpaperPicker,
     glassLabel,
