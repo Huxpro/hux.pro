@@ -99,9 +99,10 @@ function DevtoolFABInner() {
       {/* Collapsed FAB button - hides when panel is open */}
       <button
         onClick={toggle}
+        data-drag-handle
         className={cn(
           "flex items-center gap-2 transition-all duration-300",
-          "rounded-full",
+          "rounded-full touch-none",
           "bg-foreground text-background",
           "shadow-raised",
           "hover:scale-105 active:scale-95",
@@ -138,6 +139,9 @@ function DevtoolFABInner() {
 
 export const DevtoolFAB = withDraggable(DevtoolFABInner, {
   id: "devtool",
+  // Only the collapsed pill and the panel's title bar move the devtool; the
+  // module bodies keep their sliders, inputs and scrolling.
+  dragHandle: "[data-drag-handle]",
 });
 
 // =============================================================================
@@ -159,7 +163,10 @@ function DevtoolPanel() {
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-muted/30">
+      <div
+        data-drag-handle
+        className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-muted/30 touch-none cursor-grab active:cursor-grabbing"
+      >
         <div className="flex items-center gap-2">
           <Bug className="h-4 w-4 text-foreground" />
           <span className="text-sm font-mono text-foreground">
