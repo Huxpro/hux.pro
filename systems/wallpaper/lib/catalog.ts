@@ -2,8 +2,8 @@
 // Built-in wallpaper catalog
 //
 // Apple macOS / iOS default pairs, downloaded and compressed into
-// public/wallpapers/. Each entry is a light/dark pair so appearance can
-// follow the theme (auto) or lock to one variant.
+// public/wallpapers/. Each entry is a light/dark pair; the variant
+// always follows the site theme.
 // =============================================================================
 
 export type WallpaperSource = "macos" | "ios";

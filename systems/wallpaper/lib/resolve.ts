@@ -35,24 +35,12 @@ export function wallpaperLabel(params: {
   locale: "en" | "zh";
   weatherModeLabel?: string;
 }): string {
-  const { kind, pair, appearance, locale, weatherModeLabel } = params;
+  const { kind, pair, locale, weatherModeLabel } = params;
   if (kind === "weather") {
     const weather = locale === "zh" ? "天气" : "Weather";
     return weatherModeLabel ? `${weather} · ${weatherModeLabel}` : weather;
   }
 
   const name = locale === "zh" ? pair.nameZh : pair.name;
-  const appearanceLabel =
-    appearance === "auto"
-      ? locale === "zh"
-        ? "自动"
-        : "Auto"
-      : appearance === "light"
-        ? locale === "zh"
-          ? "浅色"
-          : "Light"
-        : locale === "zh"
-          ? "深色"
-          : "Dark";
-  return `${name} · ${appearanceLabel}`;
+  return name;
 }

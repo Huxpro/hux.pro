@@ -21,7 +21,6 @@ import {
   useOptionalWallpaper,
   wallpaperDocumentClassNames,
   type GlassMaterial,
-  type WallpaperAppearance,
   type WallpaperKind,
 } from "@/systems/wallpaper";
 import appsJson from "@/content/apps.json";
@@ -954,11 +953,6 @@ function WallpaperModule() {
     { value: "weather", label: zh ? "天气" : "Weather" },
     { value: "image", label: zh ? "图片" : "Image" },
   ];
-  const appearances: { value: WallpaperAppearance; label: string }[] = [
-    { value: "auto", label: t(locale, "wallpaperAuto") },
-    { value: "light", label: t(locale, "themeLight") },
-    { value: "dark", label: t(locale, "themeDark") },
-  ];
   const glasses: { value: GlassMaterial; label: string }[] = [
     { value: "clear", label: t(locale, "glassClear") },
     { value: "tinted", label: t(locale, "glassTinted") },
@@ -1007,22 +1001,6 @@ function WallpaperModule() {
                 wallpaper.setDebugOverride({ ...wallpaper.debugOverride, kind });
               } else {
                 wallpaper.setKind(kind);
-              }
-            }}
-          />
-        </PanelRow>
-        <PanelRow label={zh ? "外观" : "Appearance"}>
-          <PanelSegmented
-            value={wallpaper.appearance}
-            options={appearances}
-            onChange={(appearance) => {
-              if (hasOverride) {
-                wallpaper.setDebugOverride({
-                  ...wallpaper.debugOverride,
-                  appearance,
-                });
-              } else {
-                wallpaper.setAppearance(appearance);
               }
             }}
           />

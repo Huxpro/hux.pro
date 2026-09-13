@@ -11,7 +11,7 @@ keeps working regardless of which wallpaper is active.
 
 ```
 systems/wallpaper/
-├── provider.tsx                  # WallpaperProvider (kind + pair + appearance)
+├── provider.tsx                  # WallpaperProvider (kind + pair; appearance always Auto)
 ├── components/
 │   ├── wallpaper-background.tsx  # Full-page image renderer (crossfade)
 │   ├── wallpaper-panel.tsx       # ⌘K secondary picker
@@ -19,7 +19,7 @@ systems/wallpaper/
 ├── lib/
 │   ├── catalog.ts                # Built-in macOS / iOS pairs
 │   ├── settings.ts               # localStorage persistence
-│   ├── resolve.ts                # Auto / light / dark resolution
+│   ├── resolve.ts                # Pair variant follows the site theme
 │   └── index.ts
 └── index.ts
 ```
@@ -73,15 +73,9 @@ Persisted on `localStorage.hux_wallpaper.glass`.
 
 ## Light / Dark pairs
 
-Every built-in wallpaper is a **pair**. Appearance:
-
-| Appearance | Result |
-|------------|--------|
-| `auto` | Follows the site theme (light image in light mode, dark in dark mode) |
-| `light` | Lock the light variant |
-| `dark` | Lock the dark variant |
-
-`auto` is the macOS-style automatic wallpaper.
+Every built-in wallpaper is a **pair**. Appearance is always **auto**:
+the light image follows the light site theme, the dark image follows dark.
+There is no Light / Dark lock in the picker or Devtool.
 
 ## Built-in catalog
 
@@ -97,9 +91,9 @@ Monterey (2021), Big Sur (2020)
 **iOS:** iOS 27 (2026), iOS 18 (2024), iOS 17 (2023), iOS 14 (2020),
 iOS 13 (2019)
 
-The ⌘K picker tiles are macOS Settings pair cards: a 16:10 split of the
-light and dark originals, sun / moon to lock a variant, a check when
-selected, and `Name` + `macOS · 2020` underneath.
+The ⌘K picker is one grid of 16:10 Settings cards. **Weather** is the
+first tile (live gradient, same size as Tahoe). Image tiles split light /
+dark, with a check when selected and `Name` + `macOS · 2020` underneath.
 
 Images are Apple stock wallpapers, kept small (≈2.5 MB total) for the site.
 
@@ -108,9 +102,8 @@ Images are Apple stock wallpapers, kept small (≈2.5 MB total) for the site.
 `W` (search or slash commands) opens a **secondary window** inside ⌘K — the
 same pattern as Load Bundle. The picker:
 
-1. Selects Weather (and Full / Widget / Off) **or** an image pair
-2. Sets Auto / Light / Dark for the pair — or tap the sun / moon on a tile
-3. Esc / ← returns to search without closing ⌘K
+1. Selects Weather (first tile) or an image pair
+2. Esc / ← returns to search without closing ⌘K
 
 ## Devtool
 

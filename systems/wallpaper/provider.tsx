@@ -106,7 +106,7 @@ export function WallpaperProvider({ children }: { children: React.ReactNode }) {
 
   const updateSettings = useCallback((partial: Partial<WallpaperSettings>) => {
     setSettingsState((prev) => {
-      const next = { ...prev, ...partial };
+      const next = { ...prev, ...partial, appearance: "auto" as const };
       setWallpaperSettings(next);
       return next;
     });
@@ -128,13 +128,9 @@ export function WallpaperProvider({ children }: { children: React.ReactNode }) {
     [settings.imageId, updateSettings]
   );
 
-  const setAppearance = useCallback(
-    (appearance: WallpaperAppearance) => {
-      if (appearance === settings.appearance) return;
-      updateSettings({ appearance });
-    },
-    [settings.appearance, updateSettings]
-  );
+  const setAppearance = useCallback((_appearance: WallpaperAppearance) => {
+    // Appearance is always Auto — pair wallpapers follow the site theme.
+  }, []);
 
   const setGlass = useCallback(
     (glass: GlassMaterial) => {

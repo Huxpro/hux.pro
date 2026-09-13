@@ -73,7 +73,7 @@ The `shared/providers.tsx` orchestrates all providers in the correct order:
 5. **CommandProvider** - Command palette state
 6. **DevtoolProvider** - Debug FAB and panel state
 7. **AmbientProvider** - Weather/location/time state
-8. **WallpaperProvider** - Wallpaper kind (weather / image) + pair + appearance
+8. **WallpaperProvider** - Wallpaper kind (weather / image) + pair (appearance always Auto)
 
 ## Subsystems
 

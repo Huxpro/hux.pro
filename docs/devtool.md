@@ -37,7 +37,7 @@ The DevTool provides a floating debug panel for development and testing.
 
 ### Wallpaper
 
-Kind (weather / image), built-in pair, Auto / Light / Dark, Glass (Clear / Tinted), and an ephemeral override for previewing without writing `localStorage`. See [system-wallpaper.md](./system-wallpaper.md).
+Kind (weather / image), built-in pair, Glass (Clear / Tinted), and an ephemeral override for previewing without writing `localStorage`. Pair wallpapers always follow the site theme (Auto). See [system-wallpaper.md](./system-wallpaper.md).
 
 ### Weather Override
 

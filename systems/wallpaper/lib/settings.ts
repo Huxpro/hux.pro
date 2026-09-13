@@ -4,7 +4,7 @@ import { DEFAULT_WALLPAPER_ID, getWallpaperPair } from "./catalog";
 // Wallpaper Settings
 //
 // Weather and image are mutually exclusive kinds of the same wallpaper
-// surface. Image pairs support auto (follow theme) or a locked variant.
+// surface. Image pairs always follow the site theme (auto).
 // =============================================================================
 
 export type WallpaperKind = "weather" | "image";
@@ -68,12 +68,7 @@ export function normalizeWallpaperSettings(
     parsed.kind === "image" || parsed.kind === "weather"
       ? parsed.kind
       : defaults.kind;
-  const appearance: WallpaperAppearance =
-    parsed.appearance === "light" ||
-    parsed.appearance === "dark" ||
-    parsed.appearance === "auto"
-      ? parsed.appearance
-      : defaults.appearance;
+  const appearance: WallpaperAppearance = "auto";
   const imageId =
     typeof parsed.imageId === "string" && getWallpaperPair(parsed.imageId)
       ? parsed.imageId
