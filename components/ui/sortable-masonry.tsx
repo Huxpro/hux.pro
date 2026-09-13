@@ -14,6 +14,7 @@ import {
   useSensors,
   type DragMoveEvent,
   type DragStartEvent,
+  type KeyboardCoordinateGetter,
 } from "@dnd-kit/core";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -45,7 +46,7 @@ import {
 // SortableMasonry
 //
 // An iPad-springboard-style widget grid. Renders widgets into a responsive
-// 1 / 2 / 3 column grid and lets the visitor rearrange them, mirroring how
+// 1 / 2 / 3 / 4 column grid and lets the visitor rearrange them, mirroring how
 // iPadOS / macOS treat each pointer type:
 //   - Mouse / trackpad: a press-and-move *is* a drag straight away (no wait).
 //   - Touch: a plain swipe scrolls; you must long-press to pick a widget up,
@@ -94,30 +95,34 @@ export interface SortableWidget {
 const GAP = 16;
 
 /**
- * Column count per breakpoint, widest first — mirrors the Tailwind breakpoints
- * the pre-measurement fallback uses (`sm:columns-2 lg:columns-3`).
+ * Live column count, mirroring the Tailwind breakpoints the pre-measurement
+ * fallback renders with (`sm:columns-2 lg:columns-3 roomy:columns-4`).
+ * `null` until mounted — the server render has no viewport to ask.
+ *
+ * `roomyColumns` is what the widest step resolves to for the current widget
+ * count: 4 once there are enough widgets to fill a fourth column, 3 otherwise
+ * (see `gridScale`).
  */
-const COLUMN_BREAKPOINTS: { query: string; count: number }[] = [
-  { query: "(min-width: 1024px)", count: 3 },
-  { query: "(min-width: 640px)", count: 2 },
-];
-
-/** Live column count; `null` until mounted (server render has no viewport). */
-function useColumnCount(): number | null {
+function useColumnCount(roomyColumns: number): number | null {
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
-    const lists = COLUMN_BREAKPOINTS.map((bp) => window.matchMedia(bp.query));
+    const steps: { query: string; count: number }[] = [
+      { query: ROOMY_QUERY, count: roomyColumns },
+      { query: "(min-width: 1024px)", count: 3 },
+      { query: "(min-width: 640px)", count: 2 },
+    ];
+    const lists = steps.map((step) => window.matchMedia(step.query));
     const sync = () => {
-      const hit = COLUMN_BREAKPOINTS.findIndex((_, i) => lists[i].matches);
-      setCount(hit === -1 ? 1 : COLUMN_BREAKPOINTS[hit].count);
+      const hit = steps.findIndex((_, i) => lists[i].matches);
+      setCount(hit === -1 ? 1 : steps[hit].count);
     };
     sync();
     for (const list of lists) list.addEventListener("change", sync);
     return () => {
       for (const list of lists) list.removeEventListener("change", sync);
     };
-  }, []);
+  }, [roomyColumns]);
 
   return count;
 }
@@ -165,6 +170,50 @@ const CLONE_EDIT_CONTEXT: MasonryEditContextValue = {
   enterEdit: () => {},
   registerSection: () => () => {},
 };
+
+// =============================================================================
+// Responsive scale
+//
+// Column count and container width move together so the widgets themselves
+// never stretch or shrink with the screen — only how many fit per row changes.
+//
+//   <sm    1 column   @ 680px     phone
+//   sm     2 columns  @ 680px     tablet / small laptop   (~332px per column)
+//   lg     3 columns  @ 1024px    desktop                 (~331px per column)
+//   roomy  4 columns  @ 1344px    large / ultrawide       (~324px per column)
+//          3 columns  @ 1152px    …with few widgets       (~373px per column)
+//
+// The fourth column only unlocks once there are enough widgets to fill it: with
+// a handful of cards a fourth column starts out holding one widget and leaves a
+// lopsided, half-empty grid. (The visitor can still *make* it lopsided — that is
+// the point of explicit placement — but it shouldn't be the default they are
+// handed.) Below that threshold an ultrawide screen instead gets three slightly
+// roomier columns — still far narrower than the ~630px a widget already renders
+// at on a phone in landscape, so nothing has to be re-tuned.
+//
+// The last step is gated on `roomy:` (wide *and* tall, see globals.css), not
+// width alone: it exists to spend space the screen actually has spare, so a
+// short ultrawide — already scrolling — keeps the familiar desktop board.
+// =============================================================================
+
+const MIN_ITEMS_FOR_FOUR_COLUMNS = 8;
+
+/** `roomy:` from globals.css — wide *and* tall, as a media query. */
+const ROOMY_QUERY = "(min-width: 96rem) and (min-height: 1000px)";
+
+function gridScale(count: number) {
+  return count >= MIN_ITEMS_FOR_FOUR_COLUMNS
+    ? {
+        width: "max-w-[680px] lg:max-w-5xl roomy:max-w-[84rem]",
+        columns: "columns-1 sm:columns-2 lg:columns-3 roomy:columns-4",
+        roomyColumns: 4,
+      }
+    : {
+        width: "max-w-[680px] lg:max-w-5xl roomy:max-w-6xl",
+        columns: "columns-1 sm:columns-2 lg:columns-3",
+        roomyColumns: 3,
+      };
+}
 
 // =============================================================================
 // Layout helpers
@@ -217,7 +266,10 @@ function computeSlots(
     for (const id of column) {
       const height = heights[id] ?? 0;
       slots[id] = { x: index * (columnWidth + GAP), y, height };
-      y += height + GAP;
+      // A widget that renders nothing (the music widget without a playlist,
+      // a group whose commits are all filtered out) takes no space at all —
+      // not even a gutter.
+      if (height > 0) y += height + GAP;
     }
     tallest = Math.max(tallest, y);
   });
@@ -341,7 +393,8 @@ export function SortableMasonry({
   const idsKey = ids.join("|");
   const itemsById = new Map(items.map((i) => [i.id, i.node]));
 
-  const columnCount = useColumnCount();
+  const scale = gridScale(ids.length);
+  const columnCount = useColumnCount(scale.roomyColumns);
   const mounted = columnCount !== null;
   const columns = columnCount ?? 1;
 
@@ -365,6 +418,17 @@ export function SortableMasonry({
   const observedRef = useRef(new Map<string, HTMLElement>());
   // Last pointer position, in client coordinates — the drag's "where am I".
   const pointerRef = useRef<{ x: number; y: number } | null>(null);
+  // Whether the drag in progress was started by a pointer. A keyboard drag
+  // must follow the lifted card, never a pointer position left over from an
+  // earlier mouse move.
+  const pointerDragRef = useRef(false);
+  // Current geometry, for callbacks dnd-kit holds across renders (the keyboard
+  // coordinate getter).
+  const geometryRef = useRef<{
+    columnWidth: number;
+    slots: Record<string, Slot>;
+    layout: ColumnLayout;
+  }>({ columnWidth: 0, slots: {}, layout: [] });
   // Every column count the visitor has arranged, so switching widths (or
   // rotating a phone) and coming back restores what they set up there.
   const storedRef = useRef<Record<number, ColumnLayout>>({});
@@ -413,8 +477,13 @@ export function SortableMasonry({
         }
         const id = el.dataset.widgetId;
         if (!id) continue;
+        // `borderBoxSize` is the *layout* height. A bounding rect would fold in
+        // the card's transform, so a card measured mid-jiggle (or mid-move)
+        // would report a few px too tall and shift the column under it.
         // Round to whole pixels: sub-pixel jitter would loop us forever.
-        const height = Math.round(el.getBoundingClientRect().height);
+        const height = Math.round(
+          entry.borderBoxSize?.[0]?.blockSize ?? el.offsetHeight,
+        );
         next ??= {};
         next[id] = height;
       }
@@ -468,10 +537,19 @@ export function SortableMasonry({
     [layout, heights, columnWidth],
   );
 
+  useEffect(() => {
+    geometryRef.current = { columnWidth, slots, layout };
+  }, [columnWidth, slots, layout]);
+
   // Switch to positioned mode once every card has a height, then let the next
   // frame turn transitions on (so cards don't animate in from the origin).
+  // 0 is a valid height (a widget that renders nothing), so "measured" means
+  // *recorded*, not non-zero — otherwise one empty widget would keep the whole
+  // grid in the fallback and silently disable column placement.
   const allMeasured =
-    columnWidth > 0 && ids.length > 0 && ids.every((id) => heights[id] > 0);
+    columnWidth > 0 &&
+    ids.length > 0 &&
+    ids.every((id) => heights[id] !== undefined);
 
   useEffect(() => {
     if (!allMeasured || positioned) return;
@@ -557,12 +635,51 @@ export function SortableMasonry({
   // depends on dnd-kit re-measuring a grid that is moving underneath it.
   // ---------------------------------------------------------------------------
 
+  // Arrow keys should move a held widget by a *slot*, the way dragging does.
+  // dnd-kit's default getter steps 25px, which would take a dozen presses to
+  // cross one column.
+  const keyboardCoordinates = useCallback<KeyboardCoordinateGetter>(
+    (event, { active, currentCoordinates }) => {
+      const geometry = geometryRef.current;
+      const id = String(active);
+      const at = locate(geometry.layout, id);
+      const column = at ? (geometry.layout[at[0]] ?? []) : [];
+      // Step over the neighbour in that direction; fall back to the held card's
+      // own height at the ends of a column.
+      const rowStep = (offset: number) => {
+        const neighbour = at ? column[at[1] + offset] : undefined;
+        const slot = (neighbour ? geometry.slots[neighbour] : undefined) ??
+          geometry.slots[id];
+        return (slot?.height ?? 0) + GAP;
+      };
+      const columnStep = geometry.columnWidth + GAP;
+
+      switch (event.code) {
+        case "ArrowRight":
+          event.preventDefault();
+          return { ...currentCoordinates, x: currentCoordinates.x + columnStep };
+        case "ArrowLeft":
+          event.preventDefault();
+          return { ...currentCoordinates, x: currentCoordinates.x - columnStep };
+        case "ArrowDown":
+          event.preventDefault();
+          return { ...currentCoordinates, y: currentCoordinates.y + rowStep(1) };
+        case "ArrowUp":
+          event.preventDefault();
+          return { ...currentCoordinates, y: currentCoordinates.y - rowStep(-1) };
+        default:
+          return undefined;
+      }
+    },
+    [],
+  );
+
   const sensors = useSensors(
     // Mouse / trackpad drags immediately; touch requires a long-press so plain
     // swipes still scroll the page.
     useSensor(MouseSensor, { activationConstraint: MOUSE_ACTIVATION }),
     useSensor(TouchSensor, { activationConstraint: TOUCH_ACTIVATION }),
-    useSensor(KeyboardSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: keyboardCoordinates }),
   );
 
   // Track the pointer for the whole session: `onDragMove` then always has a
@@ -627,13 +744,16 @@ export function SortableMasonry({
     setActiveId(String(e.active.id));
     setEditing(true);
     const activator = e.activatorEvent;
+    pointerDragRef.current = false;
     if (activator instanceof MouseEvent) {
+      pointerDragRef.current = true;
       pointerRef.current = { x: activator.clientX, y: activator.clientY };
     } else if (
       typeof TouchEvent !== "undefined" &&
       activator instanceof TouchEvent &&
       activator.touches[0]
     ) {
+      pointerDragRef.current = true;
       pointerRef.current = {
         x: activator.touches[0].clientX,
         y: activator.touches[0].clientY,
@@ -643,7 +763,7 @@ export function SortableMasonry({
 
   function handleDragMove(e: DragMoveEvent) {
     const draggedId = String(e.active.id);
-    const pointer = pointerRef.current;
+    const pointer = pointerDragRef.current ? pointerRef.current : null;
     // Keyboard drags have no pointer: follow the lifted card's own rect.
     const held = e.active.rect.current.translated;
     const point = pointer
@@ -702,31 +822,37 @@ export function SortableMasonry({
       {/* One container, one child per widget, always in declaration order:
           React never moves these nodes, so no widget is ever torn down and
           rebuilt by a drag. Only the styling switches between the
-          pre-measurement multi-column fallback and the positioned grid. */}
-      <div
-        ref={setContainer}
-        className={cn(
-          positioned
-            ? "relative"
-            : "columns-1 sm:columns-2 lg:columns-3 gap-x-4",
-          className,
-        )}
-        style={positioned ? { height } : undefined}
-      >
-        {ids.map((id, i) => (
-          <MasonryItem
-            key={id}
-            id={id}
-            index={i}
-            editing={editing}
-            slot={positioned ? (slots[id] ?? null) : null}
-            columnWidth={columnWidth}
-            animate={animate}
-            measure={measure}
-          >
-            {itemsById.get(id)}
-          </MasonryItem>
-        ))}
+          pre-measurement multi-column fallback and the positioned grid.
+
+          The caller's `className` stays on an *outer* wrapper: a positioned
+          card is laid out against its ancestor's padding box, so padding on
+          the element the cards live in would apply in flow mode and not in
+          positioned mode — a visible jump on every load as the grid settles.
+          The inner element carries no padding of its own, so both modes put a
+          card in exactly the same place. */}
+      <div className={cn("mx-auto w-full", scale.width, className)}>
+        <div
+          ref={setContainer}
+          className={cn(
+            positioned ? "relative" : cn(scale.columns, "gap-x-4"),
+          )}
+          style={positioned ? { height } : undefined}
+        >
+          {ids.map((id, i) => (
+            <MasonryItem
+              key={id}
+              id={id}
+              index={i}
+              editing={editing}
+              slot={positioned ? (slots[id] ?? null) : null}
+              columnWidth={columnWidth}
+              animate={animate}
+              measure={measure}
+            >
+              {itemsById.get(id)}
+            </MasonryItem>
+          ))}
+        </div>
       </div>
 
       {/* The lifted card: a portal clone that tracks the cursor. The clone is
