@@ -132,7 +132,7 @@ const CLONE_EDIT_CONTEXT: MasonryEditContextValue = {
 //   <sm    1 column   @ 680px     phone
 //   sm     2 columns  @ 680px     tablet / small laptop   (~332px per column)
 //   lg     3 columns  @ 1024px    desktop                 (~331px per column)
-//   2xl    4 columns  @ 1344px    large / ultrawide       (~324px per column)
+//   roomy  4 columns  @ 1344px    large / ultrawide       (~324px per column)
 //          3 columns  @ 1152px    …with few widgets       (~373px per column)
 //
 // The fourth column only unlocks once there are enough widgets to fill it:
@@ -141,6 +141,10 @@ const CLONE_EDIT_CONTEXT: MasonryEditContextValue = {
 // threshold an ultrawide screen instead gets three slightly roomier columns —
 // still far narrower than the ~630px a widget already renders at on a phone in
 // landscape, so nothing has to be re-tuned.
+//
+// The last step is gated on `roomy:` (wide *and* tall, see globals.css), not
+// width alone: it exists to spend space the screen actually has spare, so a
+// short ultrawide — already scrolling — keeps the familiar desktop board.
 // =============================================================================
 
 const MIN_ITEMS_FOR_FOUR_COLUMNS = 8;
@@ -148,11 +152,11 @@ const MIN_ITEMS_FOR_FOUR_COLUMNS = 8;
 function gridScale(count: number) {
   return count >= MIN_ITEMS_FOR_FOUR_COLUMNS
     ? {
-        width: "max-w-[680px] lg:max-w-5xl 2xl:max-w-[84rem]",
-        columns: "columns-1 sm:columns-2 lg:columns-3 2xl:columns-4",
+        width: "max-w-[680px] lg:max-w-5xl roomy:max-w-[84rem]",
+        columns: "columns-1 sm:columns-2 lg:columns-3 roomy:columns-4",
       }
     : {
-        width: "max-w-[680px] lg:max-w-5xl 2xl:max-w-6xl",
+        width: "max-w-[680px] lg:max-w-5xl roomy:max-w-6xl",
         columns: "columns-1 sm:columns-2 lg:columns-3",
       };
 }

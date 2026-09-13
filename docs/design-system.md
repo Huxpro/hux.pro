@@ -140,11 +140,14 @@ widget grid. Two rules keep it at home on any display (`app/page.tsx`,
   | — | 1 | 680px |
   | `sm` | 2 | 680px |
   | `lg` | 3 | 1024px |
-  | `2xl` | 3 (4 with ≥ 8 widgets) | 1152px (1344px) |
+  | `roomy` | 3 (4 with ≥ 8 widgets) | 1152px (1344px) |
 
   The fourth column waits for enough widgets to fill it: CSS multicol
   balances by height, so a fourth column over a handful of cards reads as a
-  lopsided, half-empty grid.
+  lopsided, half-empty grid. `roomy:` (defined in `globals.css`) is the last
+  step's gate — ≥ 96rem wide **and** ≥ 1000px tall, since the point is to
+  spend space the screen actually has spare; a short ultrawide is already
+  scrolling and keeps the familiar desktop board.
 
 ### Vertical Rhythm
 

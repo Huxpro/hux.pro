@@ -3,6 +3,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* `roomy:` — a screen that is both wide AND tall enough to have real space to
+   spare, used by the home screen's widget board (see SortableMasonry's
+   `gridScale`). Width alone isn't the signal: a short ultrawide monitor is
+   already scrolling, so widening the board there changes a familiar desktop
+   layout without solving anything. 1000px of height is roughly where the
+   composition starts to fit with room left over. */
+@custom-variant roomy (@media (width >= 96rem) and (height >= 1000px));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
