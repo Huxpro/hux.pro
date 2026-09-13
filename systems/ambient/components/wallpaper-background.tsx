@@ -1,7 +1,5 @@
 "use client";
 
-import type { CSSProperties } from "react";
-
 import { cn } from "@/lib/utils";
 import { useWallpaper } from "../provider";
 import { GradientStack } from "./gradient-stack";
@@ -27,8 +25,7 @@ interface WallpaperBackgroundProps {
 }
 
 export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
-  const { layers, edgeMask, opacity, veil, vignette, vignetteSpread, blurred } =
-    useWallpaper();
+  const { layers, edgeMask, opacity, veil, blurred } = useWallpaper();
 
   if (layers.length === 0) return null;
 
@@ -54,26 +51,13 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         <GradientStack layers={layers} edgeMask={edgeMask} />
       </div>
 
-      {/* Two overlays, and the split is the whole point: a flat wash that dims
-          everything equally, and a radial that only dims the margins. Most of
-          the budget sits in the radial, which is what leaves the middle at
-          nearly its own colour while the shoulders fall away. Full-bleed — no
-          card, no radius. */}
+      {/* The flat veil. The radial half of the treatment is not here — it is a
+          mask on the layer above, built in the provider, because removing the
+          picture at the margins reads far better than tinting it. */}
       {veil > 0 && (
         <div
           className="absolute inset-0 bg-background transition-opacity duration-500"
           style={{ opacity: veil }}
-        />
-      )}
-      {vignette > 0 && (
-        <div
-          className="wallpaper-vignette absolute inset-0 transition-opacity duration-500"
-          style={
-            {
-              "--wallpaper-vignette": vignette,
-              "--wallpaper-vignette-spread": vignetteSpread,
-            } as CSSProperties
-          }
         />
       )}
     </div>

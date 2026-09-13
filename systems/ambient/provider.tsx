@@ -24,6 +24,7 @@ import {
   type WallpaperKind,
 } from "./lib/wallpaper";
 import {
+  buildRadialEdgeMask,
   EDGE_FADE_MASK,
   EDGE_FADE_MASK_HIGH_CONTRAST,
   isIOSBrowser,
@@ -246,7 +247,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: localStorage read
-    setSettingsState(getAmbientSettings({ isIOS: isIOSBrowser() }));
+    setSettingsState(getAmbientSettings());
   }, []);
 
   const updateSettings = useCallback((partial: Partial<AmbientSettings>) => {
@@ -361,14 +362,19 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       ? devtoolOverrides.vignetteSpread
       : 1;
 
-  // Soft edging fades the background out at the top and bottom of the viewport.
-  // That exists to hide a SEAM: the weather gradient is a synthetic wash, and
-  // where it stops against the page background there is a line. A photograph
-  // has no such seam — fading it into the page ground does not soften an edge,
-  // it deletes a strip of the picture, and in light mode it deletes it to pure
-  // white, which reads as a bleached band rather than a vignette. So it is a
-  // weather affordance, structurally. The devtool can still force it on: the
-  // panel exists to see what the setting cannot express.
+  // Soft edging fades the background out at the edges of the viewport, and the
+  // SHAPE of that fade is what decides whether it suits a photograph.
+  //
+  // The vertical strip hides a seam: the weather gradient is a synthetic wash,
+  // and where it stops against the page background there is a line. On a photo
+  // it does the opposite — it cuts a band off the top and bottom, in light mode
+  // to pure white, which reads as a printing error. That is why it used to be
+  // gated off for images entirely.
+  //
+  // A RADIAL fade is a different thing wearing the same name: the picture falls
+  // off on every side, which is a vignette rather than a cut. That is what an
+  // image wallpaper gets, and it is the Vignette section below that drives it —
+  // so this switch stays weather's.
   const softEdgeEnabled =
     isDevtoolEnabled && devtoolOverrides.softEdging !== undefined
       ? devtoolOverrides.softEdging
@@ -476,12 +482,33 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // Resolve which edge-fade mask to use.
   // Special case: dark-mode sunrise/sunset has high gradient-vs-background
   // contrast, so we use a more aggressive (wider) fade to soften the edge.
-  const edgeMask: string | null = softEdgeEnabled
-    ? theme === "dark" &&
-      (effectivePhase === "sunrise" || effectivePhase === "sunset")
-      ? EDGE_FADE_MASK_HIGH_CONTRAST
-      : EDGE_FADE_MASK
-    : null;
+  /**
+   * One radial falloff for a photograph, one vertical strip for the gradient.
+   *
+   * The photograph's is a MASK rather than an overlay, and that is the whole
+   * reason it reads. An overlay paints the page colour on top at some alpha, so
+   * at 0.40 the most it can ever do is remove 40% of the picture and muddy the
+   * rest; a mask deletes the layer and lets the page show through clean, all
+   * the way to 100%. Same geometry, incomparable effect — which is why the
+   * overlay version of this felt like it was not working.
+   */
+  const edgeMask: string | null = isImageKind
+    ? vignetteAlpha > 0
+      ? buildRadialEdgeMask(vignetteSpread, vignetteAlpha)
+      : null
+    : !softEdgeEnabled
+      ? null
+      : theme === "light"
+        ? // Light mode gets the round one too, and for the same reason #96 gave:
+          // a vertical strip fading into paper-white is invisible when the sky
+          // is already pale. The two themes were never really one
+          // implementation — dark's page ground sits close to the gradient, so
+          // a strip reads as a vignette there and as nothing here.
+          buildRadialEdgeMask(1, 1)
+        : theme === "dark" &&
+            (effectivePhase === "sunrise" || effectivePhase === "sunset")
+          ? EDGE_FADE_MASK_HIGH_CONTRAST
+          : EDGE_FADE_MASK;
 
   /**
    * The active pair resolved for the current theme, or null on weather.

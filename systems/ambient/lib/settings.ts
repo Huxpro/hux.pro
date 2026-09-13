@@ -52,22 +52,14 @@ export function getDefaultSettings(): AmbientSettings {
   };
 }
 
-export function getAmbientSettings(options?: {
-  isIOS?: boolean;
-}): AmbientSettings {
+export function getAmbientSettings(): AmbientSettings {
   if (typeof window === "undefined") {
     return getDefaultSettings();
   }
 
   try {
     const stored = localStorage.getItem(SETTINGS_KEY);
-    if (!stored) {
-      // No user preference stored yet — iOS defaults to widget mode
-      return {
-        ...getDefaultSettings(),
-        ...(options?.isIOS && { wallpaperPlacement: "widget" as const }),
-      };
-    }
+    if (!stored) return getDefaultSettings();
 
     const parsed = JSON.parse(stored) as Partial<AmbientSettings> & {
       /** Legacy field names, still read so an existing visitor keeps their setup. */
