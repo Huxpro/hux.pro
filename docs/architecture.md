@@ -120,6 +120,10 @@ not one flat sequence.
   (`{ v: 2, cols: { "1" | "2" | "3": string[][] } }`; the legacy flat v1 array
   is still read). An unvisited width inherits the widest arranged one rather
   than snapping back to the default.
+- A legacy v1 order is chunked into columns by *count*, while CSS multi-column
+  balanced by *height*, so a visitor who arranged the grid before this landed
+  keeps their sequence but may see it distributed a little differently on the
+  first load. `Reset` puts them back on the default.
 - Before the cards have been measured (and with JS off) the grid renders as a
   plain CSS multi-column in declaration order — same container, same children,
   only the styling differs, so switching modes costs no remount.
