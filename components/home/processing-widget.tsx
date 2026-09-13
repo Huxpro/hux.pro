@@ -107,7 +107,7 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
   if (commits.length === 0) return null;
 
   return (
-    <WidgetShell>
+    <WidgetShell href="/works">
       <WidgetHeader className="pb-2">
         <WidgetTitle>{t(locale, "widgetStatus")}</WidgetTitle>
         <WidgetLink href="/works" label="View works" />

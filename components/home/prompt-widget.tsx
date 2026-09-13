@@ -200,7 +200,7 @@ export function PromptWidget() {
   if (!current) return null;
 
   return (
-    <WidgetShell>
+    <WidgetShell href="/prompt">
       <WidgetHeader>
         <div className="flex items-center gap-2">
           <WidgetTitle>{t(locale, "widgetPrompt")}</WidgetTitle>

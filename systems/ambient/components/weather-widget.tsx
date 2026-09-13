@@ -34,7 +34,7 @@ export function WeatherWidget() {
     isFetching: locationFetching,
   } = useLocation();
 
-  const { displayWeather } = useDisplayWeather();
+  const { displayWeather, refresh } = useDisplayWeather();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -52,7 +52,7 @@ export function WeatherWidget() {
   const isReloading = locationLoading || locationFetching;
 
   return (
-    <WidgetShell>
+    <WidgetShell onOpen={refresh}>
       {/* Header: City + location indicator left, weather icon right */}
       <WidgetHeader>
         <div className="flex items-center gap-1.5 min-w-0">
