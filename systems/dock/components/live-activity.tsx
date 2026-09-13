@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { surface } from "@/components/ui/surface";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect } from "react";
@@ -73,8 +74,7 @@ export function LiveActivity({
             className={cn(
               "pointer-events-auto flex items-center gap-2 shrink-0",
               "h-9 pl-1.5 pr-2.5 rounded-full",
-              "bg-card/60 backdrop-blur-xl border border-border/50",
-              "shadow-raised",
+              surface({ elevation: "raised", fill: 60 }),
               "hover:bg-card/80 hover:border-border transition-colors",
               "active:scale-95",
               pillClassName
@@ -111,8 +111,8 @@ export function LiveActivity({
             className={cn(
               "fixed left-1/2 z-50 -translate-x-1/2 pointer-events-auto",
               "w-[min(92vw,360px)] overflow-hidden",
-              "rounded-3xl bg-card/70 backdrop-blur-xl",
-              "border border-border/50 shadow-overlay"
+              "rounded-3xl",
+              surface({ elevation: "overlay", fill: 70 })
             )}
           >
             <div className="flex items-center justify-between px-5 pt-4 pb-3">

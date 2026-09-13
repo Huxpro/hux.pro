@@ -1,6 +1,8 @@
 "use client";
 
 import { localeNames, type Locale } from "@/services";
+import { surface } from "@/components/ui/surface";
+import { cn } from "@/lib/utils";
 import { Languages } from "lucide-react";
 
 interface LanguageConflictToastProps {
@@ -19,7 +21,13 @@ export function LanguageConflictToast({
   onChoose,
 }: LanguageConflictToastProps) {
   return (
-    <div className="w-full max-w-md bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-overlay animate-in slide-in-from-bottom-4 fade-in duration-200">
+    <div
+      className={cn(
+        // Decision surface → the Live Activity "panel" tier: glass, overlay lift.
+        surface({ elevation: "overlay", fill: 70 }),
+        "w-full max-w-md rounded-xl animate-in slide-in-from-bottom-4 fade-in duration-200"
+      )}
+    >
       {/* Header */}
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-center gap-2 mb-2">
@@ -94,7 +102,13 @@ export function LanguageSwitchToast({
   const isSystemLang = currentLang === systemLang;
 
   return (
-    <div className="inline-flex items-center gap-3 px-4 py-3 bg-background/95 backdrop-blur-xl border border-border/50 rounded-full shadow-raised animate-in slide-in-from-bottom-2 fade-in duration-200">
+    <div
+      className={cn(
+        // Ambient status → the Live Activity "pill" tier: glass, resting lift.
+        surface({ elevation: "raised", fill: 60 }),
+        "inline-flex items-center gap-3 px-4 py-3 rounded-full animate-in slide-in-from-bottom-2 fade-in duration-200"
+      )}
+    >
       <Languages className="w-4 h-4 text-muted-foreground" />
       <span className="text-sm text-muted-foreground">
         {systemLang === "en" ? (

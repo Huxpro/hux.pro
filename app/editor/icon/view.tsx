@@ -12,6 +12,7 @@ import {
   type TextureSettings,
 } from "@/lib/icon/config";
 import { buildIconSvg } from "@/lib/icon/render";
+import { EditorSwitcher } from "../editor-switcher";
 import {
   ColorField,
   Field,
@@ -162,9 +163,7 @@ export function IconEditorView({ initialConfig }: IconEditorViewProps) {
       {/* Toolbar */}
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-muted/5 px-4">
         <div className="flex items-center gap-3">
-          <span className="font-mono text-sm font-medium tracking-wide">
-            icon.json
-          </span>
+          <EditorSwitcher current="icon" />
           {isDirty && (
             <span className="rounded bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-amber-500">
               unsaved
