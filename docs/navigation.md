@@ -130,9 +130,9 @@ When the search input is empty or unfocused:
 | `E` | Go to Editor |
 | `A` | Cycle Appearance (system → dark → light) |
 | `L` | Toggle Language |
-| `G` | Toggle Geolocation (IP ↔ accurate) |
-| `W` | Cycle wallpaper placement (full → widget → off) |
-| `B` | Open the Wallpaper picker |
+| `O` | Toggle geolOcation (IP ↔ accurate) |
+| `W` | Open the Wallpaper picker |
+| `G` | Toggle Glass material (Tinted ↔ Clear) |
 | `M` | Play / pause Music |
 | `Q` | Open the playlist browser |
 | `D` | Toggle the Devtool panel |

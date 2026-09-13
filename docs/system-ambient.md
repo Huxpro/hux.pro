@@ -134,17 +134,11 @@ Apple's images either, and their repository licenses are not asserted to do so.
 
 ### Light/dark pairs
 
-Every wallpaper ships as a pair. Which half shows is the **appearance**:
-
-```typescript
-type WallpaperAppearance = "auto" | "light" | "dark";
-```
-
-`auto` follows the app theme (the macOS Dynamic Desktop behaviour) and is the
-default. Pinning `light` or `dark` against the current theme would put light
-artwork under light text, so the background layer damps itself hard in that case
-— the pin still reads as a tint, but the themed page background carries the
-contrast.
+Every wallpaper ships as a pair, and which half shows **always follows the app
+theme** — the macOS Dynamic Desktop behaviour. That is deliberately not a
+setting. Pinning a half only ever produced light artwork under light text, and
+the damping needed to rescue that made the wallpaper a ghost; the tiles keep a
+sun / moon on each half as an indicator, not a control.
 
 Opacity is resolved once, in the provider, and read by both the full-page layer
 and the widget overlay as `useWallpaper().opacity`:
@@ -153,7 +147,9 @@ and the widget overlay as `useWallpaper().opacity`:
 |---|---|---|
 | Weather gradient | 0.70 | 0.85 |
 | Image wallpaper | 0.42 | 0.62 |
-| Pinned against the theme | 0.22 | 0.28 |
+
+How *solid* the surfaces on top of it are is a separate setting — see
+[docs/system-glass.md](./system-glass.md).
 
 ### Placement
 
@@ -171,8 +167,8 @@ source is active):
 
 | Surface | How |
 |---------|-----|
-| Command palette | `Wallpaper: <name>` (⌘K), or `/` then `B` |
-| Devtool panel | Wallpaper module — source, appearance, swatch hot-swap |
+| Command palette | `Wallpaper: <name>` (⌘K), or `/` then `W` |
+| Devtool panel | Wallpaper module — kind, swatch hot-swap, resolved asset |
 | Anywhere in code | `useWallpaper().openPicker()` |
 
 The picker itself is a secondary window (`wallpaper-sheet.tsx`) built on vaul,
@@ -181,10 +177,11 @@ bottom action sheet on narrow viewports, a right-edge floating panel on wide
 ones.
 
 Its tiles are **macOS Settings pair cards**: a 16:10 split of the light and dark
-originals, sun / moon buttons on each half that select the pair *and* pin that
-variant in one gesture, a check when selected, and `Name` + `macOS · 2020`
-underneath. Weather leads the grid at full width — it is a wallpaper too, but
-the only live one, so it earns its own row.
+originals, a sun / moon marking each half, a check when selected, and `Name` +
+`macOS · 2020` underneath. Weather is the **first tile in the same grid at the
+same size** — it is one of the wallpapers, just the only one that moves. Where
+the wallpaper paints sits above the grid as one compact row: a modifier, not the
+thing you came here for.
 
 ## Components
 

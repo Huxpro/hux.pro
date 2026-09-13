@@ -1,7 +1,14 @@
 "use client";
 
 import { WeatherIcon } from "@/systems/ambient/components/weather-icon";
-import { useLocale, useTheme, t } from "@/services";
+import {
+  GLASS_MATERIALS,
+  getGlassLabel,
+  t,
+  useLocale,
+  useOptionalGlass,
+  useTheme,
+} from "@/services";
 import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
 import type { DevtoolGradientOverrides } from "@/systems/ambient/provider";
 import { formatClockTime } from "@/systems/ambient/lib/format";
@@ -13,12 +20,8 @@ import {
   WEATHER_CONDITIONS,
   getWeatherConditionLabel,
 } from "@/systems/ambient/lib/weather";
-import {
-  getWallpaperAppearanceLabel,
-  WALLPAPER_APPEARANCES,
-  type WallpaperAppearance,
-  type WallpaperKind,
-} from "@/systems/ambient/lib/wallpaper";
+import type { WallpaperKind } from "@/systems/ambient/lib/wallpaper";
+import { isReadingSurface } from "@/systems/ambient/lib/reading-surface";
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
@@ -59,6 +62,7 @@ import {
   Haze,
   Image as ImageIcon,
   Layers,
+  Layers2,
   Moon,
   MoonStar,
   Music,
@@ -69,6 +73,7 @@ import {
   Sunset,
   X,
 } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { withDraggable } from "@/systems/draggable";
 import { useEffect, useRef, useState } from "react";
 
@@ -164,7 +169,7 @@ function DevtoolPanel() {
     <div
       className={cn(
         "rounded-2xl overflow-hidden cursor-default",
-        "bg-popover/95 backdrop-blur-xl",
+        "bg-glass-popover backdrop-blur-xl",
         "border border-border/50",
         "shadow-overlay"
       )}
@@ -200,6 +205,7 @@ function DevtoolPanel() {
         <ReadingModule />
         <GradientModule />
         <WallpaperModule />
+        <GlassModule />
         <WeatherModule />
         <AmbientTimeModule />
         <MusicModule />
@@ -797,6 +803,57 @@ function GradientModule() {
 }
 
 // =============================================================================
+// Glass Module
+//
+// The material every floating System UI surface is made of. Two options, the
+// same two iOS 26 offers — Tinted (色调) and Clear (透明) — and the same effect:
+// one class on <html> swapping a handful of CSS variables, so nothing
+// re-renders and every `bg-glass*` surface follows along.
+// =============================================================================
+
+function GlassModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const glass = useOptionalGlass();
+  if (!glass) return null;
+
+  const options = GLASS_MATERIALS.map((value) => ({
+    value,
+    label: getGlassLabel(value, locale),
+  }));
+
+  return (
+    <DebugSection
+      id="glass"
+      title={t(locale, "settingsGlass")}
+      icon={<Layers2 className="h-4 w-4" />}
+      compact
+      action={
+        <span className="text-[10px] font-mono text-muted-foreground">
+          {glass.material}
+          <span className="ml-1 text-muted-foreground/40">G</span>
+        </span>
+      }
+    >
+      <div className="space-y-2">
+        <PanelRow label={zh ? "材质" : "Material"}>
+          <PanelSegmented
+            value={glass.material}
+            options={options}
+            onChange={glass.setMaterial}
+          />
+        </PanelRow>
+        <p className="text-[10px] leading-snug text-muted-foreground/60">
+          {zh
+            ? "透明：接近无填充的通透质感，背后的壁纸直接透出来。色调：当前这种带卡片底色的材质。"
+            : "Clear thins every surface to a vibrancy wash so the wallpaper reads through it. Tinted keeps the card fill."}
+        </p>
+      </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
 // Wallpaper Module
 //
 // Debugs the OTHER half of the background: which kind is feeding the single
@@ -811,15 +868,14 @@ function GradientModule() {
 function WallpaperModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
+  const pathname = usePathname();
   const {
     kind,
     setKind,
     wallpaper,
     wallpapers,
     selectWallpaper,
-    appearance,
-    setAppearance,
-    resolvedAppearance,
+    variant,
     opacity,
     src,
     openPicker,
@@ -830,17 +886,12 @@ function WallpaperModule() {
     { value: "weather", label: zh ? "天气" : "Weather" },
     { value: "image", label: zh ? "图片" : "Image" },
   ];
-  const appearances: { value: WallpaperAppearance; label: string }[] =
-    WALLPAPER_APPEARANCES.map((value) => ({
-      value,
-      label: getWallpaperAppearanceLabel(value, locale),
-    }));
 
   const isImage = kind === "image";
   const placement = fullGradientEnabled
     ? zh
       ? "全屏"
-      : "desktop"
+      : "full"
     : widgetGradientEnabled
       ? zh
         ? "卡片"
@@ -849,13 +900,18 @@ function WallpaperModule() {
         ? "关闭"
         : "off";
 
+  // Home is the desktop; every other route recedes the photo for reading.
+  const reading = isReadingSurface({ kind, pathname });
+
   // One line that answers "what am I actually looking at".
   const now = [
     isImage ? wallpaper.name : zh ? "天气" : "Weather",
-    getWallpaperAppearanceLabel(appearance, locale),
-    resolvedAppearance,
+    variant,
     placement,
-  ].join(" · ");
+    isImage ? (reading ? (zh ? "阅读" : "read") : zh ? "桌面" : "desktop") : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <DebugSection
@@ -866,20 +922,13 @@ function WallpaperModule() {
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
           {isImage ? wallpaper.id : "weather"}
-          <span className="ml-1 text-muted-foreground/40">B</span>
+          <span className="ml-1 text-muted-foreground/40">W</span>
         </span>
       }
     >
       <div className="space-y-3">
         <PanelRow label={zh ? "类型" : "Kind"}>
           <PanelSegmented value={kind} options={kinds} onChange={setKind} />
-        </PanelRow>
-        <PanelRow label={zh ? "外观" : "Appearance"}>
-          <PanelSegmented
-            value={appearance}
-            options={appearances}
-            onChange={setAppearance}
-          />
         </PanelRow>
 
         <div className="text-[10px] font-mono text-muted-foreground">
@@ -890,13 +939,11 @@ function WallpaperModule() {
           </span>
         </div>
 
-        {/* Swatch grid — the half currently resolved, so the row mirrors the
-            page rather than showing a variant that is not on screen. */}
+        {/* Swatch grid — the half currently showing, so the row mirrors the
+            page rather than a variant that is not on screen. */}
         <div className="grid grid-cols-4 gap-1.5">
           {wallpapers.map((w) => {
             const selected = isImage && w.id === wallpaper.id;
-            const thumb =
-              resolvedAppearance === "dark" ? w.dark.thumb : w.light.thumb;
             return (
               <button
                 key={w.id}
@@ -914,7 +961,7 @@ function WallpaperModule() {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={thumb}
+                  src={w[variant].thumb}
                   alt=""
                   loading="lazy"
                   className="absolute inset-0 h-full w-full object-cover"
@@ -935,7 +982,7 @@ function WallpaperModule() {
         {/* The resolved asset — the fastest way to trace a wrong background. */}
         <div className="break-all text-[10px] font-mono text-muted-foreground">
           {isImage ? src : zh ? "天气渐变" : "weather gradient"}
-          {!isImage && gradientMode === "off" && (
+          {gradientMode === "off" && (
             <span className="text-muted-foreground/50"> (placement off)</span>
           )}
         </div>

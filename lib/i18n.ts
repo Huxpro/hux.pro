@@ -124,6 +124,8 @@ export const translations = {
 
     // Wallpaper (background picker)
     settingsWallpaper: "Wallpaper",
+    settingsGlass: "Glass",
+    glassHint: "How solid every floating surface is",
     wallpaperTitle: "wallpaper",
     wallpaperClose: "Close wallpaper picker",
     wallpaperChoose: "Ambient",
@@ -328,6 +330,8 @@ export const translations = {
 
     // Wallpaper (background picker)
     settingsWallpaper: "壁纸",
+    settingsGlass: "玻璃",
+    glassHint: "所有浮层表面的通透程度",
     wallpaperTitle: "壁纸",
     wallpaperClose: "关闭壁纸选择器",
     wallpaperChoose: "环境",
