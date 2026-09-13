@@ -157,7 +157,7 @@ function TrackList({
                   {Array.from({ length: 8 }).map((_, i) => (
                     <div key={i} className="flex items-center gap-3 px-3 py-2">
                       <span className="w-5" />
-                      <span className="h-9 w-16 rounded-md bg-muted animate-pulse shrink-0" />
+                      <span className="size-10 rounded-md bg-muted animate-pulse shrink-0" />
                       <span className="flex-1 space-y-1.5">
                         <span className="block h-3.5 w-3/4 rounded bg-muted animate-pulse" />
                         <span className="block h-2.5 w-1/3 rounded bg-muted animate-pulse" />
@@ -190,8 +190,9 @@ function TrackList({
                       )}
                     </span>
 
-                    {/* Thumbnail — 16:9 like YouTube, with icon fallback */}
-                    <span className="relative h-9 w-16 rounded-md overflow-hidden bg-muted/40 shrink-0">
+                    {/* Album art — square, like every other music surface.
+                        YouTube serves 16:9; object-cover crops it. */}
+                    <span className="relative size-10 rounded-md overflow-hidden bg-muted/40 shrink-0">
                       <span className="absolute inset-0 flex items-center justify-center">
                         <ListMusic className="h-3.5 w-3.5 text-muted-foreground/40" />
                       </span>

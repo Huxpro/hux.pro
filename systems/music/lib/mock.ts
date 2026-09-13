@@ -44,14 +44,14 @@ export function setMusicMockEnabled(enabled: boolean): void {
 function mockThumbnail(index: number): string {
   const hue = (index * 47) % 360;
   const svg =
-    `<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'>` +
+    `<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'>` +
     `<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>` +
     `<stop offset='0' stop-color='hsl(${hue},45%,55%)'/>` +
     `<stop offset='1' stop-color='hsl(${(hue + 60) % 360},50%,30%)'/>` +
     `</linearGradient></defs>` +
-    `<rect width='320' height='180' fill='url(%23g)'/>` +
-    `<circle cx='160' cy='90' r='34' fill='rgba(255,255,255,0.25)'/>` +
-    `<circle cx='160' cy='90' r='10' fill='rgba(0,0,0,0.35)'/>` +
+    `<rect width='320' height='320' fill='url(%23g)'/>` +
+    `<circle cx='160' cy='160' r='58' fill='rgba(255,255,255,0.25)'/>` +
+    `<circle cx='160' cy='160' r='16' fill='rgba(0,0,0,0.35)'/>` +
     `</svg>`;
   return `data:image/svg+xml;utf8,${svg.replace(/#/g, "%23")}`;
 }
