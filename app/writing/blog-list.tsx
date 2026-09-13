@@ -2,20 +2,12 @@
 
 import { PageLayout } from "@/components/ui/page-layout";
 import { LanguageFilter, PostList } from "@/components/post";
-import type { BlogPost } from "@/lib/content";
+import { formatPostDate, type BlogPost } from "@/lib/content";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useCallback } from "react";
 
 interface BlogPostListProps {
   posts: BlogPost[];
-}
-
-// Format date like "oct 2024"
-function formatDate(dateStr: string) {
-  const date = new Date(dateStr);
-  return date
-    .toLocaleDateString("en-US", { month: "short", year: "numeric" })
-    .toLowerCase();
 }
 
 export function BlogPostList({ posts }: BlogPostListProps) {
@@ -55,7 +47,7 @@ export function BlogPostList({ posts }: BlogPostListProps) {
         posts={posts}
         basePath="/writing"
         includeOther={includeOther}
-        renderMeta={(post) => <time>{formatDate(post.date)}</time>}
+        renderMeta={(post) => <time>{formatPostDate(post.date)}</time>}
       />
     </PageLayout>
   );

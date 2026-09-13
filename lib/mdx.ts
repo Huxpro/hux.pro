@@ -362,6 +362,7 @@ export function getBlogPostBySlug(slug: string): BlogPostWithContent | null {
     // value covers both locales (`data` already falls back to zh for zh-only).
     coverFit: (data.coverFit as BlogPost["coverFit"]) || undefined,
     coverAspect: (data.coverAspect as string) || undefined,
+    featured: data.featured === true || zhData.featured === true || undefined,
     content,
     contentZh,
     // Verbatim frontmatter per locale for the devtool inspector.

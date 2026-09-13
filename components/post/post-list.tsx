@@ -200,7 +200,9 @@ export function PostList<T extends Post>({
                 </h2>
               </div>
 
-              <span className="font-mono text-xs text-muted-foreground shrink-0">
+              {/* Same tier as a commit row's date on /works (muted/50) so the
+                  writing list and the log read as one metadata register. */}
+              <span className="font-mono text-xs text-muted-foreground/50 shrink-0">
                 {renderMeta
                   ? renderMeta(post)
                   : getLocalizedReadingTime(post, locale)}

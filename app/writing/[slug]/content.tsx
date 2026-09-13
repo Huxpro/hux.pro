@@ -2,7 +2,7 @@
 
 import { PostContent } from "@/components/post";
 import { useVisitor } from "@/services";
-import type { PostLanguage } from "@/lib/content";
+import { formatPostDate, type PostLanguage } from "@/lib/content";
 import type { Locale } from "@/lib/i18n";
 import { useRef, type ReactNode } from "react";
 
@@ -17,13 +17,6 @@ interface BlogPostContentProps {
   origin?: string;
   originZh?: string;
   children: ReactNode;
-}
-
-function formatDate(dateStr: string) {
-  const date = new Date(dateStr);
-  return date
-    .toLocaleDateString("en-US", { month: "short", year: "numeric" })
-    .toLowerCase();
 }
 
 export function BlogPostContent({
@@ -63,7 +56,7 @@ export function BlogPostContent({
       readingTimeZh={readingTimeZh}
       backHref="/writing"
       backLabel="/writing"
-      headerMeta={<time>{formatDate(date)}</time>}
+      headerMeta={<time>{formatPostDate(date)}</time>}
       origin={origin}
       originZh={originZh}
       toc
