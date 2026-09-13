@@ -148,6 +148,13 @@ type GradientGeometry = {
   linear: { end: number };
 };
 
+/** Pixel radials sized for a Settings 16:10 thumbnail (~220×140). */
+const COMPACT_GEOMETRY: GradientGeometry = {
+  r1: { w: 160, h: 96, x: 22, y: 18, fade: 78 },
+  r2: { w: 168, h: 100, x: 78, y: 8, fade: 74 },
+  linear: { end: 78 },
+};
+
 const GEOMETRY: Record<"weather" | "sunrise" | "sunset", GradientGeometry> = {
   weather: {
     r1: { w: 900, h: 500, x: 20, y: 10, fade: 70 },
@@ -181,6 +188,8 @@ export function getWeatherGradient(params: {
   condition: WeatherCondition;
   isDay?: boolean;
   theme: "light" | "dark";
+  /** Smaller radials so a Settings card still shows the two-color wash. */
+  compact?: boolean;
 }): WeatherGradient {
   const isDay = params.isDay ?? true;
   const palette = WEATHER_PALETTE[params.condition];
@@ -188,7 +197,10 @@ export function getWeatherGradient(params: {
   const colors = params.theme === "dark" ? timeSlot.dark : timeSlot.light;
 
   return {
-    backgroundImage: buildGradient(colors, GEOMETRY.weather),
+    backgroundImage: buildGradient(
+      colors,
+      params.compact ? COMPACT_GEOMETRY : GEOMETRY.weather
+    ),
   };
 }
 

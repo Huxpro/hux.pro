@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { useWeather } from "@/systems/ambient";
+import { getWeatherGradient, useWeather } from "@/systems/ambient";
 import { ArrowLeft, Check } from "lucide-react";
 import {
   getWallpaperPairsBySource,
@@ -68,9 +68,22 @@ function TileCaption({ name, meta }: { name: string; meta: string }) {
 
 function WeatherTile() {
   const { locale } = useLocale();
-  const { gradient, setGradientMode } = useWeather();
+  const { weather, setGradientMode } = useWeather();
   const { kind, selectWeather } = useWallpaper();
   const selected = kind === "weather";
+  const condition = weather?.condition ?? "clear";
+  const lightPreview = getWeatherGradient({
+    condition,
+    isDay: true,
+    theme: "light",
+    compact: true,
+  }).backgroundImage;
+  const darkPreview = getWeatherGradient({
+    condition,
+    isDay: false,
+    theme: "dark",
+    compact: true,
+  }).backgroundImage;
 
   return (
     <div className="group min-w-0">
@@ -85,19 +98,17 @@ function WeatherTile() {
           aria-label={t(locale, "wallpaperWeather")}
           className="absolute inset-0 overflow-hidden"
         >
-          {/* Scale the viewport-sized weather gradient into the 16:10 card so
-              the 900px radials match the homepage instead of washing out. */}
+          {/* Same light | dark split as pair tiles. Compact radials keep the
+              live condition readable at 16:10 instead of a blank wash. */}
           <span
             aria-hidden
-            className="pointer-events-none absolute left-0 top-0 h-[100vh] w-[100vw] origin-top-left"
-            style={
-              gradient
-                ? {
-                    backgroundImage: gradient,
-                    transform: "scale(calc(100cqw / 100vw))",
-                  }
-                : undefined
-            }
+            className="absolute inset-y-0 left-0 w-1/2"
+            style={{ backgroundImage: lightPreview }}
+          />
+          <span
+            aria-hidden
+            className="absolute inset-y-0 right-0 w-1/2"
+            style={{ backgroundImage: darkPreview }}
           />
         </button>
       </TileChrome>
