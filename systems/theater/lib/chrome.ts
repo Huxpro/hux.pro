@@ -36,13 +36,13 @@ export const GLASS_CLUSTER = cn(
  */
 export const GLASS_TRACK_FLAT = cn(
   "border border-border/30 bg-foreground/[0.03]",
-  "dark:border-white/6 dark:bg-white/[0.03]",
+  "dark:border-white/5 dark:bg-white/[0.02]",
   "backdrop-blur-xl",
   "transition-[background-color,border-color,box-shadow] duration-200",
   "hover:border-border/50 hover:bg-foreground/[0.08]",
   "group-hover:border-border/50 group-hover:bg-foreground/[0.08]",
-  "dark:hover:border-white/10 dark:hover:bg-white/[0.06]",
-  "dark:group-hover:border-white/10 dark:group-hover:bg-white/[0.06]",
+  "dark:hover:border-white/8 dark:hover:bg-white/[0.05]",
+  "dark:group-hover:border-white/8 dark:group-hover:bg-white/[0.05]",
 );
 
 export const GLASS_CLUSTER_FLAT = cn(
@@ -108,8 +108,8 @@ export const GLASS_ON_DARK_ORB = cn(
  * (dim / frameless track + dark stamp). Not the brighter window-toolbar glass.
  */
 export const GLASS_ON_DARK_TRACK = cn(
-  "border border-white/6 bg-white/[0.03] backdrop-blur-xl",
-  "hover:border-white/10 hover:bg-white/[0.06]",
+  "border border-white/5 bg-white/[0.02] backdrop-blur-xl",
+  "hover:border-white/8 hover:bg-white/[0.05]",
 );
 
 /** Always-dark theater: dark selected stamp, not a white chip. */
