@@ -515,6 +515,16 @@ html.dragging * {
   @apply my-8 rounded-lg;
 }
 
+/* Inline SVG diagrams authored directly in MDX (theme-adaptive via
+   currentColor — an <img src="*.svg"> can't inherit the page color, which is
+   why these stay inline). Flag with data-bleed="true" to opt into the same
+   desktop bleed treatment as images below. */
+.prose-article svg[data-bleed="true"]:not(:where(.not-prose, .not-prose *)) {
+  @apply my-8;
+  width: 100%;
+  height: auto;
+}
+
 /* Raw embeds (e.g. YouTube <iframe>) authored directly in MDX.
    The hardcoded width/height attributes overflow the viewport on mobile,
    so force a responsive 16:9 box that never exceeds the content width. */
@@ -538,7 +548,8 @@ html.dragging * {
    iframe is locked to 16:9 by the base rule above. */
 @media (min-width: 900px) {
   .prose-article iframe:not(:where(.not-prose, .not-prose *)),
-  .prose-article img[data-bleed="true"]:not(:where(.not-prose, .not-prose *)) {
+  .prose-article img[data-bleed="true"]:not(:where(.not-prose, .not-prose *)),
+  .prose-article svg[data-bleed="true"]:not(:where(.not-prose, .not-prose *)) {
     width: min(60rem, 100vw - 14rem);
     max-width: none;
     margin-left: 50%;
@@ -553,7 +564,10 @@ html.dragging * {
     iframe:not(:where(.not-prose, .not-prose *)),
   :root[data-bleed-off]
     .prose-article
-    img[data-bleed="true"]:not(:where(.not-prose, .not-prose *)) {
+    img[data-bleed="true"]:not(:where(.not-prose, .not-prose *)),
+  :root[data-bleed-off]
+    .prose-article
+    svg[data-bleed="true"]:not(:where(.not-prose, .not-prose *)) {
     width: 100%;
     max-width: 100%;
     margin-left: 0;

@@ -1,0 +1,254 @@
+---
+title: "nextTick 的账单"
+description: "The Bill for nextTick — 当 Vue 的时间承诺遇上双线程"
+date: "2026-07-16"
+tags: ["Web", "Vue", "React", "Lynx"]
+---
+
+最近在给 [vue-lynx](https://github.com/Huxpro/vue-lynx)（我把 Vue 3 移植到 [Lynx](https://lynxjs.org) 上的自定义渲染器）修 bug 时，撞上了一个诡异的现象：页面渲染一切正常，数据也在流动，但所有路由转场永远停在半路——`await nextTick()` 之后的代码，一行都没有执行过。
+
+追这个 bug 的过程，最后把我引向了一个比它大得多的问题：**框架应该向用户承诺「时间」吗？**
+
+## 一、永远等不到的回执
+
+交代一下背景。Lynx 是双线程架构：你的 Vue 代码跑在 Background Thread（BG）上，操作的只是一棵内存里的影子树；真正的原生元素活在 Main Thread（MT）上。BG 把变更打包成一批 ops，通过 `callLepusMethod('vuePatchUpdate', ops, callback)` **异步**地寄过线程边界。
+
+标准 Vue 的 `nextTick()` 只需要等调度器 flush——因为 DOM 变更是同步的，flush 完 DOM 就真的更新完了，用户可以放心测量布局。但在 vue-lynx 里，flush 完成只意味着 ops「已寄出」。如果 `nextTick` 在这里就 resolve，用户接着查询元素就会扑空。所以 vue-lynx 的 `nextTick` 多等一程：把 `callLepusMethod` 的回调当作回执（ack），等主线程真正应用完再兑现。
+
+<svg viewBox="0 0 720 368" data-bleed="true" role="img" aria-label="vue-lynx 双线程 flush 时序图">
+  <defs>
+    <marker id="ah-solid" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+    </marker>
+    <marker id="ah-dash" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" opacity="0.55" />
+    </marker>
+  </defs>
+  <g fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace" fontSize="12">
+    <rect x="115" y="16" width="170" height="44" rx="4" fill="none" stroke="currentColor" opacity="0.6" />
+    <text x="200" y="34" textAnchor="middle" fill="currentColor">Background Thread</text>
+    <text x="200" y="50" textAnchor="middle" fill="currentColor" opacity="0.55" fontSize="11">Vue runtime · 影子树</text>
+    <rect x="455" y="16" width="170" height="44" rx="4" fill="none" stroke="currentColor" opacity="0.6" />
+    <text x="540" y="34" textAnchor="middle" fill="currentColor">Main Thread</text>
+    <text x="540" y="50" textAnchor="middle" fill="currentColor" opacity="0.55" fontSize="11">原生 Lynx 元素</text>
+    <line x1="200" y1="60" x2="200" y2="352" stroke="currentColor" strokeDasharray="4 4" opacity="0.3" />
+    <line x1="540" y1="60" x2="540" y2="352" stroke="currentColor" strokeDasharray="4 4" opacity="0.3" />
+    <circle cx="200" cy="96" r="4" fill="currentColor" />
+    <text x="184" y="100" textAnchor="end" fill="currentColor">count.value++（同步返回）</text>
+    <circle cx="200" cy="140" r="4" fill="currentColor" />
+    <text x="184" y="144" textAnchor="end" fill="currentColor">调度器 flush · 打包 ops</text>
+    <text x="184" y="162" textAnchor="end" fill="currentColor" opacity="0.55" fontSize="11">标准 Vue 在此即 resolve</text>
+    <line x1="200" y1="196" x2="533" y2="196" stroke="currentColor" markerEnd="url(#ah-solid)" />
+    <text x="366" y="188" textAnchor="middle" fill="currentColor">callLepusMethod(vuePatchUpdate, ops, cb)</text>
+    <rect x="533" y="196" width="14" height="70" rx="2" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeOpacity="0.5" />
+    <text x="558" y="226" fill="currentColor">applyOps()</text>
+    <text x="558" y="244" fill="currentColor" opacity="0.55" fontSize="11">创建 / 更新原生元素</text>
+    <line x1="533" y1="266" x2="207" y2="266" stroke="currentColor" strokeDasharray="5 4" opacity="0.55" markerEnd="url(#ah-dash)" />
+    <text x="366" y="288" textAnchor="middle" fill="currentColor" opacity="0.7">回执 ack — cb()</text>
+    <circle cx="200" cy="330" r="5" fill="currentColor" />
+    <text x="216" y="334" fill="currentColor">vue-lynx 的 nextTick 在此 resolve ✓</text>
+    <path d="M 660 196 C 676 196 676 196 676 214 L 676 248 C 676 266 676 266 660 266" fill="none" stroke="currentColor" opacity="0.4" />
+    <text x="700" y="222" textAnchor="middle" fill="currentColor" opacity="0.55" fontSize="11" transform="rotate(90 700 222)">这段距离在 DOM 上不存在</text>
+  </g>
+</svg>
+
+而这个 bug 的真相是：我们测试用的那台 source build 的 Explorer，`vuePatchUpdate` 被成功地应用了，**但回调从来没有被调用过**。回执永远不来，promise 永远 pending，转场永远卡死。
+
+修法看起来很简单：加一个 50ms 的兜底 timer，等不到回执就自己 resolve。但 code review 立刻指出了问题——无条件的兜底，等于**拿所有引擎上的正确性去换个别引擎上的活性（liveness）**：健康引擎应用一个大批次超过 50ms 时（低端设备首屏很常见），timer 会抢先 resolve，用户又会查询到尚未物化的元素，而且这比卡死难排查得多。最终落地的是一个锁存（latch）：
+
+```ts
+// 一旦观察到引擎回过一次真实回执，就永久信任它，不再挂兜底 timer
+app?.callLepusMethod?.('vuePatchUpdate', { data }, () => {
+  engineAckObserved = true;  // 健康引擎从此回到严格保证
+  ack.resolve();
+});
+```
+
+回头看这条复杂度链，每一层都是被现实逼出来的：
+
+```text
+异步线程边界      →  需要回执，保住 nextTick 的语义
+引擎不回执        →  需要兜底 timer，保住活性
+timer 误伤健康引擎 →  需要 latch，只对坏引擎降级
+```
+
+写完这段代码之后，一个问题开始萦绕不去：ReactLynx 每天在生产环境里跑，**它怎么没被这个引擎缺陷咬到？**
+
+## 二、React 从未签过这份合同
+
+去上游 [lynx-stack](https://github.com/lynx-family/lynx-stack) 里翻 ReactLynx 的源码，答案让我愣了一下。同一个回调就在那里——ReactLynx 发 patch 也走 `callLepusMethod`：
+
+```js
+// @lynx-js/react — lifecycle/patch/commit.js
+lynx.getNativeApp().callLepusMethod(LifecycleConstant.patchUpdate, obj, () => {
+  const commitTask = globalCommitTaskMap.get(commitTaskId);
+  if (commitTask) {
+    commitTask();  // 延迟回收已移除的 snapshot 实例
+    globalCommitTaskMap.delete(commitTaskId);
+  }
+});
+```
+
+但这个回调只做一件事：清理。它不兑现任何用户可见的 promise。整个 ReactLynx runtime 里没有 `nextTick`、没有 `waitForFlush`、没有任何「等主线程应用完」的公开 API。
+
+于是同一个引擎缺陷砸在两个框架上，后果天差地别：在 ReactLynx 里，是一次无人察觉的延迟回收；在 vue-lynx 里，是用户可见的死锁。**区别不在实现，在契约——React 不是解决了这个问题，而是从未签过这份合同。**
+
+## 三、等时间，还是占位置
+
+为什么 React 敢不签？这要回到两个框架的状态模型。
+
+Vue 的响应式基于可变数据（mutation）：`count.value++` 是同步的命令式写入，DOM 效果却被批到 microtask 里。**写入同步、生效异步**，中间这条时间缝隙用户是感知得到的，框架必须给个交代。`nextTick` 就是那个交代——它本质上是把宿主的 event loop 直接暴露给了用户：「我保证，这个 microtask 之后，你的修改已经落在 DOM 上」。在浏览器里，这个承诺几乎免费：DOM 变更本来就是同步的，框架只需要在自己的 watcher 队列排干之后放行。
+
+React 从第一天起就把 `setState` 定义成「**请求**一次重渲染」而不是「修改状态」——state is a snapshot。API 从没承诺过「什么时候生效」，所以也不欠用户一个时间性的答案。React 给的是**位置性**的答案：不告诉你「何时刷完」，而是提供一些保证站在「已提交」这个位置上的钩子——`ref` 回调、`useLayoutEffect`、`useEffect`。你不能 `await` 到那个时刻，但你可以把代码**放置**在那个时刻。
+
+<svg viewBox="0 0 720 312" data-bleed="true" role="img" aria-label="等时间与占位置两种 API 形态的对比">
+  <defs>
+    <marker id="ah-cmp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+    </marker>
+  </defs>
+  <g fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace" fontSize="12">
+    <line x1="360" y1="24" x2="360" y2="288" stroke="currentColor" opacity="0.15" />
+    <text x="40" y="40" fill="currentColor" fontSize="13">Vue — 等时间（temporal）</text>
+    <line x1="40" y1="176" x2="316" y2="176" stroke="currentColor" opacity="0.5" markerEnd="url(#ah-cmp)" />
+    <circle cx="72" cy="176" r="4" fill="currentColor" />
+    <text x="72" y="200" textAnchor="middle" fill="currentColor" opacity="0.7" fontSize="11">状态写入</text>
+    <circle cx="160" cy="176" r="4" fill="currentColor" />
+    <text x="160" y="200" textAnchor="middle" fill="currentColor" opacity="0.7" fontSize="11">flush</text>
+    <circle cx="252" cy="176" r="5" fill="currentColor" />
+    <text x="252" y="200" textAnchor="middle" fill="currentColor" fontSize="11">宿主应用完成</text>
+    <path d="M 96 96 C 180 96 252 116 258 164" fill="none" stroke="currentColor" opacity="0.6" strokeDasharray="5 4" markerEnd="url(#ah-cmp)" />
+    <text x="88" y="86" fill="currentColor">await nextTick()</text>
+    <text x="40" y="268" fill="currentColor" opacity="0.55" fontSize="11">用户代码等到「那个时刻」</text>
+    <text x="404" y="40" fill="currentColor" fontSize="13">React — 占位置（positional）</text>
+    <rect x="404" y="72" width="130" height="36" rx="4" fill="none" stroke="currentColor" opacity="0.45" />
+    <text x="469" y="94" textAnchor="middle" fill="currentColor" opacity="0.7">render</text>
+    <rect x="404" y="124" width="130" height="36" rx="4" fill="none" stroke="currentColor" />
+    <text x="469" y="146" textAnchor="middle" fill="currentColor">commit</text>
+    <rect x="404" y="176" width="130" height="36" rx="4" fill="none" stroke="currentColor" opacity="0.45" />
+    <text x="469" y="198" textAnchor="middle" fill="currentColor" opacity="0.7">passive effects</text>
+    <line x1="469" y1="108" x2="469" y2="122" stroke="currentColor" opacity="0.5" markerEnd="url(#ah-cmp)" />
+    <line x1="469" y1="160" x2="469" y2="174" stroke="currentColor" opacity="0.5" markerEnd="url(#ah-cmp)" />
+    <line x1="560" y1="142" x2="538" y2="142" stroke="currentColor" opacity="0.6" strokeDasharray="5 4" markerEnd="url(#ah-cmp)" />
+    <text x="568" y="138" fill="currentColor" fontSize="11">ref 回调</text>
+    <text x="568" y="154" fill="currentColor" fontSize="11">useLayoutEffect</text>
+    <line x1="560" y1="194" x2="538" y2="194" stroke="currentColor" opacity="0.6" strokeDasharray="5 4" markerEnd="url(#ah-cmp)" />
+    <text x="568" y="198" fill="currentColor" fontSize="11">useEffect</text>
+    <text x="404" y="268" fill="currentColor" opacity="0.55" fontSize="11">用户代码被放进「那个位置」</text>
+  </g>
+</svg>
+
+这不是洁癖，而是为调度器保留自由度的深思熟虑。如果 React 承诺了「`await` 之后宿主树一定反映你的更新」，后来的一切都做不成：跨事件的 automatic batching、可中断可重启的并发渲染、transition 的优先级车道——在并发模型里，一次更新可能被打断、重放、被更高优先级超越，甚至**不存在一个良定义的「after」**。时间性的 API 一旦发布，就会被 Hyrum's Law 锁死：总有用户代码依赖「microtask 后一切就绪」，调度器从此再也不能变。React 把调度视为核心竞争力（Fiber 的全部意义），代价就是绝不出售 timing——唯一的例外 `flushSync`，被刻意起了个吓人的名字放在文档的角落里。
+
+而这份克制换来的最大红利是**可移植性**。React Native 和 Lynx 是同构问题：JS 线程与 UI 线程之间隔着一座异步的桥。因为 React 从没承诺过「何时上屏」，同一套心智模型搬到 RN 上几乎零破损——测量布局走异步的 measure 回调，和 DOM 版的心智一致。Vue 的 `nextTick` 契约在浏览器上几乎免费，但搬到异步双线程上，就要**在最贵的环境里兑现最强的承诺**。这就是那张账单。React 通过从不签合同，躲掉了大部分账期——「几乎」和「大部分」这两个限定词，下一节展开。
+
+## 四、当「位置」也过不了桥
+
+写到这里，好像「占位置」全是优点。但位置性 API 有一个隐藏前提：**那个位置必须真的存在于你的线程上。**
+
+`useLayoutEffect` 的承诺是「DOM 已更新、浏览器尚未绘制」——站在这个位置上，你可以同步测量布局、再同步改一次样式，用户看不到中间帧。React 官方的 Tooltip 例子就靠它：先渲染在默认位置，测量，发现放不下，翻到另一侧，而这一切发生在一次绘制之前。
+
+这个承诺在浏览器里成立，是因为 layout 和 JavaScript 住在同一根线程上，`getBoundingClientRect()` 可以强制同步排版。而在 pre-Fabric 的 React Native 上，这个位置根本不存在：`useLayoutEffect` 确实在 commit 后同步执行了，但此刻它身处 JS 线程——真正的视图还在异步桥的另一头排队，Yoga 还没跑，`measure()` 只能给你一个异步回调。于是「测量、再定位」必然横跨两帧，tooltip 闪一下，是那个年代 RN 开发者的集体记忆。**位置性 API 的时刻表是照着同步宿主排的；桥一异步，时刻表作废。**这也是 Fabric 重写渲染器的卖点之一：C++ 共享的 Shadow Tree 加上 JSI 同步调用，让「在 `useLayoutEffect` 里同步测量、赶在这一帧显示前再渲染一次」重新成为可能——React 花了一整代架构，才把这个「位置」在异步宿主上重新造出来。
+
+值得较真一下 Fabric 到底「造」出了什么。新架构把 Shadow Tree 挪进 C++（两根线程共享的不可变树），用 JSI 取代异步桥，于是 commit 期间 Yoga 布局同步完成，`useLayoutEffect` 里的 `measure()` 通过 JSI 同步读到刚提交的树；在里面 `setState`，React 走同步 lane 立刻再来一轮。对应关系是：浏览器里的「两次 render、两次 DOM commit、一次 paint」，在 Fabric 里变成「**两次 render、两次 shadow commit、一次 frame**」——React 语义上的 commit 发生了两次，用户可见的上屏只有一次。代价也和浏览器完全一致：双倍工作必须塞进一帧的预算，塞不进就是掉帧（jank）而不是闪烁（flicker）。Fabric 忠实复刻了 `useLayoutEffect`，连缺点都一起复刻了。
+
+<svg viewBox="0 0 720 448" data-bleed="true" role="img" aria-label="浏览器与 Fabric 下 useLayoutEffect 的时序对比">
+  <defs>
+    <marker id="ah-fab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+    </marker>
+    <marker id="ah-fab-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" opacity="0.35" />
+    </marker>
+  </defs>
+  <g fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace" fontSize="11">
+    <text x="40" y="36" fill="currentColor" fontSize="13">浏览器 — 单线程</text>
+    <line x1="40" y1="96" x2="688" y2="96" stroke="currentColor" opacity="0.35" markerEnd="url(#ah-fab-dim)" />
+    <rect x="58" y="83" width="76" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="96" y="100" textAnchor="middle" fill="currentColor" opacity="0.8">render ①</text>
+    <rect x="146" y="83" width="96" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="194" y="100" textAnchor="middle" fill="currentColor" opacity="0.8">commit ①·DOM</text>
+    <text x="332" y="74" textAnchor="middle" fill="currentColor" opacity="0.55" fontSize="10">useLayoutEffect</text>
+    <rect x="254" y="83" width="156" height="26" rx="4" fill="var(--background)" stroke="currentColor" />
+    <text x="332" y="100" textAnchor="middle" fill="currentColor">measure + setState</text>
+    <rect x="422" y="83" width="76" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="460" y="100" textAnchor="middle" fill="currentColor" opacity="0.8">render ②</text>
+    <rect x="510" y="83" width="96" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="558" y="100" textAnchor="middle" fill="currentColor" opacity="0.8">commit ②·DOM</text>
+    <circle cx="646" cy="96" r="5" fill="currentColor" />
+    <text x="646" y="126" textAnchor="middle" fill="currentColor">paint ✓</text>
+    <text x="40" y="156" fill="currentColor" opacity="0.55">两次 render · 两次 commit · 一次 paint —— 全部压在一次绘制之前</text>
+    <text x="40" y="212" fill="currentColor" fontSize="13">Fabric — 双线程</text>
+    <text x="40" y="248" fill="currentColor" opacity="0.5" fontSize="10">JS 线程</text>
+    <line x1="40" y1="272" x2="688" y2="272" stroke="currentColor" opacity="0.35" markerEnd="url(#ah-fab-dim)" />
+    <rect x="58" y="259" width="72" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="94" y="276" textAnchor="middle" fill="currentColor" opacity="0.8">render ①</text>
+    <rect x="140" y="259" width="122" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="201" y="276" textAnchor="middle" fill="currentColor" opacity="0.8">commit ①·Yoga 布局</text>
+    <text x="358" y="250" textAnchor="middle" fill="currentColor" opacity="0.55" fontSize="10">useLayoutEffect</text>
+    <rect x="262" y="259" width="192" height="26" rx="4" fill="var(--background)" stroke="currentColor" />
+    <text x="358" y="276" textAnchor="middle" fill="currentColor">measure（JSI 同步）+ setState</text>
+    <rect x="462" y="259" width="72" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="498" y="276" textAnchor="middle" fill="currentColor" opacity="0.8">render ②</text>
+    <rect x="544" y="259" width="100" height="26" rx="4" fill="var(--background)" stroke="currentColor" opacity="0.6" />
+    <text x="594" y="276" textAnchor="middle" fill="currentColor" opacity="0.8">commit ②·布局</text>
+    <text x="40" y="348" fill="currentColor" opacity="0.5" fontSize="10">UI 线程</text>
+    <line x1="40" y1="372" x2="688" y2="372" stroke="currentColor" opacity="0.35" markerEnd="url(#ah-fab-dim)" />
+    <line x1="201" y1="285" x2="266" y2="357" stroke="currentColor" strokeDasharray="4 4" opacity="0.3" markerEnd="url(#ah-fab-dim)" />
+    <rect x="238" y="359" width="88" height="26" rx="4" fill="var(--background)" stroke="currentColor" strokeDasharray="4 4" opacity="0.3" />
+    <text x="282" y="376" textAnchor="middle" fill="currentColor" opacity="0.35">mount ①</text>
+    <text x="282" y="404" textAnchor="middle" fill="currentColor" opacity="0.4" fontSize="10">中间树 · 未上屏</text>
+    <line x1="594" y1="285" x2="600" y2="357" stroke="currentColor" opacity="0.6" markerEnd="url(#ah-fab)" />
+    <rect x="558" y="359" width="88" height="26" rx="4" fill="var(--background)" stroke="currentColor" />
+    <text x="602" y="376" textAnchor="middle" fill="currentColor">mount ②</text>
+    <circle cx="672" cy="372" r="5" fill="currentColor" />
+    <text x="664" y="404" textAnchor="middle" fill="currentColor">frame ✓</text>
+    <text x="40" y="436" fill="currentColor" opacity="0.55">两次 render · 两次 shadow commit · 一次 frame —— 中间树永远不被显示</text>
+  </g>
+</svg>
+
+但也仅此而已。事件依然要跨线程送回 JS 排队，JS 依然是那根唯一的、会忙的线程，渲染的指挥中心也依然在 JS——Fabric 重造的是「commit 之后能同步读布局」这一个位置，而不是线程本身的消失。手势跟手、逐帧动画这类 frame-time 的需求，它无能为力；证据是 Reanimated 的 worklet（把 JS 函数搬到 UI 线程逐帧执行）在 Fabric 时代不仅没有退役，反而成了正统。说得刻薄一点，「线程不感知」在这里多少有点偷换命题的味道：Fabric 解决的是「布局数据在哪根线程」，而真正的问题——**你的代码在哪根线程**——原封不动。
+
+于是 Fabric 时代的 RN 实际上是一套新的双轨制：commit-time 的工作走「占位置」，槽位被造在了你的线程上；frame-time 的工作走「搬代码」，worklet 把你送到 UI 线程去。
+
+Lynx 则走了另一条双轨制，方向感与 Fabric 相反：**它不向程序员隐藏线程，而是把双线程这个「问题」直接摊开，连同解决它的能力一起交出来。**MTS（Main Thread Script）允许把一小段函数标记为 `'main thread'`，搬到主线程上执行——比如直接响应 [`main-thread:bindlayoutchange`](https://lynxjs.org/react/lifecycle.html)：布局结果就在手边，同步读、同步改，一帧之内完成；frame-time 和 commit-time 在这里本来就是同一根时间线，不需要两套机制。所以 ReactLynx 干脆宣布不支持 `useLayoutEffect`（所有生命周期都在 BG 线程异步执行），官方文档把 React 那个 Tooltip 例子原样重写成了 MTS 版：
+
+```jsx
+<view
+  main-thread:bindlayoutchange={(e) => {
+    'main thread';
+    // 布局刚刚完成——这里就是「那个位置」，只是它在主线程上
+    measureAndReposition(e);
+  }}
+/>
+```
+
+这条路线的前身正是 RN 社区的 Reanimated——Lynx 把 worklet 从社区补丁扶正成了框架的一等公民。把 programmability 交出来，也就把能力彻底交出来了；赌注则押在**架构约束**上：worklet 必须显式标记、闭包能捕获什么有一套明确规则、跨线程通信走受控的通道——用限制去引导正确的写法，迫近可组合性，而不是假装线程不存在。
+
+于是那张对比图上其实有三格，而不是两格：
+
+- **等时间（Vue）**：让时刻穿过桥来找你的代码——桥必须给回执，于是有了 ack 和 latch；
+- **占位置（React）**：把代码放在时刻的槽位上——槽位必须在你的线程上存在，于是有了 Fabric；而 Fabric 只造出了 commit-time 的槽位；
+- **搬代码（MTS / worklet）**：干脆把代码送到时刻所在的线程——代价是这段代码离开了你的组件世界，闭包、状态、能 import 什么，全部要重新立规矩。
+
+第三格也不免费：worklet 是一段被序列化后传送过桥的孤岛，它看得见布局，却摸不到你的 store。但它揭示了这场讨论的底层不变量——**「时刻」只诞生在布局发生的那根线程上。你可以等它的信使（ack），可以订它的座位（effect），也可以亲自搬过去住（worklet），但没有任何框架魔法能让同一个时刻同时存在于两根线程上。**
+
+## 五、没有免费的一边
+
+说到这里，必须替 Vue 说句公道话：它的选择同样自洽，而非「没抽象好」。
+
+Vue 的血统里有 jQuery 时代的渐进增强——「改完就测」的命令式互操作是一等公民，template ref 拿到的就是裸元素。而且细粒度响应式让「flush 之后」这个时刻**良定义且便宜**：watcher 队列在一个 microtask 里排干，确实存在一个确定的「after」可以卖。Vue 卖了这个承诺，因为在它的模型里，它卖得起。
+
+React 的做法也远非免费——复杂度只是换了个地方付账：`useEffect` 与 `useLayoutEffect` 的时序困惑、「为什么我测到的布局是旧的」、ref 回调的心智负担，以及那个不得不存在的 `flushSync`。**一边是框架在内部消化时序（vue-lynx 里那一百行 flush.ts），一边是把时序困惑分摊给每一个用户。复杂度不会消失，只会转移。**
+
+## 尾声
+
+给 Vue 的用户和实现者留一个观察：如果有一天 Vue 走向可中断的并发渲染，`nextTick` 那个「确定的 after」会先于一切成为障碍——到时候大概也得走 React 的老路，引导用户从「等时间」迁移到「占位置」。也许再过几年，`nextTick` 会像今天的 `flushSync` 一样，顶着一个劝退的名字活在文档的角落里。
+
+而对我自己，这次最大的收获是换了一副眼镜：**评价一个 API，不只看它给了用户什么能力，还要看它替框架签下了什么合同。**有些合同在签订的那天几乎免费，利息却要在十年后的另一个宿主环境里才开始计——
+
+`nextTick` 的账单，是我在 Lynx 上替 Vue 付的。
+
+---
+
+*本文的工程细节来自 [vue-lynx#226](https://github.com/Huxpro/vue-lynx/pull/226)。从 code review、上游源码考据到行文成稿，与 Claude 协作完成。*
