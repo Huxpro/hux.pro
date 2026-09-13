@@ -1,5 +1,7 @@
 "use client";
 
+import type { CSSProperties } from "react";
+
 import { cn } from "@/lib/utils";
 import { useWallpaper, useWeather } from "../provider";
 import { GradientStack } from "./gradient-stack";
@@ -26,7 +28,7 @@ interface WallpaperBackgroundProps {
 
 export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   const { gradientLayers, edgeFadeMask } = useWeather();
-  const { opacity, veil, blurred } = useWallpaper();
+  const { opacity, veil, vignette, blurred } = useWallpaper();
 
   if (gradientLayers.length === 0) return null;
 
@@ -52,17 +54,22 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         <GradientStack layers={gradientLayers} edgeMask={edgeFadeMask} />
       </div>
 
-      {/* The veil, and an edge vignette under it that recedes the picture at
-          the margins so the reading column reads as the figure. Full-bleed —
-          no card, no radius. */}
+      {/* Two overlays, and the split is the whole point: a flat wash that dims
+          everything equally, and a radial that only dims the margins. Most of
+          the budget sits in the radial, which is what leaves the middle at
+          nearly its own colour while the shoulders fall away. Full-bleed — no
+          card, no radius. */}
       {veil > 0 && (
-        <>
-          <div
-            className="absolute inset-0 bg-background transition-opacity duration-500"
-            style={{ opacity: veil }}
-          />
-          <div className="wallpaper-read-vignette absolute inset-0" />
-        </>
+        <div
+          className="absolute inset-0 bg-background transition-opacity duration-500"
+          style={{ opacity: veil }}
+        />
+      )}
+      {vignette > 0 && (
+        <div
+          className="wallpaper-vignette absolute inset-0 transition-opacity duration-500"
+          style={{ "--wallpaper-vignette": vignette } as CSSProperties}
+        />
       )}
     </div>
   );

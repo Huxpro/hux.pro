@@ -19,6 +19,7 @@ import {
   getWallpaperOrDefault,
   WALLPAPER_OPACITY,
   WALLPAPER_VEIL,
+  WALLPAPER_VIGNETTE,
   type Wallpaper,
   type WallpaperKind,
 } from "./lib/wallpaper";
@@ -127,6 +128,11 @@ interface WallpaperContextType {
    * reading page (or on home with `dimHome` on) and only for image wallpapers.
    */
   veil: number;
+  /**
+   * Alpha of the radial vignette over the wallpaper, at the far corners. This
+   * is where most of the dimming budget lives — see WALLPAPER_VIGNETTE.
+   */
+  vignette: number;
   /** Whether the wallpaper should be defocused right now. */
   blurred: boolean;
   /** The reading/desktop treatment flags, for the devtool. */
@@ -304,15 +310,17 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const pathname = usePathname();
   const reading = isReadingSurface({ kind: settings.wallpaperKind, pathname });
   const isBlurred = isImageKind && reading && settings.wallpaperReadingBlur;
-  const veilAlpha = !isImageKind
-    ? 0
+  const dimming = !isImageKind
+    ? null
     : reading
       ? settings.wallpaperReadingDim
-        ? WALLPAPER_VEIL.reading[theme]
-        : 0
+        ? ("reading" as const)
+        : null
       : settings.wallpaperDimHome
-        ? WALLPAPER_VEIL.scrim[theme]
-        : 0;
+        ? ("scrim" as const)
+        : null;
+  const veilAlpha = dimming ? WALLPAPER_VEIL[dimming][theme] : 0;
+  const vignetteAlpha = dimming ? WALLPAPER_VIGNETTE[dimming][theme] : 0;
 
   // DevTool gradient overrides (ephemeral, not persisted)
   const [devtoolGradientOverrides, setDevtoolGradientOverrides] =
@@ -611,6 +619,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
               variant: theme,
               opacity: wallpaperOpacity,
               veil: veilAlpha,
+              vignette: vignetteAlpha,
               blurred: isBlurred,
               dimHome: settings.wallpaperDimHome,
               setDimHome,

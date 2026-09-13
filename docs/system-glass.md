@@ -90,7 +90,9 @@ made "dim home" mean "make home look like a reading page", which is not what
 anyone wants from it.
 
 `lib/reading-surface.ts` owns the predicate; `wallpaper-background.tsx` applies
-the blur, the veil and the vignette. All three parts are devtool switches
+the blur, the veil and the vignette (the vignette's alpha arrives as the
+`--wallpaper-vignette` custom property, so both strengths stay in
+`lib/wallpaper.ts` with the rest of the numbers). All three parts are devtool switches
 (`Dim home`, `Reading blur`, `Reading dim`) because it is a taste call and the
 only way to settle one is to look at both. The weather gradient opts out
 entirely — it has no detail to compete with.
@@ -157,7 +159,10 @@ The springboard labels turned out not to be a halo problem at all. They were
 drawn in the *secondary* tier, and nothing at `0.36` survives landing on the
 dark green of Sonoma's hillside. An app's name is not metadata, and on a photo
 it has no card to sit on, so `.desktop-label` steps up to the primary label tier
-and carries itself — which is what macOS does with desktop labels. The bloom
-then only has to soften the edge, so it stays small enough not to be seen, and
-it works in **both** themes: the paper colour it blooms in is white in light and
-near-black in dark, which is exactly the halo each one wants.
+and carries itself — which is what macOS does with desktop labels.
+
+That leaves the shadow one job: separate the glyph edge from whatever pixel is
+behind it. It has to stay **tight** — any blur wide enough to matter merges
+between the glyphs and pools into a visible rectangle behind the word, which is
+what 12px did. 2px does the job and cannot pool. It works in both themes,
+because the paper colour it drops is white in light and near-black in dark.

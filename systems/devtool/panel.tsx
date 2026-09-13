@@ -775,6 +775,7 @@ function WallpaperModule() {
     variant,
     opacity,
     veil,
+    vignette,
     blurred,
     src,
     dimHome,
@@ -836,7 +837,8 @@ function WallpaperModule() {
           <span className="text-foreground/80">{now}</span>
           <span className="ml-1.5 text-muted-foreground/50">
             @{opacity.toFixed(2)}
-            {veil > 0 && ` −${veil.toFixed(2)}`}
+            {(veil > 0 || vignette > 0) &&
+              ` −${veil.toFixed(2)}/${vignette.toFixed(2)}`}
             {blurred && " blur"}
           </span>
         </div>
@@ -887,13 +889,19 @@ function WallpaperModule() {
                   className="absolute inset-0 h-full w-full object-cover"
                 />
                 {/* Tall source: the swatch is square, so nothing else in this
-                    grid would tell you the full-size file is a phone crop. */}
+                    grid would tell you the full-size file is a phone crop. Same
+                    chip the picker's sun/moon marks use, so a glyph over
+                    artwork always arrives the same way. */}
                 {w.portrait && (
-                  <Smartphone
+                  <span
                     aria-hidden
-                    className="absolute bottom-0.5 right-0.5 h-2.5 w-2.5 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]"
-                    strokeWidth={2.5}
-                  />
+                    className={cn(
+                      "absolute bottom-0.5 right-0.5 flex size-3.5 items-center justify-center rounded-full",
+                      "bg-black/35 text-white ring-1 ring-white/25 backdrop-blur-[2px]"
+                    )}
+                  >
+                    <Smartphone className="size-2" strokeWidth={2.25} />
+                  </span>
                 )}
               </button>
             );

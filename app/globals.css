@@ -295,22 +295,24 @@ html.wallpaper-image:not(.dark) .ambient-hero {
 }
 
 /* Springboard labels are the harder case, and not because the halo was too
-   weak — a wider, denser one just reads as a grey smudge box behind the word.
+   weak — a wider, denser one just reads as a grey box behind the word. Any
+   blur wide enough to matter merges between the glyphs and stops being a halo
+   at all; 12px was already over that line.
+
    They were failing because they were drawn in the SECONDARY tier, and a
    photograph has dark patches as well as bright ones: nothing at 0.36 survives
-   landing on the dark green of Sonoma's hillside.
+   landing on the dark green of Sonoma's hillside. An app's name is not
+   metadata, and on a photo it has no card to sit on, so it steps up to the
+   primary label tier and carries itself — which is what macOS does with
+   desktop labels.
 
-   An app's name is not metadata, and on a photo it has no card to sit on, so it
-   steps up to the primary label tier and carries itself — which is what macOS
-   does with desktop labels. The bloom then only has to soften the edge, so it
-   stays small enough not to be seen. This one works in both themes: the paper
-   colour it blooms in is white in light and near-black in dark, which is
-   exactly the halo each one wants. */
+   That leaves the shadow with one job: separate the glyph edge from whatever
+   pixel is behind it. 2px does that and is too tight to pool into a box. It
+   works in both themes, because the paper colour it drops is white in light
+   and near-black in dark — the shadow each one wants. */
 html.wallpaper-image .desktop-label {
   color: var(--foreground);
-  text-shadow:
-    0 0.5px 0 color-mix(in oklab, var(--background) 50%, transparent),
-    0 0 12px color-mix(in oklab, var(--background) 65%, transparent);
+  text-shadow: 0 1px 2px color-mix(in oklab, var(--background) 75%, transparent);
 }
 
 /* -----------------------------------------------------------------------------
@@ -320,19 +322,16 @@ html.wallpaper-image .desktop-label {
    veil, with an edge vignette that leaves the prose column as the figure. No
    card, no radius, no boxed article.
 ----------------------------------------------------------------------------- */
-.wallpaper-read-vignette {
+.wallpaper-vignette {
   background: radial-gradient(
     ellipse 72% 62% at 50% 36%,
     transparent 10%,
-    color-mix(in oklab, var(--background) 22%, transparent) 100%
-  );
-}
-
-.dark .wallpaper-read-vignette {
-  background: radial-gradient(
-    ellipse 72% 62% at 50% 36%,
-    transparent 8%,
-    color-mix(in oklab, var(--background) 28%, transparent) 100%
+    color-mix(
+      in oklab,
+      var(--background) calc(var(--wallpaper-vignette, 0.3) * 100%),
+      transparent
+    )
+      100%
   );
 }
 
