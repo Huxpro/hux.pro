@@ -165,7 +165,9 @@ function SortableMasonryItem({
       onContextMenu={(e) => e.preventDefault()}
       // Widgets are tactile objects, not prose — never let a drag turn into a
       // text selection.
-      className="relative mb-4 break-inside-avoid select-none"
+      // The 1.5 inset/outset pair reserves room for the edit-mode remove
+      // badge without changing the card's position (see the badge below).
+      className="relative -mx-1.5 -mt-1.5 px-1.5 pt-1.5 mb-4 break-inside-avoid select-none"
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -192,10 +194,12 @@ function SortableMasonryItem({
           corner while the grid jiggles. Hiding is reversible from the edit
           controls ("show n hidden") and from Reset.
 
-          It sits *inside* the card on purpose: an absolutely positioned child
-          that pokes outside its item box (the iOS "-top-1.5 -left-1.5" look)
-          makes Chromium abandon column balancing and stack every widget in
-          the first column. */}
+          The overhang is engineered, not offset: the item wrapper pads by
+          the overhang and cancels it with a negative margin, so the badge
+          sits at the wrapper's own top-left while visually hanging off the
+          card's corner. An absolutely positioned child that pokes *outside*
+          its item box makes Chromium abandon column balancing and stack
+          every widget in the first column. */}
       {editing && !isDragging && (
         <button
           type="button"
@@ -208,7 +212,7 @@ function SortableMasonryItem({
             onHide(id);
           }}
           className={cn(
-            "absolute left-2 top-2 z-20 inline-flex h-5 w-5 items-center justify-center rounded-full",
+            "absolute left-0 top-0 z-20 inline-flex h-5 w-5 items-center justify-center rounded-full",
             "border border-border/60 bg-card/90 text-muted-foreground shadow-raised backdrop-blur-xl",
             "transition-colors hover:text-foreground",
             "animate-in fade-in zoom-in-75 duration-150",
