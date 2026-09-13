@@ -63,9 +63,22 @@ photo behind a 680px prose column is a competing figure.
 
 | Route | Treatment |
 |-------|-----------|
-| `/` | The photo stays **sharp**. It *is* the content — the widgets are a springboard floating on a desktop. |
-| Everything else | The photo is **defocused behind a veil**, with an edge vignette that recedes it at the margins. Full-bleed; no card, no radius, no boxed article. |
+| `/` | **Full strength, sharp, untinted.** It *is* the content — the widgets are a springboard floating on a desktop. |
+| Everything else | **Defocused behind a veil**, with an edge vignette that recedes it at the margins. Full-bleed; no card, no radius, no boxed article. |
 
-`lib/reading-surface.ts` owns that one predicate; `wallpaper-background.tsx`
-applies the blur and the vignette. The weather gradient needs none of it — it
-has no detail to compete with.
+The distinction is the point. An image wallpaper paints at opacity 1 — showing a
+photograph someone chose at half strength is not restraint, it is a washed-out
+picture — and the reading treatment is a veil *over* it rather than a dimming
+*of* it. That costs far less of the image than the flat half-opacity this used
+to apply to every route alike.
+
+| | Light | Dark |
+|---|---|---|
+| Wallpaper layer (image) | 1.00 | 1.00 |
+| Reading veil over it | 0.42 | 0.50 |
+
+`lib/reading-surface.ts` owns the predicate; `wallpaper-background.tsx` applies
+the blur, the veil and the vignette. All three parts are devtool switches
+(`Dim home`, `Reading blur`, `Reading dim`) because it is a taste call and the
+only way to settle one is to look at both. The weather gradient opts out
+entirely — it has no detail to compete with.

@@ -25,6 +25,15 @@ export interface AmbientSettings {
   wallpaperKind: WallpaperKind;
   /** Selected built-in pair, used when `wallpaperKind === "image"`. */
   wallpaperId: string;
+  /**
+   * Dim the wallpaper on the home screen too. Off by default — home is the
+   * desktop, and the picture is meant to be seen.
+   */
+  wallpaperDimHome: boolean;
+  /** Defocus the wallpaper on reading pages so prose stays the figure. */
+  wallpaperReadingBlur: boolean;
+  /** Veil the wallpaper on reading pages. */
+  wallpaperReadingDim: boolean;
 }
 
 const SETTINGS_KEY = "hux_ambient_settings";
@@ -35,6 +44,9 @@ export function getDefaultSettings(): AmbientSettings {
     weatherGradientMode: "full",
     wallpaperKind: "weather",
     wallpaperId: DEFAULT_WALLPAPER_ID,
+    wallpaperDimHome: false,
+    wallpaperReadingBlur: true,
+    wallpaperReadingDim: true,
   };
 }
 
@@ -90,6 +102,9 @@ export function getAmbientSettings(options?: {
           ? "image"
           : defaults.wallpaperKind,
       wallpaperId,
+      wallpaperDimHome: parsed.wallpaperDimHome === true,
+      wallpaperReadingBlur: parsed.wallpaperReadingBlur !== false,
+      wallpaperReadingDim: parsed.wallpaperReadingDim !== false,
     };
   } catch {
     return getDefaultSettings();

@@ -51,9 +51,10 @@ Floating action button that expands into the debug panel:
 
 Debug modules for the ambient system:
 
-1. **Gradient**: Override the resolved placement flags (full / widget / soft edge)
-2. **Wallpaper**: Background kind, pair hot-swap, resolved asset
-3. **Glass**: Material — Tinted (色调) / Clear (透明)
+1. **Wallpaper**: the whole background system — a swatch grid led by Weather,
+   placement switches (full / widget / soft edge), the image treatment switches
+   (dim home / reading blur / reading dim), and the resolved asset
+2. **Glass**: Material — Tinted (色调) / Clear (透明)
 4. **Weather**: Override weather condition (day/night × 6 conditions)
 5. **Time of Day**: Override ambient phase
 6. **Refetch**: Force re-fetch location/weather

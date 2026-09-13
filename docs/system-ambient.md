@@ -146,9 +146,13 @@ and the widget overlay as `useWallpaper().opacity`:
 | | Light theme | Dark theme |
 |---|---|---|
 | Weather gradient | 0.70 | 0.85 |
-| Image wallpaper | 0.42 | 0.62 |
+| Image wallpaper | 1.00 | 1.00 |
 
-How *solid* the surfaces on top of it are is a separate setting — see
+An image wallpaper paints at **full strength**: it is a picture someone chose,
+and the home screen is a desktop. Reading pages recede it with a veil and a
+defocus instead of dimming the layer — see
+[Reading surfaces](./system-glass.md#reading-surfaces). How *solid* the surfaces
+on top of it are is a separate setting again — see
 [docs/system-glass.md](./system-glass.md).
 
 ### Placement
@@ -168,7 +172,7 @@ source is active):
 | Surface | How |
 |---------|-----|
 | Command palette | `Wallpaper: <name>` (⌘K), or `/` then `W` |
-| Devtool panel | Wallpaper module — kind, swatch hot-swap, resolved asset |
+| Devtool panel | Wallpaper module — the whole background system in one place |
 | Anywhere in code | `useWallpaper().openPicker()` |
 
 The picker itself is a secondary window (`wallpaper-sheet.tsx`) built on vaul,
