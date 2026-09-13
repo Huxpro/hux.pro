@@ -85,3 +85,141 @@ export function reconcile(stored: string[], all: string[]): string[] {
   const added = all.filter((id) => !keptSet.has(id));
   return [...kept, ...added];
 }
+
+// =============================================================================
+// Column layouts — for surfaces (the widget masonry) where the visitor places
+// items into a *specific* column rather than into one flat sequence. A layout
+// is `string[][]`: one array of item IDs per column, top to bottom.
+//
+// Layouts are stored per column count (1 / 2 / 3), because the same placement
+// cannot mean the same thing at every width: what the visitor arranged on a
+// wide screen should survive a trip through a narrow one.
+// =============================================================================
+
+export type ColumnLayout = string[][];
+
+interface StoredLayout {
+  v: 2;
+  /** Column layouts keyed by column count, e.g. `{ "3": [[...], [...], [...]] }`. */
+  cols: Record<string, ColumnLayout>;
+}
+
+function isIdArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((v) => typeof v === "string");
+}
+
+/**
+ * Read the stored layouts. Also understands the legacy v1 payload (a flat
+ * array of IDs) and hands it back as `flat`, so a visitor who arranged the
+ * grid before columns were placeable keeps their sequence.
+ */
+export function loadLayouts(key: string): {
+  byCount: Record<number, ColumnLayout>;
+  flat: string[] | null;
+} {
+  const empty = { byCount: {} as Record<number, ColumnLayout>, flat: null };
+  if (typeof window === "undefined") return empty;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return empty;
+    const parsed = JSON.parse(raw);
+    if (isIdArray(parsed)) return { byCount: {}, flat: parsed };
+    if (parsed && typeof parsed === "object" && (parsed as StoredLayout).v === 2) {
+      const cols = (parsed as StoredLayout).cols ?? {};
+      const byCount: Record<number, ColumnLayout> = {};
+      for (const [count, layout] of Object.entries(cols)) {
+        const n = Number(count);
+        if (!Number.isInteger(n) || n < 1) continue;
+        if (Array.isArray(layout) && layout.every(isIdArray)) byCount[n] = layout;
+      }
+      return { byCount, flat: null };
+    }
+  } catch {
+    // ignore
+  }
+  return empty;
+}
+
+export function saveLayouts(
+  key: string,
+  byCount: Record<number, ColumnLayout>,
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    const payload: StoredLayout = { v: 2, cols: {} };
+    for (const [count, layout] of Object.entries(byCount)) {
+      payload.cols[count] = layout;
+    }
+    localStorage.setItem(key, JSON.stringify(payload));
+  } catch {
+    // ignore
+  }
+}
+
+/** Column-major read-out: column 1 top-to-bottom, then column 2, and so on. */
+export function flattenColumns(layout: ColumnLayout): string[] {
+  return layout.flat();
+}
+
+/**
+ * The default placement for a sequence: contiguous, column-major chunks, so
+ * the grid still reads down-then-across (the same order CSS multi-column
+ * gives) before anyone has moved anything.
+ */
+export function chunkIntoColumns(ids: string[], count: number): ColumnLayout {
+  const cols: ColumnLayout = Array.from({ length: count }, () => []);
+  if (count <= 0) return cols;
+  const base = Math.floor(ids.length / count);
+  const extra = ids.length % count;
+  let cursor = 0;
+  for (let i = 0; i < count; i++) {
+    const size = base + (i < extra ? 1 : 0);
+    cols[i] = ids.slice(cursor, cursor + size);
+    cursor += size;
+  }
+  return cols;
+}
+
+/**
+ * Merge a stored layout with the current item set at a given column count:
+ * keep placements for IDs that still exist (dropping duplicates), fold any
+ * surplus columns into the last one, and drop new items into the column that
+ * currently holds the fewest — never silently reflowing what the visitor
+ * arranged.
+ */
+export function reconcileLayout(
+  layout: ColumnLayout,
+  all: string[],
+  count: number,
+): ColumnLayout {
+  const allSet = new Set(all);
+  const seen = new Set<string>();
+  const cols: ColumnLayout = Array.from({ length: count }, () => []);
+
+  layout.forEach((col, i) => {
+    const target = cols[Math.min(i, count - 1)];
+    for (const id of col) {
+      if (!allSet.has(id) || seen.has(id)) continue;
+      seen.add(id);
+      target.push(id);
+    }
+  });
+
+  for (const id of all) {
+    if (seen.has(id)) continue;
+    let shortest = 0;
+    for (let i = 1; i < count; i++) {
+      if (cols[i].length < cols[shortest].length) shortest = i;
+    }
+    cols[shortest].push(id);
+    seen.add(id);
+  }
+
+  return cols;
+}
+
+/** Structural equality for two layouts (column by column). */
+export function layoutsEqual(a: ColumnLayout, b: ColumnLayout): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((col, i) => col.join("|") === b[i].join("|"));
+}

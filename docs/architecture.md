@@ -84,6 +84,32 @@ Command palette for keyboard-first navigation.
 ### [Devtool System](./system-devtool.md)
 Developer tools for debugging ambient state.
 
+### Home Widget Grid (`components/ui/sortable-masonry.tsx`)
+
+The homepage widget grid is an iPad-springboard surface where **placement is
+explicit**: the layout is one list of widget IDs *per column* (`string[][]`),
+not one flat sequence, and columns are plain flex children.
+
+- A column is exactly as tall as what the visitor put in it. The middle column
+  can be the tallest, a column can be left empty, and nothing reflows into a
+  neighbour on its own. (It used to be CSS `columns`, which auto-balances
+  column heights — a widget's column was *derived* from the running height,
+  never chosen, so "make the middle column taller" wasn't expressible.)
+- Each column's empty tail is a drop target (columns stretch to the grid's
+  height), which is how a widget is dropped past the end of a short column or
+  into an emptied one.
+- Drop resolution prefers the widget under the pointer; in the gaps between
+  cards it falls back to the *nearest widget in the hovered column* rather
+  than to the column itself, so hovering a gap never yanks the held card to
+  the column's end. Order flips only once the held card crosses a neighbour's
+  midpoint.
+- Layouts persist per column count under `localStorage["hux_widget_order"]`
+  (`{ v: 2, cols: { "1" | "2" | "3": string[][] } }`; the legacy flat v1 array
+  is still read). An unvisited width inherits the widest arranged one rather
+  than snapping back to the default.
+- Before hydration (and with JS off) the grid renders as a plain CSS
+  multi-column in declaration order — no measurement, correct at every width.
+
 ## Import Conventions
 
 ```typescript
