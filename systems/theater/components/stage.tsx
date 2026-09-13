@@ -53,11 +53,11 @@ export function Stage({
       aria-hidden={!visible}
       className={cn(
         "theater-stage fixed z-[10002] overflow-hidden bg-black",
-        // PiP: flat bottom + a top/side border so it butts up against the
-        // control bar as a single window. Theater: fully rounded, hairline ring.
-        pip ? "rounded-t-xl" : "rounded-xl",
+        // PiP: flat bottom + widget-matched 2xl so it joins the glass bar as
+        // one window. Theater: fully rounded, hairline ring.
+        pip ? "rounded-t-2xl" : "rounded-2xl",
         visible && "shadow-overlay pointer-events-auto",
-        visible && (pip ? "border border-b-0 border-border/60" : "ring-1 ring-white/15"),
+        visible && (pip ? "border border-b-0 border-border/50" : "ring-1 ring-white/15"),
         !visible && "pointer-events-none",
       )}
       style={{ transformOrigin: "center center" }}
