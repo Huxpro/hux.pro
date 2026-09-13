@@ -786,7 +786,6 @@ function WallpaperModule() {
   } = useWallpaper();
   const {
     gradientMode,
-    setGradientMode,
     fullGradientEnabled,
     widgetGradientEnabled,
     softEdgingEnabled,
@@ -797,12 +796,18 @@ function WallpaperModule() {
   const isImage = kind === "image";
   const reading = isReadingSurface({ kind, pathname });
 
-  // Full and Widget are the two placements, shown as switches rather than a
-  // segmented control: turning one on turns the other off, both off is "off".
-  const setPlacement = (next: "full" | "widget", on: boolean) => {
-    setDevtoolGradientOverrides({ ...devtoolGradientOverrides, full: undefined, widget: undefined });
-    setGradientMode(on ? next : "off");
-  };
+  // Full and Widget are independent switches here, not two halves of one
+  // segmented control: the persisted setting can only be one of them, but the
+  // devtool exists precisely to see combinations the setting cannot express —
+  // both on at once included. They drive the ephemeral overrides, which is what
+  // those were for; the persisted mode follows only when nothing is overridden.
+  const overrideFlag = (key: "full" | "widget" | "softEdging", on: boolean) =>
+    setDevtoolGradientOverrides({ ...devtoolGradientOverrides, [key]: on });
+  const isOverridden = (key: "full" | "widget" | "softEdging") =>
+    devtoolGradientOverrides[key] !== undefined;
+  const clearOverrides = () => setDevtoolGradientOverrides({});
+  const anyOverride =
+    isOverridden("full") || isOverridden("widget") || isOverridden("softEdging");
 
   // One line that answers "what am I actually looking at".
   const now = [
@@ -885,35 +890,43 @@ function WallpaperModule() {
 
         {/* Where it paints. */}
         <div className="space-y-2 border-t border-border/30 pt-2.5">
-          <PanelRow label={zh ? "全屏" : "Full"}>
+          <PanelRow
+            label={`${zh ? "全屏" : "Full"}${isOverridden("full") ? " *" : ""}`}
+          >
             <PanelToggle
               on={fullGradientEnabled}
-              onClick={() => setPlacement("full", !fullGradientEnabled)}
+              onClick={() => overrideFlag("full", !fullGradientEnabled)}
               label="Toggle full-page wallpaper"
             />
           </PanelRow>
-          <PanelRow label={zh ? "卡片" : "Widget"}>
+          <PanelRow
+            label={`${zh ? "卡片" : "Widget"}${isOverridden("widget") ? " *" : ""}`}
+          >
             <PanelToggle
               on={widgetGradientEnabled}
-              onClick={() => setPlacement("widget", !widgetGradientEnabled)}
+              onClick={() => overrideFlag("widget", !widgetGradientEnabled)}
               label="Toggle widget wallpaper"
             />
           </PanelRow>
-          <PanelRow label={zh ? "柔和边缘" : "Soft edge"}>
+          <PanelRow
+            label={`${zh ? "柔和边缘" : "Soft edge"}${isOverridden("softEdging") ? " *" : ""}`}
+          >
             <PanelToggle
               on={softEdgingEnabled}
-              onClick={() =>
-                setDevtoolGradientOverrides({
-                  ...devtoolGradientOverrides,
-                  softEdging:
-                    devtoolGradientOverrides.softEdging === undefined
-                      ? !softEdgingEnabled
-                      : undefined,
-                })
-              }
+              onClick={() => overrideFlag("softEdging", !softEdgingEnabled)}
               label="Toggle soft edging"
             />
           </PanelRow>
+          {anyOverride && (
+            <button
+              onClick={clearOverrides}
+              className="w-full text-left text-[10px] font-mono text-amber-500/70 transition-colors hover:text-amber-400"
+            >
+              {zh
+                ? `* 已覆盖设置（${gradientMode}）· 点击恢复`
+                : `* overriding the setting (${gradientMode}) · click to clear`}
+            </button>
+          )}
         </div>
 
         {/* How much of it survives where. Home defaults to none of this. */}

@@ -69,13 +69,24 @@ photo behind a 680px prose column is a competing figure.
 The distinction is the point. An image wallpaper paints at opacity 1 — showing a
 photograph someone chose at half strength is not restraint, it is a washed-out
 picture — and the reading treatment is a veil *over* it rather than a dimming
-*of* it. That costs far less of the image than the flat half-opacity this used
-to apply to every route alike.
+*of* it.
 
 | | Light | Dark |
 |---|---|---|
 | Wallpaper layer (image) | 1.00 | 1.00 |
-| Reading veil over it | 0.42 | 0.50 |
+| Home scrim (`Dim home`, off by default) | 0.08 | 0.14 |
+| Reading veil | 0.28 | 0.34 |
+| Reading vignette, at the far edges only | 0.22 | 0.28 |
+
+The reading numbers are deliberately well under the ~0.45/0.55 this idea usually
+gets built with, because **the blur is what protects legibility** — the veil
+only has to stop the remaining colour from shouting. Spend it there and the
+wallpaper survives the trip to an inner page instead of turning grey.
+
+The home scrim is a different quantity, not a weaker application of the same
+one: a whisper that takes the edge off a loud wallpaper. Wiring both to one
+value made "dim home" mean "make home look like a reading page", which is not
+what anyone wants from it.
 
 `lib/reading-surface.ts` owns the predicate; `wallpaper-background.tsx` applies
 the blur, the veil and the vignette. All three parts are devtool switches

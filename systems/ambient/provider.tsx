@@ -304,10 +304,15 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const pathname = usePathname();
   const reading = isReadingSurface({ kind: settings.wallpaperKind, pathname });
   const isBlurred = isImageKind && reading && settings.wallpaperReadingBlur;
-  const veilAlpha =
-    isImageKind && ((reading && settings.wallpaperReadingDim) || (!reading && settings.wallpaperDimHome))
-      ? WALLPAPER_VEIL[theme]
-      : 0;
+  const veilAlpha = !isImageKind
+    ? 0
+    : reading
+      ? settings.wallpaperReadingDim
+        ? WALLPAPER_VEIL.reading[theme]
+        : 0
+      : settings.wallpaperDimHome
+        ? WALLPAPER_VEIL.scrim[theme]
+        : 0;
 
   // DevTool gradient overrides (ephemeral, not persisted)
   const [devtoolGradientOverrides, setDevtoolGradientOverrides] =

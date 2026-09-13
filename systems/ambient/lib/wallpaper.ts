@@ -88,12 +88,21 @@ export const WALLPAPER_OPACITY: Record<
 };
 
 /**
- * The veil drawn OVER an image wallpaper when the page has to be read rather
- * than looked at. Paired with the blur, this is all the contrast a reading
- * column needs — deliberately lighter than dimming the whole picture, which is
- * what the layer opacity used to do to every route alike.
+ * The veil drawn OVER an image wallpaper.
+ *
+ * Two strengths, because they answer different questions:
+ *
+ *   scrim   the optional home-screen dim. A whisper — it takes the edge off a
+ *           loud wallpaper without pretending the page is a document.
+ *   reading enough that a prose column wins, and no more. The BLUR is what
+ *           actually protects legibility here; the veil only has to stop the
+ *           remaining colour from shouting, so it can stay well under the
+ *           ~0.45/0.55 the same idea usually gets built with.
  */
-export const WALLPAPER_VEIL = { light: 0.42, dark: 0.5 } as const;
+export const WALLPAPER_VEIL = {
+  scrim: { light: 0.08, dark: 0.14 },
+  reading: { light: 0.28, dark: 0.34 },
+} as const;
 
 // -----------------------------------------------------------------------------
 // Catalog
