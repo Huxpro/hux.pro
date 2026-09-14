@@ -335,7 +335,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // Hydration-safe: false on the server and the first client render, then the
   // real answer. It now decides rendered structure (the letterbox frame), so a
   // render-time read would disagree with the server HTML.
-  const [isIOS, setIsIOS] = useState(false);
+  // `null` until then: the boot script in app/layout.tsx has already put the
+  // letterbox class on <html> for a phone, and the effect below must not take
+  // it off for the one frame before the platform is known.
+  const [isIOS, setIsIOS] = useState<boolean | null>(null);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: platform read
     setIsIOS(isIOSBrowser());
@@ -367,12 +370,12 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
    * Auto is iOS. The setting is persisted so a phone can be checked across a
    * reload; the devtool row toggles it.
    */
-  const letterbox = settings.wallpaperLetterbox ?? isIOS;
+  const letterbox = settings.wallpaperLetterbox ?? isIOS === true;
 
   useEffect(() => {
+    if (isIOS === null) return;
     document.documentElement.classList.toggle("letterbox", letterbox);
-    return () => document.documentElement.classList.remove("letterbox");
-  }, [letterbox]);
+  }, [letterbox, isIOS]);
 
   // Safari tints its chrome with theme-color, so this is where the letterbox
   // becomes continuous with the status bar and the toolbar. The element is
@@ -405,7 +408,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const softEdgeEnabled =
     isDevtoolEnabled && devtoolOverrides.softEdging !== undefined
       ? devtoolOverrides.softEdging
-      : isIOS && !letterbox;
+      : isIOS === true && !letterbox;
 
   // Debug override state (for weather and time)
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);

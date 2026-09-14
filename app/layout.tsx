@@ -101,6 +101,7 @@ var ios=/iP(hone|ad|od)/i.test(navigator.userAgent)||(navigator.platform==="MacI
 var box=typeof s.wallpaperLetterbox==="boolean"?s.wallpaperLetterbox:ios;
 var t=localStorage.getItem("hux_theme");
 var dark=t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);
+if(box)document.documentElement.classList.add("letterbox");
 var m=document.createElement("meta");m.id="hux-theme-color";m.name="theme-color";
 m.content=box?"#000000":dark?"#1a1a1a":"#ffffff";document.head.appendChild(m);
 }catch(e){}})()`;
@@ -114,9 +115,10 @@ export default function RootLayout({
     <ViewTransitions>
       <html lang="en" suppressHydrationWarning>
         <head>
-          {/* theme-color before first paint. Safari tints its chrome with it
-              and reads it at load; a meta created later in an effect arrived
-              too late on a phone. Owned by this script and the ambient
+          {/* theme-color and the letterbox class before first paint. Safari
+              tints its chrome from theme-color and from the html/body
+              background, and reads them at load; set later in an effect they
+              arrived too late on a phone. Owned by this script and the ambient
               provider, never by React — see the note on `viewport` above. */}
           <script
             dangerouslySetInnerHTML={{ __html: THEME_COLOR_BOOT }}
