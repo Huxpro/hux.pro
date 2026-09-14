@@ -20,10 +20,25 @@ export interface GradientLayerData {
    * wallpapers need this; CSS-gradient layers already fill their box.
    */
   cover?: boolean;
+  /**
+   * The file this layer paints, for a picture wallpaper; null for a gradient.
+   *
+   * It is what lets the provider ask "is the full-size file already on screen?"
+   * before the reading blur resolves a source — see `fullPainted` there.
+   */
+  src?: string | null;
 }
 
 /** Duration of a gradient crossfade, shared by the provider and renderer. */
 export const GRADIENT_CROSSFADE_MS = 700;
+
+/**
+ * Duration of the reading-page defocus fading in or out.
+ *
+ * Shorter than a crossfade: the picture is not being replaced, only defocused,
+ * and it rides alongside the 500ms veil in <WallpaperBackground />.
+ */
+export const GRADIENT_DEFOCUS_MS = 500;
 
 export type SunEventGradient = {
   backgroundImage: string;

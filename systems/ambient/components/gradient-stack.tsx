@@ -1,9 +1,13 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef } from "react";
 import { fixedBgTracker } from "../lib/fixed-bg-tracker";
-import { GRADIENT_CROSSFADE_MS, type GradientLayerData } from "../lib/gradient";
+import {
+  GRADIENT_CROSSFADE_MS,
+  GRADIENT_DEFOCUS_MS,
+  type GradientLayerData,
+} from "../lib/gradient";
 
 // ---------------------------------------------------------------------------
 // GradientStack — the shared crossfade renderer.
@@ -41,6 +45,10 @@ interface GradientLayerProps {
    * Reading page: defocus the picture. The blur is painted on an inner element
    * so the mask on this layer stays crisp and unscaled — and this path is only
    * taken full-page, never through the widget tracker.
+   *
+   * It fades in and out over the sharp layer rather than replacing it, so going
+   * on and off a reading page is a defocus of the picture already on screen —
+   * no second source, no layer push, no crossfade between two blurred copies.
    */
   blurred: boolean;
 }
@@ -69,7 +77,10 @@ function GradientLayer({
     });
   }, [shell, positionBackground, edgeMask]);
 
-  const style: React.CSSProperties = blurred ? {} : { backgroundImage: gradient };
+  // The sharp picture is always painted: the defocus is an overlay that fades
+  // in over it, and it needs something underneath to defocus INTO — otherwise
+  // the fade starts from the bare page background.
+  const style: React.CSSProperties = { backgroundImage: gradient };
 
   // Desktop widget: cheap native fixed attachment (no tracker).
   if (cssFixedAttachment) {
@@ -109,19 +120,32 @@ function GradientLayer({
       animate={{ opacity: 1 }}
       transition={{ duration: durationMs / 1000, ease: "easeInOut" }}
     >
-      {blurred && (
-        // Scaled past the frame so the blur has pixels to sample at the edges
-        // instead of fading into nothing.
-        <div
-          className="absolute inset-0 scale-110 blur-2xl"
-          style={{
-            backgroundImage: gradient,
-            backgroundSize: cover ? "cover, 100% 100%" : undefined,
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-          }}
-        />
-      )}
+      {/* `initial={false}`: a cold load onto a reading page lands defocused
+          rather than animating into it. Every later toggle fades. */}
+      <AnimatePresence initial={false}>
+        {blurred && (
+          <motion.div
+            key="defocus"
+            className="absolute inset-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: GRADIENT_DEFOCUS_MS / 1000, ease: "easeInOut" }}
+          >
+            {/* Scaled past the frame so the blur has pixels to sample at the
+                edges instead of fading into nothing. */}
+            <div
+              className="absolute inset-0 scale-110 blur-2xl"
+              style={{
+                backgroundImage: gradient,
+                backgroundSize: cover ? "cover, 100% 100%" : undefined,
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

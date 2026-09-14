@@ -82,7 +82,16 @@ per-theme alpha; the number lives there and is deliberately not copied here.
 `lib/reading-surface.ts` owns the predicate. The blur is painted on an inner
 element of each layer (`gradient-stack.tsx`) so the soft-edge mask on the layer
 stays crisp and unscaled, and `wallpaper-background.tsx` draws the veil over the
-stack. Both parts are devtool switches (`Reading blur`, `Reading dim`) because it
+stack.
+
+Going on and off a reading page is a **defocus of the picture already on
+screen**, not a new layer: the overlay fades in over the sharp one
+(`GRADIENT_DEFOCUS_MS`) and the source does not change. The 480px thumb is taken
+only on a cold load onto a reading page, where nothing is painted yet; once the
+full-size file has been resolved onto a layer, the blur can no longer swap it
+(`paintedFullRef` in the provider). Swapping it used to push a layer and run the
+700ms crossfade — two full-screen `scale-110 blur-2xl` layers at once, plus a
+second fetch — to land on a picture that looks the same through a 40px blur. Both parts are devtool switches (`Reading blur`, `Reading dim`) because it
 is a taste call and the only way to settle one is to look at it. The weather
 gradient opts out entirely — it has no detail to compete with.
 
