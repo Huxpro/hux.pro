@@ -456,18 +456,43 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       : EDGE_FADE_MASK
     : null;
 
+  // The crossfade stack. Declared here rather than beside its effects below
+  // because resolving the source reads it — see `fullPainted`.
+  const [layers, setGradientLayers] = useState<GradientLayerData[]>([]);
+  const layerIdRef = useRef(0);
+
+  /**
+   * Is the full-size file already on a layer?
+   *
+   * This is what decides whether the reading blur may take the 480px thumb, and
+   * it asks about the PICTURE rather than the route.
+   *
+   * The thumb is worth taking on a cold load onto a reading page — nothing is
+   * painted yet, and a 480px rendition under a 40px blur is indistinguishable
+   * from the 2560px one (0.15/255 on average, 2/255 at worst, in both themes)
+   * for a tenth of the bytes.
+   *
+   * It is not worth taking on the way in from the home screen, where the
+   * full-size file is already painted. Swapping the source there changes the
+   * layer's URL, which pushes a layer and runs the 700ms crossfade — two
+   * full-screen `scale-110 blur-2xl` layers at once — in order to fetch a
+   * second file and land on a picture that looks the same. Going back home
+   * swapped and crossfaded again.
+   *
+   * So once the full-size file is on a layer the blur can no longer move it,
+   * and crossing `/` becomes a defocus of the picture already on screen.
+   */
+  const fullSrc = isImageKind ? activeWallpaper[theme].src : null;
+  const fullPainted =
+    fullSrc !== null && layers.some((layer) => layer.src === fullSrc);
+  const useThumb = isBlurred && !fullPainted;
+
   /**
    * The active pair resolved for the current theme, or null on weather.
    *
-   * A blurred reading page resolves to the THUMB. The layer there is scaled to
-   * 110% under a 40px blur, which destroys every pixel of detail the full-size
-   * file was carrying — measured over the whole viewport, the 480px rendition
-   * differs from the 2560px one by 0.15/255 on average and 2/255 at worst, in
-   * both themes, for a tenth of the bytes (46KB → 4KB).
-   *
-   * Only when blurred. In `widget` placement, and on the home screen, the photo
-   * paints SHARP inside a card or across the page, and there the thumb is a
-   * visibly soft upscale rather than a free win.
+   * In `widget` placement, and on the home screen, the photo paints SHARP
+   * inside a card or across the page, so the thumb is a visibly soft upscale
+   * rather than a free win — see `useThumb` above for when it is taken.
    */
   const resolvedImage = useMemo(
     () =>
@@ -475,10 +500,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
         ? getWallpaperBackground({
             wallpaper: activeWallpaper,
             theme,
-            preview: isBlurred,
+            preview: useThumb,
           })
         : null,
-    [isImageKind, activeWallpaper, theme, isBlurred]
+    [isImageKind, activeWallpaper, theme, useThumb]
   );
 
   // Compute the background. Exactly one kind wins — an image wallpaper replaces
@@ -529,9 +554,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // shares one stack instead of running independent state machines. When the
   // gradient changes we push a new layer; <GradientStack /> fades it in over the
   // settled one, then we prune back to the latest once the crossfade completes.
-  const [layers, setGradientLayers] = useState<GradientLayerData[]>([]);
-  const layerIdRef = useRef(0);
-
   useEffect(() => {
     // Hold the current gradient while refetching (stale-while-revalidate).
     // A image wallpaper needs no network, so it never waits on weather.
@@ -544,10 +566,21 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       layerIdRef.current += 1;
       return [
         ...prev,
-        { id: layerIdRef.current, gradient: computedGradient, cover: computedCover },
+        {
+          id: layerIdRef.current,
+          gradient: computedGradient,
+          cover: computedCover,
+          src: wallpaperSrc,
+        },
       ];
     });
-  }, [computedGradient, computedCover, isImageKind, weatherQuery.isFetching]);
+  }, [
+    computedGradient,
+    computedCover,
+    wallpaperSrc,
+    isImageKind,
+    weatherQuery.isFetching,
+  ]);
 
   // Prune to the newest layer once the crossfade settles.
   useEffect(() => {
