@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utils";
 import { useWallpaper } from "../provider";
 import { GradientStack } from "./gradient-stack";
-import { BEZEL_INSET } from "@/systems/bezel";
 
 // ---------------------------------------------------------------------------
 // WallpaperBackground — the full-page background layer.
@@ -26,7 +25,7 @@ interface WallpaperBackgroundProps {
 }
 
 export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
-  const { layers, edgeMask, opacity, veil, blurred, letterbox } = useWallpaper();
+  const { layers, edgeMask, opacity, veil, blurred } = useWallpaper();
 
   if (layers.length === 0) return null;
 
@@ -37,8 +36,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         "pointer-events-none fixed inset-0 -z-10",
         "transition-opacity duration-700 ease-in-out"
       )}
-      // Framed, the layer stops inside the bezel — see AmbientSurface.
-      style={{ opacity: enabled ? opacity : 0, ...(letterbox ? BEZEL_INSET : null) }}
+      style={{ opacity: enabled ? opacity : 0 }}
     >
       {/* Full-page background is already viewport-fixed, so the edge mask is
           applied statically (no per-frame tracking needed). */}

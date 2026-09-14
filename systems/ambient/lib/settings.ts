@@ -1,59 +1,24 @@
-import {
-  clampBezelBand,
-  clampBezelRadius,
-  DEFAULT_BEZEL_BAND,
-  DEFAULT_BEZEL_RADIUS,
-  isBezelTint,
-  type BezelGround,
-  type BezelTint,
-} from "@/systems/bezel";
 import type { LocationMode } from "./location";
 
 /**
- * The page's own ground, per theme — `--background` in globals.css, as a hex
- * a script can hand to a browser before any stylesheet exists. The browser's
- * chrome takes it when there is no frame, and the `dark` and `theme` bezel
- * tints resolve against it.
- */
-export const PAGE_GROUND: BezelGround = { light: "#ffffff", dark: "#1a1a1a" };
-
-/** The frame's colour when nothing is stored: dark in both themes. */
-export const DEFAULT_LETTERBOX_TINT: BezelTint = "dark";
-
-/**
- * What each kind of wallpaper wants at the edge when nothing is pinned.
+ * What each kind of wallpaper wants at the edge when nothing is overridden.
  *
- * The two want opposite things, which is why this is a table and not one set
- * of defaults. A weather gradient IS the page's own colour pushed to the
- * edges, so the honest treatment is to let it fade out into the ground: the
- * soft edge, no frame. A photograph is a picture ON the page, so fading it is
- * a printing error — it wants to end on a line, which is the frame, and it
- * wants as much of the screen as it can get, which is a band of nothing and
- * corners just large enough to read as a bezel.
+ * The two want opposite things, which is why this is a table and not one
+ * default. A weather gradient IS the page's own colour pushed to the edges, so
+ * the honest treatment is to let it fade out into the ground: the soft edge. A
+ * photograph is a picture ON the page, so fading it is a printing error — it
+ * wants to end on a line.
  *
- * Both are still gated on iOS in the provider: the fade and the frame are
- * both phone treatments, and a desktop window gets neither.
+ * Still gated on iOS in the provider: the fade is a phone treatment, and a
+ * desktop window never gets it.
  */
 export interface WallpaperKindDefaults {
-  letterbox: boolean;
   softEdge: boolean;
-  band: number;
-  radius: number;
 }
 
 export const WALLPAPER_KIND_DEFAULTS: Record<WallpaperKind, WallpaperKindDefaults> = {
-  weather: {
-    letterbox: false,
-    softEdge: true,
-    band: DEFAULT_BEZEL_BAND,
-    radius: DEFAULT_BEZEL_RADIUS,
-  },
-  image: {
-    letterbox: true,
-    softEdge: false,
-    band: 0,
-    radius: 16,
-  },
+  weather: { softEdge: true },
+  image: { softEdge: false },
 };
 import {
   DEFAULT_WALLPAPER_ID,
@@ -81,27 +46,6 @@ export interface AmbientSettings {
   wallpaperKind: WallpaperKind;
   /** Selected built-in pair, used when `wallpaperKind === "image"`. */
   wallpaperId: string;
-  /**
-   * Letterbox: paint everything outside the page's safe area — the notch
-   * band, the home-indicator band, the browser chrome, the overscroll — solid
-   * black, and keep the wallpaper inside it. `null` means auto: on for iOS
-   * browsers, off elsewhere. See `letterbox` in the provider.
-   */
-  wallpaperLetterbox: boolean | null;
-  /** Corner radius of the page inside the frame, px. `null` follows the kind. */
-  wallpaperLetterboxRadius: number | null;
-  /**
-   * What colour the frame is: a named tint or a `#rrggbb` literal. See
-   * `BezelTint` in @/systems/bezel.
-   */
-  wallpaperLetterboxTint: BezelTint;
-  /**
-   * How thick the bands are, in px. `null` follows the wallpaper kind — see
-   * `WALLPAPER_KIND_DEFAULTS`. Thinner than `BEZEL_CHROME_SAMPLE_PX` and the
-   * browser's chrome stops matching; see @/systems/bezel for why that is a
-   * threshold rather than a floor.
-   */
-  wallpaperLetterboxBand: number | null;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
   wallpaperReadingBlur: boolean;
   /** Veil the wallpaper on reading pages. */
@@ -116,10 +60,6 @@ export function getDefaultSettings(): AmbientSettings {
     wallpaperPlacement: "full",
     wallpaperKind: "weather",
     wallpaperId: DEFAULT_WALLPAPER_ID,
-    wallpaperLetterbox: null,
-    wallpaperLetterboxRadius: null,
-    wallpaperLetterboxTint: DEFAULT_LETTERBOX_TINT,
-    wallpaperLetterboxBand: null,
     wallpaperReadingBlur: true,
     wallpaperReadingDim: true,
   };
@@ -172,23 +112,6 @@ export function getAmbientSettings(): AmbientSettings {
           ? "image"
           : defaults.wallpaperKind,
       wallpaperId,
-      wallpaperLetterbox:
-        typeof parsed.wallpaperLetterbox === "boolean"
-          ? parsed.wallpaperLetterbox
-          : null,
-      wallpaperLetterboxRadius:
-        typeof parsed.wallpaperLetterboxRadius === "number" &&
-        Number.isFinite(parsed.wallpaperLetterboxRadius)
-          ? clampBezelRadius(parsed.wallpaperLetterboxRadius)
-          : null,
-      wallpaperLetterboxTint: isBezelTint(parsed.wallpaperLetterboxTint)
-        ? parsed.wallpaperLetterboxTint
-        : DEFAULT_LETTERBOX_TINT,
-      wallpaperLetterboxBand:
-        typeof parsed.wallpaperLetterboxBand === "number" &&
-        Number.isFinite(parsed.wallpaperLetterboxBand)
-          ? clampBezelBand(parsed.wallpaperLetterboxBand)
-          : null,
       wallpaperReadingBlur: parsed.wallpaperReadingBlur !== false,
       wallpaperReadingDim: parsed.wallpaperReadingDim !== false,
     };

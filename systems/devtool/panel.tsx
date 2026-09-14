@@ -11,17 +11,6 @@ import {
   useTheme,
 } from "@/services";
 import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
-import {
-  isBezelHex,
-  BEZEL_BAND_MAX,
-  BEZEL_BAND_MIN,
-  BEZEL_RADIUS_MAX,
-  type BezelTint,
-} from "@/systems/bezel";
-import { DEFAULT_LETTERBOX_TINT } from "@/systems/ambient/lib/settings";
-
-/** The named tints plus the segmented control's own "pick a colour". */
-type TintChoice = "dark" | "black" | "theme" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
 import {
   getSunEventGradient,
@@ -638,43 +627,6 @@ function PanelToggle({
   );
 }
 
-/** Continuous value, for the things you settle by dragging rather than typing. */
-function PanelRange({
-  value,
-  min,
-  max,
-  step,
-  onChange,
-  label,
-  format = (v) => String(v),
-}: {
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (value: number) => void;
-  label: string;
-  format?: (value: number) => string;
-}) {
-  return (
-    <div className="flex shrink-0 items-center gap-2">
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        aria-label={label}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1 w-24 cursor-pointer appearance-none rounded-full bg-muted accent-foreground"
-      />
-      <span className="w-8 text-right text-[10px] font-mono tabular-nums text-muted-foreground">
-        {format(value)}
-      </span>
-    </div>
-  );
-}
-
 /** Segmented single-select, matching the ruler dock control. */
 function PanelSegmented<T extends string>({
   value,
@@ -850,18 +802,6 @@ function WallpaperModule() {
     veil,
     blurred,
     src,
-    letterbox,
-    letterboxSetting,
-    setLetterbox,
-    letterboxRadius,
-    setLetterboxRadius,
-    letterboxBandSetting,
-    letterboxRadiusSetting,
-    letterboxTint,
-    setLetterboxTint,
-    letterboxColor,
-    letterboxBand,
-    setLetterboxBand,
     readingBlur,
     setReadingBlur,
     readingDim,
@@ -877,31 +817,6 @@ function WallpaperModule() {
 
   const isImage = kind === "image";
   const reading = isReadingSurface({ kind, pathname });
-
-  // The segmented control has a fourth position the setting does not: "custom"
-  // is not a tint, it is "whatever the swatch says".
-  const tints: { value: TintChoice; label: string; title: string }[] = [
-    {
-      value: "dark",
-      label: zh ? "深" : "Dark",
-      title: zh ? "两个主题都用深色底" : "The dark ground, in both themes",
-    },
-    {
-      value: "black",
-      label: zh ? "黑" : "Black",
-      title: zh ? "纯黑，ryOS 的做法" : "Pure black, as ryOS does",
-    },
-    {
-      value: "theme",
-      label: zh ? "跟随" : "Theme",
-      title: zh ? "跟随页面底色" : "Follows the page ground",
-    },
-    {
-      value: "custom",
-      label: zh ? "自定" : "Custom",
-      title: zh ? "自选颜色" : "Pick a colour",
-    },
-  ];
 
   // Full and Widget are independent switches here, not two halves of one
   // segmented control: the persisted setting can only be one of them, but the
@@ -1049,111 +964,6 @@ function WallpaperModule() {
               />
             </PanelRow>
           ))}
-        </div>
-
-        {/* The frame. Persisted, unlike the placement overrides above, so a
-            phone can be checked across a reload. Auto is iOS. */}
-        <div className="space-y-2 border-t border-border/30 pt-2.5">
-          <PanelRow
-            label={zh ? "黑边" : "Letterbox"}
-            star={
-              letterboxSetting !== null ? (
-                <PanelStar onReset={() => setLetterbox(null)} label="Back to auto" />
-              ) : null
-            }
-          >
-            <PanelToggle
-              on={letterbox}
-              onClick={() => setLetterbox(!letterbox)}
-              label="Toggle letterbox"
-            />
-          </PanelRow>
-          {letterbox && (
-            <>
-              <PanelRow
-                label={zh ? "颜色" : "Tint"}
-                star={
-                  letterboxTint !== DEFAULT_LETTERBOX_TINT ? (
-                    <PanelStar
-                      onReset={() => setLetterboxTint(DEFAULT_LETTERBOX_TINT)}
-                      label="Back to the default tint"
-                    />
-                  ) : null
-                }
-              >
-                <PanelSegmented<TintChoice>
-                  value={isBezelHex(letterboxTint) ? "custom" : letterboxTint}
-                  options={tints}
-                  onChange={(t) =>
-                    setLetterboxTint(
-                      t === "custom" ? (letterboxColor as BezelTint) : t
-                    )
-                  }
-                />
-              </PanelRow>
-              {/* The swatch both shows the resolved colour and, on custom,
-                  edits it. Every generation repaints live, so there is no
-                  reload behind any of this. */}
-              <PanelRow label={letterboxColor}>
-                <input
-                  type="color"
-                  value={letterboxColor}
-                  aria-label="Letterbox custom colour"
-                  onChange={(e) => setLetterboxTint(e.target.value as BezelTint)}
-                  className="h-5 w-10 shrink-0 cursor-pointer rounded border border-border/60 bg-transparent p-0"
-                />
-              </PanelRow>
-              {/* No warning under the thin end of this slider on purpose. Below
-                  `BEZEL_CHROME_SAMPLE_PX` the browser's chrome stops following
-                  the frame and falls back to its own colour — which is a look,
-                  not a fault, and is written up in @/systems/bezel rather than
-                  in a paragraph here. */}
-              <PanelRow
-                label={zh ? "边框厚度" : "Band"}
-                star={
-                  letterboxBandSetting !== null ? (
-                    <PanelStar
-                      onReset={() => setLetterboxBand(null)}
-                      label="Back to the kind's default"
-                    />
-                  ) : null
-                }
-              >
-                <PanelRange
-                  value={letterboxBand}
-                  min={BEZEL_BAND_MIN}
-                  max={BEZEL_BAND_MAX}
-                  step={1}
-                  onChange={setLetterboxBand}
-                  label="Letterbox band thickness"
-                  format={(v) => `${v}px`}
-                />
-              </PanelRow>
-              <PanelRow
-                label={zh ? "圆角" : "Corner radius"}
-                star={
-                  letterboxRadiusSetting !== null ? (
-                    <PanelStar
-                      onReset={() => setLetterboxRadius(null)}
-                      label="Back to the kind's default"
-                    />
-                  ) : null
-                }
-              >
-                <PanelRange
-                  value={letterboxRadius}
-                  min={0}
-                  max={BEZEL_RADIUS_MAX}
-                  step={2}
-                  onChange={setLetterboxRadius}
-                  label="Letterbox corner radius"
-                  format={(v) => `${v}px`}
-                />
-              </PanelRow>
-            </>
-          )}
-          {/* What the frame is and why it is shaped this way lives in
-              @/systems/bezel, not in a paragraph under the controls. */}
         </div>
 
         {/* How much of it survives on a reading page. Home gets none of this. */}

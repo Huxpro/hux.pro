@@ -86,5 +86,6 @@ stack. Both parts are devtool switches (`Reading blur`, `Reading dim`) because i
 is a taste call and the only way to settle one is to look at it. The weather
 gradient opts out entirely — it has no detail to compete with.
 
-Neither letterbox nor soft edging is part of this treatment. Both belong to the
-frame, not the picture — see [Placement](./system-ambient.md#placement).
+Soft edging is not part of this treatment. It is the same top/bottom fade the
+weather gradient has always had, applied to whichever kind is painting — see
+[Placement](./system-ambient.md#placement).
