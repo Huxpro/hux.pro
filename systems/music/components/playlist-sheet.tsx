@@ -69,6 +69,8 @@ export function MusicPlaylistSheet() {
   return (
     <AdaptiveSurface
       id="surface-playlist"
+      // Non-modal: a playlist stays open while the page goes on; nothing about it is a decision.
+      modal={false}
       open={isPlaylistOpen}
       onOpenChange={(open) => (open ? openPlaylist() : closePlaylist())}
       presentation={ADAPTIVE_PRESENTATION}
