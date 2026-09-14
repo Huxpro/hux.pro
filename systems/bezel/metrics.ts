@@ -17,15 +17,28 @@ export const BEZEL_BAND_VAR = "--bezel-band";
 export const BEZEL_CLASS = "bezel";
 
 /**
- * The band's thickness floor, and it is not cosmetic.
+ * How tall a strip of the page's edge the browser's chrome tints itself from.
  *
- * The band is what colours the browser's chrome on iOS 26, which is glass and
- * tints from a strip of the page's edge about 6px tall: 4px and 5px bands do
- * not register, 6px and up do (measured on 26.5). Below the floor the frame
- * and the chrome stop matching. For no frame at all, unmount the bezel rather
- * than thinning it to nothing.
+ * On iOS 26 that chrome is glass and samples the page rather than reading
+ * `theme-color`, which it ignores outright. It wants about 6px of FLAT colour
+ * there: a 4px or 5px band does not register, 6px and up does (measured on
+ * 26.5). A thinner band still draws — it just stops carrying the chrome with
+ * it, and the chrome falls back to Safari's own colour, white in light mode.
+ * Which makes the middle the bad part: at 4px you get a hairline of frame
+ * under a white status bar. At 0 there is no frame to mismatch and the page
+ * simply runs edge to edge inside its rounded corners, which is a look.
+ *
+ * That is a look, not a fault, which is why it is a threshold and not a floor.
+ * ryOS gets a black chrome with no band at all and a light page edge, so
+ * something makes `theme-color` authoritative there; ruled out so far, none of
+ * them it: http vs https, its entire `<head>` verbatim, an inline `<html>`
+ * background, scrollable vs non-scrolling documents, and a composited edge
+ * layer. Unresolved.
  */
-export const BEZEL_BAND_MIN = 6;
+export const BEZEL_CHROME_SAMPLE_PX = 6;
+
+/** Zero is allowed: it means corners and side bands, and no top or bottom. */
+export const BEZEL_BAND_MIN = 0;
 export const BEZEL_BAND_MAX = 64;
 /** Clears the sampling strip with room to spare, and costs almost no page. */
 export const DEFAULT_BEZEL_BAND = 8;

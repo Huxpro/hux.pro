@@ -15,6 +15,7 @@ import {
   isBezelHex,
   BEZEL_BAND_MAX,
   BEZEL_BAND_MIN,
+  BEZEL_CHROME_SAMPLE_PX,
   BEZEL_RADIUS_MAX,
   type BezelTint,
 } from "@/systems/bezel";
@@ -1097,6 +1098,16 @@ function WallpaperModule() {
                   format={(v) => `${v}px`}
                 />
               </PanelRow>
+              {/* Not a guard rail — the thin end is a legitimate look, and the
+                  only way to find out how thin is thin enough is to drag it.
+                  This just says what stops happening down there. */}
+              {letterboxBand < BEZEL_CHROME_SAMPLE_PX && (
+                <div className="text-[10px] font-mono text-amber-500/70">
+                  {zh
+                    ? `< ${BEZEL_CHROME_SAMPLE_PX}px：iOS 26 的 chrome 要约 ${BEZEL_CHROME_SAMPLE_PX}px 的纯色边缘才会跟着走，再薄它就回到 Safari 自己的颜色（浅色下是白）。0 反而干净：没有边框可以对不齐。`
+                    : `< ${BEZEL_CHROME_SAMPLE_PX}px: iOS 26 needs about ${BEZEL_CHROME_SAMPLE_PX}px of flat edge to follow. Thinner and the chrome falls back to Safari's own colour, white in light. 0 is cleaner than 4 — no frame left to mismatch.`}
+                </div>
+              )}
               <PanelRow label={zh ? "圆角" : "Corner radius"}>
                 <PanelRange
                   value={letterboxRadius}
