@@ -33,6 +33,11 @@ lives here, once.
 header through the shared `useDraggable` hook — so it inherits the devtool's
 per-instance drag settings like every other draggable thing on the site.
 
+No shape takes the page away. There is no scrim, the page stays interactive,
+and touching it does not close the surface; its close button, Escape and a drag
+do. The surfaces here are all about the page behind them, and a surface that
+closed on every touch of a live page could not be used.
+
 ## Declaring a presentation
 
 A feature states intent as a breakpoint map and stops thinking about it:

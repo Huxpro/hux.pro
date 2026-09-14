@@ -31,6 +31,14 @@ import { useSurfaceMode, type SurfaceMode, type SurfacePresentation } from "./pr
 //   window  a centred window that morphs in the way an app window does when it
 //           opens from its shelf icon, and is draggable by its header.
 //
+// None of them takes the page away. There is no scrim, the page stays
+// interactive, and touching it does not close the surface; its close button,
+// Escape and a drag do. Every surface here is about the page behind it: a
+// wallpaper picker under a scrim darkens the thing being picked, and a
+// playlist stays open while the page goes on. Outside dismissal goes with the
+// scrim on purpose: a surface that closes on every touch of a live page cannot
+// be used.
+//
 // Content can adapt without knowing the rules by reading `useSurfaceContext()`.
 // =============================================================================
 
@@ -77,19 +85,6 @@ export interface AdaptiveSurfaceProps {
   contentClassName?: string;
   /** The scroll container, for content that needs to scroll a row into view. */
   scrollRef?: React.RefObject<HTMLDivElement | null>;
-  /**
-   * Whether the surface takes the page away while it is open. Default `true`:
-   * a dimming scrim, the page behind it inert, a click on the scrim closes.
-   *
-   * `false` is for surfaces whose whole point is the page behind them. A
-   * wallpaper picker under a scrim is darkening the very thing being picked,
-   * and a playlist is something to keep open while the page goes on. So: no
-   * scrim in any shape, the page stays interactive, and touching it does not
-   * close the surface — its close button, Escape and a drag still do. Outside
-   * dismissal goes with the scrim deliberately: once the page can be touched,
-   * a surface that vanishes on every touch is a surface that cannot be used.
-   */
-  modal?: boolean;
   children: React.ReactNode;
 }
 
@@ -160,7 +155,6 @@ function SurfaceWindow({
   maxHeight,
   contentClassName,
   scrollRef,
-  modal = true,
   children,
 }: Omit<AdaptiveSurfaceProps, "presentation">) {
   // Destructured up front: reading `drag.*` inside the JSX trips the
@@ -192,28 +186,12 @@ function SurfaceWindow({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div
-          className={cn(
-            "fixed inset-0 z-[60] flex items-start justify-center pt-[12vh]",
-            // Non-modal, this full-screen positioning box would otherwise be
-            // an invisible wall over the page; only the window takes pointers.
-            !modal && "pointer-events-none"
-          )}
-        >
-          {modal && (
-            <motion.div
-              className="absolute inset-0 bg-black/25 dark:bg-black/45"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => onOpenChange(false)}
-            />
-          )}
+        // This full-screen positioning box would otherwise be an invisible
+        // wall over the page; only the window takes pointers.
+        <div className="pointer-events-none fixed inset-0 z-[60] flex items-start justify-center pt-[12vh]">
           <motion.div
             ref={contentRef as React.RefObject<HTMLDivElement>}
             role="dialog"
-            aria-modal={modal ? "true" : undefined}
             drag={isDraggable ? true : undefined}
             dragControls={dragControls}
             dragListener={false}
@@ -243,7 +221,7 @@ function SurfaceWindow({
               width: windowWidth ?? "min(92vw, 560px)",
               maxHeight: maxHeight ?? "76vh",
             }}
-            className={cn(SHELL, "relative z-[61]", !modal && "pointer-events-auto")}
+            className={cn(SHELL, "pointer-events-auto relative z-[61]")}
           >
             <SurfaceHeader
               title={title}
@@ -280,7 +258,6 @@ function SurfaceDrawer({
   maxHeight,
   contentClassName,
   scrollRef,
-  modal = true,
   children,
 }: Omit<AdaptiveSurfaceProps, "presentation" | "id"> & { mode: "sheet" | "panel" }) {
   const isPanel = mode === "panel";
@@ -292,18 +269,15 @@ function SurfaceDrawer({
       direction={isPanel ? "right" : "bottom"}
       // vaul's own switch: non-modal drops the body scroll lock and the inert
       // page, which is the half of "no overlay" a missing scrim alone is not.
-      modal={modal}
+      modal={false}
     >
       <Drawer.Portal>
-        {modal && (
-          <Drawer.Overlay className="fixed inset-0 z-[60] bg-black/25 dark:bg-black/45" />
-        )}
         <Drawer.Content
           aria-describedby={undefined}
           // Radix still dismisses a non-modal dialog on an outside press. With
           // the page interactive that would close the surface on every touch.
-          onPointerDownOutside={modal ? undefined : (e) => e.preventDefault()}
-          onInteractOutside={modal ? undefined : (e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
           style={
             {
               // vaul's enter/exit transform must clear the edge gap too,
