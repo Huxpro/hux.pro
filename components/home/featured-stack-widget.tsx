@@ -30,7 +30,7 @@ function StackShell({
   children: React.ReactNode;
 }) {
   return (
-    <WidgetShell className={className}>
+    <WidgetShell className={className} href={href}>
       <WidgetHeader>
         <WidgetTitle>{title}</WidgetTitle>
         {href ? (

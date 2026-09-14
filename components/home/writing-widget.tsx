@@ -63,7 +63,7 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
   if (latest.length === 0 && featured.length === 0) return null;
 
   return (
-    <WidgetShell>
+    <WidgetShell href="/writing">
       <WidgetHeader className="pb-2">
         <WidgetTitle>{t(locale, "widgetBlog")}</WidgetTitle>
         <WidgetLink href="/writing" />

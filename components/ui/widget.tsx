@@ -5,8 +5,9 @@ import { GradientStack } from "@/systems/ambient/components/gradient-stack";
 import { isIOSBrowser } from "@/systems/ambient/lib/platform";
 import { useOptionalWeather } from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
-import { Link } from "next-view-transitions";
-import { useState } from "react";
+import { Link, useTransitionRouter } from "next-view-transitions";
+import { useCallback, useState, type MouseEvent } from "react";
+import { landsOnOwnAction } from "./widget-surface";
 
 // =============================================================================
 // Widget Primitives (shadcn-like compound components)
@@ -14,6 +15,14 @@ import { useState } from "react";
 
 /**
  * WidgetShell - The outer container with consistent card styling.
+ *
+ * Tappable surface: pass `href` (a page to open) or `onOpen` (an action —
+ * refresh the weather, open the playlist) and the whole card becomes the tap
+ * target, not just the header arrow. Interactive descendants keep their own
+ * taps (see `landsOnOwnAction`); the masonry's edit mode swallows clicks
+ * before they reach here, so rearranging never opens anything. Keyboard users
+ * still reach the page through the visible `WidgetLink` — the shell itself
+ * deliberately adds no tab stop.
  *
  * In "widget" gradient mode each card renders a crossfading gradient overlay
  * (the shared <GradientStack />) bound to the provider's layer stack. All
@@ -28,13 +37,39 @@ import { useState } from "react";
 export function WidgetShell({
   className,
   style,
+  href,
+  onOpen,
   children,
 }: {
   className?: string;
   style?: React.CSSProperties;
+  /** Page the widget opens when its surface is tapped. */
+  href?: string;
+  /** Action the widget performs when its surface is tapped (no page). */
+  onOpen?: () => void;
   children: React.ReactNode;
 }) {
   const weather = useOptionalWeather();
+  const router = useTransitionRouter();
+  const tappable = !!href || !!onOpen;
+
+  const handleClick = useCallback(
+    (e: MouseEvent<HTMLDivElement>) => {
+      if (!tappable) return;
+      if (landsOnOwnAction(e)) return;
+      if (href) {
+        // Honour "open in new tab" gestures on the blank surface too.
+        if (e.metaKey || e.ctrlKey || e.button === 1) {
+          window.open(href, "_blank", "noopener");
+          return;
+        }
+        router.push(href);
+      } else {
+        onOpen?.();
+      }
+    },
+    [tappable, href, onOpen, router],
+  );
   // Callback ref kept in state so the GradientStack re-renders (and its per-layer
   // tracker registrations run) once the card element is actually attached.
   const [shellEl, setShellEl] = useState<HTMLDivElement | null>(null);
@@ -53,6 +88,11 @@ export function WidgetShell({
   return (
     <div
       ref={setShellEl}
+      onClick={tappable ? handleClick : undefined}
+      // iOS only paints `:active` on elements with a touch listener in their
+      // ancestry; React delegates to the root, so an empty handler suffices.
+      onTouchStart={tappable ? noop : undefined}
+      data-widget-tappable={tappable ? "" : undefined}
       className={cn(
         "group relative rounded-2xl overflow-hidden",
         "border border-border/50",
@@ -60,6 +100,8 @@ export function WidgetShell({
         widgetGradientEnabled
           ? "bg-transparent backdrop-blur-sm hover:bg-white/5 dark:hover:bg-white/5"
           : "bg-card/50 backdrop-blur-xl hover:border-border hover:bg-card/70",
+        // Press wash for surface presses only (see `.widget-surface`).
+        tappable && "widget-surface",
         className
       )}
       style={style}
@@ -85,6 +127,8 @@ export function WidgetShell({
     </div>
   );
 }
+
+const noop = () => {};
 
 /**
  * WidgetHeader - Header bar with flexible content slots

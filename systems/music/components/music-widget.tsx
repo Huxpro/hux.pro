@@ -21,7 +21,7 @@ import { EQBars, NowPlaying } from "./now-playing";
 
 export function MusicWidget() {
   const { locale } = useLocale();
-  const { track, playerState } = useMusic();
+  const { track, playerState, openPlaylist } = useMusic();
 
   if (!PLAYLIST_ID) return null;
 
@@ -32,7 +32,7 @@ export function MusicWidget() {
   const showEQ = !!track && (isPlaying || isLoading);
 
   return (
-    <WidgetShell>
+    <WidgetShell onOpen={openPlaylist}>
       <WidgetHeader className="pb-3">
         <div className="flex items-center gap-2 min-w-0">
           {showEQ && <EQBars className="text-green-500" />}

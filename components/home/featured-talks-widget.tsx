@@ -66,7 +66,7 @@ export function FeaturedTalksWidget() {
   if (albums.length === 0 || !album) return null;
 
   return (
-    <WidgetShell>
+    <WidgetShell href="/works">
       <WidgetHeader className="pb-3">
         <WidgetTitle>{t(locale, "widgetFeaturedTalks")}</WidgetTitle>
         <WidgetLink href="/works" />
