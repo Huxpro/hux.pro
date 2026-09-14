@@ -16,6 +16,7 @@
     "icon:generate": "node scripts/icon-generate.ts",
     "icon:check": "node scripts/icon-generate.ts --check",
     "wallpapers:check": "node scripts/wallpaper-check.ts",
+    "wallpapers:profile": "node scripts/wallpaper-scroll-profile.ts",
     "apps:snapshot": "node scripts/app-icon-snapshot.ts",
     "apps:check": "node scripts/app-icon-snapshot.ts --check"
   },
