@@ -1,6 +1,5 @@
 "use client";
 
-import { ARTWORK_CHIP } from "@/systems/ambient/components/wallpaper-sheet";
 import { WeatherIcon } from "@/systems/ambient/components/weather-icon";
 import {
   GLASS_MATERIALS,
@@ -20,7 +19,6 @@ import {
   WEATHER_CONDITIONS,
   getWeatherConditionLabel,
 } from "@/systems/ambient/lib/weather";
-import { isPhoneWallpaper } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
@@ -65,7 +63,6 @@ import {
   MoonStar,
   Music,
   RefreshCw,
-  Smartphone,
   Sun,
   SunMedium,
   Sunrise,
@@ -774,10 +771,10 @@ function GlassModule() {
 // Wallpaper Module
 //
 // Everything about the background lives here, because everything about the
-// background is now one system. The swatch grid leads with Weather — it is the
-// first wallpaper, not a separate "kind" to pick first — and the rest are the
-// Apple pairs. Below it, the rendering flags as plain switches: where the
-// wallpaper paints, and how much of it survives on a reading page.
+// background is now one system. Choosing a picture is left to the picker: the
+// module only switches kind and shows what is up, and a tap on that opens the
+// picker. Below it, the rendering flags as plain switches: where the wallpaper
+// paints, and how much of it survives on a reading page.
 //
 // Full, Widget and Soft edge are ephemeral devtool overrides of what the
 // settings and the platform resolve to; the reading treatment rows write the
@@ -791,8 +788,6 @@ function WallpaperModule() {
     kind,
     setKind,
     wallpaper,
-    wallpapers,
-    selectWallpaper,
     variant,
     opacity,
     veil,
@@ -876,70 +871,47 @@ function WallpaperModule() {
           </span>
         </div>
 
-        {/* Weather is the first cell, not a separate control above the grid:
-            picking a background is one choice, and this is that choice. */}
-        <div className="grid grid-cols-4 gap-1.5">
-          <button
-            type="button"
-            onClick={() => setKind("weather")}
-            title={zh ? "天气" : "Weather"}
-            aria-label="Set wallpaper to Weather"
-            aria-pressed={!isImage}
-            className={cn(
-              "relative aspect-square overflow-hidden rounded-lg border transition-all",
-              "flex items-center justify-center bg-muted/30",
-              !isImage
-                ? "border-foreground/60 ring-2 ring-foreground/50"
-                : "border-border/40 hover:border-border"
+        {/* Which wallpaper. Only a switch and the current picture: choosing
+            among thirty-odd tiles is the picker's job, and a second grid here
+            was a second picker to keep in step. */}
+        <PanelRow label={zh ? "类型" : "Kind"}>
+          <PanelSegmented<"weather" | "image">
+            value={kind}
+            options={[
+              { value: "weather", label: zh ? "天气" : "Weather" },
+              { value: "image", label: zh ? "图片" : "Image" },
+            ]}
+            onChange={setKind}
+          />
+        </PanelRow>
+        <button
+          type="button"
+          onClick={openPicker}
+          aria-label={zh ? "打开壁纸选择器" : "Open wallpaper picker"}
+          className="flex w-full items-center gap-2 rounded-md border border-border/60 p-1 text-left transition-colors hover:bg-muted/40"
+        >
+          {isImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={wallpaper[variant].thumb}
+              alt=""
+              className="h-6 w-10 shrink-0 rounded-sm object-cover"
+            />
+          ) : (
+            <span className="flex h-6 w-10 shrink-0 items-center justify-center rounded-sm bg-muted/40">
+              <Cloud className="h-3 w-3 text-foreground/70" />
+            </span>
+          )}
+          <span className="min-w-0 flex-1 truncate text-[10px] font-mono text-foreground/80">
+            {isImage ? wallpaper.name : zh ? "天气" : "Weather"}
+            {isImage && (
+              <span className="ml-1.5 tabular-nums text-muted-foreground/60">
+                {wallpaper[variant].width}×{wallpaper[variant].height}
+              </span>
             )}
-          >
-            <Cloud className="h-3.5 w-3.5 text-foreground/70" />
-          </button>
-          {wallpapers.map((w) => {
-            const selected = isImage && w.id === wallpaper.id;
-            return (
-              <button
-                key={w.id}
-                type="button"
-                onClick={() => selectWallpaper(w.id)}
-                title={`${w.name} · ${w.platform} ${w.year}${
-                  isPhoneWallpaper(w) ? " · phone" : ""
-                }`}
-                aria-label={`Set wallpaper to ${w.name}`}
-                aria-pressed={selected}
-                className={cn(
-                  "relative aspect-square overflow-hidden rounded-lg border transition-all",
-                  selected
-                    ? "border-foreground/60 ring-2 ring-foreground/50"
-                    : "border-border/40 hover:border-border"
-                )}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={w[variant].thumb}
-                  alt=""
-                  loading="lazy"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-                {/* Phone artwork: the swatch is square, so nothing else in
-                    this grid would tell you it is a phone wallpaper. Same
-                    chip the picker's sun/moon marks use, so a glyph over
-                    artwork always arrives the same way. */}
-                {isPhoneWallpaper(w) && (
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "absolute bottom-0.5 right-0.5 flex size-3.5 items-center justify-center rounded-full",
-                      ARTWORK_CHIP
-                    )}
-                  >
-                    <Smartphone className="size-2" strokeWidth={2.25} />
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+          </span>
+          <ExternalLink className="mr-1 h-3 w-3 shrink-0 text-muted-foreground" />
+        </button>
 
         {/* Where it paints. */}
         <div className="space-y-2 border-t border-border/30 pt-2.5">
@@ -996,14 +968,6 @@ function WallpaperModule() {
             />
           </PanelRow>
         </div>
-
-        <button
-          onClick={openPicker}
-          className="flex w-full items-center justify-center gap-1.5 rounded-md border border-border/60 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-        >
-          <ExternalLink className="h-3 w-3" />
-          {zh ? "打开壁纸选择器" : "Open picker"}
-        </button>
 
         {/* The resolved asset — the fastest way to trace a wrong background. */}
         <div className="break-all text-[10px] font-mono text-muted-foreground">

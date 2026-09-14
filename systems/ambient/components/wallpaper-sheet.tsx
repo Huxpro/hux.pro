@@ -96,10 +96,10 @@ function CompactRow<T extends string>({
 
 /**
  * The chip a glyph gets when it sits on artwork rather than on a surface.
- * Named once because there are three of them — the two variant marks, the
- * Weather badge, and the devtool's phone swatch, which imports this.
+ * Named once because there are two uses — the variant marks and the Weather
+ * badge — and they should arrive the same way.
  */
-export const ARTWORK_CHIP =
+const ARTWORK_CHIP =
   "bg-black/35 text-white ring-1 ring-white/25 backdrop-blur-[2px]";
 
 /**
