@@ -18,15 +18,16 @@
   --font-serif: var(--font-serif-latin), var(--font-serif-cjk), serif;
   --font-mono: var(--font-mono);
   --color-sidebar-ring: var(--sidebar-ring);
-  /* System glass fills. Every floating System UI surface — widgets, the
-     command palette, the devtool, Live Activities, adaptive surfaces — paints
-     with these rather than its own bg-card/NN, so one setting can restyle the
-     whole material at once. See `Glass` in docs/system-glass.md. */
+  /* System glass fills, named for what a surface *is*. Every floating System
+     UI surface — widgets, the command palette, the devtool, Live Activities,
+     adaptive surfaces — paints with these rather than its own bg-card/NN, so
+     one setting can restyle the whole material at once. See `Glass` in
+     docs/system-glass.md. */
   --color-glass: var(--glass);
   --color-glass-hover: var(--glass-hover);
-  --color-glass-strong: var(--glass-strong);
-  --color-glass-strong-hover: var(--glass-strong-hover);
-  --color-glass-overlay: var(--glass-overlay);
+  --color-glass-raised: var(--glass-raised);
+  --color-glass-solid: var(--glass-solid);
+  --color-glass-panel: var(--glass-panel);
   --color-glass-sheet: var(--glass-sheet);
   --color-glass-popover: var(--glass-popover);
   --color-sidebar-border: var(--sidebar-border);
@@ -143,17 +144,69 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
-  /* Tinted (色调) — the default material. Fills carry enough of the card
-     colour to read as a surface in their own right. Defined once: the formula
-     is theme-independent, and `--card` under `.dark` does the rest. Only Clear
-     needs a genuine dark override. */
-  --glass: color-mix(in oklab, var(--card) 50%, transparent);
-  --glass-hover: color-mix(in oklab, var(--card) 70%, transparent);
-  --glass-strong: color-mix(in oklab, var(--card) 60%, transparent);
-  --glass-strong-hover: color-mix(in oklab, var(--card) 80%, transparent);
-  --glass-overlay: color-mix(in oklab, var(--card) 70%, transparent);
-  --glass-sheet: color-mix(in oklab, var(--card) 85%, transparent);
-  --glass-popover: color-mix(in oklab, var(--popover) 75%, transparent);
+  /* --- Glass -------------------------------------------------------------
+     How much of the base colour each role carries. Tinted (色调) is the
+     default material: fills carry enough card colour to read as a surface in
+     their own right. A material sets these seven numbers and nothing else —
+     the roles below turn them into colours, once, for every material and both
+     themes. `--card` under `.dark` does the rest. */
+  --glass-fill: 50%; /* an ordinary floating surface */
+  --glass-fill-raised: 60%; /* one stacked above other glass */
+  --glass-fill-panel: 70%; /* a lifted panel */
+  --glass-fill-popover: 75%; /* a menu (over --popover, not --card) */
+  --glass-fill-sheet: 85%; /* a sheet that owns the screen */
+  /* One offset for every deepening: rest → hover, raised → solid, press. */
+  --glass-hover-step: 20%;
+  /* Dark Clear is Clear plus this much on every role — the whole of what dark
+     needs, instead of a third copy of the ladder. */
+  --glass-dark-add: 0%;
+
+  /* The roles. Each formula is written once; the material and the theme reach
+     it through the numbers above. Named for what the surface is, never for the
+     alpha it happens to carry — the fill can be retuned without every call
+     site starting to lie. */
+  --glass: color-mix(
+    in oklab,
+    var(--card) calc(var(--glass-fill) + var(--glass-dark-add)),
+    transparent
+  );
+  --glass-hover: color-mix(
+    in oklab,
+    var(--card)
+      calc(var(--glass-fill) + var(--glass-hover-step) + var(--glass-dark-add)),
+    transparent
+  );
+  --glass-raised: color-mix(
+    in oklab,
+    var(--card) calc(var(--glass-fill-raised) + var(--glass-dark-add)),
+    transparent
+  );
+  /* The most solid glass: a control that has to stay legible over anything —
+     and where an ordinary or raised surface lands under the finger. */
+  --glass-solid: color-mix(
+    in oklab,
+    var(--card)
+      calc(
+        var(--glass-fill-raised) + var(--glass-hover-step) +
+          var(--glass-dark-add)
+      ),
+    transparent
+  );
+  --glass-panel: color-mix(
+    in oklab,
+    var(--card) calc(var(--glass-fill-panel) + var(--glass-dark-add)),
+    transparent
+  );
+  --glass-sheet: color-mix(
+    in oklab,
+    var(--card) calc(var(--glass-fill-sheet) + var(--glass-dark-add)),
+    transparent
+  );
+  --glass-popover: color-mix(
+    in oklab,
+    var(--popover) calc(var(--glass-fill-popover) + var(--glass-dark-add)),
+    transparent
+  );
 }
 
 .dark {
@@ -211,24 +264,18 @@
    distortion, nothing that pretends to be a physical lens.
 ----------------------------------------------------------------------------- */
 html.glass-clear {
-  --glass: color-mix(in oklab, var(--card) 20%, transparent);
-  --glass-hover: color-mix(in oklab, var(--card) 32%, transparent);
-  --glass-strong: color-mix(in oklab, var(--card) 26%, transparent);
-  --glass-strong-hover: color-mix(in oklab, var(--card) 38%, transparent);
-  --glass-overlay: color-mix(in oklab, var(--card) 36%, transparent);
-  --glass-sheet: color-mix(in oklab, var(--card) 46%, transparent);
-  --glass-popover: color-mix(in oklab, var(--popover) 40%, transparent);
+  --glass-fill: 20%;
+  --glass-fill-raised: 26%;
+  --glass-fill-panel: 36%;
+  --glass-fill-popover: 40%;
+  --glass-fill-sheet: 46%;
+  --glass-hover-step: 12%;
 }
 
-/* Dark mode needs a touch more fill at the same perceived transparency. */
+/* Dark mode needs a touch more fill at the same perceived transparency. One
+   number, not a third ladder: dark Clear was always Clear plus six points. */
 html.dark.glass-clear {
-  --glass: color-mix(in oklab, var(--card) 26%, transparent);
-  --glass-hover: color-mix(in oklab, var(--card) 38%, transparent);
-  --glass-strong: color-mix(in oklab, var(--card) 32%, transparent);
-  --glass-strong-hover: color-mix(in oklab, var(--card) 44%, transparent);
-  --glass-overlay: color-mix(in oklab, var(--card) 42%, transparent);
-  --glass-sheet: color-mix(in oklab, var(--card) 52%, transparent);
-  --glass-popover: color-mix(in oklab, var(--popover) 46%, transparent);
+  --glass-dark-add: 6%;
 }
 
 @layer base {

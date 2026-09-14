@@ -100,7 +100,10 @@ export function WidgetShell({
         "border border-border/50",
         "transition-all duration-300",
         widgetEnabled
-          ? "bg-transparent backdrop-blur-sm hover:bg-white/5 dark:hover:bg-white/5"
+          ? // No fill at all: the wallpaper is the card. What hover adds is an
+            // ink wash over the picture, so it stays raw (see lib/glass.ts).
+            // eslint-disable-next-line no-restricted-syntax
+            "bg-transparent backdrop-blur-sm hover:bg-white/5 dark:hover:bg-white/5"
           : "bg-glass backdrop-blur-xl hover:border-border hover:bg-glass-hover",
         // Press wash for surface presses only (see `.widget-surface`).
         tappable && "widget-surface",

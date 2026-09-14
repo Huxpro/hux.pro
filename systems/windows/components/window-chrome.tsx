@@ -275,14 +275,15 @@ export function WindowChrome({
           // fight on specificity:
           interacting
             ? // Interacting (drag / menu open) → glass, on either platform.
-              "border-black/10 bg-white/80 shadow-raised backdrop-blur-xl dark:border-white/14 dark:bg-black/60"
+              // Solid: the chip sits over whatever the window is showing.
+              "border-black/10 bg-glass-solid shadow-raised backdrop-blur-xl dark:border-white/14"
             : cn(
                 // Idle → fully transparent (both platforms).
                 "border-transparent bg-transparent shadow-none",
                 // …except desktop hover, which lights the glass. `hover:` (not
                 // group-hover) since this element *is* the group.
-                "[@media(hover:hover)]:hover:border-black/10 [@media(hover:hover)]:hover:bg-white/80 [@media(hover:hover)]:hover:shadow-raised [@media(hover:hover)]:hover:backdrop-blur-xl",
-                "dark:[@media(hover:hover)]:hover:border-white/14 dark:[@media(hover:hover)]:hover:bg-black/60",
+                "[@media(hover:hover)]:hover:border-black/10 [@media(hover:hover)]:hover:bg-glass-solid [@media(hover:hover)]:hover:shadow-raised [@media(hover:hover)]:hover:backdrop-blur-xl",
+                "dark:[@media(hover:hover)]:hover:border-white/14",
               ),
         )}
       >
@@ -345,7 +346,7 @@ export function WindowChrome({
                   className={cn(
                     "fixed z-[56] w-52 select-none p-1",
                     "rounded-2xl border border-black/8 dark:border-white/12",
-                    "bg-white/90 shadow-overlay backdrop-blur-xl dark:bg-neutral-900/90",
+                    "bg-glass-popover shadow-overlay backdrop-blur-xl",
                   )}
                 >
                   <div className="flex items-center gap-2.5 px-2 py-1.5">

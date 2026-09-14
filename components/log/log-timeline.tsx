@@ -176,6 +176,10 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
             type="button"
             onClick={() => edit.onSelectTag(tag.id)}
             className={cn(
+              // A tint over the timeline gradient, not a System surface: the
+              // direction follows the theme (see above), which is the opposite
+              // of what a material token does.
+              // eslint-disable-next-line no-restricted-syntax
               "inline-flex items-center bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full transition-colors",
               isTagSelected
                 ? "border-sky-500/70 ring-1 ring-inset ring-sky-500/35 bg-sky-500/[0.05]"
@@ -186,6 +190,8 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
             {tagLabel}
           </button>
         ) : (
+          // The same tint over the gradient as the button above, at rest.
+          // eslint-disable-next-line no-restricted-syntax
           <span className="inline-flex items-center bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border border-border rounded-full">
             {tagLabel}
           </span>

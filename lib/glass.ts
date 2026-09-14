@@ -17,6 +17,14 @@ import { cn } from "@/lib/utils";
 //
 // Only recipes used by more than one surface belong here. A one-off surface
 // should just write `bg-glass…` inline.
+//
+// The tokens are for a fill that *is* the surface. An ink wash is not: a
+// recessed track, a hover deepening, a press — those are drawn relative to the
+// content in front of them (`bg-foreground/[0.06]`, `bg-white/[0.05]`), so they
+// read on any card under any material, and a card-coloured fill at the same
+// alpha would simply disappear. That is why this file is the one place the
+// eslint rule exempts, and why a raw alpha anywhere else is a surface that
+// forgot the tokens.
 // =============================================================================
 
 /**
@@ -26,7 +34,7 @@ import { cn } from "@/lib/utils";
  * `shadow-raised` themselves.
  */
 export const GLASS_PANEL =
-  "rounded-lg border border-border/50 bg-glass-overlay backdrop-blur-xl";
+  "rounded-lg border border-border/50 bg-glass-panel backdrop-blur-xl";
 
 // -----------------------------------------------------------------------------
 // Raised capsule — frosted track + lifted pill.
@@ -92,12 +100,13 @@ export const GLASS_CLUSTER_FLAT = cn(
 );
 
 /**
- * Selected pill: light lift in light mode; dark stamp in dark mode.
+ * Selected pill: light lift in light mode; dark stamp in dark mode — the stamp
+ * is solid glass because a dark chip has to hold its own against the track.
  * Same hover → active mirroring as GLASS_TRACK_FLAT.
  */
 export const GLASS_PILL_FLAT = cn(
-  "pressable bg-glass-overlay ring-1 ring-border/30",
-  "dark:bg-glass-strong-hover dark:ring-transparent dark:shadow-none",
+  "pressable bg-glass-panel ring-1 ring-border/30",
+  "dark:bg-glass-solid dark:ring-transparent dark:shadow-none",
   "backdrop-blur-xl",
   "transition-[background-color,box-shadow,ring-color] duration-200",
   "group-active:duration-0",
@@ -162,9 +171,9 @@ export const GLASS_ACTION = cn(
 /** Theme-aware freestanding prev/next orb. */
 export const GLASS_ORB = cn(
   GLASS_BTN,
-  // No 75% glass token; the orb floats over video, so it takes the more
-  // opaque neighbour (80) rather than the thinner one.
-  "bg-glass-strong-hover text-foreground shadow-sm ring-1 ring-border/40 backdrop-blur-xl",
+  // The orb floats over video with nothing behind it to help: solid is the
+  // role for a control that has to stay legible over anything.
+  "bg-glass-solid text-foreground shadow-sm ring-1 ring-border/40 backdrop-blur-xl",
 );
 
 // -----------------------------------------------------------------------------
