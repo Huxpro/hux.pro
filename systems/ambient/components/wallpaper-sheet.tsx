@@ -1,8 +1,10 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { t, useLocale, useTheme } from "@/services";
+import { t, useLocale, useTheme, type TranslationKey } from "@/services";
+import { AlbumTabs } from "@/systems/theater";
 import { Check, Cloud, Moon, Smartphone, Sun } from "lucide-react";
+import { useState } from "react";
 import {
   ADAPTIVE_PRESENTATION,
   AdaptiveSurface,
@@ -13,7 +15,10 @@ import type { WallpaperPlacement } from "../lib/settings";
 import {
   getWallpaperPairPreview,
   isPhoneWallpaper,
+  isSingleImage,
+  WALLPAPER_CATEGORIES,
   type Wallpaper,
+  type WallpaperCategory,
 } from "../lib/wallpaper";
 import { useWallpaper, useWeather } from "../provider";
 
@@ -28,16 +33,22 @@ import { useWallpaper, useWeather } from "../provider";
 //
 // Tiles are macOS Settings pair cards: a 16:10 split of the light and dark
 // originals, a sun / moon marking each half, a check when selected, and
-// "Name" · "macOS · 2020" underneath.
+// "Name" · "macOS · 2020" underneath, with the file's resolution below that.
+// A photograph is one picture, so its tile is that picture, unsplit.
 //
-// Weather is the FIRST tile in the same grid at the same size, not a banner of
-// its own — it is one of the wallpapers, just the only one that moves. A
-// separate row said the opposite.
+// The catalog is split into categories (Apple, Nature) with the same capsule
+// the Featured Talks widget uses to switch albums — one group at a time is the
+// same choice in both places, so it looks the same.
+//
+// Weather is the FIRST tile in every category's grid at the same size, not a
+// banner of its own — it is one of the wallpapers, just the only one that
+// moves. A separate row said the opposite, and hiding it inside one category
+// would make the way back to it depend on which tab is open.
 // ---------------------------------------------------------------------------
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="px-0.5 pb-2 text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+    <div className="px-0.5 text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
       {children}
     </div>
   );
@@ -84,10 +95,10 @@ function CompactRow<T extends string>({
 
 /**
  * The chip a glyph gets when it sits on artwork rather than on a surface.
- * Named once because there are three of them — the two variant marks, the
- * Weather badge, and the devtool's phone swatch, which imports this.
+ * Named once because there are two uses — the variant marks and the Weather
+ * badge — and they should arrive the same way.
  */
-export const ARTWORK_CHIP =
+const ARTWORK_CHIP =
   "bg-black/35 text-white ring-1 ring-white/25 backdrop-blur-[2px]";
 
 /**
@@ -142,7 +153,7 @@ function TileFrame({
 }
 
 /**
- * Name on the left, platform + year on the right.
+ * Name on the left, platform + year on the right, resolution underneath.
  *
  * A phone glyph rides in front of the platform on the iOS pairs. Phone artwork
  * on a desktop viewport is a crop of itself, and that is worth knowing BEFORE
@@ -153,26 +164,40 @@ function TileCaption({
   name,
   meta,
   phone,
+  resolution,
 }: {
   name: string;
-  meta: string;
+  meta?: string;
   phone?: boolean;
+  /**
+   * The committed file's pixels. On its own line, in mono, because it is a
+   * spec rather than a name — and the one thing about a picture you cannot
+   * judge from a 200px tile.
+   */
+  resolution?: string;
 }) {
   return (
-    <div className="mt-2 flex items-baseline justify-between gap-2 px-0.5">
-      <span className="truncate text-[13px] font-medium text-foreground">
-        {name}
-      </span>
-      <span className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
-        {phone && (
-          <Smartphone
-            aria-hidden
-            className="size-3 translate-y-[0.5px] opacity-70"
-            strokeWidth={2}
-          />
-        )}
-        {meta}
-      </span>
+    <div className="mt-2 px-0.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="truncate text-[13px] font-medium text-foreground">
+          {name}
+        </span>
+        <span className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
+          {phone && (
+            <Smartphone
+              aria-hidden
+              className="size-3 translate-y-[0.5px] opacity-70"
+              strokeWidth={2}
+            />
+          )}
+          {meta}
+        </span>
+      </div>
+      {resolution && (
+        <div className="mt-0.5 font-mono text-[10px] tabular-nums text-muted-foreground/60">
+          {resolution}
+        </div>
+      )}
     </div>
   );
 }
@@ -192,6 +217,26 @@ function preload(src: string) {
   img.src = src;
 }
 
+/** Light left, dark right. */
+function PairHalves({
+  preview,
+}: {
+  preview: ReturnType<typeof getWallpaperPairPreview>;
+}) {
+  return (
+    <>
+      <span
+        className="absolute inset-y-0 left-0 w-1/2 bg-cover bg-center"
+        style={{ backgroundImage: preview.light.backgroundImage }}
+      />
+      <span
+        className="absolute inset-y-0 right-0 w-1/2 bg-cover bg-center"
+        style={{ backgroundImage: preview.dark.backgroundImage }}
+      />
+    </>
+  );
+}
+
 /**
  * A pair card. Both halves are always visible — light left, dark right —
  * because the pair is what you are choosing; which half shows is the theme's
@@ -204,41 +249,50 @@ function WallpaperTile({
   wallpaper: Wallpaper;
   selected: boolean;
 }) {
-  const { selectWallpaper, variant } = useWallpaper();
+  const { selectWallpaper, variant, blurred } = useWallpaper();
+  const single = isSingleImage(wallpaper);
   const preview = getWallpaperPairPreview(wallpaper);
-  const meta = wallpaper.caption ?? `${wallpaper.platform} · ${wallpaper.year}`;
+  const meta =
+    wallpaper.caption ??
+    (wallpaper.platform ? `${wallpaper.platform} · ${wallpaper.year}` : undefined);
+  const { width, height } = wallpaper[variant];
+  const resolution = `${width} × ${height}`;
 
   return (
     <div
       className="group min-w-0"
-      onMouseEnter={() => preload(wallpaper[variant].src)}
+      // A blurred reading page paints the thumb, which the tile already loaded.
+      onMouseEnter={blurred ? undefined : () => preload(wallpaper[variant].src)}
     >
       <TileFrame selected={selected}>
         <button
           type="button"
           onClick={() => selectWallpaper(wallpaper.id)}
           aria-pressed={selected}
-          aria-label={`Use the ${wallpaper.name} wallpaper — ${meta}${
+          aria-label={`Use the ${wallpaper.name} wallpaper — ${
+            meta ? `${meta}, ` : ""
+          }${width} by ${height}${
             isPhoneWallpaper(wallpaper) ? ", a phone wallpaper" : ""
           }`}
           className="absolute inset-0"
         >
-          <span
-            className="absolute inset-y-0 left-0 w-1/2 bg-cover bg-center"
-            style={{ backgroundImage: preview.light.backgroundImage }}
-          />
-          <span
-            className="absolute inset-y-0 right-0 w-1/2 bg-cover bg-center"
-            style={{ backgroundImage: preview.dark.backgroundImage }}
-          />
+          {single ? (
+            <span
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: preview.light.backgroundImage }}
+            />
+          ) : (
+            <PairHalves preview={preview} />
+          )}
         </button>
-        <VariantMark variant="light" />
-        <VariantMark variant="dark" />
+        {!single && <VariantMark variant="light" />}
+        {!single && <VariantMark variant="dark" />}
       </TileFrame>
       <TileCaption
         name={wallpaper.name}
         meta={meta}
         phone={isPhoneWallpaper(wallpaper)}
+        resolution={resolution}
       />
     </div>
   );
@@ -291,13 +345,7 @@ function WeatherTile({ selected }: { selected: boolean }) {
 
 export function WallpaperSheet() {
   const { locale } = useLocale();
-  const {
-    kind,
-    wallpaper: activeWallpaper,
-    isPickerOpen,
-    openPicker,
-    closePicker,
-  } = useWallpaper();
+  const { isPickerOpen, openPicker, closePicker } = useWallpaper();
 
   return (
     <AdaptiveSurface
@@ -309,30 +357,39 @@ export function WallpaperSheet() {
       closeLabel={t(locale, "wallpaperClose")}
       windowWidth="min(92vw, 620px)"
     >
-      <WallpaperPickerBody
-        isImage={kind === "image"}
-        activeId={activeWallpaper.id}
-      />
+      <WallpaperPickerBody />
     </AdaptiveSurface>
   );
 }
+
+const CATEGORY_LABEL: Record<WallpaperCategory, TranslationKey> = {
+  apple: "wallpaperCategoryApple",
+  nature: "wallpaperCategoryNature",
+};
 
 /**
  * The picker's content, unaware of which shape it landed in beyond the one
  * thing that genuinely differs: a desktop window is wide enough for three
  * columns of pair cards, a phone sheet is not.
  */
-function WallpaperPickerBody({
-  isImage,
-  activeId,
-}: {
-  isImage: boolean;
-  activeId: string;
-}) {
+function WallpaperPickerBody() {
   const { locale } = useLocale();
-  const { wallpapers, placement, setPlacement } = useWallpaper();
+  const { kind, wallpapers, wallpaper: active, placement, setPlacement } =
+    useWallpaper();
+  const isImage = kind === "image";
   const { isWindow } = useSurfaceContext();
   const columns = isWindow ? 3 : 2;
+
+  // Opens on the category of the picture in use, so the check mark is on
+  // screen; under Weather, on the first category.
+  const [category, setCategory] = useState<WallpaperCategory>(
+    isImage ? active.category : WALLPAPER_CATEGORIES[0]
+  );
+  const categories = WALLPAPER_CATEGORIES.map((id) => ({
+    id,
+    title: t(locale, CATEGORY_LABEL[id]),
+  }));
+  const shown = wallpapers.filter((w) => w.category === category);
 
   const options: { value: WallpaperPlacement; label: string }[] = [
     { value: "full", label: t(locale, "wallpaperPlacementFull") },
@@ -353,17 +410,26 @@ function WallpaperPickerBody({
         />
       </div>
 
-      <SectionLabel>{t(locale, "wallpaperChoose")}</SectionLabel>
+      {/* The label and the categories on one line, like Placement above. */}
+      <div className="flex items-center justify-between gap-3 pb-3">
+        <SectionLabel>{t(locale, "wallpaperChoose")}</SectionLabel>
+        <AlbumTabs
+          albums={categories}
+          activeIndex={WALLPAPER_CATEGORIES.indexOf(category)}
+          onSelect={(i) => setCategory(WALLPAPER_CATEGORIES[i])}
+          raised={false}
+        />
+      </div>
       <div
         className="grid gap-x-3 gap-y-4"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
         <WeatherTile selected={!isImage} />
-        {wallpapers.map((w) => (
+        {shown.map((w) => (
           <WallpaperTile
             key={w.id}
             wallpaper={w}
-            selected={isImage && activeId === w.id}
+            selected={isImage && active.id === w.id}
           />
         ))}
       </div>

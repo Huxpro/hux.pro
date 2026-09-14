@@ -51,9 +51,9 @@ Floating action button that expands into the debug panel:
 
 Debug modules for the ambient system:
 
-1. **Wallpaper**: the whole background system — a swatch grid led by Weather
-   (phone artwork carries a glyph in the swatch corner, because the file is
-   tall and the swatch is square), placement switches (full / widget / soft
+1. **Wallpaper**: the whole background system — a Weather / Image switch and
+   one row showing the current picture and its resolution, which opens the
+   picker (choosing among the catalog is the picker's job), placement switches (full / widget / soft
    edge), the reading treatment switches (reading blur / reading dim),
    and the resolved asset.
    Full and Widget are *independent* switches, not two halves of one control:
