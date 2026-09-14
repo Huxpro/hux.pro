@@ -86,10 +86,20 @@ before app scripts run and survive a reload:
 
 | Key | Values | Default |
 |---|---|---|
-| `wallpaperLetterbox` | `true` / `false` / `null` (auto: on for iOS) | `null` |
+| `wallpaperLetterbox` | `true` / `false` / `null` = the kind's default, on iOS only | `null` |
 | `wallpaperLetterboxTint` | `"dark"` / `"black"` / `"theme"` / `"#rrggbb"` | `"dark"` |
-| `wallpaperLetterboxBand` | px, 0 to 64 — the frame's thickness top and bottom | `8` |
-| `wallpaperLetterboxRadius` | px, 0 to 64 | `24` |
+| `wallpaperLetterboxBand` | px, 0 to 64, or `null` = the kind's default | `null` |
+| `wallpaperLetterboxRadius` | px, 0 to 64, or `null` = the kind's default | `null` |
+
+`null` means "follow the wallpaper kind", and the two kinds want opposite
+things (`WALLPAPER_KIND_DEFAULTS` in `systems/ambient/lib/settings.ts`):
+
+| Kind | Soft edge | Frame | Band | Radius |
+|---|---|---|---|---|
+| `weather` | on | off | — | — |
+| `image` | off | on | 0px | 16px |
+
+Both are still gated on iOS: a desktop window gets neither treatment.
 
 All four are also rows in the Devtool panel → Wallpaper section, and all four
 apply live with no reload: they reach CSS as `--bezel` and `--bezel-band` on

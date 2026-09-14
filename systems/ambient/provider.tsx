@@ -12,6 +12,7 @@ import {
   getAmbientSettings,
   getDefaultSettings,
   PAGE_GROUND,
+  WALLPAPER_KIND_DEFAULTS,
   setAmbientSettings,
 } from "./lib/settings";
 import {
@@ -162,20 +163,25 @@ interface WallpaperContextType {
    * and keeps the wallpaper inside it; see the effect in the provider.
    */
   letterbox: boolean;
-  /** The stored choice: `null` is auto (on for iOS). */
+  /** The stored choice: `null` is auto (the kind's default, on iOS only). */
   letterboxSetting: boolean | null;
+  /** The stored band and radius: `null` means the kind's default is in force. */
+  letterboxBandSetting: number | null;
+  letterboxRadiusSetting: number | null;
   setLetterbox: (value: boolean | null) => void;
   /** Corner radius of the page inside the frame, px. */
   letterboxRadius: number;
-  setLetterboxRadius: (px: number) => void;
+  /** `null` hands the row back to the wallpaper kind's default. */
+  setLetterboxRadius: (px: number | null) => void;
   /** The frame's colour: a named tint or a `#rrggbb` literal. */
   letterboxTint: BezelTint;
   setLetterboxTint: (tint: BezelTint) => void;
   /** The tint resolved against the current theme, as a paintable colour. */
   letterboxColor: string;
-  /** Band thickness where the safe area is thinner, px. */
+  /** Band thickness, px. */
   letterboxBand: number;
-  setLetterboxBand: (px: number) => void;
+  /** `null` hands the row back to the wallpaper kind's default. */
+  setLetterboxBand: (px: number | null) => void;
   /** `letterbox`, but `null` until the platform is known. For <Bezel>. */
   letterboxState: boolean | null;
   /** The reading treatment flags, for the devtool. */
@@ -314,7 +320,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [updateSettings]
   );
   const setLetterboxRadius = useCallback(
-    (px: number) => updateSettings({ wallpaperLetterboxRadius: px }),
+    (px: number | null) => updateSettings({ wallpaperLetterboxRadius: px }),
     [updateSettings]
   );
   const setLetterboxTint = useCallback(
@@ -322,7 +328,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [updateSettings]
   );
   const setLetterboxBand = useCallback(
-    (px: number) => updateSettings({ wallpaperLetterboxBand: px }),
+    (px: number | null) => updateSettings({ wallpaperLetterboxBand: px }),
     [updateSettings]
   );
   const setReadingBlur = useCallback(
@@ -390,10 +396,17 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
    * Auto is iOS. The setting is persisted so a phone can be checked across a
    * reload; the devtool row toggles it.
    */
-  const letterbox = settings.wallpaperLetterbox ?? isIOS === true;
+  /**
+   * What this kind of wallpaper wants at the edge when nothing is pinned —
+   * see `WALLPAPER_KIND_DEFAULTS`. A stored value always wins over it.
+   */
+  const kindDefaults = WALLPAPER_KIND_DEFAULTS[settings.wallpaperKind];
+  /** Auto: the kind's answer, but only on a phone. A desktop gets no frame. */
+  const letterboxAuto = isIOS === true && kindDefaults.letterbox;
+  const letterbox = settings.wallpaperLetterbox ?? letterboxAuto;
 
   const letterboxTint = settings.wallpaperLetterboxTint;
-  const letterboxBand = settings.wallpaperLetterboxBand;
+  const letterboxBand = settings.wallpaperLetterboxBand ?? kindDefaults.band;
   const letterboxColor = resolveBezelTint(letterboxTint, PAGE_GROUND, theme);
 
   /**
@@ -401,7 +414,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
    * so it leaves the frame the boot script painted alone instead of taking it
    * off for a frame. Everything else in here wants the decided boolean above.
    */
-  const letterboxState = settings.wallpaperLetterbox ?? isIOS;
+  const letterboxState =
+    settings.wallpaperLetterbox ?? (isIOS === null ? null : letterboxAuto);
 
   // iOS 18 Safari tints its status bar with theme-color, so this is what keeps
   // the letterbox continuous with it there. (iOS 26 ignores theme-color and
@@ -433,7 +447,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const softEdgeEnabled =
     isDevtoolEnabled && devtoolOverrides.softEdging !== undefined
       ? devtoolOverrides.softEdging
-      : isIOS === true && !letterbox;
+      : isIOS === true && kindDefaults.softEdge && !letterbox;
 
   // Debug override state (for weather and time)
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
@@ -712,7 +726,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       letterbox,
       letterboxSetting: settings.wallpaperLetterbox,
       setLetterbox,
-      letterboxRadius: settings.wallpaperLetterboxRadius,
+      letterboxRadius: settings.wallpaperLetterboxRadius ?? kindDefaults.radius,
       setLetterboxRadius,
       letterboxTint,
       setLetterboxTint,
@@ -720,6 +734,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       letterboxBand,
       setLetterboxBand,
       letterboxState,
+      letterboxBandSetting: settings.wallpaperLetterboxBand,
+      letterboxRadiusSetting: settings.wallpaperLetterboxRadius,
       readingBlur: settings.wallpaperReadingBlur,
       setReadingBlur,
       readingDim: settings.wallpaperReadingDim,
@@ -734,6 +750,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       settings.wallpaperPlacement,
       settings.wallpaperLetterbox,
       settings.wallpaperLetterboxRadius,
+      kindDefaults,
       settings.wallpaperReadingBlur,
       settings.wallpaperReadingDim,
       setWallpaperKind,
@@ -759,6 +776,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       letterboxBand,
       setLetterboxBand,
       letterboxState,
+      settings.wallpaperLetterboxBand,
       setReadingBlur,
       setReadingDim,
       wallpaperSrc,

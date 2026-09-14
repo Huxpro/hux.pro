@@ -15,10 +15,10 @@ import {
   isBezelHex,
   BEZEL_BAND_MAX,
   BEZEL_BAND_MIN,
-  BEZEL_CHROME_SAMPLE_PX,
   BEZEL_RADIUS_MAX,
   type BezelTint,
 } from "@/systems/bezel";
+import { DEFAULT_LETTERBOX_TINT } from "@/systems/ambient/lib/settings";
 
 /** The named tints plus the segmented control's own "pick a colour". */
 type TintChoice = "dark" | "black" | "theme" | "custom";
@@ -568,17 +568,40 @@ function FrontmatterModule() {
 // =============================================================================
 
 /** Compact label + control row shared by the reading settings. */
+/**
+ * The one signal the panel gives for "this is not the default". Deliberately
+ * just an asterisk: what a deviation means belongs in the source, not in a
+ * paragraph under every row. Clicking it restores the default, which is what
+ * the removed "click to clear" / "click for auto" lines used to do.
+ */
+function PanelStar({ onReset, label }: { onReset: () => void; label: string }) {
+  return (
+    <button
+      onClick={onReset}
+      title={label}
+      aria-label={label}
+      className="ml-1 font-mono text-amber-500/80 transition-colors hover:text-amber-400"
+    >
+      *
+    </button>
+  );
+}
+
 function PanelRow({
   label,
   children,
+  star,
 }: {
   label: string;
   children: React.ReactNode;
+  /** <PanelStar> when this row is not at its default. */
+  star?: React.ReactNode;
 }) {
   return (
     <div className="flex items-center justify-between gap-2">
       <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
         {label}
+        {star}
       </span>
       {children}
     </div>
@@ -832,6 +855,8 @@ function WallpaperModule() {
     setLetterbox,
     letterboxRadius,
     setLetterboxRadius,
+    letterboxBandSetting,
+    letterboxRadiusSetting,
     letterboxTint,
     setLetterboxTint,
     letterboxColor,
@@ -908,7 +933,6 @@ function WallpaperModule() {
   const isOverridden = (key: (typeof placements)[number]["key"]) =>
     devtoolOverrides[key] !== undefined;
   const clearOverrides = () => setDevtoolOverrides({});
-  const anyOverride = placements.some((p) => isOverridden(p.key));
 
   // One line that answers "what am I actually looking at".
   const now = [
@@ -1011,7 +1035,12 @@ function WallpaperModule() {
           {placements.map((p) => (
             <PanelRow
               key={p.key}
-              label={`${p.label}${isOverridden(p.key) ? " *" : ""}`}
+              label={p.label}
+              star={
+                isOverridden(p.key) ? (
+                  <PanelStar onReset={clearOverrides} label="Clear override" />
+                ) : null
+              }
             >
               <PanelToggle
                 on={p.on}
@@ -1020,25 +1049,18 @@ function WallpaperModule() {
               />
             </PanelRow>
           ))}
-          {anyOverride && (
-            <button
-              onClick={clearOverrides}
-              className="w-full text-left text-[10px] font-mono text-amber-500/70 transition-colors hover:text-amber-400"
-            >
-              {zh
-                ? `* 已覆盖设置（${placement}）· 点击恢复`
-                : `* overriding the setting (${placement}) · click to clear`}
-            </button>
-          )}
         </div>
 
         {/* The frame. Persisted, unlike the placement overrides above, so a
             phone can be checked across a reload. Auto is iOS. */}
         <div className="space-y-2 border-t border-border/30 pt-2.5">
           <PanelRow
-            label={`${zh ? "黑边" : "Letterbox"}${
-              letterboxSetting === null ? (zh ? "（自动）" : " (auto)") : ""
-            }`}
+            label={zh ? "黑边" : "Letterbox"}
+            star={
+              letterboxSetting !== null ? (
+                <PanelStar onReset={() => setLetterbox(null)} label="Back to auto" />
+              ) : null
+            }
           >
             <PanelToggle
               on={letterbox}
@@ -1046,17 +1068,19 @@ function WallpaperModule() {
               label="Toggle letterbox"
             />
           </PanelRow>
-          {letterboxSetting !== null && (
-            <button
-              onClick={() => setLetterbox(null)}
-              className="w-full text-left text-[10px] font-mono text-amber-500/70 transition-colors hover:text-amber-400"
-            >
-              {zh ? "已固定 · 点击恢复自动（iOS 开）" : "pinned · click for auto (on for iOS)"}
-            </button>
-          )}
           {letterbox && (
             <>
-              <PanelRow label={zh ? "颜色" : "Tint"}>
+              <PanelRow
+                label={zh ? "颜色" : "Tint"}
+                star={
+                  letterboxTint !== DEFAULT_LETTERBOX_TINT ? (
+                    <PanelStar
+                      onReset={() => setLetterboxTint(DEFAULT_LETTERBOX_TINT)}
+                      label="Back to the default tint"
+                    />
+                  ) : null
+                }
+              >
                 <PanelSegmented<TintChoice>
                   value={isBezelHex(letterboxTint) ? "custom" : letterboxTint}
                   options={tints}
@@ -1070,15 +1094,7 @@ function WallpaperModule() {
               {/* The swatch both shows the resolved colour and, on custom,
                   edits it. Every generation repaints live, so there is no
                   reload behind any of this. */}
-              <PanelRow
-                label={
-                  isBezelHex(letterboxTint)
-                    ? letterboxColor
-                    : zh
-                      ? `当前 ${letterboxColor}`
-                      : `now ${letterboxColor}`
-                }
-              >
+              <PanelRow label={letterboxColor}>
                 <input
                   type="color"
                   value={letterboxColor}
@@ -1087,7 +1103,22 @@ function WallpaperModule() {
                   className="h-5 w-10 shrink-0 cursor-pointer rounded border border-border/60 bg-transparent p-0"
                 />
               </PanelRow>
-              <PanelRow label={zh ? "边框厚度" : "Band"}>
+              {/* No warning under the thin end of this slider on purpose. Below
+                  `BEZEL_CHROME_SAMPLE_PX` the browser's chrome stops following
+                  the frame and falls back to its own colour — which is a look,
+                  not a fault, and is written up in @/systems/bezel rather than
+                  in a paragraph here. */}
+              <PanelRow
+                label={zh ? "边框厚度" : "Band"}
+                star={
+                  letterboxBandSetting !== null ? (
+                    <PanelStar
+                      onReset={() => setLetterboxBand(null)}
+                      label="Back to the kind's default"
+                    />
+                  ) : null
+                }
+              >
                 <PanelRange
                   value={letterboxBand}
                   min={BEZEL_BAND_MIN}
@@ -1098,17 +1129,17 @@ function WallpaperModule() {
                   format={(v) => `${v}px`}
                 />
               </PanelRow>
-              {/* Not a guard rail — the thin end is a legitimate look, and the
-                  only way to find out how thin is thin enough is to drag it.
-                  This just says what stops happening down there. */}
-              {letterboxBand < BEZEL_CHROME_SAMPLE_PX && (
-                <div className="text-[10px] font-mono text-amber-500/70">
-                  {zh
-                    ? `< ${BEZEL_CHROME_SAMPLE_PX}px：iOS 26 的 chrome 要约 ${BEZEL_CHROME_SAMPLE_PX}px 的纯色边缘才会跟着走，再薄它就回到 Safari 自己的颜色（浅色下是白）。0 反而干净：没有边框可以对不齐。`
-                    : `< ${BEZEL_CHROME_SAMPLE_PX}px: iOS 26 needs about ${BEZEL_CHROME_SAMPLE_PX}px of flat edge to follow. Thinner and the chrome falls back to Safari's own colour, white in light. 0 is cleaner than 4 — no frame left to mismatch.`}
-                </div>
-              )}
-              <PanelRow label={zh ? "圆角" : "Corner radius"}>
+              <PanelRow
+                label={zh ? "圆角" : "Corner radius"}
+                star={
+                  letterboxRadiusSetting !== null ? (
+                    <PanelStar
+                      onReset={() => setLetterboxRadius(null)}
+                      label="Back to the kind's default"
+                    />
+                  ) : null
+                }
+              >
                 <PanelRange
                   value={letterboxRadius}
                   min={0}
@@ -1121,11 +1152,8 @@ function WallpaperModule() {
               </PanelRow>
             </>
           )}
-          <div className="text-[10px] font-mono text-muted-foreground/70">
-            {zh
-              ? "安全区外为边框：刘海、Home 条、浏览器 chrome。壁纸止于边框内沿。Safari 上安全区为 0，所以边框有最小厚度，它也是 iOS 26 chrome 取色的来源。"
-              : "Frame outside the safe area: notch, home bar, browser chrome. Wallpaper stops at its inner edge. Safari reports a zero safe area, so the band has a floor — which is also what iOS 26 tints its chrome from."}
-          </div>
+          {/* What the frame is and why it is shaped this way lives in
+              @/systems/bezel, not in a paragraph under the controls. */}
         </div>
 
         {/* How much of it survives on a reading page. Home gets none of this. */}
@@ -1133,14 +1161,28 @@ function WallpaperModule() {
           <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
             {zh ? "阅读页处理" : "Reading treatment"}
           </div>
-          <PanelRow label={zh ? "二级页虚化" : "Reading blur"}>
+          <PanelRow
+            label={zh ? "二级页虚化" : "Reading blur"}
+            star={
+              readingBlur ? null : (
+                <PanelStar onReset={() => setReadingBlur(true)} label="Back to on" />
+              )
+            }
+          >
             <PanelToggle
               on={readingBlur}
               onClick={() => setReadingBlur(!readingBlur)}
               label="Toggle blur on reading pages"
             />
           </PanelRow>
-          <PanelRow label={zh ? "二级页压暗" : "Reading dim"}>
+          <PanelRow
+            label={zh ? "二级页压暗" : "Reading dim"}
+            star={
+              readingDim ? null : (
+                <PanelStar onReset={() => setReadingDim(true)} label="Back to on" />
+              )
+            }
+          >
             <PanelToggle
               on={readingDim}
               onClick={() => setReadingDim(!readingDim)}
@@ -1525,6 +1567,7 @@ function DraggableModule() {
       id="draggable"
       title={locale === "zh" ? "拖拽" : "Draggable"}
       icon={<GripVertical className="h-4 w-4" />}
+      defaultCollapsed
     >
       <div className="space-y-1.5">
         {DRAGGABLE_INSTANCES.map((inst) => {
@@ -1625,6 +1668,7 @@ function RefetchModule() {
       title={locale === "zh" ? "刷新" : "Refetch"}
       icon={<RefreshCw className="h-4 w-4" />}
       compact
+      defaultCollapsed
     >
       <div className="flex items-center gap-2">
         <button

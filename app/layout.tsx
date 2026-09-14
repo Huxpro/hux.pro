@@ -2,6 +2,7 @@ import { ReadingRootSync } from "@/components/post/reading-settings";
 import {
   DEFAULT_LETTERBOX_TINT,
   PAGE_GROUND,
+  WALLPAPER_KIND_DEFAULTS,
 } from "@/systems/ambient/lib/settings";
 import {
   BEZEL_BAND_MAX,
@@ -11,7 +12,6 @@ import {
   BEZEL_CLASS,
   BEZEL_COLOR_VAR,
   BEZEL_HEX_PATTERN,
-  DEFAULT_BEZEL_BAND,
 } from "@/systems/bezel";
 import { Providers } from "@/shared/providers";
 import {
@@ -106,16 +106,19 @@ export const viewport: Viewport = {
 
 /**
  * Mirrors the provider's resolution — the frame's colour and thickness when
- * letterboxed, else the theme's page ground — from what is knowable before
- * React runs: the stored ambient settings, the platform, the stored theme, the
- * system theme. It cannot import at runtime, so every constant it needs is
- * interpolated from `@/systems/bezel` and the two resolutions cannot drift.
+ * framed, else the theme's page ground — from what is knowable before React
+ * runs: the stored ambient settings, the wallpaper kind and what that kind
+ * defaults to, the platform, the stored theme, the system theme. It cannot
+ * import at runtime, so every constant it needs is interpolated from
+ * `@/systems/bezel` and the settings table, and the two cannot drift.
  * This is the pre-paint half of `applyBezelVars`; <Bezel> owns the rest.
  */
 const THEME_COLOR_BOOT = `(function(){try{
 var s=JSON.parse(localStorage.getItem("hux_ambient_settings")||"{}");
 var ios=/iP(hone|ad|od)/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-var box=typeof s.wallpaperLetterbox==="boolean"?s.wallpaperLetterbox:ios;
+var img=s.wallpaperKind==="image"||s.wallpaperSource==="picture";
+var kd=img?${JSON.stringify(WALLPAPER_KIND_DEFAULTS.image)}:${JSON.stringify(WALLPAPER_KIND_DEFAULTS.weather)};
+var box=typeof s.wallpaperLetterbox==="boolean"?s.wallpaperLetterbox:(ios&&kd.letterbox);
 var t=localStorage.getItem("hux_theme");
 var dark=t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);
 var ground=dark?${JSON.stringify(PAGE_GROUND.dark)}:${JSON.stringify(PAGE_GROUND.light)};
@@ -123,7 +126,7 @@ var tint=s.wallpaperLetterboxTint;
 if(!/^(dark|black|theme|${BEZEL_HEX_PATTERN.slice(1, -1)})$/.test(tint))tint=${JSON.stringify(DEFAULT_LETTERBOX_TINT)};
 var c=tint==="black"?${JSON.stringify(BEZEL_BLACK)}:tint==="theme"?ground:tint==="dark"?${JSON.stringify(PAGE_GROUND.dark)}:tint;
 var band=+s.wallpaperLetterboxBand;
-band=isFinite(band)?Math.min(${BEZEL_BAND_MAX},Math.max(${BEZEL_BAND_MIN},Math.round(band))):${DEFAULT_BEZEL_BAND};
+band=isFinite(band)?Math.min(${BEZEL_BAND_MAX},Math.max(${BEZEL_BAND_MIN},Math.round(band))):kd.band;
 if(box){var d=document.documentElement;d.classList.add(${JSON.stringify(BEZEL_CLASS)});
 d.style.setProperty(${JSON.stringify(BEZEL_COLOR_VAR)},c);
 d.style.setProperty(${JSON.stringify(BEZEL_BAND_VAR)},band+"px");

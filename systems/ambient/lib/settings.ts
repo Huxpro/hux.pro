@@ -19,6 +19,42 @@ export const PAGE_GROUND: BezelGround = { light: "#ffffff", dark: "#1a1a1a" };
 
 /** The frame's colour when nothing is stored: dark in both themes. */
 export const DEFAULT_LETTERBOX_TINT: BezelTint = "dark";
+
+/**
+ * What each kind of wallpaper wants at the edge when nothing is pinned.
+ *
+ * The two want opposite things, which is why this is a table and not one set
+ * of defaults. A weather gradient IS the page's own colour pushed to the
+ * edges, so the honest treatment is to let it fade out into the ground: the
+ * soft edge, no frame. A photograph is a picture ON the page, so fading it is
+ * a printing error — it wants to end on a line, which is the frame, and it
+ * wants as much of the screen as it can get, which is a band of nothing and
+ * corners just large enough to read as a bezel.
+ *
+ * Both are still gated on iOS in the provider: the fade and the frame are
+ * both phone treatments, and a desktop window gets neither.
+ */
+export interface WallpaperKindDefaults {
+  letterbox: boolean;
+  softEdge: boolean;
+  band: number;
+  radius: number;
+}
+
+export const WALLPAPER_KIND_DEFAULTS: Record<WallpaperKind, WallpaperKindDefaults> = {
+  weather: {
+    letterbox: false,
+    softEdge: true,
+    band: DEFAULT_BEZEL_BAND,
+    radius: DEFAULT_BEZEL_RADIUS,
+  },
+  image: {
+    letterbox: true,
+    softEdge: false,
+    band: 0,
+    radius: 16,
+  },
+};
 import {
   DEFAULT_WALLPAPER_ID,
   getWallpaper,
@@ -52,18 +88,20 @@ export interface AmbientSettings {
    * browsers, off elsewhere. See `letterbox` in the provider.
    */
   wallpaperLetterbox: boolean | null;
-  /** Corner radius of the page inside the letterbox frame, in px. */
-  wallpaperLetterboxRadius: number;
+  /** Corner radius of the page inside the frame, px. `null` follows the kind. */
+  wallpaperLetterboxRadius: number | null;
   /**
    * What colour the frame is: a named tint or a `#rrggbb` literal. See
    * `BezelTint` in @/systems/bezel.
    */
   wallpaperLetterboxTint: BezelTint;
   /**
-   * How thick the bands are where the safe area is thinner, in px. Floored at
-   * `BEZEL_BAND_MIN` for a reason — see @/systems/bezel.
+   * How thick the bands are, in px. `null` follows the wallpaper kind — see
+   * `WALLPAPER_KIND_DEFAULTS`. Thinner than `BEZEL_CHROME_SAMPLE_PX` and the
+   * browser's chrome stops matching; see @/systems/bezel for why that is a
+   * threshold rather than a floor.
    */
-  wallpaperLetterboxBand: number;
+  wallpaperLetterboxBand: number | null;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
   wallpaperReadingBlur: boolean;
   /** Veil the wallpaper on reading pages. */
@@ -79,9 +117,9 @@ export function getDefaultSettings(): AmbientSettings {
     wallpaperKind: "weather",
     wallpaperId: DEFAULT_WALLPAPER_ID,
     wallpaperLetterbox: null,
-    wallpaperLetterboxRadius: DEFAULT_BEZEL_RADIUS,
+    wallpaperLetterboxRadius: null,
     wallpaperLetterboxTint: DEFAULT_LETTERBOX_TINT,
-    wallpaperLetterboxBand: DEFAULT_BEZEL_BAND,
+    wallpaperLetterboxBand: null,
     wallpaperReadingBlur: true,
     wallpaperReadingDim: true,
   };
@@ -142,7 +180,7 @@ export function getAmbientSettings(): AmbientSettings {
         typeof parsed.wallpaperLetterboxRadius === "number" &&
         Number.isFinite(parsed.wallpaperLetterboxRadius)
           ? clampBezelRadius(parsed.wallpaperLetterboxRadius)
-          : DEFAULT_BEZEL_RADIUS,
+          : null,
       wallpaperLetterboxTint: isBezelTint(parsed.wallpaperLetterboxTint)
         ? parsed.wallpaperLetterboxTint
         : DEFAULT_LETTERBOX_TINT,
@@ -150,7 +188,7 @@ export function getAmbientSettings(): AmbientSettings {
         typeof parsed.wallpaperLetterboxBand === "number" &&
         Number.isFinite(parsed.wallpaperLetterboxBand)
           ? clampBezelBand(parsed.wallpaperLetterboxBand)
-          : DEFAULT_BEZEL_BAND,
+          : null,
       wallpaperReadingBlur: parsed.wallpaperReadingBlur !== false,
       wallpaperReadingDim: parsed.wallpaperReadingDim !== false,
     };
