@@ -19,8 +19,10 @@ export {
 } from "./locale";
 export {
   GLASS_MATERIALS,
-  GlassProvider,
+  GlassRootSync,
   getGlassLabel,
+  getGlassMaterial,
+  setGlassMaterial,
   useGlass,
   type GlassMaterial,
 } from "./glass";

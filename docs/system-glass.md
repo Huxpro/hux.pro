@@ -63,6 +63,9 @@ Clear. Prose cannot notice the twelfth, so `no-restricted-syntax` in
 | Anywhere in code | `useGlass()` → `{ material, setMaterial, toggle }` |
 
 The choice persists to `localStorage` under `hux_glass` and defaults to Tinted.
+Persistence is `makeStore` (`lib/persisted-setting.ts`), the same factory behind
+the reading settings, so the material syncs across tabs for free; `GlassRootSync`
+holds the only part that is particular to glass — the class on `<html>`.
 
 ## Reading surfaces
 
