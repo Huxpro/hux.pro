@@ -1,3 +1,12 @@
+import {
+  clampLetterboxBand,
+  clampLetterboxRadius,
+  DEFAULT_LETTERBOX_BAND,
+  DEFAULT_LETTERBOX_RADIUS,
+  DEFAULT_LETTERBOX_TINT,
+  isLetterboxTint,
+  type LetterboxTint,
+} from "./letterbox";
 import type { LocationMode } from "./location";
 import {
   DEFAULT_WALLPAPER_ID,
@@ -34,6 +43,16 @@ export interface AmbientSettings {
   wallpaperLetterbox: boolean | null;
   /** Corner radius of the page inside the letterbox frame, in px. */
   wallpaperLetterboxRadius: number;
+  /**
+   * What colour the frame is: a named tint or a `#rrggbb` literal. See
+   * `LetterboxTint` in ./letterbox.
+   */
+  wallpaperLetterboxTint: LetterboxTint;
+  /**
+   * How thick the bands are where the safe area is thinner, in px. Floored at
+   * `LETTERBOX_BAND_MIN` for a reason — see ./letterbox.
+   */
+  wallpaperLetterboxBand: number;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
   wallpaperReadingBlur: boolean;
   /** Veil the wallpaper on reading pages. */
@@ -41,9 +60,6 @@ export interface AmbientSettings {
 }
 
 const SETTINGS_KEY = "hux_ambient_settings";
-
-/** ryOS ships 12; a phone's own corners are far larger, and 24 reads as one. */
-export const DEFAULT_LETTERBOX_RADIUS = 24;
 
 export function getDefaultSettings(): AmbientSettings {
   return {
@@ -53,6 +69,8 @@ export function getDefaultSettings(): AmbientSettings {
     wallpaperId: DEFAULT_WALLPAPER_ID,
     wallpaperLetterbox: null,
     wallpaperLetterboxRadius: DEFAULT_LETTERBOX_RADIUS,
+    wallpaperLetterboxTint: DEFAULT_LETTERBOX_TINT,
+    wallpaperLetterboxBand: DEFAULT_LETTERBOX_BAND,
     wallpaperReadingBlur: true,
     wallpaperReadingDim: true,
   };
@@ -112,8 +130,16 @@ export function getAmbientSettings(): AmbientSettings {
       wallpaperLetterboxRadius:
         typeof parsed.wallpaperLetterboxRadius === "number" &&
         Number.isFinite(parsed.wallpaperLetterboxRadius)
-          ? Math.min(64, Math.max(0, parsed.wallpaperLetterboxRadius))
+          ? clampLetterboxRadius(parsed.wallpaperLetterboxRadius)
           : DEFAULT_LETTERBOX_RADIUS,
+      wallpaperLetterboxTint: isLetterboxTint(parsed.wallpaperLetterboxTint)
+        ? parsed.wallpaperLetterboxTint
+        : DEFAULT_LETTERBOX_TINT,
+      wallpaperLetterboxBand:
+        typeof parsed.wallpaperLetterboxBand === "number" &&
+        Number.isFinite(parsed.wallpaperLetterboxBand)
+          ? clampLetterboxBand(parsed.wallpaperLetterboxBand)
+          : DEFAULT_LETTERBOX_BAND,
       wallpaperReadingBlur: parsed.wallpaperReadingBlur !== false,
       wallpaperReadingDim: parsed.wallpaperReadingDim !== false,
     };

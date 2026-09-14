@@ -255,16 +255,24 @@ html.dark.glass-clear {
        it goes dark as soon as a scroll collapses it. Nothing a page can set
        reaches it.
 
-   The frame colour is `--letterbox`: the dark theme's ground, in BOTH
-   themes. ryOS paints black, but Safari on a phone refused a black tint and
-   kept its own dark grey; #1a1a1a it honours, a few points off that grey, so
-   frame and chrome become one surface. It is not the light theme's white
-   because the frame is chrome, and chrome is dark — the page inside stays
-   white via its own ground layer inside the frame.
+   Two custom properties carry the settings, and everything below reads them:
+   `--letterbox` is the frame colour and `--letterbox-band` its thickness where
+   the safe area is thinner. Both are written on <html> by the boot script in
+   app/layout.tsx before first paint and owned by the ambient provider after,
+   so a new colour or thickness repaints live with no reload. The values here
+   are the defaults, and the fallback for anything that never mounts the
+   provider. See `LetterboxTint` in systems/ambient/lib/letterbox.ts for the
+   tints and why the thickness has a floor.
+
+   The default frame colour is the dark theme's ground, in BOTH themes: the
+   frame is chrome, and chrome is dark, so the page inside stays white in light
+   via its own ground layer. Black is available and both iOS generations
+   honour it exactly; `theme` follows the page ground instead of framing it.
    Toggled on <html> by the boot script and the ambient provider; auto on iOS.
 ----------------------------------------------------------------------------- */
 :root {
   --letterbox: oklch(0.2178 0 0); /* #1a1a1a, the dark ground */
+  --letterbox-band: 8px;
 }
 html.letterbox,
 html.letterbox body {

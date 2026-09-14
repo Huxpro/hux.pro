@@ -1,3 +1,5 @@
+import { DEFAULT_LETTERBOX_BAND, LETTERBOX_BAND_VAR } from "./letterbox";
+
 /**
  * Detect any iOS browser.  All iOS browsers (Safari, Chrome, Firefox, Edge…)
  * use the WebKit engine and share the same limitations — most notably
@@ -43,30 +45,21 @@ export const EDGE_FADE_MASK_HIGH_CONTRAST = buildEdgeFadeMask(
 );
 
 /**
- * How thick the frame is, top and bottom.
+ * How thick the frame is, top and bottom: the safe area, never thinner than
+ * the configured band. The band is a custom property on <html>, written by the
+ * boot script and then by the provider, so the thickness is live — see
+ * `LETTERBOX_BAND_VAR` and `DEFAULT_LETTERBOX_BAND` in ./letterbox, which is
+ * also where the floor is explained.
  *
- * On a Home Screen web app the safe-area insets are the real thing — the notch
- * band and the home-indicator band — and the frame is exactly them. In Safari
- * they are ZERO in portrait: the browser's own chrome already occupies that
- * space, so the page's box stops short of the screen and there is no inset
- * left to report. Without a floor the frame would have no thickness there at
- * all and the wallpaper would run to the edge of the web view, which is what a
- * phone kept showing.
- *
- * The floor is also what colours Safari's chrome on iOS 26. That chrome is
- * glass: it takes its tint from the page's own top and bottom edge pixels, and
- * ignores `theme-color` entirely (measured on iOS 26.5 — a page with a magenta
- * theme-color and a red top edge gets a red status bar). Safari samples a
- * strip about 6px tall, so the floor has to clear that with room to spare. On
- * iOS 18 the opposite holds — theme-color tints the status bar and the `<html>`
- * background tints the collapsed toolbar — which is why both are still set.
+ * The fallback in each `var()` matters: it is what applies for the one frame
+ * before the boot script runs, and on any page that never mounts the provider.
  */
-export const LETTERBOX_BAND_MIN_PX = 8;
+const BAND = `var(${LETTERBOX_BAND_VAR}, ${DEFAULT_LETTERBOX_BAND}px)`;
 
-/** The top band's height: the safe area, never thinner than the floor. */
-export const LETTERBOX_BAND_TOP = `max(env(safe-area-inset-top, 0px), ${LETTERBOX_BAND_MIN_PX}px)`;
+/** The top band's height. */
+export const LETTERBOX_BAND_TOP = `max(env(safe-area-inset-top, 0px), ${BAND})`;
 /** The bottom band's height. */
-export const LETTERBOX_BAND_BOTTOM = `max(env(safe-area-inset-bottom, 0px), ${LETTERBOX_BAND_MIN_PX}px)`;
+export const LETTERBOX_BAND_BOTTOM = `max(env(safe-area-inset-bottom, 0px), ${BAND})`;
 
 /**
  * The side bands take the safe area as it comes, with no floor. In portrait it

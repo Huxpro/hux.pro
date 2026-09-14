@@ -76,3 +76,30 @@ duration-300 (morphing transitions)
 - Set `localStorage.hux_music_mock = "1"` **before app scripts run** (e.g. Playwright `context.addInitScript()`), or flip "Mock player" in the Devtool panel → Music section.
 - The flag makes `MusicProvider` skip the YouTube IFrame API and drive every music surface (home widget, Live Activity, playlist sheet) from the committed fixture in `systems/music/lib/mock.ts` — play/pause/skip/select all work with zero network.
 - Use this for headless-browser verification in sandboxes where `youtube.com` is unreachable. Never enabled by default; real visitors always get the real player.
+
+### Testing the Letterbox Frame
+
+The frame that surrounds the page on a phone, after ryOS. Everything lives in
+`hux_ambient_settings`, so it can be set before app scripts run and survives a
+reload:
+
+| Key | Values | Default |
+|---|---|---|
+| `wallpaperLetterbox` | `true` / `false` / `null` (auto: on for iOS) | `null` |
+| `wallpaperLetterboxTint` | `"dark"` / `"black"` / `"theme"` / `"#rrggbb"` | `"dark"` |
+| `wallpaperLetterboxBand` | px, 6 to 64 | `8` |
+| `wallpaperLetterboxRadius` | px, 0 to 64 | `24` |
+
+All four are also rows in the Devtool panel → Wallpaper section, and all four
+apply live with no reload: they reach CSS as `--letterbox` and
+`--letterbox-band` on `<html>`.
+
+Two things that only show on a real WebKit and are easy to break:
+
+- **Safari reports every safe-area inset as zero in portrait**, so the band's
+  6px floor is what gives the frame any thickness at all there. Below it, the
+  frame vanishes in Safari while still looking right in a desktop browser.
+- **iOS 26 ignores `theme-color`** and tints its chrome from the page's own top
+  and bottom edge pixels, which is what the bands are for. iOS 18 is the
+  reverse and does read `theme-color`. Both are set; see
+  `systems/ambient/lib/letterbox.ts`.

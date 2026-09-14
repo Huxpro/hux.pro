@@ -23,6 +23,13 @@ import {
   type WallpaperKind,
 } from "./lib/wallpaper";
 import {
+  LETTERBOX_BAND_VAR,
+  LETTERBOX_COLOR_VAR,
+  PAGE_GROUND,
+  resolveLetterboxColor,
+  type LetterboxTint,
+} from "./lib/letterbox";
+import {
   EDGE_FADE_MASK,
   EDGE_FADE_MASK_HIGH_CONTRAST,
   isIOSBrowser,
@@ -35,10 +42,8 @@ import { isReadingSurface } from "./lib/reading-surface";
 import { queryClient } from "@/lib/query";
 import { useDevtool } from "@/systems/devtool";
 
-/** The page ground as Safari's chrome tint — `--background` in both themes. */
-const THEME_COLOR = { light: "#ffffff", dark: "#1a1a1a" } as const;
-/** The letterbox frame — `--letterbox` in globals.css, the dark ground. */
-const LETTERBOX_COLOR = THEME_COLOR.dark;
+/** The page ground as the browser's chrome tint when there is no frame. */
+const THEME_COLOR = PAGE_GROUND;
 
 function formatGeolocationError(err: unknown): string {
   if (err instanceof Error) return err.message || "Unknown error";
@@ -170,6 +175,14 @@ interface WallpaperContextType {
   /** Corner radius of the page inside the frame, px. */
   letterboxRadius: number;
   setLetterboxRadius: (px: number) => void;
+  /** The frame's colour: a named tint or a `#rrggbb` literal. */
+  letterboxTint: LetterboxTint;
+  setLetterboxTint: (tint: LetterboxTint) => void;
+  /** The tint resolved against the current theme, as a paintable colour. */
+  letterboxColor: string;
+  /** Band thickness where the safe area is thinner, px. */
+  letterboxBand: number;
+  setLetterboxBand: (px: number) => void;
   /** The reading treatment flags, for the devtool. */
   readingBlur: boolean;
   setReadingBlur: (value: boolean) => void;
@@ -309,6 +322,14 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     (px: number) => updateSettings({ wallpaperLetterboxRadius: px }),
     [updateSettings]
   );
+  const setLetterboxTint = useCallback(
+    (tint: LetterboxTint) => updateSettings({ wallpaperLetterboxTint: tint }),
+    [updateSettings]
+  );
+  const setLetterboxBand = useCallback(
+    (px: number) => updateSettings({ wallpaperLetterboxBand: px }),
+    [updateSettings]
+  );
   const setReadingBlur = useCallback(
     (value: boolean) => updateSettings({ wallpaperReadingBlur: value }),
     [updateSettings]
@@ -368,22 +389,38 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
    * desktop inside the safe area. The wallpaper then ends on a hard line
    * against the frame, and the frame is what surrounds it on every side — the
    * status bar, the toolbar, the overscroll — so there is no seam left for a
-   * fade to soften. Our frame colour is the dark ground in both themes
-   * (globals.css says why it is not black).
+   * fade to soften. The frame's colour and thickness are settings — see
+   * `LetterboxTint` and the band floor in lib/letterbox.ts.
    *
    * Auto is iOS. The setting is persisted so a phone can be checked across a
    * reload; the devtool row toggles it.
    */
   const letterbox = settings.wallpaperLetterbox ?? isIOS === true;
 
+  const letterboxTint = settings.wallpaperLetterboxTint;
+  const letterboxBand = settings.wallpaperLetterboxBand;
+  const letterboxColor = resolveLetterboxColor(letterboxTint, theme);
+
+  // The frame's two knobs reach CSS as custom properties on <html>, which is
+  // what makes them live: the bands, the corner pieces and the page ground all
+  // read them, so a new colour or thickness repaints without a reload. The
+  // boot script sets the same two before first paint; this owns them after.
   useEffect(() => {
     if (isIOS === null) return;
     const root = document.documentElement;
     root.classList.toggle("letterbox", letterbox);
-    // The boot script's inline background (there before the stylesheet); the
-    // class carries it from here on, so this only has to clear it on off.
-    root.style.backgroundColor = letterbox ? LETTERBOX_COLOR : "";
-  }, [letterbox, isIOS]);
+    if (letterbox) {
+      root.style.setProperty(LETTERBOX_COLOR_VAR, letterboxColor);
+      root.style.setProperty(LETTERBOX_BAND_VAR, `${letterboxBand}px`);
+      // Also a plain background, because the boot script needs one before the
+      // stylesheet has arrived and this keeps the two in step afterwards.
+      root.style.backgroundColor = letterboxColor;
+    } else {
+      root.style.removeProperty(LETTERBOX_COLOR_VAR);
+      root.style.removeProperty(LETTERBOX_BAND_VAR);
+      root.style.backgroundColor = "";
+    }
+  }, [letterbox, letterboxColor, letterboxBand, isIOS]);
 
   // iOS 18 Safari tints its status bar with theme-color, so this is what keeps
   // the letterbox continuous with it there. (iOS 26 ignores theme-color and
@@ -402,15 +439,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       meta.name = "theme-color";
       document.head.append(meta);
     }
-    // Letterboxed, the frame colour (`--letterbox`, the dark ground) in both
-    // themes — Safari refused a black tint on a phone and kept its own grey,
-    // and #1a1a1a it honours. Otherwise the theme's page ground.
-    meta.content = letterbox
-      ? LETTERBOX_COLOR
-      : theme === "dark"
-        ? THEME_COLOR.dark
-        : THEME_COLOR.light;
-  }, [letterbox, theme]);
+    // Letterboxed, the frame's own colour; otherwise the theme's page ground.
+    meta.content = letterbox ? letterboxColor : THEME_COLOR[theme];
+  }, [letterbox, letterboxColor, theme]);
 
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and
@@ -702,6 +733,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       setLetterbox,
       letterboxRadius: settings.wallpaperLetterboxRadius,
       setLetterboxRadius,
+      letterboxTint,
+      setLetterboxTint,
+      letterboxColor,
+      letterboxBand,
+      setLetterboxBand,
       readingBlur: settings.wallpaperReadingBlur,
       setReadingBlur,
       readingDim: settings.wallpaperReadingDim,
@@ -735,6 +771,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       letterbox,
       setLetterbox,
       setLetterboxRadius,
+      letterboxTint,
+      setLetterboxTint,
+      letterboxColor,
+      letterboxBand,
+      setLetterboxBand,
       setReadingBlur,
       setReadingDim,
       wallpaperSrc,

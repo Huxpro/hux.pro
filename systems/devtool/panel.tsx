@@ -11,6 +11,16 @@ import {
   useTheme,
 } from "@/services";
 import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
+import {
+  isLetterboxHex,
+  LETTERBOX_BAND_MAX,
+  LETTERBOX_BAND_MIN,
+  LETTERBOX_RADIUS_MAX,
+  type LetterboxTint,
+} from "@/systems/ambient/lib/letterbox";
+
+/** The named tints plus the segmented control's own "pick a colour". */
+type TintChoice = "dark" | "black" | "theme" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
 import {
   getSunEventGradient,
@@ -821,6 +831,11 @@ function WallpaperModule() {
     setLetterbox,
     letterboxRadius,
     setLetterboxRadius,
+    letterboxTint,
+    setLetterboxTint,
+    letterboxColor,
+    letterboxBand,
+    setLetterboxBand,
     readingBlur,
     setReadingBlur,
     readingDim,
@@ -836,6 +851,31 @@ function WallpaperModule() {
 
   const isImage = kind === "image";
   const reading = isReadingSurface({ kind, pathname });
+
+  // The segmented control has a fourth position the setting does not: "custom"
+  // is not a tint, it is "whatever the swatch says".
+  const tints: { value: TintChoice; label: string; title: string }[] = [
+    {
+      value: "dark",
+      label: zh ? "深" : "Dark",
+      title: zh ? "两个主题都用深色底" : "The dark ground, in both themes",
+    },
+    {
+      value: "black",
+      label: zh ? "黑" : "Black",
+      title: zh ? "纯黑，ryOS 的做法" : "Pure black, as ryOS does",
+    },
+    {
+      value: "theme",
+      label: zh ? "跟随" : "Theme",
+      title: zh ? "跟随页面底色" : "Follows the page ground",
+    },
+    {
+      value: "custom",
+      label: zh ? "自定" : "Custom",
+      title: zh ? "自选颜色" : "Pick a colour",
+    },
+  ];
 
   // Full and Widget are independent switches here, not two halves of one
   // segmented control: the persisted setting can only be one of them, but the
@@ -1014,22 +1054,66 @@ function WallpaperModule() {
             </button>
           )}
           {letterbox && (
-            <PanelRow label={zh ? "圆角" : "Corner radius"}>
-              <PanelRange
-                value={letterboxRadius}
-                min={0}
-                max={48}
-                step={2}
-                onChange={setLetterboxRadius}
-                label="Letterbox corner radius"
-                format={(v) => `${v}px`}
-              />
-            </PanelRow>
+            <>
+              <PanelRow label={zh ? "颜色" : "Tint"}>
+                <PanelSegmented<TintChoice>
+                  value={isLetterboxHex(letterboxTint) ? "custom" : letterboxTint}
+                  options={tints}
+                  onChange={(t) =>
+                    setLetterboxTint(
+                      t === "custom" ? (letterboxColor as LetterboxTint) : t
+                    )
+                  }
+                />
+              </PanelRow>
+              {/* The swatch both shows the resolved colour and, on custom,
+                  edits it. Every generation repaints live, so there is no
+                  reload behind any of this. */}
+              <PanelRow
+                label={
+                  isLetterboxHex(letterboxTint)
+                    ? letterboxColor
+                    : zh
+                      ? `当前 ${letterboxColor}`
+                      : `now ${letterboxColor}`
+                }
+              >
+                <input
+                  type="color"
+                  value={letterboxColor}
+                  aria-label="Letterbox custom colour"
+                  onChange={(e) => setLetterboxTint(e.target.value as LetterboxTint)}
+                  className="h-5 w-10 shrink-0 cursor-pointer rounded border border-border/60 bg-transparent p-0"
+                />
+              </PanelRow>
+              <PanelRow label={zh ? "边框厚度" : "Band"}>
+                <PanelRange
+                  value={letterboxBand}
+                  min={LETTERBOX_BAND_MIN}
+                  max={LETTERBOX_BAND_MAX}
+                  step={1}
+                  onChange={setLetterboxBand}
+                  label="Letterbox band thickness"
+                  format={(v) => `${v}px`}
+                />
+              </PanelRow>
+              <PanelRow label={zh ? "圆角" : "Corner radius"}>
+                <PanelRange
+                  value={letterboxRadius}
+                  min={0}
+                  max={LETTERBOX_RADIUS_MAX}
+                  step={2}
+                  onChange={setLetterboxRadius}
+                  label="Letterbox corner radius"
+                  format={(v) => `${v}px`}
+                />
+              </PanelRow>
+            </>
           )}
           <div className="text-[10px] font-mono text-muted-foreground/70">
             {zh
-              ? "安全区外为深色边框（两个主题相同）：刘海、Home 条、浏览器 chrome。壁纸止于安全区。"
-              : "Dark frame outside the safe area, in both themes: notch, home bar, browser chrome. Wallpaper stops at the safe area."}
+              ? "安全区外为边框：刘海、Home 条、浏览器 chrome。壁纸止于边框内沿。Safari 上安全区为 0，所以边框有最小厚度，它也是 iOS 26 chrome 取色的来源。"
+              : "Frame outside the safe area: notch, home bar, browser chrome. Wallpaper stops at its inner edge. Safari reports a zero safe area, so the band has a floor — which is also what iOS 26 tints its chrome from."}
           </div>
         </div>
 
