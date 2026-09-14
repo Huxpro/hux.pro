@@ -19,14 +19,11 @@ export const BEZEL_CLASS = "bezel";
 /**
  * The band's thickness floor, and it is not cosmetic.
  *
- * Safari reports every safe-area inset as zero in portrait — its own chrome
- * already occupies the notch and home-indicator bands — so a frame sized from
- * `env()` alone has no thickness there and the page runs to the edge of the
- * web view. The band is also what colours Safari's chrome on iOS 26, which is
- * glass and tints from a strip of the page's edge about 6px tall: 4px and 5px
- * bands do not register, 6px and up do (measured on 26.5). Below the floor the
- * frame and the chrome stop matching. For no frame at all, unmount the bezel
- * rather than thinning it to nothing.
+ * The band is what colours the browser's chrome on iOS 26, which is glass and
+ * tints from a strip of the page's edge about 6px tall: 4px and 5px bands do
+ * not register, 6px and up do (measured on 26.5). Below the floor the frame
+ * and the chrome stop matching. For no frame at all, unmount the bezel rather
+ * than thinning it to nothing.
  */
 export const BEZEL_BAND_MIN = 6;
 export const BEZEL_BAND_MAX = 64;
@@ -50,23 +47,36 @@ export function clampBezelRadius(px: number): number {
 }
 
 /**
- * The fallback in each `var()` is what applies for the one frame before the
+ * The fallback in the `var()` is what applies for the one frame before the
  * boot script runs, and anywhere a bezel is rendered without one.
  */
 const BAND = `var(${BEZEL_BAND_VAR}, ${DEFAULT_BEZEL_BAND}px)`;
 
-/** The top band's height: the safe area, never thinner than the band. */
-export const BEZEL_BAND_TOP = `max(env(safe-area-inset-top, 0px), ${BAND})`;
+/**
+ * Top and bottom are the band and nothing more — deliberately NOT the safe
+ * area.
+ *
+ * A frame is a frame; the safe area is about occlusion, and the page's own
+ * content already keeps itself clear of that with its own `env()` padding.
+ * Taking the safe area here too only cost screen. In a Home Screen web app
+ * that was 59px at the top and 34px at the bottom of flat colour, on a phone
+ * that has no browser chrome to be continuous with in the first place — the
+ * page could not reach the bottom of its own screen. ryOS does not reserve it
+ * either: its desktop runs edge to edge and only the corners are masked.
+ *
+ * In Safari this changes nothing. The safe-area insets are zero there, so the
+ * band was always what the frame measured.
+ */
+export const BEZEL_BAND_TOP = BAND;
 /** The bottom band's height. */
-export const BEZEL_BAND_BOTTOM = `max(env(safe-area-inset-bottom, 0px), ${BAND})`;
+export const BEZEL_BAND_BOTTOM = BAND;
 
 /**
- * The side bands take the safe area as it comes, with no floor. In portrait it
- * is zero and the page runs edge to edge, which is the look the frame was
- * drawn for. In landscape it is the notch: 62px on an iPhone 17 Pro, on the
- * side the Dynamic Island is on and on the other side to match. Without them
- * the page runs under the island. There is no chrome to tint out there, so
- * nothing wants a floor.
+ * The sides are the exception, and they take the safe area instead: in
+ * landscape that is the notch, 62px on an iPhone 17 Pro, and it is a hole in
+ * the screen rather than a margin — a picture running under it reads as a bite
+ * taken out of the picture. In portrait it is zero and the page runs edge to
+ * edge, which is the look the frame was drawn for.
  */
 export const BEZEL_BAND_LEFT = "env(safe-area-inset-left, 0px)";
 /** The right band's width. */

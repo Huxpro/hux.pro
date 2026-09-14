@@ -88,7 +88,7 @@ before app scripts run and survive a reload:
 |---|---|---|
 | `wallpaperLetterbox` | `true` / `false` / `null` (auto: on for iOS) | `null` |
 | `wallpaperLetterboxTint` | `"dark"` / `"black"` / `"theme"` / `"#rrggbb"` | `"dark"` |
-| `wallpaperLetterboxBand` | px, 6 to 64 | `8` |
+| `wallpaperLetterboxBand` | px, 6 to 64 — the frame's thickness on all four edges except where the notch is wider | `8` |
 | `wallpaperLetterboxRadius` | px, 0 to 64 | `24` |
 
 All four are also rows in the Devtool panel → Wallpaper section, and all four
@@ -98,9 +98,11 @@ owned by `<Bezel>` after.
 
 Two things that only show on a real WebKit and are easy to break:
 
-- **Safari reports every safe-area inset as zero in portrait**, so the band's
-  6px floor is what gives the frame any thickness at all there. Below it, the
-  frame vanishes in Safari while still looking right in a desktop browser.
+- **Safari reports every safe-area inset as zero in portrait**, so the band is
+  the only thing giving the frame any thickness there. Below the 6px floor it
+  vanishes in Safari while still looking right in a desktop browser. Top and
+  bottom are the band alone and never the safe area — reserving that only cost
+  screen in a Home Screen web app, where there is no chrome to match anyway.
 - **iOS 26 ignores `theme-color`** and tints its chrome from the page's own top
   and bottom edge pixels, which is what the bands are for. iOS 18 is the
   reverse and does read `theme-color`. Both are set; see `systems/bezel`.

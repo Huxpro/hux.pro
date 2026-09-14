@@ -233,9 +233,9 @@ html.dark.glass-clear {
 
 /* -----------------------------------------------------------------------------
    Bezel
-   Everything outside the page's safe area is one dark frame: the notch band,
-   the home indicator band, the overscroll, and the browser's own chrome. The
-   wallpaper is a fixed layer inset to the frame (`surface.tsx`), and the bands
+   Everything outside the page is one dark frame: a thin band on each edge, the
+   overscroll, and the browser's own chrome. The wallpaper is a fixed layer
+   inset to the frame (`surface.tsx`), and the bands
    and four corner pieces are drawn above everything (systems/bezel) so
    content scrolling under them is hidden and the frame reads as a bezel, not
    as a page that ran out.
@@ -281,9 +281,10 @@ html.bezel,
 html.bezel body {
   background-color: var(--bezel);
 }
-html.bezel {
-  overscroll-behavior-y: none;
-}
+/* No `overscroll-behavior: none` here on purpose. Locking the rubber band was
+   worth it when the overscroll revealed the page's own ground under the frame;
+   now <html> IS the frame colour, so an overscroll just shows more frame and
+   the bounce is the part of the platform that makes a page feel native. */
 
 @layer base {
   * {
