@@ -20,10 +20,13 @@ export const BEZEL_CLASS = "bezel";
  * How tall a strip of the page's edge the browser's chrome tints itself from.
  *
  * On iOS 26 that chrome is glass and samples the page rather than reading
- * `theme-color`, which it ignores outright. It wants about 6px of FLAT colour
- * there: a 4px or 5px band does not register, 6px and up does (measured on
- * 26.5). A thinner band still draws — it just stops carrying the chrome with
- * it, and the chrome falls back to Safari's own colour, white in light mode.
+ * `theme-color`, which it ignores outright. It wants 6px of FLAT colour there:
+ * 5px does not register, 6px does. Bisected on iOS 26.5 at both @3x (iPhone 17
+ * Pro) and @2x (iPhone SE 3), and the boundary sits between the same two CSS
+ * values on each — so it is 6 CSS pixels and not 18 device ones, and one
+ * number is right for every screen. A thinner band still draws; it just stops
+ * carrying the chrome with it, and the chrome falls back to Safari's own
+ * colour, white in light mode.
  * Which makes the middle the bad part: at 4px you get a hairline of frame
  * under a white status bar. At 0 there is no frame to mismatch and the page
  * simply runs edge to edge inside its rounded corners, which is a look.
@@ -40,7 +43,11 @@ export const BEZEL_CHROME_SAMPLE_PX = 6;
 /** Zero is allowed: it means corners and side bands, and no top or bottom. */
 export const BEZEL_BAND_MIN = 0;
 export const BEZEL_BAND_MAX = 64;
-/** Clears the sampling strip with room to spare, and costs almost no page. */
+/**
+ * Two pixels over the threshold. 6 works today on everything measured, but it
+ * sits exactly on the cliff, and 2px of screen is a cheap price for not
+ * falling off it on a device or a Safari version nobody has tested.
+ */
 export const DEFAULT_BEZEL_BAND = 8;
 
 export const BEZEL_RADIUS_MIN = 0;
