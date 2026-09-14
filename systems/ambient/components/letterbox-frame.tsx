@@ -12,9 +12,9 @@ import { useWallpaper } from "../provider";
 // four quarter-circles round the page off inside the bands, the way iOS
 // rounds every app's window. After ryOS's DesktopCornerMask.
 //
-// The frame is the page ground, not black — see globals.css: Safari refused
-// a black tint for its chrome and kept its own grey, and the ground is what
-// it honours, so ground-coloured bands are what meet the chrome seamlessly.
+// The frame colour is `--letterbox` (globals.css): the dark ground, in both
+// themes. Safari refused a black tint for its chrome and kept its own grey;
+// #1a1a1a it honours, so bands of that colour meet the chrome seamlessly.
 //
 // Above everything on purpose (the dock, sheets, the palette): the frame
 // clips whatever is inside it.
@@ -43,14 +43,14 @@ export function LetterboxFrame() {
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-[9999]">
       {/* The bands. */}
       <div
-        className="absolute inset-x-0 bg-background"
+        className="absolute inset-x-0 bg-[var(--letterbox)]"
         style={{
           top: `calc(-1 * ${OVERSHOOT})`,
           height: `calc(${OVERSHOOT} + env(safe-area-inset-top, 0px))`,
         }}
       />
       <div
-        className="absolute inset-x-0 bg-background"
+        className="absolute inset-x-0 bg-[var(--letterbox)]"
         style={{
           bottom: `calc(-1 * ${OVERSHOOT})`,
           height: `calc(${OVERSHOOT} + env(safe-area-inset-bottom, 0px))`,
@@ -72,7 +72,7 @@ export function LetterboxFrame() {
               style={{
                 width: r,
                 height: r,
-                background: `radial-gradient(circle at ${at}, transparent 0 ${r - 0.5}px, var(--background) ${r}px)`,
+                background: `radial-gradient(circle at ${at}, transparent 0 ${r - 0.5}px, var(--letterbox) ${r}px)`,
               }}
             />
           ))}

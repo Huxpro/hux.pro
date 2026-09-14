@@ -366,8 +366,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
    * desktop inside the safe area. The wallpaper then ends on a hard line
    * against the frame, and the frame is what surrounds it on every side — the
    * status bar, the toolbar, the overscroll — so there is no seam left for a
-   * fade to soften. Our frame colour is the page ground (globals.css says
-   * why it is not black).
+   * fade to soften. Our frame colour is the dark ground in both themes
+   * (globals.css says why it is not black).
    *
    * Auto is iOS. The setting is persisted so a phone can be checked across a
    * reload; the devtool row toggles it.
@@ -394,11 +394,12 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       meta.name = "theme-color";
       document.head.append(meta);
     }
-    // The page ground in both cases: it is also the letterbox frame's colour.
-    // Safari refused a black tint on a phone and kept its own grey; the
-    // ground it honours, so frame and chrome become one surface.
-    meta.content = theme === "dark" ? THEME_COLOR.dark : THEME_COLOR.light;
-  }, [theme]);
+    // Letterboxed, the frame colour (`--letterbox`, the dark ground) in both
+    // themes — Safari refused a black tint on a phone and kept its own grey,
+    // and #1a1a1a it honours. Otherwise the theme's page ground.
+    meta.content =
+      letterbox || theme === "dark" ? THEME_COLOR.dark : THEME_COLOR.light;
+  }, [letterbox, theme]);
 
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and

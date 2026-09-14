@@ -215,10 +215,10 @@ full-bleed background on a phone. Everything outside the page's safe area is
 one flat frame colour: `<html>` and `<body>` paint it, `theme-color` matches it
 so Safari's own chrome is the same, and the wallpaper and the page ground are
 fixed layers inset to the safe area (`surface.tsx`, `LETTERBOX_INSET`). The
-frame colour is the **page ground**, not ryOS's black: Safari on a phone refused
-a black tint and kept its own dark grey, so a black frame met a grey chrome at a
-visible line; the ground it honours (white / `#1a1a1a`), so frame and chrome
-become one surface.
+frame colour is `--letterbox`, the **dark ground (`#1a1a1a`) in both themes**:
+ryOS paints black, but Safari on a phone refused a black tint and kept its own
+dark grey, which `#1a1a1a` sits a few points from, so frame and chrome become
+one surface. The page inside stays white in light via its own ground layer.
 The bands and four corner pieces are drawn above everything
 (`letterbox-frame.tsx`), so content scrolling under them is hidden and the page
 is rounded off inside them, which is what makes the black read as a bezel

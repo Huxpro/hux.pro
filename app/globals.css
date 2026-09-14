@@ -233,7 +233,7 @@ html.dark.glass-clear {
 
 /* -----------------------------------------------------------------------------
    Letterbox
-   Everything outside the page's safe area is the page ground: the notch band,
+   Everything outside the page's safe area is one dark frame: the notch band,
    the home indicator band, the overscroll, and — via theme-color, set before
    first paint by the inline script in app/layout.tsx — Safari's own chrome.
    The wallpaper is a fixed layer inset to the safe area (`surface.tsx`), and
@@ -241,16 +241,20 @@ html.dark.glass-clear {
    (`letterbox-frame.tsx`) so content scrolling under them is hidden and the
    frame reads as a bezel, not as a page that ran out.
 
-   Why the ground and not black: Safari on a phone refused a black tint and
-   kept its own dark grey, so a black frame met a grey chrome at a visible
-   line. The ground it does honour — white in light, #1a1a1a in dark, a few
-   points off Safari's grey — so the frame and the chrome become one surface.
-   After ryOS, which paints its frame black and whose chrome happens to be.
+   The frame colour is `--letterbox`: the dark theme's ground, in BOTH
+   themes. ryOS paints black, but Safari on a phone refused a black tint and
+   kept its own dark grey; #1a1a1a it honours, a few points off that grey, so
+   frame and chrome become one surface. It is not the light theme's white
+   because the frame is chrome, and chrome is dark — the page inside stays
+   white via its own ground layer inside the safe area.
    Toggled on <html> by the boot script and the ambient provider; auto on iOS.
 ----------------------------------------------------------------------------- */
+:root {
+  --letterbox: oklch(0.2178 0 0); /* #1a1a1a, the dark ground */
+}
 html.letterbox,
 html.letterbox body {
-  background-color: var(--background);
+  background-color: var(--letterbox);
 }
 html.letterbox {
   overscroll-behavior-y: none;

@@ -15,9 +15,8 @@ export function AmbientSurface({ children }: { children: React.ReactNode }) {
     // body paints the frame colour — Safari samples html/body for its chrome
     // tint — and without this it would cover them).
     <div className="isolate">
-      {/* Letterboxed, the body paints the frame and this paints the page
-          ground inside the safe area. Same colour today; kept separate so
-          the frame can differ from the page again. */}
+      {/* Letterboxed, the body paints the frame (dark in both themes) and
+          this paints the page ground inside the safe area — white in light. */}
       {letterbox && (
         <>
           <div
