@@ -234,19 +234,33 @@ html.dark.glass-clear {
 /* -----------------------------------------------------------------------------
    Letterbox
    Everything outside the page's safe area is one dark frame: the notch band,
-   the home indicator band, the overscroll, and — via theme-color, set before
-   first paint by the inline script in app/layout.tsx — Safari's own chrome.
-   The wallpaper is a fixed layer inset to the safe area (`surface.tsx`), and
-   the bands and four corner pieces are drawn above everything
-   (`letterbox-frame.tsx`) so content scrolling under them is hidden and the
-   frame reads as a bezel, not as a page that ran out.
+   the home indicator band, the overscroll, and the browser's own chrome. The
+   wallpaper is a fixed layer inset to the frame (`surface.tsx`), and the bands
+   and four corner pieces are drawn above everything (`letterbox-frame.tsx`) so
+   content scrolling under them is hidden and the frame reads as a bezel, not
+   as a page that ran out.
+
+   How the browser's chrome joins in depends on the generation, and both are
+   covered (measured on the simulator, iOS 26.5 and iOS 18.5):
+
+     • iOS 26 — the chrome is glass and takes its tint from the page's own top
+       and bottom edge pixels, live, in either theme. `theme-color` is ignored
+       outright. The bands are what colours it, which is why they have a
+       minimum thickness even where the safe area is zero — see
+       `LETTERBOX_BAND_MIN_PX` in systems/ambient/lib/platform.ts.
+     • iOS 18 — `theme-color` tints the status bar (the inline script in
+       app/layout.tsx sets it before first paint) and this rule's `<html>`
+       background tints the collapsed toolbar. The EXPANDED bottom toolbar
+       follows neither and stays Safari's own colour, white in light mode;
+       it goes dark as soon as a scroll collapses it. Nothing a page can set
+       reaches it.
 
    The frame colour is `--letterbox`: the dark theme's ground, in BOTH
    themes. ryOS paints black, but Safari on a phone refused a black tint and
    kept its own dark grey; #1a1a1a it honours, a few points off that grey, so
    frame and chrome become one surface. It is not the light theme's white
    because the frame is chrome, and chrome is dark — the page inside stays
-   white via its own ground layer inside the safe area.
+   white via its own ground layer inside the frame.
    Toggled on <html> by the boot script and the ambient provider; auto on iOS.
 ----------------------------------------------------------------------------- */
 :root {

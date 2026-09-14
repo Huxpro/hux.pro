@@ -85,9 +85,9 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: "cover",
   // theme-color is owned by the ambient provider at runtime (it follows the
-  // theme, and goes black while letterboxed). Rendering static ones here would
-  // hand React a node the provider then mutates, which is a hydration mismatch
-  // once Next streams the metadata in.
+  // theme, and takes the frame colour while letterboxed). Rendering static
+  // ones here would hand React a node the provider then mutates, which is a
+  // hydration mismatch once Next streams the metadata in.
 };
 
 /**
@@ -117,12 +117,14 @@ export default function RootLayout({
       <html lang="en" suppressHydrationWarning>
         <head>
           {/* theme-color, the letterbox class AND an inline html background
-              before first paint. Safari tints its chrome from theme-color and
-              from the html/body background, reads them at load, and on a phone
-              never revisits them — so the frame colour has to be there before
-              the stylesheet has even arrived, whatever theme the page opens
-              in. Owned by this script and the ambient provider, never by
-              React — see the note on `viewport` above. */}
+              before first paint. This is what iOS 18 Safari needs: it tints
+              the status bar from theme-color and the collapsed toolbar from
+              the html background, and both have to be right from the first
+              frame, whatever theme the page opens in. iOS 26 ignores
+              theme-color and samples the page's own edge pixels instead — the
+              letterbox bands handle that (see globals.css). Owned by this
+              script and the ambient provider, never by React — see the note
+              on `viewport` above. */}
           <script
             dangerouslySetInnerHTML={{ __html: THEME_COLOR_BOOT }}
           />

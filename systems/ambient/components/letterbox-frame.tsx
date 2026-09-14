@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  LETTERBOX_BAND_BOTTOM,
+  LETTERBOX_BAND_LEFT,
+  LETTERBOX_BAND_RIGHT,
+  LETTERBOX_BAND_TOP,
+} from "../lib/platform";
 import { useWallpaper } from "../provider";
 
 // ---------------------------------------------------------------------------
@@ -13,21 +19,30 @@ import { useWallpaper } from "../provider";
 // rounds every app's window. After ryOS's DesktopCornerMask.
 //
 // The frame colour is `--letterbox` (globals.css): the dark ground, in both
-// themes. Safari refused a black tint for its chrome and kept its own grey;
-// #1a1a1a it honours, so bands of that colour meet the chrome seamlessly.
+// themes.
+//
+// The bands are also what colours the browser's own chrome. On iOS 26 Safari's
+// chrome is glass and samples the page's top and bottom edge pixels — a band
+// of the frame colour there and the status bar and the toolbar become the same
+// surface, live, in either theme, with `theme-color` ignored. On iOS 18 that
+// job falls to theme-color and the `<html>` background instead; both are set,
+// so both generations land in the same place. See `LETTERBOX_BAND_MIN_PX`.
 //
 // Above everything on purpose (the dock, sheets, the palette): the frame
 // clips whatever is inside it.
 //
-// The bands OVERSHOOT the viewport by half a screen. iOS Safari relays out
-// `position: fixed` a beat after the toolbar collapses or expands, and in
-// that beat the strip the toolbar just uncovered is painted by whatever the
-// old layout put there — the wallpaper, the scrolling page. A band anchored
+// The top and bottom bands OVERSHOOT the viewport by half a screen. iOS Safari
+// relays out `position: fixed` a beat after the toolbar collapses or expands,
+// and in that beat the strip the toolbar just uncovered is painted by whatever
+// the old layout put there — the wallpaper, the scrolling page. A band anchored
 // at the old edge and extending well past it is what covers that strip; the
-// overshoot is clipped the rest of the time and costs nothing.
+// overshoot is clipped the rest of the time and costs nothing. The side bands
+// overshoot vertically for the same reason, so the corners stay covered while
+// the viewport is resizing.
 // ---------------------------------------------------------------------------
 
 const OVERSHOOT = "50vh";
+const OUTSIDE = `calc(-1 * ${OVERSHOOT})`;
 
 const CORNERS = [
   { className: "left-0 top-0", at: "100% 100%" },
@@ -41,28 +56,39 @@ export function LetterboxFrame() {
 
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-[9999]">
-      {/* The bands. */}
+      {/* The bands. Top and bottom span the full width; the sides fill in the
+          notch's margins in landscape, where the safe area is 62px wide. */}
       <div
         className="absolute inset-x-0 bg-[var(--letterbox)]"
         style={{
-          top: `calc(-1 * ${OVERSHOOT})`,
-          height: `calc(${OVERSHOOT} + env(safe-area-inset-top, 0px))`,
+          top: OUTSIDE,
+          height: `calc(${OVERSHOOT} + ${LETTERBOX_BAND_TOP})`,
         }}
       />
       <div
         className="absolute inset-x-0 bg-[var(--letterbox)]"
         style={{
-          bottom: `calc(-1 * ${OVERSHOOT})`,
-          height: `calc(${OVERSHOOT} + env(safe-area-inset-bottom, 0px))`,
+          bottom: OUTSIDE,
+          height: `calc(${OVERSHOOT} + ${LETTERBOX_BAND_BOTTOM})`,
         }}
+      />
+      <div
+        className="absolute left-0 bg-[var(--letterbox)]"
+        style={{ top: OUTSIDE, bottom: OUTSIDE, width: LETTERBOX_BAND_LEFT }}
+      />
+      <div
+        className="absolute right-0 bg-[var(--letterbox)]"
+        style={{ top: OUTSIDE, bottom: OUTSIDE, width: LETTERBOX_BAND_RIGHT }}
       />
       {/* The corners, pinned to the frame's inner edge. */}
       {r > 0 && (
         <div
-          className="absolute inset-x-0"
+          className="absolute"
           style={{
-            top: "env(safe-area-inset-top, 0px)",
-            bottom: "env(safe-area-inset-bottom, 0px)",
+            top: LETTERBOX_BAND_TOP,
+            bottom: LETTERBOX_BAND_BOTTOM,
+            left: LETTERBOX_BAND_LEFT,
+            right: LETTERBOX_BAND_RIGHT,
           }}
         >
           {CORNERS.map(({ className, at }) => (

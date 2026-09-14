@@ -385,8 +385,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     root.style.backgroundColor = letterbox ? LETTERBOX_COLOR : "";
   }, [letterbox, isIOS]);
 
-  // Safari tints its chrome with theme-color, so this is what makes the
-  // letterbox continuous with the status bar and the toolbar. The element is
+  // iOS 18 Safari tints its status bar with theme-color, so this is what keeps
+  // the letterbox continuous with it there. (iOS 26 ignores theme-color and
+  // samples the page's own edge pixels — the bands do that job; this stays for
+  // the older generation and for the Home Screen web app.) The element is
   // ours, not React's — created before first paint by the inline script in
   // app/layout.tsx and only updated here. Next streams its own metadata in
   // after this effect has run, so a React-owned meta mutated here would be a
