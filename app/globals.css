@@ -237,7 +237,11 @@ html.dark.glass-clear {
    indicator band, the overscroll, and — via theme-color, set by the ambient
    provider — Safari's own chrome. The page ground and the wallpaper are
    painted by fixed layers inset to the safe area (`surface.tsx`), so the
-   body must not paint under them. After ryOS. Toggled on <html> by the
+   body must not paint under them, and the bands and four black corner
+   pieces are drawn above everything (`letterbox-frame.tsx`) so content
+   scrolling under them is hidden and the black reads as a bezel, not as a
+   page that ran out. Black in both themes — the frame
+   is chrome, not part of the page. After ryOS. Toggled on <html> by the
    ambient provider; auto on iOS.
 ----------------------------------------------------------------------------- */
 html.letterbox {

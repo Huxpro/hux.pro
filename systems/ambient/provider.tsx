@@ -35,6 +35,9 @@ import { isReadingSurface } from "./lib/reading-surface";
 import { queryClient } from "@/lib/query";
 import { useDevtool } from "@/systems/devtool";
 
+/** The page ground as Safari's chrome tint — `--background` in both themes. */
+const THEME_COLOR = { light: "#ffffff", dark: "#1a1a1a" } as const;
+
 function formatGeolocationError(err: unknown): string {
   if (err instanceof Error) return err.message || "Unknown error";
   if (typeof err === "string") return err;
@@ -322,7 +325,14 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   // 3 resolved rendering flags.
   // DevTool overrides bypass all natural derivation.
-  const isIOS = useMemo(() => isIOSBrowser(), []);
+  // Hydration-safe: false on the server and the first client render, then the
+  // real answer. It now decides rendered structure (the letterbox frame), so a
+  // render-time read would disagree with the server HTML.
+  const [isIOS, setIsIOS] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: platform read
+    setIsIOS(isIOSBrowser());
+  }, []);
 
   const fullEnabled =
     isDevtoolEnabled && devtoolOverrides.full !== undefined
@@ -353,20 +363,29 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const letterbox = settings.wallpaperLetterbox ?? isIOS;
 
   useEffect(() => {
-    const root = document.documentElement;
-    root.classList.toggle("letterbox", letterbox);
-    // Safari tints its chrome with theme-color. Next renders one meta per
-    // colour scheme (see app/layout.tsx); black both while letterboxed.
-    const metas = Array.from(
-      document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
-    );
-    const previous = metas.map((m) => m.content);
-    if (letterbox) for (const m of metas) m.content = "#000000";
-    return () => {
-      root.classList.remove("letterbox");
-      metas.forEach((m, i) => (m.content = previous[i]));
-    };
+    document.documentElement.classList.toggle("letterbox", letterbox);
+    return () => document.documentElement.classList.remove("letterbox");
   }, [letterbox]);
+
+  // Safari tints its chrome with theme-color, so this is where the letterbox
+  // becomes continuous with the status bar and the toolbar. The element is
+  // ours, not React's: app/layout.tsx renders no theme-color, because Next
+  // streams its metadata in after this effect has run, and a React-owned meta
+  // mutated before it hydrates is a mismatch.
+  useEffect(() => {
+    let meta = document.head.querySelector<HTMLMetaElement>("#hux-theme-color");
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.id = "hux-theme-color";
+      meta.name = "theme-color";
+      document.head.append(meta);
+    }
+    meta.content = letterbox
+      ? "#000000"
+      : theme === "dark"
+        ? THEME_COLOR.dark
+        : THEME_COLOR.light;
+  }, [letterbox, theme]);
 
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and

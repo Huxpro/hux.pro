@@ -84,10 +84,10 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1a1a" },
-  ],
+  // theme-color is owned by the ambient provider at runtime (it follows the
+  // theme, and goes black while letterboxed). Rendering static ones here would
+  // hand React a node the provider then mutates, which is a hydration mismatch
+  // once Next streams the metadata in.
 };
 
 export default function RootLayout({

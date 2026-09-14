@@ -215,9 +215,13 @@ full-bleed background on a phone. Everything outside the page's safe area is
 painted black: `<html>` gets `background-color: #000`, `theme-color` is set to
 black so Safari's own chrome is black too, and the wallpaper and the page ground
 are fixed layers inset to the safe area (`surface.tsx`, `LETTERBOX_INSET`).
-The wallpaper then ends on a hard line against black, and black surrounds it
-on every side — the status bar, the toolbar, the overscroll — so there is no
-seam left for a fade to soften. `wallpaperLetterbox` persists `true` / `false`;
+The bands and four black 12px corner pieces are drawn above everything
+(`letterbox-frame.tsx`), so content scrolling under them is hidden and the page
+is rounded off inside them, which is what makes the black read as a bezel
+rather than as a page that ran out. Black in both themes: the frame is
+chrome, not part of the page. The wallpaper then ends on a hard line against
+black, and black surrounds it on every side — the status bar, the toolbar, the
+overscroll — so there is no seam left for a fade to soften. `wallpaperLetterbox` persists `true` / `false`;
 `null` is auto (iOS). The devtool row toggles it.
 
 **Soft edging** — the top/bottom fade — is what iOS had before letterbox, and
