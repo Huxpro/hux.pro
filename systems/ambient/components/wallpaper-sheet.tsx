@@ -99,6 +99,9 @@ function CompactRow<T extends string>({
  * badge — and they should arrive the same way.
  */
 const ARTWORK_CHIP =
+  // On artwork, so it borrows the picture's own dark rather than the System
+  // material.
+  // eslint-disable-next-line no-restricted-syntax
   "bg-black/35 text-white ring-1 ring-white/25 backdrop-blur-[2px]";
 
 /**

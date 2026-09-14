@@ -80,8 +80,8 @@ export function MinimizedWindows() {
           className={cn(
             "pointer-events-auto flex shrink-0 items-center gap-2",
             "h-9 rounded-full pl-1.5 pr-3",
-            "border border-border/50 bg-glass-strong shadow-raised backdrop-blur-xl",
-            "transition-colors hover:border-border hover:bg-glass-strong-hover active:scale-95",
+            "border border-border/50 bg-glass-raised shadow-raised backdrop-blur-xl",
+            "transition-colors hover:border-border hover:bg-glass-solid active:scale-95",
           )}
           aria-label={`Restore ${win.app.title}`}
           title={`Restore ${win.app.title}`}

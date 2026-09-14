@@ -22,7 +22,7 @@ export function LivingSurface() {
         className={cn(
           "block p-6 rounded-2xl",
           "bg-glass backdrop-blur-sm border border-border/40",
-          "hover:bg-glass-strong-hover hover:border-border/60 hover:scale-[1.02] hover:shadow-raised",
+          "hover:bg-glass-solid hover:border-border/60 hover:scale-[1.02] hover:shadow-raised",
           "transition-all duration-500 ease-out cursor-pointer",
           "group"
         )}

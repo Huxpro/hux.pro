@@ -23,34 +23,59 @@ distortion, nothing pretending to be a physical pane.
 
 ## How it works
 
-One class on `<html>`, swapping CSS variables:
+A material is seven numbers on `<html>`; the roles turn them into colours, once:
 
 ```css
-:root       { --glass: color-mix(in oklab, var(--card) 50%, transparent); … }
-html.glass-clear { --glass: color-mix(in oklab, var(--card) 20%, transparent); … }
-html.dark.glass-clear { /* a touch more fill at the same perceived transparency */ }
+:root {
+  --glass-fill: 50%;          /* an ordinary floating surface */
+  --glass-hover-step: 20%;    /* one offset for every deepening */
+  --glass-dark-add: 0%;
+  --glass: color-mix(in oklab, var(--card)
+           calc(var(--glass-fill) + var(--glass-dark-add)), transparent);
+  --glass-hover: /* …fill + step + add */;
+}
+html.glass-clear      { --glass-fill: 20%; --glass-hover-step: 12%; … }
+html.dark.glass-clear { --glass-dark-add: 6%; }
 ```
 
-Nothing re-renders to change material. Any surface that paints with a glass
-token follows along for free:
+Dark Clear was always Clear plus six points on every token, so it is one number
+now rather than a third copy of the ladder, and Clear sets only what a material
+owns: how much colour each role carries.
 
-| Token | For |
-|-------|-----|
-| `bg-glass` / `bg-glass-hover` | Widget cards, the FAB, living surfaces |
-| `bg-glass-strong` / `-hover` | Live Activity pills |
-| `bg-glass-overlay` | Live Activity panels |
-| `bg-glass-sheet` | Adaptive surfaces (picker, playlist) |
-| `bg-glass-popover` | Command palette, devtool panel |
-| `GLASS_PANEL` (`lib/glass.ts`) | The lifted peek panel, shared by two callers |
+Nothing re-renders to change material. Any surface that paints with a glass
+role follows along for free:
+
+| Role | Is | For |
+|------|----|-----|
+| `bg-glass` / `bg-glass-hover` | an ordinary floating surface | Widget cards, the FAB, living surfaces, the Live Activity |
+| `bg-glass-raised` | one stacked above other glass | The open app-folder tile, a minimized window chip |
+| `bg-glass-solid` | the most solid glass — legible over anything, and where rest and raised land under the finger | The Done chip over the board, the prev/next orb over video, the dark selected stamp |
+| `bg-glass-panel` | a lifted panel | The Live Activity expanded, the selected pill |
+| `bg-glass-popover` | a menu (over `--popover`) | Command palette, devtool panel, window menu |
+| `bg-glass-sheet` | a sheet that owns the screen | Adaptive surfaces (picker, playlist) |
+
+The names say what a surface **is**, not how opaque it happens to be. The old
+ladder was numbered — `bg-glass-strong-hover` was the 80% rung — so three
+resting fills painted themselves with a hover token and a recipe carried a
+comment apologising that there was no 75% rung. A role can be retuned; a number
+can only be renamed.
 
 Class-string recipes — the frosted track, the lifted pill, the clustered
 toolbars, their on-dark twins — all live in **`lib/glass.ts`**. They used to sit
 in `systems/theater/lib/chrome.ts`, because playback chrome needed them first,
 but the same material now carries the music Live Activity, the widgets and the
-wallpaper picker's categories. One module, whoever paints with it; the eslint
-rule ignores that file and nothing else.
+wallpaper picker's categories. One module, whoever paints with it.
 
-**Adding a surface:** use a glass token instead of `bg-card/NN`. That is the
+## Fills and washes
+
+A role is for a fill that *is* the surface. An **ink wash** is not: a recessed
+track (`bg-foreground/[0.06]`), a hover deepening, a press. Those are drawn
+relative to the content in front of them so they read on any card under either
+material — a card-coloured fill at the same alpha would simply disappear — and
+they stay raw. The same goes for a chip on artwork, which borrows the picture's
+dark, and for the always-dark theater stage.
+
+**Adding a surface:** use a glass role instead of `bg-card/NN`. That is the
 whole contract — a surface that hardcodes its own alpha simply won't respond to
 the setting, which is the bug this system exists to prevent.
 
@@ -59,7 +84,15 @@ that every floating surface already followed it, which had quietly become false
 for eleven of them — theater chrome, minimized windows, the app folder, the
 commit embed, the 404 card and more all stayed opaque slabs when you switched to
 Clear. Prose cannot notice the twelfth, so `no-restricted-syntax` in
-`eslint.config.mjs` bans `bg-card/` and `bg-popover/` outside `lib/glass.ts`.
+`eslint.config.mjs` bans, outside `lib/glass.ts`:
+
+- `bg-card/` and `bg-popover/` — the alpha ladder the roles replaced;
+- a raw `bg-white/`, `bg-black/`, `bg-foreground/` or `bg-neutral-N/` fill in
+  the same class string as a `backdrop-blur`, because a blurred raw fill is a
+  floating surface by definition. A wash that genuinely wants to be raw says so
+  with a one-line `eslint-disable` and a reason;
+- the retired `bg-glass-strong` / `bg-glass-overlay` names, which Tailwind would
+  otherwise drop on the floor in silence.
 
 ## Triggers
 

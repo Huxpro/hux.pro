@@ -77,7 +77,7 @@ export function FloatingActionButton() {
           "hover:bg-glass-hover hover:border-border",
           // Touch-down: the bar darkens on the same frame as the press, the
           // way an iOS search field does, and eases back on release.
-          "active:bg-glass-strong-hover active:border-border active:text-foreground",
+          "active:bg-glass-solid active:border-border active:text-foreground",
           "h-12",
           "overflow-hidden",
           isHomepage
