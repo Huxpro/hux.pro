@@ -1,13 +1,18 @@
 import { ReadingRootSync } from "@/components/post/reading-settings";
 import {
-  DEFAULT_LETTERBOX_BAND,
   DEFAULT_LETTERBOX_TINT,
-  LETTERBOX_BAND_MAX,
-  LETTERBOX_BAND_MIN,
-  LETTERBOX_BAND_VAR,
-  LETTERBOX_COLOR_VAR,
   PAGE_GROUND,
-} from "@/systems/ambient/lib/letterbox";
+} from "@/systems/ambient/lib/settings";
+import {
+  BEZEL_BAND_MAX,
+  BEZEL_BAND_MIN,
+  BEZEL_BAND_VAR,
+  BEZEL_BLACK,
+  BEZEL_CLASS,
+  BEZEL_COLOR_VAR,
+  BEZEL_HEX_PATTERN,
+  DEFAULT_BEZEL_BAND,
+} from "@/systems/bezel";
 import { Providers } from "@/shared/providers";
 import {
   AmbientPhaseActivity,
@@ -103,8 +108,9 @@ export const viewport: Viewport = {
  * Mirrors the provider's resolution — the frame's colour and thickness when
  * letterboxed, else the theme's page ground — from what is knowable before
  * React runs: the stored ambient settings, the platform, the stored theme, the
- * system theme. Every constant it needs is interpolated from
- * `systems/ambient/lib/letterbox`, so the two resolutions cannot drift.
+ * system theme. It cannot import at runtime, so every constant it needs is
+ * interpolated from `@/systems/bezel` and the two resolutions cannot drift.
+ * This is the pre-paint half of `applyBezelVars`; <Bezel> owns the rest.
  */
 const THEME_COLOR_BOOT = `(function(){try{
 var s=JSON.parse(localStorage.getItem("hux_ambient_settings")||"{}");
@@ -114,13 +120,13 @@ var t=localStorage.getItem("hux_theme");
 var dark=t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);
 var ground=dark?${JSON.stringify(PAGE_GROUND.dark)}:${JSON.stringify(PAGE_GROUND.light)};
 var tint=s.wallpaperLetterboxTint;
-if(!/^(dark|black|theme|#[0-9a-fA-F]{6})$/.test(tint))tint=${JSON.stringify(DEFAULT_LETTERBOX_TINT)};
-var c=tint==="black"?"#000000":tint==="theme"?ground:tint==="dark"?${JSON.stringify(PAGE_GROUND.dark)}:tint;
+if(!/^(dark|black|theme|${BEZEL_HEX_PATTERN.slice(1, -1)})$/.test(tint))tint=${JSON.stringify(DEFAULT_LETTERBOX_TINT)};
+var c=tint==="black"?${JSON.stringify(BEZEL_BLACK)}:tint==="theme"?ground:tint==="dark"?${JSON.stringify(PAGE_GROUND.dark)}:tint;
 var band=+s.wallpaperLetterboxBand;
-band=isFinite(band)?Math.min(${LETTERBOX_BAND_MAX},Math.max(${LETTERBOX_BAND_MIN},Math.round(band))):${DEFAULT_LETTERBOX_BAND};
-if(box){var d=document.documentElement;d.classList.add("letterbox");
-d.style.setProperty(${JSON.stringify(LETTERBOX_COLOR_VAR)},c);
-d.style.setProperty(${JSON.stringify(LETTERBOX_BAND_VAR)},band+"px");
+band=isFinite(band)?Math.min(${BEZEL_BAND_MAX},Math.max(${BEZEL_BAND_MIN},Math.round(band))):${DEFAULT_BEZEL_BAND};
+if(box){var d=document.documentElement;d.classList.add(${JSON.stringify(BEZEL_CLASS)});
+d.style.setProperty(${JSON.stringify(BEZEL_COLOR_VAR)},c);
+d.style.setProperty(${JSON.stringify(BEZEL_BAND_VAR)},band+"px");
 d.style.backgroundColor=c;}
 var m=document.createElement("meta");m.id="hux-theme-color";m.name="theme-color";
 m.content=box?c:ground;document.head.appendChild(m);
@@ -141,10 +147,10 @@ export default function RootLayout({
               the html background, and both have to be right from the first
               frame, whatever theme the page opens in. iOS 26 ignores
               theme-color and samples the page's own edge pixels instead — the
-              letterbox bands handle that, and they are sized by a custom
-              property this also sets (see globals.css). Owned by this script
-              and the ambient provider, never by React — see the note on
-              `viewport` above. */}
+              bezel's bands handle that, and they are sized by a custom
+              property this also sets (see @/systems/bezel). Owned by this
+              script, <Bezel> and the ambient provider, never by React — see
+              the note on `viewport` above. */}
           <script
             dangerouslySetInnerHTML={{ __html: THEME_COLOR_BOOT }}
           />

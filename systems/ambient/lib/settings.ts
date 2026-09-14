@@ -1,13 +1,24 @@
 import {
-  clampLetterboxBand,
-  clampLetterboxRadius,
-  DEFAULT_LETTERBOX_BAND,
-  DEFAULT_LETTERBOX_RADIUS,
-  DEFAULT_LETTERBOX_TINT,
-  isLetterboxTint,
-  type LetterboxTint,
-} from "./letterbox";
+  clampBezelBand,
+  clampBezelRadius,
+  DEFAULT_BEZEL_BAND,
+  DEFAULT_BEZEL_RADIUS,
+  isBezelTint,
+  type BezelGround,
+  type BezelTint,
+} from "@/systems/bezel";
 import type { LocationMode } from "./location";
+
+/**
+ * The page's own ground, per theme — `--background` in globals.css, as a hex
+ * a script can hand to a browser before any stylesheet exists. The browser's
+ * chrome takes it when there is no frame, and the `dark` and `theme` bezel
+ * tints resolve against it.
+ */
+export const PAGE_GROUND: BezelGround = { light: "#ffffff", dark: "#1a1a1a" };
+
+/** The frame's colour when nothing is stored: dark in both themes. */
+export const DEFAULT_LETTERBOX_TINT: BezelTint = "dark";
 import {
   DEFAULT_WALLPAPER_ID,
   getWallpaper,
@@ -45,12 +56,12 @@ export interface AmbientSettings {
   wallpaperLetterboxRadius: number;
   /**
    * What colour the frame is: a named tint or a `#rrggbb` literal. See
-   * `LetterboxTint` in ./letterbox.
+   * `BezelTint` in @/systems/bezel.
    */
-  wallpaperLetterboxTint: LetterboxTint;
+  wallpaperLetterboxTint: BezelTint;
   /**
    * How thick the bands are where the safe area is thinner, in px. Floored at
-   * `LETTERBOX_BAND_MIN` for a reason — see ./letterbox.
+   * `BEZEL_BAND_MIN` for a reason — see @/systems/bezel.
    */
   wallpaperLetterboxBand: number;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
@@ -68,9 +79,9 @@ export function getDefaultSettings(): AmbientSettings {
     wallpaperKind: "weather",
     wallpaperId: DEFAULT_WALLPAPER_ID,
     wallpaperLetterbox: null,
-    wallpaperLetterboxRadius: DEFAULT_LETTERBOX_RADIUS,
+    wallpaperLetterboxRadius: DEFAULT_BEZEL_RADIUS,
     wallpaperLetterboxTint: DEFAULT_LETTERBOX_TINT,
-    wallpaperLetterboxBand: DEFAULT_LETTERBOX_BAND,
+    wallpaperLetterboxBand: DEFAULT_BEZEL_BAND,
     wallpaperReadingBlur: true,
     wallpaperReadingDim: true,
   };
@@ -130,16 +141,16 @@ export function getAmbientSettings(): AmbientSettings {
       wallpaperLetterboxRadius:
         typeof parsed.wallpaperLetterboxRadius === "number" &&
         Number.isFinite(parsed.wallpaperLetterboxRadius)
-          ? clampLetterboxRadius(parsed.wallpaperLetterboxRadius)
-          : DEFAULT_LETTERBOX_RADIUS,
-      wallpaperLetterboxTint: isLetterboxTint(parsed.wallpaperLetterboxTint)
+          ? clampBezelRadius(parsed.wallpaperLetterboxRadius)
+          : DEFAULT_BEZEL_RADIUS,
+      wallpaperLetterboxTint: isBezelTint(parsed.wallpaperLetterboxTint)
         ? parsed.wallpaperLetterboxTint
         : DEFAULT_LETTERBOX_TINT,
       wallpaperLetterboxBand:
         typeof parsed.wallpaperLetterboxBand === "number" &&
         Number.isFinite(parsed.wallpaperLetterboxBand)
-          ? clampLetterboxBand(parsed.wallpaperLetterboxBand)
-          : DEFAULT_LETTERBOX_BAND,
+          ? clampBezelBand(parsed.wallpaperLetterboxBand)
+          : DEFAULT_BEZEL_BAND,
       wallpaperReadingBlur: parsed.wallpaperReadingBlur !== false,
       wallpaperReadingDim: parsed.wallpaperReadingDim !== false,
     };

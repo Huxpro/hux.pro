@@ -77,11 +77,12 @@ duration-300 (morphing transitions)
 - The flag makes `MusicProvider` skip the YouTube IFrame API and drive every music surface (home widget, Live Activity, playlist sheet) from the committed fixture in `systems/music/lib/mock.ts` — play/pause/skip/select all work with zero network.
 - Use this for headless-browser verification in sandboxes where `youtube.com` is unreachable. Never enabled by default; real visitors always get the real player.
 
-### Testing the Letterbox Frame
+### Testing the Bezel
 
-The frame that surrounds the page on a phone, after ryOS. Everything lives in
-`hux_ambient_settings`, so it can be set before app scripts run and survives a
-reload:
+`systems/bezel` — the frame that surrounds the page on a phone, after ryOS. The
+component takes props and knows nothing about settings; the ambient system maps
+these keys onto it. They live in `hux_ambient_settings`, so they can be set
+before app scripts run and survive a reload:
 
 | Key | Values | Default |
 |---|---|---|
@@ -91,8 +92,9 @@ reload:
 | `wallpaperLetterboxRadius` | px, 0 to 64 | `24` |
 
 All four are also rows in the Devtool panel → Wallpaper section, and all four
-apply live with no reload: they reach CSS as `--letterbox` and
-`--letterbox-band` on `<html>`.
+apply live with no reload: they reach CSS as `--bezel` and `--bezel-band` on
+`<html>`, written before first paint by the boot script in `app/layout.tsx` and
+owned by `<Bezel>` after.
 
 Two things that only show on a real WebKit and are easy to break:
 
@@ -101,5 +103,4 @@ Two things that only show on a real WebKit and are easy to break:
   frame vanishes in Safari while still looking right in a desktop browser.
 - **iOS 26 ignores `theme-color`** and tints its chrome from the page's own top
   and bottom edge pixels, which is what the bands are for. iOS 18 is the
-  reverse and does read `theme-color`. Both are set; see
-  `systems/ambient/lib/letterbox.ts`.
+  reverse and does read `theme-color`. Both are set; see `systems/bezel`.

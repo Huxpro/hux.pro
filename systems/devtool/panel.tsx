@@ -12,12 +12,12 @@ import {
 } from "@/services";
 import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
 import {
-  isLetterboxHex,
-  LETTERBOX_BAND_MAX,
-  LETTERBOX_BAND_MIN,
-  LETTERBOX_RADIUS_MAX,
-  type LetterboxTint,
-} from "@/systems/ambient/lib/letterbox";
+  isBezelHex,
+  BEZEL_BAND_MAX,
+  BEZEL_BAND_MIN,
+  BEZEL_RADIUS_MAX,
+  type BezelTint,
+} from "@/systems/bezel";
 
 /** The named tints plus the segmented control's own "pick a colour". */
 type TintChoice = "dark" | "black" | "theme" | "custom";
@@ -1057,11 +1057,11 @@ function WallpaperModule() {
             <>
               <PanelRow label={zh ? "颜色" : "Tint"}>
                 <PanelSegmented<TintChoice>
-                  value={isLetterboxHex(letterboxTint) ? "custom" : letterboxTint}
+                  value={isBezelHex(letterboxTint) ? "custom" : letterboxTint}
                   options={tints}
                   onChange={(t) =>
                     setLetterboxTint(
-                      t === "custom" ? (letterboxColor as LetterboxTint) : t
+                      t === "custom" ? (letterboxColor as BezelTint) : t
                     )
                   }
                 />
@@ -1071,7 +1071,7 @@ function WallpaperModule() {
                   reload behind any of this. */}
               <PanelRow
                 label={
-                  isLetterboxHex(letterboxTint)
+                  isBezelHex(letterboxTint)
                     ? letterboxColor
                     : zh
                       ? `当前 ${letterboxColor}`
@@ -1082,15 +1082,15 @@ function WallpaperModule() {
                   type="color"
                   value={letterboxColor}
                   aria-label="Letterbox custom colour"
-                  onChange={(e) => setLetterboxTint(e.target.value as LetterboxTint)}
+                  onChange={(e) => setLetterboxTint(e.target.value as BezelTint)}
                   className="h-5 w-10 shrink-0 cursor-pointer rounded border border-border/60 bg-transparent p-0"
                 />
               </PanelRow>
               <PanelRow label={zh ? "边框厚度" : "Band"}>
                 <PanelRange
                   value={letterboxBand}
-                  min={LETTERBOX_BAND_MIN}
-                  max={LETTERBOX_BAND_MAX}
+                  min={BEZEL_BAND_MIN}
+                  max={BEZEL_BAND_MAX}
                   step={1}
                   onChange={setLetterboxBand}
                   label="Letterbox band thickness"
@@ -1101,7 +1101,7 @@ function WallpaperModule() {
                 <PanelRange
                   value={letterboxRadius}
                   min={0}
-                  max={LETTERBOX_RADIUS_MAX}
+                  max={BEZEL_RADIUS_MAX}
                   step={2}
                   onChange={setLetterboxRadius}
                   label="Letterbox corner radius"

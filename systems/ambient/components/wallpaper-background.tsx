@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useWallpaper } from "../provider";
 import { GradientStack } from "./gradient-stack";
-import { LETTERBOX_INSET } from "../lib/platform";
+import { BEZEL_INSET } from "@/systems/bezel";
 
 // ---------------------------------------------------------------------------
 // WallpaperBackground — the full-page background layer.
@@ -37,8 +37,8 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         "pointer-events-none fixed inset-0 -z-10",
         "transition-opacity duration-700 ease-in-out"
       )}
-      // Letterboxed, the layer stops at the safe area — see AmbientSurface.
-      style={{ opacity: enabled ? opacity : 0, ...(letterbox ? LETTERBOX_INSET : null) }}
+      // Framed, the layer stops inside the bezel — see AmbientSurface.
+      style={{ opacity: enabled ? opacity : 0, ...(letterbox ? BEZEL_INSET : null) }}
     >
       {/* Full-page background is already viewport-fixed, so the edge mask is
           applied statically (no per-frame tracking needed). */}

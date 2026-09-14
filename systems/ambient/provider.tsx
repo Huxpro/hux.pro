@@ -11,6 +11,7 @@ import {
   type WallpaperPlacement,
   getAmbientSettings,
   getDefaultSettings,
+  PAGE_GROUND,
   setAmbientSettings,
 } from "./lib/settings";
 import {
@@ -22,13 +23,7 @@ import {
   type Wallpaper,
   type WallpaperKind,
 } from "./lib/wallpaper";
-import {
-  LETTERBOX_BAND_VAR,
-  LETTERBOX_COLOR_VAR,
-  PAGE_GROUND,
-  resolveLetterboxColor,
-  type LetterboxTint,
-} from "./lib/letterbox";
+import { resolveBezelTint, type BezelTint } from "@/systems/bezel";
 import {
   EDGE_FADE_MASK,
   EDGE_FADE_MASK_HIGH_CONTRAST,
@@ -42,8 +37,6 @@ import { isReadingSurface } from "./lib/reading-surface";
 import { queryClient } from "@/lib/query";
 import { useDevtool } from "@/systems/devtool";
 
-/** The page ground as the browser's chrome tint when there is no frame. */
-const THEME_COLOR = PAGE_GROUND;
 
 function formatGeolocationError(err: unknown): string {
   if (err instanceof Error) return err.message || "Unknown error";
@@ -176,13 +169,15 @@ interface WallpaperContextType {
   letterboxRadius: number;
   setLetterboxRadius: (px: number) => void;
   /** The frame's colour: a named tint or a `#rrggbb` literal. */
-  letterboxTint: LetterboxTint;
-  setLetterboxTint: (tint: LetterboxTint) => void;
+  letterboxTint: BezelTint;
+  setLetterboxTint: (tint: BezelTint) => void;
   /** The tint resolved against the current theme, as a paintable colour. */
   letterboxColor: string;
   /** Band thickness where the safe area is thinner, px. */
   letterboxBand: number;
   setLetterboxBand: (px: number) => void;
+  /** `letterbox`, but `null` until the platform is known. For <Bezel>. */
+  letterboxState: boolean | null;
   /** The reading treatment flags, for the devtool. */
   readingBlur: boolean;
   setReadingBlur: (value: boolean) => void;
@@ -323,7 +318,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [updateSettings]
   );
   const setLetterboxTint = useCallback(
-    (tint: LetterboxTint) => updateSettings({ wallpaperLetterboxTint: tint }),
+    (tint: BezelTint) => updateSettings({ wallpaperLetterboxTint: tint }),
     [updateSettings]
   );
   const setLetterboxBand = useCallback(
@@ -399,28 +394,14 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   const letterboxTint = settings.wallpaperLetterboxTint;
   const letterboxBand = settings.wallpaperLetterboxBand;
-  const letterboxColor = resolveLetterboxColor(letterboxTint, theme);
+  const letterboxColor = resolveBezelTint(letterboxTint, PAGE_GROUND, theme);
 
-  // The frame's two knobs reach CSS as custom properties on <html>, which is
-  // what makes them live: the bands, the corner pieces and the page ground all
-  // read them, so a new colour or thickness repaints without a reload. The
-  // boot script sets the same two before first paint; this owns them after.
-  useEffect(() => {
-    if (isIOS === null) return;
-    const root = document.documentElement;
-    root.classList.toggle("letterbox", letterbox);
-    if (letterbox) {
-      root.style.setProperty(LETTERBOX_COLOR_VAR, letterboxColor);
-      root.style.setProperty(LETTERBOX_BAND_VAR, `${letterboxBand}px`);
-      // Also a plain background, because the boot script needs one before the
-      // stylesheet has arrived and this keeps the two in step afterwards.
-      root.style.backgroundColor = letterboxColor;
-    } else {
-      root.style.removeProperty(LETTERBOX_COLOR_VAR);
-      root.style.removeProperty(LETTERBOX_BAND_VAR);
-      root.style.backgroundColor = "";
-    }
-  }, [letterbox, letterboxColor, letterboxBand, isIOS]);
+  /**
+   * The tri-state <Bezel> wants: `null` while the platform is still unknown,
+   * so it leaves the frame the boot script painted alone instead of taking it
+   * off for a frame. Everything else in here wants the decided boolean above.
+   */
+  const letterboxState = settings.wallpaperLetterbox ?? isIOS;
 
   // iOS 18 Safari tints its status bar with theme-color, so this is what keeps
   // the letterbox continuous with it there. (iOS 26 ignores theme-color and
@@ -440,7 +421,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       document.head.append(meta);
     }
     // Letterboxed, the frame's own colour; otherwise the theme's page ground.
-    meta.content = letterbox ? letterboxColor : THEME_COLOR[theme];
+    meta.content = letterbox ? letterboxColor : PAGE_GROUND[theme];
   }, [letterbox, letterboxColor, theme]);
 
   // Soft edging fades the background out at the top and bottom of the viewport.
@@ -738,6 +719,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       letterboxColor,
       letterboxBand,
       setLetterboxBand,
+      letterboxState,
       readingBlur: settings.wallpaperReadingBlur,
       setReadingBlur,
       readingDim: settings.wallpaperReadingDim,
@@ -776,6 +758,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       letterboxColor,
       letterboxBand,
       setLetterboxBand,
+      letterboxState,
       setReadingBlur,
       setReadingDim,
       wallpaperSrc,

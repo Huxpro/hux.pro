@@ -1,32 +1,43 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { LETTERBOX_INSET } from "../lib/platform";
+import { Bezel, BEZEL_INSET } from "@/systems/bezel";
 import { useWallpaper } from "../provider";
-import { LetterboxFrame } from "./letterbox-frame";
 import { WallpaperBackground } from "./wallpaper-background";
 
 export function AmbientSurface({ children }: { children: React.ReactNode }) {
-  const { fullEnabled, letterbox } = useWallpaper();
+  const {
+    fullEnabled,
+    letterbox,
+    letterboxState,
+    letterboxColor,
+    letterboxBand,
+    letterboxRadius,
+  } = useWallpaper();
 
   return (
     // `isolate`: a stacking context of its own, so the negative-z ground and
-    // wallpaper layers paint above the body's background (letterboxed, the
-    // body paints the frame colour — Safari samples html/body for its chrome
-    // tint — and without this it would cover them).
+    // wallpaper layers paint above the body's background (framed, the body
+    // paints the frame colour — Safari samples html/body for its chrome tint —
+    // and without this it would cover them).
     <div className="isolate">
-      {/* Letterboxed, the body paints the frame (dark in both themes) and
-          this paints the page ground inside the safe area — white in light. */}
+      {/* Framed, the body paints the frame and this paints the page's own
+          ground inside it — white in light. */}
       {letterbox && (
-        <>
-          <div
-            aria-hidden="true"
-            className="pointer-events-none fixed inset-x-0 -z-20 bg-background"
-            style={LETTERBOX_INSET}
-          />
-          <LetterboxFrame />
-        </>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed -z-20 bg-background"
+          style={BEZEL_INSET}
+        />
       )}
+      {/* Always mounted so it can also take a frame back off — except while
+          `letterboxState` is null, where it leaves the boot script's alone. */}
+      <Bezel
+        enabled={letterboxState}
+        color={letterboxColor}
+        band={letterboxBand}
+        radius={letterboxRadius}
+      />
       <WallpaperBackground enabled={fullEnabled} />
       <div
         className={cn(
