@@ -1,5 +1,6 @@
 "use client";
 
+import { SegmentedCapsule } from "@/components/ui/segmented-capsule";
 import {
   WidgetHeader,
   WidgetLink,
@@ -8,8 +9,8 @@ import {
 } from "@/components/ui/widget";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { AlbumTabs, TrackThumb, useTheater } from "@/systems/theater";
-import { buildTalkAlbums } from "@/systems/theater/lib/albums";
+import { TrackThumb, useTheater } from "@/systems/theater";
+import { albumSegments, buildTalkAlbums } from "@/systems/theater/lib/albums";
 import { PRESS_CARD } from "@/systems/theater/lib/chrome";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -73,8 +74,8 @@ export function FeaturedTalksWidget() {
       </WidgetHeader>
 
       <div className="px-5 pb-3">
-        <AlbumTabs
-          albums={albums}
+        <SegmentedCapsule
+          items={albumSegments(albums)}
           activeIndex={activeAlbum}
           onSelect={setActiveAlbum}
           raised={false}

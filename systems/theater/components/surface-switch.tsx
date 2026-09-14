@@ -1,10 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { t, useLocale } from "@/services";
-import { motion, useReducedMotion } from "framer-motion";
-import { Maximize2, Minimize2, PictureInPicture2, Volume2 } from "lucide-react";
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import {
   GLASS_ACTION,
   GLASS_HIT,
@@ -13,7 +8,12 @@ import {
   GLASS_ON_DARK_TRACK,
   GLASS_PILL,
   GLASS_TRACK,
-} from "../lib/chrome";
+} from "@/lib/glass";
+import { cn } from "@/lib/utils";
+import { t, useLocale } from "@/services";
+import { motion, useReducedMotion } from "framer-motion";
+import { Maximize2, Minimize2, PictureInPicture2, Volume2 } from "lucide-react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 // ---------------------------------------------------------------------------
 // SurfaceSwitch — the exclusive player views: Theater · PiP · Audio.

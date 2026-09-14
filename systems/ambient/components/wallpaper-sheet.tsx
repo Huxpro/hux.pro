@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale, useTheme, type TranslationKey } from "@/services";
-import { AlbumTabs } from "@/systems/theater";
+import { SegmentedCapsule } from "@/components/ui/segmented-capsule";
 import { Check, Cloud, Moon, Smartphone, Sun } from "lucide-react";
 import { useState } from "react";
 import {
@@ -387,7 +387,7 @@ function WallpaperPickerBody() {
   );
   const categories = WALLPAPER_CATEGORIES.map((id) => ({
     id,
-    title: t(locale, CATEGORY_LABEL[id]),
+    label: t(locale, CATEGORY_LABEL[id]),
   }));
   const shown = wallpapers.filter((w) => w.category === category);
 
@@ -413,8 +413,8 @@ function WallpaperPickerBody() {
       {/* The label and the categories on one line, like Placement above. */}
       <div className="flex items-center justify-between gap-3 pb-3">
         <SectionLabel>{t(locale, "wallpaperChoose")}</SectionLabel>
-        <AlbumTabs
-          albums={categories}
+        <SegmentedCapsule
+          items={categories}
           activeIndex={WALLPAPER_CATEGORIES.indexOf(category)}
           onSelect={(i) => setCategory(WALLPAPER_CATEGORIES[i])}
           raised={false}

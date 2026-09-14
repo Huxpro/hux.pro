@@ -17,8 +17,8 @@ import { useMemo, useState } from "react";
 // Theater chrome variants — reference gallery
 //
 // Static mockups of the fullscreen theater margins. Production now ships the
-// "Frosted system": A’s clustered toolbar material (same glass as AlbumTabs /
-// Featured Talks) with D’s airier gutters. Other letters remain for comparison.
+// "Frosted system": A’s clustered toolbar material (same glass as the Featured
+// Talks capsule) with D’s airier gutters. Other letters remain for comparison.
 // =============================================================================
 
 type VariantId = "shipped" | "current" | "toolbar" | "liquid" | "bar" | "airy";
@@ -32,7 +32,7 @@ const VARIANTS: {
   {
     id: "shipped",
     name: "★ Shipped · Frosted system (A material + D air)",
-    inspo: "AlbumTabs / Featured Talks glass",
+    inspo: "SegmentedCapsule / Featured Talks glass",
     pitch:
       "Same frosted track + pill as the homepage widget. Window controls share one glass capsule; gutters match D’s air. This is production.",
   },
@@ -106,7 +106,7 @@ export function TheaterVariantsView() {
           <p className="max-w-2xl text-sm text-white/55 leading-relaxed">
             Fullscreen theater margins — album tabs, window controls, prev/next,
             title, playlist. Production uses the frosted system at the top
-            (same glass as the Featured Talks AlbumTabs, clustered controls,
+            (same glass as the Featured Talks capsule, clustered controls,
             airier gutters). Other variants stay for comparison.
           </p>
         </header>
@@ -199,7 +199,7 @@ function TheaterMock({
           className="flex items-center justify-between"
           style={{ marginBottom: spacing.topGap, minHeight: spacing.topH }}
         >
-          <AlbumTabsMock
+          <SegmentedCapsuleMock
             variant={variant}
             albums={albums}
             active={albumIndex}
@@ -293,7 +293,7 @@ const SPACING: Record<
 // Pieces
 // ---------------------------------------------------------------------------
 
-function AlbumTabsMock({
+function SegmentedCapsuleMock({
   variant,
   albums,
   active,

@@ -23,6 +23,7 @@ import {
   resolveGroupCommits,
 } from "@/lib/log";
 import { enrichLogDataWithPreviews, type OGSnapshot } from "@/lib/og-enrich";
+import type { SegmentedItem } from "@/components/ui/segmented-capsule";
 import { resolveVideoId } from "./player";
 import type { Album, Track } from "./types";
 
@@ -104,4 +105,15 @@ export function buildTalkAlbums(locale: Locale): Album[] {
 /** Build a one-off album for a video that isn't part of the curated set. */
 export function adHocAlbum(track: Track, title: string): Album {
   return { id: `adhoc-${track.id}`, title, tracks: [track] };
+}
+
+/**
+ * Albums as SegmentedCapsule options. The capsule speaks `{ id, label }` — any
+ * named group can be a tab — so the one place that knows an album's tab name is
+ * its `title` is here.
+ */
+export function albumSegments(
+  albums: Pick<Album, "id" | "title">[],
+): SegmentedItem[] {
+  return albums.map((album) => ({ id: album.id, label: album.title }));
 }

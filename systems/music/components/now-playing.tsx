@@ -1,14 +1,14 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { t, useLocale } from "@/services";
 import {
   GLASS_CLUSTER,
   GLASS_CLUSTER_BTN,
   GLASS_CLUSTER_FLAT,
   GLASS_PILL,
   GLASS_PILL_FLAT,
-} from "@/systems/theater/lib/chrome";
+} from "@/lib/glass";
+import { cn } from "@/lib/utils";
+import { t, useLocale } from "@/services";
 import { FastForward, ListMusic, Music, Pause, Play, Rewind } from "lucide-react";
 import { useState } from "react";
 import { useMusic } from "../provider";

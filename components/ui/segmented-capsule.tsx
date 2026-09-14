@@ -1,8 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { motion, useReducedMotion } from "framer-motion";
-import { useId } from "react";
 import {
   GLASS_ON_DARK_PILL,
   GLASS_ON_DARK_TRACK,
@@ -10,18 +7,22 @@ import {
   GLASS_PILL_FLAT,
   GLASS_TRACK,
   GLASS_TRACK_FLAT,
-} from "../lib/chrome";
-import type { Album } from "../lib/types";
+} from "@/lib/glass";
+import { cn } from "@/lib/utils";
+import { motion, useReducedMotion } from "framer-motion";
+import { useId } from "react";
 
 // ---------------------------------------------------------------------------
-// AlbumTabs — segmented control for switching playlists (React / Lynx / …).
-// Shared by the home widget and the theater overlay so the "album switcher"
-// reads identically wherever it appears — and by the wallpaper picker's
-// categories, which are the same kind of choice: one group of things at a time.
+// SegmentedCapsule — one group of things at a time.
+//
+// Picks a playlist in Featured Talks and the theater overlay, and a wallpaper
+// category in the picker. Those are the same choice wearing different nouns, so
+// the control takes plain `{ id, label }` options rather than any one system's
+// domain type.
 //
 // Apple camera-mode capsule: tight outer shell, roomy label padding, and a
 // single sliding glass pill (layoutId) that travels between options — selection
-// is motion, not a hard cut. Material tokens live in lib/chrome.ts so theater
+// is motion, not a hard cut. Material tokens live in lib/glass.ts so theater
 // window controls share the same frosted language.
 //
 // `tone="onDark"` is the dim dark-stamp language, forced for editor mocks
@@ -30,9 +31,14 @@ import type { Album } from "../lib/types";
 
 const EASE = [0.32, 0.72, 0, 1] as const;
 
-interface AlbumTabsProps {
-  /** Only the id and label are read, so any named group can be a tab. */
-  albums: Pick<Album, "id" | "title">[];
+/** One segment. Any named group can be a tab — album, category, mode. */
+export interface SegmentedItem {
+  id: string;
+  label: string;
+}
+
+interface SegmentedCapsuleProps {
+  items: SegmentedItem[];
   activeIndex: number;
   onSelect: (index: number) => void;
   className?: string;
@@ -46,21 +52,21 @@ interface AlbumTabsProps {
   raised?: boolean;
 }
 
-export function AlbumTabs({
-  albums,
+export function SegmentedCapsule({
+  items,
   activeIndex,
   onSelect,
   className,
   size = "sm",
   tone = "default",
   raised = true,
-}: AlbumTabsProps) {
+}: SegmentedCapsuleProps) {
   const reduceMotion = useReducedMotion();
   // Unique per mount so homepage + theater don't fight over one layoutId.
   const pillId = useId();
   const onDark = tone === "onDark";
 
-  if (albums.length <= 1) return null;
+  if (items.length <= 1) return null;
 
   return (
     <div
@@ -73,11 +79,11 @@ export function AlbumTabs({
         className,
       )}
     >
-      {albums.map((album, i) => {
+      {items.map((item, i) => {
         const active = i === activeIndex;
         return (
           <button
-            key={album.id}
+            key={item.id}
             type="button"
             role="tab"
             aria-selected={active}
@@ -116,7 +122,7 @@ export function AlbumTabs({
                 }
               />
             )}
-            <span className="relative z-10">{album.title}</span>
+            <span className="relative z-10">{item.label}</span>
           </button>
         );
       })}
