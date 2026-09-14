@@ -37,6 +37,13 @@ import { landsOnOwnAction } from "./widget-surface";
  *   - iOS:     JS polyfill via fixedBgTracker (CSS is broken on all iOS browsers)
  *
  * Soft edging (viewport-relative mask) goes through the tracker per layer.
+ *
+ * With an IMAGE wallpaper this is the expensive mode: scrolling the home page
+ * rasters 16-18x what it costs with a gradient, with the same photo in `full`
+ * placement, or with no wallpaper — a fixed background cannot scroll on the
+ * compositor, so each card resamples the photograph as it moves. Measured with
+ * `pnpm wallpapers:profile`; the numbers and the remedy that turned out to be
+ * worse are in docs/system-ambient.md.
  */
 export function WidgetShell({
   className,

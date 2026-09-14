@@ -206,6 +206,47 @@ Where the active wallpaper paints is `wallpaperPlacement`:
 | `widget` | Only inside widget cards (each a viewport-aligned window onto it) |
 | `off` | Nowhere — the global background kill switch |
 
+#### What widget placement costs to scroll
+
+Each card paints the wallpaper as a viewport-anchored background, so with an
+image wallpaper the browser resamples the photograph once per card — and a
+fixed background cannot be scrolled on the compositor, so it may do that again
+on every scrolled frame. That was an inference about browsers until it was
+measured:
+
+```bash
+pnpm build && pnpm start &
+pnpm wallpapers:profile        # scripts/wallpaper-scroll-profile.ts
+```
+
+One scroll down the home page and back up, Chromium 1280×900, `earth-moon-horizon`
+(2844×1600, the largest photograph in the set):
+
+| Case | Raster | Paint + raster |
+|---|---|---|
+| **image · widget** | **178–193ms** | **231–251ms** |
+| image · full | 11–13ms | 41–46ms |
+| weather · widget | 8–9ms | 40–42ms |
+| none · off | 10–12ms | 42–48ms |
+
+So the cost is real and it is specific: the same photograph painted once in a
+single fixed layer (`full`) is as cheap as no wallpaper at all, and the same
+per-card treatment with a gradient is too. It is the photograph *per card* that
+costs, about 16–18× the baseline.
+
+It did not drop frames here — a headless run rasters on the CPU with no vsync
+pressure, so that is not the verdict a laptop or a phone would give. Run the
+script against a real browser (`CHROME=... HEADFUL=1 pnpm wallpapers:profile`)
+before deciding it is fine.
+
+The obvious remedy is not one. Giving each card a composited viewport-sized
+pane that a transform keeps on the viewport — `background-attachment: fixed`
+replaced by the same mechanism iOS already uses — was tried and measured
+**worse**: 480ms of raster against 198ms, because every card then rasters a
+viewport-sized copy of the photo instead of a card-sized one. Anything cheaper
+has to paint the photograph *once* and let the cards be windows onto it, which
+needs the cards' geometry rather than a CSS change.
+
 **Soft edging** — the top/bottom fade — is on by default on iOS for the
 weather gradient and off for an image (`WALLPAPER_KIND_DEFAULTS`): a gradient
 is the page's colour pushed outward and fades back into it, while a photograph
