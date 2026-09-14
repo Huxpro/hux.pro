@@ -6,20 +6,20 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
-  Minimize2,
-  PictureInPicture2,
   X,
 } from "lucide-react";
-import { Link } from "next-view-transitions";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  GLASS_ON_DARK_BTN,
-  GLASS_ON_DARK_CLUSTER,
-  GLASS_ON_DARK_ORB,
+  GLASS_BTN,
+  GLASS_CLUSTER,
+  GLASS_ORB,
+  THEATER_BACKDROP,
 } from "../lib/chrome";
+import { THEATER_BOTTOM, THEATER_TOP_BAR } from "../lib/geometry";
 import { useTheater } from "../provider";
 import { AlbumTabs } from "./album-tabs";
 import { PlaylistRail } from "./playlist-rail";
+import { SurfaceSwitch } from "./surface-switch";
 
 // ---------------------------------------------------------------------------
 // TheaterOverlay — the immersive desktop modal chrome.
@@ -29,9 +29,6 @@ import { PlaylistRail } from "./playlist-rail";
 // keyboard shortcut — never on ambient pointer jitter. Auto-hides quickly
 // after the pointer leaves chrome, whether playing or paused.
 // ---------------------------------------------------------------------------
-
-/** Hit target inside the clustered toolbar (~44pt). */
-const CLUSTER_BTN = cn(GLASS_ON_DARK_BTN, "h-10 w-10");
 
 const FADE = { duration: 0.18, ease: "easeOut" as const };
 /** Idle before chrome tucks away once the pointer leaves a chrome zone. */
@@ -224,7 +221,7 @@ export function TheaterOverlay() {
           {/* Backdrop — below the stage; click to close. */}
           <motion.div
             key="backdrop"
-            className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md"
+            className={cn("fixed inset-0 z-[10000]", THEATER_BACKDROP)}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -239,7 +236,12 @@ export function TheaterOverlay() {
           <div
             aria-hidden
             className="fixed z-[10004]"
-            style={{ left: rect.left, width: rect.width, top: rect.top - 64, height: 64 }}
+            style={{
+              left: rect.left,
+              width: rect.width,
+              top: rect.top - THEATER_TOP_BAR,
+              height: THEATER_TOP_BAR,
+            }}
             onPointerEnter={pinChrome}
             onPointerLeave={unpinChrome}
           />
@@ -250,7 +252,7 @@ export function TheaterOverlay() {
               left: rect.left,
               width: rect.width,
               top: rect.top + rect.height,
-              height: 200,
+              height: THEATER_BOTTOM,
             }}
             onPointerEnter={pinChrome}
             onPointerLeave={unpinChrome}
@@ -310,40 +312,46 @@ export function TheaterOverlay() {
                   onPointerEnter={pinChrome}
                   onPointerLeave={unpinChrome}
                 >
-                  <AlbumTabs
-                    albums={albums}
-                    activeIndex={albumIndex}
-                    onSelect={selectAlbum}
-                    tone="onDark"
-                  />
-                  <div className={GLASS_ON_DARK_CLUSTER}>
+                  {track ? (
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium text-foreground drop-shadow-sm">
+                        {track.title}
+                      </div>
+                      {track.subtitle && (
+                        <div className="mt-0.5 truncate text-xs font-mono uppercase tracking-wide text-muted-foreground drop-shadow-sm">
+                          {track.subtitle}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+                  <div className={cn(GLASS_CLUSTER, "shrink-0")}>
                     {track?.url && (
                       <a
                         href={track.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="Open on source site"
-                        className={CLUSTER_BTN}
+                        className={cn(GLASS_BTN, "h-8 w-8")}
                       >
                         <ExternalLink className="h-4 w-4" />
                       </a>
                     )}
+                    <SurfaceSwitch
+                      current="theater"
+                      framed={false}
+                      onSelect={(surface) => {
+                        if (surface === "pip") toPip();
+                        if (surface === "mini") minimize();
+                      }}
+                    />
                     <button
-                      aria-label="Picture in picture"
-                      className={CLUSTER_BTN}
-                      onClick={toPip}
+                      aria-label="Close"
+                      className={cn(GLASS_BTN, "h-8 w-8")}
+                      onClick={close}
                     >
-                      <PictureInPicture2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      aria-label="Minimize"
-                      className={CLUSTER_BTN}
-                      onClick={minimize}
-                    >
-                      <Minimize2 className="h-4 w-4" />
-                    </button>
-                    <button aria-label="Close" className={CLUSTER_BTN} onClick={close}>
-                      <X className="h-5 w-5" />
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 </motion.div>
@@ -353,7 +361,7 @@ export function TheaterOverlay() {
                     key="prev"
                     aria-label="Previous video"
                     onClick={previous}
-                    className={cn(GLASS_ON_DARK_ORB, "fixed z-[10005] h-11 w-11")}
+                    className={cn(GLASS_ORB, "fixed z-[10005] h-11 w-11")}
                     style={{
                       top: midY - 22,
                       left: overlayArrows ? rect.left + 12 : rect.left - 64,
@@ -373,7 +381,7 @@ export function TheaterOverlay() {
                     key="next"
                     aria-label="Next video"
                     onClick={next}
-                    className={cn(GLASS_ON_DARK_ORB, "fixed z-[10005] h-11 w-11")}
+                    className={cn(GLASS_ORB, "fixed z-[10005] h-11 w-11")}
                     style={{
                       top: midY - 22,
                       left: overlayArrows
@@ -406,30 +414,13 @@ export function TheaterOverlay() {
                   onPointerEnter={pinChrome}
                   onPointerLeave={unpinChrome}
                 >
-                  {track && (
-                    <div className="mb-3 flex items-baseline justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-white">
-                          {track.title}
-                        </div>
-                        {track.subtitle && (
-                          <div className="truncate text-xs font-mono uppercase tracking-wide text-white/50">
-                            {track.subtitle}
-                          </div>
-                        )}
-                      </div>
-                      {track.href && (
-                        <Link
-                          href={track.href}
-                          onClick={close}
-                          className="shrink-0 text-xs font-mono uppercase tracking-wide text-white/50 hover:text-white transition-colors"
-                        >
-                          /works →
-                        </Link>
-                      )}
-                    </div>
-                  )}
-                  <PlaylistRail tone="onDark" className="gap-4 px-0" />
+                  <AlbumTabs
+                    albums={albums}
+                    activeIndex={albumIndex}
+                    onSelect={selectAlbum}
+                    className="mb-3"
+                  />
+                  <PlaylistRail className="gap-4 px-0" />
                 </motion.div>
               </div>
             )}

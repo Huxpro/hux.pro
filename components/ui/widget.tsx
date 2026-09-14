@@ -199,7 +199,7 @@ export function WidgetLink({
     <Link
       href={href}
       aria-label={label}
-      className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center"
+      className="flex items-center text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:text-foreground"
     >
       {variant === "icon" ? <ArrowRight className="h-3 w-3" /> : "→"}
     </Link>

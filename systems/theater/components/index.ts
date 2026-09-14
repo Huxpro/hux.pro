@@ -6,5 +6,6 @@ export { TheaterOverlay } from "./theater-overlay";
 export { PipOverlay } from "./pip-overlay";
 export { TrackThumb } from "./track-thumb";
 export { VideoControls } from "./video-controls";
+export { SurfaceSwitch } from "./surface-switch";
 export { TheaterSurfaces } from "./surfaces";
 export { TheaterRegistrar } from "./registrar";
