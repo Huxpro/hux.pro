@@ -817,13 +817,13 @@ function WallpaperModule() {
   const placements = [
     {
       key: "full",
-      label: zh ? "全屏" : "Full",
+      label: t(locale, "wallpaperPlacementFull"),
       aria: "Toggle full-page wallpaper",
       on: fullEnabled,
     },
     {
       key: "widget",
-      label: zh ? "卡片" : "Widget",
+      label: t(locale, "wallpaperPlacementWidget"),
       aria: "Toggle widget wallpaper",
       on: widgetEnabled,
     },
@@ -842,7 +842,7 @@ function WallpaperModule() {
 
   // One line that answers "what am I actually looking at".
   const now = [
-    isImage ? wallpaper.name : zh ? "天气" : "Weather",
+    isImage ? wallpaper.name : t(locale, "wallpaperWeather"),
     variant,
     isImage ? (reading ? (zh ? "阅读" : "read") : zh ? "桌面" : "desktop") : placement,
   ].join(" · ");
@@ -878,7 +878,7 @@ function WallpaperModule() {
           <PanelSegmented<"weather" | "image">
             value={kind}
             options={[
-              { value: "weather", label: zh ? "天气" : "Weather" },
+              { value: "weather", label: t(locale, "wallpaperWeather") },
               { value: "image", label: zh ? "图片" : "Image" },
             ]}
             onChange={setKind}
@@ -903,7 +903,7 @@ function WallpaperModule() {
             </span>
           )}
           <span className="min-w-0 flex-1 truncate text-[10px] font-mono text-foreground/80">
-            {isImage ? wallpaper.name : zh ? "天气" : "Weather"}
+            {isImage ? wallpaper.name : t(locale, "wallpaperWeather")}
             {isImage && (
               <span className="ml-1.5 tabular-nums text-muted-foreground/60">
                 {wallpaper[variant].width}×{wallpaper[variant].height}

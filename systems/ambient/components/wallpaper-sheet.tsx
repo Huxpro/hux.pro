@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale, useTheme, type TranslationKey } from "@/services";
-import { AlbumTabs } from "@/systems/theater/components/album-tabs";
+import { AlbumTabs } from "@/systems/theater";
 import { Check, Cloud, Moon, Smartphone, Sun } from "lucide-react";
 import { useState } from "react";
 import {
@@ -13,7 +13,6 @@ import {
 import { getWeatherGradient } from "../lib/gradient";
 import type { WallpaperPlacement } from "../lib/settings";
 import {
-  getWallpaperBackground,
   getWallpaperPairPreview,
   isPhoneWallpaper,
   isSingleImage,
@@ -219,8 +218,11 @@ function preload(src: string) {
 }
 
 /** Light left, dark right. */
-function PairHalves({ wallpaper }: { wallpaper: Wallpaper }) {
-  const preview = getWallpaperPairPreview(wallpaper);
+function PairHalves({
+  preview,
+}: {
+  preview: ReturnType<typeof getWallpaperPairPreview>;
+}) {
   return (
     <>
       <span
@@ -247,9 +249,9 @@ function WallpaperTile({
   wallpaper: Wallpaper;
   selected: boolean;
 }) {
-  const { selectWallpaper, variant } = useWallpaper();
-  const { theme } = useTheme();
+  const { selectWallpaper, variant, blurred } = useWallpaper();
   const single = isSingleImage(wallpaper);
+  const preview = getWallpaperPairPreview(wallpaper);
   const meta =
     wallpaper.caption ??
     (wallpaper.platform ? `${wallpaper.platform} · ${wallpaper.year}` : undefined);
@@ -259,7 +261,8 @@ function WallpaperTile({
   return (
     <div
       className="group min-w-0"
-      onMouseEnter={() => preload(wallpaper[variant].src)}
+      // A blurred reading page paints the thumb, which the tile already loaded.
+      onMouseEnter={blurred ? undefined : () => preload(wallpaper[variant].src)}
     >
       <TileFrame selected={selected}>
         <button
@@ -276,16 +279,10 @@ function WallpaperTile({
           {single ? (
             <span
               className="absolute inset-0 bg-cover bg-center"
-              style={{
-                backgroundImage: getWallpaperBackground({
-                  wallpaper,
-                  theme,
-                  preview: true,
-                }).backgroundImage,
-              }}
+              style={{ backgroundImage: preview.light.backgroundImage }}
             />
           ) : (
-            <PairHalves wallpaper={wallpaper} />
+            <PairHalves preview={preview} />
           )}
         </button>
         {!single && <VariantMark variant="light" />}
@@ -348,13 +345,7 @@ function WeatherTile({ selected }: { selected: boolean }) {
 
 export function WallpaperSheet() {
   const { locale } = useLocale();
-  const {
-    kind,
-    wallpaper: activeWallpaper,
-    isPickerOpen,
-    openPicker,
-    closePicker,
-  } = useWallpaper();
+  const { isPickerOpen, openPicker, closePicker } = useWallpaper();
 
   return (
     <AdaptiveSurface
@@ -366,10 +357,7 @@ export function WallpaperSheet() {
       closeLabel={t(locale, "wallpaperClose")}
       windowWidth="min(92vw, 620px)"
     >
-      <WallpaperPickerBody
-        isImage={kind === "image"}
-        activeId={activeWallpaper.id}
-      />
+      <WallpaperPickerBody />
     </AdaptiveSurface>
   );
 }
@@ -384,16 +372,11 @@ const CATEGORY_LABEL: Record<WallpaperCategory, TranslationKey> = {
  * thing that genuinely differs: a desktop window is wide enough for three
  * columns of pair cards, a phone sheet is not.
  */
-function WallpaperPickerBody({
-  isImage,
-  activeId,
-}: {
-  isImage: boolean;
-  activeId: string;
-}) {
+function WallpaperPickerBody() {
   const { locale } = useLocale();
-  const { wallpapers, wallpaper: active, placement, setPlacement } =
+  const { kind, wallpapers, wallpaper: active, placement, setPlacement } =
     useWallpaper();
+  const isImage = kind === "image";
   const { isWindow } = useSurfaceContext();
   const columns = isWindow ? 3 : 2;
 
@@ -446,7 +429,7 @@ function WallpaperPickerBody({
           <WallpaperTile
             key={w.id}
             wallpaper={w}
-            selected={isImage && activeId === w.id}
+            selected={isImage && active.id === w.id}
           />
         ))}
       </div>
