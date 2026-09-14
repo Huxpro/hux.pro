@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { t, useLocale, useTheme, type TranslationKey } from "@/services";
 import { AlbumTabs } from "@/systems/theater";
 import { Check, Cloud, Moon, Smartphone, Sun } from "lucide-react";
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 import {
   ADAPTIVE_PRESENTATION,
   AdaptiveSurface,
@@ -237,20 +237,36 @@ function PairHalves({
   );
 }
 
+interface WallpaperTileProps {
+  wallpaper: Wallpaper;
+  selected: boolean;
+  /** The provider's stable setter, handed down rather than read by each tile. */
+  onSelect: (id: string) => void;
+  variant: "light" | "dark";
+  /** A blurred reading page paints the thumb, which the tile already loaded. */
+  blurred: boolean;
+}
+
 /**
  * A pair card. Both halves are always visible — light left, dark right —
  * because the pair is what you are choosing; which half shows is the theme's
  * business, not yours.
+ *
+ * Memoised, and fed entirely by props. Every tile used to call `useWallpaper()`
+ * for the two values it reads, so each of the ~3 context updates a selection
+ * causes re-rendered all 22 tiles in the Nature tab — about 63 tile renders per
+ * click, each rebuilding its preview URL strings. Now the body reads the
+ * context once and only the two tiles whose `selected` actually changed
+ * re-render. (`memo` is otherwise avoided here — see docs/react-engineering.md;
+ * this one is in the commit that measured it.)
  */
-function WallpaperTile({
+const WallpaperTile = memo(function WallpaperTile({
   wallpaper,
   selected,
-}: {
-  wallpaper: Wallpaper;
-  selected: boolean;
-}) {
-  const { selectWallpaper, variant } = useWallpaper();
-  const { blurred } = useWallpaperPaint();
+  onSelect,
+  variant,
+  blurred,
+}: WallpaperTileProps) {
   const single = isSingleImage(wallpaper);
   const preview = getWallpaperPairPreview(wallpaper);
   const meta =
@@ -262,13 +278,12 @@ function WallpaperTile({
   return (
     <div
       className="group min-w-0"
-      // A blurred reading page paints the thumb, which the tile already loaded.
       onMouseEnter={blurred ? undefined : () => preload(wallpaper[variant].src)}
     >
       <TileFrame selected={selected}>
         <button
           type="button"
-          onClick={() => selectWallpaper(wallpaper.id)}
+          onClick={() => onSelect(wallpaper.id)}
           aria-pressed={selected}
           aria-label={`Use the ${wallpaper.name} wallpaper — ${
             meta ? `${meta}, ` : ""
@@ -297,28 +312,33 @@ function WallpaperTile({
       />
     </div>
   );
-}
+});
 
-/** The live one. Same frame, same size, first in the grid. */
-function WeatherTile({ selected }: { selected: boolean }) {
+/**
+ * The live one. Same frame, same size, first in the grid.
+ *
+ * Its preview arrives as a prop: subscribing to `useWeather()` from inside the
+ * grid meant every background refetch re-rendered a tile, and the body has to
+ * read the weather anyway.
+ */
+function WeatherTile({
+  selected,
+  onSelect,
+  preview,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  /** What is actually live right now, in the current theme. */
+  preview: string;
+}) {
   const { locale } = useLocale();
-  const { theme } = useTheme();
-  const { setKind } = useWallpaper();
-  const { weather } = useWeather();
-
-  // Previews what is actually live right now, in the current theme.
-  const preview = getWeatherGradient({
-    condition: weather?.condition ?? "clear",
-    isDay: weather?.isDay ?? true,
-    theme,
-  }).backgroundImage;
 
   return (
     <div className="group min-w-0">
       <TileFrame selected={selected}>
         <button
           type="button"
-          onClick={() => setKind("weather")}
+          onClick={onSelect}
           aria-pressed={selected}
           aria-label={t(locale, "wallpaperWeather")}
           className="absolute inset-0"
@@ -375,8 +395,19 @@ const CATEGORY_LABEL: Record<WallpaperCategory, TranslationKey> = {
  */
 function WallpaperPickerBody() {
   const { locale } = useLocale();
-  const { kind, wallpapers, wallpaper: active, placement, setPlacement } =
-    useWallpaper();
+  const { theme } = useTheme();
+  const {
+    kind,
+    setKind,
+    wallpapers,
+    wallpaper: active,
+    placement,
+    setPlacement,
+    selectWallpaper,
+    variant,
+  } = useWallpaper();
+  const { blurred } = useWallpaperPaint();
+  const { weather } = useWeather();
   const isImage = kind === "image";
   const { isWindow } = useSurfaceContext();
   const columns = isWindow ? 3 : 2;
@@ -386,17 +417,40 @@ function WallpaperPickerBody() {
   const [category, setCategory] = useState<WallpaperCategory>(
     isImage ? active.category : WALLPAPER_CATEGORIES[0]
   );
-  const categories = WALLPAPER_CATEGORIES.map((id) => ({
-    id,
-    title: t(locale, CATEGORY_LABEL[id]),
-  }));
-  const shown = wallpapers.filter((w) => w.category === category);
+  // Rebuilt only when what they are made of changes: these feed memoised
+  // children, and a fresh array on every weather tick would defeat them.
+  const categories = useMemo(
+    () =>
+      WALLPAPER_CATEGORIES.map((id) => ({
+        id,
+        title: t(locale, CATEGORY_LABEL[id]),
+      })),
+    [locale]
+  );
+  const shown = useMemo(
+    () => wallpapers.filter((w) => w.category === category),
+    [wallpapers, category]
+  );
 
-  const options: { value: WallpaperPlacement; label: string }[] = [
-    { value: "full", label: t(locale, "wallpaperPlacementFull") },
-    { value: "widget", label: t(locale, "wallpaperPlacementWidget") },
-    { value: "off", label: t(locale, "wallpaperPlacementOff") },
-  ];
+  const options: { value: WallpaperPlacement; label: string }[] = useMemo(
+    () => [
+      { value: "full", label: t(locale, "wallpaperPlacementFull") },
+      { value: "widget", label: t(locale, "wallpaperPlacementWidget") },
+      { value: "off", label: t(locale, "wallpaperPlacementOff") },
+    ],
+    [locale]
+  );
+
+  // Previews what is actually live right now, in the current theme.
+  const weatherPreview = useMemo(
+    () =>
+      getWeatherGradient({
+        condition: weather?.condition ?? "clear",
+        isDay: weather?.isDay ?? true,
+        theme,
+      }).backgroundImage,
+    [weather?.condition, weather?.isDay, theme]
+  );
 
   return (
     <>
@@ -425,12 +479,19 @@ function WallpaperPickerBody() {
         className="grid gap-x-3 gap-y-4"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
-        <WeatherTile selected={!isImage} />
+        <WeatherTile
+          selected={!isImage}
+          onSelect={() => setKind("weather")}
+          preview={weatherPreview}
+        />
         {shown.map((w) => (
           <WallpaperTile
             key={w.id}
             wallpaper={w}
             selected={isImage && active.id === w.id}
+            onSelect={selectWallpaper}
+            variant={variant}
+            blurred={blurred}
           />
         ))}
       </div>
