@@ -215,10 +215,15 @@ full-bleed background on a phone. Everything outside the page's safe area is
 painted black: `<html>` gets `background-color: #000`, `theme-color` is set to
 black so Safari's own chrome is black too, and the wallpaper and the page ground
 are fixed layers inset to the safe area (`surface.tsx`, `LETTERBOX_INSET`).
-The bands and four black 12px corner pieces are drawn above everything
+The bands and four black corner pieces are drawn above everything
 (`letterbox-frame.tsx`), so content scrolling under them is hidden and the page
 is rounded off inside them, which is what makes the black read as a bezel
-rather than as a page that ran out. Black in both themes: the frame is
+rather than as a page that ran out. The bands overshoot the viewport by half a
+screen: iOS Safari relays out `fixed` a beat after the toolbar collapses, and
+the overshoot is what covers the strip it uncovers in that beat. The radius is
+`wallpaperLetterboxRadius` (default 24, ryOS ships 12; devtool slider 0–48).
+`theme-color` is created before first paint by an inline script in
+`app/layout.tsx` and updated by the provider — Safari reads it at load. Black in both themes: the frame is
 chrome, not part of the page. The wallpaper then ends on a hard line against
 black, and black surrounds it on every side — the status bar, the toolbar, the
 overscroll — so there is no seam left for a fade to soften. `wallpaperLetterbox` persists `true` / `false`;

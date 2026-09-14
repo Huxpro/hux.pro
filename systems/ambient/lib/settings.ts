@@ -32,6 +32,8 @@ export interface AmbientSettings {
    * browsers, off elsewhere. See `letterbox` in the provider.
    */
   wallpaperLetterbox: boolean | null;
+  /** Corner radius of the page inside the letterbox frame, in px. */
+  wallpaperLetterboxRadius: number;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
   wallpaperReadingBlur: boolean;
   /** Veil the wallpaper on reading pages. */
@@ -40,6 +42,9 @@ export interface AmbientSettings {
 
 const SETTINGS_KEY = "hux_ambient_settings";
 
+/** ryOS ships 12; a phone's own corners are far larger, and 24 reads as one. */
+export const DEFAULT_LETTERBOX_RADIUS = 24;
+
 export function getDefaultSettings(): AmbientSettings {
   return {
     locationMode: "ip",
@@ -47,6 +52,7 @@ export function getDefaultSettings(): AmbientSettings {
     wallpaperKind: "weather",
     wallpaperId: DEFAULT_WALLPAPER_ID,
     wallpaperLetterbox: null,
+    wallpaperLetterboxRadius: DEFAULT_LETTERBOX_RADIUS,
     wallpaperReadingBlur: true,
     wallpaperReadingDim: true,
   };
@@ -103,6 +109,11 @@ export function getAmbientSettings(): AmbientSettings {
         typeof parsed.wallpaperLetterbox === "boolean"
           ? parsed.wallpaperLetterbox
           : null,
+      wallpaperLetterboxRadius:
+        typeof parsed.wallpaperLetterboxRadius === "number" &&
+        Number.isFinite(parsed.wallpaperLetterboxRadius)
+          ? Math.min(64, Math.max(0, parsed.wallpaperLetterboxRadius))
+          : DEFAULT_LETTERBOX_RADIUS,
       wallpaperReadingBlur: parsed.wallpaperReadingBlur !== false,
       wallpaperReadingDim: parsed.wallpaperReadingDim !== false,
     };

@@ -165,6 +165,9 @@ interface WallpaperContextType {
   /** The stored choice: `null` is auto (on for iOS). */
   letterboxSetting: boolean | null;
   setLetterbox: (value: boolean | null) => void;
+  /** Corner radius of the page inside the frame, px. */
+  letterboxRadius: number;
+  setLetterboxRadius: (px: number) => void;
   /** The reading treatment flags, for the devtool. */
   readingBlur: boolean;
   setReadingBlur: (value: boolean) => void;
@@ -300,6 +303,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     (value: boolean | null) => updateSettings({ wallpaperLetterbox: value }),
     [updateSettings]
   );
+  const setLetterboxRadius = useCallback(
+    (px: number) => updateSettings({ wallpaperLetterboxRadius: px }),
+    [updateSettings]
+  );
   const setReadingBlur = useCallback(
     (value: boolean) => updateSettings({ wallpaperReadingBlur: value }),
     [updateSettings]
@@ -369,9 +376,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   // Safari tints its chrome with theme-color, so this is where the letterbox
   // becomes continuous with the status bar and the toolbar. The element is
-  // ours, not React's: app/layout.tsx renders no theme-color, because Next
-  // streams its metadata in after this effect has run, and a React-owned meta
-  // mutated before it hydrates is a mismatch.
+  // ours, not React's — created before first paint by the inline script in
+  // app/layout.tsx and only updated here. Next streams its own metadata in
+  // after this effect has run, so a React-owned meta mutated here would be a
+  // hydration mismatch; and one created only here arrived too late for
+  // Safari to tint from on a phone.
   useEffect(() => {
     let meta = document.head.querySelector<HTMLMetaElement>("#hux-theme-color");
     if (!meta) {
@@ -675,6 +684,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       letterbox,
       letterboxSetting: settings.wallpaperLetterbox,
       setLetterbox,
+      letterboxRadius: settings.wallpaperLetterboxRadius,
+      setLetterboxRadius,
       readingBlur: settings.wallpaperReadingBlur,
       setReadingBlur,
       readingDim: settings.wallpaperReadingDim,
@@ -688,6 +699,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       settings.wallpaperKind,
       settings.wallpaperPlacement,
       settings.wallpaperLetterbox,
+      settings.wallpaperLetterboxRadius,
       settings.wallpaperReadingBlur,
       settings.wallpaperReadingDim,
       setWallpaperKind,
@@ -706,6 +718,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       isBlurred,
       letterbox,
       setLetterbox,
+      setLetterboxRadius,
       setReadingBlur,
       setReadingDim,
       wallpaperSrc,

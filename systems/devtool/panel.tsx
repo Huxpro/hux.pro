@@ -604,6 +604,43 @@ function PanelToggle({
   );
 }
 
+/** Continuous value, for the things you settle by dragging rather than typing. */
+function PanelRange({
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  label,
+  format = (v) => String(v),
+}: {
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+  label: string;
+  format?: (value: number) => string;
+}) {
+  return (
+    <div className="flex shrink-0 items-center gap-2">
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        aria-label={label}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="h-1 w-24 cursor-pointer appearance-none rounded-full bg-muted accent-foreground"
+      />
+      <span className="w-8 text-right text-[10px] font-mono tabular-nums text-muted-foreground">
+        {format(value)}
+      </span>
+    </div>
+  );
+}
+
 /** Segmented single-select, matching the ruler dock control. */
 function PanelSegmented<T extends string>({
   value,
@@ -782,6 +819,8 @@ function WallpaperModule() {
     letterbox,
     letterboxSetting,
     setLetterbox,
+    letterboxRadius,
+    setLetterboxRadius,
     readingBlur,
     setReadingBlur,
     readingDim,
@@ -973,6 +1012,19 @@ function WallpaperModule() {
             >
               {zh ? "已固定 · 点击恢复自动（iOS 开）" : "pinned · click for auto (on for iOS)"}
             </button>
+          )}
+          {letterbox && (
+            <PanelRow label={zh ? "圆角" : "Corner radius"}>
+              <PanelRange
+                value={letterboxRadius}
+                min={0}
+                max={48}
+                step={2}
+                onChange={setLetterboxRadius}
+                label="Letterbox corner radius"
+                format={(v) => `${v}px`}
+              />
+            </PanelRow>
           )}
           <div className="text-[10px] font-mono text-muted-foreground/70">
             {zh
