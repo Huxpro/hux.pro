@@ -79,12 +79,19 @@ export function AppTile({
         >
           <span
             className={cn(
-              "block overflow-hidden",
+              "relative block overflow-hidden",
               RADIUS[size],
               "border border-black/8 dark:border-white/12",
               // Padded glyphs need a white plate; full-bleed icons bring their
               // own background (a plate would fringe the rounded clip).
               !fills && "bg-white",
+              // Touch-down dim, iOS-style: a dark wash over the art the
+              // instant the icon is pressed, easing off on release. Driven by
+              // the enclosing `group/app` link's `:active` (which is
+              // `pressable`, so the wash lands on the press frame).
+              "after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit]",
+              "after:bg-black/0 after:transition-colors after:duration-200",
+              "group-active/app:after:bg-black/30 group-active/app:after:duration-0",
             )}
             style={{ width: px, height: px }}
           >

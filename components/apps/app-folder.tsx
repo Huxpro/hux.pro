@@ -2,10 +2,12 @@
 
 import { AppTile } from "@/components/apps/app-tile";
 import { useMasonryEdit } from "@/components/ui/sortable-masonry";
+import { usePressHold } from "@/components/ui/use-press-hold";
 import {
   MOUSE_ACTIVATION,
   TOUCH_ACTIVATION,
   clearOrder,
+  guardActivators,
   loadOrder,
   reconcile,
   saveOrder,
@@ -64,6 +66,12 @@ import { createPortal } from "react-dom";
 
 const STORAGE_KEY = "hux_app_order";
 
+// iOS grows a held icon a touch more than a held widget — it's smaller, so the
+// same absolute lift needs a larger ratio to register. The lifted clone pops
+// from the held size to the lift size, so the two must agree.
+const ICON_HOLD_SCALE = 1.08;
+const ICON_LIFT_SCALE = 1.15;
+
 export interface AppFolderProps {
   /** Override page layout; defaults to 4×2 horizontal pages. */
   layout?: Partial<AppFolderLayout>;
@@ -84,28 +92,30 @@ function SortableAppIcon({
   const app = APPS_BY_ID.get(id)!;
   const { setNodeRef, attributes, listeners, isDragging, transform, transition } =
     useSortable({ id });
+  const hold = usePressHold({ ...TOUCH_ACTIVATION, scale: ICON_HOLD_SCALE });
 
   // Pointer presses on an icon must not bubble to the masonry item wrapper,
-  // where they would activate the *outer* sortable and lift the whole folder.
-  const guardedListeners = useMemo(() => {
-    if (!listeners) return undefined;
-    const guarded: typeof listeners = { ...listeners };
-    for (const key of ["onMouseDown", "onTouchStart", "onPointerDown"]) {
-      const original = guarded[key];
-      if (!original) continue;
-      guarded[key] = (event: React.SyntheticEvent) => {
+  // where they would activate the *outer* sortable and lift the whole folder
+  // (and start the folder's own press-and-hold grow).
+  const guardedListeners = useMemo(
+    () =>
+      guardActivators(listeners, (event) => {
         event.stopPropagation();
-        original(event);
-      };
-    }
-    return guarded;
-  }, [listeners]);
+        return false;
+      }),
+    [listeners],
+  );
 
   return (
     <div
       ref={setNodeRef}
       {...attributes}
       {...guardedListeners}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        hold.onPointerDown(e);
+        listeners?.onPointerDown?.(e);
+      }}
       className="flex justify-center"
       style={{
         transform: CSS.Transform.toString(transform),
@@ -113,9 +123,11 @@ function SortableAppIcon({
         opacity: isDragging ? 0 : 1,
       }}
     >
-      <AppLaunchLink app={app}>
-        <AppTile app={app} size="lg" revealBadge={revealBadge} />
-      </AppLaunchLink>
+      <div {...hold.holdProps}>
+        <AppLaunchLink app={app}>
+          <AppTile app={app} size="lg" revealBadge={revealBadge} />
+        </AppLaunchLink>
+      </div>
     </div>
   );
 }
@@ -149,7 +161,9 @@ function AppLaunchLink({
         e.preventDefault();
         windows.openApp(app);
       }}
-      className="group/app relative z-0 block overflow-visible outline-none hover:z-10 focus-visible:z-10"
+      // `pressable` + the tile's `group-active/app` dim: an iOS icon darkens
+      // the instant it is touched, before anything else happens.
+      className="group/app pressable relative z-0 block overflow-visible outline-none hover:z-10 focus-visible:z-10"
     >
       {children}
     </a>
@@ -190,10 +204,10 @@ function PageDots({
           aria-label={`Page ${i + 1}`}
           onClick={() => onSelect(i)}
           className={cn(
-            "h-1.5 w-1.5 rounded-full transition-colors",
+            "pressable h-1.5 w-1.5 rounded-full transition-colors",
             i === active
               ? "bg-foreground/70"
-              : "bg-foreground/25 hover:bg-foreground/40",
+              : "bg-foreground/25 hover:bg-foreground/40 active:bg-foreground/55",
           )}
         />
       ))}
@@ -415,8 +429,16 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
           <DragOverlay>
             {activeId && APPS_BY_ID.has(activeId) ? (
               <div
-                className="select-none drop-shadow-xl"
-                style={{ transform: "scale(1.1)", cursor: "grabbing" }}
+                // Pops from the held size to its floating size, so pickup
+                // reads as one motion.
+                className="widget-lift select-none drop-shadow-xl pointer-events-none"
+                style={
+                  {
+                    "--press-hold-scale": ICON_HOLD_SCALE,
+                    "--lift-scale": ICON_LIFT_SCALE,
+                    cursor: "grabbing",
+                  } as CSSProperties
+                }
               >
                 <AppTile
                   app={APPS_BY_ID.get(activeId)!}

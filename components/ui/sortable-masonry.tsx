@@ -32,14 +32,17 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { HANDOFF, setHomeEditing } from "./home-edit-store";
 import {
   MOUSE_ACTIVATION,
   TOUCH_ACTIVATION,
   clearOrder,
+  guardActivators,
   loadOrder,
   reconcile,
   saveOrder,
 } from "./sortable-order";
+import { usePressHold } from "./use-press-hold";
 
 // =============================================================================
 // SortableMasonry
@@ -49,9 +52,17 @@ import {
 // them, mirroring how iPadOS / macOS treat each pointer type:
 //   - Mouse / trackpad: a press-and-move *is* a drag straight away (no wait).
 //   - Touch: a plain swipe scrolls; you must long-press to pick a widget up,
-//     so dragging never fights the page scroll.
+//     so dragging never fights the page scroll. The held card grows slowly for
+//     the length of the hold (iOS's "about to lift" tell) and pops up once
+//     the drag activates.
+// A press only counts as a pickup when it lands on the widget's *own*
+// surface — the part whose tap is the whole-widget action (title, padding,
+// static text). Rows, links, buttons and inputs carry their own tap, so a
+// press-and-hold on them is theirs (scroll the list, open the link preview,
+// press the button) and never lifts the card. In edit mode, like an iOS
+// jiggle, the whole card is a handle again.
 // Dragging lifts the card and enters a jiggle "edit mode"; a click/tap on any
-// empty (non-widget) area leaves it. The order is an array of widget IDs
+// empty (non-widget) area, or the "Done" pill, leaves it. The order is an array of widget IDs
 // persisted to localStorage, so each visitor keeps their own layout.
 //
 // Why this shape:
@@ -165,6 +176,24 @@ function gridScale(count: number) {
 // Sortable item
 // =============================================================================
 
+/**
+ * Descendants whose tap is their own, not the widget's. A press that starts
+ * on one of these must not lift the card (outside edit mode).
+ */
+const OWN_ACTION_SELECTOR =
+  "a, button, [role='button'], [role='tab'], input, textarea, select, summary, [data-widget-inert]";
+
+/**
+ * True when the press landed inside an element with its own action. The item
+ * wrapper itself is `role="button"` (dnd-kit's attributes), so the match has
+ * to be a strict descendant of the wrapper.
+ */
+function pressLandsOnControl(e: React.SyntheticEvent): boolean {
+  const target = e.target as Element | null;
+  const control = target?.closest(OWN_ACTION_SELECTOR);
+  return !!control && control !== e.currentTarget && e.currentTarget.contains(control);
+}
+
 function SortableMasonryItem({
   id,
   index,
@@ -178,13 +207,29 @@ function SortableMasonryItem({
 }) {
   const { setNodeRef, attributes, listeners, isDragging, transform, transition } =
     useSortable({ id });
+  const hold = usePressHold(TOUCH_ACTIVATION);
+
+  // Gate every press activator on where the press landed: a control's press
+  // is the control's. Edit mode lifts the gate.
+  const keepForControl = (e: React.SyntheticEvent) =>
+    !editing && pressLandsOnControl(e);
+  const guardedListeners = useMemo(
+    () => guardActivators(listeners, keepForControl),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keepForControl only closes over `editing`
+    [listeners, editing],
+  );
 
   return (
     <div
       ref={setNodeRef}
       data-widget-id={id}
       {...attributes}
-      {...listeners}
+      {...guardedListeners}
+      onPointerDown={(e) => {
+        if (keepForControl(e)) return;
+        hold.onPointerDown(e);
+        listeners?.onPointerDown?.(e);
+      }}
       // In edit mode a tap shouldn't navigate (iPad jiggle behaviour); swallow
       // clicks that bubble up from links inside the widget.
       onClickCapture={(e) => {
@@ -208,17 +253,20 @@ function SortableMasonryItem({
         cursor: editing ? "grab" : undefined,
       }}
     >
-      {/* Inner wrapper owns the jiggle rotate so it never fights the sort
-          transform on the outer element. */}
-      <div
-        className={cn(editing && !isDragging && "widget-jiggle")}
-        style={
-          editing && !isDragging
-            ? { animationDelay: `${(index % 6) * 0.07}s` }
-            : undefined
-        }
-      >
-        {children}
+      {/* Three transforms, three wrappers, so none fights another: the outer
+          element carries dnd-kit's sort transform, this one the slow
+          press-and-hold grow, the innermost the jiggle rotate. */}
+      <div {...hold.holdProps}>
+        <div
+          className={cn(editing && !isDragging && "widget-jiggle")}
+          style={
+            editing && !isDragging
+              ? { animationDelay: `${(index % 6) * 0.07}s` }
+              : undefined
+          }
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -278,6 +326,12 @@ export function SortableMasonry({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only: reading localStorage + syncing to the current widget set
     setOrder(reconcile(stored ?? ids, ids));
   }, [storageKey, idsKey]); // eslint-disable-line react-hooks/exhaustive-deps -- ids tracked via idsKey
+
+  // Tell the command bar to step aside while editing (see home-edit-store).
+  useEffect(() => {
+    setHomeEditing(editing);
+    return () => setHomeEditing(false);
+  }, [editing]);
 
   // Leave edit mode on Escape, or on a completed click/tap anywhere outside a
   // widget (clicking another widget keeps you in edit mode so you can keep
@@ -389,8 +443,15 @@ export function SortableMasonry({
         {activeId ? (
           <MasonryEditContext.Provider value={CLONE_EDIT_CONTEXT}>
             <div
-              className="select-none drop-shadow-2xl"
-              style={{ transform: "scale(1.03)", cursor: "grabbing" }}
+              // Pops from the held size (the press-and-hold grow ends at
+              // 1.03) to its floating size, so pickup reads as one motion.
+              // `pointer-events-none`: the clone is under the finger when a
+              // hold is released without moving, and the click a touch
+              // release synthesises would otherwise land on a link inside
+              // the clone (which lives in a portal, outside the item's
+              // click-swallowing wrapper) and navigate.
+              className="widget-lift select-none drop-shadow-2xl pointer-events-none"
+              style={{ cursor: "grabbing" }}
             >
               {itemsById.get(activeId)}
             </div>
@@ -398,25 +459,33 @@ export function SortableMasonry({
         ) : null}
       </DragOverlay>
 
-      {/* Edit-mode controls: a primary "Done" pill, with a quieter "Reset"
-          to its left once the layout has been customised. */}
+      {/* Edit-mode controls: a "Done" pill, with a quieter "Reset" to its
+          left once the layout has been customised. On desktop they float
+          above the command bar (fixed at bottom-6). On phones the command bar
+          fades out for the duration of edit mode (see systems/command/fab.tsx)
+          and the controls take its place at the bottom, where the thumb is. */}
       <AnimatePresence>
         {editing && (
           <motion.div
             data-edit-controls
-            // bottom-24 keeps these controls clear of the command bar (fixed at
-            // bottom-6); revisit if that bar moves.
-            className="fixed inset-x-0 bottom-24 z-50 flex items-center justify-center gap-4"
+            className="system-chrome fixed inset-x-0 bottom-6 md:bottom-24 z-50 flex items-center justify-center gap-4 px-6"
+            // Sequenced with the command bar's fade (see HANDOFF): the
+            // controls rise in once the bar has gone, and sink out before
+            // it comes back. On desktop the bar stays put, so the delay is
+            // simply a beat after the drag started.
             initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
-            transition={{ duration: 0.2 }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              transition: { duration: HANDOFF.in, delay: HANDOFF.delay },
+            }}
+            exit={{ opacity: 0, y: 12, transition: { duration: HANDOFF.out } }}
           >
             {isCustomized && (
               <button
                 type="button"
                 onClick={handleReset}
-                className="text-xs font-mono uppercase tracking-wider text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+                className="pressable text-xs font-mono uppercase tracking-wider text-muted-foreground/60 transition-colors hover:text-muted-foreground active:text-foreground"
               >
                 {t(locale, "widgetEditReset")}
               </button>
@@ -424,7 +493,7 @@ export function SortableMasonry({
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="rounded-full border border-border/60 bg-card/80 px-4 py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground"
+              className="pressable rounded-full border border-border/60 bg-card/80 px-5 py-2.5 md:px-4 md:py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground active:bg-card active:text-foreground"
             >
               {t(locale, "widgetEditDone")}
             </button>

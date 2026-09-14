@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { AlbumTabs, TrackThumb, useTheater } from "@/systems/theater";
 import { buildTalkAlbums } from "@/systems/theater/lib/albums";
+import { PRESS_CARD } from "@/systems/theater/lib/chrome";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // ---------------------------------------------------------------------------
@@ -96,9 +97,12 @@ export function FeaturedTalksWidget() {
               onClick={() =>
                 open({ albums, albumIndex: activeAlbum, trackIndex: i })
               }
+              // Cards sink slightly under the finger (iOS card press) and
+              // spring back on release.
               className={cn(
                 "group/thumb w-[86%] max-w-[200px] shrink-0 snap-start rounded-xl text-left",
                 "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
+                PRESS_CARD,
               )}
             >
               <TrackThumb track={track} />

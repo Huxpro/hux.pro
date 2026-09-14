@@ -6,8 +6,28 @@ import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { Command, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useDraggable } from "@/systems/draggable";
+import { HANDOFF, useHomeEditing } from "@/components/ui/home-edit-store";
+
+// Below `md` the bar and the grid's edit controls share the bottom of the
+// screen; above it the controls float over the bar. Mirrors the `md:`
+// breakpoint the bar's own layout switches on.
+const COMPACT_QUERY = "(max-width: 767px)";
+
+let compactMql: MediaQueryList | null = null;
+const getCompactMql = () => (compactMql ??= window.matchMedia(COMPACT_QUERY));
+const subscribeCompact = (onChange: () => void) => {
+  const mql = getCompactMql();
+  mql.addEventListener("change", onChange);
+  return () => mql.removeEventListener("change", onChange);
+};
+const getCompact = () => getCompactMql().matches;
+const getCompactServer = () => false;
+
+function useCompactViewport(): boolean {
+  return useSyncExternalStore(subscribeCompact, getCompact, getCompactServer);
+}
 
 export function FloatingActionButton() {
   const { toggle } = useCommand();
@@ -15,6 +35,13 @@ export function FloatingActionButton() {
   const { locale } = useLocale();
   const [mounted, setMounted] = useState(false);
   const drag = useDraggable("command-fab");
+  // While the home grid is in jiggle edit mode, the bar fades out on phones
+  // so the grid's edit controls can take the bottom of the screen (on wider
+  // screens they float above it and the bar stays put). The fade is
+  // sequenced with the controls' entrance/exit (HANDOFF), so each direction
+  // is a hand-off rather than a crossfade.
+  const homeEditing = useHomeEditing();
+  const compact = useCompactViewport();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -23,13 +50,14 @@ export function FloatingActionButton() {
 
   const isHomepage = pathname === "/";
   const isDraggable = drag.isEnabled && !isHomepage;
+  const yielding = isHomepage && homeEditing && compact;
 
   if (!mounted) return null;
 
   const fab = (
     <div
       className={cn(
-        "fixed bottom-6 left-0 right-0 z-50 px-6",
+        "system-chrome fixed bottom-6 left-0 right-0 z-50 px-6",
         "flex pointer-events-none",
         isHomepage ? "justify-center" : "justify-end"
       )}
@@ -38,23 +66,35 @@ export function FloatingActionButton() {
         layout
         onClick={() => toggle()}
         className={cn(
-          "pointer-events-auto",
+          "pressable pointer-events-auto",
+          "transition-[background-color,border-color,color,transform] duration-200",
+          yielding && "pointer-events-none",
           "flex items-center gap-2",
           "bg-card/50 backdrop-blur-xl",
           "border border-border/50",
           "shadow-raised",
           isHomepage ? "text-muted-foreground" : "text-foreground",
-          "hover:bg-card/70 hover:border-border transition-colors",
+          "hover:bg-card/70 hover:border-border",
+          // Touch-down: the bar darkens on the same frame as the press, the
+          // way an iOS search field does, and eases back on release.
+          "active:bg-card/80 active:border-border active:text-foreground",
           "h-12",
           "overflow-hidden",
           isHomepage
-            ? "rounded-2xl pl-4 pr-6 md:px-4 w-auto md:w-full md:max-w-md active:scale-[1] focus:outline-none focus:ring-2 focus:ring-ring/20"
+            // No press scale on the homepage bar: it is a backdrop-blur
+            // surface, and a transform makes the compositor re-blur every
+            // frame of the press. The colour wash above is the feedback.
+            ? "rounded-2xl pl-4 pr-6 md:px-4 w-auto md:w-full md:max-w-md focus:outline-none focus:ring-2 focus:ring-ring/20"
             : "rounded-[24px] w-12 md:w-auto md:px-4 justify-center active:scale-95"
         )}
         style={{ borderRadius: isHomepage ? 24 : 24 }}
+        animate={{ opacity: yielding ? 0 : 1 }}
         transition={{
           layout: { duration: 0.4, ease: [0.32, 0.72, 0, 1] },
           borderRadius: { duration: 0.4 },
+          opacity: yielding
+            ? { duration: HANDOFF.out }
+            : { duration: HANDOFF.in, delay: HANDOFF.delay },
         }}
         aria-label="Open command palette"
       >

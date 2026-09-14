@@ -27,7 +27,7 @@ export function CommitCompact({ data, className }: CommitCompactProps) {
           href={data.thumbnail.linkUrl ?? data.thumbnail.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="relative block w-full aspect-video rounded-lg overflow-hidden bg-muted/20 border border-border/50 hover:border-border transition-colors mb-2 group/thumb"
+          className="pressable relative block w-full aspect-video rounded-lg overflow-hidden bg-muted/20 border border-border/50 hover:border-border active:border-border active:opacity-80 transition-[border-color,opacity] mb-2 group/thumb"
         >
           <ExternalImage
             src={data.thumbnail.url}

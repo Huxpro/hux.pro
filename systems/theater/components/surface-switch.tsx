@@ -7,6 +7,7 @@ import { Maximize2, Minimize2, PictureInPicture2, Volume2 } from "lucide-react";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import {
   GLASS_ACTION,
+  GLASS_HIT,
   GLASS_ON_DARK_BTN,
   GLASS_ON_DARK_PILL,
   GLASS_ON_DARK_TRACK,
@@ -110,7 +111,7 @@ export function SurfaceSwitch({
       role="radiogroup"
       aria-label={t(locale, "theaterSurfaceGroup")}
       className={cn(
-        "relative inline-flex items-center",
+        "system-chrome relative inline-flex items-center",
         framed && "rounded-full p-0.5",
         framed && (onDark ? GLASS_ON_DARK_TRACK : GLASS_TRACK),
         labels && "w-full",
@@ -181,11 +182,17 @@ export function SurfaceSwitch({
                     )
                   : cn(
                       "inline-flex h-7 w-7 items-center justify-center rounded-full",
-                      "outline-none transition-colors",
+                      // Same press contract as GLASS_BTN, minus its hover
+                      // fill (the lifted pill is the fill here).
+                      "pressable outline-none transition-colors duration-200",
+                      GLASS_HIT,
                       "focus-visible:bg-foreground/[0.08] focus-visible:text-foreground",
                       active
                         ? "text-foreground"
-                        : "cursor-pointer text-muted-foreground hover:text-foreground",
+                        : cn(
+                            "cursor-pointer text-muted-foreground hover:text-foreground",
+                            "active:bg-foreground/[0.08] active:text-foreground",
+                          ),
                     ),
             )}
           >

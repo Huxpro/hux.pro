@@ -859,6 +859,96 @@ html.dragging * {
 }
 
 /* =============================================================================
+   Press feedback — `.pressable`
+   iOS highlights on touch-DOWN, instantly, and fades the highlight out on
+   release; the web's hover-only wash (`hover:` is gated on `(hover: hover)`
+   in Tailwind v4, so touch devices never see it) gives a finger nothing at
+   all. Pair this class with an `active:` colour/scale: the `:active` rule
+   zeroes the transition so the press lands on the same frame as the touch,
+   while the element's own `transition-*` utilities still ease the release.
+   Unlayered on purpose so it wins over `duration-*` utilities.
+   ============================================================================= */
+
+.pressable {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.pressable:active {
+  transition-duration: 0ms;
+}
+
+/* =============================================================================
+   System chrome — `.system-chrome`
+   Navigation, the command bar, the dock, edit controls: these are the OS's
+   own UI, not a document. No text selection, no long-press callout, no grey
+   tap flash — a press on them is a gesture, never an attempt to grab text.
+   Content (prose, the /writing list, /works rows) deliberately keeps the
+   browser defaults so a long-press on a link still previews it.
+   ============================================================================= */
+
+.system-chrome {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Text fields inside chrome (the command palette's input) must still let
+   the caret be placed and text be selected. */
+.system-chrome :is(input, textarea, [contenteditable="true"]) {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* =============================================================================
+   Press-and-hold — `.press-hold`
+   Touch long-press to pick up a widget or app icon. iOS grows the held object
+   slowly for the whole duration of the press and only then lifts it; the
+   grow is the "this is about to happen" signal that lets the visitor bail by
+   letting go or by starting to scroll. `--press-hold-duration` is the
+   sensor's activation delay so the grow finishes exactly when the drag
+   begins; release eases back quickly.
+   ============================================================================= */
+
+.press-hold {
+  transform-origin: center;
+  transition: transform 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.press-hold[data-holding] {
+  transform: scale(var(--press-hold-scale, 1.03));
+  transition-duration: var(--press-hold-duration, 400ms);
+  transition-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+}
+
+/* The lifted clone: pops from the held size to its floating size. */
+@keyframes widget-lift {
+  from {
+    transform: scale(var(--press-hold-scale, 1.03));
+  }
+  to {
+    transform: scale(var(--lift-scale, 1.05));
+  }
+}
+
+.widget-lift {
+  animation: widget-lift 220ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press-hold,
+  .press-hold[data-holding] {
+    transition: none;
+    transform: none;
+  }
+  .widget-lift {
+    animation: none;
+    transform: scale(var(--lift-scale, 1.05));
+  }
+}
+
+/* =============================================================================
    Widget gesture suppression — homescreen widgets are draggable objects, not
    documents. A long-press should start a reorder drag, never the OS's native
    link "peek"/callout, text selection, or link/image drag-ghost. `select-none`

@@ -133,10 +133,10 @@ export function HStackWidget({
                 key={i}
                 onClick={() => scrollToIndex(i)}
                 className={cn(
-                  "w-1.5 h-1.5 rounded-full transition-all duration-200",
+                  "pressable w-1.5 h-1.5 rounded-full transition-all duration-200",
                   i === activeIndex
                     ? "bg-foreground/60 w-3"
-                    : "bg-foreground/20 hover:bg-foreground/40"
+                    : "bg-foreground/20 hover:bg-foreground/40 active:bg-foreground/55"
                 )}
                 aria-label={`Go to slide ${i + 1}`}
               />
