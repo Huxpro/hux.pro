@@ -210,13 +210,11 @@ Where the active wallpaper paints is `wallpaperPlacement`:
 | `widget` | Only inside widget cards (each a viewport-aligned window onto it) |
 | `off` | Nowhere — the global background kill switch |
 
-**Soft edging** — the top/bottom fade, on by default on iOS — is a *weather*
-affordance and is gated to it. It exists to hide a seam: the gradient is a
-synthetic wash, and where it stops against the page background there is a line.
-A photograph has no such seam, so the fade does not soften an edge, it deletes a
-strip of the picture — and in light mode it deletes it to pure white, which
-reads as a bleached band rather than a vignette. The devtool switch can still
-force it on.
+**Soft edging** — the top/bottom fade, on by default on iOS — applies to both
+kinds alike. An image wallpaper is just another layer in the stack, so it gets
+the same mask the weather gradient gets (`EDGE_FADE_MASK`, or the wider
+`EDGE_FADE_MASK_HIGH_CONTRAST` for dark-mode sunrise/sunset). The devtool
+switch overrides it either way.
 
 ### Triggers
 
@@ -325,12 +323,10 @@ const {
   devtoolOverrides,       // Ephemeral, devtool only
   setDevtoolOverrides,
   opacity,                // Resolved for kind and theme
-  veil,                   // The flat veil alpha over an image
-  vignette,               // The radial vignette alpha, at the far corners
+  veil,                   // The flat veil alpha over an image (reading pages)
   blurred,                // Whether this route defocuses the wallpaper
-  dimHome,                // The three image-treatment switches
-  setDimHome,
-  readingBlur,
+  readingBlur,            // The two reading-treatment switches
+
   setReadingBlur,
   readingDim,
   setReadingDim,

@@ -37,6 +37,12 @@ interface GradientLayerProps {
   cssFixedAttachment: boolean;
   /** Picture wallpaper: scale to cover rather than stretch. */
   cover: boolean;
+  /**
+   * Reading page: defocus the picture. The blur is painted on an inner element
+   * so the mask on this layer stays crisp and unscaled — and this path is only
+   * taken full-page, never through the widget tracker.
+   */
+  blurred: boolean;
 }
 
 function GradientLayer({
@@ -48,6 +54,7 @@ function GradientLayer({
   edgeMask,
   cssFixedAttachment,
   cover,
+  blurred,
 }: GradientLayerProps) {
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -62,7 +69,7 @@ function GradientLayer({
     });
   }, [shell, positionBackground, edgeMask]);
 
-  const style: React.CSSProperties = { backgroundImage: gradient };
+  const style: React.CSSProperties = blurred ? {} : { backgroundImage: gradient };
 
   // Desktop widget: cheap native fixed attachment (no tracker).
   if (cssFixedAttachment) {
@@ -101,7 +108,21 @@ function GradientLayer({
       initial={isTop ? { opacity: 0 } : false}
       animate={{ opacity: 1 }}
       transition={{ duration: durationMs / 1000, ease: "easeInOut" }}
-    />
+    >
+      {blurred && (
+        // Scaled past the frame so the blur has pixels to sample at the edges
+        // instead of fading into nothing.
+        <div
+          className="absolute inset-0 scale-110 blur-2xl"
+          style={{
+            backgroundImage: gradient,
+            backgroundSize: cover ? "cover, 100% 100%" : undefined,
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
+        />
+      )}
+    </motion.div>
   );
 }
 
@@ -112,6 +133,7 @@ interface GradientStackProps {
   positionBackground?: boolean;
   edgeMask?: string | null;
   cssFixedAttachment?: boolean;
+  blurred?: boolean;
 }
 
 export function GradientStack({
@@ -121,6 +143,7 @@ export function GradientStack({
   positionBackground = false,
   edgeMask = null,
   cssFixedAttachment = false,
+  blurred = false,
 }: GradientStackProps) {
   return (
     <>
@@ -135,6 +158,7 @@ export function GradientStack({
           edgeMask={edgeMask}
           cssFixedAttachment={cssFixedAttachment}
           cover={layer.cover ?? false}
+          blurred={blurred}
         />
       ))}
     </>

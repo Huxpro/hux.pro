@@ -54,7 +54,7 @@ Debug modules for the ambient system:
 1. **Wallpaper**: the whole background system — a swatch grid led by Weather
    (phone artwork carries a glyph in the swatch corner, because the file is
    tall and the swatch is square), placement switches (full / widget / soft
-   edge), the image treatment switches (dim home / reading blur / reading dim),
+   edge), the reading treatment switches (reading blur / reading dim),
    and the resolved asset.
    Full and Widget are *independent* switches, not two halves of one control:
    the persisted setting can only be one of them, but the panel exists to see

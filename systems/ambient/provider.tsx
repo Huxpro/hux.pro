@@ -18,13 +18,11 @@ import {
   getWallpaperBackground,
   getWallpaperOrDefault,
   WALLPAPER_OPACITY,
-  WALLPAPER_VEIL,
-  WALLPAPER_VIGNETTE,
+  WALLPAPER_READING_VEIL,
   type Wallpaper,
   type WallpaperKind,
 } from "./lib/wallpaper";
 import {
-  buildRadialEdgeMask,
   EDGE_FADE_MASK,
   EDGE_FADE_MASK_HIGH_CONTRAST,
   isIOSBrowser,
@@ -117,10 +115,6 @@ export interface DevtoolPlacementOverrides {
   full?: boolean;
   widget?: boolean;
   softEdging?: boolean;
-  /** Alpha at the farthest corner. */
-  vignetteAlpha?: number;
-  /** Scales the ellipse; below 1 pulls full strength inside the viewport. */
-  vignetteSpread?: number;
 }
 
 interface WallpaperContextType {
@@ -154,22 +148,13 @@ interface WallpaperContextType {
    */
   opacity: number;
   /**
-   * Alpha of the veil drawn OVER the wallpaper, or 0 for none. Non-zero on a
-   * reading page (or on home with `dimHome` on) and only for image wallpapers.
+   * Alpha of the veil drawn OVER the wallpaper, or 0 for none. Non-zero only
+   * on a reading page under an image wallpaper.
    */
   veil: number;
-  /**
-   * Alpha of the radial vignette over the wallpaper, at the farthest corner.
-   * This is where most of the dimming budget lives — see WALLPAPER_VIGNETTE.
-   */
-  vignette: number;
-  /** Ellipse scale. 1 is the shipped geometry; below 1 tightens the falloff. */
-  vignetteSpread: number;
   /** Whether the wallpaper should be defocused right now. */
   blurred: boolean;
-  /** The reading/desktop treatment flags, for the devtool. */
-  dimHome: boolean;
-  setDimHome: (value: boolean) => void;
+  /** The reading treatment flags, for the devtool. */
   readingBlur: boolean;
   setReadingBlur: (value: boolean) => void;
   readingDim: boolean;
@@ -300,10 +285,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     ? WALLPAPER_OPACITY.image[theme]
     : WALLPAPER_OPACITY.weather[theme];
 
-  const setDimHome = useCallback(
-    (value: boolean) => updateSettings({ wallpaperDimHome: value }),
-    [updateSettings]
-  );
   const setReadingBlur = useCallback(
     (value: boolean) => updateSettings({ wallpaperReadingBlur: value }),
     [updateSettings]
@@ -315,15 +296,13 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   // Home is the desktop: the picture stays sharp and untinted, because that is
   // the whole point of choosing one. Reading pages recede it instead — a veil
-  // plus a defocus, which together cost far less of the image than the flat
-  // half-opacity this used to apply to every route alike.
+  // plus a defocus over the top, which costs far less of the image than dimming
+  // the layer itself on every route alike.
   const pathname = usePathname();
   const reading = isReadingSurface({ kind: settings.wallpaperKind, pathname });
-  const isBlurred = isImageKind && reading && settings.wallpaperReadingBlur;
-  const treatment = reading ? ("reading" as const) : ("scrim" as const);
-  const dimOn = reading ? settings.wallpaperReadingDim : settings.wallpaperDimHome;
-  const dimming = isImageKind && dimOn ? treatment : null;
-  const veilAlpha = dimming ? WALLPAPER_VEIL[dimming][theme] : 0;
+  const isBlurred = reading && settings.wallpaperReadingBlur;
+  const veilAlpha =
+    reading && settings.wallpaperReadingDim ? WALLPAPER_READING_VEIL[theme] : 0;
 
   // DevTool gradient overrides (ephemeral, not persisted)
   const [devtoolOverrides, setDevtoolOverrides] =
@@ -343,57 +322,15 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       ? devtoolOverrides.widget
       : settings.wallpaperPlacement === "widget";
 
-  // The vignette is dimming like the veil is, so it follows the same switches —
-  // but the devtool can override its strength and its geometry independently,
-  // because "is it even on" and "is it reaching the edges" are different
-  // questions and the second one is not visible from the first.
-  const vignetteAlpha =
-    isDevtoolEnabled && devtoolOverrides.vignetteAlpha !== undefined
-      ? devtoolOverrides.vignetteAlpha
-      : dimming
-        ? WALLPAPER_VIGNETTE[dimming][theme]
-        : WALLPAPER_VIGNETTE.scrim[theme];
-  const vignetteSpread =
-    isDevtoolEnabled && devtoolOverrides.vignetteSpread !== undefined
-      ? devtoolOverrides.vignetteSpread
-      : 1;
-
-  // Soft edging fades the background out at the edges of the viewport. ONE
-  // switch, for both kinds — the kind only decides the shape of the fade, and
-  // when it decided the switch too the toggle was simply dead on an image
-  // wallpaper, which is not a state a debug panel is allowed to be in.
-  //
-  // Default on wherever it helps: on a phone at any kind (a full-bleed
-  // background running under the notch and the home indicator is what it was
-  // added for), and on a photograph at any size, because the radial fade IS the
-  // vignette there. A weather gradient on a desktop is the one case that never
-  // wanted it — nothing is running off an edge that a 128px strip would fix.
+  // Soft edging fades the background out at the top and bottom of the viewport.
+  // It exists for phones: a full-bleed background running under the notch and
+  // the home indicator ends in a hard line otherwise. Same switch, same masks,
+  // for both wallpaper kinds — an image layer is just another layer in the
+  // stack, so it gets exactly what the weather gradient gets.
   const softEdgeEnabled =
     isDevtoolEnabled && devtoolOverrides.softEdging !== undefined
       ? devtoolOverrides.softEdging
-      : isIOS || isImageKind;
-
-  /**
-   * Mark the document while a photograph is painting behind the page.
-   *
-   * A light theme's ground is the END of its scale — pure white — so its text
-   * ramp has nowhere to hide when the ground moves. Put Sonoma behind it and
-   * the page ground drops from 255 to ~170; `--muted-foreground`, which is a
-   * comfortable 4.7:1 on white, collapses to 2.05:1 and the small text simply
-   * vanishes. Dark mode never shows this: its ground is already near ITS
-   * extreme, and a dark wallpaper lands within a few points of it, so the same
-   * tokens hold.
-   *
-   * The fix belongs in the foreground, not the background. Washing the picture
-   * pale enough to rescue a white-calibrated ramp defeats the point of picking
-   * a picture; re-basing the ramp for the ground it is actually on does not.
-   * `app/globals.css` hangs the light-mode overrides off this class.
-   */
-  useEffect(() => {
-    const on = isImageKind && fullEnabled;
-    document.documentElement.classList.toggle("wallpaper-image", on);
-    return () => document.documentElement.classList.remove("wallpaper-image");
-  }, [isImageKind, fullEnabled]);
+      : isIOS;
 
   // Debug override state (for weather and time)
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
@@ -475,38 +412,12 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // Resolve which edge-fade mask to use.
   // Special case: dark-mode sunrise/sunset has high gradient-vs-background
   // contrast, so we use a more aggressive (wider) fade to soften the edge.
-  /**
-   * One radial falloff for a photograph, one vertical strip for the gradient.
-   *
-   * The photograph's is a MASK rather than an overlay, and that is the whole
-   * reason it reads. An overlay paints the page colour on top at some alpha, so
-   * at 0.40 the most it can ever do is remove 40% of the picture and muddy the
-   * rest; a mask deletes the layer and lets the page show through clean, all
-   * the way to 100%. Same geometry, incomparable effect — which is why the
-   * overlay version of this felt like it was not working.
-   */
-  /**
-   * One switch, three shapes.
-   *
-   * The photograph's is a MASK rather than an overlay, and that is the whole
-   * reason it reads: an overlay paints the page colour on top at some alpha, so
-   * at 0.40 the most it can do is remove 40% of the picture and muddy the rest;
-   * a mask deletes the layer and lets the page show through clean.
-   *
-   * Light and dark were never one implementation for the gradient either.
-   * Dark's page ground sits close to the wash, so a vertical strip fading into
-   * it reads as a vignette; light's ground is paper-white and a pale sky fading
-   * into it is invisible. #96 hit this and split it the same way.
-   */
-  const edgeMask: string | null = !softEdgeEnabled
-    ? null
-    : isImageKind
-      ? buildRadialEdgeMask(vignetteSpread, vignetteAlpha)
-      : theme === "light"
-        ? buildRadialEdgeMask(1, 1)
-        : effectivePhase === "sunrise" || effectivePhase === "sunset"
-          ? EDGE_FADE_MASK_HIGH_CONTRAST
-          : EDGE_FADE_MASK;
+  const edgeMask: string | null = softEdgeEnabled
+    ? theme === "dark" &&
+      (effectivePhase === "sunrise" || effectivePhase === "sunset")
+      ? EDGE_FADE_MASK_HIGH_CONTRAST
+      : EDGE_FADE_MASK
+    : null;
 
   /**
    * The active pair resolved for the current theme, or null on weather.
@@ -694,11 +605,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       setDevtoolOverrides,
       opacity: wallpaperOpacity,
       veil: veilAlpha,
-      vignette: vignetteAlpha,
-      vignetteSpread,
       blurred: isBlurred,
-      dimHome: settings.wallpaperDimHome,
-      setDimHome,
       readingBlur: settings.wallpaperReadingBlur,
       setReadingBlur,
       readingDim: settings.wallpaperReadingDim,
@@ -711,7 +618,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [
       settings.wallpaperKind,
       settings.wallpaperPlacement,
-      settings.wallpaperDimHome,
       settings.wallpaperReadingBlur,
       settings.wallpaperReadingDim,
       setWallpaperKind,
@@ -727,10 +633,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       devtoolOverrides,
       wallpaperOpacity,
       veilAlpha,
-      vignetteAlpha,
-      vignetteSpread,
       isBlurred,
-      setDimHome,
       setReadingBlur,
       setReadingDim,
       wallpaperSrc,

@@ -132,11 +132,6 @@ export function AppTile({
         <span
           className={cn(
             "block truncate text-center leading-tight text-muted-foreground",
-            // These labels sit directly on the wallpaper, with no card under
-            // them — the one place on the page where the ground can be any
-            // colour at all. macOS gives its desktop labels a halo for the same
-            // reason; see `.desktop-label` in globals.css.
-            "desktop-label",
             LABEL[size],
           )}
         >

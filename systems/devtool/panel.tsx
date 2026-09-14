@@ -604,54 +604,6 @@ function PanelToggle({
   );
 }
 
-/**
- * How much of the vignette's strength the left and right edges actually see.
- *
- * The gradient runs from `transparent 10%` to full at 100% of an ellipse
- * `72% * spread` wide. A viewport edge sits half a viewport from the centre, so
- * it lands at `0.5 / (0.72 * spread)` along that ellipse — past 1 it clamps,
- * below 1 it is short.
- */
-function sideFraction(spread: number): number {
-  const position = Math.min(1, 0.5 / (0.72 * spread));
-  return Math.max(0, (position - 0.1) / 0.9);
-}
-
-/** Continuous value, for the things you settle by dragging rather than typing. */
-function PanelRange({
-  value,
-  min,
-  max,
-  step,
-  onChange,
-  label,
-}: {
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (value: number) => void;
-  label: string;
-}) {
-  return (
-    <div className="flex shrink-0 items-center gap-2">
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        aria-label={label}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1 w-24 cursor-pointer appearance-none rounded-full bg-muted accent-foreground"
-      />
-      <span className="w-8 text-right text-[10px] font-mono tabular-nums text-muted-foreground">
-        {value.toFixed(2)}
-      </span>
-    </div>
-  );
-}
-
 /** Segmented single-select, matching the ruler dock control. */
 function PanelSegmented<T extends string>({
   value,
@@ -825,12 +777,8 @@ function WallpaperModule() {
     variant,
     opacity,
     veil,
-    vignette,
-    vignetteSpread,
     blurred,
     src,
-    dimHome,
-    setDimHome,
     readingBlur,
     setReadingBlur,
     readingDim,
@@ -878,9 +826,6 @@ function WallpaperModule() {
     devtoolOverrides[key] !== undefined;
   const clearOverrides = () => setDevtoolOverrides({});
   const anyOverride = placements.some((p) => isOverridden(p.key));
-  const vignetteOverridden =
-    devtoolOverrides.vignetteAlpha !== undefined ||
-    devtoolOverrides.vignetteSpread !== undefined;
 
   // One line that answers "what am I actually looking at".
   const now = [
@@ -908,8 +853,7 @@ function WallpaperModule() {
           <span className="text-foreground/80">{now}</span>
           <span className="ml-1.5 text-muted-foreground/50">
             @{opacity.toFixed(2)}
-            {(veil > 0 || vignette > 0) &&
-              ` −${veil.toFixed(2)}/${vignette.toFixed(2)}`}
+            {veil > 0 && ` −${veil.toFixed(2)}`}
             {blurred && " blur"}
           </span>
         </div>
@@ -1005,18 +949,11 @@ function WallpaperModule() {
           )}
         </div>
 
-        {/* How much of it survives where. Home defaults to none of this. */}
+        {/* How much of it survives on a reading page. Home gets none of this. */}
         <div className="space-y-2 border-t border-border/30 pt-2.5">
           <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
-            {zh ? "图片处理" : "Image treatment"}
+            {zh ? "阅读页处理" : "Reading treatment"}
           </div>
-          <PanelRow label={zh ? "首页压暗" : "Dim home"}>
-            <PanelToggle
-              on={dimHome}
-              onClick={() => setDimHome(!dimHome)}
-              label="Toggle dimming on the home screen"
-            />
-          </PanelRow>
           <PanelRow label={zh ? "二级页虚化" : "Reading blur"}>
             <PanelToggle
               on={readingBlur}
@@ -1031,67 +968,6 @@ function WallpaperModule() {
               label="Toggle dimming on reading pages"
             />
           </PanelRow>
-        </div>
-
-        {/* The shape of the soft edge on a photograph. Its on/off is the Soft
-            edge switch above — there is only one, because two switches for one
-            mask is how the toggle ended up dead. Spread is here because the
-            strength alone cannot tell you whether it lands inside the
-            viewport. */}
-        <div className="space-y-2 border-t border-border/30 pt-2.5">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
-            {zh ? "暗角（柔和边缘的形状）" : "Vignette · soft edge shape"}
-            {vignetteOverridden ? " *" : ""}
-          </div>
-          <PanelRow label={zh ? "强度" : "Strength"}>
-            <PanelRange
-              value={vignette}
-              min={0}
-              max={0.9}
-              step={0.02}
-              onChange={(v) =>
-                setDevtoolOverrides({ ...devtoolOverrides, vignetteAlpha: v })
-              }
-              label="Vignette strength at the farthest corner"
-            />
-          </PanelRow>
-          <PanelRow label={zh ? "范围" : "Spread"}>
-            <PanelRange
-              value={vignetteSpread}
-              min={0.4}
-              max={1.4}
-              step={0.02}
-              onChange={(v) =>
-                setDevtoolOverrides({ ...devtoolOverrides, vignetteSpread: v })
-              }
-              label="Vignette ellipse scale"
-            />
-          </PanelRow>
-          {vignetteOverridden && (
-            <button
-              onClick={() =>
-                setDevtoolOverrides({
-                  ...devtoolOverrides,
-                  vignetteAlpha: undefined,
-                  vignetteSpread: undefined,
-                })
-              }
-              className="w-full text-left text-[10px] font-mono text-amber-500/70 transition-colors hover:text-amber-400"
-            >
-              {zh ? "* 已覆盖 · 点击恢复" : "* overriding · click to clear"}
-            </button>
-          )}
-          {/* At spread 1 the ellipse is wider than the viewport, so the left and
-              right edges only reach ~0.69 along the gradient and receive about
-              two thirds of the strength. That shortfall is invisible from the
-              strength number alone, so print what the sides actually get. */}
-          <div className="text-[10px] font-mono text-muted-foreground/70">
-            {zh ? "两侧实得" : "sides receive"}{" "}
-            {(vignette * sideFraction(vignetteSpread)).toFixed(3)} /{" "}
-            {vignette.toFixed(2)}
-            {sideFraction(vignetteSpread) < 0.95 &&
-              ` (${Math.round(sideFraction(vignetteSpread) * 100)}%)`}
-          </div>
         </div>
 
         <button

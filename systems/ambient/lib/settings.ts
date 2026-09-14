@@ -25,13 +25,6 @@ export interface AmbientSettings {
   wallpaperKind: WallpaperKind;
   /** Selected built-in pair, used when `wallpaperKind === "image"`. */
   wallpaperId: string;
-  /**
-   * The home-screen scrim. On by default, but it is a whisper (see
-   * WALLPAPER_VEIL.scrim): enough to seat the widgets on the picture rather
-   * than leave them floating on raw artwork, and far short of the reading veil.
-   * Turning it off shows the wallpaper at its own colour.
-   */
-  wallpaperDimHome: boolean;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
   wallpaperReadingBlur: boolean;
   /** Veil the wallpaper on reading pages. */
@@ -46,7 +39,6 @@ export function getDefaultSettings(): AmbientSettings {
     wallpaperPlacement: "full",
     wallpaperKind: "weather",
     wallpaperId: DEFAULT_WALLPAPER_ID,
-    wallpaperDimHome: true,
     wallpaperReadingBlur: true,
     wallpaperReadingDim: true,
   };
@@ -99,7 +91,6 @@ export function getAmbientSettings(): AmbientSettings {
           ? "image"
           : defaults.wallpaperKind,
       wallpaperId,
-      wallpaperDimHome: parsed.wallpaperDimHome !== false,
       wallpaperReadingBlur: parsed.wallpaperReadingBlur !== false,
       wallpaperReadingDim: parsed.wallpaperReadingDim !== false,
     };

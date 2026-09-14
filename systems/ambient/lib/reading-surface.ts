@@ -6,12 +6,11 @@
  *
  *   home (`/`)     full strength, sharp, untinted. It IS the content — the
  *                  widgets are a springboard floating on a desktop.
- *   everywhere else defocused behind a veil, with an edge vignette that recedes
- *                  it at the margins and leaves the prose column as the figure.
+ *   everywhere else defocused behind a veil, so the prose column is the figure.
  *                  No card, no radius, no boxed article.
  *
- * Both halves of that are devtool-switchable (`wallpaperDimHome`,
- * `wallpaperReadingBlur`, `wallpaperReadingDim`) because it is a taste call and
+ * Both halves of that are devtool-switchable (`wallpaperReadingBlur`,
+ * `wallpaperReadingDim`) because it is a taste call and
  * the only way to settle a taste call is to look at both.
  *
  * The weather gradient needs none of this: it has no detail to compete with.

@@ -65,10 +65,7 @@ export function AmbientGreeting() {
   }
 
   return (
-    // The greeting is the one block of large type that sits on the wallpaper
-    // rather than on glass. `.ambient-hero` gives it a lift under a photo — see
-    // globals.css.
-    <div className="ambient-hero relative w-full text-center">
+    <div className="relative w-full text-center">
       <h1 className={`${TITLE_POETIC} text-foreground`}>
         {timeGreeting}
       </h1>
