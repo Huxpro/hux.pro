@@ -17,5 +17,12 @@ export {
   type Locale,
   type TranslationKey,
 } from "./locale";
+export {
+  GLASS_MATERIALS,
+  GlassProvider,
+  getGlassLabel,
+  useGlass,
+  type GlassMaterial,
+} from "./glass";
 export { ThemeProvider, useTheme } from "./theme";
 export { VisitorProvider, useVisitor, type LastVisitedItem } from "./visitor";

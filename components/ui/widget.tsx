@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { GradientStack } from "@/systems/ambient/components/gradient-stack";
 import { isIOSBrowser } from "@/systems/ambient/lib/platform";
-import { useOptionalWeather } from "@/systems/ambient/provider";
+import { useOptionalWallpaper } from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
 import { Link, useTransitionRouter } from "next-view-transitions";
 import { useCallback, useState, type MouseEvent } from "react";
@@ -24,9 +24,10 @@ import { landsOnOwnAction } from "./widget-surface";
  * still reach the page through the visible `WidgetLink` — the shell itself
  * deliberately adds no tab stop.
  *
- * In "widget" gradient mode each card renders a crossfading gradient overlay
- * (the shared <GradientStack />) bound to the provider's layer stack. All
- * transition logic is centralized — zero per-widget state machines.
+ * In "widget" placement each card renders a crossfading overlay of whatever the
+ * active wallpaper is (the shared <GradientStack />) bound to the provider's
+ * layer stack — a weather gradient or a image wallpaper alike. All transition
+ * logic is centralized — zero per-widget state machines.
  *
  * Background positioning uses one of two mutually-exclusive strategies:
  *   - Desktop: CSS `background-attachment: fixed` (zero JS overhead)
@@ -49,7 +50,7 @@ export function WidgetShell({
   onOpen?: () => void;
   children: React.ReactNode;
 }) {
-  const weather = useOptionalWeather();
+  const wallpaper = useOptionalWallpaper();
   const router = useTransitionRouter();
   const tappable = !!href || !!onOpen;
 
@@ -74,11 +75,12 @@ export function WidgetShell({
   // tracker registrations run) once the card element is actually attached.
   const [shellEl, setShellEl] = useState<HTMLDivElement | null>(null);
 
-  const widgetGradientEnabled = weather?.widgetGradientEnabled ?? false;
-  const gradientLayers = weather?.gradientLayers ?? [];
-  const edgeFadeMask = weather?.edgeFadeMask ?? null;
+  const widgetEnabled = wallpaper?.widgetEnabled ?? false;
+  const layers = wallpaper?.layers ?? [];
+  const edgeMask = wallpaper?.edgeMask ?? null;
 
-  const showOverlay = widgetGradientEnabled && gradientLayers.length > 0;
+  const showOverlay = widgetEnabled && layers.length > 0;
+
 
   // background-attachment: fixed is broken on all iOS browsers.
   // When true  → JS polyfill positions the background (no CSS fixed).
@@ -97,9 +99,9 @@ export function WidgetShell({
         "group relative rounded-2xl overflow-hidden",
         "border border-border/50",
         "transition-all duration-300",
-        widgetGradientEnabled
+        widgetEnabled
           ? "bg-transparent backdrop-blur-sm hover:bg-white/5 dark:hover:bg-white/5"
-          : "bg-card/50 backdrop-blur-xl hover:border-border hover:bg-card/70",
+          : "bg-glass backdrop-blur-xl hover:border-border hover:bg-glass-hover",
         // Press wash for surface presses only (see `.widget-surface`).
         tappable && "widget-surface",
         className
@@ -109,16 +111,17 @@ export function WidgetShell({
       {showOverlay && (
         <div
           aria-hidden="true"
-          className={cn(
-            "pointer-events-none absolute inset-0 -z-10",
-            "opacity-70 dark:opacity-85"
-          )}
+          className="pointer-events-none absolute inset-0 -z-10"
+          // Weight resolved by the provider, exactly as the full-page background
+          // does it. The overlay only exists inside the provider, so there is
+          // no fallback to keep.
+          style={{ opacity: wallpaper?.opacity }}
         >
           <GradientStack
-            layers={gradientLayers}
+            layers={layers}
             shell={shellEl}
             positionBackground={useTrackerForPositioning}
-            edgeMask={edgeFadeMask}
+            edgeMask={edgeMask}
             cssFixedAttachment={!useTrackerForPositioning}
           />
         </div>

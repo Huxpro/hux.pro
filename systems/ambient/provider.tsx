@@ -8,11 +8,21 @@ import { requestAccurateLocation as requestAccurateLocationFn } from "./lib/loca
 import { useLocationQuery, useWeatherQuery } from "./lib/queries";
 import {
   type AmbientSettings,
-  type WeatherGradientMode,
+  type WallpaperPlacement,
   getAmbientSettings,
   getDefaultSettings,
+  WALLPAPER_KIND_DEFAULTS,
   setAmbientSettings,
 } from "./lib/settings";
+import {
+  BUILT_IN_WALLPAPERS,
+  getWallpaperBackground,
+  getWallpaperOrDefault,
+  WALLPAPER_OPACITY,
+  WALLPAPER_READING_VEIL,
+  type Wallpaper,
+  type WallpaperKind,
+} from "./lib/wallpaper";
 import {
   EDGE_FADE_MASK,
   EDGE_FADE_MASK_HIGH_CONTRAST,
@@ -21,6 +31,8 @@ import {
 import type { NormalizedWeather, WeatherCondition } from "./lib/weather";
 import type { AmbientPhase } from "./lib/phase";
 import { deriveAmbientPhase } from "./lib/phase";
+import { usePathname } from "next/navigation";
+import { isReadingSurface } from "./lib/reading-surface";
 import { queryClient } from "@/lib/query";
 import { useDevtool } from "@/systems/devtool";
 
@@ -87,6 +99,90 @@ export function useAmbientTime() {
 }
 
 // =============================================================================
+// Wallpaper Context
+//
+// The background is one stack fed by exactly one kind (see lib/wallpaper.ts),
+// so "weather" and "image" are mutually exclusive by construction — there is
+// no state in which both can paint. Everything here persists to the same
+// localStorage blob as the rest of the ambient settings.
+// =============================================================================
+
+/**
+ * DevTool-level overrides for the three resolved placement flags (ephemeral).
+ * The persisted setting can only be one of them; the panel exists to see the
+ * combinations it cannot express.
+ */
+export interface DevtoolPlacementOverrides {
+  full?: boolean;
+  widget?: boolean;
+  softEdging?: boolean;
+}
+
+interface WallpaperContextType {
+  /** Which kind currently feeds the background stack. */
+  kind: WallpaperKind;
+  setKind: (kind: WallpaperKind) => void;
+  /** Selected built-in pair (meaningful when kind === "image"). */
+  wallpaper: Wallpaper;
+  wallpapers: Wallpaper[];
+  /** Selects a pair AND switches the background kind to it. */
+  selectWallpaper: (id: string) => void;
+  /** Which half of the pair is showing — always the app theme. */
+  variant: "light" | "dark";
+  /** Where the active wallpaper paints. */
+  placement: WallpaperPlacement;
+  setPlacement: (placement: WallpaperPlacement) => void;
+  /** Resolved from `placement`, or from a devtool override when one is set. */
+  fullEnabled: boolean;
+  widgetEnabled: boolean;
+  softEdgeEnabled: boolean;
+  /** Crossfade stack: [...settled, newest]. Render via <GradientStack />. */
+  layers: GradientLayerData[];
+  /** Resolved CSS mask-image value, or null when soft-edging is off. */
+  edgeMask: string | null;
+  /** Ephemeral devtool overrides for the three resolved flags. */
+  devtoolOverrides: DevtoolPlacementOverrides;
+  setDevtoolOverrides: (overrides: DevtoolPlacementOverrides) => void;
+  /**
+   * Opacity the wallpaper layer paints at. Images paint at full strength; the
+   * weather gradient is a wash and sits below it.
+   */
+  opacity: number;
+  /**
+   * Alpha of the veil drawn OVER the wallpaper, or 0 for none. Non-zero only
+   * on a reading page under an image wallpaper.
+   */
+  veil: number;
+  /** Whether the wallpaper should be defocused right now. */
+  blurred: boolean;
+  /** Whether this page recedes the wallpaper — see `isReadingSurface`. */
+  reading: boolean;
+  /** The reading treatment flags, for the devtool. */
+  readingBlur: boolean;
+  setReadingBlur: (value: boolean) => void;
+  readingDim: boolean;
+  setReadingDim: (value: boolean) => void;
+  /** The file currently painting, for the devtool readout. */
+  src: string | null;
+  /** Secondary window — the wallpaper picker. */
+  isPickerOpen: boolean;
+  openPicker: () => void;
+  closePicker: () => void;
+}
+
+const WallpaperContext = createContext<WallpaperContextType | undefined>(undefined);
+
+export function useWallpaper() {
+  const context = useContext(WallpaperContext);
+  if (!context) throw new Error("useWallpaper must be used within AmbientProvider");
+  return context;
+}
+
+export function useOptionalWallpaper() {
+  return useContext(WallpaperContext);
+}
+
+// =============================================================================
 // Weather Context
 // =============================================================================
 
@@ -95,25 +191,8 @@ interface WeatherDebugOverride {
   isDay: boolean;
 }
 
-/** DevTool-level overrides for the 3 rendering flags (ephemeral, not persisted). */
-export interface DevtoolGradientOverrides {
-  full?: boolean;
-  widget?: boolean;
-  softEdging?: boolean;
-}
-
 interface WeatherContextType {
   weather: NormalizedWeather | null;
-  gradient: string;
-  /** Crossfade stack: [...settled, newest]. Render via <GradientStack />. */
-  gradientLayers: GradientLayerData[];
-  gradientMode: WeatherGradientMode;
-  // 3 resolved rendering flags
-  fullGradientEnabled: boolean;
-  widgetGradientEnabled: boolean;
-  softEdgingEnabled: boolean;
-  /** Resolved CSS mask-image value, or null when soft-edging is off. */
-  edgeFadeMask: string | null;
   isLoading: boolean;
   isFetching: boolean;
   error: string | null;
@@ -122,23 +201,14 @@ interface WeatherContextType {
   debugOverride: WeatherDebugOverride | null;
   setDebugOverride: (override: WeatherDebugOverride | null) => void;
   refresh: () => void;
-  setGradientMode: (mode: WeatherGradientMode) => void;
-  cycleGradientMode: () => void;
-  devtoolGradientOverrides: DevtoolGradientOverrides;
-  setDevtoolGradientOverrides: (overrides: DevtoolGradientOverrides) => void;
 }
 
 const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
-const GRADIENT_MODE_CYCLE: WeatherGradientMode[] = ["full", "widget", "off"];
 
 export function useWeather() {
   const context = useContext(WeatherContext);
   if (!context) throw new Error("useWeather must be used within AmbientProvider");
   return context;
-}
-
-export function useOptionalWeather() {
-  return useContext(WeatherContext);
 }
 
 // =============================================================================
@@ -159,7 +229,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: localStorage read
-    setSettingsState(getAmbientSettings({ isIOS: isIOSBrowser() }));
+    setSettingsState(getAmbientSettings());
   }, []);
 
   const updateSettings = useCallback((partial: Partial<AmbientSettings>) => {
@@ -170,49 +240,97 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     });
   }, []);
 
-  const setGradientMode = useCallback(
-    (mode: WeatherGradientMode) => {
-      if (mode === settings.weatherGradientMode) return;
-      updateSettings({ weatherGradientMode: mode });
+  const setPlacement = useCallback(
+    (placement: WallpaperPlacement) => {
+      if (placement === settings.wallpaperPlacement) return;
+      updateSettings({ wallpaperPlacement: placement });
     },
-    [settings.weatherGradientMode, updateSettings]
+    [settings.wallpaperPlacement, updateSettings]
   );
 
-  // DevTool gradient overrides (ephemeral, not persisted)
-  const [devtoolGradientOverrides, setDevtoolGradientOverrides] =
-    useState<DevtoolGradientOverrides>({});
+  // --- Wallpaper -----------------------------------------------------------
+  // Switching the kind swaps what feeds the background stack; the stack itself
+  // crossfades, so weather → image reads as a dissolve rather than a cut.
+  // Picking a wallpaper from the picker implies switching to it, which is what
+  // makes "one background at a time" feel like a single choice.
+  const setWallpaperKind = useCallback(
+    (kind: WallpaperKind) => {
+      if (kind === settings.wallpaperKind) return;
+      updateSettings({ wallpaperKind: kind });
+    },
+    [settings.wallpaperKind, updateSettings]
+  );
 
-  const cycleGradientMode = useCallback(() => {
-    // Clear devtool full/widget overrides so mode change is visible
-    setDevtoolGradientOverrides((prev) => ({
-      ...prev,
-      full: undefined,
-      widget: undefined,
-    }));
-    const currentIndex = GRADIENT_MODE_CYCLE.indexOf(settings.weatherGradientMode);
-    const nextIndex =
-      currentIndex < 0 ? 0 : (currentIndex + 1) % GRADIENT_MODE_CYCLE.length;
-    updateSettings({ weatherGradientMode: GRADIENT_MODE_CYCLE[nextIndex] });
-  }, [settings.weatherGradientMode, updateSettings]);
+  const selectWallpaper = useCallback(
+    (id: string) => {
+      updateSettings({ wallpaperId: id, wallpaperKind: "image" });
+    },
+    [updateSettings]
+  );
+
+
+  // Secondary window (the picker sheet). Ephemeral — never persisted.
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const openPicker = useCallback(() => setIsPickerOpen(true), []);
+  const closePicker = useCallback(() => setIsPickerOpen(false), []);
+
+  const activeWallpaper = useMemo(
+    () => getWallpaperOrDefault(settings.wallpaperId),
+    [settings.wallpaperId]
+  );
+  const isImageKind = settings.wallpaperKind === "image";
+
+  const wallpaperOpacity = WALLPAPER_OPACITY[settings.wallpaperKind][theme];
+
+  const setReadingBlur = useCallback(
+    (value: boolean) => updateSettings({ wallpaperReadingBlur: value }),
+    [updateSettings]
+  );
+  const setReadingDim = useCallback(
+    (value: boolean) => updateSettings({ wallpaperReadingDim: value }),
+    [updateSettings]
+  );
+
+  // Home is the desktop: the picture stays sharp and untinted, because that is
+  // the whole point of choosing one. Reading pages recede it instead — a veil
+  // plus a defocus over the top, which costs far less of the image than dimming
+  // the layer itself on every route alike.
+  const pathname = usePathname();
+  const reading = isReadingSurface({ kind: settings.wallpaperKind, pathname });
+  const isBlurred = reading && settings.wallpaperReadingBlur;
+  const veilAlpha =
+    reading && settings.wallpaperReadingDim ? WALLPAPER_READING_VEIL[theme] : 0;
+
+  // DevTool gradient overrides (ephemeral, not persisted)
+  const [devtoolOverrides, setDevtoolOverrides] =
+    useState<DevtoolPlacementOverrides>({});
 
   // 3 resolved rendering flags.
   // DevTool overrides bypass all natural derivation.
   const isIOS = useMemo(() => isIOSBrowser(), []);
 
-  const fullGradientEnabled =
-    isDevtoolEnabled && devtoolGradientOverrides.full !== undefined
-      ? devtoolGradientOverrides.full
-      : settings.weatherGradientMode === "full";
+  const overridden = (
+    key: keyof DevtoolPlacementOverrides,
+    natural: boolean
+  ): boolean => (isDevtoolEnabled ? devtoolOverrides[key] : undefined) ?? natural;
 
-  const widgetGradientEnabled =
-    isDevtoolEnabled && devtoolGradientOverrides.widget !== undefined
-      ? devtoolGradientOverrides.widget
-      : settings.weatherGradientMode === "widget";
+  const fullEnabled = overridden("full", settings.wallpaperPlacement === "full");
+  const widgetEnabled = overridden(
+    "widget",
+    settings.wallpaperPlacement === "widget"
+  );
 
-  const softEdgingEnabled =
-    isDevtoolEnabled && devtoolGradientOverrides.softEdging !== undefined
-      ? devtoolGradientOverrides.softEdging
-      : isIOS;
+  // Soft edging fades the background out at the top and bottom of the viewport.
+  // It exists for phones: a full-bleed background running under the notch and
+  // the home indicator ends in a hard line otherwise. Same switch, same masks,
+  // for both wallpaper kinds — an image layer is just another layer in the
+  // stack, so it gets exactly what the weather gradient gets. Whether it is on
+  // by default is the kind's call — see `WALLPAPER_KIND_DEFAULTS`.
+  const kindDefaults = WALLPAPER_KIND_DEFAULTS[settings.wallpaperKind];
+  const softEdgeEnabled = overridden(
+    "softEdging",
+    isIOS && kindDefaults.softEdge
+  );
 
   // Debug override state (for weather and time)
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
@@ -294,15 +412,45 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // Resolve which edge-fade mask to use.
   // Special case: dark-mode sunrise/sunset has high gradient-vs-background
   // contrast, so we use a more aggressive (wider) fade to soften the edge.
-  const edgeFadeMask: string | null = softEdgingEnabled
+  const edgeMask: string | null = softEdgeEnabled
     ? theme === "dark" &&
       (effectivePhase === "sunrise" || effectivePhase === "sunset")
       ? EDGE_FADE_MASK_HIGH_CONTRAST
       : EDGE_FADE_MASK
     : null;
 
-  // Compute gradient
+  /**
+   * The active pair resolved for the current theme, or null on weather.
+   *
+   * A blurred reading page resolves to the THUMB. The layer there is scaled to
+   * 110% under a 40px blur, which destroys every pixel of detail the full-size
+   * file was carrying — measured over the whole viewport, the 480px rendition
+   * differs from the 2560px one by 0.15/255 on average and 2/255 at worst, in
+   * both themes, for a tenth of the bytes (46KB → 4KB).
+   *
+   * Only when blurred. In `widget` placement, and on the home screen, the photo
+   * paints SHARP inside a card or across the page, and there the thumb is a
+   * visibly soft upscale rather than a free win.
+   */
+  const resolvedImage = useMemo(
+    () =>
+      isImageKind
+        ? getWallpaperBackground({
+            wallpaper: activeWallpaper,
+            theme,
+            preview: isBlurred,
+          })
+        : null,
+    [isImageKind, activeWallpaper, theme, isBlurred]
+  );
+
+  // Compute the background. Exactly one kind wins — an image wallpaper replaces
+  // the weather gradient outright rather than stacking over it. The sun-event
+  // Live Activity is unaffected either way: it renders in the Dock from weather
+  // + phase and never reads this.
   const computedGradient = useMemo(() => {
+    if (resolvedImage) return resolvedImage.backgroundImage;
+
     if (effectivePhase === "sunrise" || effectivePhase === "sunset") {
       return getSunEventGradient({ event: effectivePhase, theme }).backgroundImage;
     }
@@ -325,87 +473,185 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     }
 
     return "";
-  }, [isDevtoolEnabled, isOverrideEnabled, debugOverride, weatherQuery.data, effectivePhase, theme]);
+  }, [
+    resolvedImage,
+    isDevtoolEnabled,
+    isOverrideEnabled,
+    debugOverride,
+    weatherQuery.data,
+    effectivePhase,
+    theme,
+  ]);
+
+  /** Images must cover the frame; the weather gradient already fills it. */
+  const computedCover = resolvedImage?.cover ?? false;
+  const wallpaperSrc = resolvedImage?.src ?? null;
 
   // Gradient transition: a true crossfade between layers (no dip-to-background).
   // Centralized here so every consumer (full-page background, widget overlays)
   // shares one stack instead of running independent state machines. When the
   // gradient changes we push a new layer; <GradientStack /> fades it in over the
   // settled one, then we prune back to the latest once the crossfade completes.
-  const [gradientLayers, setGradientLayers] = useState<GradientLayerData[]>([]);
+  const [layers, setGradientLayers] = useState<GradientLayerData[]>([]);
   const layerIdRef = useRef(0);
 
   useEffect(() => {
     // Hold the current gradient while refetching (stale-while-revalidate).
-    if (weatherQuery.isFetching) return;
+    // A image wallpaper needs no network, so it never waits on weather.
+    if (!isImageKind && weatherQuery.isFetching) return;
     if (!computedGradient) return;
 
     setGradientLayers((prev) => {
       const top = prev[prev.length - 1];
       if (top && top.gradient === computedGradient) return prev;
       layerIdRef.current += 1;
-      return [...prev, { id: layerIdRef.current, gradient: computedGradient }];
+      return [
+        ...prev,
+        { id: layerIdRef.current, gradient: computedGradient, cover: computedCover },
+      ];
     });
-  }, [computedGradient, weatherQuery.isFetching]);
+  }, [computedGradient, computedCover, isImageKind, weatherQuery.isFetching]);
 
   // Prune to the newest layer once the crossfade settles.
   useEffect(() => {
-    if (gradientLayers.length <= 1) return;
+    if (layers.length <= 1) return;
     const timeout = setTimeout(() => {
       setGradientLayers((prev) => (prev.length <= 1 ? prev : prev.slice(-1)));
     }, GRADIENT_CROSSFADE_MS + 50);
     return () => clearTimeout(timeout);
-  }, [gradientLayers]);
+  }, [layers]);
+
+  // Memoised, because this provider re-renders often — the 60s clock tick, every
+  // React Query transition, every crossfade push and prune, and (since the
+  // reading surface moved in here) every navigation. A fresh object literal on
+  // any of those would re-render every consumer app-wide: the background, every
+  // widget card, the palette, the dock, the devtool. The setters are already
+  // useCallback-stable, so the memo actually holds.
+  const locationValue = useMemo(
+    () => ({
+      locationMode: settings.locationMode,
+      location: locationQuery.data ?? null,
+      isLoading: locationQuery.isLoading,
+      isFetching: locationQuery.isFetching,
+      error: locationQuery.error?.message ?? null,
+      setLocationMode,
+      requestAccurateLocation: requestAccurateLocationAction,
+      refresh: refreshLocation,
+    }),
+    [
+      settings.locationMode,
+      locationQuery.data,
+      locationQuery.isLoading,
+      locationQuery.isFetching,
+      locationQuery.error,
+      setLocationMode,
+      requestAccurateLocationAction,
+      refreshLocation,
+    ]
+  );
+
+  const weatherValue = useMemo(
+    () => ({
+      weather: weatherQuery.data ?? null,
+      isLoading: weatherQuery.isLoading,
+      isFetching: weatherQuery.isFetching,
+      error: weatherQuery.error?.message ?? null,
+      isOverrideEnabled,
+      setOverrideEnabled: setIsOverrideEnabled,
+      debugOverride,
+      setDebugOverride,
+      refresh: refreshWeather,
+    }),
+    [
+      weatherQuery.data,
+      weatherQuery.isLoading,
+      weatherQuery.isFetching,
+      weatherQuery.error,
+      isOverrideEnabled,
+      debugOverride,
+      refreshWeather,
+    ]
+  );
+
+  const timeValue = useMemo(
+    () => ({
+      nowMs,
+      derivedPhase,
+      phase: effectivePhase,
+      isOverrideEnabled: isTimeOverrideEnabled,
+      setOverrideEnabled: setIsTimeOverrideEnabled,
+      overridePhase: timeOverridePhase,
+      setOverridePhase: setTimeOverridePhase,
+    }),
+    [nowMs, derivedPhase, effectivePhase, isTimeOverrideEnabled, timeOverridePhase]
+  );
+
+  const wallpaperValue = useMemo(
+    () => ({
+      kind: settings.wallpaperKind,
+      setKind: setWallpaperKind,
+      wallpaper: activeWallpaper,
+      wallpapers: BUILT_IN_WALLPAPERS,
+      selectWallpaper,
+      variant: theme,
+      placement: settings.wallpaperPlacement,
+      setPlacement,
+      fullEnabled,
+      widgetEnabled,
+      softEdgeEnabled,
+      layers,
+      edgeMask,
+      devtoolOverrides,
+      setDevtoolOverrides,
+      opacity: wallpaperOpacity,
+      veil: veilAlpha,
+      blurred: isBlurred,
+      reading,
+      readingBlur: settings.wallpaperReadingBlur,
+      setReadingBlur,
+      readingDim: settings.wallpaperReadingDim,
+      setReadingDim,
+      src: wallpaperSrc,
+      isPickerOpen,
+      openPicker,
+      closePicker,
+    }),
+    [
+      settings.wallpaperKind,
+      settings.wallpaperPlacement,
+      settings.wallpaperReadingBlur,
+      settings.wallpaperReadingDim,
+      setWallpaperKind,
+      activeWallpaper,
+      selectWallpaper,
+      theme,
+      setPlacement,
+      fullEnabled,
+      widgetEnabled,
+      softEdgeEnabled,
+      layers,
+      edgeMask,
+      devtoolOverrides,
+      wallpaperOpacity,
+      veilAlpha,
+      isBlurred,
+      reading,
+      setReadingBlur,
+      setReadingDim,
+      wallpaperSrc,
+      isPickerOpen,
+      openPicker,
+      closePicker,
+    ]
+  );
 
   return (
-    <LocationContext.Provider
-      value={{
-        locationMode: settings.locationMode,
-        location: locationQuery.data ?? null,
-        isLoading: locationQuery.isLoading,
-        isFetching: locationQuery.isFetching,
-        error: locationQuery.error?.message ?? null,
-        setLocationMode,
-        requestAccurateLocation: requestAccurateLocationAction,
-        refresh: refreshLocation,
-      }}
-    >
-      <WeatherContext.Provider
-        value={{
-          weather: weatherQuery.data ?? null,
-          gradient: computedGradient,
-          gradientLayers,
-          gradientMode: settings.weatherGradientMode,
-          fullGradientEnabled,
-          widgetGradientEnabled,
-          softEdgingEnabled,
-          edgeFadeMask,
-          isLoading: weatherQuery.isLoading,
-          isFetching: weatherQuery.isFetching,
-          error: weatherQuery.error?.message ?? null,
-          isOverrideEnabled,
-          setOverrideEnabled: setIsOverrideEnabled,
-          debugOverride,
-          setDebugOverride,
-          refresh: refreshWeather,
-          setGradientMode,
-          cycleGradientMode,
-          devtoolGradientOverrides,
-          setDevtoolGradientOverrides,
-        }}
-      >
-        <AmbientTimeContext.Provider
-          value={{
-            nowMs,
-            derivedPhase,
-            phase: effectivePhase,
-            isOverrideEnabled: isTimeOverrideEnabled,
-            setOverrideEnabled: setIsTimeOverrideEnabled,
-            overridePhase: timeOverridePhase,
-            setOverridePhase: setTimeOverridePhase,
-          }}
-        >
-          {children}
+    <LocationContext.Provider value={locationValue}>
+      <WeatherContext.Provider value={weatherValue}>
+        <AmbientTimeContext.Provider value={timeValue}>
+          <WallpaperContext.Provider value={wallpaperValue}>
+            {children}
+          </WallpaperContext.Provider>
         </AmbientTimeContext.Provider>
       </WeatherContext.Provider>
     </LocationContext.Provider>

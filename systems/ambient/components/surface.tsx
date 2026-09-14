@@ -1,19 +1,19 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useWeather } from "../provider";
-import { WeatherGradientBackground } from "./gradient-background";
+import { useWallpaper } from "../provider";
+import { WallpaperBackground } from "./wallpaper-background";
 
 export function AmbientSurface({ children }: { children: React.ReactNode }) {
-  const { fullGradientEnabled } = useWeather();
+  const { fullEnabled } = useWallpaper();
 
   return (
     <>
-      <WeatherGradientBackground enabled={fullGradientEnabled} />
+      <WallpaperBackground enabled={fullEnabled} />
       <div
         className={cn(
           "min-h-screen transition-colors duration-500",
-          fullGradientEnabled ? "bg-transparent" : "bg-background"
+          fullEnabled ? "bg-transparent" : "bg-background"
         )}
       >
         {children}

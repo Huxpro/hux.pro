@@ -70,14 +70,14 @@ export function FloatingActionButton() {
           "transition-[background-color,border-color,color,transform] duration-200",
           yielding && "pointer-events-none",
           "flex items-center gap-2",
-          "bg-card/50 backdrop-blur-xl",
+          "bg-glass backdrop-blur-xl",
           "border border-border/50",
           "shadow-raised",
           isHomepage ? "text-muted-foreground" : "text-foreground",
-          "hover:bg-card/70 hover:border-border",
+          "hover:bg-glass-hover hover:border-border",
           // Touch-down: the bar darkens on the same frame as the press, the
           // way an iOS search field does, and eases back on release.
-          "active:bg-card/80 active:border-border active:text-foreground",
+          "active:bg-glass-strong-hover active:border-border active:text-foreground",
           "h-12",
           "overflow-hidden",
           isHomepage

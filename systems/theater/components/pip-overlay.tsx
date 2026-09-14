@@ -88,7 +88,7 @@ export function PipOverlay() {
             "system-chrome fixed z-[10004] flex items-center gap-1.5 px-1.5",
             // Same frosted card as WidgetShell; flat top so it joins the stage.
             "rounded-b-2xl border border-t-0 border-border/50",
-            "bg-card/50 shadow-overlay backdrop-blur-xl",
+            "bg-glass shadow-overlay backdrop-blur-xl",
           )}
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}

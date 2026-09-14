@@ -51,10 +51,20 @@ Floating action button that expands into the debug panel:
 
 Debug modules for the ambient system:
 
-1. **Route Gradient**: Toggle gradient per route pattern
-2. **Weather**: Override weather condition (day/night × 6 conditions)
-3. **Time of Day**: Override ambient phase
-4. **Refetch**: Force re-fetch location/weather
+1. **Wallpaper**: the whole background system — a swatch grid led by Weather
+   (phone artwork carries a glyph in the swatch corner, because the file is
+   tall and the swatch is square), placement switches (full / widget / soft
+   edge), the reading treatment switches (reading blur / reading dim),
+   and the resolved asset.
+   Full and Widget are *independent* switches, not two halves of one control:
+   the persisted setting can only be one of them, but the panel exists to see
+   combinations the setting cannot express. They drive ephemeral overrides, and
+   a `*` next to a label marks one; clicking the note under them clears all
+   three back to the setting.
+2. **Glass**: Material — Tinted (色调) / Clear (透明)
+3. **Weather**: Override weather condition (day/night × 6 conditions)
+4. **Time of Day**: Override ambient phase
+5. **Refetch**: Force re-fetch location/weather
 
 ## Hooks
 
@@ -101,16 +111,22 @@ setOverridePhase("sunset");
 setOverrideEnabled(true);
 ```
 
-### Route Gradient Override
+### Wallpaper Debugging
 
-Override gradient enabled state per route:
+The Wallpaper module drives the real (persisted) settings rather than an
+ephemeral override, so the panel and the picker sheet can never disagree:
 
 ```typescript
-const { setRouteGradientPreference } = useWeather();
+const { setKind, selectWallpaper } = useWallpaper();
 
-// Enable gradient on /writing
-setRouteGradientPreference("/writing", true);
+setKind("image");            // Swap the background kind, crossfaded
+selectWallpaper("monterey"); // Hot-swap the pair, no reload
 ```
+
+It reads out what is actually painting — `Now: Sonoma · dark · full · desktop
+@0.62`, where the last field says whether this route is the desktop or a reading
+surface — and prints the resolved asset path underneath, which is the fastest
+way to trace a wrong-looking background to a file.
 
 ## Persistence
 

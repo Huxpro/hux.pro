@@ -12,11 +12,17 @@ import { cn } from "@/lib/utils";
 // =============================================================================
 
 /**
- * Page veil under the theater stage. Same frosted card as WidgetShell and
- * Live Activity (`bg-card` + `backdrop-blur-xl`), a notch lighter than their
- * `/50` fill so a full-page wash doesn't black out the homepage.
+ * Page veil under the theater stage. Same frosted glass as WidgetShell and
+ * Live Activity (`bg-glass` + `backdrop-blur-xl`), a notch lighter than their
+ * fill so a full-page wash doesn't black out the homepage.
+ *
+ * "A notch lighter" is an opacity modifier on the token rather than a literal
+ * card alpha, and it is the only one of its kind: it keeps the relationship
+ * that matters — 80% of whatever the widget glass is — so the veil follows the
+ * Tinted/Clear setting with the cards instead of staying a Tinted-strength wash
+ * over a Clear page. In Tinted that is exactly the 40% it was tuned to.
  */
-export const THEATER_BACKDROP = cn("bg-card/40 backdrop-blur-xl");
+export const THEATER_BACKDROP = cn("bg-glass/80 backdrop-blur-xl");
 
 /** Theme-aware track (homepage widget + AlbumTabs). */
 export const GLASS_TRACK = cn(
@@ -26,7 +32,7 @@ export const GLASS_TRACK = cn(
 
 /** Theme-aware selected / control pill. */
 export const GLASS_PILL = cn(
-  "bg-card/90 shadow-sm ring-1 ring-border/50 backdrop-blur-xl",
+  "bg-glass-sheet shadow-sm ring-1 ring-border/50 backdrop-blur-xl",
 );
 
 /** Theme-aware clustered toolbar (PiP + Live Activity). Same capsule as theater. */
@@ -83,8 +89,8 @@ export const GLASS_CLUSTER_FLAT = cn(
  * Same hover → active mirroring as GLASS_TRACK_FLAT.
  */
 export const GLASS_PILL_FLAT = cn(
-  "pressable bg-card/70 ring-1 ring-border/30",
-  "dark:bg-card/80 dark:ring-transparent dark:shadow-none",
+  "pressable bg-glass-overlay ring-1 ring-border/30",
+  "dark:bg-glass-strong-hover dark:ring-transparent dark:shadow-none",
   "backdrop-blur-xl",
   "transition-[background-color,box-shadow,ring-color] duration-200",
   "group-active:duration-0",
@@ -145,7 +151,9 @@ export const GLASS_ACTION = cn(
 /** Theme-aware freestanding prev/next orb. */
 export const GLASS_ORB = cn(
   GLASS_BTN,
-  "bg-card/75 text-foreground shadow-sm ring-1 ring-border/40 backdrop-blur-xl",
+  // No 75% glass token; the orb floats over video, so it takes the more
+  // opaque neighbour (80) rather than the thinner one.
+  "bg-glass-strong-hover text-foreground shadow-sm ring-1 ring-border/40 backdrop-blur-xl",
 );
 
 /** Always-dark theater: clustered control capsule (iPadOS toolbar). */
