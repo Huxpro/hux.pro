@@ -302,6 +302,8 @@ export function WallpaperSheet() {
   return (
     <AdaptiveSurface
       id="surface-wallpaper"
+      // Non-modal: the page behind IS what is being picked; a scrim would darken the choice.
+      modal={false}
       open={isPickerOpen}
       onOpenChange={(open) => (open ? openPicker() : closePicker())}
       presentation={ADAPTIVE_PRESENTATION}
