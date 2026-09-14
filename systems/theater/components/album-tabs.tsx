@@ -16,7 +16,8 @@ import type { Album } from "../lib/types";
 // ---------------------------------------------------------------------------
 // AlbumTabs — segmented control for switching playlists (React / Lynx / …).
 // Shared by the home widget and the theater overlay so the "album switcher"
-// reads identically wherever it appears.
+// reads identically wherever it appears — and by the wallpaper picker's
+// categories, which are the same kind of choice: one group of things at a time.
 //
 // Apple camera-mode capsule: tight outer shell, roomy label padding, and a
 // single sliding glass pill (layoutId) that travels between options — selection
@@ -30,7 +31,8 @@ import type { Album } from "../lib/types";
 const EASE = [0.32, 0.72, 0, 1] as const;
 
 interface AlbumTabsProps {
-  albums: Album[];
+  /** Only the id and label are read, so any named group can be a tab. */
+  albums: Pick<Album, "id" | "title">[];
   activeIndex: number;
   onSelect: (index: number) => void;
   className?: string;

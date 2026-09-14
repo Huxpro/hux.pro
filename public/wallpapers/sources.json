@@ -1,10 +1,11 @@
 {
   "author": "Apple Inc.",
-  "note": "Apple's default macOS and iOS wallpapers, as light/dark pairs. Apple retains rights to this artwork; it is committed here for a personal site, not licensed onward. The archives the frames were pulled from do not license Apple's images either, and their repository licenses are not asserted to do so. Derivatives: WebP at quality 80, width at most 2560 and height at most 3600, never upscaled; thumbnails at most 480px (quality 72). The bound is deliberately not a square box — a single long-edge cap starves portrait artwork of the one axis a desktop viewport actually spends. HEIC frames are zero-indexed. Nothing is cropped: every committed file keeps its source aspect and is only downscaled. Most of Apple's iOS stills are square at source (iOS 13 is 3186², iOS 14 3072², iOS 17 2048²) and the device crops them — the `414w-896h@3x~iphone` in a filename names the target device, not the artwork's shape. Only iOS 27 and iOS 18 ship tall.",
+  "note": "Apple's default macOS and iOS wallpapers as light/dark pairs, and the Mac OS X Nature desktop pictures as single photographs. Apple retains rights to this artwork; it is committed here for a personal site, not licensed onward. The archives the files were pulled from (ryOS included, which is AGPL-3.0) do not license Apple's images either, and their repository licenses are not asserted to do so. Resolution rule: every committed file must cover a 2560x1600 viewport with at most a 1.07x stretch, and is downscaled to the smallest size that still covers it, never upscaled. iOS 27 (1320x2868), iOS 18 (1480x3192 / 1661x3600) and iOS 17 (2048x2048) fell short and were removed. Derivatives: release pairs are WebP q80, photographs WebP q75; thumbnails at most 480px at q72. HEIC frames are zero-indexed. Nothing is cropped: every committed file keeps its source aspect. The Nature photographs carry Photoshop timestamps from August 2007, the Mac OS X Leopard cycle; the individual releases they shipped with are not verified.",
   "imported": [
     "Huxpro/hux.pro#97 — official Apple HEIC graphic pairs (big-sur, monterey, ios-13, ios-14)",
-    "Huxpro/hux.pro#96 — macOS/iOS release pairs (tahoe, sequoia, sonoma, ventura, ios-27, ios-18, ios-17)",
-    "4kwallpapers.com/ipados-18-wallpapers — iPadOS 18 official pairs (4 colourways)"
+    "4kwallpapers.com/ipados-18-wallpapers — iPadOS 18 official pairs (4 colourways)",
+    "Huxpro/hux.pro#96 — macOS release pairs (tahoe, sequoia, sonoma, ventura)",
+    "ryokun6/ryos@2d160d7 — public/wallpapers/photos/nature (21 photographs)"
   ],
   "pairs": [
     {
@@ -90,30 +91,6 @@
       "dark": "https://4kwallpapers.com/images/wallpapers/ipados-18-3840x2668-17035.png"
     },
     {
-      "id": "ios-27",
-      "name": "iOS 27",
-      "platform": "iOS",
-      "year": 2026,
-      "light": "https://wallpapers.poutanen.dev/iOS27-Home-Light.png",
-      "dark": "https://wallpapers.poutanen.dev/iOS27-Home-Dark.png"
-    },
-    {
-      "id": "ios-18",
-      "name": "iOS 18",
-      "platform": "iOS",
-      "year": 2024,
-      "light": "https://wallpapers.poutanen.dev/ios-18-light.png",
-      "dark": "https://wallpapers.poutanen.dev/ios-18-dark.png"
-    },
-    {
-      "id": "ios-17",
-      "name": "iOS 17",
-      "platform": "iOS",
-      "year": 2023,
-      "light": "https://wallpapers.poutanen.dev/iOS-17-Light.jpg",
-      "dark": "https://wallpapers.poutanen.dev/iOS-17-Dark.jpg"
-    },
-    {
       "id": "ios-14",
       "name": "iOS 14",
       "platform": "iOS",
@@ -128,6 +105,134 @@
       "year": 2019,
       "light": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2013/Stills/1211.WWDC_2019_Light-414w-896h%403x~iphone.heic",
       "dark": "https://raw.githubusercontent.com/spheres0/ios-wallpapers/a1b65963eafc009268696a006e294feeffabcf3c/iPhone/6.5%22/iOS%2013/Stills/1212.WWDC_2019_Dark-414w-896h%403x~iphone.heic"
+    }
+  ],
+  "photos": [
+    {
+      "id": "aurora",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/aurora.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "clown-fish",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/clown_fish.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "dew-drop",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/dew_drop.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "earth",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/earth.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "earth-horizon",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/earth_horizon.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "earth-moon-horizon",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/earth_moon_horizon.jpg",
+      "sourceSize": "5120x2880"
+    },
+    {
+      "id": "evening-reflections",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/evening_reflections.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "flowing-rock",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/flowing_rock.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "gentle-rapids",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/gentle_rapids.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "golden-palace",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/golden_palace.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "ladybug",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/ladybug.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "mt-fuji",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/mt_fuji.jpg",
+      "sourceSize": "3200x2000"
+    },
+    {
+      "id": "rock-garden",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/rock_garden.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "rocks",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/rocks.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "snowy-hills",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/snowy_hills.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "stones",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/stones.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "sweeping-current",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/sweeping_current.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "tranquil-surface",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/tranquil_surface.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "water",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/water.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "zebra",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/zebra.jpg",
+      "sourceSize": "2560x1600"
+    },
+    {
+      "id": "zen-garden",
+      "category": "nature",
+      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/zen_garden.jpg",
+      "sourceSize": "2560x1600"
     }
   ]
 }
