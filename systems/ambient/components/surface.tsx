@@ -54,8 +54,8 @@ export function AmbientSurface({ children }: { children: React.ReactNode }) {
           style={BEZEL_INSET}
         />
       )}
-      {/* Drawn only from the boot script's decision, so it can never
-          disagree with the colour and the lock that decision already fixed. */}
+      {/* Live: turns on and off with the wallpaper kind and the override, in
+          the colour the boot script fixed for this page load. */}
       <Bezel
         enabled={letterboxState}
         band={letterboxBand}

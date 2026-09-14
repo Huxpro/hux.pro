@@ -12,12 +12,12 @@
 // it that chance, so the chrome, the viewport and the frame stay exactly where
 // the first frame put them.
 //
-// Which mode applies is decided once, by the boot script in app/layout.tsx,
-// which puts `BEZEL_LOCK_CLASS` on <html> before first paint. Nothing flips it
-// afterwards. `#scroll-root` is always in the server-rendered markup and only
-// its styles change with the class, so these lookups are synchronous and
-// right from the very first effect — including effects deep in the tree that
-// run before the component that renders the root.
+// Which mode applies follows `BEZEL_LOCK_CLASS` on <html>: the boot script puts
+// it there before first paint when the page loads framed, and ./boot adds or
+// removes it when the frame turns on or off. Every lookup here reads the class
+// at call time, and `onPageScroll` listens in both places, so a subscriber
+// keeps working across a switch. `#scroll-root` is always in the server
+// markup and only its styles change with the class.
 //
 // Anything that reads or drives page scroll goes through here rather than
 // `window`, or it silently reads 0 and scrolls nothing in the locked mode.
@@ -68,14 +68,24 @@ export function scrollPageTo(top: number): void {
   else window.scrollTo(0, top);
 }
 
-/** Subscribe to page scroll, in whichever element it happens. */
+/**
+ * Subscribe to page scroll, in whichever element it happens.
+ *
+ * Listens on both the window and the scroll root, because the frame can lock
+ * and unlock the document while a subscriber is alive. Only the one that
+ * actually scrolls fires, so a listener never runs twice for one scroll.
+ */
 export function onPageScroll(listener: () => void): () => void {
-  const target: HTMLElement | Window = getPageScrollRoot() ?? window;
-  target.addEventListener("scroll", listener, { passive: true });
-  return () => target.removeEventListener("scroll", listener);
+  const root = document.getElementById(BEZEL_SCROLL_ROOT_ID);
+  window.addEventListener("scroll", listener, { passive: true });
+  root?.addEventListener("scroll", listener, { passive: true });
+  return () => {
+    window.removeEventListener("scroll", listener);
+    root?.removeEventListener("scroll", listener);
+  };
 }
 
 /** Fire the page's scroll listeners without scrolling, to force a re-measure. */
 export function emitPageScroll(): void {
-  (getPageScrollRoot() ?? window).dispatchEvent(new Event("scroll"));
+  window.dispatchEvent(new Event("scroll"));
 }

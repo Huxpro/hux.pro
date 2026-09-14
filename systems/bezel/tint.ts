@@ -1,10 +1,11 @@
 // =============================================================================
 // Bezel — what colour the frame is.
 //
-// ONE colour, decided when the page loads and never touched again until the
-// next load. That is the whole contract, and it is ryOS's: a static
-// `background-color` on <html> and <body>, and nothing that re-resolves it
-// when the theme flips, the wallpaper changes or a setting moves.
+// ONE colour per page load, and never re-resolved until the next load. That is
+// the whole contract, and it is ryOS's: a static `background-color` on <html>
+// and <body>, and nothing that re-resolves it when the theme flips, the
+// wallpaper changes or a setting moves. The frame itself may come and go live;
+// whenever it is up, it is up in this colour.
 //
 // Everything else was tried first and each attempt was another heuristic for
 // Safari to disagree with on a phone — a tint that followed the theme, a
@@ -16,8 +17,8 @@
 // and the chrome has exactly one thing to copy.
 //
 // The boot script in app/layout.tsx resolves the stored tint with the rules
-// below and writes the result; changing the setting takes effect on the next
-// load. It cannot import at runtime, so it interpolates these constants.
+// below and records the result for the page (see ./boot); changing the setting
+// takes effect on the next load. It cannot import at runtime, so it interpolates these constants.
 // =============================================================================
 
 /** The host page's own ground, per theme. `dark` borrows its dark half. */

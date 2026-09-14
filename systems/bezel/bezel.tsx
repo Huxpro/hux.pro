@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { keepBezelBoot, readBezelBoot } from "./boot";
+import { keepBezelFrame, readBezelBoot, removeBezelFrame } from "./boot";
 import {
   applyBezelBand,
   BEZEL_BAND_BOTTOM,
@@ -49,17 +49,18 @@ const CORNERS = [
 
 export interface BezelProps {
   /**
-   * Whether to draw the frame. Pass what the boot script decided — the
-   * `bezel` class on <html> — not a live setting: the frame's colour and the
-   * document lock were fixed at load, and a frame that came and went with a
-   * setting would no longer match them. `null` while that is still unknown.
+   * Whether the frame is up. Live: turning it on puts the frame on <html> —
+   * class, colour, band, lock and theme-color — and turning it off takes it
+   * off again. `null` means "not known yet" and leaves <html> exactly as the
+   * boot script left it, so a page that loaded framed stays framed until the
+   * host has decided.
    */
   enabled?: boolean | null;
   /** Band thickness where the frame is drawn, px. Live. */
   band?: number;
   /** Corner radius at the frame's inner edge, px. 0 for square corners. Live. */
   radius?: number;
-  /** Root element carrying the band property. Defaults to `<html>`. */
+  /** Root element carrying the frame. Defaults to `<html>`. */
   rootElement?: HTMLElement | null;
 }
 
@@ -69,31 +70,40 @@ export function Bezel({
   radius = DEFAULT_BEZEL_RADIUS,
   rootElement,
 }: BezelProps) {
-  // Only the thickness is written at runtime. Colour, class and lock belong to
-  // the boot script, and this component never takes them back off either: a
-  // frame decided at load stays for the life of the page. It only restores
-  // them, below, when something else removed them.
-  useLayoutEffect(() => {
-    if (!enabled) return;
-    applyBezelBand(rootElement ?? document.documentElement, band);
-  }, [enabled, band, rootElement]);
-
-  // The boot script's attributes do not survive React re-rendering <html>
-  // after a failed hydration. Put them back — the same decision, not a new
-  // one — whenever they go missing. See ./boot.
+  // The band is read through a ref so a band change does not tear the frame
+  // down and put it back; it only rewrites the property.
   const bandRef = useRef(band);
   useLayoutEffect(() => {
     bandRef.current = band;
-  }, [band]);
+    if (enabled) applyBezelBand(rootElement ?? document.documentElement, band);
+  }, [enabled, band, rootElement]);
+
+  // On and off. The colour and whether the frame locks the document come from
+  // the boot script's record: one colour per page load (see ./tint), and the
+  // lock is a property of the platform. While on, the frame is kept on <html>
+  // against anything that strips it — see ./boot.
   useLayoutEffect(() => {
-    if (!enabled) return;
+    const root = rootElement ?? document.documentElement;
     const boot = readBezelBoot();
-    if (!boot) return;
-    return keepBezelBoot(
-      rootElement ?? document.documentElement,
-      boot,
-      () => bandRef.current
-    );
+    // Not decided yet: hold whatever the boot script put on, band included,
+    // even through a failed hydration stripping <html> in the meantime.
+    if (enabled === null) {
+      if (!boot?.framed) return;
+      return keepBezelFrame(root, () => ({
+        color: boot.color,
+        band: boot.band,
+        lock: boot.lock,
+      }));
+    }
+    if (!enabled || !boot) {
+      removeBezelFrame(root);
+      return;
+    }
+    return keepBezelFrame(root, () => ({
+      color: boot.color,
+      band: bandRef.current,
+      lock: boot.lock,
+    }));
   }, [enabled, rootElement]);
 
   if (!enabled) return null;

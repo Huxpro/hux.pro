@@ -100,14 +100,16 @@ things (`WALLPAPER_KIND_DEFAULTS` in `systems/ambient/lib/settings.ts`):
 
 Both are gated on iOS: a desktop window gets neither treatment.
 
-**The frame is decided once per page load, and never again.** The boot script
-in `app/layout.tsx` resolves the frame, its colour and — on iOS — the document
-lock before first paint; React reads that decision back and does not
-re-resolve it. So `wallpaperLetterbox` and `wallpaperLetterboxTint` take effect
-on the NEXT load, including when changed in the Devtool. Band and radius stay
-live. Do not reintroduce anything that writes the frame colour, the `bezel`
-class or the lock after load: that is exactly what made the chrome change on a
-real phone.
+**The frame is live; its colour is not.** The provider resolves whether the
+frame is up from `WALLPAPER_KIND_DEFAULTS` and `wallpaperLetterbox`, and
+`<Bezel>` puts the `bezel` class, the lock and the colour on `<html>` or takes
+them off as that changes — switching wallpaper kind or toggling Letterbox in
+the Devtool applies immediately, and the scroll position moves between the
+window and `#scroll-root`. The COLOUR is resolved once per page load by the
+boot script in `app/layout.tsx`, so `wallpaperLetterboxTint` takes effect on
+the next load. Band and radius are live. Do not reintroduce anything that
+re-resolves the frame colour after load (a theme-following tint, say): that is
+what made the chrome change on a real phone.
 
 **On an iOS phone with the frame up, the document does not scroll.** `<body>`
 is fixed and the page scrolls in `#scroll-root`. Anything that reads or drives
@@ -126,5 +128,11 @@ Two things only a real WebKit shows (measured on iOS 26.5), both load-bearing:
   nothing fixed spans the edge. A new overlay portalled into `<body>` is
   covered automatically; a new full-screen layer that is NOT a direct child of
   `<body>` needs `data-bezel-layer`.
+- **Safari reads the root background for its chrome at load, and does not look
+  again when it changes.** Turning the frame on or off live left the status bar
+  and toolbar in the old colour until `systems/bezel/boot.ts` started briefly
+  putting 8px `position: fixed` strips of the new colour at the top and bottom
+  edge, which Safari does follow live. Keep that nudge if you touch the
+  on/off path.
 - **Safari reports every safe-area inset as zero in portrait.** The band is the
   only thing giving the frame any thickness there.

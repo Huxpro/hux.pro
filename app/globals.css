@@ -237,11 +237,13 @@ html.dark.glass-clear {
    The frame is systems/bezel; this is the part that has to be in the
    stylesheet, because it paints and locks the root element.
 
-   Two rules, both ryOS's, both decided ONCE by the boot script in
-   app/layout.tsx before first paint and never revisited in the page's life:
+   Two rules, both ryOS's. The boot script in app/layout.tsx applies them
+   before first paint when the page loads framed, and systems/bezel adds or
+   removes both classes live when the frame turns on or off:
 
      1. One colour. `html.bezel` puts `--bezel` on the root background, black
-        by default. Nothing re-resolves it — not the theme, not a setting.
+        by default. The colour is fixed per page load — not the theme, not a
+        setting re-resolves it.
      2. The document does not scroll. `html.bezel-lock` (iOS only) fixes
         <body> in place and the page scrolls in #scroll-root instead.
 
@@ -255,8 +257,8 @@ html.dark.glass-clear {
    because the document never scrolls, Safari's toolbar never collapses, so the
    viewport and everything pinned to it stay where the first frame put them.
 
-   iOS 18 still reads `theme-color` for its status bar; the boot script writes
-   that once too, in the same colour.
+   iOS 18 still reads `theme-color` for its status bar; while framed it is the
+   same colour.
 ----------------------------------------------------------------------------- */
 :root {
   --bezel: #000000;

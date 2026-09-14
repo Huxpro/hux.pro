@@ -1,14 +1,11 @@
 // =============================================================================
 // Bezel — how thick the frame is, and the box it leaves for the page.
 //
-// The frame's colour, the `bezel` class and the document lock are written ONCE,
-// by the boot script in app/layout.tsx, before first paint — and never
-// re-decided in that page's life. (They can be re-applied: see ./boot.) See ./tint for why the colour may not move and
-// ./page-scroll for why the document may not scroll.
-//
-// The one thing that stays live is the band's thickness. It changes where the
-// page's box ends, not what colour anything outside it is, so moving it after
-// load cannot give Safari anything new to copy into its chrome.
+// The frame's colour is fixed per page load (./tint); the frame's class and the
+// document lock come and go with the frame (./boot, ./page-scroll). The band's
+// thickness is live too: it changes where the page's box ends, not what colour
+// anything outside it is, so moving it cannot give Safari anything new to copy
+// into its chrome.
 // =============================================================================
 
 /** Custom property carrying the frame colour. */

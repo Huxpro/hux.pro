@@ -205,34 +205,32 @@ Where the active wallpaper paints is `wallpaperPlacement`:
 | `widget` | Only inside widget cards (each a viewport-aligned window onto it) |
 | `off` | Nowhere — the global background kill switch |
 
-**Letterbox** — on by default on iOS — is the ryOS (os.ryo.lu) answer to a
-full-bleed background on a phone. Everything outside the page's safe area is
-one flat frame colour: `<html>` and `<body>` paint it, `theme-color` matches it
-so Safari's own chrome is the same, and the wallpaper and the page ground are
-fixed layers inset to the safe area (`surface.tsx`, `LETTERBOX_INSET`). The
-frame colour is `--letterbox`, the **dark ground (`#1a1a1a`) in both themes**:
-ryOS paints black, but Safari on a phone refused a black tint and kept its own
-dark grey, which `#1a1a1a` sits a few points from, so frame and chrome become
-one surface. The page inside stays white in light via its own ground layer.
-The bands and four corner pieces are drawn above everything
-(`letterbox-frame.tsx`), so content scrolling under them is hidden and the page
-is rounded off inside them, which is what makes the black read as a bezel
-rather than as a page that ran out (the corners are only visible where the
-wallpaper meets the frame). The bands overshoot the viewport by half a
-screen: iOS Safari relays out `fixed` a beat after the toolbar collapses, and
-the overshoot is what covers the strip it uncovers in that beat. The radius is
-`wallpaperLetterboxRadius` (default 24, ryOS ships 12; devtool slider 0–48).
-`theme-color` is created before first paint by an inline script in
-`app/layout.tsx` and updated by the provider — Safari reads it at load. Black in both themes: the frame is
-chrome, not part of the page. The wallpaper then ends on a hard line against
-black, and black surrounds it on every side — the status bar, the toolbar, the
-overscroll — so there is no seam left for a fade to soften. `wallpaperLetterbox` persists `true` / `false`;
-`null` is auto (iOS). The devtool row toggles it.
+**Each wallpaper kind says what it wants at the edge** (`WALLPAPER_KIND_DEFAULTS`
+in `lib/settings.ts`), and on an iOS phone the provider resolves every page from
+that table, live, as the kind changes:
 
-**Soft edging** — the top/bottom fade — is what iOS had before letterbox, and
-it stays as the fallback: on by default on iOS when letterbox is off, for both
-kinds alike. An image wallpaper is just another layer in the stack, so it gets
-the same mask the weather gradient gets (`EDGE_FADE_MASK`, or the wider
+| Kind | Frame (letterbox) | Soft edge | Band | Radius |
+|---|---|---|---|---|
+| `weather` | off | on | 8px | 24px |
+| `image` | on | off | 0px | 16px |
+
+A weather gradient is the page's own colour pushed outward, so it fades back
+into the ground. A photograph is a picture on the page, so it ends on a line
+inside a frame. A desktop window gets neither unless overridden.
+
+**Letterbox** is the ryOS (os.ryo.lu) frame, drawn by `systems/bezel`.
+Everything outside the page is one flat colour, black by default, and the page
+is rounded off inside it. On iOS the document stops scrolling while framed and
+the page scrolls in `#scroll-root`. The frame turns on and off live — switching
+kind or toggling the devtool row — but its colour is fixed per page load, so a
+tint change applies on the next load. `wallpaperLetterbox` overrides the kind
+(`null` follows it); band and radius have their own overrides. See
+`systems/bezel` and the Bezel section of `AGENT.md` for what Safari does and
+why.
+
+**Soft edging** — the top/bottom fade — applies only while the frame is off.
+An image wallpaper is just another layer in the stack, so when it is on it
+gets the same mask the weather gradient gets (`EDGE_FADE_MASK`, or the wider
 `EDGE_FADE_MASK_HIGH_CONTRAST` for dark-mode sunrise/sunset). The devtool
 switch overrides it either way.
 

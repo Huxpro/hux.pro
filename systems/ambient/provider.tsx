@@ -26,7 +26,6 @@ import {
 } from "./lib/wallpaper";
 import {
   BEZEL_THEME_COLOR_ID,
-  readBezelBoot,
   resolveBezelTint,
   type BezelTint,
 } from "@/systems/bezel";
@@ -165,10 +164,7 @@ interface WallpaperContextType {
   blurred: boolean;
   /** Whether this page recedes the wallpaper — see `isReadingSurface`. */
   reading: boolean;
-  /**
-   * Letterbox — resolved. True paints everything outside the safe area black
-   * and keeps the wallpaper inside it; see the effect in the provider.
-   */
+  /** Whether the frame is up right now. Live; see `letterbox` in the provider. */
   letterbox: boolean;
   /** The stored choice: `null` is auto (the kind's default, on iOS only). */
   letterboxSetting: boolean | null;
@@ -189,10 +185,8 @@ interface WallpaperContextType {
   letterboxBand: number;
   /** `null` hands the row back to the wallpaper kind's default. */
   setLetterboxBand: (px: number | null) => void;
-  /** `letterbox`, but `null` until mounted. For <Bezel>. */
+  /** `letterbox`, but `null` until settings and platform are known. For <Bezel>. */
   letterboxState: boolean | null;
-  /** What the stored setting resolves to; takes effect on the next load. */
-  letterboxNext: boolean;
   /** The reading treatment flags, for the devtool. */
   readingBlur: boolean;
   setReadingBlur: (value: boolean) => void;
@@ -262,10 +256,13 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // Ambient Settings — initialize with defaults to match SSR, hydrate from
   // localStorage in an effect to avoid hydration mismatches.
   const [settings, setSettingsState] = useState<AmbientSettings>(getDefaultSettings);
+  /** Whether `settings` is the stored one yet, rather than the SSR defaults. */
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: localStorage read
     setSettingsState(getAmbientSettings());
+    setSettingsLoaded(true);
   }, []);
 
   const updateSettings = useCallback((partial: Partial<AmbientSettings>) => {
@@ -383,54 +380,45 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   );
 
   /**
-   * Letterbox — the ryOS frame, on an iOS phone.
+   * Letterbox — the ryOS frame, on an iOS phone. Live.
    *
-   * Decided ONCE, by the boot script in app/layout.tsx, from the stored
-   * setting, the wallpaper kind and the platform, before first paint. It puts
-   * `bezel` on <html> with the frame colour on the root background and, on
-   * iOS, locks the document so the page scrolls in `#scroll-root`. React only
-   * reads that decision back. It never re-resolves it, because re-resolving
-   * after load is what made the frame and Safari's chrome change on a phone —
-   * see @/systems/bezel.
+   * Each wallpaper kind says what it wants at the edge (`WALLPAPER_KIND_DEFAULTS`):
+   * weather fades out with the soft edge and no frame, an image ends on a line
+   * inside the frame. A stored `wallpaperLetterbox` overrides the kind; the
+   * devtool row writes it. Only a phone gets the kind's frame — a desktop
+   * window gets none unless it is overridden on.
    *
-   * So there are two answers here, and they are allowed to differ until the
-   * next load:
+   * <Bezel> puts the frame on and takes it off as this changes, in the one
+   * colour the boot script fixed for this page load (see @/systems/bezel/boot).
    *
-   *   letterbox      what this page is actually showing. Read from <html>.
-   *   letterboxNext  what the stored setting resolves to. What the next load
-   *                  will show, and what the devtool edits.
+   * `null` until the stored settings and the platform are both known: the
+   * server and the first client render cannot see either, and a `false` there
+   * would take off the frame the boot script already painted.
    */
   const kindDefaults = WALLPAPER_KIND_DEFAULTS[settings.wallpaperKind];
-  const letterboxNext =
-    settings.wallpaperLetterbox ?? (isIOS === true && kindDefaults.letterbox);
-
-  /** `null` until mounted: the server cannot see what the boot script did. */
-  const [bootLetterbox, setBootLetterbox] = useState<boolean | null>(null);
-  useEffect(() => {
-    // From the boot script's record on `window`, not the class on <html>: a
-    // failed hydration strips <html>'s attributes before this runs, and the
-    // class would then say there is no frame. See @/systems/bezel/boot.
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: reads the boot script's decision
-    setBootLetterbox(readBezelBoot() !== null);
-  }, []);
-  const letterbox = bootLetterbox === true;
-  /** The tri-state <Bezel> wants. */
-  const letterboxState = bootLetterbox;
+  const letterboxState: boolean | null =
+    !settingsLoaded || isIOS === null
+      ? null
+      : (settings.wallpaperLetterbox ?? (isIOS && kindDefaults.letterbox));
+  const letterbox = letterboxState === true;
 
   const letterboxTint = settings.wallpaperLetterboxTint;
   const letterboxBand = settings.wallpaperLetterboxBand ?? kindDefaults.band;
-  /** The stored tint's colour — the next load's frame, for the devtool swatch. */
+  /**
+   * The stored tint's colour, for the devtool swatch. A frame on this page
+   * keeps the colour the page loaded with; a new tint applies from the next
+   * load (see @/systems/bezel/tint).
+   */
   const letterboxColor = resolveBezelTint(letterboxTint, PAGE_GROUND);
 
   // theme-color. iOS 18 Safari tints its status bar from it (iOS 26 ignores
   // it). The element is ours, not React's — created before first paint by the
-  // boot script. While framed, the boot script's value IS the answer and this
-  // leaves it alone for the life of the page; only an unframed page keeps it
-  // following the theme, as it always has. Next streams its own metadata in
+  // boot script. While framed, <Bezel> sets it to the frame colour; unframed,
+  // it follows the page ground and the theme. Next streams its own metadata in
   // after this effect runs, so a React-owned meta would be a hydration
   // mismatch.
   useEffect(() => {
-    if (bootLetterbox !== false) return;
+    if (letterboxState !== false) return;
     let meta = document.getElementById(BEZEL_THEME_COLOR_ID) as HTMLMetaElement | null;
     if (!meta) {
       meta = document.createElement("meta");
@@ -439,7 +427,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       document.head.append(meta);
     }
     meta.content = PAGE_GROUND[theme];
-  }, [bootLetterbox, theme]);
+  }, [letterboxState, theme]);
 
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and
@@ -740,7 +728,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       letterboxBand,
       setLetterboxBand,
       letterboxState,
-      letterboxNext,
       letterboxBandSetting: settings.wallpaperLetterboxBand,
       letterboxRadiusSetting: settings.wallpaperLetterboxRadius,
       readingBlur: settings.wallpaperReadingBlur,
@@ -784,7 +771,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       letterboxBand,
       setLetterboxBand,
       letterboxState,
-      letterboxNext,
       settings.wallpaperLetterboxBand,
       setReadingBlur,
       setReadingDim,

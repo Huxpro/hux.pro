@@ -18,9 +18,10 @@ import type { LocationMode } from "./location";
 export const PAGE_GROUND: BezelGround = { light: "#ffffff", dark: "#1a1a1a" };
 
 /**
- * The frame's colour when nothing is stored: black, as ryOS. Fixed at load for
- * the life of the page — see @/systems/bezel. A stored `"theme"` from before
- * that tint was removed no longer parses and falls back to this.
+ * The frame's colour when nothing is stored: black, as ryOS. The colour is
+ * fixed per page load even though the frame turns on and off live — see
+ * @/systems/bezel/tint. A stored `"theme"` from before that tint was removed no
+ * longer parses and falls back to this.
  */
 export const DEFAULT_LETTERBOX_TINT: BezelTint = "black";
 
@@ -35,13 +36,26 @@ export const DEFAULT_LETTERBOX_TINT: BezelTint = "black";
  * wants as much of the screen as it can get, which is a band of nothing and
  * corners just large enough to read as a bezel.
  *
- * Both are still gated on iOS in the provider: the fade and the frame are
- * both phone treatments, and a desktop window gets neither.
+ * This table is the whole relationship. With nothing overridden, the provider
+ * resolves each page from it, live, as the kind changes:
+ *
+ *   letterbox  frame on?          `wallpaperLetterbox` overrides it
+ *   softEdge   fade on?           only while the frame is off; the devtool
+ *                                 row overrides it
+ *   band       frame thickness    `wallpaperLetterboxBand` overrides it
+ *   radius     frame corners      `wallpaperLetterboxRadius` overrides it
+ *
+ * Both treatments are gated on iOS in the provider: they are phone treatments,
+ * and a desktop window gets neither unless it is overridden on.
  */
 export interface WallpaperKindDefaults {
+  /** Whether this kind is framed (letterboxed) by default. */
   letterbox: boolean;
+  /** Whether this kind fades out at the edges by default, when not framed. */
   softEdge: boolean;
+  /** Frame band thickness, px. */
   band: number;
+  /** Frame corner radius, px. */
   radius: number;
 }
 

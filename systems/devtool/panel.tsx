@@ -842,7 +842,7 @@ function WallpaperModule() {
     blurred,
     reading,
     src,
-    letterboxNext,
+    letterbox,
     letterboxSetting,
     setLetterbox,
     letterboxRadius,
@@ -1029,12 +1029,12 @@ function WallpaperModule() {
             }
           >
             <PanelToggle
-              on={letterboxNext}
-              onClick={() => setLetterbox(!letterboxNext)}
+              on={letterbox}
+              onClick={() => setLetterbox(!letterbox)}
               label="Toggle letterbox"
             />
           </PanelRow>
-          {letterboxNext && (
+          {letterbox && (
             <>
               <PanelRow
                 label={zh ? "颜色" : "Tint"}
@@ -1059,8 +1059,8 @@ function WallpaperModule() {
               </PanelRow>
               {/* The swatch both shows the resolved colour and, on custom,
                   edits it. The frame colour is fixed for a page's life, so a
-                  change here — like the letterbox toggle above — is what the
-                  next load gets. Band and radius below stay live. */}
+                  tint change here is what the next load gets. The toggle
+                  above, band and radius are live. */}
               <PanelRow label={letterboxColor}>
                 <input
                   type="color"

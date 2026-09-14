@@ -4,15 +4,18 @@
 // Everything outside the page becomes one flat frame, the browser's own chrome
 // included, and the page stops on a clean line inside it, rounded off at the
 // corners the way iOS rounds every app's window. ryOS (os.ryo.lu) is the model,
-// and on an iOS phone this follows it all the way, in two rules:
+// and on an iOS phone a frame follows it all the way, in two rules:
 //
-//   1. ONE colour, decided at load. A black `<html>` and `<body>` by default,
-//      written by a boot script before first paint and never re-resolved —
+//   1. ONE colour per page load. A black `<html>` and `<body>` by default,
+//      resolved by a boot script before first paint and never re-resolved —
 //      not when the theme flips, not when a setting changes. See ./tint.
-//   2. THE DOCUMENT DOES NOT SCROLL. `<body>` is fixed and the page scrolls in
-//      `#scroll-root`. See ./page-scroll.
+//   2. THE DOCUMENT DOES NOT SCROLL while framed. `<body>` is fixed and the
+//      page scrolls in `#scroll-root`. See ./page-scroll.
 //
-// Together they leave Safari nothing to reconsider. Measured on iOS 26.5, its
+// Whether the frame is up is live: <Bezel> puts it on and takes it off as its
+// `enabled` prop changes (see ./boot), always in that one colour.
+//
+// Together the rules leave Safari nothing to reconsider. Measured on iOS 26.5, its
 // chrome takes its colour from `position: fixed` content at the viewport edge
 // and, failing that, from the root background; `theme-color` is ignored. Every
 // earlier attempt here was a heuristic that gave it something else to copy — a
@@ -21,26 +24,28 @@
 // changes, under a document that never scrolls and never collapses the
 // toolbar, has only one answer.
 //
-//   <Bezel enabled={bootDecision} band={8} radius={24} />
+//   <Bezel enabled={framed} band={8} radius={24} />
 //
 // and everything the frame is meant to contain takes the same box:
 //
 //   <div style={BEZEL_INSET} />
 //
 // Anything that reads or drives page scroll uses ./page-scroll, not `window`.
-// The `theme-color` meta is left to the host — iOS 18 still reads it — and it
-// too is written once.
+// While framed, the `theme-color` meta (iOS 18 still reads it) is the frame
+// colour; unframed, it is left to the host.
 // =============================================================================
 
 export { Bezel, type BezelProps } from "./bezel";
 
 export {
-  applyBezelBoot,
-  keepBezelBoot,
+  applyBezelFrame,
+  keepBezelFrame,
   readBezelBoot,
+  removeBezelFrame,
   BEZEL_BOOT_GLOBAL,
   BEZEL_THEME_COLOR_ID,
-  type BezelBootDecision,
+  type BezelBoot,
+  type BezelFrame,
 } from "./boot";
 
 export {

@@ -115,11 +115,12 @@ export const viewport: Viewport = {
  * import at runtime, so every constant it needs is interpolated from
  * `@/systems/bezel` and the settings table, and the two cannot drift.
  *
- * It is also the ONLY place the frame is decided. The class, the colour on the
- * root background, the theme-color and — on iOS — the document lock are
- * written here once and never again in the page's life: React reads the
- * decision back and does not re-resolve it. That is the ryOS rule, and on a
- * phone it is the one that held (see @/systems/bezel).
+ * Two jobs. It paints the first frame right: when the page loads framed, the
+ * class, the colour on the root background, the theme-color and — on iOS — the
+ * document lock are on <html> before anything renders. And it fixes the frame
+ * COLOUR for the page's life, framed or not, recording it on `window` with the
+ * platform and the initial state. After that the provider decides on and off,
+ * live, and <Bezel> applies it in that one colour (see @/systems/bezel/boot).
  */
 const THEME_COLOR_BOOT = `(function(){try{
 var s=JSON.parse(localStorage.getItem("hux_ambient_settings")||"{}");
@@ -135,12 +136,12 @@ if(!/^(black|dark|${BEZEL_HEX_PATTERN.slice(1, -1)})$/.test(tint))tint=${JSON.st
 var c=tint==="black"?${JSON.stringify(BEZEL_BLACK)}:tint==="dark"?${JSON.stringify(PAGE_GROUND.dark)}:tint;
 var band=s.wallpaperLetterboxBand;
 band=typeof band==="number"&&isFinite(band)?Math.min(${BEZEL_BAND_MAX},Math.max(${BEZEL_BAND_MIN},Math.round(band))):kd.band;
+window[${JSON.stringify(BEZEL_BOOT_GLOBAL)}]={color:c,framed:box,band:band,lock:ios};
 if(box){var d=document.documentElement;d.classList.add(${JSON.stringify(BEZEL_CLASS)});
 if(ios)d.classList.add(${JSON.stringify(BEZEL_LOCK_CLASS)});
 d.style.setProperty(${JSON.stringify(BEZEL_COLOR_VAR)},c);
 d.style.setProperty(${JSON.stringify(BEZEL_BAND_VAR)},band+"px");
-d.style.backgroundColor=c;
-window[${JSON.stringify(BEZEL_BOOT_GLOBAL)}]={color:c,band:band,lock:ios};}
+d.style.backgroundColor=c;}
 var m=document.createElement("meta");m.id=${JSON.stringify(BEZEL_THEME_COLOR_ID)};m.name="theme-color";
 m.content=box?c:ground;document.head.appendChild(m);
 }catch(e){}})()`;
