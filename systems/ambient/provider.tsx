@@ -37,6 +37,8 @@ import { useDevtool } from "@/systems/devtool";
 
 /** The page ground as Safari's chrome tint — `--background` in both themes. */
 const THEME_COLOR = { light: "#ffffff", dark: "#1a1a1a" } as const;
+/** The letterbox frame — `--letterbox` in globals.css, the dark ground. */
+const LETTERBOX_COLOR = THEME_COLOR.dark;
 
 function formatGeolocationError(err: unknown): string {
   if (err instanceof Error) return err.message || "Unknown error";
@@ -376,7 +378,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   useEffect(() => {
     if (isIOS === null) return;
-    document.documentElement.classList.toggle("letterbox", letterbox);
+    const root = document.documentElement;
+    root.classList.toggle("letterbox", letterbox);
+    // The boot script's inline background (there before the stylesheet); the
+    // class carries it from here on, so this only has to clear it on off.
+    root.style.backgroundColor = letterbox ? LETTERBOX_COLOR : "";
   }, [letterbox, isIOS]);
 
   // Safari tints its chrome with theme-color, so this is what makes the
@@ -397,8 +403,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     // Letterboxed, the frame colour (`--letterbox`, the dark ground) in both
     // themes — Safari refused a black tint on a phone and kept its own grey,
     // and #1a1a1a it honours. Otherwise the theme's page ground.
-    meta.content =
-      letterbox || theme === "dark" ? THEME_COLOR.dark : THEME_COLOR.light;
+    meta.content = letterbox
+      ? LETTERBOX_COLOR
+      : theme === "dark"
+        ? THEME_COLOR.dark
+        : THEME_COLOR.light;
   }, [letterbox, theme]);
 
   // Soft edging fades the background out at the top and bottom of the viewport.
