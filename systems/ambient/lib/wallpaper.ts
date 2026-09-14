@@ -275,7 +275,7 @@ function buildAsset(asset: WallpaperAsset, preview: boolean): ResolvedWallpaper 
   const url = preview ? asset.thumb : asset.src;
   return {
     // The flat base sits under the image so the frame is never bare while it
-    // decodes (and shows through any letterboxing on odd aspect ratios).
+    // decodes.
     backgroundImage: `url("${url}"), linear-gradient(180deg, ${asset.base} 0%, ${asset.base} 100%)`,
     cover: true,
     src: url,

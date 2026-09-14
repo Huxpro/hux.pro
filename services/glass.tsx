@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { t, type Locale } from "@/lib/i18n";
 
 // =============================================================================
 // Glass — the material every floating System UI surface is made of.
@@ -31,10 +32,9 @@ export const GLASS_MATERIALS: GlassMaterial[] = ["tinted", "clear"];
 const STORAGE_KEY = "hux_glass";
 const CLEAR_CLASS = "glass-clear";
 
-export function getGlassLabel(material: GlassMaterial, locale: "en" | "zh"): string {
-  // Apple's own names, in both languages: Settings → Display & Brightness.
-  if (locale === "zh") return material === "clear" ? "透明" : "色调";
-  return material === "clear" ? "Clear" : "Tinted";
+/** Apple's own names, in both languages: Settings → Display & Brightness. */
+export function getGlassLabel(material: GlassMaterial, locale: Locale): string {
+  return t(locale, material === "clear" ? "glassClear" : "glassTinted");
 }
 
 function readStored(): GlassMaterial {
@@ -58,10 +58,6 @@ export function useGlass() {
   const context = useContext(GlassContext);
   if (!context) throw new Error("useGlass must be used within GlassProvider");
   return context;
-}
-
-export function useOptionalGlass() {
-  return useContext(GlassContext);
 }
 
 export function GlassProvider({ children }: { children: React.ReactNode }) {

@@ -131,6 +131,8 @@ export const translations = {
     // Wallpaper (background picker)
     settingsWallpaper: "Wallpaper",
     settingsGlass: "Glass",
+    glassTinted: "Tinted",
+    glassClear: "Clear",
     wallpaperTitle: "wallpaper",
     wallpaperClose: "Close wallpaper picker",
     wallpaperChoose: "Ambient",
@@ -335,6 +337,8 @@ export const translations = {
     // Wallpaper (background picker)
     settingsWallpaper: "壁纸",
     settingsGlass: "玻璃",
+    glassTinted: "色调",
+    glassClear: "透明",
     wallpaperTitle: "壁纸",
     wallpaperClose: "关闭壁纸选择器",
     wallpaperChoose: "环境",

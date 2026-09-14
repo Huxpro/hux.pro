@@ -77,8 +77,6 @@ export function getAmbientSettings(): AmbientSettings {
     const parsed = JSON.parse(stored) as Partial<AmbientSettings> & {
       /** Legacy field names, still read so an existing visitor keeps their setup. */
       weatherGradientMode?: string;
-      wallpaperKind?: string;
-      wallpaperSource?: string;
     };
     const defaults = getDefaultSettings();
 
@@ -106,11 +104,8 @@ export function getAmbientSettings(): AmbientSettings {
       locationMode:
         parsed.locationMode === "accurate" ? "accurate" : defaults.locationMode,
       wallpaperPlacement: placement,
-      // `wallpaperSource: "picture"` was the field's first spelling.
       wallpaperKind:
-        parsed.wallpaperKind === "image" || parsed.wallpaperSource === "picture"
-          ? "image"
-          : defaults.wallpaperKind,
+        parsed.wallpaperKind === "image" ? "image" : defaults.wallpaperKind,
       wallpaperId,
       wallpaperReadingBlur: parsed.wallpaperReadingBlur !== false,
       wallpaperReadingDim: parsed.wallpaperReadingDim !== false,

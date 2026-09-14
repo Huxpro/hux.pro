@@ -22,7 +22,6 @@ export {
   GlassProvider,
   getGlassLabel,
   useGlass,
-  useOptionalGlass,
   type GlassMaterial,
 } from "./glass";
 export { ThemeProvider, useTheme } from "./theme";

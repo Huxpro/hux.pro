@@ -155,6 +155,8 @@ interface WallpaperContextType {
   veil: number;
   /** Whether the wallpaper should be defocused right now. */
   blurred: boolean;
+  /** Whether this page recedes the wallpaper — see `isReadingSurface`. */
+  reading: boolean;
   /** The reading treatment flags, for the devtool. */
   readingBlur: boolean;
   setReadingBlur: (value: boolean) => void;
@@ -207,10 +209,6 @@ export function useWeather() {
   const context = useContext(WeatherContext);
   if (!context) throw new Error("useWeather must be used within AmbientProvider");
   return context;
-}
-
-export function useOptionalWeather() {
-  return useContext(WeatherContext);
 }
 
 // =============================================================================
@@ -282,9 +280,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   );
   const isImageKind = settings.wallpaperKind === "image";
 
-  const wallpaperOpacity = isImageKind
-    ? WALLPAPER_OPACITY.image[theme]
-    : WALLPAPER_OPACITY.weather[theme];
+  const wallpaperOpacity = WALLPAPER_OPACITY[settings.wallpaperKind][theme];
 
   const setReadingBlur = useCallback(
     (value: boolean) => updateSettings({ wallpaperReadingBlur: value }),
@@ -313,15 +309,16 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // DevTool overrides bypass all natural derivation.
   const isIOS = useMemo(() => isIOSBrowser(), []);
 
-  const fullEnabled =
-    isDevtoolEnabled && devtoolOverrides.full !== undefined
-      ? devtoolOverrides.full
-      : settings.wallpaperPlacement === "full";
+  const overridden = (
+    key: keyof DevtoolPlacementOverrides,
+    natural: boolean
+  ): boolean => (isDevtoolEnabled ? devtoolOverrides[key] : undefined) ?? natural;
 
-  const widgetEnabled =
-    isDevtoolEnabled && devtoolOverrides.widget !== undefined
-      ? devtoolOverrides.widget
-      : settings.wallpaperPlacement === "widget";
+  const fullEnabled = overridden("full", settings.wallpaperPlacement === "full");
+  const widgetEnabled = overridden(
+    "widget",
+    settings.wallpaperPlacement === "widget"
+  );
 
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and
@@ -330,10 +327,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // stack, so it gets exactly what the weather gradient gets. Whether it is on
   // by default is the kind's call — see `WALLPAPER_KIND_DEFAULTS`.
   const kindDefaults = WALLPAPER_KIND_DEFAULTS[settings.wallpaperKind];
-  const softEdgeEnabled =
-    isDevtoolEnabled && devtoolOverrides.softEdging !== undefined
-      ? devtoolOverrides.softEdging
-      : isIOS && kindDefaults.softEdge;
+  const softEdgeEnabled = overridden(
+    "softEdging",
+    isIOS && kindDefaults.softEdge
+  );
 
   // Debug override state (for weather and time)
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
@@ -609,6 +606,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       opacity: wallpaperOpacity,
       veil: veilAlpha,
       blurred: isBlurred,
+      reading,
       readingBlur: settings.wallpaperReadingBlur,
       setReadingBlur,
       readingDim: settings.wallpaperReadingDim,
@@ -637,6 +635,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       wallpaperOpacity,
       veilAlpha,
       isBlurred,
+      reading,
       setReadingBlur,
       setReadingDim,
       wallpaperSrc,

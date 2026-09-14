@@ -6,8 +6,8 @@ import {
   GLASS_MATERIALS,
   getGlassLabel,
   t,
+  useGlass,
   useLocale,
-  useOptionalGlass,
   useTheme,
 } from "@/services";
 import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
@@ -20,7 +20,6 @@ import {
   WEATHER_CONDITIONS,
   getWeatherConditionLabel,
 } from "@/systems/ambient/lib/weather";
-import { isReadingSurface } from "@/systems/ambient/lib/reading-surface";
 import { isPhoneWallpaper } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
 import { useOptionalWindows } from "@/systems/windows";
@@ -73,7 +72,6 @@ import {
   Sunset,
   X,
 } from "lucide-react";
-import { usePathname } from "next/navigation";
 import { withDraggable } from "@/systems/draggable";
 import { useEffect, useRef, useState } from "react";
 
@@ -734,8 +732,7 @@ function ReadingModule() {
 function GlassModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const glass = useOptionalGlass();
-  if (!glass) return null;
+  const glass = useGlass();
 
   const options = GLASS_MATERIALS.map((value) => ({
     value,
@@ -782,15 +779,14 @@ function GlassModule() {
 // Apple pairs. Below it, the rendering flags as plain switches: where the
 // wallpaper paints, and how much of it survives on a reading page.
 //
-// Placement and the reading treatment write persisted settings, so the panel
-// and the picker sheet can never disagree. Soft edging has no persisted setting
-// (it is derived from the platform), so it stays a devtool override.
+// Full, Widget and Soft edge are ephemeral devtool overrides of what the
+// settings and the platform resolve to; the reading treatment rows write the
+// persisted settings the picker sheet shares.
 // =============================================================================
 
 function WallpaperModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const pathname = usePathname();
   const {
     kind,
     setKind,
@@ -801,6 +797,7 @@ function WallpaperModule() {
     opacity,
     veil,
     blurred,
+    reading,
     src,
     readingBlur,
     setReadingBlur,
@@ -816,7 +813,6 @@ function WallpaperModule() {
   } = useWallpaper();
 
   const isImage = kind === "image";
-  const reading = isReadingSurface({ kind, pathname });
 
   // Full and Widget are independent switches here, not two halves of one
   // segmented control: the persisted setting can only be one of them, but the
