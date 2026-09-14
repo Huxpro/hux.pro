@@ -879,6 +879,58 @@ html.dragging * {
 }
 
 /* =============================================================================
+   Widget surface — `.widget-surface`
+   An iPadOS widget is one tappable object: its title, padding and static text
+   open the widget, while rows, links, tabs and fields inside keep their own
+   taps. This paints the iOS tap wash for surface presses only — `:active`
+   bubbles up from a pressed descendant, so one with its own action is
+   excluded via `:has()`.
+
+   The selector list mirrors `OWN_ACTION_SELECTORS` in
+   `components/ui/widget-surface.ts`, which gates the tap and the long-press
+   pickup. Keep the two in sync — CSS cannot import the module.
+
+   An overlay rather than a transform/filter: a transform on the shell would
+   re-anchor the fixed gradient backdrop mid-press.
+   ============================================================================= */
+
+.widget-surface {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.widget-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-color: var(--foreground);
+  opacity: 0;
+  transition: opacity 300ms;
+}
+
+.widget-surface:active:not(
+    :has(
+      :is(
+          a,
+          button,
+          [role="button"],
+          [role="tab"],
+          input,
+          textarea,
+          select,
+          summary,
+          [contenteditable="true"],
+          [data-widget-inert]
+        ):active
+    )
+  )::after {
+  opacity: 0.08;
+  transition-duration: 75ms;
+}
+
+/* =============================================================================
    System chrome — `.system-chrome`
    Navigation, the command bar, the dock, edit controls: these are the OS's
    own UI, not a document. No text selection, no long-press callout, no grey

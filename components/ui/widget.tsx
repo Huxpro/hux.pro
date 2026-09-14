@@ -7,19 +7,11 @@ import { useOptionalWeather } from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
 import { Link, useTransitionRouter } from "next-view-transitions";
 import { useCallback, useState, type MouseEvent } from "react";
+import { landsOnOwnAction } from "./widget-surface";
 
 // =============================================================================
 // Widget Primitives (shadcn-like compound components)
 // =============================================================================
-
-/**
- * Descendants that own their own tap. A press that lands on (or inside) one of
- * these never counts as "tapping the widget" — the row / control / link handles
- * it. Everything else (title, blank padding, static text) is the widget's own
- * surface, exactly like an iPadOS widget.
- */
-const INTERACTIVE_SELECTOR =
-  "a, button, input, textarea, select, summary, [role='button'], [contenteditable='true'], [data-widget-inert]";
 
 /**
  * WidgetShell - The outer container with consistent card styling.
@@ -27,7 +19,7 @@ const INTERACTIVE_SELECTOR =
  * Tappable surface: pass `href` (a page to open) or `onOpen` (an action —
  * refresh the weather, open the playlist) and the whole card becomes the tap
  * target, not just the header arrow. Interactive descendants keep their own
- * taps (see INTERACTIVE_SELECTOR); the masonry's edit mode swallows clicks
+ * taps (see `landsOnOwnAction`); the masonry's edit mode swallows clicks
  * before they reach here, so rearranging never opens anything. Keyboard users
  * still reach the page through the visible `WidgetLink` — the shell itself
  * deliberately adds no tab stop.
@@ -64,10 +56,7 @@ export function WidgetShell({
   const handleClick = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
       if (!tappable) return;
-      // Only descendants count: the masonry's sortable wrapper *around* the
-      // shell is itself `role="button"`, and must not veto the tap.
-      const hit = (e.target as HTMLElement | null)?.closest(INTERACTIVE_SELECTOR);
-      if (hit && hit !== e.currentTarget && e.currentTarget.contains(hit)) return;
+      if (landsOnOwnAction(e)) return;
       if (href) {
         // Honour "open in new tab" gestures on the blank surface too.
         if (e.metaKey || e.ctrlKey || e.button === 1) {
@@ -96,15 +85,6 @@ export function WidgetShell({
   // When false → CSS fixed handles positioning (no JS polyfill).
   const [useTrackerForPositioning] = useState(isIOSBrowser);
 
-  // Press feedback for the surface only: `:active` bubbles up from a pressed
-  // row / control, so those presses are excluded the same way clicks are —
-  // the card reacts as one object only when the card itself is what you hit.
-  // The highlight is a foreground-tinted overlay (`after:`), the iOS tap
-  // wash: it reads in both themes and, unlike a transform or filter on the
-  // shell, never re-anchors the fixed gradient backdrop mid-press.
-  const surfacePressed =
-    "[&:active:not(:has(a:active,button:active,[role='button']:active))]";
-
   return (
     <div
       ref={setShellEl}
@@ -120,12 +100,8 @@ export function WidgetShell({
         widgetGradientEnabled
           ? "bg-transparent backdrop-blur-sm hover:bg-white/5 dark:hover:bg-white/5"
           : "bg-card/50 backdrop-blur-xl hover:border-border hover:bg-card/70",
-        tappable && [
-          "cursor-pointer",
-          "after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit]",
-          "after:bg-foreground after:opacity-0 after:transition-opacity after:duration-300",
-          `${surfacePressed}:after:opacity-[0.08] ${surfacePressed}:after:duration-75`,
-        ],
+        // Press wash for surface presses only (see `.widget-surface`).
+        tappable && "widget-surface",
         className
       )}
       style={style}

@@ -43,6 +43,7 @@ import {
   saveOrder,
 } from "./sortable-order";
 import { usePressHold } from "./use-press-hold";
+import { landsOnOwnAction } from "./widget-surface";
 
 // =============================================================================
 // SortableMasonry
@@ -176,24 +177,6 @@ function gridScale(count: number) {
 // Sortable item
 // =============================================================================
 
-/**
- * Descendants whose tap is their own, not the widget's. A press that starts
- * on one of these must not lift the card (outside edit mode).
- */
-const OWN_ACTION_SELECTOR =
-  "a, button, [role='button'], [role='tab'], input, textarea, select, summary, [data-widget-inert]";
-
-/**
- * True when the press landed inside an element with its own action. The item
- * wrapper itself is `role="button"` (dnd-kit's attributes), so the match has
- * to be a strict descendant of the wrapper.
- */
-function pressLandsOnControl(e: React.SyntheticEvent): boolean {
-  const target = e.target as Element | null;
-  const control = target?.closest(OWN_ACTION_SELECTOR);
-  return !!control && control !== e.currentTarget && e.currentTarget.contains(control);
-}
-
 function SortableMasonryItem({
   id,
   index,
@@ -212,7 +195,7 @@ function SortableMasonryItem({
   // Gate every press activator on where the press landed: a control's press
   // is the control's. Edit mode lifts the gate.
   const keepForControl = (e: React.SyntheticEvent) =>
-    !editing && pressLandsOnControl(e);
+    !editing && landsOnOwnAction(e);
   const guardedListeners = useMemo(
     () => guardActivators(listeners, keepForControl),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keepForControl only closes over `editing`
