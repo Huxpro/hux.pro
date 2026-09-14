@@ -101,7 +101,7 @@ type WallpaperKind = "weather" | "image";
 ```
 
 - `weather` — the live weather / sun-event gradient (`lib/gradient.ts`).
-- `image` — a fixed Apple pair from the built-in catalog (`lib/wallpaper.ts`).
+- `image` — a fixed picture from the built-in catalog (`lib/wallpaper.ts`).
 
 Because there is a single stack and a single kind, the two are **mutually
 exclusive by construction** — there is no state in which both paint, and nothing
@@ -114,63 +114,58 @@ themselves under an image wallpaper.
 
 ### Built-ins
 
-Apple's own default macOS, iPadOS and iOS wallpapers, as light/dark pairs — the
-artwork each release is recognised by. Fifteen pairs: macOS Tahoe, Sequoia,
-Sonoma, Ventura, Monterey and Big Sur; iPadOS 18 in its four colourways
-(Violet, Indigo, Blue, Teal); iOS 27, 18, 17, 14 and 13.
+Two categories, switched in the picker with the same capsule the Featured Talks
+widget uses for albums (`WALLPAPER_CATEGORIES` in `lib/wallpaper.ts`). Weather
+leads the grid in both.
+
+- **Apple** — the default macOS, iPadOS and iOS wallpapers as light/dark pairs,
+  the artwork each release is recognised by. Twelve pairs: macOS Tahoe,
+  Sequoia, Sonoma, Ventura, Monterey and Big Sur; iPadOS 18 in its four
+  colourways (Violet, Indigo, Blue, Teal); iOS 14 and 13.
+- **Nature** — the 21 Mac OS X Nature desktop pictures (Aurora, Zebra, Zen
+  Garden, …), taken from ryOS. One photograph each, so both theme halves are
+  the same file (`isSingleImage()`), and the picker shows it unsplit.
 
 The iPadOS colourways are named for the colour rather than the release, and
 their caption is the year alone: the tile would otherwise read "iPadOS 18
 Violet — iPadOS · 2024", which both stutters and overflows.
 
-The **iOS** pairs are phone artwork, and a desktop viewport can only show a crop
-of one, so the picker caption and the devtool swatch mark them with a phone
-glyph — the tiles are all the same 16:10 card and could not otherwise show it.
-`isPhoneWallpaper()` derives it from the platform rather than storing a flag,
-because a stored one drifted: it was set by hand on the pairs whose *files* are
-tall, which made the glyph mean "portrait encoding" instead of "phone
-wallpaper".
+The **iOS** pairs are phone artwork, so the picker caption marks them with a
+phone glyph — the tiles are all the same 16:10 card and could not otherwise
+show it. `isPhoneWallpaper()` derives it from the platform rather than storing
+a flag. Apple ships these stills on a square canvas and lets the device crop
+(iOS 14 is 3072², iOS 13 3186² at source); nothing here was cropped.
 
-Not every phone wallpaper is a tall file, and nothing here was cropped to make
-it square. **Apple ships most of these stills on a square canvas** and lets the
-device crop; the `414w-896h@3x~iphone` in a filename is the target device, not
-the artwork's shape. Verified against the sources by parsing the HEIC `ispe`
-boxes directly:
+#### Resolution
 
-| | Source | Committed |
-|---|---|---|
-| iOS 27 | 1320×2868 png | 1320×2868 |
-| iOS 18 light | 1480×3192 png | 1480×3192 |
-| iOS 18 dark | 2580×5592 png | 1661×3600 |
-| iOS 17 | 2048×2048 jpg | 2048×2048 |
-| iOS 14 | 3072×3072 heic | 2400×2400 |
-| iOS 13 | 3186×3186 heic | 2400×2400 |
+Every wallpaper paints `cover`, so the rule is about the stretch on a real
+screen, not megapixels: **a file must cover a 2560×1600 viewport with at most a
+1.07× stretch**, and is downscaled to the smallest size that still covers it.
+Each tile prints the committed file's pixels under its name.
 
-1320×2868 is Apple's own asset size for iOS 27 — iClarified, 9to5Mac and
-wallpapers.poutanen.dev all publish exactly that, so it is the ceiling, not a
-sourcing failure. 4kwallpapers' iOS 18 set is *lower* (1290×2796) than the
-sources already recorded here.
+| | File | Stretch | |
+|---|---|---|---|
+| macOS Tahoe … Ventura | 2560×2560 | 1.00× | kept |
+| iPadOS 18 | 2560×1779 | 1.00× | kept |
+| Monterey, Big Sur, iOS 14, iOS 13 | 2400×2400 | 1.07× | kept |
+| iOS 17 | 2048×2048 | 1.25× | removed |
+| iOS 18 | 1480×3192 | 1.73× | removed |
+| iOS 27 | 1320×2868 | 1.94× | removed |
+| Nature | 2560×1600 (Earth & Moon 2844×1600) | 1.00× | added |
 
-Every one is the source aspect, downscaled at most. The two tall pairs simply
-came from Apple as tall files, and they crop hardest on a desktop.
+The landscape Nature photographs stretch about 1.64× on a portrait phone; most
+of the set tops out at 2560×1600 at source.
 
-They are committed as WebP at q80, bounded to **2560 wide by 3600 tall** and
-never upscaled, with 480px thumbnails that picker tiles and devtool swatches
-resolve to, so opening the picker costs tens of kilobytes rather than the
-megabyte the full set weighs.
-
-That bound is deliberately not a square box. A single "long edge ≤ 2560" cap
-reads as neutral but is not: the long edge of phone artwork is its height, which
-nothing on a desktop ever needs, so the cap spends the whole budget there and
-starves the width. It had iOS 27 at 1178px wide when Apple ships it at 1320, and
-iOS 18's dark half at 1182 from a 2580px source. Width is what a viewport
-actually spends, so width gets the real budget and height only has to keep the
-file from running away. Provenance for every
-pair — source URL, and HEIC frame index where the pair came out of one file —
-lives in `public/wallpapers/sources.json`.
+Release pairs are WebP q80 and photographs WebP q75, each with a 480px
+thumbnail for the picker. The byte budgets differ by kind: a pair past 120KB
+means something went wrong, while a photograph of raked sand is detail all the
+way down (27KB for Water, 1.4MB for Zen Garden at the same quality), so
+photographs get 1.5MB. Provenance for every file — source URL, and HEIC frame
+index where a pair came out of one file — lives in
+`public/wallpapers/sources.json`.
 
 ```bash
-pnpm wallpapers:check   # every pair present, decodes, and within budget
+pnpm wallpapers:check   # every file present, sharp enough, sized as declared, within budget
 ```
 
 **Apple retains rights to this artwork.** It is committed for a personal site,
@@ -179,8 +174,8 @@ Apple's images either, and their repository licenses are not asserted to do so.
 
 ### Light/dark pairs
 
-Every wallpaper ships as a pair, and which half shows **always follows the app
-theme** — the macOS Dynamic Desktop behaviour. That is deliberately not a
+Every Apple wallpaper ships as a pair, and which half shows **always follows the
+app theme** — the macOS Dynamic Desktop behaviour. That is deliberately not a
 setting. Pinning a half only ever produced light artwork under light text, and
 the damping needed to rescue that made the wallpaper a ghost; the tiles keep a
 sun / moon on each half as an indicator, not a control.
