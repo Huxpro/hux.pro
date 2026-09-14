@@ -231,6 +231,86 @@ html.dark.glass-clear {
   --glass-popover: color-mix(in oklab, var(--popover) 46%, transparent);
 }
 
+/* -----------------------------------------------------------------------------
+   Bezel — after ryOS, on an iOS phone
+   Everything outside the page is one flat frame, the browser's chrome included.
+   The frame is systems/bezel; this is the part that has to be in the
+   stylesheet, because it paints and locks the root element.
+
+   Two rules, both ryOS's, both decided ONCE by the boot script in
+   app/layout.tsx before first paint and never revisited in the page's life:
+
+     1. One colour. `html.bezel` puts `--bezel` on the root background, black
+        by default. Nothing re-resolves it — not the theme, not a setting.
+     2. The document does not scroll. `html.bezel-lock` (iOS only) fixes
+        <body> in place and the page scrolls in #scroll-root instead.
+
+   Why, measured on iOS 26.5: when any `position: fixed` layer spans the edge
+   of the viewport, Safari tints its chrome from the pixels composited beneath
+   it — even if the layer itself is transparent. When none does, it uses the
+   root background. `theme-color` it ignores. So the frame colour lives on the
+   root background, and on a locked phone NOTHING is fixed at the edge: every
+   full-screen layer becomes an absolutely positioned child of the fixed body
+   below, which occupies the identical box because the body never moves. And
+   because the document never scrolls, Safari's toolbar never collapses, so the
+   viewport and everything pinned to it stay where the first frame put them.
+
+   iOS 18 still reads `theme-color` for its status bar; the boot script writes
+   that once too, in the same colour.
+----------------------------------------------------------------------------- */
+:root {
+  --bezel: #000000;
+  --bezel-band: 8px;
+}
+html.bezel,
+html.bezel body {
+  background-color: var(--bezel);
+}
+
+html.bezel-lock {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+html.bezel-lock body {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+/* No `position: fixed` layer may span the viewport edge on a locked page.
+   Measured on iOS 26.5: when one does — even a fully transparent full-screen
+   overlay — Safari samples the composited pixels BENEATH it for its chrome,
+   so a bright wallpaper or a white card under an invisible devtool container
+   turned the toolbar a light grey. With none, it uses the root background.
+
+   Nothing on a locked page needs to be fixed anyway: <body> is itself fixed
+   at inset 0 and never scrolls, so an absolutely positioned direct child of it
+   occupies exactly the box a fixed one did. That covers every overlay rendered
+   or portalled straight into <body> — the dock, sheets, windows, the theater,
+   the devtool, the command button — including ones positioned by inline style.
+   It deliberately does NOT reach fixed elements nested inside #scroll-root,
+   where `absolute` would resolve against the scroll root and scroll away.
+   `[data-bezel-layer]` marks our own layers that are not direct children: the
+   wallpaper, the page ground, the frame. */
+html.bezel-lock body > .fixed,
+html.bezel-lock body > [style*="position:fixed"],
+html.bezel-lock body > [style*="position: fixed"],
+html.bezel-lock [data-bezel-layer] {
+  position: absolute !important;
+}
+/* The page's one scroll container. Its top/bottom/left/right come from
+   `BEZEL_INSET`, rendered inline, so it ends where the frame begins. The rubber
+   band stays: it happens inside the frame now, over the frame colour. */
+html.bezel-lock #scroll-root {
+  position: absolute;
+  min-height: 0;
+  overflow-x: clip;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
 @layer base {
   * {
     @apply border-border;

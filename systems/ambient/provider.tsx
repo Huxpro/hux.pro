@@ -11,6 +11,7 @@ import {
   type WallpaperPlacement,
   getAmbientSettings,
   getDefaultSettings,
+  PAGE_GROUND,
   WALLPAPER_KIND_DEFAULTS,
   setAmbientSettings,
 } from "./lib/settings";
@@ -23,6 +24,7 @@ import {
   type Wallpaper,
   type WallpaperKind,
 } from "./lib/wallpaper";
+import { BEZEL_CLASS, resolveBezelTint, type BezelTint } from "@/systems/bezel";
 import {
   EDGE_FADE_MASK,
   EDGE_FADE_MASK_HIGH_CONTRAST,
@@ -35,6 +37,7 @@ import { usePathname } from "next/navigation";
 import { isReadingSurface } from "./lib/reading-surface";
 import { queryClient } from "@/lib/query";
 import { useDevtool } from "@/systems/devtool";
+
 
 function formatGeolocationError(err: unknown): string {
   if (err instanceof Error) return err.message || "Unknown error";
@@ -157,6 +160,34 @@ interface WallpaperContextType {
   blurred: boolean;
   /** Whether this page recedes the wallpaper — see `isReadingSurface`. */
   reading: boolean;
+  /**
+   * Letterbox — resolved. True paints everything outside the safe area black
+   * and keeps the wallpaper inside it; see the effect in the provider.
+   */
+  letterbox: boolean;
+  /** The stored choice: `null` is auto (the kind's default, on iOS only). */
+  letterboxSetting: boolean | null;
+  /** The stored band and radius: `null` means the kind's default is in force. */
+  letterboxBandSetting: number | null;
+  letterboxRadiusSetting: number | null;
+  setLetterbox: (value: boolean | null) => void;
+  /** Corner radius of the page inside the frame, px. */
+  letterboxRadius: number;
+  /** `null` hands the row back to the wallpaper kind's default. */
+  setLetterboxRadius: (px: number | null) => void;
+  /** The frame's colour: a named tint or a `#rrggbb` literal. */
+  letterboxTint: BezelTint;
+  setLetterboxTint: (tint: BezelTint) => void;
+  /** The tint resolved against the current theme, as a paintable colour. */
+  letterboxColor: string;
+  /** Band thickness, px. */
+  letterboxBand: number;
+  /** `null` hands the row back to the wallpaper kind's default. */
+  setLetterboxBand: (px: number | null) => void;
+  /** `letterbox`, but `null` until mounted. For <Bezel>. */
+  letterboxState: boolean | null;
+  /** What the stored setting resolves to; takes effect on the next load. */
+  letterboxNext: boolean;
   /** The reading treatment flags, for the devtool. */
   readingBlur: boolean;
   setReadingBlur: (value: boolean) => void;
@@ -282,6 +313,22 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   const wallpaperOpacity = WALLPAPER_OPACITY[settings.wallpaperKind][theme];
 
+  const setLetterbox = useCallback(
+    (value: boolean | null) => updateSettings({ wallpaperLetterbox: value }),
+    [updateSettings]
+  );
+  const setLetterboxRadius = useCallback(
+    (px: number | null) => updateSettings({ wallpaperLetterboxRadius: px }),
+    [updateSettings]
+  );
+  const setLetterboxTint = useCallback(
+    (tint: BezelTint) => updateSettings({ wallpaperLetterboxTint: tint }),
+    [updateSettings]
+  );
+  const setLetterboxBand = useCallback(
+    (px: number | null) => updateSettings({ wallpaperLetterboxBand: px }),
+    [updateSettings]
+  );
   const setReadingBlur = useCallback(
     (value: boolean) => updateSettings({ wallpaperReadingBlur: value }),
     [updateSettings]
@@ -307,7 +354,17 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   // 3 resolved rendering flags.
   // DevTool overrides bypass all natural derivation.
-  const isIOS = useMemo(() => isIOSBrowser(), []);
+  // Hydration-safe: false on the server and the first client render, then the
+  // real answer. It now decides rendered structure (the letterbox frame), so a
+  // render-time read would disagree with the server HTML.
+  // `null` until then: the boot script in app/layout.tsx has already put the
+  // letterbox class on <html> for a phone, and the effect below must not take
+  // it off for the one frame before the platform is known.
+  const [isIOS, setIsIOS] = useState<boolean | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: platform read
+    setIsIOS(isIOSBrowser());
+  }, []);
 
   const overridden = (
     key: keyof DevtoolPlacementOverrides,
@@ -320,16 +377,73 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     settings.wallpaperPlacement === "widget"
   );
 
+  /**
+   * Letterbox — the ryOS frame, on an iOS phone.
+   *
+   * Decided ONCE, by the boot script in app/layout.tsx, from the stored
+   * setting, the wallpaper kind and the platform, before first paint. It puts
+   * `bezel` on <html> with the frame colour on the root background and, on
+   * iOS, locks the document so the page scrolls in `#scroll-root`. React only
+   * reads that decision back. It never re-resolves it, because re-resolving
+   * after load is what made the frame and Safari's chrome change on a phone —
+   * see @/systems/bezel.
+   *
+   * So there are two answers here, and they are allowed to differ until the
+   * next load:
+   *
+   *   letterbox      what this page is actually showing. Read from <html>.
+   *   letterboxNext  what the stored setting resolves to. What the next load
+   *                  will show, and what the devtool edits.
+   */
+  const kindDefaults = WALLPAPER_KIND_DEFAULTS[settings.wallpaperKind];
+  const letterboxNext =
+    settings.wallpaperLetterbox ?? (isIOS === true && kindDefaults.letterbox);
+
+  /** `null` until mounted: the server cannot see what the boot script did. */
+  const [bootLetterbox, setBootLetterbox] = useState<boolean | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: reads the boot script's decision
+    setBootLetterbox(document.documentElement.classList.contains(BEZEL_CLASS));
+  }, []);
+  const letterbox = bootLetterbox === true;
+  /** The tri-state <Bezel> wants. */
+  const letterboxState = bootLetterbox;
+
+  const letterboxTint = settings.wallpaperLetterboxTint;
+  const letterboxBand = settings.wallpaperLetterboxBand ?? kindDefaults.band;
+  /** The stored tint's colour — the next load's frame, for the devtool swatch. */
+  const letterboxColor = resolveBezelTint(letterboxTint, PAGE_GROUND);
+
+  // theme-color. iOS 18 Safari tints its status bar from it (iOS 26 ignores
+  // it). The element is ours, not React's — created before first paint by the
+  // boot script. While framed, the boot script's value IS the answer and this
+  // leaves it alone for the life of the page; only an unframed page keeps it
+  // following the theme, as it always has. Next streams its own metadata in
+  // after this effect runs, so a React-owned meta would be a hydration
+  // mismatch.
+  useEffect(() => {
+    if (bootLetterbox !== false) return;
+    let meta = document.head.querySelector<HTMLMetaElement>("#hux-theme-color");
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.id = "hux-theme-color";
+      meta.name = "theme-color";
+      document.head.append(meta);
+    }
+    meta.content = PAGE_GROUND[theme];
+  }, [bootLetterbox, theme]);
+
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and
   // the home indicator ends in a hard line otherwise. Same switch, same masks,
   // for both wallpaper kinds — an image layer is just another layer in the
   // stack, so it gets exactly what the weather gradient gets. Whether it is on
-  // by default is the kind's call — see `WALLPAPER_KIND_DEFAULTS`.
-  const kindDefaults = WALLPAPER_KIND_DEFAULTS[settings.wallpaperKind];
+  // by default is the kind's call — see `WALLPAPER_KIND_DEFAULTS` — and
+  // letterbox makes it redundant: the edge it hides is then a clean line
+  // against the frame.
   const softEdgeEnabled = overridden(
     "softEdging",
-    isIOS && kindDefaults.softEdge
+    isIOS === true && kindDefaults.softEdge && !letterbox
   );
 
   // Debug override state (for weather and time)
@@ -607,6 +721,20 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       veil: veilAlpha,
       blurred: isBlurred,
       reading,
+      letterbox,
+      letterboxSetting: settings.wallpaperLetterbox,
+      setLetterbox,
+      letterboxRadius: settings.wallpaperLetterboxRadius ?? kindDefaults.radius,
+      setLetterboxRadius,
+      letterboxTint,
+      setLetterboxTint,
+      letterboxColor,
+      letterboxBand,
+      setLetterboxBand,
+      letterboxState,
+      letterboxNext,
+      letterboxBandSetting: settings.wallpaperLetterboxBand,
+      letterboxRadiusSetting: settings.wallpaperLetterboxRadius,
       readingBlur: settings.wallpaperReadingBlur,
       setReadingBlur,
       readingDim: settings.wallpaperReadingDim,
@@ -619,6 +747,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [
       settings.wallpaperKind,
       settings.wallpaperPlacement,
+      settings.wallpaperLetterbox,
+      settings.wallpaperLetterboxRadius,
+      kindDefaults,
       settings.wallpaperReadingBlur,
       settings.wallpaperReadingDim,
       setWallpaperKind,
@@ -636,6 +767,17 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       veilAlpha,
       isBlurred,
       reading,
+      letterbox,
+      setLetterbox,
+      setLetterboxRadius,
+      letterboxTint,
+      setLetterboxTint,
+      letterboxColor,
+      letterboxBand,
+      setLetterboxBand,
+      letterboxState,
+      letterboxNext,
+      settings.wallpaperLetterboxBand,
       setReadingBlur,
       setReadingDim,
       wallpaperSrc,

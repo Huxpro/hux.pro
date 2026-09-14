@@ -205,11 +205,34 @@ Where the active wallpaper paints is `wallpaperPlacement`:
 | `widget` | Only inside widget cards (each a viewport-aligned window onto it) |
 | `off` | Nowhere — the global background kill switch |
 
-**Soft edging** — the top/bottom fade — is on by default on iOS for the
-weather gradient and off for an image (`WALLPAPER_KIND_DEFAULTS`): a gradient
-is the page's colour pushed outward and fades back into it, while a photograph
-should end on a line. When it is on, an image wallpaper is just another layer
-in the stack, so it gets the same mask the weather gradient gets (`EDGE_FADE_MASK`, or the wider
+**Letterbox** — on by default on iOS — is the ryOS (os.ryo.lu) answer to a
+full-bleed background on a phone. Everything outside the page's safe area is
+one flat frame colour: `<html>` and `<body>` paint it, `theme-color` matches it
+so Safari's own chrome is the same, and the wallpaper and the page ground are
+fixed layers inset to the safe area (`surface.tsx`, `LETTERBOX_INSET`). The
+frame colour is `--letterbox`, the **dark ground (`#1a1a1a`) in both themes**:
+ryOS paints black, but Safari on a phone refused a black tint and kept its own
+dark grey, which `#1a1a1a` sits a few points from, so frame and chrome become
+one surface. The page inside stays white in light via its own ground layer.
+The bands and four corner pieces are drawn above everything
+(`letterbox-frame.tsx`), so content scrolling under them is hidden and the page
+is rounded off inside them, which is what makes the black read as a bezel
+rather than as a page that ran out (the corners are only visible where the
+wallpaper meets the frame). The bands overshoot the viewport by half a
+screen: iOS Safari relays out `fixed` a beat after the toolbar collapses, and
+the overshoot is what covers the strip it uncovers in that beat. The radius is
+`wallpaperLetterboxRadius` (default 24, ryOS ships 12; devtool slider 0–48).
+`theme-color` is created before first paint by an inline script in
+`app/layout.tsx` and updated by the provider — Safari reads it at load. Black in both themes: the frame is
+chrome, not part of the page. The wallpaper then ends on a hard line against
+black, and black surrounds it on every side — the status bar, the toolbar, the
+overscroll — so there is no seam left for a fade to soften. `wallpaperLetterbox` persists `true` / `false`;
+`null` is auto (iOS). The devtool row toggles it.
+
+**Soft edging** — the top/bottom fade — is what iOS had before letterbox, and
+it stays as the fallback: on by default on iOS when letterbox is off, for both
+kinds alike. An image wallpaper is just another layer in the stack, so it gets
+the same mask the weather gradient gets (`EDGE_FADE_MASK`, or the wider
 `EDGE_FADE_MASK_HIGH_CONTRAST` for dark-mode sunrise/sunset). The devtool
 switch overrides it either way.
 
@@ -322,6 +345,9 @@ const {
   opacity,                // Resolved for kind and theme
   veil,                   // The flat veil alpha over an image (reading pages)
   blurred,                // Whether this route defocuses the wallpaper
+  letterbox,              // Resolved; letterboxSetting is the stored tri-state
+  letterboxSetting,
+  setLetterbox,
   readingBlur,            // The two reading-treatment switches
 
   setReadingBlur,

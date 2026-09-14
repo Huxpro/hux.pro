@@ -1,5 +1,6 @@
 "use client";
 
+import { onPageScroll, pageScrollTop } from "@/systems/bezel";
 import { useEffect, useState, type CSSProperties } from "react";
 
 /**
@@ -32,19 +33,19 @@ export function useHeroFade(): CSSProperties | undefined {
     const getFadeDistance = () =>
       window.matchMedia("(min-width: 768px)").matches ? 144 : 176;
 
+    // Page scroll, not window scroll: on a locked phone the page scrolls in
+    // #scroll-root and the window never moves. See @/systems/bezel.
     const update = () => {
-      const scrollTop =
-        window.pageYOffset || document.documentElement.scrollTop || 0;
-      setOpacity(1 - Math.min(scrollTop / getFadeDistance(), 1));
+      setOpacity(1 - Math.min(pageScrollTop() / getFadeDistance(), 1));
     };
 
     const frame = window.requestAnimationFrame(update);
-    window.addEventListener("scroll", update, { passive: true });
+    const offScroll = onPageScroll(update);
     window.addEventListener("resize", update);
 
     return () => {
       window.cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", update);
+      offScroll();
       window.removeEventListener("resize", update);
     };
   }, [needsFallback]);

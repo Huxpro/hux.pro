@@ -1,5 +1,14 @@
 "use client";
 
+import {
+  emitPageScroll,
+  onPageScroll,
+  pageOffsetOf,
+  pageScrollHeight,
+  pageScrollTop,
+  pageViewportHeight,
+  scrollPageTo,
+} from "@/systems/bezel";
 import { cn } from "@/lib/utils";
 import {
   AnimatePresence,
@@ -162,21 +171,21 @@ function useReadingProgress(
     let docHeight = 0;
     let raf = 0;
 
+    // Page geometry, not window geometry: on a locked phone the page scrolls
+    // in #scroll-root, so the window's scrollY is always 0 there and its
+    // height is not the height of what scrolls. See @/systems/bezel.
     const measure = () => {
-      const scrollY = window.scrollY;
-      tops = sections.map(
-        ({ el }) => el.getBoundingClientRect().top + scrollY
-      );
-      docHeight = document.documentElement.scrollHeight;
+      tops = sections.map(({ el }) => pageOffsetOf(el));
+      docHeight = pageScrollHeight();
     };
 
     const update = () => {
       raf = 0;
       if (lockRef.current) return;
       // Late-loading media shifts offsets; re-measure when the page grows.
-      if (document.documentElement.scrollHeight !== docHeight) measure();
+      if (pageScrollHeight() !== docHeight) measure();
 
-      const vh = window.innerHeight;
+      const vh = pageViewportHeight();
       const maxScroll = Math.max(docHeight - vh, 1);
       const readingLine = vh * 0.4;
 
@@ -192,7 +201,7 @@ function useReadingProgress(
         anchors[i] = Math.min(anchors[i], anchors[i + 1] - 1);
       }
 
-      const y = window.scrollY;
+      const y = pageScrollTop();
       let p = 0;
       if (y >= anchors[anchors.length - 1]) {
         p = anchors.length - 1;
@@ -214,12 +223,12 @@ function useReadingProgress(
 
     measure();
     update();
-    window.addEventListener("scroll", schedule, { passive: true });
+    const offScroll = onPageScroll(schedule);
     window.addEventListener("resize", remeasure);
 
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", schedule);
+      offScroll();
       window.removeEventListener("resize", remeasure);
     };
   }, [sections, progress, lockRef]);
@@ -629,7 +638,7 @@ function DesktopRuler({
       // jump is mid-flight and will resync on its own.
       if (!jumpingRef.current) {
         lockRef.current = false;
-        window.dispatchEvent(new Event("scroll"));
+        emitPageScroll();
       }
     };
   }, [hovered, sections.length, progress, lockRef, jumpingRef]);
@@ -804,7 +813,7 @@ function MobileRuler({
       if (e.type === "pointercancel") {
         // Gesture stolen by the system — resync with the real scroll.
         lockRef.current = false;
-        window.dispatchEvent(new Event("scroll"));
+        emitPageScroll();
       } else {
         // Snap to the nearest section; the jump animation owns the lockRef.
         onJump(Math.round(s.index));
@@ -939,7 +948,7 @@ export function RulerToc() {
     (i: number) => {
       const el = sections[i]?.el;
       if (!el) return;
-      const top = Math.max(0, el.getBoundingClientRect().top + window.scrollY - 96);
+      const top = Math.max(0, pageOffsetOf(el) - 96);
       if (el.id) window.history.replaceState(null, "", `#${el.id}`);
 
       lockRef.current = true;
@@ -947,10 +956,10 @@ export function RulerToc() {
       progress.set(i);
 
       if (reduced) {
-        window.scrollTo(0, top);
+        scrollPageTo(top);
         jumpingRef.current = false;
         lockRef.current = false;
-        window.dispatchEvent(new Event("scroll"));
+        emitPageScroll();
         return;
       }
 
@@ -963,12 +972,13 @@ export function RulerToc() {
         window.removeEventListener("touchmove", stopOnInput);
         jumpingRef.current = false;
         lockRef.current = false;
-        window.dispatchEvent(new Event("scroll"));
+        emitPageScroll();
       };
-      const controls = animate(window.scrollY, top, {
-        duration: Math.min(1.1, 0.5 + Math.abs(top - window.scrollY) / 8000),
+      const from = pageScrollTop();
+      const controls = animate(from, top, {
+        duration: Math.min(1.1, 0.5 + Math.abs(top - from) / 8000),
         ease: [0.32, 0.72, 0, 1],
-        onUpdate: (v) => window.scrollTo(0, v),
+        onUpdate: (v) => scrollPageTo(v),
       });
       stopOnInput = () => {
         controls.stop();

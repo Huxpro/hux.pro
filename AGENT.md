@@ -76,3 +76,55 @@ duration-300 (morphing transitions)
 - Set `localStorage.hux_music_mock = "1"` **before app scripts run** (e.g. Playwright `context.addInitScript()`), or flip "Mock player" in the Devtool panel → Music section.
 - The flag makes `MusicProvider` skip the YouTube IFrame API and drive every music surface (home widget, Live Activity, playlist sheet) from the committed fixture in `systems/music/lib/mock.ts` — play/pause/skip/select all work with zero network.
 - Use this for headless-browser verification in sandboxes where `youtube.com` is unreachable. Never enabled by default; real visitors always get the real player.
+
+### Testing the Bezel
+
+`systems/bezel` — the frame that surrounds the page on a phone, after ryOS. The
+component takes props and knows nothing about settings; the ambient system maps
+these keys onto it. They live in `hux_ambient_settings`:
+
+| Key | Values | Default |
+|---|---|---|
+| `wallpaperLetterbox` | `true` / `false` / `null` = the kind's default, on iOS only | `null` |
+| `wallpaperLetterboxTint` | `"black"` / `"dark"` / `"#rrggbb"` | `"black"` |
+| `wallpaperLetterboxBand` | px, 0 to 64, or `null` = the kind's default | `null` |
+| `wallpaperLetterboxRadius` | px, 0 to 64, or `null` = the kind's default | `null` |
+
+`null` means "follow the wallpaper kind", and the two kinds want opposite
+things (`WALLPAPER_KIND_DEFAULTS` in `systems/ambient/lib/settings.ts`):
+
+| Kind | Soft edge | Frame | Band | Radius |
+|---|---|---|---|---|
+| `weather` | on | off | — | — |
+| `image` | off | on | 0px | 16px |
+
+Both are gated on iOS: a desktop window gets neither treatment.
+
+**The frame is decided once per page load, and never again.** The boot script
+in `app/layout.tsx` resolves the frame, its colour and — on iOS — the document
+lock before first paint; React reads that decision back and does not
+re-resolve it. So `wallpaperLetterbox` and `wallpaperLetterboxTint` take effect
+on the NEXT load, including when changed in the Devtool. Band and radius stay
+live. Do not reintroduce anything that writes the frame colour, the `bezel`
+class or the lock after load: that is exactly what made the chrome change on a
+real phone.
+
+**On an iOS phone with the frame up, the document does not scroll.** `<body>`
+is fixed and the page scrolls in `#scroll-root`. Anything that reads or drives
+page scroll must use the helpers in `systems/bezel/page-scroll.ts`
+(`pageScrollTop`, `onPageScroll`, `scrollPageTo`, `pageOffsetOf`, …) — never
+`window.scrollY`, `window.scrollTo` or a `window` scroll listener, which read 0
+and do nothing there. A desktop browser will not show you this breakage.
+
+Two things only a real WebKit shows (measured on iOS 26.5), both load-bearing:
+
+- **Safari tints its chrome from `position: fixed` content at the viewport
+  edge** — even a transparent full-screen fixed overlay makes it sample
+  whatever is composited beneath — and otherwise from the root background.
+  `theme-color` is ignored. On a locked page, `globals.css` turns every
+  full-screen layer into an absolutely positioned child of the fixed body so
+  nothing fixed spans the edge. A new overlay portalled into `<body>` is
+  covered automatically; a new full-screen layer that is NOT a direct child of
+  `<body>` needs `data-bezel-layer`.
+- **Safari reports every safe-area inset as zero in portrait.** The band is the
+  only thing giving the frame any thickness there.

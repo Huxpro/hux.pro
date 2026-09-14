@@ -1,5 +1,6 @@
 "use client";
 
+import { onPageScroll } from "@/systems/bezel";
 import { useEffect } from "react";
 import { makeStore } from "./persisted-setting";
 
@@ -153,12 +154,13 @@ export function ReadingRootSync() {
     };
 
     update();
-    window.addEventListener("scroll", schedule, { passive: true });
+    // Page scroll: a locked phone scrolls #scroll-root, not the window.
+    const offScroll = onPageScroll(schedule);
     window.addEventListener("resize", schedule);
 
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", schedule);
+      offScroll();
       window.removeEventListener("resize", schedule);
       root.removeAttribute("data-reading-focus");
       document
