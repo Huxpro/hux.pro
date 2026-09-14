@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { makeStore } from "./persisted-setting";
+import { makeStore } from "@/lib/persisted-setting";
 
 /**
  * Reading-surface settings — small persisted, global dev-time channels

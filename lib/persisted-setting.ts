@@ -4,12 +4,17 @@ import { useSyncExternalStore } from "react";
 
 /**
  * A tiny persisted client setting: a `localStorage` value broadcast on a custom
- * event, exposed as `get` / `set` plus a `use` hook. Shared by the reading
- * settings (bleed, typeface, measure, focus) and the ruler dock side — each is
- * the same "value + change event + useSyncExternalStore" shape.
+ * event, exposed as `get` / `set` plus a `use` hook. Every small persisted
+ * choice is the same "value + change event + useSyncExternalStore" shape — the
+ * reading settings (bleed, typeface, measure, focus), the ruler dock side, the
+ * Glass material — so they all come from here rather than each hand-rolling a
+ * read, a try/catch and a way to hear about a change.
  *
- * The setting applies whether or not the devtool is enabled; the panel is just
- * the UI for flipping it.
+ * `storage` is subscribed alongside the custom event, so a setting changed in
+ * one tab lands in the others.
+ *
+ * A setting applies whether or not the devtool is enabled; the panel is just
+ * one of the UIs for flipping it.
  */
 export interface PersistedSetting<T extends string> {
   get: () => T;

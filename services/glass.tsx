@@ -1,14 +1,8 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
 import { t, type Locale } from "@/lib/i18n";
+import { makeStore } from "@/lib/persisted-setting";
+import { useCallback, useEffect, useMemo } from "react";
 
 // =============================================================================
 // Glass — the material every floating System UI surface is made of.
@@ -23,77 +17,63 @@ import { t, type Locale } from "@/lib/i18n";
 // The choice is one class on <html>; the fills themselves are CSS variables in
 // app/globals.css. Nothing re-renders to change material, and any surface that
 // paints with `bg-glass*` follows along for free.
+//
+// Persistence is `makeStore`, the same factory the reading settings use: it
+// owns the localStorage read and write, the change event, and cross-tab sync.
+// What is particular to the material — the class on <html> — is what lives
+// here, in GlassRootSync.
 // =============================================================================
 
 export type GlassMaterial = "tinted" | "clear";
 
 export const GLASS_MATERIALS: GlassMaterial[] = ["tinted", "clear"];
 
-const STORAGE_KEY = "hux_glass";
 const CLEAR_CLASS = "glass-clear";
+
+const store = makeStore<GlassMaterial>(
+  "hux_glass",
+  "hux:glass",
+  "tinted",
+  (raw) => (raw === "clear" ? "clear" : "tinted"),
+);
+
+export const getGlassMaterial = store.get;
+export const setGlassMaterial = store.set;
 
 /** Apple's own names, in both languages: Settings → Display & Brightness. */
 export function getGlassLabel(material: GlassMaterial, locale: Locale): string {
   return t(locale, material === "clear" ? "glassClear" : "glassTinted");
 }
 
-function readStored(): GlassMaterial {
-  if (typeof window === "undefined") return "tinted";
-  try {
-    return localStorage.getItem(STORAGE_KEY) === "clear" ? "clear" : "tinted";
-  } catch {
-    return "tinted";
-  }
-}
-
-interface GlassContextType {
-  material: GlassMaterial;
-  setMaterial: (material: GlassMaterial) => void;
-  toggle: () => void;
-}
-
-const GlassContext = createContext<GlassContextType | undefined>(undefined);
-
+/**
+ * The material, and the two ways to change it. `tinted` on the server and on
+ * the first client render — `makeStore`'s server snapshot is the fallback — so
+ * hydration matches; the stored choice arrives immediately after.
+ */
 export function useGlass() {
-  const context = useContext(GlassContext);
-  if (!context) throw new Error("useGlass must be used within GlassProvider");
-  return context;
+  const material = store.use();
+
+  const toggle = useCallback(
+    () => store.set(material === "clear" ? "tinted" : "clear"),
+    [material],
+  );
+
+  return useMemo(
+    () => ({ material, setMaterial: store.set, toggle }),
+    [material, toggle],
+  );
 }
 
-export function GlassProvider({ children }: { children: React.ReactNode }) {
-  // Default on the server and the first client render, then hydrate from
-  // localStorage — the same hydration-safe shape the ambient settings use.
-  const [material, setMaterialState] = useState<GlassMaterial>("tinted");
+/**
+ * Reflects the material onto <html>, where the CSS variables hang off it.
+ * Renders nothing; mount it once at the app root, like ReadingRootSync.
+ */
+export function GlassRootSync() {
+  const { material } = useGlass();
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: localStorage read
-    setMaterialState(readStored());
-  }, []);
-
-  // The material is a class on <html>, not a prop threaded through the tree.
   useEffect(() => {
     document.documentElement.classList.toggle(CLEAR_CLASS, material === "clear");
   }, [material]);
 
-  const setMaterial = useCallback((next: GlassMaterial) => {
-    setMaterialState(next);
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      // Ignore storage errors
-    }
-  }, []);
-
-  // One write path to the stored key, so persistence can only be wrong once.
-  const toggle = useCallback(
-    () => setMaterial(material === "clear" ? "tinted" : "clear"),
-    [material, setMaterial]
-  );
-
-  const value = useMemo(
-    () => ({ material, setMaterial, toggle }),
-    [material, setMaterial, toggle]
-  );
-
-  return <GlassContext.Provider value={value}>{children}</GlassContext.Provider>;
+  return null;
 }

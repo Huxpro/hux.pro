@@ -4,7 +4,6 @@ import { queryClient, queryPersister } from "@/lib/query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 
 import {
-  GlassProvider,
   InputCapabilityProvider,
   LocaleProvider,
   ThemeProvider,
@@ -52,7 +51,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <InputCapabilityProvider>
         <ThemeProvider>
-          <GlassProvider>
           <LocaleProvider>
             <VisitorProvider>
               <CommandProvider>
@@ -71,7 +69,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
               </CommandProvider>
             </VisitorProvider>
           </LocaleProvider>
-          </GlassProvider>
         </ThemeProvider>
       </InputCapabilityProvider>
     </PersistQueryClientProvider>

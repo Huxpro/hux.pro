@@ -1,6 +1,6 @@
 "use client";
 
-import { makeStore } from "./persisted-setting";
+import { makeStore } from "@/lib/persisted-setting";
 
 /**
  * Ruler ToC settings — a tiny persisted channel, adjustable from the

@@ -1,4 +1,5 @@
 import { ReadingRootSync } from "@/components/post/reading-settings";
+import { GlassRootSync } from "@/services";
 import { Providers } from "@/shared/providers";
 import {
   AmbientPhaseActivity,
@@ -102,6 +103,7 @@ export default function RootLayout({
           className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
         >
           <Providers>
+            <GlassRootSync />
             <ReadingRootSync />
             <DevtoolFAB />
             <AmbientSurface>{children}</AmbientSurface>
