@@ -9,7 +9,13 @@ import {
   useLocale,
   useTheme,
 } from "@/services";
-import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
+import {
+  useAmbientTime,
+  useLocation,
+  useWallpaper,
+  useWallpaperPaint,
+  useWeather,
+} from "@/systems/ambient";
 import { formatClockTime } from "@/systems/ambient/lib/format";
 import {
   getSunEventGradient,
@@ -789,11 +795,6 @@ function WallpaperModule() {
     setKind,
     wallpaper,
     variant,
-    opacity,
-    veil,
-    blurred,
-    reading,
-    src,
     readingBlur,
     setReadingBlur,
     readingDim,
@@ -806,6 +807,7 @@ function WallpaperModule() {
     devtoolOverrides,
     setDevtoolOverrides,
   } = useWallpaper();
+  const { opacity, veil, blurred, reading, src } = useWallpaperPaint();
 
   const isImage = kind === "image";
 

@@ -136,34 +136,14 @@ interface WallpaperContextType {
   fullEnabled: boolean;
   widgetEnabled: boolean;
   softEdgeEnabled: boolean;
-  /** Crossfade stack: [...settled, newest]. Render via <GradientStack />. */
-  layers: GradientLayerData[];
-  /** Resolved CSS mask-image value, or null when soft-edging is off. */
-  edgeMask: string | null;
   /** Ephemeral devtool overrides for the three resolved flags. */
   devtoolOverrides: DevtoolPlacementOverrides;
   setDevtoolOverrides: (overrides: DevtoolPlacementOverrides) => void;
-  /**
-   * Opacity the wallpaper layer paints at. Images paint at full strength; the
-   * weather gradient is a wash and sits below it.
-   */
-  opacity: number;
-  /**
-   * Alpha of the veil drawn OVER the wallpaper, or 0 for none. Non-zero only
-   * on a reading page under an image wallpaper.
-   */
-  veil: number;
-  /** Whether the wallpaper should be defocused right now. */
-  blurred: boolean;
-  /** Whether this page recedes the wallpaper — see `isReadingSurface`. */
-  reading: boolean;
   /** The reading treatment flags, for the devtool. */
   readingBlur: boolean;
   setReadingBlur: (value: boolean) => void;
   readingDim: boolean;
   setReadingDim: (value: boolean) => void;
-  /** The file currently painting, for the devtool readout. */
-  src: string | null;
   /** Secondary window — the wallpaper picker. */
   isPickerOpen: boolean;
   openPicker: () => void;
@@ -180,6 +160,63 @@ export function useWallpaper() {
 
 export function useOptionalWallpaper() {
   return useContext(WallpaperContext);
+}
+
+// =============================================================================
+// Wallpaper Paint Context
+//
+// The half of the wallpaper that changes while nothing is being *chosen*: the
+// crossfade stack and the treatment painted over it.
+//
+// It changes far more often than the selection does. `layers` changes twice per
+// background change — once when the new layer is pushed, once when it is pruned
+// after the crossfade — and under an image wallpaper the reading treatment
+// (`blurred`, `veil`, `reading`, and the file `src` resolves to) flips on every
+// navigation on or off `/`.
+//
+// Only the things that PAINT the wallpaper read this: <WallpaperBackground />,
+// the per-card overlay in <WidgetShell />, and the devtool's readout. Everything
+// that reads the selection and the settings — the command palette, the picker
+// sheet — stays on WallpaperContext above, so a push, a prune or a navigation
+// no longer re-renders them for a value they never look at.
+// =============================================================================
+
+interface WallpaperPaintContextType {
+  /** Crossfade stack: [...settled, newest]. Render via <GradientStack />. */
+  layers: GradientLayerData[];
+  /** Resolved CSS mask-image value, or null when soft-edging is off. */
+  edgeMask: string | null;
+  /**
+   * Opacity the wallpaper layer paints at. Images paint at full strength; the
+   * weather gradient is a wash and sits below it.
+   */
+  opacity: number;
+  /**
+   * Alpha of the veil drawn OVER the wallpaper, or 0 for none. Non-zero only
+   * on a reading page under an image wallpaper.
+   */
+  veil: number;
+  /** Whether the wallpaper should be defocused right now. */
+  blurred: boolean;
+  /** Whether this page recedes the wallpaper — see `isReadingSurface`. */
+  reading: boolean;
+  /** The file currently painting, for the devtool readout. */
+  src: string | null;
+}
+
+const WallpaperPaintContext = createContext<
+  WallpaperPaintContextType | undefined
+>(undefined);
+
+export function useWallpaperPaint() {
+  const context = useContext(WallpaperPaintContext);
+  if (!context)
+    throw new Error("useWallpaperPaint must be used within AmbientProvider");
+  return context;
+}
+
+export function useOptionalWallpaperPaint() {
+  return useContext(WallpaperPaintContext);
 }
 
 // =============================================================================
@@ -599,19 +636,12 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       fullEnabled,
       widgetEnabled,
       softEdgeEnabled,
-      layers,
-      edgeMask,
       devtoolOverrides,
       setDevtoolOverrides,
-      opacity: wallpaperOpacity,
-      veil: veilAlpha,
-      blurred: isBlurred,
-      reading,
       readingBlur: settings.wallpaperReadingBlur,
       setReadingBlur,
       readingDim: settings.wallpaperReadingDim,
       setReadingDim,
-      src: wallpaperSrc,
       isPickerOpen,
       openPicker,
       closePicker,
@@ -629,19 +659,36 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       fullEnabled,
       widgetEnabled,
       softEdgeEnabled,
+      devtoolOverrides,
+      setReadingBlur,
+      setReadingDim,
+      isPickerOpen,
+      openPicker,
+      closePicker,
+    ]
+  );
+
+  // Memoised for the same reason, and split for a sharper one: this value
+  // changes on every push, prune and navigation, and the context above must not
+  // move with it.
+  const wallpaperPaintValue = useMemo(
+    () => ({
       layers,
       edgeMask,
-      devtoolOverrides,
+      opacity: wallpaperOpacity,
+      veil: veilAlpha,
+      blurred: isBlurred,
+      reading,
+      src: wallpaperSrc,
+    }),
+    [
+      layers,
+      edgeMask,
       wallpaperOpacity,
       veilAlpha,
       isBlurred,
       reading,
-      setReadingBlur,
-      setReadingDim,
       wallpaperSrc,
-      isPickerOpen,
-      openPicker,
-      closePicker,
     ]
   );
 
@@ -650,7 +697,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       <WeatherContext.Provider value={weatherValue}>
         <AmbientTimeContext.Provider value={timeValue}>
           <WallpaperContext.Provider value={wallpaperValue}>
-            {children}
+            <WallpaperPaintContext.Provider value={wallpaperPaintValue}>
+              {children}
+            </WallpaperPaintContext.Provider>
           </WallpaperContext.Provider>
         </AmbientTimeContext.Provider>
       </WeatherContext.Provider>

@@ -10,7 +10,8 @@ background feature; it is the one wallpaper that changes on its own. See
 
 ```
 systems/ambient/
-├── provider.tsx                  # AmbientProvider (Location + Weather + Time contexts)
+├── provider.tsx                  # AmbientProvider (Location + Weather + Time
+│                                 #   + Wallpaper + WallpaperPaint contexts)
 ├── components/
 │   ├── greeting.tsx              # Time-based greeting component
 │   ├── surface.tsx               # Page container + full-page wallpaper mount
@@ -181,7 +182,7 @@ the damping needed to rescue that made the wallpaper a ghost; the tiles keep a
 sun / moon on each half as an indicator, not a control.
 
 Opacity is resolved once, in the provider, and read by both the full-page layer
-and the widget overlay as `useWallpaper().opacity`:
+and the widget overlay as `useWallpaperPaint().opacity`:
 
 | | Light theme | Dark theme |
 |---|---|---|
@@ -315,24 +316,44 @@ const {
   fullEnabled,            // Resolved from placement, or a devtool override
   widgetEnabled,
   softEdgeEnabled,
-  layers,                 // The shared crossfade stack (either kind)
-  edgeMask,               // CSS mask-image, or null
   devtoolOverrides,       // Ephemeral, devtool only
   setDevtoolOverrides,
-  opacity,                // Resolved for kind and theme
-  veil,                   // The flat veil alpha over an image (reading pages)
-  blurred,                // Whether this route defocuses the wallpaper
   readingBlur,            // The two reading-treatment switches
-
   setReadingBlur,
   readingDim,
   setReadingDim,
-  src,                    // The file currently painting, for the devtool
   isPickerOpen,
   openPicker,
   closePicker,
 } = useWallpaper();
 ```
+
+### useWallpaperPaint
+
+What the wallpaper is *painting* right now, as opposed to what has been
+**chosen** above. A second context, because it changes on a different clock:
+`layers` changes twice per background change (the push, then the prune once the
+crossfade settles), and under an image wallpaper the reading treatment flips on
+every navigation on or off `/`.
+
+```typescript
+const {
+  layers,                 // The shared crossfade stack (either kind)
+  edgeMask,               // CSS mask-image, or null
+  opacity,                // Resolved for kind and theme
+  veil,                   // The flat veil alpha over an image (reading pages)
+  blurred,                // Whether this route defocuses the wallpaper
+  reading,                // Whether this route recedes the wallpaper at all
+  src,                    // The file currently painting, for the devtool
+} = useWallpaperPaint();
+```
+
+Only the surfaces that paint the wallpaper subscribe: `<WallpaperBackground />`,
+the per-card overlay in `<WidgetShell />`, and the devtool readout. Everything
+that reads the *selection* — the command palette, the picker sheet — stays on
+`useWallpaper()`, so a push, a prune or a navigation no longer re-renders it.
+Measured with a render counter on a production build: a navigation on or off `/`
+used to re-render the palette 3 times and now does not re-render it at all.
 
 ### useAmbientTime
 

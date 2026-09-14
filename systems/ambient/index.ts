@@ -16,6 +16,8 @@ export {
   useAmbientTime,
   useWallpaper,
   useOptionalWallpaper,
+  useWallpaperPaint,
+  useOptionalWallpaperPaint,
 } from "./provider";
 
 // Components
