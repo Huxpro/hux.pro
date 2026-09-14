@@ -91,9 +91,9 @@ export const viewport: Viewport = {
 };
 
 /**
- * Mirrors the provider's resolution (`letterbox` → black, else the theme's
- * page ground) from what is knowable before React runs: the stored ambient
- * setting, the platform, the stored theme, the system theme.
+ * Mirrors the provider's resolution — the theme's page ground, which is also
+ * the letterbox frame's colour — from what is knowable before React runs: the
+ * stored ambient setting, the platform, the stored theme, the system theme.
  */
 const THEME_COLOR_BOOT = `(function(){try{
 var s=JSON.parse(localStorage.getItem("hux_ambient_settings")||"{}");
@@ -103,7 +103,7 @@ var t=localStorage.getItem("hux_theme");
 var dark=t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);
 if(box)document.documentElement.classList.add("letterbox");
 var m=document.createElement("meta");m.id="hux-theme-color";m.name="theme-color";
-m.content=box?"#000000":dark?"#1a1a1a":"#ffffff";document.head.appendChild(m);
+m.content=dark?"#1a1a1a":"#ffffff";document.head.appendChild(m);
 }catch(e){}})()`;
 
 export default function RootLayout({

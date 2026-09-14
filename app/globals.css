@@ -233,21 +233,24 @@ html.dark.glass-clear {
 
 /* -----------------------------------------------------------------------------
    Letterbox
-   Everything outside the page's safe area is black: the notch band, the home
-   indicator band, the overscroll, and — via theme-color, set by the ambient
-   provider — Safari's own chrome. The page ground and the wallpaper are
-   painted by fixed layers inset to the safe area (`surface.tsx`), so the
-   body paints black rather than the page ground — Safari also samples
-   html/body when it tints its chrome, so both must be black — and the bands and four black corner
-   pieces are drawn above everything (`letterbox-frame.tsx`) so content
-   scrolling under them is hidden and the black reads as a bezel, not as a
-   page that ran out. Black in both themes — the frame
-   is chrome, not part of the page. After ryOS. Toggled on <html> by the
-   ambient provider; auto on iOS.
+   Everything outside the page's safe area is the page ground: the notch band,
+   the home indicator band, the overscroll, and — via theme-color, set before
+   first paint by the inline script in app/layout.tsx — Safari's own chrome.
+   The wallpaper is a fixed layer inset to the safe area (`surface.tsx`), and
+   the bands and four corner pieces are drawn above everything
+   (`letterbox-frame.tsx`) so content scrolling under them is hidden and the
+   frame reads as a bezel, not as a page that ran out.
+
+   Why the ground and not black: Safari on a phone refused a black tint and
+   kept its own dark grey, so a black frame met a grey chrome at a visible
+   line. The ground it does honour — white in light, #1a1a1a in dark, a few
+   points off Safari's grey — so the frame and the chrome become one surface.
+   After ryOS, which paints its frame black and whose chrome happens to be.
+   Toggled on <html> by the boot script and the ambient provider; auto on iOS.
 ----------------------------------------------------------------------------- */
 html.letterbox,
 html.letterbox body {
-  background-color: #000;
+  background-color: var(--background);
 }
 html.letterbox {
   overscroll-behavior-y: none;

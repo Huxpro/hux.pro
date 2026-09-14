@@ -1028,8 +1028,8 @@ function WallpaperModule() {
           )}
           <div className="text-[10px] font-mono text-muted-foreground/70">
             {zh
-              ? "安全区外全黑：刘海、Home 条、浏览器 chrome。壁纸止于安全区。"
-              : "Black outside the safe area: notch, home bar, browser chrome. Wallpaper stops at the safe area."}
+              ? "安全区外为页面底色：刘海、Home 条、浏览器 chrome。壁纸止于安全区。"
+              : "Page ground outside the safe area: notch, home bar, browser chrome. Wallpaper stops at the safe area."}
           </div>
         </div>
 

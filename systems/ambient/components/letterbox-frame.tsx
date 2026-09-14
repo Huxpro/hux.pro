@@ -3,14 +3,18 @@
 import { useWallpaper } from "../provider";
 
 // ---------------------------------------------------------------------------
-// LetterboxFrame — what makes the black read as chrome.
+// LetterboxFrame — what makes the bands read as chrome.
 //
-// Painting `<html>` black is half of the ryOS look. The other half is that
-// the black is a FRAME the page sits in, not a page that ran out: the bands
-// under the notch and the home indicator are drawn above everything, so
-// content scrolling under them is hidden the way a bezel hides it, and four
-// black quarter-circles round the page off inside the bands, the way iOS
+// Painting `<html>` in the frame colour is half of the ryOS look. The other
+// half is that it is a FRAME the page sits in, not a page that ran out: the
+// bands under the notch and the home indicator are drawn above everything,
+// so content scrolling under them is hidden the way a bezel hides it, and
+// four quarter-circles round the page off inside the bands, the way iOS
 // rounds every app's window. After ryOS's DesktopCornerMask.
+//
+// The frame is the page ground, not black — see globals.css: Safari refused
+// a black tint for its chrome and kept its own grey, and the ground is what
+// it honours, so ground-coloured bands are what meet the chrome seamlessly.
 //
 // Above everything on purpose (the dock, sheets, the palette): the frame
 // clips whatever is inside it.
@@ -39,14 +43,14 @@ export function LetterboxFrame() {
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-[9999]">
       {/* The bands. */}
       <div
-        className="absolute inset-x-0 bg-black"
+        className="absolute inset-x-0 bg-background"
         style={{
           top: `calc(-1 * ${OVERSHOOT})`,
           height: `calc(${OVERSHOOT} + env(safe-area-inset-top, 0px))`,
         }}
       />
       <div
-        className="absolute inset-x-0 bg-black"
+        className="absolute inset-x-0 bg-background"
         style={{
           bottom: `calc(-1 * ${OVERSHOOT})`,
           height: `calc(${OVERSHOOT} + env(safe-area-inset-bottom, 0px))`,
@@ -68,7 +72,7 @@ export function LetterboxFrame() {
               style={{
                 width: r,
                 height: r,
-                background: `radial-gradient(circle at ${at}, transparent 0 ${r - 0.5}px, #000 ${r}px)`,
+                background: `radial-gradient(circle at ${at}, transparent 0 ${r - 0.5}px, var(--background) ${r}px)`,
               }}
             />
           ))}

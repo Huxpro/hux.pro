@@ -361,11 +361,13 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
    * background resizes as the toolbar collapses, the mask's bottom stop rides
    * `safe-area-inset-bottom`, and whatever the page paints under the notch
    * and the home indicator is what shows through. ryOS (os.ryo.lu) does not
-   * fight any of that. It paints `<html>` black, sets `theme-color` black so
-   * Safari's own chrome is black too, and keeps the desktop inside the safe
-   * area. The wallpaper then ends on a hard line against black, and black is
-   * what surrounds it on every side — the status bar, the toolbar, the
-   * overscroll — so there is no seam left for a fade to soften.
+   * fight any of that. It paints `<html>` in one flat frame colour, sets
+   * `theme-color` to match so Safari's own chrome is the same, and keeps the
+   * desktop inside the safe area. The wallpaper then ends on a hard line
+   * against the frame, and the frame is what surrounds it on every side — the
+   * status bar, the toolbar, the overscroll — so there is no seam left for a
+   * fade to soften. Our frame colour is the page ground (globals.css says
+   * why it is not black).
    *
    * Auto is iOS. The setting is persisted so a phone can be checked across a
    * reload; the devtool row toggles it.
@@ -377,8 +379,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     document.documentElement.classList.toggle("letterbox", letterbox);
   }, [letterbox, isIOS]);
 
-  // Safari tints its chrome with theme-color, so this is where the letterbox
-  // becomes continuous with the status bar and the toolbar. The element is
+  // Safari tints its chrome with theme-color, so this is what makes the
+  // letterbox continuous with the status bar and the toolbar. The element is
   // ours, not React's — created before first paint by the inline script in
   // app/layout.tsx and only updated here. Next streams its own metadata in
   // after this effect has run, so a React-owned meta mutated here would be a
@@ -392,12 +394,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       meta.name = "theme-color";
       document.head.append(meta);
     }
-    meta.content = letterbox
-      ? "#000000"
-      : theme === "dark"
-        ? THEME_COLOR.dark
-        : THEME_COLOR.light;
-  }, [letterbox, theme]);
+    // The page ground in both cases: it is also the letterbox frame's colour.
+    // Safari refused a black tint on a phone and kept its own grey; the
+    // ground it honours, so frame and chrome become one surface.
+    meta.content = theme === "dark" ? THEME_COLOR.dark : THEME_COLOR.light;
+  }, [theme]);
 
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and

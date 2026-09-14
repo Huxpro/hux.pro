@@ -11,12 +11,13 @@ export function AmbientSurface({ children }: { children: React.ReactNode }) {
 
   return (
     // `isolate`: a stacking context of its own, so the negative-z ground and
-    // wallpaper layers paint above the body's background. Letterboxed, the
-    // body is black (Safari samples html/body for its chrome tint), and
-    // without this it would cover them.
+    // wallpaper layers paint above the body's background (letterboxed, the
+    // body paints the frame colour — Safari samples html/body for its chrome
+    // tint — and without this it would cover them).
     <div className="isolate">
-      {/* Letterboxed, the body is black and this paints the page ground
-          inside the safe area instead. */}
+      {/* Letterboxed, the body paints the frame and this paints the page
+          ground inside the safe area. Same colour today; kept separate so
+          the frame can differ from the page again. */}
       {letterbox && (
         <>
           <div
