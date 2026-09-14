@@ -1,8 +1,8 @@
 "use client";
 
+import { GLASS_CLUSTER, GLASS_CLUSTER_BTN, GLASS_PILL } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
-import { GLASS_CLUSTER, GLASS_CLUSTER_BTN, GLASS_PILL } from "../lib/chrome";
 import { formatTime } from "../lib/player";
 import { useTheater } from "../provider";
 

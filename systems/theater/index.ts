@@ -13,7 +13,6 @@ export {
   TheaterSurfaces,
   TheaterActivity,
   TheaterRegistrar,
-  AlbumTabs,
   TrackThumb,
 } from "./components";
 export {

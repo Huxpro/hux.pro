@@ -1,4 +1,3 @@
-export { AlbumTabs } from "./album-tabs";
 export { PlaylistRail } from "./playlist-rail";
 export { Stage } from "./stage";
 export { TheaterActivity } from "./theater-activity";

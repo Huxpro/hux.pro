@@ -43,6 +43,13 @@ token follows along for free:
 | `bg-glass-popover` | Command palette, devtool panel |
 | `GLASS_PANEL` (`lib/glass.ts`) | The lifted peek panel, shared by two callers |
 
+Class-string recipes — the frosted track, the lifted pill, the clustered
+toolbars, their on-dark twins — all live in **`lib/glass.ts`**. They used to sit
+in `systems/theater/lib/chrome.ts`, because playback chrome needed them first,
+but the same material now carries the music Live Activity, the widgets and the
+wallpaper picker's categories. One module, whoever paints with it; the eslint
+rule ignores that file and nothing else.
+
 **Adding a surface:** use a glass token instead of `bg-card/NN`. That is the
 whole contract — a surface that hardcodes its own alpha simply won't respond to
 the setting, which is the bug this system exists to prevent.

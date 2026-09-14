@@ -1,10 +1,10 @@
 "use client";
 
+import { GLASS_CLUSTER, GLASS_CLUSTER_BTN, GLASS_PILL } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { Pause, Play, SkipBack, SkipForward, X } from "lucide-react";
 import { useRef } from "react";
-import { GLASS_CLUSTER, GLASS_CLUSTER_BTN, GLASS_PILL } from "../lib/chrome";
 import { PIP_CONTROLS_H } from "../lib/geometry";
 import { useTheater } from "../provider";
 import { SurfaceSwitch } from "./surface-switch";

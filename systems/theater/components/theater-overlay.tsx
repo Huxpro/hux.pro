@@ -1,5 +1,7 @@
 "use client";
 
+import { SegmentedCapsule } from "@/components/ui/segmented-capsule";
+import { GLASS_BTN, GLASS_CLUSTER, GLASS_ORB } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -9,15 +11,10 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  GLASS_BTN,
-  GLASS_CLUSTER,
-  GLASS_ORB,
-  THEATER_BACKDROP,
-} from "../lib/chrome";
+import { albumSegments } from "../lib/albums";
+import { THEATER_BACKDROP } from "../lib/chrome";
 import { THEATER_BOTTOM, THEATER_TOP_BAR } from "../lib/geometry";
 import { useTheater } from "../provider";
-import { AlbumTabs } from "./album-tabs";
 import { PlaylistRail } from "./playlist-rail";
 import { SurfaceSwitch } from "./surface-switch";
 
@@ -414,8 +411,8 @@ export function TheaterOverlay() {
                   onPointerEnter={pinChrome}
                   onPointerLeave={unpinChrome}
                 >
-                  <AlbumTabs
-                    albums={albums}
+                  <SegmentedCapsule
+                    items={albumSegments(albums)}
                     activeIndex={albumIndex}
                     onSelect={selectAlbum}
                     className="mb-3"
