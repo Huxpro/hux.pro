@@ -1,45 +1,41 @@
 // =============================================================================
-// Bezel System — the frame a page sits in on a phone.
+// Bezel System — the frame a page sits in on a phone, after ryOS.
 //
-// Everything outside the page's safe area becomes one flat frame: the notch
-// band, the home-indicator band, the overscroll, and the browser's own chrome.
-// The page stops on a clean line inside it, rounded off at the corners, the
-// way iOS rounds every app's window. After ryOS (os.ryo.lu), which paints the
-// idea with a black `<html>` and four corner masks; this adds the bands, a
-// thickness floor, and a colour that is not baked in.
+// Everything outside the page becomes one flat frame, the browser's own chrome
+// included, and the page stops on a clean line inside it, rounded off at the
+// corners the way iOS rounds every app's window. ryOS (os.ryo.lu) is the model,
+// and on an iOS phone this follows it all the way, in two rules:
 //
-//   <Bezel enabled={on} color={color} band={8} radius={24} />
+//   1. ONE colour, decided at load. A black `<html>` and `<body>` by default,
+//      written by a boot script before first paint and never re-resolved —
+//      not when the theme flips, not when a setting changes. See ./tint.
+//   2. THE DOCUMENT DOES NOT SCROLL. `<body>` is fixed and the page scrolls in
+//      `#scroll-root`. See ./page-scroll.
+//
+// Together they leave Safari nothing to reconsider. Measured on iOS 26.5, its
+// chrome takes its colour from `position: fixed` content at the viewport edge
+// and, failing that, from the root background; `theme-color` is ignored. Every
+// earlier attempt here was a heuristic that gave it something else to copy — a
+// band thick enough to be sampled, a tint that followed the theme — and on a
+// real phone each of them came out differently. A root background that never
+// changes, under a document that never scrolls and never collapses the
+// toolbar, has only one answer.
+//
+//   <Bezel enabled={bootDecision} band={8} radius={24} />
 //
 // and everything the frame is meant to contain takes the same box:
 //
-//   <div className="fixed -z-10" style={BEZEL_INSET} />
+//   <div style={BEZEL_INSET} />
 //
-// The colour and thickness travel as two custom properties on <html> rather
-// than only as props, because on a phone they have to be right before React
-// exists — see ./metrics. `<Bezel>` writes them; `applyBezelVars` is the same
-// write for a boot script to do first, and `resolveBezelTint` is the same
-// resolution for it to mirror.
-//
-// Two things about it that only a real WebKit will tell you, both measured on
-// the simulator (iOS 26.5 and iOS 18.5) and both load-bearing:
-//
-//   • Safari reports EVERY safe-area inset as zero in portrait. Its chrome
-//     already occupies those bands, so a frame sized from `env()` alone has no
-//     thickness there at all. That is what the band floor is for.
-//   • iOS 26 ignores `theme-color` and tints its chrome from the page's own
-//     top and bottom edge pixels — which is to say, from the bands. iOS 18 is
-//     the reverse and reads `theme-color`. Set both from the same colour and
-//     both generations land in the same place.
-//
-// The `theme-color` half is left to the host: it is a `<meta>` and a piece of
-// app metadata, not part of the frame.
+// Anything that reads or drives page scroll uses ./page-scroll, not `window`.
+// The `theme-color` meta is left to the host — iOS 18 still reads it — and it
+// too is written once.
 // =============================================================================
 
 export { Bezel, type BezelProps } from "./bezel";
 
 export {
-  applyBezelVars,
-  clearBezelVars,
+  applyBezelBand,
   clampBezelBand,
   clampBezelRadius,
   BEZEL_BAND_BOTTOM,
@@ -58,6 +54,19 @@ export {
   DEFAULT_BEZEL_BAND,
   DEFAULT_BEZEL_RADIUS,
 } from "./metrics";
+
+export {
+  emitPageScroll,
+  getPageScrollRoot,
+  onPageScroll,
+  pageOffsetOf,
+  pageScrollHeight,
+  pageScrollTop,
+  pageViewportHeight,
+  scrollPageTo,
+  BEZEL_LOCK_CLASS,
+  BEZEL_SCROLL_ROOT_ID,
+} from "./page-scroll";
 
 export {
   isBezelHex,

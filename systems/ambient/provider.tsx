@@ -24,7 +24,7 @@ import {
   type Wallpaper,
   type WallpaperKind,
 } from "./lib/wallpaper";
-import { resolveBezelTint, type BezelTint } from "@/systems/bezel";
+import { BEZEL_CLASS, resolveBezelTint, type BezelTint } from "@/systems/bezel";
 import {
   EDGE_FADE_MASK,
   EDGE_FADE_MASK_HIGH_CONTRAST,
@@ -182,8 +182,10 @@ interface WallpaperContextType {
   letterboxBand: number;
   /** `null` hands the row back to the wallpaper kind's default. */
   setLetterboxBand: (px: number | null) => void;
-  /** `letterbox`, but `null` until the platform is known. For <Bezel>. */
+  /** `letterbox`, but `null` until mounted. For <Bezel>. */
   letterboxState: boolean | null;
+  /** What the stored setting resolves to; takes effect on the next load. */
+  letterboxNext: boolean;
   /** The reading treatment flags, for the devtool. */
   readingBlur: boolean;
   setReadingBlur: (value: boolean) => void;
@@ -379,54 +381,51 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       : settings.wallpaperPlacement === "widget";
 
   /**
-   * Letterbox — the ryOS answer to a full-bleed background on a phone.
+   * Letterbox — the ryOS frame, on an iOS phone.
    *
-   * iOS Safari is where the soft edge has always been fragile: the fixed
-   * background resizes as the toolbar collapses, the mask's bottom stop rides
-   * `safe-area-inset-bottom`, and whatever the page paints under the notch
-   * and the home indicator is what shows through. ryOS (os.ryo.lu) does not
-   * fight any of that. It paints `<html>` in one flat frame colour, sets
-   * `theme-color` to match so Safari's own chrome is the same, and keeps the
-   * desktop inside the safe area. The wallpaper then ends on a hard line
-   * against the frame, and the frame is what surrounds it on every side — the
-   * status bar, the toolbar, the overscroll — so there is no seam left for a
-   * fade to soften. The frame's colour and thickness are settings — see
-   * `LetterboxTint` and the band floor in lib/letterbox.ts.
+   * Decided ONCE, by the boot script in app/layout.tsx, from the stored
+   * setting, the wallpaper kind and the platform, before first paint. It puts
+   * `bezel` on <html> with the frame colour on the root background and, on
+   * iOS, locks the document so the page scrolls in `#scroll-root`. React only
+   * reads that decision back. It never re-resolves it, because re-resolving
+   * after load is what made the frame and Safari's chrome change on a phone —
+   * see @/systems/bezel.
    *
-   * Auto is iOS. The setting is persisted so a phone can be checked across a
-   * reload; the devtool row toggles it.
-   */
-  /**
-   * What this kind of wallpaper wants at the edge when nothing is pinned —
-   * see `WALLPAPER_KIND_DEFAULTS`. A stored value always wins over it.
+   * So there are two answers here, and they are allowed to differ until the
+   * next load:
+   *
+   *   letterbox      what this page is actually showing. Read from <html>.
+   *   letterboxNext  what the stored setting resolves to. What the next load
+   *                  will show, and what the devtool edits.
    */
   const kindDefaults = WALLPAPER_KIND_DEFAULTS[settings.wallpaperKind];
-  /** Auto: the kind's answer, but only on a phone. A desktop gets no frame. */
-  const letterboxAuto = isIOS === true && kindDefaults.letterbox;
-  const letterbox = settings.wallpaperLetterbox ?? letterboxAuto;
+  const letterboxNext =
+    settings.wallpaperLetterbox ?? (isIOS === true && kindDefaults.letterbox);
+
+  /** `null` until mounted: the server cannot see what the boot script did. */
+  const [bootLetterbox, setBootLetterbox] = useState<boolean | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: reads the boot script's decision
+    setBootLetterbox(document.documentElement.classList.contains(BEZEL_CLASS));
+  }, []);
+  const letterbox = bootLetterbox === true;
+  /** The tri-state <Bezel> wants. */
+  const letterboxState = bootLetterbox;
 
   const letterboxTint = settings.wallpaperLetterboxTint;
   const letterboxBand = settings.wallpaperLetterboxBand ?? kindDefaults.band;
-  const letterboxColor = resolveBezelTint(letterboxTint, PAGE_GROUND, theme);
+  /** The stored tint's colour — the next load's frame, for the devtool swatch. */
+  const letterboxColor = resolveBezelTint(letterboxTint, PAGE_GROUND);
 
-  /**
-   * The tri-state <Bezel> wants: `null` while the platform is still unknown,
-   * so it leaves the frame the boot script painted alone instead of taking it
-   * off for a frame. Everything else in here wants the decided boolean above.
-   */
-  const letterboxState =
-    settings.wallpaperLetterbox ?? (isIOS === null ? null : letterboxAuto);
-
-  // iOS 18 Safari tints its status bar with theme-color, so this is what keeps
-  // the letterbox continuous with it there. (iOS 26 ignores theme-color and
-  // samples the page's own edge pixels — the bands do that job; this stays for
-  // the older generation and for the Home Screen web app.) The element is
-  // ours, not React's — created before first paint by the inline script in
-  // app/layout.tsx and only updated here. Next streams its own metadata in
-  // after this effect has run, so a React-owned meta mutated here would be a
-  // hydration mismatch; and one created only here arrived too late for
-  // Safari to tint from on a phone.
+  // theme-color. iOS 18 Safari tints its status bar from it (iOS 26 ignores
+  // it). The element is ours, not React's — created before first paint by the
+  // boot script. While framed, the boot script's value IS the answer and this
+  // leaves it alone for the life of the page; only an unframed page keeps it
+  // following the theme, as it always has. Next streams its own metadata in
+  // after this effect runs, so a React-owned meta would be a hydration
+  // mismatch.
   useEffect(() => {
+    if (bootLetterbox !== false) return;
     let meta = document.head.querySelector<HTMLMetaElement>("#hux-theme-color");
     if (!meta) {
       meta = document.createElement("meta");
@@ -434,9 +433,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       meta.name = "theme-color";
       document.head.append(meta);
     }
-    // Letterboxed, the frame's own colour; otherwise the theme's page ground.
-    meta.content = letterbox ? letterboxColor : PAGE_GROUND[theme];
-  }, [letterbox, letterboxColor, theme]);
+    meta.content = PAGE_GROUND[theme];
+  }, [bootLetterbox, theme]);
 
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and
@@ -734,6 +732,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       letterboxBand,
       setLetterboxBand,
       letterboxState,
+      letterboxNext,
       letterboxBandSetting: settings.wallpaperLetterboxBand,
       letterboxRadiusSetting: settings.wallpaperLetterboxRadius,
       readingBlur: settings.wallpaperReadingBlur,
@@ -776,6 +775,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       letterboxBand,
       setLetterboxBand,
       letterboxState,
+      letterboxNext,
       settings.wallpaperLetterboxBand,
       setReadingBlur,
       setReadingDim,

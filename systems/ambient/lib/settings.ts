@@ -17,8 +17,12 @@ import type { LocationMode } from "./location";
  */
 export const PAGE_GROUND: BezelGround = { light: "#ffffff", dark: "#1a1a1a" };
 
-/** The frame's colour when nothing is stored: dark in both themes. */
-export const DEFAULT_LETTERBOX_TINT: BezelTint = "dark";
+/**
+ * The frame's colour when nothing is stored: black, as ryOS. Fixed at load for
+ * the life of the page — see @/systems/bezel. A stored `"theme"` from before
+ * that tint was removed no longer parses and falls back to this.
+ */
+export const DEFAULT_LETTERBOX_TINT: BezelTint = "black";
 
 /**
  * What each kind of wallpaper wants at the edge when nothing is pinned.
@@ -91,8 +95,8 @@ export interface AmbientSettings {
   /** Corner radius of the page inside the frame, px. `null` follows the kind. */
   wallpaperLetterboxRadius: number | null;
   /**
-   * What colour the frame is: a named tint or a `#rrggbb` literal. See
-   * `BezelTint` in @/systems/bezel.
+   * What colour the frame is: a named tint or a `#rrggbb` literal. Read once,
+   * at load; a change takes effect on the next one. See `BezelTint`.
    */
   wallpaperLetterboxTint: BezelTint;
   /**

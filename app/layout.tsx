@@ -11,6 +11,7 @@ import {
   BEZEL_BLACK,
   BEZEL_CLASS,
   BEZEL_COLOR_VAR,
+  BEZEL_LOCK_CLASS,
   BEZEL_HEX_PATTERN,
 } from "@/systems/bezel";
 import { Providers } from "@/shared/providers";
@@ -111,7 +112,12 @@ export const viewport: Viewport = {
  * defaults to, the platform, the stored theme, the system theme. It cannot
  * import at runtime, so every constant it needs is interpolated from
  * `@/systems/bezel` and the settings table, and the two cannot drift.
- * This is the pre-paint half of `applyBezelVars`; <Bezel> owns the rest.
+ *
+ * It is also the ONLY place the frame is decided. The class, the colour on the
+ * root background, the theme-color and — on iOS — the document lock are
+ * written here once and never again in the page's life: React reads the
+ * decision back and does not re-resolve it. That is the ryOS rule, and on a
+ * phone it is the one that held (see @/systems/bezel).
  */
 const THEME_COLOR_BOOT = `(function(){try{
 var s=JSON.parse(localStorage.getItem("hux_ambient_settings")||"{}");
@@ -123,11 +129,12 @@ var t=localStorage.getItem("hux_theme");
 var dark=t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);
 var ground=dark?${JSON.stringify(PAGE_GROUND.dark)}:${JSON.stringify(PAGE_GROUND.light)};
 var tint=s.wallpaperLetterboxTint;
-if(!/^(dark|black|theme|${BEZEL_HEX_PATTERN.slice(1, -1)})$/.test(tint))tint=${JSON.stringify(DEFAULT_LETTERBOX_TINT)};
-var c=tint==="black"?${JSON.stringify(BEZEL_BLACK)}:tint==="theme"?ground:tint==="dark"?${JSON.stringify(PAGE_GROUND.dark)}:tint;
-var band=+s.wallpaperLetterboxBand;
-band=isFinite(band)?Math.min(${BEZEL_BAND_MAX},Math.max(${BEZEL_BAND_MIN},Math.round(band))):kd.band;
+if(!/^(black|dark|${BEZEL_HEX_PATTERN.slice(1, -1)})$/.test(tint))tint=${JSON.stringify(DEFAULT_LETTERBOX_TINT)};
+var c=tint==="black"?${JSON.stringify(BEZEL_BLACK)}:tint==="dark"?${JSON.stringify(PAGE_GROUND.dark)}:tint;
+var band=s.wallpaperLetterboxBand;
+band=typeof band==="number"&&isFinite(band)?Math.min(${BEZEL_BAND_MAX},Math.max(${BEZEL_BAND_MIN},Math.round(band))):kd.band;
 if(box){var d=document.documentElement;d.classList.add(${JSON.stringify(BEZEL_CLASS)});
+if(ios)d.classList.add(${JSON.stringify(BEZEL_LOCK_CLASS)});
 d.style.setProperty(${JSON.stringify(BEZEL_COLOR_VAR)},c);
 d.style.setProperty(${JSON.stringify(BEZEL_BAND_VAR)},band+"px");
 d.style.backgroundColor=c;}

@@ -2,8 +2,7 @@
 
 import { useLayoutEffect } from "react";
 import {
-  applyBezelVars,
-  clearBezelVars,
+  applyBezelBand,
   BEZEL_BAND_BOTTOM,
   BEZEL_BAND_LEFT,
   BEZEL_BAND_RIGHT,
@@ -20,23 +19,21 @@ import {
 // home indicator or a browser's chrome. After ryOS's DesktopCornerMask, with
 // bands it does not have.
 //
-// The bands are also what colours the browser's own chrome. On iOS 26 that
-// chrome is glass and samples the page's top and bottom edge pixels, so a band
-// of the frame colour there makes the status bar and the toolbar the same
-// surface, live, in either theme, with `theme-color` ignored. On iOS 18 the
-// reverse holds and `theme-color` is what does it, from the same colour. See
-// `BEZEL_BAND_MIN` in ./metrics for why the band has a floor.
+// The bands are painted in `var(--bezel)`, the colour the boot script put on
+// the root background. That matters because iOS 26 Safari tints its chrome from
+// `position: fixed` content at the viewport edge — these bands are such
+// content — and otherwise from the root background. Same colour either way, so
+// the chrome copies the boot colour whatever the band's thickness, including
+// zero. On iOS 18 `theme-color` does that job, from the same colour.
 //
 // Above everything on purpose (docks, sheets, palettes): the frame clips
 // whatever is inside it.
 //
-// The top and bottom bands OVERSHOOT the viewport by half a screen. iOS Safari
-// relays out `position: fixed` a beat after the toolbar collapses or expands,
-// and in that beat the strip the toolbar just uncovered is painted by whatever
-// the old layout put there. A band anchored at the old edge and extending well
-// past it covers that strip; the overshoot is clipped the rest of the time and
-// costs nothing. The side bands overshoot vertically for the same reason, so
-// the corners stay covered while the viewport is resizing.
+// The top and bottom bands OVERSHOOT the viewport by half a screen. That was
+// for iOS Safari relaying out `position: fixed` a beat after its toolbar
+// collapses or expands. With the document locked the toolbar no longer does,
+// so on a phone the overshoot is now insurance rather than a fix; it is kept
+// because it is free while clipped, and a desktop window can still resize.
 // ---------------------------------------------------------------------------
 
 const OVERSHOOT = "50vh";
@@ -51,45 +48,47 @@ const CORNERS = [
 
 export interface BezelProps {
   /**
-   * Whether the frame is up. `null` means "not decided yet": the component
-   * leaves the root element exactly as it found it, which is what lets a boot
-   * script paint the frame before React can tell whether it wants one. Only
-   * an explicit `false` takes an existing frame back off.
+   * Whether to draw the frame. Pass what the boot script decided — the
+   * `bezel` class on <html> — not a live setting: the frame's colour and the
+   * document lock were fixed at load, and a frame that came and went with a
+   * setting would no longer match them. `null` while that is still unknown.
    */
   enabled?: boolean | null;
-  /** The frame's colour. Any CSS colour; resolve a tint with `resolveBezelTint`. */
-  color?: string;
-  /** Band thickness where the safe area is thinner, px. */
+  /** Band thickness where the frame is drawn, px. Live. */
   band?: number;
-  /** Corner radius at the frame's inner edge, px. 0 for square corners. */
+  /** Corner radius at the frame's inner edge, px. 0 for square corners. Live. */
   radius?: number;
-  /** Root element to carry the frame's custom properties. Defaults to `<html>`. */
+  /** Root element carrying the band property. Defaults to `<html>`. */
   rootElement?: HTMLElement | null;
 }
 
 export function Bezel({
   enabled = true,
-  color,
   band = DEFAULT_BEZEL_BAND,
   radius = DEFAULT_BEZEL_RADIUS,
   rootElement,
 }: BezelProps) {
-  // A layout effect, not an effect: the bands paint from these two properties,
-  // so writing them after the browser has already painted would show a frame
-  // in the wrong colour for a frame.
+  // Only the thickness is written at runtime. Colour, class and lock belong to
+  // the boot script, and this component never takes them back off either: a
+  // frame decided at load stays for the life of the page.
   useLayoutEffect(() => {
-    if (enabled === null) return;
-    const root = rootElement ?? document.documentElement;
-    if (enabled && color) applyBezelVars(root, { color, band });
-    else if (!enabled) clearBezelVars(root);
-  }, [enabled, color, band, rootElement]);
+    if (!enabled) return;
+    applyBezelBand(rootElement ?? document.documentElement, band);
+  }, [enabled, band, rootElement]);
 
   if (!enabled) return null;
 
   const r = Math.max(0, radius);
 
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-[9999]">
+    // `data-bezel-layer`: on a locked phone the frame is absolute in the fixed
+    // body, like every other full-screen layer — a fixed one spanning the
+    // edge makes Safari copy whatever is beneath it. See globals.css.
+    <div
+      aria-hidden="true"
+      data-bezel-layer
+      className="pointer-events-none fixed inset-0 z-[9999]"
+    >
       {/* The bands. Top and bottom span the full width; the sides fill in the
           notch's margins in landscape, where the safe area is 62px wide. */}
       <div

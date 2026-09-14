@@ -1,12 +1,14 @@
 // =============================================================================
 // Bezel — how thick the frame is, and the box it leaves for the page.
 //
-// The frame's colour and thickness travel as two custom properties on the root
-// element rather than as props, because they have to be right before React
-// exists: a boot script sets them so the very first painted frame is already
-// framed, and everything downstream — the bands, the corners, the page's own
-// background, the caller's inset layers — reads the same two values. `<Bezel>`
-// keeps them in step afterwards.
+// The frame's colour, the `bezel` class and the document lock are written ONCE,
+// by the boot script in app/layout.tsx, before first paint — and never again
+// in that page's life. See ./tint for why the colour may not move and
+// ./page-scroll for why the document may not scroll.
+//
+// The one thing that stays live is the band's thickness. It changes where the
+// page's box ends, not what colour anything outside it is, so moving it after
+// load cannot give Safari anything new to copy into its chrome.
 // =============================================================================
 
 /** Custom property carrying the frame colour. */
@@ -17,26 +19,21 @@ export const BEZEL_BAND_VAR = "--bezel-band";
 export const BEZEL_CLASS = "bezel";
 
 /**
- * How tall a strip of the page's edge the browser's chrome tints itself from.
+ * How thick a band has to be before the browser's chrome copies it — on a page
+ * that is NOT locked.
  *
- * On iOS 26 that chrome is glass and samples the page rather than reading
- * `theme-color`, which it ignores outright. It wants 6px of FLAT colour there:
- * 5px does not register, 6px does. Bisected on iOS 26.5 at both @3x (iPhone 17
- * Pro) and @2x (iPhone SE 3), and the boundary sits between the same two CSS
- * values on each — so it is 6 CSS pixels and not 18 device ones, and one
- * number is right for every screen. A thinner band still draws; it just stops
- * carrying the chrome with it, and the chrome falls back to Safari's own
- * colour, white in light mode.
- * Which makes the middle the bad part: at 4px you get a hairline of frame
- * under a white status bar. At 0 there is no frame to mismatch and the page
- * simply runs edge to edge inside its rounded corners, which is a look.
+ * On iOS 26 the chrome ignores `theme-color` and samples fixed content at the
+ * viewport edge. A fixed band of the frame colour registers from 6px (5px does
+ * not, bisected at @3x and @2x, so it is 6 CSS px on every screen). Thinner,
+ * and the chrome copies whatever is composited beneath instead.
  *
- * That is a look, not a fault, which is why it is a threshold and not a floor.
- * ryOS gets a black chrome with no band at all and a light page edge, so
- * something makes `theme-color` authoritative there; ruled out so far, none of
- * them it: http vs https, its entire `<head>` verbatim, an inline `<html>`
- * background, scrollable vs non-scrolling documents, and a composited edge
- * layer. Unresolved.
+ * On a LOCKED phone — the only place the frame is drawn by default — this no
+ * longer decides anything. There, nothing fixed spans the edge (globals.css),
+ * so the chrome takes the root background, which is the frame colour at any
+ * band, 0 included. That is also the answer to what looked like a ryOS
+ * anomaly: a black chrome over a light page edge with no band at all. ryOS
+ * paints its desktop in a fixed, non-scrolling body with nothing fixed at the
+ * edge, so Safari has only the root background to copy.
  */
 export const BEZEL_CHROME_SAMPLE_PX = 6;
 
@@ -116,29 +113,9 @@ export const BEZEL_INSET = {
 } as const;
 
 /**
- * Put the frame's colour and thickness on the root element. `<Bezel>` calls
- * this itself; it is exported for the pre-paint path, where a boot script has
- * to do the same thing before any of this module is loaded.
- *
- * The plain `background-color` alongside the custom property is deliberate: it
- * is what paints the frame in the moment before the stylesheet arrives, and
- * being inline it would otherwise go stale and outrank the stylesheet's rule
- * once the colour changed.
+ * Keep the band's thickness in step with a setting. `<Bezel>` calls this; it is
+ * the only runtime write to the root element the frame makes.
  */
-export function applyBezelVars(
-  root: HTMLElement,
-  { color, band }: { color: string; band: number }
-): void {
-  root.classList.add(BEZEL_CLASS);
-  root.style.setProperty(BEZEL_COLOR_VAR, color);
+export function applyBezelBand(root: HTMLElement, band: number): void {
   root.style.setProperty(BEZEL_BAND_VAR, `${band}px`);
-  root.style.backgroundColor = color;
-}
-
-/** Take the frame back off. */
-export function clearBezelVars(root: HTMLElement): void {
-  root.classList.remove(BEZEL_CLASS);
-  root.style.removeProperty(BEZEL_COLOR_VAR);
-  root.style.removeProperty(BEZEL_BAND_VAR);
-  root.style.backgroundColor = "";
 }

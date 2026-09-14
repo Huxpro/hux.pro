@@ -21,7 +21,7 @@ import {
 import { DEFAULT_LETTERBOX_TINT } from "@/systems/ambient/lib/settings";
 
 /** The named tints plus the segmented control's own "pick a colour". */
-type TintChoice = "dark" | "black" | "theme" | "custom";
+type TintChoice = "black" | "dark" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
 import {
   getSunEventGradient,
@@ -850,7 +850,7 @@ function WallpaperModule() {
     veil,
     blurred,
     src,
-    letterbox,
+    letterboxNext,
     letterboxSetting,
     setLetterbox,
     letterboxRadius,
@@ -880,21 +880,19 @@ function WallpaperModule() {
 
   // The segmented control has a fourth position the setting does not: "custom"
   // is not a tint, it is "whatever the swatch says".
+  // No theme-following tint: the frame colour is fixed at load, and a tint
+  // that follows the theme is a colour that moves after load. See
+  // @/systems/bezel/tint.
   const tints: { value: TintChoice; label: string; title: string }[] = [
-    {
-      value: "dark",
-      label: zh ? "深" : "Dark",
-      title: zh ? "两个主题都用深色底" : "The dark ground, in both themes",
-    },
     {
       value: "black",
       label: zh ? "黑" : "Black",
       title: zh ? "纯黑，ryOS 的做法" : "Pure black, as ryOS does",
     },
     {
-      value: "theme",
-      label: zh ? "跟随" : "Theme",
-      title: zh ? "跟随页面底色" : "Follows the page ground",
+      value: "dark",
+      label: zh ? "深" : "Dark",
+      title: zh ? "两个主题都用深色底" : "The dark ground, in both themes",
     },
     {
       value: "custom",
@@ -1063,12 +1061,12 @@ function WallpaperModule() {
             }
           >
             <PanelToggle
-              on={letterbox}
-              onClick={() => setLetterbox(!letterbox)}
+              on={letterboxNext}
+              onClick={() => setLetterbox(!letterboxNext)}
               label="Toggle letterbox"
             />
           </PanelRow>
-          {letterbox && (
+          {letterboxNext && (
             <>
               <PanelRow
                 label={zh ? "颜色" : "Tint"}
@@ -1092,8 +1090,9 @@ function WallpaperModule() {
                 />
               </PanelRow>
               {/* The swatch both shows the resolved colour and, on custom,
-                  edits it. Every generation repaints live, so there is no
-                  reload behind any of this. */}
+                  edits it. The frame colour is fixed for a page's life, so a
+                  change here — like the letterbox toggle above — is what the
+                  next load gets. Band and radius below stay live. */}
               <PanelRow label={letterboxColor}>
                 <input
                   type="color"

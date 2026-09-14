@@ -33,6 +33,10 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   return (
     <div
       aria-hidden="true"
+      // On a locked phone this must not be `position: fixed`: Safari tints its
+      // chrome from fixed content at the viewport edge, and a wallpaper there
+      // would win over the frame colour. See `data-bezel-layer` in globals.css.
+      data-bezel-layer
       className={cn(
         "pointer-events-none fixed inset-0 -z-10",
         "transition-opacity duration-700 ease-in-out"

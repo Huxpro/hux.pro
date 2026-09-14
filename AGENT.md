@@ -81,13 +81,12 @@ duration-300 (morphing transitions)
 
 `systems/bezel` — the frame that surrounds the page on a phone, after ryOS. The
 component takes props and knows nothing about settings; the ambient system maps
-these keys onto it. They live in `hux_ambient_settings`, so they can be set
-before app scripts run and survive a reload:
+these keys onto it. They live in `hux_ambient_settings`:
 
 | Key | Values | Default |
 |---|---|---|
 | `wallpaperLetterbox` | `true` / `false` / `null` = the kind's default, on iOS only | `null` |
-| `wallpaperLetterboxTint` | `"dark"` / `"black"` / `"theme"` / `"#rrggbb"` | `"dark"` |
+| `wallpaperLetterboxTint` | `"black"` / `"dark"` / `"#rrggbb"` | `"black"` |
 | `wallpaperLetterboxBand` | px, 0 to 64, or `null` = the kind's default | `null` |
 | `wallpaperLetterboxRadius` | px, 0 to 64, or `null` = the kind's default | `null` |
 
@@ -99,24 +98,33 @@ things (`WALLPAPER_KIND_DEFAULTS` in `systems/ambient/lib/settings.ts`):
 | `weather` | on | off | — | — |
 | `image` | off | on | 0px | 16px |
 
-Both are still gated on iOS: a desktop window gets neither treatment.
+Both are gated on iOS: a desktop window gets neither treatment.
 
-All four are also rows in the Devtool panel → Wallpaper section, and all four
-apply live with no reload: they reach CSS as `--bezel` and `--bezel-band` on
-`<html>`, written before first paint by the boot script in `app/layout.tsx` and
-owned by `<Bezel>` after.
+**The frame is decided once per page load, and never again.** The boot script
+in `app/layout.tsx` resolves the frame, its colour and — on iOS — the document
+lock before first paint; React reads that decision back and does not
+re-resolve it. So `wallpaperLetterbox` and `wallpaperLetterboxTint` take effect
+on the NEXT load, including when changed in the Devtool. Band and radius stay
+live. Do not reintroduce anything that writes the frame colour, the `bezel`
+class or the lock after load: that is exactly what made the chrome change on a
+real phone.
 
-Two things that only show on a real WebKit and are easy to break:
+**On an iOS phone with the frame up, the document does not scroll.** `<body>`
+is fixed and the page scrolls in `#scroll-root`. Anything that reads or drives
+page scroll must use the helpers in `systems/bezel/page-scroll.ts`
+(`pageScrollTop`, `onPageScroll`, `scrollPageTo`, `pageOffsetOf`, …) — never
+`window.scrollY`, `window.scrollTo` or a `window` scroll listener, which read 0
+and do nothing there. A desktop browser will not show you this breakage.
 
-- **Safari reports every safe-area inset as zero in portrait**, so the band is
-  the only thing giving the frame any thickness there; a desktop browser will
-  keep looking right when a phone has no frame at all. Top and bottom are the
-  band alone and never the safe area — reserving that only cost screen in a
-  Home Screen web app, where there is no chrome to match anyway.
-- **iOS 26 wants about 6px of flat edge** before its chrome will follow the
-  frame. Below that the chrome falls back to Safari's own colour, so 4px looks
-  worse than 0: a hairline of frame under a white status bar. The slider goes
-  to 0 on purpose and warns instead of stopping you.
-- **iOS 26 ignores `theme-color`** and tints its chrome from the page's own top
-  and bottom edge pixels, which is what the bands are for. iOS 18 is the
-  reverse and does read `theme-color`. Both are set; see `systems/bezel`.
+Two things only a real WebKit shows (measured on iOS 26.5), both load-bearing:
+
+- **Safari tints its chrome from `position: fixed` content at the viewport
+  edge** — even a transparent full-screen fixed overlay makes it sample
+  whatever is composited beneath — and otherwise from the root background.
+  `theme-color` is ignored. On a locked page, `globals.css` turns every
+  full-screen layer into an absolutely positioned child of the fixed body so
+  nothing fixed spans the edge. A new overlay portalled into `<body>` is
+  covered automatically; a new full-screen layer that is NOT a direct child of
+  `<body>` needs `data-bezel-layer`.
+- **Safari reports every safe-area inset as zero in portrait.** The band is the
+  only thing giving the frame any thickness there.

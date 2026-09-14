@@ -1,14 +1,26 @@
 // =============================================================================
 // Bezel — what colour the frame is.
 //
-// Split from the component because three consumers need the answer at three
-// different times: the CSS that paints the frame, whatever sets `theme-color`,
-// and a boot script that runs before first paint and cannot import at runtime,
-// so it interpolates these constants into its own source instead. One resolver
-// means they cannot drift.
+// ONE colour, decided when the page loads and never touched again until the
+// next load. That is the whole contract, and it is ryOS's: a static
+// `background-color` on <html> and <body>, and nothing that re-resolves it
+// when the theme flips, the wallpaper changes or a setting moves.
+//
+// Everything else was tried first and each attempt was another heuristic for
+// Safari to disagree with on a phone — a tint that followed the theme, a
+// band thick enough to be sampled, a theme-color kept in step. What Safari
+// actually does is simpler than any of them (measured on iOS 26.5): it tints
+// its chrome from `position: fixed` content at the edge of the viewport, and
+// when there is none, from the root background. So the frame colour lives on
+// the root background, the locked document keeps fixed content off the edges,
+// and the chrome has exactly one thing to copy.
+//
+// The boot script in app/layout.tsx resolves the stored tint with the rules
+// below and writes the result; changing the setting takes effect on the next
+// load. It cannot import at runtime, so it interpolates these constants.
 // =============================================================================
 
-/** The host page's own ground, per theme. What `dark` and `theme` borrow from. */
+/** The host page's own ground, per theme. `dark` borrows its dark half. */
 export interface BezelGround {
   light: string;
   dark: string;
@@ -17,19 +29,19 @@ export interface BezelGround {
 /**
  * What colour the frame is.
  *
- *   dark    the ground's dark half, in both themes. The frame is chrome and
- *           chrome is dark, so a light page still sits in a dark bezel.
- *   black   ryOS's black. Both iOS generations honour it exactly (measured on
- *           26.5 and 18.5); the older note that Safari refuses a black tint
- *           does not reproduce on either.
- *   theme   follows the ground, so the frame matches the page instead of
- *           framing it.
+ *   black   the default, and ryOS's. Both iOS generations honour it exactly.
+ *   dark    the page's dark ground, in both themes — a fixed colour, not one
+ *           that follows the theme.
  *   #rrggbb anything else.
+ *
+ * There is deliberately no tint that follows the theme. It was the one that
+ * kept changing on a phone, because following the theme means re-resolving
+ * after load, and after load is exactly when the colour must not move.
  */
-export type BezelTint = "dark" | "black" | "theme" | `#${string}`;
+export type BezelTint = "black" | "dark" | `#${string}`;
 
 /** The named tints, in the order a picker should offer them. */
-export const BEZEL_TINTS = ["dark", "black", "theme"] as const;
+export const BEZEL_TINTS = ["black", "dark"] as const;
 
 export const BEZEL_BLACK = "#000000";
 
@@ -48,13 +60,8 @@ export function isBezelTint(value: unknown): value is BezelTint {
 }
 
 /** The tint as a colour a browser can paint. */
-export function resolveBezelTint(
-  tint: BezelTint,
-  ground: BezelGround,
-  theme: "light" | "dark"
-): string {
+export function resolveBezelTint(tint: BezelTint, ground: BezelGround): string {
   if (tint === "black") return BEZEL_BLACK;
-  if (tint === "theme") return ground[theme];
   if (tint === "dark") return ground.dark;
   return tint;
 }
