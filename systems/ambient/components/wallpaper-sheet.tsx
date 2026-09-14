@@ -20,7 +20,7 @@ import {
   type Wallpaper,
   type WallpaperCategory,
 } from "../lib/wallpaper";
-import { useWallpaper, useWeather } from "../provider";
+import { useWallpaper, useWallpaperPaint, useWeather } from "../provider";
 
 // ---------------------------------------------------------------------------
 // WallpaperSheet — the secondary window behind the Wallpaper command.
@@ -249,7 +249,8 @@ function WallpaperTile({
   wallpaper: Wallpaper;
   selected: boolean;
 }) {
-  const { selectWallpaper, variant, blurred } = useWallpaper();
+  const { selectWallpaper, variant } = useWallpaper();
+  const { blurred } = useWallpaperPaint();
   const single = isSingleImage(wallpaper);
   const preview = getWallpaperPairPreview(wallpaper);
   const meta =

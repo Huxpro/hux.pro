@@ -3,7 +3,10 @@
 import { cn } from "@/lib/utils";
 import { GradientStack } from "@/systems/ambient/components/gradient-stack";
 import { isIOSBrowser } from "@/systems/ambient/lib/platform";
-import { useOptionalWallpaper } from "@/systems/ambient/provider";
+import {
+  useOptionalWallpaper,
+  useOptionalWallpaperPaint,
+} from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
 import { Link, useTransitionRouter } from "next-view-transitions";
 import { useCallback, useState, type MouseEvent } from "react";
@@ -50,7 +53,10 @@ export function WidgetShell({
   onOpen?: () => void;
   children: React.ReactNode;
 }) {
+  // Two subscriptions on purpose: the card must follow the crossfade stack,
+  // but not the selection and settings that change beside it.
   const wallpaper = useOptionalWallpaper();
+  const paint = useOptionalWallpaperPaint();
   const router = useTransitionRouter();
   const tappable = !!href || !!onOpen;
 
@@ -76,8 +82,8 @@ export function WidgetShell({
   const [shellEl, setShellEl] = useState<HTMLDivElement | null>(null);
 
   const widgetEnabled = wallpaper?.widgetEnabled ?? false;
-  const layers = wallpaper?.layers ?? [];
-  const edgeMask = wallpaper?.edgeMask ?? null;
+  const layers = paint?.layers ?? [];
+  const edgeMask = paint?.edgeMask ?? null;
 
   const showOverlay = widgetEnabled && layers.length > 0;
 
@@ -115,7 +121,7 @@ export function WidgetShell({
           // Weight resolved by the provider, exactly as the full-page background
           // does it. The overlay only exists inside the provider, so there is
           // no fallback to keep.
-          style={{ opacity: wallpaper?.opacity }}
+          style={{ opacity: paint?.opacity }}
         >
           <GradientStack
             layers={layers}

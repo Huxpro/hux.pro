@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useWallpaper } from "../provider";
+import { useWallpaperPaint } from "../provider";
 import { GradientStack } from "./gradient-stack";
 
 // ---------------------------------------------------------------------------
@@ -25,7 +25,7 @@ interface WallpaperBackgroundProps {
 }
 
 export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
-  const { layers, edgeMask, opacity, veil, blurred } = useWallpaper();
+  const { layers, edgeMask, opacity, veil, blurred } = useWallpaperPaint();
 
   if (layers.length === 0) return null;
 
