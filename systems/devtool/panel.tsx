@@ -779,6 +779,9 @@ function WallpaperModule() {
     veil,
     blurred,
     src,
+    letterbox,
+    letterboxSetting,
+    setLetterbox,
     readingBlur,
     setReadingBlur,
     readingDim,
@@ -947,6 +950,35 @@ function WallpaperModule() {
                 : `* overriding the setting (${placement}) · click to clear`}
             </button>
           )}
+        </div>
+
+        {/* The frame. Persisted, unlike the placement overrides above, so a
+            phone can be checked across a reload. Auto is iOS. */}
+        <div className="space-y-2 border-t border-border/30 pt-2.5">
+          <PanelRow
+            label={`${zh ? "黑边" : "Letterbox"}${
+              letterboxSetting === null ? (zh ? "（自动）" : " (auto)") : ""
+            }`}
+          >
+            <PanelToggle
+              on={letterbox}
+              onClick={() => setLetterbox(!letterbox)}
+              label="Toggle letterbox"
+            />
+          </PanelRow>
+          {letterboxSetting !== null && (
+            <button
+              onClick={() => setLetterbox(null)}
+              className="w-full text-left text-[10px] font-mono text-amber-500/70 transition-colors hover:text-amber-400"
+            >
+              {zh ? "已固定 · 点击恢复自动（iOS 开）" : "pinned · click for auto (on for iOS)"}
+            </button>
+          )}
+          <div className="text-[10px] font-mono text-muted-foreground/70">
+            {zh
+              ? "安全区外全黑：刘海、Home 条、浏览器 chrome。壁纸止于安全区。"
+              : "Black outside the safe area: notch, home bar, browser chrome. Wallpaper stops at the safe area."}
+          </div>
         </div>
 
         {/* How much of it survives on a reading page. Home gets none of this. */}

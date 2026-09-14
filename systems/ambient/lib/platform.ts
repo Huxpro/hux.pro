@@ -41,3 +41,15 @@ export const EDGE_FADE_MASK = buildEdgeFadeMask(IOS_EDGE_FADE_DISTANCE_PX);
 export const EDGE_FADE_MASK_HIGH_CONTRAST = buildEdgeFadeMask(
   IOS_EDGE_FADE_DISTANCE_HIGH_CONTRAST_PX
 );
+
+/**
+ * The box the wallpaper and the page ground paint in when letterboxed: the
+ * safe area only. The bands under the notch and the home indicator are left
+ * to `<html>`, which is black there (see `html.letterbox` in globals.css), so
+ * the wallpaper ends on a clean line against black instead of running under
+ * the chrome. Applied on top of `fixed inset-0`.
+ */
+export const LETTERBOX_INSET = {
+  top: "env(safe-area-inset-top, 0px)",
+  bottom: "env(safe-area-inset-bottom, 0px)",
+} as const;

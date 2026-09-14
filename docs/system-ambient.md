@@ -210,7 +210,18 @@ Where the active wallpaper paints is `wallpaperPlacement`:
 | `widget` | Only inside widget cards (each a viewport-aligned window onto it) |
 | `off` | Nowhere — the global background kill switch |
 
-**Soft edging** — the top/bottom fade, on by default on iOS — applies to both
+**Letterbox** — on by default on iOS — is the ryOS (os.ryo.lu) answer to a
+full-bleed background on a phone. Everything outside the page's safe area is
+painted black: `<html>` gets `background-color: #000`, `theme-color` is set to
+black so Safari's own chrome is black too, and the wallpaper and the page ground
+are fixed layers inset to the safe area (`surface.tsx`, `LETTERBOX_INSET`).
+The wallpaper then ends on a hard line against black, and black surrounds it
+on every side — the status bar, the toolbar, the overscroll — so there is no
+seam left for a fade to soften. `wallpaperLetterbox` persists `true` / `false`;
+`null` is auto (iOS). The devtool row toggles it.
+
+**Soft edging** — the top/bottom fade — is what iOS had before letterbox, and
+it stays as the fallback: on by default on iOS when letterbox is off, for both
 kinds alike. An image wallpaper is just another layer in the stack, so it gets
 the same mask the weather gradient gets (`EDGE_FADE_MASK`, or the wider
 `EDGE_FADE_MASK_HIGH_CONTRAST` for dark-mode sunrise/sunset). The devtool
@@ -325,6 +336,9 @@ const {
   opacity,                // Resolved for kind and theme
   veil,                   // The flat veil alpha over an image (reading pages)
   blurred,                // Whether this route defocuses the wallpaper
+  letterbox,              // Resolved; letterboxSetting is the stored tri-state
+  letterboxSetting,
+  setLetterbox,
   readingBlur,            // The two reading-treatment switches
 
   setReadingBlur,

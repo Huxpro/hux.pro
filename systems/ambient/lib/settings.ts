@@ -25,6 +25,13 @@ export interface AmbientSettings {
   wallpaperKind: WallpaperKind;
   /** Selected built-in pair, used when `wallpaperKind === "image"`. */
   wallpaperId: string;
+  /**
+   * Letterbox: paint everything outside the page's safe area — the notch
+   * band, the home-indicator band, the browser chrome, the overscroll — solid
+   * black, and keep the wallpaper inside it. `null` means auto: on for iOS
+   * browsers, off elsewhere. See `letterbox` in the provider.
+   */
+  wallpaperLetterbox: boolean | null;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
   wallpaperReadingBlur: boolean;
   /** Veil the wallpaper on reading pages. */
@@ -39,6 +46,7 @@ export function getDefaultSettings(): AmbientSettings {
     wallpaperPlacement: "full",
     wallpaperKind: "weather",
     wallpaperId: DEFAULT_WALLPAPER_ID,
+    wallpaperLetterbox: null,
     wallpaperReadingBlur: true,
     wallpaperReadingDim: true,
   };
@@ -91,6 +99,10 @@ export function getAmbientSettings(): AmbientSettings {
           ? "image"
           : defaults.wallpaperKind,
       wallpaperId,
+      wallpaperLetterbox:
+        typeof parsed.wallpaperLetterbox === "boolean"
+          ? parsed.wallpaperLetterbox
+          : null,
       wallpaperReadingBlur: parsed.wallpaperReadingBlur !== false,
       wallpaperReadingDim: parsed.wallpaperReadingDim !== false,
     };

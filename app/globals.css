@@ -231,6 +231,23 @@ html.dark.glass-clear {
   --glass-popover: color-mix(in oklab, var(--popover) 46%, transparent);
 }
 
+/* -----------------------------------------------------------------------------
+   Letterbox
+   Everything outside the page's safe area is black: the notch band, the home
+   indicator band, the overscroll, and — via theme-color, set by the ambient
+   provider — Safari's own chrome. The page ground and the wallpaper are
+   painted by fixed layers inset to the safe area (`surface.tsx`), so the
+   body must not paint under them. After ryOS. Toggled on <html> by the
+   ambient provider; auto on iOS.
+----------------------------------------------------------------------------- */
+html.letterbox {
+  background-color: #000;
+  overscroll-behavior-y: none;
+}
+html.letterbox body {
+  background-color: transparent;
+}
+
 @layer base {
   * {
     @apply border-border;

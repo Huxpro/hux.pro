@@ -154,6 +154,14 @@ interface WallpaperContextType {
   veil: number;
   /** Whether the wallpaper should be defocused right now. */
   blurred: boolean;
+  /**
+   * Letterbox — resolved. True paints everything outside the safe area black
+   * and keeps the wallpaper inside it; see the effect in the provider.
+   */
+  letterbox: boolean;
+  /** The stored choice: `null` is auto (on for iOS). */
+  letterboxSetting: boolean | null;
+  setLetterbox: (value: boolean | null) => void;
   /** The reading treatment flags, for the devtool. */
   readingBlur: boolean;
   setReadingBlur: (value: boolean) => void;
@@ -285,6 +293,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     ? WALLPAPER_OPACITY.image[theme]
     : WALLPAPER_OPACITY.weather[theme];
 
+  const setLetterbox = useCallback(
+    (value: boolean | null) => updateSettings({ wallpaperLetterbox: value }),
+    [updateSettings]
+  );
   const setReadingBlur = useCallback(
     (value: boolean) => updateSettings({ wallpaperReadingBlur: value }),
     [updateSettings]
@@ -322,15 +334,50 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       ? devtoolOverrides.widget
       : settings.wallpaperPlacement === "widget";
 
+  /**
+   * Letterbox — the ryOS answer to a full-bleed background on a phone.
+   *
+   * iOS Safari is where the soft edge has always been fragile: the fixed
+   * background resizes as the toolbar collapses, the mask's bottom stop rides
+   * `safe-area-inset-bottom`, and whatever the page paints under the notch
+   * and the home indicator is what shows through. ryOS (os.ryo.lu) does not
+   * fight any of that. It paints `<html>` black, sets `theme-color` black so
+   * Safari's own chrome is black too, and keeps the desktop inside the safe
+   * area. The wallpaper then ends on a hard line against black, and black is
+   * what surrounds it on every side — the status bar, the toolbar, the
+   * overscroll — so there is no seam left for a fade to soften.
+   *
+   * Auto is iOS. The setting is persisted so a phone can be checked across a
+   * reload; the devtool row toggles it.
+   */
+  const letterbox = settings.wallpaperLetterbox ?? isIOS;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("letterbox", letterbox);
+    // Safari tints its chrome with theme-color. Next renders one meta per
+    // colour scheme (see app/layout.tsx); black both while letterboxed.
+    const metas = Array.from(
+      document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+    );
+    const previous = metas.map((m) => m.content);
+    if (letterbox) for (const m of metas) m.content = "#000000";
+    return () => {
+      root.classList.remove("letterbox");
+      metas.forEach((m, i) => (m.content = previous[i]));
+    };
+  }, [letterbox]);
+
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and
   // the home indicator ends in a hard line otherwise. Same switch, same masks,
   // for both wallpaper kinds — an image layer is just another layer in the
-  // stack, so it gets exactly what the weather gradient gets.
+  // stack, so it gets exactly what the weather gradient gets. Letterbox makes
+  // it redundant: the edge it hides is then a clean line against black.
   const softEdgeEnabled =
     isDevtoolEnabled && devtoolOverrides.softEdging !== undefined
       ? devtoolOverrides.softEdging
-      : isIOS;
+      : isIOS && !letterbox;
 
   // Debug override state (for weather and time)
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
@@ -606,6 +653,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       opacity: wallpaperOpacity,
       veil: veilAlpha,
       blurred: isBlurred,
+      letterbox,
+      letterboxSetting: settings.wallpaperLetterbox,
+      setLetterbox,
       readingBlur: settings.wallpaperReadingBlur,
       setReadingBlur,
       readingDim: settings.wallpaperReadingDim,
@@ -618,6 +668,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [
       settings.wallpaperKind,
       settings.wallpaperPlacement,
+      settings.wallpaperLetterbox,
       settings.wallpaperReadingBlur,
       settings.wallpaperReadingDim,
       setWallpaperKind,
@@ -634,6 +685,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       wallpaperOpacity,
       veilAlpha,
       isBlurred,
+      letterbox,
+      setLetterbox,
       setReadingBlur,
       setReadingDim,
       wallpaperSrc,
