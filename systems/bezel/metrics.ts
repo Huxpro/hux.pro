@@ -2,8 +2,8 @@
 // Bezel — how thick the frame is, and the box it leaves for the page.
 //
 // The frame's colour, the `bezel` class and the document lock are written ONCE,
-// by the boot script in app/layout.tsx, before first paint — and never again
-// in that page's life. See ./tint for why the colour may not move and
+// by the boot script in app/layout.tsx, before first paint — and never
+// re-decided in that page's life. (They can be re-applied: see ./boot.) See ./tint for why the colour may not move and
 // ./page-scroll for why the document may not scroll.
 //
 // The one thing that stays live is the band's thickness. It changes where the

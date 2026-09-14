@@ -9,6 +9,8 @@ import {
   BEZEL_BAND_MIN,
   BEZEL_BAND_VAR,
   BEZEL_BLACK,
+  BEZEL_BOOT_GLOBAL,
+  BEZEL_THEME_COLOR_ID,
   BEZEL_CLASS,
   BEZEL_COLOR_VAR,
   BEZEL_LOCK_CLASS,
@@ -137,8 +139,9 @@ if(box){var d=document.documentElement;d.classList.add(${JSON.stringify(BEZEL_CL
 if(ios)d.classList.add(${JSON.stringify(BEZEL_LOCK_CLASS)});
 d.style.setProperty(${JSON.stringify(BEZEL_COLOR_VAR)},c);
 d.style.setProperty(${JSON.stringify(BEZEL_BAND_VAR)},band+"px");
-d.style.backgroundColor=c;}
-var m=document.createElement("meta");m.id="hux-theme-color";m.name="theme-color";
+d.style.backgroundColor=c;
+window[${JSON.stringify(BEZEL_BOOT_GLOBAL)}]={color:c,band:band,lock:ios};}
+var m=document.createElement("meta");m.id=${JSON.stringify(BEZEL_THEME_COLOR_ID)};m.name="theme-color";
 m.content=box?c:ground;document.head.appendChild(m);
 }catch(e){}})()`;
 

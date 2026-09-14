@@ -1,6 +1,7 @@
 "use client";
 
-import { useLayoutEffect } from "react";
+import { useLayoutEffect, useRef } from "react";
+import { keepBezelBoot, readBezelBoot } from "./boot";
 import {
   applyBezelBand,
   BEZEL_BAND_BOTTOM,
@@ -70,11 +71,30 @@ export function Bezel({
 }: BezelProps) {
   // Only the thickness is written at runtime. Colour, class and lock belong to
   // the boot script, and this component never takes them back off either: a
-  // frame decided at load stays for the life of the page.
+  // frame decided at load stays for the life of the page. It only restores
+  // them, below, when something else removed them.
   useLayoutEffect(() => {
     if (!enabled) return;
     applyBezelBand(rootElement ?? document.documentElement, band);
   }, [enabled, band, rootElement]);
+
+  // The boot script's attributes do not survive React re-rendering <html>
+  // after a failed hydration. Put them back — the same decision, not a new
+  // one — whenever they go missing. See ./boot.
+  const bandRef = useRef(band);
+  useLayoutEffect(() => {
+    bandRef.current = band;
+  }, [band]);
+  useLayoutEffect(() => {
+    if (!enabled) return;
+    const boot = readBezelBoot();
+    if (!boot) return;
+    return keepBezelBoot(
+      rootElement ?? document.documentElement,
+      boot,
+      () => bandRef.current
+    );
+  }, [enabled, rootElement]);
 
   if (!enabled) return null;
 

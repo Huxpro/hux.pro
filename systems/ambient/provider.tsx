@@ -24,7 +24,12 @@ import {
   type Wallpaper,
   type WallpaperKind,
 } from "./lib/wallpaper";
-import { BEZEL_CLASS, resolveBezelTint, type BezelTint } from "@/systems/bezel";
+import {
+  BEZEL_THEME_COLOR_ID,
+  readBezelBoot,
+  resolveBezelTint,
+  type BezelTint,
+} from "@/systems/bezel";
 import {
   EDGE_FADE_MASK,
   EDGE_FADE_MASK_HIGH_CONTRAST,
@@ -402,8 +407,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   /** `null` until mounted: the server cannot see what the boot script did. */
   const [bootLetterbox, setBootLetterbox] = useState<boolean | null>(null);
   useEffect(() => {
+    // From the boot script's record on `window`, not the class on <html>: a
+    // failed hydration strips <html>'s attributes before this runs, and the
+    // class would then say there is no frame. See @/systems/bezel/boot.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: reads the boot script's decision
-    setBootLetterbox(document.documentElement.classList.contains(BEZEL_CLASS));
+    setBootLetterbox(readBezelBoot() !== null);
   }, []);
   const letterbox = bootLetterbox === true;
   /** The tri-state <Bezel> wants. */
@@ -423,10 +431,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // mismatch.
   useEffect(() => {
     if (bootLetterbox !== false) return;
-    let meta = document.head.querySelector<HTMLMetaElement>("#hux-theme-color");
+    let meta = document.getElementById(BEZEL_THEME_COLOR_ID) as HTMLMetaElement | null;
     if (!meta) {
       meta = document.createElement("meta");
-      meta.id = "hux-theme-color";
+      meta.id = BEZEL_THEME_COLOR_ID;
       meta.name = "theme-color";
       document.head.append(meta);
     }

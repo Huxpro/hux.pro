@@ -35,6 +35,15 @@
 export { Bezel, type BezelProps } from "./bezel";
 
 export {
+  applyBezelBoot,
+  keepBezelBoot,
+  readBezelBoot,
+  BEZEL_BOOT_GLOBAL,
+  BEZEL_THEME_COLOR_ID,
+  type BezelBootDecision,
+} from "./boot";
+
+export {
   applyBezelBand,
   clampBezelBand,
   clampBezelRadius,
