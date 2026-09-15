@@ -20,12 +20,24 @@ import {
 /** The named tints plus the segmented control's own "pick a colour". */
 type TintChoice = "black" | "dark" | "theme" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
+import { getWeatherGradient, getWeatherStyleGradient } from "@/systems/ambient/lib/gradient";
+import type { AmbientPhase } from "@/systems/ambient/lib/phase";
+import { rgbToCss, sampleDaySky } from "@/systems/ambient/lib/scene";
 import {
-  getSunEventGradient,
-  getWeatherGradient,
-} from "@/systems/ambient/lib/gradient";
+  getMoonPhaseName,
+  startOfLocalDay,
+  type MoonPhaseName,
+} from "@/systems/ambient/lib/solar";
+import type { WallpaperStats } from "@/systems/ambient/lib/wallpaper/renderer";
 import {
-  WEATHER_CONDITIONS,
+  getWeatherWallpaperName,
+  WEATHER_STYLE_LABEL,
+  WEATHER_STYLE_META,
+  WEATHER_STYLES,
+  type WeatherStyle,
+} from "@/systems/ambient/lib/wallpaper";
+import {
+  WEATHER_CONDITION_LIST,
   getWeatherConditionLabel,
 } from "@/systems/ambient/lib/weather";
 import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
@@ -57,6 +69,7 @@ import {
   Braces,
   Brain,
   Bug,
+  CalendarDays,
   ExternalLink,
   Check,
   ChevronDown,
@@ -65,21 +78,23 @@ import {
   Cloud,
   Copy,
   GripVertical,
-  Haze,
   Image as ImageIcon,
   Layers2,
   Moon,
-  MoonStar,
   Music,
+  Pause,
+  Play,
   RefreshCw,
+  RotateCcw,
+  SlidersHorizontal,
+  Sparkles,
   Sun,
-  SunMedium,
   Sunrise,
   Sunset,
   X,
 } from "lucide-react";
 import { withDraggable } from "@/systems/draggable";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // =============================================================================
 // Devtool FAB Component
@@ -209,8 +224,7 @@ function DevtoolPanel() {
         <ReadingModule />
         <WallpaperModule />
         <GlassModule />
-        <WeatherModule />
-        <AmbientTimeModule />
+        <SkyModule />
         <MusicModule />
         <DraggableModule />
         <AppsModule />
@@ -570,6 +584,7 @@ function FrontmatterModule() {
 function PanelStar({
   onReset,
   source,
+  label,
 }: {
   onReset: () => void;
   /**
@@ -577,13 +592,16 @@ function PanelStar({
    * reload, and for edge rows on a kind change), sky is a saved setting.
    */
   source: "session" | "saved";
+  /** A more specific name for the reset, where one star among several needs one. */
+  label?: string;
 }) {
-  const label = source === "session" ? "Session override — reset" : "Saved — reset";
+  const title =
+    label ?? (source === "session" ? "Session override — reset" : "Saved — reset");
   return (
     <button
       onClick={onReset}
-      title={label}
-      aria-label={label}
+      title={title}
+      aria-label={title}
       className={cn(
         "ml-1 font-mono transition-colors",
         source === "session"
@@ -656,6 +674,7 @@ function PanelRange({
   onChange,
   label,
   format = (v) => String(v),
+  wide = false,
 }: {
   value: number;
   min: number;
@@ -664,9 +683,11 @@ function PanelRange({
   onChange: (value: number) => void;
   label: string;
   format?: (value: number) => string;
+  /** Full-width, on a line of its own, with the reading shown by the caller. */
+  wide?: boolean;
 }) {
   return (
-    <div className="flex shrink-0 items-center gap-2">
+    <div className={cn("flex items-center gap-2", wide ? "w-full" : "shrink-0")}>
       <input
         type="range"
         min={min}
@@ -675,11 +696,16 @@ function PanelRange({
         value={value}
         aria-label={label}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1 w-24 cursor-pointer appearance-none rounded-full bg-muted accent-foreground"
+        className={cn(
+          "h-1 cursor-pointer appearance-none rounded-full bg-muted accent-foreground",
+          wide ? "w-full" : "w-24"
+        )}
       />
-      <span className="w-8 text-right text-[10px] font-mono tabular-nums text-muted-foreground">
-        {format(value)}
-      </span>
+      {!wide && (
+        <span className="w-8 text-right text-[10px] font-mono tabular-nums text-muted-foreground">
+          {format(value)}
+        </span>
+      )}
     </div>
   );
 }
@@ -838,6 +864,14 @@ function GlassModule() {
 // picker. Below it, the rendering flags as plain switches: where the wallpaper
 // paints, and how much of it survives on a reading page.
 //
+// Under Weather there are two more rows. Style is the persisted choice among
+// the picker's three weather tiles (Sky / Gradient / Classic); "No WebGL2" is
+// the one session override that exists here — it pretends WebGL2 is missing so
+// the Sky's fallback can be seen on a machine that has it. Style and engine
+// are otherwise one-to-one, so there is no engine picker. The last line reads
+// the live engine back: internal resolution, adaptive scale and frame time for
+// GL, or which CSS style is painting.
+//
 // Full, Widget and Soft edge are ephemeral devtool overrides of what the
 // settings and the platform resolve to; the reading treatment rows write the
 // persisted settings the picker sheet shares.
@@ -849,6 +883,12 @@ function WallpaperModule() {
   const {
     kind,
     setKind,
+    weatherStyle,
+    selectWeather,
+    effectiveStyle,
+    renderer,
+    shaderSupported,
+    statsRef,
     wallpaper,
     variant,
     opacity,
@@ -879,8 +919,33 @@ function WallpaperModule() {
     devtoolOverrides,
     setDevtoolOverrides,
   } = useWallpaper();
+  const { scene } = useWeather();
+  const { phase } = useAmbientTime();
 
   const isImage = kind === "image";
+  const isShader = !isImage && renderer === "shader";
+  // The swatch: what the CSS stack would paint for the effective style.
+  const swatch = getWeatherStyleGradient(effectiveStyle, scene, phase);
+
+  // Poll the renderer stats while the shader is live — as a formatted line, so
+  // an unchanged readout is a no-op render.
+  const [glStats, setGlStats] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isShader) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync: clear stale stats
+      setGlStats(null);
+      return;
+    }
+    const tick = () => {
+      const st = statsRef.current?.();
+      setGlStats(
+        st ? `${st.width}×${st.height} · ${st.scale.toFixed(2)}× · ${st.frameMs.toFixed(1)}ms` : null
+      );
+    };
+    tick();
+    const id = window.setInterval(tick, 500);
+    return () => window.clearInterval(id);
+  }, [isShader, statsRef]);
 
   // The segmented control has a position the setting does not: "custom" is not
   // a tint, it is "whatever the swatch says". Every row here is live; @hux/bezel
@@ -933,7 +998,7 @@ function WallpaperModule() {
       on: softEdgeEnabled,
     },
   ] as const;
-  type OverrideKey = "full" | "widget" | "softEdging" | "bezel" | "scroll";
+  type OverrideKey = "full" | "widget" | "softEdging" | "bezel" | "scroll" | "noWebGL";
   const overrideFlag = (key: Exclude<OverrideKey, "scroll">, on: boolean) =>
     setDevtoolOverrides({ ...devtoolOverrides, [key]: on });
   const clearFlag = (key: OverrideKey) =>
@@ -944,11 +1009,20 @@ function WallpaperModule() {
     ) : null;
 
   // One line that answers "what am I actually looking at".
+  const weatherName = getWeatherWallpaperName(locale, weatherStyle);
   const now = [
-    isImage ? wallpaper.name : t(locale, "wallpaperWeather"),
+    isImage ? wallpaper.name : weatherName,
     variant,
     isImage ? (reading ? (zh ? "阅读" : "read") : zh ? "桌面" : "desktop") : placement,
   ].join(" · ");
+
+  // What the weather layer is being drawn by, with the GL numbers when live.
+  const fellBack = weatherStyle === "sky" && effectiveStyle !== "sky";
+  const engineLine = isShader
+    ? `GL · ${glStats ?? "…"}`
+    : `CSS · ${t(locale, WEATHER_STYLE_LABEL[effectiveStyle])}${
+        fellBack ? ` (${zh ? "无 WebGL2，天空退回" : "no WebGL2, Sky fell back"})` : ""
+      }`;
 
   return (
     <DebugSection
@@ -958,7 +1032,7 @@ function WallpaperModule() {
       compact
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
-          {isImage ? wallpaper.id : "weather"}
+          {isImage ? wallpaper.id : `weather · ${isShader ? "gl" : "css"}`}
           <span className="ml-1 text-muted-foreground/40">W</span>
         </span>
       }
@@ -976,7 +1050,9 @@ function WallpaperModule() {
 
         {/* Which wallpaper. Only a switch and the current picture: choosing
             among thirty-odd tiles is the picker's job, and a second grid here
-            was a second picker to keep in step. */}
+            was a second picker to keep in step. Under Weather, the style is
+            the picker's two tiles as a segmented row, and Engine is the devtool
+            override on top of it — what actually paints. */}
         <PanelRow label={zh ? "类型" : "Kind"}>
           <PanelSegmented<"weather" | "image">
             value={kind}
@@ -987,6 +1063,40 @@ function WallpaperModule() {
             onChange={setKind}
           />
         </PanelRow>
+        {!isImage && (
+          <>
+            <PanelRow
+              label={zh ? "风格" : "Style"}
+              star={
+                weatherStyle === "sky" ? null : (
+                  <PanelStar onReset={() => selectWeather("sky")} source="saved" label="Back to Sky" />
+                )
+              }
+            >
+              <PanelSegmented<WeatherStyle>
+                value={weatherStyle}
+                options={WEATHER_STYLES.map((style) => ({
+                  value: style,
+                  label: t(locale, WEATHER_STYLE_LABEL[style]),
+                  title:
+                    style === "sky" && !shaderSupported
+                      ? t(locale, "wallpaperNoWebGL")
+                      : t(locale, WEATHER_STYLE_META[style]),
+                }))}
+                onChange={selectWeather}
+              />
+            </PanelRow>
+            {/* The only engine knob: pretend WebGL2 is missing, to see the Sky's
+                fallback here. Style and engine are otherwise one-to-one. */}
+            <PanelRow label={zh ? "无 WebGL2" : "No WebGL2"} star={sessionStar("noWebGL")}>
+              <PanelToggle
+                on={devtoolOverrides.noWebGL === true}
+                onClick={() => overrideFlag("noWebGL", !devtoolOverrides.noWebGL)}
+                label="Simulate no WebGL2"
+              />
+            </PanelRow>
+          </>
+        )}
         <button
           type="button"
           onClick={openPicker}
@@ -1001,12 +1111,21 @@ function WallpaperModule() {
               className="h-6 w-10 shrink-0 rounded-sm object-cover"
             />
           ) : (
-            <span className="flex h-6 w-10 shrink-0 items-center justify-center rounded-sm bg-muted/40">
-              <Cloud className="h-3 w-3 text-foreground/70" />
+            <span
+              className="flex h-6 w-10 shrink-0 items-center justify-center rounded-sm"
+              style={{ backgroundImage: swatch }}
+            >
+              {weatherStyle === "sky" ? (
+                <Sparkles className="h-3 w-3 text-white/85 drop-shadow" />
+              ) : (
+                <Cloud className="h-3 w-3 text-white/85 drop-shadow" />
+              )}
             </span>
           )}
           <span className="min-w-0 flex-1 truncate text-[10px] font-mono text-foreground/80">
-            {isImage ? wallpaper.name : t(locale, "wallpaperWeather")}
+            {isImage
+              ? wallpaper.name
+              : weatherName}
             {isImage && (
               <span className="ml-1.5 tabular-nums text-muted-foreground/60">
                 {wallpaper[variant].width}×{wallpaper[variant].height}
@@ -1158,297 +1277,659 @@ function WallpaperModule() {
         </div>
 
         {/* The resolved asset — the fastest way to trace a wrong background. */}
-        <div className="break-all text-[10px] font-mono text-muted-foreground">
-          {isImage ? src : zh ? "天气渐变" : "weather gradient"}
+        <div className="break-all text-[10px] font-mono tabular-nums text-muted-foreground">
+          {isImage ? src : engineLine}
         </div>
       </div>
     </DebugSection>
   );
 }
 // =============================================================================
-// Weather Module
+// Slider row for the scene tweaks. Same grammar as every other row: label on
+// the left, a star when it is not at its natural value, the reading on the
+// right, the control underneath.
 // =============================================================================
 
-function WeatherModule() {
+function PanelSlider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  format,
+  star,
+  onChange,
+  ariaLabel,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  format: (v: number) => string;
+  star?: React.ReactNode;
+  onChange: (v: number) => void;
+  /** Stable, locale-independent name for scripts and assistive tech. */
+  ariaLabel: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <PanelRow label={label} star={star}>
+        <span className="text-[10px] font-mono tabular-nums text-foreground/80">{format(value)}</span>
+      </PanelRow>
+      <PanelRange wide value={value} min={min} max={max} step={step} onChange={onChange} label={ariaLabel} />
+    </div>
+  );
+}
+
+// =============================================================================
+// Moon phase glyph — the lit part of the disc for a phase in [0, 1).
+// Terminator is an ellipse of half-width |cos(2πp)|; waxing lights the right
+// limb (northern hemisphere), and `mirror` flips it for the south.
+// =============================================================================
+
+function MoonPhaseIcon({
+  phase,
+  mirror = false,
+  className,
+}: {
+  phase: number;
+  mirror?: boolean;
+  className?: string;
+}) {
+  const r = 6;
+  const p = ((phase % 1) + 1) % 1;
+  const k = Math.cos(p * 2 * Math.PI);
+  const rx = Math.max(0.01, Math.abs(k) * r);
+  const waxing = p < 0.5;
+  // Outer limb: right semicircle when waxing, left when waning (top → bottom).
+  const limb = waxing ? `A ${r} ${r} 0 0 1 0 ${r}` : `A ${r} ${r} 0 0 0 0 ${r}`;
+  // Return along the terminator ellipse (bottom → top). Crescent (k > 0)
+  // curves back on the same side as the limb; gibbous (k < 0) bulges across.
+  const sweep = waxing ? (k > 0 ? 0 : 1) : k > 0 ? 1 : 0;
+  const terminator = `A ${rx} ${r} 0 0 ${sweep} 0 ${-r}`;
+  return (
+    <svg
+      viewBox="-7 -7 14 14"
+      className={cn("h-3.5 w-3.5 shrink-0", className)}
+      aria-hidden
+      style={mirror ? { transform: "scaleX(-1)" } : undefined}
+    >
+      <circle r={r} className="fill-muted-foreground/25" />
+      <path d={`M 0 ${-r} ${limb} ${terminator} Z`} className="fill-foreground/85" />
+    </svg>
+  );
+}
+
+// =============================================================================
+// Sky Module — weather and time as one thing
+//
+// The wallpaper is a function of (condition, clock); the two used to sit in
+// separate modules with a hint pointing from one to the other. Here they are
+// one picture:
+//
+//   · a status line saying what the sky IS right now — condition, phase,
+//     clock, sun height, moon phase — every field derived from the same scene;
+//   · a day timeline painted with the sky's own colours for the current
+//     condition, sunrise and sunset ticked on it, with a playhead you drag.
+//     Change the condition and the strip repaints; move the playhead and the
+//     condition chips swap to their night faces. Phase names under it jump;
+//   · the six conditions, one row, previewed at the effective time of day.
+//     Click to force one, click it again to go back to the real weather —
+//     no toggle to remember;
+//   · the date (which is what changes the moon), and a fold of fine-tune
+//     sliders over the derived scene plus the raw API readout.
+//
+// Day/night is never chosen here. It follows the clock, so a moon in a daytime
+// sky is impossible by construction. One "Now" in the corner puts everything
+// back — time, day, condition and tweaks alike.
+// =============================================================================
+
+const PHASE_ORDER: AmbientPhase[] = [
+  "sunrise",
+  "morning",
+  "afternoon",
+  "sunset",
+  "evening",
+  "night",
+];
+
+const PHASE_LABEL: Record<"en" | "zh", Record<AmbientPhase, string>> = {
+  en: {
+    sunrise: "Sunrise",
+    morning: "Morning",
+    afternoon: "Afternoon",
+    evening: "Evening",
+    sunset: "Sunset",
+    night: "Night",
+  },
+  zh: {
+    sunrise: "日出",
+    morning: "早晨",
+    afternoon: "下午",
+    evening: "傍晚",
+    sunset: "日落",
+    night: "夜晚",
+  },
+};
+
+const MOON_NAME: Record<"en" | "zh", Record<MoonPhaseName, string>> = {
+  en: {
+    new: "New moon",
+    "waxing-crescent": "Waxing crescent",
+    "first-quarter": "First quarter",
+    "waxing-gibbous": "Waxing gibbous",
+    full: "Full moon",
+    "waning-gibbous": "Waning gibbous",
+    "last-quarter": "Last quarter",
+    "waning-crescent": "Waning crescent",
+  },
+  zh: {
+    new: "新月",
+    "waxing-crescent": "娥眉月",
+    "first-quarter": "上弦月",
+    "waxing-gibbous": "盈凸月",
+    full: "满月",
+    "waning-gibbous": "亏凸月",
+    "last-quarter": "下弦月",
+    "waning-crescent": "残月",
+  },
+};
+
+const minutesOfDay = (ms?: number, fallback = 0) => {
+  if (typeof ms !== "number" || !Number.isFinite(ms)) return fallback;
+  const d = new Date(ms);
+  return d.getHours() * 60 + d.getMinutes();
+};
+
+/** The quiet outlined chip the Sky module's Now and Play buttons are made of. */
+const PANEL_CHIP = cn(
+  "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5",
+  "text-[10px] font-mono uppercase tracking-wider transition-colors"
+);
+
+/** The timeline's playhead: a range input with an invisible track. */
+const PLAYHEAD_INPUT = cn(
+  "absolute inset-0 h-full w-full cursor-ew-resize appearance-none bg-transparent",
+  "[&::-webkit-slider-runnable-track]:h-full [&::-webkit-slider-runnable-track]:bg-transparent",
+  "[&::-webkit-slider-thumb]:h-10 [&::-webkit-slider-thumb]:w-[3px] [&::-webkit-slider-thumb]:appearance-none",
+  "[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white",
+  "[&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(0,0,0,0.55)]",
+  "[&::-moz-range-track]:bg-transparent",
+  "[&::-moz-range-thumb]:h-10 [&::-moz-range-thumb]:w-[3px] [&::-moz-range-thumb]:rounded-full",
+  "[&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white"
+);
+
+function SkyModule() {
   const { locale } = useLocale();
+  const zh = locale === "zh";
+  const lang = zh ? "zh" : "en";
   const { theme } = useTheme();
+  const { location } = useLocation();
   const {
     weather,
+    scene,
+    sceneWeather,
     debugOverride,
-    isOverrideEnabled,
     setDebugOverride,
-    setOverrideEnabled,
+    sceneOverrides,
+    setSceneOverrides,
   } = useWeather();
-
-  const effectiveCondition = debugOverride?.condition ?? weather?.condition;
-  const effectiveIsDay = debugOverride?.isDay ?? weather?.isDay;
-
-  return (
-    <DebugSection
-      id="weather"
-      title={t(locale, "widgetWeather")}
-      icon={<Cloud className="h-4 w-4" />}
-      action={
-        <button
-          onClick={() => setOverrideEnabled(!isOverrideEnabled)}
-          className={cn(
-            "relative inline-flex h-5 w-9 items-center rounded-full border transition-colors",
-            isOverrideEnabled
-              ? "bg-green-500/90 border-green-500/70"
-              : "bg-muted/40 border-border/60"
-          )}
-          aria-pressed={isOverrideEnabled}
-          aria-label="Toggle weather override"
-        >
-          <span
-            className={cn(
-              "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
-              isOverrideEnabled ? "translate-x-4" : "translate-x-0.5"
-            )}
-          />
-        </button>
-      }
-    >
-      <div className="space-y-3">
-        {/* Day conditions */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-            <Sun className="h-3 w-3" />
-            <span>{t(locale, "timeDay")}</span>
-          </div>
-          <div className="grid grid-cols-6 gap-1.5">
-            {Object.keys(WEATHER_CONDITIONS).map((k) => {
-              const condition = k as keyof typeof WEATHER_CONDITIONS;
-              const isSelected =
-                isOverrideEnabled &&
-                effectiveIsDay !== false &&
-                condition === effectiveCondition;
-              const preview = getWeatherGradient({
-                condition,
-                isDay: true,
-                theme,
-              });
-              return (
-                <button
-                  key={`day-${condition}`}
-                  onClick={() => {
-                    setDebugOverride({ condition, isDay: true });
-                    setOverrideEnabled(true);
-                  }}
-                  className={cn(
-                    "relative rounded-lg aspect-square",
-                    "border transition-all duration-200",
-                    "overflow-hidden",
-                    isSelected
-                      ? "border-foreground/60 ring-2 ring-foreground/50"
-                      : "border-border/40 hover:border-border"
-                  )}
-                  style={{ backgroundImage: preview.backgroundImage }}
-                  aria-label={`Set day weather to ${getWeatherConditionLabel(condition, locale)}`}
-                  title={getWeatherConditionLabel(condition, locale)}
-                >
-                  <div className="absolute inset-0 bg-white/10 dark:bg-black/10" />
-                  <div className="absolute inset-0 flex items-center justify-center text-foreground/70">
-                    <WeatherIcon condition={condition} isDay={true} className="h-3.5 w-3.5" />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Night conditions */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-            <Moon className="h-3 w-3" />
-            <span>{t(locale, "timeNight")}</span>
-          </div>
-          <div className="grid grid-cols-6 gap-1.5">
-            {Object.keys(WEATHER_CONDITIONS).map((k) => {
-              const condition = k as keyof typeof WEATHER_CONDITIONS;
-              const isSelected =
-                isOverrideEnabled &&
-                effectiveIsDay === false &&
-                condition === effectiveCondition;
-              const preview = getWeatherGradient({
-                condition,
-                isDay: false,
-                theme,
-              });
-              return (
-                <button
-                  key={`night-${condition}`}
-                  onClick={() => {
-                    setDebugOverride({ condition, isDay: false });
-                    setOverrideEnabled(true);
-                  }}
-                  className={cn(
-                    "relative rounded-lg aspect-square",
-                    "border transition-all duration-200",
-                    "overflow-hidden",
-                    isSelected
-                      ? "border-foreground/60 ring-2 ring-foreground/50"
-                      : "border-border/40 hover:border-border"
-                  )}
-                  style={{ backgroundImage: preview.backgroundImage }}
-                  aria-label={`Set night weather to ${getWeatherConditionLabel(condition, locale)}`}
-                  title={getWeatherConditionLabel(condition, locale)}
-                >
-                  <div className="absolute inset-0 bg-white/10 dark:bg-black/10" />
-                  <div className="absolute inset-0 flex items-center justify-center text-foreground/70">
-                    <WeatherIcon condition={condition} isDay={false} className="h-3.5 w-3.5" />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </DebugSection>
-  );
-}
-
-// =============================================================================
-// Ambient Time Module
-// =============================================================================
-
-function AmbientTimeModule() {
-  const { locale } = useLocale();
-  const { theme } = useTheme();
-  const { weather } = useWeather();
   const {
+    nowMs,
+    realNowMs,
     phase,
-    derivedPhase,
-    overridePhase,
-    isOverrideEnabled,
-    setOverrideEnabled,
-    setOverridePhase,
+    sunriseMs,
+    sunsetMs,
+    timeScrubMinutes,
+    setTimeScrubMinutes,
+    dayOffset,
+    setDayOffset,
+    isTimeTravelActive,
+    resetTimeTravel,
   } = useAmbientTime();
 
-  const sunriseMs = weather?.sunriseMs;
-  const sunsetMs = weather?.sunsetMs;
+  const isDayNow = scene.sun.isDay;
+  const isOverridden = debugOverride !== null;
+  const isTuned = Object.keys(sceneOverrides).length > 0;
+  const anythingForced = isTimeTravelActive || isOverridden || isTuned;
 
-  const formatTime = (ms?: number) => formatClockTime(ms, locale);
+  // --- The day ------------------------------------------------------------
+  const dayStartMs = startOfLocalDay(nowMs);
+  /** A clock reading for minutes past midnight, in the locale's format. */
+  const clock = (minutes: number) => formatClockTime(dayStartMs + minutes * 60_000, locale);
+  const lat = location?.lat;
+  const lon = location?.lon;
 
-  const labelForPhase = (p: typeof phase) => {
-    const mapEn: Record<typeof phase, string> = {
-      sunrise: "Sunrise",
-      morning: "Morning",
-      afternoon: "Afternoon",
-      evening: "Evening",
-      sunset: "Sunset",
-      night: "Night",
-    };
-    const mapZh: Record<typeof phase, string> = {
-      sunrise: "日出",
-      morning: "早晨",
-      afternoon: "下午",
-      evening: "傍晚",
-      sunset: "日落",
-      night: "夜晚",
-    };
-    return locale === "zh" ? mapZh[p] : mapEn[p];
-  };
-
-  const PhaseButton = ({
-    p,
-    icon,
-    aria,
-    gradientBg,
-  }: {
-    p: typeof phase;
-    icon: React.ReactNode;
-    aria: string;
-    gradientBg?: string;
-  }) => {
-    const isSelected = isOverrideEnabled && overridePhase === p;
-    return (
-      <button
-        onClick={() => {
-          setOverridePhase(p);
-          setOverrideEnabled(true);
-        }}
-        className={cn(
-          "relative rounded-xl aspect-square",
-          "border transition-all duration-200",
-          "overflow-hidden",
-          isSelected
-            ? "border-foreground/60 ring-2 ring-foreground/50"
-            : "border-border/40 hover:border-border",
-          !isOverrideEnabled ? "opacity-70" : ""
-        )}
-        style={gradientBg ? { backgroundImage: gradientBg } : undefined}
-        aria-label={aria}
-        title={labelForPhase(p)}
-      >
-        {gradientBg ? (
-          <div className="absolute inset-0 bg-white/10 dark:bg-black/10" />
-        ) : (
-          <div className="absolute inset-0 bg-muted/10" />
-        )}
-        <div className="absolute inset-0 flex items-center justify-center text-foreground/70">
-          {icon}
-        </div>
-      </button>
+  // The strip: 72 scenes across the day for the *current* condition, so a
+  // forced Thunder greys the whole day and a clear day glows at both ends.
+  const dayGradient = useMemo(() => {
+    const colors = sampleDaySky({
+      dayMs: dayStartMs,
+      lat,
+      lon,
+      weather: sceneWeather,
+      theme,
+      overrides: sceneOverrides,
+    });
+    const stops = colors.map(
+      (c, i) => `${rgbToCss(c)} ${((i / (colors.length - 1)) * 100).toFixed(1)}%`
     );
+    return `linear-gradient(90deg, ${stops.join(", ")})`;
+  }, [dayStartMs, lat, lon, sceneWeather, theme, sceneOverrides]);
+
+  const sr = minutesOfDay(sunriseMs, 6 * 60 + 30);
+  const ss = minutesOfDay(sunsetMs, 18 * 60 + 30);
+  const noon = Math.round((sr + ss) / 2);
+  const SUN_WINDOW = 45;
+  const phaseTimes: Record<AmbientPhase, number> = {
+    sunrise: sr,
+    morning: Math.round((sr + SUN_WINDOW + noon) / 2),
+    afternoon: Math.round((noon + ss - SUN_WINDOW) / 2),
+    sunset: ss,
+    evening: Math.min(1439, ss + SUN_WINDOW + 75),
+    night: Math.min(1439, ss + SUN_WINDOW + 180 + 45),
   };
 
-  const sunriseGradient = getSunEventGradient({ event: "sunrise", theme }).backgroundImage;
-  const sunsetGradient = getSunEventGradient({ event: "sunset", theme }).backgroundImage;
+  const nowDate = new Date(nowMs);
+  const clockMinutes = timeScrubMinutes ?? minutesOfDay(nowMs);
+  const realMinutes = minutesOfDay(realNowMs);
+  const pct = (m: number) => `${((m / 1440) * 100).toFixed(2)}%`;
+
+  // --- Play: sweep dawn → dusk and loop ------------------------------------
+  const [playing, setPlaying] = useState(false);
+  const PLAY_LEAD_MIN = 90;
+  const PLAY_DURATION_MS = 45_000;
+  const playStart = Math.max(0, sr - PLAY_LEAD_MIN);
+  const playEnd = Math.min(1439, ss + PLAY_LEAD_MIN);
+  const playPosRef = useRef(playStart);
+
+  useEffect(() => {
+    if (!playing) return;
+    const span = Math.max(60, playEnd - playStart);
+    const tickMs = 100;
+    const step = (span / PLAY_DURATION_MS) * tickMs;
+    const id = window.setInterval(() => {
+      let next = playPosRef.current + step;
+      if (next > playEnd) next = playStart;
+      playPosRef.current = next;
+      setTimeScrubMinutes(Math.round(next));
+    }, tickMs);
+    return () => window.clearInterval(id);
+  }, [playing, playStart, playEnd, setTimeScrubMinutes]);
+
+  const startPlay = () => {
+    const current = timeScrubMinutes;
+    playPosRef.current =
+      current !== null && current >= playStart && current < playEnd
+        ? current
+        : playStart;
+    setTimeScrubMinutes(Math.round(playPosRef.current));
+    setPlaying(true);
+  };
+
+  const jumpTo = (minutes: number) => {
+    setPlaying(false);
+    setTimeScrubMinutes(minutes);
+  };
+
+  const resetAll = () => {
+    setPlaying(false);
+    resetTimeTravel();
+    setDebugOverride(null);
+    setSceneOverrides({});
+  };
+
+  // --- Tune fold -----------------------------------------------------------
+  const [tuneOpen, setTuneOpen] = useState(false);
+  const setTune = (patch: Partial<typeof sceneOverrides>) =>
+    setSceneOverrides({ ...sceneOverrides, ...patch });
+  const clearTune = (key: keyof typeof sceneOverrides) => {
+    const next = { ...sceneOverrides };
+    delete next[key];
+    setSceneOverrides(next);
+  };
+
+  // The four tweakable numbers: slider value ↔ scene value, one row each.
+  const percent = (v: number) => `${v}%`;
+  const tune: {
+    key: keyof typeof sceneOverrides;
+    label: string;
+    aria: string;
+    value: number;
+    max: number;
+    format: (v: number) => string;
+    toScene: (v: number) => number;
+  }[] = [
+    { key: "cloudCover", label: zh ? "云量" : "Cloud", aria: "Cloud", value: Math.round(scene.clouds.cover * 100), max: 100, format: percent, toScene: (v) => v / 100 },
+    { key: "precipitationIntensity", label: zh ? "降水" : "Precip", aria: "Precip", value: Math.round(scene.precipitation.intensity * 100), max: 100, format: percent, toScene: (v) => v / 100 },
+    { key: "windSpeedKmh", label: zh ? "风速" : "Wind", aria: "Wind", value: Math.round(sceneOverrides.windSpeedKmh ?? weather?.windSpeedKmh ?? 8), max: 60, format: (v) => `${v} km/h`, toScene: (v) => v },
+    { key: "veilAmount", label: zh ? "遮罩" : "Veil", aria: "Veil", value: Math.round(scene.veil.amount * 100), max: 90, format: percent, toScene: (v) => v / 100 },
+  ];
+
+  // --- Readouts ------------------------------------------------------------
+  const moonName = getMoonPhaseName(scene.moon.phase);
+  const moonUpLabel = scene.moon.elevation > 0 ? (zh ? "在天上" : "up") : zh ? "在地平线下" : "set";
+  const dateLabel = new Intl.DateTimeFormat(zh ? "zh-CN" : "en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(nowDate);
+  const conditionLabel = getWeatherConditionLabel(scene.condition, locale);
 
   return (
     <DebugSection
-      id="time"
-      title={t(locale, "devtoolTimeOfDay")}
-      icon={<Clock className="h-4 w-4" />}
+      id="sky"
+      title={zh ? "天空" : "Sky"}
+      icon={<Cloud className="h-4 w-4" />}
       action={
-        <button
-          onClick={() => setOverrideEnabled(!isOverrideEnabled)}
-          className={cn(
-            "relative inline-flex h-5 w-9 items-center rounded-full border transition-colors",
-            isOverrideEnabled
-              ? "bg-green-500/90 border-green-500/70"
-              : "bg-muted/40 border-border/60"
-          )}
-          aria-pressed={isOverrideEnabled}
-          aria-label="Toggle time of day override"
-        >
-          <span
-            className={cn(
-              "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
-              isOverrideEnabled ? "translate-x-4" : "translate-x-0.5"
-            )}
-          />
-        </button>
+        anythingForced ? (
+          <button
+            onClick={resetAll}
+            className={cn(PANEL_CHIP, "border-border/60 text-muted-foreground hover:text-foreground")}
+            aria-label="Back to now"
+            title={zh ? "回到真实的现在：时间、天气、微调全部复位" : "Back to real time and real weather; clears every tweak"}
+          >
+            <RotateCcw className="h-3 w-3" />
+            {zh ? "现在" : "Now"}
+          </button>
+        ) : (
+          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            {zh ? "实时" : "Live"}
+          </span>
+        )
       }
     >
       <div className="space-y-3">
-        <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
-          <div className="flex items-center gap-3">
+        {/* What the sky is right now — every field from the same scene. */}
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-border/40 bg-muted/20 px-2.5 py-1.5 text-[11px] font-mono">
+          <span className="flex min-w-0 items-center gap-1.5 text-foreground/90">
+            <WeatherIcon condition={scene.condition} isDay={isDayNow} className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{conditionLabel}</span>
+            <span className="text-muted-foreground/60">·</span>
+            <span className="truncate">{PHASE_LABEL[lang][phase]}</span>
+            <span className="text-muted-foreground/60">·</span>
+            <span className="tabular-nums">{clock(clockMinutes)}</span>
+          </span>
+          <span className="flex shrink-0 items-center gap-2 tabular-nums text-muted-foreground">
+            <span className="inline-flex items-center gap-1" title={zh ? "太阳高度角" : "Sun elevation"}>
+              <Sun className="h-3 w-3" />
+              {scene.sun.elevation.toFixed(0)}°
+            </span>
+            <span
+              className="inline-flex items-center gap-1"
+              title={`${MOON_NAME[lang][moonName]} · ${moonUpLabel}`}
+            >
+              <MoonPhaseIcon phase={scene.moon.phase} mirror={scene.hemisphere === -1} className="h-3 w-3" />
+              {Math.round(scene.moon.illumination * 100)}%
+            </span>
+          </span>
+        </div>
+
+        {/* The day. Painted with the sky's own colours for this condition;
+            sunrise and sunset ticked; the playhead is the clock. */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <Clock className="h-3 w-3" />
+              {t(locale, "devtoolTimeOfDay")}
+              {timeScrubMinutes !== null && (
+                <PanelStar
+                  onReset={() => jumpTo(realMinutes)}
+                  source="session"
+                  label={zh ? "回到当前时刻" : "Back to the real time of day"}
+                />
+              )}
+            </span>
+            <button
+              onClick={() => (playing ? setPlaying(false) : startPlay())}
+              className={cn(
+                PANEL_CHIP,
+                playing
+                  ? "border-foreground/40 bg-accent text-accent-foreground"
+                  : "border-border/60 text-muted-foreground hover:text-foreground"
+              )}
+              aria-label={playing ? "Pause sunrise to sunset" : "Play sunrise to sunset"}
+              aria-pressed={playing}
+              title={zh ? "从日出播放到日落" : "Play from dawn to dusk"}
+            >
+              {playing ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+              <Sunrise className="h-3 w-3" />
+              <span>→</span>
+              <Sunset className="h-3 w-3" />
+            </button>
+          </div>
+          <div
+            className="relative h-10 overflow-hidden rounded-lg ring-1 ring-border/50"
+            style={{ backgroundImage: dayGradient }}
+          >
+            {[sr, ss].map((m) => (
+              <span
+                key={m}
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 w-px bg-white/55 mix-blend-difference"
+                style={{ left: pct(m) }}
+              />
+            ))}
+            {isTimeTravelActive && (
+              <span
+                aria-hidden
+                title={zh ? "真实的现在" : "Real now"}
+                className="pointer-events-none absolute inset-y-0 border-l border-dashed border-white/70 mix-blend-difference"
+                style={{ left: pct(realMinutes) }}
+              />
+            )}
+            <input
+              type="range"
+              min={0}
+              max={1439}
+              step={1}
+              value={clockMinutes}
+              onChange={(e) => jumpTo(Number(e.target.value))}
+              className={PLAYHEAD_INPUT}
+              aria-label="Time of day scrub"
+              aria-valuetext={clock(clockMinutes)}
+            />
+          </div>
+          <div className="flex items-center justify-between text-[10px] font-mono tabular-nums text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <Sunrise className="h-3.5 w-3.5" />
-              <span>{formatTime(sunriseMs)}</span>
+              <Sunrise className="h-3 w-3" />
+              {formatClockTime(sunriseMs, locale)}
             </span>
             <span className="inline-flex items-center gap-1">
-              <Sunset className="h-3.5 w-3.5" />
-              <span>{formatTime(sunsetMs)}</span>
+              <Sunset className="h-3 w-3" />
+              {formatClockTime(sunsetMs, locale)}
             </span>
           </div>
-          <div className="text-right">
-            <span>{locale === "zh" ? "当前: " : "Current: "}</span>
-            <span className="text-foreground/80">
-              {labelForPhase(isOverrideEnabled ? phase : derivedPhase)}
+          {/* Phase names: click to jump; the one the clock is in is lit. */}
+          <div className="grid grid-cols-6 gap-1">
+            {PHASE_ORDER.map((p) => {
+              const current = phase === p;
+              return (
+                <button
+                  key={p}
+                  onClick={() => jumpTo(phaseTimes[p])}
+                  aria-label={`Jump to ${p}`}
+                  aria-current={current ? "time" : undefined}
+                  title={`${PHASE_LABEL[lang][p]} · ${clock(phaseTimes[p])}`}
+                  className={cn(
+                    "truncate rounded-md px-0.5 py-1 text-[9px] font-mono transition-colors",
+                    current
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                  )}
+                >
+                  {PHASE_LABEL[lang][p]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Condition. Chips wear the day or night face of the clock above. */}
+        <div className="space-y-1.5 border-t border-border/30 pt-2.5">
+          <div className="flex items-center justify-between gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              {isDayNow ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
+              {zh ? "天气" : "Condition"}
+              {isOverridden && (
+                <PanelStar
+                  onReset={() => setDebugOverride(null)}
+                  source="session"
+                  label="Clear weather override"
+                />
+              )}
+            </span>
+            <span className="normal-case tracking-normal text-muted-foreground/70">
+              {weather
+                ? `${zh ? "实况" : "live"}: ${getWeatherConditionLabel(weather.condition, locale)}`
+                : zh
+                  ? "暂无实况"
+                  : "no live weather"}
+            </span>
+          </div>
+          <div className="grid grid-cols-6 gap-1.5">
+            {WEATHER_CONDITION_LIST.map((condition) => {
+              const selected = debugOverride?.condition === condition;
+              const isLive = weather?.condition === condition;
+              const preview = getWeatherGradient({ condition, isDay: isDayNow, theme });
+              return (
+                <button
+                  key={condition}
+                  onClick={() =>
+                    setDebugOverride(selected ? null : { condition })
+                  }
+                  className={cn(
+                    "relative aspect-square overflow-hidden rounded-lg border transition-all duration-200",
+                    selected
+                      ? "border-foreground/60 ring-2 ring-foreground/50"
+                      : "border-border/40 hover:border-border"
+                  )}
+                  style={{ backgroundImage: preview }}
+                  aria-label={`Set weather to ${getWeatherConditionLabel(condition, locale)}`}
+                  aria-pressed={selected}
+                  title={
+                    selected
+                      ? zh
+                        ? "再点一次回到实况"
+                        : "Click again for the live weather"
+                      : getWeatherConditionLabel(condition, locale)
+                  }
+                >
+                  <div className="absolute inset-0 bg-white/10 dark:bg-black/10" />
+                  <div className="absolute inset-0 flex items-center justify-center text-foreground/70">
+                    <WeatherIcon condition={condition} isDay={isDayNow} className="h-3.5 w-3.5" />
+                  </div>
+                  {isLive && (
+                    <span
+                      aria-hidden
+                      className="absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full bg-green-500 ring-1 ring-background"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* The date — which is what moves the moon. */}
+        <div className="space-y-1.5 border-t border-border/30 pt-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+              <CalendarDays className="h-3 w-3" />
+              {zh ? "日期 / 月相" : "Date / Moon"}
+              {dayOffset !== 0 && (
+                <PanelStar onReset={() => setDayOffset(0)} source="session" label={zh ? "回到今天" : "Back to today"} />
+              )}
+            </span>
+            <span className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground">
+              <MoonPhaseIcon phase={scene.moon.phase} mirror={scene.hemisphere === -1} />
+              <span className="text-foreground/80">{MOON_NAME[lang][moonName]}</span>
+            </span>
+          </div>
+          <PanelRange
+            wide
+            value={dayOffset}
+            min={-15}
+            max={15}
+            step={1}
+            onChange={setDayOffset}
+            label="Date offset"
+          />
+          <div className="flex items-center justify-between text-[10px] font-mono tabular-nums text-muted-foreground">
+            <span className={dayOffset !== 0 ? "text-foreground/80" : ""}>
+              {dateLabel}
+              {dayOffset !== 0 && ` (${dayOffset > 0 ? "+" : ""}${dayOffset}d)`}
+            </span>
+            <span>
+              {zh ? "月亮" : "moon"} {scene.moon.elevation.toFixed(0)}° · {Math.round(scene.moon.azimuth)}°
+              {" · "}
+              {moonUpLabel}
             </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-6 gap-1.5">
-          <PhaseButton p="sunrise" icon={<Sunrise className="h-3.5 w-3.5" />} aria="Set phase to sunrise" gradientBg={sunriseGradient} />
-          <PhaseButton p="morning" icon={<Haze className="h-3.5 w-3.5" />} aria="Set phase to morning" />
-          <PhaseButton p="afternoon" icon={<SunMedium className="h-3.5 w-3.5" />} aria="Set phase to afternoon" />
-          <PhaseButton p="sunset" icon={<Sunset className="h-3.5 w-3.5" />} aria="Set phase to sunset" gradientBg={sunsetGradient} />
-          <PhaseButton p="evening" icon={<Moon className="h-3.5 w-3.5" />} aria="Set phase to evening" />
-          <PhaseButton p="night" icon={<MoonStar className="h-3.5 w-3.5" />} aria="Set phase to night" />
+        {/* Fine-tune, folded: the derived numbers, each draggable. */}
+        <div className="border-t border-border/30 pt-2">
+          <button
+            onClick={() => setTuneOpen((v) => !v)}
+            aria-expanded={tuneOpen}
+            aria-label="Toggle scene tuning"
+            className="flex w-full items-center justify-between gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground/80"
+          >
+            <span className="flex items-center gap-1.5">
+              <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", !tuneOpen && "-rotate-90")} />
+              <SlidersHorizontal className="h-3 w-3" />
+              {zh ? "微调" : "Tune"}
+              {isTuned && (
+                <PanelStar
+                  onReset={() => setSceneOverrides({})}
+                  source="session"
+                  label={zh ? "清除微调" : "Clear tuning"}
+                />
+              )}
+            </span>
+            <span className="normal-case tracking-normal tabular-nums text-muted-foreground/70">
+              {zh ? "云" : "cloud"} {Math.round(scene.clouds.cover * 100)}% ·{" "}
+              {zh ? "降水" : "precip"} {Math.round(scene.precipitation.intensity * 100)}% ·{" "}
+              {zh ? "风" : "wind"} {Math.round(sceneOverrides.windSpeedKmh ?? weather?.windSpeedKmh ?? 8)}
+            </span>
+          </button>
+          {tuneOpen && (
+            <div className="space-y-2 pt-2.5">
+              {tune.map((row) => (
+                <PanelSlider
+                  key={row.key}
+                  label={row.label}
+                  ariaLabel={row.aria}
+                  value={row.value}
+                  min={0}
+                  max={row.max}
+                  step={1}
+                  format={row.format}
+                  star={
+                    sceneOverrides[row.key] !== undefined ? (
+                      <PanelStar
+                        onReset={() => clearTune(row.key)}
+                        source="session"
+                        label={`Reset ${row.aria}`}
+                      />
+                    ) : null
+                  }
+                  onChange={(v) => setTune({ [row.key]: row.toScene(v) })}
+                />
+              ))}
+              {weather && (
+                <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/30 pt-2 text-[10px] font-mono text-muted-foreground">
+                  <MetaRow k="code" v={String(weather.weatherCode)} />
+                  <MetaRow k="cloud" v={weather.cloudCover === undefined ? "—" : `${Math.round(weather.cloudCover * 100)}%`} />
+                  <MetaRow k="precip" v={weather.precipitationMmH === undefined ? "—" : `${weather.precipitationMmH} mm/h`} />
+                  <MetaRow k="wind" v={weather.windSpeedKmh === undefined ? "—" : `${Math.round(weather.windSpeedKmh)} km/h`} />
+                  <MetaRow k="sun" v={`${scene.sun.elevation.toFixed(1)}° · ${Math.round(scene.sun.azimuth)}°`} />
+                  <MetaRow k="api" v={weather.isDay === undefined ? "—" : weather.isDay ? "day" : "night"} />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </DebugSection>

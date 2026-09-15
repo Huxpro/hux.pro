@@ -148,33 +148,62 @@ When location mode changes, the UI uses stale-while-revalidate to prevent jank:
 │  │                                                             │   │
 │  │ Ambient Time:                                               │   │
 │  │   • phase: sunrise|morning|afternoon|sunset|evening|night   │   │
-│  │   • derivedPhase: computed from now + sunrise/sunset        │   │
-│  │   • isOverrideEnabled: boolean                              │   │
-│  │   • overridePhase: debug-forced phase                       │   │
+│  │   • phase: derived from now + sunrise/sunset (no override)  │   │
+│  │   • timeScrubMinutes / dayOffset: devtool time travel       │   │
 │  │                                                             │   │
 │  │ UI State:                                                   │   │
 │  │   • debugPanelOpen: boolean                                 │   │
 │  │                                                             │   │
 │  │ Debug Overrides (ephemeral):                                │   │
-│  │   • weatherOverride: { condition, isDay }                   │   │
-│  │   • phaseOverride: sunrise|morning|...|night                │   │
+│  │   • weatherOverride: { condition }                          │   │
+│  │   • sceneOverrides: cloud / precip / wind / veil            │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 ├─────────────────────────────────────────────────────────────────────┤
 │              COMPUTED VALUES                                        │
 │  ┌─────────────────────────────────────────────────────────────┐   │
-│  │ Gradient: computed from weather + phase + theme + override  │   │
-│  │           (sunrise/sunset phases use special gradients)     │   │
+│  │ Scene: weather × sun position × theme (+ devtool overrides) │   │
+│  │        → sky palette, clouds, precipitation, wind, fog…      │   │
+│  │ Wallpaper: WebGL shader (or CSS gradient) from the scene    │   │
 │  │ Greeting: computed from phase + visitor context             │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+### Weather Wallpaper Rendering
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     WALLPAPER PIPELINE                              │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   NormalizedWeather ──┐                                             │
+│   getSolarPosition ───┼──▶ deriveWeatherScene() ──▶ WeatherScene    │
+│   theme / overrides ──┘         (lib/scene.ts)          │           │
+│                                                         ▼           │
+│                   ┌─────────────────────────────────────┴─────────┐ │
+│                   ▼                                               ▼ │
+│     WallpaperRenderer (WebGL2)                     sceneToCssGradient│
+│     lib/wallpaper/renderer.ts + shader.ts          lib/gradient.ts  │
+│     • eased uniforms (no snapping)                 • crossfade stack│
+│     • pixel budget + adaptive scale                • widget overlays│
+│     • pauses hidden / reduced-motion still frame   • no-WebGL path  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+Style selection: `settings.weatherStyle` (`sky` | `gradient` | `classic` — the
+three tiles of the picker's Weather category). Sky is the shader; Gradient is
+the same scene as CSS, live; Classic is the original condition palettes. A
+runtime WebGL2 probe (or a failure at any point) turns Sky into Gradient;
+nothing else falls back. Widget cards always paint the CSS stack (one canvas
+cannot be shared across cards).
 
 ### Cache & Freshness
 
 | Data | Stale Time | Why |
 |------|------------|-----|
 | Location | 24 hours | User doesn't move often |
-| Weather | 45 minutes | Weather changes moderately |
+| Weather | 45 minutes | Weather changes moderately (key versioned `v2` for the richer payload) |
 
 Both are persisted to localStorage via TanStack Query's persister, so returning visitors see cached data immediately.
 
@@ -188,7 +217,7 @@ The gradient background is opt-in per route:
 | `/writing/[slug]` | ❌ Disabled | Reading focus |
 | `/career` | ❌ Disabled | Professional context |
 
-Configuration lives in `lib/ambient/route-config.ts`.
+Configuration lives in `systems/ambient/lib/route-config.ts`.
 
 ## Component Architecture
 
@@ -208,7 +237,8 @@ Configuration lives in `lib/ambient/route-config.ts`.
 │   Consumers:                                                        │
 │   ├── AmbientGreeting        → useAmbientTime(), useVisitor()       │
 │   ├── WeatherWidget          → useLocation(), useWeather()          │
-│   ├── WeatherGradientBackground → useWeather(), useAmbientTime()    │
+│   ├── WallpaperBackground    → useWallpaper() (kind, renderer)     │
+│   │   └── WeatherWallpaper / GradientStack                          │
 │   ├── PageSurface            → useWeather() (for bg-transparent)    │
 │   ├── CommandPalette         → useLocation(), useWeather()          │
 │   └── DebugPanel             → useDebug(), useWeather(),            │
@@ -222,19 +252,26 @@ Configuration lives in `lib/ambient/route-config.ts`.
 | File | Purpose |
 |------|---------|
 | `lib/query.ts` | TanStack Query client + persister |
-| `lib/ambient/queries.ts` | `useLocationQuery()`, `useWeatherQuery()` |
-| `lib/ambient/settings.ts` | User preference persistence |
-| `lib/ambient/location.ts` | IP + GPS location fetching |
-| `lib/ambient/weather.ts` | Open-Meteo API integration (incl. sunrise/sunset) |
-| `lib/ambient/gradient.ts` | Weather + sun event → OKLCH gradient mapping |
-| `lib/ambient/sun.ts` | Sunrise/sunset window detection |
-| `lib/ambient/phase.ts` | 6-phase ambient time model |
-| `lib/ambient/greeting.ts` | Time-based greeting logic |
-| `lib/ambient/route-config.ts` | Per-route gradient enablement |
-| `components/ambient/ambient-greeting.tsx` | Contextual greeting component |
-| `components/ambient/weather-widget.tsx` | iOS-style weather display |
-| `components/ambient/weather-gradient-background.tsx` | Background renderer |
-| `components/debug/debug-panel.tsx` | Debug FAB with time/weather/refetch modules |
+| `systems/ambient/lib/queries.ts` | `useLocationQuery()`, `useWeatherQuery()` |
+| `systems/ambient/lib/settings.ts` | User preference persistence (location mode, gradient mode, renderer) |
+| `systems/ambient/lib/location.ts` | IP + GPS location fetching |
+| `systems/ambient/lib/weather.ts` | Open-Meteo `current` integration, 6-condition model, precipitation intensity |
+| `systems/ambient/lib/solar.ts` | Sun elevation/azimuth (NOAA), moon phase, twilight helpers |
+| `systems/ambient/lib/scene.ts` | `deriveWeatherScene()` — palette keyframes, condition profiles, theme veil |
+| `systems/ambient/lib/gradient.ts` | Scene → CSS gradient (fallback renderer + devtool previews) |
+| `systems/ambient/lib/wallpaper/shader.ts` | GLSL wallpaper (sky, sun, moon, stars, clouds, fog, lightning, rain, snow) |
+| `systems/ambient/lib/wallpaper/renderer.ts` | `WallpaperRenderer` — uniform easing, drift, adaptive quality, lifecycle |
+| `systems/ambient/lib/wallpaper/support.ts` | WebGL2 probe, reduced-motion, quality profile |
+| `systems/ambient/lib/sun.ts` | Sunrise/sunset window detection |
+| `systems/ambient/lib/phase.ts` | 6-phase ambient time model |
+| `systems/ambient/lib/greeting.ts` | Time-based greeting logic |
+| `systems/ambient/lib/route-config.ts` | Per-route wallpaper enablement |
+| `systems/ambient/components/greeting.tsx` | Contextual greeting component |
+| `systems/ambient/components/weather-widget.tsx` | iOS-style weather display |
+| `systems/ambient/components/wallpaper-background.tsx` | Full-page background (image / CG / gradient switch) |
+| `systems/ambient/components/wallpaper.tsx` | `<WeatherWallpaper />` canvas shell |
+| `systems/ambient/components/wallpaper-sheet.tsx` | The picker: Weather (CG / Gradient), Apple, Nature |
+| `systems/devtool/panel.tsx` | Devtool: Wallpaper and Sky modules |
 
 ## Debug Panel
 
@@ -245,16 +282,25 @@ The debug panel (press `D` to toggle) provides tools for testing ambient states:
 │                        DEBUG PANEL                                  │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│   WEATHER                                              [Toggle] ○   │
+│   WALLPAPER                                  weather · gl   W       │
 │   ┌─────────────────────────────────────────────────────────────┐   │
-│   │ DAY:   ☀️ ☁️ 🌫️ 🌧️ ❄️ ⛈️  (6 conditions × gradient preview)   │   │
-│   │ NIGHT: 🌙 ☁️ 🌫️ 🌧️ ❄️ ⛈️  (6 conditions × gradient preview)   │   │
+│   │ Now: Weather · Sky · dark · full @1.00                      │   │
+│   │ Kind [Weather|Image]  Style [Sky|Gradient|Classic]  No WebGL2 ○│ │
+│   │ Full / Widget / Soft edge · Reading blur / dim              │   │
+│   │ GL · 1266×791 · 0.88× · 6.4ms  (internal res, scale, ms)   │   │
 │   └─────────────────────────────────────────────────────────────┘   │
 │                                                                     │
-│   TIME OF DAY                                          [Toggle] ○   │
+│   SKY                                            Live / [⟲ Now]    │
 │   ┌─────────────────────────────────────────────────────────────┐   │
-│   │ 🌅 06:30  🌇 18:30              Current: Morning            │   │
-│   │ [🌅] [🌫️] [☀️] [🌇] [🌙] [🌃]   (6 phases, icon-only)        │   │
+│   │ ☁ Cloudy · Afternoon · 14:32            ☀ 41°  🌔 78%       │   │
+│   │ TIME OF DAY *                                  [▶ 🌅→🌇]    │   │
+│   │ ▓▓▓▒░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▒▓▓▓▓  ← the day, │   │
+│   │      ↑sunrise            │playhead            ↑sunset      │   │
+│   │ Sunrise Morning [Afternoon] Sunset Evening Night  (jump)   │   │
+│   │ CONDITION *                              live: Cloudy      │   │
+│   │ ☀️ ☁️• 🌫️ 🌧️ ❄️ ⛈️   (previewed at this hour; click again = live)│  │
+│   │ DATE / MOON  ──●──  Sep 14 (+2d)   🌔 Waxing gibbous · up   │   │
+│   │ ▸ TUNE  cloud 40% · precip 0% · wind 14   (sliders + API)  │   │
 │   └─────────────────────────────────────────────────────────────┘   │
 │                                                                     │
 │   REFETCH                                                           │

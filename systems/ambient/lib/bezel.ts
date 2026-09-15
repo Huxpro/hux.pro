@@ -3,7 +3,7 @@ import {
   BEZEL_BAND_MIN,
   DEFAULT_BEZEL_BAND,
 } from "@hux/bezel";
-import type { WallpaperKind } from "./wallpaper";
+import { WALLPAPER_LOOK_FAMILY, type WallpaperFamily } from "./wallpaper";
 
 // =============================================================================
 // The site's bezel: what @hux/bezel is configured with here.
@@ -18,25 +18,28 @@ import type { WallpaperKind } from "./wallpaper";
 export const PAGE_GROUND = { light: "#ffffff", dark: "#1a1a1a" } as const;
 
 /**
- * What each wallpaper kind wants at the edge. The whole relationship: with no
- * devtool override, the provider resolves every page from this, live, as the
- * kind changes.
+ * What each wallpaper family wants at the edge (`WALLPAPER_LOOK_FAMILY` in
+ * lib/wallpaper.ts says which family a look is). With no devtool override,
+ * the provider resolves every page from this, live, as the look changes.
  *
- * A weather gradient is the page's own colour pushed outward, so it fades back
- * into the ground: soft edge, no bezel. A photograph is a picture on the page,
- * so it ends on a line inside a bezel, and fading it would be a printing error.
- * Soft edge applies only while the bezel is off. Both are phone treatments:
- * the provider gates them on iOS.
+ * A wash (Gradient, Classic) is the page's own colour pushed outward, so it
+ * fades back into the ground: soft edge, no bezel. A picture (a photograph,
+ * or the rendered Sky) ends on a line inside a bezel; fading it would be a
+ * printing error. Soft edge applies only while the bezel is off. All of it is
+ * a phone treatment: the provider gates it on iOS.
  *
- * Band and radius are not per kind. A bezel turned on over weather uses the
- * same saved band and radius an image does.
+ * Band, radius and tint are not per family. A bezel over the Sky uses the
+ * same saved band and radius an image does, and a bezel turned on over a wash
+ * does too.
  */
-export const WALLPAPER_KIND_EDGES: Record<
-  WallpaperKind,
-  { bezel: boolean; softEdge: boolean }
-> = {
-  weather: { bezel: false, softEdge: true },
-  image: { bezel: true, softEdge: false },
+export interface WallpaperEdges {
+  bezel: boolean;
+  softEdge: boolean;
+}
+
+export const WALLPAPER_FAMILY_EDGES: Record<WallpaperFamily, WallpaperEdges> = {
+  picture: { bezel: true, softEdge: false },
+  wash: { bezel: false, softEdge: true },
 };
 
 /**
@@ -87,7 +90,9 @@ export function bezelBootResolver(): string {
   return `
 var s=JSON.parse(localStorage.getItem("hux_ambient_settings")||"{}");
 var ios=/iP(hone|ad|od)/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-var edges=s.wallpaperKind==="image"?${JSON.stringify(WALLPAPER_KIND_EDGES.image)}:${JSON.stringify(WALLPAPER_KIND_EDGES.weather)};
+var F=${JSON.stringify(WALLPAPER_LOOK_FAMILY)},E=${JSON.stringify(WALLPAPER_FAMILY_EDGES)};
+var look=s.wallpaperKind==="image"?"image":(F[s.weatherStyle]?s.weatherStyle:"sky");
+var edges=E[F[look]];
 var t=localStorage.getItem("hux_theme");
 var dark=t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);
 var tint=s.bezelTint;

@@ -4,7 +4,9 @@ import type { LocationMode } from "./location";
 import {
   DEFAULT_WALLPAPER_ID,
   getWallpaper,
+  readWeatherStyle,
   type WallpaperKind,
+  type WeatherStyle,
 } from "./wallpaper";
 
 // =============================================================================
@@ -25,12 +27,19 @@ export interface AmbientSettings {
   wallpaperPlacement: WallpaperPlacement;
   /** Which kind feeds the single background stack. */
   wallpaperKind: WallpaperKind;
+  /**
+   * Which of the three weather wallpapers paints when `wallpaperKind` is
+   * "weather": the animated Sky, the live Gradient, or the Classic palettes.
+   * Sky falls back to Gradient on its own when WebGL2 is missing; the setting
+   * records the wish.
+   */
+  weatherStyle: WeatherStyle;
   /** Selected built-in pair, used when `wallpaperKind === "image"`. */
   wallpaperId: string;
   /**
    * The bezel's colour: a named tint or a `#rrggbb` literal. Whether the bezel
    * is on is not a setting — the wallpaper kind decides, and the devtool can
-   * override it for the session. See `WALLPAPER_KIND_EDGES`.
+   * override it for the session. See `WALLPAPER_FAMILY_EDGES`.
    */
   bezelTint: BezelTint;
   /** Band thickness, px. `null` is `DEFAULT_BEZEL_BAND`. The same for every kind. */
@@ -54,6 +63,7 @@ export function getDefaultSettings(): AmbientSettings {
     locationMode: "ip",
     wallpaperPlacement: "full",
     wallpaperKind: "weather",
+    weatherStyle: "sky",
     wallpaperId: DEFAULT_WALLPAPER_ID,
     bezelTint: DEFAULT_BEZEL_TINT,
     bezelBand: null,
@@ -107,6 +117,7 @@ export function getAmbientSettings(): AmbientSettings {
       wallpaperPlacement: placement,
       wallpaperKind:
         parsed.wallpaperKind === "image" ? "image" : defaults.wallpaperKind,
+      weatherStyle: readWeatherStyle(parsed.weatherStyle),
       wallpaperId,
       // `wallpaperLetterbox*` were these fields' names before the bezel was
       // its own package.

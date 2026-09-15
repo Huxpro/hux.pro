@@ -5,7 +5,7 @@ import { LiveActivity } from "@/systems/dock";
 import { Sunrise, Sunset } from "lucide-react";
 import { formatClockTime } from "../lib";
 import { getUpcomingSunEvent } from "../lib/notification";
-import { useAmbientTime, useWeather } from "../provider";
+import { useAmbientTime } from "../provider";
 import { WeatherNow } from "./weather-now";
 
 // ---------------------------------------------------------------------------
@@ -16,24 +16,20 @@ import { WeatherNow } from "./weather-now";
 // (sun icon + exact time) that unfolds into the weather widget body.
 //
 // Visibility (see lib/notification.ts): the lead-up to the event through the
-// end of its ±window. The devtool time override also surfaces it so the
-// sunrise/sunset states are demoable at any hour.
+// end of its ±window. Devtool time travel moves the clock (and the sun times)
+// so the sunrise/sunset states are demoable at any hour.
 // ---------------------------------------------------------------------------
 
 export function AmbientPhaseActivity() {
   const { locale } = useLocale();
-  const { weather } = useWeather();
-  const { nowMs, phase } = useAmbientTime();
+  // Sun times come from the time context so devtool time travel (including a
+  // shifted day) moves the notification along with the clock.
+  const { nowMs, sunriseMs, sunsetMs } = useAmbientTime();
 
-  const sunriseMs = weather?.sunriseMs;
-  const sunsetMs = weather?.sunsetMs;
-
-  // Natural trigger: inside the notification window of an upcoming sun event.
+  // Inside the notification window of an upcoming sun event.
   const upcoming = getUpcomingSunEvent({ nowMs, sunriseMs, sunsetMs });
-  // Devtool hook: a forced sunrise/sunset phase also surfaces the notification.
-  const overridden = phase === "sunrise" || phase === "sunset" ? phase : null;
 
-  const event = upcoming?.event ?? overridden;
+  const event = upcoming?.event;
   if (!event) return null;
 
   const eventMs = event === "sunrise" ? sunriseMs : sunsetMs;

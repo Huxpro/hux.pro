@@ -1,9 +1,17 @@
-import type { SunEvent } from "./sun";
-import type { WeatherCondition } from "./weather";
+// =============================================================================
+// CSS gradient renderer for a WeatherScene.
+//
+// This is the wallpaper's *fallback* path — widget mode, browsers without
+// WebGL, and `prefers-reduced-motion`. It paints the same palette the shader
+// uses (sky zenith → horizon, sun glow at the real sun position, a soft cloud
+// wash) so switching renderers never changes the mood, only the fidelity.
+// =============================================================================
 
-export type WeatherGradient = {
-  backgroundImage: string;
-};
+import type { AmbientPhase } from "./phase";
+import type { SunEvent } from "./sun";
+import type { WallpaperLook, WeatherStyle } from "./wallpaper";
+import type { WeatherCondition } from "./weather";
+import { mixRGB, rgbToCss, type RGB, type WeatherScene } from "./scene";
 
 /**
  * One entry in the crossfade stack rendered by <GradientStack />.
@@ -25,9 +33,59 @@ export interface GradientLayerData {
 /** Duration of a gradient crossfade, shared by the provider and renderer. */
 export const GRADIENT_CROSSFADE_MS = 700;
 
-export type SunEventGradient = {
-  backgroundImage: string;
-};
+/**
+ * Extra veil applied on the CSS path. Flat gradients have no cloud texture to
+ * carry the colour, so they read heavier than the shader at the same veil;
+ * lifting them keeps text contrast comfortable over the page background.
+ */
+const CSS_VEIL_BOOST = { light: 0.28, dark: 0.18 } as const;
+
+function veiled(c: RGB, scene: WeatherScene): RGB {
+  const amount = Math.min(
+    1,
+    scene.veil.amount + CSS_VEIL_BOOST[scene.theme]
+  );
+  return mixRGB(c, scene.veil.color, amount);
+}
+
+export function sceneToCssGradient(scene: WeatherScene): string {
+  const zenith = veiled(scene.sky.zenith, scene);
+  const horizon = veiled(scene.sky.horizon, scene);
+  const glow = veiled(scene.sky.glow, scene);
+  const cloud = veiled(
+    mixRGB(scene.clouds.lit, scene.clouds.shade, scene.clouds.darkness * 0.6),
+    scene
+  );
+
+  const sunX = (scene.sun.screen.x * 100).toFixed(1);
+  // CSS y runs top → bottom; scene y runs bottom → top.
+  const sunY = ((1 - scene.sun.screen.y) * 100).toFixed(1);
+  const glowAlpha = scene.sky.glowStrength * 0.85;
+  const cloudAlpha = 0.25 + scene.clouds.cover * 0.55;
+  const cloudX = scene.sun.screen.x < 0.5 ? 82 : 18;
+
+  const layers = [
+    `radial-gradient(1100px 620px at ${sunX}% ${sunY}%, ${rgbToCss(glow, glowAlpha)} 0%, ${rgbToCss(glow, glowAlpha * 0.35)} 28%, transparent 68%)`,
+    `radial-gradient(900px 520px at ${cloudX}% 8%, ${rgbToCss(cloud, cloudAlpha)} 0%, transparent 70%)`,
+    `linear-gradient(180deg, ${rgbToCss(zenith)} 0%, ${rgbToCss(mixRGB(zenith, horizon, 0.55))} 55%, ${rgbToCss(horizon)} 100%)`,
+  ];
+
+  if (scene.fog > 0.2) {
+    layers.unshift(
+      `linear-gradient(0deg, ${rgbToCss(horizon, scene.fog * 0.8)} 0%, transparent 60%)`
+    );
+  }
+
+  return layers.join(", ");
+}
+
+// -----------------------------------------------------------------------------
+// Devtool previews — the original hand-tuned palette table.
+//
+// The scene-derived gradient above is what the page renders; these thumbnails
+// exist to tell conditions apart at a glance, so they keep the older, more
+// saturated per-condition colours rather than the veiled real palette.
+// -----------------------------------------------------------------------------
 
 const BASE = {
   dark: "oklch(0.2178 0 0)",
@@ -37,7 +95,6 @@ const BASE = {
 const HUE = {
   amber: 38,
   peach: 55,
-  gold: 60,
   warmBase: 85,
   cyan: 200,
   skyBlue: 210,
@@ -129,7 +186,7 @@ const WEATHER_PALETTE: Record<
 const SUN_PALETTE: Record<SunEvent, { dark: ColorTriple; light: ColorTriple }> = {
   sunrise: {
     dark: [
-      oklch(0.87, 0.12, 52, 0.40),
+      oklch(0.87, 0.12, 52, 0.4),
       oklch(0.48, 0.02, 245, 0.8),
       oklch(0.22, 0, 0),
     ],
@@ -177,7 +234,7 @@ const GEOMETRY: Record<"weather" | "sunrise" | "sunset", GradientGeometry> = {
   },
 };
 
-function buildGradient(colors: ColorTriple, geometry: GradientGeometry): string {
+function buildPreviewGradient(colors: ColorTriple, geometry: GradientGeometry): string {
   const [a, b, c] = colors;
   const { r1, r2, linear } = geometry;
 
@@ -188,30 +245,66 @@ function buildGradient(colors: ColorTriple, geometry: GradientGeometry): string 
   ].join(", ");
 }
 
+/** Devtool thumbnail for a condition (day / night × theme). */
+/**
+ * The original per-condition palette. Twenty-four possible outputs (condition ×
+ * day/night × theme), so the strings are built once and kept.
+ */
+const weatherGradientCache = new Map<string, string>();
+
 export function getWeatherGradient(params: {
   condition: WeatherCondition;
   isDay?: boolean;
   theme: "light" | "dark";
-}): WeatherGradient {
+}): string {
   const isDay = params.isDay ?? true;
-  const palette = WEATHER_PALETTE[params.condition];
-  const timeSlot = isDay ? palette.day : palette.night;
-  const colors = params.theme === "dark" ? timeSlot.dark : timeSlot.light;
-
-  return {
-    backgroundImage: buildGradient(colors, GEOMETRY.weather),
-  };
+  const key = `${params.condition}|${isDay}|${params.theme}`;
+  let out = weatherGradientCache.get(key);
+  if (out === undefined) {
+    const palette = WEATHER_PALETTE[params.condition];
+    const timeSlot = isDay ? palette.day : palette.night;
+    const colors = params.theme === "dark" ? timeSlot.dark : timeSlot.light;
+    out = buildPreviewGradient(colors, GEOMETRY.weather);
+    weatherGradientCache.set(key, out);
+  }
+  return out;
 }
 
-export function getSunEventGradient(params: {
+function getSunEventGradient(params: {
   event: SunEvent;
   theme: "light" | "dark";
-}): SunEventGradient {
+}): string {
   const palette = SUN_PALETTE[params.event];
   const colors = params.theme === "dark" ? palette.dark : palette.light;
-  const geometry = GEOMETRY[params.event];
+  return buildPreviewGradient(colors, GEOMETRY[params.event]);
+}
 
-  return {
-    backgroundImage: buildGradient(colors, geometry),
-  };
+/**
+ * The Classic weather style: the original palettes, chosen the way the page
+ * always chose them — the sunrise or sunset gradient during those phases,
+ * otherwise the condition's day or night palette. It steps at phase and
+ * weather changes rather than following the clock, which is the point of it.
+ */
+export function getClassicGradient(scene: WeatherScene, phase: AmbientPhase): string {
+  if (phase === "sunrise" || phase === "sunset") {
+    return getSunEventGradient({ event: phase, theme: scene.theme });
+  }
+  return getWeatherGradient({
+    condition: scene.condition,
+    isDay: scene.sun.isDay,
+    theme: scene.theme,
+  });
+}
+
+/**
+ * What the CSS stack paints for a weather style: the Classic palette, or the
+ * scene's own gradient (which is also what the Sky shows in widget cards and
+ * falls back to without WebGL2).
+ */
+export function getWeatherStyleGradient(
+  style: WeatherStyle | WallpaperLook,
+  scene: WeatherScene,
+  phase: AmbientPhase
+): string {
+  return style === "classic" ? getClassicGradient(scene, phase) : sceneToCssGradient(scene);
 }

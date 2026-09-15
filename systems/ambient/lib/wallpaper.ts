@@ -6,7 +6,8 @@
 // so the provider can hold ONE background stack fed by exactly one kind at a
 // time:
 //
-//     wallpaperKind: "weather"  →  the live weather/sun-event gradient
+//     wallpaperKind: "weather"  →  the live sky, in one of three styles
+//                                   (`weatherStyle`: Sky, Gradient, Classic)
 //                    "image"    →  a fixed pair from this catalog
 //
 // Mutual exclusivity is therefore structural, not a rule anyone has to remember:
@@ -21,10 +22,16 @@
 // app theme. That is not a setting: pinning a half only ever produced light
 // artwork under light text.
 //
-// ## The images
+// ## The catalog
 //
-// Two categories, both Apple's artwork:
+// Three categories. The first is the live one; the other two are Apple's
+// artwork:
 //
+//   weather the sky outside, right now, in three styles: Sky (a WebGL shader —
+//           sun, moon, clouds, rain, snow, fog, lightning, stars), Gradient
+//           (the same scene as a CSS wash, live to the minute) and Classic
+//           (the six hand-tuned condition palettes the site started with).
+//           Sky falls back to Gradient where WebGL2 is missing.
 //   apple   the macOS / iPadOS / iOS release wallpapers, as light/dark pairs —
 //           the artwork these releases are recognised by.
 //   nature  the Mac OS X Nature desktop pictures (Aurora, Zebra, …), taken
@@ -42,17 +49,82 @@
 // to do so.
 // =============================================================================
 
+import { t } from "@/lib/i18n";
+import type { Locale } from "@/services/locale";
+
 export type WallpaperKind = "weather" | "image";
 
 export type WallpaperPlatform = "macOS" | "iPadOS" | "iOS";
 
-export type WallpaperCategory = "apple" | "nature";
+export type WallpaperCategory = "weather" | "apple" | "nature";
 
 /** In picker order. Labels are proper nouns or i18n keys resolved by the UI. */
 export const WALLPAPER_CATEGORIES: readonly WallpaperCategory[] = [
+  "weather",
   "apple",
   "nature",
 ];
+
+/**
+ * The three weather wallpapers.
+ *
+ *   sky       the WebGL shader — the whole `WeatherScene` (lib/scene.ts),
+ *             animated, at full strength (its veil is painted inside the
+ *             shader). Needs WebGL2; otherwise the page quietly paints the
+ *             Gradient and the devtool says so.
+ *   gradient  the same scene as a CSS gradient — the sky's colour at the real
+ *             sun position, live to the minute, crossfaded on change. Sky's
+ *             fallback, and what widget cards paint under Sky.
+ *   classic   the original: six hand-tuned condition palettes by day and
+ *             night, with the sunrise and sunset events. It steps at phase
+ *             and weather changes rather than following the clock. Chosen
+ *             by hand only; nothing falls back to it.
+ */
+export type WeatherStyle = "sky" | "gradient" | "classic";
+
+export const WEATHER_STYLES: readonly WeatherStyle[] = ["sky", "gradient", "classic"];
+
+/** i18n keys for each style's name and its technical subtitle. */
+export const WEATHER_STYLE_LABEL = {
+  sky: "wallpaperWeatherSky",
+  gradient: "wallpaperWeatherGradient",
+  classic: "wallpaperWeatherClassic",
+} as const satisfies Record<WeatherStyle, string>;
+
+export const WEATHER_STYLE_META = {
+  sky: "wallpaperWeatherSkyMeta",
+  gradient: "wallpaperWeatherGradientMeta",
+  classic: "wallpaperWeatherClassicMeta",
+} as const satisfies Record<WeatherStyle, string>;
+
+/** "Weather · Sky" — how every surface names a weather style in use. */
+export function getWeatherWallpaperName(locale: Locale, style: WeatherStyle): string {
+  return `${t(locale, "wallpaperWeather")} · ${t(locale, WEATHER_STYLE_LABEL[style])}`;
+}
+
+/** Which engine paints the full-page layer: the canvas or the CSS stack. */
+export type WallpaperEngine = "shader" | "css";
+
+/** Style → engine, one-to-one. The Sky is the canvas; everything else is CSS. */
+export const WEATHER_STYLE_ENGINE: Record<WeatherStyle, WallpaperEngine> = {
+  sky: "shader",
+  gradient: "css",
+  classic: "css",
+};
+
+/** The style after the fallback: Sky without WebGL2 is the Gradient. */
+export function resolveWeatherStyle(params: {
+  weatherStyle: WeatherStyle;
+  shaderSupported: boolean;
+}): WeatherStyle {
+  if (params.weatherStyle === "sky" && !params.shaderSupported) return "gradient";
+  return params.weatherStyle;
+}
+
+/** The stored style, or the default for anything unknown. */
+export function readWeatherStyle(raw: unknown): WeatherStyle {
+  return (WEATHER_STYLES as readonly unknown[]).includes(raw) ? (raw as WeatherStyle) : "sky";
+}
 
 export interface WallpaperAsset {
   /** Full-size WebP, at most 2560px on the long edge. */
@@ -101,22 +173,42 @@ export interface ResolvedWallpaper {
 }
 
 /**
- * How strongly the wallpaper layer itself paints.
- *
- * An image wallpaper paints at FULL STRENGTH. It is a photograph someone chose;
- * showing it at half opacity over the page background is not "tasteful
- * restraint", it is a washed-out picture. The home screen is a desktop — the
- * picture is the content, and the widgets float on it.
- *
- * The weather gradient is different in kind: a wash, authored to sit under
- * content, and it reads as intended below full strength.
+ * What is on the page: an image, or one of the weather styles. Callers decide
+ * which style to feed in — the saved one (for the edge of the page, so the
+ * boot script and the provider agree before WebGL support is known, and a Sky
+ * that falls back keeps its frame) or the resolved one (for what paints).
  */
-export const WALLPAPER_OPACITY: Record<
-  WallpaperKind,
-  { light: number; dark: number }
-> = {
-  weather: { light: 0.7, dark: 0.85 },
-  image: { light: 1, dark: 1 },
+export type WallpaperLook = WeatherStyle | "image";
+
+export function getWallpaperLook(kind: WallpaperKind, style: WeatherStyle): WallpaperLook {
+  return kind === "image" ? "image" : style;
+}
+
+/**
+ * The one distinction every look-dependent treatment hangs on.
+ *
+ *   picture  a photograph, or the rendered Sky — something ON the page. Paints
+ *            at full strength (an image at half opacity is a washed-out
+ *            picture; the Sky's veil is mixed inside the shader) and ends on a
+ *            line inside a bezel.
+ *   wash     a CSS gradient — the page's own colour pushed outward. Reads as
+ *            intended below full strength, and fades back into the ground.
+ *
+ * Opacity and the edge treatment (lib/bezel.ts) are both keyed by this, so a
+ * new style is one line here.
+ */
+export type WallpaperFamily = "picture" | "wash";
+
+export const WALLPAPER_LOOK_FAMILY: Record<WallpaperLook, WallpaperFamily> = {
+  sky: "picture",
+  image: "picture",
+  gradient: "wash",
+  classic: "wash",
+};
+
+export const WALLPAPER_OPACITY: Record<WallpaperFamily, { light: number; dark: number }> = {
+  picture: { light: 1, dark: 1 },
+  wash: { light: 0.7, dark: 0.85 },
 };
 
 /**

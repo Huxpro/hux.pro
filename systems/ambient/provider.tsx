@@ -1,11 +1,18 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { getSunEventGradient, getWeatherGradient } from "./lib/gradient";
+import { getWeatherStyleGradient } from "./lib/gradient";
 import { GRADIENT_CROSSFADE_MS, type GradientLayerData } from "./lib/gradient";
 import type { LocationMode, ResolvedLocation } from "./lib/location";
 import { requestAccurateLocation as requestAccurateLocationFn } from "./lib/location";
 import { useLocationQuery, useWeatherQuery } from "./lib/queries";
+import {
+  deriveWeatherScene,
+  toSceneWeather,
+  type SceneOverrides,
+  type SceneWeatherInput,
+  type WeatherScene,
+} from "./lib/scene";
 import {
   type AmbientSettings,
   type WallpaperPlacement,
@@ -16,17 +23,25 @@ import {
 import {
   PAGE_GROUND,
   resolveBezelTint,
-  WALLPAPER_KIND_EDGES,
+  WALLPAPER_FAMILY_EDGES,
   type BezelTint,
 } from "./lib/bezel";
 import {
   BUILT_IN_WALLPAPERS,
   getWallpaperBackground,
+  getWallpaperLook,
   getWallpaperOrDefault,
+  readWeatherStyle,
+  resolveWeatherStyle,
+  WALLPAPER_LOOK_FAMILY,
   WALLPAPER_OPACITY,
   WALLPAPER_READING_VEIL,
+  WEATHER_STYLE_ENGINE,
   type Wallpaper,
+  type WallpaperEngine,
+  type WallpaperFamily,
   type WallpaperKind,
+  type WeatherStyle,
 } from "./lib/wallpaper";
 import {
   DEFAULT_BEZEL_BAND,
@@ -41,6 +56,8 @@ import {
 import type { NormalizedWeather, WeatherCondition } from "./lib/weather";
 import type { AmbientPhase } from "./lib/phase";
 import { deriveAmbientPhase } from "./lib/phase";
+import type { WallpaperStats } from "./lib/wallpaper/renderer";
+import { supportsWebGL2 } from "./lib/wallpaper/support";
 import { usePathname } from "next/navigation";
 import { isReadingSurface } from "./lib/reading-surface";
 import { queryClient } from "@/lib/query";
@@ -89,16 +106,33 @@ export function useLocation() {
 
 // =============================================================================
 // Ambient Time Context
+//
+// One clock. Everything time-shaped — the sun and moon, the sky, the phase,
+// the greeting, the sun-event notice — reads `nowMs` from here, so devtool
+// time travel moves all of it together and nothing can disagree.
 // =============================================================================
 
 interface AmbientTimeContextType {
+  /** Effective "now" — real time, or the devtool time-travel clock. */
   nowMs: number;
-  derivedPhase: AmbientPhase;
+  /** Real wall-clock time, untouched by time travel (the devtool's "now" mark). */
+  realNowMs: number;
+  /** Derived from `nowMs` and the sun times; there is no phase override. */
   phase: AmbientPhase;
-  isOverrideEnabled: boolean;
-  setOverrideEnabled: (enabled: boolean) => void;
-  overridePhase: AmbientPhase;
-  setOverridePhase: (phase: AmbientPhase) => void;
+  /** Sunrise / sunset for the effective day (shifted with `dayOffset`). */
+  sunriseMs?: number;
+  sunsetMs?: number;
+  /**
+   * Devtool time travel. `timeScrubMinutes` pins the clock to minutes since
+   * local midnight (null = real time of day); `dayOffset` moves the calendar
+   * day by whole days (0 = today), which is what changes the moon's phase.
+   */
+  timeScrubMinutes: number | null;
+  setTimeScrubMinutes: (minutes: number | null) => void;
+  dayOffset: number;
+  setDayOffset: (days: number) => void;
+  isTimeTravelActive: boolean;
+  resetTimeTravel: () => void;
 }
 
 const AmbientTimeContext = createContext<AmbientTimeContextType | undefined>(undefined);
@@ -114,16 +148,19 @@ export function useAmbientTime() {
 //
 // The background is one stack fed by exactly one kind (see lib/wallpaper.ts),
 // so "weather" and "image" are mutually exclusive by construction — there is
-// no state in which both can paint. Everything here persists to the same
-// localStorage blob as the rest of the ambient settings.
+// no state in which both can paint. Under "weather", `weatherStyle` picks one
+// of three: the Sky (shader), the Gradient (CSS, live) or the Classic palettes
+// (CSS, stepped). Everything here persists to the same localStorage blob as
+// the rest of the ambient settings.
 // =============================================================================
 
 /**
- * DevTool-level overrides for the three resolved placement flags (ephemeral).
- * The persisted setting can only be one of them; the panel exists to see the
- * combinations it cannot express.
+ * DevTool-level overrides (ephemeral). The three placement flags exist because
+ * the persisted setting can only be one of them; the panel exists to see the
+ * combinations it cannot express. `noWebGL` pretends WebGL2 is missing, so the
+ * Sky's fallback can be seen on a machine that has it.
  */
-export interface DevtoolPlacementOverrides {
+export interface DevtoolWallpaperOverrides {
   full?: boolean;
   widget?: boolean;
   softEdging?: boolean;
@@ -131,20 +168,37 @@ export interface DevtoolPlacementOverrides {
   bezel?: boolean;
   /** Where the page scrolls, for this session, instead of the platform's choice. */
   scroll?: BezelScroll;
+  /** Pretend WebGL2 is missing: the Sky paints its Gradient fallback. */
+  noWebGL?: boolean;
   /**
-   * Which kind switch `softEdging` and `bezel` were set after. They describe
-   * the edge of the kind showing at the time, so any kind switch ends them —
-   * switching to weather turns the bezel off even if it was forced on, and
-   * switching back does not bring the override back. Stamped by the provider;
-   * callers never set it.
+   * The wallpaper family `softEdging` and `bezel` were set under. They
+   * describe the edge of what was showing at the time, so once the family
+   * changes (picture ↔ wash: a kind switch, or Sky ↔ a CSS style) they no
+   * longer apply — switching to the gradient turns the bezel off even if it
+   * was forced on, and switching back does not bring the override back.
+   * Stamped by the provider; callers never set it.
    */
-  edgeEpoch?: number;
+  edgeFamily?: WallpaperFamily;
 }
 
 interface WallpaperContextType {
   /** Which kind currently feeds the background stack. */
   kind: WallpaperKind;
   setKind: (kind: WallpaperKind) => void;
+  /** Which weather wallpaper is wanted (meaningful when kind === "weather"). */
+  weatherStyle: WeatherStyle;
+  /** Selects a weather style AND switches the background kind to weather. */
+  selectWeather: (style: WeatherStyle) => void;
+  /** The style actually painting: the wanted one, unless the Sky fell back. */
+  effectiveStyle: WeatherStyle;
+  /** Which engine paints the full-page weather layer right now. */
+  renderer: WallpaperEngine;
+  /** WebGL2 available in this browser (false → the gradient paints). */
+  shaderSupported: boolean;
+  /** The shader hit an unrecoverable WebGL problem; fall back to CSS. */
+  reportShaderFallback: (reason: string) => void;
+  /** A getter for live renderer stats, set by <WeatherWallpaper /> (devtool readout). */
+  statsRef: React.MutableRefObject<(() => WallpaperStats) | null>;
   /** Selected built-in pair (meaningful when kind === "image"). */
   wallpaper: Wallpaper;
   wallpapers: Wallpaper[];
@@ -163,12 +217,12 @@ interface WallpaperContextType {
   layers: GradientLayerData[];
   /** Resolved CSS mask-image value, or null when soft-edging is off. */
   edgeMask: string | null;
-  /** Ephemeral devtool overrides for the three resolved flags. */
-  devtoolOverrides: DevtoolPlacementOverrides;
-  setDevtoolOverrides: (overrides: DevtoolPlacementOverrides) => void;
+  /** Ephemeral devtool overrides. */
+  devtoolOverrides: DevtoolWallpaperOverrides;
+  setDevtoolOverrides: (overrides: DevtoolWallpaperOverrides) => void;
   /**
-   * Opacity the wallpaper layer paints at. Images paint at full strength; the
-   * weather gradient is a wash and sits below it.
+   * Opacity the wallpaper layer paints at. Images and the CG sky paint at full
+   * strength; the weather gradient is a wash and sits below it.
    */
   opacity: number;
   /**
@@ -229,20 +283,33 @@ export function useOptionalWallpaper() {
 // Weather Context
 // =============================================================================
 
-interface WeatherDebugOverride {
+/**
+ * Devtool weather override: the condition only. Day/night is never a choice —
+ * it follows the clock (real or time-travelled), so a forced condition can't
+ * put a moon in a daytime sky. Null means the real weather.
+ */
+export interface WeatherDebugOverride {
   condition: WeatherCondition;
-  isDay: boolean;
 }
 
 interface WeatherContextType {
   weather: NormalizedWeather | null;
+  /** The renderer-agnostic wallpaper description (see lib/scene.ts). */
+  scene: WeatherScene;
+  /**
+   * The weather as the scene sees it — real measurements, or the override's
+   * profile — for anything that wants to derive a scene at another time.
+   */
+  sceneWeather: SceneWeatherInput | null;
   isLoading: boolean;
   isFetching: boolean;
   error: string | null;
-  isOverrideEnabled: boolean;
-  setOverrideEnabled: (enabled: boolean) => void;
+  /** Non-null while the devtool forces a condition. */
   debugOverride: WeatherDebugOverride | null;
   setDebugOverride: (override: WeatherDebugOverride | null) => void;
+  /** Devtool scene tweaks (cloud cover, precipitation, wind, veil). */
+  sceneOverrides: SceneOverrides;
+  setSceneOverrides: (overrides: SceneOverrides) => void;
   refresh: () => void;
 }
 
@@ -261,6 +328,13 @@ export function useWeather() {
 interface AmbientProviderProps {
   children: React.ReactNode;
   theme: "light" | "dark";
+}
+
+/** The reference day at `minutes` past local midnight. */
+function scrubToMs(minutes: number, referenceMs: number): number {
+  const d = new Date(referenceMs);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime() + minutes * 60_000;
 }
 
 export function AmbientProvider({ children, theme }: AmbientProviderProps) {
@@ -297,28 +371,32 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // --- Wallpaper -----------------------------------------------------------
   // Switching the kind swaps what feeds the background stack; the stack itself
   // crossfades, so weather → image reads as a dissolve rather than a cut.
-  // Picking a wallpaper from the picker implies switching to it, which is what
+  // Picking anything from the picker implies switching to it, which is what
   // makes "one background at a time" feel like a single choice.
-  // Counts kind switches, so edge overrides from before one stop applying.
-  const [edgeEpoch, setEdgeEpoch] = useState(0);
-
   const setWallpaperKind = useCallback(
     (kind: WallpaperKind) => {
       if (kind === settings.wallpaperKind) return;
-      setEdgeEpoch((epoch) => epoch + 1);
       updateSettings({ wallpaperKind: kind });
     },
     [settings.wallpaperKind, updateSettings]
   );
 
   const selectWallpaper = useCallback(
-    (id: string) => {
-      if (settings.wallpaperKind !== "image") setEdgeEpoch((epoch) => epoch + 1);
-      updateSettings({ wallpaperId: id, wallpaperKind: "image" });
-    },
-    [settings.wallpaperKind, updateSettings]
+    (id: string) => updateSettings({ wallpaperId: id, wallpaperKind: "image" }),
+    [updateSettings]
   );
 
+  const selectWeather = useCallback(
+    (style: WeatherStyle) =>
+      updateSettings({ weatherStyle: readWeatherStyle(style), wallpaperKind: "weather" }),
+    [updateSettings]
+  );
+
+  // The look the settings ask for, before WebGL support is known — what the
+  // edge of the page is resolved from, so the boot script and the provider
+  // agree on the first frame, and a Sky that falls back keeps its frame.
+  const edgeFamily =
+    WALLPAPER_LOOK_FAMILY[getWallpaperLook(settings.wallpaperKind, settings.weatherStyle)];
 
   // Secondary window (the picker sheet). Ephemeral — never persisted.
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -330,8 +408,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [settings.wallpaperId]
   );
   const isImageKind = settings.wallpaperKind === "image";
-
-  const wallpaperOpacity = WALLPAPER_OPACITY[settings.wallpaperKind][theme];
 
   const setBezelRadius = useCallback(
     (px: number | null) => updateSettings({ bezelRadius: px }),
@@ -364,23 +440,24 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const veilAlpha =
     reading && settings.wallpaperReadingDim ? WALLPAPER_READING_VEIL[theme] : 0;
 
-  // DevTool gradient overrides (ephemeral, not persisted)
+  // DevTool overrides (ephemeral, not persisted)
   const [storedOverrides, setStoredOverrides] =
-    useState<DevtoolPlacementOverrides>({});
-  // Edge overrides stamped with the kind switch they were set after…
+    useState<DevtoolWallpaperOverrides>({});
+  // Edge overrides stamped with the family they were set under…
   const setDevtoolOverrides = useCallback(
-    (next: DevtoolPlacementOverrides) => setStoredOverrides({ ...next, edgeEpoch }),
-    [edgeEpoch]
+    (next: DevtoolWallpaperOverrides) => setStoredOverrides({ ...next, edgeFamily }),
+    [edgeFamily]
   );
-  // …and dropped once the kind has switched since.
-  const devtoolOverrides = useMemo<DevtoolPlacementOverrides>(() => {
-    if (storedOverrides.edgeEpoch === edgeEpoch) return storedOverrides;
+  // …and dropped once the family has changed since.
+  const devtoolOverrides = useMemo<DevtoolWallpaperOverrides>(() => {
+    if (storedOverrides.edgeFamily === edgeFamily) return storedOverrides;
     return {
       full: storedOverrides.full,
       widget: storedOverrides.widget,
       scroll: storedOverrides.scroll,
+      noWebGL: storedOverrides.noWebGL,
     };
-  }, [storedOverrides, edgeEpoch]);
+  }, [storedOverrides, edgeFamily]);
 
   // 3 resolved rendering flags.
   // DevTool overrides bypass all natural derivation.
@@ -409,13 +486,14 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   /**
    * The bezel — @hux/bezel, configured in ./lib/bezel. Live.
    *
-   * The wallpaper kind decides whether it is on (`WALLPAPER_KIND_EDGES`), on
-   * iOS only; a devtool override for this session wins over the kind until the
-   * kind changes. Band, radius and tint are saved settings, the same for every
-   * kind. `null` until the stored settings and the platform are both known: a
-   * `false` before then would take off the bezel the boot script painted.
+   * The wallpaper's family decides whether it is on (`WALLPAPER_FAMILY_EDGES`:
+   * a picture — the Sky or an image — is framed, a wash fades), on iOS only;
+   * a devtool override for this session wins until the family changes. Band,
+   * radius and tint are saved settings, the same for every kind. `null` until
+   * the stored settings and the platform are both known: a `false` before
+   * then would take off the bezel the boot script painted.
    */
-  const edges = WALLPAPER_KIND_EDGES[settings.wallpaperKind];
+  const edges = WALLPAPER_FAMILY_EDGES[edgeFamily];
   const bezelState: boolean | null =
     !settingsLoaded || isIOS === null ? null : overridden("bezel", isIOS && edges.bezel);
   const bezel = bezelState === true;
@@ -433,7 +511,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and
   // the home indicator ends in a hard line otherwise. Same switch, same masks,
-  // for both wallpaper kinds. The kind decides whether it is on by default, and
+  // for every wallpaper. The edge look decides whether it is on by default, and
   // only while the bezel is off: the edge it hides is then a clean line against
   // the bezel.
   const softEdgeEnabled = overridden(
@@ -441,12 +519,47 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     isIOS === true && edges.softEdge && !bezel
   );
 
-  // Debug override state (for weather and time)
+  // --- Weather engine ------------------------------------------------------
+  // WebGL support is probed after mount so the SSR tree (no canvas) matches the
+  // first client render. A failure at any later point flips the session to CSS.
+  const [shaderSupported, setShaderSupported] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only WebGL probe after mount
+    setShaderSupported(supportsWebGL2());
+  }, []);
+  const reportShaderFallback = useCallback((reason: string) => {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(`[ambient] the Sky fell back to the Gradient: ${reason}`);
+    }
+    setShaderSupported(false);
+  }, []);
+  const statsRef = useRef<(() => WallpaperStats) | null>(null);
+
+  // The style that paints: the Sky needs WebGL2 (real, or not pretended away
+  // by the devtool) and otherwise becomes the Gradient. Nothing else falls back.
+  const effectiveStyle = resolveWeatherStyle({
+    weatherStyle: settings.weatherStyle,
+    shaderSupported:
+      shaderSupported && !(isDevtoolEnabled && devtoolOverrides.noWebGL === true),
+  });
+  const renderer: WallpaperEngine = WEATHER_STYLE_ENGINE[effectiveStyle];
+  // Opacity follows what is painting, not what was asked for: a Sky that fell
+  // back to the Gradient is a wash.
+  const wallpaperOpacity =
+    WALLPAPER_OPACITY[
+      WALLPAPER_LOOK_FAMILY[getWallpaperLook(settings.wallpaperKind, effectiveStyle)]
+    ][theme];
+
+  // --- Debug state (weather + time) -----------------------------------------
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
-  const [isOverrideEnabled, setIsOverrideEnabled] = useState(false);
-  const [timeOverridePhase, setTimeOverridePhase] = useState<AmbientPhase>("morning");
-  const [isTimeOverrideEnabled, setIsTimeOverrideEnabled] = useState(false);
-  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [sceneOverrides, setSceneOverrides] = useState<SceneOverrides>({});
+  const [timeScrubMinutes, setTimeScrubMinutes] = useState<number | null>(null);
+  const [dayOffset, setDayOffset] = useState(0);
+  const [realNowMs, setRealNowMs] = useState(() => Date.now());
+  const resetTimeTravel = useCallback(() => {
+    setTimeScrubMinutes(null);
+    setDayOffset(0);
+  }, []);
 
   // Location (React Query)
   const locationQuery = useLocationQuery(settings.locationMode);
@@ -487,46 +600,99 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     queryClient.invalidateQueries({ queryKey: ["weather"] });
   }, []);
 
-  // Update "now" every minute
+  // Update "now" every minute. The sky's sun arc and palette derive from this,
+  // so dawn and dusk progress continuously.
   useEffect(() => {
-    const id = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    const id = window.setInterval(() => setRealNowMs(Date.now()), 60_000);
     return () => window.clearInterval(id);
   }, []);
 
   // Refetch weather when the local day rolls over. Open-Meteo returns a single
   // forecast day, so a page left open overnight would otherwise keep yesterday's
-  // sunrise/sunset — staling everything derived from them (phase, gradient,
+  // sunrise/sunset — staling everything derived from them (phase, sky,
   // greeting, and the phase notification). The minute tick above makes this fire
   // within ~60s of midnight.
   const lastDayRef = useRef(new Date().toDateString());
   useEffect(() => {
-    const today = new Date(nowMs).toDateString();
+    const today = new Date(realNowMs).toDateString();
     if (lastDayRef.current === today) return;
     lastDayRef.current = today;
     queryClient.invalidateQueries({ queryKey: ["weather"] });
-  }, [nowMs]);
+  }, [realNowMs]);
 
-  const derivedPhase = useMemo(() => {
-    const w = weatherQuery.data;
-    return deriveAmbientPhase({
-      nowMs,
-      sunriseMs: w?.sunriseMs,
-      sunsetMs: w?.sunsetMs,
-    });
-  }, [nowMs, weatherQuery.data]);
+  // --- The effective clock --------------------------------------------------
+  const isTimeTravelActive =
+    isDevtoolEnabled && (timeScrubMinutes !== null || dayOffset !== 0);
+  const dayShiftMs = isDevtoolEnabled ? dayOffset * 86_400_000 : 0;
+  const baseNowMs = realNowMs + dayShiftMs;
+  const nowMs =
+    isDevtoolEnabled && timeScrubMinutes !== null
+      ? scrubToMs(timeScrubMinutes, baseNowMs)
+      : baseNowMs;
 
-  const effectivePhase: AmbientPhase =
-    isDevtoolEnabled && isTimeOverrideEnabled ? timeOverridePhase : derivedPhase;
+  // Open-Meteo gives today's sunrise/sunset; a shifted day reuses them at the
+  // same clock time (a few minutes of seasonal drift is irrelevant here).
+  const sunriseMs =
+    typeof weatherQuery.data?.sunriseMs === "number"
+      ? weatherQuery.data.sunriseMs + dayShiftMs
+      : undefined;
+  const sunsetMs =
+    typeof weatherQuery.data?.sunsetMs === "number"
+      ? weatherQuery.data.sunsetMs + dayShiftMs
+      : undefined;
+
+  const phase = useMemo(
+    () => deriveAmbientPhase({ nowMs, sunriseMs, sunsetMs }),
+    [nowMs, sunriseMs, sunsetMs]
+  );
 
   // Resolve which edge-fade mask to use.
   // Special case: dark-mode sunrise/sunset has high gradient-vs-background
   // contrast, so we use a more aggressive (wider) fade to soften the edge.
   const edgeMask: string | null = softEdgeEnabled
-    ? theme === "dark" &&
-      (effectivePhase === "sunrise" || effectivePhase === "sunset")
+    ? theme === "dark" && (phase === "sunrise" || phase === "sunset")
       ? EDGE_FADE_MASK_HIGH_CONTRAST
       : EDGE_FADE_MASK
     : null;
+
+  // ---------------------------------------------------------------------------
+  // Scene — the single source of truth for both weather engines.
+  // ---------------------------------------------------------------------------
+
+  // Stable per-session seed so cloud layouts don't re-roll on every render.
+  const [sceneSeed] = useState(() => Math.floor(Math.random() * 1000) / 10);
+
+  const activeOverride = isDevtoolEnabled ? debugOverride : null;
+
+  // The effective day's sun times go in, so time travel shifts them too.
+  const sceneWeather = useMemo<SceneWeatherInput | null>(
+    () => toSceneWeather(weatherQuery.data ?? null, activeOverride, { sunriseMs, sunsetMs }),
+    [weatherQuery.data, activeOverride, sunriseMs, sunsetMs]
+  );
+
+  const scene = useMemo<WeatherScene>(() => {
+    const location = locationQuery.data ?? null;
+    // No geometry overrides: the sun and moon always come from the real
+    // ephemeris at the effective clock. A forced *condition* only changes the
+    // weather; to preview it at night, move the clock.
+    return deriveWeatherScene({
+      nowMs,
+      lat: location?.lat,
+      lon: location?.lon,
+      weather: sceneWeather,
+      theme,
+      overrides: isDevtoolEnabled ? sceneOverrides : undefined,
+      seed: sceneSeed,
+    });
+  }, [
+    locationQuery.data,
+    nowMs,
+    sceneWeather,
+    theme,
+    isDevtoolEnabled,
+    sceneOverrides,
+    sceneSeed,
+  ]);
 
   /**
    * The active pair resolved for the current theme, or null on weather.
@@ -553,44 +719,20 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [isImageKind, activeWallpaper, theme, isBlurred]
   );
 
-  // Compute the background. Exactly one kind wins — an image wallpaper replaces
-  // the weather gradient outright rather than stacking over it. The sun-event
-  // Live Activity is unaffected either way: it renders in the Dock from weather
-  // + phase and never reads this.
-  const computedGradient = useMemo(() => {
-    if (resolvedImage) return resolvedImage.backgroundImage;
-
-    if (effectivePhase === "sunrise" || effectivePhase === "sunset") {
-      return getSunEventGradient({ event: effectivePhase, theme }).backgroundImage;
-    }
-
-    if (isDevtoolEnabled && isOverrideEnabled && debugOverride) {
-      return getWeatherGradient({
-        condition: debugOverride.condition,
-        isDay: debugOverride.isDay,
-        theme,
-      }).backgroundImage;
-    }
-
-    const weather = weatherQuery.data;
-    if (weather) {
-      return getWeatherGradient({
-        condition: weather.condition,
-        isDay: weather.isDay,
-        theme,
-      }).backgroundImage;
-    }
-
-    return "";
-  }, [
-    resolvedImage,
-    isDevtoolEnabled,
-    isOverrideEnabled,
-    debugOverride,
-    weatherQuery.data,
-    effectivePhase,
-    theme,
-  ]);
+  // Compute the CSS background. Exactly one kind wins — an image wallpaper
+  // replaces the weather sky outright rather than stacking over it. Under
+  // weather it is the Classic palette when that style is chosen, otherwise the
+  // gradient rendering of the scene: the full-page layer under Gradient (or a
+  // Sky fallback), and what widget cards paint under the Sky. The sun-event
+  // Live Activity is unaffected either way: it renders in the Dock from the
+  // clock and never reads this.
+  const computedGradient = useMemo(
+    () =>
+      resolvedImage
+        ? resolvedImage.backgroundImage
+        : getWeatherStyleGradient(effectiveStyle, scene, phase),
+    [resolvedImage, effectiveStyle, scene, phase]
+  );
 
   /** Images must cover the layer; the weather gradient already fills it. */
   const computedCover = resolvedImage?.cover ?? false;
@@ -604,10 +746,16 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const [layers, setGradientLayers] = useState<GradientLayerData[]>([]);
   const layerIdRef = useRef(0);
 
+  // Under the Sky, full page, nothing paints the CSS stack: skip the push, or
+  // every minute's new gradient would re-render every widget card twice (push,
+  // prune) for a layer nobody shows. It catches up as soon as something does.
+  const stackPainted = renderer === "css" || widgetEnabled;
+
   useEffect(() => {
+    if (!stackPainted) return;
     // Hold the current gradient while refetching (stale-while-revalidate).
-    // A image wallpaper needs no network, so it never waits on weather.
-    if (!isImageKind && weatherQuery.isFetching) return;
+    // An image wallpaper needs no network, so it never waits on weather.
+    if (!isImageKind && weatherQuery.isFetching && layerIdRef.current > 0) return;
     if (!computedGradient) return;
 
     setGradientLayers((prev) => {
@@ -619,7 +767,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
         { id: layerIdRef.current, gradient: computedGradient, cover: computedCover },
       ];
     });
-  }, [computedGradient, computedCover, isImageKind, weatherQuery.isFetching]);
+  }, [stackPainted, computedGradient, computedCover, isImageKind, weatherQuery.isFetching]);
 
   // Prune to the newest layer once the crossfade settles.
   useEffect(() => {
@@ -662,13 +810,15 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const weatherValue = useMemo(
     () => ({
       weather: weatherQuery.data ?? null,
+      scene,
+      sceneWeather,
       isLoading: weatherQuery.isLoading,
       isFetching: weatherQuery.isFetching,
       error: weatherQuery.error?.message ?? null,
-      isOverrideEnabled,
-      setOverrideEnabled: setIsOverrideEnabled,
       debugOverride,
       setDebugOverride,
+      sceneOverrides,
+      setSceneOverrides,
       refresh: refreshWeather,
     }),
     [
@@ -676,8 +826,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       weatherQuery.isLoading,
       weatherQuery.isFetching,
       weatherQuery.error,
-      isOverrideEnabled,
+      scene,
+      sceneWeather,
       debugOverride,
+      sceneOverrides,
       refreshWeather,
     ]
   );
@@ -685,20 +837,41 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const timeValue = useMemo(
     () => ({
       nowMs,
-      derivedPhase,
-      phase: effectivePhase,
-      isOverrideEnabled: isTimeOverrideEnabled,
-      setOverrideEnabled: setIsTimeOverrideEnabled,
-      overridePhase: timeOverridePhase,
-      setOverridePhase: setTimeOverridePhase,
+      realNowMs,
+      phase,
+      sunriseMs,
+      sunsetMs,
+      timeScrubMinutes,
+      setTimeScrubMinutes,
+      dayOffset,
+      setDayOffset,
+      isTimeTravelActive,
+      resetTimeTravel,
     }),
-    [nowMs, derivedPhase, effectivePhase, isTimeOverrideEnabled, timeOverridePhase]
+    [
+      nowMs,
+      realNowMs,
+      phase,
+      sunriseMs,
+      sunsetMs,
+      timeScrubMinutes,
+      dayOffset,
+      isTimeTravelActive,
+      resetTimeTravel,
+    ]
   );
 
   const wallpaperValue = useMemo(
     () => ({
       kind: settings.wallpaperKind,
       setKind: setWallpaperKind,
+      weatherStyle: settings.weatherStyle,
+      selectWeather,
+      effectiveStyle,
+      renderer,
+      shaderSupported,
+      reportShaderFallback,
+      statsRef,
       wallpaper: activeWallpaper,
       wallpapers: BUILT_IN_WALLPAPERS,
       selectWallpaper,
@@ -740,6 +913,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     }),
     [
       settings.wallpaperKind,
+      settings.weatherStyle,
       settings.wallpaperPlacement,
       settings.bezelTint,
       settings.bezelBand,
@@ -747,6 +921,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       settings.wallpaperReadingBlur,
       settings.wallpaperReadingDim,
       setWallpaperKind,
+      selectWeather,
+      effectiveStyle,
+      renderer,
+      shaderSupported,
+      reportShaderFallback,
       activeWallpaper,
       selectWallpaper,
       theme,
