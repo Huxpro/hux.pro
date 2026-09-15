@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, MousePointer2, Plus, RotateCcw, Save } from "lucide-react";
+import { Check, CloudSun, MousePointer2, Plus, RotateCcw, Save } from "lucide-react";
+import { Link } from "next-view-transitions";
 import { cn } from "@/lib/utils";
 import type { InspectMode } from "@/components/log/timeline-edit-context";
 
@@ -38,6 +39,15 @@ export function EditorToolbar({
             unsaved
           </span>
         )}
+        {/* The other studio on this surface. Not linked anywhere else — the
+            palette's slash commands have `S`, and that is the lot. */}
+        <Link
+          href="/editor/sky"
+          className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-mono rounded text-muted-foreground hover:text-foreground hover:bg-muted/20 transition-colors"
+        >
+          <CloudSun className="w-3 h-3" />
+          Sky
+        </Link>
         <div className="flex items-center gap-1.5">
           <button
             type="button"

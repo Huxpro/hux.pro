@@ -24,6 +24,7 @@ export {
   AmbientGreeting,
   AmbientSurface,
   AmbientPhaseActivity,
+  MoonPhaseIcon,
   SolarThemeSync,
   SolarThemeToast,
   WallpaperBackground,

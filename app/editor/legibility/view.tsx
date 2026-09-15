@@ -21,7 +21,7 @@
 // See lab-state.ts for how each reaches CSS.
 // =============================================================================
 
-import { Field, Section, Segmented, Slider } from "@/app/editor/icon/controls";
+import { Field, Section, Segmented, Slider } from "@/app/editor/controls";
 import { cn } from "@/lib/utils";
 import { useGlass, useTheme } from "@/services";
 import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";

@@ -1,5 +1,6 @@
 "use client";
 
+import { MoonPhaseIcon } from "@/systems/ambient/components/moon-phase-icon";
 import { WeatherIcon } from "@/systems/ambient/components/weather-icon";
 import {
   GLASS_MATERIALS,
@@ -25,14 +26,16 @@ import { formatClockTime } from "@/systems/ambient/lib/format";
 import { gravityTiltDegrees, readGravity } from "@/systems/ambient/lib/gyroscope";
 import { getWeatherGradient, getWeatherStyleGradient } from "@/systems/ambient/lib/gradient";
 import type { AmbientPhase } from "@/systems/ambient/lib/phase";
-import { rgbToCss, sampleDaySky } from "@/systems/ambient/lib/scene";
+import { getAmbientPhaseLabel } from "@/systems/ambient/lib/phase";
+import { rgbToCss, sampleDaySky, SKY_FILE } from "@/systems/ambient/lib/scene";
+import { activeSkyConfig } from "@/systems/ambient/lib/sky-config";
 import {
+  getMoonPhaseLabel,
   getMoonPhaseName,
   startOfLocalDay,
   DEFAULT_SUNRISE_MINUTES,
   DEFAULT_SUNSET_MINUTES,
   minutesOfDay,
-  type MoonPhaseName,
 } from "@/systems/ambient/lib/solar";
 import type { WallpaperStats } from "@/systems/ambient/lib/wallpaper/renderer";
 import {
@@ -99,6 +102,7 @@ import {
   Layers2,
   Moon,
   Music,
+  Palette,
   Pause,
   Play,
   RefreshCw,
@@ -1282,45 +1286,6 @@ function PanelSlider({
 }
 
 // =============================================================================
-// Moon phase glyph — the lit part of the disc for a phase in [0, 1).
-// Terminator is an ellipse of half-width |cos(2πp)|; waxing lights the right
-// limb (northern hemisphere), and `mirror` flips it for the south.
-// =============================================================================
-
-function MoonPhaseIcon({
-  phase,
-  mirror = false,
-  className,
-}: {
-  phase: number;
-  mirror?: boolean;
-  className?: string;
-}) {
-  const r = 6;
-  const p = ((phase % 1) + 1) % 1;
-  const k = Math.cos(p * 2 * Math.PI);
-  const rx = Math.max(0.01, Math.abs(k) * r);
-  const waxing = p < 0.5;
-  // Outer limb: right semicircle when waxing, left when waning (top → bottom).
-  const limb = waxing ? `A ${r} ${r} 0 0 1 0 ${r}` : `A ${r} ${r} 0 0 0 0 ${r}`;
-  // Return along the terminator ellipse (bottom → top). Crescent (k > 0)
-  // curves back on the same side as the limb; gibbous (k < 0) bulges across.
-  const sweep = waxing ? (k > 0 ? 0 : 1) : k > 0 ? 1 : 0;
-  const terminator = `A ${rx} ${r} 0 0 ${sweep} 0 ${-r}`;
-  return (
-    <svg
-      viewBox="-7 -7 14 14"
-      className={cn("h-3.5 w-3.5 shrink-0", className)}
-      aria-hidden
-      style={mirror ? { transform: "scaleX(-1)" } : undefined}
-    >
-      <circle r={r} className="fill-muted-foreground/25" />
-      <path d={`M 0 ${-r} ${limb} ${terminator} Z`} className="fill-foreground/85" />
-    </svg>
-  );
-}
-
-// =============================================================================
 // Sky Module — weather and time as one thing
 //
 // The wallpaper is a function of (condition, clock); the two used to sit in
@@ -1352,48 +1317,6 @@ const PHASE_ORDER: AmbientPhase[] = [
   "evening",
   "night",
 ];
-
-const PHASE_LABEL: Record<"en" | "zh", Record<AmbientPhase, string>> = {
-  en: {
-    sunrise: "Sunrise",
-    morning: "Morning",
-    afternoon: "Afternoon",
-    evening: "Evening",
-    sunset: "Sunset",
-    night: "Night",
-  },
-  zh: {
-    sunrise: "日出",
-    morning: "早晨",
-    afternoon: "下午",
-    evening: "傍晚",
-    sunset: "日落",
-    night: "夜晚",
-  },
-};
-
-const MOON_NAME: Record<"en" | "zh", Record<MoonPhaseName, string>> = {
-  en: {
-    new: "New moon",
-    "waxing-crescent": "Waxing crescent",
-    "first-quarter": "First quarter",
-    "waxing-gibbous": "Waxing gibbous",
-    full: "Full moon",
-    "waning-gibbous": "Waning gibbous",
-    "last-quarter": "Last quarter",
-    "waning-crescent": "Waning crescent",
-  },
-  zh: {
-    new: "新月",
-    "waxing-crescent": "娥眉月",
-    "first-quarter": "上弦月",
-    "waxing-gibbous": "盈凸月",
-    full: "满月",
-    "waning-gibbous": "亏凸月",
-    "last-quarter": "下弦月",
-    "waning-crescent": "残月",
-  },
-};
 
 
 const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
@@ -1472,7 +1395,6 @@ const PLAYHEAD_INPUT = cn(
 function SkyModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const lang = zh ? "zh" : "en";
   const { theme } = useTheme();
   const { location } = useLocation();
   const {
@@ -1483,6 +1405,9 @@ function SkyModule() {
     setDebugOverride,
     sceneOverrides,
     setSceneOverrides,
+    skyPresets,
+    skyPreset,
+    setSkyPreset,
   } = useWeather();
   const {
     nowMs,
@@ -1503,7 +1428,15 @@ function SkyModule() {
   const isDayNow = scene.sun.isDay;
   const isOverridden = debugOverride !== null;
   const isTuned = Object.keys(sceneOverrides).length > 0;
-  const anythingForced = isTimeTravelActive || isOverridden || isTuned;
+  const anythingForced =
+    isTimeTravelActive || isOverridden || isTuned || skyPreset !== null;
+
+  // The world model in force. Named configs are authored in `/editor/sky` and
+  // committed to `content/sky.json`; this picker previews one for the session.
+  const skyConfig = useMemo(
+    () => (skyPreset ? activeSkyConfig(SKY_FILE, skyPreset) : undefined),
+    [skyPreset]
+  );
 
   // --- The day ------------------------------------------------------------
   const dayStartMs = startOfLocalDay(nowMs);
@@ -1522,12 +1455,13 @@ function SkyModule() {
       weather: sceneWeather,
       theme,
       overrides: sceneOverrides,
+      config: skyConfig,
     });
     const stops = colors.map(
       (c, i) => `${rgbToCss(c)} ${((i / (colors.length - 1)) * 100).toFixed(1)}%`
     );
     return `linear-gradient(90deg, ${stops.join(", ")})`;
-  }, [dayStartMs, lat, lon, sceneWeather, theme, sceneOverrides]);
+  }, [dayStartMs, lat, lon, sceneWeather, theme, sceneOverrides, skyConfig]);
 
   const sr = minutesOfDay(sunriseMs, DEFAULT_SUNRISE_MINUTES);
   const ss = minutesOfDay(sunsetMs, DEFAULT_SUNSET_MINUTES);
@@ -1599,6 +1533,7 @@ function SkyModule() {
     resetTimeTravel();
     setDebugOverride(null);
     setSceneOverrides({});
+    setSkyPreset(null);
   };
 
   // --- Gyroscope -----------------------------------------------------------
@@ -1700,7 +1635,7 @@ function SkyModule() {
             <WeatherIcon condition={scene.condition} isDay={isDayNow} className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">{conditionLabel}</span>
             <span className="text-muted-foreground/60">·</span>
-            <span className="truncate">{PHASE_LABEL[lang][phase]}</span>
+            <span className="truncate">{getAmbientPhaseLabel(phase, locale)}</span>
             <span className="text-muted-foreground/60">·</span>
             <span className="tabular-nums">{clock(clockMinutes)}</span>
           </span>
@@ -1711,7 +1646,7 @@ function SkyModule() {
             </span>
             <span
               className="inline-flex items-center gap-1"
-              title={`${MOON_NAME[lang][moonName]} · ${moonUpLabel}`}
+              title={`${getMoonPhaseLabel(moonName, locale)} · ${moonUpLabel}`}
             >
               <MoonPhaseIcon phase={scene.moon.phase} mirror={scene.hemisphere === -1} className="h-3 w-3" />
               {Math.round(scene.moon.illumination * 100)}%
@@ -1814,7 +1749,7 @@ function SkyModule() {
                   onClick={() => jumpTo(phaseTimes[p])}
                   aria-label={`Jump to ${p}`}
                   aria-current={current ? "time" : undefined}
-                  title={`${PHASE_LABEL[lang][p]} · ${clock(phaseTimes[p])}`}
+                  title={`${getAmbientPhaseLabel(p, locale)} · ${clock(phaseTimes[p])}`}
                   className={cn(
                     "truncate rounded-md px-0.5 py-1 text-[9px] font-mono transition-colors",
                     current
@@ -1822,7 +1757,7 @@ function SkyModule() {
                       : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                   )}
                 >
-                  {PHASE_LABEL[lang][p]}
+                  {getAmbientPhaseLabel(p, locale)}
                 </button>
               );
             })}
@@ -1938,7 +1873,7 @@ function SkyModule() {
             </span>
             <span className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground">
               <MoonPhaseIcon phase={scene.moon.phase} mirror={scene.hemisphere === -1} />
-              <span className="text-foreground/80">{MOON_NAME[lang][moonName]}</span>
+              <span className="text-foreground/80">{getMoonPhaseLabel(moonName, locale)}</span>
             </span>
           </div>
           <PanelRange
@@ -1998,6 +1933,47 @@ function SkyModule() {
             </span>
           </PanelRow>
         </div>
+
+        {/* The sky config in force. Only worth a row once `content/sky.json`
+            holds more than the shipped look; everything else about it lives in
+            the Sky Engine Lab. */}
+        {skyPresets.length > 1 && (
+          <div className="space-y-1.5 border-t border-border/30 pt-2.5">
+            <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+              <Palette className="h-3 w-3" />
+              {zh ? "天空预设" : "Sky preset"}
+              {skyPreset !== null && (
+                <PanelStar
+                  onReset={() => setSkyPreset(null)}
+                  source="session"
+                  label={zh ? "回到已提交的预设" : "Back to the committed preset"}
+                />
+              )}
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {skyPresets.map((preset) => {
+                const current =
+                  skyPreset === null ? preset.id === SKY_FILE.active : skyPreset === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    onClick={() => setSkyPreset(preset.id === SKY_FILE.active ? null : preset.id)}
+                    aria-pressed={current}
+                    title={preset.id}
+                    className={cn(
+                      "rounded border px-1.5 py-0.5 text-[10px] font-mono transition-colors",
+                      current
+                        ? "border-foreground/40 bg-accent text-accent-foreground"
+                        : "border-border/60 text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {preset.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Fine-tune, folded: the derived numbers, each draggable. */}
         <div className="border-t border-border/30 pt-2">

@@ -1,21 +1,26 @@
 // =============================================================================
 // Weather scene derivation
 //
-// One pure function turns (weather × sun × theme) into a `WeatherScene`: the
-// complete, renderer-agnostic description of the wallpaper — sky palette, sun
-// and moon placement, cloud cover/density/lighting, precipitation, wind, fog,
-// lightning, stars and the theme veil.
+// One pure function turns (weather × sun × theme × config) into a
+// `WeatherScene`: the complete, renderer-agnostic description of the wallpaper
+// — sky palette, sun and moon placement, cloud cover/density/lighting,
+// precipitation, wind, fog, lightning, stars and the theme veil.
 //
 // Both renderers consume it: the WebGL shader (the iOS-like animated
 // wallpaper) and the CSS gradient fallback (widget mode / no WebGL / reduced
 // motion). Keeping the palette here means both always agree, and the devtool
 // can preview any state without a canvas.
+//
+// Every number the look depends on comes from a `SkyConfig` (see
+// `sky-config.ts`). The site paints from the committed `content/sky.json`; the
+// Sky Engine Lab (`/editor/sky`) hands in an in-memory config instead, so the
+// same functions that ship a look are the ones that preview it.
 // =============================================================================
 
+import skyFileJson from "@/content/sky.json";
 import type { SolarPosition } from "./solar";
 import {
   clamp01,
-  DAY_ELEVATION_DEG,
   daylightFactor,
   estimateSolarPosition,
   getLunarPosition,
@@ -26,6 +31,15 @@ import {
   startOfLocalDay,
   sunTimesOrDefault,
 } from "./solar";
+import {
+  activeSkyConfig,
+  normalizeSkyFile,
+  type ConditionProfileConfig,
+  type GateConfig,
+  type SkyConfig,
+  type SkyKeyConfig,
+  type StagingConfig,
+} from "./sky-config";
 import type {
   NormalizedWeather,
   PrecipitationType,
@@ -42,12 +56,38 @@ export interface ScreenPoint {
   y: number;
 }
 
+/**
+ * The shader's own framing and figure sizes, resolved from the config.
+ *
+ * The scene carries them so the renderer stays a dumb pipe: it packs whatever
+ * the scene says into uniforms, and the lab can retune the shader live through
+ * the same path the site's committed config takes.
+ */
+export interface SkyRender {
+  sunDisc: number;
+  sunGlowRadiusHigh: number;
+  sunGlowRadiusLow: number;
+  sunGlowGain: number;
+  horizonBand: number;
+  moonDisc: number;
+  moonHalo: number;
+  earthshine: number;
+  terminator: number;
+  starDensity: number;
+  starTwinkle: number;
+  horizonCurve: number;
+  cloudScaleFar: number;
+  cloudScaleNear: number;
+  cloudParallaxFar: number;
+  cloudParallaxNear: number;
+}
+
 export interface WeatherScene {
   sun: SolarPosition & {
     screen: ScreenPoint;
     /** 0 = astronomical night … 1 = full day. */
     daylight: number;
-    /** The one day/night decision (`DAY_ELEVATION_DEG`): icons, palettes, chips. */
+    /** The one day/night decision (`sun.dayElevationDeg`): icons, palettes, chips. */
     isDay: boolean;
   };
   moon: SolarPosition & {
@@ -105,12 +145,25 @@ export interface WeatherScene {
   /** Theme veil: blend the rendered scene toward the page background. */
   veil: { color: RGB; amount: number };
   exposure: number;
+  /** Shader-side framing and figure sizes (see `SkyRender`). */
+  render: SkyRender;
   /** Stable per-session seed so cloud layouts don't jump between renders. */
   seed: number;
   /** Which discrete condition produced this scene (for icons / labels). */
   condition: WeatherCondition;
   theme: "light" | "dark";
 }
+
+// -----------------------------------------------------------------------------
+// The committed config
+//
+// `content/sky.json` is a document of named presets; the site paints from its
+// active one. It is a static import, so the config is baked at build and the
+// static export needs nothing at runtime.
+// -----------------------------------------------------------------------------
+
+export const SKY_FILE = normalizeSkyFile(skyFileJson);
+export const SKY_CONFIG: SkyConfig = activeSkyConfig(SKY_FILE);
 
 // -----------------------------------------------------------------------------
 // Colour helpers
@@ -141,11 +194,19 @@ export function rgbToCss(c: RGB, alpha?: number): string {
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+/** A config gate, applied. `from > to` is legal and reverses the ramp. */
+const gate = (g: GateConfig, x: number) => smoothstep(g.from, g.to, x);
+
 // -----------------------------------------------------------------------------
-// Sky keyframes by sun elevation (clear sky)
+// Resolving a config
+//
+// The config is plain JSON — colours are `#rrggbb` strings — so it round-trips
+// through `content/sky.json` without a codec. Derivation wants RGB triples, and
+// `sampleDaySky` alone derives 72 scenes from one config, so the conversion is
+// done once per config object and cached against it.
 // -----------------------------------------------------------------------------
 
-interface SkyKey {
+interface ResolvedKey {
   el: number;
   zenith: RGB;
   horizon: RGB;
@@ -153,23 +214,143 @@ interface SkyKey {
   strength: number;
 }
 
-const SKY_KEYS: SkyKey[] = [
-  { el: -18, zenith: hex("#05091a"), horizon: hex("#0b1330"), glow: hex("#1b2447"), strength: 0.0 },
-  { el: -12, zenith: hex("#070e29"), horizon: hex("#151f48"), glow: hex("#3d3d72"), strength: 0.25 },
-  { el: -6, zenith: hex("#0f1a48"), horizon: hex("#4d3f73"), glow: hex("#c8765c"), strength: 0.6 },
-  { el: -2, zenith: hex("#1f3d7a"), horizon: hex("#b86d57"), glow: hex("#f28c4e"), strength: 0.95 },
-  { el: 0, zenith: hex("#2d5ca4"), horizon: hex("#dd905a"), glow: hex("#ffb267"), strength: 1.0 },
-  { el: 4, zenith: hex("#3b76c3"), horizon: hex("#ecb886"), glow: hex("#ffd9a3"), strength: 0.92 },
-  { el: 10, zenith: hex("#4a90da"), horizon: hex("#bdd8f0"), glow: hex("#fff3d6"), strength: 0.72 },
-  { el: 25, zenith: hex("#3d87dc"), horizon: hex("#c9e0f4"), glow: hex("#ffffff"), strength: 0.58 },
-  { el: 60, zenith: hex("#2f74d2"), horizon: hex("#d0e4f8"), glow: hex("#ffffff"), strength: 0.5 },
-];
+interface ResolvedProfile {
+  cover: number;
+  coverMin: number;
+  density: number;
+  darkness: number;
+  precip: number;
+  fog: number;
+  tintDay: { zenith: RGB; horizon: RGB };
+  tintNight: { zenith: RGB; horizon: RGB };
+  tintAmount: number;
+}
 
-function sampleSky(elevation: number): Omit<SkyKey, "el"> {
-  const el = Math.max(SKY_KEYS[0].el, Math.min(SKY_KEYS[SKY_KEYS.length - 1].el, elevation));
-  for (let i = 0; i < SKY_KEYS.length - 1; i++) {
-    const a = SKY_KEYS[i];
-    const b = SKY_KEYS[i + 1];
+export interface ResolvedSky {
+  keys: ResolvedKey[];
+  profiles: Record<WeatherCondition, ResolvedProfile>;
+  veil: {
+    light: { color: RGB; amount: number; exposure: number };
+    dark: { color: RGB; amount: number; exposure: number };
+  };
+  moonLight: { zenith: RGB; horizon: RGB; cloud: RGB };
+  lighting: {
+    litDay: RGB;
+    litNight: RGB;
+    shadeDay: RGB;
+    shadeDayStorm: RGB;
+    shadeNight: RGB;
+    shadeNightStorm: RGB;
+  };
+  render: SkyRender;
+}
+
+const resolvedCache = new WeakMap<SkyConfig, ResolvedSky>();
+
+function resolveProfile(p: ConditionProfileConfig): ResolvedProfile {
+  return {
+    cover: p.cover,
+    coverMin: p.coverMin,
+    density: p.density,
+    darkness: p.darkness,
+    precip: p.precip,
+    fog: p.fog,
+    tintDay: { zenith: hex(p.tintDay.zenith), horizon: hex(p.tintDay.horizon) },
+    tintNight: {
+      zenith: hex(p.tintNight.zenith),
+      horizon: hex(p.tintNight.horizon),
+    },
+    tintAmount: p.tintAmount,
+  };
+}
+
+/** A config with its colours parsed. Cached per config object. */
+export function resolveSkyConfig(config: SkyConfig): ResolvedSky {
+  const cached = resolvedCache.get(config);
+  if (cached) return cached;
+
+  const profiles = {} as Record<WeatherCondition, ResolvedProfile>;
+  for (const key of Object.keys(config.clouds.profiles) as WeatherCondition[]) {
+    profiles[key] = resolveProfile(config.clouds.profiles[key]);
+  }
+
+  const l = config.clouds.lighting;
+  const resolved: ResolvedSky = {
+    keys: config.sun.keys.map((k: SkyKeyConfig) => ({
+      el: k.el,
+      zenith: hex(k.zenith),
+      horizon: hex(k.horizon),
+      glow: hex(k.glow),
+      strength: k.strength,
+    })),
+    profiles,
+    veil: {
+      light: {
+        color: hex(config.veil.light.color),
+        amount: config.veil.light.amount,
+        exposure: config.veil.light.exposure,
+      },
+      dark: {
+        color: hex(config.veil.dark.color),
+        amount: config.veil.dark.amount,
+        exposure: config.veil.dark.exposure,
+      },
+    },
+    moonLight: {
+      zenith: hex(config.moon.light.zenithColor),
+      horizon: hex(config.moon.light.horizonColor),
+      cloud: hex(config.moon.light.cloudColor),
+    },
+    lighting: {
+      litDay: hex(l.litDay),
+      litNight: hex(l.litNight),
+      shadeDay: hex(l.shadeDay),
+      shadeDayStorm: hex(l.shadeDayStorm),
+      shadeNight: hex(l.shadeNight),
+      shadeNightStorm: hex(l.shadeNightStorm),
+    },
+    render: {
+      sunDisc: config.sun.discSize,
+      sunGlowRadiusHigh: config.sun.glowRadiusHigh,
+      sunGlowRadiusLow: config.sun.glowRadiusLow,
+      sunGlowGain: config.sun.glowGain,
+      horizonBand: config.sun.horizonBand,
+      moonDisc: config.moon.discSize,
+      moonHalo: config.moon.haloStrength,
+      earthshine: config.moon.earthshine,
+      terminator: config.moon.terminatorSoftness,
+      starDensity: config.stars.density,
+      starTwinkle: config.stars.twinkle,
+      horizonCurve: config.staging.shader.horizonCurve,
+      cloudScaleFar: config.staging.shader.cloudScaleFar,
+      cloudScaleNear: config.staging.shader.cloudScaleNear,
+      cloudParallaxFar: config.staging.shader.cloudParallaxFar,
+      cloudParallaxNear: config.staging.shader.cloudParallaxNear,
+    },
+  };
+  resolvedCache.set(config, resolved);
+  return resolved;
+}
+
+// -----------------------------------------------------------------------------
+// Sky keyframes by sun elevation (clear sky)
+// -----------------------------------------------------------------------------
+
+export interface SampledSky {
+  zenith: RGB;
+  horizon: RGB;
+  glow: RGB;
+  strength: number;
+}
+
+/** The clear sky at a sun elevation, interpolated between keyframes. */
+export function sampleSky(elevation: number, keys: ResolvedKey[]): SampledSky {
+  const first = keys[0];
+  const last = keys[keys.length - 1];
+  const el = Math.max(first.el, Math.min(last.el, elevation));
+  for (let i = 0; i < keys.length - 1; i++) {
+    const a = keys[i];
+    const b = keys[i + 1];
     if (el >= a.el && el <= b.el) {
       const t = smoothstep(a.el, b.el, el);
       return {
@@ -180,77 +361,8 @@ function sampleSky(elevation: number): Omit<SkyKey, "el"> {
       };
     }
   }
-  const last = SKY_KEYS[SKY_KEYS.length - 1];
   return { zenith: last.zenith, horizon: last.horizon, glow: last.glow, strength: last.strength };
 }
-
-// -----------------------------------------------------------------------------
-// Per-condition defaults + tints
-// -----------------------------------------------------------------------------
-
-interface ConditionProfile {
-  /** Cloud cover used when the API gives none, and the floor when it does. */
-  cover: number;
-  coverMin: number;
-  density: number;
-  darkness: number;
-  precip: number;
-  fog: number;
-  /** Sky tint (day / night) and how strongly it overrides the clear sky. */
-  tintDay: { zenith: RGB; horizon: RGB };
-  tintNight: { zenith: RGB; horizon: RGB };
-  tintAmount: number;
-}
-
-const PROFILES: Record<WeatherCondition, ConditionProfile> = {
-  clear: {
-    cover: 0.04, coverMin: 0, density: 0.35, darkness: 0.05, precip: 0, fog: 0,
-    tintDay: { zenith: hex("#2f74d2"), horizon: hex("#d0e4f8") },
-    tintNight: { zenith: hex("#05091a"), horizon: hex("#0b1330") },
-    tintAmount: 0,
-  },
-  // "cloudy" spans WMO 1–3 (mainly clear → overcast); the measured cover
-  // decides how heavy it reads, so the floor stays low.
-  cloudy: {
-    cover: 0.7, coverMin: 0.2, density: 0.75, darkness: 0.3, precip: 0, fog: 0.05,
-    tintDay: { zenith: hex("#7e8b9b"), horizon: hex("#b4bfca") },
-    tintNight: { zenith: hex("#171b24"), horizon: hex("#252b36") },
-    tintAmount: 0.8,
-  },
-  fog: {
-    cover: 0.75, coverMin: 0.5, density: 0.6, darkness: 0.1, precip: 0, fog: 0.9,
-    tintDay: { zenith: hex("#c4cad2"), horizon: hex("#e3e6ea") },
-    tintNight: { zenith: hex("#23272e"), horizon: hex("#31363e") },
-    tintAmount: 0.9,
-  },
-  rain: {
-    cover: 0.92, coverMin: 0.7, density: 0.9, darkness: 0.6, precip: 0.6, fog: 0.22,
-    tintDay: { zenith: hex("#56626f"), horizon: hex("#8e9aa7") },
-    tintNight: { zenith: hex("#10141b"), horizon: hex("#1c222b") },
-    tintAmount: 0.9,
-  },
-  snow: {
-    cover: 0.88, coverMin: 0.6, density: 0.75, darkness: 0.25, precip: 0.5, fog: 0.3,
-    tintDay: { zenith: hex("#a3adba"), horizon: hex("#d9dfe6") },
-    tintNight: { zenith: hex("#242a38"), horizon: hex("#353c4c") },
-    tintAmount: 0.85,
-  },
-  thunder: {
-    cover: 0.96, coverMin: 0.8, density: 1, darkness: 0.9, precip: 0.8, fog: 0.2,
-    tintDay: { zenith: hex("#2c3440"), horizon: hex("#4d5665") },
-    tintNight: { zenith: hex("#0a0d13"), horizon: hex("#151a22") },
-    tintAmount: 0.92,
-  },
-};
-
-// -----------------------------------------------------------------------------
-// Theme veil defaults
-// -----------------------------------------------------------------------------
-
-const VEIL_DEFAULTS = {
-  light: { color: hex("#ffffff"), amount: 0.3, exposure: 1.06 },
-  dark: { color: hex("#1a1a1a"), amount: 0.26, exposure: 0.86 },
-} as const;
 
 // -----------------------------------------------------------------------------
 // Derivation
@@ -290,6 +402,8 @@ export interface DeriveSceneParams {
   theme: "light" | "dark";
   overrides?: SceneOverrides;
   seed?: number;
+  /** The tunable world model. Defaults to the committed `content/sky.json`. */
+  config?: SkyConfig;
 }
 
 /** The observer's coordinates, when the params carry usable ones. */
@@ -302,8 +416,6 @@ function coordsOf(params: DeriveSceneParams): { lat: number; lon: number } | nul
     ? { lat, lon }
     : null;
 }
-
-const HORIZON_Y = 0.1;
 
 // -----------------------------------------------------------------------------
 // Staging the moon
@@ -327,45 +439,55 @@ const HORIZON_Y = 0.1;
 //     disc, not the night's lantern.
 //   · It is drawn a little larger near the horizon — the moon illusion, which
 //     is how the eye remembers a rising moon.
+//
+// Every number above is a `staging` field of the config, and `/editor/sky`
+// plots the screen-space path they produce beside the real trajectory.
 // -----------------------------------------------------------------------------
 
-const MOON_STAGE = {
-  /** Screen y where the disc first appears, as it clears the horizon. */
-  rise: 0.5,
-  /** Screen y once it is properly up (a few degrees). */
-  low: 0.62,
-  /** Screen y at its highest. */
-  high: 0.9,
-  /** Elevation, °, at which the disc reaches `high`. */
-  topAt: 60,
-  /** The disc stays inside these screen x bounds. */
-  xMin: 0.12,
-  xMax: 0.88,
-} as const;
-
-function stageMoon(
+export function stageMoon(
   lunar: SolarPosition,
-  hemisphere: 1 | -1
+  hemisphere: 1 | -1,
+  config: SkyConfig
 ): { screen: ScreenPoint; size: number } {
-  const rising = smoothstep(-3, 6, lunar.elevation);
-  const climb = smoothstep(6, MOON_STAGE.topAt, lunar.elevation);
-  const y =
-    lerp(MOON_STAGE.rise, MOON_STAGE.low, rising) +
-    (MOON_STAGE.high - MOON_STAGE.low) * climb;
+  const stage = config.staging.moon;
+  const rising = gate(stage.riseGate, lunar.elevation);
+  const climb = smoothstep(stage.riseGate.to, stage.topAtDeg, lunar.elevation);
+  const y = lerp(stage.rise, stage.low, rising) + (stage.high - stage.low) * climb;
   const x = Math.min(
-    MOON_STAGE.xMax,
-    Math.max(MOON_STAGE.xMin, azimuthToScreenX(lunar.azimuth, hemisphere))
+    stage.xMax,
+    Math.max(stage.xMin, azimuthToScreenX(lunar.azimuth, hemisphere, config.staging))
   );
-  // The moon illusion: up to 30% larger near the horizon.
-  const size = 1 + 0.3 * (1 - smoothstep(0, 35, lunar.elevation));
+  // The moon illusion: larger near the horizon.
+  const size =
+    1 +
+    config.moon.illusionScale *
+      (1 - smoothstep(0, config.moon.illusionFadeDeg, lunar.elevation));
   return { screen: { x, y }, size };
 }
 
 /** Map a compass azimuth to a screen x. Northern hemisphere looks south, so
  *  east is on the left; the southern hemisphere looks north and mirrors. */
-function azimuthToScreenX(azimuthDeg: number, hemisphere: 1 | -1): number {
+export function azimuthToScreenX(
+  azimuthDeg: number,
+  hemisphere: 1 | -1,
+  staging: StagingConfig
+): number {
   const x = 0.5 + 0.5 * Math.sin((azimuthDeg - 180) * (Math.PI / 180)) * hemisphere;
-  return 0.06 + x * 0.88;
+  return staging.azimuthMargin + x * staging.azimuthSpan;
+}
+
+/** Where the sun disc is drawn: its azimuth across, its real elevation up. */
+export function sunToScreen(
+  solar: SolarPosition,
+  hemisphere: 1 | -1,
+  staging: StagingConfig
+): ScreenPoint {
+  return {
+    x: azimuthToScreenX(solar.azimuth, hemisphere, staging),
+    y:
+      staging.horizonY +
+      Math.sin(solar.elevation * (Math.PI / 180)) * staging.sunArc,
+  };
 }
 
 function resolveSolar(params: DeriveSceneParams): SolarPosition {
@@ -412,10 +534,12 @@ function resolveLunar(params: DeriveSceneParams): SolarPosition & { phase: numbe
 
 export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const { theme } = params;
+  const config = params.config ?? SKY_CONFIG;
+  const sky = resolveSkyConfig(config);
   const weather = params.weather;
   // No weather yet → a mostly clear sky with a few clouds, lit by the clock.
   const condition: WeatherCondition = weather?.condition ?? "clear";
-  const profile = PROFILES[condition];
+  const profile = sky.profiles[condition];
   const ov = params.overrides ?? {};
 
   const hemisphere: 1 | -1 =
@@ -424,11 +548,12 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   // --- Sun --------------------------------------------------------------
   const solar = resolveSolar(params);
   const elevation = solar.elevation;
-  const daylight = daylightFactor(elevation);
-  const sunScreen: ScreenPoint = {
-    x: azimuthToScreenX(solar.azimuth, hemisphere),
-    y: HORIZON_Y + Math.sin(elevation * (Math.PI / 180)) * 0.9,
-  };
+  const daylight = daylightFactor(
+    elevation,
+    config.sun.twilightFloorDeg,
+    config.sun.twilightCeilDeg
+  );
+  const sunScreen = sunToScreen(solar, hemisphere, config.staging);
 
   // --- Clouds -----------------------------------------------------------
   const measuredCover = ov.cloudCover ?? weather?.cloudCover;
@@ -450,34 +575,46 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
         );
 
   // --- Sky palette ------------------------------------------------------
-  const clearSky = sampleSky(elevation);
+  const clearSky = sampleSky(elevation, sky.keys);
   const tint = {
     zenith: mixRGB(profile.tintNight.zenith, profile.tintDay.zenith, daylight),
     horizon: mixRGB(profile.tintNight.horizon, profile.tintDay.horizon, daylight),
   };
   // Heavier cover → the condition tint takes over the clear-sky palette. Even
   // an overcast dawn keeps a hint of warmth near the horizon.
-  const tintAmount = profile.tintAmount * smoothstep(0.25, 0.9, cover);
+  const tintAmount = profile.tintAmount * gate(config.clouds.tintCover, cover);
   const zenith = mixRGB(clearSky.zenith, tint.zenith, tintAmount);
-  const horizon = mixRGB(clearSky.horizon, tint.horizon, tintAmount * 0.85);
+  const horizon = mixRGB(
+    clearSky.horizon,
+    tint.horizon,
+    tintAmount * config.clouds.horizonTintRatio
+  );
   const glow = clearSky.glow;
   const glowStrength =
-    clearSky.strength * (1 - 0.75 * smoothstep(0.3, 0.95, cover) * profile.density);
+    clearSky.strength *
+    (1 - config.sun.coverFade * smoothstep(0.3, 0.95, cover) * profile.density);
 
   // --- Cloud lighting ---------------------------------------------------
+  const lighting = config.clouds.lighting;
   const darkness = clamp01(
-    profile.darkness + precipIntensity * 0.25 + (cover - profile.cover) * 0.2
+    profile.darkness +
+      precipIntensity * config.clouds.darknessFromPrecip +
+      (cover - profile.cover) * config.clouds.darknessFromCover
   );
-  const litDay = mixRGB(hex("#ffffff"), glow, 0.55 + 0.45 * (1 - daylight));
-  const litNight = hex("#2a3040");
-  const lit = mixRGB(litNight, litDay, smoothstep(-8, 4, elevation));
-  const shadeDay = mixRGB(hex("#98a4b3"), hex("#39404a"), darkness);
-  const shadeNight = mixRGB(hex("#11141b"), hex("#07090d"), darkness);
-  const shade = mixRGB(shadeNight, shadeDay, smoothstep(-8, 6, elevation));
+  const litDay = mixRGB(sky.lighting.litDay, glow, 0.55 + 0.45 * (1 - daylight));
+  const lit = mixRGB(sky.lighting.litNight, litDay, gate(lighting.dayGate, elevation));
+  const shadeDay = mixRGB(sky.lighting.shadeDay, sky.lighting.shadeDayStorm, darkness);
+  const shadeNight = mixRGB(
+    sky.lighting.shadeNight,
+    sky.lighting.shadeNightStorm,
+    darkness
+  );
+  const shade = mixRGB(shadeNight, shadeDay, gate(lighting.shadeDayGate, elevation));
 
   // --- Wind -------------------------------------------------------------
-  const windKmh = ov.windSpeedKmh ?? weather?.windSpeedKmh ?? 8;
-  const windSpeed = clamp01(windKmh / 50);
+  const windKmh =
+    ov.windSpeedKmh ?? weather?.windSpeedKmh ?? config.clouds.defaultWindKmh;
+  const windSpeed = clamp01(windKmh / config.clouds.windScaleKmh);
   const windFrom = ov.windDirectionDeg ?? weather?.windDirectionDeg ?? 270;
   const windTo = (windFrom + 180) % 360;
   const windX = -Math.sin(windTo * (Math.PI / 180)) * hemisphere * windSpeed;
@@ -490,46 +627,64 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
       (condition === "cloudy" ? smoothstep(0.85, 1, humidity) * 0.15 : 0) +
       (precipType !== "none" ? precipIntensity * 0.12 : 0)
   );
-  const night = smoothstep(-4, -14, elevation);
+  const night = gate(config.stars.night, elevation);
 
   // --- Moon -------------------------------------------------------------
   const lunar = resolveLunar(params);
   const moonPhase = lunar.phase;
   const moonIllum = getMoonIllumination(moonPhase);
-  const moonUp = smoothstep(-3, 5, lunar.elevation);
-  const skyDark = smoothstep(6, -8, elevation);
+  const moonUp = gate(config.moon.up, lunar.elevation);
+  const skyDark = gate(config.moon.skyDark, elevation);
   // The daytime moon, on purpose (see "Staging the moon"): well up, and far
   // enough from the sun — elongation from the phase: 0° at new, 180° at full —
   // and then pale. At night the sky's darkness is the only gate.
   const elongation = 180 - Math.abs(moonPhase * 360 - 180);
   const dayMoon =
-    0.18 * smoothstep(12, 30, lunar.elevation) * smoothstep(40, 90, elongation);
+    config.moon.day.strength *
+    gate(config.moon.day.elevation, lunar.elevation) *
+    gate(config.moon.day.elongation, elongation);
   // The moon the sky would show with nothing in front of it, and then the same
   // moon behind the murk. Split rather than written twice so the daytime-moon
   // rule above has one home: the wipe uncovers the moon under the rule the sky
   // is showing, not a copy of it. (`starDust` below is the same split.)
   const moonBare = moonUp * lerp(dayMoon, 1, skyDark);
   const moonVisible =
-    moonBare * (1 - smoothstep(0.45, 0.9, cover)) * (1 - fog * 0.8);
-  const { screen: moonScreen, size: moonSize } = stageMoon(lunar, hemisphere);
+    moonBare *
+    (1 - gate(config.moon.cover, cover)) *
+    (1 - fog * config.moon.fogGate);
+  const { screen: moonScreen, size: moonSize } = stageMoon(lunar, hemisphere, config);
   // Moonlight: a bright, high moon lifts the night sky and cloud tops and
   // washes out the fainter stars.
-  const moonLight = moonIllum * smoothstep(0, 25, lunar.elevation) * night;
+  const moonLight = moonIllum * gate(config.moon.light.rise, lunar.elevation) * night;
 
-  const starDust = night * (1 - 0.55 * moonLight);
-  const stars = starDust * (1 - smoothstep(0.15, 0.65, cover)) * (1 - fog);
+  const starDust = night * (1 - config.moon.light.starWash * moonLight);
+  const stars = starDust * (1 - gate(config.stars.cover, cover)) * (1 - fog);
   // The same two with the murk taken away — see `behind` on WeatherScene. Only
   // the fog wipe ever asks for them, and only inside the swath it has cleared.
   const behind = { stars: starDust, moon: moonBare };
 
-  const veilDefaults = VEIL_DEFAULTS[theme];
+  const veilDefaults = sky.veil[theme];
 
-  const moonlitZenith = mixRGB(zenith, hex("#1c2748"), moonLight * 0.45);
-  const moonlitHorizon = mixRGB(horizon, hex("#2a3556"), moonLight * 0.35);
-  const moonlitLit = mixRGB(lit, hex("#4a5578"), moonLight * (1 - smoothstep(-8, 4, elevation)) * 0.7);
+  const ml = config.moon.light;
+  const moonlitZenith = mixRGB(zenith, sky.moonLight.zenith, moonLight * ml.zenithAmount);
+  const moonlitHorizon = mixRGB(
+    horizon,
+    sky.moonLight.horizon,
+    moonLight * ml.horizonAmount
+  );
+  const moonlitLit = mixRGB(
+    lit,
+    sky.moonLight.cloud,
+    moonLight * (1 - gate(lighting.dayGate, elevation)) * ml.cloudAmount
+  );
 
   return {
-    sun: { ...solar, screen: sunScreen, daylight, isDay: elevation > DAY_ELEVATION_DEG },
+    sun: {
+      ...solar,
+      screen: sunScreen,
+      daylight,
+      isDay: elevation > config.sun.dayElevationDeg,
+    },
     moon: {
       elevation: lunar.elevation,
       azimuth: lunar.azimuth,
@@ -547,7 +702,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
       darkness,
       lit: moonlitLit,
       shade,
-      speed: 0.35 + windSpeed * 1.4,
+      speed: config.clouds.speedBase + windSpeed * config.clouds.speedGain,
     },
     precipitation: { type: precipType, intensity: precipIntensity },
     wind,
@@ -557,6 +712,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
     behind,
     veil: { color: veilDefaults.color, amount: ov.veilAmount ?? veilDefaults.amount },
     exposure: veilDefaults.exposure,
+    render: sky.render,
     seed: params.seed ?? 0,
     condition,
     theme,
@@ -599,15 +755,7 @@ export function toSceneWeather(
 /** Scenes per day in `sampleDaySky`: one every twenty minutes. */
 const DAY_SKY_SAMPLES = 72;
 
-/**
- * The sky across one day, for a timeline.
- *
- * Scenes from local midnight to midnight, each reduced to one colour (the
- * zenith/horizon mix, unveiled, so it stays vivid at 4px tall). Pure and
- * cheap — the ephemeris is a few hundred multiplies — so a devtool can redraw
- * it whenever the condition, the day or the location changes.
- */
-export function sampleDaySky(params: {
+export interface DaySampleParams {
   /** Any instant of the day to sample; the day is taken from local midnight. */
   dayMs: number;
   lat?: number;
@@ -615,20 +763,44 @@ export function sampleDaySky(params: {
   weather: SceneWeatherInput | null;
   theme: "light" | "dark";
   overrides?: SceneOverrides;
-}): RGB[] {
-  const n = DAY_SKY_SAMPLES;
+  config?: SkyConfig;
+  /** Samples across the day. Defaults to 72 (one every twenty minutes). */
+  samples?: number;
+}
+
+/**
+ * The scenes of one day, local midnight to midnight.
+ *
+ * Pure and cheap — the ephemeris is a few hundred multiplies — so a devtool or
+ * the Sky Engine Lab can redraw a whole day whenever the condition, the date,
+ * the location or a tuned number changes.
+ */
+export function sampleDay(params: DaySampleParams): WeatherScene[] {
+  const n = Math.max(2, Math.round(params.samples ?? DAY_SKY_SAMPLES));
   const startMs = startOfLocalDay(params.dayMs);
-  const out: RGB[] = [];
+  const out: WeatherScene[] = [];
   for (let i = 0; i < n; i++) {
-    const scene = deriveWeatherScene({
-      nowMs: startMs + ((i + 0.5) / n) * 86_400_000,
-      lat: params.lat,
-      lon: params.lon,
-      weather: params.weather,
-      theme: params.theme,
-      overrides: params.overrides,
-    });
-    out.push(mixRGB(scene.sky.zenith, scene.sky.horizon, 0.45));
+    out.push(
+      deriveWeatherScene({
+        nowMs: startMs + ((i + 0.5) / n) * 86_400_000,
+        lat: params.lat,
+        lon: params.lon,
+        weather: params.weather,
+        theme: params.theme,
+        overrides: params.overrides,
+        config: params.config,
+      })
+    );
   }
   return out;
+}
+
+/**
+ * The sky across one day, for a timeline: each scene reduced to one colour
+ * (the zenith/horizon mix, unveiled, so it stays vivid at 4px tall).
+ */
+export function sampleDaySky(params: DaySampleParams): RGB[] {
+  return sampleDay(params).map((scene) =>
+    mixRGB(scene.sky.zenith, scene.sky.horizon, 0.45)
+  );
 }

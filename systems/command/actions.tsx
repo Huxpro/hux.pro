@@ -212,6 +212,18 @@ export function useCommandActions(): CommandAction[] {
       keywords: [],
       run: () => router.push("/editor"),
     },
+    // The Sky Engine Lab. `S` is the solar-theme toggle and `E` the editor
+    // index, so the lab takes `K` — sKy. Like `E` and `I` it is a letter
+    // rather than a listed command: the studios are a workbench, not
+    // navigation.
+    {
+      id: "editor-sky",
+      key: "k",
+      kind: "navigate",
+      section: "navigation",
+      keywords: [],
+      run: () => router.push("/editor/sky"),
+    },
     {
       id: "theme",
       key: "a",

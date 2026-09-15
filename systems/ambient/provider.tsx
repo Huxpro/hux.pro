@@ -15,11 +15,14 @@ import { requestAccurateLocation as requestAccurateLocationFn } from "./lib/loca
 import { useLocationQuery, useWeatherQuery } from "./lib/queries";
 import {
   deriveWeatherScene,
+  SKY_CONFIG,
+  SKY_FILE,
   toSceneWeather,
   type SceneOverrides,
   type SceneWeatherInput,
   type WeatherScene,
 } from "./lib/scene";
+import { activeSkyConfig, type SkyPreset } from "./lib/sky-config";
 import {
   type AmbientSettings,
   type WallpaperPlacement,
@@ -73,6 +76,7 @@ import {
 import type { NormalizedWeather, WeatherCondition } from "./lib/weather";
 import type { AmbientPhase } from "./lib/phase";
 import { deriveAmbientPhase } from "./lib/phase";
+import { getSunTimes, startOfLocalDay } from "./lib/solar";
 import { solarThemeAt, SOLAR_HANDOVER, type SolarTheme } from "./lib/solar-theme";
 import type { WallpaperStats } from "./lib/wallpaper/renderer";
 import { supportsWebGL2 } from "./lib/wallpaper/support";
@@ -489,6 +493,15 @@ interface WeatherContextType {
   /** Devtool scene tweaks (cloud cover, precipitation, wind, veil). */
   sceneOverrides: SceneOverrides;
   setSceneOverrides: (overrides: SceneOverrides) => void;
+  /**
+   * The named sky configs in `content/sky.json`, and a session override of
+   * which one paints. Null = the committed active preset, which is what every
+   * visitor gets; the devtool's picker is the only thing that sets it, and it
+   * lasts until reload. Authored in `/editor/sky`.
+   */
+  skyPresets: SkyPreset[];
+  skyPreset: string | null;
+  setSkyPreset: (id: string | null) => void;
   refresh: () => void;
 }
 
@@ -958,6 +971,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   // --- Debug state (weather + time) -----------------------------------------
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
   const [sceneOverrides, setSceneOverrides] = useState<SceneOverrides>({});
+  const [skyPreset, setSkyPreset] = useState<string | null>(null);
   const [timeScrubMinutes, setTimeScrubMinutes] = useState<number | null>(null);
   const [dayOffset, setDayOffset] = useState(0);
   const [realNowMs, setRealNowMs] = useState(() => Date.now());
@@ -1035,16 +1049,36 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       ? scrubToMs(timeScrubMinutes, baseNowMs)
       : baseNowMs;
 
-  // Open-Meteo gives today's sunrise/sunset; a shifted day reuses them at the
-  // same clock time (a few minutes of seasonal drift is irrelevant here).
-  const sunriseMs =
-    typeof weatherQuery.data?.sunriseMs === "number"
-      ? weatherQuery.data.sunriseMs + dayShiftMs
-      : undefined;
-  const sunsetMs =
-    typeof weatherQuery.data?.sunsetMs === "number"
-      ? weatherQuery.data.sunsetMs + dayShiftMs
-      : undefined;
+  // Open-Meteo gives *today's* sunrise/sunset, and for today it is the
+  // authority. A shifted day is solved locally from the same ephemeris that
+  // draws the sky (`getSunTimes`), because reusing today's times is wrong by
+  // minutes within a week and by an hour within a season — which the phase,
+  // the greeting and the timeline would all report while the sun on screen
+  // said otherwise. Keyed on the local day, not on `nowMs`, so the solve does
+  // not re-run with the minute tick.
+  const shiftedDayMs = startOfLocalDay(baseNowMs);
+  const coords = locationQuery.data;
+  const { sunriseMs, sunsetMs } = useMemo(() => {
+    if (dayShiftMs !== 0 && coords) {
+      const times = getSunTimes(shiftedDayMs, coords.lat, coords.lon);
+      return {
+        sunriseMs: times.rise ?? undefined,
+        sunsetMs: times.set ?? undefined,
+      };
+    }
+    const shift = (v?: number) =>
+      typeof v === "number" ? v + dayShiftMs : undefined;
+    return {
+      sunriseMs: shift(weatherQuery.data?.sunriseMs),
+      sunsetMs: shift(weatherQuery.data?.sunsetMs),
+    };
+  }, [
+    dayShiftMs,
+    shiftedDayMs,
+    coords,
+    weatherQuery.data?.sunriseMs,
+    weatherQuery.data?.sunsetMs,
+  ]);
 
   const phase = useMemo(
     () => deriveAmbientPhase({ nowMs, sunriseMs, sunsetMs }),
@@ -1089,6 +1123,14 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
     [weatherQuery.data, activeOverride, sunriseMs, sunsetMs]
   );
 
+  // The world model the sky is painted from: the committed active preset, or
+  // whichever one the devtool's picker is previewing.
+  const skyConfig = useMemo(
+    () =>
+      isDevtoolEnabled && skyPreset ? activeSkyConfig(SKY_FILE, skyPreset) : SKY_CONFIG,
+    [isDevtoolEnabled, skyPreset]
+  );
+
   const scene = useMemo<WeatherScene>(() => {
     const location = locationQuery.data ?? null;
     // No geometry overrides: the sun and moon always come from the real
@@ -1102,6 +1144,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       theme: wallpaperTheme,
       overrides: isDevtoolEnabled ? sceneOverrides : undefined,
       seed: sceneSeed,
+      config: skyConfig,
     });
   }, [
     locationQuery.data,
@@ -1111,6 +1154,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
     isDevtoolEnabled,
     sceneOverrides,
     sceneSeed,
+    skyConfig,
   ]);
 
   const [displaySize, setDisplaySize] = useState(readDisplaySize);
@@ -1374,6 +1418,9 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       setDebugOverride,
       sceneOverrides,
       setSceneOverrides,
+      skyPresets: SKY_FILE.presets,
+      skyPreset,
+      setSkyPreset,
       refresh: refreshWeather,
     }),
     [
@@ -1385,6 +1432,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       sceneWeather,
       debugOverride,
       sceneOverrides,
+      skyPreset,
       refreshWeather,
     ]
   );

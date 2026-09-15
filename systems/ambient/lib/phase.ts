@@ -1,3 +1,4 @@
+import type { Locale } from "@/services/locale";
 import { getTimeOfDay, type TimeOfDay } from "./greeting";
 import {
   DEFAULT_SUN_EVENT_WINDOW_MINUTES,
@@ -11,6 +12,30 @@ export type AmbientPhase =
   | "evening"
   | "sunset"
   | "night";
+
+/** The six phases, in both languages — the site's own names for them. */
+const AMBIENT_PHASE_LABEL: Record<Locale, Record<AmbientPhase, string>> = {
+  en: {
+    sunrise: "Sunrise",
+    morning: "Morning",
+    afternoon: "Afternoon",
+    evening: "Evening",
+    sunset: "Sunset",
+    night: "Night",
+  },
+  zh: {
+    sunrise: "日出",
+    morning: "早晨",
+    afternoon: "下午",
+    evening: "傍晚",
+    sunset: "日落",
+    night: "夜晚",
+  },
+};
+
+export function getAmbientPhaseLabel(phase: AmbientPhase, locale: Locale): string {
+  return AMBIENT_PHASE_LABEL[locale][phase];
+}
 
 /**
  * Computes the time of day based on actual sunrise/sunset times.

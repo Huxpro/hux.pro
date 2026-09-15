@@ -259,10 +259,12 @@ while the modules scroll. The modules:
    phase), a day timeline painted with the sky's colours for the current
    condition with a draggable playhead and ▶ play, phase names that jump the
    clock, the six conditions previewed at the effective hour (click again to
-   return to live), the date slider that moves the moon, a **Gyro** row, and a
-   folded Tune row of scene sliders. **Now** resets everything (the Gyro row
-   excepted — it is a saved setting, not a forced scene, and wears the blue
-   star to say so).
+   return to live), the date slider that moves the moon, a **Gyro** row, a
+   **Sky preset** picker over the named configs in `content/sky.json` (shown
+   only once there is more than one; authored in `/editor/sky`, session-only
+   here), and a folded Tune row of scene sliders. **Now** resets everything
+   (the Gyro row excepted — it is a saved setting, not a forced scene, and
+   wears the blue star to say so).
 
    The Gyro row is the tilt that makes the Sky's rain and snow fall along real
    gravity (`docs/system-ambient.md` → Gyroscope Tilt), with the live angle as
@@ -279,8 +281,8 @@ while the modules scroll. The modules:
 Rows are `PanelRow` (label left, control right) with a `PanelStar` when a
 value is not at its default; switches are `PanelToggle`; choices are
 `PanelSegmented`; numbers are the shared `Slider` from `components/ui/slider.tsx` (via
-`PanelRange` / `PanelSlider`), the same one the Legibility Lab and the icon
-studio use — an ink track with the platform's native thumb on touch. Only the Sky timeline's playhead
+`PanelRange` / `PanelSlider`), the same one the Legibility Lab, the Sky Engine
+Lab and the icon studio use — an ink track with the platform's native thumb on touch. Only the Sky timeline's playhead
 is its own range input.
 
 ## Hooks

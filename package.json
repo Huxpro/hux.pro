@@ -19,6 +19,7 @@
     "wallpapers:encode": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/wallpaper-encode.ts",
     "wallpapers:profile": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/wallpaper-profile.ts",
     "wallpapers:profile:check": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/wallpaper-profile.ts --check",
+    "sky:check": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/sky-check.ts",
     "apps:snapshot": "node scripts/app-icon-snapshot.ts",
     "apps:check": "node scripts/app-icon-snapshot.ts --check",
     "bezel:typecheck": "tsc -p packages/bezel"

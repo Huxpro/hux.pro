@@ -11,6 +11,8 @@
 // (accurate to ~0.01°, more than enough for a wallpaper).
 // =============================================================================
 
+import type { Locale } from "@/services/locale";
+
 export interface SolarPosition {
   /** Degrees above the horizon (negative = below). */
   elevation: number;
@@ -26,12 +28,31 @@ function daysSinceJ2000(ms: number): number {
   return (ms - J2000_MS) / 86_400_000;
 }
 
-/** Sun elevation/azimuth for a timestamp and geographic coordinates. */
-export function getSolarPosition(
-  ms: number,
-  lat: number,
-  lon: number
-): SolarPosition {
+/** Every intermediate of the solar position, in the order it is computed. */
+export interface SolarSteps extends SolarPosition {
+  /** Days since J2000.0. */
+  day: number;
+  /** Mean anomaly, mean longitude and true ecliptic longitude (deg). */
+  meanAnomaly: number;
+  meanLongitude: number;
+  eclipticLon: number;
+  /** Obliquity of the ecliptic (deg). */
+  obliquity: number;
+  /** Right ascension and declination (deg). */
+  rightAscension: number;
+  declination: number;
+  /** Greenwich and local sidereal time (hours) and the hour angle (deg). */
+  gmstHours: number;
+  lstHours: number;
+  hourAngle: number;
+}
+
+/**
+ * The solar position with its working shown — ecliptic → equatorial →
+ * horizontal, one field per step. `getSolarPosition` is this without the
+ * bookkeeping, so the lab's readouts can never drift from what the sky paints.
+ */
+export function explainSun(ms: number, lat: number, lon: number): SolarSteps {
   const d = daysSinceJ2000(ms);
   const g = (357.529 + 0.98560028 * d) * DEG; // mean anomaly
   const q = 280.459 + 0.98564736 * d; // mean longitude (deg)
@@ -42,7 +63,30 @@ export function getSolarPosition(
   const dec = Math.asin(Math.sin(e) * Math.sin(L));
 
   const h = equatorialToHorizontal(ms, lat, lon, ra, dec);
-  return { elevation: h.elevationRad / DEG, azimuth: h.azimuth };
+  return {
+    elevation: h.elevationRad / DEG,
+    azimuth: h.azimuth,
+    day: d,
+    meanAnomaly: rev(g / DEG),
+    meanLongitude: rev(q),
+    eclipticLon: rev(L / DEG),
+    obliquity: e / DEG,
+    rightAscension: rev(ra / DEG),
+    declination: dec / DEG,
+    gmstHours: h.gmstHours,
+    lstHours: h.lstHours,
+    hourAngle: rev(h.ha / DEG),
+  };
+}
+
+/** Sun elevation/azimuth for a timestamp and geographic coordinates. */
+export function getSolarPosition(
+  ms: number,
+  lat: number,
+  lon: number
+): SolarPosition {
+  const { elevation, azimuth } = explainSun(ms, lat, lon);
+  return { elevation, azimuth };
 }
 
 /**
@@ -55,7 +99,14 @@ function equatorialToHorizontal(
   lon: number,
   ra: number,
   dec: number
-): { elevationRad: number; azimuth: number; latR: number; ha: number } {
+): {
+  elevationRad: number;
+  azimuth: number;
+  latR: number;
+  ha: number;
+  gmstHours: number;
+  lstHours: number;
+} {
   const gmstHours = 18.697374558 + 24.06570982441908 * daysSinceJ2000(ms);
   const lst = ((gmstHours % 24) + 24) % 24; // hours
   const ha = (lst * 15 + lon) * DEG - ra; // hour angle (rad)
@@ -67,7 +118,14 @@ function equatorialToHorizontal(
     -Math.sin(ha),
     Math.tan(dec) * Math.cos(latR) - Math.sin(latR) * Math.cos(ha)
   );
-  return { elevationRad, azimuth: rev(az / DEG), latR, ha };
+  return {
+    elevationRad,
+    azimuth: rev(az / DEG),
+    latR,
+    ha,
+    gmstHours: ((gmstHours % 24) + 24) % 24,
+    lstHours: ((lst + lon / 15) % 24 + 24) % 24,
+  };
 }
 
 /**
@@ -131,6 +189,44 @@ interface EclipticLunar {
   distance: number;
   /** Sun's geocentric ecliptic longitude (deg). */
   sunLonDeg: number;
+  /**
+   * The working — Schlyter's day number, the orbital elements, the anomalies
+   * and the pre-perturbation ecliptic position. Computed on the way through
+   * anyway; kept so the Sky Engine Lab can show the pipeline step by step
+   * instead of only its answer.
+   */
+  steps: LunarElements;
+}
+
+/** Every intermediate of the lunar ephemeris, in the order it is computed. */
+export interface LunarElements {
+  /** Days since 1999-12-31 00:00 UT. */
+  day: number;
+  /** Ascending node, inclination, argument of perigee (deg). */
+  node: number;
+  inclination: number;
+  perigee: number;
+  /** Mean distance (Earth radii) and eccentricity. */
+  semiMajor: number;
+  eccentricity: number;
+  /** Mean, eccentric and true anomaly (deg). */
+  meanAnomaly: number;
+  eccentricAnomaly: number;
+  trueAnomaly: number;
+  /** Unperturbed distance, Earth radii. */
+  radius: number;
+  /** Mean longitude, mean elongation from the sun, argument of latitude (deg). */
+  moonLongitude: number;
+  elongationD: number;
+  argumentF: number;
+  /** Ecliptic position before the perturbation terms (deg). */
+  rawLonDeg: number;
+  rawLatDeg: number;
+  /** What the perturbation terms added (deg). */
+  lonPerturbation: number;
+  latPerturbation: number;
+  /** Sun's mean anomaly (deg). */
+  sunMeanAnomaly: number;
 }
 
 function lunarEcliptic(ms: number): EclipticLunar {
@@ -170,8 +266,10 @@ function lunarEcliptic(ms: number): EclipticLunar {
   const yh = r * (Math.sin(Nr) * Math.cos(vw) + Math.cos(Nr) * Math.sin(vw) * Math.cos(ir));
   const zh = r * Math.sin(vw) * Math.sin(ir);
 
-  let lon = Math.atan2(yh, xh) / DEG;
-  let lat = Math.atan2(zh, Math.sqrt(xh * xh + yh * yh)) / DEG;
+  const rawLon = Math.atan2(yh, xh) / DEG;
+  const rawLat = Math.atan2(zh, Math.sqrt(xh * xh + yh * yh)) / DEG;
+  let lon = rawLon;
+  let lat = rawLat;
 
   // Perturbations (degrees).
   const Lm = rev(N + w + M);
@@ -199,7 +297,32 @@ function lunarEcliptic(ms: number): EclipticLunar {
     0.017 * s(2 * M + F);
   const distance = r - 0.58 * Math.cos(M * DEG - 2 * D * DEG) - 0.46 * Math.cos(2 * D * DEG);
 
-  return { lonDeg: rev(lon), latDeg: lat, distance, sunLonDeg: Ls };
+  return {
+    lonDeg: rev(lon),
+    latDeg: lat,
+    distance,
+    sunLonDeg: Ls,
+    steps: {
+      day: d,
+      node: N,
+      inclination: i,
+      perigee: w,
+      semiMajor: a,
+      eccentricity: e,
+      meanAnomaly: M,
+      eccentricAnomaly: E,
+      trueAnomaly: v,
+      radius: r,
+      moonLongitude: Lm,
+      elongationD: rev(D),
+      argumentF: rev(F),
+      rawLonDeg: rev(rawLon),
+      rawLatDeg: rawLat,
+      lonPerturbation: lon - rawLon,
+      latPerturbation: lat - rawLat,
+      sunMeanAnomaly: Ms,
+    },
+  };
 }
 
 /** Moon phase in [0, 1): 0 = new, 0.5 = full (from the sun–moon elongation). */
@@ -213,12 +336,45 @@ export function getMoonIllumination(phase: number): number {
   return (1 - Math.cos(phase * 2 * Math.PI)) / 2;
 }
 
-/** Topocentric moon elevation/azimuth, plus the phase (from the same ephemeris). */
-export function getLunarPosition(
-  ms: number,
-  lat: number,
-  lon: number
-): SolarPosition & { phase: number } {
+/** The lunar position with every step of the conversion kept. */
+export interface LunarDetail extends SolarPosition {
+  phase: number;
+  /** Illuminated fraction, 0..1, and the sun–moon elongation (deg). */
+  illumination: number;
+  elongation: number;
+  /** Geocentric ecliptic position (deg) and distance (Earth radii). */
+  eclipticLon: number;
+  eclipticLat: number;
+  distance: number;
+  /** …and in kilometres, for a readout that means something. */
+  distanceKm: number;
+  /** Sun's geocentric ecliptic longitude (deg) — the other half of the phase. */
+  sunEclipticLon: number;
+  obliquity: number;
+  rightAscension: number;
+  declination: number;
+  gmstHours: number;
+  lstHours: number;
+  hourAngle: number;
+  /** Elevation before the parallax correction (deg)… */
+  geocentricElevation: number;
+  /** …and what the correction took off (deg). */
+  parallax: number;
+  /** The ephemeris' working (orbital elements, anomalies, perturbations). */
+  ephemeris: LunarElements;
+}
+
+/** Mean Earth radius, km — turns the ephemeris' Earth radii into a distance. */
+const EARTH_RADIUS_KM = 6371;
+
+/**
+ * Topocentric moon position with its working shown.
+ *
+ * `getLunarPosition` is this without the bookkeeping; both go through the same
+ * ecliptic → equatorial → horizontal → parallax path, so the lab's readouts
+ * are the numbers the wallpaper actually used.
+ */
+export function explainMoon(ms: number, lat: number, lon: number): LunarDetail {
   const ecl = lunarEcliptic(ms);
   const d = schlyterDay(ms);
   const obliquity = (23.4393 - 3.563e-7 * d) * DEG;
@@ -237,13 +393,41 @@ export function getLunarPosition(
   const h = equatorialToHorizontal(ms, lat, lon, ra, dec);
   // Topocentric parallax (the moon is close enough for ~1°).
   const parallax = Math.asin(1 / ecl.distance);
-  const elevation = h.elevationRad - parallax * Math.cos(h.elevationRad);
+  const correction = parallax * Math.cos(h.elevationRad);
+  const elevation = h.elevationRad - correction;
+  const phase = rev(ecl.lonDeg - ecl.sunLonDeg) / 360;
 
   return {
     elevation: elevation / DEG,
     azimuth: h.azimuth,
-    phase: rev(ecl.lonDeg - ecl.sunLonDeg) / 360,
+    phase,
+    illumination: getMoonIllumination(phase),
+    elongation: 180 - Math.abs(rev(ecl.lonDeg - ecl.sunLonDeg) - 180),
+    eclipticLon: ecl.lonDeg,
+    eclipticLat: ecl.latDeg,
+    distance: ecl.distance,
+    distanceKm: ecl.distance * EARTH_RADIUS_KM,
+    sunEclipticLon: ecl.sunLonDeg,
+    obliquity: obliquity / DEG,
+    rightAscension: rev(ra / DEG),
+    declination: dec / DEG,
+    gmstHours: h.gmstHours,
+    lstHours: h.lstHours,
+    hourAngle: rev(h.ha / DEG),
+    geocentricElevation: h.elevationRad / DEG,
+    parallax: correction / DEG,
+    ephemeris: ecl.steps,
   };
+}
+
+/** Topocentric moon elevation/azimuth, plus the phase (from the same ephemeris). */
+export function getLunarPosition(
+  ms: number,
+  lat: number,
+  lon: number
+): SolarPosition & { phase: number } {
+  const { elevation, azimuth, phase } = explainMoon(ms, lat, lon);
+  return { elevation, azimuth, phase };
 }
 
 export type MoonPhaseName =
@@ -255,6 +439,41 @@ export type MoonPhaseName =
   | "waning-gibbous"
   | "last-quarter"
   | "waning-crescent";
+
+/**
+ * The eight names, in both languages.
+ *
+ * Beside the type they name, like `getWeatherConditionLabel` sits beside
+ * `WeatherCondition` — so the devtool's status line and the Sky Engine Lab's
+ * phase dial cannot end up calling the same moon two different things.
+ */
+const MOON_PHASE_LABEL: Record<Locale, Record<MoonPhaseName, string>> = {
+  en: {
+    new: "New moon",
+    "waxing-crescent": "Waxing crescent",
+    "first-quarter": "First quarter",
+    "waxing-gibbous": "Waxing gibbous",
+    full: "Full moon",
+    "waning-gibbous": "Waning gibbous",
+    "last-quarter": "Last quarter",
+    "waning-crescent": "Waning crescent",
+  },
+  zh: {
+    new: "新月",
+    "waxing-crescent": "娥眉月",
+    "first-quarter": "上弦月",
+    "waxing-gibbous": "盈凸月",
+    full: "满月",
+    "waning-gibbous": "亏凸月",
+    "last-quarter": "下弦月",
+    "waning-crescent": "残月",
+  },
+};
+
+/** What to call a phase in the reader's language. */
+export function getMoonPhaseLabel(name: MoonPhaseName, locale: Locale): string {
+  return MOON_PHASE_LABEL[locale][name];
+}
 
 /** Eight-way phase name for labels / icons. */
 export function getMoonPhaseName(phase: number): MoonPhaseName {
@@ -278,8 +497,14 @@ export function getMoonPhaseName(phase: number): MoonPhaseName {
  *   0 → astronomical night (≤ -18°), 1 → full day (≥ +10°).
  * Twilight sits in between (civil at -6°, nautical at -12°).
  */
-export function daylightFactor(elevationDeg: number): number {
-  return clamp01((elevationDeg + 18) / 28);
+export function daylightFactor(
+  elevationDeg: number,
+  floorDeg = -18,
+  ceilDeg = 10
+): number {
+  const span = ceilDeg - floorDeg;
+  if (span <= 0) return elevationDeg >= ceilDeg ? 1 : 0;
+  return clamp01((elevationDeg - floorDeg) / span);
 }
 
 /**
@@ -301,7 +526,6 @@ export function smoothstep(edge0: number, edge1: number, x: number): number {
 // Clock helpers
 // -----------------------------------------------------------------------------
 
-/** Local midnight of the day containing `ms`. */
 /** Fallback sun times, minutes past local midnight, when the forecast has none. */
 export const DEFAULT_SUNRISE_MINUTES = 6 * 60 + 30;
 export const DEFAULT_SUNSET_MINUTES = 18 * 60 + 30;
@@ -313,6 +537,7 @@ export function minutesOfDay(ms: number | undefined, fallback = 0): number {
   return d.getHours() * 60 + d.getMinutes();
 }
 
+/** Local midnight of the day containing `ms`. */
 export function startOfLocalDay(ms: number): number {
   const d = new Date(ms);
   d.setHours(0, 0, 0, 0);
@@ -333,4 +558,115 @@ export function sunTimesOrDefault(
   }
   const day = startOfLocalDay(nowMs);
   return { sunrise: day + 6.5 * 3_600_000, sunset: day + 18.5 * 3_600_000 };
+}
+
+// -----------------------------------------------------------------------------
+// Rise / set for any day
+//
+// Open-Meteo gives sunrise and sunset for *today* only. Anything that moves the
+// calendar — the devtool's day offset, the Sky Engine Lab's month and year
+// sweeps — needs them for an arbitrary date, so it solves them locally from the
+// same ephemeris that draws the sky. One solver serves the sun and the moon:
+// scan the local day for a horizon crossing, then bisect it to the second.
+// -----------------------------------------------------------------------------
+
+export interface RiseSetTimes {
+  /** Timestamps, or null when the body does not cross the horizon that day. */
+  rise: number | null;
+  set: number | null;
+  /** Upper transit: the highest point of the day, always defined. */
+  transit: number;
+  maxElevation: number;
+  minElevation: number;
+  /** Midnight sun / polar night — the reason a rise or set can be null. */
+  alwaysUp: boolean;
+  alwaysDown: boolean;
+}
+
+/**
+ * Apparent altitude of the sun's upper limb at rise/set: −34′ of refraction
+ * plus its 16′ semidiameter. The conventional value.
+ */
+export const SUN_HORIZON_DEG = -0.833;
+/**
+ * The moon's, with its ~57′ horizontal parallax folded in the other way.
+ * `getLunarPosition` already returns a topocentric altitude, so the crossing
+ * sits a little *above* the geometric horizon.
+ */
+export const MOON_HORIZON_DEG = 0.125;
+
+/** Samples per day when scanning for a crossing: one every four minutes. */
+const SCAN_STEPS = 360;
+
+function riseSet(
+  dayMs: number,
+  elevationAt: (ms: number) => number,
+  horizonDeg: number
+): RiseSetTimes {
+  const start = startOfLocalDay(dayMs);
+  const step = 86_400_000 / SCAN_STEPS;
+
+  let rise: number | null = null;
+  let set: number | null = null;
+  let transit = start;
+
+  let prevMs = start;
+  const first = elevationAt(prevMs);
+  let prev = first - horizonDeg;
+  let maxElevation = first;
+  let minElevation = first;
+
+  /** Bisect a bracketed crossing down to the second. */
+  const refine = (aMs: number, aValue: number, bMs: number): number => {
+    let lo = aMs;
+    let loValue = aValue;
+    let hi = bMs;
+    for (let i = 0; i < 24 && hi - lo > 500; i++) {
+      const mid = (lo + hi) / 2;
+      const v = elevationAt(mid) - horizonDeg;
+      if (v === 0) return Math.round(mid);
+      if (v > 0 === loValue > 0) {
+        lo = mid;
+        loValue = v;
+      } else {
+        hi = mid;
+      }
+    }
+    return Math.round((lo + hi) / 2);
+  };
+
+  for (let i = 1; i <= SCAN_STEPS; i++) {
+    const ms = start + i * step;
+    const el = elevationAt(ms);
+    if (el > maxElevation) {
+      maxElevation = el;
+      transit = ms;
+    }
+    if (el < minElevation) minElevation = el;
+    const v = el - horizonDeg;
+    if (prev <= 0 && v > 0 && rise === null) rise = refine(prevMs, prev, ms);
+    if (prev >= 0 && v < 0 && set === null) set = refine(prevMs, prev, ms);
+    prevMs = ms;
+    prev = v;
+  }
+
+  return {
+    rise,
+    set,
+    transit,
+    maxElevation,
+    minElevation,
+    alwaysUp: rise === null && set === null && minElevation > horizonDeg,
+    alwaysDown: rise === null && set === null && maxElevation < horizonDeg,
+  };
+}
+
+/** Sunrise / sunset / solar noon for the local day containing `dayMs`. */
+export function getSunTimes(dayMs: number, lat: number, lon: number): RiseSetTimes {
+  return riseSet(dayMs, (ms) => getSolarPosition(ms, lat, lon).elevation, SUN_HORIZON_DEG);
+}
+
+/** Moonrise / moonset / transit for the local day containing `dayMs`. */
+export function getMoonTimes(dayMs: number, lat: number, lon: number): RiseSetTimes {
+  return riseSet(dayMs, (ms) => getLunarPosition(ms, lat, lon).elevation, MOON_HORIZON_DEG);
 }
