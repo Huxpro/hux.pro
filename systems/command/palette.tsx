@@ -174,6 +174,13 @@ export function CommandPalette() {
       key: "e",
       onSelect: () => handleNavigation("/editor"),
     },
+    // The Sky Engine Lab. `E` is the editor index, so the lab takes `S`;
+    // like `E` and `I` it is a shortcut rather than a listed command — the
+    // studios are a workbench, not navigation.
+    {
+      key: "s",
+      onSelect: () => handleNavigation("/editor/sky"),
+    },
     {
       key: "a",
       label: `${t(locale, "appearance")}: ${
@@ -313,6 +320,9 @@ export function CommandPalette() {
           return;
         case "e":
           handleNavigation("/editor");
+          return;
+        case "s":
+          handleNavigation("/editor/sky");
           return;
         case "a": {
           const nextPreference =

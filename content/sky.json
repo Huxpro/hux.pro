@@ -1,0 +1,315 @@
+{
+  "version": 1,
+  "active": "default",
+  "presets": [
+    {
+      "id": "default",
+      "name": "Default",
+      "config": {
+        "sun": {
+          "keys": [
+            {
+              "el": -18,
+              "zenith": "#05091a",
+              "horizon": "#0b1330",
+              "glow": "#1b2447",
+              "strength": 0
+            },
+            {
+              "el": -12,
+              "zenith": "#070e29",
+              "horizon": "#151f48",
+              "glow": "#3d3d72",
+              "strength": 0.25
+            },
+            {
+              "el": -6,
+              "zenith": "#0f1a48",
+              "horizon": "#4d3f73",
+              "glow": "#c8765c",
+              "strength": 0.6
+            },
+            {
+              "el": -2,
+              "zenith": "#1f3d7a",
+              "horizon": "#b86d57",
+              "glow": "#f28c4e",
+              "strength": 0.95
+            },
+            {
+              "el": 0,
+              "zenith": "#2d5ca4",
+              "horizon": "#dd905a",
+              "glow": "#ffb267",
+              "strength": 1
+            },
+            {
+              "el": 4,
+              "zenith": "#3b76c3",
+              "horizon": "#ecb886",
+              "glow": "#ffd9a3",
+              "strength": 0.92
+            },
+            {
+              "el": 10,
+              "zenith": "#4a90da",
+              "horizon": "#bdd8f0",
+              "glow": "#fff3d6",
+              "strength": 0.72
+            },
+            {
+              "el": 25,
+              "zenith": "#3d87dc",
+              "horizon": "#c9e0f4",
+              "glow": "#ffffff",
+              "strength": 0.58
+            },
+            {
+              "el": 60,
+              "zenith": "#2f74d2",
+              "horizon": "#d0e4f8",
+              "glow": "#ffffff",
+              "strength": 0.5
+            }
+          ],
+          "dayElevationDeg": -0.5,
+          "twilightFloorDeg": -18,
+          "twilightCeilDeg": 10,
+          "coverFade": 0.75,
+          "discSize": 0.026,
+          "glowRadiusHigh": 0.42,
+          "glowRadiusLow": 1.15,
+          "glowGain": 1,
+          "horizonBand": 0.26
+        },
+        "moon": {
+          "discSize": 0.03,
+          "illusionScale": 0.3,
+          "illusionFadeDeg": 35,
+          "haloStrength": 0.1,
+          "earthshine": 0.03,
+          "terminatorSoftness": 0.12,
+          "up": {
+            "from": -3,
+            "to": 5
+          },
+          "skyDark": {
+            "from": 6,
+            "to": -8
+          },
+          "day": {
+            "elevation": {
+              "from": 12,
+              "to": 30
+            },
+            "elongation": {
+              "from": 40,
+              "to": 90
+            },
+            "strength": 0.18
+          },
+          "cover": {
+            "from": 0.45,
+            "to": 0.9
+          },
+          "fogGate": 0.8,
+          "light": {
+            "rise": {
+              "from": 0,
+              "to": 25
+            },
+            "zenithColor": "#1c2748",
+            "zenithAmount": 0.45,
+            "horizonColor": "#2a3556",
+            "horizonAmount": 0.35,
+            "cloudColor": "#4a5578",
+            "cloudAmount": 0.7,
+            "starWash": 0.55
+          }
+        },
+        "stars": {
+          "night": {
+            "from": -4,
+            "to": -14
+          },
+          "cover": {
+            "from": 0.15,
+            "to": 0.65
+          },
+          "density": 1,
+          "twinkle": 0.45
+        },
+        "clouds": {
+          "profiles": {
+            "clear": {
+              "cover": 0.04,
+              "coverMin": 0,
+              "density": 0.35,
+              "darkness": 0.05,
+              "precip": 0,
+              "fog": 0,
+              "tintDay": {
+                "zenith": "#2f74d2",
+                "horizon": "#d0e4f8"
+              },
+              "tintNight": {
+                "zenith": "#05091a",
+                "horizon": "#0b1330"
+              },
+              "tintAmount": 0
+            },
+            "cloudy": {
+              "cover": 0.7,
+              "coverMin": 0.2,
+              "density": 0.75,
+              "darkness": 0.3,
+              "precip": 0,
+              "fog": 0.05,
+              "tintDay": {
+                "zenith": "#7e8b9b",
+                "horizon": "#b4bfca"
+              },
+              "tintNight": {
+                "zenith": "#171b24",
+                "horizon": "#252b36"
+              },
+              "tintAmount": 0.8
+            },
+            "fog": {
+              "cover": 0.75,
+              "coverMin": 0.5,
+              "density": 0.6,
+              "darkness": 0.1,
+              "precip": 0,
+              "fog": 0.9,
+              "tintDay": {
+                "zenith": "#c4cad2",
+                "horizon": "#e3e6ea"
+              },
+              "tintNight": {
+                "zenith": "#23272e",
+                "horizon": "#31363e"
+              },
+              "tintAmount": 0.9
+            },
+            "rain": {
+              "cover": 0.92,
+              "coverMin": 0.7,
+              "density": 0.9,
+              "darkness": 0.6,
+              "precip": 0.6,
+              "fog": 0.22,
+              "tintDay": {
+                "zenith": "#56626f",
+                "horizon": "#8e9aa7"
+              },
+              "tintNight": {
+                "zenith": "#10141b",
+                "horizon": "#1c222b"
+              },
+              "tintAmount": 0.9
+            },
+            "snow": {
+              "cover": 0.88,
+              "coverMin": 0.6,
+              "density": 0.75,
+              "darkness": 0.25,
+              "precip": 0.5,
+              "fog": 0.3,
+              "tintDay": {
+                "zenith": "#a3adba",
+                "horizon": "#d9dfe6"
+              },
+              "tintNight": {
+                "zenith": "#242a38",
+                "horizon": "#353c4c"
+              },
+              "tintAmount": 0.85
+            },
+            "thunder": {
+              "cover": 0.96,
+              "coverMin": 0.8,
+              "density": 1,
+              "darkness": 0.9,
+              "precip": 0.8,
+              "fog": 0.2,
+              "tintDay": {
+                "zenith": "#2c3440",
+                "horizon": "#4d5665"
+              },
+              "tintNight": {
+                "zenith": "#0a0d13",
+                "horizon": "#151a22"
+              },
+              "tintAmount": 0.92
+            }
+          },
+          "tintCover": {
+            "from": 0.25,
+            "to": 0.9
+          },
+          "horizonTintRatio": 0.85,
+          "darknessFromPrecip": 0.25,
+          "darknessFromCover": 0.2,
+          "lighting": {
+            "litDay": "#ffffff",
+            "litNight": "#2a3040",
+            "shadeDay": "#98a4b3",
+            "shadeDayStorm": "#39404a",
+            "shadeNight": "#11141b",
+            "shadeNightStorm": "#07090d",
+            "dayGate": {
+              "from": -8,
+              "to": 4
+            },
+            "shadeDayGate": {
+              "from": -8,
+              "to": 6
+            }
+          },
+          "windScaleKmh": 50,
+          "defaultWindKmh": 8,
+          "speedBase": 0.35,
+          "speedGain": 1.4
+        },
+        "veil": {
+          "light": {
+            "color": "#ffffff",
+            "amount": 0.3,
+            "exposure": 1.06
+          },
+          "dark": {
+            "color": "#1a1a1a",
+            "amount": 0.26,
+            "exposure": 0.86
+          }
+        },
+        "staging": {
+          "horizonY": 0.1,
+          "sunArc": 0.9,
+          "azimuthSpan": 0.88,
+          "azimuthMargin": 0.06,
+          "moon": {
+            "rise": 0.5,
+            "low": 0.62,
+            "high": 0.9,
+            "topAtDeg": 60,
+            "riseGate": {
+              "from": -3,
+              "to": 6
+            },
+            "xMin": 0.12,
+            "xMax": 0.88
+          },
+          "shader": {
+            "horizonCurve": 0.8,
+            "cloudScaleFar": 1.35,
+            "cloudScaleNear": 2.6,
+            "cloudParallaxFar": 0.75,
+            "cloudParallaxNear": 1
+          }
+        }
+      }
+    }
+  ]
+}

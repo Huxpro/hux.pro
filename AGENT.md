@@ -19,6 +19,7 @@
 | **OG Images (ours)** | [docs/og-images.md](./docs/og-images.md) (Social cards we publish for our pages) |
 | **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Crawling *others'* OG for /works cards) |
 | **App Icon** | [docs/app-icon.md](./docs/app-icon.md) (Generative favicon + `/editor/icon` studio) |
+| **Sky Engine Lab** | [docs/editor-sky.md](./docs/editor-sky.md) (`/editor/sky`: the sun/moon/weather model, `content/sky.json`, `pnpm sky:check`) |
 | **App Folder** | [docs/app-shelf.md](./docs/app-shelf.md) (Home-screen snap-paged app folder) |
 
 ## 2. Quick Start Context
