@@ -26,8 +26,6 @@ export {
   pageViewportHeight,
   scrollPageTo,
   usePageScroll,
-  useScrollLock,
-  useScrollLocked,
 } from "./scroll";
 export type {
   BezelBootState,

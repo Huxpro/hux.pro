@@ -5,7 +5,7 @@ import {
   SCROLL_ATTRIBUTE,
   SCROLL_CONTAINER_ID,
 } from "./constants";
-import { applyScrollLock, emitPageScroll, isScrollLocked } from "./scroll";
+import { emitPageScroll } from "./scroll";
 
 // =============================================================================
 // Root — the bezel's state on <html>.
@@ -76,8 +76,6 @@ export function applyRoot(root: HTMLElement, state: RootState): void {
     }
     emitPageScroll();
   }
-
-  applyScrollLock(root);
 }
 
 /**
@@ -87,9 +85,7 @@ export function applyRoot(root: HTMLElement, state: RootState): void {
  */
 export function keepRoot(root: HTMLElement, state: RootState): () => void {
   const restore = () => {
-    if (!matches(root, state) || root.hasAttribute("data-bezel-scroll-locked") !== isScrollLocked()) {
-      applyRoot(root, state);
-    }
+    if (!matches(root, state)) applyRoot(root, state);
   };
   restore();
   const observer = new MutationObserver(restore);

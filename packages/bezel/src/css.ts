@@ -5,7 +5,6 @@ import {
   COLOR_VAR,
   SCROLL_ATTRIBUTE,
   SCROLL_CONTAINER_ID,
-  SCROLL_LOCKED_ATTRIBUTE,
   STYLE_ID,
 } from "./constants";
 
@@ -33,7 +32,6 @@ import {
 const html = "html";
 const on = `${html}[${BEZEL_ATTRIBUTE}]`;
 const contained = `${html}[${SCROLL_ATTRIBUTE}="container"]`;
-const locked = `${html}[${SCROLL_LOCKED_ATTRIBUTE}]`;
 const container = `#${SCROLL_CONTAINER_ID}`;
 
 export const BEZEL_CSS = `
@@ -43,8 +41,6 @@ ${contained}{height:100%;overflow:hidden;overscroll-behavior:none}
 ${contained} body{position:fixed;inset:0;overflow:hidden;overscroll-behavior:none}
 ${contained} body>.fixed,${contained} body>[style*="position:fixed"],${contained} body>[style*="position: fixed"],${contained} [${BEZEL_LAYER_ATTRIBUTE}]{position:absolute!important}
 ${contained} ${container}{position:absolute;min-height:0;overflow-x:clip;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
-${contained}${`[${SCROLL_LOCKED_ATTRIBUTE}]`} ${container}{overflow-y:hidden}
-${locked}:not([${SCROLL_ATTRIBUTE}="container"]),${locked}:not([${SCROLL_ATTRIBUTE}="container"]) body{overflow:hidden;overscroll-behavior:none}
 `.trim();
 
 /** Install the stylesheet into `document`, once. */

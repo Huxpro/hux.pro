@@ -14,7 +14,7 @@
 //           package keeps it in the bezel's colour, or the page's ground when
 //           the bezel is off.
 //   scroll  where the page scrolls: the window, or a container inside a
-//           document that never scrolls (ryOS's rule). A lock freezes either.
+//           document that never scrolls (ryOS's rule).
 // =============================================================================
 
 import type { CSSProperties, JSX, ReactNode } from "react";
@@ -51,8 +51,6 @@ export interface BezelState {
   scroll: BezelScroll;
   /** The colour the chrome takes while the bezel is off: the page's ground. */
   ground: string;
-  /** Whether page scrolling is locked by `useScrollLock`. */
-  scrollLocked: boolean;
 }
 
 // -----------------------------------------------------------------------------
@@ -163,17 +161,6 @@ export declare function syncChrome(color: string, options?: ChromeSyncOptions): 
 // -----------------------------------------------------------------------------
 // Scroll
 // -----------------------------------------------------------------------------
-
-/**
- * Lock page scrolling while `active` (default `true`) and mounted.
- *
- * Reference-counted: the page stays locked while any caller holds a lock.
- * Works in both scroll modes. Callable anywhere, with or without `<Bezel>`.
- */
-export declare function useScrollLock(active?: boolean): void;
-
-/** Whether page scrolling is locked right now. Reactive. */
-export declare function useScrollLocked(): boolean;
 
 /** Run `listener` on page scroll, wherever it happens, while mounted. */
 export declare function usePageScroll(listener: () => void): void;

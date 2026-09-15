@@ -5,8 +5,6 @@
 export const BEZEL_ATTRIBUTE = "data-bezel";
 /** On <html> with value "container" while the page scrolls in the container. */
 export const SCROLL_ATTRIBUTE = "data-bezel-scroll";
-/** On <html> while page scrolling is locked. */
-export const SCROLL_LOCKED_ATTRIBUTE = "data-bezel-scroll-locked";
 /** Marks a fixed layer that must become absolute in container scroll. */
 export const BEZEL_LAYER_ATTRIBUTE = "data-bezel-layer";
 

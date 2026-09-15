@@ -1,14 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
-import {
-  SCROLL_ATTRIBUTE,
-  SCROLL_CONTAINER_ID,
-  SCROLL_LOCKED_ATTRIBUTE,
-} from "./constants";
+import { useEffect, useRef } from "react";
+import { SCROLL_ATTRIBUTE, SCROLL_CONTAINER_ID } from "./constants";
 
 // =============================================================================
-// Scroll — where the page scrolls, and locking it.
+// Scroll — where the page scrolls.
 //
 // Which mode applies is read from <html> at call time, so every helper is
 // right across a live switch. `onPageScroll` listens on the window AND the
@@ -73,48 +69,4 @@ export function usePageScroll(listener: () => void): void {
     latest.current = listener;
   }, [listener]);
   useEffect(() => onPageScroll(() => latest.current()), []);
-}
-
-// -----------------------------------------------------------------------------
-// Lock
-// -----------------------------------------------------------------------------
-
-let locks = 0;
-const subscribers = new Set<() => void>();
-
-/** Whether any caller holds a scroll lock. */
-export function isScrollLocked(): boolean {
-  return locks > 0;
-}
-
-/** Put the lock attribute on <html>, or take it off, to match the count. */
-export function applyScrollLock(root: HTMLElement = document.documentElement): void {
-  const attr = root.hasAttribute(SCROLL_LOCKED_ATTRIBUTE);
-  if (isScrollLocked() && !attr) root.setAttribute(SCROLL_LOCKED_ATTRIBUTE, "");
-  else if (!isScrollLocked() && attr) root.removeAttribute(SCROLL_LOCKED_ATTRIBUTE);
-}
-
-function changeLocks(delta: number): void {
-  const was = isScrollLocked();
-  locks = Math.max(0, locks + delta);
-  if (was === isScrollLocked()) return;
-  applyScrollLock();
-  subscribers.forEach((notify) => notify());
-}
-
-function subscribe(notify: () => void): () => void {
-  subscribers.add(notify);
-  return () => subscribers.delete(notify);
-}
-
-export function useScrollLock(active = true): void {
-  useEffect(() => {
-    if (!active) return;
-    changeLocks(1);
-    return () => changeLocks(-1);
-  }, [active]);
-}
-
-export function useScrollLocked(): boolean {
-  return useSyncExternalStore(subscribe, isScrollLocked, () => false);
 }

@@ -1,8 +1,8 @@
 # @hux/bezel
 
 A bezel around the page, the browser chrome kept in step with it, and a page
-that scrolls in a container or not at all. Built for iOS Safari, where each of
-those is harder than it looks.
+that can scroll in a container while the window stays locked. Built for iOS
+Safari, where each of those is harder than it looks.
 
 The public API is [`bezel.d.ts`](./bezel.d.ts). `src/contract.ts` fails the
 type check if the implementation drifts from it.
@@ -13,7 +13,7 @@ type check if the implementation drifts from it.
 |---|---|---|
 | **bezel** | The border drawn around the page: a band on each edge, rounded inner corners, one colour. | — |
 | **chrome** | The browser's own UI: Safari's status bar and toolbar. | The bezel. |
-| **scroll** | Where the page scrolls: `window` or `container`, and whether it is locked. | — |
+| **scroll** | Where the page scrolls: `window`, or `container` with the window locked. | — |
 
 "Frame" and "letterbox" are gone. They were two more names for the bezel.
 
@@ -74,7 +74,6 @@ Every prop of `<Bezel>` is live:
 | `radius` | Re-rendered corners. |
 | `scroll` | `data-bezel-scroll="container"` on `<html>`. The scroll position moves between the window and the container, and page scroll listeners fire. |
 | `ground` | The chrome colour is resynced while the bezel is off. |
-| Scroll lock | `useScrollLock` holds a reference count and writes `data-bezel-scroll-locked`. |
 | Something strips `<html>` | A mutation observer re-applies the state before the next paint. |
 
 ## Using it
@@ -102,8 +101,6 @@ import { Bezel, BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE, bezelBootScript } from "@hux
 In a component anywhere on the page:
 
 ```tsx
-useScrollLock(sheetOpen);          // freeze page scroll while the sheet is open
-const locked = useScrollLocked();  // reactive
 usePageScroll(() => measure());    // scroll in either mode
 const { enabled, scroll } = useBezel();
 ```
@@ -117,14 +114,6 @@ container scroll.
 ```bash
 pnpm bezel:typecheck
 ```
-
-```bash
-pnpm bezel:storybook
-```
-
-The stories import `src` only, with no host site. To see real Safari
-behaviour, open a story's frame in the iOS simulator, for example
-`http://localhost:6006/iframe.html?id=bezel--playground&viewMode=story`.
 
 ## Limits
 

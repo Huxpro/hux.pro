@@ -2,7 +2,7 @@
   "name": "@hux/bezel",
   "version": "0.1.0",
   "private": true,
-  "description": "A bezel around the page, the browser chrome kept in its colour, and a page that can scroll in a container or be locked. Built for iOS Safari.",
+  "description": "A bezel around the page, the browser chrome kept in its colour, and a page that can scroll in a container while the window stays locked. Built for iOS Safari.",
   "type": "module",
   "sideEffects": false,
   "types": "./bezel.d.ts",

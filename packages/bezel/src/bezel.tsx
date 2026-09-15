@@ -22,7 +22,6 @@ import {
 } from "./constants";
 import { ensureBezelStyle } from "./css";
 import { keepRoot, type RootState } from "./root";
-import { useScrollLocked } from "./scroll";
 
 // =============================================================================
 // <Bezel> — see ../bezel.d.ts for the contract.
@@ -70,7 +69,6 @@ const DISABLED: BezelState = {
   radius: DEFAULT_BEZEL_RADIUS,
   scroll: "window",
   ground: "#fff",
-  scrollLocked: false,
 };
 
 const BezelContext = createContext<BezelState>(DISABLED);
@@ -91,8 +89,6 @@ export function Bezel({
   style,
   children,
 }: BezelProps): JSX.Element {
-  const scrollLocked = useScrollLocked();
-
   // The boot record is read after mount: the server cannot see it, and the
   // first client render must match the server's.
   const [boot, setBoot] = useState<ReturnType<typeof readBezelBoot>>(null);
@@ -119,7 +115,7 @@ export function Bezel({
       band: b,
       scroll: s as BezelScroll,
     });
-  }, [on, c, b, s, scrollLocked]);
+  }, [on, c, b, s]);
 
   // The chrome: shown the new colour whenever the colour it should show
   // changes. Not on the first resolution when it matches what the page loaded
@@ -152,9 +148,8 @@ export function Bezel({
       radius,
       scroll: target?.scroll ?? scroll,
       ground,
-      scrollLocked,
     }),
-    [target?.enabled, target?.color, target?.band, target?.scroll, color, band, radius, scroll, ground, scrollLocked]
+    [target?.enabled, target?.color, target?.band, target?.scroll, color, band, radius, scroll, ground]
   );
 
   const r = Math.max(0, radius);
