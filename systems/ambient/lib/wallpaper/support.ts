@@ -20,16 +20,7 @@ export function supportsWebGL2(): boolean {
   return webgl2Cache;
 }
 
-export function prefersReducedMotion(): boolean {
-  if (typeof window === "undefined" || !window.matchMedia) return false;
-  try {
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  } catch {
-    return false;
-  }
-}
-
-export function isCoarsePointer(): boolean {
+function isCoarsePointer(): boolean {
   if (typeof window === "undefined" || !window.matchMedia) return false;
   try {
     return window.matchMedia("(pointer: coarse)").matches;

@@ -1,4 +1,5 @@
 import type { Locale } from "@/services/locale";
+import { clamp01 } from "./solar";
 
 // =============================================================================
 // Weather model
@@ -275,7 +276,7 @@ export async function fetchCurrentWeather(
       cloudCover:
         cloudCoverPct === undefined
           ? undefined
-          : Math.max(0, Math.min(1, cloudCoverPct / 100)),
+          : clamp01(cloudCoverPct / 100),
       precipitationMmH,
       snowfallCmH,
       precipitationType: precipitationTypeForCondition(condition),
@@ -291,7 +292,7 @@ export async function fetchCurrentWeather(
       humidity:
         humidityPct === undefined
           ? undefined
-          : Math.max(0, Math.min(1, humidityPct / 100)),
+          : clamp01(humidityPct / 100),
       sunriseMs: Number.isFinite(sunriseMs) ? sunriseMs : undefined,
       sunsetMs: Number.isFinite(sunsetMs) ? sunsetMs : undefined,
       updatedAt: Date.now(),

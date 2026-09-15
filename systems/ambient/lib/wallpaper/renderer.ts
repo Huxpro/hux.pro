@@ -57,43 +57,59 @@ const UNIFORMS: UniformSpec[] = [
 
 const FLOAT_COUNT = UNIFORMS.reduce((n, u) => n + u.size, 0);
 
+/**
+ * Per-uniform float offset into the packed scene, and the distinct easing time
+ * constants — both derived once from the table, so the per-frame loops index
+ * arrays instead of scanning names.
+ */
+const OFFSET: Record<string, number> = {};
+const TAUS: number[] = [];
+const META = UNIFORMS.map((u, i) => {
+  const offset = UNIFORMS.slice(0, i).reduce((n, v) => n + v.size, 0);
+  OFFSET[u.name] = offset;
+  let tauIndex = TAUS.indexOf(u.tau);
+  if (tauIndex < 0) tauIndex = TAUS.push(u.tau) - 1;
+  return { offset, size: u.size, tauIndex };
+});
+const WIND_OFFSET = OFFSET.uWind;
+const CLOUD_SPEED_OFFSET = OFFSET.uCloudSpeed;
+
+/** A fixed, pleasant moment on the shader clock for a still frame. */
+const STILL_FRAME_SEC = 37;
+
 function packScene(scene: WeatherScene, out: Float32Array) {
   const precip = scene.precipitation;
-  const rain = precip.type === "rain" ? precip.intensity : 0;
-  const snow = precip.type === "snow" ? precip.intensity : 0;
-
-  let i = 0;
-  const put = (...v: number[]) => {
-    for (const x of v) out[i++] = x;
-  };
-  put(scene.sun.screen.x, scene.sun.screen.y);
-  put(scene.sun.elevation);
-  put(scene.sun.daylight);
-  put(...scene.sky.zenith);
-  put(...scene.sky.horizon);
-  put(...scene.sky.glow);
-  put(scene.sky.glowStrength);
-  put(scene.moon.screen.x, scene.moon.screen.y);
-  put(scene.moon.phase);
-  put(scene.moon.visible);
-  put(scene.moon.size);
-  put(scene.hemisphere);
-  put(scene.clouds.cover);
-  put(scene.clouds.density);
-  put(scene.clouds.darkness);
-  put(scene.clouds.speed);
-  put(...scene.clouds.lit);
-  put(...scene.clouds.shade);
-  put(rain);
-  put(snow);
-  put(scene.wind.x, scene.wind.y);
-  put(scene.fog);
-  put(scene.lightning);
-  put(scene.stars);
-  put(...scene.veil.color);
-  put(scene.veil.amount);
-  put(scene.exposure);
+  const { sun, sky, moon, clouds, veil } = scene;
+  // In UNIFORMS order.
+  out[0] = sun.screen.x; out[1] = sun.screen.y;
+  out[2] = sun.elevation;
+  out[3] = sun.daylight;
+  out[4] = sky.zenith[0]; out[5] = sky.zenith[1]; out[6] = sky.zenith[2];
+  out[7] = sky.horizon[0]; out[8] = sky.horizon[1]; out[9] = sky.horizon[2];
+  out[10] = sky.glow[0]; out[11] = sky.glow[1]; out[12] = sky.glow[2];
+  out[13] = sky.glowStrength;
+  out[14] = moon.screen.x; out[15] = moon.screen.y;
+  out[16] = moon.phase;
+  out[17] = moon.visible;
+  out[18] = moon.size;
+  out[19] = scene.hemisphere;
+  out[20] = clouds.cover;
+  out[21] = clouds.density;
+  out[22] = clouds.darkness;
+  out[23] = clouds.speed;
+  out[24] = clouds.lit[0]; out[25] = clouds.lit[1]; out[26] = clouds.lit[2];
+  out[27] = clouds.shade[0]; out[28] = clouds.shade[1]; out[29] = clouds.shade[2];
+  out[30] = precip.type === "rain" ? precip.intensity : 0;
+  out[31] = precip.type === "snow" ? precip.intensity : 0;
+  out[32] = scene.wind.x; out[33] = scene.wind.y;
+  out[34] = scene.fog;
+  out[35] = scene.lightning;
+  out[36] = scene.stars;
+  out[37] = veil.color[0]; out[38] = veil.color[1]; out[39] = veil.color[2];
+  out[40] = veil.amount;
+  out[41] = scene.exposure;
 }
+if (FLOAT_COUNT !== 42) throw new Error("packScene is out of step with UNIFORMS");
 
 export interface WallpaperRendererOptions {
   /** Render a single still frame and re-render only on scene/size changes. */
@@ -104,6 +120,14 @@ export interface WallpaperRendererOptions {
   /** Called when WebGL is unavailable or irrecoverably lost. */
   onFallback?: (reason: string) => void;
   /** Called once, after the first frame has been painted. */
+  onFirstFrame?: () => void;
+}
+
+interface ResolvedOptions {
+  reducedMotion: boolean;
+  pixelBudget: number;
+  maxFps: number;
+  onFallback?: (reason: string) => void;
   onFirstFrame?: () => void;
 }
 
@@ -120,7 +144,15 @@ export class WallpaperRenderer {
   private canvas: HTMLCanvasElement;
   private gl: WebGL2RenderingContext | null = null;
   private program: WebGLProgram | null = null;
-  private locations = new Map<string, WebGLUniformLocation | null>();
+  /** Uniform locations, resolved once: one per UNIFORMS entry, plus the per-frame five. */
+  private locs: (WebGLUniformLocation | null)[] = [];
+  private locResolution: WebGLUniformLocation | null = null;
+  private locTime: WebGLUniformLocation | null = null;
+  private locSeed: WebGLUniformLocation | null = null;
+  private locCloudDrift: WebGLUniformLocation | null = null;
+  private locSnowDrift: WebGLUniformLocation | null = null;
+  /** Per-frame easing factors, one per distinct tau. */
+  private ks = new Float64Array(TAUS.length);
   private vao: WebGLVertexArrayObject | null = null;
 
   private target = new Float32Array(FLOAT_COUNT);
@@ -140,18 +172,13 @@ export class WallpaperRenderer {
   private scale = 1;
   private frameEma = 16;
   /** The shader clock of the last frame drawn, so a resize can repaint it. */
-  private lastTimeSec = 37;
+  private lastTimeSec = STILL_FRAME_SEC;
   private slowFrames = 0;
   private fastFrames = 0;
   private cssWidth = 0;
   private cssHeight = 0;
 
-  private opts: Required<
-    Omit<WallpaperRendererOptions, "onFallback" | "onFirstFrame">
-  > & {
-    onFallback?: (reason: string) => void;
-    onFirstFrame?: () => void;
-  };
+  private opts: ResolvedOptions;
   private firstFrameDone = false;
   private resizeObserver: ResizeObserver | null = null;
   private destroyed = false;
@@ -297,13 +324,12 @@ export class WallpaperRenderer {
     this.vao = gl.createVertexArray();
     gl.bindVertexArray(this.vao);
     gl.useProgram(program);
-    this.locations.clear();
-    for (const u of UNIFORMS) {
-      this.locations.set(u.name, gl.getUniformLocation(program, u.name));
-    }
-    for (const name of ["uResolution", "uTime", "uSeed", "uCloudDrift", "uSnowDrift"]) {
-      this.locations.set(name, gl.getUniformLocation(program, name));
-    }
+    this.locs = UNIFORMS.map((u) => gl.getUniformLocation(program, u.name));
+    this.locResolution = gl.getUniformLocation(program, "uResolution");
+    this.locTime = gl.getUniformLocation(program, "uTime");
+    this.locSeed = gl.getUniformLocation(program, "uSeed");
+    this.locCloudDrift = gl.getUniformLocation(program, "uCloudDrift");
+    this.locSnowDrift = gl.getUniformLocation(program, "uSnowDrift");
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
     return true;
@@ -419,9 +445,7 @@ export class WallpaperRenderer {
     if (this.canvas.width === px && this.canvas.height === py) return;
     this.canvas.width = px;
     this.canvas.height = py;
-    if (repaint && this.gl && this.hasScene) {
-      this.draw(this.opts.reducedMotion ? 37.0 : this.lastTimeSec);
-    }
+    if (repaint && this.gl && this.hasScene) this.draw(this.lastTimeSec);
   }
 
   private adaptQuality(dt: number) {
@@ -477,63 +501,43 @@ export class WallpaperRenderer {
 
   private renderOnce() {
     if (!this.gl || !this.hasScene) return;
-    // A fixed, pleasant moment for the still frame.
-    this.draw(37.0);
+    this.draw(STILL_FRAME_SEC);
   }
 
   /** Snap a vec2 uniform (and companions) when its target moved far. */
   private snapIfFar(name: string, threshold: number, companions: string[] = []) {
-    let offset = 0;
-    for (const u of UNIFORMS) {
-      if (u.name === name) {
-        const dx = this.target[offset] - this.current[offset];
-        const dy = this.target[offset + 1] - this.current[offset + 1];
-        if (Math.hypot(dx, dy) > threshold) {
-          this.snap(name);
-          for (const c of companions) this.snap(c);
-        }
-        return;
-      }
-      offset += u.size;
+    const offset = OFFSET[name];
+    const dx = this.target[offset] - this.current[offset];
+    const dy = this.target[offset + 1] - this.current[offset + 1];
+    if (Math.hypot(dx, dy) > threshold) {
+      this.snap(name);
+      for (const c of companions) this.snap(c);
     }
   }
 
   private snap(name: string) {
-    let offset = 0;
-    for (const u of UNIFORMS) {
-      if (u.name === name) {
-        for (let k = 0; k < u.size; k++) this.current[offset + k] = this.target[offset + k];
-        return;
-      }
-      offset += u.size;
-    }
+    const i = UNIFORMS.findIndex((u) => u.name === name);
+    const { offset, size } = META[i];
+    for (let k = 0; k < size; k++) this.current[offset + k] = this.target[offset + k];
   }
 
   private smooth(dtSec: number) {
-    let offset = 0;
-    for (const u of UNIFORMS) {
-      const k = u.tau <= 0 ? 1 : 1 - Math.exp(-dtSec / u.tau);
-      for (let j = 0; j < u.size; j++) {
-        const idx = offset + j;
+    for (let t = 0; t < TAUS.length; t++) {
+      this.ks[t] = TAUS[t] <= 0 ? 1 : 1 - Math.exp(-dtSec / TAUS[t]);
+    }
+    for (const m of META) {
+      const k = this.ks[m.tauIndex];
+      for (let j = 0; j < m.size; j++) {
+        const idx = m.offset + j;
         this.current[idx] += (this.target[idx] - this.current[idx]) * k;
       }
-      offset += u.size;
     }
     // Advect drift from the smoothed wind so direction changes glide.
-    const windX = this.read("uWind", 0);
-    const cloudSpeed = this.read("uCloudSpeed", 0);
+    const windX = this.current[WIND_OFFSET];
+    const cloudSpeed = this.current[CLOUD_SPEED_OFFSET];
     const dir = Math.tanh(windX * 6);
     this.cloudDrift += dtSec * cloudSpeed * (0.35 + 0.65 * Math.abs(windX)) * (dir === 0 ? 0.35 : dir);
     this.snowDrift += dtSec * (windX * 0.6 + 0.03);
-  }
-
-  private read(name: string, component: number): number {
-    let offset = 0;
-    for (const u of UNIFORMS) {
-      if (u.name === name) return this.current[offset + component];
-      offset += u.size;
-    }
-    return 0;
   }
 
   private draw(timeSec: number) {
@@ -544,20 +548,19 @@ export class WallpaperRenderer {
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao);
 
-    gl.uniform2f(this.locations.get("uResolution") ?? null, this.canvas.width, this.canvas.height);
-    gl.uniform1f(this.locations.get("uTime") ?? null, timeSec);
-    gl.uniform1f(this.locations.get("uSeed") ?? null, this.seed);
-    gl.uniform1f(this.locations.get("uCloudDrift") ?? null, this.cloudDrift);
-    gl.uniform1f(this.locations.get("uSnowDrift") ?? null, this.snowDrift);
+    gl.uniform2f(this.locResolution, this.canvas.width, this.canvas.height);
+    gl.uniform1f(this.locTime, timeSec);
+    gl.uniform1f(this.locSeed, this.seed);
+    gl.uniform1f(this.locCloudDrift, this.cloudDrift);
+    gl.uniform1f(this.locSnowDrift, this.snowDrift);
 
-    let offset = 0;
     const c = this.current;
-    for (const u of UNIFORMS) {
-      const loc = this.locations.get(u.name) ?? null;
-      if (u.size === 1) gl.uniform1f(loc, c[offset]);
-      else if (u.size === 2) gl.uniform2f(loc, c[offset], c[offset + 1]);
+    for (let i = 0; i < META.length; i++) {
+      const { offset, size } = META[i];
+      const loc = this.locs[i];
+      if (size === 1) gl.uniform1f(loc, c[offset]);
+      else if (size === 2) gl.uniform2f(loc, c[offset], c[offset + 1]);
       else gl.uniform3f(loc, c[offset], c[offset + 1], c[offset + 2]);
-      offset += u.size;
     }
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);

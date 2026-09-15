@@ -12,7 +12,7 @@ import {
   useTheme,
 } from "@/services";
 import { useLocation, useWallpaper } from "@/systems/ambient";
-import { WEATHER_STYLE_LABEL } from "@/systems/ambient/lib/wallpaper";
+import { getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
 import { useMusic } from "@/systems/music";
 import { useOptionalWindows } from "@/systems/windows";
@@ -81,7 +81,7 @@ export function CommandPalette() {
   const wallpaperLabel =
     wallpaperKind === "image"
       ? wallpaper.name
-      : `${t(locale, "wallpaperWeather")} · ${t(locale, WEATHER_STYLE_LABEL[weatherStyle])}`;
+      : getWeatherWallpaperName(locale, weatherStyle);
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [scrollPosition, setScrollPosition] = useState(0);

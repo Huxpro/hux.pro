@@ -1,16 +1,14 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import type { WeatherScene } from "../lib/scene";
 import {
   WallpaperRenderer,
   type WallpaperStats,
 } from "../lib/wallpaper/renderer";
-import {
-  getWallpaperQualityProfile,
-  prefersReducedMotion,
-} from "../lib/wallpaper/support";
+import { getWallpaperQualityProfile } from "../lib/wallpaper/support";
 
 // ---------------------------------------------------------------------------
 // WeatherWallpaper — the shader-backed full-page sky.
@@ -30,8 +28,8 @@ interface WeatherWallpaperProps {
   className?: string;
   /** WebGL unavailable or lost — the parent should swap to the CSS renderer. */
   onFallback?: (reason: string) => void;
-  /** Receives live renderer stats (resolution / frame time) for the devtool. */
-  statsRef?: React.MutableRefObject<WallpaperStats | null>;
+  /** Handed a getter for live renderer stats (resolution / frame time), for the devtool. */
+  statsRef?: React.MutableRefObject<(() => WallpaperStats) | null>;
   /**
    * Override the device quality profile — for a small preview (the picker's
    * CG tile) that should cost a fraction of the full-page layer.
@@ -51,6 +49,7 @@ export function WeatherWallpaper({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<WallpaperRenderer | null>(null);
   const [painted, setPainted] = useState(false);
+  const reducedMotion = useReducedMotion() ?? false;
 
   // Latest callbacks without re-creating the renderer.
   const onFallbackRef = useRef(onFallback);
@@ -61,34 +60,28 @@ export function WeatherWallpaper({
     if (!canvas) return;
     const profile = getWallpaperQualityProfile();
     const renderer = new WallpaperRenderer(canvas, {
-      reducedMotion: prefersReducedMotion(),
+      reducedMotion,
       pixelBudget: quality?.pixelBudget ?? profile.pixelBudget,
       maxFps: quality?.maxFps ?? profile.maxFps,
       onFallback: (reason) => onFallbackRef.current?.(reason),
       onFirstFrame: () => setPainted(true),
     });
     rendererRef.current = renderer;
-
-    const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-    const onMotionChange = () => renderer.setReducedMotion(!!mq?.matches);
-    mq?.addEventListener?.("change", onMotionChange);
-
-    let statsTimer = 0;
-    if (statsRef) {
-      statsTimer = window.setInterval(() => {
-        statsRef.current = renderer.getStats();
-      }, 500);
-    }
+    // The devtool pulls stats on its own schedule; nothing is copied until it asks.
+    if (statsRef) statsRef.current = () => renderer.getStats();
 
     return () => {
-      mq?.removeEventListener?.("change", onMotionChange);
-      if (statsTimer) window.clearInterval(statsTimer);
+      if (statsRef) statsRef.current = null;
       renderer.destroy();
       rendererRef.current = null;
     };
     // The renderer is created once per canvas; scenes stream in below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    rendererRef.current?.setReducedMotion(reducedMotion);
+  }, [reducedMotion]);
 
   useEffect(() => {
     rendererRef.current?.setScene(scene);

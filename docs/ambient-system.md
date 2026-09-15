@@ -148,7 +148,7 @@ When location mode changes, the UI uses stale-while-revalidate to prevent jank:
 │  │                                                             │   │
 │  │ Ambient Time:                                               │   │
 │  │   • phase: sunrise|morning|afternoon|sunset|evening|night   │   │
-│  │   • derivedPhase: computed from now + sunrise/sunset        │   │
+│  │   • phase: derived from now + sunrise/sunset (no override)  │   │
 │  │   • timeScrubMinutes / dayOffset: devtool time travel       │   │
 │  │                                                             │   │
 │  │ UI State:                                                   │   │

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { t, useLocale, useTheme, type TranslationKey } from "@/services";
+import { t, useLocale, type TranslationKey } from "@/services";
 import { AlbumTabs } from "@/systems/theater";
 import { Check, Cloud, Moon, Palette, Smartphone, Sparkles, Sun } from "lucide-react";
 import { useState } from "react";
@@ -10,7 +10,7 @@ import {
   AdaptiveSurface,
   useSurfaceContext,
 } from "@/systems/surface";
-import { getClassicGradient, sceneToCssGradient } from "../lib/gradient";
+import { getWeatherStyleGradient } from "../lib/gradient";
 import type { WallpaperPlacement } from "../lib/settings";
 import {
   getWallpaperPairPreview,
@@ -323,21 +323,13 @@ function WeatherStyleTile({
   selected: boolean;
 }) {
   const { locale } = useLocale();
-  const { theme } = useTheme();
   const { selectWeather, shaderSupported } = useWallpaper();
   const { scene } = useWeather();
   const { phase } = useAmbientTime();
 
-  const gradient =
-    style === "classic"
-      ? getClassicGradient({
-          condition: scene.condition,
-          isDay: scene.sun.elevation > -0.5,
-          phase,
-          theme,
-        })
-      : sceneToCssGradient(scene);
   const animated = style === "sky" && shaderSupported;
+  // The Sky tile runs the shader; the other two paint what the page would.
+  const gradient = animated ? undefined : getWeatherStyleGradient(style, scene, phase);
   const realtime = style !== "classic";
   const name = t(locale, WEATHER_STYLE_LABEL[style]);
   const meta = t(locale, WEATHER_STYLE_META[style]);

@@ -305,8 +305,8 @@ and the widget overlay as `useWallpaper().opacity`:
 | Weather · Classic | 0.70 | 0.85 |
 | Image wallpaper | 1.00 | 1.00 |
 
-Keyed by what is *painting* (`getWallpaperLook`), not what was asked for: a
-Sky that fell back to the Gradient is the Gradient. The Sky paints at 1 because
+Keyed by the family of what is *painting*, not what was asked for: a Sky that
+fell back to the Gradient is a wash. The Sky paints at 1 because
 its theme veil is mixed inside the shader; the restraint happens in the scene.
 
 An image wallpaper paints at **full strength**: it is a picture someone chose,
@@ -326,9 +326,12 @@ Where the active wallpaper paints is `wallpaperPlacement`:
 | `widget` | Only inside widget cards (each a viewport-aligned window onto it) |
 | `off` | Nowhere — the global background kill switch |
 
-**Each wallpaper look says what it wants at the edge** (`WALLPAPER_KIND_EDGES`
-in `lib/bezel.ts`, keyed by `getWallpaperEdgeLook()`), and on an iOS phone the
-provider resolves every page from that table, live, as the look changes:
+**Each wallpaper family says what it wants at the edge.** A look (`getWallpaperLook`
+in `lib/wallpaper.ts`) belongs to a family — `picture` (an image, the Sky) or
+`wash` (the CSS styles) via `WALLPAPER_LOOK_FAMILY` — and the family keys both
+the opacity and the edge table (`WALLPAPER_FAMILY_EDGES` in `lib/bezel.ts`).
+On an iOS phone the provider resolves every page from that, live, as the look
+changes:
 
 | Look | Bezel | Soft edge |
 |---|---|---|
@@ -343,8 +346,8 @@ inside a bezel. The Sky is a picture too — a rendered one — and gets exactly
 the image configuration, so the two framed looks start from one place (and
 the boot script keys on the saved style, not on WebGL support, so a Sky that
 falls back to the Gradient keeps its frame rather than flickering). A desktop
-window gets none of it unless overridden. Switching between a framed style and
-a faded one ends a session edge override the same way a kind switch does.
+window gets none of it unless overridden. Session edge overrides are stamped with the family they were set under, so a
+change of family (a kind switch, or Sky ↔ a CSS style) ends them.
 
 **The bezel** is `@hux/bezel` (`packages/bezel`), after ryOS (os.ryo.lu): one
 flat colour around the page, black by default, with the page rounded off inside
@@ -500,7 +503,6 @@ const {
 const {
   nowMs,               // The effective clock — real, or time-travelled
   realNowMs,           // The wall clock, untouched
-  derivedPhase,
   phase,               // Always derived from nowMs; there is no phase override
   sunriseMs,           // For the effective day
   sunsetMs,

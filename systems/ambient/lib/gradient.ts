@@ -7,13 +7,11 @@
 // wash) so switching renderers never changes the mood, only the fidelity.
 // =============================================================================
 
+import type { AmbientPhase } from "./phase";
 import type { SunEvent } from "./sun";
+import type { WallpaperLook, WeatherStyle } from "./wallpaper";
 import type { WeatherCondition } from "./weather";
 import { mixRGB, rgbToCss, type RGB, type WeatherScene } from "./scene";
-
-export type WeatherGradient = {
-  backgroundImage: string;
-};
 
 /**
  * One entry in the crossfade stack rendered by <GradientStack />.
@@ -34,10 +32,6 @@ export interface GradientLayerData {
 
 /** Duration of a gradient crossfade, shared by the provider and renderer. */
 export const GRADIENT_CROSSFADE_MS = 700;
-
-export type SunEventGradient = {
-  backgroundImage: string;
-};
 
 /**
  * Extra veil applied on the CSS path. Flat gradients have no cloud texture to
@@ -252,33 +246,37 @@ function buildPreviewGradient(colors: ColorTriple, geometry: GradientGeometry): 
 }
 
 /** Devtool thumbnail for a condition (day / night × theme). */
+/**
+ * The original per-condition palette. Twenty-four possible outputs (condition ×
+ * day/night × theme), so the strings are built once and kept.
+ */
+const weatherGradientCache = new Map<string, string>();
+
 export function getWeatherGradient(params: {
   condition: WeatherCondition;
   isDay?: boolean;
   theme: "light" | "dark";
-}): WeatherGradient {
+}): string {
   const isDay = params.isDay ?? true;
-  const palette = WEATHER_PALETTE[params.condition];
-  const timeSlot = isDay ? palette.day : palette.night;
-  const colors = params.theme === "dark" ? timeSlot.dark : timeSlot.light;
-
-  return {
-    backgroundImage: buildPreviewGradient(colors, GEOMETRY.weather),
-  };
+  const key = `${params.condition}|${isDay}|${params.theme}`;
+  let out = weatherGradientCache.get(key);
+  if (out === undefined) {
+    const palette = WEATHER_PALETTE[params.condition];
+    const timeSlot = isDay ? palette.day : palette.night;
+    const colors = params.theme === "dark" ? timeSlot.dark : timeSlot.light;
+    out = buildPreviewGradient(colors, GEOMETRY.weather);
+    weatherGradientCache.set(key, out);
+  }
+  return out;
 }
 
-/** Devtool thumbnail for a sunrise / sunset phase. */
-export function getSunEventGradient(params: {
+function getSunEventGradient(params: {
   event: SunEvent;
   theme: "light" | "dark";
-}): SunEventGradient {
+}): string {
   const palette = SUN_PALETTE[params.event];
   const colors = params.theme === "dark" ? palette.dark : palette.light;
-  const geometry = GEOMETRY[params.event];
-
-  return {
-    backgroundImage: buildPreviewGradient(colors, geometry),
-  };
+  return buildPreviewGradient(colors, GEOMETRY[params.event]);
 }
 
 /**
@@ -287,18 +285,26 @@ export function getSunEventGradient(params: {
  * otherwise the condition's day or night palette. It steps at phase and
  * weather changes rather than following the clock, which is the point of it.
  */
-export function getClassicGradient(params: {
-  condition: WeatherCondition;
-  isDay: boolean;
-  phase: "sunrise" | "morning" | "afternoon" | "evening" | "sunset" | "night";
-  theme: "light" | "dark";
-}): string {
-  if (params.phase === "sunrise" || params.phase === "sunset") {
-    return getSunEventGradient({ event: params.phase, theme: params.theme }).backgroundImage;
+export function getClassicGradient(scene: WeatherScene, phase: AmbientPhase): string {
+  if (phase === "sunrise" || phase === "sunset") {
+    return getSunEventGradient({ event: phase, theme: scene.theme });
   }
   return getWeatherGradient({
-    condition: params.condition,
-    isDay: params.isDay,
-    theme: params.theme,
-  }).backgroundImage;
+    condition: scene.condition,
+    isDay: scene.sun.isDay,
+    theme: scene.theme,
+  });
+}
+
+/**
+ * What the CSS stack paints for a weather style: the Classic palette, or the
+ * scene's own gradient (which is also what the Sky shows in widget cards and
+ * falls back to without WebGL2).
+ */
+export function getWeatherStyleGradient(
+  style: WeatherStyle | WallpaperLook,
+  scene: WeatherScene,
+  phase: AmbientPhase
+): string {
+  return style === "classic" ? getClassicGradient(scene, phase) : sceneToCssGradient(scene);
 }

@@ -49,6 +49,9 @@
 // to do so.
 // =============================================================================
 
+import { t } from "@/lib/i18n";
+import type { Locale } from "@/services/locale";
+
 export type WallpaperKind = "weather" | "image";
 
 export type WallpaperPlatform = "macOS" | "iPadOS" | "iOS";
@@ -94,8 +97,20 @@ export const WEATHER_STYLE_META = {
   classic: "wallpaperWeatherClassicMeta",
 } as const satisfies Record<WeatherStyle, string>;
 
-/** Which engine paints the full-page layer right now: the canvas or the CSS stack. */
-export type WallpaperRenderer = "shader" | "css";
+/** "Weather · Sky" — how every surface names a weather style in use. */
+export function getWeatherWallpaperName(locale: Locale, style: WeatherStyle): string {
+  return `${t(locale, "wallpaperWeather")} · ${t(locale, WEATHER_STYLE_LABEL[style])}`;
+}
+
+/** Which engine paints the full-page layer: the canvas or the CSS stack. */
+export type WallpaperEngine = "shader" | "css";
+
+/** Style → engine, one-to-one. The Sky is the canvas; everything else is CSS. */
+export const WEATHER_STYLE_ENGINE: Record<WeatherStyle, WallpaperEngine> = {
+  sky: "shader",
+  gradient: "css",
+  classic: "css",
+};
 
 /** The style after the fallback: Sky without WebGL2 is the Gradient. */
 export function resolveWeatherStyle(params: {
@@ -104,6 +119,11 @@ export function resolveWeatherStyle(params: {
 }): WeatherStyle {
   if (params.weatherStyle === "sky" && !params.shaderSupported) return "gradient";
   return params.weatherStyle;
+}
+
+/** The stored style, or the default for anything unknown. */
+export function readWeatherStyle(raw: unknown): WeatherStyle {
+  return (WEATHER_STYLES as readonly unknown[]).includes(raw) ? (raw as WeatherStyle) : "sky";
 }
 
 export interface WallpaperAsset {
@@ -153,56 +173,43 @@ export interface ResolvedWallpaper {
 }
 
 /**
- * How strongly the wallpaper layer itself paints.
- *
- * An image wallpaper paints at FULL STRENGTH. It is a photograph someone chose;
- * showing it at half opacity over the page background is not "tasteful
- * restraint", it is a washed-out picture. The home screen is a desktop — the
- * picture is the content, and the widgets float on it.
- *
- * The CSS weather styles are different in kind: a wash, authored to sit under
- * content, and they read as intended below full strength. The Sky is different
- * again: its theme veil is mixed inside the shader, so the layer paints at 1
- * and the restraint happens in the scene.
- *
- * Keyed by what is painting, not what was asked for: a Sky that fell back to
- * the Gradient is the Gradient.
+ * What is on the page: an image, or one of the weather styles. Callers decide
+ * which style to feed in — the saved one (for the edge of the page, so the
+ * boot script and the provider agree before WebGL support is known, and a Sky
+ * that falls back keeps its frame) or the resolved one (for what paints).
  */
 export type WallpaperLook = WeatherStyle | "image";
 
-export const WALLPAPER_OPACITY: Record<
-  WallpaperLook,
-  { light: number; dark: number }
-> = {
-  sky: { light: 1, dark: 1 },
-  gradient: { light: 0.7, dark: 0.85 },
-  classic: { light: 0.7, dark: 0.85 },
-  image: { light: 1, dark: 1 },
-};
-
-export function getWallpaperLook(params: {
-  kind: WallpaperKind;
-  /** The weather style after the fallback (`resolveWeatherStyle`). */
-  effectiveStyle: WeatherStyle;
-}): WallpaperLook {
-  if (params.kind === "image") return "image";
-  return params.effectiveStyle;
+export function getWallpaperLook(kind: WallpaperKind, style: WeatherStyle): WallpaperLook {
+  return kind === "image" ? "image" : style;
 }
 
 /**
- * The look the *settings* ask for, before WebGL support is known — what the
- * edge of the page (bezel, soft edge) is resolved from, so the boot script and
- * the provider agree on the first frame. A Sky that has to fall back to the
- * Gradient keeps the Sky's edge: the choice was the framed picture, and the
- * frame should not flicker on the one device that cannot animate it.
+ * The one distinction every look-dependent treatment hangs on.
+ *
+ *   picture  a photograph, or the rendered Sky — something ON the page. Paints
+ *            at full strength (an image at half opacity is a washed-out
+ *            picture; the Sky's veil is mixed inside the shader) and ends on a
+ *            line inside a bezel.
+ *   wash     a CSS gradient — the page's own colour pushed outward. Reads as
+ *            intended below full strength, and fades back into the ground.
+ *
+ * Opacity and the edge treatment (lib/bezel.ts) are both keyed by this, so a
+ * new style is one line here.
  */
-export function getWallpaperEdgeLook(params: {
-  kind: WallpaperKind;
-  weatherStyle: WeatherStyle;
-}): WallpaperLook {
-  if (params.kind === "image") return "image";
-  return params.weatherStyle;
-}
+export type WallpaperFamily = "picture" | "wash";
+
+export const WALLPAPER_LOOK_FAMILY: Record<WallpaperLook, WallpaperFamily> = {
+  sky: "picture",
+  image: "picture",
+  gradient: "wash",
+  classic: "wash",
+};
+
+export const WALLPAPER_OPACITY: Record<WallpaperFamily, { light: number; dark: number }> = {
+  picture: { light: 1, dark: 1 },
+  wash: { light: 0.7, dark: 0.85 },
+};
 
 /**
  * The flat veil drawn OVER an image wallpaper on a reading page.

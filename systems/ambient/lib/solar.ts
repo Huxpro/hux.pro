@@ -19,6 +19,7 @@ export interface SolarPosition {
 }
 
 const DEG = Math.PI / 180;
+const rev = (deg: number) => ((deg % 360) + 360) % 360;
 const J2000_MS = 946728000000; // 2000-01-01T12:00:00Z
 
 function daysSinceJ2000(ms: number): number {
@@ -40,23 +41,33 @@ export function getSolarPosition(
   const ra = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L));
   const dec = Math.asin(Math.sin(e) * Math.sin(L));
 
-  const gmstHours = 18.697374558 + 24.06570982441908 * d;
+  const h = equatorialToHorizontal(ms, lat, lon, ra, dec);
+  return { elevation: h.elevationRad / DEG, azimuth: h.azimuth };
+}
+
+/**
+ * Right ascension / declination (rad) → elevation / azimuth (deg) for an
+ * observer, via the local sidereal time. Shared by the sun and the moon.
+ */
+function equatorialToHorizontal(
+  ms: number,
+  lat: number,
+  lon: number,
+  ra: number,
+  dec: number
+): { elevationRad: number; azimuth: number; latR: number; ha: number } {
+  const gmstHours = 18.697374558 + 24.06570982441908 * daysSinceJ2000(ms);
   const lst = ((gmstHours % 24) + 24) % 24; // hours
   const ha = (lst * 15 + lon) * DEG - ra; // hour angle (rad)
-
   const latR = lat * DEG;
   const sinEl =
-    Math.sin(latR) * Math.sin(dec) +
-    Math.cos(latR) * Math.cos(dec) * Math.cos(ha);
-  const elevation = Math.asin(Math.max(-1, Math.min(1, sinEl)));
-
+    Math.sin(latR) * Math.sin(dec) + Math.cos(latR) * Math.cos(dec) * Math.cos(ha);
+  const elevationRad = Math.asin(Math.max(-1, Math.min(1, sinEl)));
   const az = Math.atan2(
     -Math.sin(ha),
     Math.tan(dec) * Math.cos(latR) - Math.sin(latR) * Math.cos(ha)
   );
-  const azimuth = (((az / DEG) % 360) + 360) % 360;
-
-  return { elevation: elevation / DEG, azimuth };
+  return { elevationRad, azimuth: rev(az / DEG), latR, ha };
 }
 
 /**
@@ -69,25 +80,11 @@ export function estimateSolarPosition(params: {
   nowMs: number;
   sunriseMs?: number;
   sunsetMs?: number;
-  /** Peak elevation at solar noon (deg). */
-  peak?: number;
 }): SolarPosition {
   const { nowMs } = params;
-  const peak = params.peak ?? 55;
-
-  let sunrise: number;
-  let sunset: number;
-  if (Number.isFinite(params.sunriseMs) && Number.isFinite(params.sunsetMs)) {
-    sunrise = params.sunriseMs as number;
-    sunset = params.sunsetMs as number;
-  } else {
-    const d = new Date(nowMs);
-    const base = new Date(d);
-    base.setHours(6, 30, 0, 0);
-    sunrise = base.getTime();
-    base.setHours(18, 30, 0, 0);
-    sunset = base.getTime();
-  }
+  /** Peak elevation at solar noon (deg). */
+  const peak = 55;
+  const { sunrise, sunset } = sunTimesOrDefault(nowMs, params.sunriseMs, params.sunsetMs);
 
   const dayLen = Math.max(1, sunset - sunrise);
   const nightLen = Math.max(1, 86_400_000 - dayLen);
@@ -104,7 +101,7 @@ export function estimateSolarPosition(params: {
   // full night).
   const sinceSunset =
     nowMs > sunset ? nowMs - sunset : nowMs - (sunset - 86_400_000);
-  const t = Math.max(0, Math.min(1, sinceSunset / nightLen));
+  const t = clamp01(sinceSunset / nightLen);
   return {
     elevation: -Math.sin(t * Math.PI) * Math.min(peak, 40),
     azimuth: 270 + t * 180,
@@ -121,15 +118,6 @@ export function estimateSolarPosition(params: {
 // sets at the right times and shows the right phase — which is what makes its
 // wallpaper trajectory believable through a time-travel sweep.
 // -----------------------------------------------------------------------------
-
-export interface LunarPosition extends SolarPosition {
-  /** 0 = new, 0.25 = first quarter, 0.5 = full, 0.75 = last quarter. */
-  phase: number;
-  /** Illuminated fraction of the disc, 0..1. */
-  illumination: number;
-}
-
-const rev = (deg: number) => ((deg % 360) + 360) % 360;
 
 /** Schlyter's day number: days since 1999-12-31 00:00 UT (= J2000 + 1.5). */
 function schlyterDay(ms: number): number {
@@ -225,8 +213,12 @@ export function getMoonIllumination(phase: number): number {
   return (1 - Math.cos(phase * 2 * Math.PI)) / 2;
 }
 
-/** Topocentric moon elevation/azimuth plus phase for a timestamp and place. */
-export function getLunarPosition(ms: number, lat: number, lon: number): LunarPosition {
+/** Topocentric moon elevation/azimuth, plus the phase (from the same ephemeris). */
+export function getLunarPosition(
+  ms: number,
+  lat: number,
+  lon: number
+): SolarPosition & { phase: number } {
   const ecl = lunarEcliptic(ms);
   const d = schlyterDay(ms);
   const obliquity = (23.4393 - 3.563e-7 * d) * DEG;
@@ -242,29 +234,15 @@ export function getLunarPosition(ms: number, lat: number, lon: number): LunarPos
   const ra = Math.atan2(yq, xq);
   const dec = Math.atan2(zq, Math.sqrt(xq * xq + yq * yq));
 
-  const gmstHours = 18.697374558 + 24.06570982441908 * daysSinceJ2000(ms);
-  const lst = ((gmstHours % 24) + 24) % 24;
-  const ha = (lst * 15 + lon) * DEG - ra;
-
-  const latR = lat * DEG;
-  const sinEl =
-    Math.sin(latR) * Math.sin(dec) + Math.cos(latR) * Math.cos(dec) * Math.cos(ha);
-  let elevation = Math.asin(Math.max(-1, Math.min(1, sinEl)));
+  const h = equatorialToHorizontal(ms, lat, lon, ra, dec);
   // Topocentric parallax (the moon is close enough for ~1°).
   const parallax = Math.asin(1 / ecl.distance);
-  elevation -= parallax * Math.cos(elevation);
+  const elevation = h.elevationRad - parallax * Math.cos(h.elevationRad);
 
-  const az = Math.atan2(
-    -Math.sin(ha),
-    Math.tan(dec) * Math.cos(latR) - Math.sin(latR) * Math.cos(ha)
-  );
-
-  const phase = rev(ecl.lonDeg - ecl.sunLonDeg) / 360;
   return {
     elevation: elevation / DEG,
-    azimuth: rev(az / DEG),
-    phase,
-    illumination: getMoonIllumination(phase),
+    azimuth: h.azimuth,
+    phase: rev(ecl.lonDeg - ecl.sunLonDeg) / 360,
   };
 }
 
@@ -301,12 +279,47 @@ export function getMoonPhaseName(phase: number): MoonPhaseName {
  * Twilight sits in between (civil at -6°, nautical at -12°).
  */
 export function daylightFactor(elevationDeg: number): number {
-  const t = (elevationDeg + 18) / 28;
-  return Math.max(0, Math.min(1, t));
+  return clamp01((elevationDeg + 18) / 28);
 }
+
+/**
+ * The sun elevation above which the scene counts as day: a hair below the
+ * horizon, so the last of the sun disc still reads as daytime. One number,
+ * read from `WeatherScene.sun.isDay`.
+ */
+export const DAY_ELEVATION_DEG = -0.5;
+
+export const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
 /** Smoothstep helper shared by scene derivation. */
 export function smoothstep(edge0: number, edge1: number, x: number): number {
-  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  const t = clamp01((x - edge0) / (edge1 - edge0));
   return t * t * (3 - 2 * t);
+}
+
+// -----------------------------------------------------------------------------
+// Clock helpers
+// -----------------------------------------------------------------------------
+
+/** Local midnight of the day containing `ms`. */
+export function startOfLocalDay(ms: number): number {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+/**
+ * Sunrise / sunset for the day, or a plausible 06:30 / 18:30 when unknown, so
+ * a first paint before the forecast arrives still reads as the right time.
+ */
+export function sunTimesOrDefault(
+  nowMs: number,
+  sunriseMs?: number,
+  sunsetMs?: number
+): { sunrise: number; sunset: number } {
+  if (Number.isFinite(sunriseMs) && Number.isFinite(sunsetMs)) {
+    return { sunrise: sunriseMs as number, sunset: sunsetMs as number };
+  }
+  const day = startOfLocalDay(nowMs);
+  return { sunrise: day + 6.5 * 3_600_000, sunset: day + 18.5 * 3_600_000 };
 }

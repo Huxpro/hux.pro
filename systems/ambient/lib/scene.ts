@@ -14,6 +14,8 @@
 
 import type { SolarPosition } from "./solar";
 import {
+  clamp01,
+  DAY_ELEVATION_DEG,
   daylightFactor,
   estimateSolarPosition,
   getLunarPosition,
@@ -21,6 +23,8 @@ import {
   getMoonPhase,
   getSolarPosition,
   smoothstep,
+  startOfLocalDay,
+  sunTimesOrDefault,
 } from "./solar";
 import type {
   NormalizedWeather,
@@ -43,6 +47,8 @@ export interface WeatherScene {
     screen: ScreenPoint;
     /** 0 = astronomical night … 1 = full day. */
     daylight: number;
+    /** The one day/night decision (`DAY_ELEVATION_DEG`): icons, palettes, chips. */
+    isDay: boolean;
   };
   moon: SolarPosition & {
     phase: number;
@@ -53,8 +59,6 @@ export interface WeatherScene {
     screen: ScreenPoint;
     /** Relative disc size: 1 high in the sky, larger near the horizon. */
     size: number;
-    /** 0..1 how much the moon lights the night sky (illumination × altitude). */
-    light: number;
   };
   /** +1 northern hemisphere (east on the left), −1 southern (mirrored). */
   hemisphere: 1 | -1;
@@ -99,13 +103,13 @@ export interface WeatherScene {
 // Colour helpers
 // -----------------------------------------------------------------------------
 
-export function hex(h: string): RGB {
+function hex(h: string): RGB {
   const n = parseInt(h.replace("#", ""), 16);
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
 export function mixRGB(a: RGB, b: RGB, t: number): RGB {
-  const k = Math.max(0, Math.min(1, t));
+  const k = clamp01(t);
   return [
     a[0] + (b[0] - a[0]) * k,
     a[1] + (b[1] - a[1]) * k,
@@ -113,25 +117,16 @@ export function mixRGB(a: RGB, b: RGB, t: number): RGB {
   ];
 }
 
-export function scaleRGB(a: RGB, s: number): RGB {
-  return [
-    Math.min(1, a[0] * s),
-    Math.min(1, a[1] * s),
-    Math.min(1, a[2] * s),
-  ];
-}
-
 export function rgbToCss(c: RGB, alpha?: number): string {
-  const r = Math.round(Math.max(0, Math.min(1, c[0])) * 255);
-  const g = Math.round(Math.max(0, Math.min(1, c[1])) * 255);
-  const b = Math.round(Math.max(0, Math.min(1, c[2])) * 255);
+  const r = Math.round(clamp01(c[0]) * 255);
+  const g = Math.round(clamp01(c[1]) * 255);
+  const b = Math.round(clamp01(c[2]) * 255);
   return alpha === undefined
     ? `rgb(${r} ${g} ${b})`
-    : `rgb(${r} ${g} ${b} / ${Math.max(0, Math.min(1, alpha)).toFixed(3)})`;
+    : `rgb(${r} ${g} ${b} / ${clamp01(alpha).toFixed(3)})`;
 }
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
 // -----------------------------------------------------------------------------
 // Sky keyframes by sun elevation (clear sky)
@@ -235,15 +230,11 @@ const PROFILES: Record<WeatherCondition, ConditionProfile> = {
   },
 };
 
-export function getConditionProfile(condition: WeatherCondition) {
-  return PROFILES[condition];
-}
-
 // -----------------------------------------------------------------------------
 // Theme veil defaults
 // -----------------------------------------------------------------------------
 
-export const VEIL_DEFAULTS = {
+const VEIL_DEFAULTS = {
   light: { color: hex("#ffffff"), amount: 0.3, exposure: 1.06 },
   dark: { color: hex("#1a1a1a"), amount: 0.26, exposure: 0.86 },
 } as const;
@@ -254,7 +245,6 @@ export const VEIL_DEFAULTS = {
 
 export interface SceneWeatherInput {
   condition: WeatherCondition;
-  isDay?: boolean;
   cloudCover?: number;
   precipitationIntensity?: number;
   windSpeedKmh?: number;
@@ -278,10 +268,19 @@ export interface DeriveSceneParams {
   lon?: number;
   weather: SceneWeatherInput | null;
   theme: "light" | "dark";
-  /** Force sun geometry (devtool preview thumbnails only). */
-  solar?: Partial<SolarPosition>;
   overrides?: SceneOverrides;
   seed?: number;
+}
+
+/** The observer's coordinates, when the params carry usable ones. */
+function coordsOf(params: DeriveSceneParams): { lat: number; lon: number } | null {
+  const { lat, lon } = params;
+  return typeof lat === "number" &&
+    typeof lon === "number" &&
+    Number.isFinite(lat) &&
+    Number.isFinite(lon)
+    ? { lat, lon }
+    : null;
 }
 
 const HORIZON_Y = 0.1;
@@ -350,24 +349,14 @@ function azimuthToScreenX(azimuthDeg: number, hemisphere: 1 | -1): number {
 }
 
 function resolveSolar(params: DeriveSceneParams): SolarPosition {
-  const hasCoords =
-    typeof params.lat === "number" &&
-    typeof params.lon === "number" &&
-    Number.isFinite(params.lat) &&
-    Number.isFinite(params.lon);
-
-  const natural = hasCoords
-    ? getSolarPosition(params.nowMs, params.lat as number, params.lon as number)
+  const coords = coordsOf(params);
+  return coords
+    ? getSolarPosition(params.nowMs, coords.lat, coords.lon)
     : estimateSolarPosition({
         nowMs: params.nowMs,
         sunriseMs: params.weather?.sunriseMs,
         sunsetMs: params.weather?.sunsetMs,
       });
-
-  return {
-    elevation: params.solar?.elevation ?? natural.elevation,
-    azimuth: params.solar?.azimuth ?? natural.azimuth,
-  };
 }
 
 /**
@@ -377,45 +366,28 @@ function resolveSolar(params: DeriveSceneParams): SolarPosition {
  * arc across the night, driven by sunrise/sunset (or the local clock).
  */
 function resolveLunar(params: DeriveSceneParams): SolarPosition & { phase: number } {
-  const hasCoords =
-    typeof params.lat === "number" &&
-    typeof params.lon === "number" &&
-    Number.isFinite(params.lat) &&
-    Number.isFinite(params.lon);
+  const coords = coordsOf(params);
+  if (coords) return getLunarPosition(params.nowMs, coords.lat, coords.lon);
 
-  const phase = getMoonPhase(params.nowMs);
-
-  let natural: SolarPosition;
-  if (hasCoords) {
-    natural = getLunarPosition(params.nowMs, params.lat as number, params.lon as number);
+  const { nowMs } = params;
+  const { sunrise: sr, sunset: ss } = sunTimesOrDefault(
+    nowMs,
+    params.weather?.sunriseMs,
+    params.weather?.sunsetMs
+  );
+  let np: number;
+  if (nowMs >= ss) {
+    np = clamp01((nowMs - ss) / Math.max(1, sr + 86_400_000 - ss));
+  } else if (nowMs <= sr) {
+    np = clamp01((nowMs - (ss - 86_400_000)) / Math.max(1, sr - (ss - 86_400_000)));
   } else {
-    const { nowMs } = params;
-    let sunrise = params.weather?.sunriseMs;
-    let sunset = params.weather?.sunsetMs;
-    if (!Number.isFinite(sunrise) || !Number.isFinite(sunset)) {
-      const d = new Date(nowMs);
-      d.setHours(6, 30, 0, 0);
-      sunrise = d.getTime();
-      d.setHours(18, 30, 0, 0);
-      sunset = d.getTime();
-    }
-    const ss = sunset as number;
-    const sr = sunrise as number;
-    let np: number;
-    if (nowMs >= ss) {
-      np = clamp01((nowMs - ss) / Math.max(1, sr + 86_400_000 - ss));
-    } else if (nowMs <= sr) {
-      np = clamp01((nowMs - (ss - 86_400_000)) / Math.max(1, sr - (ss - 86_400_000)));
-    } else {
-      np = -1; // daytime: below the horizon
-    }
-    natural =
-      np < 0
-        ? { elevation: -30, azimuth: 0 }
-        : { elevation: Math.sin(np * Math.PI) * 55, azimuth: 90 + np * 180 };
+    np = -1; // daytime: below the horizon
   }
-
-  return { ...natural, phase };
+  const natural: SolarPosition =
+    np < 0
+      ? { elevation: -30, azimuth: 0 }
+      : { elevation: Math.sin(np * Math.PI) * 55, azimuth: 90 + np * 180 };
+  return { ...natural, phase: getMoonPhase(nowMs) };
 }
 
 export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
@@ -531,7 +503,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const moonlitLit = mixRGB(lit, hex("#4a5578"), moonLight * (1 - smoothstep(-8, 4, elevation)) * 0.7);
 
   return {
-    sun: { ...solar, screen: sunScreen, daylight },
+    sun: { ...solar, screen: sunScreen, daylight, isDay: elevation > DAY_ELEVATION_DEG },
     moon: {
       elevation: lunar.elevation,
       azimuth: lunar.azimuth,
@@ -540,7 +512,6 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
       visible: moonVisible,
       screen: moonScreen,
       size: moonSize,
-      light: moonLight,
     },
     hemisphere,
     sky: { zenith: moonlitZenith, horizon: moonlitHorizon, glow, glowStrength },
@@ -565,21 +536,27 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   };
 }
 
-/** Shape a NormalizedWeather (or a devtool override) into scene input. */
+/**
+ * Shape a NormalizedWeather (or a devtool override) into scene input.
+ *
+ * Day/night is never part of this: the effective clock (and the real sun)
+ * decides, so a forced condition can't put a moon in a daytime sky. `sunTimes`
+ * lets the caller pass the effective day's sunrise/sunset (time travel shifts
+ * them) instead of the forecast's.
+ */
 export function toSceneWeather(
   weather: NormalizedWeather | null | undefined,
-  override?: { condition: WeatherCondition } | null
+  override?: { condition: WeatherCondition } | null,
+  sunTimes?: { sunriseMs?: number; sunsetMs?: number }
 ): SceneWeatherInput | null {
   if (!weather && !override) return null;
   const condition = override?.condition ?? (weather as NormalizedWeather).condition;
   const overrideChangesCondition = !!override && override.condition !== weather?.condition;
   return {
     condition,
-    // Day/night is never overridden: the effective clock (and the real sun)
-    // decides, so a forced condition can't put a moon in a daytime sky.
-    isDay: weather?.isDay,
     // Real measurements only make sense for the real condition; a forced
-    // condition falls back to its profile defaults.
+    // condition falls back to its profile defaults. Wind is kept: it is the
+    // one measurement that reads the same under any sky.
     cloudCover: overrideChangesCondition ? undefined : weather?.cloudCover,
     precipitationIntensity: overrideChangesCondition
       ? undefined
@@ -587,16 +564,19 @@ export function toSceneWeather(
     windSpeedKmh: weather?.windSpeedKmh,
     windDirectionDeg: weather?.windDirectionDeg,
     humidity: overrideChangesCondition ? undefined : weather?.humidity,
-    sunriseMs: weather?.sunriseMs,
-    sunsetMs: weather?.sunsetMs,
+    sunriseMs: sunTimes ? sunTimes.sunriseMs : weather?.sunriseMs,
+    sunsetMs: sunTimes ? sunTimes.sunsetMs : weather?.sunsetMs,
   };
 }
+
+/** Scenes per day in `sampleDaySky`: one every twenty minutes. */
+const DAY_SKY_SAMPLES = 72;
 
 /**
  * The sky across one day, for a timeline.
  *
- * `samples` scenes from local midnight to midnight, each reduced to one colour
- * (the zenith/horizon mix, unveiled, so it stays vivid at 4px tall). Pure and
+ * Scenes from local midnight to midnight, each reduced to one colour (the
+ * zenith/horizon mix, unveiled, so it stays vivid at 4px tall). Pure and
  * cheap — the ephemeris is a few hundred multiplies — so a devtool can redraw
  * it whenever the condition, the day or the location changes.
  */
@@ -608,12 +588,9 @@ export function sampleDaySky(params: {
   weather: SceneWeatherInput | null;
   theme: "light" | "dark";
   overrides?: SceneOverrides;
-  samples?: number;
 }): RGB[] {
-  const n = Math.max(2, params.samples ?? 72);
-  const start = new Date(params.dayMs);
-  start.setHours(0, 0, 0, 0);
-  const startMs = start.getTime();
+  const n = DAY_SKY_SAMPLES;
+  const startMs = startOfLocalDay(params.dayMs);
   const out: RGB[] = [];
   for (let i = 0; i < n; i++) {
     const scene = deriveWeatherScene({

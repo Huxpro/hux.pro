@@ -1,7 +1,6 @@
 "use client";
 
 import { t, useLocale } from "@/services";
-import { useDevtool } from "@/systems/devtool";
 import { Loader2, Sunrise, Sunset } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -38,20 +37,17 @@ export function useDisplayWeather() {
     isLoading,
     error,
     refresh,
-    debugOverride,
   } = useWeather();
-  const { isEnabled: isDevtoolEnabled } = useDevtool();
 
   const [staleWeather, setStaleWeather] = useState<DisplayWeather | null>(null);
   const [devForceEmpty, setDevForceEmpty] = useState(false);
 
-  const overrideActive = !!weather && isDevtoolEnabled && !!debugOverride;
-  const effectiveCondition: WeatherCondition | undefined = overrideActive
-    ? debugOverride!.condition
-    : weather?.condition;
-  // Day/night follows the effective clock (real sun, or devtool time travel)
-  // rather than the API's snapshot, so the icon can never disagree with the sky.
-  const effectiveIsDay: boolean | undefined = scene.sun.elevation > -0.5;
+  // The scene already resolved the devtool's condition override and the
+  // effective clock's day/night, so the icon can never disagree with the sky.
+  const effectiveCondition: WeatherCondition | undefined = weather
+    ? scene.condition
+    : undefined;
+  const effectiveIsDay = scene.sun.isDay;
 
   const current = useMemo<DisplayWeather | null>(
     () =>

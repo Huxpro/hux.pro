@@ -4,6 +4,7 @@ import type { LocationMode } from "./location";
 import {
   DEFAULT_WALLPAPER_ID,
   getWallpaper,
+  readWeatherStyle,
   type WallpaperKind,
   type WeatherStyle,
 } from "./wallpaper";
@@ -38,7 +39,7 @@ export interface AmbientSettings {
   /**
    * The bezel's colour: a named tint or a `#rrggbb` literal. Whether the bezel
    * is on is not a setting — the wallpaper kind decides, and the devtool can
-   * override it for the session. See `WALLPAPER_KIND_EDGES`.
+   * override it for the session. See `WALLPAPER_FAMILY_EDGES`.
    */
   bezelTint: BezelTint;
   /** Band thickness, px. `null` is `DEFAULT_BEZEL_BAND`. The same for every kind. */
@@ -87,7 +88,6 @@ export function getAmbientSettings(): AmbientSettings {
       wallpaperLetterboxTint?: unknown;
       wallpaperLetterboxBand?: unknown;
       wallpaperLetterboxRadius?: unknown;
-      wallpaperRenderer?: string;
     };
     const defaults = getDefaultSettings();
 
@@ -111,23 +111,13 @@ export function getAmbientSettings(): AmbientSettings {
         ? parsed.wallpaperId
         : defaults.wallpaperId;
 
-    // `wallpaperRenderer: "gradient"` was the pre-catalog way to opt out of
-    // the shader; it means the same thing as the Gradient tile. "cg" was the
-    // Sky's name for a while.
-    const weatherStyle: WeatherStyle =
-      parsed.weatherStyle === "gradient" || parsed.wallpaperRenderer === "gradient"
-        ? "gradient"
-        : parsed.weatherStyle === "classic"
-          ? "classic"
-          : "sky";
-
     return {
       locationMode:
         parsed.locationMode === "accurate" ? "accurate" : defaults.locationMode,
       wallpaperPlacement: placement,
       wallpaperKind:
         parsed.wallpaperKind === "image" ? "image" : defaults.wallpaperKind,
-      weatherStyle,
+      weatherStyle: readWeatherStyle(parsed.weatherStyle),
       wallpaperId,
       // `wallpaperLetterbox*` were these fields' names before the bezel was
       // its own package.

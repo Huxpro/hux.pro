@@ -20,16 +20,17 @@ import {
 /** The named tints plus the segmented control's own "pick a colour". */
 type TintChoice = "black" | "dark" | "theme" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
-import {
-  getClassicGradient,
-  getWeatherGradient,
-  sceneToCssGradient,
-} from "@/systems/ambient/lib/gradient";
+import { getWeatherGradient, getWeatherStyleGradient } from "@/systems/ambient/lib/gradient";
 import type { AmbientPhase } from "@/systems/ambient/lib/phase";
 import { rgbToCss, sampleDaySky } from "@/systems/ambient/lib/scene";
-import { getMoonPhaseName, type MoonPhaseName } from "@/systems/ambient/lib/solar";
+import {
+  getMoonPhaseName,
+  startOfLocalDay,
+  type MoonPhaseName,
+} from "@/systems/ambient/lib/solar";
 import type { WallpaperStats } from "@/systems/ambient/lib/wallpaper/renderer";
 import {
+  getWeatherWallpaperName,
   WEATHER_STYLE_LABEL,
   WEATHER_STYLE_META,
   WEATHER_STYLES,
@@ -673,6 +674,7 @@ function PanelRange({
   onChange,
   label,
   format = (v) => String(v),
+  wide = false,
 }: {
   value: number;
   min: number;
@@ -681,9 +683,11 @@ function PanelRange({
   onChange: (value: number) => void;
   label: string;
   format?: (value: number) => string;
+  /** Full-width, on a line of its own, with the reading shown by the caller. */
+  wide?: boolean;
 }) {
   return (
-    <div className="flex shrink-0 items-center gap-2">
+    <div className={cn("flex items-center gap-2", wide ? "w-full" : "shrink-0")}>
       <input
         type="range"
         min={min}
@@ -692,11 +696,16 @@ function PanelRange({
         value={value}
         aria-label={label}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1 w-24 cursor-pointer appearance-none rounded-full bg-muted accent-foreground"
+        className={cn(
+          "h-1 cursor-pointer appearance-none rounded-full bg-muted accent-foreground",
+          wide ? "w-full" : "w-24"
+        )}
       />
-      <span className="w-8 text-right text-[10px] font-mono tabular-nums text-muted-foreground">
-        {format(value)}
-      </span>
+      {!wide && (
+        <span className="w-8 text-right text-[10px] font-mono tabular-nums text-muted-foreground">
+          {format(value)}
+        </span>
+      )}
     </div>
   );
 }
@@ -871,7 +880,6 @@ function GlassModule() {
 function WallpaperModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { theme } = useTheme();
   const {
     kind,
     setKind,
@@ -917,25 +925,25 @@ function WallpaperModule() {
   const isImage = kind === "image";
   const isShader = !isImage && renderer === "shader";
   // The swatch: what the CSS stack would paint for the effective style.
-  const swatch =
-    effectiveStyle === "classic"
-      ? getClassicGradient({
-          condition: scene.condition,
-          isDay: scene.sun.elevation > -0.5,
-          phase,
-          theme,
-        })
-      : sceneToCssGradient(scene);
+  const swatch = getWeatherStyleGradient(effectiveStyle, scene, phase);
 
-  // Poll the renderer stats while the shader is live.
-  const [stats, setStats] = useState<WallpaperStats | null>(null);
+  // Poll the renderer stats while the shader is live — as a formatted line, so
+  // an unchanged readout is a no-op render.
+  const [glStats, setGlStats] = useState<string | null>(null);
   useEffect(() => {
     if (!isShader) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- sync: clear stale stats
-      setStats(null);
+      setGlStats(null);
       return;
     }
-    const id = window.setInterval(() => setStats(statsRef.current), 500);
+    const tick = () => {
+      const st = statsRef.current?.();
+      setGlStats(
+        st ? `${st.width}×${st.height} · ${st.scale.toFixed(2)}× · ${st.frameMs.toFixed(1)}ms` : null
+      );
+    };
+    tick();
+    const id = window.setInterval(tick, 500);
     return () => window.clearInterval(id);
   }, [isShader, statsRef]);
 
@@ -990,7 +998,7 @@ function WallpaperModule() {
       on: softEdgeEnabled,
     },
   ] as const;
-  type OverrideKey = "full" | "widget" | "softEdging" | "bezel" | "scroll";
+  type OverrideKey = "full" | "widget" | "softEdging" | "bezel" | "scroll" | "noWebGL";
   const overrideFlag = (key: Exclude<OverrideKey, "scroll">, on: boolean) =>
     setDevtoolOverrides({ ...devtoolOverrides, [key]: on });
   const clearFlag = (key: OverrideKey) =>
@@ -1001,9 +1009,9 @@ function WallpaperModule() {
     ) : null;
 
   // One line that answers "what am I actually looking at".
-  const styleLabel = t(locale, WEATHER_STYLE_LABEL[weatherStyle]);
+  const weatherName = getWeatherWallpaperName(locale, weatherStyle);
   const now = [
-    isImage ? wallpaper.name : `${t(locale, "wallpaperWeather")} · ${styleLabel}`,
+    isImage ? wallpaper.name : weatherName,
     variant,
     isImage ? (reading ? (zh ? "阅读" : "read") : zh ? "桌面" : "desktop") : placement,
   ].join(" · ");
@@ -1011,9 +1019,7 @@ function WallpaperModule() {
   // What the weather layer is being drawn by, with the GL numbers when live.
   const fellBack = weatherStyle === "sky" && effectiveStyle !== "sky";
   const engineLine = isShader
-    ? stats
-      ? `GL · ${stats.width}×${stats.height} · ${stats.scale.toFixed(2)}× · ${stats.frameMs.toFixed(1)}ms`
-      : "GL · …"
+    ? `GL · ${glStats ?? "…"}`
     : `CSS · ${t(locale, WEATHER_STYLE_LABEL[effectiveStyle])}${
         fellBack ? ` (${zh ? "无 WebGL2，天空退回" : "no WebGL2, Sky fell back"})` : ""
       }`;
@@ -1082,28 +1088,10 @@ function WallpaperModule() {
             </PanelRow>
             {/* The only engine knob: pretend WebGL2 is missing, to see the Sky's
                 fallback here. Style and engine are otherwise one-to-one. */}
-            <PanelRow
-              label={zh ? "无 WebGL2" : "No WebGL2"}
-              star={
-                devtoolOverrides.noWebGL === undefined ? null : (
-                  <PanelStar
-                    onReset={() =>
-                      setDevtoolOverrides({ ...devtoolOverrides, noWebGL: undefined })
-                    }
-                    source="session"
-                    label="Clear WebGL2 simulation"
-                  />
-                )
-              }
-            >
+            <PanelRow label={zh ? "无 WebGL2" : "No WebGL2"} star={sessionStar("noWebGL")}>
               <PanelToggle
                 on={devtoolOverrides.noWebGL === true}
-                onClick={() =>
-                  setDevtoolOverrides({
-                    ...devtoolOverrides,
-                    noWebGL: devtoolOverrides.noWebGL ? undefined : true,
-                  })
-                }
+                onClick={() => overrideFlag("noWebGL", !devtoolOverrides.noWebGL)}
                 label="Simulate no WebGL2"
               />
             </PanelRow>
@@ -1137,7 +1125,7 @@ function WallpaperModule() {
           <span className="min-w-0 flex-1 truncate text-[10px] font-mono text-foreground/80">
             {isImage
               ? wallpaper.name
-              : `${t(locale, "wallpaperWeather")} · ${styleLabel}`}
+              : weatherName}
             {isImage && (
               <span className="ml-1.5 tabular-nums text-muted-foreground/60">
                 {wallpaper[variant].width}×{wallpaper[variant].height}
@@ -1326,23 +1314,10 @@ function PanelSlider({
 }) {
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-        <span>
-          {label}
-          {star}
-        </span>
-        <span className="tabular-nums text-foreground/80">{format(value)}</span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1 w-full cursor-pointer accent-foreground"
-        aria-label={ariaLabel}
-      />
+      <PanelRow label={label} star={star}>
+        <span className="text-[10px] font-mono tabular-nums text-foreground/80">{format(value)}</span>
+      </PanelRow>
+      <PanelRange wide value={value} min={min} max={max} step={step} onChange={onChange} label={ariaLabel} />
     </div>
   );
 }
@@ -1461,14 +1436,17 @@ const MOON_NAME: Record<"en" | "zh", Record<MoonPhaseName, string>> = {
   },
 };
 
-const hhmm = (minutes: number) =>
-  `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
-
 const minutesOfDay = (ms?: number, fallback = 0) => {
   if (typeof ms !== "number" || !Number.isFinite(ms)) return fallback;
   const d = new Date(ms);
   return d.getHours() * 60 + d.getMinutes();
 };
+
+/** The quiet outlined chip the Sky module's Now and Play buttons are made of. */
+const PANEL_CHIP = cn(
+  "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5",
+  "text-[10px] font-mono uppercase tracking-wider transition-colors"
+);
 
 /** The timeline's playhead: a range input with an invisible track. */
 const PLAYHEAD_INPUT = cn(
@@ -1511,15 +1489,15 @@ function SkyModule() {
     resetTimeTravel,
   } = useAmbientTime();
 
-  const isDayNow = scene.sun.elevation > -0.5;
+  const isDayNow = scene.sun.isDay;
   const isOverridden = debugOverride !== null;
   const isTuned = Object.keys(sceneOverrides).length > 0;
   const anythingForced = isTimeTravelActive || isOverridden || isTuned;
 
   // --- The day ------------------------------------------------------------
-  const dayStart = new Date(nowMs);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayStartMs = dayStart.getTime();
+  const dayStartMs = startOfLocalDay(nowMs);
+  /** A clock reading for minutes past midnight, in the locale's format. */
+  const clock = (minutes: number) => formatClockTime(dayStartMs + minutes * 60_000, locale);
   const lat = location?.lat;
   const lon = location?.lon;
 
@@ -1533,7 +1511,6 @@ function SkyModule() {
       weather: sceneWeather,
       theme,
       overrides: sceneOverrides,
-      samples: 72,
     });
     const stops = colors.map(
       (c, i) => `${rgbToCss(c)} ${((i / (colors.length - 1)) * 100).toFixed(1)}%`
@@ -1555,8 +1532,7 @@ function SkyModule() {
   };
 
   const nowDate = new Date(nowMs);
-  const clockMinutes =
-    timeScrubMinutes ?? nowDate.getHours() * 60 + nowDate.getMinutes();
+  const clockMinutes = timeScrubMinutes ?? minutesOfDay(nowMs);
   const realMinutes = minutesOfDay(realNowMs);
   const pct = (m: number) => `${((m / 1440) * 100).toFixed(2)}%`;
 
@@ -1614,8 +1590,26 @@ function SkyModule() {
     setSceneOverrides(next);
   };
 
+  // The four tweakable numbers: slider value ↔ scene value, one row each.
+  const percent = (v: number) => `${v}%`;
+  const tune: {
+    key: keyof typeof sceneOverrides;
+    label: string;
+    aria: string;
+    value: number;
+    max: number;
+    format: (v: number) => string;
+    toScene: (v: number) => number;
+  }[] = [
+    { key: "cloudCover", label: zh ? "云量" : "Cloud", aria: "Cloud", value: Math.round(scene.clouds.cover * 100), max: 100, format: percent, toScene: (v) => v / 100 },
+    { key: "precipitationIntensity", label: zh ? "降水" : "Precip", aria: "Precip", value: Math.round(scene.precipitation.intensity * 100), max: 100, format: percent, toScene: (v) => v / 100 },
+    { key: "windSpeedKmh", label: zh ? "风速" : "Wind", aria: "Wind", value: Math.round(sceneOverrides.windSpeedKmh ?? weather?.windSpeedKmh ?? 8), max: 60, format: (v) => `${v} km/h`, toScene: (v) => v },
+    { key: "veilAmount", label: zh ? "遮罩" : "Veil", aria: "Veil", value: Math.round(scene.veil.amount * 100), max: 90, format: percent, toScene: (v) => v / 100 },
+  ];
+
   // --- Readouts ------------------------------------------------------------
   const moonName = getMoonPhaseName(scene.moon.phase);
+  const moonUpLabel = scene.moon.elevation > 0 ? (zh ? "在天上" : "up") : zh ? "在地平线下" : "set";
   const dateLabel = new Intl.DateTimeFormat(zh ? "zh-CN" : "en-US", {
     month: "short",
     day: "numeric",
@@ -1631,10 +1625,7 @@ function SkyModule() {
         anythingForced ? (
           <button
             onClick={resetAll}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-md border border-border/60 px-1.5 py-0.5",
-              "text-[10px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
-            )}
+            className={cn(PANEL_CHIP, "border-border/60 text-muted-foreground hover:text-foreground")}
             aria-label="Back to now"
             title={zh ? "回到真实的现在：时间、天气、微调全部复位" : "Back to real time and real weather; clears every tweak"}
           >
@@ -1657,7 +1648,7 @@ function SkyModule() {
             <span className="text-muted-foreground/60">·</span>
             <span className="truncate">{PHASE_LABEL[lang][phase]}</span>
             <span className="text-muted-foreground/60">·</span>
-            <span className="tabular-nums">{hhmm(clockMinutes)}</span>
+            <span className="tabular-nums">{clock(clockMinutes)}</span>
           </span>
           <span className="flex shrink-0 items-center gap-2 tabular-nums text-muted-foreground">
             <span className="inline-flex items-center gap-1" title={zh ? "太阳高度角" : "Sun elevation"}>
@@ -1666,7 +1657,7 @@ function SkyModule() {
             </span>
             <span
               className="inline-flex items-center gap-1"
-              title={`${MOON_NAME[lang][moonName]} · ${scene.moon.elevation > 0 ? (zh ? "在天上" : "up") : zh ? "在地平线下" : "set"}`}
+              title={`${MOON_NAME[lang][moonName]} · ${moonUpLabel}`}
             >
               <MoonPhaseIcon phase={scene.moon.phase} mirror={scene.hemisphere === -1} className="h-3 w-3" />
               {Math.round(scene.moon.illumination * 100)}%
@@ -1692,7 +1683,7 @@ function SkyModule() {
             <button
               onClick={() => (playing ? setPlaying(false) : startPlay())}
               className={cn(
-                "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 transition-colors",
+                PANEL_CHIP,
                 playing
                   ? "border-foreground/40 bg-accent text-accent-foreground"
                   : "border-border/60 text-muted-foreground hover:text-foreground"
@@ -1736,7 +1727,7 @@ function SkyModule() {
               onChange={(e) => jumpTo(Number(e.target.value))}
               className={PLAYHEAD_INPUT}
               aria-label="Time of day scrub"
-              aria-valuetext={hhmm(clockMinutes)}
+              aria-valuetext={clock(clockMinutes)}
             />
           </div>
           <div className="flex items-center justify-between text-[10px] font-mono tabular-nums text-muted-foreground">
@@ -1759,7 +1750,7 @@ function SkyModule() {
                   onClick={() => jumpTo(phaseTimes[p])}
                   aria-label={`Jump to ${p}`}
                   aria-current={current ? "time" : undefined}
-                  title={`${PHASE_LABEL[lang][p]} · ${hhmm(phaseTimes[p])}`}
+                  title={`${PHASE_LABEL[lang][p]} · ${clock(phaseTimes[p])}`}
                   className={cn(
                     "truncate rounded-md px-0.5 py-1 text-[9px] font-mono transition-colors",
                     current
@@ -1813,7 +1804,7 @@ function SkyModule() {
                       ? "border-foreground/60 ring-2 ring-foreground/50"
                       : "border-border/40 hover:border-border"
                   )}
-                  style={{ backgroundImage: preview.backgroundImage }}
+                  style={{ backgroundImage: preview }}
                   aria-label={`Set weather to ${getWeatherConditionLabel(condition, locale)}`}
                   aria-pressed={selected}
                   title={
@@ -1855,15 +1846,14 @@ function SkyModule() {
               <span className="text-foreground/80">{MOON_NAME[lang][moonName]}</span>
             </span>
           </div>
-          <input
-            type="range"
+          <PanelRange
+            wide
+            value={dayOffset}
             min={-15}
             max={15}
             step={1}
-            value={dayOffset}
-            onChange={(e) => setDayOffset(Number(e.target.value))}
-            className="h-1 w-full cursor-pointer accent-foreground"
-            aria-label="Date offset"
+            onChange={setDayOffset}
+            label="Date offset"
           />
           <div className="flex items-center justify-between text-[10px] font-mono tabular-nums text-muted-foreground">
             <span className={dayOffset !== 0 ? "text-foreground/80" : ""}>
@@ -1873,7 +1863,7 @@ function SkyModule() {
             <span>
               {zh ? "月亮" : "moon"} {scene.moon.elevation.toFixed(0)}° · {Math.round(scene.moon.azimuth)}°
               {" · "}
-              {scene.moon.elevation > 0 ? (zh ? "在天上" : "up") : zh ? "在地平线下" : "set"}
+              {moonUpLabel}
             </span>
           </div>
         </div>
@@ -1906,66 +1896,28 @@ function SkyModule() {
           </button>
           {tuneOpen && (
             <div className="space-y-2 pt-2.5">
-              <PanelSlider
-                label={zh ? "云量" : "Cloud"}
-                ariaLabel="Cloud"
-                value={Math.round(scene.clouds.cover * 100)}
-                min={0}
-                max={100}
-                step={1}
-                format={(v) => `${v}%`}
-                star={
-                  sceneOverrides.cloudCover !== undefined ? (
-                    <PanelStar onReset={() => clearTune("cloudCover")} source="session" label="Reset Cloud" />
-                  ) : null
-                }
-                onChange={(v) => setTune({ cloudCover: v / 100 })}
-              />
-              <PanelSlider
-                label={zh ? "降水" : "Precip"}
-                ariaLabel="Precip"
-                value={Math.round(scene.precipitation.intensity * 100)}
-                min={0}
-                max={100}
-                step={1}
-                format={(v) => `${v}%`}
-                star={
-                  sceneOverrides.precipitationIntensity !== undefined ? (
-                    <PanelStar onReset={() => clearTune("precipitationIntensity")} source="session" label="Reset Precip" />
-                  ) : null
-                }
-                onChange={(v) => setTune({ precipitationIntensity: v / 100 })}
-              />
-              <PanelSlider
-                label={zh ? "风速" : "Wind"}
-                ariaLabel="Wind"
-                value={Math.round(sceneOverrides.windSpeedKmh ?? weather?.windSpeedKmh ?? 8)}
-                min={0}
-                max={60}
-                step={1}
-                format={(v) => `${v} km/h`}
-                star={
-                  sceneOverrides.windSpeedKmh !== undefined ? (
-                    <PanelStar onReset={() => clearTune("windSpeedKmh")} source="session" label="Reset Wind" />
-                  ) : null
-                }
-                onChange={(v) => setTune({ windSpeedKmh: v })}
-              />
-              <PanelSlider
-                label={zh ? "遮罩" : "Veil"}
-                ariaLabel="Veil"
-                value={Math.round(scene.veil.amount * 100)}
-                min={0}
-                max={90}
-                step={1}
-                format={(v) => `${v}%`}
-                star={
-                  sceneOverrides.veilAmount !== undefined ? (
-                    <PanelStar onReset={() => clearTune("veilAmount")} source="session" label="Reset Veil" />
-                  ) : null
-                }
-                onChange={(v) => setTune({ veilAmount: v / 100 })}
-              />
+              {tune.map((row) => (
+                <PanelSlider
+                  key={row.key}
+                  label={row.label}
+                  ariaLabel={row.aria}
+                  value={row.value}
+                  min={0}
+                  max={row.max}
+                  step={1}
+                  format={row.format}
+                  star={
+                    sceneOverrides[row.key] !== undefined ? (
+                      <PanelStar
+                        onReset={() => clearTune(row.key)}
+                        source="session"
+                        label={`Reset ${row.aria}`}
+                      />
+                    ) : null
+                  }
+                  onChange={(v) => setTune({ [row.key]: row.toScene(v) })}
+                />
+              ))}
               {weather && (
                 <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/30 pt-2 text-[10px] font-mono text-muted-foreground">
                   <MetaRow k="code" v={String(weather.weatherCode)} />
