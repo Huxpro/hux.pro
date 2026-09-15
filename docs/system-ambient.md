@@ -201,7 +201,7 @@ type WallpaperKind = "weather" | "image";
   |---|---|---|---|
   | `sky` | **Sky** | shader · webgl | The WebGL shader (`lib/wallpaper/`): the whole scene, animated, at full strength. Needs WebGL2. |
   | `gradient` | **Gradient** | css · gradient | The same scene as a CSS gradient (`sceneToCssGradient`): the sky's colour at the real sun position, live to the minute. The Sky's automatic fallback. |
-  | `classic` | **Classic** | css · gradient · presets | The original: six hand-tuned condition palettes by day and night plus the sunrise / sunset event gradients (`getClassicGradient`). Steps at phase and weather changes rather than following the clock. Chosen by hand only. |
+  | `classic` | **Classic** | css · gradient | The original: six hand-tuned condition palettes by day and night plus the sunrise / sunset event gradients (`getClassicGradient`). Steps at phase and weather changes rather than following the clock. Chosen by hand only. |
 
 - `image` — a fixed picture from the built-in catalog (`lib/wallpaper.ts`).
 
