@@ -60,6 +60,17 @@ import type { WallpaperStats } from "./lib/wallpaper/renderer";
 import { supportsWebGL2 } from "./lib/wallpaper/support";
 import { usePathname } from "next/navigation";
 import { isReadingSurface } from "./lib/reading-surface";
+import {
+  applyLegibility,
+  plainLegibility,
+  resolveLegibility,
+  type LegibilityVars,
+} from "./lib/legibility";
+import {
+  getPlainProfile,
+  type WallpaperProfile,
+} from "./lib/wallpaper-profile";
+import { getImageProfile, getWeatherProfile } from "./lib/wallpaper-profiles";
 import { queryClient } from "@/lib/query";
 import { useDevtool } from "@/systems/devtool";
 
@@ -261,6 +272,15 @@ interface WallpaperContextType {
   setReadingDim: (value: boolean) => void;
   /** The file currently painting, for the devtool readout. */
   src: string | null;
+  /**
+   * The static profile of what is painting, and the legibility policy
+   * resolved from it — the CSS variables on <html>. See legibility.ts.
+   */
+  profile: WallpaperProfile;
+  legibility: LegibilityVars;
+  /** The Legibility Lab's live override of the resolved policy. Ephemeral. */
+  legibilityOverride: LegibilityVars | null;
+  setLegibilityOverride: (vars: LegibilityVars | null) => void;
   /** Secondary window — the wallpaper picker. */
   isPickerOpen: boolean;
   openPicker: () => void;
@@ -437,7 +457,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const pathname = usePathname();
   const reading = isReadingSurface({ kind: settings.wallpaperKind, pathname });
   const isBlurred = reading && settings.wallpaperReadingBlur;
-  const veilAlpha =
+  const veilBase =
     reading && settings.wallpaperReadingDim ? WALLPAPER_READING_VEIL[theme] : 0;
 
   // DevTool overrides (ephemeral, not persisted)
@@ -738,6 +758,69 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const computedCover = resolvedImage?.cover ?? false;
   const wallpaperSrc = resolvedImage?.src ?? null;
 
+  // --- Legibility ------------------------------------------------------------
+  // What is painting has a static profile (measured once, committed as JSON);
+  // the policy turns it into a few CSS variables on <html>. No pixels are read
+  // here — a lookup and a handful of multiplies, memoised on what can change.
+  const paintingWeather =
+    isDevtoolEnabled && isOverrideEnabled && debugOverride
+      ? debugOverride
+      : weatherQuery.data
+        ? { condition: weatherQuery.data.condition, isDay: weatherQuery.data.isDay ?? true }
+        : null;
+  const paintingCondition = paintingWeather?.condition ?? null;
+  const paintingIsDay = paintingWeather?.isDay ?? true;
+  const profile = useMemo<WallpaperProfile>(() => {
+    if (!fullEnabled && !widgetEnabled) return getPlainProfile(theme);
+    if (isImageKind) {
+      return getImageProfile(activeWallpaper[theme]) ?? getPlainProfile(theme);
+    }
+    if (effectivePhase === "sunrise" || effectivePhase === "sunset") {
+      return getWeatherProfile({ event: effectivePhase, theme }) ?? getPlainProfile(theme);
+    }
+    if (paintingCondition) {
+      return (
+        getWeatherProfile({ condition: paintingCondition, isDay: paintingIsDay, theme }) ??
+        getPlainProfile(theme)
+      );
+    }
+    return getPlainProfile(theme);
+  }, [
+    fullEnabled,
+    widgetEnabled,
+    isImageKind,
+    activeWallpaper,
+    theme,
+    effectivePhase,
+    paintingCondition,
+    paintingIsDay,
+  ]);
+
+  // Widget placement paints the picture only inside cards: the bare text
+  // around them sits on the plain page, so the policy sees "plain" for the
+  // flip and relief, while the glass still gets the picture's dimming layer.
+  const resolvedLegibility = useMemo<LegibilityVars>(() => {
+    const full = resolveLegibility({ profile, theme, reading });
+    if (fullEnabled) return full;
+    if (widgetEnabled) return { ...plainLegibility(theme), glassAdd: full.glassAdd, tint: full.tint };
+    return plainLegibility(theme);
+  }, [profile, theme, reading, fullEnabled, widgetEnabled]);
+
+  const [legibilityOverride, setLegibilityOverride] = useState<LegibilityVars | null>(null);
+  const legibility = legibilityOverride ?? resolvedLegibility;
+
+  const paintingKind: "weather" | "image" | "none" =
+    !fullEnabled && !widgetEnabled ? "none" : isImageKind ? "image" : "weather";
+
+  useEffect(() => {
+    applyLegibility(document.documentElement, legibility, {
+      kind: paintingKind,
+      reading,
+    });
+  }, [legibility, paintingKind, reading]);
+
+  const veilAlpha = veilBase > 0 ? Math.min(0.85, veilBase + legibility.veilAdd) : 0;
+
   // Gradient transition: a true crossfade between layers (no dip-to-background).
   // Centralized here so every consumer (full-page background, widget overlays)
   // shares one stack instead of running independent state machines. When the
@@ -907,6 +990,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       readingDim: settings.wallpaperReadingDim,
       setReadingDim,
       src: wallpaperSrc,
+      profile,
+      legibility,
+      legibilityOverride,
+      setLegibilityOverride,
       isPickerOpen,
       openPicker,
       closePicker,
@@ -954,6 +1041,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       setReadingBlur,
       setReadingDim,
       wallpaperSrc,
+      profile,
+      legibility,
+      legibilityOverride,
       isPickerOpen,
       openPicker,
       closePicker,

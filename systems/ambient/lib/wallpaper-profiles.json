@@ -1,0 +1,1491 @@
+{
+  "grid": {
+    "width": 96,
+    "height": 60
+  },
+  "images": {
+    "tahoe/light": {
+      "lum": 0.646,
+      "zones": {
+        "top": 0.752,
+        "mid": 0.641,
+        "bottom": 0.545
+      },
+      "mean": [
+        91,
+        147,
+        200
+      ],
+      "contrast": 0.148,
+      "edges": 0.0182,
+      "chroma": 0.11,
+      "tint": {
+        "l": 0.524,
+        "c": 0.164,
+        "h": 257.1
+      }
+    },
+    "tahoe/dark": {
+      "lum": 0.399,
+      "zones": {
+        "top": 0.377,
+        "mid": 0.419,
+        "bottom": 0.402
+      },
+      "mean": [
+        36,
+        57,
+        159
+      ],
+      "contrast": 0.102,
+      "edges": 0.0169,
+      "chroma": 0.168,
+      "tint": {
+        "l": 0.395,
+        "c": 0.173,
+        "h": 268.7
+      }
+    },
+    "sequoia/light": {
+      "lum": 0.585,
+      "zones": {
+        "top": 0.634,
+        "mid": 0.585,
+        "bottom": 0.536
+      },
+      "mean": [
+        118,
+        119,
+        161
+      ],
+      "contrast": 0.169,
+      "edges": 0.0077,
+      "chroma": 0.138,
+      "tint": {
+        "l": 0.452,
+        "c": 0.16,
+        "h": 258.9
+      }
+    },
+    "sequoia/dark": {
+      "lum": 0.495,
+      "zones": {
+        "top": 0.533,
+        "mid": 0.498,
+        "bottom": 0.455
+      },
+      "mean": [
+        55,
+        94,
+        173
+      ],
+      "contrast": 0.154,
+      "edges": 0.0077,
+      "chroma": 0.156,
+      "tint": {
+        "l": 0.405,
+        "c": 0.181,
+        "h": 274.9
+      }
+    },
+    "sonoma/light": {
+      "lum": 0.638,
+      "zones": {
+        "top": 0.684,
+        "mid": 0.547,
+        "bottom": 0.683
+      },
+      "mean": [
+        138,
+        144,
+        109
+      ],
+      "contrast": 0.114,
+      "edges": 0.0127,
+      "chroma": 0.154,
+      "tint": {
+        "l": 0.628,
+        "c": 0.155,
+        "h": 131.8
+      }
+    },
+    "sonoma/dark": {
+      "lum": 0.526,
+      "zones": {
+        "top": 0.459,
+        "mid": 0.52,
+        "bottom": 0.598
+      },
+      "mean": [
+        63,
+        117,
+        115
+      ],
+      "contrast": 0.12,
+      "edges": 0.0103,
+      "chroma": 0.123,
+      "tint": {
+        "l": 0.637,
+        "c": 0.156,
+        "h": 144.6
+      }
+    },
+    "ventura/light": {
+      "lum": 0.732,
+      "zones": {
+        "top": 0.796,
+        "mid": 0.723,
+        "bottom": 0.676
+      },
+      "mean": [
+        233,
+        143,
+        72
+      ],
+      "contrast": 0.084,
+      "edges": 0.0085,
+      "chroma": 0.162,
+      "tint": {
+        "l": 0.712,
+        "c": 0.169,
+        "h": 52
+      }
+    },
+    "ventura/dark": {
+      "lum": 0.496,
+      "zones": {
+        "top": 0.56,
+        "mid": 0.556,
+        "bottom": 0.371
+      },
+      "mean": [
+        163,
+        59,
+        38
+      ],
+      "contrast": 0.161,
+      "edges": 0.0146,
+      "chroma": 0.154,
+      "tint": {
+        "l": 0.552,
+        "c": 0.175,
+        "h": 35.8
+      }
+    },
+    "monterey/light": {
+      "lum": 0.595,
+      "zones": {
+        "top": 0.724,
+        "mid": 0.599,
+        "bottom": 0.461
+      },
+      "mean": [
+        164,
+        90,
+        191
+      ],
+      "contrast": 0.145,
+      "edges": 0.0059,
+      "chroma": 0.178,
+      "tint": {
+        "l": 0.458,
+        "c": 0.229,
+        "h": 295.3
+      }
+    },
+    "monterey/dark": {
+      "lum": 0.318,
+      "zones": {
+        "top": 0.357,
+        "mid": 0.329,
+        "bottom": 0.268
+      },
+      "mean": [
+        59,
+        16,
+        119
+      ],
+      "contrast": 0.08,
+      "edges": 0.0048,
+      "chroma": 0.159,
+      "tint": {
+        "l": 0.329,
+        "c": 0.165,
+        "h": 292.8
+      }
+    },
+    "big-sur/light": {
+      "lum": 0.615,
+      "zones": {
+        "top": 0.662,
+        "mid": 0.678,
+        "bottom": 0.506
+      },
+      "mean": [
+        183,
+        105,
+        130
+      ],
+      "contrast": 0.12,
+      "edges": 0.0087,
+      "chroma": 0.159,
+      "tint": {
+        "l": 0.652,
+        "c": 0.208,
+        "h": 20.6
+      }
+    },
+    "big-sur/dark": {
+      "lum": 0.404,
+      "zones": {
+        "top": 0.397,
+        "mid": 0.476,
+        "bottom": 0.337
+      },
+      "mean": [
+        99,
+        55,
+        88
+      ],
+      "contrast": 0.109,
+      "edges": 0.0107,
+      "chroma": 0.12,
+      "tint": {
+        "l": 0.387,
+        "c": 0.137,
+        "h": 18.7
+      }
+    },
+    "ipados-18-violet/light": {
+      "lum": 0.539,
+      "zones": {
+        "top": 0.663,
+        "mid": 0.588,
+        "bottom": 0.366
+      },
+      "mean": [
+        117,
+        99,
+        155
+      ],
+      "contrast": 0.227,
+      "edges": 0.0103,
+      "chroma": 0.108,
+      "tint": {
+        "l": 0.417,
+        "c": 0.167,
+        "h": 280.1
+      }
+    },
+    "ipados-18-violet/dark": {
+      "lum": 0.302,
+      "zones": {
+        "top": 0.459,
+        "mid": 0.26,
+        "bottom": 0.187
+      },
+      "mean": [
+        57,
+        40,
+        52
+      ],
+      "contrast": 0.229,
+      "edges": 0.0106,
+      "chroma": 0.045,
+      "tint": {
+        "l": 0.461,
+        "c": 0.061,
+        "h": 304.5
+      }
+    },
+    "ipados-18-indigo/light": {
+      "lum": 0.532,
+      "zones": {
+        "top": 0.656,
+        "mid": 0.575,
+        "bottom": 0.366
+      },
+      "mean": [
+        65,
+        108,
+        176
+      ],
+      "contrast": 0.217,
+      "edges": 0.01,
+      "chroma": 0.13,
+      "tint": {
+        "l": 0.392,
+        "c": 0.165,
+        "h": 275.7
+      }
+    },
+    "ipados-18-indigo/dark": {
+      "lum": 0.324,
+      "zones": {
+        "top": 0.498,
+        "mid": 0.286,
+        "bottom": 0.188
+      },
+      "mean": [
+        43,
+        51,
+        75
+      ],
+      "contrast": 0.229,
+      "edges": 0.011,
+      "chroma": 0.059,
+      "tint": {
+        "l": 0.288,
+        "c": 0.102,
+        "h": 282
+      }
+    },
+    "ipados-18-blue/light": {
+      "lum": 0.599,
+      "zones": {
+        "top": 0.743,
+        "mid": 0.645,
+        "bottom": 0.41
+      },
+      "mean": [
+        84,
+        133,
+        178
+      ],
+      "contrast": 0.253,
+      "edges": 0.0106,
+      "chroma": 0.111,
+      "tint": {
+        "l": 0.42,
+        "c": 0.165,
+        "h": 266.2
+      }
+    },
+    "ipados-18-blue/dark": {
+      "lum": 0.309,
+      "zones": {
+        "top": 0.473,
+        "mid": 0.286,
+        "bottom": 0.17
+      },
+      "mean": [
+        29,
+        45,
+        89
+      ],
+      "contrast": 0.227,
+      "edges": 0.0099,
+      "chroma": 0.083,
+      "tint": {
+        "l": 0.333,
+        "c": 0.1,
+        "h": 266.4
+      }
+    },
+    "ipados-18-teal/light": {
+      "lum": 0.572,
+      "zones": {
+        "top": 0.705,
+        "mid": 0.614,
+        "bottom": 0.399
+      },
+      "mean": [
+        72,
+        129,
+        147
+      ],
+      "contrast": 0.25,
+      "edges": 0.0118,
+      "chroma": 0.106,
+      "tint": {
+        "l": 0.356,
+        "c": 0.142,
+        "h": 267.4
+      }
+    },
+    "ipados-18-teal/dark": {
+      "lum": 0.317,
+      "zones": {
+        "top": 0.477,
+        "mid": 0.307,
+        "bottom": 0.167
+      },
+      "mean": [
+        28,
+        52,
+        73
+      ],
+      "contrast": 0.218,
+      "edges": 0.0101,
+      "chroma": 0.061,
+      "tint": {
+        "l": 0.413,
+        "c": 0.114,
+        "h": 264.7
+      }
+    },
+    "ios-14/light": {
+      "lum": 0.631,
+      "zones": {
+        "top": 0.694,
+        "mid": 0.636,
+        "bottom": 0.563
+      },
+      "mean": [
+        182,
+        117,
+        118
+      ],
+      "contrast": 0.087,
+      "edges": 0.0054,
+      "chroma": 0.115,
+      "tint": {
+        "l": 0.607,
+        "c": 0.179,
+        "h": 27.8
+      }
+    },
+    "ios-14/dark": {
+      "lum": 0.287,
+      "zones": {
+        "top": 0.212,
+        "mid": 0.273,
+        "bottom": 0.376
+      },
+      "mean": [
+        62,
+        33,
+        38
+      ],
+      "contrast": 0.125,
+      "edges": 0.0066,
+      "chroma": 0.07,
+      "tint": {
+        "l": 0.297,
+        "c": 0.11,
+        "h": 22
+      }
+    },
+    "ios-13/light": {
+      "lum": 0.748,
+      "zones": {
+        "top": 0.724,
+        "mid": 0.754,
+        "bottom": 0.765
+      },
+      "mean": [
+        246,
+        141,
+        103
+      ],
+      "contrast": 0.118,
+      "edges": 0.0081,
+      "chroma": 0.147,
+      "tint": {
+        "l": 0.678,
+        "c": 0.2,
+        "h": 39.2
+      }
+    },
+    "ios-13/dark": {
+      "lum": 0.343,
+      "zones": {
+        "top": 0.301,
+        "mid": 0.399,
+        "bottom": 0.329
+      },
+      "mean": [
+        107,
+        15,
+        25
+      ],
+      "contrast": 0.226,
+      "edges": 0.0192,
+      "chroma": 0.127,
+      "tint": {
+        "l": 0.504,
+        "c": 0.186,
+        "h": 25.3
+      }
+    },
+    "nature/aurora": {
+      "lum": 0.477,
+      "zones": {
+        "top": 0.512,
+        "mid": 0.666,
+        "bottom": 0.253
+      },
+      "mean": [
+        108,
+        82,
+        114
+      ],
+      "contrast": 0.209,
+      "edges": 0.0159,
+      "chroma": 0.067,
+      "tint": {
+        "l": 0.622,
+        "c": 0.097,
+        "h": 333
+      }
+    },
+    "nature/clown-fish": {
+      "lum": 0.459,
+      "zones": {
+        "top": 0.46,
+        "mid": 0.436,
+        "bottom": 0.48
+      },
+      "mean": [
+        68,
+        98,
+        48
+      ],
+      "contrast": 0.116,
+      "edges": 0.0685,
+      "chroma": 0.091,
+      "tint": {
+        "l": 0.481,
+        "c": 0.094,
+        "h": 138
+      }
+    },
+    "nature/dew-drop": {
+      "lum": 0.599,
+      "zones": {
+        "top": 0.579,
+        "mid": 0.619,
+        "bottom": 0.599
+      },
+      "mean": [
+        91,
+        142,
+        95
+      ],
+      "contrast": 0.101,
+      "edges": 0.0138,
+      "chroma": 0.092,
+      "tint": {
+        "l": 0.597,
+        "c": 0.098,
+        "h": 143.5
+      }
+    },
+    "nature/earth": {
+      "lum": 0.199,
+      "zones": {
+        "top": 0.171,
+        "mid": 0.274,
+        "bottom": 0.151
+      },
+      "mean": [
+        15,
+        22,
+        32
+      ],
+      "contrast": 0.271,
+      "edges": 0.0311,
+      "chroma": 0.024,
+      "tint": {
+        "l": 0.474,
+        "c": 0.083,
+        "h": 259.3
+      }
+    },
+    "nature/earth-horizon": {
+      "lum": 0.408,
+      "zones": {
+        "top": 0.297,
+        "mid": 0.462,
+        "bottom": 0.467
+      },
+      "mean": [
+        60,
+        74,
+        100
+      ],
+      "contrast": 0.264,
+      "edges": 0.0259,
+      "chroma": 0.047,
+      "tint": {
+        "l": 0.455,
+        "c": 0.133,
+        "h": 263.6
+      }
+    },
+    "nature/earth-moon-horizon": {
+      "lum": 0.492,
+      "zones": {
+        "top": 0.182,
+        "mid": 0.597,
+        "bottom": 0.698
+      },
+      "mean": [
+        73,
+        99,
+        131
+      ],
+      "contrast": 0.27,
+      "edges": 0.0142,
+      "chroma": 0.062,
+      "tint": {
+        "l": 0.465,
+        "c": 0.082,
+        "h": 256.5
+      }
+    },
+    "nature/evening-reflections": {
+      "lum": 0.661,
+      "zones": {
+        "top": 0.796,
+        "mid": 0.662,
+        "bottom": 0.525
+      },
+      "mean": [
+        145,
+        146,
+        151
+      ],
+      "contrast": 0.13,
+      "edges": 0.0149,
+      "chroma": 0.053,
+      "tint": {
+        "l": 0.626,
+        "c": 0.076,
+        "h": 256.8
+      }
+    },
+    "nature/flowing-rock": {
+      "lum": 0.589,
+      "zones": {
+        "top": 0.554,
+        "mid": 0.608,
+        "bottom": 0.605
+      },
+      "mean": [
+        187,
+        96,
+        55
+      ],
+      "contrast": 0.08,
+      "edges": 0.0316,
+      "chroma": 0.131,
+      "tint": {
+        "l": 0.575,
+        "c": 0.134,
+        "h": 41.7
+      }
+    },
+    "nature/gentle-rapids": {
+      "lum": 0.679,
+      "zones": {
+        "top": 0.728,
+        "mid": 0.661,
+        "bottom": 0.649
+      },
+      "mean": [
+        165,
+        145,
+        160
+      ],
+      "contrast": 0.116,
+      "edges": 0.0264,
+      "chroma": 0.051,
+      "tint": {
+        "l": 0.53,
+        "c": 0.075,
+        "h": 285.2
+      }
+    },
+    "nature/golden-palace": {
+      "lum": 0.529,
+      "zones": {
+        "top": 0.63,
+        "mid": 0.483,
+        "bottom": 0.472
+      },
+      "mean": [
+        105,
+        111,
+        84
+      ],
+      "contrast": 0.178,
+      "edges": 0.0513,
+      "chroma": 0.045,
+      "tint": {
+        "l": 0.537,
+        "c": 0.072,
+        "h": 120.2
+      }
+    },
+    "nature/ladybug": {
+      "lum": 0.616,
+      "zones": {
+        "top": 0.664,
+        "mid": 0.615,
+        "bottom": 0.568
+      },
+      "mean": [
+        95,
+        149,
+        86
+      ],
+      "contrast": 0.074,
+      "edges": 0.0076,
+      "chroma": 0.111,
+      "tint": {
+        "l": 0.618,
+        "c": 0.113,
+        "h": 142.1
+      }
+    },
+    "nature/mt-fuji": {
+      "lum": 0.619,
+      "zones": {
+        "top": 0.765,
+        "mid": 0.581,
+        "bottom": 0.511
+      },
+      "mean": [
+        152,
+        120,
+        165
+      ],
+      "contrast": 0.12,
+      "edges": 0.0057,
+      "chroma": 0.094,
+      "tint": {
+        "l": 0.516,
+        "c": 0.1,
+        "h": 285.7
+      }
+    },
+    "nature/rock-garden": {
+      "lum": 0.551,
+      "zones": {
+        "top": 0.372,
+        "mid": 0.648,
+        "bottom": 0.632
+      },
+      "mean": [
+        113,
+        114,
+        109
+      ],
+      "contrast": 0.169,
+      "edges": 0.0308,
+      "chroma": 0.011,
+      "tint": {
+        "l": 0.435,
+        "c": 0.04,
+        "h": 83.1
+      }
+    },
+    "nature/rocks": {
+      "lum": 0.489,
+      "zones": {
+        "top": 0.48,
+        "mid": 0.527,
+        "bottom": 0.459
+      },
+      "mean": [
+        95,
+        96,
+        98
+      ],
+      "contrast": 0.136,
+      "edges": 0.0285,
+      "chroma": 0.011,
+      "tint": null
+    },
+    "nature/snowy-hills": {
+      "lum": 0.496,
+      "zones": {
+        "top": 0.482,
+        "mid": 0.481,
+        "bottom": 0.524
+      },
+      "mean": [
+        76,
+        101,
+        125
+      ],
+      "contrast": 0.073,
+      "edges": 0.015,
+      "chroma": 0.05,
+      "tint": {
+        "l": 0.485,
+        "c": 0.051,
+        "h": 248.6
+      }
+    },
+    "nature/stones": {
+      "lum": 0.464,
+      "zones": {
+        "top": 0.468,
+        "mid": 0.504,
+        "bottom": 0.419
+      },
+      "mean": [
+        95,
+        88,
+        74
+      ],
+      "contrast": 0.199,
+      "edges": 0.0537,
+      "chroma": 0.026,
+      "tint": {
+        "l": 0.671,
+        "c": 0.059,
+        "h": 73.9
+      }
+    },
+    "nature/sweeping-current": {
+      "lum": 0.604,
+      "zones": {
+        "top": 0.632,
+        "mid": 0.627,
+        "bottom": 0.554
+      },
+      "mean": [
+        103,
+        122,
+        208
+      ],
+      "contrast": 0.087,
+      "edges": 0.0182,
+      "chroma": 0.132,
+      "tint": {
+        "l": 0.598,
+        "c": 0.136,
+        "h": 271.8
+      }
+    },
+    "nature/tranquil-surface": {
+      "lum": 0.629,
+      "zones": {
+        "top": 0.791,
+        "mid": 0.6,
+        "bottom": 0.498
+      },
+      "mean": [
+        111,
+        137,
+        184
+      ],
+      "contrast": 0.15,
+      "edges": 0.0274,
+      "chroma": 0.077,
+      "tint": {
+        "l": 0.576,
+        "c": 0.087,
+        "h": 261.6
+      }
+    },
+    "nature/water": {
+      "lum": 0.729,
+      "zones": {
+        "top": 0.883,
+        "mid": 0.613,
+        "bottom": 0.691
+      },
+      "mean": [
+        132,
+        172,
+        209
+      ],
+      "contrast": 0.132,
+      "edges": 0.011,
+      "chroma": 0.07,
+      "tint": {
+        "l": 0.652,
+        "c": 0.09,
+        "h": 248.6
+      }
+    },
+    "nature/zebra": {
+      "lum": 0.452,
+      "zones": {
+        "top": 0.406,
+        "mid": 0.467,
+        "bottom": 0.483
+      },
+      "mean": [
+        89,
+        85,
+        82
+      ],
+      "contrast": 0.253,
+      "edges": 0.1238,
+      "chroma": 0.01,
+      "tint": {
+        "l": 0.803,
+        "c": 0.031,
+        "h": 97.1
+      }
+    },
+    "nature/zen-garden": {
+      "lum": 0.543,
+      "zones": {
+        "top": 0.577,
+        "mid": 0.551,
+        "bottom": 0.501
+      },
+      "mean": [
+        68,
+        116,
+        157
+      ],
+      "contrast": 0.107,
+      "edges": 0.0646,
+      "chroma": 0.083,
+      "tint": {
+        "l": 0.536,
+        "c": 0.086,
+        "h": 246.6
+      }
+    }
+  },
+  "weather": {
+    "clear/day/light": {
+      "lum": 0.982,
+      "zones": {
+        "top": 0.962,
+        "mid": 0.984,
+        "bottom": 1
+      },
+      "mean": [
+        244,
+        251,
+        248
+      ],
+      "contrast": 0.017,
+      "edges": 0.0004,
+      "chroma": 0.012,
+      "tint": {
+        "l": 0.968,
+        "c": 0.037,
+        "h": 102.2
+      }
+    },
+    "clear/night/light": {
+      "lum": 0.982,
+      "zones": {
+        "top": 0.959,
+        "mid": 0.985,
+        "bottom": 1
+      },
+      "mean": [
+        245,
+        249,
+        255
+      ],
+      "contrast": 0.018,
+      "edges": 0.0005,
+      "chroma": 0.009,
+      "tint": null
+    },
+    "cloudy/day/light": {
+      "lum": 0.969,
+      "zones": {
+        "top": 0.949,
+        "mid": 0.974,
+        "bottom": 0.985
+      },
+      "mean": [
+        236,
+        247,
+        253
+      ],
+      "contrast": 0.02,
+      "edges": 0.0006,
+      "chroma": 0.015,
+      "tint": null
+    },
+    "cloudy/night/light": {
+      "lum": 0.964,
+      "zones": {
+        "top": 0.94,
+        "mid": 0.969,
+        "bottom": 0.983
+      },
+      "mean": [
+        236,
+        244,
+        253
+      ],
+      "contrast": 0.023,
+      "edges": 0.0006,
+      "chroma": 0.015,
+      "tint": null
+    },
+    "fog/day/light": {
+      "lum": 0.973,
+      "zones": {
+        "top": 0.958,
+        "mid": 0.977,
+        "bottom": 0.985
+      },
+      "mean": [
+        239,
+        248,
+        249
+      ],
+      "contrast": 0.015,
+      "edges": 0.0004,
+      "chroma": 0.01,
+      "tint": null
+    },
+    "fog/night/light": {
+      "lum": 0.968,
+      "zones": {
+        "top": 0.949,
+        "mid": 0.972,
+        "bottom": 0.983
+      },
+      "mean": [
+        237,
+        246,
+        250
+      ],
+      "contrast": 0.018,
+      "edges": 0.0005,
+      "chroma": 0.01,
+      "tint": null
+    },
+    "rain/day/light": {
+      "lum": 0.986,
+      "zones": {
+        "top": 0.968,
+        "mid": 0.989,
+        "bottom": 1
+      },
+      "mean": [
+        244,
+        252,
+        254
+      ],
+      "contrast": 0.015,
+      "edges": 0.0004,
+      "chroma": 0.009,
+      "tint": null
+    },
+    "rain/night/light": {
+      "lum": 0.986,
+      "zones": {
+        "top": 0.968,
+        "mid": 0.989,
+        "bottom": 1
+      },
+      "mean": [
+        244,
+        252,
+        254
+      ],
+      "contrast": 0.015,
+      "edges": 0.0004,
+      "chroma": 0.009,
+      "tint": null
+    },
+    "snow/day/light": {
+      "lum": 0.98,
+      "zones": {
+        "top": 0.972,
+        "mid": 0.981,
+        "bottom": 0.985
+      },
+      "mean": [
+        246,
+        247,
+        255
+      ],
+      "contrast": 0.008,
+      "edges": 0.0002,
+      "chroma": 0.018,
+      "tint": null
+    },
+    "snow/night/light": {
+      "lum": 0.974,
+      "zones": {
+        "top": 0.963,
+        "mid": 0.977,
+        "bottom": 0.983
+      },
+      "mean": [
+        246,
+        245,
+        255
+      ],
+      "contrast": 0.011,
+      "edges": 0.0003,
+      "chroma": 0.018,
+      "tint": null
+    },
+    "thunder/day/light": {
+      "lum": 0.982,
+      "zones": {
+        "top": 0.959,
+        "mid": 0.985,
+        "bottom": 1
+      },
+      "mean": [
+        246,
+        249,
+        255
+      ],
+      "contrast": 0.018,
+      "edges": 0.0005,
+      "chroma": 0.01,
+      "tint": {
+        "l": 0.946,
+        "c": 0.034,
+        "h": 281.2
+      }
+    },
+    "thunder/night/light": {
+      "lum": 0.982,
+      "zones": {
+        "top": 0.959,
+        "mid": 0.985,
+        "bottom": 1
+      },
+      "mean": [
+        246,
+        249,
+        255
+      ],
+      "contrast": 0.018,
+      "edges": 0.0005,
+      "chroma": 0.01,
+      "tint": {
+        "l": 0.946,
+        "c": 0.034,
+        "h": 281.2
+      }
+    },
+    "sunrise/light": {
+      "lum": 0.961,
+      "zones": {
+        "top": 0.934,
+        "mid": 0.964,
+        "bottom": 0.985
+      },
+      "mean": [
+        243,
+        242,
+        237
+      ],
+      "contrast": 0.022,
+      "edges": 0.0006,
+      "chroma": 0.027,
+      "tint": {
+        "l": 0.928,
+        "c": 0.05,
+        "h": 233.7
+      }
+    },
+    "sunset/light": {
+      "lum": 0.954,
+      "zones": {
+        "top": 0.924,
+        "mid": 0.958,
+        "bottom": 0.98
+      },
+      "mean": [
+        255,
+        229,
+        219
+      ],
+      "contrast": 0.024,
+      "edges": 0.0006,
+      "chroma": 0.047,
+      "tint": {
+        "l": 0.932,
+        "c": 0.073,
+        "h": 31.7
+      }
+    },
+    "clear/day/dark": {
+      "lum": 0.243,
+      "zones": {
+        "top": 0.276,
+        "mid": 0.235,
+        "bottom": 0.218
+      },
+      "mean": [
+        25,
+        32,
+        42
+      ],
+      "contrast": 0.037,
+      "edges": 0.001,
+      "chroma": 0.021,
+      "tint": {
+        "l": 0.292,
+        "c": 0.051,
+        "h": 253.9
+      }
+    },
+    "clear/night/dark": {
+      "lum": 0.222,
+      "zones": {
+        "top": 0.23,
+        "mid": 0.219,
+        "bottom": 0.218
+      },
+      "mean": [
+        23,
+        27,
+        34
+      ],
+      "contrast": 0.019,
+      "edges": 0.0006,
+      "chroma": 0.016,
+      "tint": {
+        "l": 0.259,
+        "c": 0.044,
+        "h": 253.3
+      }
+    },
+    "cloudy/day/dark": {
+      "lum": 0.237,
+      "zones": {
+        "top": 0.262,
+        "mid": 0.231,
+        "bottom": 0.218
+      },
+      "mean": [
+        28,
+        31,
+        35
+      ],
+      "contrast": 0.026,
+      "edges": 0.0007,
+      "chroma": 0.009,
+      "tint": null
+    },
+    "cloudy/night/dark": {
+      "lum": 0.228,
+      "zones": {
+        "top": 0.242,
+        "mid": 0.224,
+        "bottom": 0.218
+      },
+      "mean": [
+        26,
+        29,
+        33
+      ],
+      "contrast": 0.019,
+      "edges": 0.0005,
+      "chroma": 0.01,
+      "tint": {
+        "l": 0.286,
+        "c": 0.032,
+        "h": 255.5
+      }
+    },
+    "fog/day/dark": {
+      "lum": 0.228,
+      "zones": {
+        "top": 0.244,
+        "mid": 0.223,
+        "bottom": 0.218
+      },
+      "mean": [
+        26,
+        29,
+        31
+      ],
+      "contrast": 0.028,
+      "edges": 0.0008,
+      "chroma": 0.007,
+      "tint": null
+    },
+    "fog/night/dark": {
+      "lum": 0.229,
+      "zones": {
+        "top": 0.244,
+        "mid": 0.224,
+        "bottom": 0.218
+      },
+      "mean": [
+        25,
+        29,
+        32
+      ],
+      "contrast": 0.023,
+      "edges": 0.0006,
+      "chroma": 0.009,
+      "tint": null
+    },
+    "rain/day/dark": {
+      "lum": 0.228,
+      "zones": {
+        "top": 0.242,
+        "mid": 0.224,
+        "bottom": 0.218
+      },
+      "mean": [
+        21,
+        29,
+        39
+      ],
+      "contrast": 0.019,
+      "edges": 0.0005,
+      "chroma": 0.023,
+      "tint": {
+        "l": 0.246,
+        "c": 0.05,
+        "h": 252.7
+      }
+    },
+    "rain/night/dark": {
+      "lum": 0.228,
+      "zones": {
+        "top": 0.242,
+        "mid": 0.224,
+        "bottom": 0.218
+      },
+      "mean": [
+        21,
+        29,
+        39
+      ],
+      "contrast": 0.019,
+      "edges": 0.0005,
+      "chroma": 0.023,
+      "tint": {
+        "l": 0.246,
+        "c": 0.05,
+        "h": 252.7
+      }
+    },
+    "snow/day/dark": {
+      "lum": 0.232,
+      "zones": {
+        "top": 0.253,
+        "mid": 0.227,
+        "bottom": 0.218
+      },
+      "mean": [
+        27,
+        29,
+        35
+      ],
+      "contrast": 0.028,
+      "edges": 0.0007,
+      "chroma": 0.012,
+      "tint": {
+        "l": 0.306,
+        "c": 0.034,
+        "h": 280.7
+      }
+    },
+    "snow/night/dark": {
+      "lum": 0.229,
+      "zones": {
+        "top": 0.244,
+        "mid": 0.224,
+        "bottom": 0.218
+      },
+      "mean": [
+        27,
+        28,
+        35
+      ],
+      "contrast": 0.023,
+      "edges": 0.0006,
+      "chroma": 0.013,
+      "tint": {
+        "l": 0.284,
+        "c": 0.037,
+        "h": 289.8
+      }
+    },
+    "thunder/day/dark": {
+      "lum": 0.223,
+      "zones": {
+        "top": 0.23,
+        "mid": 0.22,
+        "bottom": 0.218
+      },
+      "mean": [
+        22,
+        27,
+        39
+      ],
+      "contrast": 0.014,
+      "edges": 0.0004,
+      "chroma": 0.026,
+      "tint": {
+        "l": 0.236,
+        "c": 0.06,
+        "h": 268.9
+      }
+    },
+    "thunder/night/dark": {
+      "lum": 0.223,
+      "zones": {
+        "top": 0.23,
+        "mid": 0.22,
+        "bottom": 0.218
+      },
+      "mean": [
+        22,
+        27,
+        39
+      ],
+      "contrast": 0.014,
+      "edges": 0.0004,
+      "chroma": 0.026,
+      "tint": {
+        "l": 0.236,
+        "c": 0.06,
+        "h": 268.9
+      }
+    },
+    "sunrise/dark": {
+      "lum": 0.31,
+      "zones": {
+        "top": 0.416,
+        "mid": 0.294,
+        "bottom": 0.22
+      },
+      "mean": [
+        49,
+        48,
+        48
+      ],
+      "contrast": 0.086,
+      "edges": 0.0023,
+      "chroma": 0.008,
+      "tint": {
+        "l": 0.463,
+        "c": 0.037,
+        "h": 51.1
+      }
+    },
+    "sunset/dark": {
+      "lum": 0.339,
+      "zones": {
+        "top": 0.371,
+        "mid": 0.332,
+        "bottom": 0.313
+      },
+      "mean": [
+        72,
+        49,
+        48
+      ],
+      "contrast": 0.031,
+      "edges": 0.0009,
+      "chroma": 0.04,
+      "tint": {
+        "l": 0.363,
+        "c": 0.07,
+        "h": 34.3
+      }
+    }
+  }
+}

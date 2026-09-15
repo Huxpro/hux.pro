@@ -8,6 +8,8 @@ import {
   useGlass,
   useLocale,
   useTheme,
+  GLASS_TINTS,
+  getTintLabel,
 } from "@/services";
 import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
 import { BEZEL_BAND_MAX, BEZEL_BAND_MIN, BEZEL_RADIUS_MAX } from "@hux/bezel";
@@ -94,6 +96,7 @@ import {
   X,
 } from "lucide-react";
 import { withDraggable } from "@/systems/draggable";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 // =============================================================================
@@ -818,6 +821,7 @@ function GlassModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
   const glass = useGlass();
+  const { legibility, legibilityOverride } = useWallpaper();
 
   const options = GLASS_MATERIALS.map((value) => ({
     value,
@@ -845,11 +849,48 @@ function GlassModule() {
             onChange={glass.setMaterial}
           />
         </PanelRow>
+        <PanelRow
+          label={t(locale, "settingsTint")}
+          star={
+            glass.tint === "neutral" ? null : (
+              <PanelStar onReset={() => glass.setTint("neutral")} label="Back to neutral" />
+            )
+          }
+        >
+          <PanelSegmented
+            value={glass.tint}
+            options={GLASS_TINTS.map((value) => ({
+              value,
+              label: getTintLabel(value, locale),
+            }))}
+            onChange={glass.setTint}
+          />
+        </PanelRow>
         <p className="text-[10px] leading-snug text-muted-foreground/60">
           {zh
-            ? "透明：接近无填充的通透质感，背后的壁纸直接透出来。色调：当前这种带卡片底色的材质。"
-            : "Clear thins every surface to a vibrancy wash so the wallpaper reads through it. Tinted keeps the card fill."}
+            ? "透明：接近无填充的通透质感，背后的壁纸直接透出来。色调：当前这种带卡片底色的材质。着色：玻璃与选中态借用壁纸的主色。"
+            : "Clear thins every surface to a vibrancy wash so the wallpaper reads through it. Tinted keeps the card fill. Wallpaper tint lends the picture's colour to glass and selection."}
         </p>
+
+        {/* What the legibility policy resolved for the wallpaper that is
+            painting — the numbers on <html>. The lab is where to change them. */}
+        <div className="border-t border-border/30 pt-2 text-[10px] font-mono text-muted-foreground">
+          <span className="text-foreground/80">
+            {legibility.flip ? (zh ? "反色" : "flipped") : zh ? "正常" : "ink"}
+          </span>
+          <span className="ml-1.5 text-muted-foreground/60">
+            busy {legibility.busy.toFixed(2)} · relief {legibility.relief.toFixed(2)} · +
+            {legibility.inkBoost}% ink · +{legibility.glassAdd}% glass
+            {legibilityOverride && " · lab"}
+          </span>
+        </div>
+        <Link
+          href="/editor/legibility"
+          className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground transition-colors hover:text-foreground"
+        >
+          {zh ? "打开可读性实验室" : "Open the Legibility Lab"}
+          <ExternalLink className="h-3 w-3" />
+        </Link>
       </div>
     </DebugSection>
   );

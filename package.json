@@ -16,6 +16,8 @@
     "icon:generate": "node scripts/icon-generate.ts",
     "icon:check": "node scripts/icon-generate.ts --check",
     "wallpapers:check": "node scripts/wallpaper-check.ts",
+    "wallpapers:profile": "node scripts/wallpaper-profile.ts",
+    "wallpapers:profile:check": "node scripts/wallpaper-profile.ts --check",
     "apps:snapshot": "node scripts/app-icon-snapshot.ts",
     "apps:check": "node scripts/app-icon-snapshot.ts --check",
     "bezel:typecheck": "tsc -p packages/bezel"

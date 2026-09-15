@@ -17,8 +17,15 @@
  */
 export const WALLPAPER_HOME_PATH = "/";
 
+/**
+ * The Legibility Lab looks at the wallpaper the way the home screen does —
+ * sharp, unveiled — and simulates the reading treatment inside one of its own
+ * specimens, so it is a desktop too.
+ */
+export const LEGIBILITY_LAB_PATH = "/editor/legibility";
+
 export function isWallpaperHomePath(pathname: string | null): boolean {
-  return pathname === WALLPAPER_HOME_PATH;
+  return pathname === WALLPAPER_HOME_PATH || pathname === LEGIBILITY_LAB_PATH;
 }
 
 /** Whether the wallpaper should recede for reading on this route. */

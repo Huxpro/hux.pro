@@ -23,6 +23,9 @@ export {
   getGlassLabel,
   useGlass,
   type GlassMaterial,
+  GLASS_TINTS,
+  getTintLabel,
+  type GlassTint,
 } from "./glass";
 export { ThemeProvider, useTheme } from "./theme";
 export { VisitorProvider, useVisitor, type LastVisitedItem } from "./visitor";

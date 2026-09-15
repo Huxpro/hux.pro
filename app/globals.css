@@ -29,6 +29,14 @@
   --color-glass-overlay: var(--glass-overlay);
   --color-glass-sheet: var(--glass-sheet);
   --color-glass-popover: var(--glass-popover);
+  /* The ink every text colour is an alpha of, and the wallpaper's tint (see
+     docs/system-legibility.md). `bg-ink/5` is a wash; `text-tint` is colour. */
+  --color-ink: var(--ink);
+  --color-tint: var(--tint);
+  /* The rest of the label ladder below `muted-foreground` (Apple's tertiary /
+     quaternary labels): captions and watermarks, placeholders, dividers. */
+  --color-tertiary-foreground: var(--tertiary-foreground);
+  --color-quaternary-foreground: var(--quaternary-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
@@ -86,53 +94,99 @@
 /* =============================================================================
    CSS Custom Properties (Design Tokens)
 
-   Variables are organized into two categories:
+   Two kinds of variable live here:
 
-   CONTENT VARS - Page backgrounds, article text, content cards
-   Used by: body, articles, blog posts, docs, main page content
-   - --background, --foreground
-   - --card, --card-foreground
+   INPUTS — a colour or a number someone chose. The ink and the page for each
+   theme; the alpha ladder; the glass fills; the relief shape. The Legibility
+   Lab (/editor/legibility) overrides these inline to try alternatives.
 
-   UI VARS - Interactive components, overlays, command palette
-   Used by: command-palette.tsx, buttons, inputs, popovers, modals
-   - --popover, --popover-foreground (modal/overlay backgrounds)
-   - --accent, --accent-foreground (hover/selected states)
-   - --muted, --muted-foreground (secondary text, kbd backgrounds)
-   - --border, --input, --ring (form elements, borders)
-   - --primary, --secondary, --destructive (button variants)
+   DERIVED — everything a component actually paints with, computed from the
+   inputs in one block (`THE LADDER` below) so a zone that changes an input
+   (a flipped `.ink-bare`, a lab tile) re-derives the lot by re-declaring it.
+
+   Text is INK AT AN ALPHA, never a fixed grey. Apple's label ladder (label /
+   secondaryLabel / tertiaryLabel / quaternaryLabel) is a near-black or
+   near-white at 100 / 60 / 30 / 18 %, and macOS's at 85 / 50 / 25 / 10 %,
+   precisely so the same semantic colour composites over white, over a
+   material, or over a wallpaper. Ours is the same idea: `--muted-foreground`
+   is `--ink` at `--ink-alpha-secondary`, and the wash tokens (`--muted`,
+   `--accent`, `--border`) are ink at a few percent. A fixed `oklch(0.556)`
+   grey was a pre-computed alpha for a page that was only ever white or #1a1a1a;
+   under a wallpaper it stops being any alpha at all.
+
+   The wallpaper-derived inputs (`--wp-*`) are written onto <html> by the
+   ambient provider from the static profile of whichever wallpaper is painting
+   (systems/ambient/lib/legibility.ts). Their defaults below are "no wallpaper".
+   See docs/system-legibility.md.
    ============================================================================= */
 
 :root {
-  /* --- CONTENT VARS (Light Mode) --- */
+  /* --- INPUTS: the two colours of the light theme --- */
+  --ink: oklch(0.145 0 0);
+  --ink-inverse: oklch(0.985 0 0);
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-
-  /* --- UI VARS (Light Mode) --- */
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+
+  /* --- INPUTS: the ink ladder (Apple's label alphas, tuned for this ink) ---
+     primary is the ink itself; body prose is `foreground/85` at the call site. */
+  --ink-alpha-secondary: 54%;
+  --ink-alpha-tertiary: 32%;
+  --ink-alpha-quaternary: 16%;
+  --ink-alpha-ring: 45%;
+
+  /* --- INPUTS: the washes — fills that are ink at a few percent, so a hover,
+     a kbd, a divider read on any card under any material. --- */
+  --wash-alpha-muted: 4%;
+  --wash-alpha-accent: 7%;
+  --wash-alpha-border: 9%;
+
+  /* --- INPUTS: wallpaper-derived, written by the provider (see legibility.ts).
+     At rest — no wallpaper, or a weather gradient — every one is zero. --- */
+  --wp-ink-boost: 0%;
+  --wp-relief: 0;
+  --wp-glass-add: 0%;
+  --wp-tint-l: 0.6;
+  --wp-tint-c: 0;
+  --wp-tint-h: 0;
+
+  /* --- INPUTS: relief — the text shadow Aqua gave desktop labels and the Home
+     Screen gives labels on a bright wallpaper. Two shapes, chosen by the ink:
+     light ink gets a dark drop (ryOS Aqua Glass: 0 1px 3px .6 + 0 0 2px .45),
+     dark ink gets a white halo (0 0 4px + 0 0 3px). `--wp-relief` scales both;
+     the per-material multipliers say how much survives on a glass surface. --- */
+  --relief-drop-a1: 0.6;
+  --relief-drop-a2: 0.45;
+  --relief-halo-a1: 0.55;
+  --relief-halo-a2: 0.3;
+  --glass-relief-k: 0.3;        /* ordinary glass: card fill does most of it */
+  --glass-relief-solid-k: 0;    /* sheets, popovers: solid enough already */
+  --glass-add-k: 0.5;           /* how much of --wp-glass-add Tinted takes */
+
+  /* --- INPUTS: tint — how much of the wallpaper's colour goes where.
+     Zero is the neutral baseline; `html[data-tint="wallpaper"]` raises them. --- */
+  --tint-glass: 0%;
+  --tint-accent: 0%;
+
+  /* --- INPUTS: glass fills — Tinted (色调), the default material. A material
+     is seven numbers; the roles below turn them into colours once. --- */
+  --glass-fill: 50%;
+  --glass-fill-raised: 60%;
+  --glass-fill-panel: 70%;
+  --glass-fill-popover: 75%;
+  --glass-fill-sheet: 85%;
+  --glass-hover-step: 20%;
+  --glass-dark-add: 0%;
+
+  /* --- Unchanged: primary / destructive / charts / layout --- */
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.58 0.22 27);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-
-  /* --- Chart colors --- */
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
-
-  /* --- Layout --- */
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -142,54 +196,30 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-
-  /* Tinted (色调) — the default material. Fills carry enough of the card
-     colour to read as a surface in their own right. Defined once: the formula
-     is theme-independent, and `--card` under `.dark` does the rest. Only Clear
-     needs a genuine dark override. */
-  --glass: color-mix(in oklab, var(--card) 50%, transparent);
-  --glass-hover: color-mix(in oklab, var(--card) 70%, transparent);
-  --glass-strong: color-mix(in oklab, var(--card) 60%, transparent);
-  --glass-strong-hover: color-mix(in oklab, var(--card) 80%, transparent);
-  --glass-overlay: color-mix(in oklab, var(--card) 70%, transparent);
-  --glass-sheet: color-mix(in oklab, var(--card) 85%, transparent);
-  --glass-popover: color-mix(in oklab, var(--popover) 75%, transparent);
 }
 
 .dark {
-  /* --- CONTENT VARS (Dark Mode) ---
+  /* --- INPUTS: the two colours of the dark theme ---
      Background: #1a1a1a (rgb(26, 26, 26)) inspired by paco.me
      Exact oklch conversion: oklch(21.78% 0 0) */
+  --ink: oklch(0.93 0 0); /* slightly softer than pure white */
+  --ink-inverse: oklch(0.145 0 0);
   --background: oklch(0.2178 0 0);
-  --foreground: oklch(0.93 0 0); /* slightly softer than pure white */
   --card: oklch(0.19 0 0);
-  --card-foreground: oklch(0.93 0 0);
-
-  /* --- UI VARS (Dark Mode) ---
-     These remain darker for proper contrast in overlays/modals */
   --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
+
+  /* White at an alpha reads weaker than black at the same alpha (macOS bumps
+     dark secondaryLabel from 50% to 55%); every rung gets a few points. */
+  --ink-alpha-secondary: 60%;
+  --ink-alpha-tertiary: 36%;
+  --ink-alpha-quaternary: 18%;
+  --wash-alpha-muted: 6%;
+  --wash-alpha-accent: 10%;
+  --wash-alpha-border: 10%;
+
   --primary: oklch(0.87 0 0);
   --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.32 0 0);
-  --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-
-  /* --- Chart colors --- */
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-
-  /* --- Layout --- */
   --sidebar: oklch(0.19 0 0);
   --sidebar-foreground: oklch(0.93 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -198,9 +228,7 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
-
 }
-
 
 /* -----------------------------------------------------------------------------
    Glass: Clear (透明)
@@ -209,26 +237,217 @@
    is behind the surface — a wallpaper, the page — comes through as the colour.
    The blur stays ordinary `backdrop-blur`: no specular highlights, no lens
    distortion, nothing that pretends to be a physical lens.
+
+   Clear "does not have adaptive behaviors … it needs a dimming layer to darken
+   the underlying content" (WWDC25). Ours is `--wp-glass-add`: the profile of a
+   busy wallpaper adds fill back, and Clear takes all of it where Tinted takes
+   half. Text on Clear also keeps its full relief.
 ----------------------------------------------------------------------------- */
 html.glass-clear {
-  --glass: color-mix(in oklab, var(--card) 20%, transparent);
-  --glass-hover: color-mix(in oklab, var(--card) 32%, transparent);
-  --glass-strong: color-mix(in oklab, var(--card) 26%, transparent);
-  --glass-strong-hover: color-mix(in oklab, var(--card) 38%, transparent);
-  --glass-overlay: color-mix(in oklab, var(--card) 36%, transparent);
-  --glass-sheet: color-mix(in oklab, var(--card) 46%, transparent);
-  --glass-popover: color-mix(in oklab, var(--popover) 40%, transparent);
+  --glass-fill: 20%;
+  --glass-fill-raised: 26%;
+  --glass-fill-panel: 36%;
+  --glass-fill-popover: 40%;
+  --glass-fill-sheet: 46%;
+  --glass-hover-step: 12%;
+  --glass-add-k: 1;
+  --glass-relief-k: 1;
+  --glass-relief-solid-k: 0.5;
 }
 
 /* Dark mode needs a touch more fill at the same perceived transparency. */
 html.dark.glass-clear {
-  --glass: color-mix(in oklab, var(--card) 26%, transparent);
-  --glass-hover: color-mix(in oklab, var(--card) 38%, transparent);
-  --glass-strong: color-mix(in oklab, var(--card) 32%, transparent);
-  --glass-strong-hover: color-mix(in oklab, var(--card) 44%, transparent);
-  --glass-overlay: color-mix(in oklab, var(--card) 42%, transparent);
-  --glass-sheet: color-mix(in oklab, var(--card) 52%, transparent);
-  --glass-popover: color-mix(in oklab, var(--popover) 46%, transparent);
+  --glass-dark-add: 6%;
+}
+
+/* -----------------------------------------------------------------------------
+   Tint: Wallpaper
+   Glass borrows the picture's dominant colour, and so does the accent wash
+   (selection, hover, the focus ring). "Apply color sparingly to the Liquid
+   Glass material … to the background rather than to symbols or text" — so the
+   ink ladder stays neutral, and only surfaces take the colour.
+----------------------------------------------------------------------------- */
+html[data-tint="wallpaper"] {
+  --tint-glass: 14%;
+  --tint-accent: 28%;
+}
+
+/* -----------------------------------------------------------------------------
+   Flipped ink — bare text over a wallpaper whose top band is on the wrong side
+   of the theme's ink (a dark photograph under the light theme). The provider
+   sets `data-wallpaper-flip`; anything marked `.ink-bare` swaps to the inverse
+   ink and re-derives its ladder. Surfaces (glass) never flip: they carry the
+   card colour, so their ink was right all along. `.ink-flip` is the same swap
+   unconditionally, for the lab's tiles.
+----------------------------------------------------------------------------- */
+html[data-wallpaper-flip] .ink-bare,
+.ink-flip {
+  --ink: var(--ink-inverse);
+}
+
+/* =============================================================================
+   THE LADDER — every derived token, declared once, on every element that can
+   change an input: the root, a flipped bare zone, and a lab tile (`.ink-scope`)
+   carrying its own `--wp-*`. A custom property is computed where it is
+   declared and inherited as a value, so a zone that only changed `--ink` would
+   otherwise inherit the root's grey; listing it here is what makes the swap
+   propagate to `text-muted-foreground`, `border-border` and the rest.
+   ============================================================================= */
+:root,
+.ink-scope,
+.ink-flip,
+html[data-wallpaper-flip] .ink-bare {
+  /* --- Text --- */
+  --foreground: var(--ink);
+  --card-foreground: var(--ink);
+  --popover-foreground: var(--ink);
+  --muted-foreground: color-mix(
+    in oklab,
+    var(--ink) calc(var(--ink-alpha-secondary) + var(--wp-ink-boost)),
+    transparent
+  );
+  --tertiary-foreground: color-mix(
+    in oklab,
+    var(--ink) calc(var(--ink-alpha-tertiary) + var(--wp-ink-boost)),
+    transparent
+  );
+  --quaternary-foreground: color-mix(
+    in oklab,
+    var(--ink) var(--ink-alpha-quaternary),
+    transparent
+  );
+  --secondary-foreground: var(--ink);
+  --accent-foreground: var(--ink);
+
+  /* --- Washes --- */
+  --muted: color-mix(in oklab, var(--ink) var(--wash-alpha-muted), transparent);
+  --secondary: var(--muted);
+  --border: color-mix(in oklab, var(--ink) var(--wash-alpha-border), transparent);
+  --input: var(--border);
+  --accent-wash: color-mix(in oklab, var(--ink) var(--wash-alpha-accent), transparent);
+  --ring-wash: color-mix(in oklab, var(--ink) var(--ink-alpha-ring), transparent);
+
+  /* --- Tint --- */
+  --tint: oklch(var(--wp-tint-l) var(--wp-tint-c) var(--wp-tint-h));
+  --accent: color-mix(in oklab, var(--accent-wash), var(--tint) var(--tint-accent));
+  --ring: color-mix(in oklab, var(--ring-wash), var(--tint) var(--tint-accent));
+
+  /* --- Glass --- */
+  --glass-base: color-mix(in oklab, var(--card), var(--tint) var(--tint-glass));
+  --glass-popover-base: color-mix(in oklab, var(--popover), var(--tint) var(--tint-glass));
+  --glass-add: calc(var(--glass-dark-add) + var(--wp-glass-add) * var(--glass-add-k));
+  --glass: color-mix(
+    in oklab,
+    var(--glass-base) calc(var(--glass-fill) + var(--glass-add)),
+    transparent
+  );
+  --glass-hover: color-mix(
+    in oklab,
+    var(--glass-base) calc(var(--glass-fill) + var(--glass-hover-step) + var(--glass-add)),
+    transparent
+  );
+  --glass-strong: color-mix(
+    in oklab,
+    var(--glass-base) calc(var(--glass-fill-raised) + var(--glass-add)),
+    transparent
+  );
+  --glass-strong-hover: color-mix(
+    in oklab,
+    var(--glass-base) calc(var(--glass-fill-raised) + var(--glass-hover-step) + var(--glass-add)),
+    transparent
+  );
+  --glass-overlay: color-mix(
+    in oklab,
+    var(--glass-base) calc(var(--glass-fill-panel) + var(--glass-add)),
+    transparent
+  );
+  --glass-sheet: color-mix(
+    in oklab,
+    var(--glass-base) calc(var(--glass-fill-sheet) + var(--glass-add)),
+    transparent
+  );
+  --glass-popover: color-mix(
+    in oklab,
+    var(--glass-popover-base) calc(var(--glass-fill-popover) + var(--glass-add)),
+    transparent
+  );
+
+  /* --- Relief, in both shapes, at bare / glass / solid strength --- */
+  --relief-drop:
+    0 1px 3px rgb(0 0 0 / calc(var(--relief-drop-a1) * var(--wp-relief))),
+    0 0 2px rgb(0 0 0 / calc(var(--relief-drop-a2) * var(--wp-relief)));
+  --relief-halo:
+    0 0 4px rgb(255 255 255 / calc(var(--relief-halo-a1) * var(--wp-relief))),
+    0 0 3px rgb(255 255 255 / calc(var(--relief-halo-a2) * var(--wp-relief)));
+  --relief-drop-glass:
+    0 1px 3px rgb(0 0 0 / calc(var(--relief-drop-a1) * var(--wp-relief) * var(--glass-relief-k))),
+    0 0 2px rgb(0 0 0 / calc(var(--relief-drop-a2) * var(--wp-relief) * var(--glass-relief-k)));
+  --relief-halo-glass:
+    0 0 4px rgb(255 255 255 / calc(var(--relief-halo-a1) * var(--wp-relief) * var(--glass-relief-k))),
+    0 0 3px rgb(255 255 255 / calc(var(--relief-halo-a2) * var(--wp-relief) * var(--glass-relief-k)));
+  --relief-drop-solid:
+    0 1px 3px rgb(0 0 0 / calc(var(--relief-drop-a1) * var(--wp-relief) * var(--glass-relief-solid-k))),
+    0 0 2px rgb(0 0 0 / calc(var(--relief-drop-a2) * var(--wp-relief) * var(--glass-relief-solid-k)));
+  --relief-halo-solid:
+    0 0 4px rgb(255 255 255 / calc(var(--relief-halo-a1) * var(--wp-relief) * var(--glass-relief-solid-k))),
+    0 0 3px rgb(255 255 255 / calc(var(--relief-halo-a2) * var(--wp-relief) * var(--glass-relief-solid-k)));
+}
+
+/* Which shape: dark ink wants a halo, light ink wants a drop. The flip rules
+   come last so a flipped zone under either theme picks the other shape. */
+:root,
+.ink-scope {
+  --text-relief: var(--relief-halo);
+  --text-relief-glass: var(--relief-halo-glass);
+  --text-relief-solid: var(--relief-halo-solid);
+}
+.dark,
+.dark .ink-scope,
+html:not(.dark) .ink-flip,
+html:not(.dark)[data-wallpaper-flip] .ink-bare {
+  --text-relief: var(--relief-drop);
+  --text-relief-glass: var(--relief-drop-glass);
+  --text-relief-solid: var(--relief-drop-solid);
+}
+.dark .ink-flip,
+.dark[data-wallpaper-flip] .ink-bare {
+  --text-relief: var(--relief-halo);
+  --text-relief-glass: var(--relief-halo-glass);
+  --text-relief-solid: var(--relief-halo-solid);
+}
+
+/* No relief resolved — `none`, not a transparent shadow, so the main path
+   (the plain page, the weather gradient, a calm picture, a reading page)
+   never rasterises one. The provider sets the attribute only above zero. */
+html:not([data-wallpaper-relief]) {
+  --text-relief: none;
+  --text-relief-glass: none;
+  --text-relief-solid: none;
+}
+
+/* Where relief lands. `text-shadow` inherits as a computed value, so it is
+   declared once per kind of ground: the page, a glass surface, a solid one,
+   and any zone that changed its inputs. Prose sits on the reading veil and
+   the policy already scales it there. */
+body,
+.ink-bare,
+.ink-scope {
+  text-shadow: var(--text-relief);
+}
+.bg-glass,
+.bg-glass-hover,
+.bg-glass-strong,
+.bg-glass-strong-hover {
+  text-shadow: var(--text-relief-glass);
+}
+.bg-glass-overlay,
+.bg-glass-sheet,
+.bg-glass-popover {
+  text-shadow: var(--text-relief-solid);
+}
+/* Anything that must never carry relief: an inverted chip, a code block. */
+.ink-flat {
+  text-shadow: none;
 }
 
 /* The bezel's stylesheet (html[data-bezel], container scroll, fixed layers

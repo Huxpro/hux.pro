@@ -5,6 +5,7 @@ import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import {
   getGlassLabel,
+  getTintLabel,
   localeNames,
   t,
   useGlass,
@@ -57,7 +58,7 @@ export function CommandPalette() {
     wallpaper,
     openPicker: openWallpaperPicker,
   } = useWallpaper();
-  const { material: glassMaterial, toggle: toggleGlass } = useGlass();
+  const { material: glassMaterial, toggle: toggleGlass, tint: glassTint, setTint: setGlassTint } = useGlass();
   const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled, signalDragReset } =
     useDevtool();
   const {
@@ -78,6 +79,8 @@ export function CommandPalette() {
   }, [isOpen, signalDragReset]);
 
   const glassLabel = getGlassLabel(glassMaterial, locale);
+  const tintLabel = getTintLabel(glassTint, locale);
+  const toggleTint = () => setGlassTint(glassTint === "wallpaper" ? "neutral" : "wallpaper");
   const wallpaperLabel =
     wallpaperKind === "image"
       ? wallpaper.name
@@ -877,6 +880,35 @@ export function CommandPalette() {
                     <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
                       G
                     </kbd>
+                  </Command.Item>
+                  <Command.Item
+                    value="tint"
+                    keywords={[
+                      "tint",
+                      "accent",
+                      "colour",
+                      "color",
+                      "wallpaper colour",
+                      "neutral",
+                      "着色",
+                      "强调色",
+                      "中性",
+                    ]}
+                    onSelect={() => toggleTint()}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                      "text-sm cursor-pointer transition-colors",
+                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                      "hover:bg-accent/25"
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className="size-4 shrink-0 rounded-full border border-border bg-tint"
+                    />
+                    <span className="flex-1">
+                      {t(locale, "settingsTint")}: {tintLabel}
+                    </span>
                   </Command.Item>
                   <Command.Item
                     value="music"

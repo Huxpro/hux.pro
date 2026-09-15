@@ -270,6 +270,31 @@ export function getWeatherGradient(params: {
   return out;
 }
 
+/**
+ * The three authored colours a weather gradient is built from, in paint order
+ * (two radial spots, then the linear ground). Read by the legibility profiler
+ * (`scripts/wallpaper-profile.ts`) so the weather wallpapers get the same
+ * static profile a picture does — the gradient has no pixels to sample, but
+ * it has these, and they are what it is made of.
+ */
+export function getWeatherPaletteColors(params: {
+  condition: WeatherCondition;
+  isDay: boolean;
+  theme: "light" | "dark";
+}): readonly [string, string, string] {
+  const slot = WEATHER_PALETTE[params.condition][params.isDay ? "day" : "night"];
+  return params.theme === "dark" ? slot.dark : slot.light;
+}
+
+/** Same as `getWeatherPaletteColors`, for the sunrise / sunset gradients. */
+export function getSunEventPaletteColors(params: {
+  event: SunEvent;
+  theme: "light" | "dark";
+}): readonly [string, string, string] {
+  const slot = SUN_PALETTE[params.event];
+  return params.theme === "dark" ? slot.dark : slot.light;
+}
+
 function getSunEventGradient(params: {
   event: SunEvent;
   theme: "light" | "dark";

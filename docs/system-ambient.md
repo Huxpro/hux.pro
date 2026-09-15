@@ -40,6 +40,9 @@ systems/ambient/
 │   ├── route-config.ts           # Form-factor types
 │   ├── settings.ts               # User preference persistence
 │   ├── wallpaper.ts              # Wallpaper kinds, weather styles + built-in catalog
+│   ├── wallpaper-profile.ts      # Profile types + keys (shared with the profiler script)
+│   ├── wallpaper-profiles.json   # The measured table — `pnpm wallpapers:profile`
+│   ├── legibility.ts             # Profile → CSS variables (docs/system-legibility.md)
 │   ├── sun.ts                    # Sunrise/sunset window detection
 │   └── index.ts                  # Lib exports
 └── index.ts                      # System barrel exports
@@ -281,7 +284,13 @@ index where a pair came out of one file — lives in
 
 ```bash
 pnpm wallpapers:check   # every file present, sharp enough, sized as declared, within budget
+pnpm wallpapers:profile # measure every wallpaper for the legibility system (commit the table)
 ```
+
+Every wallpaper — the weather gradients included — also has a static
+**profile** (`lib/wallpaper-profiles.json`): its lightness by band, how busy
+it is, its dominant colour. The legibility policy reads that at runtime
+instead of the pixels; see [docs/system-legibility.md](./system-legibility.md).
 
 **Apple retains rights to this artwork.** It is committed for a personal site,
 not licensed onward; the archives the frames were pulled from do not license

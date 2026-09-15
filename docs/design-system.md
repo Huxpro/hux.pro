@@ -107,9 +107,35 @@ Used for interactive components, overlays, and the command palette. These are in
 --border: oklch(1 0 0 / 10%);    /* subtle borders */
 ```
 
+### Ink at an alpha
+
+Since the wallpaper system, none of the greys above is a literal grey. Every
+text and wash token derives from one **ink** per theme (`--ink`,
+`oklch(0.145)` / `oklch(0.93)`) at an alpha, the way Apple's label ladder is
+a near-black at 100 / 60 / 30 / 18 %:
+
+| Token | Alpha of `--ink` (light / dark) | Use |
+|---|---|---|
+| `foreground` | 100 % | headings, primary |
+| `muted-foreground` | 54 / 60 % (+ wallpaper boost) | secondary |
+| `tertiary-foreground` | 32 / 36 % (+ boost) | captions, timestamps |
+| `quaternary-foreground` | 16 / 18 % | watermarks |
+| `muted` / `secondary` | 4 / 6 % | kbd, pills |
+| `accent` | 7 / 10 % (+ tint) | hover, selected |
+| `border` / `input` | 9 / 10 % | dividers |
+
+The utilities are unchanged (`text-muted-foreground/60`, `bg-muted/50` still
+work, and the `/NN` modifier now multiplies an alpha), and on the plain page
+the result lands within a channel of the old greys. The difference is
+everywhere else: over a wallpaper or on Clear glass the same token composites
+with what is behind it instead of ignoring it. The numbers, the wallpaper
+boost, the relief text-shadow and the tint are all in
+[docs/system-legibility.md](./system-legibility.md), and every one of them is
+a slider at `/editor/legibility`.
+
 ### Design Note
 
-All colors use **OKLCH** color space for perceptually uniform transitions. The palette is intentionally **grayscale** with no accent colors—the content provides the color.
+All colors use **OKLCH** color space for perceptually uniform transitions. The palette is intentionally **grayscale** with no accent colors—the content provides the color. The one exception is opt-in: **Tint: Wallpaper** lends the picture's dominant colour to glass and the accent wash (never to ink).
 
 ## Spacing & Layout
 
