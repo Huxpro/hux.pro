@@ -67,6 +67,9 @@ export const queryKeys = {
   location: (mode: LocationMode) => ["location", mode] as const,
 
   /** Weather query key - rounded coords for cache deduplication */
+  // "v2": the payload grew (cloud cover, precipitation, wind) when the
+  // wallpaper engine landed; the version segment keeps persisted v1 entries
+  // from being served as if they were complete.
   weather: (lat: number, lon: number) =>
-    ["weather", lat.toFixed(2), lon.toFixed(2)] as const,
+    ["weather", "v2", lat.toFixed(2), lon.toFixed(2)] as const,
 } as const;

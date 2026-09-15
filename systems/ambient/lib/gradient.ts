@@ -1,5 +1,15 @@
+// =============================================================================
+// CSS gradient renderer for a WeatherScene.
+//
+// This is the wallpaper's *fallback* path — widget mode, browsers without
+// WebGL, and `prefers-reduced-motion`. It paints the same palette the shader
+// uses (sky zenith → horizon, sun glow at the real sun position, a soft cloud
+// wash) so switching renderers never changes the mood, only the fidelity.
+// =============================================================================
+
 import type { SunEvent } from "./sun";
 import type { WeatherCondition } from "./weather";
+import { mixRGB, rgbToCss, type RGB, type WeatherScene } from "./scene";
 
 export type WeatherGradient = {
   backgroundImage: string;
@@ -29,6 +39,60 @@ export type SunEventGradient = {
   backgroundImage: string;
 };
 
+/**
+ * Extra veil applied on the CSS path. Flat gradients have no cloud texture to
+ * carry the colour, so they read heavier than the shader at the same veil;
+ * lifting them keeps text contrast comfortable over the page background.
+ */
+const CSS_VEIL_BOOST = { light: 0.28, dark: 0.18 } as const;
+
+function veiled(c: RGB, scene: WeatherScene): RGB {
+  const amount = Math.min(
+    1,
+    scene.veil.amount + CSS_VEIL_BOOST[scene.theme]
+  );
+  return mixRGB(c, scene.veil.color, amount);
+}
+
+export function sceneToCssGradient(scene: WeatherScene): string {
+  const zenith = veiled(scene.sky.zenith, scene);
+  const horizon = veiled(scene.sky.horizon, scene);
+  const glow = veiled(scene.sky.glow, scene);
+  const cloud = veiled(
+    mixRGB(scene.clouds.lit, scene.clouds.shade, scene.clouds.darkness * 0.6),
+    scene
+  );
+
+  const sunX = (scene.sun.screen.x * 100).toFixed(1);
+  // CSS y runs top → bottom; scene y runs bottom → top.
+  const sunY = ((1 - scene.sun.screen.y) * 100).toFixed(1);
+  const glowAlpha = scene.sky.glowStrength * 0.85;
+  const cloudAlpha = 0.25 + scene.clouds.cover * 0.55;
+  const cloudX = scene.sun.screen.x < 0.5 ? 82 : 18;
+
+  const layers = [
+    `radial-gradient(1100px 620px at ${sunX}% ${sunY}%, ${rgbToCss(glow, glowAlpha)} 0%, ${rgbToCss(glow, glowAlpha * 0.35)} 28%, transparent 68%)`,
+    `radial-gradient(900px 520px at ${cloudX}% 8%, ${rgbToCss(cloud, cloudAlpha)} 0%, transparent 70%)`,
+    `linear-gradient(180deg, ${rgbToCss(zenith)} 0%, ${rgbToCss(mixRGB(zenith, horizon, 0.55))} 55%, ${rgbToCss(horizon)} 100%)`,
+  ];
+
+  if (scene.fog > 0.2) {
+    layers.unshift(
+      `linear-gradient(0deg, ${rgbToCss(horizon, scene.fog * 0.8)} 0%, transparent 60%)`
+    );
+  }
+
+  return layers.join(", ");
+}
+
+// -----------------------------------------------------------------------------
+// Devtool previews — the original hand-tuned palette table.
+//
+// The scene-derived gradient above is what the page renders; these thumbnails
+// exist to tell conditions apart at a glance, so they keep the older, more
+// saturated per-condition colours rather than the veiled real palette.
+// -----------------------------------------------------------------------------
+
 const BASE = {
   dark: "oklch(0.2178 0 0)",
   light: "oklch(1 0 0)",
@@ -37,7 +101,6 @@ const BASE = {
 const HUE = {
   amber: 38,
   peach: 55,
-  gold: 60,
   warmBase: 85,
   cyan: 200,
   skyBlue: 210,
@@ -129,7 +192,7 @@ const WEATHER_PALETTE: Record<
 const SUN_PALETTE: Record<SunEvent, { dark: ColorTriple; light: ColorTriple }> = {
   sunrise: {
     dark: [
-      oklch(0.87, 0.12, 52, 0.40),
+      oklch(0.87, 0.12, 52, 0.4),
       oklch(0.48, 0.02, 245, 0.8),
       oklch(0.22, 0, 0),
     ],
@@ -177,7 +240,7 @@ const GEOMETRY: Record<"weather" | "sunrise" | "sunset", GradientGeometry> = {
   },
 };
 
-function buildGradient(colors: ColorTriple, geometry: GradientGeometry): string {
+function buildPreviewGradient(colors: ColorTriple, geometry: GradientGeometry): string {
   const [a, b, c] = colors;
   const { r1, r2, linear } = geometry;
 
@@ -188,6 +251,7 @@ function buildGradient(colors: ColorTriple, geometry: GradientGeometry): string 
   ].join(", ");
 }
 
+/** Devtool thumbnail for a condition (day / night × theme). */
 export function getWeatherGradient(params: {
   condition: WeatherCondition;
   isDay?: boolean;
@@ -199,10 +263,11 @@ export function getWeatherGradient(params: {
   const colors = params.theme === "dark" ? timeSlot.dark : timeSlot.light;
 
   return {
-    backgroundImage: buildGradient(colors, GEOMETRY.weather),
+    backgroundImage: buildPreviewGradient(colors, GEOMETRY.weather),
   };
 }
 
+/** Devtool thumbnail for a sunrise / sunset phase. */
 export function getSunEventGradient(params: {
   event: SunEvent;
   theme: "light" | "dark";
@@ -212,6 +277,6 @@ export function getSunEventGradient(params: {
   const geometry = GEOMETRY[params.event];
 
   return {
-    backgroundImage: buildGradient(colors, geometry),
+    backgroundImage: buildPreviewGradient(colors, geometry),
   };
 }

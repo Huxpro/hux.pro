@@ -57,16 +57,26 @@ Debug modules for the ambient system:
    (full / widget / soft edge), the bezel switch and its tint (black / dark /
    theme / custom), band and radius, a window / container scroll switch, the
    reading treatment switches (reading blur / reading dim),
-   and the resolved asset.
+   and the resolved asset. Under Weather two more rows: **Style** (CG /
+   Gradient — the persisted choice, the same two tiles the picker shows) and
+   **Engine** (Auto / GL / CSS — an ephemeral override of what actually paints,
+   starred when set). The last line reads the live engine back: `GL ·
+   1266×791 · 0.88× · 6.4ms` (internal resolution, adaptive scale, frame
+   time), or `CSS · gradient`, with `(no WebGL2)` when CG had to fall back.
    Full and Widget are *independent* switches, not two halves of one control:
    the persisted setting can only be one of them, but the panel exists to see
    combinations the setting cannot express. They drive ephemeral overrides, and
    a `*` next to a label marks one; clicking the note under them clears all
    three back to the setting.
 2. **Glass**: Material — Tinted (色调) / Clear (透明)
-3. **Weather**: Override weather condition (day/night × 6 conditions)
-4. **Time of Day**: Override ambient phase
-5. **Refetch**: Force re-fetch location/weather
+3. **Sky**: weather and time as one thing, because the wallpaper is a function
+   of both. A status line (condition · phase · clock · sun elevation · moon
+   phase), a day timeline painted with the sky's colours for the current
+   condition with a draggable playhead and ▶ play, phase names that jump the
+   clock, the six conditions previewed at the effective hour (click again to
+   return to live), the date slider that moves the moon, and a folded Tune
+   row of scene sliders. **Now** resets everything.
+4. **Refetch**: Force re-fetch location/weather
 
 ## Hooks
 
@@ -91,26 +101,27 @@ const { ... } = useDebug();
 
 ### Weather Override
 
-Override the effective weather condition and day/night state:
+Force a condition. Day/night is never part of it — the clock decides, so a
+forced condition can't put a moon in a daytime sky:
 
 ```typescript
-const { setDebugOverride, setOverrideEnabled } = useWeather();
+const { setDebugOverride, setSceneOverrides } = useWeather();
 
-// Set to rainy night
-setDebugOverride({ condition: "rain", isDay: false });
-setOverrideEnabled(true);
+setDebugOverride({ condition: "rain" }); // null → back to the real weather
+setSceneOverrides({ precipitationIntensity: 1 }); // heavy
 ```
 
-### Time Override
+### Time Travel
 
-Override the ambient phase:
+There is no phase override; there is one clock, and moving it moves the sun,
+the moon, the sky, the phase, the greeting and the sun-event notice together:
 
 ```typescript
-const { setOverridePhase, setOverrideEnabled } = useAmbientTime();
+const { setTimeScrubMinutes, setDayOffset, resetTimeTravel } = useAmbientTime();
 
-// Set to sunset
-setOverridePhase("sunset");
-setOverrideEnabled(true);
+setTimeScrubMinutes(22 * 60); // 22:00 today
+setDayOffset(11);             // eleven days on — a different moon
+resetTimeTravel();            // back to now
 ```
 
 ### Wallpaper Debugging
@@ -119,10 +130,11 @@ The Wallpaper module drives the real (persisted) settings rather than an
 ephemeral override, so the panel and the picker sheet can never disagree:
 
 ```typescript
-const { setKind, selectWallpaper } = useWallpaper();
+const { setKind, selectWallpaper, selectWeather } = useWallpaper();
 
 setKind("image");            // Swap the background kind, crossfaded
 selectWallpaper("monterey"); // Hot-swap the pair, no reload
+selectWeather("gradient");   // Back to weather, the flat style
 ```
 
 It reads out what is actually painting — `Now: Sonoma · dark · full · desktop

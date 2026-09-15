@@ -50,8 +50,12 @@ export function CommandPalette() {
   const { locale, setLocale } = useLocale();
   const { locationMode, setLocationMode, requestAccurateLocation } =
     useLocation();
-  const { kind: wallpaperKind, wallpaper, openPicker: openWallpaperPicker } =
-    useWallpaper();
+  const {
+    kind: wallpaperKind,
+    weatherStyle,
+    wallpaper,
+    openPicker: openWallpaperPicker,
+  } = useWallpaper();
   const { material: glassMaterial, toggle: toggleGlass } = useGlass();
   const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled, signalDragReset } =
     useDevtool();
@@ -74,7 +78,12 @@ export function CommandPalette() {
 
   const glassLabel = getGlassLabel(glassMaterial, locale);
   const wallpaperLabel =
-    wallpaperKind === "image" ? wallpaper.name : t(locale, "wallpaperWeather");
+    wallpaperKind === "image"
+      ? wallpaper.name
+      : `${t(locale, "wallpaperWeather")} · ${t(
+          locale,
+          weatherStyle === "cg" ? "wallpaperWeatherCg" : "wallpaperWeatherGradient"
+        )}`;
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [scrollPosition, setScrollPosition] = useState(0);

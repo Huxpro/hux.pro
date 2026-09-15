@@ -35,19 +35,31 @@ The DevTool provides a floating debug panel for development and testing.
 
 ## Features
 
-### Weather Override
+### Sky (weather + time)
 
-Test the ambient weather gradient with any weather condition:
+One module for everything the sky depends on. Test the weather wallpaper with
+any weather condition:
 
 | Category | Conditions |
 |----------|------------|
-| Clear | Clear, Sunny |
-| Cloudy | Partly Cloudy, Cloudy, Overcast, Fog |
-| Rain | Drizzle, Rain, Heavy Rain, Freezing Rain |
-| Storm | Thunderstorm |
-| Snow | Snow, Heavy Snow, Sleet |
+| Clear | Clear |
+| Cloudy | Cloudy, Fog |
+| Rain | Rain |
+| Storm | Thunder |
+| Snow | Snow |
 
-Combined with Day/Night toggle to preview all gradient variations.
+Click a condition to force it; click it again to go back to the live weather
+(the live one wears a green dot). Day/night is not a choice: it follows the
+clock above, so a "night rain" preview is a jump to Night plus Rain, and the
+chips themselves swap to their night faces when the clock does.
+
+The clock is a day timeline painted with the sky's own colours for the current
+condition, sunrise and sunset ticked on it; drag the playhead, click a phase
+name to jump there, or press ▶ to play dawn → dusk. The date slider moves the
+calendar day (the moon's phase). A folded **Tune** row holds sliders over the
+derived scene — cloud cover, precipitation intensity, wind speed and the theme
+veil — with the raw API numbers underneath. **Now** in the corner puts all of
+it back.
 
 ### Debug State
 
@@ -124,13 +136,16 @@ Weather overrides are stored in `WeatherContext`:
 
 ```typescript
 interface WeatherDebugOverride {
-  condition: WeatherCondition;
-  isDay: boolean;
+  condition: WeatherCondition; // day/night follows the clock, never this
 }
 
-// In WeatherContext
+// In WeatherContext — null means the real weather
 debugOverride: WeatherDebugOverride | null;
-isOverrideEnabled: boolean;
+sceneOverrides: SceneOverrides; // cloud / precip / wind / veil tweaks
+
+// In AmbientTimeContext — time travel
+timeScrubMinutes: number | null;
+dayOffset: number;
 ```
 
 The override is **ephemeral** - it resets on page refresh. This is intentional for development/testing use.

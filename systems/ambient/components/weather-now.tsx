@@ -34,10 +34,10 @@ export interface DisplayWeather {
 export function useDisplayWeather() {
   const {
     weather,
+    scene,
     isLoading,
     error,
     refresh,
-    isOverrideEnabled,
     debugOverride,
   } = useWeather();
   const { isEnabled: isDevtoolEnabled } = useDevtool();
@@ -45,14 +45,13 @@ export function useDisplayWeather() {
   const [staleWeather, setStaleWeather] = useState<DisplayWeather | null>(null);
   const [devForceEmpty, setDevForceEmpty] = useState(false);
 
-  const overrideActive =
-    !!weather && isDevtoolEnabled && isOverrideEnabled && !!debugOverride;
+  const overrideActive = !!weather && isDevtoolEnabled && !!debugOverride;
   const effectiveCondition: WeatherCondition | undefined = overrideActive
     ? debugOverride!.condition
     : weather?.condition;
-  const effectiveIsDay: boolean | undefined = overrideActive
-    ? debugOverride!.isDay
-    : weather?.isDay;
+  // Day/night follows the effective clock (real sun, or devtool time travel)
+  // rather than the API's snapshot, so the icon can never disagree with the sky.
+  const effectiveIsDay: boolean | undefined = scene.sun.elevation > -0.5;
 
   const current = useMemo<DisplayWeather | null>(
     () =>

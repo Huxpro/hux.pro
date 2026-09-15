@@ -1,26 +1,29 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { t, useLocale, useTheme, type TranslationKey } from "@/services";
+import { t, useLocale, type TranslationKey } from "@/services";
 import { AlbumTabs } from "@/systems/theater";
-import { Check, Cloud, Moon, Smartphone, Sun } from "lucide-react";
+import { Check, Cloud, Moon, Smartphone, Sparkles, Sun } from "lucide-react";
 import { useState } from "react";
 import {
   ADAPTIVE_PRESENTATION,
   AdaptiveSurface,
   useSurfaceContext,
 } from "@/systems/surface";
-import { getWeatherGradient } from "../lib/gradient";
+import { sceneToCssGradient } from "../lib/gradient";
 import type { WallpaperPlacement } from "../lib/settings";
 import {
   getWallpaperPairPreview,
   isPhoneWallpaper,
   isSingleImage,
   WALLPAPER_CATEGORIES,
+  WEATHER_STYLES,
   type Wallpaper,
   type WallpaperCategory,
+  type WeatherStyle,
 } from "../lib/wallpaper";
 import { useWallpaper, useWeather } from "../provider";
+import { WeatherWallpaper } from "./wallpaper";
 
 // ---------------------------------------------------------------------------
 // WallpaperSheet — the secondary window behind the Wallpaper command.
@@ -36,14 +39,15 @@ import { useWallpaper, useWeather } from "../provider";
 // "Name" · "macOS · 2020" underneath, with the file's resolution below that.
 // A photograph is one picture, so its tile is that picture, unsplit.
 //
-// The catalog is split into categories (Apple, Nature) with the same capsule
-// the Featured Talks widget uses to switch albums — one group at a time is the
-// same choice in both places, so it looks the same.
+// The catalog is split into categories (Weather, Apple, Nature) with the same
+// capsule the Featured Talks widget uses to switch albums — one group at a time
+// is the same choice in both places, so it looks the same.
 //
-// Weather is the FIRST tile in every category's grid at the same size, not a
-// banner of its own — it is one of the wallpapers, just the only one that
-// moves. A separate row said the opposite, and hiding it inside one category
-// would make the way back to it depend on which tab is open.
+// Weather is a category of its own, and the first: two tiles for the same live
+// sky — CG (the shader, previewed by a small live canvas) and Gradient (the
+// flat CSS wash, previewed with the gradient that is live right now). It used
+// to be one tile leading every grid; with two styles to choose between it is a
+// group, and the way back to it is always the first tab.
 // ---------------------------------------------------------------------------
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -298,31 +302,55 @@ function WallpaperTile({
   );
 }
 
-/** The live one. Same frame, same size, first in the grid. */
-function WeatherTile({ selected }: { selected: boolean }) {
+/**
+ * The live ones. Same frame, same size as the pair cards. Both tiles preview
+ * the sky as it is right now: the gradient tile paints the very gradient the
+ * page would, and the CG tile runs the shader itself at a tile-sized pixel
+ * budget — the one wallpaper that moves should move in its tile. Where WebGL2
+ * is missing the CG tile shows the gradient with a note, which is also what
+ * choosing it would paint.
+ */
+function WeatherStyleTile({
+  style,
+  selected,
+}: {
+  style: WeatherStyle;
+  selected: boolean;
+}) {
   const { locale } = useLocale();
-  const { theme } = useTheme();
-  const { setKind } = useWallpaper();
-  const { weather } = useWeather();
+  const { selectWeather, shaderSupported } = useWallpaper();
+  const { scene } = useWeather();
 
-  // Previews what is actually live right now, in the current theme.
-  const preview = getWeatherGradient({
-    condition: weather?.condition ?? "clear",
-    isDay: weather?.isDay ?? true,
-    theme,
-  }).backgroundImage;
+  const gradient = sceneToCssGradient(scene);
+  const live = style === "cg" && shaderSupported;
+  const name = t(locale, style === "cg" ? "wallpaperWeatherCg" : "wallpaperWeatherGradient");
+  const meta = t(
+    locale,
+    style === "cg" ? "wallpaperWeatherCgMeta" : "wallpaperWeatherGradientMeta"
+  );
+  const Glyph = style === "cg" ? Sparkles : Cloud;
 
   return (
     <div className="group min-w-0">
       <TileFrame selected={selected}>
         <button
           type="button"
-          onClick={() => setKind("weather")}
+          onClick={() => selectWeather(style)}
           aria-pressed={selected}
-          aria-label={t(locale, "wallpaperWeather")}
+          aria-label={`${t(locale, "wallpaperWeather")} — ${name}`}
+          title={style === "cg" && !shaderSupported ? t(locale, "wallpaperNoWebGL") : undefined}
           className="absolute inset-0"
         >
-          <span className="absolute inset-0" style={{ backgroundImage: preview }} />
+          {live ? (
+            <WeatherWallpaper
+              scene={scene}
+              active
+              quality={{ pixelBudget: 90_000, maxFps: 30 }}
+              className="rounded-[18px]"
+            />
+          ) : (
+            <span className="absolute inset-0" style={{ backgroundImage: gradient }} />
+          )}
           <span
             className={cn(
               "absolute bottom-2 left-2 flex items-center gap-1 rounded-full px-2 py-0.5",
@@ -330,15 +358,12 @@ function WeatherTile({ selected }: { selected: boolean }) {
               ARTWORK_CHIP
             )}
           >
-            <Cloud className="size-3" />
+            <Glyph className="size-3" />
             {t(locale, "wallpaperLive")}
           </span>
         </button>
       </TileFrame>
-      <TileCaption
-        name={t(locale, "wallpaperWeather")}
-        meta={t(locale, "wallpaperWeatherMeta")}
-      />
+      <TileCaption name={name} meta={meta} />
     </div>
   );
 }
@@ -363,6 +388,7 @@ export function WallpaperSheet() {
 }
 
 const CATEGORY_LABEL: Record<WallpaperCategory, TranslationKey> = {
+  weather: "wallpaperCategoryWeather",
   apple: "wallpaperCategoryApple",
   nature: "wallpaperCategoryNature",
 };
@@ -374,16 +400,21 @@ const CATEGORY_LABEL: Record<WallpaperCategory, TranslationKey> = {
  */
 function WallpaperPickerBody() {
   const { locale } = useLocale();
-  const { kind, wallpapers, wallpaper: active, placement, setPlacement } =
-    useWallpaper();
+  const {
+    kind,
+    weatherStyle,
+    wallpapers,
+    wallpaper: active,
+    placement,
+    setPlacement,
+  } = useWallpaper();
   const isImage = kind === "image";
   const { isWindow } = useSurfaceContext();
   const columns = isWindow ? 3 : 2;
 
-  // Opens on the category of the picture in use, so the check mark is on
-  // screen; under Weather, on the first category.
+  // Opens on the category of what is in use, so the check mark is on screen.
   const [category, setCategory] = useState<WallpaperCategory>(
-    isImage ? active.category : WALLPAPER_CATEGORIES[0]
+    isImage ? active.category : "weather"
   );
   const categories = WALLPAPER_CATEGORIES.map((id) => ({
     id,
@@ -424,7 +455,14 @@ function WallpaperPickerBody() {
         className="grid gap-x-3 gap-y-4"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
-        <WeatherTile selected={!isImage} />
+        {category === "weather" &&
+          WEATHER_STYLES.map((style) => (
+            <WeatherStyleTile
+              key={style}
+              style={style}
+              selected={!isImage && weatherStyle === style}
+            />
+          ))}
         {shown.map((w) => (
           <WallpaperTile
             key={w.id}
@@ -435,7 +473,9 @@ function WallpaperPickerBody() {
       </div>
 
       <p className="px-0.5 pt-5 text-[11px] leading-snug text-muted-foreground/70">
-        {t(locale, "wallpaperFooterNote")}
+        {category === "weather"
+          ? t(locale, "wallpaperWeatherFooter")
+          : t(locale, "wallpaperFooterNote")}
       </p>
     </>
   );

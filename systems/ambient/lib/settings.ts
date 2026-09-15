@@ -5,6 +5,7 @@ import {
   DEFAULT_WALLPAPER_ID,
   getWallpaper,
   type WallpaperKind,
+  type WeatherStyle,
 } from "./wallpaper";
 
 // =============================================================================
@@ -25,6 +26,12 @@ export interface AmbientSettings {
   wallpaperPlacement: WallpaperPlacement;
   /** Which kind feeds the single background stack. */
   wallpaperKind: WallpaperKind;
+  /**
+   * Which of the two weather wallpapers paints when `wallpaperKind` is
+   * "weather": the animated CG sky, or the flat gradient. CG falls back to the
+   * gradient on its own when WebGL2 is missing; the setting records the wish.
+   */
+  weatherStyle: WeatherStyle;
   /** Selected built-in pair, used when `wallpaperKind === "image"`. */
   wallpaperId: string;
   /**
@@ -54,6 +61,7 @@ export function getDefaultSettings(): AmbientSettings {
     locationMode: "ip",
     wallpaperPlacement: "full",
     wallpaperKind: "weather",
+    weatherStyle: "cg",
     wallpaperId: DEFAULT_WALLPAPER_ID,
     bezelTint: DEFAULT_BEZEL_TINT,
     bezelBand: null,
@@ -78,6 +86,7 @@ export function getAmbientSettings(): AmbientSettings {
       wallpaperLetterboxTint?: unknown;
       wallpaperLetterboxBand?: unknown;
       wallpaperLetterboxRadius?: unknown;
+      wallpaperRenderer?: string;
     };
     const defaults = getDefaultSettings();
 
@@ -101,12 +110,20 @@ export function getAmbientSettings(): AmbientSettings {
         ? parsed.wallpaperId
         : defaults.wallpaperId;
 
+    // `wallpaperRenderer: "gradient"` was the pre-catalog way to opt out of
+    // the shader; it means the same thing as the Gradient tile.
+    const weatherStyle: WeatherStyle =
+      parsed.weatherStyle === "gradient" || parsed.wallpaperRenderer === "gradient"
+        ? "gradient"
+        : "cg";
+
     return {
       locationMode:
         parsed.locationMode === "accurate" ? "accurate" : defaults.locationMode,
       wallpaperPlacement: placement,
       wallpaperKind:
         parsed.wallpaperKind === "image" ? "image" : defaults.wallpaperKind,
+      weatherStyle,
       wallpaperId,
       // `wallpaperLetterbox*` were these fields' names before the bezel was
       // its own package.

@@ -6,7 +6,9 @@
 // so the provider can hold ONE background stack fed by exactly one kind at a
 // time:
 //
-//     wallpaperKind: "weather"  →  the live weather/sun-event gradient
+//     wallpaperKind: "weather"  →  the live sky, in one of two styles
+//                                   (`weatherStyle`: the animated CG sky, or
+//                                   the flat gradient)
 //                    "image"    →  a fixed pair from this catalog
 //
 // Mutual exclusivity is therefore structural, not a rule anyone has to remember:
@@ -21,10 +23,15 @@
 // app theme. That is not a setting: pinning a half only ever produced light
 // artwork under light text.
 //
-// ## The images
+// ## The catalog
 //
-// Two categories, both Apple's artwork:
+// Three categories. The first is the live one; the other two are Apple's
+// artwork:
 //
+//   weather the sky outside, right now, in two styles: CG (a WebGL shader —
+//           sun, moon, clouds, rain, snow, fog, lightning, stars) and Gradient
+//           (the flat CSS wash the site started with). Same scene, two
+//           fidelities; CG falls back to Gradient where WebGL2 is missing.
 //   apple   the macOS / iPadOS / iOS release wallpapers, as light/dark pairs —
 //           the artwork these releases are recognised by.
 //   nature  the Mac OS X Nature desktop pictures (Aurora, Zebra, …), taken
@@ -46,13 +53,31 @@ export type WallpaperKind = "weather" | "image";
 
 export type WallpaperPlatform = "macOS" | "iPadOS" | "iOS";
 
-export type WallpaperCategory = "apple" | "nature";
+export type WallpaperCategory = "weather" | "apple" | "nature";
 
 /** In picker order. Labels are proper nouns or i18n keys resolved by the UI. */
 export const WALLPAPER_CATEGORIES: readonly WallpaperCategory[] = [
+  "weather",
   "apple",
   "nature",
 ];
+
+/**
+ * The two weather wallpapers. Both render the same `WeatherScene`
+ * (lib/scene.ts); they differ in engine, not in what the sky is doing.
+ *
+ *   cg        the WebGL shader — animated, at full strength (its veil is
+ *             painted inside the shader). Needs WebGL2; otherwise the page
+ *             quietly paints the gradient and the devtool says so.
+ *   gradient  the CSS gradient stack — a wash under the content, crossfaded
+ *             on change. Also what widget cards paint under either style.
+ */
+export type WeatherStyle = "cg" | "gradient";
+
+export const WEATHER_STYLES: readonly WeatherStyle[] = ["cg", "gradient"];
+
+/** What is actually painting the full-page layer right now. */
+export type WallpaperRenderer = "shader" | "gradient";
 
 export interface WallpaperAsset {
   /** Full-size WebP, at most 2560px on the long edge. */
@@ -109,15 +134,46 @@ export interface ResolvedWallpaper {
  * picture is the content, and the widgets float on it.
  *
  * The weather gradient is different in kind: a wash, authored to sit under
- * content, and it reads as intended below full strength.
+ * content, and it reads as intended below full strength. The CG sky is
+ * different again: its theme veil is mixed inside the shader, so the layer
+ * paints at 1 and the restraint happens in the scene.
+ *
+ * Keyed by what is painting, not what was asked for: CG that fell back to the
+ * gradient is the gradient.
  */
+export type WallpaperLook = "cg" | "gradient" | "image";
+
 export const WALLPAPER_OPACITY: Record<
-  WallpaperKind,
+  WallpaperLook,
   { light: number; dark: number }
 > = {
-  weather: { light: 0.7, dark: 0.85 },
+  cg: { light: 1, dark: 1 },
+  gradient: { light: 0.7, dark: 0.85 },
   image: { light: 1, dark: 1 },
 };
+
+export function getWallpaperLook(params: {
+  kind: WallpaperKind;
+  renderer: WallpaperRenderer;
+}): WallpaperLook {
+  if (params.kind === "image") return "image";
+  return params.renderer === "shader" ? "cg" : "gradient";
+}
+
+/**
+ * The look the *settings* ask for, before WebGL support is known — what the
+ * edge of the page (bezel, soft edge) is resolved from, so the boot script and
+ * the provider agree on the first frame. A CG sky that has to fall back to the
+ * gradient keeps CG's edge: the choice was the framed picture, and the frame
+ * should not flicker on the one device that cannot animate it.
+ */
+export function getWallpaperEdgeLook(params: {
+  kind: WallpaperKind;
+  weatherStyle: WeatherStyle;
+}): WallpaperLook {
+  if (params.kind === "image") return "image";
+  return params.weatherStyle;
+}
 
 /**
  * The flat veil drawn OVER an image wallpaper on a reading page.

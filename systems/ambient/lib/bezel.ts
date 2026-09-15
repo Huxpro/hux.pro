@@ -3,7 +3,7 @@ import {
   BEZEL_BAND_MIN,
   DEFAULT_BEZEL_BAND,
 } from "@hux/bezel";
-import type { WallpaperKind } from "./wallpaper";
+import type { WallpaperLook } from "./wallpaper";
 
 // =============================================================================
 // The site's bezel: what @hux/bezel is configured with here.
@@ -18,25 +18,34 @@ import type { WallpaperKind } from "./wallpaper";
 export const PAGE_GROUND = { light: "#ffffff", dark: "#1a1a1a" } as const;
 
 /**
- * What each wallpaper kind wants at the edge. The whole relationship: with no
+ * What each wallpaper look wants at the edge. The whole relationship: with no
  * devtool override, the provider resolves every page from this, live, as the
- * kind changes.
+ * look changes (see `getWallpaperEdgeLook`).
  *
  * A weather gradient is the page's own colour pushed outward, so it fades back
  * into the ground: soft edge, no bezel. A photograph is a picture on the page,
  * so it ends on a line inside a bezel, and fading it would be a printing error.
- * Soft edge applies only while the bezel is off. Both are phone treatments:
- * the provider gates them on iOS.
+ * The CG sky is a picture too — a rendered one — and gets exactly the image
+ * treatment, so the two framed looks start from one configuration. Soft edge
+ * applies only while the bezel is off. All of it is a phone treatment: the
+ * provider gates it on iOS.
  *
- * Band and radius are not per kind. A bezel turned on over weather uses the
- * same saved band and radius an image does.
+ * Band, radius and tint are not per look. A bezel over the CG sky uses the same
+ * saved band and radius an image does, and a bezel turned on over the gradient
+ * does too.
  */
-export const WALLPAPER_KIND_EDGES: Record<
-  WallpaperKind,
-  { bezel: boolean; softEdge: boolean }
-> = {
-  weather: { bezel: false, softEdge: true },
-  image: { bezel: true, softEdge: false },
+export interface WallpaperEdges {
+  bezel: boolean;
+  softEdge: boolean;
+}
+
+const FRAMED: WallpaperEdges = { bezel: true, softEdge: false };
+const FADED: WallpaperEdges = { bezel: false, softEdge: true };
+
+export const WALLPAPER_KIND_EDGES: Record<WallpaperLook, WallpaperEdges> = {
+  cg: FRAMED,
+  image: FRAMED,
+  gradient: FADED,
 };
 
 /**
@@ -87,7 +96,7 @@ export function bezelBootResolver(): string {
   return `
 var s=JSON.parse(localStorage.getItem("hux_ambient_settings")||"{}");
 var ios=/iP(hone|ad|od)/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-var edges=s.wallpaperKind==="image"?${JSON.stringify(WALLPAPER_KIND_EDGES.image)}:${JSON.stringify(WALLPAPER_KIND_EDGES.weather)};
+var edges=s.wallpaperKind==="image"?${JSON.stringify(WALLPAPER_KIND_EDGES.image)}:s.weatherStyle==="gradient"?${JSON.stringify(WALLPAPER_KIND_EDGES.gradient)}:${JSON.stringify(WALLPAPER_KIND_EDGES.cg)};
 var t=localStorage.getItem("hux_theme");
 var dark=t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);
 var tint=s.bezelTint;

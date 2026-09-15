@@ -1,17 +1,26 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useWeather } from "../provider";
 import { useWallpaper } from "../provider";
 import { GradientStack } from "./gradient-stack";
 import { BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
+import { WeatherWallpaper } from "./wallpaper";
 
 // ---------------------------------------------------------------------------
 // WallpaperBackground — the full-page background layer.
 //
 // Source-agnostic: it renders whatever the provider's single background stack
-// currently holds (a weather/sun-event gradient, or an image wallpaper). That
-// is what keeps them mutually exclusive — there is one layer, not several that
-// have to be arbitrated.
+// currently holds (a weather sky, or an image wallpaper). That is what keeps
+// them mutually exclusive — there is one layer, not several that have to be
+// arbitrated.
+//
+// Under the weather kind there are two engines for the same scene. The CG
+// style paints a WebGL canvas (sun, moon, clouds, rain, snow, fog, lightning,
+// stars) at full strength — its theme veil is mixed inside the shader. The
+// gradient style, and any WebGL fallback, paints the crossfading CSS stack at
+// the wash opacity. The provider resolves which one (`renderer`), so this
+// component only swaps the child.
 //
 // An image wallpaper paints at FULL STRENGTH. On the home screen that is the
 // whole treatment: the picture is the content, sharp and untinted, with the
@@ -26,9 +35,22 @@ interface WallpaperBackgroundProps {
 }
 
 export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
-  const { layers, edgeMask, opacity, veil, blurred, bezel } = useWallpaper();
+  const {
+    kind,
+    renderer,
+    layers,
+    edgeMask,
+    opacity,
+    veil,
+    blurred,
+    bezel,
+    reportShaderFallback,
+    statsRef,
+  } = useWallpaper();
+  const { scene } = useWeather();
 
-  if (layers.length === 0) return null;
+  const useShader = kind === "weather" && renderer === "shader";
+  if (!useShader && layers.length === 0) return null;
 
   return (
     <div
@@ -44,9 +66,19 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
       // With the bezel on, the layer stops inside it — see AmbientSurface.
       style={{ opacity: enabled ? opacity : 0, ...(bezel ? BEZEL_INSET : null) }}
     >
-      {/* Full-page background is already viewport-fixed, so the edge mask is
-          applied statically (no per-frame tracking needed). */}
-      <GradientStack layers={layers} edgeMask={edgeMask} blurred={blurred} />
+      {useShader ? (
+        <WeatherWallpaper
+          scene={scene}
+          active={enabled}
+          edgeMask={edgeMask}
+          onFallback={reportShaderFallback}
+          statsRef={statsRef}
+        />
+      ) : (
+        /* Full-page background is already viewport-fixed, so the edge mask is
+           applied statically (no per-frame tracking needed). */
+        <GradientStack layers={layers} edgeMask={edgeMask} blurred={blurred} />
+      )}
 
       {veil > 0 && (
         <div
