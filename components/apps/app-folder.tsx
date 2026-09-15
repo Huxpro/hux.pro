@@ -363,9 +363,14 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
           className={cn(
             "relative rounded-2xl border px-1 py-1.5",
             "transition-colors duration-300",
+            // At rest the labels have nothing behind them but the wallpaper,
+            // so the folder is a bare zone whose ink may flip (see
+            // docs/system-legibility.md). Editing puts glass under it, and
+            // glass carries the card colour, so the zone stops being bare;
+            // `ink-bare-rest` does the same for the hover glass.
             editing
               ? "border-border/60 bg-glass-strong shadow-raised backdrop-blur-sm"
-              : "border-transparent hover:border-border/40 hover:bg-glass",
+              : "ink-bare ink-bare-rest border-transparent hover:border-border/40 hover:bg-glass",
             className,
           )}
         >

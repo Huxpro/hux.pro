@@ -160,7 +160,7 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
             // its default height at every size, so only the composition as a
             // whole moves when there is room to spare, never its internals.
             // `ink-bare`: nothing behind this text but the wallpaper, so it
-            // is the one zone whose ink may flip (see docs/system-legibility.md).
+            // is the zone whose ink may flip (the app folder is the other) (see docs/system-legibility.md).
             className="ink-bare hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
             style={heroFadeStyle}
           >

@@ -167,13 +167,16 @@ of ground: `body` (the wallpaper), the `bg-glass*` classes (× `--glass-relief-k
 0.3 on Tinted, 1 on Clear) and the solid ones — sheet, popover, overlay — (× 0
 on Tinted, 0.5 on Clear). `.ink-flat` opts an element out.
 
-Only one zone can flip: `.ink-bare`, on the home screen's header — the
-identifier and greeting have nothing behind them but the picture. Under
-`data-wallpaper-flip` it swaps `--ink` for `--ink-inverse` and re-derives its
-ladder, and picks the other relief shape. Glass surfaces never flip: they carry
-the card colour, so their ink was right all along — they *adapt* through
-`glassAdd` instead, which is Liquid Glass's distinction between small elements
-and big ones.
+Only bare zones flip: `.ink-bare`, on the home screen's header (the
+identifier and greeting) and on the app folder at rest (the labels under the
+icons) — nothing behind them but the picture. Under `data-wallpaper-flip` such
+a zone swaps `--ink` for `--ink-inverse` and re-derives its ladder, and picks
+the other relief shape. Glass surfaces never flip: they carry the card colour,
+so their ink was right all along — they *adapt* through `glassAdd` instead,
+which is Liquid Glass's distinction between small elements and big ones. A
+zone that grows glass on demand stops being bare with it: the folder drops
+`.ink-bare` while editing, and `.ink-bare-rest` un-flips it under the hover
+glass on a hover-capable pointer.
 
 ### 5. Typography roles (`lib/typography.ts`)
 
