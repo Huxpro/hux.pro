@@ -866,30 +866,22 @@ function GlassModule() {
             onChange={glass.setTint}
           />
         </PanelRow>
-        <p className="text-[10px] leading-snug text-tertiary-foreground">
-          {zh
-            ? "透明：接近无填充的通透质感，背后的壁纸直接透出来。色调：当前这种带卡片底色的材质。着色：玻璃与选中态借用壁纸的主色。"
-            : "Clear thins every surface to a vibrancy wash so the wallpaper reads through it. Tinted keeps the card fill. Wallpaper tint lends the picture's colour to glass and selection."}
-        </p>
-
         {/* What the legibility policy resolved for the wallpaper that is
-            painting — the numbers on <html>. The lab is where to change them. */}
-        <div className="border-t border-border/30 pt-2 text-[10px] font-mono text-muted-foreground">
-          <span className="text-foreground/80">
-            {legibility.flip ? (zh ? "反色" : "flipped") : zh ? "正常" : "ink"}
-          </span>
-          <span className="ml-1.5 text-tertiary-foreground">
-            busy {legibility.busy.toFixed(2)} · relief {legibility.relief.toFixed(2)} · +
-            {legibility.inkBoost}% ink · +{legibility.glassAdd}% glass
-            {legibilityOverride && " · lab"}
-          </span>
-        </div>
+            painting, on the row that opens the lab where it is tuned — the
+            same row the Wallpaper module uses for the current picture. */}
         <Link
           href="/editor/legibility"
-          className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground transition-colors hover:text-foreground"
+          className="flex w-full items-center gap-2 rounded-md border border-border/60 px-2 py-1.5 text-left transition-colors hover:bg-muted/40"
         >
-          {zh ? "打开可读性实验室" : "Open the Legibility Lab"}
-          <ExternalLink className="h-3 w-3" />
+          <span className="min-w-0 flex-1 truncate text-[10px] font-mono text-foreground/80">
+            {legibility.flip ? "flip" : "ink"}
+            <span className="ml-1.5 tabular-nums text-tertiary-foreground">
+              busy {legibility.busy.toFixed(2)} · relief {legibility.relief.toFixed(2)} · +
+              {legibility.inkBoost}% · glass +{legibility.glassAdd}%
+              {legibilityOverride && " · lab"}
+            </span>
+          </span>
+          <ExternalLink className="mr-1 h-3 w-3 shrink-0 text-muted-foreground" />
         </Link>
       </div>
     </DebugSection>
