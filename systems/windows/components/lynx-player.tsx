@@ -49,14 +49,43 @@ function injectShadowCss(el: LynxViewElement): boolean {
 }
 
 export default function LynxPlayer({ url }: { url: string }) {
+  const wrapRef = useRef<HTMLDivElement | null>(null);
   const ref = useRef<LynxViewElement | null>(null);
   const groupRef = useRef(0);
   if (!groupRef.current) groupRef.current = (GROUP_COUNTER += 1);
   const [error, setError] = useState<string | null>(null);
+  // Delay mounting <lynx-view> until the window has a real box. SystemInfo
+  // defaults to window.screen, which parks screen-sized cards (逗猫棒) off
+  // the portrait window; browser-config overrides it to this container.
+  const [browserConfig, setBrowserConfig] = useState<string | null>(null);
 
   // Serve local built-in bundles from our origin; remote (online) URLs pass
   // through untouched. Same-origin keeps the Worker fetch off the CORS path.
   const src = url.startsWith("/") ? window.location.origin + url : url;
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const measure = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w < 2 || h < 2) return;
+      const dpr = window.devicePixelRatio || 1;
+      const next = JSON.stringify({
+        pixelRatio: dpr,
+        pixelWidth: Math.round(w * dpr),
+        pixelHeight: Math.round(h * dpr),
+      });
+      // SystemInfo is snapshotted when the bundle evaluates — only the first
+      // box matters. Later resizes would rewrite the attribute without
+      // reloading the card.
+      setBrowserConfig((prev) => prev ?? next);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Inject the shadow CSS as soon as the shadow root exists. The custom element
   // upgrades synchronously on connect, but the root can lag a frame, so poll a
@@ -73,7 +102,7 @@ export default function LynxPlayer({ url }: { url: string }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [browserConfig, src]);
 
   useEffect(() => {
     const el = ref.current;
@@ -89,7 +118,7 @@ export default function LynxPlayer({ url }: { url: string }) {
     };
     el.addEventListener("error", onError);
     return () => el.removeEventListener("error", onError);
-  }, []);
+  }, [browserConfig, src]);
 
   if (error) {
     return (
@@ -103,27 +132,32 @@ export default function LynxPlayer({ url }: { url: string }) {
   }
 
   return (
-    <lynx-view
-      ref={ref}
-      key={src}
-      url={src}
-      lynx-group-id={groupRef.current}
-      transform-vh
-      transform-vw
-      // Fill the window body and make Lynx's rpx / vh / vw units resolve against
-      // this container (not the page), so a real Lynx card scales to the window
-      // instead of the viewport — matching go-web's responsive mode.
-      style={
-        {
-          display: "block",
-          height: "100%",
-          width: "100%",
-          containerType: "size",
-          "--rpx-unit": "calc(100cqw / 750)",
-          "--vh-unit": "1cqh",
-          "--vw-unit": "1cqw",
-        } as CSSProperties
-      }
-    />
+    <div ref={wrapRef} className="h-full w-full">
+      {browserConfig ? (
+        <lynx-view
+          ref={ref}
+          key={src}
+          url={src}
+          lynx-group-id={groupRef.current}
+          browser-config={browserConfig}
+          transform-vh
+          transform-vw
+          // Fill the window body and make Lynx's rpx / vh / vw units resolve against
+          // this container (not the page), so a real Lynx card scales to the window
+          // instead of the viewport — matching go-web's responsive mode.
+          style={
+            {
+              display: "block",
+              height: "100%",
+              width: "100%",
+              containerType: "size",
+              "--rpx-unit": "calc(100cqw / 750)",
+              "--vh-unit": "1cqh",
+              "--vw-unit": "1cqw",
+            } as CSSProperties
+          }
+        />
+      ) : null}
+    </div>
   );
 }

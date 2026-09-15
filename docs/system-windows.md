@@ -210,6 +210,12 @@ windows never share a background Worker, and **container-query units**
 so Lynx's `rpx` / `vh` / `vw` resolve against the *window* rather than the
 viewport — a real card scales to the window it's in.
 
+`SystemInfo` is a third. web-core defaults `pixelWidth` / `pixelHeight` to
+`window.screen`, so a card that places itself in "screen" coordinates (逗猫棒's
+orb) would land off-canvas in a portrait window. The player measures the
+container and passes `browser-config` before loading the bundle, so
+`SystemInfo` matches the window the card is in.
+
 ### Shadow-root layout CSS
 
 `web-core` styles each `<lynx-view>` shadow root by importing its layout CSS
