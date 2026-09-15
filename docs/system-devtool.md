@@ -89,9 +89,9 @@ Debug modules for the ambient system:
 
 Rows are `PanelRow` (label left, control right) with a `PanelStar` when a
 value is not at its default; switches are `PanelToggle`; choices are
-`PanelSegmented`; numbers are the shared iOS `Slider` from
-`components/ui/slider.tsx` (via `PanelRange` / `PanelSlider`), the same one
-the Legibility Lab and the icon studio use. Only the Sky timeline's playhead
+`PanelSegmented`; numbers are the shared `Slider` from `components/ui/slider.tsx` (via
+`PanelRange` / `PanelSlider`), the same one the Legibility Lab and the icon
+studio use — an ink track with the platform's native thumb on touch. Only the Sky timeline's playhead
 is its own range input.
 
 ## Hooks

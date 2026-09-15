@@ -162,24 +162,48 @@ export function LegibilityLabView() {
   const glass = useGlass();
   const { locale, L, knobLabel, knobHint, groupTitle, groupNote, themeName, materialName, tintName } = useLabText();
 
-  // --- The stage needs the devtool on (weather / phase overrides only apply
-  // then) and the wallpaper full-page whatever the visitor's placement. What
-  // the lab changes stays: the scene is real settings, the tuning lives for
-  // the session so it can be checked on the real routes.
-  const setters = useRef({ wallpaper, devtool });
-  setters.current = { wallpaper, devtool };
+  // --- The stage needs the devtool on (the condition and clock overrides only
+  // apply then) and the wallpaper full-page whatever the visitor's placement.
+  // Both, and any condition / clock the scene chips force, are ephemeral
+  // devtool state — they go back to what they were on leave, or the picker's
+  // placement and the live sky would look broken afterwards. What stays is
+  // what the visitor could have set anyway (the wallpaper, theme, material,
+  // tint) and the tuning (the policy through the provider, the sheet inline).
+  const setters = useRef({ wallpaper, weather, time, devtool });
+  setters.current = { wallpaper, weather, time, devtool };
+  const initial = useRef<{
+    devtool: boolean;
+    overrides: typeof wallpaper.devtoolOverrides;
+    condition: typeof weather.debugOverride;
+    scrub: number | null;
+    dayOffset: number;
+  } | null>(null);
   useEffect(() => {
     const s = setters.current;
+    if (!initial.current) {
+      initial.current = {
+        devtool: s.devtool.isEnabled,
+        overrides: s.wallpaper.devtoolOverrides,
+        condition: s.weather.debugOverride,
+        scrub: s.time.timeScrubMinutes,
+        dayOffset: s.time.dayOffset,
+      };
+    }
     s.devtool.setEnabled(true);
     if (!s.wallpaper.devtoolOverrides.full) {
       s.wallpaper.setDevtoolOverrides({ ...s.wallpaper.devtoolOverrides, full: true });
     }
-  }, []);
-
-  // Pins are for this scene only, so they leave with the page. The policy and
-  // the sheet overrides stay (see lab-state.ts).
-  useEffect(() => {
-    return () => setters.current.wallpaper.setLegibilityOverride(null);
+    return () => {
+      const i = initial.current;
+      const t = setters.current;
+      t.wallpaper.setLegibilityOverride(null);
+      if (!i) return;
+      t.wallpaper.setDevtoolOverrides(i.overrides);
+      t.weather.setDebugOverride(i.condition);
+      t.time.setTimeScrubMinutes(i.scrub);
+      t.time.setDayOffset(i.dayOffset);
+      t.devtool.setEnabled(i.devtool);
+    };
   }, []);
 
   // --- Scene ---------------------------------------------------------------

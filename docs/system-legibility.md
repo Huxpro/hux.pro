@@ -264,8 +264,11 @@ provider (`labPolicy`), which resolves every route with it, and the sheet
 overrides stay inline on `<html>`, so a veil tuned on the specimen can be
 checked on the real `/writing` before it is copied into code. The devtool's
 Glass row shows `· lab` while any of it is active; **Reset all** in the lab
-clears it, as does a reload. Only the pins (scene-specific by nature) leave
-with the page.
+clears it, as does a reload. What leaves with the page is everything the lab
+forced through the devtool — the condition, the clock, the `full` placement
+override, the devtool being on — and the pins (scene-specific by nature); the
+wallpaper, theme, material and tint it set are real settings, exactly as the
+picker would have set them, and stay.
 
 ### 7. Tint
 
@@ -311,8 +314,11 @@ at the tile's hour and paint the style's CSS gradient; under the Sky that is
 the Gradient it falls back to, the same palette without the shader's texture.
 
 Every slider in the lab, the icon studio and the devtool is one component,
-`components/ui/slider.tsx`: the iOS slider — a thin track, the travelled part
-in ink, a white round thumb.
+`components/ui/slider.tsx`: a thin track in ink at a few percent with the
+travelled part in ink, and the platform's own thumb — iOS Safari's flat white
+pill stays native, tinted white by `accent-color`; only a hover-capable
+pointer gets a styled 16px white disc, because the native desktop knob is
+small and grey on some engines.
 
 ## Adding things
 

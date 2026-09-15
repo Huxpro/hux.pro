@@ -852,7 +852,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // Under the Sky, full page, nothing paints the CSS stack: skip the push, or
   // every minute's new gradient would re-render every widget card twice (push,
   // prune) for a layer nobody shows. It catches up as soon as something does.
-  const stackPainted = renderer === "css" || widgetEnabled;
+  // An image always goes through the stack, whatever the weather engine: the
+  // engine only says who paints the *weather*. Without this, an image chosen
+  // after the Sky (or restored from settings once WebGL support is known)
+  // never got a layer and the page painted the bare ground.
+  const stackPainted = isImageKind || renderer === "css" || widgetEnabled;
 
   useEffect(() => {
     if (!stackPainted) return;
