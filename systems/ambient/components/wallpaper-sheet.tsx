@@ -16,6 +16,8 @@ import {
   getWallpaperPairPreview,
   isPhoneWallpaper,
   isSingleImage,
+  pickWallpaperSrc,
+  readDisplaySize,
   WALLPAPER_CATEGORIES,
   WEATHER_STYLE_LABEL,
   WEATHER_STYLE_META,
@@ -269,7 +271,11 @@ function WallpaperTile({
     <div
       className="group min-w-0"
       // A blurred reading page paints the thumb, which the tile already loaded.
-      onMouseEnter={blurred ? undefined : () => preload(wallpaper[variant].src)}
+      onMouseEnter={
+        blurred
+          ? undefined
+          : () => preload(pickWallpaperSrc(wallpaper[variant], readDisplaySize()))
+      }
     >
       <TileFrame selected={selected}>
         <button

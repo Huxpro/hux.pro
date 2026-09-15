@@ -31,6 +31,7 @@ import {
   getWallpaperBackground,
   getWallpaperLook,
   getWallpaperOrDefault,
+  readDisplaySize,
   readWeatherStyle,
   resolveWeatherStyle,
   WALLPAPER_LOOK_FAMILY,
@@ -721,6 +722,32 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     sceneSeed,
   ]);
 
+  const [displaySize, setDisplaySize] = useState(readDisplaySize);
+  useEffect(() => {
+    const apply = () => {
+      setDisplaySize((prev) => {
+        const next = readDisplaySize();
+        if (prev.width === next.width && prev.height === next.height && prev.dpr === next.dpr) {
+          return prev;
+        }
+        return next;
+      });
+    };
+    apply();
+    let timer = 0;
+    const onResize = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(apply, 150);
+    };
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+    };
+  }, []);
+
   /**
    * The active pair resolved for the current theme, or null on weather.
    *
@@ -732,7 +759,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
    *
    * Only when blurred. In `widget` placement, and on the home screen, the photo
    * paints SHARP inside a card or across the page, and there the thumb is a
-   * visibly soft upscale rather than a free win.
+   * visibly soft upscale rather than a free win. Photographs then pick the
+   * smallest cover rendition for this viewport × DPR (`pickWallpaperSrc`).
    */
   const resolvedImage = useMemo(
     () =>
@@ -741,9 +769,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
             wallpaper: activeWallpaper,
             theme,
             preview: isBlurred,
+            viewport: displaySize,
           })
         : null,
-    [isImageKind, activeWallpaper, theme, isBlurred]
+    [isImageKind, activeWallpaper, theme, isBlurred, displaySize]
   );
 
   // Compute the CSS background. Exactly one kind wins — an image wallpaper

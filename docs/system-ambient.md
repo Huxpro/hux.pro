@@ -240,9 +240,10 @@ Talks widget uses for albums (`WALLPAPER_CATEGORIES` in `lib/wallpaper.ts`).
   the artwork each release is recognised by. Twelve pairs: macOS Tahoe,
   Sequoia, Sonoma, Ventura, Monterey and Big Sur; iPadOS 18 in its four
   colourways (Violet, Indigo, Blue, Teal); iOS 14 and 13.
-- **Nature** — the 21 Mac OS X Nature desktop pictures (Aurora, Zebra, Zen
+- **Nature** — the 19 Mac OS X Nature desktop pictures (Aurora, Zebra, Zen
   Garden, …), taken from ryOS. One photograph each, so both theme halves are
-  the same file (`isSingleImage()`), and the picker shows it unsplit.
+  the same file (`isSingleImage()`), and the picker shows it unsplit. Clown
+  Fish and Ladybug are omitted.
 
 The iPadOS colourways are named for the colour rather than the release, and
 their caption is the year alone: the tile would otherwise read "iPadOS 18
@@ -269,20 +270,29 @@ Each tile prints the committed file's pixels under its name.
 | iOS 17 | 2048×2048 | 1.25× | removed |
 | iOS 18 | 1480×3192 | 1.73× | removed |
 | iOS 27 | 1320×2868 | 1.94× | removed |
-| Nature | 2560×1600 (Earth & Moon 2844×1600) | 1.00× | added |
+| Nature | 2560×1600 (Earth & Moon 2844×1600) plus 1280×800 and 1920×1200 cover renditions | 1.00× | added |
 
 The landscape Nature photographs stretch about 1.64× on a portrait phone; most
 of the set tops out at 2560×1600 at source.
 
-Release pairs are WebP q80 and photographs WebP q75, each with a 480px
-thumbnail for the picker. The byte budgets differ by kind: a pair past 120KB
-means something went wrong, while a photograph of raked sand is detail all the
-way down (27KB for Water, 1.4MB for Zen Garden at the same quality), so
-photographs get 1.5MB. Provenance for every file — source URL, and HEIC frame
-index where a pair came out of one file — lives in
-`public/wallpapers/sources.json`.
+ryOS serves each photograph as one original JPEG (Aurora is 1.3MB, Snowy Hills
+2.3MB) plus a picker thumb — it does not keep per-screen-size files. We still
+encode three cover renditions so a phone does not download the desktop file,
+and we encode them at WebP q95 with 4:4:4 chroma (q90 only when a file would
+exceed 1.8MB — Zen Garden's raked sand). The previous q75 4:2:0 pass crushed
+smooth skies: Aurora was 43KB of banding against a 1.3MB original.
+`pickWallpaperSrc()` chooses the smallest rendition that covers the current
+viewport × DPR; a 2× portrait phone still needs the full file, because 1600px
+is the covering axis.
+
+Release pairs are WebP q80. Photographs get a 480px thumbnail for the picker.
+The byte budgets differ by kind: a pair past 120KB means something went wrong,
+while a photograph of raked sand is detail all the way down, so photographs
+get 2.5MB. Provenance for every file — source URL, and HEIC frame index where a
+pair came out of one file — lives in `public/wallpapers/sources.json`.
 
 ```bash
+pnpm wallpapers:encode  # fetch Nature JPEGs from sources.json and rebuild WebP renditions
 pnpm wallpapers:check   # every file present, sharp enough, sized as declared, within budget
 pnpm wallpapers:profile # measure every wallpaper for the legibility system (commit the table)
 ```
