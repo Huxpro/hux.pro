@@ -58,20 +58,22 @@ Apps are authored in [`content/apps.json`](../content/apps.json) — the
   "id": "busy-week",
   "title": "BusyWeek",
   "runtime": "lynx",
-  "flavor": "react",
-  "bundleUrl": "https://busy-week.vercel.app/main.web.bundle",
-  "url": "https://busy-week.vercel.app/"
+  "flavor": "vue",
+  "bundleUrl": "https://huxpro.github.io/BusyWeek/main.web.bundle",
+  "url": "https://huxpro.github.io/BusyWeek/",
+  "featured": false
 }
 ```
 
-The one Lynx app in the registry today —
-[BusyWeek](https://busy-week.vercel.app), a real ReactLynx todo app — loads
-its bundle **online**, straight from its deployed origin (which serves the
-`.web.bundle` with `Access-Control-Allow-Origin: *`). `@lynx-js/web-core`
-fetches and decodes it at open time in its background loader thread; nothing
-is vendored into this repo. Local built-in bundles (a `/…` path under
-`public/`) are still fully supported by the same field — there just aren't any
-checked in right now.
+Lynx apps in the registry today load bundles two ways:
+
+- **Online** — [BusyWeek](https://huxpro.github.io/BusyWeek/), a Vue Lynx
+  todo app, fetches `main.web.bundle` from its GitHub Pages origin (which
+  serves it with `Access-Control-Allow-Origin: *`). `@lynx-js/web-core`
+  decodes it at open time in its background loader thread.
+- **Built-in** — 逗猫棒 vendors `public/bundles/cat-toy.web.bundle` (the
+  Vue Lynx `examples/touch-fx` playground) so it runs offline from this
+  origin. Same `bundleUrl` field, a local `/…` path.
 
 Beyond the registry, any bundle can be opened **over-the-air** by URL
 (`openBundleUrl`) — see Launching.

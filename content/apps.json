@@ -1,20 +1,27 @@
 {
   "apps": [
     {
-      "id": "busy-week",
-      "title": "BusyWeek",
+      "id": "vue-lynx",
+      "title": "Vue Lynx",
+      "runtime": "web",
+      "url": "https://vue.lynxjs.org"
+    },
+    {
+      "id": "cat-toy",
+      "title": "逗猫棒",
       "runtime": "lynx",
-      "flavor": "react",
-      "bundleUrl": "https://busy-week.vercel.app/main.web.bundle",
-      "url": "https://busy-week.vercel.app/",
+      "flavor": "vue",
+      "bundleUrl": "/bundles/cat-toy.web.bundle",
+      "url": "https://vue-lynx-git-vapor-huxpros-projects.vercel.app/guide/touch-fx",
       "size": "portrait",
-      "icon": "/app-icons/busy-week.png"
+      "icon": "/app-icons/cat-toy.png",
+      "keywords": ["cat toy", "touch-fx", "touch fx", "逗猫"]
     },
     {
       "id": "lynx-flappy-bird",
       "title": "Flappy Bird",
       "runtime": "web",
-      "url": "https://huangxuan.me/lynx-flappy-bird/",
+      "url": "https://huxpro.github.io/lynx-flappy-bird/",
       "size": "portrait"
     },
     {
@@ -28,6 +35,17 @@
       "title": "Lynx",
       "runtime": "web",
       "url": "https://lynxjs.org"
+    },
+    {
+      "id": "busy-week",
+      "title": "BusyWeek",
+      "runtime": "lynx",
+      "flavor": "vue",
+      "bundleUrl": "https://huxpro.github.io/BusyWeek/main.web.bundle",
+      "url": "https://huxpro.github.io/BusyWeek/",
+      "size": "portrait",
+      "icon": "/app-icons/busy-week.png",
+      "featured": false
     }
   ]
 }

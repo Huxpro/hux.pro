@@ -13,10 +13,10 @@ import {
   saveOrder,
 } from "@/components/ui/sortable-order";
 import {
-  APPS,
   APPS_BY_ID,
   DEFAULT_APP_FOLDER_LAYOUT,
   DEFAULT_APP_IDS,
+  FEATURED_APPS,
   chunkAppPages,
   pageCapacity,
   type AppFolderAxis,
@@ -334,7 +334,7 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
     [layout.axis, pageCount],
   );
 
-  if (APPS.length === 0) return null;
+  if (FEATURED_APPS.length === 0) return null;
 
   const needsPages = pageCount > 1;
   // Single page: natural grid height (no forced empty rows — `repeat(rows)`

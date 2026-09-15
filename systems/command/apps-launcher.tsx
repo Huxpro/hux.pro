@@ -56,6 +56,7 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
                 "应用",
                 kind,
                 app.runtime ?? "web",
+                ...(app.keywords ?? []),
               ]}
               onSelect={() => {
                 windows.openApp(app);

@@ -419,6 +419,14 @@ export interface AppLink {
    * A site-local `/…` path is used as-is; an `http(s)` URL is downloaded.
    */
   icon?: string;
+  /**
+   * Show on the home-screen app folder. Defaults to true. `false` keeps the
+   * app in the ⌘K launcher (and the rest of the catalog) without featuring
+   * it on the springboard.
+   */
+  featured?: boolean;
+  /** Extra ⌘K search terms (title / id / runtime are already indexed). */
+  keywords?: string[];
 }
 
 /** One resolved entry in `content/app-icons.json`, keyed by app id. */

@@ -1,7 +1,7 @@
 # App Folder — home-screen folder for external projects
 
 The homepage widget grid includes an **app folder**: an iPad-style springboard
-of icons for apps (React, Lynx, Lynx Flappy Bird, BusyWeek, …). Each icon is
+of icons for apps (Vue Lynx, 逗猫棒, Flappy Bird, React, Lynx, …). Each icon is
 the artwork the target site *itself* declares for home-screen use, wearing a
 small **runtime badge** in the corner.
 
@@ -34,6 +34,11 @@ Apps live in [`content/apps.json`](../content/apps.json):
 - `icon` *(optional)* — manual override when the site's declared icon is wrong
   or unfetchable: a site-local `/img/…` path is used as-is; an `https://…` URL
   is downloaded. Same recovery philosophy as og-snapshot's manual `preview`.
+- `featured` *(optional)* — show on the home-screen folder. Defaults to `true`.
+  `false` keeps the app in the ⌘K launcher without featuring it on the
+  springboard (BusyWeek is command-only this way).
+- `keywords` *(optional)* — extra ⌘K search terms on top of title / id /
+  runtime.
 
 ## Icon pipeline (build-time, static-export friendly)
 

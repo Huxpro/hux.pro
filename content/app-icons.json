@@ -1,4 +1,18 @@
 {
+  "busy-week": {
+    "url": "https://huxpro.github.io/BusyWeek/",
+    "file": "/app-icons/busy-week.png",
+    "source": "manual",
+    "width": 192,
+    "height": 192
+  },
+  "cat-toy": {
+    "url": "https://vue-lynx-git-vapor-huxpros-projects.vercel.app/guide/touch-fx",
+    "file": "/app-icons/cat-toy.png",
+    "source": "manual",
+    "width": 512,
+    "height": 512
+  },
   "lynx": {
     "url": "https://lynxjs.org",
     "file": "/app-icons/lynx.png",
@@ -8,10 +22,10 @@
     "height": 84
   },
   "lynx-flappy-bird": {
-    "url": "https://huangxuan.me/lynx-flappy-bird/",
+    "url": "https://huxpro.github.io/lynx-flappy-bird/",
     "file": "/app-icons/lynx-flappy-bird.png",
     "source": "manifest",
-    "iconUrl": "https://huangxuan.me/lynx-flappy-bird/app-icon-512.png",
+    "iconUrl": "https://huxpro.github.io/lynx-flappy-bird/app-icon-512.png",
     "width": 512,
     "height": 512
   },
@@ -23,12 +37,12 @@
     "width": 384,
     "height": 384
   },
-  "busy-week": {
-    "url": "https://busy-week.vercel.app/",
-    "file": "/app-icons/busy-week.png",
+  "vue-lynx": {
+    "url": "https://vue.lynxjs.org",
+    "file": "/app-icons/vue-lynx.png",
     "source": "manifest",
-    "iconUrl": "https://busy-week.vercel.app/icons/icon-192.png",
-    "width": 192,
-    "height": 192
+    "iconUrl": "https://vue.lynxjs.org/icon-512.png",
+    "width": 512,
+    "height": 512
   }
 }
