@@ -64,7 +64,7 @@ import { createPortal } from "react-dom";
 // + masonry edit/jiggle behavior is preserved from the original AppShelf.
 // =============================================================================
 
-const STORAGE_KEY = "hux_app_order";
+const STORAGE_KEY = "hux_app_order_v2";
 
 // iOS grows a held icon a touch more than a held widget — it's smaller, so the
 // same absolute lift needs a larger ratio to register. The lifted clone pops

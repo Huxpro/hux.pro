@@ -1,6 +1,25 @@
 {
   "apps": [
     {
+      "id": "react",
+      "title": "React",
+      "runtime": "web",
+      "url": "https://react.dev"
+    },
+    {
+      "id": "lynx",
+      "title": "Lynx",
+      "runtime": "web",
+      "url": "https://lynxjs.org"
+    },
+    {
+      "id": "lynx-flappy-bird",
+      "title": "Flappy Bird",
+      "runtime": "web",
+      "url": "https://huxpro.github.io/lynx-flappy-bird/",
+      "size": "portrait"
+    },
+    {
       "id": "vue-lynx",
       "title": "Vue Lynx",
       "runtime": "web",
@@ -15,26 +34,8 @@
       "url": "https://vue-lynx-git-vapor-huxpros-projects.vercel.app/guide/touch-fx",
       "size": "portrait",
       "icon": "/app-icons/cat-toy.png",
-      "keywords": ["cat toy", "touch-fx", "touch fx", "逗猫"]
-    },
-    {
-      "id": "lynx-flappy-bird",
-      "title": "Flappy Bird",
-      "runtime": "web",
-      "url": "https://huxpro.github.io/lynx-flappy-bird/",
-      "size": "portrait"
-    },
-    {
-      "id": "react",
-      "title": "React",
-      "runtime": "web",
-      "url": "https://react.dev"
-    },
-    {
-      "id": "lynx",
-      "title": "Lynx",
-      "runtime": "web",
-      "url": "https://lynxjs.org"
+      "keywords": ["cat toy", "touch-fx", "touch fx", "逗猫"],
+      "featured": false
     },
     {
       "id": "busy-week",

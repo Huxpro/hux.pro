@@ -1,7 +1,7 @@
 # App Folder — home-screen folder for external projects
 
 The homepage widget grid includes an **app folder**: an iPad-style springboard
-of icons for apps (Vue Lynx, 逗猫棒, Flappy Bird, React, Lynx, …). Each icon is
+of icons for apps (React, Lynx, Flappy Bird, Vue Lynx, …). Each icon is
 the artwork the target site *itself* declares for home-screen use, wearing a
 small **runtime badge** in the corner.
 
@@ -36,7 +36,7 @@ Apps live in [`content/apps.json`](../content/apps.json):
   is downloaded. Same recovery philosophy as og-snapshot's manual `preview`.
 - `featured` *(optional)* — show on the home-screen folder. Defaults to `true`.
   `false` keeps the app in the ⌘K launcher without featuring it on the
-  springboard (BusyWeek is command-only this way).
+  springboard (BusyWeek and 逗猫棒 are command-only this way).
 - `keywords` *(optional)* — extra ⌘K search terms on top of title / id /
   runtime.
 
@@ -74,7 +74,7 @@ and (via the same fill/pad rules) the minimized dock pills.
 
 `components/apps/app-folder.tsx` renders as one chrome-less item in the home
 `SortableMasonry`, so it drags alongside widgets. Icons inside are a *nested*
-dnd-kit sortable with its own persisted order (`localStorage["hux_app_order"]`):
+dnd-kit sortable with its own persisted order (`localStorage["hux_app_order_v2"]`):
 
 - Pointer presses on icons stop propagation, so dragging an icon never lifts
   the whole folder (the folder still lifts from its empty areas).

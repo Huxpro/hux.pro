@@ -34,7 +34,7 @@ When the Window system is mounted, ⌘K also launches apps from
 - Group hides entirely when no app matches the query
 - Real snapshot tiles via shared `AppTile`
 - The strip lists the **full catalog**, including `featured: false`
-  command-only apps (BusyWeek) that the home folder omits
+  command-only apps (BusyWeek, 逗猫棒) that the home folder omits
 
 ### Keyboard Shortcuts
 
