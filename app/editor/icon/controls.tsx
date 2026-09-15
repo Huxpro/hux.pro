@@ -94,31 +94,7 @@ export function Segmented<T extends string>({
   );
 }
 
-export function Slider({
-  value,
-  min,
-  max,
-  step,
-  onChange,
-}: {
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <input
-      type="range"
-      min={min}
-      max={max}
-      step={step}
-      value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      className="h-1 w-full cursor-pointer appearance-none rounded-full bg-muted accent-foreground"
-    />
-  );
-}
+export { Slider } from "@/components/ui/slider";
 
 export function TextField({
   value,

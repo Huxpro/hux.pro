@@ -62,6 +62,7 @@ import { isReadingSurface } from "./lib/reading-surface";
 import {
   applyLegibility,
   plainLegibility,
+  profileFromScene,
   resolveLegibility,
   type LegibilityPolicy,
   type LegibilityVars,
@@ -770,41 +771,43 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const wallpaperSrc = resolvedImage?.src ?? null;
 
   // --- Legibility ------------------------------------------------------------
-  // What is painting has a static profile (measured once, committed as JSON);
-  // the policy turns it into a few CSS variables on <html>. No pixels are read
-  // here — a lookup and a handful of multiplies, memoised on what can change.
-  const paintingWeather =
-    isDevtoolEnabled && isOverrideEnabled && debugOverride
-      ? debugOverride
-      : weatherQuery.data
-        ? { condition: weatherQuery.data.condition, isDay: weatherQuery.data.isDay ?? true }
-        : null;
-  const paintingCondition = paintingWeather?.condition ?? null;
-  const paintingIsDay = paintingWeather?.isDay ?? true;
+  // What is painting has a profile: a picture's was measured once and
+  // committed; Classic's palettes likewise; the Sky and the Gradient are read
+  // off the live scene (`profileFromScene`) — the scene is already the
+  // description of the picture, so nothing is sampled. The policy turns the
+  // profile into a few CSS variables on <html>, memoised on what can change.
+  const paintingCondition = sceneWeather?.condition ?? null;
+  const paintingIsDay = scene.sun.isDay;
   const profile = useMemo<WallpaperProfile>(() => {
     if (!fullEnabled && !widgetEnabled) return getPlainProfile(theme);
     if (isImageKind) {
       return getImageProfile(activeWallpaper[theme]) ?? getPlainProfile(theme);
     }
-    if (effectivePhase === "sunrise" || effectivePhase === "sunset") {
-      return getWeatherProfile({ event: effectivePhase, theme }) ?? getPlainProfile(theme);
+    if (effectiveStyle === "classic") {
+      if (phase === "sunrise" || phase === "sunset") {
+        return getWeatherProfile({ event: phase, theme }) ?? getPlainProfile(theme);
+      }
+      if (paintingCondition) {
+        return (
+          getWeatherProfile({ condition: paintingCondition, isDay: paintingIsDay, theme }) ??
+          getPlainProfile(theme)
+        );
+      }
+      return getPlainProfile(theme);
     }
-    if (paintingCondition) {
-      return (
-        getWeatherProfile({ condition: paintingCondition, isDay: paintingIsDay, theme }) ??
-        getPlainProfile(theme)
-      );
-    }
-    return getPlainProfile(theme);
+    return profileFromScene({ scene, style: effectiveStyle, opacity: wallpaperOpacity, theme });
   }, [
     fullEnabled,
     widgetEnabled,
     isImageKind,
     activeWallpaper,
     theme,
-    effectivePhase,
+    effectiveStyle,
+    phase,
     paintingCondition,
     paintingIsDay,
+    scene,
+    wallpaperOpacity,
   ]);
 
   // Widget placement paints the picture only inside cards: the bare text

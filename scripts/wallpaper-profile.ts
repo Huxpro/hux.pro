@@ -12,9 +12,12 @@
 // `systems/ambient/lib/legibility.ts` turns a profile into a handful of CSS
 // variables: a few multiplies, no canvas, no image decode.
 //
-// Pictures are sampled through sharp. The weather gradients have no pixels, but
-// they are built from three authored colours (`getWeatherPaletteColors`), so
-// they get a profile computed from those — same shape, same table.
+// Pictures are sampled through sharp. The Classic weather palettes have no
+// pixels, but they are built from three authored colours
+// (`getWeatherPaletteColors`), so they get a profile computed from those —
+// same shape, same table. The Sky and the Gradient are derived live from the
+// scene and profiled at runtime by `profileFromScene` (lib/legibility.ts);
+// they have no entry here.
 //
 // What is measured (all in OKLab, so "0.1 brighter" means the same thing on a
 // blue sky and a grey rock):

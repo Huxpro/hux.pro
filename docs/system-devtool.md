@@ -85,6 +85,15 @@ Debug modules for the ambient system:
    row of scene sliders. **Now** resets everything.
 4. **Refetch**: Force re-fetch location/weather
 
+## Controls
+
+Rows are `PanelRow` (label left, control right) with a `PanelStar` when a
+value is not at its default; switches are `PanelToggle`; choices are
+`PanelSegmented`; numbers are the shared iOS `Slider` from
+`components/ui/slider.tsx` (via `PanelRange` / `PanelSlider`), the same one
+the Legibility Lab and the icon studio use. Only the Sky timeline's playhead
+is its own range input.
+
 ## Hooks
 
 ### useDevtool

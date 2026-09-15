@@ -94,9 +94,10 @@ pnpm wallpapers:profile          # measure, write systems/ambient/lib/wallpaper-
 pnpm wallpapers:profile:check    # CI: fail if the table is stale
 ```
 
-Every committed picture is sampled on a 96×60 grid in OKLab; the weather and
-sun-event gradients are synthesised from their three palette colours onto the
-same grid, so a gradient's profile is comparable to a photograph's. Per asset:
+Every committed picture is sampled on a 96×60 grid in OKLab; the **Classic**
+weather palettes (six conditions by day and night, plus sunrise and sunset)
+are synthesised from their three colours onto the same grid, so a gradient's
+profile is comparable to a photograph's. Per asset:
 
 | Field | Meaning |
 |---|---|
@@ -110,6 +111,19 @@ same grid, so a gradient's profile is comparable to a photograph's. Per asset:
 
 A profile is a fact about a file. Adding a wallpaper means running the script
 and committing the table; nothing else needs to know the picture exists.
+
+The **Sky** and the **Gradient** are not files. Their scene is derived every
+minute from the sun, the moon and the weather (`lib/scene.ts`) and the shader
+paints it — so there is nothing to measure at build time, and nothing to
+sample at runtime either: the scene already *is* the description of the
+picture. `profileFromScene` (in `legibility.ts`) reads the same profile shape
+straight off it — the veiled zenith, middle and horizon composited at the
+layer's opacity for the three bands; cloud cover × density, precipitation,
+fog, stars and lightning as `edges` for the Sky (the Gradient is smooth, so
+nil); the middle band's OKLab chroma and hue as the tint. A few dozen
+multiplies, memoised on the scene; a storm's Sky reaches about half of
+Zebra's busyness and gets relief and glass fill accordingly. Classic keeps
+its measured table.
 
 ### 3. Policy (`legibility.ts`)
 
@@ -276,7 +290,7 @@ real setting, exactly as the picker would have set it.
 
 | Panel | What it turns |
 |---|---|
-| Scene | theme, material, tint, and every wallpaper — the 14 weather and sun-event gradients included |
+| Scene | theme, material, tint, the weather style (Sky / Gradient / Classic) and every wallpaper — the six conditions by day and night plus sunrise and sunset, each a real scene at that hour for the visitor's coordinates, forced through the Sky module's own condition and clock overrides; **Live** returns to the real sky |
 | Profile | the measured numbers for what is painting, read-only |
 | Contrast | WCAG ratios of primary and secondary ink against the mean colour composited under each surface: bare top band, glass, sheet, reading veil |
 | Policy | every knob of `LegibilityPolicy`; a star marks a value that differs from what ships and resets it |
@@ -292,7 +306,13 @@ reading surface.
 Below the specimens, the **gallery** shows every wallpaper of a category at
 once, each tile an `.ink-scope` carrying its own resolved variables — so one
 policy slider moves forty tiles, and the wallpaper that reads badly is visible
-in a row with the thirty-nine that read fine.
+in a row with the thirty-nine that read fine. Weather tiles derive their scene
+at the tile's hour and paint the style's CSS gradient; under the Sky that is
+the Gradient it falls back to, the same palette without the shader's texture.
+
+Every slider in the lab, the icon studio and the devtool is one component,
+`components/ui/slider.tsx`: the iOS slider — a thin track, the travelled part
+in ink, a white round thumb.
 
 ## Adding things
 

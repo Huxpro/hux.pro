@@ -24,7 +24,9 @@
 import { Field, Section, Segmented, Slider } from "@/app/editor/icon/controls";
 import { cn } from "@/lib/utils";
 import { useGlass, useTheme } from "@/services";
-import { useAmbientTime, useWallpaper, useWeather } from "@/systems/ambient";
+import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
+import { t } from "@/lib/i18n";
+import { WEATHER_STYLES, WEATHER_STYLE_LABEL } from "@/systems/ambient/lib/wallpaper";
 import {
   BACKGROUND_RGB,
   CARD_RGB,
@@ -45,9 +47,11 @@ import {
   GalleryTile,
   sceneKey,
   sceneLabel,
+  sceneMinutes,
   sceneProfile,
   WEATHER_SCENES,
   type Scene,
+  type SkyContext,
 } from "./gallery";
 import {
   exportCss,
@@ -152,6 +156,7 @@ export function LegibilityLabView() {
   const wallpaper = useWallpaper();
   const weather = useWeather();
   const time = useAmbientTime();
+  const { location } = useLocation();
   const devtool = useDevtool();
   const { theme, setThemePreference } = useTheme();
   const glass = useGlass();
@@ -178,20 +183,32 @@ export function LegibilityLabView() {
   }, []);
 
   // --- Scene ---------------------------------------------------------------
+  // A weather scene is a condition at a time of day. Selecting one forces the
+  // condition and scrubs the clock, through the same overrides the Sky module
+  // uses; the sun and moon still come from the real ephemeris at that clock.
+  const skyCtx: SkyContext = useMemo(
+    () => ({
+      style: wallpaper.effectiveStyle,
+      lat: location?.lat,
+      lon: location?.lon,
+      dayMs: time.nowMs,
+      sunriseMs: time.sunriseMs,
+      sunsetMs: time.sunsetMs,
+    }),
+    [wallpaper.effectiveStyle, location?.lat, location?.lon, time.nowMs, time.sunriseMs, time.sunsetMs],
+  );
+
   const scene: Scene = useMemo(() => {
     if (wallpaper.kind === "image") return { kind: "image", id: wallpaper.wallpaper.id };
-    if (time.isOverrideEnabled && (time.overridePhase === "sunrise" || time.overridePhase === "sunset")) {
-      return { kind: "sun", event: time.overridePhase };
-    }
-    if (weather.isOverrideEnabled && weather.debugOverride) {
-      return { kind: "weather", condition: weather.debugOverride.condition, isDay: weather.debugOverride.isDay };
-    }
-    return {
-      kind: "weather",
-      condition: weather.weather?.condition ?? "clear",
-      isDay: weather.weather?.isDay ?? true,
-    };
-  }, [wallpaper.kind, wallpaper.wallpaper.id, time.isOverrideEnabled, time.overridePhase, weather.isOverrideEnabled, weather.debugOverride, weather.weather]);
+    const condition = weather.debugOverride?.condition ?? weather.weather?.condition ?? "clear";
+    const timeOfDay =
+      time.phase === "sunrise" || time.phase === "sunset"
+        ? time.phase
+        : weather.scene.sun.isDay
+          ? "day"
+          : "night";
+    return { kind: "weather", condition, time: timeOfDay };
+  }, [wallpaper.kind, wallpaper.wallpaper.id, weather.debugOverride, weather.weather, weather.scene.sun.isDay, time.phase]);
 
   const selectScene = useCallback(
     (next: Scene) => {
@@ -200,18 +217,17 @@ export function LegibilityLabView() {
         return;
       }
       wallpaper.setKind("weather");
-      if (next.kind === "sun") {
-        time.setOverridePhase(next.event);
-        time.setOverrideEnabled(true);
-        weather.setOverrideEnabled(false);
-      } else {
-        time.setOverrideEnabled(false);
-        weather.setDebugOverride({ condition: next.condition, isDay: next.isDay });
-        weather.setOverrideEnabled(true);
-      }
+      weather.setDebugOverride({ condition: next.condition });
+      time.setTimeScrubMinutes(sceneMinutes(next.time, skyCtx));
     },
-    [wallpaper, time, weather],
+    [wallpaper, weather, time, skyCtx],
   );
+
+  const goLive = useCallback(() => {
+    weather.setDebugOverride(null);
+    time.resetTimeTravel();
+  }, [weather, time]);
+  const isLive = weather.debugOverride === null && !time.isTimeTravelActive;
 
   // --- Policy → provider override -----------------------------------------
   const [policyOverrides, setPolicyOverrides] = useState<PolicyOverrides>(() => LAB_SESSION.policy);
@@ -350,7 +366,8 @@ export function LegibilityLabView() {
             <h1 className="mt-1 font-serif text-2xl tracking-tight text-foreground">{L.title}</h1>
           </div>
           <div className="text-[11px] font-mono text-muted-foreground">
-            {sceneLabel(scene, locale)} · {themeName(theme)} · {materialName(glass.material)} · {tintName(glass.tint)}
+            {sceneLabel(scene, locale)}
+            {wallpaper.kind === "weather" && ` · ${t(locale, WEATHER_STYLE_LABEL[wallpaper.effectiveStyle])}`} · {themeName(theme)} · {materialName(glass.material)} · {tintName(glass.tint)}
             {live.flip && ` · ${L.flipped}`}
             {dirty > 0 && <span className="ml-2 text-amber-500/90">{L.liveChanges(dirty)}</span>}
           </div>
@@ -404,7 +421,7 @@ export function LegibilityLabView() {
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
             {galleryScenes.map((s) => {
-              const p = sceneProfile(s, theme);
+              const p = sceneProfile(s, theme, skyCtx);
               if (!p) return null;
               const vars = resolveForLab({ profile: p, theme, reading: false, policy, pins: {} });
               return (
@@ -416,6 +433,7 @@ export function LegibilityLabView() {
                   selected={sceneKey(s) === sceneKey(scene)}
                   onSelect={() => selectScene(s)}
                   locale={locale}
+                  ctx={skyCtx}
                 />
               );
             })}
@@ -458,9 +476,28 @@ export function LegibilityLabView() {
               ]}
             />
           </Field>
+          <Field label={L.weatherStyle} hint={wallpaper.effectiveStyle !== wallpaper.weatherStyle ? L.fellBack : undefined}>
+            <Segmented
+              value={wallpaper.weatherStyle}
+              onChange={wallpaper.selectWeather}
+              options={WEATHER_STYLES.map((style) => ({ value: style, label: t(locale, WEATHER_STYLE_LABEL[style]) }))}
+            />
+          </Field>
           <Field label={L.wallpaper} hint={sceneLabel(scene, locale)}>
             <div className="flex flex-col gap-2">
               <div className="flex flex-wrap gap-1">
+                <button
+                  type="button"
+                  onClick={goLive}
+                  className={cn(
+                    "rounded px-1.5 py-0.5 text-[10px] font-mono transition-colors",
+                    wallpaper.kind === "weather" && isLive
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                  )}
+                >
+                  {L.live}
+                </button>
                 {WEATHER_SCENES.map((s) => (
                   <button
                     key={sceneKey(s)}

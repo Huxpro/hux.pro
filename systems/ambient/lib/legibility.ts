@@ -31,6 +31,8 @@
 // to run on every render; the provider memoises it anyway.
 // =============================================================================
 
+import type { RGB, WeatherScene } from "./scene";
+import type { WeatherStyle } from "./wallpaper";
 import { getPlainProfile, type WallpaperProfile, type WallpaperTint } from "./wallpaper-profile";
 
 export type Theme = "light" | "dark";
@@ -231,6 +233,113 @@ function clampTint(profile: WallpaperProfile, theme: Theme, policy: LegibilityPo
     l: round(clamp(source.l, policy.tintLightness[theme]), 3),
     c: round(clamp(source.c, policy.tintChroma), 3),
     h: source.h,
+  };
+}
+
+// -----------------------------------------------------------------------------
+// A profile from the live sky
+//
+// The Sky and the Gradient are not files: the scene is derived every minute
+// from the sun, the moon and the weather (lib/scene.ts), and the shader paints
+// it. There is nothing to measure at build time — but there is nothing to
+// measure at runtime either, because the scene already *is* the description
+// of the picture: its sky colours, its cloud cover, its rain. This reads a
+// profile straight off those numbers, in the same shape the profiler writes
+// for a photograph, so the policy needs no second path. A few dozen
+// multiplies, once per scene change; no canvas is ever sampled.
+//
+// Classic keeps its static table: its palettes are fixed strings, measured by
+// the profiler like everything else.
+// -----------------------------------------------------------------------------
+
+function srgbToLinear01(v: number): number {
+  return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+}
+
+/** sRGB (0..1 channels) → OKLab. The browser's own `oklch()` transform. */
+function rgb01ToOklab([r, g, b]: RGB): { L: number; a: number; b: number } {
+  const lr = srgbToLinear01(r);
+  const lg = srgbToLinear01(g);
+  const lb = srgbToLinear01(b);
+  const l = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
+  const m = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
+  const s = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
+  return {
+    L: 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+    a: 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+    b: 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+  };
+}
+
+function mix01(a: RGB, b: RGB, t: number): RGB {
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+}
+
+const PAGE_RGB01: Record<Theme, RGB> = { light: [1, 1, 1], dark: [26 / 255, 26 / 255, 26 / 255] };
+
+/**
+ * What the profiler would have measured, had the sky been a file.
+ *
+ *   zones     the veiled zenith (top), the zenith/horizon mix (middle) and the
+ *             veiled horizon (bottom), each with the sun's glow where the sun
+ *             is — then composited over the page at the layer's opacity, since
+ *             the Gradient and Classic paint as a wash.
+ *   edges     what the shader adds that a gradient has not: cloud texture,
+ *             rain or snow streaks, fog grain, stars. The Gradient is smooth,
+ *             so its detail is nil; the Sky under a storm reaches about half
+ *             of Zebra.
+ *   tint      the sky's own colour, from the middle band.
+ */
+export function profileFromScene(params: {
+  scene: WeatherScene;
+  style: WeatherStyle;
+  /** The layer's opacity over the page (1 for the Sky, the wash below it). */
+  opacity: number;
+  theme: Theme;
+}): WallpaperProfile {
+  const { scene, style, opacity, theme } = params;
+  const veil = (c: RGB) => mix01(c, scene.veil.color, scene.veil.amount);
+  const page = PAGE_RGB01[theme];
+  const over = (c: RGB) => mix01(page, c, opacity);
+
+  const glow = scene.sky.glowStrength * 0.6;
+  const sunHigh = scene.sun.screen.y > 0.55 ? glow : glow * 0.35;
+  const top = over(veil(mix01(scene.sky.zenith, scene.sky.glow, sunHigh)));
+  const mid = over(veil(mix01(mix01(scene.sky.zenith, scene.sky.horizon, 0.55), scene.sky.glow, glow * 0.5)));
+  const bottom = over(veil(mix01(scene.sky.horizon, scene.sky.glow, scene.sun.screen.y < 0.4 ? glow : glow * 0.3)));
+
+  const [lt, lm, lb] = [top, mid, bottom].map((c) => rgb01ToOklab(c));
+  const lum = (lt.L + lm.L + lb.L) / 3;
+  const contrast = Math.sqrt(((lt.L - lum) ** 2 + (lm.L - lum) ** 2 + (lb.L - lum) ** 2) / 3);
+
+  const shader = style === "sky";
+  const clouds = scene.clouds.cover * scene.clouds.density;
+  const edges = shader
+    ? 0.012 * clouds +
+      0.03 * scene.precipitation.intensity +
+      0.008 * (scene.fog > 0.2 ? scene.fog : 0) +
+      0.004 * scene.stars +
+      0.02 * scene.lightning
+    : 0;
+
+  const chroma = Math.hypot(lm.a, lm.b);
+  const tint: WallpaperTint | null =
+    chroma > 0.01
+      ? {
+          l: round(lm.L, 3),
+          c: round(chroma, 3),
+          h: round(((Math.atan2(lm.b, lm.a) * 180) / Math.PI + 360) % 360, 1),
+        }
+      : null;
+
+  return {
+    lum: round(lum, 3),
+    zones: { top: round(lt.L, 3), mid: round(lm.L, 3), bottom: round(lb.L, 3) },
+    mean: mid.map((c) => Math.round(c * 255)) as [number, number, number],
+    contrast: round(contrast, 3),
+    edges: round(edges, 4),
+    chroma: round(chroma, 3),
+    tint,
   };
 }
 

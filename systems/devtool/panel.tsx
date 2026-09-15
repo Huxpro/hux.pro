@@ -97,6 +97,7 @@ import {
 } from "lucide-react";
 import { withDraggable } from "@/systems/draggable";
 import Link from "next/link";
+import { Slider } from "@/components/ui/slider";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 // =============================================================================
@@ -691,18 +692,14 @@ function PanelRange({
 }) {
   return (
     <div className={cn("flex items-center gap-2", wide ? "w-full" : "shrink-0")}>
-      <input
-        type="range"
+      <Slider
         min={min}
         max={max}
         step={step}
         value={value}
         aria-label={label}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className={cn(
-          "h-1 cursor-pointer appearance-none rounded-full bg-muted accent-foreground",
-          wide ? "w-full" : "w-24"
-        )}
+        onChange={onChange}
+        className={wide ? "w-full" : "w-24"}
       />
       {!wide && (
         <span className="w-8 text-right text-[10px] font-mono tabular-nums text-muted-foreground">
@@ -853,7 +850,7 @@ function GlassModule() {
           label={t(locale, "settingsTint")}
           star={
             glass.tint === "neutral" ? null : (
-              <PanelStar onReset={() => glass.setTint("neutral")} label="Back to neutral" />
+              <PanelStar source="saved" onReset={() => glass.setTint("neutral")} label="Back to neutral" />
             )
           }
         >
@@ -1039,7 +1036,7 @@ function WallpaperModule() {
       on: reading,
     },
   ] as const;
-  type OverrideKey = "full" | "widget" | "softEdging" | "bezel" | "scroll" | "noWebGL";
+  type OverrideKey = "full" | "widget" | "softEdging" | "reading" | "bezel" | "scroll" | "noWebGL";
   const overrideFlag = (key: Exclude<OverrideKey, "scroll">, on: boolean) =>
     setDevtoolOverrides({ ...devtoolOverrides, [key]: on });
   const clearFlag = (key: OverrideKey) =>
