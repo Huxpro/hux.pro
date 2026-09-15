@@ -183,7 +183,7 @@ type WallpaperKind = "weather" | "image";
   | Style | Name | Subtitle | What it is |
   |---|---|---|---|
   | `sky` | **Sky** | shader · webgl | The WebGL shader (`lib/wallpaper/`): the whole scene, animated, at full strength. Needs WebGL2. |
-  | `gradient` | **Gradient** | css · gradient · realtime | The same scene as a CSS gradient (`sceneToCssGradient`): the sky's colour at the real sun position, live to the minute. The Sky's automatic fallback. |
+  | `gradient` | **Gradient** | css · gradient | The same scene as a CSS gradient (`sceneToCssGradient`): the sky's colour at the real sun position, live to the minute. The Sky's automatic fallback. |
   | `classic` | **Classic** | css · gradient · presets | The original: six hand-tuned condition palettes by day and night plus the sunrise / sunset event gradients (`getClassicGradient`). Steps at phase and weather changes rather than following the clock. Chosen by hand only. |
 
 - `image` — a fixed picture from the built-in catalog (`lib/wallpaper.ts`).
@@ -213,8 +213,8 @@ Talks widget uses for albums (`WALLPAPER_CATEGORIES` in `lib/wallpaper.ts`).
   a small live canvas running the shader at a tile-sized pixel budget (the one
   wallpaper that moves should move in its tile); **Gradient**, previewed with
   the very gradient the page would paint; and **Classic**, previewed with the
-  palette for this condition and hour. The two realtime styles wear the Live
-  chip. Where WebGL2 is missing the Sky tile shows the Gradient with a note,
+  palette for this condition and hour. Every tile wears a chip: Live on the two
+  realtime styles, Preset on Classic. Where WebGL2 is missing the Sky tile shows the Gradient with a note,
   which is also what choosing it would paint.
 - **Apple** — the default macOS, iPadOS and iOS wallpapers as light/dark pairs,
   the artwork each release is recognised by. Twelve pairs: macOS Tahoe,

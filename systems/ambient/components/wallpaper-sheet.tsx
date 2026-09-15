@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { t, useLocale, useTheme, type TranslationKey } from "@/services";
 import { AlbumTabs } from "@/systems/theater";
-import { Check, Cloud, Moon, Smartphone, Sparkles, Sun } from "lucide-react";
+import { Check, Cloud, Moon, Palette, Smartphone, Sparkles, Sun } from "lucide-react";
 import { useState } from "react";
 import {
   ADAPTIVE_PRESENTATION,
@@ -312,7 +312,8 @@ function WallpaperTile({
  * its tile — the Gradient tile paints the very gradient the page would, and
  * the Classic tile the palette for this condition and hour. Where WebGL2 is
  * missing the Sky tile shows the Gradient with a note, which is also what
- * choosing it would paint. The two realtime styles wear the Live chip.
+ * choosing it would paint. Every tile wears a chip saying how it moves: Live
+ * on the two realtime styles, Preset on Classic.
  */
 function WeatherStyleTile({
   style,
@@ -340,7 +341,7 @@ function WeatherStyleTile({
   const realtime = style !== "classic";
   const name = t(locale, WEATHER_STYLE_LABEL[style]);
   const meta = t(locale, WEATHER_STYLE_META[style]);
-  const Glyph = style === "sky" ? Sparkles : Cloud;
+  const Glyph = style === "sky" ? Sparkles : style === "gradient" ? Cloud : Palette;
 
   return (
     <div className="group min-w-0">
@@ -363,18 +364,16 @@ function WeatherStyleTile({
           ) : (
             <span className="absolute inset-0" style={{ backgroundImage: gradient }} />
           )}
-          {realtime && (
-            <span
-              className={cn(
-                "absolute bottom-2 left-2 flex items-center gap-1 rounded-full px-2 py-0.5",
-                "text-[10px] font-mono uppercase tracking-wider",
-                ARTWORK_CHIP
-              )}
-            >
-              <Glyph className="size-3" />
-              {t(locale, "wallpaperLive")}
-            </span>
-          )}
+          <span
+            className={cn(
+              "absolute bottom-2 left-2 flex items-center gap-1 rounded-full px-2 py-0.5",
+              "text-[10px] font-mono uppercase tracking-wider",
+              ARTWORK_CHIP
+            )}
+          >
+            <Glyph className="size-3" />
+            {t(locale, realtime ? "wallpaperLive" : "wallpaperPreset")}
+          </span>
         </button>
       </TileFrame>
       <TileCaption name={name} meta={meta} />
