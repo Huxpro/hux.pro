@@ -644,17 +644,22 @@ function PanelToggle({
   on,
   onClick,
   label,
+  disabled = false,
 }: {
   on: boolean;
   onClick: () => void;
   label: string;
+  /** The setting is kept but has nothing to act on right now. */
+  disabled?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={cn(
         "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
-        on ? "bg-green-500/90 border-green-500/70" : "bg-muted/40 border-border/60"
+        on ? "bg-green-500/90 border-green-500/70" : "bg-muted/40 border-border/60",
+        disabled && "opacity-40 cursor-not-allowed"
       )}
       aria-pressed={on}
       aria-label={label}
@@ -1271,13 +1276,15 @@ function WallpaperModule() {
           </PanelRow>
         </div>
 
-        {/* How much of it survives on a reading page. Home gets none of this. */}
+        {/* How much of it survives on a reading page. Home gets none of this.
+            The veil applies to every kind; the blur only to a picture, so its
+            switch goes quiet under the weather rather than pretending. */}
         <div className="space-y-2 border-t border-border/30 pt-2.5">
           <div className="text-[10px] font-mono uppercase tracking-wider text-tertiary-foreground">
             {zh ? "阅读页处理" : "Reading treatment"}
           </div>
           <PanelRow
-            label={zh ? "二级页虚化" : "Reading blur"}
+            label={isImage ? (zh ? "二级页虚化" : "Reading blur") : zh ? "二级页虚化 · 仅图片" : "Reading blur · images only"}
             star={
               readingBlur ? null : (
                 <PanelStar onReset={() => setReadingBlur(true)} source="saved" />
@@ -1286,6 +1293,7 @@ function WallpaperModule() {
           >
             <PanelToggle
               on={readingBlur}
+              disabled={!isImage}
               onClick={() => setReadingBlur(!readingBlur)}
               label="Toggle blur on reading pages"
             />

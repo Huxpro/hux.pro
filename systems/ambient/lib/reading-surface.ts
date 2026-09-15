@@ -1,19 +1,20 @@
 /**
  * Home is the desktop; everything else is a reading surface.
  *
- * An image wallpaper is a picture, and a picture behind a 680px prose column is
- * a competing figure. So the two contexts treat it differently:
+ * A wallpaper behind a 680px prose column is a competing figure. So the two
+ * contexts treat it differently:
  *
  *   home (`/`)     full strength, sharp, untinted. It IS the content — the
  *                  widgets are a springboard floating on a desktop.
- *   everywhere else defocused behind a veil, so the prose column is the figure.
- *                  No card, no radius, no boxed article.
+ *   everywhere else behind a veil of the page colour, so the prose column is
+ *                  the figure; a picture is defocused as well. No card, no
+ *                  radius, no boxed article.
  *
  * Both halves of that are devtool-switchable (`wallpaperReadingBlur`,
- * `wallpaperReadingDim`) because it is a taste call and
- * the only way to settle a taste call is to look at both.
- *
- * The weather gradient needs none of this: it has no detail to compete with.
+ * `wallpaperReadingDim`) because it is a taste call and the only way to settle
+ * a taste call is to look at both. The veil applies to every kind — the Sky
+ * and the Gradient recede too; the blur only to a picture, which is the only
+ * kind with detail to defocus.
  */
 export const WALLPAPER_HOME_PATH = "/";
 
@@ -29,9 +30,6 @@ export function isWallpaperHomePath(pathname: string | null): boolean {
 }
 
 /** Whether the wallpaper should recede for reading on this route. */
-export function isReadingSurface(params: {
-  kind: "weather" | "image";
-  pathname: string | null;
-}): boolean {
-  return params.kind === "image" && !isWallpaperHomePath(params.pathname);
+export function isReadingSurface(params: { pathname: string | null }): boolean {
+  return !isWallpaperHomePath(params.pathname);
 }

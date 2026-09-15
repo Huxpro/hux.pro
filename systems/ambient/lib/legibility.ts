@@ -83,9 +83,12 @@ export interface LegibilityPolicy {
    * Head start for the light ink in that comparison. Light text carries a
    * dark drop, dark text a white halo, and a drop reads on far more grounds
    * than a halo (Aqua and the Lock Screen both reach for white-with-shadow
-   * over a photograph), so on a mid-tone picture the light ink wins the tie:
-   * the light theme flips at a top band below ~0.59, the dark theme only
-   * flips back to dark ink above ~0.74.
+   * over a photograph). The halo only fails on texture, though — on a calm
+   * mid-tone picture (the dew drop) dark ink with a halo reads fine and the
+   * theme's ink should stay — so the head start grows with busyness:
+   * `dropBias × √busy`. At full busyness the light theme flips at a band
+   * below ~0.59 and the dark theme flips back to dark ink only above ~0.74;
+   * on a calm picture both behave as the plain margin.
    */
   dropBias: number;
   /**
@@ -129,12 +132,12 @@ export const DEFAULT_LEGIBILITY_POLICY: LegibilityPolicy = {
   toneWorst: { light: 0.22, dark: 0.85 },
   flipMargin: 0.15,
   dropBias: 0.25,
-  veilBase: { light: 0.45, dark: 0.55 },
-  veilBusy: 0.18,
-  veilConflict: 0.2,
-  veilMax: 0.85,
-  blurBase: 40,
-  blurBusy: 24,
+  veilBase: { light: 0.32, dark: 0.4 },
+  veilBusy: 0.15,
+  veilConflict: 0.15,
+  veilMax: 0.7,
+  blurBase: 28,
+  blurBusy: 16,
   tintLightness: { light: [0.5, 0.66], dark: [0.6, 0.76] },
   tintChroma: [0.05, 0.16],
   tintMinChroma: 0.03,
@@ -210,8 +213,8 @@ export function resolveLegibility(params: {
   // a picture does not flip on a rounding error.
   const inkL = INK_LIGHTNESS[theme];
   const inverseL = INK_LIGHTNESS[theme === "dark" ? "light" : "dark"];
-  const score = (ink: number, band: number) =>
-    Math.abs(ink - band) + (ink > 0.5 ? policy.dropBias : 0);
+  const bias = policy.dropBias * Math.sqrt(busy);
+  const score = (ink: number, band: number) => Math.abs(ink - band) + (ink > 0.5 ? bias : 0);
   const flips = (band: number) =>
     !reading && score(inverseL, band) - score(inkL, band) > policy.flipMargin;
   const top = profile.zones.top;

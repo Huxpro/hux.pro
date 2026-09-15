@@ -135,10 +135,10 @@ runtime ever computes, memoised on what can change:
 | `inkBoost` | `max(busy, 0.7·conflict) × 14` alpha points | `--wp-ink-boost`, added to the secondary and tertiary alphas |
 | `bareBoost` | `busy × 20` alpha points more, for bare zones only; 0 on reading routes | `--wp-bare-boost`, which `.ink-bare` / `.ink-bare-mid` take as their `--wp-zone-boost` — nothing but the picture helps that text, so its rungs climb toward solid on a busy one, as iOS paints Home Screen labels |
 | `relief` | `max(need, busy × 0.85)`, where `need` grows as the ink-to-top-band gap shrinks below 0.55; × 0 on reading routes; under 0.1 → 0 | `--wp-relief`, scales the text shadow |
-| `flip`, `flipMid` | per band (top for the header, middle for the app folder): the inverse ink clears the band by more than 0.15 more than the theme's ink, the light ink scored with a 0.25 head start because its drop is the stronger relief — so the light theme flips below ~0.59, the dark theme flips back above ~0.74 | `data-wallpaper-flip`, `data-wallpaper-flip-mid` |
+| `flip`, `flipMid` | per band (top for the header, middle for the app folder): the inverse ink clears the band by more than 0.15 more than the theme's ink, the light ink scored with a head start of `0.25 × √busy` because its drop is the stronger relief and a halo only fails on texture — so at full busyness the light theme flips below ~0.59 and the dark theme flips back above ~0.74, while a calm mid-tone picture (the dew drop) keeps the theme's ink | `data-wallpaper-flip`, `data-wallpaper-flip-mid` |
 | `glassAdd` | `busy × 14 + conflict × 22` fill points | `--wp-glass-add`, added to every glass fill (Clear takes all, Tinted half) |
-| `veil` | `veilBase[theme] + busy × 0.18 + conflict × 0.2`, capped at 0.85 (base 0.45 light / 0.55 dark) | `--wp-veil`; the reading veil's alpha when Reading dim is on |
-| `blur` | `40px + busy × 24px` | `--wp-blur`; the reading defocus radius when Reading blur is on |
+| `veil` | `veilBase[theme] + busy × 0.15 + conflict × 0.15`, capped at 0.7 (base 0.32 light / 0.40 dark) | `--wp-veil`; the reading veil's alpha when Reading dim is on — under any kind, the Sky included |
+| `blur` | `28px + busy × 16px` | `--wp-blur`; the reading defocus radius when Reading blur is on — pictures only |
 | `tint` | the profile's tint clamped to L 0.50–0.66 (light) / 0.60–0.76 (dark), C 0.05–0.16; grey below chroma 0.03 | `--wp-tint-l/c/h` |
 
 `busy` is `edges / 0.06`, clamped. `conflict` is how far the picture sits on
@@ -177,8 +177,10 @@ re-derives its ladder, and picks the other relief shape. The comparison is
 not symmetric: light text carries a dark drop, dark text a white halo, and a
 drop reads on far more grounds (Aqua and the Lock Screen both reach for
 white-with-shadow over a photograph), so `dropBias` gives the light ink a
-head start and mid-tone pictures — the stones, the zen garden — go light in
-the light theme rather than dark-with-halo. Glass surfaces never flip: they carry the card colour,
+head start that grows with busyness — a halo only fails on texture — and busy
+mid-tone pictures (the stones, the zen garden) go light in the light theme
+rather than dark-with-halo, while a calm one (the dew drop) keeps the theme's
+ink. Glass surfaces never flip: they carry the card colour,
 so their ink was right all along — they *adapt* through `glassAdd` instead,
 which is Liquid Glass's distinction between small elements and big ones. A
 zone that grows glass on demand stops being bare with it: the folder drops

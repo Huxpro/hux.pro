@@ -622,7 +622,7 @@ export function LegibilityLabView() {
         </Section>
 
         <Section title={L.policy}>
-          {POLICY_KNOBS.map((knob) => {
+          {POLICY_KNOBS.filter((knob) => knob.group === "desktop").map((knob) => {
             const value = policy[knob.key] as number;
             const overridden = knob.key in policyOverrides;
             return (
@@ -687,21 +687,6 @@ export function LegibilityLabView() {
             </div>
             <span className="text-[10px] text-muted-foreground/60">{L.toneRangeHint(themeName(theme))}</span>
           </Field>
-          <Field label={L.veilBase} hint={`${policy.veilBase[theme]} (${themeName(theme)})`}>
-            <Slider
-              value={policy.veilBase[theme]}
-              min={0}
-              max={0.9}
-              step={0.01}
-              onChange={(v) =>
-                setPolicyOverrides((o) => ({
-                  ...o,
-                  veilBase: { ...(o.veilBase ?? DEFAULT_LEGIBILITY_POLICY.veilBase), [theme]: v },
-                }))
-              }
-            />
-            <span className="text-[10px] text-muted-foreground/60">{L.veilBaseHint}</span>
-          </Field>
           <Field label={L.tintL} hint={`${policy.tintLightness[theme][0]} – ${policy.tintLightness[theme][1]}`}>
             <div className="flex gap-2">
               {([0, 1] as const).map((i) => (
@@ -743,6 +728,60 @@ export function LegibilityLabView() {
               ))}
             </div>
           </Field>
+        </Section>
+
+        <Section title={L.policyReading}>
+          <Field label={L.veilBase} hint={`${policy.veilBase[theme]} (${themeName(theme)})`}>
+            <Slider
+              value={policy.veilBase[theme]}
+              min={0}
+              max={0.9}
+              step={0.01}
+              onChange={(v) =>
+                setPolicyOverrides((o) => ({
+                  ...o,
+                  veilBase: { ...(o.veilBase ?? DEFAULT_LEGIBILITY_POLICY.veilBase), [theme]: v },
+                }))
+              }
+            />
+            <span className="text-[10px] text-muted-foreground/60">{L.veilBaseHint}</span>
+          </Field>
+          {POLICY_KNOBS.filter((knob) => knob.group === "reading").map((knob) => {
+            const value = policy[knob.key] as number;
+            const overridden = knob.key in policyOverrides;
+            return (
+              <Field
+                key={knob.key}
+                label={knobLabel(knob.key, knob.label)}
+                hint={String(value)}
+              >
+                <div className="flex items-center gap-2">
+                  <Slider
+                    value={value}
+                    min={knob.min}
+                    max={knob.max}
+                    step={knob.step}
+                    onChange={(v) => setPolicyOverrides((o) => ({ ...o, [knob.key]: v }))}
+                  />
+                  {overridden ? (
+                    <Star
+                      title={L.backTo(DEFAULT_LEGIBILITY_POLICY[knob.key] as number)}
+                      onReset={() =>
+                        setPolicyOverrides((o) => {
+                          const next = { ...o };
+                          delete next[knob.key];
+                          return next;
+                        })
+                      }
+                    />
+                  ) : (
+                    <span className="w-2.5" />
+                  )}
+                </div>
+                <span className="text-[10px] text-muted-foreground/60">{knobHint(knob.key, knob.hint)}</span>
+              </Field>
+            );
+          })}
         </Section>
 
         <Section title={L.resolved}>

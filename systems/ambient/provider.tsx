@@ -239,10 +239,10 @@ interface WallpaperContextType {
   opacity: number;
   /**
    * Alpha of the veil drawn OVER the wallpaper, or 0 for none. Non-zero only
-   * on a reading page under an image wallpaper.
+   * on a reading page, under any kind.
    */
   veil: number;
-  /** Whether the wallpaper should be defocused right now. */
+  /** Whether the wallpaper should be defocused right now: a picture, on a reading page. */
   blurred: boolean;
   /** Whether this page recedes the wallpaper — see `isReadingSurface`. */
   reading: boolean;
@@ -500,8 +500,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     natural: boolean
   ): boolean => (isDevtoolEnabled ? devtoolOverrides[key] : undefined) ?? natural;
 
-  const reading = isReadingSurface({ kind: settings.wallpaperKind, pathname });
-  const isBlurred = reading && settings.wallpaperReadingBlur;
+  const reading = isReadingSurface({ pathname });
+  const isBlurred = reading && settings.wallpaperKind === "image" && settings.wallpaperReadingBlur;
 
   const fullEnabled = overridden("full", settings.wallpaperPlacement === "full");
   const widgetEnabled = overridden(
