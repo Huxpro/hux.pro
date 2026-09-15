@@ -317,7 +317,7 @@ html[data-wallpaper-flip] .ink-bare {
   );
   --quaternary-foreground: color-mix(
     in oklab,
-    var(--ink) calc(var(--ink-alpha-quaternary) + var(--wp-ink-boost) / 2),
+    var(--ink) calc(var(--ink-alpha-quaternary) + var(--wp-ink-boost)),
     transparent
   );
   --secondary-foreground: var(--ink);

@@ -8,10 +8,16 @@
 // because there is nothing to drift: the same string paints both.
 //
 // Rungs: `text-foreground` is the ink; `text-muted-foreground` secondary;
-// `text-tertiary-foreground` captions and dates beside a title;
-// `text-quaternary-foreground` hashes, badges, separators — the watermark
-// register. Never `text-muted-foreground/NN`: a modifier on text multiplies
-// the wallpaper boost away.
+// `text-tertiary-foreground` for anything that annotates a neighbour (a date
+// beside a title, a caption under it); `text-quaternary-foreground` only for
+// what carries no information of its own — separators, the hash column,
+// placeholder glyphs. Quaternary is nearly invisible over a picture, which is
+// the point for decoration and a bug for text. Never `text-muted-foreground/NN`:
+// a modifier on text multiplies the wallpaper boost away.
+//
+// Mono metadata sits on two rungs by one rule: beside a title it annotates,
+// so it is tertiary (`rowMeta`); standing alone it is the information, so it
+// is secondary (`meta`).
 //
 // Where a component needs something no role covers, it writes the classes
 // inline and, if it recurs, the role is added here — not the other way round.
@@ -38,15 +44,17 @@ export const TYPE = {
   rowMeta: "font-mono text-xs text-tertiary-foreground",
   /** Standalone metadata: an article's header line, the artist, sun times. */
   meta: "font-mono text-xs text-muted-foreground",
-  /** The quietest metadata: hashes, language badges, a byline's handle. */
-  metaQuiet: "font-mono text-xs text-quaternary-foreground",
+  /** The hash column: pure decoration, so the one mono role on the
+   *  quaternary rung. Everything that carries information sits on tertiary
+   *  or above — quaternary is for separators, hashes and placeholders. */
+  hash: "font-mono text-xs text-quaternary-foreground",
 
   /** A description under a title. */
   caption: "text-xs text-muted-foreground leading-relaxed",
   /** A description that should sit behind the caption: an embed's blurb. */
   captionQuiet: "text-xs text-tertiary-foreground leading-relaxed",
-  /** An aside: commentary, a life event in the timeline. */
-  aside: "text-xs italic font-serif text-quaternary-foreground leading-relaxed",
+  /** An aside: commentary, a life event in the timeline, "featured". */
+  aside: "text-xs italic font-serif text-tertiary-foreground leading-relaxed",
   /** Body-sized secondary copy: a widget's description, an empty state. */
   body: "text-sm text-muted-foreground leading-relaxed",
 
@@ -55,8 +63,8 @@ export const TYPE = {
 
   /** System navigation: the back link, `retry`, `main`. */
   nav: "font-mono text-xs tracking-wide text-muted-foreground transition-colors duration-200 hover:text-foreground",
-  /** An icon or glyph link that only surfaces on hover. */
-  linkQuiet: "text-quaternary-foreground transition-colors hover:text-foreground",
+  /** An icon or glyph link that brightens on hover. */
+  linkQuiet: "text-tertiary-foreground transition-colors hover:text-foreground",
 
   /** A keyboard hint. */
   kbd: "rounded bg-muted/50 px-1.5 py-0.5 font-mono text-xs text-muted-foreground",

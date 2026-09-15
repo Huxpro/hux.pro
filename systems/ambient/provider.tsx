@@ -63,6 +63,7 @@ import {
   applyLegibility,
   plainLegibility,
   resolveLegibility,
+  type LegibilityPolicy,
   type LegibilityVars,
 } from "./lib/legibility";
 import {
@@ -279,7 +280,13 @@ interface WallpaperContextType {
    */
   profile: WallpaperProfile;
   legibility: LegibilityVars;
-  /** The Legibility Lab's live override of the resolved policy. Ephemeral. */
+  /**
+   * The Legibility Lab's tuned policy, applied on every route until Reset all
+   * or a reload — so a veil tuned in the lab can be checked on /writing.
+   */
+  labPolicy: LegibilityPolicy | null;
+  setLabPolicy: (policy: LegibilityPolicy | null) => void;
+  /** The lab's pins on the resolved variables for its own scene. Lab-only. */
   legibilityOverride: LegibilityVars | null;
   setLegibilityOverride: (vars: LegibilityVars | null) => void;
   /** Secondary window — the wallpaper picker. */
@@ -803,14 +810,16 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // Widget placement paints the picture only inside cards: the bare text
   // around them sits on the plain page, so the policy sees "plain" for the
   // flip and relief, while the glass still gets the picture's dimming layer.
+  const [labPolicy, setLabPolicy] = useState<LegibilityPolicy | null>(null);
   const resolvedLegibility = useMemo<LegibilityVars>(() => {
-    const full = resolveLegibility({ profile, theme, reading });
+    const policy = labPolicy ?? undefined;
+    const full = resolveLegibility({ profile, theme, reading, policy });
     if (fullEnabled) return full;
     if (widgetEnabled) {
       return { ...plainLegibility(theme), glassAdd: full.glassAdd, tint: full.tint, veil: full.veil, blur: full.blur };
     }
     return plainLegibility(theme);
-  }, [profile, theme, reading, fullEnabled, widgetEnabled]);
+  }, [profile, theme, reading, fullEnabled, widgetEnabled, labPolicy]);
 
   const [legibilityOverride, setLegibilityOverride] = useState<LegibilityVars | null>(null);
   const legibility = legibilityOverride ?? resolvedLegibility;
@@ -1000,6 +1009,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       src: wallpaperSrc,
       profile,
       legibility,
+      labPolicy,
+      setLabPolicy,
       legibilityOverride,
       setLegibilityOverride,
       isPickerOpen,
@@ -1051,6 +1062,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       wallpaperSrc,
       profile,
       legibility,
+      labPolicy,
       legibilityOverride,
       isPickerOpen,
       openPicker,

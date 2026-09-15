@@ -53,6 +53,7 @@ import {
   exportCss,
   exportJson,
   formatSheetValue,
+  LAB_SESSION,
   mergePolicy,
   OUTPUT_KNOBS,
   parseSheetValue,
@@ -152,59 +153,28 @@ export function LegibilityLabView() {
   const weather = useWeather();
   const time = useAmbientTime();
   const devtool = useDevtool();
-  const { theme, preference, setThemePreference } = useTheme();
+  const { theme, setThemePreference } = useTheme();
   const glass = useGlass();
   const { locale, L, knobLabel, knobHint, groupTitle, groupNote, themeName, materialName, tintName } = useLabText();
 
-  // --- Take over the app state for the visit, and give it back after -------
-  const initial = useRef<{
-    kind: typeof wallpaper.kind;
-    id: string;
-    preference: typeof preference;
-    material: typeof glass.material;
-    tint: typeof glass.tint;
-    devtool: boolean;
-    overrides: typeof wallpaper.devtoolOverrides;
-  } | null>(null);
-  const setters = useRef({ wallpaper, weather, time, devtool, glass, setThemePreference });
-  setters.current = { wallpaper, weather, time, devtool, glass, setThemePreference };
-
+  // --- The stage needs the devtool on (weather / phase overrides only apply
+  // then) and the wallpaper full-page whatever the visitor's placement. What
+  // the lab changes stays: the scene is real settings, the tuning lives for
+  // the session so it can be checked on the real routes.
+  const setters = useRef({ wallpaper, devtool });
+  setters.current = { wallpaper, devtool };
   useEffect(() => {
-    if (initial.current) return;
     const s = setters.current;
-    initial.current = {
-      kind: s.wallpaper.kind,
-      id: s.wallpaper.wallpaper.id,
-      preference,
-      material: s.glass.material,
-      tint: s.glass.tint,
-      devtool: s.devtool.isEnabled,
-      overrides: s.wallpaper.devtoolOverrides,
-    };
-    // The weather and phase overrides only apply with the devtool on, and the
-    // stage wants the wallpaper full-page whatever the visitor's placement.
     s.devtool.setEnabled(true);
-    s.wallpaper.setDevtoolOverrides({ ...s.wallpaper.devtoolOverrides, full: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
+    if (!s.wallpaper.devtoolOverrides.full) {
+      s.wallpaper.setDevtoolOverrides({ ...s.wallpaper.devtoolOverrides, full: true });
+    }
   }, []);
 
+  // Pins are for this scene only, so they leave with the page. The policy and
+  // the sheet overrides stay (see lab-state.ts).
   useEffect(() => {
-    return () => {
-      const s = setters.current;
-      const i = initial.current;
-      if (!i) return;
-      s.wallpaper.setLegibilityOverride(null);
-      s.weather.setOverrideEnabled(false);
-      s.time.setOverrideEnabled(false);
-      s.wallpaper.setDevtoolOverrides(i.overrides);
-      if (i.kind === "image") s.wallpaper.selectWallpaper(i.id);
-      else s.wallpaper.setKind("weather");
-      s.setThemePreference(i.preference);
-      s.glass.setMaterial(i.material);
-      s.glass.setTint(i.tint);
-      s.devtool.setEnabled(i.devtool);
-      for (const knob of SHEET_KNOBS) document.documentElement.style.removeProperty(knob.name);
-    };
+    return () => setters.current.wallpaper.setLegibilityOverride(null);
   }, []);
 
   // --- Scene ---------------------------------------------------------------
@@ -244,9 +214,20 @@ export function LegibilityLabView() {
   );
 
   // --- Policy → provider override -----------------------------------------
-  const [policyOverrides, setPolicyOverrides] = useState<PolicyOverrides>({});
-  const [pins, setPins] = useState<OutputPins>({});
+  const [policyOverrides, setPolicyOverrides] = useState<PolicyOverrides>(() => LAB_SESSION.policy);
+  const [pins, setPins] = useState<OutputPins>(() => LAB_SESSION.pins);
   const policy = useMemo(() => mergePolicy(policyOverrides), [policyOverrides]);
+  useEffect(() => {
+    LAB_SESSION.policy = policyOverrides;
+    LAB_SESSION.pins = pins;
+  }, [policyOverrides, pins]);
+
+  // The tuned policy goes to the provider, which resolves every route with it
+  // until Reset all — that is how a veil tuned here reaches /writing.
+  useEffect(() => {
+    wallpaper.setLabPolicy(Object.keys(policyOverrides).length ? policy : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setter is stable; `wallpaper` identity churns
+  }, [policy, policyOverrides]);
 
   const reading = wallpaper.reading;
   const shipped = useMemo(
@@ -272,8 +253,11 @@ export function LegibilityLabView() {
   const live: LegibilityVars = wallpaper.legibility;
 
   // --- Sheet inputs → inline on <html> ------------------------------------
-  const [sheet, setSheet] = useState<SheetOverrides>({});
+  const [sheet, setSheet] = useState<SheetOverrides>(() => LAB_SESSION.sheet);
   const [defaults, setDefaults] = useState<Record<string, number>>({});
+  useEffect(() => {
+    LAB_SESSION.sheet = sheet;
+  }, [sheet]);
 
   // Defaults come from the stylesheet itself: lift every override, read the
   // computed values, put the overrides back. Re-read whenever the theme or

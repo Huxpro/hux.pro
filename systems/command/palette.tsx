@@ -1032,7 +1032,7 @@ export function CommandPalette() {
           >
             <div className="overflow-hidden min-h-0">
               <div className="p-2">
-                <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <div className={cn("px-3 py-2", TYPE.label)}>
                   {t(locale, "navigation")}
                 </div>
                 {actions
@@ -1048,7 +1048,7 @@ export function CommandPalette() {
                       onClick={action.onSelect}
                     />
                   ))}
-                <div className="px-3 py-2 mt-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <div className={cn("px-3 py-2 mt-2", TYPE.label)}>
                   {t(locale, "settings")}
                 </div>
                 {actions

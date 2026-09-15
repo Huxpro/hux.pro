@@ -119,7 +119,7 @@ export function TagBadges({ items, className }: TagBadgesProps) {
       {items.map((tag) => (
         <span
           key={tag}
-          className={cn(TYPE.labelSm, "text-quaternary-foreground")}
+          className={TYPE.labelSm}
         >
           {tag}
         </span>
@@ -151,7 +151,7 @@ export function Stats({ stars, downloads, users, className }: StatsProps) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
       {items.map((item) => (
-        <span key={item.label} className="text-xs font-mono text-quaternary-foreground">
+        <span key={item.label} className={TYPE.rowMeta}>
           {item.value} {item.label}
         </span>
       ))}

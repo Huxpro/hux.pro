@@ -12,10 +12,10 @@
 // (`TYPE.rowMeta`), so they cannot disagree. What the lab tests is the spec;
 // production is the spec composed into components.
 //
-// Where production still carries a variant the roles do not cover (the
-// palette's sans-medium group heading, for one), the specimen reproduces the
-// production string verbatim and the divergence is listed under "Decisions"
-// in docs/system-legibility.md rather than quietly normalised here.
+// Where production still carries a variant the roles do not cover, the
+// specimen reproduces the production string verbatim and the divergence is
+// listed under "Decisions" in docs/system-legibility.md rather than quietly
+// normalised here.
 // =============================================================================
 
 import { TITLE_POETIC } from "@/components/ui/header-zone";
@@ -53,7 +53,7 @@ export function BareSpecimen() {
         <span className="text-foreground">primary — the ink</span>
         <span className="text-muted-foreground">secondary — muted-foreground</span>
         <span className="text-tertiary-foreground">tertiary — captions, dates beside a title</span>
-        <span className="text-quaternary-foreground">quaternary — hashes, badges, separators</span>
+        <span className="text-quaternary-foreground">quaternary — hashes, separators, placeholders</span>
       </div>
       <div className="mt-4 flex gap-5">
         {["Writing", "Works", "Prompt", "Docs"].map((label) => (
@@ -161,8 +161,7 @@ export function ActivitySpecimen() {
   );
 }
 
-/** The command palette: popover glass, input, a selected row, kbd hints. The
- *  group heading is production's sans-medium string — see Decisions. */
+/** The command palette: popover glass, input, a selected row, kbd hints. */
 export function PaletteSpecimen() {
   const rows = [
     ["Writing", "W"],
@@ -178,9 +177,7 @@ export function PaletteSpecimen() {
         <kbd className={cn("px-2 py-1", TYPE.kbd)}>esc</kbd>
       </div>
       <div className="p-2">
-        <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          navigation
-        </div>
+        <div className={cn("px-3 py-2", TYPE.label)}>navigation</div>
         {rows.map(([label, key], i) => (
           <div
             key={label}
@@ -277,7 +274,7 @@ export function ReadingSpecimen({ vars }: { vars: LegibilityVars }) {
                     <span className={cn("ml-0.5 inline-block align-[0.1em]", TYPE.pill)}>featured</span>
                   </span>
                 )}
-                <span className={cn("ml-2 align-baseline", TYPE.metaQuiet)}>EN</span>
+                <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>EN</span>
               </h3>
               <span className={cn("shrink-0", TYPE.rowMeta)}>{String(date)}</span>
             </div>
@@ -291,13 +288,13 @@ export function ReadingSpecimen({ vars }: { vars: LegibilityVars }) {
             ["a0ac582", "Lynx Framework", "Lynx @ ByteDance", "2023 – Present"],
           ].map(([hash, title, meta, date]) => (
             <div key={hash} className="grid grid-cols-[auto_1fr] gap-x-2">
-              <span className={cn("leading-5", TYPE.metaQuiet)}>{hash}</span>
+              <span className={cn("leading-5", TYPE.hash)}>{hash}</span>
               <div>
                 <div className="flex items-center gap-2">
                   <span className={cn("min-w-0 flex-1", TYPE.rowTitle)}>{title}</span>
                   <span className={cn("shrink-0 ml-auto", TYPE.rowMeta)}>{date}</span>
                 </div>
-                <div className={cn("mt-1", TYPE.metaQuiet)}>{meta}</div>
+                <div className={cn("mt-1", TYPE.rowMeta)}>{meta}</div>
               </div>
             </div>
           ))}

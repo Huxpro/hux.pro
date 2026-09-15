@@ -250,7 +250,7 @@ export function TimelineCommit({
       <span
         className={cn(
           "hidden @sm:inline select-all",
-          TYPE.metaQuiet,
+          TYPE.hash,
           // Events render the hash transparent — no link, no reference,
           // hash is noise. Keeping it occupies the column so titles
           // stay aligned with adjacent commit rows. Leading also drops
@@ -334,7 +334,7 @@ export function TimelineCommit({
             // serif italic (the traditional typographic aside).
             isEvent
               ? cn(
-                  "text-xs text-quaternary-foreground",
+                  "text-xs text-tertiary-foreground",
                   /[぀-ヿ一-鿿]/.test(data.title)
                     ? "font-mono"
                     : "italic font-serif",
@@ -344,7 +344,7 @@ export function TimelineCommit({
         >
           {data.title}
           {data.languageBadge && (
-            <span className={cn("ml-2 align-baseline", TYPE.metaQuiet)}>
+            <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
               {data.languageBadge}
             </span>
           )}
@@ -414,9 +414,7 @@ export function TimelineCommit({
               // Date stays — the year is the meaning for life events
               // (`moved to US, 2017`) — but pushed a tier quieter than
               // siblings so the row reads as background context.
-              isEvent
-                ? "text-quaternary-foreground"
-                : "text-tertiary-foreground",
+              "text-tertiary-foreground",
             )}
           >
             {data.date}
@@ -441,7 +439,7 @@ export function TimelineCommit({
         on-screen while you read.
       */}
       {(data.meta || byline) && (
-        <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.metaQuiet)}>
+        <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
           <span className="min-w-0 truncate">
             {data.meta ? (
               data.metaUrl ? (
@@ -523,14 +521,14 @@ export function TimelineCommit({
           */}
           {data.type !== "role" && data.type !== "event" && (
             <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono pb-2.5 mb-1">
-              <span className="text-quaternary-foreground">Author:</span>
+              <span className="text-tertiary-foreground">Author:</span>
               <span className="text-tertiary-foreground">
                 &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;
               </span>
 
               {byline?.expanded.title && (
                 <>
-                  <span className="text-quaternary-foreground">Role:</span>
+                  <span className="text-tertiary-foreground">Role:</span>
                   <span className="text-tertiary-foreground">
                     {byline.expanded.title}
                     <span className="text-quaternary-foreground"> @ </span>

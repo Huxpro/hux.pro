@@ -60,7 +60,7 @@ Every text and wash token is now `--ink` at a percentage:
 | `--foreground` | the ink | `oklch(0.145)` | `oklch(0.93)` |
 | `--muted-foreground` | ink at `--ink-alpha-secondary` (+ boost) | 54 % | 60 % |
 | `--tertiary-foreground` | ink at `--ink-alpha-tertiary` (+ boost) | 32 % | 36 % |
-| `--quaternary-foreground` | ink at `--ink-alpha-quaternary` | 16 % | 18 % |
+| `--quaternary-foreground` | ink at `--ink-alpha-quaternary` (+ boost) | 20 % | 22 % |
 | `--muted`, `--secondary` | ink at `--wash-alpha-muted` | 4 % | 6 % |
 | `--accent` | ink at `--wash-alpha-accent` (+ tint) | 7 % | 10 % |
 | `--border`, `--input` | ink at `--wash-alpha-border` | 9 % | 10 % |
@@ -177,13 +177,13 @@ production components and the lab's specimens both import:
 | `mediaTitle` | sm medium leading-snug ink | what is playing |
 | `rowMeta` | mono xs tertiary | the date beside a row title, a topic line |
 | `meta` | mono xs secondary | an article's header line, the artist, sun times |
-| `metaQuiet` | mono xs quaternary | hashes, language badges, a byline handle, a commit's meta line |
+| `hash` | mono xs quaternary | the hash column — the one mono role on the quaternary rung |
 | `caption` / `captionQuiet` | xs secondary / tertiary, relaxed | a description under a title / an embed's blurb |
-| `aside` | xs italic serif quaternary | commentary, a life event, "featured" |
+| `aside` | xs italic serif tertiary | commentary, a life event, "featured" |
 | `body` | sm secondary relaxed | a widget's description, an empty state |
 | `appLabel` | 11px leading-tight secondary | the label under an app icon |
 | `nav` | mono xs tracking-wide secondary → ink on hover | the back link, `retry` |
-| `linkQuiet` | quaternary → ink on hover | icon links that surface on hover |
+| `linkQuiet` | tertiary → ink on hover | icon links that brighten on hover |
 | `kbd` / `pill` | mono xs on `bg-muted/50` / mono 10px on `bg-muted` | keyboard hints / `featured`, `EN` |
 
 That is the alignment guarantee the lab rests on: the specimen's date and the
@@ -193,32 +193,38 @@ production component; a second rendering of the site would be a second thing
 to keep in step. Anything a role does not cover is written inline at the call
 site and, when it recurs, promoted here.
 
+#### The rungs, by rule
+
+- **Secondary** (`muted-foreground`): text that is the information where it
+  stands — a section label, an article's header line, a description.
+- **Tertiary** (`tertiary-foreground`): text that annotates a neighbour — the
+  date beside a title, a subtitle under it, a caption, a life event in the
+  timeline, an inactive filter, an icon link at rest.
+- **Quaternary** (`quaternary-foreground`): only what carries no information of
+  its own — separators (`·`, `@`), the hash column (`TYPE.hash`), placeholder
+  glyphs, prose line numbers, hover-revealed chevrons. It is nearly invisible
+  over a picture, which is right for decoration and wrong for text; the audit
+  moved every informational use (language badges, the works meta line, event
+  rows, author/role keys, tag rows, stats, the "featured" divider, the log's
+  end marker) up to tertiary. It takes the full wallpaper boost.
+
+Mono metadata therefore sits on two rungs by one rule, not two: beside a
+title it annotates (`rowMeta`, tertiary); standing alone it is the
+information (`meta`, secondary). `metaQuiet` is gone.
+
 #### Decisions
 
-Divergences found in the sweep that are taste rather than bugs. Each is left
-as it was in production and reproduced verbatim in the lab; pick one and the
-role absorbs it.
+Settled: palette group headings use `TYPE.label` (mono, like every other
+section label); the works meta line and everything else informational left
+quaternary (above); pills unified on `bg-muted`.
 
-1. **Palette group headings** (`navigation`, `settings`) are sans `font-medium`
-   uppercase; every other section label on the site is mono. Keep the sans
-   heading as the palette's own voice, or move to `TYPE.label`?
-2. **Mono metadata sits at two rungs.** Beside a title it is tertiary
-   (`rowMeta`: list dates, the timeline's date column); standing alone it is
-   secondary (`meta`: an article's header line, the artist, sunrise times).
-   The split reads as intentional — a date next to a title defers to it — but
-   it is the one place the same font and size carry two rungs.
-3. **The works timeline's meta line** ("Lynx @ ByteDance", the venue with its
-   ↗) is quaternary, faithful to the old `/40`. Under a photograph it is the
-   faintest text on the page; tertiary would match the subtitle below it.
-4. **Three label sizes.** Widget labels are `text-xs`; the wallpaper sheet's
+Still open, and reproduced verbatim in the lab:
+
+1. **Three label sizes.** Widget labels are `text-xs`; the wallpaper sheet's
    section labels are `text-[11px]`; caption strips and the sheet's capsule are
    `text-[10px]`. The roles keep two (`label`, `labelSm`); the 11px sheet
    labels are not migrated and could go either way.
-5. **Pill fills.** Post badges and the language filter used
-   `bg-foreground/5`; the design-system doc says `bg-muted`. Both are the
-   ink at 4–5 %, so the migration unified on `bg-muted` (the token). Flagging
-   because it is a visible-in-diff change, not because it is contentious.
-6. **The talks caption** is `tracking-wide`, widget labels `tracking-wider`.
+2. **The talks caption** is `tracking-wide`, widget labels `tracking-wider`.
    Kept as `labelWide`; it is a subtitle rather than a section label, and a
    hair tighter reads better under a title.
 
@@ -239,6 +245,14 @@ same page as the desktop specimens — and the veil / blur sliders act on it
 directly. The devtool's "As reading" switch does the page-wide version for a
 real route.
 
+Tuning made in the lab **stays for the session**: the policy goes to the
+provider (`labPolicy`), which resolves every route with it, and the sheet
+overrides stay inline on `<html>`, so a veil tuned on the specimen can be
+checked on the real `/writing` before it is copied into code. The devtool's
+Glass row shows `· lab` while any of it is active; **Reset all** in the lab
+clears it, as does a reload. Only the pins (scene-specific by nature) leave
+with the page.
+
 ### 7. Tint
 
 The neutral baseline is grey by construction: `--tint` is the profile's
@@ -257,7 +271,8 @@ module. Bilingual like the rest of the site; its strings live beside it in
 `app/editor/legibility/i18n.ts`, not in the visitor dictionary. Not a mock: choosing a scene there selects it for real through the
 same setters the picker and devtool use; the specimens are the production
 components; the sliders write the same variables the provider and stylesheet
-already read. Leaving the page restores what the visitor had.
+already read. The scene it sets (wallpaper, theme, material, tint) is the
+real setting, exactly as the picker would have set it.
 
 | Panel | What it turns |
 |---|---|

@@ -59,7 +59,7 @@ export function WorksView({ logData }: WorksViewProps) {
       />
 
       {/* End marker — initial commit */}
-      <div className="mt-8 py-4 font-mono text-xs text-quaternary-foreground">
+      <div className="mt-8 py-4 font-mono text-xs text-tertiary-foreground">
         {t(locale, "logInit")}
       </div>
     </PageLayout>

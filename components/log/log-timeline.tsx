@@ -199,7 +199,7 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
           <button
             type="button"
             onClick={() => edit.onAddCommit(tag.id)}
-            className="inline-flex items-center justify-center text-quaternary-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center justify-center text-tertiary-foreground hover:text-foreground transition-colors"
             title="Add entry"
             aria-label="Add entry"
           >

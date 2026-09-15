@@ -40,7 +40,7 @@ export function LanguageFilter({
           "px-2 py-1 rounded transition-colors duration-200",
           !includeOther
             ? "bg-muted text-muted-foreground"
-            : "text-quaternary-foreground hover:text-tertiary-foreground"
+            : "text-tertiary-foreground hover:text-muted-foreground"
         )}
       >
         {locale === "en" ? "EN" : "中文"}
@@ -51,7 +51,7 @@ export function LanguageFilter({
           "px-2 py-1 rounded transition-colors duration-200",
           includeOther
             ? "bg-muted text-muted-foreground"
-            : "text-quaternary-foreground hover:text-tertiary-foreground"
+            : "text-tertiary-foreground hover:text-muted-foreground"
         )}
       >
         {t(locale, "allLanguages")}
@@ -202,7 +202,7 @@ export function PostList<T extends Post>({
                     </span>
                   ))}
                   {showLangTag && (
-                    <span className={cn("ml-2 align-baseline", TYPE.metaQuiet)}>
+                    <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
                       {post.language === "en" ? "EN" : "中文"}
                     </span>
                   )}

@@ -18,7 +18,11 @@
 //              removed on unmount. The default for each is read from the
 //              computed style, so the lab never carries a second copy of it.
 //
-// Nothing here persists. Leaving the page restores what the visitor had.
+// Nothing here persists across a reload. Within the session the tuning stays
+// put when you leave — the policy through the provider, the sheet inline on
+// <html>, and the sliders' own state in `LAB_SESSION` below — so a veil tuned
+// here can be checked on the real /writing before it is copied into code.
+// "Reset all" clears the lot.
 // =============================================================================
 
 import {
@@ -266,6 +270,16 @@ export function parseSheetValue(raw: string): number | null {
   const n = parseFloat(raw.trim());
   return Number.isFinite(n) ? n : null;
 }
+
+// -----------------------------------------------------------------------------
+// Session store — the sliders' state, kept while the tab lives
+// -----------------------------------------------------------------------------
+
+export const LAB_SESSION: {
+  policy: PolicyOverrides;
+  pins: OutputPins;
+  sheet: SheetOverrides;
+} = { policy: {}, pins: {}, sheet: {} };
 
 // -----------------------------------------------------------------------------
 // Export

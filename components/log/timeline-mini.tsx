@@ -156,7 +156,7 @@ export function TimelineMini({
               "min-w-0 flex-1 truncate",
               isEvent
                 ? cn(
-                    "text-xs text-quaternary-foreground",
+                    "text-xs text-tertiary-foreground",
                     /[぀-ヿ一-鿿]/.test(data.title)
                       ? "font-mono"
                       : "italic font-serif",
@@ -166,7 +166,7 @@ export function TimelineMini({
           >
             {data.title}
             {data.languageBadge && (
-              <span className={cn("ml-2 align-baseline", TYPE.metaQuiet)}>
+              <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
                 {data.languageBadge}
               </span>
             )}
@@ -203,7 +203,7 @@ export function TimelineMini({
             <span
               className={cn(
                 "font-mono text-xs shrink-0 ml-auto",
-                isEvent ? "text-quaternary-foreground" : "text-tertiary-foreground",
+                "text-tertiary-foreground",
               )}
             >
               {data.date}
@@ -215,7 +215,7 @@ export function TimelineMini({
             right. Sparse handle: cluster heads print it at rest, the rest
             fade in on row hover (or while expanded). */}
         {(data.meta || byline) && (
-          <div className="col-start-2 mt-0.5 text-xs font-mono text-quaternary-foreground flex items-baseline justify-between gap-2">
+          <div className={cn("col-start-2 mt-0.5 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
             <span className="min-w-0 truncate">
               {data.meta ? (
                 data.metaUrl ? (
@@ -259,14 +259,14 @@ export function TimelineMini({
             {/* Abbreviated `git log --pretty=fuller` author block. */}
             {data.type !== "role" && (
               <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono pb-2 mb-0.5">
-                <span className="text-quaternary-foreground">Author:</span>
+                <span className="text-tertiary-foreground">Author:</span>
                 <span className="text-tertiary-foreground">
                   &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;
                 </span>
 
                 {byline?.expanded.title && (
                   <>
-                    <span className="text-quaternary-foreground">Role:</span>
+                    <span className="text-tertiary-foreground">Role:</span>
                     <span className="text-tertiary-foreground">
                       {byline.expanded.title}
                       <span className="text-quaternary-foreground"> @ </span>

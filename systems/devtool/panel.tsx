@@ -821,7 +821,7 @@ function GlassModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
   const glass = useGlass();
-  const { legibility, legibilityOverride } = useWallpaper();
+  const { legibility, legibilityOverride, labPolicy } = useWallpaper();
 
   const options = GLASS_MATERIALS.map((value) => ({
     value,
@@ -878,7 +878,7 @@ function GlassModule() {
             <span className="ml-1.5 tabular-nums text-tertiary-foreground">
               busy {legibility.busy.toFixed(2)} · relief {legibility.relief.toFixed(2)} · +
               {legibility.inkBoost}% · glass +{legibility.glassAdd}%
-              {legibilityOverride && " · lab"}
+              {(legibilityOverride || labPolicy) && " · lab"}
             </span>
           </span>
           <ExternalLink className="mr-1 h-3 w-3 shrink-0 text-muted-foreground" />
