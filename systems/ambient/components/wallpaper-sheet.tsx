@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { t, useLocale, useTheme, type TranslationKey } from "@/services";
 import { AlbumTabs } from "@/systems/theater";
 import { Check, Cloud, Moon, Smartphone, Sun } from "lucide-react";
-import { memo, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import {
   ADAPTIVE_PRESENTATION,
   AdaptiveSurface,
@@ -13,11 +13,11 @@ import {
 import { getWeatherGradient } from "../lib/gradient";
 import type { WallpaperPlacement } from "../lib/settings";
 import {
-  getWallpaperPairPreview,
   isPhoneWallpaper,
   isSingleImage,
   WALLPAPER_CATEGORIES,
   type Wallpaper,
+  type WallpaperAsset,
   type WallpaperCategory,
 } from "../lib/wallpaper";
 import { useWallpaper, useWallpaperPaint, useWeather } from "../provider";
@@ -217,22 +217,96 @@ function preload(src: string) {
   img.src = src;
 }
 
-/** Light left, dark right. */
-function PairHalves({
-  preview,
+/**
+ * Has this tile come close enough to the sheet to be worth fetching?
+ *
+ * `loading="lazy"` is not enough on its own here, and that is measured rather
+ * than assumed: with the whole grid inside a sheet, Chrome's own
+ * distance-from-viewport threshold reaches past the end of it and fetches all
+ * 21 Nature thumbnails anyway. One screen ahead is the rule this wants, so the
+ * rule is written down.
+ *
+ * Latching: once a tile has been seen it stays loaded. Scrolling back up a grid
+ * that re-fetched what it had already shown would be worse than fetching it
+ * early.
+ */
+function useNearViewport(rootMargin = "600px") {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [near, setNear] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || near) return;
+    if (typeof IntersectionObserver === "undefined") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only: no observer to wait for
+      setNear(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) setNear(true);
+      },
+      { rootMargin }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [near, rootMargin]);
+
+  return { ref, near };
+}
+
+/**
+ * One tile's artwork.
+ *
+ * An `<img>` rather than a CSS background, because a background image has no
+ * way to say "only if you can see me". The tiles were backgrounds, so opening a
+ * category fetched every thumbnail in it at once — 21 files and 284KB for
+ * Nature, in a two-column phone sheet that shows four.
+ *
+ * The flat base colour sits behind it, the same way it sits under the full-size
+ * file in `buildAsset()`, so a tile is a colour rather than a hole before its
+ * picture arrives.
+ */
+function TileImage({
+  asset,
+  alt = "",
+  className,
 }: {
-  preview: ReturnType<typeof getWallpaperPairPreview>;
+  asset: WallpaperAsset;
+  alt?: string;
+  className?: string;
 }) {
+  const { ref, near } = useNearViewport();
+
+  return (
+    <div
+      ref={ref}
+      aria-hidden
+      className={cn("absolute inset-y-0 h-full", className)}
+      style={{ backgroundColor: asset.base }}
+    >
+      {near && (
+        // A static export has no image loader, and these are fixed-size
+        // thumbnails already cut for the tile.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={asset.thumb}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover"
+        />
+      )}
+    </div>
+  );
+}
+
+/** Light left, dark right. */
+function PairHalves({ wallpaper }: { wallpaper: Wallpaper }) {
   return (
     <>
-      <span
-        className="absolute inset-y-0 left-0 w-1/2 bg-cover bg-center"
-        style={{ backgroundImage: preview.light.backgroundImage }}
-      />
-      <span
-        className="absolute inset-y-0 right-0 w-1/2 bg-cover bg-center"
-        style={{ backgroundImage: preview.dark.backgroundImage }}
-      />
+      <TileImage asset={wallpaper.light} className="left-0 w-1/2" />
+      <TileImage asset={wallpaper.dark} className="right-0 w-1/2" />
     </>
   );
 }
@@ -268,7 +342,6 @@ const WallpaperTile = memo(function WallpaperTile({
   blurred,
 }: WallpaperTileProps) {
   const single = isSingleImage(wallpaper);
-  const preview = getWallpaperPairPreview(wallpaper);
   const meta =
     wallpaper.caption ??
     (wallpaper.platform ? `${wallpaper.platform} · ${wallpaper.year}` : undefined);
@@ -293,12 +366,9 @@ const WallpaperTile = memo(function WallpaperTile({
           className="absolute inset-0"
         >
           {single ? (
-            <span
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: preview.light.backgroundImage }}
-            />
+            <TileImage asset={wallpaper.light} className="left-0 w-full" />
           ) : (
-            <PairHalves preview={preview} />
+            <PairHalves wallpaper={wallpaper} />
           )}
         </button>
         {!single && <VariantMark variant="light" />}
