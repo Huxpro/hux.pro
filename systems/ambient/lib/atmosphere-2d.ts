@@ -116,37 +116,22 @@ export function createAtmosphere2DRenderer(
     const px = p.moonPos[0] * cssW;
     const py = (1 - p.moonPos[1]) * cssH;
     const span = Math.max(cssW, cssH);
-    const discR = span * (p.moonSize * 3.6 + 0.016);
-    const haloR = discR * (4.8 + p.moonGlow * 1.6);
+    const discR = span * (p.moonSize * 4.8 + 0.02);
 
-    const halo = ctx.createRadialGradient(px, py, discR * 0.4, px, py, haloR);
-    halo.addColorStop(0, rgba(p.moonColor, 0.16 * p.moonGlow));
-    halo.addColorStop(0.35, rgba(p.moonColor, 0.06 * p.moonGlow));
-    halo.addColorStop(1, rgba(p.moonColor, 0));
-    ctx.fillStyle = halo;
-    ctx.beginPath();
-    ctx.arc(px, py, haloR, 0, Math.PI * 2);
-    ctx.fill();
+    const bloom = ctx.createRadialGradient(px, py, discR * 0.2, px, py, span * 0.28);
+    bloom.addColorStop(0, rgba(p.moonColor, 0.32 * p.moonGlow));
+    bloom.addColorStop(0.22, rgba(p.moonColor, 0.1 * p.moonGlow));
+    bloom.addColorStop(1, rgba(p.moonColor, 0));
+    ctx.fillStyle = bloom;
+    ctx.fillRect(0, 0, cssW, cssH);
 
     ctx.save();
     ctx.beginPath();
     ctx.arc(px, py, discR, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(242, 246, 255, 0.96)";
+    ctx.fill();
     ctx.clip();
-    const body = ctx.createRadialGradient(
-      px - discR * 0.28,
-      py - discR * 0.22,
-      discR * 0.08,
-      px,
-      py,
-      discR
-    );
-    body.addColorStop(0, "rgba(255, 255, 255, 0.96)");
-    body.addColorStop(0.45, rgba(p.moonColor, 0.92));
-    body.addColorStop(1, "rgba(168, 184, 214, 0.88)");
-    ctx.fillStyle = body;
-    ctx.fillRect(px - discR, py - discR, discR * 2, discR * 2);
-
-    ctx.fillStyle = "rgba(18, 26, 46, 0.32)";
+    ctx.fillStyle = "rgba(16, 24, 44, 0.38)";
     ctx.beginPath();
     ctx.arc(px + discR * 0.42, py - discR * 0.06, discR * 0.98, 0, Math.PI * 2);
     ctx.fill();

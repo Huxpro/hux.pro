@@ -99,13 +99,13 @@ vec3 applySun(vec2 uv, vec3 sky) {
 vec3 applyMoon(vec2 uv, vec3 sky) {
   if (uMoonGlow < 0.04) return sky;
   float md = disc(uv, uMoonPos, uMoonSize);
-  float mCore = smoothstep(uMoonSize * 1.08, uMoonSize * 0.78, md);
-  float terminator = disc(uv, uMoonPos + vec2(uMoonSize * 0.55, -uMoonSize * 0.12), uMoonSize);
-  float lit = mix(0.42, 1.0, smoothstep(uMoonSize * 0.15, uMoonSize * 1.05, terminator));
-  float mare = 0.9 + 0.1 * noise(uv * 90.0 + 3.0);
-  float mGlow = exp(-md * 5.5) * uMoonGlow * 0.48;
-  float mHalo = exp(-md * 1.55) * uMoonGlow * 0.2;
-  sky += uMoonColor * (mCore * lit * mare * uMoonGlow + mGlow + mHalo);
+  float mCore = smoothstep(uMoonSize * 1.05, uMoonSize * 0.72, md);
+  float terminator = disc(uv, uMoonPos + vec2(uMoonSize * 0.58, -uMoonSize * 0.1), uMoonSize);
+  float lit = mix(0.38, 1.0, smoothstep(uMoonSize * 0.12, uMoonSize * 1.05, terminator));
+  float mare = 0.92 + 0.08 * noise(uv * 70.0 + 3.0);
+  float mGlow = exp(-md * 4.2) * uMoonGlow * 0.7;
+  float mHalo = exp(-md * 1.15) * uMoonGlow * 0.38;
+  sky += uMoonColor * (mCore * lit * mare * 1.15 * uMoonGlow + mGlow + mHalo);
   return sky;
 }
 
