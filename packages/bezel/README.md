@@ -37,16 +37,30 @@ against the same builds on a phone. iOS 18.5 is noted where it differs.
 No. Everything is live, as long as each change is shown to the chrome.
 
 The rule "one colour per page load" was a workaround for the second row
-above, not a platform limit. `syncChrome(color)` shows Safari the new colour as
-8px fixed strips at the top and bottom edges for 600ms, and sets `theme-color`
-for iOS 18. `<Bezel>` calls it whenever the colour the chrome should show
-changes.
+above, not a platform limit. `syncChrome(color, { band, radius })` shows Safari
+the new colour as a morph of the bezel: a fixed bezel in the new colour grows
+from the current band to 8px (160ms), holds (440ms), and eases back (280ms),
+with its corners riding the inner edge. It sets `theme-color` for iOS 18 too.
+`<Bezel>` calls it whenever the colour the chrome should show changes.
+
+Two details make it work, both measured:
+
+- **Each band is its own fixed element.** A transparent full-screen fixed
+  container with coloured children did not change the chrome: Safari samples
+  what is composited beneath a fixed element's box.
+- **The pieces are children of `<html>`.** In container scroll, fixed children
+  of `<body>` become absolute, and absolute content is not sampled.
+
+A recording of the bezel turning on over a light page: the chrome eases from
+white to black within one 50ms frame of the band reaching the edge, the 8px band
+holds for about 450ms, and the chrome stays black after it shrinks to 0px.
 
 | Change, without a reload | Without `syncChrome` | With it |
 |---|---|---|
 | Bezel turned on | Chrome stays the ground colour | Bezel colour |
 | Bezel turned off | Chrome stays the bezel colour | Ground colour |
 | Tint changed, black to dark | Not tested | Chrome `(26, 26, 26)` |
+| Theme flipped, bezel colour following the theme | Chrome stays white | `(26, 26, 26)`, then white again |
 | Theme flipped, bezel off | Chrome stays white | Chrome `(26, 26, 26)`, then white again |
 | Theme flipped, bezel on | — | Chrome keeps the bezel colour, as it should |
 
@@ -116,6 +130,9 @@ behaviour, open a story's frame in the iOS simulator, for example
 
 - Fixed overlays rendered inside the scroll container can still reach the
   viewport edge while shown, and tint the chrome for that time.
+- The morph is visible: an 8px band in the new colour for about 600ms.
+- In window scroll, the next toolbar collapse re-samples the chrome from the
+  page, which can undo a sync unless the band is at least `CHROME_SAMPLE_PX`.
 - iOS 18's expanded bottom toolbar follows neither `theme-color` nor the root
   background.
 - The stylesheet makes `body > .fixed` absolute in container scroll. `.fixed`

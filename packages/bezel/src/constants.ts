@@ -26,6 +26,8 @@ export const BOOT_GLOBAL = "__bezel";
 
 /** Thinnest fixed content, px, that iOS 26 Safari's chrome follows (5 does not). */
 export const CHROME_SAMPLE_PX = 6;
+/** The band syncChrome morphs to: the threshold with a margin. */
+export const CHROME_MORPH_PX = 8;
 
 export const DEFAULT_BEZEL_BAND = 0;
 export const DEFAULT_BEZEL_RADIUS = 16;

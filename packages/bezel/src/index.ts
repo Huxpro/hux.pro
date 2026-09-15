@@ -9,6 +9,7 @@ export {
   BEZEL_LAYER_ATTRIBUTE,
   BEZEL_RADIUS_MAX,
   BEZEL_RADIUS_MIN,
+  CHROME_MORPH_PX,
   CHROME_SAMPLE_PX,
   clampBezelBand,
   clampBezelRadius,
@@ -28,4 +29,10 @@ export {
   useScrollLock,
   useScrollLocked,
 } from "./scroll";
-export type { BezelBootState, BezelProps, BezelScroll, BezelState } from "../bezel";
+export type {
+  BezelBootState,
+  BezelProps,
+  BezelScroll,
+  BezelState,
+  ChromeSyncOptions,
+} from "../bezel";

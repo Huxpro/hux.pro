@@ -89,10 +89,14 @@ of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
   switches. On iOS only.
 - **Tint, band, radius** are saved settings (`bezelTint`, `bezelBand`,
   `bezelRadius` in `hux_ambient_settings`), the same for every kind. Defaults:
-  black, 0px, 16px.
+  black, 0px, 16px. Tints: `black`, `dark`, `theme` (the page ground in the
+  current theme) or `#rrggbb`.
+- **Scroll** is container on an iPhone with the bezel on, window otherwise; the
+  devtool's Scroll row overrides it for the session.
 - **Everything is live.** Safari does not re-read the root background for its
-  chrome after load; `syncChrome` in the package shows it each change. Do not
-  write the bezel colour, `data-bezel` or the scroll mode anywhere else.
+  chrome after load; `syncChrome` in the package shows it each change by
+  morphing a fixed bezel to 8px and back. Do not write the bezel colour,
+  `data-bezel` or the scroll mode anywhere else.
 - **Page scroll** goes through the package (`pageScrollTop`, `onPageScroll`,
   `scrollPageTo`, `usePageScroll`, …), never `window.scrollY`: with the bezel on
   an iPhone the page scrolls in a container.

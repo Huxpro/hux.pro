@@ -18,7 +18,7 @@ import {
 } from "@/systems/ambient/lib/bezel";
 
 /** The named tints plus the segmented control's own "pick a colour". */
-type TintChoice = "black" | "dark" | "custom";
+type TintChoice = "black" | "dark" | "theme" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
 import {
   getSunEventGradient,
@@ -897,6 +897,11 @@ function WallpaperModule() {
       title: zh ? "两个主题都用深色底" : "The dark ground, in both themes",
     },
     {
+      value: "theme",
+      label: zh ? "主题" : "Theme",
+      title: zh ? "跟随主题的页面底色" : "The page ground, following the theme",
+    },
+    {
       value: "custom",
       label: zh ? "自定" : "Custom",
       title: zh ? "自选颜色" : "Pick a colour",
@@ -928,8 +933,8 @@ function WallpaperModule() {
       on: softEdgeEnabled,
     },
   ] as const;
-  type OverrideKey = "full" | "widget" | "softEdging" | "bezel" | "scrollLock";
-  const overrideFlag = (key: OverrideKey, on: boolean) =>
+  type OverrideKey = "full" | "widget" | "softEdging" | "bezel" | "scroll";
+  const overrideFlag = (key: Exclude<OverrideKey, "scroll">, on: boolean) =>
     setDevtoolOverrides({ ...devtoolOverrides, [key]: on });
   const clearFlag = (key: OverrideKey) =>
     setDevtoolOverrides({ ...devtoolOverrides, [key]: undefined });
@@ -1103,21 +1108,17 @@ function WallpaperModule() {
               </PanelRow>
             </>
           )}
-          {/* Where the page scrolls, as a badge, and a lock to try. */}
-          <PanelRow
-            label={zh ? "滚动锁定" : "Scroll lock"}
-            star={sessionStar("scrollLock")}
-          >
-            <span className="flex items-center gap-2">
-              <span className="rounded bg-muted/50 px-1 font-mono text-[9px] text-muted-foreground">
-                {bezelScroll}
-              </span>
-              <PanelToggle
-                on={devtoolOverrides.scrollLock === true}
-                onClick={() => overrideFlag("scrollLock", devtoolOverrides.scrollLock !== true)}
-                label="Toggle scroll lock"
-              />
-            </span>
+          {/* Where the page scrolls: the window, or a container in a locked
+              document. The platform picks; this overrides it for the session. */}
+          <PanelRow label={zh ? "滚动" : "Scroll"} star={sessionStar("scroll")}>
+            <PanelSegmented<"window" | "container">
+              value={bezelScroll}
+              options={[
+                { value: "window", label: "Window" },
+                { value: "container", label: "Container" },
+              ]}
+              onChange={(scroll) => setDevtoolOverrides({ ...devtoolOverrides, scroll })}
+            />
           </PanelRow>
         </div>
 

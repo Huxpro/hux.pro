@@ -138,17 +138,27 @@ export declare function readBezelBoot(): BezelBootState | null;
 // Chrome
 // -----------------------------------------------------------------------------
 
+/** The bezel `syncChrome` morphs from and back to. */
+export interface ChromeSyncOptions {
+  /** The band showing now, px. Default 0. */
+  band?: number;
+  /** The inner corner radius showing now, px. Default 0. */
+  radius?: number;
+}
+
 /**
  * Make the browser chrome show `color`, now.
  *
  * iOS 26 Safari reads the chrome colour from the root background only at load,
  * and ignores `theme-color`; it does follow `position: fixed` content at the
- * viewport edge, live, from `CHROME_SAMPLE_PX` thick. So this briefly shows
- * strips of `color` at the top and bottom edges, and sets `theme-color` for
- * iOS 18. `<Bezel>` calls it whenever its chrome colour changes; call it
- * yourself only for a change `<Bezel>` cannot see.
+ * viewport edge, live, from `CHROME_SAMPLE_PX` thick. So the bezel morphs: a
+ * fixed bezel in `color` grows from `band` to at least `CHROME_MORPH_PX`, holds
+ * while Safari samples it, then eases back to `band` and is removed. A band
+ * already that thick does not move. `theme-color` is set too, for iOS 18.
+ * `<Bezel>` calls it whenever its chrome colour changes; call it yourself only
+ * for a change `<Bezel>` cannot see.
  */
-export declare function syncChrome(color: string): void;
+export declare function syncChrome(color: string, options?: ChromeSyncOptions): void;
 
 // -----------------------------------------------------------------------------
 // Scroll
@@ -208,6 +218,8 @@ export declare const BEZEL_LAYER_ATTRIBUTE: "data-bezel-layer";
 
 /** Thinnest fixed content, px, that iOS 26 Safari's chrome follows. */
 export declare const CHROME_SAMPLE_PX: 6;
+/** The band `syncChrome` morphs to: the sample threshold with a margin. */
+export declare const CHROME_MORPH_PX: 8;
 
 export declare const DEFAULT_BEZEL_BAND: 0;
 export declare const DEFAULT_BEZEL_RADIUS: 16;

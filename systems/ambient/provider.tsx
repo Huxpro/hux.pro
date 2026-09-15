@@ -31,7 +31,6 @@ import {
 import {
   DEFAULT_BEZEL_BAND,
   DEFAULT_BEZEL_RADIUS,
-  useScrollLock,
   type BezelScroll,
 } from "@hux/bezel";
 import {
@@ -130,8 +129,8 @@ export interface DevtoolPlacementOverrides {
   softEdging?: boolean;
   /** Bezel on or off, for this session. */
   bezel?: boolean;
-  /** Lock page scrolling, for this session — to try @hux/bezel's lock. */
-  scrollLock?: boolean;
+  /** Where the page scrolls, for this session, instead of the platform's choice. */
+  scroll?: BezelScroll;
   /**
    * Which kind switch `softEdging` and `bezel` were set after. They describe
    * the edge of the kind showing at the time, so any kind switch ends them —
@@ -379,7 +378,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     return {
       full: storedOverrides.full,
       widget: storedOverrides.widget,
-      scrollLock: storedOverrides.scrollLock,
+      scroll: storedOverrides.scroll,
     };
   }, [storedOverrides, edgeEpoch]);
 
@@ -420,12 +419,16 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const bezelState: boolean | null =
     !settingsLoaded || isIOS === null ? null : overridden("bezel", isIOS && edges.bezel);
   const bezel = bezelState === true;
-  const bezelScroll: BezelScroll = bezel && isIOS === true ? "container" : "window";
-  const bezelColor = resolveBezelTint(settings.bezelTint);
+  // Container scroll on an iPhone with the bezel on: it is what lets a band
+  // thinner than CHROME_SAMPLE_PX keep the chrome in the bezel colour, and
+  // what stops the toolbar collapsing. The devtool can pick either.
+  const bezelScroll: BezelScroll =
+    (isDevtoolEnabled ? devtoolOverrides.scroll : undefined) ??
+    (bezel && isIOS === true ? "container" : "window");
+  const bezelColor = resolveBezelTint(settings.bezelTint, theme);
   const bezelBand = settings.bezelBand ?? DEFAULT_BEZEL_BAND;
   const bezelRadius = settings.bezelRadius ?? DEFAULT_BEZEL_RADIUS;
   const ground = PAGE_GROUND[theme];
-  useScrollLock(isDevtoolEnabled && devtoolOverrides.scrollLock === true);
 
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and

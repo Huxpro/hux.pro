@@ -124,6 +124,13 @@ export function Bezel({
   // The chrome: shown the new colour whenever the colour it should show
   // changes. Not on the first resolution when it matches what the page loaded
   // with — Safari already has that one.
+  // The morph starts and ends at the bezel on screen: its band and corners
+  // while it is on, nothing while it is off. Read through a ref so a band
+  // change alone does not trigger a sync.
+  const shape = useRef({ band: 0, radius: 0 });
+  useLayoutEffect(() => {
+    shape.current = enabled ? { band, radius } : { band: 0, radius: 0 };
+  }, [enabled, band, radius]);
   const synced = useRef<string | null>(null);
   useLayoutEffect(() => {
     if (chrome === null) return;
@@ -132,7 +139,7 @@ export function Bezel({
       synced.current = loaded;
     }
     if (synced.current !== chrome) {
-      syncChrome(chrome);
+      syncChrome(chrome, shape.current);
       synced.current = chrome;
     }
   }, [chrome, boot]);

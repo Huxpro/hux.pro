@@ -44,16 +44,15 @@ export const WALLPAPER_KIND_EDGES: Record<
  *
  *   black    the default, and ryOS's.
  *   dark     the page's dark ground, in both themes.
+ *   theme    the page's ground in the current theme: light in light, dark in
+ *            dark. It changes live with the theme; @hux/bezel shows the change
+ *            to the browser chrome.
  *   #rrggbb  anything else.
- *
- * There is no tint that follows the theme. The chrome can follow a live change
- * now (see `syncChrome` in @hux/bezel), but a bezel that changes colour with
- * the theme reads as part of the page, not as the edge of the screen.
  */
-export type BezelTint = "black" | "dark" | `#${string}`;
+export type BezelTint = "black" | "dark" | "theme" | `#${string}`;
 
 /** The named tints, in the order a picker offers them. */
-export const BEZEL_TINTS = ["black", "dark"] as const;
+export const BEZEL_TINTS = ["black", "dark", "theme"] as const;
 export const DEFAULT_BEZEL_TINT: BezelTint = "black";
 
 const BLACK = "#000000";
@@ -70,10 +69,11 @@ export function isBezelTint(value: unknown): value is BezelTint {
   return (BEZEL_TINTS as readonly string[]).includes(value) || isBezelHex(value);
 }
 
-/** The tint as a colour a browser can paint. */
-export function resolveBezelTint(tint: BezelTint): string {
+/** The tint as a colour a browser can paint, in the current theme. */
+export function resolveBezelTint(tint: BezelTint, theme: "light" | "dark"): string {
   if (tint === "black") return BLACK;
   if (tint === "dark") return PAGE_GROUND.dark;
+  if (tint === "theme") return PAGE_GROUND[theme];
   return tint;
 }
 
@@ -83,7 +83,7 @@ export function resolveBezelTint(tint: BezelTint): string {
  * is interpolated and the two cannot drift.
  */
 export function bezelBootResolver(): string {
-  const tints = `^(black|dark|${HEX_SOURCE.slice(1, -1)})$`;
+  const tints = `^(black|dark|theme|${HEX_SOURCE.slice(1, -1)})$`;
   return `
 var s=JSON.parse(localStorage.getItem("hux_ambient_settings")||"{}");
 var ios=/iP(hone|ad|od)/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -92,9 +92,10 @@ var t=localStorage.getItem("hux_theme");
 var dark=t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);
 var tint=s.bezelTint;
 if(!new RegExp(${JSON.stringify(tints)}).test(tint))tint=${JSON.stringify(DEFAULT_BEZEL_TINT)};
-var color=tint==="black"?${JSON.stringify(BLACK)}:tint==="dark"?${JSON.stringify(PAGE_GROUND.dark)}:tint;
+var ground=dark?${JSON.stringify(PAGE_GROUND.dark)}:${JSON.stringify(PAGE_GROUND.light)};
+var color=tint==="black"?${JSON.stringify(BLACK)}:tint==="dark"?${JSON.stringify(PAGE_GROUND.dark)}:tint==="theme"?ground:tint;
 var band=s.bezelBand;
 band=typeof band==="number"&&isFinite(band)?Math.min(${BEZEL_BAND_MAX},Math.max(${BEZEL_BAND_MIN},Math.round(band))):${DEFAULT_BEZEL_BAND};
 var on=ios&&edges.bezel;
-return {enabled:on,color:color,band:band,scroll:on?"container":"window",ground:dark?${JSON.stringify(PAGE_GROUND.dark)}:${JSON.stringify(PAGE_GROUND.light)}};`;
+return {enabled:on,color:color,band:band,scroll:on?"container":"window",ground:ground};`;
 }
