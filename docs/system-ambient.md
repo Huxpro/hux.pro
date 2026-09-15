@@ -205,11 +205,30 @@ Where the active wallpaper paints is `wallpaperPlacement`:
 | `widget` | Only inside widget cards (each a viewport-aligned window onto it) |
 | `off` | Nowhere — the global background kill switch |
 
-**Soft edging** — the top/bottom fade — is on by default on iOS for the
-weather gradient and off for an image (`WALLPAPER_KIND_DEFAULTS`): a gradient
-is the page's colour pushed outward and fades back into it, while a photograph
-should end on a line. When it is on, an image wallpaper is just another layer
-in the stack, so it gets the same mask the weather gradient gets (`EDGE_FADE_MASK`, or the wider
+**Each wallpaper kind says what it wants at the edge** (`WALLPAPER_KIND_EDGES`
+in `lib/bezel.ts`), and on an iOS phone the provider resolves every page from
+that table, live, as the kind changes:
+
+| Kind | Bezel | Soft edge |
+|---|---|---|
+| `weather` | off | on |
+| `image` | on | off |
+
+A weather gradient is the page's own colour pushed outward, so it fades back
+into the ground. A photograph is a picture on the page, so it ends on a line
+inside a bezel. A desktop window gets neither unless overridden.
+
+**The bezel** is `@hux/bezel` (`packages/bezel`), after ryOS (os.ryo.lu): one
+flat colour around the page, black by default, with the page rounded off inside
+it and, on iOS, scrolling in a container while the document holds still. A
+devtool override turns it on or off for the session and ends when the kind
+switches. Tint, band and radius are saved settings shared by both kinds (black,
+0px, 16px by default). Everything is live, including the browser chrome. See
+the package README for what Safari does and why.
+
+**Soft edging** — the top/bottom fade — applies only while the bezel is off.
+An image wallpaper is just another layer in the stack, so when it is on it
+gets the same mask the weather gradient gets (`EDGE_FADE_MASK`, or the wider
 `EDGE_FADE_MASK_HIGH_CONTRAST` for dark-mode sunrise/sunset). The devtool
 switch overrides it either way.
 
@@ -322,6 +341,8 @@ const {
   opacity,                // Resolved for kind and theme
   veil,                   // The flat veil alpha over an image (reading pages)
   blurred,                // Whether this route defocuses the wallpaper
+  bezel,                  // Whether the bezel is drawn (kind, or a session override)
+  bezelTint, bezelBand, bezelRadius,  // Saved settings, and their setters
   readingBlur,            // The two reading-treatment switches
 
   setReadingBlur,

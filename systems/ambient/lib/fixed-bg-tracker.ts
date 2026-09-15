@@ -1,3 +1,5 @@
+import { onPageScroll } from "@hux/bezel";
+
 /**
  * JS polyfill for `background-attachment: fixed`, which is unsupported on iOS.
  * Also handles viewport-relative soft-edging masks on any platform.
@@ -31,6 +33,8 @@ class FixedBgTracker {
   private entries = new Set<TrackedEntry>();
   private rafId = 0;
   private listening = false;
+  /** Detaches the page-scroll listener, wherever the page scrolls. */
+  private offPageScroll: (() => void) | null = null;
 
   register(
     shell: HTMLElement,
@@ -108,7 +112,9 @@ class FixedBgTracker {
 
   private startListening() {
     this.listening = true;
-    window.addEventListener("scroll", this.schedule, { passive: true });
+    // Page scroll, not window scroll: in container scroll the page scrolls in
+    // the bezel's container and a window listener would never fire. See @hux/bezel.
+    this.offPageScroll = onPageScroll(this.schedule);
     window.addEventListener("resize", this.schedule);
     window.visualViewport?.addEventListener("scroll", this.schedule);
     window.visualViewport?.addEventListener("resize", this.schedule);
@@ -120,7 +126,8 @@ class FixedBgTracker {
       cancelAnimationFrame(this.rafId);
       this.rafId = 0;
     }
-    window.removeEventListener("scroll", this.schedule);
+    this.offPageScroll?.();
+    this.offPageScroll = null;
     window.removeEventListener("resize", this.schedule);
     window.visualViewport?.removeEventListener("scroll", this.schedule);
     window.visualViewport?.removeEventListener("resize", this.schedule);

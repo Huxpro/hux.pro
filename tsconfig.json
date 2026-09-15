@@ -20,7 +20,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@hux/bezel": ["./packages/bezel/src/index.ts"]
     }
   },
   "include": [

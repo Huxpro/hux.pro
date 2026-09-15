@@ -1,4 +1,6 @@
 import { ReadingRootSync } from "@/components/post/reading-settings";
+import { bezelBootResolver } from "@/systems/ambient/lib/bezel";
+import { bezelBootScript } from "@hux/bezel";
 import { Providers } from "@/shared/providers";
 import {
   AmbientPhaseActivity,
@@ -84,11 +86,18 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1a1a" },
-  ],
+  // theme-color is owned by @hux/bezel at runtime (the page ground, or the
+  // bezel colour while the bezel is on). Rendering static ones here would hand
+  // React a node the package then mutates, which is a hydration mismatch once
+  // Next streams the metadata in.
 };
+
+/**
+ * The bezel's first frame, before React runs: @hux/bezel's boot script with
+ * this site's resolver (see @/systems/ambient/lib/bezel), which makes the same
+ * decisions as the ambient provider from localStorage and the platform.
+ */
+const BEZEL_BOOT = bezelBootScript(bezelBootResolver());
 
 export default function RootLayout({
   children,
@@ -98,6 +107,11 @@ export default function RootLayout({
   return (
     <ViewTransitions>
       <html lang="en" suppressHydrationWarning>
+        <head>
+          {/* Before first paint: Safari picks its chrome colour at load, from
+              the root background (iOS 26) or theme-color (iOS 18). */}
+          <script dangerouslySetInnerHTML={{ __html: BEZEL_BOOT }} />
+        </head>
         <body
           className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
         >

@@ -231,6 +231,9 @@ html.dark.glass-clear {
   --glass-popover: color-mix(in oklab, var(--popover) 46%, transparent);
 }
 
+/* The bezel's stylesheet (html[data-bezel], container scroll, fixed layers
+   made absolute) ships with @hux/bezel and is installed by its boot script. */
+
 @layer base {
   * {
     @apply border-border;

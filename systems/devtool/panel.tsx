@@ -10,6 +10,15 @@ import {
   useTheme,
 } from "@/services";
 import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
+import { BEZEL_BAND_MAX, BEZEL_BAND_MIN, BEZEL_RADIUS_MAX } from "@hux/bezel";
+import {
+  DEFAULT_BEZEL_TINT,
+  isBezelHex,
+  type BezelTint,
+} from "@/systems/ambient/lib/bezel";
+
+/** The named tints plus the segmented control's own "pick a colour". */
+type TintChoice = "black" | "dark" | "theme" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
 import {
   getSunEventGradient,
@@ -558,13 +567,29 @@ function FrontmatterModule() {
  * paragraph under every row. Clicking it restores the default, which is what
  * the removed "click to clear" / "click for auto" lines used to do.
  */
-function PanelStar({ onReset, label }: { onReset: () => void; label: string }) {
+function PanelStar({
+  onReset,
+  source,
+}: {
+  onReset: () => void;
+  /**
+   * Where the value comes from, by colour: amber is a session override (gone on
+   * reload, and for edge rows on a kind change), sky is a saved setting.
+   */
+  source: "session" | "saved";
+}) {
+  const label = source === "session" ? "Session override — reset" : "Saved — reset";
   return (
     <button
       onClick={onReset}
       title={label}
       aria-label={label}
-      className="ml-1 font-mono text-amber-500/80 transition-colors hover:text-amber-400"
+      className={cn(
+        "ml-1 font-mono transition-colors",
+        source === "session"
+          ? "text-amber-500/80 hover:text-amber-400"
+          : "text-sky-500/80 hover:text-sky-400"
+      )}
     >
       *
     </button>
@@ -619,6 +644,43 @@ function PanelToggle({
         )}
       />
     </button>
+  );
+}
+
+/** Continuous value, for the things you settle by dragging rather than typing. */
+function PanelRange({
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  label,
+  format = (v) => String(v),
+}: {
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+  label: string;
+  format?: (value: number) => string;
+}) {
+  return (
+    <div className="flex shrink-0 items-center gap-2">
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        aria-label={label}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="h-1 w-24 cursor-pointer appearance-none rounded-full bg-muted accent-foreground"
+      />
+      <span className="w-8 text-right text-[10px] font-mono tabular-nums text-muted-foreground">
+        {format(value)}
+      </span>
+    </div>
   );
 }
 
@@ -794,6 +856,17 @@ function WallpaperModule() {
     blurred,
     reading,
     src,
+    bezel,
+    bezelScroll,
+    bezelColor,
+    bezelTint,
+    setBezelTint,
+    bezelBand,
+    bezelBandSetting,
+    setBezelBand,
+    bezelRadius,
+    bezelRadiusSetting,
+    setBezelRadius,
     readingBlur,
     setReadingBlur,
     readingDim,
@@ -808,6 +881,32 @@ function WallpaperModule() {
   } = useWallpaper();
 
   const isImage = kind === "image";
+
+  // The segmented control has a position the setting does not: "custom" is not
+  // a tint, it is "whatever the swatch says". Every row here is live; @hux/bezel
+  // shows each change to the browser chrome as it happens.
+  const tints: { value: TintChoice; label: string; title: string }[] = [
+    {
+      value: "black",
+      label: zh ? "黑" : "Black",
+      title: zh ? "纯黑，ryOS 的做法" : "Pure black, as ryOS does",
+    },
+    {
+      value: "dark",
+      label: zh ? "深" : "Dark",
+      title: zh ? "两个主题都用深色底" : "The dark ground, in both themes",
+    },
+    {
+      value: "theme",
+      label: zh ? "主题" : "Theme",
+      title: zh ? "跟随主题的页面底色" : "The page ground, following the theme",
+    },
+    {
+      value: "custom",
+      label: zh ? "自定" : "Custom",
+      title: zh ? "自选颜色" : "Pick a colour",
+    },
+  ];
 
   // Full and Widget are independent switches here, not two halves of one
   // segmented control: the persisted setting can only be one of them, but the
@@ -834,11 +933,15 @@ function WallpaperModule() {
       on: softEdgeEnabled,
     },
   ] as const;
-  const overrideFlag = (key: (typeof placements)[number]["key"], on: boolean) =>
+  type OverrideKey = "full" | "widget" | "softEdging" | "bezel" | "scroll";
+  const overrideFlag = (key: Exclude<OverrideKey, "scroll">, on: boolean) =>
     setDevtoolOverrides({ ...devtoolOverrides, [key]: on });
-  const isOverridden = (key: (typeof placements)[number]["key"]) =>
-    devtoolOverrides[key] !== undefined;
-  const clearOverrides = () => setDevtoolOverrides({});
+  const clearFlag = (key: OverrideKey) =>
+    setDevtoolOverrides({ ...devtoolOverrides, [key]: undefined });
+  const sessionStar = (key: OverrideKey) =>
+    devtoolOverrides[key] !== undefined ? (
+      <PanelStar onReset={() => clearFlag(key)} source="session" />
+    ) : null;
 
   // One line that answers "what am I actually looking at".
   const now = [
@@ -919,11 +1022,7 @@ function WallpaperModule() {
             <PanelRow
               key={p.key}
               label={p.label}
-              star={
-                isOverridden(p.key) ? (
-                  <PanelStar onReset={clearOverrides} label="Clear override" />
-                ) : null
-              }
+              star={sessionStar(p.key)}
             >
               <PanelToggle
                 on={p.on}
@@ -932,6 +1031,95 @@ function WallpaperModule() {
               />
             </PanelRow>
           ))}
+        </div>
+
+        {/* The bezel. On/off follows the kind unless overridden for the
+            session; tint, band and radius are saved. */}
+        <div className="space-y-2 border-t border-border/30 pt-2.5">
+          <PanelRow label={zh ? "边框" : "Bezel"} star={sessionStar("bezel")}>
+            <PanelToggle
+              on={bezel}
+              onClick={() => overrideFlag("bezel", !bezel)}
+              label="Toggle bezel"
+            />
+          </PanelRow>
+          {bezel && (
+            <>
+              <PanelRow
+                label={zh ? "颜色" : "Tint"}
+                star={
+                  bezelTint !== DEFAULT_BEZEL_TINT ? (
+                    <PanelStar onReset={() => setBezelTint(DEFAULT_BEZEL_TINT)} source="saved" />
+                  ) : null
+                }
+              >
+                <PanelSegmented<TintChoice>
+                  value={isBezelHex(bezelTint) ? "custom" : bezelTint}
+                  options={tints}
+                  onChange={(choice) =>
+                    setBezelTint(choice === "custom" ? (bezelColor as BezelTint) : choice)
+                  }
+                />
+              </PanelRow>
+              <PanelRow label={bezelColor}>
+                <input
+                  type="color"
+                  value={bezelColor}
+                  aria-label="Bezel custom colour"
+                  onChange={(e) => setBezelTint(e.target.value as BezelTint)}
+                  className="h-5 w-10 shrink-0 cursor-pointer rounded border border-border/60 bg-transparent p-0"
+                />
+              </PanelRow>
+              <PanelRow
+                label={zh ? "边框厚度" : "Band"}
+                star={
+                  bezelBandSetting !== null ? (
+                    <PanelStar onReset={() => setBezelBand(null)} source="saved" />
+                  ) : null
+                }
+              >
+                <PanelRange
+                  value={bezelBand}
+                  min={BEZEL_BAND_MIN}
+                  max={BEZEL_BAND_MAX}
+                  step={1}
+                  onChange={setBezelBand}
+                  label="Bezel band thickness"
+                  format={(v) => `${v}px`}
+                />
+              </PanelRow>
+              <PanelRow
+                label={zh ? "圆角" : "Radius"}
+                star={
+                  bezelRadiusSetting !== null ? (
+                    <PanelStar onReset={() => setBezelRadius(null)} source="saved" />
+                  ) : null
+                }
+              >
+                <PanelRange
+                  value={bezelRadius}
+                  min={0}
+                  max={BEZEL_RADIUS_MAX}
+                  step={2}
+                  onChange={setBezelRadius}
+                  label="Bezel corner radius"
+                  format={(v) => `${v}px`}
+                />
+              </PanelRow>
+            </>
+          )}
+          {/* Where the page scrolls: the window, or a container in a locked
+              document. The platform picks; this overrides it for the session. */}
+          <PanelRow label={zh ? "滚动" : "Scroll"} star={sessionStar("scroll")}>
+            <PanelSegmented<"window" | "container">
+              value={bezelScroll}
+              options={[
+                { value: "window", label: "Window" },
+                { value: "container", label: "Container" },
+              ]}
+              onChange={(scroll) => setDevtoolOverrides({ ...devtoolOverrides, scroll })}
+            />
+          </PanelRow>
         </div>
 
         {/* How much of it survives on a reading page. Home gets none of this. */}
@@ -943,7 +1131,7 @@ function WallpaperModule() {
             label={zh ? "二级页虚化" : "Reading blur"}
             star={
               readingBlur ? null : (
-                <PanelStar onReset={() => setReadingBlur(true)} label="Back to on" />
+                <PanelStar onReset={() => setReadingBlur(true)} source="saved" />
               )
             }
           >
@@ -957,7 +1145,7 @@ function WallpaperModule() {
             label={zh ? "二级页压暗" : "Reading dim"}
             star={
               readingDim ? null : (
-                <PanelStar onReset={() => setReadingDim(true)} label="Back to on" />
+                <PanelStar onReset={() => setReadingDim(true)} source="saved" />
               )
             }
           >

@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useWallpaper } from "../provider";
 import { GradientStack } from "./gradient-stack";
+import { BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
 
 // ---------------------------------------------------------------------------
 // WallpaperBackground — the full-page background layer.
@@ -25,18 +26,23 @@ interface WallpaperBackgroundProps {
 }
 
 export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
-  const { layers, edgeMask, opacity, veil, blurred } = useWallpaper();
+  const { layers, edgeMask, opacity, veil, blurred, bezel } = useWallpaper();
 
   if (layers.length === 0) return null;
 
   return (
     <div
       aria-hidden="true"
+      // In container scroll this must not be `position: fixed`: Safari tints its
+      // chrome from fixed content at the viewport edge, and a wallpaper there
+      // would win over the bezel colour. See BEZEL_LAYER_ATTRIBUTE in @hux/bezel.
+      {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
       className={cn(
         "pointer-events-none fixed inset-0 -z-10",
         "transition-opacity duration-700 ease-in-out"
       )}
-      style={{ opacity: enabled ? opacity : 0 }}
+      // With the bezel on, the layer stops inside it — see AmbientSurface.
+      style={{ opacity: enabled ? opacity : 0, ...(bezel ? BEZEL_INSET : null) }}
     >
       {/* Full-page background is already viewport-fixed, so the edge mask is
           applied statically (no per-frame tracking needed). */}

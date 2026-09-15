@@ -11,9 +11,14 @@ import {
   type WallpaperPlacement,
   getAmbientSettings,
   getDefaultSettings,
-  WALLPAPER_KIND_DEFAULTS,
   setAmbientSettings,
 } from "./lib/settings";
+import {
+  PAGE_GROUND,
+  resolveBezelTint,
+  WALLPAPER_KIND_EDGES,
+  type BezelTint,
+} from "./lib/bezel";
 import {
   BUILT_IN_WALLPAPERS,
   getWallpaperBackground,
@@ -23,6 +28,11 @@ import {
   type Wallpaper,
   type WallpaperKind,
 } from "./lib/wallpaper";
+import {
+  DEFAULT_BEZEL_BAND,
+  DEFAULT_BEZEL_RADIUS,
+  type BezelScroll,
+} from "@hux/bezel";
 import {
   EDGE_FADE_MASK,
   EDGE_FADE_MASK_HIGH_CONTRAST,
@@ -35,6 +45,7 @@ import { usePathname } from "next/navigation";
 import { isReadingSurface } from "./lib/reading-surface";
 import { queryClient } from "@/lib/query";
 import { useDevtool } from "@/systems/devtool";
+
 
 function formatGeolocationError(err: unknown): string {
   if (err instanceof Error) return err.message || "Unknown error";
@@ -116,6 +127,18 @@ export interface DevtoolPlacementOverrides {
   full?: boolean;
   widget?: boolean;
   softEdging?: boolean;
+  /** Bezel on or off, for this session. */
+  bezel?: boolean;
+  /** Where the page scrolls, for this session, instead of the platform's choice. */
+  scroll?: BezelScroll;
+  /**
+   * Which kind switch `softEdging` and `bezel` were set after. They describe
+   * the edge of the kind showing at the time, so any kind switch ends them —
+   * switching to weather turns the bezel off even if it was forced on, and
+   * switching back does not bring the override back. Stamped by the provider;
+   * callers never set it.
+   */
+  edgeEpoch?: number;
 }
 
 interface WallpaperContextType {
@@ -157,6 +180,26 @@ interface WallpaperContextType {
   blurred: boolean;
   /** Whether this page recedes the wallpaper — see `isReadingSurface`. */
   reading: boolean;
+  /** Whether the bezel is drawn. Live. */
+  bezel: boolean;
+  /** `bezel`, but `null` until settings and platform are known. For <Bezel>. */
+  bezelState: boolean | null;
+  /** Where the page scrolls: in the bezel's container while the bezel is on, on iOS. */
+  bezelScroll: BezelScroll;
+  /** The bezel colour, resolved from the tint. */
+  bezelColor: string;
+  bezelTint: BezelTint;
+  setBezelTint: (tint: BezelTint) => void;
+  /** Band thickness, px, and the saved value (`null` is the default). */
+  bezelBand: number;
+  bezelBandSetting: number | null;
+  setBezelBand: (px: number | null) => void;
+  /** Inner corner radius, px, and the saved value (`null` is the default). */
+  bezelRadius: number;
+  bezelRadiusSetting: number | null;
+  setBezelRadius: (px: number | null) => void;
+  /** The page's ground in the current theme: the chrome colour while the bezel is off. */
+  ground: string;
   /** The reading treatment flags, for the devtool. */
   readingBlur: boolean;
   setReadingBlur: (value: boolean) => void;
@@ -226,10 +269,13 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // Ambient Settings — initialize with defaults to match SSR, hydrate from
   // localStorage in an effect to avoid hydration mismatches.
   const [settings, setSettingsState] = useState<AmbientSettings>(getDefaultSettings);
+  /** Whether `settings` is the stored one yet, rather than the SSR defaults. */
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: localStorage read
     setSettingsState(getAmbientSettings());
+    setSettingsLoaded(true);
   }, []);
 
   const updateSettings = useCallback((partial: Partial<AmbientSettings>) => {
@@ -253,9 +299,13 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // crossfades, so weather → image reads as a dissolve rather than a cut.
   // Picking a wallpaper from the picker implies switching to it, which is what
   // makes "one background at a time" feel like a single choice.
+  // Counts kind switches, so edge overrides from before one stop applying.
+  const [edgeEpoch, setEdgeEpoch] = useState(0);
+
   const setWallpaperKind = useCallback(
     (kind: WallpaperKind) => {
       if (kind === settings.wallpaperKind) return;
+      setEdgeEpoch((epoch) => epoch + 1);
       updateSettings({ wallpaperKind: kind });
     },
     [settings.wallpaperKind, updateSettings]
@@ -263,9 +313,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   const selectWallpaper = useCallback(
     (id: string) => {
+      if (settings.wallpaperKind !== "image") setEdgeEpoch((epoch) => epoch + 1);
       updateSettings({ wallpaperId: id, wallpaperKind: "image" });
     },
-    [updateSettings]
+    [settings.wallpaperKind, updateSettings]
   );
 
 
@@ -282,6 +333,18 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   const wallpaperOpacity = WALLPAPER_OPACITY[settings.wallpaperKind][theme];
 
+  const setBezelRadius = useCallback(
+    (px: number | null) => updateSettings({ bezelRadius: px }),
+    [updateSettings]
+  );
+  const setBezelTint = useCallback(
+    (tint: BezelTint) => updateSettings({ bezelTint: tint }),
+    [updateSettings]
+  );
+  const setBezelBand = useCallback(
+    (px: number | null) => updateSettings({ bezelBand: px }),
+    [updateSettings]
+  );
   const setReadingBlur = useCallback(
     (value: boolean) => updateSettings({ wallpaperReadingBlur: value }),
     [updateSettings]
@@ -302,15 +365,38 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     reading && settings.wallpaperReadingDim ? WALLPAPER_READING_VEIL[theme] : 0;
 
   // DevTool gradient overrides (ephemeral, not persisted)
-  const [devtoolOverrides, setDevtoolOverrides] =
+  const [storedOverrides, setStoredOverrides] =
     useState<DevtoolPlacementOverrides>({});
+  // Edge overrides stamped with the kind switch they were set after…
+  const setDevtoolOverrides = useCallback(
+    (next: DevtoolPlacementOverrides) => setStoredOverrides({ ...next, edgeEpoch }),
+    [edgeEpoch]
+  );
+  // …and dropped once the kind has switched since.
+  const devtoolOverrides = useMemo<DevtoolPlacementOverrides>(() => {
+    if (storedOverrides.edgeEpoch === edgeEpoch) return storedOverrides;
+    return {
+      full: storedOverrides.full,
+      widget: storedOverrides.widget,
+      scroll: storedOverrides.scroll,
+    };
+  }, [storedOverrides, edgeEpoch]);
 
   // 3 resolved rendering flags.
   // DevTool overrides bypass all natural derivation.
-  const isIOS = useMemo(() => isIOSBrowser(), []);
+  // Hydration-safe: false on the server and the first client render, then the
+  // real answer. It decides rendered structure (the bezel), so a render-time
+  // read would disagree with the server HTML. `null` until then: the boot
+  // script has already put the bezel on <html> for a phone, and it must not
+  // come off for the one frame before the platform is known.
+  const [isIOS, setIsIOS] = useState<boolean | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: platform read
+    setIsIOS(isIOSBrowser());
+  }, []);
 
   const overridden = (
-    key: keyof DevtoolPlacementOverrides,
+    key: "full" | "widget" | "softEdging" | "bezel",
     natural: boolean
   ): boolean => (isDevtoolEnabled ? devtoolOverrides[key] : undefined) ?? natural;
 
@@ -320,16 +406,39 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     settings.wallpaperPlacement === "widget"
   );
 
+  /**
+   * The bezel — @hux/bezel, configured in ./lib/bezel. Live.
+   *
+   * The wallpaper kind decides whether it is on (`WALLPAPER_KIND_EDGES`), on
+   * iOS only; a devtool override for this session wins over the kind until the
+   * kind changes. Band, radius and tint are saved settings, the same for every
+   * kind. `null` until the stored settings and the platform are both known: a
+   * `false` before then would take off the bezel the boot script painted.
+   */
+  const edges = WALLPAPER_KIND_EDGES[settings.wallpaperKind];
+  const bezelState: boolean | null =
+    !settingsLoaded || isIOS === null ? null : overridden("bezel", isIOS && edges.bezel);
+  const bezel = bezelState === true;
+  // Container scroll on an iPhone with the bezel on: it is what lets a band
+  // thinner than CHROME_SAMPLE_PX keep the chrome in the bezel colour, and
+  // what stops the toolbar collapsing. The devtool can pick either.
+  const bezelScroll: BezelScroll =
+    (isDevtoolEnabled ? devtoolOverrides.scroll : undefined) ??
+    (bezel && isIOS === true ? "container" : "window");
+  const bezelColor = resolveBezelTint(settings.bezelTint, theme);
+  const bezelBand = settings.bezelBand ?? DEFAULT_BEZEL_BAND;
+  const bezelRadius = settings.bezelRadius ?? DEFAULT_BEZEL_RADIUS;
+  const ground = PAGE_GROUND[theme];
+
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and
   // the home indicator ends in a hard line otherwise. Same switch, same masks,
-  // for both wallpaper kinds — an image layer is just another layer in the
-  // stack, so it gets exactly what the weather gradient gets. Whether it is on
-  // by default is the kind's call — see `WALLPAPER_KIND_DEFAULTS`.
-  const kindDefaults = WALLPAPER_KIND_DEFAULTS[settings.wallpaperKind];
+  // for both wallpaper kinds. The kind decides whether it is on by default, and
+  // only while the bezel is off: the edge it hides is then a clean line against
+  // the bezel.
   const softEdgeEnabled = overridden(
     "softEdging",
-    isIOS && kindDefaults.softEdge
+    isIOS === true && edges.softEdge && !bezel
   );
 
   // Debug override state (for weather and time)
@@ -483,7 +592,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     theme,
   ]);
 
-  /** Images must cover the frame; the weather gradient already fills it. */
+  /** Images must cover the layer; the weather gradient already fills it. */
   const computedCover = resolvedImage?.cover ?? false;
   const wallpaperSrc = resolvedImage?.src ?? null;
 
@@ -607,6 +716,19 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       veil: veilAlpha,
       blurred: isBlurred,
       reading,
+      bezel,
+      bezelState,
+      bezelScroll,
+      bezelColor,
+      bezelTint: settings.bezelTint,
+      setBezelTint,
+      bezelBand,
+      bezelBandSetting: settings.bezelBand,
+      setBezelBand,
+      bezelRadius,
+      bezelRadiusSetting: settings.bezelRadius,
+      setBezelRadius,
+      ground,
       readingBlur: settings.wallpaperReadingBlur,
       setReadingBlur,
       readingDim: settings.wallpaperReadingDim,
@@ -619,6 +741,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [
       settings.wallpaperKind,
       settings.wallpaperPlacement,
+      settings.bezelTint,
+      settings.bezelBand,
+      settings.bezelRadius,
       settings.wallpaperReadingBlur,
       settings.wallpaperReadingDim,
       setWallpaperKind,
@@ -636,6 +761,17 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       veilAlpha,
       isBlurred,
       reading,
+      setDevtoolOverrides,
+      bezel,
+      bezelState,
+      bezelScroll,
+      bezelColor,
+      setBezelTint,
+      bezelBand,
+      setBezelBand,
+      bezelRadius,
+      setBezelRadius,
+      ground,
       setReadingBlur,
       setReadingDim,
       wallpaperSrc,

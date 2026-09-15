@@ -59,7 +59,7 @@ export interface WallpaperAsset {
   src: string;
   /** 480px rendition for picker tiles and devtool swatches. */
   thumb: string;
-  /** Average colour, painted under the image so the frame is never bare. */
+  /** Average colour, painted under the image so the layer is never bare. */
   base: string;
   /** Pixel size of `src`, shown in the picker. Checked against the file. */
   width: number;
@@ -94,7 +94,7 @@ export interface Wallpaper {
 /** A variant resolved into something renderable by <GradientStack />. */
 export interface ResolvedWallpaper {
   backgroundImage: string;
-  /** Images must cover the frame; the weather gradient already fills it. */
+  /** Images must cover the layer; the weather gradient already fills it. */
   cover: boolean;
   /** The file behind it, for the devtool readout. */
   src: string | null;
@@ -446,7 +446,7 @@ export function getWallpaperOrDefault(id: string): Wallpaper {
 function buildAsset(asset: WallpaperAsset, preview: boolean): ResolvedWallpaper {
   const url = preview ? asset.thumb : asset.src;
   return {
-    // The flat base sits under the image so the frame is never bare while it
+    // The flat base sits under the image so the layer is never bare while it
     // decodes.
     backgroundImage: `url("${url}"), linear-gradient(180deg, ${asset.base} 0%, ${asset.base} 100%)`,
     cover: true,

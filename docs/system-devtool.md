@@ -53,8 +53,10 @@ Debug modules for the ambient system:
 
 1. **Wallpaper**: the whole background system — a Weather / Image switch and
    one row showing the current picture and its resolution, which opens the
-   picker (choosing among the catalog is the picker's job), placement switches (full / widget / soft
-   edge), the reading treatment switches (reading blur / reading dim),
+   picker (choosing among the catalog is the picker's job), placement switches
+   (full / widget / soft edge), the bezel switch and its tint (black / dark /
+   theme / custom), band and radius, a window / container scroll switch, the
+   reading treatment switches (reading blur / reading dim),
    and the resolved asset.
    Full and Widget are *independent* switches, not two halves of one control:
    the persisted setting can only be one of them, but the panel exists to see

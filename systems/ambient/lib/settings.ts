@@ -1,25 +1,6 @@
+import { clampBezelBand, clampBezelRadius } from "@hux/bezel";
+import { DEFAULT_BEZEL_TINT, isBezelTint, type BezelTint } from "./bezel";
 import type { LocationMode } from "./location";
-
-/**
- * What each kind of wallpaper wants at the edge when nothing is overridden.
- *
- * The two want opposite things, which is why this is a table and not one
- * default. A weather gradient IS the page's own colour pushed to the edges, so
- * the honest treatment is to let it fade out into the ground: the soft edge. A
- * photograph is a picture ON the page, so fading it is a printing error — it
- * wants to end on a line.
- *
- * Still gated on iOS in the provider: the fade is a phone treatment, and a
- * desktop window never gets it.
- */
-export interface WallpaperKindDefaults {
-  softEdge: boolean;
-}
-
-export const WALLPAPER_KIND_DEFAULTS: Record<WallpaperKind, WallpaperKindDefaults> = {
-  weather: { softEdge: true },
-  image: { softEdge: false },
-};
 import {
   DEFAULT_WALLPAPER_ID,
   getWallpaper,
@@ -46,6 +27,16 @@ export interface AmbientSettings {
   wallpaperKind: WallpaperKind;
   /** Selected built-in pair, used when `wallpaperKind === "image"`. */
   wallpaperId: string;
+  /**
+   * The bezel's colour: a named tint or a `#rrggbb` literal. Whether the bezel
+   * is on is not a setting — the wallpaper kind decides, and the devtool can
+   * override it for the session. See `WALLPAPER_KIND_EDGES`.
+   */
+  bezelTint: BezelTint;
+  /** Band thickness, px. `null` is `DEFAULT_BEZEL_BAND`. The same for every kind. */
+  bezelBand: number | null;
+  /** Inner corner radius, px. `null` is `DEFAULT_BEZEL_RADIUS`. The same for every kind. */
+  bezelRadius: number | null;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
   wallpaperReadingBlur: boolean;
   /** Veil the wallpaper on reading pages. */
@@ -54,12 +45,19 @@ export interface AmbientSettings {
 
 const SETTINGS_KEY = "hux_ambient_settings";
 
+function finiteOrNull(value: unknown, clamp: (n: number) => number): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? clamp(value) : null;
+}
+
 export function getDefaultSettings(): AmbientSettings {
   return {
     locationMode: "ip",
     wallpaperPlacement: "full",
     wallpaperKind: "weather",
     wallpaperId: DEFAULT_WALLPAPER_ID,
+    bezelTint: DEFAULT_BEZEL_TINT,
+    bezelBand: null,
+    bezelRadius: null,
     wallpaperReadingBlur: true,
     wallpaperReadingDim: true,
   };
@@ -77,6 +75,9 @@ export function getAmbientSettings(): AmbientSettings {
     const parsed = JSON.parse(stored) as Partial<AmbientSettings> & {
       /** Legacy field names, still read so an existing visitor keeps their setup. */
       weatherGradientMode?: string;
+      wallpaperLetterboxTint?: unknown;
+      wallpaperLetterboxBand?: unknown;
+      wallpaperLetterboxRadius?: unknown;
     };
     const defaults = getDefaultSettings();
 
@@ -107,6 +108,16 @@ export function getAmbientSettings(): AmbientSettings {
       wallpaperKind:
         parsed.wallpaperKind === "image" ? "image" : defaults.wallpaperKind,
       wallpaperId,
+      // `wallpaperLetterbox*` were these fields' names before the bezel was
+      // its own package.
+      bezelTint: isBezelTint(parsed.bezelTint ?? parsed.wallpaperLetterboxTint)
+        ? ((parsed.bezelTint ?? parsed.wallpaperLetterboxTint) as BezelTint)
+        : DEFAULT_BEZEL_TINT,
+      bezelBand: finiteOrNull(parsed.bezelBand ?? parsed.wallpaperLetterboxBand, clampBezelBand),
+      bezelRadius: finiteOrNull(
+        parsed.bezelRadius ?? parsed.wallpaperLetterboxRadius,
+        clampBezelRadius
+      ),
       wallpaperReadingBlur: parsed.wallpaperReadingBlur !== false,
       wallpaperReadingDim: parsed.wallpaperReadingDim !== false,
     };
