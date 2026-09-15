@@ -161,6 +161,14 @@ Instead of opening/closing between modes, the palette **morphs**:
 - Content crossfades with opacity
 - Height animates using CSS Grid (`grid-template-rows: 0fr/1fr`)
 
+#### Adaptive height (popover)
+
+The popover list is viewport-relative rather than a fixed `360px`. The phone
+sheet does not use this — it fills its detents with `flex-1`.
+- **Offset**: Spotlight-like `20vh`, capped at `12rem` so tall screens do not push the palette down
+- **List**: `52dvh` (≈416px on an 800px laptop), capped at `40rem`, and never taller than the remaining viewport after chrome
+- Short screens shrink and scroll; tall screens show more results without becoming a full-height panel
+
 ### Footer Hints
 
 **Search Mode:**

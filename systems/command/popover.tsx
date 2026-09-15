@@ -7,7 +7,7 @@ import { useDraggable } from "@/systems/draggable";
 import { Command } from "cmdk";
 import { motion } from "framer-motion";
 import { Search, Slash } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   CommandShellProvider,
   SlashShortcuts,
@@ -19,6 +19,21 @@ import {
 import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
 import { CommandResults, CommandSlashList, GROUP_HEADINGS } from "./results";
+
+// Adaptive geometry for the popover only. The phone sheet fills its detents
+// with flex-1; this is the Spotlight card, whose list should grow with the
+// viewport instead of sitting on a 360px cap.
+// Offset: Spotlight-like 20vh, capped so extra height goes to the list.
+// List: 52dvh (≈416px at an 800px laptop), capped at 40rem, never taller
+// than the remaining viewport after header/footer/safe-area chrome.
+const PALETTE_GEOMETRY = {
+  "--command-palette-offset": "min(20vh, 12rem)",
+  "--command-palette-list-max":
+    "min(40rem, 52dvh, calc(100dvh - var(--command-palette-offset) - 9rem - env(safe-area-inset-bottom, 0px)))",
+} as CSSProperties;
+
+const PALETTE_LIST_MAX =
+  "max-h-[var(--command-palette-list-max)] overscroll-contain";
 
 // =============================================================================
 // CommandPopover — the palette as a floating card, Spotlight-style.
@@ -114,12 +129,16 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
         className={cn(
           // Above the theater/PiP surfaces (z-[10000]+) — the command palette is
           // the primary nav and must always sit on top.
-          "system-chrome z-[10050] flex items-start justify-center pt-[20vh]",
+          "system-chrome z-[10050] flex items-start justify-center overflow-y-auto",
+          "pt-[var(--command-palette-offset)] pb-8",
           isPhoneSafari ? "absolute inset-x-0" : "fixed inset-0"
         )}
-        style={
-          isPhoneSafari ? { top: scrollPosition, height: "100dvh" } : undefined
-        }
+        style={{
+          ...PALETTE_GEOMETRY,
+          ...(isPhoneSafari
+            ? { top: scrollPosition, height: "100dvh" }
+            : {}),
+        }}
       >
         <div
           className="absolute inset-0 bg-transparent"
@@ -303,7 +322,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                 )}
               >
                 <div className="overflow-hidden min-h-0">
-                  <CommandResults actions={actions} className="max-h-[360px]" />
+                  <CommandResults actions={actions} className={PALETTE_LIST_MAX} />
                 </div>
               </div>
 
@@ -316,7 +335,10 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                 )}
               >
                 <div className="overflow-hidden min-h-0">
-                  <CommandSlashList actions={actions} />
+                  <CommandSlashList
+                    actions={actions}
+                    className={cn(PALETTE_LIST_MAX, "overflow-y-auto")}
+                  />
                 </div>
               </div>
             </div>

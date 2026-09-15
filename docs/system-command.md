@@ -79,6 +79,10 @@ still ask for it on a phone — the Command module's **Phone palette** row, a
 saved setting, switches Sheet ↔ Popover. That is one presentation map, not a
 second code path: the popover never stopped working at phone width.
 
+The popover list grows with the viewport (`52dvh`, capped at `40rem`) instead
+of a fixed `360px`, so laptops and tall displays show more results. The sheet
+does not: it fills whichever detent it is on.
+
 ### Commands
 
 `useCommandActions()` is the one list behind search results, the slash list and
@@ -159,6 +163,7 @@ Features:
 - Blog posts search
 - Apps launcher with real app icons (grid + list)
 - Bilingual search (EN/中文 keywords)
+- Adaptive popover list height (`52dvh`, capped); the phone sheet fills its detents
 
 ### FloatingActionButton
 
