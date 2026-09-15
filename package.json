@@ -15,9 +15,10 @@
     "og:fonts": "node scripts/og-fonts.mjs",
     "icon:generate": "node scripts/icon-generate.ts",
     "icon:check": "node scripts/icon-generate.ts --check",
-    "wallpapers:check": "node scripts/wallpaper-check.ts",
-    "wallpapers:profile": "node --import ./scripts/register-ts.mjs scripts/wallpaper-profile.ts",
-    "wallpapers:profile:check": "node --import ./scripts/register-ts.mjs scripts/wallpaper-profile.ts --check",
+    "wallpapers:check": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/wallpaper-check.ts",
+    "wallpapers:encode": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/wallpaper-encode.ts",
+    "wallpapers:profile": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/wallpaper-profile.ts",
+    "wallpapers:profile:check": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/wallpaper-profile.ts --check",
     "apps:snapshot": "node scripts/app-icon-snapshot.ts",
     "apps:check": "node scripts/app-icon-snapshot.ts --check",
     "bezel:typecheck": "tsc -p packages/bezel"

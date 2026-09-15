@@ -37,11 +37,12 @@
 //   nature  the Mac OS X Nature desktop pictures (Aurora, Zebra, …), taken
 //           from ryOS. One photograph each, so both halves are the same file.
 //
-// Every committed file covers a 2560×1600 viewport with at most a 7% stretch.
-// iOS 17, 18 and 27 did not (1.25×, 1.73× and 1.94×) and were removed. Sources
-// and frame indices are recorded in `public/wallpapers/sources.json`;
-// `pnpm wallpapers:check` verifies the committed files still match it, the
-// resolutions below included.
+// Every committed full-size file covers a 2560×1600 viewport with at most a 7%
+// stretch. iOS 17, 18 and 27 did not (1.25×, 1.73× and 1.94×) and were removed.
+// Photographs also ship 1280×800 and 1920×1200 cover renditions so a phone does
+// not download the desktop file. Sources and frame indices are recorded in
+// `public/wallpapers/sources.json`; `pnpm wallpapers:check` verifies the
+// committed files still match it, the resolutions below included.
 //
 // Apple retains rights to this artwork. It is committed here for a personal
 // site, not licensed onward; the archives the frames were pulled from do not
@@ -49,8 +50,7 @@
 // to do so.
 // =============================================================================
 
-import { t } from "@/lib/i18n";
-import type { Locale } from "@/services/locale";
+import { t, type Locale } from "@/lib/i18n";
 
 export type WallpaperKind = "weather" | "image";
 
@@ -126,9 +126,28 @@ export function readWeatherStyle(raw: unknown): WeatherStyle {
   return (WEATHER_STYLES as readonly unknown[]).includes(raw) ? (raw as WeatherStyle) : "sky";
 }
 
-export interface WallpaperAsset {
-  /** Full-size WebP, at most 2560px on the long edge. */
+/**
+ * A smaller cover of the same photograph, encoded for a named CSS-pixel
+ * viewport. Sorted smallest-first on `WallpaperAsset.srcset`.
+ *
+ * ryOS does not ship these — it serves the original JPEG plus a picker thumb.
+ * We add them so raising encode quality (Aurora's source is 1.3MB) does not
+ * mean a phone pays for a 2560px file.
+ */
+export interface WallpaperRendition {
   src: string;
+  width: number;
+  height: number;
+}
+
+export interface WallpaperAsset {
+  /** Full-size WebP, sized to cover `WALLPAPER_VIEWPORT`. */
+  src: string;
+  /**
+   * Smaller cover renditions of `src`, smallest first. Empty on the graphic
+   * pairs, which already compress to tens of kilobytes.
+   */
+  srcset: readonly WallpaperRendition[];
   /** 480px rendition for picker tiles and devtool swatches. */
   thumb: string;
   /** Average colour, painted under the image so the layer is never bare. */
@@ -221,6 +240,102 @@ export const WALLPAPER_OPACITY: Record<WallpaperFamily, { light: number; dark: n
 
 type Size = readonly [width: number, height: number];
 
+/**
+ * The desktop viewport a full-size file has to cover, and the smaller
+ * viewports the photograph renditions are encoded for.
+ *
+ * 16:10 because that is the Mac OS X Nature frame and the picker tile. A
+ * rendition is the smallest cover of its viewport — same rule as the full
+ * file, just a smaller screen.
+ */
+export const WALLPAPER_VIEWPORT = { width: 2560, height: 1600 } as const;
+export const WALLPAPER_RENDITIONS = [
+  { id: 1280, width: 1280, height: 800 },
+  { id: 1920, width: 1920, height: 1200 },
+] as const;
+/** Stretch past this looks soft; matching the check script's floor. */
+export const WALLPAPER_MAX_STRETCH = 1.07;
+
+/** Smallest size of `source` that still covers `viewport`. Never upscales. */
+export function coverSize(
+  source: { width: number; height: number },
+  viewport: { width: number; height: number }
+): { width: number; height: number } {
+  const scale = Math.min(
+    1,
+    Math.max(viewport.width / source.width, viewport.height / source.height)
+  );
+  return {
+    width: Math.round(source.width * scale),
+    height: Math.round(source.height * scale),
+  };
+}
+
+export function wallpaperRenditionSrc(src: string, id: number): string {
+  return src.replace(/\.webp$/, `.${id}.webp`);
+}
+
+/**
+ * The current CSS-pixel viewport and device pixel ratio.
+ *
+ * Falls back to the desktop cover size on the server, where there is no
+ * window. Image wallpapers only apply after hydration (the default kind is
+ * weather), so the fallback is not what paints.
+ */
+export function readDisplaySize(): { width: number; height: number; dpr: number } {
+  if (typeof window === "undefined") {
+    return { width: WALLPAPER_VIEWPORT.width, height: WALLPAPER_VIEWPORT.height, dpr: 1 };
+  }
+  return {
+    width: window.innerWidth,
+    height: window.innerHeight,
+    dpr: window.devicePixelRatio || 1,
+  };
+}
+
+/**
+ * Smallest rendition of `asset` that covers `viewport` at its DPR, within
+ * `WALLPAPER_MAX_STRETCH`. A portrait phone at 2×/3× still needs the full
+ * file — the landscape photographs are 1600px tall, and that is the covering
+ * axis.
+ */
+export function pickWallpaperSrc(
+  asset: WallpaperAsset,
+  viewport: { width: number; height: number; dpr?: number }
+): string {
+  const dpr = viewport.dpr ?? 1;
+  const needW = viewport.width * dpr;
+  const needH = viewport.height * dpr;
+  const candidates: WallpaperRendition[] = [
+    ...asset.srcset,
+    { src: asset.src, width: asset.width, height: asset.height },
+  ];
+  for (const candidate of candidates) {
+    const stretch = Math.max(needW / candidate.width, needH / candidate.height);
+    if (stretch <= WALLPAPER_MAX_STRETCH) return candidate.src;
+  }
+  return candidates[candidates.length - 1].src;
+}
+
+function emptySrcset(): readonly WallpaperRendition[] {
+  return [];
+}
+
+function photoSrcset(src: string, [width, height]: Size): WallpaperRendition[] {
+  const source = { width, height };
+  const out: WallpaperRendition[] = [];
+  for (const rendition of WALLPAPER_RENDITIONS) {
+    const size = coverSize(source, rendition);
+    if (size.width >= width - 1 && size.height >= height - 1) continue;
+    out.push({
+      src: wallpaperRenditionSrc(src, rendition.id),
+      width: size.width,
+      height: size.height,
+    });
+  }
+  return out;
+}
+
 /** A release pair: `public/wallpapers/<id>/{light,dark}.webp`, one size. */
 function pair(
   id: string,
@@ -232,6 +347,7 @@ function pair(
   return {
     light: {
       src: `${base}/light.webp`,
+      srcset: emptySrcset(),
       thumb: `${base}/light.thumb.webp`,
       base: lightBase,
       width,
@@ -239,6 +355,7 @@ function pair(
     },
     dark: {
       src: `${base}/dark.webp`,
+      srcset: emptySrcset(),
       thumb: `${base}/dark.thumb.webp`,
       base: darkBase,
       width,
@@ -253,8 +370,10 @@ function photo(
   base: string,
   [width, height]: Size
 ): Pick<Wallpaper, "light" | "dark"> {
+  const src = `/wallpapers/nature/${id}.webp`;
   const asset: WallpaperAsset = {
-    src: `/wallpapers/nature/${id}.webp`,
+    src,
+    srcset: photoSrcset(src, [width, height]),
     thumb: `/wallpapers/nature/${id}.thumb.webp`,
     base,
     width,
@@ -371,12 +490,6 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     ...photo("aurora", "rgb(118 86 113)", [2560, 1600]),
   },
   {
-    id: "clown-fish",
-    name: "Clown Fish",
-    category: "nature",
-    ...photo("clown-fish", "rgb(69 100 49)", [2560, 1600]),
-  },
-  {
     id: "dew-drop",
     name: "Dew Drop",
     category: "nature",
@@ -423,12 +536,6 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     name: "Golden Palace",
     category: "nature",
     ...photo("golden-palace", "rgb(107 113 75)", [2560, 1600]),
-  },
-  {
-    id: "ladybug",
-    name: "Ladybug",
-    category: "nature",
-    ...photo("ladybug", "rgb(104 160 96)", [2560, 1600]),
   },
   {
     id: "mt-fuji",
@@ -529,8 +636,16 @@ export function getWallpaperOrDefault(id: string): Wallpaper {
   return BY_ID.get(id) ?? BUILT_IN_WALLPAPERS[0];
 }
 
-function buildAsset(asset: WallpaperAsset, preview: boolean): ResolvedWallpaper {
-  const url = preview ? asset.thumb : asset.src;
+function buildAsset(
+  asset: WallpaperAsset,
+  preview: boolean,
+  viewport?: { width: number; height: number; dpr?: number }
+): ResolvedWallpaper {
+  const url = preview
+    ? asset.thumb
+    : viewport
+      ? pickWallpaperSrc(asset, viewport)
+      : asset.src;
   return {
     // The flat base sits under the image so the layer is never bare while it
     // decodes.
@@ -558,8 +673,17 @@ export function getWallpaperBackground(params: {
    * blurred reading layer, where a 40px blur erases the difference anyway.
    */
   preview?: boolean;
+  /**
+   * CSS-pixel viewport used to pick a photograph rendition. Pairs ignore it
+   * (one file). Omit to always use the full-size file.
+   */
+  viewport?: { width: number; height: number; dpr?: number };
 }): ResolvedWallpaper {
-  return buildAsset(params.wallpaper[params.theme], params.preview ?? false);
+  return buildAsset(
+    params.wallpaper[params.theme],
+    params.preview ?? false,
+    params.viewport
+  );
 }
 
 /**

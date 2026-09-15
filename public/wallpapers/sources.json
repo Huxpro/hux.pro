@@ -1,11 +1,11 @@
 {
   "author": "Apple Inc.",
-  "note": "Apple's default macOS and iOS wallpapers as light/dark pairs, and the Mac OS X Nature desktop pictures as single photographs. Apple retains rights to this artwork; it is committed here for a personal site, not licensed onward. The archives the files were pulled from (ryOS included, which is AGPL-3.0) do not license Apple's images either, and their repository licenses are not asserted to do so. Resolution rule: every committed file must cover a 2560x1600 viewport with at most a 1.07x stretch, and is downscaled to the smallest size that still covers it, never upscaled. iOS 27 (1320x2868), iOS 18 (1480x3192 / 1661x3600) and iOS 17 (2048x2048) fell short and were removed. Derivatives: release pairs are WebP q80, photographs WebP q75; thumbnails at most 480px at q72. HEIC frames are zero-indexed. Nothing is cropped: every committed file keeps its source aspect. The Nature photographs carry Photoshop timestamps from August 2007, the Mac OS X Leopard cycle; the individual releases they shipped with are not verified.",
+  "note": "Apple's default macOS and iOS wallpapers as light/dark pairs, and the Mac OS X Nature desktop pictures as single photographs. Apple retains rights to this artwork; it is committed here for a personal site, not licensed onward. The archives the files were pulled from (ryOS included, which is AGPL-3.0) do not license Apple's images either, and their repository licenses are not asserted to do so. Resolution rule: every committed full-size file must cover a 2560x1600 viewport with at most a 1.07x stretch, and is downscaled to the smallest size that still covers it, never upscaled. Photographs also ship 1280x800 and 1920x1200 cover renditions. iOS 27 (1320x2868), iOS 18 (1480x3192 / 1661x3600) and iOS 17 (2048x2048) fell short and were removed. Derivatives: release pairs are WebP q80; photographs WebP q95 with 4:4:4 chroma (q90 if a file would exceed 1.8MB — the q75 encode crushed smooth skies); thumbnails at most 480px at q72. HEIC frames are zero-indexed. Nothing is cropped: every committed file keeps its source aspect. The Nature photographs carry Photoshop timestamps from August 2007, the Mac OS X Leopard cycle; the individual releases they shipped with are not verified. Clown Fish and Ladybug were dropped from the catalog.",
   "imported": [
     "Huxpro/hux.pro#97 — official Apple HEIC graphic pairs (big-sur, monterey, ios-13, ios-14)",
     "4kwallpapers.com/ipados-18-wallpapers — iPadOS 18 official pairs (4 colourways)",
     "Huxpro/hux.pro#96 — macOS release pairs (tahoe, sequoia, sonoma, ventura)",
-    "ryokun6/ryos@2d160d7 — public/wallpapers/photos/nature (21 photographs)"
+    "ryokun6/ryos@2d160d7 — public/wallpapers/photos/nature (19 photographs; Clown Fish and Ladybug omitted)"
   ],
   "pairs": [
     {
@@ -115,12 +115,6 @@
       "sourceSize": "2560x1600"
     },
     {
-      "id": "clown-fish",
-      "category": "nature",
-      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/clown_fish.jpg",
-      "sourceSize": "2560x1600"
-    },
-    {
       "id": "dew-drop",
       "category": "nature",
       "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/dew_drop.jpg",
@@ -166,12 +160,6 @@
       "id": "golden-palace",
       "category": "nature",
       "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/golden_palace.jpg",
-      "sourceSize": "2560x1600"
-    },
-    {
-      "id": "ladybug",
-      "category": "nature",
-      "source": "https://raw.githubusercontent.com/ryokun6/ryos/2d160d78a2b98332bda7e90e29ebf3789fd7b9b7/public/wallpapers/photos/nature/ladybug.jpg",
       "sourceSize": "2560x1600"
     },
     {
