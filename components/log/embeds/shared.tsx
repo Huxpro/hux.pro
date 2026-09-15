@@ -18,6 +18,7 @@ import {
   FileText,
 } from "lucide-react";
 
+import { TYPE } from "@/lib/typography";
 // =============================================================================
 // Link Icon
 // =============================================================================
@@ -69,7 +70,7 @@ export function Description({
   return (
     <p
       className={cn(
-        "text-xs text-tertiary-foreground leading-relaxed",
+        TYPE.captionQuiet,
         !isExpanded && "line-clamp-2",
         className
       )}
@@ -92,7 +93,7 @@ export function Commentary({ text, className }: CommentaryProps) {
   return (
     <p
       className={cn(
-        "text-xs italic text-quaternary-foreground leading-relaxed",
+        TYPE.aside,
         className
       )}
     >
@@ -118,7 +119,7 @@ export function TagBadges({ items, className }: TagBadgesProps) {
       {items.map((tag) => (
         <span
           key={tag}
-          className="text-[10px] uppercase tracking-wider font-mono text-quaternary-foreground"
+          className={cn(TYPE.labelSm, "text-quaternary-foreground")}
         >
           {tag}
         </span>

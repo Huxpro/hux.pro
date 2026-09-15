@@ -1,6 +1,7 @@
 "use client";
 
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
+import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { motion, useReducedMotion } from "motion/react";
@@ -224,7 +225,8 @@ export function ScrambleIdentifier() {
         ref={rootRef}
         className={cn(
           "inline-flex items-center justify-center",
-          "font-mono text-xs tracking-wider cursor-default select-none",
+          TYPE.identifier,
+          "cursor-default select-none",
           "touch-manipulation [-webkit-touch-callout:none]",
           // Padding enlarges the hit target so the pointer can sit on the
           // wings without leaving. It must NOT be the positioning containing

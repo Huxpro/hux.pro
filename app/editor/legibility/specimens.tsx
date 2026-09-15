@@ -1,13 +1,21 @@
 "use client";
 
 // =============================================================================
-// Specimens — the site's surfaces, one of each, drawn with the production
-// classes so the stylesheet under test is the one that ships.
+// Specimens — one of every surface the site draws text on, rendered from the
+// same typography roles (`lib/typography.ts`) and glass tokens production
+// renders from.
 //
-// Every specimen is real markup with real tokens: `.ink-bare`, `bg-glass`,
-// `bg-glass-popover`, `bg-muted/50`, `text-muted-foreground`. Nothing is
-// mocked with a literal colour, because a literal colour would not move when
-// a slider does.
+// Nothing here imports a production component, on purpose: a widget mounted
+// in the lab would be a second rendering of the site to keep in step with the
+// first. The contract is one level down — a role is a class string, and the
+// writing widget's date and the specimen's date are the same string
+// (`TYPE.rowMeta`), so they cannot disagree. What the lab tests is the spec;
+// production is the spec composed into components.
+//
+// Where production still carries a variant the roles do not cover (the
+// palette's sans-medium group heading, for one), the specimen reproduces the
+// production string verbatim and the divergence is listed under "Decisions"
+// in docs/system-legibility.md rather than quietly normalised here.
 // =============================================================================
 
 import { TITLE_POETIC } from "@/components/ui/header-zone";
@@ -17,35 +25,24 @@ import {
   WidgetShell,
   WidgetTitle,
 } from "@/components/ui/widget";
+import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
+import { legibilityCssVars, type LegibilityVars } from "@/systems/ambient/lib/legibility";
 import { GLASS_PILL, GLASS_TRACK } from "@/systems/theater/lib/chrome";
 import { ArrowRight, ChevronDown, Cloud, Search } from "lucide-react";
-import { AppFolder } from "@/components/apps";
-import { FeaturedTalksWidget } from "@/components/home/featured-talks-widget";
-import { PromptWidget } from "@/components/home/prompt-widget";
-import { WritingWidget } from "@/components/home/writing-widget";
-import { GroupWidget, homeLog } from "@/app/home-view";
-import type { BlogPostSummary } from "@/lib/content";
-import { WeatherWidget } from "@/systems/ambient";
-import { ALBUM_GROUP_IDS } from "@/systems/theater/lib/albums";
+import type { CSSProperties } from "react";
 
 export function SpecimenLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="ink-bare mb-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-      {children}
-    </div>
-  );
+  return <div className={cn("ink-bare mb-2", TYPE.label)}>{children}</div>;
 }
 
-/** Bare text: the home screen's identifier, greeting and app labels. */
+/** Bare text: the home screen's identifier, greeting, and app labels. */
 export function BareSpecimen() {
   return (
     <div className="ink-bare flex flex-col items-center gap-3 px-6 py-8 text-center">
-      <span className="text-sm font-mono tracking-wider text-muted-foreground">
-        λhux
-      </span>
+      <span className={TYPE.identifier}>λhux</span>
       <h1 className={cn(TITLE_POETIC, "text-foreground")}>good evening.</h1>
-      <p className="text-sm sm:text-base">
+      <p className="text-sm sm:text-base leading-relaxed">
         <span className="text-muted-foreground">you were reading </span>
         <span className="font-serif italic text-foreground underline decoration-foreground/30 decoration-1 underline-offset-4">
           Building Design Systems
@@ -55,14 +52,16 @@ export function BareSpecimen() {
       <div className="mt-2 flex flex-col items-center gap-1 text-sm">
         <span className="text-foreground">primary — the ink</span>
         <span className="text-muted-foreground">secondary — muted-foreground</span>
-        <span className="text-tertiary-foreground">tertiary — captions, timestamps</span>
-        <span className="text-quaternary-foreground">quaternary — watermarks</span>
+        <span className="text-tertiary-foreground">tertiary — captions, dates beside a title</span>
+        <span className="text-quaternary-foreground">quaternary — hashes, badges, separators</span>
       </div>
       <div className="mt-4 flex gap-5">
         {["Writing", "Works", "Prompt", "Docs"].map((label) => (
-          <span key={label} className="flex w-14 flex-col items-center gap-1.5">
+          <span key={label} className="flex w-16 flex-col items-center">
             <span className="size-11 rounded-[12px] border border-border/50 bg-glass backdrop-blur-xl" />
-            <span className="text-[11px] leading-tight text-muted-foreground">{label}</span>
+            <span className={cn("mt-1.5 block max-w-16 truncate text-center", TYPE.appLabel)}>
+              {label}
+            </span>
           </span>
         ))}
       </div>
@@ -70,17 +69,19 @@ export function BareSpecimen() {
   );
 }
 
-/** A home widget: header, rows with hover washes, a kbd, a tab capsule. */
+/** A home widget: the shell, its label, rows with a title and a date, a tab
+ *  capsule, a pill and a kbd — composed from the roles the way
+ *  writing-widget.tsx and featured-talks-widget.tsx compose them. */
 export function WidgetSpecimen() {
   return (
     <WidgetShell className="w-full">
-      <WidgetHeader>
+      <WidgetHeader className="pb-2">
         <WidgetTitle signal>writing</WidgetTitle>
-        <span className="text-xs text-muted-foreground">
+        <span className={TYPE.nav}>
           <ArrowRight className="h-3 w-3" />
         </span>
       </WidgetHeader>
-      <WidgetBody className="space-y-1">
+      <WidgetBody className="space-y-0.5">
         {[
           ["Vibe coding a personal OS", "sep 2026"],
           ["Why every text colour is an alpha", "aug 2026"],
@@ -89,35 +90,38 @@ export function WidgetSpecimen() {
           <div
             key={title}
             className={cn(
-              "-mx-2 flex items-baseline justify-between gap-3 rounded-md px-2 py-1.5 transition-colors",
-              i === 1 ? "bg-muted/40" : "hover:bg-muted/40",
+              "-mx-2 flex items-baseline gap-3 rounded-lg px-2 py-2 transition-colors",
+              i === 1 ? "bg-muted/20" : "hover:bg-muted/20",
             )}
           >
-            <span className="truncate text-sm text-foreground">{title}</span>
-            <span className="shrink-0 text-xs font-mono text-muted-foreground">{date}</span>
+            <span className={cn("min-w-0 flex-1 line-clamp-2", TYPE.rowTitle)}>{title}</span>
+            <span className={cn("shrink-0", TYPE.rowMeta)}>{date}</span>
           </div>
         ))}
-        <div className="flex items-center gap-2 pt-3">
+        <div className="mt-3 border-t border-border/30 pt-4 pb-1.5">
+          <span className={cn("block", TYPE.aside)}>featured</span>
+        </div>
+        <div className="flex items-center gap-2 pt-2">
           <span className={cn("inline-flex rounded-full p-0.5", GLASS_TRACK)}>
             <span className={cn("rounded-full px-3 py-1 text-xs text-foreground", GLASS_PILL)}>
               React
             </span>
-            <span className="rounded-full px-3 py-1 text-xs text-muted-foreground">Lynx</span>
-            <span className="rounded-full px-3 py-1 text-xs text-muted-foreground">Personal</span>
+            <span className="rounded-full px-3 py-1 text-xs text-tertiary-foreground">Lynx</span>
+            <span className="rounded-full px-3 py-1 text-xs text-tertiary-foreground">Personal</span>
           </span>
-          <span className="rounded-md bg-muted px-2.5 py-1 text-xs font-mono text-foreground">
-            en
-          </span>
-          <kbd className="rounded bg-muted/50 px-1.5 py-0.5 text-xs font-mono text-muted-foreground">
-            ⌘K
-          </kbd>
+          <span className={TYPE.pill}>featured</span>
+          <kbd className={TYPE.kbd}>⌘K</kbd>
+        </div>
+        <div className="pt-4">
+          <div className={cn("truncate", TYPE.rowTitle)}>React for Two Threads</div>
+          <div className={cn("mt-0.5 truncate", TYPE.labelWide)}>React Universe Conf</div>
         </div>
       </WidgetBody>
     </WidgetShell>
   );
 }
 
-/** The dock's Live Activity: pill and expanded panel. */
+/** The dock's Live Activity: pill and expanded panel, with a media title. */
 export function ActivitySpecimen() {
   return (
     <div className="flex flex-col items-center gap-4">
@@ -135,19 +139,19 @@ export function ActivitySpecimen() {
       </span>
       <div className="w-[min(100%,340px)] overflow-hidden rounded-2xl border border-border/50 bg-glass shadow-overlay backdrop-blur-xl">
         <div className="flex items-center justify-between px-5 pt-4 pb-3">
-          <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-            sunrise
-          </span>
-          <span className="text-xs text-muted-foreground">05:46</span>
+          <span className={TYPE.label}>now playing</span>
+          <span className={TYPE.meta}>05:46</span>
         </div>
         <div className="px-5 pb-4">
-          <div className="flex items-end justify-between">
-            <span className="text-3xl font-medium text-foreground">18°</span>
-            <span className="text-sm text-muted-foreground">Clear · Berkeley</span>
+          <div className={cn("truncate", TYPE.mediaTitle)}>Weightless (Ambient Mix)</div>
+          <div className={cn("mt-0.5 truncate", TYPE.meta)}>Marconi Union</div>
+          <div className="mt-3 h-0.5 overflow-hidden rounded-full bg-muted">
+            <div className="h-full w-1/3 rounded-full bg-foreground/50" />
           </div>
-          <p className="mt-2 text-xs text-tertiary-foreground">
-            the sun rises in 34 minutes
-          </p>
+          <div className="mt-1 flex justify-between font-mono text-[10px] tabular-nums text-muted-foreground">
+            <span>2:41</span>
+            <span>-5:22</span>
+          </div>
         </div>
         <div className="flex justify-center pb-2">
           <span className="h-1 w-9 rounded-full bg-muted-foreground/25" />
@@ -157,7 +161,8 @@ export function ActivitySpecimen() {
   );
 }
 
-/** The command palette: popover glass, input, a selected row, kbd hints. */
+/** The command palette: popover glass, input, a selected row, kbd hints. The
+ *  group heading is production's sans-medium string — see Decisions. */
 export function PaletteSpecimen() {
   const rows = [
     ["Writing", "W"],
@@ -170,26 +175,22 @@ export function PaletteSpecimen() {
       <div className="flex items-center gap-3 border-b border-border/50 px-4 py-3">
         <Search className="h-4 w-4 text-muted-foreground" />
         <span className="flex-1 text-sm text-muted-foreground/60">what brings you here?</span>
-        <kbd className="rounded bg-muted/50 px-2 py-1 text-xs font-mono text-muted-foreground">
-          esc
-        </kbd>
+        <kbd className={cn("px-2 py-1", TYPE.kbd)}>esc</kbd>
       </div>
       <div className="p-2">
-        <div className="px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+        <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
           navigation
         </div>
         {rows.map(([label, key], i) => (
           <div
             key={label}
             className={cn(
-              "flex items-center justify-between rounded-md px-3 py-2 text-sm text-foreground",
+              "flex items-center justify-between rounded-lg px-3 py-2.5 text-sm text-foreground",
               i === 1 ? "bg-accent/40 text-accent-foreground" : "hover:bg-accent/25",
             )}
           >
             <span>{label}</span>
-            <kbd className="rounded bg-muted/50 px-1.5 py-0.5 text-xs font-mono text-muted-foreground">
-              {key}
-            </kbd>
+            <kbd className={cn("shrink-0", TYPE.kbd)}>{key}</kbd>
           </div>
         ))}
       </div>
@@ -197,24 +198,23 @@ export function PaletteSpecimen() {
   );
 }
 
-/** A secondary surface: the sheet material with a section and a capsule row. */
+/** A secondary surface: the sheet material with a section label and a capsule row. */
 export function SheetSpecimen() {
   return (
     <div className="w-full rounded-2xl border border-border/50 bg-glass-sheet p-5 shadow-overlay backdrop-blur-xl">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-foreground">wallpaper</span>
-        <span className="text-xs font-mono text-muted-foreground">33</span>
+        <span className="text-[13px] font-medium text-foreground">wallpaper</span>
+        <span className={TYPE.meta}>33</span>
       </div>
       <div className="mt-4 flex items-center justify-between gap-3">
-        <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
-          placement
-        </span>
+        <span className={TYPE.label}>placement</span>
         <span className="flex overflow-hidden rounded-md border border-border/60">
           {["Full", "Widget", "Off"].map((o, i) => (
             <span
               key={o}
               className={cn(
-                "px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider",
+                "px-2.5 py-1",
+                TYPE.labelSm,
                 i === 0 ? "bg-accent text-accent-foreground" : "text-muted-foreground",
               )}
             >
@@ -223,81 +223,110 @@ export function SheetSpecimen() {
           ))}
         </span>
       </div>
-      <p className="mt-4 text-xs text-tertiary-foreground">
-        Wallpapers are Apple&apos;s; rights remain theirs.
-      </p>
+      <p className={cn("mt-4", TYPE.captionQuiet)}>Wallpapers are Apple&apos;s; rights remain theirs.</p>
     </div>
   );
 }
 
 /**
- * A reading page: the list rows and prose of /writing and /works, in their
- * production classes. The veil and defocus are NOT simulated here — switch
- * the lab's Surface to Reading and the provider applies the real treatment
- * to the whole page, exactly as a reading route gets it.
+ * A reading page — /writing, /works, an article — as its own surface.
+ *
+ * The picture behind a reading route is defocused and veiled with the page
+ * colour; this box does the same to the wallpaper behind it (a backdrop blur
+ * at the policy's radius, a veil at the policy's alpha) and carries the
+ * policy's *reading* resolution as an `.ink-scope`, so the sliders for veil,
+ * blur, relief-on-reading and the ink boost act here exactly as they act on
+ * the real route — while the rest of the lab stays the desktop.
  */
-export function ReadingSpecimen() {
+export function ReadingSpecimen({ vars }: { vars: LegibilityVars }) {
+  const style = legibilityCssVars(vars) as CSSProperties;
   return (
-    <div className="w-full px-6 py-6">
-      <div className="mb-4 text-xs font-mono tracking-wide text-muted-foreground">/writing</div>
-      <h2 className="mb-6 font-serif text-3xl tracking-tight text-foreground">Writing</h2>
-      <div className="mb-8 space-y-1">
-        {[
-          ["Beyond Being a Frontend Engineer", "jul 2020", true],
-          ["React Is Not Vue, Obviously", "apr 2020", false],
-          ["Avoiding Success at All Cost", "sep 2018", false],
-        ].map(([title, date, featured]) => (
-          <div key={String(title)} className="flex items-baseline justify-between gap-3 py-2">
-            <span className="text-foreground">
-              {String(title)}
-              {featured && (
-                <span className="ml-2 rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-                  featured
-                </span>
-              )}
-            </span>
-            <span className="shrink-0 font-mono text-xs text-tertiary-foreground">{String(date)}</span>
-          </div>
-        ))}
-      </div>
-      <div className="prose-article">
-        <p>
-          A fixed grey was a pre-computed alpha for a page that was only ever white or
-          near-black. Under a picture it stops being any alpha at all —{" "}
-          <a href="#" onClick={(e) => e.preventDefault()}>
-            the same word
-          </a>{" "}
-          reads differently on every wallpaper, and <code>text-muted-foreground</code> stops
-          meaning &ldquo;secondary&rdquo;.
-        </p>
-        <blockquote>
-          <p>Regardless of the material you choose, use vibrant colors on top of it.</p>
-        </blockquote>
-      </div>
-      <div className="mt-2 text-xs text-muted-foreground">
-        sep 2026 · <span className="text-tertiary-foreground">4 min read</span>
-      </div>
-    </div>
-  );
-}
+    <div
+      className={cn("ink-scope relative w-full overflow-hidden rounded-xl", vars.flip && "ink-flip")}
+      style={style}
+    >
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          backdropFilter: `blur(${vars.blur}px)`,
+          WebkitBackdropFilter: `blur(${vars.blur}px)`,
+        }}
+      />
+      <div aria-hidden className="absolute inset-0 bg-background" style={{ opacity: vars.veil }} />
+      <div className="relative px-6 py-6">
+        <span className={TYPE.nav}>λhux</span>
+        <h2 className={cn("mt-6 mb-6", TITLE_POETIC, "text-foreground")}>Writing</h2>
 
-/**
- * The production widgets themselves — the app folder's labels, the writing
- * widget's dates, a projects group's subtitles, the weather, the prompt, the
- * talks — rendered by the same components the home screen mounts, so what the
- * lab shows is what the visitor gets, class for class.
- */
-export function RealSurfacesSpecimen({ posts }: { posts: BlogPostSummary[] }) {
-  const albumGroupIds = new Set<string>(ALBUM_GROUP_IDS);
-  const group = (homeLog.groups ?? []).find((g) => !g.hidden && !albumGroupIds.has(g.id));
-  return (
-    <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-      <AppFolder />
-      <WritingWidget posts={posts} />
-      {group && <GroupWidget group={group} />}
-      <WeatherWidget />
-      <FeaturedTalksWidget />
-      <PromptWidget />
+        {/* /writing rows: PostList's title, pill, language badge and date. */}
+        <div className="mb-8">
+          {[
+            ["Beyond Being a Frontend Engineer", "jul 2020", true],
+            ["React Is Not Vue, Obviously", "apr 2020", false],
+            ["Avoiding Success at All Cost", "sep 2018", false],
+          ].map(([title, date, featured]) => (
+            <div
+              key={String(title)}
+              className="-mx-4 flex items-baseline justify-between gap-4 rounded-lg px-4 py-3 hover:bg-muted/50"
+            >
+              <h3 className={cn(TYPE.rowTitle, "sm:text-base font-normal")}>
+                {String(title)}
+                {featured && (
+                  <span className="whitespace-nowrap">
+                    {" "}
+                    <span className={cn("ml-0.5 inline-block align-[0.1em]", TYPE.pill)}>featured</span>
+                  </span>
+                )}
+                <span className={cn("ml-2 align-baseline", TYPE.metaQuiet)}>EN</span>
+              </h3>
+              <span className={cn("shrink-0", TYPE.rowMeta)}>{String(date)}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* /works rows: a commit's hash, title, meta line and date. */}
+        <div className="mb-8 space-y-3">
+          {[
+            ["da4a261", "lynx-ui: Best Lynx in Components", "React Advanced London ↗", "Nov 2025"],
+            ["a0ac582", "Lynx Framework", "Lynx @ ByteDance", "2023 – Present"],
+          ].map(([hash, title, meta, date]) => (
+            <div key={hash} className="grid grid-cols-[auto_1fr] gap-x-2">
+              <span className={cn("leading-5", TYPE.metaQuiet)}>{hash}</span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className={cn("min-w-0 flex-1", TYPE.rowTitle)}>{title}</span>
+                  <span className={cn("shrink-0 ml-auto", TYPE.rowMeta)}>{date}</span>
+                </div>
+                <div className={cn("mt-1", TYPE.metaQuiet)}>{meta}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* An article: the header meta line and the prose recipe. */}
+        <div className={cn("mb-4 flex items-center gap-2", TYPE.meta)}>
+          <span>sep 2026</span>
+          <span className="text-quaternary-foreground">·</span>
+          <span>4 min read</span>
+        </div>
+        <div className="prose-article">
+          <p>
+            A fixed grey was a pre-computed alpha for a page that was only ever white or
+            near-black. Under a picture it stops being any alpha at all —{" "}
+            <a href="#" onClick={(e) => e.preventDefault()}>
+              the same word
+            </a>{" "}
+            reads differently on every wallpaper, and <code>text-muted-foreground</code> stops
+            meaning &ldquo;secondary&rdquo;.
+          </p>
+          <blockquote>
+            <p>Regardless of the material you choose, use vibrant colors on top of it.</p>
+          </blockquote>
+        </div>
+        <div className={cn("mt-2", TYPE.labelSm)}>
+          en <span className="mx-1.5 text-quaternary-foreground">·</span> 4 min read
+        </div>
+      </div>
     </div>
   );
 }

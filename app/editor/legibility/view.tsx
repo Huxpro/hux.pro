@@ -36,7 +36,6 @@ import {
   type Theme,
 } from "@/systems/ambient/lib/legibility";
 import { BUILT_IN_WALLPAPERS, WALLPAPER_CATEGORIES } from "@/systems/ambient/lib/wallpaper";
-import type { BlogPostSummary } from "@/lib/content";
 import { useDevtool } from "@/systems/devtool";
 import { Check, Copy, RotateCcw } from "lucide-react";
 import Link from "next/link";
@@ -71,7 +70,6 @@ import {
   BareSpecimen,
   PaletteSpecimen,
   ReadingSpecimen,
-  RealSurfacesSpecimen,
   SheetSpecimen,
   SpecimenLabel,
   WidgetSpecimen,
@@ -148,7 +146,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 // The view
 // -----------------------------------------------------------------------------
 
-export function LegibilityLabView({ posts }: { posts: BlogPostSummary[] }) {
+export function LegibilityLabView() {
   const wallpaper = useWallpaper();
   const weather = useWeather();
   const time = useAmbientTime();
@@ -257,6 +255,12 @@ export function LegibilityLabView({ posts }: { posts: BlogPostSummary[] }) {
     () => resolveForLab({ profile: wallpaper.profile, theme, reading, policy, pins }),
     [wallpaper.profile, theme, reading, policy, pins],
   );
+  // The reading specimen carries the policy as a reading route resolves it —
+  // no flip, relief × reliefReading, and the veil and blur it will get.
+  const readingVars = useMemo(
+    () => resolveForLab({ profile: wallpaper.profile, theme, reading: true, policy, pins }),
+    [wallpaper.profile, theme, policy, pins],
+  );
 
   useEffect(() => {
     wallpaper.setLegibilityOverride(sameVars(resolved, shipped) ? null : resolved);
@@ -289,10 +293,6 @@ export function LegibilityLabView({ posts }: { posts: BlogPostSummary[] }) {
 
   // --- Readouts ------------------------------------------------------------
   const profile = wallpaper.profile;
-  const veil = live.veil;
-  const surface: "desktop" | "reading" = wallpaper.reading ? "reading" : "desktop";
-  const setSurface = (v: "desktop" | "reading") =>
-    wallpaper.setDevtoolOverrides({ ...wallpaper.devtoolOverrides, reading: v === "reading" });
 
   const contrast = useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- the sheet overrides and material change the computed values read below
@@ -311,7 +311,7 @@ export function LegibilityLabView({ posts }: { posts: BlogPostSummary[] }) {
     const top = profile.mean.map((c) => Math.min(255, Math.round(c * scale))) as [number, number, number];
     const onGlass = composite(CARD_RGB[theme], glassFill, profile.mean);
     const onSheet = composite(CARD_RGB[theme], sheetFill, profile.mean);
-    const onVeil = composite(BACKGROUND_RGB[theme], Math.min(0.85, veil), profile.mean);
+    const onVeil = composite(BACKGROUND_RGB[theme], readingVars.veil, profile.mean);
     const ink = INK_RGB[theme];
     const row = (bg: [number, number, number], text: [number, number, number]) => ({
       primary: contrastRatio(text, bg),
@@ -323,7 +323,7 @@ export function LegibilityLabView({ posts }: { posts: BlogPostSummary[] }) {
       sheet: row(onSheet, ink),
       reading: row(onVeil, composite(ink, 0.85, onVeil)),
     };
-  }, [profile, theme, live, veil, sheet, glass.material]);
+  }, [profile, theme, live, readingVars, sheet, glass.material]);
 
   // --- Gallery ---------------------------------------------------------------
   const [galleryCategory, setGalleryCategory] = useState<"weather" | "apple" | "nature">("apple");
@@ -364,7 +364,7 @@ export function LegibilityLabView({ posts }: { posts: BlogPostSummary[] }) {
             <h1 className="mt-1 font-serif text-2xl tracking-tight text-foreground">legibility lab</h1>
           </div>
           <div className="text-[11px] font-mono text-muted-foreground">
-            {sceneLabel(scene)} · {theme} · {glass.material} · {glass.tint} · {surface}
+            {sceneLabel(scene)} · {theme} · {glass.material} · {glass.tint}
             {live.flip && " · flipped"}
             {dirty > 0 && <span className="ml-2 text-amber-500/90">{dirty} live change{dirty > 1 && "s"}</span>}
           </div>
@@ -396,16 +396,9 @@ export function LegibilityLabView({ posts }: { posts: BlogPostSummary[] }) {
 
         <section>
           <SpecimenLabel>
-            {surface === "reading"
-              ? `reading page — the real treatment: veil ${veil.toFixed(2)} over a ${live.blur}px defocus (Surface: Reading)`
-              : "reading page — switch Surface to Reading in the panel to see the veil and defocus applied to this whole page"}
+            reading page — its own surface: veil {readingVars.veil.toFixed(2)} over a {readingVars.blur}px defocus, relief {readingVars.relief.toFixed(2)}, +{readingVars.inkBoost}% ink — the numbers /writing and /works get on this wallpaper
           </SpecimenLabel>
-          <ReadingSpecimen />
-        </section>
-
-        <section>
-          <SpecimenLabel>the real surfaces — production widgets, as the home screen renders them</SpecimenLabel>
-          <RealSurfacesSpecimen posts={posts} />
+          <ReadingSpecimen vars={readingVars} />
         </section>
 
         <section>
@@ -477,19 +470,6 @@ export function LegibilityLabView({ posts }: { posts: BlogPostSummary[] }) {
                 { value: "wallpaper", label: "Wallpaper" },
               ]}
             />
-          </Field>
-          <Field label="Surface">
-            <Segmented
-              value={surface}
-              onChange={setSurface}
-              options={[
-                { value: "desktop", label: "Desktop" },
-                { value: "reading", label: "Reading" },
-              ]}
-            />
-            <span className="text-[10px] text-muted-foreground/60">
-              Reading applies the veil and defocus to this page, as /writing and /works get them. Bare text never flips there.
-            </span>
           </Field>
           <Field label="Wallpaper" hint={sceneLabel(scene)}>
             <div className="flex flex-col gap-2">
@@ -771,7 +751,7 @@ export function LegibilityLabView({ posts }: { posts: BlogPostSummary[] }) {
             );
           })}
           <p className="text-[10px] leading-snug text-muted-foreground/60">
-            Pinning a value overrides the policy for this scene only. The gallery always shows the policy.
+            Pinning a value overrides the policy for this scene only; veil and blur act on the reading specimen. The gallery always shows the policy.
           </p>
         </Section>
 

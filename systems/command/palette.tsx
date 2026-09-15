@@ -44,6 +44,7 @@ import { CommandAppsStrip } from "./apps-launcher";
 import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
 
+import { TYPE } from "@/lib/typography";
 export function CommandPalette() {
   const drag = useDraggable("command-palette");
   const { isOpen, isSlashCommandsMode, isLoadBundleMode, close, setSlashCommandsMode, setLoadBundleMode } =
@@ -619,7 +620,7 @@ export function CommandPalette() {
                   >
                     <Home className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">{t(locale, "home")}</span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       H
                     </kbd>
                   </Command.Item>
@@ -646,7 +647,7 @@ export function CommandPalette() {
                   >
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">{t(locale, "writingTitle")}</span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       U
                     </kbd>
                   </Command.Item>
@@ -674,7 +675,7 @@ export function CommandPalette() {
                   >
                     <GitCommit className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">{t(locale, "worksTitle")}</span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       X
                     </kbd>
                   </Command.Item>
@@ -701,7 +702,7 @@ export function CommandPalette() {
                   >
                     <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">{t(locale, "promptsTitle")}</span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       P
                     </kbd>
                   </Command.Item>
@@ -750,7 +751,7 @@ export function CommandPalette() {
                         ? t(locale, "themeLight")
                         : t(locale, "themeDark")}
                     </span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       A
                     </kbd>
                   </Command.Item>
@@ -776,7 +777,7 @@ export function CommandPalette() {
                     <span className="flex-1">
                       {t(locale, "languageLabel")}: {localeNames[locale]}
                     </span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       L
                     </kbd>
                   </Command.Item>
@@ -813,7 +814,7 @@ export function CommandPalette() {
                         ? t(locale, "locationAccurate")
                         : t(locale, "locationIp")}
                     </span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       O
                     </kbd>
                   </Command.Item>
@@ -847,7 +848,7 @@ export function CommandPalette() {
                     <span className="flex-1">
                       {t(locale, "settingsWallpaper")}: {wallpaperLabel}
                     </span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       W
                     </kbd>
                   </Command.Item>
@@ -877,7 +878,7 @@ export function CommandPalette() {
                     <span className="flex-1">
                       {t(locale, "settingsGlass")}: {glassLabel}
                     </span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       G
                     </kbd>
                   </Command.Item>
@@ -943,7 +944,7 @@ export function CommandPalette() {
                         ? t(locale, "musicPause")
                         : t(locale, "musicPlay")}
                     </span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       M
                     </kbd>
                   </Command.Item>
@@ -973,7 +974,7 @@ export function CommandPalette() {
                         ? t(locale, "stateOn")
                         : t(locale, "stateOff")}
                     </span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       D
                     </kbd>
                   </Command.Item>

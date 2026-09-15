@@ -13,6 +13,7 @@ import { FastForward, ListMusic, Music, Pause, Play, Rewind } from "lucide-react
 import { useState } from "react";
 import { useMusic } from "../provider";
 
+import { TYPE } from "@/lib/typography";
 // ---------------------------------------------------------------------------
 // EQ Bars — Apple Music style animated "now playing" indicator
 // Uses scaleY transform (GPU-accelerated) instead of height animation.
@@ -150,11 +151,11 @@ export function NowPlaying({
 
         <div className="flex h-20 min-w-0 flex-1 flex-col justify-between">
           <div className="min-w-0">
-            <div className="truncate text-sm font-medium leading-snug text-foreground">
+            <div className={cn("truncate", TYPE.mediaTitle)}>
               {track.title}
             </div>
             {track.artist && (
-              <div className="mt-0.5 truncate text-xs font-mono text-muted-foreground">
+              <div className={cn("mt-0.5 truncate", TYPE.meta)}>
                 {track.artist}
               </div>
             )}

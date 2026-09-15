@@ -38,17 +38,17 @@ import { ALBUM_GROUP_IDS } from "@/systems/theater/lib/albums";
 // Enrich with OG previews (same as /works and the editor preview do) so link
 // cards resolve their cover image from the snapshot — otherwise widget covers
 // that rely on OG images (e.g. GitNation talk cards) render empty.
-export const homeLog = enrichLogDataWithPreviews(
+const log = enrichLogDataWithPreviews(
   normalizeLogData(logData as unknown as RawLogData),
   ogSnapshotJson as OGSnapshot,
 );
 
-export function GroupWidget({ group }: { group: Group }) {
+function GroupWidget({ group }: { group: Group }) {
   const { locale } = useLocale();
 
   const commits = resolveGroupCommits(
     group,
-    homeLog.commits as CommitData[],
+    log.commits as CommitData[],
     undefined,
     locale,
   );
@@ -92,16 +92,16 @@ function WidgetGrid({ posts }: { posts: BlogPostSummary[] }) {
 
   // Resolve presence up-front so conditionally-empty widgets never occupy an
   // empty, draggable slot in the masonry.
-  const processingCommits = buildProcessingCommits(homeLog, locale);
+  const processingCommits = buildProcessingCommits(log, locale);
   // The three featured talk groups (React / Lynx / Personal) are now unified
   // into the single album-switching FeaturedTalksWidget, so exclude them from
   // the generic group rendering.
   const albumGroupIds = new Set<string>(ALBUM_GROUP_IDS);
-  const visibleGroups = (homeLog.groups ?? []).filter(
+  const visibleGroups = (log.groups ?? []).filter(
     (group) =>
       !group.hidden &&
       !albumGroupIds.has(group.id) &&
-      resolveGroupCommits(group, homeLog.commits as CommitData[], undefined, locale)
+      resolveGroupCommits(group, log.commits as CommitData[], undefined, locale)
         .length > 0,
   );
 
@@ -117,7 +117,7 @@ function WidgetGrid({ posts }: { posts: BlogPostSummary[] }) {
           {
             id: "status",
             node: (
-              <ProcessingWidget log={homeLog} commits={processingCommits} />
+              <ProcessingWidget log={log} commits={processingCommits} />
             ),
           },
         ]

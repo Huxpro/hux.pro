@@ -9,6 +9,8 @@ import { useEffect, type ReactNode } from "react";
 import { RulerToc } from "./ruler-toc";
 import { usePostLanguage } from "./use-post-language";
 
+import { TYPE } from "@/lib/typography";
+import { cn } from "@/lib/utils";
 interface PostContentProps {
   title: string;
   titleZh?: string;
@@ -105,7 +107,7 @@ export function PostContent({
   const hasHeaderMetaContent =
     !!headerMeta || !!displayReadingTime || hasAlternate || !!displayOrigin;
   const headerMetaRow = (
-    <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground flex-wrap">
+    <div className={cn("flex items-center gap-2 flex-wrap", TYPE.meta)}>
       {headerMeta}
 
       {displayReadingTime && (

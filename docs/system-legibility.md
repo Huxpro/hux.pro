@@ -161,7 +161,68 @@ the card colour, so their ink was right all along — they *adapt* through
 `glassAdd` instead, which is Liquid Glass's distinction between small elements
 and big ones.
 
-### 5. The reading treatment
+### 5. Typography roles (`lib/typography.ts`)
+
+The ladder gives every text a rung; the roles give every *kind* of text its
+whole recipe — size, family, tracking, rung — as one class string that
+production components and the lab's specimens both import:
+
+| Role | String | Where |
+|---|---|---|
+| `identifier` | mono xs tracking-wider secondary | λhux |
+| `label` | mono xs uppercase tracking-wider secondary | widget titles, WEATHER, the sheet's section labels |
+| `labelSm` | mono 10px uppercase tracking-wider tertiary | caption strips in peeks, tag rows |
+| `labelWide` | mono xs uppercase tracking-wide secondary | a talk's venue under its title |
+| `rowTitle` | sm ink | a post, a commit, a track in a list |
+| `mediaTitle` | sm medium leading-snug ink | what is playing |
+| `rowMeta` | mono xs tertiary | the date beside a row title, a topic line |
+| `meta` | mono xs secondary | an article's header line, the artist, sun times |
+| `metaQuiet` | mono xs quaternary | hashes, language badges, a byline handle, a commit's meta line |
+| `caption` / `captionQuiet` | xs secondary / tertiary, relaxed | a description under a title / an embed's blurb |
+| `aside` | xs italic serif quaternary | commentary, a life event, "featured" |
+| `body` | sm secondary relaxed | a widget's description, an empty state |
+| `appLabel` | 11px leading-tight secondary | the label under an app icon |
+| `nav` | mono xs tracking-wide secondary → ink on hover | the back link, `retry` |
+| `linkQuiet` | quaternary → ink on hover | icon links that surface on hover |
+| `kbd` / `pill` | mono xs on `bg-muted/50` / mono 10px on `bg-muted` | keyboard hints / `featured`, `EN` |
+
+That is the alignment guarantee the lab rests on: the specimen's date and the
+writing widget's date are `TYPE.rowMeta`, one string, so the two cannot
+diverge — however either is componentised. The lab deliberately mounts no
+production component; a second rendering of the site would be a second thing
+to keep in step. Anything a role does not cover is written inline at the call
+site and, when it recurs, promoted here.
+
+#### Decisions
+
+Divergences found in the sweep that are taste rather than bugs. Each is left
+as it was in production and reproduced verbatim in the lab; pick one and the
+role absorbs it.
+
+1. **Palette group headings** (`navigation`, `settings`) are sans `font-medium`
+   uppercase; every other section label on the site is mono. Keep the sans
+   heading as the palette's own voice, or move to `TYPE.label`?
+2. **Mono metadata sits at two rungs.** Beside a title it is tertiary
+   (`rowMeta`: list dates, the timeline's date column); standing alone it is
+   secondary (`meta`: an article's header line, the artist, sunrise times).
+   The split reads as intentional — a date next to a title defers to it — but
+   it is the one place the same font and size carry two rungs.
+3. **The works timeline's meta line** ("Lynx @ ByteDance", the venue with its
+   ↗) is quaternary, faithful to the old `/40`. Under a photograph it is the
+   faintest text on the page; tertiary would match the subtitle below it.
+4. **Three label sizes.** Widget labels are `text-xs`; the wallpaper sheet's
+   section labels are `text-[11px]`; caption strips and the sheet's capsule are
+   `text-[10px]`. The roles keep two (`label`, `labelSm`); the 11px sheet
+   labels are not migrated and could go either way.
+5. **Pill fills.** Post badges and the language filter used
+   `bg-foreground/5`; the design-system doc says `bg-muted`. Both are the
+   ink at 4–5 %, so the migration unified on `bg-muted` (the token). Flagging
+   because it is a visible-in-diff change, not because it is contentious.
+6. **The talks caption** is `tracking-wide`, widget labels `tracking-wider`.
+   Kept as `labelWide`; it is a subtitle rather than a section label, and a
+   hair tighter reads better under a title.
+
+### 6. The reading treatment
 
 A photograph behind a 680px prose column is a competing figure, so every route
 but the home screen recedes it: a veil of the page colour over the picture and
@@ -170,11 +231,15 @@ number per theme; they are now policy outputs per wallpaper — Zen Garden's
 raked sand gets more veil and more blur than Tahoe's gradient, and Earth under
 the light theme gets the tone-conflict share on top. The two devtool switches
 (`Reading blur`, `Reading dim`) still decide *whether*; the policy decides
-*how much*. The lab's **Surface: Reading** applies the real treatment to the
-lab page itself, so the dim and blur are judged on the wallpaper they will
-actually sit on, not on a simulation.
+*how much*. The lab's **reading specimen** is its own surface: it defocuses
+and veils the wallpaper behind it at the policy's numbers and carries the
+policy's reading resolution (no flip, relief × `reliefReading`), so the dim,
+the blur and the rungs are judged on the wallpaper they will sit on, on the
+same page as the desktop specimens — and the veil / blur sliders act on it
+directly. The devtool's "As reading" switch does the page-wide version for a
+real route.
 
-### 6. Tint
+### 7. Tint
 
 The neutral baseline is grey by construction: `--tint` is the profile's
 colour, and `--tint-glass` / `--tint-accent` are the amounts, both 0. The
@@ -195,7 +260,7 @@ already read. Leaving the page restores what the visitor had.
 
 | Panel | What it turns |
 |---|---|
-| Scene | theme, material, tint, surface (desktop / reading), and every wallpaper — the 14 weather and sun-event gradients included |
+| Scene | theme, material, tint, and every wallpaper — the 14 weather and sun-event gradients included |
 | Profile | the measured numbers for what is painting, read-only |
 | Contrast | WCAG ratios of primary and secondary ink against the mean colour composited under each surface: bare top band, glass, sheet, reading veil |
 | Policy | every knob of `LegibilityPolicy`; a star marks a value that differs from what ships and resets it |
@@ -203,11 +268,10 @@ already read. Leaving the page restores what the visitor had.
 | Sheet | the stylesheet's own inputs: the alpha ladder, washes, relief shape, the current material's glass fills, tint amounts — defaults read from the computed style, so the lab carries no second copy |
 | Export | the JSON of everything changed, and the CSS of the sheet overrides, to paste into `DEFAULT_LEGIBILITY_POLICY` or `:root` |
 
-The specimens include the **production widgets themselves** — the app
-folder, the writing widget, a projects group, weather, talks, the prompt —
-mounted by the same components the home screen uses, so the lab cannot drift
-from the site: an app label or a date reads in the lab exactly as it does on
-`/`.
+The specimens are composed from the typography roles and the glass tokens,
+never from production components (see *Typography roles* above for why): a
+bare-text block, a widget, the Live Activity, the palette, a sheet, and the
+reading surface.
 
 Below the specimens, the **gallery** shows every wallpaper of a category at
 once, each tile an `.ink-scope` carrying its own resolved variables — so one

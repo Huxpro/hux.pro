@@ -76,7 +76,8 @@ duration-300 (morphing transitions)
   `docs/system-legibility.md`. Use `text-muted-foreground` /
   `text-tertiary-foreground` / `text-quaternary-foreground` / `bg-muted` /
   `bg-accent` — never `text-muted-foreground/NN` — and a glass token for any
-  floating surface. Text sitting directly on the wallpaper goes in an
+  floating surface. Recurring recipes are roles in `lib/typography.ts`
+  (`TYPE.label`, `TYPE.rowMeta`, `TYPE.kbd`, …); use them. Text sitting directly on the wallpaper goes in an
   `.ink-bare` zone.
 - After adding a wallpaper: `pnpm wallpapers:profile` and commit the table.
 

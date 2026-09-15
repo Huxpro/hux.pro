@@ -29,6 +29,7 @@ import { MediaRenderer } from "./media";
 import { useSlidesPlayer } from "./media/slides-player";
 import { resolveSlidesEmbedUrl } from "./media/slides";
 
+import { TYPE } from "@/lib/typography";
 /**
  * Fallback handle for the expanded author block when a commit has no
  * resolvable identity (e.g. personal talks / recognitions with
@@ -248,12 +249,13 @@ export function TimelineCommit({
     <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
       <span
         className={cn(
-          "hidden @sm:inline font-mono text-xs select-all",
+          "hidden @sm:inline select-all",
+          TYPE.metaQuiet,
           // Events render the hash transparent — no link, no reference,
           // hash is noise. Keeping it occupies the column so titles
           // stay aligned with adjacent commit rows. Leading also drops
           // to text-xs's natural 16px so the event row stays compact.
-          isEvent ? "text-transparent leading-4" : "text-quaternary-foreground leading-5",
+          isEvent ? "text-transparent leading-4" : "leading-5",
         )}
       >
         {data.hash}
@@ -337,12 +339,12 @@ export function TimelineCommit({
                     ? "font-mono"
                     : "italic font-serif",
                 )
-              : "text-sm text-foreground",
+              : TYPE.rowTitle,
           )}
         >
           {data.title}
           {data.languageBadge && (
-            <span className="ml-2 text-xs font-mono text-quaternary-foreground align-baseline">
+            <span className={cn("ml-2 align-baseline", TYPE.metaQuiet)}>
               {data.languageBadge}
             </span>
           )}
@@ -359,7 +361,7 @@ export function TimelineCommit({
         >
           {data.links.map((link, i) => {
             const className =
-              "inline-flex items-center gap-1 text-quaternary-foreground hover:text-foreground transition-colors";
+              cn("inline-flex items-center gap-1", TYPE.linkQuiet);
             const label = isExpanded && !link.redundantWhenExpanded && (
               <span className="hidden @sm:inline text-xs">{link.label}</span>
             );
@@ -401,7 +403,7 @@ export function TimelineCommit({
 
         {hideDate ? (
           data.dateSlotOverride && (
-            <span className="font-mono text-xs text-tertiary-foreground shrink-0 ml-auto">
+            <span className={cn("shrink-0 ml-auto", TYPE.rowMeta)}>
               {data.dateSlotOverride}
             </span>
           )
@@ -439,7 +441,7 @@ export function TimelineCommit({
         on-screen while you read.
       */}
       {(data.meta || byline) && (
-        <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-quaternary-foreground flex items-baseline justify-between gap-2">
+        <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.metaQuiet)}>
           <span className="min-w-0 truncate">
             {data.meta ? (
               data.metaUrl ? (
@@ -555,7 +557,7 @@ export function TimelineCommit({
           )}
 
           {data.subtitle && (
-            <div className="text-xs text-tertiary-foreground">
+            <div className={TYPE.captionQuiet}>
               {data.subtitle}
             </div>
           )}

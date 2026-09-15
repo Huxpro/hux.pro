@@ -9,6 +9,7 @@ import { Link, useTransitionRouter } from "next-view-transitions";
 import { useCallback, useState, type MouseEvent } from "react";
 import { landsOnOwnAction } from "./widget-surface";
 
+import { TYPE } from "@/lib/typography";
 // =============================================================================
 // Widget Primitives (shadcn-like compound components)
 // =============================================================================
@@ -173,7 +174,8 @@ export function WidgetTitle({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground",
+        "inline-flex items-center gap-2",
+        TYPE.label,
         className
       )}
     >
@@ -248,7 +250,11 @@ export function WidgetLink({
       aria-label={label}
       // A comfortable touch target (the glyph is 12px) that bleeds into the
       // header padding instead of shifting the layout; brightens on press.
-      className="pressable -m-2 flex items-center rounded-md p-2 text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:text-foreground active:bg-muted/30 active:text-foreground"
+      className={cn(
+        "pressable -m-2 flex items-center rounded-md p-2 outline-none",
+        TYPE.nav,
+        "focus-visible:text-foreground active:bg-muted/30 active:text-foreground",
+      )}
     >
       {variant === "icon" ? <ArrowRight className="h-3 w-3" /> : "→"}
     </Link>

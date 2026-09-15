@@ -25,6 +25,7 @@ import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
 
+import { TYPE } from "@/lib/typography";
 // =============================================================================
 // Types
 // =============================================================================
@@ -260,14 +261,15 @@ function buildCommitPreview(
     node: (
       <div className="w-full space-y-3">
         {description && (
-          <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+          <p className={cn(TYPE.caption, "line-clamp-3")}>
             {description}
           </p>
         )}
         {hasTags && (
           <div
             className={cn(
-              "font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground leading-relaxed",
+              TYPE.labelSm,
+              "leading-relaxed",
               description && "pt-3 border-t border-border/30",
             )}
           >

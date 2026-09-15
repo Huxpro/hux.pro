@@ -40,6 +40,15 @@ font-serif text-3xl sm:text-4xl text-foreground tracking-tight
 
 This creates visual consistency across the site and reinforces the literary, personal tone. **No subtitles** — the header stands alone.
 
+### Typography roles
+
+Recurring text recipes are named once in `lib/typography.ts` (`TYPE.label`,
+`TYPE.rowTitle`, `TYPE.rowMeta`, `TYPE.kbd`, …) and composed by components
+and by the Legibility Lab alike — see the roles table in
+[docs/system-legibility.md](./system-legibility.md). Use a role where one
+fits; write classes inline where none does, and promote the recipe to a role
+once it recurs.
+
 ### The Serif Italic Pattern
 
 Serif (`Newsreader` / `Noto Serif SC`) is reserved for emphasis and literary quality:

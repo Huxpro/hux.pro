@@ -20,6 +20,7 @@ import type { NormalizedCommit } from "./commit-data";
 import { commitIcons, commitIconOverrides } from "./icons";
 import { LinkIcon, Description } from "./embeds/shared";
 
+import { TYPE } from "@/lib/typography";
 const DEFAULT_AUTHOR_HANDLE = "hux";
 
 interface TimelineMiniProps {
@@ -160,12 +161,12 @@ export function TimelineMini({
                       ? "font-mono"
                       : "italic font-serif",
                   )
-                : "text-sm text-foreground",
+                : TYPE.rowTitle,
             )}
           >
             {data.title}
             {data.languageBadge && (
-              <span className="ml-2 text-xs font-mono text-quaternary-foreground align-baseline">
+              <span className={cn("ml-2 align-baseline", TYPE.metaQuiet)}>
                 {data.languageBadge}
               </span>
             )}
@@ -184,7 +185,7 @@ export function TimelineMini({
                   rel="noopener noreferrer"
                   aria-label={link.label}
                   title={link.label}
-                  className="inline-flex items-center text-quaternary-foreground hover:text-foreground transition-colors"
+                  className={cn("inline-flex items-center", TYPE.linkQuiet)}
                 >
                   <LinkIcon icon={link.icon} />
                 </a>

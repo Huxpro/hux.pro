@@ -20,6 +20,7 @@ import { t, useLocale } from "@/services";
 import { Link } from "next-view-transitions";
 import { useMemo } from "react";
 
+import { TYPE } from "@/lib/typography";
 // ---------------------------------------------------------------------------
 // WritingWidget — the home "writing" card.
 //
@@ -117,12 +118,12 @@ function PostRow({ post, locale }: { post: BlogPostSummary; locale: Locale }) {
       {/* Titles are the content here, so they wrap (two lines max) instead
           of truncating like a project name would; the date stays on the
           first baseline. */}
-      <span className="min-w-0 flex-1 line-clamp-2 text-sm text-foreground">
+      <span className={cn("min-w-0 flex-1 line-clamp-2", TYPE.rowTitle)}>
         {getLocalizedTitle(post, locale)}
       </span>
       <time
         dateTime={post.date}
-        className="shrink-0 font-mono text-xs text-tertiary-foreground"
+        className={cn("shrink-0", TYPE.rowMeta)}
       >
         {formatPostDate(post.date)}
       </time>
