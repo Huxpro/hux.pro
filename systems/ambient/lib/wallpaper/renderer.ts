@@ -139,6 +139,8 @@ export class WallpaperRenderer {
   private baseScale = 1;
   private scale = 1;
   private frameEma = 16;
+  /** The shader clock of the last frame drawn, so a resize can repaint it. */
+  private lastTimeSec = 37;
   private slowFrames = 0;
   private fastFrames = 0;
   private cssWidth = 0;
@@ -397,15 +399,28 @@ export class WallpaperRenderer {
       this.fastFrames = 0;
     }
     this.applySize();
-    if (this.opts.reducedMotion && this.hasScene) this.renderOnce();
   }
 
-  private applySize() {
+  /**
+   * Size the drawing buffer — and repaint it in the same task.
+   *
+   * Setting a canvas's width or height clears its buffer, and with
+   * `alpha: false` that is opaque black. The ResizeObserver that calls this
+   * runs after layout and before paint, while the frame loop's next draw is a
+   * whole animation frame away (further under the FPS throttle), so without an
+   * immediate repaint the browser composites a black canvas for every step of a
+   * window resize: a flicker to black while dragging. Repainting here, with
+   * the last frame's clock, means the cleared buffer is never shown. The
+   * adaptive-quality path skips the repaint because a draw follows it anyway.
+   */
+  private applySize(repaint = true) {
     const px = Math.max(1, Math.round(this.cssWidth * this.dpr * this.scale));
     const py = Math.max(1, Math.round(this.cssHeight * this.dpr * this.scale));
-    if (this.canvas.width !== px || this.canvas.height !== py) {
-      this.canvas.width = px;
-      this.canvas.height = py;
+    if (this.canvas.width === px && this.canvas.height === py) return;
+    this.canvas.width = px;
+    this.canvas.height = py;
+    if (repaint && this.gl && this.hasScene) {
+      this.draw(this.opts.reducedMotion ? 37.0 : this.lastTimeSec);
     }
   }
 
@@ -419,7 +434,7 @@ export class WallpaperRenderer {
       if (this.slowFrames > 45 && this.scale > MIN_SCALE) {
         this.scale = Math.max(MIN_SCALE, this.scale * 0.8);
         this.slowFrames = 0;
-        this.applySize();
+        this.applySize(false);
       }
     } else if (this.frameEma < budget * 0.9) {
       this.fastFrames++;
@@ -427,7 +442,7 @@ export class WallpaperRenderer {
       if (this.fastFrames > 300 && this.scale < this.baseScale) {
         this.scale = Math.min(this.baseScale, this.scale / 0.8);
         this.fastFrames = 0;
-        this.applySize();
+        this.applySize(false);
       }
     } else {
       this.slowFrames = Math.max(0, this.slowFrames - 1);
@@ -524,6 +539,7 @@ export class WallpaperRenderer {
   private draw(timeSec: number) {
     const gl = this.gl;
     if (!gl || !this.program) return;
+    this.lastTimeSec = timeSec;
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao);
