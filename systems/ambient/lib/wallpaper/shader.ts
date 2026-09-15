@@ -44,6 +44,7 @@ uniform float uGlowStrength;
 uniform vec2  uMoon;
 uniform float uMoonPhase;
 uniform float uMoonVisible;
+uniform float uMoonSize;
 uniform float uHemisphere;    // +1 north (waxing lit on the right), -1 south
 
 uniform float uCloudCover;
@@ -165,7 +166,7 @@ float stars(vec2 p, vec2 uv) {
 
 vec3 moon(vec2 p, vec2 moonP) {
   if (uMoonVisible < 0.002) return vec3(0.0);
-  float r = 0.03;
+  float r = 0.03 * uMoonSize;
   vec2 d = (p - moonP) / r;
   d.x *= uHemisphere;
   float md = length(d);

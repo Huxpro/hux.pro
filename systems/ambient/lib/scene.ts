@@ -49,7 +49,10 @@ export interface WeatherScene {
     illumination: number;
     /** 0..1 how strongly the moon shows (above horizon × dark sky × clear). */
     visible: number;
+    /** Where the disc is drawn — staged, not the raw elevation (see `stageMoon`). */
     screen: ScreenPoint;
+    /** Relative disc size: 1 high in the sky, larger near the horizon. */
+    size: number;
     /** 0..1 how much the moon lights the night sky (illumination × altitude). */
     light: number;
   };
@@ -283,6 +286,62 @@ export interface DeriveSceneParams {
 
 const HORIZON_Y = 0.1;
 
+// -----------------------------------------------------------------------------
+// Staging the moon
+//
+// Where the moon IS comes from the ephemeris and is never bent: it rises and
+// sets when it really does, its phase is the calendar's, and a first-quarter
+// moon really is up all afternoon. Where the moon is DRAWN is a composition
+// decision, made on purpose:
+//
+//   · The vertical mapping is a stage, not a protractor. A moon a few degrees
+//     up is already drawn in the strip above the page content (the hero and
+//     the greeting, on a phone the top third), and it climbs from there to
+//     just under the top edge. Mapping elevation linearly put most of the
+//     night's moon behind the widget grid, where nothing sees it.
+//   · Horizontally it still crosses east → west with its azimuth (mirrored in
+//     the south), but the disc is kept off the extreme edges so a rising or
+//     setting moon is never half a moon.
+//   · The daytime moon is intentional and quiet: it shows only when it is well
+//     up AND far enough from the sun to be seen in daylight (a crescent near
+//     the sun is invisible by day, in the sky and here), and then as a pale
+//     disc, not the night's lantern.
+//   · It is drawn a little larger near the horizon — the moon illusion, which
+//     is how the eye remembers a rising moon.
+// -----------------------------------------------------------------------------
+
+const MOON_STAGE = {
+  /** Screen y where the disc first appears, as it clears the horizon. */
+  rise: 0.5,
+  /** Screen y once it is properly up (a few degrees). */
+  low: 0.62,
+  /** Screen y at its highest. */
+  high: 0.9,
+  /** Elevation, °, at which the disc reaches `high`. */
+  topAt: 60,
+  /** The disc stays inside these screen x bounds. */
+  xMin: 0.12,
+  xMax: 0.88,
+} as const;
+
+function stageMoon(
+  lunar: SolarPosition,
+  hemisphere: 1 | -1
+): { screen: ScreenPoint; size: number } {
+  const rising = smoothstep(-3, 6, lunar.elevation);
+  const climb = smoothstep(6, MOON_STAGE.topAt, lunar.elevation);
+  const y =
+    lerp(MOON_STAGE.rise, MOON_STAGE.low, rising) +
+    (MOON_STAGE.high - MOON_STAGE.low) * climb;
+  const x = Math.min(
+    MOON_STAGE.xMax,
+    Math.max(MOON_STAGE.xMin, azimuthToScreenX(lunar.azimuth, hemisphere))
+  );
+  // The moon illusion: up to 30% larger near the horizon.
+  const size = 1 + 0.3 * (1 - smoothstep(0, 35, lunar.elevation));
+  return { screen: { x, y }, size };
+}
+
 /** Map a compass azimuth to a screen x. Northern hemisphere looks south, so
  *  east is on the left; the southern hemisphere looks north and mirrors. */
 function azimuthToScreenX(azimuthDeg: number, hemisphere: 1 | -1): number {
@@ -445,17 +504,19 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const moonPhase = lunar.phase;
   const moonIllum = getMoonIllumination(moonPhase);
   const moonUp = smoothstep(-3, 5, lunar.elevation);
-  // A daytime moon is real but faint; it only reads once the sky darkens.
   const skyDark = smoothstep(6, -8, elevation);
+  // The daytime moon, on purpose (see "Staging the moon"): well up, and far
+  // enough from the sun — elongation from the phase: 0° at new, 180° at full —
+  // and then pale. At night the sky's darkness is the only gate.
+  const elongation = 180 - Math.abs(moonPhase * 360 - 180);
+  const dayMoon =
+    0.18 * smoothstep(12, 30, lunar.elevation) * smoothstep(40, 90, elongation);
   const moonVisible =
     moonUp *
-    (0.12 + 0.88 * skyDark) *
+    lerp(dayMoon, 1, skyDark) *
     (1 - smoothstep(0.45, 0.9, cover)) *
     (1 - fog * 0.8);
-  const moonScreen: ScreenPoint = {
-    x: azimuthToScreenX(lunar.azimuth, hemisphere),
-    y: HORIZON_Y + Math.sin(lunar.elevation * (Math.PI / 180)) * 0.9,
-  };
+  const { screen: moonScreen, size: moonSize } = stageMoon(lunar, hemisphere);
   // Moonlight: a bright, high moon lifts the night sky and cloud tops and
   // washes out the fainter stars.
   const moonLight = moonIllum * smoothstep(0, 25, lunar.elevation) * night;
@@ -478,6 +539,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
       illumination: moonIllum,
       visible: moonVisible,
       screen: moonScreen,
+      size: moonSize,
       light: moonLight,
     },
     hemisphere,

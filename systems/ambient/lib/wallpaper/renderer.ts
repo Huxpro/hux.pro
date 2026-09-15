@@ -36,6 +36,7 @@ const UNIFORMS: UniformSpec[] = [
   { name: "uMoon", size: 2, tau: 1.6 },
   { name: "uMoonPhase", size: 1, tau: 0 },
   { name: "uMoonVisible", size: 1, tau: 1.8 },
+  { name: "uMoonSize", size: 1, tau: 1.6 },
   { name: "uHemisphere", size: 1, tau: 0 },
   { name: "uCloudCover", size: 1, tau: 2.6 },
   { name: "uCloudDensity", size: 1, tau: 2.6 },
@@ -75,6 +76,7 @@ function packScene(scene: WeatherScene, out: Float32Array) {
   put(scene.moon.screen.x, scene.moon.screen.y);
   put(scene.moon.phase);
   put(scene.moon.visible);
+  put(scene.moon.size);
   put(scene.hemisphere);
   put(scene.clouds.cover);
   put(scene.clouds.density);

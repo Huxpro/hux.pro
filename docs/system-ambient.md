@@ -105,6 +105,23 @@ is modelled too: a bright, high moon lifts the night sky and cloud tops and
 washes out the fainter stars; cloud cover and fog occlude it. In the southern
 hemisphere the crescent is mirrored.
 
+**Staging the moon.** Where the moon *is* comes from the ephemeris and is never
+bent. Where it is *drawn* is a composition decision (`stageMoon` in
+`lib/scene.ts`), made on purpose:
+
+- The vertical mapping is a stage, not a protractor. A moon a few degrees up is
+  already drawn in the strip above the page content, and it climbs from there
+  to just under the top edge. Mapping elevation linearly put most of a night's
+  moon behind the widget grid.
+- Horizontally it crosses east → west with its azimuth (mirrored in the south),
+  kept off the extreme edges so a rising or setting moon is never half a moon.
+- The daytime moon is intentional and quiet. A first-quarter moon really is up
+  all afternoon; here it shows only when well up and far enough from the sun
+  to be seen in daylight (elongation over ~40°, so a crescent near the sun
+  stays invisible by day, as in the sky), and then as a pale disc at under a
+  fifth of its night strength.
+- It is drawn up to 30 % larger near the horizon — the moon illusion.
+
 ### WeatherScene
 
 `deriveWeatherScene()` (`lib/scene.ts`) is the single pure function that turns
