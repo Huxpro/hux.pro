@@ -40,10 +40,25 @@ import type { WallpaperProfile } from "@/systems/ambient/lib/wallpaper-profile";
 
 export type PolicyGroup = "desktop" | "reading";
 
+/** The outputs a knob can move, in the policy's own words. */
+export type OutputName =
+  | "busy"
+  | "conflict"
+  | "inkBoost"
+  | "bareBoost"
+  | "relief"
+  | "flip"
+  | "glassAdd"
+  | "veil"
+  | "blur"
+  | "tint";
+
 export interface PolicyKnob {
   key: keyof LegibilityPolicy;
   /** Which surface the knob shapes: the desktop (ink, relief, flip, glass) or a reading route (veil, blur). */
   group: PolicyGroup;
+  /** What moving it can change — read off `resolveLegibility`, so the panel can say so. */
+  affects: OutputName[];
   label: string;
   hint: string;
   min: number;
@@ -54,24 +69,24 @@ export interface PolicyKnob {
 /** The scalar policy knobs, in the order they act. The tint ranges are edited
  *  as pairs and listed separately. */
 export const POLICY_KNOBS: PolicyKnob[] = [
-  { key: "edgesFull", group: "desktop", label: "Edges → busy", hint: "edges at which busy = 1", min: 0.01, max: 0.15, step: 0.005 },
-  { key: "inkBoostMax", group: "desktop", label: "Ink boost max", hint: "alpha points at busy = 1", min: 0, max: 30, step: 1 },
-  { key: "bareBoostMax", group: "desktop", label: "Bare boost max", hint: "extra alpha points for bare text at busy = 1", min: 0, max: 40, step: 1 },
-  { key: "reliefBusy", group: "desktop", label: "Relief from busy", hint: "relief at busy = 1", min: 0, max: 1, step: 0.05 },
-  { key: "reliefGapStart", group: "desktop", label: "Relief gap start", hint: "ink−backdrop gap where need starts", min: 0, max: 0.6, step: 0.01 },
-  { key: "reliefGapFull", group: "desktop", label: "Relief gap full", hint: "gap where need is nil", min: 0.2, max: 0.9, step: 0.01 },
-  { key: "reliefReading", group: "reading", label: "Relief on reading", hint: "multiplier under the veil", min: 0, max: 1, step: 0.05 },
-  { key: "reliefFloor", group: "desktop", label: "Relief floor", hint: "below this: none", min: 0, max: 0.4, step: 0.01 },
-  { key: "glassAddMax", group: "desktop", label: "Glass add max", hint: "fill points at busy = 1", min: 0, max: 40, step: 1 },
-  { key: "glassAddToneMax", group: "desktop", label: "Glass add · tone", hint: "fill points at full tone conflict", min: 0, max: 50, step: 1 },
-  { key: "flipMargin", group: "desktop", label: "Flip margin", hint: "how much better the inverse ink must be", min: 0, max: 0.5, step: 0.01 },
-  { key: "dropBias", group: "desktop", label: "Drop bias", hint: "head start for the light ink, growing with busy — a halo only fails on texture", min: 0, max: 0.5, step: 0.01 },
-  { key: "veilBusy", group: "reading", label: "Veil · busy", hint: "veil alpha added at busy = 1", min: 0, max: 0.5, step: 0.01 },
-  { key: "veilConflict", group: "reading", label: "Veil · tone", hint: "veil alpha added at full tone conflict", min: 0, max: 0.5, step: 0.01 },
-  { key: "veilMax", group: "reading", label: "Veil max", hint: "some picture must remain", min: 0.3, max: 1, step: 0.01 },
-  { key: "blurBase", group: "reading", label: "Blur base", hint: "px on a calm picture", min: 0, max: 80, step: 1 },
-  { key: "blurBusy", group: "reading", label: "Blur · busy", hint: "px added at busy = 1", min: 0, max: 80, step: 1 },
-  { key: "tintMinChroma", group: "desktop", label: "Tint min chroma", hint: "greyer than this: no tint", min: 0, max: 0.1, step: 0.005 },
+  { key: "edgesFull", group: "desktop", affects: ["busy", "inkBoost", "bareBoost", "relief", "flip", "glassAdd", "veil", "blur"], label: "Edges → busy", hint: "edges at which busy = 1", min: 0.01, max: 0.15, step: 0.005 },
+  { key: "inkBoostMax", group: "desktop", affects: ["inkBoost"], label: "Ink boost max", hint: "alpha points at busy = 1", min: 0, max: 30, step: 1 },
+  { key: "bareBoostMax", group: "desktop", affects: ["bareBoost"], label: "Bare boost max", hint: "extra alpha points for bare text at busy = 1", min: 0, max: 40, step: 1 },
+  { key: "reliefBusy", group: "desktop", affects: ["relief"], label: "Relief from busy", hint: "relief at busy = 1", min: 0, max: 1, step: 0.05 },
+  { key: "reliefGapStart", group: "desktop", affects: ["relief"], label: "Relief gap start", hint: "ink−backdrop gap where need starts", min: 0, max: 0.6, step: 0.01 },
+  { key: "reliefGapFull", group: "desktop", affects: ["relief"], label: "Relief gap full", hint: "gap where need is nil", min: 0.2, max: 0.9, step: 0.01 },
+  { key: "reliefReading", group: "reading", affects: ["relief"], label: "Relief on reading", hint: "multiplier under the veil", min: 0, max: 1, step: 0.05 },
+  { key: "reliefFloor", group: "desktop", affects: ["relief"], label: "Relief floor", hint: "below this: none", min: 0, max: 0.4, step: 0.01 },
+  { key: "glassAddMax", group: "desktop", affects: ["glassAdd"], label: "Glass add max", hint: "fill points at busy = 1", min: 0, max: 40, step: 1 },
+  { key: "glassAddToneMax", group: "desktop", affects: ["glassAdd"], label: "Glass add · tone", hint: "fill points at full tone conflict", min: 0, max: 50, step: 1 },
+  { key: "flipMargin", group: "desktop", affects: ["flip", "relief"], label: "Flip margin", hint: "how much better the inverse ink must be", min: 0, max: 0.5, step: 0.01 },
+  { key: "dropBias", group: "desktop", affects: ["flip", "relief"], label: "Drop bias", hint: "head start for the light ink, growing with busy — a halo only fails on texture", min: 0, max: 0.5, step: 0.01 },
+  { key: "veilBusy", group: "reading", affects: ["veil"], label: "Veil · busy", hint: "veil alpha added at busy = 1", min: 0, max: 0.5, step: 0.01 },
+  { key: "veilConflict", group: "reading", affects: ["veil"], label: "Veil · tone", hint: "veil alpha added at full tone conflict", min: 0, max: 0.5, step: 0.01 },
+  { key: "veilMax", group: "reading", affects: ["veil"], label: "Veil max", hint: "some picture must remain", min: 0.3, max: 1, step: 0.01 },
+  { key: "blurBase", group: "reading", affects: ["blur"], label: "Blur base", hint: "px on a calm picture", min: 0, max: 80, step: 1 },
+  { key: "blurBusy", group: "reading", affects: ["blur"], label: "Blur · busy", hint: "px added at busy = 1", min: 0, max: 80, step: 1 },
+  { key: "tintMinChroma", group: "desktop", affects: ["tint"], label: "Tint min chroma", hint: "greyer than this: no tint", min: 0, max: 0.1, step: 0.005 },
 ];
 
 export type PolicyOverrides = Partial<
@@ -174,6 +189,28 @@ export function resolveForLab(params: {
     }),
     params.pins,
   );
+}
+
+/**
+ * Whether a knob can move anything for this profile: resolve at both ends of
+ * its range and compare. A relief knob under a picture whose busyness already
+ * saturates it, a tint bound the picture's tint never reaches — those are
+ * inert here, and the panel says so instead of letting a slider look broken.
+ */
+export function knobActsHere(
+  knob: PolicyKnob,
+  params: { profile: WallpaperProfile; theme: Theme; policy: LegibilityPolicy },
+): boolean {
+  const at = (v: number, reading: boolean) =>
+    resolveLegibility({ ...params, reading, policy: { ...params.policy, [knob.key]: v } });
+  // Sampled across the range, not just its ends: a threshold knob can be
+  // inert at both ends and bite in the middle.
+  const samples = [0, 0.25, 0.5, 0.75, 1].map((t) => knob.min + (knob.max - knob.min) * t);
+  for (const reading of [false, true]) {
+    const cur = at(params.policy[knob.key] as number, reading);
+    if (samples.some((v) => !sameVars(at(v, reading), cur))) return true;
+  }
+  return false;
 }
 
 export function sameVars(a: LegibilityVars, b: LegibilityVars): boolean {

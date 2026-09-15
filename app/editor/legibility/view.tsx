@@ -57,6 +57,7 @@ import {
   exportCss,
   exportJson,
   formatSheetValue,
+  knobActsHere,
   LAB_SESSION,
   mergePolicy,
   OUTPUT_KNOBS,
@@ -160,7 +161,7 @@ export function LegibilityLabView() {
   const devtool = useDevtool();
   const { theme, setThemePreference } = useTheme();
   const glass = useGlass();
-  const { locale, L, knobLabel, knobHint, groupTitle, groupNote, themeName, materialName, tintName } = useLabText();
+  const { locale, L, knobLabel, knobHint, outputName, groupTitle, groupNote, themeName, materialName, tintName } = useLabText();
 
   // --- The stage needs the devtool on (the condition and clock overrides only
   // apply then) and the wallpaper full-page whatever the visitor's placement.
@@ -382,6 +383,27 @@ export function LegibilityLabView() {
 
   const dirty =
     Object.keys(policyOverrides).length + Object.keys(pins).length + Object.keys(sheet).length;
+
+  /** The reset star for a per-theme or paired policy field. */
+  const pairStar = (key: "veilBase" | "toneSafe" | "toneWorst" | "tintLightness" | "tintChroma", back: string) =>
+    key in policyOverrides ? (
+      <Star
+        title={L.backTo(back)}
+        onReset={() =>
+          setPolicyOverrides((o) => {
+            const next = { ...o };
+            delete next[key];
+            if (key === "toneSafe" || key === "toneWorst") {
+              delete next.toneSafe;
+              delete next.toneWorst;
+            }
+            return next;
+          })
+        }
+      />
+    ) : (
+      <span className="w-2.5" />
+    );
 
   return (
     <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-6 pb-40 pt-8 lg:flex-row lg:items-start">
@@ -625,11 +647,12 @@ export function LegibilityLabView() {
           {POLICY_KNOBS.filter((knob) => knob.group === "desktop").map((knob) => {
             const value = policy[knob.key] as number;
             const overridden = knob.key in policyOverrides;
+            const acts = knobActsHere(knob, { profile, theme, policy });
             return (
               <Field
                 key={knob.key}
                 label={knobLabel(knob.key, knob.label)}
-                hint={String(value)}
+                hint={acts ? String(value) : `${value} · ${L.inertHere}`}
               >
                 <div className="flex items-center gap-2">
                   <Slider
@@ -654,12 +677,17 @@ export function LegibilityLabView() {
                     <span className="w-2.5" />
                   )}
                 </div>
-                <span className="text-[10px] text-muted-foreground/60">{knobHint(knob.key, knob.hint)}</span>
+                <span className={cn("text-[10px]", acts ? "text-muted-foreground/60" : "text-muted-foreground/35")}>
+                  {knobHint(knob.key, knob.hint)}
+                  <span className="ml-1.5 font-mono text-muted-foreground/40">
+                    {L.affects} {knob.affects.map(outputName).join(" · ")}
+                  </span>
+                </span>
               </Field>
             );
           })}
           <Field label={L.toneRange} hint={`${policy.toneSafe[theme]} → ${policy.toneWorst[theme]}`}>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <Slider
                 value={policy.toneSafe[theme]}
                 min={0}
@@ -684,11 +712,14 @@ export function LegibilityLabView() {
                   }))
                 }
               />
+              {"toneSafe" in policyOverrides || "toneWorst" in policyOverrides
+                ? pairStar("toneSafe", `${DEFAULT_LEGIBILITY_POLICY.toneSafe[theme]} → ${DEFAULT_LEGIBILITY_POLICY.toneWorst[theme]}`)
+                : pairStar("toneWorst", "")}
             </div>
             <span className="text-[10px] text-muted-foreground/60">{L.toneRangeHint(themeName(theme))}</span>
           </Field>
           <Field label={L.tintL} hint={`${policy.tintLightness[theme][0]} – ${policy.tintLightness[theme][1]}`}>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               {([0, 1] as const).map((i) => (
                 <Slider
                   key={i}
@@ -706,10 +737,11 @@ export function LegibilityLabView() {
                   }
                 />
               ))}
+              {pairStar("tintLightness", DEFAULT_LEGIBILITY_POLICY.tintLightness[theme].join(" – "))}
             </div>
           </Field>
           <Field label={L.tintC} hint={`${policy.tintChroma[0]} – ${policy.tintChroma[1]}`}>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               {([0, 1] as const).map((i) => (
                 <Slider
                   key={i}
@@ -726,34 +758,42 @@ export function LegibilityLabView() {
                   }
                 />
               ))}
+              {pairStar("tintChroma", DEFAULT_LEGIBILITY_POLICY.tintChroma.join(" – "))}
             </div>
           </Field>
         </Section>
 
         <Section title={L.policyReading}>
           <Field label={L.veilBase} hint={`${policy.veilBase[theme]} (${themeName(theme)})`}>
-            <Slider
-              value={policy.veilBase[theme]}
-              min={0}
-              max={0.9}
-              step={0.01}
-              onChange={(v) =>
-                setPolicyOverrides((o) => ({
-                  ...o,
-                  veilBase: { ...(o.veilBase ?? DEFAULT_LEGIBILITY_POLICY.veilBase), [theme]: v },
-                }))
-              }
-            />
-            <span className="text-[10px] text-muted-foreground/60">{L.veilBaseHint}</span>
+            <div className="flex items-center gap-2">
+              <Slider
+                value={policy.veilBase[theme]}
+                min={0}
+                max={0.9}
+                step={0.01}
+                onChange={(v) =>
+                  setPolicyOverrides((o) => ({
+                    ...o,
+                    veilBase: { ...(o.veilBase ?? DEFAULT_LEGIBILITY_POLICY.veilBase), [theme]: v },
+                  }))
+                }
+              />
+              {pairStar("veilBase", String(DEFAULT_LEGIBILITY_POLICY.veilBase[theme]))}
+            </div>
+            <span className="text-[10px] text-muted-foreground/60">
+              {L.veilBaseHint}
+              <span className="ml-1.5 font-mono text-muted-foreground/40">{L.affects} {outputName("veil")}</span>
+            </span>
           </Field>
           {POLICY_KNOBS.filter((knob) => knob.group === "reading").map((knob) => {
             const value = policy[knob.key] as number;
             const overridden = knob.key in policyOverrides;
+            const acts = knobActsHere(knob, { profile, theme, policy });
             return (
               <Field
                 key={knob.key}
                 label={knobLabel(knob.key, knob.label)}
-                hint={String(value)}
+                hint={acts ? String(value) : `${value} · ${L.inertHere}`}
               >
                 <div className="flex items-center gap-2">
                   <Slider
@@ -778,7 +818,12 @@ export function LegibilityLabView() {
                     <span className="w-2.5" />
                   )}
                 </div>
-                <span className="text-[10px] text-muted-foreground/60">{knobHint(knob.key, knob.hint)}</span>
+                <span className={cn("text-[10px]", acts ? "text-muted-foreground/60" : "text-muted-foreground/35")}>
+                  {knobHint(knob.key, knob.hint)}
+                  <span className="ml-1.5 font-mono text-muted-foreground/40">
+                    {L.affects} {knob.affects.map(outputName).join(" · ")}
+                  </span>
+                </span>
               </Field>
             );
           })}

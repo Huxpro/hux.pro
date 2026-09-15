@@ -78,6 +78,8 @@ const STRINGS = {
     tintL: "Tint L range",
     tintC: "Tint C range",
     resolved: "Resolved — the variables on <html>",
+    inertHere: "no effect on this wallpaper",
+    affects: "moves",
     flipBare: "Flip bare ink · top",
     flipMid: "Flip bare ink · middle",
     on: "on",
@@ -158,6 +160,8 @@ const STRINGS = {
     tintL: "主色亮度范围",
     tintC: "主色彩度范围",
     resolved: "解析结果 — <html> 上的变量",
+    inertHere: "对当前壁纸无影响",
+    affects: "影响",
     flipBare: "裸文字反色 · 顶部",
     flipMid: "裸文字反色 · 中部",
     on: "开",
@@ -238,6 +242,31 @@ const KNOBS_ZH: Record<string, { label: string; hint?: string }> = {
   "--tint-accent": { label: "强调着色" },
 };
 
+const OUTPUT_NAMES_ZH: Record<string, string> = {
+  busy: "繁忙",
+  conflict: "色调冲突",
+  inkBoost: "墨色增益",
+  bareBoost: "裸文字增益",
+  relief: "浮雕",
+  flip: "反色",
+  glassAdd: "玻璃增填",
+  veil: "压暗",
+  blur: "虚化",
+  tint: "着色",
+};
+const OUTPUT_NAMES_EN: Record<string, string> = {
+  busy: "busy",
+  conflict: "tone conflict",
+  inkBoost: "ink boost",
+  bareBoost: "bare boost",
+  relief: "relief",
+  flip: "flip",
+  glassAdd: "glass add",
+  veil: "veil",
+  blur: "blur",
+  tint: "tint",
+};
+
 const SHEET_GROUPS_ZH: Record<string, { title: string; note?: string }> = {
   "Ink ladder": { title: "墨色阶梯", note: "--ink 的透明度。主墨即墨本身；正文在调用处为 foreground/85。" },
   Washes: { title: "洗色", note: "墨色几个百分点的填充：kbd、悬停、分隔线。" },
@@ -256,6 +285,7 @@ export function useLabText() {
     L,
     knobLabel: (key: string, fallback: string) => (zh ? (KNOBS_ZH[key]?.label ?? fallback) : fallback),
     knobHint: (key: string, fallback?: string) => (zh ? (KNOBS_ZH[key]?.hint ?? fallback) : fallback),
+    outputName: (name: string) => (zh ? OUTPUT_NAMES_ZH[name] : OUTPUT_NAMES_EN[name]) ?? name,
     groupTitle: (title: string) => (zh ? (SHEET_GROUPS_ZH[title]?.title ?? title) : title),
     groupNote: (title: string, fallback?: string) =>
       zh ? (SHEET_GROUPS_ZH[title]?.note ?? fallback) : fallback,
