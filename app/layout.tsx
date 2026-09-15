@@ -1,21 +1,6 @@
 import { ReadingRootSync } from "@/components/post/reading-settings";
-import {
-  DEFAULT_LETTERBOX_TINT,
-  PAGE_GROUND,
-  WALLPAPER_KIND_DEFAULTS,
-} from "@/systems/ambient/lib/settings";
-import {
-  BEZEL_BAND_MAX,
-  BEZEL_BAND_MIN,
-  BEZEL_BAND_VAR,
-  BEZEL_BLACK,
-  BEZEL_BOOT_GLOBAL,
-  BEZEL_THEME_COLOR_ID,
-  BEZEL_CLASS,
-  BEZEL_COLOR_VAR,
-  BEZEL_LOCK_CLASS,
-  BEZEL_HEX_PATTERN,
-} from "@/systems/bezel";
+import { bezelBootResolver } from "@/systems/ambient/lib/bezel";
+import { bezelBootScript } from "@hux/bezel";
 import { Providers } from "@/shared/providers";
 import {
   AmbientPhaseActivity,
@@ -101,50 +86,18 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  // theme-color is owned by the ambient provider at runtime (it follows the
-  // theme, and takes the frame colour while letterboxed). Rendering static
-  // ones here would hand React a node the provider then mutates, which is a
-  // hydration mismatch once Next streams the metadata in.
+  // theme-color is owned by @hux/bezel at runtime (the page ground, or the
+  // bezel colour while the bezel is on). Rendering static ones here would hand
+  // React a node the package then mutates, which is a hydration mismatch once
+  // Next streams the metadata in.
 };
 
 /**
- * Mirrors the provider's resolution — the frame's colour and thickness when
- * framed, else the theme's page ground — from what is knowable before React
- * runs: the stored ambient settings, the wallpaper kind and what that kind
- * defaults to, the platform, the stored theme, the system theme. It cannot
- * import at runtime, so every constant it needs is interpolated from
- * `@/systems/bezel` and the settings table, and the two cannot drift.
- *
- * Two jobs. It paints the first frame right: when the page loads framed, the
- * class, the colour on the root background, the theme-color and — on iOS — the
- * document lock are on <html> before anything renders. And it fixes the frame
- * COLOUR for the page's life, framed or not, recording it on `window` with the
- * platform and the initial state. After that the provider decides on and off,
- * live, and <Bezel> applies it in that one colour (see @/systems/bezel/boot).
+ * The bezel's first frame, before React runs: @hux/bezel's boot script with
+ * this site's resolver (see @/systems/ambient/lib/bezel), which makes the same
+ * decisions as the ambient provider from localStorage and the platform.
  */
-const THEME_COLOR_BOOT = `(function(){try{
-var s=JSON.parse(localStorage.getItem("hux_ambient_settings")||"{}");
-var ios=/iP(hone|ad|od)/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-var img=s.wallpaperKind==="image";
-var kd=img?${JSON.stringify(WALLPAPER_KIND_DEFAULTS.image)}:${JSON.stringify(WALLPAPER_KIND_DEFAULTS.weather)};
-var box=typeof s.wallpaperLetterbox==="boolean"?s.wallpaperLetterbox:(ios&&kd.letterbox);
-var t=localStorage.getItem("hux_theme");
-var dark=t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);
-var ground=dark?${JSON.stringify(PAGE_GROUND.dark)}:${JSON.stringify(PAGE_GROUND.light)};
-var tint=s.wallpaperLetterboxTint;
-if(!/^(black|dark|${BEZEL_HEX_PATTERN.slice(1, -1)})$/.test(tint))tint=${JSON.stringify(DEFAULT_LETTERBOX_TINT)};
-var c=tint==="black"?${JSON.stringify(BEZEL_BLACK)}:tint==="dark"?${JSON.stringify(PAGE_GROUND.dark)}:tint;
-var band=s.wallpaperLetterboxBand;
-band=typeof band==="number"&&isFinite(band)?Math.min(${BEZEL_BAND_MAX},Math.max(${BEZEL_BAND_MIN},Math.round(band))):kd.band;
-window[${JSON.stringify(BEZEL_BOOT_GLOBAL)}]={color:c,framed:box,band:band,lock:ios};
-if(box){var d=document.documentElement;d.classList.add(${JSON.stringify(BEZEL_CLASS)});
-if(ios)d.classList.add(${JSON.stringify(BEZEL_LOCK_CLASS)});
-d.style.setProperty(${JSON.stringify(BEZEL_COLOR_VAR)},c);
-d.style.setProperty(${JSON.stringify(BEZEL_BAND_VAR)},band+"px");
-d.style.backgroundColor=c;}
-var m=document.createElement("meta");m.id=${JSON.stringify(BEZEL_THEME_COLOR_ID)};m.name="theme-color";
-m.content=box?c:ground;document.head.appendChild(m);
-}catch(e){}})()`;
+const BEZEL_BOOT = bezelBootScript(bezelBootResolver());
 
 export default function RootLayout({
   children,
@@ -155,19 +108,9 @@ export default function RootLayout({
     <ViewTransitions>
       <html lang="en" suppressHydrationWarning>
         <head>
-          {/* theme-color, the letterbox class AND an inline html background
-              before first paint. This is what iOS 18 Safari needs: it tints
-              the status bar from theme-color and the collapsed toolbar from
-              the html background, and both have to be right from the first
-              frame, whatever theme the page opens in. iOS 26 ignores
-              theme-color and samples the page's own edge pixels instead — the
-              bezel's bands handle that, and they are sized by a custom
-              property this also sets (see @/systems/bezel). Owned by this
-              script, <Bezel> and the ambient provider, never by React — see
-              the note on `viewport` above. */}
-          <script
-            dangerouslySetInnerHTML={{ __html: THEME_COLOR_BOOT }}
-          />
+          {/* Before first paint: Safari picks its chrome colour at load, from
+              the root background (iOS 26) or theme-color (iOS 18). */}
+          <script dangerouslySetInnerHTML={{ __html: BEZEL_BOOT }} />
         </head>
         <body
           className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}

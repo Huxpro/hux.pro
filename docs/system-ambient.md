@@ -205,30 +205,28 @@ Where the active wallpaper paints is `wallpaperPlacement`:
 | `widget` | Only inside widget cards (each a viewport-aligned window onto it) |
 | `off` | Nowhere — the global background kill switch |
 
-**Each wallpaper kind says what it wants at the edge** (`WALLPAPER_KIND_DEFAULTS`
-in `lib/settings.ts`), and on an iOS phone the provider resolves every page from
+**Each wallpaper kind says what it wants at the edge** (`WALLPAPER_KIND_EDGES`
+in `lib/bezel.ts`), and on an iOS phone the provider resolves every page from
 that table, live, as the kind changes:
 
-| Kind | Frame (letterbox) | Soft edge | Band | Radius |
-|---|---|---|---|---|
-| `weather` | off | on | 8px | 24px |
-| `image` | on | off | 0px | 16px |
+| Kind | Bezel | Soft edge |
+|---|---|---|
+| `weather` | off | on |
+| `image` | on | off |
 
 A weather gradient is the page's own colour pushed outward, so it fades back
 into the ground. A photograph is a picture on the page, so it ends on a line
-inside a frame. A desktop window gets neither unless overridden.
+inside a bezel. A desktop window gets neither unless overridden.
 
-**Letterbox** is the ryOS (os.ryo.lu) frame, drawn by `systems/bezel`.
-Everything outside the page is one flat colour, black by default, and the page
-is rounded off inside it. On iOS the document stops scrolling while framed and
-the page scrolls in `#scroll-root`. The frame turns on and off live — switching
-kind or toggling the devtool row — but its colour is fixed per page load, so a
-tint change applies on the next load. `wallpaperLetterbox` overrides the kind
-(`null` follows it); band and radius have their own overrides. See
-`systems/bezel` and the Bezel section of `AGENT.md` for what Safari does and
-why.
+**The bezel** is `@hux/bezel` (`packages/bezel`), after ryOS (os.ryo.lu): one
+flat colour around the page, black by default, with the page rounded off inside
+it and, on iOS, scrolling in a container while the document holds still. A
+devtool override turns it on or off for the session and ends when the kind
+switches. Tint, band and radius are saved settings shared by both kinds (black,
+0px, 16px by default). Everything is live, including the browser chrome. See
+the package README for what Safari does and why.
 
-**Soft edging** — the top/bottom fade — applies only while the frame is off.
+**Soft edging** — the top/bottom fade — applies only while the bezel is off.
 An image wallpaper is just another layer in the stack, so when it is on it
 gets the same mask the weather gradient gets (`EDGE_FADE_MASK`, or the wider
 `EDGE_FADE_MASK_HIGH_CONTRAST` for dark-mode sunrise/sunset). The devtool
@@ -343,9 +341,8 @@ const {
   opacity,                // Resolved for kind and theme
   veil,                   // The flat veil alpha over an image (reading pages)
   blurred,                // Whether this route defocuses the wallpaper
-  letterbox,              // Resolved; letterboxSetting is the stored tri-state
-  letterboxSetting,
-  setLetterbox,
+  bezel,                  // Whether the bezel is drawn (kind, or a session override)
+  bezelTint, bezelBand, bezelRadius,  // Saved settings, and their setters
   readingBlur,            // The two reading-treatment switches
 
   setReadingBlur,

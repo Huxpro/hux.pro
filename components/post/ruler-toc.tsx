@@ -8,7 +8,7 @@ import {
   pageScrollTop,
   pageViewportHeight,
   scrollPageTo,
-} from "@/systems/bezel";
+} from "@hux/bezel";
 import { cn } from "@/lib/utils";
 import {
   AnimatePresence,
@@ -171,9 +171,9 @@ function useReadingProgress(
     let docHeight = 0;
     let raf = 0;
 
-    // Page geometry, not window geometry: on a locked phone the page scrolls
-    // in #scroll-root, so the window's scrollY is always 0 there and its
-    // height is not the height of what scrolls. See @/systems/bezel.
+    // Page geometry, not window geometry: in container scroll the page scrolls
+    // in the bezel's container, so the window's scrollY is always 0 there and
+    // its height is not the height of what scrolls. See @hux/bezel.
     const measure = () => {
       tops = sections.map(({ el }) => pageOffsetOf(el));
       docHeight = pageScrollHeight();

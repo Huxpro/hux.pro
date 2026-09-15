@@ -11,10 +11,14 @@ import {
   type WallpaperPlacement,
   getAmbientSettings,
   getDefaultSettings,
-  PAGE_GROUND,
-  WALLPAPER_KIND_DEFAULTS,
   setAmbientSettings,
 } from "./lib/settings";
+import {
+  PAGE_GROUND,
+  resolveBezelTint,
+  WALLPAPER_KIND_EDGES,
+  type BezelTint,
+} from "./lib/bezel";
 import {
   BUILT_IN_WALLPAPERS,
   getWallpaperBackground,
@@ -25,10 +29,11 @@ import {
   type WallpaperKind,
 } from "./lib/wallpaper";
 import {
-  BEZEL_THEME_COLOR_ID,
-  resolveBezelTint,
-  type BezelTint,
-} from "@/systems/bezel";
+  DEFAULT_BEZEL_BAND,
+  DEFAULT_BEZEL_RADIUS,
+  useScrollLock,
+  type BezelScroll,
+} from "@hux/bezel";
 import {
   EDGE_FADE_MASK,
   EDGE_FADE_MASK_HIGH_CONTRAST,
@@ -123,6 +128,18 @@ export interface DevtoolPlacementOverrides {
   full?: boolean;
   widget?: boolean;
   softEdging?: boolean;
+  /** Bezel on or off, for this session. */
+  bezel?: boolean;
+  /** Lock page scrolling, for this session — to try @hux/bezel's lock. */
+  scrollLock?: boolean;
+  /**
+   * Which kind switch `softEdging` and `bezel` were set after. They describe
+   * the edge of the kind showing at the time, so any kind switch ends them —
+   * switching to weather turns the bezel off even if it was forced on, and
+   * switching back does not bring the override back. Stamped by the provider;
+   * callers never set it.
+   */
+  edgeEpoch?: number;
 }
 
 interface WallpaperContextType {
@@ -164,29 +181,26 @@ interface WallpaperContextType {
   blurred: boolean;
   /** Whether this page recedes the wallpaper — see `isReadingSurface`. */
   reading: boolean;
-  /** Whether the frame is up right now. Live; see `letterbox` in the provider. */
-  letterbox: boolean;
-  /** The stored choice: `null` is auto (the kind's default, on iOS only). */
-  letterboxSetting: boolean | null;
-  /** The stored band and radius: `null` means the kind's default is in force. */
-  letterboxBandSetting: number | null;
-  letterboxRadiusSetting: number | null;
-  setLetterbox: (value: boolean | null) => void;
-  /** Corner radius of the page inside the frame, px. */
-  letterboxRadius: number;
-  /** `null` hands the row back to the wallpaper kind's default. */
-  setLetterboxRadius: (px: number | null) => void;
-  /** The frame's colour: a named tint or a `#rrggbb` literal. */
-  letterboxTint: BezelTint;
-  setLetterboxTint: (tint: BezelTint) => void;
-  /** The tint resolved against the current theme, as a paintable colour. */
-  letterboxColor: string;
-  /** Band thickness, px. */
-  letterboxBand: number;
-  /** `null` hands the row back to the wallpaper kind's default. */
-  setLetterboxBand: (px: number | null) => void;
-  /** `letterbox`, but `null` until settings and platform are known. For <Bezel>. */
-  letterboxState: boolean | null;
+  /** Whether the bezel is drawn. Live. */
+  bezel: boolean;
+  /** `bezel`, but `null` until settings and platform are known. For <Bezel>. */
+  bezelState: boolean | null;
+  /** Where the page scrolls: in the bezel's container while the bezel is on, on iOS. */
+  bezelScroll: BezelScroll;
+  /** The bezel colour, resolved from the tint. */
+  bezelColor: string;
+  bezelTint: BezelTint;
+  setBezelTint: (tint: BezelTint) => void;
+  /** Band thickness, px, and the saved value (`null` is the default). */
+  bezelBand: number;
+  bezelBandSetting: number | null;
+  setBezelBand: (px: number | null) => void;
+  /** Inner corner radius, px, and the saved value (`null` is the default). */
+  bezelRadius: number;
+  bezelRadiusSetting: number | null;
+  setBezelRadius: (px: number | null) => void;
+  /** The page's ground in the current theme: the chrome colour while the bezel is off. */
+  ground: string;
   /** The reading treatment flags, for the devtool. */
   readingBlur: boolean;
   setReadingBlur: (value: boolean) => void;
@@ -286,9 +300,13 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // crossfades, so weather → image reads as a dissolve rather than a cut.
   // Picking a wallpaper from the picker implies switching to it, which is what
   // makes "one background at a time" feel like a single choice.
+  // Counts kind switches, so edge overrides from before one stop applying.
+  const [edgeEpoch, setEdgeEpoch] = useState(0);
+
   const setWallpaperKind = useCallback(
     (kind: WallpaperKind) => {
       if (kind === settings.wallpaperKind) return;
+      setEdgeEpoch((epoch) => epoch + 1);
       updateSettings({ wallpaperKind: kind });
     },
     [settings.wallpaperKind, updateSettings]
@@ -296,9 +314,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   const selectWallpaper = useCallback(
     (id: string) => {
+      if (settings.wallpaperKind !== "image") setEdgeEpoch((epoch) => epoch + 1);
       updateSettings({ wallpaperId: id, wallpaperKind: "image" });
     },
-    [updateSettings]
+    [settings.wallpaperKind, updateSettings]
   );
 
 
@@ -315,20 +334,16 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   const wallpaperOpacity = WALLPAPER_OPACITY[settings.wallpaperKind][theme];
 
-  const setLetterbox = useCallback(
-    (value: boolean | null) => updateSettings({ wallpaperLetterbox: value }),
+  const setBezelRadius = useCallback(
+    (px: number | null) => updateSettings({ bezelRadius: px }),
     [updateSettings]
   );
-  const setLetterboxRadius = useCallback(
-    (px: number | null) => updateSettings({ wallpaperLetterboxRadius: px }),
+  const setBezelTint = useCallback(
+    (tint: BezelTint) => updateSettings({ bezelTint: tint }),
     [updateSettings]
   );
-  const setLetterboxTint = useCallback(
-    (tint: BezelTint) => updateSettings({ wallpaperLetterboxTint: tint }),
-    [updateSettings]
-  );
-  const setLetterboxBand = useCallback(
-    (px: number | null) => updateSettings({ wallpaperLetterboxBand: px }),
+  const setBezelBand = useCallback(
+    (px: number | null) => updateSettings({ bezelBand: px }),
     [updateSettings]
   );
   const setReadingBlur = useCallback(
@@ -351,17 +366,30 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     reading && settings.wallpaperReadingDim ? WALLPAPER_READING_VEIL[theme] : 0;
 
   // DevTool gradient overrides (ephemeral, not persisted)
-  const [devtoolOverrides, setDevtoolOverrides] =
+  const [storedOverrides, setStoredOverrides] =
     useState<DevtoolPlacementOverrides>({});
+  // Edge overrides stamped with the kind switch they were set after…
+  const setDevtoolOverrides = useCallback(
+    (next: DevtoolPlacementOverrides) => setStoredOverrides({ ...next, edgeEpoch }),
+    [edgeEpoch]
+  );
+  // …and dropped once the kind has switched since.
+  const devtoolOverrides = useMemo<DevtoolPlacementOverrides>(() => {
+    if (storedOverrides.edgeEpoch === edgeEpoch) return storedOverrides;
+    return {
+      full: storedOverrides.full,
+      widget: storedOverrides.widget,
+      scrollLock: storedOverrides.scrollLock,
+    };
+  }, [storedOverrides, edgeEpoch]);
 
   // 3 resolved rendering flags.
   // DevTool overrides bypass all natural derivation.
   // Hydration-safe: false on the server and the first client render, then the
-  // real answer. It now decides rendered structure (the letterbox frame), so a
-  // render-time read would disagree with the server HTML.
-  // `null` until then: the boot script in app/layout.tsx has already put the
-  // letterbox class on <html> for a phone, and the effect below must not take
-  // it off for the one frame before the platform is known.
+  // real answer. It decides rendered structure (the bezel), so a render-time
+  // read would disagree with the server HTML. `null` until then: the boot
+  // script has already put the bezel on <html> for a phone, and it must not
+  // come off for the one frame before the platform is known.
   const [isIOS, setIsIOS] = useState<boolean | null>(null);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: platform read
@@ -369,7 +397,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   }, []);
 
   const overridden = (
-    key: keyof DevtoolPlacementOverrides,
+    key: "full" | "widget" | "softEdging" | "bezel",
     natural: boolean
   ): boolean => (isDevtoolEnabled ? devtoolOverrides[key] : undefined) ?? natural;
 
@@ -380,66 +408,34 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   );
 
   /**
-   * Letterbox — the ryOS frame, on an iOS phone. Live.
+   * The bezel — @hux/bezel, configured in ./lib/bezel. Live.
    *
-   * Each wallpaper kind says what it wants at the edge (`WALLPAPER_KIND_DEFAULTS`):
-   * weather fades out with the soft edge and no frame, an image ends on a line
-   * inside the frame. A stored `wallpaperLetterbox` overrides the kind; the
-   * devtool row writes it. Only a phone gets the kind's frame — a desktop
-   * window gets none unless it is overridden on.
-   *
-   * <Bezel> puts the frame on and takes it off as this changes, in the one
-   * colour the boot script fixed for this page load (see @/systems/bezel/boot).
-   *
-   * `null` until the stored settings and the platform are both known: the
-   * server and the first client render cannot see either, and a `false` there
-   * would take off the frame the boot script already painted.
+   * The wallpaper kind decides whether it is on (`WALLPAPER_KIND_EDGES`), on
+   * iOS only; a devtool override for this session wins over the kind until the
+   * kind changes. Band, radius and tint are saved settings, the same for every
+   * kind. `null` until the stored settings and the platform are both known: a
+   * `false` before then would take off the bezel the boot script painted.
    */
-  const kindDefaults = WALLPAPER_KIND_DEFAULTS[settings.wallpaperKind];
-  const letterboxState: boolean | null =
-    !settingsLoaded || isIOS === null
-      ? null
-      : (settings.wallpaperLetterbox ?? (isIOS && kindDefaults.letterbox));
-  const letterbox = letterboxState === true;
-
-  const letterboxTint = settings.wallpaperLetterboxTint;
-  const letterboxBand = settings.wallpaperLetterboxBand ?? kindDefaults.band;
-  /**
-   * The stored tint's colour, for the devtool swatch. A frame on this page
-   * keeps the colour the page loaded with; a new tint applies from the next
-   * load (see @/systems/bezel/tint).
-   */
-  const letterboxColor = resolveBezelTint(letterboxTint, PAGE_GROUND);
-
-  // theme-color. iOS 18 Safari tints its status bar from it (iOS 26 ignores
-  // it). The element is ours, not React's — created before first paint by the
-  // boot script. While framed, <Bezel> sets it to the frame colour; unframed,
-  // it follows the page ground and the theme. Next streams its own metadata in
-  // after this effect runs, so a React-owned meta would be a hydration
-  // mismatch.
-  useEffect(() => {
-    if (letterboxState !== false) return;
-    let meta = document.getElementById(BEZEL_THEME_COLOR_ID) as HTMLMetaElement | null;
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.id = BEZEL_THEME_COLOR_ID;
-      meta.name = "theme-color";
-      document.head.append(meta);
-    }
-    meta.content = PAGE_GROUND[theme];
-  }, [letterboxState, theme]);
+  const edges = WALLPAPER_KIND_EDGES[settings.wallpaperKind];
+  const bezelState: boolean | null =
+    !settingsLoaded || isIOS === null ? null : overridden("bezel", isIOS && edges.bezel);
+  const bezel = bezelState === true;
+  const bezelScroll: BezelScroll = bezel && isIOS === true ? "container" : "window";
+  const bezelColor = resolveBezelTint(settings.bezelTint);
+  const bezelBand = settings.bezelBand ?? DEFAULT_BEZEL_BAND;
+  const bezelRadius = settings.bezelRadius ?? DEFAULT_BEZEL_RADIUS;
+  const ground = PAGE_GROUND[theme];
+  useScrollLock(isDevtoolEnabled && devtoolOverrides.scrollLock === true);
 
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and
   // the home indicator ends in a hard line otherwise. Same switch, same masks,
-  // for both wallpaper kinds — an image layer is just another layer in the
-  // stack, so it gets exactly what the weather gradient gets. Whether it is on
-  // by default is the kind's call — see `WALLPAPER_KIND_DEFAULTS` — and
-  // letterbox makes it redundant: the edge it hides is then a clean line
-  // against the frame.
+  // for both wallpaper kinds. The kind decides whether it is on by default, and
+  // only while the bezel is off: the edge it hides is then a clean line against
+  // the bezel.
   const softEdgeEnabled = overridden(
     "softEdging",
-    isIOS === true && kindDefaults.softEdge && !letterbox
+    isIOS === true && edges.softEdge && !bezel
   );
 
   // Debug override state (for weather and time)
@@ -593,7 +589,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     theme,
   ]);
 
-  /** Images must cover the frame; the weather gradient already fills it. */
+  /** Images must cover the layer; the weather gradient already fills it. */
   const computedCover = resolvedImage?.cover ?? false;
   const wallpaperSrc = resolvedImage?.src ?? null;
 
@@ -717,19 +713,19 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       veil: veilAlpha,
       blurred: isBlurred,
       reading,
-      letterbox,
-      letterboxSetting: settings.wallpaperLetterbox,
-      setLetterbox,
-      letterboxRadius: settings.wallpaperLetterboxRadius ?? kindDefaults.radius,
-      setLetterboxRadius,
-      letterboxTint,
-      setLetterboxTint,
-      letterboxColor,
-      letterboxBand,
-      setLetterboxBand,
-      letterboxState,
-      letterboxBandSetting: settings.wallpaperLetterboxBand,
-      letterboxRadiusSetting: settings.wallpaperLetterboxRadius,
+      bezel,
+      bezelState,
+      bezelScroll,
+      bezelColor,
+      bezelTint: settings.bezelTint,
+      setBezelTint,
+      bezelBand,
+      bezelBandSetting: settings.bezelBand,
+      setBezelBand,
+      bezelRadius,
+      bezelRadiusSetting: settings.bezelRadius,
+      setBezelRadius,
+      ground,
       readingBlur: settings.wallpaperReadingBlur,
       setReadingBlur,
       readingDim: settings.wallpaperReadingDim,
@@ -742,9 +738,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [
       settings.wallpaperKind,
       settings.wallpaperPlacement,
-      settings.wallpaperLetterbox,
-      settings.wallpaperLetterboxRadius,
-      kindDefaults,
+      settings.bezelTint,
+      settings.bezelBand,
+      settings.bezelRadius,
       settings.wallpaperReadingBlur,
       settings.wallpaperReadingDim,
       setWallpaperKind,
@@ -762,16 +758,17 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       veilAlpha,
       isBlurred,
       reading,
-      letterbox,
-      setLetterbox,
-      setLetterboxRadius,
-      letterboxTint,
-      setLetterboxTint,
-      letterboxColor,
-      letterboxBand,
-      setLetterboxBand,
-      letterboxState,
-      settings.wallpaperLetterboxBand,
+      setDevtoolOverrides,
+      bezel,
+      bezelState,
+      bezelScroll,
+      bezelColor,
+      setBezelTint,
+      bezelBand,
+      setBezelBand,
+      bezelRadius,
+      setBezelRadius,
+      ground,
       setReadingBlur,
       setReadingDim,
       wallpaperSrc,

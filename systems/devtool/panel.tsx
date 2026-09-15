@@ -10,14 +10,12 @@ import {
   useTheme,
 } from "@/services";
 import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
+import { BEZEL_BAND_MAX, BEZEL_BAND_MIN, BEZEL_RADIUS_MAX } from "@hux/bezel";
 import {
+  DEFAULT_BEZEL_TINT,
   isBezelHex,
-  BEZEL_BAND_MAX,
-  BEZEL_BAND_MIN,
-  BEZEL_RADIUS_MAX,
   type BezelTint,
-} from "@/systems/bezel";
-import { DEFAULT_LETTERBOX_TINT } from "@/systems/ambient/lib/settings";
+} from "@/systems/ambient/lib/bezel";
 
 /** The named tints plus the segmented control's own "pick a colour". */
 type TintChoice = "black" | "dark" | "custom";
@@ -569,13 +567,29 @@ function FrontmatterModule() {
  * paragraph under every row. Clicking it restores the default, which is what
  * the removed "click to clear" / "click for auto" lines used to do.
  */
-function PanelStar({ onReset, label }: { onReset: () => void; label: string }) {
+function PanelStar({
+  onReset,
+  source,
+}: {
+  onReset: () => void;
+  /**
+   * Where the value comes from, by colour: amber is a session override (gone on
+   * reload, and for edge rows on a kind change), sky is a saved setting.
+   */
+  source: "session" | "saved";
+}) {
+  const label = source === "session" ? "Session override — reset" : "Saved — reset";
   return (
     <button
       onClick={onReset}
       title={label}
       aria-label={label}
-      className="ml-1 font-mono text-amber-500/80 transition-colors hover:text-amber-400"
+      className={cn(
+        "ml-1 font-mono transition-colors",
+        source === "session"
+          ? "text-amber-500/80 hover:text-amber-400"
+          : "text-sky-500/80 hover:text-sky-400"
+      )}
     >
       *
     </button>
@@ -842,18 +856,17 @@ function WallpaperModule() {
     blurred,
     reading,
     src,
-    letterbox,
-    letterboxSetting,
-    setLetterbox,
-    letterboxRadius,
-    setLetterboxRadius,
-    letterboxBandSetting,
-    letterboxRadiusSetting,
-    letterboxTint,
-    setLetterboxTint,
-    letterboxColor,
-    letterboxBand,
-    setLetterboxBand,
+    bezel,
+    bezelScroll,
+    bezelColor,
+    bezelTint,
+    setBezelTint,
+    bezelBand,
+    bezelBandSetting,
+    setBezelBand,
+    bezelRadius,
+    bezelRadiusSetting,
+    setBezelRadius,
     readingBlur,
     setReadingBlur,
     readingDim,
@@ -869,11 +882,9 @@ function WallpaperModule() {
 
   const isImage = kind === "image";
 
-  // The segmented control has a fourth position the setting does not: "custom"
-  // is not a tint, it is "whatever the swatch says".
-  // No theme-following tint: the frame colour is fixed at load, and a tint
-  // that follows the theme is a colour that moves after load. See
-  // @/systems/bezel/tint.
+  // The segmented control has a position the setting does not: "custom" is not
+  // a tint, it is "whatever the swatch says". Every row here is live; @hux/bezel
+  // shows each change to the browser chrome as it happens.
   const tints: { value: TintChoice; label: string; title: string }[] = [
     {
       value: "black",
@@ -917,11 +928,15 @@ function WallpaperModule() {
       on: softEdgeEnabled,
     },
   ] as const;
-  const overrideFlag = (key: (typeof placements)[number]["key"], on: boolean) =>
+  type OverrideKey = "full" | "widget" | "softEdging" | "bezel" | "scrollLock";
+  const overrideFlag = (key: OverrideKey, on: boolean) =>
     setDevtoolOverrides({ ...devtoolOverrides, [key]: on });
-  const isOverridden = (key: (typeof placements)[number]["key"]) =>
-    devtoolOverrides[key] !== undefined;
-  const clearOverrides = () => setDevtoolOverrides({});
+  const clearFlag = (key: OverrideKey) =>
+    setDevtoolOverrides({ ...devtoolOverrides, [key]: undefined });
+  const sessionStar = (key: OverrideKey) =>
+    devtoolOverrides[key] !== undefined ? (
+      <PanelStar onReset={() => clearFlag(key)} source="session" />
+    ) : null;
 
   // One line that answers "what am I actually looking at".
   const now = [
@@ -1002,11 +1017,7 @@ function WallpaperModule() {
             <PanelRow
               key={p.key}
               label={p.label}
-              star={
-                isOverridden(p.key) ? (
-                  <PanelStar onReset={clearOverrides} label="Clear override" />
-                ) : null
-              }
+              star={sessionStar(p.key)}
             >
               <PanelToggle
                 on={p.on}
@@ -1017,110 +1028,97 @@ function WallpaperModule() {
           ))}
         </div>
 
-        {/* The frame. Persisted, unlike the placement overrides above, so a
-            phone can be checked across a reload. Auto is iOS. */}
+        {/* The bezel. On/off follows the kind unless overridden for the
+            session; tint, band and radius are saved. */}
         <div className="space-y-2 border-t border-border/30 pt-2.5">
-          <PanelRow
-            label={zh ? "黑边" : "Letterbox"}
-            star={
-              letterboxSetting !== null ? (
-                <PanelStar onReset={() => setLetterbox(null)} label="Back to auto" />
-              ) : null
-            }
-          >
+          <PanelRow label={zh ? "边框" : "Bezel"} star={sessionStar("bezel")}>
             <PanelToggle
-              on={letterbox}
-              onClick={() => setLetterbox(!letterbox)}
-              label="Toggle letterbox"
+              on={bezel}
+              onClick={() => overrideFlag("bezel", !bezel)}
+              label="Toggle bezel"
             />
           </PanelRow>
-          {letterbox && (
+          {bezel && (
             <>
               <PanelRow
                 label={zh ? "颜色" : "Tint"}
                 star={
-                  letterboxTint !== DEFAULT_LETTERBOX_TINT ? (
-                    <PanelStar
-                      onReset={() => setLetterboxTint(DEFAULT_LETTERBOX_TINT)}
-                      label="Back to the default tint"
-                    />
+                  bezelTint !== DEFAULT_BEZEL_TINT ? (
+                    <PanelStar onReset={() => setBezelTint(DEFAULT_BEZEL_TINT)} source="saved" />
                   ) : null
                 }
               >
                 <PanelSegmented<TintChoice>
-                  value={isBezelHex(letterboxTint) ? "custom" : letterboxTint}
+                  value={isBezelHex(bezelTint) ? "custom" : bezelTint}
                   options={tints}
-                  onChange={(t) =>
-                    setLetterboxTint(
-                      t === "custom" ? (letterboxColor as BezelTint) : t
-                    )
+                  onChange={(choice) =>
+                    setBezelTint(choice === "custom" ? (bezelColor as BezelTint) : choice)
                   }
                 />
               </PanelRow>
-              {/* The swatch both shows the resolved colour and, on custom,
-                  edits it. The frame colour is fixed for a page's life, so a
-                  tint change here is what the next load gets. The toggle
-                  above, band and radius are live. */}
-              <PanelRow label={letterboxColor}>
+              <PanelRow label={bezelColor}>
                 <input
                   type="color"
-                  value={letterboxColor}
-                  aria-label="Letterbox custom colour"
-                  onChange={(e) => setLetterboxTint(e.target.value as BezelTint)}
+                  value={bezelColor}
+                  aria-label="Bezel custom colour"
+                  onChange={(e) => setBezelTint(e.target.value as BezelTint)}
                   className="h-5 w-10 shrink-0 cursor-pointer rounded border border-border/60 bg-transparent p-0"
                 />
               </PanelRow>
-              {/* No warning under the thin end of this slider on purpose. Below
-                  `BEZEL_CHROME_SAMPLE_PX` the browser's chrome stops following
-                  the frame and falls back to its own colour — which is a look,
-                  not a fault, and is written up in @/systems/bezel rather than
-                  in a paragraph here. */}
               <PanelRow
                 label={zh ? "边框厚度" : "Band"}
                 star={
-                  letterboxBandSetting !== null ? (
-                    <PanelStar
-                      onReset={() => setLetterboxBand(null)}
-                      label="Back to the kind's default"
-                    />
+                  bezelBandSetting !== null ? (
+                    <PanelStar onReset={() => setBezelBand(null)} source="saved" />
                   ) : null
                 }
               >
                 <PanelRange
-                  value={letterboxBand}
+                  value={bezelBand}
                   min={BEZEL_BAND_MIN}
                   max={BEZEL_BAND_MAX}
                   step={1}
-                  onChange={setLetterboxBand}
-                  label="Letterbox band thickness"
+                  onChange={setBezelBand}
+                  label="Bezel band thickness"
                   format={(v) => `${v}px`}
                 />
               </PanelRow>
               <PanelRow
-                label={zh ? "圆角" : "Corner radius"}
+                label={zh ? "圆角" : "Radius"}
                 star={
-                  letterboxRadiusSetting !== null ? (
-                    <PanelStar
-                      onReset={() => setLetterboxRadius(null)}
-                      label="Back to the kind's default"
-                    />
+                  bezelRadiusSetting !== null ? (
+                    <PanelStar onReset={() => setBezelRadius(null)} source="saved" />
                   ) : null
                 }
               >
                 <PanelRange
-                  value={letterboxRadius}
+                  value={bezelRadius}
                   min={0}
                   max={BEZEL_RADIUS_MAX}
                   step={2}
-                  onChange={setLetterboxRadius}
-                  label="Letterbox corner radius"
+                  onChange={setBezelRadius}
+                  label="Bezel corner radius"
                   format={(v) => `${v}px`}
                 />
               </PanelRow>
             </>
           )}
-          {/* What the frame is and why it is shaped this way lives in
-              @/systems/bezel, not in a paragraph under the controls. */}
+          {/* Where the page scrolls, as a badge, and a lock to try. */}
+          <PanelRow
+            label={zh ? "滚动锁定" : "Scroll lock"}
+            star={sessionStar("scrollLock")}
+          >
+            <span className="flex items-center gap-2">
+              <span className="rounded bg-muted/50 px-1 font-mono text-[9px] text-muted-foreground">
+                {bezelScroll}
+              </span>
+              <PanelToggle
+                on={devtoolOverrides.scrollLock === true}
+                onClick={() => overrideFlag("scrollLock", devtoolOverrides.scrollLock !== true)}
+                label="Toggle scroll lock"
+              />
+            </span>
+          </PanelRow>
         </div>
 
         {/* How much of it survives on a reading page. Home gets none of this. */}
@@ -1132,7 +1130,7 @@ function WallpaperModule() {
             label={zh ? "二级页虚化" : "Reading blur"}
             star={
               readingBlur ? null : (
-                <PanelStar onReset={() => setReadingBlur(true)} label="Back to on" />
+                <PanelStar onReset={() => setReadingBlur(true)} source="saved" />
               )
             }
           >
@@ -1146,7 +1144,7 @@ function WallpaperModule() {
             label={zh ? "二级页压暗" : "Reading dim"}
             star={
               readingDim ? null : (
-                <PanelStar onReset={() => setReadingDim(true)} label="Back to on" />
+                <PanelStar onReset={() => setReadingDim(true)} source="saved" />
               )
             }
           >

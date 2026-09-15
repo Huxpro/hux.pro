@@ -79,60 +79,31 @@ duration-300 (morphing transitions)
 
 ### Testing the Bezel
 
-`systems/bezel` — the frame that surrounds the page on a phone, after ryOS. The
-component takes props and knows nothing about settings; the ambient system maps
-these keys onto it. They live in `hux_ambient_settings`:
+The bezel is its own package, `packages/bezel` (`@hux/bezel`). Its API and the
+iOS Safari findings behind it are in `packages/bezel/bezel.d.ts` and
+`packages/bezel/README.md`; read those before changing anything about the edge
+of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
 
-| Key | Values | Default |
-|---|---|---|
-| `wallpaperLetterbox` | `true` / `false` / `null` = the kind's default, on iOS only | `null` |
-| `wallpaperLetterboxTint` | `"black"` / `"dark"` / `"#rrggbb"` | `"black"` |
-| `wallpaperLetterboxBand` | px, 0 to 64, or `null` = the kind's default | `null` |
-| `wallpaperLetterboxRadius` | px, 0 to 64, or `null` = the kind's default | `null` |
+- **Bezel on/off** follows the wallpaper kind (`WALLPAPER_KIND_EDGES`): weather
+  off with soft edge, image on without. A devtool override lasts until the kind
+  switches. On iOS only.
+- **Tint, band, radius** are saved settings (`bezelTint`, `bezelBand`,
+  `bezelRadius` in `hux_ambient_settings`), the same for every kind. Defaults:
+  black, 0px, 16px.
+- **Everything is live.** Safari does not re-read the root background for its
+  chrome after load; `syncChrome` in the package shows it each change. Do not
+  write the bezel colour, `data-bezel` or the scroll mode anywhere else.
+- **Page scroll** goes through the package (`pageScrollTop`, `onPageScroll`,
+  `scrollPageTo`, `usePageScroll`, …), never `window.scrollY`: with the bezel on
+  an iPhone the page scrolls in a container.
+- In the devtool, an amber `*` is a session override and a blue `*` a saved
+  setting; clicking it resets the row.
 
-`null` means "follow the wallpaper kind", and the two kinds want opposite
-things (`WALLPAPER_KIND_DEFAULTS` in `systems/ambient/lib/settings.ts`):
+```bash
+pnpm bezel:typecheck
+```
 
-| Kind | Soft edge | Frame | Band | Radius |
-|---|---|---|---|---|
-| `weather` | on | off | — | — |
-| `image` | off | on | 0px | 16px |
+```bash
+pnpm bezel:storybook
+```
 
-Both are gated on iOS: a desktop window gets neither treatment.
-
-**The frame is live; its colour is not.** The provider resolves whether the
-frame is up from `WALLPAPER_KIND_DEFAULTS` and `wallpaperLetterbox`, and
-`<Bezel>` puts the `bezel` class, the lock and the colour on `<html>` or takes
-them off as that changes — switching wallpaper kind or toggling Letterbox in
-the Devtool applies immediately, and the scroll position moves between the
-window and `#scroll-root`. The COLOUR is resolved once per page load by the
-boot script in `app/layout.tsx`, so `wallpaperLetterboxTint` takes effect on
-the next load. Band and radius are live. Do not reintroduce anything that
-re-resolves the frame colour after load (a theme-following tint, say): that is
-what made the chrome change on a real phone.
-
-**On an iOS phone with the frame up, the document does not scroll.** `<body>`
-is fixed and the page scrolls in `#scroll-root`. Anything that reads or drives
-page scroll must use the helpers in `systems/bezel/page-scroll.ts`
-(`pageScrollTop`, `onPageScroll`, `scrollPageTo`, `pageOffsetOf`, …) — never
-`window.scrollY`, `window.scrollTo` or a `window` scroll listener, which read 0
-and do nothing there. A desktop browser will not show you this breakage.
-
-Two things only a real WebKit shows (measured on iOS 26.5), both load-bearing:
-
-- **Safari tints its chrome from `position: fixed` content at the viewport
-  edge** — even a transparent full-screen fixed overlay makes it sample
-  whatever is composited beneath — and otherwise from the root background.
-  `theme-color` is ignored. On a locked page, `globals.css` turns every
-  full-screen layer into an absolutely positioned child of the fixed body so
-  nothing fixed spans the edge. A new overlay portalled into `<body>` is
-  covered automatically; a new full-screen layer that is NOT a direct child of
-  `<body>` needs `data-bezel-layer`.
-- **Safari reads the root background for its chrome at load, and does not look
-  again when it changes.** Turning the frame on or off live left the status bar
-  and toolbar in the old colour until `systems/bezel/boot.ts` started briefly
-  putting 8px `position: fixed` strips of the new colour at the top and bottom
-  edge, which Safari does follow live. Keep that nudge if you touch the
-  on/off path.
-- **Safari reports every safe-area inset as zero in portrait.** The band is the
-  only thing giving the frame any thickness there.

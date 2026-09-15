@@ -1,6 +1,6 @@
 "use client";
 
-import { onPageScroll } from "@/systems/bezel";
+import { onPageScroll } from "@hux/bezel";
 import { useEffect } from "react";
 import { makeStore } from "./persisted-setting";
 
@@ -154,7 +154,7 @@ export function ReadingRootSync() {
     };
 
     update();
-    // Page scroll: a locked phone scrolls #scroll-root, not the window.
+    // Page scroll: in container scroll the bezel's container scrolls, not the window.
     const offScroll = onPageScroll(schedule);
     window.addEventListener("resize", schedule);
 

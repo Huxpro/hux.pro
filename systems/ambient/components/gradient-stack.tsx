@@ -110,7 +110,7 @@ function GradientLayer({
       transition={{ duration: durationMs / 1000, ease: "easeInOut" }}
     >
       {blurred && (
-        // Scaled past the frame so the blur has pixels to sample at the edges
+        // Scaled past the layer so the blur has pixels to sample at the edges
         // instead of fading into nothing.
         <div
           className="absolute inset-0 scale-110 blur-2xl"

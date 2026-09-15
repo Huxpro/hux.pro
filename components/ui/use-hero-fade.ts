@@ -1,6 +1,6 @@
 "use client";
 
-import { onPageScroll, pageScrollTop } from "@/systems/bezel";
+import { onPageScroll, pageScrollTop } from "@hux/bezel";
 import { useEffect, useState, type CSSProperties } from "react";
 
 /**
@@ -33,8 +33,8 @@ export function useHeroFade(): CSSProperties | undefined {
     const getFadeDistance = () =>
       window.matchMedia("(min-width: 768px)").matches ? 144 : 176;
 
-    // Page scroll, not window scroll: on a locked phone the page scrolls in
-    // #scroll-root and the window never moves. See @/systems/bezel.
+    // Page scroll, not window scroll: in container scroll the page scrolls in
+    // the bezel's container and the window never moves. See @hux/bezel.
     const update = () => {
       setOpacity(1 - Math.min(pageScrollTop() / getFadeDistance(), 1));
     };
