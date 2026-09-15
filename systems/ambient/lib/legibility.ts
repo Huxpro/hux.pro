@@ -46,6 +46,14 @@ export interface LegibilityPolicy {
   edgesFull: number;
   /** Alpha points added to the ink ladder at full busyness. */
   inkBoostMax: number;
+  /**
+   * Alpha points a *bare* zone gains on top of that at full busyness. Text
+   * with nothing but the picture behind it — the header, the labels under
+   * the app icons — has no fill helping it, so its secondary rung climbs
+   * toward solid the busier the picture gets (iOS paints Home Screen labels
+   * at full white); text on glass keeps the ordinary boost.
+   */
+  bareBoostMax: number;
   /** Relief strength a fully busy picture earns on its own. */
   reliefBusy: number;
   /** Ink-to-backdrop lightness gap below which relief starts to be needed. */
@@ -71,6 +79,15 @@ export interface LegibilityPolicy {
   toneWorst: Record<Theme, number>;
   /** How much better the inverse ink must contrast before bare text flips. */
   flipMargin: number;
+  /**
+   * Head start for the light ink in that comparison. Light text carries a
+   * dark drop, dark text a white halo, and a drop reads on far more grounds
+   * than a halo (Aqua and the Lock Screen both reach for white-with-shadow
+   * over a photograph), so on a mid-tone picture the light ink wins the tie:
+   * the light theme flips at a top band below ~0.59, the dark theme only
+   * flips back to dark ink above ~0.74.
+   */
+  dropBias: number;
   /**
    * The reading treatment. A photograph behind a prose column is a competing
    * figure, so reading routes recede it behind a veil of the page colour and
@@ -100,6 +117,7 @@ export interface LegibilityPolicy {
 export const DEFAULT_LEGIBILITY_POLICY: LegibilityPolicy = {
   edgesFull: 0.06,
   inkBoostMax: 14,
+  bareBoostMax: 20,
   reliefBusy: 0.85,
   reliefGapStart: 0.25,
   reliefGapFull: 0.55,
@@ -110,6 +128,7 @@ export const DEFAULT_LEGIBILITY_POLICY: LegibilityPolicy = {
   toneSafe: { light: 0.62, dark: 0.45 },
   toneWorst: { light: 0.22, dark: 0.85 },
   flipMargin: 0.15,
+  dropBias: 0.25,
   veilBase: { light: 0.45, dark: 0.55 },
   veilBusy: 0.18,
   veilConflict: 0.2,
@@ -131,10 +150,14 @@ export interface LegibilityVars {
   conflict: number;
   /** Alpha points added to the ink ladder. */
   inkBoost: number;
+  /** Alpha points a bare zone adds on top of `inkBoost`. */
+  bareBoost: number;
   /** Text relief strength, 0..1. Zero means no text-shadow at all. */
   relief: number;
-  /** Bare text on the wallpaper flips to the inverse ink. */
+  /** Bare text in the top band (the home header) flips to the inverse ink. */
   flip: boolean;
+  /** Bare text in the middle band (the app folder's labels) flips. */
+  flipMid: boolean;
   /** Fill points added to every glass token. */
   glassAdd: number;
   /** Alpha of the page-coloured veil over the picture on a reading route. */
@@ -180,16 +203,21 @@ export function resolveLegibility(params: {
   const worst = policy.toneWorst[theme];
   const conflict = clamp01((profile.lum - safe) / (worst - safe));
 
-  // Bare text sits in the top band. Compare how far each ink is from it and
-  // flip only when the inverse is clearly better — a margin, so a mid-tone
-  // picture does not flip on a rounding error.
-  const top = profile.zones.top;
+  // Bare text sits in two bands: the header in the top one, the app folder's
+  // labels in the middle one. For each, compare how far each ink is from the
+  // band — the light ink with its head start, since its drop is the stronger
+  // relief — and flip only when the inverse is clearly better: a margin, so
+  // a picture does not flip on a rounding error.
   const inkL = INK_LIGHTNESS[theme];
   const inverseL = INK_LIGHTNESS[theme === "dark" ? "light" : "dark"];
-  const gap = Math.abs(inkL - top);
-  const inverseGap = Math.abs(inverseL - top);
-  const flip = !reading && inverseGap - gap > policy.flipMargin;
-  const effectiveGap = flip ? inverseGap : gap;
+  const score = (ink: number, band: number) =>
+    Math.abs(ink - band) + (ink > 0.5 ? policy.dropBias : 0);
+  const flips = (band: number) =>
+    !reading && score(inverseL, band) - score(inkL, band) > policy.flipMargin;
+  const top = profile.zones.top;
+  const flip = flips(top);
+  const flipMid = flips(profile.zones.mid);
+  const effectiveGap = Math.abs((flip ? inverseL : inkL) - top);
 
   // Relief: from busyness, and from the ink not standing out enough.
   const need =
@@ -204,8 +232,10 @@ export function resolveLegibility(params: {
     busy: round(busy),
     conflict: round(conflict),
     inkBoost: Math.round(Math.max(busy, conflict * 0.7) * policy.inkBoostMax),
+    bareBoost: reading ? 0 : Math.round(busy * policy.bareBoostMax),
     relief,
     flip,
+    flipMid,
     glassAdd: Math.round(busy * policy.glassAddMax + conflict * policy.glassAddToneMax),
     veil: round(
       Math.min(policy.veilMax, policy.veilBase[theme] + busy * policy.veilBusy + conflict * policy.veilConflict),
@@ -352,6 +382,7 @@ export function profileFromScene(params: {
 export function legibilityCssVars(vars: LegibilityVars): Record<string, string> {
   return {
     "--wp-ink-boost": `${vars.inkBoost}%`,
+    "--wp-bare-boost": `${vars.bareBoost}%`,
     "--wp-relief": String(vars.relief),
     "--wp-glass-add": `${vars.glassAdd}%`,
     "--wp-tint-l": String(vars.tint.l),
@@ -382,6 +413,8 @@ export function applyLegibility(
   root.dataset.wallpaperSurface = context.reading ? "reading" : "desktop";
   if (vars.flip) root.dataset.wallpaperFlip = "";
   else delete root.dataset.wallpaperFlip;
+  if (vars.flipMid) root.dataset.wallpaperFlipMid = "";
+  else delete root.dataset.wallpaperFlipMid;
   // The stylesheet keys the text-shadow on this attribute rather than on the
   // strength, so a strength of zero yields `none`, not a transparent shadow.
   if (vars.relief > 0) root.dataset.wallpaperRelief = "";

@@ -191,8 +191,6 @@ export interface DevtoolWallpaperOverrides {
    * Stamped by the provider; callers never set it.
    */
   edgeFamily?: WallpaperFamily;
-  /** Treat this route as a reading surface (or not), whatever the path says. */
-  reading?: boolean;
 }
 
 interface WallpaperContextType {
@@ -479,7 +477,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     return {
       full: storedOverrides.full,
       widget: storedOverrides.widget,
-      reading: storedOverrides.reading,
       scroll: storedOverrides.scroll,
       noWebGL: storedOverrides.noWebGL,
     };
@@ -499,14 +496,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   }, []);
 
   const overridden = (
-    key: "full" | "widget" | "softEdging" | "bezel" | "reading",
+    key: "full" | "widget" | "softEdging" | "bezel",
     natural: boolean
   ): boolean => (isDevtoolEnabled ? devtoolOverrides[key] : undefined) ?? natural;
 
-  const reading = overridden(
-    "reading",
-    isReadingSurface({ kind: settings.wallpaperKind, pathname })
-  );
+  const reading = isReadingSurface({ kind: settings.wallpaperKind, pathname });
   const isBlurred = reading && settings.wallpaperReadingBlur;
 
   const fullEnabled = overridden("full", settings.wallpaperPlacement === "full");

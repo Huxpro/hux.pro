@@ -52,6 +52,7 @@ export interface PolicyKnob {
 export const POLICY_KNOBS: PolicyKnob[] = [
   { key: "edgesFull", label: "Edges → busy", hint: "edges at which busy = 1", min: 0.01, max: 0.15, step: 0.005 },
   { key: "inkBoostMax", label: "Ink boost max", hint: "alpha points at busy = 1", min: 0, max: 30, step: 1 },
+  { key: "bareBoostMax", label: "Bare boost max", hint: "extra alpha points for bare text at busy = 1", min: 0, max: 40, step: 1 },
   { key: "reliefBusy", label: "Relief from busy", hint: "relief at busy = 1", min: 0, max: 1, step: 0.05 },
   { key: "reliefGapStart", label: "Relief gap start", hint: "ink−backdrop gap where need starts", min: 0, max: 0.6, step: 0.01 },
   { key: "reliefGapFull", label: "Relief gap full", hint: "gap where need is nil", min: 0.2, max: 0.9, step: 0.01 },
@@ -60,6 +61,7 @@ export const POLICY_KNOBS: PolicyKnob[] = [
   { key: "glassAddMax", label: "Glass add max", hint: "fill points at busy = 1", min: 0, max: 40, step: 1 },
   { key: "glassAddToneMax", label: "Glass add · tone", hint: "fill points at full tone conflict", min: 0, max: 50, step: 1 },
   { key: "flipMargin", label: "Flip margin", hint: "how much better the inverse ink must be", min: 0, max: 0.5, step: 0.01 },
+  { key: "dropBias", label: "Drop bias", hint: "head start for the light ink — its drop beats a halo", min: 0, max: 0.5, step: 0.01 },
   { key: "veilBusy", label: "Veil · busy", hint: "veil alpha added at busy = 1", min: 0, max: 0.5, step: 0.01 },
   { key: "veilConflict", label: "Veil · tone", hint: "veil alpha added at full tone conflict", min: 0, max: 0.5, step: 0.01 },
   { key: "veilMax", label: "Veil max", hint: "some picture must remain", min: 0.3, max: 1, step: 0.01 },
@@ -98,7 +100,7 @@ export function mergePolicy(overrides: PolicyOverrides): LegibilityPolicy {
 // -----------------------------------------------------------------------------
 
 export interface OutputKnob {
-  key: "inkBoost" | "relief" | "glassAdd" | "veil" | "blur" | "tintL" | "tintC" | "tintH";
+  key: "inkBoost" | "bareBoost" | "relief" | "glassAdd" | "veil" | "blur" | "tintL" | "tintC" | "tintH";
   label: string;
   min: number;
   max: number;
@@ -107,6 +109,7 @@ export interface OutputKnob {
 
 export const OUTPUT_KNOBS: OutputKnob[] = [
   { key: "inkBoost", label: "Ink boost", min: 0, max: 30, step: 1 },
+  { key: "bareBoost", label: "Bare boost", min: 0, max: 40, step: 1 },
   { key: "relief", label: "Relief", min: 0, max: 1, step: 0.05 },
   { key: "glassAdd", label: "Glass add", min: 0, max: 40, step: 1 },
   { key: "veil", label: "Reading veil", min: 0, max: 1, step: 0.01 },
@@ -116,7 +119,7 @@ export const OUTPUT_KNOBS: OutputKnob[] = [
   { key: "tintH", label: "Tint H", min: 0, max: 360, step: 1 },
 ];
 
-export type OutputPins = Partial<Record<OutputKnob["key"], number>> & { flip?: boolean };
+export type OutputPins = Partial<Record<OutputKnob["key"], number>> & { flip?: boolean; flipMid?: boolean };
 
 export function readOutput(vars: LegibilityVars, key: OutputKnob["key"]): number {
   switch (key) {
@@ -135,11 +138,13 @@ export function applyPins(vars: LegibilityVars, pins: OutputPins): LegibilityVar
   return {
     ...vars,
     inkBoost: pins.inkBoost ?? vars.inkBoost,
+    bareBoost: pins.bareBoost ?? vars.bareBoost,
     relief: pins.relief ?? vars.relief,
     glassAdd: pins.glassAdd ?? vars.glassAdd,
     veil: pins.veil ?? vars.veil,
     blur: pins.blur ?? vars.blur,
     flip: pins.flip ?? vars.flip,
+    flipMid: pins.flipMid ?? vars.flipMid,
     tint: {
       l: pins.tintL ?? vars.tint.l,
       c: pins.tintC ?? vars.tint.c,
@@ -170,11 +175,13 @@ export function resolveForLab(params: {
 export function sameVars(a: LegibilityVars, b: LegibilityVars): boolean {
   return (
     a.inkBoost === b.inkBoost &&
+    a.bareBoost === b.bareBoost &&
     a.relief === b.relief &&
     a.glassAdd === b.glassAdd &&
     a.veil === b.veil &&
     a.blur === b.blur &&
     a.flip === b.flip &&
+    a.flipMid === b.flipMid &&
     a.tint.l === b.tint.l &&
     a.tint.c === b.tint.c &&
     a.tint.h === b.tint.h

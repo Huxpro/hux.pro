@@ -871,7 +871,7 @@ function GlassModule() {
           className="flex w-full items-center gap-2 rounded-md border border-border/60 px-2 py-1.5 text-left transition-colors hover:bg-muted/40"
         >
           <span className="min-w-0 flex-1 truncate text-[10px] font-mono text-foreground/80">
-            {legibility.flip ? "flip" : "ink"}
+            {legibility.flip ? "flip" : legibility.flipMid ? "flip·mid" : "ink"}
             <span className="ml-1.5 tabular-nums text-tertiary-foreground">
               busy {legibility.busy.toFixed(2)} · relief {legibility.relief.toFixed(2)} · +
               {legibility.inkBoost}% · glass +{legibility.glassAdd}%
@@ -1027,16 +1027,8 @@ function WallpaperModule() {
       aria: "Toggle soft edging",
       on: softEdgeEnabled,
     },
-    // The reading treatment on any route: see the veil and defocus on the
-    // home screen, or a reading page without them.
-    {
-      key: "reading",
-      label: zh ? "按阅读页处理" : "As reading",
-      aria: "Toggle the reading treatment on this route",
-      on: reading,
-    },
   ] as const;
-  type OverrideKey = "full" | "widget" | "softEdging" | "reading" | "bezel" | "scroll" | "noWebGL";
+  type OverrideKey = "full" | "widget" | "softEdging" | "bezel" | "scroll" | "noWebGL";
   const overrideFlag = (key: Exclude<OverrideKey, "scroll">, on: boolean) =>
     setDevtoolOverrides({ ...devtoolOverrides, [key]: on });
   const clearFlag = (key: OverrideKey) =>

@@ -327,24 +327,31 @@ export function LegibilityLabView() {
     const pct = (name: string, fallback: number) =>
       (cs && parseSheetValue(cs.getPropertyValue(name))) ?? fallback;
     const secondaryAlpha = (pct("--ink-alpha-secondary", 54) + live.inkBoost) / 100;
+    const bareAlpha = secondaryAlpha + live.bareBoost / 100;
     const glassFill = (pct("--glass-fill", 50) + pct("--glass-dark-add", 0) + live.glassAdd * pct("--glass-add-k", 0.5)) / 100;
     const sheetFill = (pct("--glass-fill-sheet", 85) + pct("--glass-dark-add", 0) + live.glassAdd * pct("--glass-add-k", 0.5)) / 100;
 
     const inverse: Theme = theme === "dark" ? "light" : "dark";
     const bareInk = INK_RGB[live.flip ? inverse : theme];
-    // The top band, approximated by scaling the mean colour to its lightness.
-    const scale = profile.lum > 0 ? profile.zones.top / profile.lum : 1;
-    const top = profile.mean.map((c) => Math.min(255, Math.round(c * scale))) as [number, number, number];
+    const bareMidInk = INK_RGB[live.flipMid ? inverse : theme];
+    // A band, approximated by scaling the mean colour to its lightness.
+    const band = (l: number) => {
+      const scale = profile.lum > 0 ? l / profile.lum : 1;
+      return profile.mean.map((c) => Math.min(255, Math.round(c * scale))) as [number, number, number];
+    };
+    const top = band(profile.zones.top);
+    const mid = band(profile.zones.mid);
     const onGlass = composite(CARD_RGB[theme], glassFill, profile.mean);
     const onSheet = composite(CARD_RGB[theme], sheetFill, profile.mean);
     const onVeil = composite(BACKGROUND_RGB[theme], readingVars.veil, profile.mean);
     const ink = INK_RGB[theme];
-    const row = (bg: [number, number, number], text: [number, number, number]) => ({
+    const row = (bg: [number, number, number], text: [number, number, number], alpha = secondaryAlpha) => ({
       primary: contrastRatio(text, bg),
-      secondary: contrastRatio(composite(text, secondaryAlpha, bg), bg),
+      secondary: contrastRatio(composite(text, alpha, bg), bg),
     });
     return {
-      bare: row(top, bareInk),
+      bare: row(top, bareInk, bareAlpha),
+      bareMid: row(mid, bareMidInk, bareAlpha),
       glass: row(onGlass, ink),
       sheet: row(onSheet, ink),
       reading: row(onVeil, composite(ink, 0.85, onVeil)),
@@ -393,6 +400,7 @@ export function LegibilityLabView() {
             {sceneLabel(scene, locale)}
             {wallpaper.kind === "weather" && ` · ${t(locale, WEATHER_STYLE_LABEL[wallpaper.effectiveStyle])}`} · {themeName(theme)} · {materialName(glass.material)} · {tintName(glass.tint)}
             {live.flip && ` · ${L.flipped}`}
+            {live.flipMid && ` · ${L.flippedMid}`}
             {dirty > 0 && <span className="ml-2 text-amber-500/90">{L.liveChanges(dirty)}</span>}
           </div>
         </header>
@@ -593,6 +601,7 @@ export function LegibilityLabView() {
             {(
               [
                 [L.contrastBare, contrast.bare],
+                [L.contrastBareMid, contrast.bareMid],
                 [L.contrastGlass, contrast.glass],
                 [L.contrastSheet, contrast.sheet],
                 [L.contrastReading, contrast.reading],
@@ -737,32 +746,39 @@ export function LegibilityLabView() {
         </Section>
 
         <Section title={L.resolved}>
-          <Field label={L.flipBare} hint={live.flip ? L.on : L.off}>
-            <div className="flex items-center gap-2">
-              <Segmented
-                value={live.flip ? "on" : "off"}
-                onChange={(v) => setPins((p) => ({ ...p, flip: v === "on" }))}
-                options={[
-                  { value: "off", label: L.Off },
-                  { value: "on", label: L.On },
-                ]}
-              />
-              {"flip" in pins ? (
-                <Star
-                  title={L.backToPolicy}
-                  onReset={() =>
-                    setPins((p) => {
-                      const next = { ...p };
-                      delete next.flip;
-                      return next;
-                    })
-                  }
+          {(
+            [
+              ["flip", L.flipBare, live.flip],
+              ["flipMid", L.flipMid, live.flipMid],
+            ] as const
+          ).map(([key, label, on]) => (
+            <Field key={key} label={label} hint={on ? L.on : L.off}>
+              <div className="flex items-center gap-2">
+                <Segmented
+                  value={on ? "on" : "off"}
+                  onChange={(v) => setPins((p) => ({ ...p, [key]: v === "on" }))}
+                  options={[
+                    { value: "off", label: L.Off },
+                    { value: "on", label: L.On },
+                  ]}
                 />
-              ) : (
-                <span className="w-2.5" />
-              )}
-            </div>
-          </Field>
+                {key in pins ? (
+                  <Star
+                    title={L.backToPolicy}
+                    onReset={() =>
+                      setPins((p) => {
+                        const next = { ...p };
+                        delete next[key];
+                        return next;
+                      })
+                    }
+                  />
+                ) : (
+                  <span className="w-2.5" />
+                )}
+              </div>
+            </Field>
+          ))}
           {OUTPUT_KNOBS.map((knob) => {
             const value = readOutput(live, knob.key);
             const policyValue = readOutput(

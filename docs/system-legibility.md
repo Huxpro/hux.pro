@@ -133,8 +133,9 @@ runtime ever computes, memoised on what can change:
 | Output | From | Lands in |
 |---|---|---|
 | `inkBoost` | `max(busy, 0.7·conflict) × 14` alpha points | `--wp-ink-boost`, added to the secondary and tertiary alphas |
+| `bareBoost` | `busy × 20` alpha points more, for bare zones only; 0 on reading routes | `--wp-bare-boost`, which `.ink-bare` / `.ink-bare-mid` take as their `--wp-zone-boost` — nothing but the picture helps that text, so its rungs climb toward solid on a busy one, as iOS paints Home Screen labels |
 | `relief` | `max(need, busy × 0.85)`, where `need` grows as the ink-to-top-band gap shrinks below 0.55; × 0 on reading routes; under 0.1 → 0 | `--wp-relief`, scales the text shadow |
-| `flip` | the inverse ink clears the top band by more than 0.15 more than the theme's ink | `data-wallpaper-flip` |
+| `flip`, `flipMid` | per band (top for the header, middle for the app folder): the inverse ink clears the band by more than 0.15 more than the theme's ink, the light ink scored with a 0.25 head start because its drop is the stronger relief — so the light theme flips below ~0.59, the dark theme flips back above ~0.74 | `data-wallpaper-flip`, `data-wallpaper-flip-mid` |
 | `glassAdd` | `busy × 14 + conflict × 22` fill points | `--wp-glass-add`, added to every glass fill (Clear takes all, Tinted half) |
 | `veil` | `veilBase[theme] + busy × 0.18 + conflict × 0.2`, capped at 0.85 (base 0.45 light / 0.55 dark) | `--wp-veil`; the reading veil's alpha when Reading dim is on |
 | `blur` | `40px + busy × 24px` | `--wp-blur`; the reading defocus radius when Reading blur is on |
@@ -167,15 +168,21 @@ of ground: `body` (the wallpaper), the `bg-glass*` classes (× `--glass-relief-k
 0.3 on Tinted, 1 on Clear) and the solid ones — sheet, popover, overlay — (× 0
 on Tinted, 0.5 on Clear). `.ink-flat` opts an element out.
 
-Only bare zones flip: `.ink-bare`, on the home screen's header (the
-identifier and greeting) and on the app folder at rest (the labels under the
-icons) — nothing behind them but the picture. Under `data-wallpaper-flip` such
-a zone swaps `--ink` for `--ink-inverse` and re-derives its ladder, and picks
-the other relief shape. Glass surfaces never flip: they carry the card colour,
+Only bare zones flip: `.ink-bare`, the home screen's header (the identifier
+and greeting), decided on the picture's top band; and `.ink-bare-mid`, the app
+folder at rest (the labels under the icons), decided on its middle band —
+nothing behind either but the picture. Under `data-wallpaper-flip` /
+`data-wallpaper-flip-mid` the zone swaps `--ink` for `--ink-inverse` and
+re-derives its ladder, and picks the other relief shape. The comparison is
+not symmetric: light text carries a dark drop, dark text a white halo, and a
+drop reads on far more grounds (Aqua and the Lock Screen both reach for
+white-with-shadow over a photograph), so `dropBias` gives the light ink a
+head start and mid-tone pictures — the stones, the zen garden — go light in
+the light theme rather than dark-with-halo. Glass surfaces never flip: they carry the card colour,
 so their ink was right all along — they *adapt* through `glassAdd` instead,
 which is Liquid Glass's distinction between small elements and big ones. A
 zone that grows glass on demand stops being bare with it: the folder drops
-`.ink-bare` while editing, and `.ink-bare-rest` un-flips it under the hover
+`.ink-bare-mid` while editing, and `.ink-bare-rest` un-flips it under the hover
 glass on a hover-capable pointer.
 
 ### 5. Typography roles (`lib/typography.ts`)
@@ -259,8 +266,7 @@ and veils the wallpaper behind it at the policy's numbers and carries the
 policy's reading resolution (no flip, relief × `reliefReading`), so the dim,
 the blur and the rungs are judged on the wallpaper they will sit on, on the
 same page as the desktop specimens — and the veil / blur sliders act on it
-directly. The devtool's "As reading" switch does the page-wide version for a
-real route.
+directly; a real route is checked by opening it.
 
 Tuning made in the lab **stays for the session**: the policy goes to the
 provider (`labPolicy`), which resolves every route with it, and the sheet
@@ -329,7 +335,8 @@ small and grey on some engines.
   `pnpm wallpapers:profile`. Done.
 - **A surface:** paint with a glass token and the ink tokens. It will follow
   the material, the tint, the boost and the relief without knowing any exist.
-- **Text on the wallpaper itself** (nothing behind it): wrap it in `.ink-bare`.
+- **Text on the wallpaper itself** (nothing behind it): wrap it in `.ink-bare`
+  (near the top of the page) or `.ink-bare-mid` (mid-page).
 - **Text that must never carry a shadow** (an inverted chip, code): `.ink-flat`.
 - **A number you want to try:** open the lab, move the slider, look, copy.
 

@@ -17,6 +17,7 @@ const STRINGS = {
   en: {
     title: "legibility lab",
     flipped: "flipped",
+    flippedMid: "folder flipped",
     liveChanges: (n: number) => `${n} live change${n > 1 ? "s" : ""}`,
 
     // Specimen captions
@@ -58,6 +59,7 @@ const STRINGS = {
     grey: "grey",
     contrastTitle: "Contrast — estimate from the profile",
     contrastBare: "bare · top band",
+    contrastBareMid: "folder · middle band",
     contrastGlass: "glass · bg-glass",
     contrastSheet: "sheet · bg-glass-sheet",
     contrastReading: "reading · veil",
@@ -75,7 +77,8 @@ const STRINGS = {
     tintL: "Tint L range",
     tintC: "Tint C range",
     resolved: "Resolved — the variables on <html>",
-    flipBare: "Flip bare ink",
+    flipBare: "Flip bare ink · top",
+    flipMid: "Flip bare ink · middle",
     on: "on",
     off: "off",
     On: "On",
@@ -97,6 +100,7 @@ const STRINGS = {
   zh: {
     title: "可读性实验室",
     flipped: "反色",
+    flippedMid: "文件夹反色",
     liveChanges: (n: number) => `${n} 项实时改动`,
 
     bare: "裸文字 — 底下只有壁纸",
@@ -136,6 +140,7 @@ const STRINGS = {
     grey: "灰",
     contrastTitle: "对比度 — 由画像估算",
     contrastBare: "裸文字 · 顶部",
+    contrastBareMid: "文件夹 · 中部",
     contrastGlass: "玻璃 · bg-glass",
     contrastSheet: "面板 · bg-glass-sheet",
     contrastReading: "阅读 · 压暗层",
@@ -151,7 +156,8 @@ const STRINGS = {
     tintL: "主色亮度范围",
     tintC: "主色彩度范围",
     resolved: "解析结果 — <html> 上的变量",
-    flipBare: "裸文字反色",
+    flipBare: "裸文字反色 · 顶部",
+    flipMid: "裸文字反色 · 中部",
     on: "开",
     off: "关",
     On: "开",
@@ -178,6 +184,7 @@ const KNOBS_ZH: Record<string, { label: string; hint?: string }> = {
   // policy
   edgesFull: { label: "细节 → 繁忙", hint: "细节达到多少算完全繁忙" },
   inkBoostMax: { label: "墨色增益上限", hint: "完全繁忙时增加的透明度百分点" },
+  bareBoostMax: { label: "裸文字增益上限", hint: "完全繁忙时裸文字额外增加的透明度百分点" },
   reliefBusy: { label: "繁忙浮雕", hint: "完全繁忙时的浮雕强度" },
   reliefGapStart: { label: "浮雕起点差距", hint: "墨与背景亮度差小于此值开始需要浮雕" },
   reliefGapFull: { label: "浮雕终点差距", hint: "差距达到此值不再需要浮雕" },
@@ -186,6 +193,7 @@ const KNOBS_ZH: Record<string, { label: string; hint?: string }> = {
   glassAddMax: { label: "玻璃增填上限", hint: "完全繁忙时增加的填充百分点" },
   glassAddToneMax: { label: "玻璃增填 · 色调", hint: "色调冲突为满时增加的填充百分点" },
   flipMargin: { label: "反色余量", hint: "反色墨需比正常墨好多少才翻转" },
+  dropBias: { label: "投影偏向", hint: "浅色墨的先手分 — 深色投影比白色光晕更管用" },
   veilBusy: { label: "压暗 · 繁忙", hint: "完全繁忙时增加的压暗透明度" },
   veilConflict: { label: "压暗 · 色调", hint: "色调冲突为满时增加的压暗透明度" },
   veilMax: { label: "压暗上限", hint: "总要留一些壁纸" },
@@ -194,6 +202,7 @@ const KNOBS_ZH: Record<string, { label: string; hint?: string }> = {
   tintMinChroma: { label: "主色最低彩度", hint: "比这更灰：不取主色" },
   // outputs
   inkBoost: { label: "墨色增益" },
+  bareBoost: { label: "裸文字增益" },
   relief: { label: "浮雕" },
   glassAdd: { label: "玻璃增填" },
   veil: { label: "阅读压暗" },

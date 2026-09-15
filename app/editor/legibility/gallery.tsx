@@ -232,8 +232,10 @@ export function GalleryTile({
       <span className="ink-flat absolute left-2 top-2 rounded bg-black/35 px-1 py-0.5 text-[9px] font-mono text-white ring-1 ring-white/25">
         {sceneLabel(scene, locale)}
         {vars.flip && " · flip"}
+        {vars.flipMid && !vars.flip && " · flip·mid"}
         {vars.relief > 0 && ` · r${vars.relief.toFixed(1)}`}
         {vars.inkBoost > 0 && ` · +${vars.inkBoost}`}
+        {vars.bareBoost > 0 && `+${vars.bareBoost}`}
       </span>
     </button>
   );

@@ -55,7 +55,8 @@ export function BareSpecimen() {
         <span className="text-tertiary-foreground">tertiary — captions, dates beside a title</span>
         <span className="text-quaternary-foreground">quaternary — hashes, separators, placeholders</span>
       </div>
-      <div className="mt-4 flex gap-5">
+      {/* The app folder: a middle-band zone, deciding its flip for itself. */}
+      <div className="ink-bare-mid mt-4 flex gap-5">
         {["Writing", "Works", "Prompt", "Docs"].map((label) => (
           <span key={label} className="flex w-16 flex-col items-center">
             <span className="size-11 rounded-[12px] border border-border/50 bg-glass backdrop-blur-xl" />
