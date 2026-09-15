@@ -267,7 +267,7 @@ function buildCommitPreview(
         {hasTags && (
           <div
             className={cn(
-              "font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70 leading-relaxed",
+              "font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground leading-relaxed",
               description && "pt-3 border-t border-border/30",
             )}
           >

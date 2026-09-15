@@ -74,8 +74,9 @@ duration-300 (morphing transitions)
 - Avoid introducing new colors; stick to the grayscale system.
 - Text and washes are `--ink` at an alpha, never a fixed grey — see
   `docs/system-legibility.md`. Use `text-muted-foreground` /
-  `text-tertiary-foreground` / `bg-muted` / `bg-accent`, and a glass token for
-  any floating surface. Text sitting directly on the wallpaper goes in an
+  `text-tertiary-foreground` / `text-quaternary-foreground` / `bg-muted` /
+  `bg-accent` — never `text-muted-foreground/NN` — and a glass token for any
+  floating surface. Text sitting directly on the wallpaper goes in an
   `.ink-bare` zone.
 - After adding a wallpaper: `pnpm wallpapers:profile` and commit the table.
 

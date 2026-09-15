@@ -1,3 +1,5 @@
+import { toBlogPostSummaries } from "@/lib/content";
+import { getAllBlogPosts } from "@/lib/mdx";
 import { LegibilityLabView } from "./view";
 
 export const metadata = {
@@ -8,5 +10,7 @@ export const metadata = {
 };
 
 export default function LegibilityLabPage() {
-  return <LegibilityLabView />;
+  // The real writing widget, fed the way the home screen feeds it.
+  const posts = toBlogPostSummaries(getAllBlogPosts());
+  return <LegibilityLabView posts={posts} />;
 }

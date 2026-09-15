@@ -55,7 +55,7 @@ function Field({
 
   return (
     <label className="flex items-start gap-2">
-      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 w-20 shrink-0 text-right pt-1.5">
+      <span className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground w-20 shrink-0 text-right pt-1.5">
         {label}
       </span>
       {multiline ? (
@@ -110,7 +110,7 @@ function ChoiceField<T extends string>({
 
   return (
     <label className="flex items-center gap-2">
-      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 w-20 shrink-0 text-right">
+      <span className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground w-20 shrink-0 text-right">
         {label}
       </span>
       {resolved === "segmented" ? (
@@ -124,7 +124,7 @@ function ChoiceField<T extends string>({
                 "px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-colors",
                 value === o.value
                   ? "bg-muted/30 text-foreground"
-                  : "text-muted-foreground/60 hover:text-muted-foreground",
+                  : "text-tertiary-foreground hover:text-muted-foreground",
               )}
             >
               {o.label}
@@ -159,7 +159,7 @@ function CheckField({
 }) {
   return (
     <label className="flex items-center gap-2 cursor-pointer">
-      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 w-20 shrink-0 text-right">
+      <span className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground w-20 shrink-0 text-right">
         {label}
       </span>
       <input
@@ -174,7 +174,7 @@ function CheckField({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/40 pt-2">
+    <div className="font-mono text-[10px] uppercase tracking-wider text-quaternary-foreground pt-2">
       {children}
     </div>
   );
@@ -218,14 +218,14 @@ function StringListSection({
         <SectionLabel>{label}</SectionLabel>
         <button
           onClick={addItem}
-          className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground rounded transition-colors"
+          className="p-0.5 text-quaternary-foreground hover:text-muted-foreground rounded transition-colors"
           title={addTitle ?? `Add ${label.toLowerCase()}`}
         >
           <Plus className="w-3.5 h-3.5" />
         </button>
       </div>
       {items.length === 0 && (
-        <div className="text-xs text-muted-foreground/40 font-mono pl-[88px]">
+        <div className="text-xs text-quaternary-foreground font-mono pl-[88px]">
           No {label.toLowerCase()}
         </div>
       )}
@@ -240,7 +240,7 @@ function StringListSection({
           />
           <button
             onClick={() => deleteItem(i)}
-            className="p-0.5 text-muted-foreground/30 hover:text-red-500 rounded transition-colors"
+            className="p-0.5 text-quaternary-foreground hover:text-red-500 rounded transition-colors"
             title={`Remove ${label.toLowerCase()}`}
           >
             <Trash2 className="w-3 h-3" />
@@ -345,9 +345,9 @@ export function CommitEditor({
     <div className="flex flex-col min-h-0 flex-1">
       <div className="shrink-0 border-b border-border px-3 py-2 flex items-center justify-between gap-2">
         <div className="min-w-0 flex items-center gap-2">
-          <TypeIcon className="w-3.5 h-3.5 shrink-0 text-muted-foreground/60" />
+          <TypeIcon className="w-3.5 h-3.5 shrink-0 text-tertiary-foreground" />
           <div className="min-w-0">
-            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50">
+            <div className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground">
               {commit.type}
             </div>
             <div className="text-sm truncate leading-tight">
@@ -364,7 +364,7 @@ export function CommitEditor({
                 "px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-colors",
                 tab === "form"
                   ? "bg-muted/30 text-foreground"
-                  : "text-muted-foreground/60 hover:text-muted-foreground"
+                  : "text-tertiary-foreground hover:text-muted-foreground"
               )}
             >
               Form
@@ -376,7 +376,7 @@ export function CommitEditor({
                 "px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-colors",
                 tab === "json"
                   ? "bg-muted/30 text-foreground"
-                  : "text-muted-foreground/60 hover:text-muted-foreground"
+                  : "text-tertiary-foreground hover:text-muted-foreground"
               )}
             >
               JSON
@@ -385,7 +385,7 @@ export function CommitEditor({
           <button
             type="button"
             onClick={onDelete}
-            className="p-1 text-muted-foreground/40 hover:text-red-500 rounded transition-colors"
+            className="p-1 text-quaternary-foreground hover:text-red-500 rounded transition-colors"
             title="Delete commit"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -393,7 +393,7 @@ export function CommitEditor({
           <button
             type="button"
             onClick={onClose}
-            className="p-1 text-muted-foreground/50 hover:text-foreground rounded transition-colors"
+            className="p-1 text-tertiary-foreground hover:text-foreground rounded transition-colors"
             title="Close inspector"
             aria-label="Close inspector"
           >
@@ -751,29 +751,29 @@ function IdentityRailSection({
 
       {/* Live resolved readout — the missing "why". */}
       <div className="flex items-start gap-2">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 w-20 shrink-0 text-right pt-0.5">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground w-20 shrink-0 text-right pt-0.5">
           Resolved
         </span>
         <div className="flex-1 text-xs">
           {resolution.kind === "identity" ? (
             <div className="flex items-center gap-1.5 flex-wrap">
-              <GitBranch className="w-3 h-3 text-muted-foreground/50 shrink-0" />
+              <GitBranch className="w-3 h-3 text-tertiary-foreground shrink-0" />
               <span
                 className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: resolution.accent ?? "var(--muted-foreground)" }}
               />
               <span className="font-medium">{resolution.handle ?? resolution.identityId}</span>
-              <span className="font-mono text-[10px] text-muted-foreground/60">
+              <span className="font-mono text-[10px] text-tertiary-foreground">
                 {resolution.source}
               </span>
             </div>
           ) : resolution.kind === "detached" ? (
-            <div className="flex items-center gap-1.5 text-muted-foreground/70">
+            <div className="flex items-center gap-1.5 text-tertiary-foreground">
               <Unlink className="w-3 h-3 shrink-0" />
               <span>{resolution.note}</span>
             </div>
           ) : (
-            <span className="text-muted-foreground/50">{resolution.note}</span>
+            <span className="text-tertiary-foreground">{resolution.note}</span>
           )}
         </div>
       </div>
@@ -796,7 +796,7 @@ function IdentityRailSection({
 
       {editable && (
         <label className="flex items-center gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 w-20 shrink-0 text-right">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground w-20 shrink-0 text-right">
             Anchor
           </span>
           <select
@@ -1159,14 +1159,14 @@ function MediaSection({
         <SectionLabel>Media</SectionLabel>
         <button
           onClick={addItem}
-          className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground rounded transition-colors"
+          className="p-0.5 text-quaternary-foreground hover:text-muted-foreground rounded transition-colors"
           title="Add media"
         >
           <Plus className="w-3.5 h-3.5" />
         </button>
       </div>
       {drafts.length === 0 && (
-        <div className="text-xs text-muted-foreground/40 font-mono pl-[88px]">
+        <div className="text-xs text-quaternary-foreground font-mono pl-[88px]">
           No media attached
         </div>
       )}
@@ -1220,14 +1220,14 @@ function MediaItemEditor({
       )}
     >
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground">
           {draft.kind}
           {draft.kind === "link" && draft.present ? ` · ${draft.present}` : ""}
         </span>
         <button
           type="button"
           onClick={onDelete}
-          className="p-0.5 text-muted-foreground/30 hover:text-red-500 rounded transition-colors"
+          className="p-0.5 text-quaternary-foreground hover:text-red-500 rounded transition-colors"
           title="Remove media"
         >
           <Trash2 className="w-3 h-3" />

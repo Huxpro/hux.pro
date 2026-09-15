@@ -66,9 +66,15 @@ Every text and wash token is now `--ink` at a percentage:
 | `--border`, `--input` | ink at `--wash-alpha-border` | 9 % | 10 % |
 | `--ring` | ink at `--ink-alpha-ring` (+ tint) | 45 % | 45 % |
 
-Nothing at a call site changed: `text-muted-foreground`, `bg-muted/50`,
-`border-border/50` and `hover:bg-accent/25` all still work, and Tailwind's
-`/NN` modifier now multiplies an alpha rather than fading a grey. The alphas
+`text-muted-foreground`, `bg-muted/50`, `border-border/50` and
+`hover:bg-accent/25` all still work, and Tailwind's `/NN` modifier now
+multiplies an alpha rather than fading a grey. But a modifier on *text* is
+now a rung, not a tint: the ~160 `text-muted-foreground/NN` call sites (dates,
+app labels, subtitles, hints) were migrated onto the ladder — `/75` and up to
+`muted-foreground`, `/45`–`/70` to `tertiary-foreground`, below that to
+`quaternary-foreground` — so each carries the wallpaper boost at its own
+strength instead of multiplying it away. Do not write
+`text-muted-foreground/NN` for new text; pick the rung. The alphas
 were chosen to land within a channel or two of the old greys on the plain
 page, so the site looks the same where it used to be right — and follows the
 backdrop everywhere it used to be wrong. Two new utilities complete Apple's
@@ -107,7 +113,7 @@ and committing the table; nothing else needs to know the picture exists.
 
 ### 3. Policy (`legibility.ts`)
 
-`resolveLegibility(profile, theme, reading)` returns six numbers — all the
+`resolveLegibility(profile, theme, reading)` returns eight numbers — all the
 runtime ever computes, memoised on what can change:
 
 | Output | From | Lands in |
@@ -116,7 +122,8 @@ runtime ever computes, memoised on what can change:
 | `relief` | `max(need, busy × 0.85)`, where `need` grows as the ink-to-top-band gap shrinks below 0.55; × 0 on reading routes; under 0.1 → 0 | `--wp-relief`, scales the text shadow |
 | `flip` | the inverse ink clears the top band by more than 0.15 more than the theme's ink | `data-wallpaper-flip` |
 | `glassAdd` | `busy × 14 + conflict × 22` fill points | `--wp-glass-add`, added to every glass fill (Clear takes all, Tinted half) |
-| `veilAdd` | 0.15 when flipped | the reading veil alpha |
+| `veil` | `veilBase[theme] + busy × 0.18 + conflict × 0.2`, capped at 0.85 (base 0.45 light / 0.55 dark) | `--wp-veil`; the reading veil's alpha when Reading dim is on |
+| `blur` | `40px + busy × 24px` | `--wp-blur`; the reading defocus radius when Reading blur is on |
 | `tint` | the profile's tint clamped to L 0.50–0.66 (light) / 0.60–0.76 (dark), C 0.05–0.16; grey below chroma 0.03 | `--wp-tint-l/c/h` |
 
 `busy` is `edges / 0.06`, clamped. `conflict` is how far the picture sits on
@@ -154,7 +161,20 @@ the card colour, so their ink was right all along — they *adapt* through
 `glassAdd` instead, which is Liquid Glass's distinction between small elements
 and big ones.
 
-### 5. Tint
+### 5. The reading treatment
+
+A photograph behind a 680px prose column is a competing figure, so every route
+but the home screen recedes it: a veil of the page colour over the picture and
+a defocus under it (`docs/system-glass.md`, *Reading surfaces*). Both were one
+number per theme; they are now policy outputs per wallpaper — Zen Garden's
+raked sand gets more veil and more blur than Tahoe's gradient, and Earth under
+the light theme gets the tone-conflict share on top. The two devtool switches
+(`Reading blur`, `Reading dim`) still decide *whether*; the policy decides
+*how much*. The lab's **Surface: Reading** applies the real treatment to the
+lab page itself, so the dim and blur are judged on the wallpaper they will
+actually sit on, not on a simulation.
+
+### 6. Tint
 
 The neutral baseline is grey by construction: `--tint` is the profile's
 colour, and `--tint-glass` / `--tint-accent` are the amounts, both 0. The
@@ -175,13 +195,19 @@ already read. Leaving the page restores what the visitor had.
 
 | Panel | What it turns |
 |---|---|
-| Scene | theme, material, tint, and every wallpaper — the 14 weather and sun-event gradients included |
+| Scene | theme, material, tint, surface (desktop / reading), and every wallpaper — the 14 weather and sun-event gradients included |
 | Profile | the measured numbers for what is painting, read-only |
 | Contrast | WCAG ratios of primary and secondary ink against the mean colour composited under each surface: bare top band, glass, sheet, reading veil |
 | Policy | every knob of `LegibilityPolicy`; a star marks a value that differs from what ships and resets it |
-| Resolved | the six outputs, pinnable directly for this scene |
+| Resolved | the eight outputs (ink boost, relief, glass add, veil, blur, tint), pinnable directly for this scene |
 | Sheet | the stylesheet's own inputs: the alpha ladder, washes, relief shape, the current material's glass fills, tint amounts — defaults read from the computed style, so the lab carries no second copy |
 | Export | the JSON of everything changed, and the CSS of the sheet overrides, to paste into `DEFAULT_LEGIBILITY_POLICY` or `:root` |
+
+The specimens include the **production widgets themselves** — the app
+folder, the writing widget, a projects group, weather, talks, the prompt —
+mounted by the same components the home screen uses, so the lab cannot drift
+from the site: an app label or a date reads in the lab exactly as it does on
+`/`.
 
 Below the specimens, the **gallery** shows every wallpaper of a category at
 once, each tile an `.ink-scope` carrying its own resolved variables — so one

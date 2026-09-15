@@ -143,7 +143,7 @@ export function TimelineMini({
                 ],
               )}
             >
-              <Icon className="w-3 h-3 text-muted-foreground/50" />
+              <Icon className="w-3 h-3 text-tertiary-foreground" />
             </span>
           )}
         </span>
@@ -155,7 +155,7 @@ export function TimelineMini({
               "min-w-0 flex-1 truncate",
               isEvent
                 ? cn(
-                    "text-xs text-muted-foreground/40",
+                    "text-xs text-quaternary-foreground",
                     /[぀-ヿ一-鿿]/.test(data.title)
                       ? "font-mono"
                       : "italic font-serif",
@@ -165,7 +165,7 @@ export function TimelineMini({
           >
             {data.title}
             {data.languageBadge && (
-              <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
+              <span className="ml-2 text-xs font-mono text-quaternary-foreground align-baseline">
                 {data.languageBadge}
               </span>
             )}
@@ -184,7 +184,7 @@ export function TimelineMini({
                   rel="noopener noreferrer"
                   aria-label={link.label}
                   title={link.label}
-                  className="inline-flex items-center text-muted-foreground/40 hover:text-foreground transition-colors"
+                  className="inline-flex items-center text-quaternary-foreground hover:text-foreground transition-colors"
                 >
                   <LinkIcon icon={link.icon} />
                 </a>
@@ -194,7 +194,7 @@ export function TimelineMini({
 
           {hideDate ? (
             data.dateSlotOverride && (
-              <span className="font-mono text-xs text-muted-foreground/50 shrink-0 ml-auto">
+              <span className="font-mono text-xs text-tertiary-foreground shrink-0 ml-auto">
                 {data.dateSlotOverride}
               </span>
             )
@@ -202,7 +202,7 @@ export function TimelineMini({
             <span
               className={cn(
                 "font-mono text-xs shrink-0 ml-auto",
-                isEvent ? "text-muted-foreground/30" : "text-muted-foreground/50",
+                isEvent ? "text-quaternary-foreground" : "text-tertiary-foreground",
               )}
             >
               {data.date}
@@ -214,7 +214,7 @@ export function TimelineMini({
             right. Sparse handle: cluster heads print it at rest, the rest
             fade in on row hover (or while expanded). */}
         {(data.meta || byline) && (
-          <div className="col-start-2 mt-0.5 text-xs font-mono text-muted-foreground/40 flex items-baseline justify-between gap-2">
+          <div className="col-start-2 mt-0.5 text-xs font-mono text-quaternary-foreground flex items-baseline justify-between gap-2">
             <span className="min-w-0 truncate">
               {data.meta ? (
                 data.metaUrl ? (
@@ -238,7 +238,7 @@ export function TimelineMini({
             {byline && (
               <span
                 className={cn(
-                  "shrink-0 text-muted-foreground/55 transition-opacity duration-200",
+                  "shrink-0 text-tertiary-foreground transition-opacity duration-200",
                   byline.isClusterHead || isExpanded
                     ? "opacity-100"
                     : "opacity-0 group-hover:opacity-100",
@@ -258,21 +258,21 @@ export function TimelineMini({
             {/* Abbreviated `git log --pretty=fuller` author block. */}
             {data.type !== "role" && (
               <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono pb-2 mb-0.5">
-                <span className="text-muted-foreground/40">Author:</span>
-                <span className="text-muted-foreground/65">
+                <span className="text-quaternary-foreground">Author:</span>
+                <span className="text-tertiary-foreground">
                   &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;
                 </span>
 
                 {byline?.expanded.title && (
                   <>
-                    <span className="text-muted-foreground/40">Role:</span>
-                    <span className="text-muted-foreground/60">
+                    <span className="text-quaternary-foreground">Role:</span>
+                    <span className="text-tertiary-foreground">
                       {byline.expanded.title}
-                      <span className="text-muted-foreground/35"> @ </span>
+                      <span className="text-quaternary-foreground"> @ </span>
                       {byline.expanded.company}
                       {byline.expanded.location && (
                         <>
-                          <span className="text-muted-foreground/30"> · </span>
+                          <span className="text-quaternary-foreground"> · </span>
                           {byline.expanded.location}
                         </>
                       )}

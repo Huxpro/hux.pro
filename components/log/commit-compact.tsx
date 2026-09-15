@@ -53,7 +53,7 @@ export function CommitCompact({ data, className }: CommitCompactProps) {
             {data.title}
           </span>
           {data.languageBadge && (
-            <span className="shrink-0 text-xs font-mono text-muted-foreground/40">
+            <span className="shrink-0 text-xs font-mono text-quaternary-foreground">
               {data.languageBadge}
             </span>
           )}

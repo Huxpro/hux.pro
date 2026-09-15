@@ -39,7 +39,7 @@ export function LanguageFilter({
           "px-2 py-1 rounded transition-colors duration-200",
           !includeOther
             ? "bg-foreground/5 text-muted-foreground"
-            : "text-muted-foreground/40 hover:text-muted-foreground/60"
+            : "text-quaternary-foreground hover:text-tertiary-foreground"
         )}
       >
         {locale === "en" ? "EN" : "中文"}
@@ -50,7 +50,7 @@ export function LanguageFilter({
           "px-2 py-1 rounded transition-colors duration-200",
           includeOther
             ? "bg-foreground/5 text-muted-foreground"
-            : "text-muted-foreground/40 hover:text-muted-foreground/60"
+            : "text-quaternary-foreground hover:text-tertiary-foreground"
         )}
       >
         {t(locale, "allLanguages")}
@@ -201,7 +201,7 @@ export function PostList<T extends Post>({
                     </span>
                   ))}
                   {showLangTag && (
-                    <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
+                    <span className="ml-2 text-xs font-mono text-quaternary-foreground align-baseline">
                       {post.language === "en" ? "EN" : "中文"}
                     </span>
                   )}
@@ -210,7 +210,7 @@ export function PostList<T extends Post>({
 
               {/* Same tier as a commit row's date on /works (muted/50) so the
                   writing list and the log read as one metadata register. */}
-              <span className="font-mono text-xs text-muted-foreground/50 shrink-0">
+              <span className="font-mono text-xs text-tertiary-foreground shrink-0">
                 {renderMeta
                   ? renderMeta(post)
                   : getLocalizedReadingTime(post, locale)}
@@ -360,13 +360,13 @@ function PostPreview({
             (`date · min read · origin` mono uppercase, middle-dot separated).
             Origin appends with the same separator instead of starting a new
             italic line, so the peek's header reads as the page's header. */}
-        <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70 leading-relaxed">
+        <div className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground leading-relaxed">
           <span>{LANGUAGE_LABEL[meta.language]}</span>
-          <span className="mx-1.5 text-muted-foreground/30">·</span>
+          <span className="mx-1.5 text-quaternary-foreground">·</span>
           <span>{meta.readingTime}</span>
           {origin && (
             <>
-              <span className="mx-1.5 text-muted-foreground/30">·</span>
+              <span className="mx-1.5 text-quaternary-foreground">·</span>
               <span>{origin}</span>
             </>
           )}
@@ -392,7 +392,7 @@ function PostPreview({
           // Same recipe as the top caption (mono uppercase tracking-wider)
           // so the card frames its content with a matched pair of meta
           // strips — top: language/reading; bottom: tags.
-          <div className="pt-3 border-t border-border/30 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70 leading-relaxed">
+          <div className="pt-3 border-t border-border/30 font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground leading-relaxed">
             {meta.tags!.join("  ·  ")}
           </div>
         )}

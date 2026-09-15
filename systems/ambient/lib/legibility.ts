@@ -69,8 +69,24 @@ export interface LegibilityPolicy {
   toneWorst: Record<Theme, number>;
   /** How much better the inverse ink must contrast before bare text flips. */
   flipMargin: number;
-  /** Extra reading veil when bare text has flipped. */
-  veilAddFlip: number;
+  /**
+   * The reading treatment. A photograph behind a prose column is a competing
+   * figure, so reading routes recede it behind a veil of the page colour and
+   * a defocus. Both start from a per-theme base and grow with busyness and
+   * tone conflict — a raked-sand picture, or a dark one under the light
+   * theme, needs more of each than a calm gradient.
+   */
+  veilBase: Record<Theme, number>;
+  /** Veil alpha added at full busyness. */
+  veilBusy: number;
+  /** Veil alpha added at full tone conflict. */
+  veilConflict: number;
+  /** The veil never exceeds this — some picture must remain. */
+  veilMax: number;
+  /** Defocus radius in px on a calm picture. */
+  blurBase: number;
+  /** Defocus radius added at full busyness. */
+  blurBusy: number;
   /** OKLCH lightness range a tint is clamped into, per theme. */
   tintLightness: Record<Theme, [number, number]>;
   /** OKLCH chroma range a tint is clamped into. */
@@ -92,7 +108,12 @@ export const DEFAULT_LEGIBILITY_POLICY: LegibilityPolicy = {
   toneSafe: { light: 0.62, dark: 0.45 },
   toneWorst: { light: 0.22, dark: 0.85 },
   flipMargin: 0.15,
-  veilAddFlip: 0.15,
+  veilBase: { light: 0.45, dark: 0.55 },
+  veilBusy: 0.18,
+  veilConflict: 0.2,
+  veilMax: 0.85,
+  blurBase: 40,
+  blurBusy: 24,
   tintLightness: { light: [0.5, 0.66], dark: [0.6, 0.76] },
   tintChroma: [0.05, 0.16],
   tintMinChroma: 0.03,
@@ -114,8 +135,10 @@ export interface LegibilityVars {
   flip: boolean;
   /** Fill points added to every glass token. */
   glassAdd: number;
-  /** Alpha added to the reading veil. */
-  veilAdd: number;
+  /** Alpha of the page-coloured veil over the picture on a reading route. */
+  veil: number;
+  /** Defocus radius, px, of the picture on a reading route. */
+  blur: number;
   /** The wallpaper's tint, clamped for use on a surface. */
   tint: WallpaperTint;
 }
@@ -182,7 +205,10 @@ export function resolveLegibility(params: {
     relief,
     flip,
     glassAdd: Math.round(busy * policy.glassAddMax + conflict * policy.glassAddToneMax),
-    veilAdd: flip ? policy.veilAddFlip : 0,
+    veil: round(
+      Math.min(policy.veilMax, policy.veilBase[theme] + busy * policy.veilBusy + conflict * policy.veilConflict),
+    ),
+    blur: Math.round(policy.blurBase + busy * policy.blurBusy),
     tint,
   };
 }
@@ -222,6 +248,8 @@ export function legibilityCssVars(vars: LegibilityVars): Record<string, string> 
     "--wp-tint-l": String(vars.tint.l),
     "--wp-tint-c": String(vars.tint.c),
     "--wp-tint-h": String(vars.tint.h),
+    "--wp-veil": String(vars.veil),
+    "--wp-blur": `${vars.blur}px`,
   };
 }
 

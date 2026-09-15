@@ -35,7 +35,8 @@ import {
   type LegibilityVars,
   type Theme,
 } from "@/systems/ambient/lib/legibility";
-import { WALLPAPER_READING_VEIL, BUILT_IN_WALLPAPERS, WALLPAPER_CATEGORIES } from "@/systems/ambient/lib/wallpaper";
+import { BUILT_IN_WALLPAPERS, WALLPAPER_CATEGORIES } from "@/systems/ambient/lib/wallpaper";
+import type { BlogPostSummary } from "@/lib/content";
 import { useDevtool } from "@/systems/devtool";
 import { Check, Copy, RotateCcw } from "lucide-react";
 import Link from "next/link";
@@ -70,6 +71,7 @@ import {
   BareSpecimen,
   PaletteSpecimen,
   ReadingSpecimen,
+  RealSurfacesSpecimen,
   SheetSpecimen,
   SpecimenLabel,
   WidgetSpecimen,
@@ -146,7 +148,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 // The view
 // -----------------------------------------------------------------------------
 
-export function LegibilityLabView() {
+export function LegibilityLabView({ posts }: { posts: BlogPostSummary[] }) {
   const wallpaper = useWallpaper();
   const weather = useWeather();
   const time = useAmbientTime();
@@ -246,13 +248,14 @@ export function LegibilityLabView() {
   const [pins, setPins] = useState<OutputPins>({});
   const policy = useMemo(() => mergePolicy(policyOverrides), [policyOverrides]);
 
+  const reading = wallpaper.reading;
   const shipped = useMemo(
-    () => resolveForLab({ profile: wallpaper.profile, theme, reading: false, policy: DEFAULT_LEGIBILITY_POLICY, pins: {} }),
-    [wallpaper.profile, theme],
+    () => resolveForLab({ profile: wallpaper.profile, theme, reading, policy: DEFAULT_LEGIBILITY_POLICY, pins: {} }),
+    [wallpaper.profile, theme, reading],
   );
   const resolved = useMemo(
-    () => resolveForLab({ profile: wallpaper.profile, theme, reading: false, policy, pins }),
-    [wallpaper.profile, theme, policy, pins],
+    () => resolveForLab({ profile: wallpaper.profile, theme, reading, policy, pins }),
+    [wallpaper.profile, theme, reading, policy, pins],
   );
 
   useEffect(() => {
@@ -286,9 +289,14 @@ export function LegibilityLabView() {
 
   // --- Readouts ------------------------------------------------------------
   const profile = wallpaper.profile;
-  const veil = WALLPAPER_READING_VEIL[theme] + live.veilAdd;
+  const veil = live.veil;
+  const surface: "desktop" | "reading" = wallpaper.reading ? "reading" : "desktop";
+  const setSurface = (v: "desktop" | "reading") =>
+    wallpaper.setDevtoolOverrides({ ...wallpaper.devtoolOverrides, reading: v === "reading" });
 
   const contrast = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- the sheet overrides and material change the computed values read below
+    [sheet, glass.material];
     const cs = typeof window === "undefined" ? null : getComputedStyle(document.documentElement);
     const pct = (name: string, fallback: number) =>
       (cs && parseSheetValue(cs.getPropertyValue(name))) ?? fallback;
@@ -315,7 +323,7 @@ export function LegibilityLabView() {
       sheet: row(onSheet, ink),
       reading: row(onVeil, composite(ink, 0.85, onVeil)),
     };
-  }, [profile, theme, live, veil, sheet, glass.material]); // eslint-disable-line react-hooks/exhaustive-deps -- `sheet` and material change the computed values read inside
+  }, [profile, theme, live, veil, sheet, glass.material]);
 
   // --- Gallery ---------------------------------------------------------------
   const [galleryCategory, setGalleryCategory] = useState<"weather" | "apple" | "nature">("apple");
@@ -356,7 +364,7 @@ export function LegibilityLabView() {
             <h1 className="mt-1 font-serif text-2xl tracking-tight text-foreground">legibility lab</h1>
           </div>
           <div className="text-[11px] font-mono text-muted-foreground">
-            {sceneLabel(scene)} · {theme} · {glass.material} · {glass.tint}
+            {sceneLabel(scene)} · {theme} · {glass.material} · {glass.tint} · {surface}
             {live.flip && " · flipped"}
             {dirty > 0 && <span className="ml-2 text-amber-500/90">{dirty} live change{dirty > 1 && "s"}</span>}
           </div>
@@ -388,9 +396,16 @@ export function LegibilityLabView() {
 
         <section>
           <SpecimenLabel>
-            reading page — veil {veil.toFixed(2)} over the defocused picture (relief here is the desktop&apos;s; the policy scales it ×{policy.reliefReading} on real reading routes)
+            {surface === "reading"
+              ? `reading page — the real treatment: veil ${veil.toFixed(2)} over a ${live.blur}px defocus (Surface: Reading)`
+              : "reading page — switch Surface to Reading in the panel to see the veil and defocus applied to this whole page"}
           </SpecimenLabel>
-          <ReadingSpecimen veil={veil} />
+          <ReadingSpecimen />
+        </section>
+
+        <section>
+          <SpecimenLabel>the real surfaces — production widgets, as the home screen renders them</SpecimenLabel>
+          <RealSurfacesSpecimen posts={posts} />
         </section>
 
         <section>
@@ -462,6 +477,19 @@ export function LegibilityLabView() {
                 { value: "wallpaper", label: "Wallpaper" },
               ]}
             />
+          </Field>
+          <Field label="Surface">
+            <Segmented
+              value={surface}
+              onChange={setSurface}
+              options={[
+                { value: "desktop", label: "Desktop" },
+                { value: "reading", label: "Reading" },
+              ]}
+            />
+            <span className="text-[10px] text-muted-foreground/60">
+              Reading applies the veil and defocus to this page, as /writing and /works get them. Bare text never flips there.
+            </span>
           </Field>
           <Field label="Wallpaper" hint={sceneLabel(scene)}>
             <div className="flex flex-col gap-2">
@@ -622,6 +650,21 @@ export function LegibilityLabView() {
             </div>
             <span className="text-[10px] text-muted-foreground/60">picture lightness where the card-colour conflict is nil → total ({theme})</span>
           </Field>
+          <Field label="Veil base" hint={`${policy.veilBase[theme]} (${theme})`}>
+            <Slider
+              value={policy.veilBase[theme]}
+              min={0}
+              max={0.9}
+              step={0.01}
+              onChange={(v) =>
+                setPolicyOverrides((o) => ({
+                  ...o,
+                  veilBase: { ...(o.veilBase ?? DEFAULT_LEGIBILITY_POLICY.veilBase), [theme]: v },
+                }))
+              }
+            />
+            <span className="text-[10px] text-muted-foreground/60">reading veil alpha on a calm picture, per theme</span>
+          </Field>
           <Field label="Tint L range" hint={`${policy.tintLightness[theme][0]} – ${policy.tintLightness[theme][1]}`}>
             <div className="flex gap-2">
               {([0, 1] as const).map((i) => (
@@ -695,7 +738,7 @@ export function LegibilityLabView() {
           {OUTPUT_KNOBS.map((knob) => {
             const value = readOutput(live, knob.key);
             const policyValue = readOutput(
-              resolveForLab({ profile, theme, reading: false, policy, pins: {} }),
+              resolveForLab({ profile, theme, reading, policy, pins: {} }),
               knob.key,
             );
             const pinned = knob.key in pins;

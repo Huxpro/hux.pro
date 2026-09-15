@@ -201,7 +201,7 @@ function TileCaption({
         </span>
       </div>
       {resolution && (
-        <div className="mt-0.5 font-mono text-[10px] tabular-nums text-muted-foreground/60">
+        <div className="mt-0.5 font-mono text-[10px] tabular-nums text-tertiary-foreground">
           {resolution}
         </div>
       )}
@@ -478,7 +478,7 @@ function WallpaperPickerBody() {
       </div>
 
       {category !== "weather" && (
-        <p className="px-0.5 pt-5 text-[11px] leading-snug text-muted-foreground/70">
+        <p className="px-0.5 pt-5 text-[11px] leading-snug text-tertiary-foreground">
           {t(locale, "wallpaperFooterNote")}
         </p>
       )}

@@ -20,6 +20,14 @@ import {
 import { cn } from "@/lib/utils";
 import { GLASS_PILL, GLASS_TRACK } from "@/systems/theater/lib/chrome";
 import { ArrowRight, ChevronDown, Cloud, Search } from "lucide-react";
+import { AppFolder } from "@/components/apps";
+import { FeaturedTalksWidget } from "@/components/home/featured-talks-widget";
+import { PromptWidget } from "@/components/home/prompt-widget";
+import { WritingWidget } from "@/components/home/writing-widget";
+import { GroupWidget, homeLog } from "@/app/home-view";
+import type { BlogPostSummary } from "@/lib/content";
+import { WeatherWidget } from "@/systems/ambient";
+import { ALBUM_GROUP_IDS } from "@/systems/theater/lib/albums";
 
 export function SpecimenLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -223,40 +231,73 @@ export function SheetSpecimen() {
 }
 
 /**
- * A reading page, simulated: the veil and defocus that `/writing/*` puts over
- * an image wallpaper, with prose in the article classes underneath.
+ * A reading page: the list rows and prose of /writing and /works, in their
+ * production classes. The veil and defocus are NOT simulated here — switch
+ * the lab's Surface to Reading and the provider applies the real treatment
+ * to the whole page, exactly as a reading route gets it.
  */
-export function ReadingSpecimen({ veil }: { veil: number }) {
+export function ReadingSpecimen() {
   return (
-    <div className="relative w-full overflow-hidden rounded-xl">
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-background backdrop-blur-2xl"
-        style={{ opacity: veil }}
-      />
-      <div className="relative px-6 py-6">
-        <div className="mb-4 text-xs font-mono tracking-wide text-muted-foreground">
-          /writing
-        </div>
-        <h2 className="mb-4 text-lg font-medium text-foreground">Ink at an alpha</h2>
-        <div className="prose-article">
-          <p>
-            A fixed grey was a pre-computed alpha for a page that was only ever
-            white or near-black. Under a picture it stops being any alpha at all —{" "}
-            <a href="#" onClick={(e) => e.preventDefault()}>
-              the same word
-            </a>{" "}
-            reads differently on every wallpaper, and{" "}
-            <code>text-muted-foreground</code> stops meaning &ldquo;secondary&rdquo;.
-          </p>
-          <blockquote>
-            <p>Regardless of the material you choose, use vibrant colors on top of it.</p>
-          </blockquote>
-        </div>
-        <div className="mt-2 text-xs text-muted-foreground">
-          sep 2026 · <span className="text-tertiary-foreground">4 min read</span>
-        </div>
+    <div className="w-full px-6 py-6">
+      <div className="mb-4 text-xs font-mono tracking-wide text-muted-foreground">/writing</div>
+      <h2 className="mb-6 font-serif text-3xl tracking-tight text-foreground">Writing</h2>
+      <div className="mb-8 space-y-1">
+        {[
+          ["Beyond Being a Frontend Engineer", "jul 2020", true],
+          ["React Is Not Vue, Obviously", "apr 2020", false],
+          ["Avoiding Success at All Cost", "sep 2018", false],
+        ].map(([title, date, featured]) => (
+          <div key={String(title)} className="flex items-baseline justify-between gap-3 py-2">
+            <span className="text-foreground">
+              {String(title)}
+              {featured && (
+                <span className="ml-2 rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                  featured
+                </span>
+              )}
+            </span>
+            <span className="shrink-0 font-mono text-xs text-tertiary-foreground">{String(date)}</span>
+          </div>
+        ))}
       </div>
+      <div className="prose-article">
+        <p>
+          A fixed grey was a pre-computed alpha for a page that was only ever white or
+          near-black. Under a picture it stops being any alpha at all —{" "}
+          <a href="#" onClick={(e) => e.preventDefault()}>
+            the same word
+          </a>{" "}
+          reads differently on every wallpaper, and <code>text-muted-foreground</code> stops
+          meaning &ldquo;secondary&rdquo;.
+        </p>
+        <blockquote>
+          <p>Regardless of the material you choose, use vibrant colors on top of it.</p>
+        </blockquote>
+      </div>
+      <div className="mt-2 text-xs text-muted-foreground">
+        sep 2026 · <span className="text-tertiary-foreground">4 min read</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The production widgets themselves — the app folder's labels, the writing
+ * widget's dates, a projects group's subtitles, the weather, the prompt, the
+ * talks — rendered by the same components the home screen mounts, so what the
+ * lab shows is what the visitor gets, class for class.
+ */
+export function RealSurfacesSpecimen({ posts }: { posts: BlogPostSummary[] }) {
+  const albumGroupIds = new Set<string>(ALBUM_GROUP_IDS);
+  const group = (homeLog.groups ?? []).find((g) => !g.hidden && !albumGroupIds.has(g.id));
+  return (
+    <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <AppFolder />
+      <WritingWidget posts={posts} />
+      {group && <GroupWidget group={group} />}
+      <WeatherWidget />
+      <FeaturedTalksWidget />
+      <PromptWidget />
     </div>
   );
 }

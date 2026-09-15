@@ -307,7 +307,7 @@ function AppsModule() {
               onKeyDown={(e) => e.key === "Enter" && loadOta()}
               placeholder="https://…/main.web.bundle"
               spellCheck={false}
-              className="min-w-0 flex-1 rounded-md border border-border/60 bg-muted/30 px-2 py-1 text-[11px] font-mono text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
+              className="min-w-0 flex-1 rounded-md border border-border/60 bg-muted/30 px-2 py-1 text-[11px] font-mono text-foreground placeholder:text-tertiary-foreground focus:outline-none focus:ring-1 focus:ring-ring"
             />
             <button
               onClick={loadOta}
@@ -521,7 +521,7 @@ function FrontmatterModule() {
       }
     >
       {!pageMeta ? (
-        <div className="text-[10px] font-mono text-muted-foreground/60">
+        <div className="text-[10px] font-mono text-tertiary-foreground">
           {locale === "zh" ? "当前非博客页面" : "No frontmatter on this page"}
         </div>
       ) : (
@@ -535,7 +535,7 @@ function FrontmatterModule() {
               {pageMeta.lang}
             </span>
             {pageMeta.language && pageMeta.language !== pageMeta.lang && (
-              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/60 px-1.5 py-0.5 border border-border/50 rounded">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-tertiary-foreground px-1.5 py-0.5 border border-border/50 rounded">
                 {pageMeta.language}
               </span>
             )}
@@ -546,7 +546,7 @@ function FrontmatterModule() {
             <div className="space-y-2 border-t border-border/30 pt-2.5">
               {entries.map(([key, value]) => (
                 <div key={key} className="space-y-0.5">
-                  <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-tertiary-foreground">
                     {key}
                   </div>
                   <div className="text-xs font-mono text-foreground/80 break-words whitespace-pre-wrap">
@@ -556,7 +556,7 @@ function FrontmatterModule() {
               ))}
             </div>
           ) : (
-            <div className="text-[10px] font-mono text-muted-foreground/60 border-t border-border/30 pt-2.5">
+            <div className="text-[10px] font-mono text-tertiary-foreground border-t border-border/30 pt-2.5">
               {locale === "zh" ? "无字段" : "No fields"}
             </div>
           )}
@@ -837,7 +837,7 @@ function GlassModule() {
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
           {glass.material}
-          <span className="ml-1 text-muted-foreground/40">G</span>
+          <span className="ml-1 text-quaternary-foreground">G</span>
         </span>
       }
     >
@@ -866,7 +866,7 @@ function GlassModule() {
             onChange={glass.setTint}
           />
         </PanelRow>
-        <p className="text-[10px] leading-snug text-muted-foreground/60">
+        <p className="text-[10px] leading-snug text-tertiary-foreground">
           {zh
             ? "透明：接近无填充的通透质感，背后的壁纸直接透出来。色调：当前这种带卡片底色的材质。着色：玻璃与选中态借用壁纸的主色。"
             : "Clear thins every surface to a vibrancy wash so the wallpaper reads through it. Tinted keeps the card fill. Wallpaper tint lends the picture's colour to glass and selection."}
@@ -878,7 +878,7 @@ function GlassModule() {
           <span className="text-foreground/80">
             {legibility.flip ? (zh ? "反色" : "flipped") : zh ? "正常" : "ink"}
           </span>
-          <span className="ml-1.5 text-muted-foreground/60">
+          <span className="ml-1.5 text-tertiary-foreground">
             busy {legibility.busy.toFixed(2)} · relief {legibility.relief.toFixed(2)} · +
             {legibility.inkBoost}% ink · +{legibility.glassAdd}% glass
             {legibilityOverride && " · lab"}
@@ -1038,6 +1038,14 @@ function WallpaperModule() {
       aria: "Toggle soft edging",
       on: softEdgeEnabled,
     },
+    // The reading treatment on any route: see the veil and defocus on the
+    // home screen, or a reading page without them.
+    {
+      key: "reading",
+      label: zh ? "按阅读页处理" : "As reading",
+      aria: "Toggle the reading treatment on this route",
+      on: reading,
+    },
   ] as const;
   type OverrideKey = "full" | "widget" | "softEdging" | "bezel" | "scroll" | "noWebGL";
   const overrideFlag = (key: Exclude<OverrideKey, "scroll">, on: boolean) =>
@@ -1074,7 +1082,7 @@ function WallpaperModule() {
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
           {isImage ? wallpaper.id : `weather · ${isShader ? "gl" : "css"}`}
-          <span className="ml-1 text-muted-foreground/40">W</span>
+          <span className="ml-1 text-quaternary-foreground">W</span>
         </span>
       }
     >
@@ -1082,7 +1090,7 @@ function WallpaperModule() {
         <div className="text-[10px] font-mono text-muted-foreground">
           {zh ? "当前: " : "Now: "}
           <span className="text-foreground/80">{now}</span>
-          <span className="ml-1.5 text-muted-foreground/50">
+          <span className="ml-1.5 text-tertiary-foreground">
             @{opacity.toFixed(2)}
             {veil > 0 && ` −${veil.toFixed(2)}`}
             {blurred && " blur"}
@@ -1168,7 +1176,7 @@ function WallpaperModule() {
               ? wallpaper.name
               : weatherName}
             {isImage && (
-              <span className="ml-1.5 tabular-nums text-muted-foreground/60">
+              <span className="ml-1.5 tabular-nums text-tertiary-foreground">
                 {wallpaper[variant].width}×{wallpaper[variant].height}
               </span>
             )}
@@ -1284,7 +1292,7 @@ function WallpaperModule() {
 
         {/* How much of it survives on a reading page. Home gets none of this. */}
         <div className="space-y-2 border-t border-border/30 pt-2.5">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-tertiary-foreground">
             {zh ? "阅读页处理" : "Reading treatment"}
           </div>
           <PanelRow
@@ -2080,7 +2088,7 @@ function DraggableModule() {
                       "p-1 rounded transition-colors",
                       config.persist
                         ? "text-foreground bg-muted/60"
-                        : "text-muted-foreground/40 hover:text-muted-foreground",
+                        : "text-quaternary-foreground hover:text-muted-foreground",
                       persistOverridden && "ring-1 ring-amber-500/40"
                     )}
                     aria-label={`Toggle position save for ${inst.labelEn}`}

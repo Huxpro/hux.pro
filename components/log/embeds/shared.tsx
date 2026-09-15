@@ -69,7 +69,7 @@ export function Description({
   return (
     <p
       className={cn(
-        "text-xs text-muted-foreground/60 leading-relaxed",
+        "text-xs text-tertiary-foreground leading-relaxed",
         !isExpanded && "line-clamp-2",
         className
       )}
@@ -92,7 +92,7 @@ export function Commentary({ text, className }: CommentaryProps) {
   return (
     <p
       className={cn(
-        "text-xs italic text-muted-foreground/30 leading-relaxed",
+        "text-xs italic text-quaternary-foreground leading-relaxed",
         className
       )}
     >
@@ -118,7 +118,7 @@ export function TagBadges({ items, className }: TagBadgesProps) {
       {items.map((tag) => (
         <span
           key={tag}
-          className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground/40"
+          className="text-[10px] uppercase tracking-wider font-mono text-quaternary-foreground"
         >
           {tag}
         </span>
@@ -150,7 +150,7 @@ export function Stats({ stars, downloads, users, className }: StatsProps) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
       {items.map((item) => (
-        <span key={item.label} className="text-xs font-mono text-muted-foreground/40">
+        <span key={item.label} className="text-xs font-mono text-quaternary-foreground">
           {item.value} {item.label}
         </span>
       ))}

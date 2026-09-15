@@ -132,7 +132,7 @@
      primary is the ink itself; body prose is `foreground/85` at the call site. */
   --ink-alpha-secondary: 54%;
   --ink-alpha-tertiary: 32%;
-  --ink-alpha-quaternary: 16%;
+  --ink-alpha-quaternary: 20%;
   --ink-alpha-ring: 45%;
 
   /* --- INPUTS: the washes — fills that are ink at a few percent, so a hover,
@@ -149,6 +149,10 @@
   --wp-tint-l: 0.6;
   --wp-tint-c: 0;
   --wp-tint-h: 0;
+  /* The reading treatment: how much of the page colour veils the picture, and
+     how far it is defocused. Read by wallpaper-background / gradient-stack. */
+  --wp-veil: 0;
+  --wp-blur: 40px;
 
   /* --- INPUTS: relief — the text shadow Aqua gave desktop labels and the Home
      Screen gives labels on a bright wallpaper. Two shapes, chosen by the ink:
@@ -212,7 +216,7 @@
      dark secondaryLabel from 50% to 55%); every rung gets a few points. */
   --ink-alpha-secondary: 60%;
   --ink-alpha-tertiary: 36%;
-  --ink-alpha-quaternary: 18%;
+  --ink-alpha-quaternary: 22%;
   --wash-alpha-muted: 6%;
   --wash-alpha-accent: 10%;
   --wash-alpha-border: 10%;
@@ -313,7 +317,7 @@ html[data-wallpaper-flip] .ink-bare {
   );
   --quaternary-foreground: color-mix(
     in oklab,
-    var(--ink) var(--ink-alpha-quaternary),
+    var(--ink) calc(var(--ink-alpha-quaternary) + var(--wp-ink-boost) / 2),
     transparent
   );
   --secondary-foreground: var(--ink);
@@ -799,7 +803,7 @@ html.dragging * {
   > [data-line]::before {
   counter-increment: line;
   content: counter(line);
-  @apply inline-block w-8 mr-4 text-right text-muted-foreground/40 select-none;
+  @apply inline-block w-8 mr-4 text-right text-quaternary-foreground select-none;
 }
 
 .prose-article img:not(:where(.not-prose, .not-prose *)) {

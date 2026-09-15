@@ -82,7 +82,7 @@ export function MusicPlaylistSheet() {
           {isPlaying && <EQBars className="text-green-500" />}
           <span className="truncate">{t(locale, "musicPlaylist")}</span>
           {playlist.length > 0 && (
-            <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground/60">
+            <span className="shrink-0 font-mono text-xs tabular-nums text-tertiary-foreground">
               {playlist.length}
             </span>
           )}
@@ -194,7 +194,7 @@ function TrackList({
                         YouTube serves 16:9; object-cover crops it. */}
                     <span className="relative size-10 rounded-md overflow-hidden bg-muted/40 shrink-0">
                       <span className="absolute inset-0 flex items-center justify-center">
-                        <ListMusic className="h-3.5 w-3.5 text-muted-foreground/40" />
+                        <ListMusic className="h-3.5 w-3.5 text-quaternary-foreground" />
                       </span>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img

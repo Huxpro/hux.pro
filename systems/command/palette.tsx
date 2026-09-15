@@ -532,7 +532,7 @@ export function CommandPalette() {
                     placeholder={t(locale, "searchPlaceholder")}
                     className={cn(
                       "w-full py-4 bg-transparent font-sans text-[16px] sm:text-sm",
-                      "placeholder:text-muted-foreground/60",
+                      "placeholder:text-tertiary-foreground",
                       "outline-none",
                       drag.isEnabled && "cursor-default focus:cursor-text",
                     )}

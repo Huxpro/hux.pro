@@ -86,7 +86,7 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
               <div className="mt-3 pt-4 pb-1.5 border-t border-border/30">
                 <span
                   className={cn(
-                    "block text-xs text-muted-foreground/30",
+                    "block text-xs text-quaternary-foreground",
                     /[぀-ヿ一-鿿]/.test(t(locale, "writingFeatured"))
                       ? "font-mono"
                       : "italic font-serif",
@@ -122,7 +122,7 @@ function PostRow({ post, locale }: { post: BlogPostSummary; locale: Locale }) {
       </span>
       <time
         dateTime={post.date}
-        className="shrink-0 font-mono text-xs text-muted-foreground/50"
+        className="shrink-0 font-mono text-xs text-tertiary-foreground"
       >
         {formatPostDate(post.date)}
       </time>

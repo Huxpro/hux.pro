@@ -253,7 +253,7 @@ export function TimelineCommit({
           // hash is noise. Keeping it occupies the column so titles
           // stay aligned with adjacent commit rows. Leading also drops
           // to text-xs's natural 16px so the event row stays compact.
-          isEvent ? "text-transparent leading-4" : "text-muted-foreground/40 leading-5",
+          isEvent ? "text-transparent leading-4" : "text-quaternary-foreground leading-5",
         )}
       >
         {data.hash}
@@ -317,7 +317,7 @@ export function TimelineCommit({
               ],
             )}
           >
-            <Icon className="w-3 h-3 text-muted-foreground/50" />
+            <Icon className="w-3 h-3 text-tertiary-foreground" />
           </span>
         )}
       </span>
@@ -332,7 +332,7 @@ export function TimelineCommit({
             // serif italic (the traditional typographic aside).
             isEvent
               ? cn(
-                  "text-xs text-muted-foreground/40",
+                  "text-xs text-quaternary-foreground",
                   /[぀-ヿ一-鿿]/.test(data.title)
                     ? "font-mono"
                     : "italic font-serif",
@@ -342,7 +342,7 @@ export function TimelineCommit({
         >
           {data.title}
           {data.languageBadge && (
-            <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
+            <span className="ml-2 text-xs font-mono text-quaternary-foreground align-baseline">
               {data.languageBadge}
             </span>
           )}
@@ -359,7 +359,7 @@ export function TimelineCommit({
         >
           {data.links.map((link, i) => {
             const className =
-              "inline-flex items-center gap-1 text-muted-foreground/40 hover:text-foreground transition-colors";
+              "inline-flex items-center gap-1 text-quaternary-foreground hover:text-foreground transition-colors";
             const label = isExpanded && !link.redundantWhenExpanded && (
               <span className="hidden @sm:inline text-xs">{link.label}</span>
             );
@@ -401,7 +401,7 @@ export function TimelineCommit({
 
         {hideDate ? (
           data.dateSlotOverride && (
-            <span className="font-mono text-xs text-muted-foreground/50 shrink-0 ml-auto">
+            <span className="font-mono text-xs text-tertiary-foreground shrink-0 ml-auto">
               {data.dateSlotOverride}
             </span>
           )
@@ -413,8 +413,8 @@ export function TimelineCommit({
               // (`moved to US, 2017`) — but pushed a tier quieter than
               // siblings so the row reads as background context.
               isEvent
-                ? "text-muted-foreground/30"
-                : "text-muted-foreground/50",
+                ? "text-quaternary-foreground"
+                : "text-tertiary-foreground",
             )}
           >
             {data.date}
@@ -439,7 +439,7 @@ export function TimelineCommit({
         on-screen while you read.
       */}
       {(data.meta || byline) && (
-        <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-muted-foreground/40 flex items-baseline justify-between gap-2">
+        <div className="col-start-2 @sm:col-start-3 mt-1 text-xs font-mono text-quaternary-foreground flex items-baseline justify-between gap-2">
           <span className="min-w-0 truncate">
             {data.meta ? (
               data.metaUrl ? (
@@ -467,7 +467,7 @@ export function TimelineCommit({
           {byline && (
             <span
               className={cn(
-                "shrink-0 text-muted-foreground/55 transition-opacity duration-200",
+                "shrink-0 text-tertiary-foreground transition-opacity duration-200",
                 byline.isClusterHead || isExpanded
                   ? "opacity-100"
                   : "opacity-0 group-hover:opacity-100",
@@ -521,21 +521,21 @@ export function TimelineCommit({
           */}
           {data.type !== "role" && data.type !== "event" && (
             <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono pb-2.5 mb-1">
-              <span className="text-muted-foreground/40">Author:</span>
-              <span className="text-muted-foreground/65">
+              <span className="text-quaternary-foreground">Author:</span>
+              <span className="text-tertiary-foreground">
                 &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;
               </span>
 
               {byline?.expanded.title && (
                 <>
-                  <span className="text-muted-foreground/40">Role:</span>
-                  <span className="text-muted-foreground/60">
+                  <span className="text-quaternary-foreground">Role:</span>
+                  <span className="text-tertiary-foreground">
                     {byline.expanded.title}
-                    <span className="text-muted-foreground/35"> @ </span>
+                    <span className="text-quaternary-foreground"> @ </span>
                     {byline.expanded.company}
                     {byline.expanded.location && (
                       <>
-                        <span className="text-muted-foreground/30"> · </span>
+                        <span className="text-quaternary-foreground"> · </span>
                         {byline.expanded.location}
                       </>
                     )}
@@ -546,7 +546,7 @@ export function TimelineCommit({
               {byline?.expanded.description && (
                 <>
                   <span />
-                  <span className="text-muted-foreground/50 mt-1 leading-relaxed">
+                  <span className="text-tertiary-foreground mt-1 leading-relaxed">
                     {byline.expanded.description}
                   </span>
                 </>
@@ -555,7 +555,7 @@ export function TimelineCommit({
           )}
 
           {data.subtitle && (
-            <div className="text-xs text-muted-foreground/60">
+            <div className="text-xs text-tertiary-foreground">
               {data.subtitle}
             </div>
           )}

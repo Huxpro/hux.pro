@@ -56,20 +56,25 @@ export const POLICY_KNOBS: PolicyKnob[] = [
   { key: "glassAddMax", label: "Glass add max", hint: "fill points at busy = 1", min: 0, max: 40, step: 1 },
   { key: "glassAddToneMax", label: "Glass add · tone", hint: "fill points at full tone conflict", min: 0, max: 50, step: 1 },
   { key: "flipMargin", label: "Flip margin", hint: "how much better the inverse ink must be", min: 0, max: 0.5, step: 0.01 },
-  { key: "veilAddFlip", label: "Veil add on flip", hint: "extra reading veil when flipped", min: 0, max: 0.4, step: 0.01 },
+  { key: "veilBusy", label: "Veil · busy", hint: "veil alpha added at busy = 1", min: 0, max: 0.5, step: 0.01 },
+  { key: "veilConflict", label: "Veil · tone", hint: "veil alpha added at full tone conflict", min: 0, max: 0.5, step: 0.01 },
+  { key: "veilMax", label: "Veil max", hint: "some picture must remain", min: 0.3, max: 1, step: 0.01 },
+  { key: "blurBase", label: "Blur base", hint: "px on a calm picture", min: 0, max: 80, step: 1 },
+  { key: "blurBusy", label: "Blur · busy", hint: "px added at busy = 1", min: 0, max: 80, step: 1 },
   { key: "tintMinChroma", label: "Tint min chroma", hint: "greyer than this: no tint", min: 0, max: 0.1, step: 0.005 },
 ];
 
 export type PolicyOverrides = Partial<
   Pick<
     LegibilityPolicy,
-    Exclude<keyof LegibilityPolicy, "tintLightness" | "tintChroma" | "toneSafe" | "toneWorst">
+    Exclude<keyof LegibilityPolicy, "tintLightness" | "tintChroma" | "toneSafe" | "toneWorst" | "veilBase">
   >
 > & {
   tintLightness?: Record<Theme, [number, number]>;
   tintChroma?: [number, number];
   toneSafe?: Record<Theme, number>;
   toneWorst?: Record<Theme, number>;
+  veilBase?: Record<Theme, number>;
 };
 
 export function mergePolicy(overrides: PolicyOverrides): LegibilityPolicy {
@@ -80,6 +85,7 @@ export function mergePolicy(overrides: PolicyOverrides): LegibilityPolicy {
     tintChroma: overrides.tintChroma ?? DEFAULT_LEGIBILITY_POLICY.tintChroma,
     toneSafe: overrides.toneSafe ?? DEFAULT_LEGIBILITY_POLICY.toneSafe,
     toneWorst: overrides.toneWorst ?? DEFAULT_LEGIBILITY_POLICY.toneWorst,
+    veilBase: overrides.veilBase ?? DEFAULT_LEGIBILITY_POLICY.veilBase,
   };
 }
 
@@ -88,7 +94,7 @@ export function mergePolicy(overrides: PolicyOverrides): LegibilityPolicy {
 // -----------------------------------------------------------------------------
 
 export interface OutputKnob {
-  key: "inkBoost" | "relief" | "glassAdd" | "veilAdd" | "tintL" | "tintC" | "tintH";
+  key: "inkBoost" | "relief" | "glassAdd" | "veil" | "blur" | "tintL" | "tintC" | "tintH";
   label: string;
   min: number;
   max: number;
@@ -99,7 +105,8 @@ export const OUTPUT_KNOBS: OutputKnob[] = [
   { key: "inkBoost", label: "Ink boost", min: 0, max: 30, step: 1 },
   { key: "relief", label: "Relief", min: 0, max: 1, step: 0.05 },
   { key: "glassAdd", label: "Glass add", min: 0, max: 40, step: 1 },
-  { key: "veilAdd", label: "Veil add", min: 0, max: 0.4, step: 0.01 },
+  { key: "veil", label: "Reading veil", min: 0, max: 1, step: 0.01 },
+  { key: "blur", label: "Reading blur (px)", min: 0, max: 120, step: 1 },
   { key: "tintL", label: "Tint L", min: 0.2, max: 0.9, step: 0.01 },
   { key: "tintC", label: "Tint C", min: 0, max: 0.25, step: 0.005 },
   { key: "tintH", label: "Tint H", min: 0, max: 360, step: 1 },
@@ -126,7 +133,8 @@ export function applyPins(vars: LegibilityVars, pins: OutputPins): LegibilityVar
     inkBoost: pins.inkBoost ?? vars.inkBoost,
     relief: pins.relief ?? vars.relief,
     glassAdd: pins.glassAdd ?? vars.glassAdd,
-    veilAdd: pins.veilAdd ?? vars.veilAdd,
+    veil: pins.veil ?? vars.veil,
+    blur: pins.blur ?? vars.blur,
     flip: pins.flip ?? vars.flip,
     tint: {
       l: pins.tintL ?? vars.tint.l,
@@ -160,7 +168,8 @@ export function sameVars(a: LegibilityVars, b: LegibilityVars): boolean {
     a.inkBoost === b.inkBoost &&
     a.relief === b.relief &&
     a.glassAdd === b.glassAdd &&
-    a.veilAdd === b.veilAdd &&
+    a.veil === b.veil &&
+    a.blur === b.blur &&
     a.flip === b.flip &&
     a.tint.l === b.tint.l &&
     a.tint.c === b.tint.c &&

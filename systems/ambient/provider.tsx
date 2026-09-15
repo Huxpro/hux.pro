@@ -35,7 +35,6 @@ import {
   resolveWeatherStyle,
   WALLPAPER_LOOK_FAMILY,
   WALLPAPER_OPACITY,
-  WALLPAPER_READING_VEIL,
   WEATHER_STYLE_ENGINE,
   type Wallpaper,
   type WallpaperEngine,
@@ -190,6 +189,8 @@ export interface DevtoolWallpaperOverrides {
    * Stamped by the provider; callers never set it.
    */
   edgeFamily?: WallpaperFamily;
+  /** Treat this route as a reading surface (or not), whatever the path says. */
+  reading?: boolean;
 }
 
 interface WallpaperContextType {
@@ -455,10 +456,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // plus a defocus over the top, which costs far less of the image than dimming
   // the layer itself on every route alike.
   const pathname = usePathname();
-  const reading = isReadingSurface({ kind: settings.wallpaperKind, pathname });
-  const isBlurred = reading && settings.wallpaperReadingBlur;
-  const veilBase =
-    reading && settings.wallpaperReadingDim ? WALLPAPER_READING_VEIL[theme] : 0;
 
   // DevTool overrides (ephemeral, not persisted)
   const [storedOverrides, setStoredOverrides] =
@@ -474,6 +471,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     return {
       full: storedOverrides.full,
       widget: storedOverrides.widget,
+      reading: storedOverrides.reading,
       scroll: storedOverrides.scroll,
       noWebGL: storedOverrides.noWebGL,
     };
@@ -493,9 +491,15 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   }, []);
 
   const overridden = (
-    key: "full" | "widget" | "softEdging" | "bezel",
+    key: "full" | "widget" | "softEdging" | "bezel" | "reading",
     natural: boolean
   ): boolean => (isDevtoolEnabled ? devtoolOverrides[key] : undefined) ?? natural;
+
+  const reading = overridden(
+    "reading",
+    isReadingSurface({ kind: settings.wallpaperKind, pathname })
+  );
+  const isBlurred = reading && settings.wallpaperReadingBlur;
 
   const fullEnabled = overridden("full", settings.wallpaperPlacement === "full");
   const widgetEnabled = overridden(
@@ -802,7 +806,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const resolvedLegibility = useMemo<LegibilityVars>(() => {
     const full = resolveLegibility({ profile, theme, reading });
     if (fullEnabled) return full;
-    if (widgetEnabled) return { ...plainLegibility(theme), glassAdd: full.glassAdd, tint: full.tint };
+    if (widgetEnabled) {
+      return { ...plainLegibility(theme), glassAdd: full.glassAdd, tint: full.tint, veil: full.veil, blur: full.blur };
+    }
     return plainLegibility(theme);
   }, [profile, theme, reading, fullEnabled, widgetEnabled]);
 
@@ -819,7 +825,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     });
   }, [legibility, paintingKind, reading]);
 
-  const veilAlpha = veilBase > 0 ? Math.min(0.85, veilBase + legibility.veilAdd) : 0;
+  // The veil alpha is the policy's, for this wallpaper; the switch only says
+  // whether to draw it. Blur is the policy's too, read by the layer as CSS.
+  const veilAlpha = reading && settings.wallpaperReadingDim ? legibility.veil : 0;
 
   // Gradient transition: a true crossfade between layers (no dip-to-background).
   // Centralized here so every consumer (full-page background, widget overlays)

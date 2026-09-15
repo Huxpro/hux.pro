@@ -221,7 +221,7 @@ export function CardFace({
   if (!image) {
     slot = (
       <div className="aspect-[2/1] bg-muted/10 flex items-center justify-center shrink-0">
-        <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
+        <ImageIcon className="w-8 h-8 text-quaternary-foreground" />
       </div>
     );
   } else if (fixedAspect) {
@@ -291,7 +291,7 @@ export function CardFace({
               className={cn(
                 "inline-flex items-center shrink-0",
                 "px-1.5 py-px rounded-sm border border-border/60",
-                "text-[10px] leading-none text-muted-foreground/90",
+                "text-[10px] leading-none text-muted-foreground",
               )}
               title={
                 languageBadge === "EN"
@@ -310,7 +310,7 @@ export function CardFace({
               className={cn(
                 "inline-flex items-center shrink-0",
                 "px-1.5 py-px rounded-sm border border-border/60",
-                "text-[10px] leading-none text-muted-foreground/90",
+                "text-[10px] leading-none text-muted-foreground",
               )}
               title="Snapshot served via the Wayback Machine"
             >

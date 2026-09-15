@@ -202,7 +202,7 @@ export function NowPlaying({
     return (
       <div className="flex items-start gap-3.5">
         <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-muted/30">
-          <Music className="h-6 w-6 text-muted-foreground/30" />
+          <Music className="h-6 w-6 text-quaternary-foreground" />
         </div>
         <div className="flex h-20 min-w-0 flex-1 flex-col justify-between">
           <div className="text-xs font-mono text-muted-foreground">

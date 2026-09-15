@@ -38,24 +38,24 @@ export function CommitList({
             {/* Tag header */}
             <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border/50 px-3 py-2 flex items-center justify-between">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70 truncate">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground truncate">
                   {localize(tag.title, locale)}
                 </span>
-                <span className="font-mono text-[10px] text-muted-foreground/40">
+                <span className="font-mono text-[10px] text-quaternary-foreground">
                   {tagCommits.length}
                 </span>
               </div>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => onEditTag(tag.id)}
-                  className="p-1 text-muted-foreground/40 hover:text-muted-foreground rounded transition-colors"
+                  className="p-1 text-quaternary-foreground hover:text-muted-foreground rounded transition-colors"
                   title="Edit tag"
                 >
                   <Settings className="w-3 h-3" />
                 </button>
                 <button
                   onClick={() => onAddCommit(tag.id)}
-                  className="p-1 text-muted-foreground/40 hover:text-muted-foreground rounded transition-colors"
+                  className="p-1 text-quaternary-foreground hover:text-muted-foreground rounded transition-colors"
                   title="Add commit"
                 >
                   <Plus className="w-3 h-3" />
@@ -79,20 +79,20 @@ export function CommitList({
                       : "hover:bg-muted/10"
                   )}
                 >
-                  <Icon className="w-3.5 h-3.5 mt-0.5 shrink-0 text-muted-foreground/60" />
+                  <Icon className="w-3.5 h-3.5 mt-0.5 shrink-0 text-tertiary-foreground" />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm truncate">
                       {localize(commit.title, locale)}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="font-mono text-[10px] text-muted-foreground/50 uppercase">
+                      <span className="font-mono text-[10px] text-tertiary-foreground uppercase">
                         {commit.type}
                       </span>
-                      <span className="font-mono text-[10px] text-muted-foreground/40">
+                      <span className="font-mono text-[10px] text-quaternary-foreground">
                         {commit.date}
                       </span>
                       {commit.listed === false && (
-                        <span className="text-[10px] text-muted-foreground/40 italic">
+                        <span className="text-[10px] text-quaternary-foreground italic">
                           unlisted
                         </span>
                       )}
@@ -105,7 +105,7 @@ export function CommitList({
                               m.kind === "social-embed" ? Code :
                               m.kind === "image" ? Image :
                               Link2;
-                            return <MIcon key={i} className="w-2.5 h-2.5 text-muted-foreground/40" />;
+                            return <MIcon key={i} className="w-2.5 h-2.5 text-quaternary-foreground" />;
                           })}
                         </span>
                       )}

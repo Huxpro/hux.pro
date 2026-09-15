@@ -95,7 +95,7 @@ export function AlbumTabs({
                   : "text-white/45 hover:text-white/70 focus-visible:text-white/80 active:text-white"
                 : active
                   ? "text-foreground"
-                  : "text-muted-foreground/70 hover:text-muted-foreground focus-visible:text-foreground active:text-foreground",
+                  : "text-tertiary-foreground hover:text-muted-foreground focus-visible:text-foreground active:text-foreground",
             )}
           >
             {active && (

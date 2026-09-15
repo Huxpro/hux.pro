@@ -110,7 +110,7 @@ export function PostContent({
 
       {displayReadingTime && (
         <>
-          {headerMeta && <span className="text-muted-foreground/40">·</span>}
+          {headerMeta && <span className="text-quaternary-foreground">·</span>}
           <span>{displayReadingTime}</span>
         </>
       )}
@@ -118,7 +118,7 @@ export function PostContent({
       {hasAlternate && (
         <>
           {(headerMeta || displayReadingTime) && (
-            <span className="text-muted-foreground/40">·</span>
+            <span className="text-quaternary-foreground">·</span>
           )}
           <button
             onClick={switchLanguage}
@@ -132,7 +132,7 @@ export function PostContent({
 
       {displayOrigin && (
         <>
-          <span className="text-muted-foreground/40">·</span>
+          <span className="text-quaternary-foreground">·</span>
           <span>{renderMarkdownLinks(displayOrigin)}</span>
         </>
       )}

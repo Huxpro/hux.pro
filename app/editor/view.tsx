@@ -317,7 +317,7 @@ export function EditorView({ initialData }: EditorViewProps) {
               <div className="w-6 h-6 flex items-center justify-center shrink-0">
                 <div className="w-3 h-3 rounded-full border-2 border-muted-foreground/30" />
               </div>
-              <span className="font-mono text-xs text-muted-foreground/40 tracking-wide">
+              <span className="font-mono text-xs text-quaternary-foreground tracking-wide">
                 {locale === "zh" ? "git init" : "git init"}
               </span>
             </div>
@@ -359,11 +359,11 @@ export function EditorView({ initialData }: EditorViewProps) {
 function EmptyInspector() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center px-8 gap-2">
-      <MousePointer2 className="w-6 h-6 text-muted-foreground/30" />
-      <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/40">
+      <MousePointer2 className="w-6 h-6 text-quaternary-foreground" />
+      <div className="font-mono text-[10px] uppercase tracking-wider text-quaternary-foreground">
         Inspect mode
       </div>
-      <div className="text-sm text-muted-foreground/60">No selection</div>
+      <div className="text-sm text-tertiary-foreground">No selection</div>
     </div>
   );
 }

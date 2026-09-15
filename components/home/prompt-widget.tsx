@@ -104,7 +104,7 @@ function QuoteDisplay({ item }: { item: Extract<PromptItem, { kind: "quote" }> }
       <p className="mt-2 text-xs text-muted-foreground">
         {item.author}
         {item.source && (
-          <span className="text-muted-foreground/60"> · {item.source}</span>
+          <span className="text-tertiary-foreground"> · {item.source}</span>
         )}
       </p>
     </div>
@@ -119,7 +119,7 @@ function PrincipleDisplay({ item, locale }: { item: Extract<PromptItem, { kind: 
         {item.statement}
       </p>
       {item.topic && (
-        <p className="mt-2 text-xs font-mono text-muted-foreground/60">
+        <p className="mt-2 text-xs font-mono text-tertiary-foreground">
           {topicLabel}
         </p>
       )}

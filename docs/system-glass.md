@@ -94,8 +94,11 @@ photo behind a 680px prose column is a competing figure.
 
 An image wallpaper paints at opacity 1 — showing a photograph someone chose at
 half strength is not restraint, it is a washed-out picture — so what varies is
-drawn **over** it. `WALLPAPER_READING_VEIL` in `lib/wallpaper.ts` holds the
-per-theme alpha; the number lives there and is deliberately not copied here.
+drawn **over** it. How much veil and how much defocus are outputs of the
+legibility policy per wallpaper (`veilBase` per theme, grown by busyness and
+tone conflict; see [docs/system-legibility.md](./system-legibility.md)) and
+are tuned in the lab with **Surface: Reading**, which applies them to the lab
+page itself.
 
 `lib/reading-surface.ts` owns the predicate. The blur is painted on an inner
 element of each layer (`gradient-stack.tsx`) so the soft-edge mask on the layer

@@ -147,7 +147,7 @@ export function WeatherNow() {
         {devForceEmpty ? "no data (dev)" : t(locale, "weatherUnavailable")}
       </div>
       {error && (
-        <div className="text-xs font-mono text-muted-foreground/80">{error}</div>
+        <div className="text-xs font-mono text-muted-foreground">{error}</div>
       )}
       <button
         onClick={() => refresh()}
