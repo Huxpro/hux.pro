@@ -66,6 +66,9 @@ The full-page background is a layered atmosphere, aiming at iOS Weather:
 
 Sky color follows **phase** (sunrise → night). Precipitation follows **weather**.
 A rainy sunset is an amber horizon with rain on top, not a swapped rain plate.
+The sun is for sunrise / morning / afternoon / sunset. **Evening and night hide
+the sun and show a moon disc** (cool halo, terminator) so "good evening" /
+"good night" no longer keep a daytime orb.
 Uniforms morph exponentially (~700ms) so condition/phase changes never snap.
 
 `prefers-reduced-motion: reduce` freezes the shader clock and draws a static

@@ -91,6 +91,24 @@ for (const condition of conditions) {
         assert(params.moonGlow > 0.4, "night moon");
       }
       if (phase === "sunset") assert(params.sunGlow > 0.2, "sunset glow");
+      if (phase === "evening" || phase === "night") {
+        assert(params.sunGlow < 0.05, `${phase} should hide the sun (glow=${params.sunGlow})`);
+        assert(params.rays < 0.05, `${phase} should not keep sun rays`);
+        if (condition === "clear") {
+          assert(params.moonGlow > 0.45, `${phase} moon glow`);
+          assert(params.moonPos[1] > 0.45, `${phase} moon above the horizon`);
+        }
+      }
+      if (condition === "clear" && phase === "evening" && theme === "dark") {
+        const withDayFlag = resolveAtmosphere({
+          condition,
+          phase,
+          theme,
+          isDay: true,
+        });
+        assert(withDayFlag.sunGlow < 0.05, "evening keeps the moon even if isDay");
+        assert(withDayFlag.moonGlow > 0.45, "evening moon when isDay is true");
+      }
       if (condition === "clear" && phase === "morning" && theme === "dark") {
         const night = resolveAtmosphere({
           condition,

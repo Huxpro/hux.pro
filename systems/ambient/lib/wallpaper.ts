@@ -160,7 +160,7 @@ const PHASE_SKY: Record<AmbientPhase, SkyPlate> = {
     sunSize: 0.02,
     sunGlow: 1.25,
     moonPos: [0.22, 0.7],
-    moonGlow: 0.08,
+    moonGlow: 0,
     rays: 0.62,
     stars: 0.12,
   },
@@ -169,13 +169,13 @@ const PHASE_SKY: Record<AmbientPhase, SkyPlate> = {
     horizon: rgb(86, 64, 128),
     haze: rgb(110, 78, 132),
     ground: rgb(12, 16, 36),
-    sunPos: [0.86, -0.12],
+    sunPos: [0.88, -0.18],
     sunColor: rgb(255, 176, 120),
-    sunSize: 0.01,
-    sunGlow: 0.12,
-    moonPos: [0.76, 0.64],
-    moonGlow: 0.72,
-    rays: 0.04,
+    sunSize: 0,
+    sunGlow: 0,
+    moonPos: [0.74, 0.58],
+    moonGlow: 0.92,
+    rays: 0,
     stars: 0.55,
   },
   night: {
@@ -183,12 +183,12 @@ const PHASE_SKY: Record<AmbientPhase, SkyPlate> = {
     horizon: rgb(22, 34, 68),
     haze: rgb(28, 40, 78),
     ground: rgb(6, 10, 22),
-    sunPos: [0.5, -0.2],
+    sunPos: [0.5, -0.22],
     sunColor: rgb(200, 210, 230),
-    sunSize: 0.008,
+    sunSize: 0,
     sunGlow: 0,
-    moonPos: [0.7, 0.7],
-    moonGlow: 0.88,
+    moonPos: [0.62, 0.7],
+    moonGlow: 1,
     rays: 0,
     stars: 0.85,
   },
@@ -337,18 +337,28 @@ function cloudColors(sky: SkyPlate, weather: WeatherMod, isDay: boolean): {
   };
 }
 
+/**
+ * Celestial body follows ambient phase (the greeting), not weather isDay.
+ * Evening / night always keep the moon; a night weather override can still
+ * darken a morning/afternoon plate.
+ */
 function skyPhaseFor(phase: AmbientPhase, isDay: boolean): AmbientPhase {
   if (phase === "sunrise" || phase === "sunset") return phase;
-  if (isDay) {
-    return phase === "evening" || phase === "night" ? "afternoon" : phase;
-  }
-  return phase === "morning" || phase === "afternoon" ? "night" : phase;
+  if (phase === "evening" || phase === "night") return phase;
+  if (!isDay) return "night";
+  return phase;
+}
+
+export function isNightSky(phase: AmbientPhase): boolean {
+  return phase === "evening" || phase === "night";
 }
 
 export function resolveAtmosphere(input: WallpaperSceneInput): AtmosphereParams {
   const weather = WEATHER_MOD[input.condition];
-  const plate = applyWeatherToSky(PHASE_SKY[skyPhaseFor(input.phase, input.isDay)], weather);
-  const clouds = cloudColors(plate, weather, input.isDay);
+  const skyPhase = skyPhaseFor(input.phase, input.isDay);
+  const plate = applyWeatherToSky(PHASE_SKY[skyPhase], weather);
+  const nightSky = isNightSky(skyPhase);
+  const clouds = cloudColors(plate, weather, !nightSky);
 
   // Light theme stays high-key for type contrast, but keep chroma so
   // weather still reads (a pale blue sky, not a white wash).
@@ -358,7 +368,7 @@ export function resolveAtmosphere(input: WallpaperSceneInput): AtmosphereParams 
   );
   const liftAmt =
     input.theme === "light"
-      ? (input.isDay ? 0.26 : 0.2) * (1 - weatherWeight * 0.45)
+      ? (nightSky ? 0.18 : 0.26) * (1 - weatherWeight * 0.45)
       : 0;
   const liftSky = (c: Vec3, extra = 0) =>
     liftAmt > 0 ? saturate(lift(c, Math.max(0, liftAmt + extra)), 1.12) : c;
@@ -374,8 +384,8 @@ export function resolveAtmosphere(input: WallpaperSceneInput): AtmosphereParams 
     sunGlow: input.theme === "light" ? plate.sunGlow * 0.72 : plate.sunGlow,
     moonPos: plate.moonPos,
     moonColor: DEFAULT_MOON,
-    moonSize: 0.014,
-    moonGlow: input.theme === "light" ? plate.moonGlow * 0.55 : plate.moonGlow,
+    moonSize: nightSky ? 0.024 : 0.012,
+    moonGlow: input.theme === "light" ? plate.moonGlow * 0.82 : plate.moonGlow,
     cloudCover: weather.cloudCover,
     cloudScale: weather.cloudScale,
     cloudSpeed: weather.cloudSpeed,

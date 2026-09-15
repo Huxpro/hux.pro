@@ -81,16 +81,17 @@ export function createAtmosphere2DRenderer(
     ctx.fillRect(0, 0, cssW, cssH);
   };
 
-  const drawOrb = (
+  const drawSun = (
     x: number,
     y: number,
     color: Vec3,
     size: number,
     glow: number
   ) => {
-    if (glow < 0.02 && size < 0.002) return;
+    if (glow < 0.04) return;
     const px = x * cssW;
     const py = (1 - y) * cssH;
+    if (py > cssH + 40) return;
     const r = Math.max(cssW, cssH);
     const bloom = ctx.createRadialGradient(px, py, 0, px, py, r * (0.18 + glow * 0.28));
     bloom.addColorStop(0, rgba(color, Math.min(0.55, 0.18 + glow * 0.28)));
@@ -108,6 +109,48 @@ export function createAtmosphere2DRenderer(
     ctx.beginPath();
     ctx.arc(px, py, coreR, 0, Math.PI * 2);
     ctx.fill();
+  };
+
+  const drawMoon = (p: AtmosphereParams) => {
+    if (p.moonGlow < 0.04) return;
+    const px = p.moonPos[0] * cssW;
+    const py = (1 - p.moonPos[1]) * cssH;
+    const span = Math.max(cssW, cssH);
+    const discR = span * (p.moonSize * 3.6 + 0.016);
+    const haloR = discR * (4.8 + p.moonGlow * 1.6);
+
+    const halo = ctx.createRadialGradient(px, py, discR * 0.4, px, py, haloR);
+    halo.addColorStop(0, rgba(p.moonColor, 0.16 * p.moonGlow));
+    halo.addColorStop(0.35, rgba(p.moonColor, 0.06 * p.moonGlow));
+    halo.addColorStop(1, rgba(p.moonColor, 0));
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(px, py, haloR, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(px, py, discR, 0, Math.PI * 2);
+    ctx.clip();
+    const body = ctx.createRadialGradient(
+      px - discR * 0.28,
+      py - discR * 0.22,
+      discR * 0.08,
+      px,
+      py,
+      discR
+    );
+    body.addColorStop(0, "rgba(255, 255, 255, 0.96)");
+    body.addColorStop(0.45, rgba(p.moonColor, 0.92));
+    body.addColorStop(1, "rgba(168, 184, 214, 0.88)");
+    ctx.fillStyle = body;
+    ctx.fillRect(px - discR, py - discR, discR * 2, discR * 2);
+
+    ctx.fillStyle = "rgba(18, 26, 46, 0.32)";
+    ctx.beginPath();
+    ctx.arc(px + discR * 0.42, py - discR * 0.06, discR * 0.98, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   };
 
   const drawStars = (p: AtmosphereParams, t: number) => {
@@ -209,9 +252,15 @@ export function createAtmosphere2DRenderer(
       fillSky(params);
       drawStars(params, t);
       drawRays(params);
-      drawOrb(params.sunPos[0], params.sunPos[1], params.sunColor, params.sunSize, params.sunGlow);
-      drawOrb(params.moonPos[0], params.moonPos[1], params.moonColor, params.moonSize, params.moonGlow);
+      drawSun(
+        params.sunPos[0],
+        params.sunPos[1],
+        params.sunColor,
+        params.sunSize,
+        params.sunGlow
+      );
       drawClouds(params, t);
+      drawMoon(params);
       if (params.fog > 0.04) {
         ctx.fillStyle = rgba(params.haze, params.fog * 0.38);
         ctx.fillRect(0, 0, cssW, cssH);
