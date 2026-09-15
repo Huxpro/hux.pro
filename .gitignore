@@ -55,3 +55,6 @@ next-env.d.ts
 
 # Editor backups
 content/.backups/
+
+# @hux/bezel Storybook build
+packages/bezel/storybook-static

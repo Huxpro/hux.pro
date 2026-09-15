@@ -17,7 +17,10 @@
     "icon:check": "node scripts/icon-generate.ts --check",
     "wallpapers:check": "node scripts/wallpaper-check.ts",
     "apps:snapshot": "node scripts/app-icon-snapshot.ts",
-    "apps:check": "node scripts/app-icon-snapshot.ts --check"
+    "apps:check": "node scripts/app-icon-snapshot.ts --check",
+    "bezel:typecheck": "tsc -p packages/bezel",
+    "bezel:storybook": "storybook dev -c packages/bezel/.storybook -p 6006 --host 0.0.0.0 --no-open",
+    "bezel:storybook:build": "storybook build -c packages/bezel/.storybook -o packages/bezel/storybook-static"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -55,6 +58,7 @@
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
+    "@storybook/react-vite": "10.6.0",
     "@tailwindcss/postcss": "^4",
     "@types/mdx": "^2.0.13",
     "@types/node": "^20",
@@ -63,9 +67,11 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "sharp": "^0.35.4",
+    "storybook": "10.6.0",
     "tailwindcss": "^4",
     "types-react": "19.0.0-alpha.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "8.3.0"
   },
   "packageManager": "pnpm@9.15.2+sha512.93e57b0126f0df74ce6bff29680394c0ba54ec47246b9cf321f0121d8d9bb03f750a705f24edc3c1180853afd7c2c3b94196d0a3d53d3e069d9e2793ef11f321"
 }
