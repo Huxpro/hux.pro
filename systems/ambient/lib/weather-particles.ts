@@ -77,7 +77,10 @@ export function createParticleRenderer(
   canvas: HTMLCanvasElement,
   options?: { mobile?: boolean }
 ): ParticleRenderer | null {
-  const ctx = canvas.getContext("2d", { alpha: true, desynchronized: true });
+  const ctx =
+    canvas.getContext("2d", { alpha: true, desynchronized: true }) ||
+    canvas.getContext("2d", { alpha: true }) ||
+    canvas.getContext("2d");
   if (!ctx) return null;
 
   const mobile = options?.mobile ?? false;

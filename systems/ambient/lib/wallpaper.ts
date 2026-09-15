@@ -173,8 +173,8 @@ const PHASE_SKY: Record<AmbientPhase, SkyPlate> = {
     sunColor: rgb(255, 176, 120),
     sunSize: 0,
     sunGlow: 0,
-    // Open sky, right of the centered greeting — not the top-right corner.
-    moonPos: [0.78, 0.46],
+    // Open sky above the card grid, right of the centered greeting.
+    moonPos: [0.82, 0.7],
     moonGlow: 1,
     rays: 0,
     stars: 0.55,
@@ -189,7 +189,7 @@ const PHASE_SKY: Record<AmbientPhase, SkyPlate> = {
     sunSize: 0,
     sunGlow: 0,
     // Opposite wing from evening so the body travels across the night.
-    moonPos: [0.22, 0.52],
+    moonPos: [0.18, 0.7],
     moonGlow: 1,
     rays: 0,
     stars: 0.85,

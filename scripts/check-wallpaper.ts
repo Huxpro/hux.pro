@@ -102,8 +102,8 @@ for (const condition of conditions) {
             `${phase} moon not in the extreme corner (x=${params.moonPos[0]})`
           );
           assert(
-            params.moonPos[1] > 0.32 && params.moonPos[1] < 0.7,
-            `${phase} moon in the open sky (y=${params.moonPos[1]})`
+            params.moonPos[1] > 0.55 && params.moonPos[1] < 0.82,
+            `${phase} moon in the open sky above the cards (y=${params.moonPos[1]})`
           );
         }
       }

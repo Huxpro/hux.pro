@@ -288,7 +288,7 @@ export function isAtmosphereGLAvailable(): boolean {
   if (typeof document === "undefined") return false;
   const probe = document.createElement("canvas");
   const gl = probe.getContext("webgl", {
-    failIfMajorPerformanceCaveat: false,
+    failIfMajorPerformanceCaveat: true,
     alpha: false,
   });
   if (!gl) return false;
@@ -315,17 +315,28 @@ export function createAtmosphereRenderer(
   });
   if (!gl) return null;
 
+  const lose = () => {
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+  };
+
   const vs = compile(gl, gl.VERTEX_SHADER, VERT);
   const fs = compile(gl, gl.FRAGMENT_SHADER, FRAG);
-  if (!vs || !fs) return null;
+  if (!vs || !fs) {
+    lose();
+    return null;
+  }
 
   const program = gl.createProgram();
-  if (!program) return null;
+  if (!program) {
+    lose();
+    return null;
+  }
   gl.attachShader(program, vs);
   gl.attachShader(program, fs);
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     console.warn("[ambient] shader link failed", gl.getProgramInfoLog(program));
+    lose();
     return null;
   }
 

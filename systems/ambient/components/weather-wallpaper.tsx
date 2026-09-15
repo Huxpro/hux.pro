@@ -88,7 +88,7 @@ export function WeatherWallpaper({ enabled, onReady }: WeatherWallpaperProps) {
     if (!skyEl || !fxEl || !enabled || !hasScene) return;
 
     const sky = isAtmosphereGLAvailable()
-      ? createAtmosphereRenderer(skyEl)
+      ? createAtmosphereRenderer(skyEl) ?? createAtmosphere2DRenderer(skyEl)
       : createAtmosphere2DRenderer(skyEl);
     if (!sky) {
       onReadyRef.current?.(false);
@@ -109,6 +109,7 @@ export function WeatherWallpaper({ enabled, onReady }: WeatherWallpaperProps) {
     if (!initial) {
       sky.destroy();
       fx.destroy();
+      onReadyRef.current?.(false);
       return;
     }
 

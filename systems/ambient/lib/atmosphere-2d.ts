@@ -31,7 +31,10 @@ function hash(n: number): number {
 export function createAtmosphere2DRenderer(
   canvas: HTMLCanvasElement
 ): AtmosphereRenderer | null {
-  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
+  const ctx =
+    canvas.getContext("2d", { alpha: false, desynchronized: true }) ||
+    canvas.getContext("2d", { alpha: false }) ||
+    canvas.getContext("2d");
   if (!ctx) return null;
 
   let params: AtmosphereParams | null = null;
