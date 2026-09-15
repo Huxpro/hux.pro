@@ -2,7 +2,7 @@
 
 import { AppTile } from "@/components/apps";
 import { APPS } from "@/lib/apps";
-import { runtimeLabel } from "@/lib/app-icon-core";
+import { appTitle, runtimeLabel } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { useOptionalWindows } from "@/systems/windows";
@@ -25,11 +25,15 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
   const { locale } = useLocale();
   const { openLoadBundle } = useCommand();
   const compact = useCompactViewport();
-  const tileSize = compact ? "sm" : "md";
   const itemClass = cn(
     "group/app shrink-0 rounded-xl",
     "flex flex-col items-center justify-center",
-    compact ? "w-14 px-0.5 py-1" : "w-[4.25rem] px-1 py-1.5",
+    // Phone: ~5.3 columns so iPhone 16 Pro (402 CSS px) shows five tiles
+    // and a sliver of the sixth — enough to hint the strip scrolls.
+    // Desktop keeps the original 4.25rem pitch.
+    compact
+      ? "w-[calc((100%-8px)/5.3)] max-w-[4.25rem] px-0.5 py-1.5"
+      : "w-[4.25rem] px-1 py-1.5",
     "cursor-pointer transition-colors",
     "text-foreground data-[selected=true]:bg-accent/50 data-[selected=true]:text-accent-foreground",
     "hover:bg-accent/25",
@@ -52,6 +56,7 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
               value={`app-${app.id}`}
               keywords={[
                 app.title,
+                appTitle(app, "zh"),
                 app.id,
                 "app",
                 "apps",
@@ -66,7 +71,7 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
               }}
               className={itemClass}
             >
-              <AppTile app={app} size={tileSize} revealBadge showLabel />
+              <AppTile app={app} size="md" revealBadge showLabel />
             </Command.Item>
           );
         })}
@@ -90,20 +95,10 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
           className={itemClass}
         >
           <span className="flex w-full flex-col items-center">
-            <span
-              className={cn(
-                "flex items-center justify-center rounded-[22.5%] border border-dashed border-border/70 bg-muted/30 text-muted-foreground",
-                compact ? "h-8 w-8" : "h-12 w-12",
-              )}
-            >
-              <Link2 className={compact ? "h-3.5 w-3.5" : "h-5 w-5"} />
+            <span className="flex h-12 w-12 items-center justify-center rounded-[22.5%] border border-dashed border-border/70 bg-muted/30 text-muted-foreground">
+              <Link2 className="h-5 w-5" />
             </span>
-            <span
-              className={cn(
-                "block truncate text-center leading-tight text-muted-foreground",
-                compact ? "mt-1 max-w-14 text-[10px]" : "mt-1.5 max-w-16 text-[11px]",
-              )}
-            >
+            <span className="mt-1.5 block max-w-16 truncate text-center text-[11px] leading-tight text-muted-foreground">
               {locale === "zh" ? "加载包" : "Load…"}
             </span>
           </span>

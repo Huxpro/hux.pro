@@ -2,8 +2,9 @@
 
 import { APP_ICONS, iconFillsTile } from "@/lib/apps";
 import type { AppLink } from "@/lib/app-icon-core";
-import { resolveAppIconSrc } from "@/lib/app-icon-core";
+import { appTitle, resolveAppIconSrc } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/services";
 import { AppBadgeFor } from "@/systems/windows";
 
 // =============================================================================
@@ -59,6 +60,8 @@ export function AppTile({
   revealBadge?: boolean;
   className?: string;
 }) {
+  const { locale } = useLocale();
+  const label = appTitle(app, locale);
   const entry = APP_ICONS[app.id];
   const fills = iconFillsTile(entry);
   const src = resolveAppIconSrc(app, APP_ICONS);
@@ -111,7 +114,7 @@ export function AppTile({
                 className="flex h-full w-full items-center justify-center font-mono text-neutral-400"
                 style={{ fontSize: Math.max(12, px * 0.35) }}
               >
-                {app.title.charAt(0)}
+                {label.charAt(0)}
               </span>
             )}
           </span>
@@ -135,7 +138,7 @@ export function AppTile({
             LABEL[size],
           )}
         >
-          {app.title}
+          {label}
         </span>
       )}
     </span>

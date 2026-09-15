@@ -25,7 +25,9 @@ Apps live in [`content/apps.json`](../content/apps.json):
 ```
 
 - `id` — stable identifier; also names the icon file under `public/app-icons/`.
-- `title` — the label under the tile.
+- `title` — the English label under the tile.
+- `titleZh` *(optional)* — Chinese label; falls back to `title`. Cat Wand /
+  逗猫棒 is the one bilingual catalog entry today.
 - `url` — canonical destination (the "open externally" target, and what the
   icon snapshot resolves tile art from).
 - `runtime` *(optional)* — `"web"` (default) or `"lynx"`; picks the window
@@ -40,7 +42,7 @@ Apps live in [`content/apps.json`](../content/apps.json):
   opaque white.
 - `featured` *(optional)* — show on the home-screen folder. Defaults to `true`.
   `false` keeps the app in the ⌘K launcher without featuring it on the
-  springboard (BusyWeek and 逗猫棒 are command-only this way).
+  springboard (BusyWeek and Cat Wand / 逗猫棒 are command-only this way).
 - `keywords` *(optional)* — extra ⌘K search terms on top of title / id /
   runtime.
 
@@ -123,8 +125,8 @@ Square icons ≥160px render full-bleed *without* the plate.
 ⌘K is dual-purpose: command search **and** an app launcher (see
 [Command System](./system-command)).
 
-- Headerless **horizontal icon strip** (tight fixed pitch; scrolls when needed;
-  `sm` tiles below Tailwind `md`, `md` tiles on desktop)
+- Headerless **horizontal icon strip** (`md` / 48px tiles; phone pitch is
+  ~5.3 columns so iPhone 16 Pro shows five icons plus a sliver of the sixth)
 - Same UI while typing — unmatched apps filter out; empty strip hides the group
 - Real snapshot icons via `AppTile`
 - **Load…** opens an in-palette System UI form (`load-bundle-panel.tsx`) —

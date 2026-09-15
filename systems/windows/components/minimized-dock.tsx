@@ -1,8 +1,9 @@
 "use client";
 
 import { APP_ICONS, iconFillsTile } from "@/lib/apps";
-import { resolveAppIconSrc } from "@/lib/app-icon-core";
+import { appTitle, resolveAppIconSrc } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/services";
 import { AnimatePresence, motion } from "framer-motion";
 import { useWindows } from "../provider";
 import type { WindowInstance } from "../lib/types";
@@ -21,6 +22,8 @@ import { AppBadgeFor } from "./app-badge";
 // =============================================================================
 
 function PillIcon({ win }: { win: WindowInstance }) {
+  const { locale } = useLocale();
+  const title = appTitle(win.app, locale);
   const entry = APP_ICONS[win.app.id];
   const src = resolveAppIconSrc(win.app, APP_ICONS);
   const fills = iconFillsTile(entry);
@@ -46,7 +49,7 @@ function PillIcon({ win }: { win: WindowInstance }) {
           />
         ) : (
           <span className="flex h-full w-full items-center justify-center font-mono text-[10px] text-neutral-400">
-            {win.app.title.charAt(0)}
+            {title.charAt(0)}
           </span>
         )}
       </span>
@@ -63,6 +66,7 @@ function PillIcon({ win }: { win: WindowInstance }) {
 
 export function MinimizedWindows() {
   const { windows, restore } = useWindows();
+  const { locale } = useLocale();
   const minimized = windows.filter((w) => w.mode === "minimized");
 
   return (
@@ -83,12 +87,12 @@ export function MinimizedWindows() {
             "border border-border/50 bg-glass-strong shadow-raised backdrop-blur-xl",
             "transition-colors hover:border-border hover:bg-glass-strong-hover active:scale-95",
           )}
-          aria-label={`Restore ${win.app.title}`}
-          title={`Restore ${win.app.title}`}
+          aria-label={`Restore ${appTitle(win.app, locale)}`}
+          title={`Restore ${appTitle(win.app, locale)}`}
         >
           <PillIcon win={win} />
           <span className="max-w-32 truncate text-xs font-medium text-foreground/80">
-            {win.app.title}
+            {appTitle(win.app, locale)}
           </span>
         </motion.button>
       ))}

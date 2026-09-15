@@ -28,14 +28,15 @@
     },
     {
       "id": "cat-toy",
-      "title": "逗猫棒",
+      "title": "Cat Wand",
+      "titleZh": "逗猫棒",
       "runtime": "lynx",
       "flavor": "vue",
       "bundleUrl": "/bundles/cat-toy.web.bundle",
       "url": "https://vue-lynx-git-vapor-huxpros-projects.vercel.app/guide/touch-fx",
       "size": "portrait",
       "icon": "/app-icons/cat-toy.png",
-      "keywords": ["cat toy", "touch-fx", "touch fx", "逗猫"],
+      "keywords": ["cat toy", "cat wand", "touch-fx", "touch fx", "逗猫", "逗猫棒"],
       "featured": false
     },
     {

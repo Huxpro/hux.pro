@@ -32,10 +32,11 @@ When the Window system is mounted, ⌘K also launches apps from
 - Same presentation for browse and search — cmdk filters icons in place
 - Strip scrolls horizontally when the catalog overflows
 - Group hides entirely when no app matches the query
-- Real snapshot tiles via shared `AppTile` (`md` / 48px on desktop, `sm` /
-  32px below Tailwind `md`)
+- Real snapshot tiles via shared `AppTile` (`md` / 48px). Below Tailwind `md`
+  the column pitch is ~5.3-wide so iPhone 16 Pro shows five icons plus a
+  sliver of the sixth
 - The strip lists the **full catalog**, including `featured: false`
-  command-only apps (BusyWeek, 逗猫棒) that the home folder omits
+  command-only apps (BusyWeek, Cat Wand / 逗猫棒) that the home folder omits
 
 ### Keyboard Shortcuts
 
