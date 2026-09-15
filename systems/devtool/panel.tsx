@@ -1631,7 +1631,10 @@ function SkyModule() {
         anythingForced ? (
           <button
             onClick={resetAll}
-            className="inline-flex items-center gap-1 rounded-md border border-amber-500/40 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-amber-600 transition-colors hover:bg-amber-500/10 dark:text-amber-400"
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border border-border/60 px-1.5 py-0.5",
+              "text-[10px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+            )}
             aria-label="Back to now"
             title={zh ? "回到真实的现在：时间、天气、微调全部复位" : "Back to real time and real weather; clears every tweak"}
           >
