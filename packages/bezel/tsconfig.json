@@ -12,5 +12,5 @@
     "allowImportingTsExtensions": true,
     "types": []
   },
-  "include": ["bezel.d.ts", "src/**/*.ts", "src/**/*.tsx", "stories/**/*.tsx", ".storybook/**/*.ts"]
+  "include": ["bezel.d.ts", "src/**/*.ts", "src/**/*.tsx"]
 }

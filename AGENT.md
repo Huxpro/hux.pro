@@ -107,7 +107,3 @@ of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
 pnpm bezel:typecheck
 ```
 
-```bash
-pnpm bezel:storybook
-```
-

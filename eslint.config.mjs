@@ -40,8 +40,6 @@ const eslintConfig = defineConfig([
   GLASS_TOKENS_ONLY,
   // Override default ignores of eslint-config-next.
   globalIgnores([
-    // @hux/bezel Storybook build output.
-    "packages/bezel/storybook-static/**",
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
