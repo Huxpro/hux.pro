@@ -280,3 +280,25 @@ export function getSunEventGradient(params: {
     backgroundImage: buildPreviewGradient(colors, geometry),
   };
 }
+
+/**
+ * The Classic weather style: the original palettes, chosen the way the page
+ * always chose them — the sunrise or sunset gradient during those phases,
+ * otherwise the condition's day or night palette. It steps at phase and
+ * weather changes rather than following the clock, which is the point of it.
+ */
+export function getClassicGradient(params: {
+  condition: WeatherCondition;
+  isDay: boolean;
+  phase: "sunrise" | "morning" | "afternoon" | "evening" | "sunset" | "night";
+  theme: "light" | "dark";
+}): string {
+  if (params.phase === "sunrise" || params.phase === "sunset") {
+    return getSunEventGradient({ event: params.phase, theme: params.theme }).backgroundImage;
+  }
+  return getWeatherGradient({
+    condition: params.condition,
+    isDay: params.isDay,
+    theme: params.theme,
+  }).backgroundImage;
+}

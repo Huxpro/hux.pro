@@ -27,9 +27,10 @@ export interface AmbientSettings {
   /** Which kind feeds the single background stack. */
   wallpaperKind: WallpaperKind;
   /**
-   * Which of the two weather wallpapers paints when `wallpaperKind` is
-   * "weather": the animated CG sky, or the flat gradient. CG falls back to the
-   * gradient on its own when WebGL2 is missing; the setting records the wish.
+   * Which of the three weather wallpapers paints when `wallpaperKind` is
+   * "weather": the animated Sky, the live Gradient, or the Classic palettes.
+   * Sky falls back to Gradient on its own when WebGL2 is missing; the setting
+   * records the wish.
    */
   weatherStyle: WeatherStyle;
   /** Selected built-in pair, used when `wallpaperKind === "image"`. */
@@ -61,7 +62,7 @@ export function getDefaultSettings(): AmbientSettings {
     locationMode: "ip",
     wallpaperPlacement: "full",
     wallpaperKind: "weather",
-    weatherStyle: "cg",
+    weatherStyle: "sky",
     wallpaperId: DEFAULT_WALLPAPER_ID,
     bezelTint: DEFAULT_BEZEL_TINT,
     bezelBand: null,
@@ -111,11 +112,14 @@ export function getAmbientSettings(): AmbientSettings {
         : defaults.wallpaperId;
 
     // `wallpaperRenderer: "gradient"` was the pre-catalog way to opt out of
-    // the shader; it means the same thing as the Gradient tile.
+    // the shader; it means the same thing as the Gradient tile. "cg" was the
+    // Sky's name for a while.
     const weatherStyle: WeatherStyle =
       parsed.weatherStyle === "gradient" || parsed.wallpaperRenderer === "gradient"
         ? "gradient"
-        : "cg";
+        : parsed.weatherStyle === "classic"
+          ? "classic"
+          : "sky";
 
     return {
       locationMode:

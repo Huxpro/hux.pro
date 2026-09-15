@@ -57,12 +57,14 @@ Debug modules for the ambient system:
    (full / widget / soft edge), the bezel switch and its tint (black / dark /
    theme / custom), band and radius, a window / container scroll switch, the
    reading treatment switches (reading blur / reading dim),
-   and the resolved asset. Under Weather two more rows: **Style** (CG /
-   Gradient — the persisted choice, the same two tiles the picker shows) and
-   **Engine** (Auto / GL / CSS — an ephemeral override of what actually paints,
-   starred when set). The last line reads the live engine back: `GL ·
-   1266×791 · 0.88× · 6.4ms` (internal resolution, adaptive scale, frame
-   time), or `CSS · gradient`, with `(no WebGL2)` when CG had to fall back.
+   and the resolved asset. Under Weather two more rows: **Style** (Sky /
+   Gradient / Classic — the persisted choice, the same three tiles the picker
+   shows) and **No WebGL2** (a session switch that pretends WebGL2 is missing,
+   so the Sky's fallback can be seen here; style and engine are otherwise
+   one-to-one, so there is no engine picker). The last line reads the live
+   engine back: `GL · 1266×791 · 0.88× · 6.4ms` (internal resolution, adaptive
+   scale, frame time), or `CSS · Gradient` / `CSS · Classic`, with a note when
+   the Sky had to fall back.
    Full and Widget are *independent* switches, not two halves of one control:
    the persisted setting can only be one of them, but the panel exists to see
    combinations the setting cannot express. They drive ephemeral overrides, and
@@ -134,7 +136,7 @@ const { setKind, selectWallpaper, selectWeather } = useWallpaper();
 
 setKind("image");            // Swap the background kind, crossfaded
 selectWallpaper("monterey"); // Hot-swap the pair, no reload
-selectWeather("gradient");   // Back to weather, the flat style
+selectWeather("classic");    // Back to weather, the original palettes
 ```
 
 It reads out what is actually painting — `Now: Sonoma · dark · full · desktop

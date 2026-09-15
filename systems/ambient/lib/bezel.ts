@@ -22,17 +22,17 @@ export const PAGE_GROUND = { light: "#ffffff", dark: "#1a1a1a" } as const;
  * devtool override, the provider resolves every page from this, live, as the
  * look changes (see `getWallpaperEdgeLook`).
  *
- * A weather gradient is the page's own colour pushed outward, so it fades back
- * into the ground: soft edge, no bezel. A photograph is a picture on the page,
- * so it ends on a line inside a bezel, and fading it would be a printing error.
- * The CG sky is a picture too — a rendered one — and gets exactly the image
- * treatment, so the two framed looks start from one configuration. Soft edge
- * applies only while the bezel is off. All of it is a phone treatment: the
- * provider gates it on iOS.
+ * A CSS weather wash (Gradient, Classic) is the page's own colour pushed
+ * outward, so it fades back into the ground: soft edge, no bezel. A photograph
+ * is a picture on the page, so it ends on a line inside a bezel, and fading it
+ * would be a printing error. The Sky is a picture too — a rendered one — and
+ * gets exactly the image treatment, so the two framed looks start from one
+ * configuration. Soft edge applies only while the bezel is off. All of it is a
+ * phone treatment: the provider gates it on iOS.
  *
- * Band, radius and tint are not per look. A bezel over the CG sky uses the same
- * saved band and radius an image does, and a bezel turned on over the gradient
- * does too.
+ * Band, radius and tint are not per look. A bezel over the Sky uses the same
+ * saved band and radius an image does, and a bezel turned on over a wash does
+ * too.
  */
 export interface WallpaperEdges {
   bezel: boolean;
@@ -43,9 +43,10 @@ const FRAMED: WallpaperEdges = { bezel: true, softEdge: false };
 const FADED: WallpaperEdges = { bezel: false, softEdge: true };
 
 export const WALLPAPER_KIND_EDGES: Record<WallpaperLook, WallpaperEdges> = {
-  cg: FRAMED,
+  sky: FRAMED,
   image: FRAMED,
   gradient: FADED,
+  classic: FADED,
 };
 
 /**
@@ -96,7 +97,7 @@ export function bezelBootResolver(): string {
   return `
 var s=JSON.parse(localStorage.getItem("hux_ambient_settings")||"{}");
 var ios=/iP(hone|ad|od)/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-var edges=s.wallpaperKind==="image"?${JSON.stringify(WALLPAPER_KIND_EDGES.image)}:s.weatherStyle==="gradient"?${JSON.stringify(WALLPAPER_KIND_EDGES.gradient)}:${JSON.stringify(WALLPAPER_KIND_EDGES.cg)};
+var edges=s.wallpaperKind==="image"?${JSON.stringify(WALLPAPER_KIND_EDGES.image)}:s.weatherStyle==="gradient"?${JSON.stringify(WALLPAPER_KIND_EDGES.gradient)}:s.weatherStyle==="classic"?${JSON.stringify(WALLPAPER_KIND_EDGES.classic)}:${JSON.stringify(WALLPAPER_KIND_EDGES.sky)};
 var t=localStorage.getItem("hux_theme");
 var dark=t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);
 var tint=s.bezelTint;

@@ -191,10 +191,12 @@ When location mode changes, the UI uses stale-while-revalidate to prevent jank:
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-Engine selection: `settings.weatherStyle` (`cg` | `gradient` — the two tiles
-of the picker's Weather category) plus a runtime WebGL2 probe; a WebGL failure
-at any point flips the session to the gradient. Widget cards always paint the
-CSS gradient (one canvas cannot be shared across cards).
+Style selection: `settings.weatherStyle` (`sky` | `gradient` | `classic` — the
+three tiles of the picker's Weather category). Sky is the shader; Gradient is
+the same scene as CSS, live; Classic is the original condition palettes. A
+runtime WebGL2 probe (or a failure at any point) turns Sky into Gradient;
+nothing else falls back. Widget cards always paint the CSS stack (one canvas
+cannot be shared across cards).
 
 ### Cache & Freshness
 
@@ -282,8 +284,8 @@ The debug panel (press `D` to toggle) provides tools for testing ambient states:
 │                                                                     │
 │   WALLPAPER                                  weather · gl   W       │
 │   ┌─────────────────────────────────────────────────────────────┐   │
-│   │ Now: Weather · CG · dark · full @1.00                       │   │
-│   │ Kind [Weather|Image]  Style [CG|Gradient]  Engine [Auto|GL|CSS]│ │
+│   │ Now: Weather · Sky · dark · full @1.00                      │   │
+│   │ Kind [Weather|Image]  Style [Sky|Gradient|Classic]  No WebGL2 ○│ │
 │   │ Full / Widget / Soft edge · Reading blur / dim              │   │
 │   │ GL · 1266×791 · 0.88× · 6.4ms  (internal res, scale, ms)   │   │
 │   └─────────────────────────────────────────────────────────────┘   │

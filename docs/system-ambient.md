@@ -1,6 +1,6 @@
 # Ambient System
 
-The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon.
+The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon — offered in three styles: Sky, Gradient and Classic.
 
 It also owns the page background — the **wallpaper**. Weather is not a separate
 background feature; it is the one wallpaper that changes on its own. See
@@ -130,10 +130,10 @@ at 40 px.)
 
 | Engine | Where | How |
 |--------|-------|-----|
-| **CG** (`wallpaper/`) | The `cg` weather style, full-page, when WebGL2 is available | One full-screen fragment pass: sky gradient + sun glow/disc, twinkling stars, phased moon, two parallax fbm cloud decks lit toward the sun, drifting fog, stochastic lightning flashes, wind-sheared rain streaks / snow flakes, theme veil, dither. |
-| **Gradient** (`gradient.ts` + `gradient-stack.tsx`) | The `gradient` weather style; widget cards under either style; the fallback when WebGL2 is missing or the devtool forces CSS | Sun-glow radial + cloud wash + zenith→horizon linear gradient built from the scene palette, crossfaded via the layer stack. (`gradient.ts` also keeps the original hand-tuned per-condition palettes for the devtool thumbnails.) |
+| **Sky** (`wallpaper/`) | The `sky` weather style, full-page, when WebGL2 is available | One full-screen fragment pass: sky gradient + sun glow/disc, twinkling stars, phased moon, two parallax fbm cloud decks lit toward the sun, drifting fog, stochastic lightning flashes, wind-sheared rain streaks / snow flakes, theme veil, dither. |
+| **Gradient** (`gradient.ts` + `gradient-stack.tsx`) | The `gradient` and `classic` weather styles; widget cards under every style; the Sky's fallback when WebGL2 is missing (or the devtool pretends it is) | Sun-glow radial + cloud wash + zenith→horizon linear gradient built from the scene palette, crossfaded via the layer stack. (`gradient.ts` also keeps the original hand-tuned per-condition palettes for the devtool thumbnails.) |
 
-The CG engine (`WallpaperRenderer`):
+The Sky engine (`WallpaperRenderer`):
 - treats every scene as a **target** — each uniform eases in with its own time
   constant (sky ≈ 1.8 s, clouds/precipitation ≈ 2.5 s), so a refetch never snaps;
 - accumulates cloud/snow **drift in JS** from the smoothed wind, so a wind change
@@ -178,16 +178,22 @@ The background is **one layer stack fed by exactly one source**:
 type WallpaperKind = "weather" | "image";
 ```
 
-- `weather` — the live sky, in one of two **styles** (`weatherStyle`):
-  - `cg` — the WebGL shader (`lib/wallpaper/`), animated, at full strength.
-  - `gradient` — the CSS gradient stack (`lib/gradient.ts`), a wash under the
-    content. Also what CG falls back to without WebGL2.
+- `weather` — the live sky, in one of three **styles** (`weatherStyle`):
+
+  | Style | Name | Subtitle | What it is |
+  |---|---|---|---|
+  | `sky` | **Sky** | shader · webgl | The WebGL shader (`lib/wallpaper/`): the whole scene, animated, at full strength. Needs WebGL2. |
+  | `gradient` | **Gradient** | css · gradient · realtime | The same scene as a CSS gradient (`sceneToCssGradient`): the sky's colour at the real sun position, live to the minute. The Sky's automatic fallback. |
+  | `classic` | **Classic** | css · gradient · presets | The original: six hand-tuned condition palettes by day and night plus the sunrise / sunset event gradients (`getClassicGradient`). Steps at phase and weather changes rather than following the clock. Chosen by hand only. |
+
 - `image` — a fixed picture from the built-in catalog (`lib/wallpaper.ts`).
 
-Both weather styles render the same `WeatherScene`; they differ in engine, not
-in what the sky is doing. The resolved engine (`useWallpaper().renderer`,
-`"shader" | "gradient"`) is the style minus WebGL2 support plus any devtool
-override.
+Style and engine are one-to-one: Sky is the canvas, the other two are the CSS
+stack. The only resolution is the fallback — `resolveWeatherStyle` turns a Sky
+without WebGL2 (or with the devtool pretending there is none) into the
+Gradient — and `useWallpaper().effectiveStyle` / `.renderer` say what won.
+Widget cards always paint the CSS stack: the Classic palette under Classic,
+the scene gradient under the other two.
 
 Because there is a single stack and a single kind, the two are **mutually
 exclusive by construction** — there is no state in which both paint, and nothing
@@ -203,12 +209,13 @@ themselves under an image wallpaper.
 Three categories, switched in the picker with the same capsule the Featured
 Talks widget uses for albums (`WALLPAPER_CATEGORIES` in `lib/wallpaper.ts`).
 
-- **Weather** — first, and the live one. Two tiles for the same sky: **CG**,
-  previewed by a small live canvas running the shader at a tile-sized pixel
-  budget (the one wallpaper that moves should move in its tile), and
-  **Gradient**, previewed with the very gradient the page would paint. Where
-  WebGL2 is missing the CG tile shows the gradient with a note, which is also
-  what choosing it would paint.
+- **Weather** — first, and the live one. Three tiles: **Sky**, previewed by
+  a small live canvas running the shader at a tile-sized pixel budget (the one
+  wallpaper that moves should move in its tile); **Gradient**, previewed with
+  the very gradient the page would paint; and **Classic**, previewed with the
+  palette for this condition and hour. The two realtime styles wear the Live
+  chip. Where WebGL2 is missing the Sky tile shows the Gradient with a note,
+  which is also what choosing it would paint.
 - **Apple** — the default macOS, iPadOS and iOS wallpapers as light/dark pairs,
   the artwork each release is recognised by. Twelve pairs: macOS Tahoe,
   Sequoia, Sonoma, Ventura, Monterey and Big Sur; iPadOS 18 in its four
@@ -276,12 +283,13 @@ and the widget overlay as `useWallpaper().opacity`:
 
 | | Light theme | Dark theme |
 |---|---|---|
+| Weather · Sky | 1.00 | 1.00 |
 | Weather · Gradient | 0.70 | 0.85 |
-| Weather · CG | 1.00 | 1.00 |
+| Weather · Classic | 0.70 | 0.85 |
 | Image wallpaper | 1.00 | 1.00 |
 
-Keyed by what is *painting* (`getWallpaperLook`), not what was asked for: CG
-that fell back to the gradient is the gradient. The CG sky paints at 1 because
+Keyed by what is *painting* (`getWallpaperLook`), not what was asked for: a
+Sky that fell back to the Gradient is the Gradient. The Sky paints at 1 because
 its theme veil is mixed inside the shader; the restraint happens in the scene.
 
 An image wallpaper paints at **full strength**: it is a picture someone chose,
@@ -307,18 +315,19 @@ provider resolves every page from that table, live, as the look changes:
 
 | Look | Bezel | Soft edge |
 |---|---|---|
+| Weather · Sky | on | off |
 | Weather · Gradient | off | on |
-| Weather · CG | on | off |
+| Weather · Classic | off | on |
 | Image | on | off |
 
-A weather gradient is the page's own colour pushed outward, so it fades back
+A CSS weather wash is the page's own colour pushed outward, so it fades back
 into the ground. A photograph is a picture on the page, so it ends on a line
-inside a bezel. The CG sky is a picture too — a rendered one — and gets
-exactly the image configuration, so the two framed looks start from one place
-(and the boot script keys on the saved style, not on WebGL support, so a CG
-sky that falls back to the gradient keeps its frame rather than flickering).
-A desktop window gets none of it unless overridden. Switching between CG and
-Gradient ends a session edge override the same way a kind switch does.
+inside a bezel. The Sky is a picture too — a rendered one — and gets exactly
+the image configuration, so the two framed looks start from one place (and
+the boot script keys on the saved style, not on WebGL support, so a Sky that
+falls back to the Gradient keeps its frame rather than flickering). A desktop
+window gets none of it unless overridden. Switching between a framed style and
+a faded one ends a session edge override the same way a kind switch does.
 
 **The bezel** is `@hux/bezel` (`packages/bezel`), after ryOS (os.ryo.lu): one
 flat colour around the page, black by default, with the page rounded off inside
@@ -338,7 +347,7 @@ switch overrides it either way.
 
 | Surface | How |
 |---------|-----|
-| Command palette | `Wallpaper: <name>` / `Wallpaper: Weather · CG` (⌘K), or `/` then `W` |
+| Command palette | `Wallpaper: <name>` / `Wallpaper: Weather · Sky` (⌘K), or `/` then `W` |
 | Devtool panel | Wallpaper module — the whole background system in one place |
 | Anywhere in code | `useWallpaper().openPicker()` |
 
@@ -349,7 +358,7 @@ ones.
 
 Its tiles are **macOS Settings pair cards**: a 16:10 split of the light and dark
 originals, a sun / moon marking each half, a check when selected, and `Name` +
-`macOS · 2020` underneath. The Weather category's two tiles are the **same
+`macOS · 2020` underneath. The Weather category's three tiles are the **same
 frame at the same size** — the sky is one of the wallpapers, just the only one
 that moves, and it opens on that tab whenever the sky is what is in use. Where
 the wallpaper paints sits above the grid as one compact row: a modifier, not the
@@ -431,9 +440,10 @@ had to hold "weather = wallpaper" in their head. It moved.
 const {
   kind,                   // "weather" | "image"
   setKind,
-  weatherStyle,           // "cg" | "gradient" — the persisted weather choice
+  weatherStyle,           // "sky" | "gradient" | "classic" — the persisted choice
   selectWeather,          // Selects a style AND switches kind to "weather"
-  renderer,               // "shader" | "gradient" — what paints right now
+  effectiveStyle,         // The style painting: Sky becomes Gradient without WebGL2
+  renderer,               // "shader" | "css" — the engine behind it
   shaderSupported,        // WebGL2 probe result
   reportShaderFallback,   // <WeatherWallpaper /> → provider on a WebGL failure
   statsRef,               // Live renderer stats for the devtool
@@ -501,8 +511,9 @@ Open-Meteo API → useWeatherQuery                        app theme
 the clock (nowMs) + lat/lon → sun & moon                    ↓
         ↓                                                    ↓
 deriveWeatherScene → scene                     getWallpaperBackground
-        ├── cg: <WeatherWallpaper /> (WebGL)                 │
-        └── sceneToCssGradient ───────┬──────────────────────┘
+        ├── sky:      <WeatherWallpaper /> (WebGL)           │
+        ├── gradient: sceneToCssGradient ─────┐              │
+        └── classic:  getClassicGradient ─────┼──────────────┘
                                       ▼
                     wallpaper.layers (one stack, crossfaded)
                                       ▼
@@ -510,7 +521,7 @@ deriveWeatherScene → scene                     getWallpaperBackground
 ```
 
 Both branches feed the same stack, which is what makes "one background at a
-time" a structural property rather than a rule. The CG canvas is the one
+time" a structural property rather than a rule. The Sky's canvas is the one
 exception to "everything is a layer": it paints the full-page slot directly
 from the scene, while widget cards keep painting the gradient of that same
 scene.

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { t, useLocale, type TranslationKey } from "@/services";
+import { t, useLocale, useTheme, type TranslationKey } from "@/services";
 import { AlbumTabs } from "@/systems/theater";
 import { Check, Cloud, Moon, Smartphone, Sparkles, Sun } from "lucide-react";
 import { useState } from "react";
@@ -10,19 +10,21 @@ import {
   AdaptiveSurface,
   useSurfaceContext,
 } from "@/systems/surface";
-import { sceneToCssGradient } from "../lib/gradient";
+import { getClassicGradient, sceneToCssGradient } from "../lib/gradient";
 import type { WallpaperPlacement } from "../lib/settings";
 import {
   getWallpaperPairPreview,
   isPhoneWallpaper,
   isSingleImage,
   WALLPAPER_CATEGORIES,
+  WEATHER_STYLE_LABEL,
+  WEATHER_STYLE_META,
   WEATHER_STYLES,
   type Wallpaper,
   type WallpaperCategory,
   type WeatherStyle,
 } from "../lib/wallpaper";
-import { useWallpaper, useWeather } from "../provider";
+import { useAmbientTime, useWallpaper, useWeather } from "../provider";
 import { WeatherWallpaper } from "./wallpaper";
 
 // ---------------------------------------------------------------------------
@@ -43,11 +45,12 @@ import { WeatherWallpaper } from "./wallpaper";
 // capsule the Featured Talks widget uses to switch albums — one group at a time
 // is the same choice in both places, so it looks the same.
 //
-// Weather is a category of its own, and the first: two tiles for the same live
-// sky — CG (the shader, previewed by a small live canvas) and Gradient (the
-// flat CSS wash, previewed with the gradient that is live right now). It used
-// to be one tile leading every grid; with two styles to choose between it is a
-// group, and the way back to it is always the first tab.
+// Weather is a category of its own, and the first: three tiles — Sky (the
+// shader, previewed by a small live canvas), Gradient (the same scene as a
+// live CSS wash, previewed with the very gradient the page would paint) and
+// Classic (the original condition palettes). It used to be one tile leading
+// every grid; with styles to choose between it is a group, and the way back
+// to it is always the first tab.
 // ---------------------------------------------------------------------------
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -303,12 +306,13 @@ function WallpaperTile({
 }
 
 /**
- * The live ones. Same frame, same size as the pair cards. Both tiles preview
- * the sky as it is right now: the gradient tile paints the very gradient the
- * page would, and the CG tile runs the shader itself at a tile-sized pixel
- * budget — the one wallpaper that moves should move in its tile. Where WebGL2
- * is missing the CG tile shows the gradient with a note, which is also what
- * choosing it would paint.
+ * The weather tiles. Same frame, same size as the pair cards. Each previews
+ * what choosing it would paint right now: the Sky tile runs the shader itself
+ * at a tile-sized pixel budget — the one wallpaper that moves should move in
+ * its tile — the Gradient tile paints the very gradient the page would, and
+ * the Classic tile the palette for this condition and hour. Where WebGL2 is
+ * missing the Sky tile shows the Gradient with a note, which is also what
+ * choosing it would paint. The two realtime styles wear the Live chip.
  */
 function WeatherStyleTile({
   style,
@@ -318,17 +322,25 @@ function WeatherStyleTile({
   selected: boolean;
 }) {
   const { locale } = useLocale();
+  const { theme } = useTheme();
   const { selectWeather, shaderSupported } = useWallpaper();
   const { scene } = useWeather();
+  const { phase } = useAmbientTime();
 
-  const gradient = sceneToCssGradient(scene);
-  const live = style === "cg" && shaderSupported;
-  const name = t(locale, style === "cg" ? "wallpaperWeatherCg" : "wallpaperWeatherGradient");
-  const meta = t(
-    locale,
-    style === "cg" ? "wallpaperWeatherCgMeta" : "wallpaperWeatherGradientMeta"
-  );
-  const Glyph = style === "cg" ? Sparkles : Cloud;
+  const gradient =
+    style === "classic"
+      ? getClassicGradient({
+          condition: scene.condition,
+          isDay: scene.sun.elevation > -0.5,
+          phase,
+          theme,
+        })
+      : sceneToCssGradient(scene);
+  const animated = style === "sky" && shaderSupported;
+  const realtime = style !== "classic";
+  const name = t(locale, WEATHER_STYLE_LABEL[style]);
+  const meta = t(locale, WEATHER_STYLE_META[style]);
+  const Glyph = style === "sky" ? Sparkles : Cloud;
 
   return (
     <div className="group min-w-0">
@@ -338,10 +350,10 @@ function WeatherStyleTile({
           onClick={() => selectWeather(style)}
           aria-pressed={selected}
           aria-label={`${t(locale, "wallpaperWeather")} — ${name}`}
-          title={style === "cg" && !shaderSupported ? t(locale, "wallpaperNoWebGL") : undefined}
+          title={style === "sky" && !shaderSupported ? t(locale, "wallpaperNoWebGL") : undefined}
           className="absolute inset-0"
         >
-          {live ? (
+          {animated ? (
             <WeatherWallpaper
               scene={scene}
               active
@@ -351,16 +363,18 @@ function WeatherStyleTile({
           ) : (
             <span className="absolute inset-0" style={{ backgroundImage: gradient }} />
           )}
-          <span
-            className={cn(
-              "absolute bottom-2 left-2 flex items-center gap-1 rounded-full px-2 py-0.5",
-              "text-[10px] font-mono uppercase tracking-wider",
-              ARTWORK_CHIP
-            )}
-          >
-            <Glyph className="size-3" />
-            {t(locale, "wallpaperLive")}
-          </span>
+          {realtime && (
+            <span
+              className={cn(
+                "absolute bottom-2 left-2 flex items-center gap-1 rounded-full px-2 py-0.5",
+                "text-[10px] font-mono uppercase tracking-wider",
+                ARTWORK_CHIP
+              )}
+            >
+              <Glyph className="size-3" />
+              {t(locale, "wallpaperLive")}
+            </span>
+          )}
         </button>
       </TileFrame>
       <TileCaption name={name} meta={meta} />
@@ -472,11 +486,11 @@ function WallpaperPickerBody() {
         ))}
       </div>
 
-      <p className="px-0.5 pt-5 text-[11px] leading-snug text-muted-foreground/70">
-        {category === "weather"
-          ? t(locale, "wallpaperWeatherFooter")
-          : t(locale, "wallpaperFooterNote")}
-      </p>
+      {category !== "weather" && (
+        <p className="px-0.5 pt-5 text-[11px] leading-snug text-muted-foreground/70">
+          {t(locale, "wallpaperFooterNote")}
+        </p>
+      )}
     </>
   );
 }

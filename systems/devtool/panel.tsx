@@ -20,12 +20,21 @@ import {
 /** The named tints plus the segmented control's own "pick a colour". */
 type TintChoice = "black" | "dark" | "theme" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
-import { getWeatherGradient, sceneToCssGradient } from "@/systems/ambient/lib/gradient";
+import {
+  getClassicGradient,
+  getWeatherGradient,
+  sceneToCssGradient,
+} from "@/systems/ambient/lib/gradient";
 import type { AmbientPhase } from "@/systems/ambient/lib/phase";
 import { rgbToCss, sampleDaySky } from "@/systems/ambient/lib/scene";
 import { getMoonPhaseName, type MoonPhaseName } from "@/systems/ambient/lib/solar";
 import type { WallpaperStats } from "@/systems/ambient/lib/wallpaper/renderer";
-import type { WeatherStyle } from "@/systems/ambient/lib/wallpaper";
+import {
+  WEATHER_STYLE_LABEL,
+  WEATHER_STYLE_META,
+  WEATHER_STYLES,
+  type WeatherStyle,
+} from "@/systems/ambient/lib/wallpaper";
 import {
   WEATHER_CONDITION_LIST,
   getWeatherConditionLabel,
@@ -846,11 +855,13 @@ function GlassModule() {
 // picker. Below it, the rendering flags as plain switches: where the wallpaper
 // paints, and how much of it survives on a reading page.
 //
-// Under Weather there are two more rows. Style is the persisted choice between
-// the picker's two weather tiles (CG / Gradient); Engine is the ephemeral
-// devtool override of what actually paints (GL / CSS), which also covers the
-// WebGL fallback. The last line reads the live renderer back: internal
-// resolution, adaptive scale and frame time for GL, or "css gradient".
+// Under Weather there are two more rows. Style is the persisted choice among
+// the picker's three weather tiles (Sky / Gradient / Classic); "No WebGL2" is
+// the one session override that exists here — it pretends WebGL2 is missing so
+// the Sky's fallback can be seen on a machine that has it. Style and engine
+// are otherwise one-to-one, so there is no engine picker. The last line reads
+// the live engine back: internal resolution, adaptive scale and frame time for
+// GL, or which CSS style is painting.
 //
 // Full, Widget and Soft edge are ephemeral devtool overrides of what the
 // settings and the platform resolve to; the reading treatment rows write the
@@ -860,11 +871,13 @@ function GlassModule() {
 function WallpaperModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
+  const { theme } = useTheme();
   const {
     kind,
     setKind,
     weatherStyle,
     selectWeather,
+    effectiveStyle,
     renderer,
     shaderSupported,
     statsRef,
@@ -899,9 +912,20 @@ function WallpaperModule() {
     setDevtoolOverrides,
   } = useWallpaper();
   const { scene } = useWeather();
+  const { phase } = useAmbientTime();
 
   const isImage = kind === "image";
   const isShader = !isImage && renderer === "shader";
+  // The swatch: what the CSS stack would paint for the effective style.
+  const swatch =
+    effectiveStyle === "classic"
+      ? getClassicGradient({
+          condition: scene.condition,
+          isDay: scene.sun.elevation > -0.5,
+          phase,
+          theme,
+        })
+      : sceneToCssGradient(scene);
 
   // Poll the renderer stats while the shader is live.
   const [stats, setStats] = useState<WallpaperStats | null>(null);
@@ -977,10 +1001,7 @@ function WallpaperModule() {
     ) : null;
 
   // One line that answers "what am I actually looking at".
-  const styleLabel = t(
-    locale,
-    weatherStyle === "cg" ? "wallpaperWeatherCg" : "wallpaperWeatherGradient"
-  );
+  const styleLabel = t(locale, WEATHER_STYLE_LABEL[weatherStyle]);
   const now = [
     isImage ? wallpaper.name : `${t(locale, "wallpaperWeather")} · ${styleLabel}`,
     variant,
@@ -988,12 +1009,13 @@ function WallpaperModule() {
   ].join(" · ");
 
   // What the weather layer is being drawn by, with the GL numbers when live.
+  const fellBack = weatherStyle === "sky" && effectiveStyle !== "sky";
   const engineLine = isShader
     ? stats
       ? `GL · ${stats.width}×${stats.height} · ${stats.scale.toFixed(2)}× · ${stats.frameMs.toFixed(1)}ms`
       : "GL · …"
-    : `CSS · ${zh ? "渐变" : "gradient"}${
-        weatherStyle === "cg" && !shaderSupported ? ` (${zh ? "无 WebGL2" : "no WebGL2"})` : ""
+    : `CSS · ${t(locale, WEATHER_STYLE_LABEL[effectiveStyle])}${
+        fellBack ? ` (${zh ? "无 WebGL2，天空退回" : "no WebGL2, Sky fell back"})` : ""
       }`;
 
   return (
@@ -1040,57 +1062,49 @@ function WallpaperModule() {
             <PanelRow
               label={zh ? "风格" : "Style"}
               star={
-                weatherStyle === "cg" ? null : (
-                  <PanelStar onReset={() => selectWeather("cg")} source="saved" label="Back to CG" />
+                weatherStyle === "sky" ? null : (
+                  <PanelStar onReset={() => selectWeather("sky")} source="saved" label="Back to Sky" />
                 )
               }
             >
               <PanelSegmented<WeatherStyle>
                 value={weatherStyle}
-                options={[
-                  {
-                    value: "cg",
-                    label: t(locale, "wallpaperWeatherCg"),
-                    title: shaderSupported
-                      ? t(locale, "wallpaperWeatherCgMeta")
-                      : t(locale, "wallpaperNoWebGL"),
-                  },
-                  {
-                    value: "gradient",
-                    label: t(locale, "wallpaperWeatherGradient"),
-                    title: t(locale, "wallpaperWeatherGradientMeta"),
-                  },
-                ]}
+                options={WEATHER_STYLES.map((style) => ({
+                  value: style,
+                  label: t(locale, WEATHER_STYLE_LABEL[style]),
+                  title:
+                    style === "sky" && !shaderSupported
+                      ? t(locale, "wallpaperNoWebGL")
+                      : t(locale, WEATHER_STYLE_META[style]),
+                }))}
                 onChange={selectWeather}
               />
             </PanelRow>
+            {/* The only engine knob: pretend WebGL2 is missing, to see the Sky's
+                fallback here. Style and engine are otherwise one-to-one. */}
             <PanelRow
-              label={zh ? "引擎" : "Engine"}
+              label={zh ? "无 WebGL2" : "No WebGL2"}
               star={
-                devtoolOverrides.renderer === undefined ? null : (
+                devtoolOverrides.noWebGL === undefined ? null : (
                   <PanelStar
                     onReset={() =>
-                      setDevtoolOverrides({ ...devtoolOverrides, renderer: undefined })
+                      setDevtoolOverrides({ ...devtoolOverrides, noWebGL: undefined })
                     }
                     source="session"
-                    label="Clear engine override"
+                    label="Clear WebGL2 simulation"
                   />
                 )
               }
             >
-              <PanelSegmented<"auto" | "shader" | "gradient">
-                value={devtoolOverrides.renderer ?? "auto"}
-                options={[
-                  { value: "auto", label: zh ? "自动" : "Auto", title: zh ? "跟随风格" : "Follow the style" },
-                  { value: "shader", label: "GL", title: shaderSupported ? "WebGL2 shader" : "WebGL2 unavailable" },
-                  { value: "gradient", label: "CSS", title: "CSS gradient stack" },
-                ]}
-                onChange={(v) =>
+              <PanelToggle
+                on={devtoolOverrides.noWebGL === true}
+                onClick={() =>
                   setDevtoolOverrides({
                     ...devtoolOverrides,
-                    renderer: v === "auto" ? undefined : v,
+                    noWebGL: devtoolOverrides.noWebGL ? undefined : true,
                   })
                 }
+                label="Simulate no WebGL2"
               />
             </PanelRow>
           </>
@@ -1111,9 +1125,9 @@ function WallpaperModule() {
           ) : (
             <span
               className="flex h-6 w-10 shrink-0 items-center justify-center rounded-sm"
-              style={{ backgroundImage: sceneToCssGradient(scene) }}
+              style={{ backgroundImage: swatch }}
             >
-              {weatherStyle === "cg" ? (
+              {weatherStyle === "sky" ? (
                 <Sparkles className="h-3 w-3 text-white/85 drop-shadow" />
               ) : (
                 <Cloud className="h-3 w-3 text-white/85 drop-shadow" />
@@ -1123,10 +1137,7 @@ function WallpaperModule() {
           <span className="min-w-0 flex-1 truncate text-[10px] font-mono text-foreground/80">
             {isImage
               ? wallpaper.name
-              : `${t(locale, "wallpaperWeather")} · ${t(
-                  locale,
-                  weatherStyle === "cg" ? "wallpaperWeatherCg" : "wallpaperWeatherGradient"
-                )}`}
+              : `${t(locale, "wallpaperWeather")} · ${styleLabel}`}
             {isImage && (
               <span className="ml-1.5 tabular-nums text-muted-foreground/60">
                 {wallpaper[variant].width}×{wallpaper[variant].height}

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { sceneToCssGradient } from "./lib/gradient";
+import { getClassicGradient, sceneToCssGradient } from "./lib/gradient";
 import { GRADIENT_CROSSFADE_MS, type GradientLayerData } from "./lib/gradient";
 import type { LocationMode, ResolvedLocation } from "./lib/location";
 import { requestAccurateLocation as requestAccurateLocationFn } from "./lib/location";
@@ -32,6 +32,7 @@ import {
   getWallpaperEdgeLook,
   getWallpaperLook,
   getWallpaperOrDefault,
+  resolveWeatherStyle,
   WALLPAPER_OPACITY,
   WALLPAPER_READING_VEIL,
   type Wallpaper,
@@ -144,16 +145,17 @@ export function useAmbientTime() {
 //
 // The background is one stack fed by exactly one kind (see lib/wallpaper.ts),
 // so "weather" and "image" are mutually exclusive by construction — there is
-// no state in which both can paint. Under "weather", `weatherStyle` picks the
-// engine: the CG shader or the CSS gradient. Everything here persists to the
-// same localStorage blob as the rest of the ambient settings.
+// no state in which both can paint. Under "weather", `weatherStyle` picks one
+// of three: the Sky (shader), the Gradient (CSS, live) or the Classic palettes
+// (CSS, stepped). Everything here persists to the same localStorage blob as
+// the rest of the ambient settings.
 // =============================================================================
 
 /**
  * DevTool-level overrides (ephemeral). The three placement flags exist because
  * the persisted setting can only be one of them; the panel exists to see the
- * combinations it cannot express. `renderer` forces an engine regardless of
- * the style setting and of WebGL support.
+ * combinations it cannot express. `noWebGL` pretends WebGL2 is missing, so the
+ * Sky's fallback can be seen on a machine that has it.
  */
 export interface DevtoolWallpaperOverrides {
   full?: boolean;
@@ -163,12 +165,12 @@ export interface DevtoolWallpaperOverrides {
   bezel?: boolean;
   /** Where the page scrolls, for this session, instead of the platform's choice. */
   scroll?: BezelScroll;
-  /** Force a weather engine regardless of the style setting and of WebGL support. */
-  renderer?: WallpaperRenderer;
+  /** Pretend WebGL2 is missing: the Sky paints its Gradient fallback. */
+  noWebGL?: boolean;
   /**
    * Which edge switch `softEdging` and `bezel` were set after. They describe
    * the edge of the wallpaper showing at the time, so any change of edge look
-   * (kind, or CG ↔ Gradient) ends them — switching to the gradient turns the
+   * (kind, or Sky ↔ a CSS style) ends them — switching to the gradient turns the
    * bezel off even if it was forced on, and switching back does not bring the
    * override back. Stamped by the provider; callers never set it.
    */
@@ -183,10 +185,9 @@ interface WallpaperContextType {
   weatherStyle: WeatherStyle;
   /** Selects a weather style AND switches the background kind to weather. */
   selectWeather: (style: WeatherStyle) => void;
-  /**
-   * Which engine paints the full-page weather layer right now: the wanted
-   * style, minus WebGL2 support, plus any devtool override.
-   */
+  /** The style actually painting: the wanted one, unless the Sky fell back. */
+  effectiveStyle: WeatherStyle;
+  /** Which engine paints the full-page weather layer right now. */
   renderer: WallpaperRenderer;
   /** WebGL2 available in this browser (false → the gradient paints). */
   shaderSupported: boolean;
@@ -390,13 +391,15 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   const selectWeather = useCallback(
     (style: WeatherStyle) => {
-      // CG and Gradient have different edges (a bezel, a soft edge), so a
-      // change between them ends the edge overrides exactly as a kind switch does.
+      // The Sky and the CSS styles have different edges (a bezel, a soft edge),
+      // so a change between them ends the edge overrides as a kind switch does.
       const before = getWallpaperEdgeLook({
         kind: settings.wallpaperKind,
         weatherStyle: settings.weatherStyle,
       });
-      if (before !== style) setEdgeEpoch((epoch) => epoch + 1);
+      if (WALLPAPER_KIND_EDGES[before] !== WALLPAPER_KIND_EDGES[style]) {
+        setEdgeEpoch((epoch) => epoch + 1);
+      }
       updateSettings({ weatherStyle: style, wallpaperKind: "weather" });
     },
     [settings.wallpaperKind, settings.weatherStyle, updateSettings]
@@ -459,7 +462,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       full: storedOverrides.full,
       widget: storedOverrides.widget,
       scroll: storedOverrides.scroll,
-      renderer: storedOverrides.renderer,
+      noWebGL: storedOverrides.noWebGL,
     };
   }, [storedOverrides, edgeEpoch]);
 
@@ -539,22 +542,23 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   }, []);
   const reportShaderFallback = useCallback((reason: string) => {
     if (process.env.NODE_ENV !== "production") {
-      console.warn(`[ambient] CG wallpaper fell back to the gradient: ${reason}`);
+      console.warn(`[ambient] the Sky fell back to the Gradient: ${reason}`);
     }
     setShaderSupported(false);
   }, []);
   const statsRef = useRef<WallpaperStats | null>(null);
 
-  const renderer: WallpaperRenderer = (() => {
-    const forced = isDevtoolEnabled ? devtoolOverrides.renderer : undefined;
-    if (forced === "gradient") return "gradient";
-    if (forced === "shader") return shaderSupported ? "shader" : "gradient";
-    if (settings.weatherStyle === "gradient") return "gradient";
-    return shaderSupported ? "shader" : "gradient";
-  })();
+  // The style that paints: the Sky needs WebGL2 (real, or not pretended away
+  // by the devtool) and otherwise becomes the Gradient. Nothing else falls back.
+  const effectiveStyle = resolveWeatherStyle({
+    weatherStyle: settings.weatherStyle,
+    shaderSupported:
+      shaderSupported && !(isDevtoolEnabled && devtoolOverrides.noWebGL === true),
+  });
+  const renderer: WallpaperRenderer = effectiveStyle === "sky" ? "shader" : "css";
 
   const wallpaperOpacity =
-    WALLPAPER_OPACITY[getWallpaperLook({ kind: settings.wallpaperKind, renderer })][theme];
+    WALLPAPER_OPACITY[getWallpaperLook({ kind: settings.wallpaperKind, effectiveStyle })][theme];
 
   // --- Debug state (weather + time) -----------------------------------------
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
@@ -732,14 +736,23 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   // Compute the CSS background. Exactly one kind wins — an image wallpaper
   // replaces the weather sky outright rather than stacking over it. Under
-  // weather this is the gradient rendering of the scene: the full-page layer
-  // when the gradient style (or a fallback) is in effect, and what widget
-  // cards paint under either style. The sun-event Live Activity is unaffected
-  // either way: it renders in the Dock from the clock and never reads this.
-  const computedGradient = useMemo(
-    () => (resolvedImage ? resolvedImage.backgroundImage : sceneToCssGradient(scene)),
-    [resolvedImage, scene]
-  );
+  // weather it is the Classic palette when that style is chosen, otherwise the
+  // gradient rendering of the scene: the full-page layer under Gradient (or a
+  // Sky fallback), and what widget cards paint under the Sky. The sun-event
+  // Live Activity is unaffected either way: it renders in the Dock from the
+  // clock and never reads this.
+  const computedGradient = useMemo(() => {
+    if (resolvedImage) return resolvedImage.backgroundImage;
+    if (effectiveStyle === "classic") {
+      return getClassicGradient({
+        condition: scene.condition,
+        isDay: scene.sun.elevation > -0.5,
+        phase: effectivePhase,
+        theme,
+      });
+    }
+    return sceneToCssGradient(scene);
+  }, [resolvedImage, effectiveStyle, scene, effectivePhase, theme]);
 
   /** Images must cover the layer; the weather gradient already fills it. */
   const computedCover = resolvedImage?.cover ?? false;
@@ -870,6 +883,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       setKind: setWallpaperKind,
       weatherStyle: settings.weatherStyle,
       selectWeather,
+      effectiveStyle,
       renderer,
       shaderSupported,
       reportShaderFallback,
@@ -924,6 +938,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       settings.wallpaperReadingDim,
       setWallpaperKind,
       selectWeather,
+      effectiveStyle,
       renderer,
       shaderSupported,
       reportShaderFallback,
