@@ -25,7 +25,7 @@ function Field({
 }) {
   return (
     <label className={cn("flex items-center gap-2", dimmed && "opacity-40")}>
-      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 w-20 shrink-0 text-right">
+      <span className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground w-20 shrink-0 text-right">
         {label}
       </span>
       <input
@@ -48,9 +48,9 @@ export function TagEditor({ tag, onUpdate, onClose }: TagEditorProps) {
     <div className="p-3 space-y-2">
       <div className="flex items-center justify-between gap-2 -mx-3 -mt-3 px-3 py-2 mb-1 border-b border-border">
         <div className="min-w-0 flex items-center gap-2">
-          <TagIcon className="w-3.5 h-3.5 shrink-0 text-muted-foreground/60" />
+          <TagIcon className="w-3.5 h-3.5 shrink-0 text-tertiary-foreground" />
           <div className="min-w-0">
-            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50">
+            <div className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground">
               chapter
             </div>
             <div className="text-sm truncate leading-tight">
@@ -61,7 +61,7 @@ export function TagEditor({ tag, onUpdate, onClose }: TagEditorProps) {
         <button
           type="button"
           onClick={onClose}
-          className="p-1 text-muted-foreground/50 hover:text-foreground rounded transition-colors shrink-0"
+          className="p-1 text-tertiary-foreground hover:text-foreground rounded transition-colors shrink-0"
           title="Close inspector"
           aria-label="Close inspector"
         >

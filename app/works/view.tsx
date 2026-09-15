@@ -27,7 +27,7 @@ export function WorksView({ logData }: WorksViewProps) {
     <PageLayout
       page="works"
       headerActions={
-        <span className="inline-flex items-center gap-3 font-mono text-xs text-muted-foreground/60">
+        <span className="inline-flex items-center gap-3 font-mono text-xs text-tertiary-foreground">
           <span className="inline-flex items-center gap-1.5">
             <GitBranch className="h-3.5 w-3.5" />
             <span>main</span>
@@ -38,7 +38,7 @@ export function WorksView({ logData }: WorksViewProps) {
             type="button"
             onClick={() => setExpandAll((v) => !v)}
             aria-pressed={expandAll}
-            className="inline-flex items-center gap-1.5 text-muted-foreground/50 hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1.5 text-tertiary-foreground hover:text-foreground transition-colors"
           >
             {expandAll ? (
               <ChevronsDownUp className="h-3.5 w-3.5" />
@@ -59,7 +59,7 @@ export function WorksView({ logData }: WorksViewProps) {
       />
 
       {/* End marker — initial commit */}
-      <div className="mt-8 py-4 font-mono text-xs text-muted-foreground/30">
+      <div className="mt-8 py-4 font-mono text-xs text-tertiary-foreground">
         {t(locale, "logInit")}
       </div>
     </PageLayout>

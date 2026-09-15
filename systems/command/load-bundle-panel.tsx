@@ -111,7 +111,7 @@ export function LoadBundlePanel({
           className={cn(
             "min-w-0 flex-1 bg-transparent py-2",
             "font-mono text-[13px] text-foreground",
-            "placeholder:font-sans placeholder:text-muted-foreground/55",
+            "placeholder:font-sans placeholder:text-tertiary-foreground",
             "outline-none",
           )}
         />

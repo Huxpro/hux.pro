@@ -15,6 +15,7 @@ import { RefreshCw } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { TYPE } from "@/lib/typography";
 // =============================================================================
 // Types
 // =============================================================================
@@ -101,10 +102,10 @@ function QuoteDisplay({ item }: { item: Extract<PromptItem, { kind: "quote" }> }
       <blockquote className="font-serif text-base text-foreground leading-relaxed italic line-clamp-3">
         &ldquo;{item.text}&rdquo;
       </blockquote>
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className={cn("mt-2", TYPE.caption)}>
         {item.author}
         {item.source && (
-          <span className="text-muted-foreground/60"> · {item.source}</span>
+          <span className="text-tertiary-foreground"> · {item.source}</span>
         )}
       </p>
     </div>
@@ -119,7 +120,7 @@ function PrincipleDisplay({ item, locale }: { item: Extract<PromptItem, { kind: 
         {item.statement}
       </p>
       {item.topic && (
-        <p className="mt-2 text-xs font-mono text-muted-foreground/60">
+        <p className={cn("mt-2", TYPE.rowMeta)}>
           {topicLabel}
         </p>
       )}
@@ -134,7 +135,7 @@ function PersonDisplay({ item }: { item: Extract<PromptItem, { kind: "person" }>
         {item.name}
       </p>
       {item.context && (
-        <p className="mt-1 text-xs text-muted-foreground">{item.context}</p>
+        <p className={cn("mt-1", TYPE.caption)}>{item.context}</p>
       )}
     </div>
   );

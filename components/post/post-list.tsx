@@ -20,6 +20,7 @@ import { useOptionalDevtool } from "@/systems/devtool/provider";
 import { Link } from "next-view-transitions";
 import { useEffect, type ReactNode } from "react";
 
+import { TYPE } from "@/lib/typography";
 interface LanguageFilterProps {
   includeOther: boolean;
   setIncludeOther: (value: boolean) => void;
@@ -38,8 +39,8 @@ export function LanguageFilter({
         className={cn(
           "px-2 py-1 rounded transition-colors duration-200",
           !includeOther
-            ? "bg-foreground/5 text-muted-foreground"
-            : "text-muted-foreground/40 hover:text-muted-foreground/60"
+            ? "bg-muted text-muted-foreground"
+            : "text-tertiary-foreground hover:text-muted-foreground"
         )}
       >
         {locale === "en" ? "EN" : "中文"}
@@ -49,8 +50,8 @@ export function LanguageFilter({
         className={cn(
           "px-2 py-1 rounded transition-colors duration-200",
           includeOther
-            ? "bg-foreground/5 text-muted-foreground"
-            : "text-muted-foreground/40 hover:text-muted-foreground/60"
+            ? "bg-muted text-muted-foreground"
+            : "text-tertiary-foreground hover:text-muted-foreground"
         )}
       >
         {t(locale, "allLanguages")}
@@ -185,7 +186,7 @@ export function PostList<T extends Post>({
               className="pressable flex items-baseline justify-between gap-4 py-3 sm:py-4 -mx-4 px-4 rounded-lg transition-colors duration-200 hover:bg-muted/50 active:bg-muted/60"
             >
               <div className="flex-1 min-w-0">
-                <h2 className="text-sm sm:text-base font-normal">
+                <h2 className={cn(TYPE.rowTitle, "sm:text-base font-normal")}>
                   {getLocalizedTitle(post, locale)}
                   {rowBadges.map((tag) => (
                     // The leading NBSP + nowrap wrapper glue the badge to the
@@ -195,13 +196,13 @@ export function PostList<T extends Post>({
                     // it). The NBSP also supplies the gap — no left margin.
                     <span key={tag} className="whitespace-nowrap">
                       {" "}
-                      <span className="ml-0.5 inline-block rounded bg-foreground/5 px-1.5 py-0.5 align-[0.1em] text-[10px] font-mono text-muted-foreground">
+                      <span className={cn("ml-0.5 inline-block align-[0.1em]", TYPE.pill)}>
                         {tag}
                       </span>
                     </span>
                   ))}
                   {showLangTag && (
-                    <span className="ml-2 text-xs font-mono text-muted-foreground/40 align-baseline">
+                    <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
                       {post.language === "en" ? "EN" : "中文"}
                     </span>
                   )}
@@ -210,7 +211,7 @@ export function PostList<T extends Post>({
 
               {/* Same tier as a commit row's date on /works (muted/50) so the
                   writing list and the log read as one metadata register. */}
-              <span className="font-mono text-xs text-muted-foreground/50 shrink-0">
+              <span className={cn("shrink-0", TYPE.rowMeta)}>
                 {renderMeta
                   ? renderMeta(post)
                   : getLocalizedReadingTime(post, locale)}
@@ -360,13 +361,13 @@ function PostPreview({
             (`date · min read · origin` mono uppercase, middle-dot separated).
             Origin appends with the same separator instead of starting a new
             italic line, so the peek's header reads as the page's header. */}
-        <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70 leading-relaxed">
+        <div className={cn(TYPE.labelSm, "leading-relaxed")}>
           <span>{LANGUAGE_LABEL[meta.language]}</span>
-          <span className="mx-1.5 text-muted-foreground/30">·</span>
+          <span className="mx-1.5 text-quaternary-foreground">·</span>
           <span>{meta.readingTime}</span>
           {origin && (
             <>
-              <span className="mx-1.5 text-muted-foreground/30">·</span>
+              <span className="mx-1.5 text-quaternary-foreground">·</span>
               <span>{origin}</span>
             </>
           )}
@@ -392,7 +393,7 @@ function PostPreview({
           // Same recipe as the top caption (mono uppercase tracking-wider)
           // so the card frames its content with a matched pair of meta
           // strips — top: language/reading; bottom: tags.
-          <div className="pt-3 border-t border-border/30 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70 leading-relaxed">
+          <div className={cn("pt-3 border-t border-border/30 leading-relaxed", TYPE.labelSm)}>
             {meta.tags!.join("  ·  ")}
           </div>
         )}

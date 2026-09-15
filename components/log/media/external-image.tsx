@@ -96,7 +96,7 @@ export function ExternalImage({
         )}
       >
         <ImageOff
-          className="w-8 h-8 text-muted-foreground/30"
+          className="w-8 h-8 text-quaternary-foreground"
           aria-hidden
         />
       </div>

@@ -13,6 +13,7 @@
 | **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
 | **Secondary Surfaces** | [docs/system-surface.md](./docs/system-surface.md) (sheet / panel / window, per viewport) |
 | **Glass** | [docs/system-glass.md](./docs/system-glass.md) (Clear / Tinted material, reading surfaces) |
+| **Legibility** | [docs/system-legibility.md](./docs/system-legibility.md) (Ink-at-alpha tokens, wallpaper profiles, relief, tint, the `/editor/legibility` lab) |
 | **Ambient / Wallpaper** | [docs/system-ambient.md](./docs/system-ambient.md) (Weather + Apple wallpaper pairs, `pnpm wallpapers:check`) |
 | **Architecture** | [docs/architecture.md](./docs/architecture.md) (Implementation details) |
 | **OG Images (ours)** | [docs/og-images.md](./docs/og-images.md) (Social cards we publish for our pages) |
@@ -71,6 +72,14 @@ duration-300 (morphing transitions)
 - Use `app/globals.css` for global variables.
 - Use Tailwind utility classes for component styling.
 - Avoid introducing new colors; stick to the grayscale system.
+- Text and washes are `--ink` at an alpha, never a fixed grey — see
+  `docs/system-legibility.md`. Use `text-muted-foreground` /
+  `text-tertiary-foreground` / `text-quaternary-foreground` / `bg-muted` /
+  `bg-accent` — never `text-muted-foreground/NN` — and a glass token for any
+  floating surface. Recurring recipes are roles in `lib/typography.ts`
+  (`TYPE.label`, `TYPE.rowMeta`, `TYPE.kbd`, …); use them. Text sitting directly on the wallpaper goes in an
+  `.ink-bare` zone.
+- After adding a wallpaper: `pnpm wallpapers:profile` and commit the table.
 
 ### Testing the Music System Offline
 - Set `localStorage.hux_music_mock = "1"` **before app scripts run** (e.g. Playwright `context.addInitScript()`), or flip "Mock player" in the Devtool panel → Music section.

@@ -1,0 +1,311 @@
+"use client";
+
+// =============================================================================
+// Lab state — the three layers a person can turn, and how each reaches CSS.
+//
+//   scene      what is painting: wallpaper, theme, material, tint. These drive
+//              the REAL app state (the same setters the devtool and the picker
+//              use), so the stage is the production stylesheet over the
+//              production wallpaper stack, not a mock of it.
+//
+//   policy     the legibility policy's knobs (`LegibilityPolicy`) and, below
+//              them, pins on its outputs. Re-resolved here on the current
+//              profile and handed to the provider as `legibilityOverride`, the
+//              same CSS variables the provider would have written.
+//
+//   sheet      the stylesheet's own inputs — alpha ladder, washes, relief
+//              shape, glass fills, tint amounts. Written inline on <html>,
+//              removed on unmount. The default for each is read from the
+//              computed style, so the lab never carries a second copy of it.
+//
+// Nothing here persists across a reload. Within the session the tuning stays
+// put when you leave — the policy through the provider, the sheet inline on
+// <html>, and the sliders' own state in `LAB_SESSION` below — so a veil tuned
+// here can be checked on the real /writing before it is copied into code.
+// "Reset all" clears the lot.
+// =============================================================================
+
+import {
+  DEFAULT_LEGIBILITY_POLICY,
+  resolveLegibility,
+  sameVars,
+  type LegibilityPolicy,
+  type LegibilityVars,
+  type Theme,
+} from "@/systems/ambient/lib/legibility";
+
+export { sameVars };
+import type { WallpaperProfile } from "@/systems/ambient/lib/wallpaper-profile";
+
+// -----------------------------------------------------------------------------
+// Policy knobs
+// -----------------------------------------------------------------------------
+
+export type PolicyGroup = "desktop" | "reading";
+
+/** The outputs a knob can move, in the policy's own words. */
+export type OutputName =
+  | "busy"
+  | "conflict"
+  | "inkBoost"
+  | "bareBoost"
+  | "relief"
+  | "flip"
+  | "glassAdd"
+  | "veil"
+  | "blur"
+  | "tint";
+
+export interface PolicyKnob {
+  key: keyof LegibilityPolicy;
+  /** Which surface the knob shapes: the desktop (ink, relief, flip, glass) or a reading route (veil, blur). */
+  group: PolicyGroup;
+  /** What moving it can change — read off `resolveLegibility`, so the panel can say so. */
+  affects: OutputName[];
+  label: string;
+  hint: string;
+  min: number;
+  max: number;
+  step: number;
+}
+
+/** The scalar policy knobs, in the order they act. The tint ranges are edited
+ *  as pairs and listed separately. */
+export const POLICY_KNOBS: PolicyKnob[] = [
+  { key: "edgesFull", group: "desktop", affects: ["busy", "inkBoost", "bareBoost", "relief", "flip", "glassAdd", "veil", "blur"], label: "Edges → busy", hint: "edges at which busy = 1", min: 0.01, max: 0.15, step: 0.005 },
+  { key: "inkBoostMax", group: "desktop", affects: ["inkBoost"], label: "Ink boost max", hint: "alpha points at busy = 1", min: 0, max: 30, step: 1 },
+  { key: "bareBoostMax", group: "desktop", affects: ["bareBoost"], label: "Bare boost max", hint: "extra alpha points for bare text at busy = 1", min: 0, max: 40, step: 1 },
+  { key: "reliefBusy", group: "desktop", affects: ["relief"], label: "Relief from busy", hint: "relief at busy = 1", min: 0, max: 1, step: 0.05 },
+  { key: "reliefGapStart", group: "desktop", affects: ["relief"], label: "Relief gap start", hint: "ink−backdrop gap where need starts", min: 0, max: 0.6, step: 0.01 },
+  { key: "reliefGapFull", group: "desktop", affects: ["relief"], label: "Relief gap full", hint: "gap where need is nil", min: 0.2, max: 0.9, step: 0.01 },
+  { key: "reliefReading", group: "reading", affects: ["relief"], label: "Relief on reading", hint: "multiplier under the veil", min: 0, max: 1, step: 0.05 },
+  { key: "reliefFloor", group: "desktop", affects: ["relief"], label: "Relief floor", hint: "below this: none", min: 0, max: 0.4, step: 0.01 },
+  { key: "glassAddMax", group: "desktop", affects: ["glassAdd"], label: "Glass add max", hint: "fill points at busy = 1", min: 0, max: 40, step: 1 },
+  { key: "glassAddToneMax", group: "desktop", affects: ["glassAdd"], label: "Glass add · tone", hint: "fill points at full tone conflict", min: 0, max: 50, step: 1 },
+  { key: "flipMargin", group: "desktop", affects: ["flip", "relief"], label: "Flip margin", hint: "how much better the inverse ink must be", min: 0, max: 0.5, step: 0.01 },
+  { key: "dropBias", group: "desktop", affects: ["flip", "relief"], label: "Drop bias", hint: "head start for the light ink, growing with busy — a halo only fails on texture", min: 0, max: 0.5, step: 0.01 },
+  { key: "veilBusy", group: "reading", affects: ["veil"], label: "Veil · busy", hint: "veil alpha added at busy = 1", min: 0, max: 0.5, step: 0.01 },
+  { key: "veilConflict", group: "reading", affects: ["veil"], label: "Veil · tone", hint: "veil alpha added at full tone conflict", min: 0, max: 0.5, step: 0.01 },
+  { key: "veilMax", group: "reading", affects: ["veil"], label: "Veil max", hint: "some picture must remain", min: 0.3, max: 1, step: 0.01 },
+  { key: "blurBase", group: "reading", affects: ["blur"], label: "Blur base", hint: "px on a calm picture", min: 0, max: 80, step: 1 },
+  { key: "blurBusy", group: "reading", affects: ["blur"], label: "Blur · busy", hint: "px added at busy = 1", min: 0, max: 80, step: 1 },
+  { key: "tintMinChroma", group: "desktop", affects: ["tint"], label: "Tint min chroma", hint: "greyer than this: no tint", min: 0, max: 0.1, step: 0.005 },
+];
+
+export type PolicyOverrides = Partial<LegibilityPolicy>;
+
+/** Keys are deleted, never set to undefined, so a spread is the whole merge. */
+export function mergePolicy(overrides: PolicyOverrides): LegibilityPolicy {
+  return { ...DEFAULT_LEGIBILITY_POLICY, ...overrides };
+}
+
+/** `obj` without `keys` — the reset behind every star. */
+export function without<T extends object>(obj: T, ...keys: (keyof T)[]): T {
+  const next = { ...obj };
+  for (const k of keys) delete next[k];
+  return next;
+}
+
+// -----------------------------------------------------------------------------
+// Output pins — the resolved variables, editable directly
+// -----------------------------------------------------------------------------
+
+export interface OutputKnob {
+  key: "inkBoost" | "bareBoost" | "relief" | "glassAdd" | "veil" | "blur" | "tintL" | "tintC" | "tintH";
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+}
+
+export const OUTPUT_KNOBS: OutputKnob[] = [
+  { key: "inkBoost", label: "Ink boost", min: 0, max: 30, step: 1 },
+  { key: "bareBoost", label: "Bare boost", min: 0, max: 40, step: 1 },
+  { key: "relief", label: "Relief", min: 0, max: 1, step: 0.05 },
+  { key: "glassAdd", label: "Glass add", min: 0, max: 40, step: 1 },
+  { key: "veil", label: "Reading veil", min: 0, max: 1, step: 0.01 },
+  { key: "blur", label: "Reading blur (px)", min: 0, max: 120, step: 1 },
+  { key: "tintL", label: "Tint L", min: 0.2, max: 0.9, step: 0.01 },
+  { key: "tintC", label: "Tint C", min: 0, max: 0.25, step: 0.005 },
+  { key: "tintH", label: "Tint H", min: 0, max: 360, step: 1 },
+];
+
+export type OutputPins = Partial<Record<OutputKnob["key"], number>> & { flip?: boolean; flipMid?: boolean };
+
+export function readOutput(vars: LegibilityVars, key: OutputKnob["key"]): number {
+  switch (key) {
+    case "tintL":
+      return vars.tint.l;
+    case "tintC":
+      return vars.tint.c;
+    case "tintH":
+      return vars.tint.h;
+    default:
+      return vars[key];
+  }
+}
+
+export function applyPins(vars: LegibilityVars, pins: OutputPins): LegibilityVars {
+  return {
+    ...vars,
+    inkBoost: pins.inkBoost ?? vars.inkBoost,
+    bareBoost: pins.bareBoost ?? vars.bareBoost,
+    relief: pins.relief ?? vars.relief,
+    glassAdd: pins.glassAdd ?? vars.glassAdd,
+    veil: pins.veil ?? vars.veil,
+    blur: pins.blur ?? vars.blur,
+    flip: pins.flip ?? vars.flip,
+    flipMid: pins.flipMid ?? vars.flipMid,
+    tint: {
+      l: pins.tintL ?? vars.tint.l,
+      c: pins.tintC ?? vars.tint.c,
+      h: pins.tintH ?? vars.tint.h,
+    },
+  };
+}
+
+/** The full pipeline for one profile: policy (with overrides) → pins. */
+export function resolveForLab(params: {
+  profile: WallpaperProfile;
+  theme: Theme;
+  reading: boolean;
+  policy: LegibilityPolicy;
+  pins: OutputPins;
+}): LegibilityVars {
+  const { pins, ...rest } = params;
+  return applyPins(resolveLegibility(rest), pins);
+}
+
+/**
+ * Whether a knob can move anything for this profile: resolve at both ends of
+ * its range and compare. A relief knob under a picture whose busyness already
+ * saturates it, a tint bound the picture's tint never reaches — those are
+ * inert here, and the panel says so instead of letting a slider look broken.
+ */
+export function knobActsHere(
+  knob: PolicyKnob,
+  params: { profile: WallpaperProfile; theme: Theme; policy: LegibilityPolicy },
+): boolean {
+  const at = (v: number, reading: boolean) =>
+    resolveLegibility({ ...params, reading, policy: { ...params.policy, [knob.key]: v } });
+  // Sampled across the range, not just its ends: a threshold knob can be
+  // inert at both ends and bite in the middle.
+  const samples = [0, 0.25, 0.5, 0.75, 1].map((t) => knob.min + (knob.max - knob.min) * t);
+  for (const reading of [false, true]) {
+    const cur = at(params.policy[knob.key] as number, reading);
+    if (samples.some((v) => !sameVars(at(v, reading), cur))) return true;
+  }
+  return false;
+}
+
+// -----------------------------------------------------------------------------
+// Stylesheet inputs
+// -----------------------------------------------------------------------------
+
+export interface SheetKnob {
+  name: string;
+  label: string;
+  /** How the value is written: a percentage or a bare number. */
+  unit: "%" | "";
+  min: number;
+  max: number;
+  step: number;
+}
+
+export interface SheetGroup {
+  title: string;
+  note?: string;
+  knobs: SheetKnob[];
+}
+
+export const SHEET_GROUPS: SheetGroup[] = [
+  {
+    title: "Ink ladder",
+    note: "Alpha of --ink. Primary is the ink itself; prose is foreground/85 at the call site.",
+    knobs: [
+      { name: "--ink-alpha-secondary", label: "Secondary", unit: "%", min: 20, max: 100, step: 1 },
+      { name: "--ink-alpha-tertiary", label: "Tertiary", unit: "%", min: 5, max: 80, step: 1 },
+      { name: "--ink-alpha-quaternary", label: "Quaternary", unit: "%", min: 2, max: 50, step: 1 },
+      { name: "--ink-alpha-ring", label: "Focus ring", unit: "%", min: 10, max: 100, step: 1 },
+    ],
+  },
+  {
+    title: "Washes",
+    note: "Fills that are ink at a few percent: kbd, hover, dividers.",
+    knobs: [
+      { name: "--wash-alpha-muted", label: "Muted", unit: "%", min: 0, max: 30, step: 1 },
+      { name: "--wash-alpha-accent", label: "Accent (hover/selected)", unit: "%", min: 0, max: 40, step: 1 },
+      { name: "--wash-alpha-border", label: "Border", unit: "%", min: 0, max: 40, step: 1 },
+    ],
+  },
+  {
+    title: "Relief shape",
+    note: "Drop under light ink, halo under dark ink. Scaled by --wp-relief.",
+    knobs: [
+      { name: "--relief-drop-a1", label: "Drop · 0 1px 3px", unit: "", min: 0, max: 1, step: 0.05 },
+      { name: "--relief-drop-a2", label: "Drop · 0 0 2px", unit: "", min: 0, max: 1, step: 0.05 },
+      { name: "--relief-halo-a1", label: "Halo · 0 0 4px", unit: "", min: 0, max: 1, step: 0.05 },
+      { name: "--relief-halo-a2", label: "Halo · 0 0 3px", unit: "", min: 0, max: 1, step: 0.05 },
+      { name: "--glass-relief-k", label: "On glass ×", unit: "", min: 0, max: 1, step: 0.05 },
+      { name: "--glass-relief-solid-k", label: "On sheet/popover ×", unit: "", min: 0, max: 1, step: 0.05 },
+    ],
+  },
+  {
+    title: "Glass fills",
+    note: "The current material's ladder. Switch the material to edit the other.",
+    knobs: [
+      { name: "--glass-fill", label: "Glass", unit: "%", min: 0, max: 100, step: 1 },
+      { name: "--glass-fill-raised", label: "Raised", unit: "%", min: 0, max: 100, step: 1 },
+      { name: "--glass-fill-panel", label: "Panel", unit: "%", min: 0, max: 100, step: 1 },
+      { name: "--glass-fill-popover", label: "Popover", unit: "%", min: 0, max: 100, step: 1 },
+      { name: "--glass-fill-sheet", label: "Sheet", unit: "%", min: 0, max: 100, step: 1 },
+      { name: "--glass-hover-step", label: "Hover step", unit: "%", min: 0, max: 40, step: 1 },
+      { name: "--glass-dark-add", label: "Dark add", unit: "%", min: 0, max: 20, step: 1 },
+      { name: "--glass-add-k", label: "Takes of --wp-glass-add ×", unit: "", min: 0, max: 1, step: 0.05 },
+    ],
+  },
+  {
+    title: "Tint amounts",
+    note: "Zero is neutral. The Wallpaper tint setting raises both.",
+    knobs: [
+      { name: "--tint-glass", label: "On glass", unit: "%", min: 0, max: 60, step: 1 },
+      { name: "--tint-accent", label: "On accent", unit: "%", min: 0, max: 80, step: 1 },
+    ],
+  },
+];
+
+export const SHEET_KNOBS = SHEET_GROUPS.flatMap((g) => g.knobs);
+
+export type SheetOverrides = Record<string, number>;
+
+export function formatSheetValue(knob: SheetKnob, value: number): string {
+  return knob.unit === "%" ? `${value}%` : String(value);
+}
+
+/** Parse what `getComputedStyle` hands back for a knob: `54%` or `0.3`. */
+export function parseSheetValue(raw: string): number | null {
+  const n = parseFloat(raw.trim());
+  return Number.isFinite(n) ? n : null;
+}
+
+// -----------------------------------------------------------------------------
+// Session store — the sliders' state, kept while the tab lives
+// -----------------------------------------------------------------------------
+
+export const LAB_SESSION: {
+  policy: PolicyOverrides;
+  pins: OutputPins;
+  sheet: SheetOverrides;
+} = { policy: {}, pins: {}, sheet: {} };
+
+// -----------------------------------------------------------------------------
+// Export
+// -----------------------------------------------------------------------------
+
+export function exportCss(sheet: SheetOverrides): string {
+  const lines = Object.entries(sheet).map(([name, value]) => {
+    const knob = SHEET_KNOBS.find((k) => k.name === name);
+    return `  ${name}: ${knob ? formatSheetValue(knob, value) : value};`;
+  });
+  return `:root {\n${lines.join("\n")}\n}\n`;
+}

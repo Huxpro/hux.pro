@@ -8,6 +8,8 @@ import {
   useGlass,
   useLocale,
   useTheme,
+  GLASS_TINTS,
+  getTintLabel,
 } from "@/services";
 import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
 import { BEZEL_BAND_MAX, BEZEL_BAND_MIN, BEZEL_RADIUS_MAX } from "@hux/bezel";
@@ -26,6 +28,9 @@ import { rgbToCss, sampleDaySky } from "@/systems/ambient/lib/scene";
 import {
   getMoonPhaseName,
   startOfLocalDay,
+  DEFAULT_SUNRISE_MINUTES,
+  DEFAULT_SUNSET_MINUTES,
+  minutesOfDay,
   type MoonPhaseName,
 } from "@/systems/ambient/lib/solar";
 import type { WallpaperStats } from "@/systems/ambient/lib/wallpaper/renderer";
@@ -94,6 +99,8 @@ import {
   X,
 } from "lucide-react";
 import { withDraggable } from "@/systems/draggable";
+import Link from "next/link";
+import { Slider } from "@/components/ui/slider";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 // =============================================================================
@@ -304,7 +311,7 @@ function AppsModule() {
               onKeyDown={(e) => e.key === "Enter" && loadOta()}
               placeholder="https://…/main.web.bundle"
               spellCheck={false}
-              className="min-w-0 flex-1 rounded-md border border-border/60 bg-muted/30 px-2 py-1 text-[11px] font-mono text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
+              className="min-w-0 flex-1 rounded-md border border-border/60 bg-muted/30 px-2 py-1 text-[11px] font-mono text-foreground placeholder:text-tertiary-foreground focus:outline-none focus:ring-1 focus:ring-ring"
             />
             <button
               onClick={loadOta}
@@ -518,7 +525,7 @@ function FrontmatterModule() {
       }
     >
       {!pageMeta ? (
-        <div className="text-[10px] font-mono text-muted-foreground/60">
+        <div className="text-[10px] font-mono text-tertiary-foreground">
           {locale === "zh" ? "当前非博客页面" : "No frontmatter on this page"}
         </div>
       ) : (
@@ -532,7 +539,7 @@ function FrontmatterModule() {
               {pageMeta.lang}
             </span>
             {pageMeta.language && pageMeta.language !== pageMeta.lang && (
-              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/60 px-1.5 py-0.5 border border-border/50 rounded">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-tertiary-foreground px-1.5 py-0.5 border border-border/50 rounded">
                 {pageMeta.language}
               </span>
             )}
@@ -543,7 +550,7 @@ function FrontmatterModule() {
             <div className="space-y-2 border-t border-border/30 pt-2.5">
               {entries.map(([key, value]) => (
                 <div key={key} className="space-y-0.5">
-                  <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-tertiary-foreground">
                     {key}
                   </div>
                   <div className="text-xs font-mono text-foreground/80 break-words whitespace-pre-wrap">
@@ -553,7 +560,7 @@ function FrontmatterModule() {
               ))}
             </div>
           ) : (
-            <div className="text-[10px] font-mono text-muted-foreground/60 border-t border-border/30 pt-2.5">
+            <div className="text-[10px] font-mono text-tertiary-foreground border-t border-border/30 pt-2.5">
               {locale === "zh" ? "无字段" : "No fields"}
             </div>
           )}
@@ -640,17 +647,22 @@ function PanelToggle({
   on,
   onClick,
   label,
+  disabled = false,
 }: {
   on: boolean;
   onClick: () => void;
   label: string;
+  /** The setting is kept but has nothing to act on right now. */
+  disabled?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={cn(
         "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
-        on ? "bg-green-500/90 border-green-500/70" : "bg-muted/40 border-border/60"
+        on ? "bg-green-500/90 border-green-500/70" : "bg-muted/40 border-border/60",
+        disabled && "opacity-40 cursor-not-allowed"
       )}
       aria-pressed={on}
       aria-label={label}
@@ -688,18 +700,14 @@ function PanelRange({
 }) {
   return (
     <div className={cn("flex items-center gap-2", wide ? "w-full" : "shrink-0")}>
-      <input
-        type="range"
+      <Slider
         min={min}
         max={max}
         step={step}
         value={value}
         aria-label={label}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className={cn(
-          "h-1 cursor-pointer appearance-none rounded-full bg-muted accent-foreground",
-          wide ? "w-full" : "w-24"
-        )}
+        onChange={onChange}
+        className={wide ? "w-full" : "w-24"}
       />
       {!wide && (
         <span className="w-8 text-right text-[10px] font-mono tabular-nums text-muted-foreground">
@@ -818,6 +826,7 @@ function GlassModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
   const glass = useGlass();
+  const { legibility, legibilityOverride, labPolicy } = useWallpaper();
 
   const options = GLASS_MATERIALS.map((value) => ({
     value,
@@ -833,7 +842,7 @@ function GlassModule() {
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
           {glass.material}
-          <span className="ml-1 text-muted-foreground/40">G</span>
+          <span className="ml-1 text-quaternary-foreground">G</span>
         </span>
       }
     >
@@ -845,11 +854,40 @@ function GlassModule() {
             onChange={glass.setMaterial}
           />
         </PanelRow>
-        <p className="text-[10px] leading-snug text-muted-foreground/60">
-          {zh
-            ? "透明：接近无填充的通透质感，背后的壁纸直接透出来。色调：当前这种带卡片底色的材质。"
-            : "Clear thins every surface to a vibrancy wash so the wallpaper reads through it. Tinted keeps the card fill."}
-        </p>
+        <PanelRow
+          label={t(locale, "settingsTint")}
+          star={
+            glass.tint === "neutral" ? null : (
+              <PanelStar source="saved" onReset={() => glass.setTint("neutral")} label="Back to neutral" />
+            )
+          }
+        >
+          <PanelSegmented
+            value={glass.tint}
+            options={GLASS_TINTS.map((value) => ({
+              value,
+              label: getTintLabel(value, locale),
+            }))}
+            onChange={glass.setTint}
+          />
+        </PanelRow>
+        {/* What the legibility policy resolved for the wallpaper that is
+            painting, on the row that opens the lab where it is tuned — the
+            same row the Wallpaper module uses for the current picture. */}
+        <Link
+          href="/editor/legibility"
+          className="flex w-full items-center gap-2 rounded-md border border-border/60 px-2 py-1.5 text-left transition-colors hover:bg-muted/40"
+        >
+          <span className="min-w-0 flex-1 truncate text-[10px] font-mono text-foreground/80">
+            {legibility.flip ? "flip" : legibility.flipMid ? "flip·mid" : "ink"}
+            <span className="ml-1.5 tabular-nums text-tertiary-foreground">
+              busy {legibility.busy.toFixed(2)} · relief {legibility.relief.toFixed(2)} · +
+              {legibility.inkBoost}% · glass +{legibility.glassAdd}%
+              {(legibilityOverride || labPolicy) && " · lab"}
+            </span>
+          </span>
+          <ExternalLink className="mr-1 h-3 w-3 shrink-0 text-muted-foreground" />
+        </Link>
       </div>
     </DebugSection>
   );
@@ -1033,7 +1071,7 @@ function WallpaperModule() {
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
           {isImage ? wallpaper.id : `weather · ${isShader ? "gl" : "css"}`}
-          <span className="ml-1 text-muted-foreground/40">W</span>
+          <span className="ml-1 text-quaternary-foreground">W</span>
         </span>
       }
     >
@@ -1041,7 +1079,7 @@ function WallpaperModule() {
         <div className="text-[10px] font-mono text-muted-foreground">
           {zh ? "当前: " : "Now: "}
           <span className="text-foreground/80">{now}</span>
-          <span className="ml-1.5 text-muted-foreground/50">
+          <span className="ml-1.5 text-tertiary-foreground">
             @{opacity.toFixed(2)}
             {veil > 0 && ` −${veil.toFixed(2)}`}
             {blurred && " blur"}
@@ -1127,7 +1165,7 @@ function WallpaperModule() {
               ? wallpaper.name
               : weatherName}
             {isImage && (
-              <span className="ml-1.5 tabular-nums text-muted-foreground/60">
+              <span className="ml-1.5 tabular-nums text-tertiary-foreground">
                 {wallpaper[variant].width}×{wallpaper[variant].height}
               </span>
             )}
@@ -1241,13 +1279,15 @@ function WallpaperModule() {
           </PanelRow>
         </div>
 
-        {/* How much of it survives on a reading page. Home gets none of this. */}
+        {/* How much of it survives on a reading page. Home gets none of this.
+            The veil applies to every kind; the blur only to a picture, so its
+            switch goes quiet under the weather rather than pretending. */}
         <div className="space-y-2 border-t border-border/30 pt-2.5">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-tertiary-foreground">
             {zh ? "阅读页处理" : "Reading treatment"}
           </div>
           <PanelRow
-            label={zh ? "二级页虚化" : "Reading blur"}
+            label={isImage ? (zh ? "二级页虚化" : "Reading blur") : zh ? "二级页虚化 · 仅图片" : "Reading blur · images only"}
             star={
               readingBlur ? null : (
                 <PanelStar onReset={() => setReadingBlur(true)} source="saved" />
@@ -1256,6 +1296,7 @@ function WallpaperModule() {
           >
             <PanelToggle
               on={readingBlur}
+              disabled={!isImage}
               onClick={() => setReadingBlur(!readingBlur)}
               label="Toggle blur on reading pages"
             />
@@ -1436,11 +1477,6 @@ const MOON_NAME: Record<"en" | "zh", Record<MoonPhaseName, string>> = {
   },
 };
 
-const minutesOfDay = (ms?: number, fallback = 0) => {
-  if (typeof ms !== "number" || !Number.isFinite(ms)) return fallback;
-  const d = new Date(ms);
-  return d.getHours() * 60 + d.getMinutes();
-};
 
 /** The quiet outlined chip the Sky module's Now and Play buttons are made of. */
 const PANEL_CHIP = cn(
@@ -1518,8 +1554,8 @@ function SkyModule() {
     return `linear-gradient(90deg, ${stops.join(", ")})`;
   }, [dayStartMs, lat, lon, sceneWeather, theme, sceneOverrides]);
 
-  const sr = minutesOfDay(sunriseMs, 6 * 60 + 30);
-  const ss = minutesOfDay(sunsetMs, 18 * 60 + 30);
+  const sr = minutesOfDay(sunriseMs, DEFAULT_SUNRISE_MINUTES);
+  const ss = minutesOfDay(sunsetMs, DEFAULT_SUNSET_MINUTES);
   const noon = Math.round((sr + ss) / 2);
   const SUN_WINDOW = 45;
   const phaseTimes: Record<AmbientPhase, number> = {
@@ -2039,7 +2075,7 @@ function DraggableModule() {
                       "p-1 rounded transition-colors",
                       config.persist
                         ? "text-foreground bg-muted/60"
-                        : "text-muted-foreground/40 hover:text-muted-foreground",
+                        : "text-quaternary-foreground hover:text-muted-foreground",
                       persistOverridden && "ring-1 ring-amber-500/40"
                     )}
                     aria-label={`Toggle position save for ${inst.labelEn}`}

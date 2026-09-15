@@ -70,7 +70,11 @@ Debug modules for the ambient system:
    combinations the setting cannot express. They drive ephemeral overrides, and
    a `*` next to a label marks one; clicking the note under them clears all
    three back to the setting.
-2. **Glass**: Material — Tinted (色调) / Clear (透明)
+2. **Glass**: Material — Tinted (色调) / Clear (透明); Tint — Neutral /
+   Wallpaper; a one-line readout of what the legibility policy resolved for
+   the wallpaper that is painting (`flipped · busy · relief · +ink · +glass`),
+   and a link to the Legibility Lab (`/editor/legibility`), where every one of
+   those numbers is a slider. See `docs/system-legibility.md`.
 3. **Sky**: weather and time as one thing, because the wallpaper is a function
    of both. A status line (condition · phase · clock · sun elevation · moon
    phase), a day timeline painted with the sky's colours for the current
@@ -79,6 +83,15 @@ Debug modules for the ambient system:
    return to live), the date slider that moves the moon, and a folded Tune
    row of scene sliders. **Now** resets everything.
 4. **Refetch**: Force re-fetch location/weather
+
+## Controls
+
+Rows are `PanelRow` (label left, control right) with a `PanelStar` when a
+value is not at its default; switches are `PanelToggle`; choices are
+`PanelSegmented`; numbers are the shared `Slider` from `components/ui/slider.tsx` (via
+`PanelRange` / `PanelSlider`), the same one the Legibility Lab and the icon
+studio use — an ink track with the platform's native thumb on touch. Only the Sky timeline's playhead
+is its own range input.
 
 ## Hooks
 

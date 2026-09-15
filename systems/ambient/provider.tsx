@@ -35,7 +35,6 @@ import {
   resolveWeatherStyle,
   WALLPAPER_LOOK_FAMILY,
   WALLPAPER_OPACITY,
-  WALLPAPER_READING_VEIL,
   WEATHER_STYLE_ENGINE,
   type Wallpaper,
   type WallpaperEngine,
@@ -60,6 +59,20 @@ import type { WallpaperStats } from "./lib/wallpaper/renderer";
 import { supportsWebGL2 } from "./lib/wallpaper/support";
 import { usePathname } from "next/navigation";
 import { isReadingSurface } from "./lib/reading-surface";
+import { sameProfile } from "./lib/wallpaper-profile";
+import {
+  applyLegibility,
+  plainLegibility,
+  profileFromScene,
+  resolveLegibility,
+  type LegibilityPolicy,
+  type LegibilityVars,
+} from "./lib/legibility";
+import {
+  getPlainProfile,
+  type WallpaperProfile,
+} from "./lib/wallpaper-profile";
+import { getImageProfile, getWeatherProfile } from "./lib/wallpaper-profiles";
 import { queryClient } from "@/lib/query";
 import { useDevtool } from "@/systems/devtool";
 
@@ -227,10 +240,10 @@ interface WallpaperContextType {
   opacity: number;
   /**
    * Alpha of the veil drawn OVER the wallpaper, or 0 for none. Non-zero only
-   * on a reading page under an image wallpaper.
+   * on a reading page, under any kind.
    */
   veil: number;
-  /** Whether the wallpaper should be defocused right now. */
+  /** Whether the wallpaper should be defocused right now: a picture, on a reading page. */
   blurred: boolean;
   /** Whether this page recedes the wallpaper — see `isReadingSurface`. */
   reading: boolean;
@@ -261,6 +274,21 @@ interface WallpaperContextType {
   setReadingDim: (value: boolean) => void;
   /** The file currently painting, for the devtool readout. */
   src: string | null;
+  /**
+   * The static profile of what is painting, and the legibility policy
+   * resolved from it — the CSS variables on <html>. See legibility.ts.
+   */
+  profile: WallpaperProfile;
+  legibility: LegibilityVars;
+  /**
+   * The Legibility Lab's tuned policy, applied on every route until Reset all
+   * or a reload — so a veil tuned in the lab can be checked on /writing.
+   */
+  labPolicy: LegibilityPolicy | null;
+  setLabPolicy: (policy: LegibilityPolicy | null) => void;
+  /** The lab's pins on the resolved variables for its own scene. Lab-only. */
+  legibilityOverride: LegibilityVars | null;
+  setLegibilityOverride: (vars: LegibilityVars | null) => void;
   /** Secondary window — the wallpaper picker. */
   isPickerOpen: boolean;
   openPicker: () => void;
@@ -435,10 +463,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // plus a defocus over the top, which costs far less of the image than dimming
   // the layer itself on every route alike.
   const pathname = usePathname();
-  const reading = isReadingSurface({ kind: settings.wallpaperKind, pathname });
-  const isBlurred = reading && settings.wallpaperReadingBlur;
-  const veilAlpha =
-    reading && settings.wallpaperReadingDim ? WALLPAPER_READING_VEIL[theme] : 0;
 
   // DevTool overrides (ephemeral, not persisted)
   const [storedOverrides, setStoredOverrides] =
@@ -476,6 +500,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     key: "full" | "widget" | "softEdging" | "bezel",
     natural: boolean
   ): boolean => (isDevtoolEnabled ? devtoolOverrides[key] : undefined) ?? natural;
+
+  const reading = isReadingSurface({ pathname });
+  const isBlurred = reading && settings.wallpaperKind === "image" && settings.wallpaperReadingBlur;
 
   const fullEnabled = overridden("full", settings.wallpaperPlacement === "full");
   const widgetEnabled = overridden(
@@ -738,6 +765,83 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const computedCover = resolvedImage?.cover ?? false;
   const wallpaperSrc = resolvedImage?.src ?? null;
 
+  // --- Legibility ------------------------------------------------------------
+  // What is painting has a profile: a picture's was measured once and
+  // committed; Classic's palettes likewise; the Sky and the Gradient are read
+  // off the live scene (`profileFromScene`) — the scene is already the
+  // description of the picture, so nothing is sampled. The policy turns the
+  // profile into a few CSS variables on <html>, memoised on what can change.
+  const paintingCondition = sceneWeather?.condition ?? null;
+  const paintingIsDay = scene.sun.isDay;
+  const nextProfile = useMemo<WallpaperProfile>(() => {
+    if (!fullEnabled && !widgetEnabled) return getPlainProfile(theme);
+    if (isImageKind) {
+      return getImageProfile(activeWallpaper[theme]) ?? getPlainProfile(theme);
+    }
+    if (effectiveStyle === "classic") {
+      if (phase === "sunrise" || phase === "sunset") {
+        return getWeatherProfile({ event: phase, theme }) ?? getPlainProfile(theme);
+      }
+      if (paintingCondition) {
+        return (
+          getWeatherProfile({ condition: paintingCondition, isDay: paintingIsDay, theme }) ??
+          getPlainProfile(theme)
+        );
+      }
+      return getPlainProfile(theme);
+    }
+    return profileFromScene({ scene, style: effectiveStyle, opacity: wallpaperOpacity, theme });
+  }, [
+    fullEnabled,
+    widgetEnabled,
+    isImageKind,
+    activeWallpaper,
+    theme,
+    effectiveStyle,
+    phase,
+    paintingCondition,
+    paintingIsDay,
+    scene,
+    wallpaperOpacity,
+  ]);
+  // Under the Sky the scene refreshes every minute and `profileFromScene`
+  // returns a fresh object whose rounded numbers almost never differ. Keep the
+  // previous identity while the numbers hold (derived state, settled during
+  // render), so the resolution below, the context value and every consumer
+  // stay put between real changes.
+  const [profile, setProfile] = useState(nextProfile);
+  if (!sameProfile(profile, nextProfile)) setProfile(nextProfile);
+
+  // Widget placement paints the picture only inside cards: the bare text
+  // around them sits on the plain page, so the policy sees "plain" for the
+  // flip and relief, while the glass still gets the picture's dimming layer.
+  const [labPolicy, setLabPolicy] = useState<LegibilityPolicy | null>(null);
+  const resolvedLegibility = useMemo<LegibilityVars>(() => {
+    const full = resolveLegibility({ profile, theme, reading, policy: labPolicy ?? undefined });
+    if (fullEnabled) return full;
+    if (widgetEnabled) {
+      return { ...plainLegibility(theme), glassAdd: full.glassAdd, tint: full.tint, veil: full.veil, blur: full.blur };
+    }
+    return plainLegibility(theme);
+  }, [profile, theme, reading, fullEnabled, widgetEnabled, labPolicy]);
+
+  const [legibilityOverride, setLegibilityOverride] = useState<LegibilityVars | null>(null);
+  const legibility = legibilityOverride ?? resolvedLegibility;
+
+  const paintingKind: "weather" | "image" | "none" =
+    !fullEnabled && !widgetEnabled ? "none" : isImageKind ? "image" : "weather";
+
+  useEffect(() => {
+    applyLegibility(document.documentElement, legibility, {
+      kind: paintingKind,
+      reading,
+    });
+  }, [legibility, paintingKind, reading]);
+
+  // The veil alpha is the policy's, for this wallpaper; the switch only says
+  // whether to draw it. Blur is the policy's too, read by the layer as CSS.
+  const veilAlpha = reading && settings.wallpaperReadingDim ? legibility.veil : 0;
+
   // Gradient transition: a true crossfade between layers (no dip-to-background).
   // Centralized here so every consumer (full-page background, widget overlays)
   // shares one stack instead of running independent state machines. When the
@@ -749,7 +853,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // Under the Sky, full page, nothing paints the CSS stack: skip the push, or
   // every minute's new gradient would re-render every widget card twice (push,
   // prune) for a layer nobody shows. It catches up as soon as something does.
-  const stackPainted = renderer === "css" || widgetEnabled;
+  // An image always goes through the stack, whatever the weather engine: the
+  // engine only says who paints the *weather*. Without this, an image chosen
+  // after the Sky (or restored from settings once WebGL support is known)
+  // never got a layer and the page painted the bare ground.
+  const stackPainted = isImageKind || renderer === "css" || widgetEnabled;
 
   useEffect(() => {
     if (!stackPainted) return;
@@ -907,6 +1015,12 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       readingDim: settings.wallpaperReadingDim,
       setReadingDim,
       src: wallpaperSrc,
+      profile,
+      legibility,
+      labPolicy,
+      setLabPolicy,
+      legibilityOverride,
+      setLegibilityOverride,
       isPickerOpen,
       openPicker,
       closePicker,
@@ -954,6 +1068,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       setReadingBlur,
       setReadingDim,
       wallpaperSrc,
+      profile,
+      legibility,
+      labPolicy,
+      legibilityOverride,
       isPickerOpen,
       openPicker,
       closePicker,

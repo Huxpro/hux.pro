@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Link } from "next-view-transitions";
 import { useState } from "react";
 
+import { TYPE } from "@/lib/typography";
 interface SystemNavProps {
   href: string;
   /** The destination path to show by default (e.g., "/writing", "/docs"). Use "λhux" for root. */
@@ -40,7 +41,7 @@ export function SystemNav({
       href={href}
       className={cn(
         // Visual styling (unchanged)
-        "font-mono text-xs tracking-wide",
+        TYPE.nav,
         "text-muted-foreground hover:text-foreground",
         "transition-colors duration-200",
         // Ensure pointer events work during animation

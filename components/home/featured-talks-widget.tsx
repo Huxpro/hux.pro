@@ -13,6 +13,7 @@ import { buildTalkAlbums } from "@/systems/theater/lib/albums";
 import { PRESS_CARD } from "@/systems/theater/lib/chrome";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { TYPE } from "@/lib/typography";
 // ---------------------------------------------------------------------------
 // FeaturedTalksWidget — the combined "Featured Talks" home card.
 //
@@ -106,11 +107,11 @@ export function FeaturedTalksWidget() {
               )}
             >
               <TrackThumb track={track} />
-              <div className="mt-2 truncate text-sm text-foreground">
+              <div className={cn("mt-2 truncate", TYPE.rowTitle)}>
                 {track.title}
               </div>
               {track.subtitle && (
-                <div className="mt-0.5 truncate text-xs font-mono uppercase tracking-wide text-muted-foreground">
+                <div className={cn("mt-0.5 truncate", TYPE.labelWide)}>
                   {track.subtitle}
                 </div>
               )}

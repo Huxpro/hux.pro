@@ -9,6 +9,8 @@ import { useEffect, type ReactNode } from "react";
 import { RulerToc } from "./ruler-toc";
 import { usePostLanguage } from "./use-post-language";
 
+import { TYPE } from "@/lib/typography";
+import { cn } from "@/lib/utils";
 interface PostContentProps {
   title: string;
   titleZh?: string;
@@ -105,12 +107,12 @@ export function PostContent({
   const hasHeaderMetaContent =
     !!headerMeta || !!displayReadingTime || hasAlternate || !!displayOrigin;
   const headerMetaRow = (
-    <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground flex-wrap">
+    <div className={cn("flex items-center gap-2 flex-wrap", TYPE.meta)}>
       {headerMeta}
 
       {displayReadingTime && (
         <>
-          {headerMeta && <span className="text-muted-foreground/40">·</span>}
+          {headerMeta && <span className="text-quaternary-foreground">·</span>}
           <span>{displayReadingTime}</span>
         </>
       )}
@@ -118,7 +120,7 @@ export function PostContent({
       {hasAlternate && (
         <>
           {(headerMeta || displayReadingTime) && (
-            <span className="text-muted-foreground/40">·</span>
+            <span className="text-quaternary-foreground">·</span>
           )}
           <button
             onClick={switchLanguage}
@@ -132,7 +134,7 @@ export function PostContent({
 
       {displayOrigin && (
         <>
-          <span className="text-muted-foreground/40">·</span>
+          <span className="text-quaternary-foreground">·</span>
           <span>{renderMarkdownLinks(displayOrigin)}</span>
         </>
       )}

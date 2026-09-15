@@ -66,7 +66,7 @@ function XmlTag({
   return (
     <span
       className={cn(
-        "font-mono text-xs text-muted-foreground/60 select-none transition-opacity duration-200",
+        "font-mono text-xs text-tertiary-foreground select-none transition-opacity duration-200",
         className,
       )}
     >
@@ -76,8 +76,8 @@ function XmlTag({
         Object.entries(attributes).map(([key, value]) => (
           <span key={key}>
             {" "}
-            <span className="text-muted-foreground/40">{key}</span>=
-            <span className="text-muted-foreground/50">
+            <span className="text-quaternary-foreground">{key}</span>=
+            <span className="text-tertiary-foreground">
               &quot;{value}&quot;
             </span>
           </span>
@@ -121,7 +121,7 @@ function QuoteItem({ quote }: { quote: Quote }) {
         {quote.commentary && (
           <motion.span
             className={cn(
-              "text-muted-foreground/40 text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+              "text-quaternary-foreground text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
               isExpanded && "opacity-100",
             )}
             animate={{ rotate: isExpanded ? 90 : 0 }}
@@ -142,7 +142,7 @@ function QuoteItem({ quote }: { quote: Quote }) {
         <p className="mt-3 text-sm text-muted-foreground">
           {quote.author}
           {quote.source && (
-            <span className="text-muted-foreground/60"> · {quote.source}</span>
+            <span className="text-tertiary-foreground"> · {quote.source}</span>
           )}
         </p>
 
@@ -158,7 +158,7 @@ function QuoteItem({ quote }: { quote: Quote }) {
             >
               <motion.div variants={contentVariants}>
                 <Divider />
-                <p className="text-sm text-muted-foreground/80 leading-relaxed">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   {quote.commentary}
                 </p>
               </motion.div>
@@ -215,7 +215,7 @@ function PrincipleItem({
         {hasExpandableContent && (
           <motion.span
             className={cn(
-              "text-muted-foreground/40 text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+              "text-quaternary-foreground text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
               isExpanded && "opacity-100",
             )}
             animate={{ rotate: isExpanded ? 90 : 0 }}
@@ -245,15 +245,15 @@ function PrincipleItem({
               <motion.div variants={contentVariants}>
                 <Divider />
                 {principle.shapedBy && principle.shapedBy.length > 0 && (
-                  <p className="text-xs font-mono text-muted-foreground/60 mb-2">
+                  <p className="text-xs font-mono text-tertiary-foreground mb-2">
                     {shapedByLabel}:{" "}
-                    <span className="text-muted-foreground/80">
+                    <span className="text-muted-foreground">
                       {principle.shapedBy.join(", ")}
                     </span>
                   </p>
                 )}
                 {principle.reasoning && (
-                  <p className="text-sm text-muted-foreground/80 leading-relaxed">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
                     {principle.reasoning}
                   </p>
                 )}
@@ -303,7 +303,7 @@ function PersonItem({ person }: { person: Person }) {
         {hasExpandableContent && (
           <motion.span
             className={cn(
-              "text-muted-foreground/40 text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+              "text-quaternary-foreground text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
               isExpanded && "opacity-100",
             )}
             animate={{ rotate: isExpanded ? 90 : 0 }}
@@ -342,12 +342,12 @@ function PersonItem({ person }: { person: Person }) {
                     {person.admire.map((point, i) => (
                       <motion.li
                         key={i}
-                        className="text-sm text-muted-foreground/80 flex items-start gap-2"
+                        className="text-sm text-muted-foreground flex items-start gap-2"
                         initial={{ opacity: 0, x: -4 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.05, duration: 0.2 }}
                       >
-                        <span className="text-muted-foreground/40">·</span>
+                        <span className="text-quaternary-foreground">·</span>
                         {point}
                       </motion.li>
                     ))}
@@ -407,18 +407,18 @@ function PromptFooter({
 }) {
   return (
     <div className="mt-20 py-4 px-4 rounded-lg border border-dashed border-muted-foreground/20">
-      <div className="font-mono text-xs text-muted-foreground/50 space-y-1">
+      <div className="font-mono text-xs text-tertiary-foreground space-y-1">
         <div>
           {labels.tokens}:{" "}
-          <span className="text-muted-foreground/70">{meta.tokenCount}</span>
+          <span className="text-tertiary-foreground">{meta.tokenCount}</span>
         </div>
         <div>
           {labels.lastUpdated}:{" "}
-          <span className="text-muted-foreground/70">{meta.lastUpdated}</span>
+          <span className="text-tertiary-foreground">{meta.lastUpdated}</span>
         </div>
         <div>
           {labels.model}:{" "}
-          <span className="text-muted-foreground/70">{meta.model}</span>
+          <span className="text-tertiary-foreground">{meta.model}</span>
         </div>
       </div>
     </div>

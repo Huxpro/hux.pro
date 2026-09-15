@@ -211,15 +211,9 @@ export const WALLPAPER_OPACITY: Record<WallpaperFamily, { light: number; dark: n
   wash: { light: 0.7, dark: 0.85 },
 };
 
-/**
- * The flat veil drawn OVER an image wallpaper on a reading page.
- *
- * A photograph behind a 680px prose column is a competing figure, so reading
- * pages recede it: the layer is defocused (`wallpaperReadingBlur`) and this
- * veil sits on top (`wallpaperReadingDim`). Both are per-theme alphas of the
- * page background. The home screen gets neither — the picture is the content.
- */
-export const WALLPAPER_READING_VEIL = { light: 0.45, dark: 0.55 } as const;
+// The flat veil drawn OVER an image wallpaper on a reading page, and the
+// defocus under it, are outputs of the legibility policy (`legibility.ts`):
+// a per-theme base that grows with how busy the picture is.
 
 // -----------------------------------------------------------------------------
 // Catalog

@@ -104,7 +104,7 @@ export function LanguageSwitchToast({
               {localeNames[currentLang]}
             </span>
             {!isSystemLang && (
-              <span className="text-muted-foreground/60">
+              <span className="text-tertiary-foreground">
                 {" "}
                 · Preference unchanged
               </span>
@@ -117,7 +117,7 @@ export function LanguageSwitchToast({
               {localeNames[currentLang]}
             </span>
             {!isSystemLang && (
-              <span className="text-muted-foreground/60"> · 偏好未更改</span>
+              <span className="text-tertiary-foreground"> · 偏好未更改</span>
             )}
           </>
         )}

@@ -10,6 +10,8 @@ import {
 } from "../lib";
 import { useWeather } from "../provider";
 
+import { TYPE } from "@/lib/typography";
+import { cn } from "@/lib/utils";
 // ---------------------------------------------------------------------------
 // WeatherNow — the shared weather "body".
 //
@@ -116,12 +118,12 @@ export function WeatherNow() {
 
         {/* Right: Condition + sunrise/sunset stacked */}
         <div className="flex flex-col items-end justify-end gap-1.5">
-          <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+          <div className={TYPE.label}>
             {getWeatherConditionLabel(displayWeather.condition, locale)}
           </div>
 
           {(displayWeather.sunriseMs || displayWeather.sunsetMs) && (
-            <div className="flex items-center gap-3 text-xs font-mono text-muted-foreground">
+            <div className={cn("flex items-center gap-3", TYPE.meta)}>
               {displayWeather.sunriseMs && (
                 <span className="flex items-center gap-1">
                   <Sunrise className="h-3 w-3" />
@@ -143,15 +145,15 @@ export function WeatherNow() {
 
   return (
     <div className="space-y-2">
-      <div className="text-sm text-muted-foreground leading-relaxed">
+      <div className={TYPE.body}>
         {devForceEmpty ? "no data (dev)" : t(locale, "weatherUnavailable")}
       </div>
       {error && (
-        <div className="text-xs font-mono text-muted-foreground/80">{error}</div>
+        <div className={TYPE.meta}>{error}</div>
       )}
       <button
         onClick={() => refresh()}
-        className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
+        className={TYPE.nav}
       >
         retry
       </button>

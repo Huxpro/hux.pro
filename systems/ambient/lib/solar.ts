@@ -302,6 +302,17 @@ export function smoothstep(edge0: number, edge1: number, x: number): number {
 // -----------------------------------------------------------------------------
 
 /** Local midnight of the day containing `ms`. */
+/** Fallback sun times, minutes past local midnight, when the forecast has none. */
+export const DEFAULT_SUNRISE_MINUTES = 6 * 60 + 30;
+export const DEFAULT_SUNSET_MINUTES = 18 * 60 + 30;
+
+/** Minutes past local midnight of an instant, or the fallback when there is none. */
+export function minutesOfDay(ms: number | undefined, fallback = 0): number {
+  if (typeof ms !== "number" || !Number.isFinite(ms)) return fallback;
+  const d = new Date(ms);
+  return d.getHours() * 60 + d.getMinutes();
+}
+
 export function startOfLocalDay(ms: number): number {
   const d = new Date(ms);
   d.setHours(0, 0, 0, 0);

@@ -5,6 +5,7 @@ import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import {
   getGlassLabel,
+  getTintLabel,
   localeNames,
   t,
   useGlass,
@@ -43,6 +44,7 @@ import { CommandAppsStrip } from "./apps-launcher";
 import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
 
+import { TYPE } from "@/lib/typography";
 export function CommandPalette() {
   const drag = useDraggable("command-palette");
   const { isOpen, isSlashCommandsMode, isLoadBundleMode, close, setSlashCommandsMode, setLoadBundleMode } =
@@ -57,7 +59,7 @@ export function CommandPalette() {
     wallpaper,
     openPicker: openWallpaperPicker,
   } = useWallpaper();
-  const { material: glassMaterial, toggle: toggleGlass } = useGlass();
+  const { material: glassMaterial, toggle: toggleGlass, tint: glassTint, setTint: setGlassTint } = useGlass();
   const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled, signalDragReset } =
     useDevtool();
   const {
@@ -78,6 +80,8 @@ export function CommandPalette() {
   }, [isOpen, signalDragReset]);
 
   const glassLabel = getGlassLabel(glassMaterial, locale);
+  const tintLabel = getTintLabel(glassTint, locale);
+  const toggleTint = () => setGlassTint(glassTint === "wallpaper" ? "neutral" : "wallpaper");
   const wallpaperLabel =
     wallpaperKind === "image"
       ? wallpaper.name
@@ -529,7 +533,7 @@ export function CommandPalette() {
                     placeholder={t(locale, "searchPlaceholder")}
                     className={cn(
                       "w-full py-4 bg-transparent font-sans text-[16px] sm:text-sm",
-                      "placeholder:text-muted-foreground/60",
+                      "placeholder:text-tertiary-foreground",
                       "outline-none",
                       drag.isEnabled && "cursor-default focus:cursor-text",
                     )}
@@ -616,7 +620,7 @@ export function CommandPalette() {
                   >
                     <Home className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">{t(locale, "home")}</span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       H
                     </kbd>
                   </Command.Item>
@@ -643,7 +647,7 @@ export function CommandPalette() {
                   >
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">{t(locale, "writingTitle")}</span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       U
                     </kbd>
                   </Command.Item>
@@ -671,7 +675,7 @@ export function CommandPalette() {
                   >
                     <GitCommit className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">{t(locale, "worksTitle")}</span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       X
                     </kbd>
                   </Command.Item>
@@ -698,7 +702,7 @@ export function CommandPalette() {
                   >
                     <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">{t(locale, "promptsTitle")}</span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       P
                     </kbd>
                   </Command.Item>
@@ -747,7 +751,7 @@ export function CommandPalette() {
                         ? t(locale, "themeLight")
                         : t(locale, "themeDark")}
                     </span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       A
                     </kbd>
                   </Command.Item>
@@ -773,7 +777,7 @@ export function CommandPalette() {
                     <span className="flex-1">
                       {t(locale, "languageLabel")}: {localeNames[locale]}
                     </span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       L
                     </kbd>
                   </Command.Item>
@@ -810,7 +814,7 @@ export function CommandPalette() {
                         ? t(locale, "locationAccurate")
                         : t(locale, "locationIp")}
                     </span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       O
                     </kbd>
                   </Command.Item>
@@ -844,7 +848,7 @@ export function CommandPalette() {
                     <span className="flex-1">
                       {t(locale, "settingsWallpaper")}: {wallpaperLabel}
                     </span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       W
                     </kbd>
                   </Command.Item>
@@ -874,9 +878,38 @@ export function CommandPalette() {
                     <span className="flex-1">
                       {t(locale, "settingsGlass")}: {glassLabel}
                     </span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       G
                     </kbd>
+                  </Command.Item>
+                  <Command.Item
+                    value="tint"
+                    keywords={[
+                      "tint",
+                      "accent",
+                      "colour",
+                      "color",
+                      "wallpaper colour",
+                      "neutral",
+                      "着色",
+                      "强调色",
+                      "中性",
+                    ]}
+                    onSelect={() => toggleTint()}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                      "text-sm cursor-pointer transition-colors",
+                      "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                      "hover:bg-accent/25"
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className="size-4 shrink-0 rounded-full border border-border bg-tint"
+                    />
+                    <span className="flex-1">
+                      {t(locale, "settingsTint")}: {tintLabel}
+                    </span>
                   </Command.Item>
                   <Command.Item
                     value="music"
@@ -911,7 +944,7 @@ export function CommandPalette() {
                         ? t(locale, "musicPause")
                         : t(locale, "musicPlay")}
                     </span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       M
                     </kbd>
                   </Command.Item>
@@ -941,7 +974,7 @@ export function CommandPalette() {
                         ? t(locale, "stateOn")
                         : t(locale, "stateOff")}
                     </span>
-                    <kbd className="px-1.5 py-0.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded shrink-0">
+                    <kbd className={cn("shrink-0", TYPE.kbd)}>
                       D
                     </kbd>
                   </Command.Item>
@@ -999,7 +1032,7 @@ export function CommandPalette() {
           >
             <div className="overflow-hidden min-h-0">
               <div className="p-2">
-                <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <div className={cn("px-3 py-2", TYPE.label)}>
                   {t(locale, "navigation")}
                 </div>
                 {actions
@@ -1015,7 +1048,7 @@ export function CommandPalette() {
                       onClick={action.onSelect}
                     />
                   ))}
-                <div className="px-3 py-2 mt-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <div className={cn("px-3 py-2 mt-2", TYPE.label)}>
                   {t(locale, "settings")}
                 </div>
                 {actions

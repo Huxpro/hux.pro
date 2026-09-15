@@ -468,7 +468,7 @@ export function SortableMasonry({
               <button
                 type="button"
                 onClick={handleReset}
-                className="pressable text-xs font-mono uppercase tracking-wider text-muted-foreground/60 transition-colors hover:text-muted-foreground active:text-foreground"
+                className="pressable text-xs font-mono uppercase tracking-wider text-tertiary-foreground transition-colors hover:text-muted-foreground active:text-foreground"
               >
                 {t(locale, "widgetEditReset")}
               </button>

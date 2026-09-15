@@ -159,7 +159,10 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
             // Identifier → greeting → grid is a fixed rhythm: the hero keeps
             // its default height at every size, so only the composition as a
             // whole moves when there is room to spare, never its internals.
-            className="hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
+            // `ink-bare`: nothing behind this text but the wallpaper, so it
+            // is the zone read off the top band whose ink may flip; the app folder is
+            // the other, read off the middle band (see docs/system-legibility.md).
+            className="ink-bare hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
             style={heroFadeStyle}
           >
             <div className="h-11 flex items-start justify-center">

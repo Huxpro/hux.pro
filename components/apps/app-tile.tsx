@@ -6,6 +6,7 @@ import { resolveAppIconSrc } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { AppBadgeFor } from "@/systems/windows";
 
+import { TYPE } from "@/lib/typography";
 // =============================================================================
 // AppTile — shared home-screen icon visual
 //
@@ -41,8 +42,8 @@ const BADGE: Record<AppTileSize, number> = {
 
 const LABEL: Record<AppTileSize, string> = {
   sm: "mt-1 max-w-14 text-[10px]",
-  md: "mt-1.5 max-w-16 text-[11px]",
-  lg: "mt-1.5 max-w-18 text-[11px]",
+  md: "mt-1.5 max-w-16",
+  lg: "mt-1.5 max-w-18",
 };
 
 export function AppTile({
@@ -131,7 +132,8 @@ export function AppTile({
       {showLabel && (
         <span
           className={cn(
-            "block truncate text-center leading-tight text-muted-foreground",
+            "block truncate text-center",
+            TYPE.appLabel,
             LABEL[size],
           )}
         >

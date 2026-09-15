@@ -23,13 +23,26 @@ distortion, nothing pretending to be a physical pane.
 
 ## How it works
 
-One class on `<html>`, swapping CSS variables:
+One class on `<html>`, swapping a handful of numbers. A material is seven of
+them, and the roles are derived once:
 
 ```css
-:root       { --glass: color-mix(in oklab, var(--card) 50%, transparent); … }
-html.glass-clear { --glass: color-mix(in oklab, var(--card) 20%, transparent); … }
-html.dark.glass-clear { /* a touch more fill at the same perceived transparency */ }
+:root {
+  --glass-fill: 50%;  --glass-fill-raised: 60%;  --glass-fill-panel: 70%;
+  --glass-fill-popover: 75%;  --glass-fill-sheet: 85%;
+  --glass-hover-step: 20%;  --glass-dark-add: 0%;
+  --glass: color-mix(in oklab, var(--glass-base) calc(var(--glass-fill) + var(--glass-add)), transparent);
+  /* …one line per role */
+}
+html.glass-clear      { --glass-fill: 20%; /* … Clear's numbers */ }
+html.dark.glass-clear { --glass-dark-add: 6%; }
 ```
+
+Two more things feed `--glass-add` and `--glass-base`, both from the
+legibility system ([docs/system-legibility.md](./system-legibility.md)): a
+busy or wrong-toned wallpaper adds fill (`--wp-glass-add` — the dimming layer
+Liquid Glass Clear requires under text; Clear takes all of it, Tinted half),
+and the **Tint: Wallpaper** setting mixes the picture's colour into the base.
 
 Nothing re-renders to change material. Any surface that paints with a glass
 token follows along for free:
@@ -42,6 +55,10 @@ token follows along for free:
 | `bg-glass-sheet` | Adaptive surfaces (picker, playlist) |
 | `bg-glass-popover` | Command palette, devtool panel |
 | `GLASS_PANEL` (`lib/glass.ts`) | The lifted peek panel, shared by two callers |
+
+**Text on glass** needs nothing: the ink tokens are alphas, so they composite
+with the fill, and under an image wallpaper the relief text-shadow lands on
+`bg-glass*` surfaces at the material's strength (`--glass-relief-k`).
 
 **Adding a surface:** use a glass token instead of `bg-card/NN`. That is the
 whole contract — a surface that hardcodes its own alpha simply won't respond to
@@ -59,10 +76,11 @@ Clear. Prose cannot notice the twelfth, so `no-restricted-syntax` in
 | Surface | How |
 |---------|-----|
 | Command palette | `Glass: Clear` (⌘K), or `/` then `G` |
-| Devtool panel | Glass module — segmented Tinted / Clear |
+| Devtool panel | Glass module — segmented Tinted / Clear, and Tint: Neutral / Wallpaper |
 | Anywhere in code | `useGlass()` → `{ material, setMaterial, toggle }` |
 
-The choice persists to `localStorage` under `hux_glass` and defaults to Tinted.
+The choice persists to `localStorage` under `hux_glass` and defaults to Tinted;
+the tint under `hux_glass_tint`, defaulting to Neutral (`Tint: …` in ⌘K).
 
 ## Reading surfaces
 
@@ -76,8 +94,11 @@ photo behind a 680px prose column is a competing figure.
 
 An image wallpaper paints at opacity 1 — showing a photograph someone chose at
 half strength is not restraint, it is a washed-out picture — so what varies is
-drawn **over** it. `WALLPAPER_READING_VEIL` in `lib/wallpaper.ts` holds the
-per-theme alpha; the number lives there and is deliberately not copied here.
+drawn **over** it. How much veil and how much defocus are outputs of the
+legibility policy per wallpaper (`veilBase` per theme, grown by busyness and
+tone conflict; see [docs/system-legibility.md](./system-legibility.md)) and
+are tuned in the lab with **Surface: Reading**, which applies them to the lab
+page itself.
 
 `lib/reading-surface.ts` owns the predicate. The blur is painted on an inner
 element of each layer (`gradient-stack.tsx`) so the soft-edge mask on the layer

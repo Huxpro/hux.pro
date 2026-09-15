@@ -444,7 +444,7 @@ export function IconEditorView({ initialConfig }: IconEditorViewProps) {
                 onChange={(v) => set("cornerRadius", v)}
               />
             </Field>
-            <p className="font-mono text-[10px] leading-relaxed text-muted-foreground/70">
+            <p className="font-mono text-[10px] leading-relaxed text-tertiary-foreground">
               Baked into the SVG. Leave at 0 for full-bleed — most OSes apply
               their own mask (previewed above).
             </p>

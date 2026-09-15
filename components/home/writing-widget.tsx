@@ -20,6 +20,7 @@ import { t, useLocale } from "@/services";
 import { Link } from "next-view-transitions";
 import { useMemo } from "react";
 
+import { TYPE } from "@/lib/typography";
 // ---------------------------------------------------------------------------
 // WritingWidget — the home "writing" card.
 //
@@ -86,7 +87,7 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
               <div className="mt-3 pt-4 pb-1.5 border-t border-border/30">
                 <span
                   className={cn(
-                    "block text-xs text-muted-foreground/30",
+                    "block text-xs text-tertiary-foreground",
                     /[぀-ヿ一-鿿]/.test(t(locale, "writingFeatured"))
                       ? "font-mono"
                       : "italic font-serif",
@@ -117,12 +118,12 @@ function PostRow({ post, locale }: { post: BlogPostSummary; locale: Locale }) {
       {/* Titles are the content here, so they wrap (two lines max) instead
           of truncating like a project name would; the date stays on the
           first baseline. */}
-      <span className="min-w-0 flex-1 line-clamp-2 text-sm text-foreground">
+      <span className={cn("min-w-0 flex-1 line-clamp-2", TYPE.rowTitle)}>
         {getLocalizedTitle(post, locale)}
       </span>
       <time
         dateTime={post.date}
-        className="shrink-0 font-mono text-xs text-muted-foreground/50"
+        className={cn("shrink-0", TYPE.rowMeta)}
       >
         {formatPostDate(post.date)}
       </time>

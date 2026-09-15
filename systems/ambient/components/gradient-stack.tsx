@@ -113,8 +113,11 @@ function GradientLayer({
         // Scaled past the layer so the blur has pixels to sample at the edges
         // instead of fading into nothing.
         <div
-          className="absolute inset-0 scale-110 blur-2xl"
+          className="absolute inset-0 scale-110"
           style={{
+            // Radius from the legibility policy (`--wp-blur` on <html>): a
+            // busy picture is defocused further than a calm one.
+            filter: "blur(var(--wp-blur, 40px))",
             backgroundImage: gradient,
             backgroundSize: cover ? "cover, 100% 100%" : undefined,
             backgroundPosition: "center",

@@ -6,6 +6,7 @@ import { blogPosts } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
+import { TYPE } from "@/lib/typography";
 export function LivingSurface() {
   const { locale } = useLocale();
 
@@ -29,10 +30,10 @@ export function LivingSurface() {
       >
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+            <span className={TYPE.label}>
               {t(locale, "blog")}
             </span>
-            <span className="text-xs font-mono text-muted-foreground">
+            <span className={TYPE.meta}>
               {latestPost.date}
             </span>
           </div>
@@ -41,7 +42,7 @@ export function LivingSurface() {
             <h3 className="text-xl font-serif text-foreground group-hover:text-primary transition-colors">
               {getLocalizedTitle(latestPost, locale)}
             </h3>
-            <p className="mt-2 text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+            <p className={cn("mt-2 line-clamp-2", TYPE.body)}>
               {getLocalizedDescription(latestPost, locale)}
             </p>
           </div>
