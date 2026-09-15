@@ -270,7 +270,16 @@ ones.
 
 Its tiles are **macOS Settings pair cards**: a 16:10 split of the light and dark
 originals, a sun / moon marking each half, a check when selected, and `Name` +
-`macOS · 2020` underneath. Weather is the **first tile in the same grid at the
+`macOS · 2020` underneath.
+
+Each half is an `<img>` gated on an `IntersectionObserver`, one screen ahead of
+the sheet, over the wallpaper's flat base colour. The tiles used to be CSS
+backgrounds, which have no way to say "only if you can see me": opening the
+picker on a phone fetched all 21 Nature thumbnails, 289KB, to show four. It now
+fetches 7 (68KB) and the rest as you scroll to them. `loading="lazy"` alone does
+not do this — measured, Chrome's distance-from-viewport threshold reaches past
+the end of the grid and fetches all of it anyway — so the rule is written down
+rather than left to the browser. Weather is the **first tile in the same grid at the
 same size** — it is one of the wallpapers, just the only one that moves. Where
 the wallpaper paints sits above the grid as one compact row: a modifier, not the
 thing you came here for.
