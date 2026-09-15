@@ -40,6 +40,7 @@ import { useDevtool } from "@/systems/devtool";
 import { Check, Copy, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLabText } from "./i18n";
 import {
   GalleryTile,
   sceneKey,
@@ -153,6 +154,7 @@ export function LegibilityLabView() {
   const devtool = useDevtool();
   const { theme, preference, setThemePreference } = useTheme();
   const glass = useGlass();
+  const { locale, L, knobLabel, knobHint, groupTitle, groupNote, themeName, materialName, tintName } = useLabText();
 
   // --- Take over the app state for the visit, and give it back after -------
   const initial = useRef<{
@@ -339,7 +341,7 @@ export function LegibilityLabView() {
         pins,
         sheet,
         resolved: live,
-        wallpaper: sceneLabel(scene),
+        wallpaper: sceneLabel(scene, "en"),
         theme,
         material: glass.material,
         tint: glass.tint,
@@ -361,57 +363,57 @@ export function LegibilityLabView() {
             <Link href="/" className="text-xs font-mono tracking-wide text-muted-foreground hover:text-foreground">
               λhux
             </Link>
-            <h1 className="mt-1 font-serif text-2xl tracking-tight text-foreground">legibility lab</h1>
+            <h1 className="mt-1 font-serif text-2xl tracking-tight text-foreground">{L.title}</h1>
           </div>
           <div className="text-[11px] font-mono text-muted-foreground">
-            {sceneLabel(scene)} · {theme} · {glass.material} · {glass.tint}
-            {live.flip && " · flipped"}
-            {dirty > 0 && <span className="ml-2 text-amber-500/90">{dirty} live change{dirty > 1 && "s"}</span>}
+            {sceneLabel(scene, locale)} · {themeName(theme)} · {materialName(glass.material)} · {tintName(glass.tint)}
+            {live.flip && ` · ${L.flipped}`}
+            {dirty > 0 && <span className="ml-2 text-amber-500/90">{L.liveChanges(dirty)}</span>}
           </div>
         </header>
 
         <section>
-          <SpecimenLabel>bare — text with nothing behind it but the wallpaper</SpecimenLabel>
+          <SpecimenLabel>{L.bare}</SpecimenLabel>
           <BareSpecimen />
         </section>
 
         <section className="grid gap-6 md:grid-cols-2">
           <div>
-            <SpecimenLabel>widget — bg-glass</SpecimenLabel>
+            <SpecimenLabel>{L.widget}</SpecimenLabel>
             <WidgetSpecimen />
           </div>
           <div>
-            <SpecimenLabel>live activity — bg-glass, pill and panel</SpecimenLabel>
+            <SpecimenLabel>{L.activity}</SpecimenLabel>
             <ActivitySpecimen />
           </div>
           <div>
-            <SpecimenLabel>command palette — bg-glass-popover</SpecimenLabel>
+            <SpecimenLabel>{L.palette}</SpecimenLabel>
             <PaletteSpecimen />
           </div>
           <div>
-            <SpecimenLabel>secondary surface — bg-glass-sheet</SpecimenLabel>
+            <SpecimenLabel>{L.sheet}</SpecimenLabel>
             <SheetSpecimen />
           </div>
         </section>
 
         <section>
           <SpecimenLabel>
-            reading page — its own surface: veil {readingVars.veil.toFixed(2)} over a {readingVars.blur}px defocus, relief {readingVars.relief.toFixed(2)}, +{readingVars.inkBoost}% ink — the numbers /writing and /works get on this wallpaper
+            {L.reading(readingVars.veil.toFixed(2), readingVars.blur, readingVars.relief.toFixed(2), readingVars.inkBoost)}
           </SpecimenLabel>
           <ReadingSpecimen vars={readingVars} />
         </section>
 
         <section>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <SpecimenLabel>gallery — every wallpaper under its own resolved policy</SpecimenLabel>
+            <SpecimenLabel>{L.gallery}</SpecimenLabel>
             <div className="w-64">
               <Segmented
                 value={galleryCategory}
                 onChange={setGalleryCategory}
                 options={[
-                  { value: "weather", label: "Weather" },
-                  { value: "apple", label: "Apple" },
-                  { value: "nature", label: "Nature" },
+                  { value: "weather", label: L.galleryWeather },
+                  { value: "apple", label: L.galleryApple },
+                  { value: "nature", label: L.galleryNature },
                 ]}
               />
             </div>
@@ -429,6 +431,7 @@ export function LegibilityLabView() {
                   vars={vars}
                   selected={sceneKey(s) === sceneKey(scene)}
                   onSelect={() => selectScene(s)}
+                  locale={locale}
                 />
               );
             })}
@@ -440,38 +443,38 @@ export function LegibilityLabView() {
       {/* Panel                                                                */}
       {/* ------------------------------------------------------------------ */}
       <aside className="ink-flat w-full shrink-0 self-start rounded-2xl border border-border/50 bg-glass-sheet shadow-overlay backdrop-blur-xl lg:sticky lg:top-6 lg:max-h-[calc(100svh-3rem)] lg:w-[380px] lg:overflow-y-auto">
-        <Section title="Scene">
-          <Field label="Theme">
+        <Section title={L.scene}>
+          <Field label={L.theme}>
             <Segmented
               value={theme}
               onChange={(v) => setThemePreference(v)}
               options={[
-                { value: "light", label: "Light" },
-                { value: "dark", label: "Dark" },
+                { value: "light", label: L.light },
+                { value: "dark", label: L.dark },
               ]}
             />
           </Field>
-          <Field label="Material">
+          <Field label={L.material}>
             <Segmented
               value={glass.material}
               onChange={glass.setMaterial}
               options={[
-                { value: "tinted", label: "Tinted" },
-                { value: "clear", label: "Clear" },
+                { value: "tinted", label: L.tinted },
+                { value: "clear", label: L.clear },
               ]}
             />
           </Field>
-          <Field label="Tint">
+          <Field label={L.tint}>
             <Segmented
               value={glass.tint}
               onChange={glass.setTint}
               options={[
-                { value: "neutral", label: "Neutral" },
-                { value: "wallpaper", label: "Wallpaper" },
+                { value: "neutral", label: L.neutral },
+                { value: "wallpaper", label: L.wallpaperTint },
               ]}
             />
           </Field>
-          <Field label="Wallpaper" hint={sceneLabel(scene)}>
+          <Field label={L.wallpaper} hint={sceneLabel(scene, locale)}>
             <div className="flex flex-col gap-2">
               <div className="flex flex-wrap gap-1">
                 {WEATHER_SCENES.map((s) => (
@@ -486,7 +489,7 @@ export function LegibilityLabView() {
                         : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
                     )}
                   >
-                    {sceneLabel(s)}
+                    {sceneLabel(s, locale)}
                   </button>
                 ))}
               </div>
@@ -513,16 +516,16 @@ export function LegibilityLabView() {
           </Field>
         </Section>
 
-        <Section title="Profile — measured once, committed">
+        <Section title={L.profile}>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-            <Readout k="lum" v={profile.lum.toFixed(2)} />
-            <Readout k="contrast" v={profile.contrast.toFixed(2)} />
-            <Readout k="top / mid / bot" v={`${profile.zones.top.toFixed(2)} / ${profile.zones.mid.toFixed(2)} / ${profile.zones.bottom.toFixed(2)}`} />
-            <Readout k="edges" v={profile.edges.toFixed(3)} />
-            <Readout k="busy / conflict" v={`${live.busy.toFixed(2)} / ${live.conflict.toFixed(2)}`} />
-            <Readout k="chroma" v={profile.chroma.toFixed(2)} />
+            <Readout k={L.lum} v={profile.lum.toFixed(2)} />
+            <Readout k={L.contrast} v={profile.contrast.toFixed(2)} />
+            <Readout k={L.zones} v={`${profile.zones.top.toFixed(2)} / ${profile.zones.mid.toFixed(2)} / ${profile.zones.bottom.toFixed(2)}`} />
+            <Readout k={L.edges} v={profile.edges.toFixed(3)} />
+            <Readout k={L.busyConflict} v={`${live.busy.toFixed(2)} / ${live.conflict.toFixed(2)}`} />
+            <Readout k={L.chroma} v={profile.chroma.toFixed(2)} />
             <Readout
-              k="tint"
+              k={L.tintRow}
               v={
                 profile.tint ? (
                   <span className="inline-flex items-center gap-1.5">
@@ -533,21 +536,21 @@ export function LegibilityLabView() {
                     {profile.tint.h.toFixed(0)}° · {profile.tint.c.toFixed(2)}
                   </span>
                 ) : (
-                  "grey"
+                  L.grey
                 )
               }
             />
           </div>
         </Section>
 
-        <Section title="Contrast — estimate from the profile">
+        <Section title={L.contrastTitle}>
           <div className="space-y-1.5">
             {(
               [
-                ["bare · top band", contrast.bare],
-                ["glass · bg-glass", contrast.glass],
-                ["sheet · bg-glass-sheet", contrast.sheet],
-                ["reading · veil", contrast.reading],
+                [L.contrastBare, contrast.bare],
+                [L.contrastGlass, contrast.glass],
+                [L.contrastSheet, contrast.sheet],
+                [L.contrastReading, contrast.reading],
               ] as const
             ).map(([label, c]) => (
               <div key={label} className="flex items-center justify-between gap-2 text-[11px]">
@@ -559,20 +562,20 @@ export function LegibilityLabView() {
               </div>
             ))}
             <p className="text-[10px] leading-snug text-muted-foreground/70">
-              Primary, then secondary ink, against the mean colour composited under each surface. WCAG ratios; AA·L is large text.
+              {L.contrastNote}
             </p>
           </div>
         </Section>
 
-        <Section title="Policy — profile → variables">
+        <Section title={L.policy}>
           {POLICY_KNOBS.map((knob) => {
             const value = policy[knob.key] as number;
             const overridden = knob.key in policyOverrides;
             return (
               <Field
                 key={knob.key}
-                label={knob.label}
-                hint={`${value}${overridden ? "" : ""}`}
+                label={knobLabel(knob.key, knob.label)}
+                hint={String(value)}
               >
                 <div className="flex items-center gap-2">
                   <Slider
@@ -584,7 +587,7 @@ export function LegibilityLabView() {
                   />
                   {overridden ? (
                     <Star
-                      title={`Back to ${DEFAULT_LEGIBILITY_POLICY[knob.key] as number}`}
+                      title={L.backTo(DEFAULT_LEGIBILITY_POLICY[knob.key] as number)}
                       onReset={() =>
                         setPolicyOverrides((o) => {
                           const next = { ...o };
@@ -597,11 +600,11 @@ export function LegibilityLabView() {
                     <span className="w-2.5" />
                   )}
                 </div>
-                <span className="text-[10px] text-muted-foreground/60">{knob.hint}</span>
+                <span className="text-[10px] text-muted-foreground/60">{knobHint(knob.key, knob.hint)}</span>
               </Field>
             );
           })}
-          <Field label="Tone safe → worst" hint={`${policy.toneSafe[theme]} → ${policy.toneWorst[theme]}`}>
+          <Field label={L.toneRange} hint={`${policy.toneSafe[theme]} → ${policy.toneWorst[theme]}`}>
             <div className="flex gap-2">
               <Slider
                 value={policy.toneSafe[theme]}
@@ -628,9 +631,9 @@ export function LegibilityLabView() {
                 }
               />
             </div>
-            <span className="text-[10px] text-muted-foreground/60">picture lightness where the card-colour conflict is nil → total ({theme})</span>
+            <span className="text-[10px] text-muted-foreground/60">{L.toneRangeHint(themeName(theme))}</span>
           </Field>
-          <Field label="Veil base" hint={`${policy.veilBase[theme]} (${theme})`}>
+          <Field label={L.veilBase} hint={`${policy.veilBase[theme]} (${themeName(theme)})`}>
             <Slider
               value={policy.veilBase[theme]}
               min={0}
@@ -643,9 +646,9 @@ export function LegibilityLabView() {
                 }))
               }
             />
-            <span className="text-[10px] text-muted-foreground/60">reading veil alpha on a calm picture, per theme</span>
+            <span className="text-[10px] text-muted-foreground/60">{L.veilBaseHint}</span>
           </Field>
-          <Field label="Tint L range" hint={`${policy.tintLightness[theme][0]} – ${policy.tintLightness[theme][1]}`}>
+          <Field label={L.tintL} hint={`${policy.tintLightness[theme][0]} – ${policy.tintLightness[theme][1]}`}>
             <div className="flex gap-2">
               {([0, 1] as const).map((i) => (
                 <Slider
@@ -666,7 +669,7 @@ export function LegibilityLabView() {
               ))}
             </div>
           </Field>
-          <Field label="Tint C range" hint={`${policy.tintChroma[0]} – ${policy.tintChroma[1]}`}>
+          <Field label={L.tintC} hint={`${policy.tintChroma[0]} – ${policy.tintChroma[1]}`}>
             <div className="flex gap-2">
               {([0, 1] as const).map((i) => (
                 <Slider
@@ -688,20 +691,20 @@ export function LegibilityLabView() {
           </Field>
         </Section>
 
-        <Section title="Resolved — the variables on <html>">
-          <Field label="Flip bare ink" hint={live.flip ? "on" : "off"}>
+        <Section title={L.resolved}>
+          <Field label={L.flipBare} hint={live.flip ? L.on : L.off}>
             <div className="flex items-center gap-2">
               <Segmented
                 value={live.flip ? "on" : "off"}
                 onChange={(v) => setPins((p) => ({ ...p, flip: v === "on" }))}
                 options={[
-                  { value: "off", label: "Off" },
-                  { value: "on", label: "On" },
+                  { value: "off", label: L.Off },
+                  { value: "on", label: L.On },
                 ]}
               />
               {"flip" in pins ? (
                 <Star
-                  title="Back to the policy"
+                  title={L.backToPolicy}
                   onReset={() =>
                     setPins((p) => {
                       const next = { ...p };
@@ -723,7 +726,7 @@ export function LegibilityLabView() {
             );
             const pinned = knob.key in pins;
             return (
-              <Field key={knob.key} label={knob.label} hint={String(value)}>
+              <Field key={knob.key} label={knobLabel(knob.key, knob.label)} hint={String(value)}>
                 <div className="flex items-center gap-2">
                   <Slider
                     value={value}
@@ -734,7 +737,7 @@ export function LegibilityLabView() {
                   />
                   {pinned ? (
                     <Star
-                      title={`Back to the policy (${policyValue})`}
+                      title={L.backToPolicyValue(policyValue)}
                       onReset={() =>
                         setPins((p) => {
                           const next = { ...p };
@@ -751,20 +754,20 @@ export function LegibilityLabView() {
             );
           })}
           <p className="text-[10px] leading-snug text-muted-foreground/60">
-            Pinning a value overrides the policy for this scene only; veil and blur act on the reading specimen. The gallery always shows the policy.
+            {L.pinsNote}
           </p>
         </Section>
 
         {SHEET_GROUPS.map((group) => (
-          <Section key={group.title} title={`Sheet — ${group.title}`}>
+          <Section key={group.title} title={L.sheetSection(groupTitle(group.title))}>
             {group.note && (
-              <p className="-mt-2 text-[10px] leading-snug text-muted-foreground/60">{group.note}</p>
+              <p className="-mt-2 text-[10px] leading-snug text-muted-foreground/60">{groupNote(group.title, group.note)}</p>
             )}
             {group.knobs.map((knob) => {
               const overridden = knob.name in sheet;
               const value = overridden ? sheet[knob.name] : (defaults[knob.name] ?? knob.min);
               return (
-                <Field key={knob.name} label={knob.label} hint={formatSheetValue(knob, value)}>
+                <Field key={knob.name} label={knobLabel(knob.name, knob.label)} hint={formatSheetValue(knob, value)}>
                   <div className="flex items-center gap-2">
                     <Slider
                       value={value}
@@ -775,7 +778,7 @@ export function LegibilityLabView() {
                     />
                     {overridden ? (
                       <Star
-                        title={`Back to ${formatSheetValue(knob, defaults[knob.name] ?? 0)}`}
+                        title={L.backTo(formatSheetValue(knob, defaults[knob.name] ?? 0))}
                         onReset={() =>
                           setSheet((s) => {
                             const next = { ...s };
@@ -795,10 +798,10 @@ export function LegibilityLabView() {
           </Section>
         ))}
 
-        <Section title="Export">
+        <Section title={L.export}>
           <div className="flex flex-wrap gap-2">
-            <CopyButton text={exported} label="Copy JSON" />
-            <CopyButton text={exportCss(sheet)} label="Copy CSS overrides" />
+            <CopyButton text={exported} label={L.copyJson} />
+            <CopyButton text={exportCss(sheet)} label={L.copyCss} />
             <button
               type="button"
               onClick={() => {
@@ -809,7 +812,7 @@ export function LegibilityLabView() {
               className="inline-flex items-center gap-1.5 rounded-md border border-border/60 px-2.5 py-1.5 text-xs font-mono text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
             >
               <RotateCcw className="h-3 w-3" />
-              Reset all
+              {L.resetAll}
             </button>
           </div>
           <textarea
@@ -818,7 +821,7 @@ export function LegibilityLabView() {
             className="h-40 w-full rounded-md border border-border/60 bg-transparent p-2 text-[10px] font-mono text-muted-foreground outline-none"
           />
           <p className="text-[10px] leading-snug text-muted-foreground/60">
-            Policy values go in <code>DEFAULT_LEGIBILITY_POLICY</code> (legibility.ts); sheet values in the <code>:root</code> inputs of globals.css. Nothing here persists.
+            {L.exportNote}
           </p>
         </Section>
       </aside>

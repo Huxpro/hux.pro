@@ -19,7 +19,8 @@ import { legibilityCssVars, type LegibilityVars, type Theme } from "@/systems/am
 import type { WallpaperProfile } from "@/systems/ambient/lib/wallpaper-profile";
 import { WALLPAPER_PROFILES } from "@/systems/ambient/lib/wallpaper-profiles";
 import { BUILT_IN_WALLPAPERS, type Wallpaper } from "@/systems/ambient/lib/wallpaper";
-import type { WeatherCondition } from "@/systems/ambient/lib/weather";
+import { getWeatherConditionLabel, type WeatherCondition } from "@/systems/ambient/lib/weather";
+import type { Locale } from "@/lib/i18n";
 import type { CSSProperties } from "react";
 
 export type WeatherScene =
@@ -52,10 +53,13 @@ export function sceneKey(scene: Scene): string {
   return `weather:${scene.condition}:${scene.isDay ? "day" : "night"}`;
 }
 
-export function sceneLabel(scene: Scene): string {
+export function sceneLabel(scene: Scene, locale: Locale = "en"): string {
   if (scene.kind === "image") return BUILT_IN_WALLPAPERS.find((w) => w.id === scene.id)?.name ?? scene.id;
-  if (scene.kind === "sun") return scene.event;
-  return `${scene.condition} · ${scene.isDay ? "day" : "night"}`;
+  const zh = locale === "zh";
+  if (scene.kind === "sun") return zh ? (scene.event === "sunrise" ? "日出" : "日落") : scene.event;
+  const condition = zh ? getWeatherConditionLabel(scene.condition, locale) : scene.condition;
+  const time = scene.isDay ? (zh ? "白天" : "day") : zh ? "夜晚" : "night";
+  return `${condition} · ${time}`;
 }
 
 export function sceneProfile(scene: Scene, theme: Theme): WallpaperProfile | null {
@@ -88,12 +92,14 @@ export function GalleryTile({
   vars,
   selected,
   onSelect,
+  locale = "en",
 }: {
   scene: Scene;
   theme: Theme;
   vars: LegibilityVars;
   selected: boolean;
   onSelect: () => void;
+  locale?: Locale;
 }) {
   const style = {
     ...legibilityCssVars(vars),
@@ -130,7 +136,7 @@ export function GalleryTile({
         </div>
       </div>
       <span className="ink-flat absolute left-2 top-2 rounded bg-black/35 px-1 py-0.5 text-[9px] font-mono text-white ring-1 ring-white/25">
-        {sceneLabel(scene)}
+        {sceneLabel(scene, locale)}
         {vars.flip && " · flip"}
         {vars.relief > 0 && ` · r${vars.relief.toFixed(1)}`}
         {vars.inkBoost > 0 && ` · +${vars.inkBoost}`}
