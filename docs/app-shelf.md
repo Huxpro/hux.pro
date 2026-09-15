@@ -34,6 +34,10 @@ Apps live in [`content/apps.json`](../content/apps.json):
 - `icon` *(optional)* — manual override when the site's declared icon is wrong
   or unfetchable: a site-local `/img/…` path is used as-is; an `https://…` URL
   is downloaded. Same recovery philosophy as og-snapshot's manual `preview`.
+  Vue Lynx uses this because `vue.lynxjs.org/icon-512.png` is a pre-masked
+  iOS squircle (transparent corners) that would double-frame against the
+  tile's own rounded clip; the committed file is that art flattened onto
+  opaque white.
 - `featured` *(optional)* — show on the home-screen folder. Defaults to `true`.
   `false` keeps the app in the ⌘K launcher without featuring it on the
   springboard (BusyWeek and 逗猫棒 are command-only this way).
@@ -119,7 +123,8 @@ Square icons ≥160px render full-bleed *without* the plate.
 ⌘K is dual-purpose: command search **and** an app launcher (see
 [Command System](./system-command)).
 
-- Headerless **horizontal icon strip** (tight fixed pitch; scrolls when needed)
+- Headerless **horizontal icon strip** (tight fixed pitch; scrolls when needed;
+  `sm` tiles below Tailwind `md`, `md` tiles on desktop)
 - Same UI while typing — unmatched apps filter out; empty strip hides the group
 - Real snapshot icons via `AppTile`
 - **Load…** opens an in-palette System UI form (`load-bundle-panel.tsx`) —

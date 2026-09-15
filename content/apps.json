@@ -23,7 +23,8 @@
       "id": "vue-lynx",
       "title": "Vue Lynx",
       "runtime": "web",
-      "url": "https://vue.lynxjs.org"
+      "url": "https://vue.lynxjs.org",
+      "icon": "/app-icons/vue-lynx.png"
     },
     {
       "id": "cat-toy",

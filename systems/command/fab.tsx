@@ -6,28 +6,10 @@ import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { Command, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
 import { HANDOFF, useHomeEditing } from "@/components/ui/home-edit-store";
-
-// Below `md` the bar and the grid's edit controls share the bottom of the
-// screen; above it the controls float over the bar. Mirrors the `md:`
-// breakpoint the bar's own layout switches on.
-const COMPACT_QUERY = "(max-width: 767px)";
-
-let compactMql: MediaQueryList | null = null;
-const getCompactMql = () => (compactMql ??= window.matchMedia(COMPACT_QUERY));
-const subscribeCompact = (onChange: () => void) => {
-  const mql = getCompactMql();
-  mql.addEventListener("change", onChange);
-  return () => mql.removeEventListener("change", onChange);
-};
-const getCompact = () => getCompactMql().matches;
-const getCompactServer = () => false;
-
-function useCompactViewport(): boolean {
-  return useSyncExternalStore(subscribeCompact, getCompact, getCompactServer);
-}
+import { useCompactViewport } from "./use-compact-viewport";
 
 export function FloatingActionButton() {
   const { toggle } = useCommand();
@@ -41,6 +23,8 @@ export function FloatingActionButton() {
   // sequenced with the controls' entrance/exit (HANDOFF), so each direction
   // is a hand-off rather than a crossfade.
   const homeEditing = useHomeEditing();
+  // Below `md` the bar and the grid's edit controls share the bottom of the
+  // screen; above it the controls float over the bar.
   const compact = useCompactViewport();
 
   useEffect(() => {

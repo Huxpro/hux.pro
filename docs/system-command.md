@@ -32,7 +32,8 @@ When the Window system is mounted, ⌘K also launches apps from
 - Same presentation for browse and search — cmdk filters icons in place
 - Strip scrolls horizontally when the catalog overflows
 - Group hides entirely when no app matches the query
-- Real snapshot tiles via shared `AppTile`
+- Real snapshot tiles via shared `AppTile` (`md` / 48px on desktop, `sm` /
+  32px below Tailwind `md`)
 - The strip lists the **full catalog**, including `featured: false`
   command-only apps (BusyWeek, 逗猫棒) that the home folder omits
 

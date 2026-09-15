@@ -9,6 +9,7 @@ import { useOptionalWindows } from "@/systems/windows";
 import { Command } from "cmdk";
 import { Link2 } from "lucide-react";
 import { useCommand } from "./provider";
+import { useCompactViewport } from "./use-compact-viewport";
 
 // =============================================================================
 // CommandAppsStrip — Spotlight-style horizontal app launcher
@@ -19,19 +20,20 @@ import { useCommand } from "./provider";
 // No group heading — the icons speak for themselves.
 // =============================================================================
 
-const itemClass = cn(
-  "group/app shrink-0 rounded-xl",
-  "flex flex-col items-center justify-center",
-  "w-[4.25rem] px-1 py-1.5",
-  "cursor-pointer transition-colors",
-  "text-foreground data-[selected=true]:bg-accent/50 data-[selected=true]:text-accent-foreground",
-  "hover:bg-accent/25",
-);
-
 export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
   const windows = useOptionalWindows();
   const { locale } = useLocale();
   const { openLoadBundle } = useCommand();
+  const compact = useCompactViewport();
+  const tileSize = compact ? "sm" : "md";
+  const itemClass = cn(
+    "group/app shrink-0 rounded-xl",
+    "flex flex-col items-center justify-center",
+    compact ? "w-14 px-0.5 py-1" : "w-[4.25rem] px-1 py-1.5",
+    "cursor-pointer transition-colors",
+    "text-foreground data-[selected=true]:bg-accent/50 data-[selected=true]:text-accent-foreground",
+    "hover:bg-accent/25",
+  );
   if (!windows || APPS.length === 0) return null;
 
   return (
@@ -64,7 +66,7 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
               }}
               className={itemClass}
             >
-              <AppTile app={app} size="md" revealBadge showLabel />
+              <AppTile app={app} size={tileSize} revealBadge showLabel />
             </Command.Item>
           );
         })}
@@ -88,10 +90,20 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
           className={itemClass}
         >
           <span className="flex w-full flex-col items-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-[22.5%] border border-dashed border-border/70 bg-muted/30 text-muted-foreground">
-              <Link2 className="h-5 w-5" />
+            <span
+              className={cn(
+                "flex items-center justify-center rounded-[22.5%] border border-dashed border-border/70 bg-muted/30 text-muted-foreground",
+                compact ? "h-8 w-8" : "h-12 w-12",
+              )}
+            >
+              <Link2 className={compact ? "h-3.5 w-3.5" : "h-5 w-5"} />
             </span>
-            <span className="mt-1.5 block max-w-16 truncate text-center text-[11px] leading-tight text-muted-foreground">
+            <span
+              className={cn(
+                "block truncate text-center leading-tight text-muted-foreground",
+                compact ? "mt-1 max-w-14 text-[10px]" : "mt-1.5 max-w-16 text-[11px]",
+              )}
+            >
               {locale === "zh" ? "加载包" : "Load…"}
             </span>
           </span>
