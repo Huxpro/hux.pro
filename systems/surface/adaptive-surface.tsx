@@ -14,6 +14,8 @@ import {
 import { createPortal } from "react-dom";
 import { Drawer } from "vaul";
 import { useSurfaceMode, type SurfaceMode, type SurfacePresentation } from "./presentation";
+import { useLivePage } from "./live-page";
+import { EDGE_GAP, SHELL, SurfaceSheet } from "./sheet";
 
 // =============================================================================
 // AdaptiveSurface — one secondary surface, three shapes.
@@ -26,7 +28,8 @@ import { useSurfaceMode, type SurfaceMode, type SurfacePresentation } from "./pr
 // The three shapes share one glass shell, one header and one close affordance,
 // so they read as the same object arriving from a different direction:
 //
-//   sheet   vaul drawer from the bottom, drag-to-dismiss, grabber.
+//   sheet   <SurfaceSheet> (sheet.tsx): vaul drawer from the bottom,
+//           drag-to-dismiss, grabber, stacks the iOS way.
 //   panel   vaul drawer from the trailing edge, drag-to-dismiss.
 //   window  a centred window that morphs in the way an app window does when it
 //           opens from its shelf icon, and is draggable by its header.
@@ -41,9 +44,6 @@ import { useSurfaceMode, type SurfaceMode, type SurfacePresentation } from "./pr
 //
 // Content can adapt without knowing the rules by reading `useSurfaceContext()`.
 // =============================================================================
-
-/** Ring of padding between a floating surface and the screen edges. */
-const EDGE_GAP = "0.75rem";
 
 interface SurfaceContextValue {
   mode: SurfaceMode;
@@ -87,13 +87,6 @@ export interface AdaptiveSurfaceProps {
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   children: React.ReactNode;
 }
-
-/** The glass shell every shape shares. */
-const SHELL = [
-  "flex flex-col overflow-hidden outline-none",
-  "rounded-3xl bg-glass-sheet backdrop-blur-xl",
-  "border border-border/50 shadow-overlay",
-].join(" ");
 
 function SurfaceHeader({
   title,
@@ -247,26 +240,24 @@ function SurfaceWindow({
   );
 }
 
-/** Sheet and panel modes — both vaul drawers, differing only in which edge. */
-function SurfaceDrawer({
-  mode,
+/** Panel mode — a vaul drawer from the trailing edge. */
+function SurfacePanel({
   open,
   onOpenChange,
   title,
   actions,
   closeLabel,
-  maxHeight,
   contentClassName,
   scrollRef,
   children,
-}: Omit<AdaptiveSurfaceProps, "presentation" | "id"> & { mode: "sheet" | "panel" }) {
-  const isPanel = mode === "panel";
+}: Omit<AdaptiveSurfaceProps, "presentation" | "id">) {
+  useLivePage(open);
 
   return (
     <Drawer.Root
       open={open}
       onOpenChange={onOpenChange}
-      direction={isPanel ? "right" : "bottom"}
+      direction="right"
       // vaul's own switch: non-modal drops the body scroll lock and the inert
       // page, which is the half of "no overlay" a missing scrim alone is not.
       modal={false}
@@ -283,27 +274,14 @@ function SurfaceDrawer({
               // vaul's enter/exit transform must clear the edge gap too,
               // otherwise the panel "pops" for the last few pixels.
               "--initial-transform": `calc(100% + ${EDGE_GAP})`,
-              ...(!isPanel && {
-                bottom: `max(env(safe-area-inset-bottom), ${EDGE_GAP})`,
-                height: maxHeight ?? "80dvh",
-              }),
             } as React.CSSProperties
           }
           className={cn(
             SHELL,
-            "fixed z-[61]",
-            isPanel
-              ? // Tablet: a taller, roomier column than a phone sheet affords.
-                "bottom-3 right-3 top-3 w-[min(94vw,var(--surface-panel-w,440px))]"
-              : "inset-x-3"
+            // Tablet: a taller, roomier column than a phone sheet affords.
+            "fixed z-[61] bottom-3 right-3 top-3 w-[min(94vw,var(--surface-panel-w,440px))]"
           )}
         >
-          {/* Grabber — the affordance for drag-to-dismiss */}
-          {!isPanel && (
-            <div className="flex justify-center pt-2">
-              <span className="h-1 w-9 rounded-full bg-muted-foreground/25" />
-            </div>
-          )}
           <SurfaceHeader
             title={title}
             actions={actions}
@@ -326,6 +304,46 @@ function SurfaceDrawer({
   );
 }
 
+/** Sheet mode — the shared sheet primitive with this surface's title bar in it. */
+function SurfaceSheetShape({
+  id,
+  open,
+  onOpenChange,
+  title,
+  actions,
+  closeLabel,
+  maxHeight,
+  contentClassName,
+  scrollRef,
+  children,
+}: Omit<AdaptiveSurfaceProps, "presentation">) {
+  return (
+    <SurfaceSheet
+      id={id}
+      open={open}
+      onOpenChange={onOpenChange}
+      height={maxHeight}
+    >
+      <SurfaceHeader
+        title={title}
+        actions={actions}
+        closeLabel={closeLabel}
+        onClose={() => onOpenChange(false)}
+        titleAs={Drawer.Title}
+      />
+      <div
+        ref={scrollRef}
+        className={cn(
+          "flex-1 overflow-y-auto overscroll-contain",
+          contentClassName ?? "px-4 pb-5"
+        )}
+      >
+        {children}
+      </div>
+    </SurfaceSheet>
+  );
+}
+
 export function AdaptiveSurface({
   presentation,
   ...props
@@ -344,8 +362,10 @@ export function AdaptiveSurface({
     <SurfaceContext.Provider value={value}>
       {mode === "window" ? (
         <SurfaceWindow {...props} />
+      ) : mode === "panel" ? (
+        <SurfacePanel {...props} />
       ) : (
-        <SurfaceDrawer mode={mode} {...props} />
+        <SurfaceSheetShape {...props} />
       )}
     </SurfaceContext.Provider>
   );

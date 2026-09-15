@@ -20,10 +20,22 @@
 // Moving a surface between shapes is then a one-word change to `presentation`,
 // and content that wants to adapt (column counts, density) reads the shape it
 // landed in from `useSurfaceContext()` instead of re-measuring the viewport.
+//
+// Underneath, every phone shape is one <SurfaceSheet> (sheet.tsx). A surface
+// whose header is not a title bar — the command palette, whose header is its
+// search field — composes that primitive directly and still gets the same
+// shell, gaps, detents and iOS-style stacking (stack.ts).
 // =============================================================================
 
 export { AdaptiveSurface, useSurfaceContext } from "./adaptive-surface";
 export type { AdaptiveSurfaceProps } from "./adaptive-surface";
+export { SurfaceSheet } from "./sheet";
+export type { SurfaceSheetProps } from "./sheet";
+export {
+  SURFACE_EASING,
+  SURFACE_TRANSITION_MS,
+  useSurfaceStack,
+} from "./stack";
 export {
   ADAPTIVE_PRESENTATION,
   SURFACE_BREAKPOINTS,

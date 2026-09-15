@@ -4,6 +4,10 @@
 
 export { CommandProvider, useCommand } from "./provider";
 export { CommandPalette } from "./palette";
+export { CommandPopover } from "./popover";
+export { CommandSheet } from "./sheet";
+export { useCommandActions } from "./actions";
+export type { CommandAction, CommandKind } from "./actions";
 export { FloatingActionButton } from "./fab";
 export {
   CommandAppsStrip,

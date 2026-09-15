@@ -36,7 +36,7 @@
 | Feature | Location |
 |---------|----------|
 | Global styles | `app/globals.css` |
-| Command palette | `components/layout/command-palette.tsx` |
+| Command palette | `systems/command/` (`palette.tsx` picks sheet vs popover) |
 | Global state | `components/providers.tsx` |
 | Translations | `lib/i18n.ts` |
 | Blog posts | `content/blog/*.mdx` (at /writing) |

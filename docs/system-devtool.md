@@ -82,7 +82,11 @@ Debug modules for the ambient system:
    clock, the six conditions previewed at the effective hour (click again to
    return to live), the date slider that moves the moon, and a folded Tune
    row of scene sliders. **Now** resets everything.
-4. **Refetch**: Force re-fetch location/weather
+4. **Command**: **Phone palette** — Sheet (the bottom sheet the palette is on a
+   phone) / Popover (the desktop card at phone width, the palette as it was).
+   A saved setting, so a blue `*` marks it and resets it. Lets the two be
+   compared on the same device; the popover code path is kept whole for it.
+5. **Refetch**: Force re-fetch location/weather
 
 ## Controls
 
