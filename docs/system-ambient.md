@@ -21,8 +21,9 @@ systems/ambient/
 ├── lib/
 │   ├── gradient.ts               # OKLCH gradient generation + crossfade types
 │   ├── wallpaper.ts              # Atmosphere params from phase × weather × theme
-│   ├── atmosphere.ts             # WebGL sky shader (clouds, sun/moon, stars)
-│   ├── weather-particles.ts      # Canvas rain / snow / fog / lightning
+│   ├── atmosphere-2d.ts          # Canvas 2D sky fallback (same uniforms as GL)
+│   ├── moon-2d.ts                # Shared moon disc for sky + particle overlay
+│   ├── weather-particles.ts      # Canvas rain / snow / fog / lightning + moon
 │   ├── greeting.ts               # Time-of-day helpers
 │   ├── location.ts               # IP/GPS location resolution
 │   ├── notification.ts           # Upcoming sun-event detection (lead-up + window)
@@ -62,7 +63,7 @@ The full-page background is a layered atmosphere, aiming at iOS Weather:
 
 1. **CSS grade** — richer 4-stop OKLCH radials (also used by widgets + fallback)
 2. **WebGL sky** — horizon-to-zenith plate, sun/moon bloom, FBM clouds, rays, stars, fog
-3. **Particles** — rain streaks, snow, near-field cloud puffs, fog wisps, lightning
+3. **Particles** — moon disc (above the sky), rain, snow, near-field cloud puffs, fog wisps, lightning
 
 Sky color follows **phase** (sunrise → night). Precipitation follows **weather**.
 A rainy sunset is an amber horizon with rain on top, not a swapped rain plate.

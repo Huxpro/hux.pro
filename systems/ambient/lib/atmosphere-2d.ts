@@ -1,5 +1,6 @@
-import type { AtmosphereParams, Vec3 } from "./wallpaper";
 import type { AtmosphereRenderer } from "./atmosphere";
+import { drawMoonOnCanvas } from "./moon-2d";
+import type { AtmosphereParams, Vec3 } from "./wallpaper";
 
 // =============================================================================
 // Canvas 2D atmosphere
@@ -112,30 +113,7 @@ export function createAtmosphere2DRenderer(
   };
 
   const drawMoon = (p: AtmosphereParams) => {
-    if (p.moonGlow < 0.04) return;
-    const px = p.moonPos[0] * cssW;
-    const py = (1 - p.moonPos[1]) * cssH;
-    const span = Math.max(cssW, cssH);
-    const discR = span * (p.moonSize * 4.8 + 0.02);
-
-    const bloom = ctx.createRadialGradient(px, py, discR * 0.2, px, py, span * 0.28);
-    bloom.addColorStop(0, rgba(p.moonColor, 0.32 * p.moonGlow));
-    bloom.addColorStop(0.22, rgba(p.moonColor, 0.1 * p.moonGlow));
-    bloom.addColorStop(1, rgba(p.moonColor, 0));
-    ctx.fillStyle = bloom;
-    ctx.fillRect(0, 0, cssW, cssH);
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(px, py, discR, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(242, 246, 255, 0.96)";
-    ctx.fill();
-    ctx.clip();
-    ctx.fillStyle = "rgba(16, 24, 44, 0.38)";
-    ctx.beginPath();
-    ctx.arc(px + discR * 0.42, py - discR * 0.06, discR * 0.98, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    drawMoonOnCanvas(ctx, p, cssW, cssH);
   };
 
   const drawStars = (p: AtmosphereParams, t: number) => {

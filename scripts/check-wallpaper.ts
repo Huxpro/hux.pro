@@ -96,7 +96,15 @@ for (const condition of conditions) {
         assert(params.rays < 0.05, `${phase} should not keep sun rays`);
         if (condition === "clear") {
           assert(params.moonGlow > 0.45, `${phase} moon glow`);
-          assert(params.moonPos[1] > 0.45, `${phase} moon above the horizon`);
+          assert(params.moonSize > 0.05, `${phase} moon size`);
+          assert(
+            params.moonPos[0] > 0.12 && params.moonPos[0] < 0.88,
+            `${phase} moon not in the extreme corner (x=${params.moonPos[0]})`
+          );
+          assert(
+            params.moonPos[1] > 0.32 && params.moonPos[1] < 0.7,
+            `${phase} moon in the open sky (y=${params.moonPos[1]})`
+          );
         }
       }
       if (condition === "clear" && phase === "evening" && theme === "dark") {

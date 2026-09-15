@@ -173,7 +173,8 @@ const PHASE_SKY: Record<AmbientPhase, SkyPlate> = {
     sunColor: rgb(255, 176, 120),
     sunSize: 0,
     sunGlow: 0,
-    moonPos: [0.84, 0.76],
+    // Open sky, right of the centered greeting — not the top-right corner.
+    moonPos: [0.78, 0.46],
     moonGlow: 1,
     rays: 0,
     stars: 0.55,
@@ -187,7 +188,8 @@ const PHASE_SKY: Record<AmbientPhase, SkyPlate> = {
     sunColor: rgb(200, 210, 230),
     sunSize: 0,
     sunGlow: 0,
-    moonPos: [0.22, 0.78],
+    // Opposite wing from evening so the body travels across the night.
+    moonPos: [0.22, 0.52],
     moonGlow: 1,
     rays: 0,
     stars: 0.85,
@@ -303,7 +305,7 @@ function applyWeatherToSky(plate: SkyPlate, weather: WeatherMod): SkyPlate {
     ground: shade(mix3(plate.ground, tint, t * 0.5), weather.dim),
     sunGlow: plate.sunGlow * weather.dim * (1 - weather.fog * 0.55),
     sunSize: plate.sunSize * mix(1, 0.7, weather.cloudCover),
-    moonGlow: plate.moonGlow * mix(1, 0.45, weather.cloudCover) * (1 - weather.fog * 0.4),
+    moonGlow: plate.moonGlow * mix(1, 0.62, weather.cloudCover) * (1 - weather.fog * 0.28),
     rays: plate.rays * weather.dim * (1 - weather.cloudCover * 0.7) * (1 - weather.fog),
     stars: plate.stars * (1 - weather.cloudCover * 0.75) * (1 - weather.fog * 0.85),
   };
@@ -384,7 +386,7 @@ export function resolveAtmosphere(input: WallpaperSceneInput): AtmosphereParams 
     sunGlow: input.theme === "light" ? plate.sunGlow * 0.72 : plate.sunGlow,
     moonPos: plate.moonPos,
     moonColor: DEFAULT_MOON,
-    moonSize: nightSky ? 0.042 : 0.012,
+    moonSize: nightSky ? 0.072 : 0.012,
     moonGlow: input.theme === "light" ? plate.moonGlow * 0.82 : plate.moonGlow,
     cloudCover: weather.cloudCover,
     cloudScale: weather.cloudScale,

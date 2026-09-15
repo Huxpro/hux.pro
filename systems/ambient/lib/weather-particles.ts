@@ -1,10 +1,11 @@
+import { drawMoonOnCanvas } from "./moon-2d";
 import type { AtmosphereParams } from "./wallpaper";
 
 // =============================================================================
 // Canvas 2D weather particles
 //
 // Near-field layer that sits on top of the WebGL sky:
-//   rain streaks, tumbling snow, fog wisps, drifting cloud puffs,
+//   moon disc, rain streaks, tumbling snow, fog wisps, drifting cloud puffs,
 //   and occasional lightning bolts (plus a flash value for the shader).
 // =============================================================================
 
@@ -262,6 +263,7 @@ export function createParticleRenderer(
 
       if (reducedMotion) {
         drawStaticWeather(ctx, cssW, cssH, params);
+        drawMoonOnCanvas(ctx, params, cssW, cssH);
         flash *= 0.85;
         return flash;
       }
@@ -311,6 +313,9 @@ export function createParticleRenderer(
           ctx.fill();
         }
       }
+
+      // Moon sits above sky + near-field clouds, under precipitation.
+      drawMoonOnCanvas(ctx, params, cssW, cssH);
 
       if (rainAmt > 0.02) {
         const active = Math.floor(rain.length * clamp(rainAmt, 0, 1));
