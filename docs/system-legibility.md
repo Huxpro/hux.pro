@@ -156,12 +156,20 @@ shadow — so the main path costs nothing it did not cost before.
 
 ### 4. Relief and flip
 
-Relief is a `text-shadow` in two shapes, chosen by the ink:
+Relief is a `text-shadow` in two shapes, and the shape is a property of the
+ink:
 
 ```css
---relief-drop: 0 1px 3px rgb(0 0 0 / .6·r), 0 0 2px rgb(0 0 0 / .45·r);   /* light ink */
---relief-halo: 0 0 4px rgb(255 255 255 / .55·r), 0 0 3px rgb(255 255 255 / .3·r); /* dark ink */
+/* light ink */  0 1px 3px rgb(0 0 0 / .6·r), 0 0 2px rgb(0 0 0 / .45·r)
+/* dark ink  */  0 0 4px rgb(255 255 255 / .55·r), 0 0 3px rgb(255 255 255 / .3·r)
 ```
+
+Each theme declares the pair for its own ink (`--relief-theme-*`: colour,
+the two alphas, offset, blurs) and the pair for the inverse
+(`--relief-inverse-*`); the ladder builds `--text-relief` from whichever an
+element carries, so the one rule that flips a zone's `--ink` swaps its shape
+in the same breath, and no selector ever asks "which theme, and is it
+flipped?" twice.
 
 `text-shadow` inherits as a computed value, so it is declared once per kind
 of ground: `body` (the wallpaper), the `bg-glass*` classes (× `--glass-relief-k`:

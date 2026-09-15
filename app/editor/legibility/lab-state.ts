@@ -28,10 +28,13 @@
 import {
   DEFAULT_LEGIBILITY_POLICY,
   resolveLegibility,
+  sameVars,
   type LegibilityPolicy,
   type LegibilityVars,
   type Theme,
 } from "@/systems/ambient/lib/legibility";
+
+export { sameVars };
 import type { WallpaperProfile } from "@/systems/ambient/lib/wallpaper-profile";
 
 // -----------------------------------------------------------------------------
@@ -89,29 +92,18 @@ export const POLICY_KNOBS: PolicyKnob[] = [
   { key: "tintMinChroma", group: "desktop", affects: ["tint"], label: "Tint min chroma", hint: "greyer than this: no tint", min: 0, max: 0.1, step: 0.005 },
 ];
 
-export type PolicyOverrides = Partial<
-  Pick<
-    LegibilityPolicy,
-    Exclude<keyof LegibilityPolicy, "tintLightness" | "tintChroma" | "toneSafe" | "toneWorst" | "veilBase">
-  >
-> & {
-  tintLightness?: Record<Theme, [number, number]>;
-  tintChroma?: [number, number];
-  toneSafe?: Record<Theme, number>;
-  toneWorst?: Record<Theme, number>;
-  veilBase?: Record<Theme, number>;
-};
+export type PolicyOverrides = Partial<LegibilityPolicy>;
 
+/** Keys are deleted, never set to undefined, so a spread is the whole merge. */
 export function mergePolicy(overrides: PolicyOverrides): LegibilityPolicy {
-  return {
-    ...DEFAULT_LEGIBILITY_POLICY,
-    ...overrides,
-    tintLightness: overrides.tintLightness ?? DEFAULT_LEGIBILITY_POLICY.tintLightness,
-    tintChroma: overrides.tintChroma ?? DEFAULT_LEGIBILITY_POLICY.tintChroma,
-    toneSafe: overrides.toneSafe ?? DEFAULT_LEGIBILITY_POLICY.toneSafe,
-    toneWorst: overrides.toneWorst ?? DEFAULT_LEGIBILITY_POLICY.toneWorst,
-    veilBase: overrides.veilBase ?? DEFAULT_LEGIBILITY_POLICY.veilBase,
-  };
+  return { ...DEFAULT_LEGIBILITY_POLICY, ...overrides };
+}
+
+/** `obj` without `keys` — the reset behind every star. */
+export function without<T extends object>(obj: T, ...keys: (keyof T)[]): T {
+  const next = { ...obj };
+  for (const k of keys) delete next[k];
+  return next;
 }
 
 // -----------------------------------------------------------------------------
@@ -180,15 +172,8 @@ export function resolveForLab(params: {
   policy: LegibilityPolicy;
   pins: OutputPins;
 }): LegibilityVars {
-  return applyPins(
-    resolveLegibility({
-      profile: params.profile,
-      theme: params.theme,
-      reading: params.reading,
-      policy: params.policy,
-    }),
-    params.pins,
-  );
+  const { pins, ...rest } = params;
+  return applyPins(resolveLegibility(rest), pins);
 }
 
 /**
@@ -211,22 +196,6 @@ export function knobActsHere(
     if (samples.some((v) => !sameVars(at(v, reading), cur))) return true;
   }
   return false;
-}
-
-export function sameVars(a: LegibilityVars, b: LegibilityVars): boolean {
-  return (
-    a.inkBoost === b.inkBoost &&
-    a.bareBoost === b.bareBoost &&
-    a.relief === b.relief &&
-    a.glassAdd === b.glassAdd &&
-    a.veil === b.veil &&
-    a.blur === b.blur &&
-    a.flip === b.flip &&
-    a.flipMid === b.flipMid &&
-    a.tint.l === b.tint.l &&
-    a.tint.c === b.tint.c &&
-    a.tint.h === b.tint.h
-  );
 }
 
 // -----------------------------------------------------------------------------
@@ -332,19 +301,6 @@ export const LAB_SESSION: {
 // -----------------------------------------------------------------------------
 // Export
 // -----------------------------------------------------------------------------
-
-export function exportJson(params: {
-  policy: PolicyOverrides;
-  pins: OutputPins;
-  sheet: SheetOverrides;
-  resolved: LegibilityVars;
-  wallpaper: string;
-  theme: Theme;
-  material: string;
-  tint: string;
-}): string {
-  return JSON.stringify(params, null, 2);
-}
 
 export function exportCss(sheet: SheetOverrides): string {
   const lines = Object.entries(sheet).map(([name, value]) => {

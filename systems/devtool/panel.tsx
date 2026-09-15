@@ -28,6 +28,9 @@ import { rgbToCss, sampleDaySky } from "@/systems/ambient/lib/scene";
 import {
   getMoonPhaseName,
   startOfLocalDay,
+  DEFAULT_SUNRISE_MINUTES,
+  DEFAULT_SUNSET_MINUTES,
+  minutesOfDay,
   type MoonPhaseName,
 } from "@/systems/ambient/lib/solar";
 import type { WallpaperStats } from "@/systems/ambient/lib/wallpaper/renderer";
@@ -1474,11 +1477,6 @@ const MOON_NAME: Record<"en" | "zh", Record<MoonPhaseName, string>> = {
   },
 };
 
-const minutesOfDay = (ms?: number, fallback = 0) => {
-  if (typeof ms !== "number" || !Number.isFinite(ms)) return fallback;
-  const d = new Date(ms);
-  return d.getHours() * 60 + d.getMinutes();
-};
 
 /** The quiet outlined chip the Sky module's Now and Play buttons are made of. */
 const PANEL_CHIP = cn(
@@ -1556,8 +1554,8 @@ function SkyModule() {
     return `linear-gradient(90deg, ${stops.join(", ")})`;
   }, [dayStartMs, lat, lon, sceneWeather, theme, sceneOverrides]);
 
-  const sr = minutesOfDay(sunriseMs, 6 * 60 + 30);
-  const ss = minutesOfDay(sunsetMs, 18 * 60 + 30);
+  const sr = minutesOfDay(sunriseMs, DEFAULT_SUNRISE_MINUTES);
+  const ss = minutesOfDay(sunsetMs, DEFAULT_SUNSET_MINUTES);
   const noon = Math.round((sr + ss) / 2);
   const SUN_WINDOW = 45;
   const phaseTimes: Record<AmbientPhase, number> = {

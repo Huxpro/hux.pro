@@ -31,7 +31,9 @@
 // to run on every render; the provider memoises it anyway.
 // =============================================================================
 
-import type { RGB, WeatherScene } from "./scene";
+import { PAGE_RGB, relativeLuminance01, rgb01ToOklab } from "./color";
+import { mixRGB, type RGB, type WeatherScene } from "./scene";
+import { clamp01 } from "./solar";
 import type { WeatherStyle } from "./wallpaper";
 import { getPlainProfile, type WallpaperProfile, type WallpaperTint } from "./wallpaper-profile";
 
@@ -171,7 +173,6 @@ export interface LegibilityVars {
   tint: WallpaperTint;
 }
 
-const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 const clamp = (n: number, [lo, hi]: [number, number]) => Math.min(hi, Math.max(lo, n));
 const round = (n: number, places = 2) => Number(n.toFixed(places));
 
@@ -285,30 +286,10 @@ function clampTint(profile: WallpaperProfile, theme: Theme, policy: LegibilityPo
 // the profiler like everything else.
 // -----------------------------------------------------------------------------
 
-function srgbToLinear01(v: number): number {
-  return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-}
-
-/** sRGB (0..1 channels) → OKLab. The browser's own `oklch()` transform. */
-function rgb01ToOklab([r, g, b]: RGB): { L: number; a: number; b: number } {
-  const lr = srgbToLinear01(r);
-  const lg = srgbToLinear01(g);
-  const lb = srgbToLinear01(b);
-  const l = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
-  const m = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
-  const s = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
-  return {
-    L: 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
-    a: 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
-    b: 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
-  };
-}
-
-function mix01(a: RGB, b: RGB, t: number): RGB {
-  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
-}
-
-const PAGE_RGB01: Record<Theme, RGB> = { light: [1, 1, 1], dark: [26 / 255, 26 / 255, 26 / 255] };
+const PAGE_RGB01: Record<Theme, RGB> = {
+  light: PAGE_RGB.light.map((c) => c / 255) as unknown as RGB,
+  dark: PAGE_RGB.dark.map((c) => c / 255) as unknown as RGB,
+};
 
 /**
  * What the profiler would have measured, had the sky been a file.
@@ -331,15 +312,15 @@ export function profileFromScene(params: {
   theme: Theme;
 }): WallpaperProfile {
   const { scene, style, opacity, theme } = params;
-  const veil = (c: RGB) => mix01(c, scene.veil.color, scene.veil.amount);
+  const veil = (c: RGB) => mixRGB(c, scene.veil.color, scene.veil.amount);
   const page = PAGE_RGB01[theme];
-  const over = (c: RGB) => mix01(page, c, opacity);
+  const over = (c: RGB) => mixRGB(page, c, opacity);
 
   const glow = scene.sky.glowStrength * 0.6;
   const sunHigh = scene.sun.screen.y > 0.55 ? glow : glow * 0.35;
-  const top = over(veil(mix01(scene.sky.zenith, scene.sky.glow, sunHigh)));
-  const mid = over(veil(mix01(mix01(scene.sky.zenith, scene.sky.horizon, 0.55), scene.sky.glow, glow * 0.5)));
-  const bottom = over(veil(mix01(scene.sky.horizon, scene.sky.glow, scene.sun.screen.y < 0.4 ? glow : glow * 0.3)));
+  const top = over(veil(mixRGB(scene.sky.zenith, scene.sky.glow, sunHigh)));
+  const mid = over(veil(mixRGB(mixRGB(scene.sky.zenith, scene.sky.horizon, 0.55), scene.sky.glow, glow * 0.5)));
+  const bottom = over(veil(mixRGB(scene.sky.horizon, scene.sky.glow, scene.sun.screen.y < 0.4 ? glow : glow * 0.3)));
 
   const [lt, lm, lb] = [top, mid, bottom].map((c) => rgb01ToOklab(c));
   const lum = (lt.L + lm.L + lb.L) / 3;
@@ -396,19 +377,40 @@ export function legibilityCssVars(vars: LegibilityVars): Record<string, string> 
   };
 }
 
-export const LEGIBILITY_VAR_NAMES = Object.keys(
-  legibilityCssVars(plainLegibility("light")),
-);
+/** Whether two resolutions would write the same thing. */
+export function sameVars(a: LegibilityVars, b: LegibilityVars): boolean {
+  return (
+    a.inkBoost === b.inkBoost &&
+    a.bareBoost === b.bareBoost &&
+    a.relief === b.relief &&
+    a.glassAdd === b.glassAdd &&
+    a.veil === b.veil &&
+    a.blur === b.blur &&
+    a.flip === b.flip &&
+    a.flipMid === b.flipMid &&
+    a.tint.l === b.tint.l &&
+    a.tint.c === b.tint.c &&
+    a.tint.h === b.tint.h
+  );
+}
+
+const lastApplied = new WeakMap<HTMLElement, { vars: LegibilityVars; kind: string; reading: boolean }>();
 
 /**
  * Write the resolved policy onto <html>. One property write per variable and
- * three attributes; nothing re-renders, the stylesheet does the rest.
+ * three attributes; nothing re-renders, the stylesheet does the rest. A write
+ * of what is already there is skipped: a custom property set on the root
+ * invalidates every inherited ladder below it, and under the Sky the scene
+ * (and so the resolution's identity) refreshes every minute.
  */
 export function applyLegibility(
   root: HTMLElement,
   vars: LegibilityVars,
   context: { kind: "weather" | "image" | "none"; reading: boolean },
 ) {
+  const last = lastApplied.get(root);
+  if (last && last.kind === context.kind && last.reading === context.reading && sameVars(last.vars, vars)) return;
+  lastApplied.set(root, { vars, kind: context.kind, reading: context.reading });
   for (const [name, value] of Object.entries(legibilityCssVars(vars))) {
     root.style.setProperty(name, value);
   }
@@ -430,14 +432,7 @@ export function applyLegibility(
 
 type Rgb = [number, number, number];
 
-function srgbToLinear(c: number): number {
-  const v = c / 255;
-  return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-}
-
-function relativeLuminance([r, g, b]: Rgb): number {
-  return 0.2126 * srgbToLinear(r) + 0.7152 * srgbToLinear(g) + 0.0722 * srgbToLinear(b);
-}
+const relativeLuminance = ([r, g, b]: Rgb) => relativeLuminance01([r / 255, g / 255, b / 255]);
 
 /** `over` at `alpha` composited on `under`, in sRGB bytes. */
 export function composite(over: Rgb, alpha: number, under: Rgb): Rgb {
@@ -455,4 +450,7 @@ export function contrastRatio(a: Rgb, b: Rgb): number {
 /** The sRGB bytes of the theme's ink and page, matching globals.css. */
 export const INK_RGB: Record<Theme, Rgb> = { light: [23, 23, 23], dark: [230, 230, 230] };
 export const CARD_RGB: Record<Theme, Rgb> = { light: [255, 255, 255], dark: [22, 22, 22] };
-export const BACKGROUND_RGB: Record<Theme, Rgb> = { light: [255, 255, 255], dark: [26, 26, 26] };
+export const BACKGROUND_RGB: Record<Theme, Rgb> = {
+  light: [...PAGE_RGB.light],
+  dark: [...PAGE_RGB.dark],
+};

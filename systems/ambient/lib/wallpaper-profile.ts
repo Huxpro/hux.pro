@@ -13,6 +13,7 @@
 // while looking at the result.
 // =============================================================================
 
+import { PAGE_RGB, rgb01ToOklab } from "./color";
 import type { SunEvent } from "./sun";
 import type { WallpaperAsset } from "./wallpaper";
 import type { WeatherCondition } from "./weather";
@@ -70,18 +71,38 @@ export function profileKeyForWeather(params: WeatherProfileParams): string {
   return `${params.condition}/${params.isDay ? "day" : "night"}/${params.theme}`;
 }
 
+/** Whether two profiles carry the same numbers (the tint compared by value). */
+export function sameProfile(a: WallpaperProfile, b: WallpaperProfile): boolean {
+  if (a === b) return true;
+  return (
+    a.lum === b.lum &&
+    a.zones.top === b.zones.top &&
+    a.zones.mid === b.zones.mid &&
+    a.zones.bottom === b.zones.bottom &&
+    a.mean[0] === b.mean[0] &&
+    a.mean[1] === b.mean[1] &&
+    a.mean[2] === b.mean[2] &&
+    a.contrast === b.contrast &&
+    a.edges === b.edges &&
+    a.chroma === b.chroma &&
+    (a.tint === null
+      ? b.tint === null
+      : b.tint !== null && a.tint.l === b.tint.l && a.tint.c === b.tint.c && a.tint.h === b.tint.h)
+  );
+}
+
 /**
  * The profile of the plain page — no wallpaper at all. Flat, grey, and exactly
  * as bright as the theme's background, so the policy resolves to "nothing to
  * do", which is what the main path should cost.
  */
 export function getPlainProfile(theme: "light" | "dark"): WallpaperProfile {
-  const lum = theme === "dark" ? 0.2178 : 1;
-  const byte = theme === "dark" ? 26 : 255;
+  const [r, g, b] = PAGE_RGB[theme];
+  const lum = Number(rgb01ToOklab([r / 255, g / 255, b / 255]).L.toFixed(4));
   return {
     lum,
     zones: { top: lum, mid: lum, bottom: lum },
-    mean: [byte, byte, byte],
+    mean: [r, g, b],
     contrast: 0,
     edges: 0,
     chroma: 0,

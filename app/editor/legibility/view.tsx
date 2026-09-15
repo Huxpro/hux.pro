@@ -55,7 +55,6 @@ import {
 } from "./gallery";
 import {
   exportCss,
-  exportJson,
   formatSheetValue,
   knobActsHere,
   LAB_SESSION,
@@ -69,6 +68,8 @@ import {
   SHEET_GROUPS,
   SHEET_KNOBS,
   type OutputPins,
+  without,
+  type PolicyKnob,
   type PolicyOverrides,
   type SheetOverrides,
 } from "./lab-state";
@@ -86,7 +87,9 @@ import {
 // Small parts
 // -----------------------------------------------------------------------------
 
-function Star({ onReset, title }: { onReset: () => void; title: string }) {
+/** The "this is not what ships" mark, or the space it would take. */
+function Star({ active = true, onReset, title }: { active?: boolean; onReset: () => void; title: string }) {
+  if (!active) return <span className="w-2.5" />;
   return (
     <button
       type="button"
@@ -155,6 +158,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 
 export function LegibilityLabView() {
   const wallpaper = useWallpaper();
+  const { setLabPolicy, setLegibilityOverride } = wallpaper;
   const weather = useWeather();
   const time = useAmbientTime();
   const { location } = useLocation();
@@ -171,7 +175,9 @@ export function LegibilityLabView() {
   // what the visitor could have set anyway (the wallpaper, theme, material,
   // tint) and the tuning (the policy through the provider, the sheet inline).
   const setters = useRef({ wallpaper, weather, time, devtool });
-  setters.current = { wallpaper, weather, time, devtool };
+  useEffect(() => {
+    setters.current = { wallpaper, weather, time, devtool };
+  });
   const initial = useRef<{
     devtool: boolean;
     overrides: typeof wallpaper.devtoolOverrides;
@@ -266,9 +272,8 @@ export function LegibilityLabView() {
   // The tuned policy goes to the provider, which resolves every route with it
   // until Reset all — that is how a veil tuned here reaches /writing.
   useEffect(() => {
-    wallpaper.setLabPolicy(Object.keys(policyOverrides).length ? policy : null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- setter is stable; `wallpaper` identity churns
-  }, [policy, policyOverrides]);
+    setLabPolicy(Object.keys(policyOverrides).length ? policy : null);
+  }, [setLabPolicy, policy, policyOverrides]);
 
   const reading = wallpaper.reading;
   const shipped = useMemo(
@@ -279,6 +284,17 @@ export function LegibilityLabView() {
     () => resolveForLab({ profile: wallpaper.profile, theme, reading, policy, pins }),
     [wallpaper.profile, theme, reading, policy, pins],
   );
+  // The policy's own answer, before any pin — what a pin's star goes back to.
+  const unpinned = useMemo(
+    () => resolveForLab({ profile: wallpaper.profile, theme, reading, policy, pins: {} }),
+    [wallpaper.profile, theme, reading, policy],
+  );
+  // Which policy knobs can move anything for this picture.
+  const acts = useMemo(() => {
+    const out: Partial<Record<PolicyKnob["key"], boolean>> = {};
+    for (const knob of POLICY_KNOBS) out[knob.key] = knobActsHere(knob, { profile: wallpaper.profile, theme, policy });
+    return out;
+  }, [wallpaper.profile, theme, policy]);
   // The reading specimen carries the policy as a reading route resolves it —
   // no flip, relief × reliefReading, and the veil and blur it will get.
   const readingVars = useMemo(
@@ -287,9 +303,8 @@ export function LegibilityLabView() {
   );
 
   useEffect(() => {
-    wallpaper.setLegibilityOverride(sameVars(resolved, shipped) ? null : resolved);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- setter is stable; `wallpaper` identity churns
-  }, [resolved, shipped]);
+    setLegibilityOverride(sameVars(resolved, shipped) ? null : resolved);
+  }, [setLegibilityOverride, resolved, shipped]);
 
   const live: LegibilityVars = wallpaper.legibility;
 
@@ -302,9 +317,11 @@ export function LegibilityLabView() {
 
   // Defaults come from the stylesheet itself: lift every override, read the
   // computed values, put the overrides back. Re-read whenever the theme or
-  // material changes, since both redefine some of these.
+  // material changes, since both redefine some of these; a slider drag does
+  // not, so it only writes its own property below.
   useEffect(() => {
     const root = document.documentElement;
+    const current = LAB_SESSION.sheet;
     for (const knob of SHEET_KNOBS) root.style.removeProperty(knob.name);
     const cs = getComputedStyle(root);
     const next: Record<string, number> = {};
@@ -312,21 +329,27 @@ export function LegibilityLabView() {
       const v = parseSheetValue(cs.getPropertyValue(knob.name));
       if (v !== null) next[knob.name] = v;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the defaults are read off the stylesheet, which only exists after mount
     setDefaults(next);
     for (const knob of SHEET_KNOBS) {
-      if (knob.name in sheet) root.style.setProperty(knob.name, formatSheetValue(knob, sheet[knob.name]));
+      if (knob.name in current) root.style.setProperty(knob.name, formatSheetValue(knob, current[knob.name]));
     }
-  }, [theme, glass.material, glass.tint, sheet]);
+  }, [theme, glass.material, glass.tint]);
+  useEffect(() => {
+    const root = document.documentElement;
+    for (const knob of SHEET_KNOBS) {
+      if (knob.name in sheet) root.style.setProperty(knob.name, formatSheetValue(knob, sheet[knob.name]));
+      else root.style.removeProperty(knob.name);
+    }
+  }, [sheet]);
 
   // --- Readouts ------------------------------------------------------------
   const profile = wallpaper.profile;
 
   const contrast = useMemo(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- the sheet overrides and material change the computed values read below
-    [sheet, glass.material];
-    const cs = typeof window === "undefined" ? null : getComputedStyle(document.documentElement);
-    const pct = (name: string, fallback: number) =>
-      (cs && parseSheetValue(cs.getPropertyValue(name))) ?? fallback;
+    // The sheet's inputs as the lab holds them: an override, else what the
+    // stylesheet declared (read once per theme/material above).
+    const pct = (name: string, fallback: number) => sheet[name] ?? defaults[name] ?? fallback;
     const secondaryAlpha = (pct("--ink-alpha-secondary", 54) + live.inkBoost) / 100;
     const bareAlpha = secondaryAlpha + live.bareBoost / 100;
     const glassFill = (pct("--glass-fill", 50) + pct("--glass-dark-add", 0) + live.glassAdd * pct("--glass-add-k", 0.5)) / 100;
@@ -357,7 +380,7 @@ export function LegibilityLabView() {
       sheet: row(onSheet, ink),
       reading: row(onVeil, composite(ink, 0.85, onVeil)),
     };
-  }, [profile, theme, live, readingVars, sheet, glass.material]);
+  }, [profile, theme, live, readingVars, sheet, defaults]);
 
   // --- Gallery ---------------------------------------------------------------
   const [galleryCategory, setGalleryCategory] = useState<"weather" | "apple" | "nature">("apple");
@@ -365,19 +388,32 @@ export function LegibilityLabView() {
     if (galleryCategory === "weather") return WEATHER_SCENES;
     return BUILT_IN_WALLPAPERS.filter((w) => w.category === galleryCategory).map((w) => ({ kind: "image", id: w.id }));
   }, [galleryCategory]);
+  // Each tile's profile is derived once per scene set and sky, not per render.
+  const galleryTiles = useMemo(
+    () =>
+      galleryScenes.flatMap((s) => {
+        const p = sceneProfile(s, theme, skyCtx);
+        return p ? [{ scene: s, profile: p }] : [];
+      }),
+    [galleryScenes, theme, skyCtx],
+  );
 
   const exported = useMemo(
     () =>
-      exportJson({
-        policy: policyOverrides,
-        pins,
-        sheet,
-        resolved: live,
-        wallpaper: sceneLabel(scene, "en"),
-        theme,
-        material: glass.material,
-        tint: glass.tint,
-      }),
+      JSON.stringify(
+        {
+          policy: policyOverrides,
+          pins,
+          sheet,
+          resolved: live,
+          wallpaper: sceneLabel(scene, "en"),
+          theme,
+          material: glass.material,
+          tint: glass.tint,
+        },
+        null,
+        2,
+      ),
     [policyOverrides, pins, sheet, live, scene, theme, glass.material, glass.tint],
   );
 
@@ -385,25 +421,43 @@ export function LegibilityLabView() {
     Object.keys(policyOverrides).length + Object.keys(pins).length + Object.keys(sheet).length;
 
   /** The reset star for a per-theme or paired policy field. */
-  const pairStar = (key: "veilBase" | "toneSafe" | "toneWorst" | "tintLightness" | "tintChroma", back: string) =>
-    key in policyOverrides ? (
-      <Star
-        title={L.backTo(back)}
-        onReset={() =>
-          setPolicyOverrides((o) => {
-            const next = { ...o };
-            delete next[key];
-            if (key === "toneSafe" || key === "toneWorst") {
-              delete next.toneSafe;
-              delete next.toneWorst;
-            }
-            return next;
-          })
-        }
-      />
-    ) : (
-      <span className="w-2.5" />
+  const pairStar = (keys: (keyof PolicyOverrides)[], back: string) => (
+    <Star
+      active={keys.some((k) => k in policyOverrides)}
+      title={L.backTo(back)}
+      onReset={() => setPolicyOverrides((o) => without(o, ...keys))}
+    />
+  );
+
+  /** One policy knob: slider, star, hint, what it moves, and whether it can here. */
+  const policyKnobRow = (knob: PolicyKnob) => {
+    const value = policy[knob.key] as number;
+    const actsHere = acts[knob.key] ?? true;
+    return (
+      <Field key={knob.key} label={knobLabel(knob.key, knob.label)} hint={actsHere ? String(value) : `${value} · ${L.inertHere}`}>
+        <div className="flex items-center gap-2">
+          <Slider
+            value={value}
+            min={knob.min}
+            max={knob.max}
+            step={knob.step}
+            onChange={(v) => setPolicyOverrides((o) => ({ ...o, [knob.key]: v }))}
+          />
+          <Star
+            active={knob.key in policyOverrides}
+            title={L.backTo(DEFAULT_LEGIBILITY_POLICY[knob.key] as number)}
+            onReset={() => setPolicyOverrides((o) => without(o, knob.key))}
+          />
+        </div>
+        <span className={cn("text-[10px]", actsHere ? "text-muted-foreground/60" : "text-muted-foreground/35")}>
+          {knobHint(knob.key, knob.hint)}
+          <span className="ml-1.5 font-mono text-muted-foreground/40">
+            {L.affects} {knob.affects.map(outputName).join(" · ")}
+          </span>
+        </span>
+      </Field>
     );
+  };
 
   return (
     <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-6 pb-40 pt-8 lg:flex-row lg:items-start">
@@ -474,9 +528,7 @@ export function LegibilityLabView() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-            {galleryScenes.map((s) => {
-              const p = sceneProfile(s, theme, skyCtx);
-              if (!p) return null;
+            {galleryTiles.map(({ scene: s, profile: p }) => {
               const vars = resolveForLab({ profile: p, theme, reading: false, policy, pins: {} });
               return (
                 <GalleryTile
@@ -505,8 +557,8 @@ export function LegibilityLabView() {
               value={theme}
               onChange={(v) => setThemePreference(v)}
               options={[
-                { value: "light", label: L.light },
-                { value: "dark", label: L.dark },
+                { value: "light", label: themeName("light") },
+                { value: "dark", label: themeName("dark") },
               ]}
             />
           </Field>
@@ -515,8 +567,8 @@ export function LegibilityLabView() {
               value={glass.material}
               onChange={glass.setMaterial}
               options={[
-                { value: "tinted", label: L.tinted },
-                { value: "clear", label: L.clear },
+                { value: "tinted", label: materialName("tinted") },
+                { value: "clear", label: materialName("clear") },
               ]}
             />
           </Field>
@@ -525,8 +577,8 @@ export function LegibilityLabView() {
               value={glass.tint}
               onChange={glass.setTint}
               options={[
-                { value: "neutral", label: L.neutral },
-                { value: "wallpaper", label: L.wallpaperTint },
+                { value: "neutral", label: tintName("neutral") },
+                { value: "wallpaper", label: tintName("wallpaper") },
               ]}
             />
           </Field>
@@ -644,48 +696,7 @@ export function LegibilityLabView() {
         </Section>
 
         <Section title={L.policy}>
-          {POLICY_KNOBS.filter((knob) => knob.group === "desktop").map((knob) => {
-            const value = policy[knob.key] as number;
-            const overridden = knob.key in policyOverrides;
-            const acts = knobActsHere(knob, { profile, theme, policy });
-            return (
-              <Field
-                key={knob.key}
-                label={knobLabel(knob.key, knob.label)}
-                hint={acts ? String(value) : `${value} · ${L.inertHere}`}
-              >
-                <div className="flex items-center gap-2">
-                  <Slider
-                    value={value}
-                    min={knob.min}
-                    max={knob.max}
-                    step={knob.step}
-                    onChange={(v) => setPolicyOverrides((o) => ({ ...o, [knob.key]: v }))}
-                  />
-                  {overridden ? (
-                    <Star
-                      title={L.backTo(DEFAULT_LEGIBILITY_POLICY[knob.key] as number)}
-                      onReset={() =>
-                        setPolicyOverrides((o) => {
-                          const next = { ...o };
-                          delete next[knob.key];
-                          return next;
-                        })
-                      }
-                    />
-                  ) : (
-                    <span className="w-2.5" />
-                  )}
-                </div>
-                <span className={cn("text-[10px]", acts ? "text-muted-foreground/60" : "text-muted-foreground/35")}>
-                  {knobHint(knob.key, knob.hint)}
-                  <span className="ml-1.5 font-mono text-muted-foreground/40">
-                    {L.affects} {knob.affects.map(outputName).join(" · ")}
-                  </span>
-                </span>
-              </Field>
-            );
-          })}
+          {POLICY_KNOBS.filter((knob) => knob.group === "desktop").map(policyKnobRow)}
           <Field label={L.toneRange} hint={`${policy.toneSafe[theme]} → ${policy.toneWorst[theme]}`}>
             <div className="flex items-center gap-2">
               <Slider
@@ -712,9 +723,7 @@ export function LegibilityLabView() {
                   }))
                 }
               />
-              {"toneSafe" in policyOverrides || "toneWorst" in policyOverrides
-                ? pairStar("toneSafe", `${DEFAULT_LEGIBILITY_POLICY.toneSafe[theme]} → ${DEFAULT_LEGIBILITY_POLICY.toneWorst[theme]}`)
-                : pairStar("toneWorst", "")}
+              {pairStar(["toneSafe", "toneWorst"], `${DEFAULT_LEGIBILITY_POLICY.toneSafe[theme]} → ${DEFAULT_LEGIBILITY_POLICY.toneWorst[theme]}`)}
             </div>
             <span className="text-[10px] text-muted-foreground/60">{L.toneRangeHint(themeName(theme))}</span>
           </Field>
@@ -737,7 +746,7 @@ export function LegibilityLabView() {
                   }
                 />
               ))}
-              {pairStar("tintLightness", DEFAULT_LEGIBILITY_POLICY.tintLightness[theme].join(" – "))}
+              {pairStar(["tintLightness"], DEFAULT_LEGIBILITY_POLICY.tintLightness[theme].join(" – "))}
             </div>
           </Field>
           <Field label={L.tintC} hint={`${policy.tintChroma[0]} – ${policy.tintChroma[1]}`}>
@@ -758,7 +767,7 @@ export function LegibilityLabView() {
                   }
                 />
               ))}
-              {pairStar("tintChroma", DEFAULT_LEGIBILITY_POLICY.tintChroma.join(" – "))}
+              {pairStar(["tintChroma"], DEFAULT_LEGIBILITY_POLICY.tintChroma.join(" – "))}
             </div>
           </Field>
         </Section>
@@ -778,55 +787,14 @@ export function LegibilityLabView() {
                   }))
                 }
               />
-              {pairStar("veilBase", String(DEFAULT_LEGIBILITY_POLICY.veilBase[theme]))}
+              {pairStar(["veilBase"], String(DEFAULT_LEGIBILITY_POLICY.veilBase[theme]))}
             </div>
             <span className="text-[10px] text-muted-foreground/60">
               {L.veilBaseHint}
               <span className="ml-1.5 font-mono text-muted-foreground/40">{L.affects} {outputName("veil")}</span>
             </span>
           </Field>
-          {POLICY_KNOBS.filter((knob) => knob.group === "reading").map((knob) => {
-            const value = policy[knob.key] as number;
-            const overridden = knob.key in policyOverrides;
-            const acts = knobActsHere(knob, { profile, theme, policy });
-            return (
-              <Field
-                key={knob.key}
-                label={knobLabel(knob.key, knob.label)}
-                hint={acts ? String(value) : `${value} · ${L.inertHere}`}
-              >
-                <div className="flex items-center gap-2">
-                  <Slider
-                    value={value}
-                    min={knob.min}
-                    max={knob.max}
-                    step={knob.step}
-                    onChange={(v) => setPolicyOverrides((o) => ({ ...o, [knob.key]: v }))}
-                  />
-                  {overridden ? (
-                    <Star
-                      title={L.backTo(DEFAULT_LEGIBILITY_POLICY[knob.key] as number)}
-                      onReset={() =>
-                        setPolicyOverrides((o) => {
-                          const next = { ...o };
-                          delete next[knob.key];
-                          return next;
-                        })
-                      }
-                    />
-                  ) : (
-                    <span className="w-2.5" />
-                  )}
-                </div>
-                <span className={cn("text-[10px]", acts ? "text-muted-foreground/60" : "text-muted-foreground/35")}>
-                  {knobHint(knob.key, knob.hint)}
-                  <span className="ml-1.5 font-mono text-muted-foreground/40">
-                    {L.affects} {knob.affects.map(outputName).join(" · ")}
-                  </span>
-                </span>
-              </Field>
-            );
-          })}
+          {POLICY_KNOBS.filter((knob) => knob.group === "reading").map(policyKnobRow)}
         </Section>
 
         <Section title={L.resolved}>
@@ -846,30 +814,13 @@ export function LegibilityLabView() {
                     { value: "on", label: L.On },
                   ]}
                 />
-                {key in pins ? (
-                  <Star
-                    title={L.backToPolicy}
-                    onReset={() =>
-                      setPins((p) => {
-                        const next = { ...p };
-                        delete next[key];
-                        return next;
-                      })
-                    }
-                  />
-                ) : (
-                  <span className="w-2.5" />
-                )}
+                <Star active={key in pins} title={L.backToPolicy} onReset={() => setPins((p) => without(p, key))} />
               </div>
             </Field>
           ))}
           {OUTPUT_KNOBS.map((knob) => {
             const value = readOutput(live, knob.key);
-            const policyValue = readOutput(
-              resolveForLab({ profile, theme, reading, policy, pins: {} }),
-              knob.key,
-            );
-            const pinned = knob.key in pins;
+            const policyValue = readOutput(unpinned, knob.key);
             return (
               <Field key={knob.key} label={knobLabel(knob.key, knob.label)} hint={String(value)}>
                 <div className="flex items-center gap-2">
@@ -880,20 +831,11 @@ export function LegibilityLabView() {
                     step={knob.step}
                     onChange={(v) => setPins((p) => ({ ...p, [knob.key]: v }))}
                   />
-                  {pinned ? (
-                    <Star
-                      title={L.backToPolicyValue(policyValue)}
-                      onReset={() =>
-                        setPins((p) => {
-                          const next = { ...p };
-                          delete next[knob.key];
-                          return next;
-                        })
-                      }
-                    />
-                  ) : (
-                    <span className="w-2.5" />
-                  )}
+                  <Star
+                    active={knob.key in pins}
+                    title={L.backToPolicyValue(policyValue)}
+                    onReset={() => setPins((p) => without(p, knob.key))}
+                  />
                 </div>
               </Field>
             );
@@ -921,20 +863,11 @@ export function LegibilityLabView() {
                       step={knob.step}
                       onChange={(v) => setSheet((s) => ({ ...s, [knob.name]: v }))}
                     />
-                    {overridden ? (
-                      <Star
-                        title={L.backTo(formatSheetValue(knob, defaults[knob.name] ?? 0))}
-                        onReset={() =>
-                          setSheet((s) => {
-                            const next = { ...s };
-                            delete next[knob.name];
-                            return next;
-                          })
-                        }
-                      />
-                    ) : (
-                      <span className="w-2.5" />
-                    )}
+                    <Star
+                      active={overridden}
+                      title={L.backTo(formatSheetValue(knob, defaults[knob.name] ?? 0))}
+                      onReset={() => setSheet((s) => without(s, knob.name))}
+                    />
                   </div>
                   <span className="text-[10px] font-mono text-muted-foreground/50">{knob.name}</span>
                 </Field>

@@ -28,9 +28,9 @@ import {
 } from "@/systems/ambient/lib/legibility";
 import type { AmbientPhase } from "@/systems/ambient/lib/phase";
 import { deriveWeatherScene, type WeatherScene } from "@/systems/ambient/lib/scene";
-import { startOfLocalDay } from "@/systems/ambient/lib/solar";
+import { DEFAULT_SUNRISE_MINUTES, DEFAULT_SUNSET_MINUTES, minutesOfDay, startOfLocalDay } from "@/systems/ambient/lib/solar";
 import type { WallpaperProfile } from "@/systems/ambient/lib/wallpaper-profile";
-import { WALLPAPER_PROFILES } from "@/systems/ambient/lib/wallpaper-profiles";
+import { getImageProfile, getWeatherProfile } from "@/systems/ambient/lib/wallpaper-profiles";
 import {
   BUILT_IN_WALLPAPERS,
   WALLPAPER_LOOK_FAMILY,
@@ -38,7 +38,7 @@ import {
   type Wallpaper,
   type WeatherStyle,
 } from "@/systems/ambient/lib/wallpaper";
-import { getWeatherConditionLabel, type WeatherCondition } from "@/systems/ambient/lib/weather";
+import { getWeatherConditionLabel, WEATHER_CONDITION_LIST, type WeatherCondition } from "@/systems/ambient/lib/weather";
 import type { CSSProperties } from "react";
 
 export type SceneTime = "day" | "night" | "sunrise" | "sunset";
@@ -47,17 +47,8 @@ export type Scene =
   | { kind: "image"; id: string }
   | { kind: "weather"; condition: WeatherCondition; time: SceneTime };
 
-export const WEATHER_CONDITIONS: WeatherCondition[] = [
-  "clear",
-  "cloudy",
-  "fog",
-  "rain",
-  "snow",
-  "thunder",
-];
-
 export const WEATHER_SCENES: Scene[] = [
-  ...WEATHER_CONDITIONS.flatMap((condition) => [
+  ...WEATHER_CONDITION_LIST.flatMap((condition) => [
     { kind: "weather" as const, condition, time: "day" as const },
     { kind: "weather" as const, condition, time: "night" as const },
   ]),
@@ -93,16 +84,10 @@ export function sceneLabel(scene: Scene, locale: Locale = "en"): string {
   return `${condition} · ${TIME_LABEL[locale][scene.time]}`;
 }
 
-const minutesOf = (ms: number | undefined, fallback: number) => {
-  if (typeof ms !== "number" || !Number.isFinite(ms)) return fallback;
-  const d = new Date(ms);
-  return d.getHours() * 60 + d.getMinutes();
-};
-
 /** Minutes past local midnight a scene time stands for, on the context's day. */
 export function sceneMinutes(time: SceneTime, ctx: Pick<SkyContext, "sunriseMs" | "sunsetMs">): number {
-  const sr = minutesOf(ctx.sunriseMs, 6 * 60 + 30);
-  const ss = minutesOf(ctx.sunsetMs, 18 * 60 + 30);
+  const sr = minutesOfDay(ctx.sunriseMs, DEFAULT_SUNRISE_MINUTES);
+  const ss = minutesOfDay(ctx.sunsetMs, DEFAULT_SUNSET_MINUTES);
   switch (time) {
     case "sunrise":
       return sr;
@@ -147,16 +132,16 @@ export function deriveSceneAt(
 export function sceneProfile(scene: Scene, theme: Theme, ctx: SkyContext): WallpaperProfile | null {
   if (scene.kind === "image") {
     const wp = BUILT_IN_WALLPAPERS.find((w) => w.id === scene.id);
-    if (!wp) return null;
-    const key = wp[theme].src.replace(/^\/wallpapers\//, "").replace(/\.webp$/, "");
-    return WALLPAPER_PROFILES.images[key] ?? null;
+    return wp ? (getImageProfile(wp[theme]) ?? null) : null;
   }
   if (ctx.style === "classic") {
-    const key =
-      scene.time === "sunrise" || scene.time === "sunset"
-        ? `${scene.time}/${theme}`
-        : `${scene.condition}/${scene.time}/${theme}`;
-    return WALLPAPER_PROFILES.weather[key] ?? null;
+    return (
+      getWeatherProfile(
+        scene.time === "sunrise" || scene.time === "sunset"
+          ? { event: scene.time, theme }
+          : { condition: scene.condition, isDay: scene.time === "day", theme },
+      ) ?? null
+    );
   }
   return profileFromScene({
     scene: deriveSceneAt(scene, theme, ctx),

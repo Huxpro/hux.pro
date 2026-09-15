@@ -59,6 +59,7 @@ import type { WallpaperStats } from "./lib/wallpaper/renderer";
 import { supportsWebGL2 } from "./lib/wallpaper/support";
 import { usePathname } from "next/navigation";
 import { isReadingSurface } from "./lib/reading-surface";
+import { sameProfile } from "./lib/wallpaper-profile";
 import {
   applyLegibility,
   plainLegibility,
@@ -772,7 +773,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // profile into a few CSS variables on <html>, memoised on what can change.
   const paintingCondition = sceneWeather?.condition ?? null;
   const paintingIsDay = scene.sun.isDay;
-  const profile = useMemo<WallpaperProfile>(() => {
+  const nextProfile = useMemo<WallpaperProfile>(() => {
     if (!fullEnabled && !widgetEnabled) return getPlainProfile(theme);
     if (isImageKind) {
       return getImageProfile(activeWallpaper[theme]) ?? getPlainProfile(theme);
@@ -803,14 +804,20 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     scene,
     wallpaperOpacity,
   ]);
+  // Under the Sky the scene refreshes every minute and `profileFromScene`
+  // returns a fresh object whose rounded numbers almost never differ. Keep the
+  // previous identity while the numbers hold (derived state, settled during
+  // render), so the resolution below, the context value and every consumer
+  // stay put between real changes.
+  const [profile, setProfile] = useState(nextProfile);
+  if (!sameProfile(profile, nextProfile)) setProfile(nextProfile);
 
   // Widget placement paints the picture only inside cards: the bare text
   // around them sits on the plain page, so the policy sees "plain" for the
   // flip and relief, while the glass still gets the picture's dimming layer.
   const [labPolicy, setLabPolicy] = useState<LegibilityPolicy | null>(null);
   const resolvedLegibility = useMemo<LegibilityVars>(() => {
-    const policy = labPolicy ?? undefined;
-    const full = resolveLegibility({ profile, theme, reading, policy });
+    const full = resolveLegibility({ profile, theme, reading, policy: labPolicy ?? undefined });
     if (fullEnabled) return full;
     if (widgetEnabled) {
       return { ...plainLegibility(theme), glassAdd: full.glassAdd, tint: full.tint, veil: full.veil, blur: full.blur };

@@ -18,7 +18,7 @@ import type { CSSProperties } from "react";
 // on iOS all along.
 // =============================================================================
 
-export const SLIDER_CLASS = cn(
+const SLIDER_CLASS = cn(
   "h-1 w-full cursor-pointer appearance-none rounded-full",
   "bg-foreground/15 [background-image:linear-gradient(var(--foreground),var(--foreground))]",
   "[background-size:var(--slider-fill)_100%] bg-no-repeat accent-white",

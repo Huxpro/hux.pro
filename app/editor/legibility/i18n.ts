@@ -9,9 +9,8 @@
 // tables in lab-state.ts stay the single source of the knobs themselves.
 // =============================================================================
 
-import type { Locale } from "@/lib/i18n";
-import { useLocale } from "@/services";
-import { getWeatherConditionLabel, type WeatherCondition } from "@/systems/ambient/lib/weather";
+import { t } from "@/lib/i18n";
+import { getGlassLabel, getTintLabel, useLocale } from "@/services";
 
 const STRINGS = {
   en: {
@@ -36,14 +35,8 @@ const STRINGS = {
     // Panel
     scene: "Scene",
     theme: "Theme",
-    light: "Light",
-    dark: "Dark",
     material: "Material",
-    tinted: "Tinted",
-    clear: "Clear",
     tint: "Tint",
-    neutral: "Neutral",
-    wallpaperTint: "Wallpaper",
     wallpaper: "Wallpaper",
     weatherStyle: "Weather style",
     fellBack: "Sky fell back to Gradient (no WebGL2)",
@@ -95,10 +88,6 @@ const STRINGS = {
     resetAll: "Reset all",
     exportNote:
       "Policy values go in DEFAULT_LEGIBILITY_POLICY (legibility.ts); sheet values in the :root inputs of globals.css. Nothing here persists.",
-    day: "day",
-    night: "night",
-    sunrise: "sunrise",
-    sunset: "sunset",
   },
   zh: {
     title: "可读性实验室",
@@ -120,14 +109,8 @@ const STRINGS = {
 
     scene: "场景",
     theme: "主题",
-    light: "浅色",
-    dark: "深色",
     material: "材质",
-    tinted: "色调",
-    clear: "透明",
     tint: "着色",
-    neutral: "中性",
-    wallpaperTint: "壁纸",
     wallpaper: "壁纸",
     weatherStyle: "天气风格",
     fellBack: "Sky 已回退到 Gradient（无 WebGL2）",
@@ -176,10 +159,6 @@ const STRINGS = {
     resetAll: "全部重置",
     exportNote:
       "策略值写入 DEFAULT_LEGIBILITY_POLICY（legibility.ts）；样式表值写入 globals.css 的 :root 输入。这里的改动不会持久化。",
-    day: "白天",
-    night: "夜晚",
-    sunrise: "日出",
-    sunset: "日落",
   },
 } as const;
 
@@ -254,18 +233,8 @@ const OUTPUT_NAMES_ZH: Record<string, string> = {
   blur: "虚化",
   tint: "着色",
 };
-const OUTPUT_NAMES_EN: Record<string, string> = {
-  busy: "busy",
-  conflict: "tone conflict",
-  inkBoost: "ink boost",
-  bareBoost: "bare boost",
-  relief: "relief",
-  flip: "flip",
-  glassAdd: "glass add",
-  veil: "veil",
-  blur: "blur",
-  tint: "tint",
-};
+/** English reads the key itself, bar the one that is two words. */
+const OUTPUT_NAMES_EN: Record<string, string> = { conflict: "tone conflict", inkBoost: "ink boost", bareBoost: "bare boost", glassAdd: "glass add" };
 
 const SHEET_GROUPS_ZH: Record<string, { title: string; note?: string }> = {
   "Ink ladder": { title: "墨色阶梯", note: "--ink 的透明度。主墨即墨本身；正文在调用处为 foreground/85。" },
@@ -281,7 +250,6 @@ export function useLabText() {
   const zh = locale === "zh";
   return {
     locale,
-    zh,
     L,
     knobLabel: (key: string, fallback: string) => (zh ? (KNOBS_ZH[key]?.label ?? fallback) : fallback),
     knobHint: (key: string, fallback?: string) => (zh ? (KNOBS_ZH[key]?.hint ?? fallback) : fallback),
@@ -289,9 +257,9 @@ export function useLabText() {
     groupTitle: (title: string) => (zh ? (SHEET_GROUPS_ZH[title]?.title ?? title) : title),
     groupNote: (title: string, fallback?: string) =>
       zh ? (SHEET_GROUPS_ZH[title]?.note ?? fallback) : fallback,
-    themeName: (theme: "light" | "dark") => (theme === "dark" ? L.dark : L.light),
-    materialName: (m: "tinted" | "clear") => (m === "clear" ? L.clear : L.tinted),
-    tintName: (t: "neutral" | "wallpaper") => (t === "wallpaper" ? L.wallpaperTint : L.neutral),
-    weatherName: (condition: WeatherCondition) => getWeatherConditionLabel(condition, locale as Locale),
+    // The site's own names for its settings, so the lab never shows a second one.
+    themeName: (theme: "light" | "dark") => t(locale, theme === "dark" ? "themeDark" : "themeLight"),
+    materialName: (m: "tinted" | "clear") => getGlassLabel(m, locale),
+    tintName: (tint: "neutral" | "wallpaper") => getTintLabel(tint, locale),
   };
 }

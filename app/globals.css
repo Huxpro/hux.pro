@@ -125,6 +125,22 @@
   --ink: oklch(0.145 0 0);
   --ink-inverse: oklch(0.985 0 0);
   --ink-theme: var(--ink); /* the theme's own ink, kept for a zone that un-flips */
+  /* The relief shape that goes with each ink: a white halo under dark ink,
+     a dark drop under light ink (ryOS's numbers). `theme` is the pair for
+     `--ink`, `inverse` the pair for `--ink-inverse`. The alphas are the sheet
+     inputs below; `--wp-relief` scales them where the shape is built. */
+  --relief-theme-rgb: 255 255 255;
+  --relief-theme-a1: var(--relief-halo-a1);
+  --relief-theme-a2: var(--relief-halo-a2);
+  --relief-theme-y: 0;
+  --relief-theme-b1: 4px;
+  --relief-theme-b2: 3px;
+  --relief-inverse-rgb: 0 0 0;
+  --relief-inverse-a1: var(--relief-drop-a1);
+  --relief-inverse-a2: var(--relief-drop-a2);
+  --relief-inverse-y: 1px;
+  --relief-inverse-b1: 3px;
+  --relief-inverse-b2: 2px;
   --background: oklch(1 0 0);
   --card: oklch(1 0 0);
   --popover: oklch(1 0 0);
@@ -212,6 +228,18 @@
   --ink: oklch(0.93 0 0); /* slightly softer than pure white */
   --ink-inverse: oklch(0.145 0 0);
   --ink-theme: var(--ink);
+  --relief-theme-rgb: 0 0 0;
+  --relief-theme-a1: var(--relief-drop-a1);
+  --relief-theme-a2: var(--relief-drop-a2);
+  --relief-theme-y: 1px;
+  --relief-theme-b1: 3px;
+  --relief-theme-b2: 2px;
+  --relief-inverse-rgb: 255 255 255;
+  --relief-inverse-a1: var(--relief-halo-a1);
+  --relief-inverse-a2: var(--relief-halo-a2);
+  --relief-inverse-y: 0;
+  --relief-inverse-b1: 4px;
+  --relief-inverse-b2: 3px;
   --background: oklch(0.2178 0 0);
   --card: oklch(0.19 0 0);
   --popover: oklch(0.205 0 0);
@@ -278,42 +306,6 @@ html.dark.glass-clear {
 html[data-tint="wallpaper"] {
   --tint-glass: 14%;
   --tint-accent: 28%;
-}
-
-/* -----------------------------------------------------------------------------
-   Flipped ink — bare text over a wallpaper band that is on the wrong side of
-   the theme's ink (a dark photograph under the light theme). The provider
-   decides per band: `data-wallpaper-flip` for the top one, where `.ink-bare`
-   (the home header) sits, and `data-wallpaper-flip-mid` for the middle one,
-   where `.ink-bare-mid` (the app folder) sits. A flipped zone swaps to the
-   inverse ink and re-derives its ladder. Surfaces (glass) never flip: they
-   carry the card colour, so their ink was right all along. `.ink-flip` is the
-   same swap unconditionally, for the lab's tiles.
------------------------------------------------------------------------------ */
-html[data-wallpaper-flip] .ink-bare,
-html[data-wallpaper-flip-mid] .ink-bare-mid,
-.ink-flip {
-  --ink: var(--ink-inverse);
-}
-/* Bare text has no fill helping it: its rungs climb by the bare boost. */
-.ink-bare,
-.ink-bare-mid {
-  --wp-zone-boost: var(--wp-bare-boost);
-}
-/* A middle-band zone decides for itself, even inside a flipped top-band zone
-   (the lab's bare specimen nests one in the other). */
-html:not([data-wallpaper-flip-mid]) .ink-bare-mid {
-  --ink: var(--ink-theme);
-}
-
-/* A bare zone that grows a glass surface under the pointer (the app folder)
-   stops being bare while it is hovered: the glass carries the card colour, so
-   the ink goes back to the theme's with it. */
-@media (hover: hover) {
-  html[data-wallpaper-flip] .ink-bare.ink-bare-rest:hover,
-  html[data-wallpaper-flip-mid] .ink-bare-mid.ink-bare-rest:hover {
-    --ink: var(--ink-theme);
-  }
 }
 
 /* =============================================================================
@@ -404,65 +396,80 @@ html:not([data-wallpaper-flip-mid]) .ink-bare-mid {
     transparent
   );
 
-  /* --- Relief, in both shapes, at bare / glass / solid strength --- */
-  --relief-drop:
-    0 1px 3px rgb(0 0 0 / calc(var(--relief-drop-a1) * var(--wp-relief))),
-    0 0 2px rgb(0 0 0 / calc(var(--relief-drop-a2) * var(--wp-relief)));
-  --relief-halo:
-    0 0 4px rgb(255 255 255 / calc(var(--relief-halo-a1) * var(--wp-relief))),
-    0 0 3px rgb(255 255 255 / calc(var(--relief-halo-a2) * var(--wp-relief)));
-  --relief-drop-glass:
-    0 1px 3px rgb(0 0 0 / calc(var(--relief-drop-a1) * var(--wp-relief) * var(--glass-relief-k))),
-    0 0 2px rgb(0 0 0 / calc(var(--relief-drop-a2) * var(--wp-relief) * var(--glass-relief-k)));
-  --relief-halo-glass:
-    0 0 4px rgb(255 255 255 / calc(var(--relief-halo-a1) * var(--wp-relief) * var(--glass-relief-k))),
-    0 0 3px rgb(255 255 255 / calc(var(--relief-halo-a2) * var(--wp-relief) * var(--glass-relief-k)));
-  --relief-drop-solid:
-    0 1px 3px rgb(0 0 0 / calc(var(--relief-drop-a1) * var(--wp-relief) * var(--glass-relief-solid-k))),
-    0 0 2px rgb(0 0 0 / calc(var(--relief-drop-a2) * var(--wp-relief) * var(--glass-relief-solid-k)));
-  --relief-halo-solid:
-    0 0 4px rgb(255 255 255 / calc(var(--relief-halo-a1) * var(--wp-relief) * var(--glass-relief-solid-k))),
-    0 0 3px rgb(255 255 255 / calc(var(--relief-halo-a2) * var(--wp-relief) * var(--glass-relief-solid-k)));
+  /* --- Relief: the shape that goes with this element's ink, at bare / glass /
+     solid strength. The primitives (`--relief-rgb`, the alphas, the offsets)
+     follow the ink: the theme's pair at rest, the inverse pair in a flipped
+     zone — see "Flipped ink" below. --- */
+  --relief-rgb: var(--relief-theme-rgb);
+  --relief-a1: var(--relief-theme-a1);
+  --relief-a2: var(--relief-theme-a2);
+  --relief-y: var(--relief-theme-y);
+  --relief-b1: var(--relief-theme-b1);
+  --relief-b2: var(--relief-theme-b2);
+  --text-relief:
+    0 var(--relief-y) var(--relief-b1) rgb(var(--relief-rgb) / calc(var(--relief-a1) * var(--wp-relief))),
+    0 0 var(--relief-b2) rgb(var(--relief-rgb) / calc(var(--relief-a2) * var(--wp-relief)));
+  --text-relief-glass:
+    0 var(--relief-y) var(--relief-b1) rgb(var(--relief-rgb) / calc(var(--relief-a1) * var(--wp-relief) * var(--glass-relief-k))),
+    0 0 var(--relief-b2) rgb(var(--relief-rgb) / calc(var(--relief-a2) * var(--wp-relief) * var(--glass-relief-k)));
+  --text-relief-solid:
+    0 var(--relief-y) var(--relief-b1) rgb(var(--relief-rgb) / calc(var(--relief-a1) * var(--wp-relief) * var(--glass-relief-solid-k))),
+    0 0 var(--relief-b2) rgb(var(--relief-rgb) / calc(var(--relief-a2) * var(--wp-relief) * var(--glass-relief-solid-k)));
 }
 
-/* Which shape: dark ink wants a halo, light ink wants a drop. The flip rules
-   come last so a flipped zone under either theme picks the other shape. */
-:root,
-.ink-scope,
+/* -----------------------------------------------------------------------------
+   Flipped ink — bare text over a wallpaper band that is on the wrong side of
+   the theme's ink (a dark photograph under the light theme). The provider
+   decides per band: `data-wallpaper-flip` for the top one, where `.ink-bare`
+   (the home header) sits, and `data-wallpaper-flip-mid` for the middle one,
+   where `.ink-bare-mid` (the app folder) sits. A flipped zone swaps to the
+   inverse ink — and to the inverse ink's relief shape, since the shape is a
+   property of the ink (dark text wants a white halo, light text a dark drop)
+   — and its ladder above re-derives. Surfaces (glass) never flip: they carry
+   the card colour, so their ink was right all along. `.ink-flip` is the same
+   swap unconditionally, for the lab's tiles. These rules follow the ladder so
+   they win on the same element.
+----------------------------------------------------------------------------- */
+html[data-wallpaper-flip] .ink-bare,
+html[data-wallpaper-flip-mid] .ink-bare-mid,
+.ink-flip {
+  --ink: var(--ink-inverse);
+  --relief-rgb: var(--relief-inverse-rgb);
+  --relief-a1: var(--relief-inverse-a1);
+  --relief-a2: var(--relief-inverse-a2);
+  --relief-y: var(--relief-inverse-y);
+  --relief-b1: var(--relief-inverse-b1);
+  --relief-b2: var(--relief-inverse-b2);
+}
+/* Bare text has no fill helping it: its rungs climb by the bare boost. */
+.ink-bare,
 .ink-bare-mid {
-  --text-relief: var(--relief-halo);
-  --text-relief-glass: var(--relief-halo-glass);
-  --text-relief-solid: var(--relief-halo-solid);
+  --wp-zone-boost: var(--wp-bare-boost);
 }
-.dark,
-.dark .ink-scope,
-.dark .ink-bare-mid,
-html:not(.dark) .ink-flip,
-html:not(.dark)[data-wallpaper-flip] .ink-bare,
-html:not(.dark)[data-wallpaper-flip-mid] .ink-bare-mid {
-  --text-relief: var(--relief-drop);
-  --text-relief-glass: var(--relief-drop-glass);
-  --text-relief-solid: var(--relief-drop-solid);
-}
-.dark .ink-flip,
-.dark[data-wallpaper-flip] .ink-bare,
-.dark[data-wallpaper-flip-mid] .ink-bare-mid {
-  --text-relief: var(--relief-halo);
-  --text-relief-glass: var(--relief-halo-glass);
-  --text-relief-solid: var(--relief-halo-solid);
+/* A middle-band zone decides for itself, even inside a flipped top-band zone
+   (the lab's bare specimen nests one in the other); and a bare zone that
+   grows a glass surface under the pointer (the app folder, `.ink-bare-rest`)
+   stops being bare while hovered — the glass carries the card colour, so the
+   ink goes back to the theme's, shape and all. */
+html:not([data-wallpaper-flip-mid]) .ink-bare-mid {
+  --ink: var(--ink-theme);
+  --relief-rgb: var(--relief-theme-rgb);
+  --relief-a1: var(--relief-theme-a1);
+  --relief-a2: var(--relief-theme-a2);
+  --relief-y: var(--relief-theme-y);
+  --relief-b1: var(--relief-theme-b1);
+  --relief-b2: var(--relief-theme-b2);
 }
 @media (hover: hover) {
-  html:not(.dark)[data-wallpaper-flip] .ink-bare.ink-bare-rest:hover,
-  html:not(.dark)[data-wallpaper-flip-mid] .ink-bare-mid.ink-bare-rest:hover {
-    --text-relief: var(--relief-halo);
-    --text-relief-glass: var(--relief-halo-glass);
-    --text-relief-solid: var(--relief-halo-solid);
-  }
-  .dark[data-wallpaper-flip] .ink-bare.ink-bare-rest:hover,
-  .dark[data-wallpaper-flip-mid] .ink-bare-mid.ink-bare-rest:hover {
-    --text-relief: var(--relief-drop);
-    --text-relief-glass: var(--relief-drop-glass);
-    --text-relief-solid: var(--relief-drop-solid);
+  html[data-wallpaper-flip] .ink-bare.ink-bare-rest:hover,
+  html[data-wallpaper-flip-mid] .ink-bare-mid.ink-bare-rest:hover {
+    --ink: var(--ink-theme);
+    --relief-rgb: var(--relief-theme-rgb);
+    --relief-a1: var(--relief-theme-a1);
+    --relief-a2: var(--relief-theme-a2);
+    --relief-y: var(--relief-theme-y);
+    --relief-b1: var(--relief-theme-b1);
+    --relief-b2: var(--relief-theme-b2);
   }
 }
 
