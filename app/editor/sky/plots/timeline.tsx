@@ -34,6 +34,7 @@ export function DayTimeline({
   nowMinutes,
   realNowMinutes,
   onScrub,
+  text = {},
 }: {
   colors: RGB[];
   scenes: WeatherScene[];
@@ -42,6 +43,14 @@ export function DayTimeline({
   nowMinutes: number;
   realNowMinutes: number | null;
   onScrub: (minutes: number) => void;
+  text?: {
+    title?: string;
+    realNow?: string;
+    scrub?: string;
+    track?: string;
+    neverSets?: string;
+    neverRises?: string;
+  };
 }) {
   const gradient = `linear-gradient(90deg, ${colors
     .map((c, i) => `${rgbToCss(c)} ${((i / (colors.length - 1)) * 100).toFixed(1)}%`)
@@ -60,14 +69,14 @@ export function DayTimeline({
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between">
         <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Day · sky and moon visibility
+          {text.title ?? "Day · sky and moon visibility"}
         </span>
         <span className="font-mono text-[10px] tabular-nums text-tertiary-foreground">
           {clock(dayStartMs + nowMinutes * 60_000)}
         </span>
       </div>
 
-      <div className="relative overflow-hidden rounded-lg ring-1 ring-border/50">
+      <div className="relative overflow-hidden rounded-xl ring-1 ring-border/50">
         <div className="h-16" style={{ backgroundImage: gradient }} />
 
         {/* Moon visibility: opacity is `scene.moon.visible`, so a moon that is
@@ -77,7 +86,7 @@ export function DayTimeline({
           preserveAspectRatio="none"
           className="block h-6 w-full bg-foreground/15"
           role="img"
-          aria-label="Moon visibility across the day"
+          aria-label={text.track ?? "Moon visibility across the day"}
         >
           {scenes.map((scene, i) => {
             const x = (i / scenes.length) * W;
@@ -121,7 +130,7 @@ export function DayTimeline({
         {realNowMinutes !== null && (
           <span
             aria-hidden
-            title="The real time of day"
+            title={text.realNow ?? "The real time of day"}
             style={{ left: pct(realNowMinutes) }}
             className="pointer-events-none absolute inset-y-0 border-l border-dashed border-white/70 mix-blend-difference"
           />
@@ -133,7 +142,7 @@ export function DayTimeline({
           step={1}
           value={Math.round(nowMinutes)}
           onChange={(e) => onScrub(Number(e.target.value))}
-          aria-label="Scrub the day"
+          aria-label={text.scrub ?? "Scrub the day"}
           aria-valuetext={clock(dayStartMs + nowMinutes * 60_000)}
           className={cn(
             "absolute inset-0 h-full w-full cursor-ew-resize appearance-none bg-transparent",
@@ -155,8 +164,8 @@ export function DayTimeline({
             {t.label}
           </span>
         ))}
-        {events.sun.alwaysUp && <span>sun never sets</span>}
-        {events.sun.alwaysDown && <span>sun never rises</span>}
+        {events.sun.alwaysUp && <span>{text.neverSets ?? "sun never sets"}</span>}
+        {events.sun.alwaysDown && <span>{text.neverRises ?? "sun never rises"}</span>}
       </div>
     </div>
   );

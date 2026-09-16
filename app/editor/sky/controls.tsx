@@ -1,48 +1,40 @@
 "use client";
 
-/**
- * The Sky Engine Lab's panels — one section per area of the world model.
- *
- * Every lever writes a field of the live `SkyConfig`; nothing here knows how a
- * sky is derived or drawn. The `field` helper turns a dotted path into the
- * props a `NumberRow` wants (value, the committed default, a setter), which is
- * what keeps a hundred-odd levers to one line each and gives every one of them
- * the "back to the default" dot for free.
- */
+// =============================================================================
+// The Sky Engine Lab's panel — one section per area of the world model.
+//
+// Every lever writes a field of the live `SkyConfig`; nothing here knows how a
+// sky is derived or drawn. A lever names the path it edits and nothing else:
+// the label comes from the path (i18n.ts), the value and the committed default
+// are read off the two configs in `PanelContext`, and the amber star — "this
+// is not what ships" — appears on its own once they differ. That is what keeps
+// a hundred-odd levers to one line each.
+// =============================================================================
 
 import { useMemo, useState } from "react";
 import { MapPin, Plus, Trash2 } from "lucide-react";
 import {
   Chip,
   Field,
+  LabButton,
   Note,
-  NumberRow,
-  Panel,
   Readout,
+  Section,
   Segmented,
+  Slider,
+  Star,
   TextField,
-  Toggle,
 } from "../controls";
 import type {
   SkyConfig,
   SkyPreset,
   ConditionProfileConfig,
 } from "@/systems/ambient/lib/sky-config";
-import { SKY_CONDITIONS } from "@/systems/ambient/lib/sky-config";
-import {
-  rgbToCss,
-  sampleSky,
-  resolveSkyConfig,
-  type SceneOverrides,
-} from "@/systems/ambient/lib/scene";
+import { DEFAULT_PRESET_ID, SKY_CONDITIONS } from "@/systems/ambient/lib/sky-config";
+import { rgbToCss, sampleSky, resolveSkyConfig, type SceneOverrides } from "@/systems/ambient/lib/scene";
 import type { NormalizedWeather, WeatherCondition } from "@/systems/ambient/lib/weather";
-import {
-  deg,
-  OBSERVER_PRESETS,
-  SCENARIOS,
-  type Observer,
-  type Scenario,
-} from "./model";
+import type { LabText } from "./i18n";
+import { deg, OBSERVER_PRESETS, SCENARIOS, type Observer, type Scenario } from "./model";
 
 // -----------------------------------------------------------------------------
 // Path-addressed editing
@@ -56,7 +48,7 @@ function getIn(source: unknown, path: Path): unknown {
       value === null || value === undefined
         ? undefined
         : (value as Record<string | number, unknown>)[key],
-    source
+    source,
   );
 }
 
@@ -77,66 +69,68 @@ export function setIn<T>(source: T, path: Path, value: unknown): T {
   } as unknown as T;
 }
 
+const toPath = (path: string): Path =>
+  path.split(".").map((k) => (/^\d+$/.test(k) ? Number(k) : k));
+
 export interface PanelContext {
   config: SkyConfig;
-  /** The committed config — what a lever's `*` resets to. */
+  /** The committed config — what a lever's star resets to. */
   defaults: SkyConfig;
   update: (path: Path, value: unknown) => void;
-}
-
-type NumberProps = { value: number; defaultValue: number; onChange: (v: number) => void };
-
-function numberField(ctx: PanelContext, path: string): NumberProps {
-  const keys = path.split(".").map((k) => (/^\d+$/.test(k) ? Number(k) : k));
-  return {
-    value: getIn(ctx.config, keys) as number,
-    defaultValue: getIn(ctx.defaults, keys) as number,
-    onChange: (v) => ctx.update(keys, v),
-  };
-}
-
-function colorField(ctx: PanelContext, path: string) {
-  const keys = path.split(".").map((k) => (/^\d+$/.test(k) ? Number(k) : k));
-  return {
-    value: getIn(ctx.config, keys) as string,
-    onChange: (v: string) => ctx.update(keys, v),
-  };
+  T: LabText;
 }
 
 const f2 = (v: number) => v.toFixed(2);
 const f3 = (v: number) => v.toFixed(3);
 const degrees = (v: number) => `${v.toFixed(1)}°`;
+const kmh = (v: number) => `${Math.round(v)} km/h`;
 
 // -----------------------------------------------------------------------------
-// Small shared bits
+// Levers
 // -----------------------------------------------------------------------------
 
-/** A colour, as a swatch you can click. Compact enough for a table cell. */
-function ColorCell({
-  value,
-  onChange,
-  title,
+/**
+ * One number of the config: its label, its value, a slider, and the star
+ * once it has left the committed value.
+ */
+function Knob({
+  ctx,
+  path,
+  min,
+  max,
+  step,
+  format = f2,
+  label,
 }: {
-  value: string;
-  onChange: (value: string) => void;
-  title: string;
+  ctx: PanelContext;
+  path: string;
+  min: number;
+  max: number;
+  step: number;
+  format?: (v: number) => string;
+  /** Overrides the label the path would give (a profile row inside a grid). */
+  label?: string;
 }) {
+  const keys = toPath(path);
+  const value = getIn(ctx.config, keys) as number;
+  const committed = getIn(ctx.defaults, keys) as number;
   return (
-    <input
-      type="color"
-      value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : "#000000"}
-      onChange={(e) => onChange(e.target.value)}
-      title={`${title} · ${value}`}
-      aria-label={title}
-      className="h-5 w-full cursor-pointer rounded border border-border/60 bg-transparent p-0"
-    />
+    <Field label={label ?? ctx.T.knob(path)} hint={format(value)}>
+      <div className="flex items-center gap-2">
+        <Slider value={value} min={min} max={max} step={step} onChange={(v) => ctx.update(keys, v)} />
+        <Star
+          active={Math.abs(value - committed) > 1e-9}
+          title={ctx.T.L.backToDefault(format(committed))}
+          onReset={() => ctx.update(keys, committed)}
+        />
+      </div>
+    </Field>
   );
 }
 
-/** A smoothstep gate: the two elevations (or fractions) it ramps between. */
-function GateRow({
+/** A smoothstep gate: the two values it ramps between, as a pair of sliders. */
+function GateKnob({
   ctx,
-  label,
   path,
   min,
   max,
@@ -145,7 +139,6 @@ function GateRow({
   hint,
 }: {
   ctx: PanelContext;
-  label: string;
   path: string;
   min: number;
   max: number;
@@ -153,19 +146,104 @@ function GateRow({
   format?: (v: number) => string;
   hint?: string;
 }) {
+  const from = toPath(`${path}.from`);
+  const to = toPath(`${path}.to`);
+  const value = { from: getIn(ctx.config, from) as number, to: getIn(ctx.config, to) as number };
+  const committed = { from: getIn(ctx.defaults, from) as number, to: getIn(ctx.defaults, to) as number };
+  const dirty =
+    Math.abs(value.from - committed.from) > 1e-9 || Math.abs(value.to - committed.to) > 1e-9;
   return (
-    <div className="flex flex-col gap-1">
-      <span className="flex items-baseline justify-between gap-2">
-        <span className="text-xs text-foreground">{label}</span>
-        {hint && (
-          <span className="font-mono text-[10px] text-tertiary-foreground">{hint}</span>
-        )}
-      </span>
-      <div className="grid grid-cols-2 gap-2">
-        <NumberRow label="from" min={min} max={max} step={step} format={format} {...numberField(ctx, `${path}.from`)} />
-        <NumberRow label="to" min={min} max={max} step={step} format={format} {...numberField(ctx, `${path}.to`)} />
+    <Field label={ctx.T.knob(path)} hint={`${format(value.from)} → ${format(value.to)}`}>
+      <div className="flex items-center gap-2">
+        <Slider
+          value={value.from}
+          min={min}
+          max={max}
+          step={step}
+          aria-label={`${ctx.T.knob(path)} · ${ctx.T.L.from}`}
+          onChange={(v) => ctx.update(from, v)}
+        />
+        <Slider
+          value={value.to}
+          min={min}
+          max={max}
+          step={step}
+          aria-label={`${ctx.T.knob(path)} · ${ctx.T.L.to}`}
+          onChange={(v) => ctx.update(to, v)}
+        />
+        <Star
+          active={dirty}
+          title={ctx.T.L.backToDefault(`${format(committed.from)} → ${format(committed.to)}`)}
+          onReset={() => {
+            ctx.update(from, committed.from);
+            ctx.update(to, committed.to);
+          }}
+        />
       </div>
+      {hint && <span className="text-[10px] text-muted-foreground/60">{hint}</span>}
+    </Field>
+  );
+}
+
+/** A colour of the config, as a swatch you can click — compact enough for a table cell. */
+function ColorCell({
+  ctx,
+  path,
+  title,
+}: {
+  ctx: PanelContext;
+  path: string;
+  title: string;
+}) {
+  const keys = toPath(path);
+  const value = getIn(ctx.config, keys) as string;
+  const committed = getIn(ctx.defaults, keys) as string;
+  return (
+    <span className="relative inline-flex w-full items-center">
+      <input
+        type="color"
+        value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : "#000000"}
+        onChange={(e) => ctx.update(keys, e.target.value)}
+        title={`${title} · ${value}`}
+        aria-label={title}
+        className="h-5 w-full cursor-pointer rounded border border-border/60 bg-transparent p-0"
+      />
+      {value !== committed && (
+        <span className="absolute -right-1 -top-1.5">
+          <Star title={ctx.T.L.backToDefault(committed)} onReset={() => ctx.update(keys, committed)} />
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** A labelled row of two colours: `day / night`, `calm / storm`. */
+function ColorPair({
+  ctx,
+  label,
+  a,
+  b,
+}: {
+  ctx: PanelContext;
+  label: string;
+  a: { path: string; title: string };
+  b: { path: string; title: string };
+}) {
+  return (
+    <div className="grid grid-cols-[1fr_2rem_2rem] items-center gap-2 font-mono text-[10px] text-muted-foreground">
+      <span>{label}</span>
+      <ColorCell ctx={ctx} path={a.path} title={a.title} />
+      <ColorCell ctx={ctx} path={b.path} title={b.title} />
     </div>
+  );
+}
+
+/** A mono, uppercase sub-heading inside a section. */
+function Sub({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+      {children}
+    </span>
   );
 }
 
@@ -173,7 +251,8 @@ function GateRow({
 // Presets
 // -----------------------------------------------------------------------------
 
-export function PresetPanel({
+export function PresetSection({
+  T,
   presets,
   editingId,
   activeId,
@@ -182,6 +261,7 @@ export function PresetPanel({
   onDelete,
   onMakeActive,
 }: {
+  T: LabText;
   presets: SkyPreset[];
   editingId: string;
   activeId: string;
@@ -190,63 +270,52 @@ export function PresetPanel({
   onDelete: (id: string) => void;
   onMakeActive: (id: string) => void;
 }) {
+  const { L } = T;
   const [name, setName] = useState("");
   return (
-    <Panel title="Presets" hint={`editing ${editingId}`} defaultOpen>
-      <div className="flex flex-wrap gap-1">
-        {presets.map((p) => (
-          <Chip
-            key={p.id}
-            active={p.id === editingId}
-            onClick={() => onSelect(p.id)}
-            title={p.id === activeId ? "The preset the site paints from" : p.id}
-          >
-            {p.name}
-            {p.id === activeId && <span className="ml-1 text-[9px] opacity-70">●</span>}
-          </Chip>
-        ))}
-      </div>
+    <Section title={L.presets}>
+      <Field as="div" label={L.editing(editingId)}>
+        <div className="flex flex-wrap gap-1">
+          {presets.map((p) => (
+            <Chip
+              key={p.id}
+              active={p.id === editingId}
+              onClick={() => onSelect(p.id)}
+              title={p.id === activeId ? L.activeHint : p.id}
+            >
+              {p.name}
+              {p.id === activeId && <span className="ml-1 opacity-70">●</span>}
+            </Chip>
+          ))}
+        </div>
+      </Field>
       <div className="flex items-center gap-2">
-        <TextField value={name} onChange={setName} placeholder="New preset name" />
-        <button
-          type="button"
+        <TextField value={name} onChange={setName} placeholder={L.newPreset} />
+        <LabButton
           disabled={!name.trim()}
+          title={L.addHint}
           onClick={() => {
             onCreate(name.trim());
             setName("");
           }}
-          title="Save the current config as a new preset"
-          className="inline-flex shrink-0 items-center gap-1 rounded border border-border/60 px-2 py-1.5 font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
         >
           <Plus className="h-3 w-3" />
-          Add
-        </button>
+          {L.add}
+        </LabButton>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Chip
-          active={editingId === activeId}
-          onClick={() => onMakeActive(editingId)}
-          title="Paint the site from this preset"
-        >
-          {editingId === activeId ? "Active on the site" : "Make active"}
+        <Chip active={editingId === activeId} onClick={() => onMakeActive(editingId)} title={L.makeActiveHint}>
+          {editingId === activeId ? L.activeOnSite : L.makeActive}
         </Chip>
-        {editingId !== "default" && (
-          <button
-            type="button"
-            onClick={() => onDelete(editingId)}
-            className="inline-flex items-center gap-1 rounded border border-border/60 px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:border-amber-500/40 hover:text-amber-500"
-          >
-            <Trash2 className="h-3 w-3" />
-            Delete
-          </button>
+        {editingId !== DEFAULT_PRESET_ID && (
+          <Chip onClick={() => onDelete(editingId)} className="hover:text-amber-500">
+            <Trash2 className="mr-1 inline h-2.5 w-2.5" />
+            {L.delete}
+          </Chip>
         )}
       </div>
-      <Note>
-        Presets live in the same `content/sky.json`. The site paints from the
-        active one; editing any other preset changes nothing until you make it
-        active. The `default` preset is the shipped look and cannot be removed.
-      </Note>
-    </Panel>
+      <Note>{L.presetsNote}</Note>
+    </Section>
   );
 }
 
@@ -254,100 +323,88 @@ export function PresetPanel({
 // Observer
 // -----------------------------------------------------------------------------
 
-export function ObserverPanel({
+export function ObserverSection({
+  T,
   observer,
   onChange,
   resolved,
   hemisphere,
   onScenario,
 }: {
+  T: LabText;
   observer: Observer;
   onChange: (observer: Observer) => void;
   resolved: Observer | null;
   hemisphere: 1 | -1;
   onScenario: (scenario: Scenario) => void;
 }) {
+  const { L } = T;
   return (
-    <Panel
-      title="Observer & scenarios"
-      hint={`${observer.lat.toFixed(2)}, ${observer.lon.toFixed(2)}`}
-      defaultOpen
-    >
-      <div className="flex flex-wrap gap-1">
-        {resolved && (
-          <Chip
-            active={observer.label === resolved.label}
-            onClick={() => onChange(resolved)}
-            title="The location the site resolved for you"
-          >
-            <MapPin className="mr-1 inline h-2.5 w-2.5" />
-            {resolved.label}
-          </Chip>
-        )}
-        {OBSERVER_PRESETS.map((o) => (
-          <Chip key={o.label} active={observer.label === o.label} onClick={() => onChange(o)}>
-            {o.label}
-          </Chip>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <NumberRow
-          label="Latitude"
+    <Section title={L.observer}>
+      <Field as="div" label={observer.label} hint={`${observer.lat.toFixed(2)}, ${observer.lon.toFixed(2)}`}>
+        <div className="flex flex-wrap gap-1">
+          {resolved && (
+            <Chip active={observer.label === resolved.label} onClick={() => onChange(resolved)} title={L.resolvedHint}>
+              <MapPin className="mr-1 inline h-2.5 w-2.5" />
+              {resolved.label}
+            </Chip>
+          )}
+          {OBSERVER_PRESETS.map((o) => (
+            <Chip key={o.label} active={observer.label === o.label} onClick={() => onChange(o)}>
+              {o.label}
+            </Chip>
+          ))}
+        </div>
+      </Field>
+      <Field label={L.latitude} hint={degrees(observer.lat)}>
+        <Slider
           value={observer.lat}
           min={-90}
           max={90}
           step={0.5}
-          format={degrees}
-          onChange={(lat) => onChange({ ...observer, label: "Custom", lat })}
+          onChange={(lat) => onChange({ ...observer, label: L.custom, lat })}
         />
-        <NumberRow
-          label="Longitude"
+      </Field>
+      <Field label={L.longitude} hint={degrees(observer.lon)}>
+        <Slider
           value={observer.lon}
           min={-180}
           max={180}
           step={0.5}
-          format={degrees}
-          onChange={(lon) => onChange({ ...observer, label: "Custom", lon })}
+          onChange={(lon) => onChange({ ...observer, label: L.custom, lon })}
         />
-      </div>
-
-      <Toggle
-        label={`Southern hemisphere (${hemisphere === -1 ? "mirrored" : "north"})`}
-        value={hemisphere === -1}
-        onChange={(south) =>
-          onChange({
-            ...observer,
-            label: "Custom",
-            lat: south ? -Math.abs(observer.lat) : Math.abs(observer.lat),
-          })
-        }
-      />
-      <Note>
-        Below the equator the sky mirrors: east moves to the right and the
-        crescent turns over. It is one sign in `scene.hemisphere`, and it is the
-        easiest thing in the model to get backwards — so it has a switch.
-      </Note>
-      <Note>
-        The clock stays in <em>your</em> timezone. Moving the observer moves the
-        sky, not the calendar, so a Sydney day here runs from your local
-        midnight and its sunrise lands wherever that puts it — which is exactly
-        what the site does for a visitor who has travelled.
-      </Note>
-
-      <div className="flex flex-col gap-1 border-t border-border/40 pt-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Named skies
-        </span>
+      </Field>
+      <Field as="div" label={L.hemisphere}>
+        <Segmented
+          value={hemisphere === -1 ? "south" : "north"}
+          onChange={(v) =>
+            onChange({
+              ...observer,
+              label: L.custom,
+              lat: v === "south" ? -Math.abs(observer.lat) : Math.abs(observer.lat),
+            })
+          }
+          options={[
+            { value: "north", label: L.north },
+            { value: "south", label: L.south },
+          ]}
+        />
+        <span className="text-[10px] text-muted-foreground/60">{L.hemisphereNote}</span>
+      </Field>
+      <Note>{L.clockNote}</Note>
+      <Field as="div" label={L.scenarios}>
         <div className="flex flex-wrap gap-1">
-          {SCENARIOS.map((s) => (
-            <Chip key={s.id} onClick={() => onScenario(s)} title={s.description}>
-              {s.label}
-            </Chip>
-          ))}
+          {SCENARIOS.map((s) => {
+            const [label, description] = L.scenario[s.id] ?? [s.label, s.description];
+            return (
+              <Chip key={s.id} onClick={() => onScenario(s)} title={description}>
+                {label}
+              </Chip>
+            );
+          })}
         </div>
-      </div>
-    </Panel>
+      </Field>
+    </Section>
   );
 }
 
@@ -356,7 +413,8 @@ export function ObserverPanel({
 // -----------------------------------------------------------------------------
 
 /** The clear-sky ramp, sampled the way `sampleSky` samples it. */
-function SkyRamp({ config }: { config: SkyConfig }) {
+function SkyRamp({ ctx }: { ctx: PanelContext }) {
+  const { config } = ctx;
   const gradient = useMemo(() => {
     const keys = resolveSkyConfig(config).keys;
     const from = keys[0].el;
@@ -371,91 +429,75 @@ function SkyRamp({ config }: { config: SkyConfig }) {
   }, [config]);
   return (
     <div className="flex flex-col gap-1">
-      <div
-        className="h-6 rounded ring-1 ring-border/50"
-        style={{ backgroundImage: gradient }}
-        title="The horizon colour across the whole elevation ramp"
-      />
+      <div className="h-6 rounded-md ring-1 ring-border/50" style={{ backgroundImage: gradient }} />
       <div className="flex justify-between font-mono text-[9px] text-tertiary-foreground">
         <span>{deg(config.sun.keys[0].el, 0)}</span>
-        <span>horizon colour by sun elevation</span>
+        <span>{ctx.T.L.ramp}</span>
         <span>{deg(config.sun.keys[config.sun.keys.length - 1].el, 0)}</span>
       </div>
     </div>
   );
 }
 
-export function SunPanel({ ctx }: { ctx: PanelContext }) {
+const CELL =
+  "w-full rounded border border-border/60 bg-transparent px-1 py-0.5 font-mono text-[10px] tabular-nums outline-none focus:border-foreground/40";
+
+export function SunSection({ ctx }: { ctx: PanelContext }) {
+  const { L } = ctx.T;
   const keys = ctx.config.sun.keys;
   return (
-    <Panel title="Sun" hint={`${keys.length} keyframes`} defaultOpen>
-      <SkyRamp config={ctx.config} />
-
-      <div className="flex flex-col gap-1">
-        <div className="grid grid-cols-[2.6rem_1fr_1fr_1fr_2.4rem] items-center gap-1 font-mono text-[9px] uppercase tracking-wider text-tertiary-foreground">
-          <span>el</span>
-          <span className="text-center">zen</span>
-          <span className="text-center">hor</span>
-          <span className="text-center">glow</span>
-          <span className="text-right">str</span>
-        </div>
-        {keys.map((key, i) => (
-          <div
-            key={i}
-            className="grid grid-cols-[2.6rem_1fr_1fr_1fr_2.4rem] items-center gap-1"
-          >
-            <input
-              type="number"
-              value={key.el}
-              step={1}
-              onChange={(e) => ctx.update(["sun", "keys", i, "el"], Number(e.target.value))}
-              aria-label={`Keyframe ${i + 1} elevation`}
-              className="w-full rounded border border-border/60 bg-transparent px-1 py-0.5 font-mono text-[10px] tabular-nums outline-none focus:border-foreground/40"
-            />
-            <ColorCell {...colorField(ctx, `sun.keys.${i}.zenith`)} title={`Keyframe ${key.el}° zenith`} />
-            <ColorCell {...colorField(ctx, `sun.keys.${i}.horizon`)} title={`Keyframe ${key.el}° horizon`} />
-            <ColorCell {...colorField(ctx, `sun.keys.${i}.glow`)} title={`Keyframe ${key.el}° glow`} />
-            <input
-              type="number"
-              value={key.strength}
-              step={0.01}
-              min={0}
-              max={4}
-              onChange={(e) =>
-                ctx.update(["sun", "keys", i, "strength"], Number(e.target.value))
-              }
-              aria-label={`Keyframe ${i + 1} glow strength`}
-              className="w-full rounded border border-border/60 bg-transparent px-1 py-0.5 text-right font-mono text-[10px] tabular-nums outline-none focus:border-foreground/40"
-            />
+    <>
+      <Section title={L.sun}>
+        <SkyRamp ctx={ctx} />
+        <div className="flex flex-col gap-1">
+          <div className="grid grid-cols-[2.6rem_1fr_1fr_1fr_2.6rem] items-center gap-1 font-mono text-[9px] uppercase tracking-wider text-tertiary-foreground">
+            <span>{L.keyEl}</span>
+            <span className="text-center">{L.keyZenith}</span>
+            <span className="text-center">{L.keyHorizon}</span>
+            <span className="text-center">{L.keyGlow}</span>
+            <span className="text-right">{L.keyStrength}</span>
           </div>
-        ))}
-        <Note>
-          Keys are re-sorted by elevation when the config is saved. Between two
-          of them the sky is a smoothstep, which is why the interesting ones
-          crowd around the horizon.
-        </Note>
-      </div>
-
-      <div className="flex flex-col gap-3 border-t border-border/40 pt-3">
-        <NumberRow label="Day threshold" min={-18} max={18} step={0.1} format={degrees} {...numberField(ctx, "sun.dayElevationDeg")} />
-        <NumberRow label="Twilight floor" min={-40} max={0} step={0.5} format={degrees} {...numberField(ctx, "sun.twilightFloorDeg")} />
-        <NumberRow label="Twilight ceiling" min={0} max={40} step={0.5} format={degrees} {...numberField(ctx, "sun.twilightCeilDeg")} />
-        <Note>
-          The one day/night decision, and the window the daylight factor ramps
-          across. Everything that says &ldquo;day&rdquo; — icons, palettes,
-          chips — reads the first of these and nothing else.
-        </Note>
-      </div>
-
-      <div className="flex flex-col gap-3 border-t border-border/40 pt-3">
-        <NumberRow label="Disc size" min={0} max={0.12} step={0.001} format={f3} {...numberField(ctx, "sun.discSize")} />
-        <NumberRow label="Glow radius, high sun" min={0.05} max={2} step={0.01} format={f2} {...numberField(ctx, "sun.glowRadiusHigh")} />
-        <NumberRow label="Glow radius, low sun" min={0.05} max={3} step={0.01} format={f2} {...numberField(ctx, "sun.glowRadiusLow")} />
-        <NumberRow label="Glow gain" min={0} max={3} step={0.01} format={f2} {...numberField(ctx, "sun.glowGain")} />
-        <NumberRow label="Horizon band" min={0} max={2} step={0.01} format={f2} {...numberField(ctx, "sun.horizonBand")} />
-        <NumberRow label="Cloud mutes the glow" min={0} max={1} step={0.01} format={f2} {...numberField(ctx, "sun.coverFade")} />
-      </div>
-    </Panel>
+          {keys.map((key, i) => (
+            <div key={i} className="grid grid-cols-[2.6rem_1fr_1fr_1fr_2.6rem] items-center gap-1">
+              <input
+                type="number"
+                value={key.el}
+                step={1}
+                onChange={(e) => ctx.update(["sun", "keys", i, "el"], Number(e.target.value))}
+                aria-label={`${L.keyframe(i + 1)} · ${L.keyEl}`}
+                className={CELL}
+              />
+              <ColorCell ctx={ctx} path={`sun.keys.${i}.zenith`} title={`${L.keyframe(i + 1)} ${key.el}° · ${L.keyZenith}`} />
+              <ColorCell ctx={ctx} path={`sun.keys.${i}.horizon`} title={`${L.keyframe(i + 1)} ${key.el}° · ${L.keyHorizon}`} />
+              <ColorCell ctx={ctx} path={`sun.keys.${i}.glow`} title={`${L.keyframe(i + 1)} ${key.el}° · ${L.keyGlow}`} />
+              <input
+                type="number"
+                value={key.strength}
+                step={0.01}
+                min={0}
+                max={4}
+                onChange={(e) => ctx.update(["sun", "keys", i, "strength"], Number(e.target.value))}
+                aria-label={`${L.keyframe(i + 1)} · ${L.keyStrength}`}
+                className={`${CELL} text-right`}
+              />
+            </div>
+          ))}
+          <Note>{L.keysNote}</Note>
+        </div>
+        <Knob ctx={ctx} path="sun.dayElevationDeg" min={-18} max={18} step={0.1} format={degrees} />
+        <Knob ctx={ctx} path="sun.twilightFloorDeg" min={-40} max={0} step={0.5} format={degrees} />
+        <Knob ctx={ctx} path="sun.twilightCeilDeg" min={0} max={40} step={0.5} format={degrees} />
+        <Note>{L.thresholdsNote}</Note>
+      </Section>
+      <Section title={L.sunShader}>
+        <Knob ctx={ctx} path="sun.discSize" min={0} max={0.12} step={0.001} format={f3} />
+        <Knob ctx={ctx} path="sun.glowRadiusHigh" min={0.05} max={2} step={0.01} />
+        <Knob ctx={ctx} path="sun.glowRadiusLow" min={0.05} max={3} step={0.01} />
+        <Knob ctx={ctx} path="sun.glowGain" min={0} max={3} step={0.01} />
+        <Knob ctx={ctx} path="sun.horizonBand" min={0} max={2} step={0.01} />
+        <Knob ctx={ctx} path="sun.coverFade" min={0} max={1} step={0.01} />
+      </Section>
+    </>
   );
 }
 
@@ -463,64 +505,45 @@ export function SunPanel({ ctx }: { ctx: PanelContext }) {
 // Moon
 // -----------------------------------------------------------------------------
 
-export function MoonPanel({ ctx }: { ctx: PanelContext }) {
+export function MoonSection({ ctx }: { ctx: PanelContext }) {
+  const { L } = ctx.T;
   return (
-    <Panel title="Moon" hint={`disc ${f3(ctx.config.moon.discSize)}`}>
-      <NumberRow label="Disc size" min={0.005} max={0.12} step={0.001} format={f3} {...numberField(ctx, "moon.discSize")} />
-      <NumberRow label="Moon illusion" min={0} max={1} step={0.01} format={f2} {...numberField(ctx, "moon.illusionScale")} />
-      <NumberRow label="Illusion fades by" min={5} max={90} step={1} format={degrees} {...numberField(ctx, "moon.illusionFadeDeg")} />
-      <NumberRow label="Halo" min={0} max={0.5} step={0.005} format={f3} {...numberField(ctx, "moon.haloStrength")} />
-      <NumberRow label="Earthshine" min={0} max={0.3} step={0.005} format={f3} {...numberField(ctx, "moon.earthshine")} />
-      <NumberRow label="Terminator softness" min={0.01} max={0.6} step={0.005} format={f3} {...numberField(ctx, "moon.terminatorSoftness")} />
-      <Note>
-        Halo scales with the illuminated fraction and is painted *in front of*
-        the disc, so it covers the dark side instead of outlining it. Earthshine
-        is deliberately a whisper: any more and a crescent reads as a grey ball.
-      </Note>
-
-      <div className="flex flex-col gap-3 border-t border-border/40 pt-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          The three gates
-        </span>
-        <GateRow ctx={ctx} label="Up (moon elevation)" path="moon.up" min={-30} max={30} step={0.5} format={degrees} />
-        <GateRow ctx={ctx} label="Dark sky (sun elevation)" path="moon.skyDark" min={-30} max={30} step={0.5} format={degrees} />
-        <GateRow ctx={ctx} label="Cloud cover" path="moon.cover" min={0} max={1} step={0.01} />
-        <NumberRow label="Fog hides it" min={0} max={1} step={0.01} format={f2} {...numberField(ctx, "moon.fogGate")} />
-        <Note>
-          Visibility is the product: up × sky × clear. Each of the three is
-          plotted as a sparkline, so a moon that vanished has a culprit.
-        </Note>
-      </div>
-
-      <div className="flex flex-col gap-3 border-t border-border/40 pt-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Daytime moon
-        </span>
-        <GateRow ctx={ctx} label="Elevation" path="moon.day.elevation" min={0} max={60} step={1} format={degrees} />
-        <GateRow ctx={ctx} label="Elongation from the sun" path="moon.day.elongation" min={0} max={180} step={1} format={degrees} />
-        <NumberRow label="Daytime strength" min={0} max={1} step={0.01} format={f2} {...numberField(ctx, "moon.day.strength")} />
-        <Note>
-          A crescent near the sun is invisible by day — in the sky and here.
-          Well up and far enough round, it shows as a pale disc.
-        </Note>
-      </div>
-
-      <div className="flex flex-col gap-3 border-t border-border/40 pt-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Moonlight
-        </span>
-        <GateRow ctx={ctx} label="Reaches full by" path="moon.light.rise" min={-10} max={60} step={1} format={degrees} />
-        <div className="grid grid-cols-[1.6rem_1fr] items-center gap-2">
-          <ColorCell {...colorField(ctx, "moon.light.zenithColor")} title="Moonlit zenith" />
-          <NumberRow label="Lifts the zenith" min={0} max={1} step={0.01} format={f2} {...numberField(ctx, "moon.light.zenithAmount")} />
-          <ColorCell {...colorField(ctx, "moon.light.horizonColor")} title="Moonlit horizon" />
-          <NumberRow label="Lifts the horizon" min={0} max={1} step={0.01} format={f2} {...numberField(ctx, "moon.light.horizonAmount")} />
-          <ColorCell {...colorField(ctx, "moon.light.cloudColor")} title="Moonlit cloud tops" />
-          <NumberRow label="Lifts the cloud tops" min={0} max={1} step={0.01} format={f2} {...numberField(ctx, "moon.light.cloudAmount")} />
+    <>
+      <Section title={L.moon}>
+        <Knob ctx={ctx} path="moon.discSize" min={0.005} max={0.12} step={0.001} format={f3} />
+        <Knob ctx={ctx} path="moon.illusionScale" min={0} max={1} step={0.01} />
+        <Knob ctx={ctx} path="moon.illusionFadeDeg" min={5} max={90} step={1} format={degrees} />
+        <Knob ctx={ctx} path="moon.haloStrength" min={0} max={0.5} step={0.005} format={f3} />
+        <Knob ctx={ctx} path="moon.earthshine" min={0} max={0.3} step={0.005} format={f3} />
+        <Knob ctx={ctx} path="moon.terminatorSoftness" min={0.01} max={0.6} step={0.005} format={f3} />
+        <Note>{L.moonNote}</Note>
+      </Section>
+      <Section title={L.moonGates}>
+        <GateKnob ctx={ctx} path="moon.up" min={-30} max={30} step={0.5} format={degrees} />
+        <GateKnob ctx={ctx} path="moon.skyDark" min={-30} max={30} step={0.5} format={degrees} />
+        <GateKnob ctx={ctx} path="moon.cover" min={0} max={1} step={0.01} />
+        <Knob ctx={ctx} path="moon.fogGate" min={0} max={1} step={0.01} />
+        <Note>{L.moonGatesNote}</Note>
+      </Section>
+      <Section title={L.dayMoon}>
+        <GateKnob ctx={ctx} path="moon.day.elevation" min={0} max={60} step={1} format={degrees} />
+        <GateKnob ctx={ctx} path="moon.day.elongation" min={0} max={180} step={1} format={degrees} />
+        <Knob ctx={ctx} path="moon.day.strength" min={0} max={1} step={0.01} />
+        <Note>{L.dayMoonNote}</Note>
+      </Section>
+      <Section title={L.moonlight}>
+        <GateKnob ctx={ctx} path="moon.light.rise" min={-10} max={60} step={1} format={degrees} />
+        <div className="grid grid-cols-[2rem_1fr] items-end gap-2">
+          <ColorCell ctx={ctx} path="moon.light.zenithColor" title={ctx.T.knob("moon.light.zenithColor")} />
+          <Knob ctx={ctx} path="moon.light.zenithAmount" min={0} max={1} step={0.01} />
+          <ColorCell ctx={ctx} path="moon.light.horizonColor" title={ctx.T.knob("moon.light.horizonColor")} />
+          <Knob ctx={ctx} path="moon.light.horizonAmount" min={0} max={1} step={0.01} />
+          <ColorCell ctx={ctx} path="moon.light.cloudColor" title={ctx.T.knob("moon.light.cloudColor")} />
+          <Knob ctx={ctx} path="moon.light.cloudAmount" min={0} max={1} step={0.01} />
         </div>
-        <NumberRow label="Washes out the stars" min={0} max={1} step={0.01} format={f2} {...numberField(ctx, "moon.light.starWash")} />
-      </div>
-    </Panel>
+        <Knob ctx={ctx} path="moon.light.starWash" min={0} max={1} step={0.01} />
+      </Section>
+    </>
   );
 }
 
@@ -528,52 +551,25 @@ export function MoonPanel({ ctx }: { ctx: PanelContext }) {
 // Stars
 // -----------------------------------------------------------------------------
 
-export function StarsPanel({ ctx }: { ctx: PanelContext }) {
+export function StarsSection({ ctx }: { ctx: PanelContext }) {
+  const { L } = ctx.T;
   return (
-    <Panel title="Stars" hint={`density ${f2(ctx.config.stars.density)}`}>
-      <NumberRow label="Density" min={0} max={3} step={0.05} format={f2} {...numberField(ctx, "stars.density")} />
-      <NumberRow label="Twinkle" min={0} max={1} step={0.01} format={f2} {...numberField(ctx, "stars.twinkle")} />
-      <GateRow
-        ctx={ctx}
-        label="Night gate (sun elevation)"
-        path="stars.night"
-        min={-30}
-        max={20}
-        step={0.5}
-        format={degrees}
-        hint="0 at from, 1 at to"
-      />
-      <GateRow ctx={ctx} label="Cloud cover" path="stars.cover" min={0} max={1} step={0.01} />
-      <Note>
-        Density scales the share of shader cells that hold a star, so 0 empties
-        the field and 1 is the shipped one. The night gate runs downwards —
-        `from` is the brighter elevation.
-      </Note>
-    </Panel>
+    <Section title={L.stars}>
+      <Knob ctx={ctx} path="stars.density" min={0} max={3} step={0.05} />
+      <Knob ctx={ctx} path="stars.twinkle" min={0} max={1} step={0.01} />
+      <GateKnob ctx={ctx} path="stars.night" min={-30} max={20} step={0.5} format={degrees} hint={L.gateNote} />
+      <GateKnob ctx={ctx} path="stars.cover" min={0} max={1} step={0.01} />
+      <Note>{L.starsNote}</Note>
+    </Section>
   );
 }
 
 // -----------------------------------------------------------------------------
-// Weather
+// Weather — the scene's condition and the tweaks, then the profiles
 // -----------------------------------------------------------------------------
 
-const PROFILE_FIELDS: {
-  key: keyof ConditionProfileConfig;
-  label: string;
-  max: number;
-}[] = [
-  { key: "cover", label: "Cover (no measurement)", max: 1 },
-  { key: "coverMin", label: "Cover floor", max: 1 },
-  { key: "density", label: "Density", max: 1 },
-  { key: "darkness", label: "Darkness", max: 1 },
-  { key: "precip", label: "Precipitation", max: 1 },
-  { key: "fog", label: "Fog", max: 1 },
-  { key: "tintAmount", label: "Tint amount", max: 1 },
-];
-
-export function WeatherPanel({
-  ctx,
-  condition,
+export function ConditionField({
+  T,
   forced,
   onForce,
   overrides,
@@ -581,9 +577,9 @@ export function WeatherPanel({
   weather,
   cover,
   precipitation,
+  defaultWindKmh,
 }: {
-  ctx: PanelContext;
-  condition: WeatherCondition;
+  T: LabText;
   forced: WeatherCondition | null;
   onForce: (condition: WeatherCondition | null) => void;
   overrides: SceneOverrides;
@@ -591,174 +587,178 @@ export function WeatherPanel({
   weather: NormalizedWeather | null;
   cover: number;
   precipitation: number;
+  defaultWindKmh: number;
 }) {
-  const p = `clouds.profiles.${condition}`;
-  const setOverride = (patch: SceneOverrides) => onOverrides({ ...overrides, ...patch });
+  const { L } = T;
+  const set = (patch: SceneOverrides) => onOverrides({ ...overrides, ...patch });
+  const drop = (key: keyof SceneOverrides) => {
+    const next = { ...overrides };
+    delete next[key];
+    onOverrides(next);
+  };
+  const windDerived = weather?.windSpeedKmh ?? defaultWindKmh;
+  const rows: {
+    key: keyof SceneOverrides;
+    label: string;
+    derived: number;
+    min: number;
+    max: number;
+    step: number;
+    format: (v: number) => string;
+  }[] = [
+    { key: "cloudCover", label: L.cloud, derived: cover, min: 0, max: 1, step: 0.01, format: f2 },
+    { key: "precipitationIntensity", label: L.precip, derived: precipitation, min: 0, max: 1, step: 0.01, format: f2 },
+    { key: "windSpeedKmh", label: L.wind, derived: windDerived, min: 0, max: 80, step: 1, format: kmh },
+  ];
   return (
-    <Panel title="Weather" hint={condition} defaultOpen>
-      <Field label="Condition">
+    <>
+      <Field as="div" label={L.condition}>
         <div className="flex flex-wrap gap-1">
-          <Chip active={forced === null} onClick={() => onForce(null)} title="Whatever the API reported">
-            As reported
+          <Chip active={forced === null} onClick={() => onForce(null)} title={L.asReportedHint}>
+            {L.asReported}
           </Chip>
           {SKY_CONDITIONS.map((c) => (
             <Chip key={c} active={forced === c} onClick={() => onForce(c)}>
-              {c}
+              {T.conditionName(c)}
             </Chip>
           ))}
         </div>
       </Field>
-
-      <NumberRow
-        label="Cloud cover"
-        value={overrides.cloudCover ?? cover}
-        defaultValue={cover}
-        min={0}
-        max={1}
-        step={0.01}
-        format={f2}
-        onChange={(v) => setOverride({ cloudCover: v })}
-      />
-      <NumberRow
-        label="Precipitation"
-        value={overrides.precipitationIntensity ?? precipitation}
-        defaultValue={precipitation}
-        min={0}
-        max={1}
-        step={0.01}
-        format={f2}
-        onChange={(v) => setOverride({ precipitationIntensity: v })}
-      />
-      <NumberRow
-        label="Wind"
-        value={overrides.windSpeedKmh ?? weather?.windSpeedKmh ?? ctx.config.clouds.defaultWindKmh}
-        defaultValue={weather?.windSpeedKmh ?? ctx.config.clouds.defaultWindKmh}
-        min={0}
-        max={80}
-        step={1}
-        format={(v) => `${Math.round(v)} km/h`}
-        onChange={(v) => setOverride({ windSpeedKmh: v })}
-      />
-      <div className="flex justify-end">
-        <Chip onClick={() => onOverrides({})} title="Drop every tweak and go back to the derived numbers">
-          Clear tweaks
-        </Chip>
-      </div>
-
-      <div className="flex flex-col gap-3 border-t border-border/40 pt-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Profile · {condition}
-        </span>
-        {PROFILE_FIELDS.map((row) => (
-          <NumberRow
-            key={row.key}
-            label={row.label}
-            min={0}
-            max={row.max}
-            step={0.01}
-            format={f2}
-            {...numberField(ctx, `${p}.${String(row.key)}`)}
-          />
-        ))}
-        <div className="grid grid-cols-[1fr_1.6rem_1.6rem] items-center gap-2 font-mono text-[10px] text-muted-foreground">
-          <span>Day tint · zenith / horizon</span>
-          <ColorCell {...colorField(ctx, `${p}.tintDay.zenith`)} title="Day zenith tint" />
-          <ColorCell {...colorField(ctx, `${p}.tintDay.horizon`)} title="Day horizon tint" />
-          <span>Night tint · zenith / horizon</span>
-          <ColorCell {...colorField(ctx, `${p}.tintNight.zenith`)} title="Night zenith tint" />
-          <ColorCell {...colorField(ctx, `${p}.tintNight.horizon`)} title="Night horizon tint" />
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3 border-t border-border/40 pt-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          How cover behaves
-        </span>
-        <GateRow ctx={ctx} label="Cover that brings the tint in" path="clouds.tintCover" min={0} max={1} step={0.01} />
-        <NumberRow label="Horizon keeps more clear sky" min={0} max={1} step={0.01} format={f2} {...numberField(ctx, "clouds.horizonTintRatio")} />
-        <NumberRow label="Darkness from precipitation" min={0} max={1} step={0.01} format={f2} {...numberField(ctx, "clouds.darknessFromPrecip")} />
-        <NumberRow label="Darkness from extra cover" min={0} max={1} step={0.01} format={f2} {...numberField(ctx, "clouds.darknessFromCover")} />
-      </div>
-
-      <div className="flex flex-col gap-3 border-t border-border/40 pt-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Wind & drift
-        </span>
-        <NumberRow label="Full drift at" min={5} max={150} step={1} format={(v) => `${Math.round(v)} km/h`} {...numberField(ctx, "clouds.windScaleKmh")} />
-        <NumberRow label="Assumed wind" min={0} max={60} step={1} format={(v) => `${Math.round(v)} km/h`} {...numberField(ctx, "clouds.defaultWindKmh")} />
-        <NumberRow label="Drift at zero wind" min={0} max={2} step={0.01} format={f2} {...numberField(ctx, "clouds.speedBase")} />
-        <NumberRow label="Drift from wind" min={0} max={4} step={0.01} format={f2} {...numberField(ctx, "clouds.speedGain")} />
-      </div>
-
-      <div className="flex flex-col gap-2 border-t border-border/40 pt-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Cloud lighting
-        </span>
-        <div className="grid grid-cols-[1fr_1.6rem_1.6rem] items-center gap-2 font-mono text-[10px] text-muted-foreground">
-          <span>Lit tops · day / night</span>
-          <ColorCell {...colorField(ctx, "clouds.lighting.litDay")} title="Lit tops by day" />
-          <ColorCell {...colorField(ctx, "clouds.lighting.litNight")} title="Lit tops at night" />
-          <span>Shade by day · calm / storm</span>
-          <ColorCell {...colorField(ctx, "clouds.lighting.shadeDay")} title="Daytime shade, calm" />
-          <ColorCell {...colorField(ctx, "clouds.lighting.shadeDayStorm")} title="Daytime shade, stormy" />
-          <span>Shade at night · calm / storm</span>
-          <ColorCell {...colorField(ctx, "clouds.lighting.shadeNight")} title="Night shade, calm" />
-          <ColorCell {...colorField(ctx, "clouds.lighting.shadeNightStorm")} title="Night shade, stormy" />
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2 border-t border-border/40 pt-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Veil, per theme
-        </span>
-        {(["light", "dark"] as const).map((theme) => (
-          <div key={theme} className="flex flex-col gap-2">
+      {rows.map((row) => {
+        const value = overrides[row.key] ?? row.derived;
+        return (
+          <Field key={row.key} label={row.label} hint={row.format(value)}>
             <div className="flex items-center gap-2">
-              <ColorCell {...colorField(ctx, `veil.${theme}.color`)} title={`${theme} veil colour`} />
-              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                {theme}
-              </span>
+              <Slider value={value} min={row.min} max={row.max} step={row.step} onChange={(v) => set({ [row.key]: v })} />
+              <Star
+                active={row.key in overrides}
+                title={L.backToDerived(row.format(row.derived))}
+                onReset={() => drop(row.key)}
+              />
             </div>
-            <NumberRow label="Amount" min={0} max={1} step={0.01} format={f2} {...numberField(ctx, `veil.${theme}.amount`)} />
-            <NumberRow label="Exposure" min={0.4} max={1.6} step={0.01} format={f2} {...numberField(ctx, `veil.${theme}.exposure`)} />
-          </div>
-        ))}
-      </div>
+          </Field>
+        );
+      })}
+    </>
+  );
+}
 
-      <div className="flex flex-col gap-1 border-t border-border/40 pt-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          As the API reported it
-        </span>
-        {weather ? (
-          <>
-            <Readout label="code" value={String(weather.weatherCode)} />
-            <Readout label="condition" value={weather.condition} />
-            <Readout
-              label="cloud"
-              value={weather.cloudCover === undefined ? "—" : `${Math.round(weather.cloudCover * 100)}%`}
-            />
-            <Readout
-              label="precip"
-              value={weather.precipitationMmH === undefined ? "—" : `${weather.precipitationMmH} mm/h`}
-            />
-            <Readout
-              label="wind"
-              value={
-                weather.windSpeedKmh === undefined
-                  ? "—"
-                  : `${Math.round(weather.windSpeedKmh)} km/h @ ${Math.round(weather.windDirectionDeg ?? 0)}°`
-              }
-            />
-            <Readout
-              label="humidity"
-              value={weather.humidity === undefined ? "—" : `${Math.round(weather.humidity * 100)}%`}
-            />
-          </>
-        ) : (
-          <Note>No live weather — the lab is deriving from the profile defaults.</Note>
-        )}
-      </div>
-    </Panel>
+export function ApiReadout({ T, weather }: { T: LabText; weather: NormalizedWeather | null }) {
+  const { L } = T;
+  return (
+    <Field as="div" label={L.api}>
+      {weather ? (
+        <div className="flex flex-col gap-0.5">
+          <Readout k={L.apiCode} v={String(weather.weatherCode)} />
+          <Readout k={L.apiCondition} v={T.conditionName(weather.condition)} />
+          <Readout k={L.apiCloud} v={weather.cloudCover === undefined ? "—" : `${Math.round(weather.cloudCover * 100)}%`} />
+          <Readout k={L.apiPrecip} v={weather.precipitationMmH === undefined ? "—" : `${weather.precipitationMmH} mm/h`} />
+          <Readout
+            k={L.apiWind}
+            v={
+              weather.windSpeedKmh === undefined
+                ? "—"
+                : `${Math.round(weather.windSpeedKmh)} km/h @ ${Math.round(weather.windDirectionDeg ?? 0)}°`
+            }
+          />
+          <Readout k={L.apiHumidity} v={weather.humidity === undefined ? "—" : `${Math.round(weather.humidity * 100)}%`} />
+        </div>
+      ) : (
+        <Note>{L.noWeather}</Note>
+      )}
+    </Field>
+  );
+}
+
+const PROFILE_FIELDS: (keyof ConditionProfileConfig)[] = [
+  "cover",
+  "coverMin",
+  "density",
+  "darkness",
+  "precip",
+  "fog",
+  "tintAmount",
+];
+
+export function CloudsSection({ ctx, condition }: { ctx: PanelContext; condition: WeatherCondition }) {
+  const { L } = ctx.T;
+  const p = `clouds.profiles.${condition}`;
+  return (
+    <>
+      <Section title={L.profile(ctx.T.conditionName(condition))}>
+        {PROFILE_FIELDS.map((key) => (
+          <Knob key={key} ctx={ctx} path={`${p}.${key}`} min={0} max={1} step={0.01} />
+        ))}
+        <ColorPair
+          ctx={ctx}
+          label={L.tintDay}
+          a={{ path: `${p}.tintDay.zenith`, title: L.tintDayZenith }}
+          b={{ path: `${p}.tintDay.horizon`, title: L.tintDayHorizon }}
+        />
+        <ColorPair
+          ctx={ctx}
+          label={L.tintNight}
+          a={{ path: `${p}.tintNight.zenith`, title: L.tintNightZenith }}
+          b={{ path: `${p}.tintNight.horizon`, title: L.tintNightHorizon }}
+        />
+        <Note>{L.profileNote}</Note>
+      </Section>
+      <Section title={L.cover}>
+        <GateKnob ctx={ctx} path="clouds.tintCover" min={0} max={1} step={0.01} />
+        <Knob ctx={ctx} path="clouds.horizonTintRatio" min={0} max={1} step={0.01} />
+        <Knob ctx={ctx} path="clouds.darknessFromPrecip" min={0} max={1} step={0.01} />
+        <Knob ctx={ctx} path="clouds.darknessFromCover" min={0} max={1} step={0.01} />
+      </Section>
+      <Section title={L.windDrift}>
+        <Knob ctx={ctx} path="clouds.windScaleKmh" min={5} max={150} step={1} format={kmh} />
+        <Knob ctx={ctx} path="clouds.defaultWindKmh" min={0} max={60} step={1} format={kmh} />
+        <Knob ctx={ctx} path="clouds.speedBase" min={0} max={2} step={0.01} />
+        <Knob ctx={ctx} path="clouds.speedGain" min={0} max={4} step={0.01} />
+      </Section>
+      <Section title={L.lighting}>
+        <ColorPair
+          ctx={ctx}
+          label={L.litTops}
+          a={{ path: "clouds.lighting.litDay", title: L.litDay }}
+          b={{ path: "clouds.lighting.litNight", title: L.litNight }}
+        />
+        <ColorPair
+          ctx={ctx}
+          label={L.shadeDay}
+          a={{ path: "clouds.lighting.shadeDay", title: L.shadeDayCalm }}
+          b={{ path: "clouds.lighting.shadeDayStorm", title: L.shadeDayStorm }}
+        />
+        <ColorPair
+          ctx={ctx}
+          label={L.shadeNight}
+          a={{ path: "clouds.lighting.shadeNight", title: L.shadeNightCalm }}
+          b={{ path: "clouds.lighting.shadeNightStorm", title: L.shadeNightStorm }}
+        />
+      </Section>
+    </>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Veil
+// -----------------------------------------------------------------------------
+
+export function VeilSection({ ctx }: { ctx: PanelContext }) {
+  const { L, themeName } = ctx.T;
+  return (
+    <Section title={L.veil}>
+      {(["light", "dark"] as const).map((theme) => (
+        <div key={theme} className="flex flex-col gap-3">
+          <div className="grid grid-cols-[2rem_1fr] items-center gap-2">
+            <ColorCell ctx={ctx} path={`veil.${theme}.color`} title={L.veilColor(themeName(theme))} />
+            <Sub>{themeName(theme)}</Sub>
+          </div>
+          <Knob ctx={ctx} path={`veil.${theme}.amount`} min={0} max={1} step={0.01} />
+          <Knob ctx={ctx} path={`veil.${theme}.exposure`} min={0.4} max={1.6} step={0.01} />
+        </div>
+      ))}
+      <Note>{L.veilNote}</Note>
+    </Section>
   );
 }
 
@@ -766,7 +766,7 @@ export function WeatherPanel({
 // Camera & staging
 // -----------------------------------------------------------------------------
 
-export function StagingPanel({
+export function StagingSection({
   ctx,
   portrait,
   onPortrait,
@@ -775,66 +775,44 @@ export function StagingPanel({
   portrait: boolean;
   onPortrait: (portrait: boolean) => void;
 }) {
+  const { L } = ctx.T;
   return (
-    <Panel title="Camera & staging" hint={`horizon ${f2(ctx.config.staging.horizonY)}`}>
-      <Segmented
-        value={portrait ? "portrait" : "landscape"}
-        onChange={(v) => onPortrait(v === "portrait")}
-        options={[
-          { value: "landscape", label: "Landscape" },
-          { value: "portrait", label: "Portrait" },
-        ]}
-      />
-      <Note>
-        The stage was designed for both. The preview canvas and the screen-space
-        plot change shape together.
-      </Note>
-
-      <div className="flex flex-col gap-3 border-t border-border/40 pt-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          The frame
-        </span>
-        <NumberRow label="Horizon y" min={-0.2} max={0.6} step={0.005} format={f3} {...numberField(ctx, "staging.horizonY")} />
-        <NumberRow label="Sun arc height" min={0} max={1.5} step={0.01} format={f2} {...numberField(ctx, "staging.sunArc")} />
-        <NumberRow label="East → west span" min={0.2} max={1.4} step={0.01} format={f2} {...numberField(ctx, "staging.azimuthSpan")} />
-        <NumberRow label="Left margin" min={-0.3} max={0.4} step={0.01} format={f2} {...numberField(ctx, "staging.azimuthMargin")} />
-      </div>
-
-      <div className="flex flex-col gap-3 border-t border-border/40 pt-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          The moon&rsquo;s stage
-        </span>
-        <NumberRow label="y at the horizon" min={0} max={1} step={0.005} format={f3} {...numberField(ctx, "staging.moon.rise")} />
-        <NumberRow label="y once properly up" min={0} max={1} step={0.005} format={f3} {...numberField(ctx, "staging.moon.low")} />
-        <NumberRow label="y at the top" min={0} max={1} step={0.005} format={f3} {...numberField(ctx, "staging.moon.high")} />
-        <NumberRow label="Reaches the top at" min={5} max={90} step={1} format={degrees} {...numberField(ctx, "staging.moon.topAtDeg")} />
-        <GateRow ctx={ctx} label="Climbs from horizon to low" path="staging.moon.riseGate" min={-20} max={30} step={0.5} format={degrees} />
-        <div className="grid grid-cols-2 gap-2">
-          <NumberRow label="x min" min={0} max={0.5} step={0.005} format={f3} {...numberField(ctx, "staging.moon.xMin")} />
-          <NumberRow label="x max" min={0.5} max={1} step={0.005} format={f3} {...numberField(ctx, "staging.moon.xMax")} />
-        </div>
-        <Note>
-          Where the moon <em>is</em> is never bent. This is only where it is
-          drawn — and the screen-space plot redraws with every one of these, so
-          the change is visible as a change of path before it is a change of
-          picture.
-        </Note>
-      </div>
-
-      <div className="flex flex-col gap-3 border-t border-border/40 pt-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Shader framing
-        </span>
-        <NumberRow label="Horizon curve" min={0.2} max={2.5} step={0.01} format={f2} {...numberField(ctx, "staging.shader.horizonCurve")} />
-        <NumberRow label="Far deck scale" min={0.3} max={6} step={0.05} format={f2} {...numberField(ctx, "staging.shader.cloudScaleFar")} />
-        <NumberRow label="Near deck scale" min={0.3} max={6} step={0.05} format={f2} {...numberField(ctx, "staging.shader.cloudScaleNear")} />
-        <NumberRow label="Far deck parallax" min={0.1} max={2} step={0.01} format={f2} {...numberField(ctx, "staging.shader.cloudParallaxFar")} />
-        <NumberRow label="Near deck parallax" min={0.1} max={2} step={0.01} format={f2} {...numberField(ctx, "staging.shader.cloudParallaxNear")} />
-        <Note>
-          Only the Sky engine reads these. The Gradient and Classic renderings
-          beside it will not move.
-        </Note>
-      </div>
-    </Panel>
+    <>
+      <Section title={L.staging}>
+        <Field as="div" label={L.frame}>
+          <Segmented
+            value={portrait ? "portrait" : "landscape"}
+            onChange={(v) => onPortrait(v === "portrait")}
+            options={[
+              { value: "landscape", label: L.landscape },
+              { value: "portrait", label: L.portrait },
+            ]}
+          />
+          <span className="text-[10px] text-muted-foreground/60">{L.stagingNote}</span>
+        </Field>
+        <Knob ctx={ctx} path="staging.horizonY" min={-0.2} max={0.6} step={0.005} format={f3} />
+        <Knob ctx={ctx} path="staging.sunArc" min={0} max={1.5} step={0.01} />
+        <Knob ctx={ctx} path="staging.azimuthSpan" min={0.2} max={1.4} step={0.01} />
+        <Knob ctx={ctx} path="staging.azimuthMargin" min={-0.3} max={0.4} step={0.01} />
+      </Section>
+      <Section title={L.moonStage}>
+        <Knob ctx={ctx} path="staging.moon.rise" min={0} max={1} step={0.005} format={f3} />
+        <Knob ctx={ctx} path="staging.moon.low" min={0} max={1} step={0.005} format={f3} />
+        <Knob ctx={ctx} path="staging.moon.high" min={0} max={1} step={0.005} format={f3} />
+        <Knob ctx={ctx} path="staging.moon.topAtDeg" min={5} max={90} step={1} format={degrees} />
+        <GateKnob ctx={ctx} path="staging.moon.riseGate" min={-20} max={30} step={0.5} format={degrees} />
+        <Knob ctx={ctx} path="staging.moon.xMin" min={0} max={0.5} step={0.005} format={f3} />
+        <Knob ctx={ctx} path="staging.moon.xMax" min={0.5} max={1} step={0.005} format={f3} />
+        <Note>{L.moonStageNote}</Note>
+      </Section>
+      <Section title={L.shader}>
+        <Knob ctx={ctx} path="staging.shader.horizonCurve" min={0.2} max={2.5} step={0.01} />
+        <Knob ctx={ctx} path="staging.shader.cloudScaleFar" min={0.3} max={6} step={0.05} />
+        <Knob ctx={ctx} path="staging.shader.cloudScaleNear" min={0.3} max={6} step={0.05} />
+        <Knob ctx={ctx} path="staging.shader.cloudParallaxFar" min={0.1} max={2} step={0.01} />
+        <Knob ctx={ctx} path="staging.shader.cloudParallaxNear" min={0.1} max={2} step={0.01} />
+        <Note>{L.shaderNote}</Note>
+      </Section>
+    </>
   );
 }

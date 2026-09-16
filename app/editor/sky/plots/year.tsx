@@ -36,11 +36,16 @@ const A_H = 150;
 export function AnalemmaPlot({
   points,
   now,
-  clockLabel,
+  title = "Analemma",
+  hint,
+  footer,
 }: {
   points: TrackPoint[];
   now: TrackPoint;
-  clockLabel: string;
+  title?: string;
+  hint?: string;
+  /** The extent line under the plot, given the fitted ranges. */
+  footer?: (minEl: string, maxEl: string, minAz: string, maxAz: string) => string;
 }) {
   if (points.length === 0) return null;
   // At a clock time when the sun is down, a year of azimuths crosses north and
@@ -65,14 +70,18 @@ export function AnalemmaPlot({
 
   return (
     <Plot
-      title="Analemma"
-      hint={`${clockLabel} · every day of a year`}
+      title={title}
+      hint={hint}
       viewBox={`0 0 ${A_W} ${A_H}`}
       svgClassName="h-48"
       footer={
         <p className="font-mono text-[10px] leading-relaxed text-tertiary-foreground">
-          Elevation {minEl.toFixed(1)}° → {maxEl.toFixed(1)}°, azimuth{" "}
-          {minAz.toFixed(1)}° → {maxAz.toFixed(1)}° at the same clock time.
+          {(footer ?? ((a, b, c, d) => `Elevation ${a} → ${b}, azimuth ${c} → ${d} at the same clock time.`))(
+            `${minEl.toFixed(1)}°`,
+            `${maxEl.toFixed(1)}°`,
+            `${minAz.toFixed(1)}°`,
+            `${maxAz.toFixed(1)}°`
+          )}
         </p>
       }
     >
@@ -105,21 +114,27 @@ export function MoonMonthPlot({
   nowMs,
   mirror,
   onPick,
+  title = "Month · phase and transit height",
+  peak = (deg) => `peak ${deg}`,
+  tileTitle = (d, lit, transit) => `${d} · ${lit}% lit · transit ${transit}`,
 }: {
   days: MoonDay[];
   nowMs: number;
   mirror: boolean;
   onPick: (ms: number) => void;
+  title?: string;
+  peak?: (deg: string) => string;
+  tileTitle?: (date: string, lit: number, transit: string) => string;
 }) {
   const maxTransit = Math.max(10, ...days.map((d) => d.transitElevation));
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between">
         <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Month · phase and transit height
+          {title}
         </span>
         <span className="font-mono text-[10px] tabular-nums text-tertiary-foreground">
-          peak {maxTransit.toFixed(0)}°
+          {peak(`${maxTransit.toFixed(0)}°`)}
         </span>
       </div>
       <div className="grid grid-cols-10 gap-1">
@@ -130,7 +145,7 @@ export function MoonMonthPlot({
               key={d.ms}
               type="button"
               onClick={() => onPick(d.ms)}
-              title={`${date(d.ms)} · ${Math.round(d.illumination * 100)}% lit · transit ${d.transitElevation.toFixed(0)}°`}
+              title={tileTitle(date(d.ms), Math.round(d.illumination * 100), `${d.transitElevation.toFixed(0)}°`)}
               className={cn(
                 "flex flex-col items-center gap-0.5 rounded px-0.5 py-1 transition-colors",
                 current ? "bg-accent/70" : "hover:bg-muted/40"
@@ -171,12 +186,18 @@ export function PhaseDial({
   elongation,
   name,
   mirror,
+  line = (p, lit, e) => `phase ${p} · ${lit}% lit · elongation ${e}`,
+  newLabel = "new",
+  fullLabel = "full",
 }: {
   phase: number;
   illumination: number;
   elongation: number;
   name: string;
   mirror: boolean;
+  line?: (phase: string, lit: number, elongation: string) => string;
+  newLabel?: string;
+  fullLabel?: string;
 }) {
   const angle = phase * 2 * Math.PI;
   const r = 26;
@@ -190,10 +211,10 @@ export function PhaseDial({
         <circle cx={cx} cy={cy} r={r} fill="none" className="stroke-foreground/15" strokeWidth={1} />
         <circle cx={cx} cy={cy - r} r={2} className="fill-foreground/30" />
         <text x={cx} y={cy - r - 4} textAnchor="middle" className="fill-tertiary-foreground font-mono" style={{ fontSize: 6 }}>
-          new
+          {newLabel}
         </text>
         <text x={cx} y={cy + r + 9} textAnchor="middle" className="fill-tertiary-foreground font-mono" style={{ fontSize: 6 }}>
-          full
+          {fullLabel}
         </text>
         <line x1={cx} y1={cy} x2={x} y2={y} className="stroke-foreground/35" strokeWidth={1} />
         <Marker x={x} y={y} color={MOON_COLOR} r={3.5} />
@@ -204,8 +225,7 @@ export function PhaseDial({
           {name}
         </span>
         <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
-          phase {phase.toFixed(4)} · {Math.round(illumination * 100)}% lit · elongation{" "}
-          {elongation.toFixed(1)}°
+          {line(phase.toFixed(4), Math.round(illumination * 100), `${elongation.toFixed(1)}°`)}
         </span>
       </div>
     </div>

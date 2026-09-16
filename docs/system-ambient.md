@@ -223,11 +223,17 @@ saves to `content/sky.json`, which this system imports at build.
 
 It is a **consumer** of `systems/ambient/lib`, never a fork: the plots, the
 readouts and the preview all come from `deriveWeatherScene`, `stageMoon` and
-`solar.ts`, so what the lab shows is what the wallpaper did. Full documentation:
-[docs/editor-sky.md](./editor-sky.md).
+`solar.ts`, so what the lab shows is what the wallpaper did. Its stage is the
+page's own full-page wallpaper: the provider takes the lab's scene and engine
+as `labStage` (lab-only, cleared on leave) and the lab's tuned config as
+`labSkyConfig` (in force on every route until Reset all), the same pair of
+overrides the Legibility Lab uses for its policy. `/editor/sky` counts as a
+desktop for the reading treatment, like `/editor/legibility`. Full
+documentation: [docs/editor-sky.md](./editor-sky.md).
 
 The devtool's Sky module stays the on-page shortcut; it gains a picker over the
-config's named presets and nothing else.
+config's named presets, and a *Sky lab config in force* row while one is, and
+nothing else.
 
 ```bash
 pnpm sky:check   # fail if content/sky.json no longer normalizes cleanly

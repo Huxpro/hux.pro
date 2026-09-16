@@ -44,6 +44,11 @@ const COMPASS = [
   { az: 360, label: "N" },
 ];
 
+export interface PlotText {
+  title: string;
+  legend: string[];
+}
+
 export function SkyDomePlot({
   sunTrack,
   moonTrack,
@@ -51,6 +56,9 @@ export function SkyDomePlot({
   moon,
   events,
   hint,
+  text,
+  horizonLabel = "horizon",
+  nightLabel = "−18° astronomical night",
 }: {
   sunTrack: TrackPoint[];
   moonTrack: TrackPoint[];
@@ -58,6 +66,9 @@ export function SkyDomePlot({
   moon: { azimuth: number; elevation: number };
   events: { sun: RiseSetTimes; moon: RiseSetTimes };
   hint?: string;
+  text?: PlotText;
+  horizonLabel?: string;
+  nightLabel?: string;
 }) {
   const toXY = (p: TrackPoint): [number, number] => [p.azimuth, domeY(p.elevation)];
   const sunPath = path(breakOnWrap(sunTrack.map(toXY), 180));
@@ -82,13 +93,13 @@ export function SkyDomePlot({
 
   return (
     <Plot
-      title="Sky dome · azimuth × elevation"
+      title={text?.title ?? "Sky dome · azimuth × elevation"}
       hint={hint}
       viewBox={`0 0 ${DOME_W} ${DOME_H}`}
       svgClassName="h-44"
       legend={[
-        { label: "sun", color: SUN_COLOR },
-        { label: "moon", color: MOON_COLOR },
+        { label: text?.legend[0] ?? "sun", color: SUN_COLOR },
+        { label: text?.legend[1] ?? "moon", color: MOON_COLOR },
       ]}
     >
       {/* Below the horizon, and the deeper band where twilight is over. */}
@@ -97,8 +108,8 @@ export function SkyDomePlot({
 
       <GridLine y={domeY(60)} x2={DOME_W} label="60°" />
       <GridLine y={domeY(30)} x2={DOME_W} label="30°" />
-      <GridLine y={HORIZON_Y} x2={DOME_W} label="horizon" strong />
-      <GridLine y={domeY(-18)} x2={DOME_W} label="−18° astronomical night" />
+      <GridLine y={HORIZON_Y} x2={DOME_W} label={horizonLabel} strong />
+      <GridLine y={domeY(-18)} x2={DOME_W} label={nightLabel} />
 
       {COMPASS.map((c) => (
         <g key={`${c.az}-${c.label}`}>
@@ -174,6 +185,8 @@ export function ScreenPlot({
   contentTop,
   portrait,
   hint,
+  text,
+  bandLabel = "page content · widget grid",
 }: {
   track: StagedPoint[];
   sun: ScreenPoint;
@@ -183,6 +196,8 @@ export function ScreenPlot({
   contentTop: number;
   portrait: boolean;
   hint?: string;
+  text?: PlotText;
+  bandLabel?: string;
 }) {
   const W = portrait ? 100 : 178;
   const H = portrait ? 178 : 100;
@@ -201,14 +216,14 @@ export function ScreenPlot({
 
   return (
     <Plot
-      title="Screen space · where it is drawn"
+      title={text?.title ?? "Screen space · where it is drawn"}
       hint={hint}
       viewBox={`0 0 ${W} ${H}`}
       svgClassName={portrait ? "h-64" : "h-44"}
       legend={[
-        { label: "sun", color: SUN_COLOR },
-        { label: "moon (shown)", color: STAGE_COLOR },
-        { label: "moon (staged, hidden)", color: MOON_COLOR, dashed: true },
+        { label: text?.legend[0] ?? "sun", color: SUN_COLOR },
+        { label: text?.legend[1] ?? "moon (shown)", color: STAGE_COLOR },
+        { label: text?.legend[2] ?? "moon (staged, hidden)", color: MOON_COLOR, dashed: true },
       ]}
     >
       <rect x={0} y={0} width={W} height={H} className="fill-transparent" />
@@ -235,7 +250,7 @@ export function ScreenPlot({
         className="fill-tertiary-foreground font-mono"
         style={{ fontSize: 5.5 }}
       >
-        page content · widget grid
+        {bandLabel}
       </text>
 
       <path d={moonGhost} fill="none" stroke={MOON_COLOR} strokeWidth={0.8} strokeDasharray="2 2" opacity={0.6} />

@@ -25,8 +25,18 @@ export const WALLPAPER_HOME_PATH = "/";
  */
 export const LEGIBILITY_LAB_PATH = "/editor/legibility";
 
+/**
+ * The Sky Engine Lab paints its own scene full-page as the stage; a veil over
+ * it would hide the very thing being tuned.
+ */
+export const SKY_LAB_PATH = "/editor/sky";
+
 export function isWallpaperHomePath(pathname: string | null): boolean {
-  return pathname === WALLPAPER_HOME_PATH || pathname === LEGIBILITY_LAB_PATH;
+  return (
+    pathname === WALLPAPER_HOME_PATH ||
+    pathname === LEGIBILITY_LAB_PATH ||
+    pathname === SKY_LAB_PATH
+  );
 }
 
 /** Whether the wallpaper should recede for reading on this route. */

@@ -22,9 +22,10 @@ result.
 | Scene derivation (reads the config) | `systems/ambient/lib/scene.ts` |
 | Shader framing (from `WeatherScene.render`) | `systems/ambient/lib/wallpaper/{shader,renderer}.ts` |
 | Ephemeris, rise/set, `explain*` readouts | `systems/ambient/lib/solar.ts` |
-| Editor page (hidden, `noindex`) | `app/editor/sky/{page,view,controls,model}.tsx` |
+| Editor page (hidden, `noindex`) | `app/editor/sky/{page,view,controls,i18n,model}.ts(x)` |
 | Plots (SVG, no chart library) | `app/editor/sky/plots/` |
-| Shared editor form vocabulary | `app/editor/controls.tsx` (with the Icon Studio and the Legibility Lab) |
+| Shared editor vocabulary (sections, sliders, the amber star, chips, readouts) | `app/editor/controls.tsx` (with the Icon Studio and the Legibility Lab) |
+| The two provider overrides (`labStage`, `labSkyConfig`) | `systems/ambient/provider.tsx` |
 | Server-side file access | `lib/sky-file.ts` |
 | Dev save API | `app/api/sky/route.ts` |
 | CLI check | `scripts/sky-check.ts` → `pnpm sky:check` |
@@ -67,13 +68,23 @@ where it was.
 
 ## The page
 
+The lab is built the way the Legibility Lab is: a page that scrolls, over the
+site's own wallpaper, with a sticky glass panel on the right. **The stage is
+not a mock.** While the lab is open the full-page wallpaper behind it paints
+the lab's scene — through `labStage` on the ambient provider, the counterpart
+of the Legibility Lab's `legibilityOverride` — with whichever engine the panel's
+**Stage** switch names (Sky, Gradient, Classic). The same canvas, the same
+shader, the same CSS engines a visitor gets; the visitor's own wallpaper comes
+back on leave. Everything on the page sits on that sky as glass cards, the way
+widgets sit on the home screen.
+
 **Left — the picture and the evidence.**
 
-- **Three engines on one scene**: the live `<WeatherWallpaper>` (WebGL), the CSS
+- **Three engines on one scene**: a `<WeatherWallpaper>` tile (WebGL), the CSS
   Gradient fallback and the Classic palette, side by side, so a change is seen
-  in all three. A Light / Dark switch drives the scene's theme independently of
-  the page's, for tuning the veil.
-- **The clock**, at three scales (below).
+  in all three at once — and full-page behind them in the one the Stage
+  switch names. The tiles follow the Preview frame (landscape / portrait).
+- **The clock**, at three scales (below): space plays, the arrows step.
 - **The day**: the sky strip (the devtool's, at ten-minute resolution) with a
   moon-visibility track under it, sunrise / sunset / moonrise / moonset ticked,
   and a playhead you drag.
@@ -104,9 +115,26 @@ where it was.
   an hour), the obliquity of the ecliptic, and the moon's mean distance.
   "Schlyter-grade, ~1°" is a claim until something measures it.
 
-**Right — the config.** Presets · Observer & scenarios · Weather · Sun · Moon ·
-Stars · Camera & staging. Every lever shows its value, and an amber `*` once it
-has left the committed default — click it to go back.
+**Right — the panel.** Scene (theme, the Stage engine, the condition and the
+three scene tweaks, the raw API readout) · Observer · Presets · Sun · Moon ·
+Stars · Clouds · Veil · Camera · Export. Every lever is the site's own slider
+with its value beside it and an amber `*` once it has left the committed
+value — click the star to go back — exactly as in the Legibility Lab and the
+devtool. Lever labels are keyed by the config path they edit (`i18n.ts`), in
+both languages, so a label cannot drift from the field it writes.
+
+The header line reads the instant, the observer, the condition, the engine
+that is painting, the theme and the preset, then how many leaves of the config
+differ from the committed preset and whether the file is unsaved.
+
+**What reaches past the page.** As in the Legibility Lab, the tuning is not
+confined to the lab: the config you are editing goes to the provider as
+`labSkyConfig` and paints every route until Reset all or a reload, so a moon
+staged here can be checked on the real home screen before it is saved. The
+devtool's Sky module shows a *Sky lab config in force* row with a star while
+that is so. The stage itself (`labStage`) is lab-only and cleared on leave.
+Coming back finds the panel where you left it (the session store), unless the
+file on disk changed meanwhile.
 
 ## Time control
 
@@ -117,14 +145,17 @@ has left the committed default — click it to go back.
 | **Year** | 365 days, whole days, clock held | 1 week / s | The sun's seasonal height, the analemma, day-length change |
 
 Play / pause, step, a speed dial (0.25× → 8×), a loop toggle, and a scrubber
-whose extent follows the scale. The month and year sweeps advance by whole days
+whose extent follows the scale (space plays and pauses, ← → step, when no
+field has the focus). The month and year sweeps advance by whole days
 on purpose: a continuous sweep would be a blur of sunrises, and the point is the
 day-to-day beat. **Hold** pins the time of day the long sweeps (and the
 analemma) use; **Now** returns to the real instant.
 
 The lab drives `deriveWeatherScene` directly rather than going through the
-ambient provider — so a sweep never touches the site's own clock, and never has
-to push 30 days through the provider's minute tick.
+ambient provider's clock — so a sweep never touches the site's own clock, and
+never has to push 30 days through the provider's minute tick. The finished
+scene is handed to the provider as the stage; under a CSS engine that stage
+paints one layer replaced in place rather than a crossfade per frame.
 
 ## Observer
 
@@ -142,9 +173,15 @@ blue hour, noon in polar night.
 
 - **Save** (dev only) writes `content/sky.json` through `/api/sky`. Commit it;
   `scene.ts` imports it at build, so the static export needs nothing at runtime.
-- **Presets** are named configs in the same file. Editing one that is not
-  `active` changes nothing on the site until you make it active. The devtool's
-  Sky module gains a picker over them (session-only) once there is more than one.
+- **Presets** are named configs in the same file. The site paints from the
+  `active` one once saved; while you are in the lab, and until Reset all, the
+  preset you are *editing* is what paints (`labSkyConfig`). **Add** saves the
+  current config as a new preset and moves the editing there — the preset you
+  were on keeps its stored config. The devtool's Sky module gains a picker
+  over the saved presets (session-only) once there is more than one.
+- In dev, `content/sky.json` is also a static import of the scene module, so a
+  Save hot-reloads the app; the lab keeps its place through that (the session
+  store, and a saved-file event any mounted instance adopts).
 - **JSON** copies the current config; **Link** copies a permalink
   (`/editor/sky?t=…&lat=…&lon=…&preset=…&scale=…`) so a look can be shared in an
   issue.

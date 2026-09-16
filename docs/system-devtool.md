@@ -82,8 +82,10 @@ Debug modules for the ambient system:
    clock, the six conditions previewed at the effective hour (click again to
    return to live), the date slider that moves the moon, a **Sky preset**
    picker over the named configs in `content/sky.json` (shown only once there
-   is more than one; authored in `/editor/sky`, session-only here), and a
-   folded Tune row of scene sliders. **Now** resets everything.
+   is more than one; authored in `/editor/sky`, session-only here), a *Sky lab
+   config in force* row with a `*` while a config tuned in the Sky Engine Lab
+   is painting the site, and a folded Tune row of scene sliders. **Now**
+   resets everything, the lab's config included.
 4. **Refetch**: Force re-fetch location/weather
 
 ## Controls

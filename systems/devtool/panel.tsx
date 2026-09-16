@@ -1492,11 +1492,19 @@ function SkyModule() {
     resetTimeTravel,
   } = useAmbientTime();
 
+  // The Sky Engine Lab's tuned world model, in force on every route until it
+  // is reset here or in the lab (see `labSkyConfig` on the provider).
+  const { labSkyConfig, setLabSkyConfig } = useWallpaper();
+
   const isDayNow = scene.sun.isDay;
   const isOverridden = debugOverride !== null;
   const isTuned = Object.keys(sceneOverrides).length > 0;
   const anythingForced =
-    isTimeTravelActive || isOverridden || isTuned || skyPreset !== null;
+    isTimeTravelActive ||
+    isOverridden ||
+    isTuned ||
+    skyPreset !== null ||
+    labSkyConfig !== null;
 
   // The world model in force. Named configs are authored in `/editor/sky` and
   // committed to `content/sky.json`; this picker previews one for the session.
@@ -1591,6 +1599,7 @@ function SkyModule() {
     setDebugOverride(null);
     setSceneOverrides({});
     setSkyPreset(null);
+    setLabSkyConfig(null);
   };
 
   // --- Tune fold -----------------------------------------------------------
@@ -1880,6 +1889,22 @@ function SkyModule() {
             </span>
           </div>
         </div>
+
+        {/* A config tuned in the Sky Engine Lab and not yet saved: it paints
+            here so it can be judged on the real page. The star drops it. */}
+        {labSkyConfig !== null && (
+          <div className="flex items-center gap-1.5 border-t border-border/30 pt-2.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            <Palette className="h-3 w-3" />
+            <Link href="/editor/sky" className="hover:text-foreground">
+              {zh ? "天空实验室配置生效中" : "Sky lab config in force"}
+            </Link>
+            <PanelStar
+              onReset={() => setLabSkyConfig(null)}
+              source="session"
+              label={zh ? "回到已提交的配置" : "Back to the committed config"}
+            />
+          </div>
+        )}
 
         {/* The sky config in force. Only worth a row once `content/sky.json`
             holds more than the shipped look; everything else about it lives in

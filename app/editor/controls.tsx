@@ -6,13 +6,17 @@
  * Mono uppercase labels, subtle borders, grayscale — the "System UI" dialect
  * shared by the studios under `/editor`: the Icon Studio, the Legibility Lab
  * and the Sky Engine Lab. One set of primitives so a slider means the same
- * thing in all three, and so a new studio is panels and plots rather than
+ * thing in all three, and so a new studio is sections and plots rather than
  * another copy of these. (`Slider` itself is the site-wide one from
  * `components/ui/slider.tsx`, re-exported here.)
+ *
+ * The labs add a second half — the amber `*` that marks a live value which
+ * differs from what ships, the flat chip, the key/value readout, the quiet
+ * note — so "this is not what ships" reads the same in every lab.
  */
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 
@@ -37,13 +41,22 @@ export function Field({
   label,
   hint,
   children,
+  as = "label",
 }: {
   label: string;
   hint?: string;
   children: React.ReactNode;
+  /**
+   * A `<label>` labels the one control inside it. A row of chips or a
+   * segmented switch is several buttons, and buttons inside a label fall out
+   * of the accessibility tree — so a group of them takes a `<div>` and the
+   * label is plain text above it.
+   */
+  as?: "label" | "div";
 }) {
+  const Tag = as;
   return (
-    <label className="flex flex-col gap-1.5">
+    <Tag className="flex flex-col gap-1.5">
       <span className="flex items-baseline justify-between">
         <span className="text-xs font-medium text-foreground">{label}</span>
         {hint !== undefined && (
@@ -53,7 +66,7 @@ export function Field({
         )}
       </span>
       {children}
-    </label>
+    </Tag>
   );
 }
 
@@ -207,63 +220,52 @@ export function ColorField({
 }
 
 // -----------------------------------------------------------------------------
-// Denser primitives — for studios with more levers than the icon's twelve
+// The labs' half
 // -----------------------------------------------------------------------------
 
 /**
- * A `Section` that folds.
+ * The "this is not what ships" mark, or the space it would take.
  *
- * The Sky Engine Lab has six panels over a hundred-odd levers; every one open
- * at once is a wall. `defaultOpen` decides what a first visit shows.
+ * Amber, beside the slider it belongs to; clicking it puts the value back.
+ * The devtool draws the same star (`PanelStar`), so a tuned number reads the
+ * same wherever it is met.
  */
-export function Panel({
+export function Star({
+  active = true,
+  onReset,
   title,
-  hint,
-  defaultOpen = false,
-  children,
 }: {
+  active?: boolean;
+  onReset: () => void;
   title: string;
-  hint?: string;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  if (!active) return <span className="w-2.5" />;
   return (
-    <section className="border-b border-border/60">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className="flex w-full items-center justify-between gap-2 px-5 py-3 text-left transition-colors hover:bg-muted/20"
-      >
-        <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          <ChevronDown
-            className={cn("h-3 w-3 transition-transform duration-200", !open && "-rotate-90")}
-          />
-          {title}
-        </span>
-        {hint && (
-          <span className="truncate font-mono text-[10px] tabular-nums text-tertiary-foreground">
-            {hint}
-          </span>
-        )}
-      </button>
-      {open && <div className="flex flex-col gap-3.5 px-5 pb-5">{children}</div>}
-    </section>
+    <button
+      type="button"
+      onClick={onReset}
+      title={title}
+      aria-label={title}
+      className="ink-flat ml-1 font-mono text-amber-500/90 transition-colors hover:text-amber-400"
+    >
+      *
+    </button>
   );
 }
 
-/** A small outlined button — the editor's chip. */
+/** A flat chip — the labs' pick-one-of-many, in a row that wraps. */
 export function Chip({
   active,
   onClick,
   title,
+  disabled,
   children,
   className,
 }: {
   active?: boolean;
   onClick: () => void;
   title?: string;
+  disabled?: boolean;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -272,12 +274,13 @@ export function Chip({
       type="button"
       onClick={onClick}
       title={title}
+      disabled={disabled}
       aria-pressed={active}
       className={cn(
-        "rounded border px-2 py-0.5 font-mono text-[11px] transition-colors",
+        "rounded px-1.5 py-0.5 text-[10px] font-mono transition-colors disabled:opacity-40",
         active
-          ? "border-foreground/30 bg-foreground text-background"
-          : "border-border/60 text-muted-foreground hover:bg-muted/30 hover:text-foreground",
+          ? "bg-foreground text-background"
+          : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
         className,
       )}
     >
@@ -286,15 +289,15 @@ export function Chip({
   );
 }
 
-/** A key/value line: the readout half of the editor's vocabulary. */
+/** A key/value line: the readout half of the labs' vocabulary. */
 export function Readout({
-  label,
-  value,
+  k,
+  v,
   title,
   tone = "normal",
 }: {
-  label: string;
-  value: React.ReactNode;
+  k: React.ReactNode;
+  v: React.ReactNode;
   title?: string;
   tone?: "normal" | "good" | "bad";
 }) {
@@ -303,79 +306,25 @@ export function Readout({
       title={title}
       className="flex items-baseline justify-between gap-3 font-mono text-[11px]"
     >
-      <span className="shrink-0 text-muted-foreground">{label}</span>
+      <span className="shrink-0 text-muted-foreground">{k}</span>
       <span
         className={cn(
-          "truncate tabular-nums",
-          tone === "good" && "text-emerald-500",
-          tone === "bad" && "text-amber-500",
-          tone === "normal" && "text-foreground/85",
+          "truncate text-right tabular-nums",
+          tone === "good" && "text-emerald-600 dark:text-emerald-400",
+          tone === "bad" && "text-amber-600 dark:text-amber-400",
+          tone === "normal" && "text-foreground",
         )}
       >
-        {value}
+        {v}
       </span>
     </div>
   );
 }
 
-/**
- * A slider with its number, and a dot that appears once the value has left the
- * default — click it to go back. The same "what did I change?" affordance the
- * devtool's `*` gives, in the editor's dialect.
- */
-export function NumberRow({
-  label,
-  value,
-  min,
-  max,
-  step,
-  defaultValue,
-  format = (v) => v.toFixed(2),
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  defaultValue?: number;
-  format?: (value: number) => string;
-  onChange: (value: number) => void;
-}) {
-  const dirty = defaultValue !== undefined && Math.abs(value - defaultValue) > 1e-9;
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="flex items-baseline justify-between gap-2">
-        <span className="flex items-center gap-1 text-xs text-foreground">
-          {label}
-          {dirty && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                onChange(defaultValue);
-              }}
-              title={`Back to the default (${format(defaultValue)})`}
-              aria-label={`Reset ${label}`}
-              className="text-[13px] leading-none text-amber-500 transition-opacity hover:opacity-70"
-            >
-              *
-            </button>
-          )}
-        </span>
-        <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
-          {format(value)}
-        </span>
-      </span>
-      <Slider value={value} min={min} max={max} step={step} onChange={onChange} />
-    </label>
-  );
-}
-
 /** A quiet explanatory line under a group of levers. */
-export function Note({ children }: { children: React.ReactNode }) {
+export function Note({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <p className="font-mono text-[10px] leading-relaxed text-tertiary-foreground">
+    <p className={cn("text-[10px] leading-snug text-muted-foreground/60", className)}>
       {children}
     </p>
   );
@@ -387,7 +336,73 @@ export function Swatch({ color, title }: { color: string; title?: string }) {
     <span
       title={title ?? color}
       style={{ backgroundColor: color }}
-      className="inline-block h-3 w-3 shrink-0 rounded-sm ring-1 ring-border/60"
+      className="inline-block size-3 shrink-0 rounded-sm ring-1 ring-border"
     />
+  );
+}
+
+/** The labs' outlined action button: copy, reset, save. */
+export function LabButton({
+  onClick,
+  disabled,
+  title,
+  primary,
+  children,
+  className,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  title?: string;
+  /** The one action that commits: filled, not outlined. */
+  primary?: boolean;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-mono transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+        primary
+          ? "bg-foreground text-background hover:bg-foreground/90"
+          : "border border-border/60 text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Copies `text` to the clipboard and says so for a moment. */
+export function CopyButton({
+  text,
+  label,
+  title,
+}: {
+  text: string | (() => string);
+  label: string;
+  title?: string;
+}) {
+  const [done, setDone] = useState(false);
+  return (
+    <LabButton
+      title={title}
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(typeof text === "function" ? text() : text);
+          setDone(true);
+          setTimeout(() => setDone(false), 1200);
+        } catch {
+          // Clipboard unavailable — the export textarea beside it is selectable.
+        }
+      }}
+    >
+      {done ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+      {label}
+    </LabButton>
   );
 }

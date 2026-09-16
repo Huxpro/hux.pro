@@ -352,6 +352,8 @@ export function moonMonth(
 // -----------------------------------------------------------------------------
 
 export interface ReferenceCheck {
+  /** Which row this is, for a label in either language. */
+  key: "newMoon" | "synodic" | "obliquity" | "distance";
   label: string;
   source: string;
   published: string;
@@ -396,7 +398,7 @@ export function nextNewMoon(fromMs: number): number {
 }
 
 /** Lunations averaged for the synodic-month row — see `referenceChecks`. */
-const SYNODIC_SAMPLE = 99;
+export const SYNODIC_SAMPLE = 99;
 const MEAN_LUNAR_DISTANCE_KM = 384_400;
 
 let cached: ReferenceCheck[] | null = null;
@@ -444,6 +446,7 @@ export function referenceChecks(): ReferenceCheck[] {
 
   cached = [
     {
+      key: "newMoon",
       label: "New moon, 2000-01-06",
       source: "Meeus, lunation 0",
       published: "18:14 UT",
@@ -452,6 +455,7 @@ export function referenceChecks(): ReferenceCheck[] {
       ok: Math.abs(minutesOff) <= 180,
     },
     {
+      key: "synodic",
       label: `Synodic month (${SYNODIC_SAMPLE} lunations)`,
       source: "IAU mean value",
       published: `${SYNODIC_MONTH_DAYS.toFixed(6)} d`,
@@ -460,6 +464,7 @@ export function referenceChecks(): ReferenceCheck[] {
       ok: Math.abs(synodic - SYNODIC_MONTH_DAYS) <= 0.01,
     },
     {
+      key: "obliquity",
       label: "Obliquity of the ecliptic",
       source: "J2000.0 \u2014 peak solar declination",
       published: "23.4393\u00b0",
@@ -468,6 +473,7 @@ export function referenceChecks(): ReferenceCheck[] {
       ok: Math.abs(maxDec - 23.4393) <= 0.05,
     },
     {
+      key: "distance",
       label: "Mean lunar distance",
       source: "IAU, centre to centre",
       published: `${MEAN_LUNAR_DISTANCE_KM.toLocaleString("en-GB")} km`,

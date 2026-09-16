@@ -1,4 +1,4 @@
-import { readSkyFile } from "@/lib/sky-file";
+import { readSkyFileSnapshot } from "@/lib/sky-file";
 import { SkyEditorView } from "./view";
 
 export const metadata = {
@@ -14,5 +14,9 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default function SkyEditorPage() {
-  return <SkyEditorView initialFile={readSkyFile()} />;
+  // `readAtMs` lets the lab tell a session saved after this render apart from
+  // a file that changed on disk behind its back — see the session store in
+  // view.tsx.
+  const { file, readAtMs } = readSkyFileSnapshot();
+  return <SkyEditorView initialFile={file} readAtMs={readAtMs} />;
 }

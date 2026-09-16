@@ -29,6 +29,15 @@ export function readSkyFile(): SkyFile {
   }
 }
 
+/**
+ * The file, and when it was read. The editor page hands both to the lab, so a
+ * session saved after this read can be told apart from a file that changed on
+ * disk behind the lab's back (see the session store in `app/editor/sky/view.tsx`).
+ */
+export function readSkyFileSnapshot(): { file: SkyFile; readAtMs: number } {
+  return { file: readSkyFile(), readAtMs: Date.now() };
+}
+
 /** Persist a file to `content/sky.json` (pretty, trailing newline). */
 export function writeSkyFile(file: unknown): SkyFile {
   const normalized = normalizeSkyFile(file);

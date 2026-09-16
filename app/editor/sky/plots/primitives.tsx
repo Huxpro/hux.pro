@@ -52,7 +52,7 @@ export function Plot({
         viewBox={viewBox}
         preserveAspectRatio="none"
         className={cn(
-          "w-full rounded-lg bg-muted/15 ring-1 ring-border/50",
+          "w-full rounded-xl bg-muted/20 ring-1 ring-border/50",
           svgClassName,
         )}
         role="img"
