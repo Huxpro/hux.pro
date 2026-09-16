@@ -132,7 +132,11 @@ function sourceExt(url: string): string {
   return ext || ".jpg";
 }
 
-async function writeThumb(image: sharp.Sharp, source: { width: number; height: number }, dest: string) {
+async function writeThumb(
+  image: ReturnType<typeof sharp>,
+  source: { width: number; height: number },
+  dest: string
+) {
   const thumbScale = Math.min(1, THUMB_MAX / Math.max(source.width, source.height));
   await image
     .clone()
@@ -238,11 +242,16 @@ async function encodePhoto(id: string, sourcePath: string): Promise<void> {
 
 async function encodePair(pair: PairSource): Promise<void> {
   if (!pair.encode) return;
-  if (!pair.light || !pair.dark) {
+  const light = pair.light;
+  const dark = pair.dark;
+  if (!light || !dark) {
     throw new Error(`${pair.id}: encode=${pair.encode} needs light and dark URLs`);
   }
-  for (const half of ["light", "dark"] as const) {
-    const url = pair[half];
+  const halves = [
+    ["light", light],
+    ["dark", dark],
+  ] as const;
+  for (const [half, url] of halves) {
     const cached = path.join(CACHE, `${pair.id}-${half}${sourceExt(url)}`);
     await fetchSource(url, cached);
     const destSrc = `/wallpapers/${pair.id}/${half}.webp`;
