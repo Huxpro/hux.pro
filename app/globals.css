@@ -1359,3 +1359,96 @@ html.dragging * {
   user-drag: none;
 }
 
+
+/* =============================================================================
+   Secondary surface motion — `[data-surface-popup]`, `[data-surface-shell]`
+   Base UI's Drawer leaves every animation to CSS and publishes the state as
+   custom properties on the popup, so the whole vocabulary of a surface —
+   arriving, leaving, changing detent, following a finger, stepping back behind
+   another sheet — is written once, here, on the site's own curve.
+
+   From Base UI, on the popup: `--drawer-snap-point-offset` (how far down the
+   active detent sits), `--drawer-swipe-movement-x/y` (the live drag),
+   `--drawer-swipe-strength` (how hard it was flicked), and on the viewport
+   `--drawer-keyboard-inset` (how much of the screen the software keyboard has).
+   From systems/surface/sheet.tsx: `--surface-gap`, `--surface-exit`,
+   `--surface-duration`, `--surface-easing`.
+   ============================================================================= */
+
+[data-surface-popup] {
+  transition:
+    transform var(--surface-duration) var(--surface-easing),
+    padding-bottom var(--surface-duration) var(--surface-easing);
+}
+
+/* A sheet follows the finger, and rests wherever its detent puts it. Base UI
+   zeroes its own transform for a sheet with detents and expects this sum. */
+[data-surface-popup][data-swipe-direction="down"] {
+  transform: translateY(
+    calc(var(--drawer-snap-point-offset, 0px) + var(--drawer-swipe-movement-y, 0px))
+  );
+}
+
+/* The detent as padding as well as travel: the popup slides down, its bottom
+   padding grows by the same amount, so the shell inside keeps its rounded
+   corners a gap above the bottom edge instead of below the screen. The live
+   drag is in there too, so between detents the sheet grows and shrinks from
+   the top with its bottom planted — but only down to the lowest detent
+   (`--surface-detent-floor`), because past that the drag is a dismissal and
+   the sheet should leave whole rather than be squashed into the edge. */
+[data-surface-popup][data-surface-snap] {
+  padding-bottom: calc(
+    clamp(
+      0px,
+      var(--drawer-snap-point-offset, 0px) + var(--drawer-swipe-movement-y, 0px),
+      var(--surface-detent-floor, 0px)
+    ) + max(env(safe-area-inset-bottom), var(--surface-gap))
+  );
+}
+
+[data-surface-popup][data-swipe-direction="right"] {
+  transform: translateX(var(--drawer-swipe-movement-x, 0px));
+}
+
+/* Entering and leaving: past the edge by the gap as well, otherwise the
+   surface "pops" for the last few pixels. */
+[data-surface-popup][data-swipe-direction="down"]:is(
+    [data-starting-style],
+    [data-ending-style]
+  ) {
+  transform: translateY(calc(100% + var(--surface-exit)));
+}
+
+[data-surface-popup][data-swipe-direction="right"]:is(
+    [data-starting-style],
+    [data-ending-style]
+  ) {
+  transform: translateX(calc(100% + var(--surface-exit)));
+}
+
+/* Thrown away: the harder the flick, the sooner it is gone. */
+[data-surface-popup][data-ending-style] {
+  transition-duration: calc(var(--drawer-swipe-strength, 1) * var(--surface-duration));
+}
+
+/* The glass shell inside the positioning box. It rests on the software
+   keyboard rather than behind it, and steps back — iOS's receded presenter —
+   while another sheet is open over it. Both ride the surface curve, so a snap,
+   a keyboard and a recede read as one motion with the drawer's own. */
+[data-surface-shell] {
+  margin-bottom: var(--drawer-keyboard-inset, 0px);
+  transition:
+    margin-bottom var(--surface-duration) var(--surface-easing),
+    transform var(--surface-duration) var(--surface-easing);
+}
+
+[data-surface-shell][data-behind] {
+  transform: translate3d(0, -8px, 0) scale(0.95);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-surface-popup],
+  [data-surface-shell] {
+    transition: none;
+  }
+}

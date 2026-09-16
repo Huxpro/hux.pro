@@ -12,10 +12,9 @@ import {
   useMemo,
 } from "react";
 import { createPortal } from "react-dom";
-import { Drawer } from "vaul";
+import { Drawer } from "@base-ui/react/drawer";
 import { useSurfaceMode, type SurfaceMode, type SurfacePresentation } from "./presentation";
-import { useLivePage } from "./live-page";
-import { EDGE_GAP, SHELL, SurfaceSheet } from "./sheet";
+import { EDGE_GAP, SHELL, SurfaceSheet, surfaceMotionVars } from "./sheet";
 
 // =============================================================================
 // AdaptiveSurface — one secondary surface, three shapes.
@@ -28,9 +27,9 @@ import { EDGE_GAP, SHELL, SurfaceSheet } from "./sheet";
 // The three shapes share one glass shell, one header and one close affordance,
 // so they read as the same object arriving from a different direction:
 //
-//   sheet   <SurfaceSheet> (sheet.tsx): vaul drawer from the bottom,
+//   sheet   <SurfaceSheet> (sheet.tsx): a Base UI drawer from the bottom,
 //           drag-to-dismiss, grabber, stacks the iOS way.
-//   panel   vaul drawer from the trailing edge, drag-to-dismiss.
+//   panel   the same drawer from the trailing edge, drag-to-dismiss.
 //   window  a centred window that morphs in the way an app window does when it
 //           opens from its shelf icon, and is draggable by its header.
 //
@@ -95,7 +94,7 @@ function SurfaceHeader({
   onClose,
   draggable,
   /**
-   * The element the title renders as. Drawers pass vaul's `Drawer.Title` so the
+   * The element the title renders as. Drawers pass `Drawer.Title` so the
    * dialog is labelled; the close button stays outside it, where it belongs.
    */
   titleAs: TitleAs = "div",
@@ -133,7 +132,7 @@ function SurfaceHeader({
 }
 
 /**
- * Window mode. Not a vaul drawer: a free-floating panel that springs in the way
+ * Window mode. Not a drawer: a free-floating panel that springs in the way
  * `systems/windows` opens an app, and drags by its header through the shared
  * `useDraggable` hook, so it inherits the devtool's per-instance drag settings.
  */
@@ -240,7 +239,7 @@ function SurfaceWindow({
   );
 }
 
-/** Panel mode — a vaul drawer from the trailing edge. */
+/** Panel mode — the same drawer, entering from the trailing edge. */
 function SurfacePanel({
   open,
   onOpenChange,
@@ -251,54 +250,50 @@ function SurfacePanel({
   scrollRef,
   children,
 }: Omit<AdaptiveSurfaceProps, "presentation" | "id">) {
-  useLivePage(open);
-
   return (
     <Drawer.Root
       open={open}
       onOpenChange={onOpenChange}
-      direction="right"
-      // vaul's own switch: non-modal drops the body scroll lock and the inert
-      // page, which is the half of "no overlay" a missing scrim alone is not.
+      swipeDirection="right"
+      // No overlay: no scroll lock, no focus trap, and an outside press stays
+      // the page's. A panel that closed on every touch could not be used.
       modal={false}
+      disablePointerDismissal
     >
       <Drawer.Portal>
-        <Drawer.Content
-          aria-describedby={undefined}
-          // Radix still dismisses a non-modal dialog on an outside press. With
-          // the page interactive that would close the surface on every touch.
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onInteractOutside={(e) => e.preventDefault()}
-          style={
-            {
-              // vaul's enter/exit transform must clear the edge gap too,
-              // otherwise the panel "pops" for the last few pixels.
-              "--initial-transform": `calc(100% + ${EDGE_GAP})`,
-            } as React.CSSProperties
-          }
-          className={cn(
-            SHELL,
-            // Tablet: a taller, roomier column than a phone sheet affords.
-            "fixed z-[61] bottom-3 right-3 top-3 w-[min(94vw,var(--surface-panel-w,440px))]"
-          )}
-        >
-          <SurfaceHeader
-            title={title}
-            actions={actions}
-            closeLabel={closeLabel}
-            onClose={() => onOpenChange(false)}
-            titleAs={Drawer.Title}
-          />
-          <div
-            ref={scrollRef}
+        {/* Only the panel takes pointers; the rest of the page is untouched. */}
+        <Drawer.Viewport className="pointer-events-none fixed inset-0 z-[60]">
+          <Drawer.Popup
+            data-surface-popup=""
+            style={surfaceMotionVars(EDGE_GAP)}
             className={cn(
-              "flex-1 overflow-y-auto overscroll-contain",
-              contentClassName ?? "px-4 pb-5"
+              SHELL,
+              // Tablet: a taller, roomier column than a phone sheet affords.
+              "pointer-events-auto absolute z-[61] bottom-3 right-3 top-3 w-[min(94vw,var(--surface-panel-w,440px))]"
             )}
           >
-            {children}
-          </div>
-        </Drawer.Content>
+            {/* A mouse press in here is a press, not the start of a drag —
+                see the same note in sheet.tsx. A touch swipe still dismisses. */}
+            <Drawer.Content className="flex min-h-0 flex-1 flex-col">
+              <SurfaceHeader
+                title={title}
+                actions={actions}
+                closeLabel={closeLabel}
+                onClose={() => onOpenChange(false)}
+                titleAs={Drawer.Title}
+              />
+              <div
+                ref={scrollRef}
+                className={cn(
+                  "flex-1 overflow-y-auto overscroll-contain",
+                  contentClassName ?? "px-4 pb-5"
+                )}
+              >
+                {children}
+              </div>
+            </Drawer.Content>
+          </Drawer.Popup>
+        </Drawer.Viewport>
       </Drawer.Portal>
     </Drawer.Root>
   );

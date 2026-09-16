@@ -177,11 +177,16 @@ The palette searches across:
 
 ## iOS Compatibility
 
-On a phone the palette is a sheet, and the keyboard is vaul's problem: it
-repositions the drawer against the visual viewport when the keyboard opens
-(`repositionInputs`), and the field is 16px so Safari does not zoom on focus.
-The field is not focused on open; a tap into it is the signal, and it carries
-the sheet to the top detent as the keyboard comes up.
+On a phone the palette is a sheet, and the keyboard is the sheet primitive's
+problem: every `<SurfaceSheet>` is wrapped in Base UI's
+`Drawer.VirtualKeyboardProvider`, which measures the software keyboard and
+publishes `--drawer-keyboard-inset`, and the glass shell takes that as a bottom
+margin so the palette rests on the keyboard rather than behind it. The field is
+16px so Safari does not zoom on focus. The field is not focused on open; a tap
+into it is the signal, and it carries the sheet to the top detent as the
+keyboard comes up. Dragging back down blurs it, so the lower detent is not half
+hidden behind a keyboard. Both of those are here, in `sheet.tsx`, not in the
+primitive: where a palette wants to sit is a palette's business.
 
 The popover keeps its own accommodations for when the devtool puts it on a
 phone: scroll position pinned while it is up, no autofocus so the keyboard does

@@ -8,7 +8,6 @@ systems/surface/
 ├── adaptive-surface.tsx  # <AdaptiveSurface>, useSurfaceContext()
 ├── sheet.tsx             # <SurfaceSheet> — the one bottom sheet, detents, scrim
 ├── stack.ts              # which sheets are open, so a sheet under another recedes
-├── live-page.ts          # keeps the page interactive under a drawer
 └── index.ts
 ```
 
@@ -17,8 +16,8 @@ systems/surface/
 The site keeps growing secondary surfaces — the music playlist, the wallpaper
 picker, whatever comes next. Each wants a different shape at a different size,
 and every one of them was re-deciding that on its own: its own `matchMedia`
-listener, its own vaul wiring, its own glass shell, its own header. Copies of
-one judgement call, free to drift apart.
+listener, its own drawer wiring, its own glass shell, its own header. Copies
+of one judgement call, free to drift apart.
 
 The judgement is a property of the **viewport**, not of the feature. So it
 lives here, once.
@@ -41,13 +40,14 @@ and touching it does not close the surface; its close button, Escape and a drag
 do. The surfaces here are all about the page behind them, and a surface that
 closed on every touch of a live page could not be used.
 
-(Radix turns the page's pointer events off under every dialog, and vaul turns
-them back on only for opens it triggered itself, not for a controlled `open`
-prop. `useLivePage` puts them back a frame later, so the contract above holds.)
+(This is what `modal={false}` means to Base UI, and it means it literally: it
+touches neither `<body>`'s pointer events nor its position. A non-modal surface
+also passes `disablePointerDismissal`, because a press on a live page belongs
+to the page.)
 
-The one exception is a launcher. The command palette's sheet is modal: a
-transparent scrim of its own blocks the page and a tap on it dismisses, the
-click-away its desktop popover has. See **The sheet primitive** below.
+The one exception is a launcher. The command palette's sheet is modal: the page
+stops answering while it is up and a press on it dismisses, the click-away its
+desktop popover has. See **The sheet primitive** below.
 
 ## Declaring a presentation
 
@@ -106,12 +106,12 @@ const { mode, isWindow, close } = useSurfaceContext();
 
 ## The sheet primitive
 
-Every phone shape is one `<SurfaceSheet>` (`sheet.tsx`): the vaul drawer, the
-glass shell, the grabber, the edge gaps. `AdaptiveSurface` composes it for its
-sheet mode and adds the title bar and scroll area. A surface whose header is not
-a title bar composes it directly — the command palette, whose header is its
-search field — and still gets the same shell, so a sheet is a sheet whatever it
-holds.
+Every phone shape is one `<SurfaceSheet>` (`sheet.tsx`): a [Base UI
+Drawer](https://base-ui.com/react/components/drawer), the glass shell, the
+grabber, the edge gaps. `AdaptiveSurface` composes it for its sheet mode and
+adds the title bar and scroll area. A surface whose header is not a title bar
+composes it directly — the command palette, whose header is its search field —
+and still gets the same shell, so a sheet is a sheet whatever it holds.
 
 ```tsx
 <SurfaceSheet id="command" open={isOpen} onOpenChange={…}
@@ -123,22 +123,44 @@ holds.
 </SurfaceSheet>
 ```
 
-**Detents.** `snapPoints` are fractions of the viewport, iOS's medium and large.
-vaul moves the whole drawer by translating it, which would push the sheet's
-bottom edge off screen at the lower detent; the shell inside lifts by the same
-amount (vaul's own `--snap-point-height`) so the sheet floats above the bottom
-edge at every detent, as it does without snap points. A sheet with detents is
-flush with the bottom of the screen underneath, because vaul moves `bottom` and
-`height` itself while the keyboard is up.
+**Two boxes.** `Drawer.Popup` is a transparent positioning box the height of
+the sheet's whole travel; the glass shell is the flex child inside it. Base UI
+moves a sheet by translating the popup, so a one-box floating sheet would push
+its own rounded bottom off screen at a lower detent. The popup carries the same
+offset as bottom padding, so the shell stays planted a gap above the bottom edge
+and grows and shrinks from the top — at rest and under the finger alike. Past
+the lowest detent (`--surface-detent-floor`) the padding stops and the sheet
+slides away whole, because that drag is a dismissal, not a resize.
 
-**Modal.** The scrim is ours, not vaul's. A modal Radix dialog locks scroll by
-forcing `position: relative` on `<body>`, which collapses the bezel's
-container-scroll layout (`@hux/bezel` keeps `<body>` fixed at inset 0 on an
-iPhone). So the drawer is always non-modal to Radix, and the scrim alone decides
-what the page gets. For the same family of reasons the bezel keeps `<body>` at
-`overflow: clip` rather than `hidden`: `hidden` is a scroll container that
-`scrollIntoView` can still move, and a sheet resting below the edge at a lower
-detent is exactly the overflow it would move it for.
+**Detents.** `snapPoints` are fractions of the viewport, iOS's medium and large.
+Base UI publishes the active one as `--drawer-snap-point-offset` and the live
+drag as `--drawer-swipe-movement-y`, both on the popup; everything that reads
+them is one block in `app/globals.css`, *Secondary surface motion*, on the
+site's own curve (`SURFACE_EASING`, `SURFACE_TRANSITION_MS` in `stack.ts`).
+
+**Modal.** The scrim is the viewport — `Drawer.Viewport` is already a
+transparent, full-screen box containing the popup, so when `modal` is on it
+takes the page away and a press on it dismisses; when it is off it is
+`pointer-events: none` and only the popup takes pointers. Base UI's scroll lock
+is safe under the bezel where Radix's was not: on iOS it only sets `overflow:
+hidden` on whichever element scrolls the viewport, never `position: relative` on
+`<body>`, and it stands down entirely when that element is already locked —
+which is the state `@hux/bezel` leaves the page in during container scroll
+(`<html>` hidden, `<body>` fixed at inset 0). Independently, the bezel keeps
+`<body>` at `overflow: clip` rather than `hidden`: `hidden` is a scroll
+container that `scrollIntoView` can still move, and a sheet resting below the
+edge at a lower detent is exactly the overflow it would move it for.
+
+**Content, not a handle.** Everything below the grabber is wrapped in
+`Drawer.Content`. Without it a *mouse* press anywhere in a sheet starts a swipe,
+the drawer takes the pointer, and the click never reaches the row that was
+pressed. A touch drag still dismisses from anywhere; Base UI reads the scroll
+containers so a drag inside a list scrolls the list.
+
+**Keyboard.** `Drawer.VirtualKeyboardProvider` wraps every sheet and publishes
+`--drawer-keyboard-inset`; the shell takes it as a bottom margin, so a sheet
+with a field in it rests on the keyboard rather than behind it. A sheet with no
+fields never notices.
 
 ## Stacking
 
@@ -148,8 +170,14 @@ one on top goes. That is a relationship between surfaces, not a property of
 either, so it lives in `stack.ts`: a module-level store (the surfaces mount in
 different subtrees, and a store needs no provider to reach them all) that every
 open sheet registers with in order. A sheet with another opened after it reads
-`behind` and recedes, on vaul's own curve; it deregisters on close rather than
+`behind` and recedes, on the shared curve; it deregisters on close rather than
 on unmount, so the one behind comes forward in step with the top sheet's exit.
+
+Base UI has nested drawers of its own, with `data-nested-drawer-open` and
+`--nested-drawers`, but a drawer is only nested when it is a React child of
+another one. The wallpaper picker, the playlist and the palette all mount in
+sibling subtrees of the root layout, so `stack.ts` stays. It is the one piece of
+this system that works around a library rather than with it.
 
 A sheet that opens a sheet decides for itself what happens next. The wallpaper
 picker over the playlist is a true stack: close the picker and the playlist

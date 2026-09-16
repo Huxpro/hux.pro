@@ -21,10 +21,10 @@
 // and content that wants to adapt (column counts, density) reads the shape it
 // landed in from `useSurfaceContext()` instead of re-measuring the viewport.
 //
-// Underneath, every phone shape is one <SurfaceSheet> (sheet.tsx). A surface
-// whose header is not a title bar — the command palette, whose header is its
-// search field — composes that primitive directly and still gets the same
-// shell, gaps, detents and iOS-style stacking (stack.ts).
+// Underneath, every phone shape is one <SurfaceSheet> (sheet.tsx), a Base UI
+// Drawer. A surface whose header is not a title bar — the command palette,
+// whose header is its search field — composes that primitive directly and
+// still gets the same shell, gaps, detents and iOS-style stacking (stack.ts).
 // =============================================================================
 
 export { AdaptiveSurface, useSurfaceContext } from "./adaptive-surface";

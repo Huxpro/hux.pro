@@ -14,10 +14,15 @@ import { useEffect, useSyncExternalStore } from "react";
 // subtrees of the root layout, and a store needs no wrapper to reach them all.
 // =============================================================================
 
-/** vaul's own transition (`transform .5s cubic-bezier(.32,.72,0,1)`), in ms. */
+/**
+ * How long a surface takes to arrive, leave, change detent or step back. Base
+ * UI leaves every drawer animation to CSS, so this is the site's own number
+ * rather than a library's: the motion in globals.css reads it through
+ * `--surface-duration`, and a hand-off waits exactly this long.
+ */
 export const SURFACE_TRANSITION_MS = 500;
 
-/** The easing every surface motion here shares with vaul's, so nothing drifts. */
+/** The one curve every surface motion shares, so nothing drifts. */
 export const SURFACE_EASING = "cubic-bezier(0.32, 0.72, 0, 1)";
 
 let stack: readonly string[] = [];
