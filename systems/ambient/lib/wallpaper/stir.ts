@@ -2,11 +2,12 @@
 // Stirring the weather — the rain-and-snow easter egg.
 //
 // Drag a hand across the page's background while it is raining or snowing and
-// you stir up a breeze. The rain leans over at once and travels along the lean;
-// the snow, which is slow and takes wind slowly, comes round over a few seconds
-// and keeps going for a few more. Stop, or let go, and it dies away and the sky
-// settles back. The cloud decks feel nothing: you cannot stir a cloud by waving
-// at it.
+// you stir up a breeze — right where the hand went, hardest there, thinning
+// outward and spreading as it passes. The near heavy drops are the last to be
+// turned by it and the last to give it up; the snow, slower again, comes round
+// over seconds and keeps going for more. Stop, or let go, and it dies away and
+// the sky settles back. The cloud decks feel nothing: you cannot stir a cloud
+// by waving at it.
 //
 // That is the whole of it. A hand adds a term to the wind; everything the sky
 // does with wind it already knew how to do. Nothing is held, nothing is towed
@@ -16,7 +17,8 @@
 // This module is only the recognizer: it decides whether a drag landed on the
 // background and reports how fast the hand is going, in CSS pixels per second.
 // The air's own behaviour lives in `WallpaperRenderer` ("Stirring up a gust"),
-// how slowly the snow takes it in `SNOW_WIND_TAU`, and the look in `shader.ts`.
+// how fast each depth layer is dragged up to it in `RAIN_TAU` / `SNOW_TAU`, and
+// the look in `shader.ts`.
 //
 // What counts as the background is not asked here twice: it is `isBackgroundClick`
 // from `lib/strike.ts`, the same question the thunder-day strike asks, so the two
@@ -47,8 +49,13 @@ const SPEED_MIX = 0.7;
 
 export interface WindStirListener {
   /**
-   * The hand's horizontal speed, in CSS pixels per second, positive to the
-   * right. Sent on every move of a drag that began on the background.
+   * The hand's horizontal speed in CSS pixels per second, positive to the
+   * right, and where it is, in client coordinates. Sent on every move of a
+   * drag that began on the background.
+   *
+   * The speed is horizontal only — wind in this sky is horizontal, and a hand
+   * swiped straight down makes no sideways breeze — but the position is both
+   * axes, because a gust is raised somewhere even when it is raised weakly.
    *
    * There is no matching "stopped" call, and none is needed: a hand that has
    * stopped sends nothing, and the renderer lets an unrefreshed stir go stale
@@ -56,7 +63,7 @@ export interface WindStirListener {
    * cancelled, by the whole listener being detached — without anybody having
    * to put the sky back.
    */
-  onStir: (vx: number) => void;
+  onStir: (vx: number, x: number, y: number) => void;
 }
 
 function findTouch(list: TouchList, id: number): Touch | null {
@@ -84,7 +91,7 @@ export function attachWindStir(listener: WindStirListener): () => void {
     vx = 0;
   };
 
-  const move = (x: number) => {
+  const move = (x: number, y: number) => {
     const now = performance.now();
     const dt = (now - lastAt) / 1000;
     // Sub-millisecond gaps make the division explode; the travel they carry is
@@ -93,7 +100,7 @@ export function attachWindStir(listener: WindStirListener): () => void {
     vx = ((x - lastX) / dt) * SPEED_MIX + vx * (1 - SPEED_MIX);
     lastX = x;
     lastAt = now;
-    listener.onStir(vx);
+    listener.onStir(vx, x, y);
   };
 
   const end = () => {
@@ -119,7 +126,7 @@ export function attachWindStir(listener: WindStirListener): () => void {
     lastTouchAt = performance.now();
     if (typeof source !== "number") return;
     const touch = findTouch(e.changedTouches, source) ?? findTouch(e.touches, source);
-    if (touch) move(touch.clientX);
+    if (touch) move(touch.clientX, touch.clientY);
   };
 
   const onTouchEnd = (e: TouchEvent) => {
@@ -138,7 +145,7 @@ export function attachWindStir(listener: WindStirListener): () => void {
   };
 
   const onMouseMove = (e: MouseEvent) => {
-    if (source === "mouse") move(e.clientX);
+    if (source === "mouse") move(e.clientX, e.clientY);
   };
 
   // --- Wiring --------------------------------------------------------------

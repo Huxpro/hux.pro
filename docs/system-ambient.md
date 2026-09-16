@@ -288,42 +288,72 @@ let go.
 purpose, because a gust is not a wind and is allowed to be briefly harder than
 any weather the sky is showing.
 
-#### Not everything takes wind at the same speed
+#### A gust has a place
 
-This is the part worth reading twice, because it is what keeps a gust from
-looking like a card being slid:
+A gust is not a fact about the whole sky; it is raised **where the hand went
+past**. `uGustAt` carries that point and how wide the puff has spread, and
+`gustHere()` in the shader answers, per pixel, how much of it reaches there:
 
-| | How fast it comes up to the wind | Why |
+- **Hardest at the hand, a third at the far side.** Not zero — a gust raised in
+  a room stirs the whole room, just less — and a cliff edge to it would read as
+  a disc of weather sitting on the page.
+- **It swells as it passes.** The puff starts ~0.4 screen heights wide and grows
+  to 1.6 while it dies, which is the same air spread thinner. A hand still
+  stirring keeps re-raising it, so it stays tight until it is left alone.
+- **It arrives in patches.** A drifting noise field breaks the falloff up, so it
+  is never a clean radial blob.
+
+Because the lean now varies across the frame, the curtain **bends** instead of
+tilting as one sheet: where the gust is strongest the rain is pulled over and
+thinned, and it curves back to the forecast's own lean at the edges.
+
+#### Nothing answers wind at the same speed
+
+A particle does not take the wind's velocity; it is **dragged** toward it, and
+how long that takes goes with its size. So every depth layer carries its own
+horizontal velocity and relaxes at its own rate (`RAIN_TAU`, `SNOW_TAU`) — which
+is the difference between a curtain that swings and a sheet that slides.
+
+| | Time constants, near → far | Why |
 |---|---|---|
-| **Rain** | at once | The lean *is* the steady state, and at 1.5–2.5 screen heights a second there is no visible transient to model. |
-| **Snow** | over ~3 s (`SNOW_WIND_TAU`), and it keeps going for many more after the air is still | A flake falls at a thirtieth of a raindrop's speed and takes ten to thirty seconds to cross the frame. Shoved sideways instantly it stops reading as snow. Measured: against a hand's gust the snow reaches **48 %** of the air, **1.2 s** later, and is still leaning at 0.19 when the air has fallen to 0.03. |
+| **Rain** | 0.30 → 0.11 s | A near drop is the bigger one on screen, so it is the slowest to be turned. A gust crosses the curtain from the far haze forward. |
+| **Snow** | 1.4 → 5.6 s (far → near), and it keeps going for as long after the air is still | A flake falls at a thirtieth of a raindrop's speed and takes 10–30 s to cross the frame; shoved sideways at once it stops reading as snow. `snow()` draws the near flakes several times the size, so they are the slowest of all. |
 | **Clouds** | never, from a hand | You cannot stir a cloud deck by waving at it. They answer the forecast only. |
 
-A hard gust has one artefact to watch, and the shader spends one line on it.
-The lean is a **shear**, so when it slams over, a row is thrown sideways in
-proportion to its distance from the pivot. Shearing about the bottom edge — the
-obvious way to write it — makes the top row the worst off by the full arm, and
-past a certain speed that reads as a whip-crack rather than as air. The shear is
-taken about **mid-screen** instead (`(uv.y - 0.5) * slant`), which halves the
-worst arm for nothing: at rest the two are the same picture, since a uniform
-field cannot show where it is registered.
+Two things fall out of doing it this way, and both are the point:
+
+- **At rest it changes nothing.** Every layer eventually reaches the same wind,
+  so the steady lean is exactly what it was and the snow's depth-graded lean
+  from `snow()` is untouched. The spread is a shape for the *transient* only.
+- **The lean can no longer jump**, so the whip-crack a hard gust used to produce
+  is gone at the root. How fast the curtain may swing is now a fact about
+  raindrops rather than a ceiling someone had to pick. (The shear is still taken
+  about mid-screen rather than the bottom edge, which halves the worst row's arm
+  for nothing.)
+
+The per-layer pair is also what lets a *field* be faked with two numbers: the
+steady wind and the hand's gust are lagged separately, and the shader multiplies
+only the second by `gustHere()`. A first-order lag is linear, so the pair stands
+in exactly for a lagged field as long as the puff holds still.
 
 Three pieces, one per layer:
 
 | Piece | Job |
 |-------|-----|
-| `lib/wallpaper/stir.ts` | Recognises the gesture and reports the hand's horizontal speed in CSS px/s. |
-| `WallpaperRenderer` ("Stirring up a gust") | The air: how a stir goes stale, how the gust rises and falls, how slowly the snow takes it. One `GUST` table plus `SNOW_WIND_TAU`. |
-| `shader.ts` | Draws it — `uStirWind` is simply added to `uWind.x`. |
+| `lib/wallpaper/stir.ts` | Recognises the gesture: the hand's horizontal speed in CSS px/s, and where it is. |
+| `WallpaperRenderer` ("Stirring up a gust") | The air: how a stir goes stale, how the gust rises, spreads and falls, and how fast each layer is dragged up to it. One `GUST` table plus `RAIN_TAU` / `SNOW_TAU`. |
+| `shader.ts` | Draws it — `gustHere()` for where, `uRainWind` / `uSnowDrift` for each layer's share. |
 
 What it deliberately does **not** do:
 
 - **Nothing is `preventDefault`ed and no style is touched.** Every listener is
   passive, so scrolling, tapping, long-pressing and selecting text behave
   exactly as they would without it.
-- **Only the horizontal component counts.** Wind here is horizontal, and a hand
-  swiped straight down does not make a sideways breeze — which also means an
-  ordinary vertical scroll leaves the weather alone.
+- **Only the horizontal component of the *speed* counts.** Wind here is
+  horizontal, and a hand swiped straight down does not make a sideways breeze —
+  which also means an ordinary vertical scroll leaves the weather alone. The
+  *position* is both axes, though: a gust is raised somewhere even when it is
+  raised weakly.
 - **It does not invent a second idea of "the sky".** What counts as background
   is [`isBackgroundClick`](#the-strike-thunder-day-easter-egg) from
   `lib/strike.ts`, the same question the strike asks, so the two easter eggs can
@@ -338,7 +368,7 @@ What it deliberately does **not** do:
 ### The wind's sign
 
 Every horizontal quantity in the Sky is screen-space, and **positive goes
-right**: `wind.x`, `uStirWind`, and the accumulated `uCloudDrift` and
+right**: `wind.x`, the hand's gust, and the accumulated `uCloudDrift` and
 `uSnowDrift` travels. `scene.ts` maps the met wind onto that — a westerly (from
 270°) blows toward the geographic east, which is screen-*left* in the northern
 hemisphere and mirrors in the south — and the shader follows it.
@@ -358,7 +388,7 @@ broken.
 
 #### A constant is not a wind
 
-The snow's drift used to carry a constant — `snowWind * 0.6 + 0.03` — meant as a
+The snow's drift used to carry a constant — `wind * 0.6 + 0.03` — meant as a
 whisper of travel so flakes never fell dead straight in still air. But a
 constant added to a wind is a wind that always blows one way: it adds to a wind
 going with it and eats one going against. The flakes leant **2.3× further right

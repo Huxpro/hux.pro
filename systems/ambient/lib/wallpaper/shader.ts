@@ -39,7 +39,14 @@ uniform float uTime;
 uniform float uSeed;
 // Accumulated travel, in JS, from the smoothed wind. Positive travels right.
 uniform float uCloudDrift;
-uniform float uSnowDrift;
+// Per depth layer, [from the steady wind, from the hand's gust]. Kept apart
+// because only the gust has a place — the second of each pair is the one
+// multiplied by gustHere(). A first-order lag is linear, so a lagged pair
+// stands in exactly for a lagged field, and with no gust the second is zero and
+// none of this shows. uSnowDrift is a travel (a flake is placed); uRainWind is
+// a velocity, which over the layer's fall speed is its lean.
+uniform vec2  uSnowDrift[5];
+uniform vec2  uRainWind[4];
 
 uniform vec2  uSun;           // screen 0..1, y up
 uniform float uSunElevation;  // degrees
@@ -65,10 +72,11 @@ uniform vec3  uCloudShade;
 uniform float uRain;
 uniform float uSnow;
 uniform vec2  uWind;          // screen-space; x > 0 blows RIGHT (see scene.ts)
-// The wind a hand stirred up on its way across the page (see stir.ts). Same
-// units and sign as uWind.x, and simply added to it. The snow and the clouds
-// take theirs through the drifts above, which the renderer already integrates.
-uniform float uStirWind;
+// Where a hand raised its gust (xy, screen space) and how wide the puff has
+// spread (z, screen heights); z = 0 means there is nothing to feel. How much of
+// it reaches a given point is gustHere(), and how much of THAT each depth layer
+// has got up to is the second half of uRainWind / uSnowDrift.
+uniform vec3  uGustAt;
 uniform float uFog;
 uniform float uLightning;
 uniform float uStars;
@@ -362,22 +370,29 @@ CloudSample cloudLayer(vec2 p, vec2 sunDir, float scale, float speed, float para
 // Precipitation
 // ---------------------------------------------------------------------------
 
+/**
+ * How much of the hand's gust is felt here.
+ *
+ * Not nothing far away: a gust raised in a room stirs the whole room, just
+ * less — and a cliff edge to it would read as a disc of weather sitting on the
+ * page. It falls from 1 where the hand went to a third at the far side, over a
+ * width that grows as the puff passes.
+ *
+ * The noise is what keeps it from being a disc at all. It is coarse and drifts
+ * with the clouds, so the gust arrives in patches the way moving air does.
+ */
+float gustHere(vec2 p) {
+  if (uGustAt.z < 0.001) return 0.0;
+  float d = length(p - uGustAt.xy) / uGustAt.z;
+  float turb = 0.7 + 0.6 * fbm3(p * 2.1 + vec2(uCloudDrift * 0.25, uTime * 0.05) + uSeed);
+  return mix(0.33, 1.0, exp(-d * d)) * turb;
+}
+
 float rain(vec2 p, vec2 uv, float aspect) {
   if (uRain < 0.002) return 0.0;
   float acc = 0.0;
-  // The lean is the whole of the rain's answer to wind: a positive slant shears
-  // the curtain so every drop travels down-AND-right, which is both what the
-  // eye reads and where the drop actually goes. A hand's gust is the same kind
-  // of thing as the forecast's wind, so they simply add — and rain, being light
-  // and quick, is at the new angle at once. The snow is not; see snowWind in
-  // renderer.ts.
-  float slant = (uWind.x + uStirWind) * 0.75;
   float fade = smoothstep(0.0, 0.12, uRain);
-  // Sheared about mid-screen rather than the bottom edge. At rest the two are
-  // the same picture — the field is uniform, so where it is registered cannot
-  // be seen — but when a gust slams the lean over, the pivot is what decides
-  // how far the worst-off row is thrown. Halving the arm halves the whip.
-  vec2 base = vec2(p.x + (uv.y - 0.5) * slant, p.y);
+  float hand = gustHere(p);
 
   // Four depth layers of thin, short, individually-timed streaks. Every
   // column carries its own phase so drops never line up into visible rows,
@@ -389,6 +404,18 @@ float rain(vec2 p, vec2 uv, float aspect) {
     float sc = 46.0 + fi * 24.0;                   // columns per unit height
     float rows = sc * 0.14;                        // tall cells
     float speed = (1.5 + fi * 0.35) * (0.85 + 0.3 * uRain);
+
+    // The lean is the whole of the rain's answer to wind: a positive slant
+    // shears the curtain so every drop travels down-AND-right, which is both
+    // what the eye reads and where the drop actually goes. Each layer leans by
+    // its OWN velocity, which is the air's only once it has been dragged up to
+    // it — so a gust arrives through the curtain from the front, the near heavy
+    // drops last. Sheared about mid-screen, not the bottom edge: at rest the
+    // two are the same picture, since a uniform field cannot show where it is
+    // registered, but the pivot decides how far the worst-off row is thrown.
+    float lean = (uRainWind[i].x + uRainWind[i].y * hand) * 0.75;
+    vec2 base = vec2(p.x + (uv.y - 0.5) * lean, p.y);
+
     float colId = floor(base.x * sc + fi * 13.7);
     float phase = hash1(vec2(colId, fi * 3.1 + uSeed));
     vec2 q = vec2(base.x * sc + fi * 13.7, (base.y + uTime * speed + phase * 5.0) * rows);
@@ -407,7 +434,10 @@ float rain(vec2 p, vec2 uv, float aspect) {
     acc += streak * present * depth * (0.55 + 0.45 * hash1(cell + 9.1));
   }
 
-  // Heavy rain also reads as a faint, fast vertical sheet.
+  // Heavy rain also reads as a faint, fast vertical sheet. It takes the
+  // nearest layer's lean, being the nearest thing there is.
+  float sheetLean = (uRainWind[0].x + uRainWind[0].y * hand) * 0.75;
+  vec2 base = vec2(p.x + (uv.y - 0.5) * sheetLean, p.y);
   float sheet = fbm3(vec2(base.x * 18.0, base.y * 1.6 + uTime * 2.2) + uSeed) * smoothstep(0.55, 1.0, uRain) * 0.09;
 
   return (acc * (0.14 + 0.22 * uRain) + sheet) * fade;
@@ -425,6 +455,7 @@ float snow(vec2 p, float aspect) {
   float acc = 0.0;
   float fade = smoothstep(0.0, 0.12, uSnow);
   float px = 1.0 / uResolution.y;   // one device pixel in screen units
+  float hand = gustHere(p);
 
   // The whole curtain leans and eases back on two slow beats — a gust that
   // takes twenty seconds to pass, not a shiver.
@@ -461,7 +492,12 @@ float snow(vec2 p, float aspect) {
     // Drift subtracts: uSnowDrift is a travel, positive to the right, and a
     // bigger q.x samples further right. The gust and waft under it are the
     // curtain's own wobble, and their signs carry no meaning.
-    q.x -= uSnowDrift * mix(0.133, 0.4, z) * sc;
+    //
+    // Each layer's own travel, and its own share of the hand's: the big near
+    // flakes are the slowest to be moved and the last to give it up, so a gust
+    // crosses the snow as a wave through depth rather than sliding all of it at
+    // once. At rest the second term is zero and the lean is exactly as tuned.
+    q.x -= (uSnowDrift[i].x + uSnowDrift[i].y * hand) * mix(0.133, 0.4, z) * sc;
     q.x += (gust * mix(0.008, 0.02, z)
           + waft * mix(0.022, 0.075, z)) * sc;
 
