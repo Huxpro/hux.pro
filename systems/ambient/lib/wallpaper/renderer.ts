@@ -70,6 +70,14 @@ const FLOAT_COUNT = UNIFORMS.reduce((n, u) => n + u.size, 0);
  * constants — both derived once from the table, so the per-frame loops index
  * arrays instead of scanning names.
  */
+/**
+ * The three a theme change moves, and the only three: the veil's colour and
+ * amount, and the exposure (see VEIL_DEFAULTS in ../scene.ts). `setThemeEase`
+ * stretches these alone, so the sky can take as long over a theme as the rest
+ * of the handover does without the weather slowing down with it.
+ */
+const THEME_UNIFORMS = new Set(["uVeilColor", "uVeilAmount", "uExposure"]);
+
 const OFFSET: Record<string, number> = {};
 const TAUS: number[] = [];
 const META = UNIFORMS.map((u, i) => {
@@ -77,7 +85,7 @@ const META = UNIFORMS.map((u, i) => {
   OFFSET[u.name] = offset;
   let tauIndex = TAUS.indexOf(u.tau);
   if (tauIndex < 0) tauIndex = TAUS.push(u.tau) - 1;
-  return { offset, size: u.size, tauIndex };
+  return { offset, size: u.size, tauIndex, theme: THEME_UNIFORMS.has(u.name) };
 });
 const WIND_OFFSET = OFFSET.uWind;
 const CLOUD_SPEED_OFFSET = OFFSET.uCloudSpeed;
@@ -170,6 +178,8 @@ export class WallpaperRenderer {
   private vao: WebGLVertexArrayObject | null = null;
 
   private target = new Float32Array(FLOAT_COUNT);
+  /** Seconds, or null for each uniform's own tau. See setThemeEase. */
+  private themeTau: number | null = null;
   private current = new Float32Array(FLOAT_COUNT);
   private hasScene = false;
   private seed = 0;
@@ -275,6 +285,16 @@ export class WallpaperRenderer {
     this.strikeSeed = Math.random() * 97;
     this.strikeAt = performance.now();
     this.strikeAge = 0;
+  }
+
+  /**
+   * How long the theme's own uniforms take to arrive, in ms to settled, or
+   * null for the table's own pace. An exponential ease is asymptotic, so
+   * "settled" is 3 time constants — close enough to read as arrived.
+   */
+  setThemeEase(settleMs: number | null) {
+    this.themeTau =
+      settleMs !== null && settleMs > 0 ? settleMs / 3000 : null;
   }
 
   setReducedMotion(reduced: boolean) {
@@ -594,8 +614,10 @@ export class WallpaperRenderer {
     for (let t = 0; t < TAUS.length; t++) {
       this.ks[t] = TAUS[t] <= 0 ? 1 : 1 - Math.exp(-dtSec / TAUS[t]);
     }
+    const kTheme =
+      this.themeTau === null ? null : 1 - Math.exp(-dtSec / this.themeTau);
     for (const m of META) {
-      const k = this.ks[m.tauIndex];
+      const k = m.theme && kTheme !== null ? kTheme : this.ks[m.tauIndex];
       for (let j = 0; j < m.size; j++) {
         const idx = m.offset + j;
         this.current[idx] += (this.target[idx] - this.current[idx]) * k;

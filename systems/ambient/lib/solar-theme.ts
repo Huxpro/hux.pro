@@ -55,9 +55,10 @@ export function sunEventFor(theme: SolarTheme): SunEvent {
  * this is the middle of the short one.
  *
  *   0ms ──────────── the sky starts moving to the new theme: the wallpaper
- *                    stack crossfades over `skyMs` instead of its usual 0.7s,
- *                    and under the Sky style the shader eases its veil and
- *                    exposure over about the same stretch.
+ *                    stack crossfades over `skyMs` instead of its usual 0.7s.
+ *                    (Under the Sky style the shader eases its veil and
+ *                    exposure on its own time constants, ~1.5s, so it arrives
+ *                    early and waits — the CSS stack is what sets the pace.)
  *   chromeAtMs ───── halfway through it, the chrome changes — one commit,
  *                    inside a view transition, so the page crossfades as a
  *                    single composited image (the 200ms a route change uses).
@@ -68,7 +69,7 @@ export function sunEventFor(theme: SolarTheme): SunEvent {
  */
 export const SOLAR_HANDOVER = {
   /** The sky's crossfade into the new theme. */
-  skyMs: 1800,
+  skyMs: 3000,
   /** Where in it the chrome's instant switch lands: the middle. */
-  chromeAtMs: 900,
+  chromeAtMs: 1500,
 } as const;

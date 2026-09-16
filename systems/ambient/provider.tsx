@@ -280,6 +280,12 @@ interface WallpaperContextType {
    * slower one while the theme hands over.
    */
   crossfadeMs: number;
+  /**
+   * The same pace for the Sky, which paints a canvas rather than the stack:
+   * ms to settled for the shader's theme uniforms, or null for its own. Only
+   * the sun's handover sets it — the weather keeps the renderer's own taus.
+   */
+  skyThemeEaseMs: number | null;
   /** Resolved CSS mask-image value, or null when soft-edging is off. */
   edgeMask: string | null;
   /** Ephemeral devtool overrides. */
@@ -305,6 +311,14 @@ interface WallpaperContextType {
   bezelState: boolean | null;
   /** Where the page scrolls: in the bezel's container while the bezel is on, on iOS. */
   bezelScroll: BezelScroll;
+  /**
+   * Whether a chrome colour change has to be morphed onto the screen for the
+   * browser to see it. iOS Safari only — see @hux/bezel. Everywhere else the
+   * chrome follows `theme-color` or has no colour to follow, and the morph
+   * would just be bands at the edges of the window for the best part of a
+   * second, on every theme change.
+   */
+  bezelChromeMorph: boolean;
   /** The bezel colour, resolved from the tint. */
   bezelColor: string;
   bezelTint: BezelTint;
@@ -624,6 +638,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   }, [skyLead]);
 
   const crossfadeMs = skyLead ? SOLAR_HANDOVER.skyMs : GRADIENT_CROSSFADE_MS;
+  const skyThemeEaseMs = skyLead ? SOLAR_HANDOVER.skyMs : null;
 
   // --- Weather engine ------------------------------------------------------
   // WebGL support is probed after mount so the SSR tree (no canvas) matches the
@@ -1139,6 +1154,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       softEdgeEnabled,
       layers,
       crossfadeMs,
+      skyThemeEaseMs,
       edgeMask,
       devtoolOverrides,
       setDevtoolOverrides,
@@ -1149,6 +1165,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       bezel,
       bezelState,
       bezelScroll,
+      bezelChromeMorph: isIOS === true,
       bezelColor,
       bezelTint: settings.bezelTint,
       setBezelTint,
@@ -1198,6 +1215,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       softEdgeEnabled,
       layers,
       crossfadeMs,
+      skyThemeEaseMs,
       edgeMask,
       devtoolOverrides,
       wallpaperOpacity,
@@ -1208,6 +1226,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       bezel,
       bezelState,
       bezelScroll,
+      isIOS,
       bezelColor,
       setBezelTint,
       bezelBand,

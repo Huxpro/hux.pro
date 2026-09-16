@@ -40,6 +40,12 @@ interface WeatherWallpaperProps {
    * CG tile) that should cost a fraction of the full-page layer.
    */
   quality?: { pixelBudget?: number; maxFps?: number };
+  /**
+   * How long the sky takes over a *theme* change, ms to settled, or null for
+   * the renderer's own pace. The sun's handover sets it so the shader and the
+   * CSS stack move at one speed; nothing else touches it.
+   */
+  themeEaseMs?: number | null;
 }
 
 export function WeatherWallpaper({
@@ -51,6 +57,7 @@ export function WeatherWallpaper({
   statsRef,
   strikeRef,
   quality,
+  themeEaseMs = null,
 }: WeatherWallpaperProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<WallpaperRenderer | null>(null);
@@ -90,6 +97,10 @@ export function WeatherWallpaper({
   useEffect(() => {
     rendererRef.current?.setReducedMotion(reducedMotion);
   }, [reducedMotion]);
+
+  useEffect(() => {
+    rendererRef.current?.setThemeEase(themeEaseMs);
+  }, [themeEaseMs]);
 
   useEffect(() => {
     rendererRef.current?.setScene(scene);

@@ -92,6 +92,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     renderer,
     layers,
     crossfadeMs,
+    skyThemeEaseMs,
     edgeMask,
     opacity,
     veil,
@@ -149,6 +150,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         <WeatherWallpaper
           scene={scene}
           active={enabled}
+          themeEaseMs={skyThemeEaseMs}
           edgeMask={edgeMask}
           onFallback={reportShaderFallback}
           statsRef={statsRef}
