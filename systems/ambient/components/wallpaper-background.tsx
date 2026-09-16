@@ -33,7 +33,9 @@ import { WeatherWallpaper } from "./wallpaper";
 // It is also where the thunder-day easter egg is wired: the wallpaper layer is
 // pointer-events-none (it must be — it is behind the whole page), so the click
 // is caught on the document and answered by whichever engine is mounted. See
-// lib/strike.ts for what counts as a click on the sky.
+// lib/strike.ts for what counts as a click on the sky. The rain-and-snow one —
+// a drag stirs up a gust — is armed inside <WeatherWallpaper /> instead, since
+// only the Sky has particles for a wind to blow.
 //
 // An image wallpaper paints at FULL STRENGTH. On the home screen that is the
 // whole treatment: the picture is the content, sharp and untinted, with the
@@ -139,6 +141,9 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
           scene={scene}
           active={enabled}
           edgeMask={edgeMask}
+          // This is the one sky a hand can reach: a drag across the page
+          // background stirs up a gust.
+          interactive
           onFallback={reportShaderFallback}
           statsRef={statsRef}
           strikeRef={strikeRef}

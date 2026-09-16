@@ -85,6 +85,60 @@ const CLOUD_SPEED_OFFSET = OFFSET.uCloudSpeed;
 /** A fixed, pleasant moment on the shader clock for a still frame. */
 const STILL_FRAME_SEC = 37;
 
+// -----------------------------------------------------------------------------
+// Stirring up a gust
+//
+// A hand dragged across the background makes wind, and nothing else: the rain
+// keeps falling, the snow keeps drifting, and the only thing the visitor adds is
+// a term on the wind. So the sky answers a hand exactly as it answers the
+// forecast, and there is no second physics to keep honest.
+//
+// Air has mass, and that is the whole feel of it:
+//
+//   · The hand's own motion (`stir`) goes stale within a breath, so a finger
+//     resting on the page makes no wind at all — only a moving one does.
+//   · The gust chases that stir slowly. A flick barely raises it; a long sweep
+//     builds it. Real gusts arrive over a moment, not a frame.
+//   · And it falls away more slowly still, so the sky settles back on its own.
+//
+// Everything below is in the shader's units: wind is −1..1, positive blowing
+// right, and one unit of hand travel is one viewport HEIGHT.
+// -----------------------------------------------------------------------------
+
+const GUST = {
+  /** Hand speed (heights/s) → gust, through `tanh`, so a frantic hand saturates. */
+  gain: 0.45,
+  /**
+   * The strongest gust a hand can raise. The rain's lean shears the curtain
+   * about its bottom edge, so the top of the screen sweeps sideways at
+   * `0.75 × max ÷ attack` heights a second — kept under the rain's own fall
+   * speed, or the swing reads as a whip-crack rather than as weather.
+   */
+  max: 0.7,
+  /** How quickly the hand's motion stops counting once it stops moving. */
+  stirTau: 0.16,
+  /** The gust's rise while a hand is stirring … */
+  attack: 0.32,
+  /** … and its fall once the air is left alone: temporary, and gone in ~2 s. */
+  release: 0.9,
+} as const;
+
+/**
+ * How long the snow takes to come up to the wind.
+ *
+ * A raindrop is at the new angle the moment the wind changes — its lean IS the
+ * steady state, and at 1.5–2.5 screen heights a second there is no visible
+ * transient to model. A flake is the other thing entirely: it falls at a
+ * thirtieth of that and takes ten to thirty seconds to cross the frame, so
+ * being shoved instantly sideways reads as a card being slid rather than as
+ * snow. It is brought round over seconds instead, and keeps going for seconds
+ * after the air is still — which is the part that reads as weight.
+ *
+ * The cloud decks are heavier again, and get nothing from a hand at all: you
+ * cannot stir a cloud by waving at it. They answer the forecast only.
+ */
+const SNOW_WIND_TAU = 3;
+
 /** How long a clicked strike lives — the shader's envelope is spent by then. */
 const STRIKE_SEC = STRIKE_MS / 1000;
 
@@ -162,6 +216,7 @@ export class WallpaperRenderer {
   private locSeed: WebGLUniformLocation | null = null;
   private locCloudDrift: WebGLUniformLocation | null = null;
   private locSnowDrift: WebGLUniformLocation | null = null;
+  private locStirWind: WebGLUniformLocation | null = null;
   private locStrike: WebGLUniformLocation | null = null;
   private locStrikeAge: WebGLUniformLocation | null = null;
   private locStrikeSeed: WebGLUniformLocation | null = null;
@@ -180,6 +235,13 @@ export class WallpaperRenderer {
   private startAt = 0;
   private cloudDrift = 0;
   private snowDrift = 0;
+  /** The wind the snow has actually got up to — it lags the air (SNOW_WIND_TAU). */
+  private snowWind = 0;
+
+  /** The wind a hand asked for, when it asked, and what the air has got to. */
+  private stir = 0;
+  private stirAt = 0;
+  private gust = 0;
 
   /** The clicked strike. `strikeAt` of 0 means none is running. */
   private strikeAt = 0;
@@ -277,11 +339,29 @@ export class WallpaperRenderer {
     this.strikeAge = 0;
   }
 
+  /**
+   * A hand went past at `vxPx` CSS pixels per second, left to right.
+   *
+   * Only the horizontal component: wind in this sky is horizontal, and a hand
+   * swiped straight down does not make a sideways breeze. What it asks for is a
+   * wind; how much of one the air gets up to is `advanceGust`, and how much of
+   * THAT the snow gets up to is `SNOW_WIND_TAU`.
+   */
+  stirWind(vxPx: number) {
+    const heights = vxPx / Math.max(1, this.cssHeight);
+    this.stir = GUST.max * Math.tanh(heights * GUST.gain);
+    this.stirAt = performance.now();
+  }
+
   setReducedMotion(reduced: boolean) {
     if (this.opts.reducedMotion === reduced) return;
     this.opts.reducedMotion = reduced;
     if (reduced) {
       this.stop();
+      // Nothing will advance the gust again; don't freeze half of one into the
+      // still frame.
+      this.stir = 0;
+      this.gust = 0;
       this.current.set(this.target);
       this.renderOnce();
     } else if (this.hasScene) {
@@ -378,6 +458,7 @@ export class WallpaperRenderer {
     this.locSeed = gl.getUniformLocation(program, "uSeed");
     this.locCloudDrift = gl.getUniformLocation(program, "uCloudDrift");
     this.locSnowDrift = gl.getUniformLocation(program, "uSnowDrift");
+    this.locStirWind = gl.getUniformLocation(program, "uStirWind");
     this.locStrike = gl.getUniformLocation(program, "uStrike");
     this.locStrikeAge = gl.getUniformLocation(program, "uStrikeAge");
     this.locStrikeSeed = gl.getUniformLocation(program, "uStrikeSeed");
@@ -601,12 +682,40 @@ export class WallpaperRenderer {
         this.current[idx] += (this.target[idx] - this.current[idx]) * k;
       }
     }
-    // Advect drift from the smoothed wind so direction changes glide.
+    this.advanceGust(dtSec);
+    // Advect drift from the smoothed wind so direction changes glide. Both
+    // drifts are travels, positive to the right, like the wind that feeds them.
     const windX = this.current[WIND_OFFSET];
     const cloudSpeed = this.current[CLOUD_SPEED_OFFSET];
     const dir = Math.tanh(windX * 6);
     this.cloudDrift += dtSec * cloudSpeed * (0.35 + 0.65 * Math.abs(windX)) * (dir === 0 ? 0.35 : dir);
-    this.snowDrift += dtSec * (windX * 0.6 + 0.03);
+    // The snow gets the hand's gust too, but only as fast as snow takes wind
+    // (see SNOW_WIND_TAU). The constant after it is a whisper of travel so the
+    // flakes never fall dead straight in still air; its direction means nothing.
+    const air = windX + this.gust;
+    this.snowWind += (air - this.snowWind) * (1 - Math.exp(-dtSec / SNOW_WIND_TAU));
+    this.snowDrift += dtSec * (this.snowWind * 0.6 + 0.03);
+  }
+
+  /**
+   * One step of the gust (see "Stirring up a gust").
+   *
+   * The hand's stir decays on its own, so a finger that stops moving stops
+   * making wind without anyone having to say so — which is also why letting go
+   * needs no announcement. The gust then chases whatever is left, quickly while
+   * a hand is still stirring and slowly once the air is its own again.
+   */
+  private advanceGust(dtSec: number) {
+    // A stir is worth only what it is fresh — and freshness is measured from
+    // when the hand actually went past, never from the last frame. Decaying it
+    // by a frame's worth would quietly dock every gesture by however long the
+    // GPU took, which on a slow one is most of it.
+    const stale = (performance.now() - this.stirAt) / 1000;
+    const stir = this.stir * Math.exp(-stale / GUST.stirTau);
+    const stirring = Math.abs(stir) > 0.02;
+    const tau = stirring ? GUST.attack : GUST.release;
+    this.gust += (stir - this.gust) * (1 - Math.exp(-dtSec / tau));
+    if (!stirring && Math.abs(this.gust) < 1e-3) this.gust = 0;
   }
 
   private draw(timeSec: number) {
@@ -622,6 +731,7 @@ export class WallpaperRenderer {
     gl.uniform1f(this.locSeed, this.seed);
     gl.uniform1f(this.locCloudDrift, this.cloudDrift);
     gl.uniform1f(this.locSnowDrift, this.snowDrift);
+    gl.uniform1f(this.locStirWind, this.gust);
     gl.uniform2f(this.locStrike, this.strikeX, this.strikeY);
     gl.uniform1f(this.locStrikeAge, this.strikeAge);
     gl.uniform1f(this.locStrikeSeed, this.strikeSeed);

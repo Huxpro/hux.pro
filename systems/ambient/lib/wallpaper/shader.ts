@@ -14,6 +14,11 @@
 //
 // Everything is procedural, so the whole wallpaper is a string of GLSL and the
 // renderer only streams a handful of uniforms per frame.
+//
+// Every horizontal quantity here is screen-space and POSITIVE GOES RIGHT: the
+// scene's wind, the gust a hand stirs up, and the accumulated cloud and snow
+// travels. The two travels are *subtracted* where they are used, because
+// sampling a procedural field further right is what walks it left.
 // =============================================================================
 
 export const VERTEX_SHADER = /* glsl */ `#version 300 es
@@ -32,7 +37,8 @@ out vec4 fragColor;
 uniform vec2  uResolution;
 uniform float uTime;
 uniform float uSeed;
-uniform float uCloudDrift;   // accumulated in JS from the smoothed wind
+// Accumulated travel, in JS, from the smoothed wind. Positive travels right.
+uniform float uCloudDrift;
 uniform float uSnowDrift;
 
 uniform vec2  uSun;           // screen 0..1, y up
@@ -58,7 +64,11 @@ uniform vec3  uCloudShade;
 
 uniform float uRain;
 uniform float uSnow;
-uniform vec2  uWind;
+uniform vec2  uWind;          // screen-space; x > 0 blows RIGHT (see scene.ts)
+// The wind a hand stirred up on its way across the page (see stir.ts). Same
+// units and sign as uWind.x, and simply added to it. The snow and the clouds
+// take theirs through the drifts above, which the renderer already integrates.
+uniform float uStirWind;
 uniform float uFog;
 uniform float uLightning;
 uniform float uStars;
@@ -320,7 +330,9 @@ struct CloudSample {
 };
 
 CloudSample cloudLayer(vec2 p, vec2 sunDir, float scale, float speed, float parallaxY, float coverBias) {
-  vec2 drift = vec2(uCloudDrift * speed, 0.0);
+  // Subtracted, not added: uCloudDrift is a travel, positive to the right, and
+  // sampling further right is what walks a deck left.
+  vec2 drift = vec2(-uCloudDrift * speed, 0.0);
   vec2 q = vec2(p.x, p.y * parallaxY) * scale + drift + uSeed * 7.0;
   // Base billows plus a finer detail octave so partial cover thresholds into
   // ragged cumulus rather than round fbm peaks.
@@ -353,7 +365,13 @@ CloudSample cloudLayer(vec2 p, vec2 sunDir, float scale, float speed, float para
 float rain(vec2 p, vec2 uv, float aspect) {
   if (uRain < 0.002) return 0.0;
   float acc = 0.0;
-  float slant = -uWind.x * 0.75;
+  // The lean is the whole of the rain's answer to wind: a positive slant shears
+  // the curtain so every drop travels down-AND-right, which is both what the
+  // eye reads and where the drop actually goes. A hand's gust is the same kind
+  // of thing as the forecast's wind, so they simply add — and rain, being light
+  // and quick, is at the new angle at once. The snow is not; see snowWind in
+  // renderer.ts.
+  float slant = (uWind.x + uStirWind) * 0.75;
   float fade = smoothstep(0.0, 0.12, uRain);
   vec2 base = vec2(p.x + uv.y * slant, p.y);
 
@@ -436,8 +454,11 @@ float snow(vec2 p, float aspect) {
     // ramps span the same 3×, so it comes out the same at every depth — one
     // wind, one angle, which is not true if the two are tuned apart. At a
     // 10 km/h crosswind it works out around 33° off vertical.
-    q.x += (uSnowDrift * mix(0.133, 0.4, z)
-          + gust * mix(0.008, 0.02, z)
+    // Drift subtracts: uSnowDrift is a travel, positive to the right, and a
+    // bigger q.x samples further right. The gust and waft under it are the
+    // curtain's own wobble, and their signs carry no meaning.
+    q.x -= uSnowDrift * mix(0.133, 0.4, z) * sc;
+    q.x += (gust * mix(0.008, 0.02, z)
           + waft * mix(0.022, 0.075, z)) * sc;
 
     vec2 cell = floor(q);

@@ -1486,6 +1486,13 @@ const MOON_NAME: Record<"en" | "zh", Record<MoonPhaseName, string>> = {
 };
 
 
+const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
+
+/** The eight-point name for a met wind direction, for the devtool's readout. */
+function compassPoint(deg: number): string {
+  return COMPASS[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
+}
+
 /** The quiet outlined chip the Sky module's Now and Play buttons are made of. */
 const PANEL_CHIP = cn(
   "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5",
@@ -1634,7 +1641,10 @@ function SkyModule() {
     setSceneOverrides(next);
   };
 
-  // The four tweakable numbers: slider value ↔ scene value, one row each.
+  // The tweakable numbers: slider value ↔ scene value, one row each. Wind is
+  // two of them on purpose — a speed with no direction is a number that can
+  // look like it does nothing, because a wind along the view axis has no
+  // horizontal component and never leans the rain however hard it blows.
   const percent = (v: number) => `${v}%`;
   const tune: {
     key: keyof typeof sceneOverrides;
@@ -1648,6 +1658,7 @@ function SkyModule() {
     { key: "cloudCover", label: zh ? "云量" : "Cloud", aria: "Cloud", value: Math.round(scene.clouds.cover * 100), max: 100, format: percent, toScene: (v) => v / 100 },
     { key: "precipitationIntensity", label: zh ? "降水" : "Precip", aria: "Precip", value: Math.round(scene.precipitation.intensity * 100), max: 100, format: percent, toScene: (v) => v / 100 },
     { key: "windSpeedKmh", label: zh ? "风速" : "Wind", aria: "Wind", value: Math.round(sceneOverrides.windSpeedKmh ?? weather?.windSpeedKmh ?? 8), max: 60, format: (v) => `${v} km/h`, toScene: (v) => v },
+    { key: "windDirectionDeg", label: zh ? "风向" : "From", aria: "Wind direction", value: Math.round(sceneOverrides.windDirectionDeg ?? weather?.windDirectionDeg ?? 270), max: 359, format: (v) => `${v}° ${compassPoint(v)}`, toScene: (v) => v },
     { key: "veilAmount", label: zh ? "遮罩" : "Veil", aria: "Veil", value: Math.round(scene.veil.amount * 100), max: 90, format: percent, toScene: (v) => v / 100 },
   ];
 

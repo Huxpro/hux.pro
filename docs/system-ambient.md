@@ -32,6 +32,7 @@ systems/ambient/
 │   ├── wallpaper/
 │   │   ├── shader.ts             # GLSL: the full-screen procedural sky (CG)
 │   │   ├── renderer.ts           # WallpaperRenderer: uniform easing, adaptive quality
+│   │   ├── stir.ts               # Drag the background to stir up a gust of wind
 │   │   └── support.ts            # WebGL2 / reduced-motion / quality-profile detection
 │   ├── strike.ts                 # The thunder-day strike: timing + "is this the sky?"
 │   ├── greeting.ts               # Time-of-day helpers
@@ -186,7 +187,9 @@ The Sky engine (`WallpaperRenderer`):
   large gap between the target and where the disc has eased to is only lag, and
   snapping on that teleports the disc mid-drag;
 - accumulates cloud/snow **drift in JS** from the smoothed wind, so a wind change
-  glides instead of teleporting the sky;
+  glides instead of teleporting the sky — and the snow takes that wind *slowly*,
+  see [Stirring the wind](#stirring-the-wind-rain-and-snow-easter-egg);
+- lets a hand dragged across the page add to the wind, same section;
 - renders at a **pixel budget** (≈1.1 M px desktop, ≈0.5 M px phones) and backs
   off further when frames run long, recovering when they are cheap — the scene
   is soft, so CSS upscaling is invisible;
@@ -248,6 +251,99 @@ Three things it will not do, all of them deliberate:
 
 To see it without waiting for a storm: force **Thunder** in the devtool's Sky
 module and click the page background.
+
+### Stirring the wind (rain-and-snow easter egg)
+
+**While it is raining or snowing, drag a hand across the page's background and
+you stir up a breeze.** Stop, or let go, and it dies away and the sky settles
+back.
+
+That is the whole of it: **a hand adds a term to `uWind.x`**. Everything the sky
+does with that it already knew how to do, so there is no second physics to keep
+honest and nothing to hand back when a gesture ends.
+
+Air has mass, and that is the entire feel of it:
+
+| | |
+|---|---|
+| A hand that stops moving stops making wind | its stir goes stale within a breath, so resting a finger on the page does nothing |
+| A flick raises a puff, a long sweep raises a gust | the wind chases the stir over ~0.3 s, so a short gesture never reaches full strength |
+| Letting go needs no announcement | the stir simply stops arriving, and the wind falls away over ~0.9 s |
+
+#### Not everything takes wind at the same speed
+
+This is the part worth reading twice, because it is what keeps a gust from
+looking like a card being slid:
+
+| | How fast it comes up to the wind | Why |
+|---|---|---|
+| **Rain** | at once | The lean *is* the steady state, and at 1.5–2.5 screen heights a second there is no visible transient to model. |
+| **Snow** | over ~3 s (`SNOW_WIND_TAU`), and it keeps going for ~3 s after the air is still | A flake falls at a thirtieth of a raindrop's speed and takes ten to thirty seconds to cross the frame. Shoved sideways instantly it stops reading as snow. Measured: against a hand's gust the snow reaches **39 %** of the air, **750 ms** later, and is still drifting three seconds after the air has gone quiet. |
+| **Clouds** | never, from a hand | You cannot stir a cloud deck by waving at it. They answer the forecast only. |
+
+`GUST.max` is bounded on purpose. The rain's lean shears the curtain about its
+bottom edge, so the top of the screen sweeps sideways at `0.75 × max ÷ attack`
+heights a second; kept under the rain's own fall speed the sky *swings* over,
+and above it the same motion reads as a whip-crack.
+
+Three pieces, one per layer:
+
+| Piece | Job |
+|-------|-----|
+| `lib/wallpaper/stir.ts` | Recognises the gesture and reports the hand's horizontal speed in CSS px/s. |
+| `WallpaperRenderer` ("Stirring up a gust") | The air: how a stir goes stale, how the gust rises and falls, how slowly the snow takes it. One `GUST` table plus `SNOW_WIND_TAU`. |
+| `shader.ts` | Draws it — `uStirWind` is simply added to `uWind.x`. |
+
+What it deliberately does **not** do:
+
+- **Nothing is `preventDefault`ed and no style is touched.** Every listener is
+  passive, so scrolling, tapping, long-pressing and selecting text behave
+  exactly as they would without it.
+- **Only the horizontal component counts.** Wind here is horizontal, and a hand
+  swiped straight down does not make a sideways breeze — which also means an
+  ordinary vertical scroll leaves the weather alone.
+- **It does not invent a second idea of "the sky".** What counts as background
+  is [`isBackgroundClick`](#the-strike-thunder-day-easter-egg) from
+  `lib/strike.ts`, the same question the strike asks, so the two easter eggs can
+  never disagree — and `data-no-strike` keeps both of them off.
+- **It uses touch events, not pointer events.** A touch drag that turns into a
+  scroll fires `pointercancel` and stops sending `pointermove`, which would cut
+  the gesture off exactly where it is most fun.
+- **It is off** under `prefers-reduced-motion`, off for the Gradient/Classic
+  styles (no particles to blow), off in the wallpaper picker's preview tile, and
+  off whenever the sky is dry.
+
+### The wind's sign
+
+Every horizontal quantity in the Sky is screen-space, and **positive goes
+right**: `wind.x`, `uStirWind`, and the accumulated `uCloudDrift` and
+`uSnowDrift` travels. `scene.ts` maps the met wind onto that — a westerly (from
+270°) blows toward the geographic east, which is screen-*left* in the northern
+hemisphere and mirrors in the south — and the shader follows it.
+
+It was not always so. Until the gust landed, the shader read `uWind.x` with the
+**opposite** sign in all three places that consume it: the rain's slant, the
+snow's drift and the cloud advection. They agreed with each other, so the sky
+was self-consistent and nothing ever looked broken — the measured wind simply
+blew the whole sky backwards with respect to the compass, which no one can see
+without a compass. Adding a gust, whose direction the visitor's own hand
+supplies, is what made it visible.
+
+One thing to keep in mind when reading the shader: both drifts are
+**subtracted** where they are used, because sampling a procedural field further
+right is what walks it left. That negation is the convention being honoured, not
+broken.
+
+#### Speed is only half of a wind
+
+The devtool's Sky module has **two** wind rows, `Wind` and `From`, and it needs
+both. `wind.x` is `speed × −sin(direction)`: the screen looks south, so a wind
+along that axis has no horizontal component at all and **no amount of it leans
+the rain or drifts the snow** — at a due-southerly forecast the speed slider
+moves `wind.x` from 0.000 to 0.000 at every setting, and only the clouds change
+pace. A speed you can set and a direction you cannot is a control that can look
+broken while working exactly as written, so `SceneOverrides.windDirectionDeg`
+exists too.
 
 ### Phase Notification
 
