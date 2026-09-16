@@ -66,6 +66,12 @@ export function CommandSheet() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [snap, setSnap] = useState<number | string | null>(SNAP_POINTS[0]);
+  // The detent the sheet settled on last, for telling a drag down from the
+  // top apart from the release that ends every touch.
+  const snapRef = useRef(snap);
+  useEffect(() => {
+    snapRef.current = snap;
+  }, [snap]);
   const [handingOff, setHandingOff] = useState(false);
 
   // A fresh sheet each time: empty field, lower detent, nothing in flight.
@@ -131,10 +137,14 @@ export function CommandSheet() {
         snapPoints={SNAP_POINTS}
         activeSnapPoint={snap}
         onActiveSnapPointChange={(point) => {
-          setSnap(point);
           // Dragged back down from the top: the keyboard goes too, as Maps'
-          // does, so the lower detent is not half hidden behind it.
-          if (point !== SNAP_TOP) inputRef.current?.blur();
+          // does, so the lower detent is not half hidden behind it. Only from
+          // the top — every touch ends in a release that re-reports the detent
+          // it landed on, and a tap into the field is one of those touches.
+          if (snapRef.current === SNAP_TOP && point !== SNAP_TOP) {
+            inputRef.current?.blur();
+          }
+          setSnap(point);
         }}
         label={t(locale, "commandPalette")}
         className="system-chrome"
@@ -170,8 +180,13 @@ export function CommandSheet() {
                     value={inputValue}
                     onValueChange={handleInputChange}
                     // Tapping the field is asking for room: the sheet climbs
-                    // to the top as the keyboard comes up.
-                    onFocus={() => setSnap(SNAP_TOP)}
+                    // to the top as the keyboard comes up. On the next frame,
+                    // after the tap's own release has reported the detent it
+                    // was on, so the climb is the last word rather than the
+                    // release.
+                    onFocus={() => {
+                      requestAnimationFrame(() => setSnap(SNAP_TOP));
+                    }}
                     placeholder={t(locale, "searchPlaceholder")}
                     enterKeyHint="go"
                     className={cn(

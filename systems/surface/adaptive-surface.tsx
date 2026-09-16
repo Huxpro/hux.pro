@@ -13,6 +13,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Drawer } from "@base-ui/react/drawer";
+import { BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
 import { useSurfaceMode, type SurfaceMode, type SurfacePresentation } from "./presentation";
 import { EDGE_GAP, SHELL, SurfaceSheet, surfaceMotionVars } from "./sheet";
 
@@ -262,7 +263,11 @@ function SurfacePanel({
     >
       <Drawer.Portal>
         {/* Only the panel takes pointers; the rest of the page is untouched. */}
-        <Drawer.Viewport className="pointer-events-none fixed inset-0 z-[60]">
+        <Drawer.Viewport
+          // A fixed layer for the bezel, as in sheet.tsx.
+          {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
+          className="pointer-events-none fixed inset-0 z-[60]"
+        >
           <Drawer.Popup
             data-surface-popup=""
             style={surfaceMotionVars(EDGE_GAP)}

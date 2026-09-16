@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { Drawer } from "@base-ui/react/drawer";
+import { BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
 import { SURFACE_EASING, SURFACE_TRANSITION_MS, useSurfaceStack } from "./stack";
 
 // =============================================================================
@@ -150,6 +151,12 @@ export function SurfaceSheet({
       <Drawer.VirtualKeyboardProvider>
         <Drawer.Portal>
           <Drawer.Viewport
+            // Base UI portals into a wrapper of its own, so this is not a
+            // `body > .fixed` the bezel would catch by itself. Marked as a
+            // fixed layer: in container scroll it becomes absolute inside the
+            // fixed <body> (the identical box), and never spans the edge Safari
+            // samples its chrome colour from.
+            {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
             className={cn(
               "fixed inset-0 z-[60]",
               // Modal: this box is the scrim. It is invisible — the page stays
