@@ -120,6 +120,7 @@ and still gets the same shell, so a sheet is a sheet whatever it holds.
   modal                       // scrim: page blocked, tap outside dismisses
   snapPoints={[0.7, 1]}       // detents; opens at the first
   activeSnapPoint={snap} onActiveSnapPointChange={setSnap}
+  restoreFocus={false}        // a sheet stacked on one with a field: see below
   label="Command palette">    // sr-only dialog name (or render a Drawer.Title)
   {content}
 </SurfaceSheet>
@@ -159,10 +160,41 @@ the drawer takes the pointer, and the click never reaches the row that was
 pressed. A touch drag still dismisses from anywhere; Base UI reads the scroll
 containers so a drag inside a list scrolls the list.
 
+**Focus on close.** A sheet returns focus to what opened it, unless
+`restoreFocus={false}`. A sheet stacked on one with a text field turns it off:
+focus handed back to a field is a focused field with no keyboard, and iOS opens
+the keyboard on the next touch anywhere, whatever it was aimed at.
+
 **Keyboard.** `Drawer.VirtualKeyboardProvider` wraps every sheet and publishes
 `--drawer-keyboard-inset`; the shell takes it as a bottom margin, so a sheet
 with a field in it rests on the keyboard rather than behind it. A sheet with no
 fields never notices.
+
+## Working with Base UI
+
+The sheet's motion is written against Base UI Drawer's contract — the data
+attributes and custom properties it publishes — and that contract lives in its
+docs, its nested demo and its source, not in its types. Before changing
+`sheet.tsx` or the *Secondary surface motion* block in `globals.css`, read the
+numbered block at the top of `systems/surface/sheet.tsx`; it is the list of
+what has already been got wrong. In short:
+
+- `--drawer-swipe-progress` is the fraction of the way out only for a sheet
+  without detents; with detents it is the position between them. A sheet whose
+  parent must follow its swipe has no detents.
+- The swipe variables are registered non-inheriting; a descendant opts in
+  with `--name: inherit`.
+- An exit is over when `popup.getAnimations()` is empty a frame after
+  `data-ending-style`. A popup must never carry `transition: none` on that
+  frame; drop the duration, keep the property.
+- Nesting is React nesting; sheets in sibling subtrees use `stack.ts`.
+- A closing dialog returns focus to its opener; where that is a field on a
+  touch device, `restoreFocus={false}`.
+- Test each gesture path on its own: click, touch tap, swipe release,
+  programmatic focus.
+
+Base UI: https://base-ui.com/react/components/drawer — nested demo under
+`docs/src/app/(docs)/react/components/drawer/demos/nested/` in its repository.
 
 ## Stacking
 
@@ -172,14 +204,22 @@ one on top goes. That is a relationship between surfaces, not a property of
 either, so it lives in `stack.ts`: a module-level store (the surfaces mount in
 different subtrees, and a store needs no provider to reach them all) that every
 open sheet registers with in order. A sheet with another opened after it reads
-`behind` and recedes, on the shared curve; it deregisters on close rather than
-on unmount, so the one behind comes forward in step with the top sheet's exit.
+`behind` and recedes; it deregisters on close rather than on unmount, so the
+one behind comes forward in step with the top sheet's exit. The recede takes
+its own curve (`SURFACE_RECEDE_EASING`, ease-in-out): a sheet starts moving a
+frame after its parent's depth changes, and on the travel curve that frame
+would already be a third of the recede — the parent would flinch before the
+child arrives.
 
 Base UI has nested drawers of its own, with `data-nested-drawer-open` and
 `--nested-drawers`, but a drawer is only nested when it is a React child of
 another one. The wallpaper picker, the playlist and the palette all mount in
-sibling subtrees of the root layout, so `stack.ts` stays. It is the one piece of
-this system that works around a library rather than with it.
+sibling subtrees of the root layout, so `stack.ts` stays for those. Where a
+sheet *is* nested — the palette's slash sheet — the parent's depth comes from
+Base UI instead: `--nested-drawers` less the child's `--drawer-swipe-progress`,
+so the parent comes forward under the finger as the child is pulled down, with
+transitions off while `data-nested-drawer-swiping` is set. Both feed the one
+`--surface-depth` the shell is drawn from.
 
 A sheet that opens a sheet decides for itself what happens next. The wallpaper
 picker over the playlist is a true stack: close the picker and the playlist

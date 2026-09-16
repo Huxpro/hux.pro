@@ -21,6 +21,7 @@ import {
   useShowKeyboardHints,
   type CommandAction,
 } from "./actions";
+import { useCommand } from "./provider";
 
 // =============================================================================
 // Search results and the slash list — the palette's two bodies, shared by the
@@ -47,6 +48,35 @@ function Letter({ letter }: { letter?: string }) {
   const showHints = useShowKeyboardHints();
   if (!letter || !showHints) return null;
   return <kbd className={cn("shrink-0", TYPE.kbd)}>{letter.toUpperCase()}</kbd>;
+}
+
+/**
+ * The way into slash mode where there is no keyboard to type "/" on: the
+ * hint, made pressable. It sits where a search field keeps its trailing
+ * accessory on iOS (the dictation mic, a filter), inside the field and before
+ * the close button outside it, and only while the field is empty — which is
+ * exactly when typing "/" would have worked. The same kbd chip the hints are
+ * made of, with a rim, a touch-sized hit area and press feedback, so it reads
+ * as the palette's own vocabulary and not as a foreign control.
+ */
+export function SlashEntry({ className }: { className?: string }) {
+  const { locale } = useLocale();
+  const { setSlashCommandsMode } = useCommand();
+  return (
+    <button
+      type="button"
+      onClick={() => setSlashCommandsMode(true)}
+      aria-label={t(locale, "slashCommands")}
+      className={cn(
+        "pressable flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md px-2",
+        "border border-border/50 bg-muted/50 font-mono text-xs text-muted-foreground",
+        "transition-colors active:bg-accent active:text-foreground",
+        className
+      )}
+    >
+      /
+    </button>
+  );
 }
 
 /** Icon, label, letter — the same in a search row and a slash row. */

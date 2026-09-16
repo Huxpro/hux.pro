@@ -3,7 +3,12 @@
 import { cn } from "@/lib/utils";
 import { Drawer } from "@base-ui/react/drawer";
 import { BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
-import { SURFACE_EASING, SURFACE_TRANSITION_MS, useSurfaceStack } from "./stack";
+import {
+  SURFACE_EASING,
+  SURFACE_RECEDE_EASING,
+  SURFACE_TRANSITION_MS,
+  useSurfaceStack,
+} from "./stack";
 
 // =============================================================================
 // SurfaceSheet — the bottom sheet every phone surface is made of.
@@ -52,6 +57,43 @@ import { SURFACE_EASING, SURFACE_TRANSITION_MS, useSurfaceStack } from "./stack"
 // page in during container scroll.
 // =============================================================================
 
+// -----------------------------------------------------------------------------
+// BEFORE CHANGING THIS FILE, OR THE "Secondary surface motion" BLOCK IN
+// globals.css: read Base UI's Drawer docs and its nested demo, and the source
+// behind the part you are touching. The library hands every visual to CSS and
+// publishes its state as data attributes and custom properties; those are the
+// contract, and its types do not describe their meaning. What has already gone
+// wrong by guessing, each a bug shipped and reverted:
+//
+//   https://base-ui.com/react/components/drawer
+//   node_modules/@base-ui/react/drawer/{popup,viewport}/*.js
+//   node_modules/@base-ui/react/internals/useAnimationsFinished.js
+//
+// 1. `--drawer-swipe-progress` means two things. Without snap points it is
+//    the fraction of the way out; with them it is the position BETWEEN the
+//    detents, already 1 at the lowest one. A sheet whose parent must follow
+//    its swipe cannot have detents (DrawerViewport.js, `offsetToProgress`).
+// 2. `--drawer-swipe-movement-*`, `--drawer-snap-point-offset`,
+//    `--drawer-swipe-progress` and `--drawer-swipe-strength` are registered
+//    `inherits: false` (DrawerPopup.js). A descendant reads them only with an
+//    explicit `--name: inherit`.
+// 3. An exit is over when `popup.getAnimations()` is empty one frame after
+//    `data-ending-style` lands (useAnimationsFinished.js). Never leave the
+//    popup with `transition: none` on that frame: on release it can be
+//    swiping and leaving at once, and a leaving rule that only restores a
+//    duration has no property to run on. Drop the duration, keep the property.
+// 4. Nesting is React nesting. A drawer is nested only when its Root renders
+//    inside another's Popup; the parent then gets `data-nested-drawer-open`,
+//    `data-nested-drawer-swiping` and `--nested-drawers`. Sheets in sibling
+//    subtrees get none of it — that is what stack.ts is for.
+// 5. A closing dialog returns focus to what opened it. Where that is a text
+//    field on a touch device, turn it off (`restoreFocus`): iOS opens the
+//    keyboard for an already-focused field on the next touch anywhere.
+// 6. Every gesture path is its own test: a `.click()` proves nothing about a
+//    touch tap, a touch tap nothing about a swipe release, and a programmatic
+//    `focus()` is a third thing again.
+// -----------------------------------------------------------------------------
+
 /** Ring of padding between a floating surface and the screen edges. */
 export const EDGE_GAP = "0.75rem";
 
@@ -64,6 +106,17 @@ const BOTTOM_INSET = `max(env(safe-area-inset-bottom), ${EDGE_GAP})`;
 /** A detent as a CSS length: a fraction of the viewport, or pixels. */
 const detentLength = (point: number) =>
   point <= 1 ? `${point * 100}dvh` : `${point}px`;
+
+/**
+ * The height a sheet without detents needs to stand where a sheet with them
+ * stands at `point`, so a sheet stacked on one lands level with it. The top
+ * detent leaves the top inset; any other leaves the edge gap under the shell.
+ */
+export function detentHeight(point: number): string {
+  return point >= 1
+    ? `calc(100dvh - ${TOP_INSET} - ${EDGE_GAP})`
+    : `calc(${detentLength(point)} - ${EDGE_GAP})`;
+}
 
 /** An icon button in a surface header: close, back, an external link. */
 export const HEADER_BUTTON =
@@ -87,6 +140,7 @@ export const surfaceMotionVars = (exitClearance: string) =>
     "--surface-exit": exitClearance,
     "--surface-duration": `${SURFACE_TRANSITION_MS}ms`,
     "--surface-easing": SURFACE_EASING,
+    "--surface-recede-easing": SURFACE_RECEDE_EASING,
   }) as React.CSSProperties;
 
 /**
@@ -139,6 +193,13 @@ export interface SurfaceSheetProps {
   /** Height without snap points. Default 80dvh. */
   height?: string;
   /**
+   * Return focus to what opened the sheet when it closes. On by default; a
+   * sheet stacked on one with a text field turns it off — focus handed back
+   * to a field is a focused field with no keyboard, and iOS opens the keyboard
+   * on the next touch anywhere, whatever it was aimed at.
+   */
+  restoreFocus?: boolean;
+  /**
    * Accessible name for the dialog, rendered visually hidden. Omit when the
    * content renders a visible `Drawer.Title` of its own.
    */
@@ -156,6 +217,7 @@ export function SurfaceSheet({
   activeSnapPoint,
   onActiveSnapPointChange,
   height,
+  restoreFocus = true,
   label,
   className,
   children,
@@ -190,6 +252,7 @@ export function SurfaceSheet({
         <Drawer.Portal>
           <SurfaceViewport modal={modal}>
             <Drawer.Popup
+              finalFocus={restoreFocus ? undefined : false}
               data-surface-popup=""
               data-surface-snap={hasSnapPoints ? "" : undefined}
               style={{
