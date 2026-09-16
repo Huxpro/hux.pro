@@ -11,6 +11,14 @@
    composition starts to fit with room left over. */
 @custom-variant roomy (@media (width >= 96rem) and (height >= 1000px));
 
+/* `bleed:` — wide enough for landscape media to break out of the reading
+   column. The rule that does it and the reader control that switches it off
+   (components/post/reading-sheet.tsx) both answer to this one number, so
+   neither can drift from the other. Tailwind makes a variant of it. */
+@theme {
+  --breakpoint-bleed: 900px;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -885,7 +893,7 @@ html.dragging * {
    gutter each side so it clears the fixed ruler ToC docked at the edge.
    Images keep their natural aspect ratio (height stays auto); only the video
    iframe is locked to 16:9 by the base rule above. */
-@media (min-width: 900px) {
+@media (width >= theme(--breakpoint-bleed)) {
   .prose-article iframe:not(:where(.not-prose, .not-prose *)),
   .prose-article img[data-bleed="true"]:not(:where(.not-prose, .not-prose *)) {
     width: min(60rem, 100vw - 14rem);
