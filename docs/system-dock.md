@@ -12,26 +12,99 @@ look and behave identically.
 systems/dock/
 ├── provider.tsx                  # DockProvider + useDock (coordination only)
 ├── components/
-│   ├── dock.tsx                  # <Dock> — pill row layout + shared scrim
-│   ├── live-activity.tsx         # <LiveActivity> — the pill ⇄ panel morph
+│   ├── dock.tsx                  # <Dock> — pill row layout
+│   ├── live-activity.tsx         # <LiveActivity> — the pill ⇄ panel drawer
 │   └── index.ts
 └── index.ts
 ```
 
 ## Why it exists
 
-Before, the pill/panel/scrim/drag/Esc/route-collapse machinery lived inside
+Before, the pill/panel/drag/Esc/route-collapse machinery lived inside
 `MusicDock`. Adding a second notification (ambient phase changes) would have
 meant copy-pasting all of it. The dock extracts that machinery once:
 
 - **`LiveActivity`** owns the *visuals*: the collapsed pill shell, the expanded
-  panel (header, body, grabber), the open/close animations, and drag-to-dismiss.
+  panel (header, body, grabber), and the drawer the panel is made of.
 - **`DockProvider` / `useDock`** own the *coordination*: a single `openId`
-  (only one panel open at a time), Esc-to-collapse, and route-change collapse.
-- **`Dock`** owns the *layout*: a horizontal, centered, scrollable pill row plus
-  the shared scrim.
+  (only one panel open at a time) and route-change collapse.
+- **`Dock`** owns the *layout*: a horizontal, centered, scrollable pill row.
 
 Activities supply only content.
+
+## The panel is a Base UI Drawer, travelling up
+
+The expanded panel is one `Drawer.Root` with `swipeDirection="up"` — the mirror
+of the phone sheet in `systems/surface`. The Dynamic Island metaphor is anchored
+at the top and puts itself away *upwards*; a sheet does the same thing from the
+bottom edge. They are the same library, the same data attributes, and the same
+shared stack, so the site has one overlay vocabulary rather than two.
+
+What that deleted: the hand-written `drag="y"` + `dragConstraints` +
+`onDragEnd` 40px threshold, both `AnimatePresence` blocks, the transparent
+scrim in `Dock`, and the Escape listener in `DockProvider`. The motion is now
+CSS, under "Dock panel motion" in `app/globals.css`.
+
+What it bought:
+
+| | |
+|---|---|
+| **Pull to expand** | `Drawer.SwipeArea` wraps the pill, so dragging *down* from it opens the panel and the panel follows the finger the whole way. Release short of half the panel's height and it snaps back. This is the iOS Notification Center gesture; before, a pill could only be tapped. |
+| **Stacking** | The panel registers in the shared surface stack (`systems/surface/stack.ts`) as `dock-activity`. It was the one overlay on the site that did not know about the others. Now a palette opened over it (from the keyboard — a press on the FAB is an outside press and dismisses instead) sends it back a step and makes it inert, and a panel opened over the playlist sheet sends *that* back instead. |
+| **Free layout** | The panel is portalled into the shared `SurfaceViewport`, so the old rule that the pill row must carry no transform (or the `fixed` panels inside it would anchor to the row) is gone. |
+
+Before changing any of it, read the "BEFORE CHANGING THIS FILE" block at the top
+of `systems/dock/components/live-activity.tsx`, and the one it points at in
+`systems/surface/sheet.tsx`.
+
+### One place it does not replicate the old dock
+
+The old scrim was a real `fixed inset-0` div, so with a panel open every press
+went to the scrim and nothing else. Keeping that — a pointer-taking viewport —
+was tried and measured: the command palette's FAB became unreachable while a
+Live Activity was open. The drawer's viewport is non-modal instead, so a press
+outside both dismisses the panel (Base UI's outside press) and lands where it
+was aimed, which is how every other surface on the site behaves.
+
+### Tried and left out
+
+Two of the Drawer capabilities this was meant to evaluate (#175) do not survive
+contact with a top-anchored panel. Both were built, measured on an iPhone 13
+walkthrough, and reverted.
+
+**`snapPoints` — no.** Base UI sign-corrects `--drawer-snap-point-offset` for
+`up` (`DrawerPopup.js`), but the geometry is still a bottom sheet's mirrored:
+the offset clips the popup's *top*. Measured with `snapPoints={[0.18, 1]}`, the
+compact detent put the panel at `translateY(-50.5px)` with its bounding box at
+`top: -42` — the header, the collapse chevron and the top corners off the screen,
+and the transport controls left showing. A top panel's content flows downward
+from its top edge, so the end that should be clipped is the bottom.
+
+The live drag is worse: the damped-movement branch in `DrawerPopup.js` and the
+progress maths in `DrawerViewport.js` are both written `swipeDirection ===
+'down'`, so on an up drawer there is no clamp at the fully-open edge. Measured
+transforms during one drag: `-50 → -26 → +5.5 → +37.5 → +69.5` — straight past
+the resting position, unbounded. Settling on release is correct; everything
+before it is not.
+
+Two detents would also mean *different content* at each (a one-line NowPlaying
+vs. the full card), which is a render decision, not a drag geometry. Detents
+clip; they do not swap.
+
+**`Drawer.Indent` / `Drawer.IndentBackground` — no.** Two reasons, one fatal.
+`data-active` is set when *any* drawer inside the nearest `Drawer.Provider` is
+open, so it cannot tell the dock panel from the command palette: measured, both
+indented identically, and the palette indenting is exactly what we decided
+against for the sheets (the bezel already frames the page).
+
+The fatal one: `Drawer.Indent` works by transforming the box around the app's
+main UI, and under `@hux/bezel` this site's page *is* a stack of fixed layers —
+the wallpaper, the window layer, the body itself in container scroll. A
+transform on their ancestor makes it their containing block, and with the
+indent's `overflow: hidden` the box has no flow content to be as tall as.
+Measured: the page rendered fully black, with only the dock panel and the FAB
+(both outside the indent) still visible. Indenting this page would mean
+restructuring its layer model.
 
 ## Usage
 
@@ -62,11 +135,13 @@ These match the product spec for multiple simultaneous activities:
   horizontally scrollable (`.no-scrollbar`) once it gets crowded, so N pills
   scale gracefully.
 - **Expanded:** the open activity's panel takes over the top-center anchor and
-  **every pill is hidden**; collapsing restores the row. (Activities aren't
-  individually dismissible, so we never strand a pill behind a panel.)
+  **every pill goes invisible and stops taking pointers**; collapsing restores
+  them. They stay mounted, so the row keeps its layout and its scroll position
+  while a panel is up. (Activities aren't individually dismissible, so we never
+  strand a pill behind a panel.)
 - **One at a time:** opening an activity collapses any other that was open.
-- The pill row carries **no CSS transform**, so the `fixed` panels rendered by
-  `LiveActivity` stay anchored to the viewport rather than to the row.
+- **Dismissal:** a press outside, Escape, a swipe up, the collapse chevron, or a
+  route change. The first three are the drawer's; the last is `DockProvider`'s.
 
 ## Consumers
 
@@ -74,6 +149,9 @@ These match the product spec for multiple simultaneous activities:
 |----------|--------|------|------------|
 | Music | `systems/music/components/music-activity.tsx` | album art + EQ | `<NowPlaying />` |
 | Ambient phase | `systems/ambient/components/phase-activity.tsx` | sun icon + time | `<WeatherNow />` |
+| Theater audio | `systems/theater/components/theater-activity.tsx` | thumbnail + EQ | transport + `<SurfaceSwitch />` |
+| Minimized windows | `systems/windows/components/minimized-dock.tsx` | app icon + title | — (restores the window) |
 
-Both reuse the same shared body component that their homepage widget uses
-(`NowPlaying`, `WeatherNow`), so the dock panel and the grid widget never drift.
+Music and Ambient phase reuse the same shared body component their homepage
+widget uses (`NowPlaying`, `WeatherNow`), so the dock panel and the grid widget
+never drift.
