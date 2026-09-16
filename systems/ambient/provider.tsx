@@ -3,6 +3,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getWeatherStyleGradient } from "./lib/gradient";
 import { GRADIENT_CROSSFADE_MS, type GradientLayerData } from "./lib/gradient";
+import {
+  isGyroReachable,
+  requestGyroAccess,
+  resolveGyroAccess,
+  subscribeGravity,
+  type GyroAccess,
+} from "./lib/gyroscope";
 import type { LocationMode, ResolvedLocation } from "./lib/location";
 import { requestAccurateLocation as requestAccurateLocationFn } from "./lib/location";
 import { useLocationQuery, useWeatherQuery } from "./lib/queries";
@@ -195,6 +202,35 @@ export interface DevtoolWallpaperOverrides {
   edgeFamily?: WallpaperFamily;
 }
 
+/**
+ * Whether tilt readings are actually arriving.
+ *
+ *   waiting — subscribed; the first event is milliseconds away
+ *   live    — the sky is tilting with the device
+ *   silent  — nothing came. Every desktop browser defines
+ *             `DeviceOrientationEvent` and none of them fires it, so "on" is
+ *             not the same as "working", and the picker says which.
+ */
+export type GyroReadings = "waiting" | "live" | "silent";
+
+/** The gyroscope tilt, as a toggle needs to talk about it. */
+export interface GyroState {
+  /** The saved wish. */
+  enabled: boolean;
+  /** How this browser hands motion over. */
+  access: GyroAccess;
+  /** The wish AND the access: the sky is listening to the sensor. */
+  active: boolean;
+  /** Whether anything is coming through. */
+  readings: GyroReadings;
+  /** One tap from working: WebKit's gate, unanswered. */
+  gated: boolean;
+  /** Motion was refused for this site; only the browser's own settings undo it. */
+  denied: boolean;
+  /** There is a `DeviceOrientationEvent` here at all. */
+  supported: boolean;
+}
+
 interface WallpaperContextType {
   /** Which kind currently feeds the background stack. */
   kind: WallpaperKind;
@@ -213,6 +249,18 @@ interface WallpaperContextType {
   reportShaderFallback: (reason: string) => void;
   /** A getter for live renderer stats, set by <WeatherWallpaper /> (devtool readout). */
   statsRef: React.MutableRefObject<(() => WallpaperStats) | null>;
+  /**
+   * The gyroscope tilt: the Sky's rain and snow fall along real gravity. The
+   * readings themselves never come through here — they go from the sensor
+   * straight to the renderer (see lib/gyroscope.ts) — so this is only what a
+   * toggle needs to say and do.
+   */
+  gyro: GyroState;
+  /**
+   * Save the wish. Turning it ON from a tap is also what passes WebKit's
+   * motion gate, so call it from a real user gesture.
+   */
+  setGyroEnabled: (on: boolean) => void;
   /** Selected built-in pair (meaningful when kind === "image"). */
   wallpaper: Wallpaper;
   wallpapers: Wallpaper[];
@@ -562,6 +610,94 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     setShaderSupported(false);
   }, []);
   const statsRef = useRef<(() => WallpaperStats) | null>(null);
+
+  // --- Gyroscope tilt ------------------------------------------------------
+  // The wish is saved and on by default; what it takes to honour it is the
+  // browser's business. Chrome, Firefox and Android WebViews just fire the
+  // event, so there the sky starts tilting on its own. WebKit gates motion
+  // behind a permission AND a user gesture, so there the setting waits for the
+  // tap that grants it (the picker's Weather tab, or the devtool's Sky row) —
+  // and once granted, the grant is remembered and re-taken silently from then
+  // on. See lib/gyroscope.ts.
+  const [gyroAccess, setGyroAccess] = useState<GyroAccess>("unsupported");
+  const gyroProbedRef = useRef(false);
+
+  useEffect(() => {
+    if (!settingsLoaded || gyroProbedRef.current) return;
+    gyroProbedRef.current = true;
+    let alive = true;
+    void resolveGyroAccess({ retakeGranted: settings.weatherGyroGranted }).then((access) => {
+      if (!alive) return;
+      setGyroAccess(access);
+      // A grant that no longer holds (Safari's site settings were reset)
+      // should stop being re-taken; a fresh one should start being.
+      if (access === "granted" && !settings.weatherGyroGranted) {
+        updateSettings({ weatherGyroGranted: true });
+      } else if (access !== "granted" && settings.weatherGyroGranted) {
+        updateSettings({ weatherGyroGranted: false });
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [settingsLoaded, settings.weatherGyroGranted, updateSettings]);
+
+  const setGyroEnabled = useCallback(
+    (on: boolean) => {
+      if (!on) {
+        updateSettings({ weatherGyro: false });
+        return;
+      }
+      updateSettings({ weatherGyro: true });
+      // Turning it on is the gesture WebKit wants, so ask now — the promise is
+      // resolved in the same task the tap started, which is what makes the
+      // prompt appear at all.
+      if (isGyroReachable(gyroAccess) || gyroAccess === "unsupported") return;
+      void requestGyroAccess().then((access) => {
+        setGyroAccess(access);
+        updateSettings({ weatherGyroGranted: access === "granted" });
+      });
+    },
+    [gyroAccess, updateSettings]
+  );
+
+  const gyroActive = settings.weatherGyro && isGyroReachable(gyroAccess);
+
+  // Is anything actually coming through? Nothing else can tell: the event type
+  // exists in every desktop browser and fires in none of them.
+  const [gyroReadings, setGyroReadings] = useState<GyroReadings>("silent");
+  useEffect(() => {
+    if (!gyroActive) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync: a new subscription has heard nothing yet
+    setGyroReadings("waiting");
+    let heard = false;
+    const stop = subscribeGravity(() => {
+      if (heard) return;
+      heard = true;
+      setGyroReadings("live");
+    });
+    // A sensor that has said nothing in a second is a sensor that is not there.
+    const timer = window.setTimeout(() => {
+      if (!heard) setGyroReadings("silent");
+    }, 1000);
+    return () => {
+      stop();
+      window.clearTimeout(timer);
+    };
+  }, [gyroActive]);
+
+  const gyro = useMemo<GyroState>(
+    () => ({
+      enabled: settings.weatherGyro,
+      access: gyroAccess,
+      active: gyroActive,
+      readings: gyroActive ? gyroReadings : "silent",
+      gated: gyroAccess === "prompt",
+      denied: gyroAccess === "denied",
+      supported: gyroAccess !== "unsupported",
+    }),
+    [settings.weatherGyro, gyroAccess, gyroActive, gyroReadings]
+  );
 
   // The style that paints: the Sky needs WebGL2 (real, or not pretended away
   // by the devtool) and otherwise becomes the Gradient. Nothing else falls back.
@@ -1009,6 +1145,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       shaderSupported,
       reportShaderFallback,
       statsRef,
+      gyro,
+      setGyroEnabled,
       wallpaper: activeWallpaper,
       wallpapers: BUILT_IN_WALLPAPERS,
       selectWallpaper,
@@ -1069,6 +1207,8 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       renderer,
       shaderSupported,
       reportShaderFallback,
+      gyro,
+      setGyroEnabled,
       activeWallpaper,
       selectWallpaper,
       theme,

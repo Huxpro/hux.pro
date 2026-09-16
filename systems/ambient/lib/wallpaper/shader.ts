@@ -9,6 +9,8 @@
 //   lightning                           (stochastic cloud-illuminating flashes)
 //   rain streaks                        (hash-cell particles, wind-sheared)
 //   snow                                (depth-layered flakes, slow and fluttering)
+//   …each falling along its own down    (uRainDown / uSnowDown: the gyroscope
+//                                        is a second gravity, not a camera)
 //   theme veil + exposure + dither      (blend toward the page background)
 //
 // Everything is procedural, so the whole wallpaper is a string of GLSL and the
@@ -57,6 +59,9 @@ uniform vec3  uCloudShade;
 
 uniform float uRain;
 uniform float uSnow;
+uniform vec2  uRainDown;      // where the rain is pulled: (0,-1) upright
+uniform vec2  uSnowDown;      // the same for the snow, which re-aims far more slowly
+uniform vec2  uSnowFall;      // how far the snow has fallen, as direction × seconds
 uniform vec2  uWind;
 uniform float uFog;
 uniform float uLightning;
@@ -343,14 +348,65 @@ CloudSample cloudLayer(vec2 p, vec2 sunDir, float scale, float speed, float para
 
 // ---------------------------------------------------------------------------
 // Precipitation
+//
+// The gyroscope does not move the camera; it adds GRAVITY.
+//
+// This sky is a world held inside the page: its zenith is the top of the
+// viewport, its horizon the bottom, and the sun and moon cross it where the
+// ephemeris puts them. Tilting the device does not turn that world — a window
+// whose whole view rotates is a different feature, and one the sun and the
+// horizon would have to be in on. What the tilt does is give the world a
+// second gravity, pointing where the real one does, and then only the things
+// that FALL answer to it.
+//
+// So nothing here rotates. The cloud decks keep drifting with the wind, the
+// fog keeps lying along the bottom, and the drops and flakes simply take a new
+// direction:
+//
+//   uRainDown  where the rain is being pulled. A streak is a drop's motion
+//              blur, so it has to lie along its travel — which is why the rain
+//              alone is sampled in a frame aligned to this (fallSpace), the
+//              one rotation in the file. It eases in a fifth of a second, fast
+//              enough that the turn reads as the rain re-aiming.
+//   uSnowDown  the same for the snow, on a spring measured in seconds, because
+//              a flake has a body. Everything sideways — the wind's drift, the
+//              gust, the long waft, each flake's own swing — is taken across
+//              this, so the snow keeps reading as snowfall however it is
+//              aimed.
+//   uSnowFall  how far the snow has fallen and along what, accumulated in the
+//              renderer as direction × seconds. Keeping the travel rather than
+//              multiplying a clock by a direction is what lets the direction
+//              come round slowly without dragging the flakes that have already
+//              fallen sideways with it: each one carries on the way it was
+//              going and curves into the new down.
+//
+// Upright, with no gyroscope to read, both downs are (0,-1), the fall is
+// (0,-t) and the frame is the identity — which is exactly the sky as it was
+// before any of this existed.
 // ---------------------------------------------------------------------------
 
-float rain(vec2 p, vec2 uv, float aspect) {
+/**
+ * Takes a screen point into a frame whose y runs against down: for the rain,
+ * whose streaks must lie along their fall.
+ *
+ * Turned about the middle of the viewport rather than a corner, so the field
+ * pivots about what you are looking at instead of swinging in from an edge.
+ */
+vec2 fallSpace(vec2 p, vec2 down, float aspect) {
+  float l = length(down);
+  vec2 d = l < 1e-4 ? vec2(0.0, -1.0) : down / l;
+  // Rows (right, up) = (d turned a quarter turn, -d); GLSL wants the columns.
+  mat2 m = mat2(-d.y, -d.x, d.x, -d.y);
+  vec2 c = vec2(aspect * 0.5, 0.5);
+  return m * (p - c) + c;
+}
+
+float rain(vec2 p, float aspect) {
   if (uRain < 0.002) return 0.0;
   float acc = 0.0;
   float slant = -uWind.x * 0.75;
   float fade = smoothstep(0.0, 0.12, uRain);
-  vec2 base = vec2(p.x + uv.y * slant, p.y);
+  vec2 base = vec2(p.x + p.y * slant, p.y);
 
   // Four depth layers of thin, short, individually-timed streaks. Every
   // column carries its own phase so drops never line up into visible rows,
@@ -364,6 +420,9 @@ float rain(vec2 p, vec2 uv, float aspect) {
     float speed = (1.5 + fi * 0.35) * (0.85 + 0.3 * uRain);
     float colId = floor(base.x * sc + fi * 13.7);
     float phase = hash1(vec2(colId, fi * 3.1 + uSeed));
+    // Down is down in this frame, so the fall is still just the clock. A drop
+    // lives a few tenths of a second and leaves no path behind it, which is
+    // what lets the rain take the cheap way round.
     vec2 q = vec2(base.x * sc + fi * 13.7, (base.y + uTime * speed + phase * 5.0) * rows);
     vec2 cell = floor(q);
     vec2 f = fract(q);
@@ -399,6 +458,21 @@ float snow(vec2 p, float aspect) {
   float fade = smoothstep(0.0, 0.12, uSnow);
   float px = 1.0 / uResolution.y;   // one device pixel in screen units
 
+  // Which way this snow is being pulled, and which way is sideways to it.
+  //
+  // Only two things follow them: the travel below (through uSnowFall) and each
+  // flake's own flutter, which is a plate wobbling as it settles and so stands
+  // across whatever it is settling along. Nothing else may, because a flake's
+  // PLACE has to be independent of where down is — anything positional that
+  // turned with gravity would drag the whole field about as the snow came
+  // round, and a page that slides is exactly what a tilt must not look like.
+  //
+  // Upright these are (0,-1) and (1,0), and every line below is then the one
+  // it replaced, to the last bit.
+  float dl = length(uSnowDown);
+  vec2 down = dl < 1e-4 ? vec2(0.0, -1.0) : uSnowDown / dl;
+  vec2 across = vec2(-down.y, down.x);
+
   // The whole curtain leans and eases back on two slow beats — a gust that
   // takes twenty seconds to pass, not a shiver.
   float gust = sin(uTime * 0.31) * 0.6 + sin(uTime * 0.13 + 1.7) * 0.4;
@@ -416,8 +490,12 @@ float snow(vec2 p, float aspect) {
     float soft = mix(0.45, 1.0, z * z);             // only the nearest defocus
     float density = mix(0.30, 0.09, z) * (0.35 + 0.65 * uSnow);
 
-    vec2 q = p * sc;
-    q.y += uTime * fall * sc;
+    // Where this layer has got to: its own speed along the fall the renderer
+    // has been accumulating. That fall comes round to a new down over seconds,
+    // and because what is stored is the travel rather than a clock, a flake
+    // carries on the way it was going and curves into the new direction
+    // instead of being dragged across the page with the rest of the field.
+    vec2 q = (p - uSnowFall * fall) * sc;
     float row = floor(q.y);
 
     // The long waft. Taken from the row index rather than the continuous
@@ -431,6 +509,14 @@ float snow(vec2 p, float aspect) {
     // ramps span the same 3×, so it comes out the same at every depth — one
     // wind, one angle, which is not true if the two are tuned apart. At a
     // 10 km/h crosswind it works out around 33° off vertical.
+    //
+    // All three stay ACROSS THE PAGE rather than across gravity, and both on
+    // purpose and of necessity. On purpose because the wind in this world
+    // blows over the page — that is what the world is — and the tilt only
+    // moved gravity. Of necessity because a flake's PLACE must not depend on
+    // where down is: these offsets are a fair fraction of the frame, and
+    // turning them would slide the whole field sideways as the snow came
+    // round, which is the sort of thing the eye reads as the page moving.
     q.x += (uSnowDrift * mix(0.133, 0.4, z)
           + gust * mix(0.008, 0.02, z)
           + waft * mix(0.022, 0.075, z)) * sc;
@@ -455,11 +541,13 @@ float snow(vec2 p, float aspect) {
     // Every flake rides its own slow ellipse: it swings sideways and stalls at
     // the ends of the swing. That coupling — not the falling — is what the eye
     // reads as fluttering.
+    // Its swing is across the fall and its stall along it, so the ellipse
+    // stands up the way the flake is actually travelling.
     float th = uTime * (0.5 + tempo * 0.85) + phase * 6.2831;
     float sw = sin(th);
     vec2 c = vec2(0.34 + cx * 0.32, 0.3 + cy * 0.4);
-    c.x += sw * (0.07 + 0.06 * tempo);
-    c.y += cos(th) * 0.09;
+    c += across * (sw * (0.07 + 0.06 * tempo));
+    c -= down * (cos(th) * 0.09);
 
     // Tumble. A snow crystal is a thin plate: edge-on it is a sliver and goes
     // dim, then flares as it turns a face back into the light. It turns twice
@@ -555,8 +643,10 @@ void main() {
     col = mix(col, fogCol, clamp(fa, 0.0, 0.95));
   }
 
-  // Precipitation over everything.
-  float r = rain(p, uv, aspect);
+  // Precipitation over everything. Nothing here has turned — the tilt is a
+  // second gravity in this world, not a camera on it — so only what falls has
+  // changed direction. See Precipitation.
+  float r = rain(fallSpace(p, uRainDown, aspect), aspect);
   vec3 dropCol = mix(uCloudLit, vec3(1.0), 0.45);
   col += dropCol * r * 0.75;
 

@@ -7,6 +7,11 @@
 //     its arc as the minutes tick.
 //   • Drift offsets (cloud / snow advection) accumulate in JS from the
 //     smoothed wind, so a change of wind never teleports the sky.
+//   • Gravity (`setGravity`) is a device input, not part of a scene: it
+//     arrives from the gyroscope at sensor rate, never through React, and it
+//     does not turn the sky — it tells the sky which way is down, which the
+//     rain answers within a blink and the snow over seconds, because a flake
+//     has a body and a raindrop barely does.
 //   • Adaptive quality: the internal resolution starts from a pixel budget
 //     and backs off when frames run long, recovering when they are cheap.
 //   • Pauses when the tab is hidden; renders one still frame under
@@ -15,6 +20,7 @@
 // Zero React inside — the component just hands it a canvas and scenes.
 // =============================================================================
 
+import { UPRIGHT_GRAVITY, type GravityVector } from "../gyroscope";
 import type { WeatherScene } from "../scene";
 import { FRAGMENT_SHADER, VERTEX_SHADER } from "./shader";
 
@@ -83,6 +89,56 @@ const CLOUD_SPEED_OFFSET = OFFSET.uCloudSpeed;
 
 /** A fixed, pleasant moment on the shader clock for a still frame. */
 const STILL_FRAME_SEC = 37;
+
+// ---------------------------------------------------------------------------
+// The tilt: a second gravity, not a camera
+//
+// The sky is a world held inside the page, and tilting the device does not
+// turn it — the zenith stays at the top of the viewport and the sun stays
+// where the ephemeris put it. What the tilt does is tell that world which way
+// is down, and only the things that fall answer. So there is no camera here:
+// just a direction per field, each chasing the sensor at its own weight, and
+// the snow's travel accumulated so that a direction still coming round cannot
+// drag what has already fallen along with it.
+// ---------------------------------------------------------------------------
+
+/**
+ * Easing for the direction the RAIN falls, in seconds. Short: a raindrop at
+ * terminal velocity really does re-aim in a moment — it is small, fast and
+ * already all the way down — so only a quick flick of the wrist shows any lag
+ * at all. Which is the point: it is the same mechanism as the snow's, wound
+ * much tighter. It doubles as the low pass on the sensor's noise.
+ */
+const RAIN_FALL_TAU = 0.2;
+
+/**
+ * …and the SNOW's, which lags far behind it, because a flake has a body.
+ *
+ * Not a slower ease: a critically damped spring, integrated implicitly so any
+ * frame step is stable. The difference is what it does at the start — an ease
+ * leaves at full speed and decelerates, which reads as drag, while a spring
+ * leaves at rest and has to be accelerated, which reads as mass. Turn the
+ * phone and the flakes keep going the way they were going, then come round.
+ * Measured against a step: the rain's direction is halfway over in 0.14 s and
+ * nine tenths of the way in 0.46 s, the snow's in 0.84 s and 1.97 s. At two
+ * tenths of a second — that flick — the rain has covered 63 % of the turn and
+ * the snow 6 %. The snow's first frame moves at a twelfth of its own top
+ * speed, the rain's at all of it: that is the mass.
+ *
+ * `OMEGA` is the natural frequency in rad/s. At critical damping there is no
+ * overshoot, so the snow never swings past the new down and back: heavy, not
+ * springy.
+ */
+const SNOW_FALL_OMEGA = 2.0;
+
+/**
+ * Where the snow's accumulated fall wraps, in seconds — the shader clock's own
+ * hourly wrap, for the same reason. Its magnitude is the elapsed fall time,
+ * and once that reaches the tens of thousands of cell widths, float32 has no
+ * fraction left to place a flake inside its cell with. Wrapping re-seeds the
+ * arrangement, which is what the clock's wrap has always done.
+ */
+const FALL_WRAP_SEC = 3600;
 
 function packScene(scene: WeatherScene, out: Float32Array) {
   const precip = scene.precipitation;
@@ -158,6 +214,9 @@ export class WallpaperRenderer {
   private locSeed: WebGLUniformLocation | null = null;
   private locCloudDrift: WebGLUniformLocation | null = null;
   private locSnowDrift: WebGLUniformLocation | null = null;
+  private locRainDown: WebGLUniformLocation | null = null;
+  private locSnowDown: WebGLUniformLocation | null = null;
+  private locSnowFall: WebGLUniformLocation | null = null;
   /** Per-frame easing factors, one per distinct tau. */
   private ks = new Float64Array(TAUS.length);
   private vao: WebGLVertexArrayObject | null = null;
@@ -173,6 +232,22 @@ export class WallpaperRenderer {
   private startAt = 0;
   private cloudDrift = 0;
   private snowDrift = 0;
+  /** Where "down" is on screen, as the sensor last said. See `setGravity`. */
+  private gravityTarget = new Float32Array([UPRIGHT_GRAVITY.x, UPRIGHT_GRAVITY.y]);
+  /** Where each field is being pulled: the reading, at that field's weight. */
+  private rainDir = new Float32Array([UPRIGHT_GRAVITY.x, UPRIGHT_GRAVITY.y]);
+  private snowDir = new Float32Array([UPRIGHT_GRAVITY.x, UPRIGHT_GRAVITY.y]);
+  /** …and the velocity of the snow's spring. */
+  private snowDirVel = new Float32Array([0, 0]);
+  /**
+   * How far the snow has fallen and along what, as direction × seconds.
+   * Keeping the travel rather than multiplying a clock by a direction is what
+   * lets the direction come round slowly without dragging the flakes that
+   * have already fallen along with it. The rain needs no such thing: its
+   * streaks are sampled in a frame aligned to its own fall and live a few
+   * tenths of a second. The still frame's value is the clock it used to read.
+   */
+  private snowFall = new Float32Array([0, -STILL_FRAME_SEC]);
 
   private dpr = 1;
   private baseScale = 1;
@@ -245,12 +320,34 @@ export class WallpaperRenderer {
     }
   }
 
+  /**
+   * Where gravity points in screen space — the gyroscope's reading. `null` is
+   * an upright screen, which is also the value this starts at, so a device
+   * with no gyroscope (or a visitor who has the tilt off) is simply the case
+   * where this is never called.
+   *
+   * Nothing is turned by it (see "The tilt: a second gravity"): it is where
+   * the sky's falling things are pulled, which the rain follows within a blink
+   * and the snow over seconds. Under reduced motion there is nothing to lag —
+   * one still frame — so both snap to it.
+   */
+  setGravity(gravity: GravityVector | null) {
+    const g = gravity ?? UPRIGHT_GRAVITY;
+    this.gravityTarget[0] = g.x;
+    this.gravityTarget[1] = g.y;
+    if (this.opts.reducedMotion) {
+      this.snapTilt();
+      this.renderOnce();
+    }
+  }
+
   setReducedMotion(reduced: boolean) {
     if (this.opts.reducedMotion === reduced) return;
     this.opts.reducedMotion = reduced;
     if (reduced) {
       this.stop();
       this.current.set(this.target);
+      this.snapTilt();
       this.renderOnce();
     } else if (this.hasScene) {
       this.start();
@@ -342,6 +439,9 @@ export class WallpaperRenderer {
     this.locSeed = gl.getUniformLocation(program, "uSeed");
     this.locCloudDrift = gl.getUniformLocation(program, "uCloudDrift");
     this.locSnowDrift = gl.getUniformLocation(program, "uSnowDrift");
+    this.locRainDown = gl.getUniformLocation(program, "uRainDown");
+    this.locSnowDown = gl.getUniformLocation(program, "uSnowDown");
+    this.locSnowFall = gl.getUniformLocation(program, "uSnowFall");
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
     return true;
@@ -549,12 +649,60 @@ export class WallpaperRenderer {
         this.current[idx] += (this.target[idx] - this.current[idx]) * k;
       }
     }
+    // --- The tilt (not a scene uniform; see "The tilt: a second gravity") ---
+    // Two directions chasing the same reading at different weights. The rain
+    // eases; the snow is a critically damped spring, integrated implicitly —
+    // the denominator is (1 + ω·dt)², so it can neither ring nor blow up
+    // however long a frame took.
+    const kr = 1 - Math.exp(-dtSec / RAIN_FALL_TAU);
+    const w = SNOW_FALL_OMEGA;
+    const springDenom = 1 + 2 * w * dtSec + w * w * dtSec * dtSec;
+    for (let i = 0; i < 2; i++) {
+      this.rainDir[i] += (this.gravityTarget[i] - this.rainDir[i]) * kr;
+      const pull = w * w * (this.gravityTarget[i] - this.snowDir[i]);
+      this.snowDirVel[i] = (this.snowDirVel[i] + dtSec * pull) / springDenom;
+      this.snowDir[i] += dtSec * this.snowDirVel[i];
+    }
+    // And the snow's travel, advanced by this frame's worth of it.
+    this.advance(this.snowFall, this.snowDir, dtSec);
     // Advect drift from the smoothed wind so direction changes glide.
     const windX = this.current[WIND_OFFSET];
     const cloudSpeed = this.current[CLOUD_SPEED_OFFSET];
     const dir = Math.tanh(windX * 6);
     this.cloudDrift += dtSec * cloudSpeed * (0.35 + 0.65 * Math.abs(windX)) * (dir === 0 ? 0.35 : dir);
     this.snowDrift += dtSec * (windX * 0.6 + 0.03);
+  }
+
+  /**
+   * Add one frame of fall to `fall`, along `dir` — normalised first, so that a
+   * direction still coming round costs the fall its aim but never its speed.
+   */
+  private advance(fall: Float32Array, dir: Float32Array, dtSec: number) {
+    const l = Math.hypot(dir[0], dir[1]);
+    fall[0] += dtSec * (l < 1e-4 ? 0 : dir[0] / l);
+    fall[1] += dtSec * (l < 1e-4 ? -1 : dir[1] / l);
+    const mag = Math.hypot(fall[0], fall[1]);
+    if (mag > FALL_WRAP_SEC) {
+      fall[0] -= (fall[0] / mag) * FALL_WRAP_SEC;
+      fall[1] -= (fall[1] / mag) * FALL_WRAP_SEC;
+    }
+  }
+
+  /**
+   * Put the tilt where the sensor says, at rest, with the snow's travel back
+   * at the clock the still frame used to read. For the one-frame renders:
+   * there is nothing there to lag.
+   */
+  private snapTilt() {
+    this.rainDir.set(this.gravityTarget);
+    this.snowDir.set(this.gravityTarget);
+    this.snowDirVel[0] = 0;
+    this.snowDirVel[1] = 0;
+    // That clock's worth of falling, in the direction it is being pulled: a
+    // still frame on a tilted device is a still frame of tilted snow.
+    const l = Math.hypot(this.snowDir[0], this.snowDir[1]);
+    this.snowFall[0] = STILL_FRAME_SEC * (l < 1e-4 ? 0 : this.snowDir[0] / l);
+    this.snowFall[1] = STILL_FRAME_SEC * (l < 1e-4 ? -1 : this.snowDir[1] / l);
   }
 
   private draw(timeSec: number) {
@@ -570,6 +718,9 @@ export class WallpaperRenderer {
     gl.uniform1f(this.locSeed, this.seed);
     gl.uniform1f(this.locCloudDrift, this.cloudDrift);
     gl.uniform1f(this.locSnowDrift, this.snowDrift);
+    gl.uniform2f(this.locRainDown, this.rainDir[0], this.rainDir[1]);
+    gl.uniform2f(this.locSnowDown, this.snowDir[0], this.snowDir[1]);
+    gl.uniform2f(this.locSnowFall, this.snowFall[0], this.snowFall[1]);
 
     const c = this.current;
     for (let i = 0; i < META.length; i++) {

@@ -44,6 +44,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     veil,
     blurred,
     bezel,
+    gyro,
     reportShaderFallback,
     statsRef,
   } = useWallpaper();
@@ -70,6 +71,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         <WeatherWallpaper
           scene={scene}
           active={enabled}
+          gyro={gyro.active}
           edgeMask={edgeMask}
           onFallback={reportShaderFallback}
           statsRef={statsRef}

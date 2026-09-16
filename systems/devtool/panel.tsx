@@ -22,6 +22,7 @@ import {
 /** The named tints plus the segmented control's own "pick a colour". */
 type TintChoice = "black" | "dark" | "theme" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
+import { gravityTiltDegrees, readGravity } from "@/systems/ambient/lib/gyroscope";
 import { getWeatherGradient, getWeatherStyleGradient } from "@/systems/ambient/lib/gradient";
 import type { AmbientPhase } from "@/systems/ambient/lib/phase";
 import { rgbToCss, sampleDaySky } from "@/systems/ambient/lib/scene";
@@ -1532,6 +1533,7 @@ function SkyModule() {
     isTimeTravelActive,
     resetTimeTravel,
   } = useAmbientTime();
+  const { gyro, setGyroEnabled, effectiveStyle } = useWallpaper();
 
   const isDayNow = scene.sun.isDay;
   const isOverridden = debugOverride !== null;
@@ -1623,6 +1625,46 @@ function SkyModule() {
     setDebugOverride(null);
     setSceneOverrides({});
   };
+
+  // --- Gyroscope -----------------------------------------------------------
+  // The live tilt, polled rather than subscribed: a readout is worth twice a
+  // second, not sixty times — the sky itself gets every reading.
+  const [tiltDeg, setTiltDeg] = useState<number | null>(null);
+  useEffect(() => {
+    if (gyro.readings !== "live") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync: clear a stale readout
+      setTiltDeg(null);
+      return;
+    }
+    const tick = () => setTiltDeg(Math.round(gravityTiltDegrees(readGravity())));
+    tick();
+    const id = window.setInterval(tick, 500);
+    return () => window.clearInterval(id);
+  }, [gyro.readings]);
+
+  const gyroReadout = !gyro.supported
+    ? zh
+      ? "无传感器"
+      : "no sensor"
+    : gyro.denied
+      ? zh
+        ? "已拒绝"
+        : "denied"
+      : gyro.enabled && gyro.gated
+        ? zh
+          ? "待授权"
+          : "tap to allow"
+        : !gyro.enabled
+          ? zh
+            ? "关"
+            : "off"
+          : gyro.readings === "live"
+            ? `${tiltDeg ?? 0}°`
+            : gyro.readings === "waiting"
+              ? "…"
+              : zh
+                ? "无数据"
+                : "no readings";
 
   // --- Tune fold -----------------------------------------------------------
   const [tuneOpen, setTuneOpen] = useState(false);
@@ -1910,6 +1952,42 @@ function SkyModule() {
               {moonUpLabel}
             </span>
           </div>
+        </div>
+
+        {/* The gyroscope: rain and snow fall along real gravity, in the Sky.
+            A saved setting (blue star), on by default, and the only place
+            besides the picker where iOS's motion permission can be granted —
+            so the readout says which of "off", "unanswered" and "nothing
+            coming through" is the case, and shows the live tilt once it is. */}
+        <div className="border-t border-border/30 pt-2">
+          <PanelRow
+            label={
+              effectiveStyle === "sky"
+                ? zh
+                  ? "陀螺仪"
+                  : "Gyro"
+                : zh
+                  ? "陀螺仪 · 仅天空"
+                  : "Gyro · Sky only"
+            }
+            star={
+              gyro.enabled ? null : (
+                <PanelStar onReset={() => setGyroEnabled(true)} source="saved" />
+              )
+            }
+          >
+            <span className="flex items-center gap-2">
+              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                {gyroReadout}
+              </span>
+              <PanelToggle
+                on={gyro.active}
+                disabled={!gyro.supported}
+                onClick={() => setGyroEnabled(!gyro.active)}
+                label="Toggle gyroscope tilt"
+              />
+            </span>
+          </PanelRow>
         </div>
 
         {/* Fine-tune, folded: the derived numbers, each draggable. */}

@@ -1,6 +1,6 @@
 # Ambient System
 
-The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon — offered in three styles: Sky, Gradient and Classic.
+The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon, and whose rain and snow fall along the device's own gravity — offered in three styles: Sky, Gradient and Classic.
 
 It also owns the page background — the **wallpaper**. Weather is not a separate
 background feature; it is the one wallpaper that changes on its own. See
@@ -25,6 +25,7 @@ systems/ambient/
 │   └── index.ts                  # Component exports
 ├── lib/
 │   ├── weather.ts                # Open-Meteo integration + condition model
+│   ├── gyroscope.ts              # Screen-space gravity from `deviceorientation` + motion access
 │   ├── solar.ts                  # Sun elevation/azimuth, lunar ephemeris, moon phase
 │   ├── scene.ts                  # weather × sun × moon × theme → WeatherScene
 │   ├── gradient.ts               # WeatherScene → CSS gradient + crossfade types
@@ -191,6 +192,112 @@ The Sky engine (`WallpaperRenderer`):
 - pauses when the tab is hidden, renders a single still frame under
   `prefers-reduced-motion`, and survives context loss;
 - fades the canvas in only after the first frame is painted (no black flash).
+
+### Gyroscope Tilt (Sky engine)
+
+Rain and snow fall along **gravity**, not along the bottom of the viewport:
+lean the phone and the streaks lean with it, turn it on its side and the snow
+crosses the page sideways. A raindrop re-aims in a moment, a flake over a
+couple of seconds, because a flake has a body and a raindrop barely does. Only
+the Sky has drops to lean, so this is a Sky feature; the Gradient and Classic
+styles ignore it.
+
+**The gyroscope is a second gravity, not a camera.** This sky is a world held
+inside the page: its zenith is the top of the viewport, its horizon the bottom,
+the sun and moon cross it where the ephemeris puts them, and the wind blows
+across it. Tilting the device does not turn any of that — it tells that world
+which way is down, and only the things that FALL answer.
+
+The other reading, where the device is a window and the view counter-rotates,
+is a different feature: if the view turns then the sky gradient, the sun, the
+moon, the stars, the clouds and the fog all have to turn with it, and it stops
+being about rain and snow at all. It would also leave nothing for the weight of
+a flake to mean, since gravity in a world seen through a turning window never
+moved.
+
+`lib/gyroscope.ts` turns a `deviceorientation` reading into one unit vector —
+where *down* is, in the page's frame:
+
+```
+g_device = (cos β · sin γ, −sin β, −cos β · cos γ)     // Earth-down, in device axes
+```
+
+Alpha (the compass heading) drops out, which is right: which way you face
+cannot change which way things fall. The first two components are the part
+lying in the screen plane, turned by `screen.orientation.angle` so a rotated
+layout still gets gravity down its own page, and blended back to upright when
+the screen is too flat to have a direction (a phone on a table).
+
+- **Not React state.** Readings arrive ~60×/s and nothing renders from them, so
+  they go from the sensor to `WallpaperRenderer.setGravity()` — one shared
+  `deviceorientation` listener, however many surfaces are drawing.
+
+#### Three uniforms
+
+| | What it is |
+|---|---|
+| `uRainDown` | where the rain is pulled, the reading eased on `RAIN_FALL_TAU` (0.2 s) |
+| `uSnowDown` | the same for the snow, on a spring at `SNOW_FALL_OMEGA` (2 rad/s) |
+| `uSnowFall` | how far the snow has fallen and along what, direction × seconds |
+
+**Each field re-aims at its own weight.** Measured against a step:
+
+| | halfway round | nine tenths | at 0.2 s |
+|---|---|---|---|
+| rain — ease | 0.14 s | 0.46 s | 63 % |
+| snow — spring | 0.84 s | 1.97 s | 6 % |
+
+A raindrop at terminal velocity really does re-aim in a moment — it is small,
+fast and already all the way down — so only a quick flick of the wrist shows
+its lag at all. It is the same mechanism as the snow's, wound much tighter, and
+it doubles as the low pass on the sensor's noise.
+
+The snow's is not just a slower ease but a **critically damped spring**, and
+the difference is what each does at the start: an ease leaves at full speed and
+decelerates, which reads as drag, while a spring leaves at rest and has to be
+accelerated, which reads as mass. Its first frame moves at a twelfth of its own
+top speed; the rain's at all of it. Critical damping means no overshoot — the
+snow never swings past the new down and back; it is heavy, not springy — and
+the integration is implicit, so no length of stalled frame can make it ring.
+
+**The snow keeps its travel, not a clock.** `uSnowFall` accumulates in the
+renderer, and that is what lets the direction come round slowly without
+dragging the flakes that have already fallen along with it: each one carries on
+the way it was going and curves into the new down. (Max-blended frame stacks of
+a turn draw exactly that: paths vertical where the flake started, bending over
+as gravity takes hold.) The direction is normalised before it is accumulated,
+so a fall still coming round loses its aim but never its speed, and the vector
+wraps at an hour for the reason the shader clock does — past that, float32 has
+no fraction left to place a flake inside its cell with.
+
+The rain needs none of that: its streaks are sampled in a frame aligned to
+`uRainDown` (`fallSpace()`, the one rotation in the shader, because a streak is
+a drop's motion blur and has to lie along its travel), and a drop lives a few
+tenths of a second and leaves no path behind it.
+
+**A flake's place never depends on where down is.** Only the travel and each
+flake's own flutter follow gravity. The cells, the rows, the long waft and the
+wind's drift all stay with the page — partly because the wind in this world
+blows across the page, and partly because anything positional that turned with
+gravity would slide the whole field about as the snow came round, which is the
+one thing a tilt must not look like. Upright, every one of those lines is the
+line it replaced, and the rendered frame is the shipped sky to within a
+rounding bit.
+
+- **Off under `prefers-reduced-motion`** — that sky is one still frame, so both
+  downs snap to the reading rather than animating toward it, and the snow's
+  travel is the clock the still frame always read, aimed where it is pulled.
+
+**Access.** Every browser with a sensor fires the event freely except WebKit,
+which gates it behind `DeviceOrientationEvent.requestPermission()` *and* a user
+gesture. So:
+
+| | Behaviour |
+|---|---|
+| Chrome / Firefox / Android | The saved wish (`weatherGyro`, **on** by default) is honoured on load; the sky tilts by itself. |
+| iOS / iPadOS | The wish waits for one tap — the **Tilt** row in the picker's Weather tab, or the devtool's Sky → Gyro row. Turning it on *is* the gesture that asks. |
+| Granted before | `weatherGyroGranted` records it, and access is re-taken silently on the next load. That record is the only reason `requestPermission()` is ever called without a gesture, so a visitor who has never answered is never prompted out of nowhere. |
+| No sensor (desktop) | `DeviceOrientationEvent` exists in every desktop browser and fires in none, so "on" is not "working": the provider watches for a first reading and the Tilt row says *no motion readings* rather than pretending. |
 
 ### Gradient Crossfade (Gradient engine)
 
@@ -513,6 +620,8 @@ const {
   shaderSupported,        // WebGL2 probe result
   reportShaderFallback,   // <WeatherWallpaper /> → provider on a WebGL failure
   statsRef,               // Live renderer stats for the devtool
+  gyro,                   // { enabled, access, active, readings, gated, denied, supported }
+  setGyroEnabled,         // The wish — and, from a tap, WebKit's motion grant
   wallpaper,              // The selected pair
   wallpapers,             // The whole catalog
   selectWallpaper,        // Selects AND switches kind to "image"
