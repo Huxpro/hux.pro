@@ -576,11 +576,11 @@ module and click the page background.
 
 ### The Shooting Star (clear-night easter egg)
 
-**On a clear night, clicking the star field sends a meteor streaking away from
-the point you clicked.** Same grammar as the strike — a tap, a point, a second,
-no state — and deliberately the opposite tone: the thunder day answers a click
-with violence, the clear night answers it with a wish. The second discovery
-should feel like a different joke, not the same one told again.
+**On a clear night, clicking the star field sends a meteor through the point you
+clicked.** Same grammar as the strike — a tap, a point, a second, no state —
+and deliberately the opposite tone: the thunder day answers a click with
+violence, the clear night answers it with a wish. The second discovery should
+feel like a different joke, not the same one told again.
 
 Armed on `scene.stars > 0.35`, never on `condition === "clear"`. `stars` is not
 a proxy for a clear night, it *is* "can you see stars right now": it already
@@ -591,19 +591,23 @@ thunder or foggy night can never have one.
 
 `meteor()` in the shader (`uPokeKind == 3`) draws it:
 
-- **It starts at the click** and streaks away, rather than crossing through it.
-  "You flicked it" is more causal than "one happened to pass by".
-- **Direction is the click's bearing from a radiant** — a single point above the
+- **It passes through the click**, entering a third of its run before the point
+  and burning out well past it. It is not launched from your finger: a meteor
+  was always already falling, and the click only says where you happened to
+  catch sight of one.
+- **The head crosses that point ~0.12 s in**, at a fixed fraction of the run, so
+  the answer lands on the spot you pointed at and lands promptly — wherever on
+  the sky you clicked. That timing is the whole of what "fires every time"
+  requires: an egg that answers late reads as broken just as an egg that answers
+  one click in five does.
+- **Bearing is the point's bearing from a radiant** — a single point above the
   frame, fixed per session off `scene.seed`. That is how a real shower works
   (one stream of debris, seen from one angle) and it buys both properties worth
   having: a visit's meteors rhyme, and they still differ across the sky. Never
   straight up, never straight down.
-- **It is aimed to fit the frame.** Firing every time is the contract — an egg
-  that works one click in five reads as broken, not as rare — so a streak is
-  never allowed to exit: off the near edge it takes the other side, too long for
-  the sky under or in front of it it is cut short, and only if even a short one
-  will not fit is it flattened. Which is what a real meteor low on the sky looks
-  like anyway, foreshortened toward the horizontal.
+- **Neither end is trimmed to the frame**, and neither needs to be. Near an edge
+  the meteor just enters or leaves mid-flight, which is what a real one does;
+  the point itself is crossed either way.
 - **Shape**: a bright warm head, a tail tapering behind it, and a fainter cool
   trail along the whole path that lingers a beat after the head has burnt out.
   Gone in 1 s — inside the strike's 1.2 s budget.
