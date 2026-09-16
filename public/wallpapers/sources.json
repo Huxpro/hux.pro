@@ -1,13 +1,28 @@
 {
   "author": "Apple Inc.",
-  "note": "Apple's default macOS and iOS wallpapers as light/dark pairs, and the Mac OS X Nature desktop pictures as single photographs. Apple retains rights to this artwork; it is committed here for a personal site, not licensed onward. The archives the files were pulled from (ryOS included, which is AGPL-3.0) do not license Apple's images either, and their repository licenses are not asserted to do so. Resolution rule: every committed full-size file must cover a 2560x1600 viewport with at most a 1.07x stretch, and is downscaled to the smallest size that still covers it, never upscaled. Photographs also ship 1280x800 and 1920x1200 cover renditions. iOS 27 (1320x2868), iOS 18 (1480x3192 / 1661x3600) and iOS 17 (2048x2048) fell short and were removed. Derivatives: release pairs are WebP q80; photographs WebP q95 with 4:4:4 chroma (q90 if a file would exceed 1.8MB — the q75 encode crushed smooth skies); thumbnails at most 480px at q72. HEIC frames are zero-indexed. Nothing is cropped: every committed file keeps its source aspect. The Nature photographs carry Photoshop timestamps from August 2007, the Mac OS X Leopard cycle; the individual releases they shipped with are not verified. Clown Fish and Ladybug were dropped from the catalog.",
+  "note": "Apple's default macOS and iOS wallpapers as light/dark pairs, and the Mac OS X Nature desktop pictures as single photographs. Apple retains rights to this artwork; it is committed here for a personal site, not licensed onward. The archives the files were pulled from (ryOS included, which is AGPL-3.0) do not license Apple's images either, and their repository licenses are not asserted to do so. Resolution rule: every committed full-size file must cover a 2560x1600 viewport with at most a 1.07x stretch, and is downscaled to the smallest size that still covers it, never upscaled. Photographs also ship 1280x800 and 1920x1200 cover renditions — Nature stills and the Catalina / Mojave pairs. iOS 27 (1320x2868), iOS 18 (1480x3192 / 1661x3600), iOS 17 (2048x2048) and portrait iPadOS 26/27 (2064x2752) fell short and were left out; iPadOS 26 is the landscape home-screen still. Derivatives: graphic release pairs are WebP q80; photographs WebP q95 with 4:4:4 chroma (q90 if a file would exceed 1.8MB — the q75 encode crushed smooth skies); thumbnails at most 480px at q72. HEIC frames are zero-indexed. Nothing is cropped: every committed file keeps its source aspect. The Nature photographs carry Photoshop timestamps from August 2007, the Mac OS X Leopard cycle; the individual releases they shipped with are not verified. Clown Fish and Ladybug were dropped from the catalog. High-resolution originals were collected from: wallpapers.poutanen.dev (macOS 6K graphic pairs), 4kwallpapers.com (Golden Gate native 4480x3088, Catalina 6016x6016, Mojave 5120x2880, iOS 15 2916x2916, iPadOS 18 3840x2668), static.applewalls.com (iPadOS 26 landscape), LAYTAT/macOS-Wallpapers and benediktkr/Deeeee-macOS-Wallpapers (untouched /System/Desktop Pictures dumps), 512pixels.net (classic defaults; 6K files there are hand-upscales and are not used), iClarified and wallpapers.ispazio.net (beta stills). Portrait iPhone lock-screens never cover 2560x1600.",
   "imported": [
+    "4kwallpapers.com/macos-27-golden-wallpapers — macOS 27 Golden Gate native 4480x3088 pair",
+    "static.applewalls.com/iPadOS/iPadOS 26/origin — iPadOS 26 landscape home-screen pair",
+    "4kwallpapers.com Catalina 4019/4021 — macOS Catalina morning/evening 6016x6016",
+    "4kwallpapers.com Mojave 4031/4051 — macOS Mojave day/night 5120x2880 (byte-identical to LAYTAT/macOS-Wallpapers 10-14-Day/Night.jpg)",
+    "4kwallpapers.com iOS 15 5587/5586 — iOS 15 / iPadOS 15 WWDC 21 2916x2916 pair",
     "Huxpro/hux.pro#97 — official Apple HEIC graphic pairs (big-sur, monterey, ios-13, ios-14)",
     "4kwallpapers.com/ipados-18-wallpapers — iPadOS 18 official pairs (4 colourways)",
     "Huxpro/hux.pro#96 — macOS release pairs (tahoe, sequoia, sonoma, ventura)",
     "ryokun6/ryos@2d160d7 — public/wallpapers/photos/nature (19 photographs; Clown Fish and Ladybug omitted)"
   ],
   "pairs": [
+    {
+      "id": "golden-gate",
+      "name": "Golden Gate",
+      "platform": "macOS",
+      "year": 2026,
+      "encode": "graphic",
+      "sourceSize": "4480x3088",
+      "light": "https://4kwallpapers.com/images/wallpapers/macos-27-golden-4480x3088-26626.png",
+      "dark": "https://4kwallpapers.com/images/wallpapers/macos-27-golden-4480x3088-26625.png"
+    },
     {
       "id": "tahoe",
       "name": "Tahoe",
@@ -59,6 +74,36 @@
       "darkFrame": 1
     },
     {
+      "id": "catalina",
+      "name": "Catalina",
+      "platform": "macOS",
+      "year": 2019,
+      "encode": "photo",
+      "sourceSize": "6016x6016",
+      "light": "https://4kwallpapers.com/images/wallpapers/macos-catalina-mountains-island-morning-foggy-stock-5k-6016x6016-4019.jpg",
+      "dark": "https://4kwallpapers.com/images/wallpapers/macos-catalina-mountains-island-evening-stock-5k-6016x6016-4021.jpg"
+    },
+    {
+      "id": "mojave",
+      "name": "Mojave",
+      "platform": "macOS",
+      "year": 2018,
+      "encode": "photo",
+      "sourceSize": "5120x2880",
+      "light": "https://4kwallpapers.com/images/wallpapers/macos-mojave-sand-dunes-mojave-desert-california-day-5k-5120x2880-4031.jpg",
+      "dark": "https://4kwallpapers.com/images/wallpapers/macos-mojave-sand-dunes-mojave-desert-california-night-dark-5120x2880-4051.jpg"
+    },
+    {
+      "id": "ipados-26",
+      "name": "iPadOS 26",
+      "platform": "iPadOS",
+      "year": 2025,
+      "encode": "graphic",
+      "sourceSize": "2752x2064",
+      "light": "https://static.applewalls.com/iPadOS/iPadOS%2026/origin/iPadOS26-HomeScreen-Landscape-Light.jpg",
+      "dark": "https://static.applewalls.com/iPadOS/iPadOS%2026/origin/iPadOS26-HomeScreen-Landscape-Dark.jpg"
+    },
+    {
       "id": "ipados-18-violet",
       "name": "iPadOS 18 Violet",
       "platform": "iPadOS",
@@ -89,6 +134,16 @@
       "year": 2024,
       "light": "https://4kwallpapers.com/images/wallpapers/ipados-18-3840x2668-17034.png",
       "dark": "https://4kwallpapers.com/images/wallpapers/ipados-18-3840x2668-17035.png"
+    },
+    {
+      "id": "ios-15",
+      "name": "iOS 15",
+      "platform": "iOS",
+      "year": 2021,
+      "encode": "graphic",
+      "sourceSize": "2916x2916",
+      "light": "https://4kwallpapers.com/images/wallpapers/ios-15-stock-ipados-15-wwdc-21-hdr-2916x2916-5587.jpg",
+      "dark": "https://4kwallpapers.com/images/wallpapers/ios-15-stock-dark-mode-ipados-15-wwdc-21-hdr-2916x2916-5586.jpg"
     },
     {
       "id": "ios-14",

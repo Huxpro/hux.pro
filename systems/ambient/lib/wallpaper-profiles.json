@@ -4,6 +4,48 @@
     "height": 60
   },
   "images": {
+    "golden-gate/light": {
+      "lum": 0.657,
+      "zones": {
+        "top": 0.65,
+        "mid": 0.713,
+        "bottom": 0.61
+      },
+      "mean": [
+        156,
+        142,
+        134
+      ],
+      "contrast": 0.152,
+      "edges": 0.0268,
+      "chroma": 0.033,
+      "tint": {
+        "l": 0.636,
+        "c": 0.054,
+        "h": 67.9
+      }
+    },
+    "golden-gate/dark": {
+      "lum": 0.279,
+      "zones": {
+        "top": 0.267,
+        "mid": 0.294,
+        "bottom": 0.275
+      },
+      "mean": [
+        37,
+        38,
+        59
+      ],
+      "contrast": 0.079,
+      "edges": 0.0159,
+      "chroma": 0.039,
+      "tint": {
+        "l": 0.32,
+        "c": 0.046,
+        "h": 279.3
+      }
+    },
     "tahoe/light": {
       "lum": 0.646,
       "zones": {
@@ -256,6 +298,132 @@
         "h": 18.7
       }
     },
+    "catalina/light": {
+      "lum": 0.53,
+      "zones": {
+        "top": 0.753,
+        "mid": 0.501,
+        "bottom": 0.338
+      },
+      "mean": [
+        91,
+        110,
+        130
+      ],
+      "contrast": 0.203,
+      "edges": 0.0268,
+      "chroma": 0.042,
+      "tint": {
+        "l": 0.515,
+        "c": 0.053,
+        "h": 251.9
+      }
+    },
+    "catalina/dark": {
+      "lum": 0.459,
+      "zones": {
+        "top": 0.681,
+        "mid": 0.409,
+        "bottom": 0.287
+      },
+      "mean": [
+        89,
+        86,
+        93
+      ],
+      "contrast": 0.22,
+      "edges": 0.0221,
+      "chroma": 0.025,
+      "tint": {
+        "l": 0.439,
+        "c": 0.038,
+        "h": 267.4
+      }
+    },
+    "mojave/light": {
+      "lum": 0.486,
+      "zones": {
+        "top": 0.704,
+        "mid": 0.467,
+        "bottom": 0.288
+      },
+      "mean": [
+        110,
+        90,
+        87
+      ],
+      "contrast": 0.22,
+      "edges": 0.0147,
+      "chroma": 0.042,
+      "tint": {
+        "l": 0.535,
+        "c": 0.094,
+        "h": 56.2
+      }
+    },
+    "mojave/dark": {
+      "lum": 0.297,
+      "zones": {
+        "top": 0.305,
+        "mid": 0.338,
+        "bottom": 0.246
+      },
+      "mean": [
+        32,
+        45,
+        69
+      ],
+      "contrast": 0.098,
+      "edges": 0.0121,
+      "chroma": 0.047,
+      "tint": {
+        "l": 0.297,
+        "c": 0.048,
+        "h": 261.6
+      }
+    },
+    "ipados-26/light": {
+      "lum": 0.77,
+      "zones": {
+        "top": 0.809,
+        "mid": 0.779,
+        "bottom": 0.721
+      },
+      "mean": [
+        127,
+        191,
+        212
+      ],
+      "contrast": 0.115,
+      "edges": 0.0112,
+      "chroma": 0.087,
+      "tint": {
+        "l": 0.77,
+        "c": 0.092,
+        "h": 185.6
+      }
+    },
+    "ipados-26/dark": {
+      "lum": 0.47,
+      "zones": {
+        "top": 0.458,
+        "mid": 0.525,
+        "bottom": 0.428
+      },
+      "mean": [
+        12,
+        99,
+        134
+      ],
+      "contrast": 0.168,
+      "edges": 0.0205,
+      "chroma": 0.114,
+      "tint": {
+        "l": 0.427,
+        "c": 0.15,
+        "h": 258.7
+      }
+    },
     "ipados-18-violet/light": {
       "lum": 0.539,
       "zones": {
@@ -422,6 +590,48 @@
         "l": 0.413,
         "c": 0.114,
         "h": 264.7
+      }
+    },
+    "ios-15/light": {
+      "lum": 0.604,
+      "zones": {
+        "top": 0.664,
+        "mid": 0.533,
+        "bottom": 0.614
+      },
+      "mean": [
+        140,
+        125,
+        123
+      ],
+      "contrast": 0.202,
+      "edges": 0.0177,
+      "chroma": 0.054,
+      "tint": {
+        "l": 0.457,
+        "c": 0.143,
+        "h": 26.4
+      }
+    },
+    "ios-15/dark": {
+      "lum": 0.371,
+      "zones": {
+        "top": 0.373,
+        "mid": 0.424,
+        "bottom": 0.315
+      },
+      "mean": [
+        69,
+        61,
+        67
+      ],
+      "contrast": 0.183,
+      "edges": 0.0212,
+      "chroma": 0.068,
+      "tint": {
+        "l": 0.443,
+        "c": 0.079,
+        "h": 250.9
       }
     },
     "ios-14/light": {

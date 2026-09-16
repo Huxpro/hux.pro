@@ -33,16 +33,20 @@
 //           (the six hand-tuned condition palettes the site started with).
 //           Sky falls back to Gradient where WebGL2 is missing.
 //   apple   the macOS / iPadOS / iOS release wallpapers, as light/dark pairs —
-//           the artwork these releases are recognised by.
+//           the artwork these releases are recognised by. Graphic pairs
+//           (Tahoe, Golden Gate, iPadOS 26, …) are one size; photographic
+//           pairs (Catalina, Mojave) also ship 1280/1920 cover renditions.
 //   nature  the Mac OS X Nature desktop pictures (Aurora, Zebra, …), taken
 //           from ryOS. One photograph each, so both halves are the same file.
 //
 // Every committed full-size file covers a 2560×1600 viewport with at most a 7%
-// stretch. iOS 17, 18 and 27 did not (1.25×, 1.73× and 1.94×) and were removed.
-// Photographs also ship 1280×800 and 1920×1200 cover renditions so a phone does
-// not download the desktop file. Sources and frame indices are recorded in
-// `public/wallpapers/sources.json`; `pnpm wallpapers:check` verifies the
-// committed files still match it, the resolutions below included.
+// stretch. iOS 17, 18 and 27 did not (1.25×, 1.73× and 1.94×) and were removed;
+// iPadOS 26 is the landscape home-screen still (portrait iPhone/iPad frames
+// fail the same test). Photographs also ship 1280×800 and 1920×1200 cover
+// renditions so a phone does not download the desktop file. Sources and frame
+// indices are recorded in `public/wallpapers/sources.json`; `pnpm
+// wallpapers:check` verifies the committed files still match it, the
+// resolutions below included.
 //
 // Apple retains rights to this artwork. It is committed here for a personal
 // site, not licensed onward; the archives the frames were pulled from do not
@@ -336,18 +340,27 @@ function photoSrcset(src: string, [width, height]: Size): WallpaperRendition[] {
   return out;
 }
 
-/** A release pair: `public/wallpapers/<id>/{light,dark}.webp`, one size. */
+/**
+ * A release pair: `public/wallpapers/<id>/{light,dark}.webp`.
+ *
+ * Graphic pairs (Tahoe, iPadOS colourways) are one size and compress to tens
+ * of kilobytes. Photographic pairs (Catalina, Mojave) pass `{ srcset: true }`
+ * so a phone does not download the desktop file — same renditions as Nature.
+ */
 function pair(
   id: string,
   lightBase: string,
   darkBase: string,
-  [width, height]: Size
+  [width, height]: Size,
+  opts?: { srcset?: boolean }
 ): Pick<Wallpaper, "light" | "dark"> {
   const base = `/wallpapers/${id}`;
+  const srcset = (src: string) =>
+    opts?.srcset ? photoSrcset(src, [width, height]) : emptySrcset();
   return {
     light: {
       src: `${base}/light.webp`,
-      srcset: emptySrcset(),
+      srcset: srcset(`${base}/light.webp`),
       thumb: `${base}/light.thumb.webp`,
       base: lightBase,
       width,
@@ -355,7 +368,7 @@ function pair(
     },
     dark: {
       src: `${base}/dark.webp`,
-      srcset: emptySrcset(),
+      srcset: srcset(`${base}/dark.webp`),
       thumb: `${base}/dark.thumb.webp`,
       base: darkBase,
       width,
@@ -383,6 +396,14 @@ function photo(
 }
 
 export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
+  {
+    id: "golden-gate",
+    name: "Golden Gate",
+    category: "apple",
+    platform: "macOS",
+    year: 2026,
+    ...pair("golden-gate", "rgb(153 141 131)", "rgb(36 38 58)", [2560, 1765]),
+  },
   {
     id: "tahoe",
     name: "Tahoe",
@@ -432,6 +453,30 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     ...pair("big-sur", "rgb(123 101 140)", "rgb(74 36 71)", [2400, 2400]),
   },
   {
+    id: "catalina",
+    name: "Catalina",
+    category: "apple",
+    platform: "macOS",
+    year: 2019,
+    ...pair("catalina", "rgb(79 102 126)", "rgb(83 85 98)", [2560, 2560], { srcset: true }),
+  },
+  {
+    id: "mojave",
+    name: "Mojave",
+    category: "apple",
+    platform: "macOS",
+    year: 2018,
+    ...pair("mojave", "rgb(80 74 81)", "rgb(25 37 60)", [2844, 1600], { srcset: true }),
+  },
+  {
+    id: "ipados-26",
+    name: "iPadOS 26",
+    category: "apple",
+    platform: "iPadOS",
+    year: 2025,
+    ...pair("ipados-26", "rgb(120 184 210)", "rgb(18 91 130)", [2560, 1920]),
+  },
+  {
     id: "ipados-18-violet",
     name: "iPadOS 18 Violet",
     category: "apple",
@@ -466,6 +511,14 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     year: 2024,
     caption: "2024",
     ...pair("ipados-18-teal", "rgb(80 130 143)", "rgb(34 55 75)", [2560, 1779]),
+  },
+  {
+    id: "ios-15",
+    name: "iOS 15",
+    category: "apple",
+    platform: "iOS",
+    year: 2021,
+    ...pair("ios-15", "rgb(156 144 137)", "rgb(54 50 51)", [2560, 2560]),
   },
   {
     id: "ios-14",
@@ -674,8 +727,8 @@ export function getWallpaperBackground(params: {
    */
   preview?: boolean;
   /**
-   * CSS-pixel viewport used to pick a photograph rendition. Pairs ignore it
-   * (one file). Omit to always use the full-size file.
+   * CSS-pixel viewport used to pick a photograph rendition. Graphic pairs
+   * ignore it (one file). Omit to always use the full-size file.
    */
   viewport?: { width: number; height: number; dpr?: number };
 }): ResolvedWallpaper {

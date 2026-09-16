@@ -20,9 +20,10 @@
 // The catalog is imported, not parsed: paths, sizes and base colours are read
 // from the same objects the app renders.
 //
-// Adding a pair: encode `public/wallpapers/<id>/{light,dark}.webp` plus
-// `.thumb.webp` (WebP q80; thumbs ≤ 480 at q72), record the sources under
-// `pairs` in `sources.json`, and add a `pair(...)` entry to the catalog.
+// Adding a pair: `pnpm wallpapers:encode <id>` when the pair is marked
+// `"encode": "graphic"` (WebP q80) or `"encode": "photo"` (q95 / 4:4:4 plus
+// 1280/1920 covers) in `sources.json`, then add a `pair(...)` entry. Graphic
+// thumbs are ≤ 480 at q72.
 //
 // Adding a photograph: `pnpm wallpapers:encode` (WebP q95 / 4:4:4, q90 if the
 // file would exceed 1.8MB; 1280 and 1920 cover renditions plus a 480px thumb),
@@ -51,10 +52,11 @@ const PUBLIC = path.join(process.cwd(), "public");
 /**
  * Byte budgets, per kind of artwork.
  *
- * The release pairs are smooth vector-like gradients and compress to almost
- * nothing, so a pair past 120KB means something went wrong. A photograph of
- * raked sand or river stones is detail all the way down: the Nature set spans
- * tens of kilobytes (Water) to well over a megabyte (Zen Garden) at the same
+ * Smooth graphic pairs (Tahoe, Golden Gate) compress to tens of kilobytes.
+ * Liquid Glass and the iOS 15 blobs have grain those washes do not, so the
+ * pair cap is 320KB — past that something went wrong. A photograph of raked
+ * sand or river stones is detail all the way down: the Nature set spans tens
+ * of kilobytes (Water) to well over a megabyte (Zen Garden) at the same
  * quality, and holding it to the gradients' budget would mean blurring exactly
  * what makes it worth choosing.
  *
@@ -65,7 +67,7 @@ const PUBLIC = path.join(process.cwd(), "public");
  * rendition budget is 1.5MB for the same reason.
  */
 const BUDGET_KB = {
-  pair: { full: 120, thumb: 16 },
+  pair: { full: 320, thumb: 16 },
   photo: { full: 2560, thumb: 64, rendition: 1536 },
 };
 
@@ -262,7 +264,7 @@ async function main() {
   // sharp decodes on its own thread pool, so all of them run at once.
   const rows = await Promise.all(
     BUILT_IN_WALLPAPERS.flatMap((w) => {
-      const kind = isSingleImage(w) ? "photo" : "pair";
+      const kind = isSingleImage(w) || w.light.srcset.length > 0 ? "photo" : "pair";
       return [...new Set([w.light, w.dark])].map((asset) => checkAsset(asset, kind));
     })
   );
