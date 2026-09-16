@@ -42,6 +42,7 @@ export const DRAGGABLE_DEFAULTS: Record<string, DraggableInstanceConfig> = {
   // palette: drag it out of the way while you work, back to centre next open.
   "surface-wallpaper": { draggable: true, persist: false },
   "surface-playlist": { draggable: true, persist: false },
+  "surface-theater-playlist": { draggable: true, persist: false },
 };
 
 export const DRAGGABLE_INSTANCES = [
@@ -53,6 +54,11 @@ export const DRAGGABLE_INSTANCES = [
   { id: "surface-wallpaper", labelEn: "Wallpaper Window", labelZh: "壁纸窗口" },
   { id: "surface-playlist", labelEn: "Playlist Window", labelZh: "播放列表窗口" },
   { id: "surface-attachments", labelEn: "Attachments Window", labelZh: "附件窗口" },
+  {
+    id: "surface-theater-playlist",
+    labelEn: "Video Playlist Window",
+    labelZh: "视频播放列表窗口",
+  },
 ] as const;
 
 // =============================================================================

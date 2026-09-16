@@ -2,8 +2,9 @@
 
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import { Pause, Play, SkipBack, SkipForward, X } from "lucide-react";
+import { ListVideo, Pause, Play, SkipBack, SkipForward, X } from "lucide-react";
 import { useRef } from "react";
+import { t, useLocale } from "@/services";
 import { GLASS_CLUSTER, GLASS_CLUSTER_BTN, GLASS_PILL } from "../lib/chrome";
 import { PIP_CONTROLS_H } from "../lib/geometry";
 import { useTheater } from "../provider";
@@ -20,10 +21,13 @@ import { SurfaceSwitch } from "./surface-switch";
 //
 // Chrome matches Featured Talks / theater. The SurfaceSwitch pill marks PiP
 // as the current view; Theater / Audio are the only moves. Close sits in the
-// same capsule — it ends the session, it is not a view.
+// same capsule — it ends the session, it is not a view. The list button opens
+// the playlist surface: on a phone this window is the whole player, and
+// without it there is no way to see what else is in the album.
 // ---------------------------------------------------------------------------
 
 export function PipOverlay() {
+  const { locale } = useLocale();
   const {
     mode,
     minimized,
@@ -44,6 +48,7 @@ export function PipOverlay() {
     trackIndex,
     album,
     albums,
+    openPlaylist,
   } = useTheater();
 
   const open = mode === "pip" && !minimized;
@@ -132,6 +137,15 @@ export function PipOverlay() {
             )}
             <button onClick={next} disabled={!hasNext} aria-label="Next" className={GLASS_CLUSTER_BTN}>
               <SkipForward className="h-3.5 w-3.5" fill="currentColor" />
+            </button>
+            {/* Where the Music system keeps its playlist button: last in the
+                transport cluster, because what plays next is transport. */}
+            <button
+              onClick={openPlaylist}
+              aria-label={t(locale, "theaterOpenPlaylist")}
+              className={GLASS_CLUSTER_BTN}
+            >
+              <ListVideo className="h-3.5 w-3.5" />
             </button>
           </div>
 

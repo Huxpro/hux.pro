@@ -11,12 +11,15 @@ import {
 } from "react";
 import { usePathname } from "next/navigation";
 import { useOptionalMusic } from "@/systems/music";
+import { SURFACE_BREAKPOINTS } from "@/systems/surface";
 import type { SlidesMedia, VideoMedia, VideoPlatform } from "@/lib/log";
 import { useInputCapability } from "@/services";
 import {
+  pipOffsetAbove,
   readViewport,
   stageRectFor,
   theaterAvailable as theaterFits,
+  THEATER_PLAYLIST_DETENTS,
   type Viewport,
 } from "./lib/geometry";
 import { adHocAlbum, mediaToTrack } from "./lib/albums";
@@ -93,6 +96,8 @@ interface TheaterContextValue {
   rect: StageRect;
   pipOffset: { x: number; y: number };
   dragging: boolean;
+  /** The playlist surface (albums + tracks) — the only browser PiP has. */
+  isPlaylistOpen: boolean;
 
   /** Register the default albums (curated talk playlists) once. */
   registerAlbums: (albums: Album[]) => void;
@@ -129,6 +134,8 @@ interface TheaterContextValue {
   seek: (seconds: number) => void;
   selectAlbum: (index: number) => void;
   selectTrack: (index: number) => void;
+  openPlaylist: () => void;
+  closePlaylist: () => void;
 
   setPipOffset: (offset: { x: number; y: number }) => void;
   setDragging: (dragging: boolean) => void;
@@ -196,6 +203,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const [trackIndex, setTrackIndex] = useState(0);
   const [mode, setMode] = useState<TheaterMode>("closed");
   const [minimized, setMinimized] = useState(false);
+  const [isPlaylistOpen, setPlaylistOpen] = useState(false);
 
   // --- Player state ---
   const [phase, setPhase] = useState<PlayerPhase>("idle");
@@ -222,9 +230,33 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   // If theater is requested on a phone-sized viewport, keep PiP geometry.
   const geomMode: "theater" | "pip" =
     mode === "theater" && theaterAvailable ? "theater" : "pip";
+
+  // The playlist sheet and the PiP window share a phone screen: the sheet
+  // takes the bottom half, the window parks above it and keeps playing. The
+  // lift is derived, not stored — closing the sheet puts the window back where
+  // the user left it with no bookkeeping, and there is no frame where the two
+  // disagree. It is the phone's problem only: the tablet panel and the desktop
+  // window leave the PiP's corner alone.
+  //
+  // What the chrome reads and drags from is this *effective* offset, so a drag
+  // that starts on a lifted window starts where the window is. Pushed against
+  // the lift, it moves sideways and no further down: under the list is not a
+  // place the window can be.
+  const liftedForPlaylist =
+    isPlaylistOpen &&
+    mode === "pip" &&
+    !minimized &&
+    viewport.width < SURFACE_BREAKPOINTS.sm;
+  const effectiveOffset = useMemo(
+    () =>
+      liftedForPlaylist
+        ? pipOffsetAbove(viewport, THEATER_PLAYLIST_DETENTS[0], pipOffset)
+        : pipOffset,
+    [liftedForPlaylist, viewport, pipOffset],
+  );
   const rect = useMemo(
-    () => stageRectFor(geomMode, viewport, pipOffset),
-    [geomMode, viewport, pipOffset],
+    () => stageRectFor(geomMode, viewport, effectiveOffset),
+    [geomMode, viewport, effectiveOffset],
   );
   const visible = mode !== "closed" && !minimized;
 
@@ -409,14 +441,22 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   }, [effectiveMode]);
 
   // Collapse to PiP (keep playing) on route change so the theater modal never
-  // strands the user mid-navigation.
+  // strands the user mid-navigation. The playlist goes with it: the page under
+  // it is a new page, and a list left standing over it is stale chrome.
   const prevPath = useRef(pathname);
   useEffect(() => {
     if (prevPath.current !== pathname) {
       prevPath.current = pathname;
       setMode((m) => (m === "theater" ? "pip" : m));
+      setPlaylistOpen(false);
     }
   }, [pathname]);
+
+  // The playlist belongs to PiP and the Live Activity. The theater has its own
+  // album tabs and rail, and closing the player ends the session entirely.
+  useEffect(() => {
+    if (mode === "theater" || mode === "closed") setPlaylistOpen(false);
+  }, [mode]);
 
   // Phone-sized (or short) viewports can't host theater chrome — drop to PiP
   // rather than rendering a crushed modal if the window is resized / rotated.
@@ -637,6 +677,11 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     [albumIndex, clampTrack],
   );
 
+  // Named after the Music system's playlist surface — the same gesture, the
+  // same words, so an entry point anywhere reads the same in both systems.
+  const openPlaylist = useCallback(() => setPlaylistOpen(true), []);
+  const closePlaylist = useCallback(() => setPlaylistOpen(false), []);
+
   // Escape closes the player (a standard modal affordance). Track/album
   // navigation via keyboard and scroll is intentionally omitted on desktop —
   // clicking the album tabs / playlist rail / arrows is the single, clear path.
@@ -669,8 +714,9 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     isCoarse,
     theaterAvailable,
     rect,
-    pipOffset,
+    pipOffset: effectiveOffset,
     dragging,
+    isPlaylistOpen,
     registerAlbums,
     open,
     openTrack,
@@ -690,6 +736,8 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     seek,
     selectAlbum,
     selectTrack,
+    openPlaylist,
+    closePlaylist,
     setPipOffset,
     setDragging,
   };

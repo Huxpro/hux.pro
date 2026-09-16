@@ -126,6 +126,46 @@ export function pipRect(vp: Viewport, offset: { x: number; y: number }): StageRe
 }
 
 /**
+ * Detents for the phone playlist sheet (systems/theater/components/playlist-
+ * sheet.tsx), as fractions of the viewport.
+ *
+ * Half the screen rather than the site's usual `SHEET_DETENTS` (0.7): the PiP
+ * window is the other half of this surface — it keeps playing while you
+ * browse — and video plus control bar is ~245px. Three tenths of a phone
+ * screen cannot hold it, so a 0.7 sheet would force the PiP down onto its own
+ * title bar. At 0.5 the two share the screen cleanly, and a drag to the top
+ * still gives the whole album at once (the PiP floats over it; it is the one
+ * thing here that must never be hidden).
+ */
+export const THEATER_PLAYLIST_DETENTS = [0.5, 1];
+
+/** Air between the PiP window and whatever it is parked against. */
+export const PIP_GAP = 8;
+
+/**
+ * The drag offset that parks the PiP window — video *and* control bar — above
+ * a surface occupying the bottom `fraction` of the screen.
+ *
+ * The horizontal drag is kept (the window stays on the side it was left on);
+ * only the vertical one moves, and only upward, so a PiP already parked higher
+ * than the surface is left where it is. `pipRect` clamps the result, so a
+ * viewport too short for the lift simply pins the window to its top stop.
+ */
+export function pipOffsetAbove(
+  vp: Viewport,
+  fraction: number,
+  from: { x: number; y: number },
+): { x: number; y: number } {
+  // The control bar's bottom edge at rest — the video height cancels out.
+  const restBottom = vp.height - PIP_MARGIN;
+  const surfaceTop = vp.height * (1 - fraction);
+  return {
+    x: from.x,
+    y: Math.min(surfaceTop - PIP_GAP - restBottom, from.y),
+  };
+}
+
+/**
  * The stage's rect for a *visible* mode. Hidden states (closed / minimized)
  * don't move the stage off-screen anymore — they keep it at its mode's rect and
  * just fade + scale it out (so opening is a clean in-place morph, not a fly-in
