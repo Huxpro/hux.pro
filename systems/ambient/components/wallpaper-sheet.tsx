@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  Segmented,
+  type SegmentedOption,
+} from "@/components/ui/controls";
 import { cn } from "@/lib/utils";
 import { t, useLocale, type TranslationKey } from "@/services";
 import { AlbumTabs } from "@/systems/theater";
@@ -73,7 +77,7 @@ function CompactRow<T extends string>({
 }: {
   label: string;
   value: T;
-  options: { value: T; label: string }[];
+  options: SegmentedOption<T>[];
   onChange: (value: T) => void;
 }) {
   return (
@@ -81,24 +85,7 @@ function CompactRow<T extends string>({
       <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
-      <div className="flex shrink-0 overflow-hidden rounded-md border border-border/60">
-        {options.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            onClick={() => onChange(o.value)}
-            aria-pressed={value === o.value}
-            className={cn(
-              "px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
-              value === o.value
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent/30 hover:text-foreground"
-            )}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
+      <Segmented tone="system" value={value} options={options} onChange={onChange} />
     </div>
   );
 }

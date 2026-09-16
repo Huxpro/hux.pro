@@ -6,9 +6,9 @@ import { t, useLocale } from "@/services";
 import {
   ANCHORED_PRESENTATION,
   AdaptiveSurface,
-  useSurfaceContext,
+  HEADER_BUTTON,
 } from "@/systems/surface";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   setBleedEnabled,
   setReadingFocus,
@@ -37,55 +37,31 @@ import { setRulerSide, useRulerSide, type RulerSide } from "./ruler-settings";
 // live behind it, so a tap on Serif is a tap you watch land.
 //
 // It shows the same five settings the devtool's module does, in the reader's
-// voice rather than the devtool's mono, and only where each one does something:
+// voice rather than the devtool's mono. Four of them are offered everywhere.
 //
-//   typeface, column   always — the two that shape the text itself.
-//   ruler              always. The ruler is screen furniture the reader can
-//                      see and, on a touch screen, scrub with a thumb; which
-//                      edge it is docked to is handedness, not configuration.
-//   focus mode         not in the sheet. The reading line is at 40% of the
-//                      viewport, and a phone screen holds a paragraph or two.
-//   wide media         only past the width its CSS lives at. See BLEED_QUERY.
+// Wide media is the one exception, and it is not a taste call: the rule that
+// lets landscape media break out of the column lives entirely inside the
+// `bleed` breakpoint (app/globals.css), so under that width the switch would
+// be wired to nothing. The row hides itself with the `bleed:` variant of that
+// same breakpoint — one number, so the control and the rule it drives cannot
+// drift apart, and nothing has to be measured in JS to know.
 //
-// A control that does nothing is worse than a control that is not there, so
-// the two conditional rows are gated on the thing they actually drive rather
-// than on taste.
+// Everything else is shown at every width even where it is less useful. These
+// are single, global, persisted settings: hiding focus mode on a phone would
+// mean a reader who turned it on at a desk had no way to turn it off in a
+// pocket, and the devtool is not a door a reader opens.
 //
 // The devtool keeps its module. Both write the same store, so both follow.
 // ---------------------------------------------------------------------------
 
-/**
- * Media bleed exists only on wide screens: the rule that lets landscape media
- * break out of the reading column is inside `@media (min-width: 900px)` in
- * app/globals.css, and so is the `data-bleed-off` kill switch that undoes it.
- * Below that the setting is real and stored, but nothing reads it — so the row
- * is not offered. This query is that one, and has to keep matching it.
- */
-const BLEED_QUERY = "(min-width: 900px)";
-
-/** Whether a media query matches right now. False until mounted, so SSR agrees. */
-function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    const sync = () => setMatches(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, [query]);
-  return matches;
-}
-
-/** The rows. Inside the surface, so it can read the shape it landed in. */
+/** The rows. */
 function ReadingSettingsContent() {
   const { locale } = useLocale();
-  const { isSheet } = useSurfaceContext();
   const font = useReadingFont();
   const measure = useReadingMeasure();
   const focus = useReadingFocus();
   const bleed = useBleedEnabled();
   const side = useRulerSide();
-  const canBleed = useMediaQuery(BLEED_QUERY);
 
   return (
     <div className="space-y-1 pt-1">
@@ -138,30 +114,23 @@ function ReadingSettingsContent() {
         />
       </Row>
 
-      {/* Landscape media breaking out of the column — a wide-screen rule, so a
-          wide-screen row. See BLEED_QUERY. */}
-      {canBleed && (
-        <Row label={t(locale, "readingBleed")}>
-          <Switch
-            on={bleed}
-            onClick={() => setBleedEnabled(!bleed)}
-            label={t(locale, "readingBleed")}
-          />
-        </Row>
-      )}
+      {/* Hidden by the same breakpoint that carries the rule it switches, so
+          the two cannot drift. See the note at the top of this file. */}
+      <Row label={t(locale, "readingBleed")} className="hidden bleed:flex">
+        <Switch
+          on={bleed}
+          onClick={() => setBleedEnabled(!bleed)}
+          label={t(locale, "readingBleed")}
+        />
+      </Row>
 
-      {/* Focus mode dims every block but the one at the reading line — which is
-          at 40% of the viewport, and on a phone a screen holds a paragraph or
-          two anyway. Nothing to dim, so nothing to offer. */}
-      {!isSheet && (
-        <Row label={t(locale, "readingFocus")}>
-          <Switch
-            on={focus}
-            onClick={() => setReadingFocus(!focus)}
-            label={t(locale, "readingFocus")}
-          />
-        </Row>
-      )}
+      <Row label={t(locale, "readingFocus")}>
+        <Switch
+          on={focus}
+          onClick={() => setReadingFocus(!focus)}
+          label={t(locale, "readingFocus")}
+        />
+      </Row>
 
       {/* Which edge the ruler is docked to. Offered everywhere: the ruler is
           on a phone too, as bare ticks you scrub with a thumb, and that is
@@ -181,19 +150,34 @@ function ReadingSettingsContent() {
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="flex min-h-9 items-center justify-between gap-4 px-1">
+    <div
+      className={cn(
+        "flex min-h-9 items-center justify-between gap-4 px-1",
+        className
+      )}
+    >
       <span className="text-sm text-muted-foreground">{label}</span>
       {children}
     </div>
   );
 }
 
+/** Full, full, and a short last line — a paragraph's shape in three rules. */
+const MEASURE_RULES = [1, 1, 0.6];
+
 /**
- * A column of text, drawn small: three rules at the measure being offered,
- * the last one short the way a paragraph's last line is. The widths are the
- * whole message, so they are lengths rather than words to translate.
+ * A column of text, drawn small, at the measure being offered. The widths are
+ * the whole message, so they are lengths rather than words to translate.
  */
 function Measure({ width }: { width: number }) {
   return (
@@ -201,7 +185,7 @@ function Measure({ width }: { width: number }) {
       aria-hidden
       className="flex h-5 w-5 flex-col items-center justify-center gap-[3px]"
     >
-      {[1, 1, 0.6].map((fraction, i) => (
+      {MEASURE_RULES.map((fraction, i) => (
         <span
           key={i}
           className="h-px rounded-full bg-current"
@@ -230,9 +214,11 @@ export function ReadingSettings({ className }: { className?: string }) {
         aria-label={t(locale, "readingSettings")}
         aria-expanded={open}
         className={cn(
-          "inline-flex shrink-0 items-baseline gap-px rounded-md px-1.5 py-1",
-          "transition-colors hover:bg-accent/40 hover:text-foreground",
-          open ? "bg-accent text-foreground" : "text-muted-foreground",
+          // The same button every surface header uses, at meta-row size, so it
+          // brightens and presses like the close button it will sit next to.
+          HEADER_BUTTON,
+          "inline-flex items-baseline gap-px px-1.5 py-1",
+          open && "bg-accent text-foreground",
           className
         )}
       >
@@ -246,16 +232,18 @@ export function ReadingSettings({ className }: { className?: string }) {
         open={open}
         onOpenChange={setOpen}
         presentation={ANCHORED_PRESENTATION}
-        anchor={anchor}
+        popover={{
+          anchor,
+          width: "min(92vw, 288px)",
+          // The button sits at the trailing edge of the header row; the card
+          // hangs back over the article rather than out into the margin.
+          align: "end",
+        }}
         title={t(locale, "readingSettingsTitle")}
         closeLabel={t(locale, "readingSettingsClose")}
         // A few rows, and the article behind them is the point: the sheet
         // takes the height of what it holds rather than a slab of the screen.
         fitContent
-        popoverWidth="min(92vw, 288px)"
-        // The button sits at the trailing edge of the header row; the card
-        // hangs back over the article rather than out into the margin.
-        popoverAlign="end"
       >
         <ReadingSettingsContent />
       </AdaptiveSurface>

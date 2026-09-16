@@ -240,15 +240,17 @@ it.
 All five settings are here, in reader's words rather than the devtool's mono,
 and each appears only where it does something:
 
-| Row | Shown | Why |
-|-----|-------|-----|
-| Typeface, Column | always | The two that shape the text itself. |
-| Ruler | always | The ruler is on a phone too, as bare ticks you scrub with a thumb — which edge it is docked to is handedness. |
-| Focus mode | not in the sheet | The reading line sits at 40% of the viewport; a phone screen holds a paragraph or two, so there is nothing to dim. |
-| Wide media | from 900px | Its entire rule, and the `data-bleed-off` switch that undoes it, live inside `@media (min-width: 900px)` in `globals.css`. Below that the setting is stored but nothing reads it. |
+Four of the five are offered at every width. **Wide media** is the exception,
+and not on taste: the rule it switches lives entirely inside the `bleed`
+breakpoint (`--breakpoint-bleed`, `app/globals.css`), so below that width the
+control would be wired to nothing. The row hides itself with the `bleed:`
+variant of that same token, so the control and the rule it drives read one
+number and cannot drift apart.
 
-A control that does nothing is worse than a control that is not there, so the
-two conditional rows are gated on what they actually drive.
+Nothing else is hidden narrow, even where it is less useful. These are single,
+global, persisted settings: hiding focus mode on a phone would leave a reader
+who turned it on at a desk no way to turn it off in a pocket, and the devtool
+is not a door a reader opens.
 
 The devtool keeps its Reading module. Both surfaces write the same persisted
 store, so the panel and the reader's menu always agree.

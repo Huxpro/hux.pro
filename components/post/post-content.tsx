@@ -146,12 +146,13 @@ export function PostContent({
   // ones the ruler tracks. It rides in the header's action slot, where the
   // list pages keep their language filter, so no new floating layer is added
   // to the article.
-  const headerActions = (
-    <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">{hasHeaderMetaContent ? headerMetaRow : null}</div>
-      {toc && <ReadingSettings className="-mt-1" />}
-    </div>
-  );
+  const headerActions =
+    hasHeaderMetaContent || toc ? (
+      <div className="flex items-start gap-3">
+        {hasHeaderMetaContent && <div className="min-w-0">{headerMetaRow}</div>}
+        {toc && <ReadingSettings className="-mt-1 ml-auto" />}
+      </div>
+    ) : undefined;
 
   return (
     <PageLayout
@@ -159,9 +160,7 @@ export function PostContent({
       backHref={backHref}
       backLabel={backLabel}
       variant="reader"
-      headerActions={
-        hasHeaderMetaContent || toc ? headerActions : undefined
-      }
+      headerActions={headerActions}
       className="min-h-screen"
     >
       <div className="prose-article" lang={displayLocale}>

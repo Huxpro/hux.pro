@@ -10,6 +10,8 @@ import type { ReactNode } from "react";
 // devtool panel, in the wallpaper picker's compact rows, and now wherever a
 // reader changes something. They are one widget each; what differs is the
 // voice of the surface they sit on, so that is the only thing parameterised.
+// All three call this file — if a fourth copy appears, fold it in rather than
+// letting this comment become a claim about the past.
 //
 //   system  the devtool's voice: mono, uppercase, a hairline box, and green
 //           for on — a machine readout, and the green says "live".
@@ -21,6 +23,32 @@ import type { ReactNode } from "react";
 // =============================================================================
 
 export type ControlTone = "system" | "reader";
+
+/**
+ * Every difference between the two voices is a class string, so the branch is
+ * a table rather than a ternary in the markup: a third tone is one entry here,
+ * not four edits spread over two components.
+ */
+const SEGMENTED_TONE = {
+  system: {
+    group: "overflow-hidden rounded-md border border-border/60",
+    segment: "px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider",
+    selected: "bg-accent text-accent-foreground",
+    idle: "text-muted-foreground hover:bg-accent/30 hover:text-foreground",
+  },
+  reader: {
+    group: "gap-0.5 rounded-lg bg-muted p-0.5",
+    segment: "rounded-[0.4rem] px-3 py-1 text-xs leading-5",
+    selected: "bg-background text-foreground shadow-sm",
+    idle: "text-muted-foreground hover:text-foreground",
+  },
+} as const;
+
+const SWITCH_TONE = {
+  // Green is the devtool saying "live", and it only means that in there.
+  system: "bg-green-500/90 border-green-500/70",
+  reader: "border-transparent bg-foreground/85",
+} as const;
 
 export interface SegmentedOption<T extends string> {
   value: T;
@@ -39,7 +67,6 @@ export function Segmented<T extends string>({
   onChange,
   tone = "reader",
   label,
-  className,
 }: {
   value: T;
   options: SegmentedOption<T>[];
@@ -47,21 +74,10 @@ export function Segmented<T extends string>({
   tone?: ControlTone;
   /** Accessible name for the group, where no visible label names it. */
   label?: string;
-  className?: string;
 }) {
-  const system = tone === "system";
+  const t = SEGMENTED_TONE[tone];
   return (
-    <div
-      role="group"
-      aria-label={label}
-      className={cn(
-        "flex shrink-0",
-        system
-          ? "overflow-hidden rounded-md border border-border/60"
-          : "gap-0.5 rounded-lg bg-muted p-0.5",
-        className
-      )}
-    >
+    <div role="group" aria-label={label} className={cn("flex shrink-0", t.group)}>
       {options.map((o) => {
         const selected = value === o.value;
         return (
@@ -74,14 +90,8 @@ export function Segmented<T extends string>({
             aria-pressed={selected}
             className={cn(
               "transition-colors",
-              system
-                ? "px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider"
-                : "rounded-[0.4rem] px-3 py-1 text-xs leading-5",
-              selected
-                ? system
-                  ? "bg-accent text-accent-foreground"
-                  : "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+              t.segment,
+              selected ? t.selected : t.idle
             )}
           >
             {o.label}
@@ -107,7 +117,6 @@ export function Switch({
   /** The setting is kept but has nothing to act on right now. */
   disabled?: boolean;
 }) {
-  const system = tone === "system";
   return (
     <button
       type="button"
@@ -117,11 +126,7 @@ export function Switch({
       aria-label={label}
       className={cn(
         "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
-        on
-          ? system
-            ? "bg-green-500/90 border-green-500/70"
-            : "border-transparent bg-foreground/85"
-          : "bg-muted/40 border-border/60",
+        on ? SWITCH_TONE[tone] : "bg-muted/40 border-border/60",
         disabled && "opacity-40 cursor-not-allowed"
       )}
     >

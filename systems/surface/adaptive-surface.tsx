@@ -62,8 +62,6 @@ interface SurfaceContextValue {
   mode: SurfaceMode;
   /** True when the surface floats free (a window) rather than hugging an edge. */
   isWindow: boolean;
-  /** True in the one shape that is under a thumb rather than beside a cursor. */
-  isSheet: boolean;
   close: () => void;
 }
 
@@ -95,19 +93,25 @@ export interface AdaptiveSurfaceProps {
   /** Width of the floating window; drawers use their own edge-relative sizing. */
   windowWidth?: string;
   /**
-   * What the popover shape hangs off. Required for it, ignored by the others —
-   * a shape decided by the viewport means the anchor is passed whether or not
-   * this viewport uses it.
+   * The popover shape's settings, grouped because `anchor` is not tuning like
+   * `windowWidth` is — the shape cannot position itself without one. Keeping
+   * them together makes that required where a sibling `anchor?` could only ask
+   * for it in prose. A surface whose presentation can resolve to `popover`
+   * passes this whatever the current viewport is, since the shape is chosen at
+   * render; the other shapes ignore it.
    */
-  anchor?: React.RefObject<HTMLElement | null>;
-  /** Width of the popover card. */
-  popoverWidth?: string;
-  /**
-   * Which edge of the popover lines up with the anchor's. `end` for a trigger
-   * that sits at the trailing edge of its row, so the card hangs back over the
-   * content rather than out into the margin.
-   */
-  popoverAlign?: "start" | "center" | "end";
+  popover?: {
+    /** What the card hangs off — a ref to the button that owns it. */
+    anchor: React.RefObject<HTMLElement | null>;
+    /** Width of the card. */
+    width?: string;
+    /**
+     * Which edge of the card lines up with the anchor's. `end` for a trigger
+     * at the trailing edge of its row, so the card hangs back over the content
+     * rather than out into the margin.
+     */
+    align?: "start" | "center" | "end";
+  };
   /** Height cap for the window, popover and sheet shapes. */
   maxHeight?: string;
   /**
@@ -389,17 +393,16 @@ function SurfacePanel({
 function SurfacePopoverShape({
   open,
   onOpenChange,
-  anchor,
   title,
   actions,
   closeLabel,
-  popoverWidth,
-  popoverAlign = "start",
+  popover,
   maxHeight,
   contentClassName,
   scrollRef,
   children,
 }: Omit<AdaptiveSurfaceProps, "presentation" | "id">) {
+  const anchor = popover?.anchor;
   return (
     <Popover.Root
       open={open}
@@ -423,7 +426,7 @@ function SurfacePopoverShape({
         <Popover.Positioner
           anchor={anchor}
           side="bottom"
-          align={popoverAlign}
+          align={popover?.align ?? "start"}
           sideOffset={8}
           collisionPadding={12}
           className="z-[60]"
@@ -434,7 +437,7 @@ function SurfacePopoverShape({
             // hand it to.
             finalFocus={anchor}
             style={{
-              width: popoverWidth ?? "min(92vw, 300px)",
+              width: popover?.width ?? "min(92vw, 300px)",
               maxHeight: maxHeight ?? "min(70vh, 520px)",
             }}
             className={cn(
@@ -513,7 +516,7 @@ export function AdaptiveSurface({
   // Memoised: the surface re-renders whenever its owner does, and its content
   // is the whole picker grid.
   const value = useMemo(
-    () => ({ mode, isWindow: mode === "window", isSheet: mode === "sheet", close }),
+    () => ({ mode, isWindow: mode === "window", close }),
     [mode, close]
   );
 

@@ -61,6 +61,16 @@ Base UI reads a press on it as an outside press, so the shape cancels that and
 leaves the gesture to the button, which would otherwise close and reopen in one
 click.
 
+Base UI can do that part itself, with `Popover.createHandle()` and a detached
+`Popover.Trigger`. It is not used here because three of the four shapes have no
+trigger to be: on a phone `Popover.Root` never mounts, so the caller's button
+needs its own open state regardless, and in popover mode that would then race
+Base UI's. The cancellation is the adapter for a system that takes an anchor
+instead of a trigger, and it belongs here rather than in feature code. When a
+second anchored surface arrives, the thing worth extracting is the caller's
+side — a `useSurfaceTrigger()` handing back `{ ref, onClick, "aria-expanded" }`
+to spread on any button — not Base UI's trigger.
+
 The other exception is a launcher. The command palette's sheet is modal: the page
 stops answering while it is up and a press on it dismisses, the click-away its
 desktop popover has. See **The sheet primitive** below.
@@ -92,9 +102,9 @@ ANCHORED_PRESENTATION  // { base: "sheet", sm: "popover" } — owned by a button
 DRAWER_PRESENTATION    // { base: "sheet", sm: "panel" } — never floats free
 ```
 
-A surface on `ANCHORED_PRESENTATION` passes `anchor`, whatever the viewport: the
-shape is decided at render, so the ref is handed over whether or not this
-viewport is the one that uses it.
+A surface on `ANCHORED_PRESENTATION` passes `popover={{ anchor }}` whatever the
+viewport: the shape is decided at render, so the ref is handed over whether or
+not this viewport is the one that uses it.
 
 Breakpoints match Tailwind's (`sm` 640, `lg` 1024) so a surface and the content
 inside it respond at the same widths rather than a few pixels apart.
@@ -116,6 +126,13 @@ read it rather than re-measuring the viewport:
 const { mode, isWindow, close } = useSurfaceContext();
 ```
 
+Read it for questions about the **container** — how many columns fit, how dense
+a row should be. Not as a proxy for the viewport: a surface that hides a setting
+when it is a sheet has made the presentation map load-bearing for behaviour, and
+moving that surface to `panel` would silently change what the feature offers.
+Gate on the constraint itself — a breakpoint the CSS already names, a capability
+— or do not gate.
+
 ## Props worth knowing
 
 | Prop | For |
@@ -123,8 +140,7 @@ const { mode, isWindow, close } = useSurfaceContext();
 | `id` | Draggable instance key in window mode. Register it in `DRAGGABLE_INSTANCES`. |
 | `title` / `actions` | Header content. `actions` sits left of the close button. |
 | `windowWidth` | Window mode only; drawers size against their edge. |
-| `anchor` | What the popover hangs off. A ref to the trigger. |
-| `popoverWidth` / `popoverAlign` | The card's width, and which of its edges lines up with the anchor's (`end` for a trigger at the trailing edge of its row). |
+| `popover` | `{ anchor, width?, align? }` — the popover shape's settings. Grouped because `anchor` is a precondition, not tuning: the card cannot position itself without one, so it is required inside the object rather than asked for in prose. |
 | `maxHeight` | Caps window, popover and sheet height. |
 | `fitContent` | Size to what it holds rather than to the screen — the sheet's `fitContent` (see **Three heights**); a popover is content-sized under its cap already. |
 | `snapPoints` | Detents for the sheet shape, lowest first; a drag carries it to the top. |

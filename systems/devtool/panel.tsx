@@ -107,11 +107,7 @@ import {
 } from "lucide-react";
 import { withDraggable } from "@/systems/draggable";
 import Link from "next/link";
-import {
-  Segmented,
-  Switch,
-  type SegmentedOption,
-} from "@/components/ui/controls";
+import { Segmented, Switch } from "@/components/ui/controls";
 import { Slider } from "@/components/ui/slider";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -655,14 +651,13 @@ function PanelRow({
   );
 }
 
-/** Pill on/off switch, matching the gradient/weather toggles. */
-function PanelToggle(props: {
-  on: boolean;
-  onClick: () => void;
-  label: string;
-  /** The setting is kept but has nothing to act on right now. */
-  disabled?: boolean;
-}) {
+/**
+ * The shared controls in the devtool's voice. Both take their props straight
+ * from the component so the panel cannot drift from it — the hand-written
+ * shadow types these replaced had already lost `Segmented`'s `label`, which
+ * left every segmented group in here without an accessible name.
+ */
+function PanelToggle(props: Omit<React.ComponentProps<typeof Switch>, "tone">) {
   return <Switch tone="system" {...props} />;
 }
 
@@ -707,12 +702,9 @@ function PanelRange({
   );
 }
 
-/** Segmented single-select, matching the ruler dock control. */
-function PanelSegmented<T extends string>(props: {
-  value: T;
-  options: SegmentedOption<T>[];
-  onChange: (value: T) => void;
-}) {
+function PanelSegmented<T extends string>(
+  props: Omit<React.ComponentProps<typeof Segmented<T>>, "tone">
+) {
   return <Segmented tone="system" {...props} />;
 }
 
