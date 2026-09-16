@@ -3,7 +3,7 @@
 import { dismissToast, showCustomToast } from "@/components/ui/system-sonner";
 import { useTheme } from "@/services";
 import { useReducedMotion } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import {
   SOLAR_HANDOVER,
@@ -24,17 +24,26 @@ import { SolarThemeToast } from "./solar-theme-toast";
 //
 // *When* it crosses is the end of the sunrise / sunset window rather than the
 // sun's own crossing, so the dusk you were watching in Light finishes in Light
-// (lib/solar-theme.ts). *How* is staged, and the sky goes first:
+// (lib/solar-theme.ts). *How* is one long animation of the sky with everything
+// else on its last frame:
 //
 //   beginThemeHandover(next)  the wallpaper starts painting the incoming theme
-//                             on a longer crossfade; the chrome stays put.
-//   + skyLeadMs               the chrome catches up in one commit, inside a
-//                             view transition: the browser crossfades the page
-//                             as one composited image, the same 200ms a route
-//                             change uses. A transition per element would cost
-//                             ~1.2s of style recalculation on a page this size
-//                             — measured — against ~60ms for this.
+//                             on a longer crossfade; the chrome stays put, and
+//                             the greeting holds the window that just closed.
+//   + skyMs                   the sky's animation ends, and on that frame, in
+//                             one commit: the theme, and the greeting. Inside
+//                             a view transition, so the page crossfades as one
+//                             composited image — the same 200ms a route change
+//                             uses. A transition per element would cost ~1.2s
+//                             of style recalculation on a page this size —
+//                             measured — against ~60ms for this.
 //   + the notice              a pill, once it has settled.
+//
+// The detection runs in a layout effect, not an effect: `chromePhase` holds
+// only once the handover has begun, and a passive effect would let the browser
+// paint one frame of the new greeting first. Layout effects flush before that
+// paint — and a child's before its parent's, which is why the provider sees
+// the hold in the same pass.
 //
 // What it applies is a session override on the theme (services/theme.tsx), not
 // the saved Appearance preference. The preference is untouched, an explicit
@@ -98,7 +107,7 @@ export function SolarThemeSync() {
     pickedRef.current = { theme, preference };
   }, [theme, preference]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Off: the sun drives nothing, and an override it left behind goes with
     // it. Keeping `seen` in step means switching back on cannot fire for a
     // crossing that happened while it was off.
@@ -168,7 +177,7 @@ export function SolarThemeSync() {
         }
         commitTheme(() => setThemeOverride(sunTheme), true);
         timersRef.current.push(window.setTimeout(notice, CHROME_CROSSFADE_MS));
-      }, SOLAR_HANDOVER.skyLeadMs)
+      }, SOLAR_HANDOVER.skyMs)
     );
   }, [
     followSun,

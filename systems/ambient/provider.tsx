@@ -139,6 +139,13 @@ interface AmbientTimeContextType {
   realNowMs: number;
   /** Derived from `nowMs` and the sun times; there is no phase override. */
   phase: AmbientPhase;
+  /**
+   * The phase the *chrome* is showing — the greeting's phase. It is `phase`,
+   * except while the sun is handing the theme over: then the chrome is still
+   * in the window that just closed, and says so, until the sky's animation
+   * ends and the theme, the words and the sky all land on the same frame.
+   */
+  chromePhase: AmbientPhase;
   /** Sunrise / sunset for the effective day (shifted with `dayOffset`). */
   sunriseMs?: number;
   sunsetMs?: number;
@@ -758,6 +765,16 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [nowMs, sunriseMs, sunsetMs]
   );
 
+  // The chrome's phase needs no memory of the last one: a handover only ever
+  // starts at a window closing, so while the sky is leading, the window the
+  // chrome is still in is the one the sun just left — sunset when it is
+  // heading for dark, sunrise when it is heading for light.
+  const chromePhase: AmbientPhase = skyLead
+    ? skyLead === "dark"
+      ? "sunset"
+      : "sunrise"
+    : phase;
+
   // The same clock and the same sun times the phase reads, reduced to the one
   // bit the theme cares about. A string, so the minute tick only wakes
   // <SolarThemeSync /> when the side of the day actually changes.
@@ -1091,6 +1108,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       nowMs,
       realNowMs,
       phase,
+      chromePhase,
       sunriseMs,
       sunsetMs,
       timeScrubMinutes,
@@ -1104,6 +1122,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       nowMs,
       realNowMs,
       phase,
+      chromePhase,
       sunriseMs,
       sunsetMs,
       timeScrubMinutes,

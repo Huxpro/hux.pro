@@ -295,27 +295,39 @@ dark ─────┬─ sunrise ─┬───── light ─────�
 boundaries, shifted by the window. It returns null when the sun times are
 unknown, and then nothing switches.
 
-**The handover is staged**, so the change reads as the light going rather than
-a switch being thrown (`SOLAR_HANDOVER`):
+**The handover is one animation with one landing.** The sky moves alone, and
+everything else arrives on its last frame (`SOLAR_HANDOVER`):
 
 ```
 0ms ──────────── the sky, alone. The wallpaper is painted in the *incoming*
-                 theme while the chrome is still in the outgoing one: the
-                 stack crossfades over 1.8s instead of its usual 0.7s, and
-                 under the Sky style the shader eases its veil and exposure
-                 over about the same stretch.
-1400ms ───────── the chrome catches up, in one commit, inside a view
-                 transition — the browser crossfades the page as a single
-                 composited image, the same 200ms a route change uses.
-1600ms ───────── settled, and the notice says what happened.
+                 theme while the chrome holds: the stack crossfades over 1.8s
+                 instead of its usual 0.7s, and under the Sky style the shader
+                 eases its veil and exposure over about the same stretch.
+1800ms ───────── the sky's animation ends — and on that same frame, in one
+                 commit: the app theme, and the greeting. Inside a view
+                 transition, so the page crossfades as one composited image,
+                 the same 200ms a route change uses.
+2000ms ───────── the notice.
 ```
 
-Two values, briefly: `wallpaperTheme` (the scene, the wash's weight, a
-picture's half, the profile of what is painting) leads, while everything that
-belongs to the chrome — the page ground, the bezel, the ink ladder — keeps
-reading `theme`. The lead ends the moment the chrome catches up, and a theme
-the user picks while it is running calls the whole thing off, sky included:
-theirs wins.
+Three moments that used to be three (the sky settling, the theme switching, the
+words changing) are one. Two values make it work, and both are named for who
+they serve:
+
+- `wallpaperTheme` — the scene, the wash's weight, a picture's half, the
+  profile of what is painting. It leads. Everything that belongs to the chrome
+  (the page ground, the bezel, the ink ladder) keeps reading `theme`.
+- `chromePhase` — the phase the *greeting* reads. While the sky leads it is the
+  window that just closed, so the words still say "Sun Is Setting" over a dusk
+  that is still fading, instead of announcing the evening 1.8s early. It needs
+  no memory to do it: a handover only ever begins at a window closing, so the
+  window the chrome is still in is the one the sun just left.
+
+The lead ends the moment the chrome catches up, and a theme the user picks
+while it is running calls the whole thing off, sky included: theirs wins. The
+crossing is detected in a **layout effect**, because `chromePhase` only holds
+once the handover has begun and a passive effect would let one frame of the new
+greeting paint first.
 
 The chrome's half is deliberately **not** a transition per element. That was
 the first cut of this, and it cost ~1.2s of style recalculation for a 1s
@@ -685,6 +697,7 @@ const {
   nowMs,               // The effective clock — real, or time-travelled
   realNowMs,           // The wall clock, untouched
   phase,               // Always derived from nowMs; there is no phase override
+  chromePhase,         // The greeting's phase: `phase`, but held during a handover
   sunriseMs,           // For the effective day
   sunsetMs,
   timeScrubMinutes,    // Devtool: minutes past midnight, or null

@@ -10,7 +10,10 @@ import { useAmbientTime } from "../provider";
 export function AmbientGreeting() {
   const { locale } = useLocale();
   const { lastVisited, isReturningVisitor, daysSinceLastVisit } = useVisitor();
-  const { phase } = useAmbientTime();
+  // The chrome's phase, not the sky's: while the sun hands the theme over, the
+  // greeting holds the window that just closed and changes on the same frame
+  // as the theme, rather than announcing the evening over a dusk still fading.
+  const { chromePhase } = useAmbientTime();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -18,8 +21,8 @@ export function AmbientGreeting() {
   }, []);
 
   const greetingKey = useMemo(
-    () => getAmbientGreetingKeyFromPhase(phase),
-    [phase]
+    () => getAmbientGreetingKeyFromPhase(chromePhase),
+    [chromePhase]
   );
 
   const timeGreeting = t(locale, greetingKey);
