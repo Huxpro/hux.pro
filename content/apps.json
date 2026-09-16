@@ -1,23 +1,6 @@
 {
   "apps": [
     {
-      "id": "busy-week",
-      "title": "BusyWeek",
-      "runtime": "lynx",
-      "flavor": "react",
-      "bundleUrl": "https://busy-week.vercel.app/main.web.bundle",
-      "url": "https://busy-week.vercel.app/",
-      "size": "portrait",
-      "icon": "/app-icons/busy-week.png"
-    },
-    {
-      "id": "lynx-flappy-bird",
-      "title": "Flappy Bird",
-      "runtime": "web",
-      "url": "https://huangxuan.me/lynx-flappy-bird/",
-      "size": "portrait"
-    },
-    {
       "id": "react",
       "title": "React",
       "runtime": "web",
@@ -28,6 +11,44 @@
       "title": "Lynx",
       "runtime": "web",
       "url": "https://lynxjs.org"
+    },
+    {
+      "id": "lynx-flappy-bird",
+      "title": "Flappy Bird",
+      "runtime": "web",
+      "url": "https://huxpro.github.io/lynx-flappy-bird/",
+      "size": "portrait"
+    },
+    {
+      "id": "vue-lynx",
+      "title": "Vue Lynx",
+      "runtime": "web",
+      "url": "https://vue.lynxjs.org",
+      "icon": "/app-icons/vue-lynx.png"
+    },
+    {
+      "id": "cat-toy",
+      "title": "Cat Wand",
+      "titleZh": "逗猫棒",
+      "runtime": "lynx",
+      "flavor": "vue",
+      "bundleUrl": "/bundles/cat-toy.web.bundle",
+      "url": "https://vue-lynx-git-vapor-huxpros-projects.vercel.app/guide/touch-fx",
+      "size": "portrait",
+      "icon": "/app-icons/cat-toy.png",
+      "keywords": ["cat toy", "cat wand", "touch-fx", "touch fx", "逗猫", "逗猫棒"],
+      "featured": false
+    },
+    {
+      "id": "busy-week",
+      "title": "BusyWeek",
+      "runtime": "lynx",
+      "flavor": "vue",
+      "bundleUrl": "https://huxpro.github.io/BusyWeek/main.web.bundle",
+      "url": "https://huxpro.github.io/BusyWeek/",
+      "size": "portrait",
+      "icon": "/app-icons/busy-week.png",
+      "featured": false
     }
   ]
 }

@@ -12,8 +12,11 @@ import type { AppIconSnapshot, AppLink } from "@/lib/app-icon-core";
 
 export const APPS: AppLink[] = (appsJson as { apps: AppLink[] }).apps;
 export const APP_ICONS = appIconSnapshot as AppIconSnapshot;
-export const DEFAULT_APP_IDS = APPS.map((a) => a.id);
 export const APPS_BY_ID = new Map(APPS.map((a) => [a.id, a]));
+
+/** Home-screen springboard — catalog minus `featured: false` (command-only) apps. */
+export const FEATURED_APPS: AppLink[] = APPS.filter((a) => a.featured !== false);
+export const DEFAULT_APP_IDS = FEATURED_APPS.map((a) => a.id);
 
 /**
  * Full-bleed vs padded: opaque, purpose-drawn app icons (manifest / apple-touch

@@ -13,10 +13,10 @@ import {
   saveOrder,
 } from "@/components/ui/sortable-order";
 import {
-  APPS,
   APPS_BY_ID,
   DEFAULT_APP_FOLDER_LAYOUT,
   DEFAULT_APP_IDS,
+  FEATURED_APPS,
   chunkAppPages,
   pageCapacity,
   type AppFolderAxis,
@@ -64,7 +64,7 @@ import { createPortal } from "react-dom";
 // + masonry edit/jiggle behavior is preserved from the original AppShelf.
 // =============================================================================
 
-const STORAGE_KEY = "hux_app_order";
+const STORAGE_KEY = "hux_app_order_v2";
 
 // iOS grows a held icon a touch more than a held widget — it's smaller, so the
 // same absolute lift needs a larger ratio to register. The lifted clone pops
@@ -334,7 +334,7 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
     [layout.axis, pageCount],
   );
 
-  if (APPS.length === 0) return null;
+  if (FEATURED_APPS.length === 0) return null;
 
   const needsPages = pageCount > 1;
   // Single page: natural grid height (no forced empty rows — `repeat(rows)`

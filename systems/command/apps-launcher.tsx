@@ -2,13 +2,14 @@
 
 import { AppTile } from "@/components/apps";
 import { APPS } from "@/lib/apps";
-import { runtimeLabel } from "@/lib/app-icon-core";
+import { appTitle, runtimeLabel } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { useOptionalWindows } from "@/systems/windows";
 import { Command } from "cmdk";
 import { Link2 } from "lucide-react";
 import { useCommand } from "./provider";
+import { useCompactViewport } from "./use-compact-viewport";
 
 // =============================================================================
 // CommandAppsStrip — Spotlight-style horizontal app launcher
@@ -19,19 +20,24 @@ import { useCommand } from "./provider";
 // No group heading — the icons speak for themselves.
 // =============================================================================
 
-const itemClass = cn(
-  "group/app shrink-0 rounded-xl",
-  "flex flex-col items-center justify-center",
-  "w-[4.25rem] px-1 py-1.5",
-  "cursor-pointer transition-colors",
-  "text-foreground data-[selected=true]:bg-accent/50 data-[selected=true]:text-accent-foreground",
-  "hover:bg-accent/25",
-);
-
 export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
   const windows = useOptionalWindows();
   const { locale } = useLocale();
   const { openLoadBundle } = useCommand();
+  const compact = useCompactViewport();
+  const itemClass = cn(
+    "group/app shrink-0 rounded-xl",
+    "flex flex-col items-center justify-center",
+    // Phone: ~5.3 columns so iPhone 16 Pro (402 CSS px) shows five tiles
+    // and a sliver of the sixth — enough to hint the strip scrolls.
+    // Desktop keeps the original 4.25rem pitch.
+    compact
+      ? "w-[calc((100%-8px)/5.3)] max-w-[4.25rem] px-0.5 py-1.5"
+      : "w-[4.25rem] px-1 py-1.5",
+    "cursor-pointer transition-colors",
+    "text-foreground data-[selected=true]:bg-accent/50 data-[selected=true]:text-accent-foreground",
+    "hover:bg-accent/25",
+  );
   if (!windows || APPS.length === 0) return null;
 
   return (
@@ -50,12 +56,14 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
               value={`app-${app.id}`}
               keywords={[
                 app.title,
+                appTitle(app, "zh"),
                 app.id,
                 "app",
                 "apps",
                 "应用",
                 kind,
                 app.runtime ?? "web",
+                ...(app.keywords ?? []),
               ]}
               onSelect={() => {
                 windows.openApp(app);

@@ -11,10 +11,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       ...jekyllRedirects,
-      // Catch-all fallback: unmigrated posts → old site
+      // Catch-all fallback: unmigrated posts → GitHub Pages archive
+      // (huangxuan.me now 302s to hux.pro, which 404s these Jekyll paths)
       {
         source: "/:year(\\d{4})/:month(\\d{2})/:day(\\d{2})/:slug",
-        destination: "https://huangxuan.me/:year/:month/:day/:slug/",
+        destination: "https://huxpro.github.io/:year/:month/:day/:slug/",
         permanent: false,
       },
     ];

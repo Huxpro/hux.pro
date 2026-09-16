@@ -2,12 +2,13 @@
 
 import appIconSnapshot from "@/content/app-icons.json";
 import {
+  appTitle,
   resolveAppIconSrc,
   runtimeLabel,
   type AppIconSnapshot,
 } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
-import { useInputCapability } from "@/services";
+import { useInputCapability, useLocale } from "@/services";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Check,
@@ -188,6 +189,8 @@ export function WindowChrome({
   // Canonical hover-capability read (not a raw `(hover: hover)` media query,
   // which is unreliable — e.g. always `hover: none` in headless Chrome).
   const { hasFineHoverPointer } = useInputCapability();
+  const { locale } = useLocale();
+  const title = appTitle(win.app, locale);
   const pillRef = useRef<HTMLDivElement>(null);
   const suppressClick = useRef(false);
   const [menu, setMenu] = useState<{
@@ -313,7 +316,7 @@ export function WindowChrome({
             "[@media(hover:hover)]:group-hover/chrome:ml-2",
           )}
         >
-          {win.app.title}
+          {title}
         </span>
       </div>
 
@@ -354,11 +357,11 @@ export function WindowChrome({
                       <img src={src} alt="" className="h-7 w-7 rounded-[7px] object-cover" draggable={false} />
                     ) : (
                       <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-muted text-[11px] font-mono text-muted-foreground">
-                        {win.app.title.charAt(0)}
+                        {title.charAt(0)}
                       </span>
                     )}
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-foreground">{win.app.title}</div>
+                      <div className="truncate text-sm font-medium text-foreground">{title}</div>
                       <div className="truncate text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                         {kind}
                       </div>

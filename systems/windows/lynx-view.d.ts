@@ -21,6 +21,12 @@ type LynxViewProps = HTMLAttributes<LynxViewElement> & {
   /** Map Lynx vh/vw units onto our container-query units. */
   "transform-vh"?: boolean | string;
   "transform-vw"?: boolean | string;
+  /**
+   * Overrides `SystemInfo` (pixelWidth / pixelHeight / pixelRatio). We pass
+   * the window's CSS box so cards that size to the screen (逗猫棒) layout
+   * inside the player instead of `window.screen`.
+   */
+  "browser-config"?: string;
 };
 
 declare module "react" {

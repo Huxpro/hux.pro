@@ -385,8 +385,10 @@ export type AppFlavor = "react" | "vue";
 export interface AppLink {
   /** Stable id — also the icon's filename under /app-icons/. */
   id: string;
-  /** Display label under the tile. */
+  /** Display label under the tile (English). */
   title: string;
+  /** Optional Chinese label; falls back to {@link title}. */
+  titleZh?: string;
   /**
    * Canonical destination. For `runtime: "web"` it's the page the window
    * iframes; for either runtime it's the "Open externally" target and the URL
@@ -419,6 +421,14 @@ export interface AppLink {
    * A site-local `/…` path is used as-is; an `http(s)` URL is downloaded.
    */
   icon?: string;
+  /**
+   * Show on the home-screen app folder. Defaults to true. `false` keeps the
+   * app in the ⌘K launcher (and the rest of the catalog) without featuring
+   * it on the springboard.
+   */
+  featured?: boolean;
+  /** Extra ⌘K search terms (title / id / runtime are already indexed). */
+  keywords?: string[];
 }
 
 /** One resolved entry in `content/app-icons.json`, keyed by app id. */
@@ -448,6 +458,14 @@ export type AppIconSnapshot = Record<string, AppIconSnapshotEntry>;
  * tint elsewhere, but it names the label here so React-Lynx and Vue-Lynx read
  * apart. Single source so the badge, menu, and palette never drift.
  */
+/** Localized tile / window label — `titleZh` when the locale is `zh`. */
+export function appTitle(
+  app: Pick<AppLink, "title" | "titleZh">,
+  locale?: string,
+): string {
+  return locale === "zh" && app.titleZh ? app.titleZh : app.title;
+}
+
 export function runtimeLabel(app: Pick<AppLink, "runtime" | "flavor">): string {
   if ((app.runtime ?? "web") === "lynx") {
     return app.flavor === "vue" ? "Lynx · Vue" : "Lynx · React";

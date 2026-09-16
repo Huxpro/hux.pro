@@ -1,6 +1,8 @@
 "use client";
 
+import { appTitle } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/services";
 import { animate, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWindows } from "../provider";
@@ -73,6 +75,7 @@ function resizeRect(dir: ResizeDir, base: Rect, dx: number, dy: number): Rect {
 
 export function Window({ win }: { win: WindowInstance }) {
   const { focus, setRect, focusedId, toggleMaximize } = useWindows();
+  const { locale } = useLocale();
   const ref = useRef<HTMLDivElement>(null);
   const gesture = useRef<GestureState | null>(null);
   const [gesturing, setGesturing] = useState(false);
@@ -185,7 +188,7 @@ export function Window({ win }: { win: WindowInstance }) {
     <motion.div
       ref={ref}
       role="dialog"
-      aria-label={win.app.title}
+      aria-label={appTitle(win.app, locale)}
       aria-hidden={minimized || undefined}
       inert={minimized || undefined}
       initial={{ opacity: 0, scale: 0.94 }}

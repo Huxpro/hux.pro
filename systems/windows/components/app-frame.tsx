@@ -1,6 +1,8 @@
 "use client";
 
 import type { AppLink } from "@/lib/app-icon-core";
+import { appTitle } from "@/lib/app-icon-core";
+import { useLocale } from "@/services";
 import { LynxFrame } from "./lynx-frame";
 import { WebFrame } from "./web-frame";
 
@@ -15,8 +17,9 @@ import { WebFrame } from "./web-frame";
 // =============================================================================
 
 export function AppFrame({ app }: { app: AppLink }) {
+  const { locale } = useLocale();
   if ((app.runtime ?? "web") === "lynx") {
     return <LynxFrame url={app.bundleUrl ?? app.url} />;
   }
-  return <WebFrame url={app.url} title={app.title} />;
+  return <WebFrame url={app.url} title={appTitle(app, locale)} />;
 }
