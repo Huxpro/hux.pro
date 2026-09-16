@@ -508,6 +508,33 @@ body,
   text-shadow: none;
 }
 
+/* -----------------------------------------------------------------------------
+   The sun's handover — `data-theme-shift`
+
+   When the sun changes the theme (systems/ambient: the theme follows the sun),
+   the change is staged rather than thrown. The sky moves first — the wallpaper
+   stack crossfades slower than its usual push, and under the Sky style the
+   shader is already easing its veil and exposure — and the chrome comes last:
+   this rule holds every colour for `--theme-shift-delay`, then dissolves it
+   over `--theme-shift-duration`. Both are written by the ambient provider from
+   SOLAR_HANDOVER, so the timing lives in one place.
+
+   It is unlayered, so it outranks the utilities' own `transition-*` for the
+   two seconds it is on, and it is for the sun alone: a theme the *user* picks
+   still lands on the next frame, because they asked for it and are looking at
+   it. The wallpaper layer is excluded — it is running the first half of this
+   very transition, and its opacity follows the same crossfade in JS.
+----------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme-shift] *:not([data-wallpaper-layer], [data-wallpaper-layer] *) {
+    transition-property: color, background-color, border-color, outline-color,
+      text-decoration-color, fill, stroke, text-shadow, box-shadow;
+    transition-duration: var(--theme-shift-duration, 1000ms);
+    transition-delay: var(--theme-shift-delay, 1200ms);
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
 /* The bezel's stylesheet (html[data-bezel], container scroll, fixed layers
    made absolute) ships with @hux/bezel and is installed by its boot script. */
 

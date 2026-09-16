@@ -1,11 +1,11 @@
 "use client";
 
 import { dismissToast, showCustomToast } from "@/components/ui/system-sonner";
-import { useLocale, useTheme } from "@/services";
+import { useTheme } from "@/services";
+import { useReducedMotion } from "framer-motion";
 import { useEffect, useRef } from "react";
-import { formatClockTime } from "../lib/format";
-import { sunEventFor, type SolarTheme } from "../lib/solar-theme";
-import { useAmbientTime, useSolarTheme } from "../provider";
+import { SOLAR_HANDOVER_MS, sunEventFor, type SolarTheme } from "../lib/solar-theme";
+import { useSolarTheme } from "../provider";
 import { SolarThemeToast } from "./solar-theme-toast";
 
 // ---------------------------------------------------------------------------
@@ -17,35 +17,43 @@ import { SolarThemeToast } from "./solar-theme-toast";
 // sitting on the page through sunset does. That is the whole of "in the same
 // session": the sun may interrupt you, it may not greet you.
 //
+// *When* it crosses is the end of the sunrise / sunset window rather than the
+// sun's own crossing, so the dusk you were watching in Light finishes in Light
+// (lib/solar-theme.ts). *How* is staged: `beginThemeHandover()` slows the sky's
+// crossfade and holds the chrome back, so the sky moves first and the text and
+// cards dissolve after it. The notice lands once that has settled — by then
+// there is nothing to announce but what already happened.
+//
 // What it applies is a session override on the theme (services/theme.tsx), not
-// the saved Appearance preference, and the notice says so. The preference is
-// untouched, an explicit choice ends the override, and closing the tab forgets
-// it. Turning the setting off takes any override with it, so a behaviour that
-// is off leaves nothing behind.
+// the saved Appearance preference. The preference is untouched, an explicit
+// choice ends the override, closing the tab forgets it, and turning the
+// setting off takes it with it — a behaviour that is off leaves nothing behind.
 //
 // The clock it reads is the ambient one, which is also the devtool's: the Sky
-// module's dawn → dusk autoplay crosses sunrise and sunset for real as it
-// sweeps, and the theme follows it exactly when — and only when — the setting
-// says it should.
+// module's dawn → dusk autoplay crosses both ends for real as it sweeps, and
+// the theme follows it exactly when — and only when — the setting says it
+// should.
 //
-// The effect below re-runs on plenty it does not care about (the theme it just
-// set, a weather refetch, the locale). That is deliberate: every path out of a
-// non-crossing is an early return, so a re-run costs a comparison, and the
-// alternative — holding those values in a ref — buys nothing but a way to read
-// a stale one.
+// The effect re-runs on plenty it does not care about (the theme it just set,
+// a weather refetch). That is deliberate: every path out of a non-crossing is
+// an early return, so a re-run costs a comparison, and the alternative —
+// holding those values in a ref — buys nothing but a way to read a stale one.
 // ---------------------------------------------------------------------------
 
 const TOAST_ID = "solar-theme";
-const TOAST_DURATION_MS = 8_000;
+const TOAST_DURATION_MS = 5_000;
+/** The notice waits out the handover, so it describes a change already made. */
+const TOAST_AFTER_HANDOVER_MS = 200;
 
 export function SolarThemeSync() {
-  const { followSun, setFollowSun, sunTheme } = useSolarTheme();
+  const { followSun, sunTheme, beginThemeHandover } = useSolarTheme();
   const { theme, override, setThemeOverride } = useTheme();
-  const { sunriseMs, sunsetMs } = useAmbientTime();
-  const { locale } = useLocale();
+  const reducedMotion = useReducedMotion() ?? false;
 
   /** The last reading this session has accounted for; a crossing is a change of it. */
   const seenRef = useRef<SolarTheme | null>(null);
+  /** The pending notice, so a second crossing (autoplay) never stacks two. */
+  const noticeRef = useRef<number | null>(null);
 
   useEffect(() => {
     // Off: the sun drives nothing, and an override it left behind goes with
@@ -77,42 +85,42 @@ export function SolarThemeSync() {
 
     if (seen === sunTheme) return;
 
-    // A crossing, watched live: the sun just rose, or just set.
-    const event = sunEventFor(sunTheme);
+    // A crossing, watched live: dawn or dusk has just finished.
     const changed = theme !== sunTheme;
+    if (!reducedMotion && changed) beginThemeHandover();
     setThemeOverride(sunTheme);
     // The preference was already painting this; there is nothing to announce.
     if (!changed) return;
 
-    const eventMs = event === "sunrise" ? sunriseMs : sunsetMs;
-    showCustomToast(
-      <SolarThemeToast
-        event={event}
-        theme={sunTheme}
-        timeLabel={formatClockTime(eventMs, locale, "")}
-        onUndo={() => {
-          setThemeOverride(null);
-          dismissToast(TOAST_ID);
-        }}
-        onTurnOff={() => {
-          // The effect clears the override the moment this setting lands.
-          setFollowSun(false);
-          dismissToast(TOAST_ID);
-        }}
-      />,
-      { id: TOAST_ID, duration: TOAST_DURATION_MS }
+    const event = sunEventFor(sunTheme);
+    const show = () =>
+      showCustomToast(<SolarThemeToast event={event} theme={sunTheme} />, {
+        id: TOAST_ID,
+        duration: TOAST_DURATION_MS,
+      });
+
+    if (reducedMotion) {
+      show();
+      return;
+    }
+    if (noticeRef.current) window.clearTimeout(noticeRef.current);
+    noticeRef.current = window.setTimeout(
+      show,
+      SOLAR_HANDOVER_MS + TOAST_AFTER_HANDOVER_MS
     );
   }, [
     followSun,
     sunTheme,
     theme,
     override,
-    sunriseMs,
-    sunsetMs,
-    locale,
+    reducedMotion,
     setThemeOverride,
-    setFollowSun,
+    beginThemeHandover,
   ]);
+
+  useEffect(() => () => {
+    if (noticeRef.current) window.clearTimeout(noticeRef.current);
+  }, []);
 
   return null;
 }

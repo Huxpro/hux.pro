@@ -91,6 +91,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     kind,
     renderer,
     layers,
+    crossfadeMs,
     edgeMask,
     opacity,
     veil,
@@ -128,12 +129,22 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
       // chrome from fixed content at the viewport edge, and a wallpaper there
       // would win over the bezel colour. See BEZEL_LAYER_ATTRIBUTE in @hux/bezel.
       {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
+      // The chrome's dissolve during a theme handover must not reach in here:
+      // this layer is the first half of that transition. See `data-theme-shift`
+      // in app/globals.css.
+      data-wallpaper-layer=""
       className={cn(
         "pointer-events-none fixed inset-0 -z-10",
-        "transition-opacity duration-700 ease-in-out"
+        "transition-opacity ease-in-out"
       )}
-      // With the bezel on, the layer stops inside it — see AmbientSurface.
-      style={{ opacity: enabled ? opacity : 0, ...(bezel ? BEZEL_INSET : null) }}
+      style={{
+        opacity: enabled ? opacity : 0,
+        // A wash weighs differently in the two themes (WALLPAPER_OPACITY), so
+        // this moves on a theme change too — at the crossfade's pace, which is
+        // the sun's slower one while the theme hands over.
+        transitionDuration: `${crossfadeMs}ms`,
+        ...(bezel ? BEZEL_INSET : null),
+      }}
     >
       {useShader ? (
         <WeatherWallpaper
@@ -147,7 +158,12 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
       ) : (
         /* Full-page background is already viewport-fixed, so the edge mask is
            applied statically (no per-frame tracking needed). */
-        <GradientStack layers={layers} edgeMask={edgeMask} blurred={blurred} />
+        <GradientStack
+          layers={layers}
+          durationMs={crossfadeMs}
+          edgeMask={edgeMask}
+          blurred={blurred}
+        />
       )}
 
       {veil > 0 && (

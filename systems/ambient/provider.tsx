@@ -56,7 +56,12 @@ import {
 import type { NormalizedWeather, WeatherCondition } from "./lib/weather";
 import type { AmbientPhase } from "./lib/phase";
 import { deriveAmbientPhase } from "./lib/phase";
-import { solarThemeAt, type SolarTheme } from "./lib/solar-theme";
+import {
+  solarThemeAt,
+  SOLAR_HANDOVER,
+  SOLAR_HANDOVER_MS,
+  type SolarTheme,
+} from "./lib/solar-theme";
 import type { WallpaperStats } from "./lib/wallpaper/renderer";
 import { supportsWebGL2 } from "./lib/wallpaper/support";
 import { usePathname } from "next/navigation";
@@ -183,6 +188,12 @@ interface SolarThemeContextType {
    * times are unknown. Null is "no opinion", and nothing switches.
    */
   sunTheme: SolarTheme | null;
+  /**
+   * Stage the next theme change (see SOLAR_HANDOVER): the wallpaper's
+   * crossfade lengthens and the chrome is told to wait, for one change only.
+   * Call it in the same tick as the change itself.
+   */
+  beginThemeHandover: () => void;
 }
 
 const SolarThemeContext = createContext<SolarThemeContextType | undefined>(undefined);
@@ -265,6 +276,11 @@ interface WallpaperContextType {
   softEdgeEnabled: boolean;
   /** Crossfade stack: [...settled, newest]. Render via <GradientStack />. */
   layers: GradientLayerData[];
+  /**
+   * How long a new layer takes to fade in. The usual push, or the sun's
+   * slower one while the theme hands over.
+   */
+  crossfadeMs: number;
   /** Resolved CSS mask-image value, or null when soft-edging is off. */
   edgeMask: string | null;
   /** Ephemeral devtool overrides. */
@@ -723,6 +739,31 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [updateSettings]
   );
 
+  // --- The theme handover ---------------------------------------------------
+  // The sun's change is staged rather than thrown: while this is on, the
+  // wallpaper crossfades slower than usual and <html> carries
+  // `data-theme-shift`, which is what holds the chrome back and dissolves it
+  // (app/globals.css). One change long — it disarms itself.
+  const [handingOver, setHandingOver] = useState(false);
+  const beginThemeHandover = useCallback(() => setHandingOver(true), []);
+
+  useEffect(() => {
+    if (!handingOver) return;
+    const root = document.documentElement;
+    root.style.setProperty("--theme-shift-delay", `${SOLAR_HANDOVER.chromeDelayMs}ms`);
+    root.style.setProperty("--theme-shift-duration", `${SOLAR_HANDOVER.chromeMs}ms`);
+    root.setAttribute("data-theme-shift", "");
+    const timer = window.setTimeout(() => setHandingOver(false), SOLAR_HANDOVER_MS);
+    return () => {
+      window.clearTimeout(timer);
+      root.removeAttribute("data-theme-shift");
+      root.style.removeProperty("--theme-shift-delay");
+      root.style.removeProperty("--theme-shift-duration");
+    };
+  }, [handingOver]);
+
+  const crossfadeMs = handingOver ? SOLAR_HANDOVER.skyMs : GRADIENT_CROSSFADE_MS;
+
   // Resolve which edge-fade mask to use.
   // Special case: dark-mode sunrise/sunset has high gradient-vs-background
   // contrast, so we use a more aggressive (wider) fade to soften the edge.
@@ -960,9 +1001,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     if (layers.length <= 1) return;
     const timeout = setTimeout(() => {
       setGradientLayers((prev) => (prev.length <= 1 ? prev : prev.slice(-1)));
-    }, GRADIENT_CROSSFADE_MS + 50);
+    }, crossfadeMs + 50);
     return () => clearTimeout(timeout);
-  }, [layers]);
+  }, [layers, crossfadeMs]);
 
   // Memoised, because this provider re-renders often — the 60s clock tick, every
   // React Query transition, every crossfade push and prune, and (since the
@@ -1052,8 +1093,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       followSun: settings.themeFollowsSun,
       setFollowSun,
       sunTheme,
+      beginThemeHandover,
     }),
-    [settings.themeFollowsSun, setFollowSun, sunTheme]
+    [settings.themeFollowsSun, setFollowSun, sunTheme, beginThemeHandover]
   );
 
   const wallpaperValue = useMemo(
@@ -1077,6 +1119,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       widgetEnabled,
       softEdgeEnabled,
       layers,
+      crossfadeMs,
       edgeMask,
       devtoolOverrides,
       setDevtoolOverrides,
@@ -1135,6 +1178,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       widgetEnabled,
       softEdgeEnabled,
       layers,
+      crossfadeMs,
       edgeMask,
       devtoolOverrides,
       wallpaperOpacity,

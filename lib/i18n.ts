@@ -162,12 +162,10 @@ export const translations = {
     // Sun theme — the theme following sunrise and sunset
     settingsSolarTheme: "Follow the Sun",
     solarThemeHint:
-      "At sunrise and sunset the theme follows the sky — for this session only, never your saved Appearance.",
-    solarThemeToLight: "Switched to Light Mode.",
-    solarThemeToDark: "Switched to Dark Mode.",
-    solarThemeNote: "System override for this session · your Appearance preference is unchanged",
-    solarThemeUndo: "Undo",
-    solarThemeTurnOff: "Turn off",
+      "Once dawn and dusk have played out, the theme follows the sky — for this session only, never your saved Appearance.",
+    solarThemeToLight: "Light Mode",
+    solarThemeToDark: "Dark Mode",
+    solarThemeNote: "Preference unchanged",
     stateOn: "On",
     stateOff: "Off",
     debugOverride: "override",
@@ -393,12 +391,10 @@ export const translations = {
 
     // Sun theme — the theme following sunrise and sunset
     settingsSolarTheme: "跟随日出日落",
-    solarThemeHint: "日出与日落时，主题跟随天色变化；仅在本次会话中生效，不会改写外观偏好。",
-    solarThemeToLight: "已切换到浅色模式。",
-    solarThemeToDark: "已切换到深色模式。",
-    solarThemeNote: "本次会话的系统覆盖 · 外观偏好未更改",
-    solarThemeUndo: "撤销",
-    solarThemeTurnOff: "关闭自动切换",
+    solarThemeHint: "等日出、日落的天色走完，主题再跟上；仅在本次会话中生效，不会改写外观偏好。",
+    solarThemeToLight: "浅色模式",
+    solarThemeToDark: "深色模式",
+    solarThemeNote: "偏好未更改",
     stateOn: "开",
     stateOff: "关",
     debugOverride: "覆盖",

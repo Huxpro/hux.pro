@@ -273,17 +273,54 @@ sunrise/sunset phase from the devtool also surfaces it for testing.
 
 ### The theme follows the sun
 
-The same two events move the app's theme: crossing **sunrise** puts it in Light,
-crossing **sunset** in Dark. On by default (`themeFollowsSun` in the ambient
-settings), turned off in the wallpaper picker's Weather group, in the command
-palette (`/s`), or from the notice itself.
+The app's theme follows the day: Light while the sun is up, Dark once it is
+down. On by default (`themeFollowsSun` in the ambient settings), turned off in
+the wallpaper picker's Weather group, in the command palette (`/s`), or in the
+devtool's Sky module.
 
-Three rules make it a system gesture rather than a setting changing behind the
-user's back:
+**Not at the horizon — at the end of the show.** Sunrise and sunset are ±45 min
+windows here, and the sky spends all of both animating. Cut the theme at the
+sun's crossing and you cut that animation in half: the dusk you were watching
+in Light finishes in Dark. So the theme holds through the window and changes
+when the window closes — it follows the *phase*, and changes exactly where the
+phase does, `sunrise → morning` and `sunset → evening`:
+
+```
+dark ─────┬─ sunrise ─┬───── light ──────┬─ sunset ─┬───── dark
+      rise-45      rise+45           set-45      set+45
+          └ still dark ┘                  └ still light ┘
+```
+
+`solarThemeAt()` (`lib/solar-theme.ts`) is that rule as a clock: the same
+boundaries, shifted by the window. It returns null when the sun times are
+unknown, and then nothing switches.
+
+**The handover is staged**, so the change reads as the light going rather than
+a switch being thrown (`SOLAR_HANDOVER`):
+
+```
+0ms ──────────── the sky. The wallpaper stack crossfades over 1.8s instead of
+                 its usual 0.7s, and under the Sky style the shader is already
+                 easing its veil and exposure over about the same stretch.
+1200ms ───────── the chrome. Text, cards and borders dissolve over 1s, held
+                 until now by `data-theme-shift` on <html> (app/globals.css).
+2200ms ───────── settled, and the notice says what happened.
+```
+
+The theme itself changes in one tick — everything derived from it stays in
+agreement — and what is staged is the painting of it. The rule is unlayered CSS
+timed from the constants the provider writes to `<html>`, it excludes
+`[data-wallpaper-layer]` (which is busy running the first half of the same
+transition), and it is for the sun alone: a theme the *user* picks still lands
+on the next frame, because they asked for it and are looking at it. Under
+`prefers-reduced-motion` nothing is staged at all.
+
+Three more rules make it a system gesture rather than a setting changing behind
+the user's back:
 
 1. **Only a crossing watched live.** `<SolarThemeSync />` remembers which side
    of the day it last saw and acts when that changes *while it is mounted*.
-   Arriving after dark does nothing; sitting on the page through sunset does.
+   Arriving after dark does nothing; sitting on the page through dusk does.
    That is what "in the same session" means — the sun may interrupt you, it may
    not greet you.
 2. **A session override, never the preference.** It sets the theme service's
@@ -293,20 +330,17 @@ user's back:
    the tab forgets it. The saved Appearance preference never moves, and any
    explicit choice (the palette's Appearance command, a toggle) ends the
    override. Turning the setting off takes an active override with it.
-3. **It says so.** The switch posts the bottom-center notice
-   (`<SolarThemeToast />`, the same slot as the language notice): which event,
-   which mode, that the preference is unchanged, and two ways out — **Undo**
-   for this switch, **Turn off** for the behaviour.
+3. **It says so.** Once the handover has settled, the small pill in the
+   bottom-center toast slot — the one the language switch uses — names the mode
+   and says the preference is unchanged. By then the change has already
+   dissolved in over two seconds, so there is nothing to confirm and nothing to
+   undo in a hurry; the way to turn it off is where settings live.
 
-`solarThemeAt()` (`lib/solar-theme.ts`) is the whole rule: light between sunrise
-and sunset, dark outside, null when the sun times are unknown (and then nothing
-switches). There is no window — the gradient already spends ±45 min crossing
-dawn and dusk, so the theme flips into a sky that is already moving.
-
-Because it reads the ambient clock, **devtool time travel crosses it too**: the
-Sky module's dawn → dusk autoplay flips the theme at the two ticks on its
-timeline, and respects the setting exactly as the real day would. The Sky module
-carries the toggle beside that timeline for the same reason.
+Because the rule reads the ambient clock, **devtool time travel crosses it
+too**: the Sky module's dawn → dusk autoplay flips the theme at the ends of the
+two windows as it sweeps, and respects the setting exactly as the real day
+would. The Sky module carries the toggle beside that timeline for the same
+reason.
 
 ## Wallpaper
 
@@ -659,6 +693,7 @@ const {
   followSun,           // The setting — on by default, saved with the ambient settings
   setFollowSun,
   sunTheme,            // "light" | "dark" at the effective clock, or null when unknown
+  beginThemeHandover,  // Stage the next theme change (slow sky, then chrome)
 } = useSolarTheme();
 ```
 
