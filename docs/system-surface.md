@@ -5,11 +5,33 @@ One secondary surface, three shapes.
 ```
 systems/surface/
 ├── presentation.ts       # SurfaceMode, breakpoints, useSurfaceMode()
-├── adaptive-surface.tsx  # <AdaptiveSurface>, useSurfaceContext()
+├── adaptive-surface.tsx  # <AdaptiveSurface> — the policy: viewport picks the shape
 ├── sheet.tsx             # <SurfaceSheet> — the one bottom sheet, detents, scrim
+├── window.tsx            # <SurfaceWindow> — the one floating, draggable shell
+├── chrome.tsx            # <SurfaceBody> — the title bar, scroll area and footer
 ├── stack.ts              # which sheets are open, so a sheet under another recedes
 └── index.ts
 ```
+
+## Two layers
+
+Shape is usually the viewport's call, and `<AdaptiveSurface>` is that rule. But
+it is a rule, not a law: the devtool's shape is something the developer chose
+by pulling the sheet off the bottom edge. So the shells sit underneath it,
+usable on their own:
+
+```
+primitives   <SurfaceSheet>   docked to an edge, detents, stacking
+             <SurfaceWindow>  floating, draggable, morphs in
+             <SurfaceBody>    the chrome all of them hold
+policy       <AdaptiveSurface>  = viewport → primitive
+             DevtoolFAB         = gesture  → primitive
+```
+
+Two features already compose the primitives directly: the command palette,
+whose header is a search field rather than a title bar, and the devtool, whose
+shape is a gesture's business (see [Devtool System](./system-devtool.md)).
+Both still get the same shell, gaps, detents and stacking.
 
 ## The problem
 
@@ -111,6 +133,32 @@ const { mode, isWindow, close } = useSurfaceContext();
 | `contentClassName` | Overrides the scroll area's padding, for content that bleeds wider. |
 | `scrollRef` | The scroll container, for content that scrolls a row into view. |
 | `footer` | A strip below the scroll area, in every shape. It does not scroll away. |
+
+`<SurfaceSheet>` has one prop `<AdaptiveSurface>` does not pass on:
+
+| Prop | For |
+|------|-----|
+| `onPullPastTop` | The drag that lifts a sheet off the edge it is docked to. |
+
+**Pulling a sheet off the edge.** A drag may carry a sheet past its top edge,
+and `onPullPastTop` fires when it is released more than `PULL_PAST_TOP_TRAVEL`
+real pixels past it — a surface that has somewhere else to be can take that as
+"come off the edge". The devtool does; nothing else needs to, and without the
+prop the overshoot stays a rubber band.
+
+It measures the **pointer**, not the popup. Base UI damps the overshoot with a
+square root and its swipe-start threshold has already eaten ~17px of the
+gesture: measured on an iPhone 13, a 207px pull from the 0.7 detent arrives as
+1.6px of published movement. That number draws a good rubber band and is a
+terrible reading of intent. What the finger says instead is `travelled up −
+the offset the sheet had to climb through`, so one continuous pull both resizes
+the sheet and, once it is against the ceiling, keeps counting.
+
+The threshold is small (14px) because the budget is small: most of a pull is
+spent resizing, and what is left is the distance from the grabber to the top of
+the glass — about twenty pixels. A pull that stops at the top still snaps to
+the full detent; only one that keeps going detaches, and the shell carries
+`data-pull-armed` in between so the difference is visible.
 
 ## The sheet primitive
 
@@ -247,6 +295,6 @@ UI's own count of nested sheets, one `--surface-depth` on the shell. See
 | Music playlist | `ADAPTIVE_PRESENTATION` | macOS-sized window (980×620), track list breaks into columns |
 | Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode; `SHEET_DETENTS` as a sheet |
 | Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight popover, not an `AdaptiveSurface` |
-| Devtool panel | `{ base: "sheet", sm: "window" }` | `windowPlacement="top-right"` — 420px where it has always been; no tablet panel shape, and a `footer` for its status line. See [Devtool System](./system-devtool.md) |
+| Devtool panel | primitives, not `AdaptiveSurface` | `SurfaceSheet` docked / `SurfaceWindow` floating, and which one is the developer's call, not the viewport's — it is pulled off the edge by hand. `onPullPastTop`, `placement="top-right"`, a `footer` for its status line. See [Devtool System](./system-devtool.md) |
 
 Adding a second is: register a draggable id, pick a presentation, pass content.

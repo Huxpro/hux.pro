@@ -94,8 +94,7 @@ export function useCommandActions(): CommandAction[] {
     tint: glassTint,
     setTint: setGlassTint,
   } = useGlass();
-  const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled } =
-    useDevtool();
+  const { summon: summonDevtool } = useDevtool();
   const {
     playerState: musicPlayerState,
     play: musicPlay,
@@ -364,11 +363,12 @@ export function useCommandActions(): CommandAction[] {
     {
       id: "debug-panel",
       key: "d",
-      kind: "toggle",
+      // A surface, not a toggle: it summons the devtool, which arrives as a
+      // sheet stacked on this one. Turning the devtool back off is its own
+      // footer's job — from here it is a thing you open.
+      kind: "surface",
       section: "settings",
-      label: `${t(locale, "settingsDebugPanel")}: ${
-        isDevtoolEnabled ? t(locale, "stateOn") : t(locale, "stateOff")
-      }`,
+      label: t(locale, "settingsDebugPanel"),
       icon: <Bug className={ROW_ICON} />,
       keywords: [
         "debug",
@@ -379,7 +379,7 @@ export function useCommandActions(): CommandAction[] {
         "调试",
         "调试面板",
       ],
-      run: () => setDevtoolEnabled(!isDevtoolEnabled),
+      run: summonDevtool,
     },
   ];
 }

@@ -6,89 +6,143 @@ The devtool system provides **developer tools** for debugging and testing the am
 
 ```
 systems/devtool/
-├── provider.tsx       # DevtoolProvider with FAB state
-├── panel.tsx          # Debug FAB and expandable panel
+├── provider.tsx       # DevtoolProvider: enabled, open, docked
+├── dock.tsx           # Where the devtool is, and the gesture that moves it
+├── panel.tsx          # The modules — content, unaware of its container
 └── index.ts           # Barrel exports
 ```
 
 ## Key Features
 
-### Two things: an entry and a surface
+### One object, two dockings
 
-The pill is an **entry** — a fixed button at the top right, nothing more. The
-panel is a **surface**, so it is an `<AdaptiveSurface>` like the wallpaper
-picker and the playlist (see [Surface System](./system-surface.md)):
+The devtool is not a button that opens a panel. It is **one object** that is
+either docked to the bottom edge or floating free, and either showing its
+modules or collapsed. Two booleans in the provider — `isOpen`, `isDetached` —
+and the viewport turns them into a shell:
 
-| Viewport | Shape |
-|----------|-------|
-| Phone (`base`) | Bottom sheet, `SHEET_DETENTS` (0.7 → 1), grabber, swipe to dismiss |
-| Anything wider (`sm`+) | The top-right floating window it has always been, 420px, draggable by its header |
+|          | docked (an edge to hug) | floating |
+|----------|-------------------------|----------|
+| **open** | `SurfaceSheet`, bottom edge, `SHEET_DETENTS` | `SurfaceWindow`, top right, 420px |
+| **closed** | nothing — `D` or ⌘K summons it | the pill |
 
-There is no tablet `panel` shape: a devtool hugging the trailing edge at full
-height would cover the page it is about.
+The pill is therefore a **state, not a door**: it is the devtool collapsed,
+which only exists once the devtool is floating. A desktop has no bottom edge
+worth docking to — a full-height devtool against an edge would cover the page
+it is about — so it reads as floating whatever the setting says. That is the
+pill ⇄ window pair it has always had; the phone is what gains a second docking.
 
-The panel is **non-modal**, and that is the point — the devtool exists to watch
-the page react while wallpaper, glass and sky are turned. The page underneath
-stays scrollable and clickable, and a press on it belongs to the page; the
-close button, `D`, Escape and a downward drag dismiss.
+### The gesture
+
+Pull the sheet up past its top edge and let go: the devtool comes off the
+bottom edge and lands as the pill. Saying "give me this everywhere" *is*
+detaching it, so the gesture and the intent are the same motion. The way back
+is the dock button in the window's header, offered only where there is an edge
+to go back to.
+
+A pull that **stops** at the top snaps to the full detent as always; a pull
+that **keeps going** detaches. The band between them is about twenty pixels,
+and the shell gives a little (`data-pull-armed`) once the release would commit,
+so the gesture can be seen before it happens and eased back out of.
+
+That threshold is small because it is measured, not chosen. Most of a pull is
+spent resizing the sheet — from the 0.7 detent that is 187px on an iPhone 13 —
+and what is left over is the distance from the grabber to the top of the glass.
+See `PULL_PAST_TOP_TRAVEL` and the note beside it in
+`systems/surface/sheet.tsx`, which also explains why the gesture reads the
+pointer rather than Base UI's published overshoot.
+
+### Non-modal, and stacked
+
+The panel never takes the page away — the devtool exists to watch the page
+react while wallpaper, glass and sky are turned. The page underneath stays
+scrollable and clickable, and a press on it belongs to the page; the close
+button, `D`, Escape and a downward drag dismiss.
 
 Being a surface is what the panel was missing. It used to be a desktop card
 squeezed to phone width: pinned over the dock's Live Activity, dragged by a
 handle no finger wants, with no swipe to dismiss and no place in the surface
 stack — so a picker opened from it had nowhere to go but over it, and the
 panel folded itself away first (`openPicker(); closePanel();`). Now the picker
-**stacks** on the devtool: the panel steps back a notch behind it and comes
-forward again when the picker goes, iOS's own answer to a sheet presenting a
-sheet. On a desktop the two simply coexist as windows, the picker on top.
+**stacks** on it, three deep from the palette: palette → devtool → picker, each
+one stepping back as the next rises. On a desktop the windows simply coexist,
+the picker on top.
+
+### Composability
+
+The devtool is hosted in three different shells over its life, so nothing about
+where it is lives in the modules. `panel.tsx` exports `DevtoolModules`,
+`DevtoolTitle` and `DevtoolFooter` — content that does not know its container —
+and `dock.tsx` puts them in whichever shell is up, wrapped in the shared
+`<SurfaceBody>` so all three look like every other surface on the site.
+
+This is why the surface system has a **primitive layer** under
+`<AdaptiveSurface>` (see [Surface System](./system-surface.md)).
+`<AdaptiveSurface>` encodes one rule — *the viewport picks the shape* — and
+that rule is not the devtool's: here the shape is something the developer chose
+with a gesture. So the devtool composes `<SurfaceSheet>` and `<SurfaceWindow>`
+directly, the way the command palette already does for its search-field header.
+
+Switching shells remounts the modules, since the three portal to different
+places. Anything that must survive the move belongs in the provider or in
+`localStorage` — which is where the collapsed sections and every persisted
+setting already are. Scroll position and an unsubmitted OTA URL do not survive.
 
 ### Dragging
 
-Two draggable instances, because there are two things:
+One draggable instance, `devtool`, because the pill and the window are two
+sizes of one object. They share the top-right anchor, so the window opens
+where the pill was and the pill lands where the window was left — the instance
+persists, and each mounts reading back the other's position. (Turn `persist`
+off in the Draggable module and that hand-off stops; the two then keep their
+own offsets until the next reload.)
 
-| Instance | What it moves |
-|----------|---------------|
-| `devtool` | The collapsed pill |
-| `surface-devtool` | The panel, in its desktop window shape |
+The pill is its own handle; the window drags by its header, through the same
+`useDraggable` hook every surface window uses. The module bodies are never
+handles, so range inputs, text fields and scrolling keep working — and on a
+phone the sheet's grabber replaces dragging entirely.
 
-Both default to draggable and remember where they were left. The pill is its
-own handle; the panel drags by its header, through the same `useDraggable`
-hook every `AdaptiveSurface` window uses. The module bodies are never handles,
-so range inputs, text fields and scrolling inside the panel keep working — and
-on a phone the sheet's own grabber replaces dragging entirely.
+### Getting in and out
 
-### FAB Toggle
+| Way in | What it does |
+|--------|--------------|
+| `D` | Toggles the panel, once the devtool is on. Docked: sheet ⇄ nothing. Floating: window ⇄ pill. |
+| Command palette (`D` in slash mode, or "Debug Panel") | `summon()` — turns the devtool on if it is off and shows the panel, in one action. The only way in on a phone, which has no `D` key. |
+| The pill | Only there when floating. |
 
-The devtool FAB can be enabled/disabled via:
-- Command palette (`D` in slash commands mode)
-- Settings in the command palette
-- Direct toggle in the devtool panel
+Turning the devtool **off** is the panel footer's "Disable Devtool". The
+palette command used to toggle that and now opens the panel instead: a phone
+had no way to summon it otherwise, and a command that turns a thing on without
+showing it is a command with no feedback.
 
 ### Keyboard Shortcut
 
 | Key | Action |
 |-----|--------|
-| `D` | Toggle devtool panel (when FAB is enabled) |
+| `D` | Toggle devtool panel (when the devtool is enabled) |
 
 ## Components
 
 ### DevtoolFAB
 
-Mounted once in the root layout; renders both halves:
+Mounted once in the root layout. It is the dock: it reads `isOpen` /
+`isDetached` against the viewport and renders whichever shell that comes to.
 
 ```tsx
 <DevtoolFAB />
 ```
 
-- The pill, fixed top-right, hidden while the panel is up and when devtool is
-  disabled. Its box takes no pointers — only the pill itself does, so a
-  full-height surface's close button in that corner still gets the tap.
-- `DevtoolPanel`, the `<AdaptiveSurface>` above.
+The pill's box takes no pointers — only the pill itself does, so a full-height
+surface's close button in that corner still gets the tap. It is rendered rather
+than hidden when the panel is up, so it remounts on close and picks up wherever
+the window was dragged to.
 
-### DevtoolPanel
+### DevtoolModules
 
-Header is the shared surface title bar (`Devtool Panel` · `DEV`, close button);
-the footer — `Press D to toggle` and `Disable Devtool` — is the surface's
-`footer`, so it stays put while the modules scroll. The modules:
+Header is the shared surface title bar (`Devtool Panel` · `DEV`, a dock button
+where there is an edge to dock to, close button); the footer — `Press D to
+toggle` and `Disable Devtool` — is the surface's `footer`, so it stays put
+while the modules scroll. The modules:
 
 1. **Wallpaper**: the whole background system — a Weather / Image switch and
    one row showing the current picture and its resolution, which opens the
@@ -143,11 +197,15 @@ is its own range input.
 
 ```typescript
 const {
-  isEnabled,        // Whether devtool is enabled
-  isOpen,           // Whether panel is expanded
-  toggle,           // Toggle panel
+  isEnabled,        // Whether devtool is enabled at all
+  isOpen,           // Whether the modules are showing
+  isDetached,       // Floating free rather than docked to an edge
+  toggle,           // Toggle the panel
   open,
+  summon,           // Enable if needed, then open — what the palette runs
   close,
+  detach,           // Lift off the edge; collapses to the pill
+  dock,             // Back onto the edge; reopens as the sheet
   toggleEnabled,    // Toggle devtool enabled state
   setEnabled,       // Set devtool enabled directly
 } = useDevtool();

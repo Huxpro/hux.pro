@@ -1486,6 +1486,16 @@ html.dragging * {
   transition-duration: 0ms;
 }
 
+/* Pulled past the top far enough that letting go will lift the sheet off the
+   edge (`onPullPastTop`, sheet.tsx). It gives a little, the way a thing about
+   to come loose does, so the gesture can be seen before it is committed — and
+   eased back out of. Shares the depth transform rather than fighting it. */
+[data-surface-shell][data-pull-armed] {
+  transform: translate3d(0, calc(var(--surface-depth) * -8px), 0)
+    scale(calc(1 - var(--surface-depth) * 0.05 - 0.025));
+  transition-duration: 180ms;
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-surface-popup],
   [data-surface-shell] {

@@ -1,45 +1,51 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useDraggable } from "@/systems/draggable";
-import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
 import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
 } from "react";
-import { createPortal } from "react-dom";
 import { Drawer } from "@base-ui/react/drawer";
+import { SurfaceBody } from "./chrome";
 import { useSurfaceMode, type SurfaceMode, type SurfacePresentation } from "./presentation";
 import {
   EDGE_GAP,
-  HEADER_BUTTON,
   SHELL,
   SurfaceSheet,
   SurfaceViewport,
   surfaceMotionVars,
 } from "./sheet";
+import { SurfaceWindow } from "./window";
 
 // =============================================================================
-// AdaptiveSurface — one secondary surface, three shapes.
+// AdaptiveSurface — the viewport's opinion about which shape a surface takes.
 //
-// Wraps the shape-per-viewport decision (see presentation.ts) behind a single
-// component so a feature declares intent and stops thinking about it:
+// The policy layer. Underneath it are three shells that know nothing about
+// viewports — <SurfaceSheet> (sheet.tsx), <SurfaceWindow> (window.tsx) and the
+// panel below — plus the chrome they share (<SurfaceBody>, chrome.tsx). This
+// component is the rule that picks one:
 //
 //   <AdaptiveSurface id="wallpaper" open={…} presentation={ADAPTIVE_PRESENTATION}>
 //
-// The three shapes share one glass shell, one header and one close affordance,
-// so they read as the same object arriving from a different direction:
+// A feature declares intent as a breakpoint map (see presentation.ts) and stops
+// thinking about it. The three shapes share one glass shell, one header and one
+// close affordance, so they read as the same object arriving from a different
+// direction:
 //
-//   sheet   <SurfaceSheet> (sheet.tsx): a Base UI drawer from the bottom,
-//           drag-to-dismiss, grabber, stacks the iOS way.
+//   sheet   a Base UI drawer from the bottom, drag-to-dismiss, grabber,
+//           stacks the iOS way.
 //   panel   the same drawer from the trailing edge, drag-to-dismiss.
 //   window  a floating window that morphs in the way an app window does when it
 //           opens from its shelf icon, and is draggable by its header. Centred
 //           near the top unless `windowPlacement` says otherwise.
+//
+// Not every surface wants this rule. Where the shape is something the person
+// chose rather than something the viewport decided — the devtool, which is
+// pulled off the bottom edge into a floating pill by hand — the feature
+// composes the shells directly, the way the command palette already does for
+// its search-field header. That is what the primitive layer is for.
 //
 // None of them takes the page away. There is no scrim, the page stays
 // interactive, and touching it does not close the surface; its close button,
@@ -112,214 +118,7 @@ export interface AdaptiveSurfaceProps {
   children: React.ReactNode;
 }
 
-function SurfaceHeader({
-  title,
-  actions,
-  closeLabel,
-  onClose,
-  draggable,
-  /**
-   * The element the title renders as. Drawers pass `Drawer.Title` so the
-   * dialog is labelled; the close button stays outside it, where it belongs.
-   */
-  titleAs: TitleAs = "div",
-}: {
-  title: React.ReactNode;
-  actions?: React.ReactNode;
-  closeLabel: string;
-  onClose: () => void;
-  draggable?: boolean;
-  titleAs?: React.ElementType;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex shrink-0 items-center justify-between gap-2 px-5 pb-2 pt-3",
-        draggable && "cursor-grab active:cursor-grabbing"
-      )}
-      data-drag-handle={draggable ? "" : undefined}
-    >
-      <TitleAs className="min-w-0 flex-1 truncate text-xs font-mono uppercase tracking-wider text-muted-foreground">
-        {title}
-      </TitleAs>
-      <div className="flex shrink-0 items-center gap-1">
-        {actions}
-        <button
-          onClick={onClose}
-          aria-label={closeLabel}
-          className={cn(HEADER_BUTTON, "-mr-2")}
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/** The title bar and the scroll area under it — the same in every shape. */
-function SurfaceBody({
-  title,
-  actions,
-  closeLabel,
-  onClose,
-  draggable,
-  titleAs,
-  contentClassName,
-  scrollRef,
-  footer,
-  children,
-}: Pick<
-  AdaptiveSurfaceProps,
-  | "title"
-  | "actions"
-  | "closeLabel"
-  | "contentClassName"
-  | "scrollRef"
-  | "footer"
-  | "children"
-> & {
-  onClose: () => void;
-  draggable?: boolean;
-  titleAs?: React.ElementType;
-}) {
-  return (
-    <>
-      <SurfaceHeader
-        title={title}
-        actions={actions}
-        closeLabel={closeLabel}
-        onClose={onClose}
-        draggable={draggable}
-        titleAs={titleAs}
-      />
-      <div
-        ref={scrollRef}
-        className={cn(
-          "flex-1 overflow-y-auto overscroll-contain",
-          contentClassName ?? "px-4 pb-5"
-        )}
-      >
-        {children}
-      </div>
-      {footer && <div className="shrink-0">{footer}</div>}
-    </>
-  );
-}
-
-/**
- * Window mode. Not a drawer: a free-floating panel that springs in the way
- * `systems/windows` opens an app, and drags by its header through the shared
- * `useDraggable` hook, so it inherits the devtool's per-instance drag settings.
- */
-function SurfaceWindow({
-  id,
-  open,
-  onOpenChange,
-  title,
-  actions,
-  closeLabel,
-  windowWidth,
-  windowPlacement = "center",
-  maxHeight,
-  contentClassName,
-  scrollRef,
-  footer,
-  children,
-}: Omit<AdaptiveSurfaceProps, "presentation">) {
-  // Destructured up front: reading `drag.*` inside the JSX trips the
-  // react-hooks/refs rule, since the same object also carries `contentRef`.
-  const {
-    isEnabled: isDraggable,
-    contentRef,
-    dragControls,
-    motionStyle,
-    onDragStart,
-    onDragEnd,
-    preventClickAfterDrag,
-  } = useDraggable(id);
-
-  // Escape closes, matching every other overlay in the app.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      e.preventDefault();
-      onOpenChange(false);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onOpenChange]);
-
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <AnimatePresence>
-      {open && (
-        // This full-screen positioning box would otherwise be an invisible
-        // wall over the page; only the window takes pointers.
-        <div
-          className={cn(
-            "pointer-events-none fixed inset-0 z-[60] flex items-start",
-            windowPlacement === "top-right"
-              ? "justify-end p-4"
-              : "justify-center pt-[12vh]"
-          )}
-        >
-          <motion.div
-            ref={contentRef as React.RefObject<HTMLDivElement>}
-            role="dialog"
-            drag={isDraggable ? true : undefined}
-            dragControls={dragControls}
-            dragListener={false}
-            dragMomentum={false}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-            // Releasing a header drag over the content must not activate it —
-            // the same guard the command palette uses.
-            onClickCapture={preventClickAfterDrag}
-            onPointerDown={
-              isDraggable
-                ? (e: React.PointerEvent) => {
-                    const target = e.target as HTMLElement;
-                    if (!target.closest("[data-drag-handle]")) return;
-                    dragControls.start(e);
-                  }
-                : undefined
-            }
-            // The same spring the window system opens an app with, so a surface
-            // arriving here reads as the same gesture the shelf icons use.
-            initial={{ opacity: 0, scale: 0.94 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
-            transition={{ type: "spring", stiffness: 520, damping: 34, mass: 0.7 }}
-            style={{
-              ...(isDraggable ? motionStyle : {}),
-              width: windowWidth ?? "min(92vw, 560px)",
-              maxHeight: maxHeight ?? "76vh",
-            }}
-            className={cn(SHELL, "pointer-events-auto relative z-[61]")}
-          >
-            <SurfaceBody
-              title={title}
-              actions={actions}
-              closeLabel={closeLabel}
-              onClose={() => onOpenChange(false)}
-              draggable={isDraggable}
-              contentClassName={contentClassName}
-              scrollRef={scrollRef}
-              footer={footer}
-            >
-              {children}
-            </SurfaceBody>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>,
-    document.body
-  );
-}
-
-/** Panel mode — the same drawer, entering from the trailing edge. */
+/** Panel mode — the same drawer as the sheet, entering from the trailing edge. */
 function SurfacePanel({
   open,
   onOpenChange,
@@ -375,51 +174,27 @@ function SurfacePanel({
   );
 }
 
-/** Sheet mode — the shared sheet primitive with this surface's title bar in it. */
-function SurfaceSheetShape({
-  id,
-  open,
-  onOpenChange,
-  title,
-  actions,
-  closeLabel,
-  maxHeight,
-  snapPoints,
-  contentClassName,
-  scrollRef,
-  footer,
-  children,
-}: Omit<AdaptiveSurfaceProps, "presentation">) {
-  return (
-    <SurfaceSheet
-      id={id}
-      open={open}
-      onOpenChange={onOpenChange}
-      height={maxHeight}
-      snapPoints={snapPoints}
-    >
-      <SurfaceBody
-        title={title}
-        actions={actions}
-        closeLabel={closeLabel}
-        onClose={() => onOpenChange(false)}
-        titleAs={Drawer.Title}
-        contentClassName={contentClassName}
-        scrollRef={scrollRef}
-        footer={footer}
-      >
-        {children}
-      </SurfaceBody>
-    </SurfaceSheet>
-  );
-}
-
 export function AdaptiveSurface({
   presentation,
   ...props
 }: AdaptiveSurfaceProps) {
   const mode = useSurfaceMode(presentation);
-  const { onOpenChange } = props;
+  const {
+    id,
+    open,
+    onOpenChange,
+    title,
+    actions,
+    closeLabel,
+    windowWidth,
+    windowPlacement,
+    maxHeight,
+    snapPoints,
+    contentClassName,
+    scrollRef,
+    footer,
+    children,
+  } = props;
   const close = useCallback(() => onOpenChange(false), [onOpenChange]);
   // Memoised: the surface re-renders whenever its owner does, and its content
   // is the whole picker grid.
@@ -428,14 +203,46 @@ export function AdaptiveSurface({
     [mode, close]
   );
 
+  const body = (
+    <SurfaceBody
+      title={title}
+      actions={actions}
+      closeLabel={closeLabel}
+      onClose={close}
+      titleAs={mode === "window" ? undefined : Drawer.Title}
+      contentClassName={contentClassName}
+      scrollRef={scrollRef}
+      footer={footer}
+    >
+      {children}
+    </SurfaceBody>
+  );
+
   return (
     <SurfaceContext.Provider value={value}>
       {mode === "window" ? (
-        <SurfaceWindow {...props} />
+        <SurfaceWindow
+          id={id}
+          open={open}
+          onOpenChange={onOpenChange}
+          width={windowWidth}
+          maxHeight={maxHeight}
+          placement={windowPlacement}
+        >
+          {body}
+        </SurfaceWindow>
       ) : mode === "panel" ? (
         <SurfacePanel {...props} />
       ) : (
-        <SurfaceSheetShape {...props} />
+        <SurfaceSheet
+          id={id}
+          open={open}
+          onOpenChange={onOpenChange}
+          height={maxHeight}
+          snapPoints={snapPoints}
+        >
+          {body}
+        </SurfaceSheet>
       )}
     </SurfaceContext.Provider>
   );

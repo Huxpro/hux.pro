@@ -104,165 +104,24 @@ import {
   Sunset,
   X,
 } from "lucide-react";
-import { withDraggable } from "@/systems/draggable";
-import {
-  AdaptiveSurface,
-  SHEET_DETENTS,
-  type SurfacePresentation,
-} from "@/systems/surface";
 import Link from "next/link";
 import { Slider } from "@/components/ui/slider";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 // =============================================================================
-// Devtool FAB + Panel
+// Devtool content — the modules, and nothing about where they are shown.
 //
-// Two things, not one. The pill is an ENTRY — a fixed button at the top right,
-// draggable by itself, the way it has always been. The panel is a SURFACE, and
-// so it is an <AdaptiveSurface> (systems/surface) like the wallpaper picker and
-// the playlist: a bottom sheet on a phone, the same top-right floating window
-// on anything wider.
-//
-// Being a surface is what the panel was missing. It used to be a desktop card
-// squeezed to phone width: pinned to the top edge over the dock's Live
-// Activity, dragged by a handle no finger wants, with no swipe to dismiss and
-// no place in the surface stack — so a picker opened from it had nowhere to go
-// but over it, and the panel had to fold itself out of the way first
-// (`openPicker(); closePanel();`). Now the picker simply stacks on it, the
-// devtool steps back a notch behind it, and closing the picker brings the
-// devtool forward again — iOS's own answer to a sheet presenting a sheet.
-//
-// Non-modal, and that is the point: the devtool exists to watch the page react
-// while wallpaper, glass and sky are turned. The page stays live underneath,
-// scrollable and clickable, and a press on it is the page's.
+// The devtool is hosted in three different shells over its life (a bottom
+// sheet, a floating window, and neither while it is a pill), and none of that
+// is this file's business. `dock.tsx` owns the shells and the gesture that
+// moves between them; here are the modules and the footer that go inside
+// whichever one is up.
 // =============================================================================
 
-/**
- * Phone: a sheet. Everything wider: the floating window it has always been.
- * There is no tablet panel shape here — a devtool hugging the trailing edge
- * full height would cover the page it is about.
- */
-const DEVTOOL_PRESENTATION: SurfacePresentation = { base: "sheet", sm: "window" };
-
-function DevtoolPillInner() {
-  const { locale } = useLocale();
-  const { isEnabled, isOpen, toggle, signalDragReset } = useDevtool();
-
-  // Reset drag position when devtool is toggled on (not fold/unfold)
-  const prevEnabledRef = useRef(isEnabled);
-  useEffect(() => {
-    if (isEnabled && !prevEnabledRef.current) {
-      signalDragReset("devtool");
-    }
-    prevEnabledRef.current = isEnabled;
-  }, [isEnabled, signalDragReset]);
-
-  // Don't render if devtool is not enabled
-  if (!isEnabled) return null;
-
-  return (
-    // The box is not the button: only the pill itself takes pointers, so the
-    // top-right corner belongs to whatever surface is up there — a full-height
-    // picker's close button sits exactly here, and a hidden pill must not eat
-    // the tap meant for it.
-    <div className="pointer-events-none fixed top-4 right-4 z-50">
-      <button
-        onClick={toggle}
-        data-drag-handle
-        className={cn(
-          "pointer-events-auto flex items-center gap-2 transition-all duration-300",
-          "rounded-full touch-none",
-          "bg-foreground text-background",
-          "shadow-raised",
-          "hover:scale-105 active:scale-95",
-          // Out of the way while the panel is up; the panel has its own close.
-          isOpen ? "opacity-0 pointer-events-none scale-75" : "opacity-100",
-          // Size
-          "h-10 px-4"
-        )}
-        aria-label="Open devtool panel"
-      >
-        <Bug className="h-4 w-4" />
-        <span className="text-xs font-mono uppercase tracking-wider">
-          {locale === "zh" ? "调试" : "Debug"}
-        </span>
-        <kbd className="text-[10px] font-mono opacity-60 ml-1">D</kbd>
-      </button>
-    </div>
-  );
-}
-
-const DevtoolPill = withDraggable(DevtoolPillInner, {
-  id: "devtool",
-  // The pill is its own drag handle, and the only one: the panel is a separate
-  // surface now, with its own header and its own draggable instance.
-  dragHandle: "[data-drag-handle]",
-});
-
-export function DevtoolFAB() {
+/** The module list. Whatever is hosting it supplies the scroll area. */
+export function DevtoolModules() {
   return (
     <>
-      <DevtoolPill />
-      <DevtoolPanel />
-    </>
-  );
-}
-
-// =============================================================================
-// Devtool Panel Component
-// The surface holding the debug modules
-// =============================================================================
-
-function DevtoolPanel() {
-  const { locale } = useLocale();
-  const zh = locale === "zh";
-  const { isEnabled, isOpen, open, close, toggleEnabled } = useDevtool();
-
-  if (!isEnabled) return null;
-
-  return (
-    <AdaptiveSurface
-      id="surface-devtool"
-      open={isOpen}
-      onOpenChange={(next) => (next ? open() : close())}
-      presentation={DEVTOOL_PRESENTATION}
-      // Where the devtool has always lived on a desktop, and where it must
-      // stay: centred, it would cover the page it is there to watch.
-      windowPlacement="top-right"
-      windowWidth="min(calc(100vw - 2rem), 420px)"
-      maxHeight="min(70vh, 720px)"
-      // On a phone: the site's detents, so a picker opened from here arrives
-      // level with it and a drag carries either to the top.
-      snapPoints={SHEET_DETENTS}
-      title={
-        <span className="flex items-center gap-2">
-          <Bug className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">{zh ? "调试面板" : "Devtool Panel"}</span>
-          <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] leading-none normal-case tracking-normal">
-            DEV
-          </span>
-        </span>
-      }
-      closeLabel={zh ? "关闭调试面板" : "Close devtool panel"}
-      // The modules bring their own padding and full-bleed section rules.
-      contentClassName="pb-0"
-      footer={
-        <div className="border-t border-border/50 bg-muted/20 px-4 py-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span className="font-mono">
-              {zh ? "按 D 切换" : "Press D to toggle"}
-            </span>
-            <button
-              onClick={toggleEnabled}
-              className="flex items-center gap-1 font-mono transition-colors hover:text-foreground"
-            >
-              <X className="h-3 w-3" />
-              <span>{zh ? "关闭调试" : "Disable Devtool"}</span>
-            </button>
-          </div>
-        </div>
-      }
-    >
       <FrontmatterModule />
       <ReadingModule />
       <WallpaperModule />
@@ -273,7 +132,47 @@ function DevtoolPanel() {
       <DraggableModule />
       <AppsModule />
       <RefetchModule />
-    </AdaptiveSurface>
+    </>
+  );
+}
+
+/** The status line under the modules: how to toggle, and how to turn it off. */
+export function DevtoolFooter() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const { toggleEnabled } = useDevtool();
+
+  return (
+    <div className="border-t border-border/50 bg-muted/20 px-4 py-2">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span className="font-mono">
+          {zh ? "按 D 切换" : "Press D to toggle"}
+        </span>
+        <button
+          onClick={toggleEnabled}
+          className="flex items-center gap-1 font-mono transition-colors hover:text-foreground"
+        >
+          <X className="h-3 w-3" />
+          <span>{zh ? "关闭调试" : "Disable Devtool"}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** The header's title: the bug, the name, the DEV badge. */
+export function DevtoolTitle() {
+  const { locale } = useLocale();
+  return (
+    <span className="flex items-center gap-2">
+      <Bug className="h-3.5 w-3.5 shrink-0" />
+      <span className="truncate">
+        {locale === "zh" ? "调试面板" : "Devtool Panel"}
+      </span>
+      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] leading-none normal-case tracking-normal">
+        DEV
+      </span>
+    </span>
   );
 }
 

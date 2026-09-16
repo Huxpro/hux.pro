@@ -20,12 +20,10 @@ export interface DraggableInstanceConfig {
 }
 
 export const DRAGGABLE_DEFAULTS: Record<string, DraggableInstanceConfig> = {
-  // The collapsed pill — draggable and remembers where it was put
+  // The floating devtool — pill and window are two sizes of one object, so
+  // they share an instance and stay anchored by the same corner. Persisted,
+  // which is also how the window finds where the pill was left.
   devtool: { draggable: true, persist: true },
-  // The panel itself, in its desktop window shape. Its own instance now that
-  // it is an AdaptiveSurface: the pill is an entry, the panel is a surface,
-  // and each stays where it was left.
-  "surface-devtool": { draggable: true, persist: true },
   // Well-positioned by design — not draggable by default, but persist is pre-armed
   // so enabling drag via devtools automatically remembers position
   "command-fab": { draggable: false, persist: true },
@@ -38,8 +36,7 @@ export const DRAGGABLE_DEFAULTS: Record<string, DraggableInstanceConfig> = {
 };
 
 export const DRAGGABLE_INSTANCES = [
-  { id: "devtool", labelEn: "Debug Pill", labelZh: "调试按钮" },
-  { id: "surface-devtool", labelEn: "Debug Panel", labelZh: "调试面板" },
+  { id: "devtool", labelEn: "Debug Panel", labelZh: "调试面板" },
   { id: "command-fab", labelEn: "Search Button", labelZh: "搜索按钮" },
   { id: "command-palette", labelEn: "Command Palette", labelZh: "命令面板" },
   // Adaptive surfaces are only draggable in their desktop "window" shape; the
@@ -58,6 +55,21 @@ export type PhonePalette = "sheet" | "popover";
 export const PHONE_PALETTE_DEFAULT: PhonePalette = "sheet";
 
 // =============================================================================
+// Docking
+// Where the devtool lives. Two booleans rather than a list of shapes, because
+// neither of them is the viewport's business:
+//
+//   isDetached  false — docked to an edge.   true — floating free.
+//   isOpen      false — collapsed to a pill. true — the panel is showing.
+//
+// The viewport turns that into a shape (systems/devtool/dock.tsx): docked and
+// open is a bottom sheet, floating and open is a window, floating and closed is
+// the pill. Docked and closed is nothing at all — the way back is `D` or the
+// command palette. A desktop has no bottom edge worth docking to, so it reads
+// as floating whatever this says, which is exactly how it has always behaved.
+// =============================================================================
+
+// =============================================================================
 // Settings persistence
 // =============================================================================
 
@@ -67,6 +79,8 @@ interface DevtoolSettings {
   /** Per-section collapsed state, keyed by the section's stable id. */
   collapsed: Record<string, boolean>;
   phonePalette: PhonePalette;
+  /** Pulled off the edge into a floating pill, and kept that way. */
+  detached: boolean;
 }
 
 const SETTINGS_DEFAULTS: DevtoolSettings = {
@@ -74,6 +88,7 @@ const SETTINGS_DEFAULTS: DevtoolSettings = {
   draggable: {},
   collapsed: {},
   phonePalette: PHONE_PALETTE_DEFAULT,
+  detached: false,
 };
 
 function getDevtoolSettings(): DevtoolSettings {
@@ -99,6 +114,7 @@ function getDevtoolSettings(): DevtoolSettings {
         collapsed: parsed.collapsed ?? {},
         phonePalette:
           parsed.phonePalette === "popover" ? "popover" : PHONE_PALETTE_DEFAULT,
+        detached: parsed.detached === true,
       };
     }
   } catch {
@@ -129,8 +145,24 @@ interface DevtoolContextType {
   toggle: () => void;
   /** Open the panel */
   open: () => void;
+  /**
+   * Turn the devtool on if it is off, and show the panel — one action, because
+   * `open()` is gated on `isEnabled` and a caller cannot flip both in a tick.
+   * What the command palette runs.
+   */
+  summon: () => void;
   /** Close the panel */
   close: () => void;
+  /**
+   * Whether the devtool floats free rather than docking to an edge. Set by
+   * pulling the sheet off the bottom edge, cleared by docking it again; a
+   * desktop reads as floating regardless (see dock.tsx).
+   */
+  isDetached: boolean;
+  /** Lift the devtool off the edge — it collapses to the floating pill. */
+  detach: () => void;
+  /** Put it back on the edge — it reopens as the sheet. */
+  dock: () => void;
   /** Toggle devtool enabled state */
   toggleEnabled: () => void;
   /** Set devtool enabled state directly */
@@ -198,6 +230,7 @@ interface DevtoolProviderProps {
 export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProviderProps) {
   const [isEnabled, setIsEnabledState] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [isDetached, setIsDetached] = useState(false);
   const [draggableOverrides, setDraggableOverrides] = useState<
     Record<string, Partial<DraggableInstanceConfig>>
   >({});
@@ -221,6 +254,7 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
     // — no expand→collapse flash.
     setCollapsedSections(settings.collapsed);
     setPhonePaletteState(settings.phonePalette);
+    setIsDetached(settings.detached);
   }, []);
 
   const setEnabled = useCallback((enabled: boolean) => {
@@ -250,8 +284,30 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
     }
   }, [isEnabled]);
 
+  const summon = useCallback(() => {
+    setIsEnabledState(true);
+    setDevtoolSettings({ fabEnabled: true });
+    setIsOpen(true);
+  }, []);
+
   const close = useCallback(() => {
     setIsOpen(false);
+  }, []);
+
+  // Pulled off the edge: the panel collapses into the pill it will reopen
+  // from. Closing it is the gesture — what is left behind is the pill.
+  const detach = useCallback(() => {
+    setIsDetached(true);
+    setDevtoolSettings({ detached: true });
+    setIsOpen(false);
+  }, []);
+
+  // Back onto the edge, and open there: docking a collapsed pill into an empty
+  // bottom edge would look like throwing the devtool away.
+  const dock = useCallback(() => {
+    setIsDetached(false);
+    setDevtoolSettings({ detached: false });
+    setIsOpen(true);
   }, []);
 
   const getDraggableConfig = useCallback(
@@ -339,7 +395,11 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
         isOpen,
         toggle,
         open,
+        summon,
         close,
+        isDetached,
+        detach,
+        dock,
         toggleEnabled,
         setEnabled,
         getDraggableConfig,
