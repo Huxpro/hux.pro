@@ -267,8 +267,15 @@ Air has mass, and that is the entire feel of it:
 | | |
 |---|---|
 | A hand that stops moving stops making wind | its stir goes stale within a breath, so resting a finger on the page does nothing |
-| A flick raises a puff, a long sweep raises a gust | the wind chases the stir over ~0.3 s, so a short gesture never reaches full strength |
-| Letting go needs no announcement | the stir simply stops arriving, and the wind falls away over ~0.9 s |
+| A flick raises a puff, a long sweep raises a gust | the wind chases the stir over ~0.13 s, so a short gesture never quite reaches full strength |
+| Letting go needs no announcement | the stir simply stops arriving, and the wind falls away over ~0.5 s |
+
+It is meant to hit and be gone, not to breathe. Measured: a 0.15 s **flick**
+peaks at **0.69** within 0.2 s and is under 0.1 by 0.8 s; a 0.45 s **swipe**
+reaches **0.96**; a long sweep saturates at **1.0** and is back under 0.1 within
+0.4 s of the hand lifting. `GUST.max` is 1.1 — above the top of the forecast's
+own range (50 km/h ⇒ 1.0) on purpose, because a gust is not a wind and is
+allowed to be briefly harder than any weather the sky is showing.
 
 #### Not everything takes wind at the same speed
 
@@ -278,13 +285,17 @@ looking like a card being slid:
 | | How fast it comes up to the wind | Why |
 |---|---|---|
 | **Rain** | at once | The lean *is* the steady state, and at 1.5–2.5 screen heights a second there is no visible transient to model. |
-| **Snow** | over ~3 s (`SNOW_WIND_TAU`), and it keeps going for ~3 s after the air is still | A flake falls at a thirtieth of a raindrop's speed and takes ten to thirty seconds to cross the frame. Shoved sideways instantly it stops reading as snow. Measured: against a hand's gust the snow reaches **39 %** of the air, **750 ms** later, and is still drifting three seconds after the air has gone quiet. |
+| **Snow** | over ~3 s (`SNOW_WIND_TAU`), and it keeps going for ~3 s after the air is still | A flake falls at a thirtieth of a raindrop's speed and takes ten to thirty seconds to cross the frame. Shoved sideways instantly it stops reading as snow. Measured: against a hand's gust the snow reaches **38 %** of the air, **500 ms** later, and is still drifting three seconds after the air has gone quiet. |
 | **Clouds** | never, from a hand | You cannot stir a cloud deck by waving at it. They answer the forecast only. |
 
-`GUST.max` is bounded on purpose. The rain's lean shears the curtain about its
-bottom edge, so the top of the screen sweeps sideways at `0.75 × max ÷ attack`
-heights a second; kept under the rain's own fall speed the sky *swings* over,
-and above it the same motion reads as a whip-crack.
+A hard gust has one artefact to watch, and the shader spends one line on it.
+The lean is a **shear**, so when it slams over, a row is thrown sideways in
+proportion to its distance from the pivot. Shearing about the bottom edge — the
+obvious way to write it — makes the top row the worst off by the full arm, and
+past a certain speed that reads as a whip-crack rather than as air. The shear is
+taken about **mid-screen** instead (`(uv.y - 0.5) * slant`), which halves the
+worst arm for nothing: at rest the two are the same picture, since a uniform
+field cannot show where it is registered.
 
 Three pieces, one per layer:
 
@@ -333,6 +344,22 @@ One thing to keep in mind when reading the shader: both drifts are
 **subtracted** where they are used, because sampling a procedural field further
 right is what walks it left. That negation is the convention being honoured, not
 broken.
+
+#### A constant is not a wind
+
+The snow's drift used to carry a constant — `snowWind * 0.6 + 0.03` — meant as a
+whisper of travel so flakes never fell dead straight in still air. But a
+constant added to a wind is a wind that always blows one way: it adds to a wind
+going with it and eats one going against. The flakes leant **2.3× further right
+than left** at the same wind strength, and under about 2.5 km/h of crosswind the
+constant won outright and the snow leant *the opposite way to the rain in the
+same sky*. It is gone; the flakes have their own wander (the waft and the slow
+beat in `snow()`), and wind → drift is now odd-symmetric to three decimal places
+at every strength.
+
+The snow's wind also **starts at the scene's**, not at zero. Easing up from
+nothing would mean the first ten seconds of a page had snow falling as if it
+were calm while the rain beside it already leant into the forecast.
 
 #### Speed is only half of a wind
 

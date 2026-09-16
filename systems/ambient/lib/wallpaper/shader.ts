@@ -373,7 +373,11 @@ float rain(vec2 p, vec2 uv, float aspect) {
   // renderer.ts.
   float slant = (uWind.x + uStirWind) * 0.75;
   float fade = smoothstep(0.0, 0.12, uRain);
-  vec2 base = vec2(p.x + uv.y * slant, p.y);
+  // Sheared about mid-screen rather than the bottom edge. At rest the two are
+  // the same picture — the field is uniform, so where it is registered cannot
+  // be seen — but when a gust slams the lean over, the pivot is what decides
+  // how far the worst-off row is thrown. Halving the arm halves the whip.
+  vec2 base = vec2(p.x + (uv.y - 0.5) * slant, p.y);
 
   // Four depth layers of thin, short, individually-timed streaks. Every
   // column carries its own phase so drops never line up into visible rows,

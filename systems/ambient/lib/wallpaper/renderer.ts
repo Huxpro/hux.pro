@@ -107,20 +107,25 @@ const STILL_FRAME_SEC = 37;
 
 const GUST = {
   /** Hand speed (heights/s) → gust, through `tanh`, so a frantic hand saturates. */
-  gain: 0.45,
+  gain: 0.55,
   /**
-   * The strongest gust a hand can raise. The rain's lean shears the curtain
-   * about its bottom edge, so the top of the screen sweeps sideways at
-   * `0.75 × max ÷ attack` heights a second — kept under the rain's own fall
-   * speed, or the swing reads as a whip-crack rather than as weather.
+   * The strongest gust a hand can raise — above 1.0 on purpose, which is the
+   * top of the forecast's own range (50 km/h). A gust is not a wind; it is
+   * allowed to be briefly harder than any weather the sky is showing.
    */
-  max: 0.7,
+  max: 1.1,
   /** How quickly the hand's motion stops counting once it stops moving. */
-  stirTau: 0.16,
-  /** The gust's rise while a hand is stirring … */
-  attack: 0.32,
-  /** … and its fall once the air is left alone: temporary, and gone in ~2 s. */
-  release: 0.9,
+  stirTau: 0.1,
+  /**
+   * The gust's rise while a hand is stirring. Short: a squall front slams the
+   * rain over, it does not lean it politely. The rain's lean shears the curtain
+   * about mid-screen, so the edges sweep sideways at `0.5 × 0.75 × max ÷
+   * attack` heights a second — a little over its own fall speed, which is the
+   * most that still reads as air rather than as a whip.
+   */
+  attack: 0.13,
+  /** … and its fall once the air is left alone: over almost as fast as it came. */
+  release: 0.5,
 } as const;
 
 /**
@@ -300,6 +305,10 @@ export class WallpaperRenderer {
     this.seed = scene.seed;
     if (!this.hasScene) {
       this.current.set(this.target);
+      // Start the snow already at the scene's wind. Easing up from nothing
+      // would mean the first ten seconds of a page had snow falling as if it
+      // were calm while the rain beside it already leant into the forecast.
+      this.snowWind = this.target[WIND_OFFSET];
       this.hasScene = true;
     }
     // The phase is cyclic; never interpolate it.
@@ -690,11 +699,15 @@ export class WallpaperRenderer {
     const dir = Math.tanh(windX * 6);
     this.cloudDrift += dtSec * cloudSpeed * (0.35 + 0.65 * Math.abs(windX)) * (dir === 0 ? 0.35 : dir);
     // The snow gets the hand's gust too, but only as fast as snow takes wind
-    // (see SNOW_WIND_TAU). The constant after it is a whisper of travel so the
-    // flakes never fall dead straight in still air; its direction means nothing.
+    // (see SNOW_WIND_TAU). Nothing is added to it: a constant here would be a
+    // wind that always blows one way, which adds to a wind going with it and
+    // eats one going against — the flakes leant twice as far right as left at
+    // the same wind, and at a light enough one they leant the opposite way to
+    // the rain. The flakes have their own wander (the waft and the slow beat in
+    // `snow()`), so they never fall dead straight without it.
     const air = windX + this.gust;
     this.snowWind += (air - this.snowWind) * (1 - Math.exp(-dtSec / SNOW_WIND_TAU));
-    this.snowDrift += dtSec * (this.snowWind * 0.6 + 0.03);
+    this.snowDrift += dtSec * this.snowWind * 0.6;
   }
 
   /**
