@@ -60,41 +60,70 @@ iPad Safari has the room to be treated like a desktop.
 
 **Stacking.** A command that opens a secondary surface — the wallpaper picker —
 does not close the palette on a phone. The palette stays and steps back while
-the picker rises over it (the surface stack does that; from the slash sheet
+the picker rises over it (the surface stack does that; from a sub-mode sheet
 the palette steps back two), and closing the picker brings it forward again:
 on a phone a sheet presented from a sheet returns to it, as on iOS. Only the
 keyboard goes. On the desktop the popover closes, as before.
 
-**Slash commands** on a phone are a second sheet stacked on the palette, the
-way iOS presents a sheet from a sheet: the palette stays open and steps back
-(the surface stack does that), the slash list rises over it level with the
-palette's detent (`detentHeight`) with the palette's top edge peeking above,
+**Sub-modes as nested sheets.** The palette has two sub-modes, mutually
+exclusive (`isSlashCommandsMode` / `isLoadBundleMode` in `provider.tsx`): the
+slash list and the load-bundle form. Each is a task inside the palette that
+returns to the palette when it is done, so on a phone each is a second sheet
+stacked on the palette, the way iOS presents a sheet from a sheet — never a
+body swapped in underneath, which is what the popover does and what the sheet
+used to do for load bundle.
+
+| Sub-mode | Sheet | Height | Reached by | Leaves by |
+|----------|-------|--------|------------|-----------|
+| Slash commands | `command-slash` | level with the palette's detent | the `/` chip, or `/` in the empty field | close, drag down, tap the palette, a command |
+| Load bundle | `command-bundle` | its content (`fitContent`) | the apps strip's Load tile (`openLoadBundle()`) | close, drag down, tap the palette, Open |
+
+Both headers are the same shape: an icon, the title, and one way out one level
+down.
+
+Both behave the same way in the stack, and that is the point: the palette stays
+open and steps back (the surface stack does that), the sub-mode rises over it,
 and a drag down — the palette coming forward under the finger — its close
 button or a tap on the receded palette brings the palette forward again, one
-level at a time as on iOS: the palette's own close is on the palette. The
-slash sheet does not return focus on close (`restoreFocus={false}`): focus
-handed back to the field is a focused field with no keyboard, and iOS opens
-the keyboard on the next touch anywhere. The
-slash sheet has no detents of its own: Base UI reports a sheet with detents'
-swipe as a position between them, which at the lowest detent is already all
-the way, and the palette needs the plain fraction of the way out.
-The slash sheet is a React child of the palette's, so Base UI treats it as
-nested and disables the parent's own swipe while it is up. It is reached by
-typing `/` into the empty field — or, where there is no keyboard to type it
-on, by the `/` chip at the field's trailing edge (`SlashEntry`). The chip is
-the hint made pressable: the same kbd vocabulary with a rim and a touch-sized
-hit area, inside the field where iOS keeps a search field's accessory (and so
-apart from the close button outside it), shown only while the field is empty,
-which is exactly when typing `/` would have worked. In the popover the same
-slot shows `esc` with a keyboard and the chip without one. The field gives up
-the keyboard as the list comes in; a hardware keyboard still gets the letters,
-and Escape pops one sheet at a time, as it does on an iOS stack.
+level at a time as on iOS: the palette's own close stays on the palette.
+Neither returns focus on close (`restoreFocus={false}`): focus handed back to
+the search field is a focused field with no keyboard, and iOS opens the
+keyboard on the next touch anywhere. Neither has detents of its own: Base UI
+reports a sheet with detents' swipe as a position between them, which at the
+lowest detent is already all the way, and the palette needs the plain fraction
+of the way out. Both are React children of the palette's sheet, so Base UI
+treats them as nested and disables the parent's own swipe while one is up.
+Escape pops one sheet at a time, as it does on an iOS stack.
+
+Each takes the height its own content asks for, which is not the same height.
+The slash list stands level with the palette's detent
+(`detentHeight(detent)` + `level={detent}`, read once on the way in), with the
+palette's top edge peeking above: a list picks up where the palette's list left
+off. The bundle form takes the height of a hint, a field and a button and no
+more (`fitContent` on `SurfaceSheet`) — a sheet up to the palette's detent to
+hold one field would be mostly empty — and grows a line when the invalid-URL
+message appears. It is the one sub-mode with a field of its own, so the keyboard
+comes back for it: the sheet rests on top of the keyboard rather than behind it
+(`--drawer-keyboard-inset`, handled once in `SurfaceSheet` by Base UI's
+`VirtualKeyboardProvider`) while the palette's search field sits blurred
+underneath. `LoadBundlePanel` takes a `chrome` prop for the two shells:
+`"panel"` brings its own back arrow and title for the popover, `"sheet"` drops
+both because the sheet header already carries them.
+
+The slash chip is the hint made pressable: the same kbd vocabulary with a rim
+and a touch-sized hit area, inside the field where iOS keeps a search field's
+accessory (and so apart from the close button outside it), shown only while the
+field is empty, which is exactly when typing `/` would have worked. In the
+popover the same slot shows `esc` with a keyboard and the chip without one. The
+field gives up the keyboard as either sub-mode comes in; a hardware keyboard
+still gets the slash letters.
 
 ### The popover
 
 The palette as it was: a centred card a fifth of the way down, morphing between
-its three modes, draggable through the shared hook, closed by a click on the
-page. It keeps its iOS Safari accommodations (scroll position pinned while up,
+its three modes in place — the sub-modes replace its body rather than stacking
+on it, because a popover has no stack — draggable through the shared hook,
+closed by a click on the page. It keeps its iOS Safari accommodations (scroll position pinned while up,
 no autofocus so the keyboard does not jump the layout) because the devtool can
 still ask for it on a phone — the Command module's **Phone palette** row, a
 saved setting, switches Sheet ↔ Popover. That is one presentation map, not a

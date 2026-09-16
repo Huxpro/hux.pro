@@ -149,6 +149,16 @@ drag as `--drawer-swipe-movement-y`, both on the popup; everything that reads
 them is one block in `app/globals.css`, *Secondary surface motion*, on the
 site's own curve (`SURFACE_EASING`, `SURFACE_TRANSITION_MS` in `stack.ts`).
 
+**Three heights.** `snapPoints` for a sheet that holds a list, `height` for a
+fixed one, and `fitContent` for a sheet that holds one short thing — a form, a
+confirmation — which takes the height of what it holds, the way iOS sizes a
+form sheet to its form, so there is no empty half. A `fitContent` sheet is
+`flex: 0 1 auto` inside a popup capped at the screen: it measures itself, grows
+and shrinks with its content, and shrinks below the cap only if the content
+outgrows the screen — so the content bounds its own scroll area (a `max-h-*`
+on it). The load-bundle sheet is the one that does this; the keyboard pushes it
+up like any other sheet.
+
 **Modal.** The scrim is the viewport — `Drawer.Viewport` is already a
 transparent, full-screen box containing the popup, so when `modal` is on it
 takes the page away and a press on it dismisses; when it is off it is
