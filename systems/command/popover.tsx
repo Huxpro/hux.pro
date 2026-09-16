@@ -23,13 +23,13 @@ import { CommandResults, CommandSlashList, GROUP_HEADINGS } from "./results";
 // Adaptive geometry for the popover only. The phone sheet fills its detents
 // with flex-1; this is the Spotlight card, whose list should grow with the
 // viewport instead of sitting on a 360px cap.
-// Offset: Spotlight-like 20vh, capped so extra height goes to the list.
-// List: 52dvh (≈416px at an 800px laptop), capped at 40rem, never taller
-// than the remaining viewport after header/footer/safe-area chrome.
+// Offset: a little below Spotlight's 20vh, capped so it still sits in the
+// upper third. List: 45dvh — on a 16" MacBook (~1040px chrome) that lands
+// around Geolocation, not Glass; never taller than remaining viewport.
 const PALETTE_GEOMETRY = {
-  "--command-palette-offset": "min(20vh, 12rem)",
+  "--command-palette-offset": "min(22vh, 13.5rem)",
   "--command-palette-list-max":
-    "min(40rem, 52dvh, calc(100dvh - var(--command-palette-offset) - 9rem - env(safe-area-inset-bottom, 0px)))",
+    "min(40rem, 45dvh, calc(100dvh - var(--command-palette-offset) - 9rem - env(safe-area-inset-bottom, 0px)))",
 } as CSSProperties;
 
 const PALETTE_LIST_MAX =

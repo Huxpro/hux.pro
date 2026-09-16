@@ -165,8 +165,8 @@ Instead of opening/closing between modes, the palette **morphs**:
 
 The popover list is viewport-relative rather than a fixed `360px`. The phone
 sheet does not use this — it fills its detents with `flex-1`.
-- **Offset**: Spotlight-like `20vh`, capped at `12rem` so tall screens do not push the palette down
-- **List**: `52dvh` (≈416px on an 800px laptop), capped at `40rem`, and never taller than the remaining viewport after chrome
+- **Offset**: `22vh`, capped at `13.5rem`, so the card sits a little lower than Spotlight's `20vh`
+- **List**: `45dvh` (around Geolocation on a 16" MacBook; not as far as Glass), capped at `40rem`, and never taller than the remaining viewport after chrome
 - Short screens shrink and scroll; tall screens show more results without becoming a full-height panel
 
 ### Footer Hints
