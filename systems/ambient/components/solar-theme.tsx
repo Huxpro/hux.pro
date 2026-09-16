@@ -35,7 +35,7 @@ import { SolarThemeToast } from "./solar-theme-toast";
 // setting off takes it with it — a behaviour that is off leaves nothing behind.
 //
 // The clock it reads is the ambient one, which is also the devtool's: the Sky
-// module's dawn → dusk autoplay crosses both ends for real as it sweeps, and
+// module's play runs the day past both crossings for real, and
 // the theme follows it exactly when — and only when — the setting says it
 // should.
 //

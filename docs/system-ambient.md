@@ -352,10 +352,10 @@ the user's back:
    undo in a hurry; the way to turn it off is where settings live.
 
 Because the rule reads the ambient clock, **devtool time travel crosses it
-too**: the Sky module's dawn → dusk autoplay flips the theme at the ends of the
-two windows as it sweeps, and respects the setting exactly as the real day
-would. The Sky module carries the toggle beside that timeline for the same
-reason.
+too**: playing the day in the Sky module crosses sunrise and sunset for real,
+and the theme changes there exactly as it would on the real clock — or does
+not, if the setting is off. The Sky module carries the toggle beside that
+timeline for the same reason.
 
 ## Wallpaper
 
