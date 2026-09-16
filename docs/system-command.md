@@ -67,9 +67,13 @@ has launched something. On the desktop the popover just closes, as before.
 
 **Slash commands** on a phone are a second sheet stacked on the palette, the
 way iOS presents a sheet from a sheet: the palette stays open and steps back
-(the surface stack does that), the slash list rises over it at the palette's
-own detent with the palette's top edge peeking above, and a drag down, the
-back arrow or a tap on the receded palette brings the palette forward again.
+(the surface stack does that), the slash list rises over it level with the
+palette's detent (`detentHeight`) with the palette's top edge peeking above,
+and a drag down — the palette coming forward under the finger — the back
+arrow or a tap on the receded palette brings the palette forward again. The
+slash sheet has no detents of its own: Base UI reports a sheet with detents'
+swipe as a position between them, which at the lowest detent is already all
+the way, and the palette needs the plain fraction of the way out.
 The slash sheet is a React child of the palette's, so Base UI treats it as
 nested and disables the parent's own swipe while it is up. It is reached by
 typing `/` into the empty field — or, where there is no keyboard to type it

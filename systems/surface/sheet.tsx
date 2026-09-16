@@ -3,7 +3,12 @@
 import { cn } from "@/lib/utils";
 import { Drawer } from "@base-ui/react/drawer";
 import { BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
-import { SURFACE_EASING, SURFACE_TRANSITION_MS, useSurfaceStack } from "./stack";
+import {
+  SURFACE_EASING,
+  SURFACE_RECEDE_EASING,
+  SURFACE_TRANSITION_MS,
+  useSurfaceStack,
+} from "./stack";
 
 // =============================================================================
 // SurfaceSheet — the bottom sheet every phone surface is made of.
@@ -65,6 +70,17 @@ const BOTTOM_INSET = `max(env(safe-area-inset-bottom), ${EDGE_GAP})`;
 const detentLength = (point: number) =>
   point <= 1 ? `${point * 100}dvh` : `${point}px`;
 
+/**
+ * The height a sheet without detents needs to stand where a sheet with them
+ * stands at `point`, so a sheet stacked on one lands level with it. The top
+ * detent leaves the top inset; any other leaves the edge gap under the shell.
+ */
+export function detentHeight(point: number): string {
+  return point >= 1
+    ? `calc(100dvh - ${TOP_INSET} - ${EDGE_GAP})`
+    : `calc(${detentLength(point)} - ${EDGE_GAP})`;
+}
+
 /** An icon button in a surface header: close, back, an external link. */
 export const HEADER_BUTTON =
   "shrink-0 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
@@ -87,6 +103,7 @@ export const surfaceMotionVars = (exitClearance: string) =>
     "--surface-exit": exitClearance,
     "--surface-duration": `${SURFACE_TRANSITION_MS}ms`,
     "--surface-easing": SURFACE_EASING,
+    "--surface-recede-easing": SURFACE_RECEDE_EASING,
   }) as React.CSSProperties;
 
 /**

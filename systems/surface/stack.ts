@@ -22,8 +22,15 @@ import { useEffect, useSyncExternalStore } from "react";
  */
 export const SURFACE_TRANSITION_MS = 500;
 
-/** The one curve every surface motion shares, so nothing drifts. */
+/** The curve a surface travels on — arriving, leaving, changing detent. */
 export const SURFACE_EASING = "cubic-bezier(0.32, 0.72, 0, 1)";
+
+/**
+ * The curve a surface steps back on while another rises over it. Background
+ * motion: it starts gently, so the frame it leads the arriving sheet by is
+ * invisible, and ends with it. See "Secondary surface motion" in globals.css.
+ */
+export const SURFACE_RECEDE_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
 
 let stack: readonly string[] = [];
 const listeners = new Set<() => void>();

@@ -1440,17 +1440,46 @@ html.dragging * {
 
 /* The glass shell inside the positioning box. It rests on the software
    keyboard rather than behind it, and steps back — iOS's receded presenter —
-   while another sheet is open over it. Both ride the surface curve, so a snap,
-   a keyboard and a recede read as one motion with the drawer's own. */
+   while another sheet is open over it.
+
+   How far back is `--surface-depth`, in sheets. A sheet from another subtree
+   (the wallpaper picker over the palette) is one step, from the shared stack's
+   `data-behind`. A sheet nested in this one is counted by Base UI on the
+   popup: `--nested-drawers`, less the front sheet's swipe progress, so the
+   parent comes forward under the finger as the child is pulled down, and
+   follows it straight back if it is let go. `--drawer-swipe-progress` is
+   registered non-inheriting, so the shell opts back in.
+
+   The step back is background motion and takes its own curve: ease-in-out,
+   not the fast-out the drawers travel on. A child sheet starts moving a frame
+   after its parent's depth changes, and on the travel curve that frame is
+   already a third of the recede — the parent seems to flinch before the child
+   arrives. On a curve that starts gently the frame is nothing, and the two
+   motions end together. */
 [data-surface-shell] {
+  --drawer-swipe-progress: inherit;
+  --surface-depth: 0;
   margin-bottom: var(--drawer-keyboard-inset, 0px);
+  transform: translate3d(0, calc(var(--surface-depth) * -8px), 0)
+    scale(calc(1 - var(--surface-depth) * 0.05));
   transition:
     margin-bottom var(--surface-duration) var(--surface-easing),
-    transform var(--surface-duration) var(--surface-easing);
+    transform var(--surface-duration) var(--surface-recede-easing);
 }
 
 [data-surface-shell][data-behind] {
-  transform: translate3d(0, -8px, 0) scale(0.95);
+  --surface-depth: 1;
+}
+
+[data-surface-popup][data-nested-drawer-open] > [data-surface-shell] {
+  --surface-depth: calc(
+    var(--nested-drawers, 1) - clamp(0, var(--drawer-swipe-progress, 0), 1)
+  );
+}
+
+/* Under the finger the parent is direct, like the child. */
+[data-surface-popup][data-nested-drawer-swiping] > [data-surface-shell] {
+  transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

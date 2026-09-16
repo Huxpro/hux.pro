@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import {
+  detentHeight,
   HEADER_BUTTON,
   SURFACE_TRANSITION_MS,
   SurfaceSheet,
@@ -47,8 +48,9 @@ import {
 //
 // Slash mode on a phone is a second sheet stacked on this one, the way iOS
 // presents a sheet from a sheet: the palette stays open and steps back, the
-// slash list rises over it at the same detent, and a drag down, the back
-// arrow or a tap on the receded palette brings the palette forward again.
+// slash list rises over it level with its detent, and a drag down (the
+// palette following the finger forward), the back arrow or a tap on the
+// receded palette brings the palette forward again.
 // It is a true stack (the sheet is a React child of the palette's, so Base UI
 // treats it as nested, and the shared stack recedes the parent), reached by
 // the "/" chip in the field or by typing "/" into the empty field. The field
@@ -65,6 +67,10 @@ const SNAP_POINTS = [0.7, 1];
 const SNAP_TOP = SNAP_POINTS[SNAP_POINTS.length - 1];
 
 type Detent = number | string | null;
+
+/** The palette's detent as a number; a string or unset detent counts as the first. */
+const detentOf = (snap: Detent): number =>
+  typeof snap === "number" ? snap : SNAP_POINTS[0];
 
 export function CommandSheet() {
   const { isOpen, close } = useCommand();
@@ -131,8 +137,10 @@ export function CommandSheet() {
           inputRef={inputRef}
           snap={snap}
           // Tapping the field is asking for room: the sheet climbs to the
-          // top as the keyboard comes up.
-          onFieldFocus={() => setSnap(SNAP_TOP)}
+          // top as the keyboard comes up. A tap, not a focus: focus also
+          // comes back on its own when a sheet stacked on this one closes,
+          // and that is nobody asking for anything.
+          onFieldTap={() => setSnap(SNAP_TOP)}
         />
       </SurfaceSheet>
     </CommandShellProvider>
@@ -143,12 +151,12 @@ export function CommandSheet() {
 function SheetBody({
   inputRef,
   snap,
-  onFieldFocus,
+  onFieldTap,
 }: {
   inputRef: React.RefObject<HTMLInputElement | null>;
   /** The palette's detent, which the slash sheet opens at. */
   snap: Detent;
-  onFieldFocus: () => void;
+  onFieldTap: () => void;
 }) {
   const {
     isSlashCommandsMode,
@@ -162,16 +170,18 @@ function SheetBody({
   const field = useCommandField();
   const showHints = useShowKeyboardHints();
 
-  // The slash sheet's own detent. It arrives at the palette's, so the two
-  // stack with the palette's top edge peeking above, and is free after that.
-  const [slashSnap, setSlashSnap] = useState<Detent>(snap);
+  // The slash sheet stands level with the palette: as tall as the palette's
+  // detent, read once on the way in. No detents of its own — a sheet with
+  // detents reports its swipe as a position between them, which at the lowest
+  // detent is already "all the way", and the palette underneath needs the
+  // plain fraction of the way out to come forward under the finger.
+  const [slashDetent, setSlashDetent] = useState(() => detentOf(snap));
 
-  // The slash list has no field, so the keyboard goes with it; and the slash
-  // sheet opens at whatever detent the palette is at, read once on the way in.
+  // The slash list has no field, so the keyboard goes with it.
   useEffect(() => {
     if (!isSlashCommandsMode && !isLoadBundleMode) return;
     inputRef.current?.blur();
-    if (isSlashCommandsMode) setSlashSnap(snap);
+    if (isSlashCommandsMode) setSlashDetent(detentOf(snap));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `snap` is read on open only
   }, [isSlashCommandsMode, isLoadBundleMode, inputRef]);
 
@@ -192,7 +202,7 @@ function SheetBody({
               ref={inputRef}
               value={field.value}
               onValueChange={field.onChange}
-              onFocus={onFieldFocus}
+              onClick={onFieldTap}
               placeholder={t(locale, "searchPlaceholder")}
               enterKeyHint="go"
               className={cn(
@@ -242,9 +252,7 @@ function SheetBody({
           if (!open) setSlashCommandsMode(false);
         }}
         modal
-        snapPoints={SNAP_POINTS}
-        activeSnapPoint={slashSnap}
-        onActiveSnapPointChange={setSlashSnap}
+        height={detentHeight(slashDetent)}
         label={t(locale, "slashCommands")}
         className="system-chrome"
       >

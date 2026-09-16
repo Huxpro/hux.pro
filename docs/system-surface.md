@@ -172,14 +172,22 @@ one on top goes. That is a relationship between surfaces, not a property of
 either, so it lives in `stack.ts`: a module-level store (the surfaces mount in
 different subtrees, and a store needs no provider to reach them all) that every
 open sheet registers with in order. A sheet with another opened after it reads
-`behind` and recedes, on the shared curve; it deregisters on close rather than
-on unmount, so the one behind comes forward in step with the top sheet's exit.
+`behind` and recedes; it deregisters on close rather than on unmount, so the
+one behind comes forward in step with the top sheet's exit. The recede takes
+its own curve (`SURFACE_RECEDE_EASING`, ease-in-out): a sheet starts moving a
+frame after its parent's depth changes, and on the travel curve that frame
+would already be a third of the recede — the parent would flinch before the
+child arrives.
 
 Base UI has nested drawers of its own, with `data-nested-drawer-open` and
 `--nested-drawers`, but a drawer is only nested when it is a React child of
 another one. The wallpaper picker, the playlist and the palette all mount in
-sibling subtrees of the root layout, so `stack.ts` stays. It is the one piece of
-this system that works around a library rather than with it.
+sibling subtrees of the root layout, so `stack.ts` stays for those. Where a
+sheet *is* nested — the palette's slash sheet — the parent's depth comes from
+Base UI instead: `--nested-drawers` less the child's `--drawer-swipe-progress`,
+so the parent comes forward under the finger as the child is pulled down, with
+transitions off while `data-nested-drawer-swiping` is set. Both feed the one
+`--surface-depth` the shell is drawn from.
 
 A sheet that opens a sheet decides for itself what happens next. The wallpaper
 picker over the playlist is a true stack: close the picker and the playlist
