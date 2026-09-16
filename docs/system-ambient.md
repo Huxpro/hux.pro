@@ -271,6 +271,43 @@ Visibility (`lib/notification.ts`): from ~90 min before the event through the en
 of its ±45 min window, then it hands off to the gradient + greeting. A forced
 sunrise/sunset phase from the devtool also surfaces it for testing.
 
+### The theme follows the sun
+
+The same two events move the app's theme: crossing **sunrise** puts it in Light,
+crossing **sunset** in Dark. On by default (`themeFollowsSun` in the ambient
+settings), turned off in the wallpaper picker's Weather group, in the command
+palette (`/s`), or from the notice itself.
+
+Three rules make it a system gesture rather than a setting changing behind the
+user's back:
+
+1. **Only a crossing watched live.** `<SolarThemeSync />` remembers which side
+   of the day it last saw and acts when that changes *while it is mounted*.
+   Arriving after dark does nothing; sitting on the page through sunset does.
+   That is what "in the same session" means — the sun may interrupt you, it may
+   not greet you.
+2. **A session override, never the preference.** It sets the theme service's
+   `override` (`services/theme.tsx`), which lives in sessionStorage: a reload in
+   the same tab keeps the theme the sun set — unless the sun has moved on since,
+   in which case the stale override is dropped on the way back in — and closing
+   the tab forgets it. The saved Appearance preference never moves, and any
+   explicit choice (the palette's Appearance command, a toggle) ends the
+   override. Turning the setting off takes an active override with it.
+3. **It says so.** The switch posts the bottom-center notice
+   (`<SolarThemeToast />`, the same slot as the language notice): which event,
+   which mode, that the preference is unchanged, and two ways out — **Undo**
+   for this switch, **Turn off** for the behaviour.
+
+`solarThemeAt()` (`lib/solar-theme.ts`) is the whole rule: light between sunrise
+and sunset, dark outside, null when the sun times are unknown (and then nothing
+switches). There is no window — the gradient already spends ±45 min crossing
+dawn and dusk, so the theme flips into a sky that is already moving.
+
+Because it reads the ambient clock, **devtool time travel crosses it too**: the
+Sky module's dawn → dusk autoplay flips the theme at the two ticks on its
+timeline, and respects the setting exactly as the real day would. The Sky module
+carries the toggle beside that timeline for the same reason.
+
 ## Wallpaper
 
 The background is **one layer stack fed by exactly one source**:
@@ -615,6 +652,19 @@ const {
 } = useAmbientTime();
 ```
 
+### useSolarTheme
+
+```typescript
+const {
+  followSun,           // The setting — on by default, saved with the ambient settings
+  setFollowSun,
+  sunTheme,            // "light" | "dark" at the effective clock, or null when unknown
+} = useSolarTheme();
+```
+
+The provider only says what the sun implies; `<SolarThemeSync />` (mounted in
+the root layout) is what watches it cross and applies it.
+
 ## Data Flow
 
 ```
@@ -648,7 +698,8 @@ scene.
 The sun-event phase runs alongside this and never touches the background:
 
 ```
-phase → AmbientPhaseActivity → Dock Live Activity
+phase    → AmbientPhaseActivity → Dock Live Activity
+sunTheme → SolarThemeSync       → theme override (this session) + notice
 ```
 
 ## Caching

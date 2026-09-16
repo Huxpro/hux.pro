@@ -10,7 +10,7 @@ import {
   useLocale,
   useTheme,
 } from "@/services";
-import { useLocation, useWallpaper } from "@/systems/ambient";
+import { useLocation, useSolarTheme, useWallpaper } from "@/systems/ambient";
 import { getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
 import { useMusic } from "@/systems/music";
@@ -28,6 +28,7 @@ import {
   Music,
   Sparkles,
   Sun,
+  Sunrise,
 } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
 import {
@@ -94,6 +95,7 @@ export function useCommandActions(): CommandAction[] {
     tint: glassTint,
     setTint: setGlassTint,
   } = useGlass();
+  const { followSun, setFollowSun } = useSolarTheme();
   const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled } =
     useDevtool();
   const {
@@ -331,6 +333,33 @@ export function useCommandActions(): CommandAction[] {
       ],
       run: () =>
         setGlassTint(glassTint === "wallpaper" ? "neutral" : "wallpaper"),
+    },
+    {
+      id: "follow-the-sun",
+      key: "s",
+      kind: "toggle",
+      section: "settings",
+      label: `${t(locale, "settingsSolarTheme")}: ${
+        followSun ? t(locale, "stateOn") : t(locale, "stateOff")
+      }`,
+      icon: <Sunrise className={ROW_ICON} />,
+      keywords: [
+        "sun",
+        "sunrise",
+        "sunset",
+        "follow the sun",
+        "auto theme",
+        "dark mode",
+        "light mode",
+        "day night",
+        "日出",
+        "日落",
+        "太阳",
+        "自动切换",
+        "深色",
+        "浅色",
+      ],
+      run: () => setFollowSun(!followSun),
     },
     {
       id: "music",

@@ -56,6 +56,7 @@ import {
 import type { NormalizedWeather, WeatherCondition } from "./lib/weather";
 import type { AmbientPhase } from "./lib/phase";
 import { deriveAmbientPhase } from "./lib/phase";
+import { solarThemeAt, type SolarTheme } from "./lib/solar-theme";
 import type { WallpaperStats } from "./lib/wallpaper/renderer";
 import { supportsWebGL2 } from "./lib/wallpaper/support";
 import { usePathname } from "next/navigation";
@@ -154,6 +155,41 @@ const AmbientTimeContext = createContext<AmbientTimeContextType | undefined>(und
 export function useAmbientTime() {
   const context = useContext(AmbientTimeContext);
   if (!context) throw new Error("useAmbientTime must be used within AmbientProvider");
+  return context;
+}
+
+// =============================================================================
+// Solar Theme Context
+//
+// "The theme follows the sun": crossing sunrise puts the app in Light, sunset
+// in Dark. It is a session override on top of the saved Appearance preference,
+// never a change to it (services/theme.tsx), and it only fires on a crossing
+// that happened while the page was open — the sun never rearranges a page on
+// arrival.
+//
+// The provider only says what the sun implies right now; <SolarThemeSync /> is
+// what watches that value cross and applies it. Because it derives from the
+// ambient clock, devtool time travel crosses it too: the Sky module's dawn →
+// dusk autoplay flips the theme at exactly the moments the real day would, and
+// respects the setting the same way.
+// =============================================================================
+
+interface SolarThemeContextType {
+  /** The setting, on by default. Persisted with the rest of the ambient settings. */
+  followSun: boolean;
+  setFollowSun: (on: boolean) => void;
+  /**
+   * Which theme the sun implies at the effective clock, or null while the sun
+   * times are unknown. Null is "no opinion", and nothing switches.
+   */
+  sunTheme: SolarTheme | null;
+}
+
+const SolarThemeContext = createContext<SolarThemeContextType | undefined>(undefined);
+
+export function useSolarTheme() {
+  const context = useContext(SolarThemeContext);
+  if (!context) throw new Error("useSolarTheme must be used within AmbientProvider");
   return context;
 }
 
@@ -674,6 +710,19 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [nowMs, sunriseMs, sunsetMs]
   );
 
+  // The same clock and the same sun times the phase reads, reduced to the one
+  // bit the theme cares about. A string, so the minute tick only wakes
+  // <SolarThemeSync /> when the side of the day actually changes.
+  const sunTheme = useMemo(
+    () => solarThemeAt({ nowMs, sunriseMs, sunsetMs }),
+    [nowMs, sunriseMs, sunsetMs]
+  );
+
+  const setFollowSun = useCallback(
+    (on: boolean) => updateSettings({ themeFollowsSun: on }),
+    [updateSettings]
+  );
+
   // Resolve which edge-fade mask to use.
   // Special case: dark-mode sunrise/sunset has high gradient-vs-background
   // contrast, so we use a more aggressive (wider) fade to soften the edge.
@@ -998,6 +1047,15 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     ]
   );
 
+  const solarThemeValue = useMemo(
+    () => ({
+      followSun: settings.themeFollowsSun,
+      setFollowSun,
+      sunTheme,
+    }),
+    [settings.themeFollowsSun, setFollowSun, sunTheme]
+  );
+
   const wallpaperValue = useMemo(
     () => ({
       kind: settings.wallpaperKind,
@@ -1111,9 +1169,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     <LocationContext.Provider value={locationValue}>
       <WeatherContext.Provider value={weatherValue}>
         <AmbientTimeContext.Provider value={timeValue}>
-          <WallpaperContext.Provider value={wallpaperValue}>
-            {children}
-          </WallpaperContext.Provider>
+          <SolarThemeContext.Provider value={solarThemeValue}>
+            <WallpaperContext.Provider value={wallpaperValue}>
+              {children}
+            </WallpaperContext.Provider>
+          </SolarThemeContext.Provider>
         </AmbientTimeContext.Provider>
       </WeatherContext.Provider>
     </LocationContext.Provider>

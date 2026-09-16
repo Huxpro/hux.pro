@@ -134,6 +134,7 @@ When the search input is empty or unfocused:
 | `W` | Open the Wallpaper picker |
 | `G` | Toggle Glass material (Tinted ↔ Clear) |
 | `T` | Toggle glass Tint (Wallpaper ↔ Neutral) |
+| `S` | Toggle Follow the Sun (theme at sunrise / sunset) |
 | `M` | Play / pause Music |
 | `Q` | Open the playlist browser |
 | `D` | Toggle the Devtool panel |
