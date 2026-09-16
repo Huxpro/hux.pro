@@ -108,11 +108,16 @@ export interface AdaptiveSurfaceProps {
    * content rather than out into the margin.
    */
   popoverAlign?: "start" | "center" | "end";
-  /**
-   * Height cap for the window, popover and sheet shapes. `auto` sizes the
-   * surface to its content, which is what a short settings surface wants.
-   */
+  /** Height cap for the window, popover and sheet shapes. */
   maxHeight?: string;
+  /**
+   * Size the surface to what it holds rather than to the screen — a short
+   * settings surface, a form, a confirmation. In the sheet shape this is
+   * `SurfaceSheet`'s `fitContent` (see sheet.tsx: it stands at no detent and
+   * never grows past the screen); a popover is content-sized under its cap
+   * already, so it needs nothing; a window keeps `maxHeight`.
+   */
+  fitContent?: boolean;
   /**
    * Detents for the sheet shape, as fractions of the viewport, lowest first;
    * the sheet opens at the first and a drag carries it to the top. Overrides
@@ -468,6 +473,7 @@ function SurfaceSheetShape({
   actions,
   closeLabel,
   maxHeight,
+  fitContent,
   snapPoints,
   contentClassName,
   scrollRef,
@@ -479,6 +485,7 @@ function SurfaceSheetShape({
       open={open}
       onOpenChange={onOpenChange}
       height={maxHeight}
+      fitContent={fitContent}
       snapPoints={snapPoints}
     >
       <SurfaceBody

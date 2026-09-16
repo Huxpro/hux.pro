@@ -249,8 +249,9 @@ export function ReadingSettings({ className }: { className?: string }) {
         anchor={anchor}
         title={t(locale, "readingSettingsTitle")}
         closeLabel={t(locale, "readingSettingsClose")}
-        // Content height: three rows, and the article behind them is the point.
-        maxHeight="auto"
+        // A few rows, and the article behind them is the point: the sheet
+        // takes the height of what it holds rather than a slab of the screen.
+        fitContent
         popoverWidth="min(92vw, 288px)"
         // The button sits at the trailing edge of the header row; the card
         // hangs back over the article rather than out into the margin.

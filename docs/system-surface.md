@@ -125,7 +125,8 @@ const { mode, isWindow, close } = useSurfaceContext();
 | `windowWidth` | Window mode only; drawers size against their edge. |
 | `anchor` | What the popover hangs off. A ref to the trigger. |
 | `popoverWidth` / `popoverAlign` | The card's width, and which of its edges lines up with the anchor's (`end` for a trigger at the trailing edge of its row). |
-| `maxHeight` | Caps window, popover and sheet height. `auto` sizes to content. |
+| `maxHeight` | Caps window, popover and sheet height. |
+| `fitContent` | Size to what it holds rather than to the screen — the sheet's `fitContent` (see **Three heights**); a popover is content-sized under its cap already. |
 | `snapPoints` | Detents for the sheet shape, lowest first; a drag carries it to the top. |
 | `contentClassName` | Overrides the scroll area's padding, for content that bleeds wider. |
 | `scrollRef` | The scroll container, for content that scrolls a row into view. |
@@ -274,7 +275,7 @@ UI's own count of nested sheets, one `--surface-depth` on the shell. See
 |---------|--------------|-------|
 | Music playlist | `ADAPTIVE_PRESENTATION` | macOS-sized window (980×620), track list breaks into columns |
 | Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode; `SHEET_DETENTS` as a sheet |
-| Reading settings | `ANCHORED_PRESENTATION` | The article page's "Aa". Content-height sheet (`maxHeight="auto"`), end-aligned popover off the button; rows appear only where the setting does something, so the sheet is shorter than the popover |
+| Reading settings | `ANCHORED_PRESENTATION` | The article page's "Aa". `fitContent` sheet, end-aligned popover off the button; rows appear only where the setting does something, so the sheet is shorter than the popover |
 | Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight card, anchored to nothing, not the `popover` shape above |
 
 Adding a second is: register a draggable id, pick a presentation, pass content.
