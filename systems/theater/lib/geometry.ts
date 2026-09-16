@@ -14,14 +14,30 @@ const ASPECT = 9 / 16;
 /** Gap from the viewport edge for the floating PiP window. */
 const PIP_MARGIN = 16;
 /**
- * The YouTube IFrame API needs a ≳200px viewport for its ready handshake, so
- * we keep the PiP wide enough that its 16:9 height clears that when the screen
- * allows (small phones fall back to edge-to-edge width).
+ * Room the window leaves under itself at rest. Centred at the bottom, it would
+ * otherwise land exactly on the command bar, which is the site's whole
+ * navigation: `bottom-6` + `h-12` in systems/command/fab.tsx, plus our gap.
  */
-const PIP_MIN_WIDTH = 356;
-const PIP_MAX_WIDTH = 400;
+const PIP_BOTTOM_INSET = 24 + 48 + 8;
+/**
+ * The PiP window is the same card as a Live Activity: the dock's
+ * `w-[min(92vw,360px)]`, centred. The two are the player's two shapes, so they
+ * are one object arriving at opposite edges of the screen rather than two
+ * differently-sized boxes. 360px also keeps the 16:9 video at 202px, over the
+ * ≳200px the YouTube IFrame API wants for its ready handshake (a phone
+ * narrower than ~356px falls below that, as it always did).
+ */
+const PIP_WIDTH_FRACTION = 0.92;
+const PIP_MAX_WIDTH = 360;
 /** Height of the PiP control bar rendered directly beneath the video. */
 export const PIP_CONTROLS_H = 44;
+/**
+ * How high the window may go: dragged, or parked above a surface. Clears the
+ * dock's pill row (top inset + a 36px pill) with air to spare.
+ */
+export const PIP_TOP_STOP = 64;
+/** Air between the PiP window and whatever it is parked against. */
+export const PIP_GAP = 8;
 
 export interface Viewport {
   width: number;
@@ -98,14 +114,20 @@ export function theaterRect(vp: Viewport): StageRect {
   return { top, left, width, height };
 }
 
-/** PiP window width for the given viewport (mobile → near edge-to-edge). */
+/** PiP window width: the Live Activity card's, whatever the viewport. */
 function pipWidth(vp: Viewport): number {
-  const available = vp.width - PIP_MARGIN * 2;
-  return Math.min(Math.max(Math.min(available, PIP_MIN_WIDTH), 240), PIP_MAX_WIDTH);
+  return Math.min(vp.width * PIP_WIDTH_FRACTION, PIP_MAX_WIDTH);
+}
+
+/** Height of the whole window — video plus the control bar under it. */
+function pipHeight(vp: Viewport): number {
+  return pipWidth(vp) * ASPECT + PIP_CONTROLS_H;
 }
 
 /**
- * Floating PiP rect. Anchored bottom-right by default; `offset` is the user's
+ * Floating PiP rect. Anchored bottom-centre by default — under the page, where
+ * the Live Activity sits over it, on the same axis and the same width, so the
+ * player reads as one card that moved rather than two. `offset` is the user's
  * accumulated drag, clamped so the window (plus its control bar) stays on
  * screen. The rect describes the VIDEO area only; the control bar sits in the
  * PIP_CONTROLS_H strip directly below it.
@@ -113,56 +135,58 @@ function pipWidth(vp: Viewport): number {
 export function pipRect(vp: Viewport, offset: { x: number; y: number }): StageRect {
   const width = pipWidth(vp);
   const height = width * ASPECT;
-  const safeBottom = PIP_MARGIN;
-  const baseLeft = vp.width - width - PIP_MARGIN;
-  const baseTop = vp.height - height - PIP_CONTROLS_H - safeBottom;
+  const baseLeft = (vp.width - width) / 2;
+  const baseTop = pipRestTop(vp);
   const left = clamp(baseLeft + offset.x, PIP_MARGIN, vp.width - width - PIP_MARGIN);
-  const top = clamp(
-    baseTop + offset.y,
-    PIP_MARGIN + 48,
-    vp.height - height - PIP_CONTROLS_H - safeBottom,
-  );
+  const top = clamp(baseTop + offset.y, PIP_TOP_STOP, baseTop);
   return { top, left, width, height };
 }
 
-/**
- * Detents for the phone playlist sheet (systems/theater/components/playlist-
- * sheet.tsx), as fractions of the viewport.
- *
- * Half the screen rather than the site's usual `SHEET_DETENTS` (0.7): the PiP
- * window is the other half of this surface — it keeps playing while you
- * browse — and video plus control bar is ~245px. Three tenths of a phone
- * screen cannot hold it, so a 0.7 sheet would force the PiP down onto its own
- * title bar. At 0.5 the two share the screen cleanly, and a drag to the top
- * still gives the whole album at once (the PiP floats over it; it is the one
- * thing here that must never be hidden).
- */
-export const THEATER_PLAYLIST_DETENTS = [0.5, 1];
-
-/** Air between the PiP window and whatever it is parked against. */
-export const PIP_GAP = 8;
+/** Where the window sits with no drag: bottom-centre, above the command bar. */
+function pipRestTop(vp: Viewport): number {
+  return Math.max(vp.height - pipHeight(vp) - PIP_BOTTOM_INSET, PIP_TOP_STOP);
+}
 
 /**
- * The drag offset that parks the PiP window — video *and* control bar — above
- * a surface occupying the bottom `fraction` of the screen.
+ * The drag offset that parks the PiP window at its top stop.
  *
- * The horizontal drag is kept (the window stays on the side it was left on);
- * only the vertical one moves, and only upward, so a PiP already parked higher
- * than the surface is left where it is. `pipRect` clamps the result, so a
- * viewport too short for the lift simply pins the window to its top stop.
+ * What the playlist surface does with the window while it is up: the video
+ * goes to the top of the screen and the list takes everything under it, the
+ * way a phone player puts its queue below the picture. The horizontal drag is
+ * kept (the window stays on the side it was left on) and the vertical one only
+ * ever moves up, so a window already higher is left where it is.
  */
-export function pipOffsetAbove(
+export function pipOffsetAtTop(
   vp: Viewport,
-  fraction: number,
   from: { x: number; y: number },
 ): { x: number; y: number } {
-  // The control bar's bottom edge at rest — the video height cancels out.
-  const restBottom = vp.height - PIP_MARGIN;
-  const surfaceTop = vp.height * (1 - fraction);
-  return {
-    x: from.x,
-    y: Math.min(surfaceTop - PIP_GAP - restBottom, from.y),
-  };
+  return { x: from.x, y: Math.min(PIP_TOP_STOP - pipRestTop(vp), from.y) };
+}
+
+/** The window's bottom edge once parked — the ceiling a sheet stops under. */
+export function pipParkedBottom(vp: Viewport): number {
+  return PIP_TOP_STOP + pipHeight(vp);
+}
+
+/** The shorter of the playlist sheet's two detents, where both fit. */
+const PLAYLIST_FIRST_DETENT = 0.5;
+/** Below this much room, a second detent would be a few pixels of travel. */
+const PLAYLIST_SECOND_DETENT_MIN = 0.62;
+
+/**
+ * The playlist sheet's detents: everything below `ceiling`, and a half-height
+ * stop under it when that leaves somewhere to drag to.
+ *
+ * `ceiling` is the bottom edge of whatever the player is showing — the parked
+ * PiP window, or the dock card it collapsed into. The sheet stops there rather
+ * than running to the top of the screen, so the video is never something the
+ * list has to work around: on a phone the two share the screen, they do not
+ * overlap. That makes the top detent a property of the player's current shape,
+ * which is why this is a function and not a constant.
+ */
+export function playlistDetents(viewportHeight: number, ceiling: number): number[] {
+  const top = clamp((viewportHeight - ceiling - PIP_GAP) / viewportHeight, 0.25, 0.95);
+  return top >= PLAYLIST_SECOND_DETENT_MIN ? [PLAYLIST_FIRST_DETENT, top] : [top];
 }
 
 /**

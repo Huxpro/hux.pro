@@ -198,6 +198,11 @@ export function LiveActivity({
         <SurfaceViewport modal={false} layer={rank}>
           <Drawer.Popup
             data-dock-panel=""
+            // The dock's expanded shape — see the note in dock.tsx. On the
+            // popup rather than the shell: the shell carries the surface
+            // stack's recede transform, so its box shrinks when something
+            // rises over it; the popup's is where the panel actually stands.
+            data-dock-anchor=""
             style={{ ...surfaceMotionVars(TOP_INSET), top: TOP_INSET }}
             // A positioning box only, centred without a transform so the drag
             // has the axis to itself. Nothing paints here; the shell inside does.

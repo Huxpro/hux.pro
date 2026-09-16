@@ -15,11 +15,10 @@ import { SURFACE_BREAKPOINTS } from "@/systems/surface";
 import type { SlidesMedia, VideoMedia, VideoPlatform } from "@/lib/log";
 import { useInputCapability } from "@/services";
 import {
-  pipOffsetAbove,
+  pipOffsetAtTop,
   readViewport,
   stageRectFor,
   theaterAvailable as theaterFits,
-  THEATER_PLAYLIST_DETENTS,
   type Viewport,
 } from "./lib/geometry";
 import { adHocAlbum, mediaToTrack } from "./lib/albums";
@@ -94,6 +93,8 @@ interface TheaterContextValue {
   theaterAvailable: boolean;
   /** Geometry of the persistent stage in the current mode. */
   rect: StageRect;
+  /** The viewport the geometry above was measured against. */
+  viewport: Viewport;
   pipOffset: { x: number; y: number };
   dragging: boolean;
   /** The playlist surface (albums + tracks) — the only browser PiP has. */
@@ -231,28 +232,26 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const geomMode: "theater" | "pip" =
     mode === "theater" && theaterAvailable ? "theater" : "pip";
 
-  // The playlist sheet and the PiP window share a phone screen: the sheet
-  // takes the bottom half, the window parks above it and keeps playing. The
-  // lift is derived, not stored — closing the sheet puts the window back where
-  // the user left it with no bookkeeping, and there is no frame where the two
-  // disagree. It is the phone's problem only: the tablet panel and the desktop
-  // window leave the PiP's corner alone.
+  // The playlist sheet and the PiP window share a phone screen rather than
+  // overlapping: the window goes to the top of the screen and the sheet takes
+  // everything under it (the sheet's top detent is the window's bottom edge —
+  // see `playlistDetents`). The park is derived, not stored — closing the
+  // sheet puts the window back where the user left it with no bookkeeping, and
+  // no frame has the two disagreeing. It is the phone's problem only: the
+  // tablet panel and the desktop window leave the PiP's corner alone.
   //
   // What the chrome reads and drags from is this *effective* offset, so a drag
-  // that starts on a lifted window starts where the window is. Pushed against
-  // the lift, it moves sideways and no further down: under the list is not a
-  // place the window can be.
-  const liftedForPlaylist =
+  // that starts on a parked window starts where the window is. Pushed against
+  // the park it moves sideways and no further down: under the list is not a
+  // place the window can be while the list is up.
+  const parkedForPlaylist =
     isPlaylistOpen &&
     mode === "pip" &&
     !minimized &&
     viewport.width < SURFACE_BREAKPOINTS.sm;
   const effectiveOffset = useMemo(
-    () =>
-      liftedForPlaylist
-        ? pipOffsetAbove(viewport, THEATER_PLAYLIST_DETENTS[0], pipOffset)
-        : pipOffset,
-    [liftedForPlaylist, viewport, pipOffset],
+    () => (parkedForPlaylist ? pipOffsetAtTop(viewport, pipOffset) : pipOffset),
+    [parkedForPlaylist, viewport, pipOffset],
   );
   const rect = useMemo(
     () => stageRectFor(geomMode, viewport, effectiveOffset),
@@ -714,6 +713,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     isCoarse,
     theaterAvailable,
     rect,
+    viewport,
     pipOffset: effectiveOffset,
     dragging,
     isPlaylistOpen,
