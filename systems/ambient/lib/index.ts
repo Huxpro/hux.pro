@@ -11,6 +11,7 @@ export * from "./queries";
 export * from "./route-config";
 export * from "./scene";
 export * from "./solar";
+export * from "./solar-theme";
 export * from "./settings";
 export * from "./strike";
 export * from "./sun";

@@ -5,6 +5,7 @@ import { Providers } from "@/shared/providers";
 import {
   AmbientPhaseActivity,
   AmbientSurface,
+  SolarThemeSync,
   WallpaperSheet,
 } from "@/systems/ambient";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
@@ -117,6 +118,7 @@ export default function RootLayout({
         >
           <Providers>
             <ReadingRootSync />
+            <SolarThemeSync />
             <DevtoolFAB />
             <AmbientSurface>{children}</AmbientSurface>
             <WindowLayer />

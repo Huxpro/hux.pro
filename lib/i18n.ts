@@ -158,6 +158,14 @@ export const translations = {
     wallpaperPlacementWidget: "Widget",
     wallpaperPlacementOff: "Off",
     wallpaperFooterNote: "Wallpapers are Apple's; rights remain theirs.",
+
+    // Sun theme — the theme following sunrise and sunset
+    settingsSolarTheme: "Follow the Sun",
+    solarThemeHint:
+      "Once dawn and dusk have played out, the theme follows the sky — for this session only, never your saved Appearance.",
+    solarThemeToLight: "Light Mode",
+    solarThemeToDark: "Dark Mode",
+    solarThemeNote: "Preference unchanged",
     stateOn: "On",
     stateOff: "Off",
     debugOverride: "override",
@@ -380,6 +388,13 @@ export const translations = {
     wallpaperPlacementWidget: "卡片",
     wallpaperPlacementOff: "关闭",
     wallpaperFooterNote: "壁纸版权归 Apple 所有。",
+
+    // Sun theme — the theme following sunrise and sunset
+    settingsSolarTheme: "跟随日出日落",
+    solarThemeHint: "等日出、日落的天色走完，主题再跟上；仅在本次会话中生效，不会改写外观偏好。",
+    solarThemeToLight: "浅色模式",
+    solarThemeToDark: "深色模式",
+    solarThemeNote: "偏好未更改",
     stateOn: "开",
     stateOff: "关",
     debugOverride: "覆盖",

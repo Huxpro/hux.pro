@@ -271,6 +271,92 @@ Visibility (`lib/notification.ts`): from ~90 min before the event through the en
 of its ±45 min window, then it hands off to the gradient + greeting. A forced
 sunrise/sunset phase from the devtool also surfaces it for testing.
 
+### The theme follows the sun
+
+The app's theme follows the day: Light while the sun is up, Dark once it is
+down. On by default (`themeFollowsSun` in the ambient settings), turned off in
+the wallpaper picker's Weather group, in the command palette (`/s`), or in the
+devtool's Sky module.
+
+**At the sun's own crossing — the middle of the long animation, not its end.**
+Sunrise and sunset are ±45 min windows here and the sky spends all of both
+moving; the moment it moves fastest is the middle. A theme change is a cut
+however gently it is painted, and a cut lands softest inside motion: at the end
+of the window the sky has settled again, and the same cut stands out against
+it.
+
+```
+dark ─────┬──── sunrise ────┬───── light ─────┬──── sunset ────┬───── dark
+      rise-45      ▲     rise+45          set-45      ▲     set+45
+                   └ here                             └ here
+```
+
+`solarThemeAt()` (`lib/solar-theme.ts`) is therefore the plain rule — light
+between sunrise and sunset, dark outside, null when the sun times are unknown
+(and then nothing switches). Everything about *how* it changes hands is in
+`SOLAR_HANDOVER`.
+
+**The handover puts the cut in the middle of a short animation too**, so it has
+motion on both sides of it. The timeline is `SOLAR_HANDOVER` in
+`lib/solar-theme.ts` and the numbers live only there:
+
+```
+0           the sky starts moving to the new theme — the wallpaper stack
+            crossfades over `skyMs` instead of its usual 0.7s, and the Sky's
+            shader is put on the same clock by `setThemeEase`.
+chromeAtMs  halfway through, the chrome changes: one commit, inside a view
+            transition, so the page crossfades as a single composited image —
+            the same 200ms a route change uses.
+skyMs       the sky settles, and the notice lands.
+```
+
+`wallpaperTheme` is what makes the lead possible: the scene, the wash's weight,
+a picture's half and the profile of what is painting all read it, while
+everything that belongs to the chrome — the page ground, the bezel, the ink
+ladder — reads `chromeTheme`, which is what the provider calls the theme the
+app is actually in. The lead runs for exactly the sky's animation and outlives
+the switch in its middle; a theme the user picks while it is running calls the
+whole thing off, sky included: theirs wins.
+
+The greeting is not part of this. It follows the phase, which changes at the
+window's *ends*, three quarters of an hour either side of the switch — far
+enough that the two never read as one event that failed to line up.
+
+The chrome's half is deliberately **not** a transition per element. That was an
+earlier cut of this, and it cost ~1.2s of style recalculation for a 1s dissolve
+— a page this size has ~1000 elements and their colours are `color-mix()` over
+custom properties, so every frame re-ran the document's style. The composited
+crossfade is ~60ms of capture for the same effect, and where it is unavailable
+(Firefox, `prefers-reduced-motion`) the chrome simply changes, which is what the
+rest of the app does when the user picks a theme.
+
+Three more rules make it a system gesture rather than a setting changing behind
+the user's back:
+
+1. **Only a crossing watched live.** `<SolarThemeSync />` remembers which side
+   of the day it last saw and acts when that changes *while it is mounted*.
+   Arriving after dark does nothing; sitting on the page through dusk does.
+   That is what "in the same session" means — the sun may interrupt you, it may
+   not greet you.
+2. **A session override, never the preference.** It sets the theme service's
+   `override` (`services/theme.tsx`), which lives in sessionStorage: a reload in
+   the same tab keeps the theme the sun set — unless the sun has moved on since,
+   in which case the stale override is dropped on the way back in — and closing
+   the tab forgets it. The saved Appearance preference never moves, and any
+   explicit choice (the palette's Appearance command, a toggle) ends the
+   override. Turning the setting off takes an active override with it.
+3. **It says so.** Once the handover has settled, the small pill in the
+   bottom-center toast slot — the one the language switch uses — names the mode
+   and says the preference is unchanged. By then the change has already
+   dissolved in over two seconds, so there is nothing to confirm and nothing to
+   undo in a hurry; the way to turn it off is where settings live.
+
+Because the rule reads the ambient clock, **devtool time travel crosses it
+too**: the Sky module's dawn → dusk autoplay flips the theme at the ends of the
+two windows as it sweeps, and respects the setting exactly as the real day
+would. The Sky module carries the toggle beside that timeline for the same
+reason.
+
 ## Wallpaper
 
 The background is **one layer stack fed by exactly one source**:
@@ -615,6 +701,20 @@ const {
 } = useAmbientTime();
 ```
 
+### useSolarTheme
+
+```typescript
+const {
+  followSun,           // The setting — on by default, saved with the ambient settings
+  setFollowSun,
+  sunTheme,            // "light" | "dark" at the effective clock, or null when unknown
+  beginThemeHandover,  // Stage the next theme change (slow sky, then chrome)
+} = useSolarTheme();
+```
+
+The provider only says what the sun implies; `<SolarThemeSync />` (mounted in
+the root layout) is what watches it cross and applies it.
+
 ## Data Flow
 
 ```
@@ -648,7 +748,8 @@ scene.
 The sun-event phase runs alongside this and never touches the background:
 
 ```
-phase → AmbientPhaseActivity → Dock Live Activity
+phase    → AmbientPhaseActivity → Dock Live Activity
+sunTheme → SolarThemeSync       → theme override (this session) + notice
 ```
 
 ## Caching

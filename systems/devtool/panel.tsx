@@ -11,7 +11,7 @@ import {
   GLASS_TINTS,
   getTintLabel,
 } from "@/services";
-import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
+import { useAmbientTime, useLocation, useSolarTheme, useWallpaper, useWeather } from "@/systems/ambient";
 import { BEZEL_BAND_MAX, BEZEL_BAND_MIN, BEZEL_RADIUS_MAX } from "@hux/bezel";
 import {
   DEFAULT_BEZEL_TINT,
@@ -1537,6 +1537,7 @@ function SkyModule() {
     isTimeTravelActive,
     resetTimeTravel,
   } = useAmbientTime();
+  const { followSun, setFollowSun, sunTheme } = useSolarTheme();
 
   const isDayNow = scene.sun.isDay;
   const isOverridden = debugOverride !== null;
@@ -1812,6 +1813,37 @@ function SkyModule() {
               );
             })}
           </div>
+          {/* The theme rides this timeline: play the day and it flips at the
+              two ticks above, because the switch reads the same clock. The
+              toggle is the saved setting, not a session override — turning it
+              off here turns it off for good. */}
+          <PanelRow
+            label={zh ? "主题跟随太阳" : "Theme follows sun"}
+            star={
+              followSun ? null : (
+                <PanelStar
+                  onReset={() => setFollowSun(true)}
+                  source="saved"
+                  label={zh ? "恢复跟随太阳" : "Follow the sun again"}
+                />
+              )
+            }
+          >
+            <span className="flex items-center gap-2">
+              {followSun && sunTheme && (
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  {sunTheme === "light"
+                    ? t(locale, "themeLight")
+                    : t(locale, "themeDark")}
+                </span>
+              )}
+              <PanelToggle
+                on={followSun}
+                onClick={() => setFollowSun(!followSun)}
+                label="Theme follows the sun"
+              />
+            </span>
+          </PanelRow>
         </div>
 
         {/* Condition. Chips wear the day or night face of the clock above. */}

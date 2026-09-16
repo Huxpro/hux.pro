@@ -91,6 +91,8 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     kind,
     renderer,
     layers,
+    crossfadeMs,
+    skyThemeEaseMs,
     edgeMask,
     opacity,
     veil,
@@ -130,15 +132,22 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
       {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
       className={cn(
         "pointer-events-none fixed inset-0 -z-10",
-        "transition-opacity duration-700 ease-in-out"
+        "transition-opacity ease-in-out"
       )}
-      // With the bezel on, the layer stops inside it — see AmbientSurface.
-      style={{ opacity: enabled ? opacity : 0, ...(bezel ? BEZEL_INSET : null) }}
+      style={{
+        opacity: enabled ? opacity : 0,
+        // A wash weighs differently in the two themes (WALLPAPER_OPACITY), so
+        // this moves on a theme change too — at the crossfade's pace, which is
+        // the sun's slower one while the theme hands over.
+        transitionDuration: `${crossfadeMs}ms`,
+        ...(bezel ? BEZEL_INSET : null),
+      }}
     >
       {useShader ? (
         <WeatherWallpaper
           scene={scene}
           active={enabled}
+          themeEaseMs={skyThemeEaseMs}
           edgeMask={edgeMask}
           onFallback={reportShaderFallback}
           statsRef={statsRef}
@@ -147,7 +156,12 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
       ) : (
         /* Full-page background is already viewport-fixed, so the edge mask is
            applied statically (no per-frame tracking needed). */
-        <GradientStack layers={layers} edgeMask={edgeMask} blurred={blurred} />
+        <GradientStack
+          layers={layers}
+          durationMs={crossfadeMs}
+          edgeMask={edgeMask}
+          blurred={blurred}
+        />
       )}
 
       {veil > 0 && (
