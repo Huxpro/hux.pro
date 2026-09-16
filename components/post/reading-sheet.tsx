@@ -8,17 +8,20 @@ import {
   AdaptiveSurface,
   useSurfaceContext,
 } from "@/systems/surface";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  setBleedEnabled,
   setReadingFocus,
   setReadingFont,
   setReadingMeasure,
+  useBleedEnabled,
   useReadingFocus,
   useReadingFont,
   useReadingMeasure,
   type ReadingFont,
   type ReadingMeasure,
 } from "./reading-settings";
+import { setRulerSide, useRulerSide, type RulerSide } from "./ruler-settings";
 
 // ---------------------------------------------------------------------------
 // ReadingSettings — the reader's way into the reading settings.
@@ -33,13 +36,45 @@ import {
 // content-height and, like every surface here, non-modal: the article stays
 // live behind it, so a tap on Serif is a tap you watch land.
 //
-// What it shows is the reader's half of the module — typeface, measure, focus
-// — in the reader's voice rather than the devtool's mono. Media bleed and the
-// ruler's dock stay behind in the panel; they are knobs on how the site is
-// built, not on how this article reads.
+// It shows the same five settings the devtool's module does, in the reader's
+// voice rather than the devtool's mono, and only where each one does something:
+//
+//   typeface, column   always — the two that shape the text itself.
+//   ruler              always. The ruler is screen furniture the reader can
+//                      see and, on a touch screen, scrub with a thumb; which
+//                      edge it is docked to is handedness, not configuration.
+//   focus mode         not in the sheet. The reading line is at 40% of the
+//                      viewport, and a phone screen holds a paragraph or two.
+//   wide media         only past the width its CSS lives at. See BLEED_QUERY.
+//
+// A control that does nothing is worse than a control that is not there, so
+// the two conditional rows are gated on the thing they actually drive rather
+// than on taste.
 //
 // The devtool keeps its module. Both write the same store, so both follow.
 // ---------------------------------------------------------------------------
+
+/**
+ * Media bleed exists only on wide screens: the rule that lets landscape media
+ * break out of the reading column is inside `@media (min-width: 900px)` in
+ * app/globals.css, and so is the `data-bleed-off` kill switch that undoes it.
+ * Below that the setting is real and stored, but nothing reads it — so the row
+ * is not offered. This query is that one, and has to keep matching it.
+ */
+const BLEED_QUERY = "(min-width: 900px)";
+
+/** Whether a media query matches right now. False until mounted, so SSR agrees. */
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const sync = () => setMatches(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, [query]);
+  return matches;
+}
 
 /** The rows. Inside the surface, so it can read the shape it landed in. */
 function ReadingSettingsContent() {
@@ -48,6 +83,9 @@ function ReadingSettingsContent() {
   const font = useReadingFont();
   const measure = useReadingMeasure();
   const focus = useReadingFocus();
+  const bleed = useBleedEnabled();
+  const side = useRulerSide();
+  const canBleed = useMediaQuery(BLEED_QUERY);
 
   return (
     <div className="space-y-1 pt-1">
@@ -100,6 +138,18 @@ function ReadingSettingsContent() {
         />
       </Row>
 
+      {/* Landscape media breaking out of the column — a wide-screen rule, so a
+          wide-screen row. See BLEED_QUERY. */}
+      {canBleed && (
+        <Row label={t(locale, "readingBleed")}>
+          <Switch
+            on={bleed}
+            onClick={() => setBleedEnabled(!bleed)}
+            label={t(locale, "readingBleed")}
+          />
+        </Row>
+      )}
+
       {/* Focus mode dims every block but the one at the reading line — which is
           at 40% of the viewport, and on a phone a screen holds a paragraph or
           two anyway. Nothing to dim, so nothing to offer. */}
@@ -112,6 +162,21 @@ function ReadingSettingsContent() {
           />
         </Row>
       )}
+
+      {/* Which edge the ruler is docked to. Offered everywhere: the ruler is
+          on a phone too, as bare ticks you scrub with a thumb, and that is
+          exactly where the side you keep it on matters. */}
+      <Row label={t(locale, "readingRuler")}>
+        <Segmented<RulerSide>
+          value={side}
+          onChange={setRulerSide}
+          label={t(locale, "readingRuler")}
+          options={[
+            { value: "left", label: t(locale, "readingRulerLeft") },
+            { value: "right", label: t(locale, "readingRulerRight") },
+          ]}
+        />
+      </Row>
     </div>
   );
 }

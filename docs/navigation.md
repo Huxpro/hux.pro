@@ -227,21 +227,31 @@ Content pages (prose, log, prompt, docs) share a common layout structure via the
 
 An article page — anything `PostContent` renders with the ruler on — puts an
 `Aa` button in `PageLayout`'s `headerActions`, beside the meta row, where the
-list pages keep their language filter. It opens the reader's half of the
-settings that until now only the devtool could reach
-(`components/post/reading-settings.ts`): typeface, column width, focus mode.
+list pages keep their language filter. It opens the settings that until now
+only the devtool could reach (`components/post/reading-settings.ts` and
+`ruler-settings.ts`).
 
 It is Books' "Aa" menu, and takes the surface system's anchored presentation —
 a content-height sheet on a phone, a popover hanging off the button above that
 (`ANCHORED_PRESENTATION`, [Secondary Surfaces](./system-surface.md)). Neither is
 modal: the article stays live behind it, so a change lands where you can watch
-it. Focus mode is left out of the sheet — the reading line is at 40% of the
-viewport, and a phone screen holds a paragraph or two, so there is nothing to
-dim.
+it.
 
-Media bleed and the ruler's dock stay in the devtool panel; they are knobs on
-how the site is built, not on how an article reads. Both surfaces write the same
-persisted store, so the panel and the reader's menu always agree.
+All five settings are here, in reader's words rather than the devtool's mono,
+and each appears only where it does something:
+
+| Row | Shown | Why |
+|-----|-------|-----|
+| Typeface, Column | always | The two that shape the text itself. |
+| Ruler | always | The ruler is on a phone too, as bare ticks you scrub with a thumb — which edge it is docked to is handedness. |
+| Focus mode | not in the sheet | The reading line sits at 40% of the viewport; a phone screen holds a paragraph or two, so there is nothing to dim. |
+| Wide media | from 900px | Its entire rule, and the `data-bleed-off` switch that undoes it, live inside `@media (min-width: 900px)` in `globals.css`. Below that the setting is stored but nothing reads it. |
+
+A control that does nothing is worse than a control that is not there, so the
+two conditional rows are gated on what they actually drive.
+
+The devtool keeps its Reading module. Both surfaces write the same persisted
+store, so the panel and the reader's menu always agree.
 
 ### View Transitions
 

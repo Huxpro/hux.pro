@@ -264,7 +264,7 @@ UI's own count of nested sheets, one `--surface-depth` on the shell. See
 |---------|--------------|-------|
 | Music playlist | `ADAPTIVE_PRESENTATION` | macOS-sized window (980×620), track list breaks into columns |
 | Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode; `SHEET_DETENTS` as a sheet |
-| Reading settings | `ANCHORED_PRESENTATION` | The article page's "Aa". Content-height sheet (`maxHeight="auto"`), end-aligned popover off the button; the focus-mode row is dropped in the sheet |
+| Reading settings | `ANCHORED_PRESENTATION` | The article page's "Aa". Content-height sheet (`maxHeight="auto"`), end-aligned popover off the button; rows appear only where the setting does something, so the sheet is shorter than the popover |
 | Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight card, anchored to nothing, not the `popover` shape above |
 
 Adding a second is: register a draggable id, pick a presentation, pass content.

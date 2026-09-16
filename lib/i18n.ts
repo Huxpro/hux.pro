@@ -179,6 +179,10 @@ export const translations = {
     readingMeasureDefault: "Default",
     readingMeasureWide: "Wide",
     readingFocus: "Focus mode",
+    readingBleed: "Wide media",
+    readingRuler: "Ruler",
+    readingRulerLeft: "Left",
+    readingRulerRight: "Right",
 
     stateOn: "On",
     stateOff: "Off",
@@ -422,6 +426,10 @@ export const translations = {
     readingMeasureDefault: "标准",
     readingMeasureWide: "宽",
     readingFocus: "专注模式",
+    readingBleed: "宽幅媒体",
+    readingRuler: "标尺",
+    readingRulerLeft: "左",
+    readingRulerRight: "右",
 
     stateOn: "开",
     stateOff: "关",
