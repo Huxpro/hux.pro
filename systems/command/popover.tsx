@@ -18,7 +18,12 @@ import {
 } from "./actions";
 import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
-import { CommandResults, CommandSlashList, GROUP_HEADINGS } from "./results";
+import {
+  CommandResults,
+  CommandSlashList,
+  GROUP_HEADINGS,
+  SlashEntry,
+} from "./results";
 
 // =============================================================================
 // CommandPopover — the palette as a floating card, Spotlight-style.
@@ -102,9 +107,14 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
   }, [isPhoneSafari]);
 
   // Focus the field on open and on the way back from slash mode — not on a
-  // phone, where the keyboard would jump the layout.
+  // phone, where the keyboard would jump the layout. The slash list has no
+  // field, so on the way in the keyboard goes with it.
   useEffect(() => {
-    if (isSlashCommandsMode || isPhoneSafari) return;
+    if (isSlashCommandsMode) {
+      inputRef.current?.blur();
+      return;
+    }
+    if (isPhoneSafari) return;
     const timer = setTimeout(() => inputRef.current?.focus(), 50);
     return () => clearTimeout(timer);
   }, [isSlashCommandsMode, isPhoneSafari]);
@@ -239,10 +249,14 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                         )}
                       />
                     </div>
-                    {showHints && (
+                    {/* One slot, two readings: a hint where there is a
+                        keyboard, the way into slash mode where there is not. */}
+                    {showHints ? (
                       <kbd className="flex items-center gap-1 px-2 py-1 text-xs font-mono text-muted-foreground bg-muted/50 rounded">
                         esc
                       </kbd>
+                    ) : (
+                      field.value === "" && <SlashEntry />
                     )}
                   </div>
                 </div>

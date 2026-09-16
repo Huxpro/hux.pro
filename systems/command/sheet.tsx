@@ -15,11 +15,17 @@ import {
   SlashShortcuts,
   useCommandActions,
   useCommandField,
+  useShowKeyboardHints,
   type CommandShell,
 } from "./actions";
 import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
-import { CommandResults, CommandSlashList, GROUP_HEADINGS } from "./results";
+import {
+  CommandResults,
+  CommandSlashList,
+  GROUP_HEADINGS,
+  SlashEntry,
+} from "./results";
 
 // =============================================================================
 // CommandSheet — the palette as a phone sheet.
@@ -137,6 +143,7 @@ function SheetBody({
   const { locale } = useLocale();
   const actions = useCommandActions();
   const field = useCommandField();
+  const showHints = useShowKeyboardHints();
 
   // The slash list has no field, so the keyboard goes with it.
   useEffect(() => {
@@ -185,6 +192,9 @@ function SheetBody({
                   "placeholder:text-tertiary-foreground"
                 )}
               />
+              {/* No keyboard to type "/" on: the field's trailing accessory
+                  opens the slash list, while the field is empty. */}
+              {!showHints && field.value === "" && <SlashEntry />}
             </>
           )}
           <button

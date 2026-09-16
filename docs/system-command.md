@@ -66,8 +66,15 @@ returns to the page, not to the palette: a launcher is finished the moment it
 has launched something. On the desktop the popover just closes, as before.
 
 **Slash commands** on a phone are the same list, as rows with a back arrow,
-reached by typing `/` into the empty field. The field gives up the keyboard as
-the list comes in; a hardware keyboard still gets the letters.
+reached by typing `/` into the empty field — or, where there is no keyboard to
+type it on, by the `/` chip at the field's trailing edge (`SlashEntry`). The
+chip is the hint made pressable: the same kbd vocabulary with a rim and a
+touch-sized hit area, inside the field where iOS keeps a search field's
+accessory (and so apart from the close button outside it), shown only while
+the field is empty, which is exactly when typing `/` would have worked. In the
+popover the same slot shows `esc` with a keyboard and the chip without one. The
+field gives up the keyboard as the list comes in; a hardware keyboard still
+gets the letters.
 
 ### The popover
 
