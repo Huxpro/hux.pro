@@ -169,9 +169,11 @@ float stars(vec2 p, vec2 uv) {
   return s * uStars * smoothstep(0.05, 0.45, uv.y);
 }
 
-// One crater per cell: a bowl with a raised rim, jittered inside its cell and
-// small enough never to cross into a neighbour, so a whole field costs a single
-// hash. Returns a height, negative in the floor and positive on the rim.
+// One crater per cell: a bowl with a raised rim, jittered inside its cell, so a
+// whole field costs a single hash. Returns a height, negative in the floor and
+// positive on the rim. The bowl stays inside its cell; the rim is a Gaussian,
+// so a large crater's tail is clipped at the cell edge — invisible at this
+// relief, but it is why the radius stays small.
 float craters(vec2 q, float scale, float depth) {
   vec2 sp = q * scale;
   vec2 cell = floor(sp);
@@ -182,17 +184,18 @@ float craters(vec2 q, float scale, float depth) {
   float rad = 0.07 + 0.22 * rnd.y * rnd.y;
   float u = length(fract(sp) - 0.5 - (rnd - 0.5) * 0.4) / rad;
   float bowl = smoothstep(1.0, 0.3, u);
-  float rim = exp(-pow((u - 0.9) * 3.6, 2.0));
+  float ring = (u - 0.9) * 3.6;
+  float rim = exp(-ring * ring);
   return present * depth * (rim * 0.6 - bowl);
 }
 
 // Relief of the surface in unwrapped coordinates: rolling highlands plus two
 // crater scales. Its gradient — not the values — is what lights the moon, so
 // the amplitudes only matter relative to each other.
-float moonRelief(vec2 q, float coarse, float fine) {
+float moonRelief(vec2 q, vec2 detail) {
   float h = (fbm3(q * 2.2 + 9.0) - 0.5) * 0.8;
-  h += craters(q, 3.1, 0.55) * coarse;
-  h += craters(q + 6.1, 6.7, 0.3) * fine;
+  h += craters(q, 3.1, 0.55) * detail.x;
+  h += craters(q + 6.1, 6.7, 0.3) * detail.y;
   return h;
 }
 
@@ -204,23 +207,27 @@ vec3 moon(vec2 p, vec2 moonP) {
   float md = length(d);
 
   // One output pixel of edge, so the limb is the rim of a solid body rather
-  // than a soft blot — at any disc size, from a 20 px crescent upward.
+  // than a soft blot — at any disc size, from a 20 px crescent upward. Taken
+  // before the early-out, because a derivative under a branch is undefined.
   float px = max(fwidth(md), 1e-4);
+  // Beyond five radii the halo is under a tenth of an 8-bit step and the disc
+  // is long gone, which spares the rest of the night sky everything below.
+  if (md > 5.0) return vec3(0.0);
   float disc = smoothstep(1.0, 1.0 - max(px * 1.6, 0.012), md);
 
-  // Phase as a light direction, not a mask. The phase angle runs 0 (full) to
-  // π (new), so cos α = -cos(2π·phase), and the sun stands on the waxing side
-  // for the first half of the cycle. Shading a sphere with this is the single
-  // strongest cue that the moon is a ball: the terminator becomes a gradient
+  // The phase, as one turn: cos gives the terminator (α runs 0 at full to π at
+  // new, so cos α = -cos 2πphase) and sin puts the sun on the waxing side for
+  // the first half of the cycle. Shading a sphere with that is the single
+  // strongest cue that the moon is a ball — the terminator becomes a gradient
   // of grazing light instead of a cut edge.
-  float k = cos(uMoonPhase * 6.2831853);
-  float side = uMoonPhase < 0.5 ? 1.0 : -1.0;
-  vec3 lightDir = vec3(side * sqrt(max(0.0, 1.0 - k * k)), 0.0, -k);
+  float turn = uMoonPhase * 6.2831853;
+  float k = cos(turn);
 
   vec3 col = vec3(0.0);
   float lit = 0.0;
   // Only the disc pays for the surface; the halo below covers the rest.
   if (md < 1.0) {
+    vec3 lightDir = vec3(sin(turn), 0.0, -k);
     float z = sqrt(max(0.0, 1.0 - md * md));
     vec3 n = vec3(d.x, d.y, z);
 
@@ -238,26 +245,26 @@ vec3 moon(vec2 p, vec2 moonP) {
     // scratches that read as dirt on the lens.
     float foot = px / max(z, 0.06);
     float grazing = smoothstep(0.02, 0.42, z);
-    float coarse = smoothstep(0.34, 0.12, foot) * grazing;
-    float fine = smoothstep(0.085, 0.03, foot) * grazing;
 
     // Maria: the broad dark plains that are all the eye really reads at this
     // size. They are flooded basalt, so they are also the smooth parts — the
     // crater relief is damped inside them.
     float sea = smoothstep(0.42, 0.66, fbm5(q * 1.15 + 4.5));
-    coarse *= 1.0 - 0.7 * sea;
-    fine *= 1.0 - 0.8 * sea;
 
-    float h = moonRelief(q, coarse, fine);
+    // What survives of each crater scale: x the landmarks, y the fine pitting.
+    vec2 detail = smoothstep(vec2(0.34, 0.085), vec2(0.12, 0.03), vec2(foot))
+                * grazing * (1.0 - vec2(0.7, 0.8) * sea);
+
+    float h = moonRelief(q, detail);
     float e = 0.012;
     vec2 grad = vec2(
-      moonRelief(q + vec2(e, 0.0), coarse, fine) - h,
-      moonRelief(q + vec2(0.0, e), coarse, fine) - h
+      moonRelief(q + vec2(e, 0.0), detail) - h,
+      moonRelief(q + vec2(0.0, e), detail) - h
     );
     // Tilt the sphere normal by that gradient, in a tangent frame aligned with
     // the image axes.
-    vec3 tx = vec3(1.0 - n.x * n.x, -n.x * n.y, -n.x * n.z);
-    vec3 ty = vec3(-n.y * n.x, 1.0 - n.y * n.y, -n.y * n.z);
+    vec3 tx = vec3(1.0, 0.0, 0.0) - n * n.x;
+    vec3 ty = vec3(0.0, 1.0, 0.0) - n * n.y;
     tx /= max(length(tx), 1e-4);
     ty /= max(length(ty), 1e-4);
     vec3 nb = normalize(n - (tx * grad.x + ty * grad.y) * (0.014 / e));
@@ -290,7 +297,7 @@ vec3 moon(vec2 p, vec2 moonP) {
   // Atmospheric halo — scattered light *in front of* the moon, so it covers
   // the dark side too instead of outlining it as a black hole. Scaled by how
   // much of the disc is illuminated.
-  float illum = 0.5 - 0.5 * cos(uMoonPhase * 6.2831853);
+  float illum = 0.5 - 0.5 * k;
   float glow = exp(-md * md * 0.22) * 0.1 * (0.35 + 0.65 * illum);
   col += vec3(0.75, 0.82, 1.0) * glow * (1.0 - lit * 0.6);
   return col * uMoonVisible;

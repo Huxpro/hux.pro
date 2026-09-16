@@ -218,9 +218,8 @@ export class WallpaperRenderer {
   // ---------------------------------------------------------------------------
 
   setScene(scene: WeatherScene) {
-    // Where the two discs were *aimed* before this scene arrived.
-    const sunAim = this.aimOf("uSun");
-    const moonAim = this.aimOf("uMoon");
+    // Where every uniform was aimed before this scene arrived.
+    const prevTarget = this.target.slice();
     packScene(scene, this.target);
     this.seed = scene.seed;
     if (!this.hasScene) {
@@ -236,8 +235,8 @@ export class WallpaperRenderer {
     // The jump that matters is between one target and the next: measuring
     // against the eased position instead would read a run of small steps — a
     // scrub — as one big jump, and teleport the disc mid-drag.
-    this.snapIfJumped("uSun", sunAim, 0.2);
-    this.snapIfJumped("uMoon", moonAim, 0.2, ["uMoonVisible"]);
+    this.snapIfJumped("uSun", prevTarget, 0.2);
+    this.snapIfJumped("uMoon", prevTarget, 0.2, ["uMoonVisible"]);
     if (this.opts.reducedMotion) {
       this.current.set(this.target);
       this.renderOnce();
@@ -517,22 +516,16 @@ export class WallpaperRenderer {
     this.draw(STILL_FRAME_SEC);
   }
 
-  /** Where a vec2 uniform is aimed, before a new scene overwrites its target. */
-  private aimOf(name: string): [number, number] {
-    const offset = OFFSET[name];
-    return [this.target[offset], this.target[offset + 1]];
-  }
-
   /** Snap a vec2 uniform (and companions) when a new scene jumped its target. */
   private snapIfJumped(
     name: string,
-    from: [number, number],
+    from: Float32Array,
     threshold: number,
     companions: string[] = []
   ) {
     const offset = OFFSET[name];
-    const dx = this.target[offset] - from[0];
-    const dy = this.target[offset + 1] - from[1];
+    const dx = this.target[offset] - from[offset];
+    const dy = this.target[offset + 1] - from[offset + 1];
     if (Math.hypot(dx, dy) > threshold) {
       this.snap(name);
       for (const c of companions) this.snap(c);
