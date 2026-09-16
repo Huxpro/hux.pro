@@ -205,7 +205,11 @@ export interface SurfaceSheetProps {
   /** Controlled active detent, for a sheet that wants to move itself. */
   activeSnapPoint?: number | string | null;
   onActiveSnapPointChange?: (snapPoint: number | string | null) => void;
-  /** Height without snap points. Default 80dvh. */
+  /**
+   * Height without snap points. Default 80dvh. `"auto"` (or `"fit-content"`)
+   * is content height — the sheet is as tall as what is in it, up to the
+   * screen: an action sheet, rather than a surface with a size of its own.
+   */
   height?: string;
   /**
    * For a fixed-height sheet: the detent it stands level with, so a sheet
@@ -245,6 +249,11 @@ export function SurfaceSheet({
   children,
 }: SurfaceSheetProps) {
   const hasSnapPoints = !!snapPoints && snapPoints.length > 0;
+  // Content height: the popup stops constraining the shell and the shell stops
+  // filling the popup, so the sheet is exactly as tall as what it holds. Safe
+  // under the padding-as-travel geometry above, which only applies to a sheet
+  // with detents — this one has none, and travels by transform alone.
+  const fitsContent = height === "auto" || height === "fit-content";
 
   // The detent, controlled by the owner when it says so, else kept here.
   const isControlled = activeSnapPoint !== undefined;
@@ -322,7 +331,14 @@ export function SurfaceSheet({
                         snapPoints[0]
                       )})`,
                     }
-                  : { bottom: BOTTOM_INSET, height: height ?? "80dvh" }),
+                  : {
+                      bottom: BOTTOM_INSET,
+                      height: fitsContent ? "auto" : (height ?? "80dvh"),
+                      // Content height still stops at the screen.
+                      ...(fitsContent && {
+                        maxHeight: `calc(100dvh - ${TOP_INSET} - ${BOTTOM_INSET})`,
+                      }),
+                    }),
               }}
               // The positioning box only, so nothing paints outside the shell.
               className="pointer-events-auto absolute inset-x-3 z-[61] flex flex-col bg-transparent outline-none"
@@ -338,7 +354,11 @@ export function SurfaceSheet({
                 style={{ "--surface-stack-depth": depth } as React.CSSProperties}
                 className={cn(
                   SHELL,
-                  "min-h-0 flex-1 origin-top",
+                  "min-h-0 origin-top",
+                  // Fill the popup, unless the popup is taking its height from
+                  // this shell — then a `flex-1` basis of zero is a race the
+                  // content loses.
+                  !fitsContent && "flex-1",
                   // The dim on a receded sheet is a wash over the shell rather
                   // than an opacity, so the glass stays glass.
                   "after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:[transition-duration:var(--surface-duration)]",

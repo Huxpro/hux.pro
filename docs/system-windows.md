@@ -148,7 +148,8 @@ red/amber/green dots, placed to feel native per platform:
   the app **title** fade in. Nothing changes position between states, so the
   buttons are stable mouse targets.
 - **Mobile (touch)** → a small, **centred**, always-grey ••• pill. The dots are
-  inert on touch (an indicator, not three tiny targets); a tap opens the menu.
+  inert on touch (an indicator, not three tiny targets); a tap opens the menu,
+  which on touch is an **action sheet**, not a popover.
 
 The window **menu** (title header + size presets + Open in browser + Minimize +
 Close) opens via **right-click**, a **tap on the title**, or a **long-press**
@@ -156,6 +157,23 @@ Close) opens via **right-click**, a **tap on the title**, or a **long-press**
 (`lib/pointer.ts`) disambiguates *tap → menu*, *hold → menu*, *move → drag*.
 There's deliberately **no caret**. Clicking the green dot zooms; double-clicking
 the top band zooms too.
+
+The menu takes the shape the device asks for, and only the shape — both render
+the same `WindowMenuBody`, so the two can't drift apart:
+
+- **Desktop** → a **popover** under the pill: portaled to `<body>` with a
+  full-viewport scrim (so a click anywhere — even over an iframe, whose pointer
+  events don't bubble — dismisses it), left-aligned under the pill and clamped
+  into the viewport.
+- **Touch** → a **`SurfaceSheet`** ([Surface System](./system-surface.md)) from
+  the bottom edge, content height (`height="auto"`), with the app header on top,
+  the actions as thumb-sized rows in the same order, and Close in a group of its
+  own, in red — iOS's answer to "long-press an object, get its actions". Nothing
+  in `window-chrome.tsx` computes a position for it: the sheet brings its own
+  scrim (above the window layer and its iframes), its own Escape, drag-to-dismiss
+  and the shared stack, so a playlist or wallpaper sheet already up steps back
+  under it. A row **dismisses the sheet and then acts** — `close` unmounts the
+  chrome, and with it a sheet that would otherwise vanish mid-animation.
 
 Gesture handling in `window.tsx`:
 

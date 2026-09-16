@@ -149,6 +149,15 @@ drag as `--drawer-swipe-movement-y`, both on the popup; everything that reads
 them is one block in `app/globals.css`, *Secondary surface motion*, on the
 site's own curve (`SURFACE_EASING`, `SURFACE_TRANSITION_MS` in `stack.ts`).
 
+**Content height.** `height="auto"` (or `fit-content`) makes the sheet exactly
+as tall as what it holds, up to the screen — an action sheet rather than a
+surface with a size of its own; the window menu on touch
+(`systems/windows/components/window-chrome.tsx`) is one. Only a sheet without
+detents can do it: with detents the popup's height *is* the travel the padding
+above is subtracted from. The popup gives up its fixed height and the shell
+gives up `flex-1` (a basis of zero in a box sizing to its own content is a race
+the content loses), so the height comes from the rows.
+
 **Modal.** The scrim is the viewport — `Drawer.Viewport` is already a
 transparent, full-screen box containing the popup, so when `modal` is on it
 takes the page away and a press on it dismisses; when it is off it is
