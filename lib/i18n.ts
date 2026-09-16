@@ -158,6 +158,20 @@ export const translations = {
     wallpaperPlacementWidget: "Widget",
     wallpaperPlacementOff: "Off",
     wallpaperFooterNote: "Wallpapers are Apple's; rights remain theirs.",
+
+    // Reading settings (the article page's "Aa")
+    readingSettings: "Reading settings",
+    readingSettingsTitle: "reading",
+    readingSettingsClose: "Close reading settings",
+    readingFont: "Typeface",
+    readingFontSans: "Sans",
+    readingFontSerif: "Serif",
+    readingMeasure: "Column",
+    readingMeasureNarrow: "Narrow",
+    readingMeasureDefault: "Default",
+    readingMeasureWide: "Wide",
+    readingFocus: "Focus mode",
+
     stateOn: "On",
     stateOff: "Off",
     debugOverride: "override",
@@ -380,6 +394,20 @@ export const translations = {
     wallpaperPlacementWidget: "卡片",
     wallpaperPlacementOff: "关闭",
     wallpaperFooterNote: "壁纸版权归 Apple 所有。",
+
+    // Reading settings (the article page's "Aa")
+    readingSettings: "阅读设置",
+    readingSettingsTitle: "阅读",
+    readingSettingsClose: "关闭阅读设置",
+    readingFont: "字体",
+    readingFontSans: "无衬线",
+    readingFontSerif: "衬线",
+    readingMeasure: "栏宽",
+    readingMeasureNarrow: "窄",
+    readingMeasureDefault: "标准",
+    readingMeasureWide: "宽",
+    readingFocus: "专注模式",
+
     stateOn: "开",
     stateOff: "关",
     debugOverride: "覆盖",

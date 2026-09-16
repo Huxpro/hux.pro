@@ -107,6 +107,11 @@ import {
 } from "lucide-react";
 import { withDraggable } from "@/systems/draggable";
 import Link from "next/link";
+import {
+  Segmented,
+  Switch,
+  type SegmentedOption,
+} from "@/components/ui/controls";
 import { Slider } from "@/components/ui/slider";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -651,38 +656,14 @@ function PanelRow({
 }
 
 /** Pill on/off switch, matching the gradient/weather toggles. */
-function PanelToggle({
-  on,
-  onClick,
-  label,
-  disabled = false,
-}: {
+function PanelToggle(props: {
   on: boolean;
   onClick: () => void;
   label: string;
   /** The setting is kept but has nothing to act on right now. */
   disabled?: boolean;
 }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
-        on ? "bg-green-500/90 border-green-500/70" : "bg-muted/40 border-border/60",
-        disabled && "opacity-40 cursor-not-allowed"
-      )}
-      aria-pressed={on}
-      aria-label={label}
-    >
-      <span
-        className={cn(
-          "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
-          on ? "translate-x-4" : "translate-x-0.5"
-        )}
-      />
-    </button>
-  );
+  return <Switch tone="system" {...props} />;
 }
 
 /** Continuous value, for the things you settle by dragging rather than typing. */
@@ -727,35 +708,12 @@ function PanelRange({
 }
 
 /** Segmented single-select, matching the ruler dock control. */
-function PanelSegmented<T extends string>({
-  value,
-  options,
-  onChange,
-}: {
+function PanelSegmented<T extends string>(props: {
   value: T;
-  options: { value: T; label: string; title?: string }[];
+  options: SegmentedOption<T>[];
   onChange: (value: T) => void;
 }) {
-  return (
-    <div className="flex shrink-0 overflow-hidden rounded-md border border-border/60">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          onClick={() => onChange(o.value)}
-          title={o.title}
-          className={cn(
-            "px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
-            value === o.value
-              ? "bg-accent text-accent-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-          aria-pressed={value === o.value}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
+  return <Segmented tone="system" {...props} />;
 }
 
 function ReadingModule() {

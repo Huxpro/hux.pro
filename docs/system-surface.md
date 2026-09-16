@@ -1,6 +1,6 @@
 # Surface System
 
-One secondary surface, three shapes.
+One secondary surface, four shapes.
 
 ```
 systems/surface/
@@ -22,30 +22,46 @@ of one judgement call, free to drift apart.
 The judgement is a property of the **viewport**, not of the feature. So it
 lives here, once.
 
-## The three shapes
+## The four shapes
 
 | Mode | Where | Why |
 |------|-------|-----|
 | `sheet` | Bottom edge, drag-to-dismiss, grabber | Phone. Thumb reach. |
 | `panel` | Trailing edge, full height | Tablet. Content beside content. |
 | `window` | Centred, draggable, morphs in | Desktop. Move it out of the way. |
+| `popover` | Hanging off the button that opened it | Anything wider than a phone, for a surface that belongs to one control. |
 
 `window` is not a drawer. It springs in with the same curve
 `systems/windows` uses to open an app from its shelf icon, and drags by its
 header through the shared `useDraggable` hook — so it inherits the devtool's
 per-instance drag settings like every other draggable thing on the site.
 
-No shape takes the page away. There is no scrim, the page stays interactive,
-and touching it does not close the surface; its close button, Escape and a drag
-do. The surfaces here are all about the page behind them, and a surface that
-closed on every touch of a live page could not be used.
+`popover` is not a drawer either: it is a [Base UI
+Popover](https://base-ui.com/react/components/popover) positioned against an
+`anchor` — a ref to the element that owns it — flipping and shifting to stay on
+screen. It wears the same glass shell and the same title bar as the others at a
+smaller radius, so the phone's sheet and the desktop's card are recognisably one
+object. Focus returns to the anchor on close, since without a Base UI trigger
+there is nothing else to hand it back to.
+
+The first three shapes do not take the page away. There is no scrim, the page
+stays interactive, and touching it does not close the surface; its close button,
+Escape and a drag do. Those three are all about the page behind them, and a
+surface that closed on every touch of a live page could not be used.
 
 (This is what `modal={false}` means to Base UI, and it means it literally: it
 touches neither `<body>`'s pointer events nor its position. A non-modal surface
 also passes `disablePointerDismissal`, because a press on a live page belongs
 to the page.)
 
-The one exception is a launcher. The command palette's sheet is modal: the page
+A popover is the exception, for exactly the same reason: it is not about the
+page, it is the extension of one button, and every menu on every platform is put
+away by a press elsewhere. Its anchor is the one press that does not count —
+Base UI reads a press on it as an outside press, so the shape cancels that and
+leaves the gesture to the button, which would otherwise close and reopen in one
+click.
+
+The other exception is a launcher. The command palette's sheet is modal: the page
 stops answering while it is up and a press on it dismisses, the click-away its
 desktop popover has. See **The sheet primitive** below.
 
@@ -72,8 +88,13 @@ sheet everywhere, and moving a surface between shapes is a one-word change:
 
 ```ts
 ADAPTIVE_PRESENTATION  // { base: "sheet", sm: "panel", lg: "window" }
+ANCHORED_PRESENTATION  // { base: "sheet", sm: "popover" } — owned by a button
 DRAWER_PRESENTATION    // { base: "sheet", sm: "panel" } — never floats free
 ```
+
+A surface on `ANCHORED_PRESENTATION` passes `anchor`, whatever the viewport: the
+shape is decided at render, so the ref is handed over whether or not this
+viewport is the one that uses it.
 
 Breakpoints match Tailwind's (`sm` 640, `lg` 1024) so a surface and the content
 inside it respond at the same widths rather than a few pixels apart.
@@ -102,7 +123,9 @@ const { mode, isWindow, close } = useSurfaceContext();
 | `id` | Draggable instance key in window mode. Register it in `DRAGGABLE_INSTANCES`. |
 | `title` / `actions` | Header content. `actions` sits left of the close button. |
 | `windowWidth` | Window mode only; drawers size against their edge. |
-| `maxHeight` | Caps window and sheet height. |
+| `anchor` | What the popover hangs off. A ref to the trigger. |
+| `popoverWidth` / `popoverAlign` | The card's width, and which of its edges lines up with the anchor's (`end` for a trigger at the trailing edge of its row). |
+| `maxHeight` | Caps window, popover and sheet height. `auto` sizes to content. |
 | `snapPoints` | Detents for the sheet shape, lowest first; a drag carries it to the top. |
 | `contentClassName` | Overrides the scroll area's padding, for content that bleeds wider. |
 | `scrollRef` | The scroll container, for content that scrolls a row into view. |
@@ -241,6 +264,7 @@ UI's own count of nested sheets, one `--surface-depth` on the shell. See
 |---------|--------------|-------|
 | Music playlist | `ADAPTIVE_PRESENTATION` | macOS-sized window (980×620), track list breaks into columns |
 | Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode; `SHEET_DETENTS` as a sheet |
-| Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight popover, not an `AdaptiveSurface` |
+| Reading settings | `ANCHORED_PRESENTATION` | The article page's "Aa". Content-height sheet (`maxHeight="auto"`), end-aligned popover off the button; the focus-mode row is dropped in the sheet |
+| Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight card, anchored to nothing, not the `popover` shape above |
 
 Adding a second is: register a draggable id, pick a presentation, pass content.

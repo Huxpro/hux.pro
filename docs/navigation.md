@@ -222,6 +222,26 @@ Content pages (prose, log, prompt, docs) share a common layout structure via the
 | `className` | `string` | - | Additional classes for main |
 | `children` | `ReactNode` | required | Page content |
 
+### Reading settings ("Aa")
+
+An article page — anything `PostContent` renders with the ruler on — puts an
+`Aa` button in `PageLayout`'s `headerActions`, beside the meta row, where the
+list pages keep their language filter. It opens the reader's half of the
+settings that until now only the devtool could reach
+(`components/post/reading-settings.ts`): typeface, column width, focus mode.
+
+It is Books' "Aa" menu, and takes the surface system's anchored presentation —
+a content-height sheet on a phone, a popover hanging off the button above that
+(`ANCHORED_PRESENTATION`, [Secondary Surfaces](./system-surface.md)). Neither is
+modal: the article stays live behind it, so a change lands where you can watch
+it. Focus mode is left out of the sheet — the reading line is at 40% of the
+viewport, and a phone screen holds a paragraph or two, so there is nothing to
+dim.
+
+Media bleed and the ruler's dock stay in the devtool panel; they are knobs on
+how the site is built, not on how an article reads. Both surfaces write the same
+persisted store, so the panel and the reader's menu always agree.
+
 ### View Transitions
 
 The site uses the browser's View Transitions API via the `next-view-transitions` library for smooth page-to-page animations.

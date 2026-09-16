@@ -13,6 +13,8 @@ import { useEffect, useState } from "react";
 //   sheet   — action sheet climbing from the bottom edge.  Phone.
 //   panel   — floating panel against the trailing edge.    Tablet.
 //   window  — centred, draggable window that morphs in.    Desktop.
+//   popover — a card hanging off the button that opened it. Desktop, for a
+//             surface that belongs to one control rather than to the page.
 //
 // A feature declares its presentation as a breakpoint map and stops thinking
 // about it:
@@ -23,7 +25,7 @@ import { useEffect, useState } from "react";
 // a sheet everywhere and a one-word change moves a surface between shapes.
 // =============================================================================
 
-export type SurfaceMode = "sheet" | "panel" | "window";
+export type SurfaceMode = "sheet" | "panel" | "window" | "popover";
 
 /**
  * Breakpoints match Tailwind's, so a surface and the content inside it respond
@@ -48,6 +50,16 @@ export const ADAPTIVE_PRESENTATION: SurfacePresentation = {
   base: "sheet",
   sm: "panel",
   lg: "window",
+};
+
+/**
+ * What a surface owned by a single button wants — the Books "Aa" menu: a sheet
+ * under the thumb on a phone, and from `sm` up a popover hanging off the button
+ * itself. A surface using this passes `anchor`.
+ */
+export const ANCHORED_PRESENTATION: SurfacePresentation = {
+  base: "sheet",
+  sm: "popover",
 };
 
 function resolve<T>(map: BreakpointMap<T>, width: number): T {
