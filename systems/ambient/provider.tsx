@@ -56,12 +56,7 @@ import {
 import type { NormalizedWeather, WeatherCondition } from "./lib/weather";
 import type { AmbientPhase } from "./lib/phase";
 import { deriveAmbientPhase } from "./lib/phase";
-import {
-  solarThemeAt,
-  SOLAR_HANDOVER,
-  SOLAR_HANDOVER_MS,
-  type SolarTheme,
-} from "./lib/solar-theme";
+import { solarThemeAt, SOLAR_HANDOVER, type SolarTheme } from "./lib/solar-theme";
 import type { WallpaperStats } from "./lib/wallpaper/renderer";
 import { supportsWebGL2 } from "./lib/wallpaper/support";
 import { usePathname } from "next/navigation";
@@ -139,13 +134,6 @@ interface AmbientTimeContextType {
   realNowMs: number;
   /** Derived from `nowMs` and the sun times; there is no phase override. */
   phase: AmbientPhase;
-  /**
-   * The phase the *chrome* is showing — the greeting's phase. It is `phase`,
-   * except while the sun is handing the theme over: then the chrome is still
-   * in the window that just closed, and says so, until the sky's animation
-   * ends and the theme, the words and the sky all land on the same frame.
-   */
-  chromePhase: AmbientPhase;
   /** Sunrise / sunset for the effective day (shifted with `dayOffset`). */
   sunriseMs?: number;
   sunsetMs?: number;
@@ -622,17 +610,16 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     (next: SolarTheme | null) => setSkyLead(next),
     []
   );
-  // The lead is over the moment the chrome arrives — settled during render, so
-  // the wallpaper never paints a frame of the lead it no longer has.
-  if (skyLead === theme) setSkyLead(null);
   /** What the wallpaper paints in: the incoming theme while the sky leads. */
   const wallpaperTheme: "light" | "dark" = skyLead ?? theme;
 
-  // Backstop: if the chrome never arrives (the sync unmounted mid-handover),
-  // the sky does not stay in a theme the page is not in.
+  // The lead runs for exactly the sky's animation. It outlives the chrome's
+  // switch, which lands halfway through it — cutting it short there would
+  // re-target the crossfade in flight — and it ends on its own, so a handover
+  // that is never completed leaves nothing behind.
   useEffect(() => {
     if (!skyLead) return;
-    const timer = window.setTimeout(() => setSkyLead(null), SOLAR_HANDOVER_MS + 2_000);
+    const timer = window.setTimeout(() => setSkyLead(null), SOLAR_HANDOVER.skyMs);
     return () => window.clearTimeout(timer);
   }, [skyLead]);
 
@@ -764,16 +751,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     () => deriveAmbientPhase({ nowMs, sunriseMs, sunsetMs }),
     [nowMs, sunriseMs, sunsetMs]
   );
-
-  // The chrome's phase needs no memory of the last one: a handover only ever
-  // starts at a window closing, so while the sky is leading, the window the
-  // chrome is still in is the one the sun just left — sunset when it is
-  // heading for dark, sunrise when it is heading for light.
-  const chromePhase: AmbientPhase = skyLead
-    ? skyLead === "dark"
-      ? "sunset"
-      : "sunrise"
-    : phase;
 
   // The same clock and the same sun times the phase reads, reduced to the one
   // bit the theme cares about. A string, so the minute tick only wakes
@@ -1108,7 +1085,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       nowMs,
       realNowMs,
       phase,
-      chromePhase,
       sunriseMs,
       sunsetMs,
       timeScrubMinutes,
@@ -1122,7 +1098,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       nowMs,
       realNowMs,
       phase,
-      chromePhase,
       sunriseMs,
       sunsetMs,
       timeScrubMinutes,

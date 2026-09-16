@@ -1,25 +1,21 @@
-import { DEFAULT_SUN_EVENT_WINDOW_MINUTES, type SunEvent } from "./sun";
+import type { SunEvent } from "./sun";
 
 // =============================================================================
-// The theme the sun implies — and how it hands over.
+// The theme the sun implies — and when it changes hands.
 //
-// Not at the horizon: at the end of the show. Sunrise and sunset are ±45 min
-// windows here (lib/phase.ts), and the sky spends all of both animating. Cut
-// the theme at the sun's crossing and you cut that animation in half — the
-// dusk you were watching in Light finishes in Dark. So the theme holds through
-// the window and changes when the window closes: it follows the *phase*, and
-// changes exactly where the phase does, sunrise → morning and sunset →
-// evening. Written as a clock rule, that is the same boundaries shifted by the
-// window:
+// At the sun's own crossing, which is the *middle* of the long animation, not
+// its end. Sunrise and sunset are ±45 min windows here (lib/phase.ts) and the
+// sky spends all of both moving; the moment it moves fastest is the middle.
+// A theme change is a cut however gently it is painted, and a cut lands softest
+// inside motion — at the end of the window the sky has settled again, and the
+// same cut stands out against it.
 //
-//   dark ─────┬─ sunrise ─┬───── light ──────┬─ sunset ─┬───── dark
-//         rise-45      rise+45           set-45      set+45
-//             └ still dark ┘                  └ still light ┘
+//   dark ─────┬──── sunrise ────┬───── light ─────┬──── sunset ────┬───── dark
+//         rise-45      ▲     rise+45          set-45      ▲     set+45
+//                      └ here                             └ here
 //
-// The handover itself is staged (SOLAR_HANDOVER): the sky moves first and
-// alone, and the chrome — theme and greeting together — lands on the last
-// frame of it, so the change reads as the light going rather than a switch
-// being thrown.
+// So the theme is simply light between sunrise and sunset — and everything
+// about *how* it changes hands is in SOLAR_HANDOVER below.
 // =============================================================================
 
 export type SolarTheme = "light" | "dark";
@@ -33,23 +29,18 @@ export function solarThemeAt(params: {
   nowMs: number;
   sunriseMs?: number;
   sunsetMs?: number;
-  /** Half-width of the sunrise / sunset windows the theme waits out. */
-  windowMinutes?: number;
 }): SolarTheme | null {
   const { nowMs, sunriseMs, sunsetMs } = params;
   if (!Number.isFinite(nowMs)) return null;
   if (!Number.isFinite(sunriseMs) || !Number.isFinite(sunsetMs)) return null;
 
-  const windowMs =
-    (params.windowMinutes ?? DEFAULT_SUN_EVENT_WINDOW_MINUTES) * 60_000;
-  // The end of each window — where the phase changes, and with it the theme.
-  const rise = (sunriseMs as number) + windowMs;
-  const set = (sunsetMs as number) + windowMs;
+  const rise = sunriseMs as number;
+  const set = sunsetMs as number;
   if (rise === set) return null;
 
-  // The ordinary day: dawn ends, then dusk ends. Daylight is between them.
+  // The ordinary day: sunrise, then sunset. Daylight is between them.
   if (rise < set) return nowMs >= rise && nowMs < set ? "light" : "dark";
-  // Dusk before dawn (a forecast that straddles midnight): night is the
+  // Sunset before sunrise (a forecast that straddles midnight): night is the
   // stretch between them instead, and everything outside it is day.
   return nowMs >= set && nowMs < rise ? "dark" : "light";
 }
@@ -60,28 +51,24 @@ export function sunEventFor(theme: SolarTheme): SunEvent {
 }
 
 /**
- * The handover: one long animation of the sky, and everything else lands on
- * its last frame.
+ * The handover. The sun's crossing is the middle of the day's long animation;
+ * this is the middle of the short one.
  *
- *   0ms ────── the sky alone. The wallpaper is painted in the incoming theme
- *              while the chrome stays where it is: the stack crossfades over
- *              `skyMs`, and under the Sky style the shader eases its veil and
- *              exposure over about the same stretch (tau 0.5 — settled inside
- *              of it).
- *   skyMs ──── everything else, on the same frame and in one commit: the app
- *              theme, and the greeting, which has been holding the window that
- *              just closed ("Sun Is Setting") rather than announcing the next
- *              one over a sky still mid-dissolve. Both go inside a view
- *              transition, so the page crossfades as one composited image —
- *              the same 200ms a route change uses.
- *
- * One number, because the three moments are one moment: the sky finishes, the
- * theme changes, the words change.
+ *   0ms ──────────── the sky starts moving to the new theme: the wallpaper
+ *                    stack crossfades over `skyMs` instead of its usual 0.7s,
+ *                    and under the Sky style the shader eases its veil and
+ *                    exposure over about the same stretch.
+ *   chromeAtMs ───── halfway through it, the chrome changes — one commit,
+ *                    inside a view transition, so the page crossfades as a
+ *                    single composited image (the 200ms a route change uses).
+ *                    The sky is at its most in-between right here, which is
+ *                    the whole point: the cut has motion to hide in, on both
+ *                    sides of it.
+ *   skyMs ────────── the sky settles, and the notice says what happened.
  */
 export const SOLAR_HANDOVER = {
-  /** The sky's long animation into the new theme — and the chrome's cue. */
+  /** The sky's crossfade into the new theme. */
   skyMs: 1800,
+  /** Where in it the chrome's instant switch lands: the middle. */
+  chromeAtMs: 900,
 } as const;
-
-/** The sky's animation, after which the chrome changes and the notice is due. */
-export const SOLAR_HANDOVER_MS = SOLAR_HANDOVER.skyMs;

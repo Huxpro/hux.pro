@@ -278,64 +278,56 @@ down. On by default (`themeFollowsSun` in the ambient settings), turned off in
 the wallpaper picker's Weather group, in the command palette (`/s`), or in the
 devtool's Sky module.
 
-**Not at the horizon — at the end of the show.** Sunrise and sunset are ±45 min
-windows here, and the sky spends all of both animating. Cut the theme at the
-sun's crossing and you cut that animation in half: the dusk you were watching
-in Light finishes in Dark. So the theme holds through the window and changes
-when the window closes — it follows the *phase*, and changes exactly where the
-phase does, `sunrise → morning` and `sunset → evening`:
+**At the sun's own crossing — the middle of the long animation, not its end.**
+Sunrise and sunset are ±45 min windows here and the sky spends all of both
+moving; the moment it moves fastest is the middle. A theme change is a cut
+however gently it is painted, and a cut lands softest inside motion: at the end
+of the window the sky has settled again, and the same cut stands out against
+it.
 
 ```
-dark ─────┬─ sunrise ─┬───── light ──────┬─ sunset ─┬───── dark
-      rise-45      rise+45           set-45      set+45
-          └ still dark ┘                  └ still light ┘
+dark ─────┬──── sunrise ────┬───── light ─────┬──── sunset ────┬───── dark
+      rise-45      ▲     rise+45          set-45      ▲     set+45
+                   └ here                             └ here
 ```
 
-`solarThemeAt()` (`lib/solar-theme.ts`) is that rule as a clock: the same
-boundaries, shifted by the window. It returns null when the sun times are
-unknown, and then nothing switches.
+`solarThemeAt()` (`lib/solar-theme.ts`) is therefore the plain rule — light
+between sunrise and sunset, dark outside, null when the sun times are unknown
+(and then nothing switches). Everything about *how* it changes hands is in
+`SOLAR_HANDOVER`.
 
-**The handover is one animation with one landing.** The sky moves alone, and
-everything else arrives on its last frame (`SOLAR_HANDOVER`):
+**The handover puts the cut in the middle of a short animation too**, so it has
+motion on both sides of it:
 
 ```
-0ms ──────────── the sky, alone. The wallpaper is painted in the *incoming*
-                 theme while the chrome holds: the stack crossfades over 1.8s
-                 instead of its usual 0.7s, and under the Sky style the shader
-                 eases its veil and exposure over about the same stretch.
-1800ms ───────── the sky's animation ends — and on that same frame, in one
-                 commit: the app theme, and the greeting. Inside a view
-                 transition, so the page crossfades as one composited image,
-                 the same 200ms a route change uses.
-2000ms ───────── the notice.
+0ms ──────────── the sky starts moving to the new theme: the wallpaper stack
+                 crossfades over 1.8s instead of its usual 0.7s, and under the
+                 Sky style the shader eases its veil and exposure over about
+                 the same stretch.
+900ms ────────── halfway through it, the chrome changes — one commit, inside a
+                 view transition, so the page crossfades as a single
+                 composited image, the same 200ms a route change uses.
+1800ms ───────── the sky settles, and the notice lands.
 ```
 
-Three moments that used to be three (the sky settling, the theme switching, the
-words changing) are one. Two values make it work, and both are named for who
-they serve:
+`wallpaperTheme` is what makes the lead possible: the scene, the wash's weight,
+a picture's half and the profile of what is painting all read it, while
+everything that belongs to the chrome — the page ground, the bezel, the ink
+ladder — keeps reading `theme`. The lead runs for exactly the sky's animation
+and outlives the switch in its middle; a theme the user picks while it is
+running calls the whole thing off, sky included: theirs wins.
 
-- `wallpaperTheme` — the scene, the wash's weight, a picture's half, the
-  profile of what is painting. It leads. Everything that belongs to the chrome
-  (the page ground, the bezel, the ink ladder) keeps reading `theme`.
-- `chromePhase` — the phase the *greeting* reads. While the sky leads it is the
-  window that just closed, so the words still say "Sun Is Setting" over a dusk
-  that is still fading, instead of announcing the evening 1.8s early. It needs
-  no memory to do it: a handover only ever begins at a window closing, so the
-  window the chrome is still in is the one the sun just left.
+The greeting is not part of this. It follows the phase, which changes at the
+window's *ends*, three quarters of an hour either side of the switch — far
+enough that the two never read as one event that failed to line up.
 
-The lead ends the moment the chrome catches up, and a theme the user picks
-while it is running calls the whole thing off, sky included: theirs wins. The
-crossing is detected in a **layout effect**, because `chromePhase` only holds
-once the handover has begun and a passive effect would let one frame of the new
-greeting paint first.
-
-The chrome's half is deliberately **not** a transition per element. That was
-the first cut of this, and it cost ~1.2s of style recalculation for a 1s
-dissolve — a page this size has ~1000 elements and their colours are
-`color-mix()` over custom properties, so every frame re-ran the document's
-style. The composited crossfade is ~60ms of capture for the same effect, and
-where it is unavailable (Firefox, `prefers-reduced-motion`) the chrome simply
-changes, which is what the rest of the app does when the user picks a theme.
+The chrome's half is deliberately **not** a transition per element. That was an
+earlier cut of this, and it cost ~1.2s of style recalculation for a 1s dissolve
+— a page this size has ~1000 elements and their colours are `color-mix()` over
+custom properties, so every frame re-ran the document's style. The composited
+crossfade is ~60ms of capture for the same effect, and where it is unavailable
+(Firefox, `prefers-reduced-motion`) the chrome simply changes, which is what the
+rest of the app does when the user picks a theme.
 
 Three more rules make it a system gesture rather than a setting changing behind
 the user's back:
@@ -697,7 +689,6 @@ const {
   nowMs,               // The effective clock — real, or time-travelled
   realNowMs,           // The wall clock, untouched
   phase,               // Always derived from nowMs; there is no phase override
-  chromePhase,         // The greeting's phase: `phase`, but held during a handover
   sunriseMs,           // For the effective day
   sunsetMs,
   timeScrubMinutes,    // Devtool: minutes past midnight, or null

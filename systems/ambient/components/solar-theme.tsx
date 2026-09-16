@@ -3,13 +3,9 @@
 import { dismissToast, showCustomToast } from "@/components/ui/system-sonner";
 import { useTheme } from "@/services";
 import { useReducedMotion } from "framer-motion";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
-import {
-  SOLAR_HANDOVER,
-  sunEventFor,
-  type SolarTheme,
-} from "../lib/solar-theme";
+import { SOLAR_HANDOVER, sunEventFor, type SolarTheme } from "../lib/solar-theme";
 import { useSolarTheme } from "../provider";
 import { SolarThemeToast } from "./solar-theme-toast";
 
@@ -22,28 +18,21 @@ import { SolarThemeToast } from "./solar-theme-toast";
 // sitting on the page through dusk does. That is the whole of "in the same
 // session": the sun may interrupt you, it may not greet you.
 //
-// *When* it crosses is the end of the sunrise / sunset window rather than the
-// sun's own crossing, so the dusk you were watching in Light finishes in Light
-// (lib/solar-theme.ts). *How* is one long animation of the sky with everything
-// else on its last frame:
+// *When* it crosses is the sun's own crossing, which is the middle of the
+// day's long animation rather than its end (lib/solar-theme.ts). *How* is the
+// middle of a short one:
 //
-//   beginThemeHandover(next)  the wallpaper starts painting the incoming theme
-//                             on a longer crossfade; the chrome stays put, and
-//                             the greeting holds the window that just closed.
-//   + skyMs                   the sky's animation ends, and on that frame, in
-//                             one commit: the theme, and the greeting. Inside
-//                             a view transition, so the page crossfades as one
-//                             composited image — the same 200ms a route change
-//                             uses. A transition per element would cost ~1.2s
-//                             of style recalculation on a page this size —
-//                             measured — against ~60ms for this.
-//   + the notice              a pill, once it has settled.
-//
-// The detection runs in a layout effect, not an effect: `chromePhase` holds
-// only once the handover has begun, and a passive effect would let the browser
-// paint one frame of the new greeting first. Layout effects flush before that
-// paint — and a child's before its parent's, which is why the provider sees
-// the hold in the same pass.
+//   beginThemeHandover(next)  the sky starts moving to the new theme on a
+//                             longer crossfade; the chrome stays put.
+//   + chromeAtMs              halfway through it, the chrome changes — one
+//                             commit, inside a view transition, so the page
+//                             crossfades as one composited image (the 200ms a
+//                             route change uses). A transition per element
+//                             would cost ~1.2s of style recalculation on a
+//                             page this size — measured — against ~60ms for
+//                             this. The cut has motion either side of it to
+//                             hide in, which is the whole point of the middle.
+//   + skyMs                   the sky settles, and the notice lands.
 //
 // What it applies is a session override on the theme (services/theme.tsx), not
 // the saved Appearance preference. The preference is untouched, an explicit
@@ -63,8 +52,6 @@ import { SolarThemeToast } from "./solar-theme-toast";
 
 const TOAST_ID = "solar-theme";
 const TOAST_DURATION_MS = 5_000;
-/** The page's own crossfade, after which the notice is not interrupting anything. */
-const CHROME_CROSSFADE_MS = 200;
 
 /**
  * Commit the theme as one crossfade of the whole page where the browser can
@@ -107,7 +94,7 @@ export function SolarThemeSync() {
     pickedRef.current = { theme, preference };
   }, [theme, preference]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     // Off: the sun drives nothing, and an override it left behind goes with
     // it. Keeping `seen` in step means switching back on cannot fire for a
     // crossing that happened while it was off.
@@ -161,12 +148,12 @@ export function SolarThemeSync() {
       return;
     }
 
-    // The sky, alone, first.
+    // The sky starts; the chrome changes in the middle of it.
     const picked = { theme, preference };
     beginThemeHandover(sunTheme);
     timersRef.current.push(
       window.setTimeout(() => {
-        // Someone picked a theme while the sky was leading: call the whole
+        // Someone picked a theme while the sky was moving: call the whole
         // thing off, sky included, rather than overruling them a beat later.
         if (
           pickedRef.current.theme !== picked.theme ||
@@ -176,8 +163,12 @@ export function SolarThemeSync() {
           return;
         }
         commitTheme(() => setThemeOverride(sunTheme), true);
-        timersRef.current.push(window.setTimeout(notice, CHROME_CROSSFADE_MS));
-      }, SOLAR_HANDOVER.skyMs)
+        // The notice waits for the sky to settle, so it is not another thing
+        // moving while the change is still landing.
+        timersRef.current.push(
+          window.setTimeout(notice, SOLAR_HANDOVER.skyMs - SOLAR_HANDOVER.chromeAtMs)
+        );
+      }, SOLAR_HANDOVER.chromeAtMs)
     );
   }, [
     followSun,
