@@ -93,6 +93,18 @@ import {
 // 6. Every gesture path is its own test: a `.click()` proves nothing about a
 //    touch tap, a touch tap nothing about a swipe release, and a programmatic
 //    `focus()` is a third thing again.
+// 7. A swipe never starts from `button,a,input,select,textarea,label,
+//    [role="button"]` — `DEFAULT_IGNORE_SELECTOR` in
+//    utils/useSwipeDismiss.js, checked for mouse and touch alike. A control
+//    that has to be draggable (the window grip) cannot wear those roles; give
+//    it a visually hidden button beside it for the semantics.
+// 8. Once a press becomes a swipe the popup captures the pointer and the rest
+//    of the stream never reaches you: no move, no up — and out here, above
+//    `Drawer.Content`, no click at all, even for a plain tap. Anything that
+//    listens for a tap on the grabber has to treat "the release came back to
+//    us" as the signal, and ask the popup (`--drawer-swipe-movement-y`)
+//    whether the surface moved. A timer armed on press will otherwise fire
+//    in the middle of a drag.
 // -----------------------------------------------------------------------------
 
 /**
@@ -224,6 +236,20 @@ export interface SurfaceSheetProps {
    */
   restoreFocus?: boolean;
   /**
+   * Keep the sheet's DOM alive while it is closed (Base UI hides the popup
+   * rather than unmounting it). For a sheet whose content must keep running
+   * when it is put away — an app window, whose iframe or Lynx view would
+   * otherwise reload and lose its state.
+   */
+  keepMounted?: boolean;
+  /**
+   * The affordance at the top of the shell. Defaults to the plain grabber;
+   * a sheet whose handle says more than "drag me" — the window grip, which is
+   * also its menu button — passes its own. It sits outside `Drawer.Content`,
+   * so a *mouse* press on it starts a drag like the grabber it replaces.
+   */
+  grip?: React.ReactNode;
+  /**
    * Accessible name for the dialog, rendered visually hidden. Omit when the
    * content renders a visible `Drawer.Title` of its own.
    */
@@ -244,6 +270,8 @@ export function SurfaceSheet({
   height,
   level: levelProp,
   restoreFocus = true,
+  keepMounted,
+  grip,
   label,
   className,
   children,
@@ -309,7 +337,7 @@ export function SurfaceSheet({
           `--drawer-keyboard-inset`, and the shell rests on top of the keyboard
           rather than behind it. A sheet with no fields never notices. */}
       <Drawer.VirtualKeyboardProvider>
-        <Drawer.Portal>
+        <Drawer.Portal keepMounted={keepMounted}>
           <SurfaceViewport modal={modal}>
             <Drawer.Popup
               finalFocus={restoreFocus ? undefined : false}
@@ -366,9 +394,13 @@ export function SurfaceSheet({
                   className
                 )}
               >
-                {/* Grabber — the affordance for drag-to-dismiss and the detents */}
+                {/* Grabber — the affordance for drag-to-dismiss and the detents.
+                    A sheet can hand in its own (`grip`); it lives here, above
+                    Drawer.Content, so a mouse press on it is a drag. */}
                 <div className="flex shrink-0 justify-center pt-2">
-                  <span className="h-1 w-9 rounded-full bg-muted-foreground/25" />
+                  {grip ?? (
+                    <span className="h-1 w-9 rounded-full bg-muted-foreground/25" />
+                  )}
                 </div>
                 {/* Everything below the grabber is content, not a handle: a
                     mouse press inside it is a press on a row, never the start

@@ -171,6 +171,21 @@ which is the state `@hux/bezel` leaves the page in during container scroll
 container that `scrollIntoView` can still move, and a sheet resting below the
 edge at a lower detent is exactly the overflow it would move it for.
 
+**Keeping a sheet alive.** `keepMounted` leaves a closed sheet's DOM in place
+(Base UI hides the popup instead of unmounting it), for content that must keep
+running while it is put away: an app window on a phone
+([system-windows.md](./system-windows.md)) is a sheet, and closing one would
+otherwise reload its iframe and lose the app's state.
+
+**A grip of its own.** `grip` replaces the grabber for a sheet whose handle
+says more than "drag me" — the window grip, which is also the window's menu
+button. It renders where the grabber does, above `Drawer.Content`, so a mouse
+press on it still starts a drag. Two things bite anything built there: Base UI
+never starts a swipe from a `<button>` (or `a`, `input`, `label`,
+`[role="button"]`), and once a press becomes a swipe it captures the pointer,
+so no further move, up or click arrives. Items 7 and 8 of the list at the top
+of `sheet.tsx`.
+
 **Content, not a handle.** Everything below the grabber is wrapped in
 `Drawer.Content`. Without it a *mouse* press anywhere in a sheet starts a swipe,
 the drawer takes the pointer, and the click never reaches the row that was

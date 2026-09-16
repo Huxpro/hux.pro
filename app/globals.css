@@ -1492,3 +1492,110 @@ html.dragging * {
     transition: none;
   }
 }
+
+/* =============================================================================
+   Window grip — three dots ⇄ one handle
+   The chrome of an app window on a phone (systems/windows/components/
+   window-grip.tsx) is one object with two forms: three dots at rest, because
+   a tap opens the window's menu, and a single bar once it is being dragged,
+   because that is what a sheet's grabber looks like — the same 36×4 as every
+   other sheet on the site, so a window under the finger reads as a sheet.
+
+   The morph is not a switch, it is the drag: the dots widen, their gaps shut
+   and their inner corners square off in proportion to how far the surface has
+   actually travelled, and land on the bar at 40px — which is Base UI's own
+   swipe threshold (DEFAULT_SWIPE_THRESHOLD in utils/useSwipeDismiss.js), the
+   distance at which the press becomes a swipe. So the object finishes becoming
+   a handle exactly when it becomes one.
+
+   Travel is read from Base UI's `--drawer-swipe-movement-y`, live, on the
+   popup. It is registered `inherits: false` (see the numbered list at the top
+   of systems/surface/sheet.tsx), so the dots opt back in by name. Not
+   `data-swiping`: that lands on the press, before anything has moved, and a
+   finger resting on the grip has not asked for a handle yet.
+
+   The rest state's colour lives with the component (Tailwind); only what has
+   to reach across from the popup is here.
+   ============================================================================= */
+
+[data-window-grip] {
+  /* The handle owns vertical drags; the browser must not scroll instead. */
+  touch-action: none;
+}
+
+/* How far the surface has been dragged, either way, published under a name
+   every descendant can read. Base UI's `--drawer-swipe-movement-y` is
+   registered `inherits: false`, so a `: inherit` opt-in only reaches the
+   popup's direct children — and the grip is four levels down. Read here, on
+   the popup, where the value actually lives; our own property is unregistered
+   and so inherits all the way down on its own. */
+[data-surface-popup] {
+  --grip-travel: abs(var(--drawer-swipe-movement-y, 0px));
+}
+
+/* Its own duration, not the surface's: the surface travels for half a second,
+   but the grip is answering the finger and has to land while the drag is still
+   starting. The curve is the surface's, so the two motions are of a piece. */
+[data-window-grip-dots] {
+  --grip-duration: 160ms;
+  /* The corners. The outer ones stay half the dot's height, so a dot is a
+     circle and a bar end is a cap; the inner ones round while they are dots
+     and square off as they fuse. Never 9999px against a small radius on the
+     same side: the two are summed against the box and *both* get scaled down,
+     which turns a 6px dot into a D. */
+  --grip-outer: clamp(2px, calc(3px - var(--grip-travel, 0px) * 0.025), 3px);
+  --grip-inner: clamp(0px, calc(3px - var(--grip-travel, 0px) * 0.075), 3px);
+  display: flex;
+  align-items: center;
+  gap: clamp(0px, calc(5px - var(--grip-travel, 0px) * 0.125), 5px);
+  transition: gap var(--grip-duration) var(--surface-easing);
+}
+
+/* The dots grow half a pixel past each other as they fuse, so the joins in the
+   finished bar are covered rather than hairlined by antialiasing. The margins
+   take that half pixel back: three 12.5px segments overlapping by 0.5px are
+   36px of bar, to the pixel. */
+[data-window-grip-dots] > span {
+  width: clamp(6px, calc(6px + var(--grip-travel, 0px) * 0.1625), 12.5px);
+  height: clamp(4px, calc(6px - var(--grip-travel, 0px) * 0.05), 6px);
+  margin-inline: clamp(-0.25px, calc(var(--grip-travel, 0px) * -0.00625), 0px);
+  border-radius: var(--grip-inner);
+  background-color: currentColor;
+  transition:
+    width var(--grip-duration) var(--surface-easing),
+    height var(--grip-duration) var(--surface-easing),
+    margin-inline var(--grip-duration) var(--surface-easing),
+    border-radius var(--grip-duration) var(--surface-easing);
+}
+
+/* The two ends keep their outer corners all the way through. */
+[data-window-grip-dots] > span:first-child {
+  border-radius: var(--grip-outer) var(--grip-inner) var(--grip-inner)
+    var(--grip-outer);
+}
+
+[data-window-grip-dots] > span:last-child {
+  border-radius: var(--grip-inner) var(--grip-outer) var(--grip-outer)
+    var(--grip-inner);
+}
+
+/* Under the finger, before it has decided anything: the dots take more ink. */
+[data-window-grip][data-pressed],
+[data-surface-popup][data-swiping] [data-window-grip] {
+  color: var(--muted-foreground);
+}
+
+/* Under the finger the grip is direct, like the sheet it sits on: the travel
+   is changing every frame and a transition would chase it. (The duration only
+   — same reason as the popup: see "Secondary surface motion" above.) */
+[data-surface-popup][data-swiping] [data-window-grip-dots],
+[data-surface-popup][data-swiping] [data-window-grip-dots] > span {
+  transition-duration: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-window-grip-dots],
+  [data-window-grip-dots] > span {
+    transition: none;
+  }
+}

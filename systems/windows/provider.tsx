@@ -14,6 +14,7 @@ import {
   clampRect,
   defaultPreset,
   getViewport,
+  isMobile,
   placeWindow,
   presetRect,
   workingArea,
@@ -97,6 +98,20 @@ function applyPreset(
   };
 }
 
+/**
+ * A phone shows one app at a time. Its window is a sheet there
+ * (window-sheet.tsx), and a second sheet over the first buries it rather than
+ * sitting beside it — so opening or restoring an app puts the others in the
+ * dock, which is what the dock is for and what a phone's app switcher is. On
+ * anything bigger, windows coexist the way windows do.
+ */
+function soloOnPhone(list: WindowInstance[], id: string): WindowInstance[] {
+  if (!isMobile(getViewport())) return list;
+  return list.map((w) =>
+    w.id === id || w.mode === "minimized" ? w : { ...w, mode: "minimized" },
+  );
+}
+
 function bundleTitle(url: string): string {
   try {
     const u = new URL(url, "http://x");
@@ -141,19 +156,25 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
       setWindows((prev) => {
         const existing = prev.find((w) => w.id === app.id);
         if (existing) {
-          return prev.map((w) =>
-            w.id === app.id
-              ? { ...w, z, mode: w.mode === "minimized" ? "normal" : w.mode }
-              : w,
+          return soloOnPhone(
+            prev.map((w) =>
+              w.id === app.id
+                ? { ...w, z, mode: w.mode === "minimized" ? "normal" : w.mode }
+                : w,
+            ),
+            app.id,
           );
         }
         const preset = app.size ?? defaultPreset(app.runtime);
         const rect = placeWindow(openCountRef.current, getViewport(), preset);
         openCountRef.current += 1;
-        return [
-          ...prev,
-          { id: app.id, app, rect, mode: "normal", sizePreset: preset, z },
-        ];
+        return soloOnPhone(
+          [
+            ...prev,
+            { id: app.id, app, rect, mode: "normal", sizePreset: preset, z },
+          ],
+          app.id,
+        );
       });
     },
     [nextZ],
@@ -187,10 +208,13 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
     (id: string) => {
       const z = nextZ();
       setWindows((prev) =>
-        prev.map((w) =>
-          w.id === id
-            ? { ...w, mode: w.mode === "minimized" ? "normal" : w.mode, z }
-            : w,
+        soloOnPhone(
+          prev.map((w) =>
+            w.id === id
+              ? { ...w, mode: w.mode === "minimized" ? "normal" : w.mode, z }
+              : w,
+          ),
+          id,
         ),
       );
     },

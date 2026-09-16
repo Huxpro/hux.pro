@@ -17,9 +17,38 @@ import { armPointer } from "../lib/pointer";
 import type { Rect, WindowInstance } from "../lib/types";
 import { AppFrame } from "./app-frame";
 import { WindowChrome } from "./window-chrome";
+import { WindowSheet } from "./window-sheet";
+import { useSurfaceMode, type SurfacePresentation } from "@/systems/surface";
 
 // =============================================================================
-// Window — one draggable / resizable app window
+// Window — one app window, in the shape the viewport asks for
+//
+// Below `sm` a window is a sheet (window-sheet.tsx): a phone has no room for a
+// box you move around, and a sheet is what that size of screen already speaks.
+// From `sm` up it is the draggable, resizable window below. The decision is the
+// surface system's breakpoint map, the same one that turns the palette into a
+// sheet at the same width — where a surface lives is a property of the
+// viewport, not of the feature (docs/system-surface.md).
+//
+// Crossing the breakpoint remounts the app (the two shapes are different
+// components, so the iframe reloads). Resizing a phone into a desktop mid-app
+// is not a gesture anyone makes; keeping one tree for both shapes would cost
+// far more than it saves.
+// =============================================================================
+
+/** A window is a sheet on a phone, a window from `sm` up. */
+const WINDOW_PRESENTATION: SurfacePresentation = { base: "sheet", sm: "window" };
+
+export function Window({ win }: { win: WindowInstance }) {
+  return useSurfaceMode(WINDOW_PRESENTATION) === "sheet" ? (
+    <WindowSheet win={win} />
+  ) : (
+    <DesktopWindow win={win} />
+  );
+}
+
+// =============================================================================
+// DesktopWindow — one draggable / resizable app window
 //
 // Edge-to-edge content with a floating dots pill on top (WindowChrome). You can
 // also grab a thin band along the top edge to drag (a tolerance around the
@@ -73,7 +102,7 @@ function resizeRect(dir: ResizeDir, base: Rect, dx: number, dy: number): Rect {
   return { x, y, width, height };
 }
 
-export function Window({ win }: { win: WindowInstance }) {
+function DesktopWindow({ win }: { win: WindowInstance }) {
   const { focus, setRect, focusedId, toggleMaximize } = useWindows();
   const { locale } = useLocale();
   const ref = useRef<HTMLDivElement>(null);

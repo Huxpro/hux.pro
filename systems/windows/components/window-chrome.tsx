@@ -1,32 +1,15 @@
 "use client";
 
-import appIconSnapshot from "@/content/app-icons.json";
-import {
-  appTitle,
-  resolveAppIconSrc,
-  runtimeLabel,
-  type AppIconSnapshot,
-} from "@/lib/app-icon-core";
+import { appTitle } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useInputCapability, useLocale } from "@/services";
-import { SURFACE_TRANSITION_MS, SurfaceSheet } from "@/systems/surface";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Check,
-  ExternalLink,
-  Maximize2,
-  Minus,
-  Monitor,
-  Smartphone,
-  X,
-  type LucideIcon,
-} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { SizePreset } from "../lib/geometry";
 import { armPointer } from "../lib/pointer";
 import type { WindowInstance } from "../lib/types";
 import { useWindows } from "../provider";
+import { WindowMenuBody, WindowMenuSheet } from "./window-menu";
 
 // =============================================================================
 // WindowChrome — the window controls
@@ -43,25 +26,20 @@ import { useWindows } from "../provider";
 //     with a full-viewport scrim (so a click anywhere — even over an iframe,
 //     whose pointer events don't bubble — dismisses it) and clamped into the
 //     viewport.
-//   • Touch → an action sheet from the bottom edge (systems/surface), which is
+//   • Touch → an action sheet from the bottom edge (window-menu.tsx), which is
 //     what iOS answers "long-press an object, get its actions" with. Nothing
-//     here computes a position for it, and its own scrim covers the window and
-//     its iframe. A selection dismisses the sheet and *then* acts, as on iOS —
-//     and because Close unmounts this chrome, and with it a sheet still
-//     animating out.
+//     here computes a position for it.
 //
-// Both shapes render one WindowMenuBody, so the menu offers the same things
-// whatever it is shaped like. Opened by right-click / tap-title / long-press.
+// Both shapes render one WindowMenuBody (window-menu.tsx), so the menu offers
+// the same things whatever it is shaped like. Opened by right-click /
+// tap-title / long-press.
+//
+// This is the chrome of a *windowed* window. Where the window is itself a
+// sheet (a phone — see window-sheet.tsx), there is no pill: the sheet's grip
+// is the whole chrome, and the menu hangs off that instead.
 // =============================================================================
 
-const ICONS = appIconSnapshot as AppIconSnapshot;
 const MENU_W = 208; // w-52
-
-const PRESET_META: Record<SizePreset, { label: string; Icon: LucideIcon }> = {
-  portrait: { label: "Portrait", Icon: Smartphone },
-  landscape: { label: "Landscape", Icon: Monitor },
-  max: { label: "Maximize", Icon: Maximize2 },
-};
 
 /** Where the desktop popover hangs. Touch has nothing to anchor to. */
 interface MenuAnchor {
@@ -69,9 +47,6 @@ interface MenuAnchor {
   top: number;
   origin: string;
 }
-
-/** The menu's two shapes: a desktop popover, a touch action sheet. */
-type MenuShape = "popover" | "sheet";
 
 /** A traffic-light dot: dim grey at rest, coloured (active window) on hover. */
 function Dot({
@@ -121,199 +96,6 @@ function Dot({
         {glyph}
       </span>
     </button>
-  );
-}
-
-/**
- * One row of the menu: a menu item in the popover, an action-sheet row on
- * touch. Same row, two densities — a sheet row is a thumb target and carries
- * iOS's red for the destructive one; a popover row is a pointer target.
- */
-function MenuItem({
-  shape,
-  Icon,
-  children,
-  onSelect,
-  href,
-  active,
-  destructive,
-}: {
-  shape: MenuShape;
-  Icon: LucideIcon;
-  children: React.ReactNode;
-  onSelect: () => void;
-  /** Renders an anchor rather than a button — "Open in browser". */
-  href?: string;
-  active?: boolean;
-  destructive?: boolean;
-}) {
-  const sheet = shape === "sheet";
-  const className = cn(
-    "flex w-full items-center text-left text-foreground",
-    sheet
-      ? "gap-3.5 rounded-xl px-3 py-2.5 text-[15px] active:bg-black/6 dark:active:bg-white/10"
-      : "gap-2.5 rounded-lg px-2.5 py-1.5 text-xs hover:bg-black/6 dark:hover:bg-white/10",
-    // A destructive row is red on iOS; in a desktop menu it is just a row.
-    sheet && destructive && "text-destructive",
-  );
-  const body = (
-    <>
-      <span
-        className={cn(
-          "flex items-center justify-center opacity-70",
-          sheet ? "h-[18px] w-[18px]" : "h-4 w-4",
-        )}
-      >
-        <Icon className={sheet ? "h-[18px] w-[18px]" : "h-3.5 w-3.5"} strokeWidth={2.1} />
-      </span>
-      <span className="flex-1">{children}</span>
-      {active && <Check className={cn(sheet ? "h-4 w-4" : "h-3.5 w-3.5", "opacity-80")} />}
-    </>
-  );
-
-  // In the popover a press must not reach the scrim underneath; in the sheet
-  // Base UI reads presses to tell a drag from a tap, so it keeps them.
-  const stopPress = sheet ? undefined : (e: React.PointerEvent) => e.stopPropagation();
-
-  if (href) {
-    return (
-      <a
-        role={sheet ? undefined : "menuitem"}
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={onSelect}
-        onPointerDown={stopPress}
-        className={className}
-      >
-        {body}
-      </a>
-    );
-  }
-  return (
-    <button
-      type="button"
-      role={sheet ? undefined : "menuitem"}
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect();
-      }}
-      onPointerDown={stopPress}
-      className={className}
-    >
-      {body}
-    </button>
-  );
-}
-
-/** The hairline between groups of rows. */
-function MenuRule({ className }: { className?: string }) {
-  return <div className={cn("h-px bg-black/6 dark:bg-white/8", className)} />;
-}
-
-/**
- * What the menu holds — the app it belongs to, then its actions, in one order
- * for both shapes. The popover keeps them in one list; the sheet puts Close in
- * a group of its own, the way an iOS action sheet separates the destructive
- * choice from the rest.
- */
-function WindowMenuBody({
-  win,
-  shape,
-  run,
-}: {
-  win: WindowInstance;
-  shape: MenuShape;
-  /** Take the menu away, then do this. */
-  run: (action?: () => void) => void;
-}) {
-  const { close, minimize, setSizePreset } = useWindows();
-  const { locale } = useLocale();
-  const sheet = shape === "sheet";
-  const title = appTitle(win.app, locale);
-  const src = resolveAppIconSrc(win.app, ICONS);
-  const kind = runtimeLabel(win.app);
-  const isWeb = win.app.runtime !== "lynx";
-
-  return (
-    // The sheet's own shell already clears the home indicator (the popup sits
-    // a bottom inset above the edge), so the rows only need their own padding.
-    <div
-      // In the popover this box sits between `role="menu"` and its items, so
-      // it declares itself no part of the structure.
-      role={sheet ? undefined : "none"}
-      className={sheet ? "px-2 pb-2 pt-1" : undefined}
-    >
-      {/* The header is the title of the sheet as much as of the menu: which
-          app these actions belong to. */}
-      <div className={cn("flex items-center", sheet ? "gap-3 px-3 py-2" : "gap-2.5 px-2 py-1.5")}>
-        {src ? (
-          // eslint-disable-next-line @next/next/no-img-element -- tiny local asset
-          <img
-            src={src}
-            alt=""
-            className={cn("rounded-[7px] object-cover", sheet ? "h-9 w-9" : "h-7 w-7")}
-            draggable={false}
-          />
-        ) : (
-          <span
-            className={cn(
-              "flex items-center justify-center rounded-[7px] bg-muted font-mono text-[11px] text-muted-foreground",
-              sheet ? "h-9 w-9" : "h-7 w-7",
-            )}
-          >
-            {title.charAt(0)}
-          </span>
-        )}
-        <div className="min-w-0">
-          <div className={cn("truncate font-medium text-foreground", sheet ? "text-[15px]" : "text-sm")}>
-            {title}
-          </div>
-          <div className="truncate font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            {kind}
-          </div>
-        </div>
-      </div>
-      <MenuRule className={sheet ? "mx-1 my-1" : "my-1"} />
-
-      {(["portrait", "landscape", "max"] as SizePreset[]).map((pr) => {
-        const { label, Icon } = PRESET_META[pr];
-        return (
-          <MenuItem
-            key={pr}
-            shape={shape}
-            Icon={Icon}
-            active={win.sizePreset === pr}
-            onSelect={() => run(() => setSizePreset(win.id, pr))}
-          >
-            {label}
-          </MenuItem>
-        );
-      })}
-
-      <MenuRule className={sheet ? "mx-1 my-1" : "my-1"} />
-
-      {isWeb && win.app.url && (
-        <MenuItem shape={shape} Icon={ExternalLink} href={win.app.url} onSelect={() => run()}>
-          Open in browser
-        </MenuItem>
-      )}
-      <MenuItem shape={shape} Icon={Minus} onSelect={() => run(() => minimize(win.id))}>
-        Minimize
-      </MenuItem>
-
-      {/* Close ends the window, so on touch it ends the sheet: its own group,
-          in red. */}
-      {sheet && <MenuRule className="mx-1 my-1" />}
-      <MenuItem
-        shape={shape}
-        Icon={X}
-        destructive
-        onSelect={() => run(() => close(win.id))}
-      >
-        Close
-      </MenuItem>
-    </div>
   );
 }
 
@@ -381,7 +163,7 @@ export function WindowChrome({
   const pillRef = useRef<HTMLDivElement>(null);
   const suppressClick = useRef(false);
   // A pointer device gets the popover; anything else gets the sheet.
-  const shape: MenuShape = hasFineHoverPointer ? "popover" : "sheet";
+  const shape = hasFineHoverPointer ? "popover" : "sheet";
   const [menuOpen, setMenuOpen] = useState(false);
   const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
   // The pill "wakes up" (glass + full-opacity dots) while interacting — this is
@@ -411,18 +193,11 @@ export function WindowChrome({
     return () => document.removeEventListener("keydown", onKey);
   }, [menuOpen, shape]);
 
-  /**
-   * Pick a row: the menu goes first, the action follows. On a sheet the order
-   * is load-bearing — `close` unmounts this chrome, and the sheet with it, so
-   * a sheet asked to close the window would vanish mid-animation instead of
-   * sliding away. It is also what iOS does: the sheet leaves, then the thing
-   * happens.
-   */
+  /** Pick a row in the popover: it closes, the action lands. (The sheet form
+   *  waits for its own exit first — see WindowMenuSheet.) */
   const run = (action?: () => void) => {
     closeMenu();
-    if (!action) return;
-    if (shape === "sheet") window.setTimeout(action, SURFACE_TRANSITION_MS);
-    else action();
+    action?.();
   };
 
   const onPillPointerDown = (e: React.PointerEvent) => {
@@ -513,19 +288,7 @@ export function WindowChrome({
           (z-60, over the window layer and its iframes), which also brings a
           palette or devtool sheet underneath it a step back. */}
       {shape === "sheet" && (
-        <SurfaceSheet
-          id={`window-menu-${win.id}`}
-          open={menuOpen}
-          onOpenChange={(open) => {
-            if (!open) closeMenu();
-          }}
-          modal
-          height="auto"
-          label={title}
-          className="system-chrome"
-        >
-          <WindowMenuBody win={win} shape="sheet" run={run} />
-        </SurfaceSheet>
+        <WindowMenuSheet win={win} open={menuOpen} onClose={closeMenu} />
       )}
 
       {/* Desktop: the popover, portaled to <body> so its scrim covers
