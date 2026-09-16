@@ -6,3 +6,5 @@ export { WeatherIcon } from "./weather-icon";
 export { WeatherWidget } from "./weather-widget";
 export { WeatherNow, useDisplayWeather } from "./weather-now";
 export { AmbientPhaseActivity } from "./phase-activity";
+export { SolarThemeSync } from "./solar-theme";
+export { SolarThemeToast } from "./solar-theme-toast";

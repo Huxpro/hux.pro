@@ -51,6 +51,12 @@ Two details make it work, both measured:
 - **The pieces are children of `<html>`.** In container scroll, fixed children
   of `<body>` become absolute, and absolute content is not sampled.
 
+The morph is for a chrome that samples the page, which is iOS Safari. Pass
+`chromeMorph={false}` (or `syncChrome(color, { morph: false })`) everywhere
+else: `theme-color` is still set — Android Chrome and macOS Safari follow it —
+and nothing is drawn. On a desktop window the morph would be 880ms of 8px
+bands at the top and bottom edges, on every theme change, read by nobody.
+
 A recording of the bezel turning on over a light page: the chrome eases from
 white to black within one 50ms frame of the band reaching the edge, the 8px band
 holds for about 450ms, and the chrome stays black after it shrinks to 0px.

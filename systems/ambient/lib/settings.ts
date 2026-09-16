@@ -46,6 +46,14 @@ export interface AmbientSettings {
   bezelBand: number | null;
   /** Inner corner radius, px. `null` is `DEFAULT_BEZEL_RADIUS`. The same for every kind. */
   bezelRadius: number | null;
+  /**
+   * At sunrise and sunset, the app theme follows the sun — Light while the sun
+   * is up, Dark once it is down. It only ever switches on a crossing the
+   * session watched happen, and it never writes the Appearance preference: the
+   * switch is a session override (see services/theme.tsx). On by default; this
+   * is the flag that turns it off.
+   */
+  themeFollowsSun: boolean;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
   wallpaperReadingBlur: boolean;
   /** Veil the wallpaper on reading pages. */
@@ -68,6 +76,7 @@ export function getDefaultSettings(): AmbientSettings {
     bezelTint: DEFAULT_BEZEL_TINT,
     bezelBand: null,
     bezelRadius: null,
+    themeFollowsSun: true,
     wallpaperReadingBlur: true,
     wallpaperReadingDim: true,
   };
@@ -129,6 +138,8 @@ export function getAmbientSettings(): AmbientSettings {
         parsed.bezelRadius ?? parsed.wallpaperLetterboxRadius,
         clampBezelRadius
       ),
+      // Default on: only an explicit false turns the sun off.
+      themeFollowsSun: parsed.themeFollowsSun !== false,
       wallpaperReadingBlur: parsed.wallpaperReadingBlur !== false,
       wallpaperReadingDim: parsed.wallpaperReadingDim !== false,
     };
