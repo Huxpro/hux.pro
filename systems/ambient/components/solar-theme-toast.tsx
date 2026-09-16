@@ -1,11 +1,11 @@
 "use client";
 
+import { GLASS_PANEL } from "@/lib/glass";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { Sunrise, Sunset } from "lucide-react";
 import type { SolarTheme } from "../lib/solar-theme";
-import type { SunEvent } from "../lib/sun";
 
 // ---------------------------------------------------------------------------
 // The sun-switch notice.
@@ -20,20 +20,19 @@ import type { SunEvent } from "../lib/sun";
 // ---------------------------------------------------------------------------
 
 interface SolarThemeToastProps {
-  event: SunEvent;
-  /** The theme the sun just put the app in. */
+  /** The theme the sun just put the app in — which says which event it was. */
   theme: SolarTheme;
 }
 
-export function SolarThemeToast({ event, theme }: SolarThemeToastProps) {
+export function SolarThemeToast({ theme }: SolarThemeToastProps) {
   const { locale } = useLocale();
-  const Icon = event === "sunrise" ? Sunrise : Sunset;
+  const Icon = theme === "light" ? Sunrise : Sunset;
 
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-3 rounded-full px-4 py-3",
-        "border border-border/50 bg-glass-overlay backdrop-blur-xl shadow-raised",
+        GLASS_PANEL,
+        "inline-flex items-center gap-3 rounded-full px-4 py-3 shadow-raised",
         "animate-in slide-in-from-bottom-2 fade-in duration-200"
       )}
     >

@@ -431,7 +431,7 @@ function scrubToMs(minutes: number, referenceMs: number): number {
   return d.getTime() + minutes * 60_000;
 }
 
-export function AmbientProvider({ children, theme }: AmbientProviderProps) {
+export function AmbientProvider({ children, theme: chromeTheme }: AmbientProviderProps) {
   const { isEnabled: isDevtoolEnabled } = useDevtool();
 
   // Ambient Settings — initialize with defaults to match SSR, hydrate from
@@ -596,10 +596,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const bezelScroll: BezelScroll =
     (isDevtoolEnabled ? devtoolOverrides.scroll : undefined) ??
     (bezel && isIOS === true ? "container" : "window");
-  const bezelColor = resolveBezelTint(settings.bezelTint, theme);
+  const bezelColor = resolveBezelTint(settings.bezelTint, chromeTheme);
   const bezelBand = settings.bezelBand ?? DEFAULT_BEZEL_BAND;
   const bezelRadius = settings.bezelRadius ?? DEFAULT_BEZEL_RADIUS;
-  const ground = PAGE_GROUND[theme];
+  const ground = PAGE_GROUND[chromeTheme];
 
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and
@@ -616,16 +616,13 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // The sun's change is staged rather than thrown, and the sky goes first: for
   // the length of the lead the wallpaper — the scene, the wash's weight, a
   // picture's half — is painted in the incoming theme while the chrome is
-  // still in the outgoing one. Everything that belongs to the chrome (the
-  // page ground, the bezel, the ink ladder) keeps reading `theme`, so the two
-  // never disagree about who they serve.
+  // still in the outgoing one. Everything that belongs to the chrome keeps
+  // reading `chromeTheme`; the prop is destructured under that name so there
+  // is no bare `theme` in this scope to reach for by reflex, and every derived
+  // value has to say which layer it serves.
   const [skyLead, setSkyLead] = useState<SolarTheme | null>(null);
-  const beginThemeHandover = useCallback(
-    (next: SolarTheme | null) => setSkyLead(next),
-    []
-  );
   /** What the wallpaper paints in: the incoming theme while the sky leads. */
-  const wallpaperTheme: "light" | "dark" = skyLead ?? theme;
+  const wallpaperTheme: "light" | "dark" = skyLead ?? chromeTheme;
 
   // The lead runs for exactly the sky's animation. It outlives the chrome's
   // switch, which lands halfway through it — cutting it short there would
@@ -768,8 +765,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   );
 
   // The same clock and the same sun times the phase reads, reduced to the one
-  // bit the theme cares about. A string, so the minute tick only wakes
-  // <SolarThemeSync /> when the side of the day actually changes.
+  // bit the theme cares about. It returns a primitive, so the minute tick and
+  // the devtool's 10Hz scrub leave `solarThemeValue` — and every consumer of
+  // it — untouched until the side of the day actually changes.
   const sunTheme = useMemo(
     () => solarThemeAt({ nowMs, sunriseMs, sunsetMs }),
     [nowMs, sunriseMs, sunsetMs]
@@ -779,7 +777,6 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     (on: boolean) => updateSettings({ themeFollowsSun: on }),
     [updateSettings]
   );
-
 
   // Resolve which edge-fade mask to use.
   // Special case: dark-mode sunrise/sunset has high gradient-vs-background
@@ -910,10 +907,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const paintingCondition = sceneWeather?.condition ?? null;
   const paintingIsDay = scene.sun.isDay;
   // A wallpaper's profile is the wallpaper's, so it reads `wallpaperTheme` and
-  // moves with the sky during a handover; the bare page's is the chrome's
-  // ground, so it reads `theme` and waits with it.
+  // moves with the sky during a handover; the bare page's is the chrome's own
+  // ground, so it reads `chromeTheme` and waits with it.
   const nextProfile = useMemo<WallpaperProfile>(() => {
-    if (!fullEnabled && !widgetEnabled) return getPlainProfile(theme);
+    if (!fullEnabled && !widgetEnabled) return getPlainProfile(chromeTheme);
     if (isImageKind) {
       return (
         getImageProfile(activeWallpaper[wallpaperTheme]) ?? getPlainProfile(wallpaperTheme)
@@ -948,7 +945,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     widgetEnabled,
     isImageKind,
     activeWallpaper,
-    theme,
+    chromeTheme,
     wallpaperTheme,
     effectiveStyle,
     phase,
@@ -970,13 +967,18 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // flip and relief, while the glass still gets the picture's dimming layer.
   const [labPolicy, setLabPolicy] = useState<LegibilityPolicy | null>(null);
   const resolvedLegibility = useMemo<LegibilityVars>(() => {
-    const full = resolveLegibility({ profile, theme, reading, policy: labPolicy ?? undefined });
+    const full = resolveLegibility({
+      profile,
+      theme: chromeTheme,
+      reading,
+      policy: labPolicy ?? undefined,
+    });
     if (fullEnabled) return full;
     if (widgetEnabled) {
-      return { ...plainLegibility(theme), glassAdd: full.glassAdd, tint: full.tint, veil: full.veil, blur: full.blur };
+      return { ...plainLegibility(chromeTheme), glassAdd: full.glassAdd, tint: full.tint, veil: full.veil, blur: full.blur };
     }
-    return plainLegibility(theme);
-  }, [profile, theme, reading, fullEnabled, widgetEnabled, labPolicy]);
+    return plainLegibility(chromeTheme);
+  }, [profile, chromeTheme, reading, fullEnabled, widgetEnabled, labPolicy]);
 
   const [legibilityOverride, setLegibilityOverride] = useState<LegibilityVars | null>(null);
   const legibility = legibilityOverride ?? resolvedLegibility;
@@ -1127,9 +1129,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       followSun: settings.themeFollowsSun,
       setFollowSun,
       sunTheme,
-      beginThemeHandover,
+      beginThemeHandover: setSkyLead,
     }),
-    [settings.themeFollowsSun, setFollowSun, sunTheme, beginThemeHandover]
+    [settings.themeFollowsSun, setFollowSun, sunTheme]
   );
 
   const wallpaperValue = useMemo(

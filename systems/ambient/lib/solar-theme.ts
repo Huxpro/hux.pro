@@ -1,5 +1,3 @@
-import type { SunEvent } from "./sun";
-
 // =============================================================================
 // The theme the sun implies — and when it changes hands.
 //
@@ -38,37 +36,30 @@ export function solarThemeAt(params: {
   const set = sunsetMs as number;
   if (rise === set) return null;
 
-  // The ordinary day: sunrise, then sunset. Daylight is between them.
+  // The ordinary day: sunrise, then sunset, daylight between them. Reversed at
+  // a latitude whose forecast day starts in daylight — then night is the
+  // stretch between them instead.
   if (rise < set) return nowMs >= rise && nowMs < set ? "light" : "dark";
-  // Sunset before sunrise (a forecast that straddles midnight): night is the
-  // stretch between them instead, and everything outside it is day.
   return nowMs >= set && nowMs < rise ? "dark" : "light";
 }
 
-/** Which event a crossing to `theme` was: getting light is a sunrise. */
-export function sunEventFor(theme: SolarTheme): SunEvent {
-  return theme === "light" ? "sunrise" : "sunset";
-}
-
 /**
- * The handover. The sun's crossing is the middle of the day's long animation;
- * this is the middle of the short one.
+ * The handover — the one description of it, in one place, because three
+ * timelines in three files drifted apart the first time.
  *
- *   0ms ──────────── the sky starts moving to the new theme: the wallpaper
- *                    stack crossfades over `skyMs` instead of its usual 0.7s.
- *                    (Under the Sky style the shader eases its veil and
- *                    exposure on its own time constants, ~1.5s, so it arrives
- *                    early and waits — the CSS stack is what sets the pace.)
- *   chromeAtMs ───── halfway through it, the chrome changes — one commit,
- *                    inside a view transition, so the page crossfades as a
- *                    single composited image (the 200ms a route change uses).
- *                    The sky is at its most in-between right here, which is
- *                    the whole point: the cut has motion to hide in, on both
- *                    sides of it.
- *   skyMs ────────── the sky settles, and the notice says what happened.
+ *   0          the sky starts moving to the new theme: the wallpaper stack
+ *              crossfades over `skyMs` instead of its usual 0.7s, and the
+ *              Sky's shader is put on the same clock (`setThemeEase`, so its
+ *              veil and exposure stop arriving early on their own taus).
+ *   chromeAtMs halfway through, the chrome changes — one commit, inside a view
+ *              transition, so the page crossfades as a single composited image
+ *              (the 200ms a route change uses). The sky is at its most
+ *              in-between right here, which is the whole point: the cut has
+ *              motion to hide in, on both sides of it.
+ *   skyMs      the sky settles, and the notice says what happened.
  */
 export const SOLAR_HANDOVER = {
-  /** The sky's crossfade into the new theme. */
+  /** The sky's crossfade into the new theme, both engines. */
   skyMs: 3000,
   /** Where in it the chrome's instant switch lands: the middle. */
   chromeAtMs: 1500,

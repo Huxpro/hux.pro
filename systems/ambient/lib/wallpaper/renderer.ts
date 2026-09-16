@@ -33,6 +33,12 @@ interface UniformSpec {
 // feel attached to the slider, not towed behind it.
 const TRACK = 0.25;
 
+// What the theme changes, and all it changes: the veil's colour and amount and
+// the exposure (VEIL_DEFAULTS in ../scene.ts). Named so `setThemeEase` can
+// stretch this one group — the sun's handover takes as long over the sky as it
+// does over the page — without the weather slowing down with it.
+const THEME = 0.5;
+
 const UNIFORMS: UniformSpec[] = [
   { name: "uSun", size: 2, tau: TRACK },
   { name: "uSunElevation", size: 1, tau: TRACK },
@@ -58,9 +64,9 @@ const UNIFORMS: UniformSpec[] = [
   { name: "uFog", size: 1, tau: 2.4 },
   { name: "uLightning", size: 1, tau: 1.5 },
   { name: "uStars", size: 1, tau: 2.0 },
-  { name: "uVeilColor", size: 3, tau: 0.5 },
-  { name: "uVeilAmount", size: 1, tau: 0.5 },
-  { name: "uExposure", size: 1, tau: 0.5 },
+  { name: "uVeilColor", size: 3, tau: THEME },
+  { name: "uVeilAmount", size: 1, tau: THEME },
+  { name: "uExposure", size: 1, tau: THEME },
 ];
 
 const FLOAT_COUNT = UNIFORMS.reduce((n, u) => n + u.size, 0);
@@ -70,14 +76,6 @@ const FLOAT_COUNT = UNIFORMS.reduce((n, u) => n + u.size, 0);
  * constants — both derived once from the table, so the per-frame loops index
  * arrays instead of scanning names.
  */
-/**
- * The three a theme change moves, and the only three: the veil's colour and
- * amount, and the exposure (see VEIL_DEFAULTS in ../scene.ts). `setThemeEase`
- * stretches these alone, so the sky can take as long over a theme as the rest
- * of the handover does without the weather slowing down with it.
- */
-const THEME_UNIFORMS = new Set(["uVeilColor", "uVeilAmount", "uExposure"]);
-
 const OFFSET: Record<string, number> = {};
 const TAUS: number[] = [];
 const META = UNIFORMS.map((u, i) => {
@@ -85,8 +83,10 @@ const META = UNIFORMS.map((u, i) => {
   OFFSET[u.name] = offset;
   let tauIndex = TAUS.indexOf(u.tau);
   if (tauIndex < 0) tauIndex = TAUS.push(u.tau) - 1;
-  return { offset, size: u.size, tauIndex, theme: THEME_UNIFORMS.has(u.name) };
+  return { offset, size: u.size, tauIndex };
 });
+/** Which of `TAUS` is the theme's, for `setThemeEase` to override. */
+const THEME_TAU_INDEX = TAUS.indexOf(THEME);
 const WIND_OFFSET = OFFSET.uWind;
 const CLOUD_SPEED_OFFSET = OFFSET.uCloudSpeed;
 
@@ -612,12 +612,12 @@ export class WallpaperRenderer {
 
   private smooth(dtSec: number) {
     for (let t = 0; t < TAUS.length; t++) {
-      this.ks[t] = TAUS[t] <= 0 ? 1 : 1 - Math.exp(-dtSec / TAUS[t]);
+      const tau =
+        t === THEME_TAU_INDEX && this.themeTau !== null ? this.themeTau : TAUS[t];
+      this.ks[t] = tau <= 0 ? 1 : 1 - Math.exp(-dtSec / tau);
     }
-    const kTheme =
-      this.themeTau === null ? null : 1 - Math.exp(-dtSec / this.themeTau);
     for (const m of META) {
-      const k = m.theme && kTheme !== null ? kTheme : this.ks[m.tauIndex];
+      const k = this.ks[m.tauIndex];
       for (let j = 0; j < m.size; j++) {
         const idx = m.offset + j;
         this.current[idx] += (this.target[idx] - this.current[idx]) * k;

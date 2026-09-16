@@ -29,8 +29,6 @@ interface ThemeContextType {
   /** The theme in effect: the override while one is in force, else the preference's. */
   theme: Theme;
   preference: ThemePreference;
-  /** What the preference alone would paint — what an override is measured against. */
-  baseTheme: Theme;
   /** The session override, or null when the preference is having its way. */
   override: Theme | null;
   toggleTheme: () => void;
@@ -106,6 +104,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const theme = override ?? baseTheme;
 
+  /** The override's two halves move together or not at all. */
+  const writeOverride = useCallback((next: Theme | null) => {
+    setOverride(next);
+    setStoredOverride(next);
+  }, []);
+
   useEffect(() => {
     if (preference !== "system") return;
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -125,28 +129,25 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // the other one than this. Choosing is the user's move, so it also ends
     // whatever the sun was doing.
     const nextTheme: Theme = theme === "light" ? "dark" : "light";
-    setOverride(null);
-    setStoredOverride(null);
+    writeOverride(null);
     setBaseTheme(nextTheme);
     setPreference(nextTheme);
     setStoredPreference(nextTheme);
-  }, [theme]);
+  }, [theme, writeOverride]);
 
-  const setThemePreference = useCallback((nextPreference: ThemePreference) => {
-    setOverride(null);
-    setStoredOverride(null);
-    setPreference(nextPreference);
-    setStoredPreference(nextPreference);
-    setBaseTheme(getInitialTheme(nextPreference));
-  }, []);
+  const setThemePreference = useCallback(
+    (nextPreference: ThemePreference) => {
+      writeOverride(null);
+      setPreference(nextPreference);
+      setStoredPreference(nextPreference);
+      setBaseTheme(getInitialTheme(nextPreference));
+    },
+    [writeOverride]
+  );
 
   const setThemeOverride = useCallback(
-    (next: Theme | null) => {
-      const resolved = next === baseTheme ? null : next;
-      setOverride(resolved);
-      setStoredOverride(resolved);
-    },
-    [baseTheme]
+    (next: Theme | null) => writeOverride(next === baseTheme ? null : next),
+    [baseTheme, writeOverride]
   );
 
   return (
@@ -154,7 +155,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       value={{
         theme,
         preference,
-        baseTheme,
         override,
         toggleTheme,
         setThemePreference,

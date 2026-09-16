@@ -130,9 +130,6 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
       // chrome from fixed content at the viewport edge, and a wallpaper there
       // would win over the bezel colour. See BEZEL_LAYER_ATTRIBUTE in @hux/bezel.
       {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
-      // Named so the layer can be told apart from the chrome: during a theme
-      // handover it is the half that moves first, on its own crossfade.
-      data-wallpaper-layer=""
       className={cn(
         "pointer-events-none fixed inset-0 -z-10",
         "transition-opacity ease-in-out"

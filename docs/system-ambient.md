@@ -297,25 +297,26 @@ between sunrise and sunset, dark outside, null when the sun times are unknown
 `SOLAR_HANDOVER`.
 
 **The handover puts the cut in the middle of a short animation too**, so it has
-motion on both sides of it:
+motion on both sides of it. The timeline is `SOLAR_HANDOVER` in
+`lib/solar-theme.ts` and the numbers live only there:
 
 ```
-0ms ──────────── the sky starts moving to the new theme: the wallpaper stack
-                 crossfades over 1.8s instead of its usual 0.7s, and under the
-                 Sky style the shader eases its veil and exposure over about
-                 the same stretch.
-900ms ────────── halfway through it, the chrome changes — one commit, inside a
-                 view transition, so the page crossfades as a single
-                 composited image, the same 200ms a route change uses.
-1800ms ───────── the sky settles, and the notice lands.
+0           the sky starts moving to the new theme — the wallpaper stack
+            crossfades over `skyMs` instead of its usual 0.7s, and the Sky's
+            shader is put on the same clock by `setThemeEase`.
+chromeAtMs  halfway through, the chrome changes: one commit, inside a view
+            transition, so the page crossfades as a single composited image —
+            the same 200ms a route change uses.
+skyMs       the sky settles, and the notice lands.
 ```
 
 `wallpaperTheme` is what makes the lead possible: the scene, the wash's weight,
 a picture's half and the profile of what is painting all read it, while
 everything that belongs to the chrome — the page ground, the bezel, the ink
-ladder — keeps reading `theme`. The lead runs for exactly the sky's animation
-and outlives the switch in its middle; a theme the user picks while it is
-running calls the whole thing off, sky included: theirs wins.
+ladder — reads `chromeTheme`, which is what the provider calls the theme the
+app is actually in. The lead runs for exactly the sky's animation and outlives
+the switch in its middle; a theme the user picks while it is running calls the
+whole thing off, sky included: theirs wins.
 
 The greeting is not part of this. It follows the phase, which changes at the
 window's *ends*, three quarters of an hour either side of the switch — far

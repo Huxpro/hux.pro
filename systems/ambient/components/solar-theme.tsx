@@ -5,7 +5,7 @@ import { useTheme } from "@/services";
 import { useReducedMotion } from "framer-motion";
 import { useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
-import { SOLAR_HANDOVER, sunEventFor, type SolarTheme } from "../lib/solar-theme";
+import { SOLAR_HANDOVER, type SolarTheme } from "../lib/solar-theme";
 import { useSolarTheme } from "../provider";
 import { SolarThemeToast } from "./solar-theme-toast";
 
@@ -19,20 +19,15 @@ import { SolarThemeToast } from "./solar-theme-toast";
 // session": the sun may interrupt you, it may not greet you.
 //
 // *When* it crosses is the sun's own crossing, which is the middle of the
-// day's long animation rather than its end (lib/solar-theme.ts). *How* is the
-// middle of a short one:
+// day's long animation rather than its end; *how* is the middle of a short one
+// — the sky moves, and the chrome cuts halfway through it, so the cut has
+// motion either side of it to hide in. Both are `SOLAR_HANDOVER` in
+// lib/solar-theme.ts; this file only runs the clock.
 //
-//   beginThemeHandover(next)  the sky starts moving to the new theme on a
-//                             longer crossfade; the chrome stays put.
-//   + chromeAtMs              halfway through it, the chrome changes — one
-//                             commit, inside a view transition, so the page
-//                             crossfades as one composited image (the 200ms a
-//                             route change uses). A transition per element
-//                             would cost ~1.2s of style recalculation on a
-//                             page this size — measured — against ~60ms for
-//                             this. The cut has motion either side of it to
-//                             hide in, which is the whole point of the middle.
-//   + skyMs                   the sky settles, and the notice lands.
+// The chrome's half is one commit inside a view transition: the page
+// crossfades as a single composited image, the 200ms a route change already
+// uses. A transition per element would cost ~1.2s of style recalculation on a
+// page this size — measured — against ~60ms for this.
 //
 // What it applies is a session override on the theme (services/theme.tsx), not
 // the saved Appearance preference. The preference is untouched, an explicit
@@ -54,23 +49,18 @@ const TOAST_ID = "solar-theme";
 const TOAST_DURATION_MS = 5_000;
 
 /**
- * Commit the theme as one crossfade of the whole page where the browser can
- * do it on the compositor, and as a plain change where it cannot (Firefox,
- * reduced motion). `flushSync` because the callback must leave the DOM in its
- * new state before it returns — React's own update would land a frame late,
- * and the browser would capture the change it was meant to animate.
+ * Commit the theme as one crossfade of the whole page where the browser can do
+ * it on the compositor, and as a plain change where it cannot (Firefox).
+ * `flushSync` because the callback must leave the DOM in its new state before
+ * it returns — React's own update would land a frame late, and the browser
+ * would capture the change it was meant to animate.
  */
-function commitTheme(apply: () => void, animate: boolean) {
-  const start = animate
-    ? (document as Document & {
-        startViewTransition?: (cb: () => void) => unknown;
-      }).startViewTransition
-    : undefined;
-  if (!start) {
+function commitTheme(apply: () => void) {
+  if (typeof document.startViewTransition !== "function") {
     apply();
     return;
   }
-  start.call(document, () => flushSync(apply));
+  document.startViewTransition(() => flushSync(apply));
 }
 
 export function SolarThemeSync() {
@@ -80,26 +70,34 @@ export function SolarThemeSync() {
 
   /** The last reading this session has accounted for; a crossing is a change of it. */
   const seenRef = useRef<SolarTheme | null>(null);
-  /** The handover in flight, so a second crossing (autoplay) replaces it. */
+  /** The handover in flight, cleared whenever one ends or is called off. */
   const timersRef = useRef<number[]>([]);
   /**
-   * The theme as of this render, for the commit at the end of the lead to
-   * check against. Someone may pick a theme while the sky is leading — the
-   * palette is one keystroke away — and theirs wins over the sun's. The
-   * preference is watched alongside the theme because choosing the theme the
-   * page is already in moves only that.
+   * What the user had picked as of the last run, for the commit in the middle
+   * of the handover to check against. Someone may pick a theme while the sky
+   * is moving — the palette is one keystroke away — and theirs wins over the
+   * sun's. The preference rides along because choosing the theme the page is
+   * already in moves only that.
    */
-  const pickedRef = useRef({ theme, preference });
-  useEffect(() => {
-    pickedRef.current = { theme, preference };
-  }, [theme, preference]);
+  const pickedRef = useRef("");
 
   useEffect(() => {
+    const clearTimers = () => {
+      for (const id of timersRef.current) window.clearTimeout(id);
+      timersRef.current = [];
+    };
+    // The effect runs on every change to either, so this is always current by
+    // the time a timer set in an earlier run reads it.
+    const picked = `${theme}/${preference}`;
+    pickedRef.current = picked;
+
     // Off: the sun drives nothing, and an override it left behind goes with
     // it. Keeping `seen` in step means switching back on cannot fire for a
     // crossing that happened while it was off.
     if (!followSun) {
       seenRef.current = sunTheme;
+      clearTimers();
+      beginThemeHandover(null);
       if (override) {
         setThemeOverride(null);
         dismissToast(TOAST_ID);
@@ -124,23 +122,20 @@ export function SolarThemeSync() {
 
     if (seen === sunTheme) return;
 
-    // A crossing, watched live: dawn or dusk has just finished.
-    const changed = theme !== sunTheme;
-    const event = sunEventFor(sunTheme);
+    // A crossing, watched live: the sun has just risen or just set.
     const notice = () =>
-      showCustomToast(<SolarThemeToast event={event} theme={sunTheme} />, {
+      showCustomToast(<SolarThemeToast theme={sunTheme} />, {
         id: TOAST_ID,
         duration: TOAST_DURATION_MS,
       });
 
     // The preference is already painting this; nothing to stage, nothing to say.
-    if (!changed) {
+    if (theme === sunTheme) {
       setThemeOverride(sunTheme);
       return;
     }
 
-    for (const id of timersRef.current) window.clearTimeout(id);
-    timersRef.current = [];
+    clearTimers();
 
     if (reducedMotion) {
       setThemeOverride(sunTheme);
@@ -148,28 +143,23 @@ export function SolarThemeSync() {
       return;
     }
 
-    // The sky starts; the chrome changes in the middle of it.
-    const picked = { theme, preference };
+    // The sky starts now; the two beats are read off the handover.
     beginThemeHandover(sunTheme);
-    timersRef.current.push(
+    timersRef.current = [
       window.setTimeout(() => {
         // Someone picked a theme while the sky was moving: call the whole
         // thing off, sky included, rather than overruling them a beat later.
-        if (
-          pickedRef.current.theme !== picked.theme ||
-          pickedRef.current.preference !== picked.preference
-        ) {
+        if (pickedRef.current !== picked) {
+          clearTimers();
           beginThemeHandover(null);
           return;
         }
-        commitTheme(() => setThemeOverride(sunTheme), true);
-        // The notice waits for the sky to settle, so it is not another thing
-        // moving while the change is still landing.
-        timersRef.current.push(
-          window.setTimeout(notice, SOLAR_HANDOVER.skyMs - SOLAR_HANDOVER.chromeAtMs)
-        );
-      }, SOLAR_HANDOVER.chromeAtMs)
-    );
+        commitTheme(() => setThemeOverride(sunTheme));
+      }, SOLAR_HANDOVER.chromeAtMs),
+      // The notice waits for the sky to settle, so it is not one more thing
+      // moving while the change is still landing.
+      window.setTimeout(notice, SOLAR_HANDOVER.skyMs),
+    ];
   }, [
     followSun,
     sunTheme,
