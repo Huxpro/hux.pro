@@ -169,8 +169,8 @@ export function useAmbientTime() {
 //
 // The provider only says what the sun implies right now; <SolarThemeSync /> is
 // what watches that value cross and applies it. Because it derives from the
-// ambient clock, devtool time travel crosses it too: the Sky module's dawn →
-// dusk autoplay flips the theme at exactly the moments the real day would, and
+// ambient clock, devtool time travel crosses it too: playing the day in the Sky
+// module flips the theme at exactly the moments the real clock would, and
 // respects the setting the same way.
 // =============================================================================
 

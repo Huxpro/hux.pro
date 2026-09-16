@@ -1491,6 +1491,9 @@ const MOON_NAME: Record<"en" | "zh", Record<MoonPhaseName, string>> = {
 };
 
 
+/** Minutes in a day — the scrub's range, and one loop of Play. */
+const DAY_MINUTES = 1440;
+
 /** The quiet outlined chip the Sky module's Now and Play buttons are made of. */
 const PANEL_CHIP = cn(
   "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5",
@@ -1584,36 +1587,33 @@ function SkyModule() {
   const nowDate = new Date(nowMs);
   const clockMinutes = timeScrubMinutes ?? minutesOfDay(nowMs);
   const realMinutes = minutesOfDay(realNowMs);
-  const pct = (m: number) => `${((m / 1440) * 100).toFixed(2)}%`;
+  const pct = (m: number) => `${((m / DAY_MINUTES) * 100).toFixed(2)}%`;
 
-  // --- Play: sweep dawn → dusk and loop ------------------------------------
+  // --- Play: the day, on a loop ---------------------------------------------
+  // It runs the playhead, nothing else: from wherever the clock is, through
+  // midnight, round again. It used to start by jumping to 90 minutes before
+  // sunrise and stop 90 after sunset, which is a second way of choosing a time
+  // on a panel whose whole top half is for choosing a time — the strip, the
+  // phase names and the sun's own ticks are right there. Pick a moment, then
+  // press play from it.
   const [playing, setPlaying] = useState(false);
-  const PLAY_LEAD_MIN = 90;
-  const PLAY_DURATION_MS = 45_000;
-  const playStart = Math.max(0, sr - PLAY_LEAD_MIN);
-  const playEnd = Math.min(1439, ss + PLAY_LEAD_MIN);
-  const playPosRef = useRef(playStart);
+  /** A day, once through. */
+  const PLAY_DURATION_MS = 60_000;
+  const playPosRef = useRef(0);
 
   useEffect(() => {
     if (!playing) return;
-    const span = Math.max(60, playEnd - playStart);
     const tickMs = 100;
-    const step = (span / PLAY_DURATION_MS) * tickMs;
+    const step = (DAY_MINUTES / PLAY_DURATION_MS) * tickMs;
     const id = window.setInterval(() => {
-      let next = playPosRef.current + step;
-      if (next > playEnd) next = playStart;
-      playPosRef.current = next;
-      setTimeScrubMinutes(Math.round(next));
+      playPosRef.current = (playPosRef.current + step) % DAY_MINUTES;
+      setTimeScrubMinutes(Math.round(playPosRef.current) % DAY_MINUTES);
     }, tickMs);
     return () => window.clearInterval(id);
-  }, [playing, playStart, playEnd, setTimeScrubMinutes]);
+  }, [playing, setTimeScrubMinutes]);
 
   const startPlay = () => {
-    const current = timeScrubMinutes;
-    playPosRef.current =
-      current !== null && current >= playStart && current < playEnd
-        ? current
-        : playStart;
+    playPosRef.current = timeScrubMinutes ?? realMinutes;
     setTimeScrubMinutes(Math.round(playPosRef.current));
     setPlaying(true);
   };
@@ -1738,14 +1738,12 @@ function SkyModule() {
                   ? "border-foreground/40 bg-accent text-accent-foreground"
                   : "border-border/60 text-muted-foreground hover:text-foreground"
               )}
-              aria-label={playing ? "Pause sunrise to sunset" : "Play sunrise to sunset"}
+              aria-label={playing ? "Pause the day" : "Play the day"}
               aria-pressed={playing}
-              title={zh ? "从日出播放到日落" : "Play from dawn to dusk"}
+              title={zh ? "从当前时刻循环播放这一天" : "Play the day from here, on a loop"}
             >
               {playing ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-              <Sunrise className="h-3 w-3" />
-              <span>→</span>
-              <Sunset className="h-3 w-3" />
+              {zh ? "一天" : "Day"}
             </button>
           </div>
           <div
@@ -1771,7 +1769,7 @@ function SkyModule() {
             <input
               type="range"
               min={0}
-              max={1439}
+              max={DAY_MINUTES - 1}
               step={1}
               value={clockMinutes}
               onChange={(e) => jumpTo(Number(e.target.value))}
