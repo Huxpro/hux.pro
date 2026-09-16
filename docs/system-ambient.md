@@ -1,6 +1,6 @@
 # Ambient System
 
-The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon — offered in three styles: Sky, Gradient and Classic.
+The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon — offered in three styles: Sky, Gradient and Classic. On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg).
 
 It also owns the page background — the **wallpaper**. Weather is not a separate
 background feature; it is the one wallpaper that changes on its own. See
@@ -17,6 +17,7 @@ systems/ambient/
 │   ├── wallpaper-background.tsx  # Full-page wallpaper renderer (image / CG / gradient)
 │   ├── wallpaper.tsx             # <WeatherWallpaper /> — the CG sky's WebGL canvas shell
 │   ├── wallpaper-sheet.tsx       # Wallpaper picker (an <AdaptiveSurface>)
+│   ├── strike-flash.tsx          # The strike, for the CSS engine (flash, no bolt)
 │   ├── gradient-stack.tsx        # Shared CSS crossfade renderer (full-page + widgets)
 │   ├── weather-icon.tsx          # Weather condition icons
 │   ├── weather-widget.tsx        # iOS-style weather widget (header + WeatherNow)
@@ -32,6 +33,7 @@ systems/ambient/
 │   │   ├── shader.ts             # GLSL: the full-screen procedural sky (CG)
 │   │   ├── renderer.ts           # WallpaperRenderer: uniform easing, adaptive quality
 │   │   └── support.ts            # WebGL2 / reduced-motion / quality-profile detection
+│   ├── strike.ts                 # The thunder-day strike: timing + "is this the sky?"
 │   ├── greeting.ts               # Time-of-day helpers
 │   ├── location.ts               # IP/GPS location resolution
 │   ├── notification.ts           # Upcoming sun-event detection (lead-up + window)
@@ -203,6 +205,49 @@ One renderer (`gradient-stack.tsx`) serves both the full-page fallback and the
 per-widget overlays, so they transition identically. The iOS `fixedBgTracker`
 (background-attachment polyfill + viewport-relative edge mask) is applied per
 layer, so soft-edging keeps working mid-crossfade.
+
+### The Strike (thunder-day easter egg)
+
+**On a thunder day, clicking the sky calls lightning down onto the spot you
+clicked.** It exists only on a thunder day; on any other weather there is
+nothing to find, which is the point.
+
+`lib/strike.ts` owns the rules and the one question the interaction turns on —
+**did that click land on the sky, or on something?** It is not a guess: the
+handler walks from the clicked element up to `<body>` and the click counts as
+background only when nothing on the way paints anything (no background colour,
+no background image, no backdrop filter) and nothing on the way is interactive.
+That is the same question the visitor already answered with their eyes — the
+pixel under the pointer was wallpaper — so the two cannot disagree. A widget
+card, a link, the dock, an open sheet: all of them are something. Mark any
+transparent layer that should still swallow strikes with `data-no-strike`.
+
+The listener lives in `wallpaper-background.tsx`, on the document, because the
+wallpaper layer is `pointer-events-none` and must stay that way — it is behind
+the whole page. It listens for `click`, not `pointerdown`, which is what makes
+it survive a phone: a click is a press and a release on the same spot, so
+scrolling the page with a thumb on the sky never lights it up.
+
+Each engine answers in its own fidelity, through one ref that whichever engine
+is mounted registers:
+
+| Engine | The answer |
+|---|---|
+| **Sky** | A bolt. `uStrike` / `uStrikeAge` / `uStrikeSeed` drive `strike()` in the shader: a forked channel drawn top-down out of the cloud base over ~70 ms, landing exactly on the point clicked, flickering through two return strokes and gone inside 1.2 s. The flash it throws lights the cloud decks the same way the weather's own `lightning()` does. `WallpaperRenderer.strike(x, y)` is the entry point; the three uniforms are per-frame, never eased — a strike that eased in would not be a strike. |
+| **Gradient / Classic** | The flash alone (`strike-flash.tsx`), a bloom at the point on the same envelope. A wash has no geometry to draw a channel on, and a bolt over a flat gradient reads as a sticker. |
+
+Three things it will not do, all of them deliberate:
+
+- **Not under `prefers-reduced-motion`.** A flash is precisely the motion that
+  setting is asking about. The renderer refuses one too, so nothing can route
+  around the check.
+- **Never a strobe.** One strike per 500 ms, so clicking as fast as you can is
+  two flashes a second (WCAG allows three).
+- **Only where the sky is.** The weather kind, painting full-page; an image
+  wallpaper has no sky to strike.
+
+To see it without waiting for a storm: force **Thunder** in the devtool's Sky
+module and click the page background.
 
 ### Phase Notification
 

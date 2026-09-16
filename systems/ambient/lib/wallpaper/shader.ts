@@ -7,6 +7,7 @@
 //   two parallax cloud decks (fbm)      (cover / density / storminess / wind)
 //   fog / haze                          (low-frequency drifting veil)
 //   lightning                           (stochastic cloud-illuminating flashes)
+//   the strike                          (one aimed bolt, on a click — see lib/strike.ts)
 //   rain streaks                        (hash-cell particles, wind-sheared)
 //   snow                                (depth-layered flakes, slow and fluttering)
 //   theme veil + exposure + dither      (blend toward the page background)
@@ -61,6 +62,10 @@ uniform vec2  uWind;
 uniform float uFog;
 uniform float uLightning;
 uniform float uStars;
+
+uniform vec2  uStrike;      // screen 0..1, y up — where the clicked bolt lands
+uniform float uStrikeAge;   // seconds since it fired; < 0 when none is running
+uniform float uStrikeSeed;  // re-rolled per strike, so no two bolts are alike
 
 uniform vec3  uVeilColor;
 uniform float uVeilAmount;
@@ -517,6 +522,81 @@ float lightning(vec2 p, float aspect, out vec2 flashPos) {
 }
 
 // ---------------------------------------------------------------------------
+// The strike — one aimed bolt (see lib/strike.ts)
+//
+// Where lightning() fires on its own schedule, this one is an answer to a
+// click: it comes down out of the cloud base onto the point that was asked
+// for. It is drawn top-down over ~70 ms, forks twice, flickers and is gone
+// inside a second.
+// ---------------------------------------------------------------------------
+
+/**
+ * Glow of one jagged segment a -> b, with only the first 'grown' of it drawn.
+ * The zig-zag is pinched to nothing at both ends, so a bolt leaves the cloud
+ * where it should and lands exactly where it was aimed.
+ */
+float boltSeg(vec2 p, vec2 a, vec2 b, float seed, float width, float grown) {
+  vec2 ab = b - a;
+  float len = max(length(ab), 1e-4);
+  vec2 dir = ab / len;
+  vec2 nrm = vec2(-dir.y, dir.x);
+  vec2 rel = p - a;
+  float along = dot(rel, dir);
+  float t = clamp(along / len, 0.0, 1.0);
+
+  float taper = sin(t * 3.14159265);
+  float wob = (vnoise(vec2(t * 7.0, seed)) - 0.5) * 0.30
+            + (vnoise(vec2(t * 26.0, seed + 5.0)) - 0.5) * 0.09;
+  float d = abs(dot(rel, nrm) - wob * taper * len);
+  // Past either end the segment simply stops.
+  d = max(d, max(-along, along - len));
+
+  // Tapered toward the ground, but never below a pixel and a bit: on a short
+  // viewport a channel measured in scene units thins out of existence.
+  float w = max(width * (1.0 - 0.3 * t), 1.3 / uResolution.y);
+  float core = exp(-d / w);
+  float halo = exp(-d / (w * 18.0)) * 0.13;
+  // The leading edge: everything past 'grown' has not been drawn yet.
+  return (core + halo) * smoothstep(grown, grown - 0.1, t);
+}
+
+/** Returns the flash on the sky; the channel itself comes back in 'bolt'. */
+float strike(vec2 p, float aspect, out float bolt) {
+  bolt = 0.0;
+  if (uStrikeAge < 0.0) return 0.0;
+  float age = uStrikeAge;
+
+  vec2 hit = vec2(uStrike.x * aspect, uStrike.y);
+  // The cloud it leaves is near, but never directly above, the point hit.
+  vec2 top = vec2(hit.x + (hash1(vec2(uStrikeSeed, 3.7)) - 0.5) * 0.42, 1.06);
+  float reach = age / 0.07;
+  float trunk = boltSeg(p, top, hit, uStrikeSeed, 0.0026, reach);
+
+  // Two forks off the trunk, each a beat later and thinner than the one before.
+  vec2 f1 = mix(top, hit, 0.40);
+  vec2 f2 = mix(top, hit, 0.68);
+  trunk += 0.55 * boltSeg(p, f1,
+    f1 + vec2((hash1(vec2(uStrikeSeed, 9.1)) - 0.5) * 0.46, -0.28),
+    uStrikeSeed + 2.0, 0.0017, (age - 0.02) / 0.07);
+  trunk += 0.40 * boltSeg(p, f2,
+    f2 + vec2((hash1(vec2(uStrikeSeed, 4.3)) - 0.5) * 0.38, -0.20),
+    uStrikeSeed + 6.0, 0.0013, (age - 0.03) / 0.07);
+
+  // The channel holds while the flash has already gone: a strike you can see
+  // the shape of, not just a white frame. Two return strokes flicker on it.
+  bolt = trunk * (exp(-age * 7.0)
+    + 0.80 * exp(-pow(age - 0.13, 2.0) * 700.0)
+    + 0.50 * exp(-pow(age - 0.27, 2.0) * 900.0));
+
+  // The flash is the opposite: a spike, brightest around the channel, spent in
+  // a tenth of a second — the same shape as the weather's own (see lightning()).
+  float env = exp(-age * 12.0)
+    + 0.55 * exp(-pow(age - 0.13, 2.0) * 900.0)
+    + 0.28 * exp(-pow(age - 0.27, 2.0) * 1100.0);
+  return env * (0.35 + 0.7 * exp(-length(p - hit) * 2.6));
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -546,6 +626,13 @@ void main() {
   vec2 flashPos;
   float fl = lightning(p, aspect, flashPos);
   col += vec3(0.86, 0.9, 1.0) * fl * (0.25 + 0.75 * cloudMask);
+
+  // The clicked strike: the same light on the decks, plus the channel itself,
+  // which is drawn over them — a bolt read through cloud is no bolt at all.
+  float bolt;
+  float sf = strike(p, aspect, bolt);
+  col += vec3(0.86, 0.9, 1.0) * sf * (0.25 + 0.75 * cloudMask) * 0.65;
+  col += vec3(0.95, 0.97, 1.0) * bolt * 1.25;
 
   // Fog / haze: drifting low-frequency veil, denser toward the bottom.
   if (uFog > 0.002) {
