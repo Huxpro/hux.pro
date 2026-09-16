@@ -189,11 +189,12 @@ interface SolarThemeContextType {
    */
   sunTheme: SolarTheme | null;
   /**
-   * Stage the next theme change (see SOLAR_HANDOVER): the wallpaper's
-   * crossfade lengthens and the chrome is told to wait, for one change only.
-   * Call it in the same tick as the change itself.
+   * Hand the theme over (see SOLAR_HANDOVER): the wallpaper starts painting
+   * `next` — slowly, on a longer crossfade — while the chrome stays where it
+   * is. The lead ends by itself the moment the app theme catches up; `null`
+   * calls it off early, for a handover that is no longer wanted.
    */
-  beginThemeHandover: () => void;
+  beginThemeHandover: (next: SolarTheme | null) => void;
 }
 
 const SolarThemeContext = createContext<SolarThemeContextType | undefined>(undefined);
@@ -265,7 +266,10 @@ interface WallpaperContextType {
   wallpapers: Wallpaper[];
   /** Selects a pair AND switches the background kind to it. */
   selectWallpaper: (id: string) => void;
-  /** Which half of the pair is showing — always the app theme. */
+  /**
+   * Which half of the pair is showing. The app theme, except while the sun is
+   * handing the theme over — then the sky leads and this is where it shows.
+   */
   variant: "light" | "dark";
   /** Where the active wallpaper paints. */
   placement: WallpaperPlacement;
@@ -599,6 +603,34 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     isIOS === true && edges.softEdge && !bezel
   );
 
+  // --- The theme handover ---------------------------------------------------
+  // The sun's change is staged rather than thrown, and the sky goes first: for
+  // the length of the lead the wallpaper — the scene, the wash's weight, a
+  // picture's half — is painted in the incoming theme while the chrome is
+  // still in the outgoing one. Everything that belongs to the chrome (the
+  // page ground, the bezel, the ink ladder) keeps reading `theme`, so the two
+  // never disagree about who they serve.
+  const [skyLead, setSkyLead] = useState<SolarTheme | null>(null);
+  const beginThemeHandover = useCallback(
+    (next: SolarTheme | null) => setSkyLead(next),
+    []
+  );
+  // The lead is over the moment the chrome arrives — settled during render, so
+  // the wallpaper never paints a frame of the lead it no longer has.
+  if (skyLead === theme) setSkyLead(null);
+  /** What the wallpaper paints in: the incoming theme while the sky leads. */
+  const wallpaperTheme: "light" | "dark" = skyLead ?? theme;
+
+  // Backstop: if the chrome never arrives (the sync unmounted mid-handover),
+  // the sky does not stay in a theme the page is not in.
+  useEffect(() => {
+    if (!skyLead) return;
+    const timer = window.setTimeout(() => setSkyLead(null), SOLAR_HANDOVER_MS + 2_000);
+    return () => window.clearTimeout(timer);
+  }, [skyLead]);
+
+  const crossfadeMs = skyLead ? SOLAR_HANDOVER.skyMs : GRADIENT_CROSSFADE_MS;
+
   // --- Weather engine ------------------------------------------------------
   // WebGL support is probed after mount so the SSR tree (no canvas) matches the
   // first client render. A failure at any later point flips the session to CSS.
@@ -628,7 +660,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const wallpaperOpacity =
     WALLPAPER_OPACITY[
       WALLPAPER_LOOK_FAMILY[getWallpaperLook(settings.wallpaperKind, effectiveStyle)]
-    ][theme];
+    ][wallpaperTheme];
 
   // --- Debug state (weather + time) -----------------------------------------
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
@@ -739,36 +771,12 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [updateSettings]
   );
 
-  // --- The theme handover ---------------------------------------------------
-  // The sun's change is staged rather than thrown: while this is on, the
-  // wallpaper crossfades slower than usual and <html> carries
-  // `data-theme-shift`, which is what holds the chrome back and dissolves it
-  // (app/globals.css). One change long — it disarms itself.
-  const [handingOver, setHandingOver] = useState(false);
-  const beginThemeHandover = useCallback(() => setHandingOver(true), []);
-
-  useEffect(() => {
-    if (!handingOver) return;
-    const root = document.documentElement;
-    root.style.setProperty("--theme-shift-delay", `${SOLAR_HANDOVER.chromeDelayMs}ms`);
-    root.style.setProperty("--theme-shift-duration", `${SOLAR_HANDOVER.chromeMs}ms`);
-    root.setAttribute("data-theme-shift", "");
-    const timer = window.setTimeout(() => setHandingOver(false), SOLAR_HANDOVER_MS);
-    return () => {
-      window.clearTimeout(timer);
-      root.removeAttribute("data-theme-shift");
-      root.style.removeProperty("--theme-shift-delay");
-      root.style.removeProperty("--theme-shift-duration");
-    };
-  }, [handingOver]);
-
-  const crossfadeMs = handingOver ? SOLAR_HANDOVER.skyMs : GRADIENT_CROSSFADE_MS;
 
   // Resolve which edge-fade mask to use.
   // Special case: dark-mode sunrise/sunset has high gradient-vs-background
   // contrast, so we use a more aggressive (wider) fade to soften the edge.
   const edgeMask: string | null = softEdgeEnabled
-    ? theme === "dark" && (phase === "sunrise" || phase === "sunset")
+    ? wallpaperTheme === "dark" && (phase === "sunrise" || phase === "sunset")
       ? EDGE_FADE_MASK_HIGH_CONTRAST
       : EDGE_FADE_MASK
     : null;
@@ -798,7 +806,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       lat: location?.lat,
       lon: location?.lon,
       weather: sceneWeather,
-      theme,
+      theme: wallpaperTheme,
       overrides: isDevtoolEnabled ? sceneOverrides : undefined,
       seed: sceneSeed,
     });
@@ -806,7 +814,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     locationQuery.data,
     nowMs,
     sceneWeather,
-    theme,
+    wallpaperTheme,
     isDevtoolEnabled,
     sceneOverrides,
     sceneSeed,
@@ -857,12 +865,12 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       isImageKind
         ? getWallpaperBackground({
             wallpaper: activeWallpaper,
-            theme,
+            theme: wallpaperTheme,
             preview: isBlurred,
             viewport: displaySize,
           })
         : null,
-    [isImageKind, activeWallpaper, theme, isBlurred, displaySize]
+    [isImageKind, activeWallpaper, wallpaperTheme, isBlurred, displaySize]
   );
 
   // Compute the CSS background. Exactly one kind wins — an image wallpaper
@@ -892,30 +900,47 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // profile into a few CSS variables on <html>, memoised on what can change.
   const paintingCondition = sceneWeather?.condition ?? null;
   const paintingIsDay = scene.sun.isDay;
+  // A wallpaper's profile is the wallpaper's, so it reads `wallpaperTheme` and
+  // moves with the sky during a handover; the bare page's is the chrome's
+  // ground, so it reads `theme` and waits with it.
   const nextProfile = useMemo<WallpaperProfile>(() => {
     if (!fullEnabled && !widgetEnabled) return getPlainProfile(theme);
     if (isImageKind) {
-      return getImageProfile(activeWallpaper[theme]) ?? getPlainProfile(theme);
+      return (
+        getImageProfile(activeWallpaper[wallpaperTheme]) ?? getPlainProfile(wallpaperTheme)
+      );
     }
     if (effectiveStyle === "classic") {
       if (phase === "sunrise" || phase === "sunset") {
-        return getWeatherProfile({ event: phase, theme }) ?? getPlainProfile(theme);
+        return (
+          getWeatherProfile({ event: phase, theme: wallpaperTheme }) ??
+          getPlainProfile(wallpaperTheme)
+        );
       }
       if (paintingCondition) {
         return (
-          getWeatherProfile({ condition: paintingCondition, isDay: paintingIsDay, theme }) ??
-          getPlainProfile(theme)
+          getWeatherProfile({
+            condition: paintingCondition,
+            isDay: paintingIsDay,
+            theme: wallpaperTheme,
+          }) ?? getPlainProfile(wallpaperTheme)
         );
       }
-      return getPlainProfile(theme);
+      return getPlainProfile(wallpaperTheme);
     }
-    return profileFromScene({ scene, style: effectiveStyle, opacity: wallpaperOpacity, theme });
+    return profileFromScene({
+      scene,
+      style: effectiveStyle,
+      opacity: wallpaperOpacity,
+      theme: wallpaperTheme,
+    });
   }, [
     fullEnabled,
     widgetEnabled,
     isImageKind,
     activeWallpaper,
     theme,
+    wallpaperTheme,
     effectiveStyle,
     phase,
     paintingCondition,
@@ -1112,7 +1137,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       wallpaper: activeWallpaper,
       wallpapers: BUILT_IN_WALLPAPERS,
       selectWallpaper,
-      variant: theme,
+      variant: wallpaperTheme,
       placement: settings.wallpaperPlacement,
       setPlacement,
       fullEnabled,
@@ -1172,7 +1197,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       reportShaderFallback,
       activeWallpaper,
       selectWallpaper,
-      theme,
+      wallpaperTheme,
       setPlacement,
       fullEnabled,
       widgetEnabled,

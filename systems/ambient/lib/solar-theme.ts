@@ -17,8 +17,8 @@ import { DEFAULT_SUN_EVENT_WINDOW_MINUTES, type SunEvent } from "./sun";
 //             └ still dark ┘                  └ still light ┘
 //
 // The handover itself is staged (SOLAR_HANDOVER): the sky moves first and
-// slowly, and the chrome comes last, so the change reads as the light going
-// rather than a switch being thrown.
+// alone, and the chrome follows a beat later, so the change reads as the light
+// going rather than a switch being thrown.
 // =============================================================================
 
 export type SolarTheme = "light" | "dark";
@@ -59,29 +59,27 @@ export function sunEventFor(theme: SolarTheme): SunEvent {
 }
 
 /**
- * The handover, in order. The theme changes in one tick — everything derived
- * from it stays in agreement — and what is staged is the *painting* of it:
+ * The handover, in order.
  *
- *   0ms ──────────── the sky. A slower crossfade than the usual push, and
- *                    under the Sky style the shader is already easing its
- *                    veil and exposure over about the same stretch.
- *   chromeDelayMs ── the chrome. Text, cards, borders dissolve into the new
- *                    theme once the sky is most of the way there.
- *   ...+chromeMs ─── settled, and the notice says what happened.
- *
- * The two chrome numbers are also written to <html> as custom properties, so
- * the CSS rule behind `data-theme-shift` (app/globals.css) is timed from here
- * rather than from a second copy of them.
+ *   0ms ──────────── the sky alone. The wallpaper is painted in the incoming
+ *                    theme while the chrome is still in the outgoing one: the
+ *                    stack crossfades over `skyMs`, and under the Sky style
+ *                    the shader eases its veil and exposure over about the
+ *                    same stretch.
+ *   skyLeadMs ────── the chrome catches up, in one commit, inside a view
+ *                    transition — one composited crossfade of the whole page,
+ *                    the same one a route change uses. Not a transition per
+ *                    element: a page this size has ~1000 of them, and
+ *                    transitioning colour on all of them costs ~1.2s of style
+ *                    recalculation against ~60ms for this.
+ *   ...+200ms ────── settled, and the notice says what happened.
  */
 export const SOLAR_HANDOVER = {
   /** The wallpaper stack's crossfade for this one change. */
   skyMs: 1800,
-  /** How long the chrome holds the outgoing theme while the sky moves. */
-  chromeDelayMs: 1200,
-  /** How long the chrome takes to dissolve once it starts. */
-  chromeMs: 1000,
+  /** How long the sky has to itself before the chrome follows. */
+  skyLeadMs: 1400,
 } as const;
 
-/** End to end: the sky starts, the chrome finishes. */
-export const SOLAR_HANDOVER_MS =
-  SOLAR_HANDOVER.chromeDelayMs + SOLAR_HANDOVER.chromeMs;
+/** The sky's lead — after which the chrome changes and the notice is due. */
+export const SOLAR_HANDOVER_MS = SOLAR_HANDOVER.skyLeadMs;

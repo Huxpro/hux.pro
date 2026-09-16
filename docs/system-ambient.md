@@ -299,21 +299,31 @@ unknown, and then nothing switches.
 a switch being thrown (`SOLAR_HANDOVER`):
 
 ```
-0ms ──────────── the sky. The wallpaper stack crossfades over 1.8s instead of
-                 its usual 0.7s, and under the Sky style the shader is already
-                 easing its veil and exposure over about the same stretch.
-1200ms ───────── the chrome. Text, cards and borders dissolve over 1s, held
-                 until now by `data-theme-shift` on <html> (app/globals.css).
-2200ms ───────── settled, and the notice says what happened.
+0ms ──────────── the sky, alone. The wallpaper is painted in the *incoming*
+                 theme while the chrome is still in the outgoing one: the
+                 stack crossfades over 1.8s instead of its usual 0.7s, and
+                 under the Sky style the shader eases its veil and exposure
+                 over about the same stretch.
+1400ms ───────── the chrome catches up, in one commit, inside a view
+                 transition — the browser crossfades the page as a single
+                 composited image, the same 200ms a route change uses.
+1600ms ───────── settled, and the notice says what happened.
 ```
 
-The theme itself changes in one tick — everything derived from it stays in
-agreement — and what is staged is the painting of it. The rule is unlayered CSS
-timed from the constants the provider writes to `<html>`, it excludes
-`[data-wallpaper-layer]` (which is busy running the first half of the same
-transition), and it is for the sun alone: a theme the *user* picks still lands
-on the next frame, because they asked for it and are looking at it. Under
-`prefers-reduced-motion` nothing is staged at all.
+Two values, briefly: `wallpaperTheme` (the scene, the wash's weight, a
+picture's half, the profile of what is painting) leads, while everything that
+belongs to the chrome — the page ground, the bezel, the ink ladder — keeps
+reading `theme`. The lead ends the moment the chrome catches up, and a theme
+the user picks while it is running calls the whole thing off, sky included:
+theirs wins.
+
+The chrome's half is deliberately **not** a transition per element. That was
+the first cut of this, and it cost ~1.2s of style recalculation for a 1s
+dissolve — a page this size has ~1000 elements and their colours are
+`color-mix()` over custom properties, so every frame re-ran the document's
+style. The composited crossfade is ~60ms of capture for the same effect, and
+where it is unavailable (Firefox, `prefers-reduced-motion`) the chrome simply
+changes, which is what the rest of the app does when the user picks a theme.
 
 Three more rules make it a system gesture rather than a setting changing behind
 the user's back:

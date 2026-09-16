@@ -4,7 +4,12 @@ import { dismissToast, showCustomToast } from "@/components/ui/system-sonner";
 import { useTheme } from "@/services";
 import { useReducedMotion } from "framer-motion";
 import { useEffect, useRef } from "react";
-import { SOLAR_HANDOVER_MS, sunEventFor, type SolarTheme } from "../lib/solar-theme";
+import { flushSync } from "react-dom";
+import {
+  SOLAR_HANDOVER,
+  sunEventFor,
+  type SolarTheme,
+} from "../lib/solar-theme";
 import { useSolarTheme } from "../provider";
 import { SolarThemeToast } from "./solar-theme-toast";
 
@@ -14,15 +19,22 @@ import { SolarThemeToast } from "./solar-theme-toast";
 // One rule: the switch is a *crossing watched live*. This component remembers
 // which side of the day it last saw (`seenRef`) and only acts when that
 // changes while it is mounted — so arriving after dark does nothing, and
-// sitting on the page through sunset does. That is the whole of "in the same
+// sitting on the page through dusk does. That is the whole of "in the same
 // session": the sun may interrupt you, it may not greet you.
 //
 // *When* it crosses is the end of the sunrise / sunset window rather than the
 // sun's own crossing, so the dusk you were watching in Light finishes in Light
-// (lib/solar-theme.ts). *How* is staged: `beginThemeHandover()` slows the sky's
-// crossfade and holds the chrome back, so the sky moves first and the text and
-// cards dissolve after it. The notice lands once that has settled — by then
-// there is nothing to announce but what already happened.
+// (lib/solar-theme.ts). *How* is staged, and the sky goes first:
+//
+//   beginThemeHandover(next)  the wallpaper starts painting the incoming theme
+//                             on a longer crossfade; the chrome stays put.
+//   + skyLeadMs               the chrome catches up in one commit, inside a
+//                             view transition: the browser crossfades the page
+//                             as one composited image, the same 200ms a route
+//                             change uses. A transition per element would cost
+//                             ~1.2s of style recalculation on a page this size
+//                             — measured — against ~60ms for this.
+//   + the notice              a pill, once it has settled.
 //
 // What it applies is a session override on the theme (services/theme.tsx), not
 // the saved Appearance preference. The preference is untouched, an explicit
@@ -42,18 +54,49 @@ import { SolarThemeToast } from "./solar-theme-toast";
 
 const TOAST_ID = "solar-theme";
 const TOAST_DURATION_MS = 5_000;
-/** The notice waits out the handover, so it describes a change already made. */
-const TOAST_AFTER_HANDOVER_MS = 200;
+/** The page's own crossfade, after which the notice is not interrupting anything. */
+const CHROME_CROSSFADE_MS = 200;
+
+/**
+ * Commit the theme as one crossfade of the whole page where the browser can
+ * do it on the compositor, and as a plain change where it cannot (Firefox,
+ * reduced motion). `flushSync` because the callback must leave the DOM in its
+ * new state before it returns — React's own update would land a frame late,
+ * and the browser would capture the change it was meant to animate.
+ */
+function commitTheme(apply: () => void, animate: boolean) {
+  const start = animate
+    ? (document as Document & {
+        startViewTransition?: (cb: () => void) => unknown;
+      }).startViewTransition
+    : undefined;
+  if (!start) {
+    apply();
+    return;
+  }
+  start.call(document, () => flushSync(apply));
+}
 
 export function SolarThemeSync() {
   const { followSun, sunTheme, beginThemeHandover } = useSolarTheme();
-  const { theme, override, setThemeOverride } = useTheme();
+  const { theme, preference, override, setThemeOverride } = useTheme();
   const reducedMotion = useReducedMotion() ?? false;
 
   /** The last reading this session has accounted for; a crossing is a change of it. */
   const seenRef = useRef<SolarTheme | null>(null);
-  /** The pending notice, so a second crossing (autoplay) never stacks two. */
-  const noticeRef = useRef<number | null>(null);
+  /** The handover in flight, so a second crossing (autoplay) replaces it. */
+  const timersRef = useRef<number[]>([]);
+  /**
+   * The theme as of this render, for the commit at the end of the lead to
+   * check against. Someone may pick a theme while the sky is leading — the
+   * palette is one keystroke away — and theirs wins over the sun's. The
+   * preference is watched alongside the theme because choosing the theme the
+   * page is already in moves only that.
+   */
+  const pickedRef = useRef({ theme, preference });
+  useEffect(() => {
+    pickedRef.current = { theme, preference };
+  }, [theme, preference]);
 
   useEffect(() => {
     // Off: the sun drives nothing, and an override it left behind goes with
@@ -87,40 +130,63 @@ export function SolarThemeSync() {
 
     // A crossing, watched live: dawn or dusk has just finished.
     const changed = theme !== sunTheme;
-    if (!reducedMotion && changed) beginThemeHandover();
-    setThemeOverride(sunTheme);
-    // The preference was already painting this; there is nothing to announce.
-    if (!changed) return;
-
     const event = sunEventFor(sunTheme);
-    const show = () =>
+    const notice = () =>
       showCustomToast(<SolarThemeToast event={event} theme={sunTheme} />, {
         id: TOAST_ID,
         duration: TOAST_DURATION_MS,
       });
 
-    if (reducedMotion) {
-      show();
+    // The preference is already painting this; nothing to stage, nothing to say.
+    if (!changed) {
+      setThemeOverride(sunTheme);
       return;
     }
-    if (noticeRef.current) window.clearTimeout(noticeRef.current);
-    noticeRef.current = window.setTimeout(
-      show,
-      SOLAR_HANDOVER_MS + TOAST_AFTER_HANDOVER_MS
+
+    for (const id of timersRef.current) window.clearTimeout(id);
+    timersRef.current = [];
+
+    if (reducedMotion) {
+      setThemeOverride(sunTheme);
+      notice();
+      return;
+    }
+
+    // The sky, alone, first.
+    const picked = { theme, preference };
+    beginThemeHandover(sunTheme);
+    timersRef.current.push(
+      window.setTimeout(() => {
+        // Someone picked a theme while the sky was leading: call the whole
+        // thing off, sky included, rather than overruling them a beat later.
+        if (
+          pickedRef.current.theme !== picked.theme ||
+          pickedRef.current.preference !== picked.preference
+        ) {
+          beginThemeHandover(null);
+          return;
+        }
+        commitTheme(() => setThemeOverride(sunTheme), true);
+        timersRef.current.push(window.setTimeout(notice, CHROME_CROSSFADE_MS));
+      }, SOLAR_HANDOVER.skyLeadMs)
     );
   }, [
     followSun,
     sunTheme,
     theme,
+    preference,
     override,
     reducedMotion,
     setThemeOverride,
     beginThemeHandover,
   ]);
 
-  useEffect(() => () => {
-    if (noticeRef.current) window.clearTimeout(noticeRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      for (const id of timersRef.current) window.clearTimeout(id);
+    },
+    []
+  );
 
   return null;
 }
