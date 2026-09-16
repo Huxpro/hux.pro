@@ -80,7 +80,6 @@ export function CommandSheet() {
 
   const shell = useMemo<CommandShell>(
     () => ({
-      shape: "sheet",
       leave: (kind) => {
         if (kind === "surface") {
           // The keyboard goes down as the surface comes up.

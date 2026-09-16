@@ -18,13 +18,14 @@ import { CommandAppsStrip } from "./apps-launcher";
 import {
   useCommandShell,
   useRunCommand,
+  useShowKeyboardHints,
   type CommandAction,
 } from "./actions";
 
 // =============================================================================
 // Search results and the slash list — the palette's two bodies, shared by the
-// popover and the sheet. Neither knows which shell it is in beyond what
-// `useCommandShell()` tells it: a sheet shows no keyboard hints.
+// popover and the sheet. Neither knows which shell it is in; keyboard hints
+// follow the input device, not the shell.
 // =============================================================================
 
 /** cmdk group headings, styled once for both shells (goes on the root). */
@@ -43,8 +44,8 @@ const SECTIONS = ["navigation", "settings"] as const;
 
 /** The slash letter beside a row. Only where a keyboard can press it. */
 function Letter({ letter }: { letter?: string }) {
-  const { shape } = useCommandShell();
-  if (!letter || shape === "sheet") return null;
+  const showHints = useShowKeyboardHints();
+  if (!letter || !showHints) return null;
   return <kbd className={cn("shrink-0", TYPE.kbd)}>{letter.toUpperCase()}</kbd>;
 }
 

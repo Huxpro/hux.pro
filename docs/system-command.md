@@ -48,8 +48,15 @@ back down gives the keyboard up again.
 
 A launcher is not a secondary surface, so the sheet is modal: the page stops
 answering while it is up, and a tap on the page dismisses it, as a click on the
-page dismisses the popover. No keyboard hints are shown (no letters beside
-rows, no footer).
+page dismisses the popover.
+
+**Keyboard hints** — the letters beside rows, `esc`, the footer's arrows —
+follow the input device, not the shell: `useShowKeyboardHints()` reads
+`hasFineHoverPointer` from `services/input-capability`. A desktop shows them;
+so does an iPad with a trackpad (and so a keyboard), live, the moment one is
+attached; a phone and a bare iPad do not, in either shell. The popover's own
+Safari accommodations are keyed to the *phone* (`/iPhone|iPod/`), not to iOS:
+iPad Safari has the room to be treated like a desktop.
 
 **Hand-off.** A command that opens a secondary surface — the wallpaper picker —
 does not simply close the palette on a phone. The sheet stays and steps back

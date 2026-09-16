@@ -6,6 +6,7 @@ import {
   localeNames,
   t,
   useGlass,
+  useInputCapability,
   useLocale,
   useTheme,
 } from "@/services";
@@ -390,8 +391,6 @@ export function useCommandActions(): CommandAction[] {
 // =============================================================================
 
 export interface CommandShell {
-  /** The palette's shape, for content that adapts (no keyboard hints on a sheet). */
-  shape: "popover" | "sheet";
   /** Leave the palette after a command of this kind. */
   leave: (kind: CommandKind) => void;
 }
@@ -458,6 +457,17 @@ export function SlashShortcuts({ actions }: { actions: CommandAction[] }) {
   }, [enabled]);
 
   return null;
+}
+
+/**
+ * Whether to show keyboard hints — slash letters, `esc`, the footer's arrows.
+ * Not a question of shell or viewport but of input: a fine hover pointer
+ * means a desktop, or an iPad with a trackpad and so a keyboard; its absence
+ * means a phone, or a bare iPad, whichever shell the palette is in. The
+ * service tracks it live, so plugging a keyboard into an iPad turns them on.
+ */
+export function useShowKeyboardHints(): boolean {
+  return useInputCapability().hasFineHoverPointer;
 }
 
 /**

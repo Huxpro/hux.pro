@@ -13,6 +13,7 @@ import {
   SlashShortcuts,
   useCommandActions,
   useCommandField,
+  useShowKeyboardHints,
   type CommandShell,
 } from "./actions";
 import { LoadBundlePanel } from "./load-bundle-panel";
@@ -51,7 +52,7 @@ export function CommandPopover() {
   }, [isOpen, signalDragReset]);
 
   const shell = useMemo<CommandShell>(
-    () => ({ shape: "popover", leave: close }),
+    () => ({ leave: close }),
     [close]
   );
 
@@ -82,25 +83,31 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
   const field = useCommandField();
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const [isIOS] = useState(() => /iPhone|iPod/.test(navigator.userAgent));
-  // Where the page was when the card came up; it is pinned there on iOS.
+  const showHints = useShowKeyboardHints();
+  // The phone, not the platform: iPad Safari is left alone. What follows
+  // works around the phone's small viewport, where a focused field makes
+  // Safari scroll and resize the page under a fixed card.
+  const [isPhoneSafari] = useState(() =>
+    /iPhone|iPod/.test(navigator.userAgent)
+  );
+  // Where the page was when the card came up; it is pinned there on a phone.
   const [scrollPosition] = useState(() => window.scrollY);
 
   useEffect(() => {
-    if (!isIOS) return;
+    if (!isPhoneSafari) return;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "";
     };
-  }, [isIOS]);
+  }, [isPhoneSafari]);
 
-  // Focus the field on open and on the way back from slash mode — not on
-  // iOS, where the keyboard would jump the layout.
+  // Focus the field on open and on the way back from slash mode — not on a
+  // phone, where the keyboard would jump the layout.
   useEffect(() => {
-    if (isSlashCommandsMode || isIOS) return;
+    if (isSlashCommandsMode || isPhoneSafari) return;
     const timer = setTimeout(() => inputRef.current?.focus(), 50);
     return () => clearTimeout(timer);
-  }, [isSlashCommandsMode, isIOS]);
+  }, [isSlashCommandsMode, isPhoneSafari]);
 
   return (
       <div
@@ -108,14 +115,16 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
           // Above the theater/PiP surfaces (z-[10000]+) — the command palette is
           // the primary nav and must always sit on top.
           "system-chrome z-[10050] flex items-start justify-center pt-[20vh]",
-          isIOS ? "absolute inset-x-0" : "fixed inset-0"
+          isPhoneSafari ? "absolute inset-x-0" : "fixed inset-0"
         )}
-        style={isIOS ? { top: scrollPosition, height: "100dvh" } : undefined}
+        style={
+          isPhoneSafari ? { top: scrollPosition, height: "100dvh" } : undefined
+        }
       >
         <div
           className="absolute inset-0 bg-transparent"
-          onClick={!isIOS ? close : undefined}
-          onPointerDown={isIOS ? close : undefined}
+          onClick={!isPhoneSafari ? close : undefined}
+          onPointerDown={isPhoneSafari ? close : undefined}
         />
 
         <motion.div
@@ -230,9 +239,11 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                         )}
                       />
                     </div>
-                    <kbd className="hidden sm:flex items-center gap-1 px-2 py-1 text-xs font-mono text-muted-foreground bg-muted/50 rounded">
-                      esc
-                    </kbd>
+                    {showHints && (
+                      <kbd className="flex items-center gap-1 px-2 py-1 text-xs font-mono text-muted-foreground bg-muted/50 rounded">
+                        esc
+                      </kbd>
+                    )}
                   </div>
                 </div>
               </div>
@@ -253,9 +264,11 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                     <span className="flex-1 font-sans text-sm font-medium text-muted-foreground">
                       {t(locale, "slashCommands")}
                     </span>
-                    <kbd className="px-2 py-1 text-xs font-mono text-muted-foreground bg-muted/50 rounded">
-                      esc
-                    </kbd>
+                    {showHints && (
+                      <kbd className="px-2 py-1 text-xs font-mono text-muted-foreground bg-muted/50 rounded">
+                        esc
+                      </kbd>
+                    )}
                   </div>
                 </div>
               </div>
@@ -308,7 +321,11 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
               </div>
             </div>
 
+            {/* Footer — keyboard hints, so only where there is a keyboard;
+                the load-bundle row keeps its note either way. */}
+            {(showHints || isLoadBundleMode) && (
             <div className="border-t border-border/50 text-xs text-muted-foreground">
+              {showHints && (
               <div
                 className="grid transition-all duration-300 ease-out"
                 style={{
@@ -354,6 +371,8 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                   </div>
                 </div>
               </div>
+              )}
+              {showHints && (
               <div
                 className="grid transition-all duration-300 ease-out"
                 style={{
@@ -380,6 +399,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                   </div>
                 </div>
               </div>
+              )}
               <div
                 className="grid transition-all duration-300 ease-out"
                 style={{ gridTemplateRows: isLoadBundleMode ? "1fr" : "0fr" }}
@@ -390,9 +410,11 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                     style={{ opacity: isLoadBundleMode ? 1 : 0 }}
                   >
                     <span className="flex items-center gap-1 font-sans">
-                      <kbd className="px-1.5 py-0.5 font-mono bg-muted/50 rounded">
-                        esc
-                      </kbd>
+                      {showHints && (
+                        <kbd className="px-1.5 py-0.5 font-mono bg-muted/50 rounded">
+                          esc
+                        </kbd>
+                      )}
                       {t(locale, "backToSearch")}
                     </span>
                     <span className="text-[11px] text-muted-foreground">
@@ -402,6 +424,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                 </div>
               </div>
             </div>
+            )}
           </Command>
         </motion.div>
       </div>
