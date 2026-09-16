@@ -1494,6 +1494,16 @@ const MOON_NAME: Record<"en" | "zh", Record<MoonPhaseName, string>> = {
 /** Minutes in a day — the scrub's range, and one loop of Play. */
 const DAY_MINUTES = 1440;
 
+/**
+ * The transport: a minute for the day, or half of one. Two buttons rather than
+ * a speed on one, so a glance says which is running and either is one press
+ * away from the other.
+ */
+const PLAY_RATES = [
+  { rate: 1, label: { en: "Day", zh: "一天" } },
+  { rate: 2, label: { en: "2×", zh: "2×" } },
+] as const;
+
 /** The quiet outlined chip the Sky module's Now and Play buttons are made of. */
 const PANEL_CHIP = cn(
   "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5",
@@ -1596,35 +1606,48 @@ function SkyModule() {
   // on a panel whose whole top half is for choosing a time — the strip, the
   // phase names and the sun's own ticks are right there. Pick a moment, then
   // press play from it.
-  const [playing, setPlaying] = useState(false);
-  /** A day, once through. */
+  /** 0 is paused; otherwise the multiple of `PLAY_DURATION_MS` being played. */
+  const [playRate, setPlayRate] = useState(0);
+  const playing = playRate > 0;
+  /** A day, once through, at 1×. */
   const PLAY_DURATION_MS = 60_000;
   const playPosRef = useRef(0);
 
   useEffect(() => {
-    if (!playing) return;
+    if (!playRate) return;
     const tickMs = 100;
-    const step = (DAY_MINUTES / PLAY_DURATION_MS) * tickMs;
+    const step = ((DAY_MINUTES * playRate) / PLAY_DURATION_MS) * tickMs;
     const id = window.setInterval(() => {
       playPosRef.current = (playPosRef.current + step) % DAY_MINUTES;
       setTimeScrubMinutes(Math.round(playPosRef.current) % DAY_MINUTES);
     }, tickMs);
     return () => window.clearInterval(id);
-  }, [playing, setTimeScrubMinutes]);
+  }, [playRate, setTimeScrubMinutes]);
 
-  const startPlay = () => {
-    playPosRef.current = timeScrubMinutes ?? realMinutes;
-    setTimeScrubMinutes(Math.round(playPosRef.current));
-    setPlaying(true);
+  /**
+   * One button per speed: pressing the lit one pauses, pressing the other
+   * changes speed without starting over — the playhead is where it is, and
+   * only the step it moves by changes.
+   */
+  const play = (rate: number) => {
+    if (playRate === rate) {
+      setPlayRate(0);
+      return;
+    }
+    if (!playing) {
+      playPosRef.current = timeScrubMinutes ?? realMinutes;
+      setTimeScrubMinutes(Math.round(playPosRef.current));
+    }
+    setPlayRate(rate);
   };
 
   const jumpTo = (minutes: number) => {
-    setPlaying(false);
+    setPlayRate(0);
     setTimeScrubMinutes(minutes);
   };
 
   const resetAll = () => {
-    setPlaying(false);
+    setPlayRate(0);
     resetTimeTravel();
     setDebugOverride(null);
     setSceneOverrides({});
@@ -1730,21 +1753,33 @@ function SkyModule() {
                 />
               )}
             </span>
-            <button
-              onClick={() => (playing ? setPlaying(false) : startPlay())}
-              className={cn(
-                PANEL_CHIP,
-                playing
-                  ? "border-foreground/40 bg-accent text-accent-foreground"
-                  : "border-border/60 text-muted-foreground hover:text-foreground"
-              )}
-              aria-label={playing ? "Pause the day" : "Play the day"}
-              aria-pressed={playing}
-              title={zh ? "从当前时刻循环播放这一天" : "Play the day from here, on a loop"}
-            >
-              {playing ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-              {zh ? "一天" : "Day"}
-            </button>
+            <span className="flex items-center gap-1">
+              {PLAY_RATES.map(({ rate, label }) => {
+                const live = playRate === rate;
+                return (
+                  <button
+                    key={rate}
+                    onClick={() => play(rate)}
+                    className={cn(
+                      PANEL_CHIP,
+                      live
+                        ? "border-foreground/40 bg-accent text-accent-foreground"
+                        : "border-border/60 text-muted-foreground hover:text-foreground"
+                    )}
+                    aria-label={live ? "Pause the day" : `Play the day at ${rate}x`}
+                    aria-pressed={live}
+                    title={
+                      zh
+                        ? `从当前时刻循环播放这一天（${rate} 倍速）`
+                        : `Play the day from here, on a loop, at ${rate}×`
+                    }
+                  >
+                    {live ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                    {zh ? label.zh : label.en}
+                  </button>
+                );
+              })}
+            </span>
           </div>
           <div
             className="relative h-10 overflow-hidden rounded-lg ring-1 ring-border/50"
