@@ -53,6 +53,12 @@ import {
   EDGE_FADE_MASK_HIGH_CONTRAST,
   isIOSBrowser,
 } from "./lib/platform";
+import {
+  initialParallaxPermission,
+  requestParallaxPermission,
+  type ParallaxPermission,
+  type ParallaxSource,
+} from "./lib/parallax";
 import type { NormalizedWeather, WeatherCondition } from "./lib/weather";
 import type { AmbientPhase } from "./lib/phase";
 import { deriveAmbientPhase } from "./lib/phase";
@@ -268,6 +274,21 @@ interface WallpaperContextType {
   setBezelRadius: (px: number | null) => void;
   /** The page's ground in the current theme: the chrome colour while the bezel is off. */
   ground: string;
+  /**
+   * The tilt easter egg (see lib/parallax.ts). `setParallax(true)` asks for
+   * motion access on the way in, so it MUST be reached straight from a click
+   * handler — iOS only resolves the request inside a live gesture.
+   */
+  parallax: boolean;
+  setParallax: (value: boolean) => void;
+  /** What is actually driving it, and where the browser stands on motion access. */
+  parallaxSource: ParallaxSource;
+  parallaxPermission: ParallaxPermission;
+  /** <WallpaperBackground /> → provider, as the driver picks a source. */
+  reportParallaxStatus: (status: {
+    source: ParallaxSource;
+    permission: ParallaxPermission;
+  }) => void;
   /** The reading treatment flags, for the devtool. */
   readingBlur: boolean;
   setReadingBlur: (value: boolean) => void;
@@ -457,6 +478,42 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const setReadingDim = useCallback(
     (value: boolean) => updateSettings({ wallpaperReadingDim: value }),
     [updateSettings]
+  );
+
+  // --- Parallax ------------------------------------------------------------
+  // The easter egg is a saved setting; motion access is not. Only the browser
+  // knows where that stands, it resets on reload, and on iOS it can only be
+  // asked for from a gesture — so it lives here as session state, seeded from
+  // what the platform supports and corrected by the driver as it learns more.
+  const [parallaxPermission, setParallaxPermission] =
+    useState<ParallaxPermission>("unsupported");
+  const [parallaxSource, setParallaxSource] = useState<ParallaxSource>("none");
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only capability read
+    setParallaxPermission(initialParallaxPermission());
+  }, []);
+
+  const setParallax = useCallback(
+    (value: boolean) => {
+      if (!value) {
+        updateSettings({ wallpaperParallax: false });
+        return;
+      }
+      // Gesture-critical: the permission request has to be the first thing
+      // that happens, before any await, or WebKit counts the tap as spent.
+      const pending = requestParallaxPermission();
+      updateSettings({ wallpaperParallax: true });
+      void pending.then(setParallaxPermission);
+    },
+    [updateSettings]
+  );
+
+  const reportParallaxStatus = useCallback(
+    ({ source, permission }: { source: ParallaxSource; permission: ParallaxPermission }) => {
+      setParallaxSource(source);
+      setParallaxPermission(permission);
+    },
+    []
   );
 
   // Home is the desktop: the picture stays sharp and untinted, because that is
@@ -1039,6 +1096,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       bezelRadiusSetting: settings.bezelRadius,
       setBezelRadius,
       ground,
+      parallax: settings.wallpaperParallax,
+      setParallax,
+      parallaxSource,
+      parallaxPermission,
+      reportParallaxStatus,
       readingBlur: settings.wallpaperReadingBlur,
       setReadingBlur,
       readingDim: settings.wallpaperReadingDim,
@@ -1063,6 +1125,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       settings.bezelRadius,
       settings.wallpaperReadingBlur,
       settings.wallpaperReadingDim,
+      settings.wallpaperParallax,
       setWallpaperKind,
       selectWeather,
       effectiveStyle,
@@ -1094,6 +1157,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       bezelRadius,
       setBezelRadius,
       ground,
+      setParallax,
+      parallaxSource,
+      parallaxPermission,
+      reportParallaxStatus,
       setReadingBlur,
       setReadingDim,
       wallpaperSrc,

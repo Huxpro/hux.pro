@@ -56,7 +56,10 @@ Debug modules for the ambient system:
    picker (choosing among the catalog is the picker's job), placement switches
    (full / widget / soft edge), the bezel switch and its tint (black / dark /
    theme / custom), band and radius, a window / container scroll switch, the
-   reading treatment switches (reading blur / reading dim),
+   reading treatment switches (reading blur / reading dim), **Parallax** (the
+   tilt easter egg — the switch is also the iOS motion-permission prompt, with
+   a line under it saying what answered: `gyroscope · granted`, `no gyroscope ·
+   pointer stands in`, `tap the page to grant motion access`),
    and the resolved asset. Under Weather two more rows: **Style** (Sky /
    Gradient / Classic — the persisted choice, the same three tiles the picker
    shows) and **No WebGL2** (a session switch that pretends WebGL2 is missing,

@@ -382,11 +382,60 @@ gets the same mask the weather gradient gets (`EDGE_FADE_MASK`, or the wider
 `EDGE_FADE_MASK_HIGH_CONTRAST` for dark-mode sunrise/sunset). The devtool
 switch overrides it either way.
 
+### Parallax (the tilt easter egg)
+
+`wallpaperParallax`, off by default. With it on, the full-page wallpaper drifts
+against the device: tilt the phone right and the picture slides left, as if the
+page were a window and the wallpaper were behind it. 3vmin of travel per axis,
+smoothed over 140ms, on top of a 1.07× crop that keeps an edge from ever
+showing. `vmin` rather than a percentage, so the travel is the same number of
+pixels sideways as up and down on a tall phone; the crop's slack is 3.5% of
+each axis, which beats 3vmin on both axes in either orientation.
+
+**It cannot arm itself, which is why it is a switch.** iOS 13 put
+`deviceorientation` behind `DeviceOrientationEvent.requestPermission()`, and
+that only resolves inside a user gesture — so a tap is the only thing that can
+ever turn this on there, and the tap is also the consent. Android fires the
+events with no prompt at all, but a wallpaper that moves on one platform and
+waits on the other is worse than one that always waits to be asked. Both
+switches call `setParallax` straight from their click handler, with no `await`
+in front of it; anything else spends the gesture and WebKit rejects.
+
+The setting survives a reload but the grant does not. On a reload with it on,
+the driver arms a one-shot `pointerdown` listener and asks again inside the
+first tap on the page.
+
+**What actually drives it** is decided by whether an event arrives, not by what
+exists on `window` — Chrome defines `DeviceOrientationEvent` on a desktop that
+has no sensor. The driver listens, and if nothing has answered in two seconds
+the pointer stands in with the same offsets, which is what makes the egg
+checkable without a phone. A real reading takes over the moment one arrives.
+Screen rotation is folded in (`screen.orientation.angle`), the attitude at the
+first reading becomes the centre, and turning the device or leaving the tab
+re-centres.
+
+`prefers-reduced-motion` keeps the switch on and the wallpaper still: no
+listeners, no crop.
+
+Mechanically it is one box — the **parallax stage**, between the fixed layer
+and whatever paints — so the effect costs the same whether a shader canvas or a
+gradient stack is inside it, and the reading veil, a sibling, stays put while
+the picture drifts under it. `ParallaxDriver` (`lib/parallax.ts`) owns that
+box's transform and writes it on a rAF, the way `fixedBgTracker` writes its
+own: sixty readings a second are zero React renders. Switching off eases back
+out of the crop and leaves the element clean — no transform, no `will-change`.
+
+| Surface | How |
+|---------|-----|
+| Devtool panel | Wallpaper module → **Parallax**, with a line saying what answered |
+| Command palette | Search `parallax` / `gyro` / `tilt` / `陀螺仪` — it is not in the standing list |
+
 ### Triggers
 
 | Surface | How |
 |---------|-----|
 | Command palette | `Wallpaper: <name>` / `Wallpaper: Weather · Sky` (⌘K), or `/` then `W` |
+| Command palette (hidden) | `Wallpaper Parallax` — only turns up once you type for it |
 | Devtool panel | Wallpaper module — the whole background system in one place |
 | Anywhere in code | `useWallpaper().openPicker()` |
 
@@ -504,6 +553,11 @@ const {
   blurred,                // Whether this route defocuses the wallpaper
   bezel,                  // Whether the bezel is drawn (kind, or a session override)
   bezelTint, bezelBand, bezelRadius,  // Saved settings, and their setters
+  parallax,               // The tilt easter egg (saved)
+  setParallax,            // Call it STRAIGHT from a click handler — it prompts
+  parallaxSource,         // "gyro" | "pointer" | "none" — what answered
+  parallaxPermission,     // "unsupported" | "ready" | "prompt" | "granted" | "denied"
+  reportParallaxStatus,   // <WallpaperBackground /> → provider, as the driver learns
   readingBlur,            // The two reading-treatment switches
 
   setReadingBlur,

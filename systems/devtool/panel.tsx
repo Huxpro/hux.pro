@@ -33,6 +33,10 @@ import {
   minutesOfDay,
   type MoonPhaseName,
 } from "@/systems/ambient/lib/solar";
+import type {
+  ParallaxPermission,
+  ParallaxSource,
+} from "@/systems/ambient/lib/parallax";
 import type { WallpaperStats } from "@/systems/ambient/lib/wallpaper/renderer";
 import {
   getWeatherWallpaperName,
@@ -98,6 +102,7 @@ import {
   Sunset,
   X,
 } from "lucide-react";
+import { useReducedMotion } from "framer-motion";
 import { withDraggable } from "@/systems/draggable";
 import Link from "next/link";
 import { Slider } from "@/components/ui/slider";
@@ -913,11 +918,45 @@ function GlassModule() {
 // Full, Widget and Soft edge are ephemeral devtool overrides of what the
 // settings and the platform resolve to; the reading treatment rows write the
 // persisted settings the picker sheet shares.
+//
+// Parallax, at the bottom, is the tilt easter egg. It is a saved setting like
+// the reading rows, but the switch is doing more than writing it: on iOS it is
+// also the motion-permission prompt, which is why it is a switch at all and
+// not something that turns itself on. The line under it says what answered.
 // =============================================================================
+
+/**
+ * One line under the Parallax switch answering "is it actually doing
+ * anything, and if not, whose call was that". `source` is what answered —
+ * the gyroscope, or the pointer standing in for one on a desktop — and
+ * `permission` is where the browser stands on motion access.
+ */
+function parallaxNote(
+  zh: boolean,
+  source: ParallaxSource,
+  permission: ParallaxPermission,
+  reducedMotion: boolean
+): string {
+  if (reducedMotion) return zh ? "已开启 · 系统减弱动态效果，静止" : "on · reduced motion, held still";
+  if (permission === "denied") return zh ? "运动权限被拒绝" : "motion access denied";
+  if (permission === "unsupported") return zh ? "此设备无方向传感器 · 指针代驾" : "no orientation sensor · pointer stands in";
+  if (source === "gyro") return zh ? "陀螺仪 · 已授权" : "gyroscope · granted";
+  if (source === "pointer") {
+    return permission === "prompt"
+      ? zh
+        ? "指针代驾 · 轻触页面以授予运动权限"
+        : "pointer stands in · tap the page to grant motion access"
+      : zh
+      ? "无陀螺仪 · 指针代驾"
+      : "no gyroscope · pointer stands in";
+  }
+  return zh ? "等待传感器…" : "waiting for a sensor…";
+}
 
 function WallpaperModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
+  const parallaxReducedMotion = useReducedMotion() ?? false;
   const {
     kind,
     setKind,
@@ -949,6 +988,10 @@ function WallpaperModule() {
     setReadingBlur,
     readingDim,
     setReadingDim,
+    parallax,
+    setParallax,
+    parallaxSource,
+    parallaxPermission,
     openPicker,
     placement,
     fullEnabled,
@@ -1315,6 +1358,31 @@ function WallpaperModule() {
               label="Toggle dimming on reading pages"
             />
           </PanelRow>
+        </div>
+
+        {/* The tilt easter egg. It cannot arm itself — iOS only grants motion
+            access inside a gesture — so this switch IS the permission prompt,
+            and the line under it says what actually answered. */}
+        <div className="space-y-2 border-t border-border/30 pt-2.5">
+          <PanelRow
+            label={zh ? "陀螺仪视差" : "Parallax"}
+            star={
+              parallax ? (
+                <PanelStar onReset={() => setParallax(false)} source="saved" />
+              ) : null
+            }
+          >
+            <PanelToggle
+              on={parallax}
+              onClick={() => setParallax(!parallax)}
+              label="Toggle gyroscope wallpaper parallax"
+            />
+          </PanelRow>
+          {parallax && (
+            <div className="text-[10px] font-mono text-muted-foreground">
+              {parallaxNote(zh, parallaxSource, parallaxPermission, parallaxReducedMotion)}
+            </div>
+          )}
         </div>
 
         {/* The resolved asset — the fastest way to trace a wrong background. */}
