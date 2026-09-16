@@ -9,7 +9,7 @@ import {
   SurfaceSheet,
 } from "@/systems/surface";
 import { Command } from "cmdk";
-import { ChevronLeft, Search, X } from "lucide-react";
+import { Search, Slash, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CommandShellProvider,
@@ -49,8 +49,9 @@ import {
 // Slash mode on a phone is a second sheet stacked on this one, the way iOS
 // presents a sheet from a sheet: the palette stays open and steps back, the
 // slash list rises over it level with its detent, and a drag down (the
-// palette following the finger forward), the back arrow or a tap on the
-// receded palette brings the palette forward again.
+// palette following the finger forward), its close button or a tap on the
+// receded palette brings the palette forward again — one level at a time,
+// as on iOS; the palette's own close is on the palette.
 // It is a true stack (the sheet is a React child of the palette's, so Base UI
 // treats it as nested, and the shared stack recedes the parent), reached by
 // the "/" chip in the field or by typing "/" into the empty field. The field
@@ -253,25 +254,23 @@ function SheetBody({
         }}
         modal
         height={detentHeight(slashDetent)}
+        // Focus must not come back to the field: on iOS a field focused with
+        // no keyboard gets one on the next touch anywhere in the palette.
+        restoreFocus={false}
         label={t(locale, "slashCommands")}
         className="system-chrome"
       >
+        {/* One way out, one level down — a stacked sheet's close is its own,
+            as on iOS. The palette's own close is on the palette. */}
         <div className="flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
-          <button
-            type="button"
-            onClick={() => setSlashCommandsMode(false)}
-            aria-label={t(locale, "backToSearch")}
-            className={cn(HEADER_BUTTON, "-ml-2")}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
+          <Slash className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span className="flex-1 py-2 font-sans text-sm font-medium text-muted-foreground">
             {t(locale, "slashCommands")}
           </span>
           <button
             type="button"
-            onClick={close}
-            aria-label={t(locale, "commandClose")}
+            onClick={() => setSlashCommandsMode(false)}
+            aria-label={t(locale, "backToSearch")}
             className={cn(HEADER_BUTTON, "-mr-2")}
           >
             <X className="h-4 w-4" />

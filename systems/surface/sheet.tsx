@@ -156,6 +156,13 @@ export interface SurfaceSheetProps {
   /** Height without snap points. Default 80dvh. */
   height?: string;
   /**
+   * Return focus to what opened the sheet when it closes. On by default; a
+   * sheet stacked on one with a text field turns it off — focus handed back
+   * to a field is a focused field with no keyboard, and iOS opens the keyboard
+   * on the next touch anywhere, whatever it was aimed at.
+   */
+  restoreFocus?: boolean;
+  /**
    * Accessible name for the dialog, rendered visually hidden. Omit when the
    * content renders a visible `Drawer.Title` of its own.
    */
@@ -173,6 +180,7 @@ export function SurfaceSheet({
   activeSnapPoint,
   onActiveSnapPointChange,
   height,
+  restoreFocus = true,
   label,
   className,
   children,
@@ -207,6 +215,7 @@ export function SurfaceSheet({
         <Drawer.Portal>
           <SurfaceViewport modal={modal}>
             <Drawer.Popup
+              finalFocus={restoreFocus ? undefined : false}
               data-surface-popup=""
               data-surface-snap={hasSnapPoints ? "" : undefined}
               style={{

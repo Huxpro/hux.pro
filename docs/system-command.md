@@ -69,8 +69,12 @@ has launched something. On the desktop the popover just closes, as before.
 way iOS presents a sheet from a sheet: the palette stays open and steps back
 (the surface stack does that), the slash list rises over it level with the
 palette's detent (`detentHeight`) with the palette's top edge peeking above,
-and a drag down — the palette coming forward under the finger — the back
-arrow or a tap on the receded palette brings the palette forward again. The
+and a drag down — the palette coming forward under the finger — its close
+button or a tap on the receded palette brings the palette forward again, one
+level at a time as on iOS: the palette's own close is on the palette. The
+slash sheet does not return focus on close (`restoreFocus={false}`): focus
+handed back to the field is a focused field with no keyboard, and iOS opens
+the keyboard on the next touch anywhere. The
 slash sheet has no detents of its own: Base UI reports a sheet with detents'
 swipe as a position between them, which at the lowest detent is already all
 the way, and the palette needs the plain fraction of the way out.

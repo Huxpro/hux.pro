@@ -120,6 +120,7 @@ and still gets the same shell, so a sheet is a sheet whatever it holds.
   modal                       // scrim: page blocked, tap outside dismisses
   snapPoints={[0.7, 1]}       // detents; opens at the first
   activeSnapPoint={snap} onActiveSnapPointChange={setSnap}
+  restoreFocus={false}        // a sheet stacked on one with a field: see below
   label="Command palette">    // sr-only dialog name (or render a Drawer.Title)
   {content}
 </SurfaceSheet>
@@ -158,6 +159,11 @@ edge at a lower detent is exactly the overflow it would move it for.
 the drawer takes the pointer, and the click never reaches the row that was
 pressed. A touch drag still dismisses from anywhere; Base UI reads the scroll
 containers so a drag inside a list scrolls the list.
+
+**Focus on close.** A sheet returns focus to what opened it, unless
+`restoreFocus={false}`. A sheet stacked on one with a text field turns it off:
+focus handed back to a field is a focused field with no keyboard, and iOS opens
+the keyboard on the next touch anywhere, whatever it was aimed at.
 
 **Keyboard.** `Drawer.VirtualKeyboardProvider` wraps every sheet and publishes
 `--drawer-keyboard-inset`; the shell takes it as a bottom margin, so a sheet

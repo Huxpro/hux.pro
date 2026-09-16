@@ -1383,9 +1383,13 @@ html.dragging * {
 
 /* Under the finger the sheet is direct: a transition here would chase every
    pointermove for half a second and keep laying the sheet out after the
-   finger has stopped. Base UI marks the drag for exactly this. */
+   finger has stopped. Base UI marks the drag for exactly this. The duration,
+   not the whole transition: on the frame the finger lets go the sheet can be
+   marked swiping and leaving at once, and the leaving rule below only restores
+   a duration — a transition with no property to run on would let the sheet
+   jump to the edge and be unmounted the next frame, with no exit at all. */
 [data-surface-popup][data-swiping] {
-  transition: none;
+  transition-duration: 0ms;
 }
 
 /* A sheet follows the finger, and rests wherever its detent puts it. Base UI
@@ -1477,9 +1481,10 @@ html.dragging * {
   );
 }
 
-/* Under the finger the parent is direct, like the child. */
+/* Under the finger the parent is direct, like the child — the duration only,
+   for the same reason as above. */
 [data-surface-popup][data-nested-drawer-swiping] > [data-surface-shell] {
-  transition: none;
+  transition-duration: 0ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
