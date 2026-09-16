@@ -926,6 +926,7 @@ function GlassModule() {
 function WallpaperModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
+  const { close: closePanel } = useDevtool();
   const {
     kind,
     setKind,
@@ -1145,7 +1146,11 @@ function WallpaperModule() {
         )}
         <button
           type="button"
-          onClick={openPicker}
+          // The picker is about the page; the panel folds so the page is there.
+          onClick={() => {
+            openPicker();
+            closePanel();
+          }}
           aria-label={zh ? "打开壁纸选择器" : "Open wallpaper picker"}
           className="flex w-full items-center gap-2 rounded-md border border-border/60 p-1 text-left transition-colors hover:bg-muted/40"
         >

@@ -87,6 +87,12 @@ export interface AdaptiveSurfaceProps {
   windowWidth?: string;
   /** Height cap for window and sheet modes. */
   maxHeight?: string;
+  /**
+   * Detents for the sheet shape, as fractions of the viewport, lowest first;
+   * the sheet opens at the first and a drag carries it to the top. Overrides
+   * `maxHeight` there; the other shapes ignore it.
+   */
+  snapPoints?: number[];
   /** Padding on the scroll area, for content that wants to bleed wider. */
   contentClassName?: string;
   /** The scroll container, for content that needs to scroll a row into view. */
@@ -346,6 +352,7 @@ function SurfaceSheetShape({
   actions,
   closeLabel,
   maxHeight,
+  snapPoints,
   contentClassName,
   scrollRef,
   children,
@@ -356,6 +363,7 @@ function SurfaceSheetShape({
       open={open}
       onOpenChange={onOpenChange}
       height={maxHeight}
+      snapPoints={snapPoints}
     >
       <SurfaceBody
         title={title}

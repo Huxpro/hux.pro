@@ -58,12 +58,12 @@ attached; a phone and a bare iPad do not, in either shell. The popover's own
 Safari accommodations are keyed to the *phone* (`/iPhone|iPod/`), not to iOS:
 iPad Safari has the room to be treated like a desktop.
 
-**Hand-off.** A command that opens a secondary surface — the wallpaper picker —
-does not simply close the palette on a phone. The sheet stays and steps back
-while the picker rises over it (the surface stack does that: smaller, dimmer,
-inert), and once the picker has landed, the sheet goes. Closing the picker then
-returns to the page, not to the palette: a launcher is finished the moment it
-has launched something. On the desktop the popover just closes, as before.
+**Stacking.** A command that opens a secondary surface — the wallpaper picker —
+does not close the palette on a phone. The palette stays and steps back while
+the picker rises over it (the surface stack does that; from the slash sheet
+the palette steps back two), and closing the picker brings it forward again:
+on a phone a sheet presented from a sheet returns to it, as on iOS. Only the
+keyboard goes. On the desktop the popover closes, as before.
 
 **Slash commands** on a phone are a second sheet stacked on the palette, the
 way iOS presents a sheet from a sheet: the palette stays open and steps back
@@ -109,7 +109,7 @@ palette does after it runs:
 | Kind | Does | After, from search | After, from the slash list |
 |------|------|--------------------|----------------------------|
 | `navigate` | goes somewhere | closes | closes |
-| `surface` | opens a secondary surface | closes (sheet: hands off) | same |
+| `surface` | opens a secondary surface | popover closes; sheet stays behind it | same |
 | `toggle` | flips a setting | stays, so the new value reads back | closes |
 
 `useRunCommand()(action, origin)` holds that table, with `origin` being

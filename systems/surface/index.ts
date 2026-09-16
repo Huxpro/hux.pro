@@ -29,7 +29,12 @@
 
 export { AdaptiveSurface, useSurfaceContext } from "./adaptive-surface";
 export type { AdaptiveSurfaceProps } from "./adaptive-surface";
-export { detentHeight, HEADER_BUTTON, SurfaceSheet } from "./sheet";
+export {
+  detentHeight,
+  HEADER_BUTTON,
+  SHEET_DETENTS,
+  SurfaceSheet,
+} from "./sheet";
 export { SURFACE_TRANSITION_MS } from "./stack";
 export {
   ADAPTIVE_PRESENTATION,

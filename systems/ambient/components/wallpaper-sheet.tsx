@@ -8,6 +8,7 @@ import { useState } from "react";
 import {
   ADAPTIVE_PRESENTATION,
   AdaptiveSurface,
+  SHEET_DETENTS,
   useSurfaceContext,
 } from "@/systems/surface";
 import { getWeatherStyleGradient } from "../lib/gradient";
@@ -392,6 +393,9 @@ export function WallpaperSheet() {
       title={t(locale, "wallpaperTitle")}
       closeLabel={t(locale, "wallpaperClose")}
       windowWidth="min(92vw, 620px)"
+      // On a phone: the site's detents — level with whatever it is stacked
+      // on, and a drag carries it to the top for the whole catalog at once.
+      snapPoints={SHEET_DETENTS}
     >
       <WallpaperPickerBody />
     </AdaptiveSurface>

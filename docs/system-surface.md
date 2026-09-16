@@ -103,6 +103,7 @@ const { mode, isWindow, close } = useSurfaceContext();
 | `title` / `actions` | Header content. `actions` sits left of the close button. |
 | `windowWidth` | Window mode only; drawers size against their edge. |
 | `maxHeight` | Caps window and sheet height. |
+| `snapPoints` | Detents for the sheet shape, lowest first; a drag carries it to the top. |
 | `contentClassName` | Overrides the scroll area's padding, for content that bleeds wider. |
 | `scrollRef` | The scroll container, for content that scrolls a row into view. |
 
@@ -135,7 +136,14 @@ and grows and shrinks from the top — at rest and under the finger alike. Past
 the lowest detent (`--surface-detent-floor`) the padding stops and the sheet
 slides away whole, because that drag is a dismissal, not a resize.
 
-**Detents.** `snapPoints` are fractions of the viewport, iOS's medium and large.
+**Detents.** `snapPoints` are fractions of the viewport, iOS's medium and large;
+the site has one set, `SHEET_DETENTS` (`[0.7, 1]`), so sheets stacked on one
+another stand level. A sheet with detents opens at the detent of the sheet
+beneath it when that is one of its own (the stack publishes each sheet's
+`level`; a fixed-height sheet names its with the `level` prop), and at the
+first otherwise — so the wallpaper picker over the palette arrives level with
+the palette, and can still be pulled to the top over it, as an iOS child sheet
+can stand taller than its parent.
 Base UI publishes the active one as `--drawer-snap-point-offset` and the live
 drag as `--drawer-swipe-movement-y`, both on the popup; everything that reads
 them is one block in `app/globals.css`, *Secondary surface motion*, on the
@@ -221,18 +229,18 @@ so the parent comes forward under the finger as the child is pulled down, with
 transitions off while `data-nested-drawer-swiping` is set. Both feed the one
 `--surface-depth` the shell is drawn from.
 
-A sheet that opens a sheet decides for itself what happens next. The wallpaper
-picker over the playlist is a true stack: close the picker and the playlist
-comes forward. The command palette is a launcher and hands off instead: it
-recedes while the picker arrives, then goes, and closing the picker returns to
-the page. See [Command System](./system-command.md).
+Every sheet over a sheet is a true stack: close the top one and the one
+beneath comes forward. The palette under the wallpaper picker steps back one;
+under the slash sheet and the picker, two — `depth` from the stack plus Base
+UI's own count of nested sheets, one `--surface-depth` on the shell. See
+[Command System](./system-command.md).
 
 ## Adopters
 
 | Surface | Presentation | Notes |
 |---------|--------------|-------|
 | Music playlist | `ADAPTIVE_PRESENTATION` | macOS-sized window (980×620), track list breaks into columns |
-| Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode |
+| Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode; `SHEET_DETENTS` as a sheet |
 | Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight popover, not an `AdaptiveSurface` |
 
 Adding a second is: register a draggable id, pick a presentation, pass content.

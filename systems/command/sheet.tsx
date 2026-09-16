@@ -5,7 +5,7 @@ import { t, useLocale } from "@/services";
 import {
   detentHeight,
   HEADER_BUTTON,
-  SURFACE_TRANSITION_MS,
+  SHEET_DETENTS,
   SurfaceSheet,
 } from "@/systems/surface";
 import { Command } from "cmdk";
@@ -41,10 +41,10 @@ import {
 // the page dismisses the desktop popover.
 //
 // Leaving after a command (see CommandKind): the sheet closes, except after a
-// `surface` command, when it stays and steps back while the surface it opened
-// rises over it — the shared stack does that — and once that surface has
-// landed, the sheet goes. Closing the picker then returns to the page, not to
-// the palette: a launcher is finished the moment it has launched something.
+// `surface` command, when it stays where it is and steps back while the
+// surface it opened — the wallpaper picker — rises over it, the shared stack
+// doing the stepping. Closing the picker brings the palette forward again:
+// on a phone a sheet presented from a sheet returns to it, as on iOS.
 //
 // Slash mode on a phone is a second sheet stacked on this one, the way iOS
 // presents a sheet from a sheet: the palette stays open and steps back, the
@@ -63,8 +63,8 @@ import {
 // shortcuts — lives in SheetBody, which Base UI unmounts with the sheet.
 // =============================================================================
 
-/** iOS's medium and large detents, near enough. Opens at the first. */
-const SNAP_POINTS = [0.7, 1];
+/** The site's detents. The palette opens at the first. */
+const SNAP_POINTS = SHEET_DETENTS;
 const SNAP_TOP = SNAP_POINTS[SNAP_POINTS.length - 1];
 
 type Detent = number | string | null;
@@ -79,33 +79,20 @@ export function CommandSheet() {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [snap, setSnap] = useState<Detent>(SNAP_POINTS[0]);
-  const [handingOff, setHandingOff] = useState(false);
 
-  // A fresh sheet each time: lower detent, nothing in flight.
+  // A fresh sheet each time: lower detent.
   useEffect(() => {
     if (isOpen) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on close
     setSnap(SNAP_POINTS[0]);
-    setHandingOff(false);
   }, [isOpen]);
-
-  // The hand-off: the surface this sheet opened takes one transition to
-  // arrive; the sheet recedes behind it for that long, then goes. A timer
-  // rather than that surface's own "arrived" event, because the surface may
-  // already have been open underneath, in which case nothing arrives at all.
-  useEffect(() => {
-    if (!handingOff) return;
-    const timer = setTimeout(close, SURFACE_TRANSITION_MS);
-    return () => clearTimeout(timer);
-  }, [handingOff, close]);
 
   const shell = useMemo<CommandShell>(
     () => ({
       leave: (kind) => {
         if (kind === "surface") {
-          // The keyboard goes down as the surface comes up.
+          // The palette stays, a step back; only the keyboard goes.
           inputRef.current?.blur();
-          setHandingOff(true);
         } else {
           close();
         }
@@ -250,12 +237,14 @@ function SheetBody({
           key pressed in here is not also a key pressed in the search list. */}
       <SurfaceSheet
         id="command-slash"
+        nestedIn="command"
         open={isSlashCommandsMode}
         onOpenChange={(open) => {
           if (!open) setSlashCommandsMode(false);
         }}
         modal
         height={detentHeight(slashDetent)}
+        level={slashDetent}
         // Focus must not come back to the field: on iOS a field focused with
         // no keyboard gets one on the next touch anywhere in the palette.
         restoreFocus={false}
