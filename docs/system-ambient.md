@@ -125,6 +125,26 @@ bent. Where it is *drawn* is a composition decision (`stageMoon` in
   fifth of its night strength.
 - It is drawn up to 30 % larger near the horizon — the moon illusion.
 
+**Drawing the moon.** The disc is the same size as the sun's — both are half a
+degree across in the real sky, which is why an eclipse fits — and what makes
+the sun read as the sun is the glow around it, not a bigger disc (`DISC_R` in
+the shader is the one radius, times the moon illusion above).
+
+It is shaded as a sphere rather than masked as a disc. The phase becomes a
+light direction — the phase angle, from the same
+elongation the ephemeris gives — and the surface is lit with Lommel-Seeliger,
+the backscatter that keeps the real full moon bright right out to its limb,
+plus a little Lambert and limb darkening for roundness. The terminator is
+therefore a gradient of grazing light, not a cut edge.
+
+The texture is laid out over the visible hemisphere by arc angle from the
+centre of the disc, so it foreshortens toward the limb the way a sphere's
+does: broad maria (smooth, being flooded basalt), a mottle of highlands, and a
+sparse field of craters whose relief is a height field tilting the sphere's
+normal into the same light. Detail fades with the size of a pixel's footprint
+on the surface — near the limb, and on a small disc — so nothing shimmers.
+Like everything else in the Sky engine it is procedural: no texture is loaded.
+
 ### WeatherScene
 
 `deriveWeatherScene()` (`lib/scene.ts`) is the single pure function that turns
@@ -150,12 +170,19 @@ at 40 px.)
 
 | Engine | Where | How |
 |--------|-------|-----|
-| **Sky** (`wallpaper/`) | The `sky` weather style, full-page, when WebGL2 is available | One full-screen fragment pass: sky gradient + sun glow/disc, twinkling stars, phased moon, two parallax fbm cloud decks lit toward the sun, drifting fog, stochastic lightning flashes, wind-sheared rain streaks / snow flakes, theme veil, dither. |
+| **Sky** (`wallpaper/`) | The `sky` weather style, full-page, when WebGL2 is available | One full-screen fragment pass: sky gradient + sun glow/disc, twinkling stars, a phased moon shaded as a lit sphere, two parallax fbm cloud decks lit toward the sun, drifting fog, stochastic lightning flashes, wind-sheared rain streaks / snow flakes, theme veil, dither. |
 | **Gradient** (`gradient.ts` + `gradient-stack.tsx`) | The `gradient` and `classic` weather styles; widget cards under every style; the Sky's fallback when WebGL2 is missing (or the devtool pretends it is) | Sun-glow radial + cloud wash + zenith→horizon linear gradient built from the scene palette, crossfaded via the layer stack. (`gradient.ts` also keeps the original hand-tuned per-condition palettes for the devtool thumbnails.) |
 
 The Sky engine (`WallpaperRenderer`):
 - treats every scene as a **target** — each uniform eases in with its own time
   constant (sky ≈ 1.8 s, clouds/precipitation ≈ 2.5 s), so a refetch never snaps;
+- eases *where a body is drawn* far faster (≈0.25 s for the sun and moon): a
+  live clock moves them a thousandth of a screen a minute, so that easing is
+  only ever felt when a hand drives the clock — the devtool's date and time
+  sliders — and there the disc should feel attached to the slider. A real jump
+  of the clock still snaps, measured between one **target** and the next: a
+  large gap between the target and where the disc has eased to is only lag, and
+  snapping on that teleports the disc mid-drag;
 - accumulates cloud/snow **drift in JS** from the smoothed wind, so a wind change
   glides instead of teleporting the sky;
 - renders at a **pixel budget** (≈1.1 M px desktop, ≈0.5 M px phones) and backs

@@ -25,18 +25,25 @@ interface UniformSpec {
   tau: number;
 }
 
+// Where a body is drawn tracks the clock it was given (`TRACK`); what the sky
+// is made of crossfades. A live clock moves the sun and moon by a thousandth
+// of a screen a minute, so their easing is only ever felt when the clock is
+// driven by hand — the devtool's date and time sliders — and there it should
+// feel attached to the slider, not towed behind it.
+const TRACK = 0.25;
+
 const UNIFORMS: UniformSpec[] = [
-  { name: "uSun", size: 2, tau: 1.6 },
-  { name: "uSunElevation", size: 1, tau: 1.6 },
+  { name: "uSun", size: 2, tau: TRACK },
+  { name: "uSunElevation", size: 1, tau: TRACK },
   { name: "uDaylight", size: 1, tau: 1.6 },
   { name: "uZenith", size: 3, tau: 1.8 },
   { name: "uHorizon", size: 3, tau: 1.8 },
   { name: "uGlow", size: 3, tau: 1.8 },
   { name: "uGlowStrength", size: 1, tau: 1.8 },
-  { name: "uMoon", size: 2, tau: 1.6 },
+  { name: "uMoon", size: 2, tau: TRACK },
   { name: "uMoonPhase", size: 1, tau: 0 },
   { name: "uMoonVisible", size: 1, tau: 1.8 },
-  { name: "uMoonSize", size: 1, tau: 1.6 },
+  { name: "uMoonSize", size: 1, tau: TRACK },
   { name: "uHemisphere", size: 1, tau: 0 },
   { name: "uCloudCover", size: 1, tau: 2.6 },
   { name: "uCloudDensity", size: 1, tau: 2.6 },
@@ -211,6 +218,8 @@ export class WallpaperRenderer {
   // ---------------------------------------------------------------------------
 
   setScene(scene: WeatherScene) {
+    // Where every uniform was aimed before this scene arrived.
+    const prevTarget = this.target.slice();
     packScene(scene, this.target);
     this.seed = scene.seed;
     if (!this.hasScene) {
@@ -219,12 +228,15 @@ export class WallpaperRenderer {
     }
     // The phase is cyclic; never interpolate it.
     this.snap("uMoonPhase");
-    // Easing is for the minute-by-minute drift of a live clock. A jump of the
-    // clock (devtool time travel, a refetch after hours asleep) would otherwise
-    // fly the sun or moon across the screen in a straight line, which reads as
-    // a wrong trajectory — so a large displacement snaps instead.
-    this.snapIfFar("uSun", 0.2);
-    this.snapIfFar("uMoon", 0.2, ["uMoonVisible"]);
+    // Easing is for the minute-by-minute drift of a live clock, and for a hand
+    // on a devtool slider. A jump of the clock (a phase preset, a refetch after
+    // hours asleep) would otherwise fly the sun or moon across the screen in a
+    // straight line, which reads as a wrong trajectory — so it snaps instead.
+    // The jump that matters is between one target and the next: measuring
+    // against the eased position instead would read a run of small steps — a
+    // scrub — as one big jump, and teleport the disc mid-drag.
+    this.snapIfJumped("uSun", prevTarget, 0.2);
+    this.snapIfJumped("uMoon", prevTarget, 0.2, ["uMoonVisible"]);
     if (this.opts.reducedMotion) {
       this.current.set(this.target);
       this.renderOnce();
@@ -504,11 +516,16 @@ export class WallpaperRenderer {
     this.draw(STILL_FRAME_SEC);
   }
 
-  /** Snap a vec2 uniform (and companions) when its target moved far. */
-  private snapIfFar(name: string, threshold: number, companions: string[] = []) {
+  /** Snap a vec2 uniform (and companions) when a new scene jumped its target. */
+  private snapIfJumped(
+    name: string,
+    from: Float32Array,
+    threshold: number,
+    companions: string[] = []
+  ) {
     const offset = OFFSET[name];
-    const dx = this.target[offset] - this.current[offset];
-    const dy = this.target[offset + 1] - this.current[offset + 1];
+    const dx = this.target[offset] - from[offset];
+    const dy = this.target[offset + 1] - from[offset + 1];
     if (Math.hypot(dx, dy) > threshold) {
       this.snap(name);
       for (const c of companions) this.snap(c);
