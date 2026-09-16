@@ -136,7 +136,14 @@ and grows and shrinks from the top — at rest and under the finger alike. Past
 the lowest detent (`--surface-detent-floor`) the padding stops and the sheet
 slides away whole, because that drag is a dismissal, not a resize.
 
-**Detents.** `snapPoints` are fractions of the viewport, iOS's medium and large.
+**Detents.** `snapPoints` are fractions of the viewport, iOS's medium and large;
+the site has one set, `SHEET_DETENTS` (`[0.7, 1]`), so sheets stacked on one
+another stand level. A sheet with detents opens at the detent of the sheet
+beneath it when that is one of its own (the stack publishes each sheet's
+`level`; a fixed-height sheet names its with the `level` prop), and at the
+first otherwise — so the wallpaper picker over the palette arrives level with
+the palette, and can still be pulled to the top over it, as an iOS child sheet
+can stand taller than its parent.
 Base UI publishes the active one as `--drawer-snap-point-offset` and the live
 drag as `--drawer-swipe-movement-y`, both on the popup; everything that reads
 them is one block in `app/globals.css`, *Secondary surface motion*, on the
@@ -233,7 +240,7 @@ UI's own count of nested sheets, one `--surface-depth` on the shell. See
 | Surface | Presentation | Notes |
 |---------|--------------|-------|
 | Music playlist | `ADAPTIVE_PRESENTATION` | macOS-sized window (980×620), track list breaks into columns |
-| Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode; detents `[0.8, 1]` as a sheet |
+| Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode; `SHEET_DETENTS` as a sheet |
 | Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight popover, not an `AdaptiveSurface` |
 
 Adding a second is: register a draggable id, pick a presentation, pass content.

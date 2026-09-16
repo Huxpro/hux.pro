@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 import { Drawer } from "@base-ui/react/drawer";
 import { BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
 import {
@@ -93,6 +94,13 @@ import {
 //    touch tap, a touch tap nothing about a swipe release, and a programmatic
 //    `focus()` is a third thing again.
 // -----------------------------------------------------------------------------
+
+/**
+ * The site's detents, iOS's medium and large near enough. One set, so sheets
+ * stacked on one another stand level: a sheet with detents opens at the detent
+ * of the sheet beneath it (see `useSurfaceStack`), and at the first otherwise.
+ */
+export const SHEET_DETENTS = [0.7, 1];
 
 /** Ring of padding between a floating surface and the screen edges. */
 export const EDGE_GAP = "0.75rem";
@@ -189,8 +197,9 @@ export interface SurfaceSheetProps {
    */
   modal?: boolean;
   /**
-   * Detents as fractions of the viewport, lowest first; the sheet opens at the
-   * first. Omit for a fixed-height sheet.
+   * Detents as fractions of the viewport, lowest first. Opens at the detent of
+   * the sheet it is stacked on when that is one of them, else at the first.
+   * Omit for a fixed-height sheet.
    */
   snapPoints?: number[];
   /** Controlled active detent, for a sheet that wants to move itself. */
@@ -198,6 +207,11 @@ export interface SurfaceSheetProps {
   onActiveSnapPointChange?: (snapPoint: number | string | null) => void;
   /** Height without snap points. Default 80dvh. */
   height?: string;
+  /**
+   * For a fixed-height sheet: the detent it stands level with, so a sheet
+   * with detents stacked on it can arrive level too.
+   */
+  level?: number;
   /**
    * Return focus to what opened the sheet when it closes. On by default; a
    * sheet stacked on one with a text field turns it off — focus handed back
@@ -224,13 +238,41 @@ export function SurfaceSheet({
   activeSnapPoint,
   onActiveSnapPointChange,
   height,
+  level: levelProp,
   restoreFocus = true,
   label,
   className,
   children,
 }: SurfaceSheetProps) {
-  const { behind, depth } = useSurfaceStack(id, open, nestedIn);
   const hasSnapPoints = !!snapPoints && snapPoints.length > 0;
+
+  // The detent, controlled by the owner when it says so, else kept here.
+  const isControlled = activeSnapPoint !== undefined;
+  const [ownSnap, setOwnSnap] = useState<number | string | null>(
+    snapPoints?.[0] ?? null
+  );
+  const snap = isControlled ? activeSnapPoint : ownSnap;
+  const level = hasSnapPoints
+    ? typeof snap === "number"
+      ? snap
+      : undefined
+    : levelProp;
+
+  const { behind, depth, beneathLevel } = useSurfaceStack(id, open, {
+    nestedIn,
+    level,
+  });
+
+  // Arrive level with the sheet beneath, when it stands at one of ours.
+  const arrival =
+    hasSnapPoints && beneathLevel !== undefined && snapPoints.includes(beneathLevel)
+      ? beneathLevel
+      : (snapPoints?.[0] ?? null);
+  useEffect(() => {
+    if (!open || isControlled || !hasSnapPoints) return;
+    setOwnSnap(arrival);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- read once, on open
+  }, [open]);
 
   return (
     <Drawer.Root
@@ -242,14 +284,16 @@ export function SurfaceSheet({
       // belongs to the page: the close button, Escape and a drag dismiss.
       disablePointerDismissal={!modal}
       snapPoints={snapPoints}
-      snapPoint={activeSnapPoint}
+      snapPoint={hasSnapPoints ? snap : undefined}
       // Only a change is a change. Every touch on a Base UI drawer ends in a
       // release that re-reports the detent it landed on, so a tap into a
       // field would otherwise reach the owner as "back to where you were"
       // in the same breath as the focus — and undo whatever the focus asked
       // for. A controlled prop's onChange should not fire for its own value.
       onSnapPointChange={(point) => {
-        if (point !== activeSnapPoint) onActiveSnapPointChange?.(point);
+        if (point === snap) return;
+        if (!isControlled) setOwnSnap(point);
+        onActiveSnapPointChange?.(point);
       }}
     >
       {/* iOS's keyboard, handled once for every sheet: the provider publishes

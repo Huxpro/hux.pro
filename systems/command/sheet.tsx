@@ -2,7 +2,12 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { detentHeight, HEADER_BUTTON, SurfaceSheet } from "@/systems/surface";
+import {
+  detentHeight,
+  HEADER_BUTTON,
+  SHEET_DETENTS,
+  SurfaceSheet,
+} from "@/systems/surface";
 import { Command } from "cmdk";
 import { Search, Slash, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -58,8 +63,8 @@ import {
 // shortcuts — lives in SheetBody, which Base UI unmounts with the sheet.
 // =============================================================================
 
-/** iOS's medium and large detents, near enough. Opens at the first. */
-const SNAP_POINTS = [0.7, 1];
+/** The site's detents. The palette opens at the first. */
+const SNAP_POINTS = SHEET_DETENTS;
 const SNAP_TOP = SNAP_POINTS[SNAP_POINTS.length - 1];
 
 type Detent = number | string | null;
@@ -239,6 +244,7 @@ function SheetBody({
         }}
         modal
         height={detentHeight(slashDetent)}
+        level={slashDetent}
         // Focus must not come back to the field: on iOS a field focused with
         // no keyboard gets one on the next touch anywhere in the palette.
         restoreFocus={false}

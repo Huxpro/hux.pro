@@ -8,6 +8,7 @@ import { useState } from "react";
 import {
   ADAPTIVE_PRESENTATION,
   AdaptiveSurface,
+  SHEET_DETENTS,
   useSurfaceContext,
 } from "@/systems/surface";
 import { getWeatherStyleGradient } from "../lib/gradient";
@@ -379,9 +380,6 @@ function WeatherStyleTile({
   );
 }
 
-/** iOS's medium and large detents, near enough. Opens at the first. */
-const WALLPAPER_SNAP_POINTS = [0.8, 1];
-
 export function WallpaperSheet() {
   const { locale } = useLocale();
   const { isPickerOpen, openPicker, closePicker } = useWallpaper();
@@ -395,9 +393,9 @@ export function WallpaperSheet() {
       title={t(locale, "wallpaperTitle")}
       closeLabel={t(locale, "wallpaperClose")}
       windowWidth="min(92vw, 620px)"
-      // On a phone: opens at eight tenths, a drag carries it to the top for
-      // the whole catalog at once.
-      snapPoints={WALLPAPER_SNAP_POINTS}
+      // On a phone: the site's detents — level with whatever it is stacked
+      // on, and a drag carries it to the top for the whole catalog at once.
+      snapPoints={SHEET_DETENTS}
     >
       <WallpaperPickerBody />
     </AdaptiveSurface>
