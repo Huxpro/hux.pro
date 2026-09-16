@@ -39,12 +39,11 @@ import {
 //   detents.
 //
 //   Stacking.  A sheet opened over another one sends the one underneath back a
-//   step — smaller, dimmer, a little higher, inert — and brings it forward
-//   again when the top one goes. That is what iOS does when a sheet presents a
-//   sheet, and it is decided by the shared stack (stack.ts), not by the sheet.
-//   Base UI has its own nested-drawer stacking, but it only sees drawers that
-//   are React children of another drawer; ours mount in sibling subtrees of the
-//   root layout, so the store stays.
+//   step per sheet — smaller, dimmer, a little higher, inert — and brings it
+//   forward again as they go. That is what iOS does when a sheet presents a
+//   sheet. Base UI counts the sheets nested in this one (React children) on the
+//   popup, live with their swipe; the shared stack (stack.ts) counts the ones
+//   from other subtrees; the shell adds the two.
 //
 // `modal` is off by default (see AdaptiveSurface for why: these surfaces are
 // about the page behind them, which stays live). A launcher like the command
@@ -85,7 +84,8 @@ import {
 // 4. Nesting is React nesting. A drawer is nested only when its Root renders
 //    inside another's Popup; the parent then gets `data-nested-drawer-open`,
 //    `data-nested-drawer-swiping` and `--nested-drawers`. Sheets in sibling
-//    subtrees get none of it — that is what stack.ts is for.
+//    subtrees get none of it — that is what stack.ts is for, and a nested
+//    sheet says so (`nestedIn`) so the stack does not count it a second time.
 // 5. A closing dialog returns focus to what opened it. Where that is a text
 //    field on a touch device, turn it off (`restoreFocus`): iOS opens the
 //    keyboard for an already-focused field on the next touch anywhere.
@@ -130,9 +130,9 @@ export const SHELL = [
 ].join(" ");
 
 /**
- * What the CSS in globals.css needs from here: the site's surface curve, and
+ * What the CSS in globals.css needs from here: the site's surface curves, and
  * how far past the edge a surface has to travel to be gone. Set on the popup so
- * the timing lives in one place (stack.ts) for the CSS and the hand-off alike.
+ * the timing lives in one place (stack.ts).
  */
 export const surfaceMotionVars = (exitClearance: string) =>
   ({
@@ -175,6 +175,12 @@ export function SurfaceViewport({
 export interface SurfaceSheetProps {
   /** Stable id — the sheet's key in the surface stack. */
   id: string;
+  /**
+   * The id of the sheet this one renders inside, when it does. Base UI counts
+   * a nested sheet on its parent already, live with its swipe; naming the
+   * parent keeps the shared stack from counting it again.
+   */
+  nestedIn?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /**
@@ -210,6 +216,7 @@ export interface SurfaceSheetProps {
 
 export function SurfaceSheet({
   id,
+  nestedIn,
   open,
   onOpenChange,
   modal = false,
@@ -222,7 +229,7 @@ export function SurfaceSheet({
   className,
   children,
 }: SurfaceSheetProps) {
-  const { behind } = useSurfaceStack(id, open);
+  const { behind, depth } = useSurfaceStack(id, open, nestedIn);
   const hasSnapPoints = !!snapPoints && snapPoints.length > 0;
 
   return (
@@ -282,6 +289,9 @@ export function SurfaceSheet({
                 data-behind={behind ? "" : undefined}
                 // React 19 renders `inert` as the boolean attribute.
                 inert={behind}
+                // Sheets from other subtrees stacked on this one; the CSS adds
+                // Base UI's count of nested ones.
+                style={{ "--surface-stack-depth": depth } as React.CSSProperties}
                 className={cn(
                   SHELL,
                   "min-h-0 flex-1 origin-top",

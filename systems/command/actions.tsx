@@ -53,8 +53,8 @@ import { useCommand } from "./provider";
  * What a command does to the world, which decides what the palette does next:
  *
  *   navigate  goes somewhere; the palette is finished.
- *   surface   opens a secondary surface (the wallpaper picker); the palette is
- *             finished, but on a phone it hands off to the sheet it opened.
+ *   surface   opens a secondary surface (the wallpaper picker); the popover
+ *             closes, the phone sheet stays behind it as a stack.
  *   toggle    flips a setting; chosen from search the palette stays open so
  *             the new value can be read back, from the slash list it closes.
  */
@@ -387,7 +387,7 @@ export function useCommandActions(): CommandAction[] {
 // =============================================================================
 // Shell context — how the palette leaves once a command has run.
 // The popover closes; the sheet closes too, except after a `surface` command,
-// when it hands off to the sheet it opened (see CommandKind, and sheet.tsx).
+// when it stays behind the sheet it opened (see CommandKind, and sheet.tsx).
 // =============================================================================
 
 export interface CommandShell {

@@ -379,6 +379,9 @@ function WeatherStyleTile({
   );
 }
 
+/** iOS's medium and large detents, near enough. Opens at the first. */
+const WALLPAPER_SNAP_POINTS = [0.8, 1];
+
 export function WallpaperSheet() {
   const { locale } = useLocale();
   const { isPickerOpen, openPicker, closePicker } = useWallpaper();
@@ -392,6 +395,9 @@ export function WallpaperSheet() {
       title={t(locale, "wallpaperTitle")}
       closeLabel={t(locale, "wallpaperClose")}
       windowWidth="min(92vw, 620px)"
+      // On a phone: opens at eight tenths, a drag carries it to the top for
+      // the whole catalog at once.
+      snapPoints={WALLPAPER_SNAP_POINTS}
     >
       <WallpaperPickerBody />
     </AdaptiveSurface>
