@@ -119,6 +119,11 @@ float fbm3(vec2 p) {
 // Sky
 // ---------------------------------------------------------------------------
 
+// The sun and the moon are the same size in the sky — half a degree each,
+// which is why an eclipse fits. One radius for both discs, then; what makes
+// the sun read as the sun is the glow around it, not a bigger disc.
+const float DISC_R = 0.03;
+
 vec3 skyBase(vec2 uv, vec2 p, vec2 sunP, float aspect) {
   float t = pow(clamp(uv.y, 0.0, 1.0), 0.8);
   vec3 sky = mix(uHorizon, uZenith, t);
@@ -135,7 +140,7 @@ vec3 skyBase(vec2 uv, vec2 p, vec2 sunP, float aspect) {
   sky += uGlow * band * 0.26;
 
   // Sun disc when the sun is up and the sky is open.
-  float disc = smoothstep(0.026, 0.012, d);
+  float disc = smoothstep(DISC_R + 0.007, DISC_R - 0.007, d);
   float halo = exp(-(d * d) / 0.005);
   float sunVis = smoothstep(-1.5, 2.0, uSunElevation) * (1.0 - smoothstep(0.35, 0.8, uCloudCover));
   sky += (vec3(1.0, 0.97, 0.9) * disc * 0.8 + uGlow * halo * 0.28) * sunVis;
@@ -193,7 +198,7 @@ float moonRelief(vec2 q, float coarse, float fine) {
 
 vec3 moon(vec2 p, vec2 moonP) {
   if (uMoonVisible < 0.002) return vec3(0.0);
-  float r = 0.03 * uMoonSize;
+  float r = DISC_R * uMoonSize;
   vec2 d = (p - moonP) / r;
   d.x *= uHemisphere;
   float md = length(d);

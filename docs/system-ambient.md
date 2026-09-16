@@ -125,8 +125,13 @@ bent. Where it is *drawn* is a composition decision (`stageMoon` in
   fifth of its night strength.
 - It is drawn up to 30 % larger near the horizon — the moon illusion.
 
-**Drawing the moon.** The disc is shaded as a sphere rather than masked as a
-disc. The phase becomes a light direction — the phase angle, from the same
+**Drawing the moon.** The disc is the same size as the sun's — both are half a
+degree across in the real sky, which is why an eclipse fits — and what makes
+the sun read as the sun is the glow around it, not a bigger disc (`DISC_R` in
+the shader is the one radius, times the moon illusion above).
+
+It is shaded as a sphere rather than masked as a disc. The phase becomes a
+light direction — the phase angle, from the same
 elongation the ephemeris gives — and the surface is lit with Lommel-Seeliger,
 the backscatter that keeps the real full moon bright right out to its limb,
 plus a little Lambert and limb darkening for roundness. The terminator is
