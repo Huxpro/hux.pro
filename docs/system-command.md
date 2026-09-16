@@ -73,34 +73,39 @@ stacked on the palette, the way iOS presents a sheet from a sheet — never a
 body swapped in underneath, which is what the popover does and what the sheet
 used to do for load bundle.
 
-| Sub-mode | Sheet | Reached by | Header | Leaves by |
-|----------|-------|------------|--------|-----------|
-| Slash commands | `command-slash` | the `/` chip, or `/` in the empty field | `/` + title + close | close, drag down, tap the palette, a command |
-| Load bundle | `command-bundle` | the apps strip's Load tile (`openLoadBundle()`) | link + title + close | close, drag down, tap the palette, Open |
+| Sub-mode | Sheet | Height | Reached by | Leaves by |
+|----------|-------|--------|------------|-----------|
+| Slash commands | `command-slash` | level with the palette's detent | the `/` chip, or `/` in the empty field | close, drag down, tap the palette, a command |
+| Load bundle | `command-bundle` | its content (`fitContent`) | the apps strip's Load tile (`openLoadBundle()`) | close, drag down, tap the palette, Open |
+
+Both headers are the same shape: an icon, the title, and one way out one level
+down.
 
 Both behave the same way in the stack, and that is the point: the palette stays
-open and steps back (the surface stack does that), the sub-mode rises over it
-level with the palette's detent (`detentHeight(detent)` + `level={detent}`,
-read once on the way in) with the palette's top edge peeking above, and a drag
-down — the palette coming forward under the finger — its close button or a tap
-on the receded palette brings the palette forward again, one level at a time as
-on iOS: the palette's own close stays on the palette. Neither returns focus on
-close (`restoreFocus={false}`): focus handed back to the search field is a
-focused field with no keyboard, and iOS opens the keyboard on the next touch
-anywhere. Neither has detents of its own: Base UI reports a sheet with detents'
-swipe as a position between them, which at the lowest detent is already all the
-way, and the palette needs the plain fraction of the way out. Both are React
-children of the palette's sheet, so Base UI treats them as nested and disables
-the parent's own swipe while one is up. Escape pops one sheet at a time, as it
-does on an iOS stack.
+open and steps back (the surface stack does that), the sub-mode rises over it,
+and a drag down — the palette coming forward under the finger — its close
+button or a tap on the receded palette brings the palette forward again, one
+level at a time as on iOS: the palette's own close stays on the palette.
+Neither returns focus on close (`restoreFocus={false}`): focus handed back to
+the search field is a focused field with no keyboard, and iOS opens the
+keyboard on the next touch anywhere. Neither has detents of its own: Base UI
+reports a sheet with detents' swipe as a position between them, which at the
+lowest detent is already all the way, and the palette needs the plain fraction
+of the way out. Both are React children of the palette's sheet, so Base UI
+treats them as nested and disables the parent's own swipe while one is up.
+Escape pops one sheet at a time, as it does on an iOS stack.
 
-The bundle sheet stands level with the palette rather than being cut to its
-content (one field, one button): two sub-modes that arrive at two different
-heights read as two different kinds of thing, and the extra room is where the
-software keyboard goes. It is the one sub-mode with a field of its own, so the
-keyboard comes back for it — the sheet rests on top of the keyboard rather than
-behind it (`--drawer-keyboard-inset`, handled once in `SurfaceSheet` by Base
-UI's `VirtualKeyboardProvider`) while the palette's search field sits blurred
+Each takes the height its own content asks for, which is not the same height.
+The slash list stands level with the palette's detent
+(`detentHeight(detent)` + `level={detent}`, read once on the way in), with the
+palette's top edge peeking above: a list picks up where the palette's list left
+off. The bundle form takes the height of a hint, a field and a button and no
+more (`fitContent` on `SurfaceSheet`) — a sheet up to the palette's detent to
+hold one field would be mostly empty — and grows a line when the invalid-URL
+message appears. It is the one sub-mode with a field of its own, so the keyboard
+comes back for it: the sheet rests on top of the keyboard rather than behind it
+(`--drawer-keyboard-inset`, handled once in `SurfaceSheet` by Base UI's
+`VirtualKeyboardProvider`) while the palette's search field sits blurred
 underneath. `LoadBundlePanel` takes a `chrome` prop for the two shells:
 `"panel"` brings its own back arrow and title for the popover, `"sheet"` drops
 both because the sheet header already carries them.

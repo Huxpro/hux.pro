@@ -49,21 +49,26 @@ import {
 // The palette's two sub-modes — slash commands and load bundle — are each a
 // second sheet stacked on this one on a phone, the way iOS presents a sheet
 // from a sheet: the palette stays open and steps back, the sub-mode rises over
-// it level with its detent, and a drag down (the palette following the finger
-// forward), its close button or a tap on the receded palette brings the
-// palette forward again — one level at a time, as on iOS; the palette's own
-// close is on the palette. They are a true stack (each sheet is a React child
-// of the palette's, so Base UI treats it as nested, and the shared stack
-// recedes the parent). The two are mutually exclusive, so only ever one is up.
+// it, and a drag down (the palette following the finger forward), its close
+// button or a tap on the receded palette brings the palette forward again —
+// one level at a time, as on iOS; the palette's own close is on the palette.
+// They are a true stack (each sheet is a React child of the palette's, so Base
+// UI treats it as nested, and the shared stack recedes the parent). The two are
+// mutually exclusive, so only ever one is up.
+//
+// Each takes the height its content asks for, which is not the same height.
+// Slash mode is a list, so it stands level with the palette's detent, its own
+// scrolling continuing where the palette's left off. Load bundle is a form —
+// a line of hint, a field, a button — so it takes the height of that and no
+// more (`fitContent`): a sheet up to the palette's detent to hold one field
+// would be mostly empty. It is reached from the apps strip's Load tile, and the
+// keyboard comes back for its field, so the sheet rests on top of the keyboard
+// (`--drawer-keyboard-inset`, handled once in SurfaceSheet) while the palette's
+// search field sits blurred underneath.
 //
 // Slash mode is reached by the "/" chip in the field or by typing "/" into the
 // empty field. The field gives up the keyboard as the list comes in; a
 // hardware keyboard still gets the letters.
-//
-// Load bundle is reached from the apps strip's Load tile. It is a form, so the
-// keyboard comes back for its own field: the sheet rests on top of the
-// keyboard (`--drawer-keyboard-inset`, handled once in SurfaceSheet) while the
-// palette's search field sits blurred underneath.
 //
 // The shell (this component) is always mounted so the sheet can animate out;
 // everything that costs something — the command list, the field, the
@@ -165,24 +170,14 @@ function SheetBody({
   const field = useCommandField();
   const showHints = useShowKeyboardHints();
 
-  // A sub-mode sheet stands level with the palette: as tall as the palette's
+  // The slash sheet stands level with the palette: as tall as the palette's
   // detent, read once on the way in. No detents of its own — a sheet with
   // detents reports its swipe as a position between them, which at the lowest
   // detent is already "all the way", and the palette underneath needs the
   // plain fraction of the way out to come forward under the finger. (Base UI
   // contract; see the list at the top of systems/surface/sheet.tsx before
   // giving it detents or a different way out.)
-  //
-  // The bundle sheet holds one field and one button, so it could have been cut
-  // to its content instead. It is not: a sub-mode of the palette is the
-  // palette's own surface a level up, and two sub-modes that arrive at two
-  // different heights read as two different kinds of thing. Standing level is
-  // also what keeps the stack honest — same depth, same arrival level, same
-  // one-level-at-a-time way out for both — and it leaves the field a long way
-  // clear of the keyboard, which a content-height sheet sitting on top of the
-  // keyboard would not.
   const [slashDetent, setSlashDetent] = useState(() => detentOf(snap));
-  const [bundleDetent, setBundleDetent] = useState(() => detentOf(snap));
 
   // Either sub-mode takes the palette's field out of play: the slash list has
   // no field at all, and the bundle form brings its own, which the palette's
@@ -191,7 +186,6 @@ function SheetBody({
     if (!isSlashCommandsMode && !isLoadBundleMode) return;
     inputRef.current?.blur();
     if (isSlashCommandsMode) setSlashDetent(detentOf(snap));
-    if (isLoadBundleMode) setBundleDetent(detentOf(snap));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `snap` is read on open only
   }, [isSlashCommandsMode, isLoadBundleMode, inputRef]);
 
@@ -288,8 +282,9 @@ function SheetBody({
           if (!open) setLoadBundleMode(false);
         }}
         modal
-        height={detentHeight(bundleDetent)}
-        level={bundleDetent}
+        // The height of the form, not of the palette: a hint, a field and a
+        // button, resting on the keyboard that comes up for the field.
+        fitContent
         // Focus must not come back to the palette's field, for the reason the
         // slash sheet has it off: on iOS a field focused with no keyboard gets
         // one on the next touch anywhere in the palette. Here the form has
@@ -314,7 +309,10 @@ function SheetBody({
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]">
+        {/* A content-height sheet bounds its own scroll: nothing here should
+            ever need it, but a wrapped error message must not push the sheet
+            off the top of the screen. */}
+        <div className="min-h-0 max-h-[60dvh] overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]">
           <LoadBundlePanel
             chrome="sheet"
             onBack={() => setLoadBundleMode(false)}
