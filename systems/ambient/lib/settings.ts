@@ -50,6 +50,12 @@ export interface AmbientSettings {
   wallpaperReadingBlur: boolean;
   /** Veil the wallpaper on reading pages. */
   wallpaperReadingDim: boolean;
+  /**
+   * The tilt easter egg: let the device's gyroscope drift the wallpaper. Off
+   * until someone finds the switch, and never on by default — on iOS it needs
+   * a motion-permission prompt, which has to come from a tap. See lib/parallax.
+   */
+  wallpaperParallax: boolean;
 }
 
 const SETTINGS_KEY = "hux_ambient_settings";
@@ -70,6 +76,7 @@ export function getDefaultSettings(): AmbientSettings {
     bezelRadius: null,
     wallpaperReadingBlur: true,
     wallpaperReadingDim: true,
+    wallpaperParallax: false,
   };
 }
 
@@ -131,6 +138,7 @@ export function getAmbientSettings(): AmbientSettings {
       ),
       wallpaperReadingBlur: parsed.wallpaperReadingBlur !== false,
       wallpaperReadingDim: parsed.wallpaperReadingDim !== false,
+      wallpaperParallax: parsed.wallpaperParallax === true,
     };
   } catch {
     return getDefaultSettings();

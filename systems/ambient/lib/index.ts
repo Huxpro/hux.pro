@@ -5,6 +5,7 @@ export * from "./greeting";
 export * from "./fixed-bg-tracker";
 export * from "./location";
 export * from "./notification";
+export * from "./parallax";
 export * from "./phase";
 export * from "./platform";
 export * from "./queries";

@@ -31,6 +31,7 @@ import {
   Monitor,
   Moon,
   Music,
+  Orbit,
   Search,
   Slash,
   Sparkles,
@@ -58,6 +59,8 @@ export function CommandPalette() {
     weatherStyle,
     wallpaper,
     openPicker: openWallpaperPicker,
+    parallax,
+    setParallax,
   } = useWallpaper();
   const { material: glassMaterial, toggle: toggleGlass, tint: glassTint, setTint: setGlassTint } = useGlass();
   const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled, signalDragReset } =
@@ -852,6 +855,44 @@ export function CommandPalette() {
                       W
                     </kbd>
                   </Command.Item>
+                  {/* The tilt easter egg. Not in the standing list — it only
+                      turns up for someone who types for it, which is the whole
+                      point of an easter egg. `setParallax` asks iOS for motion
+                      access, so it has to be reached straight from this
+                      handler while the tap is still live. */}
+                  {inputValue.trim().length > 0 && (
+                    <Command.Item
+                      value="parallax"
+                      keywords={[
+                        "parallax",
+                        "gyro",
+                        "gyroscope",
+                        "tilt",
+                        "motion",
+                        "easter egg",
+                        "视差",
+                        "陀螺仪",
+                        "重力感应",
+                        "彩蛋",
+                      ]}
+                      onSelect={() => {
+                        setParallax(!parallax);
+                        close();
+                      }}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                        "text-sm cursor-pointer transition-colors",
+                        "text-foreground data-[selected=true]:bg-accent/40 data-[selected=true]:text-accent-foreground",
+                        "hover:bg-accent/25"
+                      )}
+                    >
+                      <Orbit className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="flex-1">
+                        {t(locale, "settingsParallax")}:{" "}
+                        {parallax ? t(locale, "stateOn") : t(locale, "stateOff")}
+                      </span>
+                    </Command.Item>
+                  )}
                   <Command.Item
                     value="glass"
                     keywords={[

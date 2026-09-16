@@ -139,6 +139,14 @@ When the search input is empty or unfocused:
 | `⌫` (Backspace) | Back to Search Mode |
 | `Esc` | Close palette |
 
+#### Search-only commands
+
+A command with no letter and no place in the standing list, which turns up only
+once you type for it. There is one: **Wallpaper Parallax** (`parallax`, `gyro`,
+`tilt`, `陀螺仪`) — the tilt easter egg, documented in
+[Ambient](./system-ambient). Selecting it is also the iOS motion-permission
+prompt, so it toggles from the item's own handler rather than a shared action.
+
 ### Design Decisions
 
 #### Why Two Modes?
