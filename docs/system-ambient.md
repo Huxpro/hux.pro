@@ -1,6 +1,6 @@
 # Ambient System
 
-The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon, and whose rain and snow fall along the device's own gravity — offered in three styles: Sky, Gradient and Classic. On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg), and while it is raining or snowing a drag across the background [stirs up a gust](#stirring-the-wind-rain-and-snow-easter-egg); on a foggy one a drag [wipes the mist clear](#the-fog-wipe-foggy-day-easter-egg).
+The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon, and whose rain and snow fall along the device's own gravity — offered in three styles: Sky, Gradient and Classic. On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg) and on a clear night with [a shooting star](#the-shooting-star-clear-night-easter-egg); while it is raining or snowing a drag across the background [stirs up a gust](#stirring-the-wind-rain-and-snow-easter-egg), and on a foggy one a drag [wipes the mist clear](#the-fog-wipe-foggy-day-easter-egg).
 
 It also owns the page background — the **wallpaper**. Weather is not a separate
 background feature; it is the one wallpaper that changes on its own. See
@@ -360,7 +360,7 @@ takes the touch, stops sending pointer events and fires `pointercancel` —
 landing right on top of a 400 ms hold and killing it before it can. The fog
 wipe has suppressed `-webkit-touch-callout` on `pointerdown` since it shipped,
 which is why its hold works on a phone; the primer did not, which is why its
-did not. Both now go through `holdCallout()` in `lib/strike.ts`, along with
+did not. Both now go through `holdCallout()` in `lib/poke.ts`, along with
 `TOUCH_HOLD_MS` / `TOUCH_HOLD_SLOP_PX` — one hold, one definition, instead of
 two copies of 400/10 and three comments promising they agreed.
 
@@ -522,56 +522,21 @@ per-widget overlays, so they transition identically. The iOS `fixedBgTracker`
 (background-attachment polyfill + viewport-relative edge mask) is applied per
 layer, so soft-edging keeps working mid-crossfade.
 
-### The easter eggs
+│   ├── poke.ts                   # The two tapped eggs: which weather, how long,
+│   │                             #   and "is this the sky?" — asked for all of them
+│   ├── wipe.ts                   # The foggy-day wipe: the stroke, the hand, the gesture
 
-Three of the six conditions answer a hand, and only three. The rest do nothing —
-**a click on a clear noon sky doing nothing is what makes the others feel like a
-find**, and once every sky reacted it would stop being a secret and become an
-undiscoverable-but-mandatory affordance. They are three *different* gestures on
-purpose, too: a tap that answers with violence, a drag that stirs the air, and a
-drag that takes something away and gives it back.
-
-| Condition | `lightning` | precipitation | `fog` | armed |
-|---|---|---|---|---|
-| thunder | 1 | rain | 0.2 | [the strike](#the-strike-thunder-day-easter-egg) — a tap |
-| rain / drizzle / snow | 0 | yes | ≤ 0.3 | [the gust](#stirring-the-wind-rain-and-snow-easter-egg) — a drag |
-| fog | 0 | none | 0.9 | [the wipe](#the-fog-wipe-foggy-day-easter-egg) — a drag |
-| clear / cloudy | 0 | none | ≤ 0.2 | nothing |
-
-**No two can ever be armed at once**, which is why no arbitration code exists
-anywhere: each gates on its own scene scalar and the three sets do not meet.
-
-They are one module each — `lib/strike.ts`, `lib/wallpaper/stir.ts`,
-`lib/wipe.ts` — each holding its own tuning *and* its own recognizer, so what
-a gesture is stays engine-free and testable, and only the wiring is a component.
-All three ask `isBackgroundPress` from `lib/strike.ts` the same question about
-whether a press is theirs — the primary button with nothing held down, no
-selection to disturb, and a target that is wallpaper rather than page — so they
-can never disagree about it. `data-no-strike` keeps all three off. (The
-attribute is named for a click, but the test only ever looks at the target, and
-a press is the same question.)
-
-**All three belong to the Sky**, for the reason the strike's section gives
-below, and each is armed where the thing it acts on lives: the strike and the
-wipe in `wallpaper-background.tsx`, on the document; the gust one layer down in
-`<WeatherWallpaper />`, with the particles it blows. Arming is all those
-components do — four lines apiece — because the recognizers are `attachWipeDrag`
-and `attachWindStir`, in the lib modules above.
-
-### The Strike (thunder-day easter egg)
-
-**On a thunder day, clicking the sky calls lightning down onto the spot you
-clicked.**
-
-`lib/strike.ts` owns the rules and the one question the interaction turns on —
-**did that click land on the sky, or on something?** It is not a guess: the
-handler walks from the clicked element up to `<body>` and the click counts as
-background only when nothing on the way paints anything (no background colour,
-no background image, no backdrop filter) and nothing on the way is interactive.
-That is the same question the visitor already answered with their eyes — the
-pixel under the pointer was wallpaper — so the two cannot disagree. A widget
-card, a link, the dock, an open sheet: all of them are something. Mark any
-transparent layer that should still swallow strikes with `data-no-strike`.
+`lib/poke.ts` owns the part with no engine in it: which condition is armed
+(`armedPoke`), how long each answer lives, how often one may fire, and the one
+question the interaction turns on — **did that click land on the sky, or on
+something?** It is not a guess: the handler walks from the clicked element up to
+`<body>` and the click counts as background only when nothing on the way paints
+anything (no background colour, no background image, no backdrop filter) and
+nothing on the way is interactive. That is the same question the visitor already
+answered with their eyes — the pixel under the pointer was wallpaper — so the
+two cannot disagree. A widget card, a link, the dock, an open sheet: all of them
+are something. Mark any transparent layer that should still swallow pokes with
+`data-no-poke`.
 
 The listener lives in `wallpaper-background.tsx`, on the document, because the
 wallpaper layer is `pointer-events-none` and must stay that way — it is behind
@@ -579,13 +544,12 @@ the whole page. It listens for `click`, not `pointerdown`, which is what makes
 it survive a phone: a click is a press and a release on the same spot, so
 scrolling the page with a thumb on the sky never lights it up.
 
-**The Sky is the only engine that answers.** `uStrike` / `uStrikeAge` /
-`uStrikeSeed` drive `strike()` in the shader: a forked channel drawn top-down
-out of the cloud base over ~70 ms, landing exactly on the point clicked,
-flickering through two return strokes and gone inside 1.2 s. The flash it
-throws lights the cloud decks the same way the weather's own `lightning()`
-does. `WallpaperRenderer.strike(x, y)` is the entry point; the three uniforms
-are per-frame and never eased — a strike that eased in would not be a strike.
+**The Sky is the only engine that answers.** `uPokeKind == 1` drives `strike()`
+in the shader: a forked channel drawn top-down out of the cloud base over
+~70 ms, landing exactly on the point clicked, flickering through two return
+strokes and gone inside 1.2 s. The flash it throws lights the cloud decks the
+same way the weather's own `lightning()` does. `WallpaperRenderer.poke("strike",
+x, y)` is the entry point.
 
 Under the Gradient and Classic styles the egg **does not exist**, and that is
 the decision rather than an omission. A wash has no geometry to draw a channel
@@ -609,6 +573,58 @@ Three things it will not do, all of them deliberate:
 
 To see it without waiting for a storm: force **Thunder** in the devtool's Sky
 module and click the page background.
+
+### The Shooting Star (clear-night easter egg)
+
+**On a clear night, clicking the star field sends a meteor streaking away from
+the point you clicked.** Same grammar as the strike — a tap, a point, a second,
+no state — and deliberately the opposite tone: the thunder day answers a click
+with violence, the clear night answers it with a wish. The second discovery
+should feel like a different joke, not the same one told again.
+
+Armed on `scene.stars > 0.35`, never on `condition === "clear"`. `stars` is not
+a proxy for a clear night, it *is* "can you see stars right now": it already
+accounts for cloud cover, fog and a bright moon washing the field out. So the
+gate falls out correctly for free — a partly cloudy night with stars still
+showing gets a meteor, a full-moon night loses it as the field dims, and a
+thunder or foggy night can never have one.
+
+`meteor()` in the shader (`uPokeKind == 3`) draws it:
+
+- **It starts at the click** and streaks away, rather than crossing through it.
+  "You flicked it" is more causal than "one happened to pass by".
+- **Direction is the click's bearing from a radiant** — a single point above the
+  frame, fixed per session off `scene.seed`. That is how a real shower works
+  (one stream of debris, seen from one angle) and it buys both properties worth
+  having: a visit's meteors rhyme, and they still differ across the sky. Never
+  straight up, never straight down.
+- **It is aimed to fit the frame.** Firing every time is the contract — an egg
+  that works one click in five reads as broken, not as rare — so a streak is
+  never allowed to exit: off the near edge it takes the other side, too long for
+  the sky under or in front of it it is cut short, and only if even a short one
+  will not fit is it flattened. Which is what a real meteor low on the sky looks
+  like anyway, foreshortened toward the horizontal.
+- **Shape**: a bright warm head, a tail tapering behind it, and a fainter cool
+  trail along the whole path that lingers a beat after the head has burnt out.
+  Gone in 1 s — inside the strike's 1.2 s budget.
+- **Drawn over the star field and under the cloud decks**, the opposite of the
+  strike's channel: a meteor behind a cloud should be hidden, so a drifting deck
+  occludes a lingering trail.
+- **Brightness scales with `scene.stars`**, for the same reason the stars' does:
+  on a washed-out night the meteor is faint too.
+
+**Sky only, and that is deliberate.** The CSS wash draws no stars at all —
+`gradient.ts` builds a sun-glow radial, a cloud wash and a zenith→horizon
+linear, and nothing else — so there is no field for a meteor to belong to, and a
+streak over a flat night gradient would read as a scratch on the screen. Unlike
+the strike, this egg has no honest CSS answer, so it does not have one: on
+Gradient and Classic a clear night does nothing. The wash is documented as the
+low-fidelity engine and the Sky is the default; inventing a fake for the sake of
+parity would be worse than the gap.
+
+To see it without waiting for nightfall: force **Clear** in the devtool's Sky
+module, run the clock into the night with the time slider, and click the page
+background.
 
 ### Stirring the wind (rain-and-snow easter egg)
 
@@ -725,9 +741,9 @@ What it deliberately does **not** do:
   swiped straight down does not make a sideways breeze — which also means an
   ordinary vertical scroll leaves the weather alone.
 - **It does not invent a second idea of "the sky".** What counts as background
-  is [`isBackgroundClick`](#the-strike-thunder-day-easter-egg) from
-  `lib/strike.ts`, the same question the strike asks, so the two easter eggs can
-  never disagree — and `data-no-strike` keeps both of them off.
+  is [`isBackgroundClick`](#the-easter-eggs) from `lib/poke.ts`, the same
+  question the tapped eggs ask, so no two of them can disagree — and
+  `data-no-poke` keeps all of them off.
 - **It uses touch events, not pointer events.** A touch drag that turns into a
   scroll fires `pointercancel` and stops sending `pointermove`, which would cut
   the gesture off exactly where it is most fun.

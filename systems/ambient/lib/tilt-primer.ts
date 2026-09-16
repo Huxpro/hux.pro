@@ -60,7 +60,7 @@ import {
   isBackgroundPress,
   TOUCH_HOLD_MS,
   TOUCH_HOLD_SLOP_PX,
-} from "./strike";
+} from "./poke";
 
 /**
  * The page that has declared itself one OS composition rather than a document

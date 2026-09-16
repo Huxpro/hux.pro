@@ -4,10 +4,12 @@
 //
 //   sky gradient + sun glow / disc      (continuous with sun elevation)
 //   stars (twinkling) + moon (sphere)   (night only, occluded by cloud)
+//   the meteor                          (one aimed streak, on a click — a poke)
 //   two parallax cloud decks (fbm)      (cover / density / storminess / wind)
 //   fog / haze                          (low-frequency drifting veil, wipeable)
 //   lightning                           (stochastic cloud-illuminating flashes)
-//   the strike                          (one aimed bolt, on a click — see lib/strike.ts)
+//   the strike                          (one aimed bolt, on a click — a poke)
+//   the meteor                          (one aimed streak, on a click — a poke)
 //   the fog wipe                        (a swath of cleared mist — see lib/wipe.ts)
 //   rain streaks                        (hash-cell particles, falling along the wind)
 //   snow                                (depth-layered flakes, slow and fluttering)
@@ -95,9 +97,13 @@ uniform float uStars;
 uniform float uStarsBehind;
 uniform float uMoonBehind;
 
-uniform vec2  uStrike;      // screen 0..1, y up — where the clicked bolt lands
-uniform float uStrikeAge;   // seconds since it fired; < 0 when none is running
-uniform float uStrikeSeed;  // re-rolled per strike, so no two bolts are alike
+// The poke: whatever the weather answers a click with (see lib/poke.ts). The
+// answers are disjoint — one condition arms one of them — so they share one set
+// of uniforms instead of each adding its own, and a new answer costs one float.
+uniform vec2  uPoke;        // screen 0..1, y up — where the click landed
+uniform float uPokeAge;     // seconds since it fired; < 0 when none is running
+uniform float uPokeSeed;    // re-rolled per poke, so no two are alike
+uniform float uPokeKind;    // 0 none, 1 strike, 3 meteor (2 is spare)
 
 // The wipe is a path, and a fragment shader has no memory: JS keeps a bounded
 // ring of the path's recent corners and the shader sweeps the swath along the
@@ -658,7 +664,23 @@ float lightning(vec2 p, float aspect, out vec2 flashPos) {
 }
 
 // ---------------------------------------------------------------------------
-// The strike — one aimed bolt (see lib/strike.ts)
+// The pokes — what a click is answered with (see lib/poke.ts)
+//
+// One condition arms one answer, so at most one of these ever runs and they
+// share the uPoke* uniforms between them. The kind is a uniform, so every
+// early-out below is a branch the whole draw takes together — free.
+// ---------------------------------------------------------------------------
+
+const float POKE_STRIKE = 1.0;
+const float POKE_METEOR = 3.0;
+
+/** Is this kind of poke the one currently in flight? */
+bool poking(float kind) {
+  return uPokeAge >= 0.0 && abs(uPokeKind - kind) < 0.5;
+}
+
+// ---------------------------------------------------------------------------
+// The strike — one aimed bolt, on a thunder day
 //
 // Where lightning() fires on its own schedule, this one is an answer to a
 // click: it comes down out of the cloud base onto the point that was asked
@@ -699,24 +721,24 @@ float boltSeg(vec2 p, vec2 a, vec2 b, float seed, float width, float grown) {
 /** Returns the flash on the sky; the channel itself comes back in 'bolt'. */
 float strike(vec2 p, float aspect, out float bolt) {
   bolt = 0.0;
-  if (uStrikeAge < 0.0) return 0.0;
-  float age = uStrikeAge;
+  if (!poking(POKE_STRIKE)) return 0.0;
+  float age = uPokeAge;
 
-  vec2 hit = vec2(uStrike.x * aspect, uStrike.y);
+  vec2 hit = vec2(uPoke.x * aspect, uPoke.y);
   // The cloud it leaves is near, but never directly above, the point hit.
-  vec2 top = vec2(hit.x + (hash1(vec2(uStrikeSeed, 3.7)) - 0.5) * 0.42, 1.06);
+  vec2 top = vec2(hit.x + (hash1(vec2(uPokeSeed, 3.7)) - 0.5) * 0.42, 1.06);
   float reach = age / 0.07;
-  float trunk = boltSeg(p, top, hit, uStrikeSeed, 0.0026, reach);
+  float trunk = boltSeg(p, top, hit, uPokeSeed, 0.0026, reach);
 
   // Two forks off the trunk, each a beat later and thinner than the one before.
   vec2 f1 = mix(top, hit, 0.40);
   vec2 f2 = mix(top, hit, 0.68);
   trunk += 0.55 * boltSeg(p, f1,
-    f1 + vec2((hash1(vec2(uStrikeSeed, 9.1)) - 0.5) * 0.46, -0.28),
-    uStrikeSeed + 2.0, 0.0017, (age - 0.02) / 0.07);
+    f1 + vec2((hash1(vec2(uPokeSeed, 9.1)) - 0.5) * 0.46, -0.28),
+    uPokeSeed + 2.0, 0.0017, (age - 0.02) / 0.07);
   trunk += 0.40 * boltSeg(p, f2,
-    f2 + vec2((hash1(vec2(uStrikeSeed, 4.3)) - 0.5) * 0.38, -0.20),
-    uStrikeSeed + 6.0, 0.0013, (age - 0.03) / 0.07);
+    f2 + vec2((hash1(vec2(uPokeSeed, 4.3)) - 0.5) * 0.38, -0.20),
+    uPokeSeed + 6.0, 0.0013, (age - 0.03) / 0.07);
 
   // The channel holds while the flash has already gone: a strike you can see
   // the shape of, not just a white frame. Two return strokes flicker on it.
@@ -851,6 +873,124 @@ float fogWipe(vec2 p, float aspect) {
 }
 
 // ---------------------------------------------------------------------------
+// The meteor — one aimed streak, on a clear night
+//
+// The clear night's answer to a click, and deliberately the strike's opposite:
+// same grammar (a tap, a point, a second, no state), inverted tone. A thunder
+// day answers with violence; a clear night answers with a wish.
+//
+// It starts *at* the click and streaks away — "you flicked it" is more causal
+// than "one happened to pass by" — on the bearing from a radiant the whole
+// visit shares, the way a real shower's meteors do. And it is drawn under the
+// cloud decks, unlike the strike's channel: a bolt read through cloud is no
+// bolt, but a meteor behind a cloud is simply hidden, which is the truth.
+// ---------------------------------------------------------------------------
+
+/**
+ * How long the head is in the air, how long anything is left of the meteor at
+ * all, how far it gets and the shortest streak worth drawing — seconds and
+ * screen heights. METEOR_LIFE is POKE_MS.meteor: the renderer retires the poke
+ * then, so the trail has to be gone by then or it vanishes mid-fade.
+ */
+const float METEOR_FLIGHT = 0.55;
+const float METEOR_LIFE = 1.0;
+const float METEOR_REACH = 0.62;
+const float METEOR_MIN_RUN = 0.2;
+
+/**
+ * Glow of the streak from a (its oldest visible point) to b (the head), full
+ * and wide at the head and tapering to nothing behind it. Never thinner than
+ * about a pixel: a trail measured in scene units disappears on a short
+ * viewport, which is the one way this can fail to be seen at all.
+ */
+float meteorStreak(vec2 p, vec2 a, vec2 b, float width) {
+  vec2 ab = b - a;
+  float len = max(length(ab), 1e-4);
+  vec2 dir = ab / len;
+  vec2 rel = p - a;
+  float t = clamp(dot(rel, dir) / len, 0.0, 1.0);
+  float d = length(rel - dir * (t * len));
+  float w = max(width * (0.2 + 0.8 * t * t), 0.9 / uResolution.y);
+  return exp(-d / w) * t * t;
+}
+
+/** Returns the head and its tail; the lingering trail comes back in 'trail'. */
+float meteor(vec2 p, float aspect, out float trail) {
+  trail = 0.0;
+  if (!poking(POKE_METEOR)) return 0.0;
+  float age = uPokeAge;
+
+  // The radiant. A shower's meteors are one stream of debris seen from one
+  // angle, so they all appear to run *away from a single point* on the sky —
+  // and the direction is therefore not a random draw but the click's bearing
+  // from that point. Which buys two things at once: a visit's meteors rhyme,
+  // because the radiant is fixed per session, and they still differ across the
+  // sky, because the bearing does. The radiant sits above the frame, so every
+  // meteor has somewhere to fall.
+  vec2 from = vec2(uPoke.x * aspect, uPoke.y);
+  vec2 radiant = vec2((0.1 + 0.8 * hash1(vec2(uSeed, 12.7))) * aspect, 1.12);
+  vec2 away = from - radiant;
+  // Never straight down: a click right under the radiant is pushed off to
+  // whichever side it already leans to, and the poke's own seed nudges it, so
+  // two meteors from the same spot are not the same meteor.
+  float lean = away.x + (hash1(vec2(uPokeSeed, 8.3)) - 0.5) * 0.12;
+  float side = lean < 0.0 ? -1.0 : 1.0;
+  vec2 dir = normalize(vec2(side * max(abs(lean), 0.34 * abs(away.y)), away.y));
+
+  // How far it gets — and how far it is *allowed* to get, which is the more
+  // interesting number: the frame. Firing every time is the whole contract (an
+  // egg that works one click in five reads as broken, not as rare), and a
+  // streak that left the screen two frames in is a click that did nothing. So
+  // rather than being allowed to exit, it is made to fit — and in that order,
+  // because length is the cheap thing to give up and direction is not:
+  //
+  //   • aimed at the near edge, it takes the other side;
+  //   • too long for the sky under or in front of it, it is cut short;
+  //   • too steep for even a short streak to fit, and only then, it is
+  //     flattened — which is what a real one low on the sky looks like anyway,
+  //     its path foreshortened toward the horizontal by perspective.
+  float run = METEOR_REACH * (0.78 + 0.44 * hash1(vec2(uPokeSeed, 2.1)));
+  if ((dir.x > 0.0 ? aspect - from.x : from.x) < 0.24) dir.x = -dir.x;
+  // Which way it ended up going — the flip above may have overruled the lean.
+  float aim = dir.x < 0.0 ? -1.0 : 1.0;
+  float under = max(from.y - 0.02, 0.02);
+  float fall = min(-dir.y, under / METEOR_MIN_RUN);
+  dir = vec2(aim * sqrt(max(0.0, 1.0 - fall * fall)), -fall);
+  float ahead = max((dir.x > 0.0 ? aspect - from.x : from.x) - 0.02, 0.02);
+  run = min(run, max(min(under / fall, ahead / abs(dir.x)), METEOR_MIN_RUN));
+
+  // Fast in, then burning out. The ease is what makes it *end* rather than
+  // simply stop: it slows to nothing as the head dies.
+  float t = clamp(age / METEOR_FLIGHT, 0.0, 1.0);
+  float flown = (1.0 - pow(1.0 - t, 1.8)) * run;
+  vec2 head = from + dir * flown;
+
+  // The head: a small bright core that flares as it ablates, gone by the end
+  // of the flight rather than stopping dead.
+  float alive = smoothstep(0.0, 0.03, age) * (1.0 - smoothstep(0.72, 1.0, t));
+  float flare = 1.0 + 0.2 * sin(age * 31.0 + uPokeSeed * 6.2831);
+  float dh = length(p - head);
+  float core = exp(-dh * dh / 2.6e-5) + exp(-dh / 0.012) * 0.45;
+
+  // The tail rides just behind the head, a fixed length once it has one.
+  float tailLen = min(flown, 0.17);
+  float body = meteorStreak(p, head - dir * tailLen, head, 0.0022);
+
+  // The trail: the whole path flown, faint, and still there a beat after the
+  // head has burnt out. Real ones leave one; it is most of what you remember.
+  trail = meteorStreak(p, from, head, 0.0016) * 0.5
+        * exp(-max(0.0, age - METEOR_FLIGHT) * 5.2)
+        * (1.0 - smoothstep(METEOR_LIFE * 0.8, METEOR_LIFE, age));
+
+  // Faint on a washed-out night, for the same reason the stars are — and the
+  // horizon haze thins it as it does them, though never to nothing: a meteor
+  // you asked for and did not get reads as broken, not as rare.
+  float visible = uStars * (0.55 + 0.45 * smoothstep(0.02, 0.4, p.y));
+  trail *= visible;
+  return (core * 1.15 + body) * alive * flare * visible;
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -877,6 +1017,15 @@ void main() {
   vec3 col = skyBase(uv, p, sunP, aspect);
   col += vec3(0.9, 0.93, 1.0) * stars(p, uv, starAmt);
   col += moon(p, moonP, moonAmt);
+
+  // The meteor, over the field it belongs to and under the decks that should
+  // hide it: a warm-white head (it is a rock burning) over a cooler trail (it
+  // is ionised air glowing). Both go in before the clouds, so a drifting deck
+  // occludes a lingering trail exactly as it should.
+  float meteorTrail;
+  float m = meteor(p, aspect, meteorTrail);
+  col += vec3(1.0, 0.96, 0.88) * m
+       + vec3(0.72, 0.86, 1.0) * meteorTrail;
 
   // Far deck: large, slow, flattened by perspective. Near deck: smaller,
   // faster, a touch heavier.
