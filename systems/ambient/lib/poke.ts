@@ -56,9 +56,11 @@ export const POKE_KIND_CODE: Record<PokeKind, number> = {
  */
 export const POKE_MS: Record<PokeKind, number> = {
   strike: 1200,
-  // Shorter than the strike on purpose: a meteor that outlasted a bolt would
-  // read as a slow scratch rather than something that fell.
-  meteor: 1000,
+  // Longer than the strike, because the path is: a meteor comes in from off the
+  // edge of the screen and crosses it, at one pace whatever the distance, so a
+  // long sweep takes about a second and its trail wants a beat after that. The
+  // shader's METEOR_LIFE is this number — keep the two together.
+  meteor: 1400,
 };
 
 /**

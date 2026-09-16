@@ -576,8 +576,8 @@ module and click the page background.
 
 ### The Shooting Star (clear-night easter egg)
 
-**On a clear night, clicking the star field sends a meteor through the point you
-clicked.** Same grammar as the strike — a tap, a point, a second, no state —
+**On a clear night, clicking the star field sends a meteor in off the edge of
+the screen and through the point you clicked.** Same grammar as the strike — a tap, a point, a second, no state —
 and deliberately the opposite tone: the thunder day answers a click with
 violence, the clear night answers it with a wish. The second discovery should
 feel like a different joke, not the same one told again.
@@ -591,26 +591,32 @@ thunder or foggy night can never have one.
 
 `meteor()` in the shader (`uPokeKind == 3`) draws it:
 
-- **It passes through the click**, entering a third of its run before the point
-  and burning out well past it. It is not launched from your finger: a meteor
-  was always already falling, and the click only says where you happened to
-  catch sight of one.
-- **The head crosses that point ~0.12 s in**, at a fixed fraction of the run, so
-  the answer lands on the spot you pointed at and lands promptly — wherever on
-  the sky you clicked. That timing is the whole of what "fires every time"
-  requires: an egg that answers late reads as broken just as an egg that answers
-  one click in five does.
-- **Bearing is the point's bearing from a radiant** — a single point above the
-  frame, fixed per session off `scene.seed`. That is how a real shower works
-  (one stream of debris, seen from one angle) and it buys both properties worth
-  having: a visit's meteors rhyme, and they still differ across the sky. Never
-  straight up, never straight down.
-- **Neither end is trimmed to the frame**, and neither needs to be. Near an edge
-  the meteor just enters or leaves mid-flight, which is what a real one does;
-  the point itself is crossed either way.
+- **It passes through the click**, it is not launched from it. A meteor was
+  always already falling; the click only says where you happened to catch sight
+  of one. So the path is backed up from the point until it leaves the frame —
+  that is the entry, just outside whichever edge it meets — and carried on past
+  the point until it burns out or an edge arrives.
+- **Everything about the path is re-rolled per click**: which side it comes from
+  and how steeply it falls (20°–70° off the horizon, so never horizontal and
+  never vertical). The angle is what decides where on the edge it appears, so
+  randomising it randomises the entry point for free. Nothing is held for the
+  session. A real shower does share one radiant, and an earlier cut modelled
+  that, but an egg you will click a dozen times wants to be unpredictable more
+  than it wants to be right — with a fixed radiant every trail pointed back at
+  the same spot.
+- **One pace, not one duration.** The head moves at a fixed speed, so a long
+  sweep across the frame takes about a second and a short chord near a corner
+  is over quickly — bounded at both ends (`METEOR_MIN_FLIGHT` /
+  `METEOR_MAX_FLIGHT`) so the shortest is never a blink and the longest still
+  fits the poke's lifetime on a very wide screen.
+- **The head crosses the clicked point 0.03–0.4 s in**, depending on how far
+  away its entry edge was, and the streak itself is on screen from ~0.02 s. That
+  promptness is part of what "fires every time" means: an egg that answers late
+  reads as broken just as an egg that answers one click in five does.
 - **Shape**: a bright warm head, a tail tapering behind it, and a fainter cool
-  trail along the whole path that lingers a beat after the head has burnt out.
-  Gone in 1 s — inside the strike's 1.2 s budget.
+  trail along the whole path flown that lingers a beat after the head has burnt
+  out. Gone inside 1.4 s (`POKE_MS.meteor`, which the shader's `METEOR_LIFE`
+  must match) — longer than the strike, because the path is.
 - **Drawn over the star field and under the cloud decks**, the opposite of the
   strike's channel: a meteor behind a cloud should be hidden, so a drifting deck
   occludes a lingering trail.
