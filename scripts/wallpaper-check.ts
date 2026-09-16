@@ -57,11 +57,12 @@ const PUBLIC = path.join(process.cwd(), "public");
  *
  * Smooth graphic pairs (Tahoe, Golden Gate) compress to tens of kilobytes.
  * Liquid Glass and the iOS 15 blobs have grain those washes do not, so the
- * pair cap is 320KB — past that something went wrong. A photograph of raked
- * sand or river stones is detail all the way down: the Nature set spans tens
- * of kilobytes (Water) to well over a megabyte (Zen Garden) at the same
- * quality, and holding it to the gradients' budget would mean blurring exactly
- * what makes it worth choosing.
+ * pair cap is 320KB — past that something went wrong. Big Sur's dark half is
+ * a grainy illustration: at 5120² / q80 it lands around 1.2MB, so the 2× full
+ * cap is 2MB. A photograph of raked sand or river stones is detail all the
+ * way down: the Nature set spans tens of kilobytes (Water) to well over a
+ * megabyte (Zen Garden) at the same quality, and holding it to the gradients'
+ * budget would mean blurring exactly what makes it worth choosing.
  *
  * Photograph full-size files are WebP q95 / 4:4:4 (q90 if a file would exceed
  * ~1.8MB per 2560×1600 megapixel). The full file is a 2× cover, so Catalina
@@ -69,7 +70,7 @@ const PUBLIC = path.join(process.cwd(), "public");
  * rendition budget is the old 2.5MB full-file cap.
  */
 const BUDGET_KB = {
-  pair: { full: 1024, thumb: 16, rendition: 320 },
+  pair: { full: 2048, thumb: 16, rendition: 320 },
   photo: { full: 8192, thumb: 64, rendition: 2560 },
 };
 

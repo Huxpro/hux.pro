@@ -294,7 +294,8 @@ once it has decoded — the same blur-up, using a thumb we already ship.
 
 Release pairs are WebP q80. Photographs — Nature, and the Catalina / Mojave
 pairs — use the photo pipeline. The byte budgets differ by kind: a graphic pair
-past 1MB at 2× means something went wrong, while a photograph of raked sand is
+past 2MB at 2× means something went wrong (Big Sur dark is a grainy illustration
+around 1.2MB), while a photograph of raked sand is
 detail all the way down, so photographs get 8MB at 2×. Provenance for every
 file lives in `public/wallpapers/sources.json`.
 

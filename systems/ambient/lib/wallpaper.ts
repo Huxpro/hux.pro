@@ -405,7 +405,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "macOS",
     year: 2025,
-    ...pair("tahoe", "rgb(59 125 182)", "rgb(25 39 123)", [5120, 5120]),
+    ...pair("tahoe", "rgb(58 124 181)", "rgb(25 39 123)", [5120, 5120]),
   },
   {
     id: "sequoia",
@@ -413,7 +413,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "macOS",
     year: 2024,
-    ...pair("sequoia", "rgb(119 113 149)", "rgb(47 93 173)", [5120, 5120]),
+    ...pair("sequoia", "rgb(118 112 148)", "rgb(46 92 172)", [5120, 5120]),
   },
   {
     id: "sonoma",
@@ -421,7 +421,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "macOS",
     year: 2023,
-    ...pair("sonoma", "rgb(135 148 111)", "rgb(57 104 109)", [5120, 5120]),
+    ...pair("sonoma", "rgb(134 146 110)", "rgb(57 104 109)", [5120, 5120]),
   },
   {
     id: "ventura",
@@ -429,7 +429,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "macOS",
     year: 2022,
-    ...pair("ventura", "rgb(198 140 89)", "rgb(118 43 28)", [5120, 5120]),
+    ...pair("ventura", "rgb(196 141 87)", "rgb(118 43 28)", [5120, 5120]),
   },
   {
     id: "monterey",
@@ -437,7 +437,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "macOS",
     year: 2021,
-    ...pair("monterey", "rgb(152 88 187)", "rgb(52 14 120)", [5120, 5120]),
+    ...pair("monterey", "rgb(151 87 186)", "rgb(50 13 119)", [5120, 5120]),
   },
   {
     id: "big-sur",
@@ -445,7 +445,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "macOS",
     year: 2020,
-    ...pair("big-sur", "rgb(123 101 140)", "rgb(74 36 71)", [5120, 5120]),
+    ...pair("big-sur", "rgb(125 100 140)", "rgb(72 35 70)", [5120, 5120]),
   },
   {
     id: "catalina",
@@ -453,7 +453,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "macOS",
     year: 2019,
-    ...pair("catalina", "rgb(79 102 126)", "rgb(83 85 98)", [5120, 5120]),
+    ...pair("catalina", "rgb(77 101 125)", "rgb(82 84 97)", [5120, 5120]),
   },
   {
     id: "mojave",
@@ -521,7 +521,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "iOS",
     year: 2020,
-    ...pair("ios-14", "rgb(180 116 117)", "rgb(55 26 38)", [3072, 3072]),
+    ...pair("ios-14", "rgb(180 116 117)", "rgb(57 25 40)", [3072, 3072]),
   },
   {
     id: "ios-13",
@@ -529,7 +529,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "iOS",
     year: 2019,
-    ...pair("ios-13", "rgb(227 122 82)", "rgb(98 13 31)", [3208, 3208]),
+    ...pair("ios-13", "rgb(229 121 82)", "rgb(101 14 32)", [3208, 3208]),
   },
   {
     id: "aurora",
