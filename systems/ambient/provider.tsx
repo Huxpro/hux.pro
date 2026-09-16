@@ -8,11 +8,14 @@ import { requestAccurateLocation as requestAccurateLocationFn } from "./lib/loca
 import { useLocationQuery, useWeatherQuery } from "./lib/queries";
 import {
   deriveWeatherScene,
+  SKY_CONFIG,
+  SKY_FILE,
   toSceneWeather,
   type SceneOverrides,
   type SceneWeatherInput,
   type WeatherScene,
 } from "./lib/scene";
+import { activeSkyConfig, type SkyConfig, type SkyPreset } from "./lib/sky-config";
 import {
   type AmbientSettings,
   type WallpaperPlacement,
@@ -56,6 +59,7 @@ import {
 import type { NormalizedWeather, WeatherCondition } from "./lib/weather";
 import type { AmbientPhase } from "./lib/phase";
 import { deriveAmbientPhase } from "./lib/phase";
+import { getSunTimes, startOfLocalDay } from "./lib/solar";
 import type { WallpaperStats } from "./lib/wallpaper/renderer";
 import { supportsWebGL2 } from "./lib/wallpaper/support";
 import { usePathname } from "next/navigation";
@@ -195,6 +199,12 @@ export interface DevtoolWallpaperOverrides {
   edgeFamily?: WallpaperFamily;
 }
 
+/** What the Sky Engine Lab asks the page to paint. */
+export interface LabStage {
+  scene: WeatherScene;
+  style: WeatherStyle;
+}
+
 interface WallpaperContextType {
   /** Which kind currently feeds the background stack. */
   kind: WallpaperKind;
@@ -290,6 +300,21 @@ interface WallpaperContextType {
   /** The lab's pins on the resolved variables for its own scene. Lab-only. */
   legibilityOverride: LegibilityVars | null;
   setLegibilityOverride: (vars: LegibilityVars | null) => void;
+  /**
+   * The Sky Engine Lab's tuned world model, applied on every route until Reset
+   * or a reload — so a moon staged in the lab can be checked on the real home
+   * screen before it is saved. The same arrangement as `labPolicy`.
+   */
+  labSkyConfig: SkyConfig | null;
+  setLabSkyConfig: (config: SkyConfig | null) => void;
+  /**
+   * The Sky Engine Lab's stage: while set, the full-page wallpaper paints THIS
+   * scene with THIS engine, whatever the visitor's wallpaper. The lab drives
+   * its own clock and observer, so the site's clock is untouched. Lab-only,
+   * cleared on leave — the counterpart of `legibilityOverride`.
+   */
+  labStage: LabStage | null;
+  setLabStage: (stage: LabStage | null) => void;
   /** Secondary window — the wallpaper picker. */
   isPickerOpen: boolean;
   openPicker: () => void;
@@ -339,6 +364,15 @@ interface WeatherContextType {
   /** Devtool scene tweaks (cloud cover, precipitation, wind, veil). */
   sceneOverrides: SceneOverrides;
   setSceneOverrides: (overrides: SceneOverrides) => void;
+  /**
+   * The named sky configs in `content/sky.json`, and a session override of
+   * which one paints. Null = the committed active preset, which is what every
+   * visitor gets; the devtool's picker is the only thing that sets it, and it
+   * lasts until reload. Authored in `/editor/sky`.
+   */
+  skyPresets: SkyPreset[];
+  skyPreset: string | null;
+  setSkyPreset: (id: string | null) => void;
   refresh: () => void;
 }
 
@@ -421,11 +455,21 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [updateSettings]
   );
 
+  // --- The Sky Engine Lab's two overrides (ephemeral) ----------------------
+  // `labSkyConfig` is the tuned world model, in force on every route until the
+  // lab resets it. `labStage` is the lab's own scene and engine, painted
+  // full-page only while the lab is mounted.
+  const [labSkyConfig, setLabSkyConfig] = useState<SkyConfig | null>(null);
+  const [labStage, setLabStage] = useState<LabStage | null>(null);
+
+  // What is painting: the saved wallpaper, or the lab's stage while it is up.
+  const wallpaperKind: WallpaperKind = labStage ? "weather" : settings.wallpaperKind;
+  const wantedStyle: WeatherStyle = labStage ? labStage.style : settings.weatherStyle;
+
   // The look the settings ask for, before WebGL support is known — what the
   // edge of the page is resolved from, so the boot script and the provider
   // agree on the first frame, and a Sky that falls back keeps its frame.
-  const edgeFamily =
-    WALLPAPER_LOOK_FAMILY[getWallpaperLook(settings.wallpaperKind, settings.weatherStyle)];
+  const edgeFamily = WALLPAPER_LOOK_FAMILY[getWallpaperLook(wallpaperKind, wantedStyle)];
 
   // Secondary window (the picker sheet). Ephemeral — never persisted.
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -436,7 +480,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     () => getWallpaperOrDefault(settings.wallpaperId),
     [settings.wallpaperId]
   );
-  const isImageKind = settings.wallpaperKind === "image";
+  const isImageKind = wallpaperKind === "image";
 
   const setBezelRadius = useCallback(
     (px: number | null) => updateSettings({ bezelRadius: px }),
@@ -503,9 +547,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   ): boolean => (isDevtoolEnabled ? devtoolOverrides[key] : undefined) ?? natural;
 
   const reading = isReadingSurface({ pathname });
-  const isBlurred = reading && settings.wallpaperKind === "image" && settings.wallpaperReadingBlur;
+  const isBlurred = reading && isImageKind && settings.wallpaperReadingBlur;
 
-  const fullEnabled = overridden("full", settings.wallpaperPlacement === "full");
+  // The lab's stage is the whole page: there is nothing else to look at.
+  const fullEnabled =
+    labStage !== null || overridden("full", settings.wallpaperPlacement === "full");
   const widgetEnabled = overridden(
     "widget",
     settings.wallpaperPlacement === "widget"
@@ -566,7 +612,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // The style that paints: the Sky needs WebGL2 (real, or not pretended away
   // by the devtool) and otherwise becomes the Gradient. Nothing else falls back.
   const effectiveStyle = resolveWeatherStyle({
-    weatherStyle: settings.weatherStyle,
+    weatherStyle: wantedStyle,
     shaderSupported:
       shaderSupported && !(isDevtoolEnabled && devtoolOverrides.noWebGL === true),
   });
@@ -574,13 +620,14 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // Opacity follows what is painting, not what was asked for: a Sky that fell
   // back to the Gradient is a wash.
   const wallpaperOpacity =
-    WALLPAPER_OPACITY[
-      WALLPAPER_LOOK_FAMILY[getWallpaperLook(settings.wallpaperKind, effectiveStyle)]
-    ][theme];
+    WALLPAPER_OPACITY[WALLPAPER_LOOK_FAMILY[getWallpaperLook(wallpaperKind, effectiveStyle)]][
+      theme
+    ];
 
   // --- Debug state (weather + time) -----------------------------------------
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
   const [sceneOverrides, setSceneOverrides] = useState<SceneOverrides>({});
+  const [skyPreset, setSkyPreset] = useState<string | null>(null);
   const [timeScrubMinutes, setTimeScrubMinutes] = useState<number | null>(null);
   const [dayOffset, setDayOffset] = useState(0);
   const [realNowMs, setRealNowMs] = useState(() => Date.now());
@@ -658,16 +705,36 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       ? scrubToMs(timeScrubMinutes, baseNowMs)
       : baseNowMs;
 
-  // Open-Meteo gives today's sunrise/sunset; a shifted day reuses them at the
-  // same clock time (a few minutes of seasonal drift is irrelevant here).
-  const sunriseMs =
-    typeof weatherQuery.data?.sunriseMs === "number"
-      ? weatherQuery.data.sunriseMs + dayShiftMs
-      : undefined;
-  const sunsetMs =
-    typeof weatherQuery.data?.sunsetMs === "number"
-      ? weatherQuery.data.sunsetMs + dayShiftMs
-      : undefined;
+  // Open-Meteo gives *today's* sunrise/sunset, and for today it is the
+  // authority. A shifted day is solved locally from the same ephemeris that
+  // draws the sky (`getSunTimes`), because reusing today's times is wrong by
+  // minutes within a week and by an hour within a season — which the phase,
+  // the greeting and the timeline would all report while the sun on screen
+  // said otherwise. Keyed on the local day, not on `nowMs`, so the solve does
+  // not re-run with the minute tick.
+  const shiftedDayMs = startOfLocalDay(baseNowMs);
+  const coords = locationQuery.data;
+  const { sunriseMs, sunsetMs } = useMemo(() => {
+    if (dayShiftMs !== 0 && coords) {
+      const times = getSunTimes(shiftedDayMs, coords.lat, coords.lon);
+      return {
+        sunriseMs: times.rise ?? undefined,
+        sunsetMs: times.set ?? undefined,
+      };
+    }
+    const shift = (v?: number) =>
+      typeof v === "number" ? v + dayShiftMs : undefined;
+    return {
+      sunriseMs: shift(weatherQuery.data?.sunriseMs),
+      sunsetMs: shift(weatherQuery.data?.sunsetMs),
+    };
+  }, [
+    dayShiftMs,
+    shiftedDayMs,
+    coords,
+    weatherQuery.data?.sunriseMs,
+    weatherQuery.data?.sunsetMs,
+  ]);
 
   const phase = useMemo(
     () => deriveAmbientPhase({ nowMs, sunriseMs, sunsetMs }),
@@ -698,7 +765,17 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [weatherQuery.data, activeOverride, sunriseMs, sunsetMs]
   );
 
-  const scene = useMemo<WeatherScene>(() => {
+  // The world model the sky is painted from: the lab's tuned config while one
+  // is in force, else the committed active preset, or whichever one the
+  // devtool's picker is previewing.
+  const skyConfig = useMemo(
+    () =>
+      labSkyConfig ??
+      (isDevtoolEnabled && skyPreset ? activeSkyConfig(SKY_FILE, skyPreset) : SKY_CONFIG),
+    [labSkyConfig, isDevtoolEnabled, skyPreset]
+  );
+
+  const liveScene = useMemo<WeatherScene>(() => {
     const location = locationQuery.data ?? null;
     // No geometry overrides: the sun and moon always come from the real
     // ephemeris at the effective clock. A forced *condition* only changes the
@@ -711,6 +788,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       theme,
       overrides: isDevtoolEnabled ? sceneOverrides : undefined,
       seed: sceneSeed,
+      config: skyConfig,
     });
   }, [
     locationQuery.data,
@@ -720,7 +798,12 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     isDevtoolEnabled,
     sceneOverrides,
     sceneSeed,
+    skyConfig,
   ]);
+  // The lab's stage replaces the live sky wholesale: its clock, its observer,
+  // its condition. Everything downstream — the canvas, the CSS gradient, the
+  // legibility profile, the devtool's readout — sees the staged scene.
+  const scene = labStage?.scene ?? liveScene;
 
   const [displaySize, setDisplaySize] = useState(readDisplaySize);
   useEffect(() => {
@@ -888,8 +971,20 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // never got a layer and the page painted the bare ground.
   const stackPainted = isImageKind || renderer === "css" || widgetEnabled;
 
+  // The lab's stage under a CSS engine changes with every frame of a sweep. A
+  // crossfade per frame would push a layer per frame and never prune (the
+  // prune timer restarts on each push), so the stage paints ONE layer whose
+  // gradient is replaced in place — no dissolve, which is right for a scrub.
+  const stageLayers = useMemo<GradientLayerData[]>(
+    () =>
+      labStage && renderer === "css" && computedGradient
+        ? [{ id: -1, gradient: computedGradient, cover: false }]
+        : [],
+    [labStage, renderer, computedGradient]
+  );
+
   useEffect(() => {
-    if (!stackPainted) return;
+    if (!stackPainted || labStage) return;
     // Hold the current gradient while refetching (stale-while-revalidate).
     // An image wallpaper needs no network, so it never waits on weather.
     if (!isImageKind && weatherQuery.isFetching && layerIdRef.current > 0) return;
@@ -904,7 +999,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
         { id: layerIdRef.current, gradient: computedGradient, cover: computedCover },
       ];
     });
-  }, [stackPainted, computedGradient, computedCover, isImageKind, weatherQuery.isFetching]);
+  }, [stackPainted, labStage, computedGradient, computedCover, isImageKind, weatherQuery.isFetching]);
 
   // Prune to the newest layer once the crossfade settles.
   useEffect(() => {
@@ -956,6 +1051,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       setDebugOverride,
       sceneOverrides,
       setSceneOverrides,
+      skyPresets: SKY_FILE.presets,
+      skyPreset,
+      setSkyPreset,
       refresh: refreshWeather,
     }),
     [
@@ -967,6 +1065,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       sceneWeather,
       debugOverride,
       sceneOverrides,
+      skyPreset,
       refreshWeather,
     ]
   );
@@ -1000,9 +1099,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
   const wallpaperValue = useMemo(
     () => ({
-      kind: settings.wallpaperKind,
+      kind: wallpaperKind,
       setKind: setWallpaperKind,
-      weatherStyle: settings.weatherStyle,
+      weatherStyle: wantedStyle,
       selectWeather,
       effectiveStyle,
       renderer,
@@ -1018,7 +1117,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       fullEnabled,
       widgetEnabled,
       softEdgeEnabled,
-      layers,
+      layers: labStage ? stageLayers : layers,
       edgeMask,
       devtoolOverrides,
       setDevtoolOverrides,
@@ -1050,13 +1149,17 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       setLabPolicy,
       legibilityOverride,
       setLegibilityOverride,
+      labSkyConfig,
+      setLabSkyConfig,
+      labStage,
+      setLabStage,
       isPickerOpen,
       openPicker,
       closePicker,
     }),
     [
-      settings.wallpaperKind,
-      settings.weatherStyle,
+      wallpaperKind,
+      wantedStyle,
       settings.wallpaperPlacement,
       settings.bezelTint,
       settings.bezelBand,
@@ -1077,6 +1180,9 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       widgetEnabled,
       softEdgeEnabled,
       layers,
+      stageLayers,
+      labStage,
+      labSkyConfig,
       edgeMask,
       devtoolOverrides,
       wallpaperOpacity,

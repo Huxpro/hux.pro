@@ -21,7 +21,7 @@
 // See lab-state.ts for how each reaches CSS.
 // =============================================================================
 
-import { Field, Section, Segmented, Slider } from "@/app/editor/icon/controls";
+import { CopyButton, Field, Section, Segmented, Slider, Star } from "@/app/editor/controls";
 import { cn } from "@/lib/utils";
 import { useGlass, useTheme } from "@/services";
 import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
@@ -39,7 +39,7 @@ import {
 } from "@/systems/ambient/lib/legibility";
 import { BUILT_IN_WALLPAPERS, WALLPAPER_CATEGORIES } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
-import { Check, Copy, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLabText } from "./i18n";
@@ -87,22 +87,6 @@ import {
 // Small parts
 // -----------------------------------------------------------------------------
 
-/** The "this is not what ships" mark, or the space it would take. */
-function Star({ active = true, onReset, title }: { active?: boolean; onReset: () => void; title: string }) {
-  if (!active) return <span className="w-2.5" />;
-  return (
-    <button
-      type="button"
-      onClick={onReset}
-      title={title}
-      aria-label={title}
-      className="ink-flat ml-1 font-mono text-amber-500/90 transition-colors hover:text-amber-400"
-    >
-      *
-    </button>
-  );
-}
-
 function Readout({ k, v, title }: { k: string; v: React.ReactNode; title?: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 text-[11px]" title={title}>
@@ -127,28 +111,6 @@ function ContrastBadge({ ratio }: { ratio: number }) {
     >
       {ratio.toFixed(1)} {grade}
     </span>
-  );
-}
-
-function CopyButton({ text, label }: { text: string; label: string }) {
-  const [done, setDone] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(text);
-          setDone(true);
-          setTimeout(() => setDone(false), 1200);
-        } catch {
-          // Clipboard unavailable — the textarea below is selectable.
-        }
-      }}
-      className="inline-flex items-center gap-1.5 rounded-md border border-border/60 px-2.5 py-1.5 text-xs font-mono text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-    >
-      {done ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-      {label}
-    </button>
   );
 }
 
@@ -552,7 +514,7 @@ export function LegibilityLabView() {
       {/* ------------------------------------------------------------------ */}
       <aside className="ink-flat w-full shrink-0 self-start rounded-2xl border border-border/50 bg-glass-sheet shadow-overlay backdrop-blur-xl lg:sticky lg:top-6 lg:max-h-[calc(100svh-3rem)] lg:w-[380px] lg:overflow-y-auto">
         <Section title={L.scene}>
-          <Field label={L.theme}>
+          <Field as="div" label={L.theme}>
             <Segmented
               value={theme}
               onChange={(v) => setThemePreference(v)}
@@ -562,7 +524,7 @@ export function LegibilityLabView() {
               ]}
             />
           </Field>
-          <Field label={L.material}>
+          <Field as="div" label={L.material}>
             <Segmented
               value={glass.material}
               onChange={glass.setMaterial}
@@ -572,7 +534,7 @@ export function LegibilityLabView() {
               ]}
             />
           </Field>
-          <Field label={L.tint}>
+          <Field as="div" label={L.tint}>
             <Segmented
               value={glass.tint}
               onChange={glass.setTint}
@@ -582,14 +544,14 @@ export function LegibilityLabView() {
               ]}
             />
           </Field>
-          <Field label={L.weatherStyle} hint={wallpaper.effectiveStyle !== wallpaper.weatherStyle ? L.fellBack : undefined}>
+          <Field as="div" label={L.weatherStyle} hint={wallpaper.effectiveStyle !== wallpaper.weatherStyle ? L.fellBack : undefined}>
             <Segmented
               value={wallpaper.weatherStyle}
               onChange={wallpaper.selectWeather}
               options={WEATHER_STYLES.map((style) => ({ value: style, label: t(locale, WEATHER_STYLE_LABEL[style]) }))}
             />
           </Field>
-          <Field label={L.wallpaper} hint={sceneLabel(scene, locale)}>
+          <Field as="div" label={L.wallpaper} hint={sceneLabel(scene, locale)}>
             <div className="flex flex-col gap-2">
               <div className="flex flex-wrap gap-1">
                 <button
@@ -804,7 +766,7 @@ export function LegibilityLabView() {
               ["flipMid", L.flipMid, live.flipMid],
             ] as const
           ).map(([key, label, on]) => (
-            <Field key={key} label={label} hint={on ? L.on : L.off}>
+            <Field key={key} as="div" label={label} hint={on ? L.on : L.off}>
               <div className="flex items-center gap-2">
                 <Segmented
                   value={on ? "on" : "off"}

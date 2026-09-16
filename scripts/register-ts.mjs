@@ -1,6 +1,8 @@
 // Lets plain Node run the repo's TypeScript scripts the way Next resolves the
-// modules they import: an extensionless "./scene" is "./scene.ts", and "@/x" is
-// the repo root. Type stripping itself is Node's own (22.18+). Use as
+// modules they import: an extensionless "./scene" is "./scene.ts", "@/x" is
+// the repo root, and a ".json" import needs no attribute (Next infers it; Node
+// insists on `with { type: "json" }`, so the loader supplies it). Type
+// stripping itself is Node's own (22.18+). Use as
 // `node --import ./scripts/register-ts.mjs scripts/<script>.ts`.
 import { register } from "node:module";
 import { pathToFileURL } from "node:url";
@@ -19,7 +21,11 @@ register(
           if (existsSync(fileURLToPath(base + ext))) return next(base + ext, context);
         }
       }
-      return next(s, context);
+      const resolved = await next(s, context);
+      if (/\\.json$/i.test(resolved.url) && !context.importAttributes?.type) {
+        return { ...resolved, importAttributes: { type: "json" } };
+      }
+      return resolved;
     }
   `)}`,
   pathToFileURL("./"),

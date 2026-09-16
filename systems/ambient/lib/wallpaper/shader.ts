@@ -65,6 +65,23 @@ uniform vec3  uVeilColor;
 uniform float uVeilAmount;
 uniform float uExposure;
 
+// Framing and figure sizes, from the SkyConfig via WeatherScene.render. They
+// are the shader's half of the world model the Sky Engine Lab tunes; on the
+// site they never change from one frame to the next.
+uniform float uSunDisc;       // disc radius, screen units
+uniform vec2  uSunGlowRadius; // x: sun overhead, y: sun on the horizon
+uniform float uSunGlowGain;
+uniform float uHorizonBand;   // dawn/dusk warmth along the horizon
+uniform float uMoonDisc;
+uniform float uMoonHalo;
+uniform float uEarthshine;
+uniform float uTerminator;    // phase edge softness, in disc radii
+uniform float uStarDensity;
+uniform float uStarTwinkle;
+uniform float uHorizonCurve;  // exponent on the zenith → horizon gradient
+uniform vec2  uCloudScale;    // x: far deck, y: near deck
+uniform vec2  uCloudParallax;
+
 // ---------------------------------------------------------------------------
 // Hash / noise
 // ---------------------------------------------------------------------------
@@ -120,22 +137,22 @@ float fbm3(vec2 p) {
 // ---------------------------------------------------------------------------
 
 vec3 skyBase(vec2 uv, vec2 p, vec2 sunP, float aspect) {
-  float t = pow(clamp(uv.y, 0.0, 1.0), 0.8);
+  float t = pow(clamp(uv.y, 0.0, 1.0), uHorizonCurve);
   vec3 sky = mix(uHorizon, uZenith, t);
 
   // Sun glow: wide and warm near the horizon, tight and white overhead.
   float lowSun = 1.0 - smoothstep(-8.0, 14.0, uSunElevation);
   float d = length(p - sunP);
-  float radius = mix(0.42, 1.15, lowSun);
+  float radius = mix(uSunGlowRadius.x, uSunGlowRadius.y, lowSun);
   float g = exp(-(d * d) / (radius * radius));
-  sky += uGlow * g * uGlowStrength * mix(0.55, 0.85, lowSun);
+  sky += uGlow * g * uGlowStrength * uSunGlowGain * mix(0.55, 0.85, lowSun);
 
   // Horizon warmth band at dawn/dusk.
   float band = exp(-pow((uv.y - 0.16) / 0.28, 2.0)) * lowSun * uGlowStrength;
-  sky += uGlow * band * 0.26;
+  sky += uGlow * band * uHorizonBand;
 
   // Sun disc when the sun is up and the sky is open.
-  float disc = smoothstep(0.026, 0.012, d);
+  float disc = smoothstep(uSunDisc, uSunDisc * 0.4615, d);
   float halo = exp(-(d * d) / 0.005);
   float sunVis = smoothstep(-1.5, 2.0, uSunElevation) * (1.0 - smoothstep(0.35, 0.8, uCloudCover));
   sky += (vec3(1.0, 0.97, 0.9) * disc * 0.8 + uGlow * halo * 0.28) * sunVis;
@@ -153,11 +170,15 @@ float stars(vec2 p, vec2 uv) {
     vec2 cell = floor(sp);
     vec2 f = fract(sp);
     vec2 rnd = hash2(cell);
-    float present = step(i == 0 ? 0.86 : 0.93, hash1(cell + 5.3));
+    // Density scales the share of cells that hold a star: 0 empties the
+    // field, 1 is the shipped one.
+    float keep = i == 0 ? 0.86 : 0.93;
+    float present = step(1.0 - (1.0 - keep) * uStarDensity, hash1(cell + 5.3));
     float dist = length(f - (0.15 + rnd * 0.7));
     float size = i == 0 ? 0.075 : 0.05;
     float star = smoothstep(size, 0.0, dist) * present * (0.6 + 0.4 * rnd.x);
-    float twinkle = 0.55 + 0.45 * sin(uTime * (1.2 + rnd.x * 2.0) + rnd.y * 6.2831);
+    float twinkle =
+      (1.0 - uStarTwinkle) + uStarTwinkle * sin(uTime * (1.2 + rnd.x * 2.0) + rnd.y * 6.2831);
     s += star * twinkle * (i == 0 ? 0.85 : 0.4);
   }
   // Fade stars toward the horizon haze.
@@ -166,7 +187,7 @@ float stars(vec2 p, vec2 uv) {
 
 vec3 moon(vec2 p, vec2 moonP) {
   if (uMoonVisible < 0.002) return vec3(0.0);
-  float r = 0.03 * uMoonSize;
+  float r = uMoonDisc * uMoonSize;
   vec2 d = (p - moonP) / r;
   d.x *= uHemisphere;
   float md = length(d);
@@ -179,8 +200,8 @@ vec3 moon(vec2 p, vec2 moonP) {
   float dy = clamp(d.y, -1.0, 1.0);
   float term = k * sqrt(max(0.0, 1.0 - dy * dy));
   float lit = uMoonPhase < 0.5
-    ? smoothstep(-0.12, 0.12, d.x - term)
-    : smoothstep(-0.12, 0.12, -term - d.x);
+    ? smoothstep(-uTerminator, uTerminator, d.x - term)
+    : smoothstep(-uTerminator, uTerminator, -term - d.x);
   lit *= disc;
 
   float maria = 0.86 + 0.14 * fbm3(d * 2.2 + 3.0);
@@ -188,13 +209,13 @@ vec3 moon(vec2 p, vec2 moonP) {
   vec3 moonCol = vec3(0.97, 0.96, 0.92) * maria * limb;
   // The night side is (almost) invisible against the sky: only a whisper of
   // earthshine, and never darker than its surroundings.
-  vec3 col = moonCol * lit + vec3(0.18, 0.2, 0.26) * disc * (1.0 - lit) * 0.03;
+  vec3 col = moonCol * lit + vec3(0.18, 0.2, 0.26) * disc * (1.0 - lit) * uEarthshine;
 
   // Atmospheric halo — scattered light *in front of* the moon, so it covers
   // the dark side too instead of outlining it as a black hole. Scaled by how
   // much of the disc is illuminated.
   float illum = 0.5 - 0.5 * cos(uMoonPhase * 6.2831853);
-  float glow = exp(-md * md * 0.22) * 0.1 * (0.35 + 0.65 * illum);
+  float glow = exp(-md * md * 0.22) * uMoonHalo * (0.35 + 0.65 * illum);
   col += vec3(0.75, 0.82, 1.0) * glow * (1.0 - lit * 0.6);
   return col * uMoonVisible;
 }
@@ -350,8 +371,9 @@ void main() {
 
   // Far deck: large, slow, flattened by perspective. Near deck: smaller,
   // faster, a touch heavier.
-  CloudSample far = cloudLayer(p, sunDir, 1.35, 0.014, 0.75, -0.05);
-  CloudSample near = cloudLayer(p + vec2(3.1, 1.7), sunDir, 2.6, 0.03, 1.0, 0.0);
+  CloudSample far = cloudLayer(p, sunDir, uCloudScale.x, 0.014, uCloudParallax.x, -0.05);
+  CloudSample near =
+    cloudLayer(p + vec2(3.1, 1.7), sunDir, uCloudScale.y, 0.03, uCloudParallax.y, 0.0);
 
   // Clouds sit over the sky; the near deck also shades the far one a little.
   col = mix(col, far.col, far.cov);

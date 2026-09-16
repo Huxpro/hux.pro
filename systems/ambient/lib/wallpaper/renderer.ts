@@ -53,6 +53,23 @@ const UNIFORMS: UniformSpec[] = [
   { name: "uVeilColor", size: 3, tau: 0.5 },
   { name: "uVeilAmount", size: 1, tau: 0.5 },
   { name: "uExposure", size: 1, tau: 0.5 },
+  // `WeatherScene.render` — the shader's framing and figure sizes, straight
+  // from the SkyConfig. They are not scene dynamics, so they snap (tau 0):
+  // easing a disc size would only smear a deliberate edit in the Sky Engine
+  // Lab, and on the site they are constant for the life of the page.
+  { name: "uSunDisc", size: 1, tau: 0 },
+  { name: "uSunGlowRadius", size: 2, tau: 0 },
+  { name: "uSunGlowGain", size: 1, tau: 0 },
+  { name: "uHorizonBand", size: 1, tau: 0 },
+  { name: "uMoonDisc", size: 1, tau: 0 },
+  { name: "uMoonHalo", size: 1, tau: 0 },
+  { name: "uEarthshine", size: 1, tau: 0 },
+  { name: "uTerminator", size: 1, tau: 0 },
+  { name: "uStarDensity", size: 1, tau: 0 },
+  { name: "uStarTwinkle", size: 1, tau: 0 },
+  { name: "uHorizonCurve", size: 1, tau: 0 },
+  { name: "uCloudScale", size: 2, tau: 0 },
+  { name: "uCloudParallax", size: 2, tau: 0 },
 ];
 
 const FLOAT_COUNT = UNIFORMS.reduce((n, u) => n + u.size, 0);
@@ -79,7 +96,7 @@ const STILL_FRAME_SEC = 37;
 
 function packScene(scene: WeatherScene, out: Float32Array) {
   const precip = scene.precipitation;
-  const { sun, sky, moon, clouds, veil } = scene;
+  const { sun, sky, moon, clouds, veil, render } = scene;
   // In UNIFORMS order.
   out[0] = sun.screen.x; out[1] = sun.screen.y;
   out[2] = sun.elevation;
@@ -108,8 +125,21 @@ function packScene(scene: WeatherScene, out: Float32Array) {
   out[37] = veil.color[0]; out[38] = veil.color[1]; out[39] = veil.color[2];
   out[40] = veil.amount;
   out[41] = scene.exposure;
+  out[42] = render.sunDisc;
+  out[43] = render.sunGlowRadiusHigh; out[44] = render.sunGlowRadiusLow;
+  out[45] = render.sunGlowGain;
+  out[46] = render.horizonBand;
+  out[47] = render.moonDisc;
+  out[48] = render.moonHalo;
+  out[49] = render.earthshine;
+  out[50] = render.terminator;
+  out[51] = render.starDensity;
+  out[52] = render.starTwinkle;
+  out[53] = render.horizonCurve;
+  out[54] = render.cloudScaleFar; out[55] = render.cloudScaleNear;
+  out[56] = render.cloudParallaxFar; out[57] = render.cloudParallaxNear;
 }
-if (FLOAT_COUNT !== 42) throw new Error("packScene is out of step with UNIFORMS");
+if (FLOAT_COUNT !== 58) throw new Error("packScene is out of step with UNIFORMS");
 
 export interface WallpaperRendererOptions {
   /** Render a single still frame and re-render only on scene/size changes. */

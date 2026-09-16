@@ -23,6 +23,7 @@ export {
   AmbientGreeting,
   AmbientSurface,
   AmbientPhaseActivity,
+  MoonPhaseIcon,
   WallpaperBackground,
   WallpaperSheet,
   WeatherIcon,

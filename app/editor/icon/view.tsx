@@ -20,7 +20,7 @@ import {
   Slider,
   TextField,
   Toggle,
-} from "./controls";
+} from "../controls";
 
 /**
  * Inlines the icon SVG into the DOM (not via `<img>`) so the wordmark renders
@@ -351,7 +351,7 @@ export function IconEditorView({ initialConfig }: IconEditorViewProps) {
           </Section>
 
           <Section title="Background">
-            <Field label="Texture">
+            <Field as="div" label="Texture">
               <Segmented
                 columns={3}
                 value={config.background.style}

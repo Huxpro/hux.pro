@@ -25,8 +25,9 @@ systems/ambient/
 │   └── index.ts                  # Component exports
 ├── lib/
 │   ├── weather.ts                # Open-Meteo integration + condition model
-│   ├── solar.ts                  # Sun elevation/azimuth, lunar ephemeris, moon phase
-│   ├── scene.ts                  # weather × sun × moon × theme → WeatherScene
+│   ├── solar.ts                  # Sun/moon ephemeris, rise-set solver, explain* readouts
+│   ├── scene.ts                  # weather × sun × moon × theme × config → WeatherScene
+│   ├── sky-config.ts             # SkyConfig: the tunable world model (content/sky.json)
 │   ├── gradient.ts               # WeatherScene → CSS gradient + crossfade types
 │   ├── wallpaper/
 │   │   ├── shader.ts             # GLSL: the full-screen procedural sky (CG)
@@ -108,6 +109,14 @@ is modelled too: a bright, high moon lifts the night sky and cloud tops and
 washes out the fainter stars; cloud cover and fog occlude it. In the southern
 hemisphere the crescent is mirrored.
 
+**Rise and set for any day.** Open-Meteo gives sunrise and sunset for *today*.
+Anything that moves the calendar — the devtool's day offset, the lab's month and
+year sweeps — solves them locally instead (`getSunTimes` / `getMoonTimes`): scan
+the local day for a horizon crossing, bisect it to the second. Reusing today's
+times is wrong by minutes within a week and by an hour within a season, which
+the phase and the greeting would report while the sun on screen said otherwise.
+Polar day and polar night come back as no crossing at all, not as a guess.
+
 **Staging the moon.** Where the moon *is* comes from the ephemeris and is never
 bent. Where it is *drawn* is a composition decision (`stageMoon` in
 `lib/scene.ts`), made on purpose:
@@ -145,6 +154,20 @@ Both renderers consume the same scene, so switching engines never changes the
 mood — only the fidelity. (The devtool condition thumbnails deliberately keep
 the older hand-tuned per-condition palettes so conditions stay distinguishable
 at 40 px.)
+
+### SkyConfig
+
+Every number the *look* depends on — the sky keyframes, the six condition
+profiles, the theme veils, the moon's stage, the shader's disc sizes and cloud
+decks — is a field of a **`SkyConfig`** (`lib/sky-config.ts`), not a constant.
+`deriveWeatherScene` takes one and defaults to the committed `content/sky.json`;
+the scene carries the shader's half of it as `scene.render`, so the renderer
+stays a dumb pipe and one config drives both engines.
+
+The config is plain JSON (colours are `#rrggbb` strings) and goes through
+`normalizeSkyConfig` on every path in, so a hand-edited or stale file can never
+produce a broken sky. It is authored in the **Sky Engine Lab** (below) and
+checked by `pnpm sky:check`.
 
 ### Two Engines
 
@@ -189,6 +212,32 @@ A heads-up that the ambient phase is about to change to sunrise/sunset. It is a
 Visibility (`lib/notification.ts`): from ~90 min before the event through the end
 of its ±45 min window, then it hands off to the gradient + greeting. A forced
 sunrise/sunset phase from the devtool also surfaces it for testing.
+
+## Sky Engine Lab
+
+**`/editor/sky`** is the workbench for everything above: the ephemeris with its
+working shown, the solar and lunar trajectories plotted, the composition step
+between "where things are" and "where they are drawn" made visible, and every
+table above turned into a lever with a live preview in all three engines. It
+saves to `content/sky.json`, which this system imports at build.
+
+It is a **consumer** of `systems/ambient/lib`, never a fork: the plots, the
+readouts and the preview all come from `deriveWeatherScene`, `stageMoon` and
+`solar.ts`, so what the lab shows is what the wallpaper did. Its stage is the
+page's own full-page wallpaper: the provider takes the lab's scene and engine
+as `labStage` (lab-only, cleared on leave) and the lab's tuned config as
+`labSkyConfig` (in force on every route until Reset all), the same pair of
+overrides the Legibility Lab uses for its policy. `/editor/sky` counts as a
+desktop for the reading treatment, like `/editor/legibility`. Full
+documentation: [docs/editor-sky.md](./editor-sky.md).
+
+The devtool's Sky module stays the on-page shortcut; it gains a picker over the
+config's named presets, and a *Sky lab config in force* row while one is, and
+nothing else.
+
+```bash
+pnpm sky:check   # fail if content/sky.json no longer normalizes cleanly
+```
 
 ## Wallpaper
 
