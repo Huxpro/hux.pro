@@ -1507,6 +1507,17 @@ html.dragging * {
    `--drawer-swipe-strength` (how hard it was flicked). From live-activity.tsx:
    `--surface-duration`, `--surface-easing`, `--surface-exit`.
 
+   NOTHING HERE ANIMATES THE OPACITY OF A BOX THAT CONTAINS GLASS. An element
+   at `opacity < 1` is its own backdrop root, so a `backdrop-filter` inside it
+   samples that empty group rather than the page, and the glass is simply not
+   there for the length of the animation. A fade on the popup made the whole
+   panel see-through on the way in — the page's text read straight through it,
+   unblurred — and the same fade on the pill row would do it to the pills. The
+   panel therefore arrives and leaves on transform alone, out of and back over
+   the top edge, and the pill's fade sits on the pill itself, the same element
+   that carries the blur. The sheets above are transform-only for this reason
+   too.
+
    Before changing a rule, read the "BEFORE CHANGING THIS FILE" block at the
    top of systems/dock/components/live-activity.tsx — the three notes there are
    what these rules are shaped around.
@@ -1514,10 +1525,7 @@ html.dragging * {
 
 [data-dock-panel] {
   transform: translateY(var(--drawer-swipe-movement-y, 0px));
-  opacity: 1;
-  transition:
-    transform var(--surface-duration) var(--surface-easing),
-    opacity var(--surface-duration) var(--surface-easing);
+  transition: transform var(--surface-duration) var(--surface-easing);
 }
 
 /* Under the finger the panel is direct. The duration only, never the whole
@@ -1532,7 +1540,6 @@ html.dragging * {
    the panel is gone rather than clipped at the status bar. */
 [data-dock-panel]:is([data-starting-style], [data-ending-style]) {
   transform: translateY(calc(-100% - var(--surface-exit)));
-  opacity: 0;
 }
 
 /* Pulled open from the pill. `Drawer.SwipeArea` opens the drawer on the first
@@ -1543,7 +1550,6 @@ html.dragging * {
    and pinning it to the finger there would strand it on screen. */
 [data-dock-panel][data-swiping][data-starting-style] {
   transform: translateY(var(--drawer-swipe-movement-y, 0px));
-  opacity: 1;
 }
 
 /* Thrown away: the harder the flick, the sooner it is gone. */
@@ -1552,8 +1558,15 @@ html.dragging * {
 }
 
 /* The pills stay in the row while a panel is open, so the row keeps its
-   layout and its scroll position, but the open panel stands alone. */
+   layout and its scroll position, but the open panel stands alone. The
+   wrapper stops taking pointers; the fade is one level down, on the pill
+   itself, because the pill IS the glass (see the note at the top of this
+   block). */
 [data-dock-pill] {
+  transform-origin: top center;
+}
+
+[data-dock-pill] > * {
   /* The site's surface curve, written out: the pill sits in the dock row, not
      under the popup that carries `--surface-easing`. */
   transition:
@@ -1564,13 +1577,16 @@ html.dragging * {
 
 [data-dock-pill][data-hidden] {
   pointer-events: none;
+}
+
+[data-dock-pill][data-hidden] > * {
   opacity: 0;
   transform: translateY(-6px) scale(0.9);
 }
 
 @media (prefers-reduced-motion: reduce) {
   [data-dock-panel],
-  [data-dock-pill] {
+  [data-dock-pill] > * {
     transition: none;
   }
 }

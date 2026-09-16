@@ -52,9 +52,10 @@ import { useDock } from "../provider";
 // BEFORE CHANGING THIS FILE, OR THE "Dock panel motion" BLOCK IN globals.css:
 // read the "BEFORE CHANGING THIS FILE" list at the top of
 // systems/surface/sheet.tsx. Every item on it applies here too — this is the
-// same library, the same data attributes, the same custom properties. Three
-// things are specific to travelling UP rather than DOWN, and each was found by
-// reading Base UI 1.8's source rather than its types:
+// same library, the same data attributes, the same custom properties. Four
+// things are specific to this panel, and each was found the hard way — the
+// first three by reading Base UI 1.8's source rather than its types, the
+// fourth by looking at the thing move:
 //
 // 1. A dismiss drag and a `Drawer.SwipeArea` drag move the popup by different
 //    means. The dismiss drag writes an inline `transform` on the popup
@@ -75,6 +76,13 @@ import { useDock } from "../provider";
 //    wrapper here, not an overlay — an overlay would eat the tap — and it opts
 //    back in with `aria-hidden={false}`. `role="presentation"` on a plain div
 //    changes nothing and stays.
+// 4. Never animate the opacity of anything that contains the glass. An element
+//    at `opacity < 1` is its own backdrop root, so the shell's
+//    `backdrop-filter` samples that empty group instead of the page and the
+//    glass is not there at all while the animation runs. A fade on the popup
+//    made the panel see-through on the way in, the page's text legible through
+//    it, unblurred — shipped and reverted. The panel travels on transform
+//    alone; the pill's fade is on the pill, which is itself the glass.
 // -----------------------------------------------------------------------------
 
 /** Where the panel's top edge sits: the status bar, or the dock row's own gap. */

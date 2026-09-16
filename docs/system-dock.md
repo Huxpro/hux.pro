@@ -57,6 +57,20 @@ Before changing any of it, read the "BEFORE CHANGING THIS FILE" block at the top
 of `systems/dock/components/live-activity.tsx`, and the one it points at in
 `systems/surface/sheet.tsx`.
 
+### The glass is the constraint on the motion
+
+The panel arrives and leaves on **transform alone** — out of and back over the
+top edge — and never on opacity. An element at `opacity < 1` is its own backdrop
+root, so a `backdrop-filter` anywhere inside it samples that empty group instead
+of the page: the glass is not there at all for the length of the animation. A
+fade on the popup was tried and shipped, and it made the panel see-through on
+the way in, the page's text legible straight through it, unblurred. The pill's
+fade sits on the pill itself, the element that carries the blur, for the same
+reason. The sheets above are transform-only for the same reason.
+
+The walkthrough guards it: it samples twelve frames across the entrance and
+fails if anything between the shell and `<body>` is fading or filtering.
+
 ### One place it does not replicate the old dock
 
 The old scrim was a real `fixed inset-0` div, so with a panel open every press
