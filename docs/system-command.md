@@ -79,10 +79,11 @@ still ask for it on a phone — the Command module's **Phone palette** row, a
 saved setting, switches Sheet ↔ Popover. That is one presentation map, not a
 second code path: the popover never stopped working at phone width.
 
-The popover list grows with the viewport (`43dvh`, capped at `40rem`) instead
-of a fixed `360px` — Geolocation is the last full row on a 16" laptop, without
-Wallpaper or Glass peeking. It also sits a little lower (`22vh`, capped at
-`13.5rem`). The sheet does not use this: it fills whichever detent it is on.
+The popover search list grows with the viewport (`43dvh`, capped at `40rem`)
+instead of a fixed `360px` — Geolocation is the last full row on a 16" laptop.
+Slash commands skip that cap so the card grows taller as it morphs, the way
+it used to. It also sits a little lower (`22vh`, capped at `13.5rem`). The
+sheet does not use this: it fills whichever detent it is on.
 
 ### Commands
 

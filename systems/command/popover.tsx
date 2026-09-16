@@ -24,16 +24,25 @@ import { CommandResults, CommandSlashList, GROUP_HEADINGS } from "./results";
 // with flex-1; this is the Spotlight card, whose list should grow with the
 // viewport instead of sitting on a 360px cap.
 // Offset: a little below Spotlight's 20vh, capped so it still sits in the
-// upper third. List: 43dvh — on a 16" MacBook (~1040px chrome) that lands
-// on Geolocation as the last full row, without Wallpaper/Glass peeking.
+// upper third. Search list: 43dvh — on a 16" MacBook (~1040px chrome) that
+// lands on Geolocation as the last full row. Slash list: no 43dvh cap, so
+// the card grows for the full lettered list (the original morph) and only
+// scrolls when it would hit the remaining viewport.
 const PALETTE_GEOMETRY = {
   "--command-palette-offset": "min(22vh, 13.5rem)",
+  "--command-palette-chrome":
+    "calc(100dvh - var(--command-palette-offset) - 9rem - env(safe-area-inset-bottom, 0px))",
   "--command-palette-list-max":
-    "min(40rem, 43dvh, calc(100dvh - var(--command-palette-offset) - 9rem - env(safe-area-inset-bottom, 0px)))",
+    "min(40rem, 43dvh, var(--command-palette-chrome))",
+  "--command-palette-slash-max":
+    "min(40rem, var(--command-palette-chrome))",
 } as CSSProperties;
 
 const PALETTE_LIST_MAX =
   "max-h-[var(--command-palette-list-max)] overscroll-contain";
+
+const PALETTE_SLASH_MAX =
+  "max-h-[var(--command-palette-slash-max)] overflow-y-auto overscroll-contain";
 
 // =============================================================================
 // CommandPopover — the palette as a floating card, Spotlight-style.
@@ -337,7 +346,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                 <div className="overflow-hidden min-h-0">
                   <CommandSlashList
                     actions={actions}
-                    className={cn(PALETTE_LIST_MAX, "overflow-y-auto")}
+                    className={PALETTE_SLASH_MAX}
                   />
                 </div>
               </div>
