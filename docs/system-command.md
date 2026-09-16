@@ -165,7 +165,7 @@ Features:
 - Blog posts search
 - Apps launcher with real app icons (grid + list)
 - Bilingual search (EN/中文 keywords)
-- Adaptive popover list height (`43dvh`, capped); the phone sheet fills its detents
+- Adaptive popover height: search `43dvh`, slash taller (viewport chrome only)
 
 ### FloatingActionButton
 
