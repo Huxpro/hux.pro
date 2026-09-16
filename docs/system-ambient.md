@@ -171,6 +171,13 @@ at 40 px.)
 The Sky engine (`WallpaperRenderer`):
 - treats every scene as a **target** — each uniform eases in with its own time
   constant (sky ≈ 1.8 s, clouds/precipitation ≈ 2.5 s), so a refetch never snaps;
+- eases *where a body is drawn* far faster (≈0.25 s for the sun and moon): a
+  live clock moves them a thousandth of a screen a minute, so that easing is
+  only ever felt when a hand drives the clock — the devtool's date and time
+  sliders — and there the disc should feel attached to the slider. A real jump
+  of the clock still snaps, measured between one **target** and the next: a
+  large gap between the target and where the disc has eased to is only lag, and
+  snapping on that teleports the disc mid-drag;
 - accumulates cloud/snow **drift in JS** from the smoothed wind, so a wind change
   glides instead of teleporting the sky;
 - renders at a **pixel budget** (≈1.1 M px desktop, ≈0.5 M px phones) and backs
