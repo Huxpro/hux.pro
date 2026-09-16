@@ -24,12 +24,12 @@ import { CommandResults, CommandSlashList, GROUP_HEADINGS } from "./results";
 // with flex-1; this is the Spotlight card, whose list should grow with the
 // viewport instead of sitting on a 360px cap.
 // Offset: a little below Spotlight's 20vh, capped so it still sits in the
-// upper third. List: 45dvh — on a 16" MacBook (~1040px chrome) that lands
-// around Geolocation, not Glass; never taller than remaining viewport.
+// upper third. List: 43dvh — on a 16" MacBook (~1040px chrome) that lands
+// on Geolocation as the last full row, without Wallpaper/Glass peeking.
 const PALETTE_GEOMETRY = {
   "--command-palette-offset": "min(22vh, 13.5rem)",
   "--command-palette-list-max":
-    "min(40rem, 45dvh, calc(100dvh - var(--command-palette-offset) - 9rem - env(safe-area-inset-bottom, 0px)))",
+    "min(40rem, 43dvh, calc(100dvh - var(--command-palette-offset) - 9rem - env(safe-area-inset-bottom, 0px)))",
 } as CSSProperties;
 
 const PALETTE_LIST_MAX =

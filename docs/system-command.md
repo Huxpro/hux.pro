@@ -79,10 +79,10 @@ still ask for it on a phone — the Command module's **Phone palette** row, a
 saved setting, switches Sheet ↔ Popover. That is one presentation map, not a
 second code path: the popover never stopped working at phone width.
 
-The popover list grows with the viewport (`45dvh`, capped at `40rem`) instead
-of a fixed `360px` — enough to reach Geolocation on a 16" laptop, not Glass.
-It also sits a little lower (`22vh`, capped at `13.5rem`). The sheet does not
-use this: it fills whichever detent it is on.
+The popover list grows with the viewport (`43dvh`, capped at `40rem`) instead
+of a fixed `360px` — Geolocation is the last full row on a 16" laptop, without
+Wallpaper or Glass peeking. It also sits a little lower (`22vh`, capped at
+`13.5rem`). The sheet does not use this: it fills whichever detent it is on.
 
 ### Commands
 
@@ -164,7 +164,7 @@ Features:
 - Blog posts search
 - Apps launcher with real app icons (grid + list)
 - Bilingual search (EN/中文 keywords)
-- Adaptive popover list height (`45dvh`, capped); the phone sheet fills its detents
+- Adaptive popover list height (`43dvh`, capped); the phone sheet fills its detents
 
 ### FloatingActionButton
 
