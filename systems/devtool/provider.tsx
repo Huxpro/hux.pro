@@ -20,8 +20,12 @@ export interface DraggableInstanceConfig {
 }
 
 export const DRAGGABLE_DEFAULTS: Record<string, DraggableInstanceConfig> = {
-  // Persistent tool panel — draggable and remembers position across sessions
+  // The collapsed pill — draggable and remembers where it was put
   devtool: { draggable: true, persist: true },
+  // The panel itself, in its desktop window shape. Its own instance now that
+  // it is an AdaptiveSurface: the pill is an entry, the panel is a surface,
+  // and each stays where it was left.
+  "surface-devtool": { draggable: true, persist: true },
   // Well-positioned by design — not draggable by default, but persist is pre-armed
   // so enabling drag via devtools automatically remembers position
   "command-fab": { draggable: false, persist: true },
@@ -34,7 +38,8 @@ export const DRAGGABLE_DEFAULTS: Record<string, DraggableInstanceConfig> = {
 };
 
 export const DRAGGABLE_INSTANCES = [
-  { id: "devtool", labelEn: "Debug Panel", labelZh: "调试面板" },
+  { id: "devtool", labelEn: "Debug Pill", labelZh: "调试按钮" },
+  { id: "surface-devtool", labelEn: "Debug Panel", labelZh: "调试面板" },
   { id: "command-fab", labelEn: "Search Button", labelZh: "搜索按钮" },
   { id: "command-palette", labelEn: "Command Palette", labelZh: "命令面板" },
   // Adaptive surfaces are only draggable in their desktop "window" shape; the

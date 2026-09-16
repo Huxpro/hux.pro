@@ -37,8 +37,9 @@ import {
 //   sheet   <SurfaceSheet> (sheet.tsx): a Base UI drawer from the bottom,
 //           drag-to-dismiss, grabber, stacks the iOS way.
 //   panel   the same drawer from the trailing edge, drag-to-dismiss.
-//   window  a centred window that morphs in the way an app window does when it
-//           opens from its shelf icon, and is draggable by its header.
+//   window  a floating window that morphs in the way an app window does when it
+//           opens from its shelf icon, and is draggable by its header. Centred
+//           near the top unless `windowPlacement` says otherwise.
 //
 // None of them takes the page away. There is no scrim, the page stays
 // interactive, and touching it does not close the surface; its close button,
@@ -85,6 +86,12 @@ export interface AdaptiveSurfaceProps {
   closeLabel: string;
   /** Width of the floating window; drawers use their own edge-relative sizing. */
   windowWidth?: string;
+  /**
+   * Where the window shape rests before any drag. Centred near the top by
+   * default; `top-right` is for a surface that must not sit over the thing it
+   * is about — the devtool panel, which exists to watch the page react.
+   */
+  windowPlacement?: "center" | "top-right";
   /** Height cap for window and sheet modes. */
   maxHeight?: string;
   /**
@@ -97,6 +104,11 @@ export interface AdaptiveSurfaceProps {
   contentClassName?: string;
   /** The scroll container, for content that needs to scroll a row into view. */
   scrollRef?: React.RefObject<HTMLDivElement | null>;
+  /**
+   * A fixed strip below the scroll area, in every shape — a status line, a
+   * destructive action. It does not scroll away with the content.
+   */
+  footer?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -154,10 +166,17 @@ function SurfaceBody({
   titleAs,
   contentClassName,
   scrollRef,
+  footer,
   children,
 }: Pick<
   AdaptiveSurfaceProps,
-  "title" | "actions" | "closeLabel" | "contentClassName" | "scrollRef" | "children"
+  | "title"
+  | "actions"
+  | "closeLabel"
+  | "contentClassName"
+  | "scrollRef"
+  | "footer"
+  | "children"
 > & {
   onClose: () => void;
   draggable?: boolean;
@@ -182,6 +201,7 @@ function SurfaceBody({
       >
         {children}
       </div>
+      {footer && <div className="shrink-0">{footer}</div>}
     </>
   );
 }
@@ -199,9 +219,11 @@ function SurfaceWindow({
   actions,
   closeLabel,
   windowWidth,
+  windowPlacement = "center",
   maxHeight,
   contentClassName,
   scrollRef,
+  footer,
   children,
 }: Omit<AdaptiveSurfaceProps, "presentation">) {
   // Destructured up front: reading `drag.*` inside the JSX trips the
@@ -235,7 +257,14 @@ function SurfaceWindow({
       {open && (
         // This full-screen positioning box would otherwise be an invisible
         // wall over the page; only the window takes pointers.
-        <div className="pointer-events-none fixed inset-0 z-[60] flex items-start justify-center pt-[12vh]">
+        <div
+          className={cn(
+            "pointer-events-none fixed inset-0 z-[60] flex items-start",
+            windowPlacement === "top-right"
+              ? "justify-end p-4"
+              : "justify-center pt-[12vh]"
+          )}
+        >
           <motion.div
             ref={contentRef as React.RefObject<HTMLDivElement>}
             role="dialog"
@@ -278,6 +307,7 @@ function SurfaceWindow({
               draggable={isDraggable}
               contentClassName={contentClassName}
               scrollRef={scrollRef}
+              footer={footer}
             >
               {children}
             </SurfaceBody>
@@ -298,6 +328,7 @@ function SurfacePanel({
   closeLabel,
   contentClassName,
   scrollRef,
+  footer,
   children,
 }: Omit<AdaptiveSurfaceProps, "presentation" | "id">) {
   return (
@@ -332,6 +363,7 @@ function SurfacePanel({
                 titleAs={Drawer.Title}
                 contentClassName={contentClassName}
                 scrollRef={scrollRef}
+                footer={footer}
               >
                 {children}
               </SurfaceBody>
@@ -355,6 +387,7 @@ function SurfaceSheetShape({
   snapPoints,
   contentClassName,
   scrollRef,
+  footer,
   children,
 }: Omit<AdaptiveSurfaceProps, "presentation">) {
   return (
@@ -373,6 +406,7 @@ function SurfaceSheetShape({
         titleAs={Drawer.Title}
         contentClassName={contentClassName}
         scrollRef={scrollRef}
+        footer={footer}
       >
         {children}
       </SurfaceBody>

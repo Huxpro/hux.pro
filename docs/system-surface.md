@@ -28,12 +28,15 @@ lives here, once.
 |------|-------|-----|
 | `sheet` | Bottom edge, drag-to-dismiss, grabber | Phone. Thumb reach. |
 | `panel` | Trailing edge, full height | Tablet. Content beside content. |
-| `window` | Centred, draggable, morphs in | Desktop. Move it out of the way. |
+| `window` | Floating, draggable, morphs in | Desktop. Move it out of the way. |
 
 `window` is not a drawer. It springs in with the same curve
 `systems/windows` uses to open an app from its shelf icon, and drags by its
 header through the shared `useDraggable` hook — so it inherits the devtool's
-per-instance drag settings like every other draggable thing on the site.
+per-instance drag settings like every other draggable thing on the site. It
+rests near the top centre unless `windowPlacement` says otherwise; the devtool
+asks for `top-right`, where it has always been and where it stays out of the
+page it exists to watch.
 
 No shape takes the page away. There is no scrim, the page stays interactive,
 and touching it does not close the surface; its close button, Escape and a drag
@@ -102,10 +105,12 @@ const { mode, isWindow, close } = useSurfaceContext();
 | `id` | Draggable instance key in window mode. Register it in `DRAGGABLE_INSTANCES`. |
 | `title` / `actions` | Header content. `actions` sits left of the close button. |
 | `windowWidth` | Window mode only; drawers size against their edge. |
+| `windowPlacement` | Where the window rests before a drag: `center` (default) or `top-right`. |
 | `maxHeight` | Caps window and sheet height. |
 | `snapPoints` | Detents for the sheet shape, lowest first; a drag carries it to the top. |
 | `contentClassName` | Overrides the scroll area's padding, for content that bleeds wider. |
 | `scrollRef` | The scroll container, for content that scrolls a row into view. |
+| `footer` | A strip below the scroll area, in every shape. It does not scroll away. |
 
 ## The sheet primitive
 
@@ -242,5 +247,6 @@ UI's own count of nested sheets, one `--surface-depth` on the shell. See
 | Music playlist | `ADAPTIVE_PRESENTATION` | macOS-sized window (980×620), track list breaks into columns |
 | Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode; `SHEET_DETENTS` as a sheet |
 | Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight popover, not an `AdaptiveSurface` |
+| Devtool panel | `{ base: "sheet", sm: "window" }` | `windowPlacement="top-right"` — 420px where it has always been; no tablet panel shape, and a `footer` for its status line. See [Devtool System](./system-devtool.md) |
 
 Adding a second is: register a draggable id, pick a presentation, pass content.

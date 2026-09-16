@@ -13,12 +13,48 @@ systems/devtool/
 
 ## Key Features
 
+### Two things: an entry and a surface
+
+The pill is an **entry** — a fixed button at the top right, nothing more. The
+panel is a **surface**, so it is an `<AdaptiveSurface>` like the wallpaper
+picker and the playlist (see [Surface System](./system-surface.md)):
+
+| Viewport | Shape |
+|----------|-------|
+| Phone (`base`) | Bottom sheet, `SHEET_DETENTS` (0.7 → 1), grabber, swipe to dismiss |
+| Anything wider (`sm`+) | The top-right floating window it has always been, 420px, draggable by its header |
+
+There is no tablet `panel` shape: a devtool hugging the trailing edge at full
+height would cover the page it is about.
+
+The panel is **non-modal**, and that is the point — the devtool exists to watch
+the page react while wallpaper, glass and sky are turned. The page underneath
+stays scrollable and clickable, and a press on it belongs to the page; the
+close button, `D`, Escape and a downward drag dismiss.
+
+Being a surface is what the panel was missing. It used to be a desktop card
+squeezed to phone width: pinned over the dock's Live Activity, dragged by a
+handle no finger wants, with no swipe to dismiss and no place in the surface
+stack — so a picker opened from it had nowhere to go but over it, and the
+panel folded itself away first (`openPicker(); closePanel();`). Now the picker
+**stacks** on the devtool: the panel steps back a notch behind it and comes
+forward again when the picker goes, iOS's own answer to a sheet presenting a
+sheet. On a desktop the two simply coexist as windows, the picker on top.
+
 ### Dragging
 
-Only the collapsed pill and the panel's title bar are drag handles
-(`withDraggable(..., { dragHandle: "[data-drag-handle]" })`); the module
-bodies keep their own gestures so range inputs, text fields and scrolling
-inside the panel work.
+Two draggable instances, because there are two things:
+
+| Instance | What it moves |
+|----------|---------------|
+| `devtool` | The collapsed pill |
+| `surface-devtool` | The panel, in its desktop window shape |
+
+Both default to draggable and remember where they were left. The pill is its
+own handle; the panel drags by its header, through the same `useDraggable`
+hook every `AdaptiveSurface` window uses. The module bodies are never handles,
+so range inputs, text fields and scrolling inside the panel keep working — and
+on a phone the sheet's own grabber replaces dragging entirely.
 
 ### FAB Toggle
 
@@ -37,24 +73,27 @@ The devtool FAB can be enabled/disabled via:
 
 ### DevtoolFAB
 
-Floating action button that expands into the debug panel:
+Mounted once in the root layout; renders both halves:
 
 ```tsx
 <DevtoolFAB />
 ```
 
-- Positioned top-right
-- Hidden when FAB is disabled
-- Expands to reveal `DevtoolPanel`
+- The pill, fixed top-right, hidden while the panel is up and when devtool is
+  disabled. Its box takes no pointers — only the pill itself does, so a
+  full-height surface's close button in that corner still gets the tap.
+- `DevtoolPanel`, the `<AdaptiveSurface>` above.
 
 ### DevtoolPanel
 
-Debug modules for the ambient system:
+Header is the shared surface title bar (`Devtool Panel` · `DEV`, close button);
+the footer — `Press D to toggle` and `Disable Devtool` — is the surface's
+`footer`, so it stays put while the modules scroll. The modules:
 
 1. **Wallpaper**: the whole background system — a Weather / Image switch and
    one row showing the current picture and its resolution, which opens the
-   picker and folds the panel (choosing among the catalog is the picker's
-   job, and the picker is about the page behind it), placement switches
+   picker over the panel (choosing among the catalog is the picker's job, and
+   it stacks on the devtool rather than replacing it), placement switches
    (full / widget / soft edge), the bezel switch and its tint (black / dark /
    theme / custom), band and radius, a window / container scroll switch, the
    reading treatment switches (reading blur / reading dim),
