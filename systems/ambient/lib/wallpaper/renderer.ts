@@ -117,15 +117,20 @@ const GUST = {
   /** How quickly the hand's motion stops counting once it stops moving. */
   stirTau: 0.1,
   /**
-   * The gust's rise while a hand is stirring. Short: a squall front slams the
-   * rain over, it does not lean it politely. The rain's lean shears the curtain
-   * about mid-screen, so the edges sweep sideways at `0.5 × 0.75 × max ÷
-   * attack` heights a second — a little over its own fall speed, which is the
-   * most that still reads as air rather than as a whip.
+   * The gust's rise. Short: a squall front slams the rain over, it does not
+   * lean it politely. The rain's lean shears the curtain about mid-screen, so
+   * the edges sweep sideways at `0.5 × 0.75 × max ÷ attack` heights a second —
+   * a little over its own fall speed, which is the most that still reads as
+   * air rather than as a whip.
    */
   attack: 0.13,
-  /** … and its fall once the air is left alone: over almost as fast as it came. */
-  release: 0.5,
+  /**
+   * And its fall — more than ten times as long, which is the shape of the
+   * thing. A gust arrives all at once and then *passes*: it is still half
+   * itself a second later, still visible at three, and gone by six. Getting up
+   * and dying away at the same rate is what makes a gust read as a twitch.
+   */
+  release: 1.6,
 } as const;
 
 /**
@@ -725,10 +730,15 @@ export class WallpaperRenderer {
     // GPU took, which on a slow one is most of it.
     const stale = (performance.now() - this.stirAt) / 1000;
     const stir = this.stir * Math.exp(-stale / GUST.stirTau);
-    const stirring = Math.abs(stir) > 0.02;
-    const tau = stirring ? GUST.attack : GUST.release;
+    // Rising or falling, not stirring-or-not: the gust takes the fast constant
+    // whenever it is being asked for MORE wind than it has — including a hand
+    // that reverses and whips it the other way — and the slow one whenever it
+    // is being asked for less, whether that is because the hand eased off or
+    // because it let go. So it always arrives at once and always passes slowly.
+    const rising = Math.abs(stir) > Math.abs(this.gust);
+    const tau = rising ? GUST.attack : GUST.release;
     this.gust += (stir - this.gust) * (1 - Math.exp(-dtSec / tau));
-    if (!stirring && Math.abs(this.gust) < 1e-3) this.gust = 0;
+    if (Math.abs(this.gust) < 1e-3 && Math.abs(stir) < 1e-3) this.gust = 0;
   }
 
   private draw(timeSec: number) {

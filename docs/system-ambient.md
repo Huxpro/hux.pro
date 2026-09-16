@@ -268,14 +268,25 @@ Air has mass, and that is the entire feel of it:
 |---|---|
 | A hand that stops moving stops making wind | its stir goes stale within a breath, so resting a finger on the page does nothing |
 | A flick raises a puff, a long sweep raises a gust | the wind chases the stir over ~0.13 s, so a short gesture never quite reaches full strength |
-| Letting go needs no announcement | the stir simply stops arriving, and the wind falls away over ~0.5 s |
+| Letting go needs no announcement | the stir simply stops arriving, and the wind passes over ~1.6 s |
 
-It is meant to hit and be gone, not to breathe. Measured: a 0.15 s **flick**
-peaks at **0.69** within 0.2 s and is under 0.1 by 0.8 s; a 0.45 s **swipe**
-reaches **0.96**; a long sweep saturates at **1.0** and is back under 0.1 within
-0.4 s of the hand lifting. `GUST.max` is 1.1 — above the top of the forecast's
-own range (50 km/h ⇒ 1.0) on purpose, because a gust is not a wind and is
-allowed to be briefly harder than any weather the sky is showing.
+**It arrives all at once and then passes** — rise and fall differ by twelve
+times, which is the shape of the thing. Getting up and dying away at the same
+rate is what makes a gust read as a twitch. Measured: a 0.15 s **flick** peaks
+at **0.68** within 0.2 s and is still **0.44** a second later and **0.23** at
+two; a 0.45 s **swipe** reaches **0.96**; a long sweep saturates at **1.0** and,
+from the moment the hand lifts, passes through 0.67 at one second, 0.35 at two
+and is gone by six.
+
+The choice of constant is made on *rising or falling*, not on stirring-or-not:
+the gust takes the fast one whenever it is asked for more wind than it has —
+including a hand that reverses and whips it the other way — and the slow one
+whenever it is asked for less, whether because the hand eased off or because it
+let go.
+
+`GUST.max` is 1.1 — above the top of the forecast's own range (50 km/h ⇒ 1.0) on
+purpose, because a gust is not a wind and is allowed to be briefly harder than
+any weather the sky is showing.
 
 #### Not everything takes wind at the same speed
 
@@ -285,7 +296,7 @@ looking like a card being slid:
 | | How fast it comes up to the wind | Why |
 |---|---|---|
 | **Rain** | at once | The lean *is* the steady state, and at 1.5–2.5 screen heights a second there is no visible transient to model. |
-| **Snow** | over ~3 s (`SNOW_WIND_TAU`), and it keeps going for ~3 s after the air is still | A flake falls at a thirtieth of a raindrop's speed and takes ten to thirty seconds to cross the frame. Shoved sideways instantly it stops reading as snow. Measured: against a hand's gust the snow reaches **38 %** of the air, **500 ms** later, and is still drifting three seconds after the air has gone quiet. |
+| **Snow** | over ~3 s (`SNOW_WIND_TAU`), and it keeps going for many more after the air is still | A flake falls at a thirtieth of a raindrop's speed and takes ten to thirty seconds to cross the frame. Shoved sideways instantly it stops reading as snow. Measured: against a hand's gust the snow reaches **48 %** of the air, **1.2 s** later, and is still leaning at 0.19 when the air has fallen to 0.03. |
 | **Clouds** | never, from a hand | You cannot stir a cloud deck by waving at it. They answer the forecast only. |
 
 A hard gust has one artefact to watch, and the shader spends one line on it.
@@ -364,13 +375,27 @@ were calm while the rain beside it already leant into the forecast.
 #### Speed is only half of a wind
 
 The devtool's Sky module has **two** wind rows, `Wind` and `From`, and it needs
-both. `wind.x` is `speed × −sin(direction)`: the screen looks south, so a wind
-along that axis has no horizontal component at all and **no amount of it leans
-the rain or drifts the snow** — at a due-southerly forecast the speed slider
-moves `wind.x` from 0.000 to 0.000 at every setting, and only the clouds change
-pace. A speed you can set and a direction you cannot is a control that can look
-broken while working exactly as written, so `SceneOverrides.windDirectionDeg`
-exists too.
+both. `wind.x` works out to `speed × sin(from) × hemisphere`: the screen looks
+south, so a wind along that axis has no horizontal component at all and **no
+amount of it leans the rain or drifts the snow** — at a due-southerly forecast
+the speed slider moves `wind.x` from 0.000 to 0.000 at every setting, and only
+the clouds change pace. A speed you can set and a direction you cannot is a
+control that can look broken while working exactly as written, so
+`SceneOverrides.windDirectionDeg` exists too.
+
+**The `From` track runs 270° → 450°**, west through north to east, rather than
+0° → 359°. A full turn is not monotonic in anything you can see — it goes calm,
+right, calm, left, calm, so the direction you drag bears no relation to the
+direction the rain leans. Over this half it is monotonic the whole way: drag
+left and the rain leans left, drag right and it leans right, and the middle is
+the one bearing with no crosswind in it. The readout carries the arrow, so the
+answer is on the row: `270° W ←` … `0° N ·` … `90° E →`.
+
+Nothing is lost by covering half the compass. The sky only ever shows a wind's
+east–west component, and `sin(180° − d) === sin(d)`, so every southerly bearing
+paints exactly what its northerly mirror does — which is also how a forecast
+bearing outside the track is placed on it, by folding onto the one that blows
+the same way.
 
 ### Phase Notification
 
