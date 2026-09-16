@@ -57,6 +57,43 @@ import {
 // page in during container scroll.
 // =============================================================================
 
+// -----------------------------------------------------------------------------
+// BEFORE CHANGING THIS FILE, OR THE "Secondary surface motion" BLOCK IN
+// globals.css: read Base UI's Drawer docs and its nested demo, and the source
+// behind the part you are touching. The library hands every visual to CSS and
+// publishes its state as data attributes and custom properties; those are the
+// contract, and its types do not describe their meaning. What has already gone
+// wrong by guessing, each a bug shipped and reverted:
+//
+//   https://base-ui.com/react/components/drawer
+//   node_modules/@base-ui/react/drawer/{popup,viewport}/*.js
+//   node_modules/@base-ui/react/internals/useAnimationsFinished.js
+//
+// 1. `--drawer-swipe-progress` means two things. Without snap points it is
+//    the fraction of the way out; with them it is the position BETWEEN the
+//    detents, already 1 at the lowest one. A sheet whose parent must follow
+//    its swipe cannot have detents (DrawerViewport.js, `offsetToProgress`).
+// 2. `--drawer-swipe-movement-*`, `--drawer-snap-point-offset`,
+//    `--drawer-swipe-progress` and `--drawer-swipe-strength` are registered
+//    `inherits: false` (DrawerPopup.js). A descendant reads them only with an
+//    explicit `--name: inherit`.
+// 3. An exit is over when `popup.getAnimations()` is empty one frame after
+//    `data-ending-style` lands (useAnimationsFinished.js). Never leave the
+//    popup with `transition: none` on that frame: on release it can be
+//    swiping and leaving at once, and a leaving rule that only restores a
+//    duration has no property to run on. Drop the duration, keep the property.
+// 4. Nesting is React nesting. A drawer is nested only when its Root renders
+//    inside another's Popup; the parent then gets `data-nested-drawer-open`,
+//    `data-nested-drawer-swiping` and `--nested-drawers`. Sheets in sibling
+//    subtrees get none of it — that is what stack.ts is for.
+// 5. A closing dialog returns focus to what opened it. Where that is a text
+//    field on a touch device, turn it off (`restoreFocus`): iOS opens the
+//    keyboard for an already-focused field on the next touch anywhere.
+// 6. Every gesture path is its own test: a `.click()` proves nothing about a
+//    touch tap, a touch tap nothing about a swipe release, and a programmatic
+//    `focus()` is a third thing again.
+// -----------------------------------------------------------------------------
+
 /** Ring of padding between a floating surface and the screen edges. */
 export const EDGE_GAP = "0.75rem";
 

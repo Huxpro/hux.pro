@@ -1372,7 +1372,13 @@ html.dragging * {
    `--drawer-swipe-strength` (how hard it was flicked), and on the viewport
    `--drawer-keyboard-inset` (how much of the screen the software keyboard has).
    From systems/surface/sheet.tsx: `--surface-gap`, `--surface-exit`,
-   `--surface-duration`, `--surface-easing`.
+   `--surface-duration`, `--surface-easing`, `--surface-recede-easing`.
+
+   Every Base UI name here is that library's contract, not ours. Before
+   changing a rule, read the "BEFORE CHANGING THIS FILE" block at the top of
+   systems/surface/sheet.tsx — it lists what these variables mean, which of
+   them do not inherit, and why a popup must never carry `transition: none`
+   on the frame it starts leaving.
    ============================================================================= */
 
 [data-surface-popup] {

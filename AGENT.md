@@ -61,6 +61,11 @@ duration-300 (morphing transitions)
 1.  **Check the Docs**: If modifying UI, check `design-system.md` for token usage.
 2.  **Respect the Vibe**: Maintain the "Dual Aesthetic" (Prose vs System).
 3.  **Keyboard First**: Ensure new features are accessible via Command Palette.
+4.  **Sheets are Base UI Drawer**: before touching `systems/surface/sheet.tsx`
+    or the surface motion block in `globals.css`, read the "BEFORE CHANGING
+    THIS FILE" list at the top of `sheet.tsx` and Base UI's Drawer docs. The
+    library's data attributes and CSS variables are a contract with meanings
+    its types do not carry; every one of the listed items was a shipped bug.
 
 ## 3. Common Tasks
 

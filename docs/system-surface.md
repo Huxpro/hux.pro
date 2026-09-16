@@ -170,6 +170,32 @@ the keyboard on the next touch anywhere, whatever it was aimed at.
 with a field in it rests on the keyboard rather than behind it. A sheet with no
 fields never notices.
 
+## Working with Base UI
+
+The sheet's motion is written against Base UI Drawer's contract — the data
+attributes and custom properties it publishes — and that contract lives in its
+docs, its nested demo and its source, not in its types. Before changing
+`sheet.tsx` or the *Secondary surface motion* block in `globals.css`, read the
+numbered block at the top of `systems/surface/sheet.tsx`; it is the list of
+what has already been got wrong. In short:
+
+- `--drawer-swipe-progress` is the fraction of the way out only for a sheet
+  without detents; with detents it is the position between them. A sheet whose
+  parent must follow its swipe has no detents.
+- The swipe variables are registered non-inheriting; a descendant opts in
+  with `--name: inherit`.
+- An exit is over when `popup.getAnimations()` is empty a frame after
+  `data-ending-style`. A popup must never carry `transition: none` on that
+  frame; drop the duration, keep the property.
+- Nesting is React nesting; sheets in sibling subtrees use `stack.ts`.
+- A closing dialog returns focus to its opener; where that is a field on a
+  touch device, `restoreFocus={false}`.
+- Test each gesture path on its own: click, touch tap, swipe release,
+  programmatic focus.
+
+Base UI: https://base-ui.com/react/components/drawer — nested demo under
+`docs/src/app/(docs)/react/components/drawer/demos/nested/` in its repository.
+
 ## Stacking
 
 iOS stacks sheets: presenting one from another sends the first back a step —

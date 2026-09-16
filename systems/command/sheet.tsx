@@ -175,7 +175,9 @@ function SheetBody({
   // detent, read once on the way in. No detents of its own — a sheet with
   // detents reports its swipe as a position between them, which at the lowest
   // detent is already "all the way", and the palette underneath needs the
-  // plain fraction of the way out to come forward under the finger.
+  // plain fraction of the way out to come forward under the finger. (Base UI
+  // contract; see the list at the top of systems/surface/sheet.tsx before
+  // giving it detents or a different way out.)
   const [slashDetent, setSlashDetent] = useState(() => detentOf(snap));
 
   // The slash list has no field, so the keyboard goes with it.
