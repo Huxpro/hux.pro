@@ -45,7 +45,13 @@ import {
   WEATHER_CONDITION_LIST,
   getWeatherConditionLabel,
 } from "@/systems/ambient/lib/weather";
-import { useDevtool, DRAGGABLE_INSTANCES, DRAGGABLE_DEFAULTS } from "./provider";
+import {
+  useDevtool,
+  DRAGGABLE_INSTANCES,
+  DRAGGABLE_DEFAULTS,
+  PHONE_PALETTE_DEFAULT,
+  type PhonePalette,
+} from "./provider";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
 import appsJson from "@/content/apps.json";
@@ -79,6 +85,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Command as CommandIcon,
   Clock,
   Cloud,
   Copy,
@@ -233,6 +240,7 @@ function DevtoolPanel() {
         <GlassModule />
         <SkyModule />
         <MusicModule />
+        <CommandModule />
         <DraggableModule />
         <AppsModule />
         <RefetchModule />
@@ -2025,6 +2033,55 @@ function MusicModule() {
           </div>
         )}
       </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Command Module
+// The palette's shape on a phone. "Sheet" is the palette as it is; "Popover"
+// is the desktop card at phone width — the palette as it was, kept whole so
+// the two can be compared on the same device. A saved setting (blue star).
+// =============================================================================
+
+function CommandModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const { phonePalette, setPhonePalette } = useDevtool();
+  const options: { value: PhonePalette; label: string; title: string }[] = [
+    {
+      value: "sheet",
+      label: zh ? "抽屉" : "Sheet",
+      title: zh ? "底部 action sheet（现在）" : "Bottom sheet (current)",
+    },
+    {
+      value: "popover",
+      label: zh ? "浮窗" : "Popover",
+      title: zh ? "桌面浮窗，手机宽度（以前）" : "Desktop card at phone width (previous)",
+    },
+  ];
+
+  return (
+    <DebugSection
+      id="command"
+      title={zh ? "命令" : "Command"}
+      icon={<CommandIcon className="h-4 w-4" />}
+      compact
+      defaultCollapsed
+    >
+      <PanelRow
+        label={zh ? "手机面板" : "Phone palette"}
+        star={
+          phonePalette !== PHONE_PALETTE_DEFAULT ? (
+            <PanelStar
+              source="saved"
+              onReset={() => setPhonePalette(PHONE_PALETTE_DEFAULT)}
+            />
+          ) : undefined
+        }
+      >
+        <PanelSegmented value={phonePalette} options={options} onChange={setPhonePalette} />
+      </PanelRow>
     </DebugSection>
   );
 }

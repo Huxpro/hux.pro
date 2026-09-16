@@ -31,14 +31,17 @@ export type SurfaceMode = "sheet" | "panel" | "window";
  */
 export const SURFACE_BREAKPOINTS = { sm: 640, lg: 1024 } as const;
 
-export interface SurfacePresentation {
+/** A value per breakpoint. Anything omitted inherits the next breakpoint down. */
+export interface BreakpointMap<T> {
   /** Below `sm`. Required — it is the fallback every other key inherits from. */
-  base: SurfaceMode;
+  base: T;
   /** From 640px. Defaults to `base`. */
-  sm?: SurfaceMode;
+  sm?: T;
   /** From 1024px. Defaults to `sm`, then `base`. */
-  lg?: SurfaceMode;
+  lg?: T;
 }
+
+export type SurfacePresentation = BreakpointMap<SurfaceMode>;
 
 /** What most secondary surfaces want: bottom sheet → side panel → window. */
 export const ADAPTIVE_PRESENTATION: SurfacePresentation = {
@@ -47,35 +50,38 @@ export const ADAPTIVE_PRESENTATION: SurfacePresentation = {
   lg: "window",
 };
 
-
-function resolve(presentation: SurfacePresentation, width: number): SurfaceMode {
+function resolve<T>(map: BreakpointMap<T>, width: number): T {
   if (width >= SURFACE_BREAKPOINTS.lg) {
-    return presentation.lg ?? presentation.sm ?? presentation.base;
+    return map.lg ?? map.sm ?? map.base;
   }
   if (width >= SURFACE_BREAKPOINTS.sm) {
-    return presentation.sm ?? presentation.base;
+    return map.sm ?? map.base;
   }
-  return presentation.base;
+  return map.base;
 }
 
 /**
- * The mode to render right now.
+ * The value for the viewport right now.
  *
  * Starts at `base` so SSR and the first client render agree, then settles on
  * the real viewport in an effect — the same hydration-safe shape the ambient
  * settings use. Tracked live via matchMedia, so a resize or a rotation moves
  * an already-open surface into its new shape rather than waiting for a reopen.
+ *
+ * Generic over the value so a surface that is not an AdaptiveSurface (the
+ * command palette, whose wide shape is its own popover) can declare its own
+ * vocabulary against the same breakpoints.
  */
-export function useSurfaceMode(presentation: SurfacePresentation): SurfaceMode {
-  const [mode, setMode] = useState<SurfaceMode>(presentation.base);
+export function useBreakpointValue<T>(map: BreakpointMap<T>): T {
+  const [value, setValue] = useState<T>(map.base);
 
-  const { base, sm, lg } = presentation;
+  const { base, sm, lg } = map;
   useEffect(() => {
     const queries = [
       window.matchMedia(`(min-width: ${SURFACE_BREAKPOINTS.sm}px)`),
       window.matchMedia(`(min-width: ${SURFACE_BREAKPOINTS.lg}px)`),
     ];
-    const sync = () => setMode(resolve({ base, sm, lg }, window.innerWidth));
+    const sync = () => setValue(resolve({ base, sm, lg }, window.innerWidth));
     sync();
     for (const q of queries) q.addEventListener("change", sync);
     return () => {
@@ -83,5 +89,10 @@ export function useSurfaceMode(presentation: SurfacePresentation): SurfaceMode {
     };
   }, [base, sm, lg]);
 
-  return mode;
+  return value;
+}
+
+/** The shape to render right now. */
+export function useSurfaceMode(presentation: SurfacePresentation): SurfaceMode {
+  return useBreakpointValue(presentation);
 }

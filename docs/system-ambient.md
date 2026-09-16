@@ -16,7 +16,7 @@ systems/ambient/
 │   ├── surface.tsx               # Page container + full-page wallpaper mount
 │   ├── wallpaper-background.tsx  # Full-page wallpaper renderer (image / CG / gradient)
 │   ├── wallpaper.tsx             # <WeatherWallpaper /> — the CG sky's WebGL canvas shell
-│   ├── wallpaper-sheet.tsx       # Wallpaper picker (secondary window, vaul)
+│   ├── wallpaper-sheet.tsx       # Wallpaper picker (an <AdaptiveSurface>)
 │   ├── gradient-stack.tsx        # Shared CSS crossfade renderer (full-page + widgets)
 │   ├── weather-icon.tsx          # Weather condition icons
 │   ├── weather-widget.tsx        # iOS-style weather widget (header + WeatherNow)
@@ -390,10 +390,10 @@ switch overrides it either way.
 | Devtool panel | Wallpaper module — the whole background system in one place |
 | Anywhere in code | `useWallpaper().openPicker()` |
 
-The picker itself is a secondary window (`wallpaper-sheet.tsx`) built on vaul,
-mounted once in the root layout and shaped like the music playlist sheet: a
-bottom action sheet on narrow viewports, a right-edge floating panel on wide
-ones.
+The picker itself is a secondary window (`wallpaper-sheet.tsx`) built on
+`<AdaptiveSurface>` (see [Surface System](./system-surface.md)), mounted once in
+the root layout and shaped like the music playlist sheet: a bottom action sheet
+on narrow viewports, a right-edge floating panel on wide ones.
 
 Its tiles are **macOS Settings pair cards**: a 16:10 split of the light and dark
 originals, a sun / moon marking each half, a check when selected, and `Name` +

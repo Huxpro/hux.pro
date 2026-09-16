@@ -44,6 +44,15 @@ export const DRAGGABLE_INSTANCES = [
 ] as const;
 
 // =============================================================================
+// Phone palette
+// The command palette's shape on a phone: the sheet it is now, or the popover
+// it was — the desktop card at phone width, kept whole for comparison.
+// =============================================================================
+
+export type PhonePalette = "sheet" | "popover";
+export const PHONE_PALETTE_DEFAULT: PhonePalette = "sheet";
+
+// =============================================================================
 // Settings persistence
 // =============================================================================
 
@@ -52,11 +61,18 @@ interface DevtoolSettings {
   draggable: Record<string, Partial<DraggableInstanceConfig>>;
   /** Per-section collapsed state, keyed by the section's stable id. */
   collapsed: Record<string, boolean>;
+  phonePalette: PhonePalette;
 }
 
+const SETTINGS_DEFAULTS: DevtoolSettings = {
+  fabEnabled: false,
+  draggable: {},
+  collapsed: {},
+  phonePalette: PHONE_PALETTE_DEFAULT,
+};
+
 function getDevtoolSettings(): DevtoolSettings {
-  if (typeof window === "undefined")
-    return { fabEnabled: false, draggable: {}, collapsed: {} };
+  if (typeof window === "undefined") return SETTINGS_DEFAULTS;
   try {
     const stored = localStorage.getItem(DEVTOOL_STORAGE_KEY);
     if (stored) {
@@ -64,6 +80,7 @@ function getDevtoolSettings(): DevtoolSettings {
       // Migrate from old format
       if ("commandFabDraggable" in parsed && !("draggable" in parsed)) {
         return {
+          ...SETTINGS_DEFAULTS,
           fabEnabled: parsed.fabEnabled ?? false,
           draggable: parsed.commandFabDraggable
             ? { "command-fab": { draggable: true } }
@@ -75,12 +92,14 @@ function getDevtoolSettings(): DevtoolSettings {
         fabEnabled: parsed.fabEnabled ?? false,
         draggable: parsed.draggable ?? {},
         collapsed: parsed.collapsed ?? {},
+        phonePalette:
+          parsed.phonePalette === "popover" ? "popover" : PHONE_PALETTE_DEFAULT,
       };
     }
   } catch {
     // Ignore
   }
-  return { fabEnabled: false, draggable: {}, collapsed: {} };
+  return SETTINGS_DEFAULTS;
 }
 
 function setDevtoolSettings(settings: Partial<DevtoolSettings>): void {
@@ -131,6 +150,9 @@ interface DevtoolContextType {
   isSectionCollapsed: (id: string, fallback?: boolean) => boolean;
   /** Persist a section's collapsed state (survives reload). */
   setSectionCollapsed: (id: string, collapsed: boolean) => void;
+  /** The command palette's shape on a phone. A saved setting. */
+  phonePalette: PhonePalette;
+  setPhonePalette: (shape: PhonePalette) => void;
 }
 
 // =============================================================================
@@ -179,6 +201,8 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
   const [collapsedSections, setCollapsedSections] = useState<
     Record<string, boolean>
   >({});
+  const [phonePalette, setPhonePaletteState] =
+    useState<PhonePalette>(PHONE_PALETTE_DEFAULT);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -191,6 +215,7 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
     // render), so the panel's first paint already has the correct fold state
     // — no expand→collapse flash.
     setCollapsedSections(settings.collapsed);
+    setPhonePaletteState(settings.phonePalette);
   }, []);
 
   const setEnabled = useCallback((enabled: boolean) => {
@@ -272,6 +297,11 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
     []
   );
 
+  const setPhonePalette = useCallback((shape: PhonePalette) => {
+    setPhonePaletteState(shape);
+    setDevtoolSettings({ phonePalette: shape });
+  }, []);
+
   // Keyboard shortcut: 'D' to toggle panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -315,6 +345,8 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
         setPageMeta,
         isSectionCollapsed,
         setSectionCollapsed,
+        phonePalette,
+        setPhonePalette,
       }}
     >
       {children}

@@ -12,8 +12,16 @@ import {
   useMemo,
 } from "react";
 import { createPortal } from "react-dom";
-import { Drawer } from "vaul";
+import { Drawer } from "@base-ui/react/drawer";
 import { useSurfaceMode, type SurfaceMode, type SurfacePresentation } from "./presentation";
+import {
+  EDGE_GAP,
+  HEADER_BUTTON,
+  SHELL,
+  SurfaceSheet,
+  SurfaceViewport,
+  surfaceMotionVars,
+} from "./sheet";
 
 // =============================================================================
 // AdaptiveSurface — one secondary surface, three shapes.
@@ -26,8 +34,9 @@ import { useSurfaceMode, type SurfaceMode, type SurfacePresentation } from "./pr
 // The three shapes share one glass shell, one header and one close affordance,
 // so they read as the same object arriving from a different direction:
 //
-//   sheet   vaul drawer from the bottom, drag-to-dismiss, grabber.
-//   panel   vaul drawer from the trailing edge, drag-to-dismiss.
+//   sheet   <SurfaceSheet> (sheet.tsx): a Base UI drawer from the bottom,
+//           drag-to-dismiss, grabber, stacks the iOS way.
+//   panel   the same drawer from the trailing edge, drag-to-dismiss.
 //   window  a centred window that morphs in the way an app window does when it
 //           opens from its shelf icon, and is draggable by its header.
 //
@@ -41,9 +50,6 @@ import { useSurfaceMode, type SurfaceMode, type SurfacePresentation } from "./pr
 //
 // Content can adapt without knowing the rules by reading `useSurfaceContext()`.
 // =============================================================================
-
-/** Ring of padding between a floating surface and the screen edges. */
-const EDGE_GAP = "0.75rem";
 
 interface SurfaceContextValue {
   mode: SurfaceMode;
@@ -88,13 +94,6 @@ export interface AdaptiveSurfaceProps {
   children: React.ReactNode;
 }
 
-/** The glass shell every shape shares. */
-const SHELL = [
-  "flex flex-col overflow-hidden outline-none",
-  "rounded-3xl bg-glass-sheet backdrop-blur-xl",
-  "border border-border/50 shadow-overlay",
-].join(" ");
-
 function SurfaceHeader({
   title,
   actions,
@@ -102,7 +101,7 @@ function SurfaceHeader({
   onClose,
   draggable,
   /**
-   * The element the title renders as. Drawers pass vaul's `Drawer.Title` so the
+   * The element the title renders as. Drawers pass `Drawer.Title` so the
    * dialog is labelled; the close button stays outside it, where it belongs.
    */
   titleAs: TitleAs = "div",
@@ -130,7 +129,7 @@ function SurfaceHeader({
         <button
           onClick={onClose}
           aria-label={closeLabel}
-          className="-mr-2 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60"
+          className={cn(HEADER_BUTTON, "-mr-2")}
         >
           <X className="h-4 w-4" />
         </button>
@@ -139,8 +138,50 @@ function SurfaceHeader({
   );
 }
 
+/** The title bar and the scroll area under it — the same in every shape. */
+function SurfaceBody({
+  title,
+  actions,
+  closeLabel,
+  onClose,
+  draggable,
+  titleAs,
+  contentClassName,
+  scrollRef,
+  children,
+}: Pick<
+  AdaptiveSurfaceProps,
+  "title" | "actions" | "closeLabel" | "contentClassName" | "scrollRef" | "children"
+> & {
+  onClose: () => void;
+  draggable?: boolean;
+  titleAs?: React.ElementType;
+}) {
+  return (
+    <>
+      <SurfaceHeader
+        title={title}
+        actions={actions}
+        closeLabel={closeLabel}
+        onClose={onClose}
+        draggable={draggable}
+        titleAs={titleAs}
+      />
+      <div
+        ref={scrollRef}
+        className={cn(
+          "flex-1 overflow-y-auto overscroll-contain",
+          contentClassName ?? "px-4 pb-5"
+        )}
+      >
+        {children}
+      </div>
+    </>
+  );
+}
+
 /**
- * Window mode. Not a vaul drawer: a free-floating panel that springs in the way
+ * Window mode. Not a drawer: a free-floating panel that springs in the way
  * `systems/windows` opens an app, and drags by its header through the shared
  * `useDraggable` hook, so it inherits the devtool's per-instance drag settings.
  */
@@ -223,22 +264,17 @@ function SurfaceWindow({
             }}
             className={cn(SHELL, "pointer-events-auto relative z-[61]")}
           >
-            <SurfaceHeader
+            <SurfaceBody
               title={title}
               actions={actions}
               closeLabel={closeLabel}
               onClose={() => onOpenChange(false)}
               draggable={isDraggable}
-            />
-            <div
-              ref={scrollRef}
-              className={cn(
-                "flex-1 overflow-y-auto overscroll-contain",
-                contentClassName ?? "px-4 pb-5"
-              )}
+              contentClassName={contentClassName}
+              scrollRef={scrollRef}
             >
               {children}
-            </div>
+            </SurfaceBody>
           </motion.div>
         </div>
       )}
@@ -247,9 +283,63 @@ function SurfaceWindow({
   );
 }
 
-/** Sheet and panel modes — both vaul drawers, differing only in which edge. */
-function SurfaceDrawer({
-  mode,
+/** Panel mode — the same drawer, entering from the trailing edge. */
+function SurfacePanel({
+  open,
+  onOpenChange,
+  title,
+  actions,
+  closeLabel,
+  contentClassName,
+  scrollRef,
+  children,
+}: Omit<AdaptiveSurfaceProps, "presentation" | "id">) {
+  return (
+    <Drawer.Root
+      open={open}
+      onOpenChange={onOpenChange}
+      swipeDirection="right"
+      // No overlay: no scroll lock, no focus trap, and an outside press stays
+      // the page's. A panel that closed on every touch could not be used.
+      modal={false}
+      disablePointerDismissal
+    >
+      <Drawer.Portal>
+        <SurfaceViewport modal={false}>
+          <Drawer.Popup
+            data-surface-popup=""
+            style={surfaceMotionVars(EDGE_GAP)}
+            className={cn(
+              SHELL,
+              // Tablet: a taller, roomier column than a phone sheet affords.
+              "pointer-events-auto absolute z-[61] bottom-3 right-3 top-3 w-[min(94vw,var(--surface-panel-w,440px))]"
+            )}
+          >
+            {/* A mouse press in here is a press, not the start of a drag —
+                see the same note in sheet.tsx. A touch swipe still dismisses. */}
+            <Drawer.Content className="flex min-h-0 flex-1 flex-col">
+              <SurfaceBody
+                title={title}
+                actions={actions}
+                closeLabel={closeLabel}
+                onClose={() => onOpenChange(false)}
+                titleAs={Drawer.Title}
+                contentClassName={contentClassName}
+                scrollRef={scrollRef}
+              >
+                {children}
+              </SurfaceBody>
+            </Drawer.Content>
+          </Drawer.Popup>
+        </SurfaceViewport>
+      </Drawer.Portal>
+    </Drawer.Root>
+  );
+}
+
+/** Sheet mode — the shared sheet primitive with this surface's title bar in it. */
+function SurfaceSheetShape({
+  id,
   open,
   onOpenChange,
   title,
@@ -259,70 +349,26 @@ function SurfaceDrawer({
   contentClassName,
   scrollRef,
   children,
-}: Omit<AdaptiveSurfaceProps, "presentation" | "id"> & { mode: "sheet" | "panel" }) {
-  const isPanel = mode === "panel";
-
+}: Omit<AdaptiveSurfaceProps, "presentation">) {
   return (
-    <Drawer.Root
+    <SurfaceSheet
+      id={id}
       open={open}
       onOpenChange={onOpenChange}
-      direction={isPanel ? "right" : "bottom"}
-      // vaul's own switch: non-modal drops the body scroll lock and the inert
-      // page, which is the half of "no overlay" a missing scrim alone is not.
-      modal={false}
+      height={maxHeight}
     >
-      <Drawer.Portal>
-        <Drawer.Content
-          aria-describedby={undefined}
-          // Radix still dismisses a non-modal dialog on an outside press. With
-          // the page interactive that would close the surface on every touch.
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onInteractOutside={(e) => e.preventDefault()}
-          style={
-            {
-              // vaul's enter/exit transform must clear the edge gap too,
-              // otherwise the panel "pops" for the last few pixels.
-              "--initial-transform": `calc(100% + ${EDGE_GAP})`,
-              ...(!isPanel && {
-                bottom: `max(env(safe-area-inset-bottom), ${EDGE_GAP})`,
-                height: maxHeight ?? "80dvh",
-              }),
-            } as React.CSSProperties
-          }
-          className={cn(
-            SHELL,
-            "fixed z-[61]",
-            isPanel
-              ? // Tablet: a taller, roomier column than a phone sheet affords.
-                "bottom-3 right-3 top-3 w-[min(94vw,var(--surface-panel-w,440px))]"
-              : "inset-x-3"
-          )}
-        >
-          {/* Grabber — the affordance for drag-to-dismiss */}
-          {!isPanel && (
-            <div className="flex justify-center pt-2">
-              <span className="h-1 w-9 rounded-full bg-muted-foreground/25" />
-            </div>
-          )}
-          <SurfaceHeader
-            title={title}
-            actions={actions}
-            closeLabel={closeLabel}
-            onClose={() => onOpenChange(false)}
-            titleAs={Drawer.Title}
-          />
-          <div
-            ref={scrollRef}
-            className={cn(
-              "flex-1 overflow-y-auto overscroll-contain",
-              contentClassName ?? "px-4 pb-5"
-            )}
-          >
-            {children}
-          </div>
-        </Drawer.Content>
-      </Drawer.Portal>
-    </Drawer.Root>
+      <SurfaceBody
+        title={title}
+        actions={actions}
+        closeLabel={closeLabel}
+        onClose={() => onOpenChange(false)}
+        titleAs={Drawer.Title}
+        contentClassName={contentClassName}
+        scrollRef={scrollRef}
+      >
+        {children}
+      </SurfaceBody>
+    </SurfaceSheet>
   );
 }
 
@@ -344,8 +390,10 @@ export function AdaptiveSurface({
     <SurfaceContext.Provider value={value}>
       {mode === "window" ? (
         <SurfaceWindow {...props} />
+      ) : mode === "panel" ? (
+        <SurfacePanel {...props} />
       ) : (
-        <SurfaceDrawer mode={mode} {...props} />
+        <SurfaceSheetShape {...props} />
       )}
     </SurfaceContext.Provider>
   );

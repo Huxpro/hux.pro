@@ -133,6 +133,7 @@ When the search input is empty or unfocused:
 | `O` | Toggle geolOcation (IP ↔ accurate) |
 | `W` | Open the Wallpaper picker |
 | `G` | Toggle Glass material (Tinted ↔ Clear) |
+| `T` | Toggle glass Tint (Wallpaper ↔ Neutral) |
 | `M` | Play / pause Music |
 | `Q` | Open the playlist browser |
 | `D` | Toggle the Devtool panel |
@@ -314,6 +315,6 @@ Home                          Content Pages (using PageLayout)
 - **Unified Command Trigger**: Same component morphs between prompt (homepage) and FAB (other pages)
 - **Compact prompt on mobile**: Shows only "Search" text instead of the full desktop message
 - **FAB position**: Bottom-right corner with consistent `bottom-6 right-6` positioning
-- Command palette is responsive (full width on small screens)
+- Command palette is a bottom sheet on phones (detents at 70% and the top, tap outside to dismiss); the desktop popover from `sm` up. See [Command System](./system-command.md)
 - Touch-friendly tap targets (`h-12` minimum)
 - Widget grid stacks vertically on mobile

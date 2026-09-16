@@ -126,3 +126,9 @@ pnpm bezel:typecheck
   background.
 - The stylesheet makes `body > .fixed` absolute in container scroll. `.fixed`
   is Tailwind's class; other hosts mark such layers with `BEZEL_LAYER_ATTRIBUTE`.
+- Container scroll leaves the page looking scroll-locked to anyone who asks
+  (`<html>` is `overflow: hidden`). A well-behaved overlay library sees that and
+  stands down rather than locking on top of it — Base UI's dialogs do — so the
+  host keeps its layout. One that locks unconditionally by writing `position:
+  relative` and a height onto `<body>` will collapse this layout instead; check
+  before adopting one.
