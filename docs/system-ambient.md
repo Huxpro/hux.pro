@@ -125,6 +125,21 @@ bent. Where it is *drawn* is a composition decision (`stageMoon` in
   fifth of its night strength.
 - It is drawn up to 30 % larger near the horizon — the moon illusion.
 
+**Drawing the moon.** The disc is shaded as a sphere rather than masked as a
+disc. The phase becomes a light direction — the phase angle, from the same
+elongation the ephemeris gives — and the surface is lit with Lommel-Seeliger,
+the backscatter that keeps the real full moon bright right out to its limb,
+plus a little Lambert and limb darkening for roundness. The terminator is
+therefore a gradient of grazing light, not a cut edge.
+
+The texture is laid out over the visible hemisphere by arc angle from the
+centre of the disc, so it foreshortens toward the limb the way a sphere's
+does: broad maria (smooth, being flooded basalt), a mottle of highlands, and a
+sparse field of craters whose relief is a height field tilting the sphere's
+normal into the same light. Detail fades with the size of a pixel's footprint
+on the surface — near the limb, and on a small disc — so nothing shimmers.
+Like everything else in the Sky engine it is procedural: no texture is loaded.
+
 ### WeatherScene
 
 `deriveWeatherScene()` (`lib/scene.ts`) is the single pure function that turns
@@ -150,7 +165,7 @@ at 40 px.)
 
 | Engine | Where | How |
 |--------|-------|-----|
-| **Sky** (`wallpaper/`) | The `sky` weather style, full-page, when WebGL2 is available | One full-screen fragment pass: sky gradient + sun glow/disc, twinkling stars, phased moon, two parallax fbm cloud decks lit toward the sun, drifting fog, stochastic lightning flashes, wind-sheared rain streaks / snow flakes, theme veil, dither. |
+| **Sky** (`wallpaper/`) | The `sky` weather style, full-page, when WebGL2 is available | One full-screen fragment pass: sky gradient + sun glow/disc, twinkling stars, a phased moon shaded as a lit sphere, two parallax fbm cloud decks lit toward the sun, drifting fog, stochastic lightning flashes, wind-sheared rain streaks / snow flakes, theme veil, dither. |
 | **Gradient** (`gradient.ts` + `gradient-stack.tsx`) | The `gradient` and `classic` weather styles; widget cards under every style; the Sky's fallback when WebGL2 is missing (or the devtool pretends it is) | Sun-glow radial + cloud wash + zenith→horizon linear gradient built from the scene palette, crossfaded via the layer stack. (`gradient.ts` also keeps the original hand-tuned per-condition palettes for the devtool thumbnails.) |
 
 The Sky engine (`WallpaperRenderer`):
