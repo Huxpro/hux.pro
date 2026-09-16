@@ -17,7 +17,6 @@ systems/ambient/
 │   ├── wallpaper-background.tsx  # Full-page wallpaper renderer (image / CG / gradient)
 │   ├── wallpaper.tsx             # <WeatherWallpaper /> — the CG sky's WebGL canvas shell
 │   ├── wallpaper-sheet.tsx       # Wallpaper picker (an <AdaptiveSurface>)
-│   ├── strike-flash.tsx          # The strike, for the CSS engine (flash, no bolt)
 │   ├── gradient-stack.tsx        # Shared CSS crossfade renderer (full-page + widgets)
 │   ├── weather-icon.tsx          # Weather condition icons
 │   ├── weather-widget.tsx        # iOS-style weather widget (header + WeatherNow)
@@ -228,13 +227,21 @@ the whole page. It listens for `click`, not `pointerdown`, which is what makes
 it survive a phone: a click is a press and a release on the same spot, so
 scrolling the page with a thumb on the sky never lights it up.
 
-Each engine answers in its own fidelity, through one ref that whichever engine
-is mounted registers:
+**The Sky is the only engine that answers.** `uStrike` / `uStrikeAge` /
+`uStrikeSeed` drive `strike()` in the shader: a forked channel drawn top-down
+out of the cloud base over ~70 ms, landing exactly on the point clicked,
+flickering through two return strokes and gone inside 1.2 s. The flash it
+throws lights the cloud decks the same way the weather's own `lightning()`
+does. `WallpaperRenderer.strike(x, y)` is the entry point; the three uniforms
+are per-frame and never eased — a strike that eased in would not be a strike.
 
-| Engine | The answer |
-|---|---|
-| **Sky** | A bolt. `uStrike` / `uStrikeAge` / `uStrikeSeed` drive `strike()` in the shader: a forked channel drawn top-down out of the cloud base over ~70 ms, landing exactly on the point clicked, flickering through two return strokes and gone inside 1.2 s. The flash it throws lights the cloud decks the same way the weather's own `lightning()` does. `WallpaperRenderer.strike(x, y)` is the entry point; the three uniforms are per-frame, never eased — a strike that eased in would not be a strike. |
-| **Gradient / Classic** | The flash alone (`strike-flash.tsx`), a bloom at the point on the same envelope. A wash has no geometry to draw a channel on, and a bolt over a flat gradient reads as a sticker. |
+Under the Gradient and Classic styles the egg **does not exist**, and that is
+the decision rather than an omission. A wash has no geometry to draw a channel
+on, so the most those styles could offer is the flash without the bolt — a
+different and lesser find, dressed as the same one. An easter egg is worth
+having only at full strength; where it cannot be that, it should be absent.
+The rule generalises: every ambient easter egg belongs to the Sky, and the
+wash keeps its one job, which is to be the quiet fallback.
 
 Three things it will not do, all of them deliberate:
 
@@ -243,8 +250,10 @@ Three things it will not do, all of them deliberate:
   around the check.
 - **Never a strobe.** One strike per 500 ms, so clicking as fast as you can is
   two flashes a second (WCAG allows three).
-- **Only where the sky is.** The weather kind, painting full-page; an image
-  wallpaper has no sky to strike.
+- **Only where the sky is.** The weather kind, painting full-page, with the
+  shader the engine in use — an image wallpaper has no sky to strike, and a
+  wash has no channel to draw. A Sky that fell back to the Gradient for want
+  of WebGL2 is disarmed with it.
 
 To see it without waiting for a storm: force **Thunder** in the devtool's Sky
 module and click the page background.
