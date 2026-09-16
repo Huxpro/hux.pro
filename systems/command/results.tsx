@@ -13,6 +13,7 @@ import { useOptionalWindows } from "@/systems/windows";
 import { Command } from "cmdk";
 import { Hash } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
+import { Fragment } from "react";
 import { CommandAppsStrip } from "./apps-launcher";
 import {
   useCommandShell,
@@ -37,11 +38,27 @@ const ROW = [
   "hover:bg-accent/25",
 ].join(" ");
 
+/** The palette's sections, in order; also the i18n keys of their headings. */
+const SECTIONS = ["navigation", "settings"] as const;
+
 /** The slash letter beside a row. Only where a keyboard can press it. */
 function Letter({ letter }: { letter?: string }) {
   const { shape } = useCommandShell();
   if (!letter || shape === "sheet") return null;
   return <kbd className={cn("shrink-0", TYPE.kbd)}>{letter.toUpperCase()}</kbd>;
+}
+
+/** Icon, label, letter — the same in a search row and a slash row. */
+function RowBody({ action }: { action: CommandAction }) {
+  return (
+    <>
+      {/* A flex box, not an inline span: an icon that sizes itself (the tint
+          swatch) needs to be a flex item to have a size at all. */}
+      <span className="flex shrink-0 text-muted-foreground">{action.icon}</span>
+      <span className="flex-1 text-left">{action.label}</span>
+      <Letter letter={action.key} />
+    </>
+  );
 }
 
 function ResultRow({ action }: { action: CommandAction }) {
@@ -50,13 +67,10 @@ function ResultRow({ action }: { action: CommandAction }) {
     <Command.Item
       value={action.id}
       keywords={action.keywords}
-      // A toggle chosen here stays put, so the new value can be read back.
-      onSelect={() => void run(action, { stayOnToggle: true })}
+      onSelect={() => void run(action, "search")}
       className={ROW}
     >
-      <span className="shrink-0 text-muted-foreground">{action.icon}</span>
-      <span className="flex-1">{action.label}</span>
-      <Letter letter={action.key} />
+      <RowBody action={action} />
     </Command.Item>
   );
 }
@@ -86,21 +100,15 @@ export function CommandResults({
           browse + search; cmdk hides the group when nothing matches). */}
       {windows && <CommandAppsStrip onLaunch={() => leave("navigate")} />}
 
-      <Command.Group heading={t(locale, "navigation")}>
-        {listed
-          .filter((a) => a.section === "navigation")
-          .map((a) => (
-            <ResultRow key={a.id} action={a} />
-          ))}
-      </Command.Group>
-
-      <Command.Group heading={t(locale, "settings")}>
-        {listed
-          .filter((a) => a.section === "settings")
-          .map((a) => (
-            <ResultRow key={a.id} action={a} />
-          ))}
-      </Command.Group>
+      {SECTIONS.map((section) => (
+        <Command.Group key={section} heading={t(locale, section)}>
+          {listed
+            .filter((a) => a.section === section)
+            .map((a) => (
+              <ResultRow key={a.id} action={a} />
+            ))}
+        </Command.Group>
+      ))}
 
       <Command.Group heading={t(locale, "writingTitle")}>
         {blogPosts.map((post) => (
@@ -143,16 +151,14 @@ function SlashRow({ action }: { action: CommandAction }) {
   const run = useRunCommand();
   return (
     <button
-      onClick={() => void run(action)}
+      onClick={() => void run(action, "slash")}
       className={cn(
         "flex w-full items-center gap-3 rounded-lg px-3 py-2.5",
         "cursor-pointer text-sm transition-colors",
         "text-foreground hover:bg-accent hover:text-accent-foreground active:bg-accent"
       )}
     >
-      <span className="shrink-0 text-muted-foreground">{action.icon}</span>
-      <span className="flex-1 text-left">{action.label}</span>
-      <Letter letter={action.key} />
+      <RowBody action={action} />
     </button>
   );
 }
@@ -170,20 +176,18 @@ export function CommandSlashList({
 
   return (
     <div className={cn("p-2", className)}>
-      <div className={cn("px-3 py-2", TYPE.label)}>{t(locale, "navigation")}</div>
-      {listed
-        .filter((a) => a.section === "navigation")
-        .map((a) => (
-          <SlashRow key={a.id} action={a} />
-        ))}
-      <div className={cn("mt-2 px-3 py-2", TYPE.label)}>
-        {t(locale, "settings")}
-      </div>
-      {listed
-        .filter((a) => a.section === "settings")
-        .map((a) => (
-          <SlashRow key={a.id} action={a} />
-        ))}
+      {SECTIONS.map((section, i) => (
+        <Fragment key={section}>
+          <div className={cn(i > 0 && "mt-2", "px-3 py-2", TYPE.label)}>
+            {t(locale, section)}
+          </div>
+          {listed
+            .filter((a) => a.section === section)
+            .map((a) => (
+              <SlashRow key={a.id} action={a} />
+            ))}
+        </Fragment>
+      ))}
     </div>
   );
 }

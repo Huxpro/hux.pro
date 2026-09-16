@@ -30,6 +30,11 @@ surface decides it (`useSurfaceMode`, see [Surfaces](./system-surface.md)):
 | Phone (below `sm`) | **Sheet** — `SurfaceSheet` with detents `[0.7, 1]` | `sheet.tsx` |
 | From `sm` up | **Popover** — the centred Spotlight card, draggable | `popover.tsx` |
 
+`palette.tsx` declares `{ base: "sheet", sm: "popover" }` against the surface
+system's breakpoints (`useBreakpointValue`), so the palette and the secondary
+surfaces change shape at the same widths without the palette pretending to be
+an `AdaptiveSurface`.
+
 Both render the same bodies (`results.tsx`) from the same command list
 (`actions.tsx`); a shell only decides chrome and how the palette leaves.
 
@@ -79,8 +84,9 @@ palette does after it runs:
 | `surface` | opens a secondary surface | closes (sheet: hands off) | same |
 | `toggle` | flips a setting | stays, so the new value reads back | closes |
 
-The shell supplies `leave(kind)` through `useCommandShell()`; the lists never
-call `close` themselves.
+`useRunCommand()(action, origin)` holds that table, with `origin` being
+`"search"` or `"slash"`; the shell supplies `leave(kind)` through
+`useCommandShell()`, and the lists never call `close` themselves.
 
 ## Key Features
 
@@ -120,7 +126,10 @@ When the Window system is mounted, ⌘K also launches apps from
 | `A` | Toggle appearance |
 | `L` | Toggle language |
 | `G` | Toggle geolocation |
-| `W` | Toggle weather gradient |
+| `W` | Open the Wallpaper picker |
+| `G` | Toggle Glass material |
+| `T` | Toggle glass Tint |
+| `M` | Play / pause Music |
 | `D` | Toggle devtool FAB |
 
 ## Components

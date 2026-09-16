@@ -1381,6 +1381,13 @@ html.dragging * {
     padding-bottom var(--surface-duration) var(--surface-easing);
 }
 
+/* Under the finger the sheet is direct: a transition here would chase every
+   pointermove for half a second and keep laying the sheet out after the
+   finger has stopped. Base UI marks the drag for exactly this. */
+[data-surface-popup][data-swiping] {
+  transition: none;
+}
+
 /* A sheet follows the finger, and rests wherever its detent puts it. Base UI
    zeroes its own transform for a sheet with detents and expects this sum. */
 [data-surface-popup][data-swipe-direction="down"] {

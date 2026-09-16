@@ -78,7 +78,9 @@ DRAWER_PRESENTATION    // { base: "sheet", sm: "panel" } — never floats free
 Breakpoints match Tailwind's (`sm` 640, `lg` 1024) so a surface and the content
 inside it respond at the same widths rather than a few pixels apart.
 
-`useSurfaceMode()` starts at `base` so SSR and the first client render agree,
+`useSurfaceMode()` (a `useBreakpointValue()` typed to the three shapes — a
+surface with a vocabulary of its own, like the command palette, uses the
+generic one against the same breakpoints) starts at `base` so SSR and the first client render agree,
 then settles on the real viewport in an effect, and tracks it live — a resize or
 a rotation moves an **already-open** surface into its new shape rather than
 waiting for a reopen.
@@ -191,6 +193,6 @@ the page. See [Command System](./system-command.md).
 |---------|--------------|-------|
 | Music playlist | `ADAPTIVE_PRESENTATION` | macOS-sized window (980×620), track list breaks into columns |
 | Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode |
-| Command palette | `{ base: "sheet", sm: "window" }` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its "window" is its own Spotlight popover, not an `AdaptiveSurface` |
+| Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight popover, not an `AdaptiveSurface` |
 
 Adding a second is: register a draggable id, pick a presentation, pass content.

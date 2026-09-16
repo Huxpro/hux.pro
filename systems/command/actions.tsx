@@ -29,7 +29,13 @@ import {
   Sun,
 } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
-import { createContext, useContext, useEffect } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useEffectEvent,
+  useState,
+} from "react";
 import { useCommand } from "./provider";
 
 // =============================================================================
@@ -299,9 +305,9 @@ export function useCommandActions(): CommandAction[] {
       ],
       run: () => toggleGlass(),
     },
-    // No letter: search only.
     {
       id: "tint",
+      key: "t",
       kind: "toggle",
       section: "settings",
       label: `${t(locale, "settingsTint")}: ${getTintLabel(glassTint, locale)}`,
@@ -379,10 +385,8 @@ export function useCommandActions(): CommandAction[] {
 
 // =============================================================================
 // Shell context — how the palette leaves once a command has run.
-//
-// The popover simply closes. The sheet closes too, except after a `surface`
-// command, when it stays put and recedes while the surface it opened arrives,
-// then goes — the iOS hand-off from one sheet to the next.
+// The popover closes; the sheet closes too, except after a `surface` command,
+// when it hands off to the sheet it opened (see CommandKind, and sheet.tsx).
 // =============================================================================
 
 export interface CommandShell {
@@ -404,44 +408,74 @@ export function useCommandShell(): CommandShell {
   return ctx;
 }
 
+/** Where a command was chosen from — it decides whether the palette stays. */
+export type CommandOrigin = "search" | "slash";
+
 /**
- * Run a command and leave the palette the way its kind asks — from the slash
- * list, every kind leaves. Search rows call `leave` only for the kinds that
- * finish the palette (see CommandKind).
+ * Run a command, then leave the palette unless it was a toggle chosen from
+ * search, which stays so the new value can be read back (see CommandKind).
  */
 export function useRunCommand() {
   const { leave } = useCommandShell();
-  return async (action: CommandAction, { stayOnToggle = false } = {}) => {
+  return async (action: CommandAction, origin: CommandOrigin) => {
     await action.run();
-    if (stayOnToggle && action.kind === "toggle") return;
+    if (origin === "search" && action.kind === "toggle") return;
     leave(action.kind);
   };
 }
 
 /**
  * Slash-mode letter shortcuts: a single key runs the command that owns it,
- * Backspace returns to search. Works in either shell — a phone with a hardware
- * keyboard gets them too.
+ * Backspace returns to search. Renders nothing; mounted by either shell while
+ * it is open — a phone with a hardware keyboard gets the letters too.
  */
-export function useSlashShortcuts(actions: CommandAction[], enabled: boolean) {
-  const { setSlashCommandsMode } = useCommand();
+export function SlashShortcuts({ actions }: { actions: CommandAction[] }) {
+  const { isOpen, isSlashCommandsMode, isLoadBundleMode, setSlashCommandsMode } =
+    useCommand();
   const run = useRunCommand();
+  const enabled = isOpen && isSlashCommandsMode && !isLoadBundleMode;
+
+  // The handler reads the latest actions without re-subscribing the listener
+  // every render (the action list is rebuilt whenever a setting changes).
+  const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    // The slash list owns the keyboard while it is up: no key reaches the
+    // page, whether or not a command answers to it.
+    e.preventDefault();
+    if (e.key === "Backspace") {
+      setSlashCommandsMode(false);
+      return;
+    }
+    const action = actions.find((a) => a.key === e.key.toLowerCase());
+    if (action) void run(action, "slash");
+  });
 
   useEffect(() => {
     if (!enabled) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      // The slash list owns the keyboard while it is up: no key reaches
-      // the page, whether or not a command answers to it.
-      e.preventDefault();
-      if (e.key === "Backspace") {
-        setSlashCommandsMode(false);
-        return;
-      }
-      const action = actions.find((a) => a.key === e.key.toLowerCase());
-      if (action) void run(action);
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [enabled, actions, run, setSlashCommandsMode]);
+    const listener = (e: KeyboardEvent) => onKeyDown(e);
+    document.addEventListener("keydown", listener);
+    return () => document.removeEventListener("keydown", listener);
+  }, [enabled]);
+
+  return null;
+}
+
+/**
+ * The search field's value, and the one rule about it: "/" typed into an empty
+ * field is not text, it is the way into slash mode. Lives in the part of a
+ * shell that exists only while the palette is open, so it starts empty each
+ * time without a reset.
+ */
+export function useCommandField() {
+  const { setSlashCommandsMode } = useCommand();
+  const [value, setValue] = useState("");
+  const onChange = (next: string) => {
+    if (next === "/" && value === "") {
+      setSlashCommandsMode(true);
+      setValue("");
+    } else {
+      setValue(next);
+    }
+  };
+  return { value, onChange };
 }

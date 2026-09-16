@@ -61,11 +61,13 @@ const TOP_INSET = `max(env(safe-area-inset-top), ${EDGE_GAP})`;
 /** Room below a sheet without detents: the home indicator, or the gap. */
 const BOTTOM_INSET = `max(env(safe-area-inset-bottom), ${EDGE_GAP})`;
 
-/** A detent as a CSS length: a fraction of the viewport, pixels, or as given. */
-function detentLength(point: number | string): string {
-  if (typeof point === "string") return point;
-  return point <= 1 ? `${point * 100}dvh` : `${point}px`;
-}
+/** A detent as a CSS length: a fraction of the viewport, or pixels. */
+const detentLength = (point: number) =>
+  point <= 1 ? `${point * 100}dvh` : `${point}px`;
+
+/** An icon button in a surface header: close, back, an external link. */
+export const HEADER_BUTTON =
+  "shrink-0 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
 
 /** The glass shell every shape shares. */
 export const SHELL = [
@@ -86,6 +88,35 @@ export const surfaceMotionVars = (exitClearance: string) =>
     "--surface-duration": `${SURFACE_TRANSITION_MS}ms`,
     "--surface-easing": SURFACE_EASING,
   }) as React.CSSProperties;
+
+/**
+ * The full-screen box a drawer's popup sits in, shared by the sheet and the
+ * panel. Modal: this box is the scrim — invisible, the page stays in view but
+ * stops answering, and a press on it dismisses, because Base UI reads a press
+ * on the popup's container as an outside press. Non-modal: it must not be a
+ * wall over the page, so only the popup inside takes pointers.
+ *
+ * Base UI portals into a wrapper of its own, so this is not a `body > .fixed`
+ * the bezel would catch by itself. Marked as a fixed layer: in container
+ * scroll it becomes absolute inside the fixed <body> (the identical box), and
+ * never spans the edge Safari samples its chrome colour from.
+ */
+export function SurfaceViewport({
+  modal,
+  children,
+}: {
+  modal: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Drawer.Viewport
+      {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
+      className={cn("fixed inset-0 z-[60]", !modal && "pointer-events-none")}
+    >
+      {children}
+    </Drawer.Viewport>
+  );
+}
 
 export interface SurfaceSheetProps {
   /** Stable id — the sheet's key in the surface stack. */
@@ -143,30 +174,21 @@ export function SurfaceSheet({
       disablePointerDismissal={!modal}
       snapPoints={snapPoints}
       snapPoint={activeSnapPoint}
-      onSnapPointChange={onActiveSnapPointChange}
+      // Only a change is a change. Every touch on a Base UI drawer ends in a
+      // release that re-reports the detent it landed on, so a tap into a
+      // field would otherwise reach the owner as "back to where you were"
+      // in the same breath as the focus — and undo whatever the focus asked
+      // for. A controlled prop's onChange should not fire for its own value.
+      onSnapPointChange={(point) => {
+        if (point !== activeSnapPoint) onActiveSnapPointChange?.(point);
+      }}
     >
       {/* iOS's keyboard, handled once for every sheet: the provider publishes
           `--drawer-keyboard-inset`, and the shell rests on top of the keyboard
           rather than behind it. A sheet with no fields never notices. */}
       <Drawer.VirtualKeyboardProvider>
         <Drawer.Portal>
-          <Drawer.Viewport
-            // Base UI portals into a wrapper of its own, so this is not a
-            // `body > .fixed` the bezel would catch by itself. Marked as a
-            // fixed layer: in container scroll it becomes absolute inside the
-            // fixed <body> (the identical box), and never spans the edge Safari
-            // samples its chrome colour from.
-            {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
-            className={cn(
-              "fixed inset-0 z-[60]",
-              // Modal: this box is the scrim. It is invisible — the page stays
-              // in view, it just stops answering — and a press on it dismisses,
-              // because Base UI reads a press on the popup's own container as
-              // an outside press. Non-modal: it must not be a wall over the
-              // page, so only the popup inside it takes pointers.
-              !modal && "pointer-events-none"
-            )}
-          >
+          <SurfaceViewport modal={modal}>
             <Drawer.Popup
               data-surface-popup=""
               data-surface-snap={hasSnapPoints ? "" : undefined}
@@ -202,7 +224,7 @@ export function SurfaceSheet({
                   "min-h-0 flex-1 origin-top",
                   // The dim on a receded sheet is a wash over the shell rather
                   // than an opacity, so the glass stays glass.
-                  "after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:duration-500",
+                  "after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:[transition-duration:var(--surface-duration)]",
                   behind && "after:bg-black/15 dark:after:bg-black/30",
                   className
                 )}
@@ -223,7 +245,7 @@ export function SurfaceSheet({
                 </Drawer.Content>
               </div>
             </Drawer.Popup>
-          </Drawer.Viewport>
+          </SurfaceViewport>
         </Drawer.Portal>
       </Drawer.VirtualKeyboardProvider>
     </Drawer.Root>

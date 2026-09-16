@@ -133,6 +133,7 @@ When the search input is empty or unfocused:
 | `O` | Toggle geolOcation (IP ↔ accurate) |
 | `W` | Open the Wallpaper picker |
 | `G` | Toggle Glass material (Tinted ↔ Clear) |
+| `T` | Toggle glass Tint (Wallpaper ↔ Neutral) |
 | `M` | Play / pause Music |
 | `Q` | Open the playlist browser |
 | `D` | Toggle the Devtool panel |

@@ -29,16 +29,16 @@
 
 export { AdaptiveSurface, useSurfaceContext } from "./adaptive-surface";
 export type { AdaptiveSurfaceProps } from "./adaptive-surface";
-export { SurfaceSheet } from "./sheet";
-export type { SurfaceSheetProps } from "./sheet";
-export {
-  SURFACE_EASING,
-  SURFACE_TRANSITION_MS,
-  useSurfaceStack,
-} from "./stack";
+export { HEADER_BUTTON, SurfaceSheet } from "./sheet";
+export { SURFACE_TRANSITION_MS } from "./stack";
 export {
   ADAPTIVE_PRESENTATION,
   SURFACE_BREAKPOINTS,
+  useBreakpointValue,
   useSurfaceMode,
 } from "./presentation";
-export type { SurfaceMode, SurfacePresentation } from "./presentation";
+export type {
+  BreakpointMap,
+  SurfaceMode,
+  SurfacePresentation,
+} from "./presentation";

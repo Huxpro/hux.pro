@@ -13,9 +13,15 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Drawer } from "@base-ui/react/drawer";
-import { BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
 import { useSurfaceMode, type SurfaceMode, type SurfacePresentation } from "./presentation";
-import { EDGE_GAP, SHELL, SurfaceSheet, surfaceMotionVars } from "./sheet";
+import {
+  EDGE_GAP,
+  HEADER_BUTTON,
+  SHELL,
+  SurfaceSheet,
+  SurfaceViewport,
+  surfaceMotionVars,
+} from "./sheet";
 
 // =============================================================================
 // AdaptiveSurface — one secondary surface, three shapes.
@@ -123,12 +129,54 @@ function SurfaceHeader({
         <button
           onClick={onClose}
           aria-label={closeLabel}
-          className="-mr-2 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60"
+          className={cn(HEADER_BUTTON, "-mr-2")}
         >
           <X className="h-4 w-4" />
         </button>
       </div>
     </div>
+  );
+}
+
+/** The title bar and the scroll area under it — the same in every shape. */
+function SurfaceBody({
+  title,
+  actions,
+  closeLabel,
+  onClose,
+  draggable,
+  titleAs,
+  contentClassName,
+  scrollRef,
+  children,
+}: Pick<
+  AdaptiveSurfaceProps,
+  "title" | "actions" | "closeLabel" | "contentClassName" | "scrollRef" | "children"
+> & {
+  onClose: () => void;
+  draggable?: boolean;
+  titleAs?: React.ElementType;
+}) {
+  return (
+    <>
+      <SurfaceHeader
+        title={title}
+        actions={actions}
+        closeLabel={closeLabel}
+        onClose={onClose}
+        draggable={draggable}
+        titleAs={titleAs}
+      />
+      <div
+        ref={scrollRef}
+        className={cn(
+          "flex-1 overflow-y-auto overscroll-contain",
+          contentClassName ?? "px-4 pb-5"
+        )}
+      >
+        {children}
+      </div>
+    </>
   );
 }
 
@@ -216,22 +264,17 @@ function SurfaceWindow({
             }}
             className={cn(SHELL, "pointer-events-auto relative z-[61]")}
           >
-            <SurfaceHeader
+            <SurfaceBody
               title={title}
               actions={actions}
               closeLabel={closeLabel}
               onClose={() => onOpenChange(false)}
               draggable={isDraggable}
-            />
-            <div
-              ref={scrollRef}
-              className={cn(
-                "flex-1 overflow-y-auto overscroll-contain",
-                contentClassName ?? "px-4 pb-5"
-              )}
+              contentClassName={contentClassName}
+              scrollRef={scrollRef}
             >
               {children}
-            </div>
+            </SurfaceBody>
           </motion.div>
         </div>
       )}
@@ -262,12 +305,7 @@ function SurfacePanel({
       disablePointerDismissal
     >
       <Drawer.Portal>
-        {/* Only the panel takes pointers; the rest of the page is untouched. */}
-        <Drawer.Viewport
-          // A fixed layer for the bezel, as in sheet.tsx.
-          {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
-          className="pointer-events-none fixed inset-0 z-[60]"
-        >
+        <SurfaceViewport modal={false}>
           <Drawer.Popup
             data-surface-popup=""
             style={surfaceMotionVars(EDGE_GAP)}
@@ -280,25 +318,20 @@ function SurfacePanel({
             {/* A mouse press in here is a press, not the start of a drag —
                 see the same note in sheet.tsx. A touch swipe still dismisses. */}
             <Drawer.Content className="flex min-h-0 flex-1 flex-col">
-              <SurfaceHeader
+              <SurfaceBody
                 title={title}
                 actions={actions}
                 closeLabel={closeLabel}
                 onClose={() => onOpenChange(false)}
                 titleAs={Drawer.Title}
-              />
-              <div
-                ref={scrollRef}
-                className={cn(
-                  "flex-1 overflow-y-auto overscroll-contain",
-                  contentClassName ?? "px-4 pb-5"
-                )}
+                contentClassName={contentClassName}
+                scrollRef={scrollRef}
               >
                 {children}
-              </div>
+              </SurfaceBody>
             </Drawer.Content>
           </Drawer.Popup>
-        </Drawer.Viewport>
+        </SurfaceViewport>
       </Drawer.Portal>
     </Drawer.Root>
   );
@@ -324,22 +357,17 @@ function SurfaceSheetShape({
       onOpenChange={onOpenChange}
       height={maxHeight}
     >
-      <SurfaceHeader
+      <SurfaceBody
         title={title}
         actions={actions}
         closeLabel={closeLabel}
         onClose={() => onOpenChange(false)}
         titleAs={Drawer.Title}
-      />
-      <div
-        ref={scrollRef}
-        className={cn(
-          "flex-1 overflow-y-auto overscroll-contain",
-          contentClassName ?? "px-4 pb-5"
-        )}
+        contentClassName={contentClassName}
+        scrollRef={scrollRef}
       >
         {children}
-      </div>
+      </SurfaceBody>
     </SurfaceSheet>
   );
 }
