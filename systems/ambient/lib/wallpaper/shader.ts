@@ -7,7 +7,8 @@
 //   two parallax cloud decks (fbm)      (cover / density / storminess / wind)
 //   fog / haze                          (low-frequency drifting veil)
 //   lightning                           (stochastic cloud-illuminating flashes)
-//   rain streaks / snow flakes          (hash-cell particles, wind-sheared)
+//   rain streaks                        (hash-cell particles, wind-sheared)
+//   snow                                (depth-layered flakes, slow and fluttering)
 //   theme veil + exposure + dither      (blend toward the page background)
 //
 // Everything is procedural, so the whole wallpaper is a string of GLSL and the
@@ -385,34 +386,113 @@ float rain(vec2 p, vec2 uv, float aspect) {
   return (acc * (0.14 + 0.22 * uRain) + sheet) * fade;
 }
 
+// A flake is not a dot. What makes falling snow read as snow is that every
+// flake is a thin crystal on its own slow helix: it swings sideways as it
+// sinks, stalls at the ends of the swing, and tumbles — flashing bright when a
+// face catches the light and nearly vanishing edge-on. So each one gets its own
+// drift, its own tumble, and a soft body that trails off instead of a disc with
+// an edge. The fall speeds are deliberately slow — a flake crosses the frame in
+// ten to thirty seconds — because a wallpaper is looked past, not at.
 float snow(vec2 p, float aspect) {
   if (uSnow < 0.002) return 0.0;
   float acc = 0.0;
   float fade = smoothstep(0.0, 0.12, uSnow);
+  float px = 1.0 / uResolution.y;   // one device pixel in screen units
 
-  // Four depth layers, far → near: far flakes are tiny, dim, slow and many;
-  // near ones are a few pixels across, brighter, faster and slightly soft.
-  for (int i = 0; i < 4; i++) {
-    float fi = float(i);
-    float sc = 40.0 - fi * 8.0;                       // cells per unit height
-    float fall = 0.11 + fi * 0.05;                    // screen heights per second
-    float bright = 0.4 + fi * 0.18;
+  // The whole curtain leans and eases back on two slow beats — a gust that
+  // takes twenty seconds to pass, not a shiver.
+  float gust = sin(uTime * 0.31) * 0.6 + sin(uTime * 0.13 + 1.7) * 0.4;
+
+  // Five depth layers, far → near. Far flakes are a dense dust of specks that
+  // barely seem to move; near ones are a handful of big, soft, out-of-focus
+  // blobs. Everything else — size, speed, brightness, how much the wind
+  // carries them — is interpolated along the same depth, so a layer never
+  // reads as a layer.
+  for (int i = 0; i < 5; i++) {
+    float z = float(i) * 0.25;                      // 0 far … 1 near
+    float sc = mix(44.0, 12.0, z);                  // cells per screen height
+    float fall = mix(0.030, 0.092, z) * (0.85 + 0.3 * uSnow);
+    float radius = mix(0.0019, 0.0062, z);          // screen heights
+    float soft = mix(0.45, 1.0, z * z);             // only the nearest defocus
+    float density = mix(0.30, 0.09, z) * (0.35 + 0.65 * uSnow);
+
     vec2 q = p * sc;
-    q.y += uTime * fall * (1.0 + 0.4 * uSnow) * sc;
-    q.x += uSnowDrift * sc * 0.5 * (0.7 + fi * 0.15) + sin(uTime * 0.5 + fi * 1.7) * 0.3;
-    q.x += fi * 7.3;
+    q.y += uTime * fall * sc;
+    float row = floor(q.y);
+
+    // The long waft. Taken from the row index rather than the continuous
+    // coordinate, it is constant across a flake — so the flake travels sideways
+    // instead of being sheared — while every row keeps its own tempo and phase.
+    // Applied before the cell is picked, so the excursion can be far wider than
+    // a cell without clipping anything.
+    float rh = hash1(vec2(row, float(i) * 3.7 + uSeed));
+    float waft = sin(uTime * (0.4 + fract(rh * 7.3) * 0.5) + rh * 6.2831);
+    // The quantity that matters here is the lean: sideways over fall. Both
+    // ramps span the same 3×, so it comes out the same at every depth — one
+    // wind, one angle, which is not true if the two are tuned apart. At a
+    // 10 km/h crosswind it works out around 33° off vertical.
+    q.x += (uSnowDrift * mix(0.133, 0.4, z)
+          + gust * mix(0.008, 0.02, z)
+          + waft * mix(0.022, 0.075, z)) * sc;
+
     vec2 cell = floor(q);
     vec2 f = fract(q);
-    vec2 rnd = hash2(cell + uSeed * 1.3);
-    float density = 0.1 + 0.55 * uSnow;
-    float present = step(rnd.x, density);
-    vec2 c = 0.25 + rnd * 0.5;
-    c.x += sin(uTime * (0.8 + rnd.y) + rnd.x * 6.28) * 0.1;
-    float size = 0.045 + rnd.y * 0.045;
-    float flake = smoothstep(size, size * (0.2 + fi * 0.1), length(f - c));
-    acc += flake * present * bright;
+    // Six properties per flake out of one hash pair: multiplying a hash by a
+    // large irrational and taking the fraction sweeps it through scores of
+    // cycles, so the derived value no longer tracks the one it came from.
+    vec2 h = hash2(cell + uSeed * 1.3 + float(i) * 31.7);
+    // Most cells are empty — between 70% and 91% of them, depending on the
+    // layer — and a flake never reaches past its own cell, so leaving early
+    // costs nothing and skips the whole model below. A cell is 25 to 90 px
+    // across, far wider than a warp, so the branch is coherent.
+    if (h.x >= density) continue;
+    float cx = fract(h.x * 137.13);
+    float cy = fract(h.y * 191.71);
+    float tempo = h.y;
+    float phase = fract(h.x * 59.71 + h.y * 23.33);
+    float grade = fract(h.y * 53.17);               // its size in its layer
+
+    // Every flake rides its own slow ellipse: it swings sideways and stalls at
+    // the ends of the swing. That coupling — not the falling — is what the eye
+    // reads as fluttering.
+    float th = uTime * (0.5 + tempo * 0.85) + phase * 6.2831;
+    float sw = sin(th);
+    vec2 c = vec2(0.34 + cx * 0.32, 0.3 + cy * 0.4);
+    c.x += sw * (0.07 + 0.06 * tempo);
+    c.y += cos(th) * 0.09;
+
+    // Tumble. A snow crystal is a thin plate: edge-on it is a sliver and goes
+    // dim, then flares as it turns a face back into the light. It turns twice
+    // per swing — cos(2th), taken off the sine already in hand — and depth
+    // mutes it, because a defocused flake has no edge left to turn.
+    float face = mix(abs(1.0 - 2.0 * sw * sw), 1.0, z * 0.5);
+    float squash = mix(0.45, 1.0, face);
+    float twinkle = mix(0.74, 1.0, face);
+
+    // The flake's own axes, taken straight from the hash — a fixed random tilt
+    // for the price of a normalize instead of a sin/cos pair.
+    vec2 axis = normalize(vec2(cx, cy) * 2.0 - 1.0 + vec2(0.0013, 0.0007));
+    vec2 d = (f - c) / sc;                          // screen units
+    vec2 e = vec2(dot(d, axis), dot(d, vec2(-axis.y, axis.x)));
+    e.x /= squash;
+
+    // Body plus a fuzzy halo: snow seen against the sky has no rim, it has a
+    // soft middle that trails off. The pixel floor keeps the farthest flakes
+    // from aliasing into little squares.
+    float rad = max(radius * (0.7 + 0.6 * grade), 1.15 * px);
+    float invRad = 1.0 / rad;
+    float r = length(e) * invRad;
+    float edge = max(soft, px * invRad);
+    float body = smoothstep(1.0, 1.0 - edge, r);
+    float bell = max(0.0, 1.0 - r * r * 0.5);       // a Gaussian's shape, cheap
+    float halo = bell * bell * bell;                // and with no tail to clip
+    // The body's weight is flat with depth — a near flake is bigger and softer,
+    // not brighter. What grows toward the front is the halo, which is what
+    // being out of focus looks like.
+    acc += (body * 0.36 + halo * mix(0.061, 0.33, z)) * twinkle;
   }
-  return acc * (0.5 + 0.35 * uSnow) * fade;
+
+  return acc * (0.55 + 0.45 * uSnow) * fade;
 }
 
 // ---------------------------------------------------------------------------
@@ -477,10 +557,30 @@ void main() {
 
   // Precipitation over everything.
   float r = rain(p, uv, aspect);
-  float s = snow(p, aspect);
   vec3 dropCol = mix(uCloudLit, vec3(1.0), 0.45);
   col += dropCol * r * 0.75;
-  col = mix(col, vec3(0.97, 0.98, 1.0), clamp(s, 0.0, 1.0) * 0.9);
+
+  // Snow, and the colour to paint it. A flake is a scattering mote, not a lamp:
+  // it can never be brighter than the sky behind it, so against a blown-out
+  // overcast it reads as a grey speck — which is what snow looks like in a
+  // photograph of a white sky — and against anything darker it reads white. At
+  // night it keeps the cloud's own colour so it glows rather than glares.
+  //
+  // The background it measures is the frame so far, which is the sky, the cloud
+  // and the fog in front of them — everything that is actually behind a flake.
+  // Nothing additive can contaminate it here: a scene carries rain or snow but
+  // never both, and lightning only ever fires over the one that carries rain.
+  //
+  // The branch is on a uniform, so it costs nothing and saves the whole block
+  // on every frame of every sky that is not snowing.
+  if (uSnow >= 0.002) {
+    float s = snow(p, aspect);
+    float bg = dot(col, vec3(0.2126, 0.7152, 0.0722));
+    float overcast = smoothstep(0.74, 0.96, bg) * uDaylight;
+    vec3 snowCol = mix(uCloudLit, vec3(0.97, 0.98, 1.0), 0.55 + 0.25 * (1.0 - uDaylight));
+    snowCol *= 1.0 - 0.22 * overcast;
+    col = mix(col, snowCol, clamp(s, 0.0, 1.0) * 0.9);
+  }
 
   // Theme veil + exposure.
   col *= uExposure;
