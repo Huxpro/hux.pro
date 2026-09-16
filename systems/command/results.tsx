@@ -59,7 +59,7 @@ function Letter({ letter }: { letter?: string }) {
  * made of, with a rim, a touch-sized hit area and press feedback, so it reads
  * as the palette's own vocabulary and not as a foreign control.
  */
-export function SlashEntry() {
+export function SlashEntry({ className }: { className?: string }) {
   const { locale } = useLocale();
   const { setSlashCommandsMode } = useCommand();
   return (
@@ -70,7 +70,8 @@ export function SlashEntry() {
       className={cn(
         "pressable flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md px-2",
         "border border-border/50 bg-muted/50 font-mono text-xs text-muted-foreground",
-        "transition-colors active:bg-accent active:text-foreground"
+        "transition-colors active:bg-accent active:text-foreground",
+        className
       )}
     >
       /

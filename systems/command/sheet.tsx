@@ -45,9 +45,15 @@ import {
 // landed, the sheet goes. Closing the picker then returns to the page, not to
 // the palette: a launcher is finished the moment it has launched something.
 //
-// Slash mode on a phone is a list of rows with a back arrow, reached by typing
-// "/" into the empty field. The field gives up the keyboard as the list comes
-// in; a hardware keyboard still gets the letters.
+// Slash mode on a phone is a second sheet stacked on this one, the way iOS
+// presents a sheet from a sheet: the palette stays open and steps back, the
+// slash list rises over it at the same detent, and a drag down, the back
+// arrow or a tap on the receded palette brings the palette forward again.
+// It is a true stack (the sheet is a React child of the palette's, so Base UI
+// treats it as nested, and the shared stack recedes the parent), reached by
+// the "/" chip in the field or by typing "/" into the empty field. The field
+// gives up the keyboard as the list comes in; a hardware keyboard still gets
+// the letters.
 //
 // The shell (this component) is always mounted so the sheet can animate out;
 // everything that costs something — the command list, the field, the
@@ -58,12 +64,14 @@ import {
 const SNAP_POINTS = [0.7, 1];
 const SNAP_TOP = SNAP_POINTS[SNAP_POINTS.length - 1];
 
+type Detent = number | string | null;
+
 export function CommandSheet() {
   const { isOpen, close } = useCommand();
   const { locale } = useLocale();
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const [snap, setSnap] = useState<number | string | null>(SNAP_POINTS[0]);
+  const [snap, setSnap] = useState<Detent>(SNAP_POINTS[0]);
   const [handingOff, setHandingOff] = useState(false);
 
   // A fresh sheet each time: lower detent, nothing in flight.
@@ -121,6 +129,7 @@ export function CommandSheet() {
       >
         <SheetBody
           inputRef={inputRef}
+          snap={snap}
           // Tapping the field is asking for room: the sheet climbs to the
           // top as the keyboard comes up.
           onFieldFocus={() => setSnap(SNAP_TOP)}
@@ -133,70 +142,124 @@ export function CommandSheet() {
 /** Everything inside the shell. Mounted only while the sheet is up. */
 function SheetBody({
   inputRef,
+  snap,
   onFieldFocus,
 }: {
   inputRef: React.RefObject<HTMLInputElement | null>;
+  /** The palette's detent, which the slash sheet opens at. */
+  snap: Detent;
   onFieldFocus: () => void;
 }) {
-  const { isSlashCommandsMode, isLoadBundleMode, close, setSlashCommandsMode, setLoadBundleMode } =
-    useCommand();
+  const {
+    isSlashCommandsMode,
+    isLoadBundleMode,
+    close,
+    setSlashCommandsMode,
+    setLoadBundleMode,
+  } = useCommand();
   const { locale } = useLocale();
   const actions = useCommandActions();
   const field = useCommandField();
   const showHints = useShowKeyboardHints();
 
-  // The slash list has no field, so the keyboard goes with it.
+  // The slash sheet's own detent. It arrives at the palette's, so the two
+  // stack with the palette's top edge peeking above, and is free after that.
+  const [slashSnap, setSlashSnap] = useState<Detent>(snap);
+
+  // The slash list has no field, so the keyboard goes with it; and the slash
+  // sheet opens at whatever detent the palette is at, read once on the way in.
   useEffect(() => {
-    if (isSlashCommandsMode || isLoadBundleMode) inputRef.current?.blur();
+    if (!isSlashCommandsMode && !isLoadBundleMode) return;
+    inputRef.current?.blur();
+    if (isSlashCommandsMode) setSlashSnap(snap);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `snap` is read on open only
   }, [isSlashCommandsMode, isLoadBundleMode, inputRef]);
 
   return (
-    <Command
-      loop
-      shouldFilter={!isSlashCommandsMode && !isLoadBundleMode}
-      className={cn("flex min-h-0 flex-1 flex-col outline-none", GROUP_HEADINGS)}
-    >
-      <SlashShortcuts actions={actions} />
+    <>
+      <Command
+        loop
+        shouldFilter={!isLoadBundleMode}
+        className={cn("flex min-h-0 flex-1 flex-col outline-none", GROUP_HEADINGS)}
+      >
+        <SlashShortcuts actions={actions} />
 
-      {/* Header — the search field, or the slash list's title with its
-          way back. The load-bundle panel brings its own. */}
-      {!isLoadBundleMode && (
+        {/* Header — the search field. The load-bundle panel brings its own. */}
+        {!isLoadBundleMode && (
+          <div className="flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <Command.Input
+              ref={inputRef}
+              value={field.value}
+              onValueChange={field.onChange}
+              onFocus={onFieldFocus}
+              placeholder={t(locale, "searchPlaceholder")}
+              enterKeyHint="go"
+              className={cn(
+                // 16px: below that iOS Safari zooms the page on focus.
+                "min-w-0 flex-1 bg-transparent py-3 font-sans text-[16px] outline-none",
+                "placeholder:text-tertiary-foreground"
+              )}
+            />
+            {/* No keyboard to type "/" on: the field's trailing accessory
+                opens the slash sheet, while the field is empty. Tucked in
+                against the close button so the two read as one cluster. */}
+            {!showHints && field.value === "" && (
+              <SlashEntry className="-mr-2" />
+            )}
+            <button
+              type="button"
+              onClick={close}
+              aria-label={t(locale, "commandClose")}
+              className={cn(HEADER_BUTTON, "-mr-2")}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {isLoadBundleMode ? (
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <LoadBundlePanel
+              onBack={() => setLoadBundleMode(false)}
+              onLoaded={close}
+            />
+          </div>
+        ) : (
+          <CommandResults
+            actions={actions}
+            className="min-h-0 flex-1 overscroll-contain pb-[env(safe-area-inset-bottom)]"
+          />
+        )}
+      </Command>
+
+      {/* The slash sheet, stacked on the palette. Outside the cmdk root, so a
+          key pressed in here is not also a key pressed in the search list. */}
+      <SurfaceSheet
+        id="command-slash"
+        open={isSlashCommandsMode}
+        onOpenChange={(open) => {
+          if (!open) setSlashCommandsMode(false);
+        }}
+        modal
+        snapPoints={SNAP_POINTS}
+        activeSnapPoint={slashSnap}
+        onActiveSnapPointChange={setSlashSnap}
+        label={t(locale, "slashCommands")}
+        className="system-chrome"
+      >
         <div className="flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
-          {isSlashCommandsMode ? (
-            <>
-              <button
-                type="button"
-                onClick={() => setSlashCommandsMode(false)}
-                aria-label={t(locale, "backToSearch")}
-                className={cn(HEADER_BUTTON, "-ml-2")}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="flex-1 py-2 font-sans text-sm font-medium text-muted-foreground">
-                {t(locale, "slashCommands")}
-              </span>
-            </>
-          ) : (
-            <>
-              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <Command.Input
-                ref={inputRef}
-                value={field.value}
-                onValueChange={field.onChange}
-                onFocus={onFieldFocus}
-                placeholder={t(locale, "searchPlaceholder")}
-                enterKeyHint="go"
-                className={cn(
-                  // 16px: below that iOS Safari zooms the page on focus.
-                  "min-w-0 flex-1 bg-transparent py-3 font-sans text-[16px] outline-none",
-                  "placeholder:text-tertiary-foreground"
-                )}
-              />
-              {/* No keyboard to type "/" on: the field's trailing accessory
-                  opens the slash list, while the field is empty. */}
-              {!showHints && field.value === "" && <SlashEntry />}
-            </>
-          )}
+          <button
+            type="button"
+            onClick={() => setSlashCommandsMode(false)}
+            aria-label={t(locale, "backToSearch")}
+            className={cn(HEADER_BUTTON, "-ml-2")}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="flex-1 py-2 font-sans text-sm font-medium text-muted-foreground">
+            {t(locale, "slashCommands")}
+          </span>
           <button
             type="button"
             onClick={close}
@@ -206,25 +269,10 @@ function SheetBody({
             <X className="h-4 w-4" />
           </button>
         </div>
-      )}
-
-      {isLoadBundleMode ? (
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <LoadBundlePanel
-            onBack={() => setLoadBundleMode(false)}
-            onLoaded={close}
-          />
-        </div>
-      ) : isSlashCommandsMode ? (
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]">
           <CommandSlashList actions={actions} />
         </div>
-      ) : (
-        <CommandResults
-          actions={actions}
-          className="min-h-0 flex-1 overscroll-contain pb-[env(safe-area-inset-bottom)]"
-        />
-      )}
-    </Command>
+      </SurfaceSheet>
+    </>
   );
 }

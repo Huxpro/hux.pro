@@ -65,16 +65,22 @@ inert), and once the picker has landed, the sheet goes. Closing the picker then
 returns to the page, not to the palette: a launcher is finished the moment it
 has launched something. On the desktop the popover just closes, as before.
 
-**Slash commands** on a phone are the same list, as rows with a back arrow,
-reached by typing `/` into the empty field — or, where there is no keyboard to
-type it on, by the `/` chip at the field's trailing edge (`SlashEntry`). The
-chip is the hint made pressable: the same kbd vocabulary with a rim and a
-touch-sized hit area, inside the field where iOS keeps a search field's
-accessory (and so apart from the close button outside it), shown only while
-the field is empty, which is exactly when typing `/` would have worked. In the
-popover the same slot shows `esc` with a keyboard and the chip without one. The
-field gives up the keyboard as the list comes in; a hardware keyboard still
-gets the letters.
+**Slash commands** on a phone are a second sheet stacked on the palette, the
+way iOS presents a sheet from a sheet: the palette stays open and steps back
+(the surface stack does that), the slash list rises over it at the palette's
+own detent with the palette's top edge peeking above, and a drag down, the
+back arrow or a tap on the receded palette brings the palette forward again.
+The slash sheet is a React child of the palette's, so Base UI treats it as
+nested and disables the parent's own swipe while it is up. It is reached by
+typing `/` into the empty field — or, where there is no keyboard to type it
+on, by the `/` chip at the field's trailing edge (`SlashEntry`). The chip is
+the hint made pressable: the same kbd vocabulary with a rim and a touch-sized
+hit area, inside the field where iOS keeps a search field's accessory (and so
+apart from the close button outside it), shown only while the field is empty,
+which is exactly when typing `/` would have worked. In the popover the same
+slot shows `esc` with a keyboard and the chip without one. The field gives up
+the keyboard as the list comes in; a hardware keyboard still gets the letters,
+and Escape pops one sheet at a time, as it does on an iOS stack.
 
 ### The popover
 
