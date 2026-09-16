@@ -16,6 +16,7 @@
 // =============================================================================
 
 import type { WeatherScene } from "../scene";
+import { STRIKE_MS } from "../strike";
 import { FRAGMENT_SHADER, VERTEX_SHADER } from "./shader";
 
 interface UniformSpec {
@@ -83,6 +84,9 @@ const CLOUD_SPEED_OFFSET = OFFSET.uCloudSpeed;
 
 /** A fixed, pleasant moment on the shader clock for a still frame. */
 const STILL_FRAME_SEC = 37;
+
+/** How long a clicked strike lives — the shader's envelope is spent by then. */
+const STRIKE_SEC = STRIKE_MS / 1000;
 
 function packScene(scene: WeatherScene, out: Float32Array) {
   const precip = scene.precipitation;
@@ -158,6 +162,9 @@ export class WallpaperRenderer {
   private locSeed: WebGLUniformLocation | null = null;
   private locCloudDrift: WebGLUniformLocation | null = null;
   private locSnowDrift: WebGLUniformLocation | null = null;
+  private locStrike: WebGLUniformLocation | null = null;
+  private locStrikeAge: WebGLUniformLocation | null = null;
+  private locStrikeSeed: WebGLUniformLocation | null = null;
   /** Per-frame easing factors, one per distinct tau. */
   private ks = new Float64Array(TAUS.length);
   private vao: WebGLVertexArrayObject | null = null;
@@ -173,6 +180,13 @@ export class WallpaperRenderer {
   private startAt = 0;
   private cloudDrift = 0;
   private snowDrift = 0;
+
+  /** The clicked strike. `strikeAt` of 0 means none is running. */
+  private strikeAt = 0;
+  private strikeX = 0.5;
+  private strikeY = 0.5;
+  private strikeSeed = 0;
+  private strikeAge = -1;
 
   private dpr = 1;
   private baseScale = 1;
@@ -245,6 +259,24 @@ export class WallpaperRenderer {
     }
   }
 
+  /**
+   * Fire one bolt at (x, y) in screen space — 0..1 across, 0..1 bottom → top,
+   * the same convention as the sun. The thunder-day easter egg; see
+   * ../strike.ts.
+   *
+   * Only while the frame loop is already running: a strike is an animation, and
+   * a stopped renderer is either inactive or under `prefers-reduced-motion`,
+   * where a flash is the one thing not to make.
+   */
+  strike(x: number, y: number) {
+    if (!this.running || this.destroyed || !this.gl) return;
+    this.strikeX = x;
+    this.strikeY = y;
+    this.strikeSeed = Math.random() * 97;
+    this.strikeAt = performance.now();
+    this.strikeAge = 0;
+  }
+
   setReducedMotion(reduced: boolean) {
     if (this.opts.reducedMotion === reduced) return;
     this.opts.reducedMotion = reduced;
@@ -271,6 +303,10 @@ export class WallpaperRenderer {
 
   stop() {
     this.running = false;
+    // A strike is measured in wall-clock time; a paused renderer would resume
+    // it hours later, mid-flash.
+    this.strikeAt = 0;
+    this.strikeAge = -1;
     if (this.raf) cancelAnimationFrame(this.raf);
     this.raf = 0;
     document.removeEventListener("visibilitychange", this.onVisibility);
@@ -342,6 +378,9 @@ export class WallpaperRenderer {
     this.locSeed = gl.getUniformLocation(program, "uSeed");
     this.locCloudDrift = gl.getUniformLocation(program, "uCloudDrift");
     this.locSnowDrift = gl.getUniformLocation(program, "uSnowDrift");
+    this.locStrike = gl.getUniformLocation(program, "uStrike");
+    this.locStrikeAge = gl.getUniformLocation(program, "uStrikeAge");
+    this.locStrikeSeed = gl.getUniformLocation(program, "uStrikeSeed");
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
     return true;
@@ -504,6 +543,7 @@ export class WallpaperRenderer {
     // keep it generous enough that slow (software / low-end) GPUs still ease
     // in wall-clock time rather than in slow motion.
     this.smooth(Math.min(dt, 250) / 1000);
+    this.advanceStrike(now);
     // Wrap the shader clock hourly: float32 loses sub-pixel precision in the
     // particle math once uTime reaches the tens of thousands, and a once-an-hour
     // re-seed of drops and twinkles is imperceptible.
@@ -514,6 +554,18 @@ export class WallpaperRenderer {
   private renderOnce() {
     if (!this.gl || !this.hasScene) return;
     this.draw(STILL_FRAME_SEC);
+  }
+
+  /** Age the running strike, and retire it once the shader has nothing left to draw. */
+  private advanceStrike(now: number) {
+    if (!this.strikeAt) return;
+    const age = (now - this.strikeAt) / 1000;
+    if (age > STRIKE_SEC) {
+      this.strikeAt = 0;
+      this.strikeAge = -1;
+    } else {
+      this.strikeAge = age;
+    }
   }
 
   /** Snap a vec2 uniform (and companions) when a new scene jumped its target. */
@@ -570,6 +622,9 @@ export class WallpaperRenderer {
     gl.uniform1f(this.locSeed, this.seed);
     gl.uniform1f(this.locCloudDrift, this.cloudDrift);
     gl.uniform1f(this.locSnowDrift, this.snowDrift);
+    gl.uniform2f(this.locStrike, this.strikeX, this.strikeY);
+    gl.uniform1f(this.locStrikeAge, this.strikeAge);
+    gl.uniform1f(this.locStrikeSeed, this.strikeSeed);
 
     const c = this.current;
     for (let i = 0; i < META.length; i++) {

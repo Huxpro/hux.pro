@@ -12,6 +12,7 @@ export * from "./route-config";
 export * from "./scene";
 export * from "./solar";
 export * from "./settings";
+export * from "./strike";
 export * from "./sun";
 export * from "./weather";
 export * from "./wallpaper/support";

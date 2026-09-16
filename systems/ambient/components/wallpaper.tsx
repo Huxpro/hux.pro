@@ -31,6 +31,11 @@ interface WeatherWallpaperProps {
   /** Handed a getter for live renderer stats (resolution / frame time), for the devtool. */
   statsRef?: React.MutableRefObject<(() => WallpaperStats) | null>;
   /**
+   * Handed the renderer's strike — one bolt at (x, y) in screen space, 0..1
+   * bottom → top. The thunder-day easter egg; see lib/strike.ts.
+   */
+  strikeRef?: React.MutableRefObject<((x: number, y: number) => void) | null>;
+  /**
    * Override the device quality profile — for a small preview (the picker's
    * CG tile) that should cost a fraction of the full-page layer.
    */
@@ -44,6 +49,7 @@ export function WeatherWallpaper({
   className,
   onFallback,
   statsRef,
+  strikeRef,
   quality,
 }: WeatherWallpaperProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -69,9 +75,11 @@ export function WeatherWallpaper({
     rendererRef.current = renderer;
     // The devtool pulls stats on its own schedule; nothing is copied until it asks.
     if (statsRef) statsRef.current = () => renderer.getStats();
+    if (strikeRef) strikeRef.current = (x, y) => renderer.strike(x, y);
 
     return () => {
       if (statsRef) statsRef.current = null;
+      if (strikeRef) strikeRef.current = null;
       renderer.destroy();
       rendererRef.current = null;
     };

@@ -1,10 +1,18 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useReducedMotion } from "framer-motion";
+import { useEffect, useRef } from "react";
+import {
+  isBackgroundClick,
+  strikePoint,
+  STRIKE_COOLDOWN_MS,
+} from "../lib/strike";
 import { useWeather } from "../provider";
 import { useWallpaper } from "../provider";
 import { GradientStack } from "./gradient-stack";
 import { BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
+import { StrikeFlash } from "./strike-flash";
 import { WeatherWallpaper } from "./wallpaper";
 
 // ---------------------------------------------------------------------------
@@ -22,6 +30,11 @@ import { WeatherWallpaper } from "./wallpaper";
 // the wash opacity. The provider resolves which one (`renderer`), so this
 // component only swaps the child.
 //
+// It is also where the thunder-day easter egg is wired: the wallpaper layer is
+// pointer-events-none (it must be — it is behind the whole page), so the click
+// is caught on the document and answered by whichever engine is mounted. See
+// lib/strike.ts for what counts as a click on the sky.
+//
 // An image wallpaper paints at FULL STRENGTH. On the home screen that is the
 // whole treatment: the picture is the content, sharp and untinted, with the
 // widgets floating on it. Reading pages recede it instead — a defocus inside
@@ -32,6 +45,44 @@ import { WeatherWallpaper } from "./wallpaper";
 
 interface WallpaperBackgroundProps {
   enabled: boolean;
+}
+
+/**
+ * The thunder-day easter egg: while `armed`, a click that lands on the
+ * wallpaper — and nowhere else — calls a bolt down onto it.
+ *
+ * On `click` rather than `pointerdown`, which is what makes it survive a phone:
+ * a click is press and release on the same spot, so scrolling the page with a
+ * thumb on the sky never lights it up. A drag that ended in a selection is
+ * dropped too, and two strikes a second is the ceiling (see lib/strike.ts).
+ */
+function useStrikeOnClick(
+  armed: boolean,
+  fire: (clientX: number, clientY: number) => void
+) {
+  const fireRef = useRef(fire);
+  useEffect(() => {
+    fireRef.current = fire;
+  });
+  const lastAt = useRef(0);
+
+  useEffect(() => {
+    if (!armed) return;
+    const onClick = (event: MouseEvent) => {
+      if (event.button !== 0 || event.defaultPrevented) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const at = event.timeStamp || performance.now();
+      if (at - lastAt.current < STRIKE_COOLDOWN_MS) return;
+      const selection = window.getSelection();
+      if (selection && !selection.isCollapsed) return;
+      if (!isBackgroundClick(event.target)) return;
+      lastAt.current = at;
+      fireRef.current(event.clientX, event.clientY);
+    };
+    // Bubble phase, on purpose: anything that stopped the click handled it.
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, [armed]);
 }
 
 export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
@@ -50,10 +101,27 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   const { scene } = useWeather();
 
   const useShader = kind === "weather" && renderer === "shader";
+
+  // The strike. One ref, registered by whichever engine is mounted — there is
+  // never more than one, so there is never a question of which one answers.
+  const layerRef = useRef<HTMLDivElement | null>(null);
+  const strikeRef = useRef<((x: number, y: number) => void) | null>(null);
+  const reducedMotion = useReducedMotion() ?? false;
+  useStrikeOnClick(
+    enabled && kind === "weather" && scene.lightning > 0 && !reducedMotion,
+    (clientX, clientY) => {
+      const layer = layerRef.current;
+      if (!layer) return;
+      const point = strikePoint(layer.getBoundingClientRect(), clientX, clientY);
+      if (point) strikeRef.current?.(point.x, point.y);
+    }
+  );
+
   if (!useShader && layers.length === 0) return null;
 
   return (
     <div
+      ref={layerRef}
       aria-hidden="true"
       // In container scroll this must not be `position: fixed`: Safari tints its
       // chrome from fixed content at the viewport edge, and a wallpaper there
@@ -73,11 +141,15 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
           edgeMask={edgeMask}
           onFallback={reportShaderFallback}
           statsRef={statsRef}
+          strikeRef={strikeRef}
         />
       ) : (
-        /* Full-page background is already viewport-fixed, so the edge mask is
-           applied statically (no per-frame tracking needed). */
-        <GradientStack layers={layers} edgeMask={edgeMask} blurred={blurred} />
+        <>
+          {/* Full-page background is already viewport-fixed, so the edge mask is
+              applied statically (no per-frame tracking needed). */}
+          <GradientStack layers={layers} edgeMask={edgeMask} blurred={blurred} />
+          {kind === "weather" && <StrikeFlash strikeRef={strikeRef} />}
+        </>
       )}
 
       {veil > 0 && (
