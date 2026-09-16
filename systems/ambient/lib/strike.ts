@@ -6,6 +6,11 @@
 // the wallpaper calls one bolt down onto the spot that was clicked, over roughly
 // a second, and the sky lights up with it.
 //
+// The Sky is the only engine that answers. A wash has no geometry to draw a
+// channel on, and a flash with no bolt in it is a different, lesser find — so
+// the Gradient and Classic styles simply do not have this easter egg, rather
+// than having a worse one.
+//
 // This module is the part with no engine in it: how long a strike lives, how
 // often one may fire, and the one question the interaction turns on — did that
 // click land on the sky, or on something?
@@ -17,7 +22,7 @@
 // under the pointer was wallpaper — so the two can never disagree.
 // =============================================================================
 
-/** How long one strike lives, ms. The shader envelope and the CSS flash agree on it. */
+/** How long one strike lives, ms — the span the shader's envelope is spent over. */
 export const STRIKE_MS = 1200;
 
 /**
