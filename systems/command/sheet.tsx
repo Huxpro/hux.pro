@@ -9,7 +9,7 @@ import {
   SurfaceSheet,
 } from "@/systems/surface";
 import { Command } from "cmdk";
-import { Link2, Search, Slash, X } from "lucide-react";
+import { Link2, Search, Slash, X, type LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CommandShellProvider,
@@ -253,22 +253,11 @@ function SheetBody({
         label={t(locale, "slashCommands")}
         className="system-chrome"
       >
-        {/* One way out, one level down — a stacked sheet's close is its own,
-            as on iOS. The palette's own close is on the palette. */}
-        <div className="flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
-          <Slash className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="flex-1 py-2 font-sans text-sm font-medium text-muted-foreground">
-            {t(locale, "slashCommands")}
-          </span>
-          <button
-            type="button"
-            onClick={() => setSlashCommandsMode(false)}
-            aria-label={t(locale, "backToSearch")}
-            className={cn(HEADER_BUTTON, "-mr-2")}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        <SubModeHeader
+          icon={Slash}
+          title={t(locale, "slashCommands")}
+          onClose={() => setSlashCommandsMode(false)}
+        />
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]">
           <CommandSlashList actions={actions} />
         </div>
@@ -293,26 +282,17 @@ function SheetBody({
         label={t(locale, "appsLoadBundleTitle")}
         className="system-chrome"
       >
-        {/* Same header as the slash sheet: what this is, and one way out, one
-            level down. The panel's own ← belongs to the desktop popover. */}
-        <div className="flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
-          <Link2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="flex-1 py-2 font-sans text-sm font-medium text-muted-foreground">
-            {t(locale, "appsLoadBundleTitle")}
-          </span>
-          <button
-            type="button"
-            onClick={() => setLoadBundleMode(false)}
-            aria-label={t(locale, "backToSearch")}
-            className={cn(HEADER_BUTTON, "-mr-2")}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        {/* A content-height sheet bounds its own scroll: nothing here should
-            ever need it, but a wrapped error message must not push the sheet
-            off the top of the screen. */}
-        <div className="min-h-0 max-h-[60dvh] overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]">
+        {/* The panel's own ← belongs to the desktop popover; here the sheet
+            header is the way out. */}
+        <SubModeHeader
+          icon={Link2}
+          title={t(locale, "appsLoadBundleTitle")}
+          onClose={() => setLoadBundleMode(false)}
+        />
+        {/* The scroll area a content-height sheet needs: the sheet grows with
+            the form and stops at the screen (SurfaceSheet's own cap), and from
+            there this takes over rather than the form overflowing the shell. */}
+        <div className="min-h-0 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]">
           <LoadBundlePanel
             chrome="sheet"
             onBack={() => setLoadBundleMode(false)}
@@ -323,5 +303,39 @@ function SheetBody({
         </div>
       </SurfaceSheet>
     </>
+  );
+}
+
+/**
+ * The header a sub-mode sheet wears: what this is, and one way out, one level
+ * down — a stacked sheet's close is its own, as on iOS, and the palette's own
+ * close stays on the palette. Both sub-modes wear the same one, which is the
+ * whole claim: they are one shape presented twice.
+ */
+function SubModeHeader({
+  icon: Icon,
+  title,
+  onClose,
+}: {
+  icon: LucideIcon;
+  title: string;
+  onClose: () => void;
+}) {
+  const { locale } = useLocale();
+  return (
+    <div className="flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
+      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <span className="flex-1 py-2 font-sans text-sm font-medium text-muted-foreground">
+        {title}
+      </span>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label={t(locale, "backToSearch")}
+        className={cn(HEADER_BUTTON, "-mr-2")}
+      >
+        <X className="h-4 w-4" />
+      </button>
+    </div>
   );
 }

@@ -215,6 +215,10 @@ export interface SurfaceSheetProps {
    * there is no empty half. The content bounds its own scrolling area; the
    * sheet never grows past the screen, and the keyboard pushes it up as it
    * does any other sheet. Overrides `height`.
+   *
+   * It stands at no detent, so it takes no `level`: its top edge is wherever
+   * its content lands, and a sheet with detents stacked on it arrives at the
+   * first rather than level.
    */
   fitContent?: boolean;
   /**
@@ -333,16 +337,19 @@ export function SurfaceSheet({
                         snapPoints[0]
                       )})`,
                     }
-                  : fitContent
-                    ? {
-                        // As tall as what it holds, and never taller than the
-                        // screen: past that the shell shrinks and the content's
-                        // own scroll area takes over.
-                        bottom: BOTTOM_INSET,
-                        height: "auto",
-                        maxHeight: `calc(100dvh - ${TOP_INSET} - ${BOTTOM_INSET})`,
-                      }
-                    : { bottom: BOTTOM_INSET, height: height ?? "80dvh" }),
+                  : {
+                      // No detents: the sheet rests the inset above the bottom
+                      // edge and is as tall as it was told, or as its content.
+                      bottom: BOTTOM_INSET,
+                      ...(fitContent
+                        ? {
+                            // Never taller than the screen: past that the shell
+                            // shrinks and the content's scroll area takes over.
+                            height: "auto",
+                            maxHeight: `calc(100dvh - ${TOP_INSET} - ${BOTTOM_INSET})`,
+                          }
+                        : { height: height ?? "80dvh" }),
+                    }),
               }}
               // The positioning box only, so nothing paints outside the shell.
               className="pointer-events-auto absolute inset-x-3 z-[61] flex flex-col bg-transparent outline-none"
@@ -358,10 +365,10 @@ export function SurfaceSheet({
                 style={{ "--surface-stack-depth": depth } as React.CSSProperties}
                 className={cn(
                   SHELL,
-                  "origin-top",
+                  "min-h-0 origin-top",
                   // A content-height sheet is `flex: 0 1 auto`: it measures
                   // itself, and shrinks only when the max height bites.
-                  fitContent ? "min-h-0" : "min-h-0 flex-1",
+                  !fitContent && "flex-1",
                   // The dim on a receded sheet is a wash over the shell rather
                   // than an opacity, so the glass stays glass.
                   "after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:[transition-duration:var(--surface-duration)]",
