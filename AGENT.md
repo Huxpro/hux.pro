@@ -12,7 +12,7 @@
 | **Design System** | [docs/design-system.md](./docs/design-system.md) (Typography, colors) |
 | **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
 | **Secondary Surfaces** | [docs/system-surface.md](./docs/system-surface.md) (sheet / panel / window, per viewport) |
-| **Dock / Live Activities** | [docs/system-dock.md](./docs/system-dock.md) (top-anchored drawer, pill ⇄ panel) |
+| **Dock / Live Activities** | [docs/system-dock.md](./docs/system-dock.md) (one island, compact ⇄ expanded deformation) |
 | **Glass** | [docs/system-glass.md](./docs/system-glass.md) (Clear / Tinted material, reading surfaces) |
 | **Legibility** | [docs/system-legibility.md](./docs/system-legibility.md) (Ink-at-alpha tokens, wallpaper profiles, relief, tint, the `/editor/legibility` lab) |
 | **Ambient / Wallpaper** | [docs/system-ambient.md](./docs/system-ambient.md) (Weather + Apple wallpaper pairs, `pnpm wallpapers:encode` / `pnpm wallpapers:check` / `pnpm wallpapers:profile`) |
@@ -68,7 +68,7 @@ duration-300 (morphing transitions)
     top of each file and Base UI's Drawer docs. The library's data attributes
     and CSS variables are a contract with meanings its types do not carry;
     every one of the listed items was a shipped bug. The Live Activity panel is
-    the same drawer travelling `up` — three things differ in that direction and
+    the same drawer travelling `up` — six things differ in that direction and
     are listed in `live-activity.tsx`.
 
 ## 3. Common Tasks

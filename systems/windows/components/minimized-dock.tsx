@@ -10,15 +10,23 @@ import type { WindowInstance } from "../lib/types";
 import { AppBadgeFor } from "./app-badge";
 
 // =============================================================================
-// MinimizedWindows — minimized app windows, parked in the dock
+// MinimizedWindows — minimized app windows, parked behind the island
 //
 // Minimizing a window genies it up toward the top-center "live activity" band
-// (the Dock). It lands here as a pill — styled to match the music / ambient
-// Live Activity pills — that sits in the same row. Tapping the pill restores
-// (and focuses) the window, the iOS Dynamic-Island / minimized-app metaphor.
+// (the Dock). It lands here as a DOT: the app's icon in a circle the same
+// height as the island, with no label.
 //
-// Rendered as a child of <Dock>, so its pills become flex items in the dock's
-// pill row alongside the other activities.
+// It used to be a full capsule with icon + title, indistinguishable from a
+// Live Activity's, and with three windows minimized the dock read as a row of
+// five equal pills. A parked app is not ongoing activity — nothing about it is
+// live, and it has no expanded presentation — so it takes the quieter form and
+// sits furthest from the island, a step down in glass (`bg-glass` against the
+// island's `bg-glass-strong`). The title moves to the tooltip, which is where
+// it was already duplicated.
+//
+// Rendered as a child of <Dock>, so its dots become flex items in the dock's
+// row; `data-dock-slot="window"` is what puts them last and spaces them (see
+// "Dock panel motion" in globals.css).
 // =============================================================================
 
 function PillIcon({ win }: { win: WindowInstance }) {
@@ -55,10 +63,14 @@ function PillIcon({ win }: { win: WindowInstance }) {
       </span>
       {/* The runtime marker rides along, so a minimized Lynx app still reads as
           one at a glance in the dock. */}
+      {/* Tucked in rather than hung off the corner: the dot is a circle now,
+          and a badge at -bottom-1 -right-1 crossed its edge — the HIG's
+          "elements poking into the rounded shape and creating visual
+          tension", which is exactly what it looked like. */}
       <AppBadgeFor
         app={win.app}
-        size={11}
-        className="pointer-events-none absolute -bottom-1 -right-1"
+        size={10}
+        className="pointer-events-none absolute -bottom-0.5 -right-0.5"
       />
     </span>
   );
@@ -81,19 +93,16 @@ export function MinimizedWindows() {
           exit={{ opacity: 0, scale: 0.8, y: -6 }}
           transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
           style={{ transformOrigin: "top center" }}
+          data-dock-slot="window"
           className={cn(
-            "pointer-events-auto flex shrink-0 items-center gap-2",
-            "h-9 rounded-full pl-1.5 pr-3",
-            "border border-border/50 bg-glass-strong shadow-raised backdrop-blur-xl",
-            "transition-colors hover:border-border hover:bg-glass-strong-hover active:scale-95",
+            "pointer-events-auto flex h-9 w-9 shrink-0 items-center justify-center",
+            "rounded-full border border-border/50 bg-glass shadow-raised backdrop-blur-xl",
+            "transition-colors hover:border-border hover:bg-glass-hover active:scale-95",
           )}
           aria-label={`Restore ${appTitle(win.app, locale)}`}
           title={`Restore ${appTitle(win.app, locale)}`}
         >
           <PillIcon win={win} />
-          <span className="max-w-32 truncate text-xs font-medium text-foreground/80">
-            {appTitle(win.app, locale)}
-          </span>
         </motion.button>
       ))}
     </AnimatePresence>

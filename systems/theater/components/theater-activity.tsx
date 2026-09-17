@@ -47,21 +47,25 @@ export function TheaterActivity() {
       id="theater"
       openLabel={t(locale, "theaterOpenControls")}
       collapseLabel={t(locale, "musicCollapse")}
-      pill={
-        <>
-          <span className="relative h-6 w-9 overflow-hidden rounded-[5px] shrink-0">
-            {track.thumbnail ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={track.thumbnail} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center bg-muted/60">
-                <Video className="h-3.5 w-3.5 text-muted-foreground" />
-              </span>
-            )}
-          </span>
-          {showEQ && <EQBars className="text-red-500" />}
-        </>
+      // Red, like the EQ bars and the record dot — HIG: a key line "consistent
+      // with the colour of other elements in your Live Activity".
+      keyColor="var(--color-red-500)"
+      // Square, not the 16:9 the thumbnail wants to be: `lead` has to work in
+      // the minimal form too, and a 36px circle has no room for a widescreen
+      // crop without it touching the key line on both sides.
+      lead={
+        <span className="relative h-6 w-6 shrink-0 overflow-hidden rounded-[7px]">
+          {track.thumbnail ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={track.thumbnail} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center bg-muted/60">
+              <Video className="h-3.5 w-3.5 text-muted-foreground" />
+            </span>
+          )}
+        </span>
       }
+      trail={showEQ ? <EQBars className="text-red-500" /> : undefined}
       title={
         <>
           {showEQ && <EQBars className="text-red-500" />}

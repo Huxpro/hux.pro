@@ -42,17 +42,20 @@ export function AmbientPhaseActivity() {
       id="ambient-phase"
       openLabel={t(locale, "phaseOpenDetails")}
       collapseLabel={t(locale, "dockCollapse")}
-      pill={
-        <>
-          <span className="h-6 w-6 rounded-full bg-muted/60 flex items-center justify-center shrink-0">
-            <Icon className="h-3.5 w-3.5 text-foreground/80" />
+      // No key line: the sun glyph is the theme's own ink, and a coloured line
+      // around it would be the only colour on a surface that has none. The
+      // prop is opt-in for exactly this reason.
+      lead={
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted/60">
+          <Icon className="h-3.5 w-3.5 text-foreground/80" />
+        </span>
+      }
+      trail={
+        timeLabel ? (
+          <span className="font-mono text-xs tabular-nums text-foreground/80">
+            {timeLabel}
           </span>
-          {timeLabel && (
-            <span className="text-xs font-mono tabular-nums text-foreground/80">
-              {timeLabel}
-            </span>
-          )}
-        </>
+        ) : undefined
       }
       title={
         <span className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground min-w-0">

@@ -1,10 +1,10 @@
 # Dock System
 
-The dock is the top-of-screen home for **Live Activities** — collapsed pills
-that morph into expanded panels (the iOS Dynamic Island / Notification Center
-metaphor). It is the shared foundation for the "Global Player" UI: the music
-player and the ambient phase notification are both dock activities and therefore
-look and behave identically.
+The dock is the top-of-screen home for **Live Activities**. It is ONE island —
+a single object that several activities merge into — and it is the shared
+foundation for the "Global Player" UI: the music player, the ambient phase
+notification and theater audio are all dock activities and therefore look and
+behave identically.
 
 ## Overview
 
@@ -12,8 +12,9 @@ look and behave identically.
 systems/dock/
 ├── provider.tsx                  # DockProvider + useDock (coordination only)
 ├── components/
-│   ├── dock.tsx                  # <Dock> — pill row layout
-│   ├── live-activity.tsx         # <LiveActivity> — the pill ⇄ panel drawer
+│   ├── dock.tsx                  # <Dock> — the island and its satellites
+│   ├── live-activity.tsx         # <LiveActivity> — the two compact forms,
+│   │                             #   the panel, and the deformation between
 │   └── index.ts
 └── index.ts
 ```
@@ -24,13 +25,61 @@ Before, the pill/panel/drag/Esc/route-collapse machinery lived inside
 `MusicDock`. Adding a second notification (ambient phase changes) would have
 meant copy-pasting all of it. The dock extracts that machinery once:
 
-- **`LiveActivity`** owns the *visuals*: the collapsed pill shell, the expanded
-  panel (header, body, grabber), and the drawer the panel is made of.
+- **`LiveActivity`** owns the *visuals*: the compact presentation in either of
+  its two forms, the expanded panel (header, body, grabber), and the drawer the
+  panel is made of.
 - **`DockProvider` / `useDock`** own the *coordination*: a single `openId`
-  (only one panel open at a time) and route-change collapse.
-- **`Dock`** owns the *layout*: a horizontal, centered, scrollable pill row.
+  (only one panel open at a time), who holds the island, and route-change
+  collapse.
+- **`Dock`** owns the *layout*: the island, its satellites, and the gaps
+  between them.
 
 Activities supply only content.
+
+## One island, not a row of pills
+
+This is the change that makes the metaphor true, and it is worth stating what
+it replaced. The dock used to be a horizontally scrollable strip of identical
+capsules — one per activity, one per minimized window, all `h-9 rounded-full`,
+with mouse drag-to-scroll once it got crowded. Open one and the rest faded out.
+
+That is a notification tray. Apple's first sentence about the Dynamic Island is
+that it "serves as a unified home for alerts and indicators of ongoing
+activity", and what makes it read that way is not its corner radius: it is that
+several activities **merge** into one object instead of queueing beside each
+other. A 44pt corner on a row of five pills is still a row of five pills.
+
+So the row lays out three classes of thing, and the gaps carry the hierarchy:
+
+| Slot | What | Form |
+|---|---|---|
+| `island` | one activity — the one that arrived LAST | the compact presentation: `lead` + `trail` + chevron |
+| `dot` | every other activity | the minimal presentation: a bare `h-9` circle carrying `lead` alone, detached by a 10px gap |
+| `window` | minimized app windows | the same circle, one step down in glass, furthest out |
+
+Apple's compact presentation splits around the TrueDepth camera — one element
+leading, one trailing. We have no camera, so the gap is the island's own and
+the chevron sits in it; but the split is the same, and it is why `LiveActivity`
+takes `lead` and `trail` rather than one `pill`. `lead` has to identify the
+activity on its own, because in the minimal form it is all there is.
+
+**The island goes to the newcomer.** A Live Activity appearing is news — the
+sunrise notification opening while music plays is the same shape of event as an
+alert — so the arrival takes the island and the incumbent steps down to a dot.
+When its window passes and it unmounts, the island falls back. Opening an
+activity does *not* promote it: its panel grows out of wherever its compact
+form actually is, dot included, which is what a touch-and-hold on a minimal
+presentation does on iOS.
+
+**Nothing scrolls.** An island that scrolls is a row again. If this ever gets
+genuinely crowded the answer is fewer things in it, not a scrollbar.
+
+**A parked window is not ongoing activity.** Minimized windows used to be full
+capsules with an icon and a title, indistinguishable from a Live Activity's,
+and with three of them the dock read as five equal pills. Nothing about a
+parked app is live and it has no expanded presentation, so it takes the quiet
+form and sits furthest from the island. Its title moved to the tooltip, where
+it already was.
 
 ## The panel is a Base UI Drawer, travelling up
 
@@ -42,92 +91,99 @@ shared stack, so the site has one overlay vocabulary rather than two.
 
 What that deleted: the hand-written `drag="y"` + `dragConstraints` +
 `onDragEnd` 40px threshold, both `AnimatePresence` blocks, the transparent
-scrim in `Dock`, and the Escape listener in `DockProvider`. The motion is now
-CSS, under "Dock panel motion" in `app/globals.css`.
+scrim in `Dock`, the Escape listener in `DockProvider`, and the row's
+drag-to-scroll. The motion is now CSS, in the dock block of
+`app/globals.css`.
 
 What it bought:
 
 | | |
 |---|---|
-| **The morph** | The panel does not slide in from the top edge. It *grows out of the pill*: the glass shell is clipped down to the pill's own rectangle and the clip opens to the whole panel, so the pill appears to become the panel — the Dynamic Island, which is the metaphor the dock has always claimed. |
-| **Pull to expand** | `Drawer.SwipeArea` wraps the pill, so dragging *down* from it opens the panel and the panel follows the finger the whole way. Release short of half the panel's height and it snaps back. This is the iOS Notification Center gesture; before, a pill could only be tapped. |
+| **The deformation** | The panel does not slide in from the top edge. The glass shell starts at the compact form's own rectangle and *changes size* into the panel's — width, height, corner and offset together — so the compact form appears to become the panel. |
+| **Pull to expand** | `Drawer.SwipeArea` wraps the compact form, so dragging *down* from it opens the panel and the panel follows the finger the whole way. Release short of half the panel's height and it snaps back. This is the iOS Notification Center gesture; before, a pill could only be tapped. |
 | **Stacking** | The panel registers in the shared surface stack (`systems/surface/stack.ts`) as `dock-activity`. It was the one overlay on the site that did not know about the others. Now a palette opened over it (from the keyboard — a press on the FAB is an outside press and dismisses instead) sends it back a step and makes it inert, and a panel opened over the playlist sheet sends *that* back instead. |
-| **Free layout** | The panel is portalled into the shared `SurfaceViewport`, so the old rule that the pill row must carry no transform (or the `fixed` panels inside it would anchor to the row) is gone. |
+| **Free layout** | The panel is portalled into the shared `SurfaceViewport`, so the old rule that the dock row must carry no transform (or the `fixed` panels inside it would anchor to the row) is gone. |
 
 Before changing any of it, read the "BEFORE CHANGING THIS FILE" block at the top
 of `systems/dock/components/live-activity.tsx`, and the one it points at in
 `systems/surface/sheet.tsx`.
 
-### The morph, and why it is a clip
+### The entrance is a deformation
 
-`clip-path`, not a scale and not a slide. A scale would scale what the shell's
-`backdrop-filter` samples, so the page behind the panel would appear to zoom for
-half a second; a clip leaves the glass sampling the page at 1:1 and only changes
-how much of it you can see. It also means the content never reflows — it is laid
-out at the final width from the first frame and simply revealed, the way the
-Island masks its own content. `clip-path` and `backdrop-filter` on the *same*
-element are fine together; it is an ancestor that breaks the backdrop (below).
+The panel does not slide in, does not pop, and is not revealed. The glass shell
+starts at the compact form's own rectangle — width, height, corner, horizontal
+offset — and **changes size** into the panel's. All four travel together, which
+is what makes the 44pt panel read as the compact form grown rather than as a
+different object that appeared.
 
-The corner radius travels with the clip: 18px at the pill, `--dock-radius` at
-the panel, one `inset()` interpolating into the next — which browsers do
-natively as long as both sides have the same shape. Both are the real numbers,
-so the first frame is the pill's silhouette exactly and the last is the panel's,
-and the corner opens out at the same rate the box does.
+**Width and height, not a scale.** A scale is cheaper and is wrong twice: it
+magnifies what the shell's `backdrop-filter` samples, so the page appears to
+zoom behind the glass, and it stretches the border and the text with it. A real
+size change costs a layout per frame on one absolutely-positioned box — nothing
+in the page reflows — and the blur re-samples at 1:1 the whole way. Measured
+across the entrance: `backdrop-filter` held at `blur(24px)`, first frame
+`80×36 r=18 left=155` against a compact form at `80×36 r=18 left=155`, last
+frame `359×172 r=44 offset=0`.
 
-The pill's rectangle is measured off the live DOM (`morphVars` in
-`live-activity.tsx`) — the pill can be anywhere in a scrolled row of them, and
-the panel should grow out of the one that was tapped. Three things about that
-measurement were each a bug first:
+**And not a clip, which is what this replaced.** The previous version clipped a
+full-size panel down to the pill's rectangle and opened the clip. It looks
+close, and it is a reveal: the content is already at full size, merely hidden.
+Nothing deforms, so the corner cannot travel with the box.
 
-- **The vars have to go through React.** Base UI re-renders the popup several
-  times on its way open and React reconciles `style` each time, so custom
-  properties set imperatively on the node are wiped before the browser ever
-  resolves the starting style. Measured: the clip sat at `inset(0px)` and there
-  was no morph at all.
-- **Nothing keyed on the measurement's absence may animate.** A travel rule that
-  applied `:not([data-dock-morph])` got latched as the transition's starting
-  value during the style recalc the measurement itself forces — the panel slid
-  *and* morphed. The swipe-dismiss exit is the only travel left, and it is keyed
-  on `data-swipe-dismiss`, which has nothing to do with the morph.
-- **Measure layout, not painted geometry.** `offsetTop`/`offsetWidth` rather than
-  `getBoundingClientRect`, so a transform the panel happens to be carrying
-  cannot contaminate the result; and the pill's *wrapper* rather than its
-  button, because by then the button is already fading and shrinking away.
+The content is laid out at the panel's final width and clipped by the shell
+while it is small, so it never reflows mid-deformation — Apple: "preserve as
+much of the existing layout as possible by animating existing elements to their
+new positions rather than removing and animating them back in." What it does
+instead is arrive, on a fade that starts 30% in, because starting it at zero
+put a corner of the album art on screen while the shell was still pill-sized.
 
-A swipe-up dismissal does not morph. A finger that has flicked the panel upward
-should be answered by the panel going that way, not by it shrinking back onto a
-pill the finger has left behind, so that exit travels over the top edge.
+#### Two divisions of labour, and a measurement that has to be early
 
-**It replaces the pop, rather than joining it.** The branch below this one
-(#188) restores `main`'s `scale(0.94)` entrance, and the morph takes it out —
-not by scoping it `:not([data-dock-morph])`, which was tried and is a trap:
-measuring the pill forces a style recalc on the frame before `data-dock-morph`
-lands, so the panel latches the scaled transform as its transition's start value
-and then morphs *and* scales out of it. That is the same trap as the second
-bullet above. The shell's fade goes for a different reason — a clip that is
-continuous with the pill should not also fade a hole into the pixels the pill is
-handing over — and that one *is* safe to key on `data-dock-morph`, because an
-animation has no start value to latch.
+**The popup carries the swipe; the shell carries the deformation.** Base UI
+reads the *popup's* transform to decide how far "closed" is, so the popup's
+transform belongs to the drag and nothing else. Everything the entrance does
+happens one level down.
 
+**The popup is the panel's box even while the shell is pill-sized.** Letting it
+shrink with the shell was a measured bug: `Drawer.SwipeArea` opens the drawer on
+the first pixel of a pull, and Base UI reads the popup's height right then to
+decide how far the finger has to travel. With the popup 36px tall, a pull that
+should track ~170px of panel tracked 36 and overshot — `--drawer-swipe-movement-y`
+came back at **+11px** where **−170** was due. So the popup's height is pinned
+and only the shell deforms inside it; pointer events move to the shell, so the
+empty margin during the entrance still belongs to the page.
 
-### The glass is the constraint on the motion
+**The anchor is measured off the compact form ALONE, before the panel exists.**
+This is the part that took three tries. The panel mounts with
+`data-starting-style` already set, so the very first style the browser resolves
+for it has to be the compact form's geometry; anything that lands a commit
+later is a different starting value and the browser has already latched the
+resting one. That failure is quiet and specific: `width`, `border-radius` and
+`transform` interpolate from the resting value — so they appear not to animate
+at all, sitting at the end the whole time — while `height` *jumps*, because its
+resting value is `auto` and `auto` does not interpolate. Measured before the
+fix: width crawling `358.797px → 359px` across the entire entrance.
 
-**Opacity belongs on the glass, never on a box that contains it.** An element at
-`opacity < 1` is its own backdrop root, so a `backdrop-filter` *inside* it
-samples that empty group instead of the page: the glass is not there at all for
-the length of the animation. On the element that carries the blur the same
-opacity is fine — its own backdrop resolves before its opacity applies.
+So nothing in `useAnchor` touches the panel. The compact form is always
+mounted, so its box is free; and the panel's box is derivable without it —
+`mx-auto` inside a full-screen layer puts its left edge at
+`(viewport − PANEL_WIDTH) / 2`, and its top edge is the same `TOP_INSET` the
+dock row sits at, which is why there is **no Y in the deformation at all**. The
+walkthrough asserts that shared top rather than trusting it.
 
-A fade on the popup was tried and shipped, and it made the panel see-through on
-the way in, the page's text legible straight through it, unblurred. A/B'd at the
-same opacity on the same frame: on the shell the text behind it is blurred, on
-the popup it is sharp. That is the whole reason the popup carries the transform
-and every fade sits one level down, on the shell and on the pill, which are
-themselves the glass. The sheets above hold to the same rule.
+The panel's *resting* size is measured too (`restingVars`), and that one is
+free to land late — it is the value the deformation travels to, so a commit's
+delay changes the target, never the latched start. Measuring it is also what
+lets the panel's height follow its content afterwards: a longer title, a
+weather card that gains a row. Apple asks for exactly that — "dynamically
+change the height … when there's less information to show, reduce the height" —
+and because the shell's height is a transitioned pixel value, re-measuring *is*
+the animation.
 
-The walkthrough guards both: it samples the entrance frame by frame and fails
-if anything between the shell and `<body>` is fading or filtering, if the first
-frame's clip is not the pill's rectangle, or if the panel translates at all.
+A swipe-up dismissal does not deform. A finger that has flicked the panel
+upward should be answered by the panel going that way, not by it collapsing
+back onto a compact form the finger has left behind, so that exit travels over
+the top edge.
 
 ### The radius is Apple's number, not ours
 
@@ -184,6 +240,67 @@ a 54px-tall box is not concentricity, it is a lozenge. The guideline is about
 shapes *near a corner*; the album art, whose bottom-left corner is 20px from the
 left edge and 24px from the bottom, is one, and the thumb is not.
 
+### The glass is the constraint on the motion
+
+**Opacity belongs on the glass, never on a box that contains it.** An element at
+`opacity < 1` is its own backdrop root, so a `backdrop-filter` *inside* it
+samples that empty group instead of the page: the glass is not there at all for
+the length of the animation. On the element that carries the blur the same
+opacity is fine — its own backdrop resolves before its opacity applies.
+
+A fade on the popup was tried and shipped, and it made the panel see-through on
+the way in, the page's text legible straight through it, unblurred. A/B'd at the
+same opacity on the same frame: on the shell the text behind it is blurred, on
+the popup it is sharp. So nothing above the glass ever fades. What fades is
+`[data-dock-content]`, *inside* it.
+
+The walkthrough guards it frame by frame: the entrance fails if anything between
+the shell and `<body>` is fading or filtering, if the shell's first frame is not
+the compact form's own box, if any of width / height / corner / offset fails to
+travel, if the popup transforms at all, or if the content is visible before the
+box has grown.
+
+### The material, and the key line
+
+Apple's Dynamic Island is opaque black because it is hiding a camera cutout. We
+have no cutout — we have [the glass system](./system-glass.md) and [the
+legibility system](./system-legibility.md) — so the island is glass, and it is
+finally the *right* glass:
+
+| | Role | Was |
+|---|---|---|
+| Island and dots | `bg-glass-strong` | `bg-glass` |
+| Panel | `bg-glass-overlay` | `bg-glass` |
+| Window dots | `bg-glass` | `bg-glass-strong` |
+
+Those first two roles are what `docs/system-glass.md` has specified for a Live
+Activity's pill and panel since that system was written. The dock was the one
+surface quietly painting itself with plain `bg-glass` in both places, which
+meant it answered the Tinted/Clear setting a step weaker than the minimized
+windows sitting in the same row. Measured after: compact fill 0.6, panel 0.7 —
+the documented numbers.
+
+**The key line** is HIG: "When the background is dark … a key line appears
+around the Dynamic Island to distinguish it from other content. Choose a key
+line colour that's consistent with the colour of other elements in your Live
+Activity." Music's EQ bars are green, so is its line; theater's are red. An
+activity opts in with `keyColor` and the ambient phase notification deliberately
+does not — its sun glyph is the theme's own ink, and a coloured line around it
+would be the only colour on a surface that has none.
+
+Consistent, not loud: the colour is mixed *into* the border token rather than
+replacing it, so a green line is still a border. It gets more of its say in the
+dark, where iOS draws one at all — and the panel takes about half the compact
+form's mix, because the panel is twenty times the area and the same value stops
+being a key line and becomes a green rectangle. That one was settled by looking
+at it.
+
+What we do **not** do: specular highlights, lens distortion, edge refraction.
+`system-glass.md` rules them out for every surface on the site — "nothing
+pretending to be a physical pane" — and an island is not the place to make an
+exception. The liquid-glass behaviour this does take is the one that costs no
+pixels: elements merging and separating.
+
 ### One place it does not replicate the old dock
 
 The old scrim was a real `fixed inset-0` div, so with a panel open every press
@@ -239,6 +356,8 @@ restructuring its layer model.
 <Dock>
   <AmbientPhaseActivity />   {/* renders a <LiveActivity id="ambient-phase" /> */}
   <MusicActivity />          {/* renders a <LiveActivity id="music" /> */}
+  <TheaterActivity />
+  <MinimizedWindows />
 </Dock>
 ```
 
@@ -247,38 +366,49 @@ restructuring its layer model.
   id="music"
   openLabel="Open music controls"
   collapseLabel="Collapse"
-  pill={<>{/* leading pill content: art, EQ, icon… */}</>}
+  // Apple's compact split. `lead` identifies the activity and is ALL the
+  // minimal form shows, so it has to carry it alone; `trail` is the live bit
+  // and rides the island only.
+  lead={<AlbumArt />}
+  trail={playing ? <EQBars /> : undefined}
+  // Optional: the key line's colour, matching something in the activity.
+  keyColor="var(--color-green-500)"
   title={<>{/* panel header left side */}</>}
 >
-  {/* panel body — bring your own padding */}
+  {/* panel body — bring your own padding, `px-5` to stay concentric */}
 </LiveActivity>
 ```
 
+Order in the JSX does not decide order in the row: `data-dock-slot` and CSS
+`order` do, because which activity holds the island is a runtime question.
+
 ## Layout & coexistence rules
 
-These match the product spec for multiple simultaneous activities:
-
-- **Collapsed:** pills sit side by side in a centered row. The row is
-  horizontally scrollable (`.no-scrollbar`) once it gets crowded, so N pills
-  scale gracefully.
+- **Collapsed:** one island, then the other activities as detached circles,
+  then minimized windows. Nothing scrolls. Sorted by `data-dock-slot`, not by
+  DOM order, because the children come from four different systems and none of
+  them knows what the others rendered.
 - **Expanded:** the open activity's panel takes over the top-center anchor and
-  **every pill goes invisible and stops taking pointers**; collapsing restores
-  them. They stay mounted, so the row keeps its layout and its scroll position
-  while a panel is up. (Activities aren't individually dismissible, so we never
-  strand a pill behind a panel.)
+  **every compact form goes invisible and stops taking pointers**; collapsing
+  restores them. They stay mounted, so the row keeps its layout and its order
+  while a panel is up.
 - **One at a time:** opening an activity collapses any other that was open.
 - **Dismissal:** a press outside, Escape, a swipe up, the collapse chevron, or a
   route change. The first three are the drawer's; the last is `DockProvider`'s.
 
 ## Consumers
 
-| Activity | Source | Pill | Panel body |
-|----------|--------|------|------------|
-| Music | `systems/music/components/music-activity.tsx` | album art + EQ | `<NowPlaying />` |
-| Ambient phase | `systems/ambient/components/phase-activity.tsx` | sun icon + time | `<WeatherNow />` |
-| Theater audio | `systems/theater/components/theater-activity.tsx` | thumbnail + EQ | transport + `<SurfaceSwitch />` |
-| Minimized windows | `systems/windows/components/minimized-dock.tsx` | app icon + title | — (restores the window) |
+| Activity | Source | `lead` | `trail` | Key line | Panel body |
+|---|---|---|---|---|---|
+| Music | `systems/music/components/music-activity.tsx` | album art | EQ bars | green | `<NowPlaying />` |
+| Ambient phase | `systems/ambient/components/phase-activity.tsx` | sun glyph | the time | — | `<WeatherNow />` |
+| Theater audio | `systems/theater/components/theater-activity.tsx` | square thumbnail | EQ bars | red | transport + `<SurfaceSwitch />` |
+| Minimized windows | `systems/windows/components/minimized-dock.tsx` | app icon (dot only) | — | — | — (restores the window) |
 
 Music and Ambient phase reuse the same shared body component their homepage
 widget uses (`NowPlaying`, `WeatherNow`), so the dock panel and the grid widget
 never drift.
+
+Theater's thumbnail is square rather than the 16:9 it wants to be, because
+`lead` has to work in the minimal form too and a 36px circle has no room for a
+widescreen crop without it touching the key line on both sides.
