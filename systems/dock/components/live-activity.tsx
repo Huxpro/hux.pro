@@ -8,7 +8,7 @@ import {
 } from "@/systems/surface";
 import { Drawer } from "@base-ui/react/drawer";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDock } from "../provider";
 
 // ---------------------------------------------------------------------------
@@ -30,7 +30,16 @@ import { useDock } from "../provider";
 // and that a panel steps back when a sheet rises over it (the shared surface
 // stack).
 //
-// Two things the drawer brought that the hand-written panel could not:
+// Three things the drawer brought that the hand-written panel could not:
+//
+//   The morph.  The panel does not slide in from the top edge like a drawer.
+//   It GROWS out of the pill: on open, the glass shell is clipped down to the
+//   pill's own rectangle and the clip opens to the full panel, so the pill
+//   appears to become the panel — the Dynamic Island, which is the metaphor
+//   the dock has always claimed. The corner radius does not even have to
+//   interpolate: an h-9 `rounded-full` pill and a `rounded-2xl` panel are both
+//   18px, so the shape is continuous from the first frame. See `measureMorph`
+//   below and "Dock panel motion" in globals.css.
 //
 //   Pull to expand.  `Drawer.SwipeArea` wraps the pill, so dragging DOWN from
 //   it opens the panel and the panel follows the finger the whole way — iOS's
@@ -83,10 +92,66 @@ import { useDock } from "../provider";
 //    made the panel see-through on the way in, the page's text legible through
 //    it, unblurred — shipped and reverted. The panel travels on transform
 //    alone; the pill's fade is on the pill, which is itself the glass.
+// 5. The morph is `clip-path`, not a scale. Scaling the shell would scale what
+//    its `backdrop-filter` samples, so the page behind it would appear to zoom
+//    for half a second; a clip leaves the glass sampling the page at 1:1 and
+//    only changes how much of it you can see. Measured: `clip-path` and
+//    `backdrop-filter` on the same element are fine together — it is an
+//    ANCESTOR that breaks the backdrop (note 4), not the element's own clip.
 // -----------------------------------------------------------------------------
 
 /** Where the panel's top edge sits: the status bar, or the dock row's own gap. */
 const TOP_INSET = "max(env(safe-area-inset-top), 0.5rem)";
+
+/**
+ * The pill's rectangle in the panel's own coordinates — the clip the morph
+ * starts and ends at, as CSS custom properties the shell's `clip-path` reads.
+ *
+ * Returned rather than written: Base UI re-renders the popup several times on
+ * its way open, and React reconciles the `style` prop each time, so custom
+ * properties set imperatively on the node are wiped before the browser ever
+ * resolves the starting style. Measured: the vars were gone by the starting
+ * frame and the clip sat at `inset(0px)` — no morph at all. They have to be
+ * part of what React renders.
+ *
+ * `null` means there is nothing to grow out of — no pill, or a zero rect from a
+ * panel measured before layout. Then the vars are simply absent, the clip
+ * resolves to `inset(0)`, and the panel appears without an entrance. That is
+ * the degenerate case and it is unreachable in practice: a panel is only ever
+ * opened from a pill, and the pill stays rendered the whole time it is up.
+ */
+function morphVars(
+  panel: HTMLElement | null,
+  pill: HTMLElement | null
+): React.CSSProperties | null {
+  if (!panel || !pill) return null;
+  // `offset*` rather than `getBoundingClientRect`, and it matters: offsets are
+  // layout, so they ignore any transform the panel happens to be carrying. The
+  // panel's offset parent is the surface viewport, a `fixed inset-0` box, so
+  // these are viewport coordinates and comparable with the pill's rect.
+  //
+  // Reading the panel's computed *transform* here was a bug: the read forces a
+  // style recalc, and a recalc taken while the panel still looked like it
+  // should travel latched `translateY(-100%)` as a transition start — so it
+  // slid and morphed at once. Nothing here asks the panel what it looks like.
+  const to = {
+    top: panel.offsetTop,
+    left: panel.offsetLeft,
+    right: panel.offsetLeft + panel.offsetWidth,
+    bottom: panel.offsetTop + panel.offsetHeight,
+    width: panel.offsetWidth,
+    height: panel.offsetHeight,
+  };
+  const from = pill.getBoundingClientRect();
+  if (!to.width || !to.height || !from.width || !from.height) return null;
+  const clamp = (n: number, max: number) => `${Math.max(0, Math.min(n, max))}px`;
+  return {
+    "--dock-morph-top": clamp(from.top - to.top, to.height),
+    "--dock-morph-right": clamp(to.right - from.right, to.width),
+    "--dock-morph-bottom": clamp(to.bottom - from.bottom, to.height),
+    "--dock-morph-left": clamp(from.left - to.left, to.width),
+  } as React.CSSProperties;
+}
 
 interface LiveActivityProps {
   /** Stable id; the Dock allows only one activity open at a time. */
@@ -128,6 +193,25 @@ export function LiveActivity({
   // and what the other surfaces care about is "the dock panel is up".
   const { behind, depth } = useSurfaceStack("dock-activity", expanded);
 
+  // Where the morph starts and ends: the pill's rectangle, measured off the
+  // live DOM because the pill can be anywhere in a scrolled dock row.
+  //
+  // A callback ref, not an effect. Base UI mounts the popup on a later commit
+  // than the one that flips `expanded`, so an effect of ours keyed on
+  // `expanded` finds no panel to measure — and one with no dependencies never
+  // runs on Base UI's own commits at all. The ref fires the moment the node
+  // attaches, and the state it sets is flushed before paint, so the starting
+  // style the browser resolves is already the pill-sized clip.
+  //
+  // Measured once, on the way in, and reused on the way out: with a panel open
+  // every pill is invisible and the row is behind it, so the rectangle it grew
+  // out of is still the rectangle it should shrink back to.
+  const pillRef = useRef<HTMLDivElement>(null);
+  const [morph, setMorph] = useState<React.CSSProperties | null>(null);
+  const measurePanel = useCallback((node: HTMLDivElement | null) => {
+    setMorph(node ? morphVars(node, pillRef.current) : null);
+  }, []);
+
   return (
     <Drawer.Root
       open={expanded}
@@ -150,6 +234,11 @@ export function LiveActivity({
         // See note 3 above: the wrapper is presentational, the button inside
         // it is not.
         aria-hidden={false}
+        // The morph measures THIS box, not the button inside it: by the time
+        // the panel attaches, the button is already fading and shrinking away
+        // (see `[data-dock-pill][data-hidden] > *`), and its rect with it. The
+        // wrapper never moves.
+        ref={pillRef}
         data-dock-pill=""
         data-hidden={isAnyOpen ? "" : undefined}
         className="shrink-0"
@@ -183,8 +272,15 @@ export function LiveActivity({
             went unreachable, which is why it is not one. */}
         <SurfaceViewport modal={false}>
           <Drawer.Popup
+            ref={measurePanel}
             data-dock-panel=""
-            style={{ ...surfaceMotionVars(TOP_INSET), top: TOP_INSET }}
+            // Set by the measurement, one flush after the panel attaches but
+            // still before paint. Nothing keyed on its absence may animate, or
+            // that is what the browser latches as the transition's start — an
+            // earlier travel rule keyed this way made the panel slide AND
+            // morph at once.
+            data-dock-morph={morph ? "" : undefined}
+            style={{ ...surfaceMotionVars(TOP_INSET), top: TOP_INSET, ...morph }}
             // A positioning box only, centred without a transform so the drag
             // has the axis to itself. Nothing paints here; the shell inside does.
             className={cn(

@@ -1528,6 +1528,38 @@ html.dragging * {
   transition: transform var(--surface-duration) var(--surface-easing);
 }
 
+/* THE MORPH. The panel grows out of the pill rather than sliding in from the
+   top edge: the glass shell is clipped down to the pill's own rectangle
+   (measured onto the panel as `--dock-morph-*`, see live-activity.tsx) and the
+   clip opens to the whole panel. Nothing moves and nothing scales, so the
+   content never reflows and the glass goes on sampling the page at 1:1 — a
+   scale would magnify what the backdrop-filter sees, which is why this is a
+   clip. The radius is one number, not an interpolation: an h-9 `rounded-full`
+   pill and a `rounded-2xl` panel are both 18px, so the shape is continuous. */
+[data-dock-panel][data-dock-morph] [data-surface-shell] {
+  clip-path: inset(0 0 0 0 round var(--dock-morph-radius, 18px));
+  transition: clip-path var(--surface-duration) var(--surface-easing);
+}
+
+[data-dock-panel][data-dock-morph]:is([data-starting-style], [data-ending-style])
+  [data-surface-shell] {
+  clip-path: inset(
+    var(--dock-morph-top, 0px) var(--dock-morph-right, 0px)
+      var(--dock-morph-bottom, 0px) var(--dock-morph-left, 0px)
+      round var(--dock-morph-radius, 18px)
+  );
+}
+
+/* Under the finger the shape is not the story: a pull-open drags the whole
+   panel down, and a swipe-dismiss throws it over the top edge. Both want the
+   panel whole, so the clip stands down for the length of the gesture and its
+   release. `data-swipe-dismiss` outlives `data-swiping` by the release frames,
+   which is why both are here. */
+[data-dock-panel][data-dock-morph]:is([data-swiping], [data-swipe-dismiss])
+  [data-surface-shell] {
+  clip-path: none;
+}
+
 /* Under the finger the panel is direct. The duration only, never the whole
    transition — same reason as the sheet: on the frame a dismiss is released
    the popup can be swiping and leaving at once, and the leaving rule below
@@ -1536,9 +1568,12 @@ html.dragging * {
   transition-duration: 0ms;
 }
 
-/* Arriving and leaving: up past the top edge, and past the inset as well, so
-   the panel is gone rather than clipped at the status bar. */
-[data-dock-panel]:is([data-starting-style], [data-ending-style]) {
+/* Thrown away: a finger that has flicked the panel upward should be answered
+   by the panel going that way, over the top edge and past the inset as well —
+   not by it shrinking back onto a pill the finger has already left behind. The
+   morph stands down for this one (see the clip rules above), and this is the
+   only entrance or exit that travels. */
+[data-dock-panel][data-swipe-dismiss]:is([data-starting-style], [data-ending-style]) {
   transform: translateY(calc(-100% - var(--surface-exit)));
 }
 
@@ -1586,6 +1621,7 @@ html.dragging * {
 
 @media (prefers-reduced-motion: reduce) {
   [data-dock-panel],
+  [data-dock-panel] [data-surface-shell],
   [data-dock-pill] > * {
     transition: none;
   }

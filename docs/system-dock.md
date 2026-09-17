@@ -49,6 +49,7 @@ What it bought:
 
 | | |
 |---|---|
+| **The morph** | The panel does not slide in from the top edge. It *grows out of the pill*: the glass shell is clipped down to the pill's own rectangle and the clip opens to the whole panel, so the pill appears to become the panel — the Dynamic Island, which is the metaphor the dock has always claimed. |
 | **Pull to expand** | `Drawer.SwipeArea` wraps the pill, so dragging *down* from it opens the panel and the panel follows the finger the whole way. Release short of half the panel's height and it snaps back. This is the iOS Notification Center gesture; before, a pill could only be tapped. |
 | **Stacking** | The panel registers in the shared surface stack (`systems/surface/stack.ts`) as `dock-activity`. It was the one overlay on the site that did not know about the others. Now a palette opened over it (from the keyboard — a press on the FAB is an outside press and dismisses instead) sends it back a step and makes it inert, and a panel opened over the playlist sheet sends *that* back instead. |
 | **Free layout** | The panel is portalled into the shared `SurfaceViewport`, so the old rule that the pill row must carry no transform (or the `fixed` panels inside it would anchor to the row) is gone. |
@@ -56,6 +57,44 @@ What it bought:
 Before changing any of it, read the "BEFORE CHANGING THIS FILE" block at the top
 of `systems/dock/components/live-activity.tsx`, and the one it points at in
 `systems/surface/sheet.tsx`.
+
+### The morph, and why it is a clip
+
+`clip-path`, not a scale and not a slide. A scale would scale what the shell's
+`backdrop-filter` samples, so the page behind the panel would appear to zoom for
+half a second; a clip leaves the glass sampling the page at 1:1 and only changes
+how much of it you can see. It also means the content never reflows — it is laid
+out at the final width from the first frame and simply revealed, the way the
+Island masks its own content. `clip-path` and `backdrop-filter` on the *same*
+element are fine together; it is an ancestor that breaks the backdrop (below).
+
+The corner radius does not interpolate, because it does not have to: an `h-9`
+`rounded-full` pill and a `rounded-2xl` panel are both 18px. The shape is
+continuous from the first frame.
+
+The pill's rectangle is measured off the live DOM (`morphVars` in
+`live-activity.tsx`) — the pill can be anywhere in a scrolled row of them, and
+the panel should grow out of the one that was tapped. Three things about that
+measurement were each a bug first:
+
+- **The vars have to go through React.** Base UI re-renders the popup several
+  times on its way open and React reconciles `style` each time, so custom
+  properties set imperatively on the node are wiped before the browser ever
+  resolves the starting style. Measured: the clip sat at `inset(0px)` and there
+  was no morph at all.
+- **Nothing keyed on the measurement's absence may animate.** A travel rule that
+  applied `:not([data-dock-morph])` got latched as the transition's starting
+  value during the style recalc the measurement itself forces — the panel slid
+  *and* morphed. The swipe-dismiss exit is the only travel left, and it is keyed
+  on `data-swipe-dismiss`, which has nothing to do with the morph.
+- **Measure layout, not painted geometry.** `offsetTop`/`offsetWidth` rather than
+  `getBoundingClientRect`, so a transform the panel happens to be carrying
+  cannot contaminate the result; and the pill's *wrapper* rather than its
+  button, because by then the button is already fading and shrinking away.
+
+A swipe-up dismissal does not morph. A finger that has flicked the panel upward
+should be answered by the panel going that way, not by it shrinking back onto a
+pill the finger has left behind, so that exit travels over the top edge.
 
 ### The glass is the constraint on the motion
 
@@ -68,8 +107,9 @@ the way in, the page's text legible straight through it, unblurred. The pill's
 fade sits on the pill itself, the element that carries the blur, for the same
 reason. The sheets above are transform-only for the same reason.
 
-The walkthrough guards it: it samples twelve frames across the entrance and
-fails if anything between the shell and `<body>` is fading or filtering.
+The walkthrough guards both: it samples the entrance frame by frame and fails
+if anything between the shell and `<body>` is fading or filtering, if the first
+frame's clip is not the pill's rectangle, or if the panel translates at all.
 
 ### One place it does not replicate the old dock
 
