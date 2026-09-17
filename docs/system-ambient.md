@@ -240,8 +240,8 @@ Talks widget uses for albums (`WALLPAPER_CATEGORIES` in `lib/wallpaper.ts`).
   the artwork each release is recognised by. Seventeen pairs: macOS Golden
   Gate, Tahoe, Sequoia, Sonoma, Ventura, Monterey, Big Sur, Catalina and
   Mojave; iPadOS 26 and iPadOS 18 in its four colourways (Violet, Indigo,
-  Blue, Teal); iOS 15, 14 and 13. Catalina and Mojave are photographs, so they
-  ship 1280/1920 cover renditions like Nature.
+  Blue, Teal); iOS 15, 14 and 13. Every pair ships a @1x cover beside the
+  full @2x (or native) file when the source is larger than 1×.
 - **Nature** — the 19 Mac OS X Nature desktop pictures (Aurora, Zebra, Zen
   Garden, …), taken from ryOS. One photograph each, so both theme halves are
   the same file (`isSingleImage()`), and the picker shows it unsplit. Clown
@@ -255,58 +255,61 @@ The **iOS** pairs are phone artwork, so the picker caption marks them with a
 phone glyph — the tiles are all the same 16:10 card and could not otherwise
 show it. `isPhoneWallpaper()` derives it from the platform rather than storing
 a flag. Apple ships these stills on a square canvas and lets the device crop
-(iOS 14 is 3072², iOS 15 2916², iOS 13 3186² at source); nothing here was cropped.
+(iOS 14 is 3072², iOS 15 2916², iOS 13 3208² at source); nothing here was cropped.
 
 #### Resolution
 
 Every wallpaper paints `cover`, so the rule is about the stretch on a real
-screen, not megapixels: **a file must cover a 2560×1600 viewport with at most a
-1.07× stretch**, and is downscaled to the smallest size that still covers it.
-Each tile prints the committed file's pixels under its name.
+screen, not megapixels: **a full-size file is the smallest cover of a 2560×1600
+viewport at 2× (5120×3200 device pixels), never upscaled past the source.** A
+matching `@1x` cover (`.1x.webp`) ships beside it whenever that is smaller, so a
+1× display does not download the retina file. Sources that cannot cover 2×
+(most Nature stills are 2560×1600 at source) keep a single file. Each tile
+prints the committed full file's pixels under its name.
 
-| | File | Stretch | |
+| | Full file | @1x | Stretch at 1× |
 |---|---|---|---|
-| macOS Golden Gate | 2560×1765 | 1.00× | added |
-| macOS Tahoe … Ventura | 2560×2560 | 1.00× | kept |
-| macOS Catalina | 2560×2560 plus 1280/1920 covers | 1.00× | added |
-| macOS Mojave | 2844×1600 plus 1280/1920 covers | 1.00× | added |
-| iPadOS 26 landscape | 2560×1920 | 1.00× | added |
-| iPadOS 18 | 2560×1779 | 1.00× | kept |
-| Monterey, Big Sur, iOS 15, iOS 14, iOS 13 | 2400×2400 / 2560×2560 | ≤1.07× | kept |
-| iOS 17 | 2048×2048 | 1.25× | removed |
-| iOS 18 | 1480×3192 | 1.73× | removed |
-| iOS 27 / portrait iPadOS 26 | 1320×2868 / 2064×2752 | 1.94× / 1.24× | omitted |
-| Nature | 2560×1600 (Earth & Moon 2844×1600) plus 1280×800 and 1920×1200 cover renditions | 1.00× | added |
+| macOS Golden Gate | 4480×3088 | 2560×1765 | 1.00× |
+| macOS Tahoe … Big Sur, Catalina | 5120×5120 | 2560×2560 | 1.00× |
+| macOS Mojave, Earth & Moon | 5120×2880 | 2844×1600 | 1.00× |
+| iPadOS 26 landscape | 2752×2064 | 2560×1920 | 1.00× |
+| iPadOS 18 | 3840×2668 | 2560×1779 | 1.00× |
+| iOS 15 / 14 / 13 | 2916² / 3072² / 3208² | 2560×2560 | 1.00× |
+| Mt. Fuji | 3200×2000 | 2560×1600 | 1.00× |
+| Nature (the rest) | 2560×1600 | — (same file) | 1.00× |
+| iOS 17 | 2048×2048 | | 1.25× — removed |
+| iOS 18 / 27, portrait iPadOS 26 | too tall/narrow | | omitted |
 
-The landscape Nature photographs stretch about 1.64× on a portrait phone; most
-of the set tops out at 2560×1600 at source.
+The landscape Nature photographs still stretch about 1.64× on a 3× portrait
+phone; the source is 1600px tall and we never upscale.
 
 ryOS serves each photograph as one original JPEG (Aurora is 1.3MB, Snowy Hills
-2.3MB) plus a picker thumb — it does not keep per-screen-size files. We still
-encode three cover renditions so a phone does not download the desktop file,
-and we encode them at WebP q95 with 4:4:4 chroma (q90 only when a file would
-exceed 1.8MB — Zen Garden's raked sand). The previous q75 4:2:0 pass crushed
-smooth skies: Aurora was 43KB of banding against a 1.3MB original.
-`pickWallpaperSrc()` chooses the smallest rendition that covers the current
-viewport × DPR; a 2× portrait phone still needs the full file, because 1600px
-is the covering axis.
+2.3MB) plus a picker thumb, and paints a 24px blur-up while the JPEG decodes.
+We encode `@1x` / `@2x` covers so a 1× display does not download a 5K file, at
+WebP q95 with 4:4:4 chroma (q90 only when a file would exceed ~1.8MB per
+2560×1600 megapixel — Zen Garden's raked sand). `pickWallpaperSrc()` chooses
+the smallest rendition that covers the current viewport × DPR. The desktop
+paints the 480px picker thumb immediately and fades the chosen file in over it
+once it has decoded — the same blur-up, using a thumb we already ship.
 
 Release pairs are WebP q80. Photographs — Nature, and the Catalina / Mojave
-pairs — get 1280/1920 cover renditions plus a 480px thumbnail for the picker.
-The byte budgets differ by kind: a graphic pair past 320KB means something
-went wrong, while a photograph of raked sand is detail all the way down, so
-photographs get 2.5MB. Provenance for every file — source URL, and HEIC frame
-index where a pair came out of one file — lives in `public/wallpapers/sources.json`.
+pairs — use the photo pipeline. The byte budgets differ by kind: a graphic pair
+past 2MB at 2× means something went wrong (Big Sur dark is a grainy illustration
+around 1.2MB), while a photograph of raked sand is
+detail all the way down, so photographs get 8MB at 2×. Provenance for every
+file lives in `public/wallpapers/sources.json`.
 
 High-resolution originals were collected from wallpapers.poutanen.dev (macOS 6K
-graphics), 4kwallpapers.com (Golden Gate 4480×3088, Catalina 6016×6016, Mojave
-5120×2880, iOS 15 2916×2916), static.applewalls.com (iPadOS 26 landscape),
-LAYTAT/macOS-Wallpapers and Deeeee-macOS-Wallpapers (`/System/Desktop Pictures`
-dumps), with 512pixels.net 6K files skipped as hand-upscales. Portrait iPhone
-lock-screens never cover 2560×1600.
+graphics Tahoe–Big Sur, iOS 13 3208², iOS 14 3072²), 4kwallpapers.com (Golden
+Gate native 4480×3088 — the 6016×4147 "6K" files are a uniform upscale of that
+pair and are not used — Catalina 6016×6016, Mojave 5120×2880, iOS 15 2916×2916),
+static.applewalls.com (iPadOS 26 landscape), LAYTAT/macOS-Wallpapers and
+Deeeee-macOS-Wallpapers (`/System/Desktop Pictures` dumps), with 512pixels.net
+6K files skipped as hand-upscales. Portrait iPhone lock-screens never cover
+2560×1600.
 
 ```bash
-pnpm wallpapers:encode              # fetch Nature JPEGs from sources.json and rebuild WebP renditions
+pnpm wallpapers:encode              # fetch sources.json and rebuild WebP @1x/@2x
 pnpm wallpapers:encode golden-gate  # rebuild one release pair marked `"encode"` in sources.json
 pnpm wallpapers:check   # every file present, sharp enough, sized as declared, within budget
 pnpm wallpapers:profile # measure every wallpaper for the legibility system (commit the table)

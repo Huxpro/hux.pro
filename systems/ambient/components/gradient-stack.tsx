@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fixedBgTracker } from "../lib/fixed-bg-tracker";
 import { GRADIENT_CROSSFADE_MS, type GradientLayerData } from "../lib/gradient";
 
@@ -20,6 +20,10 @@ import { GRADIENT_CROSSFADE_MS, type GradientLayerData } from "../lib/gradient";
 // per layer. It is also source-agnostic: weather gradients and picture
 // wallpapers are both just a `background-image`, which is what lets the two
 // crossfade into each other when the wallpaper source changes.
+//
+// Picture wallpapers paint the 480px picker thumb first and fade the chosen
+// @1x/@2x file on top once it has decoded — the same blur-up ryOS does with a
+// 24px LQIP, using a thumb we already ship.
 // ---------------------------------------------------------------------------
 
 interface GradientLayerProps {
@@ -43,6 +47,49 @@ interface GradientLayerProps {
    * taken full-page, never through the widget tracker.
    */
   blurred: boolean;
+  preview?: string | null;
+  src?: string | null;
+}
+
+function useDecodedImage(src: string | null | undefined): boolean {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (!src) {
+      setReady(false);
+      return;
+    }
+    let cancelled = false;
+    setReady(false);
+    const image = new Image();
+    image.decoding = "async";
+    const done = () => {
+      if (!cancelled) setReady(true);
+    };
+    image.onload = () => {
+      if (typeof image.decode !== "function") {
+        done();
+        return;
+      }
+      void image.decode().then(done).catch(done);
+    };
+    image.onerror = done;
+    image.src = src;
+    return () => {
+      cancelled = true;
+      image.onload = null;
+      image.onerror = null;
+    };
+  }, [src]);
+  return ready;
+}
+
+function coverStyle(gradient: string, triple: boolean): React.CSSProperties {
+  return {
+    backgroundImage: gradient,
+    backgroundSize: triple ? "cover, cover, 100% 100%" : "cover, 100% 100%",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+  };
 }
 
 function GradientLayer({
@@ -55,8 +102,15 @@ function GradientLayer({
   cssFixedAttachment,
   cover,
   blurred,
+  preview,
+  src,
 }: GradientLayerProps) {
   const ref = useRef<HTMLDivElement | null>(null);
+  const fadeFull = Boolean(
+    cover && preview && src && src !== preview && !shell && !cssFixedAttachment && !blurred
+  );
+  const fullReady = useDecodedImage(fadeFull ? src : null);
+  const triple = Boolean(cover && preview && src && src !== preview);
 
   // iOS / tracked positioning + mask. The tracker writes styles directly to the
   // element each frame, so it must own this layer's background-position & mask.
@@ -69,9 +123,9 @@ function GradientLayer({
     });
   }, [shell, positionBackground, edgeMask]);
 
-  const style: React.CSSProperties = blurred ? {} : { backgroundImage: gradient };
+  const style: React.CSSProperties = blurred || fadeFull ? {} : { backgroundImage: gradient };
 
-  // Desktop widget: cheap native fixed attachment (no tracker).
+  // Desktop widget: cheap native fixed attachment (no JS).
   if (cssFixedAttachment) {
     style.backgroundAttachment = "fixed";
     style.backgroundSize = "100vw 100vh";
@@ -82,8 +136,8 @@ function GradientLayer({
   // Picture wallpapers must keep their aspect ratio. `cover` is layered so the
   // flat base underneath still stretches — see buildAsset() in lib/wallpaper.
   // It comes last so it wins over the widget sizing above.
-  if (cover) {
-    style.backgroundSize = "cover, 100% 100%";
+  if (cover && !fadeFull) {
+    style.backgroundSize = triple ? "cover, cover, 100% 100%" : "cover, 100% 100%";
     style.backgroundPosition = "center";
     style.backgroundRepeat = "no-repeat";
   }
@@ -99,6 +153,10 @@ function GradientLayer({
     style.maskSize = "100% 100%";
   }
 
+  const thumbGradient = preview
+    ? `url("${preview}"), linear-gradient(transparent, transparent)`
+    : gradient;
+
   return (
     <motion.div
       ref={ref}
@@ -109,6 +167,29 @@ function GradientLayer({
       animate={{ opacity: 1 }}
       transition={{ duration: durationMs / 1000, ease: "easeInOut" }}
     >
+      {fadeFull && preview && src && (
+        <>
+          <div
+            className="absolute inset-0 origin-center scale-110"
+            style={{
+              ...coverStyle(thumbGradient, false),
+              filter: "blur(16px)",
+            }}
+          />
+          {/* `src` is fetched only via Image() until it has decoded, so the
+              first paint is the thumb. Putting the full URL in CSS at opacity
+              0 would start the retina download twice. */}
+          <div
+            className="absolute inset-0 transition-opacity duration-700 ease-out"
+            style={{
+              ...(fullReady
+                ? coverStyle(`url("${src}"), linear-gradient(transparent, transparent)`, false)
+                : {}),
+              opacity: fullReady ? 1 : 0,
+            }}
+          />
+        </>
+      )}
       {blurred && (
         // Scaled past the layer so the blur has pixels to sample at the edges
         // instead of fading into nothing.
@@ -119,7 +200,7 @@ function GradientLayer({
             // busy picture is defocused further than a calm one.
             filter: "blur(var(--wp-blur, 40px))",
             backgroundImage: gradient,
-            backgroundSize: cover ? "cover, 100% 100%" : undefined,
+            backgroundSize: cover ? (triple ? "cover, cover, 100% 100%" : "cover, 100% 100%") : undefined,
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
           }}
@@ -162,6 +243,8 @@ export function GradientStack({
           cssFixedAttachment={cssFixedAttachment}
           cover={layer.cover ?? false}
           blurred={blurred}
+          preview={layer.preview}
+          src={layer.src}
         />
       ))}
     </>

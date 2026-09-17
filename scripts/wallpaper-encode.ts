@@ -2,21 +2,22 @@
 // =============================================================================
 // wallpaper-encode — rebuild committed wallpaper files from their sources.
 //
-//   pnpm wallpapers:encode                  # Nature photographs
+//   pnpm wallpapers:encode                  # every catalogued photo and pair
 //   pnpm wallpapers:encode golden-gate …    # only the named ids
 //
-// ryOS ships each Nature photograph as one original JPEG plus a picker thumb.
-// It does not keep per-screen-size files. We still encode three cover
-// renditions of each photo (1280×800, 1920×1200, 2560×1600) so a phone does
-// not download a desktop file, and we encode them much more gently than the
-// old WebP q75 — that setting crushed smooth skies (Aurora 1.3MB JPEG → 43KB)
-// into banding. Smooth photographs encode at q95; a file that would exceed
-// 1.8MB (raked sand) falls back to q90.
+// Each source is encoded twice when the pixels exist:
 //
-// Graphic release pairs (Golden Gate, iPadOS 26, iOS 15, …) encode at WebP q80
-// with no extra renditions — they compress to tens of kilobytes. Photographic
-// pairs (Catalina, Mojave) use the photograph pipeline, including 1280/1920
-// covers. Mark a pair `"encode": "graphic" | "photo"` in sources.json.
+//   full     smallest cover of 2560×1600 at 2× (5120×3200 device pixels),
+//            never upscaled. This is `asset.src`.
+//   @1x      smallest cover of 2560×1600 at 1×, written as `.1x.webp` when
+//            that is smaller than the full file, so a 1× display skips the
+//            retina payload.
+//
+// ryOS serves each Nature JPEG as-is plus a picker thumb. We still encode
+// @1x/@2x so raising quality (Aurora's source is 1.3MB) does not mean a phone
+// pays for a 5K file. Smooth photographs encode at q95 4:4:4; a file that
+// would outweigh the per-megapixel budget (Zen Garden's raked sand) falls
+// back to q90. Graphic release pairs encode at WebP q80.
 //
 // Sources are fetched into /tmp and never committed. Only the WebP derivatives
 // under public/wallpapers/ are written.
@@ -29,15 +30,20 @@ import process from "node:process";
 import sharp from "sharp";
 import {
   BUILT_IN_WALLPAPERS,
-  WALLPAPER_RENDITIONS,
+  WALLPAPER_MAX_DPR,
   WALLPAPER_VIEWPORT,
   coverSize,
   isSingleImage,
-  wallpaperRenditionSrc,
+  wallpaperOneXSrc,
+  wallpaperViewportAt,
 } from "../systems/ambient/lib/wallpaper.ts";
 
 const PUBLIC = path.join(process.cwd(), "public");
 const CACHE = path.join("/tmp", "wallpaper-sources");
+
+function publicPath(webPath: string): string {
+  return path.join(PUBLIC, webPath.replace(/^\//, ""));
+}
 
 const PHOTO_WEBP = {
   effort: 6,
@@ -48,10 +54,10 @@ const PHOTO_WEBP = {
 const GRAPHIC_WEBP = { quality: 80, effort: 6 } as const;
 
 /** Prefer q95 so smooth skies match the ryOS JPEGs; fall back to q90 if the
- *  file would outweigh a desktop wallpaper (Zen Garden's raked sand). */
+ *  file would outweigh ~1.8MB per 2560×1600 megapixel. */
 const PHOTO_QUALITY_PREFERRED = 95;
 const PHOTO_QUALITY_FALLBACK = 90;
-const PHOTO_FALLBACK_BYTES = 1800 * 1024;
+const PHOTO_FALLBACK_BYTES_PER_1X = 1800 * 1024;
 
 const THUMB_WEBP = { quality: 72, effort: 6 } as const;
 const THUMB_MAX = 480;
@@ -86,7 +92,7 @@ async function curlFetch(url: string, dest: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const child = spawn(
       "curl",
-      ["-fsSL", "--max-time", "120", "-A", BROWSER_UA, "-e", `${new URL(url).origin}/`, "-o", dest, url],
+      ["-fsSL", "--max-time", "180", "-A", BROWSER_UA, "-e", `${new URL(url).origin}/`, "-o", dest, url],
       { stdio: ["ignore", "ignore", "pipe"] }
     );
     let err = "";
@@ -162,67 +168,83 @@ async function summarize(dest: string, label: string, source: { width: number; h
   return { width: encodedMeta.width ?? 0, height: encodedMeta.height ?? 0, base };
 }
 
+function fallbackBytes(size: { width: number; height: number }): number {
+  const ref = WALLPAPER_VIEWPORT.width * WALLPAPER_VIEWPORT.height;
+  return Math.round(PHOTO_FALLBACK_BYTES_PER_1X * ((size.width * size.height) / ref));
+}
+
+async function removeLegacyRenditions(destSrc: string) {
+  const dir = path.dirname(publicPath(destSrc));
+  const stem = path.basename(destSrc, ".webp");
+  let names: string[] = [];
+  try {
+    names = await fs.readdir(dir);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (name.startsWith(`${stem}.`) && /\.(?:1280|1920)\.webp$/.test(name)) {
+      await fs.unlink(path.join(dir, name)).catch(() => {});
+    }
+  }
+}
+
 async function encodePhotoFile(opts: {
   label: string;
   sourcePath: string;
   destSrc: string;
   destThumb: string;
-  renditions: boolean;
+  graphic: boolean;
 }): Promise<void> {
   const image = sharp(opts.sourcePath);
   const meta = await image.metadata();
   const source = { width: meta.width ?? 0, height: meta.height ?? 0 };
   if (!source.width || !source.height) throw new Error(`${opts.label}: undecodable source`);
 
-  const full = coverSize(source, WALLPAPER_VIEWPORT);
-  const dest = path.join(PUBLIC, opts.destSrc);
+  const full = coverSize(source, wallpaperViewportAt(WALLPAPER_MAX_DPR));
+  const oneX = coverSize(source, WALLPAPER_VIEWPORT);
+  const dest = publicPath(opts.destSrc);
   await fs.mkdir(path.dirname(dest), { recursive: true });
 
   const pipeline = (size: { width: number; height: number }, quality: number) =>
     image
       .clone()
       .resize(size.width, size.height, { fit: "fill" })
-      .webp({ ...PHOTO_WEBP, quality });
+      .webp(opts.graphic ? GRAPHIC_WEBP : { ...PHOTO_WEBP, quality });
 
-  let quality: number = PHOTO_QUALITY_PREFERRED;
-  let fullBuf = await pipeline(full, quality).toBuffer();
-  if (fullBuf.length > PHOTO_FALLBACK_BYTES) {
-    quality = PHOTO_QUALITY_FALLBACK;
-    fullBuf = await pipeline(full, quality).toBuffer();
-  }
-  await fs.writeFile(dest, fullBuf);
-
-  if (opts.renditions) {
-    for (const rendition of WALLPAPER_RENDITIONS) {
-      const size = coverSize(source, rendition);
-      if (size.width >= full.width - 1 && size.height >= full.height - 1) continue;
-      await pipeline(size, quality).toFile(
-        path.join(PUBLIC, wallpaperRenditionSrc(opts.destSrc, rendition.id))
-      );
+  let quality: number | "q80" = opts.graphic ? "q80" : PHOTO_QUALITY_PREFERRED;
+  if (opts.graphic) {
+    await pipeline(full, 80).toFile(dest);
+  } else {
+    let q: number = PHOTO_QUALITY_PREFERRED;
+    let fullBuf = await pipeline(full, q).toBuffer();
+    if (fullBuf.length > fallbackBytes(full)) {
+      q = PHOTO_QUALITY_FALLBACK;
+      fullBuf = await pipeline(full, q).toBuffer();
     }
+    quality = q;
+    await fs.writeFile(dest, fullBuf);
   }
 
-  await writeThumb(image, source, path.join(PUBLIC, opts.destThumb));
-  await summarize(dest, opts.label, source, `q${quality}`);
-}
+  const writeOneX =
+    Math.abs(oneX.width - full.width) > 1 || Math.abs(oneX.height - full.height) > 1;
+  if (writeOneX) {
+    const oneDest = wallpaperOneXSrc(opts.destSrc);
+    const q = opts.graphic ? 80 : (quality as number);
+    await pipeline(oneX, q).toFile(publicPath(oneDest));
+  }
 
-async function encodeGraphicFile(opts: {
-  label: string;
-  sourcePath: string;
-  destSrc: string;
-  destThumb: string;
-}): Promise<void> {
-  const image = sharp(opts.sourcePath);
-  const meta = await image.metadata();
-  const source = { width: meta.width ?? 0, height: meta.height ?? 0 };
-  if (!source.width || !source.height) throw new Error(`${opts.label}: undecodable source`);
-
-  const full = coverSize(source, WALLPAPER_VIEWPORT);
-  const dest = path.join(PUBLIC, opts.destSrc);
-  await fs.mkdir(path.dirname(dest), { recursive: true });
-  await image.clone().resize(full.width, full.height, { fit: "fill" }).webp(GRAPHIC_WEBP).toFile(dest);
-  await writeThumb(image, source, path.join(PUBLIC, opts.destThumb));
-  await summarize(dest, opts.label, source, "q80");
+  await writeThumb(image, source, publicPath(opts.destThumb));
+  await removeLegacyRenditions(opts.destSrc);
+  await summarize(dest, opts.label, source, opts.graphic ? "q80" : `q${quality}`);
+  if (writeOneX) {
+    await summarize(
+      publicPath(wallpaperOneXSrc(opts.destSrc)),
+      `${opts.label}@1x`,
+      source,
+      opts.graphic ? "q80" : `q${quality}`
+    );
+  }
 }
 
 async function encodePhoto(id: string, sourcePath: string): Promise<void> {
@@ -236,16 +258,16 @@ async function encodePhoto(id: string, sourcePath: string): Promise<void> {
     sourcePath,
     destSrc: asset.src,
     destThumb: asset.thumb,
-    renditions: true,
+    graphic: false,
   });
 }
 
 async function encodePair(pair: PairSource): Promise<void> {
-  if (!pair.encode) return;
+  const kind = pair.encode ?? "graphic";
   const light = pair.light;
   const dark = pair.dark;
   if (!light || !dark) {
-    throw new Error(`${pair.id}: encode=${pair.encode} needs light and dark URLs`);
+    throw new Error(`${pair.id}: encode=${kind} needs light and dark URLs`);
   }
   const halves = [
     ["light", light],
@@ -257,22 +279,13 @@ async function encodePair(pair: PairSource): Promise<void> {
     const destSrc = `/wallpapers/${pair.id}/${half}.webp`;
     const destThumb = `/wallpapers/${pair.id}/${half}.thumb.webp`;
     const label = `${pair.id}/${half}`;
-    if (pair.encode === "photo") {
-      await encodePhotoFile({
-        label,
-        sourcePath: cached,
-        destSrc,
-        destThumb,
-        renditions: true,
-      });
-    } else {
-      await encodeGraphicFile({
-        label,
-        sourcePath: cached,
-        destSrc,
-        destThumb,
-      });
-    }
+    await encodePhotoFile({
+      label,
+      sourcePath: cached,
+      destSrc,
+      destThumb,
+      graphic: kind === "graphic",
+    });
   }
 }
 
@@ -287,7 +300,7 @@ async function main() {
   await fs.mkdir(CACHE, { recursive: true });
 
   const pairsToEncode = (manifest.pairs ?? []).filter(
-    (p) => p.encode && (!only || only.has(p.id)) && only
+    (p) => p.encode && p.light && p.dark && (!only || only.has(p.id))
   );
   if (pairsToEncode.length) {
     console.log(`Encoding ${pairsToEncode.length} release pair(s)\n`);
@@ -295,15 +308,15 @@ async function main() {
     console.log("");
   }
 
+  const photoSources = (manifest.photos ?? []).filter((s) => !only || only.has(s.id));
   if (only) {
-    const photoSources = (manifest.photos ?? []).filter((s) => only.has(s.id));
+    if (!pairsToEncode.length && !photoSources.length) {
+      throw new Error(`no matching ids: ${[...only].join(", ")}`);
+    }
     for (const photo of photoSources) {
       const cached = path.join(CACHE, `${photo.id}${sourceExt(photo.source)}`);
       await fetchSource(photo.source, cached);
       await encodePhoto(photo.id, cached);
-    }
-    if (!pairsToEncode.length && !photoSources.length) {
-      throw new Error(`no matching ids: ${[...only].join(", ")}`);
     }
     return;
   }
@@ -320,7 +333,7 @@ async function main() {
   }
   const toEncode = sources.filter((s) => catalogued.has(s.id));
   console.log(
-    `Encoding ${toEncode.length} photographs (WebP q${PHOTO_QUALITY_PREFERRED}, 4:4:4; q${PHOTO_QUALITY_FALLBACK} if > ${PHOTO_FALLBACK_BYTES / 1024}KB)\n`
+    `Encoding ${toEncode.length} photographs (WebP q${PHOTO_QUALITY_PREFERRED}, 4:4:4; q${PHOTO_QUALITY_FALLBACK} if over budget)\n`
   );
   for (const photo of toEncode) {
     const cached = path.join(CACHE, `${photo.id}${sourceExt(photo.source)}`);
