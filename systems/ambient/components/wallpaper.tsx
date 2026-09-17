@@ -121,7 +121,9 @@ export function WeatherWallpaper({
     scene.precipitation.type !== "none" && scene.precipitation.intensity > 0.02;
   useEffect(() => {
     if (!interactive || !precipitating || reducedMotion) return;
-    return attachWindStir({ onStir: (vx) => rendererRef.current?.stirWind(vx) });
+    return attachWindStir({
+      onStir: (vx, vy, x, y) => rendererRef.current?.stirWind(vx, vy, x, y),
+    });
   }, [interactive, precipitating, reducedMotion]);
 
   const style: React.CSSProperties = {};

@@ -32,7 +32,8 @@ systems/ambient/
 │   ├── wallpaper/
 │   │   ├── shader.ts             # GLSL: the full-screen procedural sky (CG)
 │   │   ├── renderer.ts           # WallpaperRenderer: uniform easing, adaptive quality
-│   │   ├── stir.ts               # Drag the background to stir up a gust of wind
+│   │   ├── stir.ts               # Drag the background to stir the air
+│   │   ├── field.ts              # The wind field: a real patch of moving air
 │   │   └── support.ts            # WebGL2 / reduced-motion / quality-profile detection
 │   ├── strike.ts                 # The thunder-day strike: timing + "is this the sky?"
 │   ├── greeting.ts               # Time-of-day helpers
@@ -186,10 +187,11 @@ The Sky engine (`WallpaperRenderer`):
   of the clock still snaps, measured between one **target** and the next: a
   large gap between the target and where the disc has eased to is only lag, and
   snapping on that teleports the disc mid-drag;
-- accumulates cloud/snow **drift in JS** from the smoothed wind, so a wind change
-  glides instead of teleporting the sky — and the snow takes that wind *slowly*,
-  see [Stirring the wind](#stirring-the-wind-rain-and-snow-easter-egg);
-- lets a hand dragged across the page add to the wind, same section;
+- accumulates cloud **drift in JS** from the smoothed wind, so a wind change
+  glides instead of teleporting the sky;
+- steps a small **wind field** every frame, which is where the weather the
+  visitor makes lives — see
+  [Stirring the wind](#stirring-the-wind-rain-and-snow-easter-egg);
 - renders at a **pixel budget** (≈1.1 M px desktop, ≈0.5 M px phones) and backs
   off further when frames run long, recovering when they are cheap — the scene
   is soft, so CSS upscaling is invisible;
@@ -255,75 +257,97 @@ module and click the page background.
 ### Stirring the wind (rain-and-snow easter egg)
 
 **While it is raining or snowing, drag a hand across the page's background and
-you stir up a breeze.** Stop, or let go, and it dies away and the sky settles
-back.
+you stir the air it passes through.** A straight sweep raises a gust that travels
+and comes apart; a stroke that turns leaves a curl behind, and the curl keeps
+turning after the hand is gone. Stop and the sky settles back to the forecast on
+its own.
 
-That is the whole of it: **a hand adds a term to `uWind.x`**. Everything the sky
-does with that it already knew how to do, so there is no second physics to keep
-honest and nothing to hand back when a gesture ends.
+There is no gust variable any more. There is **a field** — a grid of a few
+thousand cells behind the wallpaper, each holding a velocity — and one pass per
+frame (`lib/wallpaper/field.ts`):
 
-Air has mass, and that is the entire feel of it:
+1. **Advect** it by itself: every cell asks where the air now arriving at it came
+   from a moment ago, and takes that. This is what makes a gust *travel* rather
+   than fade where it was made, and what lets one gust wrap around another.
+2. **Settle** toward the forecast's own wind, so a sky nobody has touched is
+   exactly the sky the forecast asked for, and a stirred one comes home.
+3. **Take the hand's stroke**, by dragging the air it passes through *toward*
+   the hand's own velocity — never past it, because a hand cannot drive air
+   faster than it is itself moving. A stroke still accumulates, in **area**: a
+   long one brings more air up to speed than a short one. (Pouring in momentum
+   is the obvious way to write this and it has no ceiling — the push balances
+   only against the settling, which lands an equilibrium far outside the byte,
+   so any stroke held for a second clipped the whole blob flat.)
 
-| | |
-|---|---|
-| A hand that stops moving stops making wind | its stir goes stale within a breath, so resting a finger on the page does nothing |
-| A flick raises a puff, a long sweep raises a gust | the wind chases the stir over ~0.13 s, so a short gesture never quite reaches full strength |
-| Letting go needs no announcement | the stir simply stops arriving, and the wind passes over ~1.6 s |
+Both axes of the hand count, which is the whole of why a circle works: a stroke
+that turns puts opposite momentum on opposite sides, and that is a vortex.
 
-**It arrives all at once and then passes** — rise and fall differ by twelve
-times, which is the shape of the thing. Getting up and dying away at the same
-rate is what makes a gust read as a twitch. Measured: a 0.15 s **flick** peaks
-at **0.68** within 0.2 s and is still **0.44** a second later and **0.23** at
-two; a 0.45 s **swipe** reaches **0.96**; a long sweep saturates at **1.0** and,
-from the moment the hand lifts, passes through 0.67 at one second, 0.35 at two
-and is gone by six.
+#### What a particle actually answers to
 
-The choice of constant is made on *rising or falling*, not on stirring-or-not:
-the gust takes the fast one whenever it is asked for more wind than it has —
-including a hand that reverses and whips it the other way — and the slow one
-whenever it is asked for less, whether because the hand eased off or because it
-let go.
+The same pass keeps **two lagged copies** of the field beside the air itself, at
+a raindrop's time constant and a snowflake's. A particle is not handed the
+wind's velocity, it is *dragged* toward it — and doing that per cell rather than
+per layer means a flake at the edge of a gust lags on its own account, not on
+the sky's average.
 
-`GUST.max` is 1.1 — above the top of the forecast's own range (50 km/h ⇒ 1.0) on
-purpose, because a gust is not a wind and is allowed to be briefly harder than
-any weather the sky is showing.
+Depth then reads off a **mix** between the two rather than a third texture:
+both are first-order responses to the same air, so anything between them is a
+legitimate in-between response, and one fetch covers every layer. Rain mixes
+`(0.88, 0.62, 0.36, 0.14)` near → far — the near drop is the bigger one on
+screen and the slowest to be turned — and snow `(0.12, 0.34, 0.56, 0.8, 1.0)`
+far → near, since `snow()` draws the near flakes several times the size.
 
-#### Not everything takes wind at the same speed
+Rain shows its velocity directly, because the lean *is* the velocity over the
+fall. A flake is **placed**, and a place is an integral, which a grid of bytes
+cannot hold. So the forecast's travel — the part that is the same everywhere —
+stays accumulated in JS per layer, and the field's *local departure* from it is
+turned into a place by multiplying by `SNOW_MEMORY`: the offset a flake would
+have built up had the local air held for that long.
 
-This is the part worth reading twice, because it is what keeps a gust from
-looking like a card being slid:
+#### Three things worth knowing before changing it
 
-| | How fast it comes up to the wind | Why |
-|---|---|---|
-| **Rain** | at once | The lean *is* the steady state, and at 1.5–2.5 screen heights a second there is no visible transient to model. |
-| **Snow** | over ~3 s (`SNOW_WIND_TAU`), and it keeps going for many more after the air is still | A flake falls at a thirtieth of a raindrop's speed and takes ten to thirty seconds to cross the frame. Shoved sideways instantly it stops reading as snow. Measured: against a hand's gust the snow reaches **48 %** of the air, **1.2 s** later, and is still leaning at 0.19 when the air has fallen to 0.03. |
-| **Clouds** | never, from a hand | You cannot stir a cloud deck by waving at it. They answer the forecast only. |
+**A byte is not fine enough for the settling.** Relaxing toward the forecast
+moves a cell by `(v − ambient)·dt/τ` per frame, which at a sixtieth of a second
+is about a hundredth of a byte: it rounds back to where it was, every frame, and
+the field freezes part-way home — which is exactly what it did. The write is
+dithered so a sub-step change still lands on the far side of the rounding some
+of the time, and the dither's seed is **re-rolled every frame**; a fixed seed is
+a fixed pattern per cell, which rounds the same way every time and is the freeze
+again wearing a disguise. Anything within a byte of the forecast is then snapped
+onto it, so the sky has a true rest.
 
-A hard gust has one artefact to watch, and the shader spends one line on it.
-The lean is a **shear**, so when it slams over, a row is thrown sideways in
-proportion to its distance from the pivot. Shearing about the bottom edge — the
-obvious way to write it — makes the top row the worst off by the full arm, and
-past a certain speed that reads as a whip-crack rather than as air. The shear is
-taken about **mid-screen** instead (`(uv.y - 0.5) * slant`), which halves the
-worst arm for nothing: at rest the two are the same picture, since a uniform
-field cannot show where it is registered.
+**RGBA8 and not a float texture**, because every WebGL2 context can render to
+RGBA8 *and* filter it linearly, while the float formats need extensions that
+phones do not all have — and advection is nothing without bilinear sampling.
 
-Three pieces, one per layer:
+**There is no vorticity confinement, and there was.** Advection alone carries a
+stirred eddy perfectly well at this grid size; the two were indistinguishable
+side by side, frame for frame. Confinement feeds on whatever curl it is given,
+the dither is all curl, and it cost twelve taps a cell to farm its own noise
+into a wind the sky never came back from.
+
+#### What bounds the strength
+
+`HAND_MAX` is bounded by what the *drawing* can carry, not by what the air
+could. The rain's lean is a shear of where the field is sampled, so a steep
+gradient across a gust stretches the streaks as well as turning them — past a
+point they stop reading as drops and start reading as brushwork. The value is
+the most that leaves an ordinary sweep looking like rain while a deliberate
+circle still whirls.
+
+#### Three pieces, one per layer
 
 | Piece | Job |
 |-------|-----|
-| `lib/wallpaper/stir.ts` | Recognises the gesture and reports the hand's horizontal speed in CSS px/s. |
-| `WallpaperRenderer` ("Stirring up a gust") | The air: how a stir goes stale, how the gust rises and falls, how slowly the snow takes it. One `GUST` table plus `SNOW_WIND_TAU`. |
-| `shader.ts` | Draws it — `uStirWind` is simply added to `uWind.x`. |
+| `lib/wallpaper/stir.ts` | Recognises the gesture: the hand's speed on both axes, and where it is. |
+| `lib/wallpaper/field.ts` + `WallpaperRenderer` | The air: the grid, the pass that steps it, and the targets it ping-pongs between. |
+| `shader.ts` | Draws it — `airAt()` samples the field, and each layer mixes between the air and the copy that matches its weight. |
 
 What it deliberately does **not** do:
 
 - **Nothing is `preventDefault`ed and no style is touched.** Every listener is
   passive, so scrolling, tapping, long-pressing and selecting text behave
   exactly as they would without it.
-- **Only the horizontal component counts.** Wind here is horizontal, and a hand
-  swiped straight down does not make a sideways breeze — which also means an
-  ordinary vertical scroll leaves the weather alone.
 - **It does not invent a second idea of "the sky".** What counts as background
   is [`isBackgroundClick`](#the-strike-thunder-day-easter-egg) from
   `lib/strike.ts`, the same question the strike asks, so the two easter eggs can
@@ -335,11 +359,14 @@ What it deliberately does **not** do:
   styles (no particles to blow), off in the wallpaper picker's preview tile, and
   off whenever the sky is dry.
 
+The cloud decks feel none of it: you cannot stir a cloud deck by waving at it.
+They answer the forecast only.
+
 ### The wind's sign
 
 Every horizontal quantity in the Sky is screen-space, and **positive goes
-right**: `wind.x`, `uStirWind`, and the accumulated `uCloudDrift` and
-`uSnowDrift` travels. `scene.ts` maps the met wind onto that — a westerly (from
+right**: `wind.x`, every velocity in the wind field, and the accumulated
+`uCloudDrift` and `uSnowDrift` travels. `scene.ts` maps the met wind onto that — a westerly (from
 270°) blows toward the geographic east, which is screen-*left* in the northern
 hemisphere and mirrors in the south — and the shader follows it.
 
@@ -358,7 +385,7 @@ broken.
 
 #### A constant is not a wind
 
-The snow's drift used to carry a constant — `snowWind * 0.6 + 0.03` — meant as a
+The snow's drift used to carry a constant — `wind * 0.6 + 0.03` — meant as a
 whisper of travel so flakes never fell dead straight in still air. But a
 constant added to a wind is a wind that always blows one way: it adds to a wind
 going with it and eats one going against. The flakes leant **2.3× further right

@@ -2,21 +2,23 @@
 // Stirring the weather — the rain-and-snow easter egg.
 //
 // Drag a hand across the page's background while it is raining or snowing and
-// you stir up a breeze. The rain leans over at once and travels along the lean;
-// the snow, which is slow and takes wind slowly, comes round over a few seconds
-// and keeps going for a few more. Stop, or let go, and it dies away and the sky
-// settles back. The cloud decks feel nothing: you cannot stir a cloud by waving
-// at it.
+// you stir the air it passes through — whichever way it goes. A stroke that
+// turns leaves a curl behind it, and the curl keeps turning after the hand has
+// gone. The near heavy drops are the last to be turned and the last to give it
+// up; the snow, slower again, comes round over seconds and keeps going for
+// more. Stop, or let go, and it dies away and the sky settles back. The cloud
+// decks feel nothing: you cannot stir a cloud by waving at it.
 //
-// That is the whole of it. A hand adds a term to the wind; everything the sky
-// does with wind it already knew how to do. Nothing is held, nothing is towed
+// That is the whole of it. A hand pushes air, and everything the sky does with
+// moving air it already knew how to do. Nothing is held, nothing is towed
 // about, and there is no second physics to keep honest — which is why the sky
 // never has to be handed back at the end of a gesture.
 //
 // This module is only the recognizer: it decides whether a drag landed on the
 // background and reports how fast the hand is going, in CSS pixels per second.
-// The air's own behaviour lives in `WallpaperRenderer` ("Stirring up a gust"),
-// how slowly the snow takes it in `SNOW_WIND_TAU`, and the look in `shader.ts`.
+// The air itself is `field.ts` — a grid stepped once a frame, which is where
+// the stroke goes and where every particle's drag is worked out — and the look
+// is `shader.ts`.
 //
 // What counts as the background is not asked here twice: it is `isBackgroundClick`
 // from `lib/strike.ts`, the same question the thunder-day strike asks, so the two
@@ -47,8 +49,13 @@ const SPEED_MIX = 0.7;
 
 export interface WindStirListener {
   /**
-   * The hand's horizontal speed, in CSS pixels per second, positive to the
-   * right. Sent on every move of a drag that began on the background.
+   * The hand's speed in CSS pixels per second (`vy` positive DOWN, as client
+   * coordinates run) and where it is. Sent on every move of a drag that began
+   * on the background.
+   *
+   * Both axes, now that there is a field to put them in: a hand pushes the air
+   * it passes through whichever way it goes, and a stroke that turns is what
+   * leaves a curl behind it.
    *
    * There is no matching "stopped" call, and none is needed: a hand that has
    * stopped sends nothing, and the renderer lets an unrefreshed stir go stale
@@ -56,7 +63,7 @@ export interface WindStirListener {
    * cancelled, by the whole listener being detached — without anybody having
    * to put the sky back.
    */
-  onStir: (vx: number) => void;
+  onStir: (vx: number, vy: number, x: number, y: number) => void;
 }
 
 function findTouch(list: TouchList, id: number): Touch | null {
@@ -71,29 +78,35 @@ export function attachWindStir(listener: WindStirListener): () => void {
   /** The drag in flight: a touch identifier, "mouse", or nothing. */
   let source: number | "mouse" | null = null;
   let lastX = 0;
+  let lastY = 0;
   let lastAt = 0;
   let vx = 0;
+  let vy = 0;
   // −∞, not 0: `performance.now()` starts near zero, and a plain 0 would make
   // the whole first second of a page's life look like it had just been tapped.
   let lastTouchAt = -Infinity;
 
-  const begin = (from: number | "mouse", x: number) => {
+  const begin = (from: number | "mouse", x: number, y: number) => {
     source = from;
     lastX = x;
+    lastY = y;
     lastAt = performance.now();
     vx = 0;
+    vy = 0;
   };
 
-  const move = (x: number) => {
+  const move = (x: number, y: number) => {
     const now = performance.now();
     const dt = (now - lastAt) / 1000;
     // Sub-millisecond gaps make the division explode; the travel they carry is
     // negligible, so fold them into the next sample instead.
     if (dt <= 0.001) return;
     vx = ((x - lastX) / dt) * SPEED_MIX + vx * (1 - SPEED_MIX);
+    vy = ((y - lastY) / dt) * SPEED_MIX + vy * (1 - SPEED_MIX);
     lastX = x;
+    lastY = y;
     lastAt = now;
-    listener.onStir(vx);
+    listener.onStir(vx, vy, x, y);
   };
 
   const end = () => {
@@ -112,14 +125,14 @@ export function attachWindStir(listener: WindStirListener): () => void {
     if (e.touches.length !== 1) return;
     const touch = e.changedTouches[0];
     if (!touch || !isBackgroundClick(e.target)) return;
-    begin(touch.identifier, touch.clientX);
+    begin(touch.identifier, touch.clientX, touch.clientY);
   };
 
   const onTouchMove = (e: TouchEvent) => {
     lastTouchAt = performance.now();
     if (typeof source !== "number") return;
     const touch = findTouch(e.changedTouches, source) ?? findTouch(e.touches, source);
-    if (touch) move(touch.clientX);
+    if (touch) move(touch.clientX, touch.clientY);
   };
 
   const onTouchEnd = (e: TouchEvent) => {
@@ -134,11 +147,11 @@ export function attachWindStir(listener: WindStirListener): () => void {
     if (source !== null || e.button !== 0) return;
     if (performance.now() - lastTouchAt < AFTER_TOUCH_MS) return;
     if (!isBackgroundClick(e.target)) return;
-    begin("mouse", e.clientX);
+    begin("mouse", e.clientX, e.clientY);
   };
 
   const onMouseMove = (e: MouseEvent) => {
-    if (source === "mouse") move(e.clientX);
+    if (source === "mouse") move(e.clientX, e.clientY);
   };
 
   // --- Wiring --------------------------------------------------------------
