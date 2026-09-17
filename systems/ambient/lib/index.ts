@@ -17,6 +17,7 @@ export * from "./settings";
 export * from "./strike";
 export * from "./sun";
 export * from "./weather";
+export * from "./wipe";
 export * from "./wallpaper/support";
 export * from "./wallpaper-profile";
 export * from "./wallpaper-profiles";
