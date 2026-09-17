@@ -426,6 +426,22 @@ interface WallpaperContextType {
   isPickerOpen: boolean;
   openPicker: () => void;
   closePicker: () => void;
+  /**
+   * The tilt primer — the one-time offer that comes before WebKit's motion
+   * prompt. See lib/tilt-primer.ts. Open state lives here rather than in the
+   * background component because the sheet is mounted in the layout, beside
+   * the picker, and not inside a `pointer-events-none` wallpaper layer.
+   */
+  isTiltPrimerOpen: boolean;
+  /** The offer has been made and answered; it is never made again. */
+  gyroPrimed: boolean;
+  offerTilt: () => void;
+  /**
+   * Close it, and never offer again. `take` is the button that was pressed —
+   * true turns the tilt on, which is the user gesture WebKit's gate wants, so
+   * this must be called straight from the press.
+   */
+  answerTiltPrimer: (take: boolean) => void;
 }
 
 const WallpaperContext = createContext<WallpaperContextType | undefined>(undefined);
@@ -601,6 +617,9 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const openPicker = useCallback(() => setIsPickerOpen(true), []);
   const closePicker = useCallback(() => setIsPickerOpen(false), []);
+
+  const [isTiltPrimerOpen, setIsTiltPrimerOpen] = useState(false);
+  const offerTilt = useCallback(() => setIsTiltPrimerOpen(true), []);
 
   const activeWallpaper = useMemo(
     () => getWallpaperOrDefault(settings.wallpaperId),
@@ -858,6 +877,20 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       });
     },
     [gyroAccess, updateSettings]
+  );
+
+  const answerTiltPrimer = useCallback(
+    (take: boolean) => {
+      setIsTiltPrimerOpen(false);
+      // Answered either way: the offer is never made again. Written before the
+      // request so that a refused prompt — which no browser asks twice — does
+      // not leave the offer armed to come back on the next rainy day.
+      updateSettings({ weatherGyroPrimed: true });
+      // Straight from the press that closed the sheet, because that press IS
+      // the user gesture WebKit's gate wants. Anything deferred loses it.
+      if (take) setGyroEnabled(true);
+    },
+    [setGyroEnabled, updateSettings]
   );
 
   const gyroActive = settings.weatherGyro && isGyroReachable(gyroAccess);
@@ -1448,6 +1481,10 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       isPickerOpen,
       openPicker,
       closePicker,
+      isTiltPrimerOpen,
+      gyroPrimed: settings.weatherGyroPrimed,
+      offerTilt,
+      answerTiltPrimer,
     }),
     [
       settings.wallpaperKind,
@@ -1509,6 +1546,10 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       isPickerOpen,
       openPicker,
       closePicker,
+      isTiltPrimerOpen,
+      settings.weatherGyroPrimed,
+      offerTilt,
+      answerTiltPrimer,
     ]
   );
 

@@ -248,6 +248,59 @@ the screen is too flat to have a direction (a phone on a table).
   they go from the sensor to `WallpaperRenderer.setGravity()` — one shared
   `deviceorientation` listener, however many surfaces are drawing.
 
+#### Asking for it, on a rainy day
+
+WebKit puts `deviceorientation` behind
+`DeviceOrientationEvent.requestPermission()`, which needs a user gesture — so
+on an iPhone the whole feature above waits for one tap. Until this, the only
+place to make it was the wallpaper picker's Weather tab: three taps from the
+page, offering a switch for something the visitor has never seen.
+
+So on a rainy or snowy sky, **resting a finger on the background brings up what
+the tilt does, and a button under it asks.** Two presses to reach the browser's
+dialog, and the first is why the second gets a yes — a permission prompt that
+arrives with no idea what it is for gets refused, and a refusal is final
+everywhere: there is no second prompt, only the site settings nobody opens.
+The first press buys the explanation; the second spends the one chance.
+
+The picture is the argument. A phone rocks, and the rain inside it stays level
+with the world while the phone turns under it — the same relationship the
+shader draws at full size, at a size that fits above a paragraph. Saying "the
+rain leans" is the part nobody reads.
+
+**It is offered once.** `weatherGyroPrimed` is written the moment the sheet is
+answered, either way, and nothing clears it — including a close or a swipe,
+which mean the same thing as *Not now*. An introduction repeated is a nag, and
+this one interrupts a page the visitor came to for something else. It is also
+armed by the *absence* of things, so every one of them is a reason to stay
+quiet (`shouldOfferTilt` in `lib/tilt-primer.ts`): the offer is spent, or there
+is no permission to ask for (everywhere but WebKit the sky is already tilting,
+and a refusal already counts as answered), or the visitor went to the picker
+and turned tilt off, or nothing is falling, or the Sky is not what paints.
+
+**Not a fourth easter egg.** The eggs are rewards for poking at a sky that owes
+you nothing; this is a feature explaining itself, and it stops existing once it
+has been. But it shares a background with [the gust](#stirring-the-wind-rain-and-snow-easter-egg),
+which on a rainy day is armed on that same background — and they cannot
+collide, because **a gust is travel and this is stillness**:
+
+| the hand | what it is |
+|---|---|
+| rests 400 ms, going nowhere | the offer |
+| moves at all before that | the gust's, or the scroller's — this stands down for the rest of the press |
+| lifts early | nothing |
+
+A hold that has gone nowhere has reported no speed to `attachWindStir`, so
+there is no gust to take away. And like the gust, this recognizer never calls
+`preventDefault` and never touches a style: a press that turns out to be a
+scroll scrolls, on the browser's own fast path. The 400 ms is
+`TOUCH_ACTIVATION`'s, the same beat as the widget grid and the fog wipe, so a
+visitor who has learned one hold has learned all of them.
+
+The sheet opens from a `setTimeout`, which is *not* a user gesture — and that
+is fine, because the gesture WebKit wants is the button inside it, which
+reaches `requestPermission()` in the same task as the press.
+
 #### Across gravity, not across the page
 
 A storm's wind is horizontal **in the world**, and horizontal means
