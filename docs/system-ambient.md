@@ -258,8 +258,8 @@ module and click the page background.
 you stir up a breeze.** Stop, or let go, and it dies away and the sky settles
 back.
 
-That is the whole of it: **a hand adds a term to `uWind.x`**. Everything the sky
-does with that it already knew how to do, so there is no second physics to keep
+That is the whole of it: **a hand adds a term to the wind**. Everything the sky
+does with wind it already knew how to do, so there is no second physics to keep
 honest and nothing to hand back when a gesture ends.
 
 Air has mass, and that is the entire feel of it:
@@ -288,33 +288,66 @@ let go.
 purpose, because a gust is not a wind and is allowed to be briefly harder than
 any weather the sky is showing.
 
-#### Not everything takes wind at the same speed
+#### Wind does not shear the weather; it tilts the way it falls
 
-This is the part worth reading twice, because it is what keeps a gust from
-looking like a card being slid:
+This is the part worth reading twice, because it is the whole model.
 
-| | How fast it comes up to the wind | Why |
+A drop at terminal velocity is a balance: gravity pulling down, drag pushing
+back along its travel. Put a crosswind on it and it settles into a new balance
+almost at once and falls along the **sum** of the two — the same speed through
+the air, aimed somewhere else. So a wind is not a distortion applied to falling
+weather. It is a change to **which way down is**, for the things that fall, and
+every visible consequence follows from that one vector.
+
+Which is also the model [the gyroscope](https://github.com/Huxpro/hux.pro/pull/158)
+wants, and deliberately so: a tilt moves gravity, a wind adds a sideways term,
+and both arrive through the same four uniforms.
+
+| Uniform | What it is |
+|---|---|
+| `uRainDown` | The direction the rain travels. A streak *is* a drop's motion blur, so it has to lie along the travel: the rain is sampled in a frame aligned to this — the one rotation in the shader. |
+| `uRainFall` | How far the rain has fallen, in seconds of its own travel. A tilted fall is a longer one, so a gust quickens the rain as well as leaning it. |
+| `uSnowDown` | The same direction for the snow, which is a far flatter angle at the same wind. The flutter is measured across it, so a flake's wobble stands up the way it is going. |
+| `uSnowFall` | How far the snow has travelled and along what, as a vector of seconds — and the wind's whole sideways effect on the snow, because a flake blown sideways and a flake falling are the same flake. |
+
+**Rotating rather than shearing is the point.** A shear stretches a drop as it
+leans it, so past a breeze the streaks stop reading as rain and start reading as
+brushwork — and the harder the gust, the worse the smear. That is what made a
+hard gust read as a whip-crack rather than as air, and no choice of pivot fixes
+it; a rotation leans a drop without ever touching its shape.
+
+**Keeping the travel rather than multiplying a clock by a direction** is what
+lets the snow's direction come round slowly without dragging the flakes that
+have already fallen along with it: each one carries on the way it was going and
+curves into the new one. A page that slides sideways is exactly what a gust must
+not look like.
+
+Nothing answers at the same speed, and that is the rest of the feel:
+
+| | How it is re-aimed | Why |
 |---|---|---|
-| **Rain** | at once | The lean *is* the steady state, and at 1.5–2.5 screen heights a second there is no visible transient to model. |
-| **Snow** | over ~3 s (`SNOW_WIND_TAU`), and it keeps going for many more after the air is still | A flake falls at a thirtieth of a raindrop's speed and takes ten to thirty seconds to cross the frame. Shoved sideways instantly it stops reading as snow. Measured: against a hand's gust the snow reaches **48 %** of the air, **1.2 s** later, and is still leaning at 0.19 when the air has fallen to 0.03. |
+| **Rain** | an **ease**, 0.08 s (`RAIN_FALL_TAU`) | A drop is small, fast and already all the way down, so it really is at the new angle within a blink. What is left for the ease to do is keep a slammed gust from cracking: the curtain's far corner sweeps under a screen height a second, against the 1.5–2.5 the rain is falling at. |
+| **Snow** | a critically damped **spring**, ω = 0.9 rad/s (`SNOW_FALL_OMEGA`) | Not just a slower ease. An ease leaves at full speed and decelerates, which reads as drag; a spring leaves at **rest** and has to be accelerated, which reads as **mass**. At critical damping there is no overshoot, so the snow never swings past the new direction and back. |
 | **Clouds** | never, from a hand | You cannot stir a cloud deck by waving at it. They answer the forecast only. |
 
-A hard gust has one artefact to watch, and the shader spends one line on it.
-The lean is a **shear**, so when it slams over, a row is thrown sideways in
-proportion to its distance from the pivot. Shearing about the bottom edge — the
-obvious way to write it — makes the top row the worst off by the full arm, and
-past a certain speed that reads as a whip-crack rather than as air. The shear is
-taken about **mid-screen** instead (`(uv.y - 0.5) * slant`), which halves the
-worst arm for nothing: at rest the two are the same picture, since a uniform
-field cannot show where it is registered.
+Measured against one 0.5 s swipe into a calm sky: the gust peaks at **0.57** at
+0.48 s, the rain's lean peaks **with it** at 22° off vertical, and the snow's
+goes on rising to 29° at **2.6 s** — long after the air has fallen to a quarter
+of its peak — then comes home with no overshoot, still leaning at 6 s and gone
+by twelve. That gap is the weight.
+
+One consequence worth naming: **the snow's lean is now the same at every depth
+for free.** Both halves of a layer's travel are that layer's own fall speed
+times the same vector, so the angle cannot depend on the layer — where before it
+took two depth ramps, hand-tuned to span the same 3×, to arrange it.
 
 Three pieces, one per layer:
 
 | Piece | Job |
 |-------|-----|
 | `lib/wallpaper/stir.ts` | Recognises the gesture and reports the hand's horizontal speed in CSS px/s. |
-| `WallpaperRenderer` ("Stirring up a gust") | The air: how a stir goes stale, how the gust rises and falls, how slowly the snow takes it. One `GUST` table plus `SNOW_WIND_TAU`. |
-| `shader.ts` | Draws it — `uStirWind` is simply added to `uWind.x`. |
+| `WallpaperRenderer` ("Stirring up a gust", "Where the weather falls") | The air: how a stir goes stale, how the gust rises and falls, and how each field's fall is re-aimed by it. |
+| `shader.ts` | Draws it — every wind reaches the weather through the four uniforms above and through nothing else. |
 
 What it deliberately does **not** do:
 
@@ -338,8 +371,8 @@ What it deliberately does **not** do:
 ### The wind's sign
 
 Every horizontal quantity in the Sky is screen-space, and **positive goes
-right**: `wind.x`, `uStirWind`, and the accumulated `uCloudDrift` and
-`uSnowDrift` travels. `scene.ts` maps the met wind onto that — a westerly (from
+right**: `wind.x`, the gust a hand stirs up, and the accumulated `uCloudDrift`
+and `uSnowFall` travels. `scene.ts` maps the met wind onto that — a westerly (from
 270°) blows toward the geographic east, which is screen-*left* in the northern
 hemisphere and mirrors in the south — and the shader follows it.
 
@@ -351,14 +384,14 @@ blew the whole sky backwards with respect to the compass, which no one can see
 without a compass. Adding a gust, whose direction the visitor's own hand
 supplies, is what made it visible.
 
-One thing to keep in mind when reading the shader: both drifts are
+One thing to keep in mind when reading the shader: the travels are
 **subtracted** where they are used, because sampling a procedural field further
 right is what walks it left. That negation is the convention being honoured, not
 broken.
 
 #### A constant is not a wind
 
-The snow's drift used to carry a constant — `snowWind * 0.6 + 0.03` — meant as a
+The snow's sideways travel used to carry a constant — `snowWind * 0.6 + 0.03` — meant as a
 whisper of travel so flakes never fell dead straight in still air. But a
 constant added to a wind is a wind that always blows one way: it adds to a wind
 going with it and eats one going against. The flakes leant **2.3× further right

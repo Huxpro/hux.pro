@@ -16,7 +16,8 @@
 // This module is only the recognizer: it decides whether a drag landed on the
 // background and reports how fast the hand is going, in CSS pixels per second.
 // The air's own behaviour lives in `WallpaperRenderer` ("Stirring up a gust"),
-// how slowly the snow takes it in `SNOW_WIND_TAU`, and the look in `shader.ts`.
+// how each field is re-aimed by it under "Where the weather falls", and the
+// look in `shader.ts`.
 //
 // What counts as the background is not asked here twice: it is `isBackgroundClick`
 // from `lib/strike.ts`, the same question the thunder-day strike asks, so the two
