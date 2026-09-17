@@ -19,6 +19,7 @@
 export { LogTimeline } from "./log-timeline";
 export { Commit } from "./commit-embed";
 export { commitIcons } from "./icons";
+export { CommitTypeFilter } from "./type-filter";
 
 // =============================================================================
 // Generic Commit Renderers

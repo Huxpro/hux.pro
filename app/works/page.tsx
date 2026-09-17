@@ -1,6 +1,7 @@
 import { getLogData } from "@/lib/log-server";
 import { enrichLogDataWithPreviews } from "@/lib/og-snapshot";
 import { WorksView } from "./view";
+import { Suspense } from "react";
 
 export const metadata = {
   title: "Works",
@@ -13,5 +14,9 @@ export default function WorksPage() {
   // render synchronously on the client (no request-time crawl, no skeleton
   // flash). Un-snapshotted links fall back to a live fetch in the component.
   const logData = enrichLogDataWithPreviews(getLogData());
-  return <WorksView logData={logData} />;
+  return (
+    <Suspense>
+      <WorksView logData={logData} />
+    </Suspense>
+  );
 }

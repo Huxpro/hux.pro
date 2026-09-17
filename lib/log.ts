@@ -48,6 +48,16 @@ export type CommitType =
   | "social"
   | "event";
 
+/** Canonical display order for type filters, legends, and pickers. */
+export const COMMIT_TYPE_ORDER: CommitType[] = [
+  "project",
+  "talk",
+  "post",
+  "role",
+  "social",
+  "event",
+];
+
 // =============================================================================
 // Media Types - Attachable to any Commit
 // =============================================================================

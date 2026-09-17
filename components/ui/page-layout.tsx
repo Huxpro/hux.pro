@@ -147,7 +147,7 @@ export function PageLayout({
               <div className="relative">
                 {titleJsx}
                 {headerActions && (
-                  <div className="absolute left-0 top-full w-max mt-2">
+                  <div className="absolute left-0 top-full w-full mt-2">
                     {headerActions}
                   </div>
                 )}
