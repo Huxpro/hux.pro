@@ -45,6 +45,8 @@ interface WindowContextType {
   /** Bring a window to the front and mark it focused. */
   focus: (id: string) => void;
   minimize: (id: string) => void;
+  /** Restart the app in a window: its frame remounts, its state is gone. */
+  reload: (id: string) => void;
   /** Toggle maximize ⇄ the previous preset. */
   toggleMaximize: (id: string) => void;
   /** Set an explicit size preset (portrait / landscape / max). */
@@ -171,7 +173,15 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
         return soloOnPhone(
           [
             ...prev,
-            { id: app.id, app, rect, mode: "normal", sizePreset: preset, z },
+            {
+            id: app.id,
+            app,
+            rect,
+            mode: "normal",
+            sizePreset: preset,
+            z,
+            generation: 0,
+          },
           ],
           app.id,
         );
@@ -196,6 +206,14 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
 
   const close = useCallback((id: string) => {
     setWindows((prev) => prev.filter((w) => w.id !== id));
+  }, []);
+
+  // A remount is the only reload available: an app is a cross-origin iframe or
+  // a Lynx runtime, and neither can be told to refresh itself from out here.
+  const reload = useCallback((id: string) => {
+    setWindows((prev) =>
+      prev.map((w) => (w.id === id ? { ...w, generation: w.generation + 1 } : w)),
+    );
   }, []);
 
   const minimize = useCallback((id: string) => {
@@ -326,6 +344,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
       close,
       focus,
       minimize,
+      reload,
       toggleMaximize,
       setSizePreset,
       restore,
@@ -339,6 +358,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
       close,
       focus,
       minimize,
+      reload,
       toggleMaximize,
       setSizePreset,
       restore,

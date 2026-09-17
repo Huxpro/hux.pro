@@ -258,9 +258,10 @@ function DesktopWindow({ win }: { win: WindowInstance }) {
         focused ? "shadow-overlay ring-1 ring-black/5 dark:ring-white/10" : "shadow-raised",
       )}
     >
-      {/* Edge-to-edge content */}
+      {/* Edge-to-edge content. Keyed by generation: the menu's Reload is a
+          remount (see `reload` in the provider). */}
       <div className="absolute inset-0">
-        <AppFrame app={win.app} />
+        <AppFrame key={win.generation} app={win.app} />
       </div>
 
       {/* Top-edge drag tolerance — grab near the top border to move. Sits below

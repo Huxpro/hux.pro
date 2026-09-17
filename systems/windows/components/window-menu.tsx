@@ -16,6 +16,7 @@ import {
   Maximize2,
   Minus,
   Monitor,
+  RotateCw,
   Smartphone,
   X,
   type LucideIcon,
@@ -163,7 +164,7 @@ export function WindowMenuBody({
   /** Take the menu away, then do this. */
   run: (action?: () => void) => void;
 }) {
-  const { close, minimize, setSizePreset } = useWindows();
+  const { close, minimize, reload, setSizePreset } = useWindows();
   const { locale } = useLocale();
   const sheet = shape === "sheet";
   const title = appTitle(win.app, locale);
@@ -233,6 +234,11 @@ export function WindowMenuBody({
         </>
       )}
 
+      {/* Restart the app. A remount, since a cross-origin iframe and a Lynx
+          runtime both refuse to be told anything from out here. */}
+      <MenuItem shape={shape} Icon={RotateCw} onSelect={() => run(() => reload(win.id))}>
+        Reload
+      </MenuItem>
       {isWeb && win.app.url && (
         <MenuItem shape={shape} Icon={ExternalLink} href={win.app.url} onSelect={() => run()}>
           Open in browser

@@ -24,13 +24,17 @@ import { pillShell, TrafficDots } from "./window-pill";
 //   • released       → the bar goes, the dots come back.
 //   • receded        → dimmed with the shell while the menu stands over it.
 //
-// The hand-off is the drag itself, not a switch: the dots fade as the bar grows
-// in proportion to how far the surface has actually travelled, the bar landing
-// full at 40px, which is Base UI's own swipe threshold — so the pill finishes
-// becoming a handle exactly when the press becomes a swipe. That part is CSS
-// ("Window grip" in globals.css) reading `--drawer-swipe-movement-y`, so
-// nothing re-renders under the finger; only the glass is React state, twice a
-// gesture, and it comes from the popup's own `data-swiping`.
+// Three states, and the hand-off between them is one symmetric crossfade both
+// ways (160ms, "Window grip" in globals.css): the dots fade and shrink as the
+// bar grows out of the same spot, and the box they share widens from the dots'
+// width to the bar's, so the pill grows into its new shape rather than jumping.
+//
+// It was, briefly, a live reading of the drag — the dots dissolving into the
+// bar in proportion to the travel. That is not stable: a sheet with detents
+// zeroes its reported travel every time it lands on one mid-gesture, so the
+// pill flickered between dots and bar under the finger, and the way back was a
+// jump rather than a hand-off. The phase changes at most twice per gesture
+// instead (useGripPhase), and never goes backwards until the finger is gone.
 //
 // What it deliberately does NOT try to say: "you are at the top detent" and
 // "let go now and it goes away". The first is what the surface's own position
@@ -64,6 +68,13 @@ import { pillShell, TrafficDots } from "./window-pill";
 const TAP_SLOP = 3;
 
 /**
+ * …and how far it must travel before the press is a drag, not a press. Small:
+ * Base UI holds the sheet still until it has decided the press is a swipe, so
+ * by the time the surface has moved at all, it has moved on purpose.
+ */
+const DRAG_SLOP = 2;
+
+/**
  * How long a press may last before we stop waiting for its release. A drag
  * Base UI swallowed never sends one, and a listener left on the window would
  * eventually catch somebody else's — a hold this long simply does nothing,
@@ -78,26 +89,58 @@ function swipeTravel(popup: Element | null): number {
   return Math.abs(Number.parseFloat(y) || 0);
 }
 
+/** Idle · a finger on it · moving the sheet. */
+type Phase = "idle" | "pressed" | "dragging";
+
 /**
- * Whether the sheet this grip belongs to is under a finger. Base UI publishes
- * it on the popup from the press onwards (before anything has moved), which is
- * exactly when the pill should light up — so the pill reads the library's state
- * rather than keeping a second one of its own.
+ * What the grip is in the middle of, in three states rather than a live
+ * reading of the drag.
+ *
+ * `data-swiping` lands on the press, before anything has moved — that is when
+ * the pill should light up, but not when it should become a handle. And the
+ * travel underneath is not monotonic: a sheet with detents zeroes it every
+ * time it lands on one mid-gesture, so a pill shaped by it flickered between
+ * dots and bar under the finger. So: the press comes from Base UI's attribute,
+ * and the promotion to a drag is one rAF walk that stops the moment the sheet
+ * has moved far enough to mean it. At most two state changes per gesture, and
+ * the shape never goes backwards until the finger is gone.
  */
-function useSwiping(ref: React.RefObject<HTMLElement | null>): boolean {
-  const [swiping, setSwiping] = useState(false);
+function useGripPhase(ref: React.RefObject<HTMLElement | null>): Phase {
+  const [phase, setPhase] = useState<Phase>("idle");
 
   useEffect(() => {
     const popup = ref.current?.closest("[data-surface-popup]");
     if (!popup) return;
-    const sync = () => setSwiping(popup.hasAttribute("data-swiping"));
+    let raf = 0;
+
+    const watch = () => {
+      if (!popup.hasAttribute("data-swiping")) return;
+      if (swipeTravel(popup) > DRAG_SLOP) {
+        setPhase("dragging");
+        return; // settled for this gesture
+      }
+      raf = requestAnimationFrame(watch);
+    };
+    const sync = () => {
+      cancelAnimationFrame(raf);
+      if (popup.hasAttribute("data-swiping")) {
+        setPhase("pressed");
+        raf = requestAnimationFrame(watch);
+      } else {
+        setPhase("idle");
+      }
+    };
+
     sync();
     const observer = new MutationObserver(sync);
     observer.observe(popup, { attributes: true, attributeFilter: ["data-swiping"] });
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(raf);
+    };
   }, [ref]);
 
-  return swiping;
+  return phase;
 }
 
 export function WindowGrip({
@@ -112,7 +155,7 @@ export function WindowGrip({
   onMenu: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const swiping = useSwiping(ref);
+  const phase = useGripPhase(ref);
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
@@ -143,6 +186,7 @@ export function WindowGrip({
       <div
         ref={ref}
         data-window-grip
+        data-phase={phase}
         aria-hidden
         onPointerDown={onPointerDown}
         onContextMenu={(e) => {
@@ -150,12 +194,15 @@ export function WindowGrip({
           onMenu();
         }}
         className={cn(
-          pillShell(swiping, false),
-          "pointer-events-auto relative justify-center",
+          // Bigger than the dots need: this is a thumb target, and the glass
+          // should read as a pill rather than a pinch of dots. ::before takes
+          // it wider still (see globals.css).
+          pillShell(phase !== "idle", false),
+          "pointer-events-auto relative justify-center px-3.5 py-2",
         )}
       >
         <span data-window-grip-dots>
-          <TrafficDots focused={focused} interacting={swiping} />
+          <TrafficDots focused={focused} interacting={phase !== "idle"} />
         </span>
         {/* The grabber, in the dots' place. Absolute so it costs no width
             until it is there; the dots' box is what widens the pill. */}

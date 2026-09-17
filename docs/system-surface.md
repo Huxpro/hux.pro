@@ -136,6 +136,12 @@ and grows and shrinks from the top — at rest and under the finger alike. Past
 the lowest detent (`--surface-detent-floor`) the padding stops and the sheet
 slides away whole, because that drag is a dismissal, not a resize.
 
+**Arriving.** A sheet rises at the size it is going to be. Base UI measures the
+active detent a frame or two after mount, so the padding that carries it lands
+late; with a transition on that, a sheet enters at full height and shrinks into
+its detent as it arrives. `sheet.tsx` marks the entrance (`data-surface-entering`)
+and the motion block runs it on the transform alone.
+
 **Detents.** `snapPoints` are fractions of the viewport, iOS's medium and large;
 the site has one set, `SHEET_DETENTS` (`[0.7, 1]`), so sheets stacked on one
 another stand level. A sheet with detents opens at the detent of the sheet

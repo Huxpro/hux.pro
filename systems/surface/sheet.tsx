@@ -308,6 +308,21 @@ export function SurfaceSheet({
     level,
   });
 
+  // A sheet should rise at the size it is going to be. Base UI measures the
+  // active detent a frame or two *after* mount, so the padding that carries it
+  // (see the two boxes, above) arrives late — and with a transition on it, the
+  // sheet enters at full height and shrinks into its detent as it lands. So
+  // the entrance runs with that transition off. True from the first render,
+  // because by the time an effect could add it the measurement may already
+  // have landed.
+  const [entering, setEntering] = useState(open);
+  useEffect(() => {
+    if (!open) return;
+    setEntering(true);
+    const t = window.setTimeout(() => setEntering(false), SURFACE_TRANSITION_MS);
+    return () => window.clearTimeout(t);
+  }, [open]);
+
   // Arrive level with the sheet beneath, when it stands at one of ours.
   const arrival =
     hasSnapPoints && beneathLevel !== undefined && snapPoints.includes(beneathLevel)
@@ -351,6 +366,7 @@ export function SurfaceSheet({
               finalFocus={restoreFocus ? undefined : false}
               data-surface-popup=""
               data-surface-snap={hasSnapPoints ? "" : undefined}
+              data-surface-entering={entering ? "" : undefined}
               style={{
                 ...surfaceMotionVars(hasSnapPoints ? EDGE_GAP : BOTTOM_INSET),
                 ...(hasSnapPoints

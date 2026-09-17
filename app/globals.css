@@ -1427,6 +1427,17 @@ html.dragging * {
   transform: translateX(var(--drawer-swipe-movement-x, 0px));
 }
 
+/* Arriving, a sheet rises at the size it is going to be. Base UI measures the
+   active detent a frame after mount, so the padding that carries it lands late;
+   animating that too has the sheet enter at full height and shrink into its
+   detent as it arrives. For the entrance (sheet.tsx marks it, and takes the
+   mark off again) only the transform moves. Dropping the property, not the
+   duration, and never on the ending frame — item 3 at the top of
+   systems/surface/sheet.tsx. */
+[data-surface-popup][data-surface-entering] {
+  transition-property: transform;
+}
+
 /* Entering and leaving: past the edge by the gap as well, otherwise the
    surface "pops" for the last few pixels. */
 [data-surface-popup][data-swipe-direction="down"]:is(
@@ -1499,47 +1510,46 @@ html.dragging * {
    window-grip.tsx) is the window's own pill — the same chromeless traffic
    lights floating over edge-to-edge content as on the desktop — doing double
    duty as the sheet's handle. At rest it is three dots, because a tap opens
-   the window's menu. As it is dragged the dots fade out and the site's own
-   36×4 grabber grows in their place, because that is what is happening: a
-   sheet is moving.
+   the window's menu. While it is being dragged the dots step aside and the
+   site's own 36×4 grabber takes their place, because that is what is
+   happening: a sheet is moving.
 
-   The hand-off is not a switch, it is the drag: both sides interpolate on how
-   far the surface has actually travelled, the bar landing full at 40px —
-   Base UI's own swipe threshold (DEFAULT_SWIPE_THRESHOLD in
-   utils/useSwipeDismiss.js), the distance at which a press becomes a swipe. So
-   the pill finishes becoming a handle exactly when it becomes one.
-
-   Travel is read from Base UI's `--drawer-swipe-movement-y`, live, on the
-   popup. It is registered `inherits: false` (see the numbered list at the top
-   of systems/surface/sheet.tsx), so it is read where it is set and republished
-   under a name of ours, which inherits normally. Not `data-swiping`: that
-   lands on the press, before anything has moved — it is what lights the pill's
-   glass (in React, twice a gesture), not what shapes it.
+   Three states, not a live reading of the drag. The travel a sheet with
+   detents reports is not monotonic — it returns to zero every time the sheet
+   lands on a detent mid-gesture — so interpolating on it made the pill flicker
+   between dots and bar under the finger, and the way back was a jump rather
+   than a hand-off. The phase comes from window-grip.tsx instead (`data-phase`:
+   idle · pressed · dragging), which changes at most twice a gesture, and
+   everything here is one symmetric 160ms crossfade in both directions: the
+   dots fade and shrink as the bar grows out of the same spot, and the box they
+   share widens from the dots' width to the bar's, so the pill grows into its
+   new shape instead of jumping.
    ============================================================================= */
 
 [data-window-grip] {
   /* The handle owns vertical drags; the browser must not scroll instead. */
   touch-action: none;
+  --grip-duration: 160ms;
 }
 
-/* How far the surface has been dragged, either way, and the same as a
-   fraction of the hand-off distance — published on the popup, where the value
-   actually lives, for everything below to read. */
-[data-surface-popup] {
-  --grip-travel: abs(var(--drawer-swipe-movement-y, 0px));
-  --grip-t: clamp(0, calc(var(--grip-travel) / 40px), 1);
+/* A target you can hit without looking: the glass is the pill, the hit area
+   reaches past it. */
+[data-window-grip]::before {
+  content: "";
+  position: absolute;
+  inset: -0.75rem -0.5rem;
 }
 
-/* The dots: gone in the first quarter of the hand-off, their box widening to
-   the bar's width so the pill grows into its new shape rather than jumping. */
+/* The dots' box is what the pill sizes to, so it — not the pill — is what
+   widens as the bar takes over. */
 [data-window-grip-dots] {
   display: flex;
   justify-content: center;
-  width: clamp(28px, calc(28px + var(--grip-travel, 0px) * 0.2), 36px);
-  opacity: clamp(0, calc(1 - var(--grip-t, 0) * 4), 1);
+  width: 28px;
   transition:
-    width 160ms var(--surface-easing),
-    opacity 160ms var(--surface-easing);
+    width var(--grip-duration) var(--surface-easing),
+    opacity var(--grip-duration) var(--surface-easing),
+    scale var(--grip-duration) var(--surface-easing);
 }
 
 /* The grabber, centred in the dots' place: the site's bar, to the pixel. */
@@ -1549,21 +1559,27 @@ html.dragging * {
   top: 50%;
   translate: -50% -50%;
   height: 4px;
-  width: clamp(0px, calc(var(--grip-travel, 0px) * 0.9), 36px);
+  width: 20px;
   border-radius: 9999px;
   background-color: var(--color-zinc-500, #71717a);
-  opacity: clamp(0, calc(var(--grip-t, 0) * 4), 1);
+  opacity: 0;
+  scale: 0.8;
   transition:
-    width 160ms var(--surface-easing),
-    opacity 160ms var(--surface-easing);
+    width var(--grip-duration) var(--surface-easing),
+    opacity var(--grip-duration) var(--surface-easing),
+    scale var(--grip-duration) var(--surface-easing);
 }
 
-/* Under the finger both are direct, like the sheet they sit on: the travel
-   changes every frame and a transition would chase it. (The duration only —
-   same reason as the popup: see "Secondary surface motion" above.) */
-[data-surface-popup][data-swiping] [data-window-grip-dots],
-[data-surface-popup][data-swiping] [data-window-grip-bar] {
-  transition-duration: 0ms;
+[data-window-grip][data-phase="dragging"] [data-window-grip-dots] {
+  width: 36px;
+  opacity: 0;
+  scale: 0.8;
+}
+
+[data-window-grip][data-phase="dragging"] [data-window-grip-bar] {
+  width: 36px;
+  opacity: 1;
+  scale: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { SURFACE_TRANSITION_MS, SurfaceSheet } from "@/systems/surface";
 import { usePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DOCK_BAND, getViewport } from "../lib/geometry";
 import type { WindowInstance } from "../lib/types";
 import { useWindows } from "../provider";
@@ -110,7 +110,9 @@ export function WindowSheet({ win }: { win: WindowInstance }) {
 
   // Detents by name, resolved late: the dock one moves with the viewport, and
   // a controlled snap point that went stale would jump the sheet on a rotate.
-  const detents = [PAGE_DETENT, dock, 1];
+  // Memoised because Base UI re-reads the list by identity: a fresh array on
+  // every render (and a drag renders) had it recomputing mid-gesture.
+  const detents = useMemo(() => [PAGE_DETENT, dock, 1], [dock]);
   const snap = { page: PAGE_DETENT, dock, top: 1 }[level];
 
   return (
@@ -145,7 +147,7 @@ export function WindowSheet({ win }: { win: WindowInstance }) {
         className="min-h-0 flex-1 overflow-hidden"
         onPointerDownCapture={() => focus(win.id)}
       >
-        <AppFrame app={win.app} />
+        <AppFrame key={win.generation} app={win.app} />
       </div>
 
       {/* The menu, stacked on the window: a React child of this sheet, so Base

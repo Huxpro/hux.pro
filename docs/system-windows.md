@@ -198,19 +198,24 @@ handle. Its form at every moment says what a touch will do.
 
 | State | Form | What it says |
 |-------|------|--------------|
-| At rest | three dim dots on nothing at all | a target: tap for the menu — and a window |
-| Under a finger | the pill lights into glass, dots at full ink | got you, the same way a dragged desktop window wakes up |
-| Being dragged | the dots step aside, the site's 36×4 grabber comes out in their place | you are moving a sheet |
-| Released | the bar goes, the dots come back | |
+| `idle` | three dim dots on nothing at all | a target: tap for the menu — and a window |
+| `pressed` | the pill lights into glass, dots at full ink | got you, the same way a dragged desktop window wakes up |
+| `dragging` | the dots step aside, the site's 36×4 grabber comes out in their place | you are moving a sheet |
+| Released | the bar goes, the dots come back, on the same crossfade | |
 | Receded | dimmed with the shell behind the menu | not yours right now |
 
-The hand-off is not a switch, it is the drag: the dots fade as the bar grows,
-both **in proportion to how far the surface has actually travelled**, the bar
-landing full at 40px — Base UI's own swipe threshold, the distance at which a
-press becomes a swipe. That part is CSS (*Window grip* in `globals.css`) off
-`--drawer-swipe-movement-y`, so nothing re-renders while a finger is down; only
-the glass is React state, twice a gesture, read from the popup's `data-swiping`
-through a `MutationObserver` rather than kept a second time.
+Three states (`data-phase`), not a live reading of the drag, and one symmetric
+160ms crossfade between them: the dots fade and shrink as the bar grows out of
+the same spot, and the box they share widens from the dots' width to the bar's,
+so the pill grows into its new shape instead of jumping.
+
+It was, briefly, proportional to the travel — the dots dissolving into the bar
+as the sheet moved. That is not stable: a sheet with detents **zeroes its
+reported travel every time it lands on one mid-gesture**, so the pill flickered
+between dots and bar under the finger and the way back was a jump. The phase
+now changes at most twice per gesture (`useGripPhase`: Base UI's `data-swiping`
+for the press, one rAF walk to promote it to a drag once the surface has
+actually moved) and never goes backwards until the finger is gone.
 
 The dots themselves are shared with the desktop pill (`window-pill.tsx`), so
 the two can't drift; on a grip they are an indicator rather than three targets
@@ -241,8 +246,8 @@ classic red/amber/green dots, placed to feel native per platform:
   inert on touch (an indicator, not three tiny targets); a tap opens the menu,
   which on touch is an **action sheet**, not a popover.
 
-The window **menu** (title header + size presets + Open in browser + Minimize +
-Close) opens via **right-click**, a **tap on the title**, or a **long-press**
+The window **menu** (title header + size presets + Reload + Open in browser +
+Minimize + Close) opens via **right-click**, a **tap on the title**, or a **long-press**
 (including long-pressing a dot) — never from a stray touch, since armPointer
 (`lib/pointer.ts`) disambiguates *tap → menu*, *hold → menu*, *move → drag*.
 There's deliberately **no caret**. Clicking the green dot zooms; double-clicking
