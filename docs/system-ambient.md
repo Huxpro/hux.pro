@@ -268,9 +268,34 @@ with the world while the phone turns under it — the same relationship the
 shader draws at full size, at a size that fits above a paragraph. Saying "the
 rain leans" is the part nobody reads.
 
+**And it stays up to say how it went.** The sheet is the only thing on screen
+that can. A refusal especially: the sky simply goes on falling straight down,
+and without a word here the only explanation lives three taps away in the
+picker's Weather tab — which is the very problem this sheet exists to fix. So
+it says it once, with where to undo it, and lets itself out. A grant gets a
+word too, shorter, because the phone in your hand is about to do the thing and
+the sheet is in front of it.
+
+| outcome | the sheet says | the picture | gone after |
+|---|---|---|---|
+| granted | tilt is on, lean the device | keeps rocking — it is real now | 1.4 s |
+| refused | motion access was refused, and where to allow it again | **upright, rain straight down** — what a refusal actually leaves you with | 3.0 s |
+| neither | nothing; the offer is still standing | keeps rocking | — |
+
+"Neither" is WebKit's gate declining to even consider the request (no user
+gesture): no dialog was shown and nothing was answered, so the buttons simply
+come back.
+
+That the outcome is reportable at all is why `setGyroEnabled` **hands the
+access back** rather than only storing it. A toggle can afford to ignore how it
+went; a sheet that has to speak cannot.
+
 **It is offered once.** `weatherGyroPrimed` is written the moment the sheet is
 answered, either way, and nothing clears it — including a close or a swipe,
-which mean the same thing as *Not now*. An introduction repeated is a nag, and
+which mean the same thing as *Not now*. It is written **before** the asking,
+not after: a prompt that is refused, and no browser asks twice, must not leave
+the offer armed for the next rainy day, and neither must a visitor who walks
+away with the dialog still up. An introduction repeated is a nag, and
 this one interrupts a page the visitor came to for something else. It is also
 armed by the *absence* of things, so every one of them is a reason to stay
 quiet (`shouldOfferTilt` in `lib/tilt-primer.ts`): the offer is spent, or there

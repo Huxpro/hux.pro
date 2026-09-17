@@ -507,7 +507,7 @@ function WeatherTiltRow() {
           { value: "on", label: t(locale, "stateOn") },
           { value: "off", label: t(locale, "stateOff") },
         ]}
-        onChange={(value) => setGyroEnabled(value === "on")}
+        onChange={(value) => void setGyroEnabled(value === "on")}
       />
       <p className="px-0.5 text-[11px] leading-snug text-tertiary-foreground">
         {t(locale, note)}
