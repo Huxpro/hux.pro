@@ -13,8 +13,10 @@ import { usePathname } from "next/navigation";
 //
 // This provider owns the *coordination*, not the visuals:
 //   • which activity (if any) is currently expanded — only ONE at a time
-//   • collapse on Escape
 //   • collapse on route change
+//
+// Escape and the outside press are not here: the panel is a Base UI drawer
+// (live-activity.tsx) and the library already does both.
 //
 // The visuals live in <LiveActivity /> and the layout in <Dock />. Keeping the
 // shared state here means new activities just register an id and a renderer —
@@ -33,8 +35,8 @@ interface DockContextType {
   /**
    * Tie an activity's lifecycle to the dock. Call on mount; run the returned
    * teardown on unmount. If an activity disappears while it's the open one
-   * (e.g. a notification window passes), this collapses the dock so the scrim
-   * and pill-hiding don't get stuck on a phantom `openId`.
+   * (e.g. a notification window passes), this collapses the dock so the
+   * pill-hiding doesn't get stuck on a phantom `openId`.
    */
   registerActivity: (id: string) => () => void;
 }
@@ -69,16 +71,6 @@ export function DockProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpenId(null);
   }, [pathname]);
-
-  // Esc collapses the expanded panel.
-  useEffect(() => {
-    if (openId === null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenId(null);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [openId]);
 
   return (
     <DockContext.Provider

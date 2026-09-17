@@ -38,8 +38,10 @@ export {
   HEADER_BUTTON,
   SHEET_DETENTS,
   SurfaceSheet,
+  SurfaceViewport,
+  surfaceMotionVars,
 } from "./sheet";
-export { SURFACE_TRANSITION_MS } from "./stack";
+export { SURFACE_TRANSITION_MS, useSurfaceStack } from "./stack";
 export {
   ADAPTIVE_PRESENTATION,
   ANCHORED_PRESENTATION,

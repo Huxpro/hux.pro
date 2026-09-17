@@ -7,7 +7,7 @@ import { useDraggable } from "@/systems/draggable";
 import { Command } from "cmdk";
 import { motion } from "framer-motion";
 import { Search, Slash } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   CommandShellProvider,
   SlashShortcuts,
@@ -24,6 +24,30 @@ import {
   GROUP_HEADINGS,
   SlashEntry,
 } from "./results";
+
+// Adaptive geometry for the popover only. The phone sheet fills its detents
+// with flex-1; this is the Spotlight card, whose list should grow with the
+// viewport instead of sitting on a 360px cap.
+// Offset: a little below Spotlight's 20vh, capped so it still sits in the
+// upper third. Search list: 43dvh — on a 16" MacBook (~1040px chrome) that
+// lands on Geolocation as the last full row. Slash list: no 43dvh cap, so
+// the card grows for the full lettered list (the original morph) and only
+// scrolls when it would hit the remaining viewport.
+const PALETTE_GEOMETRY = {
+  "--command-palette-offset": "min(22vh, 13.5rem)",
+  "--command-palette-chrome":
+    "calc(100dvh - var(--command-palette-offset) - 9rem - env(safe-area-inset-bottom, 0px))",
+  "--command-palette-list-max":
+    "min(40rem, 43dvh, var(--command-palette-chrome))",
+  "--command-palette-slash-max":
+    "min(40rem, var(--command-palette-chrome))",
+} as CSSProperties;
+
+const PALETTE_LIST_MAX =
+  "max-h-[var(--command-palette-list-max)] overscroll-contain";
+
+const PALETTE_SLASH_MAX =
+  "max-h-[var(--command-palette-slash-max)] overflow-y-auto overscroll-contain";
 
 // =============================================================================
 // CommandPopover — the palette as a floating card, Spotlight-style.
@@ -124,12 +148,16 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
         className={cn(
           // Above the theater/PiP surfaces (z-[10000]+) — the command palette is
           // the primary nav and must always sit on top.
-          "system-chrome z-[10050] flex items-start justify-center pt-[20vh]",
+          "system-chrome z-[10050] flex items-start justify-center overflow-y-auto",
+          "pt-[var(--command-palette-offset)] pb-8",
           isPhoneSafari ? "absolute inset-x-0" : "fixed inset-0"
         )}
-        style={
-          isPhoneSafari ? { top: scrollPosition, height: "100dvh" } : undefined
-        }
+        style={{
+          ...PALETTE_GEOMETRY,
+          ...(isPhoneSafari
+            ? { top: scrollPosition, height: "100dvh" }
+            : {}),
+        }}
       >
         <div
           className="absolute inset-0 bg-transparent"
@@ -317,7 +345,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                 )}
               >
                 <div className="overflow-hidden min-h-0">
-                  <CommandResults actions={actions} className="max-h-[360px]" />
+                  <CommandResults actions={actions} className={PALETTE_LIST_MAX} />
                 </div>
               </div>
 
@@ -330,7 +358,10 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                 )}
               >
                 <div className="overflow-hidden min-h-0">
-                  <CommandSlashList actions={actions} />
+                  <CommandSlashList
+                    actions={actions}
+                    className={PALETTE_SLASH_MAX}
+                  />
                 </div>
               </div>
             </div>

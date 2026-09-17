@@ -22,6 +22,7 @@ import {
 /** The named tints plus the segmented control's own "pick a colour". */
 type TintChoice = "black" | "dark" | "theme" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
+import { gravityTiltDegrees, readGravity } from "@/systems/ambient/lib/gyroscope";
 import { getWeatherGradient, getWeatherStyleGradient } from "@/systems/ambient/lib/gradient";
 import type { AmbientPhase } from "@/systems/ambient/lib/phase";
 import { rgbToCss, sampleDaySky } from "@/systems/ambient/lib/scene";
@@ -1453,6 +1454,48 @@ const MOON_NAME: Record<"en" | "zh", Record<MoonPhaseName, string>> = {
 };
 
 
+const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
+
+/** Any bearing onto 0…359. The track below runs past 360, so this is not idle. */
+const wrap360 = (deg: number) => ((deg % 360) + 360) % 360;
+
+/** The eight-point name for a met wind direction, for the devtool's readout. */
+function compassPoint(deg: number): string {
+  return COMPASS[Math.round(wrap360(deg) / 45) % 8];
+}
+
+/**
+ * Where the wind-direction slider starts, and why it is not at 0°.
+ *
+ * `wind.x` is `sin(from) × hemisphere × speed`, so a track running 0 → 359
+ * goes calm → right → calm → left → calm: both ends dead, and the direction
+ * you drag bears no relation to the direction the rain leans. The track runs
+ * **270° → 450°** instead — west, through north, to east — which is monotonic
+ * the whole way: drag left and the rain leans left, drag right and it leans
+ * right, and the middle is the one bearing that has no crosswind in it.
+ *
+ * Nothing is lost by covering half the compass. The sky only ever shows a
+ * wind's east–west component (the screen looks south; the north–south part
+ * blows along the view axis), and `sin(180° − d) === sin(d)`, so every
+ * southerly bearing paints exactly what its northerly mirror does.
+ */
+const WIND_TRACK_MIN = 270;
+const WIND_TRACK_MAX = 450;
+
+/** Fold any bearing onto the one inside the track that blows the same way. */
+function toWindTrack(deg: number): number {
+  let d = wrap360(Math.round(deg));
+  if (d > 90 && d <= 270) d = 180 - d;
+  else if (d > 270) d -= 360;
+  return d + 360;
+}
+
+/** Which way a bearing pushes the rain, for the readout. */
+function leanArrow(deg: number, hemisphere: 1 | -1): string {
+  const x = Math.sin((deg * Math.PI) / 180) * hemisphere;
+  return x > 0.02 ? "→" : x < -0.02 ? "←" : "·";
+}
+
 /** Minutes in a day — the scrub's range, and one loop of Play. */
 const DAY_MINUTES = 1440;
 
@@ -1513,6 +1556,7 @@ function SkyModule() {
     resetTimeTravel,
   } = useAmbientTime();
   const { followSun, setFollowSun, sunTheme } = useSolarTheme();
+  const { gyro, setGyroEnabled, effectiveStyle } = useWallpaper();
 
   const isDayNow = scene.sun.isDay;
   const isOverridden = debugOverride !== null;
@@ -1615,6 +1659,34 @@ function SkyModule() {
     setSceneOverrides({});
   };
 
+  // --- Gyroscope -----------------------------------------------------------
+  // The live tilt, polled rather than subscribed: a readout is worth twice a
+  // second, not sixty times — the sky itself gets every reading.
+  const [tiltDeg, setTiltDeg] = useState<number | null>(null);
+  useEffect(() => {
+    if (gyro.readings !== "live") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync: clear a stale readout
+      setTiltDeg(null);
+      return;
+    }
+    const tick = () => setTiltDeg(Math.round(gravityTiltDegrees(readGravity())));
+    tick();
+    const id = window.setInterval(tick, 500);
+    return () => window.clearInterval(id);
+  }, [gyro.readings]);
+
+  // Seven states, in the order they rule each other out: what the browser can
+  // do, then what the visitor asked for, then what is actually arriving.
+  const gyroReadout = ((): string => {
+    if (!gyro.supported) return zh ? "无传感器" : "no sensor";
+    if (gyro.denied) return zh ? "已拒绝" : "denied";
+    if (gyro.enabled && gyro.gated) return zh ? "待授权" : "tap to allow";
+    if (!gyro.enabled) return zh ? "关" : "off";
+    if (gyro.readings === "live") return `${tiltDeg ?? 0}°`;
+    if (gyro.readings === "waiting") return "…";
+    return zh ? "无数据" : "no readings";
+  })();
+
   // --- Tune fold -----------------------------------------------------------
   const [tuneOpen, setTuneOpen] = useState(false);
   const setTune = (patch: Partial<typeof sceneOverrides>) =>
@@ -1625,13 +1697,17 @@ function SkyModule() {
     setSceneOverrides(next);
   };
 
-  // The four tweakable numbers: slider value ↔ scene value, one row each.
+  // The tweakable numbers: slider value ↔ scene value, one row each. Wind is
+  // two of them on purpose — a speed with no direction is a number that can
+  // look like it does nothing, because a wind along the view axis has no
+  // horizontal component and never leans the rain however hard it blows.
   const percent = (v: number) => `${v}%`;
   const tune: {
     key: keyof typeof sceneOverrides;
     label: string;
     aria: string;
     value: number;
+    min?: number;
     max: number;
     format: (v: number) => string;
     toScene: (v: number) => number;
@@ -1639,6 +1715,7 @@ function SkyModule() {
     { key: "cloudCover", label: zh ? "云量" : "Cloud", aria: "Cloud", value: Math.round(scene.clouds.cover * 100), max: 100, format: percent, toScene: (v) => v / 100 },
     { key: "precipitationIntensity", label: zh ? "降水" : "Precip", aria: "Precip", value: Math.round(scene.precipitation.intensity * 100), max: 100, format: percent, toScene: (v) => v / 100 },
     { key: "windSpeedKmh", label: zh ? "风速" : "Wind", aria: "Wind", value: Math.round(sceneOverrides.windSpeedKmh ?? weather?.windSpeedKmh ?? 8), max: 60, format: (v) => `${v} km/h`, toScene: (v) => v },
+    { key: "windDirectionDeg", label: zh ? "风向" : "From", aria: "Wind direction", value: toWindTrack(sceneOverrides.windDirectionDeg ?? weather?.windDirectionDeg ?? 270), min: WIND_TRACK_MIN, max: WIND_TRACK_MAX, format: (v) => `${wrap360(v)}° ${compassPoint(v)} ${leanArrow(v, scene.hemisphere)}`, toScene: wrap360 },
     { key: "veilAmount", label: zh ? "遮罩" : "Veil", aria: "Veil", value: Math.round(scene.veil.amount * 100), max: 90, format: percent, toScene: (v) => v / 100 },
   ];
 
@@ -1944,6 +2021,42 @@ function SkyModule() {
           </div>
         </div>
 
+        {/* The gyroscope: rain and snow fall along real gravity, in the Sky.
+            A saved setting (blue star), on by default, and the only place
+            besides the picker where iOS's motion permission can be granted —
+            so the readout says which of "off", "unanswered" and "nothing
+            coming through" is the case, and shows the live tilt once it is. */}
+        <div className="border-t border-border/30 pt-2">
+          <PanelRow
+            label={
+              effectiveStyle === "sky"
+                ? zh
+                  ? "陀螺仪"
+                  : "Gyro"
+                : zh
+                  ? "陀螺仪 · 仅天空"
+                  : "Gyro · Sky only"
+            }
+            star={
+              gyro.enabled ? null : (
+                <PanelStar onReset={() => setGyroEnabled(true)} source="saved" />
+              )
+            }
+          >
+            <span className="flex items-center gap-2">
+              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                {gyroReadout}
+              </span>
+              <PanelToggle
+                on={gyro.active}
+                disabled={!gyro.supported}
+                onClick={() => setGyroEnabled(!gyro.active)}
+                label="Toggle gyroscope tilt"
+              />
+            </span>
+          </PanelRow>
+        </div>
+
         {/* Fine-tune, folded: the derived numbers, each draggable. */}
         <div className="border-t border-border/30 pt-2">
           <button
@@ -1978,7 +2091,7 @@ function SkyModule() {
                   label={row.label}
                   ariaLabel={row.aria}
                   value={row.value}
-                  min={0}
+                  min={row.min ?? 0}
                   max={row.max}
                   step={1}
                   format={row.format}

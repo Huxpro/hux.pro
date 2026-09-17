@@ -162,6 +162,15 @@ Instead of opening/closing between modes, the palette **morphs**:
 - Content crossfades with opacity
 - Height animates using CSS Grid (`grid-template-rows: 0fr/1fr`)
 
+#### Adaptive height (popover)
+
+The popover list is viewport-relative rather than a fixed `360px`. The phone
+sheet does not use this — it fills its detents with `flex-1`.
+- **Offset**: `22vh`, capped at `13.5rem`, so the card sits a little lower than Spotlight's `20vh`
+- **Search list**: `43dvh` (Geolocation as the last full row on a 16" MacBook), capped at `40rem`
+- **Slash list**: no `43dvh` cap — the card grows for every lettered command (the original taller morph) and only scrolls against remaining viewport chrome
+- Short screens shrink and scroll; tall screens show more results without becoming a full-height panel
+
 ### Footer Hints
 
 **Search Mode:**

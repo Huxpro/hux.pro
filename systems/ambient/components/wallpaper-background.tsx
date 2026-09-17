@@ -36,6 +36,10 @@ import { WeatherWallpaper } from "./wallpaper";
 // not the same find — so it is armed only while the shader is the one painting.
 // See lib/strike.ts for what counts as a click on the sky.
 //
+// The rain-and-snow egg — a drag stirs up a gust — is armed inside
+// <WeatherWallpaper /> instead, for the same reason one layer down: only the
+// Sky has particles for a wind to blow.
+//
 // An image wallpaper paints at FULL STRENGTH. On the home screen that is the
 // whole treatment: the picture is the content, sharp and untinted, with the
 // widgets floating on it. Reading pages recede it instead — a defocus inside
@@ -98,6 +102,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     veil,
     blurred,
     bezel,
+    gyro,
     reportShaderFallback,
     statsRef,
   } = useWallpaper();
@@ -148,7 +153,11 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
           scene={scene}
           active={enabled}
           themeEaseMs={skyThemeEaseMs}
+          gyro={gyro.active}
           edgeMask={edgeMask}
+          // This is the one sky a hand can reach: a drag across the page
+          // background stirs up a gust.
+          interactive
           onFallback={reportShaderFallback}
           statsRef={statsRef}
           strikeRef={strikeRef}
