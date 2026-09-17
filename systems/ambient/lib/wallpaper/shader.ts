@@ -24,6 +24,11 @@
 // scene's wind, the cloud deck's accumulated travel, and the sideways half of
 // the snow's. The travels are *subtracted* where they are used, because
 // sampling a procedural field further right is what walks it left.
+//
+// NO BACKTICKS BELOW THIS LINE, not even inside a comment: the GLSL lives in a
+// template literal, and a backtick ends it. tsc catches it immediately, with a
+// parse error pointing at the GLSL rather than at the quote, which is why this
+// note is here — it has cost three round trips already.
 // =============================================================================
 
 import {
@@ -1079,8 +1084,12 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   float radius = run / (8.0 * bow);
   vec2 centre = at + vec2(-dir.y, dir.x) * spin * radius;
   float aAt = atan(at.y - centre.y, at.x - centre.x);
-  // Arc length runs against the side the centre is on.
-  spin = -spin;
+  // spin is used as-is from here, and the reason is worth writing down
+  // because getting it backwards sends the whole meteor up instead of down.
+  // The radial direction is u = (at - centre)/radius = -perp(dir) * spin, so
+  // the tangent at the clicked point is spin * perp(u) = spin * spin * dir,
+  // which is dir for either sign: putting the centre on the other side flips
+  // the radius too, and the two cancel.
 
   // One pace for every meteor, so a long path takes longer than a short one —
   // but never quicker than METEOR_MIN_FLIGHT, because the shortest chords
