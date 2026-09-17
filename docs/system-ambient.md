@@ -721,6 +721,17 @@ itself is made of; the width is pushed around by two more scales on top of that
 inside the swath. It is wiped, not deleted, and it keeps moving with the mist
 rather than sitting on top of it.
 
+**And it is carried off, by the same door the rain and the snow come in.** A
+cleared patch is a hole in something that is moving, so it goes downwind and
+settles as it ages — the old end of a stroke has travelled further than the new
+end, and the stroke shears rather than sitting still. The displacement is
+resolved in `aimWipe`, against gravity exactly as a fall is (see **Wind does not
+shear the weather** above): the wind **across** gravity, the settle **along**
+it, and the gust in the sum because it is wind. So a tilted phone leans the
+drift as it leans the weather — measured, the displacement turns rigidly with
+gravity and keeps its length — and an upright calm sky is the plain downward
+settle it was before there was a gyroscope to ask.
+
 **The hand tires.** Wipe a misted window for real and you do not get to keep
 wiping: the hand cools, the finger picks up what it took off the glass, and the
 same stroke stops coming up clear. Rest a moment and it works again.

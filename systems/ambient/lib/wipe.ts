@@ -175,6 +175,28 @@ export function rub(hand: WipeHand, travelled: number, now: number): number {
   return hand.charge;
 }
 
+// --- Where the mist carries it -----------------------------------------------
+//
+// A cleared patch is not a mark on the screen, it is a hole in something that
+// is moving. It goes downwind and settles as it ages, so the old end of a
+// stroke has travelled further than the new end and the stroke shears rather
+// than sitting still — which is most of why the mark reads as weather and not
+// as a board.
+//
+// All three are a displacement over the whole of one point's life, in screen
+// units, and they are resolved against gravity in the renderer (`aimWipe`) the
+// same way the rain's and the snow's are: the wind ACROSS gravity, the settle
+// ALONG it. See "Where the weather falls".
+
+/** How far a unit of wind carries it. */
+export const WIPE_BLOW_WIND = 0.055;
+
+/** And a little that never stops, so a dead calm is not dead still. */
+export const WIPE_BLOW_STILL = 0.008;
+
+/** How far it sinks in the same time. Mist settles; it does not just blow. */
+export const WIPE_SETTLE = 0.014;
+
 /**
  * A move longer than this is not a stroke, it is a pointer that went somewhere
  * else — a window dragged under the cursor, a capture handed back. Draw no line

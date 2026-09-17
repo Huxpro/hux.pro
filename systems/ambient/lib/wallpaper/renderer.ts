@@ -22,7 +22,10 @@ import {
   WIPE_JUMP,
   WIPE_LIFE_MS,
   WIPE_MAX_GAP,
+  WIPE_BLOW_STILL,
+  WIPE_BLOW_WIND,
   WIPE_MAX_POINTS,
+  WIPE_SETTLE,
   WIPE_SLACK,
   freshHand,
   rub,
@@ -392,6 +395,8 @@ export class WallpaperRenderer {
   private snowDirVel = new Float32Array([0, 0]);
   /** Scratch for the target of each, rebuilt every frame. */
   private fallAt = new Float32Array([0, -1]);
+  /** Where the mist carries a cleared patch over one point's life — see aimWipe. */
+  private wipeBlow = new Float32Array([0, -WIPE_SETTLE]);
   /**
    * How far each field has travelled. The rain's is a scalar because its
    * streaks are drawn in a frame aligned to its own fall, where the only thing
@@ -1156,6 +1161,28 @@ export class WallpaperRenderer {
   }
 
   /**
+   * Where the mist carries a cleared patch over the whole of one point's life,
+   * into `wipeBlow`.
+   *
+   * By the same door as the rain and the snow, and for the same reason: the
+   * wind laid ACROSS gravity and the settle ALONG it, so a tilted phone leans
+   * the drift exactly as it leans the weather, and an upright calm sky is the
+   * plain (0, −settle) it was before there was a gyroscope to ask.
+   *
+   * The gust is in the sum because it is wind, and the wipe has no business
+   * knowing which wind is which — though on a fog day there is never one to
+   * add: the stir listener is armed on precipitation, and a fog scene has none.
+   */
+  private aimWipe() {
+    const gx = this.gravity[0];
+    const gy = this.gravity[1];
+    const across =
+      (this.current[WIND_OFFSET] + this.gust) * WIPE_BLOW_WIND + WIPE_BLOW_STILL;
+    this.wipeBlow[0] = gx * WIPE_SETTLE - gy * across;
+    this.wipeBlow[1] = gy * WIPE_SETTLE + gx * across;
+  }
+
+  /**
    * Where a fall is going, into `fallAt`:
    *
    *     fall = g · along  +  perp(g) · across
@@ -1276,14 +1303,10 @@ export class WallpaperRenderer {
     if (this.wipeLive > 0) {
       gl.uniform4fv(this.locWipe, this.wipeData);
       gl.uniform4fv(this.locWipeBox, this.wipeBox);
-      // Where a cleared point ends up after a whole life: the sky's own
-      // horizontal wind, plus a little that never stops, plus the mist's slow
-      // settle. Resolved here because the shader has no wind of its own to read.
-      gl.uniform2f(
-        this.locWipeBlow,
-        0.055 * this.current[WIND_OFFSET] + 0.008,
-        -0.014
-      );
+      // Resolved here because the shader has no wind of its own to read: each
+      // falling thing carries its own aim, and so does this.
+      this.aimWipe();
+      gl.uniform2fv(this.locWipeBlow, this.wipeBlow);
     }
 
     const c = this.current;
