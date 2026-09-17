@@ -857,14 +857,13 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
    *
    * A blurred reading page resolves to the THUMB. The layer there is scaled to
    * 110% under a 40px blur, which destroys every pixel of detail the full-size
-   * file was carrying — measured over the whole viewport, the 480px rendition
-   * differs from the 2560px one by 0.15/255 on average and 2/255 at worst, in
-   * both themes, for a tenth of the bytes (46KB → 4KB).
+   * file was carrying.
    *
    * Only when blurred. In `widget` placement, and on the home screen, the photo
-   * paints SHARP inside a card or across the page, and there the thumb is a
-   * visibly soft upscale rather than a free win. Photographs then pick the
-   * smallest cover rendition for this viewport × DPR (`pickWallpaperSrc`).
+   * paints SHARP inside a card or across the page. Photographs then pick the
+   * smallest cover rendition for this viewport × DPR (`pickWallpaperSrc`) — @1x
+   * on a 1× display, the full @2x file on retina. The 480px thumb paints first
+   * and the chosen file fades in over it.
    */
   const resolvedImage = useMemo(
     () =>
@@ -1023,14 +1022,20 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
 
     setGradientLayers((prev) => {
       const top = prev[prev.length - 1];
-      if (top && top.gradient === computedGradient) return prev;
+      if (top && top.gradient === computedGradient && top.src === wallpaperSrc) return prev;
       layerIdRef.current += 1;
       return [
         ...prev,
-        { id: layerIdRef.current, gradient: computedGradient, cover: computedCover },
+        {
+          id: layerIdRef.current,
+          gradient: computedGradient,
+          cover: computedCover,
+          preview: resolvedImage?.previewSrc ?? null,
+          src: resolvedImage?.src ?? null,
+        },
       ];
     });
-  }, [stackPainted, computedGradient, computedCover, isImageKind, weatherQuery.isFetching]);
+  }, [stackPainted, computedGradient, computedCover, isImageKind, weatherQuery.isFetching, wallpaperSrc, resolvedImage]);
 
   // Prune to the newest layer once the crossfade settles.
   useEffect(() => {
