@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ScrollEdgeFade } from "@/components/ui/scroll-edge";
 import { useTheme } from "@/services/theme";
 import { useLocale } from "@/services";
 import { useOptionalTheater } from "@/systems/theater";
@@ -225,10 +226,13 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
 /**
  * Horizontal rail for exactly three cards. Bleeds one page gutter past the
  * content column so the third card's edge peeks (see the tripleCards branch
- * for the sizing trick), and carries scroll-position "shadow" gradients on
- * both edges: the left fades in only once the rail is scrolled off its start
- * (so card 1 isn't dimmed at rest), the right fades out once the end is
- * reached (so the last card lands clear over the trailing whitespace).
+ * for the sizing trick), and carries scroll-position glass edge pockets on
+ * both sides: the left pocket appears only once the rail is scrolled off its
+ * start (so card 1 isn't frosted at rest), the right pocket disappears at
+ * the end (so the last card lands clear over the trailing whitespace).
+ *
+ * The pockets are glass, not `from-background` — they sit on the wallpaper
+ * / Clear surface instead of covering it with page colour.
  */
 function CardScrollRail({ children }: { children: ReactNode }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -277,29 +281,13 @@ function CardScrollRail({ children }: { children: ReactNode }) {
       >
         {children}
       </div>
-      {/* Left fade — appears only once scrolled off the start, softening
-          card 1's cut-off edge. */}
-      <div
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute inset-y-0 left-0 w-6",
-          "bg-gradient-to-r from-background to-transparent",
-          "transition-opacity duration-200",
-          atStart ? "opacity-0" : "opacity-100",
-        )}
-      />
-      {/* Right fade — over the gutter/peek; starts at the column edge so
-          card 2 and both gaps stay undimmed, and disappears at the end so the
-          last card reads clear over the pr-6 whitespace. */}
-      <div
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute inset-y-0 -right-6 w-6",
-          "bg-gradient-to-l from-background to-transparent",
-          "transition-opacity duration-200",
-          atEnd ? "opacity-0" : "opacity-100",
-        )}
-      />
+      {/* Left pocket — appears only once scrolled off the start, frosting
+          card 1's cut-off edge into the wallpaper. */}
+      <ScrollEdgeFade edge="left" visible={!atStart} />
+      {/* Right pocket — over the gutter/peek; starts at the column edge so
+          card 2 and both gaps stay clear, and disappears at the end so the
+          last card reads over the pr-6 whitespace. */}
+      <ScrollEdgeFade edge="right" visible={!atEnd} className="-right-6" />
     </div>
   );
 }
