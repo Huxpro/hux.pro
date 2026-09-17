@@ -8,5 +8,5 @@ export {
   useOptionalDevtool,
   type DevtoolPageMeta as DevtoolPageMetaData,
 } from "./provider";
-export { DevtoolFAB } from "./panel";
+export { DevtoolFAB } from "./dock";
 export { DevtoolPageMeta } from "./page-meta";

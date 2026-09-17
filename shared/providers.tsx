@@ -32,10 +32,12 @@ function AmbientWrapper({ children }: { children: React.ReactNode }) {
 }
 
 function DevtoolWrapper({ children }: { children: React.ReactNode }) {
-  const { isOpen: isCommandOpen } = useCommand();
+  const { isOpen: isCommandOpen, close: closeCommand } = useCommand();
 
   return (
-    <DevtoolProvider isCommandOpen={isCommandOpen}>{children}</DevtoolProvider>
+    <DevtoolProvider isCommandOpen={isCommandOpen} closeCommand={closeCommand}>
+      {children}
+    </DevtoolProvider>
   );
 }
 
