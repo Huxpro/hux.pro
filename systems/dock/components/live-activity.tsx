@@ -2,13 +2,15 @@
 
 import { cn } from "@/lib/utils";
 import {
+  SURFACE_TRANSITION_MS,
   SurfaceViewport,
   surfaceMotionVars,
   useSurfaceStack,
+  type SurfaceBand,
 } from "@/systems/surface";
 import { Drawer } from "@base-ui/react/drawer";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDock } from "../provider";
 
 // ---------------------------------------------------------------------------
@@ -140,7 +142,48 @@ export function LiveActivity({
 
   // One entry for the dock, not one per activity: only ever one is expanded,
   // and what the other surfaces care about is "the dock panel is up".
-  const { behind, depth, rank } = useSurfaceStack("dock-activity", expanded);
+  //
+  // The band it reports is what lets a sheet tell tiling from covering: a
+  // playlist that stops at this panel's bottom edge is beside it, not under
+  // it, and neither should push the other back. Height comes from
+  // `offsetHeight`, the layout box — the shell's own recede transform is a
+  // scale on this element, and measuring that would feed back into the answer.
+  const shellRef = useRef<HTMLDivElement>(null);
+  const [band, setBand] = useState<SurfaceBand | undefined>(undefined);
+  useEffect(() => {
+    if (!expanded) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBand(undefined);
+      return;
+    }
+    const measure = () => {
+      const shell = shellRef.current;
+      const popup = shell?.parentElement;
+      if (!shell || !popup) return;
+      // Layout values only: `offsetTop` is the popup's inset from the viewport
+      // box and `offsetHeight` the shell's own height, neither of which a
+      // transform — the travel in, the recede — can move.
+      const top = popup.offsetTop;
+      setBand({ top, bottom: top + shell.offsetHeight });
+    };
+    measure();
+    // The panel travels in over one surface transition; read it again once it
+    // has landed.
+    const settled = setTimeout(measure, SURFACE_TRANSITION_MS);
+    window.addEventListener("resize", measure);
+    const shell = shellRef.current;
+    const observer = shell ? new ResizeObserver(measure) : null;
+    if (shell) observer?.observe(shell);
+    return () => {
+      clearTimeout(settled);
+      window.removeEventListener("resize", measure);
+      observer?.disconnect();
+    };
+  }, [expanded]);
+
+  const { behind, depth, rank } = useSurfaceStack("dock-activity", expanded, {
+    band,
+  });
 
   return (
     <Drawer.Root
@@ -212,6 +255,7 @@ export function LiveActivity({
             )}
           >
             <div
+              ref={shellRef}
               data-surface-shell
               data-behind={behind ? "" : undefined}
               // React 19 renders `inert` as the boolean attribute.

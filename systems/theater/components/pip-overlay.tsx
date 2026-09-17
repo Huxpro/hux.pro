@@ -48,7 +48,9 @@ export function PipOverlay() {
     trackIndex,
     album,
     albums,
+    isPlaylistOpen,
     openPlaylist,
+    closePlaylist,
   } = useTheater();
 
   const open = mode === "pip" && !minimized;
@@ -139,11 +141,21 @@ export function PipOverlay() {
               <SkipForward className="h-3.5 w-3.5" fill="currentColor" />
             </button>
             {/* Where the Music system keeps its playlist button: last in the
-                transport cluster, because what plays next is transport. */}
+                transport cluster, because what plays next is transport. It is
+                a toggle and says so — the list is a place you are in or out
+                of, and a button that did nothing when you were already in it
+                read as broken. */}
             <button
-              onClick={openPlaylist}
-              aria-label={t(locale, "theaterOpenPlaylist")}
-              className={GLASS_CLUSTER_BTN}
+              onClick={isPlaylistOpen ? closePlaylist : openPlaylist}
+              aria-pressed={isPlaylistOpen}
+              aria-label={t(
+                locale,
+                isPlaylistOpen ? "theaterClosePlaylist" : "theaterOpenPlaylist",
+              )}
+              className={cn(
+                GLASS_CLUSTER_BTN,
+                isPlaylistOpen && cn(GLASS_PILL, "text-foreground"),
+              )}
             >
               <ListVideo className="h-3.5 w-3.5" />
             </button>

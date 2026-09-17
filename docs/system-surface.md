@@ -7,9 +7,13 @@ systems/surface/
 ├── presentation.ts       # SurfaceMode, breakpoints, useSurfaceMode()
 ├── adaptive-surface.tsx  # <AdaptiveSurface> — the policy: viewport picks the shape
 ├── sheet.tsx             # <SurfaceSheet> — the one bottom sheet, detents, scrim
+<<<<<<< HEAD
 ├── window.tsx            # <SurfaceWindow> — the one floating, draggable shell
 ├── chrome.tsx            # <SurfaceBody> — the title bar, scroll area and footer
 ├── stack.ts              # which sheets are open, so a sheet under another recedes
+=======
+├── stack.ts              # which sheets are open, so a sheet *covered* by another recedes
+>>>>>>> 67cc3ce (fix(surface): opening second is not the same as covering)
 └── index.ts
 ```
 
@@ -407,6 +411,7 @@ under the slash sheet and the picker, two — `depth` from the stack plus Base
 UI's own count of nested sheets, one `--surface-depth` on the shell. See
 [Command System](./system-command.md).
 
+<<<<<<< HEAD
 The stack's order is also the paint order. Every viewport is a stacking
 context at the same level, so sibling sheets would otherwise paint in the
 order their portals mounted — fine while every sheet mounts as it opens, wrong
@@ -417,6 +422,29 @@ place in the stack as its `layer` (`useSurfaceStack().rank`, `SurfaceViewport`
 `layer`) and a closing sheet keeps the layer it had, so it leaves from where
 it was rather than from under whatever it was covering. A readout of the
 stack as it stands is `useSurfaceStackEntries()`, for the attachments lab.
+=======
+### Covering, not merely later
+
+Opening second is not the same as covering. The dock's Live Activity panel
+hangs from the top edge and a sheet climbs from the bottom, so both can be up
+with neither hidden — the theater playlist stops exactly at the panel's bottom
+edge, and a queue opened *from* the player's card should leave that card
+usable rather than dim it and make it inert.
+
+So each surface reports the band it stands in (`band` on `useSurfaceStack`),
+and only a surface that overlaps counts as being on top. Two rules follow from
+it, both measured on an iPhone 13:
+
+- The dock panel (8–269) and the playlist sheet under it (277–652) tile:
+  neither is `data-behind`, both stay live.
+- The command palette at its 0.7 detent (199–652) *does* reach over the panel,
+  so it still steps both it and the sheet back, exactly as before.
+
+Measure the band off something a transform cannot move — the popup's
+`offsetTop`, the shell's `offsetHeight` — because the recede this decides is
+itself a transform on the shell, and reading it back would feed into the
+answer.
+>>>>>>> 67cc3ce (fix(surface): opening second is not the same as covering)
 
 ## Adopters
 

@@ -9,6 +9,7 @@ import {
   SURFACE_RECEDE_EASING,
   SURFACE_TRANSITION_MS,
   useSurfaceStack,
+  type SurfaceBand,
 } from "./stack";
 
 // =============================================================================
@@ -359,6 +360,57 @@ function usePullPastTop(
   }, [popup, enabled, onArmedChange]);
 }
 
+/**
+ * The band a bottom sheet stands in, for the stack to tell covering from
+ * tiling (stack.ts). A sheet with detents is pure arithmetic — its shell's top
+ * edge is the detent, its bottom the edge gap — and one without is as tall as
+ * it laid out, read from `offsetHeight` so the recede transform (a scale on
+ * the same element) cannot feed back into the measurement.
+ */
+function useSheetBand(
+  open: boolean,
+  snap: number | string | null,
+  hasSnapPoints: boolean,
+  shellRef: React.RefObject<HTMLDivElement | null>
+): SurfaceBand | undefined {
+  const [band, setBand] = useState<SurfaceBand | undefined>(undefined);
+  const point = typeof snap === "number" ? snap : null;
+
+  useEffect(() => {
+    if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBand(undefined);
+      return;
+    }
+    const measure = () => {
+      const vh = window.innerHeight;
+      const gap = EDGE_GAP_PX;
+      const bottom = vh - gap;
+      if (hasSnapPoints && point !== null) {
+        setBand({ top: point >= 1 ? gap : vh * (1 - point), bottom });
+        return;
+      }
+      const height = shellRef.current?.offsetHeight ?? 0;
+      setBand(height > 0 ? { top: bottom - height, bottom } : undefined);
+    };
+    measure();
+    // The shell settles into its detent over one transition; read it again
+    // once it has landed, and whenever the viewport changes under it.
+    const settled = setTimeout(measure, SURFACE_TRANSITION_MS);
+    window.addEventListener("resize", measure);
+    const shell = shellRef.current;
+    const observer = shell ? new ResizeObserver(measure) : null;
+    if (shell) observer?.observe(shell);
+    return () => {
+      clearTimeout(settled);
+      window.removeEventListener("resize", measure);
+      observer?.disconnect();
+    };
+  }, [open, hasSnapPoints, point, shellRef]);
+
+  return band;
+}
+
 export interface SurfaceSheetProps {
   /** Stable id — the sheet's key in the surface stack. */
   id: string;
@@ -487,9 +539,12 @@ export function SurfaceSheet({
       : undefined
     : levelProp;
 
+  const shellRef = useRef<HTMLDivElement>(null);
+  const band = useSheetBand(open, snap, hasSnapPoints, shellRef);
   const { behind, depth, beneathLevel, rank } = useSurfaceStack(id, open, {
     nestedIn,
     level,
+    band,
   });
 
   // Two marks a *kept-mounted* sheet needs on its way in, and nothing else
@@ -640,6 +695,7 @@ export function SurfaceSheet({
             >
               {label && <Drawer.Title className="sr-only">{label}</Drawer.Title>}
               <div
+                ref={shellRef}
                 data-surface-shell
                 data-behind={behind ? "" : undefined}
                 // Past the threshold: the release will lift the sheet off the

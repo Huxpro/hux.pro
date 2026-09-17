@@ -37,7 +37,9 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
     next,
     previous,
     seek,
+    isPlaylistOpen,
     openPlaylist,
+    closePlaylist,
   } = useTheater();
 
   const isYouTube = track?.platform === "youtube" && !!track.videoId;
@@ -120,10 +122,19 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
             <SkipForward className="h-3.5 w-3.5" fill="currentColor" />
           </button>
 
+          {/* A toggle, and lit while the list is up: from in here the list is
+              the other half of the player, not a one-way door. */}
           <button
-            onClick={openPlaylist}
-            aria-label={t(locale, "theaterOpenPlaylist")}
-            className={GLASS_CLUSTER_BTN}
+            onClick={isPlaylistOpen ? closePlaylist : openPlaylist}
+            aria-pressed={isPlaylistOpen}
+            aria-label={t(
+              locale,
+              isPlaylistOpen ? "theaterClosePlaylist" : "theaterOpenPlaylist",
+            )}
+            className={cn(
+              GLASS_CLUSTER_BTN,
+              isPlaylistOpen && cn(GLASS_PILL, "text-foreground"),
+            )}
           >
             <ListVideo className="h-3.5 w-3.5" />
           </button>

@@ -32,12 +32,34 @@ export const SURFACE_EASING = "cubic-bezier(0.32, 0.72, 0, 1)";
  */
 export const SURFACE_RECEDE_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
 
+/** The vertical band a surface occupies, in viewport pixels. */
+export interface SurfaceBand {
+  top: number;
+  bottom: number;
+}
+
 interface Entry {
   id: string;
   /** The sheet this one renders inside, when it is a Base UI nested drawer. */
   nestedIn?: string;
   /** The detent the sheet stands at, for a sheet opening over it to arrive level. */
   level?: number;
+  /**
+   * Where the surface stands. Absent means "assume it covers everything" —
+   * the behaviour every surface had before any of them could say.
+   */
+  band?: SurfaceBand;
+}
+
+/**
+ * Do two surfaces cover one another? Edge-to-edge is not overlap: a sheet that
+ * stops exactly at the dock panel's bottom edge is tiled with it, not under
+ * it. An unreported band covers everything, so a surface that cannot describe
+ * itself keeps the behaviour it had before it could.
+ */
+function overlaps(a: Entry, b: Entry): boolean {
+  if (!a.band || !b.band) return true;
+  return a.band.top < b.band.bottom && b.band.top < a.band.bottom;
 }
 
 let stack: readonly Entry[] = [];
@@ -78,6 +100,25 @@ function setLevel(id: string, level: number | undefined) {
 }
 
 /**
+ * A measured band is re-reported on every resize and every frame of a
+ * transition, so a repeated answer must not be a render: anything under a
+ * pixel is the same band.
+ */
+function setBand(id: string, band: SurfaceBand | undefined) {
+  const entry = stack.find((e) => e.id === id);
+  if (!entry) return;
+  const same =
+    entry.band === band ||
+    (!!entry.band &&
+      !!band &&
+      Math.abs(entry.band.top - band.top) < 1 &&
+      Math.abs(entry.band.bottom - band.bottom) < 1);
+  if (same) return;
+  stack = stack.map((e) => (e.id === id ? { ...e, band } : e));
+  emit();
+}
+
+/**
  * The stack as it stands, bottom first — for a readout (the attachments lab), not
  * for a sheet, which asks `useSurfaceStack` about its own place.
  */
@@ -90,12 +131,21 @@ export function useSurfaceStackEntries(): readonly { id: string; nestedIn?: stri
  * top of it since. Deregisters on close (not on unmount), so the one behind
  * comes forward in step with the top sheet's exit rather than after it.
  *
- * `behind` counts every sheet above, nested or not: it is what makes the sheet
- * inert and dims it. `depth` leaves out the sheets nested in this one — Base
- * UI already counts those on the parent popup as `--nested-drawers`, live with
- * their swipe — so a shell can add the two without counting a sheet twice.
- * `beneathLevel` is the detent of the sheet directly under this one, so a
- * sheet can arrive level with what it is stacked on. `rank` is the sheet's
+ * `behind` counts every sheet above *that covers this one*, nested or not: it
+ * is what makes the sheet inert and dims it. Surfaces that merely share the
+ * screen — the dock panel at the top, a sheet stopping below it — do not
+ * count, because neither is hidden. `depth` leaves out the sheets nested in
+ * this one — Base UI already counts those on the parent popup as
+ * `--nested-drawers`, live with their swipe — so a shell can add the two
+ * without counting a sheet twice. `beneathLevel` is the detent of the nearest
+ * sheet under this one that it actually stands on, so a sheet can arrive level
+ * with it.
+ *
+ * `band` is where this surface stands, so the others can tell covering from
+ * tiling. Measure it off a box that does not carry the recede transform (the
+ * popup, or `offsetHeight`), or the answer feeds back into itself.
+ *
+ * `rank` is the sheet's
  * place in the stack from the bottom — its layer, for a viewport to stand on:
  * sheets portal into sibling subtrees in whatever order they first mounted,
  * and a kept-mounted one (a window) opened again over a younger sheet would
@@ -104,7 +154,11 @@ export function useSurfaceStackEntries(): readonly { id: string; nestedIn?: stri
 export function useSurfaceStack(
   id: string,
   active: boolean,
-  { nestedIn, level }: { nestedIn?: string; level?: number } = {}
+  {
+    nestedIn,
+    level,
+    band,
+  }: { nestedIn?: string; level?: number; band?: SurfaceBand } = {}
 ): {
   behind: boolean;
   depth: number;
@@ -123,23 +177,42 @@ export function useSurfaceStack(
     if (active) setLevel(id, level);
   }, [id, active, level]);
 
+  // Destructured, so a caller passing a fresh object every render — which a
+  // measured band is — does not re-run this on every render.
+  const bandTop = band?.top;
+  const bandBottom = band?.bottom;
+  useEffect(() => {
+    if (!active) return;
+    setBand(
+      id,
+      bandTop === undefined || bandBottom === undefined
+        ? undefined
+        : { top: bandTop, bottom: bandBottom }
+    );
+  }, [id, active, bandTop, bandBottom]);
+
   const index = current.findIndex((e) => e.id === id);
-  // Before it registers (the render that opens it) the sheet beneath is the
-  // top of the stack; after, the entry under its own.
-  const beneath = current[index === -1 ? current.length - 1 : index - 1];
   if (index === -1) {
-    // Opening: it is about to be the top. Closed: it has no place.
+    // Before it registers (the render that opens it) the sheet beneath is the
+    // top of the stack. Closed: it has no place.
     return {
       behind: false,
       depth: 0,
-      beneathLevel: beneath?.level,
+      beneathLevel: current[current.length - 1]?.level,
       rank: active ? current.length : -1,
     };
   }
-  const above = current.slice(index + 1);
+  const self = current[index];
+  // Only the ones that actually cover this surface are above it.
+  const covering = current.slice(index + 1).filter((e) => overlaps(self, e));
+  // And only one it actually stands on is something to stand level with.
+  const beneath = current
+    .slice(0, index)
+    .reverse()
+    .find((e) => overlaps(self, e));
   return {
-    behind: above.length > 0,
-    depth: above.filter((e) => e.nestedIn !== id).length,
+    behind: covering.length > 0,
+    depth: covering.filter((e) => e.nestedIn !== id).length,
     beneathLevel: beneath?.level,
     rank: index,
   };
