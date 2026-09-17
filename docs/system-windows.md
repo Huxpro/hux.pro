@@ -210,14 +210,33 @@ dot *is* the bar, so the hand-off reverses cleanly and has no midpoint to get
 wrong. The dots' box is a fixed 36px either way, so the pill itself never
 changes size. It is 64×26, with a hit area of 88×42 — a thumb target.
 
-The phase is set twice a gesture from **the finger's own movement**, read on
-`document` in the capture phase: Base UI takes the pointer the moment it reads
-the press as a swipe and the event never reaches `window` again, but the
-document still sees all of it. Asking the *surface* how far it has travelled
-instead (an earlier attempt) is a different question and a worse one — a sheet
-with detents stands still until the swipe is recognised and zeroes its travel
-every time it lands on a detent, so the pill flickered under the finger and the
-promotion lagged 40px behind it.
+The phase is latched by the press and set from **the finger's own movement**,
+read on `document` in the capture phase. Asking the *surface* how far it has
+travelled instead (an earlier attempt) is a different question and a worse one:
+a sheet with detents stands still until the swipe is recognised and zeroes its
+travel every time it lands on one, so the pill flickered under the finger and
+the promotion lagged 40px behind it.
+
+**A press is ours to read; an end is not.** Base UI captures the pointer for
+everything except touch, and once it has, the release can fail to reach the
+page at all — no pointerup, no pointercancel, no lostpointercapture, at any
+phase, on window, document or the popup, not even for a listener installed
+before the app itself. (Base UI can miss it too and leave its own
+`data-swiping` set.) A phase with one way out is a phase that sticks, and a
+stuck one here is a window with no dots: the handle stayed until the next
+press, and `keepMounted` carried it into the next time the app opened — which
+is exactly what "the dots keep disappearing" was. So the gesture ends on
+whichever comes first:
+
+- our own `pointerup` / `pointercancel`, or a move that reports no button down;
+- the popup's `data-swiping` clearing;
+- the pointer capture being lost;
+- a watchdog: a surface that has stopped moving under a finger that has stopped
+  moving, for 450ms, is a gesture that is over. It only puts the pill back — the
+  listeners stay, so a gesture that turns out to still be going picks the handle
+  straight back up;
+- and the sheet being put away or brought back, since a kept-mounted sheet would
+  otherwise carry a half-finished gesture across.
 
 The dots themselves are shared with the desktop pill (`window-pill.tsx`), so
 the two can't drift; on a grip they are an indicator rather than three targets
