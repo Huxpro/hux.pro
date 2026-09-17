@@ -1736,3 +1736,106 @@ html.dragging * {
     animation: none;
   }
 }
+
+/* =============================================================================
+   Tilt primer illustration — the phone that rocks while the rain inside it
+   stays level with the world (systems/ambient/components/tilt-primer-sheet).
+
+   CSS rather than a JS animator, for two reasons that are the whole quality of
+   the thing. One: the rain is "level" only for as long as the phone's rotation
+   and the rain's counter-rotation stay exactly opposite, and two declarative
+   animations of the same duration cannot drift, where two dozen independently
+   started JS springs can. Two: this plays over a live WebGL sky, and the main
+   thread is already spoken for.
+
+   Four animations in total, whatever the drop count: the shell, the level
+   group, and one per rain layer — because each layer is a seamless TILE-tall
+   tile stamped three times and slid by exactly one tile, not a drop each.
+
+   The rain field is sized by the screen's HALF-DIAGONAL about the rock's
+   centre (79.2 units), not by the screen box: a field only as wide as the
+   screen turns out from under its own corners, and what you see cutting the
+   shower off is then the field's edge rather than the phone. Same for the
+   viewBox, which has to hold the phone at full tilt or the SVG viewport clips
+   a straight line through it.
+   ============================================================================= */
+
+.tilt-primer-phone,
+.tilt-primer-level,
+.tilt-primer-fall {
+  transform-box: view-box;
+}
+
+.tilt-primer-phone,
+.tilt-primer-level {
+  transform-origin: 48px 80px;
+}
+
+@keyframes tilt-primer-rock {
+  0%,
+  100% {
+    transform: rotate(-17deg);
+  }
+  50% {
+    transform: rotate(17deg);
+  }
+}
+
+@keyframes tilt-primer-unrock {
+  0%,
+  100% {
+    transform: rotate(17deg);
+  }
+  50% {
+    transform: rotate(-17deg);
+  }
+}
+
+@keyframes tilt-primer-fall {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(120px);
+  }
+}
+
+.tilt-primer-phone {
+  animation: tilt-primer-rock 3.6s ease-in-out infinite;
+}
+
+.tilt-primer-level {
+  animation: tilt-primer-unrock 3.6s ease-in-out infinite;
+}
+
+.tilt-primer-fall-far {
+  animation: tilt-primer-fall 2s linear infinite;
+}
+
+.tilt-primer-fall-near {
+  animation: tilt-primer-fall 1.2s linear infinite;
+}
+
+/* Refused: upright, rain straight down the screen — what a refusal actually
+   leaves you with, rather than a picture still promising the thing. */
+.tilt-primer-flat .tilt-primer-phone,
+.tilt-primer-flat .tilt-primer-level {
+  animation: none;
+  transform: none;
+}
+
+.tilt-primer-flat .tilt-primer-fall {
+  animation-play-state: paused;
+}
+
+/* Held: the same picture, stopped — a tilted phone with level rain, which
+   still says it where an upright one would just be a phone. Paused at 0% is
+   exactly that pose, so the still frame IS the animation, not a second
+   drawing to keep in step. */
+@media (prefers-reduced-motion: reduce) {
+  .tilt-primer-phone,
+  .tilt-primer-level,
+  .tilt-primer-fall {
+    animation-play-state: paused;
+  }
+}

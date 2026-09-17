@@ -268,6 +268,27 @@ with the world while the phone turns under it — the same relationship the
 shader draws at full size, at a size that fits above a paragraph. Saying "the
 rain leans" is the part nobody reads.
 
+Two things make that picture hold up, and both are the kind of bug that only
+shows at an angle:
+
+- **The rain field is sized by the screen's half-diagonal, not by the screen.**
+  It turns under the phone, so a field only as wide as the screen swings out
+  from under its own corners — and what you then see cutting the shower off is
+  the field's edge, not the phone. 79.2 units about the rock's centre covers
+  every corner at every angle. (The viewBox has the same problem: it has to
+  hold the phone at full tilt, 121 × 169, or the SVG viewport cuts a straight
+  line through it.)
+- **It is CSS, not a JS animator.** The rain is level only for as long as the
+  phone's rotation and the rain's counter-rotation stay exactly opposite, and
+  two declarative animations of one duration cannot drift where two dozen
+  independently started JS springs can — over a live WebGL sky, on a main
+  thread already spoken for. Four animations drive the whole thing whatever the
+  drop count, because each layer is a seamless tile stamped three times and
+  slid by exactly one tile, rather than an animation per drop. Under
+  `prefers-reduced-motion` they are simply paused at 0%, which is a tilted
+  phone with level rain — the still frame IS the animation, not a second
+  drawing to keep in step.
+
 **And it stays up to say how it went.** The sheet is the only thing on screen
 that can. A refusal especially: the sky simply goes on falling straight down,
 and without a word here the only explanation lives three taps away in the

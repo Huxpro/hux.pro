@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { AdaptiveSurface } from "@/systems/surface";
-import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useWallpaper } from "../provider";
 
@@ -37,141 +36,164 @@ import { useWallpaper } from "../provider";
 // it.
 // ---------------------------------------------------------------------------
 
-/** How far the phone rocks, in degrees, and how long one there-and-back takes. */
-const ROCK_DEG = 17;
-const ROCK_SEC = 3.6;
-
-/** How far a drop falls in one loop, and how long it takes. */
-const FALL = 210;
-const FALL_SEC = 1.5;
-
 /**
- * One cycle, shared by the phone and by the rain that has to cancel it exactly.
- * Both read the same keyframes and the same spec, so they cannot drift apart —
- * the rain is level with the world only for as long as the two agree.
+ * The rain, as two seamless tiles — a far layer and a near one, each `TILE`
+ * units tall and stamped three times so a slide of exactly one tile loops
+ * without a seam. Fixed rather than generated, because a field rolled at
+ * render time would differ between the server's HTML and the client's.
+ *
+ * The x range is wider than the screen on purpose. The field turns under the
+ * phone, and a field only as wide as the screen swings out from under its own
+ * corners — what cuts the shower off is then the field's edge and not the
+ * phone. It is sized by the screen's half-diagonal about the rock's centre
+ * (79.2 units), so no rotation can empty a corner. See the block in
+ * globals.css.
  */
-const ROCK = {
-  duration: ROCK_SEC,
-  repeat: Infinity,
-  ease: "easeInOut",
-} as const;
+const TILE = 120;
+
+const RAIN_FAR = [
+  { x: -31.1, y: 67.2, len: 13.5, o: 0.2 },
+  { x: -24.5, y: 70.5, len: 9.1, o: 0.2 },
+  { x: -17.4, y: 95.2, len: 8.6, o: 0.18 },
+  { x: -14.5, y: 97.2, len: 12.2, o: 0.15 },
+  { x: -2.6, y: 115.8, len: 11.9, o: 0.21 },
+  { x: -1.5, y: 1.8, len: 11.2, o: 0.15 },
+  { x: 5.0, y: 29.0, len: 8.2, o: 0.2 },
+  { x: 12.9, y: 101.1, len: 11.1, o: 0.22 },
+  { x: 19.6, y: 79.5, len: 10.7, o: 0.17 },
+  { x: 29.1, y: 119.5, len: 13.0, o: 0.22 },
+  { x: 31.1, y: 27.6, len: 9.7, o: 0.15 },
+  { x: 40.2, y: 48.0, len: 13.1, o: 0.19 },
+  { x: 47.7, y: 101.7, len: 8.0, o: 0.17 },
+  { x: 53.7, y: 56.4, len: 13.9, o: 0.19 },
+  { x: 54.8, y: 75.5, len: 12.7, o: 0.17 },
+  { x: 61.2, y: 39.9, len: 13.8, o: 0.23 },
+  { x: 67.7, y: 29.6, len: 8.6, o: 0.15 },
+  { x: 78.3, y: 21.3, len: 11.4, o: 0.19 },
+  { x: 80.7, y: 87.8, len: 8.8, o: 0.22 },
+  { x: 86.6, y: 50.5, len: 9.3, o: 0.17 },
+  { x: 98.3, y: 96.4, len: 9.8, o: 0.25 },
+  { x: 99.8, y: 47.3, len: 13.1, o: 0.22 },
+  { x: 105.4, y: 118.7, len: 9.3, o: 0.17 },
+  { x: 116.0, y: 39.5, len: 9.8, o: 0.15 },
+  { x: 118.0, y: 69.9, len: 9.5, o: 0.21 },
+  { x: 126.0, y: 54.4, len: 13.8, o: 0.2 },
+];
+
+const RAIN_NEAR = [
+  { x: -28.7, y: 41.5, len: 22.6, o: 0.36 },
+  { x: -19.4, y: 41.3, len: 18.7, o: 0.49 },
+  { x: -13.7, y: 53.4, len: 17.0, o: 0.37 },
+  { x: 4.6, y: 39.5, len: 20.5, o: 0.38 },
+  { x: 11.6, y: 53.7, len: 16.5, o: 0.39 },
+  { x: 18.2, y: 95.1, len: 20.1, o: 0.34 },
+  { x: 30.4, y: 35.8, len: 19.6, o: 0.34 },
+  { x: 37.5, y: 94.3, len: 19.6, o: 0.45 },
+  { x: 50.5, y: 70.5, len: 20.8, o: 0.38 },
+  { x: 58.8, y: 93.3, len: 15.9, o: 0.49 },
+  { x: 66.0, y: 16.7, len: 16.4, o: 0.37 },
+  { x: 72.8, y: 47.7, len: 18.7, o: 0.43 },
+  { x: 86.3, y: 112.2, len: 20.9, o: 0.36 },
+  { x: 99.9, y: 83.9, len: 23.7, o: 0.45 },
+  { x: 110.4, y: 24.6, len: 17.5, o: 0.49 },
+  { x: 110.9, y: 110.9, len: 23.2, o: 0.33 },
+  { x: 121.8, y: 109.9, len: 23.6, o: 0.47 },
+];
 
 /**
- * How the picture is standing:
+ * How the picture is standing. `held` is not a third drawing: it is these same
+ * animations paused at 0%, which CSS does under `prefers-reduced-motion`
+ * without this component having to know.
  *
  *   rocking — the phone turns and the rain stays level with the world. The
  *             promise, and the argument.
- *   held    — the same thing, stopped: a tilted phone with level rain. Under
- *             `prefers-reduced-motion`, where a still picture of a *tilted*
- *             phone still says it and a straight one would just be a phone.
  *   flat    — upright, rain straight down the screen. What a refused browser
  *             actually gives you, which is the honest thing to show next to
  *             the sentence saying so.
  */
-type Pose = "rocking" | "held" | "flat";
+type Pose = "rocking" | "flat";
 
-const DROPS = [
-  { x: 18, delay: 0.62 },
-  { x: 26, delay: 0.0 },
-  { x: 33, delay: 1.12 },
-  { x: 41, delay: 0.44 },
-  { x: 48, delay: 0.86 },
-  { x: 55, delay: 0.16 },
-  { x: 63, delay: 1.3 },
-  { x: 70, delay: 0.52 },
-  { x: 78, delay: 0.98 },
-  { x: 30, delay: 0.3 },
-  { x: 60, delay: 0.72 },
-];
+function Shower({ id, drops, width }: {
+  id: string;
+  drops: { x: number; y: number; len: number; o: number }[];
+  width: number;
+}) {
+  return (
+    <g id={id} className="stroke-foreground" strokeLinecap="round" strokeWidth={width}>
+      {drops.map((d) => (
+        <line
+          key={`${d.x}-${d.y}`}
+          x1={d.x}
+          x2={d.x}
+          y1={d.y}
+          y2={d.y + d.len}
+          opacity={d.o}
+        />
+      ))}
+    </g>
+  );
+}
 
 function TiltIllustration({ pose }: { pose: Pose }) {
-  const moving = pose === "rocking";
-  const angle = pose === "held" ? -ROCK_DEG : 0;
   return (
     <div
       aria-hidden="true"
-      className="flex h-44 items-center justify-center overflow-hidden"
+      className={cn(
+        "flex h-52 items-center justify-center",
+        pose === "flat" && "tilt-primer-flat"
+      )}
     >
-      <motion.svg
-        width="108"
-        height="176"
-        viewBox="0 0 96 160"
-        fill="none"
-        initial={{ rotate: angle }}
-        animate={moving ? { rotate: [-ROCK_DEG, ROCK_DEG, -ROCK_DEG] } : { rotate: angle }}
-        transition={moving ? ROCK : undefined}
-        style={{ originX: 0.5, originY: 0.5 }}
-      >
+      {/* The viewBox holds the phone at full tilt — 121 × 169 about (48, 80) —
+          or the SVG viewport cuts a straight line through the corner. */}
+      <svg viewBox="-15 -7 126 174" width="139" height="191" fill="none">
         <defs>
           <clipPath id="tilt-primer-screen">
             <rect x="13" y="9" width="70" height="142" rx="10" />
           </clipPath>
+          <Shower id="tilt-primer-far" drops={RAIN_FAR} width={1} />
+          <Shower id="tilt-primer-near" drops={RAIN_NEAR} width={1.4} />
         </defs>
 
-        {/* The device. */}
-        <rect
-          x="8"
-          y="4"
-          width="80"
-          height="152"
-          rx="15"
-          className="fill-foreground/[0.04] stroke-foreground/25"
-          strokeWidth="1.5"
-        />
-        <rect
-          x="13"
-          y="9"
-          width="70"
-          height="142"
-          rx="10"
-          className="fill-foreground/[0.06]"
-        />
-        {/* The notch, so it reads as a phone and not as a card. */}
-        <rect x="38" y="13" width="20" height="4" rx="2" className="fill-foreground/20" />
+        <g className="tilt-primer-phone">
+          {/* The device. */}
+          <rect
+            x="8"
+            y="4"
+            width="80"
+            height="152"
+            rx="15"
+            className="fill-foreground/[0.04] stroke-foreground/25"
+            strokeWidth="1.5"
+          />
+          <rect
+            x="13"
+            y="9"
+            width="70"
+            height="142"
+            rx="10"
+            className="fill-foreground/[0.06]"
+          />
+          {/* The notch, so it reads as a phone and not as a card. */}
+          <rect x="38" y="13" width="20" height="4" rx="2" className="fill-foreground/20" />
 
-        {/* And the weather inside it, which does not turn with it. The same
-            counter-rotation the shader does per fragment, here done once. */}
-        <g clipPath="url(#tilt-primer-screen)">
-          <motion.g
-            initial={{ rotate: -angle }}
-            animate={moving ? { rotate: [ROCK_DEG, -ROCK_DEG, ROCK_DEG] } : { rotate: -angle }}
-            transition={moving ? ROCK : undefined}
-            style={{ originX: "48px", originY: "80px" }}
-          >
-            {DROPS.map((drop) => (
-              <motion.line
-                key={`${drop.x}-${drop.delay}`}
-                x1={drop.x}
-                x2={drop.x}
-                y1={-46}
-                y2={-18}
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                className="stroke-foreground/45"
-                initial={{ y: 0 }}
-                // Stopped, each drop rests where its own delay would have put
-                // it — the animation paused, rather than every drop frozen at
-                // the same offset, which is a comb and not a shower.
-                animate={
-                  moving
-                    ? { y: [0, FALL] }
-                    : { y: ((drop.delay / FALL_SEC) % 1) * FALL }
-                }
-                transition={
-                  moving
-                    ? {
-                        duration: FALL_SEC,
-                        repeat: Infinity,
-                        ease: "linear",
-                        delay: drop.delay,
-                      }
-                    : undefined
-                }
-              />
-            ))}
-          </motion.g>
+          {/* And the weather inside it, which does not turn with it. The same
+              counter-rotation the shader does per fragment, here done once. */}
+          <g clipPath="url(#tilt-primer-screen)">
+            <g className="tilt-primer-level">
+              <g className="tilt-primer-fall tilt-primer-fall-far">
+                <use href="#tilt-primer-far" y={-TILE} />
+                <use href="#tilt-primer-far" />
+                <use href="#tilt-primer-far" y={TILE} />
+              </g>
+              <g className="tilt-primer-fall tilt-primer-fall-near">
+                <use href="#tilt-primer-near" y={-TILE} />
+                <use href="#tilt-primer-near" />
+                <use href="#tilt-primer-near" y={TILE} />
+              </g>
+            </g>
+          </g>
         </g>
-      </motion.svg>
+      </svg>
     </div>
   );
 }
@@ -200,7 +222,6 @@ const BUTTON =
 export function TiltPrimerSheet() {
   const { locale } = useLocale();
   const { isTiltPrimerOpen, closeTiltPrimer, takeTilt } = useWallpaper();
-  const reducedMotion = useReducedMotion() ?? false;
   const [phase, setPhase] = useState<Phase>("offer");
 
   // The outcome shows, and then the sheet lets itself out.
@@ -257,11 +278,7 @@ export function TiltPrimerSheet() {
     >
       <div className="space-y-4 pb-2">
         {/* A refusal gets the picture of what a refusal leaves you with. */}
-        <TiltIllustration
-          pose={
-            phase === "denied" ? "flat" : reducedMotion ? "held" : "rocking"
-          }
-        />
+        <TiltIllustration pose={phase === "denied" ? "flat" : "rocking"} />
         {!settled && (
           <p className="px-0.5 text-[15px] leading-relaxed text-secondary-foreground">
             {t(locale, "tiltPrimerBody")}
