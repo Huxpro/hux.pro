@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 // =============================================================================
 // Devtool System Provider
@@ -225,12 +232,27 @@ interface DevtoolProviderProps {
   children: React.ReactNode;
   /** Whether the command palette is open (to disable 'D' shortcut) */
   isCommandOpen?: boolean;
+  /**
+   * Close the command palette. Detaching the devtool dismisses it: the palette
+   * is how the devtool was summoned, and pulling the devtool off the edge says
+   * the page is what you want to see now.
+   */
+  closeCommand?: () => void;
 }
 
-export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProviderProps) {
+export function DevtoolProvider({
+  children,
+  isCommandOpen = false,
+  closeCommand,
+}: DevtoolProviderProps) {
   const [isEnabled, setIsEnabledState] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isDetached, setIsDetached] = useState(false);
+  // In a ref so `detach` stays a stable callback the dock can hold on to.
+  const closeCommandRef = useRef(closeCommand);
+  useEffect(() => {
+    closeCommandRef.current = closeCommand;
+  }, [closeCommand]);
   const [draggableOverrides, setDraggableOverrides] = useState<
     Record<string, Partial<DraggableInstanceConfig>>
   >({});
@@ -295,11 +317,14 @@ export function DevtoolProvider({ children, isCommandOpen = false }: DevtoolProv
   }, []);
 
   // Pulled off the edge: the panel collapses into the pill it will reopen
-  // from. Closing it is the gesture — what is left behind is the pill.
+  // from. Closing it is the gesture — what is left behind is the pill, and
+  // nothing else: the palette that summoned it goes too, because clearing the
+  // screen down to the page is the whole point of asking for a pill.
   const detach = useCallback(() => {
     setIsDetached(true);
     setDevtoolSettings({ detached: true });
     setIsOpen(false);
+    closeCommandRef.current?.();
   }, []);
 
   // Back onto the edge, and open there: docking a collapsed pill into an empty

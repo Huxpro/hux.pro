@@ -6,13 +6,26 @@ import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { Command, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
+import { useDevtool } from "@/systems/devtool";
 import { HANDOFF, useHomeEditing } from "@/components/ui/home-edit-store";
 import { useCompactViewport } from "./use-compact-viewport";
 
+/**
+ * Hold the search button this long and the devtool opens. Undocumented on
+ * purpose and deliberately far past any accidental press: a phone has no `D`
+ * key, and the palette's own Debug Panel row is the way in that is meant to be
+ * found. This is the one for whoever already knows.
+ */
+const DEVTOOL_HOLD_MS = 3000;
+
+/** A press that slides this far is a drag or a scroll, not a hold. */
+const HOLD_SLOP_PX = 10;
+
 export function FloatingActionButton() {
   const { toggle } = useCommand();
+  const { summon: summonDevtool } = useDevtool();
   const pathname = usePathname();
   const { locale } = useLocale();
   const [mounted, setMounted] = useState(false);
@@ -26,6 +39,46 @@ export function FloatingActionButton() {
   // Below `md` the bar and the grid's edit controls share the bottom of the
   // screen; above it the controls float over the bar.
   const compact = useCompactViewport();
+
+  // The hold that opens the devtool. Kept in refs: nothing about it renders,
+  // and a state update mid-press would only fight the drag above.
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdOrigin = useRef<{ x: number; y: number } | null>(null);
+  const heldRef = useRef(false);
+
+  const cancelHold = useCallback(() => {
+    if (holdTimer.current !== null) {
+      clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+    holdOrigin.current = null;
+  }, []);
+
+  const startHold = useCallback(
+    (e: React.PointerEvent) => {
+      heldRef.current = false;
+      holdOrigin.current = { x: e.clientX, y: e.clientY };
+      holdTimer.current = setTimeout(() => {
+        holdTimer.current = null;
+        heldRef.current = true;
+        summonDevtool();
+      }, DEVTOOL_HOLD_MS);
+    },
+    [summonDevtool]
+  );
+
+  const trackHold = useCallback(
+    (e: React.PointerEvent) => {
+      const origin = holdOrigin.current;
+      if (!origin) return;
+      if (Math.hypot(e.clientX - origin.x, e.clientY - origin.y) > HOLD_SLOP_PX) {
+        cancelHold();
+      }
+    },
+    [cancelHold]
+  );
+
+  useEffect(() => cancelHold, [cancelHold]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -48,9 +101,22 @@ export function FloatingActionButton() {
     >
       <motion.button
         layout
-        onClick={() => toggle()}
+        // The hold has already done something by the time the finger lifts,
+        // so the press that carried it must not also open the palette.
+        onClick={() => {
+          if (heldRef.current) {
+            heldRef.current = false;
+            return;
+          }
+          toggle();
+        }}
+        onPointerDown={startHold}
+        onPointerMove={trackHold}
+        onPointerUp={cancelHold}
+        onPointerCancel={cancelHold}
+        onPointerLeave={cancelHold}
         className={cn(
-          "pressable pointer-events-auto",
+          "pressable pointer-events-auto select-none",
           "transition-[background-color,border-color,color,transform] duration-200",
           yielding && "pointer-events-none",
           "flex items-center gap-2",

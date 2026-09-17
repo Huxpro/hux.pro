@@ -38,8 +38,10 @@ import { useDevtool } from "./provider";
 //
 //   off   pull the sheet up past its top edge and let go. It comes off the
 //         edge and lands as the pill (`onPullPastTop`, sheet.tsx).
-//   on    drag the pill down onto the bottom edge and let go. A landing pad
-//         rises to meet it, and the release puts the sheet back.
+//   on    drag the pill down onto the bottom edge, HOLD it there, and let go.
+//         A landing pad rises to meet it, and the release puts the sheet back.
+//         Holding is the decision, not arriving: a pill is a thing you can put
+//         anywhere, so dropping straight through the pad just leaves it there.
 //
 // Both say the same thing in the same language — where this belongs is
 // something you move it to — so neither has to be learnt separately, and the
@@ -65,8 +67,18 @@ const WINDOW_WIDTH = "min(calc(100vw - 2rem), 420px)";
 
 /** The landing pad's ring off the screen edges — the surface system's gap. */
 const PAD_INSET = 12;
-/** How tall it stands, and so how deep the catch is. */
-const PAD_HEIGHT = 160;
+/**
+ * How tall it stands, and so how deep the catch is. Deliberately shallow: a
+ * floating thing you can put anywhere is the whole point of a pill, and a pad
+ * that swallows the bottom quarter of the screen takes that away.
+ */
+const PAD_HEIGHT = 84;
+/**
+ * How long the pill must be HELD over the pad before a release docks it.
+ * Being over the pad is not the decision — staying there is. Drop straight
+ * through and the pill just lands there, which is what a pill is for.
+ */
+const DWELL_MS = 550;
 
 /**
  * The pill's z. Kept at what `withDraggable`'s wrapper used to give it, so the
@@ -75,8 +87,16 @@ const PAD_HEIGHT = 160;
  */
 const PILL_Z = 9999;
 
-/** Where a release would put the sheet back. Only up while a pill is in hand. */
-function DockPad({ over }: { over: boolean }) {
+/**
+ * Where a release would put the sheet back. Only up while a pill is in hand.
+ *
+ * Three states, because there are three things to say: the pad is here, you
+ * are over it, and holding is what commits. The dwell is drawn as the grabber
+ * growing into the sheet's own — a bar filling to full width, on the clock
+ * that is actually running — so the wait is legible rather than mysterious,
+ * and leaving early visibly gives it back.
+ */
+function DockPad({ over, armed }: { over: boolean; armed: boolean }) {
   return (
     <motion.div
       aria-hidden
@@ -85,21 +105,26 @@ function DockPad({ over }: { over: boolean }) {
       exit={{ opacity: 0, y: 24 }}
       transition={{ type: "spring", stiffness: 420, damping: 36, mass: 0.7 }}
       style={{ height: PAD_HEIGHT, zIndex: PILL_Z - 1 }}
+      data-dock-pad={armed ? "armed" : over ? "over" : ""}
       className={cn(
         "pointer-events-none fixed inset-x-3 bottom-3 flex justify-center rounded-3xl pt-2",
-        "border border-dashed transition-colors duration-200",
-        over
-          ? "border-foreground/40 bg-glass-sheet backdrop-blur-xl"
-          : "border-border/60 bg-muted/20"
+        "border transition-colors duration-200",
+        armed
+          ? "border-solid border-foreground/40 bg-glass-sheet backdrop-blur-xl"
+          : "border-dashed border-border/60 bg-muted/20"
       )}
     >
-      {/* The sheet's own grabber, waiting where the sheet would be. */}
-      <span
-        className={cn(
-          "h-1 w-9 rounded-full transition-colors duration-200",
-          over ? "bg-muted-foreground/50" : "bg-muted-foreground/20"
-        )}
-      />
+      <span className="relative h-1 w-9 overflow-hidden rounded-full bg-muted-foreground/20">
+        <motion.span
+          className="absolute inset-0 origin-left rounded-full bg-muted-foreground/60"
+          initial={false}
+          animate={{ scaleX: over ? 1 : 0 }}
+          transition={{
+            duration: over ? DWELL_MS / 1000 : 0.15,
+            ease: "linear",
+          }}
+        />
+      </span>
     </motion.div>
   );
 }
@@ -111,7 +136,11 @@ function DevtoolPill({
 }: {
   canDock: boolean;
   onDockDrop: () => void;
-  onDragStateChange: (state: { dragging: boolean; over: boolean }) => void;
+  onDragStateChange: (state: {
+    dragging: boolean;
+    over: boolean;
+    armed: boolean;
+  }) => void;
 }) {
   const { locale } = useLocale();
   const { isEnabled, open, signalDragReset } = useDevtool();
@@ -128,6 +157,18 @@ function DevtoolPill({
     forgetPosition,
   } = useDraggable("devtool");
   const overRef = useRef(false);
+  const armedRef = useRef(false);
+  const dwellRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearDwell = useCallback(() => {
+    if (dwellRef.current === null) return;
+    clearTimeout(dwellRef.current);
+    dwellRef.current = null;
+  }, []);
+
+  // A gesture can end with the component going away (the dock unmounts the
+  // pill), so the timer is cleaned up on unmount too.
+  useEffect(() => clearDwell, [clearDwell]);
 
   // Reset drag position when devtool is toggled on (not fold/unfold)
   const prevEnabledRef = useRef(isEnabled);
@@ -149,29 +190,46 @@ function DevtoolPill({
   const handleDragStart = useCallback(() => {
     onDragStart();
     overRef.current = false;
-    onDragStateChange({ dragging: true, over: false });
-  }, [onDragStart, onDragStateChange]);
+    armedRef.current = false;
+    clearDwell();
+    onDragStateChange({ dragging: true, over: false, armed: false });
+  }, [onDragStart, onDragStateChange, clearDwell]);
 
   const handleDrag = useCallback(() => {
     const over = readOver();
     if (over === overRef.current) return;
     overRef.current = over;
-    onDragStateChange({ dragging: true, over });
-  }, [readOver, onDragStateChange]);
+    if (over) {
+      // Entering starts the clock; only its expiry arms the drop.
+      dwellRef.current = setTimeout(() => {
+        dwellRef.current = null;
+        armedRef.current = true;
+        onDragStateChange({ dragging: true, over: true, armed: true });
+      }, DWELL_MS);
+    } else {
+      clearDwell();
+      armedRef.current = false;
+    }
+    onDragStateChange({ dragging: true, over, armed: armedRef.current });
+  }, [readOver, onDragStateChange, clearDwell]);
 
   const handleDragEnd = useCallback(() => {
-    const over = overRef.current;
+    // Being over the pad is not the decision, staying there is: a release
+    // before the dwell is up is an ordinary drop, and the pill stays put.
+    const armed = armedRef.current;
+    clearDwell();
     // Let the hook clamp and remember first, then take it back: a drop onto
     // the pad is not somewhere the pill came to rest, so it must not be where
     // the pill comes back next time. It comes back to its corner.
     onDragEnd();
     overRef.current = false;
-    onDragStateChange({ dragging: false, over: false });
-    if (over) {
+    armedRef.current = false;
+    onDragStateChange({ dragging: false, over: false, armed: false });
+    if (armed) {
       forgetPosition();
       onDockDrop();
     }
-  }, [onDragEnd, onDragStateChange, forgetPosition, onDockDrop]);
+  }, [onDragEnd, onDragStateChange, clearDwell, forgetPosition, onDockDrop]);
 
   return (
     // The box is not the button: only the pill itself takes pointers, so the
@@ -234,7 +292,11 @@ export function DevtoolFAB() {
   const zh = locale === "zh";
   const { isEnabled, isOpen, isDetached, close, detach, dock } = useDevtool();
   const canDock = useBreakpointValue(CAN_DOCK);
-  const [pillDrag, setPillDrag] = useState({ dragging: false, over: false });
+  const [pillDrag, setPillDrag] = useState({
+    dragging: false,
+    over: false,
+    armed: false,
+  });
 
   if (!isEnabled) return null;
 
@@ -278,7 +340,9 @@ export function DevtoolFAB() {
           />
         )}
         <AnimatePresence>
-          {canDock && pillDrag.dragging && <DockPad over={pillDrag.over} />}
+          {canDock && pillDrag.dragging && (
+            <DockPad over={pillDrag.over} armed={pillDrag.armed} />
+          )}
         </AnimatePresence>
         <SurfaceWindow
           id="devtool"

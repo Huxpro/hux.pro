@@ -39,12 +39,17 @@ Two, and they are mirror images of each other:
 | | Gesture | What it does |
 |---|---|---|
 | **off the edge** | Pull the sheet up past its top edge, let go | Lands as the pill |
-| **back onto it** | Drag the pill down onto the bottom edge, let go | A landing pad rises to meet it; the release puts the sheet back |
+| **back onto it** | Drag the pill onto the bottom edge, **hold**, let go | A landing pad rises to meet it; the release puts the sheet back |
 
 Both say the same thing in the same language — *where this belongs is something
 you move it to* — so neither has to be learnt on its own, and the pad appearing
 under a dragged pill is what teaches the pair. "Give me this everywhere" and
 "put it back" are the motions themselves, not commands about them.
+
+Detaching also dismisses the command palette if it is open. The palette is
+usually what summoned the devtool, and asking for a pill is asking for the
+page back — leaving the thing you came through still sitting there is the
+opposite of that.
 
 The window's header keeps a dock button as well (`PanelBottom`, beside the
 close), because a window is not draggable to an edge on a touch screen without
@@ -66,11 +71,21 @@ pointer rather than Base UI's published overshoot.
 **Back onto it.** The pad is only up while a pill is actually in hand, and only
 where there is an edge to dock to — it is a drop target, not decoration. It
 stands where the sheet will, inset by the surface system's edge gap, with the
-sheet's own grabber waiting at the top, and it lights up once the pill's centre
-is inside it. Releasing anywhere else is an ordinary move, and the pill stays
-where it was put.
+sheet's own grabber waiting at the top.
 
-Dropping onto the pad makes the pill *forget* where it was dragged
+**Arriving is not the decision; staying is.** Being able to put a floating
+thing anywhere is the whole point of a pill, so passing over the pad — or
+dropping straight through it — just leaves the pill there. Only a release
+after the pill has been *held* on the pad for `DWELL_MS` docks it. The pad is
+shallow for the same reason (84px, a thirteenth of a phone screen): a target
+that swallows the bottom quarter takes the bottom quarter away from the pill.
+
+The wait is drawn, not hidden: the grabber fills to full width over exactly
+the dwell, on the clock that is actually running, and gives it back if the
+pill leaves early. `data-dock-pad` carries the three states (absent, `over`,
+`armed`).
+
+Docking makes the pill *forget* where it was dragged
 (`forgetPosition`, `systems/draggable`): the spot it was released over is a
 target, not a seat, so the next time the devtool comes off the edge it comes
 back to its corner rather than to the mouth of the dock.
@@ -133,13 +148,23 @@ and on a phone the sheet's grabber replaces dragging entirely.
 | Way in | What it does |
 |--------|--------------|
 | `D` | Toggles the panel, once the devtool is on. Docked: sheet ⇄ nothing. Floating: window ⇄ pill. |
-| Command palette (`D` in slash mode, or "Debug Panel") | `summon()` — turns the devtool on if it is off and shows the panel, in one action. The only way in on a phone, which has no `D` key. |
+| Command palette (`D` in slash mode, or "Debug Panel") | The on/off switch it has always been — but **on** means on *and showing*: it runs `summon()`, which enables and opens in one action. Off turns it off. |
+| Hold the search button for 3s | `summon()`. Undocumented. |
 | The pill | Only there when floating. |
 
-Turning the devtool **off** is the panel footer's "Disable Devtool". The
-palette command used to toggle that and now opens the panel instead: a phone
-had no way to summon it otherwise, and a command that turns a thing on without
-showing it is a command with no feedback.
+The palette row is still `Debug Panel: On` / `Off`, and its `kind` follows what
+the press will do — turning it on opens a surface, so the palette stays behind
+it as a stack; turning it off opens nothing, so it leaves like any other
+setting. A switch that turns a panel on without putting it on screen is a
+switch with no feedback, and on a phone (no `D` key) this is the way in.
+
+**The hidden one.** Holding the search button — either shape, the homepage
+search bar or the round FAB — for `DEVTOOL_HOLD_MS` (3s) summons the devtool.
+Deliberately far past any accidental press, and the press that carried it does
+not also open the palette. A slide of more than 10px is a drag or a scroll and
+cancels it. See `systems/command/fab.tsx`.
+
+Turning the devtool **off** is also the panel footer's "Disable Devtool".
 
 ### Keyboard Shortcut
 

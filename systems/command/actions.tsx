@@ -94,7 +94,11 @@ export function useCommandActions(): CommandAction[] {
     tint: glassTint,
     setTint: setGlassTint,
   } = useGlass();
-  const { summon: summonDevtool } = useDevtool();
+  const {
+    isEnabled: isDevtoolEnabled,
+    summon: summonDevtool,
+    setEnabled: setDevtoolEnabled,
+  } = useDevtool();
   const {
     playerState: musicPlayerState,
     play: musicPlay,
@@ -363,12 +367,15 @@ export function useCommandActions(): CommandAction[] {
     {
       id: "debug-panel",
       key: "d",
-      // A surface, not a toggle: it summons the devtool, which arrives as a
-      // sheet stacked on this one. Turning the devtool back off is its own
-      // footer's job — from here it is a thing you open.
-      kind: "surface",
+      // Still the on/off switch it always was, and its kind follows what the
+      // press will actually do: turning the devtool ON opens a surface, so the
+      // palette stays behind it as a stack; turning it OFF opens nothing, so
+      // it leaves the way any other setting does.
+      kind: isDevtoolEnabled ? "toggle" : "surface",
       section: "settings",
-      label: t(locale, "settingsDebugPanel"),
+      label: `${t(locale, "settingsDebugPanel")}: ${
+        isDevtoolEnabled ? t(locale, "stateOn") : t(locale, "stateOff")
+      }`,
       icon: <Bug className={ROW_ICON} />,
       keywords: [
         "debug",
@@ -379,7 +386,11 @@ export function useCommandActions(): CommandAction[] {
         "调试",
         "调试面板",
       ],
-      run: summonDevtool,
+      // On is on AND showing: a switch that turns a panel on without putting
+      // it on screen is a switch with no feedback, and on a phone — no `D`
+      // key — this is the only way in.
+      run: () =>
+        isDevtoolEnabled ? setDevtoolEnabled(false) : summonDevtool(),
     },
   ];
 }
