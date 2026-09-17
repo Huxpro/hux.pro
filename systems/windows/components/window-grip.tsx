@@ -1,36 +1,43 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useEffect, useRef, useState } from "react";
+import { pillShell, TrafficDots } from "./window-pill";
 
 // =============================================================================
-// WindowGrip — the three dots and the sheet's handle, as one object
+// WindowGrip — the ••• pill and the sheet's handle, as one object
 //
 // A phone window is a sheet (window-sheet.tsx), and a sheet already has a
-// grabber. Rather than stack a ••• pill on top of one, the two are the same
-// object: one control at the top of the surface whose form, at every moment,
-// answers "what happens if I touch this".
+// grabber. Rather than stack a pill on top of one, the two are the same thing:
+// the window's own chrome — the centred, chromeless pill of traffic lights,
+// floating over edge-to-edge content exactly as it does on a desktop window,
+// with nothing that reads as a title bar — doing double duty as the handle.
 //
-//   • at rest        → three dots. A target, the way a ••• is: tap for the menu.
-//   • under a finger → the dots take full ink. "Got you."
-//   • being dragged  → the three dots fuse into one bar — and not any bar: the
-//                      exact 36×4 grabber every other sheet on the site wears,
-//                      so the moment it starts moving it reads as a sheet.
-//   • receded        → the shell dims it with everything else while the menu
-//                      (or another sheet) stands over it: not yours right now.
+// Its form at every moment answers "what happens if I touch this":
 //
-// The morph is three spans growing into each other (widths, gaps, corners), and
-// it is written in CSS — "Window grip" in globals.css — keyed off the state
-// Base UI publishes on the popup (`data-swiping`), and the press state is a
-// data attribute set on the node itself. Nothing here re-renders while a finger
-// is down, which is the same reason window.tsx writes geometry straight to the
-// DOM during a desktop drag: an iframe or a Lynx view repaints badly.
+//   • at rest        → three dim dots on nothing at all. A target: tap for the
+//                      menu, and an indicator of a window, as on the desktop.
+//   • under a finger → the pill lights into glass and the dots take full ink,
+//                      the same "waking up" a dragged desktop window does.
+//   • being dragged  → the dots step aside and a grabber comes out in their
+//                      place, the site's own 36×4 bar: you are moving a sheet.
+//   • released       → the bar goes, the dots come back.
+//   • receded        → dimmed with the shell while the menu stands over it.
+//
+// The hand-off is the drag itself, not a switch: the dots fade as the bar grows
+// in proportion to how far the surface has actually travelled, the bar landing
+// full at 40px, which is Base UI's own swipe threshold — so the pill finishes
+// becoming a handle exactly when the press becomes a swipe. That part is CSS
+// ("Window grip" in globals.css) reading `--drawer-swipe-movement-y`, so
+// nothing re-renders under the finger; only the glass is React state, twice a
+// gesture, and it comes from the popup's own `data-swiping`.
 //
 // What it deliberately does NOT try to say: "you are at the top detent" and
 // "let go now and it goes away". The first is what the surface's own position
 // already shows; the second can't be read in CSS with detents in play (see the
 // numbered list at the top of systems/surface/sheet.tsx: with snap points
 // `--drawer-swipe-progress` is the position *between* detents, not the way
-// out), and a 36px object that tries to say four things says none of them.
+// out), and a pill that tries to say four things says none of them.
 //
 // -----------------------------------------------------------------------------
 // Two things Base UI's source decides for us here (drawer/popup, and
@@ -38,8 +45,8 @@ import { cn } from "@/lib/utils";
 //
 // 1. A swipe never starts from `button,a,input,select,textarea,label,
 //    [role="button"]` (`DEFAULT_IGNORE_SELECTOR`), for touch and mouse alike.
-//    A control that has to be draggable cannot wear those roles — so what you
-//    touch is a <div>, and the semantics live on the visually hidden button
+//    So the pill is a <div>, its dots are inert (they are an indicator here,
+//    not three targets), and the semantics live on the visually hidden button
 //    beside it, which keyboards and screen readers get and no finger lands on.
 // 2. Once it decides a press is a swipe, it captures the pointer and the rest
 //    of the stream never reaches us — no move, no up, and no click at all out
@@ -71,14 +78,42 @@ function swipeTravel(popup: Element | null): number {
   return Math.abs(Number.parseFloat(y) || 0);
 }
 
+/**
+ * Whether the sheet this grip belongs to is under a finger. Base UI publishes
+ * it on the popup from the press onwards (before anything has moved), which is
+ * exactly when the pill should light up — so the pill reads the library's state
+ * rather than keeping a second one of its own.
+ */
+function useSwiping(ref: React.RefObject<HTMLElement | null>): boolean {
+  const [swiping, setSwiping] = useState(false);
+
+  useEffect(() => {
+    const popup = ref.current?.closest("[data-surface-popup]");
+    if (!popup) return;
+    const sync = () => setSwiping(popup.hasAttribute("data-swiping"));
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(popup, { attributes: true, attributeFilter: ["data-swiping"] });
+    return () => observer.disconnect();
+  }, [ref]);
+
+  return swiping;
+}
+
 export function WindowGrip({
   label,
+  focused,
   onMenu,
 }: {
   /** Accessible name — the app whose menu this opens. */
   label: string;
+  /** Front-most window: the dots are the window's own indicator. */
+  focused: boolean;
   onMenu: () => void;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const swiping = useSwiping(ref);
+
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     const grip = e.currentTarget;
@@ -88,7 +123,6 @@ export function WindowGrip({
 
     const stop = () => {
       window.clearTimeout(timer);
-      grip.removeAttribute("data-pressed");
       window.removeEventListener("pointerup", up, true);
       window.removeEventListener("pointercancel", stop, true);
     };
@@ -99,15 +133,15 @@ export function WindowGrip({
       if (travelled <= TAP_SLOP) onMenu();
     };
 
-    grip.setAttribute("data-pressed", "");
     timer = window.setTimeout(stop, PRESS_WINDOW_MS);
     window.addEventListener("pointerup", up, true);
     window.addEventListener("pointercancel", stop, true);
   };
 
   return (
-    <div className="flex items-center justify-center">
+    <div className="pointer-events-none flex items-center justify-center">
       <div
+        ref={ref}
         data-window-grip
         aria-hidden
         onPointerDown={onPointerDown}
@@ -116,18 +150,24 @@ export function WindowGrip({
           onMenu();
         }}
         className={cn(
-          "flex cursor-default items-center justify-center px-8 py-3",
-          "-my-1 select-none text-tertiary-foreground transition-colors",
+          pillShell(swiping, false),
+          "pointer-events-auto relative justify-center",
         )}
       >
         <span data-window-grip-dots>
-          <span />
-          <span />
-          <span />
+          <TrafficDots focused={focused} interacting={swiping} />
         </span>
+        {/* The grabber, in the dots' place. Absolute so it costs no width
+            until it is there; the dots' box is what widens the pill. */}
+        <span data-window-grip-bar />
       </div>
       {/* The same control, for anyone not using a finger. */}
-      <button type="button" aria-haspopup="menu" onClick={onMenu} className="sr-only">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        onClick={onMenu}
+        className="pointer-events-auto sr-only"
+      >
         {label}
       </button>
     </div>

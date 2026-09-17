@@ -250,6 +250,13 @@ export interface SurfaceSheetProps {
    */
   grip?: React.ReactNode;
   /**
+   * Float the grip over the content instead of giving it a row of its own, so
+   * the sheet is edge-to-edge under it. For a sheet holding something that is
+   * not a document — an app window, whose chrome has always been a pill over
+   * its content and never a title bar.
+   */
+  gripOverlay?: boolean;
+  /**
    * Accessible name for the dialog, rendered visually hidden. Omit when the
    * content renders a visible `Drawer.Title` of its own.
    */
@@ -272,6 +279,7 @@ export function SurfaceSheet({
   restoreFocus = true,
   keepMounted,
   grip,
+  gripOverlay,
   label,
   className,
   children,
@@ -382,7 +390,9 @@ export function SurfaceSheet({
                 style={{ "--surface-stack-depth": depth } as React.CSSProperties}
                 className={cn(
                   SHELL,
-                  "min-h-0 origin-top",
+                  // Positioned: the receded wash and a floating grip both
+                  // anchor to the shell, not to the popup's travel box.
+                  "relative min-h-0 origin-top",
                   // Fill the popup, unless the popup is taking its height from
                   // this shell — then a `flex-1` basis of zero is a race the
                   // content loses.
@@ -395,9 +405,18 @@ export function SurfaceSheet({
                 )}
               >
                 {/* Grabber — the affordance for drag-to-dismiss and the detents.
-                    A sheet can hand in its own (`grip`); it lives here, above
-                    Drawer.Content, so a mouse press on it is a drag. */}
-                <div className="flex shrink-0 justify-center pt-2">
+                    A sheet can hand in its own (`grip`); either way it lives
+                    here, above Drawer.Content, so a mouse press on it is a
+                    drag. Floating, it takes no room and only the grip itself
+                    takes pointers, so the content runs under it edge to edge. */}
+                <div
+                  className={cn(
+                    "flex justify-center pt-2",
+                    gripOverlay
+                      ? "pointer-events-none absolute inset-x-0 top-0 z-20"
+                      : "shrink-0",
+                  )}
+                >
                   {grip ?? (
                     <span className="h-1 w-9 rounded-full bg-muted-foreground/25" />
                   )}

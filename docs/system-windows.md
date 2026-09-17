@@ -28,7 +28,8 @@ systems/windows/
 │   ├── window-layer.tsx        # <WindowLayer> — the fixed "desktop" surface
 │   ├── window.tsx              # <Window> — sheet or window; DesktopWindow's gestures
 │   ├── window-sheet.tsx        # <WindowSheet> — a window on a phone, as a sheet
-│   ├── window-grip.tsx         # the dots ⇄ the sheet's handle, one object
+│   ├── window-grip.tsx         # the pill ⇄ the sheet's handle, one object
+│   ├── window-pill.tsx         # the traffic lights + the glass they sit on
 │   ├── window-chrome.tsx       # the control dots (top-left desktop / centre mobile)
 │   ├── window-menu.tsx         # the menu's rows + its sheet form (both shapes)
 │   ├── minimized-dock.tsx      # <MinimizedWindows> — dock pills (direct restore)
@@ -160,9 +161,18 @@ desktop mid-app is not a gesture anyone makes.
 
 ### A phone window is a sheet
 
-- **Size** is the detent the finger left it at (`SHEET_DETENTS`, seven tenths /
-  all the way). Portrait and landscape are a windowing idea — on a phone they
-  resolved to the same rectangle anyway — so the menu drops them there.
+- **Size** is the detent the finger left it at. Three of them, not the site's
+  shared pair: a window opens where a desktop window's top edge sits — just
+  clear of the live-activity dock band (`DOCK_BAND`, recomputed as a fraction
+  of the viewport) — because that is the size an app wants; from there a drag
+  takes it to the very top, or down to seven tenths to see the page behind it.
+  (`SHEET_DETENTS` is for surfaces that stack level with one another; a window
+  stacks with nothing, and the menu over it is content-height.) Portrait and
+  landscape are a windowing idea — on a phone they resolved to the same
+  rectangle anyway — so the menu drops them there.
+- **It comes back the size it lives at.** A flick down ends at the lowest
+  detent by definition, so a window restored from the dock returns to the dock
+  detent rather than arriving shrunk.
 - **Put away, not killed.** A drag down is `minimize`, never `close`. The sheet
   closes but `keepMounted` leaves its DOM in place, so the iframe or Lynx view
   keeps its document — the same promise `WindowLayer` makes for a minimized
@@ -177,25 +187,34 @@ desktop mid-app is not a gesture anyone makes.
   UI treats it as a real nested drawer and sends the window a step back, the
   way iOS presents a sheet from a sheet.
 
-### The grip — the dots and the handle, as one object
+### The grip — the pill and the handle, as one object
 
-A sheet already has a grabber, so the ••• pill does not stack on top of one:
-they are the same object (`window-grip.tsx`), and its form at every moment says
-what a touch will do.
+A sheet already has a grabber, so the pill does not stack on top of one: they
+are the same object (`window-grip.tsx`). It is the window's own chrome,
+unchanged — the centred, chromeless cluster of traffic lights floating over
+edge-to-edge content, with nothing that reads as a title bar (the sheet gives
+it a row of its own only when `gripOverlay` is off) — doing double duty as the
+handle. Its form at every moment says what a touch will do.
 
 | State | Form | What it says |
 |-------|------|--------------|
-| At rest | three dots, tertiary ink | a target: tap for the menu |
-| Under a finger | three dots, muted ink | got you |
-| Being dragged | the dots fuse into the site's 36×4 grabber | you are moving a sheet |
+| At rest | three dim dots on nothing at all | a target: tap for the menu — and a window |
+| Under a finger | the pill lights into glass, dots at full ink | got you, the same way a dragged desktop window wakes up |
+| Being dragged | the dots step aside, the site's 36×4 grabber comes out in their place | you are moving a sheet |
+| Released | the bar goes, the dots come back | |
 | Receded | dimmed with the shell behind the menu | not yours right now |
 
-The morph is not a switch, it is the drag: widths out, gaps shut and inner
-corners square off **in proportion to how far the surface has actually
-travelled**, landing on the bar at 40px — Base UI's own swipe threshold, the
-distance at which a press becomes a swipe. It is written in CSS (*Window grip*
-in `globals.css`) off `--drawer-swipe-movement-y`, so nothing re-renders while
-a finger is down.
+The hand-off is not a switch, it is the drag: the dots fade as the bar grows,
+both **in proportion to how far the surface has actually travelled**, the bar
+landing full at 40px — Base UI's own swipe threshold, the distance at which a
+press becomes a swipe. That part is CSS (*Window grip* in `globals.css`) off
+`--drawer-swipe-movement-y`, so nothing re-renders while a finger is down; only
+the glass is React state, twice a gesture, read from the popup's `data-swiping`
+through a `MutationObserver` rather than kept a second time.
+
+The dots themselves are shared with the desktop pill (`window-pill.tsx`), so
+the two can't drift; on a grip they are an indicator rather than three targets
+(inert, and Base UI would refuse to start a swipe from a `<button>` anyway).
 
 Two Base UI facts shape the implementation, both in the numbered list at the
 top of `systems/surface/sheet.tsx`: a swipe never starts from a `<button>` (so

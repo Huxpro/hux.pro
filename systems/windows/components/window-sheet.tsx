@@ -3,9 +3,10 @@
 import { appTitle } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
-import { SHEET_DETENTS, SURFACE_TRANSITION_MS, SurfaceSheet } from "@/systems/surface";
+import { SURFACE_TRANSITION_MS, SurfaceSheet } from "@/systems/surface";
 import { usePresence } from "framer-motion";
 import { useEffect, useState } from "react";
+import { DOCK_BAND, getViewport } from "../lib/geometry";
 import type { WindowInstance } from "../lib/types";
 import { useWindows } from "../provider";
 import { AppFrame } from "./app-frame";
@@ -16,11 +17,19 @@ import { WindowMenuSheet } from "./window-menu";
 // WindowSheet — an app window on a phone, which is to say: a sheet
 //
 // A draggable, resizable, free-floating box is a desktop idea. On a phone the
-// same app is one sheet from the bottom edge, with the site's detents for its
-// size (seven tenths / all the way — a drag is the resize), the shared stack
-// for its depth, and its grip (window-grip.tsx) for the whole of its chrome.
-// Everything the pill used to offer lives in the menu it opens, which is a
-// sheet stacked on this one — iOS presenting a sheet from a sheet.
+// same app is one sheet from the bottom edge, with detents for its size, the
+// shared stack for its depth, and its grip (window-grip.tsx) — the window's own
+// pill, floating over edge-to-edge content — for the whole of its chrome. There
+// is no title bar, here as there. Everything the pill used to offer lives in
+// the menu it opens, which is a sheet stacked on this one: iOS presenting a
+// sheet from a sheet.
+//
+// Three detents, not the site's two. A window opens where a desktop window's
+// top edge sits — just clear of the live-activity dock band — because that is
+// the size an app wants; from there a drag takes it to the very top, or down
+// to seven tenths to see the page behind it. (The site's shared pair,
+// SHEET_DETENTS, is for surfaces that stack level with one another; a window
+// stacks with nothing, and the menu over it is content-height.)
 //
 // Put away, not killed. A swipe down is `minimize`, never `close`: the sheet
 // closes but `keepMounted` leaves its DOM in place, so the iframe or the Lynx
@@ -34,16 +43,42 @@ import { WindowMenuSheet } from "./window-menu";
 // the sheet's exit and only then say we're safe to remove.
 // =============================================================================
 
+/** Where the sheet rests: the page, the dock band, the top. */
+type Level = "page" | "dock" | "top";
+
+/** Seven tenths — far enough down to see the page behind the window. */
+const PAGE_DETENT = 0.7;
+
+/**
+ * The detent whose top edge lands where a desktop window's does: below the
+ * live-activity dock band, so the music / ambient / minimized pills stay in
+ * view above the app. A fraction of the viewport, since that is what Base UI
+ * takes, recomputed when the viewport changes.
+ */
+function dockDetent(): number {
+  const { height } = getViewport();
+  return Math.round(Math.min(0.97, Math.max(0.8, 1 - DOCK_BAND / height)) * 1000) / 1000;
+}
+
 export function WindowSheet({ win }: { win: WindowInstance }) {
-  const { focus, minimize } = useWindows();
+  const { focus, focusedId, minimize } = useWindows();
   const { locale } = useLocale();
   const [isPresent, safeToRemove] = usePresence();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [level, setLevel] = useState<Level>("dock");
+  const [dock, setDock] = useState(dockDetent);
 
   const title = appTitle(win.app, locale);
   const minimized = win.mode === "minimized";
   const open = isPresent && !minimized;
   const id = `window-${win.id}`;
+
+  // The dock detent is a fraction of a viewport that can change under it.
+  useEffect(() => {
+    const onResize = () => setDock(dockDetent());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   // Being closed: play the sheet out, then let go. A window closed while it was
   // already in the dock has nothing on screen to animate.
@@ -61,11 +96,22 @@ export function WindowSheet({ win }: { win: WindowInstance }) {
   // Adjusted during render rather than in an effect — it is derived from the
   // window's own state, and a menu that closed one paint later would be a menu
   // sliding down on its own after the window had gone (docs/react-engineering).
+  // A window put away comes back the size it lives at, not the size the drag
+  // that dismissed it left behind — a flick down ends at the lowest detent by
+  // definition, and an app restored from the dock should not arrive shrunk.
   const [wasOpen, setWasOpen] = useState(open);
   if (wasOpen !== open) {
     setWasOpen(open);
-    if (!open && menuOpen) setMenuOpen(false);
+    if (!open) {
+      if (menuOpen) setMenuOpen(false);
+      if (level !== "dock") setLevel("dock");
+    }
   }
+
+  // Detents by name, resolved late: the dock one moves with the viewport, and
+  // a controlled snap point that went stale would jump the sheet on a rotate.
+  const detents = [PAGE_DETENT, dock, 1];
+  const snap = { page: PAGE_DETENT, dock, top: 1 }[level];
 
   return (
     <SurfaceSheet
@@ -75,13 +121,26 @@ export function WindowSheet({ win }: { win: WindowInstance }) {
         // The only dismissal a sheet has is a drag (and Escape): put it away.
         if (!next) minimize(win.id);
       }}
-      snapPoints={SHEET_DETENTS}
+      snapPoints={detents}
+      activeSnapPoint={snap}
+      onActiveSnapPointChange={(point) =>
+        setLevel(point === 1 ? "top" : point === PAGE_DETENT ? "page" : "dock")
+      }
       keepMounted
-      grip={<WindowGrip label={title} onMenu={() => setMenuOpen(true)} />}
+      grip={
+        <WindowGrip
+          label={title}
+          focused={focusedId === win.id}
+          onMenu={() => setMenuOpen(true)}
+        />
+      }
+      gripOverlay
       label={title}
-      className={cn(win.app.runtime === "lynx" && "bg-black")}
+      // The app's own ground, as in a desktop window: a window is opaque, and
+      // the glass is the pill floating on it.
+      className={cn(win.app.runtime === "lynx" ? "bg-black" : "bg-background")}
     >
-      {/* Edge-to-edge app, exactly as in a desktop window. */}
+      {/* Edge-to-edge app, with the chrome floating over it. */}
       <div
         className="min-h-0 flex-1 overflow-hidden"
         onPointerDownCapture={() => focus(win.id)}

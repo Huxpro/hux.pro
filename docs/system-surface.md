@@ -180,7 +180,10 @@ otherwise reload its iframe and lose the app's state.
 **A grip of its own.** `grip` replaces the grabber for a sheet whose handle
 says more than "drag me" — the window grip, which is also the window's menu
 button. It renders where the grabber does, above `Drawer.Content`, so a mouse
-press on it still starts a drag. Two things bite anything built there: Base UI
+press on it still starts a drag. `gripOverlay` floats it over the content
+instead of giving it a row, for a sheet holding something that is not a
+document: an app window's chrome has always been a pill over its content, never
+a title bar. Two things bite anything built there: Base UI
 never starts a swipe from a `<button>` (or `a`, `input`, `label`,
 `[role="button"]`), and once a press becomes a swipe it captures the pointer,
 so no further move, up or click arrives. Items 7 and 8 of the list at the top
