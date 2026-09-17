@@ -66,6 +66,10 @@ import {
 const PUBLIC = path.join(process.cwd(), "public");
 const OUT = path.join(process.cwd(), "systems/ambient/lib/wallpaper-profiles.json");
 
+function publicPath(webPath: string): string {
+  return path.join(PUBLIC, webPath.replace(/^\//, ""));
+}
+
 /** Sample grid. 96×60 is the 16:10 desktop at 1/26 scale — enough to see a
  *  horizon and a subject, cheap enough to run over 40 files in a second. */
 const GRID = { width: 96, height: 60 };
@@ -219,7 +223,7 @@ function profileSamples(samples: Lab[], width: number, height: number): Wallpape
 }
 
 async function profileImage(asset: WallpaperAsset): Promise<WallpaperProfile> {
-  const { data } = await sharp(path.join(PUBLIC, asset.src))
+  const { data } = await sharp(publicPath(asset.src))
     .resize(GRID.width, GRID.height, { fit: "cover" })
     .removeAlpha()
     .raw()

@@ -257,8 +257,15 @@ while the modules scroll. The modules:
    phase), a day timeline painted with the sky's colours for the current
    condition with a draggable playhead and ▶ play, phase names that jump the
    clock, the six conditions previewed at the effective hour (click again to
-   return to live), the date slider that moves the moon, and a folded Tune
-   row of scene sliders. **Now** resets everything.
+   return to live), the date slider that moves the moon, a **Gyro** row, and a
+   folded Tune row of scene sliders. **Now** resets everything (the Gyro row
+   excepted — it is a saved setting, not a forced scene, and wears the blue
+   star to say so).
+
+   The Gyro row is the tilt that makes the Sky's rain and snow fall along real
+   gravity (`docs/system-ambient.md` → Gyroscope Tilt), with the live angle as
+   its readout — and, on iOS, the second place besides the wallpaper picker
+   where motion access can be granted, since that needs a tap to ask.
 4. **Command**: **Phone palette** — Sheet (the bottom sheet the palette is on a
    phone) / Popover (the desktop card at phone width, the palette as it was).
    A saved setting, so a blue `*` marks it and resets it. Lets the two be

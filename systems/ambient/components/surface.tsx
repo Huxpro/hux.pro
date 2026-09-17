@@ -19,6 +19,7 @@ export function AmbientSurface({ children }: { children: React.ReactNode }) {
     bezel,
     bezelState,
     bezelScroll,
+    bezelChromeMorph,
     bezelColor,
     bezelBand,
     bezelRadius,
@@ -51,6 +52,7 @@ export function AmbientSurface({ children }: { children: React.ReactNode }) {
         band={bezelBand}
         radius={bezelRadius}
         scroll={bezelScroll}
+        chromeMorph={bezelChromeMorph}
         ground={ground}
         backdrop={
           <>

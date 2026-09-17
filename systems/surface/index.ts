@@ -21,6 +21,10 @@
 // and content that wants to adapt (column counts, density) reads the shape it
 // landed in from `useSurfaceContext()` instead of re-measuring the viewport.
 //
+// A surface that belongs to one button rather than to the page takes a fourth
+// shape — `ANCHORED_PRESENTATION`, a sheet on a phone and a popover hanging off
+// that button above it — and passes `anchor`.
+//
 // Two layers, because shape is not always the viewport's call:
 //
 //   primitives   <SurfaceSheet> (sheet.tsx), <SurfaceWindow> (window.tsx) and
@@ -45,12 +49,15 @@ export {
   HEADER_BUTTON,
   SHEET_DETENTS,
   SurfaceSheet,
+  SurfaceViewport,
+  surfaceMotionVars,
 } from "./sheet";
 export { SurfaceWindow, WINDOW_SPRING } from "./window";
 export type { SurfaceWindowProps } from "./window";
-export { SURFACE_TRANSITION_MS } from "./stack";
+export { SURFACE_TRANSITION_MS, useSurfaceStack } from "./stack";
 export {
   ADAPTIVE_PRESENTATION,
+  ANCHORED_PRESENTATION,
   SURFACE_BREAKPOINTS,
   useBreakpointValue,
   useSurfaceMode,

@@ -6,6 +6,7 @@ import type { Locale } from "@/lib/i18n";
 import { Languages } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
+import { ReadingSettings } from "./reading-sheet";
 import { RulerToc } from "./ruler-toc";
 import { usePostLanguage } from "./use-post-language";
 
@@ -141,13 +142,25 @@ export function PostContent({
     </div>
   );
 
+  // The "Aa" belongs to the pages that are actually read end to end — the same
+  // ones the ruler tracks. It rides in the header's action slot, where the
+  // list pages keep their language filter, so no new floating layer is added
+  // to the article.
+  const headerActions =
+    hasHeaderMetaContent || toc ? (
+      <div className="flex items-start gap-3">
+        {hasHeaderMetaContent && <div className="min-w-0">{headerMetaRow}</div>}
+        {toc && <ReadingSettings className="-mt-1 ml-auto" />}
+      </div>
+    ) : undefined;
+
   return (
     <PageLayout
       title={displayTitle}
       backHref={backHref}
       backLabel={backLabel}
       variant="reader"
-      headerActions={hasHeaderMetaContent ? headerMetaRow : undefined}
+      headerActions={headerActions}
       className="min-h-screen"
     >
       <div className="prose-article" lang={displayLocale}>

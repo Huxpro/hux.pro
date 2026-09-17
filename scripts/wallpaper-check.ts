@@ -20,16 +20,18 @@
 // The catalog is imported, not parsed: paths, sizes and base colours are read
 // from the same objects the app renders.
 //
-// Adding a pair: encode `public/wallpapers/<id>/{light,dark}.webp` plus
-// `.thumb.webp` (WebP q80; thumbs ≤ 480 at q72), record the sources under
-// `pairs` in `sources.json`, and add a `pair(...)` entry to the catalog.
+// Adding a pair: `pnpm wallpapers:encode <id>` when the pair is marked
+// `"encode": "graphic"` (WebP q80) or `"encode": "photo"` (q95 / 4:4:4 plus
+// a @1x cover) in `sources.json`, then add a `pair(...)` entry. Graphic
+// thumbs are ≤ 480 at q72.
 //
 // Adding a photograph: `pnpm wallpapers:encode` (WebP q95 / 4:4:4, q90 if the
-// file would exceed 1.8MB; 1280 and 1920 cover renditions plus a 480px thumb),
+// file would exceed the per-megapixel budget; @1x cover plus a 480px thumb),
 // record it under `photos`, and add a `photo(...)` entry.
 //
-// Either way, size the full file to the smallest cover of 2560×1600 and paste
-// the base colour and dimensions this script prints.
+// Either way, size the full file to the smallest cover of 2560×1600 at 2×
+// (5120×3200 device pixels, never upscaled) and paste the base colour and
+// dimensions this script prints.
 // =============================================================================
 
 import fs from "node:fs/promises";
@@ -38,11 +40,13 @@ import process from "node:process";
 import sharp from "sharp";
 import {
   BUILT_IN_WALLPAPERS,
+  WALLPAPER_MAX_DPR,
   WALLPAPER_MAX_STRETCH,
   WALLPAPER_VIEWPORT,
   coverSize,
   isSingleImage,
   pickWallpaperSrc,
+  wallpaperViewportAt,
   type WallpaperAsset,
 } from "../systems/ambient/lib/wallpaper.ts";
 
@@ -51,22 +55,23 @@ const PUBLIC = path.join(process.cwd(), "public");
 /**
  * Byte budgets, per kind of artwork.
  *
- * The release pairs are smooth vector-like gradients and compress to almost
- * nothing, so a pair past 120KB means something went wrong. A photograph of
- * raked sand or river stones is detail all the way down: the Nature set spans
- * tens of kilobytes (Water) to well over a megabyte (Zen Garden) at the same
- * quality, and holding it to the gradients' budget would mean blurring exactly
- * what makes it worth choosing.
+ * Smooth graphic pairs (Tahoe, Golden Gate) compress to tens of kilobytes.
+ * Liquid Glass and the iOS 15 blobs have grain those washes do not, so the
+ * pair cap is 320KB — past that something went wrong. Big Sur's dark half is
+ * a grainy illustration: at 5120² / q80 it lands around 1.2MB, so the 2× full
+ * cap is 2MB. A photograph of raked sand or river stones is detail all the
+ * way down: the Nature set spans tens of kilobytes (Water) to well over a
+ * megabyte (Zen Garden) at the same quality, and holding it to the gradients'
+ * budget would mean blurring exactly what makes it worth choosing.
  *
  * Photograph full-size files are WebP q95 / 4:4:4 (q90 if a file would exceed
- * 1.8MB). The 1.5MB cap that fitted q75 was too tight once Aurora stopped
- * being 43KB of banding; 2.5MB still rejects a runaway encode (Zen Garden's
- * raked sand is ~2.1MB at q90, while Water is 200KB at q95). The 1920
- * rendition budget is 1.5MB for the same reason.
+ * ~1.8MB per 2560×1600 megapixel). The full file is a 2× cover, so Catalina
+ * at 5120² is several megabytes; 8MB still rejects a runaway encode. The @1x
+ * rendition budget is the old 2.5MB full-file cap.
  */
 const BUDGET_KB = {
-  pair: { full: 120, thumb: 16 },
-  photo: { full: 2560, thumb: 64, rendition: 1536 },
+  pair: { full: 2048, thumb: 16, rendition: 320 },
+  photo: { full: 8192, thumb: 64, rendition: 2560 },
 };
 
 /**
@@ -114,8 +119,8 @@ function stretchTo(width: number, height: number, viewport = WALLPAPER_VIEWPORT)
 
 async function checkAsset(asset: WallpaperAsset, kind: "pair" | "photo"): Promise<Row> {
   const label = asset.src.replace(/^\/wallpapers\//, "").replace(/\.webp$/, "");
-  const full = path.join(PUBLIC, asset.src);
-  const thumb = path.join(PUBLIC, asset.thumb);
+  const full = path.join(PUBLIC, asset.src.replace(/^\//, ""));
+  const thumb = path.join(PUBLIC, asset.thumb.replace(/^\//, ""));
   const problems: string[] = [];
 
   let info: Awaited<ReturnType<typeof inspect>>;
@@ -147,20 +152,26 @@ async function checkAsset(asset: WallpaperAsset, kind: "pair" | "photo"): Promis
       `${label}: ${info.width}x${info.height} stretches ${stretch.toFixed(2)}x to cover ${WALLPAPER_VIEWPORT.width}x${WALLPAPER_VIEWPORT.height} (max ${WALLPAPER_MAX_STRETCH}x)`
     );
   }
-  // Larger than the smallest cover by more than a rounding pixel.
-  if (
-    Math.min(info.width / WALLPAPER_VIEWPORT.width, info.height / WALLPAPER_VIEWPORT.height) >
-    1 + 1 / WALLPAPER_VIEWPORT.height
-  ) {
+  // Larger than the smallest cover of the 2× viewport by more than a rounding pixel.
+  const twoX = wallpaperViewportAt(WALLPAPER_MAX_DPR);
+  const maxCover = coverSize({ width: info.width, height: info.height }, twoX);
+  if (Math.abs(info.width - maxCover.width) > 1 || Math.abs(info.height - maxCover.height) > 1) {
     problems.push(
-      `${label}: ${info.width}x${info.height} is larger than it needs to be to cover ${WALLPAPER_VIEWPORT.width}x${WALLPAPER_VIEWPORT.height}`
+      `${label}: ${info.width}x${info.height} is larger than it needs to be to cover ${twoX.width}x${twoX.height} at ${WALLPAPER_MAX_DPR}×`
     );
+  }
+
+  const oneX = coverSize({ width: info.width, height: info.height }, WALLPAPER_VIEWPORT);
+  const needsOneX = Math.abs(oneX.width - info.width) > 1 || Math.abs(oneX.height - info.height) > 1;
+  if (needsOneX && asset.srcset.length === 0) {
+    problems.push(`${label}: missing @1x cover (${oneX.width}x${oneX.height})`);
   }
 
   let renditionBytes = 0;
   const renditionBits: string[] = [];
+  const renditionBudget = kind === "photo" ? BUDGET_KB.photo.rendition! : BUDGET_KB.pair.rendition!;
   for (const rendition of asset.srcset) {
-    const file = path.join(PUBLIC, rendition.src);
+    const file = path.join(PUBLIC, rendition.src.replace(/^\//, ""));
     let r: Awaited<ReturnType<typeof inspect>>;
     try {
       r = await inspect(file);
@@ -171,19 +182,15 @@ async function checkAsset(asset: WallpaperAsset, kind: "pair" | "photo"): Promis
     renditionBytes += r.bytes;
     const kb = Math.round(r.bytes / 1024);
     renditionBits.push(`${r.width}x${r.height}/${kb}KB`);
-    if (kb > BUDGET_KB.photo.rendition) {
-      problems.push(`${rendition.src}: ${kb}KB exceeds ${BUDGET_KB.photo.rendition}KB`);
+    if (kb > renditionBudget) {
+      problems.push(`${rendition.src}: ${kb}KB exceeds ${renditionBudget}KB`);
     }
     if (r.width !== rendition.width || r.height !== rendition.height) {
       problems.push(
         `${rendition.src}: catalog says ${rendition.width}x${rendition.height} but the file is ${r.width}x${r.height}`
       );
     }
-    const expected = coverSize(
-      { width: info.width, height: info.height },
-      // Recover the named viewport from the filename suffix (aurora.1280.webp).
-      filenameViewport(rendition.src)
-    );
+    const expected = coverSize({ width: info.width, height: info.height }, WALLPAPER_VIEWPORT);
     if (Math.abs(r.width - expected.width) > 1 || Math.abs(r.height - expected.height) > 1) {
       problems.push(
         `${rendition.src}: ${r.width}x${r.height} is not the cover of ${expected.width}x${expected.height} from the full file`
@@ -191,8 +198,8 @@ async function checkAsset(asset: WallpaperAsset, kind: "pair" | "photo"): Promis
     }
   }
 
-  if (kind === "photo" && asset.srcset.length === 0) {
-    problems.push(`${label}: photograph is missing 1280/1920 renditions`);
+  if (kind === "photo" && needsOneX && !asset.srcset.some((r) => r.src.endsWith(".1x.webp"))) {
+    problems.push(`${label}: photograph is missing a @1x cover`);
   }
 
   const line = [
@@ -207,31 +214,38 @@ async function checkAsset(asset: WallpaperAsset, kind: "pair" | "photo"): Promis
   return { label, line, bytes: info.bytes + thumbInfo.bytes + renditionBytes, problems };
 }
 
-function filenameViewport(src: string): { width: number; height: number } {
-  const match = src.match(/\.(\d+)\.webp$/);
-  const width = match ? Number(match[1]) : WALLPAPER_VIEWPORT.width;
-  return { width, height: Math.round((width * 10) / 16) };
-}
-
 function checkPicker(): string[] {
   const problems: string[] = [];
   const aurora = BUILT_IN_WALLPAPERS.find((w) => w.id === "aurora");
-  if (!aurora) return ["aurora missing from catalog"];
+  if (!aurora) return ["aurora missing from the catalog"];
   const asset = aurora.light;
   const cases: Array<{
     name: string;
     viewport: { width: number; height: number; dpr: number };
     suffix: string;
   }> = [
-    { name: "phone landscape 1x", viewport: { width: 844, height: 390, dpr: 1 }, suffix: ".1280.webp" },
-    { name: "laptop 1x", viewport: { width: 1440, height: 900, dpr: 1 }, suffix: ".1920.webp" },
+    { name: "phone landscape 1x", viewport: { width: 844, height: 390, dpr: 1 }, suffix: "/aurora.webp" },
+    { name: "laptop 1x", viewport: { width: 1440, height: 900, dpr: 1 }, suffix: "/aurora.webp" },
     { name: "desktop 1x", viewport: { width: 2560, height: 1600, dpr: 1 }, suffix: "/aurora.webp" },
-    { name: "phone portrait 2x", viewport: { width: 390, height: 844, dpr: 2 }, suffix: "/aurora.webp" },
+    { name: "desktop 2x", viewport: { width: 1440, height: 900, dpr: 2 }, suffix: "/aurora.webp" },
+    { name: "phone portrait 3x", viewport: { width: 390, height: 844, dpr: 3 }, suffix: "/aurora.webp" },
   ];
   for (const c of cases) {
     const picked = pickWallpaperSrc(asset, c.viewport);
     if (!picked.endsWith(c.suffix)) {
       problems.push(`pick ${c.name}: got ${picked}, expected suffix ${c.suffix}`);
+    }
+  }
+  const catalina = BUILT_IN_WALLPAPERS.find((w) => w.id === "catalina");
+  if (catalina) {
+    const cat = catalina.light;
+    const oneX = pickWallpaperSrc(cat, { width: 1440, height: 900, dpr: 1 });
+    const twoX = pickWallpaperSrc(cat, { width: 1440, height: 900, dpr: 2 });
+    if (!oneX.endsWith(".1x.webp")) {
+      problems.push(`pick catalina laptop 1x: got ${oneX}, expected .1x.webp`);
+    }
+    if (!twoX.endsWith("/light.webp")) {
+      problems.push(`pick catalina laptop 2x: got ${twoX}, expected /light.webp`);
     }
   }
   for (const dropped of ["clown-fish", "ladybug"]) {
@@ -245,7 +259,15 @@ function checkPicker(): string[] {
 async function main() {
   const manifest = JSON.parse(
     await fs.readFile(path.join(PUBLIC, "wallpapers", "sources.json"), "utf8")
-  ) as { pairs: { id: string }[]; photos?: { id: string }[] };
+  ) as {
+    pairs: { id: string; encode?: string }[];
+    photos?: { id: string }[];
+  };
+
+  const photoIds = new Set([
+    ...(manifest.photos ?? []).map((e) => e.id),
+    ...manifest.pairs.filter((e) => e.encode === "photo").map((e) => e.id),
+  ]);
 
   const recorded = new Set([...manifest.pairs, ...(manifest.photos ?? [])].map((e) => e.id));
   const catalogued = new Set(BUILT_IN_WALLPAPERS.map((w) => w.id));
@@ -262,7 +284,7 @@ async function main() {
   // sharp decodes on its own thread pool, so all of them run at once.
   const rows = await Promise.all(
     BUILT_IN_WALLPAPERS.flatMap((w) => {
-      const kind = isSingleImage(w) ? "photo" : "pair";
+      const kind = photoIds.has(w.id) || isSingleImage(w) ? "photo" : "pair";
       return [...new Set([w.light, w.dark])].map((asset) => checkAsset(asset, kind));
     })
   );

@@ -11,6 +11,14 @@
    composition starts to fit with room left over. */
 @custom-variant roomy (@media (width >= 96rem) and (height >= 1000px));
 
+/* `bleed:` — wide enough for landscape media to break out of the reading
+   column. The rule that does it and the reader control that switches it off
+   (components/post/reading-sheet.tsx) both answer to this one number, so
+   neither can drift from the other. Tailwind makes a variant of it. */
+@theme {
+  --breakpoint-bleed: 900px;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -567,7 +575,12 @@ html.dragging * {
    - "De-weighted" headings: smaller, subtle but slightly brighter than body */
 .prose-article {
   @apply text-foreground/85 leading-relaxed;
-  font-size: 16px;
+  /* Everything sized inside an article is an `em` of this, so the reader's
+     size setting moves the whole composition rather than the body alone —
+     headings keep their hierarchy, captions and code keep their relation to
+     the paragraph they annotate. `line-height` is unitless for the same
+     reason: it follows whatever the size lands on. */
+  font-size: var(--reading-size, 16px);
   line-height: 1.75;
   /* Break long unbreakable strings (e.g. raw URLs used as link text) so they
      wrap instead of overflowing the viewport horizontally on mobile. */
@@ -620,15 +633,15 @@ html.dragging * {
 }
 
 .prose-article h1:not(:where(.not-prose, .not-prose *)) {
-  @apply font-sans text-xl font-medium mt-14 mb-6 text-foreground first:mt-0;
+  @apply font-sans text-[1.25em] font-medium mt-14 mb-6 text-foreground first:mt-0;
 }
 
 .prose-article h2:not(:where(.not-prose, .not-prose *)) {
-  @apply font-sans text-lg font-medium mt-16 mb-6 text-foreground;
+  @apply font-sans text-[1.125em] font-medium mt-16 mb-6 text-foreground;
 }
 
 .prose-article h3:not(:where(.not-prose, .not-prose *)) {
-  @apply font-sans text-base font-medium mt-12 mb-4 text-foreground;
+  @apply font-sans text-[1em] font-medium mt-12 mb-4 text-foreground;
 }
 
 .prose-article a:not(:where(.not-prose, .not-prose *)) {
@@ -643,9 +656,11 @@ html.dragging * {
   @apply font-serif italic;
 }
 
-/* Optical adjustment for Latin: Newsreader has smaller x-height than Inter */
+/* Optical adjustment for Latin: Newsreader has smaller x-height than Inter.
+   An em of the body, like every other size in here, so the correction keeps
+   its proportion at every reading size instead of standing still. */
 .prose-article[lang="en"] em:not(:where(.not-prose, .not-prose *)) {
-  font-size: 17px;
+  font-size: 1.0625em;
 }
 
 /* Right spacing for Chinese italic to prevent overhang */
@@ -673,7 +688,7 @@ html.dragging * {
 }
 
 .prose-article[lang="en"] blockquote:not(:where(.not-prose, .not-prose *)) {
-  font-size: 17px;
+  font-size: 1.0625em;
 }
 
 /* Lists - custom markers with absolute positioning for proper text flow */
@@ -746,7 +761,7 @@ html.dragging * {
 }
 
 .prose-article table:not(:where(.not-prose, .not-prose *)) {
-  @apply w-full border-collapse text-sm;
+  @apply w-full border-collapse text-[0.875em];
   margin: 0; /* Override any inherited margins */
 }
 
@@ -772,7 +787,7 @@ html.dragging * {
 
 /* Inline code */
 .prose-article code:not(:where(.not-prose, .not-prose *)) {
-  @apply font-mono text-sm bg-muted px-1.5 py-0.5 rounded;
+  @apply font-mono text-[0.875em] bg-muted px-1.5 py-0.5 rounded;
 }
 
 /* Code blocks with rehype-pretty-code styling */
@@ -782,7 +797,7 @@ html.dragging * {
 }
 
 .prose-article pre:not(:where(.not-prose, .not-prose *)) code {
-  @apply bg-transparent p-0 text-sm;
+  @apply bg-transparent p-0 text-[0.875em];
   display: grid;
   min-width: 100%;
   counter-reset: line;
@@ -885,7 +900,7 @@ html.dragging * {
    gutter each side so it clears the fixed ruler ToC docked at the edge.
    Images keep their natural aspect ratio (height stays auto); only the video
    iframe is locked to 16:9 by the base rule above. */
-@media (min-width: 900px) {
+@media (width >= theme(--breakpoint-bleed)) {
   .prose-article iframe:not(:where(.not-prose, .not-prose *)),
   .prose-article img[data-bleed="true"]:not(:where(.not-prose, .not-prose *)) {
     width: min(60rem, 100vw - 14rem);
@@ -920,6 +935,15 @@ html.dragging * {
   @apply font-serif;
 }
 
+/* Reading size: the one number every `em` in an article resolves against.
+   Default needs no attribute, so <html> stays clean at the common case. */
+:root[data-reading-size="small"] {
+  --reading-size: 15px;
+}
+:root[data-reading-size="large"] {
+  --reading-size: 18px;
+}
+
 /* Reading measure: widen/narrow the reader column. Only the reader variant's
    container is affected; poetic pages (home, lists) keep their width. */
 :root[data-reading-measure="narrow"] main[data-variant="reader"] {
@@ -943,7 +967,7 @@ html.dragging * {
 }
 
 .prose-article figcaption:not(:where(.not-prose, .not-prose *)) {
-  @apply mt-2 text-center text-sm text-muted-foreground;
+  @apply mt-2 text-center text-[0.875em] text-muted-foreground;
 }
 
 /* Strikethrough (GFM) */
@@ -1502,5 +1526,176 @@ html.dragging * {
   [data-surface-popup],
   [data-surface-shell] {
     transition: none;
+  }
+}
+
+/* =============================================================================
+   Dock panel motion — `[data-dock-panel]`, `[data-dock-pill]`
+   The Live Activity panel is the same library as the sheets above, travelling
+   UP instead of DOWN: a Base UI drawer anchored at the top of the screen that
+   puts itself away over the top edge. It gets its own block rather than a
+   `[data-swipe-direction="up"]` arm of the surface rules, because a top panel
+   shares none of the sheet's geometry — no detents, no padding-as-travel, no
+   bottom inset — and only the shell recede (`[data-surface-shell]`, above) is
+   genuinely common.
+
+   From Base UI, on the popup: `--drawer-swipe-movement-y` (the live drag) and
+   `--drawer-swipe-strength` (how hard it was flicked). From live-activity.tsx:
+   `--surface-duration`, `--surface-easing`, `--surface-exit`.
+
+   OPACITY BELONGS ON THE GLASS, NEVER ON A BOX THAT CONTAINS IT. An element
+   at `opacity < 1` is its own backdrop root, so a `backdrop-filter` *inside*
+   it samples that empty group rather than the page and the glass is simply not
+   there for the length of the animation; on the element that carries the blur
+   the same opacity is fine, because its own backdrop is resolved before its
+   opacity is applied. A fade on the popup made the whole panel see-through on
+   the way in, the page's text legible straight through it, unblurred. A/B'd at
+   the same opacity on the same frame: on the shell the text behind it is
+   blurred, on the popup it is sharp. So the panel's transform lives on the
+   popup, which holds no glass, and every fade lives one level down on the
+   shell and on the pill, which are the glass.
+
+   Before changing a rule, read the "BEFORE CHANGING THIS FILE" block at the
+   top of systems/dock/components/live-activity.tsx — the five notes there are
+   what these rules are shaped around, notes 4 and 5 most of all: they are the
+   reason the fade is not on the popup and the reason the closed transform has
+   no `translateY`.
+   ============================================================================= */
+
+[data-dock-panel] {
+  /* The dock's own beat. Shorter than a sheet's travel: this panel is small,
+     it does not come from off-screen, and the old framer-motion pop it is
+     matching ran at 0.3s. `--surface-duration` still governs the shell's
+     recede, so the dock never falls out of step with the stack. */
+  --dock-pop-duration: 300ms;
+  transform: translateY(var(--drawer-swipe-movement-y, 0px));
+  transform-origin: top center;
+  transition: transform var(--dock-pop-duration) var(--surface-easing);
+}
+
+/* Under the finger the panel is direct. The duration only, never the whole
+   transition — same reason as the sheet: on the frame a dismiss is released
+   the popup can be swiping and leaving at once, and the leaving rule below
+   restores a duration, not a property to run on. */
+[data-dock-panel][data-swiping] {
+  transition-duration: 0ms;
+}
+
+/* The pop. A shade small, settling into place — the panel belongs to the pill
+   it came from, and a pill is right there, so it has nowhere to travel from.
+   The scale is the number the hand-written panel used, so the dock reads the
+   way it always has.
+
+   Its `y: -10` is deliberately NOT here, and this is not a detail. Base UI's
+   swipe-open measures how far "closed" is by reading the popup's transform at
+   the moment the drag starts (`resolveClosedOffset`, which takes
+   `min(height, |translateY|)`), and it reads it before it marks the popup as
+   swiping — so it sees this rule. A ten-pixel offset told it the panel was ten
+   pixels from open, and a pull that should have tracked the finger down a whole
+   panel height tracked it for ten pixels and then overshot: measured, the live
+   `--drawer-swipe-movement-y` came back at +12px instead of the −170 it should
+   be. A pure scale leaves the transform's Y at zero, so the measurement falls
+   through to the panel's height. The lost ten pixels cost nothing to look at:
+   scaling a 170px panel by 0.94 from `top center` already lifts its bottom by
+   about that much. */
+[data-dock-panel]:is([data-starting-style], [data-ending-style]) {
+  transform: scale(0.94);
+}
+
+/* Thrown away, though: a finger that flicked the panel upward should be
+   answered by the panel going that way and off the top edge, not by it
+   shrinking back into place. Base UI marks that release, and it outlives the
+   swipe itself, which is why this is keyed on the dismissal and not on
+   `data-swiping`. */
+[data-dock-panel][data-swipe-dismiss]:is([data-starting-style], [data-ending-style]) {
+  transform: translateY(calc(-100% - var(--surface-exit)));
+}
+
+/* Pulled open from the pill. `Drawer.SwipeArea` opens the drawer on the first
+   pixel of the drag, so the panel arrives — `data-starting-style` and all —
+   while the finger is still down, and the rule above would hide it for the
+   whole gesture. Under the finger the finger wins. Starting style only: on a
+   release the popup carries `data-swiping` and `data-ending-style` together,
+   and pinning it to the finger there would strand it on screen. */
+[data-dock-panel][data-swiping][data-starting-style] {
+  transform: translateY(var(--drawer-swipe-movement-y, 0px));
+}
+
+/* The harder the flick, the sooner it is gone. */
+[data-dock-panel][data-ending-style] {
+  transition-duration: calc(var(--drawer-swipe-strength, 1) * var(--dock-pop-duration));
+}
+
+/* The other half of the pop, one level down on the glass itself (see the note
+   at the top of this block). An animation rather than a transition, for two
+   reasons: the shell's `transition` shorthand already belongs to the surface
+   recede and a second rule would replace it wholesale, and `data-starting-style`
+   lives for a single frame — too short for a transition to key off, long enough
+   to start an animation that then runs on its own. Base UI reads the popup's
+   own animations to decide when an exit is over, not the subtree's, so this
+   fade never holds the unmount open. */
+@keyframes dock-pop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dock-pop-out {
+  to {
+    opacity: 0;
+  }
+}
+
+[data-dock-panel] [data-surface-shell] {
+  animation: dock-pop-in var(--dock-pop-duration) var(--surface-easing);
+}
+
+[data-dock-panel][data-ending-style] [data-surface-shell] {
+  animation: dock-pop-out
+    calc(var(--drawer-swipe-strength, 1) * var(--dock-pop-duration))
+    var(--surface-easing) forwards;
+}
+
+/* A panel on its way over the top edge leaves opaque; it is going somewhere,
+   not dissolving. */
+[data-dock-panel][data-swipe-dismiss] [data-surface-shell] {
+  animation: none;
+}
+
+/* The pills stay in the row while a panel is open, so the row keeps its
+   layout and its scroll position, but the open panel stands alone. The
+   wrapper stops taking pointers; the fade is one level down, on the pill
+   itself, because the pill IS the glass (see the note at the top of this
+   block). */
+[data-dock-pill] {
+  transform-origin: top center;
+}
+
+[data-dock-pill] > * {
+  /* The site's surface curve, written out: the pill sits in the dock row, not
+     under the popup that carries `--surface-easing`. */
+  transition:
+    opacity 220ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  transform-origin: top center;
+}
+
+[data-dock-pill][data-hidden] {
+  pointer-events: none;
+}
+
+[data-dock-pill][data-hidden] > * {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-dock-panel],
+  [data-dock-pill] > * {
+    transition: none;
+  }
+
+  [data-dock-panel] [data-surface-shell] {
+    animation: none;
   }
 }

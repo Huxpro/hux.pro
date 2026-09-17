@@ -2,6 +2,7 @@
 export * from "./format";
 export * from "./gradient";
 export * from "./greeting";
+export * from "./gyroscope";
 export * from "./fixed-bg-tracker";
 export * from "./location";
 export * from "./notification";
@@ -11,6 +12,7 @@ export * from "./queries";
 export * from "./route-config";
 export * from "./scene";
 export * from "./solar";
+export * from "./solar-theme";
 export * from "./settings";
 export * from "./strike";
 export * from "./sun";

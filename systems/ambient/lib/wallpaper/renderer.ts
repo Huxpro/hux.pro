@@ -15,6 +15,7 @@
 // Zero React inside — the component just hands it a canvas and scenes.
 // =============================================================================
 
+import { UPRIGHT_GRAVITY, type GravityVector } from "../gyroscope";
 import type { WeatherScene } from "../scene";
 import { STRIKE_MS } from "../strike";
 import { FRAGMENT_SHADER, VERTEX_SHADER } from "./shader";
@@ -32,6 +33,12 @@ interface UniformSpec {
 // driven by hand — the devtool's date and time sliders — and there it should
 // feel attached to the slider, not towed behind it.
 const TRACK = 0.25;
+
+// What the theme changes, and all it changes: the veil's colour and amount and
+// the exposure (VEIL_DEFAULTS in ../scene.ts). Named so `setThemeEase` can
+// stretch this one group — the sun's handover takes as long over the sky as it
+// does over the page — without the weather slowing down with it.
+const THEME = 0.5;
 
 const UNIFORMS: UniformSpec[] = [
   { name: "uSun", size: 2, tau: TRACK },
@@ -58,9 +65,9 @@ const UNIFORMS: UniformSpec[] = [
   { name: "uFog", size: 1, tau: 2.4 },
   { name: "uLightning", size: 1, tau: 1.5 },
   { name: "uStars", size: 1, tau: 2.0 },
-  { name: "uVeilColor", size: 3, tau: 0.5 },
-  { name: "uVeilAmount", size: 1, tau: 0.5 },
-  { name: "uExposure", size: 1, tau: 0.5 },
+  { name: "uVeilColor", size: 3, tau: THEME },
+  { name: "uVeilAmount", size: 1, tau: THEME },
+  { name: "uExposure", size: 1, tau: THEME },
 ];
 
 const FLOAT_COUNT = UNIFORMS.reduce((n, u) => n + u.size, 0);
@@ -79,11 +86,175 @@ const META = UNIFORMS.map((u, i) => {
   if (tauIndex < 0) tauIndex = TAUS.push(u.tau) - 1;
   return { offset, size: u.size, tauIndex };
 });
+/** Which of `TAUS` is the theme's, for `setThemeEase` to override. */
+const THEME_TAU_INDEX = TAUS.indexOf(THEME);
 const WIND_OFFSET = OFFSET.uWind;
 const CLOUD_SPEED_OFFSET = OFFSET.uCloudSpeed;
+const SNOW_OFFSET = OFFSET.uSnow;
 
 /** A fixed, pleasant moment on the shader clock for a still frame. */
 const STILL_FRAME_SEC = 37;
+
+// -----------------------------------------------------------------------------
+// Stirring up a gust
+//
+// A hand dragged across the background makes wind, and nothing else: the rain
+// keeps falling, the snow keeps drifting, and the only thing the visitor adds is
+// a term on the wind. So the sky answers a hand exactly as it answers the
+// forecast, and there is no second physics to keep honest.
+//
+// Air has mass, and that is the whole feel of it:
+//
+//   · The hand's own motion (`stir`) goes stale within a breath, so a finger
+//     resting on the page makes no wind at all — only a moving one does.
+//   · The gust chases that stir slowly. A flick barely raises it; a long sweep
+//     builds it. Real gusts arrive over a moment, not a frame.
+//   · And it falls away more slowly still, so the sky settles back on its own.
+//
+// Everything below is in the shader's units: wind is −1..1, positive blowing
+// right, and one unit of hand travel is one viewport HEIGHT.
+// -----------------------------------------------------------------------------
+
+const GUST = {
+  /** Hand speed (heights/s) → gust, through `tanh`, so a frantic hand saturates. */
+  gain: 0.55,
+  /**
+   * The strongest gust a hand can raise — above 1.0 on purpose, which is the
+   * top of the forecast's own range (50 km/h). A gust is not a wind; it is
+   * allowed to be briefly harder than any weather the sky is showing.
+   */
+  max: 1.1,
+  /** How quickly the hand's motion stops counting once it stops moving. */
+  stirTau: 0.1,
+  /**
+   * The gust's rise. Short: a squall front slams the rain over, it does not
+   * lean it politely. The rain's lean shears the curtain about mid-screen, so
+   * the edges sweep sideways at `0.5 × 0.75 × max ÷ attack` heights a second —
+   * a little over its own fall speed, which is the most that still reads as
+   * air rather than as a whip.
+   */
+  attack: 0.13,
+  /**
+   * And its fall — more than ten times as long, which is the shape of the
+   * thing. A gust arrives all at once and then *passes*: it is still half
+   * itself a second later, still visible at three, and gone by six. Getting up
+   * and dying away at the same rate is what makes a gust read as a twitch.
+   */
+  release: 1.6,
+} as const;
+
+// -----------------------------------------------------------------------------
+// Where the weather falls
+//
+// Wind reaches the rain and the snow as one thing only: the direction they
+// fall in. Gravity pulls down, the air pushes sideways, and a particle at
+// terminal velocity travels along the sum — so a gust does not distort the
+// curtain, it re-aims it, and the whole of the feel is in how fast each field
+// can be re-aimed.
+//
+// THE GYROSCOPE ARRIVES BY THE SAME DOOR, and that is the point of writing it
+// this way. A tilt moves gravity; a wind adds a term across it; the weather
+// only ever sees the sum:
+//
+//     fall = g + perp(g) · lean
+//
+// with `g` the unit gravity in page space — (0,-1) for a screen lying flat or
+// held upright, the sensor's reading otherwise — and `perp(g)` gravity turned
+// a quarter turn, which is screen-right when `g` is screen-down.
+//
+// ACROSS GRAVITY, not across the page, and it is worth saying why. A storm's
+// wind is horizontal in the world, and horizontal means perpendicular to the
+// way things fall. Turn the phone on its side and a real snowfall does not
+// stop being laid over — the whole storm turns with you, the flakes keeping
+// their angle to gravity. Holding the wind along the page instead would mean
+// that at ninety degrees the wind blew straight down the fall, speeding the
+// rain up rather than leaning it, which is nothing that happens outdoors.
+//
+// (An earlier draft did hold it across the page, of necessity rather than
+// choice: while the wind was a positional offset added to a flake's cell, a
+// term that turned with gravity would have slid the whole field across the
+// page as the snow came round. Once the wind became part of the travel that
+// reason dissolved, and only the choice was left.)
+//
+//   · The RAIN eases. A drop is small, fast and already all the way down, so
+//     it is at the new angle within a blink; the ease is barely more than the
+//     smoothing that keeps a slammed gust from cracking like a whip.
+//   · The SNOW is a critically damped SPRING, and that is the difference
+//     between drag and mass. An ease leaves at full speed and decelerates,
+//     which reads as being dragged; a spring leaves at REST and has to be
+//     accelerated, which reads as having a body. Turn the wind and the flakes
+//     keep going the way they were going, then come round — and then keep
+//     going that way after the air is still.
+//   · The CLOUD decks are heavier again and get nothing from a hand at all:
+//     you cannot stir a cloud by waving at it. They answer the forecast only.
+//
+// Both leans below are sideways-over-fall — a tangent, not a speed — and each
+// field has its own because a flake falls at about a thirtieth of a drop's
+// speed and the same air therefore lays it over much further.
+// -----------------------------------------------------------------------------
+
+/** The rain's lean per unit of wind, and how long it takes to get there. */
+const RAIN_LEAN = 0.75;
+/**
+ * Short on purpose. A drop is small, fast and already all the way down, so it
+ * really is at the new angle within a blink — and the air it is answering has
+ * its own rise and fall (`GUST`) which is where a gust's shape belongs. What
+ * is left for this to do is keep a slammed gust from cracking like a whip: at
+ * a tenth of a second the curtain's far corner sweeps under a screen height a
+ * second, against the 1.5–2.5 the rain is falling at.
+ */
+const RAIN_FALL_TAU = 0.08;
+
+/**
+ * The snow's, which is three and a half times flatter at the same wind…
+ *
+ * It looks like a magic number and it is a derived one: the shader lays the
+ * snow along `uSnowFall × fall`, where `fall` is the layer's own speed, so a
+ * lean of L here is the same picture the two hand-tuned depth ramps used to
+ * draw at a drift of `L × 0.2278`. That 0.2278 is the ratio the old ramps
+ * shared — which is why they had to span the same 3x, and why they no longer
+ * have to.
+ */
+const SNOW_LEAN = 2.634;
+
+/**
+ * …and the natural frequency of its spring, in rad/s. At critical damping
+ * there is no overshoot, so the snow never swings past the new direction and
+ * back: heavy, not springy. Against a step it is a fifth of the way round at
+ * one second, half at two, three quarters at three and all but there at five,
+ * while its first frame moves at a tenth of its own top speed and the rain's
+ * at all of it. That gap is the mass.
+ *
+ * ONE number, for the wind and for the tilt alike — a flake's body cannot know
+ * which of the two moved, and a sky where the same flakes came round at two
+ * different rates depending on the cause would be a sky with two physics in
+ * it. This is the value the snow's shipped answer to a change of wind was
+ * already worth; a tilt now costs the same seconds, which is slower than a
+ * tilt-only draft of this wanted, and right for the same reason.
+ */
+const SNOW_FALL_OMEGA = 0.9;
+
+/**
+ * How much faster heavier snow falls. It used to live in the shader, on each
+ * layer's speed, with a copy here to divide the lean by — a number kept in
+ * step by hand across a JS/GLSL boundary, which is the kind of arrangement
+ * that is right until the day it is not.
+ *
+ * It only ever belonged on one side. The shader's job is a DEPTH ramp; how
+ * fast snow falls is a property of the snow, and the travel is accumulated
+ * here. Moving it also stops a change of intensity from re-scaling every
+ * second of fall already banked — the same reason `uRainFall` is accumulated
+ * rather than multiplied out of the clock.
+ */
+const snowFallRate = (snow: number) => 0.85 + 0.3 * snow;
+
+/**
+ * Where the snow's accumulated travel wraps — the shader clock's own hourly
+ * wrap, for the same reason. Its magnitude is roughly elapsed fall time, and
+ * once that reaches the tens of thousands of cell widths float32 has no
+ * fraction left to place a flake inside its cell with.
+ */
+const FALL_WRAP_SEC = 3600;
 
 /** How long a clicked strike lives — the shader's envelope is spent by then. */
 const STRIKE_SEC = STRIKE_MS / 1000;
@@ -161,7 +332,10 @@ export class WallpaperRenderer {
   private locTime: WebGLUniformLocation | null = null;
   private locSeed: WebGLUniformLocation | null = null;
   private locCloudDrift: WebGLUniformLocation | null = null;
-  private locSnowDrift: WebGLUniformLocation | null = null;
+  private locRainDown: WebGLUniformLocation | null = null;
+  private locRainFall: WebGLUniformLocation | null = null;
+  private locSnowDown: WebGLUniformLocation | null = null;
+  private locSnowFall: WebGLUniformLocation | null = null;
   private locStrike: WebGLUniformLocation | null = null;
   private locStrikeAge: WebGLUniformLocation | null = null;
   private locStrikeSeed: WebGLUniformLocation | null = null;
@@ -170,6 +344,8 @@ export class WallpaperRenderer {
   private vao: WebGLVertexArrayObject | null = null;
 
   private target = new Float32Array(FLOAT_COUNT);
+  /** Seconds, or null for each uniform's own tau. See setThemeEase. */
+  private themeTau: number | null = null;
   private current = new Float32Array(FLOAT_COUNT);
   private hasScene = false;
   private seed = 0;
@@ -179,7 +355,37 @@ export class WallpaperRenderer {
   private lastFrameAt = 0;
   private startAt = 0;
   private cloudDrift = 0;
-  private snowDrift = 0;
+  /**
+   * Where the page's own down is: the sensor's last reading, or upright, which
+   * is also what a device with no gyroscope and a visitor with the tilt off
+   * both come to. Kept as a unit vector; see `setGravity`.
+   */
+  private gravity = new Float32Array([UPRIGHT_GRAVITY.x, UPRIGHT_GRAVITY.y]);
+  /**
+   * Where each field is actually going — gravity plus the wind across it —
+   * chasing that sum at its own weight, with the velocity of the snow's
+   * spring beside it. Not unit vectors: a leaning fall is a longer one, and
+   * the travels below are their integrals, so the length is the speed.
+   */
+  private rainDir = new Float32Array([0, -1]);
+  private snowDir = new Float32Array([0, -1]);
+  private snowDirVel = new Float32Array([0, 0]);
+  /** Scratch for the target of each, rebuilt every frame. */
+  private fallAt = new Float32Array([0, -1]);
+  /**
+   * How far each field has travelled. The rain's is a scalar because its
+   * streaks are drawn in a frame aligned to its own fall, where the only thing
+   * left to know is how far; the snow's is a vector because a direction still
+   * coming round must not drag what has already fallen sideways along with it.
+   * Both start where the still frame's clock used to put them.
+   */
+  private rainFall = STILL_FRAME_SEC;
+  private snowFall = new Float32Array([0, -STILL_FRAME_SEC]);
+
+  /** The wind a hand asked for, when it asked, and what the air has got to. */
+  private stir = 0;
+  private stirAt = 0;
+  private gust = 0;
 
   /** The clicked strike. `strikeAt` of 0 means none is running. */
   private strikeAt = 0;
@@ -238,6 +444,10 @@ export class WallpaperRenderer {
     this.seed = scene.seed;
     if (!this.hasScene) {
       this.current.set(this.target);
+      // Start both fields already leaning into the scene's wind. Coming up
+      // from nothing would mean the first seconds of a page had the weather
+      // falling straight down through a gale.
+      this.snapFall();
       this.hasScene = true;
     }
     // The phase is cyclic; never interpolate it.
@@ -252,8 +462,7 @@ export class WallpaperRenderer {
     this.snapIfJumped("uSun", prevTarget, 0.2);
     this.snapIfJumped("uMoon", prevTarget, 0.2, ["uMoonVisible"]);
     if (this.opts.reducedMotion) {
-      this.current.set(this.target);
-      this.renderOnce();
+      this.settle();
     } else if (!this.running) {
       this.start();
     }
@@ -277,13 +486,69 @@ export class WallpaperRenderer {
     this.strikeAge = 0;
   }
 
+  /**
+   * A hand went past at `vxPx` CSS pixels per second, left to right.
+   *
+   * Only the horizontal component: wind in this sky is horizontal, and a hand
+   * swiped straight down does not make a sideways breeze. What it asks for is a
+   * wind; how much of one the air gets up to is `advanceGust`, and how much of
+   * THAT each field's fall gets re-aimed by is "Where the weather falls".
+   */
+  stirWind(vxPx: number) {
+    const heights = vxPx / Math.max(1, this.cssHeight);
+    this.stir = GUST.max * Math.tanh(heights * GUST.gain);
+    this.stirAt = performance.now();
+  }
+
+  /**
+   * Which way gravity points in screen space — the gyroscope's reading. `null`
+   * is an upright screen, which is also where this starts, so a device with no
+   * sensor (or a visitor with the tilt off) is simply the case where nobody
+   * ever calls it.
+   *
+   * Nothing in the sky is turned by it. It joins the wind in the one vector
+   * the weather answers to (see "Where the weather falls"), so the rain is
+   * re-aimed within a blink and the snow over seconds — the same ease and the
+   * same spring a gust gets, because a flake cannot tell which of the two
+   * moved. Under reduced motion there is nothing to lag: both snap to it.
+   */
+  setGravity(gravity: GravityVector | null) {
+    const g = gravity ?? UPRIGHT_GRAVITY;
+    const len = Math.hypot(g.x, g.y);
+    // A direction, kept one: the wind's lean is measured against a unit fall,
+    // so a reading that arrived a little short would quietly flatten it.
+    if (len < 1e-4) {
+      this.gravity[0] = UPRIGHT_GRAVITY.x;
+      this.gravity[1] = UPRIGHT_GRAVITY.y;
+    } else {
+      this.gravity[0] = g.x / len;
+      this.gravity[1] = g.y / len;
+    }
+    if (this.opts.reducedMotion) {
+      this.settle();
+    }
+  }
+
+  /**
+   * How long the theme's own uniforms take to arrive, in ms to settled, or
+   * null for the table's own pace. An exponential ease is asymptotic, so
+   * "settled" is 3 time constants — close enough to read as arrived.
+   */
+  setThemeEase(settleMs: number | null) {
+    this.themeTau =
+      settleMs !== null && settleMs > 0 ? settleMs / 3000 : null;
+  }
+
   setReducedMotion(reduced: boolean) {
     if (this.opts.reducedMotion === reduced) return;
     this.opts.reducedMotion = reduced;
     if (reduced) {
       this.stop();
-      this.current.set(this.target);
-      this.renderOnce();
+      // Nothing will advance the gust again; don't freeze half of one into the
+      // still frame — nor half a turn of the fall it was in the middle of.
+      this.stir = 0;
+      this.gust = 0;
+      this.settle();
     } else if (this.hasScene) {
       this.start();
     }
@@ -377,7 +642,10 @@ export class WallpaperRenderer {
     this.locTime = gl.getUniformLocation(program, "uTime");
     this.locSeed = gl.getUniformLocation(program, "uSeed");
     this.locCloudDrift = gl.getUniformLocation(program, "uCloudDrift");
-    this.locSnowDrift = gl.getUniformLocation(program, "uSnowDrift");
+    this.locRainDown = gl.getUniformLocation(program, "uRainDown");
+    this.locRainFall = gl.getUniformLocation(program, "uRainFall");
+    this.locSnowDown = gl.getUniformLocation(program, "uSnowDown");
+    this.locSnowFall = gl.getUniformLocation(program, "uSnowFall");
     this.locStrike = gl.getUniformLocation(program, "uStrike");
     this.locStrikeAge = gl.getUniformLocation(program, "uStrikeAge");
     this.locStrikeSeed = gl.getUniformLocation(program, "uStrikeSeed");
@@ -592,7 +860,9 @@ export class WallpaperRenderer {
 
   private smooth(dtSec: number) {
     for (let t = 0; t < TAUS.length; t++) {
-      this.ks[t] = TAUS[t] <= 0 ? 1 : 1 - Math.exp(-dtSec / TAUS[t]);
+      const tau =
+        t === THEME_TAU_INDEX && this.themeTau !== null ? this.themeTau : TAUS[t];
+      this.ks[t] = tau <= 0 ? 1 : 1 - Math.exp(-dtSec / tau);
     }
     for (const m of META) {
       const k = this.ks[m.tauIndex];
@@ -601,12 +871,167 @@ export class WallpaperRenderer {
         this.current[idx] += (this.target[idx] - this.current[idx]) * k;
       }
     }
-    // Advect drift from the smoothed wind so direction changes glide.
+    this.advanceGust(dtSec);
+    // Advect drift from the smoothed wind so direction changes glide. Both
+    // drifts are travels, positive to the right, like the wind that feeds them.
     const windX = this.current[WIND_OFFSET];
     const cloudSpeed = this.current[CLOUD_SPEED_OFFSET];
     const dir = Math.tanh(windX * 6);
     this.cloudDrift += dtSec * cloudSpeed * (0.35 + 0.65 * Math.abs(windX)) * (dir === 0 ? 0.35 : dir);
-    this.snowDrift += dtSec * (windX * 0.6 + 0.03);
+    // --- Where the weather falls (see the section of that name) -----------
+    //
+    // One air, two fields, and the only difference between them is how quickly
+    // each can be re-aimed. Nothing is added to the air: a constant here would
+    // be a wind that always blows one way, which adds to a wind going with it
+    // and eats one going against — the flakes leant twice as far right as left
+    // at the same wind, and at a light enough one they leant the opposite way
+    // to the rain. The flakes have their own wander (the waft and the slow
+    // beat in `snow()`), so they never fall dead straight without it.
+    // The rain eases toward where it is going.
+    const kr = 1 - Math.exp(-dtSec / RAIN_FALL_TAU);
+    this.aimRain(this.current, this.gust);
+    this.rainDir[0] += (this.fallAt[0] - this.rainDir[0]) * kr;
+    this.rainDir[1] += (this.fallAt[1] - this.rainDir[1]) * kr;
+    // The snow's spring, integrated implicitly: the denominator is (1 + ω·dt)²,
+    // so no length of stalled frame can make it ring or blow up.
+    const w = SNOW_FALL_OMEGA;
+    const denom = 1 + 2 * w * dtSec + w * w * dtSec * dtSec;
+    this.aimSnow(this.current, this.gust);
+    for (let i = 0; i < 2; i++) {
+      const pull = w * w * (this.fallAt[i] - this.snowDir[i]);
+      this.snowDirVel[i] = (this.snowDirVel[i] + dtSec * pull) / denom;
+      this.snowDir[i] += dtSec * this.snowDirVel[i];
+    }
+    // And this frame's worth of travel along each. A leaning fall is a longer
+    // one — that is the hypotenuse, and it is why a gust quickens the rain as
+    // well as leaning it.
+    const rainSpeed = Math.hypot(this.rainDir[0], this.rainDir[1]);
+    this.rainFall = (this.rainFall + dtSec * rainSpeed) % FALL_WRAP_SEC;
+    this.snowFall[0] += dtSec * this.snowDir[0];
+    this.snowFall[1] += dtSec * this.snowDir[1];
+    const travelled = Math.hypot(this.snowFall[0], this.snowFall[1]);
+    if (travelled > FALL_WRAP_SEC) {
+      this.snowFall[0] -= (this.snowFall[0] / travelled) * FALL_WRAP_SEC;
+      this.snowFall[1] -= (this.snowFall[1] / travelled) * FALL_WRAP_SEC;
+    }
+  }
+
+  /**
+   * Where the rain is aimed, and where the snow is, into `fallAt`. Written
+   * once each and called from both the eased path and the snap: a lean that
+   * lived in two places would let the first frame of a scene, and every
+   * reduced-motion still, drift from every frame after it.
+   *
+   * `src` is a packed-uniform array — `current` while easing, `target` when
+   * snapping — and `gust` is what a hand has raised, which a snap has none of.
+   */
+  private aimRain(src: Float32Array, gust: number) {
+    // 1, because the rain's own fall speed is the shader's business: it varies
+    // per depth layer and never leaves the loop that uses it.
+    this.fallFor(1, (src[WIND_OFFSET] + gust) * RAIN_LEAN);
+  }
+
+  private aimSnow(src: Float32Array, gust: number) {
+    // The snow's does leave: heavier snow falls faster, so the fall gets
+    // longer while the sideways travel does not — sideways is the air's speed
+    // times the time, whatever the flake is doing vertically. Which is why the
+    // snow's lean goes shallower as the snow gets heavier, and why it takes no
+    // division to arrange.
+    this.fallFor(snowFallRate(src[SNOW_OFFSET]), (src[WIND_OFFSET] + gust) * SNOW_LEAN);
+  }
+
+  /**
+   * Where a fall is going, into `fallAt`:
+   *
+   *     fall = g · along  +  perp(g) · across
+   *
+   * — the wind laid ACROSS gravity rather than across the page (see "Where the
+   * weather falls"). Upright and calm this is exactly (0, −along), which is
+   * what it was before there was a gyroscope to ask.
+   */
+  private fallFor(along: number, across: number) {
+    const gx = this.gravity[0];
+    const gy = this.gravity[1];
+    this.fallAt[0] = gx * along - gy * across;
+    this.fallAt[1] = gy * along + gx * across;
+  }
+
+  /**
+   * The still frame, whole: every uniform where it is aimed, both falls at
+   * rest, painted once. Reduced motion has no next frame to arrive in, so
+   * anything that would have eased has to be there already.
+   *
+   * It is one method because it was three, written out at each call site — and
+   * one of the three had already lost the fall: a scene arriving under reduced
+   * motion repainted with the PREVIOUS wind's lean, which on the ordinary path
+   * (a placeholder forecast, then the real one) meant the still sky kept the
+   * placeholder's lean for the life of the page.
+   */
+  private settle() {
+    this.current.set(this.target);
+    this.snapFall();
+    this.renderOnce();
+  }
+
+  /**
+   * Put both fields at the lean the forecast is asking for, at rest, with the
+   * travel the still frame's clock used to read. Also the first scene's
+   * "arrive settled", which is a different thing from a still frame.
+   */
+  private snapFall() {
+    this.aimRain(this.target, 0);
+    this.rainDir.set(this.fallAt);
+    this.aimSnow(this.target, 0);
+    this.snowDir.set(this.fallAt);
+    this.snowDirVel[0] = 0;
+    this.snowDirVel[1] = 0;
+    // That clock's worth of travelling, along where it is going: a still frame
+    // of a tilted sky is a still frame of tilted weather.
+    this.rainFall = STILL_FRAME_SEC * Math.hypot(this.rainDir[0], this.rainDir[1]);
+    this.snowFall[0] = STILL_FRAME_SEC * this.snowDir[0];
+    this.snowFall[1] = STILL_FRAME_SEC * this.snowDir[1];
+  }
+
+  /**
+   * One step of the gust (see "Stirring up a gust").
+   *
+   * The hand's stir decays on its own, so a finger that stops moving stops
+   * making wind without anyone having to say so — which is also why letting go
+   * needs no announcement. The gust then chases whatever is left, quickly while
+   * a hand is still stirring and slowly once the air is its own again.
+   */
+  private advanceGust(dtSec: number) {
+    // A stir is worth only what it is fresh — and freshness is measured from
+    // when the hand actually went past, never from the last frame. Decaying it
+    // by a frame's worth would quietly dock every gesture by however long the
+    // GPU took, which on a slow one is most of it.
+    const stale = (performance.now() - this.stirAt) / 1000;
+    const stir = this.stir * Math.exp(-stale / GUST.stirTau);
+    // Rising or falling, not stirring-or-not: the gust takes the fast constant
+    // whenever it is being asked for MORE wind than it has — including a hand
+    // that reverses and whips it the other way — and the slow one whenever it
+    // is being asked for less, whether that is because the hand eased off or
+    // because it let go. So it always arrives at once and always passes slowly.
+    const rising = Math.abs(stir) > Math.abs(this.gust);
+    const tau = rising ? GUST.attack : GUST.release;
+    this.gust += (stir - this.gust) * (1 - Math.exp(-dtSec / tau));
+    if (Math.abs(this.gust) < 1e-3 && Math.abs(stir) < 1e-3) this.gust = 0;
+  }
+
+  /**
+   * A fall direction, as a unit vector — which is the shader's whole contract
+   * for it, so the one degenerate case is answered here rather than per pixel.
+   * It is reachable: a direction eased from one aim to its opposite passes
+   * through zero on the way, which a 180-degree flip of gravity is.
+   */
+  private sendAim(
+    gl: WebGL2RenderingContext,
+    loc: WebGLUniformLocation | null,
+    dir: Float32Array
+  ) {
+    const len = Math.hypot(dir[0], dir[1]);
+    if (len < 1e-4) gl.uniform2f(loc, 0, -1);
+    else gl.uniform2f(loc, dir[0] / len, dir[1] / len);
   }
 
   private draw(timeSec: number) {
@@ -621,7 +1046,12 @@ export class WallpaperRenderer {
     gl.uniform1f(this.locTime, timeSec);
     gl.uniform1f(this.locSeed, this.seed);
     gl.uniform1f(this.locCloudDrift, this.cloudDrift);
-    gl.uniform1f(this.locSnowDrift, this.snowDrift);
+    // Where each field is going, as a direction: the travels above carry the
+    // speed, so the shader only ever needs the aim.
+    this.sendAim(gl, this.locRainDown, this.rainDir);
+    gl.uniform1f(this.locRainFall, this.rainFall);
+    this.sendAim(gl, this.locSnowDown, this.snowDir);
+    gl.uniform2f(this.locSnowFall, this.snowFall[0], this.snowFall[1]);
     gl.uniform2f(this.locStrike, this.strikeX, this.strikeY);
     gl.uniform1f(this.locStrikeAge, this.strikeAge);
     gl.uniform1f(this.locStrikeSeed, this.strikeSeed);

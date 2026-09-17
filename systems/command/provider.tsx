@@ -93,7 +93,11 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Escape: load-bundle → back to search; otherwise close
+      // Escape: load-bundle → back to search; otherwise close.
+      // The branch is the desktop popover's: there the panel replaces the
+      // card's body in place, so there is no dialog to pop and the field's own
+      // Escape handler only fires while the field has focus. On a phone
+      // load-bundle is a nested sheet and Base UI's dialog pops it itself.
       if (e.key === "Escape" && isOpen) {
         if (isLoadBundleMode) {
           e.preventDefault();

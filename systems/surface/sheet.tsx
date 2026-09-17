@@ -37,7 +37,9 @@ import {
 //
 //   Snap points.  `snapPoints={[0.7, 1]}` opens the sheet at seven tenths of
 //   the screen and lets a drag carry it to the top — the iOS medium / large
-//   detents.
+//   detents. A sheet with a single short job instead of a list can skip them
+//   and take the height of what it holds (`fitContent`), the way iOS sizes a
+//   form sheet to its form.
 //
 //   Stacking.  A sheet opened over another one sends the one underneath back a
 //   step per sheet — smaller, dimmer, a little higher, inert — and brings it
@@ -323,6 +325,18 @@ export interface SurfaceSheetProps {
   /** Height without snap points. Default 80dvh. */
   height?: string;
   /**
+   * Take the height of the content instead of a height or detents: a sheet
+   * holding one short thing — a form, a confirmation — rather than a list, so
+   * there is no empty half. The content bounds its own scrolling area; the
+   * sheet never grows past the screen, and the keyboard pushes it up as it
+   * does any other sheet. Overrides `height`.
+   *
+   * It stands at no detent, so it takes no `level`: its top edge is wherever
+   * its content lands, and a sheet with detents stacked on it arrives at the
+   * first rather than level.
+   */
+  fitContent?: boolean;
+  /**
    * For a fixed-height sheet: the detent it stands level with, so a sheet
    * with detents stacked on it can arrive level too.
    */
@@ -360,6 +374,7 @@ export function SurfaceSheet({
   activeSnapPoint,
   onActiveSnapPointChange,
   height,
+  fitContent = false,
   level: levelProp,
   restoreFocus = true,
   onPullPastTop,
@@ -451,7 +466,19 @@ export function SurfaceSheet({
                         snapPoints[0]
                       )})`,
                     }
-                  : { bottom: BOTTOM_INSET, height: height ?? "80dvh" }),
+                  : {
+                      // No detents: the sheet rests the inset above the bottom
+                      // edge and is as tall as it was told, or as its content.
+                      bottom: BOTTOM_INSET,
+                      ...(fitContent
+                        ? {
+                            // Never taller than the screen: past that the shell
+                            // shrinks and the content's scroll area takes over.
+                            height: "auto",
+                            maxHeight: `calc(100dvh - ${TOP_INSET} - ${BOTTOM_INSET})`,
+                          }
+                        : { height: height ?? "80dvh" }),
+                    }),
               }}
               // The positioning box only, so nothing paints outside the shell.
               className="pointer-events-auto absolute inset-x-3 z-[61] flex flex-col bg-transparent outline-none"
@@ -471,7 +498,10 @@ export function SurfaceSheet({
                 style={{ "--surface-stack-depth": depth } as React.CSSProperties}
                 className={cn(
                   SHELL,
-                  "min-h-0 flex-1 origin-top",
+                  "min-h-0 origin-top",
+                  // A content-height sheet is `flex: 0 1 auto`: it measures
+                  // itself, and shrinks only when the max height bites.
+                  !fitContent && "flex-1",
                   // The dim on a receded sheet is a wash over the shell rather
                   // than an opacity, so the glass stays glass.
                   "after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:[transition-duration:var(--surface-duration)]",
@@ -490,7 +520,12 @@ export function SurfaceSheet({
                     drag still works anywhere — Base UI reads the scroll
                     containers for that. Transparent to layout so the content
                     keeps the shell's flex column. */}
-                <Drawer.Content className="flex min-h-0 flex-1 flex-col">
+                <Drawer.Content
+                  className={cn(
+                    "flex min-h-0 flex-col",
+                    !fitContent && "flex-1"
+                  )}
+                >
                   {children}
                 </Drawer.Content>
               </div>

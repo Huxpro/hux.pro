@@ -36,6 +36,10 @@ import { WeatherWallpaper } from "./wallpaper";
 // not the same find — so it is armed only while the shader is the one painting.
 // See lib/strike.ts for what counts as a click on the sky.
 //
+// The rain-and-snow egg — a drag stirs up a gust — is armed inside
+// <WeatherWallpaper /> instead, for the same reason one layer down: only the
+// Sky has particles for a wind to blow.
+//
 // An image wallpaper paints at FULL STRENGTH. On the home screen that is the
 // whole treatment: the picture is the content, sharp and untinted, with the
 // widgets floating on it. Reading pages recede it instead — a defocus inside
@@ -91,11 +95,14 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     kind,
     renderer,
     layers,
+    crossfadeMs,
+    skyThemeEaseMs,
     edgeMask,
     opacity,
     veil,
     blurred,
     bezel,
+    gyro,
     reportShaderFallback,
     statsRef,
   } = useWallpaper();
@@ -130,16 +137,27 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
       {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
       className={cn(
         "pointer-events-none fixed inset-0 -z-10",
-        "transition-opacity duration-700 ease-in-out"
+        "transition-opacity ease-in-out"
       )}
-      // With the bezel on, the layer stops inside it — see AmbientSurface.
-      style={{ opacity: enabled ? opacity : 0, ...(bezel ? BEZEL_INSET : null) }}
+      style={{
+        opacity: enabled ? opacity : 0,
+        // A wash weighs differently in the two themes (WALLPAPER_OPACITY), so
+        // this moves on a theme change too — at the crossfade's pace, which is
+        // the sun's slower one while the theme hands over.
+        transitionDuration: `${crossfadeMs}ms`,
+        ...(bezel ? BEZEL_INSET : null),
+      }}
     >
       {useShader ? (
         <WeatherWallpaper
           scene={scene}
           active={enabled}
+          themeEaseMs={skyThemeEaseMs}
+          gyro={gyro.active}
           edgeMask={edgeMask}
+          // This is the one sky a hand can reach: a drag across the page
+          // background stirs up a gust.
+          interactive
           onFallback={reportShaderFallback}
           statsRef={statsRef}
           strikeRef={strikeRef}
@@ -147,7 +165,12 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
       ) : (
         /* Full-page background is already viewport-fixed, so the edge mask is
            applied statically (no per-frame tracking needed). */
-        <GradientStack layers={layers} edgeMask={edgeMask} blurred={blurred} />
+        <GradientStack
+          layers={layers}
+          durationMs={crossfadeMs}
+          edgeMask={edgeMask}
+          blurred={blurred}
+        />
       )}
 
       {veil > 0 && (

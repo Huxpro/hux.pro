@@ -1,6 +1,6 @@
 # Ambient System
 
-The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon — offered in three styles: Sky, Gradient and Classic. On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg).
+The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon, and whose rain and snow fall along the device's own gravity — offered in three styles: Sky, Gradient and Classic. On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg), and while it is raining or snowing a drag across the background [stirs up a gust](#stirring-the-wind-rain-and-snow-easter-egg).
 
 It also owns the page background — the **wallpaper**. Weather is not a separate
 background feature; it is the one wallpaper that changes on its own. See
@@ -25,12 +25,14 @@ systems/ambient/
 │   └── index.ts                  # Component exports
 ├── lib/
 │   ├── weather.ts                # Open-Meteo integration + condition model
+│   ├── gyroscope.ts              # Screen-space gravity from `deviceorientation` + motion access
 │   ├── solar.ts                  # Sun elevation/azimuth, lunar ephemeris, moon phase
 │   ├── scene.ts                  # weather × sun × moon × theme → WeatherScene
 │   ├── gradient.ts               # WeatherScene → CSS gradient + crossfade types
 │   ├── wallpaper/
 │   │   ├── shader.ts             # GLSL: the full-screen procedural sky (CG)
 │   │   ├── renderer.ts           # WallpaperRenderer: uniform easing, adaptive quality
+│   │   ├── stir.ts               # Drag the background to stir up a gust of wind
 │   │   └── support.ts            # WebGL2 / reduced-motion / quality-profile detection
 │   ├── strike.ts                 # The thunder-day strike: timing + "is this the sky?"
 │   ├── greeting.ts               # Time-of-day helpers
@@ -185,13 +187,159 @@ The Sky engine (`WallpaperRenderer`):
   large gap between the target and where the disc has eased to is only lag, and
   snapping on that teleports the disc mid-drag;
 - accumulates cloud/snow **drift in JS** from the smoothed wind, so a wind change
-  glides instead of teleporting the sky;
+  glides instead of teleporting the sky — and the snow takes that wind *slowly*,
+  see [Stirring the wind](#stirring-the-wind-rain-and-snow-easter-egg);
+- lets a hand dragged across the page add to the wind, same section;
 - renders at a **pixel budget** (≈1.1 M px desktop, ≈0.5 M px phones) and backs
   off further when frames run long, recovering when they are cheap — the scene
   is soft, so CSS upscaling is invisible;
 - pauses when the tab is hidden, renders a single still frame under
   `prefers-reduced-motion`, and survives context loss;
 - fades the canvas in only after the first frame is painted (no black flash).
+
+### Gyroscope Tilt (Sky engine)
+
+Rain and snow fall along **gravity**, not along the bottom of the viewport:
+lean the phone and the streaks lean with it, turn it on its side and the snow
+crosses the page sideways. A raindrop re-aims in a moment, a flake over
+seconds, because a flake has a body and a raindrop barely does. Only the Sky
+has drops to lean, so this is a Sky feature; the Gradient and Classic styles
+ignore it.
+
+**It is the same vector the wind leans** — see [Wind does not shear the
+weather; it tilts the way it falls](#wind-does-not-shear-the-weather-it-tilts-the-way-it-falls),
+which is where the four uniforms, the ease and the spring all live. A tilt
+moves gravity, a wind adds a term across it, and the weather only ever sees the
+sum:
+
+```
+fall = g + perp(g) · lean
+```
+
+**The gyroscope is a second gravity, not a camera.** This sky is a world held
+inside the page: its zenith is the top of the viewport, its horizon the bottom,
+the sun and moon cross it where the ephemeris puts them, and the wind blows
+across it. Tilting the device does not turn any of that — it tells that world
+which way is down, and only the things that FALL answer.
+
+The other reading, where the device is a window and the view counter-rotates,
+is a different feature: if the view turns then the sky gradient, the sun, the
+moon, the stars, the clouds and the fog all have to turn with it, and it stops
+being about rain and snow at all. It would also leave nothing for the weight of
+a flake to mean, since gravity in a world seen through a turning window never
+moved.
+
+`lib/gyroscope.ts` turns a `deviceorientation` reading into one unit vector —
+where *down* is, in the page's frame:
+
+```
+g_device = (cos β · sin γ, −sin β, −cos β · cos γ)     // Earth-down, in device axes
+```
+
+Alpha (the compass heading) drops out, which is right: which way you face
+cannot change which way things fall. The first two components are the part
+lying in the screen plane, turned by `screen.orientation.angle` so a rotated
+layout still gets gravity down its own page, and blended back to upright when
+the screen is too flat to have a direction (a phone on a table).
+
+- **Not React state.** Readings arrive ~60×/s and nothing renders from them, so
+  they go from the sensor to `WallpaperRenderer.setGravity()` — one shared
+  `deviceorientation` listener, however many surfaces are drawing.
+
+#### Across gravity, not across the page
+
+A storm's wind is horizontal **in the world**, and horizontal means
+perpendicular to the way things fall — which is why the lean is laid along
+`perp(g)` and not along the page's own x. Turn the phone on its side and a real
+snowfall does not stop being laid over: the whole storm turns with you, every
+flake keeping its angle to gravity. Measured, that angle is invariant to
+**0.00°** across tilts of 0°, ±30°, 60°, 90° and −45°, for both fields and both
+signs of wind.
+
+Holding the wind along the page instead is the other reading, and it is the
+wrong one: at ninety degrees the wind would blow straight *down* the fall,
+speeding the rain up rather than leaning it — the measured lean collapses from
+14.7° to 0.0° as the phone turns — and that is nothing that happens outdoors.
+(An earlier draft did hold it across the page, of necessity rather than choice:
+while the wind was still a positional offset added to a flake's cell, a term
+that turned with gravity would have slid the whole field across the page as the
+snow came round. Once the wind became part of the travel that reason dissolved,
+and only the choice was left.)
+
+#### Each field re-aims at its own weight
+
+Against a 54° flick of the wrist, held:
+
+| | at 0.12 s | at 0.84 s | at 2 s | at 5 s |
+|---|---|---|---|---|
+| rain — ease, `RAIN_FALL_TAU` 0.08 s | **97 %** | 100 % | 100 % | 100 % |
+| snow — spring, `SNOW_FALL_OMEGA` 0.9 rad/s | 3 % | 21 % | 56 % | **94 %** |
+
+…and no overshoot anywhere: both arrive at 54° and stop.
+
+A raindrop at terminal velocity really does re-aim in a moment — it is small,
+fast and already all the way down — so only the fastest flick shows its lag at
+all. The snow's is not a slower ease but a **critically damped spring**, and
+the difference is what each does at the *start*: an ease leaves at full speed
+and decelerates, which reads as drag, while a spring leaves at rest and has to
+be accelerated, which reads as mass. Critical damping means no overshoot, and
+the integration is implicit, so no length of stalled frame can make it ring.
+
+**One ease and one spring, for the tilt and the wind alike.** A flake's body
+cannot know which of the two moved, and a sky where the same flakes came round
+at two rates depending on the cause would be a sky with two physics in it. The
+constants are the ones the snow's shipped answer to a *change of wind* was
+already worth, so a tilt costs the same seconds — slower than a tilt-only draft
+of this wanted, and right for the same reason.
+
+**The sensor's own noise is filtered at the sensor.** `SENSOR_TAU` (0.12 s) in
+`lib/gyroscope.ts` smooths the reading against the clock, not against a frame
+count, because events arrive at whatever rate the device feels like. That lag
+belongs to an accelerometer — one at rest on a table still wanders a degree or
+so — and not to a raindrop, which is why it is no longer folded into the rain's
+own easing.
+
+**The snow keeps its travel, not a clock.** `uSnowFall` accumulates in the
+renderer, and that is what lets the direction come round slowly without
+dragging the flakes that have already fallen along with it: each one carries on
+the way it was going and curves into the new down. (Max-blended frame stacks of
+a turn draw exactly that: paths vertical where the flake started, bending over
+as gravity takes hold.) The direction is normalised before it is accumulated,
+so a fall still coming round loses its aim but never its speed, and the vector
+wraps at an hour for the reason the shader clock does — past that, float32 has
+no fraction left to place a flake inside its cell with. It is **not**
+normalised before it is accumulated: a leaning fall really is a longer one
+(gravity plus wind is the hypotenuse), so the vector's length is the speed, and
+`uRainFall` carries the same for the rain.
+
+The rain needs none of that: its streaks are sampled in a frame aligned to
+`uRainDown` (`fallSpace()`, the one rotation in the shader, because a streak is
+a drop's motion blur and has to lie along its travel), and a drop lives a few
+tenths of a second and leaves no path behind it.
+
+**A flake's place never depends on where down is.** Only the travel and each
+flake's own flutter follow gravity; the cells, the rows and the long waft stay
+with the page, because anything positional that turned with gravity would slide
+the whole field about as the snow came round, which is the one thing a tilt
+must not look like. (The wind is no longer in that list — it left it when it
+stopped being an offset and became part of the travel.) Upright, every one of
+those lines is the line it replaced: the rendered frame is **bit-for-bit** the
+sky without a gyroscope, at every wind and intensity tested.
+
+- **Off under `prefers-reduced-motion`** — that sky is one still frame, so both
+  downs snap to the reading rather than animating toward it, and the snow's
+  travel is the clock the still frame always read, aimed where it is pulled.
+
+**Access.** Every browser with a sensor fires the event freely except WebKit,
+which gates it behind `DeviceOrientationEvent.requestPermission()` *and* a user
+gesture. So:
+
+| | Behaviour |
+|---|---|
+| Chrome / Firefox / Android | The saved wish (`weatherGyro`, **on** by default) is honoured on load; the sky tilts by itself. |
+| iOS / iPadOS | The wish waits for one tap — the **Tilt** row in the picker's Weather tab, or the devtool's Sky → Gyro row. Turning it on *is* the gesture that asks. |
+| Granted before | `weatherGyroGranted` records it, and access is re-taken silently on the next load. That record is the only reason `requestPermission()` is ever called without a gesture, so a visitor who has never answered is never prompted out of nowhere. |
+| No sensor (desktop) | `DeviceOrientationEvent` exists in every desktop browser and fires in none, so "on" is not "working": the provider watches for a first reading and the Tilt row says *no motion readings* rather than pretending. |
 
 ### Gradient Crossfade (Gradient engine)
 
@@ -258,6 +406,193 @@ Three things it will not do, all of them deliberate:
 To see it without waiting for a storm: force **Thunder** in the devtool's Sky
 module and click the page background.
 
+### Stirring the wind (rain-and-snow easter egg)
+
+**While it is raining or snowing, drag a hand across the page's background and
+you stir up a breeze.** Stop, or let go, and it dies away and the sky settles
+back.
+
+That is the whole of it: **a hand adds a term to the wind**. Everything the sky
+does with wind it already knew how to do, so there is no second physics to keep
+honest and nothing to hand back when a gesture ends.
+
+Air has mass, and that is the entire feel of it:
+
+| | |
+|---|---|
+| A hand that stops moving stops making wind | its stir goes stale within a breath, so resting a finger on the page does nothing |
+| A flick raises a puff, a long sweep raises a gust | the wind chases the stir over ~0.13 s, so a short gesture never quite reaches full strength |
+| Letting go needs no announcement | the stir simply stops arriving, and the wind passes over ~1.6 s |
+
+**It arrives all at once and then passes** — rise and fall differ by twelve
+times, which is the shape of the thing. Getting up and dying away at the same
+rate is what makes a gust read as a twitch. Measured: a 0.15 s **flick** peaks
+at **0.68** within 0.2 s and is still **0.44** a second later and **0.23** at
+two; a 0.45 s **swipe** reaches **0.96**; a long sweep saturates at **1.0** and,
+from the moment the hand lifts, passes through 0.67 at one second, 0.35 at two
+and is gone by six.
+
+The choice of constant is made on *rising or falling*, not on stirring-or-not:
+the gust takes the fast one whenever it is asked for more wind than it has —
+including a hand that reverses and whips it the other way — and the slow one
+whenever it is asked for less, whether because the hand eased off or because it
+let go.
+
+`GUST.max` is 1.1 — above the top of the forecast's own range (50 km/h ⇒ 1.0) on
+purpose, because a gust is not a wind and is allowed to be briefly harder than
+any weather the sky is showing.
+
+#### Wind does not shear the weather; it tilts the way it falls
+
+This is the part worth reading twice, because it is the whole model.
+
+A drop at terminal velocity is a balance: gravity pulling down, drag pushing
+back along its travel. Put a crosswind on it and it settles into a new balance
+almost at once and falls along the **sum** of the two — the same speed through
+the air, aimed somewhere else. So a wind is not a distortion applied to falling
+weather. It is a change to **which way down is**, for the things that fall, and
+every visible consequence follows from that one vector.
+
+Which is also the model [the gyroscope](#gyroscope-tilt-sky-engine) wants, and
+deliberately so. **The two are one expression**, and the weather only ever sees
+the sum:
+
+```
+fall = g + perp(g) · lean
+```
+
+`g` is the unit gravity in page space — `(0, −1)` for a screen lying flat or
+held upright, the sensor's reading otherwise — and `perp(g)` is gravity turned
+a quarter turn, which is screen-right when `g` is screen-down. A tilt moves
+`g`; a wind sets `lean`; both arrive through the same four uniforms:
+
+| Uniform | What it is |
+|---|---|
+| `uRainDown` | The direction the rain travels. A streak *is* a drop's motion blur, so it has to lie along the travel: the rain is sampled in a frame aligned to this — the one rotation in the shader. |
+| `uRainFall` | How far the rain has fallen, in seconds of its own travel. A tilted fall is a longer one, so a gust quickens the rain as well as leaning it. |
+| `uSnowDown` | The same direction for the snow, which is a far flatter angle at the same wind. The flutter is measured across it, so a flake's wobble stands up the way it is going. |
+| `uSnowFall` | How far the snow has travelled and along what, as a vector of seconds — and the wind's whole sideways effect on the snow, because a flake blown sideways and a flake falling are the same flake. |
+
+**Rotating rather than shearing is the point.** A shear stretches a drop as it
+leans it, so past a breeze the streaks stop reading as rain and start reading as
+brushwork — and the harder the gust, the worse the smear. That is what made a
+hard gust read as a whip-crack rather than as air, and no choice of pivot fixes
+it; a rotation leans a drop without ever touching its shape.
+
+**Keeping the travel rather than multiplying a clock by a direction** is what
+lets the snow's direction come round slowly without dragging the flakes that
+have already fallen along with it: each one carries on the way it was going and
+curves into the new one. A page that slides sideways is exactly what a gust must
+not look like.
+
+Nothing answers at the same speed, and that is the rest of the feel:
+
+| | How it is re-aimed | Why |
+|---|---|---|
+| **Rain** | an **ease**, 0.08 s (`RAIN_FALL_TAU`) | A drop is small, fast and already all the way down, so it really is at the new angle within a blink. What is left for the ease to do is keep a slammed gust from cracking: the curtain's far corner sweeps under a screen height a second, against the 1.5–2.5 the rain is falling at. |
+| **Snow** | a critically damped **spring**, ω = 0.9 rad/s (`SNOW_FALL_OMEGA`) | Not just a slower ease. An ease leaves at full speed and decelerates, which reads as drag; a spring leaves at **rest** and has to be accelerated, which reads as **mass**. At critical damping there is no overshoot, so the snow never swings past the new direction and back. |
+| **Clouds** | never, from a hand | You cannot stir a cloud deck by waving at it. They answer the forecast only. |
+
+Measured against one 0.5 s swipe into a calm sky: the gust peaks at **0.57** at
+0.48 s, the rain's lean peaks **with it** at 22° off vertical, and the snow's
+goes on rising to 29° at **2.6 s** — long after the air has fallen to a quarter
+of its peak — then comes home with no overshoot, still leaning at 6 s and gone
+by twelve. That gap is the weight.
+
+One consequence worth naming: **the snow's lean is now the same at every depth
+for free.** Both halves of a layer's travel are that layer's own fall speed
+times the same vector, so the angle cannot depend on the layer — where before it
+took two depth ramps, hand-tuned to span the same 3×, to arrange it.
+
+Three pieces, one per layer:
+
+| Piece | Job |
+|-------|-----|
+| `lib/wallpaper/stir.ts` | Recognises the gesture and reports the hand's horizontal speed in CSS px/s. |
+| `WallpaperRenderer` ("Stirring up a gust", "Where the weather falls") | The air: how a stir goes stale, how the gust rises and falls, and how each field's fall is re-aimed by it. |
+| `shader.ts` | Draws it — every wind reaches the weather through the four uniforms above and through nothing else. |
+
+What it deliberately does **not** do:
+
+- **Nothing is `preventDefault`ed and no style is touched.** Every listener is
+  passive, so scrolling, tapping, long-pressing and selecting text behave
+  exactly as they would without it.
+- **Only the horizontal component counts.** Wind here is horizontal, and a hand
+  swiped straight down does not make a sideways breeze — which also means an
+  ordinary vertical scroll leaves the weather alone.
+- **It does not invent a second idea of "the sky".** What counts as background
+  is [`isBackgroundClick`](#the-strike-thunder-day-easter-egg) from
+  `lib/strike.ts`, the same question the strike asks, so the two easter eggs can
+  never disagree — and `data-no-strike` keeps both of them off.
+- **It uses touch events, not pointer events.** A touch drag that turns into a
+  scroll fires `pointercancel` and stops sending `pointermove`, which would cut
+  the gesture off exactly where it is most fun.
+- **It is off** under `prefers-reduced-motion`, off for the Gradient/Classic
+  styles (no particles to blow), off in the wallpaper picker's preview tile, and
+  off whenever the sky is dry.
+
+### The wind's sign
+
+Every horizontal quantity in the Sky is screen-space, and **positive goes
+right**: `wind.x`, the gust a hand stirs up, and the accumulated `uCloudDrift`
+and `uSnowFall` travels. `scene.ts` maps the met wind onto that — a westerly (from
+270°) blows toward the geographic east, which is screen-*left* in the northern
+hemisphere and mirrors in the south — and the shader follows it.
+
+It was not always so. Until the gust landed, the shader read `uWind.x` with the
+**opposite** sign in all three places that consume it: the rain's slant, the
+snow's drift and the cloud advection. They agreed with each other, so the sky
+was self-consistent and nothing ever looked broken — the measured wind simply
+blew the whole sky backwards with respect to the compass, which no one can see
+without a compass. Adding a gust, whose direction the visitor's own hand
+supplies, is what made it visible.
+
+One thing to keep in mind when reading the shader: the travels are
+**subtracted** where they are used, because sampling a procedural field further
+right is what walks it left. That negation is the convention being honoured, not
+broken.
+
+#### A constant is not a wind
+
+The snow's sideways travel used to carry a constant — `snowWind * 0.6 + 0.03` — meant as a
+whisper of travel so flakes never fell dead straight in still air. But a
+constant added to a wind is a wind that always blows one way: it adds to a wind
+going with it and eats one going against. The flakes leant **2.3× further right
+than left** at the same wind strength, and under about 2.5 km/h of crosswind the
+constant won outright and the snow leant *the opposite way to the rain in the
+same sky*. It is gone; the flakes have their own wander (the waft and the slow
+beat in `snow()`), and wind → drift is now odd-symmetric to three decimal places
+at every strength.
+
+The snow's wind also **starts at the scene's**, not at zero. Easing up from
+nothing would mean the first ten seconds of a page had snow falling as if it
+were calm while the rain beside it already leant into the forecast.
+
+#### Speed is only half of a wind
+
+The devtool's Sky module has **two** wind rows, `Wind` and `From`, and it needs
+both. `wind.x` works out to `speed × sin(from) × hemisphere`: the screen looks
+south, so a wind along that axis has no horizontal component at all and **no
+amount of it leans the rain or drifts the snow** — at a due-southerly forecast
+the speed slider moves `wind.x` from 0.000 to 0.000 at every setting, and only
+the clouds change pace. A speed you can set and a direction you cannot is a
+control that can look broken while working exactly as written, so
+`SceneOverrides.windDirectionDeg` exists too.
+
+**The `From` track runs 270° → 450°**, west through north to east, rather than
+0° → 359°. A full turn is not monotonic in anything you can see — it goes calm,
+right, calm, left, calm, so the direction you drag bears no relation to the
+direction the rain leans. Over this half it is monotonic the whole way: drag
+left and the rain leans left, drag right and it leans right, and the middle is
+the one bearing with no crosswind in it. The readout carries the arrow, so the
+answer is on the row: `270° W ←` … `0° N ·` … `90° E →`.
+
+Nothing is lost by covering half the compass. The sky only ever shows a wind's
+east–west component, and `sin(180° − d) === sin(d)`, so every southerly bearing
+paints exactly what its northerly mirror does — which is also how a forecast
+bearing outside the track is placed on it, by folding onto the one that blows
+the same way.
+
 ### Phase Notification
 
 A heads-up that the ambient phase is about to change to sunrise/sunset. It is a
@@ -270,6 +605,92 @@ A heads-up that the ambient phase is about to change to sunrise/sunset. It is a
 Visibility (`lib/notification.ts`): from ~90 min before the event through the end
 of its ±45 min window, then it hands off to the gradient + greeting. A forced
 sunrise/sunset phase from the devtool also surfaces it for testing.
+
+### The theme follows the sun
+
+The app's theme follows the day: Light while the sun is up, Dark once it is
+down. On by default (`themeFollowsSun` in the ambient settings), turned off in
+the wallpaper picker's Weather group, in the command palette (`/s`), or in the
+devtool's Sky module.
+
+**At the sun's own crossing — the middle of the long animation, not its end.**
+Sunrise and sunset are ±45 min windows here and the sky spends all of both
+moving; the moment it moves fastest is the middle. A theme change is a cut
+however gently it is painted, and a cut lands softest inside motion: at the end
+of the window the sky has settled again, and the same cut stands out against
+it.
+
+```
+dark ─────┬──── sunrise ────┬───── light ─────┬──── sunset ────┬───── dark
+      rise-45      ▲     rise+45          set-45      ▲     set+45
+                   └ here                             └ here
+```
+
+`solarThemeAt()` (`lib/solar-theme.ts`) is therefore the plain rule — light
+between sunrise and sunset, dark outside, null when the sun times are unknown
+(and then nothing switches). Everything about *how* it changes hands is in
+`SOLAR_HANDOVER`.
+
+**The handover puts the cut in the middle of a short animation too**, so it has
+motion on both sides of it. The timeline is `SOLAR_HANDOVER` in
+`lib/solar-theme.ts` and the numbers live only there:
+
+```
+0           the sky starts moving to the new theme — the wallpaper stack
+            crossfades over `skyMs` instead of its usual 0.7s, and the Sky's
+            shader is put on the same clock by `setThemeEase`.
+chromeAtMs  halfway through, the chrome changes: one commit, inside a view
+            transition, so the page crossfades as a single composited image —
+            the same 200ms a route change uses.
+skyMs       the sky settles, and the notice lands.
+```
+
+`wallpaperTheme` is what makes the lead possible: the scene, the wash's weight,
+a picture's half and the profile of what is painting all read it, while
+everything that belongs to the chrome — the page ground, the bezel, the ink
+ladder — reads `chromeTheme`, which is what the provider calls the theme the
+app is actually in. The lead runs for exactly the sky's animation and outlives
+the switch in its middle; a theme the user picks while it is running calls the
+whole thing off, sky included: theirs wins.
+
+The greeting is not part of this. It follows the phase, which changes at the
+window's *ends*, three quarters of an hour either side of the switch — far
+enough that the two never read as one event that failed to line up.
+
+The chrome's half is deliberately **not** a transition per element. That was an
+earlier cut of this, and it cost ~1.2s of style recalculation for a 1s dissolve
+— a page this size has ~1000 elements and their colours are `color-mix()` over
+custom properties, so every frame re-ran the document's style. The composited
+crossfade is ~60ms of capture for the same effect, and where it is unavailable
+(Firefox, `prefers-reduced-motion`) the chrome simply changes, which is what the
+rest of the app does when the user picks a theme.
+
+Three more rules make it a system gesture rather than a setting changing behind
+the user's back:
+
+1. **Only a crossing watched live.** `<SolarThemeSync />` remembers which side
+   of the day it last saw and acts when that changes *while it is mounted*.
+   Arriving after dark does nothing; sitting on the page through dusk does.
+   That is what "in the same session" means — the sun may interrupt you, it may
+   not greet you.
+2. **A session override, never the preference.** It sets the theme service's
+   `override` (`services/theme.tsx`), which lives in sessionStorage: a reload in
+   the same tab keeps the theme the sun set — unless the sun has moved on since,
+   in which case the stale override is dropped on the way back in — and closing
+   the tab forgets it. The saved Appearance preference never moves, and any
+   explicit choice (the palette's Appearance command, a toggle) ends the
+   override. Turning the setting off takes an active override with it.
+3. **It says so.** Once the handover has settled, the small pill in the
+   bottom-center toast slot — the one the language switch uses — names the mode
+   and says the preference is unchanged. By then the change has already
+   dissolved in over two seconds, so there is nothing to confirm and nothing to
+   undo in a hurry; the way to turn it off is where settings live.
+
+Because the rule reads the ambient clock, **devtool time travel crosses it
+too**: playing the day in the Sky module crosses sunrise and sunset for real,
+and the theme changes there exactly as it would on the real clock — or does
+not, if the setting is off. The Sky module carries the toggle beside that
+timeline for the same reason.
 
 ## Wallpaper
 
@@ -318,9 +739,11 @@ Talks widget uses for albums (`WALLPAPER_CATEGORIES` in `lib/wallpaper.ts`).
   realtime styles, Preset on Classic. Where WebGL2 is missing the Sky tile shows the Gradient with a note,
   which is also what choosing it would paint.
 - **Apple** — the default macOS, iPadOS and iOS wallpapers as light/dark pairs,
-  the artwork each release is recognised by. Twelve pairs: macOS Tahoe,
-  Sequoia, Sonoma, Ventura, Monterey and Big Sur; iPadOS 18 in its four
-  colourways (Violet, Indigo, Blue, Teal); iOS 14 and 13.
+  the artwork each release is recognised by. Seventeen pairs: macOS Golden
+  Gate, Tahoe, Sequoia, Sonoma, Ventura, Monterey, Big Sur, Catalina and
+  Mojave; iPadOS 26 and iPadOS 18 in its four colourways (Violet, Indigo,
+  Blue, Teal); iOS 15, 14 and 13. Every pair ships a @1x cover beside the
+  full @2x (or native) file when the source is larger than 1×.
 - **Nature** — the 19 Mac OS X Nature desktop pictures (Aurora, Zebra, Zen
   Garden, …), taken from ryOS. One photograph each, so both theme halves are
   the same file (`isSingleImage()`), and the picker shows it unsplit. Clown
@@ -334,46 +757,62 @@ The **iOS** pairs are phone artwork, so the picker caption marks them with a
 phone glyph — the tiles are all the same 16:10 card and could not otherwise
 show it. `isPhoneWallpaper()` derives it from the platform rather than storing
 a flag. Apple ships these stills on a square canvas and lets the device crop
-(iOS 14 is 3072², iOS 13 3186² at source); nothing here was cropped.
+(iOS 14 is 3072², iOS 15 2916², iOS 13 3208² at source); nothing here was cropped.
 
 #### Resolution
 
 Every wallpaper paints `cover`, so the rule is about the stretch on a real
-screen, not megapixels: **a file must cover a 2560×1600 viewport with at most a
-1.07× stretch**, and is downscaled to the smallest size that still covers it.
-Each tile prints the committed file's pixels under its name.
+screen, not megapixels: **a full-size file is the smallest cover of a 2560×1600
+viewport at 2× (5120×3200 device pixels), never upscaled past the source.** A
+matching `@1x` cover (`.1x.webp`) ships beside it whenever that is smaller, so a
+1× display does not download the retina file. Sources that cannot cover 2×
+(most Nature stills are 2560×1600 at source) keep a single file. Each tile
+prints the committed full file's pixels under its name.
 
-| | File | Stretch | |
+| | Full file | @1x | Stretch at 1× |
 |---|---|---|---|
-| macOS Tahoe … Ventura | 2560×2560 | 1.00× | kept |
-| iPadOS 18 | 2560×1779 | 1.00× | kept |
-| Monterey, Big Sur, iOS 14, iOS 13 | 2400×2400 | 1.07× | kept |
-| iOS 17 | 2048×2048 | 1.25× | removed |
-| iOS 18 | 1480×3192 | 1.73× | removed |
-| iOS 27 | 1320×2868 | 1.94× | removed |
-| Nature | 2560×1600 (Earth & Moon 2844×1600) plus 1280×800 and 1920×1200 cover renditions | 1.00× | added |
+| macOS Golden Gate | 4480×3088 | 2560×1765 | 1.00× |
+| macOS Tahoe … Big Sur, Catalina | 5120×5120 | 2560×2560 | 1.00× |
+| macOS Mojave, Earth & Moon | 5120×2880 | 2844×1600 | 1.00× |
+| iPadOS 26 landscape | 2752×2064 | 2560×1920 | 1.00× |
+| iPadOS 18 | 3840×2668 | 2560×1779 | 1.00× |
+| iOS 15 / 14 / 13 | 2916² / 3072² / 3208² | 2560×2560 | 1.00× |
+| Mt. Fuji | 3200×2000 | 2560×1600 | 1.00× |
+| Nature (the rest) | 2560×1600 | — (same file) | 1.00× |
+| iOS 17 | 2048×2048 | | 1.25× — removed |
+| iOS 18 / 27, portrait iPadOS 26 | too tall/narrow | | omitted |
 
-The landscape Nature photographs stretch about 1.64× on a portrait phone; most
-of the set tops out at 2560×1600 at source.
+The landscape Nature photographs still stretch about 1.64× on a 3× portrait
+phone; the source is 1600px tall and we never upscale.
 
 ryOS serves each photograph as one original JPEG (Aurora is 1.3MB, Snowy Hills
-2.3MB) plus a picker thumb — it does not keep per-screen-size files. We still
-encode three cover renditions so a phone does not download the desktop file,
-and we encode them at WebP q95 with 4:4:4 chroma (q90 only when a file would
-exceed 1.8MB — Zen Garden's raked sand). The previous q75 4:2:0 pass crushed
-smooth skies: Aurora was 43KB of banding against a 1.3MB original.
-`pickWallpaperSrc()` chooses the smallest rendition that covers the current
-viewport × DPR; a 2× portrait phone still needs the full file, because 1600px
-is the covering axis.
+2.3MB) plus a picker thumb, and paints a 24px blur-up while the JPEG decodes.
+We encode `@1x` / `@2x` covers so a 1× display does not download a 5K file, at
+WebP q95 with 4:4:4 chroma (q90 only when a file would exceed ~1.8MB per
+2560×1600 megapixel — Zen Garden's raked sand). `pickWallpaperSrc()` chooses
+the smallest rendition that covers the current viewport × DPR. The desktop
+paints the 480px picker thumb immediately and fades the chosen file in over it
+once it has decoded — the same blur-up, using a thumb we already ship.
 
-Release pairs are WebP q80. Photographs get a 480px thumbnail for the picker.
-The byte budgets differ by kind: a pair past 120KB means something went wrong,
-while a photograph of raked sand is detail all the way down, so photographs
-get 2.5MB. Provenance for every file — source URL, and HEIC frame index where a
-pair came out of one file — lives in `public/wallpapers/sources.json`.
+Release pairs are WebP q80. Photographs — Nature, and the Catalina / Mojave
+pairs — use the photo pipeline. The byte budgets differ by kind: a graphic pair
+past 2MB at 2× means something went wrong (Big Sur dark is a grainy illustration
+around 1.2MB), while a photograph of raked sand is
+detail all the way down, so photographs get 8MB at 2×. Provenance for every
+file lives in `public/wallpapers/sources.json`.
+
+High-resolution originals were collected from wallpapers.poutanen.dev (macOS 6K
+graphics Tahoe–Big Sur, iOS 13 3208², iOS 14 3072²), 4kwallpapers.com (Golden
+Gate native 4480×3088 — the 6016×4147 "6K" files are a uniform upscale of that
+pair and are not used — Catalina 6016×6016, Mojave 5120×2880, iOS 15 2916×2916),
+static.applewalls.com (iPadOS 26 landscape), LAYTAT/macOS-Wallpapers and
+Deeeee-macOS-Wallpapers (`/System/Desktop Pictures` dumps), with 512pixels.net
+6K files skipped as hand-upscales. Portrait iPhone lock-screens never cover
+2560×1600.
 
 ```bash
-pnpm wallpapers:encode  # fetch Nature JPEGs from sources.json and rebuild WebP renditions
+pnpm wallpapers:encode              # fetch sources.json and rebuild WebP @1x/@2x
+pnpm wallpapers:encode golden-gate  # rebuild one release pair marked `"encode"` in sources.json
 pnpm wallpapers:check   # every file present, sharp enough, sized as declared, within budget
 pnpm wallpapers:profile # measure every wallpaper for the legibility system (commit the table)
 ```
@@ -567,6 +1006,8 @@ const {
   shaderSupported,        // WebGL2 probe result
   reportShaderFallback,   // <WeatherWallpaper /> → provider on a WebGL failure
   statsRef,               // Live renderer stats for the devtool
+  gyro,                   // { enabled, access, active, readings, gated, denied, supported }
+  setGyroEnabled,         // The wish — and, from a tap, WebKit's motion grant
   wallpaper,              // The selected pair
   wallpapers,             // The whole catalog
   selectWallpaper,        // Selects AND switches kind to "image"
@@ -615,6 +1056,20 @@ const {
 } = useAmbientTime();
 ```
 
+### useSolarTheme
+
+```typescript
+const {
+  followSun,           // The setting — on by default, saved with the ambient settings
+  setFollowSun,
+  sunTheme,            // "light" | "dark" at the effective clock, or null when unknown
+  beginThemeHandover,  // Stage the next theme change (slow sky, then chrome)
+} = useSolarTheme();
+```
+
+The provider only says what the sun implies; `<SolarThemeSync />` (mounted in
+the root layout) is what watches it cross and applies it.
+
 ## Data Flow
 
 ```
@@ -648,7 +1103,8 @@ scene.
 The sun-event phase runs alongside this and never touches the background:
 
 ```
-phase → AmbientPhaseActivity → Dock Live Activity
+phase    → AmbientPhaseActivity → Dock Live Activity
+sunTheme → SolarThemeSync       → theme override (this session) + notice
 ```
 
 ## Caching

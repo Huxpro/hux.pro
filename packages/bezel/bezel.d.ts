@@ -78,6 +78,14 @@ export interface BezelProps {
   /** The chrome colour while the bezel is off — the page's ground. Live. */
   ground: string;
   /**
+   * Whether a chrome colour change is morphed onto the screen for a chrome
+   * that samples the page. Default `true`. Set it `false` where the platform
+   * does not need it — a chrome that follows `theme-color`, or none at all —
+   * and the colour is set without the morph. It is 880ms of bands at the
+   * viewport edges, and on a window nobody is sampling they are just bands.
+   */
+  chromeMorph?: boolean;
+  /**
    * Layers painted behind the page and inside the bezel: a background, a
    * wallpaper. Give them `style={BEZEL_INSET}` and `BEZEL_LAYER_ATTRIBUTE`.
    */
@@ -142,6 +150,12 @@ export interface ChromeSyncOptions {
   band?: number;
   /** The inner corner radius showing now, px. Default 0. */
   radius?: number;
+  /**
+   * Morph the bezel so a chrome that samples the page can see the colour.
+   * Default `true`. `false` sets `theme-color` and stops there, which is all a
+   * chrome that follows it — or no chrome at all — ever needed.
+   */
+  morph?: boolean;
 }
 
 /**
@@ -154,7 +168,8 @@ export interface ChromeSyncOptions {
  * while Safari samples it, then eases back to `band` and is removed. A band
  * already that thick does not move. `theme-color` is set too, for iOS 18.
  * `<Bezel>` calls it whenever its chrome colour changes; call it yourself only
- * for a change `<Bezel>` cannot see.
+ * for a change `<Bezel>` cannot see. Pass `morph: false` where the platform
+ * does not need the trick: `theme-color` is still set, and nothing is drawn.
  */
 export declare function syncChrome(color: string, options?: ChromeSyncOptions): void;
 

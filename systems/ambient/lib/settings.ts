@@ -46,6 +46,28 @@ export interface AmbientSettings {
   bezelBand: number | null;
   /** Inner corner radius, px. `null` is `DEFAULT_BEZEL_RADIUS`. The same for every kind. */
   bezelRadius: number | null;
+  /**
+   * At sunrise and sunset, the app theme follows the sun — Light while the sun
+   * is up, Dark once it is down. It only ever switches on a crossing the
+   * session watched happen, and it never writes the Appearance preference: the
+   * switch is a session override (see services/theme.tsx). On by default; this
+   * is the flag that turns it off.
+   */
+  themeFollowsSun: boolean;
+  /**
+   * Rain and snow fall along the device's gyroscope rather than straight down
+   * the page (Sky only — see lib/gyroscope.ts). On by default: where the
+   * browser hands over motion freely it just works, and where it does not
+   * this is the wish waiting for the one tap that grants it.
+   */
+  weatherGyro: boolean;
+  /**
+   * WebKit only: motion access has been granted on this origin before, so it
+   * can be re-taken silently on the next load. Without this record nothing
+   * asks unprompted, and a visitor who has never answered is never prompted
+   * out of nowhere.
+   */
+  weatherGyroGranted: boolean;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
   wallpaperReadingBlur: boolean;
   /** Veil the wallpaper on reading pages. */
@@ -64,10 +86,13 @@ export function getDefaultSettings(): AmbientSettings {
     wallpaperPlacement: "full",
     wallpaperKind: "weather",
     weatherStyle: "sky",
+    weatherGyro: true,
+    weatherGyroGranted: false,
     wallpaperId: DEFAULT_WALLPAPER_ID,
     bezelTint: DEFAULT_BEZEL_TINT,
     bezelBand: null,
     bezelRadius: null,
+    themeFollowsSun: true,
     wallpaperReadingBlur: true,
     wallpaperReadingDim: true,
   };
@@ -118,6 +143,8 @@ export function getAmbientSettings(): AmbientSettings {
       wallpaperKind:
         parsed.wallpaperKind === "image" ? "image" : defaults.wallpaperKind,
       weatherStyle: readWeatherStyle(parsed.weatherStyle),
+      weatherGyro: parsed.weatherGyro !== false,
+      weatherGyroGranted: parsed.weatherGyroGranted === true,
       wallpaperId,
       // `wallpaperLetterbox*` were these fields' names before the bezel was
       // its own package.
@@ -129,6 +156,8 @@ export function getAmbientSettings(): AmbientSettings {
         parsed.bezelRadius ?? parsed.wallpaperLetterboxRadius,
         clampBezelRadius
       ),
+      // Default on: only an explicit false turns the sun off.
+      themeFollowsSun: parsed.themeFollowsSun !== false,
       wallpaperReadingBlur: parsed.wallpaperReadingBlur !== false,
       wallpaperReadingDim: parsed.wallpaperReadingDim !== false,
     };

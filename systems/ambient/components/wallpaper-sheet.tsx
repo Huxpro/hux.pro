@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  Segmented,
+  type SegmentedOption,
+} from "@/components/ui/controls";
 import { cn } from "@/lib/utils";
 import { t, useLocale, type TranslationKey } from "@/services";
 import { AlbumTabs } from "@/systems/theater";
@@ -27,7 +31,7 @@ import {
   type WallpaperCategory,
   type WeatherStyle,
 } from "../lib/wallpaper";
-import { useAmbientTime, useWallpaper, useWeather } from "../provider";
+import { useAmbientTime, useSolarTheme, useWallpaper, useWeather } from "../provider";
 import { WeatherWallpaper } from "./wallpaper";
 
 // ---------------------------------------------------------------------------
@@ -73,7 +77,7 @@ function CompactRow<T extends string>({
 }: {
   label: string;
   value: T;
-  options: { value: T; label: string }[];
+  options: SegmentedOption<T>[];
   onChange: (value: T) => void;
 }) {
   return (
@@ -81,24 +85,7 @@ function CompactRow<T extends string>({
       <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
-      <div className="flex shrink-0 overflow-hidden rounded-md border border-border/60">
-        {options.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            onClick={() => onChange(o.value)}
-            aria-pressed={value === o.value}
-            className={cn(
-              "px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
-              value === o.value
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent/30 hover:text-foreground"
-            )}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
+      <Segmented tone="system" value={value} options={options} onChange={onChange} />
     </div>
   );
 }
@@ -330,7 +317,7 @@ function WeatherStyleTile({
   selected: boolean;
 }) {
   const { locale } = useLocale();
-  const { selectWeather, shaderSupported } = useWallpaper();
+  const { selectWeather, shaderSupported, gyro } = useWallpaper();
   const { scene } = useWeather();
   const { phase } = useAmbientTime();
 
@@ -357,6 +344,9 @@ function WeatherStyleTile({
             <WeatherWallpaper
               scene={scene}
               active
+              // The tile tilts too, so the Tilt row below has its preview
+              // right above it: lean the phone in the rain and watch it lean.
+              gyro={gyro.active}
               quality={{ pixelBudget: 90_000, maxFps: 30 }}
               className="rounded-[18px]"
             />
@@ -376,6 +366,46 @@ function WeatherStyleTile({
         </button>
       </TileFrame>
       <TileCaption name={name} meta={meta} />
+    </div>
+  );
+}
+
+/**
+ * Tilt — the one control the weather tiles need under them.
+ *
+ * The Sky's rain and snow fall along gravity rather than down the page, which
+ * is a thing the *device* can do, not a thing the wallpaper is. Where the
+ * browser hands motion over freely it is already on and this row only says
+ * so; on iOS it is the tap that grants it, which is why it is here in the
+ * picker and not only in the devtool. It shows the effective state rather
+ * than the saved wish — the switch answers "is the sky tilting", so turning
+ * it on is what asks for permission — and it is only shown when the Sky is
+ * what paints, because it is the only style with drops to lean.
+ */
+function WeatherTiltRow() {
+  const { locale } = useLocale();
+  const { gyro, setGyroEnabled } = useWallpaper();
+  if (!gyro.supported) return null;
+
+  let note: TranslationKey = "wallpaperTiltNote";
+  if (gyro.denied) note = "wallpaperTiltDenied";
+  else if (gyro.enabled && gyro.gated) note = "wallpaperTiltAsk";
+  else if (gyro.active && gyro.readings === "silent") note = "wallpaperTiltSilent";
+
+  return (
+    <div className="space-y-1.5 pt-5">
+      <CompactRow<"on" | "off">
+        label={t(locale, "wallpaperTilt")}
+        value={gyro.active ? "on" : "off"}
+        options={[
+          { value: "on", label: t(locale, "stateOn") },
+          { value: "off", label: t(locale, "stateOff") },
+        ]}
+        onChange={(value) => setGyroEnabled(value === "on")}
+      />
+      <p className="px-0.5 text-[11px] leading-snug text-tertiary-foreground">
+        {t(locale, note)}
+      </p>
     </div>
   );
 }
@@ -418,11 +448,13 @@ function WallpaperPickerBody() {
   const {
     kind,
     weatherStyle,
+    effectiveStyle,
     wallpapers,
     wallpaper: active,
     placement,
     setPlacement,
   } = useWallpaper();
+  const { followSun, setFollowSun } = useSolarTheme();
   const isImage = kind === "image";
   const { isWindow } = useSurfaceContext();
   const columns = isWindow ? 3 : 2;
@@ -486,6 +518,27 @@ function WallpaperPickerBody() {
           />
         ))}
       </div>
+
+      {/* Sunrise and sunset move the theme, not the wallpaper — but they are
+          the weather system's own events, so this is where they are turned
+          off. One row, the same shape as Placement. */}
+      {category === "weather" && (
+        <div className="space-y-2 pt-5">
+          <CompactRow<"on" | "off">
+            label={t(locale, "settingsSolarTheme")}
+            value={followSun ? "on" : "off"}
+            options={[
+              { value: "on", label: t(locale, "stateOn") },
+              { value: "off", label: t(locale, "stateOff") },
+            ]}
+            onChange={(value) => setFollowSun(value === "on")}
+          />
+          <p className="px-0.5 text-[11px] leading-snug text-tertiary-foreground">
+            {t(locale, "solarThemeHint")}
+          </p>
+        </div>
+      )}
+      {category === "weather" && effectiveStyle === "sky" && <WeatherTiltRow />}
 
       {category !== "weather" && (
         <p className="px-0.5 pt-5 text-[11px] leading-snug text-tertiary-foreground">

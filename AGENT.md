@@ -12,6 +12,7 @@
 | **Design System** | [docs/design-system.md](./docs/design-system.md) (Typography, colors) |
 | **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
 | **Secondary Surfaces** | [docs/system-surface.md](./docs/system-surface.md) (sheet / panel / window, per viewport) |
+| **Dock / Live Activities** | [docs/system-dock.md](./docs/system-dock.md) (top-anchored drawer, pill ⇄ panel) |
 | **Glass** | [docs/system-glass.md](./docs/system-glass.md) (Clear / Tinted material, reading surfaces) |
 | **Legibility** | [docs/system-legibility.md](./docs/system-legibility.md) (Ink-at-alpha tokens, wallpaper profiles, relief, tint, the `/editor/legibility` lab) |
 | **Ambient / Wallpaper** | [docs/system-ambient.md](./docs/system-ambient.md) (Weather + Apple wallpaper pairs, `pnpm wallpapers:encode` / `pnpm wallpapers:check` / `pnpm wallpapers:profile`) |
@@ -61,11 +62,14 @@ duration-300 (morphing transitions)
 1.  **Check the Docs**: If modifying UI, check `design-system.md` for token usage.
 2.  **Respect the Vibe**: Maintain the "Dual Aesthetic" (Prose vs System).
 3.  **Keyboard First**: Ensure new features are accessible via Command Palette.
-4.  **Sheets are Base UI Drawer**: before touching `systems/surface/sheet.tsx`
-    or the surface motion block in `globals.css`, read the "BEFORE CHANGING
-    THIS FILE" list at the top of `sheet.tsx` and Base UI's Drawer docs. The
-    library's data attributes and CSS variables are a contract with meanings
-    its types do not carry; every one of the listed items was a shipped bug.
+4.  **Sheets are Base UI Drawer**: before touching `systems/surface/sheet.tsx`,
+    `systems/dock/components/live-activity.tsx`, or the surface / dock motion
+    blocks in `globals.css`, read the "BEFORE CHANGING THIS FILE" list at the
+    top of each file and Base UI's Drawer docs. The library's data attributes
+    and CSS variables are a contract with meanings its types do not carry;
+    every one of the listed items was a shipped bug. The Live Activity panel is
+    the same drawer travelling `up` — three things differ in that direction and
+    are listed in `live-activity.tsx`.
 
 ## 3. Common Tasks
 
@@ -109,8 +113,10 @@ of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
   devtool's Scroll row overrides it for the session.
 - **Everything is live.** Safari does not re-read the root background for its
   chrome after load; `syncChrome` in the package shows it each change by
-  morphing a fixed bezel to 8px and back. Do not write the bezel colour,
-  `data-bezel` or the scroll mode anywhere else.
+  morphing a fixed bezel to 8px and back. That morph is iOS-only — the surface
+  passes `chromeMorph`, and everywhere else the colour is set on `theme-color`
+  with nothing drawn. Do not write the bezel colour, `data-bezel` or the scroll
+  mode anywhere else.
 - **Page scroll** goes through the package (`pageScrollTop`, `onPageScroll`,
   `scrollPageTo`, `usePageScroll`, …), never `window.scrollY`: with the bezel on
   an iPhone the page scrolls in a container.
