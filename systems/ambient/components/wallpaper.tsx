@@ -8,6 +8,7 @@ import {
   WallpaperRenderer,
   type WallpaperStats,
 } from "../lib/wallpaper/renderer";
+import { attachWindStir } from "../lib/wallpaper/stir";
 import { getWallpaperQualityProfile } from "../lib/wallpaper/support";
 
 // ---------------------------------------------------------------------------
@@ -17,6 +18,11 @@ import { getWallpaperQualityProfile } from "../lib/wallpaper/support";
 // the renderer every new scene, starts/stops it with `active`, and fades the
 // canvas in once the first frame has actually been painted (a WebGL canvas is
 // black until then). Everything visual lives in the renderer + shader.
+//
+// It also arms the easter egg only the Sky can answer: while it is raining or
+// snowing, `interactive` lets a hand dragged across the page background stir up
+// a gust (lib/wallpaper/stir.ts). The thunder-day strike, which both engines
+// answer, is wired one level up in <WallpaperBackground /> instead.
 // ---------------------------------------------------------------------------
 
 interface WeatherWallpaperProps {
@@ -25,6 +31,12 @@ interface WeatherWallpaperProps {
   active: boolean;
   /** Optional CSS mask (iOS soft-edging). */
   edgeMask?: string | null;
+  /**
+   * Let a drag across the page background stir up a gust — the easter egg. For
+   * the full-page sky only; a preview tile is a picture of a sky, not one you
+   * can put your hand into.
+   */
+  interactive?: boolean;
   className?: string;
   /** WebGL unavailable or lost — the parent should swap to the CSS renderer. */
   onFallback?: (reason: string) => void;
@@ -52,6 +64,7 @@ export function WeatherWallpaper({
   scene,
   active,
   edgeMask,
+  interactive = false,
   className,
   onFallback,
   statsRef,
@@ -112,6 +125,15 @@ export function WeatherWallpaper({
     if (active) renderer.start();
     else renderer.stop();
   }, [active]);
+
+  // The easter egg exists only when there is something falling for the wind to
+  // blow — and never under reduced motion, where the sky is one still frame.
+  const precipitating =
+    scene.precipitation.type !== "none" && scene.precipitation.intensity > 0.02;
+  useEffect(() => {
+    if (!interactive || !precipitating || reducedMotion) return;
+    return attachWindStir({ onStir: (vx) => rendererRef.current?.stirWind(vx) });
+  }, [interactive, precipitating, reducedMotion]);
 
   const style: React.CSSProperties = {};
   if (edgeMask) {

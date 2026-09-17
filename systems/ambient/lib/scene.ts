@@ -258,6 +258,13 @@ export interface SceneOverrides {
   cloudCover?: number;
   precipitationIntensity?: number;
   windSpeedKmh?: number;
+  /**
+   * Where the wind blows FROM, in met degrees. Speed alone says nothing about
+   * what the sky does: the screen looks south, so a wind along that axis has no
+   * horizontal component at all and no amount of it leans the rain. A devtool
+   * that can set a speed and not a direction can therefore look broken.
+   */
+  windDirectionDeg?: number;
   /** Override the veil amount (0..1). */
   veilAmount?: number;
 }
@@ -458,7 +465,8 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   // --- Wind -------------------------------------------------------------
   const windKmh = ov.windSpeedKmh ?? weather?.windSpeedKmh ?? 8;
   const windSpeed = clamp01(windKmh / 50);
-  const windTo = ((weather?.windDirectionDeg ?? 270) + 180) % 360;
+  const windFrom = ov.windDirectionDeg ?? weather?.windDirectionDeg ?? 270;
+  const windTo = (windFrom + 180) % 360;
   const windX = -Math.sin(windTo * (Math.PI / 180)) * hemisphere * windSpeed;
   const wind = { x: windX, y: 0 };
 

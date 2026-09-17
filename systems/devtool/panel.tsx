@@ -1453,6 +1453,45 @@ const MOON_NAME: Record<"en" | "zh", Record<MoonPhaseName, string>> = {
 };
 
 
+const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
+
+/** The eight-point name for a met wind direction, for the devtool's readout. */
+function compassPoint(deg: number): string {
+  return COMPASS[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
+}
+
+/**
+ * Where the wind-direction slider starts, and why it is not at 0°.
+ *
+ * `wind.x` is `sin(from) × hemisphere × speed`, so a track running 0 → 359
+ * goes calm → right → calm → left → calm: both ends dead, and the direction
+ * you drag bears no relation to the direction the rain leans. The track runs
+ * **270° → 450°** instead — west, through north, to east — which is monotonic
+ * the whole way: drag left and the rain leans left, drag right and it leans
+ * right, and the middle is the one bearing that has no crosswind in it.
+ *
+ * Nothing is lost by covering half the compass. The sky only ever shows a
+ * wind's east–west component (the screen looks south; the north–south part
+ * blows along the view axis), and `sin(180° − d) === sin(d)`, so every
+ * southerly bearing paints exactly what its northerly mirror does.
+ */
+const WIND_TRACK_MIN = 270;
+const WIND_TRACK_MAX = 450;
+
+/** Fold any bearing onto the one inside the track that blows the same way. */
+function toWindTrack(deg: number): number {
+  let d = ((Math.round(deg) % 360) + 360) % 360;
+  if (d > 90 && d <= 270) d = 180 - d;
+  else if (d > 270) d -= 360;
+  return d + 360;
+}
+
+/** Which way a bearing pushes the rain, for the readout. */
+function leanArrow(deg: number, hemisphere: 1 | -1): string {
+  const x = Math.sin((deg * Math.PI) / 180) * hemisphere;
+  return x > 0.02 ? "→" : x < -0.02 ? "←" : "·";
+}
+
 /** Minutes in a day — the scrub's range, and one loop of Play. */
 const DAY_MINUTES = 1440;
 
@@ -1625,13 +1664,17 @@ function SkyModule() {
     setSceneOverrides(next);
   };
 
-  // The four tweakable numbers: slider value ↔ scene value, one row each.
+  // The tweakable numbers: slider value ↔ scene value, one row each. Wind is
+  // two of them on purpose — a speed with no direction is a number that can
+  // look like it does nothing, because a wind along the view axis has no
+  // horizontal component and never leans the rain however hard it blows.
   const percent = (v: number) => `${v}%`;
   const tune: {
     key: keyof typeof sceneOverrides;
     label: string;
     aria: string;
     value: number;
+    min?: number;
     max: number;
     format: (v: number) => string;
     toScene: (v: number) => number;
@@ -1639,6 +1682,7 @@ function SkyModule() {
     { key: "cloudCover", label: zh ? "云量" : "Cloud", aria: "Cloud", value: Math.round(scene.clouds.cover * 100), max: 100, format: percent, toScene: (v) => v / 100 },
     { key: "precipitationIntensity", label: zh ? "降水" : "Precip", aria: "Precip", value: Math.round(scene.precipitation.intensity * 100), max: 100, format: percent, toScene: (v) => v / 100 },
     { key: "windSpeedKmh", label: zh ? "风速" : "Wind", aria: "Wind", value: Math.round(sceneOverrides.windSpeedKmh ?? weather?.windSpeedKmh ?? 8), max: 60, format: (v) => `${v} km/h`, toScene: (v) => v },
+    { key: "windDirectionDeg", label: zh ? "风向" : "From", aria: "Wind direction", value: toWindTrack(sceneOverrides.windDirectionDeg ?? weather?.windDirectionDeg ?? 270), min: WIND_TRACK_MIN, max: WIND_TRACK_MAX, format: (v) => `${((v % 360) + 360) % 360}° ${compassPoint(v)} ${leanArrow(v, scene.hemisphere)}`, toScene: (v) => ((v % 360) + 360) % 360 },
     { key: "veilAmount", label: zh ? "遮罩" : "Veil", aria: "Veil", value: Math.round(scene.veil.amount * 100), max: 90, format: percent, toScene: (v) => v / 100 },
   ];
 
@@ -1978,7 +2022,7 @@ function SkyModule() {
                   label={row.label}
                   ariaLabel={row.aria}
                   value={row.value}
-                  min={0}
+                  min={row.min ?? 0}
                   max={row.max}
                   step={1}
                   format={row.format}

@@ -31,6 +31,7 @@ systems/ambient/
 │   ├── wallpaper/
 │   │   ├── shader.ts             # GLSL: the full-screen procedural sky (CG)
 │   │   ├── renderer.ts           # WallpaperRenderer: uniform easing, adaptive quality
+│   │   ├── stir.ts               # Drag the background to stir up a gust of wind
 │   │   └── support.ts            # WebGL2 / reduced-motion / quality-profile detection
 │   ├── strike.ts                 # The thunder-day strike: timing + "is this the sky?"
 │   ├── greeting.ts               # Time-of-day helpers
@@ -185,7 +186,9 @@ The Sky engine (`WallpaperRenderer`):
   large gap between the target and where the disc has eased to is only lag, and
   snapping on that teleports the disc mid-drag;
 - accumulates cloud/snow **drift in JS** from the smoothed wind, so a wind change
-  glides instead of teleporting the sky;
+  glides instead of teleporting the sky — and the snow takes that wind *slowly*,
+  see [Stirring the wind](#stirring-the-wind-rain-and-snow-easter-egg);
+- lets a hand dragged across the page add to the wind, same section;
 - renders at a **pixel budget** (≈1.1 M px desktop, ≈0.5 M px phones) and backs
   off further when frames run long, recovering when they are cheap — the scene
   is soft, so CSS upscaling is invisible;
@@ -257,6 +260,184 @@ Three things it will not do, all of them deliberate:
 
 To see it without waiting for a storm: force **Thunder** in the devtool's Sky
 module and click the page background.
+
+### Stirring the wind (rain-and-snow easter egg)
+
+**While it is raining or snowing, drag a hand across the page's background and
+you stir up a breeze.** Stop, or let go, and it dies away and the sky settles
+back.
+
+That is the whole of it: **a hand adds a term to the wind**. Everything the sky
+does with wind it already knew how to do, so there is no second physics to keep
+honest and nothing to hand back when a gesture ends.
+
+Air has mass, and that is the entire feel of it:
+
+| | |
+|---|---|
+| A hand that stops moving stops making wind | its stir goes stale within a breath, so resting a finger on the page does nothing |
+| A flick raises a puff, a long sweep raises a gust | the wind chases the stir over ~0.13 s, so a short gesture never quite reaches full strength |
+| Letting go needs no announcement | the stir simply stops arriving, and the wind passes over ~1.6 s |
+
+**It arrives all at once and then passes** — rise and fall differ by twelve
+times, which is the shape of the thing. Getting up and dying away at the same
+rate is what makes a gust read as a twitch. Measured: a 0.15 s **flick** peaks
+at **0.68** within 0.2 s and is still **0.44** a second later and **0.23** at
+two; a 0.45 s **swipe** reaches **0.96**; a long sweep saturates at **1.0** and,
+from the moment the hand lifts, passes through 0.67 at one second, 0.35 at two
+and is gone by six.
+
+The choice of constant is made on *rising or falling*, not on stirring-or-not:
+the gust takes the fast one whenever it is asked for more wind than it has —
+including a hand that reverses and whips it the other way — and the slow one
+whenever it is asked for less, whether because the hand eased off or because it
+let go.
+
+`GUST.max` is 1.1 — above the top of the forecast's own range (50 km/h ⇒ 1.0) on
+purpose, because a gust is not a wind and is allowed to be briefly harder than
+any weather the sky is showing.
+
+#### Wind does not shear the weather; it tilts the way it falls
+
+This is the part worth reading twice, because it is the whole model.
+
+A drop at terminal velocity is a balance: gravity pulling down, drag pushing
+back along its travel. Put a crosswind on it and it settles into a new balance
+almost at once and falls along the **sum** of the two — the same speed through
+the air, aimed somewhere else. So a wind is not a distortion applied to falling
+weather. It is a change to **which way down is**, for the things that fall, and
+every visible consequence follows from that one vector.
+
+Which is also the model [the gyroscope](https://github.com/Huxpro/hux.pro/pull/158)
+wants, and deliberately so: a tilt moves gravity, a wind adds a sideways term,
+and both arrive through the same four uniforms.
+
+| Uniform | What it is |
+|---|---|
+| `uRainDown` | The direction the rain travels. A streak *is* a drop's motion blur, so it has to lie along the travel: the rain is sampled in a frame aligned to this — the one rotation in the shader. |
+| `uRainFall` | How far the rain has fallen, in seconds of its own travel. A tilted fall is a longer one, so a gust quickens the rain as well as leaning it. |
+| `uSnowDown` | The same direction for the snow, which is a far flatter angle at the same wind. The flutter is measured across it, so a flake's wobble stands up the way it is going. |
+| `uSnowFall` | How far the snow has travelled and along what, as a vector of seconds — and the wind's whole sideways effect on the snow, because a flake blown sideways and a flake falling are the same flake. |
+
+**Rotating rather than shearing is the point.** A shear stretches a drop as it
+leans it, so past a breeze the streaks stop reading as rain and start reading as
+brushwork — and the harder the gust, the worse the smear. That is what made a
+hard gust read as a whip-crack rather than as air, and no choice of pivot fixes
+it; a rotation leans a drop without ever touching its shape.
+
+**Keeping the travel rather than multiplying a clock by a direction** is what
+lets the snow's direction come round slowly without dragging the flakes that
+have already fallen along with it: each one carries on the way it was going and
+curves into the new one. A page that slides sideways is exactly what a gust must
+not look like.
+
+Nothing answers at the same speed, and that is the rest of the feel:
+
+| | How it is re-aimed | Why |
+|---|---|---|
+| **Rain** | an **ease**, 0.08 s (`RAIN_FALL_TAU`) | A drop is small, fast and already all the way down, so it really is at the new angle within a blink. What is left for the ease to do is keep a slammed gust from cracking: the curtain's far corner sweeps under a screen height a second, against the 1.5–2.5 the rain is falling at. |
+| **Snow** | a critically damped **spring**, ω = 0.9 rad/s (`SNOW_FALL_OMEGA`) | Not just a slower ease. An ease leaves at full speed and decelerates, which reads as drag; a spring leaves at **rest** and has to be accelerated, which reads as **mass**. At critical damping there is no overshoot, so the snow never swings past the new direction and back. |
+| **Clouds** | never, from a hand | You cannot stir a cloud deck by waving at it. They answer the forecast only. |
+
+Measured against one 0.5 s swipe into a calm sky: the gust peaks at **0.57** at
+0.48 s, the rain's lean peaks **with it** at 22° off vertical, and the snow's
+goes on rising to 29° at **2.6 s** — long after the air has fallen to a quarter
+of its peak — then comes home with no overshoot, still leaning at 6 s and gone
+by twelve. That gap is the weight.
+
+One consequence worth naming: **the snow's lean is now the same at every depth
+for free.** Both halves of a layer's travel are that layer's own fall speed
+times the same vector, so the angle cannot depend on the layer — where before it
+took two depth ramps, hand-tuned to span the same 3×, to arrange it.
+
+Three pieces, one per layer:
+
+| Piece | Job |
+|-------|-----|
+| `lib/wallpaper/stir.ts` | Recognises the gesture and reports the hand's horizontal speed in CSS px/s. |
+| `WallpaperRenderer` ("Stirring up a gust", "Where the weather falls") | The air: how a stir goes stale, how the gust rises and falls, and how each field's fall is re-aimed by it. |
+| `shader.ts` | Draws it — every wind reaches the weather through the four uniforms above and through nothing else. |
+
+What it deliberately does **not** do:
+
+- **Nothing is `preventDefault`ed and no style is touched.** Every listener is
+  passive, so scrolling, tapping, long-pressing and selecting text behave
+  exactly as they would without it.
+- **Only the horizontal component counts.** Wind here is horizontal, and a hand
+  swiped straight down does not make a sideways breeze — which also means an
+  ordinary vertical scroll leaves the weather alone.
+- **It does not invent a second idea of "the sky".** What counts as background
+  is [`isBackgroundClick`](#the-strike-thunder-day-easter-egg) from
+  `lib/strike.ts`, the same question the strike asks, so the two easter eggs can
+  never disagree — and `data-no-strike` keeps both of them off.
+- **It uses touch events, not pointer events.** A touch drag that turns into a
+  scroll fires `pointercancel` and stops sending `pointermove`, which would cut
+  the gesture off exactly where it is most fun.
+- **It is off** under `prefers-reduced-motion`, off for the Gradient/Classic
+  styles (no particles to blow), off in the wallpaper picker's preview tile, and
+  off whenever the sky is dry.
+
+### The wind's sign
+
+Every horizontal quantity in the Sky is screen-space, and **positive goes
+right**: `wind.x`, the gust a hand stirs up, and the accumulated `uCloudDrift`
+and `uSnowFall` travels. `scene.ts` maps the met wind onto that — a westerly (from
+270°) blows toward the geographic east, which is screen-*left* in the northern
+hemisphere and mirrors in the south — and the shader follows it.
+
+It was not always so. Until the gust landed, the shader read `uWind.x` with the
+**opposite** sign in all three places that consume it: the rain's slant, the
+snow's drift and the cloud advection. They agreed with each other, so the sky
+was self-consistent and nothing ever looked broken — the measured wind simply
+blew the whole sky backwards with respect to the compass, which no one can see
+without a compass. Adding a gust, whose direction the visitor's own hand
+supplies, is what made it visible.
+
+One thing to keep in mind when reading the shader: the travels are
+**subtracted** where they are used, because sampling a procedural field further
+right is what walks it left. That negation is the convention being honoured, not
+broken.
+
+#### A constant is not a wind
+
+The snow's sideways travel used to carry a constant — `snowWind * 0.6 + 0.03` — meant as a
+whisper of travel so flakes never fell dead straight in still air. But a
+constant added to a wind is a wind that always blows one way: it adds to a wind
+going with it and eats one going against. The flakes leant **2.3× further right
+than left** at the same wind strength, and under about 2.5 km/h of crosswind the
+constant won outright and the snow leant *the opposite way to the rain in the
+same sky*. It is gone; the flakes have their own wander (the waft and the slow
+beat in `snow()`), and wind → drift is now odd-symmetric to three decimal places
+at every strength.
+
+The snow's wind also **starts at the scene's**, not at zero. Easing up from
+nothing would mean the first ten seconds of a page had snow falling as if it
+were calm while the rain beside it already leant into the forecast.
+
+#### Speed is only half of a wind
+
+The devtool's Sky module has **two** wind rows, `Wind` and `From`, and it needs
+both. `wind.x` works out to `speed × sin(from) × hemisphere`: the screen looks
+south, so a wind along that axis has no horizontal component at all and **no
+amount of it leans the rain or drifts the snow** — at a due-southerly forecast
+the speed slider moves `wind.x` from 0.000 to 0.000 at every setting, and only
+the clouds change pace. A speed you can set and a direction you cannot is a
+control that can look broken while working exactly as written, so
+`SceneOverrides.windDirectionDeg` exists too.
+
+**The `From` track runs 270° → 450°**, west through north to east, rather than
+0° → 359°. A full turn is not monotonic in anything you can see — it goes calm,
+right, calm, left, calm, so the direction you drag bears no relation to the
+direction the rain leans. Over this half it is monotonic the whole way: drag
+left and the rain leans left, drag right and it leans right, and the middle is
+the one bearing with no crosswind in it. The readout carries the arrow, so the
+answer is on the row: `270° W ←` … `0° N ·` … `90° E →`.
+
+Nothing is lost by covering half the compass. The sky only ever shows a wind's
+east–west component, and `sin(180° − d) === sin(d)`, so every southerly bearing
+paints exactly what its northerly mirror does — which is also how a forecast
+bearing outside the track is placed on it, by folding onto the one that blows
+the same way.
 
 ### Phase Notification
 
