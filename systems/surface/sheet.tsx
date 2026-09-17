@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Drawer } from "@base-ui/react/drawer";
 import { BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
 import {
@@ -136,6 +136,27 @@ export function detentHeight(point: number): string {
   return point >= 1
     ? `calc(100dvh - ${TOP_INSET} - ${EDGE_GAP})`
     : `calc(${detentLength(point)} - ${EDGE_GAP})`;
+}
+
+/**
+ * The gesture, published by the thing that owns it.
+ *
+ * A handle that tracked the gesture itself had to guess when it ended, and a
+ * guess that is wrong leaves it stuck in a shape the sheet left long ago (see
+ * window-grip.tsx for what that looked like). The sheet cannot get that wrong:
+ * the press is Base UI's own `data-swiping` on the popup — the attribute that
+ * drives the surface's motion — and "moving" is the surface having actually
+ * travelled, latched for the rest of the gesture so it cannot flicker when the
+ * sheet lands on a detent mid-drag and reports no travel again.
+ */
+const SheetGestureContext = createContext(false);
+
+/**
+ * Whether the sheet around this is *moving* under a finger — the press has
+ * become a drag. For a handle that changes shape while the surface travels.
+ */
+export function useSheetDragging(): boolean {
+  return useContext(SheetGestureContext);
 }
 
 /** An icon button in a surface header: close, back, an external link. */
@@ -332,11 +353,67 @@ export function SurfaceSheet({
   // painted frame at the bottom edge is all it needs: this marks it from the
   // render that opens the sheet (not an effect, which would paint it in place
   // first) and lets go on the next frame, and the sheet travels up from there.
+  // The popup, once it exists, and whether a finger is on it. Base UI sets and
+  // clears `data-swiping` as part of driving the sheet, so this is the same
+  // truth the surface moves on — two updates a gesture, nothing polled.
+  const [popupEl, setPopupEl] = useState<HTMLDivElement | null>(null);
+  const [held, setHeld] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  useEffect(() => {
+    if (!popupEl) return;
+    const observer = new MutationObserver(() =>
+      setHeld(
+        popupEl.hasAttribute("data-swiping") &&
+          // A sheet with a sheet over it is not the one being held, whatever
+          // the attribute still says.
+          !popupEl.hasAttribute("data-nested-drawer-open"),
+      ),
+    );
+    observer.observe(popupEl, {
+      attributes: true,
+      attributeFilter: ["data-swiping", "data-nested-drawer-open"],
+    });
+    return () => observer.disconnect();
+  }, [popupEl]);
+
+  // Then: has it moved? Base UI writes the live drag inline on the popup, so
+  // this reads a declaration rather than a computed style — no layout, no
+  // style recalculation — and it stops at the first pixel of travel. A latch,
+  // not a reading: the travel returns to zero every time the sheet lands on a
+  // detent mid-gesture, and a handle that came and went with it would flicker
+  // under the finger.
+  useEffect(() => {
+    if (!held || !popupEl) return;
+    let raf = 0;
+    const look = () => {
+      const y = Number.parseFloat(
+        popupEl.style.getPropertyValue("--drawer-swipe-movement-y"),
+      );
+      if (Math.abs(y || 0) > 1) {
+        setDragging(true);
+        return;
+      }
+      raf = requestAnimationFrame(look);
+    };
+    raf = requestAnimationFrame(look);
+    return () => cancelAnimationFrame(raf);
+  }, [held, popupEl]);
+
+  const [wasHeld, setWasHeld] = useState(held);
+  if (wasHeld !== held) {
+    setWasHeld(held);
+    if (!held && dragging) setDragging(false);
+  }
+
   const [arriving, setArriving] = useState(open && !!keepMounted);
   const [wasOpen, setWasOpen] = useState(open);
   if (wasOpen !== open) {
     setWasOpen(open);
     if (open && keepMounted) setArriving(true);
+    // A kept-mounted sheet keeps its DOM, and would keep a half-finished
+    // gesture with it.
+    if (held) setHeld(false);
+    if (dragging) setDragging(false);
   }
   useEffect(() => {
     if (!arriving) return;
@@ -356,7 +433,9 @@ export function SurfaceSheet({
 
   /** Where the active detent puts the sheet, before anything has been measured. */
   const snapFallback = hasSnapPoints
-    ? `max(0px, calc(100dvh - ${TOP_INSET} - ${(typeof snap === "number" ? snap : snapPoints[0]) * 100}dvh))`
+    ? `max(0px, calc(100dvh - ${TOP_INSET} - ${detentLength(
+        typeof snap === "number" ? snap : snapPoints[0],
+      )}))`
     : "0px";
 
   // Arrive level with the sheet beneath, when it stands at one of ours.
@@ -399,6 +478,7 @@ export function SurfaceSheet({
         <Drawer.Portal keepMounted={keepMounted}>
           <SurfaceViewport modal={modal}>
             <Drawer.Popup
+              ref={setPopupEl}
               finalFocus={restoreFocus ? undefined : false}
               data-surface-popup=""
               data-surface-snap={hasSnapPoints ? "" : undefined}
@@ -434,6 +514,7 @@ export function SurfaceSheet({
               className="pointer-events-auto absolute inset-x-3 z-[61] flex flex-col bg-transparent outline-none"
             >
               {label && <Drawer.Title className="sr-only">{label}</Drawer.Title>}
+              <SheetGestureContext.Provider value={dragging}>
               <div
                 data-surface-shell
                 data-behind={behind ? "" : undefined}
@@ -486,6 +567,7 @@ export function SurfaceSheet({
                   {children}
                 </Drawer.Content>
               </div>
+              </SheetGestureContext.Provider>
             </Drawer.Popup>
           </SurfaceViewport>
         </Drawer.Portal>

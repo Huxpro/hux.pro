@@ -156,8 +156,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
     (app: AppLink) => {
       const z = nextZ();
       setWindows((prev) => {
-        const existing = prev.find((w) => w.id === app.id);
-        if (existing) {
+        if (prev.some((w) => w.id === app.id)) {
           return soloOnPhone(
             prev.map((w) =>
               w.id === app.id
@@ -170,21 +169,16 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
         const preset = app.size ?? defaultPreset(app.runtime);
         const rect = placeWindow(openCountRef.current, getViewport(), preset);
         openCountRef.current += 1;
-        return soloOnPhone(
-          [
-            ...prev,
-            {
-            id: app.id,
-            app,
-            rect,
-            mode: "normal",
-            sizePreset: preset,
-            z,
-            generation: 0,
-          },
-          ],
-          app.id,
-        );
+        const opened: WindowInstance = {
+          id: app.id,
+          app,
+          rect,
+          mode: "normal",
+          sizePreset: preset,
+          z,
+          generation: 0,
+        };
+        return soloOnPhone([...prev, opened], app.id);
       });
     },
     [nextZ],

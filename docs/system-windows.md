@@ -198,45 +198,41 @@ handle. Its form at every moment says what a touch will do.
 
 | State | Form | What it says |
 |-------|------|--------------|
-| `idle` | three dim dots on nothing at all | a target: tap for the menu — and a window |
-| `pressed` | the pill lights into glass, dots at full ink | got you, the same way a dragged desktop window wakes up |
-| `dragging` | the middle dot **stretches into** the site's 36×4 grabber as the other two collapse into it | you are moving a sheet |
-| Released | the bar contracts and the three dots come back out of it | |
+| At rest | three dim dots on nothing at all | a target: tap for the menu — and a window |
+| Moving the sheet | the pill lights into glass and the middle dot **stretches into** the site's 36×4 grabber as the other two fold into it | you are moving a sheet |
+| Let go | the bar contracts and the three dots come back out of it | |
 | Receded | dimmed with the shell behind the menu | not yours right now |
 
-One object changing shape, not two crossfading. A bar fading in over dots
-fading out blinks at both ends and is neither thing halfway; here the middle
-dot *is* the bar, so the hand-off reverses cleanly and has no midpoint to get
-wrong. The dots' box is a fixed 36px either way, so the pill itself never
-changes size. It is 64×26, with a hit area of 88×42 — a thumb target.
+One object changing shape, not two crossfading, and nothing ever fades: the
+outer dots only narrow, so there is never a moment with nothing in the pill.
+The dots' box is a fixed 36px either way, so the pill itself never changes
+size. It is 64×26, with a hit area of 88×42 — a thumb target.
 
-The phase is latched by the press and set from **the finger's own movement**,
-read on `document` in the capture phase. Asking the *surface* how far it has
-travelled instead (an earlier attempt) is a different question and a worse one:
-a sheet with detents stands still until the swipe is recognised and zeroes its
-travel every time it lands on one, so the pill flickered under the finger and
-the promotion lagged 40px behind it.
+**The grip does not decide when.** Whether the sheet is being dragged is the
+*sheet's* answer — `useSheetDragging()`, published by `SurfaceSheet` from Base
+UI's own `data-swiping` on the popup plus the surface having actually
+travelled, latched for the rest of the gesture. A tap therefore never sees a
+handle however long it lingers (nothing moved), a drag has one from the first
+pixel of travel, and landing on a detent mid-drag cannot flicker it (the latch).
 
-**A press is ours to read; an end is not.** Base UI captures the pointer for
-everything except touch, and once it has, the release can fail to reach the
-page at all — no pointerup, no pointercancel, no lostpointercapture, at any
-phase, on window, document or the popup, not even for a listener installed
-before the app itself. (Base UI can miss it too and leave its own
-`data-swiping` set.) A phase with one way out is a phase that sticks, and a
-stuck one here is a window with no dots: the handle stayed until the next
-press, and `keepMounted` carried it into the next time the app opened — which
-is exactly what "the dots keep disappearing" was. So the gesture ends on
-whichever comes first:
+That is the third design, and the first two are worth remembering:
 
-- our own `pointerup` / `pointercancel`, or a move that reports no button down;
-- the popup's `data-swiping` clearing;
-- the pointer capture being lost;
-- a watchdog: a surface that has stopped moving under a finger that has stopped
-  moving, for 450ms, is a gesture that is over. It only puts the pill back — the
-  listeners stay, so a gesture that turns out to still be going picks the handle
-  straight back up;
-- and the sheet being put away or brought back, since a kept-mounted sheet would
-  otherwise carry a half-finished gesture across.
+1. *Proportional to the live travel.* A sheet with detents zeroes its reported
+   travel every time it lands on one, so the pill flickered under the finger.
+2. *A phase machine in the grip.* It had to know when the gesture ended, and it
+   cannot: Base UI captures the pointer for everything except touch, and the
+   release can then reach nothing at all — no pointerup, no pointercancel, no
+   lostpointercapture, on window, document or the popup, not even for a
+   listener installed before the app. The phase stuck, the pill stayed a
+   handle, and `keepMounted` carried that into the next time the app opened.
+   Five ways out did not fix it; owning less did.
+
+The one thing that must be the grip's is the tap, and it is the one thing that
+can be lost harmlessly — no menu opens, nothing sticks, the next tap works. It
+**opens the menu on a timeout, not inside the release**: the grip listens in
+the capture phase, ahead of Base UI, and flushing a nested drawer into the
+middle of the sheet's own gesture bookkeeping left it mid-gesture for good —
+the sheet stayed "held", so the pill stayed a handle with the dots gone.
 
 The dots themselves are shared with the desktop pill (`window-pill.tsx`), so
 the two can't drift; on a grip they are an indicator rather than three targets

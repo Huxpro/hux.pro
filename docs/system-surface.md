@@ -207,6 +207,13 @@ never starts a swipe from a `<button>` (or `a`, `input`, `label`,
 so no further move, up or click arrives. Items 7 and 8 of the list at the top
 of `sheet.tsx`.
 
+**The gesture.** `useSheetDragging()` says whether the sheet around it is being
+dragged — the press, from Base UI's `data-swiping` on the popup, plus the
+surface having actually moved, latched until the gesture ends. It lives here
+because the popup lives here: a handle that tracked the gesture itself had to
+guess when it ended, and a wrong guess leaves it stuck in a shape the sheet has
+long left (the story is in `systems/windows/components/window-grip.tsx`).
+
 **Content, not a handle.** Everything below the grabber is wrapped in
 `Drawer.Content`. Without it a *mouse* press anywhere in a sheet starts a swipe,
 the drawer takes the pointer, and the click never reaches the row that was

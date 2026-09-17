@@ -3,7 +3,7 @@
 import { appTitle } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
-import { SURFACE_TRANSITION_MS, SurfaceSheet } from "@/systems/surface";
+import { SHEET_DETENTS, SURFACE_TRANSITION_MS, SurfaceSheet } from "@/systems/surface";
 import { usePresence } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { DOCK_BAND, getViewport } from "../lib/geometry";
@@ -46,8 +46,12 @@ import { WindowMenuSheet } from "./window-menu";
 /** Where the sheet rests: the page, the dock band, the top. */
 type Level = "page" | "dock" | "top";
 
-/** Seven tenths — far enough down to see the page behind the window. */
-const PAGE_DETENT = 0.7;
+/**
+ * The site's own pair — seven tenths (far enough down to see the page behind
+ * the window) and the top — with the window's own middle detent between them.
+ * Shared, because a sheet stacked on this one arrives level by matching values.
+ */
+const [PAGE_DETENT, TOP_DETENT] = SHEET_DETENTS;
 
 /**
  * The detent whose top edge lands where a desktop window's does: below the
@@ -74,10 +78,22 @@ export function WindowSheet({ win }: { win: WindowInstance }) {
   const id = `window-${win.id}`;
 
   // The dock detent is a fraction of a viewport that can change under it.
+  // Coalesced to one read per frame: on iOS this fires all the way through a
+  // rotation and every time the URL bar moves, once per open window.
   useEffect(() => {
-    const onResize = () => setDock(dockDetent());
+    let raf = 0;
+    const onResize = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        setDock(dockDetent());
+      });
+    };
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, []);
 
   // Being closed: play the sheet out, then let go. A window closed while it was
@@ -112,8 +128,8 @@ export function WindowSheet({ win }: { win: WindowInstance }) {
   // a controlled snap point that went stale would jump the sheet on a rotate.
   // Memoised because Base UI re-reads the list by identity: a fresh array on
   // every render (and a drag renders) had it recomputing mid-gesture.
-  const detents = useMemo(() => [PAGE_DETENT, dock, 1], [dock]);
-  const snap = { page: PAGE_DETENT, dock, top: 1 }[level];
+  const detents = useMemo(() => [PAGE_DETENT, dock, TOP_DETENT], [dock]);
+  const snap = { page: PAGE_DETENT, dock, top: TOP_DETENT }[level];
 
   return (
     <SurfaceSheet
@@ -126,14 +142,15 @@ export function WindowSheet({ win }: { win: WindowInstance }) {
       snapPoints={detents}
       activeSnapPoint={snap}
       onActiveSnapPointChange={(point) =>
-        setLevel(point === 1 ? "top" : point === PAGE_DETENT ? "page" : "dock")
+        setLevel(
+          point === TOP_DETENT ? "top" : point === PAGE_DETENT ? "page" : "dock",
+        )
       }
       keepMounted
       grip={
         <WindowGrip
           label={title}
           focused={focusedId === win.id}
-          active={open}
           onMenu={() => setMenuOpen(true)}
         />
       }

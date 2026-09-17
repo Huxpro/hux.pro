@@ -1,12 +1,7 @@
 "use client";
 
-import appIconSnapshot from "@/content/app-icons.json";
-import {
-  appTitle,
-  resolveAppIconSrc,
-  runtimeLabel,
-  type AppIconSnapshot,
-} from "@/lib/app-icon-core";
+import { APP_ICONS, iconFillsTile } from "@/lib/apps";
+import { appTitle, resolveAppIconSrc, runtimeLabel } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { SURFACE_TRANSITION_MS, SurfaceSheet } from "@/systems/surface";
@@ -46,8 +41,6 @@ import { useWindows } from "../provider";
 // the detent the finger left it at, so the menu drops those rows (`presets`)
 // rather than offering three that would do nothing.
 // =============================================================================
-
-const ICONS = appIconSnapshot as AppIconSnapshot;
 
 const PRESET_META: Record<SizePreset, { label: string; Icon: LucideIcon }> = {
   portrait: { label: "Portrait", Icon: Smartphone },
@@ -168,7 +161,10 @@ export function WindowMenuBody({
   const { locale } = useLocale();
   const sheet = shape === "sheet";
   const title = appTitle(win.app, locale);
-  const src = resolveAppIconSrc(win.app, ICONS);
+  const src = resolveAppIconSrc(win.app, APP_ICONS);
+  // Full-bleed icons bring their own ground; a glyph needs a plate under it,
+  // the same rule the dock pill and the home tile follow.
+  const fills = iconFillsTile(APP_ICONS[win.app.id]);
   const kind = runtimeLabel(win.app);
   const isWeb = win.app.runtime !== "lynx";
 
@@ -189,7 +185,11 @@ export function WindowMenuBody({
           <img
             src={src}
             alt=""
-            className={cn("rounded-[7px] object-cover", sheet ? "h-9 w-9" : "h-7 w-7")}
+            className={cn(
+              "rounded-[7px]",
+              fills ? "object-cover" : "bg-white object-contain p-0.5",
+              sheet ? "h-9 w-9" : "h-7 w-7",
+            )}
             draggable={false}
           />
         ) : (

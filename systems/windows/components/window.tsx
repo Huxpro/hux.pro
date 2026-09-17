@@ -40,7 +40,11 @@ import { useSurfaceMode, type SurfacePresentation } from "@/systems/surface";
 const WINDOW_PRESENTATION: SurfacePresentation = { base: "sheet", sm: "window" };
 
 export function Window({ win }: { win: WindowInstance }) {
-  return useSurfaceMode(WINDOW_PRESENTATION) === "sheet" ? (
+  // Resolved on the first render, not in an effect: a window only ever appears
+  // because somebody opened one, so there is no server render to agree with —
+  // and starting in the phone shape would commit this app's iframe, fetch it,
+  // and throw it away a frame later.
+  return useSurfaceMode(WINDOW_PRESENTATION, { immediate: true }) === "sheet" ? (
     <WindowSheet win={win} />
   ) : (
     <DesktopWindow win={win} />
