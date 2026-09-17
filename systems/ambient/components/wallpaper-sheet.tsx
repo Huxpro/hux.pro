@@ -66,8 +66,9 @@ import { WeatherWallpaper } from "./wallpaper";
 // Apple and Nature each open with Shuffle and Loop, the same two modes iOS
 // Photo Shuffle and macOS Change Picture use on a folder of stills. Shuffle
 // is a fanned collage (iOS); Loop is the same stills in a tidy stack (macOS
-// sequential). A Frequency row appears under the grid while either is on,
-// iOS Shuffle Frequency with On Lock mapped to On Visit.
+// sequential). They sit as their own pair — not in the stills grid — and
+// Frequency (iOS Shuffle Frequency, On Lock → On Visit) lands directly under
+// them while either is on, so it is not stranded below nineteen pictures.
 // ---------------------------------------------------------------------------
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -573,6 +574,42 @@ function WallpaperPickerBody() {
           raised={false}
         />
       </div>
+      {playAlbumCategory && (
+        <div
+          className="space-y-3 pb-4"
+          // Same cell size as the catalog: two columns of an N-col grid, so
+          // Shuffle / Loop do not inflate to half-width on the desktop.
+          style={
+            columns > 2
+              ? {
+                  maxWidth: `calc((100% - ${(columns - 1) * 0.75}rem) / ${columns} * 2 + 0.75rem)`,
+                }
+              : undefined
+          }
+        >
+          <div
+            className="grid gap-x-3"
+            style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
+          >
+            {(["shuffle", "loop"] as const).map((mode) => (
+              <PlayTile
+                key={mode}
+                album={playAlbumCategory}
+                play={mode}
+                selected={playSelected && play === mode}
+              />
+            ))}
+          </div>
+          {playSelected && (
+            <CompactRow<WallpaperPlayEvery>
+              label={t(locale, "wallpaperPlayFrequency")}
+              value={playEvery}
+              options={frequencyOptions}
+              onChange={setPlayEvery}
+            />
+          )}
+        </div>
+      )}
       <div
         className="grid gap-x-3 gap-y-4"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
@@ -583,15 +620,6 @@ function WallpaperPickerBody() {
               key={style}
               style={style}
               selected={!isImage && weatherStyle === style}
-            />
-          ))}
-        {playAlbumCategory &&
-          (["shuffle", "loop"] as const).map((mode) => (
-            <PlayTile
-              key={mode}
-              album={playAlbumCategory}
-              play={mode}
-              selected={playSelected && play === mode}
             />
           ))}
         {shown.map((w) => (
@@ -619,20 +647,6 @@ function WallpaperPickerBody() {
           />
           <p className="px-0.5 text-[11px] leading-snug text-tertiary-foreground">
             {t(locale, "solarThemeHint")}
-          </p>
-        </div>
-      )}
-
-      {playAlbumCategory && playSelected && (
-        <div className="space-y-2 pt-5">
-          <CompactRow<WallpaperPlayEvery>
-            label={t(locale, "wallpaperPlayFrequency")}
-            value={playEvery}
-            options={frequencyOptions}
-            onChange={setPlayEvery}
-          />
-          <p className="px-0.5 text-[11px] leading-snug text-tertiary-foreground">
-            {t(locale, "wallpaperPlayHint")}
           </p>
         </div>
       )}

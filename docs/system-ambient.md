@@ -413,7 +413,8 @@ Talks widget uses for albums (`WALLPAPER_CATEGORIES` in `lib/wallpaper.ts`).
   full @2x (or native) file when the source is larger than 1×. The grid
   opens with **Shuffle** and **Loop** — iOS Photo Shuffle (a fanned collage,
   random order) and macOS Change Picture without Randomly (a tidy stack,
-  catalog order). While either is selected, a Frequency row offers On Visit
+  catalog order). They sit as their own pair above the stills, and while
+  either is selected a Frequency row sits directly under them: On Visit
   (iOS On Lock, once per tab session), Hourly, and Daily. Tapping a specific
   pair pins it and turns play off.
 - **Nature** — the 19 Mac OS X Nature desktop pictures (Aurora, Zebra, Zen
@@ -593,11 +594,13 @@ originals, a sun / moon marking each half, a check when selected, and `Name` +
 `macOS · 2020` underneath. Apple and Nature each lead with Shuffle and Loop
 tiles in that same frame — a three-photo collage, fanned for Shuffle and
 stacked for Loop — matching iOS Photo Shuffle and macOS Change Picture. The
-Weather category's three tiles are the **same frame at the same size** — the
-sky is one of the wallpapers, just the only one that moves, and it opens on
-that tab whenever the sky is what is in use. Where the wallpaper paints sits
-above the grid as one compact row: a modifier, not the thing you came here for.
-While Shuffle or Loop is on, Frequency sits under the grid the same way.
+two modes are a pair above the stills, not mixed into the catalog grid, so
+Frequency can sit directly under them (On Visit / Hourly / Daily) instead of
+after the last picture. The Weather category's three tiles are the **same
+frame at the same size** — the sky is one of the wallpapers, just the only one
+that moves, and it opens on that tab whenever the sky is what is in use. Where
+the wallpaper paints sits above the grid as one compact row: a modifier, not the
+thing you came here for.
 
 ## Components
 
