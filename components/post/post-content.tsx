@@ -105,9 +105,19 @@ export function PostContent({
     displayLocale === "zh" && readingTimeZh ? readingTimeZh : readingTime;
   const displayOrigin =
     displayLocale === "zh" && originZh ? originZh : origin;
-  const hasHeaderMetaContent =
-    !!headerMeta || !!displayReadingTime || hasAlternate || !!displayOrigin;
-  const headerMetaRow = (
+  // Two kinds of thing were sharing one line. The date, the reading time and
+  // the language switch are handles — a word or two each, to scan and to
+  // press. Provenance is a sentence. A sentence set among chips reads as
+  // clutter however short it is, and the longest of them wrapped the row onto
+  // two lines at every width, stranding a "·" at the end of the first and
+  // leaving the "Aa" alone above an empty half-line.
+  //
+  // So they are two lines now: the handles keep the mono voice they share with
+  // the rest of the machine layer, and the provenance drops beneath them as an
+  // aside (TYPE.aside — the role the timeline already uses for commentary).
+  const hasHandles = !!headerMeta || !!displayReadingTime || hasAlternate;
+  const hasHeaderMetaContent = hasHandles || !!displayOrigin;
+  const headerHandles = (
     <div className={cn("flex items-center gap-2 flex-wrap", TYPE.meta)}>
       {headerMeta}
 
@@ -132,15 +142,15 @@ export function PostContent({
           </button>
         </>
       )}
-
-      {displayOrigin && (
-        <>
-          <span className="text-quaternary-foreground">·</span>
-          <span>{renderMarkdownLinks(displayOrigin)}</span>
-        </>
-      )}
     </div>
   );
+
+  /** Where this text came from. Prose, so it is set as prose. */
+  const headerOrigin = displayOrigin ? (
+    <div className={cn(TYPE.aside, "mt-1.5")}>
+      {renderMarkdownLinks(displayOrigin)}
+    </div>
+  ) : null;
 
   // The "Aa" belongs to the pages that are actually read end to end — the same
   // ones the ruler tracks. It rides in the header's action slot, where the
@@ -148,9 +158,12 @@ export function PostContent({
   // to the article.
   const headerActions =
     hasHeaderMetaContent || toc ? (
-      <div className="flex items-start gap-3">
-        {hasHeaderMetaContent && <div className="min-w-0">{headerMetaRow}</div>}
-        {toc && <ReadingSettings className="-mt-1 ml-auto" />}
+      <div>
+        <div className="flex items-start gap-3">
+          {hasHandles && <div className="min-w-0">{headerHandles}</div>}
+          {toc && <ReadingSettings className="-mt-1 ml-auto" />}
+        </div>
+        {headerOrigin}
       </div>
     ) : undefined;
 
