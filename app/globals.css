@@ -580,11 +580,12 @@ html.dragging * {
    `text-wrap: pretty` makes the browser look ahead at the last few lines and
    refuse to leave a word alone on the final one. Measured over one essay in
    both languages (Chromium 141, 680px column): English drops from 16 very
-   short last lines to 12, Chinese does not move at all — 22 either way. That
-   is the expected shape, not a disappointment: `pretty` rescues a widowed
-   *word*, and Chinese breaks between almost any two characters, so there is
-   rarely a widow to rescue. Keep it for what it does to Latin; it costs
-   nothing elsewhere.
+   short last lines to 12, and Chinese keeps 22 — but the Chinese count is
+   misleading on its own. Per paragraph it does move; it just moves by about
+   one character (代。→ 時代。) where English moves by a whole word ("bloated:"
+   → "became bloated:"). That is the shape you would predict: the unit it can
+   pull down is the unit the script breaks on, and Chinese breaks between
+   almost any two characters. Both scripts gain; Latin gains more.
 
    `hanging-punctuation: allow-end` is the rule that is actually for Chinese —
    a full stop or a comma sits in the margin rather than inside the measure, so
