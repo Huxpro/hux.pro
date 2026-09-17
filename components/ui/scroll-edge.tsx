@@ -1,79 +1,36 @@
 import type { CSSProperties } from "react";
-import { cn } from "@/lib/utils";
 
 // =============================================================================
-// Scroll edge — frost a clipped edge without painting page colour.
+// Scroll-stack fade — the mask WidgetScrollBody uses.
 //
-// Pre-glass, a scroll fade was `from-background`: an opaque slab of page
-// colour over the cutoff. `from-glass` is the same bug in nicer clothes —
-// `--glass` is card colour at an alpha, so on a wallpaper it is a white (or
-// near-black) wash. The pocket has to sit ON the transparent surface:
-//
-//   1. `scrollEdgeMask` — the clipped content itself goes transparent, so
-//      whatever is behind (wallpaper, Clear glass, the page) shows through.
-//   2. `ScrollEdgeFade` — a short backdrop blur + whisper of ink, masked
-//      to a falloff. The cutoff frosts; it does not get card colour painted
-//      on it (`--glass` is that colour at an alpha, i.e. the old bug).
+// Content goes transparent at the overflow edge, so whatever is behind the
+// scrollport (the widget's glass, the page wallpaper) shows through. No
+// overlay, no blur, no `--background` / `--glass` fill: those paint a slab
+// on a transparent surface. The recipe is a two-stop linear gradient over
+// 28px, the distance the stacked widgets already settled on.
 // =============================================================================
 
-export type ScrollEdge = "left" | "right" | "top" | "bottom";
+export const SCROLL_STACK_FADE_PX = 28;
 
-const BLUR_MASK: Record<ScrollEdge, string> = {
-  left: "linear-gradient(to right, black, transparent)",
-  right: "linear-gradient(to left, black, transparent)",
-  top: "linear-gradient(to bottom, black, transparent)",
-  bottom: "linear-gradient(to top, black, transparent)",
-};
-
-const POS: Record<ScrollEdge, string> = {
-  left: "inset-y-0 left-0 w-6",
-  right: "inset-y-0 right-0 w-6",
-  top: "inset-x-0 top-0 h-7",
-  bottom: "inset-x-0 bottom-0 h-7",
-};
-
-/** CSS mask that fades a scrollport's start/end into transparency. */
-export function scrollEdgeMask(
-  atStart: boolean,
-  atEnd: boolean,
-  axis: "x" | "y" = "x",
-  sizePx = 24,
+/**
+ * CSS mask for a snap-stack scrollport.
+ *
+ * `fadeStart` / `fadeEnd` are the overflow edges: a vertical stack fades
+ * the tail (`fadeEnd`), a horizontal rail fades the peek (`fadeEnd`) and,
+ * once scrolled, the clipped start (`fadeStart`). Both off → no mask.
+ */
+export function scrollStackMask(
+  axis: "x" | "y",
+  fadeStart: boolean,
+  fadeEnd: boolean,
 ): CSSProperties | undefined {
-  if (atStart && atEnd) return undefined;
+  if (!fadeStart && !fadeEnd) return undefined;
   const dir = axis === "x" ? "to right" : "to bottom";
-  const start = atStart ? "black" : `transparent, black ${sizePx}px`;
-  const end = atEnd ? "black" : `black calc(100% - ${sizePx}px), transparent`;
-  const mask = `linear-gradient(${dir}, ${start}, ${end})`;
-  return { maskImage: mask, WebkitMaskImage: mask };
-}
-
-export function ScrollEdgeFade({
-  edge,
-  visible = true,
-  className,
-}: {
-  edge: ScrollEdge;
-  /** When false, the pocket is kept mounted and faded out (so it can
-   *  transition). Defaults to visible. */
-  visible?: boolean;
-  className?: string;
-}) {
-  const blurMask = BLUR_MASK[edge];
-  return (
-    <div
-      aria-hidden
-      className={cn(
-        "pointer-events-none absolute",
-        POS[edge],
-        // Blur + a whisper of ink, never card colour. `--glass` is a white
-        // (or near-black) wash on a wallpaper; `--ink` at a few percent is
-        // the same dimming-on-transparency the rest of the page uses.
-        "bg-ink/5 backdrop-blur-md",
-        "transition-opacity duration-200",
-        visible ? "opacity-100" : "opacity-0",
-        className,
-      )}
-      style={{ maskImage: blurMask, WebkitMaskImage: blurMask }}
-    />
-  );
+  const px = `${SCROLL_STACK_FADE_PX}px`;
+  const image = fadeStart && fadeEnd
+    ? `linear-gradient(${dir}, transparent, black ${px}, black calc(100% - ${px}), transparent)`
+    : fadeEnd
+      ? `linear-gradient(${dir}, black calc(100% - ${px}), transparent)`
+      : `linear-gradient(${dir}, transparent, black ${px})`;
+  return { maskImage: image, WebkitMaskImage: image };
 }

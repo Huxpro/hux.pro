@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ScrollEdgeFade, scrollEdgeMask } from "@/components/ui/scroll-edge";
+import { scrollStackMask } from "@/components/ui/scroll-edge";
 import { useTheme } from "@/services/theme";
 import { useLocale } from "@/services";
 import { useOptionalTheater } from "@/systems/theater";
@@ -226,14 +226,11 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
 /**
  * Horizontal rail for exactly three cards. Bleeds one page gutter past the
  * content column so the third card's edge peeks (see the tripleCards branch
- * for the sizing trick), and carries scroll-position glass edge pockets on
- * both sides: the left pocket appears only once the rail is scrolled off its
- * start (so card 1 isn't frosted at rest), the right pocket disappears at
- * the end (so the last card lands clear over the trailing whitespace).
- *
- * The pockets sit on the transparent surface, not `from-background`: a
- * mask opens the cutoff onto the wallpaper, and a short ink+blur frost
- * replaces the old page-colour slab.
+ * for the sizing trick). The overflow edge uses the same mask dissolve as
+ * the home stacked widgets (`WidgetScrollBody`): content goes transparent
+ * over 28px, so the wallpaper (or glass) shows through — no overlay, no
+ * `--background` slab. Left fade only once scrolled off the start; right
+ * fade drops at the end so the last card rests clear of the trailing space.
  */
 function CardScrollRail({ children }: { children: ReactNode }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -279,17 +276,10 @@ function CardScrollRail({ children }: { children: ReactNode }) {
           // would keep yanking it back ("can't scroll to the last one").
           "snap-x snap-proximity scroll-smooth no-scrollbar",
         )}
-        style={scrollEdgeMask(atStart, atEnd)}
+        style={scrollStackMask("x", !atStart, !atEnd)}
       >
         {children}
       </div>
-      {/* Left pocket — appears only once scrolled off the start, frosting
-          card 1's cut-off edge into the wallpaper. */}
-      <ScrollEdgeFade edge="left" visible={!atStart} />
-      {/* Right pocket — over the gutter/peek; starts at the column edge so
-          card 2 and both gaps stay clear, and disappears at the end so the
-          last card reads over the pr-6 whitespace. */}
-      <ScrollEdgeFade edge="right" visible={!atEnd} className="-right-6" />
     </div>
   );
 }
