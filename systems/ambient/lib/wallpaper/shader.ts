@@ -1013,12 +1013,22 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   float flicker = 0.88 + 0.24 * vnoise(vec2(age * 13.0, uPokeSeed * 7.0));
   float glow = meteorGlow(t, peak) * flicker;
 
-  // The head: a coma, and a brighter one is a bigger one, with a soft halo in
-  // front of it. The gain is set so only the peak of the curve clips — for the
-  // rest of the flight the head has structure instead of being a white sticker.
+  // The head: a coma, and a brighter one is a bigger one, with a soft halo of
+  // scattered light around it. The gain is set so only the peak of the curve
+  // clips — for the rest of the flight the head has structure instead of being
+  // a white sticker.
+  //
+  // It is kept *small*, and that is the whole of what separates a meteor from a
+  // comet: what a meteor is long in is its streak, not its head. An earlier cut
+  // measured a 20 px bright ball inside an 84 px glow on a 13" laptop — nine
+  // percent of the screen's height — because the halo carried 0.42 of the core
+  // over a 3.3x exponential, and an exponential that wide takes a very long
+  // time to reach nothing. Halved the coma, and the halo is now weaker and
+  // three times tighter. The pixel floor is for a small viewport, where a head
+  // measured in screen heights would otherwise thin out of existence.
   float dh = length(p - head);
-  float hr = 0.005 * (0.62 + 0.38 * glow);
-  float core = exp(-(dh * dh) / (hr * hr)) + exp(-dh / (hr * 3.3)) * 0.42;
+  float hr = max(0.0026 * (0.65 + 0.35 * glow), 1.1 / uResolution.y);
+  float core = exp(-(dh * dh) / (hr * hr)) + exp(-dh / (hr * 1.8)) * 0.30;
 
   // The wake and the train are the same air at two ages — what the head lit on
   // its way past — so they come out of one walk down the path it has flown.
@@ -1044,7 +1054,7 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   wake = exp(-d / max(0.0021, px)) * exp(-old / METEOR_WAKE_TAU) * lit;
   // Spreading dims as well as widens: the same light over a wider thread, so
   // the surface brightness goes down with the width it went up with.
-  float spread = 1.0 + old * 12.0;
+  float spread = 1.0 + old * 8.0;
   train = exp(-d / max(0.0016 * spread, px)) / spread
         * exp(-pow(old / METEOR_TRAIN_TAU, METEOR_TRAIN_FALL)) * lit;
 

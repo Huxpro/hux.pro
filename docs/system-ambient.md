@@ -631,6 +631,13 @@ thunder or foggy night can never have one.
   tip of the peak clips to white — a dozen pixels for a fifth of a second
   instead of the whole first half of the flight, which is what a flat-topped
   envelope was doing.
+- **The head is kept small**, which is most of what separates a meteor from a
+  comet: what a meteor is long in is its streak, not its head. On a 13" laptop
+  it measures about 2 px of white core and 9 px to the edge of its glow, across
+  the streak. An earlier cut was a 28 px bright ball inside a 63 px glow —
+  nine percent of the screen's height — because the halo carried 0.42 of the
+  core over a 3.3× exponential, and an exponential that wide takes a very long
+  way to reach nothing.
 - **Shape**: a bright warm head, a wake right behind it, and a fainter, cooler,
   wider train along the path flown. The wake and the train are the same air at
   two ages, so they come from one walk down the streak — see below. Gone inside
