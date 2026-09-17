@@ -136,11 +136,23 @@ and grows and shrinks from the top — at rest and under the finger alike. Past
 the lowest detent (`--surface-detent-floor`) the padding stops and the sheet
 slides away whole, because that drag is a dismissal, not a resize.
 
-**Arriving.** A sheet rises at the size it is going to be. Base UI measures the
-active detent a frame or two after mount, so the padding that carries it lands
-late; with a transition on that, a sheet enters at full height and shrinks into
-its detent as it arrives. `sheet.tsx` marks the entrance (`data-surface-entering`)
-and the motion block runs it on the transform alone.
+**Arriving.** A sheet should rise, and rise at the size it is going to be. Two
+things get in the way, both handled in `sheet.tsx` and the motion block:
+
+- Base UI resolves a detent's offset from measurements — the popup's height and
+  the viewport's — so on the first painted frame the offset is `0`, which *is*
+  the top detent: the sheet lands full height and then slides down into its
+  detent. The offset is no mystery though (`popupHeight - detentHeight`), so
+  the popup carries the same sum in CSS as `--surface-snap-fallback` and stands
+  on it for the length of the entrance (`data-surface-entering`); Base UI's own
+  value lands underneath, identical, before the mark comes off.
+- A `keepMounted` sheet is hidden with `display: none` while closed, and
+  nothing transitions out of `display: none` — there is no painted "before" to
+  travel from, so Base UI's starting style does nothing and the sheet simply
+  appears. `data-surface-arriving` gives it one painted frame at the bottom
+  edge (set from the render that opens the sheet, released two frames later —
+  a rAF callback runs *before* its own frame is painted) and the sheet travels
+  up from there.
 
 **Detents.** `snapPoints` are fractions of the viewport, iOS's medium and large;
 the site has one set, `SHEET_DETENTS` (`[0.7, 1]`), so sheets stacked on one

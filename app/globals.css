@@ -1427,15 +1427,33 @@ html.dragging * {
   transform: translateX(var(--drawer-swipe-movement-x, 0px));
 }
 
-/* Arriving, a sheet rises at the size it is going to be. Base UI measures the
-   active detent a frame after mount, so the padding that carries it lands late;
-   animating that too has the sheet enter at full height and shrink into its
-   detent as it arrives. For the entrance (sheet.tsx marks it, and takes the
-   mark off again) only the transform moves. Dropping the property, not the
-   duration, and never on the ending frame — item 3 at the top of
-   systems/surface/sheet.tsx. */
-[data-surface-popup][data-surface-entering] {
-  transition-property: transform;
+/* Arriving, a sheet rises at the size it is going to be.
+
+   Base UI resolves the active detent's offset from measurements — the popup's
+   height and the viewport's (useDrawerSnapPoints.js) — so on the first painted
+   frame it is 0, which *is* the top detent: the sheet arrives at full height
+   and then slides down into its detent over half a second, growing and
+   shrinking as it comes. The offset is no mystery though — it is
+   `popupHeight - detentHeight` — and sheet.tsx publishes exactly that as
+   `--surface-snap-fallback`, which CSS can compute without measuring anything.
+   For the length of the entrance the sheet stands on ours; Base UI's lands
+   under it, the same number, before the mark comes off. */
+[data-surface-popup][data-surface-entering][data-surface-snap] {
+  transform: translateY(var(--surface-snap-fallback, 0px));
+  padding-bottom: calc(
+    var(--surface-snap-fallback, 0px) + max(env(safe-area-inset-bottom), var(--surface-gap))
+  );
+}
+
+/* The one painted frame a kept-mounted sheet needs to have somewhere to rise
+   from (sheet.tsx sets the mark for exactly one frame; the note there says
+   why). It must land instantly — this is the start of the journey, not part of
+   it — so the duration goes, never the property: a popup with no transition
+   property at all cannot be told when it has finished leaving (item 3 at the
+   top of systems/surface/sheet.tsx). */
+[data-surface-popup][data-surface-arriving][data-swipe-direction="down"] {
+  transform: translateY(calc(100% + var(--surface-exit)));
+  transition-duration: 0ms;
 }
 
 /* Entering and leaving: past the edge by the gap as well, otherwise the
@@ -1505,86 +1523,81 @@ html.dragging * {
 }
 
 /* =============================================================================
-   Window grip — the dots step aside, a grabber comes out
+   Window grip — the dots become the handle
    The chrome of an app window on a phone (systems/windows/components/
-   window-grip.tsx) is the window's own pill — the same chromeless traffic
-   lights floating over edge-to-edge content as on the desktop — doing double
-   duty as the sheet's handle. At rest it is three dots, because a tap opens
-   the window's menu. While it is being dragged the dots step aside and the
-   site's own 36×4 grabber takes their place, because that is what is
-   happening: a sheet is moving.
+   window-grip.tsx) is the window's own pill of traffic lights, floating over
+   edge-to-edge content as it does on the desktop, doing double duty as the
+   sheet's grabber. At rest it is three dots, because a tap opens the window's
+   menu. Dragged, the middle dot stretches into the site's own 36×4 grabber
+   while the other two collapse into it — one object changing shape, so the way
+   back is the same motion reversed, with no midpoint where it is neither
+   thing. (It was briefly a bar crossfading over the dots; that blinks at both
+   ends. It was also, briefly, shaped by the sheet's live travel, which is not
+   monotonic — a sheet with detents zeroes it every time it lands on one — so
+   it flickered under the finger.)
 
-   Three states, not a live reading of the drag. The travel a sheet with
-   detents reports is not monotonic — it returns to zero every time the sheet
-   lands on a detent mid-gesture — so interpolating on it made the pill flicker
-   between dots and bar under the finger, and the way back was a jump rather
-   than a hand-off. The phase comes from window-grip.tsx instead (`data-phase`:
-   idle · pressed · dragging), which changes at most twice a gesture, and
-   everything here is one symmetric 160ms crossfade in both directions: the
-   dots fade and shrink as the bar grows out of the same spot, and the box they
-   share widens from the dots' width to the bar's, so the pill grows into its
-   new shape instead of jumping.
+   The phase is set by window-grip.tsx, twice a gesture, from the finger's own
+   movement: `data-phase` is idle · pressed · dragging. Nothing here polls, and
+   nothing re-renders while a finger is down but the pill's own glass.
+
+   The dots' box stays 36px wide in both forms, so the pill never changes size.
    ============================================================================= */
 
 [data-window-grip] {
   /* The handle owns vertical drags; the browser must not scroll instead. */
   touch-action: none;
-  --grip-duration: 160ms;
+  --grip-duration: 200ms;
 }
 
 /* A target you can hit without looking: the glass is the pill, the hit area
-   reaches past it. */
+   reaches past it — but no further up than the shell's own edge, which clips. */
 [data-window-grip]::before {
   content: "";
   position: absolute;
-  inset: -0.75rem -0.5rem;
+  inset: -0.5rem -0.75rem;
 }
 
-/* The dots' box is what the pill sizes to, so it — not the pill — is what
-   widens as the bar takes over. */
+/* The bar's width either way, so the pill is one size and the dots are simply
+   centred in it. */
 [data-window-grip-dots] {
   display: flex;
   justify-content: center;
-  width: 28px;
-  transition:
-    width var(--grip-duration) var(--surface-easing),
-    opacity var(--grip-duration) var(--surface-easing),
-    scale var(--grip-duration) var(--surface-easing);
+  width: 36px;
 }
 
-/* The grabber, centred in the dots' place: the site's bar, to the pixel. */
-[data-window-grip-bar] {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  translate: -50% -50%;
+[data-window-grip] [data-window-dots] {
+  transition: gap var(--grip-duration) var(--surface-easing);
+}
+
+[data-window-grip] [data-window-control] {
+  transition:
+    width var(--grip-duration) var(--surface-easing),
+    height var(--grip-duration) var(--surface-easing),
+    border-radius var(--grip-duration) var(--surface-easing),
+    opacity var(--grip-duration) var(--surface-easing);
+}
+
+/* Dragging: the middle dot *is* the grabber, and the gaps go with the two
+   dots that fold into it. 0 + 0 + 36 + 0 + 0 = the site's bar, to the pixel. */
+[data-window-grip][data-phase="dragging"] [data-window-dots] {
+  gap: 0;
+}
+
+[data-window-grip][data-phase="dragging"] [data-window-control]:nth-child(2) {
+  width: 36px;
   height: 4px;
-  width: 20px;
   border-radius: 9999px;
-  background-color: var(--color-zinc-500, #71717a);
-  opacity: 0;
-  scale: 0.8;
-  transition:
-    width var(--grip-duration) var(--surface-easing),
-    opacity var(--grip-duration) var(--surface-easing),
-    scale var(--grip-duration) var(--surface-easing);
 }
 
-[data-window-grip][data-phase="dragging"] [data-window-grip-dots] {
-  width: 36px;
+[data-window-grip][data-phase="dragging"]
+  [data-window-control]:not(:nth-child(2)) {
+  width: 0;
   opacity: 0;
-  scale: 0.8;
-}
-
-[data-window-grip][data-phase="dragging"] [data-window-grip-bar] {
-  width: 36px;
-  opacity: 1;
-  scale: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-window-grip-dots],
-  [data-window-grip-bar] {
+  [data-window-grip] [data-window-dots],
+  [data-window-grip] [data-window-control] {
     transition: none;
   }
 }

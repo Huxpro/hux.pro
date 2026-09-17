@@ -308,13 +308,15 @@ export function SurfaceSheet({
     level,
   });
 
-  // A sheet should rise at the size it is going to be. Base UI measures the
-  // active detent a frame or two *after* mount, so the padding that carries it
-  // (see the two boxes, above) arrives late — and with a transition on it, the
-  // sheet enters at full height and shrinks into its detent as it lands. So
-  // the entrance runs with that transition off. True from the first render,
-  // because by the time an effect could add it the measurement may already
-  // have landed.
+  // A sheet should rise at the size it is going to be — and Base UI cannot tell
+  // it where that is yet. Its detent offset is `popupHeight - detentHeight`,
+  // both measured (useDrawerSnapPoints.js: a layout effect and a
+  // ResizeObserver), so on the first painted frame the offset is 0 — the top
+  // detent — and the sheet arrives full height and then slides down into its
+  // detent over half a second. The geometry is no mystery though: it is the
+  // same formula, and CSS can do it without measuring anything. So for the
+  // length of the entrance the popup carries our own value and Base UI's
+  // lands under it, identical, before anyone can see the hand-over.
   const [entering, setEntering] = useState(open);
   useEffect(() => {
     if (!open) return;
@@ -322,6 +324,40 @@ export function SurfaceSheet({
     const t = window.setTimeout(() => setEntering(false), SURFACE_TRANSITION_MS);
     return () => window.clearTimeout(t);
   }, [open]);
+
+  // And a sheet should rise, not appear. A kept-mounted sheet is hidden with
+  // `display: none` while it is closed, and nothing transitions out of
+  // `display: none` — the browser has no painted "before" to travel from, so
+  // Base UI's own starting style does nothing and the sheet simply lands. One
+  // painted frame at the bottom edge is all it needs: this marks it from the
+  // render that opens the sheet (not an effect, which would paint it in place
+  // first) and lets go on the next frame, and the sheet travels up from there.
+  const [arriving, setArriving] = useState(open && !!keepMounted);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    if (open && keepMounted) setArriving(true);
+  }
+  useEffect(() => {
+    if (!arriving) return;
+    // Two frames, not one: a rAF callback runs *before* that frame is painted,
+    // so letting go in the first would leave the browser with nothing painted
+    // at the bottom edge to travel from — and no transition at all, which is
+    // the bug this is here to fix.
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setArriving(false));
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [arriving]);
+
+  /** Where the active detent puts the sheet, before anything has been measured. */
+  const snapFallback = hasSnapPoints
+    ? `max(0px, calc(100dvh - ${TOP_INSET} - ${(typeof snap === "number" ? snap : snapPoints[0]) * 100}dvh))`
+    : "0px";
 
   // Arrive level with the sheet beneath, when it stands at one of ours.
   const arrival =
@@ -367,8 +403,10 @@ export function SurfaceSheet({
               data-surface-popup=""
               data-surface-snap={hasSnapPoints ? "" : undefined}
               data-surface-entering={entering ? "" : undefined}
+              data-surface-arriving={arriving ? "" : undefined}
               style={{
                 ...surfaceMotionVars(hasSnapPoints ? EDGE_GAP : BOTTOM_INSET),
+                ...({ "--surface-snap-fallback": snapFallback } as React.CSSProperties),
                 ...(hasSnapPoints
                   ? {
                       // Flush with the bottom and as tall as the top detent.

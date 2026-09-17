@@ -133,7 +133,10 @@ export function TrafficDots({
   onAction?: (action: DotAction) => void;
 }) {
   return (
-    <div className="flex items-center gap-[5px] [@media(hover:hover)]:gap-2">
+    <div
+      data-window-dots
+      className="flex items-center gap-[5px] [@media(hover:hover)]:gap-2"
+    >
       {DOTS.map((dot) => (
         <Dot
           key={dot.label}

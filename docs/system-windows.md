@@ -200,22 +200,24 @@ handle. Its form at every moment says what a touch will do.
 |-------|------|--------------|
 | `idle` | three dim dots on nothing at all | a target: tap for the menu — and a window |
 | `pressed` | the pill lights into glass, dots at full ink | got you, the same way a dragged desktop window wakes up |
-| `dragging` | the dots step aside, the site's 36×4 grabber comes out in their place | you are moving a sheet |
-| Released | the bar goes, the dots come back, on the same crossfade | |
+| `dragging` | the middle dot **stretches into** the site's 36×4 grabber as the other two collapse into it | you are moving a sheet |
+| Released | the bar contracts and the three dots come back out of it | |
 | Receded | dimmed with the shell behind the menu | not yours right now |
 
-Three states (`data-phase`), not a live reading of the drag, and one symmetric
-160ms crossfade between them: the dots fade and shrink as the bar grows out of
-the same spot, and the box they share widens from the dots' width to the bar's,
-so the pill grows into its new shape instead of jumping.
+One object changing shape, not two crossfading. A bar fading in over dots
+fading out blinks at both ends and is neither thing halfway; here the middle
+dot *is* the bar, so the hand-off reverses cleanly and has no midpoint to get
+wrong. The dots' box is a fixed 36px either way, so the pill itself never
+changes size. It is 64×26, with a hit area of 88×42 — a thumb target.
 
-It was, briefly, proportional to the travel — the dots dissolving into the bar
-as the sheet moved. That is not stable: a sheet with detents **zeroes its
-reported travel every time it lands on one mid-gesture**, so the pill flickered
-between dots and bar under the finger and the way back was a jump. The phase
-now changes at most twice per gesture (`useGripPhase`: Base UI's `data-swiping`
-for the press, one rAF walk to promote it to a drag once the surface has
-actually moved) and never goes backwards until the finger is gone.
+The phase is set twice a gesture from **the finger's own movement**, read on
+`document` in the capture phase: Base UI takes the pointer the moment it reads
+the press as a swipe and the event never reaches `window` again, but the
+document still sees all of it. Asking the *surface* how far it has travelled
+instead (an earlier attempt) is a different question and a worse one — a sheet
+with detents stands still until the swipe is recognised and zeroes its travel
+every time it lands on a detent, so the pill flickered under the finger and the
+promotion lagged 40px behind it.
 
 The dots themselves are shared with the desktop pill (`window-pill.tsx`), so
 the two can't drift; on a grip they are an indicator rather than three targets
