@@ -146,7 +146,7 @@ export const HEADER_BUTTON =
 
 /** The glass shell every shape shares. */
 export const SHELL = [
-  "flex flex-col overflow-hidden outline-none",
+  "system-chrome flex flex-col overflow-hidden outline-none",
   "rounded-3xl bg-glass-sheet backdrop-blur-xl",
   "border border-border/50 shadow-overlay",
 ].join(" ");

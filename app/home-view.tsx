@@ -162,7 +162,7 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
             // `ink-bare`: nothing behind this text but the wallpaper, so it
             // is the zone read off the top band whose ink may flip; the app folder is
             // the other, read off the middle band (see docs/system-legibility.md).
-            className="ink-bare hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
+            className="ink-bare hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6 select-none"
             style={heroFadeStyle}
           >
             <div className="h-11 flex items-start justify-center">

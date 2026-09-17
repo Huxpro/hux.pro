@@ -19,7 +19,7 @@ function NotFoundIdentifier() {
     <div className="text-center mb-12">
       <span
         className={cn(
-          "font-mono text-xs tracking-wider relative inline-block cursor-default transition-colors duration-300",
+          "font-mono text-xs tracking-wider relative inline-block cursor-default select-none transition-colors duration-300",
           isHovered ? "text-foreground" : "text-muted-foreground"
         )}
         onMouseEnter={() => setIsHovered(true)}
@@ -53,7 +53,7 @@ function ReturnHomeButton() {
       <Link
         href="/"
         className={cn(
-          "inline-flex items-center gap-2 px-5 py-3 rounded-2xl",
+          "inline-flex items-center gap-2 px-5 py-3 rounded-2xl select-none",
           "bg-glass backdrop-blur-xl",
           "border border-border/50",
           "text-sm text-foreground",
@@ -91,7 +91,7 @@ export default function NotFound() {
       <NotFoundIdentifier />
 
       {/* 404 Message - Hux speaking to the user */}
-      <div className="text-center mb-16">
+      <div className="text-center mb-16 select-none cursor-default">
         <h1 className={`${TITLE_POETIC} text-foreground`}>
           {t(locale, "notFoundMessage")}
         </h1>

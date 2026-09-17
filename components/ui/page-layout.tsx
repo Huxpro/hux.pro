@@ -132,7 +132,7 @@ export function PageLayout({
       ) : (
         <>
           <HeaderZone
-            className="hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
+            className="hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6 select-none"
             style={heroFadeStyle}
           >
             <div className="h-11 flex items-start">

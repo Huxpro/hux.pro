@@ -1327,11 +1327,16 @@ html.dragging * {
 
 /* =============================================================================
    System chrome — `.system-chrome`
-   Navigation, the command bar, the dock, edit controls: these are the OS's
-   own UI, not a document. No text selection, no long-press callout, no grey
-   tap flash — a press on them is a gesture, never an attempt to grab text.
-   Content (prose, the /writing list, /works rows) deliberately keeps the
-   browser defaults so a long-press on a link still previews it.
+   Navigation, the command bar, the dock, edit controls, secondary surfaces:
+   these are the OS's own UI, not a document. No text selection, no long-press
+   callout, no grey tap flash — a press on them is a gesture, never an attempt
+   to grab text.
+
+   Decorative System UI that is not chrome (the greeting, poetic index titles,
+   widget cards) uses Tailwind `select-none` for the same selection rule,
+   without also killing link previews / tap highlight. Content (prose, the
+   /writing list, /works rows, article titles) keeps the browser defaults so a
+   long-press on a link still previews it and copy still works.
    ============================================================================= */
 
 .system-chrome {
