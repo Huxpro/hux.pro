@@ -14,12 +14,15 @@ import {
   setReadingFocus,
   setReadingFont,
   setReadingMeasure,
+  setReadingSize,
   useBleedEnabled,
   useReadingFocus,
   useReadingFont,
   useReadingMeasure,
+  useReadingSize,
   type ReadingFont,
   type ReadingMeasure,
+  type ReadingSize,
 } from "./reading-settings";
 import { setRulerSide, useRulerSide, type RulerSide } from "./ruler-settings";
 
@@ -36,8 +39,8 @@ import { setRulerSide, useRulerSide, type RulerSide } from "./ruler-settings";
 // content-height and, like every surface here, non-modal: the article stays
 // live behind it, so a tap on Serif is a tap you watch land.
 //
-// It shows the same five settings the devtool's module does, in the reader's
-// voice rather than the devtool's mono. Four of them are offered everywhere.
+// It shows the same settings the devtool's module does, in the reader's voice
+// rather than the devtool's mono. All but one are offered everywhere.
 //
 // Wide media is the one exception, and it is not a taste call: the rule that
 // lets landscape media break out of the column lives entirely inside the
@@ -58,6 +61,7 @@ import { setRulerSide, useRulerSide, type RulerSide } from "./ruler-settings";
 function ReadingSettingsContent() {
   const { locale } = useLocale();
   const font = useReadingFont();
+  const size = useReadingSize();
   const measure = useReadingMeasure();
   const focus = useReadingFocus();
   const bleed = useBleedEnabled();
@@ -80,6 +84,36 @@ function ReadingSettingsContent() {
             {
               value: "serif",
               label: <span className="font-serif">{t(locale, "readingFontSerif")}</span>,
+            },
+          ]}
+        />
+      </Row>
+
+      <Row label={t(locale, "readingSize")}>
+        <Segmented<ReadingSize>
+          value={size}
+          onChange={setReadingSize}
+          label={t(locale, "readingSize")}
+          options={[
+            {
+              value: "small",
+              ariaLabel: t(locale, "readingSizeSmall"),
+              title: t(locale, "readingSizeSmall"),
+              // An A at the size it selects — the same idea as the column
+              // glyph: the control is a specimen of its own setting.
+              label: <span className="text-[11px] leading-5">A</span>,
+            },
+            {
+              value: "default",
+              ariaLabel: t(locale, "readingSizeDefault"),
+              title: t(locale, "readingSizeDefault"),
+              label: <span className="text-[13px] leading-5">A</span>,
+            },
+            {
+              value: "large",
+              ariaLabel: t(locale, "readingSizeLarge"),
+              title: t(locale, "readingSizeLarge"),
+              label: <span className="text-[16px] leading-5">A</span>,
             },
           ]}
         />

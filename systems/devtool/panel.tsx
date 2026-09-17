@@ -66,12 +66,15 @@ import {
   useBleedEnabled,
   setReadingFont,
   setReadingMeasure,
+  setReadingSize,
   setReadingFocus,
   useReadingFont,
   useReadingMeasure,
+  useReadingSize,
   useReadingFocus,
   type ReadingFont,
   type ReadingMeasure,
+  type ReadingSize,
 } from "@/components/post/reading-settings";
 import { cn } from "@/lib/utils";
 import {
@@ -712,6 +715,7 @@ function ReadingModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
   const font = useReadingFont();
+  const size = useReadingSize();
   const measure = useReadingMeasure();
   const bleed = useBleedEnabled();
   const focus = useReadingFocus();
@@ -720,6 +724,11 @@ function ReadingModule() {
   const fonts: { value: ReadingFont; label: string }[] = [
     { value: "sans", label: zh ? "无衬线" : "Sans" },
     { value: "serif", label: zh ? "衬线" : "Serif" },
+  ];
+  const sizes: { value: ReadingSize; label: string; title: string }[] = [
+    { value: "small", label: zh ? "小" : "S", title: zh ? "小" : "Small" },
+    { value: "default", label: zh ? "中" : "M", title: zh ? "标准" : "Default" },
+    { value: "large", label: zh ? "大" : "L", title: zh ? "大" : "Large" },
   ];
   const measures: { value: ReadingMeasure; label: string; title: string }[] = [
     { value: "narrow", label: zh ? "窄" : "S", title: zh ? "窄" : "Narrow" },
@@ -741,6 +750,9 @@ function ReadingModule() {
       <div className="space-y-3">
         <PanelRow label={zh ? "字体" : "Typeface"}>
           <PanelSegmented value={font} options={fonts} onChange={setReadingFont} />
+        </PanelRow>
+        <PanelRow label={zh ? "字号" : "Size"}>
+          <PanelSegmented value={size} options={sizes} onChange={setReadingSize} />
         </PanelRow>
         <PanelRow label={zh ? "宽度" : "Measure"}>
           <PanelSegmented
