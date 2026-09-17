@@ -908,14 +908,24 @@ float fogWipe(vec2 p, float aspect) {
  */
 const float METEOR_SPEED = 2.8;
 const float METEOR_MIN_FLIGHT = 0.3;
-const float METEOR_MAX_FLIGHT = 0.9;
-const float METEOR_LIFE = 1.6;
+const float METEOR_MAX_FLIGHT = 0.75;
+const float METEOR_LIFE = 1.2;
 /** How far outside the frame it starts, so it is plainly arriving from away. */
 const float METEOR_EDGE = 0.06;
 /**
- * How fast the wake and the train forget, in seconds. The wake is the air just
- * behind the head, still hot; the train is what is left of it a moment later.
- * One clock is 4x the other, which is why they read as two things.
+ * How fast the wake and the train forget, in seconds — and these are really
+ * *lengths*, which is the thing to hold on to: at METEOR_SPEED, a tau of 0.1 s
+ * is 0.28 of the screen's height. An earlier cut ran the train at 0.3 s and so
+ * drew a streak 833 px long on a 945 px-tall laptop — 88% of the height, still
+ * carrying 34/255 halfway down it. That is a light beam, not a meteor. What the
+ * eye actually sees of a meteor is a bright dash and a ghost behind it; the
+ * long full path only shows up in a photograph, which integrates the whole
+ * flight. So the wake is a short bright dash, and the train is faint enough
+ * that its greater length never adds up to a band.
+ *
+ * The wake is the air just behind the head, still hot; the train is what is
+ * left of it a moment later. One clock is 3.5x the other, which is why they
+ * read as two things.
  *
  * The train's decay is deliberately steeper than an exponential, and that is
  * the difference between a train and a line that dims. Under a plain
@@ -927,9 +937,11 @@ const float METEOR_EDGE = 0.06;
  * meteor died, which is what a real one does (recombination is not a one-body
  * process and does not decay like one).
  */
-const float METEOR_WAKE_TAU = 0.05;
-const float METEOR_TRAIN_TAU = 0.3;
+const float METEOR_WAKE_TAU = 0.026;
+const float METEOR_TRAIN_TAU = 0.09;
 const float METEOR_TRAIN_FALL = 1.8;
+/** How much of the head's light the train carries — a ghost, not a second tail. */
+const float METEOR_TRAIN_GAIN = 0.18;
 
 /**
  * The light curve. A meteor is not a lamp that switches on: it brightens as it
@@ -1055,8 +1067,9 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   // Spreading dims as well as widens: the same light over a wider thread, so
   // the surface brightness goes down with the width it went up with.
   float spread = 1.0 + old * 8.0;
-  train = exp(-d / max(0.0016 * spread, px)) / spread
-        * exp(-pow(old / METEOR_TRAIN_TAU, METEOR_TRAIN_FALL)) * lit;
+  train = exp(-d / max(0.0013 * spread, px)) / spread
+        * exp(-pow(old / METEOR_TRAIN_TAU, METEOR_TRAIN_FALL))
+        * lit * METEOR_TRAIN_GAIN;
 
   // Faint on a washed-out night, for the same reason the stars are — and the
   // horizon haze thins it as it does them, though never to nothing: a meteor

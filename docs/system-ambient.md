@@ -638,11 +638,21 @@ thunder or foggy night can never have one.
   nine percent of the screen's height — because the halo carried 0.42 of the
   core over a 3.3× exponential, and an exponential that wide takes a very long
   way to reach nothing.
-- **Shape**: a bright warm head, a wake right behind it, and a fainter, cooler,
-  wider train along the path flown. The wake and the train are the same air at
+- **Shape**: a bright warm head, a short wake right behind it, and a faint,
+  cooler, wider train beyond that. The wake and the train are the same air at
   two ages, so they come from one walk down the streak — see below. Gone inside
-  1.6 s (`POKE_MS.meteor`, which the shader's `METEOR_LIFE` must match) — longer
-  than the strike, because the path is.
+  1.2 s (`POKE_MS.meteor`, which the shader's `METEOR_LIFE` must match).
+- **The tail is short, and its two time constants are really lengths.** At
+  `METEOR_SPEED`, a tau of 0.1 s is 0.28 of the screen's height, so the decay
+  clocks decide how much of the screen the thing covers. An earlier cut ran the
+  train at 0.3 s and drew a streak 833 px long on a 945 px-tall laptop — 88% of
+  the height, still carrying 34/255 halfway down — which reads as a light beam.
+  What the eye sees of a real meteor is a bright dash and a ghost behind it; the
+  full path only appears in a photograph, which integrates the whole flight. So
+  the wake is a short bright dash (`METEOR_WAKE_TAU`) and the train is a faint
+  ghost (`METEOR_TRAIN_GAIN`) whose greater length never adds up to a band. It
+  now measures 241 px at its longest, a quarter of the height, with the bright
+  part inside the first 25.
 - **Every point of the train decays on its own clock.** Constant pace is what
   makes that cheap: where a bit of the streak sits says *when* the head made it,
   and so both how old it is now and how bright the head was that made it. Hence
