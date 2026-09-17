@@ -27,13 +27,16 @@ import type { CSSProperties, JSX, ReactNode } from "react";
  * Where the page scrolls.
  *
  *   window     the document scrolls, as on any page.
- *   container  <html> and <body> are fixed and never scroll; the page scrolls
+ *   container  <html> and <body> do not scroll with the page; the page scrolls
  *              inside the bezel's scroll container. On iOS Safari this keeps the
  *              toolbar from collapsing, so the chrome and the viewport hold
  *              still. Every full-screen `position: fixed` child of <body>, and
  *              every element marked with `BEZEL_LAYER_ATTRIBUTE`, becomes
  *              absolute, because Safari tints its chrome from fixed content at
- *              the viewport edge.
+ *              the viewport edge. A tap on the status bar still returns the
+ *              page to the top: WebKit will not give that gesture to an overflow
+ *              scroller, so while the page is scrolled the window is parked 1px
+ *              down and a scroll back to 0 is forwarded to the container.
  */
 export type BezelScroll = "window" | "container";
 

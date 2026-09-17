@@ -78,7 +78,7 @@ Every prop of `<Bezel>` is live:
 |---|---|
 | `enabled`, `color`, `band` | Written to `<html>` (`data-bezel`, `--bezel-color`, `--bezel-band`, background) in a layout effect. The chrome colour is resynced. |
 | `radius` | Re-rendered corners. |
-| `scroll` | `data-bezel-scroll="container"` on `<html>`. The scroll position moves between the window and the container, and page scroll listeners fire. |
+| `scroll` | `data-bezel-scroll="container"` on `<html>`. The scroll position moves between the window and the container, and page scroll listeners fire. A status-bar tap is forwarded to the container while the page is away from the top. |
 | `ground` | The chrome colour is resynced while the bezel is off. |
 | Something strips `<html>` | A mutation observer re-applies the state before the next paint. |
 
@@ -137,4 +137,7 @@ pnpm bezel:typecheck
   stands down rather than locking on top of it — Base UI's dialogs do — so the
   host keeps its layout. One that locks unconditionally by writing `position:
   relative` and a height onto `<body>` will collapse this layout instead; check
-  before adopting one.
+  before adopting one. While the page is scrolled, a 1px window park lets a
+  status-bar tap reach the container (`overflow-y: auto` on `<html>` for that
+  time). At the top the lock is unchanged. If the park does not stick, the
+  gesture does nothing.

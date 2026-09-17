@@ -5,6 +5,11 @@
 export const BEZEL_ATTRIBUTE = "data-bezel";
 /** On <html> with value "container" while the page scrolls in the container. */
 export const SCROLL_ATTRIBUTE = "data-bezel-scroll";
+/**
+ * On <html> while container scroll is catching a status-bar tap: the window is
+ * parked 1px down so Safari has somewhere to scroll.
+ */
+export const STATUS_TAP_ATTRIBUTE = "data-bezel-status-tap";
 /** Marks a fixed layer that must become absolute in container scroll. */
 export const BEZEL_LAYER_ATTRIBUTE = "data-bezel-layer";
 

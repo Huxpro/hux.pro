@@ -5,6 +5,7 @@ import {
   COLOR_VAR,
   SCROLL_ATTRIBUTE,
   SCROLL_CONTAINER_ID,
+  STATUS_TAP_ATTRIBUTE,
   STYLE_ID,
 } from "./constants";
 
@@ -24,24 +25,36 @@ import {
 //   - The toolbar collapses only when the DOCUMENT scrolls, and each collapse
 //     is a relayout and a fresh look at what is under the chrome.
 //
-// So in container scroll the document never scrolls, and nothing fixed spans
-// the edge: <body> is fixed at inset 0, and its fixed children become absolute,
-// which is the identical box because <body> never moves. Its overflow is
-// `clip`, not `hidden`: `hidden` would make <body> a scroll container that
-// `scrollIntoView` and `focus()` can still move, and a bottom sheet resting
-// below the edge at a lower detent is exactly the overflow they would move it
-// for. `clip` cuts without ever scrolling.
+// So in container scroll the document does not scroll with the page, and
+// nothing fixed spans the edge: <body> is fixed at inset 0, and its fixed
+// children become absolute, which is the identical box because <body> never
+// moves. Its overflow is `clip`, not `hidden`: `hidden` would make <body> a
+// scroll container that `scrollIntoView` and `focus()` can still move, and a
+// bottom sheet resting below the edge at a lower detent is exactly the
+// overflow they would move it for. `clip` cuts without ever scrolling.
+//
+// A 1px window scroll is the exception, and only while the page is away from
+// the top. WebKit sets scrollsToTop = NO on overflow UIScrollViews, so a tap
+// on the status bar never reaches the container. Parking the window 1px down
+// gives Safari a main-frame scroll to perform; the page does not move, because
+// <body> is fixed. `position: relative` on <html> is the containing block for
+// that 1px sentinel; it does not contain `position: fixed`, which the chrome
+// morph still parents to <html>. See status-tap.ts.
 // =============================================================================
 
 const html = "html";
 const on = `${html}[${BEZEL_ATTRIBUTE}]`;
 const contained = `${html}[${SCROLL_ATTRIBUTE}="container"]`;
+const statusTap = `${contained}[${STATUS_TAP_ATTRIBUTE}]`;
 const container = `#${SCROLL_CONTAINER_ID}`;
 
 export const BEZEL_CSS = `
 :root{${COLOR_VAR}:#000;${BAND_VAR}:0px}
 ${on},${on} body{background-color:var(${COLOR_VAR})}
-${contained}{height:100%;overflow:hidden;overscroll-behavior:none}
+${contained}{height:100%;overflow:hidden;overscroll-behavior:none;position:relative}
+${contained}::after{content:"";position:absolute;top:100%;left:0;width:1px;height:1px;pointer-events:none}
+${statusTap}{overflow-y:auto;scrollbar-width:none}
+${statusTap}::-webkit-scrollbar{display:none;width:0;height:0}
 ${contained} body{position:fixed;inset:0;overflow:clip;overscroll-behavior:none}
 ${contained} body>.fixed,${contained} body>[style*="position:fixed"],${contained} body>[style*="position: fixed"],${contained} [${BEZEL_LAYER_ATTRIBUTE}]{position:absolute!important}
 ${contained} ${container}{position:absolute;min-height:0;overflow-x:clip;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
