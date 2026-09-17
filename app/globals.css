@@ -573,8 +573,36 @@ html.dragging * {
    - Sans-serif headings (Inter) with reduced weight
    - Serif only for emphasis (em, italic, blockquote)
    - "De-weighted" headings: smaller, subtle but slightly brighter than body */
+/* =============================================================================
+   Mixed-script prose. This site publishes the same essays in English and in
+   Chinese, and the two want opposite things from a line.
+
+   `text-wrap: pretty` makes the browser look ahead at the last few lines and
+   refuse to leave a word alone on the final one. Measured over one essay in
+   both languages (Chromium 141, 680px column): English drops from 16 very
+   short last lines to 12, and Chinese keeps 22 — but the Chinese count is
+   misleading on its own. Per paragraph it does move; it just moves by about
+   one character (代。→ 時代。) where English moves by a whole word ("bloated:"
+   → "became bloated:"). That is the shape you would predict: the unit it can
+   pull down is the unit the script breaks on, and Chinese breaks between
+   almost any two characters. Both scripts gain; Latin gains more.
+
+   `hanging-punctuation: allow-end` is the rule that is actually for Chinese —
+   a full stop or a comma sits in the margin rather than inside the measure, so
+   a column that ends in 。 or 、 as often as Chinese does reads straight down
+   the right edge instead of ragged-by-punctuation. Safari only today
+   (Chromium 141 reports no support), so this is a progressive improvement for
+   the readers who have it and nothing at all for the rest.
+
+   No `hyphens: auto`. On a 680px column with a serif face it breaks more words
+   than it saves, and a hyphenated word mid-paragraph is more disruptive to
+   read past than a slightly ragged edge.
+   ============================================================================= */
+
 .prose-article {
   @apply text-foreground/85 leading-relaxed;
+  text-wrap: pretty;
+  hanging-punctuation: allow-end;
   /* Everything sized inside an article is an `em` of this, so the reader's
      size setting moves the whole composition rather than the body alone —
      headings keep their hierarchy, captions and code keep their relation to
@@ -630,6 +658,15 @@ html.dragging * {
 
 .prose-article p:not(:where(.not-prose, .not-prose *)) {
   @apply mb-6;
+}
+
+/* A heading is a handful of words, so `balance` rather than `pretty`: even the
+   lines of a two-line title instead of only rescuing the last one. The spec
+   caps balancing at a few lines, which is all a heading ever has. */
+.prose-article h1:not(:where(.not-prose, .not-prose *)),
+.prose-article h2:not(:where(.not-prose, .not-prose *)),
+.prose-article h3:not(:where(.not-prose, .not-prose *)) {
+  text-wrap: balance;
 }
 
 .prose-article h1:not(:where(.not-prose, .not-prose *)) {
