@@ -8,6 +8,9 @@ import {
   useRef,
   useState,
 } from "react";
+// Deep import on purpose: the surface barrel reaches back here through
+// `systems/draggable`, and presentation.ts depends on nothing but React.
+import { useBreakpointValue } from "@/systems/surface/presentation";
 
 // =============================================================================
 // Devtool System Provider
@@ -61,6 +64,12 @@ export const DRAGGABLE_INSTANCES = [
 export type PhonePalette = "sheet" | "popover";
 export const PHONE_PALETTE_DEFAULT: PhonePalette = "sheet";
 
+/**
+ * Whether this viewport has a bottom edge worth docking to. Tailwind's `sm`,
+ * the same width at which every other surface stops being a bottom sheet.
+ */
+const CAN_DOCK = { base: true, sm: false };
+
 // =============================================================================
 // Docking
 // Where the devtool lives. Two booleans rather than a list of shapes, because
@@ -74,6 +83,24 @@ export const PHONE_PALETTE_DEFAULT: PhonePalette = "sheet";
 // the pill. Docked and closed is nothing at all — the way back is `D` or the
 // command palette. A desktop has no bottom edge worth docking to, so it reads
 // as floating whatever this says, which is exactly how it has always behaved.
+//
+// `isFloating` therefore belongs here rather than in the dock: the palette's
+// switch needs the same answer, and two places deciding it is two places to
+// drift apart.
+//
+// ON AND OFF ARE NOT `isEnabled`. What a person means by "the devtool is on"
+// is "there is some of it on screen", and the two dockings answer that
+// differently:
+//
+//   floating   the pill stands by whenever it is enabled, so on = `isEnabled`.
+//   docked     there is no pill. Nothing is left behind when the drawer goes
+//              down, so on = `isOpen` — swiping the drawer away IS off, and
+//              must not take two presses to undo.
+//
+// That is `isShowing`, and `toggleShowing` is the switch built on it. Off in
+// the docked case closes the drawer without disabling: `isEnabled` is also
+// what keeps the ambient overrides live (see systems/ambient/provider.tsx),
+// and putting a panel away is not the same as throwing its state away.
 // =============================================================================
 
 // =============================================================================
@@ -162,10 +189,22 @@ interface DevtoolContextType {
   close: () => void;
   /**
    * Whether the devtool floats free rather than docking to an edge. Set by
-   * pulling the sheet off the bottom edge, cleared by docking it again; a
-   * desktop reads as floating regardless (see dock.tsx).
+   * pulling the sheet off the bottom edge, cleared by docking it again. This is
+   * the stored preference; `isFloating` is what is actually true right now.
    */
   isDetached: boolean;
+  /** Whether this viewport has a bottom edge worth docking to. */
+  canDock: boolean;
+  /** Detached, or on a viewport with nowhere to dock. The shape-deciding one. */
+  isFloating: boolean;
+  /**
+   * Is any of the devtool on screen? Floating: the pill stands by, so this is
+   * `isEnabled`. Docked: there is no pill, so this is `isOpen`. What the
+   * command palette's On / Off reports.
+   */
+  isShowing: boolean;
+  /** The palette's switch: put the devtool on screen, or take it off. */
+  toggleShowing: () => void;
   /** Lift the devtool off the edge — it collapses to the floating pill. */
   detach: () => void;
   /** Put it back on the edge — it reopens as the sheet. */
@@ -335,6 +374,24 @@ export function DevtoolProvider({
     setIsOpen(true);
   }, []);
 
+  const canDock = useBreakpointValue(CAN_DOCK);
+  const isFloating = isDetached || !canDock;
+  // See the note at the top of this file: on and off are about what is on
+  // screen, and the two dockings leave different things behind.
+  const isShowing = isFloating ? isEnabled : isOpen;
+
+  const toggleShowing = useCallback(() => {
+    if (!isShowing) {
+      summon();
+      return;
+    }
+    // Floating: the pill is the thing on screen, so off means disabled.
+    // Docked: only the drawer is, and putting it away is not disabling —
+    // `isEnabled` also keeps the ambient overrides live.
+    if (isFloating) setEnabled(false);
+    else close();
+  }, [isShowing, isFloating, summon, setEnabled, close]);
+
   const getDraggableConfig = useCallback(
     (id: string): DraggableInstanceConfig => {
       const defaults = DRAGGABLE_DEFAULTS[id] || {
@@ -423,6 +480,10 @@ export function DevtoolProvider({
         summon,
         close,
         isDetached,
+        canDock,
+        isFloating,
+        isShowing,
+        toggleShowing,
         detach,
         dock,
         toggleEnabled,

@@ -14,14 +14,25 @@ import { useCompactViewport } from "./use-compact-viewport";
 
 /**
  * Hold the search button this long and the devtool opens. Undocumented on
- * purpose and deliberately far past any accidental press: a phone has no `D`
- * key, and the palette's own Debug Panel row is the way in that is meant to be
- * found. This is the one for whoever already knows.
+ * purpose: a phone has no `D` key, and the palette's own Debug Panel row is the
+ * way in that is meant to be found. This is the one for whoever already knows.
  */
-const DEVTOOL_HOLD_MS = 3000;
+const DEVTOOL_HOLD_MS = 1200;
+
+/**
+ * Nothing happens visibly before this. A tap is ~100ms and a hesitant one
+ * rarely half that again, so no ordinary press ever sees the ring — which is
+ * what keeps this hidden while still making the second half of the hold
+ * legible. The feedback is also what makes a shorter hold safe: an accidental
+ * one announces itself in time to let go.
+ */
+const DEVTOOL_HOLD_REVEAL_MS = 700;
 
 /** A press that slides this far is a drag or a scroll, not a hold. */
 const HOLD_SLOP_PX = 10;
+
+/** How far outside the button the ring starts before closing onto it. */
+const HOLD_RING_OUTSET = 10;
 
 export function FloatingActionButton() {
   const { toggle } = useCommand();
@@ -40,27 +51,58 @@ export function FloatingActionButton() {
   // screen; above it the controls float over the bar.
   const compact = useCompactViewport();
 
-  // The hold that opens the devtool. Kept in refs: nothing about it renders,
-  // and a state update mid-press would only fight the drag above.
+  // The hold that opens the devtool. Timers and the press live in refs — a
+  // state update mid-press would only fight the drag below — but the ring is
+  // state, because it has to render.
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdOrigin = useRef<{ x: number; y: number } | null>(null);
   const heldRef = useRef(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  // Measured once when the ring appears: a finger covers the button, so the
+  // feedback has to live outside it, and the button is not moving by then.
+  const [holdRing, setHoldRing] = useState<{
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    r: number;
+  } | null>(null);
 
   const cancelHold = useCallback(() => {
-    if (holdTimer.current !== null) {
-      clearTimeout(holdTimer.current);
-      holdTimer.current = null;
+    for (const timer of [holdTimer, revealTimer]) {
+      if (timer.current !== null) {
+        clearTimeout(timer.current);
+        timer.current = null;
+      }
     }
     holdOrigin.current = null;
+    setHoldRing(null);
   }, []);
 
   const startHold = useCallback(
     (e: React.PointerEvent) => {
       heldRef.current = false;
       holdOrigin.current = { x: e.clientX, y: e.clientY };
+      revealTimer.current = setTimeout(() => {
+        revealTimer.current = null;
+        const el = buttonRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        setHoldRing({
+          x: rect.x,
+          y: rect.y,
+          w: rect.width,
+          h: rect.height,
+          // Both shapes of this button are radius 24; the ring sits outside
+          // them, so it takes the same curve plus its own outset.
+          r: 24 + HOLD_RING_OUTSET,
+        });
+      }, DEVTOOL_HOLD_REVEAL_MS);
       holdTimer.current = setTimeout(() => {
         holdTimer.current = null;
         heldRef.current = true;
+        setHoldRing(null);
         summonDevtool();
       }, DEVTOOL_HOLD_MS);
     },
@@ -100,6 +142,7 @@ export function FloatingActionButton() {
       )}
     >
       <motion.button
+        ref={buttonRef}
         layout
         // The hold has already done something by the time the finger lifts,
         // so the press that carried it must not also open the palette.
@@ -225,9 +268,49 @@ export function FloatingActionButton() {
     </div>
   );
 
-  if (!isDraggable) return fab;
+  // The charge, drawn OUTSIDE the button, because a finger is on the button.
+  // A ring that starts wide and closes onto the button's own edge exactly as
+  // the hold completes: visible past a thumb from any direction, legible as
+  // "something is filling up" without a progress readout, and shape-agnostic —
+  // both shapes of this button share a radius.
+  const ring = (
+    <AnimatePresence>
+      {holdRing && (
+        <motion.span
+          aria-hidden
+          data-hold-ring
+          initial={{ scale: 1.3, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 1.08, opacity: 0, transition: { duration: 0.18 } }}
+          transition={{
+            duration: (DEVTOOL_HOLD_MS - DEVTOOL_HOLD_REVEAL_MS) / 1000,
+            ease: "linear",
+          }}
+          style={{
+            position: "fixed",
+            left: holdRing.x - HOLD_RING_OUTSET,
+            top: holdRing.y - HOLD_RING_OUTSET,
+            width: holdRing.w + HOLD_RING_OUTSET * 2,
+            height: holdRing.h + HOLD_RING_OUTSET * 2,
+            borderRadius: holdRing.r,
+            zIndex: 9998,
+          }}
+          className="pointer-events-none border-2 border-foreground/35"
+        />
+      )}
+    </AnimatePresence>
+  );
+
+  if (!isDraggable)
+    return (
+      <>
+        {fab}
+        {ring}
+      </>
+    );
 
   return (
+    <>
     <motion.div
       style={{
         ...drag.motionStyle,
@@ -252,5 +335,7 @@ export function FloatingActionButton() {
         {fab}
       </div>
     </motion.div>
+    {ring}
+    </>
   );
 }

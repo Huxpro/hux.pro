@@ -148,23 +148,55 @@ and on a phone the sheet's grabber replaces dragging entirely.
 | Way in | What it does |
 |--------|--------------|
 | `D` | Toggles the panel, once the devtool is on. Docked: sheet ⇄ nothing. Floating: window ⇄ pill. |
-| Command palette (`D` in slash mode, or "Debug Panel") | The on/off switch it has always been — but **on** means on *and showing*: it runs `summon()`, which enables and opens in one action. Off turns it off. |
-| Hold the search button for 3s | `summon()`. Undocumented. |
+| Command palette (`D` in slash mode, or "Debug Panel") | The on/off switch — see below. |
+| Hold the search button | Summons it. Undocumented. |
 | The pill | Only there when floating. |
 
-The palette row is still `Debug Panel: On` / `Off`, and its `kind` follows what
-the press will do — turning it on opens a surface, so the palette stays behind
-it as a stack; turning it off opens nothing, so it leaves like any other
-setting. A switch that turns a panel on without putting it on screen is a
-switch with no feedback, and on a phone (no `D` key) this is the way in.
+**On and off are about what is on screen**, which is not the same as
+`isEnabled`, and the two dockings answer it differently:
+
+| | What "on" means | Off does |
+|---|---|---|
+| floating | `isEnabled` — the pill stands by, so it is on screen | disables; pill and window go |
+| docked | `isOpen` — there is no pill, so the drawer has to actually be up | closes the drawer |
+
+That is `isShowing` / `toggleShowing` on the provider, and the palette row just
+reports it. The docked case is the one that used to be wrong: reading
+`isEnabled` there meant that after swiping the drawer away the row still said
+`On` with nothing on screen, so turning it back on took two presses — one to
+"turn off" something invisible, one to turn it on again. **Swiping the drawer
+down is off**, and one press brings it back.
+
+Off in the docked case closes without disabling on purpose: `isEnabled` is also
+what keeps the ambient overrides live (`systems/ambient/provider.tsx`), and
+putting a panel away is not throwing its state away. To actually disable from
+a phone, use the footer's "Disable Devtool".
+
+`isFloating` and `canDock` live on the provider rather than in `dock.tsx`,
+because this switch needs the same answer the shape does, and two places
+deciding it is two places to drift apart.
+
+The row's `kind` follows what the press will do — on opens a surface, so the
+palette stays behind it as a stack; off opens nothing, so it leaves like any
+other setting.
 
 **The hidden one.** Holding the search button — either shape, the homepage
-search bar or the round FAB — for `DEVTOOL_HOLD_MS` (3s) summons the devtool.
-Deliberately far past any accidental press, and the press that carried it does
-not also open the palette. A slide of more than 10px is a drag or a scroll and
-cancels it. See `systems/command/fab.tsx`.
+search bar or the round FAB — for `DEVTOOL_HOLD_MS` (1.2s) summons the devtool.
+The press that carried it does not also open the palette, and a slide of more
+than 10px is a drag or a scroll and cancels it.
 
-Turning the devtool **off** is also the panel footer's "Disable Devtool".
+It is a short hold because it is not a blind one. Nothing shows for the first
+`DEVTOOL_HOLD_REVEAL_MS` (700ms) — past any tap, so an ordinary press never
+sees it and the entrance stays hidden — and then a ring closes from 1.3× onto
+the button's own edge, arriving exactly as the hold completes. The feedback is
+what makes the shorter hold safe: an accidental hold announces itself in time
+to let go.
+
+The ring is drawn **outside** the button, at a measured `fixed` rect rather
+than inside it: a finger is on the button, so anything drawn there — a
+swapped icon, a fill — is under the fingertip and invisible. Both shapes of
+the button share a 24px radius, so one ring fits both. See
+`systems/command/fab.tsx`.
 
 ### Keyboard Shortcut
 
@@ -250,7 +282,11 @@ is its own range input.
 const {
   isEnabled,        // Whether devtool is enabled at all
   isOpen,           // Whether the modules are showing
-  isDetached,       // Floating free rather than docked to an edge
+  isDetached,       // The stored preference: pulled off the edge
+  canDock,          // Does this viewport have an edge worth docking to?
+  isFloating,       // isDetached || !canDock — the shape-deciding one
+  isShowing,        // Is any of it on screen? (see "Getting in and out")
+  toggleShowing,    // The palette's On / Off switch
   toggle,           // Toggle the panel
   open,
   summon,           // Enable if needed, then open — what the palette runs

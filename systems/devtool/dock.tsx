@@ -8,7 +8,6 @@ import {
   SurfaceBody,
   SurfaceSheet,
   SurfaceWindow,
-  useBreakpointValue,
 } from "@/systems/surface";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bug, PanelBottom } from "lucide-react";
@@ -55,12 +54,6 @@ import { useDevtool } from "./provider";
 // still the shared one (<SurfaceBody>), so the devtool looks like every other
 // surface in all three states.
 // =============================================================================
-
-/**
- * Whether this viewport has a bottom edge worth docking to. Tailwind's `sm`,
- * the same width at which every other surface stops being a bottom sheet.
- */
-const CAN_DOCK = { base: true, sm: false };
 
 /** Width of the floating window. The pill shares its top-right anchor. */
 const WINDOW_WIDTH = "min(calc(100vw - 2rem), 420px)";
@@ -290,8 +283,10 @@ function DevtoolPill({
 export function DevtoolFAB() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { isEnabled, isOpen, isDetached, close, detach, dock } = useDevtool();
-  const canDock = useBreakpointValue(CAN_DOCK);
+  // `canDock` / `isFloating` come from the provider: the palette's switch reads
+  // the same pair, and two places deciding it is two places to drift apart.
+  const { isEnabled, isOpen, canDock, isFloating, close, detach, dock } =
+    useDevtool();
   const [pillDrag, setPillDrag] = useState({
     dragging: false,
     over: false,
@@ -299,9 +294,6 @@ export function DevtoolFAB() {
   });
 
   if (!isEnabled) return null;
-
-  // A viewport with no edge to dock to is floating whatever the setting says.
-  const floating = isDetached || !canDock;
 
   const body = (
     <SurfaceBody
@@ -312,7 +304,7 @@ export function DevtoolFAB() {
       contentClassName="pb-0"
       footer={<DevtoolFooter />}
       actions={
-        floating && canDock ? (
+        isFloating && canDock ? (
           <button
             onClick={dock}
             aria-label={zh ? "停靠到底部" : "Dock to the bottom edge"}
@@ -327,7 +319,7 @@ export function DevtoolFAB() {
     </SurfaceBody>
   );
 
-  if (floating) {
+  if (isFloating) {
     return (
       <>
         {/* Rendered rather than hidden, so it remounts when the window closes
