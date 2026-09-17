@@ -231,8 +231,9 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
  * start (so card 1 isn't frosted at rest), the right pocket disappears at
  * the end (so the last card lands clear over the trailing whitespace).
  *
- * The pockets are glass, not `from-background` — they sit on the wallpaper
- * / Clear surface instead of covering it with page colour.
+ * The pockets sit on the transparent surface, not `from-background`: a
+ * mask opens the cutoff onto the wallpaper, and a short ink+blur frost
+ * replaces the old page-colour slab.
  */
 function CardScrollRail({ children }: { children: ReactNode }) {
   const scrollRef = useRef<HTMLDivElement>(null);

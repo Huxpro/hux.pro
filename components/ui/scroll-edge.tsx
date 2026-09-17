@@ -11,8 +11,9 @@ import { cn } from "@/lib/utils";
 //
 //   1. `scrollEdgeMask` — the clipped content itself goes transparent, so
 //      whatever is behind (wallpaper, Clear glass, the page) shows through.
-//   2. `ScrollEdgeFade` — a short backdrop blur, masked to a falloff, with
-//      no fill. The cutoff frosts; it does not get a material painted on it.
+//   2. `ScrollEdgeFade` — a short backdrop blur + whisper of ink, masked
+//      to a falloff. The cutoff frosts; it does not get card colour painted
+//      on it (`--glass` is that colour at an alpha, i.e. the old bug).
 // =============================================================================
 
 export type ScrollEdge = "left" | "right" | "top" | "bottom";
@@ -64,8 +65,10 @@ export function ScrollEdgeFade({
       className={cn(
         "pointer-events-none absolute",
         POS[edge],
-        // Blur only — a fill here would be card colour on the wallpaper.
-        "backdrop-blur-md",
+        // Blur + a whisper of ink, never card colour. `--glass` is a white
+        // (or near-black) wash on a wallpaper; `--ink` at a few percent is
+        // the same dimming-on-transparency the rest of the page uses.
+        "bg-ink/5 backdrop-blur-md",
         "transition-opacity duration-200",
         visible ? "opacity-100" : "opacity-0",
         className,
