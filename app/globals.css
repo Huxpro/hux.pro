@@ -1516,3 +1516,101 @@ html.dragging * {
     transition: none;
   }
 }
+
+/* =============================================================================
+   Dock panel motion — `[data-dock-panel]`, `[data-dock-pill]`
+   The Live Activity panel is the same library as the sheets above, travelling
+   UP instead of DOWN: a Base UI drawer anchored at the top of the screen that
+   puts itself away over the top edge. It gets its own block rather than a
+   `[data-swipe-direction="up"]` arm of the surface rules, because a top panel
+   shares none of the sheet's geometry — no detents, no padding-as-travel, no
+   bottom inset — and only the shell recede (`[data-surface-shell]`, above) is
+   genuinely common.
+
+   From Base UI, on the popup: `--drawer-swipe-movement-y` (the live drag) and
+   `--drawer-swipe-strength` (how hard it was flicked). From live-activity.tsx:
+   `--surface-duration`, `--surface-easing`, `--surface-exit`.
+
+   NOTHING HERE ANIMATES THE OPACITY OF A BOX THAT CONTAINS GLASS. An element
+   at `opacity < 1` is its own backdrop root, so a `backdrop-filter` inside it
+   samples that empty group rather than the page, and the glass is simply not
+   there for the length of the animation. A fade on the popup made the whole
+   panel see-through on the way in — the page's text read straight through it,
+   unblurred — and the same fade on the pill row would do it to the pills. The
+   panel therefore arrives and leaves on transform alone, out of and back over
+   the top edge, and the pill's fade sits on the pill itself, the same element
+   that carries the blur. The sheets above are transform-only for this reason
+   too.
+
+   Before changing a rule, read the "BEFORE CHANGING THIS FILE" block at the
+   top of systems/dock/components/live-activity.tsx — the three notes there are
+   what these rules are shaped around.
+   ============================================================================= */
+
+[data-dock-panel] {
+  transform: translateY(var(--drawer-swipe-movement-y, 0px));
+  transition: transform var(--surface-duration) var(--surface-easing);
+}
+
+/* Under the finger the panel is direct. The duration only, never the whole
+   transition — same reason as the sheet: on the frame a dismiss is released
+   the popup can be swiping and leaving at once, and the leaving rule below
+   restores a duration, not a property to run on. */
+[data-dock-panel][data-swiping] {
+  transition-duration: 0ms;
+}
+
+/* Arriving and leaving: up past the top edge, and past the inset as well, so
+   the panel is gone rather than clipped at the status bar. */
+[data-dock-panel]:is([data-starting-style], [data-ending-style]) {
+  transform: translateY(calc(-100% - var(--surface-exit)));
+}
+
+/* Pulled open from the pill. `Drawer.SwipeArea` opens the drawer on the first
+   pixel of the drag, so the panel arrives — `data-starting-style` and all —
+   while the finger is still down, and the rule above would hide it for the
+   whole gesture. Under the finger the finger wins. Starting style only: on a
+   release the popup carries `data-swiping` and `data-ending-style` together,
+   and pinning it to the finger there would strand it on screen. */
+[data-dock-panel][data-swiping][data-starting-style] {
+  transform: translateY(var(--drawer-swipe-movement-y, 0px));
+}
+
+/* Thrown away: the harder the flick, the sooner it is gone. */
+[data-dock-panel][data-ending-style] {
+  transition-duration: calc(var(--drawer-swipe-strength, 1) * var(--surface-duration));
+}
+
+/* The pills stay in the row while a panel is open, so the row keeps its
+   layout and its scroll position, but the open panel stands alone. The
+   wrapper stops taking pointers; the fade is one level down, on the pill
+   itself, because the pill IS the glass (see the note at the top of this
+   block). */
+[data-dock-pill] {
+  transform-origin: top center;
+}
+
+[data-dock-pill] > * {
+  /* The site's surface curve, written out: the pill sits in the dock row, not
+     under the popup that carries `--surface-easing`. */
+  transition:
+    opacity 220ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  transform-origin: top center;
+}
+
+[data-dock-pill][data-hidden] {
+  pointer-events: none;
+}
+
+[data-dock-pill][data-hidden] > * {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-dock-panel],
+  [data-dock-pill] > * {
+    transition: none;
+  }
+}
