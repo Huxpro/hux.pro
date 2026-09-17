@@ -369,6 +369,7 @@ export class WallpaperRenderer {
   private locWipeCount: WebGLUniformLocation | null = null;
   private locWipeBox: WebGLUniformLocation | null = null;
   private locWipeBlow: WebGLUniformLocation | null = null;
+  private locFrameSec: WebGLUniformLocation | null = null;
   /** Per-frame easing factors, one per distinct tau. */
   private ks = new Float64Array(TAUS.length);
   private vao: WebGLVertexArrayObject | null = null;
@@ -807,6 +808,7 @@ export class WallpaperRenderer {
     this.locWipeCount = gl.getUniformLocation(program, "uWipeCount");
     this.locWipeBox = gl.getUniformLocation(program, "uWipeBox");
     this.locWipeBlow = gl.getUniformLocation(program, "uWipeBlow");
+    this.locFrameSec = gl.getUniformLocation(program, "uFrameSec");
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
     return true;
@@ -1326,6 +1328,10 @@ export class WallpaperRenderer {
       this.aimWipe();
       gl.uniform2f(this.locWipeBlow, this.wipeBlow[0], this.wipeBlow[1]);
     }
+    // How long a frame is taking, smoothed — the same number adaptQuality()
+    // steers the resolution by. Anything that moves fast enough to leave gaps
+    // between frames needs to know it (see the meteor's wake in shader.ts).
+    gl.uniform1f(this.locFrameSec, this.frameEma / 1000);
 
     const c = this.current;
     for (let i = 0; i < META.length; i++) {

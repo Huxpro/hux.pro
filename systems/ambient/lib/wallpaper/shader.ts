@@ -49,6 +49,7 @@ out vec4 fragColor;
 
 uniform vec2  uResolution;
 uniform float uTime;
+uniform float uFrameSec;     // smoothed frame interval; what "one frame" means
 uniform float uSeed;
 // Accumulated travel, in JS, from the smoothed wind. Positive travels right.
 uniform float uCloudDrift;
@@ -906,10 +907,10 @@ float fogWipe(vec2 p, float aspect) {
  * METEOR_LIFE is POKE_MS.meteor: the renderer retires the poke then, so the
  * trail has to be gone by then or it vanishes mid-fade.
  */
-const float METEOR_SPEED = 2.8;
-const float METEOR_MIN_FLIGHT = 0.3;
-const float METEOR_MAX_FLIGHT = 0.75;
-const float METEOR_LIFE = 1.2;
+const float METEOR_SPEED = 1.6;
+const float METEOR_MIN_FLIGHT = 0.45;
+const float METEOR_MAX_FLIGHT = 1.25;
+const float METEOR_LIFE = 1.7;
 /** How far outside the frame it starts, so it is plainly arriving from away. */
 const float METEOR_EDGE = 0.06;
 /**
@@ -924,8 +925,19 @@ const float METEOR_EDGE = 0.06;
  * that its greater length never adds up to a band.
  *
  * The wake is the air just behind the head, still hot; the train is what is
- * left of it a moment later. One clock is 3.5x the other, which is why they
- * read as two things.
+ * left of it a moment later. One clock is 3x the other, which is why they read
+ * as two things.
+ *
+ * The wake's clock also has a floor that has nothing to do with meteors and
+ * everything to do with displays. The dash is tau x speed long and the head
+ * moves speed/fps between frames, so what decides whether consecutive frames
+ * overlap is tau x fps — the speed cancels, and slowing a strobing meteor down
+ * does not stop it strobing. An earlier cut moved the head 44 px a frame behind
+ * a 25 px dash: a row of separate dashes, which is why it looked broken and
+ * even slightly bent in motion while every still frame of it looked right. So
+ * the wake is never shorter than about two frames of travel, taken from the
+ * renderer's own measured frame time rather than from a guess about the
+ * hardware; on a machine that drops to 20 fps the dash lengthens to match.
  *
  * The train's decay is deliberately steeper than an exponential, and that is
  * the difference between a train and a line that dims. Under a plain
@@ -937,8 +949,8 @@ const float METEOR_EDGE = 0.06;
  * meteor died, which is what a real one does (recombination is not a one-body
  * process and does not decay like one).
  */
-const float METEOR_WAKE_TAU = 0.026;
-const float METEOR_TRAIN_TAU = 0.09;
+const float METEOR_WAKE_TAU = 0.055;
+const float METEOR_TRAIN_TAU = 0.17;
 const float METEOR_TRAIN_FALL = 1.8;
 /** How much of the head's light the train carries — a ghost, not a second tail. */
 const float METEOR_TRAIN_GAIN = 0.18;
@@ -1063,7 +1075,11 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   float old = max(age - q * span, 0.0);
   float lit = meteorGlow(q * lastLit, peak);
   float px = 0.9 / uResolution.y;
-  wake = exp(-d / max(0.0021, px)) * exp(-old / METEOR_WAKE_TAU) * lit;
+  // Capped, or the adaptation runs away: at a few frames a second the dash
+  // would grow past a screen height and be the light beam again. Under about
+  // 15 fps it goes back to strobing, and at that frame rate so does the page.
+  float wakeTau = max(METEOR_WAKE_TAU, min(uFrameSec * 1.8, 0.12));
+  wake = exp(-d / max(0.0021, px)) * exp(-old / wakeTau) * lit;
   // Spreading dims as well as widens: the same light over a wider thread, so
   // the surface brightness goes down with the width it went up with.
   float spread = 1.0 + old * 8.0;

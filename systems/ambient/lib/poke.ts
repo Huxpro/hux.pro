@@ -60,7 +60,7 @@ export const POKE_MS: Record<PokeKind, number> = {
   // pace whatever the distance, so a long sweep takes the better part of a
   // second and its train wants a beat after that. The shader's METEOR_LIFE is
   // this number — keep the two together.
-  meteor: 1200,
+  meteor: 1700,
 };
 
 /**

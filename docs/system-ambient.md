@@ -612,12 +612,12 @@ thunder or foggy night can never have one.
   is over quickly — bounded at both ends (`METEOR_MIN_FLIGHT` /
   `METEOR_MAX_FLIGHT`) so the shortest is never a blink and the longest still
   fits the poke's lifetime on a very wide screen.
-- **The head crosses the clicked point 0.03–0.4 s in**, depending on how far
-  away its entry edge was, and the streak itself is on screen from ~0.02 s. That
-  promptness is part of what "fires every time" means: an egg that answers late
-  reads as broken just as an egg that answers one click in five does — and so is
-  brightness, which is why the head is never under about a third of its peak
-  where you pointed.
+- **The head crosses the clicked point 0.06–0.73 s in** (median 0.23 s),
+  depending on how far away its entry edge was, and the streak itself is on
+  screen from ~0.03 s. Something appearing promptly is part of what "fires every
+  time" means — an egg that answers late reads as broken just as an egg that
+  answers one click in five does — and so is brightness, which is why the head
+  is never under about a third of its peak where you pointed.
 - **The pace is constant.** A meteor does not slow down, it stops giving off
   light, and those two look nothing alike: an eased path reads as a thrown
   object losing steam, or worse, as an animation curve, and the eye knows that
@@ -651,8 +651,22 @@ thunder or foggy night can never have one.
   full path only appears in a photograph, which integrates the whole flight. So
   the wake is a short bright dash (`METEOR_WAKE_TAU`) and the train is a faint
   ghost (`METEOR_TRAIN_GAIN`) whose greater length never adds up to a band. It
-  now measures 241 px at its longest, a quarter of the height, with the bright
-  part inside the first 25.
+  now measures under 300 px at its longest, a third of the height, with the
+  bright part inside the first 55.
+- **The wake also has a floor that is about displays, not meteors.** The dash is
+  `tau × speed` long and the head moves `speed/fps` between frames, so what
+  decides whether consecutive frames *overlap* is `tau × fps` — the speed
+  cancels, and slowing a strobing meteor down does not stop it strobing. A cut
+  of this moved the head 44 px a frame behind a 25 px dash, which drew a row of
+  separate dashes: broken, and in motion faintly bent, while every still frame
+  of it looked right. The wake is therefore never shorter than about two frames
+  of travel, taken from `uFrameSec` — the renderer's own measured frame time,
+  the same number `adaptQuality` steers resolution by — so a machine that drops
+  to 20 fps gets a longer dash instead of a strobe, capped so that the
+  adaptation cannot run away and draw the beam back at a few frames a second.
+  With that floor in hand the
+  pace could come down to something watchable: 25 px a frame, 39 frames of
+  flight, against 44 px and 22 frames before.
 - **Every point of the train decays on its own clock.** Constant pace is what
   makes that cheap: where a bit of the streak sits says *when* the head made it,
   and so both how old it is now and how bright the head was that made it. Hence
