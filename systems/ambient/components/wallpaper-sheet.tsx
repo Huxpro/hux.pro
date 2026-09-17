@@ -575,21 +575,19 @@ function WallpaperPickerBody() {
         />
       </div>
       {playAlbumCategory && (
-        <div
-          className="space-y-3 pb-4"
-          // Same cell size as the catalog: two columns of an N-col grid, so
-          // Shuffle / Loop do not inflate to half-width on the desktop.
-          style={
-            columns > 2
-              ? {
-                  maxWidth: `calc((100% - ${(columns - 1) * 0.75}rem) / ${columns} * 2 + 0.75rem)`,
-                }
-              : undefined
-          }
-        >
+        <div className="space-y-3 pb-4">
           <div
             className="grid gap-x-3"
-            style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
+            // Same cell size as the catalog: two columns of an N-col grid, so
+            // Shuffle / Loop do not inflate to half-width on the desktop.
+            style={{
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              ...(columns > 2
+                ? {
+                    maxWidth: `calc((100% - ${(columns - 1) * 0.75}rem) / ${columns} * 2 + 0.75rem)`,
+                  }
+                : null),
+            }}
           >
             {(["shuffle", "loop"] as const).map((mode) => (
               <PlayTile
