@@ -280,14 +280,22 @@ shows at an angle:
   line through it.)
 - **It is CSS, not a JS animator.** The rain is level only for as long as the
   phone's rotation and the rain's counter-rotation stay exactly opposite, and
-  two declarative animations of one duration cannot drift where two dozen
+  two declarative animations of one duration cannot drift where a dozen
   independently started JS springs can — over a live WebGL sky, on a main
-  thread already spoken for. Four animations drive the whole thing whatever the
-  drop count, because each layer is a seamless tile stamped three times and
+  thread already spoken for. Three animations drive the whole thing whatever
+  the drop count, because the rain is a seamless tile stamped three times and
   slid by exactly one tile, rather than an animation per drop. Under
   `prefers-reduced-motion` they are simply paused at 0%, which is a tilted
   phone with level rain — the still frame IS the animation, not a second
   drawing to keep in step.
+
+And it is **a diagram, not a downpour**: eleven strokes evenly spaced, one
+length and one weight, about five on screen. It has exactly one thing to say,
+and every drop past the few it takes to read as rain competes with it. Even
+spacing for the same reason — scattered drops read as a simulation, and a
+window showing only two fifths of the field turns scatter into clumps as the
+field rotates through it. The fall is slow, because the rocking is the thing to
+watch.
 
 **And it stays up to say how it went.** The sheet is the only thing on screen
 that can. A refusal especially: the sky simply goes on falling straight down,

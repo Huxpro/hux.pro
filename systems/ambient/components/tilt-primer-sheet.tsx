@@ -37,10 +37,17 @@ import { useWallpaper } from "../provider";
 // ---------------------------------------------------------------------------
 
 /**
- * The rain, as two seamless tiles — a far layer and a near one, each `TILE`
- * units tall and stamped three times so a slide of exactly one tile loops
- * without a seam. Fixed rather than generated, because a field rolled at
- * render time would differ between the server's HTML and the client's.
+ * The rain, as one seamless tile `TILE` units tall, stamped three times so a
+ * slide of exactly one tile loops without a seam. Fixed rather than generated,
+ * because a field rolled at render time would differ between the server's HTML
+ * and the client's.
+ *
+ * Eleven strokes, evenly spaced, all one length and one weight — about five on
+ * screen at a time. This is a diagram and not a downpour: it has exactly one
+ * thing to say, and every drop past the few it takes to read as rain is a
+ * distraction competing with it. Even spacing for the same reason — scattered
+ * drops read as a simulation, and a window showing only two fifths of the field
+ * turns scatter into clumps as the field rotates through it.
  *
  * The x range is wider than the screen on purpose. The field turns under the
  * phone, and a field only as wide as the screen swings out from under its own
@@ -50,54 +57,20 @@ import { useWallpaper } from "../provider";
  * globals.css.
  */
 const TILE = 120;
+const LEN = 28;
 
-const RAIN_FAR = [
-  { x: -31.1, y: 67.2, len: 13.5, o: 0.2 },
-  { x: -24.5, y: 70.5, len: 9.1, o: 0.2 },
-  { x: -17.4, y: 95.2, len: 8.6, o: 0.18 },
-  { x: -14.5, y: 97.2, len: 12.2, o: 0.15 },
-  { x: -2.6, y: 115.8, len: 11.9, o: 0.21 },
-  { x: -1.5, y: 1.8, len: 11.2, o: 0.15 },
-  { x: 5.0, y: 29.0, len: 8.2, o: 0.2 },
-  { x: 12.9, y: 101.1, len: 11.1, o: 0.22 },
-  { x: 19.6, y: 79.5, len: 10.7, o: 0.17 },
-  { x: 29.1, y: 119.5, len: 13.0, o: 0.22 },
-  { x: 31.1, y: 27.6, len: 9.7, o: 0.15 },
-  { x: 40.2, y: 48.0, len: 13.1, o: 0.19 },
-  { x: 47.7, y: 101.7, len: 8.0, o: 0.17 },
-  { x: 53.7, y: 56.4, len: 13.9, o: 0.19 },
-  { x: 54.8, y: 75.5, len: 12.7, o: 0.17 },
-  { x: 61.2, y: 39.9, len: 13.8, o: 0.23 },
-  { x: 67.7, y: 29.6, len: 8.6, o: 0.15 },
-  { x: 78.3, y: 21.3, len: 11.4, o: 0.19 },
-  { x: 80.7, y: 87.8, len: 8.8, o: 0.22 },
-  { x: 86.6, y: 50.5, len: 9.3, o: 0.17 },
-  { x: 98.3, y: 96.4, len: 9.8, o: 0.25 },
-  { x: 99.8, y: 47.3, len: 13.1, o: 0.22 },
-  { x: 105.4, y: 118.7, len: 9.3, o: 0.17 },
-  { x: 116.0, y: 39.5, len: 9.8, o: 0.15 },
-  { x: 118.0, y: 69.9, len: 9.5, o: 0.21 },
-  { x: 126.0, y: 54.4, len: 13.8, o: 0.2 },
-];
-
-const RAIN_NEAR = [
-  { x: -28.7, y: 41.5, len: 22.6, o: 0.36 },
-  { x: -19.4, y: 41.3, len: 18.7, o: 0.49 },
-  { x: -13.7, y: 53.4, len: 17.0, o: 0.37 },
-  { x: 4.6, y: 39.5, len: 20.5, o: 0.38 },
-  { x: 11.6, y: 53.7, len: 16.5, o: 0.39 },
-  { x: 18.2, y: 95.1, len: 20.1, o: 0.34 },
-  { x: 30.4, y: 35.8, len: 19.6, o: 0.34 },
-  { x: 37.5, y: 94.3, len: 19.6, o: 0.45 },
-  { x: 50.5, y: 70.5, len: 20.8, o: 0.38 },
-  { x: 58.8, y: 93.3, len: 15.9, o: 0.49 },
-  { x: 66.0, y: 16.7, len: 16.4, o: 0.37 },
-  { x: 72.8, y: 47.7, len: 18.7, o: 0.43 },
-  { x: 86.3, y: 112.2, len: 20.9, o: 0.36 },
-  { x: 99.9, y: 83.9, len: 23.7, o: 0.45 },
-  { x: 110.4, y: 24.6, len: 17.5, o: 0.49 },
-  { x: 110.9, y: 110.9, len: 23.2, o: 0.33 },
-  { x: 121.8, y: 109.9, len: 23.6, o: 0.47 },
+const RAIN = [
+  { x: -26.5, y: 28.6 },
+  { x: -11.5, y: 65.3 },
+  { x: 3.5, y: 44.4 },
+  { x: 18.5, y: 72.5 },
+  { x: 33.5, y: 75.1 },
+  { x: 48.5, y: 7.9 },
+  { x: 63.5, y: 1.6 },
+  { x: 78.5, y: 100.5 },
+  { x: 93.5, y: 31.1 },
+  { x: 108.5, y: 28.1 },
+  { x: 123.5, y: 119.5 },
 ];
 
 /**
@@ -112,27 +85,6 @@ const RAIN_NEAR = [
  *             the sentence saying so.
  */
 type Pose = "rocking" | "flat";
-
-function Shower({ id, drops, width }: {
-  id: string;
-  drops: { x: number; y: number; len: number; o: number }[];
-  width: number;
-}) {
-  return (
-    <g id={id} className="stroke-foreground" strokeLinecap="round" strokeWidth={width}>
-      {drops.map((d) => (
-        <line
-          key={`${d.x}-${d.y}`}
-          x1={d.x}
-          x2={d.x}
-          y1={d.y}
-          y2={d.y + d.len}
-          opacity={d.o}
-        />
-      ))}
-    </g>
-  );
-}
 
 function TiltIllustration({ pose }: { pose: Pose }) {
   return (
@@ -150,8 +102,17 @@ function TiltIllustration({ pose }: { pose: Pose }) {
           <clipPath id="tilt-primer-screen">
             <rect x="13" y="9" width="70" height="142" rx="10" />
           </clipPath>
-          <Shower id="tilt-primer-far" drops={RAIN_FAR} width={1} />
-          <Shower id="tilt-primer-near" drops={RAIN_NEAR} width={1.4} />
+          <g
+            id="tilt-primer-rain"
+            className="stroke-foreground"
+            strokeLinecap="round"
+            strokeWidth={1.2}
+            opacity={0.32}
+          >
+            {RAIN.map((d) => (
+              <line key={d.x} x1={d.x} x2={d.x} y1={d.y} y2={d.y + LEN} />
+            ))}
+          </g>
         </defs>
 
         <g className="tilt-primer-phone">
@@ -180,15 +141,10 @@ function TiltIllustration({ pose }: { pose: Pose }) {
               counter-rotation the shader does per fragment, here done once. */}
           <g clipPath="url(#tilt-primer-screen)">
             <g className="tilt-primer-level">
-              <g className="tilt-primer-fall tilt-primer-fall-far">
-                <use href="#tilt-primer-far" y={-TILE} />
-                <use href="#tilt-primer-far" />
-                <use href="#tilt-primer-far" y={TILE} />
-              </g>
-              <g className="tilt-primer-fall tilt-primer-fall-near">
-                <use href="#tilt-primer-near" y={-TILE} />
-                <use href="#tilt-primer-near" />
-                <use href="#tilt-primer-near" y={TILE} />
+              <g className="tilt-primer-fall">
+                <use href="#tilt-primer-rain" y={-TILE} />
+                <use href="#tilt-primer-rain" />
+                <use href="#tilt-primer-rain" y={TILE} />
               </g>
             </g>
           </g>

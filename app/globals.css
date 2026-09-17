@@ -1748,9 +1748,11 @@ html.dragging * {
    started JS springs can. Two: this plays over a live WebGL sky, and the main
    thread is already spoken for.
 
-   Four animations in total, whatever the drop count: the shell, the level
-   group, and one per rain layer — because each layer is a seamless TILE-tall
-   tile stamped three times and slid by exactly one tile, not a drop each.
+   Three animations in total, whatever the drop count: the shell, the level
+   group, and the rain — because the rain is a seamless TILE-tall tile stamped
+   three times and slid by exactly one tile, not a drop each. The fall is slow
+   on purpose: the rocking is the thing to watch, and a busy shower competes
+   with it.
 
    The rain field is sized by the screen's HALF-DIAGONAL about the rock's
    centre (79.2 units), not by the screen box: a field only as wide as the
@@ -1808,12 +1810,8 @@ html.dragging * {
   animation: tilt-primer-unrock 3.6s ease-in-out infinite;
 }
 
-.tilt-primer-fall-far {
-  animation: tilt-primer-fall 2s linear infinite;
-}
-
-.tilt-primer-fall-near {
-  animation: tilt-primer-fall 1.2s linear infinite;
+.tilt-primer-fall {
+  animation: tilt-primer-fall 2.8s linear infinite;
 }
 
 /* Refused: upright, rain straight down the screen — what a refusal actually
