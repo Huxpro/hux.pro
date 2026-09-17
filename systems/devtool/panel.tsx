@@ -11,7 +11,7 @@ import {
   GLASS_TINTS,
   getTintLabel,
 } from "@/services";
-import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
+import { useAmbientTime, useLocation, useSolarTheme, useWallpaper, useWeather } from "@/systems/ambient";
 import { BEZEL_BAND_MAX, BEZEL_BAND_MIN, BEZEL_RADIUS_MAX } from "@hux/bezel";
 import {
   DEFAULT_BEZEL_TINT,
@@ -66,12 +66,15 @@ import {
   useBleedEnabled,
   setReadingFont,
   setReadingMeasure,
+  setReadingSize,
   setReadingFocus,
   useReadingFont,
   useReadingMeasure,
+  useReadingSize,
   useReadingFocus,
   type ReadingFont,
   type ReadingMeasure,
+  type ReadingSize,
 } from "@/components/post/reading-settings";
 import { cn } from "@/lib/utils";
 import {
@@ -107,6 +110,7 @@ import {
 } from "lucide-react";
 import { withDraggable } from "@/systems/draggable";
 import Link from "next/link";
+import { Segmented, Switch } from "@/components/ui/controls";
 import { Slider } from "@/components/ui/slider";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -650,39 +654,14 @@ function PanelRow({
   );
 }
 
-/** Pill on/off switch, matching the gradient/weather toggles. */
-function PanelToggle({
-  on,
-  onClick,
-  label,
-  disabled = false,
-}: {
-  on: boolean;
-  onClick: () => void;
-  label: string;
-  /** The setting is kept but has nothing to act on right now. */
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
-        on ? "bg-green-500/90 border-green-500/70" : "bg-muted/40 border-border/60",
-        disabled && "opacity-40 cursor-not-allowed"
-      )}
-      aria-pressed={on}
-      aria-label={label}
-    >
-      <span
-        className={cn(
-          "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
-          on ? "translate-x-4" : "translate-x-0.5"
-        )}
-      />
-    </button>
-  );
+/**
+ * The shared controls in the devtool's voice. Both take their props straight
+ * from the component so the panel cannot drift from it — the hand-written
+ * shadow types these replaced had already lost `Segmented`'s `label`, which
+ * left every segmented group in here without an accessible name.
+ */
+function PanelToggle(props: Omit<React.ComponentProps<typeof Switch>, "tone">) {
+  return <Switch tone="system" {...props} />;
 }
 
 /** Continuous value, for the things you settle by dragging rather than typing. */
@@ -726,42 +705,17 @@ function PanelRange({
   );
 }
 
-/** Segmented single-select, matching the ruler dock control. */
-function PanelSegmented<T extends string>({
-  value,
-  options,
-  onChange,
-}: {
-  value: T;
-  options: { value: T; label: string; title?: string }[];
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div className="flex shrink-0 overflow-hidden rounded-md border border-border/60">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          onClick={() => onChange(o.value)}
-          title={o.title}
-          className={cn(
-            "px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
-            value === o.value
-              ? "bg-accent text-accent-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-          aria-pressed={value === o.value}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
+function PanelSegmented<T extends string>(
+  props: Omit<React.ComponentProps<typeof Segmented<T>>, "tone">
+) {
+  return <Segmented tone="system" {...props} />;
 }
 
 function ReadingModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
   const font = useReadingFont();
+  const size = useReadingSize();
   const measure = useReadingMeasure();
   const bleed = useBleedEnabled();
   const focus = useReadingFocus();
@@ -770,6 +724,11 @@ function ReadingModule() {
   const fonts: { value: ReadingFont; label: string }[] = [
     { value: "sans", label: zh ? "无衬线" : "Sans" },
     { value: "serif", label: zh ? "衬线" : "Serif" },
+  ];
+  const sizes: { value: ReadingSize; label: string; title: string }[] = [
+    { value: "small", label: zh ? "小" : "S", title: zh ? "小" : "Small" },
+    { value: "default", label: zh ? "中" : "M", title: zh ? "标准" : "Default" },
+    { value: "large", label: zh ? "大" : "L", title: zh ? "大" : "Large" },
   ];
   const measures: { value: ReadingMeasure; label: string; title: string }[] = [
     { value: "narrow", label: zh ? "窄" : "S", title: zh ? "窄" : "Narrow" },
@@ -791,6 +750,9 @@ function ReadingModule() {
       <div className="space-y-3">
         <PanelRow label={zh ? "字体" : "Typeface"}>
           <PanelSegmented value={font} options={fonts} onChange={setReadingFont} />
+        </PanelRow>
+        <PanelRow label={zh ? "字号" : "Size"}>
+          <PanelSegmented value={size} options={sizes} onChange={setReadingSize} />
         </PanelRow>
         <PanelRow label={zh ? "宽度" : "Measure"}>
           <PanelSegmented
@@ -1491,6 +1453,19 @@ const MOON_NAME: Record<"en" | "zh", Record<MoonPhaseName, string>> = {
 };
 
 
+/** Minutes in a day — the scrub's range, and one loop of Play. */
+const DAY_MINUTES = 1440;
+
+/**
+ * The transport: a minute for the day, or half of one. Two buttons rather than
+ * a speed on one, so a glance says which is running and either is one press
+ * away from the other.
+ */
+const PLAY_RATES = [
+  { rate: 1, label: { en: "Day", zh: "一天" } },
+  { rate: 2, label: { en: "2×", zh: "2×" } },
+] as const;
+
 /** The quiet outlined chip the Sky module's Now and Play buttons are made of. */
 const PANEL_CHIP = cn(
   "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5",
@@ -1537,6 +1512,7 @@ function SkyModule() {
     isTimeTravelActive,
     resetTimeTravel,
   } = useAmbientTime();
+  const { followSun, setFollowSun, sunTheme } = useSolarTheme();
 
   const isDayNow = scene.sun.isDay;
   const isOverridden = debugOverride !== null;
@@ -1583,47 +1559,57 @@ function SkyModule() {
   const nowDate = new Date(nowMs);
   const clockMinutes = timeScrubMinutes ?? minutesOfDay(nowMs);
   const realMinutes = minutesOfDay(realNowMs);
-  const pct = (m: number) => `${((m / 1440) * 100).toFixed(2)}%`;
+  const pct = (m: number) => `${((m / DAY_MINUTES) * 100).toFixed(2)}%`;
 
-  // --- Play: sweep dawn → dusk and loop ------------------------------------
-  const [playing, setPlaying] = useState(false);
-  const PLAY_LEAD_MIN = 90;
-  const PLAY_DURATION_MS = 45_000;
-  const playStart = Math.max(0, sr - PLAY_LEAD_MIN);
-  const playEnd = Math.min(1439, ss + PLAY_LEAD_MIN);
-  const playPosRef = useRef(playStart);
+  // --- Play: the day, on a loop ---------------------------------------------
+  // It runs the playhead, nothing else: from wherever the clock is, through
+  // midnight, round again. It used to start by jumping to 90 minutes before
+  // sunrise and stop 90 after sunset, which is a second way of choosing a time
+  // on a panel whose whole top half is for choosing a time — the strip, the
+  // phase names and the sun's own ticks are right there. Pick a moment, then
+  // press play from it.
+  /** 0 is paused; otherwise the multiple of `PLAY_DURATION_MS` being played. */
+  const [playRate, setPlayRate] = useState(0);
+  const playing = playRate > 0;
+  /** A day, once through, at 1×. */
+  const PLAY_DURATION_MS = 60_000;
+  const playPosRef = useRef(0);
 
   useEffect(() => {
-    if (!playing) return;
-    const span = Math.max(60, playEnd - playStart);
+    if (!playRate) return;
     const tickMs = 100;
-    const step = (span / PLAY_DURATION_MS) * tickMs;
+    const step = ((DAY_MINUTES * playRate) / PLAY_DURATION_MS) * tickMs;
     const id = window.setInterval(() => {
-      let next = playPosRef.current + step;
-      if (next > playEnd) next = playStart;
-      playPosRef.current = next;
-      setTimeScrubMinutes(Math.round(next));
+      playPosRef.current = (playPosRef.current + step) % DAY_MINUTES;
+      setTimeScrubMinutes(Math.round(playPosRef.current) % DAY_MINUTES);
     }, tickMs);
     return () => window.clearInterval(id);
-  }, [playing, playStart, playEnd, setTimeScrubMinutes]);
+  }, [playRate, setTimeScrubMinutes]);
 
-  const startPlay = () => {
-    const current = timeScrubMinutes;
-    playPosRef.current =
-      current !== null && current >= playStart && current < playEnd
-        ? current
-        : playStart;
-    setTimeScrubMinutes(Math.round(playPosRef.current));
-    setPlaying(true);
+  /**
+   * One button per speed: pressing the lit one pauses, pressing the other
+   * changes speed without starting over — the playhead is where it is, and
+   * only the step it moves by changes.
+   */
+  const play = (rate: number) => {
+    if (playRate === rate) {
+      setPlayRate(0);
+      return;
+    }
+    if (!playing) {
+      playPosRef.current = timeScrubMinutes ?? realMinutes;
+      setTimeScrubMinutes(Math.round(playPosRef.current));
+    }
+    setPlayRate(rate);
   };
 
   const jumpTo = (minutes: number) => {
-    setPlaying(false);
+    setPlayRate(0);
     setTimeScrubMinutes(minutes);
   };
 
   const resetAll = () => {
-    setPlaying(false);
+    setPlayRate(0);
     resetTimeTravel();
     setDebugOverride(null);
     setSceneOverrides({});
@@ -1729,23 +1715,33 @@ function SkyModule() {
                 />
               )}
             </span>
-            <button
-              onClick={() => (playing ? setPlaying(false) : startPlay())}
-              className={cn(
-                PANEL_CHIP,
-                playing
-                  ? "border-foreground/40 bg-accent text-accent-foreground"
-                  : "border-border/60 text-muted-foreground hover:text-foreground"
-              )}
-              aria-label={playing ? "Pause sunrise to sunset" : "Play sunrise to sunset"}
-              aria-pressed={playing}
-              title={zh ? "从日出播放到日落" : "Play from dawn to dusk"}
-            >
-              {playing ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-              <Sunrise className="h-3 w-3" />
-              <span>→</span>
-              <Sunset className="h-3 w-3" />
-            </button>
+            <span className="flex items-center gap-1">
+              {PLAY_RATES.map(({ rate, label }) => {
+                const live = playRate === rate;
+                return (
+                  <button
+                    key={rate}
+                    onClick={() => play(rate)}
+                    className={cn(
+                      PANEL_CHIP,
+                      live
+                        ? "border-foreground/40 bg-accent text-accent-foreground"
+                        : "border-border/60 text-muted-foreground hover:text-foreground"
+                    )}
+                    aria-label={live ? "Pause the day" : `Play the day at ${rate}x`}
+                    aria-pressed={live}
+                    title={
+                      zh
+                        ? `从当前时刻循环播放这一天（${rate} 倍速）`
+                        : `Play the day from here, on a loop, at ${rate}×`
+                    }
+                  >
+                    {live ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                    {zh ? label.zh : label.en}
+                  </button>
+                );
+              })}
+            </span>
           </div>
           <div
             className="relative h-10 overflow-hidden rounded-lg ring-1 ring-border/50"
@@ -1770,7 +1766,7 @@ function SkyModule() {
             <input
               type="range"
               min={0}
-              max={1439}
+              max={DAY_MINUTES - 1}
               step={1}
               value={clockMinutes}
               onChange={(e) => jumpTo(Number(e.target.value))}
@@ -1812,6 +1808,37 @@ function SkyModule() {
               );
             })}
           </div>
+          {/* The theme rides this timeline: play the day and it flips at the
+              two ticks above, because the switch reads the same clock. The
+              toggle is the saved setting, not a session override — turning it
+              off here turns it off for good. */}
+          <PanelRow
+            label={zh ? "主题跟随太阳" : "Theme follows sun"}
+            star={
+              followSun ? null : (
+                <PanelStar
+                  onReset={() => setFollowSun(true)}
+                  source="saved"
+                  label={zh ? "恢复跟随太阳" : "Follow the sun again"}
+                />
+              )
+            }
+          >
+            <span className="flex items-center gap-2">
+              {followSun && sunTheme && (
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  {sunTheme === "light"
+                    ? t(locale, "themeLight")
+                    : t(locale, "themeDark")}
+                </span>
+              )}
+              <PanelToggle
+                on={followSun}
+                onClick={() => setFollowSun(!followSun)}
+                label="Theme follows the sun"
+              />
+            </span>
+          </PanelRow>
         </div>
 
         {/* Condition. Chips wear the day or night face of the clock above. */}

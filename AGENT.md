@@ -113,8 +113,10 @@ of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
   devtool's Scroll row overrides it for the session.
 - **Everything is live.** Safari does not re-read the root background for its
   chrome after load; `syncChrome` in the package shows it each change by
-  morphing a fixed bezel to 8px and back. Do not write the bezel colour,
-  `data-bezel` or the scroll mode anywhere else.
+  morphing a fixed bezel to 8px and back. That morph is iOS-only — the surface
+  passes `chromeMorph`, and everywhere else the colour is set on `theme-color`
+  with nothing drawn. Do not write the bezel colour, `data-bezel` or the scroll
+  mode anywhere else.
 - **Page scroll** goes through the package (`pageScrollTop`, `onPageScroll`,
   `scrollPageTo`, `usePageScroll`, …), never `window.scrollY`: with the bezel on
   an iPhone the page scrolls in a container.

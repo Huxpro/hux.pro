@@ -21,6 +21,10 @@
 // and content that wants to adapt (column counts, density) reads the shape it
 // landed in from `useSurfaceContext()` instead of re-measuring the viewport.
 //
+// A surface that belongs to one button rather than to the page takes the
+// fourth shape instead — `ANCHORED_PRESENTATION`, a sheet on a phone and a
+// popover hanging off that button above it — and passes `anchor`.
+//
 // Underneath, every phone shape is one <SurfaceSheet> (sheet.tsx), a Base UI
 // Drawer. A surface whose header is not a title bar — the command palette,
 // whose header is its search field — composes that primitive directly and
@@ -40,6 +44,7 @@ export {
 export { SURFACE_TRANSITION_MS, useSurfaceStack } from "./stack";
 export {
   ADAPTIVE_PRESENTATION,
+  ANCHORED_PRESENTATION,
   SURFACE_BREAKPOINTS,
   useBreakpointValue,
   useSurfaceMode,

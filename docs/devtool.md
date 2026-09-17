@@ -55,7 +55,10 @@ chips themselves swap to their night faces when the clock does.
 
 The clock is a day timeline painted with the sky's own colours for the current
 condition, sunrise and sunset ticked on it; drag the playhead, click a phase
-name to jump there, or press ▶ to play dawn → dusk. The date slider moves the
+name to jump there, or press ▶ **Day** (or ▶ **2×**) to play from wherever the
+playhead is, looping through midnight — a minute for the day, or half of one.
+Pressing the lit one pauses; pressing the other changes speed without starting
+over. The date slider moves the
 calendar day (the moon's phase). A folded **Tune** row holds sliders over the
 derived scene — cloud cover, precipitation intensity, wind speed and the theme
 veil — with the raw API numbers underneath. **Now** in the corner puts all of

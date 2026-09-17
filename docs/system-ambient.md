@@ -271,6 +271,92 @@ Visibility (`lib/notification.ts`): from ~90 min before the event through the en
 of its ±45 min window, then it hands off to the gradient + greeting. A forced
 sunrise/sunset phase from the devtool also surfaces it for testing.
 
+### The theme follows the sun
+
+The app's theme follows the day: Light while the sun is up, Dark once it is
+down. On by default (`themeFollowsSun` in the ambient settings), turned off in
+the wallpaper picker's Weather group, in the command palette (`/s`), or in the
+devtool's Sky module.
+
+**At the sun's own crossing — the middle of the long animation, not its end.**
+Sunrise and sunset are ±45 min windows here and the sky spends all of both
+moving; the moment it moves fastest is the middle. A theme change is a cut
+however gently it is painted, and a cut lands softest inside motion: at the end
+of the window the sky has settled again, and the same cut stands out against
+it.
+
+```
+dark ─────┬──── sunrise ────┬───── light ─────┬──── sunset ────┬───── dark
+      rise-45      ▲     rise+45          set-45      ▲     set+45
+                   └ here                             └ here
+```
+
+`solarThemeAt()` (`lib/solar-theme.ts`) is therefore the plain rule — light
+between sunrise and sunset, dark outside, null when the sun times are unknown
+(and then nothing switches). Everything about *how* it changes hands is in
+`SOLAR_HANDOVER`.
+
+**The handover puts the cut in the middle of a short animation too**, so it has
+motion on both sides of it. The timeline is `SOLAR_HANDOVER` in
+`lib/solar-theme.ts` and the numbers live only there:
+
+```
+0           the sky starts moving to the new theme — the wallpaper stack
+            crossfades over `skyMs` instead of its usual 0.7s, and the Sky's
+            shader is put on the same clock by `setThemeEase`.
+chromeAtMs  halfway through, the chrome changes: one commit, inside a view
+            transition, so the page crossfades as a single composited image —
+            the same 200ms a route change uses.
+skyMs       the sky settles, and the notice lands.
+```
+
+`wallpaperTheme` is what makes the lead possible: the scene, the wash's weight,
+a picture's half and the profile of what is painting all read it, while
+everything that belongs to the chrome — the page ground, the bezel, the ink
+ladder — reads `chromeTheme`, which is what the provider calls the theme the
+app is actually in. The lead runs for exactly the sky's animation and outlives
+the switch in its middle; a theme the user picks while it is running calls the
+whole thing off, sky included: theirs wins.
+
+The greeting is not part of this. It follows the phase, which changes at the
+window's *ends*, three quarters of an hour either side of the switch — far
+enough that the two never read as one event that failed to line up.
+
+The chrome's half is deliberately **not** a transition per element. That was an
+earlier cut of this, and it cost ~1.2s of style recalculation for a 1s dissolve
+— a page this size has ~1000 elements and their colours are `color-mix()` over
+custom properties, so every frame re-ran the document's style. The composited
+crossfade is ~60ms of capture for the same effect, and where it is unavailable
+(Firefox, `prefers-reduced-motion`) the chrome simply changes, which is what the
+rest of the app does when the user picks a theme.
+
+Three more rules make it a system gesture rather than a setting changing behind
+the user's back:
+
+1. **Only a crossing watched live.** `<SolarThemeSync />` remembers which side
+   of the day it last saw and acts when that changes *while it is mounted*.
+   Arriving after dark does nothing; sitting on the page through dusk does.
+   That is what "in the same session" means — the sun may interrupt you, it may
+   not greet you.
+2. **A session override, never the preference.** It sets the theme service's
+   `override` (`services/theme.tsx`), which lives in sessionStorage: a reload in
+   the same tab keeps the theme the sun set — unless the sun has moved on since,
+   in which case the stale override is dropped on the way back in — and closing
+   the tab forgets it. The saved Appearance preference never moves, and any
+   explicit choice (the palette's Appearance command, a toggle) ends the
+   override. Turning the setting off takes an active override with it.
+3. **It says so.** Once the handover has settled, the small pill in the
+   bottom-center toast slot — the one the language switch uses — names the mode
+   and says the preference is unchanged. By then the change has already
+   dissolved in over two seconds, so there is nothing to confirm and nothing to
+   undo in a hurry; the way to turn it off is where settings live.
+
+Because the rule reads the ambient clock, **devtool time travel crosses it
+too**: playing the day in the Sky module crosses sunrise and sunset for real,
+and the theme changes there exactly as it would on the real clock — or does
+not, if the setting is off. The Sky module carries the toggle beside that
+timeline for the same reason.
+
 ## Wallpaper
 
 The background is **one layer stack fed by exactly one source**:
@@ -318,9 +404,11 @@ Talks widget uses for albums (`WALLPAPER_CATEGORIES` in `lib/wallpaper.ts`).
   realtime styles, Preset on Classic. Where WebGL2 is missing the Sky tile shows the Gradient with a note,
   which is also what choosing it would paint.
 - **Apple** — the default macOS, iPadOS and iOS wallpapers as light/dark pairs,
-  the artwork each release is recognised by. Twelve pairs: macOS Tahoe,
-  Sequoia, Sonoma, Ventura, Monterey and Big Sur; iPadOS 18 in its four
-  colourways (Violet, Indigo, Blue, Teal); iOS 14 and 13.
+  the artwork each release is recognised by. Seventeen pairs: macOS Golden
+  Gate, Tahoe, Sequoia, Sonoma, Ventura, Monterey, Big Sur, Catalina and
+  Mojave; iPadOS 26 and iPadOS 18 in its four colourways (Violet, Indigo,
+  Blue, Teal); iOS 15, 14 and 13. Every pair ships a @1x cover beside the
+  full @2x (or native) file when the source is larger than 1×.
 - **Nature** — the 19 Mac OS X Nature desktop pictures (Aurora, Zebra, Zen
   Garden, …), taken from ryOS. One photograph each, so both theme halves are
   the same file (`isSingleImage()`), and the picker shows it unsplit. Clown
@@ -334,46 +422,62 @@ The **iOS** pairs are phone artwork, so the picker caption marks them with a
 phone glyph — the tiles are all the same 16:10 card and could not otherwise
 show it. `isPhoneWallpaper()` derives it from the platform rather than storing
 a flag. Apple ships these stills on a square canvas and lets the device crop
-(iOS 14 is 3072², iOS 13 3186² at source); nothing here was cropped.
+(iOS 14 is 3072², iOS 15 2916², iOS 13 3208² at source); nothing here was cropped.
 
 #### Resolution
 
 Every wallpaper paints `cover`, so the rule is about the stretch on a real
-screen, not megapixels: **a file must cover a 2560×1600 viewport with at most a
-1.07× stretch**, and is downscaled to the smallest size that still covers it.
-Each tile prints the committed file's pixels under its name.
+screen, not megapixels: **a full-size file is the smallest cover of a 2560×1600
+viewport at 2× (5120×3200 device pixels), never upscaled past the source.** A
+matching `@1x` cover (`.1x.webp`) ships beside it whenever that is smaller, so a
+1× display does not download the retina file. Sources that cannot cover 2×
+(most Nature stills are 2560×1600 at source) keep a single file. Each tile
+prints the committed full file's pixels under its name.
 
-| | File | Stretch | |
+| | Full file | @1x | Stretch at 1× |
 |---|---|---|---|
-| macOS Tahoe … Ventura | 2560×2560 | 1.00× | kept |
-| iPadOS 18 | 2560×1779 | 1.00× | kept |
-| Monterey, Big Sur, iOS 14, iOS 13 | 2400×2400 | 1.07× | kept |
-| iOS 17 | 2048×2048 | 1.25× | removed |
-| iOS 18 | 1480×3192 | 1.73× | removed |
-| iOS 27 | 1320×2868 | 1.94× | removed |
-| Nature | 2560×1600 (Earth & Moon 2844×1600) plus 1280×800 and 1920×1200 cover renditions | 1.00× | added |
+| macOS Golden Gate | 4480×3088 | 2560×1765 | 1.00× |
+| macOS Tahoe … Big Sur, Catalina | 5120×5120 | 2560×2560 | 1.00× |
+| macOS Mojave, Earth & Moon | 5120×2880 | 2844×1600 | 1.00× |
+| iPadOS 26 landscape | 2752×2064 | 2560×1920 | 1.00× |
+| iPadOS 18 | 3840×2668 | 2560×1779 | 1.00× |
+| iOS 15 / 14 / 13 | 2916² / 3072² / 3208² | 2560×2560 | 1.00× |
+| Mt. Fuji | 3200×2000 | 2560×1600 | 1.00× |
+| Nature (the rest) | 2560×1600 | — (same file) | 1.00× |
+| iOS 17 | 2048×2048 | | 1.25× — removed |
+| iOS 18 / 27, portrait iPadOS 26 | too tall/narrow | | omitted |
 
-The landscape Nature photographs stretch about 1.64× on a portrait phone; most
-of the set tops out at 2560×1600 at source.
+The landscape Nature photographs still stretch about 1.64× on a 3× portrait
+phone; the source is 1600px tall and we never upscale.
 
 ryOS serves each photograph as one original JPEG (Aurora is 1.3MB, Snowy Hills
-2.3MB) plus a picker thumb — it does not keep per-screen-size files. We still
-encode three cover renditions so a phone does not download the desktop file,
-and we encode them at WebP q95 with 4:4:4 chroma (q90 only when a file would
-exceed 1.8MB — Zen Garden's raked sand). The previous q75 4:2:0 pass crushed
-smooth skies: Aurora was 43KB of banding against a 1.3MB original.
-`pickWallpaperSrc()` chooses the smallest rendition that covers the current
-viewport × DPR; a 2× portrait phone still needs the full file, because 1600px
-is the covering axis.
+2.3MB) plus a picker thumb, and paints a 24px blur-up while the JPEG decodes.
+We encode `@1x` / `@2x` covers so a 1× display does not download a 5K file, at
+WebP q95 with 4:4:4 chroma (q90 only when a file would exceed ~1.8MB per
+2560×1600 megapixel — Zen Garden's raked sand). `pickWallpaperSrc()` chooses
+the smallest rendition that covers the current viewport × DPR. The desktop
+paints the 480px picker thumb immediately and fades the chosen file in over it
+once it has decoded — the same blur-up, using a thumb we already ship.
 
-Release pairs are WebP q80. Photographs get a 480px thumbnail for the picker.
-The byte budgets differ by kind: a pair past 120KB means something went wrong,
-while a photograph of raked sand is detail all the way down, so photographs
-get 2.5MB. Provenance for every file — source URL, and HEIC frame index where a
-pair came out of one file — lives in `public/wallpapers/sources.json`.
+Release pairs are WebP q80. Photographs — Nature, and the Catalina / Mojave
+pairs — use the photo pipeline. The byte budgets differ by kind: a graphic pair
+past 2MB at 2× means something went wrong (Big Sur dark is a grainy illustration
+around 1.2MB), while a photograph of raked sand is
+detail all the way down, so photographs get 8MB at 2×. Provenance for every
+file lives in `public/wallpapers/sources.json`.
+
+High-resolution originals were collected from wallpapers.poutanen.dev (macOS 6K
+graphics Tahoe–Big Sur, iOS 13 3208², iOS 14 3072²), 4kwallpapers.com (Golden
+Gate native 4480×3088 — the 6016×4147 "6K" files are a uniform upscale of that
+pair and are not used — Catalina 6016×6016, Mojave 5120×2880, iOS 15 2916×2916),
+static.applewalls.com (iPadOS 26 landscape), LAYTAT/macOS-Wallpapers and
+Deeeee-macOS-Wallpapers (`/System/Desktop Pictures` dumps), with 512pixels.net
+6K files skipped as hand-upscales. Portrait iPhone lock-screens never cover
+2560×1600.
 
 ```bash
-pnpm wallpapers:encode  # fetch Nature JPEGs from sources.json and rebuild WebP renditions
+pnpm wallpapers:encode              # fetch sources.json and rebuild WebP @1x/@2x
+pnpm wallpapers:encode golden-gate  # rebuild one release pair marked `"encode"` in sources.json
 pnpm wallpapers:check   # every file present, sharp enough, sized as declared, within budget
 pnpm wallpapers:profile # measure every wallpaper for the legibility system (commit the table)
 ```
@@ -615,6 +719,20 @@ const {
 } = useAmbientTime();
 ```
 
+### useSolarTheme
+
+```typescript
+const {
+  followSun,           // The setting — on by default, saved with the ambient settings
+  setFollowSun,
+  sunTheme,            // "light" | "dark" at the effective clock, or null when unknown
+  beginThemeHandover,  // Stage the next theme change (slow sky, then chrome)
+} = useSolarTheme();
+```
+
+The provider only says what the sun implies; `<SolarThemeSync />` (mounted in
+the root layout) is what watches it cross and applies it.
+
 ## Data Flow
 
 ```
@@ -648,7 +766,8 @@ scene.
 The sun-event phase runs alongside this and never touches the background:
 
 ```
-phase → AmbientPhaseActivity → Dock Live Activity
+phase    → AmbientPhaseActivity → Dock Live Activity
+sunTheme → SolarThemeSync       → theme override (this session) + notice
 ```
 
 ## Caching

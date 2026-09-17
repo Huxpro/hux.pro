@@ -11,6 +11,12 @@ import { useEffect, useRef, useState } from "react";
 //
 // One field (the bundle URL), one action (Open), one way out (← / Esc).
 // Title is derived from the path; flavour belongs to the bundle.
+//
+// Two chromes. In the desktop popover the panel replaces the palette's body in
+// place, so it brings its own header: a back arrow and the title. On a phone it
+// is the body of a sheet stacked on the palette, and that sheet's header is
+// already the icon, the title and one way out — so the panel drops both and
+// keeps only the hint, which reads as the field's subtitle.
 // =============================================================================
 
 function isPlausibleBundleUrl(value: string): boolean {
@@ -27,9 +33,13 @@ function isPlausibleBundleUrl(value: string): boolean {
 export function LoadBundlePanel({
   onBack,
   onLoaded,
+  chrome = "panel",
 }: {
   onBack: () => void;
   onLoaded: () => void;
+  /** "panel": the panel carries its own back arrow and title (the popover).
+   *  "sheet": the surrounding sheet header carries them already. */
+  chrome?: "panel" | "sheet";
 }) {
   const { locale } = useLocale();
   const windows = useOptionalWindows();
@@ -55,28 +65,34 @@ export function LoadBundlePanel({
 
   return (
     <div className="px-3 pb-3 pt-3 sm:px-4 sm:pb-4">
-      <div className="mb-4 flex items-start gap-2">
-        <button
-          type="button"
-          onClick={onBack}
-          className={cn(
-            "mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-            "text-muted-foreground transition-colors",
-            "hover:bg-accent/40 hover:text-foreground",
-          )}
-          aria-label={t(locale, "backToSearch")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <div className="min-w-0 pt-1">
-          <div className="text-sm font-medium text-foreground">
-            {t(locale, "appsLoadBundleTitle")}
-          </div>
-          <div className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
-            {t(locale, "appsLoadBundleHint")}
+      {chrome === "panel" ? (
+        <div className="mb-4 flex items-start gap-2">
+          <button
+            type="button"
+            onClick={onBack}
+            className={cn(
+              "mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+              "text-muted-foreground transition-colors",
+              "hover:bg-accent/40 hover:text-foreground",
+            )}
+            aria-label={t(locale, "backToSearch")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <div className="min-w-0 pt-1">
+            <div className="text-sm font-medium text-foreground">
+              {t(locale, "appsLoadBundleTitle")}
+            </div>
+            <div className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
+              {t(locale, "appsLoadBundleHint")}
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <p className="mb-3 px-1 text-[12px] leading-snug text-muted-foreground">
+          {t(locale, "appsLoadBundleHint")}
+        </p>
+      )}
 
       {/* Invite: one paste field + Open, same glass inset language as ⌘K */}
       <div

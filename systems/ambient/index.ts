@@ -14,6 +14,7 @@ export {
   useLocation,
   useWeather,
   useAmbientTime,
+  useSolarTheme,
   useWallpaper,
   useOptionalWallpaper,
 } from "./provider";
@@ -23,6 +24,8 @@ export {
   AmbientGreeting,
   AmbientSurface,
   AmbientPhaseActivity,
+  SolarThemeSync,
+  SolarThemeToast,
   WallpaperBackground,
   WallpaperSheet,
   WeatherIcon,

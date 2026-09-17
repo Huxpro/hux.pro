@@ -76,6 +76,10 @@ export function syncChrome(color: string, options: ChromeSyncOptions = {}): void
   // A second change within the morph replaces the first.
   cancel();
 
+  // Nothing is sampling the page here: the meta tag above is the whole of it,
+  // and the morph would only be bands at the edges of a window for 880ms.
+  if (options.morph === false) return;
+
   const band = Math.max(0, options.band ?? 0);
   const radius = Math.max(0, options.radius ?? 0);
   const peak = Math.max(band, CHROME_MORPH_PX);
