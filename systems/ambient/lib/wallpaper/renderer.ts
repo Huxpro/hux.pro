@@ -428,7 +428,7 @@ export class WallpaperRenderer {
   private wipeXY = new Float32Array(WIPE_MAX_POINTS * 2);
   private wipeAt = new Float64Array(WIPE_MAX_POINTS);
   private wipeJoin = new Uint8Array(WIPE_MAX_POINTS);
-  /** What the hand had left when each corner was made — see `rub` in ../poke. */
+  /** What the hand had left when each corner was made — see `rub` in ../wipe. */
   private wipeCharge = new Float32Array(WIPE_MAX_POINTS);
   private wipeStart = 0;
   private wipeCount = 0;
@@ -521,7 +521,7 @@ export class WallpaperRenderer {
   /**
    * Fire one bolt at (x, y) in screen space — 0..1 across, 0..1 bottom → top,
    * the same convention as the sun. The thunder-day easter egg; see
-   * ../poke.ts.
+   * ../strike.ts.
    *
    * Only while the frame loop is already running: a strike is an animation, and
    * a stopped renderer is either inactive or under `prefers-reduced-motion`,
@@ -710,7 +710,6 @@ export class WallpaperRenderer {
     this.wipeCount = 0;
     this.wipeLive = 0;
     this.wipeStroke = false;
-    this.wipeRun = 0;
     if (this.raf) cancelAnimationFrame(this.raf);
     this.raf = 0;
     document.removeEventListener("visibilitychange", this.onVisibility);
@@ -954,7 +953,8 @@ export class WallpaperRenderer {
     // keep it generous enough that slow (software / low-end) GPUs still ease
     // in wall-clock time rather than in slow motion.
     this.smooth(Math.min(dt, 250) / 1000);
-    this.advancePoke(now);
+    this.advanceStrike(now);
+    this.ageWipe(now);
     // Wrap the shader clock hourly: float32 loses sub-pixel precision in the
     // particle math once uTime reaches the tens of thousands, and a once-an-hour
     // re-seed of drops and twinkles is imperceptible.
@@ -968,23 +968,15 @@ export class WallpaperRenderer {
   }
 
 
-  /**
-   * Age both eggs and retire whatever the shader has nothing left to draw. They
-   * are never both running — a fog scene carries no lightning and a thunder
-   * scene carries no swath (see ../wipe.ts) — so there is nothing to arbitrate
-   * here, only two clocks to advance.
-   */
-  private advancePoke(now: number) {
-    if (this.strikeAt) {
-      const age = (now - this.strikeAt) / 1000;
-      if (age > STRIKE_SEC) {
-        this.strikeAt = 0;
-        this.strikeAge = -1;
-      } else {
-        this.strikeAge = age;
-      }
+  private advanceStrike(now: number) {
+    if (!this.strikeAt) return;
+    const age = (now - this.strikeAt) / 1000;
+    if (age > STRIKE_SEC) {
+      this.strikeAt = 0;
+      this.strikeAge = -1;
+    } else {
+      this.strikeAge = age;
     }
-    this.ageWipe(now);
   }
 
   /**
@@ -1174,12 +1166,13 @@ export class WallpaperRenderer {
    * add: the stir listener is armed on precipitation, and a fog scene has none.
    */
   private aimWipe() {
-    const gx = this.gravity[0];
-    const gy = this.gravity[1];
     const across =
       (this.current[WIND_OFFSET] + this.gust) * WIPE_BLOW_WIND + WIPE_BLOW_STILL;
-    this.wipeBlow[0] = gx * WIPE_SETTLE - gy * across;
-    this.wipeBlow[1] = gy * WIPE_SETTLE + gx * across;
+    // Through `fallFor`, so there is still only one place that knows how a lean
+    // is laid on gravity. `fallAt` is per-frame scratch, and `smooth()` has
+    // already taken its copies into `rainDir` / `snowDir` before `draw()` runs.
+    this.fallFor(WIPE_SETTLE, across);
+    this.wipeBlow.set(this.fallAt);
   }
 
   /**
@@ -1301,12 +1294,20 @@ export class WallpaperRenderer {
     // Only when there is a swath to draw: the shader ignores the array
     // otherwise, and uploading it every frame of every sky would be for nothing.
     if (this.wipeLive > 0) {
-      gl.uniform4fv(this.locWipe, this.wipeData);
-      gl.uniform4fv(this.locWipeBox, this.wipeBox);
+      // Only the live corners: the shader never reads past `uWipeCount`, and
+      // the ring is sized for the longest stroke rather than the usual one.
+      gl.uniform4fv(this.locWipe, this.wipeData, 0, this.wipeLive * 4);
+      gl.uniform4f(
+        this.locWipeBox,
+        this.wipeBox[0],
+        this.wipeBox[1],
+        this.wipeBox[2],
+        this.wipeBox[3]
+      );
       // Resolved here because the shader has no wind of its own to read: each
       // falling thing carries its own aim, and so does this.
       this.aimWipe();
-      gl.uniform2fv(this.locWipeBlow, this.wipeBlow);
+      gl.uniform2f(this.locWipeBlow, this.wipeBlow[0], this.wipeBlow[1]);
     }
 
     const c = this.current;

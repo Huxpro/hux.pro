@@ -374,15 +374,21 @@ drag that takes something away and gives it back.
 anywhere: each gates on its own scene scalar and the three sets do not meet.
 
 They are one module each — `lib/strike.ts`, `lib/wallpaper/stir.ts`,
-`lib/wipe.ts` — and all three ask `isBackgroundClick` from `lib/strike.ts` the
-same question about where the sky is, so they can never disagree about it.
-`data-no-strike` keeps all three off. (It is named for a click, but it only ever
-looks at the target, and a press is the same question.)
+`lib/wipe.ts` — each holding its own tuning *and* its own recognizer, so what
+a gesture is stays engine-free and testable, and only the wiring is a component.
+All three ask `isBackgroundPress` from `lib/strike.ts` the same question about
+whether a press is theirs — the primary button with nothing held down, no
+selection to disturb, and a target that is wallpaper rather than page — so they
+can never disagree about it. `data-no-strike` keeps all three off. (The
+attribute is named for a click, but the test only ever looks at the target, and
+a press is the same question.)
 
 **All three belong to the Sky**, for the reason the strike's section gives
 below, and each is armed where the thing it acts on lives: the strike and the
 wipe in `wallpaper-background.tsx`, on the document; the gust one layer down in
-`<WeatherWallpaper />`, with the particles it blows.
+`<WeatherWallpaper />`, with the particles it blows. Arming is all those
+components do — four lines apiece — because the recognizers are `attachWipeDrag`
+and `attachWindStir`, in the lib modules above.
 
 ### The Strike (thunder-day easter egg)
 

@@ -504,11 +504,13 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const elongation = 180 - Math.abs(moonPhase * 360 - 180);
   const dayMoon =
     0.18 * smoothstep(12, 30, lunar.elevation) * smoothstep(40, 90, elongation);
+  // The moon the sky would show with nothing in front of it, and then the same
+  // moon behind the murk. Split rather than written twice so the daytime-moon
+  // rule above has one home: the wipe uncovers the moon under the rule the sky
+  // is showing, not a copy of it. (`starDust` below is the same split.)
+  const moonBare = moonUp * lerp(dayMoon, 1, skyDark);
   const moonVisible =
-    moonUp *
-    lerp(dayMoon, 1, skyDark) *
-    (1 - smoothstep(0.45, 0.9, cover)) *
-    (1 - fog * 0.8);
+    moonBare * (1 - smoothstep(0.45, 0.9, cover)) * (1 - fog * 0.8);
   const { screen: moonScreen, size: moonSize } = stageMoon(lunar, hemisphere);
   // Moonlight: a bright, high moon lifts the night sky and cloud tops and
   // washes out the fainter stars.
@@ -518,10 +520,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const stars = starDust * (1 - smoothstep(0.15, 0.65, cover)) * (1 - fog);
   // The same two with the murk taken away — see `behind` on WeatherScene. Only
   // the fog wipe ever asks for them, and only inside the swath it has cleared.
-  const behind = {
-    stars: starDust,
-    moon: moonUp * lerp(dayMoon, 1, skyDark),
-  };
+  const behind = { stars: starDust, moon: moonBare };
 
   const veilDefaults = VEIL_DEFAULTS[theme];
 

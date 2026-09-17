@@ -28,6 +28,7 @@ import {
   WIPE_DECAY,
   WIPE_MAX_POINTS,
   WIPE_RADIUS,
+  WIPE_REACH,
   WIPE_TAIL,
 } from "../wipe";
 
@@ -763,7 +764,7 @@ float fogWipe(vec2 p, float aspect) {
   // the same side of it, so it is the one early-out a GPU actually likes. The
   // margin covers the widest the swath can be, plus the furthest the warp below
   // can push it, plus the furthest the wind can carry it over a whole life.
-  const float REACH = 0.24;
+  const float REACH = ${WIPE_REACH.toFixed(3)};
   if (p.x < uWipeBox.x * aspect - REACH || p.x > uWipeBox.z * aspect + REACH ||
       p.y < uWipeBox.y - REACH || p.y > uWipeBox.w + REACH) return 0.0;
 
@@ -795,8 +796,11 @@ float fogWipe(vec2 p, float aspect) {
   // between a wiped window and a hole cut in a mask.
   float lobes = fbm3(p * 9.0 + drift * 0.6 + uSeed * 0.7);
   float tear = vnoise(p * 27.0 - drift + uSeed * 1.9);
-  float streak = vnoise(vec2(p.x * 5.0, p.y * 19.0) + drift + uSeed * 2.7);
   float ragged = 0.42 + 1.05 * lobes + 0.26 * (tear - 0.5);
+  // What the same fray does to the width once the mist has been working on it
+  // for a while. Loop-invariant, so it is worked out once rather than per
+  // segment.
+  float raggedHeal = ragged * ragged * 1.35;
 
   float clear = 0.0;
   for (int i = 0; i + 1 < WIPE_MAX; i++) {
@@ -807,7 +811,8 @@ float fogWipe(vec2 p, float aspect) {
     vec4 a = uWipe[i];
     vec2 pa = p - vec2(a.x * aspect, a.y);
     vec2 ba = vec2((b.x - a.x) * aspect, b.y - a.y);
-    float t = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
+    float bb = max(dot(ba, ba), 1e-6);
+    float t = clamp(dot(pa, ba) / bb, 0.0, 1.0);
     float life = clamp(mix(a.z, b.z, t), 0.0, 1.0);
     // No hold: it is closing from the first instant, and the visible life is
     // mostly tail. See WIPE_DECAY.
@@ -823,8 +828,8 @@ float fogWipe(vec2 p, float aspect) {
     // has worked on it: the warp grows with age rather than being a fixed
     // texture the stroke wears.
     vec2 qa = pa - blow * life + warp * (0.055 + 0.16 * life);
-    float d = length(qa - ba * clamp(dot(qa, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0));
-    float r = ${WIPE_RADIUS.toFixed(4)} * mix(ragged, ragged * ragged * 1.35, life)
+    float d = length(qa - ba * clamp(dot(qa, ba) / bb, 0.0, 1.0));
+    float r = ${WIPE_RADIUS.toFixed(4)} * mix(ragged, raggedHeal, life)
       * (0.45 + 0.55 * age);
     float e = d / max(r, 1e-4);
     // A Gaussian, and one field for the whole effect.
@@ -837,9 +842,11 @@ float fogWipe(vec2 p, float aspect) {
     // around a wiped patch actually is.
     clear = max(clear, left * exp(-e * e * 1.1));
   }
+  if (clear <= 0.0) return 0.0;
   // Wiped, not deleted: what is left of the mist in the swath still drifts.
   // Lightly, though — enough to see the streaks against the sky behind, not so
   // much that the sky behind stops arriving.
+  float streak = vnoise(vec2(p.x * 5.0, p.y * 19.0) + drift + uSeed * 2.7);
   return clear * (0.86 + 0.14 * streak);
 }
 

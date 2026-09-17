@@ -109,6 +109,29 @@ export function isBackgroundClick(target: EventTarget | null): boolean {
 }
 
 /**
+ * Is this press one the sky may answer?
+ *
+ * The whole of the question, in the one place all the eggs ask it, so that they
+ * can never come to different answers: the primary button with nothing held
+ * down, nothing already handling the event, no selection about to be disturbed,
+ * and a target that is the wallpaper rather than the page. `PointerEvent`
+ * extends `MouseEvent`, so a click and a press are the same question here too.
+ *
+ * The expensive part is `isBackgroundClick`, which walks ancestors asking for
+ * computed styles — so it goes last, and callers with a cheaper test of their
+ * own (a cooldown, a second finger) should get theirs in before this.
+ */
+export function isBackgroundPress(event: MouseEvent): boolean {
+  if (event.button !== 0 || event.defaultPrevented) return false;
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    return false;
+  }
+  const selection = window.getSelection();
+  if (selection && !selection.isCollapsed) return false;
+  return isBackgroundClick(event.target);
+}
+
+/**
  * Where the bolt lands, in the wallpaper layer's own space: 0..1 across,
  * 0..1 **bottom → top** (the shader's screen convention, same as `uSun`).
  * Null when the click was outside the layer — with the bezel on, the layer
