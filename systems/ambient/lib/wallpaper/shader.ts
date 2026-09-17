@@ -911,8 +911,12 @@ const float METEOR_SPEED = 1.6;
 const float METEOR_MIN_FLIGHT = 0.45;
 const float METEOR_MAX_FLIGHT = 1.25;
 const float METEOR_LIFE = 1.7;
-/** How far outside the frame it starts, so it is plainly arriving from away. */
-const float METEOR_EDGE = 0.06;
+/**
+ * How far outside the frame it starts, so it is plainly arriving from away.
+ * Wide enough to absorb the bow: the lead-in is measured along the tangent, and
+ * the arc it is actually walked along departs from that by up to the sagitta.
+ */
+const float METEOR_EDGE = 0.1;
 /**
  * How fast the wake and the train forget, in seconds — and these are really
  * *lengths*, which is the thing to hold on to: at METEOR_SPEED, a tau of 0.1 s
@@ -956,6 +960,17 @@ const float METEOR_TRAIN_FALL = 1.8;
 const float METEOR_TRAIN_GAIN = 0.18;
 
 /**
+ * The bow, as the sagitta of the path over its own length. A meteor's track is
+ * dead straight in space, and on a narrow field it projects straight too — but
+ * this is a wide field, and a wide field bends a great circle, so a little bow
+ * is honest as well as prettier. Kept small, and bounded away from zero on
+ * purpose: the path is carried as a circular arc, and a radius that grows
+ * without bound is a radius float32 cannot subtract accurately.
+ */
+const float METEOR_BOW_MIN = 0.025;
+const float METEOR_BOW_MAX = 0.06;
+
+/**
  * The light curve. A meteor is not a lamp that switches on: it brightens as it
  * digs into thicker air, peaks, and is spent — and it is spent faster than it
  * climbed, because what is burning is running out. So: one peak, asymmetric,
@@ -974,6 +989,36 @@ float meteorGlow(float t, float peak) {
   return exp(-z * z);
 }
 
+/**
+ * Where the path is, s of arc length from the click. The whole track is one
+ * circular arc about c of radius r, which is what makes a bowed path no
+ * harder than a straight one: the distance from a pixel to an arc and its
+ * position along it are an angle, where for a parabola they would be a cubic.
+ * Returning the point rather than a radius also sidesteps the precision trap —
+ * length(p - c) - r subtracts two large nearly-equal numbers, this does not.
+ */
+vec2 meteorAt(vec2 c, float r, float a0, float spin, float s) {
+  float a = a0 + spin * s / r;
+  return c + r * vec2(cos(a), sin(a));
+}
+
+/**
+ * Fragmentation. A bright meteor comes apart on the way down, and each break
+ * flares: the classic thing a fireball does that a faint streak never does. Two
+ * possible bursts, the second only on some of them, and only the top grades
+ * get either. Multiplied into the light curve, so the train remembers the flare
+ * as a knot where it happened.
+ */
+float meteorBurst(float t, float fire, float seed) {
+  if (fire < 0.002) return 1.0;
+  float at1 = 0.34 + 0.22 * hash1(vec2(seed, 12.3));
+  float at2 = 0.62 + 0.22 * hash1(vec2(seed, 57.1));
+  float again = step(0.45, hash1(vec2(seed, 71.9)));
+  float z1 = (t - at1) / 0.05;
+  float z2 = (t - at2) / 0.04;
+  return 1.0 + fire * (2.0 * exp(-z1 * z1) + again * 1.3 * exp(-z2 * z2));
+}
+
 /** Returns the head; the wake behind it and the train it leaves come back out. */
 float meteor(vec2 p, float aspect, out float wake, out float train) {
   wake = 0.0;
@@ -987,6 +1032,17 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   // randomising it randomises the entry point for free. Never horizontal,
   // never vertical.
   vec2 at = vec2(uPoke.x * aspect, uPoke.y);
+
+  // What kind of meteor this one is — the roll that makes clicking again worth
+  // doing. A real sky is mostly faint quick ones with the occasional fireball,
+  // and the skew is the payload: pow() puts the median grade at 0.29 and leaves
+  // one in eight above 0.8, so most clicks give something modest and now and
+  // then you get the one that comes apart. Everything below reads mag: how
+  // bright, how big the coma, how far it runs, how long the train lasts, and
+  // whether it flares at all.
+  float mag = pow(hash1(vec2(uPokeSeed, 44.1)), 1.8);
+  float fire = smoothstep(0.62, 0.92, mag);
+
   float side = hash1(vec2(uPokeSeed, 8.3)) < 0.5 ? -1.0 : 1.0;
   float pitch = mix(0.35, 1.22, hash1(vec2(uPokeSeed, 3.1)));
   float cx = cos(pitch);
@@ -1003,7 +1059,7 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   // arrives first, in which case it just leaves, which is also what they do.
   float lead = min(((side > 0.0 ? at.x : aspect - at.x) + METEOR_EDGE) / cx,
                    (1.0 + METEOR_EDGE - at.y) / cy);
-  float burn = mix(0.55, 1.05, hash1(vec2(uPokeSeed, 5.9)));
+  float burn = mix(0.55, 1.05, hash1(vec2(uPokeSeed, 5.9))) * mix(0.62, 1.2, mag);
   float leave = min(((side > 0.0 ? aspect - at.x : at.x) + METEOR_EDGE) / cx,
                     (at.y + METEOR_EDGE) / cy);
   // How far it carries on past the point: its own burn-out distance where there
@@ -1013,20 +1069,33 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   // after it. Without it, a click near the bottom of the frame gets a long
   // lead-in and is met by a head that has already gone out.
   float run = lead + max(min(burn, leave), lead * 0.6);
-  vec2 entry = at - dir * lead;
+
+  // The bow. dir is the tangent *at the clicked point*, and the track is the
+  // circular arc through it — so the click is still crossed exactly, and the
+  // lead-in and run-out above, which were measured along the tangent, are now
+  // approximations good to the sagitta. Which way it bends is another roll.
+  float bow = mix(METEOR_BOW_MIN, METEOR_BOW_MAX, hash1(vec2(uPokeSeed, 21.7)));
+  float spin = hash1(vec2(uPokeSeed, 6.4)) < 0.5 ? -1.0 : 1.0;
+  float radius = run / (8.0 * bow);
+  vec2 centre = at + vec2(-dir.y, dir.x) * spin * radius;
+  float aAt = atan(at.y - centre.y, at.x - centre.x);
+  // Arc length runs against the side the centre is on.
+  spin = -spin;
 
   // One pace for every meteor, so a long path takes longer than a short one —
   // but never quicker than METEOR_MIN_FLIGHT, because the shortest chords
   // (a click in the very corner of the frame) would otherwise be over in
-  // seventy milliseconds, which is a blink and not a streak.
-  float flight = clamp(run / METEOR_SPEED, METEOR_MIN_FLIGHT, METEOR_MAX_FLIGHT);
+  // seventy milliseconds, which is a blink and not a streak. A big one also
+  // falls a touch more slowly, which is most of why fireballs read as stately.
+  float pace = METEOR_SPEED * mix(1.12, 0.86, mag);
+  float flight = clamp(run / pace, METEOR_MIN_FLIGHT, METEOR_MAX_FLIGHT);
   // And that pace is *constant*. A meteor does not slow down — it stops giving
   // off light, which is a different thing and looks like one: an eased path
   // reads either as a thrown object losing steam or, worse, as an animation
   // curve, and the eye knows that signature. Nor is the position clamped at the
   // end, so it never parks: the curve below has already taken it to nothing.
   float t = age / flight;
-  vec2 head = entry + dir * (run * t);
+  vec2 head = meteorAt(centre, radius, aAt, spin, run * t - lead);
 
   // How bright it is, over its life. Where the peak falls is re-rolled per
   // click, so one meteor blazes early and the next is still climbing as it
@@ -1035,7 +1104,9 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   // Ablation is not smooth, so the brightness wanders. From noise rather than a
   // sine, which at a fixed rate reads as a mechanism rather than as burning.
   float flicker = 0.88 + 0.24 * vnoise(vec2(age * 13.0, uPokeSeed * 7.0));
-  float glow = meteorGlow(t, peak) * flicker;
+  // How much light it gives at all is the grade's largest effect.
+  float bright = mix(0.6, 1.55, mag);
+  float glow = meteorGlow(t, peak) * meteorBurst(t, fire, uPokeSeed) * flicker;
 
   // The head: a coma, and a brighter one is a bigger one, with a soft halo of
   // scattered light around it. The gain is set so only the peak of the curve
@@ -1051,7 +1122,8 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   // three times tighter. The pixel floor is for a small viewport, where a head
   // measured in screen heights would otherwise thin out of existence.
   float dh = length(p - head);
-  float hr = max(0.0026 * (0.65 + 0.35 * glow), 1.1 / uResolution.y);
+  float hr = max(0.0026 * mix(0.75, 1.45, mag) * (0.65 + 0.35 * glow),
+                 1.1 / uResolution.y);
   float core = exp(-(dh * dh) / (hr * hr)) + exp(-dh / (hr * 1.8)) * 0.30;
 
   // The wake and the train are the same air at two ages — what the head lit on
@@ -1060,11 +1132,17 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   // flight however long the poke lives afterwards.
   float lastLit = min(t, 1.0);
   float span = lastLit * flight;              // how many seconds of it are lit
-  vec2 ab = dir * (run * lastLit);
-  float len = max(length(ab), 1e-4);
-  vec2 rel = p - entry;
-  float q = clamp(dot(rel, dir) / len, 0.0, 1.0);
-  float d = length(rel - dir * (q * len));
+  float sLit = run * lastLit;                 // and how much arc length
+  // Where this pixel sits along the arc, as arc length from the click: the
+  // angle it subtends at the centre. Wrapped into (-pi, pi] because both
+  // atan()s come back on their own branch.
+  float ap = atan(p.y - centre.y, p.x - centre.x);
+  float dA = mod((ap - aAt) * spin + 3.14159265, 6.28318531) - 3.14159265;
+  // Clamped to the lit stretch, so past either end the distance is to that end
+  // rather than to the circle the arc came from.
+  float s = clamp(dA * radius, -lead, sLit - lead);
+  float d = length(p - meteorAt(centre, radius, aAt, spin, s));
+  float q = (s + lead) / max(sLit, 1e-4);
   // Constant speed is what makes this cheap: where a bit of the streak sits
   // says *when* it was made, and therefore both how old it is now and how
   // bright the head was that made it. Which is the whole difference between a
@@ -1073,7 +1151,8 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   // spreads as it goes because the air is diffusing, and it keeps a bright
   // middle because that is where the head was brightest.
   float old = max(age - q * span, 0.0);
-  float lit = meteorGlow(q * lastLit, peak);
+  float made = q * lastLit;                   // the head's own t back then
+  float lit = meteorGlow(made, peak) * meteorBurst(made, fire, uPokeSeed);
   float px = 0.9 / uResolution.y;
   // Capped, or the adaptation runs away: at a few frames a second the dash
   // would grow past a screen height and be the light beam again. Under about
@@ -1083,9 +1162,11 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   // Spreading dims as well as widens: the same light over a wider thread, so
   // the surface brightness goes down with the width it went up with.
   float spread = 1.0 + old * 8.0;
+  // A big one leaves a train that lasts; a faint one barely leaves one at all.
+  float trainTau = METEOR_TRAIN_TAU * mix(0.7, 1.35, mag);
   train = exp(-d / max(0.0013 * spread, px)) / spread
-        * exp(-pow(old / METEOR_TRAIN_TAU, METEOR_TRAIN_FALL))
-        * lit * METEOR_TRAIN_GAIN;
+        * exp(-pow(old / trainTau, METEOR_TRAIN_FALL))
+        * lit * METEOR_TRAIN_GAIN * mix(0.45, 1.7, mag);
 
   // Faint on a washed-out night, for the same reason the stars are — and the
   // horizon haze thins it as it does them, though never to nothing: a meteor
@@ -1093,7 +1174,8 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   // the renderer's deadline, not the physics: whatever is left when the poke is
   // retired has to be nothing.
   float visible = uStars * (0.55 + 0.45 * smoothstep(0.02, 0.4, p.y))
-                * (1.0 - smoothstep(METEOR_LIFE * 0.85, METEOR_LIFE, age));
+                * (1.0 - smoothstep(METEOR_LIFE * 0.85, METEOR_LIFE, age))
+                * bright;
   wake *= visible;
   train *= visible;
   return core * glow * visible;

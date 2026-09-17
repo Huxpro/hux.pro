@@ -601,12 +601,33 @@ thunder or foggy night can never have one.
   when it gets there rather than past it.
 - **Everything about the path is re-rolled per click**: which side it comes from
   and how steeply it falls (20°–70° off the horizon, so never horizontal and
-  never vertical). The angle is what decides where on the edge it appears, so
-  randomising it randomises the entry point for free. Nothing is held for the
-  session. A real shower does share one radiant, and an earlier cut modelled
-  that, but an egg you will click a dozen times wants to be unpredictable more
-  than it wants to be right — with a fixed radiant every trail pointed back at
-  the same spot.
+  never vertical), which way it bows, and what *grade* of meteor it is. The
+  angle is what decides where on the edge it appears, so randomising it
+  randomises the entry point for free. Nothing is held for the session. A real
+  shower does share one radiant, and an earlier cut modelled that, but an egg
+  you will click a dozen times wants to be unpredictable more than it wants to
+  be right — with a fixed radiant every trail pointed back at the same spot.
+- **The grade is the reason to click again.** One roll, `pow(hash, 1.8)`, sets
+  how bright it is, how big the coma, how far it runs, how slowly it falls, how
+  long the train lasts, and whether it flares at all. The skew is the payload:
+  the median grade is 0.29 and one in eight is above 0.8, so most clicks give
+  something modest and now and then you get a fireball that comes apart.
+  Measured over 24 rolls, total light output spans 11× — median 94, top 754 —
+  and four of the 24 show a flare as a convexity in their light curve where the
+  smooth ones are flat. A real sky is mostly faint quick ones too.
+- **Fragmentation flares** (`meteorBurst`) are what a fireball does that a faint
+  streak never does: one or two bursts partway down, each brightening and
+  swelling the head. They multiply into the light curve, so the train remembers
+  a flare as a knot where it happened. Only the top grades get them.
+- **A slight bow.** A meteor's track is dead straight in space and projects
+  straight onto a narrow field — but this is a wide field, and a wide field
+  bends a great circle, so a little curvature is honest as well as prettier. The
+  sagitta is 2.5–6% of the run. It is carried as a *circular arc*, which is what
+  makes a bowed path cost no more than a straight one: the distance from a pixel
+  to an arc and its position along it are both an angle, where for a parabola
+  they would be a cubic. The radius is deliberately bounded away from infinity —
+  a nearly-straight arc is a huge radius, and float32 cannot subtract those
+  accurately.
 - **One pace, not one duration.** The head moves at a fixed speed, so a long
   sweep across the frame takes about a second and a short chord near a corner
   is over quickly — bounded at both ends (`METEOR_MIN_FLIGHT` /
@@ -652,7 +673,8 @@ thunder or foggy night can never have one.
   the wake is a short bright dash (`METEOR_WAKE_TAU`) and the train is a faint
   ghost (`METEOR_TRAIN_GAIN`) whose greater length never adds up to a band. It
   now measures under 300 px at its longest, a third of the height, with the
-  bright part inside the first 55.
+  bright part inside the first 55 (of an ordinary grade — a fireball is
+  brighter and thicker, which is the point of it).
 - **The wake also has a floor that is about displays, not meteors.** The dash is
   `tau × speed` long and the head moves `speed/fps` between frames, so what
   decides whether consecutive frames *overlap* is `tau × fps` — the speed
