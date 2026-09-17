@@ -246,6 +246,18 @@ export function useDraggable(id: string) {
     y.set(0);
   }, [x, y]);
 
+  /**
+   * Forget where this was dragged to, remembered position and all, so the next
+   * mount starts at its anchor. For a drag whose ENDING is not a resting place:
+   * the devtool's pill dropped onto the bottom edge is consumed by the dock, and
+   * the spot it was released over is a target, not a seat to come back to.
+   */
+  const forgetPosition = useCallback(() => {
+    clearPosition(storageKey);
+    x.set(0);
+    y.set(0);
+  }, [storageKey, x, y]);
+
   return {
     isEnabled: config.draggable,
     contentRef,
@@ -256,6 +268,7 @@ export function useDraggable(id: string) {
     startDrag,
     preventClickAfterDrag,
     resetPosition,
+    forgetPosition,
   };
 }
 

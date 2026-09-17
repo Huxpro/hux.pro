@@ -160,6 +160,10 @@ the glass — about twenty pixels. A pull that stops at the top still snaps to
 the full detent; only one that keeps going detaches, and the shell carries
 `data-pull-armed` in between so the difference is visible.
 
+Coming back is the feature's own business, not the sheet's: the devtool drags
+its pill onto a landing pad at the bottom edge. See
+[Devtool System](./system-devtool.md).
+
 ## The sheet primitive
 
 Every phone shape is one `<SurfaceSheet>` (`sheet.tsx`): a [Base UI

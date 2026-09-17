@@ -7,7 +7,7 @@ The devtool system provides **developer tools** for debugging and testing the am
 ```
 systems/devtool/
 ├── provider.tsx       # DevtoolProvider: enabled, open, docked
-├── dock.tsx           # Where the devtool is, and the gesture that moves it
+├── dock.tsx           # Where the devtool is, and the gestures that move it
 ├── panel.tsx          # The modules — content, unaware of its container
 └── index.ts           # Barrel exports
 ```
@@ -32,18 +32,29 @@ worth docking to — a full-height devtool against an edge would cover the page
 it is about — so it reads as floating whatever the setting says. That is the
 pill ⇄ window pair it has always had; the phone is what gains a second docking.
 
-### The gesture
+### The gestures
 
-Pull the sheet up past its top edge and let go: the devtool comes off the
-bottom edge and lands as the pill. Saying "give me this everywhere" *is*
-detaching it, so the gesture and the intent are the same motion. The way back
-is the dock button in the window's header, offered only where there is an edge
-to go back to.
+Two, and they are mirror images of each other:
 
-A pull that **stops** at the top snaps to the full detent as always; a pull
-that **keeps going** detaches. The band between them is about twenty pixels,
-and the shell gives a little (`data-pull-armed`) once the release would commit,
-so the gesture can be seen before it happens and eased back out of.
+| | Gesture | What it does |
+|---|---|---|
+| **off the edge** | Pull the sheet up past its top edge, let go | Lands as the pill |
+| **back onto it** | Drag the pill down onto the bottom edge, let go | A landing pad rises to meet it; the release puts the sheet back |
+
+Both say the same thing in the same language — *where this belongs is something
+you move it to* — so neither has to be learnt on its own, and the pad appearing
+under a dragged pill is what teaches the pair. "Give me this everywhere" and
+"put it back" are the motions themselves, not commands about them.
+
+The window's header keeps a dock button as well (`PanelBottom`, beside the
+close), because a window is not draggable to an edge on a touch screen without
+covering the screen on the way.
+
+**Off the edge.** A pull that *stops* at the top snaps to the full detent as
+always; a pull that *keeps going* detaches. The band between them is about
+twenty pixels, and the shell gives a little (`data-pull-armed`) once the
+release would commit, so the gesture can be seen before it happens and eased
+back out of.
 
 That threshold is small because it is measured, not chosen. Most of a pull is
 spent resizing the sheet — from the 0.7 detent that is 187px on an iPhone 13 —
@@ -51,6 +62,18 @@ and what is left over is the distance from the grabber to the top of the glass.
 See `PULL_PAST_TOP_TRAVEL` and the note beside it in
 `systems/surface/sheet.tsx`, which also explains why the gesture reads the
 pointer rather than Base UI's published overshoot.
+
+**Back onto it.** The pad is only up while a pill is actually in hand, and only
+where there is an edge to dock to — it is a drop target, not decoration. It
+stands where the sheet will, inset by the surface system's edge gap, with the
+sheet's own grabber waiting at the top, and it lights up once the pill's centre
+is inside it. Releasing anywhere else is an ordinary move, and the pill stays
+where it was put.
+
+Dropping onto the pad makes the pill *forget* where it was dragged
+(`forgetPosition`, `systems/draggable`): the spot it was released over is a
+target, not a seat, so the next time the devtool comes off the edge it comes
+back to its corner rather than to the mouth of the dock.
 
 ### Non-modal, and stacked
 
@@ -97,10 +120,13 @@ persists, and each mounts reading back the other's position. (Turn `persist`
 off in the Draggable module and that hand-off stops; the two then keep their
 own offsets until the next reload.)
 
-The pill is its own handle; the window drags by its header, through the same
-`useDraggable` hook every surface window uses. The module bodies are never
-handles, so range inputs, text fields and scrolling keep working — and on a
-phone the sheet's grabber replaces dragging entirely.
+Both use `useDraggable` directly rather than the `withDraggable` HOC: the pill
+needs its own drag handlers to know when it is over the pad, which is exactly
+what the HOC exists not to expose.
+
+The pill is its own handle; the window drags by its header. The module bodies
+are never handles, so range inputs, text fields and scrolling keep working —
+and on a phone the sheet's grabber replaces dragging entirely.
 
 ### Getting in and out
 
