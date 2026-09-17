@@ -58,9 +58,9 @@ export const POKE_MS: Record<PokeKind, number> = {
   strike: 1200,
   // Longer than the strike, because the path is: a meteor comes in from off the
   // edge of the screen and crosses it, at one pace whatever the distance, so a
-  // long sweep takes about a second and its trail wants a beat after that. The
+  // long sweep takes about a second and its train wants a beat after that. The
   // shader's METEOR_LIFE is this number — keep the two together.
-  meteor: 1400,
+  meteor: 1600,
 };
 
 /**

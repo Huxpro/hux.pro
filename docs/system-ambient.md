@@ -595,7 +595,10 @@ thunder or foggy night can never have one.
   always already falling; the click only says where you happened to catch sight
   of one. So the path is backed up from the point until it leaves the frame —
   that is the entry, just outside whichever edge it meets — and carried on past
-  the point until it burns out or an edge arrives.
+  the point until it burns out or an edge arrives, but never by less than 60% of
+  the lead-in. That last ratio is really about *time*: it puts the crossing at
+  0.62 of the flight at the latest, so the head is still inside its light curve
+  when it gets there rather than past it.
 - **Everything about the path is re-rolled per click**: which side it comes from
   and how steeply it falls (20°–70° off the horizon, so never horizontal and
   never vertical). The angle is what decides where on the edge it appears, so
@@ -612,11 +615,38 @@ thunder or foggy night can never have one.
 - **The head crosses the clicked point 0.03–0.4 s in**, depending on how far
   away its entry edge was, and the streak itself is on screen from ~0.02 s. That
   promptness is part of what "fires every time" means: an egg that answers late
-  reads as broken just as an egg that answers one click in five does.
-- **Shape**: a bright warm head, a tail tapering behind it, and a fainter cool
-  trail along the whole path flown that lingers a beat after the head has burnt
-  out. Gone inside 1.4 s (`POKE_MS.meteor`, which the shader's `METEOR_LIFE`
-  must match) — longer than the strike, because the path is.
+  reads as broken just as an egg that answers one click in five does — and so is
+  brightness, which is why the head is never under about a third of its peak
+  where you pointed.
+- **The pace is constant.** A meteor does not slow down, it stops giving off
+  light, and those two look nothing alike: an eased path reads as a thrown
+  object losing steam, or worse, as an animation curve, and the eye knows that
+  signature. The first cut of this eased out over its flight and measured a
+  1.5× slowdown — 34 px/frame down to 22 — which was the single loudest tell
+  that it was drawn rather than falling.
+- **One light curve, asymmetric, peaking somewhere past the middle**
+  (`meteorGlow`, re-rolled per click). It climbs as it digs into thicker air and
+  is spent faster than it climbed; nothing switches on or off. That curve also
+  sets the head's size, so a brightening reads as a swelling coma, and only the
+  tip of the peak clips to white — a dozen pixels for a fifth of a second
+  instead of the whole first half of the flight, which is what a flat-topped
+  envelope was doing.
+- **Shape**: a bright warm head, a wake right behind it, and a fainter, cooler,
+  wider train along the path flown. The wake and the train are the same air at
+  two ages, so they come from one walk down the streak — see below. Gone inside
+  1.6 s (`POKE_MS.meteor`, which the shader's `METEOR_LIFE` must match) — longer
+  than the strike, because the path is.
+- **Every point of the train decays on its own clock.** Constant pace is what
+  makes that cheap: where a bit of the streak sits says *when* the head made it,
+  and so both how old it is now and how bright the head was that made it. Hence
+  a train with a bright middle, an old end that goes first, and a thread that
+  widens and dims as the air diffuses. The decay is deliberately steeper than an
+  exponential (`METEOR_TRAIN_FALL`), because under a plain `exp(-t/tau)` every
+  point ages at the same rate once emission has stopped, so the whole profile
+  scales by one factor per frame and the thing reads as a rigid stick on a
+  dimmer — measurably: first and last point both lost exactly half between
+  0.45 s and 0.60 s. Raised to a power, the visible extent collapses from 500 px
+  to 200 px over the same interval instead.
 - **Drawn over the star field and under the cloud decks**, the opposite of the
   strike's channel: a meteor behind a cloud should be hidden, so a drifting deck
   occludes a lingering trail.

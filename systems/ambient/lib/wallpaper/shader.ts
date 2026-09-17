@@ -908,31 +908,52 @@ float fogWipe(vec2 p, float aspect) {
  */
 const float METEOR_SPEED = 2.8;
 const float METEOR_MIN_FLIGHT = 0.3;
-const float METEOR_MAX_FLIGHT = 1.0;
-const float METEOR_LIFE = 1.4;
+const float METEOR_MAX_FLIGHT = 0.9;
+const float METEOR_LIFE = 1.6;
 /** How far outside the frame it starts, so it is plainly arriving from away. */
 const float METEOR_EDGE = 0.06;
+/**
+ * How fast the wake and the train forget, in seconds. The wake is the air just
+ * behind the head, still hot; the train is what is left of it a moment later.
+ * One clock is 4x the other, which is why they read as two things.
+ *
+ * The train's decay is deliberately steeper than an exponential, and that is
+ * the difference between a train and a line that dims. Under a plain
+ * exp(-t/tau) every point ages at the same rate once the head has stopped
+ * emitting, so the whole profile scales by the same factor every frame and the
+ * thing reads as one rigid stick on a dimmer — measurably so: first and last
+ * point both lost exactly half between 0.45 s and 0.60 s. Raised to a power the
+ * old end loses disproportionately, so the train retreats toward where the
+ * meteor died, which is what a real one does (recombination is not a one-body
+ * process and does not decay like one).
+ */
+const float METEOR_WAKE_TAU = 0.05;
+const float METEOR_TRAIN_TAU = 0.3;
+const float METEOR_TRAIN_FALL = 1.8;
 
 /**
- * Glow of the streak from a (its oldest visible point) to b (the head), full
- * and wide at the head and tapering to nothing behind it. Never thinner than
- * about a pixel: a trail measured in scene units disappears on a short
- * viewport, which is the one way this can fail to be seen at all.
+ * The light curve. A meteor is not a lamp that switches on: it brightens as it
+ * digs into thicker air, peaks, and is spent — and it is spent faster than it
+ * climbed, because what is burning is running out. So: one peak, asymmetric,
+ * and near zero past the end, which means nothing anywhere has to be switched
+ * off by hand. It is also what decides the head's size, and what each bit of
+ * the train remembers of the head that made it.
+ *
+ * The climb is the wide side, so it is already burning at a third to a half of
+ * its peak when it enters the frame — which is the truth of it: nothing ignites
+ * exactly at the edge of a screen. It also means a click near an edge, where
+ * the head reaches the point a few frames in, is still answered by something
+ * bright.
  */
-float meteorStreak(vec2 p, vec2 a, vec2 b, float width) {
-  vec2 ab = b - a;
-  float len = max(length(ab), 1e-4);
-  vec2 dir = ab / len;
-  vec2 rel = p - a;
-  float t = clamp(dot(rel, dir) / len, 0.0, 1.0);
-  float d = length(rel - dir * (t * len));
-  float w = max(width * (0.2 + 0.8 * t * t), 0.9 / uResolution.y);
-  return exp(-d / w) * t * t;
+float meteorGlow(float t, float peak) {
+  float z = (t - peak) / (t < peak ? 0.55 : 0.22);
+  return exp(-z * z);
 }
 
-/** Returns the head and its tail; the lingering trail comes back in 'trail'. */
-float meteor(vec2 p, float aspect, out float trail) {
-  trail = 0.0;
+/** Returns the head; the wake behind it and the train it leaves come back out. */
+float meteor(vec2 p, float aspect, out float wake, out float train) {
+  wake = 0.0;
+  train = 0.0;
   if (!poking(POKE_METEOR)) return 0.0;
   float age = uPokeAge;
 
@@ -961,43 +982,82 @@ float meteor(vec2 p, float aspect, out float trail) {
   float burn = mix(0.55, 1.05, hash1(vec2(uPokeSeed, 5.9)));
   float leave = min(((side > 0.0 ? aspect - at.x : at.x) + METEOR_EDGE) / cx,
                     (at.y + METEOR_EDGE) / cy);
-  float run = lead + min(burn, leave);
+  // How far it carries on past the point: its own burn-out distance where there
+  // is room, but never under 60% of the lead-in. That ratio is really a
+  // statement about *time* — it puts the crossing of the point at 0.62 of the
+  // flight at the latest, and therefore inside the light curve rather than
+  // after it. Without it, a click near the bottom of the frame gets a long
+  // lead-in and is met by a head that has already gone out.
+  float run = lead + max(min(burn, leave), lead * 0.6);
   vec2 entry = at - dir * lead;
 
   // One pace for every meteor, so a long path takes longer than a short one —
   // but never quicker than METEOR_MIN_FLIGHT, because the shortest chords
   // (a click in the very corner of the frame) would otherwise be over in
   // seventy milliseconds, which is a blink and not a streak.
-  // Slightly eased out: a meteor ablates as it goes, and slowing into the end
-  // is what makes it *end* rather than simply stop.
   float flight = clamp(run / METEOR_SPEED, METEOR_MIN_FLIGHT, METEOR_MAX_FLIGHT);
-  float t = clamp(age / flight, 0.0, 1.0);
-  float flown = (1.0 - pow(1.0 - t, 1.35)) * run;
-  vec2 head = entry + dir * flown;
+  // And that pace is *constant*. A meteor does not slow down — it stops giving
+  // off light, which is a different thing and looks like one: an eased path
+  // reads either as a thrown object losing steam or, worse, as an animation
+  // curve, and the eye knows that signature. Nor is the position clamped at the
+  // end, so it never parks: the curve below has already taken it to nothing.
+  float t = age / flight;
+  vec2 head = entry + dir * (run * t);
 
-  // The head: a small bright core that flares as it ablates, gone by the end
-  // of the flight rather than stopping dead.
-  float alive = smoothstep(0.0, 0.03, age) * (1.0 - smoothstep(0.72, 1.0, t));
-  float flare = 1.0 + 0.2 * sin(age * 31.0 + uPokeSeed * 6.2831);
+  // How bright it is, over its life. Where the peak falls is re-rolled per
+  // click, so one meteor blazes early and the next is still climbing as it
+  // crosses your point.
+  float peak = mix(0.45, 0.72, hash1(vec2(uPokeSeed, 17.3)));
+  // Ablation is not smooth, so the brightness wanders. From noise rather than a
+  // sine, which at a fixed rate reads as a mechanism rather than as burning.
+  float flicker = 0.88 + 0.24 * vnoise(vec2(age * 13.0, uPokeSeed * 7.0));
+  float glow = meteorGlow(t, peak) * flicker;
+
+  // The head: a coma, and a brighter one is a bigger one, with a soft halo in
+  // front of it. The gain is set so only the peak of the curve clips — for the
+  // rest of the flight the head has structure instead of being a white sticker.
   float dh = length(p - head);
-  float core = exp(-dh * dh / 2.6e-5) + exp(-dh / 0.012) * 0.45;
+  float hr = 0.005 * (0.62 + 0.38 * glow);
+  float core = exp(-(dh * dh) / (hr * hr)) + exp(-dh / (hr * 3.3)) * 0.42;
 
-  // The tail rides just behind the head, a fixed length once it has one.
-  float tailLen = min(flown, 0.17);
-  float body = meteorStreak(p, head - dir * tailLen, head, 0.0022);
-
-  // The trail: the whole path flown, faint, and still there a beat after the
-  // head has burnt out. Real ones leave one; it is most of what you remember.
-  trail = meteorStreak(p, entry, head, 0.0016) * 0.5
-        * exp(-max(0.0, age - flight) * 5.2)
-        * (1.0 - smoothstep(METEOR_LIFE * 0.82, METEOR_LIFE, age));
+  // The wake and the train are the same air at two ages — what the head lit on
+  // its way past — so they come out of one walk down the path it has flown.
+  // Emission stops when the head is spent, so that path stops at the end of the
+  // flight however long the poke lives afterwards.
+  float lastLit = min(t, 1.0);
+  float span = lastLit * flight;              // how many seconds of it are lit
+  vec2 ab = dir * (run * lastLit);
+  float len = max(length(ab), 1e-4);
+  vec2 rel = p - entry;
+  float q = clamp(dot(rel, dir) / len, 0.0, 1.0);
+  float d = length(rel - dir * (q * len));
+  // Constant speed is what makes this cheap: where a bit of the streak sits
+  // says *when* it was made, and therefore both how old it is now and how
+  // bright the head was that made it. Which is the whole difference between a
+  // train and a drawn line — the old end goes first, so the thing retreats
+  // toward where the meteor died instead of dimming all over at once, it
+  // spreads as it goes because the air is diffusing, and it keeps a bright
+  // middle because that is where the head was brightest.
+  float old = max(age - q * span, 0.0);
+  float lit = meteorGlow(q * lastLit, peak);
+  float px = 0.9 / uResolution.y;
+  wake = exp(-d / max(0.0021, px)) * exp(-old / METEOR_WAKE_TAU) * lit;
+  // Spreading dims as well as widens: the same light over a wider thread, so
+  // the surface brightness goes down with the width it went up with.
+  float spread = 1.0 + old * 12.0;
+  train = exp(-d / max(0.0016 * spread, px)) / spread
+        * exp(-pow(old / METEOR_TRAIN_TAU, METEOR_TRAIN_FALL)) * lit;
 
   // Faint on a washed-out night, for the same reason the stars are — and the
   // horizon haze thins it as it does them, though never to nothing: a meteor
-  // you asked for and did not get reads as broken, not as rare.
-  float visible = uStars * (0.55 + 0.45 * smoothstep(0.02, 0.4, p.y));
-  trail *= visible;
-  return (core * 1.15 + body) * alive * flare * visible;
+  // you asked for and did not get reads as broken, not as rare. The close is
+  // the renderer's deadline, not the physics: whatever is left when the poke is
+  // retired has to be nothing.
+  float visible = uStars * (0.55 + 0.45 * smoothstep(0.02, 0.4, p.y))
+                * (1.0 - smoothstep(METEOR_LIFE * 0.85, METEOR_LIFE, age));
+  wake *= visible;
+  train *= visible;
+  return core * glow * visible;
 }
 
 // ---------------------------------------------------------------------------
@@ -1032,10 +1092,10 @@ void main() {
   // hide it: a warm-white head (it is a rock burning) over a cooler trail (it
   // is ionised air glowing). Both go in before the clouds, so a drifting deck
   // occludes a lingering trail exactly as it should.
-  float meteorTrail;
-  float m = meteor(p, aspect, meteorTrail);
-  col += vec3(1.0, 0.96, 0.88) * m
-       + vec3(0.72, 0.86, 1.0) * meteorTrail;
+  float mWake, mTrain;
+  float mHead = meteor(p, aspect, mWake, mTrain);
+  col += vec3(1.0, 0.96, 0.88) * (mHead + mWake)
+       + vec3(0.72, 0.86, 1.0) * mTrain;
 
   // Far deck: large, slow, flattened by perspective. Near deck: smaller,
   // faster, a touch heavier.
