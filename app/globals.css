@@ -575,7 +575,12 @@ html.dragging * {
    - "De-weighted" headings: smaller, subtle but slightly brighter than body */
 .prose-article {
   @apply text-foreground/85 leading-relaxed;
-  font-size: 16px;
+  /* Everything sized inside an article is an `em` of this, so the reader's
+     size setting moves the whole composition rather than the body alone —
+     headings keep their hierarchy, captions and code keep their relation to
+     the paragraph they annotate. `line-height` is unitless for the same
+     reason: it follows whatever the size lands on. */
+  font-size: var(--reading-size, 16px);
   line-height: 1.75;
   /* Break long unbreakable strings (e.g. raw URLs used as link text) so they
      wrap instead of overflowing the viewport horizontally on mobile. */
@@ -628,15 +633,15 @@ html.dragging * {
 }
 
 .prose-article h1:not(:where(.not-prose, .not-prose *)) {
-  @apply font-sans text-xl font-medium mt-14 mb-6 text-foreground first:mt-0;
+  @apply font-sans text-[1.25em] font-medium mt-14 mb-6 text-foreground first:mt-0;
 }
 
 .prose-article h2:not(:where(.not-prose, .not-prose *)) {
-  @apply font-sans text-lg font-medium mt-16 mb-6 text-foreground;
+  @apply font-sans text-[1.125em] font-medium mt-16 mb-6 text-foreground;
 }
 
 .prose-article h3:not(:where(.not-prose, .not-prose *)) {
-  @apply font-sans text-base font-medium mt-12 mb-4 text-foreground;
+  @apply font-sans text-[1em] font-medium mt-12 mb-4 text-foreground;
 }
 
 .prose-article a:not(:where(.not-prose, .not-prose *)) {
@@ -754,7 +759,7 @@ html.dragging * {
 }
 
 .prose-article table:not(:where(.not-prose, .not-prose *)) {
-  @apply w-full border-collapse text-sm;
+  @apply w-full border-collapse text-[0.875em];
   margin: 0; /* Override any inherited margins */
 }
 
@@ -780,7 +785,7 @@ html.dragging * {
 
 /* Inline code */
 .prose-article code:not(:where(.not-prose, .not-prose *)) {
-  @apply font-mono text-sm bg-muted px-1.5 py-0.5 rounded;
+  @apply font-mono text-[0.875em] bg-muted px-1.5 py-0.5 rounded;
 }
 
 /* Code blocks with rehype-pretty-code styling */
@@ -790,7 +795,7 @@ html.dragging * {
 }
 
 .prose-article pre:not(:where(.not-prose, .not-prose *)) code {
-  @apply bg-transparent p-0 text-sm;
+  @apply bg-transparent p-0 text-[0.875em];
   display: grid;
   min-width: 100%;
   counter-reset: line;
@@ -928,6 +933,15 @@ html.dragging * {
   @apply font-serif;
 }
 
+/* Reading size: the one number every `em` in an article resolves against.
+   Default needs no attribute, so <html> stays clean at the common case. */
+:root[data-reading-size="small"] {
+  --reading-size: 15px;
+}
+:root[data-reading-size="large"] {
+  --reading-size: 18px;
+}
+
 /* Reading measure: widen/narrow the reader column. Only the reader variant's
    container is affected; poetic pages (home, lists) keep their width. */
 :root[data-reading-measure="narrow"] main[data-variant="reader"] {
@@ -951,7 +965,7 @@ html.dragging * {
 }
 
 .prose-article figcaption:not(:where(.not-prose, .not-prose *)) {
-  @apply mt-2 text-center text-sm text-muted-foreground;
+  @apply mt-2 text-center text-[0.875em] text-muted-foreground;
 }
 
 /* Strikethrough (GFM) */
