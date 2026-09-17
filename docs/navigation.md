@@ -238,7 +238,7 @@ An article page — anything `PostContent` renders with the ruler on — puts an
 `Aa` button in `PageLayout`'s `headerActions`, beside the meta row, where the
 list pages keep their language filter. It opens the settings that until now
 only the devtool could reach (`components/post/reading-settings.ts` and
-`ruler-settings.ts`).
+`ruler-settings.ts`): typeface, size, column, wide media, focus mode, ruler.
 
 It is Books' "Aa" menu, and takes the surface system's anchored presentation —
 a content-height sheet on a phone, a popover hanging off the button above that
@@ -249,7 +249,14 @@ it.
 All five settings are here, in reader's words rather than the devtool's mono,
 and each appears only where it does something:
 
-Four of the five are offered at every width. **Wide media** is the exception,
+**Size** is the one with teeth: `--reading-size` is the number every `em`
+inside an article resolves against, so moving it moves the whole composition —
+headings keep their hierarchy, captions and code keep their relation to the
+paragraph they annotate. That is why the article's type scale is relative
+rather than absolute; a body that grew while its headings stood still would
+collapse the hierarchy at one step.
+
+All but one are offered at every width. **Wide media** is the exception,
 and not on taste: the rule it switches lives entirely inside the `bleed`
 breakpoint (`--breakpoint-bleed`, `app/globals.css`), so below that width the
 control would be wired to nothing. The row hides itself with the `bleed:`
