@@ -32,12 +32,13 @@ function containerTop(): number {
   return getScrollContainer()?.scrollTop ?? 0;
 }
 
-function stopMomentum(el: HTMLElement): void {
+function jumpContainerToTop(el: HTMLElement): void {
   // -webkit-overflow-scrolling: touch ignores scrollTop until the fling ends.
   // Overflow hidden for one frame drops the container into a non-scrolling
   // state, which kills it; then the stylesheet's overflow-y: auto returns.
   const previous = el.style.overflowY;
   el.style.overflowY = "hidden";
+  el.scrollTop = 0;
   void el.offsetHeight;
   el.style.overflowY = previous;
 }
@@ -69,19 +70,22 @@ export function enableStatusTapToTop(): () => void {
       disarm();
       return;
     }
+    // Hold parking before touching overflow or scrollTop: switching
+    // overflow-y to auto can fire a scroll at 0, which is not a status-bar tap.
+    parking = true;
     if (!root.hasAttribute(STATUS_TAP_ATTRIBUTE)) {
       root.setAttribute(STATUS_TAP_ATTRIBUTE, "");
       void root.offsetHeight;
     }
+    if (windowTop() < PARK_Y) window.scrollTo(0, PARK_Y);
+    parking = false;
     if (windowTop() >= PARK_Y) {
       failures = 0;
       return;
     }
-    parking = true;
-    window.scrollTo(0, PARK_Y);
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        parking = false;
+        if (unsupported || returning) return;
         if (windowTop() >= PARK_Y) {
           failures = 0;
           return;
@@ -109,8 +113,7 @@ export function enableStatusTapToTop(): () => void {
     const el = getScrollContainer();
     if (!el || el.scrollTop <= 0) return;
     returning = true;
-    stopMomentum(el);
-    el.scrollTo({ top: 0, behavior: "smooth" });
+    jumpContainerToTop(el);
     returnTimer = window.setTimeout(finishReturn, 1000);
   };
 
@@ -133,7 +136,12 @@ export function enableStatusTapToTop(): () => void {
   document.addEventListener("touchstart", onTouchStart, opts);
   document.addEventListener("touchend", onTouchEnd, opts);
   document.addEventListener("touchcancel", onTouchEnd, opts);
+  // html overflow-y: auto makes <html> the scroll container, so the event
+  // fires on the element. The viewport path still fires on the window.
+  // Neither uses capture: a capturing window listener would see the
+  // container's scrolls too, and treat them as a status-bar tap.
   window.addEventListener("scroll", onWindowScroll, { passive: true });
+  root.addEventListener("scroll", onWindowScroll, { passive: true });
   window.addEventListener("pageshow", park);
   const stopPage = onPageScroll(onPage);
   const observer = new MutationObserver(() => {
@@ -147,6 +155,7 @@ export function enableStatusTapToTop(): () => void {
     stopPage();
     observer.disconnect();
     window.removeEventListener("scroll", onWindowScroll);
+    root.removeEventListener("scroll", onWindowScroll);
     window.removeEventListener("pageshow", park);
     document.removeEventListener("touchstart", onTouchStart, opts);
     document.removeEventListener("touchend", onTouchEnd, opts);
