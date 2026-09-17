@@ -1523,71 +1523,24 @@ html.dragging * {
 }
 
 /* =============================================================================
-   Window grip — the dots become the handle
+   Window grip — the hit area
    The chrome of an app window on a phone (systems/windows/components/
    window-grip.tsx) is the window's own pill of traffic lights, floating over
    edge-to-edge content as it does on the desktop, doing double duty as the
-   sheet's grabber. At rest it is three dots, because a tap opens the window's
-   menu. Held, the middle dot stretches into the site's own 36×4 grabber while
-   the other two fold into it — one object changing shape, so letting go is the
-   same motion reversed. Nothing fades: the outer dots only narrow, so there is
-   never a moment with nothing in the pill. (A bar crossfading over dots blinks
-   at both ends; that was the first attempt.)
+   sheet's grabber. Everything it looks like is Tailwind, on the component,
+   shared with the desktop pill (window-pill.tsx). The only thing that cannot
+   be said there is this: the glass is the pill, and the target reaches past
+   it — though no further up than the shell's own edge, which clips.
 
-   Whether it is being dragged is the *sheet's* answer, not the grip's: a
-   press that has actually moved the surface (`useSheetDragging`), latched for
-   the rest of the gesture. So a tap never sees a handle however long it
-   lingers — nothing moved — and a drag has one from the first pixel of
-   travel.
+   There is deliberately no shape change here any more. The dots used to become
+   the site's 36×4 grabber while the sheet was dragged, keyed off one state or
+   another; every version of that state could be stranded, and a stranded one
+   means a window with no visible controls. The note at the top of
+   window-grip.tsx has the history.
    ============================================================================= */
 
-[data-window-grip] {
-  --grip-duration: 200ms;
-  --grip-bar: 36px;
-}
-
-/* A target you can hit without looking: the glass is the pill, the hit area
-   reaches past it — but no further up than the shell's own edge, which clips. */
 [data-window-grip]::before {
   content: "";
   position: absolute;
   inset: -0.5rem -0.75rem;
-}
-
-/* The bar's width either way, so the pill is one size and the dots are simply
-   centred in it. */
-[data-window-grip] [data-window-dots] {
-  width: var(--grip-bar);
-  justify-content: center;
-  transition: gap var(--grip-duration) var(--surface-easing);
-}
-
-[data-window-grip] [data-window-control] {
-  transition:
-    width var(--grip-duration) var(--surface-easing),
-    height var(--grip-duration) var(--surface-easing),
-    border-radius var(--grip-duration) var(--surface-easing);
-}
-
-/* Held: the middle dot *is* the grabber, and the gaps go with the two dots
-   that fold into it. 0 + 0 + 36 + 0 + 0 = the site's bar, to the pixel. */
-[data-window-grip][data-phase="dragging"] [data-window-dots] {
-  gap: 0;
-}
-
-[data-window-grip][data-phase="dragging"] [data-window-control]:nth-child(2) {
-  width: var(--grip-bar);
-  height: 4px;
-  border-radius: 9999px;
-}
-
-[data-window-grip][data-phase="dragging"] [data-window-control]:not(:nth-child(2)) {
-  width: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-window-grip] [data-window-dots],
-  [data-window-grip] [data-window-control] {
-    transition: none;
-  }
 }

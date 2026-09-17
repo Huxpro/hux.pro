@@ -210,9 +210,10 @@ of `sheet.tsx`.
 **The gesture.** `useSheetDragging()` says whether the sheet around it is being
 dragged — the press, from Base UI's `data-swiping` on the popup, plus the
 surface having actually moved, latched until the gesture ends. It lives here
-because the popup lives here: a handle that tracked the gesture itself had to
-guess when it ended, and a wrong guess leaves it stuck in a shape the sheet has
-long left (the story is in `systems/windows/components/window-grip.tsx`).
+because the popup lives here: a handle that tracks the gesture itself has to
+guess when it ended, and cannot (`systems/windows/components/window-grip.tsx`
+has the story). Use it for something a surface can afford to be wrong about —
+a pill waking up — and not for whether a control is visible at all.
 
 **Content, not a handle.** Everything below the grabber is wrapped in
 `Drawer.Content`. Without it a *mouse* press anywhere in a sheet starts a swipe,

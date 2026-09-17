@@ -187,65 +187,43 @@ desktop mid-app is not a gesture anyone makes.
   UI treats it as a real nested drawer and sends the window a step back, the
   way iOS presents a sheet from a sheet.
 
-### The grip — the pill and the handle, as one object
+### The grip — the window's pill, doing double duty
 
 A sheet already has a grabber, so the pill does not stack on top of one: they
 are the same object (`window-grip.tsx`). It is the window's own chrome,
 unchanged — the centred, chromeless cluster of traffic lights floating over
 edge-to-edge content, with nothing that reads as a title bar (the sheet gives
-it a row of its own only when `gripOverlay` is off) — doing double duty as the
-handle. Its form at every moment says what a touch will do.
+it a row of its own only when `gripOverlay` is off) — and it is also what you
+drag the sheet by. A tap opens the menu.
 
-| State | Form | What it says |
-|-------|------|--------------|
-| At rest | three dim dots on nothing at all | a target: tap for the menu — and a window |
-| Moving the sheet | the pill lights into glass and the middle dot **stretches into** the site's 36×4 grabber as the other two fold into it | you are moving a sheet |
-| Let go | the bar contracts and the three dots come back out of it | |
-| Receded | dimmed with the shell behind the menu | not yours right now |
+It behaves exactly as the desktop pill does, because it *is* the same pill
+(`window-pill.tsx`): three dim dots on nothing at all, lighting into glass
+while something is happening — a drag, or its own menu standing open. **The
+dots are always there.**
 
-One object changing shape, not two crossfading, and nothing ever fades: the
-outer dots only narrow, so there is never a moment with nothing in the pill.
-The dots' box is a fixed 36px either way, so the pill itself never changes
-size. It is 64×26, with a hit area of 88×42 — a thumb target.
+That last line is the lesson of four rounds of this file. The dots used to
+become the site's 36×4 grabber while the sheet was dragged: proportional to the
+live travel first (which a sheet with detents zeroes every time it lands on
+one, so it flickered), then a phase machine in the grip (which had to know when
+the gesture ended, and cannot — Base UI captures the pointer for everything
+except touch, and the release then reaches nothing at all, so the phase stuck
+and `keepMounted` carried it into the next time the app opened), then the
+sheet's own gesture state (better, and still one flush of a nested drawer away
+from being stranded). Any state that can hide the window's controls is a state
+that can strand them hidden. Whatever a handle gains from changing shape, it
+does not outweigh a window whose controls are sometimes missing — so the morph
+is gone, and if it returns it must be something that cannot persist: an
+animation that always ends where it started, not a state someone has to clear.
 
-**The grip does not decide when.** Whether the sheet is being dragged is the
-*sheet's* answer — `useSheetDragging()`, published by `SurfaceSheet` from Base
-UI's own `data-swiping` on the popup plus the surface having actually
-travelled, latched for the rest of the gesture. A tap therefore never sees a
-handle however long it lingers (nothing moved), a drag has one from the first
-pixel of travel, and landing on a detent mid-drag cannot flicker it (the latch).
+The one thing the grip still owns is the tap, which is the one thing that can
+be lost harmlessly (no menu opens; the next tap works). It opens the menu
+*after* the release rather than inside it: the grip listens in the capture
+phase, ahead of Base UI, and flushing a nested drawer into the middle of the
+sheet's own gesture bookkeeping leaves the sheet believing it is still held.
 
-That is the third design, and the first two are worth remembering:
-
-1. *Proportional to the live travel.* A sheet with detents zeroes its reported
-   travel every time it lands on one, so the pill flickered under the finger.
-2. *A phase machine in the grip.* It had to know when the gesture ended, and it
-   cannot: Base UI captures the pointer for everything except touch, and the
-   release can then reach nothing at all — no pointerup, no pointercancel, no
-   lostpointercapture, on window, document or the popup, not even for a
-   listener installed before the app. The phase stuck, the pill stayed a
-   handle, and `keepMounted` carried that into the next time the app opened.
-   Five ways out did not fix it; owning less did.
-
-The one thing that must be the grip's is the tap, and it is the one thing that
-can be lost harmlessly — no menu opens, nothing sticks, the next tap works. It
-**opens the menu on a timeout, not inside the release**: the grip listens in
-the capture phase, ahead of Base UI, and flushing a nested drawer into the
-middle of the sheet's own gesture bookkeeping left it mid-gesture for good —
-the sheet stayed "held", so the pill stayed a handle with the dots gone.
-
-The dots themselves are shared with the desktop pill (`window-pill.tsx`), so
-the two can't drift; on a grip they are an indicator rather than three targets
-(inert, and Base UI would refuse to start a swipe from a `<button>` anyway).
-
-Two Base UI facts shape the implementation, both in the numbered list at the
-top of `systems/surface/sheet.tsx`: a swipe never starts from a `<button>` (so
-the grip is a `<div>`, with a visually hidden button beside it carrying the
-semantics), and once a press becomes a swipe the pointer is captured and no
-move, up or click reaches us again (so a tap is "the release came back to us,
-and the popup reports no travel"). What it deliberately does not try to say:
-which detent it is at — the surface's own position shows that — and "let go now
-and it goes away", which cannot be read in CSS while detents are in play.
+The dots themselves are shared with the desktop pill, so the two can't drift;
+on a grip they are an indicator rather than three targets (inert, and Base UI
+would refuse to start a swipe from a `<button>` anyway).
 
 ## The chrome
 

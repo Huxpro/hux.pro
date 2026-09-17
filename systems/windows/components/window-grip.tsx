@@ -2,54 +2,41 @@
 
 import { cn } from "@/lib/utils";
 import { useSheetDragging } from "@/systems/surface";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { pillShell, TrafficDots } from "./window-pill";
 
 // =============================================================================
-// WindowGrip — the ••• pill and the sheet's handle, as one object
+// WindowGrip — the window's pill, doing double duty as the sheet's handle
 //
 // A phone window is a sheet (window-sheet.tsx), and a sheet already has a
 // grabber. Rather than stack a pill on top of one, the two are the same thing:
-// the window's own chrome — the centred, chromeless pill of traffic lights,
+// the window's own chrome — the centred, chromeless cluster of traffic lights
 // floating over edge-to-edge content exactly as it does on a desktop window,
-// with nothing that reads as a title bar — doing double duty as the handle.
+// with nothing that reads as a title bar — is also what you drag it by.
 //
-// Its form answers "what happens if I touch this":
+// It behaves as the desktop pill does, because it is the same pill
+// (window-pill.tsx): three dim dots on nothing at all, lighting into glass
+// while something is happening — a drag, or its own menu standing open — and
+// never anything else. **The dots are always there.** That is not a style
+// choice, it is the lesson of four rounds of this file: the dots used to
+// become the sheet's 36×4 grabber while it was dragged, and any state that can
+// hide them is a state that can strand them hidden. It did, repeatedly, and
+// each fix bought a subtler version of the same failure. Whatever a handle
+// gains from changing shape, it does not outweigh a window whose controls
+// are sometimes missing.
 //
-//   • at rest     → three dim dots on nothing at all. A target: tap for the
-//                   menu, and an indicator of a window, as on the desktop.
-//   • under a finger → the pill lights into glass, the dots take full ink, and
-//                   a moment later they *become* the site's grabber: the middle
-//                   one stretches into the 36×4 bar as the other two fold into
-//                   it. You are holding a sheet.
-//   • let go      → the bar contracts and the three dots come back out of it,
-//                   the same motion in reverse.
-//   • receded     → dimmed with the shell while the menu stands over it.
+// (If the morph comes back it must be incapable of persisting — an animation
+// that always ends where it started, not a state something has to clear.)
 //
-// One object changing shape, not two crossfading: a bar fading in over dots
-// fading out reads as a blink in both directions, and halfway through it is
-// neither thing. Here the middle dot *is* the bar, and the outer two only
-// narrow — nothing ever fades, so there is no moment with nothing in the pill.
-//
-// The one thing this component does not decide is *when*: "a finger is on the
-// sheet" belongs to the sheet, which publishes it (`useSheetHeld`) from the
-// same attribute Base UI drives the surface's own motion with. Tracking the
-// gesture here instead — which this did, through pointer listeners, a
-// MutationObserver, a rAF watchdog and five ways to end — meant guessing when
-// it was over, and a wrong guess left the pill stuck as a handle long after
-// the sheet had settled: the dots "disappearing", sometimes until the next
-// press, sometimes carried by `keepMounted` into the next time the app opened.
-// A press we can see; an end we cannot (Base UI captures the pointer for
-// everything but touch, and the release then reaches nothing at all, not even
-// a listener installed before the app). So the shape follows the sheet, and
-// the only thing left here is the tap.
-//
-// The tap has to be ours, and it is the one thing that can be lost harmlessly:
-// no menu opens, nothing sticks, the next tap works. It cannot be a click
-// handler (above `Drawer.Content` there are no clicks) and it cannot be
-// armPointer (its long-press would fire mid-drag, with no moves arriving to
-// cancel it). A press and the release that comes back to us, a few pixels
-// apart, is a tap.
+// The tap is this component's one job, and it is the one thing that can be
+// lost harmlessly: no menu opens, nothing sticks, the next tap works. It
+// cannot be a click handler (above `Drawer.Content` there are no clicks) and
+// it cannot be armPointer (its long-press would fire mid-drag, with no moves
+// arriving to cancel it). A press, and a release that comes back to us a few
+// pixels away, is a tap — and the menu opens *after* that release rather than
+// inside it: the grip listens in the capture phase, ahead of Base UI, and
+// flushing a nested drawer into the middle of the sheet's own gesture
+// bookkeeping leaves the sheet believing it is still being held.
 //
 // Base UI also never starts a swipe from `button,a,input,select,textarea,
 // label,[role="button"]` (`DEFAULT_IGNORE_SELECTOR` in utils/useSwipeDismiss),
@@ -64,34 +51,27 @@ const TAP_SLOP = 6;
 export function WindowGrip({
   label,
   focused,
+  menuOpen,
   onMenu,
 }: {
   /** Accessible name — the app whose menu this opens. */
   label: string;
   /** Front-most window: the dots are the window's own indicator. */
   focused: boolean;
+  /** This window's menu is up — the pill stays awake under it, as on desktop. */
+  menuOpen: boolean;
   onMenu: () => void;
 }) {
-  // Is the sheet moving? That is the sheet's own answer (see useSheetDragging),
-  // ended early by our release: Base UI keeps its flag through the settle that
-  // follows a finger, which is a beat too long for something the size of a
-  // pill. Whichever ends first wins, so neither can strand the shape — if our
-  // release is lost (Base UI captures the pointer for everything but touch,
-  // and then the up can reach nothing at all) the sheet still ends it.
-  const sheetDragging = useSheetDragging();
+  // Awake while something is happening: the sheet moving under the finger (the
+  // sheet's own answer, see useSheetDragging) or this window's menu open. The
+  // same rule the desktop pill has always had.
+  const dragging = useSheetDragging();
+  const awake = dragging || menuOpen;
   const press = useRef<{ id: number; x: number; y: number } | null>(null);
-  const [released, setReleased] = useState(false);
-  const [wasDragging, setWasDragging] = useState(sheetDragging);
-  if (wasDragging !== sheetDragging) {
-    setWasDragging(sheetDragging);
-    if (!sheetDragging && released) setReleased(false);
-  }
-  const dragging = sheetDragging && !released;
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     press.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
-    setReleased(false);
 
     // Capture phase, on the document: for touch the release arrives here, and
     // for a mouse Base UI may swallow it — in which case this press simply was
@@ -101,14 +81,9 @@ export function WindowGrip({
       document.removeEventListener("pointercancel", finish, true);
       const from = press.current;
       press.current = null;
-      if (from && ev.pointerId === from.id) setReleased(true);
       if (!from || ev.pointerId !== from.id || ev.type !== "pointerup") return;
       if (Math.hypot(ev.clientX - from.x, ev.clientY - from.y) > TAP_SLOP) return;
-      // Not in this event. We are ahead of Base UI here (capture phase), and
-      // opening the menu from inside the release flushes a nested drawer into
-      // the middle of the sheet's own gesture bookkeeping — which then never
-      // finishes: the sheet stays "held" for good, and the pill stays a handle
-      // with the dots gone. Let the release play out first.
+      // Not from inside the release: see the note at the top of the file.
       setTimeout(onMenu, 0);
     };
     document.addEventListener("pointerup", finish, true);
@@ -119,7 +94,6 @@ export function WindowGrip({
     <div className="pointer-events-none flex items-center justify-center">
       <div
         data-window-grip
-        data-phase={dragging ? "dragging" : "idle"}
         aria-hidden
         onPointerDown={onPointerDown}
         onContextMenu={(e) => {
@@ -129,11 +103,15 @@ export function WindowGrip({
         className={cn(
           // A thumb target, not a pinch of dots: the glass is this big, and
           // ::before takes the hit area wider still (see globals.css).
-          pillShell(dragging, false),
+          pillShell(awake, false),
           "pointer-events-auto relative justify-center px-3.5 py-2.5",
         )}
       >
-        <TrafficDots focused={focused} interacting={dragging} />
+        {/* As wide as the sheet grabber it stands in for, so the pill is a
+            proper target rather than a pinch of dots. */}
+        <span className="flex w-9 justify-center">
+          <TrafficDots focused={focused} interacting={awake} />
+        </span>
       </div>
       {/* The same control, for anyone not using a finger. */}
       <button
