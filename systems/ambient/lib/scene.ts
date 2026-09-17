@@ -89,6 +89,19 @@ export interface WeatherScene {
   fog: number;
   lightning: number;
   stars: number;
+  /**
+   * What the murk is hiding: the same night sky with neither the fog nor the
+   * deck that a fog day brings in front of it.
+   *
+   * A foggy night has no stars and barely a moon — `cover` alone saturates the
+   * star term and the fog halves what is left of the moon — so by the time the
+   * shader runs there is nothing there to uncover. Which is the whole point of
+   * the wipe: the sky above the fog really does have a moon and stars in it,
+   * and clearing the mist is supposed to show you them. So the scene hands over
+   * the unhidden version too, and the shader reaches for it inside the swath.
+   * See "The Fog Wipe" in docs/system-ambient.md.
+   */
+  behind: { stars: number; moon: number };
   /** Theme veil: blend the rendered scene toward the page background. */
   veil: { color: RGB; amount: number };
   exposure: number;
@@ -501,8 +514,14 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   // washes out the fainter stars.
   const moonLight = moonIllum * smoothstep(0, 25, lunar.elevation) * night;
 
-  const stars =
-    night * (1 - smoothstep(0.15, 0.65, cover)) * (1 - fog) * (1 - 0.55 * moonLight);
+  const starDust = night * (1 - 0.55 * moonLight);
+  const stars = starDust * (1 - smoothstep(0.15, 0.65, cover)) * (1 - fog);
+  // The same two with the murk taken away — see `behind` on WeatherScene. Only
+  // the fog wipe ever asks for them, and only inside the swath it has cleared.
+  const behind = {
+    stars: starDust,
+    moon: moonUp * lerp(dayMoon, 1, skyDark),
+  };
 
   const veilDefaults = VEIL_DEFAULTS[theme];
 
@@ -536,6 +555,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
     fog,
     lightning: condition === "thunder" ? 1 : 0,
     stars,
+    behind,
     veil: { color: veilDefaults.color, amount: ov.veilAmount ?? veilDefaults.amount },
     exposure: veilDefaults.exposure,
     seed: params.seed ?? 0,

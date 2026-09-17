@@ -1,6 +1,6 @@
 # Ambient System
 
-The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon, and whose rain and snow fall along the device's own gravity — offered in three styles: Sky, Gradient and Classic. On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg), and while it is raining or snowing a drag across the background [stirs up a gust](#stirring-the-wind-rain-and-snow-easter-egg).
+The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon, and whose rain and snow fall along the device's own gravity — offered in three styles: Sky, Gradient and Classic. On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg), and while it is raining or snowing a drag across the background [stirs up a gust](#stirring-the-wind-rain-and-snow-easter-egg); on a foggy one a drag [wipes the mist clear](#the-fog-wipe-foggy-day-easter-egg).
 
 It also owns the page background — the **wallpaper**. Weather is not a separate
 background feature; it is the one wallpaper that changes on its own. See
@@ -35,6 +35,7 @@ systems/ambient/
 │   │   ├── stir.ts               # Drag the background to stir up a gust of wind
 │   │   └── support.ts            # WebGL2 / reduced-motion / quality-profile detection
 │   ├── strike.ts                 # The thunder-day strike: timing + "is this the sky?"
+│   ├── wipe.ts                   # The foggy-day wipe: the stroke, the hand, the gesture
 │   ├── greeting.ts               # Time-of-day helpers
 │   ├── location.ts               # IP/GPS location resolution
 │   ├── notification.ts           # Upcoming sun-event detection (lead-up + window)
@@ -353,11 +354,40 @@ per-widget overlays, so they transition identically. The iOS `fixedBgTracker`
 (background-attachment polyfill + viewport-relative edge mask) is applied per
 layer, so soft-edging keeps working mid-crossfade.
 
+### The easter eggs
+
+Three of the six conditions answer a hand, and only three. The rest do nothing —
+**a click on a clear noon sky doing nothing is what makes the others feel like a
+find**, and once every sky reacted it would stop being a secret and become an
+undiscoverable-but-mandatory affordance. They are three *different* gestures on
+purpose, too: a tap that answers with violence, a drag that stirs the air, and a
+drag that takes something away and gives it back.
+
+| Condition | `lightning` | precipitation | `fog` | armed |
+|---|---|---|---|---|
+| thunder | 1 | rain | 0.2 | [the strike](#the-strike-thunder-day-easter-egg) — a tap |
+| rain / drizzle / snow | 0 | yes | ≤ 0.3 | [the gust](#stirring-the-wind-rain-and-snow-easter-egg) — a drag |
+| fog | 0 | none | 0.9 | [the wipe](#the-fog-wipe-foggy-day-easter-egg) — a drag |
+| clear / cloudy | 0 | none | ≤ 0.2 | nothing |
+
+**No two can ever be armed at once**, which is why no arbitration code exists
+anywhere: each gates on its own scene scalar and the three sets do not meet.
+
+They are one module each — `lib/strike.ts`, `lib/wallpaper/stir.ts`,
+`lib/wipe.ts` — and all three ask `isBackgroundClick` from `lib/strike.ts` the
+same question about where the sky is, so they can never disagree about it.
+`data-no-strike` keeps all three off. (It is named for a click, but it only ever
+looks at the target, and a press is the same question.)
+
+**All three belong to the Sky**, for the reason the strike's section gives
+below, and each is armed where the thing it acts on lives: the strike and the
+wipe in `wallpaper-background.tsx`, on the document; the gust one layer down in
+`<WeatherWallpaper />`, with the particles it blows.
+
 ### The Strike (thunder-day easter egg)
 
 **On a thunder day, clicking the sky calls lightning down onto the spot you
-clicked.** It exists only on a thunder day; on any other weather there is
-nothing to find, which is the point.
+clicked.**
 
 `lib/strike.ts` owns the rules and the one question the interaction turns on —
 **did that click land on the sky, or on something?** It is not a guess: the
@@ -592,6 +622,220 @@ east–west component, and `sin(180° − d) === sin(d)`, so every southerly bea
 paints exactly what its northerly mirror does — which is also how a forecast
 bearing outside the track is placed on it, by folding onto the one that blows
 the same way.
+
+### The Fog Wipe (foggy-day easter egg)
+
+**On a foggy day, dragging across the wallpaper wipes the mist clear along the
+path, and the fog closes back over it in a few seconds.** Fog is the one
+condition where the medium is literally between you and the view — uniform, in
+front, obscuring — so it is the one with an obvious gesture already attached.
+
+- **Tap** → one soft mark of cleared air, about 5.6% of the viewport height
+  across at half strength — a fingertip on a misted window, not a fist — with no
+  edge to it, thinning away into the mist around it.
+- **Drag** → the swath follows the hand along the whole path.
+- **Write** → a short word, and then the hand has had enough. See **The hand
+  tires** below; that is the size the egg is really for, and the reason is the
+  hand rather than an array bound.
+- **Close** → every point starts giving back the instant it is made, on an
+  exponential with a long tail (`WIPE_DECAY`), and is gone inside
+  `WIPE_LIFE_MS`. There is no hold, deliberately: a stroke that sits at full
+  strength for a while and then fades is a drawing with a timer on it — you
+  watch a finished mark, and then you watch it go. Mist never lets you see a
+  finished mark. So the visible life is mostly tail, and the start of a long
+  stroke is already dissolving while the hand is still moving.
+
+**A path, not a point.** A fragment shader has no memory, so
+`WallpaperRenderer.wipe(x, y)` keeps a bounded ring of the path's recent
+*corners* and `fogWipe()` sweeps the swath along the polyline they describe — no
+FBO, no second pass, no texture unit; the renderer stays the single full-screen
+pass with no textures at all that it has always been. Corners rather than a row
+of discs is what makes the trail long enough to write with: one entry buys a
+whole segment rather than one dot. Five things make that hold up:
+
+- **The whole path goes in.** A `pointermove` is not one position — the browser
+  coalesces everything the digitiser reported since the last one into it, and a
+  pen or a trackpad reports several times a frame. Keeping only the newest hands
+  the renderer a frame-rate polygon to draw, so a fast curve comes out as the
+  chords between wherever the hand happened to be on each frame. Every coalesced
+  sample goes through, in order; delivery is still once a frame, because that is
+  how often anything can be drawn.
+- **Corners are committed by shape, not by distance or by frame.** How far the
+  hand has travelled since the last corner, against how far it has actually got:
+  equal on a straight run, drifting apart the more the path bows. Past
+  `WIPE_SLACK` of drift the straight line the shader would draw has stopped
+  being the path, and a corner lands. A straight run never trips it and spends
+  one corner per `WIPE_MAX_GAP`, so the trail stays long; a letter spends as
+  many as its curves ask for, which is what keeps it off the polygon it would
+  otherwise be. On the worst case there is — a circle, where every chord shows —
+  the deepest facet left is two or three per cent of the stroke's own width, and
+  it does not change when the input rate quadruples.
+- **Strokes are separate.** Each corner carries whether it continues the one
+  before it, so lifting between two letters does not join them with a line
+  across the gap. A move longer than `WIPE_JUMP` is a pointer that went
+  somewhere else, not a stroke, and starts a new one.
+- **Healing fades as well as shrinks**, per corner and interpolated along each
+  segment. Shrinking alone pulls a swath apart into beads.
+- **The loop is skipped where the stroke is not.** The live corners' bounding
+  box goes to the shader as `uWipeBox`; outside it, a scribble costs one box
+  test instead of sixty-three segment distances. Whole tiles fall on the same
+  side of that test, which is the one early-out a GPU actually likes.
+
+**What the wipe uncovers.** The point of the gesture is that there is a real sky
+up there — on a clear night, a moon and stars. `deriveWeatherScene` has already
+thrown both away by the time the shader runs:
+
+```
+stars       = night × (1 − smoothstep(0.15, 0.65, cover)) × (1 − fog) × …
+moonVisible = … × (1 − smoothstep(0.45, 0.9, cover)) × (1 − 0.8 × fog)
+```
+
+On a fog day `cover` is 0.75, which saturates the star term on its own — stars
+are exactly **0** — and together with `fog` at 0.9 it leaves the moon at 0.07.
+So clearing the fog uncovers nothing, and the whole promise of the gesture goes
+with it: you wipe, and there is no sky behind.
+
+The scene therefore hands over the unhidden version too, as `scene.behind`: the
+same stars and moon with neither the fog nor the deck a fog day puts in front of
+them. The shader works the wipe out first — before anything is composited, since
+stars and the moon are drawn at the very back of the frame — and lerps toward
+`behind` by how much of the murk that fragment has lost. Three things yield
+together, all of them gated on `uFog` so no other sky can be touched:
+
+- **The fog**, which is the wipe proper.
+- **The deck**, because on a fog day the deck *is* the murk — the profile
+  carries three quarters cover with a white lit colour precisely because fog
+  reads as overcast. Leave it standing and there is nothing to see: by day the
+  mist and the cloud above it are the same white, and by night the deck is what
+  buries the stars.
+- **The night sky** — `uStarsBehind` and `uMoonBehind` — so a swath drawn across
+  a foggy night opens a band of stars, and one drawn across where the moon
+  really is uncovers the moon. They arrive at the brightness a clear sky would
+  have given them, which is the test: a stroke across a foggy night lights the
+  same pixels, as brightly, as the unfogged sky does.
+
+**Nothing about it is a circle**, because a circle in fog reads as a lens. The
+field is looked up through a domain warp made of the same drifting noise the fog
+itself is made of; the width is pushed around by two more scales on top of that
+— big lobes, then a fine tear — and a third leaves streaks of mist standing
+inside the swath. It is wiped, not deleted, and it keeps moving with the mist
+rather than sitting on top of it.
+
+**The hand tires.** Wipe a misted window for real and you do not get to keep
+wiping: the hand cools, the finger picks up what it took off the glass, and the
+same stroke stops coming up clear. Rest a moment and it works again.
+
+That is the difference between a wallpaper that answers you and a drawing board
+— a board's ink is the same on the hundredth stroke as on the first, and no
+amount of prettiness in the swath fixes that. Only running out does.
+
+`lib/wipe.ts` owns it, and both engines use the same hand on the same terms:
+
+- **Spent by the distance rubbed** (`WIPE_DRAIN`, an e-fold rate per screen unit
+  of path), with a floor (`WIPE_SPENT`) — a hand that has had enough still
+  smears a little, and wiping while almost nothing happens is the effect rather
+  than a failure of it. Half a screen leaves about half; one sweep across leaves
+  a quarter; two screen-heights of path is the floor. The budget is deliberately
+  tight enough to be felt **inside the first stroke** — a hand that tires is
+  only worth having if you can watch it tire.
+- **Recovered by time off the glass** (`WIPE_RECOVER`), where "off the glass"
+  means a gap longer than `WIPE_REST_S`. So a slow, careful stroke tires it
+  exactly as much as a fast one — it is the rubbing that does it, not the clock
+  — and holding still mid-stroke gives nothing back.
+- **It belongs to the hand, not to a stroke.** Lifting between two letters does
+  not refill it; only waiting does.
+
+Each corner keeps whatever the hand had when it was made, so the falling-off
+runs *along* the path — the far end of a long stroke comes up markedly less
+clear than the near end did — rather than dimming the whole of it at once. It is
+strength and not width: a tired hand covers the same ground, it just stops
+bringing anything up. The charge rides in the sign-and-magnitude of `uWipe[i].w`,
+whose sign was already carrying the new-stroke flag, so it costs no bandwidth at
+all.
+
+**And nothing about it has an edge.** The swath is a Gaussian falling off from
+the path, and one field drives the whole effect — the fog, the deck, the stars,
+the moon, the scattering. That is the difference between mist and a mark:
+anything with a shoulder draws an outline, and an outlined stroke is the most
+pen-like thing there is. A disc with a soft edge has one. A core term unioned
+with a wider halo term has two. Mist made to bead along the boundary — which is
+true of a real misted window, and was in here for a while — paints the outline
+in the brightest thing on screen. A Gaussian has no shoulder at any width, and
+no boundary anywhere to put an outline on: it is a density, falling off forever,
+which is what mist around a wiped patch actually is.
+
+**The Sky is the only engine that answers**, on the rule the strike sets out
+above: a wash has no fog layer to thin and no sky behind it to uncover, so the
+most it could offer is a smudge dressed as the same find. The fog term's `fa`
+yields along the stroke, the deck goes with it, and the night sky the murk was
+hiding comes back — plus the one mark a hand leaves on a misted window that
+survives having no edge: clear air scatters less, so the swath sits a shade
+darker than the mist around it.
+
+What it will not do:
+
+- **Not under `prefers-reduced-motion`.** A judgement call, written down rather
+  than inherited: a slow fog clear is gentle and not the hazard a flash is, but
+  the setting is about motion generally, and under it the renderer draws one
+  still frame and has no loop for a wipe to live in anyway.
+- **Not fight the page.** On a mouse the wipe waits for the slop, which is what
+  keeps a click, a double-click and a word-select on the sky working as they
+  did. On touch it waits for a hold — see below. Once it is a wipe, selection is
+  suppressed for the duration: a hand dragged across the sky should not leave a
+  blue smear of whatever text it crossed. It never starts on a widget, so
+  dnd-kit's sorting is untouched; dragging *over* one keeps wiping, because the
+  mist does not care what is in front of it. It stands down entirely while the
+  home grid is in jiggle edit mode, where a tap on the background means Done.
+- **Not persist.** Nothing survives a reload or a route change. It heals; that
+  is the whole shape.
+
+#### Touch, where scroll has first claim
+
+A finger on the sky is ambiguous — it could be a scroll — and **the ambiguity
+cannot be resolved by watching which way it goes.** `preventDefault` on a
+pointer event does not stop scrolling; only a non-passive `touchmove` does, and
+only before the scroll has started, which on iOS means before the finger has
+moved at all. By the time a direction is readable it is too late. (An earlier
+version gated on horizontal movement, which both leaked scrolls and — since a
+letter is mostly vertical strokes — made the thing unwritable on a phone.)
+
+So the question is settled while the finger is still still, exactly the way this
+site already settles it for the widget grid: **a long press arms it**
+(`TOUCH_ACTIVATION` in `components/ui/sortable-order.ts`; the wipe uses the same
+400 ms, so both hands-on gestures here wait the same beat).
+
+- Nothing is bound and nothing is blocked until the hold is good. Until then the
+  page scrolls on the browser's own fast path — the non-passive `touchmove`
+  listener is attached when a stroke arms and removed when it ends, never while
+  one is merely possible, because a listener sitting on the document makes the
+  browser wait for JS on every scroll frame.
+- The finger drifting past `WIPE_ARM_SLOP_PX` before the hold is good means it
+  was the scroller's all along. Nothing was taken, so nothing has to be handed
+  back.
+- Arming opens the mist under the finger. That is the only "ready" tell there
+  is, and the only one worth having: it is the effect itself.
+- **Writing is letters**, and holding before every stroke of every letter is not
+  writing — so for `WIPE_RESUME_MS` after a stroke ends, a touch landing within
+  `WIPE_RESUME_NEAR` of where it ended arms at once. Proximity is what buys back
+  most of what the open window gives away: the next stroke of a word starts
+  about where the last one finished, a flick meant for the scroller usually does
+  not.
+- A second finger is a pinch, or a scroll starting over. Either way it is not
+  one hand drawing, so the gesture is given back rather than fought for.
+
+Verified end to end against the real page under touch emulation:
+
+| gesture | page scrolled | stroke |
+|---|---|---|
+| plain swipe up | 245 px | none |
+| swipe starting after 250 ms (under the arm) | 245 px | none |
+| hold 520 ms, then draw straight **down** | **0 px** | drawn |
+| straight into another stroke, no hold | **0 px** | drawn |
+| plain swipe up, after the window | 245 px | none |
+
+To see it without waiting for the weather: force **Fog** in the devtool's Sky
+module and drag across the page background — on a phone, press and hold there
+first.
 
 ### Phase Notification
 

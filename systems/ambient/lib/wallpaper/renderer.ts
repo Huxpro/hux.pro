@@ -18,6 +18,15 @@
 import { UPRIGHT_GRAVITY, type GravityVector } from "../gyroscope";
 import type { WeatherScene } from "../scene";
 import { STRIKE_MS } from "../strike";
+import {
+  WIPE_JUMP,
+  WIPE_LIFE_MS,
+  WIPE_MAX_GAP,
+  WIPE_MAX_POINTS,
+  WIPE_SLACK,
+  freshHand,
+  rub,
+} from "../wipe";
 import { FRAGMENT_SHADER, VERTEX_SHADER } from "./shader";
 
 interface UniformSpec {
@@ -65,6 +74,8 @@ const UNIFORMS: UniformSpec[] = [
   { name: "uFog", size: 1, tau: 2.4 },
   { name: "uLightning", size: 1, tau: 1.5 },
   { name: "uStars", size: 1, tau: 2.0 },
+  { name: "uStarsBehind", size: 1, tau: 2.0 },
+  { name: "uMoonBehind", size: 1, tau: 1.8 },
   { name: "uVeilColor", size: 3, tau: THEME },
   { name: "uVeilAmount", size: 1, tau: THEME },
   { name: "uExposure", size: 1, tau: THEME },
@@ -259,6 +270,9 @@ const FALL_WRAP_SEC = 3600;
 /** How long a clicked strike lives — the shader's envelope is spent by then. */
 const STRIKE_SEC = STRIKE_MS / 1000;
 
+/** How long one wiped point lives — cleared, held, and closed over again. */
+const WIPE_LIFE_SEC = WIPE_LIFE_MS / 1000;
+
 function packScene(scene: WeatherScene, out: Float32Array) {
   const precip = scene.precipitation;
   const { sun, sky, moon, clouds, veil } = scene;
@@ -287,11 +301,13 @@ function packScene(scene: WeatherScene, out: Float32Array) {
   out[34] = scene.fog;
   out[35] = scene.lightning;
   out[36] = scene.stars;
-  out[37] = veil.color[0]; out[38] = veil.color[1]; out[39] = veil.color[2];
-  out[40] = veil.amount;
-  out[41] = scene.exposure;
+  out[37] = scene.behind.stars;
+  out[38] = scene.behind.moon;
+  out[39] = veil.color[0]; out[40] = veil.color[1]; out[41] = veil.color[2];
+  out[42] = veil.amount;
+  out[43] = scene.exposure;
 }
-if (FLOAT_COUNT !== 42) throw new Error("packScene is out of step with UNIFORMS");
+if (FLOAT_COUNT !== 44) throw new Error("packScene is out of step with UNIFORMS");
 
 export interface WallpaperRendererOptions {
   /** Render a single still frame and re-render only on scene/size changes. */
@@ -339,6 +355,10 @@ export class WallpaperRenderer {
   private locStrike: WebGLUniformLocation | null = null;
   private locStrikeAge: WebGLUniformLocation | null = null;
   private locStrikeSeed: WebGLUniformLocation | null = null;
+  private locWipe: WebGLUniformLocation | null = null;
+  private locWipeCount: WebGLUniformLocation | null = null;
+  private locWipeBox: WebGLUniformLocation | null = null;
+  private locWipeBlow: WebGLUniformLocation | null = null;
   /** Per-frame easing factors, one per distinct tau. */
   private ks = new Float64Array(TAUS.length);
   private vao: WebGLVertexArrayObject | null = null;
@@ -393,6 +413,31 @@ export class WallpaperRenderer {
   private strikeY = 0.5;
   private strikeSeed = 0;
   private strikeAge = -1;
+
+  // The fog wipe. A ring of the path's recent corners, oldest first:
+  // `wipeCount` of them starting at `wipeStart`, each one (x, y, made-at) plus
+  // whether it continues the corner before it or begins a new stroke. They
+  // expire in the order they were made, so ageing them is a walk from the
+  // front — and because deaths are always a prefix, a surviving corner is never
+  // joined across to some older stroke's.
+  private wipeXY = new Float32Array(WIPE_MAX_POINTS * 2);
+  private wipeAt = new Float64Array(WIPE_MAX_POINTS);
+  private wipeJoin = new Uint8Array(WIPE_MAX_POINTS);
+  /** What the hand had left when each corner was made — see `rub` in ../poke. */
+  private wipeCharge = new Float32Array(WIPE_MAX_POINTS);
+  private wipeStart = 0;
+  private wipeCount = 0;
+  /** What the shader is handed: (x, y, life 0..1, ±charge) per live corner. */
+  private wipeData = new Float32Array(WIPE_MAX_POINTS * 4);
+  private wipeLive = 0;
+  /** The live corners' bounding box in screen units, so the shader can skip the loop. */
+  private wipeBox = new Float32Array(4);
+  /** Whether a stroke is in progress — its last corner is the one under the hand. */
+  private wipeStroke = false;
+  /** Path length travelled since the last committed corner, for the curvature test. */
+  private wipeRun = 0;
+  /** The hand. It tires across strokes, not within one — lifting gives nothing back. */
+  private hand = freshHand();
 
   private dpr = 1;
   private baseScale = 1;
@@ -471,7 +516,7 @@ export class WallpaperRenderer {
   /**
    * Fire one bolt at (x, y) in screen space — 0..1 across, 0..1 bottom → top,
    * the same convention as the sun. The thunder-day easter egg; see
-   * ../strike.ts.
+   * ../poke.ts.
    *
    * Only while the frame loop is already running: a strike is an animation, and
    * a stopped renderer is either inactive or under `prefers-reduced-motion`,
@@ -539,6 +584,91 @@ export class WallpaperRenderer {
       settleMs !== null && settleMs > 0 ? settleMs / 3000 : null;
   }
 
+  /**
+   * Clear the mist at (x, y) — same screen space as `strike`. Called once per
+   * frame along a drag.
+   *
+   * The path is kept as the corners of a polyline, not as a row of discs, and
+   * the shader sweeps the swath along it. That is what makes the trail long
+   * enough to write with: a corner buys a whole segment rather than one dot, so
+   * the ring covers a path many times its own length, and there are no gaps
+   * between samples to fill in.
+   *
+   * The last corner is the one under the hand and simply slides with it, so the
+   * swath always reaches the fingertip. A new one is committed by *shape* —
+   * when the path has bowed away from the straight line the shader would draw
+   * (`WIPE_SLACK`), or at `WIPE_MAX_GAP` on a run straight enough never to trip
+   * that. Never by frame: a slow, careful hand would spend the whole ring on a
+   * single letter, and a fast one would get its curves cut into chords.
+   *
+   * Only while the frame loop is already running, for the same reason a strike
+   * is: a stopped renderer is either inactive or under `prefers-reduced-motion`.
+   */
+  wipe(x: number, y: number) {
+    if (!this.running || this.destroyed || !this.gl) return;
+    const now = performance.now();
+
+    if (!this.wipeStroke || this.wipeCount < 2) {
+      this.beginWipeStroke(x, y, now);
+      return;
+    }
+
+    // Measured in the shader's own space, where x is stretched by the aspect —
+    // a stroke is an even width on screen, so its geometry has to be too.
+    const aspect = this.cssHeight > 0 ? this.cssWidth / this.cssHeight : 1;
+    const head = (this.wipeStart + this.wipeCount - 1) % WIPE_MAX_POINTS;
+    const step = Math.hypot(
+      (x - this.wipeXY[head * 2]) * aspect,
+      y - this.wipeXY[head * 2 + 1]
+    );
+    if (step > WIPE_JUMP) {
+      this.beginWipeStroke(x, y, now);
+      return;
+    }
+
+    // What the hand manages here. Spent by the distance rubbed and recovered
+    // only off the glass, so the far end of a long stroke comes up less clear
+    // than the near end did — and the corner keeps whatever it was given, which
+    // is what puts the gradient along the path rather than over the whole of it.
+    const charge = rub(this.hand, step, now);
+
+    // How far the hand has travelled since the last corner, against how far it
+    // has actually got: on a straight run the two are equal, and the more the
+    // path bows the further they drift apart. That difference is the curvature
+    // test — commit as soon as the straight line the shader would draw stops
+    // being the path, which is what keeps a letter off the polygon it was
+    // coming out as. A straight run never trips it, so it still spends one
+    // corner per WIPE_MAX_GAP and the trail stays long.
+    const anchor = (this.wipeStart + this.wipeCount - 2) % WIPE_MAX_POINTS;
+    this.wipeRun += step;
+    const chord = Math.hypot(
+      (x - this.wipeXY[anchor * 2]) * aspect,
+      y - this.wipeXY[anchor * 2 + 1]
+    );
+    if (this.wipeRun - chord > WIPE_SLACK || chord >= WIPE_MAX_GAP) {
+      // The corner lands where the hand is now; the old head — a point the hand
+      // really passed through — becomes the anchor of the live segment, and the
+      // run restarts from it.
+      this.pushWipe(x, y, now, 1, charge);
+      this.wipeRun = step;
+    }
+
+    // Slide the head onto the pointer, so the swath reaches the fingertip. It is
+    // "now", so it carries what the hand has now.
+    const live = (this.wipeStart + this.wipeCount - 1) % WIPE_MAX_POINTS;
+    this.wipeXY[live * 2] = x;
+    this.wipeXY[live * 2 + 1] = y;
+    this.wipeCharge[live] = charge;
+  }
+
+  /**
+   * End the stroke. The corners keep healing on their own; this only stops the
+   * next stroke being joined to this one across the screen.
+   */
+  wipeEnd() {
+    this.wipeStroke = false;
+  }
+
   setReducedMotion(reduced: boolean) {
     if (this.opts.reducedMotion === reduced) return;
     this.opts.reducedMotion = reduced;
@@ -568,10 +698,14 @@ export class WallpaperRenderer {
 
   stop() {
     this.running = false;
-    // A strike is measured in wall-clock time; a paused renderer would resume
-    // it hours later, mid-flash.
+    // Both eggs are measured in wall-clock time; a paused renderer would resume
+    // one hours later, mid-flash — or with a hole in the fog that never healed.
     this.strikeAt = 0;
     this.strikeAge = -1;
+    this.wipeCount = 0;
+    this.wipeLive = 0;
+    this.wipeStroke = false;
+    this.wipeRun = 0;
     if (this.raf) cancelAnimationFrame(this.raf);
     this.raf = 0;
     document.removeEventListener("visibilitychange", this.onVisibility);
@@ -649,6 +783,10 @@ export class WallpaperRenderer {
     this.locStrike = gl.getUniformLocation(program, "uStrike");
     this.locStrikeAge = gl.getUniformLocation(program, "uStrikeAge");
     this.locStrikeSeed = gl.getUniformLocation(program, "uStrikeSeed");
+    this.locWipe = gl.getUniformLocation(program, "uWipe");
+    this.locWipeCount = gl.getUniformLocation(program, "uWipeCount");
+    this.locWipeBox = gl.getUniformLocation(program, "uWipeBox");
+    this.locWipeBlow = gl.getUniformLocation(program, "uWipeBlow");
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
     return true;
@@ -811,7 +949,7 @@ export class WallpaperRenderer {
     // keep it generous enough that slow (software / low-end) GPUs still ease
     // in wall-clock time rather than in slow motion.
     this.smooth(Math.min(dt, 250) / 1000);
-    this.advanceStrike(now);
+    this.advancePoke(now);
     // Wrap the shader clock hourly: float32 loses sub-pixel precision in the
     // particle math once uTime reaches the tens of thousands, and a once-an-hour
     // re-seed of drops and twinkles is imperceptible.
@@ -824,16 +962,93 @@ export class WallpaperRenderer {
     this.draw(STILL_FRAME_SEC);
   }
 
-  /** Age the running strike, and retire it once the shader has nothing left to draw. */
-  private advanceStrike(now: number) {
-    if (!this.strikeAt) return;
-    const age = (now - this.strikeAt) / 1000;
-    if (age > STRIKE_SEC) {
-      this.strikeAt = 0;
-      this.strikeAge = -1;
-    } else {
-      this.strikeAge = age;
+
+  /**
+   * Age both eggs and retire whatever the shader has nothing left to draw. They
+   * are never both running — a fog scene carries no lightning and a thunder
+   * scene carries no swath (see ../wipe.ts) — so there is nothing to arbitrate
+   * here, only two clocks to advance.
+   */
+  private advancePoke(now: number) {
+    if (this.strikeAt) {
+      const age = (now - this.strikeAt) / 1000;
+      if (age > STRIKE_SEC) {
+        this.strikeAt = 0;
+        this.strikeAge = -1;
+      } else {
+        this.strikeAge = age;
+      }
     }
+    this.ageWipe(now);
+  }
+
+  /**
+   * Walk the ring oldest → newest, packing the live corners for the shader as
+   * (x, y, life 0..1, joined) and dropping the ones the mist has closed over.
+   * They expire in the order they were made, so the dead ones are always a
+   * prefix and the ring only ever has to move its start.
+   */
+  private ageWipe(now: number) {
+    let live = 0;
+    let dropped = 0;
+    for (let i = 0; i < this.wipeCount; i++) {
+      const slot = (this.wipeStart + i) % WIPE_MAX_POINTS;
+      const life = (now - this.wipeAt[slot]) / 1000 / WIPE_LIFE_SEC;
+      if (life >= 1) {
+        dropped++;
+        continue;
+      }
+      this.wipeData[live * 4] = this.wipeXY[slot * 2];
+      this.wipeData[live * 4 + 1] = this.wipeXY[slot * 2 + 1];
+      this.wipeData[live * 4 + 2] = life;
+      // One float carries both: the magnitude is what the hand had, and the
+      // sign says whether this corner continues the one before it or opens a
+      // stroke of its own. A charge is never zero (WIPE_SPENT is its floor), so
+      // the sign is always readable.
+      this.wipeData[live * 4 + 3] = this.wipeJoin[slot]
+        ? this.wipeCharge[slot]
+        : -this.wipeCharge[slot];
+      const x = this.wipeXY[slot * 2];
+      const y = this.wipeXY[slot * 2 + 1];
+      if (live === 0) {
+        this.wipeBox[0] = this.wipeBox[2] = x;
+        this.wipeBox[1] = this.wipeBox[3] = y;
+      } else {
+        if (x < this.wipeBox[0]) this.wipeBox[0] = x;
+        if (y < this.wipeBox[1]) this.wipeBox[1] = y;
+        if (x > this.wipeBox[2]) this.wipeBox[2] = x;
+        if (y > this.wipeBox[3]) this.wipeBox[3] = y;
+      }
+      live++;
+    }
+    this.wipeStart = (this.wipeStart + dropped) % WIPE_MAX_POINTS;
+    this.wipeCount -= dropped;
+    this.wipeLive = live;
+  }
+
+  /**
+   * Open a stroke at (x, y): an anchor that joins nothing, and a head on top of
+   * it. Two coincident corners are a degenerate segment, which is how a tap
+   * comes out as a single round patch.
+   */
+  private beginWipeStroke(x: number, y: number, at: number) {
+    const charge = rub(this.hand, 0, at);
+    this.pushWipe(x, y, at, 0, charge);
+    this.pushWipe(x, y, at, 1, charge);
+    this.wipeStroke = true;
+    this.wipeRun = 0;
+  }
+
+  /** Add one corner, overwriting the oldest once the ring is full. */
+  private pushWipe(x: number, y: number, at: number, join: 0 | 1, charge: number) {
+    const slot = (this.wipeStart + this.wipeCount) % WIPE_MAX_POINTS;
+    this.wipeXY[slot * 2] = x;
+    this.wipeXY[slot * 2 + 1] = y;
+    this.wipeAt[slot] = at;
+    this.wipeJoin[slot] = join;
+    this.wipeCharge[slot] = charge;
+    if (this.wipeCount < WIPE_MAX_POINTS) this.wipeCount++;
+    else this.wipeStart = (this.wipeStart + 1) % WIPE_MAX_POINTS;
   }
 
   /** Snap a vec2 uniform (and companions) when a new scene jumped its target. */
@@ -1055,6 +1270,21 @@ export class WallpaperRenderer {
     gl.uniform2f(this.locStrike, this.strikeX, this.strikeY);
     gl.uniform1f(this.locStrikeAge, this.strikeAge);
     gl.uniform1f(this.locStrikeSeed, this.strikeSeed);
+    gl.uniform1i(this.locWipeCount, this.wipeLive);
+    // Only when there is a swath to draw: the shader ignores the array
+    // otherwise, and uploading it every frame of every sky would be for nothing.
+    if (this.wipeLive > 0) {
+      gl.uniform4fv(this.locWipe, this.wipeData);
+      gl.uniform4fv(this.locWipeBox, this.wipeBox);
+      // Where a cleared point ends up after a whole life: the sky's own
+      // horizontal wind, plus a little that never stops, plus the mist's slow
+      // settle. Resolved here because the shader has no wind of its own to read.
+      gl.uniform2f(
+        this.locWipeBlow,
+        0.055 * this.current[WIND_OFFSET] + 0.008,
+        -0.014
+      );
+    }
 
     const c = this.current;
     for (let i = 0; i < META.length; i++) {
