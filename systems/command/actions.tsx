@@ -10,7 +10,7 @@ import {
   useLocale,
   useTheme,
 } from "@/services";
-import { useLocation, useWallpaper } from "@/systems/ambient";
+import { useLocation, useSolarTheme, useWallpaper } from "@/systems/ambient";
 import { getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
 import { useMusic } from "@/systems/music";
@@ -28,6 +28,7 @@ import {
   Music,
   Sparkles,
   Sun,
+  Sunrise,
 } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
 import {
@@ -53,8 +54,8 @@ import { useCommand } from "./provider";
  * What a command does to the world, which decides what the palette does next:
  *
  *   navigate  goes somewhere; the palette is finished.
- *   surface   opens a secondary surface (the wallpaper picker); the palette is
- *             finished, but on a phone it hands off to the sheet it opened.
+ *   surface   opens a secondary surface (the wallpaper picker); the popover
+ *             closes, the phone sheet stays behind it as a stack.
  *   toggle    flips a setting; chosen from search the palette stays open so
  *             the new value can be read back, from the slash list it closes.
  */
@@ -94,6 +95,7 @@ export function useCommandActions(): CommandAction[] {
     tint: glassTint,
     setTint: setGlassTint,
   } = useGlass();
+  const { followSun, setFollowSun } = useSolarTheme();
   const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled } =
     useDevtool();
   const {
@@ -333,6 +335,29 @@ export function useCommandActions(): CommandAction[] {
         setGlassTint(glassTint === "wallpaper" ? "neutral" : "wallpaper"),
     },
     {
+      id: "follow-the-sun",
+      key: "s",
+      kind: "toggle",
+      section: "settings",
+      label: `${t(locale, "settingsSolarTheme")}: ${
+        followSun ? t(locale, "stateOn") : t(locale, "stateOff")
+      }`,
+      icon: <Sunrise className={ROW_ICON} />,
+      keywords: [
+        "sun",
+        "sunrise",
+        "sunset",
+        "follow the sun",
+        "auto theme",
+        "day night",
+        "日出",
+        "日落",
+        "太阳",
+        "自动切换",
+      ],
+      run: () => setFollowSun(!followSun),
+    },
+    {
       id: "music",
       key: "m",
       kind: "toggle",
@@ -387,7 +412,7 @@ export function useCommandActions(): CommandAction[] {
 // =============================================================================
 // Shell context — how the palette leaves once a command has run.
 // The popover closes; the sheet closes too, except after a `surface` command,
-// when it hands off to the sheet it opened (see CommandKind, and sheet.tsx).
+// when it stays behind the sheet it opened (see CommandKind, and sheet.tsx).
 // =============================================================================
 
 export interface CommandShell {

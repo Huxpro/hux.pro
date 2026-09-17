@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 import { Drawer } from "@base-ui/react/drawer";
 import { BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
 import {
@@ -36,15 +37,16 @@ import {
 //
 //   Snap points.  `snapPoints={[0.7, 1]}` opens the sheet at seven tenths of
 //   the screen and lets a drag carry it to the top — the iOS medium / large
-//   detents.
+//   detents. A sheet with a single short job instead of a list can skip them
+//   and take the height of what it holds (`fitContent`), the way iOS sizes a
+//   form sheet to its form.
 //
 //   Stacking.  A sheet opened over another one sends the one underneath back a
-//   step — smaller, dimmer, a little higher, inert — and brings it forward
-//   again when the top one goes. That is what iOS does when a sheet presents a
-//   sheet, and it is decided by the shared stack (stack.ts), not by the sheet.
-//   Base UI has its own nested-drawer stacking, but it only sees drawers that
-//   are React children of another drawer; ours mount in sibling subtrees of the
-//   root layout, so the store stays.
+//   step per sheet — smaller, dimmer, a little higher, inert — and brings it
+//   forward again as they go. That is what iOS does when a sheet presents a
+//   sheet. Base UI counts the sheets nested in this one (React children) on the
+//   popup, live with their swipe; the shared stack (stack.ts) counts the ones
+//   from other subtrees; the shell adds the two.
 //
 // `modal` is off by default (see AdaptiveSurface for why: these surfaces are
 // about the page behind them, which stays live). A launcher like the command
@@ -85,7 +87,8 @@ import {
 // 4. Nesting is React nesting. A drawer is nested only when its Root renders
 //    inside another's Popup; the parent then gets `data-nested-drawer-open`,
 //    `data-nested-drawer-swiping` and `--nested-drawers`. Sheets in sibling
-//    subtrees get none of it — that is what stack.ts is for.
+//    subtrees get none of it — that is what stack.ts is for, and a nested
+//    sheet says so (`nestedIn`) so the stack does not count it a second time.
 // 5. A closing dialog returns focus to what opened it. Where that is a text
 //    field on a touch device, turn it off (`restoreFocus`): iOS opens the
 //    keyboard for an already-focused field on the next touch anywhere.
@@ -93,6 +96,13 @@ import {
 //    touch tap, a touch tap nothing about a swipe release, and a programmatic
 //    `focus()` is a third thing again.
 // -----------------------------------------------------------------------------
+
+/**
+ * The site's detents, iOS's medium and large near enough. One set, so sheets
+ * stacked on one another stand level: a sheet with detents opens at the detent
+ * of the sheet beneath it (see `useSurfaceStack`), and at the first otherwise.
+ */
+export const SHEET_DETENTS = [0.7, 1];
 
 /** Ring of padding between a floating surface and the screen edges. */
 export const EDGE_GAP = "0.75rem";
@@ -130,9 +140,9 @@ export const SHELL = [
 ].join(" ");
 
 /**
- * What the CSS in globals.css needs from here: the site's surface curve, and
+ * What the CSS in globals.css needs from here: the site's surface curves, and
  * how far past the edge a surface has to travel to be gone. Set on the popup so
- * the timing lives in one place (stack.ts) for the CSS and the hand-off alike.
+ * the timing lives in one place (stack.ts).
  */
 export const surfaceMotionVars = (exitClearance: string) =>
   ({
@@ -175,6 +185,12 @@ export function SurfaceViewport({
 export interface SurfaceSheetProps {
   /** Stable id — the sheet's key in the surface stack. */
   id: string;
+  /**
+   * The id of the sheet this one renders inside, when it does. Base UI counts
+   * a nested sheet on its parent already, live with its swipe; naming the
+   * parent keeps the shared stack from counting it again.
+   */
+  nestedIn?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /**
@@ -183,8 +199,9 @@ export interface SurfaceSheetProps {
    */
   modal?: boolean;
   /**
-   * Detents as fractions of the viewport, lowest first; the sheet opens at the
-   * first. Omit for a fixed-height sheet.
+   * Detents as fractions of the viewport, lowest first. Opens at the detent of
+   * the sheet it is stacked on when that is one of them, else at the first.
+   * Omit for a fixed-height sheet.
    */
   snapPoints?: number[];
   /** Controlled active detent, for a sheet that wants to move itself. */
@@ -192,6 +209,23 @@ export interface SurfaceSheetProps {
   onActiveSnapPointChange?: (snapPoint: number | string | null) => void;
   /** Height without snap points. Default 80dvh. */
   height?: string;
+  /**
+   * Take the height of the content instead of a height or detents: a sheet
+   * holding one short thing — a form, a confirmation — rather than a list, so
+   * there is no empty half. The content bounds its own scrolling area; the
+   * sheet never grows past the screen, and the keyboard pushes it up as it
+   * does any other sheet. Overrides `height`.
+   *
+   * It stands at no detent, so it takes no `level`: its top edge is wherever
+   * its content lands, and a sheet with detents stacked on it arrives at the
+   * first rather than level.
+   */
+  fitContent?: boolean;
+  /**
+   * For a fixed-height sheet: the detent it stands level with, so a sheet
+   * with detents stacked on it can arrive level too.
+   */
+  level?: number;
   /**
    * Return focus to what opened the sheet when it closes. On by default; a
    * sheet stacked on one with a text field turns it off — focus handed back
@@ -210,6 +244,7 @@ export interface SurfaceSheetProps {
 
 export function SurfaceSheet({
   id,
+  nestedIn,
   open,
   onOpenChange,
   modal = false,
@@ -217,13 +252,42 @@ export function SurfaceSheet({
   activeSnapPoint,
   onActiveSnapPointChange,
   height,
+  fitContent = false,
+  level: levelProp,
   restoreFocus = true,
   label,
   className,
   children,
 }: SurfaceSheetProps) {
-  const { behind } = useSurfaceStack(id, open);
   const hasSnapPoints = !!snapPoints && snapPoints.length > 0;
+
+  // The detent, controlled by the owner when it says so, else kept here.
+  const isControlled = activeSnapPoint !== undefined;
+  const [ownSnap, setOwnSnap] = useState<number | string | null>(
+    snapPoints?.[0] ?? null
+  );
+  const snap = isControlled ? activeSnapPoint : ownSnap;
+  const level = hasSnapPoints
+    ? typeof snap === "number"
+      ? snap
+      : undefined
+    : levelProp;
+
+  const { behind, depth, beneathLevel } = useSurfaceStack(id, open, {
+    nestedIn,
+    level,
+  });
+
+  // Arrive level with the sheet beneath, when it stands at one of ours.
+  const arrival =
+    hasSnapPoints && beneathLevel !== undefined && snapPoints.includes(beneathLevel)
+      ? beneathLevel
+      : (snapPoints?.[0] ?? null);
+  useEffect(() => {
+    if (!open || isControlled || !hasSnapPoints) return;
+    setOwnSnap(arrival);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- read once, on open
+  }, [open]);
 
   return (
     <Drawer.Root
@@ -235,14 +299,16 @@ export function SurfaceSheet({
       // belongs to the page: the close button, Escape and a drag dismiss.
       disablePointerDismissal={!modal}
       snapPoints={snapPoints}
-      snapPoint={activeSnapPoint}
+      snapPoint={hasSnapPoints ? snap : undefined}
       // Only a change is a change. Every touch on a Base UI drawer ends in a
       // release that re-reports the detent it landed on, so a tap into a
       // field would otherwise reach the owner as "back to where you were"
       // in the same breath as the focus — and undo whatever the focus asked
       // for. A controlled prop's onChange should not fire for its own value.
       onSnapPointChange={(point) => {
-        if (point !== activeSnapPoint) onActiveSnapPointChange?.(point);
+        if (point === snap) return;
+        if (!isControlled) setOwnSnap(point);
+        onActiveSnapPointChange?.(point);
       }}
     >
       {/* iOS's keyboard, handled once for every sheet: the provider publishes
@@ -271,7 +337,19 @@ export function SurfaceSheet({
                         snapPoints[0]
                       )})`,
                     }
-                  : { bottom: BOTTOM_INSET, height: height ?? "80dvh" }),
+                  : {
+                      // No detents: the sheet rests the inset above the bottom
+                      // edge and is as tall as it was told, or as its content.
+                      bottom: BOTTOM_INSET,
+                      ...(fitContent
+                        ? {
+                            // Never taller than the screen: past that the shell
+                            // shrinks and the content's scroll area takes over.
+                            height: "auto",
+                            maxHeight: `calc(100dvh - ${TOP_INSET} - ${BOTTOM_INSET})`,
+                          }
+                        : { height: height ?? "80dvh" }),
+                    }),
               }}
               // The positioning box only, so nothing paints outside the shell.
               className="pointer-events-auto absolute inset-x-3 z-[61] flex flex-col bg-transparent outline-none"
@@ -282,9 +360,15 @@ export function SurfaceSheet({
                 data-behind={behind ? "" : undefined}
                 // React 19 renders `inert` as the boolean attribute.
                 inert={behind}
+                // Sheets from other subtrees stacked on this one; the CSS adds
+                // Base UI's count of nested ones.
+                style={{ "--surface-stack-depth": depth } as React.CSSProperties}
                 className={cn(
                   SHELL,
-                  "min-h-0 flex-1 origin-top",
+                  "min-h-0 origin-top",
+                  // A content-height sheet is `flex: 0 1 auto`: it measures
+                  // itself, and shrinks only when the max height bites.
+                  !fitContent && "flex-1",
                   // The dim on a receded sheet is a wash over the shell rather
                   // than an opacity, so the glass stays glass.
                   "after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:[transition-duration:var(--surface-duration)]",
@@ -303,7 +387,12 @@ export function SurfaceSheet({
                     drag still works anywhere — Base UI reads the scroll
                     containers for that. Transparent to layout so the content
                     keeps the shell's flex column. */}
-                <Drawer.Content className="flex min-h-0 flex-1 flex-col">
+                <Drawer.Content
+                  className={cn(
+                    "flex min-h-0 flex-col",
+                    !fitContent && "flex-1"
+                  )}
+                >
                   {children}
                 </Drawer.Content>
               </div>

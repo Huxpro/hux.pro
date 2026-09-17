@@ -120,6 +120,7 @@ export function WidgetShell({
         >
           <GradientStack
             layers={layers}
+            durationMs={wallpaper?.crossfadeMs}
             shell={shellEl}
             positionBackground={useTrackerForPositioning}
             edgeMask={edgeMask}

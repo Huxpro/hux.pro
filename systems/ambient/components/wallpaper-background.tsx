@@ -12,7 +12,6 @@ import { useWeather } from "../provider";
 import { useWallpaper } from "../provider";
 import { GradientStack } from "./gradient-stack";
 import { BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
-import { StrikeFlash } from "./strike-flash";
 import { WeatherWallpaper } from "./wallpaper";
 
 // ---------------------------------------------------------------------------
@@ -32,10 +31,14 @@ import { WeatherWallpaper } from "./wallpaper";
 //
 // It is also where the thunder-day easter egg is wired: the wallpaper layer is
 // pointer-events-none (it must be — it is behind the whole page), so the click
-// is caught on the document and answered by whichever engine is mounted. See
-// lib/strike.ts for what counts as a click on the sky. The rain-and-snow one —
-// a drag stirs up a gust — is armed inside <WeatherWallpaper /> instead, since
-// only the Sky has particles for a wind to blow.
+// is caught on the document and handed to the shader. The egg belongs to the
+// Sky alone — a wash has no geometry to strike, and a flash without a bolt is
+// not the same find — so it is armed only while the shader is the one painting.
+// See lib/strike.ts for what counts as a click on the sky.
+//
+// The rain-and-snow egg — a drag stirs up a gust — is armed inside
+// <WeatherWallpaper /> instead, for the same reason one layer down: only the
+// Sky has particles for a wind to blow.
 //
 // An image wallpaper paints at FULL STRENGTH. On the home screen that is the
 // whole treatment: the picture is the content, sharp and untinted, with the
@@ -92,6 +95,8 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     kind,
     renderer,
     layers,
+    crossfadeMs,
+    skyThemeEaseMs,
     edgeMask,
     opacity,
     veil,
@@ -104,13 +109,13 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
 
   const useShader = kind === "weather" && renderer === "shader";
 
-  // The strike. One ref, registered by whichever engine is mounted — there is
-  // never more than one, so there is never a question of which one answers.
+  // The strike, the Sky's alone: the ref is registered by <WeatherWallpaper />
+  // and is null under every other engine, so the egg cannot half-exist.
   const layerRef = useRef<HTMLDivElement | null>(null);
   const strikeRef = useRef<((x: number, y: number) => void) | null>(null);
   const reducedMotion = useReducedMotion() ?? false;
   useStrikeOnClick(
-    enabled && kind === "weather" && scene.lightning > 0 && !reducedMotion,
+    enabled && useShader && scene.lightning > 0 && !reducedMotion,
     (clientX, clientY) => {
       const layer = layerRef.current;
       if (!layer) return;
@@ -131,15 +136,22 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
       {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
       className={cn(
         "pointer-events-none fixed inset-0 -z-10",
-        "transition-opacity duration-700 ease-in-out"
+        "transition-opacity ease-in-out"
       )}
-      // With the bezel on, the layer stops inside it — see AmbientSurface.
-      style={{ opacity: enabled ? opacity : 0, ...(bezel ? BEZEL_INSET : null) }}
+      style={{
+        opacity: enabled ? opacity : 0,
+        // A wash weighs differently in the two themes (WALLPAPER_OPACITY), so
+        // this moves on a theme change too — at the crossfade's pace, which is
+        // the sun's slower one while the theme hands over.
+        transitionDuration: `${crossfadeMs}ms`,
+        ...(bezel ? BEZEL_INSET : null),
+      }}
     >
       {useShader ? (
         <WeatherWallpaper
           scene={scene}
           active={enabled}
+          themeEaseMs={skyThemeEaseMs}
           edgeMask={edgeMask}
           // This is the one sky a hand can reach: a drag across the page
           // background stirs up a gust.
@@ -149,12 +161,14 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
           strikeRef={strikeRef}
         />
       ) : (
-        <>
-          {/* Full-page background is already viewport-fixed, so the edge mask is
-              applied statically (no per-frame tracking needed). */}
-          <GradientStack layers={layers} edgeMask={edgeMask} blurred={blurred} />
-          {kind === "weather" && <StrikeFlash strikeRef={strikeRef} />}
-        </>
+        /* Full-page background is already viewport-fixed, so the edge mask is
+           applied statically (no per-frame tracking needed). */
+        <GradientStack
+          layers={layers}
+          durationMs={crossfadeMs}
+          edgeMask={edgeMask}
+          blurred={blurred}
+        />
       )}
 
       {veil > 0 && (

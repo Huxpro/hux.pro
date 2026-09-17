@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  Segmented,
+  type SegmentedOption,
+} from "@/components/ui/controls";
 import { cn } from "@/lib/utils";
 import { t, useLocale, type TranslationKey } from "@/services";
 import { AlbumTabs } from "@/systems/theater";
@@ -8,6 +12,7 @@ import { useState } from "react";
 import {
   ADAPTIVE_PRESENTATION,
   AdaptiveSurface,
+  SHEET_DETENTS,
   useSurfaceContext,
 } from "@/systems/surface";
 import { getWeatherStyleGradient } from "../lib/gradient";
@@ -26,7 +31,7 @@ import {
   type WallpaperCategory,
   type WeatherStyle,
 } from "../lib/wallpaper";
-import { useAmbientTime, useWallpaper, useWeather } from "../provider";
+import { useAmbientTime, useSolarTheme, useWallpaper, useWeather } from "../provider";
 import { WeatherWallpaper } from "./wallpaper";
 
 // ---------------------------------------------------------------------------
@@ -72,7 +77,7 @@ function CompactRow<T extends string>({
 }: {
   label: string;
   value: T;
-  options: { value: T; label: string }[];
+  options: SegmentedOption<T>[];
   onChange: (value: T) => void;
 }) {
   return (
@@ -80,24 +85,7 @@ function CompactRow<T extends string>({
       <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
-      <div className="flex shrink-0 overflow-hidden rounded-md border border-border/60">
-        {options.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            onClick={() => onChange(o.value)}
-            aria-pressed={value === o.value}
-            className={cn(
-              "px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
-              value === o.value
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent/30 hover:text-foreground"
-            )}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
+      <Segmented tone="system" value={value} options={options} onChange={onChange} />
     </div>
   );
 }
@@ -392,6 +380,9 @@ export function WallpaperSheet() {
       title={t(locale, "wallpaperTitle")}
       closeLabel={t(locale, "wallpaperClose")}
       windowWidth="min(92vw, 620px)"
+      // On a phone: the site's detents — level with whatever it is stacked
+      // on, and a drag carries it to the top for the whole catalog at once.
+      snapPoints={SHEET_DETENTS}
     >
       <WallpaperPickerBody />
     </AdaptiveSurface>
@@ -419,6 +410,7 @@ function WallpaperPickerBody() {
     placement,
     setPlacement,
   } = useWallpaper();
+  const { followSun, setFollowSun } = useSolarTheme();
   const isImage = kind === "image";
   const { isWindow } = useSurfaceContext();
   const columns = isWindow ? 3 : 2;
@@ -482,6 +474,26 @@ function WallpaperPickerBody() {
           />
         ))}
       </div>
+
+      {/* Sunrise and sunset move the theme, not the wallpaper — but they are
+          the weather system's own events, so this is where they are turned
+          off. One row, the same shape as Placement. */}
+      {category === "weather" && (
+        <div className="space-y-2 pt-5">
+          <CompactRow<"on" | "off">
+            label={t(locale, "settingsSolarTheme")}
+            value={followSun ? "on" : "off"}
+            options={[
+              { value: "on", label: t(locale, "stateOn") },
+              { value: "off", label: t(locale, "stateOff") },
+            ]}
+            onChange={(value) => setFollowSun(value === "on")}
+          />
+          <p className="px-0.5 text-[11px] leading-snug text-tertiary-foreground">
+            {t(locale, "solarThemeHint")}
+          </p>
+        </div>
+      )}
 
       {category !== "weather" && (
         <p className="px-0.5 pt-5 text-[11px] leading-snug text-tertiary-foreground">

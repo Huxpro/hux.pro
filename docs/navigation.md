@@ -134,6 +134,7 @@ When the search input is empty or unfocused:
 | `W` | Open the Wallpaper picker |
 | `G` | Toggle Glass material (Tinted ↔ Clear) |
 | `T` | Toggle glass Tint (Wallpaper ↔ Neutral) |
+| `S` | Toggle Follow the Sun (theme at sunrise / sunset) |
 | `M` | Play / pause Music |
 | `Q` | Open the playlist browser |
 | `D` | Toggle the Devtool panel |
@@ -160,6 +161,15 @@ Instead of opening/closing between modes, the palette **morphs**:
 - Width animates (600px ↔ 400px)
 - Content crossfades with opacity
 - Height animates using CSS Grid (`grid-template-rows: 0fr/1fr`)
+
+#### Adaptive height (popover)
+
+The popover list is viewport-relative rather than a fixed `360px`. The phone
+sheet does not use this — it fills its detents with `flex-1`.
+- **Offset**: `22vh`, capped at `13.5rem`, so the card sits a little lower than Spotlight's `20vh`
+- **Search list**: `43dvh` (Geolocation as the last full row on a 16" MacBook), capped at `40rem`
+- **Slash list**: no `43dvh` cap — the card grows for every lettered command (the original taller morph) and only scrolls against remaining viewport chrome
+- Short screens shrink and scroll; tall screens show more results without becoming a full-height panel
 
 ### Footer Hints
 
@@ -221,6 +231,38 @@ Content pages (prose, log, prompt, docs) share a common layout structure via the
 | `backLabel` | `string` | `"λhux"` | Back navigation label |
 | `className` | `string` | - | Additional classes for main |
 | `children` | `ReactNode` | required | Page content |
+
+### Reading settings ("Aa")
+
+An article page — anything `PostContent` renders with the ruler on — puts an
+`Aa` button in `PageLayout`'s `headerActions`, beside the meta row, where the
+list pages keep their language filter. It opens the settings that until now
+only the devtool could reach (`components/post/reading-settings.ts` and
+`ruler-settings.ts`).
+
+It is Books' "Aa" menu, and takes the surface system's anchored presentation —
+a content-height sheet on a phone, a popover hanging off the button above that
+(`ANCHORED_PRESENTATION`, [Secondary Surfaces](./system-surface.md)). Neither is
+modal: the article stays live behind it, so a change lands where you can watch
+it.
+
+All five settings are here, in reader's words rather than the devtool's mono,
+and each appears only where it does something:
+
+Four of the five are offered at every width. **Wide media** is the exception,
+and not on taste: the rule it switches lives entirely inside the `bleed`
+breakpoint (`--breakpoint-bleed`, `app/globals.css`), so below that width the
+control would be wired to nothing. The row hides itself with the `bleed:`
+variant of that same token, so the control and the rule it drives read one
+number and cannot drift apart.
+
+Nothing else is hidden narrow, even where it is less useful. These are single,
+global, persisted settings: hiding focus mode on a phone would leave a reader
+who turned it on at a desk no way to turn it off in a pocket, and the devtool
+is not a door a reader opens.
+
+The devtool keeps its Reading module. Both surfaces write the same persisted
+store, so the panel and the reader's menu always agree.
 
 ### View Transitions
 

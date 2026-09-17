@@ -33,6 +33,12 @@ interface UniformSpec {
 // feel attached to the slider, not towed behind it.
 const TRACK = 0.25;
 
+// What the theme changes, and all it changes: the veil's colour and amount and
+// the exposure (VEIL_DEFAULTS in ../scene.ts). Named so `setThemeEase` can
+// stretch this one group — the sun's handover takes as long over the sky as it
+// does over the page — without the weather slowing down with it.
+const THEME = 0.5;
+
 const UNIFORMS: UniformSpec[] = [
   { name: "uSun", size: 2, tau: TRACK },
   { name: "uSunElevation", size: 1, tau: TRACK },
@@ -58,9 +64,9 @@ const UNIFORMS: UniformSpec[] = [
   { name: "uFog", size: 1, tau: 2.4 },
   { name: "uLightning", size: 1, tau: 1.5 },
   { name: "uStars", size: 1, tau: 2.0 },
-  { name: "uVeilColor", size: 3, tau: 0.5 },
-  { name: "uVeilAmount", size: 1, tau: 0.5 },
-  { name: "uExposure", size: 1, tau: 0.5 },
+  { name: "uVeilColor", size: 3, tau: THEME },
+  { name: "uVeilAmount", size: 1, tau: THEME },
+  { name: "uExposure", size: 1, tau: THEME },
 ];
 
 const FLOAT_COUNT = UNIFORMS.reduce((n, u) => n + u.size, 0);
@@ -79,6 +85,8 @@ const META = UNIFORMS.map((u, i) => {
   if (tauIndex < 0) tauIndex = TAUS.push(u.tau) - 1;
   return { offset, size: u.size, tauIndex };
 });
+/** Which of `TAUS` is the theme's, for `setThemeEase` to override. */
+const THEME_TAU_INDEX = TAUS.indexOf(THEME);
 const WIND_OFFSET = OFFSET.uWind;
 const CLOUD_SPEED_OFFSET = OFFSET.uCloudSpeed;
 const SNOW_OFFSET = OFFSET.uSnow;
@@ -297,6 +305,8 @@ export class WallpaperRenderer {
   private vao: WebGLVertexArrayObject | null = null;
 
   private target = new Float32Array(FLOAT_COUNT);
+  /** Seconds, or null for each uniform's own tau. See setThemeEase. */
+  private themeTau: number | null = null;
   private current = new Float32Array(FLOAT_COUNT);
   private hasScene = false;
   private seed = 0;
@@ -441,6 +451,16 @@ export class WallpaperRenderer {
     const heights = vxPx / Math.max(1, this.cssHeight);
     this.stir = GUST.max * Math.tanh(heights * GUST.gain);
     this.stirAt = performance.now();
+  }
+
+  /**
+   * How long the theme's own uniforms take to arrive, in ms to settled, or
+   * null for the table's own pace. An exponential ease is asymptotic, so
+   * "settled" is 3 time constants — close enough to read as arrived.
+   */
+  setThemeEase(settleMs: number | null) {
+    this.themeTau =
+      settleMs !== null && settleMs > 0 ? settleMs / 3000 : null;
   }
 
   setReducedMotion(reduced: boolean) {
@@ -765,7 +785,9 @@ export class WallpaperRenderer {
 
   private smooth(dtSec: number) {
     for (let t = 0; t < TAUS.length; t++) {
-      this.ks[t] = TAUS[t] <= 0 ? 1 : 1 - Math.exp(-dtSec / TAUS[t]);
+      const tau =
+        t === THEME_TAU_INDEX && this.themeTau !== null ? this.themeTau : TAUS[t];
+      this.ks[t] = tau <= 0 ? 1 : 1 - Math.exp(-dtSec / tau);
     }
     for (const m of META) {
       const k = this.ks[m.tauIndex];

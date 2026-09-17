@@ -84,6 +84,7 @@ export function Bezel({
   radius = DEFAULT_BEZEL_RADIUS,
   scroll = "window",
   ground,
+  chromeMorph = true,
   backdrop,
   className,
   style,
@@ -135,10 +136,10 @@ export function Bezel({
       synced.current = loaded;
     }
     if (synced.current !== chrome) {
-      syncChrome(chrome, shape.current);
+      syncChrome(chrome, { ...shape.current, morph: chromeMorph });
       synced.current = chrome;
     }
-  }, [chrome, boot]);
+  }, [chrome, boot, chromeMorph]);
 
   const state = useMemo<BezelState>(
     () => ({
