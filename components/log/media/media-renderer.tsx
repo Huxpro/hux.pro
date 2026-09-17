@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ScrollEdgeFade } from "@/components/ui/scroll-edge";
+import { ScrollEdgeFade, scrollEdgeMask } from "@/components/ui/scroll-edge";
 import { useTheme } from "@/services/theme";
 import { useLocale } from "@/services";
 import { useOptionalTheater } from "@/systems/theater";
@@ -278,6 +278,7 @@ function CardScrollRail({ children }: { children: ReactNode }) {
           // would keep yanking it back ("can't scroll to the last one").
           "snap-x snap-proximity scroll-smooth no-scrollbar",
         )}
+        style={scrollEdgeMask(atStart, atEnd)}
       >
         {children}
       </div>

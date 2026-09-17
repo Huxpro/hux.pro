@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 // =============================================================================
@@ -8,15 +9,26 @@ import { cn } from "@/lib/utils";
 // and reads as a muddy patch once the surface behind is wallpaper or Clear
 // glass (see docs/system-glass.md).
 //
-// The replacement sits ON the transparent surface. It paints with a glass
-// token — so Tinted / Clear / wallpaper tint all follow along — plus a short
-// blur, masked so the frost is strongest at the outer edge and gone inward.
-// Same show/hide contract as the old overlay: the caller owns visibility.
+// Two pieces, both sitting on the transparent surface rather than covering it:
+//
+//   1. `scrollEdgeMask` — a CSS mask so the clipped content itself goes
+//      transparent (wallpaper shows through the card, the way WidgetScrollBody
+//      already fades a list into glass).
+//   2. `ScrollEdgeFade` — a glass-token gradient + short blur on top of that,
+//      so the cutoff frosts instead of hard-cutting. Tinted / Clear / wallpaper
+//      tint follow along because the fill is `--glass`, not `--background`.
 // =============================================================================
 
 export type ScrollEdge = "left" | "right" | "top" | "bottom";
 
-const MASK: Record<ScrollEdge, string> = {
+const FILL: Record<ScrollEdge, string> = {
+  left: "bg-gradient-to-r from-glass to-transparent",
+  right: "bg-gradient-to-l from-glass to-transparent",
+  top: "bg-gradient-to-b from-glass to-transparent",
+  bottom: "bg-gradient-to-t from-glass to-transparent",
+};
+
+const BLUR_MASK: Record<ScrollEdge, string> = {
   left: "linear-gradient(to right, black, transparent)",
   right: "linear-gradient(to left, black, transparent)",
   top: "linear-gradient(to bottom, black, transparent)",
@@ -24,11 +36,26 @@ const MASK: Record<ScrollEdge, string> = {
 };
 
 const POS: Record<ScrollEdge, string> = {
-  left: "inset-y-0 left-0 w-6",
-  right: "inset-y-0 right-0 w-6",
+  left: "inset-y-0 left-0 w-8",
+  right: "inset-y-0 right-0 w-8",
   top: "inset-x-0 top-0 h-7",
   bottom: "inset-x-0 bottom-0 h-7",
 };
+
+/** CSS mask that fades a scrollport's start/end into transparency. */
+export function scrollEdgeMask(
+  atStart: boolean,
+  atEnd: boolean,
+  axis: "x" | "y" = "x",
+  sizePx = 32,
+): CSSProperties | undefined {
+  if (atStart && atEnd) return undefined;
+  const dir = axis === "x" ? "to right" : "to bottom";
+  const start = atStart ? "black" : `transparent, black ${sizePx}px`;
+  const end = atEnd ? "black" : `black calc(100% - ${sizePx}px), transparent`;
+  const mask = `linear-gradient(${dir}, ${start}, ${end})`;
+  return { maskImage: mask, WebkitMaskImage: mask };
+}
 
 export function ScrollEdgeFade({
   edge,
@@ -41,21 +68,20 @@ export function ScrollEdgeFade({
   visible?: boolean;
   className?: string;
 }) {
-  const mask = MASK[edge];
+  const blurMask = BLUR_MASK[edge];
   return (
     <div
       aria-hidden
       className={cn(
         "pointer-events-none absolute",
         POS[edge],
-        // Glass fill + blur, not `--background`. The mask is what makes the
-        // pocket a falloff rather than a pane.
-        "bg-glass backdrop-blur-md",
+        FILL[edge],
+        "backdrop-blur-md",
         "transition-opacity duration-200",
         visible ? "opacity-100" : "opacity-0",
         className,
       )}
-      style={{ maskImage: mask, WebkitMaskImage: mask }}
+      style={{ maskImage: blurMask, WebkitMaskImage: blurMask }}
     />
   );
 }
