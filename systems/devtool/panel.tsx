@@ -22,6 +22,7 @@ import {
 /** The named tints plus the segmented control's own "pick a colour". */
 type TintChoice = "black" | "dark" | "theme" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
+import { gravityTiltDegrees, readGravity } from "@/systems/ambient/lib/gyroscope";
 import { getWeatherGradient, getWeatherStyleGradient } from "@/systems/ambient/lib/gradient";
 import type { AmbientPhase } from "@/systems/ambient/lib/phase";
 import { rgbToCss, sampleDaySky } from "@/systems/ambient/lib/scene";
@@ -87,7 +88,6 @@ import {
   ExternalLink,
   Check,
   ChevronDown,
-  ChevronUp,
   Command as CommandIcon,
   Clock,
   Cloud,
@@ -108,164 +108,76 @@ import {
   Sunset,
   X,
 } from "lucide-react";
-import { withDraggable } from "@/systems/draggable";
 import Link from "next/link";
 import { Segmented, Switch } from "@/components/ui/controls";
 import { Slider } from "@/components/ui/slider";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 // =============================================================================
-// Devtool FAB Component
-// A foldable floating action button for devtools
-// Positioned at top-right, similar to Next.js dev tools
+// Devtool content — the modules, and nothing about where they are shown.
+//
+// The devtool is hosted in three different shells over its life (a bottom
+// sheet, a floating window, and neither while it is a pill), and none of that
+// is this file's business. `dock.tsx` owns the shells and the gesture that
+// moves between them; here are the modules and the footer that go inside
+// whichever one is up.
 // =============================================================================
 
-function DevtoolFABInner() {
+/** The module list. Whatever is hosting it supplies the scroll area. */
+export function DevtoolModules() {
+  return (
+    <>
+      <FrontmatterModule />
+      <ReadingModule />
+      <WallpaperModule />
+      <GlassModule />
+      <SkyModule />
+      <MusicModule />
+      <CommandModule />
+      <DraggableModule />
+      <AppsModule />
+      <RefetchModule />
+    </>
+  );
+}
+
+/** The status line under the modules: how to toggle, and how to turn it off. */
+export function DevtoolFooter() {
   const { locale } = useLocale();
-  const { isEnabled, isOpen, toggle, signalDragReset } = useDevtool();
-
-  // Reset drag position when devtool is toggled on (not fold/unfold)
-  const prevEnabledRef = useRef(isEnabled);
-  useEffect(() => {
-    if (isEnabled && !prevEnabledRef.current) {
-      signalDragReset("devtool");
-    }
-    prevEnabledRef.current = isEnabled;
-  }, [isEnabled, signalDragReset]);
-
-  // Don't render if devtool is not enabled
-  if (!isEnabled) return null;
+  const zh = locale === "zh";
+  const { toggleEnabled } = useDevtool();
 
   return (
-    <div
-      className={cn(
-        "fixed z-50 transition-all duration-300 ease-out",
-        "top-4 right-4",
-        // When open, expand to panel width
-        isOpen ? "w-[420px] max-w-[calc(100vw-2rem)]" : "w-auto"
-      )}
-    >
-      {/* Collapsed FAB button - hides when panel is open */}
-      <button
-        onClick={toggle}
-        data-drag-handle
-        className={cn(
-          "flex items-center gap-2 transition-all duration-300",
-          "rounded-full touch-none",
-          "bg-foreground text-background",
-          "shadow-raised",
-          "hover:scale-105 active:scale-95",
-          // Hide when expanded
-          isOpen ? "opacity-0 pointer-events-none scale-75" : "opacity-100",
-          // Size
-          "h-10 px-4"
-        )}
-        aria-label="Open devtool panel"
-      >
-        <Bug className="h-4 w-4" />
-        <span className="text-xs font-mono uppercase tracking-wider">
-          {locale === "zh" ? "调试" : "Debug"}
+    <div className="border-t border-border/50 bg-muted/20 px-4 py-2">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span className="font-mono">
+          {zh ? "按 D 切换" : "Press D to toggle"}
         </span>
-        <kbd className="text-[10px] font-mono opacity-60 ml-1">D</kbd>
-      </button>
-
-      {/* Expanded panel */}
-      <div
-        className={cn(
-          "absolute top-0 right-0 w-full",
-          "transition-all duration-300 ease-out",
-          "origin-top-right",
-          isOpen
-            ? "opacity-100 scale-100 translate-y-0"
-            : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
-        )}
-      >
-        <DevtoolPanel />
+        <button
+          onClick={toggleEnabled}
+          className="flex items-center gap-1 font-mono transition-colors hover:text-foreground"
+        >
+          <X className="h-3 w-3" />
+          <span>{zh ? "关闭调试" : "Disable Devtool"}</span>
+        </button>
       </div>
     </div>
   );
 }
 
-export const DevtoolFAB = withDraggable(DevtoolFABInner, {
-  id: "devtool",
-  // Only the collapsed pill and the panel's title bar move the devtool; the
-  // module bodies keep their sliders, inputs and scrolling.
-  dragHandle: "[data-drag-handle]",
-});
-
-// =============================================================================
-// Devtool Panel Component
-// The expanded panel containing debug modules
-// =============================================================================
-
-function DevtoolPanel() {
+/** The header's title: the bug, the name, the DEV badge. */
+export function DevtoolTitle() {
   const { locale } = useLocale();
-  const { close, toggleEnabled } = useDevtool();
-
   return (
-    <div
-      className={cn(
-        "rounded-2xl overflow-hidden cursor-default",
-        "bg-glass-popover backdrop-blur-xl",
-        "border border-border/50",
-        "shadow-overlay"
-      )}
-    >
-      {/* Header */}
-      <div
-        data-drag-handle
-        className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-muted/30 touch-none cursor-grab active:cursor-grabbing"
-      >
-        <div className="flex items-center gap-2">
-          <Bug className="h-4 w-4 text-foreground" />
-          <span className="text-sm font-mono text-foreground">
-            {locale === "zh" ? "调试面板" : "Devtool Panel"}
-          </span>
-          <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
-            DEV
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={close}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors"
-            aria-label="Close devtool panel"
-          >
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-          </button>
-        </div>
-      </div>
-
-      {/* Scrollable content */}
-      <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
-        <FrontmatterModule />
-        <ReadingModule />
-        <WallpaperModule />
-        <GlassModule />
-        <SkyModule />
-        <MusicModule />
-        <CommandModule />
-        <DraggableModule />
-        <AppsModule />
-        <RefetchModule />
-      </div>
-
-      {/* Footer */}
-      <div className="px-4 py-2 border-t border-border/50 bg-muted/20">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="font-mono">
-            {locale === "zh" ? "按 D 切换" : "Press D to toggle"}
-          </span>
-          <button
-            onClick={toggleEnabled}
-            className="flex items-center gap-1 font-mono hover:text-foreground transition-colors"
-          >
-            <X className="h-3 w-3" />
-            <span>{locale === "zh" ? "关闭调试" : "Disable Devtool"}</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    <span className="flex items-center gap-2">
+      <Bug className="h-3.5 w-3.5 shrink-0" />
+      <span className="truncate">
+        {locale === "zh" ? "调试面板" : "Devtool Panel"}
+      </span>
+      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] leading-none normal-case tracking-normal">
+        DEV
+      </span>
+    </span>
   );
 }
 
@@ -888,7 +800,6 @@ function GlassModule() {
 function WallpaperModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { close: closePanel } = useDevtool();
   const {
     kind,
     setKind,
@@ -1108,11 +1019,9 @@ function WallpaperModule() {
         )}
         <button
           type="button"
-          // The picker is about the page; the panel folds so the page is there.
-          onClick={() => {
-            openPicker();
-            closePanel();
-          }}
+          // The picker stacks on the devtool rather than replacing it: the
+          // panel steps back a notch behind it and comes forward when it goes.
+          onClick={openPicker}
           aria-label={zh ? "打开壁纸选择器" : "Open wallpaper picker"}
           className="flex w-full items-center gap-2 rounded-md border border-border/60 p-1 text-left transition-colors hover:bg-muted/40"
         >
@@ -1453,6 +1362,48 @@ const MOON_NAME: Record<"en" | "zh", Record<MoonPhaseName, string>> = {
 };
 
 
+const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
+
+/** Any bearing onto 0…359. The track below runs past 360, so this is not idle. */
+const wrap360 = (deg: number) => ((deg % 360) + 360) % 360;
+
+/** The eight-point name for a met wind direction, for the devtool's readout. */
+function compassPoint(deg: number): string {
+  return COMPASS[Math.round(wrap360(deg) / 45) % 8];
+}
+
+/**
+ * Where the wind-direction slider starts, and why it is not at 0°.
+ *
+ * `wind.x` is `sin(from) × hemisphere × speed`, so a track running 0 → 359
+ * goes calm → right → calm → left → calm: both ends dead, and the direction
+ * you drag bears no relation to the direction the rain leans. The track runs
+ * **270° → 450°** instead — west, through north, to east — which is monotonic
+ * the whole way: drag left and the rain leans left, drag right and it leans
+ * right, and the middle is the one bearing that has no crosswind in it.
+ *
+ * Nothing is lost by covering half the compass. The sky only ever shows a
+ * wind's east–west component (the screen looks south; the north–south part
+ * blows along the view axis), and `sin(180° − d) === sin(d)`, so every
+ * southerly bearing paints exactly what its northerly mirror does.
+ */
+const WIND_TRACK_MIN = 270;
+const WIND_TRACK_MAX = 450;
+
+/** Fold any bearing onto the one inside the track that blows the same way. */
+function toWindTrack(deg: number): number {
+  let d = wrap360(Math.round(deg));
+  if (d > 90 && d <= 270) d = 180 - d;
+  else if (d > 270) d -= 360;
+  return d + 360;
+}
+
+/** Which way a bearing pushes the rain, for the readout. */
+function leanArrow(deg: number, hemisphere: 1 | -1): string {
+  const x = Math.sin((deg * Math.PI) / 180) * hemisphere;
+  return x > 0.02 ? "→" : x < -0.02 ? "←" : "·";
+}
+
 /** Minutes in a day — the scrub's range, and one loop of Play. */
 const DAY_MINUTES = 1440;
 
@@ -1513,6 +1464,7 @@ function SkyModule() {
     resetTimeTravel,
   } = useAmbientTime();
   const { followSun, setFollowSun, sunTheme } = useSolarTheme();
+  const { gyro, setGyroEnabled, effectiveStyle } = useWallpaper();
 
   const isDayNow = scene.sun.isDay;
   const isOverridden = debugOverride !== null;
@@ -1615,6 +1567,34 @@ function SkyModule() {
     setSceneOverrides({});
   };
 
+  // --- Gyroscope -----------------------------------------------------------
+  // The live tilt, polled rather than subscribed: a readout is worth twice a
+  // second, not sixty times — the sky itself gets every reading.
+  const [tiltDeg, setTiltDeg] = useState<number | null>(null);
+  useEffect(() => {
+    if (gyro.readings !== "live") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync: clear a stale readout
+      setTiltDeg(null);
+      return;
+    }
+    const tick = () => setTiltDeg(Math.round(gravityTiltDegrees(readGravity())));
+    tick();
+    const id = window.setInterval(tick, 500);
+    return () => window.clearInterval(id);
+  }, [gyro.readings]);
+
+  // Seven states, in the order they rule each other out: what the browser can
+  // do, then what the visitor asked for, then what is actually arriving.
+  const gyroReadout = ((): string => {
+    if (!gyro.supported) return zh ? "无传感器" : "no sensor";
+    if (gyro.denied) return zh ? "已拒绝" : "denied";
+    if (gyro.enabled && gyro.gated) return zh ? "待授权" : "tap to allow";
+    if (!gyro.enabled) return zh ? "关" : "off";
+    if (gyro.readings === "live") return `${tiltDeg ?? 0}°`;
+    if (gyro.readings === "waiting") return "…";
+    return zh ? "无数据" : "no readings";
+  })();
+
   // --- Tune fold -----------------------------------------------------------
   const [tuneOpen, setTuneOpen] = useState(false);
   const setTune = (patch: Partial<typeof sceneOverrides>) =>
@@ -1625,13 +1605,17 @@ function SkyModule() {
     setSceneOverrides(next);
   };
 
-  // The four tweakable numbers: slider value ↔ scene value, one row each.
+  // The tweakable numbers: slider value ↔ scene value, one row each. Wind is
+  // two of them on purpose — a speed with no direction is a number that can
+  // look like it does nothing, because a wind along the view axis has no
+  // horizontal component and never leans the rain however hard it blows.
   const percent = (v: number) => `${v}%`;
   const tune: {
     key: keyof typeof sceneOverrides;
     label: string;
     aria: string;
     value: number;
+    min?: number;
     max: number;
     format: (v: number) => string;
     toScene: (v: number) => number;
@@ -1639,6 +1623,7 @@ function SkyModule() {
     { key: "cloudCover", label: zh ? "云量" : "Cloud", aria: "Cloud", value: Math.round(scene.clouds.cover * 100), max: 100, format: percent, toScene: (v) => v / 100 },
     { key: "precipitationIntensity", label: zh ? "降水" : "Precip", aria: "Precip", value: Math.round(scene.precipitation.intensity * 100), max: 100, format: percent, toScene: (v) => v / 100 },
     { key: "windSpeedKmh", label: zh ? "风速" : "Wind", aria: "Wind", value: Math.round(sceneOverrides.windSpeedKmh ?? weather?.windSpeedKmh ?? 8), max: 60, format: (v) => `${v} km/h`, toScene: (v) => v },
+    { key: "windDirectionDeg", label: zh ? "风向" : "From", aria: "Wind direction", value: toWindTrack(sceneOverrides.windDirectionDeg ?? weather?.windDirectionDeg ?? 270), min: WIND_TRACK_MIN, max: WIND_TRACK_MAX, format: (v) => `${wrap360(v)}° ${compassPoint(v)} ${leanArrow(v, scene.hemisphere)}`, toScene: wrap360 },
     { key: "veilAmount", label: zh ? "遮罩" : "Veil", aria: "Veil", value: Math.round(scene.veil.amount * 100), max: 90, format: percent, toScene: (v) => v / 100 },
   ];
 
@@ -1944,6 +1929,42 @@ function SkyModule() {
           </div>
         </div>
 
+        {/* The gyroscope: rain and snow fall along real gravity, in the Sky.
+            A saved setting (blue star), on by default, and the only place
+            besides the picker where iOS's motion permission can be granted —
+            so the readout says which of "off", "unanswered" and "nothing
+            coming through" is the case, and shows the live tilt once it is. */}
+        <div className="border-t border-border/30 pt-2">
+          <PanelRow
+            label={
+              effectiveStyle === "sky"
+                ? zh
+                  ? "陀螺仪"
+                  : "Gyro"
+                : zh
+                  ? "陀螺仪 · 仅天空"
+                  : "Gyro · Sky only"
+            }
+            star={
+              gyro.enabled ? null : (
+                <PanelStar onReset={() => setGyroEnabled(true)} source="saved" />
+              )
+            }
+          >
+            <span className="flex items-center gap-2">
+              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                {gyroReadout}
+              </span>
+              <PanelToggle
+                on={gyro.active}
+                disabled={!gyro.supported}
+                onClick={() => setGyroEnabled(!gyro.active)}
+                label="Toggle gyroscope tilt"
+              />
+            </span>
+          </PanelRow>
+        </div>
+
         {/* Fine-tune, folded: the derived numbers, each draggable. */}
         <div className="border-t border-border/30 pt-2">
           <button
@@ -1978,7 +1999,7 @@ function SkyModule() {
                   label={row.label}
                   ariaLabel={row.aria}
                   value={row.value}
-                  min={0}
+                  min={row.min ?? 0}
                   max={row.max}
                   step={1}
                   format={row.format}

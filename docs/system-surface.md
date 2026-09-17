@@ -5,11 +5,33 @@ One secondary surface, four shapes.
 ```
 systems/surface/
 ├── presentation.ts       # SurfaceMode, breakpoints, useSurfaceMode()
-├── adaptive-surface.tsx  # <AdaptiveSurface>, useSurfaceContext()
+├── adaptive-surface.tsx  # <AdaptiveSurface> — the policy: viewport picks the shape
 ├── sheet.tsx             # <SurfaceSheet> — the one bottom sheet, detents, scrim
+├── window.tsx            # <SurfaceWindow> — the one floating, draggable shell
+├── chrome.tsx            # <SurfaceBody> — the title bar, scroll area and footer
 ├── stack.ts              # which sheets are open, so a sheet under another recedes
 └── index.ts
 ```
+
+## Two layers
+
+Shape is usually the viewport's call, and `<AdaptiveSurface>` is that rule. But
+it is a rule, not a law: the devtool's shape is something the developer chose
+by pulling the sheet off the bottom edge. So the shells sit underneath it,
+usable on their own:
+
+```
+primitives   <SurfaceSheet>   docked to an edge, detents, stacking
+             <SurfaceWindow>  floating, draggable, morphs in
+             <SurfaceBody>    the chrome all of them hold
+policy       <AdaptiveSurface>  = viewport → primitive
+             DevtoolFAB         = gesture  → primitive
+```
+
+Two features already compose the primitives directly: the command palette,
+whose header is a search field rather than a title bar, and the devtool, whose
+shape is a gesture's business (see [Devtool System](./system-devtool.md)).
+Both still get the same shell, gaps, detents and stacking.
 
 ## The problem
 
@@ -28,13 +50,16 @@ lives here, once.
 |------|-------|-----|
 | `sheet` | Bottom edge, drag-to-dismiss, grabber | Phone. Thumb reach. |
 | `panel` | Trailing edge, full height | Tablet. Content beside content. |
-| `window` | Centred, draggable, morphs in | Desktop. Move it out of the way. |
+| `window` | Floating, draggable, morphs in | Desktop. Move it out of the way. |
 | `popover` | Hanging off the button that opened it | Anything wider than a phone, for a surface that belongs to one control. |
 
 `window` is not a drawer. It springs in with the same curve
 `systems/windows` uses to open an app from its shelf icon, and drags by its
 header through the shared `useDraggable` hook — so it inherits the devtool's
-per-instance drag settings like every other draggable thing on the site.
+per-instance drag settings like every other draggable thing on the site. It
+rests near the top centre unless its `placement` says otherwise; the devtool
+asks for `top-right`, where it has always been and where it stays out of the
+page it exists to watch.
 
 `popover` is not a drawer either: it is a [Base UI
 Popover](https://base-ui.com/react/components/popover) positioned against an
@@ -146,6 +171,40 @@ Gate on the constraint itself — a breakpoint the CSS already names, a capabili
 | `snapPoints` | Detents for the sheet shape, lowest first; a drag carries it to the top. |
 | `contentClassName` | Overrides the scroll area's padding, for content that bleeds wider. |
 | `scrollRef` | The scroll container, for content that scrolls a row into view. |
+
+The primitives carry a few props the policy layer deliberately does not pass
+on — a surface that wants one of these is a surface that should be composing
+the shell directly:
+
+| Prop | On | For |
+|------|----|-----|
+| `footer` | `SurfaceBody` | A strip below the scroll area that does not scroll away. |
+| `placement` | `SurfaceWindow` | Where the window rests before a drag: `center` (default) or `top-right`. |
+| `onPullPastTop` | `SurfaceSheet` | The drag that lifts a sheet off the edge it is docked to. |
+
+**Pulling a sheet off the edge.** A drag may carry a sheet past its top edge,
+and `onPullPastTop` fires when it is released more than `PULL_PAST_TOP_TRAVEL`
+real pixels past it — a surface that has somewhere else to be can take that as
+"come off the edge". The devtool does; nothing else needs to, and without the
+prop the overshoot stays a rubber band.
+
+It measures the **pointer**, not the popup. Base UI damps the overshoot with a
+square root and its swipe-start threshold has already eaten ~17px of the
+gesture: measured on an iPhone 13, a 207px pull from the 0.7 detent arrives as
+1.6px of published movement. That number draws a good rubber band and is a
+terrible reading of intent. What the finger says instead is `travelled up −
+the offset the sheet had to climb through`, so one continuous pull both resizes
+the sheet and, once it is against the ceiling, keeps counting.
+
+The threshold is small (14px) because the budget is small: most of a pull is
+spent resizing, and what is left is the distance from the grabber to the top of
+the glass — about twenty pixels. A pull that stops at the top still snaps to
+the full detent; only one that keeps going detaches, and the shell carries
+`data-pull-armed` in between so the difference is visible.
+
+Coming back is the feature's own business, not the sheet's: the devtool drags
+its pill onto a landing pad at the bottom edge. See
+[Devtool System](./system-devtool.md).
 
 ## The sheet primitive
 
@@ -293,5 +352,6 @@ UI's own count of nested sheets, one `--surface-depth` on the shell. See
 | Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode; `SHEET_DETENTS` as a sheet |
 | Reading settings | `ANCHORED_PRESENTATION` | The article page's "Aa". `fitContent` sheet, end-aligned popover off the button; rows appear only where the setting does something, so the sheet is shorter than the popover |
 | Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight card, anchored to nothing, not the `popover` shape above |
+| Devtool panel | primitives, not `AdaptiveSurface` | `SurfaceSheet` docked / `SurfaceWindow` floating, and which one is the developer's call, not the viewport's — it is pulled off the edge by hand. `onPullPastTop`, `placement="top-right"`, a `footer` for its status line. See [Devtool System](./system-devtool.md) |
 
 Adding a second is: register a draggable id, pick a presentation, pass content.
