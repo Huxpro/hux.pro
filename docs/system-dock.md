@@ -57,19 +57,61 @@ Before changing any of it, read the "BEFORE CHANGING THIS FILE" block at the top
 of `systems/dock/components/live-activity.tsx`, and the one it points at in
 `systems/surface/sheet.tsx`.
 
+### How the panel arrives: a pop, not a slide
+
+A drawer's instinct is to travel — in from the edge it is anchored to. This one
+does not, because the pill it comes from is *right there*, a few pixels above
+the panel's own top edge: there is nothing to travel from. So the entrance is
+the pop the hand-written panel had before the drawer replaced it, kept to the
+frame:
+
+| | |
+|---|---|
+| The popup | `transform: scale(0.94)` on `data-starting-style` / `data-ending-style`, `transform-origin: top center`, over `--dock-pop-duration: 300ms` — the same scale and the same beat as the framer-motion pop it is matching. |
+| The shell | a `dock-pop-in` / `dock-pop-out` keyframe fade, one level down on the glass. |
+| A dismissed panel | `data-swipe-dismiss` swaps the scale for the travel (up past the top edge and past the inset, so it is gone rather than clipped at the status bar) and switches the fade off — a panel a finger has thrown is going somewhere, not dissolving. |
+
+Two things about it are load-bearing, and both are also notes 4 and 5 in
+`live-activity.tsx`:
+
+**The fade is a keyframe animation on the shell, not a transition on the popup.**
+An animation because the shell's `transition` shorthand already belongs to the
+surface recede and a second `transition` rule would replace it wholesale, and
+because `data-starting-style` lives for one frame — too short for a transition
+to key off, long enough to start an animation that then runs on its own. Base UI
+reads the *popup's* animations to decide when an exit is over, not the subtree's,
+so the shell's fade never holds the unmount open.
+
+**The closed transform scales and does not translate.** The obvious pop is
+`translateY(-10px) scale(0.94)`, and the `translateY` silently breaks the
+pull-to-expand gesture: Base UI measures how far "closed" is by reading the
+popup's transform when a `Drawer.SwipeArea` drag starts (`resolveClosedOffset`,
+`min(height, |translateY|)`), and it reads it *before* it marks the popup as
+swiping, so it sees the closed rule. Ten pixels of offset told it the panel was
+ten pixels from open; a pull that should track the finger down a whole panel
+height tracked ten and overshot — measured `--drawer-swipe-movement-y` of +12px
+where −170 was due. A pure `scale()` leaves the transform's Y at zero and the
+measurement falls through to the panel's height. The ten pixels cost nothing to
+look at: scaling a 170px panel by 0.94 from `top center` already lifts its
+bottom by about that much.
+
 ### The glass is the constraint on the motion
 
-The panel arrives and leaves on **transform alone** — out of and back over the
-top edge — and never on opacity. An element at `opacity < 1` is its own backdrop
-root, so a `backdrop-filter` anywhere inside it samples that empty group instead
-of the page: the glass is not there at all for the length of the animation. A
-fade on the popup was tried and shipped, and it made the panel see-through on
-the way in, the page's text legible straight through it, unblurred. The pill's
-fade sits on the pill itself, the element that carries the blur, for the same
-reason. The sheets above are transform-only for the same reason.
+**Opacity belongs on the glass, never on a box that contains it.** An element at
+`opacity < 1` is its own backdrop root, so a `backdrop-filter` *inside* it
+samples that empty group instead of the page: the glass is not there at all for
+the length of the animation. On the element that carries the blur the same
+opacity is fine — its own backdrop resolves before its opacity applies.
 
-The walkthrough guards it: it samples twelve frames across the entrance and
-fails if anything between the shell and `<body>` is fading or filtering.
+A fade on the popup was tried and shipped, and it made the panel see-through on
+the way in, the page's text legible straight through it, unblurred. A/B'd at the
+same opacity on the same frame: on the shell the text behind it is blurred, on
+the popup it is sharp. That is the whole reason the popup carries the transform
+and the fades sit one level down, on the shell and on the pill, which are
+themselves the glass. The sheets above hold to the same rule.
+
+The walkthrough guards it: it samples frames across the entrance and fails if
+anything *between* the shell and `<body>` is fading or filtering.
 
 ### One place it does not replicate the old dock
 

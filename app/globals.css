@@ -1507,25 +1507,34 @@ html.dragging * {
    `--drawer-swipe-strength` (how hard it was flicked). From live-activity.tsx:
    `--surface-duration`, `--surface-easing`, `--surface-exit`.
 
-   NOTHING HERE ANIMATES THE OPACITY OF A BOX THAT CONTAINS GLASS. An element
-   at `opacity < 1` is its own backdrop root, so a `backdrop-filter` inside it
-   samples that empty group rather than the page, and the glass is simply not
-   there for the length of the animation. A fade on the popup made the whole
-   panel see-through on the way in — the page's text read straight through it,
-   unblurred — and the same fade on the pill row would do it to the pills. The
-   panel therefore arrives and leaves on transform alone, out of and back over
-   the top edge, and the pill's fade sits on the pill itself, the same element
-   that carries the blur. The sheets above are transform-only for this reason
-   too.
+   OPACITY BELONGS ON THE GLASS, NEVER ON A BOX THAT CONTAINS IT. An element
+   at `opacity < 1` is its own backdrop root, so a `backdrop-filter` *inside*
+   it samples that empty group rather than the page and the glass is simply not
+   there for the length of the animation; on the element that carries the blur
+   the same opacity is fine, because its own backdrop is resolved before its
+   opacity is applied. A fade on the popup made the whole panel see-through on
+   the way in, the page's text legible straight through it, unblurred. A/B'd at
+   the same opacity on the same frame: on the shell the text behind it is
+   blurred, on the popup it is sharp. So the panel's transform lives on the
+   popup, which holds no glass, and every fade lives one level down on the
+   shell and on the pill, which are the glass.
 
    Before changing a rule, read the "BEFORE CHANGING THIS FILE" block at the
-   top of systems/dock/components/live-activity.tsx — the three notes there are
-   what these rules are shaped around.
+   top of systems/dock/components/live-activity.tsx — the five notes there are
+   what these rules are shaped around, notes 4 and 5 most of all: they are the
+   reason the fade is not on the popup and the reason the closed transform has
+   no `translateY`.
    ============================================================================= */
 
 [data-dock-panel] {
+  /* The dock's own beat. Shorter than a sheet's travel: this panel is small,
+     it does not come from off-screen, and the old framer-motion pop it is
+     matching ran at 0.3s. `--surface-duration` still governs the shell's
+     recede, so the dock never falls out of step with the stack. */
+  --dock-pop-duration: 300ms;
   transform: translateY(var(--drawer-swipe-movement-y, 0px));
-  transition: transform var(--surface-duration) var(--surface-easing);
+  transform-origin: top center;
+  transition: transform var(--dock-pop-duration) var(--surface-easing);
 }
 
 /* Under the finger the panel is direct. The duration only, never the whole
@@ -1536,9 +1545,33 @@ html.dragging * {
   transition-duration: 0ms;
 }
 
-/* Arriving and leaving: up past the top edge, and past the inset as well, so
-   the panel is gone rather than clipped at the status bar. */
+/* The pop. A shade small, settling into place — the panel belongs to the pill
+   it came from, and a pill is right there, so it has nowhere to travel from.
+   The scale is the number the hand-written panel used, so the dock reads the
+   way it always has.
+
+   Its `y: -10` is deliberately NOT here, and this is not a detail. Base UI's
+   swipe-open measures how far "closed" is by reading the popup's transform at
+   the moment the drag starts (`resolveClosedOffset`, which takes
+   `min(height, |translateY|)`), and it reads it before it marks the popup as
+   swiping — so it sees this rule. A ten-pixel offset told it the panel was ten
+   pixels from open, and a pull that should have tracked the finger down a whole
+   panel height tracked it for ten pixels and then overshot: measured, the live
+   `--drawer-swipe-movement-y` came back at +12px instead of the −170 it should
+   be. A pure scale leaves the transform's Y at zero, so the measurement falls
+   through to the panel's height. The lost ten pixels cost nothing to look at:
+   scaling a 170px panel by 0.94 from `top center` already lifts its bottom by
+   about that much. */
 [data-dock-panel]:is([data-starting-style], [data-ending-style]) {
+  transform: scale(0.94);
+}
+
+/* Thrown away, though: a finger that flicked the panel upward should be
+   answered by the panel going that way and off the top edge, not by it
+   shrinking back into place. Base UI marks that release, and it outlives the
+   swipe itself, which is why this is keyed on the dismissal and not on
+   `data-swiping`. */
+[data-dock-panel][data-swipe-dismiss]:is([data-starting-style], [data-ending-style]) {
   transform: translateY(calc(-100% - var(--surface-exit)));
 }
 
@@ -1552,9 +1585,45 @@ html.dragging * {
   transform: translateY(var(--drawer-swipe-movement-y, 0px));
 }
 
-/* Thrown away: the harder the flick, the sooner it is gone. */
+/* The harder the flick, the sooner it is gone. */
 [data-dock-panel][data-ending-style] {
-  transition-duration: calc(var(--drawer-swipe-strength, 1) * var(--surface-duration));
+  transition-duration: calc(var(--drawer-swipe-strength, 1) * var(--dock-pop-duration));
+}
+
+/* The other half of the pop, one level down on the glass itself (see the note
+   at the top of this block). An animation rather than a transition, for two
+   reasons: the shell's `transition` shorthand already belongs to the surface
+   recede and a second rule would replace it wholesale, and `data-starting-style`
+   lives for a single frame — too short for a transition to key off, long enough
+   to start an animation that then runs on its own. Base UI reads the popup's
+   own animations to decide when an exit is over, not the subtree's, so this
+   fade never holds the unmount open. */
+@keyframes dock-pop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dock-pop-out {
+  to {
+    opacity: 0;
+  }
+}
+
+[data-dock-panel] [data-surface-shell] {
+  animation: dock-pop-in var(--dock-pop-duration) var(--surface-easing);
+}
+
+[data-dock-panel][data-ending-style] [data-surface-shell] {
+  animation: dock-pop-out
+    calc(var(--drawer-swipe-strength, 1) * var(--dock-pop-duration))
+    var(--surface-easing) forwards;
+}
+
+/* A panel on its way over the top edge leaves opaque; it is going somewhere,
+   not dissolving. */
+[data-dock-panel][data-swipe-dismiss] [data-surface-shell] {
+  animation: none;
 }
 
 /* The pills stay in the row while a panel is open, so the row keeps its
@@ -1588,5 +1657,9 @@ html.dragging * {
   [data-dock-panel],
   [data-dock-pill] > * {
     transition: none;
+  }
+
+  [data-dock-panel] [data-surface-shell] {
+    animation: none;
   }
 }
