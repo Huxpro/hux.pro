@@ -15,6 +15,12 @@ export const BAND_VAR = "--bezel-band";
 
 /** The page's scroll container. */
 export const SCROLL_CONTAINER_ID = "bezel-scroll";
+/**
+ * Named scroll timeline on whichever element actually scrolls the page: the
+ * root in window scroll, `#bezel-scroll` in container scroll. Host CSS that
+ * used `scroll(root)` goes silent in container scroll — bind to this instead.
+ */
+export const PAGE_SCROLL_TIMELINE = "--page-scroll";
 /** The `theme-color` meta the package owns. */
 export const THEME_COLOR_ID = "bezel-theme-color";
 /** The <style> element carrying the stylesheet. */

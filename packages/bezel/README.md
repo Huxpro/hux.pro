@@ -115,6 +115,11 @@ Outside React, read and drive page scroll with `pageScrollTop`,
 `scrollPageTo`, `onPageScroll` and the rest. `window.scrollY` reads 0 in
 container scroll.
 
+Scroll-driven CSS should not use `animation-timeline: scroll(root)`. The
+package names the live scroller `--page-scroll` (root in window scroll,
+`#bezel-scroll` in container scroll); bind to that, or to
+`scroll(nearest)`.
+
 ## Testing
 
 ```bash

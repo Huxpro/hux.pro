@@ -199,6 +199,12 @@ export declare function scrollPageTo(top: number): void;
 export declare function onPageScroll(listener: () => void): () => void;
 /** Fire page scroll listeners without scrolling, to force a re-measure. */
 export declare function emitPageScroll(): void;
+/**
+ * Named scroll timeline on the element that actually scrolls the page.
+ * `animation-timeline: scroll(root)` is silent in container scroll; bind
+ * scroll-driven CSS to this instead (`animation-timeline: --page-scroll`).
+ */
+export declare const PAGE_SCROLL_TIMELINE: "--page-scroll";
 
 // -----------------------------------------------------------------------------
 // Layout

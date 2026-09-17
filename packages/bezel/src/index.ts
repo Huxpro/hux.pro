@@ -15,6 +15,7 @@ export {
   clampBezelRadius,
   DEFAULT_BEZEL_BAND,
   DEFAULT_BEZEL_RADIUS,
+  PAGE_SCROLL_TIMELINE,
 } from "./constants";
 export {
   emitPageScroll,
