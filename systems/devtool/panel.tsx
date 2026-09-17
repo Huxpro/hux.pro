@@ -53,6 +53,7 @@ import {
   PHONE_PALETTE_DEFAULT,
   type PhonePalette,
 } from "./provider";
+import { useHeroExit } from "@/components/ui/hero-exit";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
 import appsJson from "@/content/apps.json";
@@ -839,6 +840,8 @@ function WallpaperModule() {
     devtoolOverrides,
     setDevtoolOverrides,
   } = useWallpaper();
+  const { heroExitOverride, setHeroExitOverride } = useDevtool();
+  const heroExit = useHeroExit();
   const { scene } = useWeather();
   const { phase } = useAmbientTime();
 
@@ -1159,6 +1162,28 @@ function WallpaperModule() {
                 { value: "container", label: "Container" },
               ]}
               onChange={(scroll) => setDevtoolOverrides({ ...devtoolOverrides, scroll })}
+            />
+          </PanelRow>
+          {/* How the hero leaves: in flow (home's lift) or sticky-and-fade
+              (blog / work / prompt). The platform picks; this pins one. */}
+          <PanelRow
+            label={zh ? "标题离场" : "Hero exit"}
+            star={
+              heroExitOverride !== undefined ? (
+                <PanelStar
+                  onReset={() => setHeroExitOverride(undefined)}
+                  source="session"
+                />
+              ) : null
+            }
+          >
+            <PanelSegmented<"scroll" | "fade">
+              value={heroExit}
+              options={[
+                { value: "scroll", label: zh ? "滚走" : "Scroll" },
+                { value: "fade", label: zh ? "淡出" : "Fade" },
+              ]}
+              onChange={setHeroExitOverride}
             />
           </PanelRow>
         </div>

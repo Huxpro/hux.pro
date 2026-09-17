@@ -19,6 +19,13 @@ import {
   SortableMasonry,
   type SortableWidget,
 } from "@/components/ui/sortable-masonry";
+import {
+  heroContentClassName,
+  heroZoneClassName,
+  heroZoneStyle,
+  useHeroExit,
+  type HeroExit,
+} from "@/components/ui/hero-exit";
 import { useHeroFade } from "@/components/ui/use-hero-fade";
 import type { BlogPostSummary } from "@/lib/content";
 import logData from "@/content/log.json";
@@ -87,7 +94,13 @@ function GroupWidget({ group }: { group: Group }) {
   );
 }
 
-function WidgetGrid({ posts }: { posts: BlogPostSummary[] }) {
+function WidgetGrid({
+  posts,
+  heroExit,
+}: {
+  posts: BlogPostSummary[];
+  heroExit: HeroExit;
+}) {
   const { locale } = useLocale();
 
   // Resolve presence up-front so conditionally-empty widgets never occupy an
@@ -131,7 +144,10 @@ function WidgetGrid({ posts }: { posts: BlogPostSummary[] }) {
   ];
 
   return (
-    <SortableMasonry items={items} className="relative z-20 pt-2 sm:pt-4 mb-16" />
+    <SortableMasonry
+      items={items}
+      className={heroContentClassName(heroExit, "pt-2 sm:pt-4 mb-16")}
+    />
   );
 }
 
@@ -140,7 +156,8 @@ function WidgetGrid({ posts }: { posts: BlogPostSummary[] }) {
 // =============================================================================
 
 export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
-  const heroFadeStyle = useHeroFade();
+  const heroExit = useHeroExit();
+  const heroFadeStyle = useHeroFade(heroExit === "fade");
 
   return (
     // The home screen is one composition (identifier → greeting → widget grid),
@@ -162,8 +179,9 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
             // `ink-bare`: nothing behind this text but the wallpaper, so it
             // is the zone read off the top band whose ink may flip; the app folder is
             // the other, read off the middle band (see docs/system-legibility.md).
-            className="ink-bare hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
-            style={heroFadeStyle}
+            data-hero-exit={heroExit}
+            className={heroZoneClassName(heroExit, !heroFadeStyle, "ink-bare")}
+            style={heroZoneStyle(heroExit, heroFadeStyle)}
           >
             <div className="h-11 flex items-start justify-center">
               <ScrambleIdentifier />
@@ -176,7 +194,7 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
 
         {/* Widget grid — owns its own responsive width so column count and
             container width stay in step (see SortableMasonry's `gridScale`). */}
-        <WidgetGrid posts={posts} />
+        <WidgetGrid posts={posts} heroExit={heroExit} />
       </div>
     </main>
   );

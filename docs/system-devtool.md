@@ -232,7 +232,9 @@ while the modules scroll. The modules:
    picker over the panel (choosing among the catalog is the picker's job, and
    it stacks on the devtool rather than replacing it), placement switches
    (full / widget / soft edge), the bezel switch and its tint (black / dark /
-   theme / custom), band and radius, a window / container scroll switch, the
+   theme / custom), band and radius, a window / container scroll switch, a
+   hero-exit switch (scroll / fade — how the title leaves; the platform
+   default lives in `defaultHeroExit`, this pins one for the session), the
    reading treatment switches (reading blur / reading dim),
    and the resolved asset. Under Weather two more rows: **Style** (Sky /
    Gradient / Classic — the persisted choice, the same three tiles the picker

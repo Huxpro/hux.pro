@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 
 export const TITLE_POETIC =
   "font-serif text-3xl sm:text-4xl tracking-tight";
@@ -7,7 +7,7 @@ export const TITLE_POETIC =
 export const TITLE_READER =
   "font-sans text-xl sm:text-2xl font-medium leading-tight";
 
-interface HeaderZoneProps {
+interface HeaderZoneProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   heightClassName?: string;
   className?: string;
@@ -27,9 +27,14 @@ export function HeaderZone({
   heightClassName = "h-44 sm:h-48",
   className,
   style,
+  ...rest
 }: HeaderZoneProps) {
   return (
-    <div className={cn("flex flex-col", heightClassName, className)} style={style}>
+    <div
+      className={cn("flex flex-col", heightClassName, className)}
+      style={style}
+      {...rest}
+    >
       {children}
     </div>
   );
