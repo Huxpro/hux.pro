@@ -102,6 +102,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     veil,
     blurred,
     bezel,
+    gyro,
     reportShaderFallback,
     statsRef,
   } = useWallpaper();
@@ -152,6 +153,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
           scene={scene}
           active={enabled}
           themeEaseMs={skyThemeEaseMs}
+          gyro={gyro.active}
           edgeMask={edgeMask}
           // This is the one sky a hand can reach: a drag across the page
           // background stirs up a gust.

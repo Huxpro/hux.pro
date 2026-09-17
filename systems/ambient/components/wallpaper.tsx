@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
+import { subscribeGravity } from "../lib/gyroscope";
 import type { WeatherScene } from "../lib/scene";
 import {
   WallpaperRenderer,
@@ -29,6 +30,15 @@ interface WeatherWallpaperProps {
   scene: WeatherScene;
   /** Drive the frame loop; when false the last frame stays on screen. */
   active: boolean;
+  /**
+   * Follow the gyroscope: the sky keeps its place on the page and gains a
+   * second gravity, so the rain and snow fall along the real one instead of
+   * down the viewport. The readings go from the sensor to the renderer without
+   * passing through React — they arrive sixty times a second, and none of them
+   * is state anything renders from. The provider owns whether this is on
+   * (`gyro.active`); reduced motion turns it off here regardless.
+   */
+  gyro?: boolean;
   /** Optional CSS mask (iOS soft-edging). */
   edgeMask?: string | null;
   /**
@@ -63,6 +73,7 @@ interface WeatherWallpaperProps {
 export function WeatherWallpaper({
   scene,
   active,
+  gyro = false,
   edgeMask,
   interactive = false,
   className,
@@ -134,6 +145,20 @@ export function WeatherWallpaper({
     if (!interactive || !precipitating || reducedMotion) return;
     return attachWindStir({ onStir: (vx) => rendererRef.current?.stirWind(vx) });
   }, [interactive, precipitating, reducedMotion]);
+
+  // Under reduced motion the wallpaper is one still frame; a sky that answered
+  // every wobble of the hand would be the opposite of what that asks for.
+  useEffect(() => {
+    if (!gyro || reducedMotion) {
+      rendererRef.current?.setGravity(null);
+      return;
+    }
+    const stop = subscribeGravity((gravity) => rendererRef.current?.setGravity(gravity));
+    return () => {
+      stop();
+      rendererRef.current?.setGravity(null);
+    };
+  }, [gyro, reducedMotion]);
 
   const style: React.CSSProperties = {};
   if (edgeMask) {
