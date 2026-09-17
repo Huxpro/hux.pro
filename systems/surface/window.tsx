@@ -24,6 +24,18 @@ import { SHELL } from "./sheet";
 // =============================================================================
 
 /**
+ * The curve a window arrives on: the one `systems/windows` opens an app from
+ * its shelf icon with. Shared so the things that claim to be the same gesture
+ * are the same numbers rather than three comments saying they should be.
+ */
+export const WINDOW_SPRING = {
+  type: "spring",
+  stiffness: 520,
+  damping: 34,
+  mass: 0.7,
+} as const;
+
+/**
  * Whether the window hosting this content can be dragged, so its header can
  * be the handle. Null outside a window: a sheet and a panel are moved by the
  * drawer, never by a header.
@@ -71,6 +83,7 @@ export function SurfaceWindow({
     motionStyle,
     onDragStart,
     onDragEnd,
+    startDrag,
     preventClickAfterDrag,
   } = useDraggable(id);
 
@@ -115,19 +128,14 @@ export function SurfaceWindow({
             onClickCapture={preventClickAfterDrag}
             onPointerDown={
               isDraggable
-                ? (e: React.PointerEvent) => {
-                    const target = e.target as HTMLElement;
-                    if (!target.closest("[data-drag-handle]")) return;
-                    dragControls.start(e);
-                  }
+                ? (e: React.PointerEvent) =>
+                    startDrag(e, undefined, "[data-drag-handle]")
                 : undefined
             }
-            // The same spring the window system opens an app with, so a surface
-            // arriving here reads as the same gesture the shelf icons use.
             initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
-            transition={{ type: "spring", stiffness: 520, damping: 34, mass: 0.7 }}
+            transition={WINDOW_SPRING}
             style={{
               ...(isDraggable ? motionStyle : {}),
               width: width ?? "min(92vw, 560px)",

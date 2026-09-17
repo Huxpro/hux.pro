@@ -4,10 +4,13 @@ import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { useDraggable } from "@/systems/draggable";
 import {
+  EDGE_GAP_PX,
+  HEADER_BUTTON,
   SHEET_DETENTS,
   SurfaceBody,
   SurfaceSheet,
   SurfaceWindow,
+  WINDOW_SPRING,
 } from "@/systems/surface";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bug, PanelBottom } from "lucide-react";
@@ -58,8 +61,6 @@ import { useDevtool } from "./provider";
 /** Width of the floating window. The pill shares its top-right anchor. */
 const WINDOW_WIDTH = "min(calc(100vw - 2rem), 420px)";
 
-/** The landing pad's ring off the screen edges — the surface system's gap. */
-const PAD_INSET = 12;
 /**
  * How tall it stands, and so how deep the catch is. Deliberately shallow: a
  * floating thing you can put anywhere is the whole point of a pill, and a pad
@@ -89,7 +90,9 @@ const PILL_Z = 9999;
  * that is actually running — so the wait is legible rather than mysterious,
  * and leaving early visibly gives it back.
  */
-function DockPad({ over, armed }: { over: boolean; armed: boolean }) {
+function DockPad({ state }: { state: PadState }) {
+  const over = state !== "idle";
+  const armed = state === "armed";
   return (
     <motion.div
       aria-hidden
@@ -98,7 +101,8 @@ function DockPad({ over, armed }: { over: boolean; armed: boolean }) {
       exit={{ opacity: 0, y: 24 }}
       transition={{ type: "spring", stiffness: 420, damping: 36, mass: 0.7 }}
       style={{ height: PAD_HEIGHT, zIndex: PILL_Z - 1 }}
-      data-dock-pad={armed ? "armed" : over ? "over" : ""}
+      // A handle for tests and for inspecting the gesture by eye; no CSS reads it.
+      data-dock-pad={state}
       className={cn(
         "pointer-events-none fixed inset-x-3 bottom-3 flex justify-center rounded-3xl pt-2",
         "border transition-colors duration-200",
@@ -122,21 +126,12 @@ function DockPad({ over, armed }: { over: boolean; armed: boolean }) {
   );
 }
 
-function DevtoolPill({
-  canDock,
-  onDockDrop,
-  onDragStateChange,
-}: {
-  canDock: boolean;
-  onDockDrop: () => void;
-  onDragStateChange: (state: {
-    dragging: boolean;
-    over: boolean;
-    armed: boolean;
-  }) => void;
-}) {
+/** What the landing pad is saying. `null` when there is no pill in hand. */
+type PadState = "idle" | "over" | "armed";
+
+function DevtoolPill() {
   const { locale } = useLocale();
-  const { isEnabled, open, signalDragReset } = useDevtool();
+  const { open, canDock, dock } = useDevtool();
   // Destructured up front: reading `drag.*` inside the JSX trips the
   // react-hooks/refs rule, since the same object also carries `contentRef`.
   const {
@@ -146,9 +141,16 @@ function DevtoolPill({
     motionStyle,
     onDragStart,
     onDragEnd,
+    startDrag,
     preventClickAfterDrag,
     forgetPosition,
   } = useDraggable("devtool");
+  // The pad is this component's to show: it only exists while this pill is in
+  // hand, so hoisting it to the dock only bought a prop and a second state.
+  const [pad, setPad] = useState<PadState | null>(null);
+  // Gesture state stays in refs. It is read synchronously inside the pointer
+  // handlers, and framer hands those handlers to the element once per render —
+  // a state read there could be one render stale and restart the dwell.
   const overRef = useRef(false);
   const armedRef = useRef(false);
   const dwellRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -163,21 +165,12 @@ function DevtoolPill({
   // pill), so the timer is cleaned up on unmount too.
   useEffect(() => clearDwell, [clearDwell]);
 
-  // Reset drag position when devtool is toggled on (not fold/unfold)
-  const prevEnabledRef = useRef(isEnabled);
-  useEffect(() => {
-    if (isEnabled && !prevEnabledRef.current) {
-      signalDragReset("devtool");
-    }
-    prevEnabledRef.current = isEnabled;
-  }, [isEnabled, signalDragReset]);
-
   /** Is the pill low enough that letting go would drop it on the pad? */
   const readOver = useCallback(() => {
     const el = contentRef.current;
     if (!el || !canDock) return false;
     const rect = el.getBoundingClientRect();
-    return rect.top + rect.height / 2 > window.innerHeight - PAD_INSET - PAD_HEIGHT;
+    return rect.top + rect.height / 2 > window.innerHeight - EDGE_GAP_PX - PAD_HEIGHT;
   }, [canDock, contentRef]);
 
   const handleDragStart = useCallback(() => {
@@ -185,8 +178,8 @@ function DevtoolPill({
     overRef.current = false;
     armedRef.current = false;
     clearDwell();
-    onDragStateChange({ dragging: true, over: false, armed: false });
-  }, [onDragStart, onDragStateChange, clearDwell]);
+    setPad(canDock ? "idle" : null);
+  }, [onDragStart, clearDwell, canDock]);
 
   const handleDrag = useCallback(() => {
     const over = readOver();
@@ -197,14 +190,15 @@ function DevtoolPill({
       dwellRef.current = setTimeout(() => {
         dwellRef.current = null;
         armedRef.current = true;
-        onDragStateChange({ dragging: true, over: true, armed: true });
+        setPad("armed");
       }, DWELL_MS);
     } else {
       clearDwell();
       armedRef.current = false;
     }
-    onDragStateChange({ dragging: true, over, armed: armedRef.current });
-  }, [readOver, onDragStateChange, clearDwell]);
+    // Reached only on a transition, and both branches leave it disarmed.
+    setPad(over ? "over" : "idle");
+  }, [readOver, clearDwell]);
 
   const handleDragEnd = useCallback(() => {
     // Being over the pad is not the decision, staying there is: a release
@@ -217,23 +211,24 @@ function DevtoolPill({
     onDragEnd();
     overRef.current = false;
     armedRef.current = false;
-    onDragStateChange({ dragging: false, over: false, armed: false });
+    setPad(null);
     if (armed) {
       forgetPosition();
-      onDockDrop();
+      dock();
     }
-  }, [onDragEnd, onDragStateChange, clearDwell, forgetPosition, onDockDrop]);
+  }, [onDragEnd, clearDwell, forgetPosition, dock]);
 
   return (
-    // The box is not the button: only the pill itself takes pointers, so the
-    // top-right corner belongs to whatever surface is up there — a full-height
-    // picker's close button sits exactly here.
-    //
-    // It springs in from its own corner on the same curve the window opens on,
-    // because that is what it is: the window collapsed, or the sheet just
-    // pulled off the edge. Scale lives here so the button keeps its own hover
-    // and press transforms.
-    <motion.div
+    <>
+      {/* The box is not the button: only the pill itself takes pointers, so
+          the top-right corner belongs to whatever surface is up there — a
+          full-height picker's close button sits exactly here.
+
+          It springs in from its own corner on the same curve the window opens
+          on, because that is what it is: the window collapsed, or the sheet
+          just pulled off the edge. Scale lives here so the button keeps its
+          own hover and press transforms. */}
+      <motion.div
       ref={contentRef as React.RefObject<HTMLDivElement>}
       drag={isDraggable ? true : undefined}
       dragControls={dragControls}
@@ -245,16 +240,14 @@ function DevtoolPill({
       onClickCapture={preventClickAfterDrag}
       onPointerDown={
         isDraggable
-          ? (e: React.PointerEvent) => {
-              const target = e.target as HTMLElement;
-              if (!target.closest("[data-drag-handle]")) return;
-              dragControls.start(e);
-            }
+          ? (e: React.PointerEvent) =>
+              startDrag(e, undefined, "[data-drag-handle]")
           : undefined
       }
       initial={{ opacity: 0, scale: 0.6 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: "spring", stiffness: 520, damping: 34, mass: 0.7 }}
+      // The window's own curve: the pill is that window collapsed.
+      transition={WINDOW_SPRING}
       style={{ ...(isDraggable ? motionStyle : {}), zIndex: PILL_Z }}
       className="pointer-events-none fixed top-4 right-4 origin-top-right"
     >
@@ -277,6 +270,8 @@ function DevtoolPill({
         <kbd className="text-[10px] font-mono opacity-60 ml-1">D</kbd>
       </button>
     </motion.div>
+      <AnimatePresence>{pad && <DockPad state={pad} />}</AnimatePresence>
+    </>
   );
 }
 
@@ -287,11 +282,6 @@ export function DevtoolFAB() {
   // the same pair, and two places deciding it is two places to drift apart.
   const { isEnabled, isOpen, canDock, isFloating, close, detach, dock } =
     useDevtool();
-  const [pillDrag, setPillDrag] = useState({
-    dragging: false,
-    over: false,
-    armed: false,
-  });
 
   if (!isEnabled) return null;
 
@@ -308,7 +298,7 @@ export function DevtoolFAB() {
           <button
             onClick={dock}
             aria-label={zh ? "停靠到底部" : "Dock to the bottom edge"}
-            className="shrink-0 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60"
+            className={HEADER_BUTTON}
           >
             <PanelBottom className="h-4 w-4" />
           </button>
@@ -324,18 +314,7 @@ export function DevtoolFAB() {
       <>
         {/* Rendered rather than hidden, so it remounts when the window closes
             and picks up wherever the window was dragged to. */}
-        {!isOpen && (
-          <DevtoolPill
-            canDock={canDock}
-            onDockDrop={dock}
-            onDragStateChange={setPillDrag}
-          />
-        )}
-        <AnimatePresence>
-          {canDock && pillDrag.dragging && (
-            <DockPad over={pillDrag.over} armed={pillDrag.armed} />
-          )}
-        </AnimatePresence>
+        {!isOpen && <DevtoolPill />}
         <SurfaceWindow
           id="devtool"
           open={isOpen}

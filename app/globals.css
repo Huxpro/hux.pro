@@ -1473,8 +1473,11 @@ html.dragging * {
       var(--surface-stack-depth, 0)
   );
   margin-bottom: var(--drawer-keyboard-inset, 0px);
+  /* An extra pinch a sheet can ask for without restating the formula — see
+     `[data-pull-armed]` below. */
+  --surface-pull-give: 0;
   transform: translate3d(0, calc(var(--surface-depth) * -8px), 0)
-    scale(calc(1 - var(--surface-depth) * 0.05));
+    scale(calc(1 - var(--surface-depth) * 0.05 - var(--surface-pull-give)));
   transition:
     margin-bottom var(--surface-duration) var(--surface-easing),
     transform var(--surface-duration) var(--surface-recede-easing);
@@ -1491,8 +1494,7 @@ html.dragging * {
    to come loose does, so the gesture can be seen before it is committed — and
    eased back out of. Shares the depth transform rather than fighting it. */
 [data-surface-shell][data-pull-armed] {
-  transform: translate3d(0, calc(var(--surface-depth) * -8px), 0)
-    scale(calc(1 - var(--surface-depth) * 0.05 - 0.025));
+  --surface-pull-give: 0.025;
   transition-duration: 180ms;
 }
 

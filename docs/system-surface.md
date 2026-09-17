@@ -56,7 +56,7 @@ lives here, once.
 `systems/windows` uses to open an app from its shelf icon, and drags by its
 header through the shared `useDraggable` hook — so it inherits the devtool's
 per-instance drag settings like every other draggable thing on the site. It
-rests near the top centre unless `windowPlacement` says otherwise; the devtool
+rests near the top centre unless its `placement` says otherwise; the devtool
 asks for `top-right`, where it has always been and where it stays out of the
 page it exists to watch.
 
@@ -127,18 +127,20 @@ const { mode, isWindow, close } = useSurfaceContext();
 | `id` | Draggable instance key in window mode. Register it in `DRAGGABLE_INSTANCES`. |
 | `title` / `actions` | Header content. `actions` sits left of the close button. |
 | `windowWidth` | Window mode only; drawers size against their edge. |
-| `windowPlacement` | Where the window rests before a drag: `center` (default) or `top-right`. |
 | `maxHeight` | Caps window and sheet height. |
 | `snapPoints` | Detents for the sheet shape, lowest first; a drag carries it to the top. |
 | `contentClassName` | Overrides the scroll area's padding, for content that bleeds wider. |
 | `scrollRef` | The scroll container, for content that scrolls a row into view. |
-| `footer` | A strip below the scroll area, in every shape. It does not scroll away. |
 
-`<SurfaceSheet>` has one prop `<AdaptiveSurface>` does not pass on:
+The primitives carry a few props the policy layer deliberately does not pass
+on — a surface that wants one of these is a surface that should be composing
+the shell directly:
 
-| Prop | For |
-|------|-----|
-| `onPullPastTop` | The drag that lifts a sheet off the edge it is docked to. |
+| Prop | On | For |
+|------|----|-----|
+| `footer` | `SurfaceBody` | A strip below the scroll area that does not scroll away. |
+| `placement` | `SurfaceWindow` | Where the window rests before a drag: `center` (default) or `top-right`. |
+| `onPullPastTop` | `SurfaceSheet` | The drag that lifts a sheet off the edge it is docked to. |
 
 **Pulling a sheet off the edge.** A drag may carry a sheet past its top edge,
 and `onPullPastTop` fires when it is released more than `PULL_PAST_TOP_TRAVEL`

@@ -5,7 +5,6 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useRef,
   useState,
 } from "react";
 // Deep import on purpose: the surface barrel reaches back here through
@@ -187,12 +186,6 @@ interface DevtoolContextType {
   summon: () => void;
   /** Close the panel */
   close: () => void;
-  /**
-   * Whether the devtool floats free rather than docking to an edge. Set by
-   * pulling the sheet off the bottom edge, cleared by docking it again. This is
-   * the stored preference; `isFloating` is what is actually true right now.
-   */
-  isDetached: boolean;
   /** Whether this viewport has a bottom edge worth docking to. */
   canDock: boolean;
   /** Detached, or on a viewport with nowhere to dock. The shape-deciding one. */
@@ -287,11 +280,6 @@ export function DevtoolProvider({
   const [isEnabled, setIsEnabledState] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isDetached, setIsDetached] = useState(false);
-  // In a ref so `detach` stays a stable callback the dock can hold on to.
-  const closeCommandRef = useRef(closeCommand);
-  useEffect(() => {
-    closeCommandRef.current = closeCommand;
-  }, [closeCommand]);
   const [draggableOverrides, setDraggableOverrides] = useState<
     Record<string, Partial<DraggableInstanceConfig>>
   >({});
@@ -363,8 +351,8 @@ export function DevtoolProvider({
     setIsDetached(true);
     setDevtoolSettings({ detached: true });
     setIsOpen(false);
-    closeCommandRef.current?.();
-  }, []);
+    closeCommand?.();
+  }, [closeCommand]);
 
   // Back onto the edge, and open there: docking a collapsed pill into an empty
   // bottom edge would look like throwing the devtool away.
@@ -479,7 +467,6 @@ export function DevtoolProvider({
         open,
         summon,
         close,
-        isDetached,
         canDock,
         isFloating,
         isShowing,

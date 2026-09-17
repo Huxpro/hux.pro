@@ -38,8 +38,7 @@ import { SurfaceWindow } from "./window";
 //           stacks the iOS way.
 //   panel   the same drawer from the trailing edge, drag-to-dismiss.
 //   window  a floating window that morphs in the way an app window does when it
-//           opens from its shelf icon, and is draggable by its header. Centred
-//           near the top unless `windowPlacement` says otherwise.
+//           opens from its shelf icon, and is draggable by its header.
 //
 // Not every surface wants this rule. Where the shape is something the person
 // chose rather than something the viewport decided — the devtool, which is
@@ -92,12 +91,6 @@ export interface AdaptiveSurfaceProps {
   closeLabel: string;
   /** Width of the floating window; drawers use their own edge-relative sizing. */
   windowWidth?: string;
-  /**
-   * Where the window shape rests before any drag. Centred near the top by
-   * default; `top-right` is for a surface that must not sit over the thing it
-   * is about — the devtool panel, which exists to watch the page react.
-   */
-  windowPlacement?: "center" | "top-right";
   /** Height cap for window and sheet modes. */
   maxHeight?: string;
   /**
@@ -110,11 +103,6 @@ export interface AdaptiveSurfaceProps {
   contentClassName?: string;
   /** The scroll container, for content that needs to scroll a row into view. */
   scrollRef?: React.RefObject<HTMLDivElement | null>;
-  /**
-   * A fixed strip below the scroll area, in every shape — a status line, a
-   * destructive action. It does not scroll away with the content.
-   */
-  footer?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -122,14 +110,8 @@ export interface AdaptiveSurfaceProps {
 function SurfacePanel({
   open,
   onOpenChange,
-  title,
-  actions,
-  closeLabel,
-  contentClassName,
-  scrollRef,
-  footer,
   children,
-}: Omit<AdaptiveSurfaceProps, "presentation" | "id">) {
+}: Pick<AdaptiveSurfaceProps, "open" | "onOpenChange" | "children">) {
   return (
     <Drawer.Root
       open={open}
@@ -154,18 +136,7 @@ function SurfacePanel({
             {/* A mouse press in here is a press, not the start of a drag —
                 see the same note in sheet.tsx. A touch swipe still dismisses. */}
             <Drawer.Content className="flex min-h-0 flex-1 flex-col">
-              <SurfaceBody
-                title={title}
-                actions={actions}
-                closeLabel={closeLabel}
-                onClose={() => onOpenChange(false)}
-                titleAs={Drawer.Title}
-                contentClassName={contentClassName}
-                scrollRef={scrollRef}
-                footer={footer}
-              >
-                {children}
-              </SurfaceBody>
+              {children}
             </Drawer.Content>
           </Drawer.Popup>
         </SurfaceViewport>
@@ -176,25 +147,20 @@ function SurfacePanel({
 
 export function AdaptiveSurface({
   presentation,
-  ...props
+  id,
+  open,
+  onOpenChange,
+  title,
+  actions,
+  closeLabel,
+  windowWidth,
+  maxHeight,
+  snapPoints,
+  contentClassName,
+  scrollRef,
+  children,
 }: AdaptiveSurfaceProps) {
   const mode = useSurfaceMode(presentation);
-  const {
-    id,
-    open,
-    onOpenChange,
-    title,
-    actions,
-    closeLabel,
-    windowWidth,
-    windowPlacement,
-    maxHeight,
-    snapPoints,
-    contentClassName,
-    scrollRef,
-    footer,
-    children,
-  } = props;
   const close = useCallback(() => onOpenChange(false), [onOpenChange]);
   // Memoised: the surface re-renders whenever its owner does, and its content
   // is the whole picker grid.
@@ -212,7 +178,6 @@ export function AdaptiveSurface({
       titleAs={mode === "window" ? undefined : Drawer.Title}
       contentClassName={contentClassName}
       scrollRef={scrollRef}
-      footer={footer}
     >
       {children}
     </SurfaceBody>
@@ -227,12 +192,13 @@ export function AdaptiveSurface({
           onOpenChange={onOpenChange}
           width={windowWidth}
           maxHeight={maxHeight}
-          placement={windowPlacement}
         >
           {body}
         </SurfaceWindow>
       ) : mode === "panel" ? (
-        <SurfacePanel {...props} />
+        <SurfacePanel open={open} onOpenChange={onOpenChange}>
+          {body}
+        </SurfacePanel>
       ) : (
         <SurfaceSheet
           id={id}

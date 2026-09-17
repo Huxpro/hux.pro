@@ -241,11 +241,6 @@ export function useDraggable(id: string) {
     }
   }, []);
 
-  const resetPosition = useCallback(() => {
-    x.set(0);
-    y.set(0);
-  }, [x, y]);
-
   /**
    * Forget where this was dragged to, remembered position and all, so the next
    * mount starts at its anchor. For a drag whose ENDING is not a resting place:
@@ -267,7 +262,6 @@ export function useDraggable(id: string) {
     onDragEnd,
     startDrag,
     preventClickAfterDrag,
-    resetPosition,
     forgetPosition,
   };
 }

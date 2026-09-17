@@ -34,6 +34,9 @@ const HOLD_SLOP_PX = 10;
 /** How far outside the button the ring starts before closing onto it. */
 const HOLD_RING_OUTSET = 10;
 
+/** Both shapes of this button are this round — the bar and the round FAB. */
+const FAB_RADIUS = 24;
+
 export function FloatingActionButton() {
   const { toggle } = useCommand();
   const { summon: summonDevtool } = useDevtool();
@@ -61,21 +64,13 @@ export function FloatingActionButton() {
   const buttonRef = useRef<HTMLButtonElement>(null);
   // Measured once when the ring appears: a finger covers the button, so the
   // feedback has to live outside it, and the button is not moving by then.
-  const [holdRing, setHoldRing] = useState<{
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-    r: number;
-  } | null>(null);
+  const [holdRing, setHoldRing] = useState<DOMRect | null>(null);
 
   const cancelHold = useCallback(() => {
-    for (const timer of [holdTimer, revealTimer]) {
-      if (timer.current !== null) {
-        clearTimeout(timer.current);
-        timer.current = null;
-      }
-    }
+    // `clearTimeout` on an expired or absent id is a no-op, so nothing here
+    // needs to track which timers are still live.
+    clearTimeout(holdTimer.current ?? undefined);
+    clearTimeout(revealTimer.current ?? undefined);
     holdOrigin.current = null;
     setHoldRing(null);
   }, []);
@@ -85,22 +80,11 @@ export function FloatingActionButton() {
       heldRef.current = false;
       holdOrigin.current = { x: e.clientX, y: e.clientY };
       revealTimer.current = setTimeout(() => {
-        revealTimer.current = null;
-        const el = buttonRef.current;
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        setHoldRing({
-          x: rect.x,
-          y: rect.y,
-          w: rect.width,
-          h: rect.height,
-          // Both shapes of this button are radius 24; the ring sits outside
-          // them, so it takes the same curve plus its own outset.
-          r: 24 + HOLD_RING_OUTSET,
-        });
+        // The live box, so the ring wraps the button as it is drawn — which
+        // during a press includes its own `active:scale-95`.
+        setHoldRing(buttonRef.current?.getBoundingClientRect() ?? null);
       }, DEVTOOL_HOLD_REVEAL_MS);
       holdTimer.current = setTimeout(() => {
-        holdTimer.current = null;
         heldRef.current = true;
         setHoldRing(null);
         summonDevtool();
@@ -180,7 +164,7 @@ export function FloatingActionButton() {
             ? "rounded-2xl pl-4 pr-6 md:px-4 w-auto md:w-full md:max-w-md focus:outline-none focus:ring-2 focus:ring-ring/20"
             : "rounded-[24px] w-12 md:w-auto md:px-4 justify-center active:scale-95"
         )}
-        style={{ borderRadius: isHomepage ? 24 : 24 }}
+        style={{ borderRadius: FAB_RADIUS }}
         animate={{ opacity: yielding ? 0 : 1 }}
         transition={{
           layout: { duration: 0.4, ease: [0.32, 0.72, 0, 1] },
@@ -290,9 +274,11 @@ export function FloatingActionButton() {
             position: "fixed",
             left: holdRing.x - HOLD_RING_OUTSET,
             top: holdRing.y - HOLD_RING_OUTSET,
-            width: holdRing.w + HOLD_RING_OUTSET * 2,
-            height: holdRing.h + HOLD_RING_OUTSET * 2,
-            borderRadius: holdRing.r,
+            width: holdRing.width + HOLD_RING_OUTSET * 2,
+            height: holdRing.height + HOLD_RING_OUTSET * 2,
+            // Both shapes of this button share FAB_RADIUS; the ring sits
+            // outside them, so it takes the same curve plus its own outset.
+            borderRadius: FAB_RADIUS + HOLD_RING_OUTSET,
             zIndex: 9998,
           }}
           className="pointer-events-none border-2 border-foreground/35"
@@ -311,7 +297,7 @@ export function FloatingActionButton() {
 
   return (
     <>
-    <motion.div
+      <motion.div
       style={{
         ...drag.motionStyle,
         position: "fixed",

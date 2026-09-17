@@ -41,12 +41,12 @@ export { SurfaceBody } from "./chrome";
 export type { SurfaceBodyProps } from "./chrome";
 export {
   detentHeight,
+  EDGE_GAP_PX,
   HEADER_BUTTON,
-  PULL_PAST_TOP_TRAVEL,
   SHEET_DETENTS,
   SurfaceSheet,
 } from "./sheet";
-export { SurfaceWindow, useWindowDraggable } from "./window";
+export { SurfaceWindow, WINDOW_SPRING } from "./window";
 export type { SurfaceWindowProps } from "./window";
 export { SURFACE_TRANSITION_MS } from "./stack";
 export {

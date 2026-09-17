@@ -108,8 +108,14 @@ import {
  */
 export const SHEET_DETENTS = [0.7, 1];
 
+/**
+ * Ring of padding between a floating surface and the screen edges, in px, for
+ * the hit-tests and measurements that cannot take a CSS length.
+ */
+export const EDGE_GAP_PX = 12;
+
 /** Ring of padding between a floating surface and the screen edges. */
-export const EDGE_GAP = "0.75rem";
+export const EDGE_GAP = `${EDGE_GAP_PX / 16}rem`;
 
 /** Room a full-height sheet leaves above itself: the status bar, or the gap. */
 const TOP_INSET = `max(env(safe-area-inset-top), ${EDGE_GAP})`;
@@ -224,26 +230,29 @@ export const PULL_PAST_TOP_TRAVEL = 14;
  */
 function usePullPastTop(
   popup: HTMLElement | null,
+  enabled: boolean,
   onPull: (() => void) | undefined,
-  threshold: number,
+  /** A `useState` setter, so it is stable and safe to call from the effect. */
   onArmedChange: (armed: boolean) => void
 ) {
-  // Kept in refs so a changing callback never re-arms a gesture in flight.
+  // Kept in a ref so a changing callback never re-arms a gesture in flight.
   const handler = useRef(onPull);
-  handler.current = onPull;
-  const armedChange = useRef(onArmedChange);
-  armedChange.current = onArmedChange;
+  useEffect(() => {
+    handler.current = onPull;
+  }, [onPull]);
 
   useEffect(() => {
-    if (!popup || !onPull) return;
+    if (!popup || !enabled) return;
 
     let startY: number | null = null;
     let budget = 0;
     let push = 0;
+    let armed = false;
 
     const setArmed = (next: boolean) => {
-      if (next === push >= threshold) return;
-      armedChange.current(next);
+      if (next === armed) return;
+      armed = next;
+      onArmedChange(next);
     };
 
     const down = (e: PointerEvent) => {
@@ -256,20 +265,18 @@ function usePullPastTop(
 
     const move = (e: PointerEvent) => {
       if (startY === null) return;
-      const next = Math.max(0, startY - e.clientY - budget);
-      setArmed(next >= threshold);
-      push = next;
+      push = Math.max(0, startY - e.clientY - budget);
+      setArmed(push >= PULL_PAST_TOP_TRAVEL);
     };
 
     const up = () => {
       if (startY === null) return;
       // Base UI's own verdict on what this gesture was: a drag inside the
       // module list scrolls it and never sets this.
-      const wasDrag = popup.hasAttribute("data-swiping");
-      const pulled = wasDrag && push >= threshold;
+      const pulled = armed && popup.hasAttribute("data-swiping");
       startY = null;
       push = 0;
-      armedChange.current(false);
+      setArmed(false);
       if (pulled) handler.current?.();
     };
 
@@ -285,10 +292,7 @@ function usePullPastTop(
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
     };
-    // `onPull` only gates whether the gesture is watched at all; the live
-    // callback comes from the ref.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [popup, !onPull, threshold]);
+  }, [popup, enabled, onArmedChange]);
 }
 
 export interface SurfaceSheetProps {
@@ -368,7 +372,7 @@ export function SurfaceSheet({
   // element, and a ref would not tell it when the element arrives.
   const [popup, setPopup] = useState<HTMLElement | null>(null);
   const [pullArmed, setPullArmed] = useState(false);
-  usePullPastTop(popup, onPullPastTop, PULL_PAST_TOP_TRAVEL, setPullArmed);
+  usePullPastTop(popup, !!onPullPastTop, onPullPastTop, setPullArmed);
 
   // The detent, controlled by the owner when it says so, else kept here.
   const isControlled = activeSnapPoint !== undefined;
