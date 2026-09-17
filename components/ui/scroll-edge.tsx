@@ -2,31 +2,20 @@ import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 // =============================================================================
-// Scroll edge — the Liquid Glass pocket at a clipped edge.
+// Scroll edge — frost a clipped edge without painting page colour.
 //
 // Pre-glass, a scroll fade was `from-background`: an opaque slab of page
-// colour painted over the cutoff. That assumed the page was a solid card,
-// and reads as a muddy patch once the surface behind is wallpaper or Clear
-// glass (see docs/system-glass.md).
+// colour over the cutoff. `from-glass` is the same bug in nicer clothes —
+// `--glass` is card colour at an alpha, so on a wallpaper it is a white (or
+// near-black) wash. The pocket has to sit ON the transparent surface:
 //
-// Two pieces, both sitting on the transparent surface rather than covering it:
-//
-//   1. `scrollEdgeMask` — a CSS mask so the clipped content itself goes
-//      transparent (wallpaper shows through the card, the way WidgetScrollBody
-//      already fades a list into glass).
-//   2. `ScrollEdgeFade` — a glass-token gradient + short blur on top of that,
-//      so the cutoff frosts instead of hard-cutting. Tinted / Clear / wallpaper
-//      tint follow along because the fill is `--glass`, not `--background`.
+//   1. `scrollEdgeMask` — the clipped content itself goes transparent, so
+//      whatever is behind (wallpaper, Clear glass, the page) shows through.
+//   2. `ScrollEdgeFade` — a short backdrop blur, masked to a falloff, with
+//      no fill. The cutoff frosts; it does not get a material painted on it.
 // =============================================================================
 
 export type ScrollEdge = "left" | "right" | "top" | "bottom";
-
-const FILL: Record<ScrollEdge, string> = {
-  left: "bg-gradient-to-r from-glass to-transparent",
-  right: "bg-gradient-to-l from-glass to-transparent",
-  top: "bg-gradient-to-b from-glass to-transparent",
-  bottom: "bg-gradient-to-t from-glass to-transparent",
-};
 
 const BLUR_MASK: Record<ScrollEdge, string> = {
   left: "linear-gradient(to right, black, transparent)",
@@ -36,8 +25,8 @@ const BLUR_MASK: Record<ScrollEdge, string> = {
 };
 
 const POS: Record<ScrollEdge, string> = {
-  left: "inset-y-0 left-0 w-8",
-  right: "inset-y-0 right-0 w-8",
+  left: "inset-y-0 left-0 w-6",
+  right: "inset-y-0 right-0 w-6",
   top: "inset-x-0 top-0 h-7",
   bottom: "inset-x-0 bottom-0 h-7",
 };
@@ -47,7 +36,7 @@ export function scrollEdgeMask(
   atStart: boolean,
   atEnd: boolean,
   axis: "x" | "y" = "x",
-  sizePx = 32,
+  sizePx = 24,
 ): CSSProperties | undefined {
   if (atStart && atEnd) return undefined;
   const dir = axis === "x" ? "to right" : "to bottom";
@@ -75,7 +64,7 @@ export function ScrollEdgeFade({
       className={cn(
         "pointer-events-none absolute",
         POS[edge],
-        FILL[edge],
+        // Blur only — a fill here would be card colour on the wallpaper.
         "backdrop-blur-md",
         "transition-opacity duration-200",
         visible ? "opacity-100" : "opacity-0",
