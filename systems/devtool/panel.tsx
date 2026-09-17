@@ -35,6 +35,7 @@ import {
 } from "@/systems/ambient/lib/solar";
 import type { WallpaperStats } from "@/systems/ambient/lib/wallpaper/renderer";
 import {
+  getWallpaperPlayName,
   getWeatherWallpaperName,
   WEATHER_STYLE_LABEL,
   WEATHER_STYLE_META,
@@ -887,6 +888,8 @@ function WallpaperModule() {
     shaderSupported,
     statsRef,
     wallpaper,
+    play,
+    playAlbum,
     variant,
     opacity,
     veil,
@@ -1008,7 +1011,11 @@ function WallpaperModule() {
   // One line that answers "what am I actually looking at".
   const weatherName = getWeatherWallpaperName(locale, weatherStyle);
   const now = [
-    isImage ? wallpaper.name : weatherName,
+    isImage
+      ? play !== "off" && playAlbum
+        ? `${getWallpaperPlayName(locale, play, playAlbum)} · ${wallpaper.name}`
+        : wallpaper.name
+      : weatherName,
     variant,
     isImage ? (reading ? (zh ? "阅读" : "read") : zh ? "桌面" : "desktop") : placement,
   ].join(" · ");
@@ -1125,7 +1132,9 @@ function WallpaperModule() {
           )}
           <span className="min-w-0 flex-1 truncate text-[10px] font-mono text-foreground/80">
             {isImage
-              ? wallpaper.name
+              ? play !== "off" && playAlbum
+                ? `${getWallpaperPlayName(locale, play, playAlbum)} · ${wallpaper.name}`
+                : wallpaper.name
               : weatherName}
             {isImage && (
               <span className="ml-1.5 tabular-nums text-tertiary-foreground">
