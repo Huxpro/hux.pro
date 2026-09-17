@@ -96,16 +96,32 @@ A swipe-up dismissal does not morph. A finger that has flicked the panel upward
 should be answered by the panel going that way, not by it shrinking back onto a
 pill the finger has left behind, so that exit travels over the top edge.
 
+**It replaces the pop, rather than joining it.** The branch below this one
+(#188) restores `main`'s `scale(0.94)` entrance, and the morph takes it out —
+not by scoping it `:not([data-dock-morph])`, which was tried and is a trap:
+measuring the pill forces a style recalc on the frame before `data-dock-morph`
+lands, so the panel latches the scaled transform as its transition's start value
+and then morphs *and* scales out of it. That is the same trap as the second
+bullet above. The shell's fade goes for a different reason — a clip that is
+continuous with the pill should not also fade a hole into the pixels the pill is
+handing over — and that one *is* safe to key on `data-dock-morph`, because an
+animation has no start value to latch.
+
+
 ### The glass is the constraint on the motion
 
-The panel arrives and leaves on **transform alone** — out of and back over the
-top edge — and never on opacity. An element at `opacity < 1` is its own backdrop
-root, so a `backdrop-filter` anywhere inside it samples that empty group instead
-of the page: the glass is not there at all for the length of the animation. A
-fade on the popup was tried and shipped, and it made the panel see-through on
-the way in, the page's text legible straight through it, unblurred. The pill's
-fade sits on the pill itself, the element that carries the blur, for the same
-reason. The sheets above are transform-only for the same reason.
+**Opacity belongs on the glass, never on a box that contains it.** An element at
+`opacity < 1` is its own backdrop root, so a `backdrop-filter` *inside* it
+samples that empty group instead of the page: the glass is not there at all for
+the length of the animation. On the element that carries the blur the same
+opacity is fine — its own backdrop resolves before its opacity applies.
+
+A fade on the popup was tried and shipped, and it made the panel see-through on
+the way in, the page's text legible straight through it, unblurred. A/B'd at the
+same opacity on the same frame: on the shell the text behind it is blurred, on
+the popup it is sharp. That is the whole reason the popup carries the transform
+and every fade sits one level down, on the shell and on the pill, which are
+themselves the glass. The sheets above hold to the same rule.
 
 The walkthrough guards both: it samples the entrance frame by frame and fails
 if anything between the shell and `<body>` is fading or filtering, if the first

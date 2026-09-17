@@ -61,10 +61,10 @@ import { useDock } from "../provider";
 // BEFORE CHANGING THIS FILE, OR THE "Dock panel motion" BLOCK IN globals.css:
 // read the "BEFORE CHANGING THIS FILE" list at the top of
 // systems/surface/sheet.tsx. Every item on it applies here too — this is the
-// same library, the same data attributes, the same custom properties. Four
-// things are specific to this panel, and each was found the hard way — the
-// first three by reading Base UI 1.8's source rather than its types, the
-// fourth by looking at the thing move:
+// same library, the same data attributes, the same custom properties. Six
+// things are specific to this panel, and each was found the hard way — four of
+// them by reading Base UI 1.8's source rather than its types, the other two by
+// looking at the thing move and measuring it:
 //
 // 1. A dismiss drag and a `Drawer.SwipeArea` drag move the popup by different
 //    means. The dismiss drag writes an inline `transform` on the popup
@@ -85,19 +85,34 @@ import { useDock } from "../provider";
 //    wrapper here, not an overlay — an overlay would eat the tap — and it opts
 //    back in with `aria-hidden={false}`. `role="presentation"` on a plain div
 //    changes nothing and stays.
-// 4. Never animate the opacity of anything that contains the glass. An element
-//    at `opacity < 1` is its own backdrop root, so the shell's
-//    `backdrop-filter` samples that empty group instead of the page and the
-//    glass is not there at all while the animation runs. A fade on the popup
-//    made the panel see-through on the way in, the page's text legible through
-//    it, unblurred — shipped and reverted. The panel travels on transform
-//    alone; the pill's fade is on the pill, which is itself the glass.
+// 4. Opacity belongs ON the glass, never on a box that contains it. An element
+//    at `opacity < 1` is its own backdrop root, so a `backdrop-filter` *inside*
+//    it samples that empty group instead of the page and the glass is not there
+//    at all while the animation runs; on the element that carries the blur the
+//    same opacity is fine, because its own backdrop resolves before its opacity
+//    applies. A fade on the popup made the panel see-through on the way in, the
+//    page's text legible through it, unblurred — shipped and reverted. A/B'd at
+//    the same opacity on the same frame: on the shell the text behind it is
+//    blurred, on the popup it is sharp. So the popup, which holds no glass,
+//    carries the transform, and the fades sit one level down on the shell and
+//    on the pill, which are the glass.
 // 5. The morph is `clip-path`, not a scale. Scaling the shell would scale what
 //    its `backdrop-filter` samples, so the page behind it would appear to zoom
 //    for half a second; a clip leaves the glass sampling the page at 1:1 and
 //    only changes how much of it you can see. Measured: `clip-path` and
 //    `backdrop-filter` on the same element are fine together — it is an
 //    ANCESTOR that breaks the backdrop (note 4), not the element's own clip.
+// 6. If the popup's closed transform ever comes back, it may scale but must not
+//    translate. Base UI measures how far "closed" is by reading the popup's
+//    transform when a `Drawer.SwipeArea` drag starts (`resolveClosedOffset`,
+//    `min(height, |translateY|)`) — and it reads it *before* it marks the popup
+//    as swiping, so it sees the closed rule in globals.css. A `translateY(-10px)`
+//    there told it the panel was ten pixels from open: a pull that should track
+//    the finger down a whole panel height tracked ten pixels and then overshot
+//    (measured `--drawer-swipe-movement-y` of +12px where −170 was due). The
+//    morph sidesteps this by leaving the popup's entrance transform at `none`
+//    altogether, which is also why the pop it replaced is gone rather than
+//    scoped — see the note on that rule in globals.css.
 // -----------------------------------------------------------------------------
 
 /** Where the panel's top edge sits: the status bar, or the dock row's own gap. */
