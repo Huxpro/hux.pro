@@ -317,7 +317,7 @@ function WeatherStyleTile({
   selected: boolean;
 }) {
   const { locale } = useLocale();
-  const { selectWeather, shaderSupported } = useWallpaper();
+  const { selectWeather, shaderSupported, gyro } = useWallpaper();
   const { scene } = useWeather();
   const { phase } = useAmbientTime();
 
@@ -344,6 +344,9 @@ function WeatherStyleTile({
             <WeatherWallpaper
               scene={scene}
               active
+              // The tile tilts too, so the Tilt row below has its preview
+              // right above it: lean the phone in the rain and watch it lean.
+              gyro={gyro.active}
               quality={{ pixelBudget: 90_000, maxFps: 30 }}
               className="rounded-[18px]"
             />
@@ -363,6 +366,46 @@ function WeatherStyleTile({
         </button>
       </TileFrame>
       <TileCaption name={name} meta={meta} />
+    </div>
+  );
+}
+
+/**
+ * Tilt — the one control the weather tiles need under them.
+ *
+ * The Sky's rain and snow fall along gravity rather than down the page, which
+ * is a thing the *device* can do, not a thing the wallpaper is. Where the
+ * browser hands motion over freely it is already on and this row only says
+ * so; on iOS it is the tap that grants it, which is why it is here in the
+ * picker and not only in the devtool. It shows the effective state rather
+ * than the saved wish — the switch answers "is the sky tilting", so turning
+ * it on is what asks for permission — and it is only shown when the Sky is
+ * what paints, because it is the only style with drops to lean.
+ */
+function WeatherTiltRow() {
+  const { locale } = useLocale();
+  const { gyro, setGyroEnabled } = useWallpaper();
+  if (!gyro.supported) return null;
+
+  let note: TranslationKey = "wallpaperTiltNote";
+  if (gyro.denied) note = "wallpaperTiltDenied";
+  else if (gyro.enabled && gyro.gated) note = "wallpaperTiltAsk";
+  else if (gyro.active && gyro.readings === "silent") note = "wallpaperTiltSilent";
+
+  return (
+    <div className="space-y-1.5 pt-5">
+      <CompactRow<"on" | "off">
+        label={t(locale, "wallpaperTilt")}
+        value={gyro.active ? "on" : "off"}
+        options={[
+          { value: "on", label: t(locale, "stateOn") },
+          { value: "off", label: t(locale, "stateOff") },
+        ]}
+        onChange={(value) => setGyroEnabled(value === "on")}
+      />
+      <p className="px-0.5 text-[11px] leading-snug text-tertiary-foreground">
+        {t(locale, note)}
+      </p>
     </div>
   );
 }
@@ -405,6 +448,7 @@ function WallpaperPickerBody() {
   const {
     kind,
     weatherStyle,
+    effectiveStyle,
     wallpapers,
     wallpaper: active,
     placement,
@@ -494,6 +538,7 @@ function WallpaperPickerBody() {
           </p>
         </div>
       )}
+      {category === "weather" && effectiveStyle === "sky" && <WeatherTiltRow />}
 
       {category !== "weather" && (
         <p className="px-0.5 pt-5 text-[11px] leading-snug text-tertiary-foreground">

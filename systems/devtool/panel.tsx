@@ -22,6 +22,7 @@ import {
 /** The named tints plus the segmented control's own "pick a colour". */
 type TintChoice = "black" | "dark" | "theme" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
+import { gravityTiltDegrees, readGravity } from "@/systems/ambient/lib/gyroscope";
 import { getWeatherGradient, getWeatherStyleGradient } from "@/systems/ambient/lib/gradient";
 import type { AmbientPhase } from "@/systems/ambient/lib/phase";
 import { rgbToCss, sampleDaySky } from "@/systems/ambient/lib/scene";
@@ -1455,9 +1456,12 @@ const MOON_NAME: Record<"en" | "zh", Record<MoonPhaseName, string>> = {
 
 const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
 
+/** Any bearing onto 0…359. The track below runs past 360, so this is not idle. */
+const wrap360 = (deg: number) => ((deg % 360) + 360) % 360;
+
 /** The eight-point name for a met wind direction, for the devtool's readout. */
 function compassPoint(deg: number): string {
-  return COMPASS[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
+  return COMPASS[Math.round(wrap360(deg) / 45) % 8];
 }
 
 /**
@@ -1480,7 +1484,7 @@ const WIND_TRACK_MAX = 450;
 
 /** Fold any bearing onto the one inside the track that blows the same way. */
 function toWindTrack(deg: number): number {
-  let d = ((Math.round(deg) % 360) + 360) % 360;
+  let d = wrap360(Math.round(deg));
   if (d > 90 && d <= 270) d = 180 - d;
   else if (d > 270) d -= 360;
   return d + 360;
@@ -1552,6 +1556,7 @@ function SkyModule() {
     resetTimeTravel,
   } = useAmbientTime();
   const { followSun, setFollowSun, sunTheme } = useSolarTheme();
+  const { gyro, setGyroEnabled, effectiveStyle } = useWallpaper();
 
   const isDayNow = scene.sun.isDay;
   const isOverridden = debugOverride !== null;
@@ -1654,6 +1659,34 @@ function SkyModule() {
     setSceneOverrides({});
   };
 
+  // --- Gyroscope -----------------------------------------------------------
+  // The live tilt, polled rather than subscribed: a readout is worth twice a
+  // second, not sixty times — the sky itself gets every reading.
+  const [tiltDeg, setTiltDeg] = useState<number | null>(null);
+  useEffect(() => {
+    if (gyro.readings !== "live") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync: clear a stale readout
+      setTiltDeg(null);
+      return;
+    }
+    const tick = () => setTiltDeg(Math.round(gravityTiltDegrees(readGravity())));
+    tick();
+    const id = window.setInterval(tick, 500);
+    return () => window.clearInterval(id);
+  }, [gyro.readings]);
+
+  // Seven states, in the order they rule each other out: what the browser can
+  // do, then what the visitor asked for, then what is actually arriving.
+  const gyroReadout = ((): string => {
+    if (!gyro.supported) return zh ? "无传感器" : "no sensor";
+    if (gyro.denied) return zh ? "已拒绝" : "denied";
+    if (gyro.enabled && gyro.gated) return zh ? "待授权" : "tap to allow";
+    if (!gyro.enabled) return zh ? "关" : "off";
+    if (gyro.readings === "live") return `${tiltDeg ?? 0}°`;
+    if (gyro.readings === "waiting") return "…";
+    return zh ? "无数据" : "no readings";
+  })();
+
   // --- Tune fold -----------------------------------------------------------
   const [tuneOpen, setTuneOpen] = useState(false);
   const setTune = (patch: Partial<typeof sceneOverrides>) =>
@@ -1682,7 +1715,7 @@ function SkyModule() {
     { key: "cloudCover", label: zh ? "云量" : "Cloud", aria: "Cloud", value: Math.round(scene.clouds.cover * 100), max: 100, format: percent, toScene: (v) => v / 100 },
     { key: "precipitationIntensity", label: zh ? "降水" : "Precip", aria: "Precip", value: Math.round(scene.precipitation.intensity * 100), max: 100, format: percent, toScene: (v) => v / 100 },
     { key: "windSpeedKmh", label: zh ? "风速" : "Wind", aria: "Wind", value: Math.round(sceneOverrides.windSpeedKmh ?? weather?.windSpeedKmh ?? 8), max: 60, format: (v) => `${v} km/h`, toScene: (v) => v },
-    { key: "windDirectionDeg", label: zh ? "风向" : "From", aria: "Wind direction", value: toWindTrack(sceneOverrides.windDirectionDeg ?? weather?.windDirectionDeg ?? 270), min: WIND_TRACK_MIN, max: WIND_TRACK_MAX, format: (v) => `${((v % 360) + 360) % 360}° ${compassPoint(v)} ${leanArrow(v, scene.hemisphere)}`, toScene: (v) => ((v % 360) + 360) % 360 },
+    { key: "windDirectionDeg", label: zh ? "风向" : "From", aria: "Wind direction", value: toWindTrack(sceneOverrides.windDirectionDeg ?? weather?.windDirectionDeg ?? 270), min: WIND_TRACK_MIN, max: WIND_TRACK_MAX, format: (v) => `${wrap360(v)}° ${compassPoint(v)} ${leanArrow(v, scene.hemisphere)}`, toScene: wrap360 },
     { key: "veilAmount", label: zh ? "遮罩" : "Veil", aria: "Veil", value: Math.round(scene.veil.amount * 100), max: 90, format: percent, toScene: (v) => v / 100 },
   ];
 
@@ -1986,6 +2019,42 @@ function SkyModule() {
               {moonUpLabel}
             </span>
           </div>
+        </div>
+
+        {/* The gyroscope: rain and snow fall along real gravity, in the Sky.
+            A saved setting (blue star), on by default, and the only place
+            besides the picker where iOS's motion permission can be granted —
+            so the readout says which of "off", "unanswered" and "nothing
+            coming through" is the case, and shows the live tilt once it is. */}
+        <div className="border-t border-border/30 pt-2">
+          <PanelRow
+            label={
+              effectiveStyle === "sky"
+                ? zh
+                  ? "陀螺仪"
+                  : "Gyro"
+                : zh
+                  ? "陀螺仪 · 仅天空"
+                  : "Gyro · Sky only"
+            }
+            star={
+              gyro.enabled ? null : (
+                <PanelStar onReset={() => setGyroEnabled(true)} source="saved" />
+              )
+            }
+          >
+            <span className="flex items-center gap-2">
+              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                {gyroReadout}
+              </span>
+              <PanelToggle
+                on={gyro.active}
+                disabled={!gyro.supported}
+                onClick={() => setGyroEnabled(!gyro.active)}
+                label="Toggle gyroscope tilt"
+              />
+            </span>
+          </PanelRow>
         </div>
 
         {/* Fine-tune, folded: the derived numbers, each draggable. */}

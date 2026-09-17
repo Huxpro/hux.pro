@@ -65,10 +65,14 @@ uniform vec3  uCloudShade;
 
 uniform float uRain;
 uniform float uSnow;
-uniform vec2  uWind;          // screen-space; x > 0 blows RIGHT (see scene.ts)
 // Where the weather is falling, and how far it has fallen. The wind — the
 // forecast's and whatever a hand stirs up — reaches the rain and the snow only
 // through these four, and through nothing else. See Precipitation.
+// Both downs are unit vectors, and the renderer guarantees it — including the
+// degenerate frame or two when a 180-degree flip of gravity eases through
+// zero, where it sends (0,-1) rather than nothing. So nothing below
+// re-normalises them: that was a square root and a divide per pixel, twice
+// over, to re-establish something the CPU already knew once a frame.
 uniform vec2  uRainDown;      // unit; (0,-1) in a calm sky
 uniform float uRainFall;      // seconds of travel; the clock in a calm sky
 uniform vec2  uSnowDown;      // unit; the snow's, which is a much flatter angle
@@ -423,10 +427,8 @@ CloudSample cloudLayer(vec2 p, vec2 sunDir, float scale, float speed, float para
  * pivots about what you are looking at instead of swinging in from an edge.
  */
 vec2 fallSpace(vec2 p, vec2 down, float aspect) {
-  float l = length(down);
-  vec2 d = l < 1e-4 ? vec2(0.0, -1.0) : down / l;
-  // Rows (right, up) = (d turned a quarter turn, -d); GLSL wants the columns.
-  mat2 m = mat2(-d.y, -d.x, d.x, -d.y);
+  // Rows (right, up) = (down turned a quarter turn, -down); GLSL wants columns.
+  mat2 m = mat2(-down.y, -down.x, down.x, -down.y);
   vec2 c = vec2(aspect * 0.5, 0.5);
   return m * (p - c) + c;
 }
@@ -494,8 +496,7 @@ float snow(vec2 p, float aspect) {
   // aimed: turning the offsets below would slide the whole field across the
   // page as the snow came round, and a page that slides is exactly what a gust
   // must not look like. Calm, these are (0,-1) and (1,0).
-  float dl = length(uSnowDown);
-  vec2 down = dl < 1e-4 ? vec2(0.0, -1.0) : uSnowDown / dl;
+  vec2 down = uSnowDown;
   vec2 across = vec2(-down.y, down.x);
 
   // The whole curtain leans and eases back on two slow beats — a gust that
@@ -510,7 +511,11 @@ float snow(vec2 p, float aspect) {
   for (int i = 0; i < 5; i++) {
     float z = float(i) * 0.25;                      // 0 far … 1 near
     float sc = mix(44.0, 12.0, z);                  // cells per screen height
-    float fall = mix(0.030, 0.092, z) * (0.85 + 0.3 * uSnow);
+    // A depth ramp, and only that: how much faster heavier snow falls is a
+    // property of the snow, and it is carried in uSnowFall by the renderer
+    // that accumulates it. Keeping it here meant a change of intensity
+    // re-scaled every second of fall already banked.
+    float fall = mix(0.030, 0.092, z);
     float radius = mix(0.0019, 0.0062, z);          // screen heights
     float soft = mix(0.45, 1.0, z * z);             // only the nearest defocus
     float density = mix(0.30, 0.09, z) * (0.35 + 0.65 * uSnow);
@@ -741,9 +746,16 @@ void main() {
   // Nothing in the sky has turned: a wind is a second pull on the things that
   // fall, not a camera on the world. Only the rain's own frame is rotated, and
   // only because a streak has to lie along its travel. See Precipitation.
-  float r = rain(fallSpace(p, uRainDown, aspect));
-  vec3 dropCol = mix(uCloudLit, vec3(1.0), 0.45);
-  col += dropCol * r * 0.75;
+  //
+  // Behind the same uniform branch the snow uses below, and for the same
+  // reason — but note what is behind it here: rain() would return on its own
+  // compare, yet its ARGUMENT is a frame change, and an argument is evaluated
+  // whether or not the body wants it. A dry sky paid for a rotation.
+  if (uRain >= 0.002) {
+    float r = rain(fallSpace(p, uRainDown, aspect));
+    vec3 dropCol = mix(uCloudLit, vec3(1.0), 0.45);
+    col += dropCol * r * 0.75;
+  }
 
   // Snow, and the colour to paint it. A flake is a scattering mote, not a lamp:
   // it can never be brighter than the sky behind it, so against a blown-out
