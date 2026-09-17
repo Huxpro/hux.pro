@@ -68,9 +68,11 @@ out at the final width from the first frame and simply revealed, the way the
 Island masks its own content. `clip-path` and `backdrop-filter` on the *same*
 element are fine together; it is an ancestor that breaks the backdrop (below).
 
-The corner radius does not interpolate, because it does not have to: an `h-9`
-`rounded-full` pill and a `rounded-2xl` panel are both 18px. The shape is
-continuous from the first frame.
+The corner radius travels with the clip: 18px at the pill, `--dock-radius` at
+the panel, one `inset()` interpolating into the next — which browsers do
+natively as long as both sides have the same shape. Both are the real numbers,
+so the first frame is the pill's silhouette exactly and the last is the panel's,
+and the corner opens out at the same rate the box does.
 
 The pill's rectangle is measured off the live DOM (`morphVars` in
 `live-activity.tsx`) — the pill can be anywhere in a scrolled row of them, and
@@ -126,6 +128,61 @@ themselves the glass. The sheets above hold to the same rule.
 The walkthrough guards both: it samples the entrance frame by frame and fails
 if anything between the shell and `<body>` is fading or filtering, if the first
 frame's clip is not the pill's rectangle, or if the panel translates at all.
+
+### The radius is Apple's number, not ours
+
+The panel is `rounded-dock` — `--dock-radius: 2.75rem`, 44px. It is the one
+radius on this site that is copied rather than derived from `--radius`, because
+it is quoting something specific:
+
+> The Dynamic Island uses a corner radius of 44 points, and its rounded corner
+> shape matches the TrueDepth camera.
+> — Apple HIG, *Live Activities*
+
+The number transfers 1:1 rather than needing a ratio, because the panel is very
+nearly the size of the thing it is quoting: **359 x 170 CSS px** against an
+expanded Island's **371 x 84-160pt**. The collapsed pill is `h-9 rounded-full`
+— 36px tall, fully round — against a compact Island's 52.33 x 36.67pt, which is
+the same shape at the same size. So the dock is not *evoking* the Island at this
+point; it is the same geometry.
+
+It is deliberately off the `--radius` scale (`rounded-2xl` is 18px, `rounded-4xl`
+26px, and the next step up would still be a card corner rather than a capsule).
+`--dock-radius` lives in `:root` next to `--radius`, and `@theme inline` maps it
+to the `rounded-dock` utility.
+
+**Margins are concentric, at 20px.** The HIG asks for "even, matching margins
+between rounded shapes and the edges of the Live Activity, including corners",
+and at a 44px corner an uneven one shows. The header is `px-5 pt-5` and every
+activity body is `px-5`, so the content sits 20px in on three sides; the
+tightest point is the title at y=20, where the corner has eaten 7px of the 20.
+Nothing pokes into the curve — the closest is the album art's bottom-left
+corner, 20px from the left where the curve has eaten 5px.
+
+**Inner corners are concentric too, by publication rather than by import.** The
+HIG also asks an inner rounded rectangle near a corner to "match its corner
+radius to the outer corner radius of the Live Activity by subtracting the
+margin", which puts a box inside our 20px margin at 44 - 20 = **24px**. The
+panel publishes exactly that as `--radius-concentric` on its shell, and content
+opts in by reading it with its own value as the fallback:
+
+```tsx
+// the panel                    // <NowPlaying />'s album art
+"--radius-concentric":          rounded-[var(--radius-concentric,var(--radius))]
+  "calc(var(--dock-radius) - 1.25rem)"
+```
+
+So the dock does not reach into `<NowPlaying />` and `<NowPlaying />` does not
+import the dock's number — and the homepage music widget, which sets no such
+property and has no 44px corner to be concentric with, resolves to `var(--radius)`
+and is byte-identical to what `rounded-lg` gave it. Measured on the homepage:
+`10px`, unchanged.
+
+Not everything inside the panel should opt in. Theater's `<TrackThumb />` sits
+at the left edge but nowhere near a corner, and it is 96 x 54 — a 24px radius on
+a 54px-tall box is not concentricity, it is a lozenge. The guideline is about
+shapes *near a corner*; the album art, whose bottom-left corner is 20px from the
+left edge and 24px from the bottom, is one, and the thumb is not.
 
 ### One place it does not replicate the old dock
 

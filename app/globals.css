@@ -72,6 +72,10 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+  /* `rounded-dock` — the Live Activity capsule. Not on the `--radius` scale on
+     purpose: it is not a card corner scaled up, it is Apple's Dynamic Island
+     number, and it only ever belongs to the dock. See `--dock-radius` below. */
+  --radius-dock: var(--dock-radius);
 
   /* Elevation — app-wide shadow spec (two levels, à la Material elevation).
      Use these instead of raw `shadow-lg/2xl + shadow-black/xx`, so every
@@ -211,6 +215,14 @@
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
   --radius: 0.625rem;
+  /* The Live Activity capsule, and the one radius on this site that is copied
+     rather than derived: "The Dynamic Island uses a corner radius of 44 points,
+     and its rounded corner shape matches the TrueDepth camera." (Apple HIG,
+     Live Activities). 44px, because our panel is the same size as the thing it
+     is quoting — 359x170 CSS px against an expanded Island's 371x84-160pt — so
+     the number transfers 1:1 rather than needing a ratio. Anything smaller
+     reads as a card with generous corners; this reads as a capsule. */
+  --dock-radius: 2.75rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -1543,10 +1555,13 @@ html.dragging * {
    clip opens to the whole panel. Nothing moves and nothing scales, so the
    content never reflows and the glass goes on sampling the page at 1:1 — a
    scale would magnify what the backdrop-filter sees, which is why this is a
-   clip. The radius is one number, not an interpolation: an h-9 `rounded-full`
-   pill and a `rounded-2xl` panel are both 18px, so the shape is continuous. */
+   clip. The radius travels with the clip: an `h-9 rounded-full` pill is 18px
+   and the panel is `--dock-radius`, so the corner opens out as the box does —
+   one `inset()` interpolating into another, which browsers do natively as long
+   as both sides have the same shape. Both numbers are the real ones, so the
+   first frame is the pill's silhouette exactly and the last is the panel's. */
 [data-dock-panel][data-dock-morph] [data-surface-shell] {
-  clip-path: inset(0 0 0 0 round var(--dock-morph-radius, 18px));
+  clip-path: inset(0 0 0 0 round var(--dock-radius));
   transition: clip-path var(--surface-duration) var(--surface-easing);
 }
 
@@ -1555,7 +1570,7 @@ html.dragging * {
   clip-path: inset(
     var(--dock-morph-top, 0px) var(--dock-morph-right, 0px)
       var(--dock-morph-bottom, 0px) var(--dock-morph-left, 0px)
-      round var(--dock-morph-radius, 18px)
+      round var(--dock-morph-pill-radius, 1.125rem)
   );
 }
 

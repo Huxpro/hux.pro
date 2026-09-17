@@ -36,10 +36,9 @@ import { useDock } from "../provider";
 //   It GROWS out of the pill: on open, the glass shell is clipped down to the
 //   pill's own rectangle and the clip opens to the full panel, so the pill
 //   appears to become the panel — the Dynamic Island, which is the metaphor
-//   the dock has always claimed. The corner radius does not even have to
-//   interpolate: an h-9 `rounded-full` pill and a `rounded-2xl` panel are both
-//   18px, so the shape is continuous from the first frame. See `measureMorph`
-//   below and "Dock panel motion" in globals.css.
+//   the dock has always claimed. The corner opens out with the box: 18px at the
+//   pill, `--dock-radius` at the panel, one `inset()` interpolating into the
+//   next. See `measureMorph` below and "Dock panel motion" in globals.css.
 //
 //   Pull to expand.  `Drawer.SwipeArea` wraps the pill, so dragging DOWN from
 //   it opens the panel and the panel follows the finger the whole way — iOS's
@@ -308,11 +307,28 @@ export function LiveActivity({
               data-behind={behind ? "" : undefined}
               // React 19 renders `inert` as the boolean attribute.
               inert={behind}
-              // Sheets from other subtrees stacked on this one.
-              style={{ "--surface-stack-depth": depth } as React.CSSProperties}
+              style={
+                {
+                  // Sheets from other subtrees stacked on this one.
+                  "--surface-stack-depth": depth,
+                  // What a rounded box sitting inside this panel's 20px margin
+                  // should use for its own corner, so it is concentric with the
+                  // panel's: the HIG's "match its corner radius to the outer
+                  // corner radius ... by subtracting the margin". Published,
+                  // not imposed — content opts in by reading it with its own
+                  // value as the fallback (see <NowPlaying />), so nothing that
+                  // is not inside a big corner is changed by it.
+                  "--radius-concentric": "calc(var(--dock-radius) - 1.25rem)",
+                } as React.CSSProperties
+              }
               className={cn(
                 "relative origin-top overflow-hidden",
-                "rounded-2xl border border-border/50 bg-glass shadow-overlay backdrop-blur-xl",
+                // `rounded-dock`, not a step on the `--radius` scale: this
+                // is Apple's Dynamic Island number (44pt), and the panel is
+                // close enough to the real thing's size to take it literally.
+                // See `--dock-radius` in globals.css, and the note on the
+                // content margin below.
+                "rounded-dock border border-border/50 bg-glass shadow-overlay backdrop-blur-xl",
                 // The dim on a receded panel is a wash over the shell rather
                 // than an opacity, so the glass stays glass.
                 "after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:[transition-duration:var(--surface-duration)]",
@@ -326,7 +342,14 @@ export function LiveActivity({
                   takes the pointer on press and the click never reaches what
                   was pressed. A touch drag still works anywhere. */}
               <Drawer.Content>
-                <div className="flex items-center justify-between px-5 pt-4 pb-3">
+                {/* `pt-5`, not `pt-4`: the sides are `px-5` and the HIG asks
+                    for "even, matching margins between rounded shapes and the
+                    edges of the Live Activity, including corners". At a 44px
+                    corner an uneven top margin is the one that shows. 20px all
+                    round also keeps every element clear of the curve — the
+                    tightest is the title at y=20, where the corner has eaten
+                    7px of the 20. */}
+                <div className="flex items-center justify-between px-5 pt-5 pb-3">
                   <Drawer.Title
                     render={<div className="flex items-center gap-2 min-w-0" />}
                   >

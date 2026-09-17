@@ -136,9 +136,17 @@ export function NowPlaying({
   if (track) {
     return (
       <div className="flex items-start gap-3.5">
-        {/* Album art — mqdefault is 16:9, object-cover crops to square */}
+        {/* Album art — mqdefault is 16:9, object-cover crops to square.
+            The radius is `--radius-concentric` when a container publishes one,
+            and `--radius` (what `rounded-lg` resolves to) when none does, which
+            is every existing caller including the homepage widget. Apple's HIG
+            asks an inner rounded rectangle near a corner to "match its corner
+            radius to the outer corner radius ... by subtracting the margin";
+            the Live Activity panel is the one container here with a corner big
+            enough for that to matter, so it sets the property and this reads
+            it, rather than either side importing the other's number. */}
         <div
-          className="h-20 w-20 overflow-hidden rounded-lg shrink-0"
+          className="h-20 w-20 overflow-hidden rounded-[var(--radius-concentric,var(--radius))] shrink-0"
           onMouseEnter={() => setShowProgress(true)}
           onMouseLeave={() => setShowProgress(false)}
         >
