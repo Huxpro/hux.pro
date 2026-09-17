@@ -656,9 +656,11 @@ html.dragging * {
   @apply font-serif italic;
 }
 
-/* Optical adjustment for Latin: Newsreader has smaller x-height than Inter */
+/* Optical adjustment for Latin: Newsreader has smaller x-height than Inter.
+   An em of the body, like every other size in here, so the correction keeps
+   its proportion at every reading size instead of standing still. */
 .prose-article[lang="en"] em:not(:where(.not-prose, .not-prose *)) {
-  font-size: 17px;
+  font-size: 1.0625em;
 }
 
 /* Right spacing for Chinese italic to prevent overhang */
@@ -686,7 +688,7 @@ html.dragging * {
 }
 
 .prose-article[lang="en"] blockquote:not(:where(.not-prose, .not-prose *)) {
-  font-size: 17px;
+  font-size: 1.0625em;
 }
 
 /* Lists - custom markers with absolute positioning for proper text flow */
