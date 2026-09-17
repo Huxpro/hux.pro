@@ -187,6 +187,7 @@ export const translations = {
     readingRuler: "Ruler",
     readingRulerLeft: "Left",
     readingRulerRight: "Right",
+    readingResume: "Resume at",
 
     stateOn: "On",
     stateOff: "Off",
@@ -438,6 +439,7 @@ export const translations = {
     readingRuler: "标尺",
     readingRulerLeft: "左",
     readingRulerRight: "右",
+    readingResume: "继续读",
 
     stateOn: "开",
     stateOff: "关",

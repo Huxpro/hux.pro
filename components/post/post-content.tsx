@@ -3,13 +3,15 @@
 import { PageLayout } from "@/components/ui/page-layout";
 import type { PostLanguage } from "@/lib/content";
 import type { Locale } from "@/lib/i18n";
-import { Languages } from "lucide-react";
+import { CornerDownLeft, Languages } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
+import { useReadingProgress, scrollToProgress } from "./reading-progress";
 import { ReadingSettings } from "./reading-sheet";
 import { RulerToc } from "./ruler-toc";
 import { usePostLanguage } from "./use-post-language";
 
+import { t } from "@/services";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 interface PostContentProps {
@@ -91,6 +93,11 @@ export function PostContent({
   const { displayLocale, switchLanguage, hasAlternate, alternateLabel } =
     usePostLanguage({ locale, language });
 
+  // Where this article was left last time — an offer, never a jump. Only the
+  // pages the ruler tracks, which are the ones long enough to lose your place
+  // in. Recording starts on mount and this is read before it can overwrite.
+  const resumeAt = useReadingProgress(toc ? pathname : "");
+
   useEffect(() => {
     if (onMount) {
       const segments = pathname.split("/");
@@ -106,7 +113,11 @@ export function PostContent({
   const displayOrigin =
     displayLocale === "zh" && originZh ? originZh : origin;
   const hasHeaderMetaContent =
-    !!headerMeta || !!displayReadingTime || hasAlternate || !!displayOrigin;
+    !!headerMeta ||
+    !!displayReadingTime ||
+    hasAlternate ||
+    !!displayOrigin ||
+    resumeAt !== null;
   const headerMetaRow = (
     <div className={cn("flex items-center gap-2 flex-wrap", TYPE.meta)}>
       {headerMeta}
@@ -137,6 +148,22 @@ export function PostContent({
         <>
           <span className="text-quaternary-foreground">·</span>
           <span>{renderMarkdownLinks(displayOrigin)}</span>
+        </>
+      )}
+
+      {resumeAt !== null && (
+        <>
+          <span className="text-quaternary-foreground">·</span>
+          <button
+            onClick={() => scrollToProgress(resumeAt)}
+            className="inline-flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
+          >
+            <CornerDownLeft className="h-3 w-3" />
+            <span>
+              {t(displayLocale, "readingResume")}{" "}
+              {Math.round(resumeAt * 100)}%
+            </span>
+          </button>
         </>
       )}
     </div>

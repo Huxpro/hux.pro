@@ -262,6 +262,32 @@ is not a door a reader opens.
 The devtool keeps its Reading module. Both surfaces write the same persisted
 store, so the panel and the reader's menu always agree.
 
+### Resume reading
+
+The site already remembered *what* you last read — `services/visitor.tsx`
+stores the slug, title and href, and `PostContent` records it on mount. What it
+never kept was *where in it* you were.
+
+`components/post/reading-progress.ts` is that missing half. It records a scroll
+ratio per article, throttled to once a second plus the real exits (`pagehide`,
+`visibilitychange`, unmount), keyed by path and pruned to the 50 most recent.
+A ratio rather than a pixel offset, because the column's height moves with the
+reading size, the measure and the viewport.
+
+**It never scrolls the page on its own.** Automatic restoration fights the
+browser's own, and lands you somewhere you did not ask to be — on a page you
+may have opened to re-read the opening. Instead the position comes back as one
+more fact in the header meta row, beside the date and the reading time:
+`↵ Resume at 45%`, which scrolls there when pressed and is ignorable when not.
+
+The offer is withheld when it would be useless: below 5% it points at the top
+of the page you are already looking at, above 95% you have finished. It is also
+frozen at mount — a live read would watch the offer chase you down the page,
+since the same hook is writing to that storage as you scroll.
+
+Only pages the ruler tracks record anything; the docs and any article without
+it pass an empty key and the hook stands down.
+
 ### View Transitions
 
 The site uses the browser's View Transitions API via the `next-view-transitions` library for smooth page-to-page animations.
