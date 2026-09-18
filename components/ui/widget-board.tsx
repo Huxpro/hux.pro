@@ -514,6 +514,11 @@ export function WidgetBoard({
             {isCustomized && (
               <button
                 type="button"
+                data-edit-reset
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  handleReset();
+                }}
                 onClick={handleReset}
                 className="pressable text-xs font-mono uppercase tracking-wider text-tertiary-foreground transition-colors hover:text-muted-foreground active:text-foreground"
               >
@@ -522,6 +527,11 @@ export function WidgetBoard({
             )}
             <button
               type="button"
+              data-edit-done
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                setEditing(false);
+              }}
               onClick={() => setEditing(false)}
               className="pressable rounded-full border border-border/60 bg-glass-strong-hover px-5 py-2.5 md:px-4 md:py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground active:bg-card active:text-foreground"
             >
