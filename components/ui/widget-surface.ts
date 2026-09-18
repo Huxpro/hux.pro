@@ -9,7 +9,7 @@ import type { SyntheticEvent } from "react";
  * otherwise a region can be pickup-able but not tappable, or vice versa:
  *
  *   - tap    → open the widget's page / run its action  (`WidgetShell`)
- *   - hold   → lift the card for reordering            (`SortableMasonryItem`)
+ *   - hold   → lift the card for reordering            (`BoardItem`, widget-board.tsx)
  *
  * So the list lives here once. The press wash in `globals.css`
  * (`.widget-surface`) mirrors it as a `:has()` argument — keep the two in
@@ -35,7 +35,7 @@ export const OWN_ACTION_SELECTOR = OWN_ACTION_SELECTORS.join(", ");
  * widget as a whole should stay out of the way.
  *
  * The match must be a *strict descendant*: both call sites sit on elements
- * that can themselves match the list — the masonry's sortable wrapper carries
+ * that can themselves match the list — the board's sortable wrapper carries
  * dnd-kit's `role="button"` — and an element must never veto its own gesture.
  */
 export function landsOnOwnAction(e: SyntheticEvent): boolean {
