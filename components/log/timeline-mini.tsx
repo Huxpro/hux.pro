@@ -8,20 +8,23 @@
  * expanded `git log --pretty=fuller` author block — minus everything that
  * needs page-width real estate (hash column, cursor peek, pinned/expanded
  * media, inspect mode). Tapping a row folds the author / description
- * block in and out; attachments, tags and stats never render here.
+ * block in and out; attachments never render here.
  *
  * Consumes NormalizedCommit — fully type-agnostic.
+ *
+ * It is a preview surface, so it is also a hand-off into /works: `commit`
+ * opens that row there. That address belongs to /works and this component
+ * names it directly — it is that page in miniature, not a general-purpose row.
  */
 
 import { useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
-import { commitIcons, commitIconOverrides } from "./icons";
-import { LinkIcon, Description } from "./embeds/shared";
+import { CommitIcon } from "./icons";
+import { LinkIcon, Description, AuthorFields } from "./embeds/shared";
 
 import { TYPE } from "@/lib/typography";
-const DEFAULT_AUTHOR_HANDLE = "hux";
 
 interface TimelineMiniProps {
   data: NormalizedCommit;
@@ -43,9 +46,6 @@ export function TimelineMini({
   hideDate = false,
   className,
 }: TimelineMiniProps) {
-  const Icon =
-    (data.iconOverride && commitIconOverrides[data.iconOverride]) ||
-    commitIcons[data.type];
   const isEvent = data.type === "event";
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -144,7 +144,11 @@ export function TimelineMini({
                 ],
               )}
             >
-              <Icon className="w-3 h-3 text-tertiary-foreground" />
+              <CommitIcon
+                type={data.type}
+                override={data.iconOverride}
+                className="w-3 h-3 text-tertiary-foreground"
+              />
             </span>
           )}
         </span>
@@ -237,12 +241,18 @@ export function TimelineMini({
               )}
             </span>
             {byline && (
+              // One form at a time, as on /works: folded, the handle is this
+              // compact mark on the meta line; open, it transposes into the
+              // `Author:` field at the foot and this one stands down. It fades
+              // rather than unmounts, so the row below never moves.
               <span
                 className={cn(
                   "shrink-0 text-tertiary-foreground transition-opacity duration-200",
-                  byline.isClusterHead || isExpanded
-                    ? "opacity-100"
-                    : "opacity-0 group-hover:opacity-100",
+                  isExpanded
+                    ? "opacity-0"
+                    : byline.isClusterHead
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100",
                 )}
               >
                 {byline.handle}
@@ -252,39 +262,28 @@ export function TimelineMini({
         )}
 
         {isExpanded && (
-          <div
-            data-row-body
-            className="col-start-2 mt-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150"
-          >
-            {/* Abbreviated `git log --pretty=fuller` author block. */}
-            {data.type !== "role" && (
-              <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs font-mono pb-2 mb-0.5">
-                <span className="text-tertiary-foreground">Author:</span>
-                <span className="text-tertiary-foreground">
-                  &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;
-                </span>
-
-                {byline?.expanded.title && (
-                  <>
-                    <span className="text-tertiary-foreground">Role:</span>
-                    <span className="text-tertiary-foreground">
-                      {byline.expanded.title}
-                      <span className="text-quaternary-foreground"> @ </span>
-                      {byline.expanded.company}
-                      {byline.expanded.location && (
-                        <>
-                          <span className="text-quaternary-foreground"> · </span>
-                          {byline.expanded.location}
-                        </>
-                      )}
-                    </span>
-                  </>
-                )}
-              </div>
-            )}
-
+          // No enter animation, for the reason TimelineCommit's body has none:
+          // a transform on 12px mono re-rasterizes it, and the row's box snaps
+          // to its new height regardless.
+          <div data-row-body className="col-start-2 mt-2 space-y-1.5">
             {data.description && (
               <Description text={data.description} isExpanded />
+            )}
+
+            {/*
+              The author fields, at the foot — the vertical form of the handle
+              that was on the meta line a moment ago. `commit` leads because
+              that is how `git log --pretty=fuller` opens, and because this is
+              the only surface where the hash has nowhere else to live: on
+              /works it sits in the gutter column, where it is the permalink.
+              Here it is the permalink and the field at once.
+            */}
+            {data.type !== "role" && (
+              <AuthorFields
+                byline={byline}
+                commit={{ hash: data.hash, href: `/works#${data.hash}` }}
+                className="pt-1"
+              />
             )}
           </div>
         )}

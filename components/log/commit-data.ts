@@ -12,6 +12,7 @@ import type {
   CommitType,
   InternalLinkMeta,
   Media,
+  StripItem,
 } from "@/lib/log";
 import {
   localize,
@@ -27,12 +28,13 @@ import {
   isImageMedia,
   isPinnedMedia,
   getMediaThumbnail,
+  getMediaStripItems,
+  isPlayableMedia,
 } from "@/lib/log";
 import { pickInternalLink } from "@/lib/og-enrich";
 import {
   detectSocialEmbedPlatform,
   getDomainLabel,
-  isVideoLinkHost,
 } from "@/lib/og-core";
 
 // =============================================================================
@@ -75,7 +77,6 @@ export interface NormalizedCommit {
   meta?: string;
   /** When set, the meta line is rendered as an external link. */
   metaUrl?: string;
-  subtitle?: string;
 
   /**
    * Optional label that replaces the date slot when the parent tag has
@@ -86,8 +87,6 @@ export interface NormalizedCommit {
 
   // Expandable content
   commentary?: string;
-  tags: string[];
-  stats?: { stars?: number; downloads?: string; users?: string };
 
   // Media
   /** Pill-style links extracted for the folded right-rail indicators. */
@@ -96,6 +95,14 @@ export interface NormalizedCommit {
   expandedMedia: Media[];
   /** Items flagged `pinned: true` — shown beneath the row while folded. */
   pinnedMedia: Media[];
+  /**
+   * Contact-sheet covers: every cover in `expandedMedia`, at thumbnail size,
+   * for the `stat` density's strip (see `MediaStrip`). Derived here because
+   * that is where the locale is resolved and the renderers are deliberately
+   * locale-agnostic — the alternative was a prop threaded through four
+   * components that neither read nor cared about it.
+   */
+  stripItems: StripItem[];
 
   // Compact rendering
   thumbnail?: { url: string; linkUrl?: string; isVideo?: boolean };
@@ -238,10 +245,9 @@ function deriveThumbnail(
   media: Media[],
 ): { url: string; linkUrl?: string; isVideo?: boolean } | undefined {
   for (const m of media) {
-    const isVideo = isVideoMedia(m) || isSlidesMedia(m);
-    if (isVideo || isImageMedia(m)) {
+    if (isPlayableMedia(m) || isImageMedia(m)) {
       const thumb = getMediaThumbnail(m);
-      if (thumb) return { url: thumb, linkUrl: m.url, isVideo };
+      if (thumb) return { url: thumb, linkUrl: m.url, isVideo: isPlayableMedia(m) };
     }
   }
   for (const m of media) {
@@ -249,7 +255,7 @@ function deriveThumbnail(
       const thumb = getMediaThumbnail(m);
       // A card cover pointing at a talk-recording host (GitNation) reads as a
       // video in the compact cover, matching the play affordance on the card.
-      if (thumb) return { url: thumb, linkUrl: m.url, isVideo: isVideoLinkHost(m.url) };
+      if (thumb) return { url: thumb, linkUrl: m.url, isVideo: isPlayableMedia(m) };
     }
   }
   return undefined;
@@ -270,13 +276,13 @@ export function normalizeCommit(
   const richMedia = media.filter((m) => !isLinkPill(m));
   const pinnedMedia = richMedia.filter(isPinnedMedia);
   const expandedMedia = richMedia.filter((m) => !isPinnedMedia(m));
+  const stripItems = getMediaStripItems(expandedMedia, locale);
 
   const title = localize(commit.title, locale);
   const description = localize(commit.description, locale);
   const commentary = localizeOptional(commit.commentary, locale);
   const date = formatCommitDate(commit, locale);
   const hash = computeCommitHash(commit.id);
-  const tags = commit.tags ?? [];
   const thumbnail = deriveThumbnail(media);
   const languageBadge = getCommitLanguageBadge(commit, locale);
 
@@ -297,12 +303,11 @@ export function normalizeCommit(
         title,
         description,
         date,
-        tags,
         commentary,
-        stats: commit.stats,
         links: mediaLinks,
         expandedMedia,
         pinnedMedia,
+        stripItems,
         thumbnail: thumbnail ? { ...thumbnail, linkUrl: firstPillUrl } : undefined,
         secondaryLine: description,
       };
@@ -317,11 +322,11 @@ export function normalizeCommit(
         date,
         meta: commit.conference.name,
         metaUrl: commit.conference.url,
-        tags,
         commentary,
         links: mediaLinks,
         expandedMedia,
         pinnedMedia,
+        stripItems,
         thumbnail,
         secondaryLine: date,
       };
@@ -336,11 +341,11 @@ export function normalizeCommit(
         date,
         meta: commit.publication.name,
         metaUrl: commit.url,
-        tags,
         commentary,
         links: mediaLinks,
         expandedMedia,
         pinnedMedia,
+        stripItems,
         thumbnail: thumbnail ? { ...thumbnail, linkUrl: commit.url } : undefined,
         secondaryLine: `${commit.publication.name} · ${date}`,
       };
@@ -361,11 +366,11 @@ export function normalizeCommit(
         meta: company,
         metaUrl: commit.url,
         dateSlotOverride: commit.location,
-        tags,
         commentary,
         links: mediaLinks,
         expandedMedia,
         pinnedMedia,
+        stripItems,
         thumbnail: thumbnail
           ? { ...thumbnail, linkUrl: commit.url }
           : undefined,
@@ -381,10 +386,10 @@ export function normalizeCommit(
         title,
         description,
         date,
-        tags: [],
         links: [],
         expandedMedia: [],
         pinnedMedia: [],
+        stripItems: [],
       };
     }
 
@@ -413,11 +418,11 @@ export function normalizeCommit(
         description,
         date,
         meta: commit.platform,
-        tags,
         commentary,
         links: socialLinks,
         expandedMedia,
         pinnedMedia,
+        stripItems,
         thumbnail: thumbnail ? { ...thumbnail, linkUrl: socialPrimaryUrl } : undefined,
         secondaryLine: `${commit.platform} · ${date}`,
       };

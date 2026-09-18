@@ -8,11 +8,14 @@ import {
   computeBeams,
   computeInferredBeams,
   computeRail,
+  type FilterableCommitType,
   formatTagDateRange,
   getLocalizedTagTitle,
   type Identity,
+  isRowVisible,
   type Tag,
 } from "@/lib/log";
+import { DEFAULT_DENSITY, type LogDensity } from "@/lib/log-view";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeBylines } from "./bylines";
@@ -21,6 +24,11 @@ import { TimelineConnector } from "./timeline-connector";
 import type { BeamSpec } from "./timeline-commit";
 import { useTimelineEdit } from "./timeline-edit-context";
 import { SlidesPlayerProvider } from "./media/slides-player";
+
+/** Stable "no filter" default — a fresh `[]` per render would bust the
+ *  per-tag memo below on every render for callers that never filter
+ *  (the editor's inspect loop re-renders constantly). */
+const NO_TYPES: FilterableCommitType[] = [];
 
 interface LogTimelineProps {
   data: {
@@ -37,13 +45,40 @@ interface LogTimelineProps {
    * up here.
    */
   identities?: Record<string, Identity>;
+  /**
+   * How much of each commit to print. See `lib/log-view.ts` — `stat` is the
+   * one that changes this component's shape, adding a contact strip under
+   * every folded row that has covers.
+   */
+  density?: LogDensity;
+  /**
+   * Selected commit types. Empty is "no filter"; anything else hides every
+   * commit that doesn't match — events included, since they are the one
+   * type that isn't selectable in the first place.
+   *
+   * Filtering hides rows rather than removing them from the array, because
+   * identity resolution walks the full list: the roles behind a `<handle>`
+   * byline are almost always `hideRow` rows that were never on screen, so
+   * dropping them would cost every surviving commit its author.
+   */
+  activeTypes?: FilterableCommitType[];
+  /** Wires each row's hash as its permalink. Omit and it is plain text. */
+  onSelectHash?: (hash: string) => void;
 }
 
 /**
  * Git Log / Commit History style timeline.
  * Renders tags as ref markers and commits as dense log entries.
  */
-export function LogTimeline({ data, locale, expandAll, identities }: LogTimelineProps) {
+export function LogTimeline({
+  data,
+  locale,
+  expandAll,
+  identities,
+  density = DEFAULT_DENSITY,
+  activeTypes = NO_TYPES,
+  onSelectHash,
+}: LogTimelineProps) {
   return (
     <SlidesPlayerProvider>
       <div className="space-y-0">
@@ -56,6 +91,9 @@ export function LogTimeline({ data, locale, expandAll, identities }: LogTimeline
             locale={locale}
             expandAll={expandAll}
             identities={identities}
+            density={density}
+            activeTypes={activeTypes}
+            onSelectHash={onSelectHash}
           />
         ))}
       </div>
@@ -70,9 +108,22 @@ interface TagBlockProps {
   locale: Locale;
   expandAll?: boolean;
   identities?: Record<string, Identity>;
+  density: LogDensity;
+  activeTypes: FilterableCommitType[];
+  onSelectHash?: (hash: string) => void;
 }
 
-function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: TagBlockProps) {
+function TagBlock({
+  tag,
+  commits,
+  tagIndex,
+  locale,
+  expandAll,
+  identities,
+  density,
+  activeTypes,
+  onSelectHash,
+}: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
   const isTagSelected = edit?.editingTagId === tag.id;
@@ -108,17 +159,34 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
   const gapFor = (type: CommitData["type"]) =>
     type === "role" ? 10 : type === "event" ? 3 : 7;
 
-  const { railInfo, beamSpecs, attachments, bylines } = useMemo(() => {
-    const rail = adjustRailForHidden(commits, computeRail(commits));
+  const {
+    railInfo,
+    beamSpecs,
+    attachments,
+    bylines,
+    isHidden,
+    hasVisible,
+  } = useMemo(() => {
+    const bylinesArr = computeBylines(commits, identities, locale);
+
+    // One predicate, four consumers: the rail re-brackets around the rows
+    // that survive, beams with a hidden endpoint are dropped, the render
+    // loop below skips the rest, and the block prints nothing if none are
+    // left. It is `isRowVisible` negated — the same question /works asks
+    // for its chip counts and its empty state.
+    const hidden = (c: CommitData) => !isRowVisible(c, activeTypes);
+
+    const rail = adjustRailForHidden(commits, computeRail(commits), hidden);
     const allBeams = [
-      ...computeBeams(commits).map((b) => ({ ...b, inferred: false })),
+      ...computeBeams(commits, hidden).map((b) => ({
+        ...b,
+        inferred: false,
+      })),
       ...computeInferredBeams(commits, rail).map((b) => ({
         ...b,
         inferred: true,
       })),
     ];
-
-    const bylinesArr = computeBylines(commits, identities, locale);
 
     const attachmentsWithGaps = allBeams.map((b) => ({
       ...b,
@@ -151,8 +219,15 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
       beamSpecs: specs,
       attachments: attachmentsWithGaps,
       bylines: bylinesArr,
+      isHidden: hidden,
+      hasVisible: commits.some((c) => !hidden(c)),
     };
-  }, [commits, identities, locale]);
+  }, [commits, identities, locale, activeTypes]);
+
+  // A chapter with nothing left in it prints nothing — no ref marker hanging
+  // over an empty stretch of page. The era headers are the timeline's spine,
+  // but a spine with no vertebrae is just a line.
+  if (!hasVisible) return null;
 
   return (
     <div>
@@ -225,7 +300,7 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
           const runs: Run[] = [];
           for (let i = 0; i < commits.length; i++) {
             const c = commits[i];
-            if (c.type === "role" && c.hideRow === true) continue;
+            if (isHidden(c)) continue;
             const sid = railInfo[i].segmentId;
             const last = runs[runs.length - 1];
             if (sid && last && last.kind === "cluster" && last.segmentId === sid) {
@@ -257,6 +332,8 @@ function TagBlock({ tag, commits, tagIndex, locale, expandAll, identities }: Tag
                 onBeamSet={handleBeamSet}
                 onBeamClear={handleBeamClear}
                 byline={bylines[i]}
+                density={density}
+                onSelectHash={onSelectHash}
               />
             ));
             return run.kind === "cluster" ? (

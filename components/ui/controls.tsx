@@ -17,12 +17,19 @@ import type { ReactNode } from "react";
 //           for on — a machine readout, and the green says "live".
 //   reader  the article's voice: sans, sentence case, an inset track with a
 //           raised thumb, grayscale. iOS's controls, in the site's ink.
+//   bare    the log toolbar's voice: no track at all, just glyphs on the
+//           line, with the selected one filled. It sits inside a row of
+//           other controls rather than on its own, so a box around it would
+//           be a second frame in a bar that has none.
 //
 // Anything that is genuinely per-use — what the options say, whether the
 // labels carry their own typeface — stays with the caller.
 // =============================================================================
 
-export type ControlTone = "system" | "reader";
+export type ControlTone = "system" | "reader" | "bare";
+
+/** `bare` has no track to fill, so it is a picker tone only. */
+export type SwitchTone = Exclude<ControlTone, "bare">;
 
 /**
  * Every difference between the two voices is a class string, so the branch is
@@ -41,6 +48,13 @@ const SEGMENTED_TONE = {
     segment: "rounded-[0.4rem] px-3 py-1 text-xs leading-5",
     selected: "bg-background text-foreground shadow-sm",
     idle: "text-muted-foreground hover:text-foreground",
+  },
+  bare: {
+    group: "items-center gap-0.5",
+    segment:
+      "inline-flex items-center justify-center rounded p-1 duration-200",
+    selected: "bg-muted text-foreground",
+    idle: "text-tertiary-foreground hover:text-foreground",
   },
 } as const;
 
@@ -113,7 +127,7 @@ export function Switch({
   on: boolean;
   onClick: () => void;
   label: string;
-  tone?: ControlTone;
+  tone?: SwitchTone;
   /** The setting is kept but has nothing to act on right now. */
   disabled?: boolean;
 }) {
