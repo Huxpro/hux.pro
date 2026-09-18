@@ -20,6 +20,7 @@ import {
   type SortableWidget,
 } from "@/components/ui/sortable-masonry";
 import { useHeroFade } from "@/components/ui/use-hero-fade";
+import { useLockTextSelection } from "@/components/ui/use-lock-text-selection";
 import type { BlogPostSummary } from "@/lib/content";
 import logData from "@/content/log.json";
 import type { Commit as CommitData, Group, RawLogData } from "@/lib/log";
@@ -141,6 +142,8 @@ function WidgetGrid({ posts }: { posts: BlogPostSummary[] }) {
 
 export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
   const heroFadeStyle = useHeroFade();
+  // iOS will otherwise expand a long-press into a full-page selection.
+  useLockTextSelection();
 
   return (
     // The home screen is one composition (identifier → greeting → widget grid),
@@ -152,7 +155,7 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
     // Auto margins (rather than `justify-center`) are what make that safe: an
     // overflowing composition still starts at the top edge instead of being
     // clipped above it.
-    <main className="mx-auto flex min-h-svh w-full flex-col px-6 pt-16 sm:pt-24 pb-32 sm:pb-40">
+    <main className="system-surface select-none mx-auto flex min-h-svh w-full flex-col px-6 pt-16 sm:pt-24 pb-32 sm:pb-40">
       <div className="my-auto w-full">
         <div className="mx-auto max-w-[680px]">
           <HeaderZone
@@ -162,7 +165,7 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
             // `ink-bare`: nothing behind this text but the wallpaper, so it
             // is the zone read off the top band whose ink may flip; the app folder is
             // the other, read off the middle band (see docs/system-legibility.md).
-            className="ink-bare hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
+            className="ink-bare hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6 select-none"
             style={heroFadeStyle}
           >
             <div className="h-11 flex items-start justify-center">
