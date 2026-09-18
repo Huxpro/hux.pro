@@ -390,9 +390,11 @@ document belongs to the reader. Keying off the class rather than a list of
 routes also means any surface that later opts into being system UI gets this
 for free, and no route knowledge lives in the ambient system.
 
-**Not a fourth easter egg.** The eggs are rewards for poking at a sky that owes
-you nothing; this is a feature explaining itself, and it stops existing once it
-has been. But it shares a background with [the gust](#stirring-the-wind-rain-and-snow-easter-egg),
+**Not a fourth easter egg**, whatever the sheet's own copy says. The eggs are
+rewards for poking at a sky that owes you nothing; this is a feature explaining
+itself, and it stops existing once it has been. (The copy greets it as a find
+because that is honestly how it arrives for the visitor. The distinction is
+about lifecycle, not about how it feels to meet.) But it shares a background with [the gust](#stirring-the-wind-rain-and-snow-easter-egg),
 which on a rainy day is armed on that same background — and they cannot
 collide, because **a gust is travel and this is stillness**:
 

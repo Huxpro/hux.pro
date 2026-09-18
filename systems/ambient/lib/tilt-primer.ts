@@ -23,10 +23,14 @@
 // -----------------------------------------------------------------------------
 // Where it sits among the easter eggs
 //
-// This is not a fourth egg. The eggs are rewards for poking at a sky that owes
-// you nothing (see "The easter eggs"); this is a feature explaining itself, and
-// it is *armed by the absence* of something rather than by the presence of it —
-// it exists only until it has been answered, and then never again.
+// This is not a fourth egg, whatever the sheet's own copy says. The eggs are
+// rewards for poking at a sky that owes you nothing (see "The easter eggs");
+// this is a feature explaining itself, and it is *armed by the absence* of
+// something rather than by the presence of it — it exists only until it has
+// been answered, and then never again. The copy greets it as a find because
+// that is honestly how it arrives for the visitor, who went looking for
+// nothing and got something; the distinction here is about lifecycle, not
+// about how it feels to meet.
 //
 // But it shares the same page, and on a rainy day the gust egg is armed on that
 // same background. They do not collide, because a gust is travel and this is
