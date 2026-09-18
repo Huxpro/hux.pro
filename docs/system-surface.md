@@ -209,11 +209,13 @@ of `sheet.tsx`.
 
 **No gesture state up there.** A grip that changes with the drag is a grip that
 has to be changed back, and the end of a Base UI gesture can be missed
-altogether — so the window grip does not change at all, and the sheet publishes
-nothing for it to change on. `systems/windows/components/window-grip.tsx` has
-the story of the five versions that tried. If some future handle has to move
-with the drag, it should be an animation that always ends where it started,
-never a state something has to clear.
+altogether — so the sheet publishes nothing for a grip to change on, and the
+window grip keeps only states that are harmless to be stuck in (it lights up
+under a thumb; it never changes shape).
+`systems/windows/components/window-grip.tsx` has the story of the five versions
+that did. If some future handle has to move with the drag, it should be an
+animation that always ends where it started, never a state something has to
+clear.
 
 **Content, not a handle.** Everything below the grabber is wrapped in
 `Drawer.Content`. Without it a *mouse* press anywhere in a sheet starts a swipe,

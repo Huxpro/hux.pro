@@ -196,13 +196,23 @@ edge-to-edge content, with nothing that reads as a title bar (the sheet gives
 it a row of its own only when `gripOverlay` is off) — and it is also what you
 drag the sheet by. A tap opens the menu.
 
-It is the same pill as the desktop's (`window-pill.tsx`), in its lit state:
-three dots on glass, wide enough for a thumb, floating over the app. **It does
-not change** — not on press, not while the sheet is dragged, not while its menu
-is open. The desktop pill wakes up because a pointer hovers and a window can be
-inactive; a phone has neither, and this is the only control the window has.
+It looks exactly like the desktop pill (`window-pill.tsx`), down to the
+padding: chromeless with three dim dots at rest, lighting into glass under a
+thumb and while its menu stands open. That light is the tap feedback, and CSS
+cannot give it here — a touch never sets `:active` (the grip is `touch-none`
+and the press is preventDefaulted out from under it), and a mouse press sets it
+and then *never clears it*, because the popup captures the pointer and Chrome
+never sees the release. So the lit state is ours, and it is built to be **safe
+when stranded**: lit is glass with bright dots, rest is the pill the desktop
+wears, and a press whose release goes missing leaves the pill looking pressed —
+wrong, never missing. That is the bar anything on this control has to clear.
 
-That is the lesson of five rounds of this file. The dots used to
+The one thing the phone pill does not borrow is its target. `::before` takes
+the hit area to 80×42 from a pill of 48×18 (`globals.css`), because this pill
+is also a handle. Target and look are deliberately separate — a pill that one
+day shrinks into the 36×4 bar must not take its target down with it.
+
+What failed that bar is worth keeping written down. The dots used to
 become the site's 36×4 grabber while the sheet was dragged: proportional to the
 live travel first (which a sheet with detents zeroes every time it lands on
 one, so it flickered), then a phase machine in the grip (which had to know when
@@ -211,12 +221,12 @@ except touch, and the release then reaches nothing at all, so the phase stuck
 and `keepMounted` carried it into the next time the app opened), then the
 sheet's own gesture state (better, and still one flush of a nested drawer away
 from being stranded). Every version had the same shape: something had to
-*clear* the interesting state, and whatever clears it can be missed. Any state
-that can hide the window's controls is a state that can strand them hidden, and
-whatever a handle gains from changing shape does not outweigh a window whose
-controls are sometimes missing — so nothing changes shape, and if it ever
-returns it must be something that cannot persist: an animation that always ends
-where it started, not a state someone has to clear.
+*clear* the interesting state, whatever clears it can be missed, and what it
+cleared was the controls themselves. Whatever a handle gains from changing
+shape does not outweigh a window whose controls are sometimes missing — so
+nothing changes shape, and if the morph returns it must be something that
+cannot persist: an animation that always ends where it started, not a state
+someone has to clear.
 
 The one thing the grip still owns is the tap, which is the one thing that can
 be lost harmlessly (no menu opens; the next tap works). It opens the menu

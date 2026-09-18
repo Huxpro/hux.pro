@@ -151,6 +151,7 @@ export function WindowSheet({ win }: { win: WindowInstance }) {
         <WindowGrip
           label={title}
           focused={focusedId === win.id}
+          menuOpen={menuOpen}
           onMenu={() => setMenuOpen(true)}
         />
       }

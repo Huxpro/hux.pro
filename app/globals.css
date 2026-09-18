@@ -1527,20 +1527,23 @@ html.dragging * {
    The chrome of an app window on a phone (systems/windows/components/
    window-grip.tsx) is the window's own pill of traffic lights, floating over
    edge-to-edge content as it does on the desktop, doing double duty as the
-   sheet's grabber. Everything it looks like is Tailwind, on the component,
-   shared with the desktop pill (window-pill.tsx). The only thing that cannot
-   be said there is this: the glass is the pill, and the target reaches past
-   it — though no further up than the shell's own edge, which clips.
+   sheet's grabber. It looks exactly like the desktop pill, down to the padding
+   (window-pill.tsx has all of it), and that pill is 48×18 — a fine target for
+   a mouse and half of one for a thumb that also has to drag the sheet by it.
+   So the only thing said here is the thing the look cannot say: the glass is
+   the pill, and the target reaches well past it — though no further up than
+   the shell's own edge, which clips. 80×42, from a pill of 48×18.
 
-   There is deliberately no shape change here any more. The dots used to become
-   the site's 36×4 grabber while the sheet was dragged, keyed off one state or
-   another; every version of that state could be stranded, and a stranded one
-   means a window with no visible controls. The note at the top of
+   Keeping the two apart is also what a future morph needs: a pill that shrinks
+   into the site's 36×4 bar must not take its target down with it. There is no
+   shape change here today — the dots used to become that bar while the sheet
+   was dragged, keyed off one state or another, and every version of that state
+   could be stranded with the controls hidden inside it. The note at the top of
    window-grip.tsx has the history.
    ============================================================================= */
 
 [data-window-grip]::before {
   content: "";
   position: absolute;
-  inset: -0.5rem -0.75rem;
+  inset: -1rem;
 }

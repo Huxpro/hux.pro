@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { pillShell, TrafficDots } from "./window-pill";
 
 // =============================================================================
@@ -13,13 +13,22 @@ import { pillShell, TrafficDots } from "./window-pill";
 // edge-to-edge content, with nothing that reads as a title bar — is also what
 // you drag the sheet by, and a tap on it opens the window's menu.
 //
-// It does not change. Not on press, not while the sheet is dragged, not while
-// its menu is open: one pill, one ink, always there. The desktop pill wakes up
-// (window-chrome.tsx) because a pointer hovers and a window can be inactive;
-// a phone has neither, and this control is the only one the window has.
+// It looks exactly like the pill always has (window-pill.tsx): chromeless at
+// rest with three dim dots, lighting into glass under a thumb and while its
+// menu stands open. That light *is* the tap feedback, and always was; CSS has
+// no way to give it here, measured both ways — a touch never sets `:active`
+// (the grip is `touch-none` and the press is preventDefaulted out from under
+// it), and a mouse press sets it and then never clears it, because the popup
+// captures the pointer and Chrome never sees the release.
 //
-// That is the lesson of five rounds of this file, and it is worth keeping
-// written down. The dots used to become the sheet's 36×4 grabber while it was
+// So the lit state is ours, and it is built to be *safe when stranded*, which
+// is the whole lesson of this file. Neither of its two states can hide the
+// window's controls: lit is glass with bright dots, rest is the pill the
+// desktop wears, and a press that never reports its release leaves the pill
+// looking pressed — which is merely wrong, never missing. That is the bar
+// anything here has to clear.
+//
+// What used to fail it: the dots became the sheet's 36×4 grabber while it was
 // dragged — first interpolated on the live travel (which a sheet with detents
 // zeroes every time it lands on one, so it flickered), then latched by a phase
 // machine here (which has to know when the gesture ended, and cannot: Base UI
@@ -29,22 +38,10 @@ import { pillShell, TrafficDots } from "./window-pill";
 // the app), then driven by the sheet's own gesture state (better, and still one
 // flush of a nested drawer away from being stranded). Every version had the
 // same shape: something had to *clear* the interesting state, and whatever
-// clears it can be missed. A window whose controls are sometimes missing is
-// worse than a handle that never changes shape, so now nothing changes shape.
+// clears it can be missed — and what it cleared was the controls themselves.
 //
-// If it ever comes back it has to be incapable of persisting — an animation
+// If the morph comes back it has to be incapable of persisting: an animation
 // that always ends where it started, not a state someone has to clear.
-//
-// What it does do is answer a press, because a control that does nothing under
-// the thumb feels broken — the pill used to light into glass on a tap, and a
-// pill that is already lit has no light left to give. It answers with a one-
-// shot animation instead, and that is the only shape feedback may take here:
-// `:active` is not available to us, measured both ways. A touch never sets it
-// (the grip is `touch-none`, and the press is preventDefaulted out from under
-// it), and a mouse press sets it and then never clears it — the popup captures
-// the pointer and Chrome never sees the release, so the pill stays pressed for
-// good. A keyframe that starts and ends at rest cannot be stranded: there is no
-// state to clear, only a 200ms animation that is over either way.
 //
 // The tap is this component's one job, and it is the one thing that can be
 // lost harmlessly: no menu opens, nothing sticks, the next tap works. It
@@ -59,45 +56,62 @@ import { pillShell, TrafficDots } from "./window-pill";
 // Base UI also never starts a swipe from `button,a,input,select,textarea,
 // label,[role="button"]` (`DEFAULT_IGNORE_SELECTOR` in utils/useSwipeDismiss),
 // touch and mouse alike — so the pill is a <div>, its dots are inert (an
-// indicator here, not three targets), and the semantics live on the visually
-// hidden button beside it.
+// indicator here, not three targets, which also keeps a press landing on a
+// 6px dot from being refused as a swipe), and the semantics live on the
+// visually hidden button beside it.
+//
+// The one thing the phone pill does not share with the desktop's is its target:
+// `::before` (globals.css) takes the hit area well past the glass, because this
+// pill is also a handle and the glass is small. That is a target, not a look —
+// nothing about it is visible.
 // =============================================================================
 
 /** How far the finger may wander and still call the press a tap. */
 const TAP_SLOP = 6;
 
+/**
+ * How long the pill stays lit when the release never comes back. Touch always
+ * reports one; a captured mouse may not, and a pill lit a moment too long is
+ * the harmless end of being wrong.
+ */
+const PRESS_TIMEOUT = 4000;
+
 export function WindowGrip({
   label,
   focused,
+  menuOpen,
   onMenu,
 }: {
   /** Accessible name — the app whose menu this opens. */
   label: string;
   /** Front-most window: the dots are the window's own indicator. */
   focused: boolean;
+  /** Its menu is open — the pill stays lit under it, as the desktop's does. */
+  menuOpen: boolean;
   onMenu: () => void;
 }) {
   const press = useRef<{ id: number; x: number; y: number } | null>(null);
-  const pill = useRef<HTMLDivElement>(null);
+  const [pressed, setPressed] = useState(false);
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     press.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
-    // Acknowledged. Fire and forget: it ends where it started, whether this
-    // press turns into a tap, a drag, or nothing at all.
-    pill.current?.animate(
-      [{ transform: "scale(1)" }, { transform: "scale(0.92)" }, { transform: "scale(1)" }],
-      { duration: 220, easing: "ease-out" },
-    );
+    setPressed(true);
+    const done = () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("pointerup", finish, true);
+      document.removeEventListener("pointercancel", finish, true);
+      setPressed(false);
+    };
+    const timer = window.setTimeout(done, PRESS_TIMEOUT);
 
     // Capture phase, on the document: for touch the release arrives here, and
     // for a mouse Base UI may swallow it — in which case this press simply was
-    // not a tap.
+    // not a tap, and the timer above takes the light back.
     const finish = (ev: PointerEvent) => {
-      document.removeEventListener("pointerup", finish, true);
-      document.removeEventListener("pointercancel", finish, true);
       const from = press.current;
       press.current = null;
+      done();
       if (!from || ev.pointerId !== from.id || ev.type !== "pointerup") return;
       if (Math.hypot(ev.clientX - from.x, ev.clientY - from.y) > TAP_SLOP) return;
       // Not from inside the release: see the note at the top of the file.
@@ -107,10 +121,11 @@ export function WindowGrip({
     document.addEventListener("pointercancel", finish, true);
   };
 
+  const lit = pressed || menuOpen;
+
   return (
     <div className="pointer-events-none flex items-center justify-center">
       <div
-        ref={pill}
         data-window-grip
         aria-hidden
         onPointerDown={onPointerDown}
@@ -119,18 +134,13 @@ export function WindowGrip({
           onMenu();
         }}
         className={cn(
-          // Lit, always: there is nothing here to wake up for. A thumb target,
-          // too — the glass is this big, and ::before takes the hit area wider
-          // still (see globals.css).
-          pillShell(true, false),
-          "pointer-events-auto relative justify-center px-3.5 py-2.5",
+          // The desktop pill exactly, minus its hover: a phone has none, and a
+          // press is the only thing that wakes this one.
+          pillShell(lit, false),
+          "pointer-events-auto relative",
         )}
       >
-        {/* As wide as the sheet grabber it stands in for, so the pill is a
-            proper target rather than a pinch of dots. */}
-        <span className="flex w-9 justify-center">
-          <TrafficDots focused={focused} interacting />
-        </span>
+        <TrafficDots focused={focused} interacting={lit} />
       </div>
       {/* The same control, for anyone not using a finger. */}
       <button
