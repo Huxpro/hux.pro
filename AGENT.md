@@ -110,7 +110,13 @@ of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
   black, 0px, 16px. Tints: `black`, `dark`, `theme` (the page ground in the
   current theme) or `#rrggbb`.
 - **Scroll** is container on an iPhone with the bezel on, window otherwise; the
-  devtool's Scroll row overrides it for the session.
+  devtool's Scroll row overrides it for the session. Scroll-driven CSS must
+  not use `scroll(root)` — bind to `--page-scroll` (published by the package
+  on whichever element actually scrolls) or to `scroll(nearest)`.
+- **Hero exit** is how the home / index title leaves as the page scrolls:
+  `fade` (sticky, phases out — the default) or `scroll` (in flow, rides up).
+  `defaultHeroExit` in `components/ui/hero-exit.ts` is the platform picker;
+  the DevTool's Hero exit row pins either for the session.
 - **Everything is live.** Safari does not re-read the root background for its
   chrome after load; `syncChrome` in the package shows it each change by
   morphing a fixed bezel to 8px and back. That morph is iOS-only — the surface

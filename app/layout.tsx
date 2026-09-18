@@ -6,6 +6,7 @@ import {
   AmbientPhaseActivity,
   AmbientSurface,
   SolarThemeSync,
+  TiltPrimerSheet,
   WallpaperSheet,
 } from "@/systems/ambient";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
@@ -130,6 +131,7 @@ export default function RootLayout({
             </Dock>
             <MusicPlaylistSheet />
             <WallpaperSheet />
+            <TiltPrimerSheet />
             <TheaterRegistrar />
             <TheaterSurfaces />
             <CommandPalette />

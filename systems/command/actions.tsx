@@ -11,7 +11,7 @@ import {
   useTheme,
 } from "@/services";
 import { useLocation, useSolarTheme, useWallpaper } from "@/systems/ambient";
-import { getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
+import { getWallpaperPlayName, getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
 import { useMusic } from "@/systems/music";
 import {
@@ -87,6 +87,8 @@ export function useCommandActions(): CommandAction[] {
     kind: wallpaperKind,
     weatherStyle,
     wallpaper,
+    play: wallpaperPlay,
+    playAlbum: wallpaperPlayAlbum,
     openPicker: openWallpaperPicker,
   } = useWallpaper();
   const {
@@ -107,7 +109,9 @@ export function useCommandActions(): CommandAction[] {
 
   const wallpaperLabel =
     wallpaperKind === "image"
-      ? wallpaper.name
+      ? wallpaperPlay !== "off" && wallpaperPlayAlbum
+        ? `${getWallpaperPlayName(locale, wallpaperPlay, wallpaperPlayAlbum)} · ${wallpaper.name}`
+        : wallpaper.name
       : getWeatherWallpaperName(locale, weatherStyle);
 
   const themeLabel =
@@ -279,11 +283,16 @@ export function useCommandActions(): CommandAction[] {
         "desktop",
         "macos",
         "ios",
+        "shuffle",
+        "loop",
+        "random",
         "壁纸",
         "背景",
         "天气",
         "渐变",
         "桌面",
+        "随机",
+        "循环",
       ],
       run: () => openWallpaperPicker(),
     },

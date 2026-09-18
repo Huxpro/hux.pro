@@ -27,13 +27,20 @@ import type { CSSProperties, JSX, ReactNode } from "react";
  * Where the page scrolls.
  *
  *   window     the document scrolls, as on any page.
- *   container  <html> and <body> are fixed and never scroll; the page scrolls
+ *   container  <html> and <body> do not scroll with the page; the page scrolls
  *              inside the bezel's scroll container. On iOS Safari this keeps the
  *              toolbar from collapsing, so the chrome and the viewport hold
  *              still. Every full-screen `position: fixed` child of <body>, and
  *              every element marked with `BEZEL_LAYER_ATTRIBUTE`, becomes
  *              absolute, because Safari tints its chrome from fixed content at
  *              the viewport edge.
+ *
+ *              A tap on the status bar still takes the page to the top. WebKit
+ *              will not give that gesture to an overflow scroller, so on iOS
+ *              the window is parked a few pixels down while the page is
+ *              scrolled — invisible, since <body> is fixed — and Safari
+ *              scrolling it back to 0 is read as the tap. Nothing to call: it
+ *              is on wherever container scroll is.
  */
 export type BezelScroll = "window" | "container";
 
@@ -199,6 +206,12 @@ export declare function scrollPageTo(top: number): void;
 export declare function onPageScroll(listener: () => void): () => void;
 /** Fire page scroll listeners without scrolling, to force a re-measure. */
 export declare function emitPageScroll(): void;
+/**
+ * Named scroll timeline on the element that actually scrolls the page.
+ * `animation-timeline: scroll(root)` is silent in container scroll; bind
+ * scroll-driven CSS to this instead (`animation-timeline: --page-scroll`).
+ */
+export declare const PAGE_SCROLL_TIMELINE: "--page-scroll";
 
 // -----------------------------------------------------------------------------
 // Layout

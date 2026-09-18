@@ -78,7 +78,7 @@ Every prop of `<Bezel>` is live:
 |---|---|
 | `enabled`, `color`, `band` | Written to `<html>` (`data-bezel`, `--bezel-color`, `--bezel-band`, background) in a layout effect. The chrome colour is resynced. |
 | `radius` | Re-rendered corners. |
-| `scroll` | `data-bezel-scroll="container"` on `<html>`. The scroll position moves between the window and the container, and page scroll listeners fire. |
+| `scroll` | `data-bezel-scroll="container"` on `<html>`. The scroll position moves between the window and the container, and page scroll listeners fire. On iOS, a status-bar tap is forwarded to the container while the page is away from the top. |
 | `ground` | The chrome colour is resynced while the bezel is off. |
 | Something strips `<html>` | A mutation observer re-applies the state before the next paint. |
 
@@ -115,11 +115,63 @@ Outside React, read and drive page scroll with `pageScrollTop`,
 `scrollPageTo`, `onPageScroll` and the rest. `window.scrollY` reads 0 in
 container scroll.
 
+Scroll-driven CSS should not use `animation-timeline: scroll(root)`. The
+package names the live scroller `--page-scroll` (root in window scroll,
+`#bezel-scroll` in container scroll); bind to that, or to
+`scroll(nearest)`.
+
 ## Testing
 
 ```bash
 pnpm bezel:typecheck
 ```
+
+## The status-bar tap
+
+Tapping the status bar scrolls to the top, and iOS gives that gesture to the
+main `WKScrollView` alone: WebKit sets `scrollsToTop = NO` on every overflow
+`UIScrollView` it creates, so the scroll container can never be handed it.
+
+The window can. `<body>` is fixed at inset 0, so the document has nothing to
+move and a few pixels of window scroll are invisible. While the page is away
+from the top, `<html>` gets `data-bezel-status-tap`, a few pixels of scroll
+range, and a park inside it. Safari taking that back to 0, with no finger on
+the glass and no viewport change, is the gesture — and the container is eased
+to the top on the chrome morph's curve, 280–640ms by distance. Reduced motion
+jumps. A touch stops it where it is.
+
+Four things it has to get right, all of them timing:
+
+- **One decision per frame.** Scroll events are asynchronous and a frame can
+  carry two, the container's and the window's. Nothing acts inside a scroll
+  handler; they only schedule a reconcile in a `requestAnimationFrame`
+  callback, which the rendering loop runs after that frame's scroll events.
+  Acting in the handlers instead lets the container's handler re-park the
+  window before the window's handler runs, and the tap is swallowed —
+  intermittently, depending on which scroller moved first.
+- **The tap usually lands mid-fling.** Momentum the compositor is still
+  applying fights every `scrollTop` written under it. The fling is ended first
+  — one frame of `overflow: hidden`, which has to span a frame or the
+  compositor never sees it — and the return re-bases itself if the container
+  moves under it anyway, rather than yanking it back onto a curve that stopped
+  being true.
+- **The park is a request, not a move.** On iOS the main frame is scrolled in
+  the UI process, so `window.scrollY` still reports the old offset on the line
+  after `window.scrollTo`. The park is therefore confirmed late, and only a
+  confirmed park counts — an unconfirmed one is never read as a tap, and is
+  never taken back on the strength of a reading that has not caught up yet.
+- **Being armed unlocks the page.** `overflow: hidden` on `<html>` is how an
+  overlay library decides the page is already locked (Base UI reads the
+  computed `overflow-y` of the viewport scroller). While armed, `<html>` no
+  longer reads that way, so the arming stands down the moment anything writes
+  an inline overflow onto `<html>`, and re-arms when that clears. A park that
+  does not stick is not fatal either: nothing latches off, and the next
+  scroll, mutation or resize — every reason a park fails ends in one — comes
+  back around and tries again.
+
+It is iOS-only — off the platform there is no gesture to catch and `<html>` is
+better left alone — and container scroll is reachable elsewhere through the
+devtool, so the check is real rather than assumed.
 
 ## Limits
 
@@ -137,4 +189,13 @@ pnpm bezel:typecheck
   stands down rather than locking on top of it — Base UI's dialogs do — so the
   host keeps its layout. One that locks unconditionally by writing `position:
   relative` and a height onto `<body>` will collapse this layout instead; check
-  before adopting one.
+  before adopting one. While a status-bar tap is armed, `<html>` does not read
+  as locked, so a library that locks then will take over; on iOS Base UI's lock
+  is an inline `overflow: hidden` on `<html>` and nothing else, and the arming
+  gets out of its way for as long as it holds.
+- The status-bar tap cannot be armed and a scroll lock held at the same time,
+  so the gesture does nothing while a sheet is open. It comes back when the
+  sheet closes.
+- A window scroll to 0 that is not a status-bar tap — some other code calling
+  `window.scrollTo` in container scroll — would read as one. Nothing on this
+  site does; `scrollPageTo` moves the container.

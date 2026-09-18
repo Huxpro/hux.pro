@@ -11,13 +11,16 @@
 //     and backs off when frames run long, recovering when they are cheap.
 //   • Pauses when the tab is hidden; renders one still frame under
 //     prefers-reduced-motion; survives context loss.
+//   • A poke (the click-answered easter eggs — see ../poke.ts) is the one thing
+//     here that is *not* eased: `poke()` arms `uPoke*` and the shader runs its
+//     own envelope off the age. A strike that eased in would not be a strike.
 //
 // Zero React inside — the component just hands it a canvas and scenes.
 // =============================================================================
 
 import { UPRIGHT_GRAVITY, type GravityVector } from "../gyroscope";
 import type { WeatherScene } from "../scene";
-import { STRIKE_MS } from "../strike";
+import { POKE_KIND_CODE, POKE_MS, type PokeKind } from "../poke";
 import {
   WIPE_JUMP,
   WIPE_LIFE_MS,
@@ -270,9 +273,6 @@ const snowFallRate = (snow: number) => 0.85 + 0.3 * snow;
  */
 const FALL_WRAP_SEC = 3600;
 
-/** How long a clicked strike lives — the shader's envelope is spent by then. */
-const STRIKE_SEC = STRIKE_MS / 1000;
-
 /** How long one wiped point lives — cleared, held, and closed over again. */
 const WIPE_LIFE_SEC = WIPE_LIFE_MS / 1000;
 
@@ -355,13 +355,15 @@ export class WallpaperRenderer {
   private locRainFall: WebGLUniformLocation | null = null;
   private locSnowDown: WebGLUniformLocation | null = null;
   private locSnowFall: WebGLUniformLocation | null = null;
-  private locStrike: WebGLUniformLocation | null = null;
-  private locStrikeAge: WebGLUniformLocation | null = null;
-  private locStrikeSeed: WebGLUniformLocation | null = null;
+  private locPoke: WebGLUniformLocation | null = null;
+  private locPokeAge: WebGLUniformLocation | null = null;
+  private locPokeSeed: WebGLUniformLocation | null = null;
+  private locPokeKind: WebGLUniformLocation | null = null;
   private locWipe: WebGLUniformLocation | null = null;
   private locWipeCount: WebGLUniformLocation | null = null;
   private locWipeBox: WebGLUniformLocation | null = null;
   private locWipeBlow: WebGLUniformLocation | null = null;
+  private locFrameSec: WebGLUniformLocation | null = null;
   /** Per-frame easing factors, one per distinct tau. */
   private ks = new Float64Array(TAUS.length);
   private vao: WebGLVertexArrayObject | null = null;
@@ -412,12 +414,18 @@ export class WallpaperRenderer {
   private stirAt = 0;
   private gust = 0;
 
-  /** The clicked strike. `strikeAt` of 0 means none is running. */
-  private strikeAt = 0;
-  private strikeX = 0.5;
-  private strikeY = 0.5;
-  private strikeSeed = 0;
-  private strikeAge = -1;
+  /**
+   * The poke in flight — a strike, a meteor — of which there is never more
+   * than one: the conditions that arm them are disjoint (see ../poke.ts).
+   * `pokeAt` of 0 means none is running.
+   */
+  private pokeAt = 0;
+  private pokeX = 0.5;
+  private pokeY = 0.5;
+  private pokeSeed = 0;
+  private pokeAge = -1;
+  private pokeKind = 0;
+  private pokeLife = 0;
 
   // The fog wipe. A ring of the path's recent corners, oldest first:
   // `wipeCount` of them starting at `wipeStart`, each one (x, y, made-at) plus
@@ -452,6 +460,8 @@ export class WallpaperRenderer {
   private lastTimeSec = STILL_FRAME_SEC;
   private slowFrames = 0;
   private fastFrames = 0;
+  /** The smallest scale that has already failed to keep up; never tried again. */
+  private failedScale = Infinity;
   private cssWidth = 0;
   private cssHeight = 0;
 
@@ -519,21 +529,23 @@ export class WallpaperRenderer {
   }
 
   /**
-   * Fire one bolt at (x, y) in screen space — 0..1 across, 0..1 bottom → top,
-   * the same convention as the sun. The thunder-day easter egg; see
-   * ../strike.ts.
+   * Answer a click at (x, y) in screen space — 0..1 across, 0..1 bottom → top,
+   * the same convention as the sun — with whatever the weather answers with.
+   * The easter eggs; see ../poke.ts.
    *
-   * Only while the frame loop is already running: a strike is an animation, and
-   * a stopped renderer is either inactive or under `prefers-reduced-motion`,
+   * Only while the frame loop is already running: a poke is an animation, and a
+   * stopped renderer is either inactive or under `prefers-reduced-motion`,
    * where a flash is the one thing not to make.
    */
-  strike(x: number, y: number) {
+  poke(kind: PokeKind, x: number, y: number) {
     if (!this.running || this.destroyed || !this.gl) return;
-    this.strikeX = x;
-    this.strikeY = y;
-    this.strikeSeed = Math.random() * 97;
-    this.strikeAt = performance.now();
-    this.strikeAge = 0;
+    this.pokeX = x;
+    this.pokeY = y;
+    this.pokeSeed = Math.random() * 97;
+    this.pokeKind = POKE_KIND_CODE[kind];
+    this.pokeLife = POKE_MS[kind] / 1000;
+    this.pokeAt = performance.now();
+    this.pokeAge = 0;
   }
 
   /**
@@ -590,7 +602,7 @@ export class WallpaperRenderer {
   }
 
   /**
-   * Clear the mist at (x, y) — same screen space as `strike`. Called once per
+   * Clear the mist at (x, y) — same screen space as `poke`. Called once per
    * frame along a drag.
    *
    * The path is kept as the corners of a polyline, not as a row of discs, and
@@ -606,7 +618,7 @@ export class WallpaperRenderer {
    * that. Never by frame: a slow, careful hand would spend the whole ring on a
    * single letter, and a fast one would get its curves cut into chords.
    *
-   * Only while the frame loop is already running, for the same reason a strike
+   * Only while the frame loop is already running, for the same reason a poke
    * is: a stopped renderer is either inactive or under `prefers-reduced-motion`.
    */
   wipe(x: number, y: number) {
@@ -703,10 +715,10 @@ export class WallpaperRenderer {
 
   stop() {
     this.running = false;
-    // Both eggs are measured in wall-clock time; a paused renderer would resume
+    // Every egg is measured in wall-clock time; a paused renderer would resume
     // one hours later, mid-flash — or with a hole in the fog that never healed.
-    this.strikeAt = 0;
-    this.strikeAge = -1;
+    this.pokeAt = 0;
+    this.pokeAge = -1;
     this.wipeCount = 0;
     this.wipeLive = 0;
     this.wipeStroke = false;
@@ -784,13 +796,15 @@ export class WallpaperRenderer {
     this.locRainFall = gl.getUniformLocation(program, "uRainFall");
     this.locSnowDown = gl.getUniformLocation(program, "uSnowDown");
     this.locSnowFall = gl.getUniformLocation(program, "uSnowFall");
-    this.locStrike = gl.getUniformLocation(program, "uStrike");
-    this.locStrikeAge = gl.getUniformLocation(program, "uStrikeAge");
-    this.locStrikeSeed = gl.getUniformLocation(program, "uStrikeSeed");
+    this.locPoke = gl.getUniformLocation(program, "uPoke");
+    this.locPokeAge = gl.getUniformLocation(program, "uPokeAge");
+    this.locPokeSeed = gl.getUniformLocation(program, "uPokeSeed");
+    this.locPokeKind = gl.getUniformLocation(program, "uPokeKind");
     this.locWipe = gl.getUniformLocation(program, "uWipe");
     this.locWipeCount = gl.getUniformLocation(program, "uWipeCount");
     this.locWipeBox = gl.getUniformLocation(program, "uWipeBox");
     this.locWipeBlow = gl.getUniformLocation(program, "uWipeBlow");
+    this.locFrameSec = gl.getUniformLocation(program, "uFrameSec");
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
     return true;
@@ -884,6 +898,7 @@ export class WallpaperRenderer {
       this.scale = this.baseScale;
       this.slowFrames = 0;
       this.fastFrames = 0;
+      this.failedScale = Infinity;
     }
     this.applySize();
   }
@@ -917,20 +932,34 @@ export class WallpaperRenderer {
       this.slowFrames++;
       this.fastFrames = 0;
       if (this.slowFrames > 45 && this.scale > MIN_SCALE) {
+        this.failedScale = Math.min(this.failedScale, this.scale);
         this.scale = Math.max(MIN_SCALE, this.scale * 0.8);
         this.slowFrames = 0;
         this.applySize(false);
       }
-    } else if (this.frameEma < budget * 0.9) {
+    } else if (this.frameEma < budget * 1.05) {
+      // Meeting the cap, which is as good as this can ever look: dt is the
+      // gated interval, so on a 60 Hz panel a frame costing 2 ms and one
+      // costing 15 both arrive 16.7 ms apart. The test for "there is room for
+      // more pixels" therefore has to be "we are meeting the cap" and not "we
+      // are beating it" -- against a fraction of the budget it was
+      // unreachable, and a canvas scaled down once stayed down for the life of
+      // the page.
       this.fastFrames++;
       this.slowFrames = 0;
-      if (this.fastFrames > 300 && this.scale < this.baseScale) {
-        this.scale = Math.min(this.baseScale, this.scale / 0.8);
+      // Climb back, but never to a scale already measured as too slow. Without
+      // that the two rules would take turns forever: five seconds of keeping
+      // up, one step up, three quarters of a second of dropped frames, one
+      // step back down, repeat.
+      const next = Math.min(this.baseScale, this.scale / 0.8);
+      if (this.fastFrames > 300 && next > this.scale && next < this.failedScale) {
+        this.scale = next;
         this.fastFrames = 0;
         this.applySize(false);
       }
     } else {
       this.slowFrames = Math.max(0, this.slowFrames - 1);
+      this.fastFrames = 0;
     }
   }
 
@@ -953,7 +982,7 @@ export class WallpaperRenderer {
     // keep it generous enough that slow (software / low-end) GPUs still ease
     // in wall-clock time rather than in slow motion.
     this.smooth(Math.min(dt, 250) / 1000);
-    this.advanceStrike(now);
+    this.advancePoke(now);
     this.ageWipe(now);
     // Wrap the shader clock hourly: float32 loses sub-pixel precision in the
     // particle math once uTime reaches the tens of thousands, and a once-an-hour
@@ -967,15 +996,15 @@ export class WallpaperRenderer {
     this.draw(STILL_FRAME_SEC);
   }
 
-
-  private advanceStrike(now: number) {
-    if (!this.strikeAt) return;
-    const age = (now - this.strikeAt) / 1000;
-    if (age > STRIKE_SEC) {
-      this.strikeAt = 0;
-      this.strikeAge = -1;
+  /** Age the running poke, and retire it once the shader has nothing left to draw. */
+  private advancePoke(now: number) {
+    if (!this.pokeAt) return;
+    const age = (now - this.pokeAt) / 1000;
+    if (age > this.pokeLife) {
+      this.pokeAt = 0;
+      this.pokeAge = -1;
     } else {
-      this.strikeAge = age;
+      this.pokeAge = age;
     }
   }
 
@@ -1287,9 +1316,10 @@ export class WallpaperRenderer {
     gl.uniform1f(this.locRainFall, this.rainFall);
     this.sendAim(gl, this.locSnowDown, this.snowDir);
     gl.uniform2f(this.locSnowFall, this.snowFall[0], this.snowFall[1]);
-    gl.uniform2f(this.locStrike, this.strikeX, this.strikeY);
-    gl.uniform1f(this.locStrikeAge, this.strikeAge);
-    gl.uniform1f(this.locStrikeSeed, this.strikeSeed);
+    gl.uniform2f(this.locPoke, this.pokeX, this.pokeY);
+    gl.uniform1f(this.locPokeAge, this.pokeAge);
+    gl.uniform1f(this.locPokeSeed, this.pokeSeed);
+    gl.uniform1f(this.locPokeKind, this.pokeKind);
     gl.uniform1i(this.locWipeCount, this.wipeLive);
     // Only when there is a swath to draw: the shader ignores the array
     // otherwise, and uploading it every frame of every sky would be for nothing.
@@ -1309,6 +1339,10 @@ export class WallpaperRenderer {
       this.aimWipe();
       gl.uniform2f(this.locWipeBlow, this.wipeBlow[0], this.wipeBlow[1]);
     }
+    // How long a frame is taking, smoothed — the same number adaptQuality()
+    // steers the resolution by. Anything that moves fast enough to leave gaps
+    // between frames needs to know it (see the meteor's wake in shader.ts).
+    gl.uniform1f(this.locFrameSec, this.frameEma / 1000);
 
     const c = this.current;
     for (let i = 0; i < META.length; i++) {

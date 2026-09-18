@@ -3,6 +3,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -22,6 +23,7 @@ import {
 } from "./constants";
 import { ensureBezelStyle } from "./css";
 import { keepRoot, type RootState } from "./root";
+import { enableStatusTapToTop } from "./status-tap";
 
 // =============================================================================
 // <Bezel> — see ../bezel.d.ts for the contract.
@@ -117,6 +119,17 @@ export function Bezel({
       scroll: s as BezelScroll,
     });
   }, [on, c, b, s]);
+
+  // A tap on the status bar: the container cannot be given the gesture (WebKit
+  // turns scrollsToTop off on overflow scrollers), so the window is parked a
+  // few pixels down while the page is scrolled and a scroll back to 0 is read
+  // as the tap. Off iOS, and while anything else holds <html>, it is a no-op.
+  // After paint, not before: it reads the container, which layout effects are
+  // still writing.
+  useEffect(() => {
+    if (s !== "container") return;
+    return enableStatusTapToTop();
+  }, [s]);
 
   // The chrome: shown the new colour whenever the colour it should show
   // changes. Not on the first resolution when it matches what the page loaded
