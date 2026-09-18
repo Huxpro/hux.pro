@@ -332,6 +332,20 @@ is no permission to ask for (everywhere but WebKit the sky is already tilting,
 and a refusal already counts as answered), or the visitor went to the picker
 and turned tilt off, or nothing is falling, or the Sky is not what paints.
 
+**And only on the system surface.** Those five are about the scene; this last
+one is about where the finger landed, so it lives in the recognizer instead:
+the press must be inside `.system-surface` — the page that has declared itself
+one OS composition rather than a document (see "System chrome / System surface"
+in `docs/design-system.md`). The wallpaper is full-page on *every* route, so
+without this an article is fair game too — and `isBackgroundPress` cannot tell
+the difference, because it asks whether anything **paints** over the wallpaper
+and a paragraph paints nothing. On an article the whole column answers
+"background", so a finger resting in the margin, or on the prose itself, would
+put a permission sheet over what somebody is reading. A long press on a
+document belongs to the reader. Keying off the class rather than a list of
+routes also means any surface that later opts into being system UI gets this
+for free, and no route knowledge lives in the ambient system.
+
 **Not a fourth easter egg.** The eggs are rewards for poking at a sky that owes
 you nothing; this is a feature explaining itself, and it stops existing once it
 has been. But it shares a background with [the gust](#stirring-the-wind-rain-and-snow-easter-egg),

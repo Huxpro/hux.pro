@@ -45,10 +45,30 @@
 // gesture WebKit wants is the button inside the sheet.
 //
 // Touch only. A mouse cannot tilt anything, and the gate this exists to open is
-// WebKit's, which is a phone's.
+// WebKit's, which is a phone's. And the system surface only — see
+// SYSTEM_SURFACE below: a long press on a document is the reader's.
 // =============================================================================
 
 import { isBackgroundPress } from "./strike";
+
+/**
+ * The page that has declared itself one OS composition rather than a document
+ * — the home screen (`app/globals.css`, "System surface"; `app/home-view.tsx`).
+ *
+ * The offer is only made there, and this is why. `isBackgroundPress` asks
+ * whether anything PAINTS over the wallpaper, which is the right question for
+ * an easter egg and the wrong one here: a paragraph paints nothing, so on an
+ * article the whole column answers "background" and a finger resting in the
+ * margin — or on the prose — would put a permission sheet over what somebody
+ * is reading. A long press on a document belongs to the reader; the system
+ * surface is where a long press belongs to the system, and that is a property
+ * the page states about itself rather than a list of routes kept in here.
+ */
+const SYSTEM_SURFACE = ".system-surface";
+
+function onSystemSurface(target: EventTarget | null): boolean {
+  return target instanceof Element && !!target.closest(SYSTEM_SURFACE);
+}
 
 /**
  * How long the finger rests before the offer comes up, ms, and how far it may
@@ -122,6 +142,7 @@ export function attachTiltPrimer(onHold: () => void): () => void {
     }
     if (event.pointerType === "mouse") return;
     if (!event.isPrimary || !isBackgroundPress(event)) return;
+    if (!onSystemSurface(event.target)) return;
     id = event.pointerId;
     startX = event.clientX;
     startY = event.clientY;
