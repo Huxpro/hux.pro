@@ -207,7 +207,8 @@ The Sky engine (`WallpaperRenderer`):
   sample for the sun-facing rim, the lighting, the silver lining — is then
   multiplied by that zero by the caller. The test is `cov <= 0.0` and not a
   threshold, so no pixel carrying any cloud is touched and the frame is
-  bit-identical; verified that way on eight scenes from clear to overcast. It is
+  bit-identical; verified that way against the version without it, over fifty
+  states built from twelve real scenes captured off the page. It is
   the single largest saving in the shader, because the rim sample is the most
   expensive thing in the frame and a clear night asks for it on nearly every
   pixel;
@@ -763,8 +764,8 @@ thunder or foggy night can never have one.
   thin annulus. `METEOR_REACH` is a bound on the light and not a look: at that
   distance the three widest profiles come to 2e-4, 0 and about 1e-9 of a level
   out of 255. It reads as free, and it measures as free — over 560 frames swept
-  across seeds, ages, click points and two viewport shapes, 537 are bit-identical
-  to the version without it and 23 differ by one level on one to four channels
+  across seeds, ages, click points and two viewport shapes, 535 are bit-identical
+  to the version without it and 25 differ by one level on one or two channels
   out of 273600, which is a rounding boundary rather than light.
 - **Drawn over the star field and under the cloud decks**, the opposite of the
   strike's channel: a meteor behind a cloud should be hidden, so a drifting deck

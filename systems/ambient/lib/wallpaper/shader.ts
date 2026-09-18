@@ -9,7 +9,6 @@
 //   fog / haze                          (low-frequency drifting veil, wipeable)
 //   lightning                           (stochastic cloud-illuminating flashes)
 //   the strike                          (one aimed bolt, on a click — a poke)
-//   the meteor                          (one aimed streak, on a click — a poke)
 //   the fog wipe                        (a swath of cleared mist — see lib/wipe.ts)
 //   rain streaks                        (hash-cell particles, falling along the wind)
 //   snow                                (depth-layered flakes, slow and fluttering)
@@ -414,8 +413,10 @@ CloudSample cloudLayer(vec2 p, vec2 sunDir, float scale, float speed, float para
   // that is very nearly every pixel, and the deck was drawing nothing for it.
   //
   // The test is exactly zero rather than a threshold, so no pixel that carries
-  // any cloud is affected and the output is bit-identical. Verified that way,
-  // on eight scenes from clear to overcast.
+  // any cloud is affected and the output is bit-identical. Verified that way
+  // against main: twelve real scenes captured off the page, day and night, each
+  // at three clock times and each also with a strike over it, plus a real fog
+  // wipe and a real gust -- fifty states, not one channel different.
   CloudSample s;
   if (cov <= 0.0) {
     s.cov = 0.0;
@@ -1027,8 +1028,8 @@ const float METEOR_PITCH_CEIL = 1.45;
  * nothing. Generous on purpose: the annulus it keeps is thin either way.
  *
  * Measured rather than argued: over 560 frames swept across seeds, ages, click
- * points and two viewport shapes, 537 come out bit-identical to the version
- * without the test and 23 differ by exactly one level on one to four channels
+ * points and two viewport shapes, 535 come out bit-identical to the version
+ * without the test and 25 differ by exactly one level on one or two channels
  * out of 273600 -- a residual of about a thousandth of a level landing on a
  * rounding boundary, not light that was dropped.
  */
