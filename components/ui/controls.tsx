@@ -153,6 +153,17 @@ export function Switch({
 // Same spec as the filter had inline, lifted here so there is one of it:
 // mono xs, a soft chip, tertiary until you point at it, `bg-muted` when it is
 // the state you are in.
+//
+// Not the only one yet. `components/log/works-toolbar.tsx` (#203) draws two
+// more of these -- the pathspec chips and the density stops -- and arrived at
+// the same rest state independently: nothing filled until something is
+// chosen. Its inks are taken here, since it is the later and more worked-out
+// reading of the same control: `text-foreground` for the chosen chip rather
+// than `text-muted-foreground`, and hover going to `foreground` rather than
+// stopping at `muted`. Two differences are left, for whoever folds the
+// toolbar onto this: it pads `px-1.5` against this file's `px-2`, and while
+// filtering it drops unchosen chips to quaternary, which is a third state
+// this has no use for yet.
 // =============================================================================
 
 export function HeaderAction({
@@ -208,8 +219,8 @@ export function HeaderAction({
         active && "bg-muted",
         variant === "segment"
           ? active
-            ? "text-muted-foreground"
-            : "text-tertiary-foreground hover:text-muted-foreground"
+            ? "text-foreground"
+            : "text-tertiary-foreground hover:text-foreground"
           : active
             ? "text-foreground"
             : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
