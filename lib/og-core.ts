@@ -11,12 +11,21 @@
  * crawl" true by construction, so drift detection compares like with like.
  */
 
+/**
+ * Whether a page lets another origin frame it. `"deny"` is the only value
+ * worth storing: a page with no `X-Frame-Options` and no `frame-ancestors`
+ * is framable by default, and "not checked" is treated the same way.
+ */
+export type FramePolicy = "allow" | "deny";
+
 /** The metadata fields a link preview is built from (sans the source URL). */
 export interface OGFields {
   title?: string;
   description?: string;
   image?: string;
   siteName?: string;
+  /** See {@link FramePolicy}. Only `"deny"` is ever persisted. */
+  frame?: FramePolicy;
 }
 
 export interface OGData extends OGFields {
@@ -37,6 +46,45 @@ export interface OGFetchResult {
   error?: string;
   /** Parsed metadata. On failure this carries only `{ siteName, url }`. */
   data: OGData;
+  /**
+   * Whether the page may be framed, read from the response headers. Present
+   * whenever a response came back at all — a 403 still says `SAMEORIGIN`,
+   * which is how Medium's refusal to be crawled still tells us it refuses
+   * to be framed.
+   */
+  frame?: FramePolicy;
+}
+
+/** The origin an in-app browser window would frame the page from. */
+const SITE_ORIGIN = "https://hux.pro";
+
+/**
+ * Read a page's framing policy from its headers, the way the browser will
+ * when the window system puts it in an iframe. `frame-ancestors` wins over
+ * `X-Frame-Options` where both are present, as the CSP spec says it must.
+ */
+export function framePolicyFromHeaders(headers: Headers): FramePolicy {
+  const csp = headers.get("content-security-policy") ?? "";
+  const ancestors = csp
+    .split(";")
+    .map((d) => d.trim())
+    .find((d) => /^frame-ancestors\b/i.test(d));
+  if (ancestors) {
+    const sources = ancestors.split(/\s+/).slice(1).map((s) => s.toLowerCase());
+    const allowed = sources.some(
+      (s) =>
+        s === "*" ||
+        s === "https:" ||
+        s === SITE_ORIGIN ||
+        s === "hux.pro" ||
+        s === "*.hux.pro" ||
+        s === "https://*.hux.pro",
+    );
+    return allowed ? "allow" : "deny";
+  }
+  const xfo = headers.get("x-frame-options")?.trim().toUpperCase();
+  if (xfo === "DENY" || xfo === "SAMEORIGIN") return "deny";
+  return "allow";
 }
 
 /**
@@ -146,17 +194,29 @@ export async function fetchOG(
         : {}),
     } as RequestInit);
 
+    const policy = framePolicyFromHeaders(response.headers);
+
     if (!response.ok) {
+      // A refusal to be crawled is a page too, and its headers still say
+      // whether it may be framed — Medium's 403 carries `SAMEORIGIN`. But a
+      // bot wall with no policy header says nothing about the real page, so
+      // only an explicit refusal is trusted from a failed fetch.
       return {
         ok: false,
         status: response.status,
         error: `HTTP ${response.status}`,
         data: { siteName: getHostname(url), url },
+        frame: policy === "deny" ? "deny" : undefined,
       };
     }
 
     const html = await response.text();
-    return { ok: true, status: response.status, data: parseOG(html, url) };
+    return {
+      ok: true,
+      status: response.status,
+      data: parseOG(html, url),
+      frame: policy,
+    };
   } catch (error) {
     return {
       ok: false,

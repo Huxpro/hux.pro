@@ -59,6 +59,12 @@ export interface LinkCardProps {
   dense?: boolean;
   /** Resolved at enrichment time — see {@link InternalLinkMeta}. */
   internal?: InternalLinkMeta;
+  /**
+   * Take a plain click instead of navigating — the attachment system opens
+   * the card its own way. Modified clicks (⌘, middle) stay the browser's,
+   * and the anchor keeps its `href` for them.
+   */
+  onOpen?: () => void;
   /** Additional CSS classes */
   className?: string;
 }
@@ -363,6 +369,7 @@ export function LinkCard({
   size = "default",
   dense = false,
   internal,
+  onOpen,
   className,
 }: LinkCardProps) {
   const { locale } = useLocale();
@@ -458,6 +465,15 @@ export function LinkCard({
       href={effectiveUrl}
       target={internal ? undefined : "_blank"}
       rel={internal ? undefined : "noopener noreferrer"}
+      onClick={
+        onOpen
+          ? (e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+              e.preventDefault();
+              onOpen();
+            }
+          : undefined
+      }
       className="block"
     >
       <CardFace

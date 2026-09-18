@@ -3,6 +3,7 @@
 import { ExternalImage } from "@/components/log/media/external-image";
 import { PlayBadge } from "@/components/log/media/play-badge";
 import { cn } from "@/lib/utils";
+import { Presentation } from "lucide-react";
 import type { Track } from "../lib/types";
 
 // ---------------------------------------------------------------------------
@@ -15,16 +16,26 @@ import type { Track } from "../lib/types";
 // focus from the cover.
 // ---------------------------------------------------------------------------
 
-const PLATFORM_LABEL: Record<Track["platform"], string> = {
+/** What the placeholder names, and the tint it takes — by platform, or by
+ *  kind for a deck, which has no platform. */
+type Source = NonNullable<Track["platform"]> | "slides";
+
+function sourceOf(track: Track): Source {
+  return track.kind === "slides" ? "slides" : track.platform;
+}
+
+const PLATFORM_LABEL: Record<Source, string> = {
   youtube: "YouTube",
   bilibili: "bilibili",
   vimeo: "Vimeo",
+  slides: "Slides",
 };
 
-const PLATFORM_TINT: Record<Track["platform"], string> = {
+const PLATFORM_TINT: Record<Source, string> = {
   youtube: "text-red-500/40 bg-red-500/5",
   bilibili: "text-[#00a1d6]/50 bg-[#00a1d6]/8",
   vimeo: "text-sky-500/40 bg-sky-500/5",
+  slides: "text-muted-foreground bg-muted/30",
 };
 
 export function TrackThumb({
@@ -60,11 +71,11 @@ export function TrackThumb({
         <div
           className={cn(
             "absolute inset-0 flex flex-col items-center justify-center gap-1",
-            PLATFORM_TINT[track.platform],
+            PLATFORM_TINT[sourceOf(track)],
           )}
         >
           <span className="text-[10px] font-mono uppercase tracking-widest select-none">
-            {PLATFORM_LABEL[track.platform]}
+            {PLATFORM_LABEL[sourceOf(track)]}
           </span>
         </div>
       )}
@@ -79,6 +90,19 @@ export function TrackThumb({
         >
           <PlayBadge size="compact" tone="glass" />
         </div>
+      )}
+      {/* The same caption chip the /works cover wears, so a deck reads as a
+          deck beside the videos in a rail. */}
+      {track.kind === "slides" && (
+        <span
+          className={cn(
+            "absolute bottom-1.5 left-1.5 inline-flex items-center gap-1",
+            "rounded-md bg-black/55 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-white/90 ring-1 ring-white/15 backdrop-blur-sm",
+          )}
+        >
+          <Presentation className="h-3 w-3" />
+          Slides
+        </span>
       )}
     </div>
   );

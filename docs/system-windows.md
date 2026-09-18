@@ -387,6 +387,13 @@ Three ways in, all routing through `useWindows()`:
 - **Over-the-air.** `openBundleUrl(url)` opens an ad-hoc Lynx window for any
   `.web.bundle` URL. Reachable from the palette action above and from the
   DevTool.
+- **In-app browser.** `openUrl(url, { title })` opens any web page in a
+  window — the same frame, pill and menu an app gets, keyed by URL so the same
+  page focuses its window rather than opening a second. This is where a link
+  card a commit attaches opens on a desktop (see
+  [Attachments System](./system-attachments.md)); pages whose headers refuse
+  framing never get here, they go to a tab. `Open in browser` in the menu is
+  the way out.
 
 ## DevTool inspector
 

@@ -14,6 +14,8 @@ import {
 
 import { SystemSonner } from "@/components/ui/system-sonner";
 import { AmbientProvider } from "@/systems/ambient";
+import { AttachmentProvider } from "@/systems/attachments";
+import { IdentityCardProvider } from "@/systems/identity";
 import { CommandProvider, useCommand } from "@/systems/command";
 import { DevtoolProvider } from "@/systems/devtool";
 import { MusicProvider } from "@/systems/music";
@@ -63,8 +65,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
                     <MusicProvider>
                       <TheaterProvider>
                         <WindowProvider>
-                          {children}
-                          <SystemSonner />
+                          <AttachmentProvider>
+                            <IdentityCardProvider>
+                              {children}
+                              <SystemSonner />
+                            </IdentityCardProvider>
+                          </AttachmentProvider>
                         </WindowProvider>
                       </TheaterProvider>
                     </MusicProvider>

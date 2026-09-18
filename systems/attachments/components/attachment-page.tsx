@@ -1,0 +1,296 @@
+"use client";
+
+import { ExternalImage } from "@/components/log/media/external-image";
+import { SocialEmbed } from "@/components/log/media/embed";
+import { PeekCover } from "@/components/log/media/peek-cover";
+import { PlayBadge } from "@/components/log/media/play-badge";
+import { cn } from "@/lib/utils";
+import { t, useLocale } from "@/services";
+import {
+  getMediaThumbnail,
+  isImageMedia,
+  isLinkMedia,
+  isSlidesMedia,
+  isSocialEmbedMedia,
+  isVideoMedia,
+  type Media,
+} from "@/lib/log";
+import { getDomainLabel, isVideoLinkHost } from "@/lib/og-core";
+import { TYPE } from "@/lib/typography";
+import {
+  GLASS_ACTION,
+  GLASS_CLUSTER,
+  GLASS_PILL,
+} from "@/systems/theater/lib/chrome";
+import {
+  ArrowUpRight,
+  BookOpen,
+  Image as ImageIcon,
+  Play,
+  Presentation,
+} from "lucide-react";
+import type { ReactNode } from "react";
+import { isInternalLink, linkTarget } from "../lib/policy";
+import type { AttachmentSet } from "../lib/types";
+import { useAttachments } from "../provider";
+
+// =============================================================================
+// AttachmentPage — one attachment, at full width, with its native action.
+//
+// A page is the attachment shown large — the cover of a video or a deck, the
+// whole of a link card, an image, a live social widget — over a title line
+// and a row of actions. The first action is the thing itself (`Watch`,
+// `Slides`, `Read`, `Visit`): the provider's `act`, which sends the item to
+// its native home from wherever the surface is standing. The second is the
+// way out to the source, always a real link.
+//
+// Chrome is the theater's (lib/chrome.ts): a frosted cluster holding mono
+// uppercase actions, the primary one lifted on the glass pill, the same
+// material the PiP bar and the Live Activity wear. The surface and the stage
+// are one system, and their controls should say so.
+// =============================================================================
+
+interface AttachmentPageProps {
+  set: AttachmentSet;
+  index: number;
+}
+
+/** A cover the page action opens — a stage-shaped 16:9 box with a play mark. */
+function Cover({
+  image,
+  label,
+  chip,
+  onOpen,
+}: {
+  image: string | null;
+  label: string;
+  /** Caption chip at the corner — `Slides`, the way the /works cover marks a deck. */
+  chip?: ReactNode;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={label}
+      className={cn(
+        "group/thumb relative block w-full aspect-video overflow-hidden rounded-xl",
+        "border border-border/50 bg-muted/20 text-left",
+        "pressable outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
+      )}
+    >
+      {image ? (
+        <ExternalImage
+          src={image}
+          alt=""
+          loading="eager"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : (
+        <span className="absolute inset-0 flex items-center justify-center">
+          <Presentation className="h-10 w-10 text-tertiary-foreground" />
+        </span>
+      )}
+      <span className="absolute inset-0 bg-black/0 transition-colors group-hover/thumb:bg-black/10">
+        <PlayBadge tone="glass" className="transition-transform group-hover/thumb:scale-105" />
+      </span>
+      {chip}
+    </button>
+  );
+}
+
+function SlidesChip() {
+  return (
+    <span
+      className={cn(
+        "absolute bottom-2 left-2 inline-flex items-center gap-1",
+        "rounded-md bg-black/55 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-white/90 ring-1 ring-white/15 backdrop-blur-sm",
+      )}
+    >
+      <Presentation className="h-3 w-3" />
+      Slides
+    </span>
+  );
+}
+
+/** The action row: the primary action on the pill, the way out beside it. */
+function Actions({
+  primary,
+  href,
+  hrefLabel,
+}: {
+  primary: { label: string; icon: ReactNode; onSelect: () => void };
+  /** The attachment's own address — a real link, for the browser's gestures. */
+  href: string;
+  hrefLabel: string;
+}) {
+  return (
+    <div className={cn(GLASS_CLUSTER, "system-chrome")}>
+      <button
+        type="button"
+        onClick={primary.onSelect}
+        className={cn(GLASS_ACTION, GLASS_PILL, "h-8 px-3.5 text-foreground")}
+      >
+        {primary.icon}
+        {primary.label}
+      </button>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn(GLASS_ACTION, "h-8 px-3")}
+      >
+        <span className="max-w-[10rem] truncate">{hrefLabel}</span>
+        <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
+      </a>
+    </div>
+  );
+}
+
+/** The commit's title and venue, the way the theater's top bar prints them. */
+function Meta({ set }: { set: AttachmentSet }) {
+  return (
+    <div className="min-w-0">
+      <div className={cn("truncate", TYPE.mediaTitle)}>{set.title}</div>
+      {set.subtitle && (
+        <div className={cn("mt-0.5 truncate", TYPE.labelWide)}>
+          {set.subtitle}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function AttachmentPage({ set, index }: AttachmentPageProps) {
+  const { act } = useAttachments();
+  const { locale } = useLocale();
+  const media: Media | undefined = set.items[index];
+  if (!media) return null;
+
+  const open = () => act(set, index);
+
+  if (isVideoMedia(media) || isSlidesMedia(media)) {
+    const slides = isSlidesMedia(media);
+    const label = t(locale, slides ? "logSlides" : "logWatch");
+    return (
+      <div className="space-y-4">
+        <Cover
+          image={getMediaThumbnail(media)}
+          label={label}
+          chip={slides ? <SlidesChip /> : undefined}
+          onOpen={open}
+        />
+        <Meta set={set} />
+        <Actions
+          primary={{
+            label,
+            icon: slides ? (
+              <Presentation className="h-3.5 w-3.5" />
+            ) : (
+              <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />
+            ),
+            onSelect: open,
+          }}
+          href={media.url}
+          hrefLabel={getDomainLabel(media.url)}
+        />
+      </div>
+    );
+  }
+
+  if (isLinkMedia(media)) {
+    const url = linkTarget(media, locale);
+    const internal = isInternalLink(media);
+    const preview = media.previews?.[locale] ?? media.preview;
+    const domain = internal ? "/writing" : getDomainLabel(url);
+    const playable = isVideoLinkHost(url);
+    const label = t(locale, internal ? "logRead" : playable ? "logWatch" : "logVisit");
+    return (
+      <div className="space-y-4">
+        {preview?.image ? (
+          <div className="relative overflow-hidden rounded-xl border border-border/50 bg-muted/20">
+            <PeekCover
+              src={preview.image}
+              fit={preview.fit ?? "natural"}
+              aspect={preview.aspect}
+              className="rounded-none border-0"
+            />
+            {playable && <PlayBadge tone="glass" />}
+          </div>
+        ) : (
+          <div className="flex aspect-[2/1] items-center justify-center rounded-xl border border-border/50 bg-muted/10">
+            <ImageIcon className="h-8 w-8 text-quaternary-foreground" />
+          </div>
+        )}
+        <div className="min-w-0 space-y-1">
+          <div className={TYPE.labelSm}>{domain}</div>
+          <div className={TYPE.mediaTitle}>{preview?.title || domain}</div>
+          {preview?.description && (
+            <p className={cn(TYPE.caption, "line-clamp-4")}>
+              {preview.description}
+            </p>
+          )}
+        </div>
+        <Actions
+          primary={{
+            label,
+            icon: internal ? (
+              <BookOpen className="h-3.5 w-3.5" />
+            ) : playable ? (
+              <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />
+            ) : (
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            ),
+            onSelect: open,
+          }}
+          href={url}
+          hrefLabel={domain}
+        />
+      </div>
+    );
+  }
+
+  if (isImageMedia(media)) {
+    return (
+      <div className="space-y-4">
+        <figure className="overflow-hidden rounded-xl border border-border/50 bg-muted/10">
+          <ExternalImage
+            src={media.url}
+            alt={media.alt ?? ""}
+            loading="eager"
+            className="block h-auto w-full"
+          />
+        </figure>
+        {media.alt && <p className={TYPE.caption}>{media.alt}</p>}
+        <Actions
+          primary={{
+            label: t(locale, "logVisit"),
+            icon: <ArrowUpRight className="h-3.5 w-3.5" />,
+            onSelect: open,
+          }}
+          href={media.url}
+          hrefLabel={getDomainLabel(media.url)}
+        />
+      </div>
+    );
+  }
+
+  if (isSocialEmbedMedia(media)) {
+    return (
+      <div className="space-y-4">
+        <SocialEmbed url={media.url} platform={media.platform} />
+        <Actions
+          primary={{
+            label: t(locale, "logVisit"),
+            icon: <ArrowUpRight className="h-3.5 w-3.5" />,
+            onSelect: open,
+          }}
+          href={media.url}
+          hrefLabel={getDomainLabel(media.url)}
+        />
+      </div>
+    );
+  }
+
+  return null;
+}

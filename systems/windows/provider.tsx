@@ -42,6 +42,13 @@ interface WindowContextType {
   openApp: (app: AppLink) => void;
   /** Open (or focus) an ad-hoc Lynx window for an arbitrary `.web.bundle` URL. */
   openBundleUrl: (url: string, opts?: { title?: string; flavor?: "react" | "vue" }) => void;
+  /**
+   * Open (or focus) a web page in a window — the in-app browser. A link a
+   * commit attaches opens here on a desktop rather than leaving the site, the
+   * way a link in a mobile app opens in its own in-app browser. The window is
+   * the same one an app gets: `Open in browser` in its menu is the way out.
+   */
+  openUrl: (url: string, opts?: { title?: string; id?: string }) => void;
   close: (id: string) => void;
   /** Bring a window to the front and mark it focused. */
   focus: (id: string) => void;
@@ -117,6 +124,14 @@ function soloOnPhone(
   return list.map((w) =>
     w.id === id || w.mode === "minimized" ? w : { ...w, mode: "minimized" },
   );
+
+/** The window title for a page that arrives without one: its host. */
+function urlTitle(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "Web";
+  }
 }
 
 function bundleTitle(url: string): string {
@@ -202,6 +217,21 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
         runtime: "lynx",
         flavor: opts?.flavor ?? "react",
         bundleUrl: url,
+      });
+    },
+    [openApp],
+  );
+
+  const openUrl = useCallback(
+    (url: string, opts?: { title?: string; id?: string }) => {
+      // Keyed by URL: opening the same page twice focuses the window it is
+      // already in, exactly as an app would.
+      openApp({
+        id: opts?.id ?? `url:${url}`,
+        title: opts?.title ?? urlTitle(url),
+        url,
+        runtime: "web",
+        size: "landscape",
       });
     },
     [openApp],
@@ -338,6 +368,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
       windows,
       openApp,
       openBundleUrl,
+      openUrl,
       close,
       focus,
       minimize,
@@ -352,6 +383,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
       windows,
       openApp,
       openBundleUrl,
+      openUrl,
       close,
       focus,
       minimize,

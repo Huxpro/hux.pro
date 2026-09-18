@@ -51,6 +51,11 @@ interface SurfaceSwitchProps {
   current: TheaterSurface;
   /** Hide Theater on phone-sized viewports. */
   theaterAvailable?: boolean;
+  /**
+   * Hide Audio. A slide deck has no sound to keep listening to, so the move
+   * that parks the stage and keeps the audio is not a move it can make.
+   */
+  audioAvailable?: boolean;
   tone?: "default" | "onDark";
   /** Text labels (Live Activity). Icon-only in the tight PiP / theater bars. */
   labels?: boolean;
@@ -66,6 +71,7 @@ interface SurfaceSwitchProps {
 export function SurfaceSwitch({
   current,
   theaterAvailable = true,
+  audioAvailable = true,
   tone = "default",
   labels = false,
   framed = true,
@@ -78,9 +84,13 @@ export function SurfaceSwitch({
   const trackRef = useRef<HTMLDivElement>(null);
   const [pill, setPill] = useState({ x: 0, y: 0, width: 0, height: 0, ready: false });
 
-  const surfaces: TheaterSurface[] = theaterAvailable
-    ? ["theater", "pip", "mini"]
-    : ["pip", "mini"];
+  const surfaces: TheaterSurface[] = (
+    ["theater", "pip", "mini"] as TheaterSurface[]
+  ).filter(
+    (surface) =>
+      (surface !== "theater" || theaterAvailable) &&
+      (surface !== "mini" || audioAvailable),
+  );
 
   const measure = useCallback(() => {
     const root = trackRef.current;
@@ -103,7 +113,7 @@ export function SurfaceSwitch({
     const observer = new ResizeObserver(measure);
     observer.observe(root);
     return () => observer.disconnect();
-  }, [current, labels, locale, theaterAvailable, measure]);
+  }, [current, labels, locale, theaterAvailable, audioAvailable, measure]);
 
   return (
     <div

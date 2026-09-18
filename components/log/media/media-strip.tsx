@@ -11,10 +11,11 @@
  * work on screen.
  *
  * It is not a picture of the row: the thumbs are the real affordances, wired
- * to the same destinations the expanded block gives you. A video opens the
- * theater, a deck opens the slides player, everything else is an outbound
- * link. Nothing here needs a pointer, which is the other half of the point —
- * the hover peek this stands beside has never existed on a phone.
+ * to the same door the expanded block opens — the attachment system, which
+ * sends a video to the theater, a deck to the stage, a card to an in-app
+ * window on a desktop, and everything to the attachment sheet on a phone.
+ * Nothing here needs a pointer, which is the other half of the point — the
+ * hover peek this stands beside has never existed on a phone.
  *
  * Deliberately chrome-light: rounded covers, a mini play mark where one is
  * warranted, nothing else. Titles live on the row above and the commit's own
@@ -24,14 +25,12 @@
  */
 
 import { cn } from "@/lib/utils";
-import { useOptionalTheater } from "@/systems/theater";
+import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import type { Media, StripItem } from "@/lib/log";
 import { isSlidesMedia, isVideoMedia } from "@/lib/log";
 import { getDomainLabel } from "@/lib/og-core";
 import { ExternalImage } from "./external-image";
 import { PlayBadge } from "./play-badge";
-import { resolveSlidesEmbedUrl } from "./slides";
-import { useSlidesPlayer } from "./slides-player";
 
 export interface MediaStripProps {
   /**
@@ -41,6 +40,12 @@ export interface MediaStripProps {
    * the hover peek is redundant — without building the list twice.
    */
   items: StripItem[];
+  /**
+   * The commit's attachments as one set (see systems/attachments). A cover
+   * opens the set at its own item; without a set, or outside the provider,
+   * covers are plain outbound links.
+   */
+  set?: AttachmentSet | null;
   className?: string;
 }
 
@@ -54,31 +59,19 @@ function labelFor({ media }: StripItem): string {
   return getDomainLabel(media.url);
 }
 
-export function MediaStrip({ items, className }: MediaStripProps) {
-  const theater = useOptionalTheater();
-  const slidesPlayer = useSlidesPlayer();
+export function MediaStrip({ items, set, className }: MediaStripProps) {
+  const attachments = useOptionalAttachments();
 
   if (items.length === 0) return null;
 
-  /** Open `media` in-site when we have a player for it. Reports whether it
-   *  took the click, so the caller knows whether to suppress the anchor. */
+  /** Open `media` through the attachment system. Reports whether it took the
+   *  click, so the caller knows whether to suppress the anchor. */
   const openInSite = (media: Media): boolean => {
-    if (isSlidesMedia(media) && slidesPlayer.hasProvider) {
-      slidesPlayer.open({
-        url: resolveSlidesEmbedUrl(media.url),
-        title: media.title || "Slides",
-      });
-      return true;
-    }
-    if (isVideoMedia(media) && theater) {
-      theater.openVideo({
-        url: media.url,
-        platform: media.platform,
-        thumbnail: media.thumbnail,
-      });
-      return true;
-    }
-    return false;
+    if (!attachments || !set) return false;
+    const index = set.items.indexOf(media);
+    if (index < 0) return false;
+    attachments.open(set, index);
+    return true;
   };
 
   return (
@@ -104,9 +97,9 @@ export function MediaStrip({ items, className }: MediaStripProps) {
         const label = labelFor(item);
 
         return (
-          // An anchor even when a player will take the click: that keeps
-          // ⌘-click, middle-click and "copy link address" working, and
-          // leaves a real destination when the theater isn't mounted.
+          // An anchor even when the attachment system will take the click:
+          // that keeps ⌘-click, middle-click and "copy link address" working,
+          // and leaves a real destination when the provider isn't mounted.
           <a
             key={`${item.media.url}-${i}`}
             href={item.media.url}

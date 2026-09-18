@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/services/theme";
 import { useLocale } from "@/services";
 import { useOptionalTheater } from "@/systems/theater";
+import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import type { Media } from "@/lib/log";
 import {
   isVideoMedia,
@@ -53,6 +54,13 @@ export interface MediaRendererProps {
   onInspect?: (media: Media) => void;
   /** The media item currently focused in the Inspector, if any. */
   selectedMedia?: Media | null;
+  /**
+   * The commit's attachments as one set (see systems/attachments). With it, a
+   * cover or a card opens the set at its own item — the theater, an in-app
+   * window, the attachment sheet, per viewport. Without it (MDX, the editor
+   * preview), players play inline and cards are plain links, as before.
+   */
+  set?: AttachmentSet | null;
 }
 
 function InspectableMedia({
@@ -125,15 +133,26 @@ interface SingleMediaProps {
    * description on mobile and let the title use the freed lines.
    */
   dense?: boolean;
+  /** See {@link MediaRendererProps.set}. */
+  set?: AttachmentSet | null;
 }
 
 // =============================================================================
 // Single Media Dispatcher
 // =============================================================================
 
-function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps) {
+function SingleMedia({ media, theme, size, className, dense, set }: SingleMediaProps) {
   const { locale } = useLocale();
   const theater = useOptionalTheater();
+  const attachments = useOptionalAttachments();
+
+  // One door for the whole set (systems/attachments): the item's index in it,
+  // when this media belongs to one and a provider is mounted to open it.
+  const index = set && attachments ? set.items.indexOf(media) : -1;
+  const openAttachment =
+    index >= 0 && set && attachments
+      ? () => attachments.open(set, index)
+      : undefined;
 
   if (isVideoMedia(media)) {
     return (
@@ -143,14 +162,15 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
         thumbnail={media.thumbnail}
         size={size}
         onPlay={
-          theater
+          openAttachment ??
+          (theater
             ? () =>
                 theater.openVideo({
                   url: media.url,
                   platform: media.platform,
                   thumbnail: media.thumbnail,
                 })
-            : undefined
+            : undefined)
         }
       />
     );
@@ -164,6 +184,7 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
         title={media.title}
         size={size}
         className={className}
+        onPlay={openAttachment}
       />
     );
   }
@@ -196,6 +217,7 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
           description={preview?.description}
           image={preview?.image}
           internal={media.internal}
+          onOpen={openAttachment}
           className={className}
         />
       );
@@ -211,7 +233,20 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
   }
 
   if (isImageMedia(media)) {
-    return <Figure url={media.url} alt={media.alt} size={size} />;
+    const figure = <Figure url={media.url} alt={media.alt} size={size} />;
+    if (!openAttachment) return figure;
+    // A still opens large in the attachment surface; the figure is the
+    // button, with nothing drawn on it.
+    return (
+      <button
+        type="button"
+        onClick={openAttachment}
+        aria-label={media.alt || "Open image"}
+        className="block text-left outline-none focus-visible:ring-1 focus-visible:ring-foreground/20 rounded-lg"
+      >
+        {figure}
+      </button>
+    );
   }
 
   // Exhaustive — should be unreachable under the discriminated union.
@@ -317,6 +352,7 @@ export function MediaRenderer({
   inspecting = false,
   onInspect,
   selectedMedia = null,
+  set = null,
 }: MediaRendererProps) {
   // Use site theme from context, allow prop override.
   const { theme: siteTheme } = useTheme();
@@ -371,7 +407,7 @@ export function MediaRenderer({
           wrap(
             `pill-${i}`,
             m,
-            <SingleMedia media={m} theme={theme} size={size} />,
+            <SingleMedia media={m} theme={theme} size={size} set={set} />,
             true,
           ),
         )}
@@ -416,6 +452,7 @@ export function MediaRenderer({
                   theme={theme}
                   size="compact"
                   dense
+                  set={set}
                   className="w-full max-w-none"
                 />,
               )}
@@ -427,7 +464,7 @@ export function MediaRenderer({
           wrap(
             `rich-${i}`,
             m,
-            <SingleMedia media={m} theme={theme} size={size} />,
+            <SingleMedia media={m} theme={theme} size={size} set={set} />,
           ),
         )
       )}
@@ -439,7 +476,7 @@ export function MediaRenderer({
             wrap(
               `pill-${i}`,
               m,
-              <SingleMedia media={m} theme={theme} size={size} />,
+              <SingleMedia media={m} theme={theme} size={size} set={set} />,
               true,
             ),
           )}

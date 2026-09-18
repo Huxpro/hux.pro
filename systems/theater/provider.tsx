@@ -97,6 +97,14 @@ interface TheaterContextValue {
    * it as a one-off while still exposing the curated albums to switch to.
    */
   openVideo: (input: OpenVideoInput) => void;
+  /**
+   * Open an album built elsewhere — a commit's own attachments, say — at one
+   * of its tracks. A video the curated albums already hold opens there
+   * instead, so a click on /works lands inside the right playlist with full
+   * navigation context; anything else plays from the given album, with the
+   * curated ones still a tab away.
+   */
+  openAlbum: (album: Album, trackIndex?: number, mode?: TheaterMode) => void;
   close: () => void;
   minimize: () => void;
   restore: () => void;
@@ -459,6 +467,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       // available to switch into.
       const track: Track = {
         id: input.id ?? input.url,
+        kind: "video",
         platform: input.platform,
         url: input.url,
         videoId,
@@ -476,6 +485,42 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       });
     },
     [registeredAlbums, open],
+  );
+
+  /** Where a track already lives in the curated albums, if anywhere. */
+  const findCurated = useCallback(
+    (track: Track): { albumIndex: number; trackIndex: number } | null => {
+      if (track.kind !== "video") return null;
+      for (let a = 0; a < registeredAlbums.length; a++) {
+        const idx = registeredAlbums[a].tracks.findIndex(
+          (tk) =>
+            tk.url === track.url ||
+            (track.videoId && tk.videoId && tk.videoId === track.videoId),
+        );
+        if (idx >= 0) return { albumIndex: a, trackIndex: idx };
+      }
+      return null;
+    },
+    [registeredAlbums],
+  );
+
+  const openAlbum = useCallback(
+    (album: Album, trackIndex = 0, m?: TheaterMode) => {
+      const track = album.tracks[trackIndex];
+      if (!track) return;
+      const curated = findCurated(track);
+      if (curated) {
+        open({ albums: registeredAlbums, ...curated, mode: m });
+        return;
+      }
+      open({
+        albums: [album, ...registeredAlbums],
+        albumIndex: 0,
+        trackIndex,
+        mode: m,
+      });
+    },
+    [findCurated, open, registeredAlbums],
   );
 
   const close = useCallback(() => {
@@ -594,6 +639,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     open,
     openTrack,
     openVideo,
+    openAlbum,
     close,
     minimize,
     restore,

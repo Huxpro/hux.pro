@@ -1,26 +1,34 @@
 "use client";
 
 /**
- * Slides — cover + in-site player for HTML reveal.js decks.
+ * Slides — the cover for an HTML reveal.js deck.
  *
- * Clicking the cover opens the shared SlideModal (~80% viewport) via
- * SlidesPlayerProvider, so visitors can step through the deck without
- * leaving the works timeline. A subtle "Slides" caption keeps the cover
- * distinguishable from video players when both appear in a rail.
+ * A deck plays on the theater's stage, beside the videos (see
+ * systems/theater: a `slides` track). The cover hands the click to `onPlay`
+ * when the caller routes it — the attachment system does, per viewport — and
+ * otherwise opens the deck itself: in the theater where there is one, in a
+ * new tab where there is not (a phone, or a page without the provider). A
+ * subtle "Slides" caption keeps the cover distinguishable from video covers
+ * when both appear in a rail.
  */
 
-import { useState } from "react";
 import { Presentation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SlidesMedia } from "@/lib/log";
+import { resolveSlidesEmbedUrl } from "@/lib/slides";
+import { useOptionalTheater } from "@/systems/theater";
+import { mediaToTrack } from "@/systems/theater/lib/albums";
 import { ExternalImage } from "./external-image";
 import { PlayBadge } from "./play-badge";
-import {
-  useSlidesPlayer,
-  prefersSlidesModal,
-  openSlidesInNewTab,
-} from "./slides-player";
-import { SlideModal } from "./slide-modal";
+
+export { isPlayableSlidesUrl, resolveSlidesEmbedUrl } from "@/lib/slides";
+
+/** Open a deck in its own tab — the phone path, and the no-theater path. */
+export function openSlidesInNewTab(url: string): void {
+  if (typeof window !== "undefined") {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
 
 // =============================================================================
 // Types
@@ -37,126 +45,14 @@ export interface SlidesProps {
   size?: "compact" | "default" | "large";
   /** Additional CSS classes. */
   className?: string;
+  /** Take the click instead of opening the deck here. */
+  onPlay?: () => void;
 }
 
 export interface SlidesPropsFromMedia {
   media: SlidesMedia;
   size?: "compact" | "default" | "large";
   className?: string;
-}
-
-// =============================================================================
-// Known deck detection (optional auto-route helper for <Media />)
-// =============================================================================
-
-/**
- * Paths that host self-contained reveal.js decks (not the wrapping keynote
- * blog posts under /YYYY/MM/DD/). Keep in sync with the slide repos under
- * github.com/Huxpro — served from huxpro.github.io (CNAME → og.hux.pro).
- *
- * `huangxuan.me/<deck>` used to work, but that domain now redirects to
- * hux.pro (which 404s these paths), so playable links must go through
- * huxpro.github.io.
- */
-const SLIDE_DECK_PATHS = [
-  "/js-module-7day",
-  "/css-sucks-2015",
-  "/pwa-in-my-pov",
-  "/pwa-qcon2016",
-  "/sw-101-gdgdf",
-  "/jsconfcn2017",
-];
-
-/** Canonical host for playable decks after the huangxuan.me → hux.pro cutover. */
-const SLIDES_HOST = "https://huxpro.github.io";
-
-const SLIDES_HOSTS = new Set([
-  "huxpro.github.io",
-  "og.hux.pro",
-  // Legacy — still recognized so we can rewrite to huxpro.github.io.
-  "huangxuan.me",
-  "www.huangxuan.me",
-]);
-
-function deckPathFromUrl(parsed: URL): string | null {
-  const path = parsed.pathname.replace(/\/+$/, "") || "/";
-  const deck = SLIDE_DECK_PATHS.find(
-    (p) => path === p || path.startsWith(`${p}/`),
-  );
-  return deck ?? null;
-}
-
-/**
- * True when `url` points at a playable HTML slide deck we can iframe.
- * Recognizes huxpro.github.io / og.hux.pro decks, legacy huangxuan.me
- * paths, and Wayback snapshots of the same.
- */
-export function isPlayableSlidesUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    const host = parsed.hostname.toLowerCase();
-
-    // Wayback Machine: …/web/<ts>/https://huangxuan.me/<deck>/
-    if (host.includes("web.archive.org")) {
-      const m = parsed.pathname.match(
-        /\/web\/\d+(?:id_)?\/(https?:\/\/.+)$/i,
-      );
-      if (m?.[1]) return isPlayableSlidesUrl(m[1]);
-      return false;
-    }
-
-    if (!SLIDES_HOSTS.has(host)) return false;
-    return deckPathFromUrl(parsed) !== null;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Normalize a deck URL to the playable huxpro.github.io host.
- *
- * - Legacy `huangxuan.me/<deck>` → `huxpro.github.io/<deck>/` (huangxuan.me
- *   now 302s to hux.pro, which 404s these paths).
- * - Wayback snapshots unwrap to the live deck, then rewrite as above.
- * - `og.hux.pro` (the GitHub Pages CNAME) is accepted as already playable
- *   and left alone so we don't bounce through an extra redirect.
- */
-export function resolveSlidesEmbedUrl(url: string): string {
-  try {
-    let parsed = new URL(url);
-
-    if (parsed.hostname.toLowerCase().includes("web.archive.org")) {
-      const m = parsed.pathname.match(
-        /\/web\/\d+(?:id_)?\/(https?:\/\/.+)$/i,
-      );
-      if (!m?.[1] || !isPlayableSlidesUrl(m[1])) return url;
-      parsed = new URL(m[1]);
-    }
-
-    const host = parsed.hostname.toLowerCase();
-    if (!SLIDES_HOSTS.has(host)) return url;
-
-    const deck = deckPathFromUrl(parsed);
-    if (!deck) return url;
-
-    // og.hux.pro already serves the deck — keep hash/query for deep links.
-    if (host === "og.hux.pro" || host === "huxpro.github.io") {
-      const out = new URL(`${SLIDES_HOST}${deck}/`);
-      out.search = parsed.search;
-      out.hash = parsed.hash;
-      // Prefer the authored github.io host even when given og.hux.pro, so
-      // "Open fullscreen" / mobile new-tab links stay on huxpro.github.io.
-      return out.toString();
-    }
-
-    // Legacy huangxuan.me → huxpro.github.io
-    const out = new URL(`${SLIDES_HOST}${deck}/`);
-    out.search = parsed.search;
-    out.hash = parsed.hash;
-    return out.toString();
-  } catch {
-    return url;
-  }
 }
 
 // =============================================================================
@@ -169,9 +65,9 @@ export function Slides({
   title,
   size = "default",
   className,
+  onPlay,
 }: SlidesProps) {
-  const player = useSlidesPlayer();
-  const [localOpen, setLocalOpen] = useState(false);
+  const theater = useOptionalTheater();
   const embedUrl = resolveSlidesEmbedUrl(url);
   const label = title || "Slides";
 
@@ -182,17 +78,24 @@ export function Slides({
   };
 
   const play = () => {
-    // Inside the provider, `open` already routes phones to a new tab.
-    if (player.hasProvider) {
-      player.open({ url: embedUrl, title: label });
+    if (onPlay) {
+      onPlay();
       return;
     }
-    // Standalone (MDX) path: mirror that decision locally.
-    if (!prefersSlidesModal()) {
-      openSlidesInNewTab(embedUrl);
-      return;
+    // Standalone (an MDX `<Media as="slides" />`): the theater when the
+    // viewport can hold one — a deck in a phone's PiP is unreadable — and
+    // the deck's own tab otherwise.
+    if (theater?.theaterAvailable) {
+      const track = mediaToTrack(
+        { kind: "slides", url, thumbnail, title },
+        { id: url, title: label },
+      );
+      if (track) {
+        theater.openAlbum({ id: `adhoc-${url}`, title: label, tracks: [track] });
+        return;
+      }
     }
-    setLocalOpen(true);
+    openSlidesInNewTab(embedUrl);
   };
 
   return (
@@ -240,15 +143,6 @@ export function Slides({
           Slides
         </span>
       </button>
-
-      {!player.hasProvider && (
-        <SlideModal
-          open={localOpen}
-          onClose={() => setLocalOpen(false)}
-          src={embedUrl}
-          title={label}
-        />
-      )}
     </>
   );
 }

@@ -43,6 +43,20 @@ If an embed can't be crawled **and** has no manual `preview`, `og:snapshot` fail
 
 Manual previews are skipped by the crawler (you've taken ownership), so they never appear as drift or as a flaky failure.
 
+## Framing policy
+
+The crawl also reads each page's `X-Frame-Options` and `Content-Security-
+Policy: frame-ancestors`, the headers the browser will honour when the window
+system puts the page in an iframe (the desktop's in-app browser — see
+[system-attachments.md](./system-attachments.md)). A page that refuses is
+stored as `frame: "deny"` on its entry; a page that may be framed stores
+nothing, so the field reads as the exception it is. Only an explicit refusal
+is trusted from a failed fetch: a bot wall that says nothing about framing is
+not read as permission. Cards with a manual `preview` still get a
+headers-only look, so Medium's `SAMEORIGIN` lands even though its OG data
+never will. Enrichment carries the answer to `preview.frame`; a page the
+crawl cannot reach can be told by hand with `preview: { frame: "deny" }`.
+
 ## Drift / stale detection (stale-while-revalidate)
 
 - **Primary:** `pnpm og:check` in CI re-crawls and fails if the committed snapshot differs from live — your signal to regenerate ("invalidate the cache").

@@ -13,16 +13,19 @@ import ogSnapshotJson from "@/content/og-snapshot.json";
 import type { Locale } from "@/lib/i18n";
 import {
   type Commit,
+  type Media,
   type RawLogData,
   type VideoMedia,
   getCommitThumbnail,
   getMediaThumbnail,
+  isSlidesMedia,
   isVideoMedia,
   localize,
   normalizeLogData,
   resolveGroupCommits,
 } from "@/lib/log";
 import { enrichLogDataWithPreviews, type OGSnapshot } from "@/lib/og-enrich";
+import { resolveSlidesEmbedUrl } from "@/components/log/media/slides";
 import { resolveVideoId } from "./player";
 import type { Album, Track } from "./types";
 
@@ -67,6 +70,7 @@ function commitToTrack(commit: Commit, locale: Locale): Track | null {
   if (!video) return null;
   return {
     id: commit.id,
+    kind: "video",
     platform: video.platform,
     url: video.url,
     videoId: resolveVideoId(video.url, video.platform),
@@ -104,4 +108,67 @@ export function buildTalkAlbums(locale: Locale): Album[] {
 /** Build a one-off album for a video that isn't part of the curated set. */
 export function adHocAlbum(track: Track, title: string): Album {
   return { id: `adhoc-${track.id}`, title, tracks: [track] };
+}
+
+/** True for media the theater can put on its stage. */
+export function isTheaterMedia(media: Media): boolean {
+  return isVideoMedia(media) || isSlidesMedia(media);
+}
+
+/**
+ * One track for one piece of media, or null for media the stage cannot hold
+ * (a link card, an image, a social widget). `id` must be unique within the
+ * album — the caller derives it from the commit and the media's position.
+ */
+export function mediaToTrack(
+  media: Media,
+  meta: { id: string; title: string; subtitle?: string; href?: string },
+): Track | null {
+  if (isVideoMedia(media)) {
+    return {
+      ...meta,
+      kind: "video",
+      platform: media.platform,
+      url: media.url,
+      videoId: resolveVideoId(media.url, media.platform),
+      thumbnail: getMediaThumbnail(media),
+    };
+  }
+  if (isSlidesMedia(media)) {
+    return {
+      ...meta,
+      kind: "slides",
+      // The deck's playable address, not the page that wraps it — legacy
+      // huangxuan.me links and Wayback snapshots resolve to the live deck.
+      url: resolveSlidesEmbedUrl(media.url),
+      title: media.title || meta.title,
+      thumbnail: getMediaThumbnail(media),
+    };
+  }
+  return null;
+}
+
+/**
+ * A commit as an album: every video and deck it carries, in authored order,
+ * so prev / next inside the theater walk the commit's own attachments before
+ * anything else. Empty when it holds nothing the stage can play.
+ */
+export function commitAlbum(commit: {
+  id: string;
+  title: string;
+  subtitle?: string;
+  href?: string;
+  media: readonly Media[];
+}): Album {
+  const tracks: Track[] = [];
+  commit.media.forEach((m, i) => {
+    const track = mediaToTrack(m, {
+      id: `${commit.id}#${i}`,
+      title: commit.title,
+      subtitle: commit.subtitle,
+      href: commit.href,
+    });
+    if (track) tracks.push(track);
+  });
+  return { id: `commit-${commit.id}`, title: commit.title, tracks };
 }

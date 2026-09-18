@@ -1002,7 +1002,10 @@
         {
           "kind": "link",
           "url": "https://www.theverge.com/2022/2/25/22950710/meta-vr-ar-os-team-xros-breakup-hyper-tuned-focus",
-          "present": "card"
+          "present": "card",
+          "preview": {
+            "frame": "deny"
+          }
         }
       ]
     },

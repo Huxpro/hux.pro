@@ -19,8 +19,14 @@ export {
 export {
   buildTalkAlbums,
   adHocAlbum,
+  commitAlbum,
+  isTheaterMedia,
+  mediaToTrack,
   resolveVideoId,
   type Album,
   type Track,
+  type TrackKind,
+  type VideoTrack,
+  type SlidesTrack,
   type TheaterMode,
 } from "./lib";

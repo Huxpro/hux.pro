@@ -76,6 +76,10 @@ function mergePreview(
     description: sources.find((s) => s?.description)?.description,
     image: sources.find((s) => s?.image)?.image,
   };
+  // The framing policy rides along with whatever else the card knows: a
+  // manual preview says nothing about it, so the snapshot's answer stands.
+  const frame = sources.find((s) => s?.frame)?.frame;
+  if (frame) merged.frame = frame;
   if (!merged.title && !merged.description && !merged.image) return undefined;
   return merged;
 }

@@ -17,6 +17,7 @@ import { getCommitPeekItems, localize } from "@/lib/log";
 import { DEFAULT_DENSITY, type LogDensity } from "@/lib/log-view";
 import { GLASS_PANEL } from "@/lib/glass";
 import { cn } from "@/lib/utils";
+import { attachmentSetFor } from "@/systems/attachments";
 import { ExternalImage } from "./media/external-image";
 import { CardFace } from "./media/link";
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
@@ -104,6 +105,11 @@ export function Commit({
 
   const data = normalizeCommit(commit, locale);
   const preview = buildCommitPreview(commit, locale);
+  // Everything the commit attaches, as the one set every affordance on the
+  // row opens (systems/attachments). Not while inspecting: the editor's
+  // clicks select, they do not open.
+  const attachmentSet =
+    edit?.mode === "inspect" ? null : attachmentSetFor(commit, locale);
   const inspecting = edit?.mode === "inspect";
   const isSelected = !!edit && edit.selectedCommitId === commit.id;
   const selectedMedia =
@@ -141,6 +147,7 @@ export function Commit({
           byline={byline}
           density={density}
           onSelectHash={onSelectHash}
+          attachmentSet={attachmentSet}
           inspecting={inspecting}
           isSelected={isSelected}
           isUnlisted={commit.listed === false}

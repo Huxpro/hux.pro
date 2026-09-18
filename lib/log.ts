@@ -59,8 +59,8 @@ export type CommitType =
  * - "social-embed": a native social platform widget (X / Instagram / TikTok)
  *                   that mounts the platform's own iframe/script.
  * - "video":        a video player (YouTube / Bilibili / Vimeo iframe).
- * - "slides":       a reveal.js / HTML slide deck played in an ~80% modal
- *                   iframe (e.g. huxpro.github.io decks from Yanshuo.io).
+ * - "slides":       a reveal.js / HTML slide deck played on the theater's
+ *                   stage (e.g. huxpro.github.io decks from Yanshuo.io).
  * - "image":        a static image asset.
  *
  * A discriminator field `kind` (not `type`, which is taken by CommitType) keeps
@@ -82,9 +82,9 @@ export type VideoPlatform = "youtube" | "bilibili" | "vimeo";
 // Node snapshot script imports it from there, so it must stay framework-
 // agnostic). Re-import + re-export so the type is in scope for the Media
 // interfaces below and consumers can keep a single import source.
-import type { SocialEmbedPlatform } from "./og-core";
+import type { FramePolicy, SocialEmbedPlatform } from "./og-core";
 import { isVideoLinkHost } from "./og-core";
-export type { SocialEmbedPlatform };
+export type { FramePolicy, SocialEmbedPlatform };
 // Shared cover-fit vocabulary, from the framework-agnostic content layer, so
 // both hover surfaces (and the node snapshot script that imports this file)
 // speak the same language.
@@ -114,6 +114,16 @@ export interface MediaPreview {
   fit?: CoverFit;
   /** Fixed-mode aspect ratio (any CSS `aspect-ratio` value, e.g. `"3 / 4"`). */
   aspect?: string;
+  /**
+   * Whether the page lets itself be framed by another origin, read from its
+   * `X-Frame-Options` / `frame-ancestors` headers by the snapshot crawl. The
+   * desktop opens a link card in an in-app browser window (systems/windows)
+   * only when the answer is not `"deny"`; a page that refuses goes to a tab
+   * instead of a window showing a refusal. Written by the enrichment
+   * pipeline, never authored — absent means "not checked", and is read as
+   * allowed.
+   */
+  frame?: FramePolicy;
 }
 
 /**
@@ -205,8 +215,8 @@ export interface VideoMedia extends Pinned {
 
 /**
  * HTML slide deck — typically a reveal.js export (Yanshuo.io / self-hosted).
- * Renders as a cover with a play affordance; click opens the in-site
- * SlideModal (~80% viewport iframe) so visitors never leave the page.
+ * Renders as a cover with a play affordance; opening it puts the deck on the
+ * theater's stage beside the videos, so visitors never leave the page.
  */
 export interface SlidesMedia extends Pinned {
   kind: "slides";
@@ -570,6 +580,12 @@ export interface Identity {
   company: LocalizedString;
   /** Rail / avatar accent color (oklch or any CSS color). Optional. */
   accentColor?: string;
+  /**
+   * A photo of me from that time, for the identity card (systems/identity):
+   * a site-local `/…` path or a URL, masked to a circle where it is shown.
+   * Optional — the card draws a monogram of the company in its place.
+   */
+  avatar?: string;
 }
 
 /**
@@ -659,6 +675,7 @@ export function normalizeLogData(raw: RawLogData | LogData): LogData {
         handle: def.handle,
         company: def.company,
         accentColor: def.accentColor,
+        avatar: def.avatar,
       };
       const ranges = (def as RawIdentity).ranges;
       const defaultTagId = (def as RawIdentity).tagId;
@@ -708,6 +725,7 @@ export function denormalizeLogData(flat: LogData): RawLogData {
         handle: meta.handle,
         company: meta.company,
         accentColor: meta.accentColor,
+        avatar: meta.avatar,
         ranges: [],
       };
     }

@@ -309,6 +309,14 @@ export const translations = {
     logVisit: "Visit",
     logWatch: "Watch",
     logSlides: "Slides",
+    // Attachment surface (see systems/attachments)
+    attachmentsClose: "Close attachments",
+    // Identity card (see systems/identity)
+    identityCardTitle: "identity",
+    identityCardClose: "Close identity card",
+    identityOtherRoles: "Also as this identity",
+    identityCommits: "commits signed",
+    identityViewLog: "View in log",
 
     // Prompts page
     promptsTitle: "System Prompts",
@@ -588,6 +596,14 @@ export const translations = {
     logVisit: "访问",
     logWatch: "观看",
     logSlides: "幻灯片",
+    // Attachment surface (see systems/attachments)
+    attachmentsClose: "关闭附件",
+    // Identity card (see systems/identity)
+    identityCardTitle: "身份",
+    identityCardClose: "关闭身份卡片",
+    identityOtherRoles: "同一身份下的其他职位",
+    identityCommits: "条署名提交",
+    identityViewLog: "在日志中查看",
 
     // Prompts page
     promptsTitle: "系统提示词",
