@@ -15,11 +15,44 @@ import {
 } from "../lib/geometry";
 import { armPointer } from "../lib/pointer";
 import type { Rect, WindowInstance } from "../lib/types";
-import { AppFrame } from "./app-frame";
+import { AppFrame, appGround } from "./app-frame";
 import { WindowChrome } from "./window-chrome";
+import { WindowSheet } from "./window-sheet";
+import { useSurfaceMode, type SurfacePresentation } from "@/systems/surface";
 
 // =============================================================================
-// Window — one draggable / resizable app window
+// Window — one app window, in the shape the viewport asks for
+//
+// Below `sm` a window is a sheet (window-sheet.tsx): a phone has no room for a
+// box you move around, and a sheet is what that size of screen already speaks.
+// From `sm` up it is the draggable, resizable window below. The decision is the
+// surface system's breakpoint map, the same one that turns the palette into a
+// sheet at the same width — where a surface lives is a property of the
+// viewport, not of the feature (docs/system-surface.md).
+//
+// Crossing the breakpoint remounts the app (the two shapes are different
+// components, so the iframe reloads). Resizing a phone into a desktop mid-app
+// is not a gesture anyone makes; keeping one tree for both shapes would cost
+// far more than it saves.
+// =============================================================================
+
+/** A window is a sheet on a phone, a window from `sm` up. */
+const WINDOW_PRESENTATION: SurfacePresentation = { base: "sheet", sm: "window" };
+
+export function Window({ win }: { win: WindowInstance }) {
+  // Resolved on the first render, not in an effect: a window only ever appears
+  // because somebody opened one, so there is no server render to agree with —
+  // and starting in the phone shape would commit this app's iframe, fetch it,
+  // and throw it away a frame later.
+  return useSurfaceMode(WINDOW_PRESENTATION, { immediate: true }) === "sheet" ? (
+    <WindowSheet win={win} />
+  ) : (
+    <DesktopWindow win={win} />
+  );
+}
+
+// =============================================================================
+// DesktopWindow — one draggable / resizable app window
 //
 // Edge-to-edge content with a floating dots pill on top (WindowChrome). You can
 // also grab a thin band along the top edge to drag (a tolerance around the
@@ -73,7 +106,7 @@ function resizeRect(dir: ResizeDir, base: Rect, dx: number, dy: number): Rect {
   return { x, y, width, height };
 }
 
-export function Window({ win }: { win: WindowInstance }) {
+function DesktopWindow({ win }: { win: WindowInstance }) {
   const { focus, setRect, focusedId, toggleMaximize } = useWindows();
   const { locale } = useLocale();
   const ref = useRef<HTMLDivElement>(null);
@@ -82,7 +115,6 @@ export function Window({ win }: { win: WindowInstance }) {
   const focused = focusedId === win.id;
   const maximized = win.sizePreset === "max";
   const minimized = win.mode === "minimized";
-  const isLynx = win.app.runtime === "lynx";
 
   const paint = useCallback((rect: Rect) => {
     const el = ref.current;
@@ -225,13 +257,14 @@ export function Window({ win }: { win: WindowInstance }) {
         "overflow-hidden",
         maximized ? "rounded-2xl" : "rounded-[22px]",
         "border border-black/10 dark:border-white/14",
-        isLynx ? "bg-black" : "bg-background",
+        appGround(win.app),
         focused ? "shadow-overlay ring-1 ring-black/5 dark:ring-white/10" : "shadow-raised",
       )}
     >
-      {/* Edge-to-edge content */}
+      {/* Edge-to-edge content. Keyed by generation: the menu's Reload is a
+          remount (see `reload` in the provider). */}
       <div className="absolute inset-0">
-        <AppFrame app={win.app} />
+        <AppFrame key={win.generation} app={win.app} />
       </div>
 
       {/* Top-edge drag tolerance — grab near the top border to move. Sits below

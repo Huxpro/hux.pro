@@ -84,8 +84,20 @@ function resolve<T>(map: BreakpointMap<T>, width: number): T {
  * command palette, whose wide shape is its own popover) can declare its own
  * vocabulary against the same breakpoints.
  */
-export function useBreakpointValue<T>(map: BreakpointMap<T>): T {
-  const [value, setValue] = useState<T>(map.base);
+export function useBreakpointValue<T>(
+  map: BreakpointMap<T>,
+  { immediate = false }: { immediate?: boolean } = {},
+): T {
+  const [value, setValue] = useState<T>(() =>
+    // `immediate` is for a surface that never renders on the server — an app
+    // window, which only exists once someone has opened one. Settling in the
+    // effect instead would mount the phone shape for a commit first, and a
+    // shape carries an app with it: an iframe committed, fetched and thrown
+    // away before the right one mounts.
+    immediate && typeof window !== "undefined"
+      ? resolve(map, window.innerWidth)
+      : map.base,
+  );
 
   const { base, sm, lg } = map;
   useEffect(() => {
@@ -105,6 +117,9 @@ export function useBreakpointValue<T>(map: BreakpointMap<T>): T {
 }
 
 /** The shape to render right now. */
-export function useSurfaceMode(presentation: SurfacePresentation): SurfaceMode {
-  return useBreakpointValue(presentation);
+export function useSurfaceMode(
+  presentation: SurfacePresentation,
+  options?: { immediate?: boolean },
+): SurfaceMode {
+  return useBreakpointValue(presentation, options);
 }

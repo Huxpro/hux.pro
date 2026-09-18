@@ -2,8 +2,10 @@
 
 Tapping an app (home-screen **app shelf** or the ⌘K palette) opens it in a
 draggable, resizable window — the macOS/iPadOS "open an app" metaphor, in a
-Stage-Manager key: edge-to-edge content under a single floating **pill**. One
-window frame hosts two runtimes:
+Stage-Manager key: edge-to-edge content under a single floating **pill**. On a
+phone the same app is a **sheet** instead, with one grip for chrome (see *Two
+shapes*), because that is what a screen that size already speaks. One window
+frame hosts two runtimes:
 
 - **Web apps** load in an `<iframe>`.
 - **Lynx apps** load in a **Lynx Player** — `@lynx-js/web-core`'s `<lynx-view>`
@@ -24,8 +26,12 @@ systems/windows/
 │   └── lynx-shadow-css.ts      # generated: flattened web-elements layout CSS
 ├── components/
 │   ├── window-layer.tsx        # <WindowLayer> — the fixed "desktop" surface
-│   ├── window.tsx              # <Window> — drag / resize / edge-bounce
+│   ├── window.tsx              # <Window> — sheet or window; DesktopWindow's gestures
+│   ├── window-sheet.tsx        # <WindowSheet> — a window on a phone, as a sheet
+│   ├── window-grip.tsx         # the pill ⇄ the sheet's handle, one object
+│   ├── window-pill.tsx         # the traffic lights + the glass they sit on
 │   ├── window-chrome.tsx       # the control dots (top-left desktop / centre mobile)
+│   ├── window-menu.tsx         # the menu's rows + its sheet form (both shapes)
 │   ├── minimized-dock.tsx      # <MinimizedWindows> — dock pills (direct restore)
 │   ├── app-frame.tsx           # runtime switch: WebFrame vs LynxFrame
 │   ├── web-frame.tsx           # <iframe> + "won't embed" fallback
@@ -136,10 +142,109 @@ construction). Clamps: `clampRect` (keep a window fully inside, used on resize)
 and `clampDrag` (lenient — let a window hang off the edges, only guaranteeing
 the chrome stays grabbable).
 
+## Two shapes
+
+An app window takes the shape the viewport asks for, and `Window`
+(`window.tsx`) is only the fork:
+
+| Width | Shape | What it is |
+|-------|-------|-----------|
+| `< sm` | **sheet** (`window-sheet.tsx`) | A `SurfaceSheet` from the bottom edge: three detents for its size, the shared stack for its depth, its grip for all of its chrome. |
+| `≥ sm` | **window** (`DesktopWindow`) | The draggable, resizable box below. |
+
+The decision is the surface system's breakpoint map — the same one that turns
+the command palette into a sheet at the same width, and the same one
+`isMobile` is defined from (`lib/geometry.ts`), so the rules that follow from
+being a sheet — one app at a time — turn on exactly when the shape does. Where
+a surface lives is a property of the viewport, not of the feature
+([system-surface.md](./system-surface.md)). Crossing the breakpoint remounts
+the app (two components, so the iframe reloads); resizing a phone into a
+desktop mid-app is not a gesture anyone makes.
+
+### A phone window is a sheet
+
+- **Size** is the detent the finger left it at. Three of them, not the site's
+  shared pair: a window opens where a desktop window's top edge sits — just
+  clear of the live-activity dock band (`DOCK_BAND`, recomputed as a fraction
+  of the viewport) — because that is the size an app wants; from there a drag
+  takes it to the very top, or down to seven tenths to see the page behind it.
+  (`SHEET_DETENTS` is for surfaces that stack level with one another; a window
+  stacks with nothing, and the menu over it is content-height.) Portrait and
+  landscape are a windowing idea — on a phone they resolved to the same
+  rectangle anyway — so the menu drops them there.
+- **It comes back the size it lives at.** A flick down ends at the lowest
+  detent by definition, so a window restored from the dock returns to the dock
+  detent rather than arriving shrunk.
+- **Put away, not killed.** A drag down is `minimize`, never `close`. The sheet
+  closes but `keepMounted` leaves its DOM in place, so the iframe or Lynx view
+  keeps its document — the same promise `WindowLayer` makes for a minimized
+  desktop window, kept by a different mechanism. It comes back from its dock
+  pill. Close is the menu's destructive row and nothing else, so no stray flick
+  can lose an app's state.
+- **One at a time.** Opening or restoring an app on a phone puts the others in
+  the dock (`soloOnPhone` in `provider.tsx`): a second sheet would bury the
+  first rather than sit beside it, and the dock is the app switcher. Windows
+  coexist from `sm` up, as windows do.
+- **The menu** is a sheet stacked on the window — a React child of it, so Base
+  UI treats it as a real nested drawer and sends the window a step back, the
+  way iOS presents a sheet from a sheet.
+
+### The grip — the window's pill, doing double duty
+
+A sheet already has a grabber, so the pill does not stack on top of one: they
+are the same object (`window-grip.tsx`). It is the window's own chrome,
+unchanged — the centred, chromeless cluster of traffic lights floating over
+edge-to-edge content, with nothing that reads as a title bar (the sheet gives
+it a row of its own only when `gripOverlay` is off) — and it is also what you
+drag the sheet by. A tap opens the menu.
+
+It looks exactly like the desktop pill (`window-pill.tsx`), down to the
+padding: chromeless with three dim dots at rest, lighting into glass under a
+thumb and while its menu stands open. That light is the tap feedback, and CSS
+cannot give it here — a touch never sets `:active` (the grip is `touch-none`
+and the press is preventDefaulted out from under it), and a mouse press sets it
+and then *never clears it*, because the popup captures the pointer and Chrome
+never sees the release. So the lit state is ours, and it is built to be **safe
+when stranded**: lit is glass with bright dots, rest is the pill the desktop
+wears, and a press whose release goes missing leaves the pill looking pressed —
+wrong, never missing. That is the bar anything on this control has to clear.
+
+The one thing the phone pill does not borrow is its target. `::before` takes
+the hit area to 72×44.5 from a pill of 48×28.5 (`globals.css`), because this
+pill is also a handle. Target and look are deliberately separate — a pill that one
+day shrinks into the 36×4 bar must not take its target down with it.
+
+What failed that bar is worth keeping written down. The dots used to
+become the site's 36×4 grabber while the sheet was dragged: proportional to the
+live travel first (which a sheet with detents zeroes every time it lands on
+one, so it flickered), then a phase machine in the grip (which had to know when
+the gesture ended, and cannot — Base UI captures the pointer for everything
+except touch, and the release then reaches nothing at all, so the phase stuck
+and `keepMounted` carried it into the next time the app opened), then the
+sheet's own gesture state (better, and still one flush of a nested drawer away
+from being stranded). Every version had the same shape: something had to
+*clear* the interesting state, whatever clears it can be missed, and what it
+cleared was the controls themselves. Whatever a handle gains from changing
+shape does not outweigh a window whose controls are sometimes missing — so
+nothing changes shape, and if the morph returns it must be something that
+cannot persist: an animation that always ends where it started, not a state
+someone has to clear.
+
+The one thing the grip still owns is the tap, which is the one thing that can
+be lost harmlessly (no menu opens; the next tap works). It opens the menu
+*after* the release rather than inside it: the grip listens in the capture
+phase, ahead of Base UI, and flushing a nested drawer into the middle of the
+sheet's own gesture bookkeeping leaves the sheet believing it is still held.
+
+The dots themselves are shared with the desktop pill, so the two can't drift;
+on a grip they are an indicator rather than three targets (inert, and Base UI
+would refuse to start a swipe from a `<button>` anyway).
+
 ## The chrome
 
-Content is **edge-to-edge**; the controls (`window-chrome.tsx`) are the classic
-red/amber/green dots, placed to feel native per platform:
+This is the chrome of a *windowed* window; a phone window wears the grip above
+instead. Content is **edge-to-edge**; the controls (`window-chrome.tsx`) are the
+classic red/amber/green dots, placed to feel native per platform:
 
 - **Desktop (pointer)** → a top-**left** cluster (macOS). The dots are always
   full-size but sit **dim grey on a chromeless (invisible) pill** at rest; on
@@ -148,14 +253,36 @@ red/amber/green dots, placed to feel native per platform:
   the app **title** fade in. Nothing changes position between states, so the
   buttons are stable mouse targets.
 - **Mobile (touch)** → a small, **centred**, always-grey ••• pill. The dots are
-  inert on touch (an indicator, not three tiny targets); a tap opens the menu.
+  inert on touch (an indicator, not three tiny targets); a tap opens the menu,
+  which on touch is an **action sheet**, not a popover.
 
-The window **menu** (title header + size presets + Open in browser + Minimize +
-Close) opens via **right-click**, a **tap on the title**, or a **long-press**
+The window **menu** (title header + size presets + Reload + Open in browser +
+Minimize + Close) opens via **right-click**, a **tap on the title**, or a **long-press**
 (including long-pressing a dot) — never from a stray touch, since armPointer
 (`lib/pointer.ts`) disambiguates *tap → menu*, *hold → menu*, *move → drag*.
 There's deliberately **no caret**. Clicking the green dot zooms; double-clicking
 the top band zooms too.
+
+What the menu offers is one list (`WindowMenuBody` in `window-menu.tsx`); where
+it is offered is three containers, so the shapes can't drift apart:
+
+- **Pointer** → a **popover** under the pill: portaled to `<body>` with a
+  full-viewport scrim (so a click anywhere — even over an iframe, whose pointer
+  events don't bubble — dismisses it), left-aligned under the pill and clamped
+  into the viewport.
+- **Touch, windowed** → a **`SurfaceSheet`** ([Surface System](./system-surface.md))
+  from the bottom edge, content height (`fitContent`), with the app header on
+  top, the actions as thumb-sized rows in the same order, and Close in a group of
+  its own, in red — iOS's answer to "long-press an object, get its actions".
+  Nothing computes a position for it: the sheet brings its own scrim (above the
+  window layer and its iframes), its own Escape, drag-to-dismiss and the shared
+  stack, so a playlist or wallpaper sheet already up steps back under it.
+- **Touch, on a phone** → the same sheet, `nestedIn` the window's own, and
+  without the size presets (the detent is the size).
+
+A row **dismisses the sheet and then acts** — `close` unmounts the window, and
+with it a sheet that would otherwise vanish mid-animation. It is also what iOS
+does.
 
 Gesture handling in `window.tsx`:
 
@@ -173,7 +300,9 @@ Gesture handling in `window.tsx`:
 
 `WindowLayer` is a single `position: fixed; inset: 0` surface mounted once at
 the app root (in `app/layout.tsx`), `pointer-events: none` so it never steals
-page clicks. It sits at `z-40` — below the dock (`z-50`) and the command palette
+page clicks. A phone window paints in the surface system's own layer instead
+(the sheet is portaled, at `z-60`), and holds `AnimatePresence` open through
+`usePresence` so its exit plays before the window is dropped. It sits at `z-40` — below the dock (`z-50`) and the command palette
 (`z-60`), so ⌘K always wins. `AnimatePresence` plays the open/close spring.
 
 ## The runtimes

@@ -14,6 +14,8 @@ import {
   clampRect,
   defaultPreset,
   getViewport,
+  isMobile,
+  onViewportChange,
   placeWindow,
   presetRect,
   workingArea,
@@ -44,6 +46,8 @@ interface WindowContextType {
   /** Bring a window to the front and mark it focused. */
   focus: (id: string) => void;
   minimize: (id: string) => void;
+  /** Restart the app in a window: its frame remounts, its state is gone. */
+  reload: (id: string) => void;
   /** Toggle maximize ⇄ the previous preset. */
   toggleMaximize: (id: string) => void;
   /** Set an explicit size preset (portrait / landscape / max). */
@@ -97,6 +101,24 @@ function applyPreset(
   };
 }
 
+/**
+ * A phone shows one app at a time. Its window is a sheet there
+ * (window-sheet.tsx), and a second sheet over the first buries it rather than
+ * sitting beside it — so opening or restoring an app puts the others in the
+ * dock, which is what the dock is for and what a phone's app switcher is. On
+ * anything bigger, windows coexist the way windows do.
+ */
+function soloOnPhone(
+  list: WindowInstance[],
+  id: string,
+  phone: boolean,
+): WindowInstance[] {
+  if (!phone) return list;
+  return list.map((w) =>
+    w.id === id || w.mode === "minimized" ? w : { ...w, mode: "minimized" },
+  );
+}
+
 function bundleTitle(url: string): string {
   try {
     const u = new URL(url, "http://x");
@@ -138,22 +160,34 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
   const openApp = useCallback(
     (app: AppLink) => {
       const z = nextZ();
+      // Read the viewport here, not inside the updater: an updater is replayed
+      // (twice over, in development), and `getViewport` forces layout.
+      const phone = isMobile(getViewport());
       setWindows((prev) => {
-        const existing = prev.find((w) => w.id === app.id);
-        if (existing) {
-          return prev.map((w) =>
-            w.id === app.id
-              ? { ...w, z, mode: w.mode === "minimized" ? "normal" : w.mode }
-              : w,
+        if (prev.some((w) => w.id === app.id)) {
+          return soloOnPhone(
+            prev.map((w) =>
+              w.id === app.id
+                ? { ...w, z, mode: w.mode === "minimized" ? "normal" : w.mode }
+                : w,
+            ),
+            app.id,
+            phone,
           );
         }
         const preset = app.size ?? defaultPreset(app.runtime);
         const rect = placeWindow(openCountRef.current, getViewport(), preset);
         openCountRef.current += 1;
-        return [
-          ...prev,
-          { id: app.id, app, rect, mode: "normal", sizePreset: preset, z },
-        ];
+        const opened: WindowInstance = {
+          id: app.id,
+          app,
+          rect,
+          mode: "normal",
+          sizePreset: preset,
+          z,
+          generation: 0,
+        };
+        return soloOnPhone([...prev, opened], app.id, phone);
       });
     },
     [nextZ],
@@ -177,6 +211,14 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
     setWindows((prev) => prev.filter((w) => w.id !== id));
   }, []);
 
+  // A remount is the only reload available: an app is a cross-origin iframe or
+  // a Lynx runtime, and neither can be told to refresh itself from out here.
+  const reload = useCallback((id: string) => {
+    setWindows((prev) =>
+      prev.map((w) => (w.id === id ? { ...w, generation: w.generation + 1 } : w)),
+    );
+  }, []);
+
   const minimize = useCallback((id: string) => {
     setWindows((prev) =>
       prev.map((w) => (w.id === id ? { ...w, mode: "minimized" } : w)),
@@ -186,11 +228,16 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
   const restore = useCallback(
     (id: string) => {
       const z = nextZ();
+      const phone = isMobile(getViewport());
       setWindows((prev) =>
-        prev.map((w) =>
-          w.id === id
-            ? { ...w, mode: w.mode === "minimized" ? "normal" : w.mode, z }
-            : w,
+        soloOnPhone(
+          prev.map((w) =>
+            w.id === id
+              ? { ...w, mode: w.mode === "minimized" ? "normal" : w.mode, z }
+              : w,
+          ),
+          id,
+          phone,
         ),
       );
     },
@@ -240,12 +287,9 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
   // Keep maximized windows glued to the working area, and clamp the rest, when
   // the viewport changes size. Coalesced to one rAF so a resize *drag* (which
   // fires many events/sec) re-lays-out the layer at most once per frame.
-  useEffect(() => {
-    let raf = 0;
-    const onResize = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
+  useEffect(
+    () =>
+      onViewportChange(() => {
         const vp = getViewport();
         setWindows((prev) =>
           prev.map((w) =>
@@ -254,14 +298,9 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
               : { ...w, rect: clampRect(w.rect, vp) },
           ),
         );
-      });
-    };
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
+      }),
+    [],
+  );
 
   const focusedId = useMemo(() => {
     const visible = windows.filter((w) => w.mode !== "minimized");
@@ -302,6 +341,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
       close,
       focus,
       minimize,
+      reload,
       toggleMaximize,
       setSizePreset,
       restore,
@@ -315,6 +355,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
       close,
       focus,
       minimize,
+      reload,
       toggleMaximize,
       setSizePreset,
       restore,

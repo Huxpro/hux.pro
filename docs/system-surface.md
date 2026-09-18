@@ -235,6 +235,24 @@ and grows and shrinks from the top — at rest and under the finger alike. Past
 the lowest detent (`--surface-detent-floor`) the padding stops and the sheet
 slides away whole, because that drag is a dismissal, not a resize.
 
+**Arriving.** A sheet should rise, and rise at the size it is going to be. Two
+things get in the way, both handled in `sheet.tsx` and the motion block:
+
+- Base UI resolves a detent's offset from measurements — the popup's height and
+  the viewport's — so on the first painted frame the offset is `0`, which *is*
+  the top detent: the sheet lands full height and then slides down into its
+  detent. The offset is no mystery though (`popupHeight - detentHeight`), so
+  the popup carries the same sum in CSS as `--surface-snap-fallback` and stands
+  on it for the length of the entrance (`data-surface-entering`); Base UI's own
+  value lands underneath, identical, before the mark comes off.
+- A `keepMounted` sheet is hidden with `display: none` while closed, and
+  nothing transitions out of `display: none` — there is no painted "before" to
+  travel from, so Base UI's starting style does nothing and the sheet simply
+  appears. `data-surface-arriving` gives it one painted frame at the bottom
+  edge (set from the render that opens the sheet, released two frames later —
+  a rAF callback runs *before* its own frame is painted) and the sheet travels
+  up from there.
+
 **Detents.** `snapPoints` are fractions of the viewport, iOS's medium and large;
 the site has one set, `SHEET_DETENTS` (`[0.7, 1]`), so sheets stacked on one
 another stand level. A sheet with detents opens at the detent of the sheet
@@ -255,8 +273,9 @@ form sheet to its form, so there is no empty half. A `fitContent` sheet is
 `flex: 0 1 auto` inside a popup capped at the screen: it measures itself, grows
 and shrinks with its content, and shrinks below the cap only if the content
 outgrows the screen — so the content bounds its own scroll area (a `max-h-*`
-on it). The load-bundle sheet is the one that does this; the keyboard pushes it
-up like any other sheet.
+on it). The load-bundle sheet and the window menu on touch
+(`systems/windows/components/window-menu.tsx`) are the ones that do this; the
+keyboard pushes them up like any other sheet.
 
 **Modal.** The scrim is the viewport — `Drawer.Viewport` is already a
 transparent, full-screen box containing the popup, so when `modal` is on it
@@ -270,6 +289,34 @@ which is the state `@hux/bezel` leaves the page in during container scroll
 `<body>` at `overflow: clip` rather than `hidden`: `hidden` is a scroll
 container that `scrollIntoView` can still move, and a sheet resting below the
 edge at a lower detent is exactly the overflow it would move it for.
+
+**Keeping a sheet alive.** `keepMounted` leaves a closed sheet's DOM in place
+(Base UI hides the popup instead of unmounting it), for content that must keep
+running while it is put away: an app window on a phone
+([system-windows.md](./system-windows.md)) is a sheet, and closing one would
+otherwise reload its iframe and lose the app's state.
+
+**A grip of its own.** `grip` replaces the grabber for a sheet whose handle
+says more than "drag me" — the window grip, which is also the window's menu
+button. It renders where the grabber does, above `Drawer.Content`, so a mouse
+press on it still starts a drag. `gripOverlay` floats it over the content
+instead of giving it a row, for a sheet holding something that is not a
+document: an app window's chrome has always been a pill over its content, never
+a title bar. Two things bite anything built there: Base UI
+never starts a swipe from a `<button>` (or `a`, `input`, `label`,
+`[role="button"]`), and once a press becomes a swipe it captures the pointer,
+so no further move, up or click arrives. Items 7 and 8 of the list at the top
+of `sheet.tsx`.
+
+**No gesture state up there.** A grip that changes with the drag is a grip that
+has to be changed back, and the end of a Base UI gesture can be missed
+altogether — so the sheet publishes nothing for a grip to change on, and the
+window grip keeps only states that are harmless to be stuck in (it lights up
+under a thumb; it never changes shape).
+`systems/windows/components/window-grip.tsx` has the story of the five versions
+that did. If some future handle has to move with the drag, it should be an
+animation that always ends where it started, never a state something has to
+clear.
 
 **Content, not a handle.** Everything below the grabber is wrapped in
 `Drawer.Content`. Without it a *mouse* press anywhere in a sheet starts a swipe,

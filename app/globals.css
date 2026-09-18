@@ -1627,6 +1627,40 @@ main[data-variant="reader"] .reader-masthead {
   transform: translateX(var(--drawer-swipe-movement-x, 0px));
 }
 
+/* Arriving, a kept-mounted sheet rises at the size it is going to be.
+
+   Base UI resolves the active detent's offset from measurements — the popup's
+   height and the viewport's (useDrawerSnapPoints.js) — and a popup coming back
+   out of `display: none` has no box to measure, so on its first painted frame
+   the offset is 0, which *is* the top detent: the sheet arrives at full height
+   and then slides down into its detent over half a second, growing and
+   shrinking as it comes. The offset is no mystery though — it is
+   `popupHeight - detentHeight` — and sheet.tsx publishes exactly that as
+   `--surface-snap-fallback`, which CSS can compute without measuring anything.
+   For the length of the entrance the sheet stands on ours; Base UI's lands
+   under it, the same number, before the mark comes off.
+
+   Only a kept-mounted sheet is marked (sheet.tsx), and deliberately: this rule
+   outranks the live-drag transform, so a sheet wearing it for half a second
+   after every open would not answer a drag begun in that half second. */
+[data-surface-popup][data-surface-entering][data-surface-snap] {
+  transform: translateY(var(--surface-snap-fallback, 0px));
+  padding-bottom: calc(
+    var(--surface-snap-fallback, 0px) + max(env(safe-area-inset-bottom), var(--surface-gap))
+  );
+}
+
+/* The one painted frame a kept-mounted sheet needs to have somewhere to rise
+   from (sheet.tsx sets the mark for exactly one frame; the note there says
+   why). It must land instantly — this is the start of the journey, not part of
+   it — so the duration goes, never the property: a popup with no transition
+   property at all cannot be told when it has finished leaving (item 3 at the
+   top of systems/surface/sheet.tsx). */
+[data-surface-popup][data-surface-arriving][data-swipe-direction="down"] {
+  transform: translateY(calc(100% + var(--surface-exit)));
+  transition-duration: 0ms;
+}
+
 /* Entering and leaving: past the edge by the gap as well, otherwise the
    surface "pops" for the last few pixels. */
 [data-surface-popup][data-swipe-direction="down"]:is(
@@ -1703,6 +1737,32 @@ main[data-variant="reader"] .reader-masthead {
   [data-surface-shell] {
     transition: none;
   }
+}
+
+/* =============================================================================
+   Window grip — the hit area
+   The chrome of an app window on a phone (systems/windows/components/
+   window-grip.tsx) is the window's own pill of traffic lights, floating over
+   edge-to-edge content as it does on the desktop, doing double duty as the
+   sheet's grabber. It looks exactly like the desktop pill, down to the padding
+   (window-pill.tsx has all of it), and that pill is 48×28.5 — a fine target for
+   a mouse and a small one for a thumb that also has to drag the sheet by it.
+   So the only thing said here is the thing the look cannot say: the glass is
+   the pill, and the target reaches past it — though no further up than the
+   shell's own edge, which clips. 72×44.5, from a pill of 48×28.5.
+
+   Keeping the two apart is also what a future morph needs: a pill that shrinks
+   into the site's 36×4 bar must not take its target down with it. There is no
+   shape change here today — the dots used to become that bar while the sheet
+   was dragged, keyed off one state or another, and every version of that state
+   could be stranded with the controls hidden inside it. The note at the top of
+   window-grip.tsx has the history.
+   ============================================================================= */
+
+[data-window-grip]::before {
+  content: "";
+  position: absolute;
+  inset: -0.5rem -0.75rem;
 }
 
 /* =============================================================================
