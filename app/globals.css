@@ -580,7 +580,7 @@ html.dragging * {
      headings keep their hierarchy, captions and code keep their relation to
      the paragraph they annotate. `line-height` is unitless for the same
      reason: it follows whatever the size lands on. */
-  font-size: var(--reading-size, 16px);
+  font-size: var(--reading-size);
   line-height: 1.75;
   /* Break long unbreakable strings (e.g. raw URLs used as link text) so they
      wrap instead of overflowing the viewport horizontally on mobile. */
@@ -668,7 +668,7 @@ html.dragging * {
 .prose-article h3:not(:where(.not-prose, .not-prose *)) {
   @apply font-sans text-[1em] font-medium text-foreground;
   margin-top: calc(var(--reading-size) * 3);
-  margin-bottom: calc(var(--reading-size) * 1);
+  margin-bottom: var(--reading-size);
 }
 
 .prose-article a:not(:where(.not-prose, .not-prose *)) {

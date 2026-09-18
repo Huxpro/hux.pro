@@ -214,8 +214,7 @@ export function HeaderAction({
         // `pressable` is the touch contract any chip with a hover wash gets
         // (docs/design-system.md, "Touch"): the wash lands on the touch-down
         // frame instead of easing in behind a tap that is already over.
-        "pressable inline-flex shrink-0 items-center gap-1 rounded px-2 py-1",
-        "transition-colors duration-200",
+        "pressable inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 transition-colors duration-200",
         // An `action` sits in a line of running text, so its padding must not
         // show up as space: the negative margin cancels it exactly, leaving
         // the row's own gap as the only distance between one item and the
@@ -224,14 +223,14 @@ export function HeaderAction({
         // asymmetrically, since plain text either side has no padding to
         // match. `segment` keeps its padding: it stands in a group of its own.
         variant === "action" && "-mx-2",
-        active && "bg-muted",
-        variant === "segment"
-          ? active
-            ? "text-foreground"
-            : "text-tertiary-foreground hover:text-foreground"
-          : active
-            ? "text-foreground"
-            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+        active
+          ? "bg-muted text-foreground"
+          : variant === "segment"
+            ? "text-tertiary-foreground hover:text-foreground"
+            // No colour of its own: it inherits the row's, which is what
+            // "keeps the ink of the row it sits in" has to mean if the claim
+            // is to stay true when that row's ink changes.
+            : "hover:bg-muted/60 hover:text-foreground",
         className
       )}
     >

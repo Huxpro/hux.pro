@@ -6,7 +6,7 @@ import type { Locale } from "@/lib/i18n";
 import { Info, Languages } from "lucide-react";
 import { t } from "@/services";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useState, type ReactNode } from "react";
 import { ReadingSettings } from "./reading-sheet";
 import { RulerToc } from "./ruler-toc";
 import { usePostLanguage } from "./use-post-language";
@@ -89,8 +89,6 @@ export function PostContent({
   onMount,
 }: PostContentProps) {
   const pathname = usePathname();
-  const originId = useId();
-  const [originOpen, setOriginOpen] = useState(false);
 
   const { displayLocale, switchLanguage, hasAlternate, alternateLabel } =
     usePostLanguage({ locale, language });
@@ -120,14 +118,15 @@ export function PostContent({
   // size exactly -- the two things tried before this, a serif aside and a
   // point smaller, each bought quiet by making the header a place where two
   // typographic systems meet, which is the crowding it was meant to fix. A
-  // chevron is not a third voice: the row is one line until someone asks it
+  // an `(i)` is not a third voice: the row is one line until someone asks it
   // not to be, and when they do the sentence arrives in the voice it always
   // had, one ink rung down because that is what tertiary is for.
   //
   // Folded by default. Provenance is a thing a reader looks up once, if ever;
   // the article is what they came for.
-  const hasHandles = !!headerMeta || !!displayReadingTime || hasAlternate;
-  const hasHeaderMetaContent = hasHandles || !!displayOrigin;
+  const hasHeaderMetaContent =
+    !!headerMeta || !!displayReadingTime || hasAlternate || !!displayOrigin;
+
   /**
    * One row, joined by dots -- the shape the header had before any of this was
    * interactive, and the shape it keeps. That some of these now do something
@@ -136,85 +135,27 @@ export function PostContent({
    * gap along the line is the row's single `gap-2` and nothing sits closer to
    * one neighbour than the other. The chip only paints when pointed at.
    *
-   * Two items are width-dependent, and each carries its own dot so no
-   * separator is ever left hanging at the end of a line:
-   *
-   *   the `(i)`   below `md` only, where the provenance has to fold
-   *   its dot     `md` and up only, where the provenance is already inline
+   * The order is the array's order, and the dots fall between whatever
+   * survives the filter, so there is never one stranded at the end of a line.
+   * Only the last slot varies by width, and it always shows exactly one of its
+   * two children -- so no slot is ever empty and no dot is ever orphaned.
    */
-  const dot = <span aria-hidden className="text-quaternary-foreground">·</span>;
-  /** Nothing has been printed yet, so the next item leads without a dot. */
-  let printed = false;
-  const lead = () => {
-    if (!printed) { printed = true; return null; }
-    return dot;
-  };
-
-  const facts = (
-    <>
-      {headerMeta && <>{lead()}{headerMeta}</>}
-      {displayReadingTime && <>{lead()}<span>{displayReadingTime}</span></>}
-    </>
-  );
-
-  const langChip = hasAlternate ? (
-    <>
-      {lead()}
+  const items = [
+    headerMeta,
+    displayReadingTime && <span>{displayReadingTime}</span>,
+    hasAlternate && (
       <HeaderAction variant="action" onClick={switchLanguage}>
         <Languages className="h-3 w-3" />
         <span>{alternateLabel}</span>
       </HeaderAction>
-    </>
-  ) : null;
-
-  // Left with everything else. It was pushed to the far edge once and that is
-  // the one place on the page the ruler also wants.
-  const readingChip = toc ? (
-    <>
-      {lead()}
-      <ReadingSettings />
-    </>
-  ) : null;
-
-  /**
-   * Where this text came from, last on the line either way.
-   *
-   * At `md` and up it is simply there. Below it, the `(i)` stands in its place
-   * -- literally: the handle takes the slot the sentence would have had, so
-   * the row does not rearrange itself between widths. Pressing it wraps the
-   * sentence onto a second line as the row's last item.
-   *
-   * One dot serves both, because exactly one of them is ever on screen: the
-   * `(i)` is `md:hidden`, the sentence is hidden below `md` until asked for.
-   * So nothing is left dangling at the end of a line at either width, and
-   * there is no second separator to keep in step with the first.
-   */
-  const provenance = displayOrigin ? (
-    <>
-      {lead()}
-      <HeaderAction
-        variant="action"
-        className="md:hidden"
-        active={originOpen}
-        onClick={() => setOriginOpen((v) => !v)}
-        expanded={originOpen}
-        controls={originId}
-        label={t(displayLocale, "postOrigin")}
-        title={t(displayLocale, "postOrigin")}
-      >
-        <Info className="h-3 w-3" />
-      </HeaderAction>
-      <span
-        id={originId}
-        className={cn(
-          originOpen ? "animate-in fade-in duration-200" : "hidden",
-          "md:inline"
-        )}
-      >
-        {renderMarkdownLinks(displayOrigin)}
-      </span>
-    </>
-  ) : null;
+    ),
+    // Left with everything else. It was pushed to the far edge once, and that
+    // is the one place on the page the ruler also wants.
+    toc && <ReadingSettings />,
+    displayOrigin && (
+      <Provenance origin={displayOrigin} locale={displayLocale} />
+    ),
+  ].filter(Boolean);
 
   // `relative z-[35]`: the row wraps, so any item can end up near the docked
   // edge on a narrow screen, and the collapsed ruler (z-30) is interactive
@@ -227,10 +168,16 @@ export function PostContent({
           TYPE.meta
         )}
       >
-        {facts}
-        {langChip}
-        {readingChip}
-        {provenance}
+        {items.map((item, i) => (
+          <Fragment key={i}>
+            {i > 0 && (
+              <span aria-hidden className="text-quaternary-foreground">
+                ·
+              </span>
+            )}
+            {item}
+          </Fragment>
+        ))}
       </div>
     ) : undefined;
 
@@ -248,5 +195,49 @@ export function PostContent({
       </div>
       {toc && <RulerToc />}
     </PageLayout>
+  );
+}
+
+/**
+ * Where this text came from, last on the line either way.
+ *
+ * At `md` and up it is simply there. Below it, the `(i)` stands in its place
+ * -- literally: the handle takes the slot the sentence would have had, so the
+ * row does not rearrange itself between widths. Pressing it wraps the sentence
+ * onto a second line as the row's last item.
+ *
+ * It owns its own open state so that pressing the `(i)` re-renders these two
+ * nodes rather than the whole page shell -- which, up a level, meant
+ * re-running `PageLayout` and remounting the nav's scramble on every press.
+ */
+function Provenance({ origin, locale }: { origin: string; locale: Locale }) {
+  const id = useId();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <HeaderAction
+        variant="action"
+        className="md:hidden"
+        active={open}
+        onClick={() => setOpen((v) => !v)}
+        expanded={open}
+        controls={id}
+        label={t(locale, "postOrigin")}
+        title={t(locale, "postOrigin")}
+      >
+        <Info className="h-3 w-3" />
+      </HeaderAction>
+      <span
+        id={id}
+        // One class, not a `hidden` + `md:inline` pair to keep in step: this
+        // is a disclosure that is forced open once the line has room.
+        className={cn(
+          !open && "max-md:hidden",
+          open && "animate-in fade-in duration-200"
+        )}
+      >
+        {renderMarkdownLinks(origin)}
+      </span>
+    </>
   );
 }

@@ -230,7 +230,7 @@ function Measure({ width }: { width: number }) {
  * The "Aa" button and the surface it opens. Drop it anywhere on an article
  * page; it owns its own open state and anchors the popover to itself.
  */
-export function ReadingSettings({ className }: { className?: string }) {
+export function ReadingSettings() {
   const { locale } = useLocale();
   const [open, setOpen] = useState(false);
   const anchor = useRef<HTMLButtonElement>(null);
@@ -248,7 +248,6 @@ export function ReadingSettings({ className }: { className?: string }) {
         onClick={() => setOpen((v) => !v)}
         label={t(locale, "readingSettings")}
         expanded={open}
-        className={className}
       >
         {/* Mono, like every other chip. The mark used to set "A" in sans and
             "a" in serif to say what it was for; in a row that is one typeface

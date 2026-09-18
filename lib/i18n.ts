@@ -188,7 +188,7 @@ export const translations = {
     solarThemeToDark: "Dark Mode",
     solarThemeNote: "Preference unchanged",
 
-    // The article header's provenance line, folded behind a chevron.
+    // The article header's provenance line, folded behind an `(i)`.
     postOrigin: "Where this was first published",
 
     // Reading settings (the article page's "Aa")
@@ -463,7 +463,7 @@ export const translations = {
     solarThemeToDark: "深色模式",
     solarThemeNote: "偏好未更改",
 
-    // The article header's provenance line, folded behind a chevron.
+    // The article header's provenance line, folded behind an `(i)`.
     postOrigin: "首发于何处",
 
     // Reading settings (the article page's "Aa")
