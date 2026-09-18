@@ -7,9 +7,20 @@ import {
   WidgetShell,
   WidgetTitle,
 } from "@/components/ui/widget";
+import type { WidgetSize } from "@/components/ui/widget-size";
 import { cn } from "@/lib/utils";
 import { ArrowRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+// ---------------------------------------------------------------------------
+// Featured stack widgets — the generic group cards `content/log.json` can
+// declare (`layout: "h"` / `"v"`). One size, large: a horizontal stack needs
+// a cover's height plus a title, a vertical one a column of them, and
+// neither says anything new in another box. The widget takes `size` for the
+// board's render contract and renders the same card for any value.
+// ---------------------------------------------------------------------------
+
+export const STACK_WIDGET_SIZES: readonly WidgetSize[] = ["large"];
 
 type FeaturedStackWidgetProps = {
   title: string;
@@ -94,7 +105,7 @@ export function HStackWidget({
   return (
     <StackShell title={title} href={href} className={className}>
       {/* Body wrapper owns bottom padding (works even without dots) */}
-      <div className="pb-5">
+      <div className="flex min-h-0 flex-1 flex-col justify-center pb-5">
         {/* Horizontal snapping stack */}
         <div
           ref={scrollRef}
@@ -159,7 +170,7 @@ export function VStackWidget({
 
   return (
     <StackShell title={title} href={href} className={className}>
-      <WidgetBody className="space-y-3">
+      <WidgetBody fill className="space-y-3">
         {items.map((child, i) => (
           <div key={i}>{child}</div>
         ))}

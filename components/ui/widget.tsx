@@ -20,7 +20,7 @@ import { TYPE } from "@/lib/typography";
  * Tappable surface: pass `href` (a page to open) or `onOpen` (an action —
  * refresh the weather, open the playlist) and the whole card becomes the tap
  * target, not just the header arrow. Interactive descendants keep their own
- * taps (see `landsOnOwnAction`); the masonry's edit mode swallows clicks
+ * taps (see `landsOnOwnAction`); the board's edit mode swallows clicks
  * before they reach here, so rearranging never opens anything. Keyboard users
  * still reach the page through the visible `WidgetLink` — the shell itself
  * deliberately adds no tab stop.
@@ -97,7 +97,11 @@ export function WidgetShell({
       onTouchStart={tappable ? noop : undefined}
       data-widget-tappable={tappable ? "" : undefined}
       className={cn(
-        "group relative rounded-2xl overflow-hidden select-none",
+        // A column that fills its cell on the widget board (and is simply
+        // as tall as its content anywhere else): header, then a body that
+        // takes the rest. A widget designs for the box its size gives it —
+        // more than fits means a bigger size or the page, never a taller card.
+        "group relative flex h-full flex-col rounded-2xl overflow-hidden select-none",
         "border border-border/50",
         "transition-all duration-300",
         widgetEnabled
@@ -188,15 +192,31 @@ export function WidgetTitle({
 
 /**
  * WidgetBody - Content area wrapper
+ *
+ * `fill`: take the rest of the card and clip — the body of a fixed-size
+ * widget, laid out with flex so its content can pin to the bottom edge the
+ * way a WidgetKit body does.
  */
 export function WidgetBody({
   className,
+  fill = false,
   children,
 }: {
   className?: string;
+  fill?: boolean;
   children: React.ReactNode;
 }) {
-  return <div className={cn("px-5 pb-5", className)}>{children}</div>;
+  return (
+    <div
+      className={cn(
+        "px-5 pb-5",
+        fill && "flex min-h-0 flex-1 flex-col overflow-hidden",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
 }
 
 /**
@@ -210,21 +230,26 @@ export function WidgetBody({
  */
 export function WidgetScrollBody({
   className,
+  fill = false,
   children,
 }: {
   /** Height goes here — defaults to a fixed `h-64`; pass `max-h-*` for a
    *  stack that should only scroll once it overflows. */
   className?: string;
+  /** Fill the rest of the card instead of a fixed height — a widget whose
+   *  size decides how many rows show. */
+  fill?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div className="px-5">
+    <div className={cn("px-5", fill && "flex min-h-0 flex-1 flex-col")}>
       <div
         className={cn(
           "relative -mx-2 px-2 pb-7",
           "overflow-y-auto snap-y snap-mandatory scroll-smooth no-scrollbar",
           "[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
-          className ?? "h-64"
+          fill ? "min-h-0 flex-1" : (className ?? "h-64"),
+          fill && className,
         )}
       >
         {children}

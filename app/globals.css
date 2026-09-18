@@ -4,8 +4,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /* `roomy:` — a screen that is both wide AND tall enough to have real space to
-   spare, used by the home screen's widget board (see SortableMasonry's
-   `gridScale`). Width alone isn't the signal: a short ultrawide monitor is
+   spare, used by the home screen's widget board (see `.widget-board` and
+   `data-wide`). Width alone isn't the signal: a short ultrawide monitor is
    already scrolling, so widening the board there changes a familiar desktop
    layout without solving anything. 1000px of height is roughly where the
    composition starts to fit with room left over. */
@@ -1334,6 +1334,61 @@ main[data-variant="reader"] .reader-masthead {
     var(--color-muted-foreground) 30%,
     transparent
   );
+}
+
+/* =============================================================================
+   Widget board — `.widget-board`
+   The home screen's grid of square cells (components/ui/widget-board.tsx).
+   A widget spans a footprint of cells declared by its size family — small
+   1×1, medium 2×1, large 2×2, xl 4×2 — and the cell itself is pure CSS: the
+   frame is a size container, and the cell is what divides its width into the
+   column count, capped so a widget on a wide phone or a thin desktop window
+   never outgrows the card it was designed as. Column count steps with the
+   screen the way the masonry's did (2 / 4 / 6 / 8 cells is 1 / 2 / 3 / 4 of
+   the old columns), and the eighth column waits for `data-wide` — a board
+   with enough cells to fill it. `row dense` is the placement rule: in order,
+   first fit, gaps filled by whatever later widget fits them; `placeInFlow`
+   in widget-size.ts is the same rule in TypeScript, and the two must agree.
+   ============================================================================= */
+
+.widget-board {
+  --board-cols: 2;
+  --board-gap: 1rem;
+  --cell: min(
+    200px,
+    calc((100cqw - (var(--board-cols) - 1) * var(--board-gap)) / var(--board-cols))
+  );
+  display: grid;
+  grid-template-columns: repeat(var(--board-cols), var(--cell));
+  grid-auto-rows: var(--cell);
+  grid-auto-flow: row dense;
+  gap: var(--board-gap);
+  justify-content: center;
+}
+
+@media (width >= 40rem) {
+  .widget-board {
+    --board-cols: 4;
+  }
+}
+
+@media (width >= 64rem) {
+  .widget-board {
+    --board-cols: 6;
+  }
+}
+
+@media (width >= 96rem) and (height >= 1000px) {
+  .widget-board[data-wide] {
+    --board-cols: 8;
+  }
+}
+
+/* The grip is the one control on a card that must take a touch drag for
+   itself — the page must not scroll under a resize. */
+.widget-grip {
+  touch-action: none;
+  cursor: nwse-resize;
 }
 
 /* =============================================================================

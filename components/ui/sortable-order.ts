@@ -1,6 +1,6 @@
 // =============================================================================
 // Sortable order persistence — shared by every draggable home-screen surface
-// (the widget masonry and the app shelf). An order is an array of item IDs in
+// (the widget board and the app folder). An order is an array of item IDs in
 // localStorage, so each visitor keeps their own layout.
 // =============================================================================
 
@@ -84,4 +84,42 @@ export function reconcile(stored: string[], all: string[]): string[] {
   const keptSet = new Set(kept);
   const added = all.filter((id) => !keptSet.has(id));
   return [...kept, ...added];
+}
+
+// =============================================================================
+// Size persistence — the widget board's second saved layout fact. The order
+// says where a widget stands; the size map says how big it stands there. They
+// are stored apart so the order contract (an array of ids, unchanged since
+// the masonry) survives, and a visitor who never touched a size has nothing
+// stored for it.
+// =============================================================================
+
+export function loadSizeMap(key: string): Record<string, string> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const out: Record<string, string> = {};
+        for (const [id, value] of Object.entries(parsed)) {
+          if (typeof value === "string") out[id] = value;
+        }
+        return out;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+export function saveSizeMap(key: string, sizes: Record<string, string>): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (Object.keys(sizes).length === 0) localStorage.removeItem(key);
+    else localStorage.setItem(key, JSON.stringify(sizes));
+  } catch {
+    // ignore
+  }
 }
