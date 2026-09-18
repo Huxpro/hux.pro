@@ -5,16 +5,32 @@
 //   sky gradient + sun glow / disc      (continuous with sun elevation)
 //   stars (twinkling) + moon (sphere)   (night only, occluded by cloud)
 //   two parallax cloud decks (fbm)      (cover / density / storminess / wind)
-//   fog / haze                          (low-frequency drifting veil)
+//   fog / haze                          (low-frequency drifting veil, wipeable)
 //   lightning                           (stochastic cloud-illuminating flashes)
 //   the strike                          (one aimed bolt, on a click — see lib/strike.ts)
-//   rain streaks                        (hash-cell particles, wind-sheared)
+//   the fog wipe                        (a swath of cleared mist — see lib/wipe.ts)
+//   rain streaks                        (hash-cell particles, falling along the wind)
 //   snow                                (depth-layered flakes, slow and fluttering)
+//   …each along its own fall            (wind does not shear the weather; it
+//                                        tilts the direction it falls in)
 //   theme veil + exposure + dither      (blend toward the page background)
 //
 // Everything is procedural, so the whole wallpaper is a string of GLSL and the
 // renderer only streams a handful of uniforms per frame.
+//
+// Every horizontal quantity here is screen-space and POSITIVE GOES RIGHT: the
+// scene's wind, the cloud deck's accumulated travel, and the sideways half of
+// the snow's. The travels are *subtracted* where they are used, because
+// sampling a procedural field further right is what walks it left.
 // =============================================================================
+
+import {
+  WIPE_DECAY,
+  WIPE_MAX_POINTS,
+  WIPE_RADIUS,
+  WIPE_REACH,
+  WIPE_TAIL,
+} from "../wipe";
 
 export const VERTEX_SHADER = /* glsl */ `#version 300 es
 precision highp float;
@@ -32,8 +48,8 @@ out vec4 fragColor;
 uniform vec2  uResolution;
 uniform float uTime;
 uniform float uSeed;
-uniform float uCloudDrift;   // accumulated in JS from the smoothed wind
-uniform float uSnowDrift;
+// Accumulated travel, in JS, from the smoothed wind. Positive travels right.
+uniform float uCloudDrift;
 
 uniform vec2  uSun;           // screen 0..1, y up
 uniform float uSunElevation;  // degrees
@@ -58,14 +74,52 @@ uniform vec3  uCloudShade;
 
 uniform float uRain;
 uniform float uSnow;
-uniform vec2  uWind;
+// Where the weather is falling, and how far it has fallen. The wind — the
+// forecast's and whatever a hand stirs up — reaches the rain and the snow only
+// through these four, and through nothing else. See Precipitation.
+// Both downs are unit vectors, and the renderer guarantees it — including the
+// degenerate frame or two when a 180-degree flip of gravity eases through
+// zero, where it sends (0,-1) rather than nothing. So nothing below
+// re-normalises them: that was a square root and a divide per pixel, twice
+// over, to re-establish something the CPU already knew once a frame.
+uniform vec2  uRainDown;      // unit; (0,-1) in a calm sky
+uniform float uRainFall;      // seconds of travel; the clock in a calm sky
+uniform vec2  uSnowDown;      // unit; the snow's, which is a much flatter angle
+uniform vec2  uSnowFall;      // seconds of travel, as a vector; (0,-clock) calm
 uniform float uFog;
 uniform float uLightning;
 uniform float uStars;
+// What the murk is hiding — the same night sky without the fog and the deck a
+// fog day puts in front of it. Only the wipe asks for these, and only inside
+// the swath it has cleared; everywhere else the scene's own values stand.
+uniform float uStarsBehind;
+uniform float uMoonBehind;
 
 uniform vec2  uStrike;      // screen 0..1, y up — where the clicked bolt lands
 uniform float uStrikeAge;   // seconds since it fired; < 0 when none is running
 uniform float uStrikeSeed;  // re-rolled per strike, so no two bolts are alike
+
+// The wipe is a path, and a fragment shader has no memory: JS keeps a bounded
+// ring of the path's recent corners and the shader sweeps the swath along the
+// polyline they describe. Corners rather than dots is what makes the trail long
+// enough to write with — one entry buys a whole segment.
+//
+// xy is screen 0..1 y-up; z is how far through its life the corner is, 0..1 (JS
+// owns the clock, so the duration lives in one place); w carries two things at
+// once — its magnitude is what the hand had left when this corner was made (see
+// the hand in lib/wipe.ts), and its sign says whether the corner continues the
+// one before it or opens a stroke of its own, which is how two letters do not
+// get joined by a line across the gap. A charge is never zero, so the sign is
+// always readable. Only the first uWipeCount entries are live.
+const int WIPE_MAX = ${WIPE_MAX_POINTS};
+uniform vec4  uWipe[WIPE_MAX];
+uniform int   uWipeCount;
+uniform vec4  uWipeBox;   // the live corners' bounds, screen 0..1: minx, miny, maxx, maxy
+// How far a cleared point travels over the whole of its life, screen units. The
+// sky has no general notion of a horizontal wind any more — each falling thing
+// carries its own aim (see "Where the weather falls") — so the wipe's drift is
+// worked out in JS from the same smoothed wind and arrives already resolved.
+uniform vec2  uWipeBlow;
 
 uniform vec3  uVeilColor;
 uniform float uVeilAmount;
@@ -154,8 +208,8 @@ vec3 skyBase(vec2 uv, vec2 p, vec2 sunP, float aspect) {
   return sky;
 }
 
-float stars(vec2 p, vec2 uv) {
-  if (uStars < 0.002) return 0.0;
+float stars(vec2 p, vec2 uv, float amount) {
+  if (amount < 0.002) return 0.0;
   float s = 0.0;
   // Two densities: a sparse bright field and a fine dust.
   for (int i = 0; i < 2; i++) {
@@ -172,7 +226,7 @@ float stars(vec2 p, vec2 uv) {
     s += star * twinkle * (i == 0 ? 0.85 : 0.4);
   }
   // Fade stars toward the horizon haze.
-  return s * uStars * smoothstep(0.05, 0.45, uv.y);
+  return s * amount * smoothstep(0.05, 0.45, uv.y);
 }
 
 // One crater per cell: a bowl with a raised rim, jittered inside its cell, so a
@@ -205,8 +259,8 @@ float moonRelief(vec2 q, vec2 detail) {
   return h;
 }
 
-vec3 moon(vec2 p, vec2 moonP) {
-  if (uMoonVisible < 0.002) return vec3(0.0);
+vec3 moon(vec2 p, vec2 moonP, float visible) {
+  if (visible < 0.002) return vec3(0.0);
   float r = DISC_R * uMoonSize;
   vec2 d = (p - moonP) / r;
   d.x *= uHemisphere;
@@ -306,7 +360,7 @@ vec3 moon(vec2 p, vec2 moonP) {
   float illum = 0.5 - 0.5 * k;
   float glow = exp(-md * md * 0.22) * 0.1 * (0.35 + 0.65 * illum);
   col += vec3(0.75, 0.82, 1.0) * glow * (1.0 - lit * 0.6);
-  return col * uMoonVisible;
+  return col * visible;
 }
 
 // ---------------------------------------------------------------------------
@@ -320,7 +374,9 @@ struct CloudSample {
 };
 
 CloudSample cloudLayer(vec2 p, vec2 sunDir, float scale, float speed, float parallaxY, float coverBias) {
-  vec2 drift = vec2(uCloudDrift * speed, 0.0);
+  // Subtracted, not added: uCloudDrift is a travel, positive to the right, and
+  // sampling further right is what walks a deck left.
+  vec2 drift = vec2(-uCloudDrift * speed, 0.0);
   vec2 q = vec2(p.x, p.y * parallaxY) * scale + drift + uSeed * 7.0;
   // Base billows plus a finer detail octave so partial cover thresholds into
   // ragged cumulus rather than round fbm peaks.
@@ -348,14 +404,79 @@ CloudSample cloudLayer(vec2 p, vec2 sunDir, float scale, float speed, float para
 
 // ---------------------------------------------------------------------------
 // Precipitation
+//
+// WIND DOES NOT SHEAR THE WEATHER. IT TILTS THE WAY IT FALLS.
+//
+// A drop at terminal velocity is a balance: gravity pulling down, drag pushing
+// back along its travel. Put a crosswind on it and it settles into a new
+// balance almost at once and falls along the SUM of the two — the same speed
+// through the air, aimed somewhere else. So a wind is not a distortion applied
+// to falling weather. It is a change to which way down is, for the things that
+// fall, and every visible consequence follows from that one vector.
+//
+// Which is also why this is the same model the gyroscope wants (#158): a tilt
+// moves gravity, a wind adds a sideways term, and both arrive as the same
+// four uniforms.
+//
+//   uRainDown   the direction the rain travels. A streak IS a drop's motion
+//               blur, so it has to lie along the travel: the rain is sampled
+//               in a frame aligned to this — the one rotation in the file.
+//               Rotating rather than shearing is the whole difference. A shear
+//               stretches a drop as it leans it, so past a breeze the streaks
+//               stop reading as rain and start reading as brushwork, and the
+//               harder the gust the worse the smear; a rotation leans a drop
+//               without ever touching its shape.
+//   uRainFall   how far the rain has fallen, in seconds of its own travel. A
+//               tilted fall is a longer one — gravity plus wind is the
+//               hypotenuse — so a gust quickens the rain as well as leaning
+//               it. Accumulated rather than multiplied out of the clock,
+//               because a speed that changed under a clock would teleport
+//               every drop on the screen.
+//   uSnowDown   the same direction for the snow, which is a far flatter angle
+//               at the same wind: a flake falls at a thirtieth of a drop's
+//               speed, so the same sideways push lays it over much further.
+//               The flutter is measured across it, so a flake's wobble stands
+//               up along the way it is actually going.
+//   uSnowFall   how far the snow has travelled and along what, as a vector of
+//               seconds. Keeping the travel rather than multiplying a clock by
+//               a direction is what lets the direction come round slowly
+//               without dragging the flakes that have already fallen along
+//               with it: each one carries on the way it was going and curves
+//               into the new one. It is the wind's whole sideways effect on
+//               the snow, too — there is no separate drift any more, because a
+//               flake blown sideways and a flake falling are the same flake.
+//
+// A consequence worth naming: the snow's lean is now the same at every depth
+// for free. Both halves of a layer's travel are that layer's own fall speed
+// times the same vector, so the angle cannot depend on the layer — where
+// before it took two depth ramps, tuned to span the same 3x, to arrange it.
+//
+// In a calm sky both downs are (0,-1), uRainFall is the clock and uSnowFall is
+// (0,-clock), and every line below is exactly the line it replaced.
 // ---------------------------------------------------------------------------
 
-float rain(vec2 p, vec2 uv, float aspect) {
+/**
+ * Takes a screen point into a frame whose y runs against 'down': for the rain,
+ * whose streaks must lie along their fall.
+ *
+ * Turned about the middle of the viewport rather than a corner, so the curtain
+ * pivots about what you are looking at instead of swinging in from an edge.
+ */
+vec2 fallSpace(vec2 p, vec2 down, float aspect) {
+  // Rows (right, up) = (down turned a quarter turn, -down); GLSL wants columns.
+  mat2 m = mat2(-down.y, -down.x, down.x, -down.y);
+  vec2 c = vec2(aspect * 0.5, 0.5);
+  return m * (p - c) + c;
+}
+
+// The point arrives already in the fall's own frame, so down is down in here and the
+// fall is just the travel — which is what lets the rain stay the cheap, flat
+// loop it always was. A drop lives a few tenths of a second and leaves nothing
+// behind it, so it needs no memory of where it was going before.
+float rain(vec2 base) {
   if (uRain < 0.002) return 0.0;
   float acc = 0.0;
-  float slant = -uWind.x * 0.75;
   float fade = smoothstep(0.0, 0.12, uRain);
-  vec2 base = vec2(p.x + uv.y * slant, p.y);
 
   // Four depth layers of thin, short, individually-timed streaks. Every
   // column carries its own phase so drops never line up into visible rows,
@@ -369,7 +490,7 @@ float rain(vec2 p, vec2 uv, float aspect) {
     float speed = (1.5 + fi * 0.35) * (0.85 + 0.3 * uRain);
     float colId = floor(base.x * sc + fi * 13.7);
     float phase = hash1(vec2(colId, fi * 3.1 + uSeed));
-    vec2 q = vec2(base.x * sc + fi * 13.7, (base.y + uTime * speed + phase * 5.0) * rows);
+    vec2 q = vec2(base.x * sc + fi * 13.7, (base.y + uRainFall * speed + phase * 5.0) * rows);
     vec2 cell = floor(q);
     vec2 f = fract(q);
     vec2 rnd = hash2(cell + uSeed);
@@ -386,7 +507,7 @@ float rain(vec2 p, vec2 uv, float aspect) {
   }
 
   // Heavy rain also reads as a faint, fast vertical sheet.
-  float sheet = fbm3(vec2(base.x * 18.0, base.y * 1.6 + uTime * 2.2) + uSeed) * smoothstep(0.55, 1.0, uRain) * 0.09;
+  float sheet = fbm3(vec2(base.x * 18.0, base.y * 1.6 + uRainFall * 2.2) + uSeed) * smoothstep(0.55, 1.0, uRain) * 0.09;
 
   return (acc * (0.14 + 0.22 * uRain) + sheet) * fade;
 }
@@ -404,6 +525,16 @@ float snow(vec2 p, float aspect) {
   float fade = smoothstep(0.0, 0.12, uSnow);
   float px = 1.0 / uResolution.y;   // one device pixel in screen units
 
+  // Which way this snow is going, and which way is sideways to it. Only the
+  // flutter follows them — a flake is a plate wobbling as it settles, so its
+  // wobble stands across whatever it is settling ALONG. Nothing positional may
+  // follow them, because a flake's PLACE must not depend on where the fall is
+  // aimed: turning the offsets below would slide the whole field across the
+  // page as the snow came round, and a page that slides is exactly what a gust
+  // must not look like. Calm, these are (0,-1) and (1,0).
+  vec2 down = uSnowDown;
+  vec2 across = vec2(-down.y, down.x);
+
   // The whole curtain leans and eases back on two slow beats — a gust that
   // takes twenty seconds to pass, not a shiver.
   float gust = sin(uTime * 0.31) * 0.6 + sin(uTime * 0.13 + 1.7) * 0.4;
@@ -416,13 +547,20 @@ float snow(vec2 p, float aspect) {
   for (int i = 0; i < 5; i++) {
     float z = float(i) * 0.25;                      // 0 far … 1 near
     float sc = mix(44.0, 12.0, z);                  // cells per screen height
-    float fall = mix(0.030, 0.092, z) * (0.85 + 0.3 * uSnow);
+    // A depth ramp, and only that: how much faster heavier snow falls is a
+    // property of the snow, and it is carried in uSnowFall by the renderer
+    // that accumulates it. Keeping it here meant a change of intensity
+    // re-scaled every second of fall already banked.
+    float fall = mix(0.030, 0.092, z);
     float radius = mix(0.0019, 0.0062, z);          // screen heights
     float soft = mix(0.45, 1.0, z * z);             // only the nearest defocus
     float density = mix(0.30, 0.09, z) * (0.35 + 0.65 * uSnow);
 
-    vec2 q = p * sc;
-    q.y += uTime * fall * sc;
+    // Where this layer has got to: its own speed along the travel the renderer
+    // accumulates. Both halves of it — down the page and across it — are the
+    // same vector times the same speed, which is why the lean comes out the
+    // same at every depth without anyone tuning it to.
+    vec2 q = (p - uSnowFall * fall) * sc;
     float row = floor(q.y);
 
     // The long waft. Taken from the row index rather than the continuous
@@ -432,12 +570,9 @@ float snow(vec2 p, float aspect) {
     // a cell without clipping anything.
     float rh = hash1(vec2(row, float(i) * 3.7 + uSeed));
     float waft = sin(uTime * (0.4 + fract(rh * 7.3) * 0.5) + rh * 6.2831);
-    // The quantity that matters here is the lean: sideways over fall. Both
-    // ramps span the same 3×, so it comes out the same at every depth — one
-    // wind, one angle, which is not true if the two are tuned apart. At a
-    // 10 km/h crosswind it works out around 33° off vertical.
-    q.x += (uSnowDrift * mix(0.133, 0.4, z)
-          + gust * mix(0.008, 0.02, z)
+    // The curtain's own wobble, which is not wind and does not belong to the
+    // fall: it stays across the page, and its signs carry no meaning.
+    q.x += (gust * mix(0.008, 0.02, z)
           + waft * mix(0.022, 0.075, z)) * sc;
 
     vec2 cell = floor(q);
@@ -459,12 +594,13 @@ float snow(vec2 p, float aspect) {
 
     // Every flake rides its own slow ellipse: it swings sideways and stalls at
     // the ends of the swing. That coupling — not the falling — is what the eye
-    // reads as fluttering.
+    // reads as fluttering. The swing is across the fall and the stall along
+    // it, so the ellipse stands up the way the flake is actually travelling.
     float th = uTime * (0.5 + tempo * 0.85) + phase * 6.2831;
     float sw = sin(th);
     vec2 c = vec2(0.34 + cx * 0.32, 0.3 + cy * 0.4);
-    c.x += sw * (0.07 + 0.06 * tempo);
-    c.y += cos(th) * 0.09;
+    c += across * (sw * (0.07 + 0.06 * tempo));
+    c -= down * (cos(th) * 0.09);
 
     // Tumble. A snow crystal is a thin plate: edge-on it is a sliver and goes
     // dim, then flares as it turns a face back into the light. It turns twice
@@ -597,6 +733,124 @@ float strike(vec2 p, float aspect, out float bolt) {
 }
 
 // ---------------------------------------------------------------------------
+// The fog wipe — the foggy-day easter egg (see lib/wipe.ts)
+// ---------------------------------------------------------------------------
+
+/**
+ * How much of the mist is gone at p: 0 untouched, 1 clear air.
+ *
+ * The swath is swept along the polyline — the distance to each segment, not to
+ * a point — so a drag comes out as one stroke of even width however fast the
+ * hand was going, and there are no dots to blend into each other.
+ *
+ * Nothing about it is a circle, because a circle in fog reads as a lens. The
+ * whole field is looked up through a domain warp made of the same drifting
+ * noise the fog itself is made of, and the width is pushed around by a second,
+ * finer one: the edge tears and feathers along its length, and it keeps moving
+ * with the mist rather than sitting on top of it. A long, soft falloff does the
+ * rest — a wiped window has no outline.
+ *
+ * Healing is a fade and a shrink together, run per corner and interpolated
+ * along each segment, so the tail of a long stroke silts up while the head is
+ * still being drawn. Shrinking alone would pull the swath apart into beads.
+ */
+float fogWipe(vec2 p, float aspect) {
+  // Nothing to arbitrate: a fog scene carries no lightning and no precipitation,
+  // so the count is the whole gate (see lib/wipe.ts).
+  if (uWipeCount < 2) return 0.0;
+
+  // Everywhere the stroke is not — which, for a scribble, is most of the
+  // screen — costs one box test instead of the whole loop. Whole tiles fall on
+  // the same side of it, so it is the one early-out a GPU actually likes. The
+  // margin covers the widest the swath can be, plus the furthest the warp below
+  // can push it, plus the furthest the wind can carry it over a whole life.
+  const float REACH = ${WIPE_REACH.toFixed(3)};
+  if (p.x < uWipeBox.x * aspect - REACH || p.x > uWipeBox.z * aspect + REACH ||
+      p.y < uWipeBox.y - REACH || p.y > uWipeBox.w + REACH) return 0.0;
+
+  vec2 drift = vec2(uTime * 0.014, uTime * -0.011);
+  // Two scales of warp rather than one: a slow, broad one that leans the whole
+  // stroke around, and a faster one that works on its edges. A single octave
+  // holds its shape — you can see the same noise sitting in the same place —
+  // and holding a shape is what a drawing does.
+  vec2 warp = vec2(
+    fbm3(p * 1.7 + drift * 0.45 + uSeed),
+    fbm3(p * 1.7 - drift * 0.45 + uSeed + 7.1)
+  ) - 0.5
+  + 0.55 * (vec2(
+    fbm3(p * 4.6 + drift * 1.5 + uSeed + 19.3),
+    fbm3(p * 4.6 - drift * 1.5 + uSeed + 31.7)
+  ) - 0.5);
+
+  // And the whole thing is carried off. A patch of cleared air is not a mark on
+  // the screen, it is a hole in something that is moving: it goes downwind and
+  // settles as it ages, so the old end of a stroke has travelled further than
+  // the new end and the stroke shears rather than sitting still. This is the
+  // single strongest reason the mark reads as weather and not as a board.
+  vec2 blow = uWipeBlow;
+
+  // Two scales of fray on the width — big lobes that make one side of the
+  // stroke fatter than the other for a while, and a fine tear on top of them —
+  // and a third that leaves streaks of mist standing inside the swath. Nothing
+  // here is ever the same twice along the path, which is the whole difference
+  // between a wiped window and a hole cut in a mask.
+  float lobes = fbm3(p * 9.0 + drift * 0.6 + uSeed * 0.7);
+  float tear = vnoise(p * 27.0 - drift + uSeed * 1.9);
+  float ragged = 0.42 + 1.05 * lobes + 0.26 * (tear - 0.5);
+  // What the same fray does to the width once the mist has been working on it
+  // for a while. Loop-invariant, so it is worked out once rather than per
+  // segment.
+  float raggedHeal = ragged * ragged * 1.35;
+
+  float clear = 0.0;
+  for (int i = 0; i + 1 < WIPE_MAX; i++) {
+    if (i + 1 >= uWipeCount) break;
+    vec4 b = uWipe[i + 1];
+    // b opens a stroke of its own: there is no segment between it and a.
+    if (b.w < 0.0) continue;
+    vec4 a = uWipe[i];
+    vec2 pa = p - vec2(a.x * aspect, a.y);
+    vec2 ba = vec2((b.x - a.x) * aspect, b.y - a.y);
+    float bb = max(dot(ba, ba), 1e-6);
+    float t = clamp(dot(pa, ba) / bb, 0.0, 1.0);
+    float life = clamp(mix(a.z, b.z, t), 0.0, 1.0);
+    // No hold: it is closing from the first instant, and the visible life is
+    // mostly tail. See WIPE_DECAY.
+    float age = exp(-${WIPE_DECAY.toFixed(2)} * life)
+      * (1.0 - smoothstep(${WIPE_TAIL.toFixed(3)}, 1.0, life));
+    // And what the hand had when this stretch was made. A tired hand covers the
+    // same ground — it just stops bringing anything up, so this is strength and
+    // not width: the far end of a long stroke is as wide as the near end and a
+    // great deal less clear.
+    float left = age * mix(abs(a.w), abs(b.w), t);
+    if (left < 1e-3) continue;
+    // The older this stretch is, the further it has blown and the more the mist
+    // has worked on it: the warp grows with age rather than being a fixed
+    // texture the stroke wears.
+    vec2 qa = pa - blow * life + warp * (0.055 + 0.16 * life);
+    float d = length(qa - ba * clamp(dot(qa, ba) / bb, 0.0, 1.0));
+    float r = ${WIPE_RADIUS.toFixed(4)} * mix(ragged, raggedHeal, life)
+      * (0.45 + 0.55 * age);
+    float e = d / max(r, 1e-4);
+    // A Gaussian, and one field for the whole effect.
+    //
+    // Anything with a shoulder — a disc with a soft edge, a core term unioned
+    // with a wider halo term, mist made to bead along the boundary — draws an
+    // outline, and an outlined stroke is the single most pen-like thing there
+    // is. This has no shoulder at any width and no boundary anywhere to put an
+    // outline on: it is a density, falling off forever, which is what mist
+    // around a wiped patch actually is.
+    clear = max(clear, left * exp(-e * e * 1.1));
+  }
+  if (clear <= 0.0) return 0.0;
+  // Wiped, not deleted: what is left of the mist in the swath still drifts.
+  // Lightly, though — enough to see the streaks against the sky behind, not so
+  // much that the sky behind stops arriving.
+  float streak = vnoise(vec2(p.x * 5.0, p.y * 19.0) + drift + uSeed * 2.7);
+  return clear * (0.86 + 0.14 * streak);
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -608,9 +862,21 @@ void main() {
   vec2 moonP = vec2(uMoon.x * aspect, uMoon.y);
   vec2 sunDir = normalize(sunP - vec2(aspect * 0.5, 0.35) + vec2(0.0001));
 
+  // The wipe is worked out first, because what it uncovers is composited here,
+  // at the very back of the frame — long before the fog it is clearing.
+  float cleared = fogWipe(p, aspect);
+
+  // Inside the swath, the night sky the murk was hiding. A foggy night has no
+  // stars and barely a moon by the time the scene reaches this shader (the deck
+  // saturates the star term, the fog takes what is left), so clearing the fog
+  // alone uncovers nothing, and the whole promise of the gesture — there really
+  // is a sky up there — comes to nothing with it. These two are that sky.
+  float starAmt = mix(uStars, max(uStars, uStarsBehind), cleared);
+  float moonAmt = mix(uMoonVisible, max(uMoonVisible, uMoonBehind), cleared);
+
   vec3 col = skyBase(uv, p, sunP, aspect);
-  col += vec3(0.9, 0.93, 1.0) * stars(p, uv);
-  col += moon(p, moonP);
+  col += vec3(0.9, 0.93, 1.0) * stars(p, uv, starAmt);
+  col += moon(p, moonP, moonAmt);
 
   // Far deck: large, slow, flattened by perspective. Near deck: smaller,
   // faster, a touch heavier.
@@ -618,6 +884,8 @@ void main() {
   CloudSample near = cloudLayer(p + vec2(3.1, 1.7), sunDir, 2.6, 0.03, 1.0, 0.0);
 
   // Clouds sit over the sky; the near deck also shades the far one a little.
+  // What the sky looks like underneath them is kept, for the fog wipe below.
+  vec3 belowDecks = col;
   col = mix(col, far.col, far.cov);
   col = mix(col, near.col * (1.0 - 0.08 * near.thick), near.cov);
   float cloudMask = max(far.cov, near.cov);
@@ -635,17 +903,50 @@ void main() {
   col += vec3(0.95, 0.97, 1.0) * bolt * 1.25;
 
   // Fog / haze: drifting low-frequency veil, denser toward the bottom.
+  //
+  // The wipe thins it rather than cutting a hole in the frame: 'fa' is the only
+  // thing it touches, so what shows through a cleared patch is whatever the sky
+  // is already rendering behind the mist — the gradient, the cloud decks, a sun
+  // glow. That is the payoff. A foggy day hides a real sky, and wiping reveals
+  // it rather than revealing a flat colour.
   if (uFog > 0.002) {
     vec3 fogCol = mix(uHorizon, uCloudLit, 0.35);
     float fn = 0.7 + 0.3 * fbm3(p * 1.8 + vec2(uTime * 0.02, 0.0) + uSeed);
     float fa = uFog * (0.45 + 0.55 * (1.0 - uv.y)) * fn;
+    fa *= 1.0 - cleared;
     col = mix(col, fogCol, clamp(fa, 0.0, 0.95));
+    // And the deck goes with it, because on a fog day the deck IS the murk: the
+    // profile carries three quarters cover with a white lit colour precisely
+    // because fog reads as overcast. Leave it standing and clearing the mist
+    // uncovers nothing — the mist and the cloud above it are the same white by
+    // day, and by night the deck is what buries the stars. It can only ever
+    // happen where there is fog to wipe, and it follows the same field the fog
+    // does, so what opens up is a thinning in weather rather than a hole in a
+    // mask. A gate, not a dial: on a fog day the deck goes, and on anything
+    // else there is no wipe to be running in the first place.
+    col = mix(col, belowDecks, cleared * smoothstep(0.2, 0.7, uFog));
+    // Clear air scatters less than mist, so the swath sits a shade darker than
+    // what is around it. On a white noon — where the mist, the deck above it
+    // and the sky behind them are all within a few levels of each other — this
+    // is most of what there is to see, and it is the reason the egg reads at
+    // all on the brightest day it can happen on.
+    col *= 1.0 - 0.05 * cleared * uFog;
   }
 
   // Precipitation over everything.
-  float r = rain(p, uv, aspect);
-  vec3 dropCol = mix(uCloudLit, vec3(1.0), 0.45);
-  col += dropCol * r * 0.75;
+  // Nothing in the sky has turned: a wind is a second pull on the things that
+  // fall, not a camera on the world. Only the rain's own frame is rotated, and
+  // only because a streak has to lie along its travel. See Precipitation.
+  //
+  // Behind the same uniform branch the snow uses below, and for the same
+  // reason — but note what is behind it here: rain() would return on its own
+  // compare, yet its ARGUMENT is a frame change, and an argument is evaluated
+  // whether or not the body wants it. A dry sky paid for a rotation.
+  if (uRain >= 0.002) {
+    float r = rain(fallSpace(p, uRainDown, aspect));
+    vec3 dropCol = mix(uCloudLit, vec3(1.0), 0.45);
+    col += dropCol * r * 0.75;
+  }
 
   // Snow, and the colour to paint it. A flake is a scattering mote, not a lamp:
   // it can never be brighter than the sky behind it, so against a blown-out

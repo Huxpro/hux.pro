@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Drawer } from "@base-ui/react/drawer";
 import { BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
 import {
@@ -95,6 +95,12 @@ import {
 // 6. Every gesture path is its own test: a `.click()` proves nothing about a
 //    touch tap, a touch tap nothing about a swipe release, and a programmatic
 //    `focus()` is a third thing again.
+// 7. A drag MAY carry the popup past its top edge, but the overshoot it
+//    publishes there is not a measure of intent. It is damped by a square root
+//    (`getSnapPointSwipeMovement`, useDrawerSnapPoints.js) AND the swipe-start
+//    threshold has already eaten ~17px of the gesture: a 207px pull from the
+//    0.7 detent arrives as 1.6px of movement, measured. Draw the rubber band
+//    from it; read intent from the pointer (`usePullPastTop` below).
 // -----------------------------------------------------------------------------
 
 /**
@@ -104,8 +110,14 @@ import {
  */
 export const SHEET_DETENTS = [0.7, 1];
 
+/**
+ * Ring of padding between a floating surface and the screen edges, in px, for
+ * the hit-tests and measurements that cannot take a CSS length.
+ */
+export const EDGE_GAP_PX = 12;
+
 /** Ring of padding between a floating surface and the screen edges. */
-export const EDGE_GAP = "0.75rem";
+export const EDGE_GAP = `${EDGE_GAP_PX / 16}rem`;
 
 /** Room a full-height sheet leaves above itself: the status bar, or the gap. */
 const TOP_INSET = `max(env(safe-area-inset-top), ${EDGE_GAP})`;
@@ -134,7 +146,7 @@ export const HEADER_BUTTON =
 
 /** The glass shell every shape shares. */
 export const SHELL = [
-  "flex flex-col overflow-hidden outline-none",
+  "system-chrome flex flex-col overflow-hidden outline-none",
   "rounded-3xl bg-glass-sheet backdrop-blur-xl",
   "border border-border/50 shadow-overlay",
 ].join(" ");
@@ -180,6 +192,109 @@ export function SurfaceViewport({
       {children}
     </Drawer.Viewport>
   );
+}
+
+/**
+ * Finger travel past the top edge that commits a pull-off.
+ *
+ * Small on purpose, and the measurement below explains why. A sheet's handle
+ * rests near the top of the screen once the sheet is at its top detent, so the
+ * room left above it — the whole budget for "keep pulling" — is about twenty
+ * pixels. Measured on an iPhone 13, a pull from the grabber at the 0.7 detent
+ * all the way to the top of the glass spends 187px resizing the sheet and has
+ * 20px left over. A threshold near that ceiling would be unreachable; this one
+ * leaves a few pixels of slack at each end.
+ */
+export const PULL_PAST_TOP_TRAVEL = 14;
+
+/**
+ * The drag that lifts a sheet off the bottom edge altogether.
+ *
+ * Measures the POINTER, not the popup. Base UI does let a drag carry the sheet
+ * past its top edge, but what it publishes there is damped by a square root
+ * (`getSnapPointSwipeMovement`, useDrawerSnapPoints.js) and its swipe-start
+ * threshold has already eaten ~17px of the gesture — between them, the 207px
+ * pull above arrives as 1.6px of movement. That number is the right one to
+ * draw the rubber band with and the wrong one to read intent from.
+ *
+ * The finger says it plainly instead:
+ *
+ *   push = travelled up − the offset the sheet had to climb through
+ *
+ * so one continuous pull from a lower detent both resizes the sheet and, once
+ * it is against the ceiling, keeps counting — which is the gesture as it is
+ * felt: the sheet stops moving and you are still pulling.
+ *
+ * `data-swiping` is the gate: it is Base UI's own verdict that this gesture is
+ * a sheet drag rather than a scroll inside the content, and it is gone by the
+ * time a scroll ends. The reading at release decides, so easing back down
+ * before letting go cancels the pull.
+ */
+function usePullPastTop(
+  popup: HTMLElement | null,
+  enabled: boolean,
+  onPull: (() => void) | undefined,
+  /** A `useState` setter, so it is stable and safe to call from the effect. */
+  onArmedChange: (armed: boolean) => void
+) {
+  // Kept in a ref so a changing callback never re-arms a gesture in flight.
+  const handler = useRef(onPull);
+  useEffect(() => {
+    handler.current = onPull;
+  }, [onPull]);
+
+  useEffect(() => {
+    if (!popup || !enabled) return;
+
+    let startY: number | null = null;
+    let budget = 0;
+    let push = 0;
+    let armed = false;
+
+    const setArmed = (next: boolean) => {
+      if (next === armed) return;
+      armed = next;
+      onArmedChange(next);
+    };
+
+    const down = (e: PointerEvent) => {
+      startY = e.clientY;
+      // How far this sheet can still climb before it is against the ceiling.
+      budget =
+        Number.parseFloat(popup.style.getPropertyValue("--drawer-snap-point-offset")) || 0;
+      push = 0;
+    };
+
+    const move = (e: PointerEvent) => {
+      if (startY === null) return;
+      push = Math.max(0, startY - e.clientY - budget);
+      setArmed(push >= PULL_PAST_TOP_TRAVEL);
+    };
+
+    const up = () => {
+      if (startY === null) return;
+      // Base UI's own verdict on what this gesture was: a drag inside the
+      // module list scrolls it and never sets this.
+      const pulled = armed && popup.hasAttribute("data-swiping");
+      startY = null;
+      push = 0;
+      setArmed(false);
+      if (pulled) handler.current?.();
+    };
+
+    popup.addEventListener("pointerdown", down, { passive: true });
+    popup.addEventListener("pointermove", move, { passive: true });
+    // On the window: a release outside the popup still ends the gesture.
+    window.addEventListener("pointerup", up, { passive: true });
+    window.addEventListener("pointercancel", up, { passive: true });
+
+    return () => {
+      popup.removeEventListener("pointerdown", down);
+      popup.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+  }, [popup, enabled, onArmedChange]);
 }
 
 export interface SurfaceSheetProps {
@@ -234,6 +349,13 @@ export interface SurfaceSheetProps {
    */
   restoreFocus?: boolean;
   /**
+   * Fired when a drag carries the sheet past its top edge by more than
+   * `PULL_PAST_TOP_TRAVEL` real pixels and lets go there — the gesture that
+   * lifts a surface off the edge it is docked to. Without it the overshoot is
+   * only a rubber band, as it is for every other sheet.
+   */
+  onPullPastTop?: () => void;
+  /**
    * Accessible name for the dialog, rendered visually hidden. Omit when the
    * content renders a visible `Drawer.Title` of its own.
    */
@@ -255,11 +377,17 @@ export function SurfaceSheet({
   fitContent = false,
   level: levelProp,
   restoreFocus = true,
+  onPullPastTop,
   label,
   className,
   children,
 }: SurfaceSheetProps) {
   const hasSnapPoints = !!snapPoints && snapPoints.length > 0;
+  // Held in state, not a ref: the pull watcher is an effect over the popup
+  // element, and a ref would not tell it when the element arrives.
+  const [popup, setPopup] = useState<HTMLElement | null>(null);
+  const [pullArmed, setPullArmed] = useState(false);
+  usePullPastTop(popup, !!onPullPastTop, onPullPastTop, setPullArmed);
 
   // The detent, controlled by the owner when it says so, else kept here.
   const isControlled = activeSnapPoint !== undefined;
@@ -318,6 +446,7 @@ export function SurfaceSheet({
         <Drawer.Portal>
           <SurfaceViewport modal={modal}>
             <Drawer.Popup
+              ref={setPopup}
               finalFocus={restoreFocus ? undefined : false}
               data-surface-popup=""
               data-surface-snap={hasSnapPoints ? "" : undefined}
@@ -358,6 +487,10 @@ export function SurfaceSheet({
               <div
                 data-surface-shell
                 data-behind={behind ? "" : undefined}
+                // Past the threshold: the release will lift the sheet off the
+                // edge. The shell says so (globals.css) so the gesture can be
+                // seen before it is committed, and abandoned.
+                data-pull-armed={pullArmed ? "" : undefined}
                 // React 19 renders `inert` as the boolean attribute.
                 inert={behind}
                 // Sheets from other subtrees stacked on this one; the CSS adds

@@ -77,6 +77,20 @@ export interface AmbientSettings {
    * is the flag that turns it off.
    */
   themeFollowsSun: boolean;
+  /**
+   * Rain and snow fall along the device's gyroscope rather than straight down
+   * the page (Sky only — see lib/gyroscope.ts). On by default: where the
+   * browser hands over motion freely it just works, and where it does not
+   * this is the wish waiting for the one tap that grants it.
+   */
+  weatherGyro: boolean;
+  /**
+   * WebKit only: motion access has been granted on this origin before, so it
+   * can be re-taken silently on the next load. Without this record nothing
+   * asks unprompted, and a visitor who has never answered is never prompted
+   * out of nowhere.
+   */
+  weatherGyroGranted: boolean;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
   wallpaperReadingBlur: boolean;
   /** Veil the wallpaper on reading pages. */
@@ -95,6 +109,8 @@ export function getDefaultSettings(): AmbientSettings {
     wallpaperPlacement: "full",
     wallpaperKind: "weather",
     weatherStyle: "sky",
+    weatherGyro: true,
+    weatherGyroGranted: false,
     wallpaperId: DEFAULT_WALLPAPER_ID,
     wallpaperPlay: "off",
     wallpaperAlbum: null,
@@ -162,6 +178,8 @@ export function getAmbientSettings(): AmbientSettings {
       wallpaperKind:
         parsed.wallpaperKind === "image" ? "image" : defaults.wallpaperKind,
       weatherStyle: readWeatherStyle(parsed.weatherStyle),
+      weatherGyro: parsed.weatherGyro !== false,
+      weatherGyroGranted: parsed.weatherGyroGranted === true,
       wallpaperId,
       wallpaperPlay: play,
       wallpaperAlbum: play === "off" ? null : wallpaperAlbum,

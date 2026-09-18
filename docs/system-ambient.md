@@ -1,6 +1,6 @@
 # Ambient System
 
-The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon — offered in three styles: Sky, Gradient and Classic. On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg).
+The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon, and whose rain and snow fall along the device's own gravity — offered in three styles: Sky, Gradient and Classic. On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg), and while it is raining or snowing a drag across the background [stirs up a gust](#stirring-the-wind-rain-and-snow-easter-egg); on a foggy one a drag [wipes the mist clear](#the-fog-wipe-foggy-day-easter-egg).
 
 It also owns the page background — the **wallpaper**. Weather is not a separate
 background feature; it is the one wallpaper that changes on its own. See
@@ -25,14 +25,17 @@ systems/ambient/
 │   └── index.ts                  # Component exports
 ├── lib/
 │   ├── weather.ts                # Open-Meteo integration + condition model
+│   ├── gyroscope.ts              # Screen-space gravity from `deviceorientation` + motion access
 │   ├── solar.ts                  # Sun elevation/azimuth, lunar ephemeris, moon phase
 │   ├── scene.ts                  # weather × sun × moon × theme → WeatherScene
 │   ├── gradient.ts               # WeatherScene → CSS gradient + crossfade types
 │   ├── wallpaper/
 │   │   ├── shader.ts             # GLSL: the full-screen procedural sky (CG)
 │   │   ├── renderer.ts           # WallpaperRenderer: uniform easing, adaptive quality
+│   │   ├── stir.ts               # Drag the background to stir up a gust of wind
 │   │   └── support.ts            # WebGL2 / reduced-motion / quality-profile detection
 │   ├── strike.ts                 # The thunder-day strike: timing + "is this the sky?"
+│   ├── wipe.ts                   # The foggy-day wipe: the stroke, the hand, the gesture
 │   ├── greeting.ts               # Time-of-day helpers
 │   ├── location.ts               # IP/GPS location resolution
 │   ├── notification.ts           # Upcoming sun-event detection (lead-up + window)
@@ -186,13 +189,159 @@ The Sky engine (`WallpaperRenderer`):
   large gap between the target and where the disc has eased to is only lag, and
   snapping on that teleports the disc mid-drag;
 - accumulates cloud/snow **drift in JS** from the smoothed wind, so a wind change
-  glides instead of teleporting the sky;
+  glides instead of teleporting the sky — and the snow takes that wind *slowly*,
+  see [Stirring the wind](#stirring-the-wind-rain-and-snow-easter-egg);
+- lets a hand dragged across the page add to the wind, same section;
 - renders at a **pixel budget** (≈1.1 M px desktop, ≈0.5 M px phones) and backs
   off further when frames run long, recovering when they are cheap — the scene
   is soft, so CSS upscaling is invisible;
 - pauses when the tab is hidden, renders a single still frame under
   `prefers-reduced-motion`, and survives context loss;
 - fades the canvas in only after the first frame is painted (no black flash).
+
+### Gyroscope Tilt (Sky engine)
+
+Rain and snow fall along **gravity**, not along the bottom of the viewport:
+lean the phone and the streaks lean with it, turn it on its side and the snow
+crosses the page sideways. A raindrop re-aims in a moment, a flake over
+seconds, because a flake has a body and a raindrop barely does. Only the Sky
+has drops to lean, so this is a Sky feature; the Gradient and Classic styles
+ignore it.
+
+**It is the same vector the wind leans** — see [Wind does not shear the
+weather; it tilts the way it falls](#wind-does-not-shear-the-weather-it-tilts-the-way-it-falls),
+which is where the four uniforms, the ease and the spring all live. A tilt
+moves gravity, a wind adds a term across it, and the weather only ever sees the
+sum:
+
+```
+fall = g + perp(g) · lean
+```
+
+**The gyroscope is a second gravity, not a camera.** This sky is a world held
+inside the page: its zenith is the top of the viewport, its horizon the bottom,
+the sun and moon cross it where the ephemeris puts them, and the wind blows
+across it. Tilting the device does not turn any of that — it tells that world
+which way is down, and only the things that FALL answer.
+
+The other reading, where the device is a window and the view counter-rotates,
+is a different feature: if the view turns then the sky gradient, the sun, the
+moon, the stars, the clouds and the fog all have to turn with it, and it stops
+being about rain and snow at all. It would also leave nothing for the weight of
+a flake to mean, since gravity in a world seen through a turning window never
+moved.
+
+`lib/gyroscope.ts` turns a `deviceorientation` reading into one unit vector —
+where *down* is, in the page's frame:
+
+```
+g_device = (cos β · sin γ, −sin β, −cos β · cos γ)     // Earth-down, in device axes
+```
+
+Alpha (the compass heading) drops out, which is right: which way you face
+cannot change which way things fall. The first two components are the part
+lying in the screen plane, turned by `screen.orientation.angle` so a rotated
+layout still gets gravity down its own page, and blended back to upright when
+the screen is too flat to have a direction (a phone on a table).
+
+- **Not React state.** Readings arrive ~60×/s and nothing renders from them, so
+  they go from the sensor to `WallpaperRenderer.setGravity()` — one shared
+  `deviceorientation` listener, however many surfaces are drawing.
+
+#### Across gravity, not across the page
+
+A storm's wind is horizontal **in the world**, and horizontal means
+perpendicular to the way things fall — which is why the lean is laid along
+`perp(g)` and not along the page's own x. Turn the phone on its side and a real
+snowfall does not stop being laid over: the whole storm turns with you, every
+flake keeping its angle to gravity. Measured, that angle is invariant to
+**0.00°** across tilts of 0°, ±30°, 60°, 90° and −45°, for both fields and both
+signs of wind.
+
+Holding the wind along the page instead is the other reading, and it is the
+wrong one: at ninety degrees the wind would blow straight *down* the fall,
+speeding the rain up rather than leaning it — the measured lean collapses from
+14.7° to 0.0° as the phone turns — and that is nothing that happens outdoors.
+(An earlier draft did hold it across the page, of necessity rather than choice:
+while the wind was still a positional offset added to a flake's cell, a term
+that turned with gravity would have slid the whole field across the page as the
+snow came round. Once the wind became part of the travel that reason dissolved,
+and only the choice was left.)
+
+#### Each field re-aims at its own weight
+
+Against a 54° flick of the wrist, held:
+
+| | at 0.12 s | at 0.84 s | at 2 s | at 5 s |
+|---|---|---|---|---|
+| rain — ease, `RAIN_FALL_TAU` 0.08 s | **97 %** | 100 % | 100 % | 100 % |
+| snow — spring, `SNOW_FALL_OMEGA` 0.9 rad/s | 3 % | 21 % | 56 % | **94 %** |
+
+…and no overshoot anywhere: both arrive at 54° and stop.
+
+A raindrop at terminal velocity really does re-aim in a moment — it is small,
+fast and already all the way down — so only the fastest flick shows its lag at
+all. The snow's is not a slower ease but a **critically damped spring**, and
+the difference is what each does at the *start*: an ease leaves at full speed
+and decelerates, which reads as drag, while a spring leaves at rest and has to
+be accelerated, which reads as mass. Critical damping means no overshoot, and
+the integration is implicit, so no length of stalled frame can make it ring.
+
+**One ease and one spring, for the tilt and the wind alike.** A flake's body
+cannot know which of the two moved, and a sky where the same flakes came round
+at two rates depending on the cause would be a sky with two physics in it. The
+constants are the ones the snow's shipped answer to a *change of wind* was
+already worth, so a tilt costs the same seconds — slower than a tilt-only draft
+of this wanted, and right for the same reason.
+
+**The sensor's own noise is filtered at the sensor.** `SENSOR_TAU` (0.12 s) in
+`lib/gyroscope.ts` smooths the reading against the clock, not against a frame
+count, because events arrive at whatever rate the device feels like. That lag
+belongs to an accelerometer — one at rest on a table still wanders a degree or
+so — and not to a raindrop, which is why it is no longer folded into the rain's
+own easing.
+
+**The snow keeps its travel, not a clock.** `uSnowFall` accumulates in the
+renderer, and that is what lets the direction come round slowly without
+dragging the flakes that have already fallen along with it: each one carries on
+the way it was going and curves into the new down. (Max-blended frame stacks of
+a turn draw exactly that: paths vertical where the flake started, bending over
+as gravity takes hold.) The direction is normalised before it is accumulated,
+so a fall still coming round loses its aim but never its speed, and the vector
+wraps at an hour for the reason the shader clock does — past that, float32 has
+no fraction left to place a flake inside its cell with. It is **not**
+normalised before it is accumulated: a leaning fall really is a longer one
+(gravity plus wind is the hypotenuse), so the vector's length is the speed, and
+`uRainFall` carries the same for the rain.
+
+The rain needs none of that: its streaks are sampled in a frame aligned to
+`uRainDown` (`fallSpace()`, the one rotation in the shader, because a streak is
+a drop's motion blur and has to lie along its travel), and a drop lives a few
+tenths of a second and leaves no path behind it.
+
+**A flake's place never depends on where down is.** Only the travel and each
+flake's own flutter follow gravity; the cells, the rows and the long waft stay
+with the page, because anything positional that turned with gravity would slide
+the whole field about as the snow came round, which is the one thing a tilt
+must not look like. (The wind is no longer in that list — it left it when it
+stopped being an offset and became part of the travel.) Upright, every one of
+those lines is the line it replaced: the rendered frame is **bit-for-bit** the
+sky without a gyroscope, at every wind and intensity tested.
+
+- **Off under `prefers-reduced-motion`** — that sky is one still frame, so both
+  downs snap to the reading rather than animating toward it, and the snow's
+  travel is the clock the still frame always read, aimed where it is pulled.
+
+**Access.** Every browser with a sensor fires the event freely except WebKit,
+which gates it behind `DeviceOrientationEvent.requestPermission()` *and* a user
+gesture. So:
+
+| | Behaviour |
+|---|---|
+| Chrome / Firefox / Android | The saved wish (`weatherGyro`, **on** by default) is honoured on load; the sky tilts by itself. |
+| iOS / iPadOS | The wish waits for one tap — the **Tilt** row in the picker's Weather tab, or the devtool's Sky → Gyro row. Turning it on *is* the gesture that asks. |
+| Granted before | `weatherGyroGranted` records it, and access is re-taken silently on the next load. That record is the only reason `requestPermission()` is ever called without a gesture, so a visitor who has never answered is never prompted out of nowhere. |
+| No sensor (desktop) | `DeviceOrientationEvent` exists in every desktop browser and fires in none, so "on" is not "working": the provider watches for a first reading and the Tilt row says *no motion readings* rather than pretending. |
 
 ### Gradient Crossfade (Gradient engine)
 
@@ -206,11 +355,46 @@ per-widget overlays, so they transition identically. The iOS `fixedBgTracker`
 (background-attachment polyfill + viewport-relative edge mask) is applied per
 layer, so soft-edging keeps working mid-crossfade.
 
+### The easter eggs
+
+Three of the six conditions answer a hand, and only three. The rest do nothing —
+**a click on a clear noon sky doing nothing is what makes the others feel like a
+find**, and once every sky reacted it would stop being a secret and become an
+undiscoverable-but-mandatory affordance. They are three *different* gestures on
+purpose, too: a tap that answers with violence, a drag that stirs the air, and a
+drag that takes something away and gives it back.
+
+| Condition | `lightning` | precipitation | `fog` | armed |
+|---|---|---|---|---|
+| thunder | 1 | rain | 0.2 | [the strike](#the-strike-thunder-day-easter-egg) — a tap |
+| rain / drizzle / snow | 0 | yes | ≤ 0.3 | [the gust](#stirring-the-wind-rain-and-snow-easter-egg) — a drag |
+| fog | 0 | none | 0.9 | [the wipe](#the-fog-wipe-foggy-day-easter-egg) — a drag |
+| clear / cloudy | 0 | none | ≤ 0.2 | nothing |
+
+**No two can ever be armed at once**, which is why no arbitration code exists
+anywhere: each gates on its own scene scalar and the three sets do not meet.
+
+They are one module each — `lib/strike.ts`, `lib/wallpaper/stir.ts`,
+`lib/wipe.ts` — each holding its own tuning *and* its own recognizer, so what
+a gesture is stays engine-free and testable, and only the wiring is a component.
+All three ask `isBackgroundPress` from `lib/strike.ts` the same question about
+whether a press is theirs — the primary button with nothing held down, no
+selection to disturb, and a target that is wallpaper rather than page — so they
+can never disagree about it. `data-no-strike` keeps all three off. (The
+attribute is named for a click, but the test only ever looks at the target, and
+a press is the same question.)
+
+**All three belong to the Sky**, for the reason the strike's section gives
+below, and each is armed where the thing it acts on lives: the strike and the
+wipe in `wallpaper-background.tsx`, on the document; the gust one layer down in
+`<WeatherWallpaper />`, with the particles it blows. Arming is all those
+components do — four lines apiece — because the recognizers are `attachWipeDrag`
+and `attachWindStir`, in the lib modules above.
+
 ### The Strike (thunder-day easter egg)
 
 **On a thunder day, clicking the sky calls lightning down onto the spot you
-clicked.** It exists only on a thunder day; on any other weather there is
-nothing to find, which is the point.
+clicked.**
 
 `lib/strike.ts` owns the rules and the one question the interaction turns on —
 **did that click land on the sky, or on something?** It is not a guess: the
@@ -258,6 +442,418 @@ Three things it will not do, all of them deliberate:
 
 To see it without waiting for a storm: force **Thunder** in the devtool's Sky
 module and click the page background.
+
+### Stirring the wind (rain-and-snow easter egg)
+
+**While it is raining or snowing, drag a hand across the page's background and
+you stir up a breeze.** Stop, or let go, and it dies away and the sky settles
+back.
+
+That is the whole of it: **a hand adds a term to the wind**. Everything the sky
+does with wind it already knew how to do, so there is no second physics to keep
+honest and nothing to hand back when a gesture ends.
+
+Air has mass, and that is the entire feel of it:
+
+| | |
+|---|---|
+| A hand that stops moving stops making wind | its stir goes stale within a breath, so resting a finger on the page does nothing |
+| A flick raises a puff, a long sweep raises a gust | the wind chases the stir over ~0.13 s, so a short gesture never quite reaches full strength |
+| Letting go needs no announcement | the stir simply stops arriving, and the wind passes over ~1.6 s |
+
+**It arrives all at once and then passes** — rise and fall differ by twelve
+times, which is the shape of the thing. Getting up and dying away at the same
+rate is what makes a gust read as a twitch. Measured: a 0.15 s **flick** peaks
+at **0.68** within 0.2 s and is still **0.44** a second later and **0.23** at
+two; a 0.45 s **swipe** reaches **0.96**; a long sweep saturates at **1.0** and,
+from the moment the hand lifts, passes through 0.67 at one second, 0.35 at two
+and is gone by six.
+
+The choice of constant is made on *rising or falling*, not on stirring-or-not:
+the gust takes the fast one whenever it is asked for more wind than it has —
+including a hand that reverses and whips it the other way — and the slow one
+whenever it is asked for less, whether because the hand eased off or because it
+let go.
+
+`GUST.max` is 1.1 — above the top of the forecast's own range (50 km/h ⇒ 1.0) on
+purpose, because a gust is not a wind and is allowed to be briefly harder than
+any weather the sky is showing.
+
+#### Wind does not shear the weather; it tilts the way it falls
+
+This is the part worth reading twice, because it is the whole model.
+
+A drop at terminal velocity is a balance: gravity pulling down, drag pushing
+back along its travel. Put a crosswind on it and it settles into a new balance
+almost at once and falls along the **sum** of the two — the same speed through
+the air, aimed somewhere else. So a wind is not a distortion applied to falling
+weather. It is a change to **which way down is**, for the things that fall, and
+every visible consequence follows from that one vector.
+
+Which is also the model [the gyroscope](#gyroscope-tilt-sky-engine) wants, and
+deliberately so. **The two are one expression**, and the weather only ever sees
+the sum:
+
+```
+fall = g + perp(g) · lean
+```
+
+`g` is the unit gravity in page space — `(0, −1)` for a screen lying flat or
+held upright, the sensor's reading otherwise — and `perp(g)` is gravity turned
+a quarter turn, which is screen-right when `g` is screen-down. A tilt moves
+`g`; a wind sets `lean`; both arrive through the same four uniforms:
+
+| Uniform | What it is |
+|---|---|
+| `uRainDown` | The direction the rain travels. A streak *is* a drop's motion blur, so it has to lie along the travel: the rain is sampled in a frame aligned to this — the one rotation in the shader. |
+| `uRainFall` | How far the rain has fallen, in seconds of its own travel. A tilted fall is a longer one, so a gust quickens the rain as well as leaning it. |
+| `uSnowDown` | The same direction for the snow, which is a far flatter angle at the same wind. The flutter is measured across it, so a flake's wobble stands up the way it is going. |
+| `uSnowFall` | How far the snow has travelled and along what, as a vector of seconds — and the wind's whole sideways effect on the snow, because a flake blown sideways and a flake falling are the same flake. |
+
+**Rotating rather than shearing is the point.** A shear stretches a drop as it
+leans it, so past a breeze the streaks stop reading as rain and start reading as
+brushwork — and the harder the gust, the worse the smear. That is what made a
+hard gust read as a whip-crack rather than as air, and no choice of pivot fixes
+it; a rotation leans a drop without ever touching its shape.
+
+**Keeping the travel rather than multiplying a clock by a direction** is what
+lets the snow's direction come round slowly without dragging the flakes that
+have already fallen along with it: each one carries on the way it was going and
+curves into the new one. A page that slides sideways is exactly what a gust must
+not look like.
+
+Nothing answers at the same speed, and that is the rest of the feel:
+
+| | How it is re-aimed | Why |
+|---|---|---|
+| **Rain** | an **ease**, 0.08 s (`RAIN_FALL_TAU`) | A drop is small, fast and already all the way down, so it really is at the new angle within a blink. What is left for the ease to do is keep a slammed gust from cracking: the curtain's far corner sweeps under a screen height a second, against the 1.5–2.5 the rain is falling at. |
+| **Snow** | a critically damped **spring**, ω = 0.9 rad/s (`SNOW_FALL_OMEGA`) | Not just a slower ease. An ease leaves at full speed and decelerates, which reads as drag; a spring leaves at **rest** and has to be accelerated, which reads as **mass**. At critical damping there is no overshoot, so the snow never swings past the new direction and back. |
+| **Clouds** | never, from a hand | You cannot stir a cloud deck by waving at it. They answer the forecast only. |
+
+Measured against one 0.5 s swipe into a calm sky: the gust peaks at **0.57** at
+0.48 s, the rain's lean peaks **with it** at 22° off vertical, and the snow's
+goes on rising to 29° at **2.6 s** — long after the air has fallen to a quarter
+of its peak — then comes home with no overshoot, still leaning at 6 s and gone
+by twelve. That gap is the weight.
+
+One consequence worth naming: **the snow's lean is now the same at every depth
+for free.** Both halves of a layer's travel are that layer's own fall speed
+times the same vector, so the angle cannot depend on the layer — where before it
+took two depth ramps, hand-tuned to span the same 3×, to arrange it.
+
+Three pieces, one per layer:
+
+| Piece | Job |
+|-------|-----|
+| `lib/wallpaper/stir.ts` | Recognises the gesture and reports the hand's horizontal speed in CSS px/s. |
+| `WallpaperRenderer` ("Stirring up a gust", "Where the weather falls") | The air: how a stir goes stale, how the gust rises and falls, and how each field's fall is re-aimed by it. |
+| `shader.ts` | Draws it — every wind reaches the weather through the four uniforms above and through nothing else. |
+
+What it deliberately does **not** do:
+
+- **Nothing is `preventDefault`ed and no style is touched.** Every listener is
+  passive, so scrolling, tapping, long-pressing and selecting text behave
+  exactly as they would without it.
+- **Only the horizontal component counts.** Wind here is horizontal, and a hand
+  swiped straight down does not make a sideways breeze — which also means an
+  ordinary vertical scroll leaves the weather alone.
+- **It does not invent a second idea of "the sky".** What counts as background
+  is [`isBackgroundClick`](#the-strike-thunder-day-easter-egg) from
+  `lib/strike.ts`, the same question the strike asks, so the two easter eggs can
+  never disagree — and `data-no-strike` keeps both of them off.
+- **It uses touch events, not pointer events.** A touch drag that turns into a
+  scroll fires `pointercancel` and stops sending `pointermove`, which would cut
+  the gesture off exactly where it is most fun.
+- **It is off** under `prefers-reduced-motion`, off for the Gradient/Classic
+  styles (no particles to blow), off in the wallpaper picker's preview tile, and
+  off whenever the sky is dry.
+
+### The wind's sign
+
+Every horizontal quantity in the Sky is screen-space, and **positive goes
+right**: `wind.x`, the gust a hand stirs up, and the accumulated `uCloudDrift`
+and `uSnowFall` travels. `scene.ts` maps the met wind onto that — a westerly (from
+270°) blows toward the geographic east, which is screen-*left* in the northern
+hemisphere and mirrors in the south — and the shader follows it.
+
+It was not always so. Until the gust landed, the shader read `uWind.x` with the
+**opposite** sign in all three places that consume it: the rain's slant, the
+snow's drift and the cloud advection. They agreed with each other, so the sky
+was self-consistent and nothing ever looked broken — the measured wind simply
+blew the whole sky backwards with respect to the compass, which no one can see
+without a compass. Adding a gust, whose direction the visitor's own hand
+supplies, is what made it visible.
+
+One thing to keep in mind when reading the shader: the travels are
+**subtracted** where they are used, because sampling a procedural field further
+right is what walks it left. That negation is the convention being honoured, not
+broken.
+
+#### A constant is not a wind
+
+The snow's sideways travel used to carry a constant — `snowWind * 0.6 + 0.03` — meant as a
+whisper of travel so flakes never fell dead straight in still air. But a
+constant added to a wind is a wind that always blows one way: it adds to a wind
+going with it and eats one going against. The flakes leant **2.3× further right
+than left** at the same wind strength, and under about 2.5 km/h of crosswind the
+constant won outright and the snow leant *the opposite way to the rain in the
+same sky*. It is gone; the flakes have their own wander (the waft and the slow
+beat in `snow()`), and wind → drift is now odd-symmetric to three decimal places
+at every strength.
+
+The snow's wind also **starts at the scene's**, not at zero. Easing up from
+nothing would mean the first ten seconds of a page had snow falling as if it
+were calm while the rain beside it already leant into the forecast.
+
+#### Speed is only half of a wind
+
+The devtool's Sky module has **two** wind rows, `Wind` and `From`, and it needs
+both. `wind.x` works out to `speed × sin(from) × hemisphere`: the screen looks
+south, so a wind along that axis has no horizontal component at all and **no
+amount of it leans the rain or drifts the snow** — at a due-southerly forecast
+the speed slider moves `wind.x` from 0.000 to 0.000 at every setting, and only
+the clouds change pace. A speed you can set and a direction you cannot is a
+control that can look broken while working exactly as written, so
+`SceneOverrides.windDirectionDeg` exists too.
+
+**The `From` track runs 270° → 450°**, west through north to east, rather than
+0° → 359°. A full turn is not monotonic in anything you can see — it goes calm,
+right, calm, left, calm, so the direction you drag bears no relation to the
+direction the rain leans. Over this half it is monotonic the whole way: drag
+left and the rain leans left, drag right and it leans right, and the middle is
+the one bearing with no crosswind in it. The readout carries the arrow, so the
+answer is on the row: `270° W ←` … `0° N ·` … `90° E →`.
+
+Nothing is lost by covering half the compass. The sky only ever shows a wind's
+east–west component, and `sin(180° − d) === sin(d)`, so every southerly bearing
+paints exactly what its northerly mirror does — which is also how a forecast
+bearing outside the track is placed on it, by folding onto the one that blows
+the same way.
+
+### The Fog Wipe (foggy-day easter egg)
+
+**On a foggy day, dragging across the wallpaper wipes the mist clear along the
+path, and the fog closes back over it in a few seconds.** Fog is the one
+condition where the medium is literally between you and the view — uniform, in
+front, obscuring — so it is the one with an obvious gesture already attached.
+
+- **Tap** → one soft mark of cleared air, about 5.6% of the viewport height
+  across at half strength — a fingertip on a misted window, not a fist — with no
+  edge to it, thinning away into the mist around it.
+- **Drag** → the swath follows the hand along the whole path.
+- **Write** → a short word, and then the hand has had enough. See **The hand
+  tires** below; that is the size the egg is really for, and the reason is the
+  hand rather than an array bound.
+- **Close** → every point starts giving back the instant it is made, on an
+  exponential with a long tail (`WIPE_DECAY`), and is gone inside
+  `WIPE_LIFE_MS`. There is no hold, deliberately: a stroke that sits at full
+  strength for a while and then fades is a drawing with a timer on it — you
+  watch a finished mark, and then you watch it go. Mist never lets you see a
+  finished mark. So the visible life is mostly tail, and the start of a long
+  stroke is already dissolving while the hand is still moving.
+
+**A path, not a point.** A fragment shader has no memory, so
+`WallpaperRenderer.wipe(x, y)` keeps a bounded ring of the path's recent
+*corners* and `fogWipe()` sweeps the swath along the polyline they describe — no
+FBO, no second pass, no texture unit; the renderer stays the single full-screen
+pass with no textures at all that it has always been. Corners rather than a row
+of discs is what makes the trail long enough to write with: one entry buys a
+whole segment rather than one dot. Five things make that hold up:
+
+- **The whole path goes in.** A `pointermove` is not one position — the browser
+  coalesces everything the digitiser reported since the last one into it, and a
+  pen or a trackpad reports several times a frame. Keeping only the newest hands
+  the renderer a frame-rate polygon to draw, so a fast curve comes out as the
+  chords between wherever the hand happened to be on each frame. Every coalesced
+  sample goes through, in order; delivery is still once a frame, because that is
+  how often anything can be drawn.
+- **Corners are committed by shape, not by distance or by frame.** How far the
+  hand has travelled since the last corner, against how far it has actually got:
+  equal on a straight run, drifting apart the more the path bows. Past
+  `WIPE_SLACK` of drift the straight line the shader would draw has stopped
+  being the path, and a corner lands. A straight run never trips it and spends
+  one corner per `WIPE_MAX_GAP`, so the trail stays long; a letter spends as
+  many as its curves ask for, which is what keeps it off the polygon it would
+  otherwise be. On the worst case there is — a circle, where every chord shows —
+  the deepest facet left is two or three per cent of the stroke's own width, and
+  it does not change when the input rate quadruples.
+- **Strokes are separate.** Each corner carries whether it continues the one
+  before it, so lifting between two letters does not join them with a line
+  across the gap. A move longer than `WIPE_JUMP` is a pointer that went
+  somewhere else, not a stroke, and starts a new one.
+- **Healing fades as well as shrinks**, per corner and interpolated along each
+  segment. Shrinking alone pulls a swath apart into beads.
+- **The loop is skipped where the stroke is not.** The live corners' bounding
+  box goes to the shader as `uWipeBox`; outside it, a scribble costs one box
+  test instead of sixty-three segment distances. Whole tiles fall on the same
+  side of that test, which is the one early-out a GPU actually likes.
+
+**What the wipe uncovers.** The point of the gesture is that there is a real sky
+up there — on a clear night, a moon and stars. `deriveWeatherScene` has already
+thrown both away by the time the shader runs:
+
+```
+stars       = night × (1 − smoothstep(0.15, 0.65, cover)) × (1 − fog) × …
+moonVisible = … × (1 − smoothstep(0.45, 0.9, cover)) × (1 − 0.8 × fog)
+```
+
+On a fog day `cover` is 0.75, which saturates the star term on its own — stars
+are exactly **0** — and together with `fog` at 0.9 it leaves the moon at 0.07.
+So clearing the fog uncovers nothing, and the whole promise of the gesture goes
+with it: you wipe, and there is no sky behind.
+
+The scene therefore hands over the unhidden version too, as `scene.behind`: the
+same stars and moon with neither the fog nor the deck a fog day puts in front of
+them. The shader works the wipe out first — before anything is composited, since
+stars and the moon are drawn at the very back of the frame — and lerps toward
+`behind` by how much of the murk that fragment has lost. Three things yield
+together, all of them gated on `uFog` so no other sky can be touched:
+
+- **The fog**, which is the wipe proper.
+- **The deck**, because on a fog day the deck *is* the murk — the profile
+  carries three quarters cover with a white lit colour precisely because fog
+  reads as overcast. Leave it standing and there is nothing to see: by day the
+  mist and the cloud above it are the same white, and by night the deck is what
+  buries the stars.
+- **The night sky** — `uStarsBehind` and `uMoonBehind` — so a swath drawn across
+  a foggy night opens a band of stars, and one drawn across where the moon
+  really is uncovers the moon. They arrive at the brightness a clear sky would
+  have given them, which is the test: a stroke across a foggy night lights the
+  same pixels, as brightly, as the unfogged sky does.
+
+**Nothing about it is a circle**, because a circle in fog reads as a lens. The
+field is looked up through a domain warp made of the same drifting noise the fog
+itself is made of; the width is pushed around by two more scales on top of that
+— big lobes, then a fine tear — and a third leaves streaks of mist standing
+inside the swath. It is wiped, not deleted, and it keeps moving with the mist
+rather than sitting on top of it.
+
+**And it is carried off, by the same door the rain and the snow come in.** A
+cleared patch is a hole in something that is moving, so it goes downwind and
+settles as it ages — the old end of a stroke has travelled further than the new
+end, and the stroke shears rather than sitting still. The displacement is
+resolved in `aimWipe`, against gravity exactly as a fall is (see **Wind does not
+shear the weather** above): the wind **across** gravity, the settle **along**
+it, and the gust in the sum because it is wind. So a tilted phone leans the
+drift as it leans the weather — measured, the displacement turns rigidly with
+gravity and keeps its length — and an upright calm sky is the plain downward
+settle it was before there was a gyroscope to ask.
+
+**The hand tires.** Wipe a misted window for real and you do not get to keep
+wiping: the hand cools, the finger picks up what it took off the glass, and the
+same stroke stops coming up clear. Rest a moment and it works again.
+
+That is the difference between a wallpaper that answers you and a drawing board
+— a board's ink is the same on the hundredth stroke as on the first, and no
+amount of prettiness in the swath fixes that. Only running out does.
+
+`lib/wipe.ts` owns it, and both engines use the same hand on the same terms:
+
+- **Spent by the distance rubbed** (`WIPE_DRAIN`, an e-fold rate per screen unit
+  of path), with a floor (`WIPE_SPENT`) — a hand that has had enough still
+  smears a little, and wiping while almost nothing happens is the effect rather
+  than a failure of it. Half a screen leaves about half; one sweep across leaves
+  a quarter; two screen-heights of path is the floor. The budget is deliberately
+  tight enough to be felt **inside the first stroke** — a hand that tires is
+  only worth having if you can watch it tire.
+- **Recovered by time off the glass** (`WIPE_RECOVER`), where "off the glass"
+  means a gap longer than `WIPE_REST_S`. So a slow, careful stroke tires it
+  exactly as much as a fast one — it is the rubbing that does it, not the clock
+  — and holding still mid-stroke gives nothing back.
+- **It belongs to the hand, not to a stroke.** Lifting between two letters does
+  not refill it; only waiting does.
+
+Each corner keeps whatever the hand had when it was made, so the falling-off
+runs *along* the path — the far end of a long stroke comes up markedly less
+clear than the near end did — rather than dimming the whole of it at once. It is
+strength and not width: a tired hand covers the same ground, it just stops
+bringing anything up. The charge rides in the sign-and-magnitude of `uWipe[i].w`,
+whose sign was already carrying the new-stroke flag, so it costs no bandwidth at
+all.
+
+**And nothing about it has an edge.** The swath is a Gaussian falling off from
+the path, and one field drives the whole effect — the fog, the deck, the stars,
+the moon, the scattering. That is the difference between mist and a mark:
+anything with a shoulder draws an outline, and an outlined stroke is the most
+pen-like thing there is. A disc with a soft edge has one. A core term unioned
+with a wider halo term has two. Mist made to bead along the boundary — which is
+true of a real misted window, and was in here for a while — paints the outline
+in the brightest thing on screen. A Gaussian has no shoulder at any width, and
+no boundary anywhere to put an outline on: it is a density, falling off forever,
+which is what mist around a wiped patch actually is.
+
+**The Sky is the only engine that answers**, on the rule the strike sets out
+above: a wash has no fog layer to thin and no sky behind it to uncover, so the
+most it could offer is a smudge dressed as the same find. The fog term's `fa`
+yields along the stroke, the deck goes with it, and the night sky the murk was
+hiding comes back — plus the one mark a hand leaves on a misted window that
+survives having no edge: clear air scatters less, so the swath sits a shade
+darker than the mist around it.
+
+What it will not do:
+
+- **Not under `prefers-reduced-motion`.** A judgement call, written down rather
+  than inherited: a slow fog clear is gentle and not the hazard a flash is, but
+  the setting is about motion generally, and under it the renderer draws one
+  still frame and has no loop for a wipe to live in anyway.
+- **Not fight the page.** On a mouse the wipe waits for the slop, which is what
+  keeps a click, a double-click and a word-select on the sky working as they
+  did. On touch it waits for a hold — see below. Once it is a wipe, selection is
+  suppressed for the duration: a hand dragged across the sky should not leave a
+  blue smear of whatever text it crossed. It never starts on a widget, so
+  dnd-kit's sorting is untouched; dragging *over* one keeps wiping, because the
+  mist does not care what is in front of it. It stands down entirely while the
+  home grid is in jiggle edit mode, where a tap on the background means Done.
+- **Not persist.** Nothing survives a reload or a route change. It heals; that
+  is the whole shape.
+
+#### Touch, where scroll has first claim
+
+A finger on the sky is ambiguous — it could be a scroll — and **the ambiguity
+cannot be resolved by watching which way it goes.** `preventDefault` on a
+pointer event does not stop scrolling; only a non-passive `touchmove` does, and
+only before the scroll has started, which on iOS means before the finger has
+moved at all. By the time a direction is readable it is too late. (An earlier
+version gated on horizontal movement, which both leaked scrolls and — since a
+letter is mostly vertical strokes — made the thing unwritable on a phone.)
+
+So the question is settled while the finger is still still, exactly the way this
+site already settles it for the widget grid: **a long press arms it**
+(`TOUCH_ACTIVATION` in `components/ui/sortable-order.ts`; the wipe uses the same
+400 ms, so both hands-on gestures here wait the same beat).
+
+- Nothing is bound and nothing is blocked until the hold is good. Until then the
+  page scrolls on the browser's own fast path — the non-passive `touchmove`
+  listener is attached when a stroke arms and removed when it ends, never while
+  one is merely possible, because a listener sitting on the document makes the
+  browser wait for JS on every scroll frame.
+- The finger drifting past `WIPE_ARM_SLOP_PX` before the hold is good means it
+  was the scroller's all along. Nothing was taken, so nothing has to be handed
+  back.
+- Arming opens the mist under the finger. That is the only "ready" tell there
+  is, and the only one worth having: it is the effect itself.
+- **Writing is letters**, and holding before every stroke of every letter is not
+  writing — so for `WIPE_RESUME_MS` after a stroke ends, a touch landing within
+  `WIPE_RESUME_NEAR` of where it ended arms at once. Proximity is what buys back
+  most of what the open window gives away: the next stroke of a word starts
+  about where the last one finished, a flick meant for the scroller usually does
+  not.
+- A second finger is a pinch, or a scroll starting over. Either way it is not
+  one hand drawing, so the gesture is given back rather than fought for.
+
+Verified end to end against the real page under touch emulation:
+
+| gesture | page scrolled | stroke |
+|---|---|---|
+| plain swipe up | 245 px | none |
+| swipe starting after 250 ms (under the arm) | 245 px | none |
+| hold 520 ms, then draw straight **down** | **0 px** | drawn |
+| straight into another stroke, no hold | **0 px** | drawn |
+| plain swipe up, after the window | 245 px | none |
+
+To see it without waiting for the weather: force **Fog** in the devtool's Sky
+module and drag across the page background — on a phone, press and hold there
+first.
 
 ### Phase Notification
 
@@ -685,6 +1281,8 @@ const {
   shaderSupported,        // WebGL2 probe result
   reportShaderFallback,   // <WeatherWallpaper /> → provider on a WebGL failure
   statsRef,               // Live renderer stats for the devtool
+  gyro,                   // { enabled, access, active, readings, gated, denied, supported }
+  setGyroEnabled,         // The wish — and, from a tap, WebKit's motion grant
   wallpaper,              // The selected pair (the frame showing, even while playing)
   wallpapers,             // The whole catalog
   selectWallpaper,        // Pins a still AND switches kind to "image"; play turns off

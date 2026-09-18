@@ -11,6 +11,7 @@ import { makeStore } from "./persisted-setting";
  *
  *   · bleed   — let wide landscape media break out of the reading column
  *   · font    — body typeface: sans (default) or serif
+ *   · size    — type size: small / default / large
  *   · measure — reading column width: narrow / default / wide
  *   · focus   — dim every block but the one at the reading line
  *
@@ -20,6 +21,7 @@ import { makeStore } from "./persisted-setting";
  */
 
 export type ReadingFont = "sans" | "serif";
+export type ReadingSize = "small" | "default" | "large";
 export type ReadingMeasure = "narrow" | "default" | "wide";
 
 // Bleed defaults ON — absence of a stored value means "bleed active", so only
@@ -37,6 +39,13 @@ const fontStore = makeStore<ReadingFont>(
   "hux:reading-font",
   "sans",
   (raw) => (raw === "serif" ? "serif" : "sans")
+);
+
+const sizeStore = makeStore<ReadingSize>(
+  "hux_reading_size",
+  "hux:reading-size",
+  "default",
+  (raw) => (raw === "small" || raw === "large" ? raw : "default")
 );
 
 const measureStore = makeStore<ReadingMeasure>(
@@ -61,6 +70,10 @@ export const getReadingFont = fontStore.get;
 export const setReadingFont = fontStore.set;
 export const useReadingFont = fontStore.use;
 
+export const getReadingSize = sizeStore.get;
+export const setReadingSize = sizeStore.set;
+export const useReadingSize = sizeStore.use;
+
 export const getReadingMeasure = measureStore.get;
 export const setReadingMeasure = measureStore.set;
 export const useReadingMeasure = measureStore.use;
@@ -82,6 +95,7 @@ export const useReadingFocus = (): boolean => focusStore.use() === "on";
 export function ReadingRootSync() {
   const bleed = useBleedEnabled();
   const font = useReadingFont();
+  const size = useReadingSize();
   const measure = useReadingMeasure();
   const focus = useReadingFocus();
 
@@ -100,6 +114,13 @@ export function ReadingRootSync() {
     if (font === "serif") root.setAttribute("data-reading-font", "serif");
     else root.removeAttribute("data-reading-font");
   }, [font]);
+
+  // Size: default needs no attribute; small/large set --reading-size in CSS.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (size === "default") root.removeAttribute("data-reading-size");
+    else root.setAttribute("data-reading-size", size);
+  }, [size]);
 
   // Measure: default width needs no attribute; narrow/wide override in CSS.
   useEffect(() => {

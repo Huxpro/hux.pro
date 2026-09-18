@@ -2,12 +2,14 @@
 
 import { cn } from "@/lib/utils";
 import { useReducedMotion } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
-  isBackgroundClick,
+  isBackgroundPress,
   strikePoint,
   STRIKE_COOLDOWN_MS,
 } from "../lib/strike";
+import { attachWipeDrag, WIPE_MIN_FOG, type WipeHandle } from "../lib/wipe";
+import { useHomeEditing } from "@/components/ui/home-edit-store";
 import { useWeather } from "../provider";
 import { useWallpaper } from "../provider";
 import { GradientStack } from "./gradient-stack";
@@ -35,6 +37,14 @@ import { WeatherWallpaper } from "./wallpaper";
 // Sky alone — a wash has no geometry to strike, and a flash without a bolt is
 // not the same find — so it is armed only while the shader is the one painting.
 // See lib/strike.ts for what counts as a click on the sky.
+//
+// The foggy-day egg — a drag wipes the mist clear — is wired here too, and on
+// the same terms: only the Sky has a fog layer to thin and a sky behind it to
+// uncover, so it is armed only while the shader is painting. See lib/wipe.ts.
+//
+// The rain-and-snow egg — a drag stirs up a gust — is armed inside
+// <WeatherWallpaper /> instead, for the same reason one layer down: only the
+// Sky has particles for a wind to blow.
 //
 // An image wallpaper paints at FULL STRENGTH. On the home screen that is the
 // whole treatment: the picture is the content, sharp and untinted, with the
@@ -70,13 +80,11 @@ function useStrikeOnClick(
   useEffect(() => {
     if (!armed) return;
     const onClick = (event: MouseEvent) => {
-      if (event.button !== 0 || event.defaultPrevented) return;
-      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      // The cooldown first: it is a subtraction, and the sky test below walks
+      // ancestors asking for computed styles.
       const at = event.timeStamp || performance.now();
       if (at - lastAt.current < STRIKE_COOLDOWN_MS) return;
-      const selection = window.getSelection();
-      if (selection && !selection.isCollapsed) return;
-      if (!isBackgroundClick(event.target)) return;
+      if (!isBackgroundPress(event)) return;
       lastAt.current = at;
       fireRef.current(event.clientX, event.clientY);
     };
@@ -98,6 +106,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     veil,
     blurred,
     bezel,
+    gyro,
     reportShaderFallback,
     statsRef,
   } = useWallpaper();
@@ -109,16 +118,48 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   // and is null under every other engine, so the egg cannot half-exist.
   const layerRef = useRef<HTMLDivElement | null>(null);
   const strikeRef = useRef<((x: number, y: number) => void) | null>(null);
+  const wipeRef = useRef<WipeHandle | null>(null);
   const reducedMotion = useReducedMotion() ?? false;
-  useStrikeOnClick(
-    enabled && useShader && scene.lightning > 0 && !reducedMotion,
-    (clientX, clientY) => {
-      const layer = layerRef.current;
-      if (!layer) return;
-      const point = strikePoint(layer.getBoundingClientRect(), clientX, clientY);
-      if (point) strikeRef.current?.(point.x, point.y);
-    }
-  );
+  // Not while the home grid is in jiggle edit mode: there a tap on the empty
+  // background means Done, and a long press there is about to mean Done too.
+  // The page's own controls outrank an egg every time.
+  const editingHome = useHomeEditing();
+  const sky = enabled && useShader && !reducedMotion && !editingHome;
+
+  /** Client space → the wallpaper layer's own, or null when that is not sky. */
+  const at = useCallback((clientX: number, clientY: number) => {
+    const layer = layerRef.current;
+    if (!layer) return null;
+    return strikePoint(layer.getBoundingClientRect(), clientX, clientY);
+  }, []);
+
+  useStrikeOnClick(sky && scene.lightning > 0, (clientX, clientY) => {
+    const point = at(clientX, clientY);
+    if (point) strikeRef.current?.(point.x, point.y);
+  });
+
+  // The foggy-day egg. The recognizer is `lib/wipe.ts`'s, the way the gust's is
+  // `lib/wallpaper/stir.ts`'s; all this end does is put the path into the
+  // layer's own space.
+  const wiping = sky && scene.fog >= WIPE_MIN_FOG;
+  useEffect(() => {
+    if (!wiping) return;
+    return attachWipeDrag({
+      onWipe: (path) => {
+        const layer = layerRef.current;
+        const sink = wipeRef.current;
+        if (!layer || !sink) return;
+        // One rect for the whole batch: the layer is `fixed inset-0` and cannot
+        // have moved between two samples of the same frame.
+        const box = layer.getBoundingClientRect();
+        for (let i = 0; i < path.length; i += 2) {
+          const point = strikePoint(box, path[i], path[i + 1]);
+          if (point) sink.wipe(point.x, point.y);
+        }
+      },
+      onEnd: () => wipeRef.current?.wipeEnd(),
+    });
+  }, [wiping]);
 
   if (!useShader && layers.length === 0) return null;
 
@@ -148,10 +189,15 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
           scene={scene}
           active={enabled}
           themeEaseMs={skyThemeEaseMs}
+          gyro={gyro.active}
           edgeMask={edgeMask}
+          // This is the one sky a hand can reach: a drag across the page
+          // background stirs up a gust.
+          interactive
           onFallback={reportShaderFallback}
           statsRef={statsRef}
           strikeRef={strikeRef}
+          wipeRef={wipeRef}
         />
       ) : (
         /* Full-page background is already viewport-fixed, so the edge mask is

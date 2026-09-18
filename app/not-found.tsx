@@ -2,6 +2,7 @@
 
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { TITLE_POETIC } from "@/components/ui/header-zone";
+import { useLockTextSelection } from "@/components/ui/use-lock-text-selection";
 import { useLocale, t } from "@/services";
 import { cn } from "@/lib/utils";
 import { Link } from "next-view-transitions";
@@ -19,7 +20,7 @@ function NotFoundIdentifier() {
     <div className="text-center mb-12">
       <span
         className={cn(
-          "font-mono text-xs tracking-wider relative inline-block cursor-default transition-colors duration-300",
+          "font-mono text-xs tracking-wider relative inline-block cursor-default select-none transition-colors duration-300",
           isHovered ? "text-foreground" : "text-muted-foreground"
         )}
         onMouseEnter={() => setIsHovered(true)}
@@ -53,7 +54,7 @@ function ReturnHomeButton() {
       <Link
         href="/"
         className={cn(
-          "inline-flex items-center gap-2 px-5 py-3 rounded-2xl",
+          "inline-flex items-center gap-2 px-5 py-3 rounded-2xl select-none",
           "bg-glass backdrop-blur-xl",
           "border border-border/50",
           "text-sm text-foreground",
@@ -84,14 +85,15 @@ function ReturnHomeButton() {
 
 export default function NotFound() {
   const { locale } = useLocale();
+  useLockTextSelection();
 
   return (
-    <main className="mx-auto max-w-[680px] px-6 pt-12 sm:pt-24 pb-32 sm:pb-40 min-h-screen flex flex-col justify-center">
+    <main className="system-surface select-none mx-auto max-w-[680px] px-6 pt-12 sm:pt-24 pb-32 sm:pb-40 min-h-screen flex flex-col justify-center">
       {/* 404 identifier with scramble effect */}
       <NotFoundIdentifier />
 
       {/* 404 Message - Hux speaking to the user */}
-      <div className="text-center mb-16">
+      <div className="text-center mb-16 select-none cursor-default">
         <h1 className={`${TITLE_POETIC} text-foreground`}>
           {t(locale, "notFoundMessage")}
         </h1>

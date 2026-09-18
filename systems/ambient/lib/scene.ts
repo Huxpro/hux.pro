@@ -89,6 +89,19 @@ export interface WeatherScene {
   fog: number;
   lightning: number;
   stars: number;
+  /**
+   * What the murk is hiding: the same night sky with neither the fog nor the
+   * deck that a fog day brings in front of it.
+   *
+   * A foggy night has no stars and barely a moon — `cover` alone saturates the
+   * star term and the fog halves what is left of the moon — so by the time the
+   * shader runs there is nothing there to uncover. Which is the whole point of
+   * the wipe: the sky above the fog really does have a moon and stars in it,
+   * and clearing the mist is supposed to show you them. So the scene hands over
+   * the unhidden version too, and the shader reaches for it inside the swath.
+   * See "The Fog Wipe" in docs/system-ambient.md.
+   */
+  behind: { stars: number; moon: number };
   /** Theme veil: blend the rendered scene toward the page background. */
   veil: { color: RGB; amount: number };
   exposure: number;
@@ -258,6 +271,13 @@ export interface SceneOverrides {
   cloudCover?: number;
   precipitationIntensity?: number;
   windSpeedKmh?: number;
+  /**
+   * Where the wind blows FROM, in met degrees. Speed alone says nothing about
+   * what the sky does: the screen looks south, so a wind along that axis has no
+   * horizontal component at all and no amount of it leans the rain. A devtool
+   * that can set a speed and not a direction can therefore look broken.
+   */
+  windDirectionDeg?: number;
   /** Override the veil amount (0..1). */
   veilAmount?: number;
 }
@@ -458,7 +478,8 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   // --- Wind -------------------------------------------------------------
   const windKmh = ov.windSpeedKmh ?? weather?.windSpeedKmh ?? 8;
   const windSpeed = clamp01(windKmh / 50);
-  const windTo = ((weather?.windDirectionDeg ?? 270) + 180) % 360;
+  const windFrom = ov.windDirectionDeg ?? weather?.windDirectionDeg ?? 270;
+  const windTo = (windFrom + 180) % 360;
   const windX = -Math.sin(windTo * (Math.PI / 180)) * hemisphere * windSpeed;
   const wind = { x: windX, y: 0 };
 
@@ -483,18 +504,23 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const elongation = 180 - Math.abs(moonPhase * 360 - 180);
   const dayMoon =
     0.18 * smoothstep(12, 30, lunar.elevation) * smoothstep(40, 90, elongation);
+  // The moon the sky would show with nothing in front of it, and then the same
+  // moon behind the murk. Split rather than written twice so the daytime-moon
+  // rule above has one home: the wipe uncovers the moon under the rule the sky
+  // is showing, not a copy of it. (`starDust` below is the same split.)
+  const moonBare = moonUp * lerp(dayMoon, 1, skyDark);
   const moonVisible =
-    moonUp *
-    lerp(dayMoon, 1, skyDark) *
-    (1 - smoothstep(0.45, 0.9, cover)) *
-    (1 - fog * 0.8);
+    moonBare * (1 - smoothstep(0.45, 0.9, cover)) * (1 - fog * 0.8);
   const { screen: moonScreen, size: moonSize } = stageMoon(lunar, hemisphere);
   // Moonlight: a bright, high moon lifts the night sky and cloud tops and
   // washes out the fainter stars.
   const moonLight = moonIllum * smoothstep(0, 25, lunar.elevation) * night;
 
-  const stars =
-    night * (1 - smoothstep(0.15, 0.65, cover)) * (1 - fog) * (1 - 0.55 * moonLight);
+  const starDust = night * (1 - 0.55 * moonLight);
+  const stars = starDust * (1 - smoothstep(0.15, 0.65, cover)) * (1 - fog);
+  // The same two with the murk taken away — see `behind` on WeatherScene. Only
+  // the fog wipe ever asks for them, and only inside the swath it has cleared.
+  const behind = { stars: starDust, moon: moonBare };
 
   const veilDefaults = VEIL_DEFAULTS[theme];
 
@@ -528,6 +554,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
     fog,
     lightning: condition === "thunder" ? 1 : 0,
     stars,
+    behind,
     veil: { color: veilDefaults.color, amount: ov.veilAmount ?? veilDefaults.amount },
     exposure: veilDefaults.exposure,
     seed: params.seed ?? 0,

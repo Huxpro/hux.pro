@@ -162,6 +162,15 @@ Instead of opening/closing between modes, the palette **morphs**:
 - Content crossfades with opacity
 - Height animates using CSS Grid (`grid-template-rows: 0fr/1fr`)
 
+#### Adaptive height (popover)
+
+The popover list is viewport-relative rather than a fixed `360px`. The phone
+sheet does not use this — it fills its detents with `flex-1`.
+- **Offset**: `22vh`, capped at `13.5rem`, so the card sits a little lower than Spotlight's `20vh`
+- **Search list**: `43dvh` (Geolocation as the last full row on a 16" MacBook), capped at `40rem`
+- **Slash list**: no `43dvh` cap — the card grows for every lettered command (the original taller morph) and only scrolls against remaining viewport chrome
+- Short screens shrink and scroll; tall screens show more results without becoming a full-height panel
+
 ### Footer Hints
 
 **Search Mode:**
@@ -229,7 +238,7 @@ An article page — anything `PostContent` renders with the ruler on — puts an
 `Aa` button in `PageLayout`'s `headerActions`, beside the meta row, where the
 list pages keep their language filter. It opens the settings that until now
 only the devtool could reach (`components/post/reading-settings.ts` and
-`ruler-settings.ts`).
+`ruler-settings.ts`): typeface, size, column, wide media, focus mode, ruler.
 
 It is Books' "Aa" menu, and takes the surface system's anchored presentation —
 a content-height sheet on a phone, a popover hanging off the button above that
@@ -240,7 +249,14 @@ it.
 All five settings are here, in reader's words rather than the devtool's mono,
 and each appears only where it does something:
 
-Four of the five are offered at every width. **Wide media** is the exception,
+**Size** is the one with teeth: `--reading-size` is the number every `em`
+inside an article resolves against, so moving it moves the whole composition —
+headings keep their hierarchy, captions and code keep their relation to the
+paragraph they annotate. That is why the article's type scale is relative
+rather than absolute; a body that grew while its headings stood still would
+collapse the hierarchy at one step.
+
+All but one are offered at every width. **Wide media** is the exception,
 and not on taste: the rule it switches lives entirely inside the `bleed`
 breakpoint (`--breakpoint-bleed`, `app/globals.css`), so below that width the
 control would be wired to nothing. The row hides itself with the `bleed:`
