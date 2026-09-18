@@ -112,9 +112,11 @@ export function PostContent({
   // two lines at every width, stranding a "·" at the end of the first and
   // leaving the "Aa" alone above an empty half-line.
   //
-  // So they are two lines now: the handles keep the mono voice they share with
-  // the rest of the machine layer, and the provenance drops beneath them as an
-  // aside (TYPE.aside — the role the timeline already uses for commentary).
+  // So they are two lines now. Both stay in the mono voice the rest of the
+  // machine layer speaks — a second face in a header this small reads as
+  // another thing to parse, not as a softer one. The provenance separates by
+  // size and ink instead: a point down and a rung down, which is the whole
+  // difference between a handle you press and a note you may ignore.
   const hasHandles = !!headerMeta || !!displayReadingTime || hasAlternate;
   const hasHeaderMetaContent = hasHandles || !!displayOrigin;
   const headerHandles = (
@@ -145,9 +147,17 @@ export function PostContent({
     </div>
   );
 
-  /** Where this text came from. Prose, so it is set as prose. */
+  /**
+   * Where this text came from: a note under the handles, not among them. Same
+   * mono face, a point smaller and an ink rung quieter — which is as far as
+   * this needs to go to stop reading as another handle. At 12px the longest of
+   * these wrapped and stranded one character on a second line, so the header
+   * came out taller than the row it replaced; at 11px every string the content
+   * actually contains sits on one line except the longest, which wraps to the
+   * same two lines it always did.
+   */
   const headerOrigin = displayOrigin ? (
-    <div className={cn(TYPE.aside, "mt-1.5")}>
+    <div className={cn(TYPE.rowMeta, "mt-1 text-[11px]")}>
       {renderMarkdownLinks(displayOrigin)}
     </div>
   ) : null;
