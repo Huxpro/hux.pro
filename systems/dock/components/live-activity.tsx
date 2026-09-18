@@ -469,7 +469,13 @@ export function LiveActivity({
                 } as React.CSSProperties
               }
               className={cn(
-                "pointer-events-auto relative overflow-hidden",
+                // `system-chrome` for the same reason every other surface
+                // shell carries it (#197 put it on systems/surface's SHELL):
+                // a Live Activity panel is the OS's own UI, not a document, so
+                // a long press on the track title is a gesture, not an attempt
+                // to select it. The dock ROW has always had it; the panel is
+                // portalled out of the row, so it needs its own.
+                "system-chrome pointer-events-auto relative overflow-hidden",
                 // `rounded-dock` is Apple's Dynamic Island number (44pt), and
                 // the panel is close enough to the real thing's size to take it
                 // literally — but it is only ever the RESTING corner. What the
