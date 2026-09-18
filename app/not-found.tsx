@@ -2,6 +2,7 @@
 
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { TITLE_POETIC } from "@/components/ui/header-zone";
+import { useLockTextSelection } from "@/components/ui/use-lock-text-selection";
 import { useLocale, t } from "@/services";
 import { cn } from "@/lib/utils";
 import { Link } from "next-view-transitions";
@@ -84,9 +85,10 @@ function ReturnHomeButton() {
 
 export default function NotFound() {
   const { locale } = useLocale();
+  useLockTextSelection();
 
   return (
-    <main className="mx-auto max-w-[680px] px-6 pt-12 sm:pt-24 pb-32 sm:pb-40 min-h-screen flex flex-col justify-center">
+    <main className="system-surface mx-auto max-w-[680px] px-6 pt-12 sm:pt-24 pb-32 sm:pb-40 min-h-screen flex flex-col justify-center">
       {/* 404 identifier with scramble effect */}
       <NotFoundIdentifier />
 

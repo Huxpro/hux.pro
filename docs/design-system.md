@@ -208,11 +208,15 @@ carry it; nothing is inferred from the pointer type at runtime.
 |---|---|---|
 | `pressable` | Rows, links, buttons, tiles — anything with a `hover:` wash | Pair with an `active:` colour/scale. The `:active` rule zeroes the transition so the highlight lands on the **touch-down frame** (Tailwind's `hover:` is gated on `(hover: hover)`, so a finger otherwise gets nothing); release eases out through the element's own `transition-*`. |
 | `system-chrome` | Navigation, command bar, dock, palette, edit controls, sheets | OS chrome: no text selection, no long-press callout, no grey tap flash. Text fields inside keep their caret. |
+| `system-surface` | The home screen (and 404) | The whole OS composition is non-selectable, including descendants. iOS otherwise skips `select-none` labels and expands a long-press into a full-page Copy / Find Selection. Paired with `useLockTextSelection`. |
 | `press-hold` | Widgets and app icons (via `usePressHold`) | The visual half of a long-press: the held object grows slowly for the sensor's whole activation delay, then pops to its lifted size (`widget-lift`). Letting go or scrolling eases it back. |
 
 **Text selection, by surface:**
 
 - **System chrome** (`.system-chrome`) — nothing: not selectable, no callout.
+- **System surface** (`.system-surface`) — the home screen. Not a document:
+  a long-press must not grow into a viewport-wide selection. Text fields
+  inside still take a caret.
 - **Decorative System UI** — `select-none`. The greeting ("Good Night"),
   poetic index titles (`TITLE_POETIC`), widget cards, app labels: these are
   the OS speaking, not a document. Dragging across them must not paint a

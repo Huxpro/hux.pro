@@ -1354,6 +1354,28 @@ html.dragging * {
 }
 
 /* =============================================================================
+   System surface — `.system-surface`
+   The home screen is one OS composition, not a document. iOS Safari skips
+   `user-select: none` on individual labels and expands a long-press into a
+   full-page selection (Copy / Find Selection across the viewport). Lock the
+   whole tree — every descendant — so the selection has nowhere to grow.
+   `useLockTextSelection` is the matching JS for WebKit ignoring the CSS.
+   ============================================================================= */
+
+.system-surface,
+.system-surface * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.system-surface :is(input, textarea, [contenteditable="true"]) {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* =============================================================================
    Press-and-hold — `.press-hold`
    Touch long-press to pick up a widget or app icon. iOS grows the held object
    slowly for the whole duration of the press and only then lifts it; the
