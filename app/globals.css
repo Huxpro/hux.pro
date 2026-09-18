@@ -1017,36 +1017,39 @@ main[data-variant="reader"] .reader-masthead h1 {
    between the piece's title and its first line -- the largest division on the
    page getting the smallest gap, which is the hierarchy upside down.
 
-   The number is measured rather than picked. On /writing the first text on the
-   page sits 70px from the top edge on a phone and 102px on a desktop (`main`'s
-   own `pt-16 sm:pt-24`, plus the 6px the nav's 44px touch target centres its
-   text by). That distance is what the eye is already calibrated to as "a new
-   thing starts here", so the article's two equivalent breaks -- nav to title,
-   masthead to first line -- take it too.
+   The number came from measuring: on /writing the first text sits 70px from the
+   top edge on a phone and 102px on a desktop. On a phone that was close, and
+   64px -- four times the reading size, and the same figure an `h2` takes -- is
+   the last bit of it back. Wide, 102px was simply too much air; the title fell
+   so far down the page that it read as a hole rather than a breath, so those
+   keep the values the site already had.
 
-   Expressed against `--reading-size` so they move with the type like everything
-   else in the composition; at the default 16px they resolve to exactly the 70
-   and 102 that were measured. The nav's own gap is 14px less than the total,
-   because its box hangs that far below its text (the same touch target).
+   Both are ratios of `--reading-size`, so they move with the type.
    ----------------------------------------------------------------------------- */
 
 main[data-variant="reader"] .reader-masthead > a {
-  margin-bottom: calc(var(--reading-size) * 3.5); /* 56 -> 70px text to title */
+  /* The nav's box hangs 14px below its text -- the 44px touch target centring
+     a 16px line -- so the margin is that much less than the gap you see. */
+  margin-bottom: calc(var(--reading-size) * 4 - 14px);
 }
 
 main[data-variant="reader"] .reader-masthead {
-  margin-bottom: calc(var(--reading-size) * 4.375); /* 70px */
+  margin-bottom: calc(var(--reading-size) * 4); /* 64px at the default */
 }
 
 @media (width >= 40rem) {
   main[data-variant="reader"] .reader-masthead h1 {
     font-size: calc(var(--reading-size) * 1.5);
   }
+  /* Wide, the page is not fighting for the fold and the measured 102px read as
+     a hole rather than a breath, so these are the values the site already had
+     -- 48px and 56px -- expressed against the reading size so they still move
+     with the type. */
   main[data-variant="reader"] .reader-masthead > a {
-    margin-bottom: calc(var(--reading-size) * 5.5); /* 88 -> 102px text to title */
+    margin-bottom: calc(var(--reading-size) * 3);
   }
   main[data-variant="reader"] .reader-masthead {
-    margin-bottom: calc(var(--reading-size) * 6.375); /* 102px */
+    margin-bottom: calc(var(--reading-size) * 3.5);
   }
 }
 

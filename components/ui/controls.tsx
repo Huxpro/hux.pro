@@ -216,6 +216,14 @@ export function HeaderAction({
         // frame instead of easing in behind a tap that is already over.
         "pressable inline-flex shrink-0 items-center gap-1 rounded px-2 py-1",
         "transition-colors duration-200",
+        // An `action` sits in a line of running text, so its padding must not
+        // show up as space: the negative margin cancels it exactly, leaving
+        // the row's own gap as the only distance between one item and the
+        // next. The chip is still there to be pressed and to paint on hover,
+        // it just stops pushing its neighbours apart -- which it did
+        // asymmetrically, since plain text either side has no padding to
+        // match. `segment` keeps its padding: it stands in a group of its own.
+        variant === "action" && "-mx-2",
         active && "bg-muted",
         variant === "segment"
           ? active

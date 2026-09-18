@@ -128,113 +128,118 @@ export function PostContent({
   // the article is what they came for.
   const hasHandles = !!headerMeta || !!displayReadingTime || hasAlternate;
   const hasHeaderMetaContent = hasHandles || !!displayOrigin;
-  /** The facts: a date, how long it takes. Plain text, joined by dots. */
-  const headerFacts = (
-    <>
-      {headerMeta}
-
-      {displayReadingTime && (
-        <>
-          {headerMeta && <span className="text-quaternary-foreground">·</span>}
-          <span>{displayReadingTime}</span>
-        </>
-      )}
-
-    </>
-  );
-
   /**
-   * What you can do to it. The chips /writing and /docs already use, and the
-   * provenance toggle is one of them now rather than a bare glyph with its own
-   * spacing and its own hover: an `i`, which is what it offers. It does not
-   * rotate -- a chevron promises a direction, and this one only ever opens the
-   * same line. Being lit is what says it is open.
-   */
-  const headerChips = (
-    <>
-      {displayOrigin && (
-        <HeaderAction
-          variant="action"
-          active={originOpen}
-          onClick={() => setOriginOpen((v) => !v)}
-          expanded={originOpen}
-          controls={originId}
-          label={t(displayLocale, "postOrigin")}
-          title={t(displayLocale, "postOrigin")}
-        >
-          <Info className="h-3 w-3" />
-        </HeaderAction>
-      )}
-
-      {hasAlternate && (
-        <HeaderAction variant="action" onClick={switchLanguage}>
-          <Languages className="h-3 w-3" />
-          <span>{alternateLabel}</span>
-        </HeaderAction>
-      )}
-    </>
-  );
-
-  /**
-   * Where this text came from. The handles' face, size and ink exactly: it is
-   * the same kind of thing as the date, not a rung below it. What separates it
-   * is that it is folded away until asked for.
+   * One row, joined by dots -- the shape the header had before any of this was
+   * interactive, and the shape it keeps. That some of these now do something
+   * when pressed is not a reason for them to look like a row of buttons: the
+   * chips cancel their own padding with a matching negative margin, so every
+   * gap along the line is the row's single `gap-2` and nothing sits closer to
+   * one neighbour than the other. The chip only paints when pointed at.
    *
-   * Height animates through `grid-template-rows` 0fr -> 1fr (docs/motion.md):
-   * CSS cannot transition height from 0 to `auto`, and a fixed height would be
-   * a lie about a sentence that is one line for most posts and two for the
-   * longest. `inert` while folded so the links inside are not a tab stop that
-   * lands nowhere visible.
+   * Two items are width-dependent, and each carries its own dot so no
+   * separator is ever left hanging at the end of a line:
+   *
+   *   the `(i)`   below `md` only, where the provenance has to fold
+   *   its dot     `md` and up only, where the provenance is already inline
    */
-  const headerOrigin = displayOrigin ? (
-    <div
-      id={originId}
-      // React 19 renders `inert` as the boolean attribute.
-      inert={!originOpen}
-      className={cn(
-        "grid transition-all duration-300 ease-out",
-        originOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-      )}
-    >
-      <div className="min-h-0 overflow-hidden">
-        <div className={cn(TYPE.meta, "pt-1.5")}>
-          {renderMarkdownLinks(displayOrigin)}
-        </div>
-      </div>
-    </div>
+  const dot = <span aria-hidden className="text-quaternary-foreground">·</span>;
+  /** Nothing has been printed yet, so the next item leads without a dot. */
+  let printed = false;
+  const lead = () => {
+    if (!printed) { printed = true; return null; }
+    return dot;
+  };
+
+  const facts = (
+    <>
+      {headerMeta && <>{lead()}{headerMeta}</>}
+      {displayReadingTime && <>{lead()}<span>{displayReadingTime}</span></>}
+    </>
+  );
+
+  // Below `md` the provenance folds, so it needs a handle. At `md` and up it
+  // is simply on the line, and a control for hiding a sentence that already
+  // fits is a control the row does not need.
+  const infoChip = displayOrigin ? (
+    <>
+      <span aria-hidden className="text-quaternary-foreground md:hidden">
+        {printed ? "·" : ""}
+      </span>
+      <HeaderAction
+        variant="action"
+        className="md:hidden"
+        active={originOpen}
+        onClick={() => setOriginOpen((v) => !v)}
+        expanded={originOpen}
+        controls={originId}
+        label={t(displayLocale, "postOrigin")}
+        title={t(displayLocale, "postOrigin")}
+      >
+        <Info className="h-3 w-3" />
+      </HeaderAction>
+    </>
+  ) : null;
+  if (displayOrigin) printed = true;
+
+  const langChip = hasAlternate ? (
+    <>
+      {lead()}
+      <HeaderAction variant="action" onClick={switchLanguage}>
+        <Languages className="h-3 w-3" />
+        <span>{alternateLabel}</span>
+      </HeaderAction>
+    </>
   ) : null;
 
-  // One row: what this article is, then what you can do to it. The "Aa" used
-  // to be pushed to the far edge with `ml-auto` and nudged up a pixel with
-  // `-mt-1` to look level with the text beside it -- two hacks covering for
-  // the fact that it was not in the row, and it landed in the ruler's lane
-  // while it was out there. As a chip among the others it is level because
-  // the row centres it, and it is nowhere near the margin.
-  //
-  // `relative z-[35]` on the whole row rather than on one control: the row
-  // wraps, so any chip can end up near the docked edge on a narrow screen,
-  // and the collapsed ruler (z-30) is interactive across a band it paints
-  // nothing in. Under the open ruler's backdrop (z-40), as it should be.
+  // Left with everything else. It was pushed to the far edge once and that is
+  // the one place on the page the ruler also wants.
+  const readingChip = toc ? (
+    <>
+      {lead()}
+      <ReadingSettings />
+    </>
+  ) : null;
+
+  /**
+   * Where this text came from: the handles' face, size and ink, on the same
+   * line as them wherever the line has room. Below `md` it is hidden until the
+   * `(i)` asks for it, and then it wraps onto a second line as the flex row's
+   * last item -- with no dot in front of it, so nothing dangles at the end of
+   * the line above.
+   */
+  const originText = displayOrigin ? (
+    <>
+      <span aria-hidden className="hidden text-quaternary-foreground md:inline">
+        ·
+      </span>
+      <span
+        id={originId}
+        className={cn(
+          originOpen ? "animate-in fade-in duration-200" : "hidden",
+          "md:inline"
+        )}
+      >
+        {renderMarkdownLinks(displayOrigin)}
+      </span>
+    </>
+  ) : null;
+
+  // `relative z-[35]`: the row wraps, so any item can end up near the docked
+  // edge on a narrow screen, and the collapsed ruler (z-30) is interactive
+  // across a band it paints nothing in. Under the open ruler's backdrop.
   const headerActions =
     hasHeaderMetaContent || toc ? (
-      <div className="relative z-[35]">
-        {/* `hasHeaderMetaContent`, not `hasHandles`: the chevron lives in this
-            row, so a post with provenance but no date, reading time or
-            alternate would otherwise fold its origin away with nothing left
-            to unfold it. */}
-        {(hasHeaderMetaContent || toc) && (
-          <div className={cn("flex flex-wrap items-center gap-2", TYPE.meta)}>
-            {headerFacts}
-            {headerChips}
-            {/* Desktop has the room the original layout used, and at these
-                widths the ruler's lane is nowhere near the column, so the
-                "Aa" goes back to the trailing edge -- same row, as it was.
-                Below `md` it stays inline, which is where it has to be: the
-                column reaches into the ruler's lane under 712px. */}
-            {toc && <ReadingSettings className="md:ml-auto" />}
-          </div>
+      <div
+        className={cn(
+          "relative z-[35] flex flex-wrap items-center gap-2",
+          TYPE.meta
         )}
-        {headerOrigin}
+      >
+        {facts}
+        {infoChip}
+        {langChip}
+        {readingChip}
+        {originText}
       </div>
     ) : undefined;
 
