@@ -113,7 +113,7 @@ export function WidgetScrollBody({
       <div
         className={cn(
           "relative flex",
-          isArmed && "rounded-xl ring-2 ring-foreground/35",
+          isArmed && "rounded-xl ring-2 ring-foreground/50 ring-offset-2 ring-offset-background/20",
         )}
         data-widget-scroll={mode}
         data-widget-scroll-armed={isArmed ? "" : undefined}
@@ -161,28 +161,26 @@ export function WidgetScrollBody({
         )}
       </div>
 
-      {mode === "sheet" && sheetId && (
+      {mode === "sheet" && sheetId && sheetOpen && (
         <AdaptiveSurface
           id={sheetId}
-          open={sheetOpen}
+          open
           onOpenChange={setSheetOpen}
           presentation={ADAPTIVE_PRESENTATION}
           title={label ?? t(locale, "widgetScrollBrowse")}
           closeLabel={t(locale, "widgetScrollClose")}
           snapPoints={[0.55, 0.92]}
           contentClassName="px-4 pb-6"
-          actions={
-            href ? (
-              <Link
-                href={href}
-                className="rounded-md px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
-              >
-                {t(locale, "widgetScrollViewAll")}
-              </Link>
-            ) : undefined
-          }
         >
           <div className="-mx-1">{children}</div>
+          {href && (
+            <Link
+              href={href}
+              className="mt-3 flex justify-center rounded-md px-2 py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+            >
+              {t(locale, "widgetScrollViewAll")}
+            </Link>
+          )}
         </AdaptiveSurface>
       )}
     </div>
