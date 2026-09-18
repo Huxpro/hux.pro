@@ -30,6 +30,7 @@ export {
   WallpaperSheet,
   TiltPrimerSheet,
   WeatherIcon,
+  WEATHER_WIDGET_SIZE,
   WeatherWidget,
   WeatherNow,
   useDisplayWeather,

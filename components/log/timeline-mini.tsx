@@ -23,6 +23,16 @@ import { LinkIcon, Description } from "./embeds/shared";
 import { TYPE } from "@/lib/typography";
 const DEFAULT_AUTHOR_HANDLE = "hux";
 
+/**
+ * How much of the commit's description a row carries at rest (tapping still
+ * folds the full author block in and out):
+ *   - `none`   the summary line only (the default);
+ *   - `below`  the description, clamped, folded in under the summary;
+ *   - `beside` the description in a second column beside the summary — a
+ *              wide row's way of spending its width on words.
+ */
+export type TimelineDetail = "none" | "below" | "beside";
+
 interface TimelineMiniProps {
   data: NormalizedCommit;
   /** Git-graph rail char for the icon column (`┐`, `│`, `┘` or empty). */
@@ -32,6 +42,7 @@ interface TimelineMiniProps {
   /** Pre-localized author byline (see `computeBylines`). */
   byline?: Byline | null;
   hideDate?: boolean;
+  detail?: TimelineDetail;
   className?: string;
 }
 
@@ -41,6 +52,7 @@ export function TimelineMini({
   isRole = false,
   byline = null,
   hideDate = false,
+  detail = "none",
   className,
 }: TimelineMiniProps) {
   const Icon =
@@ -104,7 +116,14 @@ export function TimelineMini({
         className,
       )}
     >
-      <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 items-start">
+      <div
+        className={cn(
+          "grid gap-x-2 items-start",
+          detail === "beside" && data.description
+            ? "grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)]"
+            : "grid-cols-[auto_minmax(0,1fr)]",
+        )}
+      >
         <span
           data-rail-icon
           className={cn(
@@ -251,10 +270,23 @@ export function TimelineMini({
           </div>
         )}
 
+        {/* Description at rest: beside the summary when the row is wide,
+            folded in under it when the row is tall. Hidden once the row is
+            expanded — the expanded body carries the full text. */}
+        {detail === "beside" && data.description && (
+          <Description
+            text={data.description}
+            className="col-start-3 row-start-1 row-span-2 self-start border-l border-border/30 pl-3"
+          />
+        )}
+        {detail === "below" && data.description && !isExpanded && (
+          <Description text={data.description} className="col-start-2 mt-1" />
+        )}
+
         {isExpanded && (
           <div
             data-row-body
-            className="col-start-2 mt-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150"
+            className="col-start-2 col-span-full mt-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150"
           >
             {/* Abbreviated `git log --pretty=fuller` author block. */}
             {data.type !== "role" && (
@@ -283,7 +315,7 @@ export function TimelineMini({
               </div>
             )}
 
-            {data.description && (
+            {data.description && detail !== "beside" && (
               <Description text={data.description} isExpanded />
             )}
           </div>

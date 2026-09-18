@@ -2,14 +2,17 @@
 
 import { computeBylines } from "@/components/log/bylines";
 import { normalizeCommit } from "@/components/log/commit-data";
-import { TimelineMini } from "@/components/log/timeline-mini";
+import { TimelineMini, type TimelineDetail } from "@/components/log/timeline-mini";
 import {
+  WidgetBody,
   WidgetHeader,
   WidgetLink,
   WidgetScrollBody,
   WidgetShell,
   WidgetTitle,
 } from "@/components/ui/widget";
+import { sizeSpec } from "@/components/ui/widget-grid";
+import { useWidgetSize } from "@/components/ui/widget-size";
 import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
@@ -31,17 +34,29 @@ import { useMemo } from "react";
 // link pills, author bylines and the expanded Author / Role block intact,
 // and attachments (cards, videos, slides) stripped for the footprint.
 //
+// A collection widget, so its footprint decides how much of the collection
+// shows and how each row is cut:
+//
+//   h = 1   the two newest projects, no port — "what's in flight".
+//   h ≥ 2   the scrolling log; from three cells tall each row also carries
+//           its description, folded in under the summary.
+//   w = 2   the log stays one column (the tenure rail can't be split), and
+//           each row spreads sideways: summary on the left, the description
+//           beside it — `git log` with the body alongside the subject.
+//
 // Everything is derived from `content/log.json` through the same helpers
 // /works uses (`buildTimelineData`, `computeRail`, `computeBylines`,
 // `normalizeCommit`), so the widget can't drift from the page.
 // ---------------------------------------------------------------------------
+
+export const PROCESSING_WIDGET_SIZE = sizeSpec([1, 1], [2, 3], [1, 2]);
 
 /**
  * The commits the widget renders: projects only, newest first across every
  * chapter. Roles are carried along as hidden rows — they never render, but
  * they still anchor the tenure rail and resolve each project's byline.
  * Exported so the home grid can gate the widget's presence before mounting
- * the masonry slot.
+ * the grid slot.
  */
 export function buildProcessingCommits(
   log: LogData,
@@ -64,6 +79,7 @@ interface ProcessingWidgetProps {
 
 export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
   const { locale } = useLocale();
+  const { w, h } = useWidgetSize(PROCESSING_WIDGET_SIZE.default);
 
   // Rail + bylines are derived from the filtered list, so clusters stay
   // contiguous even where /works would have interleaved talks between two
@@ -106,6 +122,36 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
 
   if (commits.length === 0) return null;
 
+  const detail: TimelineDetail = w >= 2 ? "beside" : h >= 3 ? "below" : "none";
+
+  // One cell tall: the newest two projects, and nothing to scroll.
+  if (h === 1) {
+    const shown = runs
+      .flatMap((run) => run.indices)
+      .slice(0, 2);
+    return (
+      <WidgetShell href="/works">
+        <WidgetHeader className="pb-2">
+          <WidgetTitle>{t(locale, "widgetStatus")}</WidgetTitle>
+          <WidgetLink href="/works" label="View works" />
+        </WidgetHeader>
+        <WidgetBody className="min-h-0 overflow-hidden">
+          {shown.map((i) => (
+            <TimelineMini
+              key={commits[i].id}
+              data={rows[i]}
+              rail=""
+              isRole={commits[i].type === "role"}
+              byline={bylines[i]}
+              hideDate={hideDateFor(commits[i])}
+              detail={detail}
+            />
+          ))}
+        </WidgetBody>
+      </WidgetShell>
+    );
+  }
+
   return (
     <WidgetShell href="/works">
       <WidgetHeader className="pb-2">
@@ -115,7 +161,7 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
 
       {/* Vertical snapping stack — the column analogue of the talks widget's
           horizontal card row. */}
-      <WidgetScrollBody>
+      <WidgetScrollBody fill>
         {runs.map((run, runIdx) => {
           const nodes = run.indices.map((i) => (
             <TimelineMini
@@ -125,6 +171,7 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
               isRole={commits[i].type === "role"}
               byline={bylines[i]}
               hideDate={hideDateFor(commits[i])}
+              detail={detail}
               className="snap-start"
             />
           ));

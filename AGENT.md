@@ -21,6 +21,7 @@
 | **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Crawling *others'* OG for /works cards) |
 | **App Icon** | [docs/app-icon.md](./docs/app-icon.md) (Generative favicon + `/editor/icon` studio) |
 | **App Folder** | [docs/app-shelf.md](./docs/app-shelf.md) (Home-screen snap-paged app folder) |
+| **Widget Grid** | [docs/system-widget-grid.md](./docs/system-widget-grid.md) (The Android-shaped home grid: cells, footprints the visitor resizes, per-size representations) |
 
 ## 2. Quick Start Context
 

@@ -158,8 +158,11 @@ max-width: 680px  /* ~65-75 characters per line */
 ### Home Screen Grid
 
 The home screen is a *composition*, not a document: identifier → greeting →
-widget grid. Two rules keep it at home on any display (`app/page.tsx`,
-`components/ui/sortable-masonry.tsx`):
+widget grid. The grid is a lattice of cells — one column wide, 176px tall —
+and every widget occupies a footprint of whole cells that the visitor can
+resize; the full model is in [system-widget-grid.md](./system-widget-grid.md).
+Two rules keep it at home on any display (`app/page.tsx`,
+`components/ui/sortable-grid.tsx`):
 
 - **Centered when there is room.** `main` is `min-h-svh` and the composition
   carries auto margins, so it settles optically centered on tall screens
@@ -177,12 +180,17 @@ widget grid. Two rules keep it at home on any display (`app/page.tsx`,
   | `lg` | 3 | 1024px |
   | `roomy` | 3 (4 with ≥ 8 widgets) | 1152px (1344px) |
 
-  The fourth column waits for enough widgets to fill it: CSS multicol
-  balances by height, so a fourth column over a handful of cards reads as a
-  lopsided, half-empty grid. `roomy:` (defined in `globals.css`) is the last
-  step's gate — ≥ 96rem wide **and** ≥ 1000px tall, since the point is to
-  spend space the screen actually has spare; a short ultrawide is already
-  scrolling and keeps the familiar desktop board.
+  The fourth column waits for enough widgets to fill it: a fourth column
+  over a handful of cards reads as a lopsided, half-empty grid. `roomy:`
+  (defined in `globals.css`) is the last step's gate — ≥ 96rem wide **and**
+  ≥ 1000px tall, since the point is to spend space the screen actually has
+  spare; a short ultrawide is already scrolling and keeps the familiar
+  desktop board.
+- **A widget may take two columns — the visitor's call.** Each widget
+  declares the footprints it has a representation for (`WidgetSizeSpec`),
+  and in edit mode grows a corner to resize by. Placement is packed from the
+  saved order and sizes for every column count on the server, so a phone
+  simply clamps widths to its one column.
 
 ### Vertical Rhythm
 
@@ -233,7 +241,10 @@ carry it; nothing is inferred from the pointer type at runtime.
   part whose tap is the whole-widget action. A press on a descendant with its
   own tap (a row link, a button, a tab, an input) belongs to that control:
   it scrolls, previews, or presses, and never lifts the card. In edit mode
-  the whole card is a handle again, like an iOS jiggle.
+  the whole card is a handle again, like an iOS jiggle — except its
+  bottom-right corner, which is the resize grip (only in edit mode; it
+  swallows its own press, so a finger on it never lifts or scrolls). A mouse
+  press held still for the same 400ms enters edit mode without a lift.
 - **Content** (prose, the `/writing` list, `/works` rows) — browser defaults.
   A long-press on a link still opens the system preview; text stays
   selectable. Only the press wash is added.

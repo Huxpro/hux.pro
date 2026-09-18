@@ -14,8 +14,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 // drifting past `tolerance` — and the element paints the grow via
 // `.press-hold[data-holding]` (globals.css).
 //
-// Mouse presses are ignored on purpose: on a pointer the drag starts on
-// movement, not on a wait, so there is nothing to foreshadow.
+// Mouse presses are ignored by default: on a pointer the drag starts on
+// movement, not on a wait, so there is nothing to foreshadow. The widget grid
+// opts a mouse in (`mouse: true`) because there a *still* press is also a
+// gesture — holding a widget enters edit mode, the way click-and-hold does on
+// an iPad with a trackpad — and that wait deserves the same tell.
 // =============================================================================
 
 export interface PressHold {
@@ -33,6 +36,7 @@ export function usePressHold({
   delay,
   tolerance,
   scale = 1.03,
+  mouse = false,
 }: {
   /** The sensor's activation delay: the grow lasts exactly this long. */
   delay: number;
@@ -40,13 +44,16 @@ export function usePressHold({
   tolerance: number;
   /** Target scale at the end of the hold. */
   scale?: number;
+  /** Also foreshadow a still mouse press (see the header comment). */
+  mouse?: boolean;
 }): PressHold {
   const [holding, setHolding] = useState(false);
   const cancelRef = useRef<(() => void) | null>(null);
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (!e.isPrimary || e.pointerType === "mouse") return;
+      if (!e.isPrimary || (e.pointerType === "mouse" && !mouse)) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
       cancelRef.current?.();
 
       const startX = e.clientX;
@@ -72,7 +79,7 @@ export function usePressHold({
       cancelRef.current = end;
       setHolding(true);
     },
-    [tolerance],
+    [tolerance, mouse],
   );
 
   useEffect(() => () => cancelRef.current?.(), []);
