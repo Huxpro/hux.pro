@@ -27,13 +27,20 @@ import type { CSSProperties, JSX, ReactNode } from "react";
  * Where the page scrolls.
  *
  *   window     the document scrolls, as on any page.
- *   container  <html> and <body> are fixed and never scroll; the page scrolls
+ *   container  <html> and <body> do not scroll with the page; the page scrolls
  *              inside the bezel's scroll container. On iOS Safari this keeps the
  *              toolbar from collapsing, so the chrome and the viewport hold
  *              still. Every full-screen `position: fixed` child of <body>, and
  *              every element marked with `BEZEL_LAYER_ATTRIBUTE`, becomes
  *              absolute, because Safari tints its chrome from fixed content at
  *              the viewport edge.
+ *
+ *              A tap on the status bar still takes the page to the top. WebKit
+ *              will not give that gesture to an overflow scroller, so on iOS
+ *              the window is parked a few pixels down while the page is
+ *              scrolled — invisible, since <body> is fixed — and Safari
+ *              scrolling it back to 0 is read as the tap. Nothing to call: it
+ *              is on wherever container scroll is.
  */
 export type BezelScroll = "window" | "container";
 
@@ -77,6 +84,14 @@ export interface BezelProps {
   scroll?: BezelScroll;
   /** The chrome colour while the bezel is off — the page's ground. Live. */
   ground: string;
+  /**
+   * Whether a chrome colour change is morphed onto the screen for a chrome
+   * that samples the page. Default `true`. Set it `false` where the platform
+   * does not need it — a chrome that follows `theme-color`, or none at all —
+   * and the colour is set without the morph. It is 880ms of bands at the
+   * viewport edges, and on a window nobody is sampling they are just bands.
+   */
+  chromeMorph?: boolean;
   /**
    * Layers painted behind the page and inside the bezel: a background, a
    * wallpaper. Give them `style={BEZEL_INSET}` and `BEZEL_LAYER_ATTRIBUTE`.
@@ -142,6 +157,12 @@ export interface ChromeSyncOptions {
   band?: number;
   /** The inner corner radius showing now, px. Default 0. */
   radius?: number;
+  /**
+   * Morph the bezel so a chrome that samples the page can see the colour.
+   * Default `true`. `false` sets `theme-color` and stops there, which is all a
+   * chrome that follows it — or no chrome at all — ever needed.
+   */
+  morph?: boolean;
 }
 
 /**
@@ -154,7 +175,8 @@ export interface ChromeSyncOptions {
  * while Safari samples it, then eases back to `band` and is removed. A band
  * already that thick does not move. `theme-color` is set too, for iOS 18.
  * `<Bezel>` calls it whenever its chrome colour changes; call it yourself only
- * for a change `<Bezel>` cannot see.
+ * for a change `<Bezel>` cannot see. Pass `morph: false` where the platform
+ * does not need the trick: `theme-color` is still set, and nothing is drawn.
  */
 export declare function syncChrome(color: string, options?: ChromeSyncOptions): void;
 
@@ -184,6 +206,12 @@ export declare function scrollPageTo(top: number): void;
 export declare function onPageScroll(listener: () => void): () => void;
 /** Fire page scroll listeners without scrolling, to force a re-measure. */
 export declare function emitPageScroll(): void;
+/**
+ * Named scroll timeline on the element that actually scrolls the page.
+ * `animation-timeline: scroll(root)` is silent in container scroll; bind
+ * scroll-driven CSS to this instead (`animation-timeline: --page-scroll`).
+ */
+export declare const PAGE_SCROLL_TIMELINE: "--page-scroll";
 
 // -----------------------------------------------------------------------------
 // Layout

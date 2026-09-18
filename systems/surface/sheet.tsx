@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Drawer } from "@base-ui/react/drawer";
 import { BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
 import {
@@ -37,7 +37,9 @@ import {
 //
 //   Snap points.  `snapPoints={[0.7, 1]}` opens the sheet at seven tenths of
 //   the screen and lets a drag carry it to the top — the iOS medium / large
-//   detents.
+//   detents. A sheet with a single short job instead of a list can skip them
+//   and take the height of what it holds (`fitContent`), the way iOS sizes a
+//   form sheet to its form.
 //
 //   Stacking.  A sheet opened over another one sends the one underneath back a
 //   step per sheet — smaller, dimmer, a little higher, inert — and brings it
@@ -93,12 +95,18 @@ import {
 // 6. Every gesture path is its own test: a `.click()` proves nothing about a
 //    touch tap, a touch tap nothing about a swipe release, and a programmatic
 //    `focus()` is a third thing again.
-// 7. A swipe never starts from `button,a,input,select,textarea,label,
+// 7. A drag MAY carry the popup past its top edge, but the overshoot it
+//    publishes there is not a measure of intent. It is damped by a square root
+//    (`getSnapPointSwipeMovement`, useDrawerSnapPoints.js) AND the swipe-start
+//    threshold has already eaten ~17px of the gesture: a 207px pull from the
+//    0.7 detent arrives as 1.6px of movement, measured. Draw the rubber band
+//    from it; read intent from the pointer (`usePullPastTop` below).
+// 8. A swipe never starts from `button,a,input,select,textarea,label,
 //    [role="button"]` — `DEFAULT_IGNORE_SELECTOR` in
 //    utils/useSwipeDismiss.js, checked for mouse and touch alike. A control
 //    that has to be draggable (the window grip) cannot wear those roles; give
 //    it a visually hidden button beside it for the semantics.
-// 8. Once a press becomes a swipe the popup captures the pointer and the rest
+// 9. Once a press becomes a swipe the popup captures the pointer and the rest
 //    of the stream never reaches you: no move, no up — and out here, above
 //    `Drawer.Content`, no click at all, even for a plain tap. Anything that
 //    listens for a tap on the grabber has to treat "the release came back to
@@ -115,8 +123,14 @@ import {
  */
 export const SHEET_DETENTS = [0.7, 1];
 
+/**
+ * Ring of padding between a floating surface and the screen edges, in px, for
+ * the hit-tests and measurements that cannot take a CSS length.
+ */
+export const EDGE_GAP_PX = 12;
+
 /** Ring of padding between a floating surface and the screen edges. */
-export const EDGE_GAP = "0.75rem";
+export const EDGE_GAP = `${EDGE_GAP_PX / 16}rem`;
 
 /** Room a full-height sheet leaves above itself: the status bar, or the gap. */
 const TOP_INSET = `max(env(safe-area-inset-top), ${EDGE_GAP})`;
@@ -139,13 +153,32 @@ export function detentHeight(point: number): string {
     : `calc(${detentLength(point)} - ${EDGE_GAP})`;
 }
 
-/** An icon button in a surface header: close, back, an external link. */
+/**
+ * An icon button in a surface header: close, back, an external link.
+ *
+ * It carries the touch contract the design system gives any button with a
+ * `hover:` wash (docs/design-system.md, "Touch"), which this had been missing:
+ *
+ *   `pressable`      zeroes the transition while held, so the press lands on
+ *                    the touch-down frame rather than easing in over 150ms.
+ *                    `hover:` is gated on `(hover: hover)` in Tailwind v4, so
+ *                    without this a finger got no wash at all on the way down.
+ *                    It also sets `touch-action: manipulation`.
+ *   `system-chrome`  a control, not text: no selection, no long-press callout.
+ *
+ * The transition names `scale` explicitly. `transition-colors` does not cover
+ * it, and Tailwind v4 compiles `scale-*` to the `scale` property rather than
+ * `transform` — so the press used to snap back on the frame it was released
+ * while the colour went on easing for another 80ms, which is one press read as
+ * two events. Now both land together going down and ease out together coming
+ * back up.
+ */
 export const HEADER_BUTTON =
-  "shrink-0 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
+  "pressable system-chrome shrink-0 rounded-md p-2 text-muted-foreground transition-[color,background-color,scale] duration-150 ease-out hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
 
 /** The glass shell every shape shares. */
 export const SHELL = [
-  "flex flex-col overflow-hidden outline-none",
+  "system-chrome flex flex-col overflow-hidden outline-none",
   "rounded-3xl bg-glass-sheet backdrop-blur-xl",
   "border border-border/50 shadow-overlay",
 ].join(" ");
@@ -193,6 +226,109 @@ export function SurfaceViewport({
   );
 }
 
+/**
+ * Finger travel past the top edge that commits a pull-off.
+ *
+ * Small on purpose, and the measurement below explains why. A sheet's handle
+ * rests near the top of the screen once the sheet is at its top detent, so the
+ * room left above it — the whole budget for "keep pulling" — is about twenty
+ * pixels. Measured on an iPhone 13, a pull from the grabber at the 0.7 detent
+ * all the way to the top of the glass spends 187px resizing the sheet and has
+ * 20px left over. A threshold near that ceiling would be unreachable; this one
+ * leaves a few pixels of slack at each end.
+ */
+export const PULL_PAST_TOP_TRAVEL = 14;
+
+/**
+ * The drag that lifts a sheet off the bottom edge altogether.
+ *
+ * Measures the POINTER, not the popup. Base UI does let a drag carry the sheet
+ * past its top edge, but what it publishes there is damped by a square root
+ * (`getSnapPointSwipeMovement`, useDrawerSnapPoints.js) and its swipe-start
+ * threshold has already eaten ~17px of the gesture — between them, the 207px
+ * pull above arrives as 1.6px of movement. That number is the right one to
+ * draw the rubber band with and the wrong one to read intent from.
+ *
+ * The finger says it plainly instead:
+ *
+ *   push = travelled up − the offset the sheet had to climb through
+ *
+ * so one continuous pull from a lower detent both resizes the sheet and, once
+ * it is against the ceiling, keeps counting — which is the gesture as it is
+ * felt: the sheet stops moving and you are still pulling.
+ *
+ * `data-swiping` is the gate: it is Base UI's own verdict that this gesture is
+ * a sheet drag rather than a scroll inside the content, and it is gone by the
+ * time a scroll ends. The reading at release decides, so easing back down
+ * before letting go cancels the pull.
+ */
+function usePullPastTop(
+  popup: HTMLElement | null,
+  enabled: boolean,
+  onPull: (() => void) | undefined,
+  /** A `useState` setter, so it is stable and safe to call from the effect. */
+  onArmedChange: (armed: boolean) => void
+) {
+  // Kept in a ref so a changing callback never re-arms a gesture in flight.
+  const handler = useRef(onPull);
+  useEffect(() => {
+    handler.current = onPull;
+  }, [onPull]);
+
+  useEffect(() => {
+    if (!popup || !enabled) return;
+
+    let startY: number | null = null;
+    let budget = 0;
+    let push = 0;
+    let armed = false;
+
+    const setArmed = (next: boolean) => {
+      if (next === armed) return;
+      armed = next;
+      onArmedChange(next);
+    };
+
+    const down = (e: PointerEvent) => {
+      startY = e.clientY;
+      // How far this sheet can still climb before it is against the ceiling.
+      budget =
+        Number.parseFloat(popup.style.getPropertyValue("--drawer-snap-point-offset")) || 0;
+      push = 0;
+    };
+
+    const move = (e: PointerEvent) => {
+      if (startY === null) return;
+      push = Math.max(0, startY - e.clientY - budget);
+      setArmed(push >= PULL_PAST_TOP_TRAVEL);
+    };
+
+    const up = () => {
+      if (startY === null) return;
+      // Base UI's own verdict on what this gesture was: a drag inside the
+      // module list scrolls it and never sets this.
+      const pulled = armed && popup.hasAttribute("data-swiping");
+      startY = null;
+      push = 0;
+      setArmed(false);
+      if (pulled) handler.current?.();
+    };
+
+    popup.addEventListener("pointerdown", down, { passive: true });
+    popup.addEventListener("pointermove", move, { passive: true });
+    // On the window: a release outside the popup still ends the gesture.
+    window.addEventListener("pointerup", up, { passive: true });
+    window.addEventListener("pointercancel", up, { passive: true });
+
+    return () => {
+      popup.removeEventListener("pointerdown", down);
+      popup.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+  }, [popup, enabled, onArmedChange]);
+}
+
 export interface SurfaceSheetProps {
   /** Stable id — the sheet's key in the surface stack. */
   id: string;
@@ -218,12 +354,20 @@ export interface SurfaceSheetProps {
   /** Controlled active detent, for a sheet that wants to move itself. */
   activeSnapPoint?: number | string | null;
   onActiveSnapPointChange?: (snapPoint: number | string | null) => void;
-  /**
-   * Height without snap points. Default 80dvh. `"auto"` (or `"fit-content"`)
-   * is content height — the sheet is as tall as what is in it, up to the
-   * screen: an action sheet, rather than a surface with a size of its own.
-   */
+  /** Height without snap points. Default 80dvh. */
   height?: string;
+  /**
+   * Take the height of the content instead of a height or detents: a sheet
+   * holding one short thing — a form, a confirmation — rather than a list, so
+   * there is no empty half. The content bounds its own scrolling area; the
+   * sheet never grows past the screen, and the keyboard pushes it up as it
+   * does any other sheet. Overrides `height`.
+   *
+   * It stands at no detent, so it takes no `level`: its top edge is wherever
+   * its content lands, and a sheet with detents stacked on it arrives at the
+   * first rather than level.
+   */
+  fitContent?: boolean;
   /**
    * For a fixed-height sheet: the detent it stands level with, so a sheet
    * with detents stacked on it can arrive level too.
@@ -258,6 +402,13 @@ export interface SurfaceSheetProps {
    */
   gripOverlay?: boolean;
   /**
+   * Fired when a drag carries the sheet past its top edge by more than
+   * `PULL_PAST_TOP_TRAVEL` real pixels and lets go there — the gesture that
+   * lifts a surface off the edge it is docked to. Without it the overshoot is
+   * only a rubber band, as it is for every other sheet.
+   */
+  onPullPastTop?: () => void;
+  /**
    * Accessible name for the dialog, rendered visually hidden. Omit when the
    * content renders a visible `Drawer.Title` of its own.
    */
@@ -276,21 +427,23 @@ export function SurfaceSheet({
   activeSnapPoint,
   onActiveSnapPointChange,
   height,
+  fitContent = false,
   level: levelProp,
   restoreFocus = true,
   keepMounted,
   grip,
   gripOverlay,
+  onPullPastTop,
   label,
   className,
   children,
 }: SurfaceSheetProps) {
   const hasSnapPoints = !!snapPoints && snapPoints.length > 0;
-  // Content height: the popup stops constraining the shell and the shell stops
-  // filling the popup, so the sheet is exactly as tall as what it holds. Safe
-  // under the padding-as-travel geometry above, which only applies to a sheet
-  // with detents — this one has none, and travels by transform alone.
-  const fitsContent = height === "auto" || height === "fit-content";
+  // Held in state, not a ref: the pull watcher is an effect over the popup
+  // element, and a ref would not tell it when the element arrives.
+  const [popup, setPopup] = useState<HTMLElement | null>(null);
+  const [pullArmed, setPullArmed] = useState(false);
+  usePullPastTop(popup, !!onPullPastTop, onPullPastTop, setPullArmed);
 
   // The detent, controlled by the owner when it says so, else kept here.
   const isControlled = activeSnapPoint !== undefined;
@@ -309,36 +462,44 @@ export function SurfaceSheet({
     level,
   });
 
-  // A sheet should rise at the size it is going to be — and Base UI cannot tell
-  // it where that is yet. Its detent offset is `popupHeight - detentHeight`,
-  // both measured (useDrawerSnapPoints.js: a layout effect and a
-  // ResizeObserver), so on the first painted frame the offset is 0 — the top
-  // detent — and the sheet arrives full height and then slides down into its
-  // detent over half a second. The geometry is no mystery though: it is the
-  // same formula, and CSS can do it without measuring anything. So for the
-  // length of the entrance the popup carries our own value and Base UI's
-  // lands under it, identical, before anyone can see the hand-over.
-  const [entering, setEntering] = useState(open);
-  useEffect(() => {
-    if (!open) return;
-    setEntering(true);
-    const t = window.setTimeout(() => setEntering(false), SURFACE_TRANSITION_MS);
-    return () => window.clearTimeout(t);
-  }, [open]);
-
-  // And a sheet should rise, not appear. A kept-mounted sheet is hidden with
-  // `display: none` while it is closed, and nothing transitions out of
-  // `display: none` — the browser has no painted "before" to travel from, so
-  // Base UI's own starting style does nothing and the sheet simply lands. One
-  // painted frame at the bottom edge is all it needs: this marks it from the
-  // render that opens the sheet (not an effect, which would paint it in place
-  // first) and lets go on the next frame, and the sheet travels up from there.
+  // Two marks a *kept-mounted* sheet needs on its way in, and nothing else
+  // does. A sheet Base UI mounts fresh measures itself in a layout effect,
+  // which React flushes before paint, so its detent is resolved by the first
+  // frame; one hidden with `display: none` has no box to measure and comes
+  // back with an offset of 0 — the top detent — so it arrives full height and
+  // slides down into its detent over half a second. Both marks are therefore
+  // conditioned on `keepMounted`: the three sheets that had none of this
+  // before the window came along keep exactly the behaviour they had, and in
+  // particular a drag begun in the first half-second still moves them.
+  //
+  //   `entering`  the offset is no mystery — it is `popupHeight -
+  //               detentHeight` — so for the length of the entrance the popup
+  //               stands on `--surface-snap-fallback`, computed in CSS from
+  //               the detent it is opening at, and Base UI's own value lands
+  //               under it, identical, before the mark comes off.
+  //   `arriving`  nothing transitions out of `display: none`: the browser has
+  //               no painted "before" to travel from, so Base UI's starting
+  //               style does nothing and the sheet simply lands. One painted
+  //               frame at the bottom edge is all it needs.
+  //
+  // Both are set from the render that opens the sheet, not from an effect,
+  // which would paint it in place first — and cleared on the way out, because
+  // a mark left behind would pin the *exit* to a detent offset.
+  const pinned = !!keepMounted && hasSnapPoints;
+  const [entering, setEntering] = useState(open && pinned);
   const [arriving, setArriving] = useState(open && !!keepMounted);
   const [wasOpen, setWasOpen] = useState(open);
   if (wasOpen !== open) {
     setWasOpen(open);
     if (open && keepMounted) setArriving(true);
+    if (open && pinned) setEntering(true);
+    if (!open && entering) setEntering(false);
   }
+  useEffect(() => {
+    if (!entering) return;
+    const t = window.setTimeout(() => setEntering(false), SURFACE_TRANSITION_MS);
+    return () => window.clearTimeout(t);
+  }, [entering]);
   useEffect(() => {
     if (!arriving) return;
     // Two frames, not one: a rAF callback runs *before* that frame is painted,
@@ -355,18 +516,20 @@ export function SurfaceSheet({
     };
   }, [arriving]);
 
-  /** Where the active detent puts the sheet, before anything has been measured. */
-  const snapFallback = hasSnapPoints
-    ? `max(0px, calc(100dvh - ${TOP_INSET} - ${detentLength(
-        typeof snap === "number" ? snap : snapPoints[0],
-      )}))`
-    : "0px";
-
   // Arrive level with the sheet beneath, when it stands at one of ours.
   const arrival =
     hasSnapPoints && beneathLevel !== undefined && snapPoints.includes(beneathLevel)
       ? beneathLevel
       : (snapPoints?.[0] ?? null);
+
+  // Where the detent it is opening at puts the sheet, before anything has been
+  // measured. An owner that controls the detent already knows it; an
+  // uncontrolled sheet is about to be moved to `arrival` by the effect below,
+  // which runs after this paint — so read that, not the detent it is leaving.
+  const opensAt = isControlled ? snap : arrival;
+  const snapFallback = `max(0px, calc(100dvh - ${TOP_INSET} - ${detentLength(
+    typeof opensAt === "number" ? opensAt : (snapPoints?.[0] ?? 1),
+  )}))`;
   useEffect(() => {
     if (!open || isControlled || !hasSnapPoints) return;
     setOwnSnap(arrival);
@@ -402,6 +565,7 @@ export function SurfaceSheet({
         <Drawer.Portal keepMounted={keepMounted}>
           <SurfaceViewport modal={modal}>
             <Drawer.Popup
+              ref={setPopup}
               finalFocus={restoreFocus ? undefined : false}
               data-surface-popup=""
               data-surface-snap={hasSnapPoints ? "" : undefined}
@@ -409,7 +573,10 @@ export function SurfaceSheet({
               data-surface-arriving={arriving ? "" : undefined}
               style={{
                 ...surfaceMotionVars(hasSnapPoints ? EDGE_GAP : BOTTOM_INSET),
-                ...({ "--surface-snap-fallback": snapFallback } as React.CSSProperties),
+                ...(entering &&
+                  ({
+                    "--surface-snap-fallback": snapFallback,
+                  } as React.CSSProperties)),
                 ...(hasSnapPoints
                   ? {
                       // Flush with the bottom and as tall as the top detent.
@@ -425,12 +592,17 @@ export function SurfaceSheet({
                       )})`,
                     }
                   : {
+                      // No detents: the sheet rests the inset above the bottom
+                      // edge and is as tall as it was told, or as its content.
                       bottom: BOTTOM_INSET,
-                      height: fitsContent ? "auto" : (height ?? "80dvh"),
-                      // Content height still stops at the screen.
-                      ...(fitsContent && {
-                        maxHeight: `calc(100dvh - ${TOP_INSET} - ${BOTTOM_INSET})`,
-                      }),
+                      ...(fitContent
+                        ? {
+                            // Never taller than the screen: past that the shell
+                            // shrinks and the content's scroll area takes over.
+                            height: "auto",
+                            maxHeight: `calc(100dvh - ${TOP_INSET} - ${BOTTOM_INSET})`,
+                          }
+                        : { height: height ?? "80dvh" }),
                     }),
               }}
               // The positioning box only, so nothing paints outside the shell.
@@ -440,6 +612,10 @@ export function SurfaceSheet({
               <div
                 data-surface-shell
                 data-behind={behind ? "" : undefined}
+                // Past the threshold: the release will lift the sheet off the
+                // edge. The shell says so (globals.css) so the gesture can be
+                // seen before it is committed, and abandoned.
+                data-pull-armed={pullArmed ? "" : undefined}
                 // React 19 renders `inert` as the boolean attribute.
                 inert={behind}
                 // Sheets from other subtrees stacked on this one; the CSS adds
@@ -450,10 +626,9 @@ export function SurfaceSheet({
                   // Positioned: the receded wash and a floating grip both
                   // anchor to the shell, not to the popup's travel box.
                   "relative min-h-0 origin-top",
-                  // Fill the popup, unless the popup is taking its height from
-                  // this shell — then a `flex-1` basis of zero is a race the
-                  // content loses.
-                  !fitsContent && "flex-1",
+                  // A content-height sheet is `flex: 0 1 auto`: it measures
+                  // itself, and shrinks only when the max height bites.
+                  !fitContent && "flex-1",
                   // The dim on a receded sheet is a wash over the shell rather
                   // than an opacity, so the glass stays glass.
                   "after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:[transition-duration:var(--surface-duration)]",
@@ -485,7 +660,12 @@ export function SurfaceSheet({
                     drag still works anywhere — Base UI reads the scroll
                     containers for that. Transparent to layout so the content
                     keeps the shell's flex column. */}
-                <Drawer.Content className="flex min-h-0 flex-1 flex-col">
+                <Drawer.Content
+                  className={cn(
+                    "flex min-h-0 flex-col",
+                    !fitContent && "flex-1"
+                  )}
+                >
                   {children}
                 </Drawer.Content>
               </div>

@@ -11,7 +11,7 @@ import {
   GLASS_TINTS,
   getTintLabel,
 } from "@/services";
-import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
+import { useAmbientTime, useLocation, useSolarTheme, useWallpaper, useWeather } from "@/systems/ambient";
 import { BEZEL_BAND_MAX, BEZEL_BAND_MIN, BEZEL_RADIUS_MAX } from "@hux/bezel";
 import {
   DEFAULT_BEZEL_TINT,
@@ -22,6 +22,7 @@ import {
 /** The named tints plus the segmented control's own "pick a colour". */
 type TintChoice = "black" | "dark" | "theme" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
+import { gravityTiltDegrees, readGravity } from "@/systems/ambient/lib/gyroscope";
 import { getWeatherGradient, getWeatherStyleGradient } from "@/systems/ambient/lib/gradient";
 import type { AmbientPhase } from "@/systems/ambient/lib/phase";
 import { rgbToCss, sampleDaySky } from "@/systems/ambient/lib/scene";
@@ -35,6 +36,7 @@ import {
 } from "@/systems/ambient/lib/solar";
 import type { WallpaperStats } from "@/systems/ambient/lib/wallpaper/renderer";
 import {
+  getWallpaperPlayName,
   getWeatherWallpaperName,
   WEATHER_STYLE_LABEL,
   WEATHER_STYLE_META,
@@ -52,6 +54,7 @@ import {
   PHONE_PALETTE_DEFAULT,
   type PhonePalette,
 } from "./provider";
+import { useHeroExit } from "@/components/ui/hero-exit";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
 import appsJson from "@/content/apps.json";
@@ -66,12 +69,15 @@ import {
   useBleedEnabled,
   setReadingFont,
   setReadingMeasure,
+  setReadingSize,
   setReadingFocus,
   useReadingFont,
   useReadingMeasure,
+  useReadingSize,
   useReadingFocus,
   type ReadingFont,
   type ReadingMeasure,
+  type ReadingSize,
 } from "@/components/post/reading-settings";
 import { cn } from "@/lib/utils";
 import {
@@ -84,7 +90,6 @@ import {
   ExternalLink,
   Check,
   ChevronDown,
-  ChevronUp,
   Command as CommandIcon,
   Clock,
   Cloud,
@@ -105,163 +110,76 @@ import {
   Sunset,
   X,
 } from "lucide-react";
-import { withDraggable } from "@/systems/draggable";
 import Link from "next/link";
+import { Segmented, Switch } from "@/components/ui/controls";
 import { Slider } from "@/components/ui/slider";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 // =============================================================================
-// Devtool FAB Component
-// A foldable floating action button for devtools
-// Positioned at top-right, similar to Next.js dev tools
+// Devtool content — the modules, and nothing about where they are shown.
+//
+// The devtool is hosted in three different shells over its life (a bottom
+// sheet, a floating window, and neither while it is a pill), and none of that
+// is this file's business. `dock.tsx` owns the shells and the gesture that
+// moves between them; here are the modules and the footer that go inside
+// whichever one is up.
 // =============================================================================
 
-function DevtoolFABInner() {
+/** The module list. Whatever is hosting it supplies the scroll area. */
+export function DevtoolModules() {
+  return (
+    <>
+      <FrontmatterModule />
+      <ReadingModule />
+      <WallpaperModule />
+      <GlassModule />
+      <SkyModule />
+      <MusicModule />
+      <CommandModule />
+      <DraggableModule />
+      <AppsModule />
+      <RefetchModule />
+    </>
+  );
+}
+
+/** The status line under the modules: how to toggle, and how to turn it off. */
+export function DevtoolFooter() {
   const { locale } = useLocale();
-  const { isEnabled, isOpen, toggle, signalDragReset } = useDevtool();
-
-  // Reset drag position when devtool is toggled on (not fold/unfold)
-  const prevEnabledRef = useRef(isEnabled);
-  useEffect(() => {
-    if (isEnabled && !prevEnabledRef.current) {
-      signalDragReset("devtool");
-    }
-    prevEnabledRef.current = isEnabled;
-  }, [isEnabled, signalDragReset]);
-
-  // Don't render if devtool is not enabled
-  if (!isEnabled) return null;
+  const zh = locale === "zh";
+  const { toggleEnabled } = useDevtool();
 
   return (
-    <div
-      className={cn(
-        "fixed z-50 transition-all duration-300 ease-out",
-        "top-4 right-4",
-        // When open, expand to panel width
-        isOpen ? "w-[420px] max-w-[calc(100vw-2rem)]" : "w-auto"
-      )}
-    >
-      {/* Collapsed FAB button - hides when panel is open */}
-      <button
-        onClick={toggle}
-        data-drag-handle
-        className={cn(
-          "flex items-center gap-2 transition-all duration-300",
-          "rounded-full touch-none",
-          "bg-foreground text-background",
-          "shadow-raised",
-          "hover:scale-105 active:scale-95",
-          // Hide when expanded
-          isOpen ? "opacity-0 pointer-events-none scale-75" : "opacity-100",
-          // Size
-          "h-10 px-4"
-        )}
-        aria-label="Open devtool panel"
-      >
-        <Bug className="h-4 w-4" />
-        <span className="text-xs font-mono uppercase tracking-wider">
-          {locale === "zh" ? "调试" : "Debug"}
+    <div className="border-t border-border/50 bg-muted/20 px-4 py-2">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span className="font-mono">
+          {zh ? "按 D 切换" : "Press D to toggle"}
         </span>
-        <kbd className="text-[10px] font-mono opacity-60 ml-1">D</kbd>
-      </button>
-
-      {/* Expanded panel */}
-      <div
-        className={cn(
-          "absolute top-0 right-0 w-full",
-          "transition-all duration-300 ease-out",
-          "origin-top-right",
-          isOpen
-            ? "opacity-100 scale-100 translate-y-0"
-            : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
-        )}
-      >
-        <DevtoolPanel />
+        <button
+          onClick={toggleEnabled}
+          className="flex items-center gap-1 font-mono transition-colors hover:text-foreground"
+        >
+          <X className="h-3 w-3" />
+          <span>{zh ? "关闭调试" : "Disable Devtool"}</span>
+        </button>
       </div>
     </div>
   );
 }
 
-export const DevtoolFAB = withDraggable(DevtoolFABInner, {
-  id: "devtool",
-  // Only the collapsed pill and the panel's title bar move the devtool; the
-  // module bodies keep their sliders, inputs and scrolling.
-  dragHandle: "[data-drag-handle]",
-});
-
-// =============================================================================
-// Devtool Panel Component
-// The expanded panel containing debug modules
-// =============================================================================
-
-function DevtoolPanel() {
+/** The header's title: the bug, the name, the DEV badge. */
+export function DevtoolTitle() {
   const { locale } = useLocale();
-  const { close, toggleEnabled } = useDevtool();
-
   return (
-    <div
-      className={cn(
-        "rounded-2xl overflow-hidden cursor-default",
-        "bg-glass-popover backdrop-blur-xl",
-        "border border-border/50",
-        "shadow-overlay"
-      )}
-    >
-      {/* Header */}
-      <div
-        data-drag-handle
-        className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-muted/30 touch-none cursor-grab active:cursor-grabbing"
-      >
-        <div className="flex items-center gap-2">
-          <Bug className="h-4 w-4 text-foreground" />
-          <span className="text-sm font-mono text-foreground">
-            {locale === "zh" ? "调试面板" : "Devtool Panel"}
-          </span>
-          <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
-            DEV
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={close}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors"
-            aria-label="Close devtool panel"
-          >
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-          </button>
-        </div>
-      </div>
-
-      {/* Scrollable content */}
-      <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
-        <FrontmatterModule />
-        <ReadingModule />
-        <WallpaperModule />
-        <GlassModule />
-        <SkyModule />
-        <MusicModule />
-        <CommandModule />
-        <DraggableModule />
-        <AppsModule />
-        <RefetchModule />
-      </div>
-
-      {/* Footer */}
-      <div className="px-4 py-2 border-t border-border/50 bg-muted/20">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="font-mono">
-            {locale === "zh" ? "按 D 切换" : "Press D to toggle"}
-          </span>
-          <button
-            onClick={toggleEnabled}
-            className="flex items-center gap-1 font-mono hover:text-foreground transition-colors"
-          >
-            <X className="h-3 w-3" />
-            <span>{locale === "zh" ? "关闭调试" : "Disable Devtool"}</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    <span className="flex items-center gap-2">
+      <Bug className="h-3.5 w-3.5 shrink-0" />
+      <span className="truncate">
+        {locale === "zh" ? "调试面板" : "Devtool Panel"}
+      </span>
+      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] leading-none normal-case tracking-normal">
+        DEV
+      </span>
+    </span>
   );
 }
 
@@ -650,39 +568,14 @@ function PanelRow({
   );
 }
 
-/** Pill on/off switch, matching the gradient/weather toggles. */
-function PanelToggle({
-  on,
-  onClick,
-  label,
-  disabled = false,
-}: {
-  on: boolean;
-  onClick: () => void;
-  label: string;
-  /** The setting is kept but has nothing to act on right now. */
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
-        on ? "bg-green-500/90 border-green-500/70" : "bg-muted/40 border-border/60",
-        disabled && "opacity-40 cursor-not-allowed"
-      )}
-      aria-pressed={on}
-      aria-label={label}
-    >
-      <span
-        className={cn(
-          "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
-          on ? "translate-x-4" : "translate-x-0.5"
-        )}
-      />
-    </button>
-  );
+/**
+ * The shared controls in the devtool's voice. Both take their props straight
+ * from the component so the panel cannot drift from it — the hand-written
+ * shadow types these replaced had already lost `Segmented`'s `label`, which
+ * left every segmented group in here without an accessible name.
+ */
+function PanelToggle(props: Omit<React.ComponentProps<typeof Switch>, "tone">) {
+  return <Switch tone="system" {...props} />;
 }
 
 /** Continuous value, for the things you settle by dragging rather than typing. */
@@ -726,42 +619,17 @@ function PanelRange({
   );
 }
 
-/** Segmented single-select, matching the ruler dock control. */
-function PanelSegmented<T extends string>({
-  value,
-  options,
-  onChange,
-}: {
-  value: T;
-  options: { value: T; label: string; title?: string }[];
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div className="flex shrink-0 overflow-hidden rounded-md border border-border/60">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          onClick={() => onChange(o.value)}
-          title={o.title}
-          className={cn(
-            "px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
-            value === o.value
-              ? "bg-accent text-accent-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-          aria-pressed={value === o.value}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
+function PanelSegmented<T extends string>(
+  props: Omit<React.ComponentProps<typeof Segmented<T>>, "tone">
+) {
+  return <Segmented tone="system" {...props} />;
 }
 
 function ReadingModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
   const font = useReadingFont();
+  const size = useReadingSize();
   const measure = useReadingMeasure();
   const bleed = useBleedEnabled();
   const focus = useReadingFocus();
@@ -770,6 +638,11 @@ function ReadingModule() {
   const fonts: { value: ReadingFont; label: string }[] = [
     { value: "sans", label: zh ? "无衬线" : "Sans" },
     { value: "serif", label: zh ? "衬线" : "Serif" },
+  ];
+  const sizes: { value: ReadingSize; label: string; title: string }[] = [
+    { value: "small", label: zh ? "小" : "S", title: zh ? "小" : "Small" },
+    { value: "default", label: zh ? "中" : "M", title: zh ? "标准" : "Default" },
+    { value: "large", label: zh ? "大" : "L", title: zh ? "大" : "Large" },
   ];
   const measures: { value: ReadingMeasure; label: string; title: string }[] = [
     { value: "narrow", label: zh ? "窄" : "S", title: zh ? "窄" : "Narrow" },
@@ -791,6 +664,9 @@ function ReadingModule() {
       <div className="space-y-3">
         <PanelRow label={zh ? "字体" : "Typeface"}>
           <PanelSegmented value={font} options={fonts} onChange={setReadingFont} />
+        </PanelRow>
+        <PanelRow label={zh ? "字号" : "Size"}>
+          <PanelSegmented value={size} options={sizes} onChange={setReadingSize} />
         </PanelRow>
         <PanelRow label={zh ? "宽度" : "Measure"}>
           <PanelSegmented
@@ -926,7 +802,6 @@ function GlassModule() {
 function WallpaperModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { close: closePanel } = useDevtool();
   const {
     kind,
     setKind,
@@ -937,6 +812,8 @@ function WallpaperModule() {
     shaderSupported,
     statsRef,
     wallpaper,
+    play,
+    playAlbum,
     variant,
     opacity,
     veil,
@@ -966,6 +843,8 @@ function WallpaperModule() {
     devtoolOverrides,
     setDevtoolOverrides,
   } = useWallpaper();
+  const { heroExitOverride, setHeroExitOverride } = useDevtool();
+  const heroExit = useHeroExit();
   const { scene } = useWeather();
   const { phase } = useAmbientTime();
 
@@ -1058,7 +937,11 @@ function WallpaperModule() {
   // One line that answers "what am I actually looking at".
   const weatherName = getWeatherWallpaperName(locale, weatherStyle);
   const now = [
-    isImage ? wallpaper.name : weatherName,
+    isImage
+      ? play !== "off" && playAlbum
+        ? `${getWallpaperPlayName(locale, play, playAlbum)} · ${wallpaper.name}`
+        : wallpaper.name
+      : weatherName,
     variant,
     isImage ? (reading ? (zh ? "阅读" : "read") : zh ? "桌面" : "desktop") : placement,
   ].join(" · ");
@@ -1146,11 +1029,9 @@ function WallpaperModule() {
         )}
         <button
           type="button"
-          // The picker is about the page; the panel folds so the page is there.
-          onClick={() => {
-            openPicker();
-            closePanel();
-          }}
+          // The picker stacks on the devtool rather than replacing it: the
+          // panel steps back a notch behind it and comes forward when it goes.
+          onClick={openPicker}
           aria-label={zh ? "打开壁纸选择器" : "Open wallpaper picker"}
           className="flex w-full items-center gap-2 rounded-md border border-border/60 p-1 text-left transition-colors hover:bg-muted/40"
         >
@@ -1175,7 +1056,9 @@ function WallpaperModule() {
           )}
           <span className="min-w-0 flex-1 truncate text-[10px] font-mono text-foreground/80">
             {isImage
-              ? wallpaper.name
+              ? play !== "off" && playAlbum
+                ? `${getWallpaperPlayName(locale, play, playAlbum)} · ${wallpaper.name}`
+                : wallpaper.name
               : weatherName}
             {isImage && (
               <span className="ml-1.5 tabular-nums text-tertiary-foreground">
@@ -1288,6 +1171,28 @@ function WallpaperModule() {
                 { value: "container", label: "Container" },
               ]}
               onChange={(scroll) => setDevtoolOverrides({ ...devtoolOverrides, scroll })}
+            />
+          </PanelRow>
+          {/* How the hero leaves: in flow (home's lift) or sticky-and-fade
+              (blog / work / prompt). The platform picks; this pins one. */}
+          <PanelRow
+            label={zh ? "标题离场" : "Hero exit"}
+            star={
+              heroExitOverride !== undefined ? (
+                <PanelStar
+                  onReset={() => setHeroExitOverride(undefined)}
+                  source="session"
+                />
+              ) : null
+            }
+          >
+            <PanelSegmented<"scroll" | "fade">
+              value={heroExit}
+              options={[
+                { value: "scroll", label: zh ? "滚走" : "Scroll" },
+                { value: "fade", label: zh ? "淡出" : "Fade" },
+              ]}
+              onChange={setHeroExitOverride}
             />
           </PanelRow>
         </div>
@@ -1491,6 +1396,61 @@ const MOON_NAME: Record<"en" | "zh", Record<MoonPhaseName, string>> = {
 };
 
 
+const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
+
+/** Any bearing onto 0…359. The track below runs past 360, so this is not idle. */
+const wrap360 = (deg: number) => ((deg % 360) + 360) % 360;
+
+/** The eight-point name for a met wind direction, for the devtool's readout. */
+function compassPoint(deg: number): string {
+  return COMPASS[Math.round(wrap360(deg) / 45) % 8];
+}
+
+/**
+ * Where the wind-direction slider starts, and why it is not at 0°.
+ *
+ * `wind.x` is `sin(from) × hemisphere × speed`, so a track running 0 → 359
+ * goes calm → right → calm → left → calm: both ends dead, and the direction
+ * you drag bears no relation to the direction the rain leans. The track runs
+ * **270° → 450°** instead — west, through north, to east — which is monotonic
+ * the whole way: drag left and the rain leans left, drag right and it leans
+ * right, and the middle is the one bearing that has no crosswind in it.
+ *
+ * Nothing is lost by covering half the compass. The sky only ever shows a
+ * wind's east–west component (the screen looks south; the north–south part
+ * blows along the view axis), and `sin(180° − d) === sin(d)`, so every
+ * southerly bearing paints exactly what its northerly mirror does.
+ */
+const WIND_TRACK_MIN = 270;
+const WIND_TRACK_MAX = 450;
+
+/** Fold any bearing onto the one inside the track that blows the same way. */
+function toWindTrack(deg: number): number {
+  let d = wrap360(Math.round(deg));
+  if (d > 90 && d <= 270) d = 180 - d;
+  else if (d > 270) d -= 360;
+  return d + 360;
+}
+
+/** Which way a bearing pushes the rain, for the readout. */
+function leanArrow(deg: number, hemisphere: 1 | -1): string {
+  const x = Math.sin((deg * Math.PI) / 180) * hemisphere;
+  return x > 0.02 ? "→" : x < -0.02 ? "←" : "·";
+}
+
+/** Minutes in a day — the scrub's range, and one loop of Play. */
+const DAY_MINUTES = 1440;
+
+/**
+ * The transport: a minute for the day, or half of one. Two buttons rather than
+ * a speed on one, so a glance says which is running and either is one press
+ * away from the other.
+ */
+const PLAY_RATES = [
+  { rate: 1, label: { en: "Day", zh: "一天" } },
+  { rate: 2, label: { en: "2×", zh: "2×" } },
+] as const;
+
 /** The quiet outlined chip the Sky module's Now and Play buttons are made of. */
 const PANEL_CHIP = cn(
   "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5",
@@ -1537,6 +1497,8 @@ function SkyModule() {
     isTimeTravelActive,
     resetTimeTravel,
   } = useAmbientTime();
+  const { followSun, setFollowSun, sunTheme } = useSolarTheme();
+  const { gyro, setGyroEnabled, effectiveStyle } = useWallpaper();
 
   const isDayNow = scene.sun.isDay;
   const isOverridden = debugOverride !== null;
@@ -1583,51 +1545,89 @@ function SkyModule() {
   const nowDate = new Date(nowMs);
   const clockMinutes = timeScrubMinutes ?? minutesOfDay(nowMs);
   const realMinutes = minutesOfDay(realNowMs);
-  const pct = (m: number) => `${((m / 1440) * 100).toFixed(2)}%`;
+  const pct = (m: number) => `${((m / DAY_MINUTES) * 100).toFixed(2)}%`;
 
-  // --- Play: sweep dawn → dusk and loop ------------------------------------
-  const [playing, setPlaying] = useState(false);
-  const PLAY_LEAD_MIN = 90;
-  const PLAY_DURATION_MS = 45_000;
-  const playStart = Math.max(0, sr - PLAY_LEAD_MIN);
-  const playEnd = Math.min(1439, ss + PLAY_LEAD_MIN);
-  const playPosRef = useRef(playStart);
+  // --- Play: the day, on a loop ---------------------------------------------
+  // It runs the playhead, nothing else: from wherever the clock is, through
+  // midnight, round again. It used to start by jumping to 90 minutes before
+  // sunrise and stop 90 after sunset, which is a second way of choosing a time
+  // on a panel whose whole top half is for choosing a time — the strip, the
+  // phase names and the sun's own ticks are right there. Pick a moment, then
+  // press play from it.
+  /** 0 is paused; otherwise the multiple of `PLAY_DURATION_MS` being played. */
+  const [playRate, setPlayRate] = useState(0);
+  const playing = playRate > 0;
+  /** A day, once through, at 1×. */
+  const PLAY_DURATION_MS = 60_000;
+  const playPosRef = useRef(0);
 
   useEffect(() => {
-    if (!playing) return;
-    const span = Math.max(60, playEnd - playStart);
+    if (!playRate) return;
     const tickMs = 100;
-    const step = (span / PLAY_DURATION_MS) * tickMs;
+    const step = ((DAY_MINUTES * playRate) / PLAY_DURATION_MS) * tickMs;
     const id = window.setInterval(() => {
-      let next = playPosRef.current + step;
-      if (next > playEnd) next = playStart;
-      playPosRef.current = next;
-      setTimeScrubMinutes(Math.round(next));
+      playPosRef.current = (playPosRef.current + step) % DAY_MINUTES;
+      setTimeScrubMinutes(Math.round(playPosRef.current) % DAY_MINUTES);
     }, tickMs);
     return () => window.clearInterval(id);
-  }, [playing, playStart, playEnd, setTimeScrubMinutes]);
+  }, [playRate, setTimeScrubMinutes]);
 
-  const startPlay = () => {
-    const current = timeScrubMinutes;
-    playPosRef.current =
-      current !== null && current >= playStart && current < playEnd
-        ? current
-        : playStart;
-    setTimeScrubMinutes(Math.round(playPosRef.current));
-    setPlaying(true);
+  /**
+   * One button per speed: pressing the lit one pauses, pressing the other
+   * changes speed without starting over — the playhead is where it is, and
+   * only the step it moves by changes.
+   */
+  const play = (rate: number) => {
+    if (playRate === rate) {
+      setPlayRate(0);
+      return;
+    }
+    if (!playing) {
+      playPosRef.current = timeScrubMinutes ?? realMinutes;
+      setTimeScrubMinutes(Math.round(playPosRef.current));
+    }
+    setPlayRate(rate);
   };
 
   const jumpTo = (minutes: number) => {
-    setPlaying(false);
+    setPlayRate(0);
     setTimeScrubMinutes(minutes);
   };
 
   const resetAll = () => {
-    setPlaying(false);
+    setPlayRate(0);
     resetTimeTravel();
     setDebugOverride(null);
     setSceneOverrides({});
   };
+
+  // --- Gyroscope -----------------------------------------------------------
+  // The live tilt, polled rather than subscribed: a readout is worth twice a
+  // second, not sixty times — the sky itself gets every reading.
+  const [tiltDeg, setTiltDeg] = useState<number | null>(null);
+  useEffect(() => {
+    if (gyro.readings !== "live") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync: clear a stale readout
+      setTiltDeg(null);
+      return;
+    }
+    const tick = () => setTiltDeg(Math.round(gravityTiltDegrees(readGravity())));
+    tick();
+    const id = window.setInterval(tick, 500);
+    return () => window.clearInterval(id);
+  }, [gyro.readings]);
+
+  // Seven states, in the order they rule each other out: what the browser can
+  // do, then what the visitor asked for, then what is actually arriving.
+  const gyroReadout = ((): string => {
+    if (!gyro.supported) return zh ? "无传感器" : "no sensor";
+    if (gyro.denied) return zh ? "已拒绝" : "denied";
+    if (gyro.enabled && gyro.gated) return zh ? "待授权" : "tap to allow";
+    if (!gyro.enabled) return zh ? "关" : "off";
+    if (gyro.readings === "live") return `${tiltDeg ?? 0}°`;
+    if (gyro.readings === "waiting") return "…";
+    return zh ? "无数据" : "no readings";
+  })();
 
   // --- Tune fold -----------------------------------------------------------
   const [tuneOpen, setTuneOpen] = useState(false);
@@ -1639,13 +1639,17 @@ function SkyModule() {
     setSceneOverrides(next);
   };
 
-  // The four tweakable numbers: slider value ↔ scene value, one row each.
+  // The tweakable numbers: slider value ↔ scene value, one row each. Wind is
+  // two of them on purpose — a speed with no direction is a number that can
+  // look like it does nothing, because a wind along the view axis has no
+  // horizontal component and never leans the rain however hard it blows.
   const percent = (v: number) => `${v}%`;
   const tune: {
     key: keyof typeof sceneOverrides;
     label: string;
     aria: string;
     value: number;
+    min?: number;
     max: number;
     format: (v: number) => string;
     toScene: (v: number) => number;
@@ -1653,6 +1657,7 @@ function SkyModule() {
     { key: "cloudCover", label: zh ? "云量" : "Cloud", aria: "Cloud", value: Math.round(scene.clouds.cover * 100), max: 100, format: percent, toScene: (v) => v / 100 },
     { key: "precipitationIntensity", label: zh ? "降水" : "Precip", aria: "Precip", value: Math.round(scene.precipitation.intensity * 100), max: 100, format: percent, toScene: (v) => v / 100 },
     { key: "windSpeedKmh", label: zh ? "风速" : "Wind", aria: "Wind", value: Math.round(sceneOverrides.windSpeedKmh ?? weather?.windSpeedKmh ?? 8), max: 60, format: (v) => `${v} km/h`, toScene: (v) => v },
+    { key: "windDirectionDeg", label: zh ? "风向" : "From", aria: "Wind direction", value: toWindTrack(sceneOverrides.windDirectionDeg ?? weather?.windDirectionDeg ?? 270), min: WIND_TRACK_MIN, max: WIND_TRACK_MAX, format: (v) => `${wrap360(v)}° ${compassPoint(v)} ${leanArrow(v, scene.hemisphere)}`, toScene: wrap360 },
     { key: "veilAmount", label: zh ? "遮罩" : "Veil", aria: "Veil", value: Math.round(scene.veil.amount * 100), max: 90, format: percent, toScene: (v) => v / 100 },
   ];
 
@@ -1729,23 +1734,33 @@ function SkyModule() {
                 />
               )}
             </span>
-            <button
-              onClick={() => (playing ? setPlaying(false) : startPlay())}
-              className={cn(
-                PANEL_CHIP,
-                playing
-                  ? "border-foreground/40 bg-accent text-accent-foreground"
-                  : "border-border/60 text-muted-foreground hover:text-foreground"
-              )}
-              aria-label={playing ? "Pause sunrise to sunset" : "Play sunrise to sunset"}
-              aria-pressed={playing}
-              title={zh ? "从日出播放到日落" : "Play from dawn to dusk"}
-            >
-              {playing ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-              <Sunrise className="h-3 w-3" />
-              <span>→</span>
-              <Sunset className="h-3 w-3" />
-            </button>
+            <span className="flex items-center gap-1">
+              {PLAY_RATES.map(({ rate, label }) => {
+                const live = playRate === rate;
+                return (
+                  <button
+                    key={rate}
+                    onClick={() => play(rate)}
+                    className={cn(
+                      PANEL_CHIP,
+                      live
+                        ? "border-foreground/40 bg-accent text-accent-foreground"
+                        : "border-border/60 text-muted-foreground hover:text-foreground"
+                    )}
+                    aria-label={live ? "Pause the day" : `Play the day at ${rate}x`}
+                    aria-pressed={live}
+                    title={
+                      zh
+                        ? `从当前时刻循环播放这一天（${rate} 倍速）`
+                        : `Play the day from here, on a loop, at ${rate}×`
+                    }
+                  >
+                    {live ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                    {zh ? label.zh : label.en}
+                  </button>
+                );
+              })}
+            </span>
           </div>
           <div
             className="relative h-10 overflow-hidden rounded-lg ring-1 ring-border/50"
@@ -1770,7 +1785,7 @@ function SkyModule() {
             <input
               type="range"
               min={0}
-              max={1439}
+              max={DAY_MINUTES - 1}
               step={1}
               value={clockMinutes}
               onChange={(e) => jumpTo(Number(e.target.value))}
@@ -1812,6 +1827,37 @@ function SkyModule() {
               );
             })}
           </div>
+          {/* The theme rides this timeline: play the day and it flips at the
+              two ticks above, because the switch reads the same clock. The
+              toggle is the saved setting, not a session override — turning it
+              off here turns it off for good. */}
+          <PanelRow
+            label={zh ? "主题跟随太阳" : "Theme follows sun"}
+            star={
+              followSun ? null : (
+                <PanelStar
+                  onReset={() => setFollowSun(true)}
+                  source="saved"
+                  label={zh ? "恢复跟随太阳" : "Follow the sun again"}
+                />
+              )
+            }
+          >
+            <span className="flex items-center gap-2">
+              {followSun && sunTheme && (
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  {sunTheme === "light"
+                    ? t(locale, "themeLight")
+                    : t(locale, "themeDark")}
+                </span>
+              )}
+              <PanelToggle
+                on={followSun}
+                onClick={() => setFollowSun(!followSun)}
+                label="Theme follows the sun"
+              />
+            </span>
+          </PanelRow>
         </div>
 
         {/* Condition. Chips wear the day or night face of the clock above. */}
@@ -1917,6 +1963,42 @@ function SkyModule() {
           </div>
         </div>
 
+        {/* The gyroscope: rain and snow fall along real gravity, in the Sky.
+            A saved setting (blue star), on by default, and the only place
+            besides the picker where iOS's motion permission can be granted —
+            so the readout says which of "off", "unanswered" and "nothing
+            coming through" is the case, and shows the live tilt once it is. */}
+        <div className="border-t border-border/30 pt-2">
+          <PanelRow
+            label={
+              effectiveStyle === "sky"
+                ? zh
+                  ? "陀螺仪"
+                  : "Gyro"
+                : zh
+                  ? "陀螺仪 · 仅天空"
+                  : "Gyro · Sky only"
+            }
+            star={
+              gyro.enabled ? null : (
+                <PanelStar onReset={() => void setGyroEnabled(true)} source="saved" />
+              )
+            }
+          >
+            <span className="flex items-center gap-2">
+              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                {gyroReadout}
+              </span>
+              <PanelToggle
+                on={gyro.active}
+                disabled={!gyro.supported}
+                onClick={() => void setGyroEnabled(!gyro.active)}
+                label="Toggle gyroscope tilt"
+              />
+            </span>
+          </PanelRow>
+        </div>
+
         {/* Fine-tune, folded: the derived numbers, each draggable. */}
         <div className="border-t border-border/30 pt-2">
           <button
@@ -1951,7 +2033,7 @@ function SkyModule() {
                   label={row.label}
                   ariaLabel={row.aria}
                   value={row.value}
-                  min={0}
+                  min={row.min ?? 0}
                   max={row.max}
                   step={1}
                   format={row.format}

@@ -19,7 +19,6 @@ export type DotAction = "close" | "minimize" | "zoom";
 function Dot({
   active,
   interacting,
-  interactive,
   colorHover,
   label,
   onClick,
@@ -28,13 +27,15 @@ function Dot({
   active: boolean;
   /** Window is being dragged/resized or its menu is open → controls "wake up". */
   interacting: boolean;
-  /** False where the dots are an indicator only — a phone window's grip. */
-  interactive: boolean;
   colorHover: string;
   label: string;
-  onClick: () => void;
+  /** Omitted where the dots are an indicator only — a phone window's grip. */
+  onClick?: () => void;
   glyph: React.ReactNode;
 }) {
+  // Having something to do is what makes a dot a control; nothing else decides
+  // it, so nothing else needs to be passed and kept in step.
+  const interactive = !!onClick;
   return (
     <button
       type="button"
@@ -45,7 +46,7 @@ function Dot({
       aria-hidden={interactive ? undefined : true}
       onClick={(e) => {
         e.stopPropagation();
-        onClick();
+        onClick?.();
       }}
       className={cn(
         "flex cursor-default items-center justify-center rounded-full text-black/55",
@@ -139,10 +140,9 @@ export function TrafficDots({
           key={dot.label}
           active={focused}
           interacting={interacting}
-          interactive={!!onAction}
           colorHover={dot.colorHover}
           label={dot.label}
-          onClick={() => onAction?.(dot.action)}
+          onClick={onAction && (() => onAction(dot.action))}
           glyph={dot.glyph}
         />
       ))}

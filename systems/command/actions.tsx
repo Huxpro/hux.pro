@@ -10,8 +10,8 @@ import {
   useLocale,
   useTheme,
 } from "@/services";
-import { useLocation, useWallpaper } from "@/systems/ambient";
-import { getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
+import { useLocation, useSolarTheme, useWallpaper } from "@/systems/ambient";
+import { getWallpaperPlayName, getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
 import { useMusic } from "@/systems/music";
 import {
@@ -28,6 +28,7 @@ import {
   Music,
   Sparkles,
   Sun,
+  Sunrise,
 } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
 import {
@@ -86,6 +87,8 @@ export function useCommandActions(): CommandAction[] {
     kind: wallpaperKind,
     weatherStyle,
     wallpaper,
+    play: wallpaperPlay,
+    playAlbum: wallpaperPlayAlbum,
     openPicker: openWallpaperPicker,
   } = useWallpaper();
   const {
@@ -94,7 +97,8 @@ export function useCommandActions(): CommandAction[] {
     tint: glassTint,
     setTint: setGlassTint,
   } = useGlass();
-  const { isEnabled: isDevtoolEnabled, setEnabled: setDevtoolEnabled } =
+  const { followSun, setFollowSun } = useSolarTheme();
+  const { isShowing: isDevtoolShowing, toggleShowing: toggleDevtool } =
     useDevtool();
   const {
     playerState: musicPlayerState,
@@ -105,7 +109,9 @@ export function useCommandActions(): CommandAction[] {
 
   const wallpaperLabel =
     wallpaperKind === "image"
-      ? wallpaper.name
+      ? wallpaperPlay !== "off" && wallpaperPlayAlbum
+        ? `${getWallpaperPlayName(locale, wallpaperPlay, wallpaperPlayAlbum)} · ${wallpaper.name}`
+        : wallpaper.name
       : getWeatherWallpaperName(locale, weatherStyle);
 
   const themeLabel =
@@ -277,11 +283,16 @@ export function useCommandActions(): CommandAction[] {
         "desktop",
         "macos",
         "ios",
+        "shuffle",
+        "loop",
+        "random",
         "壁纸",
         "背景",
         "天气",
         "渐变",
         "桌面",
+        "随机",
+        "循环",
       ],
       run: () => openWallpaperPicker(),
     },
@@ -333,6 +344,29 @@ export function useCommandActions(): CommandAction[] {
         setGlassTint(glassTint === "wallpaper" ? "neutral" : "wallpaper"),
     },
     {
+      id: "follow-the-sun",
+      key: "s",
+      kind: "toggle",
+      section: "settings",
+      label: `${t(locale, "settingsSolarTheme")}: ${
+        followSun ? t(locale, "stateOn") : t(locale, "stateOff")
+      }`,
+      icon: <Sunrise className={ROW_ICON} />,
+      keywords: [
+        "sun",
+        "sunrise",
+        "sunset",
+        "follow the sun",
+        "auto theme",
+        "day night",
+        "日出",
+        "日落",
+        "太阳",
+        "自动切换",
+      ],
+      run: () => setFollowSun(!followSun),
+    },
+    {
       id: "music",
       key: "m",
       kind: "toggle",
@@ -364,10 +398,16 @@ export function useCommandActions(): CommandAction[] {
     {
       id: "debug-panel",
       key: "d",
-      kind: "toggle",
+      // On and off are about what is ON SCREEN, not about `isEnabled` — as a
+      // drawer, swiping it away is off, and turning it back on must not take
+      // two presses. The devtool works that out (`isShowing`); this row just
+      // reports it. Its kind follows what the press will actually do: on opens
+      // a surface, so the palette stays behind it as a stack; off opens
+      // nothing, so it leaves the way any other setting does.
+      kind: isDevtoolShowing ? "toggle" : "surface",
       section: "settings",
       label: `${t(locale, "settingsDebugPanel")}: ${
-        isDevtoolEnabled ? t(locale, "stateOn") : t(locale, "stateOff")
+        isDevtoolShowing ? t(locale, "stateOn") : t(locale, "stateOff")
       }`,
       icon: <Bug className={ROW_ICON} />,
       keywords: [
@@ -379,7 +419,7 @@ export function useCommandActions(): CommandAction[] {
         "调试",
         "调试面板",
       ],
-      run: () => setDevtoolEnabled(!isDevtoolEnabled),
+      run: toggleDevtool,
     },
   ];
 }

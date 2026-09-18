@@ -8,7 +8,8 @@
 //
 //     wallpaperKind: "weather"  →  the live sky, in one of three styles
 //                                   (`weatherStyle`: Sky, Gradient, Classic)
-//                    "image"    →  a fixed pair from this catalog
+//                    "image"    →  a pair from this catalog, pinned or playing
+//                                   Shuffle / Loop over Apple or Nature
 //
 // Mutual exclusivity is therefore structural, not a rule anyone has to remember:
 // there is a single stack, and a single kind feeds it. Where that stack paints
@@ -37,12 +38,14 @@
 //   nature  the Mac OS X Nature desktop pictures (Aurora, Zebra, …), taken
 //           from ryOS. One photograph each, so both halves are the same file.
 //
-// Every committed full-size file covers a 2560×1600 viewport with at most a 7%
-// stretch. iOS 17, 18 and 27 did not (1.25×, 1.73× and 1.94×) and were removed.
-// Photographs also ship 1280×800 and 1920×1200 cover renditions so a phone does
-// not download the desktop file. Sources and frame indices are recorded in
-// `public/wallpapers/sources.json`; `pnpm wallpapers:check` verifies the
-// committed files still match it, the resolutions below included.
+// Every committed full-size file is the smallest cover of a 2560×1600 viewport
+// at 2× (5120×3200 device pixels), never upscaled past the source. A matching
+// @1x cover (`.1x.webp`) ships beside it whenever that is smaller, so a 1×
+// display does not download the retina file. Sources that cannot cover 2×
+// (most Nature stills are 2560×1600 at source) keep a single file. iOS 17, 18
+// and 27 still fail a 1× 2560×1600 cover and stay out; iPadOS 26 is the
+// landscape home-screen still. Sources are in `public/wallpapers/sources.json`;
+// `pnpm wallpapers:check` verifies the committed files still match it.
 //
 // Apple retains rights to this artwork. It is committed here for a personal
 // site, not licensed onward; the archives the frames were pulled from do not
@@ -57,6 +60,32 @@ export type WallpaperKind = "weather" | "image";
 export type WallpaperPlatform = "macOS" | "iPadOS" | "iOS";
 
 export type WallpaperCategory = "weather" | "apple" | "nature";
+
+/**
+ * Apple and Nature can play the whole album. Weather cannot: the sky already
+ * moves on its own. These are the albums iOS Photo Shuffle / macOS Change
+ * Picture would see as a folder of stills.
+ */
+export type WallpaperPlayAlbum = Exclude<WallpaperCategory, "weather">;
+
+/** `off` is a pinned still. The other two are the picker tiles. */
+export type WallpaperPlay = "off" | "shuffle" | "loop";
+
+/**
+ * iOS Shuffle Frequency, with On Lock mapped to a site visit. On Tap is
+ * omitted — there is no lock screen to tap.
+ */
+export type WallpaperPlayEvery = "visit" | "hourly" | "daily";
+
+export const WALLPAPER_PLAY_ALBUMS: readonly WallpaperPlayAlbum[] = ["apple", "nature"];
+
+export const WALLPAPER_PLAYS: readonly WallpaperPlay[] = ["off", "shuffle", "loop"];
+
+export const WALLPAPER_PLAY_EVERY: readonly WallpaperPlayEvery[] = [
+  "visit",
+  "hourly",
+  "daily",
+];
 
 /** In picker order. Labels are proper nouns or i18n keys resolved by the UI. */
 export const WALLPAPER_CATEGORIES: readonly WallpaperCategory[] = [
@@ -102,6 +131,20 @@ export function getWeatherWallpaperName(locale: Locale, style: WeatherStyle): st
   return `${t(locale, "wallpaperWeather")} · ${t(locale, WEATHER_STYLE_LABEL[style])}`;
 }
 
+/** "Shuffle · Apple" — how the command row names a playing album. */
+export function getWallpaperPlayName(
+  locale: Locale,
+  play: Exclude<WallpaperPlay, "off">,
+  album: WallpaperPlayAlbum
+): string {
+  const playName = t(locale, play === "shuffle" ? "wallpaperShuffle" : "wallpaperLoop");
+  const albumName = t(
+    locale,
+    album === "apple" ? "wallpaperCategoryApple" : "wallpaperCategoryNature"
+  );
+  return `${playName} · ${albumName}`;
+}
+
 /** Which engine paints the full-page layer: the canvas or the CSS stack. */
 export type WallpaperEngine = "shader" | "css";
 
@@ -127,12 +170,14 @@ export function readWeatherStyle(raw: unknown): WeatherStyle {
 }
 
 /**
- * A smaller cover of the same photograph, encoded for a named CSS-pixel
- * viewport. Sorted smallest-first on `WallpaperAsset.srcset`.
+ * A smaller cover of the same picture. Sorted smallest-first on
+ * `WallpaperAsset.srcset`. Today that is the @1x cover of `WALLPAPER_VIEWPORT`
+ * whenever the full file is the @2x (or native) cover.
  *
- * ryOS does not ship these — it serves the original JPEG plus a picker thumb.
- * We add them so raising encode quality (Aurora's source is 1.3MB) does not
- * mean a phone pays for a 2560px file.
+ * ryOS does not ship these — it serves the original JPEG plus a picker thumb
+ * and paints a 24px blur-up while the JPEG decodes. We add @1x so a 1× display
+ * does not pay for the retina file, and we reuse the 480px picker thumb as the
+ * blur-up on the desktop (see <GradientStack />).
  */
 export interface WallpaperRendition {
   src: string;
@@ -141,14 +186,15 @@ export interface WallpaperRendition {
 }
 
 export interface WallpaperAsset {
-  /** Full-size WebP, sized to cover `WALLPAPER_VIEWPORT`. */
+  /** Largest WebP: cover of `WALLPAPER_VIEWPORT` at `WALLPAPER_MAX_DPR`, never upscaled. */
   src: string;
   /**
-   * Smaller cover renditions of `src`, smallest first. Empty on the graphic
-   * pairs, which already compress to tens of kilobytes.
+   * Smaller covers of `src`, smallest first. The @1x file when the full file
+   * is larger than a 1× cover; empty when the source could not produce more
+   * than 1× (Aurora, most Nature stills).
    */
   srcset: readonly WallpaperRendition[];
-  /** 480px rendition for picker tiles and devtool swatches. */
+  /** 480px rendition for picker tiles, devtool swatches, and the desktop blur-up. */
   thumb: string;
   /** Average colour, painted under the image so the layer is never bare. */
   base: string;
@@ -189,6 +235,12 @@ export interface ResolvedWallpaper {
   cover: boolean;
   /** The file behind it, for the devtool readout. */
   src: string | null;
+  /**
+   * Picker thumb, painted immediately while `src` decodes. Null on weather
+   * gradients and when the resolved file already is the thumb (reading blur,
+   * picker tiles).
+   */
+  previewSrc: string | null;
 }
 
 /**
@@ -241,20 +293,22 @@ export const WALLPAPER_OPACITY: Record<WallpaperFamily, { light: number; dark: n
 type Size = readonly [width: number, height: number];
 
 /**
- * The desktop viewport a full-size file has to cover, and the smaller
- * viewports the photograph renditions are encoded for.
- *
- * 16:10 because that is the Mac OS X Nature frame and the picker tile. A
- * rendition is the smallest cover of its viewport — same rule as the full
- * file, just a smaller screen.
+ * The 16:10 desktop, in CSS pixels. That is the Mac OS X Nature frame and the
+ * picker tile. Committed files cover this viewport at 1× and, when the source
+ * has the pixels, at 2× (`WALLPAPER_MAX_DPR`) — never upscaled.
  */
 export const WALLPAPER_VIEWPORT = { width: 2560, height: 1600 } as const;
-export const WALLPAPER_RENDITIONS = [
-  { id: 1280, width: 1280, height: 800 },
-  { id: 1920, width: 1920, height: 1200 },
-] as const;
+export const WALLPAPER_MAX_DPR = 2;
 /** Stretch past this looks soft; matching the check script's floor. */
 export const WALLPAPER_MAX_STRETCH = 1.07;
+
+/** `WALLPAPER_VIEWPORT` in device pixels at `dpr`. */
+export function wallpaperViewportAt(dpr: number): { width: number; height: number } {
+  return {
+    width: Math.round(WALLPAPER_VIEWPORT.width * dpr),
+    height: Math.round(WALLPAPER_VIEWPORT.height * dpr),
+  };
+}
 
 /** Smallest size of `source` that still covers `viewport`. Never upscales. */
 export function coverSize(
@@ -271,8 +325,9 @@ export function coverSize(
   };
 }
 
-export function wallpaperRenditionSrc(src: string, id: number): string {
-  return src.replace(/\.webp$/, `.${id}.webp`);
+/** `@1x` sibling of a full-size file: `aurora.webp` → `aurora.1x.webp`. */
+export function wallpaperOneXSrc(src: string): string {
+  return src.replace(/\.webp$/, ".1x.webp");
 }
 
 /**
@@ -295,9 +350,10 @@ export function readDisplaySize(): { width: number; height: number; dpr: number 
 
 /**
  * Smallest rendition of `asset` that covers `viewport` at its DPR, within
- * `WALLPAPER_MAX_STRETCH`. A portrait phone at 2×/3× still needs the full
- * file — the landscape photographs are 1600px tall, and that is the covering
- * axis.
+ * `WALLPAPER_MAX_STRETCH`. A 1× laptop takes `.1x.webp`; a 2×/3× display takes
+ * the full file when the source had the pixels. A portrait phone covering a
+ * 1600-tall Nature still still needs whatever the source was — we never
+ * upscale.
  */
 export function pickWallpaperSrc(
   asset: WallpaperAsset,
@@ -317,26 +373,19 @@ export function pickWallpaperSrc(
   return candidates[candidates.length - 1].src;
 }
 
-function emptySrcset(): readonly WallpaperRendition[] {
-  return [];
+/** @1x cover of `src`, omitted when it would be the same file as the full one. */
+function oneXSrcset(src: string, [width, height]: Size): WallpaperRendition[] {
+  const size = coverSize({ width, height }, WALLPAPER_VIEWPORT);
+  if (size.width >= width - 1 && size.height >= height - 1) return [];
+  return [{ src: wallpaperOneXSrc(src), width: size.width, height: size.height }];
 }
 
-function photoSrcset(src: string, [width, height]: Size): WallpaperRendition[] {
-  const source = { width, height };
-  const out: WallpaperRendition[] = [];
-  for (const rendition of WALLPAPER_RENDITIONS) {
-    const size = coverSize(source, rendition);
-    if (size.width >= width - 1 && size.height >= height - 1) continue;
-    out.push({
-      src: wallpaperRenditionSrc(src, rendition.id),
-      width: size.width,
-      height: size.height,
-    });
-  }
-  return out;
-}
-
-/** A release pair: `public/wallpapers/<id>/{light,dark}.webp`, one size. */
+/**
+ * A release pair: `public/wallpapers/<id>/{light,dark}.webp`.
+ *
+ * `[width, height]` is the committed full file — the @2x (or native) cover.
+ * A `.1x.webp` sibling is declared when that cover is larger than 1×.
+ */
 function pair(
   id: string,
   lightBase: string,
@@ -347,7 +396,7 @@ function pair(
   return {
     light: {
       src: `${base}/light.webp`,
-      srcset: emptySrcset(),
+      srcset: oneXSrcset(`${base}/light.webp`, [width, height]),
       thumb: `${base}/light.thumb.webp`,
       base: lightBase,
       width,
@@ -355,7 +404,7 @@ function pair(
     },
     dark: {
       src: `${base}/dark.webp`,
-      srcset: emptySrcset(),
+      srcset: oneXSrcset(`${base}/dark.webp`, [width, height]),
       thumb: `${base}/dark.thumb.webp`,
       base: darkBase,
       width,
@@ -373,7 +422,7 @@ function photo(
   const src = `/wallpapers/nature/${id}.webp`;
   const asset: WallpaperAsset = {
     src,
-    srcset: photoSrcset(src, [width, height]),
+    srcset: oneXSrcset(src, [width, height]),
     thumb: `/wallpapers/nature/${id}.thumb.webp`,
     base,
     width,
@@ -384,12 +433,20 @@ function photo(
 
 export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
   {
+    id: "golden-gate",
+    name: "Golden Gate",
+    category: "apple",
+    platform: "macOS",
+    year: 2026,
+    ...pair("golden-gate", "rgb(153 141 131)", "rgb(36 38 58)", [4480, 3088]),
+  },
+  {
     id: "tahoe",
     name: "Tahoe",
     category: "apple",
     platform: "macOS",
     year: 2025,
-    ...pair("tahoe", "rgb(59 125 182)", "rgb(25 39 123)", [2560, 2560]),
+    ...pair("tahoe", "rgb(58 124 181)", "rgb(25 39 123)", [5120, 5120]),
   },
   {
     id: "sequoia",
@@ -397,7 +454,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "macOS",
     year: 2024,
-    ...pair("sequoia", "rgb(119 113 149)", "rgb(47 93 173)", [2560, 2560]),
+    ...pair("sequoia", "rgb(118 112 148)", "rgb(46 92 172)", [5120, 5120]),
   },
   {
     id: "sonoma",
@@ -405,7 +462,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "macOS",
     year: 2023,
-    ...pair("sonoma", "rgb(135 148 111)", "rgb(57 104 109)", [2560, 2560]),
+    ...pair("sonoma", "rgb(134 146 110)", "rgb(57 104 109)", [5120, 5120]),
   },
   {
     id: "ventura",
@@ -413,7 +470,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "macOS",
     year: 2022,
-    ...pair("ventura", "rgb(198 140 89)", "rgb(118 43 28)", [2560, 2560]),
+    ...pair("ventura", "rgb(196 141 87)", "rgb(118 43 28)", [5120, 5120]),
   },
   {
     id: "monterey",
@@ -421,7 +478,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "macOS",
     year: 2021,
-    ...pair("monterey", "rgb(152 88 187)", "rgb(52 14 120)", [2400, 2400]),
+    ...pair("monterey", "rgb(151 87 186)", "rgb(50 13 119)", [5120, 5120]),
   },
   {
     id: "big-sur",
@@ -429,7 +486,31 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "macOS",
     year: 2020,
-    ...pair("big-sur", "rgb(123 101 140)", "rgb(74 36 71)", [2400, 2400]),
+    ...pair("big-sur", "rgb(125 100 140)", "rgb(72 35 70)", [5120, 5120]),
+  },
+  {
+    id: "catalina",
+    name: "Catalina",
+    category: "apple",
+    platform: "macOS",
+    year: 2019,
+    ...pair("catalina", "rgb(77 101 125)", "rgb(82 84 97)", [5120, 5120]),
+  },
+  {
+    id: "mojave",
+    name: "Mojave",
+    category: "apple",
+    platform: "macOS",
+    year: 2018,
+    ...pair("mojave", "rgb(80 74 81)", "rgb(25 37 60)", [5120, 2880]),
+  },
+  {
+    id: "ipados-26",
+    name: "iPadOS 26",
+    category: "apple",
+    platform: "iPadOS",
+    year: 2025,
+    ...pair("ipados-26", "rgb(120 184 210)", "rgb(18 91 130)", [2752, 2064]),
   },
   {
     id: "ipados-18-violet",
@@ -438,7 +519,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     platform: "iPadOS",
     year: 2024,
     caption: "2024",
-    ...pair("ipados-18-violet", "rgb(122 97 151)", "rgb(64 45 60)", [2560, 1779]),
+    ...pair("ipados-18-violet", "rgb(122 97 151)", "rgb(64 45 60)", [3840, 2668]),
   },
   {
     id: "ipados-18-indigo",
@@ -447,7 +528,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     platform: "iPadOS",
     year: 2024,
     caption: "2024",
-    ...pair("ipados-18-indigo", "rgb(69 106 173)", "rgb(47 54 79)", [2560, 1779]),
+    ...pair("ipados-18-indigo", "rgb(69 106 173)", "rgb(47 54 79)", [3840, 2668]),
   },
   {
     id: "ipados-18-blue",
@@ -456,7 +537,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     platform: "iPadOS",
     year: 2024,
     caption: "2024",
-    ...pair("ipados-18-blue", "rgb(91 132 173)", "rgb(36 49 92)", [2560, 1779]),
+    ...pair("ipados-18-blue", "rgb(91 132 173)", "rgb(36 49 92)", [3840, 2668]),
   },
   {
     id: "ipados-18-teal",
@@ -465,7 +546,15 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     platform: "iPadOS",
     year: 2024,
     caption: "2024",
-    ...pair("ipados-18-teal", "rgb(80 130 143)", "rgb(34 55 75)", [2560, 1779]),
+    ...pair("ipados-18-teal", "rgb(80 130 143)", "rgb(34 55 75)", [3840, 2668]),
+  },
+  {
+    id: "ios-15",
+    name: "iOS 15",
+    category: "apple",
+    platform: "iOS",
+    year: 2021,
+    ...pair("ios-15", "rgb(156 144 137)", "rgb(54 50 51)", [2916, 2916]),
   },
   {
     id: "ios-14",
@@ -473,7 +562,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "iOS",
     year: 2020,
-    ...pair("ios-14", "rgb(180 116 117)", "rgb(55 26 38)", [2400, 2400]),
+    ...pair("ios-14", "rgb(180 116 117)", "rgb(57 25 40)", [3072, 3072]),
   },
   {
     id: "ios-13",
@@ -481,7 +570,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     category: "apple",
     platform: "iOS",
     year: 2019,
-    ...pair("ios-13", "rgb(227 122 82)", "rgb(98 13 31)", [2400, 2400]),
+    ...pair("ios-13", "rgb(229 121 82)", "rgb(101 14 32)", [3208, 3208]),
   },
   {
     id: "aurora",
@@ -511,7 +600,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     id: "earth-moon-horizon",
     name: "Earth & Moon",
     category: "nature",
-    ...photo("earth-moon-horizon", "rgb(91 117 149)", [2844, 1600]),
+    ...photo("earth-moon-horizon", "rgb(91 117 149)", [5120, 2880]),
   },
   {
     id: "evening-reflections",
@@ -541,7 +630,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
     id: "mt-fuji",
     name: "Mt. Fuji",
     category: "nature",
-    ...photo("mt-fuji", "rgb(146 113 160)", [2560, 1600]),
+    ...photo("mt-fuji", "rgb(146 113 160)", [3200, 2000]),
   },
   {
     id: "rock-garden",
@@ -636,6 +725,33 @@ export function getWallpaperOrDefault(id: string): Wallpaper {
   return BY_ID.get(id) ?? BUILT_IN_WALLPAPERS[0];
 }
 
+export function isWallpaperPlayAlbum(value: unknown): value is WallpaperPlayAlbum {
+  return value === "apple" || value === "nature";
+}
+
+export function wallpapersInAlbum(album: WallpaperPlayAlbum): Wallpaper[] {
+  return BUILT_IN_WALLPAPERS.filter((wallpaper) => wallpaper.category === album);
+}
+
+export function readWallpaperPlay(raw: unknown): WallpaperPlay {
+  return raw === "shuffle" || raw === "loop" ? raw : "off";
+}
+
+export function readWallpaperPlayEvery(raw: unknown): WallpaperPlayEvery {
+  return raw === "visit" || raw === "hourly" || raw === "daily" ? raw : "hourly";
+}
+
+export function readWallpaperPlayAlbum(raw: unknown): WallpaperPlayAlbum | null {
+  return isWallpaperPlayAlbum(raw) ? raw : null;
+}
+
+export function readWallpaperPlayOrder(raw: unknown, album: WallpaperPlayAlbum | null): string[] {
+  if (!album) return [];
+  const allowed = new Set(wallpapersInAlbum(album).map((wallpaper) => wallpaper.id));
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((id): id is string => typeof id === "string" && allowed.has(id));
+}
+
 function buildAsset(
   asset: WallpaperAsset,
   preview: boolean,
@@ -646,12 +762,22 @@ function buildAsset(
     : viewport
       ? pickWallpaperSrc(asset, viewport)
       : asset.src;
+  const thumb = asset.thumb;
+  const showThumbFirst = !preview && url !== thumb;
+  // Thumb under the chosen file so the layer paints immediately (the 480px
+  // file is already on disk from the picker). CSS treats a not-yet-decoded
+  // image as transparent, so the thumb (and the flat base under that) show
+  // through until the retina file arrives — the ryOS blur-up, using the
+  // picker thumb instead of a 24px LQIP. <GradientStack /> fades the full
+  // file in on the full-page layer once it has decoded.
+  const backgroundImage = showThumbFirst
+    ? `url("${url}"), url("${thumb}"), linear-gradient(180deg, ${asset.base} 0%, ${asset.base} 100%)`
+    : `url("${url}"), linear-gradient(180deg, ${asset.base} 0%, ${asset.base} 100%)`;
   return {
-    // The flat base sits under the image so the layer is never bare while it
-    // decodes.
-    backgroundImage: `url("${url}"), linear-gradient(180deg, ${asset.base} 0%, ${asset.base} 100%)`,
+    backgroundImage,
     cover: true,
     src: url,
+    previewSrc: showThumbFirst ? thumb : null,
   };
 }
 
@@ -674,8 +800,8 @@ export function getWallpaperBackground(params: {
    */
   preview?: boolean;
   /**
-   * CSS-pixel viewport used to pick a photograph rendition. Pairs ignore it
-   * (one file). Omit to always use the full-size file.
+   * CSS-pixel viewport used to pick a @1x or @2x file. Omit to always use
+   * the full-size file.
    */
   viewport?: { width: number; height: number; dpr?: number };
 }): ResolvedWallpaper {

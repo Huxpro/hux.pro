@@ -1,15 +1,14 @@
 "use client";
 
 import { appTitle } from "@/lib/app-icon-core";
-import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { SHEET_DETENTS, SURFACE_TRANSITION_MS, SurfaceSheet } from "@/systems/surface";
 import { usePresence } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
-import { DOCK_BAND, getViewport } from "../lib/geometry";
+import { DOCK_BAND, getViewport, onViewportChange } from "../lib/geometry";
 import type { WindowInstance } from "../lib/types";
 import { useWindows } from "../provider";
-import { AppFrame } from "./app-frame";
+import { AppFrame, appGround } from "./app-frame";
 import { WindowGrip } from "./window-grip";
 import { WindowMenuSheet } from "./window-menu";
 
@@ -47,11 +46,14 @@ import { WindowMenuSheet } from "./window-menu";
 type Level = "page" | "dock" | "top";
 
 /**
- * The site's own pair — seven tenths (far enough down to see the page behind
- * the window) and the top — with the window's own middle detent between them.
- * Shared, because a sheet stacked on this one arrives level by matching values.
+ * The site's lowest and highest — seven tenths (far enough down to see the page
+ * behind the window) and the top — with the window's own middle detent between
+ * them. Taken from the shared list rather than restated, because a sheet
+ * stacked on this one arrives level by matching values; taken by size rather
+ * than by position, so a third site detent would not silently land here.
  */
-const [PAGE_DETENT, TOP_DETENT] = SHEET_DETENTS;
+const PAGE_DETENT = Math.min(...SHEET_DETENTS);
+const TOP_DETENT = Math.max(...SHEET_DETENTS);
 
 /**
  * The detent whose top edge lands where a desktop window's does: below the
@@ -78,23 +80,7 @@ export function WindowSheet({ win }: { win: WindowInstance }) {
   const id = `window-${win.id}`;
 
   // The dock detent is a fraction of a viewport that can change under it.
-  // Coalesced to one read per frame: on iOS this fires all the way through a
-  // rotation and every time the URL bar moves, once per open window.
-  useEffect(() => {
-    let raf = 0;
-    const onResize = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        setDock(dockDetent());
-      });
-    };
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
+  useEffect(() => onViewportChange(() => setDock(dockDetent())), []);
 
   // Being closed: play the sheet out, then let go. A window closed while it was
   // already in the dock has nothing on screen to animate.
@@ -159,7 +145,7 @@ export function WindowSheet({ win }: { win: WindowInstance }) {
       label={title}
       // The app's own ground, as in a desktop window: a window is opaque, and
       // the glass is the pill floating on it.
-      className={cn(win.app.runtime === "lynx" ? "bg-black" : "bg-background")}
+      className={appGround(win.app)}
     >
       {/* Edge-to-edge app, with the chrome floating over it. */}
       <div

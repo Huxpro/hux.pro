@@ -4,8 +4,15 @@ import type { LocationMode } from "./location";
 import {
   DEFAULT_WALLPAPER_ID,
   getWallpaper,
+  readWallpaperPlay,
+  readWallpaperPlayAlbum,
+  readWallpaperPlayEvery,
+  readWallpaperPlayOrder,
   readWeatherStyle,
   type WallpaperKind,
+  type WallpaperPlay,
+  type WallpaperPlayAlbum,
+  type WallpaperPlayEvery,
   type WeatherStyle,
 } from "./wallpaper";
 
@@ -37,6 +44,22 @@ export interface AmbientSettings {
   /** Selected built-in pair, used when `wallpaperKind === "image"`. */
   wallpaperId: string;
   /**
+   * When the image kind is playing an album rather than pinning one still.
+   * `off` is a tap on a specific tile; Shuffle and Loop are the two mode
+   * tiles at the front of Apple and Nature.
+   */
+  wallpaperPlay: WallpaperPlay;
+  /** Which album Shuffle / Loop walks. Null while play is off. */
+  wallpaperAlbum: WallpaperPlayAlbum | null;
+  /** iOS Shuffle Frequency. Kept when play is off so the next Shuffle remembers. */
+  wallpaperPlayEvery: WallpaperPlayEvery;
+  /** Catalog / permutation index of the frame showing. */
+  wallpaperPlayIndex: number;
+  /** Shuffle's permutation of the album; Loop stores catalog order. */
+  wallpaperPlayOrder: string[];
+  /** Wall-clock ms of the last advance — Hourly and Daily compare against this. */
+  wallpaperPlayAt: number;
+  /**
    * The bezel's colour: a named tint or a `#rrggbb` literal. Whether the bezel
    * is on is not a setting — the wallpaper kind decides, and the devtool can
    * override it for the session. See `WALLPAPER_FAMILY_EDGES`.
@@ -46,6 +69,35 @@ export interface AmbientSettings {
   bezelBand: number | null;
   /** Inner corner radius, px. `null` is `DEFAULT_BEZEL_RADIUS`. The same for every kind. */
   bezelRadius: number | null;
+  /**
+   * At sunrise and sunset, the app theme follows the sun — Light while the sun
+   * is up, Dark once it is down. It only ever switches on a crossing the
+   * session watched happen, and it never writes the Appearance preference: the
+   * switch is a session override (see services/theme.tsx). On by default; this
+   * is the flag that turns it off.
+   */
+  themeFollowsSun: boolean;
+  /**
+   * Rain and snow fall along the device's gyroscope rather than straight down
+   * the page (Sky only — see lib/gyroscope.ts). On by default: where the
+   * browser hands over motion freely it just works, and where it does not
+   * this is the wish waiting for the one tap that grants it.
+   */
+  weatherGyro: boolean;
+  /**
+   * WebKit only: motion access has been granted on this origin before, so it
+   * can be re-taken silently on the next load. Without this record nothing
+   * asks unprompted, and a visitor who has never answered is never prompted
+   * out of nowhere.
+   */
+  weatherGyroGranted: boolean;
+  /**
+   * The tilt has been offered once, on a rainy or snowy sky, and answered —
+   * taken or waved off. Only ever set, never cleared: the offer is a one-time
+   * introduction to something the visitor did not ask about, and a second one
+   * would be nagging. See lib/tilt-primer.ts.
+   */
+  weatherGyroPrimed: boolean;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
   wallpaperReadingBlur: boolean;
   /** Veil the wallpaper on reading pages. */
@@ -64,10 +116,20 @@ export function getDefaultSettings(): AmbientSettings {
     wallpaperPlacement: "full",
     wallpaperKind: "weather",
     weatherStyle: "sky",
+    weatherGyro: true,
+    weatherGyroGranted: false,
+    weatherGyroPrimed: false,
     wallpaperId: DEFAULT_WALLPAPER_ID,
+    wallpaperPlay: "off",
+    wallpaperAlbum: null,
+    wallpaperPlayEvery: "hourly",
+    wallpaperPlayIndex: 0,
+    wallpaperPlayOrder: [],
+    wallpaperPlayAt: 0,
     bezelTint: DEFAULT_BEZEL_TINT,
     bezelBand: null,
     bezelRadius: null,
+    themeFollowsSun: true,
     wallpaperReadingBlur: true,
     wallpaperReadingDim: true,
   };
@@ -111,6 +173,12 @@ export function getAmbientSettings(): AmbientSettings {
         ? parsed.wallpaperId
         : defaults.wallpaperId;
 
+    const wallpaperAlbum = readWallpaperPlayAlbum(parsed.wallpaperAlbum);
+    const wallpaperPlay = readWallpaperPlay(parsed.wallpaperPlay);
+    // A saved Shuffle with a missing album is a pinned still.
+    const play =
+      wallpaperPlay !== "off" && wallpaperAlbum ? wallpaperPlay : defaults.wallpaperPlay;
+
     return {
       locationMode:
         parsed.locationMode === "accurate" ? "accurate" : defaults.locationMode,
@@ -118,7 +186,22 @@ export function getAmbientSettings(): AmbientSettings {
       wallpaperKind:
         parsed.wallpaperKind === "image" ? "image" : defaults.wallpaperKind,
       weatherStyle: readWeatherStyle(parsed.weatherStyle),
+      weatherGyro: parsed.weatherGyro !== false,
+      weatherGyroGranted: parsed.weatherGyroGranted === true,
+      weatherGyroPrimed: parsed.weatherGyroPrimed === true,
       wallpaperId,
+      wallpaperPlay: play,
+      wallpaperAlbum: play === "off" ? null : wallpaperAlbum,
+      wallpaperPlayEvery: readWallpaperPlayEvery(parsed.wallpaperPlayEvery),
+      wallpaperPlayIndex:
+        typeof parsed.wallpaperPlayIndex === "number" && Number.isFinite(parsed.wallpaperPlayIndex)
+          ? Math.max(0, Math.floor(parsed.wallpaperPlayIndex))
+          : defaults.wallpaperPlayIndex,
+      wallpaperPlayOrder: readWallpaperPlayOrder(parsed.wallpaperPlayOrder, wallpaperAlbum),
+      wallpaperPlayAt:
+        typeof parsed.wallpaperPlayAt === "number" && Number.isFinite(parsed.wallpaperPlayAt)
+          ? parsed.wallpaperPlayAt
+          : defaults.wallpaperPlayAt,
       // `wallpaperLetterbox*` were these fields' names before the bezel was
       // its own package.
       bezelTint: isBezelTint(parsed.bezelTint ?? parsed.wallpaperLetterboxTint)
@@ -129,6 +212,8 @@ export function getAmbientSettings(): AmbientSettings {
         parsed.bezelRadius ?? parsed.wallpaperLetterboxRadius,
         clampBezelRadius
       ),
+      // Default on: only an explicit false turns the sun off.
+      themeFollowsSun: parsed.themeFollowsSun !== false,
       wallpaperReadingBlur: parsed.wallpaperReadingBlur !== false,
       wallpaperReadingDim: parsed.wallpaperReadingDim !== false,
     };

@@ -14,6 +14,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
 import { getCommitPeekItems, localize } from "@/lib/log";
+import { DEFAULT_DENSITY, type LogDensity } from "@/lib/log-view";
 import { GLASS_PANEL } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./media/external-image";
@@ -58,6 +59,10 @@ export interface CommitProps {
   /** Author byline for git-author-style rendering. Pre-localized in
    *  the timeline so this component stays locale-agnostic. */
   byline?: Byline | null;
+  /** Timeline-only: how much of the commit to print (see `lib/log-view`). */
+  density?: LogDensity;
+  /** Make a commit the page's address; wires the hash column. */
+  onSelectHash?: (hash: string) => void;
 }
 
 // =============================================================================
@@ -79,6 +84,8 @@ export function Commit({
   onBeamSet,
   onBeamClear,
   byline = null,
+  density = DEFAULT_DENSITY,
+  onSelectHash,
 }: CommitProps) {
   const edit = useTimelineEdit();
 
@@ -132,6 +139,8 @@ export function Commit({
           onBeamSet={onBeamSet}
           onBeamClear={onBeamClear}
           byline={byline}
+          density={density}
+          onSelectHash={onSelectHash}
           inspecting={inspecting}
           isSelected={isSelected}
           isUnlisted={commit.listed === false}
@@ -243,14 +252,13 @@ function buildCommitPreview(
     };
   }
 
-  // No peekable media → fall back to a small designed card: description
-  // body + tags caption. Echoes the /writing peek's structure (editorial
-  // body + bottom mono-uppercase caption strip) at a smaller scale so the
-  // hover family reads as one design language.
+  // No peekable media → fall back to a small designed card carrying the
+  // description. This used to print a mono-uppercase strip of the commit's
+  // topics under it, echoing the /writing peek; the topics are no longer
+  // printed anywhere on the page (see the expanded body in TimelineCommit),
+  // and a peek is not the place to reintroduce them.
   const description = localize(commit.description, locale);
-  const tags = commit.tags;
-  const hasTags = !!(tags && tags.length);
-  if (!description && !hasTags) return null;
+  if (!description) return null;
 
   return {
     // Unlike the other peeks (bare panel, content == PEEK_W), this fallback
@@ -259,24 +267,7 @@ function buildCommitPreview(
     // the flush 384 peeks. It's a visible card, so it opts into shadow-raised.
     panelClassName: `${PEEK_W} shadow-raised`,
     node: (
-      <div className="w-full space-y-3">
-        {description && (
-          <p className={cn(TYPE.caption, "line-clamp-3")}>
-            {description}
-          </p>
-        )}
-        {hasTags && (
-          <div
-            className={cn(
-              TYPE.labelSm,
-              "leading-relaxed",
-              description && "pt-3 border-t border-border/30",
-            )}
-          >
-            {tags!.join("  ·  ")}
-          </div>
-        )}
-      </div>
+      <p className={cn(TYPE.caption, "w-full line-clamp-3")}>{description}</p>
     ),
   };
 }

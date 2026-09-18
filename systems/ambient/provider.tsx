@@ -3,6 +3,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getWeatherStyleGradient } from "./lib/gradient";
 import { GRADIENT_CROSSFADE_MS, type GradientLayerData } from "./lib/gradient";
+import {
+  isGyroReachable,
+  requestGyroAccess,
+  resolveGyroAccess,
+  subscribeGravity,
+  type GyroAccess,
+} from "./lib/gyroscope";
 import type { LocationMode, ResolvedLocation } from "./lib/location";
 import { requestAccurateLocation as requestAccurateLocationFn } from "./lib/location";
 import { useLocationQuery, useWeatherQuery } from "./lib/queries";
@@ -41,8 +48,18 @@ import {
   type WallpaperEngine,
   type WallpaperFamily,
   type WallpaperKind,
+  type WallpaperPlay,
+  type WallpaperPlayAlbum,
+  type WallpaperPlayEvery,
   type WeatherStyle,
 } from "./lib/wallpaper";
+import {
+  markVisitConsumed,
+  readVisitConsumed,
+  shouldAdvancePlay,
+  startAlbumPlay,
+  stepAlbumPlay,
+} from "./lib/wallpaper-play";
 import {
   DEFAULT_BEZEL_BAND,
   DEFAULT_BEZEL_RADIUS,
@@ -56,6 +73,7 @@ import {
 import type { NormalizedWeather, WeatherCondition } from "./lib/weather";
 import type { AmbientPhase } from "./lib/phase";
 import { deriveAmbientPhase } from "./lib/phase";
+import { solarThemeAt, SOLAR_HANDOVER, type SolarTheme } from "./lib/solar-theme";
 import type { WallpaperStats } from "./lib/wallpaper/renderer";
 import { supportsWebGL2 } from "./lib/wallpaper/support";
 import { usePathname } from "next/navigation";
@@ -158,6 +176,48 @@ export function useAmbientTime() {
 }
 
 // =============================================================================
+// Solar Theme Context
+//
+// "The theme follows the sun": crossing sunrise puts the app in Light, sunset
+// in Dark. It is a session override on top of the saved Appearance preference,
+// never a change to it (services/theme.tsx), and it only fires on a crossing
+// that happened while the page was open — the sun never rearranges a page on
+// arrival.
+//
+// The provider only says what the sun implies right now; <SolarThemeSync /> is
+// what watches that value cross and applies it. Because it derives from the
+// ambient clock, devtool time travel crosses it too: playing the day in the Sky
+// module flips the theme at exactly the moments the real clock would, and
+// respects the setting the same way.
+// =============================================================================
+
+interface SolarThemeContextType {
+  /** The setting, on by default. Persisted with the rest of the ambient settings. */
+  followSun: boolean;
+  setFollowSun: (on: boolean) => void;
+  /**
+   * Which theme the sun implies at the effective clock, or null while the sun
+   * times are unknown. Null is "no opinion", and nothing switches.
+   */
+  sunTheme: SolarTheme | null;
+  /**
+   * Hand the theme over (see SOLAR_HANDOVER): the wallpaper starts painting
+   * `next` — slowly, on a longer crossfade — while the chrome stays where it
+   * is. The lead ends by itself the moment the app theme catches up; `null`
+   * calls it off early, for a handover that is no longer wanted.
+   */
+  beginThemeHandover: (next: SolarTheme | null) => void;
+}
+
+const SolarThemeContext = createContext<SolarThemeContextType | undefined>(undefined);
+
+export function useSolarTheme() {
+  const context = useContext(SolarThemeContext);
+  if (!context) throw new Error("useSolarTheme must be used within AmbientProvider");
+  return context;
+}
+
+// =============================================================================
 // Wallpaper Context
 //
 // The background is one stack fed by exactly one kind (see lib/wallpaper.ts),
@@ -195,6 +255,33 @@ export interface DevtoolWallpaperOverrides {
   edgeFamily?: WallpaperFamily;
 }
 
+/**
+ * Whether tilt readings are actually arriving.
+ *
+ *   waiting — subscribed; the first event is milliseconds away
+ *   live    — the sky is tilting with the device
+ *   silent  — nothing came. Every desktop browser defines
+ *             `DeviceOrientationEvent` and none of them fires it, so "on" is
+ *             not the same as "working", and the picker says which.
+ */
+export type GyroReadings = "waiting" | "live" | "silent";
+
+/** The gyroscope tilt, as a toggle needs to talk about it. */
+export interface GyroState {
+  /** The saved wish. */
+  enabled: boolean;
+  /** The wish AND the access: the sky is listening to the sensor. */
+  active: boolean;
+  /** Whether anything is coming through. */
+  readings: GyroReadings;
+  /** One tap from working: WebKit's gate, unanswered. */
+  gated: boolean;
+  /** Motion was refused for this site; only the browser's own settings undo it. */
+  denied: boolean;
+  /** There is a `DeviceOrientationEvent` here at all. */
+  supported: boolean;
+}
+
 interface WallpaperContextType {
   /** Which kind currently feeds the background stack. */
   kind: WallpaperKind;
@@ -213,12 +300,38 @@ interface WallpaperContextType {
   reportShaderFallback: (reason: string) => void;
   /** A getter for live renderer stats, set by <WeatherWallpaper /> (devtool readout). */
   statsRef: React.MutableRefObject<(() => WallpaperStats) | null>;
+  /**
+   * The gyroscope tilt: the Sky's rain and snow fall along real gravity. The
+   * readings themselves never come through here — they go from the sensor
+   * straight to the renderer (see lib/gyroscope.ts) — so this is only what a
+   * toggle needs to say and do.
+   */
+  gyro: GyroState;
+  /**
+   * Save the wish. Turning it ON from a tap is also what passes WebKit's
+   * motion gate, so call it from a real user gesture.
+   */
+  setGyroEnabled: (on: boolean) => void;
   /** Selected built-in pair (meaningful when kind === "image"). */
   wallpaper: Wallpaper;
   wallpapers: Wallpaper[];
-  /** Selects a pair AND switches the background kind to it. */
+  /** Selects a pair AND switches the background kind to it. Pins; play turns off. */
   selectWallpaper: (id: string) => void;
-  /** Which half of the pair is showing — always the app theme. */
+  /**
+   * Shuffle or Loop over Apple / Nature — iOS Photo Shuffle and macOS Change
+   * Picture. Selects the mode AND switches the background kind to image.
+   */
+  selectPlay: (album: WallpaperPlayAlbum, play: Exclude<WallpaperPlay, "off">) => void;
+  /** `off` while a still is pinned. */
+  play: WallpaperPlay;
+  /** Album Shuffle / Loop is walking; null while play is off. */
+  playAlbum: WallpaperPlayAlbum | null;
+  playEvery: WallpaperPlayEvery;
+  setPlayEvery: (every: WallpaperPlayEvery) => void;
+  /**
+   * Which half of the pair is showing. The app theme, except while the sun is
+   * handing the theme over — then the sky leads and this is where it shows.
+   */
   variant: "light" | "dark";
   /** Where the active wallpaper paints. */
   placement: WallpaperPlacement;
@@ -229,6 +342,17 @@ interface WallpaperContextType {
   softEdgeEnabled: boolean;
   /** Crossfade stack: [...settled, newest]. Render via <GradientStack />. */
   layers: GradientLayerData[];
+  /**
+   * How long a new layer takes to fade in. The usual push, or the sun's
+   * slower one while the theme hands over.
+   */
+  crossfadeMs: number;
+  /**
+   * The same pace for the Sky, which paints a canvas rather than the stack:
+   * ms to settled for the shader's theme uniforms, or null for its own. Only
+   * the sun's handover sets it — the weather keeps the renderer's own taus.
+   */
+  skyThemeEaseMs: number | null;
   /** Resolved CSS mask-image value, or null when soft-edging is off. */
   edgeMask: string | null;
   /** Ephemeral devtool overrides. */
@@ -254,6 +378,14 @@ interface WallpaperContextType {
   bezelState: boolean | null;
   /** Where the page scrolls: in the bezel's container while the bezel is on, on iOS. */
   bezelScroll: BezelScroll;
+  /**
+   * Whether a chrome colour change has to be morphed onto the screen for the
+   * browser to see it. iOS Safari only — see @hux/bezel. Everywhere else the
+   * chrome follows `theme-color` or has no colour to follow, and the morph
+   * would just be bands at the edges of the window for the best part of a
+   * second, on every theme change.
+   */
+  bezelChromeMorph: boolean;
   /** The bezel colour, resolved from the tint. */
   bezelColor: string;
   bezelTint: BezelTint;
@@ -294,6 +426,24 @@ interface WallpaperContextType {
   isPickerOpen: boolean;
   openPicker: () => void;
   closePicker: () => void;
+  /**
+   * The tilt primer — the one-time offer that comes before WebKit's motion
+   * prompt. See lib/tilt-primer.ts. Open state lives here rather than in the
+   * background component because the sheet is mounted in the layout, beside
+   * the picker, and not inside a `pointer-events-none` wallpaper layer.
+   */
+  isTiltPrimerOpen: boolean;
+  /** The offer has been made and answered; it is never made again. */
+  gyroPrimed: boolean;
+  offerTilt: () => void;
+  /** Close it, and never offer again — the answer was "no" or was given. */
+  closeTiltPrimer: () => void;
+  /**
+   * Turn the tilt on and ask, reporting how it went so the sheet can say so.
+   * Must be called straight from the press. It does NOT close the sheet —
+   * whoever showed the outcome closes it.
+   */
+  takeTilt: () => Promise<GyroAccess>;
 }
 
 const WallpaperContext = createContext<WallpaperContextType | undefined>(undefined);
@@ -366,7 +516,7 @@ function scrubToMs(minutes: number, referenceMs: number): number {
   return d.getTime() + minutes * 60_000;
 }
 
-export function AmbientProvider({ children, theme }: AmbientProviderProps) {
+export function AmbientProvider({ children, theme: chromeTheme }: AmbientProviderProps) {
   const { isEnabled: isDevtoolEnabled } = useDevtool();
 
   // Ambient Settings — initialize with defaults to match SSR, hydrate from
@@ -405,19 +555,57 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const setWallpaperKind = useCallback(
     (kind: WallpaperKind) => {
       if (kind === settings.wallpaperKind) return;
+      if (kind === "weather") {
+        updateSettings({ wallpaperKind: kind, wallpaperPlay: "off", wallpaperAlbum: null });
+        return;
+      }
       updateSettings({ wallpaperKind: kind });
     },
     [settings.wallpaperKind, updateSettings]
   );
 
   const selectWallpaper = useCallback(
-    (id: string) => updateSettings({ wallpaperId: id, wallpaperKind: "image" }),
+    (id: string) =>
+      updateSettings({
+        wallpaperId: id,
+        wallpaperKind: "image",
+        wallpaperPlay: "off",
+        wallpaperAlbum: null,
+      }),
     [updateSettings]
+  );
+
+  const selectPlay = useCallback(
+    (album: WallpaperPlayAlbum, play: Exclude<WallpaperPlay, "off">) => {
+      const next = startAlbumPlay({
+        play,
+        album,
+        currentId: settings.wallpaperId,
+        now: Date.now(),
+      });
+      // Tapping the tile is this visit's change; don't step again on mount.
+      markVisitConsumed();
+      updateSettings({ wallpaperKind: "image", ...next });
+    },
+    [settings.wallpaperId, updateSettings]
+  );
+
+  const setPlayEvery = useCallback(
+    (every: WallpaperPlayEvery) => {
+      if (every === settings.wallpaperPlayEvery) return;
+      updateSettings({ wallpaperPlayEvery: every });
+    },
+    [settings.wallpaperPlayEvery, updateSettings]
   );
 
   const selectWeather = useCallback(
     (style: WeatherStyle) =>
-      updateSettings({ weatherStyle: readWeatherStyle(style), wallpaperKind: "weather" }),
+      updateSettings({
+        weatherStyle: readWeatherStyle(style),
+        wallpaperKind: "weather",
+        wallpaperPlay: "off",
+        wallpaperAlbum: null,
+      }),
     [updateSettings]
   );
 
@@ -432,11 +620,66 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const openPicker = useCallback(() => setIsPickerOpen(true), []);
   const closePicker = useCallback(() => setIsPickerOpen(false), []);
 
+  const [isTiltPrimerOpen, setIsTiltPrimerOpen] = useState(false);
+  const offerTilt = useCallback(() => setIsTiltPrimerOpen(true), []);
+
   const activeWallpaper = useMemo(
     () => getWallpaperOrDefault(settings.wallpaperId),
     [settings.wallpaperId]
   );
   const isImageKind = settings.wallpaperKind === "image";
+
+  // Shuffle / Loop — step when iOS Shuffle Frequency says so. On Visit is once
+  // per tab session; Hourly and Daily poll on a minute so a long-lived tab
+  // still turns over. A week away advances once, not seven times.
+  useEffect(() => {
+    if (!settingsLoaded) return;
+    if (settings.wallpaperKind !== "image") return;
+    if (settings.wallpaperPlay === "off" || !settings.wallpaperAlbum) return;
+
+    const play = settings.wallpaperPlay;
+    const album = settings.wallpaperAlbum;
+
+    const tick = () => {
+      const now = Date.now();
+      if (
+        !shouldAdvancePlay({
+          every: settings.wallpaperPlayEvery,
+          playAt: settings.wallpaperPlayAt,
+          now,
+          visitConsumed: readVisitConsumed(),
+        })
+      ) {
+        return;
+      }
+      const next = stepAlbumPlay({
+        play,
+        album,
+        currentId: settings.wallpaperId,
+        index: settings.wallpaperPlayIndex,
+        order: settings.wallpaperPlayOrder,
+        now,
+      });
+      markVisitConsumed();
+      updateSettings(next);
+    };
+
+    tick();
+    if (settings.wallpaperPlayEvery === "visit") return;
+    const timer = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(timer);
+  }, [
+    settingsLoaded,
+    settings.wallpaperKind,
+    settings.wallpaperPlay,
+    settings.wallpaperAlbum,
+    settings.wallpaperPlayEvery,
+    settings.wallpaperPlayAt,
+    settings.wallpaperPlayIndex,
+    settings.wallpaperPlayOrder,
+    settings.wallpaperId,
+    updateSettings,
+  ]);
 
   const setBezelRadius = useCallback(
     (px: number | null) => updateSettings({ bezelRadius: px }),
@@ -531,10 +774,10 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const bezelScroll: BezelScroll =
     (isDevtoolEnabled ? devtoolOverrides.scroll : undefined) ??
     (bezel && isIOS === true ? "container" : "window");
-  const bezelColor = resolveBezelTint(settings.bezelTint, theme);
+  const bezelColor = resolveBezelTint(settings.bezelTint, chromeTheme);
   const bezelBand = settings.bezelBand ?? DEFAULT_BEZEL_BAND;
   const bezelRadius = settings.bezelRadius ?? DEFAULT_BEZEL_RADIUS;
-  const ground = PAGE_GROUND[theme];
+  const ground = PAGE_GROUND[chromeTheme];
 
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and
@@ -546,6 +789,31 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     "softEdging",
     isIOS === true && edges.softEdge && !bezel
   );
+
+  // --- The theme handover ---------------------------------------------------
+  // The sun's change is staged rather than thrown, and the sky goes first: for
+  // the length of the lead the wallpaper — the scene, the wash's weight, a
+  // picture's half — is painted in the incoming theme while the chrome is
+  // still in the outgoing one. Everything that belongs to the chrome keeps
+  // reading `chromeTheme`; the prop is destructured under that name so there
+  // is no bare `theme` in this scope to reach for by reflex, and every derived
+  // value has to say which layer it serves.
+  const [skyLead, setSkyLead] = useState<SolarTheme | null>(null);
+  /** What the wallpaper paints in: the incoming theme while the sky leads. */
+  const wallpaperTheme: "light" | "dark" = skyLead ?? chromeTheme;
+
+  // The lead runs for exactly the sky's animation. It outlives the chrome's
+  // switch, which lands halfway through it — cutting it short there would
+  // re-target the crossfade in flight — and it ends on its own, so a handover
+  // that is never completed leaves nothing behind.
+  useEffect(() => {
+    if (!skyLead) return;
+    const timer = window.setTimeout(() => setSkyLead(null), SOLAR_HANDOVER.skyMs);
+    return () => window.clearTimeout(timer);
+  }, [skyLead]);
+
+  const crossfadeMs = skyLead ? SOLAR_HANDOVER.skyMs : GRADIENT_CROSSFADE_MS;
+  const skyThemeEaseMs = skyLead ? SOLAR_HANDOVER.skyMs : null;
 
   // --- Weather engine ------------------------------------------------------
   // WebGL support is probed after mount so the SSR tree (no canvas) matches the
@@ -563,6 +831,115 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   }, []);
   const statsRef = useRef<(() => WallpaperStats) | null>(null);
 
+  // --- Gyroscope tilt ------------------------------------------------------
+  // The wish is saved and on by default; what it takes to honour it is the
+  // browser's business. Chrome, Firefox and Android WebViews just fire the
+  // event, so there the sky starts tilting on its own. WebKit gates motion
+  // behind a permission AND a user gesture, so there the setting waits for the
+  // tap that grants it (the picker's Weather tab, or the devtool's Sky row) —
+  // and once granted, the grant is remembered and re-taken silently from then
+  // on. See lib/gyroscope.ts.
+  const [gyroAccess, setGyroAccess] = useState<GyroAccess>("unsupported");
+  const gyroProbedRef = useRef(false);
+
+  useEffect(() => {
+    if (!settingsLoaded || gyroProbedRef.current) return;
+    gyroProbedRef.current = true;
+    let alive = true;
+    void resolveGyroAccess({ retakeGranted: settings.weatherGyroGranted }).then((access) => {
+      if (!alive) return;
+      setGyroAccess(access);
+      // A grant that no longer holds (Safari's site settings were reset)
+      // should stop being re-taken; a fresh one should start being.
+      if (access === "granted" && !settings.weatherGyroGranted) {
+        updateSettings({ weatherGyroGranted: true });
+      } else if (access !== "granted" && settings.weatherGyroGranted) {
+        updateSettings({ weatherGyroGranted: false });
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [settingsLoaded, settings.weatherGyroGranted, updateSettings]);
+
+  const setGyroEnabled = useCallback(
+    async (on: boolean): Promise<GyroAccess> => {
+      if (!on) {
+        updateSettings({ weatherGyro: false });
+        return gyroAccess;
+      }
+      updateSettings({ weatherGyro: true });
+      // Turning it on is the gesture WebKit wants, so ask now — the promise is
+      // resolved in the same task the tap started, which is what makes the
+      // prompt appear at all.
+      if (isGyroReachable(gyroAccess) || gyroAccess === "unsupported") {
+        return gyroAccess;
+      }
+      const access = await requestGyroAccess();
+      setGyroAccess(access);
+      updateSettings({ weatherGyroGranted: access === "granted" });
+      // Handed back rather than only stored, because the one caller that has
+      // to SAY something — the primer sheet — needs the answer, and a toggle
+      // that merely flips can keep ignoring it.
+      return access;
+    },
+    [gyroAccess, updateSettings]
+  );
+
+  const closeTiltPrimer = useCallback(() => {
+    setIsTiltPrimerOpen(false);
+    // Whichever way it ended, the offer is spent.
+    updateSettings({ weatherGyroPrimed: true });
+  }, [updateSettings]);
+
+  const takeTilt = useCallback(() => {
+    // Written before the asking, not after: a prompt that is refused — and no
+    // browser asks twice — must not leave the offer armed for the next rainy
+    // day, and neither must a visitor who walks away with the dialog still up.
+    updateSettings({ weatherGyroPrimed: true });
+    // Straight from the press, because that press IS the gesture WebKit's gate
+    // wants. Anything deferred loses it. The sheet stays open on purpose: it is
+    // the one thing on screen that can report how this went.
+    return setGyroEnabled(true);
+  }, [setGyroEnabled, updateSettings]);
+
+  const gyroActive = settings.weatherGyro && isGyroReachable(gyroAccess);
+
+  // Is anything actually coming through? Nothing else can tell: the event type
+  // exists in every desktop browser and fires in none of them.
+  const [gyroReadings, setGyroReadings] = useState<GyroReadings>("silent");
+  useEffect(() => {
+    if (!gyroActive) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync: a new subscription has heard nothing yet
+    setGyroReadings("waiting");
+    let heard = false;
+    const stop = subscribeGravity(() => {
+      if (heard) return;
+      heard = true;
+      setGyroReadings("live");
+    });
+    // A sensor that has said nothing in a second is a sensor that is not there.
+    const timer = window.setTimeout(() => {
+      if (!heard) setGyroReadings("silent");
+    }, 1000);
+    return () => {
+      stop();
+      window.clearTimeout(timer);
+    };
+  }, [gyroActive]);
+
+  const gyro = useMemo<GyroState>(
+    () => ({
+      enabled: settings.weatherGyro,
+      active: gyroActive,
+      readings: gyroActive ? gyroReadings : "silent",
+      gated: gyroAccess === "prompt",
+      denied: gyroAccess === "denied",
+      supported: gyroAccess !== "unsupported",
+    }),
+    [settings.weatherGyro, gyroAccess, gyroActive, gyroReadings]
+  );
+
   // The style that paints: the Sky needs WebGL2 (real, or not pretended away
   // by the devtool) and otherwise becomes the Gradient. Nothing else falls back.
   const effectiveStyle = resolveWeatherStyle({
@@ -576,7 +953,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   const wallpaperOpacity =
     WALLPAPER_OPACITY[
       WALLPAPER_LOOK_FAMILY[getWallpaperLook(settings.wallpaperKind, effectiveStyle)]
-    ][theme];
+    ][wallpaperTheme];
 
   // --- Debug state (weather + time) -----------------------------------------
   const [debugOverride, setDebugOverride] = useState<WeatherDebugOverride | null>(null);
@@ -674,11 +1051,25 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     [nowMs, sunriseMs, sunsetMs]
   );
 
+  // The same clock and the same sun times the phase reads, reduced to the one
+  // bit the theme cares about. It returns a primitive, so the minute tick and
+  // the devtool's 10Hz scrub leave `solarThemeValue` — and every consumer of
+  // it — untouched until the side of the day actually changes.
+  const sunTheme = useMemo(
+    () => solarThemeAt({ nowMs, sunriseMs, sunsetMs }),
+    [nowMs, sunriseMs, sunsetMs]
+  );
+
+  const setFollowSun = useCallback(
+    (on: boolean) => updateSettings({ themeFollowsSun: on }),
+    [updateSettings]
+  );
+
   // Resolve which edge-fade mask to use.
   // Special case: dark-mode sunrise/sunset has high gradient-vs-background
   // contrast, so we use a more aggressive (wider) fade to soften the edge.
   const edgeMask: string | null = softEdgeEnabled
-    ? theme === "dark" && (phase === "sunrise" || phase === "sunset")
+    ? wallpaperTheme === "dark" && (phase === "sunrise" || phase === "sunset")
       ? EDGE_FADE_MASK_HIGH_CONTRAST
       : EDGE_FADE_MASK
     : null;
@@ -708,7 +1099,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       lat: location?.lat,
       lon: location?.lon,
       weather: sceneWeather,
-      theme,
+      theme: wallpaperTheme,
       overrides: isDevtoolEnabled ? sceneOverrides : undefined,
       seed: sceneSeed,
     });
@@ -716,7 +1107,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     locationQuery.data,
     nowMs,
     sceneWeather,
-    theme,
+    wallpaperTheme,
     isDevtoolEnabled,
     sceneOverrides,
     sceneSeed,
@@ -753,26 +1144,25 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
    *
    * A blurred reading page resolves to the THUMB. The layer there is scaled to
    * 110% under a 40px blur, which destroys every pixel of detail the full-size
-   * file was carrying — measured over the whole viewport, the 480px rendition
-   * differs from the 2560px one by 0.15/255 on average and 2/255 at worst, in
-   * both themes, for a tenth of the bytes (46KB → 4KB).
+   * file was carrying.
    *
    * Only when blurred. In `widget` placement, and on the home screen, the photo
-   * paints SHARP inside a card or across the page, and there the thumb is a
-   * visibly soft upscale rather than a free win. Photographs then pick the
-   * smallest cover rendition for this viewport × DPR (`pickWallpaperSrc`).
+   * paints SHARP inside a card or across the page. Photographs then pick the
+   * smallest cover rendition for this viewport × DPR (`pickWallpaperSrc`) — @1x
+   * on a 1× display, the full @2x file on retina. The 480px thumb paints first
+   * and the chosen file fades in over it.
    */
   const resolvedImage = useMemo(
     () =>
       isImageKind
         ? getWallpaperBackground({
             wallpaper: activeWallpaper,
-            theme,
+            theme: wallpaperTheme,
             preview: isBlurred,
             viewport: displaySize,
           })
         : null,
-    [isImageKind, activeWallpaper, theme, isBlurred, displaySize]
+    [isImageKind, activeWallpaper, wallpaperTheme, isBlurred, displaySize]
   );
 
   // Compute the CSS background. Exactly one kind wins — an image wallpaper
@@ -802,30 +1192,47 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // profile into a few CSS variables on <html>, memoised on what can change.
   const paintingCondition = sceneWeather?.condition ?? null;
   const paintingIsDay = scene.sun.isDay;
+  // A wallpaper's profile is the wallpaper's, so it reads `wallpaperTheme` and
+  // moves with the sky during a handover; the bare page's is the chrome's own
+  // ground, so it reads `chromeTheme` and waits with it.
   const nextProfile = useMemo<WallpaperProfile>(() => {
-    if (!fullEnabled && !widgetEnabled) return getPlainProfile(theme);
+    if (!fullEnabled && !widgetEnabled) return getPlainProfile(chromeTheme);
     if (isImageKind) {
-      return getImageProfile(activeWallpaper[theme]) ?? getPlainProfile(theme);
+      return (
+        getImageProfile(activeWallpaper[wallpaperTheme]) ?? getPlainProfile(wallpaperTheme)
+      );
     }
     if (effectiveStyle === "classic") {
       if (phase === "sunrise" || phase === "sunset") {
-        return getWeatherProfile({ event: phase, theme }) ?? getPlainProfile(theme);
+        return (
+          getWeatherProfile({ event: phase, theme: wallpaperTheme }) ??
+          getPlainProfile(wallpaperTheme)
+        );
       }
       if (paintingCondition) {
         return (
-          getWeatherProfile({ condition: paintingCondition, isDay: paintingIsDay, theme }) ??
-          getPlainProfile(theme)
+          getWeatherProfile({
+            condition: paintingCondition,
+            isDay: paintingIsDay,
+            theme: wallpaperTheme,
+          }) ?? getPlainProfile(wallpaperTheme)
         );
       }
-      return getPlainProfile(theme);
+      return getPlainProfile(wallpaperTheme);
     }
-    return profileFromScene({ scene, style: effectiveStyle, opacity: wallpaperOpacity, theme });
+    return profileFromScene({
+      scene,
+      style: effectiveStyle,
+      opacity: wallpaperOpacity,
+      theme: wallpaperTheme,
+    });
   }, [
     fullEnabled,
     widgetEnabled,
     isImageKind,
     activeWallpaper,
-    theme,
+    chromeTheme,
+    wallpaperTheme,
     effectiveStyle,
     phase,
     paintingCondition,
@@ -846,13 +1253,18 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
   // flip and relief, while the glass still gets the picture's dimming layer.
   const [labPolicy, setLabPolicy] = useState<LegibilityPolicy | null>(null);
   const resolvedLegibility = useMemo<LegibilityVars>(() => {
-    const full = resolveLegibility({ profile, theme, reading, policy: labPolicy ?? undefined });
+    const full = resolveLegibility({
+      profile,
+      theme: chromeTheme,
+      reading,
+      policy: labPolicy ?? undefined,
+    });
     if (fullEnabled) return full;
     if (widgetEnabled) {
-      return { ...plainLegibility(theme), glassAdd: full.glassAdd, tint: full.tint, veil: full.veil, blur: full.blur };
+      return { ...plainLegibility(chromeTheme), glassAdd: full.glassAdd, tint: full.tint, veil: full.veil, blur: full.blur };
     }
-    return plainLegibility(theme);
-  }, [profile, theme, reading, fullEnabled, widgetEnabled, labPolicy]);
+    return plainLegibility(chromeTheme);
+  }, [profile, chromeTheme, reading, fullEnabled, widgetEnabled, labPolicy]);
 
   const [legibilityOverride, setLegibilityOverride] = useState<LegibilityVars | null>(null);
   const legibility = legibilityOverride ?? resolvedLegibility;
@@ -897,23 +1309,29 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
 
     setGradientLayers((prev) => {
       const top = prev[prev.length - 1];
-      if (top && top.gradient === computedGradient) return prev;
+      if (top && top.gradient === computedGradient && top.src === wallpaperSrc) return prev;
       layerIdRef.current += 1;
       return [
         ...prev,
-        { id: layerIdRef.current, gradient: computedGradient, cover: computedCover },
+        {
+          id: layerIdRef.current,
+          gradient: computedGradient,
+          cover: computedCover,
+          preview: resolvedImage?.previewSrc ?? null,
+          src: resolvedImage?.src ?? null,
+        },
       ];
     });
-  }, [stackPainted, computedGradient, computedCover, isImageKind, weatherQuery.isFetching]);
+  }, [stackPainted, computedGradient, computedCover, isImageKind, weatherQuery.isFetching, wallpaperSrc, resolvedImage]);
 
   // Prune to the newest layer once the crossfade settles.
   useEffect(() => {
     if (layers.length <= 1) return;
     const timeout = setTimeout(() => {
       setGradientLayers((prev) => (prev.length <= 1 ? prev : prev.slice(-1)));
-    }, GRADIENT_CROSSFADE_MS + 50);
+    }, crossfadeMs + 50);
     return () => clearTimeout(timeout);
-  }, [layers]);
+  }, [layers, crossfadeMs]);
 
   // Memoised, because this provider re-renders often — the 60s clock tick, every
   // React Query transition, every crossfade push and prune, and (since the
@@ -998,6 +1416,16 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     ]
   );
 
+  const solarThemeValue = useMemo(
+    () => ({
+      followSun: settings.themeFollowsSun,
+      setFollowSun,
+      sunTheme,
+      beginThemeHandover: setSkyLead,
+    }),
+    [settings.themeFollowsSun, setFollowSun, sunTheme]
+  );
+
   const wallpaperValue = useMemo(
     () => ({
       kind: settings.wallpaperKind,
@@ -1009,16 +1437,25 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       shaderSupported,
       reportShaderFallback,
       statsRef,
+      gyro,
+      setGyroEnabled,
       wallpaper: activeWallpaper,
       wallpapers: BUILT_IN_WALLPAPERS,
       selectWallpaper,
-      variant: theme,
+      selectPlay,
+      play: settings.wallpaperPlay,
+      playAlbum: settings.wallpaperAlbum,
+      playEvery: settings.wallpaperPlayEvery,
+      setPlayEvery,
+      variant: wallpaperTheme,
       placement: settings.wallpaperPlacement,
       setPlacement,
       fullEnabled,
       widgetEnabled,
       softEdgeEnabled,
       layers,
+      crossfadeMs,
+      skyThemeEaseMs,
       edgeMask,
       devtoolOverrides,
       setDevtoolOverrides,
@@ -1029,6 +1466,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       bezel,
       bezelState,
       bezelScroll,
+      bezelChromeMorph: isIOS === true,
       bezelColor,
       bezelTint: settings.bezelTint,
       setBezelTint,
@@ -1053,11 +1491,19 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       isPickerOpen,
       openPicker,
       closePicker,
+      isTiltPrimerOpen,
+      gyroPrimed: settings.weatherGyroPrimed,
+      offerTilt,
+      closeTiltPrimer,
+      takeTilt,
     }),
     [
       settings.wallpaperKind,
       settings.weatherStyle,
       settings.wallpaperPlacement,
+      settings.wallpaperPlay,
+      settings.wallpaperAlbum,
+      settings.wallpaperPlayEvery,
       settings.bezelTint,
       settings.bezelBand,
       settings.bezelRadius,
@@ -1065,18 +1511,24 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       settings.wallpaperReadingDim,
       setWallpaperKind,
       selectWeather,
+      selectPlay,
+      setPlayEvery,
       effectiveStyle,
       renderer,
       shaderSupported,
       reportShaderFallback,
+      gyro,
+      setGyroEnabled,
       activeWallpaper,
       selectWallpaper,
-      theme,
+      wallpaperTheme,
       setPlacement,
       fullEnabled,
       widgetEnabled,
       softEdgeEnabled,
       layers,
+      crossfadeMs,
+      skyThemeEaseMs,
       edgeMask,
       devtoolOverrides,
       wallpaperOpacity,
@@ -1087,6 +1539,7 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       bezel,
       bezelState,
       bezelScroll,
+      isIOS,
       bezelColor,
       setBezelTint,
       bezelBand,
@@ -1104,6 +1557,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
       isPickerOpen,
       openPicker,
       closePicker,
+      isTiltPrimerOpen,
+      settings.weatherGyroPrimed,
+      offerTilt,
+      closeTiltPrimer,
+      takeTilt,
     ]
   );
 
@@ -1111,9 +1569,11 @@ export function AmbientProvider({ children, theme }: AmbientProviderProps) {
     <LocationContext.Provider value={locationValue}>
       <WeatherContext.Provider value={weatherValue}>
         <AmbientTimeContext.Provider value={timeValue}>
-          <WallpaperContext.Provider value={wallpaperValue}>
-            {children}
-          </WallpaperContext.Provider>
+          <SolarThemeContext.Provider value={solarThemeValue}>
+            <WallpaperContext.Provider value={wallpaperValue}>
+              {children}
+            </WallpaperContext.Provider>
+          </SolarThemeContext.Provider>
         </AmbientTimeContext.Provider>
       </WeatherContext.Provider>
     </LocationContext.Provider>

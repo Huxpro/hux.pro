@@ -43,7 +43,6 @@ export function SystemNav({
         // Visual styling (unchanged)
         TYPE.nav,
         "text-muted-foreground hover:text-foreground",
-        "transition-colors duration-200",
         // Ensure pointer events work during animation
         "pointer-events-auto cursor-pointer",
         // OS chrome: no text selection / callout; press lands instantly.
@@ -54,9 +53,15 @@ export function SystemNav({
         "min-h-[44px] min-w-[44px]", // Apple HIG minimum touch target
         "-ml-3 pl-3 pr-3 -mt-2 pt-2 -mb-2 pb-2", // Expand touch area without moving visual
         "rounded-lg", // Rounded for touch feedback area
-        // Touch feedback
+        // Touch feedback. The properties are named rather than `all`: the
+        // reader's type size drives this element's `margin-bottom` (the gap
+        // over the article title, app/globals.css), and `transition-all` put
+        // that margin in the transition set -- so changing the size snapped
+        // the type and then slid the whole page for another 150ms, one
+        // setting read as two events. `scale` is listed because Tailwind v4
+        // compiles `scale-*` to the `scale` property, not `transform`.
         "active:bg-foreground/5 active:scale-[0.98]",
-        "transition-all duration-150",
+        "transition-[color,background-color,scale] duration-150",
         className
       )}
       onMouseEnter={() => setIsHovered(true)}

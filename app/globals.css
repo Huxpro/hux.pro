@@ -11,6 +11,14 @@
    composition starts to fit with room left over. */
 @custom-variant roomy (@media (width >= 96rem) and (height >= 1000px));
 
+/* `bleed:` — wide enough for landscape media to break out of the reading
+   column. The rule that does it and the reader control that switches it off
+   (components/post/reading-sheet.tsx) both answer to this one number, so
+   neither can drift from the other. Tailwind makes a variant of it. */
+@theme {
+  --breakpoint-bleed: 900px;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -550,6 +558,40 @@ html.dragging * {
   display: none;
 }
 
+/* Commit permalink arrival — /works#<hash>. The row you travelled to is
+   marked for two seconds (see `useCommitAnchor`) so the eye lands on it
+   instead of counting rows. A wash, not a border: the timeline's rows have no
+   edges of their own, and giving one an outline for two seconds would read as
+   a different kind of row rather than the same row, found.
+
+   `--accent-wash` rather than a hand-mixed alpha: the wash ladder is one
+   setting per theme (7% light, 10% dark) so a tint holds over any wallpaper
+   without each site guessing, per docs/system-legibility.md. Fades out on its
+   own; fading in is the point of arrival, so that side is instant. The 2s is
+   the mark's whole life — `useCommitAnchor` takes the attribute off on
+   `animationend` rather than keeping a timer that agrees with this one. */
+[data-commit-target] [data-row-trigger] {
+  animation: commit-target-wash 2s ease-out forwards;
+}
+
+@keyframes commit-target-wash {
+  0% {
+    background-color: var(--accent-wash);
+  }
+  60% {
+    background-color: var(--accent-wash);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-commit-target] [data-row-trigger] {
+    animation-duration: 0.01ms;
+  }
+}
+
 /* Theater stage — the YouTube IFrame API injects an <iframe> sized by the
    width/height player options; force it to fill the morphing stage so the
    video stays responsive as the stage animates between theater and PiP. */
@@ -567,7 +609,12 @@ html.dragging * {
    - "De-weighted" headings: smaller, subtle but slightly brighter than body */
 .prose-article {
   @apply text-foreground/85 leading-relaxed;
-  font-size: 16px;
+  /* Everything sized inside an article is an `em` of this, so the reader's
+     size setting moves the whole composition rather than the body alone —
+     headings keep their hierarchy, captions and code keep their relation to
+     the paragraph they annotate. `line-height` is unitless for the same
+     reason: it follows whatever the size lands on. */
+  font-size: var(--reading-size);
   line-height: 1.75;
   /* Break long unbreakable strings (e.g. raw URLs used as link text) so they
      wrap instead of overflowing the viewport horizontally on mobile. */
@@ -606,7 +653,7 @@ html.dragging * {
 
 /* First-level .not-prose in prose context gets vertical margin */
 .prose-article .not-prose {
-  @apply my-6;
+  margin-block: calc(var(--reading-size) * 1.5);
 }
 
 /* Nested .not-prose elements reset margin - parent handles spacing */
@@ -615,20 +662,47 @@ html.dragging * {
   margin-bottom: 0;
 }
 
+/* -----------------------------------------------------------------------------
+   Block spacing, against the reading size.
+
+   #190 made every font-size inside an article an `em`, so the type scaled. The
+   margins did not: they were Tailwind spacing utilities, which are `rem` and so
+   answer to the root font size, which the reading setting never touches. The
+   result ran the wrong way -- as a fraction of its own line, the gap between two
+   paragraphs was 0.91 lines at `small`, 0.86 at the default and 0.76 at `large`.
+   A reader who asks for bigger type gets the tightest page of the three, which
+   is the opposite of what they asked for.
+
+   Every one of them is a multiple of `--reading-size` now. At the default they
+   resolve to exactly the pixels the utilities set -- 1.5 x 16 = 24, 4 x 16 = 64
+   -- so nothing moves for a reader who never opens "Aa".
+
+   Not `em`: on a heading `em` resolves against the heading's own size, so `4em`
+   on an `h2` would be 72px rather than 64 and every level would drift by its own
+   factor. `--reading-size` is one number for the whole article, which is the
+   point.
+   ----------------------------------------------------------------------------- */
+
 .prose-article p:not(:where(.not-prose, .not-prose *)) {
-  @apply mb-6;
+  margin-bottom: calc(var(--reading-size) * 1.5);
 }
 
 .prose-article h1:not(:where(.not-prose, .not-prose *)) {
-  @apply font-sans text-xl font-medium mt-14 mb-6 text-foreground first:mt-0;
+  @apply font-sans text-[1.25em] font-medium text-foreground first:mt-0;
+  margin-top: calc(var(--reading-size) * 3.5);
+  margin-bottom: calc(var(--reading-size) * 1.5);
 }
 
 .prose-article h2:not(:where(.not-prose, .not-prose *)) {
-  @apply font-sans text-lg font-medium mt-16 mb-6 text-foreground;
+  @apply font-sans text-[1.125em] font-medium text-foreground;
+  margin-top: calc(var(--reading-size) * 4);
+  margin-bottom: calc(var(--reading-size) * 1.5);
 }
 
 .prose-article h3:not(:where(.not-prose, .not-prose *)) {
-  @apply font-sans text-base font-medium mt-12 mb-4 text-foreground;
+  @apply font-sans text-[1em] font-medium text-foreground;
+  margin-top: calc(var(--reading-size) * 3);
+  margin-bottom: var(--reading-size);
 }
 
 .prose-article a:not(:where(.not-prose, .not-prose *)) {
@@ -643,9 +717,11 @@ html.dragging * {
   @apply font-serif italic;
 }
 
-/* Optical adjustment for Latin: Newsreader has smaller x-height than Inter */
+/* Optical adjustment for Latin: Newsreader has smaller x-height than Inter.
+   An em of the body, like every other size in here, so the correction keeps
+   its proportion at every reading size instead of standing still. */
 .prose-article[lang="en"] em:not(:where(.not-prose, .not-prose *)) {
-  font-size: 17px;
+  font-size: 1.0625em;
 }
 
 /* Right spacing for Chinese italic to prevent overhang */
@@ -655,7 +731,8 @@ html.dragging * {
 
 /* Blockquote - Editorial hanging quotation marks style */
 .prose-article blockquote:not(:where(.not-prose, .not-prose *)) {
-  @apply my-8 font-serif italic text-foreground/70 relative;
+  @apply font-serif italic text-foreground/70 relative;
+  margin-block: calc(var(--reading-size) * 2);
   padding-left: 0;
   border: none;
 }
@@ -673,13 +750,13 @@ html.dragging * {
 }
 
 .prose-article[lang="en"] blockquote:not(:where(.not-prose, .not-prose *)) {
-  font-size: 17px;
+  font-size: 1.0625em;
 }
 
 /* Lists - custom markers with absolute positioning for proper text flow */
 .prose-article ul:not(:where(.not-prose, .not-prose *)),
 .prose-article ol:not(:where(.not-prose, .not-prose *)) {
-  @apply my-6;
+  margin-block: calc(var(--reading-size) * 1.5);
   padding-left: 1.25em;
   list-style: none;
 }
@@ -689,7 +766,7 @@ html.dragging * {
 }
 
 .prose-article li:not(:where(.not-prose, .not-prose *)) {
-  @apply mb-2;
+  margin-bottom: calc(var(--reading-size) * 0.5);
   position: relative;
   padding-left: 0;
 }
@@ -717,7 +794,7 @@ html.dragging * {
 /* Nested lists - indentation and counter reset */
 .prose-article li:not(:where(.not-prose, .not-prose *)) ul,
 .prose-article li:not(:where(.not-prose, .not-prose *)) ol {
-  @apply my-2;
+  margin-block: calc(var(--reading-size) * 0.5);
   padding-left: 1.25em;
   margin-left: 0;
 }
@@ -737,7 +814,8 @@ html.dragging * {
 
 /* Horizontal rule */
 .prose-article hr:not(:where(.not-prose, .not-prose *)) {
-  @apply my-12 border-border;
+  @apply border-border;
+  margin-block: calc(var(--reading-size) * 3);
 }
 
 /* Tables */
@@ -746,7 +824,7 @@ html.dragging * {
 }
 
 .prose-article table:not(:where(.not-prose, .not-prose *)) {
-  @apply w-full border-collapse text-sm;
+  @apply w-full border-collapse text-[0.875em];
   margin: 0; /* Override any inherited margins */
 }
 
@@ -772,17 +850,18 @@ html.dragging * {
 
 /* Inline code */
 .prose-article code:not(:where(.not-prose, .not-prose *)) {
-  @apply font-mono text-sm bg-muted px-1.5 py-0.5 rounded;
+  @apply font-mono text-[0.875em] bg-muted px-1.5 py-0.5 rounded;
 }
 
 /* Code blocks with rehype-pretty-code styling */
 .prose-article pre:not(:where(.not-prose, .not-prose *)) {
-  @apply my-6 rounded-lg overflow-x-auto border border-border bg-muted/50;
+  @apply rounded-lg overflow-x-auto border border-border bg-muted/50;
+  margin-block: calc(var(--reading-size) * 1.5);
   color: var(--shiki-light);
 }
 
 .prose-article pre:not(:where(.not-prose, .not-prose *)) code {
-  @apply bg-transparent p-0 text-sm;
+  @apply bg-transparent p-0 text-[0.875em];
   display: grid;
   min-width: 100%;
   counter-reset: line;
@@ -861,14 +940,16 @@ html.dragging * {
 }
 
 .prose-article img:not(:where(.not-prose, .not-prose *)) {
-  @apply my-8 rounded-lg;
+  @apply rounded-lg;
+  margin-block: calc(var(--reading-size) * 2);
 }
 
 /* Raw embeds (e.g. YouTube <iframe>) authored directly in MDX.
    The hardcoded width/height attributes overflow the viewport on mobile,
    so force a responsive 16:9 box that never exceeds the content width. */
 .prose-article iframe:not(:where(.not-prose, .not-prose *)) {
-  @apply my-8 w-full max-w-full rounded-lg;
+  @apply w-full max-w-full rounded-lg;
+  margin-block: calc(var(--reading-size) * 2);
   height: auto;
   aspect-ratio: 16 / 9;
 }
@@ -885,7 +966,7 @@ html.dragging * {
    gutter each side so it clears the fixed ruler ToC docked at the edge.
    Images keep their natural aspect ratio (height stays auto); only the video
    iframe is locked to 16:9 by the base rule above. */
-@media (min-width: 900px) {
+@media (width >= theme(--breakpoint-bleed)) {
   .prose-article iframe:not(:where(.not-prose, .not-prose *)),
   .prose-article img[data-bleed="true"]:not(:where(.not-prose, .not-prose *)) {
     width: min(60rem, 100vw - 14rem);
@@ -920,6 +1001,87 @@ html.dragging * {
   @apply font-serif;
 }
 
+/* Reading size: the one number every `em` in an article resolves against.
+   16px is what the body was before any of this existed, so `default` is not a
+   new middle -- it is the size the site always set, and the small/large steps
+   are one point either side of it. Declared here rather than left to a `var()`
+   fallback so anything can resolve it without repeating the number. Default
+   needs no attribute, so <html> stays clean at the common case. */
+:root {
+  --reading-size: 16px;
+}
+:root[data-reading-size="small"] {
+  --reading-size: 15px;
+}
+:root[data-reading-size="large"] {
+  --reading-size: 18px;
+}
+
+/* =============================================================================
+   The masthead scales with the article.
+
+   #190 made everything inside `.prose-article` an `em` of the reading size, so
+   headings, captions and code all move together. The title above the article
+   did not, which is the one place the seam showed: at `large` the body came up
+   to meet a title that had stayed where it was, and the gap under that title
+   stayed a flat 48px whatever size the text below it was.
+
+   Both are ratios of the same number now. At the default they resolve to
+   exactly what the Tailwind utilities set -- 20px / 24px for the title, 48px /
+   56px for the gap -- so nothing moves for a reader who never opens "Aa".
+
+   Unlayered on purpose, so it wins over the `text-xl sm:text-2xl` and
+   `mb-12 sm:mb-14` utilities that stay on the elements as a fallback.
+   ============================================================================= */
+
+main[data-variant="reader"] .reader-masthead h1 {
+  font-size: calc(var(--reading-size) * 1.25);
+}
+
+/* -----------------------------------------------------------------------------
+   The gap under the masthead, and the one over the title.
+
+   These were 48px / 56px while `h2` inside the article takes a 64px `mt`. So a
+   section break in the middle of a piece was given more air than the break
+   between the piece's title and its first line -- the largest division on the
+   page getting the smallest gap, which is the hierarchy upside down.
+
+   The number came from measuring: on /writing the first text sits 70px from the
+   top edge on a phone and 102px on a desktop. On a phone that was close, and
+   64px -- four times the reading size, and the same figure an `h2` takes -- is
+   the last bit of it back. Wide, 102px was simply too much air; the title fell
+   so far down the page that it read as a hole rather than a breath, so those
+   keep the values the site already had.
+
+   Both are ratios of `--reading-size`, so they move with the type.
+   ----------------------------------------------------------------------------- */
+
+main[data-variant="reader"] .reader-masthead > a {
+  /* The nav's box hangs 14px below its text -- the 44px touch target centring
+     a 16px line -- so the margin is that much less than the gap you see. */
+  margin-bottom: calc(var(--reading-size) * 4 - 14px);
+}
+
+main[data-variant="reader"] .reader-masthead {
+  margin-bottom: calc(var(--reading-size) * 4); /* 64px at the default */
+}
+
+@media (width >= 40rem) {
+  main[data-variant="reader"] .reader-masthead h1 {
+    font-size: calc(var(--reading-size) * 1.5);
+  }
+  /* Wide, the page is not fighting for the fold and the measured 102px read as
+     a hole rather than a breath, so these are the values the site already had
+     -- 48px and 56px -- expressed against the reading size so they still move
+     with the type. */
+  main[data-variant="reader"] .reader-masthead > a {
+    margin-bottom: calc(var(--reading-size) * 3);
+  }
+  main[data-variant="reader"] .reader-masthead {
+    margin-bottom: calc(var(--reading-size) * 3.5);
+  }
+}
+
 /* Reading measure: widen/narrow the reader column. Only the reader variant's
    container is affected; poetic pages (home, lists) keep their width. */
 :root[data-reading-measure="narrow"] main[data-variant="reader"] {
@@ -939,11 +1101,12 @@ html.dragging * {
 }
 
 .prose-article figure:not(:where(.not-prose, .not-prose *)) {
-  @apply my-8;
+  margin-block: calc(var(--reading-size) * 2);
 }
 
 .prose-article figcaption:not(:where(.not-prose, .not-prose *)) {
-  @apply mt-2 text-center text-sm text-muted-foreground;
+  @apply text-center text-[0.875em] text-muted-foreground;
+  margin-top: calc(var(--reading-size) * 0.5);
 }
 
 /* Strikethrough (GFM) */
@@ -1034,6 +1197,8 @@ html.dragging * {
    =============================================================================
    Uses CSS scroll-driven animations (animation-timeline: view()) to dim
    items near the viewport edges and spotlight the one near the center.
+   `view()` follows the nearest scrollport, so it keeps working when the
+   page scrolls in the bezel's container rather than the window.
    Gracefully degrades to full opacity in unsupported browsers.
    ============================================================================= */
 
@@ -1082,9 +1247,16 @@ html.dragging * {
     animation-duration: 1ms;
     animation-timing-function: linear;
     animation-fill-mode: both;
-    animation-timeline: scroll(root block);
+    /* Window scroll: the nearest scroller is the viewport. `scroll(root)`
+       is silent once the page moves into the bezel's container. */
+    animation-timeline: scroll(nearest block);
     /* Mobile header-zone default height (h-44 = 11rem) */
     animation-range: 0 11rem;
+  }
+
+  html[data-bezel-scroll="container"] .hero-zone-fade {
+    /* The named timeline @hux/bezel publishes on #bezel-scroll. */
+    animation-timeline: --page-scroll;
   }
 
   @media (min-width: 768px) {
@@ -1266,11 +1438,16 @@ html.dragging * {
 
 /* =============================================================================
    System chrome — `.system-chrome`
-   Navigation, the command bar, the dock, edit controls: these are the OS's
-   own UI, not a document. No text selection, no long-press callout, no grey
-   tap flash — a press on them is a gesture, never an attempt to grab text.
-   Content (prose, the /writing list, /works rows) deliberately keeps the
-   browser defaults so a long-press on a link still previews it.
+   Navigation, the command bar, the dock, edit controls, secondary surfaces:
+   these are the OS's own UI, not a document. No text selection, no long-press
+   callout, no grey tap flash — a press on them is a gesture, never an attempt
+   to grab text.
+
+   Decorative System UI that is not chrome (the greeting, poetic index titles,
+   widget cards) uses Tailwind `select-none` for the same selection rule,
+   without also killing link previews / tap highlight. Content (prose, the
+   /writing list, /works rows, article titles) keeps the browser defaults so a
+   long-press on a link still previews it and copy still works.
    ============================================================================= */
 
 .system-chrome {
@@ -1285,6 +1462,29 @@ html.dragging * {
 .system-chrome :is(input, textarea, [contenteditable="true"]) {
   -webkit-user-select: text;
   user-select: text;
+}
+
+/* =============================================================================
+   System surface — `.system-surface`
+   The home screen is one OS composition, not a document. iOS Safari skips
+   `user-select: none` on individual labels and expands a long-press into a
+   full-page selection (Copy / Find Selection across the viewport). Lock the
+   surface so the selection has nowhere to grow; `useLockTextSelection` is the
+   matching JS for WebKit ignoring the CSS. (A descendant `*` rule is omitted
+   on purpose: the CSS pipeline drops that selector. Inheritance + the JS
+   hook cover children.)
+   ============================================================================= */
+
+.system-surface {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.system-surface :is(input, textarea, [contenteditable="true"]) {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 
 /* =============================================================================
@@ -1427,17 +1627,22 @@ html.dragging * {
   transform: translateX(var(--drawer-swipe-movement-x, 0px));
 }
 
-/* Arriving, a sheet rises at the size it is going to be.
+/* Arriving, a kept-mounted sheet rises at the size it is going to be.
 
    Base UI resolves the active detent's offset from measurements — the popup's
-   height and the viewport's (useDrawerSnapPoints.js) — so on the first painted
-   frame it is 0, which *is* the top detent: the sheet arrives at full height
+   height and the viewport's (useDrawerSnapPoints.js) — and a popup coming back
+   out of `display: none` has no box to measure, so on its first painted frame
+   the offset is 0, which *is* the top detent: the sheet arrives at full height
    and then slides down into its detent over half a second, growing and
    shrinking as it comes. The offset is no mystery though — it is
    `popupHeight - detentHeight` — and sheet.tsx publishes exactly that as
    `--surface-snap-fallback`, which CSS can compute without measuring anything.
    For the length of the entrance the sheet stands on ours; Base UI's lands
-   under it, the same number, before the mark comes off. */
+   under it, the same number, before the mark comes off.
+
+   Only a kept-mounted sheet is marked (sheet.tsx), and deliberately: this rule
+   outranks the live-drag transform, so a sheet wearing it for half a second
+   after every open would not answer a drag begun in that half second. */
 [data-surface-popup][data-surface-entering][data-surface-snap] {
   transform: translateY(var(--surface-snap-fallback, 0px));
   padding-bottom: calc(
@@ -1502,8 +1707,11 @@ html.dragging * {
       var(--surface-stack-depth, 0)
   );
   margin-bottom: var(--drawer-keyboard-inset, 0px);
+  /* An extra pinch a sheet can ask for without restating the formula — see
+     `[data-pull-armed]` below. */
+  --surface-pull-give: 0;
   transform: translate3d(0, calc(var(--surface-depth) * -8px), 0)
-    scale(calc(1 - var(--surface-depth) * 0.05));
+    scale(calc(1 - var(--surface-depth) * 0.05 - var(--surface-pull-give)));
   transition:
     margin-bottom var(--surface-duration) var(--surface-easing),
     transform var(--surface-duration) var(--surface-recede-easing);
@@ -1513,6 +1721,15 @@ html.dragging * {
    for the same reason as above. */
 [data-surface-popup][data-nested-drawer-swiping] > [data-surface-shell] {
   transition-duration: 0ms;
+}
+
+/* Pulled past the top far enough that letting go will lift the sheet off the
+   edge (`onPullPastTop`, sheet.tsx). It gives a little, the way a thing about
+   to come loose does, so the gesture can be seen before it is committed — and
+   eased back out of. Shares the depth transform rather than fighting it. */
+[data-surface-shell][data-pull-armed] {
+  --surface-pull-give: 0.025;
+  transition-duration: 180ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1546,4 +1763,297 @@ html.dragging * {
   content: "";
   position: absolute;
   inset: -0.5rem -0.75rem;
+}
+
+/* =============================================================================
+   Dock panel motion — `[data-dock-panel]`, `[data-dock-pill]`
+   The Live Activity panel is the same library as the sheets above, travelling
+   UP instead of DOWN: a Base UI drawer anchored at the top of the screen that
+   puts itself away over the top edge. It gets its own block rather than a
+   `[data-swipe-direction="up"]` arm of the surface rules, because a top panel
+   shares none of the sheet's geometry — no detents, no padding-as-travel, no
+   bottom inset — and only the shell recede (`[data-surface-shell]`, above) is
+   genuinely common.
+
+   From Base UI, on the popup: `--drawer-swipe-movement-y` (the live drag) and
+   `--drawer-swipe-strength` (how hard it was flicked). From live-activity.tsx:
+   `--surface-duration`, `--surface-easing`, `--surface-exit`.
+
+   OPACITY BELONGS ON THE GLASS, NEVER ON A BOX THAT CONTAINS IT. An element
+   at `opacity < 1` is its own backdrop root, so a `backdrop-filter` *inside*
+   it samples that empty group rather than the page and the glass is simply not
+   there for the length of the animation; on the element that carries the blur
+   the same opacity is fine, because its own backdrop is resolved before its
+   opacity is applied. A fade on the popup made the whole panel see-through on
+   the way in, the page's text legible straight through it, unblurred. A/B'd at
+   the same opacity on the same frame: on the shell the text behind it is
+   blurred, on the popup it is sharp. So the panel's transform lives on the
+   popup, which holds no glass, and every fade lives one level down on the
+   shell and on the pill, which are the glass.
+
+   Before changing a rule, read the "BEFORE CHANGING THIS FILE" block at the
+   top of systems/dock/components/live-activity.tsx — the five notes there are
+   what these rules are shaped around, notes 4 and 5 most of all: they are the
+   reason the fade is not on the popup and the reason the closed transform has
+   no `translateY`.
+   ============================================================================= */
+
+[data-dock-panel] {
+  /* The dock's own beat. Shorter than a sheet's travel: this panel is small,
+     it does not come from off-screen, and the old framer-motion pop it is
+     matching ran at 0.3s. `--surface-duration` still governs the shell's
+     recede, so the dock never falls out of step with the stack. */
+  --dock-pop-duration: 300ms;
+  transform: translateY(var(--drawer-swipe-movement-y, 0px));
+  transform-origin: top center;
+  transition: transform var(--dock-pop-duration) var(--surface-easing);
+}
+
+/* Under the finger the panel is direct. The duration only, never the whole
+   transition — same reason as the sheet: on the frame a dismiss is released
+   the popup can be swiping and leaving at once, and the leaving rule below
+   restores a duration, not a property to run on. */
+[data-dock-panel][data-swiping] {
+  transition-duration: 0ms;
+}
+
+/* The pop. A shade small, settling into place — the panel belongs to the pill
+   it came from, and a pill is right there, so it has nowhere to travel from.
+   The scale is the number the hand-written panel used, so the dock reads the
+   way it always has.
+
+   Its `y: -10` is deliberately NOT here, and this is not a detail. Base UI's
+   swipe-open measures how far "closed" is by reading the popup's transform at
+   the moment the drag starts (`resolveClosedOffset`, which takes
+   `min(height, |translateY|)`), and it reads it before it marks the popup as
+   swiping — so it sees this rule. A ten-pixel offset told it the panel was ten
+   pixels from open, and a pull that should have tracked the finger down a whole
+   panel height tracked it for ten pixels and then overshot: measured, the live
+   `--drawer-swipe-movement-y` came back at +12px instead of the −170 it should
+   be. A pure scale leaves the transform's Y at zero, so the measurement falls
+   through to the panel's height. The lost ten pixels cost nothing to look at:
+   scaling a 170px panel by 0.94 from `top center` already lifts its bottom by
+   about that much. */
+[data-dock-panel]:is([data-starting-style], [data-ending-style]) {
+  transform: scale(0.94);
+}
+
+/* Thrown away, though: a finger that flicked the panel upward should be
+   answered by the panel going that way and off the top edge, not by it
+   shrinking back into place. Base UI marks that release, and it outlives the
+   swipe itself, which is why this is keyed on the dismissal and not on
+   `data-swiping`. */
+[data-dock-panel][data-swipe-dismiss]:is([data-starting-style], [data-ending-style]) {
+  transform: translateY(calc(-100% - var(--surface-exit)));
+}
+
+/* Pulled open from the pill. `Drawer.SwipeArea` opens the drawer on the first
+   pixel of the drag, so the panel arrives — `data-starting-style` and all —
+   while the finger is still down, and the rule above would hide it for the
+   whole gesture. Under the finger the finger wins. Starting style only: on a
+   release the popup carries `data-swiping` and `data-ending-style` together,
+   and pinning it to the finger there would strand it on screen. */
+[data-dock-panel][data-swiping][data-starting-style] {
+  transform: translateY(var(--drawer-swipe-movement-y, 0px));
+}
+
+/* The harder the flick, the sooner it is gone. */
+[data-dock-panel][data-ending-style] {
+  transition-duration: calc(var(--drawer-swipe-strength, 1) * var(--dock-pop-duration));
+}
+
+/* The other half of the pop, one level down on the glass itself (see the note
+   at the top of this block). An animation rather than a transition, for two
+   reasons: the shell's `transition` shorthand already belongs to the surface
+   recede and a second rule would replace it wholesale, and `data-starting-style`
+   lives for a single frame — too short for a transition to key off, long enough
+   to start an animation that then runs on its own. Base UI reads the popup's
+   own animations to decide when an exit is over, not the subtree's, so this
+   fade never holds the unmount open. */
+@keyframes dock-pop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dock-pop-out {
+  to {
+    opacity: 0;
+  }
+}
+
+[data-dock-panel] [data-surface-shell] {
+  animation: dock-pop-in var(--dock-pop-duration) var(--surface-easing);
+}
+
+[data-dock-panel][data-ending-style] [data-surface-shell] {
+  animation: dock-pop-out
+    calc(var(--drawer-swipe-strength, 1) * var(--dock-pop-duration))
+    var(--surface-easing) forwards;
+}
+
+/* A panel on its way over the top edge leaves opaque; it is going somewhere,
+   not dissolving. */
+[data-dock-panel][data-swipe-dismiss] [data-surface-shell] {
+  animation: none;
+}
+
+/* The pills stay in the row while a panel is open, so the row keeps its
+   layout and its scroll position, but the open panel stands alone. The
+   wrapper stops taking pointers; the fade is one level down, on the pill
+   itself, because the pill IS the glass (see the note at the top of this
+   block). */
+[data-dock-pill] {
+  transform-origin: top center;
+}
+
+[data-dock-pill] > * {
+  /* The site's surface curve, written out: the pill sits in the dock row, not
+     under the popup that carries `--surface-easing`. */
+  transition:
+    opacity 220ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  transform-origin: top center;
+}
+
+[data-dock-pill][data-hidden] {
+  pointer-events: none;
+}
+
+[data-dock-pill][data-hidden] > * {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-dock-panel],
+  [data-dock-pill] > * {
+    transition: none;
+  }
+
+  [data-dock-panel] [data-surface-shell] {
+    animation: none;
+  }
+}
+
+/* =============================================================================
+   Tilt primer illustration — a phone tilting one way while the rain inside it
+   tilts the other (systems/ambient/components/tilt-primer-sheet).
+
+   WHICH WAY THE CAMERA LOOKS is the whole legibility of this picture, and the
+   first version got it wrong. Drawn in the WORLD's frame — rain fixed, phone
+   turning — the rain never changes on screen, and the one thing the viewer is
+   meant to notice is the one thing that never moves. But nobody watches their
+   phone from the world's frame: it is in your hand, so the screen is what holds
+   still and the rain is what swings.
+
+   So the camera follows the device part of the way. With a device tilt of θ the
+   phone is drawn at c·θ and the rain at (c − 1)·θ, c = 0.45: they swing apart,
+   in opposite directions, and the angle between them is c·θ − (c − 1)·θ = θ
+   exactly, at every instant. Nothing is exaggerated — the cause and the effect
+   are simply both on screen, where at c = 1 only the cause was.
+
+   The rain's group is NESTED in the phone's, so its own rotation is −θ whatever
+   the camera does; only the phone's amplitude carries c.
+
+   CSS rather than a JS animator, for two reasons that are the whole quality of
+   the thing. One: the rain is "level" only for as long as the phone's rotation
+   and the rain's counter-rotation stay exactly opposite, and two declarative
+   animations of the same duration cannot drift, where two dozen independently
+   started JS springs can. Two: this plays over a live WebGL sky, and the main
+   thread is already spoken for.
+
+   Three animations in total, whatever the drop count: the shell, the level
+   group, and the rain — because the rain is a seamless TILE-tall tile stamped
+   three times and slid by exactly one tile, not a drop each. The fall is slow
+   on purpose: the rocking is the thing to watch, and a busy shower competes
+   with it.
+
+   The rain field is sized by the screen's HALF-DIAGONAL about the rock's
+   centre (79.2 units), not by the screen box: a field only as wide as the
+   screen turns out from under its own corners, and what you see cutting the
+   shower off is then the field's edge rather than the phone. A half-diagonal
+   covers every angle, so θ can change without touching it. The viewBox has the
+   same problem from the other side and does NOT get that for free: it has to
+   hold the phone at the angle the phone is DRAWN at (c·θ), or the SVG viewport
+   cuts a straight line through the corner.
+   ============================================================================= */
+
+.tilt-primer-phone,
+.tilt-primer-level,
+.tilt-primer-fall {
+  transform-box: view-box;
+}
+
+.tilt-primer-phone,
+.tilt-primer-level {
+  transform-origin: 48px 80px;
+}
+
+/* The phone, at c·θ — 0.45 × 24°. */
+@keyframes tilt-primer-rock {
+  0%,
+  100% {
+    transform: rotate(-10.8deg);
+  }
+  50% {
+    transform: rotate(10.8deg);
+  }
+}
+
+/* And the rain's own turn, which is −θ whatever the camera is doing: this
+   group is nested in the one above, so on screen it lands at (c − 1)·θ. */
+@keyframes tilt-primer-unrock {
+  0%,
+  100% {
+    transform: rotate(24deg);
+  }
+  50% {
+    transform: rotate(-24deg);
+  }
+}
+
+@keyframes tilt-primer-fall {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(120px);
+  }
+}
+
+.tilt-primer-phone {
+  animation: tilt-primer-rock 3.6s ease-in-out infinite;
+}
+
+.tilt-primer-level {
+  animation: tilt-primer-unrock 3.6s ease-in-out infinite;
+}
+
+.tilt-primer-fall {
+  animation: tilt-primer-fall 2.8s linear infinite;
+}
+
+/* Refused: upright, rain straight down the screen — what a refusal actually
+   leaves you with, rather than a picture still promising the thing. */
+.tilt-primer-flat .tilt-primer-phone,
+.tilt-primer-flat .tilt-primer-level {
+  animation: none;
+  transform: none;
+}
+
+.tilt-primer-flat .tilt-primer-fall {
+  animation-play-state: paused;
+}
+
+/* Held: the same picture, stopped — a tilted phone with level rain, which
+   still says it where an upright one would just be a phone. Paused at 0% is
+   exactly that pose, so the still frame IS the animation, not a second
+   drawing to keep in step. */
+@media (prefers-reduced-motion: reduce) {
+  .tilt-primer-phone,
+  .tilt-primer-level,
+  .tilt-primer-fall {
+    animation-play-state: paused;
+  }
 }

@@ -15,7 +15,7 @@ import {
 } from "../lib/geometry";
 import { armPointer } from "../lib/pointer";
 import type { Rect, WindowInstance } from "../lib/types";
-import { AppFrame } from "./app-frame";
+import { AppFrame, appGround } from "./app-frame";
 import { WindowChrome } from "./window-chrome";
 import { WindowSheet } from "./window-sheet";
 import { useSurfaceMode, type SurfacePresentation } from "@/systems/surface";
@@ -115,7 +115,6 @@ function DesktopWindow({ win }: { win: WindowInstance }) {
   const focused = focusedId === win.id;
   const maximized = win.sizePreset === "max";
   const minimized = win.mode === "minimized";
-  const isLynx = win.app.runtime === "lynx";
 
   const paint = useCallback((rect: Rect) => {
     const el = ref.current;
@@ -258,7 +257,7 @@ function DesktopWindow({ win }: { win: WindowInstance }) {
         "overflow-hidden",
         maximized ? "rounded-2xl" : "rounded-[22px]",
         "border border-black/10 dark:border-white/14",
-        isLynx ? "bg-black" : "bg-background",
+        appGround(win.app),
         focused ? "shadow-overlay ring-1 ring-black/5 dark:ring-white/10" : "shadow-raised",
       )}
     >

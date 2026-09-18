@@ -97,7 +97,7 @@ export function WidgetShell({
       onTouchStart={tappable ? noop : undefined}
       data-widget-tappable={tappable ? "" : undefined}
       className={cn(
-        "group relative rounded-2xl overflow-hidden",
+        "group relative rounded-2xl overflow-hidden select-none",
         "border border-border/50",
         "transition-all duration-300",
         widgetEnabled
@@ -120,6 +120,7 @@ export function WidgetShell({
         >
           <GradientStack
             layers={layers}
+            durationMs={wallpaper?.crossfadeMs}
             shell={shellEl}
             positionBackground={useTrackerForPositioning}
             edgeMask={edgeMask}

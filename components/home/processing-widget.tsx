@@ -15,6 +15,7 @@ import {
   type Commit as CommitData,
   type LogData,
   adjustRailForHidden,
+  isRowVisible,
   buildTimelineData,
   computeRail,
 } from "@/lib/log";
@@ -69,7 +70,11 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
   // contiguous even where /works would have interleaved talks between two
   // projects of the same tenure.
   const { rows, railInfo, bylines, hideDateFor } = useMemo(() => {
-    const rail = adjustRailForHidden(commits, computeRail(commits));
+    // The widget has no filter, so the only thing hiding a row here is the
+    // data itself.
+    const rail = adjustRailForHidden(commits, computeRail(commits), (c) =>
+      !isRowVisible(c),
+    );
     const bylines = computeBylines(commits, log.identities, locale);
     const rows = commits.map((c) => normalizeCommit(c, locale));
     const tagHideDate = new Map(log.tags.map((t) => [t.id, !!t.hideDate]));

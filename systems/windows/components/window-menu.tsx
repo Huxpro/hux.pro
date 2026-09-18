@@ -1,7 +1,6 @@
 "use client";
 
-import { APP_ICONS, iconFillsTile } from "@/lib/apps";
-import { appTitle, resolveAppIconSrc, runtimeLabel } from "@/lib/app-icon-core";
+import { appTitle, runtimeLabel } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { SURFACE_TRANSITION_MS, SurfaceSheet } from "@/systems/surface";
@@ -19,6 +18,7 @@ import {
 import type { SizePreset } from "../lib/geometry";
 import type { WindowInstance } from "../lib/types";
 import { useWindows } from "../provider";
+import { AppIconPlate } from "./app-icon-plate";
 
 // =============================================================================
 // The window menu — one list of actions, three containers
@@ -49,7 +49,7 @@ const PRESET_META: Record<SizePreset, { label: string; Icon: LucideIcon }> = {
 };
 
 /** The menu's two shapes: a desktop popover, a touch action sheet. */
-export type MenuShape = "popover" | "sheet";
+type MenuShape = "popover" | "sheet";
 
 /**
  * One row of the menu: a menu item in the popover, an action-sheet row on
@@ -133,9 +133,13 @@ function MenuItem({
   );
 }
 
-/** The hairline between groups of rows. */
-function MenuRule({ className }: { className?: string }) {
-  return <div className={cn("h-px bg-black/6 dark:bg-white/8", className)} />;
+/** The hairline between groups of rows. Inset in a sheet, as its rows are. */
+function MenuRule({ shape }: { shape: MenuShape }) {
+  return (
+    <div
+      className={cn("my-1 h-px bg-black/6 dark:bg-white/8", shape === "sheet" && "mx-1")}
+    />
+  );
 }
 
 /**
@@ -161,10 +165,6 @@ export function WindowMenuBody({
   const { locale } = useLocale();
   const sheet = shape === "sheet";
   const title = appTitle(win.app, locale);
-  const src = resolveAppIconSrc(win.app, APP_ICONS);
-  // Full-bleed icons bring their own ground; a glyph needs a plate under it,
-  // the same rule the dock pill and the home tile follow.
-  const fills = iconFillsTile(APP_ICONS[win.app.id]);
   const kind = runtimeLabel(win.app);
   const isWeb = win.app.runtime !== "lynx";
 
@@ -180,28 +180,11 @@ export function WindowMenuBody({
       {/* The header is the title of the sheet as much as of the menu: which
           app these actions belong to. */}
       <div className={cn("flex items-center", sheet ? "gap-3 px-3 py-2" : "gap-2.5 px-2 py-1.5")}>
-        {src ? (
-          // eslint-disable-next-line @next/next/no-img-element -- tiny local asset
-          <img
-            src={src}
-            alt=""
-            className={cn(
-              "rounded-[7px]",
-              fills ? "object-cover" : "bg-white object-contain p-0.5",
-              sheet ? "h-9 w-9" : "h-7 w-7",
-            )}
-            draggable={false}
-          />
-        ) : (
-          <span
-            className={cn(
-              "flex items-center justify-center rounded-[7px] bg-muted font-mono text-[11px] text-muted-foreground",
-              sheet ? "h-9 w-9" : "h-7 w-7",
-            )}
-          >
-            {title.charAt(0)}
-          </span>
-        )}
+        <AppIconPlate
+          app={win.app}
+          className={sheet ? "h-9 w-9" : "h-7 w-7"}
+          textClassName="text-[11px]"
+        />
         <div className="min-w-0">
           <div className={cn("truncate font-medium text-foreground", sheet ? "text-[15px]" : "text-sm")}>
             {title}
@@ -211,7 +194,7 @@ export function WindowMenuBody({
           </div>
         </div>
       </div>
-      <MenuRule className={sheet ? "mx-1 my-1" : "my-1"} />
+      <MenuRule shape={shape} />
 
       {presets && (
         <>
@@ -230,7 +213,7 @@ export function WindowMenuBody({
             );
           })}
 
-          <MenuRule className={sheet ? "mx-1 my-1" : "my-1"} />
+          <MenuRule shape={shape} />
         </>
       )}
 
@@ -250,7 +233,7 @@ export function WindowMenuBody({
 
       {/* Close ends the window, so on touch it ends the sheet: its own group,
           in red. */}
-      {sheet && <MenuRule className="mx-1 my-1" />}
+      {sheet && <MenuRule shape={shape} />}
       <MenuItem
         shape={shape}
         Icon={X}
@@ -294,7 +277,7 @@ export function WindowMenuSheet({
         if (!next) onClose();
       }}
       modal
-      height="auto"
+      fitContent
       label={title}
       className="system-chrome"
     >

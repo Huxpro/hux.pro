@@ -1,7 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { TAP_SLOP } from "../lib/pointer";
 import { PillTitle, pillShell, TrafficDots } from "./window-pill";
 
 // =============================================================================
@@ -66,9 +67,6 @@ import { PillTitle, pillShell, TrafficDots } from "./window-pill";
 // nothing about it is visible.
 // =============================================================================
 
-/** How far the finger may wander and still call the press a tap. */
-const TAP_SLOP = 6;
-
 /**
  * How long the pill stays lit when the release never comes back. Touch always
  * reports one; a captured mouse may not, and a pill lit a moment too long is
@@ -90,17 +88,26 @@ export function WindowGrip({
   menuOpen: boolean;
   onMenu: () => void;
 }) {
-  const press = useRef<{ id: number; x: number; y: number } | null>(null);
   const [pressed, setPressed] = useState(false);
+  // Whatever the press in flight left running. A press whose release never
+  // comes back is the normal case here, not the edge one, so the next press
+  // and the unmount both have to be able to clean up after it — otherwise a
+  // second finger, or a Close from the menu, leaves a document listener and a
+  // timer behind for four seconds.
+  const teardown = useRef<(() => void) | null>(null);
+  useEffect(() => () => teardown.current?.(), []);
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
-    press.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    teardown.current?.();
+    const from = { id: e.pointerId, x: e.clientX, y: e.clientY };
     setPressed(true);
+
     const done = () => {
       window.clearTimeout(timer);
       document.removeEventListener("pointerup", finish, true);
       document.removeEventListener("pointercancel", finish, true);
+      teardown.current = null;
       setPressed(false);
     };
     const timer = window.setTimeout(done, PRESS_TIMEOUT);
@@ -109,16 +116,15 @@ export function WindowGrip({
     // for a mouse Base UI may swallow it — in which case this press simply was
     // not a tap, and the timer above takes the light back.
     const finish = (ev: PointerEvent) => {
-      const from = press.current;
-      press.current = null;
       done();
-      if (!from || ev.pointerId !== from.id || ev.type !== "pointerup") return;
+      if (ev.pointerId !== from.id || ev.type !== "pointerup") return;
       if (Math.hypot(ev.clientX - from.x, ev.clientY - from.y) > TAP_SLOP) return;
       // Not from inside the release: see the note at the top of the file.
       setTimeout(onMenu, 0);
     };
     document.addEventListener("pointerup", finish, true);
     document.addEventListener("pointercancel", finish, true);
+    teardown.current = done;
   };
 
   const lit = pressed || menuOpen;

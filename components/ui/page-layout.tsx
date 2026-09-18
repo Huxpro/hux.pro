@@ -13,6 +13,12 @@ import {
 } from "@/lib/i18n";
 import { useLocale } from "@/services";
 import { useState, type ReactNode } from "react";
+import {
+  heroContentClassName,
+  heroZoneClassName,
+  heroZoneStyle,
+  useHeroExit,
+} from "./hero-exit";
 import { useHeroFade } from "./use-hero-fade";
 
 interface PageLayoutProps {
@@ -72,7 +78,8 @@ export function PageLayout({
 }: PageLayoutProps) {
   const { locale } = useLocale();
   const [isHovered, setIsHovered] = useState(false);
-  const heroFadeStyle = useHeroFade();
+  const heroExit = useHeroExit();
+  const heroFadeStyle = useHeroFade(heroExit === "fade");
 
   const useScramble = !!page;
 
@@ -122,7 +129,11 @@ export function PageLayout({
     >
       {variant === "reader" ? (
         <>
-          <div className="mb-12 sm:mb-14">
+          {/* `reader-masthead` hands the title's size and the gap under it to
+              the reading-size system in globals.css, so the whole composition
+              moves when the reader changes the type size -- not the body
+              alone. The Tailwind sizes below stay as the fallback. */}
+          <div className="reader-masthead mb-12 sm:mb-14">
             <SystemNav href={backHref} path={backLabel} className="mb-8 sm:mb-12" />
             {titleJsx}
             {headerActions && <div className="mt-4">{headerActions}</div>}
@@ -132,8 +143,9 @@ export function PageLayout({
       ) : (
         <>
           <HeaderZone
-            className="hero-zone-fade sticky top-16 sm:top-24 z-10 mb-4 sm:mb-6"
-            style={heroFadeStyle}
+            data-hero-exit={heroExit}
+            className={heroZoneClassName(heroExit, !heroFadeStyle, "select-none")}
+            style={heroZoneStyle(heroExit, heroFadeStyle)}
           >
             <div className="h-11 flex items-start">
               <SystemNav href={backHref} path={backLabel} />
@@ -154,7 +166,7 @@ export function PageLayout({
               </div>
             </div>
           </HeaderZone>
-          <div className="relative z-20">{children}</div>
+          <div className={heroContentClassName(heroExit)}>{children}</div>
         </>
       )}
 

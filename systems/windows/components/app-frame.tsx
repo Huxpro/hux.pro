@@ -16,6 +16,15 @@ import { WebFrame } from "./web-frame";
 // whole idea — one window, two runtimes.
 // =============================================================================
 
+/**
+ * The ground an app sits on, which belongs with the runtime that decides it: a
+ * Lynx view paints on black, a web page on the site's background. Both window
+ * shapes ask here rather than each keeping their own copy of the rule.
+ */
+export function appGround(app: AppLink): string {
+  return (app.runtime ?? "web") === "lynx" ? "bg-black" : "bg-background";
+}
+
 export function AppFrame({ app }: { app: AppLink }) {
   const { locale } = useLocale();
   if ((app.runtime ?? "web") === "lynx") {

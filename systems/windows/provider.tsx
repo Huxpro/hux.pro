@@ -15,6 +15,7 @@ import {
   defaultPreset,
   getViewport,
   isMobile,
+  onViewportChange,
   placeWindow,
   presetRect,
   workingArea,
@@ -107,8 +108,12 @@ function applyPreset(
  * dock, which is what the dock is for and what a phone's app switcher is. On
  * anything bigger, windows coexist the way windows do.
  */
-function soloOnPhone(list: WindowInstance[], id: string): WindowInstance[] {
-  if (!isMobile(getViewport())) return list;
+function soloOnPhone(
+  list: WindowInstance[],
+  id: string,
+  phone: boolean,
+): WindowInstance[] {
+  if (!phone) return list;
   return list.map((w) =>
     w.id === id || w.mode === "minimized" ? w : { ...w, mode: "minimized" },
   );
@@ -155,6 +160,9 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
   const openApp = useCallback(
     (app: AppLink) => {
       const z = nextZ();
+      // Read the viewport here, not inside the updater: an updater is replayed
+      // (twice over, in development), and `getViewport` forces layout.
+      const phone = isMobile(getViewport());
       setWindows((prev) => {
         if (prev.some((w) => w.id === app.id)) {
           return soloOnPhone(
@@ -164,6 +172,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
                 : w,
             ),
             app.id,
+            phone,
           );
         }
         const preset = app.size ?? defaultPreset(app.runtime);
@@ -178,7 +187,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
           z,
           generation: 0,
         };
-        return soloOnPhone([...prev, opened], app.id);
+        return soloOnPhone([...prev, opened], app.id, phone);
       });
     },
     [nextZ],
@@ -219,6 +228,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
   const restore = useCallback(
     (id: string) => {
       const z = nextZ();
+      const phone = isMobile(getViewport());
       setWindows((prev) =>
         soloOnPhone(
           prev.map((w) =>
@@ -227,6 +237,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
               : w,
           ),
           id,
+          phone,
         ),
       );
     },
@@ -276,12 +287,9 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
   // Keep maximized windows glued to the working area, and clamp the rest, when
   // the viewport changes size. Coalesced to one rAF so a resize *drag* (which
   // fires many events/sec) re-lays-out the layer at most once per frame.
-  useEffect(() => {
-    let raf = 0;
-    const onResize = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
+  useEffect(
+    () =>
+      onViewportChange(() => {
         const vp = getViewport();
         setWindows((prev) =>
           prev.map((w) =>
@@ -290,14 +298,9 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
               : { ...w, rect: clampRect(w.rect, vp) },
           ),
         );
-      });
-    };
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
+      }),
+    [],
+  );
 
   const focusedId = useMemo(() => {
     const visible = windows.filter((w) => w.mode !== "minimized");

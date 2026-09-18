@@ -28,6 +28,14 @@ export interface GradientLayerData {
    * wallpapers need this; CSS-gradient layers already fill their box.
    */
   cover?: boolean;
+  /**
+   * Picker thumb. When set with `src`, the full-page layer paints this
+   * immediately (a soft stand-in, the ryOS blur-up) and fades `src` on top
+   * once it has decoded. Widget cards keep the stacked CSS `gradient` so the
+   * background-attachment tracker still has one element to drive.
+   */
+  preview?: string | null;
+  src?: string | null;
 }
 
 /** Duration of a gradient crossfade, shared by the provider and renderer. */

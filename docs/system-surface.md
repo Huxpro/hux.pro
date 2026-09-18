@@ -1,15 +1,37 @@
 # Surface System
 
-One secondary surface, three shapes.
+One secondary surface, four shapes.
 
 ```
 systems/surface/
 ├── presentation.ts       # SurfaceMode, breakpoints, useSurfaceMode()
-├── adaptive-surface.tsx  # <AdaptiveSurface>, useSurfaceContext()
+├── adaptive-surface.tsx  # <AdaptiveSurface> — the policy: viewport picks the shape
 ├── sheet.tsx             # <SurfaceSheet> — the one bottom sheet, detents, scrim
+├── window.tsx            # <SurfaceWindow> — the one floating, draggable shell
+├── chrome.tsx            # <SurfaceBody> — the title bar, scroll area and footer
 ├── stack.ts              # which sheets are open, so a sheet under another recedes
 └── index.ts
 ```
+
+## Two layers
+
+Shape is usually the viewport's call, and `<AdaptiveSurface>` is that rule. But
+it is a rule, not a law: the devtool's shape is something the developer chose
+by pulling the sheet off the bottom edge. So the shells sit underneath it,
+usable on their own:
+
+```
+primitives   <SurfaceSheet>   docked to an edge, detents, stacking
+             <SurfaceWindow>  floating, draggable, morphs in
+             <SurfaceBody>    the chrome all of them hold
+policy       <AdaptiveSurface>  = viewport → primitive
+             DevtoolFAB         = gesture  → primitive
+```
+
+Two features already compose the primitives directly: the command palette,
+whose header is a search field rather than a title bar, and the devtool, whose
+shape is a gesture's business (see [Devtool System](./system-devtool.md)).
+Both still get the same shell, gaps, detents and stacking.
 
 ## The problem
 
@@ -22,30 +44,59 @@ of one judgement call, free to drift apart.
 The judgement is a property of the **viewport**, not of the feature. So it
 lives here, once.
 
-## The three shapes
+## The four shapes
 
 | Mode | Where | Why |
 |------|-------|-----|
 | `sheet` | Bottom edge, drag-to-dismiss, grabber | Phone. Thumb reach. |
 | `panel` | Trailing edge, full height | Tablet. Content beside content. |
-| `window` | Centred, draggable, morphs in | Desktop. Move it out of the way. |
+| `window` | Floating, draggable, morphs in | Desktop. Move it out of the way. |
+| `popover` | Hanging off the button that opened it | Anything wider than a phone, for a surface that belongs to one control. |
 
 `window` is not a drawer. It springs in with the same curve
 `systems/windows` uses to open an app from its shelf icon, and drags by its
 header through the shared `useDraggable` hook — so it inherits the devtool's
-per-instance drag settings like every other draggable thing on the site.
+per-instance drag settings like every other draggable thing on the site. It
+rests near the top centre unless its `placement` says otherwise; the devtool
+asks for `top-right`, where it has always been and where it stays out of the
+page it exists to watch.
 
-No shape takes the page away. There is no scrim, the page stays interactive,
-and touching it does not close the surface; its close button, Escape and a drag
-do. The surfaces here are all about the page behind them, and a surface that
-closed on every touch of a live page could not be used.
+`popover` is not a drawer either: it is a [Base UI
+Popover](https://base-ui.com/react/components/popover) positioned against an
+`anchor` — a ref to the element that owns it — flipping and shifting to stay on
+screen. It wears the same glass shell and the same title bar as the others at a
+smaller radius, so the phone's sheet and the desktop's card are recognisably one
+object. Focus returns to the anchor on close, since without a Base UI trigger
+there is nothing else to hand it back to.
+
+The first three shapes do not take the page away. There is no scrim, the page
+stays interactive, and touching it does not close the surface; its close button,
+Escape and a drag do. Those three are all about the page behind them, and a
+surface that closed on every touch of a live page could not be used.
 
 (This is what `modal={false}` means to Base UI, and it means it literally: it
 touches neither `<body>`'s pointer events nor its position. A non-modal surface
 also passes `disablePointerDismissal`, because a press on a live page belongs
 to the page.)
 
-The one exception is a launcher. The command palette's sheet is modal: the page
+A popover is the exception, for exactly the same reason: it is not about the
+page, it is the extension of one button, and every menu on every platform is put
+away by a press elsewhere. Its anchor is the one press that does not count —
+Base UI reads a press on it as an outside press, so the shape cancels that and
+leaves the gesture to the button, which would otherwise close and reopen in one
+click.
+
+Base UI can do that part itself, with `Popover.createHandle()` and a detached
+`Popover.Trigger`. It is not used here because three of the four shapes have no
+trigger to be: on a phone `Popover.Root` never mounts, so the caller's button
+needs its own open state regardless, and in popover mode that would then race
+Base UI's. The cancellation is the adapter for a system that takes an anchor
+instead of a trigger, and it belongs here rather than in feature code. When a
+second anchored surface arrives, the thing worth extracting is the caller's
+side — a `useSurfaceTrigger()` handing back `{ ref, onClick, "aria-expanded" }`
+to spread on any button — not Base UI's trigger.
+
+The other exception is a launcher. The command palette's sheet is modal: the page
 stops answering while it is up and a press on it dismisses, the click-away its
 desktop popover has. See **The sheet primitive** below.
 
@@ -72,8 +123,13 @@ sheet everywhere, and moving a surface between shapes is a one-word change:
 
 ```ts
 ADAPTIVE_PRESENTATION  // { base: "sheet", sm: "panel", lg: "window" }
+ANCHORED_PRESENTATION  // { base: "sheet", sm: "popover" } — owned by a button
 DRAWER_PRESENTATION    // { base: "sheet", sm: "panel" } — never floats free
 ```
+
+A surface on `ANCHORED_PRESENTATION` passes `popover={{ anchor }}` whatever the
+viewport: the shape is decided at render, so the ref is handed over whether or
+not this viewport is the one that uses it.
 
 Breakpoints match Tailwind's (`sm` 640, `lg` 1024) so a surface and the content
 inside it respond at the same widths rather than a few pixels apart.
@@ -95,6 +151,13 @@ read it rather than re-measuring the viewport:
 const { mode, isWindow, close } = useSurfaceContext();
 ```
 
+Read it for questions about the **container** — how many columns fit, how dense
+a row should be. Not as a proxy for the viewport: a surface that hides a setting
+when it is a sheet has made the presentation map load-bearing for behaviour, and
+moving that surface to `panel` would silently change what the feature offers.
+Gate on the constraint itself — a breakpoint the CSS already names, a capability
+— or do not gate.
+
 ## Props worth knowing
 
 | Prop | For |
@@ -102,10 +165,46 @@ const { mode, isWindow, close } = useSurfaceContext();
 | `id` | Draggable instance key in window mode. Register it in `DRAGGABLE_INSTANCES`. |
 | `title` / `actions` | Header content. `actions` sits left of the close button. |
 | `windowWidth` | Window mode only; drawers size against their edge. |
-| `maxHeight` | Caps window and sheet height. |
+| `popover` | `{ anchor, width?, align? }` — the popover shape's settings. Grouped because `anchor` is a precondition, not tuning: the card cannot position itself without one, so it is required inside the object rather than asked for in prose. |
+| `maxHeight` | Caps window, popover and sheet height. |
+| `fitContent` | Size to what it holds rather than to the screen — the sheet's `fitContent` (see **Three heights**); a popover is content-sized under its cap already. |
 | `snapPoints` | Detents for the sheet shape, lowest first; a drag carries it to the top. |
 | `contentClassName` | Overrides the scroll area's padding, for content that bleeds wider. |
 | `scrollRef` | The scroll container, for content that scrolls a row into view. |
+
+The primitives carry a few props the policy layer deliberately does not pass
+on — a surface that wants one of these is a surface that should be composing
+the shell directly:
+
+| Prop | On | For |
+|------|----|-----|
+| `footer` | `SurfaceBody` | A strip below the scroll area that does not scroll away. |
+| `placement` | `SurfaceWindow` | Where the window rests before a drag: `center` (default) or `top-right`. |
+| `onPullPastTop` | `SurfaceSheet` | The drag that lifts a sheet off the edge it is docked to. |
+
+**Pulling a sheet off the edge.** A drag may carry a sheet past its top edge,
+and `onPullPastTop` fires when it is released more than `PULL_PAST_TOP_TRAVEL`
+real pixels past it — a surface that has somewhere else to be can take that as
+"come off the edge". The devtool does; nothing else needs to, and without the
+prop the overshoot stays a rubber band.
+
+It measures the **pointer**, not the popup. Base UI damps the overshoot with a
+square root and its swipe-start threshold has already eaten ~17px of the
+gesture: measured on an iPhone 13, a 207px pull from the 0.7 detent arrives as
+1.6px of published movement. That number draws a good rubber band and is a
+terrible reading of intent. What the finger says instead is `travelled up −
+the offset the sheet had to climb through`, so one continuous pull both resizes
+the sheet and, once it is against the ceiling, keeps counting.
+
+The threshold is small (14px) because the budget is small: most of a pull is
+spent resizing, and what is left is the distance from the grabber to the top of
+the glass — about twenty pixels. A pull that stops at the top still snaps to
+the full detent; only one that keeps going detaches, and the shell carries
+`data-pull-armed` in between so the difference is visible.
+
+Coming back is the feature's own business, not the sheet's: the devtool drags
+its pill onto a landing pad at the bottom edge. See
+[Devtool System](./system-devtool.md).
 
 ## The sheet primitive
 
@@ -167,14 +266,16 @@ drag as `--drawer-swipe-movement-y`, both on the popup; everything that reads
 them is one block in `app/globals.css`, *Secondary surface motion*, on the
 site's own curve (`SURFACE_EASING`, `SURFACE_TRANSITION_MS` in `stack.ts`).
 
-**Content height.** `height="auto"` (or `fit-content`) makes the sheet exactly
-as tall as what it holds, up to the screen — an action sheet rather than a
-surface with a size of its own; the window menu on touch
-(`systems/windows/components/window-chrome.tsx`) is one. Only a sheet without
-detents can do it: with detents the popup's height *is* the travel the padding
-above is subtracted from. The popup gives up its fixed height and the shell
-gives up `flex-1` (a basis of zero in a box sizing to its own content is a race
-the content loses), so the height comes from the rows.
+**Three heights.** `snapPoints` for a sheet that holds a list, `height` for a
+fixed one, and `fitContent` for a sheet that holds one short thing — a form, a
+confirmation — which takes the height of what it holds, the way iOS sizes a
+form sheet to its form, so there is no empty half. A `fitContent` sheet is
+`flex: 0 1 auto` inside a popup capped at the screen: it measures itself, grows
+and shrinks with its content, and shrinks below the cap only if the content
+outgrows the screen — so the content bounds its own scroll area (a `max-h-*`
+on it). The load-bundle sheet and the window menu on touch
+(`systems/windows/components/window-menu.tsx`) are the ones that do this; the
+keyboard pushes them up like any other sheet.
 
 **Modal.** The scrim is the viewport — `Drawer.Viewport` is already a
 transparent, full-screen box containing the popup, so when `modal` is on it
@@ -296,6 +397,8 @@ UI's own count of nested sheets, one `--surface-depth` on the shell. See
 |---------|--------------|-------|
 | Music playlist | `ADAPTIVE_PRESENTATION` | macOS-sized window (980×620), track list breaks into columns |
 | Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode; `SHEET_DETENTS` as a sheet |
-| Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight popover, not an `AdaptiveSurface` |
+| Reading settings | `ANCHORED_PRESENTATION` | The article page's "Aa". `fitContent` sheet, end-aligned popover off the button; rows appear only where the setting does something, so the sheet is shorter than the popover |
+| Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight card, anchored to nothing, not the `popover` shape above |
+| Devtool panel | primitives, not `AdaptiveSurface` | `SurfaceSheet` docked / `SurfaceWindow` floating, and which one is the developer's call, not the viewport's — it is pulled off the edge by hand. `onPullPastTop`, `placement="top-right"`, a `footer` for its status line. See [Devtool System](./system-devtool.md) |
 
 Adding a second is: register a draggable id, pick a presentation, pass content.

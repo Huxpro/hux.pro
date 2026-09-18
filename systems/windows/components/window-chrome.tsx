@@ -42,11 +42,13 @@ import { PillTitle, pillShell, TrafficDots, type DotAction } from "./window-pill
 
 const MENU_W = 208; // w-52
 
-/** Where the desktop popover hangs. Touch has nothing to anchor to. */
+/**
+ * Where the desktop popover hangs. Touch has nothing to anchor to — it gets a
+ * sheet — so the popover only ever hangs one way now, from the pill's top left.
+ */
 interface MenuAnchor {
   left: number;
   top: number;
-  origin: string;
 }
 
 export function WindowChrome({
@@ -85,7 +87,7 @@ export function WindowChrome({
       if (!r) return;
       // Left-aligned under the pill, clamped into the viewport.
       const left = Math.min(Math.max(r.left, 8), window.innerWidth - MENU_W - 8);
-      setAnchor({ left, top: r.bottom + 6, origin: "top left" });
+      setAnchor({ left, top: r.bottom + 6 });
     }
     setMenuOpen(true);
   };
@@ -189,7 +191,7 @@ export function WindowChrome({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -4, scale: 0.97 }}
                   transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
-                  style={{ left: anchor.left, top: anchor.top, transformOrigin: anchor.origin }}
+                  style={{ left: anchor.left, top: anchor.top, transformOrigin: "top left" }}
                   onPointerDown={(e) => e.stopPropagation()}
                   className={cn(
                     "fixed z-[56] w-52 select-none p-1",

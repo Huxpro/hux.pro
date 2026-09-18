@@ -149,12 +149,14 @@ An app window takes the shape the viewport asks for, and `Window`
 
 | Width | Shape | What it is |
 |-------|-------|-----------|
-| `< sm` | **sheet** (`window-sheet.tsx`) | A `SurfaceSheet` from the bottom edge: the site's detents for its size, the shared stack for its depth, its grip for all of its chrome. |
+| `< sm` | **sheet** (`window-sheet.tsx`) | A `SurfaceSheet` from the bottom edge: three detents for its size, the shared stack for its depth, its grip for all of its chrome. |
 | `≥ sm` | **window** (`DesktopWindow`) | The draggable, resizable box below. |
 
 The decision is the surface system's breakpoint map — the same one that turns
-the command palette into a sheet at the same width. Where a surface lives is a
-property of the viewport, not of the feature
+the command palette into a sheet at the same width, and the same one
+`isMobile` is defined from (`lib/geometry.ts`), so the rules that follow from
+being a sheet — one app at a time — turn on exactly when the shape does. Where
+a surface lives is a property of the viewport, not of the feature
 ([system-surface.md](./system-surface.md)). Crossing the breakpoint remounts
 the app (two components, so the iframe reloads); resizing a phone into a
 desktop mid-app is not a gesture anyone makes.
@@ -269,7 +271,7 @@ it is offered is three containers, so the shapes can't drift apart:
   events don't bubble — dismisses it), left-aligned under the pill and clamped
   into the viewport.
 - **Touch, windowed** → a **`SurfaceSheet`** ([Surface System](./system-surface.md))
-  from the bottom edge, content height (`height="auto"`), with the app header on
+  from the bottom edge, content height (`fitContent`), with the app header on
   top, the actions as thumb-sized rows in the same order, and Close in a group of
   its own, in red — iOS's answer to "long-press an object, get its actions".
   Nothing computes a position for it: the sheet brings its own scrim (above the
