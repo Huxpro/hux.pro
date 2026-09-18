@@ -558,6 +558,40 @@ html.dragging * {
   display: none;
 }
 
+/* Commit permalink arrival — /works#<hash>. The row you travelled to is
+   marked for two seconds (see `useCommitAnchor`) so the eye lands on it
+   instead of counting rows. A wash, not a border: the timeline's rows have no
+   edges of their own, and giving one an outline for two seconds would read as
+   a different kind of row rather than the same row, found.
+
+   `--accent-wash` rather than a hand-mixed alpha: the wash ladder is one
+   setting per theme (7% light, 10% dark) so a tint holds over any wallpaper
+   without each site guessing, per docs/system-legibility.md. Fades out on its
+   own; fading in is the point of arrival, so that side is instant. The 2s is
+   the mark's whole life — `useCommitAnchor` takes the attribute off on
+   `animationend` rather than keeping a timer that agrees with this one. */
+[data-commit-target] [data-row-trigger] {
+  animation: commit-target-wash 2s ease-out forwards;
+}
+
+@keyframes commit-target-wash {
+  0% {
+    background-color: var(--accent-wash);
+  }
+  60% {
+    background-color: var(--accent-wash);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-commit-target] [data-row-trigger] {
+    animation-duration: 0.01ms;
+  }
+}
+
 /* Theater stage — the YouTube IFrame API injects an <iframe> sized by the
    width/height player options; force it to fill the morphing stage so the
    video stays responsive as the stage animates between theater and PiP. */
