@@ -48,8 +48,18 @@ import {
   type WallpaperEngine,
   type WallpaperFamily,
   type WallpaperKind,
+  type WallpaperPlay,
+  type WallpaperPlayAlbum,
+  type WallpaperPlayEvery,
   type WeatherStyle,
 } from "./lib/wallpaper";
+import {
+  markVisitConsumed,
+  readVisitConsumed,
+  shouldAdvancePlay,
+  startAlbumPlay,
+  stepAlbumPlay,
+} from "./lib/wallpaper-play";
 import {
   DEFAULT_BEZEL_BAND,
   DEFAULT_BEZEL_RADIUS,
@@ -305,8 +315,19 @@ interface WallpaperContextType {
   /** Selected built-in pair (meaningful when kind === "image"). */
   wallpaper: Wallpaper;
   wallpapers: Wallpaper[];
-  /** Selects a pair AND switches the background kind to it. */
+  /** Selects a pair AND switches the background kind to it. Pins; play turns off. */
   selectWallpaper: (id: string) => void;
+  /**
+   * Shuffle or Loop over Apple / Nature — iOS Photo Shuffle and macOS Change
+   * Picture. Selects the mode AND switches the background kind to image.
+   */
+  selectPlay: (album: WallpaperPlayAlbum, play: Exclude<WallpaperPlay, "off">) => void;
+  /** `off` while a still is pinned. */
+  play: WallpaperPlay;
+  /** Album Shuffle / Loop is walking; null while play is off. */
+  playAlbum: WallpaperPlayAlbum | null;
+  playEvery: WallpaperPlayEvery;
+  setPlayEvery: (every: WallpaperPlayEvery) => void;
   /**
    * Which half of the pair is showing. The app theme, except while the sun is
    * handing the theme over — then the sky leads and this is where it shows.
@@ -516,19 +537,57 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   const setWallpaperKind = useCallback(
     (kind: WallpaperKind) => {
       if (kind === settings.wallpaperKind) return;
+      if (kind === "weather") {
+        updateSettings({ wallpaperKind: kind, wallpaperPlay: "off", wallpaperAlbum: null });
+        return;
+      }
       updateSettings({ wallpaperKind: kind });
     },
     [settings.wallpaperKind, updateSettings]
   );
 
   const selectWallpaper = useCallback(
-    (id: string) => updateSettings({ wallpaperId: id, wallpaperKind: "image" }),
+    (id: string) =>
+      updateSettings({
+        wallpaperId: id,
+        wallpaperKind: "image",
+        wallpaperPlay: "off",
+        wallpaperAlbum: null,
+      }),
     [updateSettings]
+  );
+
+  const selectPlay = useCallback(
+    (album: WallpaperPlayAlbum, play: Exclude<WallpaperPlay, "off">) => {
+      const next = startAlbumPlay({
+        play,
+        album,
+        currentId: settings.wallpaperId,
+        now: Date.now(),
+      });
+      // Tapping the tile is this visit's change; don't step again on mount.
+      markVisitConsumed();
+      updateSettings({ wallpaperKind: "image", ...next });
+    },
+    [settings.wallpaperId, updateSettings]
+  );
+
+  const setPlayEvery = useCallback(
+    (every: WallpaperPlayEvery) => {
+      if (every === settings.wallpaperPlayEvery) return;
+      updateSettings({ wallpaperPlayEvery: every });
+    },
+    [settings.wallpaperPlayEvery, updateSettings]
   );
 
   const selectWeather = useCallback(
     (style: WeatherStyle) =>
-      updateSettings({ weatherStyle: readWeatherStyle(style), wallpaperKind: "weather" }),
+      updateSettings({
+        weatherStyle: readWeatherStyle(style),
+        wallpaperKind: "weather",
+        wallpaperPlay: "off",
+        wallpaperAlbum: null,
+      }),
     [updateSettings]
   );
 
@@ -548,6 +607,58 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
     [settings.wallpaperId]
   );
   const isImageKind = settings.wallpaperKind === "image";
+
+  // Shuffle / Loop — step when iOS Shuffle Frequency says so. On Visit is once
+  // per tab session; Hourly and Daily poll on a minute so a long-lived tab
+  // still turns over. A week away advances once, not seven times.
+  useEffect(() => {
+    if (!settingsLoaded) return;
+    if (settings.wallpaperKind !== "image") return;
+    if (settings.wallpaperPlay === "off" || !settings.wallpaperAlbum) return;
+
+    const play = settings.wallpaperPlay;
+    const album = settings.wallpaperAlbum;
+
+    const tick = () => {
+      const now = Date.now();
+      if (
+        !shouldAdvancePlay({
+          every: settings.wallpaperPlayEvery,
+          playAt: settings.wallpaperPlayAt,
+          now,
+          visitConsumed: readVisitConsumed(),
+        })
+      ) {
+        return;
+      }
+      const next = stepAlbumPlay({
+        play,
+        album,
+        currentId: settings.wallpaperId,
+        index: settings.wallpaperPlayIndex,
+        order: settings.wallpaperPlayOrder,
+        now,
+      });
+      markVisitConsumed();
+      updateSettings(next);
+    };
+
+    tick();
+    if (settings.wallpaperPlayEvery === "visit") return;
+    const timer = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(timer);
+  }, [
+    settingsLoaded,
+    settings.wallpaperKind,
+    settings.wallpaperPlay,
+    settings.wallpaperAlbum,
+    settings.wallpaperPlayEvery,
+    settings.wallpaperPlayAt,
+    settings.wallpaperPlayIndex,
+    settings.wallpaperPlayOrder,
+    settings.wallpaperId,
+    updateSettings,
+  ]);
 
   const setBezelRadius = useCallback(
     (px: number | null) => updateSettings({ bezelRadius: px }),
@@ -1288,6 +1399,11 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       wallpaper: activeWallpaper,
       wallpapers: BUILT_IN_WALLPAPERS,
       selectWallpaper,
+      selectPlay,
+      play: settings.wallpaperPlay,
+      playAlbum: settings.wallpaperAlbum,
+      playEvery: settings.wallpaperPlayEvery,
+      setPlayEvery,
       variant: wallpaperTheme,
       placement: settings.wallpaperPlacement,
       setPlacement,
@@ -1337,6 +1453,9 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       settings.wallpaperKind,
       settings.weatherStyle,
       settings.wallpaperPlacement,
+      settings.wallpaperPlay,
+      settings.wallpaperAlbum,
+      settings.wallpaperPlayEvery,
       settings.bezelTint,
       settings.bezelBand,
       settings.bezelRadius,
@@ -1344,6 +1463,8 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       settings.wallpaperReadingDim,
       setWallpaperKind,
       selectWeather,
+      selectPlay,
+      setPlayEvery,
       effectiveStyle,
       renderer,
       shaderSupported,

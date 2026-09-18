@@ -44,6 +44,7 @@ systems/ambient/
 │   ├── route-config.ts           # Form-factor types
 │   ├── settings.ts               # User preference persistence
 │   ├── wallpaper.ts              # Wallpaper kinds, weather styles + built-in catalog
+│   ├── wallpaper-play.ts         # Shuffle / Loop over Apple and Nature
 │   ├── wallpaper-profile.ts      # Profile types + keys (shared with the profiler script)
 │   ├── wallpaper-profiles.json   # The measured table — `pnpm wallpapers:profile`
 │   ├── legibility.ts             # Profile → CSS variables (docs/system-legibility.md)
@@ -969,7 +970,8 @@ type WallpaperKind = "weather" | "image";
   | `gradient` | **Gradient** | css · gradient | The same scene as a CSS gradient (`sceneToCssGradient`): the sky's colour at the real sun position, live to the minute. The Sky's automatic fallback. |
   | `classic` | **Classic** | css · gradient | The original: six hand-tuned condition palettes by day and night plus the sunrise / sunset event gradients (`getClassicGradient`). Steps at phase and weather changes rather than following the clock. Chosen by hand only. |
 
-- `image` — a fixed picture from the built-in catalog (`lib/wallpaper.ts`).
+- `image` — a picture from the built-in catalog (`lib/wallpaper.ts`), either
+  pinned to one still or playing Shuffle / Loop over Apple or Nature.
 
 Style and engine are one-to-one: Sky is the canvas, the other two are the CSS
 stack. The only resolution is the fallback — `resolveWeatherStyle` turns a Sky
@@ -1004,11 +1006,18 @@ Talks widget uses for albums (`WALLPAPER_CATEGORIES` in `lib/wallpaper.ts`).
   Gate, Tahoe, Sequoia, Sonoma, Ventura, Monterey, Big Sur, Catalina and
   Mojave; iPadOS 26 and iPadOS 18 in its four colourways (Violet, Indigo,
   Blue, Teal); iOS 15, 14 and 13. Every pair ships a @1x cover beside the
-  full @2x (or native) file when the source is larger than 1×.
+  full @2x (or native) file when the source is larger than 1×. The grid
+  opens with **Shuffle** and **Loop** — iOS Photo Shuffle (a fanned collage,
+  random order) and macOS Change Picture without Randomly (a tidy stack,
+  catalog order). They sit as their own pair above the stills, and while
+  either is selected a Frequency row sits directly under them: On Visit
+  (iOS On Lock, once per tab session), Hourly, and Daily. Tapping a specific
+  pair pins it and turns play off.
 - **Nature** — the 19 Mac OS X Nature desktop pictures (Aurora, Zebra, Zen
   Garden, …), taken from ryOS. One photograph each, so both theme halves are
   the same file (`isSingleImage()`), and the picker shows it unsplit. Clown
-  Fish and Ladybug are omitted.
+  Fish and Ladybug are omitted. Shuffle and Loop sit at the front of this
+  album too, walking only Nature.
 
 The iPadOS colourways are named for the colour rather than the release, and
 their caption is the year alone: the tile would otherwise read "iPadOS 18
@@ -1178,7 +1187,12 @@ on narrow viewports, a right-edge floating panel on wide ones.
 
 Its tiles are **macOS Settings pair cards**: a 16:10 split of the light and dark
 originals, a sun / moon marking each half, a check when selected, and `Name` +
-`macOS · 2020` underneath. The Weather category's three tiles are the **same
+`macOS · 2020` underneath. Apple and Nature each lead with Shuffle and Loop
+tiles in that same frame — a three-photo collage, fanned for Shuffle and
+stacked for Loop — matching iOS Photo Shuffle and macOS Change Picture. The
+two modes are a pair above the stills, not mixed into the catalog grid, so
+Frequency can sit directly under them (On Visit / Hourly / Daily) instead of
+after the last picture. The Weather category's three tiles are the **same
 frame at the same size** — the sky is one of the wallpapers, just the only one
 that moves, and it opens on that tab whenever the sky is what is in use. Where
 the wallpaper paints sits above the grid as one compact row: a modifier, not the
@@ -1269,9 +1283,11 @@ const {
   statsRef,               // Live renderer stats for the devtool
   gyro,                   // { enabled, access, active, readings, gated, denied, supported }
   setGyroEnabled,         // The wish — and, from a tap, WebKit's motion grant
-  wallpaper,              // The selected pair
+  wallpaper,              // The selected pair (the frame showing, even while playing)
   wallpapers,             // The whole catalog
-  selectWallpaper,        // Selects AND switches kind to "image"
+  selectWallpaper,        // Pins a still AND switches kind to "image"; play turns off
+  selectPlay,             // Shuffle / Loop over Apple or Nature
+  play, playAlbum, playEvery, setPlayEvery,
   variant,                // Which half the app theme lands on right now
   placement,              // "full" | "widget" | "off"
   setPlacement,
