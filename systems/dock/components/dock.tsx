@@ -1,6 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useBreakpointValue } from "@/systems/surface";
+import { useEffect, useRef, useState } from "react";
 import { DockProvider } from "../provider";
 
 // ---------------------------------------------------------------------------
@@ -20,16 +22,29 @@ import { DockProvider } from "../provider";
 // different systems and none of them knows what the others rendered):
 //
 //   island   one activity, the compact presentation: lead + trail + chevron
-//   dot      every other activity, the minimal presentation: a bare circle,
-//            detached from the island by a wider gap, as iOS detaches the
-//            second of two Live Activities
+//   dot      every other activity — lead and its live bit, detached from the
+//            island by a wider gap, as iOS detaches the second of two Live
+//            Activities
 //   window   minimized app windows, further out and a step down in glass —
 //            they are parked apps, not ongoing activity, and the island is
 //            not their home
 //
-// Nothing scrolls. An island that scrolls is a row again; if this ever gets
-// genuinely crowded the answer is fewer things in it, not a scrollbar. The
-// drag-to-scroll handlers went with it.
+// A SATELLITE COLLAPSES TO A BARE CIRCLE ONLY WHEN THE ROW IS CROWDED. That is
+// what iOS's minimal presentation is for: it exists because the Dynamic Island
+// has one status bar's worth of room to share, and a 1280px row does not have
+// that problem. So a satellite keeps the shape it had before the island
+// existed — lead and its live bit, or an app icon and its title — while there
+// is room, and gives it up when there is not.
+//
+// Room is COUNTED, not measured. Every satellite's label is width-capped, so
+// the count is a sound proxy for the width, and counting costs one integer
+// where measuring costs a second layout pass and a hysteresis rule to keep it
+// from oscillating. The budget is one satellite on a phone and four above it:
+// at 390px the row has ~358px, an island is ~80 and a capped satellite ~130,
+// so one fits with room to spare and two leave none.
+//
+// Nothing scrolls. An island that scrolls is a row again; the drag-to-scroll
+// handlers went with it, and the collapse above is what replaces them.
 //
 // The panels are Base UI drawers, portalled into the shared surface viewport
 // (see live-activity.tsx), so the row is free to lay itself out however it
@@ -41,6 +56,33 @@ import { DockProvider } from "../provider";
 // ---------------------------------------------------------------------------
 
 function DockSurface({ children }: { children: React.ReactNode }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [satellites, setSatellites] = useState(0);
+  const budget = useBreakpointValue({ base: 1, sm: 4 });
+
+  // The children come from four different systems and each decides its own
+  // slot at render time, so the only place the count exists is the DOM. An
+  // observer rather than a render-time count for the same reason: a window
+  // minimizing does not re-render the dock.
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!row) return;
+    const count = () =>
+      setSatellites(
+        row.querySelectorAll('[data-dock-slot]:not([data-dock-slot="island"])')
+          .length
+      );
+    count();
+    const observer = new MutationObserver(count);
+    observer.observe(row, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-dock-slot"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   return (
     /* Outer centers; inner is the island and its satellites. Splitting the two
        is what it always was — and now also means the inner box can be as wide
@@ -50,7 +92,10 @@ function DockSurface({ children }: { children: React.ReactNode }) {
       style={{ top: "max(env(safe-area-inset-top), 0.5rem)" }}
     >
       <div
+        ref={rowRef}
         data-dock-row
+        data-dock-satellites={satellites}
+        data-dock-dense={satellites > budget ? "" : undefined}
         // `py-3 -my-3` gives the shadows room without shifting the row.
         // `max-w-full` + `min-w-0` keep a long island from pushing the
         // satellites off the screen; the island's own content truncates.

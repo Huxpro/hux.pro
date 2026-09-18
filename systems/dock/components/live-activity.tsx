@@ -17,14 +17,17 @@ import { useDock } from "../provider";
 // The dock is ONE island (provider.tsx says who holds it), so this component
 // renders an activity in whichever form it currently has:
 //
-//   Island   — the compact presentation, Apple's exact split: `lead` on the
-//              leading side, `trail` on the trailing side. iOS puts the
-//              TrueDepth camera between them; we have no camera, so the gap is
-//              the island's own and the chevron sits in it.
-//   Dot      — the minimal presentation. A bare circle carrying `lead` alone,
-//              detached from the island by a real gap, exactly as iOS detaches
-//              the second of two Live Activities. Everything else about it is
-//              the island: same height, same glass, same border.
+//   Island    — the compact presentation, Apple's exact split: `lead` on the
+//               leading side, `trail` on the trailing side. iOS puts the
+//               TrueDepth camera between them; we have no camera, so the gap
+//               is the island's own and the chevron sits in it.
+//   Satellite — every other activity, detached from the island by a wider gap
+//               exactly as iOS detaches the second of two Live Activities. It
+//               keeps `lead` and `trail` while the row has room, and collapses
+//               to iOS's minimal presentation — a bare circle carrying `lead`
+//               alone — when it does not. The row decides which (dock.tsx);
+//               all this file does is mark what may be dropped, with
+//               `data-dock-extra`.
 //
 // and one expanded panel, which is a Base UI Drawer travelling UP — the mirror
 // of the phone sheet in systems/surface. Everything the dock used to
@@ -226,13 +229,14 @@ interface LiveActivityProps {
   /**
    * Leading content of the compact presentation — the thing that identifies
    * the activity at a glance: album art, an app icon, a sun. It is the ONLY
-   * thing the minimal form shows, so it has to carry the activity on its own.
+   * thing a collapsed satellite shows, so it has to carry the activity on its
+   * own.
    */
   lead: React.ReactNode;
   /**
    * Trailing content of the compact presentation — the live bit: EQ bars, a
-   * countdown, a score. Island only; the dot has no room for it, which is the
-   * whole reason iOS's minimal presentation exists.
+   * countdown, a score. The first thing dropped when the row runs out of room,
+   * which is the whole reason iOS's minimal presentation exists.
    */
   trail?: React.ReactNode;
   /** Panel header content (left side, before the collapse chevron). */
@@ -334,9 +338,10 @@ export function LiveActivity({
       className="shrink-0"
     >
       <Drawer.Trigger
+        data-dock-face
         className={cn(
-          "pointer-events-auto flex shrink-0 items-center",
-          "h-9 rounded-full border border-border/50",
+          "pointer-events-auto flex shrink-0 items-center gap-2",
+          "h-9 rounded-full pl-1.5 pr-2.5 border border-border/50",
           // `bg-glass-strong` is what docs/system-glass.md has always
           // specified for a Live Activity's compact form — the dock was the
           // one surface quietly painting itself with plain `bg-glass` and
@@ -345,17 +350,27 @@ export function LiveActivity({
           "bg-glass-strong backdrop-blur-xl shadow-raised",
           "transition-colors hover:border-border hover:bg-glass-strong-hover",
           "pressable active:border-border active:bg-glass-strong-hover active:scale-95",
-          // The island splits lead from trail; the dot is a circle holding
-          // lead alone.
-          island ? "gap-2 pl-1.5 pr-2.5" : "w-9 justify-center",
           pillClassName
         )}
         aria-label={openLabel}
       >
         {lead}
-        {island && trail}
+        {/* `contents`, so the wrapper is only a handle for the row's collapse
+            rule and never a box of its own. */}
+        {trail && (
+          <span data-dock-extra className="contents">
+            {trail}
+          </span>
+        )}
+        {/* The chevron is the island's alone: it is the one that says "this
+            expands", and a satellite that carried it would read as a second
+            island rather than a satellite. Tapping a satellite still opens its
+            panel — the affordance is the difference, not the ability. */}
         {island && (
-          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <ChevronDown
+            data-dock-extra
+            className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+          />
         )}
       </Drawer.Trigger>
     </Drawer.SwipeArea>

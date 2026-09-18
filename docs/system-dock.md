@@ -54,14 +54,36 @@ So the row lays out three classes of thing, and the gaps carry the hierarchy:
 | Slot | What | Form |
 |---|---|---|
 | `island` | one activity — the one that arrived LAST | the compact presentation: `lead` + `trail` + chevron |
-| `dot` | every other activity | the minimal presentation: a bare `h-9` circle carrying `lead` alone, detached by a 10px gap |
-| `window` | minimized app windows | the same circle, one step down in glass, furthest out |
+| `dot` | every other activity | `lead` + `trail`, detached by a 10px gap — collapsing to a bare `h-9` circle when the row is crowded |
+| `window` | minimized app windows | an app icon + its title, one step down in glass, furthest out — collapsing the same way |
 
 Apple's compact presentation splits around the TrueDepth camera — one element
 leading, one trailing. We have no camera, so the gap is the island's own and
 the chevron sits in it; but the split is the same, and it is why `LiveActivity`
 takes `lead` and `trail` rather than one `pill`. `lead` has to identify the
-activity on its own, because in the minimal form it is all there is.
+activity on its own, because when a satellite collapses it is all there is.
+
+The chevron is the island's alone. It is the one that says *this expands*, and
+a satellite carrying it would read as a second island rather than a satellite.
+Tapping a satellite still opens its panel — the affordance is the difference,
+not the ability.
+
+**The gaps are a `column-gap`, and that is not a detail.** Visual order comes
+from CSS `order` — the row's children are fixed by `layout.tsx` (ambient,
+music, theater, windows) while their slots are decided at runtime — and a
+sibling selector cannot see it. `[island] + [dot]` matched DOM *adjacency* and
+put the gap wherever the DOM happened to agree, so with the sunrise
+notification rendered before the music island, which is the ordinary case since
+it is first in `layout.tsx`, the 6px landed at the row's left edge and the two
+touched. (`:first-of-type` was worse: it matches by tag name, both are divs, so
+a dot was never the first of its type and that rule could never fire.) A gap is
+applied between items in **order-resolved** order, so it is the only thing here
+that can be trusted; the island buys its extra detachment with a
+`margin-right` of its own, which lands in the gap after it wherever it sits.
+
+The walkthrough keeps that configuration as a regression: it seeds a sun event
+so the ambient activity mounts, then asserts the gaps while reporting both
+orders — `visual ["island","dot","window"] vs DOM ["dot","island","window"]`.
 
 **The island goes to the newcomer.** A Live Activity appearing is news — the
 sunrise notification opening while music plays is the same shape of event as an
@@ -71,15 +93,39 @@ activity does *not* promote it: its panel grows out of wherever its compact
 form actually is, dot included, which is what a touch-and-hold on a minimal
 presentation does on iOS.
 
-**Nothing scrolls.** An island that scrolls is a row again. If this ever gets
-genuinely crowded the answer is fewer things in it, not a scrollbar.
+**A satellite collapses only when the row is crowded.** That is what iOS's
+minimal presentation is *for*: it exists because the Dynamic Island has one
+status bar's worth of room to share, and a 1280px row does not have that
+problem — collapsing there would be answering a question nobody asked. So a
+satellite keeps the shape it had before the island existed, and gives it up
+when there is no room:
 
-**A parked window is not ongoing activity.** Minimized windows used to be full
-capsules with an icon and a title, indistinguishable from a Live Activity's,
-and with three of them the dock read as five equal pills. Nothing about a
-parked app is live and it has no expanded presentation, so it takes the quiet
-form and sits furthest from the island. Its title moved to the tooltip, where
-it already was.
+| | satellites | a satellite is |
+|---|---|---|
+| phone (`< 640px`) | 1 | `lead` + `trail`, or icon + title |
+| | 2+ | a bare circle |
+| wider | up to 4 | `lead` + `trail`, or icon + title |
+| | 5+ | a bare circle |
+
+Room is **counted, not measured**. Every satellite's label is width-capped
+(`max-w-20` on a window's title), so the count is a sound proxy for the width,
+and counting costs one integer where measuring costs a second layout pass and a
+hysteresis rule to keep it from oscillating. The budget's numbers come from the
+narrow case: at 390px the row has ~358px, an island is ~80 and a capped
+satellite ~130, so one fits with room to spare and two leave none.
+
+`dock.tsx` counts (a `MutationObserver`, because the children come from four
+systems and a window minimizing does not re-render the dock) and publishes
+`data-dock-satellites` and `data-dock-dense` on the row; the CSS does the rest.
+Components only mark what may be dropped, with `data-dock-extra`.
+
+**Nothing scrolls.** An island that scrolls is a row again; the collapse above
+is what replaces the scrollbar.
+
+**A parked window is not ongoing activity.** Nothing about a parked app is live
+and it has no expanded presentation, so it sits furthest from the island and a
+step down in glass. Its title is the first thing to go when the row fills, and
+nothing is lost when it does — the tooltip has carried it all along.
 
 ## The panel is a Base UI Drawer, travelling up
 
