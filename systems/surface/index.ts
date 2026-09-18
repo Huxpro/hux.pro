@@ -34,7 +34,6 @@ export {
   HEADER_BUTTON,
   SHEET_DETENTS,
   SurfaceSheet,
-  useSheetDragging,
 } from "./sheet";
 export { SURFACE_TRANSITION_MS } from "./stack";
 export {

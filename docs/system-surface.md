@@ -207,13 +207,13 @@ never starts a swipe from a `<button>` (or `a`, `input`, `label`,
 so no further move, up or click arrives. Items 7 and 8 of the list at the top
 of `sheet.tsx`.
 
-**The gesture.** `useSheetDragging()` says whether the sheet around it is being
-dragged — the press, from Base UI's `data-swiping` on the popup, plus the
-surface having actually moved, latched until the gesture ends. It lives here
-because the popup lives here: a handle that tracks the gesture itself has to
-guess when it ended, and cannot (`systems/windows/components/window-grip.tsx`
-has the story). Use it for something a surface can afford to be wrong about —
-a pill waking up — and not for whether a control is visible at all.
+**No gesture state up there.** A grip that changes with the drag is a grip that
+has to be changed back, and the end of a Base UI gesture can be missed
+altogether — so the window grip does not change at all, and the sheet publishes
+nothing for it to change on. `systems/windows/components/window-grip.tsx` has
+the story of the five versions that tried. If some future handle has to move
+with the drag, it should be an animation that always ends where it started,
+never a state something has to clear.
 
 **Content, not a handle.** Everything below the grabber is wrapped in
 `Drawer.Content`. Without it a *mouse* press anywhere in a sheet starts a swipe,

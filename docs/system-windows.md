@@ -196,12 +196,13 @@ edge-to-edge content, with nothing that reads as a title bar (the sheet gives
 it a row of its own only when `gripOverlay` is off) — and it is also what you
 drag the sheet by. A tap opens the menu.
 
-It behaves exactly as the desktop pill does, because it *is* the same pill
-(`window-pill.tsx`): three dim dots on nothing at all, lighting into glass
-while something is happening — a drag, or its own menu standing open. **The
-dots are always there.**
+It is the same pill as the desktop's (`window-pill.tsx`), in its lit state:
+three dots on glass, wide enough for a thumb, floating over the app. **It does
+not change** — not on press, not while the sheet is dragged, not while its menu
+is open. The desktop pill wakes up because a pointer hovers and a window can be
+inactive; a phone has neither, and this is the only control the window has.
 
-That last line is the lesson of four rounds of this file. The dots used to
+That is the lesson of five rounds of this file. The dots used to
 become the site's 36×4 grabber while the sheet was dragged: proportional to the
 live travel first (which a sheet with detents zeroes every time it lands on
 one, so it flickered), then a phase machine in the grip (which had to know when
@@ -209,11 +210,13 @@ the gesture ended, and cannot — Base UI captures the pointer for everything
 except touch, and the release then reaches nothing at all, so the phase stuck
 and `keepMounted` carried it into the next time the app opened), then the
 sheet's own gesture state (better, and still one flush of a nested drawer away
-from being stranded). Any state that can hide the window's controls is a state
-that can strand them hidden. Whatever a handle gains from changing shape, it
-does not outweigh a window whose controls are sometimes missing — so the morph
-is gone, and if it returns it must be something that cannot persist: an
-animation that always ends where it started, not a state someone has to clear.
+from being stranded). Every version had the same shape: something had to
+*clear* the interesting state, and whatever clears it can be missed. Any state
+that can hide the window's controls is a state that can strand them hidden, and
+whatever a handle gains from changing shape does not outweigh a window whose
+controls are sometimes missing — so nothing changes shape, and if it ever
+returns it must be something that cannot persist: an animation that always ends
+where it started, not a state someone has to clear.
 
 The one thing the grip still owns is the tap, which is the one thing that can
 be lost harmlessly (no menu opens; the next tap works). It opens the menu
