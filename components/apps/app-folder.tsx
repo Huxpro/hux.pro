@@ -1,7 +1,7 @@
 "use client";
 
-import { AppTile } from "@/components/apps/app-tile";
-import { useMasonryEdit } from "@/components/ui/sortable-masonry";
+import { AppTile, type AppTileSize } from "@/components/apps/app-tile";
+import { useBoardEdit } from "@/components/ui/widget-board";
 import { usePressHold } from "@/components/ui/use-press-hold";
 import {
   MOUSE_ACTIVATION,
@@ -24,6 +24,7 @@ import {
 } from "@/lib/apps";
 import type { AppLink } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
+import type { WidgetSize } from "@/components/ui/widget-size";
 import { useOptionalWindows } from "@/systems/windows";
 import {
   DndContext,
@@ -61,10 +62,50 @@ import { createPortal } from "react-dom";
 // Home-screen app folder: an iPad-style icon grid that snap-scrolls into pages
 // when there are more apps than fit on one page. Axis is configurable (x like
 // iOS folders, or y for a vertical stack of pages). Nested dnd-kit reordering
-// + masonry edit/jiggle behavior is preserved from the original AppShelf.
+// + board edit/jiggle behavior is preserved from the original AppShelf.
+//
+// On the widget board the folder is sized like a widget, and each size is a
+// different page shape rather than the same icons scaled:
+//
+//   small   the folder glyph: a page of small icons with no labels, the way
+//           an iOS folder shows its contents on the home screen (2×2 while
+//           the catalog is four apps or fewer, 3×3 beyond that).
+//   medium  a springboard row-pair: 4×2 labelled icons, today's folder.
+//   large   a full page: 4×4.
+//   xl      an iPad page: 8×2.
+//
+// `large` and `xl` only earn a place once the catalog can fill more than a
+// medium page (see `appFolderSizes`) — a mostly empty page is not a size.
 // =============================================================================
 
 const STORAGE_KEY = "hux_app_order_v2";
+
+/** Page shape per widget size; `tile` is the icon size, labels off for the glyph. */
+function folderLayoutFor(
+  size: WidgetSize,
+  appCount: number,
+): { layout: AppFolderLayout; tile: AppTileSize; labels: boolean } {
+  switch (size) {
+    case "small":
+      return appCount <= 4
+        ? { layout: { columns: 2, rows: 2, axis: "x" }, tile: "md", labels: false }
+        : { layout: { columns: 3, rows: 3, axis: "x" }, tile: "sm", labels: false };
+    case "large":
+      return { layout: { columns: 4, rows: 4, axis: "x" }, tile: "lg", labels: true };
+    case "xl":
+      return { layout: { columns: 8, rows: 2, axis: "x" }, tile: "lg", labels: true };
+    default:
+      return { layout: DEFAULT_APP_FOLDER_LAYOUT, tile: "lg", labels: true };
+  }
+}
+
+/** The sizes the folder offers for a catalog of `appCount` featured apps. */
+export function appFolderSizes(appCount: number): WidgetSize[] {
+  const mediumPage = pageCapacity(DEFAULT_APP_FOLDER_LAYOUT);
+  return appCount > mediumPage
+    ? ["small", "medium", "large", "xl"]
+    : ["small", "medium"];
+}
 
 // iOS grows a held icon a touch more than a held widget — it's smaller, so the
 // same absolute lift needs a larger ratio to register. The lifted clone pops
@@ -75,6 +116,8 @@ const ICON_LIFT_SCALE = 1.15;
 export interface AppFolderProps {
   /** Override page layout; defaults to 4×2 horizontal pages. */
   layout?: Partial<AppFolderLayout>;
+  /** The widget size on the board; picks the page shape (see `folderLayoutFor`). */
+  size?: WidgetSize;
   className?: string;
 }
 
@@ -85,16 +128,20 @@ export interface AppFolderProps {
 function SortableAppIcon({
   id,
   revealBadge = false,
+  tile = "lg",
+  showLabel = true,
 }: {
   id: string;
   revealBadge?: boolean;
+  tile?: AppTileSize;
+  showLabel?: boolean;
 }) {
   const app = APPS_BY_ID.get(id)!;
   const { setNodeRef, attributes, listeners, isDragging, transform, transition } =
     useSortable({ id });
   const hold = usePressHold({ ...TOUCH_ACTIVATION, scale: ICON_HOLD_SCALE });
 
-  // Pointer presses on an icon must not bubble to the masonry item wrapper,
+  // Pointer presses on an icon must not bubble to the board item wrapper,
   // where they would activate the *outer* sortable and lift the whole folder
   // (and start the folder's own press-and-hold grow).
   const guardedListeners = useMemo(
@@ -125,7 +172,12 @@ function SortableAppIcon({
     >
       <div {...hold.holdProps}>
         <AppLaunchLink app={app}>
-          <AppTile app={app} size="lg" revealBadge={revealBadge} />
+          <AppTile
+            app={app}
+            size={tile}
+            showLabel={showLabel}
+            revealBadge={revealBadge}
+          />
         </AppLaunchLink>
       </div>
     </div>
@@ -219,13 +271,18 @@ function PageDots({
 // Folder
 // -----------------------------------------------------------------------------
 
-export function AppFolder({ layout: layoutOverride, className }: AppFolderProps) {
+export function AppFolder({
+  layout: layoutOverride,
+  size = "medium",
+  className,
+}: AppFolderProps) {
+  const shape = folderLayoutFor(size, FEATURED_APPS.length);
   const layout: AppFolderLayout = {
-    ...DEFAULT_APP_FOLDER_LAYOUT,
+    ...shape.layout,
     ...layoutOverride,
   };
   const capacity = pageCapacity(layout);
-  const edit = useMasonryEdit();
+  const edit = useBoardEdit();
   const editing = edit?.editing ?? false;
   const [order, setOrder] = useState<string[]>(DEFAULT_APP_IDS);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -361,7 +418,9 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
       <SortableContext items={order} strategy={rectSortingStrategy}>
         <div
           className={cn(
-            "relative rounded-2xl border px-1 py-1.5",
+            // Fills its cell on the board; the page grid sits centred in
+            // whatever height is left, the way a folder's icons float.
+            "relative flex h-full flex-col justify-center rounded-2xl border px-1 py-1.5",
             "transition-colors duration-300",
             // At rest the labels have nothing behind them but the wallpaper,
             // so the folder is a bare zone whose ink may flip — on the
@@ -402,7 +461,8 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
               <div
                 key={`page-${pi}`}
                 className={cn(
-                  "grid gap-x-2 gap-y-5",
+                  "grid gap-x-2",
+                  shape.labels ? "gap-y-5" : "gap-y-2",
                   // Room for the tile's hover scale + badge overhang so
                   // overflow-x/y on a snap scroller can't clip the art.
                   "px-1 py-1.5",
@@ -415,6 +475,8 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
                     key={id}
                     id={id}
                     revealBadge={editing}
+                    tile={shape.tile}
+                    showLabel={shape.labels}
                   />
                 ))}
               </div>
@@ -448,7 +510,8 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
               >
                 <AppTile
                   app={APPS_BY_ID.get(activeId)!}
-                  size="lg"
+                  size={shape.tile}
+                  showLabel={shape.labels}
                   revealBadge
                 />
               </div>
