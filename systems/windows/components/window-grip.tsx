@@ -35,6 +35,17 @@ import { pillShell, TrafficDots } from "./window-pill";
 // If it ever comes back it has to be incapable of persisting — an animation
 // that always ends where it started, not a state someone has to clear.
 //
+// What it does do is answer a press, because a control that does nothing under
+// the thumb feels broken — the pill used to light into glass on a tap, and a
+// pill that is already lit has no light left to give. It answers with a one-
+// shot animation instead, and that is the only shape feedback may take here:
+// `:active` is not available to us, measured both ways. A touch never sets it
+// (the grip is `touch-none`, and the press is preventDefaulted out from under
+// it), and a mouse press sets it and then never clears it — the popup captures
+// the pointer and Chrome never sees the release, so the pill stays pressed for
+// good. A keyframe that starts and ends at rest cannot be stranded: there is no
+// state to clear, only a 200ms animation that is over either way.
+//
 // The tap is this component's one job, and it is the one thing that can be
 // lost harmlessly: no menu opens, nothing sticks, the next tap works. It
 // cannot be a click handler (above `Drawer.Content` there are no clicks) and
@@ -67,10 +78,17 @@ export function WindowGrip({
   onMenu: () => void;
 }) {
   const press = useRef<{ id: number; x: number; y: number } | null>(null);
+  const pill = useRef<HTMLDivElement>(null);
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     press.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    // Acknowledged. Fire and forget: it ends where it started, whether this
+    // press turns into a tap, a drag, or nothing at all.
+    pill.current?.animate(
+      [{ transform: "scale(1)" }, { transform: "scale(0.92)" }, { transform: "scale(1)" }],
+      { duration: 220, easing: "ease-out" },
+    );
 
     // Capture phase, on the document: for touch the release arrives here, and
     // for a mouse Base UI may swallow it — in which case this press simply was
@@ -92,6 +110,7 @@ export function WindowGrip({
   return (
     <div className="pointer-events-none flex items-center justify-center">
       <div
+        ref={pill}
         data-window-grip
         aria-hidden
         onPointerDown={onPointerDown}
