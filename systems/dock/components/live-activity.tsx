@@ -24,7 +24,7 @@ import { useDock } from "../provider";
 //   Dot      — the minimal presentation. A bare circle carrying `lead` alone,
 //              detached from the island by a real gap, exactly as iOS detaches
 //              the second of two Live Activities. Everything else about it is
-//              the island: same height, same glass, same key line.
+//              the island: same height, same glass, same border.
 //
 // and one expanded panel, which is a Base UI Drawer travelling UP — the mirror
 // of the phone sheet in systems/surface. Everything the dock used to
@@ -243,13 +243,6 @@ interface LiveActivityProps {
   openLabel: string;
   /** aria-label for the collapse button. */
   collapseLabel: string;
-  /**
-   * The key line's colour — any CSS colour. Apple: "a key line appears around
-   * the Dynamic Island to distinguish it from other content. Choose a key line
-   * colour that's consistent with the colour of other elements in your Live
-   * Activity." Music's green, theater's red. Omit for the neutral border.
-   */
-  keyColor?: string;
   /** Extra classes for the compact form. */
   pillClassName?: string;
   /** Extra classes for the expanded panel. */
@@ -264,7 +257,6 @@ export function LiveActivity({
   children,
   openLabel,
   collapseLabel,
-  keyColor,
   pillClassName,
   panelClassName,
 }: LiveActivityProps) {
@@ -342,8 +334,6 @@ export function LiveActivity({
       className="shrink-0"
     >
       <Drawer.Trigger
-        data-dock-key={keyColor ? "" : undefined}
-        style={keyColor ? ({ "--dock-key": keyColor } as React.CSSProperties) : undefined}
         className={cn(
           "pointer-events-auto flex shrink-0 items-center",
           "h-9 rounded-full border border-border/50",
@@ -449,7 +439,6 @@ export function LiveActivity({
           >
             <div
               data-surface-shell
-              data-dock-key={keyColor ? "" : undefined}
               data-behind={behind ? "" : undefined}
               // React 19 renders `inert` as the boolean attribute.
               inert={behind}
@@ -457,7 +446,6 @@ export function LiveActivity({
                 {
                   // Sheets from other subtrees stacked on this one.
                   "--surface-stack-depth": depth,
-                  ...(keyColor ? { "--dock-key": keyColor } : null),
                   // What a rounded box sitting inside this panel's 20px margin
                   // should use for its own corner, so it is concentric with the
                   // panel's: the HIG's "match its corner radius to the outer

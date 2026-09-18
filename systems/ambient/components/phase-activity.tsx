@@ -42,9 +42,6 @@ export function AmbientPhaseActivity() {
       id="ambient-phase"
       openLabel={t(locale, "phaseOpenDetails")}
       collapseLabel={t(locale, "dockCollapse")}
-      // No key line: the sun glyph is the theme's own ink, and a coloured line
-      // around it would be the only colour on a surface that has none. The
-      // prop is opt-in for exactly this reason.
       lead={
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted/60">
           <Icon className="h-3.5 w-3.5 text-foreground/80" />

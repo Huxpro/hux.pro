@@ -260,7 +260,7 @@ the compact form's own box, if any of width / height / corner / offset fails to
 travel, if the popup transforms at all, or if the content is visible before the
 box has grown.
 
-### The material, and the key line
+### The material
 
 Apple's Dynamic Island is opaque black because it is hiding a camera cutout. We
 have no cutout — we have [the glass system](./system-glass.md) and [the
@@ -277,23 +277,28 @@ Those first two roles are what `docs/system-glass.md` has specified for a Live
 Activity's pill and panel since that system was written. The dock was the one
 surface quietly painting itself with plain `bg-glass` in both places, which
 meant it answered the Tinted/Clear setting a step weaker than the minimized
-windows sitting in the same row. Measured after: compact fill 0.6, panel 0.7 —
-the documented numbers.
+windows sitting in the same row. Measured against the tokens rather than against
+literal numbers, because the legibility policy adds `--wp-glass-add` on a busy
+or wrong-toned wallpaper: the fills are `--glass-strong` and `--glass-overlay`
+whatever the picture does to them.
 
-**The key line** is HIG: "When the background is dark … a key line appears
-around the Dynamic Island to distinguish it from other content. Choose a key
-line colour that's consistent with the colour of other elements in your Live
-Activity." Music's EQ bars are green, so is its line; theater's are red. An
-activity opts in with `keyColor` and the ambient phase notification deliberately
-does not — its sun glyph is the theme's own ink, and a coloured line around it
-would be the only colour on a surface that has none.
+**The border is neutral, and the key line was tried and taken out.** The HIG
+asks for one — "when the background is dark … a key line appears around the
+Dynamic Island to distinguish it from other content. Choose a key line colour
+that's consistent with the colour of other elements in your Live Activity" — and
+it shipped for a while: the activity's colour (music's green, theater's red)
+mixed *into* the border token rather than replacing it, at 22%/50% on the
+compact form and half that on the panel, which is twenty times the area.
 
-Consistent, not loud: the colour is mixed *into* the border token rather than
-replacing it, so a green line is still a border. It gets more of its say in the
-dark, where iOS draws one at all — and the panel takes about half the compact
-form's mix, because the panel is twenty times the area and the same value stops
-being a key line and becomes a green rectangle. That one was settled by looking
-at it.
+It came out because the contrast was too strong for a site whose whole palette
+is ink at an alpha, and because nothing depended on it. Its stated job in the
+HIG is to *define the edge* against a dark backdrop, not to identify the
+activity — and `border-border/50` already does that, on the legibility ladder,
+so it brightens with the wallpaper. Identity has two stronger carriers that
+remain: `lead` differs by shape and image (a round album art, a square video
+thumbnail, a sun glyph) and is exactly what survives into the minimal form, and
+`trail` already carries the same green and red in the EQ bars. Removing it also
+took the one place on the dock where colour alone encoded anything.
 
 What we do **not** do: specular highlights, lens distortion, edge refraction.
 `system-glass.md` rules them out for every surface on the site — "nothing
@@ -371,8 +376,6 @@ restructuring its layer model.
   // and rides the island only.
   lead={<AlbumArt />}
   trail={playing ? <EQBars /> : undefined}
-  // Optional: the key line's colour, matching something in the activity.
-  keyColor="var(--color-green-500)"
   title={<>{/* panel header left side */}</>}
 >
   {/* panel body — bring your own padding, `px-5` to stay concentric */}
@@ -398,12 +401,12 @@ Order in the JSX does not decide order in the row: `data-dock-slot` and CSS
 
 ## Consumers
 
-| Activity | Source | `lead` | `trail` | Key line | Panel body |
-|---|---|---|---|---|---|
-| Music | `systems/music/components/music-activity.tsx` | album art | EQ bars | green | `<NowPlaying />` |
-| Ambient phase | `systems/ambient/components/phase-activity.tsx` | sun glyph | the time | — | `<WeatherNow />` |
-| Theater audio | `systems/theater/components/theater-activity.tsx` | square thumbnail | EQ bars | red | transport + `<SurfaceSwitch />` |
-| Minimized windows | `systems/windows/components/minimized-dock.tsx` | app icon (dot only) | — | — | — (restores the window) |
+| Activity | Source | `lead` | `trail` | Panel body |
+|---|---|---|---|---|
+| Music | `systems/music/components/music-activity.tsx` | album art | EQ bars | `<NowPlaying />` |
+| Ambient phase | `systems/ambient/components/phase-activity.tsx` | sun glyph | the time | `<WeatherNow />` |
+| Theater audio | `systems/theater/components/theater-activity.tsx` | square thumbnail | EQ bars | transport + `<SurfaceSwitch />` |
+| Minimized windows | `systems/windows/components/minimized-dock.tsx` | app icon (dot only) | — | — (restores the window) |
 
 Music and Ambient phase reuse the same shared body component their homepage
 widget uses (`NowPlaying`, `WeatherNow`), so the dock panel and the grid widget
@@ -411,4 +414,4 @@ never drift.
 
 Theater's thumbnail is square rather than the 16:9 it wants to be, because
 `lead` has to work in the minimal form too and a 36px circle has no room for a
-widescreen crop without it touching the key line on both sides.
+widescreen crop without it touching the border on both sides.

@@ -1681,34 +1681,6 @@ html.dragging * {
   margin-left: 0.625rem;
 }
 
-/* ---- The key line -------------------------------------------------------- */
-
-/* Apple: "When the background is dark … a key line appears around the Dynamic
-   Island to distinguish it from other content. Choose a key line colour that's
-   consistent with the colour of other elements in your Live Activity."
-   Consistent, not loud: the activity's colour is mixed INTO the border token
-   rather than replacing it, so a green line is still a border and not a
-   highlight, and it gets more of its say in the dark, where iOS draws one. */
-[data-dock-key] {
-  border-color: color-mix(in oklab, var(--dock-key) 22%, var(--border));
-}
-
-.dark [data-dock-key] {
-  border-color: color-mix(in oklab, var(--dock-key) 50%, var(--border));
-}
-
-/* The panel is twenty times the compact form's area, and the same mix around
-   it stops being a key line and becomes an outline — measured by looking at
-   it: a green rectangle in the dark, where the pill reads as a tinted edge.
-   Same colour, about half the say. */
-[data-surface-shell][data-dock-key] {
-  border-color: color-mix(in oklab, var(--dock-key) 12%, var(--border));
-}
-
-.dark [data-surface-shell][data-dock-key] {
-  border-color: color-mix(in oklab, var(--dock-key) 26%, var(--border));
-}
-
 /* ---- The panel: swipe on the popup --------------------------------------- */
 
 [data-dock-panel] {

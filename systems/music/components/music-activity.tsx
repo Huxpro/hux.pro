@@ -43,10 +43,6 @@ export function MusicActivity() {
       id="music"
       openLabel={t(locale, "musicOpenControls")}
       collapseLabel={t(locale, "musicCollapse")}
-      // The key line Apple asks for: "consistent with the colour of other
-      // elements in your Live Activity" — the EQ bars are green, so is the
-      // line. It only really shows in the dark, which is where iOS draws one.
-      keyColor="var(--color-green-500)"
       // Apple's compact split. The art identifies the activity and is all the
       // minimal form gets; the EQ is the live bit and rides the island only.
       lead={

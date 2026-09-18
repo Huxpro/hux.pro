@@ -47,12 +47,9 @@ export function TheaterActivity() {
       id="theater"
       openLabel={t(locale, "theaterOpenControls")}
       collapseLabel={t(locale, "musicCollapse")}
-      // Red, like the EQ bars and the record dot — HIG: a key line "consistent
-      // with the colour of other elements in your Live Activity".
-      keyColor="var(--color-red-500)"
       // Square, not the 16:9 the thumbnail wants to be: `lead` has to work in
       // the minimal form too, and a 36px circle has no room for a widescreen
-      // crop without it touching the key line on both sides.
+      // crop without it touching the border on both sides.
       lead={
         <span className="relative h-6 w-6 shrink-0 overflow-hidden rounded-[7px]">
           {track.thumbnail ? (
