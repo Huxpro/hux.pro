@@ -70,7 +70,7 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
         <WidgetLink href="/writing" />
       </WidgetHeader>
 
-      <WidgetScrollBody className="max-h-64">
+      <WidgetScrollBody>
         {latest.map((post) => (
           <PostRow key={post.slug} post={post} locale={locale} />
         ))}
