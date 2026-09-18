@@ -4,11 +4,11 @@
 @custom-variant dark (&:is(.dark *));
 
 /* `roomy:` — a screen that is both wide AND tall enough to have real space to
-   spare, used by the home screen's widget board (see SortableMasonry's
-   `gridScale`). Width alone isn't the signal: a short ultrawide monitor is
-   already scrolling, so widening the board there changes a familiar desktop
-   layout without solving anything. 1000px of height is roughly where the
-   composition starts to fit with room left over. */
+   spare, used by the home screen's widget board (see `.widget-board`). Width
+   alone isn't the signal: a short ultrawide monitor is already scrolling, so
+   widening the board there changes a familiar desktop layout without solving
+   anything. 1000px of height is roughly where the composition starts to fit
+   with room left over. */
 @custom-variant roomy (@media (width >= 96rem) and (height >= 1000px));
 
 /* `bleed:` — wide enough for landscape media to break out of the reading
@@ -1202,6 +1202,105 @@ html.dragging * {
    while the homepage grid is being rearranged. Lives on an inner wrapper so
    it never competes with the layout transform Framer Motion drives.
    ============================================================================= */
+
+/* =============================================================================
+   Widget board — Android home-screen grid. Square cells, widgets as
+   rectangles of them, holes legal. Column count is `--board-cols`; the cell
+   is derived from the frame so nothing is measured. See
+   docs/system-widget-board.md.
+   ============================================================================= */
+
+.widget-board-frame {
+  max-width: 680px;
+}
+
+@media (width >= 64rem) {
+  .widget-board-frame {
+    max-width: 64rem;
+  }
+}
+
+@media (width >= 96rem) and (height >= 1000px) {
+  .widget-board-frame {
+    max-width: 84rem;
+  }
+}
+
+.widget-board {
+  --board-cols: 4;
+  --cell: min(
+    120px,
+    calc((100% - (var(--board-cols) - 1) * 1rem) / var(--board-cols))
+  );
+  display: grid;
+  grid-template-columns: repeat(var(--board-cols), var(--cell));
+  grid-auto-rows: var(--cell);
+  gap: 1rem;
+  justify-content: center;
+  container-type: inline-size;
+}
+
+@media (width >= 64rem) {
+  .widget-board {
+    --board-cols: 6;
+  }
+}
+
+@media (width >= 96rem) and (height >= 1000px) {
+  .widget-board {
+    --board-cols: 8;
+  }
+}
+
+.widget-cell {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.widget-resize-frame {
+  pointer-events: none;
+  position: absolute;
+  inset: -3px;
+  border: 1.5px solid color-mix(in oklab, var(--ink) 45%, transparent);
+  border-radius: 1.15rem;
+}
+
+.widget-resize-handle {
+  pointer-events: auto;
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1.5px solid color-mix(in oklab, var(--ink) 55%, transparent);
+  background: color-mix(in oklab, var(--background) 80%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ink) 6%, transparent);
+}
+
+.widget-resize-handle-nw {
+  top: -7px;
+  left: -7px;
+  cursor: nwse-resize;
+}
+
+.widget-resize-handle-ne {
+  top: -7px;
+  right: -7px;
+  cursor: nesw-resize;
+}
+
+.widget-resize-handle-sw {
+  bottom: -7px;
+  left: -7px;
+  cursor: nesw-resize;
+}
+
+.widget-resize-handle-se {
+  bottom: -7px;
+  right: -7px;
+  cursor: nwse-resize;
+}
 
 @keyframes widget-jiggle {
   0%,

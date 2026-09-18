@@ -97,7 +97,7 @@ export function WidgetShell({
       onTouchStart={tappable ? noop : undefined}
       data-widget-tappable={tappable ? "" : undefined}
       className={cn(
-        "group relative rounded-2xl overflow-hidden select-none",
+        "group relative flex h-full min-h-0 flex-col rounded-2xl overflow-hidden select-none",
         "border border-border/50",
         "transition-all duration-300",
         widgetEnabled
@@ -148,7 +148,7 @@ export function WidgetHeader({
   return (
     <div
       className={cn(
-        "px-5 pt-5 pb-4 flex items-center justify-between",
+        "shrink-0 px-5 pt-5 pb-4 flex items-center justify-between",
         className
       )}
     >
@@ -196,7 +196,7 @@ export function WidgetBody({
   className?: string;
   children: React.ReactNode;
 }) {
-  return <div className={cn("px-5 pb-5", className)}>{children}</div>;
+  return <div className={cn("min-h-0 flex-1 px-5 pb-5", className)}>{children}</div>;
 }
 
 /**
@@ -212,19 +212,19 @@ export function WidgetScrollBody({
   className,
   children,
 }: {
-  /** Height goes here — defaults to a fixed `h-64`; pass `max-h-*` for a
-   *  stack that should only scroll once it overflows. */
+  /** Extra classes for the scroll port. Height comes from the cell — the
+   *  body fills whatever is left under the header and clips. */
   className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="px-5">
+    <div className="flex min-h-0 flex-1 flex-col px-5">
       <div
         className={cn(
-          "relative -mx-2 px-2 pb-7",
+          "relative -mx-2 min-h-0 flex-1 px-2 pb-7",
           "overflow-y-auto snap-y snap-mandatory scroll-smooth no-scrollbar",
           "[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
-          className ?? "h-64"
+          className
         )}
       >
         {children}

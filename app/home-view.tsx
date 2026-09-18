@@ -16,9 +16,9 @@ import { WritingWidget } from "@/components/home/writing-widget";
 import { Commit } from "@/components/log";
 import { HeaderZone } from "@/components/ui/header-zone";
 import {
-  SortableMasonry,
-  type SortableWidget,
-} from "@/components/ui/sortable-masonry";
+  WidgetBoard,
+  type BoardWidget,
+} from "@/components/ui/widget-board";
 import {
   heroContentClassName,
   heroZoneClassName,
@@ -119,7 +119,7 @@ function WidgetGrid({
         .length > 0,
   );
 
-  const items: SortableWidget[] = [
+  const items: BoardWidget[] = [
     { id: "apps", node: <AppFolder /> },
     { id: "weather", node: <WeatherWidget /> },
     { id: "blog", node: <WritingWidget posts={posts} /> },
@@ -145,7 +145,7 @@ function WidgetGrid({
   ];
 
   return (
-    <SortableMasonry
+    <WidgetBoard
       items={items}
       className={heroContentClassName(heroExit, "pt-2 sm:pt-4 mb-16")}
     />
@@ -199,8 +199,8 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
           </HeaderZone>
         </div>
 
-        {/* Widget grid — owns its own responsive width so column count and
-            container width stay in step (see SortableMasonry's `gridScale`). */}
+        {/* Widget board — column count and cell size stay in step
+            (see `.widget-board` and `docs/system-widget-board.md`). */}
         <WidgetGrid posts={posts} heroExit={heroExit} />
       </div>
     </main>

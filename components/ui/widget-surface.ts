@@ -9,7 +9,7 @@ import type { SyntheticEvent } from "react";
  * otherwise a region can be pickup-able but not tappable, or vice versa:
  *
  *   - tap    → open the widget's page / run its action  (`WidgetShell`)
- *   - hold   → lift the card for reordering            (`SortableMasonryItem`)
+ *   - hold   → lift the card for reordering            (`BoardItem`)
  *
  * So the list lives here once. The press wash in `globals.css`
  * (`.widget-surface`) mirrors it as a `:has()` argument — keep the two in
