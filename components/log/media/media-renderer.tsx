@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/services/theme";
-import { useLocale } from "@/services";
+import { t, useLocale } from "@/services";
 import { useOptionalTheater } from "@/systems/theater";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import type { Media } from "@/lib/log";
@@ -153,6 +153,12 @@ function SingleMedia({ media, theme, size, className, dense, set }: SingleMediaP
     index >= 0 && set && attachments
       ? () => attachments.open(set, index)
       : undefined;
+  // Where the click will land — and, when that is a tab because the page
+  // refuses to be framed, the card says so up front.
+  const leavesSite =
+    index >= 0 && set && attachments
+      ? attachments.homeOf(set, index) === "tab"
+      : false;
 
   if (isVideoMedia(media)) {
     return (
@@ -218,6 +224,7 @@ function SingleMedia({ media, theme, size, className, dense, set }: SingleMediaP
           image={preview?.image}
           internal={media.internal}
           onOpen={openAttachment}
+          note={leavesSite ? t(locale, "linkOpensInTab") : undefined}
           className={className}
         />
       );

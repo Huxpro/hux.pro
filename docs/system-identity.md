@@ -4,9 +4,12 @@ Who I was when I committed this.
 
 ```
 systems/identity/
-├── provider.tsx                  # IdentityCardProvider, useIdentityCard() — open / close
-├── lib/profile.ts                # buildIdentityProfile(log, identityId, roleId, locale)
-└── components/identity-card.tsx  # the card (AdaptiveSurface, ANCHORED_PRESENTATION)
+├── provider.tsx                      # IdentityCardProvider, useIdentityCard(), useIdentityProfile()
+├── lib/profile.ts                    # buildIdentityProfile(log, identityId, roleId, locale)
+└── components/
+    ├── identity-profile.tsx          # IdentityProfileView — the card's contents
+    ├── identity-hover.tsx            # IdentityHover / IdentityPeek — the desktop hover peek
+    └── identity-card.tsx             # the sheet a finger opens (AdaptiveSurface)
 ```
 
 ## The problem
@@ -21,8 +24,8 @@ handle, what was signed with it — had no surface.
 
 ## The card
 
-Pressing a `<handle>`, a `Role:` field, or a role row itself opens the
-identity's card: a GitHub profile page sized to a card.
+A handle, a `Role:` field, or a role row stands for the identity's card: a
+GitHub profile page sized to a card, with nothing to press.
 
 - **The header** a profile opens with: a photo from that time masked to a
   circle (`Identity.avatar` in `content/log.json`, a site-local path or URL;
@@ -33,34 +36,43 @@ identity's card: a GitHub profile page sized to a card.
 - **The other roles** under the same identity, latest first.
 - **Contributions**: how many commits were signed with this handle, by type,
   most numerous first (`7 commits signed · 4 projects · 3 talks`).
-- **Actions**, in the theater's glass chrome: `View in log` (the latest commit
-  signed as this identity, by address) and the company's site.
 
 Everything is derived from the committed log by `buildIdentityProfile` —
 the same `resolveIdentity` the bylines use decides what was signed as whom —
 so the card cannot say anything the timeline does not.
 
-## Shape
+## Two ways in, chosen by the input
 
-`ANCHORED_PRESENTATION`, the reading settings' shape: a sheet on a phone (the
-drawer a name opens in any app), and from `sm` up a popover hanging off the
-element that was pressed — GitHub's hovercard for a name. Triggers pass the
-pressed element as `anchor`; the provider keeps it in a ref the popover
-positions against. `fitContent` in both shapes.
+`/works` has one hover system: the magnetic peek that follows the cursor off
+a folded row (`components/motion-primitives/magnetic-preview.tsx`). A name
+that stands for more than it prints is the same kind of thing as a row that
+holds more than it shows, so on a desktop the card **is a peek**: rest the
+pointer on a handle and the profile arrives with it and leaves with it. No
+click, no header, no close. `IdentityHover` wraps the mark; `IdentityPeek`
+derives the profile only while hovered (`useIdentityProfile`), so nothing is
+computed for the rows nobody is looking at.
+
+Where there is no pointer — a phone, a touch tablet — the same mark is a
+button and a tap opens the identity card as a surface
+(`ANCHORED_PRESENTATION`: a sheet on a phone, a popover off the mark on a
+tablet), titled by the handle. `useInputCapability().magneticPreviewEnabled`
+is the one switch between the two, so it follows the input rather than the
+viewport: an iPad with a trackpad hovers, a touch laptop taps.
 
 ## Triggers
 
-`Byline` (`components/log/bylines.ts`) now carries `identityId` and `roleId`,
-so a row needs nothing else:
+`Byline` (`components/log/bylines.ts`) carries `identityId` and `roleId`, so
+a mark needs nothing else:
 
 ```tsx
-const card = useOptionalIdentityCard();
-card?.open({ identityId: byline.identityId, roleId: byline.roleId, anchor: e.currentTarget });
+<IdentityHover identityId={byline.identityId} roleId={byline.roleId}>
+  {byline.handle}
+</IdentityHover>
 ```
 
-| Where | What opens it |
+| Where | The mark |
 |---|---|
-| `/works` row (`TimelineCommit`) | the `<handle>` mark on the meta line or the media line; the `Author:` and `Role:` fields in the expanded body; **the row itself, for a role** — a role row is nothing but its identity |
-| Home status widget (`TimelineMini`) | the `Author:` and `Role:` fields |
+| `/works` row (`TimelineCommit`) | the `<handle>` on the meta line or at the foot of the contact strip; **the row itself, for a role** — its row peek is the identity (`buildCommitPreview`), and a tap opens the sheet |
+| The author block (`AuthorFields`, shared by `/works` and the home status widget) | the `Author:` and `Role:` values |
 
-Outside the provider the fields print as plain text, as they did.
+Outside the provider the marks print as plain text, as they did.

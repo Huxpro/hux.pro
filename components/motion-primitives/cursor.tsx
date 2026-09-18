@@ -45,8 +45,12 @@ export function Cursor({
     typeof window !== "undefined" ? window.innerHeight / 2 : 0
   );
   // Horizontal offset stays fixed so the panel always sits in the same side
-  // gutter and never covers the reading column. Only the vertical offset is
-  // recomputed, to keep the panel on screen near the bottom edge.
+  // gutter and never covers the reading column — with one exception: a panel
+  // that would leave the screen on the right flips to the pointer's left
+  // instead. A mark at the trailing edge of the column (a `<handle>` under
+  // the date) would otherwise peek into the void. The vertical offset is
+  // recomputed to keep the panel on screen near the bottom edge.
+  const translateX = useMotionValue(offset.x);
   const translateY = useMotionValue(offset.y);
   const cursorRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = useState(false);
@@ -55,27 +59,34 @@ export function Cursor({
   // would spill off the bottom, then clamp against the top edge (panels taller
   // than the viewport). The panel keeps its horizontal gutter position, so
   // shifting it up never drops it over the reading column.
-  const recomputeOffsetY = useCallback(
-    (py: number) => {
+  const recomputeOffset = useCallback(
+    (px: number, py: number) => {
       if (typeof window === "undefined") return;
       const margin = 8;
       const h = cursorRef.current?.offsetHeight ?? 0;
+      const w = cursorRef.current?.offsetWidth ?? 0;
       const vh = window.innerHeight;
+      const vw = window.innerWidth;
 
       let ty = offset.y;
       if (py + ty + h + margin > vh) ty = -offset.y - h;
       if (py + ty < margin) ty = margin - py;
 
+      let tx = offset.x;
+      if (px + tx + w + margin > vw) tx = -offset.x - w;
+      if (px + tx < margin) tx = margin - px;
+
+      translateX.set(tx);
       translateY.set(ty);
     },
-    [offset.y, translateY]
+    [offset.x, offset.y, translateX, translateY]
   );
 
   useEffect(() => {
     const updatePosition = (e: MouseEvent) => {
       cursorX.set(e.clientX);
       cursorY.set(e.clientY);
-      recomputeOffsetY(e.clientY);
+      recomputeOffset(e.clientX, e.clientY);
       onPositionChange?.(e.clientX, e.clientY);
     };
 
@@ -83,13 +94,13 @@ export function Cursor({
     return () => {
       document.removeEventListener("mousemove", updatePosition);
     };
-  }, [cursorX, cursorY, recomputeOffsetY, onPositionChange]);
+  }, [cursorX, cursorY, recomputeOffset, onPositionChange]);
 
   // Recompute once the panel mounts/measures so the first frame is already
   // positioned correctly (the panel height is unknown until it renders).
   useEffect(() => {
-    if (isHovering) recomputeOffsetY(cursorY.get());
-  }, [isHovering, recomputeOffsetY, cursorY]);
+    if (isHovering) recomputeOffset(cursorX.get(), cursorY.get());
+  }, [isHovering, recomputeOffset, cursorX, cursorY]);
 
   const cursorXSpring = useSpring(cursorX, springConfig || { duration: 0 });
   const cursorYSpring = useSpring(cursorY, springConfig || { duration: 0 });
@@ -131,7 +142,7 @@ export function Cursor({
       style={{
         x: cursorXSpring,
         y: cursorYSpring,
-        translateX: `${offset.x}px`,
+        translateX,
         translateY,
       }}
     >

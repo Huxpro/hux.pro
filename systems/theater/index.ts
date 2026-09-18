@@ -18,9 +18,8 @@ export {
 } from "./components";
 export {
   buildTalkAlbums,
+  buildSlidesAlbum,
   adHocAlbum,
-  commitAlbum,
-  isTheaterMedia,
   mediaToTrack,
   resolveVideoId,
   type Album,

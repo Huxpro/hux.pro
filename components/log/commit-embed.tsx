@@ -15,11 +15,10 @@ import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
 import { getCommitPeekItems, localize } from "@/lib/log";
 import { DEFAULT_DENSITY, type LogDensity } from "@/lib/log-view";
-import { GLASS_PANEL } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { attachmentSetFor } from "@/systems/attachments";
-import { ExternalImage } from "./media/external-image";
-import { CardFace } from "./media/link";
+import { IDENTITY_PEEK_PANEL, IdentityPeek } from "@/systems/identity";
+import { PeekCard, PeekThumb } from "./media/media-peek";
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { Byline } from "./bylines";
 import { normalizeCommit } from "./commit-data";
@@ -217,6 +216,15 @@ function buildCommitPreview(
   commit: CommitData,
   locale: Locale,
 ): CommitPreview | null {
+  // A role row stands for an identity, and its peek is that identity's
+  // card — the same profile the handle on any other row peeks.
+  if (commit.type === "role") {
+    return {
+      panelClassName: IDENTITY_PEEK_PANEL,
+      node: <IdentityPeek identityId={commit.identityId} roleId={commit.id} />,
+    };
+  }
+
   const items = getCommitPeekItems(commit);
 
   if (items.length >= 2) {
@@ -277,91 +285,6 @@ function buildCommitPreview(
       <p className={cn(TYPE.caption, "w-full line-clamp-3")}>{description}</p>
     ),
   };
-}
-
-// Peek items render as `<div>` (never `<a>`) so they can sit inside the
-// row's own clickable wrapper without producing nested anchors.
-
-/** Bare cover image inside a soft card frame. Used for video / image media. */
-function PeekThumb({
-  image,
-  className,
-  onResolved,
-}: {
-  image: string;
-  className?: string;
-  onResolved?: () => void;
-}) {
-  return (
-    <div
-      className={cn(
-        // Border matches the card peek / panel (border/50). Shadow is
-        // supplied per-use: the single video peek and the deck's front layer
-        // add `shadow-raised`; deck back layers stay flat.
-        "rounded-lg overflow-hidden border border-border/50 bg-muted/30",
-        className,
-      )}
-    >
-      {/* object-cover is safe for thumbnails: YouTube / Bilibili / Vimeo all
-          serve 16:9 covers, matching the aspect-video container. */}
-      <ExternalImage
-        src={image}
-        className="block w-full h-full object-cover"
-        loading="eager"
-        onResolved={onResolved}
-      />
-    </div>
-  );
-}
-
-/**
- * Mini OG-style card for `kind:"link", present:"card"` media — a thin
- * adapter over `CardFace` that picks the right slot shape per context:
- *  - Single-item peek: natural aspect (matches the expanded `/works`
- *    LinkCard so the hover and the row read as the same artifact).
- *  - Stacked peek:     fixed `aspect-[2/1]` + blur backdrop, because the
- *    layered `translate/rotate/scale` transforms need predictable
- *    rectangles to overlap cleanly.
- *
- * Rendering as a `<div>` (CardFace's default element) means it can sit
- * inside the row's clickable wrapper without nested anchors.
- */
-function PeekCard({
-  item,
-  fixedAspect = false,
-  className,
-  onResolved,
-}: {
-  item: Extract<PeekItem, { kind: "card" }>;
-  fixedAspect?: boolean;
-  className?: string;
-  onResolved?: () => void;
-}) {
-  // Peek is purely visual — the click goes through the row's anchor — so
-  // we only need the caption swap, not the locale-aware URL pick.
-  const domainLabel = item.internal ? "/writing" : undefined;
-  return (
-    <CardFace
-      url={item.url}
-      title={item.title}
-      description={item.description}
-      image={item.image}
-      size="compact"
-      fixedAspect={fixedAspect}
-      // Single-item peek honors the author's cover-fit; the stacked deck sets
-      // `fixedAspect` above, which takes precedence (predictable rectangles).
-      fit={item.fit}
-      aspect={item.aspect}
-      domainLabel={domainLabel}
-      // Peek-specific chrome — the shared panel recipe, minus the shadow: the
-      // single-peek and stacked-peek branches strip the panel's own chrome
-      // (BARE_PANEL_CHROME), so callers add `shadow-raised` per use (front /
-      // single) and deck back layers stay flat — same opt-in convention as
-      // PeekThumb.
-      className={cn(GLASS_PANEL, className)}
-      onImgResolved={onResolved}
-    />
-  );
 }
 
 // The deck's rotated/translated back cards add ~20–40px of overhang beyond

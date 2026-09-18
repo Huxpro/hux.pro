@@ -57,6 +57,13 @@ entry (see [og-previews.md](./og-previews.md)), and enrichment carries it to
 says nothing about framing is not read as permission. Pages the crawl cannot
 reach at all can be told by hand (`preview: { frame: "deny" }`, as The Verge is).
 
+A card that will leave for a tab says so **before** the click, not after:
+the expanded card and the cover's hover peek print `Opens in a new tab` as a
+last line (`CardFace`'s `note`), the cover's tooltip carries it, and when the
+tab does open, a one-line system toast names the site that would not be
+framed (`components/ui/system-toast.tsx`). Gitee, Medium, web.dev, The Verge
+and Meta are the ones in the log today; the rest open in a window.
+
 ## The set
 
 Every affordance on a row opens the same thing: the commit's attachments as
@@ -110,22 +117,38 @@ The surface sizes to its content (`fitContent`); the track is a flex row, so
 every page is as tall as the tallest and the sheet holds still while swiping.
 Pages off screen are `inert`.
 
+## Hovering a cover
+
+The row's magnetic peek — the cursor-following panel that shows what a folded
+row is holding — stands down at the `stat` density, because the row now
+prints its covers. Each cover peeks instead, in the same vocabulary
+(`components/log/media/media-peek.tsx`): rest the pointer on a thumbnail in
+the contact strip and a link card peeks as the mini OG card (domain, title,
+description), a video or a deck or an image as its poster with a caption
+saying what pressing it does (`YouTube · Watch`, `Slides · <deck>`). `PeekThumb`
+and `PeekCard` moved there from `commit-embed.tsx`; the row's stacked deck is
+built from the same two, so the strip and the deck cannot drift.
+
 ## Slides in the theater
 
 A deck is the other thing a talk leaves behind, and it belongs on the same
-stage as the recording. `Track` is now `VideoTrack | SlidesTrack`
+stage as the recording. `Track` is `VideoTrack | SlidesTrack`
 (`systems/theater/lib/types.ts`): a `slides` track frames the deck URL in the
 stage's iframe, keeps the theater's title bar, prev / next and playlist rail,
-and has no transport (reveal.js takes the arrow keys inside the frame) and no
-Audio surface (there is nothing to keep listening to — `SurfaceSwitch` hides
-it via `audioAvailable`). `TrackThumb` wears the same `Slides` chip the
-`/works` cover does.
+and has no transport (reveal.js takes the arrow keys inside the frame). It
+minimizes to the Live Activity like anything else on the stage — the pill is
+a place to keep a deck open, not only a place to listen. `TrackThumb` wears
+the same `Slides` chip the `/works` cover does.
 
-`commitAlbum(commit)` builds an album from a commit's videos and decks in
-authored order, and `openAlbum(album, trackIndex)` opens it — landing inside
-the curated albums instead when the video is one of theirs, so a click on
-`/works` still gets the full playlist context, with the commit's own album a
-tab away otherwise. `SlideModal` and `SlidesPlayerProvider` are gone.
+The stage keeps **two libraries** and never shows them together. A recording
+is browsed among recordings: the talk albums (React / Lynx / Personal) the
+`TheaterRegistrar` registers, with an ad-hoc album for a video none of them
+holds. A deck is browsed among decks: `buildSlidesAlbum(locale)` is every deck
+in the log, in date order, registered as the Slides library, and opening any
+deck lands in it at that deck with every other deck a card away.
+`useTheater().openMedia(media, meta)` picks the library from the media's
+kind; the attachment system and the standalone `<Slides />` cover both go
+through it. `SlideModal` and `SlidesPlayerProvider` are gone.
 
 ## The in-app browser
 

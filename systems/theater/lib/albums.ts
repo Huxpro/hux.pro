@@ -18,11 +18,13 @@ import {
   type VideoMedia,
   getCommitThumbnail,
   getMediaThumbnail,
+  isCommitVisibleIn,
   isSlidesMedia,
   isVideoMedia,
   localize,
   normalizeLogData,
   resolveGroupCommits,
+  sortCommitsByDate,
 } from "@/lib/log";
 import { enrichLogDataWithPreviews, type OGSnapshot } from "@/lib/og-enrich";
 import { resolveSlidesEmbedUrl } from "@/components/log/media/slides";
@@ -110,11 +112,6 @@ export function adHocAlbum(track: Track, title: string): Album {
   return { id: `adhoc-${track.id}`, title, tracks: [track] };
 }
 
-/** True for media the theater can put on its stage. */
-export function isTheaterMedia(media: Media): boolean {
-  return isVideoMedia(media) || isSlidesMedia(media);
-}
-
 /**
  * One track for one piece of media, or null for media the stage cannot hold
  * (a link card, an image, a social widget). `id` must be unique within the
@@ -149,26 +146,31 @@ export function mediaToTrack(
 }
 
 /**
- * A commit as an album: every video and deck it carries, in authored order,
- * so prev / next inside the theater walk the commit's own attachments before
- * anything else. Empty when it holds nothing the stage can play.
+ * Every deck in the log, as one album: the theater's second library.
+ *
+ * Decks and recordings are different things to browse. A recording sits in
+ * a talk playlist (React / Lynx / Personal); a deck belongs with the other
+ * decks, in the order they were given. So the stage keeps two libraries and
+ * never mixes them: open a video and the talk albums are the tabs; open a
+ * deck and this is the only album, with every other deck a card away.
  */
-export function commitAlbum(commit: {
-  id: string;
-  title: string;
-  subtitle?: string;
-  href?: string;
-  media: readonly Media[];
-}): Album {
+export function buildSlidesAlbum(locale: Locale): Album | null {
   const tracks: Track[] = [];
-  commit.media.forEach((m, i) => {
-    const track = mediaToTrack(m, {
-      id: `${commit.id}#${i}`,
-      title: commit.title,
-      subtitle: commit.subtitle,
-      href: commit.href,
+  for (const commit of sortCommitsByDate(log.commits as Commit[])) {
+    if (!isCommitVisibleIn(commit, locale)) continue;
+    (commit.media ?? []).forEach((m, i) => {
+      if (!isSlidesMedia(m)) return;
+      const track = mediaToTrack(m, {
+        id: `${commit.id}#${i}`,
+        title: localize(commit.title, locale),
+        subtitle: commitSubtitle(commit),
+        href: "/works",
+      });
+      if (track) tracks.push(track);
     });
-    if (track) tracks.push(track);
-  });
-  return { id: `commit-${commit.id}`, title: commit.title, tracks };
+  }
+  if (tracks.length === 0) return null;
+  return { id: "slides", title: SLIDES_LABEL[locale], tracks };
 }
+
+const SLIDES_LABEL: Record<Locale, string> = { en: "Slides", zh: "幻灯片" };

@@ -10,7 +10,11 @@
  */
 
 import { useState, useEffect } from "react";
-import { ExternalLink as ExternalLinkIcon, Image as ImageIcon } from "lucide-react";
+import {
+  ArrowUpRight,
+  ExternalLink as ExternalLinkIcon,
+  Image as ImageIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchOGData } from "@/lib/og";
 import type { OGData } from "@/lib/og-core";
@@ -65,6 +69,8 @@ export interface LinkCardProps {
    * and the anchor keeps its `href` for them.
    */
   onOpen?: () => void;
+  /** See {@link CardFaceProps.note}: printed on the card, and as its tooltip. */
+  note?: string;
   /** Additional CSS classes */
   className?: string;
 }
@@ -182,6 +188,13 @@ export interface CardFaceProps {
   domainLabel?: string;
   /** "EN" / "中文" when the post is only available in the non-current locale. */
   languageBadge?: "EN" | "中文" | null;
+  /**
+   * A last line under the text, in the caption's voice: where a click on the
+   * card will go when it leaves the site. A page that refuses to be framed
+   * cannot open in the in-app browser window, so the card says "opens in a
+   * new tab" before the click rather than surprising after it.
+   */
+  note?: React.ReactNode;
   className?: string;
   /** Fires when the foreground image resolves (load / cache-warm / error). */
   onImgResolved?: () => void;
@@ -205,6 +218,7 @@ export function CardFace({
   dense = false,
   domainLabel,
   languageBadge = null,
+  note,
   className,
   onImgResolved,
 }: CardFaceProps) {
@@ -352,6 +366,18 @@ export function CardFace({
             {description}
           </p>
         )}
+        {note && (
+          <div
+            className={cn(
+              "flex items-center gap-1 pt-1 text-tertiary-foreground",
+              "font-mono uppercase tracking-wide",
+              compact ? "text-[10px]" : "text-[11px]",
+            )}
+          >
+            <ArrowUpRight className="h-3 w-3 shrink-0" />
+            <span className="truncate">{note}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -370,6 +396,7 @@ export function LinkCard({
   dense = false,
   internal,
   onOpen,
+  note,
   className,
 }: LinkCardProps) {
   const { locale } = useLocale();
@@ -474,6 +501,7 @@ export function LinkCard({
             }
           : undefined
       }
+      title={note}
       className="block"
     >
       <CardFace
@@ -485,6 +513,7 @@ export function LinkCard({
         dense={dense}
         domainLabel={domainLabel}
         languageBadge={languageBadge}
+        note={note}
         className={cn(
           // The row's hover lives on its summary area only (see
           // timeline-commit's `:not(:has([data-row-body]:hover))` gate),

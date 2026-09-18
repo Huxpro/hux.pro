@@ -11,7 +11,7 @@ import {
 } from "react";
 import { usePathname } from "next/navigation";
 import { useOptionalMusic } from "@/systems/music";
-import type { VideoPlatform } from "@/lib/log";
+import type { SlidesMedia, VideoMedia, VideoPlatform } from "@/lib/log";
 import { useInputCapability } from "@/services";
 import {
   readViewport,
@@ -19,7 +19,7 @@ import {
   theaterAvailable as theaterFits,
   type Viewport,
 } from "./lib/geometry";
-import { adHocAlbum } from "./lib/albums";
+import { adHocAlbum, mediaToTrack } from "./lib/albums";
 import {
   enableIframeFullscreen,
   loadYouTubeAPI,
@@ -51,6 +51,14 @@ interface OpenOptions {
   trackIndex?: number;
   /** Force a mode; otherwise theater on tablet+/desktop, PiP on phones. */
   mode?: TheaterMode;
+}
+
+/** What a track shows for the media it came from: the commit's name. */
+export interface MediaMeta {
+  id: string;
+  title: string;
+  subtitle?: string;
+  href?: string;
 }
 
 export interface OpenVideoInput {
@@ -98,13 +106,15 @@ interface TheaterContextValue {
    */
   openVideo: (input: OpenVideoInput) => void;
   /**
-   * Open an album built elsewhere — a commit's own attachments, say — at one
-   * of its tracks. A video the curated albums already hold opens there
-   * instead, so a click on /works lands inside the right playlist with full
-   * navigation context; anything else plays from the given album, with the
-   * curated ones still a tab away.
+   * Open a piece of media on the stage, in the library it belongs to. A video
+   * lands in its curated talk album when it has one (`openVideo`); a deck
+   * lands in the Slides album beside every other deck. The two libraries are
+   * never on screen together — a recording is browsed among recordings, a
+   * deck among decks.
    */
-  openAlbum: (album: Album, trackIndex?: number, mode?: TheaterMode) => void;
+  openMedia: (media: VideoMedia | SlidesMedia, meta: MediaMeta) => void;
+  /** Register the Slides library (every deck in the log) once. */
+  registerSlidesAlbum: (album: Album | null) => void;
   close: () => void;
   minimize: () => void;
   restore: () => void;
@@ -159,6 +169,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   // --- Playlist + mode state ---
   const [albums, setAlbums] = useState<Album[]>([]);
   const [registeredAlbums, setRegisteredAlbums] = useState<Album[]>([]);
+  const [slidesAlbum, setSlidesAlbum] = useState<Album | null>(null);
   const [albumIndex, setAlbumIndex] = useState(0);
   const [trackIndex, setTrackIndex] = useState(0);
   const [mode, setMode] = useState<TheaterMode>("closed");
@@ -487,40 +498,38 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     [registeredAlbums, open],
   );
 
-  /** Where a track already lives in the curated albums, if anywhere. */
-  const findCurated = useCallback(
-    (track: Track): { albumIndex: number; trackIndex: number } | null => {
-      if (track.kind !== "video") return null;
-      for (let a = 0; a < registeredAlbums.length; a++) {
-        const idx = registeredAlbums[a].tracks.findIndex(
-          (tk) =>
-            tk.url === track.url ||
-            (track.videoId && tk.videoId && tk.videoId === track.videoId),
-        );
-        if (idx >= 0) return { albumIndex: a, trackIndex: idx };
-      }
-      return null;
-    },
-    [registeredAlbums],
-  );
+  const registerSlidesAlbum = useCallback((next: Album | null) => {
+    setSlidesAlbum(next);
+  }, []);
 
-  const openAlbum = useCallback(
-    (album: Album, trackIndex = 0, m?: TheaterMode) => {
-      const track = album.tracks[trackIndex];
-      if (!track) return;
-      const curated = findCurated(track);
-      if (curated) {
-        open({ albums: registeredAlbums, ...curated, mode: m });
+  const openMedia = useCallback(
+    (media: VideoMedia | SlidesMedia, meta: MediaMeta) => {
+      if (media.kind === "video") {
+        openVideo({
+          id: meta.id,
+          url: media.url,
+          platform: media.platform,
+          thumbnail: media.thumbnail,
+          title: meta.title,
+          subtitle: meta.subtitle,
+          href: meta.href,
+        });
         return;
       }
-      open({
-        albums: [album, ...registeredAlbums],
-        albumIndex: 0,
-        trackIndex,
-        mode: m,
-      });
+      const track = mediaToTrack(media, meta);
+      if (!track) return;
+      // The Slides library, at this deck — every other deck a card away. A
+      // deck the log does not list (an MDX page's) plays alone.
+      const idx = slidesAlbum
+        ? slidesAlbum.tracks.findIndex((tk) => tk.url === track.url)
+        : -1;
+      if (slidesAlbum && idx >= 0) {
+        open({ albums: [slidesAlbum], albumIndex: 0, trackIndex: idx });
+        return;
+      }
+      open({ albums: [adHocAlbum(track, track.title)], albumIndex: 0, trackIndex: 0 });
     },
-    [findCurated, open, registeredAlbums],
+    [openVideo, slidesAlbum, open],
   );
 
   const close = useCallback(() => {
@@ -639,7 +648,8 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     open,
     openTrack,
     openVideo,
-    openAlbum,
+    openMedia,
+    registerSlidesAlbum,
     close,
     minimize,
     restore,

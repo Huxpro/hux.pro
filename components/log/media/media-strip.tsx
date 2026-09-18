@@ -24,12 +24,15 @@
  * the density the strip exists for.
  */
 
+import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { cn } from "@/lib/utils";
+import { t, useLocale } from "@/services";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import type { Media, StripItem } from "@/lib/log";
-import { isSlidesMedia, isVideoMedia } from "@/lib/log";
+import { isSlidesMedia } from "@/lib/log";
 import { getDomainLabel } from "@/lib/og-core";
 import { ExternalImage } from "./external-image";
+import { mediaPeek } from "./media-peek";
 import { PlayBadge } from "./play-badge";
 
 export interface MediaStripProps {
@@ -61,6 +64,7 @@ function labelFor({ media }: StripItem): string {
 
 export function MediaStrip({ items, set, className }: MediaStripProps) {
   const attachments = useOptionalAttachments();
+  const { locale } = useLocale();
 
   if (items.length === 0) return null;
 
@@ -95,46 +99,68 @@ export function MediaStrip({ items, set, className }: MediaStripProps) {
     >
       {items.map((item, i) => {
         const label = labelFor(item);
+        const index = set ? set.items.indexOf(item.media) : -1;
+        // Where the click will land; a tab means the page refuses to be
+        // framed, and the peek says so before the click does.
+        const leavesSite =
+          attachments && set && index >= 0
+            ? attachments.homeOf(set, index) === "tab"
+            : false;
+        const peek = mediaPeek(item.media, locale, {
+          note: leavesSite ? t(locale, "linkOpensInTab") : undefined,
+        });
 
         return (
-          // An anchor even when the attachment system will take the click:
-          // that keeps ⌘-click, middle-click and "copy link address" working,
-          // and leaves a real destination when the provider isn't mounted.
-          <a
+          // The row itself stops peeking once it prints its covers (see
+          // `showCursorPreview` in TimelineCommit); each cover peeks instead,
+          // in the same vocabulary, showing what it is at a readable size.
+          <MagneticPreview
             key={`${item.media.url}-${i}`}
-            href={item.media.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={label}
-            aria-label={label}
-            onClick={(e) => {
-              // A click on a cover is the cover's business: without this the
-              // row would fold underneath you as you left for the video.
-              // On the anchor rather than the track, so it is the cover that
-              // takes the click and not every pixel of the band around it.
-              e.stopPropagation();
-              // Modified clicks belong to the browser — never hijack them.
-              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-              if (openInSite(item.media)) e.preventDefault();
-            }}
-            className={cn(
-              "group/strip relative shrink-0 snap-start block",
-              // 16:9 at h-14 → ~100px wide, so five fit the content column.
-              // A 56px cover is still big enough to recognize a talk slide or
-              // a product screenshot; 40px is not.
-              "h-14 aspect-video rounded-md overflow-hidden",
-              "border border-border/50 bg-muted/30",
-              "transition-colors duration-200",
-              "hover:border-border focus-visible:border-border",
-            )}
+            preview={peek?.node}
+            enabled={!!peek}
+            panelClassName={peek?.panelClassName}
+            className="shrink-0 snap-start"
           >
-            <ExternalImage
-              src={item.image}
-              alt=""
-              className="block h-full w-full object-cover"
-            />
-            {item.playable && <PlayBadge size="mini" />}
-          </a>
+            {/* An anchor even when the attachment system will take the
+                click: that keeps ⌘-click, middle-click and "copy link
+                address" working, and leaves a real destination when the
+                provider isn't mounted. */}
+            <a
+              href={item.media.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={leavesSite ? `${label} · ${t(locale, "linkOpensInTab")}` : label}
+              aria-label={label}
+              onClick={(e) => {
+                // A click on a cover is the cover's business: without this
+                // the row would fold underneath you as you left for the
+                // video. On the anchor rather than the track, so it is the
+                // cover that takes the click and not every pixel of the band
+                // around it.
+                e.stopPropagation();
+                // Modified clicks belong to the browser — never hijack them.
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                if (openInSite(item.media)) e.preventDefault();
+              }}
+              className={cn(
+                "group/strip relative block",
+                // 16:9 at h-14 → ~100px wide, so five fit the content column.
+                // A 56px cover is still big enough to recognize a talk slide
+                // or a product screenshot; 40px is not.
+                "h-14 aspect-video rounded-md overflow-hidden",
+                "border border-border/50 bg-muted/30",
+                "transition-colors duration-200",
+                "hover:border-border focus-visible:border-border",
+              )}
+            >
+              <ExternalImage
+                src={item.image}
+                alt=""
+                className="block h-full w-full object-cover"
+              />
+              {item.playable && <PlayBadge size="mini" />}
+            </a>
+          </MagneticPreview>
         );
       })}
     </div>

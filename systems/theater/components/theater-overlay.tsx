@@ -340,7 +340,6 @@ export function TheaterOverlay() {
                     )}
                     <SurfaceSwitch
                       current="theater"
-                      audioAvailable={track?.kind !== "slides"}
                       framed={false}
                       onSelect={(surface) => {
                         if (surface === "pip") toPip();

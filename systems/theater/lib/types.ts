@@ -54,7 +54,8 @@ export interface VideoTrack extends TrackBase {
 /**
  * An HTML slide deck (reveal.js). Plays in a plain iframe on the stage; the
  * deck drives itself — arrow keys, taps — so the theater draws no transport
- * for it, and no audio surface: there is nothing to keep listening to.
+ * for it. It still minimizes to the Live Activity like anything else on the
+ * stage: the pill is a place to keep a deck open, not only a place to listen.
  */
 export interface SlidesTrack extends TrackBase {
   kind: "slides";

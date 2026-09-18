@@ -17,11 +17,11 @@ import { buildIdentityProfile, type IdentityProfile } from "./lib/profile";
 // =============================================================================
 // IdentityCardProvider — the identity card's state.
 //
-// One card, mounted once (components/identity-card.tsx), opened from any
-// `<handle>`, `Role:` field or role row on the site: `open({ identityId,
-// roleId, anchor })`. The anchor is the element that was pressed — on a
-// desktop the card is a popover hanging off it, the GitHub hovercard; on a
-// phone it is a sheet and the anchor is not used.
+// One card, mounted once (components/identity-card.tsx), opened by a tap on
+// any `<handle>`, `Role:` field or role row where there is no pointer to
+// hover with: `open({ identityId, roleId, anchor })`. On a desktop the same
+// profile is a hover peek (components/identity-hover.tsx) and nothing here
+// is called; the anchor is for the anchored popover a touch tablet gets.
 //
 // The profile is derived from the committed log (content/log.json) rather
 // than passed in, so a trigger needs to know nothing but the two ids the
@@ -30,6 +30,22 @@ import { buildIdentityProfile, type IdentityProfile } from "./lib/profile";
 
 /** The full log, flattened once for the lifetime of the module. */
 const LOG: LogData = normalizeLogData(logJson as unknown as RawLogData);
+
+/**
+ * The profile for an identity, derived on demand. Used by the hover peek,
+ * which mounts only while the pointer is over a handle, so the derivation
+ * happens for the one identity being looked at rather than for every row.
+ */
+export function useIdentityProfile(
+  identityId: string,
+  roleId: string | undefined,
+): IdentityProfile | null {
+  const { locale } = useLocale();
+  return useMemo(
+    () => buildIdentityProfile(LOG, identityId, roleId, locale),
+    [identityId, roleId, locale],
+  );
+}
 
 export interface OpenIdentityCard {
   identityId: string;

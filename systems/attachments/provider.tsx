@@ -8,10 +8,13 @@ import {
   useState,
 } from "react";
 import { useTransitionRouter } from "next-view-transitions";
-import { useLocale } from "@/services";
+import { showCustomToast } from "@/components/ui/system-sonner";
+import { SystemToast } from "@/components/ui/system-toast";
+import { getDomainLabel } from "@/lib/og-core";
+import { t, useLocale } from "@/services";
+import { ArrowUpRight } from "lucide-react";
 import { useBreakpointValue } from "@/systems/surface";
 import { useOptionalTheater } from "@/systems/theater";
-import { commitAlbum, isTheaterMedia } from "@/systems/theater/lib/albums";
 import { useOptionalWindows } from "@/systems/windows";
 import { homeFor, linkTarget, nativeHomeFor, type HomeContext } from "./lib/policy";
 import type { AttachmentHome, AttachmentSet } from "./lib/types";
@@ -101,13 +104,15 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
       switch (home) {
         case "theater": {
           if (!theater) return;
-          // The theater's album is the commit's playable media only, so the
-          // item's index in the set is not its index in the album.
-          const album = commitAlbum({ ...set, media: set.items });
-          const trackIndex = set.items
-            .slice(0, index)
-            .filter(isTheaterMedia).length;
-          theater.openAlbum(album, trackIndex);
+          if (media.kind !== "video" && media.kind !== "slides") return;
+          // The stage picks the library: a recording lands among the talks,
+          // a deck among the decks.
+          theater.openMedia(media, {
+            id: `${set.id}#${index}`,
+            title: set.title,
+            subtitle: set.subtitle,
+            href: set.href,
+          });
           setIsOpen(false);
           return;
         }
@@ -126,14 +131,33 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
         }
         case "tab":
         default: {
+          const url = linkTarget(media, locale);
           // The surface stays: coming back from the tab finds the page as it
           // was left, which is the point of an in-app sheet.
-          window.open(linkTarget(media, locale), "_blank", "noopener,noreferrer");
+          window.open(url, "_blank", "noopener,noreferrer");
+          // A page that could have had a window but refused to be framed
+          // says why it left: the reader asked the site to open something
+          // and the browser took it, which reads as a glitch unless named.
+          if (
+            !compact &&
+            media.kind === "link" &&
+            media.preview?.frame === "deny"
+          ) {
+            const host = getDomainLabel(url);
+            showCustomToast(
+              <SystemToast
+                icon={ArrowUpRight}
+                title={t(locale, "linkOpensInTab")}
+                note={t(locale, "linkFrameDenied").replace("{host}", host)}
+              />,
+              { id: `frame-denied:${host}`, duration: 4000 },
+            );
+          }
           return;
         }
       }
     },
-    [theater, windows, router, locale],
+    [theater, windows, router, locale, compact],
   );
 
   const open = useCallback(

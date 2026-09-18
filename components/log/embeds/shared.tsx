@@ -5,9 +5,9 @@
  * Used by TimelineCommit and CommitCompact.
  */
 
-import { useState } from "react";
 import { Link } from "next-view-transitions";
 import { cn } from "@/lib/utils";
+import { IdentityHover } from "@/systems/identity";
 import type { Byline } from "../bylines";
 import {
   ExternalLink,
@@ -188,9 +188,6 @@ export function AuthorFields({
   commit,
   className,
 }: AuthorFieldsProps) {
-  const [roleOpen, setRoleOpen] = useState(false);
-  const roleDescription = byline?.expanded.description;
-
   const role = byline?.expanded.title && (
     <>
       {byline.expanded.title}
@@ -198,6 +195,26 @@ export function AuthorFields({
       {byline.expanded.company}
     </>
   );
+
+  /**
+   * A field value that stands for an identity — the handle, the role — is
+   * the identity card's trigger (systems/identity): hover peeks the profile
+   * on a desktop, a tap opens it as a sheet on a phone. The affordance is the
+   * text itself; a control bolted onto a line of prose reads as chrome, and
+   * this block has none.
+   */
+  const identity = (children: React.ReactNode) =>
+    byline ? (
+      <IdentityHover
+        identityId={byline.identityId}
+        roleId={byline.roleId}
+        className="text-tertiary-foreground"
+      >
+        {children}
+      </IdentityHover>
+    ) : (
+      children
+    );
 
   return (
     <div
@@ -251,7 +268,7 @@ export function AuthorFields({
 
       <span className="text-tertiary-foreground">Author:</span>
       <span className="text-tertiary-foreground">
-        &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;
+        {identity(<>&lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;</>)}
       </span>
 
       {role && (
@@ -259,45 +276,19 @@ export function AuthorFields({
           <span className="text-tertiary-foreground">Role:</span>
           <span className="text-tertiary-foreground">
             {/*
-              The role's own description opens from here rather than printing
-              with it. It is tenure prose — the same two lines under all twelve
-              commits of a tenure — so printing it always was twelve copies,
-              and printing it on the cluster head only made it look arbitrary:
-              rows that differed in nothing a reader can see had it or didn't.
-              Behind the field it is neither. Every role behaves the same way,
-              and the only asymmetry left is honest — a role with nothing to
-              say carries no affordance to open.
+              The role's prose — its tenure, the other roles under the same
+              handle, what was signed with it — is the identity card behind
+              this field rather than a disclosure under it. It is tenure
+              prose, the same under all twelve commits of a tenure, so it
+              belongs to the identity and not to the row.
             */}
-            {roleDescription ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setRoleOpen((v) => !v);
-                }}
-                aria-expanded={roleOpen}
-                className="text-left transition-colors hover:text-foreground"
-              >
-                {role}
-              </button>
-            ) : (
-              role
-            )}
+            {identity(role)}
             {byline.expanded.location && (
               <>
                 <span className="text-quaternary-foreground"> · </span>
                 {byline.expanded.location}
               </>
             )}
-          </span>
-        </>
-      )}
-
-      {roleOpen && roleDescription && (
-        <>
-          <span />
-          <span className="mt-1 leading-relaxed text-tertiary-foreground">
-            {roleDescription}
           </span>
         </>
       )}

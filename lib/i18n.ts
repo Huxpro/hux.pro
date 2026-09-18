@@ -312,11 +312,12 @@ export const translations = {
     // Attachment surface (see systems/attachments)
     attachmentsClose: "Close attachments",
     // Identity card (see systems/identity)
-    identityCardTitle: "identity",
     identityCardClose: "Close identity card",
     identityOtherRoles: "Also as this identity",
     identityCommits: "commits signed",
-    identityViewLog: "View in log",
+    // Links that leave the site (see systems/attachments)
+    linkOpensInTab: "Opens in a new tab",
+    linkFrameDenied: "{host} does not allow being shown in a window",
 
     // Prompts page
     promptsTitle: "System Prompts",
@@ -599,11 +600,12 @@ export const translations = {
     // Attachment surface (see systems/attachments)
     attachmentsClose: "关闭附件",
     // Identity card (see systems/identity)
-    identityCardTitle: "身份",
     identityCardClose: "关闭身份卡片",
     identityOtherRoles: "同一身份下的其他职位",
     identityCommits: "条署名提交",
-    identityViewLog: "在日志中查看",
+    // Links that leave the site (see systems/attachments)
+    linkOpensInTab: "在新标签页打开",
+    linkFrameDenied: "{host} 不允许在窗口中显示",
 
     // Prompts page
     promptsTitle: "系统提示词",

@@ -1,9 +1,8 @@
 export * from "./types";
 export {
   buildTalkAlbums,
+  buildSlidesAlbum,
   adHocAlbum,
-  commitAlbum,
-  isTheaterMedia,
   mediaToTrack,
   ALBUM_GROUP_IDS,
 } from "./albums";

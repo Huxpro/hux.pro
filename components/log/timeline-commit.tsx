@@ -28,7 +28,8 @@ import {
 import { MediaRenderer } from "./media";
 import { MediaStrip } from "./media/media-strip";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
-import { useOptionalIdentityCard } from "@/systems/identity";
+import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
+import { useInputCapability } from "@/services";
 
 import { TYPE } from "@/lib/typography";
 /**
@@ -142,6 +143,7 @@ export function TimelineCommit({
 }: TimelineCommitProps) {
   const attachments = useOptionalAttachments();
   const identityCard = useOptionalIdentityCard();
+  const { magneticPreviewEnabled } = useInputCapability();
   const isEvent = data.type === "event";
 
   // Topics and stats are authored but not printed (see the expanded body),
@@ -190,10 +192,9 @@ export function TimelineCommit({
     setIsExpanded((prev) => !prev);
   }, [hasExpandableContent]);
 
-  // The identity card (systems/identity): who I was when I committed this.
-  // Opened from the handle, the `Role:` field, and — for a role row, which
-  // is nothing but its identity — the row itself, anchored to what was
-  // pressed so the desktop popover hangs off it.
+  // A role row is nothing but its identity, so with a pointer its hover peek
+  // is the identity card (see `buildCommitPreview`), and with a finger a tap
+  // opens the same card as a sheet instead of unfolding two lines of prose.
   const openIdentity = useCallback(
     (e: React.SyntheticEvent<HTMLElement>) => {
       if (!identityCard || !byline) return;
@@ -206,7 +207,8 @@ export function TimelineCommit({
     },
     [identityCard, byline],
   );
-  const rowOpensIdentity = data.type === "role" && !!byline && !!identityCard;
+  const rowOpensIdentity =
+    data.type === "role" && !!byline && !!identityCard && !magneticPreviewEnabled;
 
   const rowOnClick = inspecting
     ? onInspectCommit
@@ -234,9 +236,12 @@ export function TimelineCommit({
   // line when there is one and the meta line when there is not.
   const signsOnMediaLine = showStrip && !!byline;
   // A hover panel repeating, on top of the row, what the row now prints
-  // inside itself is the one thing `stat` makes redundant.
+  // inside itself is the one thing `stat` makes redundant. A role row is the
+  // exception: its peek is the identity card, which no density prints.
   const showCursorPreview =
-    !!cursorPreview && !isExpanded && !showStrip && !showStatDescription;
+    !!cursorPreview &&
+    !isExpanded &&
+    (data.type === "role" || (!showStrip && !showStatDescription));
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
@@ -794,7 +799,10 @@ export function TimelineCommit({
  * each restating the same employer is noise, and the rail already draws the
  * tenure. `standDown` is how a slot yields to another that is printing the
  * same handle right now; it fades rather than unmounts, so the line beneath
- * never moves.
+ * never moves — and a faded mark takes no pointer.
+ *
+ * The mark is the identity card's trigger (systems/identity): hover peeks
+ * the profile, a tap where there is no pointer opens it as a sheet.
  */
 function Handle({
   byline,
@@ -807,18 +815,20 @@ function Handle({
 }) {
   if (!byline) return null;
   return (
-    <span
-      className={cn(
+    <IdentityHover
+      identityId={byline.identityId}
+      roleId={byline.roleId}
+      wrapperClassName={cn(
         "shrink-0 transition-opacity duration-200",
-        className,
         standDown
-          ? "opacity-0"
+          ? "opacity-0 pointer-events-none"
           : byline.isClusterHead
             ? "opacity-100"
             : "opacity-0 group-hover:opacity-100",
       )}
+      className={className}
     >
       {byline.handle}
-    </span>
+    </IdentityHover>
   );
 }

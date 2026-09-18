@@ -17,7 +17,6 @@ import { cn } from "@/lib/utils";
 import type { SlidesMedia } from "@/lib/log";
 import { resolveSlidesEmbedUrl } from "@/lib/slides";
 import { useOptionalTheater } from "@/systems/theater";
-import { mediaToTrack } from "@/systems/theater/lib/albums";
 import { ExternalImage } from "./external-image";
 import { PlayBadge } from "./play-badge";
 
@@ -86,14 +85,11 @@ export function Slides({
     // viewport can hold one — a deck in a phone's PiP is unreadable — and
     // the deck's own tab otherwise.
     if (theater?.theaterAvailable) {
-      const track = mediaToTrack(
+      theater.openMedia(
         { kind: "slides", url, thumbnail, title },
         { id: url, title: label },
       );
-      if (track) {
-        theater.openAlbum({ id: `adhoc-${url}`, title: label, tracks: [track] });
-        return;
-      }
+      return;
     }
     openSlidesInNewTab(embedUrl);
   };
