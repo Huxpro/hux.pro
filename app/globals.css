@@ -1336,11 +1336,16 @@ html.dragging * {
 
 /* =============================================================================
    System chrome — `.system-chrome`
-   Navigation, the command bar, the dock, edit controls: these are the OS's
-   own UI, not a document. No text selection, no long-press callout, no grey
-   tap flash — a press on them is a gesture, never an attempt to grab text.
-   Content (prose, the /writing list, /works rows) deliberately keeps the
-   browser defaults so a long-press on a link still previews it.
+   Navigation, the command bar, the dock, edit controls, secondary surfaces:
+   these are the OS's own UI, not a document. No text selection, no long-press
+   callout, no grey tap flash — a press on them is a gesture, never an attempt
+   to grab text.
+
+   Decorative System UI that is not chrome (the greeting, poetic index titles,
+   widget cards) uses Tailwind `select-none` for the same selection rule,
+   without also killing link previews / tap highlight. Content (prose, the
+   /writing list, /works rows, article titles) keeps the browser defaults so a
+   long-press on a link still previews it and copy still works.
    ============================================================================= */
 
 .system-chrome {
@@ -1355,6 +1360,29 @@ html.dragging * {
 .system-chrome :is(input, textarea, [contenteditable="true"]) {
   -webkit-user-select: text;
   user-select: text;
+}
+
+/* =============================================================================
+   System surface — `.system-surface`
+   The home screen is one OS composition, not a document. iOS Safari skips
+   `user-select: none` on individual labels and expands a long-press into a
+   full-page selection (Copy / Find Selection across the viewport). Lock the
+   surface so the selection has nowhere to grow; `useLockTextSelection` is the
+   matching JS for WebKit ignoring the CSS. (A descendant `*` rule is omitted
+   on purpose: the CSS pipeline drops that selector. Inheritance + the JS
+   hook cover children.)
+   ============================================================================= */
+
+.system-surface {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.system-surface :is(input, textarea, [contenteditable="true"]) {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 
 /* =============================================================================

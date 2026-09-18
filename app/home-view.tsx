@@ -27,6 +27,7 @@ import {
   type HeroExit,
 } from "@/components/ui/hero-exit";
 import { useHeroFade } from "@/components/ui/use-hero-fade";
+import { useLockTextSelection } from "@/components/ui/use-lock-text-selection";
 import type { BlogPostSummary } from "@/lib/content";
 import logData from "@/content/log.json";
 import type { Commit as CommitData, Group, RawLogData } from "@/lib/log";
@@ -158,6 +159,8 @@ function WidgetGrid({
 export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
   const heroExit = useHeroExit();
   const heroFadeStyle = useHeroFade(heroExit === "fade");
+  // iOS will otherwise expand a long-press into a full-page selection.
+  useLockTextSelection();
 
   return (
     // The home screen is one composition (identifier → greeting → widget grid),
@@ -169,7 +172,7 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
     // Auto margins (rather than `justify-center`) are what make that safe: an
     // overflowing composition still starts at the top edge instead of being
     // clipped above it.
-    <main className="mx-auto flex min-h-svh w-full flex-col px-6 pt-16 sm:pt-24 pb-32 sm:pb-40">
+    <main className="system-surface select-none mx-auto flex min-h-svh w-full flex-col px-6 pt-16 sm:pt-24 pb-32 sm:pb-40">
       <div className="my-auto w-full">
         <div className="mx-auto max-w-[680px]">
           <HeaderZone
@@ -180,7 +183,11 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
             // is the zone read off the top band whose ink may flip; the app folder is
             // the other, read off the middle band (see docs/system-legibility.md).
             data-hero-exit={heroExit}
-            className={heroZoneClassName(heroExit, !heroFadeStyle, "ink-bare")}
+            className={heroZoneClassName(
+              heroExit,
+              !heroFadeStyle,
+              "ink-bare select-none"
+            )}
             style={heroZoneStyle(heroExit, heroFadeStyle)}
           >
             <div className="h-11 flex items-start justify-center">

@@ -1,9 +1,11 @@
 import { cn } from "@/lib/utils";
 import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 
+/** System-voice heading: the greeting, index titles. Not a document title. */
 export const TITLE_POETIC =
-  "font-serif text-3xl sm:text-4xl tracking-tight";
+  "font-serif text-3xl sm:text-4xl tracking-tight select-none cursor-default";
 
+/** Article / reader heading: content, so text stays selectable. */
 export const TITLE_READER =
   "font-sans text-xl sm:text-2xl font-medium leading-tight";
 

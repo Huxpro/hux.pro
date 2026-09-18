@@ -163,6 +163,14 @@ export const translations = {
     wallpaperPlacementWidget: "Widget",
     wallpaperPlacementOff: "Off",
     wallpaperFooterNote: "Wallpapers are Apple's; rights remain theirs.",
+    wallpaperShuffle: "Shuffle",
+    wallpaperShuffleMeta: "random order",
+    wallpaperLoop: "Loop",
+    wallpaperLoopMeta: "in order",
+    wallpaperPlayFrequency: "Frequency",
+    wallpaperPlayEveryVisit: "On Visit",
+    wallpaperPlayEveryHourly: "Hourly",
+    wallpaperPlayEveryDaily: "Daily",
 
     // Sun theme — the theme following sunrise and sunset
     settingsSolarTheme: "Follow the Sun",
@@ -420,6 +428,14 @@ export const translations = {
     wallpaperPlacementWidget: "卡片",
     wallpaperPlacementOff: "关闭",
     wallpaperFooterNote: "壁纸版权归 Apple 所有。",
+    wallpaperShuffle: "随机",
+    wallpaperShuffleMeta: "乱序更换",
+    wallpaperLoop: "循环",
+    wallpaperLoopMeta: "按顺序更换",
+    wallpaperPlayFrequency: "更换频率",
+    wallpaperPlayEveryVisit: "每次访问",
+    wallpaperPlayEveryHourly: "每小时",
+    wallpaperPlayEveryDaily: "每天",
 
     // Sun theme — the theme following sunrise and sunset
     settingsSolarTheme: "跟随日出日落",

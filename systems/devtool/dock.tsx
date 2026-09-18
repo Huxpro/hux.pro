@@ -249,7 +249,7 @@ function DevtoolPill() {
       // The window's own curve: the pill is that window collapsed.
       transition={WINDOW_SPRING}
       style={{ ...(isDraggable ? motionStyle : {}), zIndex: PILL_Z }}
-      className="pointer-events-none fixed top-4 right-4 origin-top-right"
+      className="system-chrome pointer-events-none fixed top-4 right-4 origin-top-right"
     >
       <button
         onClick={open}

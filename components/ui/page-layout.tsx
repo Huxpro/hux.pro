@@ -140,7 +140,7 @@ export function PageLayout({
         <>
           <HeaderZone
             data-hero-exit={heroExit}
-            className={heroZoneClassName(heroExit, !heroFadeStyle)}
+            className={heroZoneClassName(heroExit, !heroFadeStyle, "select-none")}
             style={heroZoneStyle(heroExit, heroFadeStyle)}
           >
             <div className="h-11 flex items-start">
