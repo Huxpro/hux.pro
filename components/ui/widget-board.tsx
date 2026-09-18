@@ -232,6 +232,7 @@ export function WidgetBoard({
   );
 
   const spansRef = useRef(spans);
+  const ignoreClickUntilRef = useRef(0);
   useEffect(() => {
     spansRef.current = spans;
   }, [spans]);
@@ -299,6 +300,7 @@ export function WidgetBoard({
       if (e.key === "Escape") setEditing(false);
     };
     const onClick = (e: MouseEvent) => {
+      if (Date.now() < ignoreClickUntilRef.current) return;
       const target = e.target as HTMLElement | null;
       if (target?.closest("[data-widget-id], [data-edit-controls]")) return;
       setEditing(false);
@@ -383,6 +385,7 @@ export function WidgetBoard({
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
         if (armed) {
+          ignoreClickUntilRef.current = Date.now() + 400;
           commitSpans({ ...spansRef.current, [id]: last });
         }
         setActiveId(null);
@@ -437,6 +440,7 @@ export function WidgetBoard({
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
+        ignoreClickUntilRef.current = Date.now() + 400;
         commitSpans({ ...spansRef.current, [id]: last });
         setActiveId(null);
         setLiveSpan(null);
