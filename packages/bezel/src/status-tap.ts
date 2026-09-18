@@ -13,53 +13,22 @@ import { getScrollContainer, onPageScroll } from "./scroll";
 // container can never be handed the gesture itself.
 //
 // The window can. <body> is fixed at inset 0, so the document has nothing to
-// move: a few pixels of window scroll are invisible. While the page is away
-// from the top, park the window a few pixels down. A status-bar tap is then
-// Safari scrolling that back to 0, with no finger on the glass — which is a
-// signature nothing else on the page produces. Read it, and take the container
-// to the top ourselves.
+// move: a couple of pixels of window scroll are invisible. While the page is
+// away from the top, park the window there. A status-bar tap is then Safari
+// scrolling it back to 0, with no finger on the glass — a signature nothing
+// else on the page produces. Read it, and take the container to the top.
 //
-// Everything hard about this is timing, and there are three of them:
-//
-//  1. Scroll events are asynchronous, and a frame can carry two of them — the
-//     container's and the window's. So nothing here acts inside a scroll
-//     handler. They only schedule `sync`, which runs in a rAF callback: the
-//     rendering loop fires a frame's scroll events BEFORE its animation frame
-//     callbacks, so by the time `sync` runs it can see both, in any order they
-//     arrived. Acting inside the handlers instead means the container's
-//     handler re-parks the window before the window's handler has run, and the
-//     tap is swallowed — intermittently, depending on which scroller moved
-//     first that frame.
-//
-//  2. The tap almost always lands DURING a fling. `scrollTop` written each
-//     frame is then fighting momentum that the compositor is still applying,
-//     and the page lurches. So the fling is ended first — one frame of
-//     `overflow: hidden` drops the container out of its scrolling state — and
-//     the animation re-bases itself if the container moves under it anyway.
-//
-//  3. The park is a REQUEST, not a move. iOS scrolls the main frame in the UI
-//     process, so `window.scrollTo` is asked for on one side of a process
-//     boundary and `window.scrollY` keeps reporting the old offset until the
-//     answer comes back. Reading it straight afterwards and giving up cancels
-//     the park that was on its way, every time, and the gesture never arms at
-//     all. So the park is confirmed late, and only a confirmed park counts —
-//     an unconfirmed one must never be read as a tap.
-//
-//  4. Being armed means <html> is not `overflow: hidden` for that time, and
-//     `overflow: hidden` on <html> is exactly how an overlay library decides
-//     the page is already locked and stands down (Base UI reads the computed
-//     `overflow-y` of the viewport scroller). So an open sheet and an armed
-//     window are mutually exclusive: the moment anything writes an inline
-//     overflow onto <html>, this stands down and gives the page back, and it
-//     re-arms when that clears. A park that does not stick is never fatal
-//     either — it backs off and tries again.
+// Everything hard about this is timing, and each piece of it is commented
+// where it happens: `sync` (one decision per frame), `park` (the park is a
+// request, not a move), `startReturn` (the fling) and `lockedElsewhere` (armed
+// and locked are mutually exclusive). The README has the same four in prose.
 // =============================================================================
 
 /** A window offset at most this far down is the top. */
 const AT_TOP_PX = 0.25;
 /** A park that lands at least this far down counts as stuck. */
 const PARKED_PX = 0.75;
-/** How long the platform is given to answer a park before it is a failure. */
+/** How long the platform is given to answer a park before it did not land. */
 const PARK_CONFIRM_MS = 250;
 /**
  * A container found this much FURTHER down the page than it was left was moved
@@ -68,55 +37,33 @@ const PARK_CONFIRM_MS = 250;
  * the page moving, and re-basing on it would fight nothing at all.
  */
 const DRIFT_PX = 2;
-/** After a touch, this long belongs to the touch, not to a status-bar tap. */
-const TOUCH_GRACE_MS = 250;
 /**
- * After the viewport changes, this long belongs to it. A rotation or a
- * keyboard being dismissed can take the window back to 0 on its own, and that
- * is not somebody asking for the top of the page.
+ * After a finger lifts, or the viewport changes size, this long still belongs
+ * to it. Both take the window back to 0 by themselves, and neither of them is
+ * somebody asking for the top of the page.
  */
-const VIEWPORT_GRACE_MS = 400;
-/** Parks that may fail in a row before standing down for `BACKOFF_MS`. */
-const FAILURE_LIMIT = 3;
-const BACKOFF_MS = 5000;
+const GRACE_MS = 350;
 /** The return never runs longer than this, whatever the frames do. */
 const MAX_RETURN_MS = 1200;
 
-const TOUCH_EVENTS = ["touchstart", "touchmove", "touchend", "touchcancel"] as const;
+const TOUCH_EVENTS = ["touchstart", "touchend", "touchcancel"] as const;
 
 // The curve the chrome morph uses — cubic-bezier(0.32, 0.72, 0, 1), iOS's fast
 // start and long settle. Solved here rather than handed to CSS because what
-// moves is `scrollTop`, which no transition can animate.
-const EASE_X1 = 0.32;
-const EASE_Y1 = 0.72;
-const EASE_X2 = 0;
-const EASE_Y2 = 1;
-
-function curve(t: number, p1: number, p2: number): number {
-  const c = 3 * p1;
-  const b = 3 * (p2 - p1) - c;
-  const a = 1 - c - b;
-  return ((a * t + b) * t + c) * t;
-}
-
-function slope(t: number, p1: number, p2: number): number {
-  const c = 3 * p1;
-  const b = 3 * (p2 - p1) - c;
-  const a = 1 - c - b;
-  return (3 * a * t + 2 * b) * t + c;
-}
+// moves is `scrollTop`, which no transition can animate. Both control points
+// are constants, so the polynomials are too: x(t), dx/dt and y(t) for
+// P1 = (0.32, 0.72) and P2 = (0, 1).
+const xAt = (t: number) => ((1.96 * t - 1.92) * t + 0.96) * t;
+const dxAt = (t: number) => (5.88 * t - 3.84) * t + 0.96;
+const yAt = (t: number) => ((0.16 * t - 1.32) * t + 2.16) * t;
 
 /** The curve's y for a fraction of its duration. */
 function ease(fraction: number): number {
+  // dx/dt is 5.88t² - 3.84t + 0.96: no real root, and never below 0.333 on
+  // [0, 1]. Newton cannot stall on it, and five steps land inside 1e-5.
   let t = fraction;
-  for (let i = 0; i < 6; i += 1) {
-    const error = curve(t, EASE_X1, EASE_X2) - fraction;
-    if (Math.abs(error) < 1e-5) break;
-    const d = slope(t, EASE_X1, EASE_X2);
-    if (Math.abs(d) < 1e-6) break;
-    t -= error / d;
-  }
-  return curve(Math.min(1, Math.max(0, t)), EASE_Y1, EASE_Y2);
+  for (let i = 0; i < 5; i += 1) t -= (xAt(t) - fraction) / dxAt(t);
+  return yAt(Math.min(1, Math.max(0, t)));
 }
 
 /** How long a return of `distance` px takes: a short floor, a gentle cap. */
@@ -126,14 +73,17 @@ function durationFor(distance: number): number {
 
 /**
  * Whether this is a platform with the gesture at all. Everywhere else the park
- * would buy nothing and <html> is better left alone — and container scroll is
- * reachable off iOS through the devtool, so this cannot be assumed.
+ * buys nothing and a wheel scroll to 0 with no finger would read as a tap —
+ * and container scroll is reachable off iOS through the devtool, so it cannot
+ * be assumed. The same test as the site's `isIOSBrowser`, which a package with
+ * no dependency on the site cannot import.
  */
 function hasStatusBarTap(): boolean {
   if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent;
-  // iPadOS 13+ calls itself a Mac. The touch points give it away.
-  return /iPhone|iPod|iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  return (
+    /iP(hone|ad|od)/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
 }
 
 /**
@@ -150,15 +100,12 @@ export function enableStatusTapToTop(): () => void {
   /** A return is running; it owns both scrollers until it stops. */
   let returning = false;
   let live = true;
-  let touches = 0;
-  let touchedAt = -Infinity;
-  let resizedAt = -Infinity;
-  let failures = 0;
-  let quietUntil = 0;
-  /** A park has been asked for and not yet answered. */
+  /** Until when a window scroll belongs to a finger. Infinity while one is down. */
+  let touchedUntil = 0;
+  /** Until when it belongs to the viewport having changed size. */
+  let resizedUntil = 0;
+  let viewport = `${window.innerWidth}x${window.innerHeight}`;
   let parkPending = 0;
-  let viewportWidth = window.innerWidth;
-  let viewportHeight = window.innerHeight;
   let syncFrame = 0;
   let stepFrame = 0;
   let watchdog = 0;
@@ -167,89 +114,68 @@ export function enableStatusTapToTop(): () => void {
   let heldOverflow = "";
 
   const now = () => performance.now();
-  const windowTop = () => window.scrollY || root.scrollTop || 0;
-  const touchedRecently = () => touches > 0 || now() - touchedAt < TOUCH_GRACE_MS;
-  const resizedRecently = () => now() - resizedAt < VIEWPORT_GRACE_MS;
-  const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const windowTop = () => window.scrollY;
+  /** Something other than the status bar was just active. */
+  const busy = () => now() < touchedUntil || now() < resizedUntil;
 
   /**
    * Someone else is holding <html>'s overflow — a scroll lock behind a sheet,
-   * most likely. Their inline style beats the stylesheet either way, so the
-   * only sane move is to stand down until it clears.
+   * most likely. Being armed is what stops the page reading as locked, so
+   * armed and locked are mutually exclusive, and their inline style beats the
+   * stylesheet anyway. Stand down until it clears.
    */
   const lockedElsewhere = () => /hidden|clip/.test(root.style.overflowY || root.style.overflow);
 
-  const forgetPendingPark = () => {
-    if (!parkPending) return;
+  /**
+   * Give the window back. `toTop` takes it there too, while the range still
+   * exists to move in — a park that never landed has nothing to undo.
+   */
+  const disarm = (toTop = true) => {
+    armed = false;
     clearTimeout(parkPending);
     parkPending = 0;
-  };
-
-  /** Give the window back: no park, and <html> reads as locked again. */
-  const disarm = () => {
-    armed = false;
-    forgetPendingPark();
-    if (windowTop() > 0) window.scrollTo(0, 0);
+    if (toTop && windowTop() > 0) window.scrollTo(0, 0);
     root.removeAttribute(STATUS_TAP_ATTRIBUTE);
   };
 
-  /** The park landed: from here on, a window at 0 is the gesture. */
-  const confirmPark = () => {
-    forgetPendingPark();
-    armed = true;
-    failures = 0;
-  };
-
-  /** The park never landed. Give <html> back and decide whether to retry. */
-  const abandonPark = () => {
-    forgetPendingPark();
-    armed = false;
-    root.removeAttribute(STATUS_TAP_ATTRIBUTE);
-    failures += 1;
-    if (failures >= FAILURE_LIMIT) {
-      // Somewhere the window cannot be parked at all. Stop asking for a while
-      // rather than for the session: a lock, a sheet, a rotation all pass.
-      failures = 0;
-      quietUntil = now() + BACKOFF_MS;
-      return;
-    }
-    schedule();
-  };
-
-  /** Hold the window a few pixels down, so Safari has somewhere to scroll. */
+  /** Hold the window a couple of pixels down, so Safari has somewhere to scroll. */
   const park = () => {
     if (armed) {
       if (windowTop() >= PARKED_PX) return;
-      // The park slipped — a resize, a lock that came and went. Take it again.
-      armed = false;
+      armed = false; // the park slipped — a resize, a lock that came and went
     }
     if (parkPending) {
-      // Asked for, not yet answered. The answer is a window scroll, which
-      // brings us back here; until then nothing is armed, so nothing can be
-      // mistaken for the gesture.
-      if (windowTop() >= PARKED_PX) confirmPark();
+      // Asked for, not answered yet. Nothing is armed until it is, so nothing
+      // in the meantime can be mistaken for the gesture.
+      if (windowTop() >= PARKED_PX) {
+        clearTimeout(parkPending);
+        parkPending = 0;
+        armed = true;
+      }
       return;
     }
-    if (now() < quietUntil) return;
 
     root.setAttribute(STATUS_TAP_ATTRIBUTE, "");
-    // The scroll range arrives with the pseudo-element, i.e. with layout.
+    // The scroll range arrives with the rule, i.e. with layout.
     void root.offsetHeight;
     window.scrollTo(0, STATUS_TAP_PARK_PX);
 
     // Synchronous where the main frame is scrolled in this process. On iOS it
-    // is not: `scrollY` is still 0 here and the move is in flight, so keep the
-    // attribute — taking it back now would cancel the park itself — and take
-    // the answer when it arrives, or time out waiting for it.
+    // is not: the move is a request across a process boundary and `scrollY` is
+    // still 0 on this line, so keep the attribute — taking it back now cancels
+    // the park itself — and take the answer when it arrives.
     if (windowTop() >= PARKED_PX) {
-      confirmPark();
+      armed = true;
       return;
     }
     parkPending = window.setTimeout(() => {
       parkPending = 0;
       if (!live) return;
-      if (windowTop() >= PARKED_PX) confirmPark();
-      else abandonPark();
+      if (windowTop() >= PARKED_PX) armed = true;
+      // Nothing to retry against, and no timer to do it on: every reason a
+      // park fails — a lock, a sheet, a rotation — ends in a scroll, a
+      // mutation or a resize, and each of those comes back through `sync`.
+      else disarm(false);
     }, PARK_CONFIRM_MS);
   };
 
@@ -258,20 +184,15 @@ export function enableStatusTapToTop(): () => void {
     if (!held) return;
     held.style.overflowY = heldOverflow;
     held = null;
-    heldOverflow = "";
   };
 
   /** End the return, wherever the page got to, and go back to parking. */
   const stop = () => {
     returning = false;
-    if (stepFrame) {
-      cancelAnimationFrame(stepFrame);
-      stepFrame = 0;
-    }
-    if (watchdog) {
-      clearTimeout(watchdog);
-      watchdog = 0;
-    }
+    cancelAnimationFrame(stepFrame);
+    stepFrame = 0;
+    clearTimeout(watchdog);
+    watchdog = 0;
     release();
     schedule();
   };
@@ -282,7 +203,7 @@ export function enableStatusTapToTop(): () => void {
       stop();
       return;
     }
-    if (reducedMotion()) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       el.scrollTop = 0;
       stop();
       return;
@@ -290,9 +211,8 @@ export function enableStatusTapToTop(): () => void {
 
     let startedAt = now();
     let span = durationFor(from);
-    // What the engine kept after the last write, rounding included. Anything
-    // else there next frame was put there by someone other than us.
-    let written = el.scrollTop;
+    /** What the engine kept after the last write, rounding included. */
+    let written = from;
 
     const step = () => {
       stepFrame = 0;
@@ -300,13 +220,9 @@ export function enableStatusTapToTop(): () => void {
 
       const at = el.scrollTop;
       if (at - written > DRIFT_PX) {
-        // Momentum that outlived the kill, or another writer. Carry on from
-        // where the container actually is: yanking it back to a position that
-        // stopped being true is the lurch this whole path exists to avoid.
-        if (at <= 0) {
-          stop();
-          return;
-        }
+        // Momentum that outlived the kill. Carry on from where the container
+        // actually is: yanking it back onto a curve that stopped being true is
+        // the lurch this whole path exists to avoid.
         from = at;
         startedAt = now();
         span = durationFor(from);
@@ -342,8 +258,8 @@ export function enableStatusTapToTop(): () => void {
     heldOverflow = el.style.overflowY;
     el.style.overflowY = "hidden";
 
-    // Whatever the frames do — throttled, backgrounded, dropped — the page
-    // does not get left half way.
+    // Whatever the frames do — throttled, backgrounded, dropped — the page is
+    // not left half way.
     watchdog = window.setTimeout(() => {
       watchdog = 0;
       el.scrollTop = 0;
@@ -353,28 +269,26 @@ export function enableStatusTapToTop(): () => void {
     stepFrame = requestAnimationFrame(() => {
       stepFrame = 0;
       release();
-      if (!live || !returning) return;
-      animate(el);
+      if (live && returning) animate(el);
     });
   };
 
   /**
-   * One decision per frame, with that frame's scrolls all in. Called from a
-   * rAF callback and nowhere else.
+   * One decision per frame, with that frame's scrolls all in. A frame can
+   * carry two of them, the container's and the window's, and the rendering
+   * loop fires both BEFORE its animation frame callbacks — so deciding here
+   * sees both, in whatever order they arrived. Deciding inside the handlers
+   * instead lets the container's re-park the window before the window's has
+   * run, and the tap is swallowed.
    */
   const sync = () => {
-    if (!live || returning) return;
-
     const el = getScrollContainer();
     if (!el) {
       disarm();
       return;
     }
     if (lockedElsewhere()) {
-      // Not ours for now. Drop the arming; the observer brings us back.
-      armed = false;
-      forgetPendingPark();
-      root.removeAttribute(STATUS_TAP_ATTRIBUTE);
+      disarm(false);
       return;
     }
     if (el.scrollTop <= 0) {
@@ -383,20 +297,15 @@ export function enableStatusTapToTop(): () => void {
       return;
     }
     // The signature: we parked the window, it is at 0 now, and neither a
-    // finger nor the viewport put it there. Nothing else on the page scrolls
-    // the document in container scroll.
-    if (armed && windowTop() <= AT_TOP_PX && !touchedRecently() && !resizedRecently()) {
-      startReturn(el);
-      return;
-    }
-    park();
+    // finger nor the viewport put it there.
+    if (armed && windowTop() <= AT_TOP_PX && !busy()) startReturn(el);
+    else park();
   };
 
   const onTouch = (event: TouchEvent) => {
     // Read from the event rather than counting: a touchend that never arrives
     // would otherwise disable the gesture for the rest of the session.
-    touches = event.touches.length;
-    touchedAt = now();
+    touchedUntil = event.touches.length > 0 ? Infinity : now() + GRACE_MS;
     if (returning && event.type === "touchstart") stop();
   };
 
@@ -404,20 +313,20 @@ export function enableStatusTapToTop(): () => void {
     // `resize` fires on iOS for things that are not a resize. Only a viewport
     // that actually changed size can have moved the window on its own, and
     // treating anything else as one suppresses real taps.
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    if (width === viewportWidth && height === viewportHeight) return;
-    viewportWidth = width;
-    viewportHeight = height;
-    resizedAt = now();
+    const size = `${window.innerWidth}x${window.innerHeight}`;
+    if (size === viewport) return;
+    viewport = size;
+    resizedUntil = now() + GRACE_MS;
     schedule();
   };
 
   function schedule(): void {
-    if (!live || syncFrame) return;
+    // Not during a return: it owns both scrollers, so every frame of it would
+    // otherwise queue a reconcile that has nothing to do.
+    if (!live || returning || syncFrame) return;
     syncFrame = requestAnimationFrame(() => {
       syncFrame = 0;
-      sync();
+      if (live && !returning) sync();
     });
   }
 
@@ -443,14 +352,9 @@ export function enableStatusTapToTop(): () => void {
     window.removeEventListener("resize", onViewportChange);
     window.removeEventListener("orientationchange", onViewportChange);
     for (const type of TOUCH_EVENTS) document.removeEventListener(type, onTouch, touchOptions);
-    if (syncFrame) cancelAnimationFrame(syncFrame);
-    if (stepFrame) cancelAnimationFrame(stepFrame);
-    if (watchdog) clearTimeout(watchdog);
-    forgetPendingPark();
-    syncFrame = 0;
-    stepFrame = 0;
-    watchdog = 0;
-    returning = false;
+    cancelAnimationFrame(syncFrame);
+    cancelAnimationFrame(stepFrame);
+    clearTimeout(watchdog);
     release();
     disarm();
   };

@@ -21,8 +21,7 @@
     "wallpapers:profile:check": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/wallpaper-profile.ts --check",
     "apps:snapshot": "node scripts/app-icon-snapshot.ts",
     "apps:check": "node scripts/app-icon-snapshot.ts --check",
-    "bezel:typecheck": "tsc -p packages/bezel",
-    "bezel:status-tap": "node packages/bezel/test/status-tap.mjs"
+    "bezel:typecheck": "tsc -p packages/bezel"
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",

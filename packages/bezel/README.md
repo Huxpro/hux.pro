@@ -119,27 +119,7 @@ container scroll.
 
 ```bash
 pnpm bezel:typecheck
-pnpm bezel:status-tap   # needs playwright on the machine; skips without it
 ```
-
-`bezel:status-tap` compiles the package's own sources into a container scroll
-fixture and drives them in Chromium: arming and standing down, the tap at rest
-and mid-fling, a fling that outlives the momentum kill, a finger landing on a
-page already on its way up, a scroll lock taking `<html>` away, a rotation.
-
-Every case runs twice. Chromium scrolls the main frame in the page's own
-process, so `window.scrollTo` takes effect before the next line runs; iOS
-scrolls it in the UI process, so it is a request and `scrollY` keeps reporting
-the old offset until the answer comes back. The second run models that, and it
-is the one a phone lives in — code that reads `scrollY` straight after asking
-for the park and gives up on it cancels the park itself, and the gesture never
-arms at all.
-
-Safari's gesture cannot be produced there, but what it does to the page can:
-it scrolls the main frame to 0, and everything that can go wrong afterwards is
-on the page's side of that. Chromium shares the rendering loop the whole design
-leans on — a frame's scroll events, then its animation frame callbacks. The one
-thing only a phone can confirm is that the park sticks at all.
 
 ## The status-bar tap
 
@@ -180,7 +160,9 @@ Four things it has to get right, all of them timing:
   computed `overflow-y` of the viewport scroller). While armed, `<html>` no
   longer reads that way, so the arming stands down the moment anything writes
   an inline overflow onto `<html>`, and re-arms when that clears. A park that
-  does not stick backs off and tries again later; nothing latches off.
+  does not stick is not fatal either: nothing latches off, and the next
+  scroll, mutation or resize — every reason a park fails ends in one — comes
+  back around and tries again.
 
 It is iOS-only — off the platform there is no gesture to catch and `<html>` is
 better left alone — and container scroll is reachable elsewhere through the

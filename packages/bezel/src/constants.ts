@@ -29,7 +29,7 @@ export const BOOT_GLOBAL = "__bezel";
 
 /**
  * How far down the window is parked while it is armed for a status-bar tap,
- * and how much room <html> is given to park in. Four pixels rather than one:
+ * and how much room <html> is given to park in. Two pixels rather than one:
  * Safari can hand back a fractional `scrollY` under pinch-zoom, and a park
  * that cannot be told apart from the top is a gesture that never arrives.
  * Both are invisible — <body> is fixed, so the document has nothing to move.

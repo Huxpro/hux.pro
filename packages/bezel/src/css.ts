@@ -41,10 +41,8 @@ import {
 // the only way the page can observe the gesture. Nothing moves on screen: the
 // document has nothing to scroll, because <body> is fixed.
 //
-// The range is a pseudo-element rather than a height, so an unarmed page has
-// no overflow at all to be found by anything that measures the document.
-// `position: relative` on <html> is its containing block; it does not contain
-// `position: fixed`, which the chrome morph still parents to <html>.
+// The range is on the armed rule alone, so an unarmed page has no overflow at
+// all to be found by anything that measures the document.
 //
 // Being armed also means <html> no longer reads as `overflow: hidden`, which
 // is how overlay libraries decide the page is already locked. That is why the
@@ -61,10 +59,9 @@ const container = `#${SCROLL_CONTAINER_ID}`;
 export const BEZEL_CSS = `
 :root{${COLOR_VAR}:#000;${BAND_VAR}:0px}
 ${on},${on} body{background-color:var(${COLOR_VAR})}
-${contained}{height:100%;overflow:hidden;overscroll-behavior:none;position:relative}
-${armed}{overflow-y:auto;scrollbar-width:none}
+${contained}{height:100%;overflow:hidden;overscroll-behavior:none}
+${armed}{overflow-y:auto;min-height:calc(100% + ${STATUS_TAP_RANGE_PX}px);scrollbar-width:none}
 ${armed}::-webkit-scrollbar{display:none;width:0;height:0}
-${armed}::after{content:"";position:absolute;top:100%;left:0;width:1px;height:${STATUS_TAP_RANGE_PX}px;pointer-events:none}
 ${contained} body{position:fixed;inset:0;overflow:clip;overscroll-behavior:none}
 ${contained} body>.fixed,${contained} body>[style*="position:fixed"],${contained} body>[style*="position: fixed"],${contained} [${BEZEL_LAYER_ATTRIBUTE}]{position:absolute!important}
 ${contained} ${container}{position:absolute;min-height:0;overflow-x:clip;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
