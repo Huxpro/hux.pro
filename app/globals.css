@@ -647,7 +647,7 @@ html.dragging * {
 
 /* First-level .not-prose in prose context gets vertical margin */
 .prose-article .not-prose {
-  @apply my-6;
+  margin-block: calc(var(--reading-size) * 1.5);
 }
 
 /* Nested .not-prose elements reset margin - parent handles spacing */
@@ -656,8 +656,29 @@ html.dragging * {
   margin-bottom: 0;
 }
 
+/* -----------------------------------------------------------------------------
+   Block spacing, against the reading size.
+
+   #190 made every font-size inside an article an `em`, so the type scaled. The
+   margins did not: they were Tailwind spacing utilities, which are `rem` and so
+   answer to the root font size, which the reading setting never touches. The
+   result ran the wrong way -- as a fraction of its own line, the gap between two
+   paragraphs was 0.91 lines at `small`, 0.86 at the default and 0.76 at `large`.
+   A reader who asks for bigger type gets the tightest page of the three, which
+   is the opposite of what they asked for.
+
+   Every one of them is a multiple of `--reading-size` now. At the default they
+   resolve to exactly the pixels the utilities set -- 1.5 x 16 = 24, 4 x 16 = 64
+   -- so nothing moves for a reader who never opens "Aa".
+
+   Not `em`: on a heading `em` resolves against the heading's own size, so `4em`
+   on an `h2` would be 72px rather than 64 and every level would drift by its own
+   factor. `--reading-size` is one number for the whole article, which is the
+   point.
+   ----------------------------------------------------------------------------- */
+
 .prose-article p:not(:where(.not-prose, .not-prose *)) {
-  @apply mb-6;
+  margin-bottom: calc(var(--reading-size) * 1.5);
 }
 
 /* A heading is a handful of words, so `balance` rather than `pretty`: even the
@@ -670,15 +691,21 @@ html.dragging * {
 }
 
 .prose-article h1:not(:where(.not-prose, .not-prose *)) {
-  @apply font-sans text-[1.25em] font-medium mt-14 mb-6 text-foreground first:mt-0;
+  @apply font-sans text-[1.25em] font-medium text-foreground first:mt-0;
+  margin-top: calc(var(--reading-size) * 3.5);
+  margin-bottom: calc(var(--reading-size) * 1.5);
 }
 
 .prose-article h2:not(:where(.not-prose, .not-prose *)) {
-  @apply font-sans text-[1.125em] font-medium mt-16 mb-6 text-foreground;
+  @apply font-sans text-[1.125em] font-medium text-foreground;
+  margin-top: calc(var(--reading-size) * 4);
+  margin-bottom: calc(var(--reading-size) * 1.5);
 }
 
 .prose-article h3:not(:where(.not-prose, .not-prose *)) {
-  @apply font-sans text-[1em] font-medium mt-12 mb-4 text-foreground;
+  @apply font-sans text-[1em] font-medium text-foreground;
+  margin-top: calc(var(--reading-size) * 3);
+  margin-bottom: calc(var(--reading-size) * 1);
 }
 
 .prose-article a:not(:where(.not-prose, .not-prose *)) {
@@ -707,7 +734,8 @@ html.dragging * {
 
 /* Blockquote - Editorial hanging quotation marks style */
 .prose-article blockquote:not(:where(.not-prose, .not-prose *)) {
-  @apply my-8 font-serif italic text-foreground/70 relative;
+  @apply font-serif italic text-foreground/70 relative;
+  margin-block: calc(var(--reading-size) * 2);
   padding-left: 0;
   border: none;
 }
@@ -731,7 +759,7 @@ html.dragging * {
 /* Lists - custom markers with absolute positioning for proper text flow */
 .prose-article ul:not(:where(.not-prose, .not-prose *)),
 .prose-article ol:not(:where(.not-prose, .not-prose *)) {
-  @apply my-6;
+  margin-block: calc(var(--reading-size) * 1.5);
   padding-left: 1.25em;
   list-style: none;
 }
@@ -741,7 +769,7 @@ html.dragging * {
 }
 
 .prose-article li:not(:where(.not-prose, .not-prose *)) {
-  @apply mb-2;
+  margin-bottom: calc(var(--reading-size) * 0.5);
   position: relative;
   padding-left: 0;
 }
@@ -769,7 +797,7 @@ html.dragging * {
 /* Nested lists - indentation and counter reset */
 .prose-article li:not(:where(.not-prose, .not-prose *)) ul,
 .prose-article li:not(:where(.not-prose, .not-prose *)) ol {
-  @apply my-2;
+  margin-block: calc(var(--reading-size) * 0.5);
   padding-left: 1.25em;
   margin-left: 0;
 }
@@ -789,7 +817,8 @@ html.dragging * {
 
 /* Horizontal rule */
 .prose-article hr:not(:where(.not-prose, .not-prose *)) {
-  @apply my-12 border-border;
+  @apply border-border;
+  margin-block: calc(var(--reading-size) * 3);
 }
 
 /* Tables */
@@ -829,7 +858,8 @@ html.dragging * {
 
 /* Code blocks with rehype-pretty-code styling */
 .prose-article pre:not(:where(.not-prose, .not-prose *)) {
-  @apply my-6 rounded-lg overflow-x-auto border border-border bg-muted/50;
+  @apply rounded-lg overflow-x-auto border border-border bg-muted/50;
+  margin-block: calc(var(--reading-size) * 1.5);
   color: var(--shiki-light);
 }
 
@@ -913,14 +943,16 @@ html.dragging * {
 }
 
 .prose-article img:not(:where(.not-prose, .not-prose *)) {
-  @apply my-8 rounded-lg;
+  @apply rounded-lg;
+  margin-block: calc(var(--reading-size) * 2);
 }
 
 /* Raw embeds (e.g. YouTube <iframe>) authored directly in MDX.
    The hardcoded width/height attributes overflow the viewport on mobile,
    so force a responsive 16:9 box that never exceeds the content width. */
 .prose-article iframe:not(:where(.not-prose, .not-prose *)) {
-  @apply my-8 w-full max-w-full rounded-lg;
+  @apply w-full max-w-full rounded-lg;
+  margin-block: calc(var(--reading-size) * 2);
   height: auto;
   aspect-ratio: 16 / 9;
 }
@@ -1072,11 +1104,12 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 .prose-article figure:not(:where(.not-prose, .not-prose *)) {
-  @apply my-8;
+  margin-block: calc(var(--reading-size) * 2);
 }
 
 .prose-article figcaption:not(:where(.not-prose, .not-prose *)) {
-  @apply mt-2 text-center text-[0.875em] text-muted-foreground;
+  @apply text-center text-[0.875em] text-muted-foreground;
+  margin-top: calc(var(--reading-size) * 0.5);
 }
 
 /* Strikethrough (GFM) */
