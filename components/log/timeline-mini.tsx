@@ -26,10 +26,22 @@ import { cn } from "@/lib/utils";
 import { Link } from "next-view-transitions";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
+import { Description } from "./embeds/shared";
 import { CommitIcon } from "./icons";
 import { QuietLine } from "./quiet-line";
 
 import { TYPE } from "@/lib/typography";
+
+/**
+ * How much of the commit's description a row carries. The row never folds
+ * open (it permalinks into /works), so this is decided by the room the card
+ * has — the home grid passes it from the widget's footprint:
+ *   - `none`   the summary line and byline only (the default);
+ *   - `below`  the description, clamped to two lines, under the summary;
+ *   - `beside` the description in a second column beside the summary — a
+ *              wide row's way of spending its width on words.
+ */
+export type TimelineDetail = "none" | "below" | "beside";
 
 interface TimelineMiniProps {
   data: NormalizedCommit;
@@ -40,6 +52,7 @@ interface TimelineMiniProps {
   /** Pre-localized author byline (see `computeBylines`). */
   byline?: Byline | null;
   hideDate?: boolean;
+  detail?: TimelineDetail;
   className?: string;
 }
 
@@ -49,6 +62,7 @@ export function TimelineMini({
   isRole = false,
   byline = null,
   hideDate = false,
+  detail = "none",
   className,
 }: TimelineMiniProps) {
   const isEvent = data.type === "event";
@@ -80,8 +94,18 @@ export function TimelineMini({
   const isRoleAnchor = isRole && rail !== "";
   const iconGapPx = isEvent || isAside ? 3 : isRoleAnchor ? 10 : 7;
 
+  const description =
+    !(isEvent || isAside) && detail !== "none" ? data.description : undefined;
+
   const body = (
-    <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 items-start">
+    <div
+      className={cn(
+        "grid gap-x-2 items-start",
+        detail === "beside" && description
+          ? "grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)]"
+          : "grid-cols-[auto_minmax(0,1fr)]",
+      )}
+    >
       <span
         data-rail-icon
         className={cn(
@@ -209,6 +233,15 @@ export function TimelineMini({
             </span>
           )}
         </div>
+      )}
+      {description && detail === "below" && (
+        <Description text={description} className="col-start-2 mt-1" />
+      )}
+      {description && detail === "beside" && (
+        <Description
+          text={description}
+          className="col-start-3 row-start-1 row-span-2 self-start border-l border-border/30 pl-3"
+        />
       )}
     </div>
   );

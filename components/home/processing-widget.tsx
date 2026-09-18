@@ -2,7 +2,7 @@
 
 import { computeBylines } from "@/components/log/bylines";
 import { normalizeCommit } from "@/components/log/commit-data";
-import { TimelineMini } from "@/components/log/timeline-mini";
+import { TimelineMini, type TimelineDetail } from "@/components/log/timeline-mini";
 import {
   WidgetHeader,
   WidgetLink,
@@ -10,6 +10,8 @@ import {
   WidgetShell,
   WidgetTitle,
 } from "@/components/ui/widget";
+import { sizeSpec } from "@/components/ui/widget-grid";
+import { useWidgetSize } from "@/components/ui/widget-size";
 import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
@@ -37,7 +39,19 @@ import { useMemo } from "react";
 // /works uses (`resolveGroupCommits`, `buildTimelineData`, `computeRail`,
 // `computeBylines`, `normalizeCommit`), so the widget can't drift from the
 // page, and what it shows is edited in the log rather than in here.
+//
+// Its footprint (the visitor's — docs/system-widget-grid.md) decides how
+// each row is cut, never how many are hidden behind a scroll:
+//
+//   h = 1   the first two projects — "what's in flight".
+//   h = 2   the curated group, one summary line and a byline each.
+//   h = 3   each row also folds its description in under the summary.
+//   w = 2   the log stays one column (the tenure rail can't be split), and
+//           each row spreads sideways: the description beside the summary
+//           — `git log` with the body alongside the subject.
 // ---------------------------------------------------------------------------
+
+export const PROCESSING_WIDGET_SIZE = sizeSpec([1, 1], [2, 3], [1, 2]);
 
 /** The curated group that decides which projects the card shows. */
 export const FEATURED_GROUP_ID = "featured-projects";
@@ -87,6 +101,7 @@ interface ProcessingWidgetProps {
 
 export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
   const { locale } = useLocale();
+  const { w, h } = useWidgetSize(PROCESSING_WIDGET_SIZE.default);
 
   // Rail + bylines are derived from the filtered list, so clusters stay
   // contiguous even where /works would have interleaved talks between two
@@ -133,6 +148,12 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
 
   if (commits.length === 0) return null;
 
+  const detail: TimelineDetail = w >= 2 ? "beside" : h >= 3 ? "below" : "none";
+  // One cell tall: the first two projects, flat — no rail to draw between
+  // two rows that may not share a tenure.
+  const shown =
+    h === 1 ? new Set(runs.flatMap((run) => run.indices).slice(0, 2)) : null;
+
   return (
     <WidgetShell href={PROJECTS_HREF}>
       <WidgetHeader className="pb-2">
@@ -142,16 +163,21 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
 
       {/* No port, on any device: the group is short enough to print whole,
           so there is nothing to scroll and nothing to cut. */}
-      <WidgetScrollBody>
+      <WidgetScrollBody className="min-h-0">
         {runs.map((run, runIdx) => {
-          const nodes = run.indices.map((i) => (
+          const indices = shown
+            ? run.indices.filter((i) => shown.has(i))
+            : run.indices;
+          if (indices.length === 0) return null;
+          const nodes = indices.map((i) => (
             <TimelineMini
               key={commits[i].id}
               data={rows[i]}
-              rail={railInfo[i].rail}
+              rail={shown ? "" : railInfo[i].rail}
               isRole={commits[i].type === "role"}
               byline={bylines[i]}
               hideDate={hideDateFor(commits[i])}
+              detail={detail}
             />
           ));
           return run.kind === "cluster" ? (

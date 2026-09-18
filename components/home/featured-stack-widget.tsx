@@ -9,9 +9,17 @@ import {
   WIDGET_REVEAL,
 } from "@/components/ui/widget";
 import { PagerDots, useSnapPager } from "@/components/ui/snap-pager";
+import { fixedSize, sizeSpec } from "@/components/ui/widget-grid";
+import { useWidgetSize } from "@/components/ui/widget-size";
 import { cn } from "@/lib/utils";
 import { ArrowRight } from "lucide-react";
 import { useMemo } from "react";
+
+// A horizontal stack is a carousel one cell wide and a three-card shelf two
+// cells wide, like the talks widget; it has one height. A vertical stack
+// prints its group whole, so it has exactly one size.
+export const HSTACK_WIDGET_SIZE = sizeSpec([1, 2], [2, 2], [1, 2]);
+export const VSTACK_WIDGET_SIZE = fixedSize(1, 2);
 
 type FeaturedStackWidgetProps = {
   title: string;
@@ -53,6 +61,8 @@ export function HStackWidget({
   className,
 }: FeaturedStackWidgetProps) {
   const items = useMemo(() => children.filter(Boolean), [children]);
+  const { w } = useWidgetSize(HSTACK_WIDGET_SIZE.default);
+  const shelf = w >= 2;
   // The snap track, the in-view index and the dots are the shared pager
   // (components/ui/snap-pager) — the same strip the attachment surface pages.
   const { scrollRef, index, scrollTo } = useSnapPager(items.length);
@@ -82,8 +92,11 @@ export function HStackWidget({
               key={i}
               className={cn(
                 "snap-start shrink-0",
-                // Show 1 item with a peek of the next
-                "w-[86%] sm:w-[78%] max-w-[200px]"
+                shelf
+                  ? // Three abreast, the gaps taken out of the content box.
+                    "w-[calc((100%-1.5rem)/3)]"
+                  : // Show 1 item with a peek of the next
+                    "w-[86%] sm:w-[78%] max-w-[200px]"
               )}
               data-pager-card
             >
@@ -95,13 +108,15 @@ export function HStackWidget({
 
         {/* Dots: a pointer's way to page the strip, shown with the card
             (WIDGET_REVEAL). A finger swipes, and the peek says it can. */}
-        <PagerDots
-          count={items.length}
-          index={index}
-          onSelect={scrollTo}
-          label={(page) => `Go to slide ${page}`}
-          className={cn("pt-3 pointer-coarse:hidden", WIDGET_REVEAL)}
-        />
+        {items.length > (shelf ? 3 : 1) && (
+          <PagerDots
+            count={items.length}
+            index={index}
+            onSelect={scrollTo}
+            label={(page) => `Go to slide ${page}`}
+            className={cn("pt-3 pointer-coarse:hidden", WIDGET_REVEAL)}
+          />
+        )}
       </div>
     </StackShell>
   );

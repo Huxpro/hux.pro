@@ -35,6 +35,7 @@ export {
   SkyPullCue,
   SkyBodyHints,
   WeatherIcon,
+  WEATHER_WIDGET_SIZE,
   WeatherWidget,
   WeatherLine,
   WeatherNow,

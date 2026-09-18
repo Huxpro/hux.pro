@@ -1,7 +1,9 @@
 "use client";
 
 import { AppTile } from "@/components/apps/app-tile";
-import { useMasonryEdit } from "@/components/ui/sortable-masonry";
+import { useGridEdit } from "@/components/ui/sortable-grid";
+import { useWidgetSize } from "@/components/ui/widget-size";
+import { sizeSpec } from "@/components/ui/widget-grid";
 import { usePressHold } from "@/components/ui/use-press-hold";
 import {
   MOUSE_ACTIVATION,
@@ -73,9 +75,29 @@ const ICON_HOLD_SCALE = 1.08;
 const ICON_LIFT_SCALE = 1.15;
 
 export interface AppFolderProps {
-  /** Override page layout; defaults to 4×2 horizontal pages. */
+  /** Override page layout; defaults to the footprint-derived layout. */
   layout?: Partial<AppFolderLayout>;
   className?: string;
+}
+
+/**
+ * The folder's footprint range on the home grid. Its page capacity derives
+ * from the footprint (`folderLayoutFor`): a cell row holds one row of icons,
+ * a cell column holds four, so every size the grid can give it is a
+ * different folder rather than the same one with more air around it.
+ */
+export const APP_FOLDER_SIZE = sizeSpec([1, 1], [2, 2], [1, 2]);
+
+/** Page layout for a footprint: 4 icons per cell of width, 1 / 3 rows tall. */
+export function folderLayoutFor(size: { w: number; h: number }): AppFolderLayout {
+  return {
+    columns: 4 * Math.max(1, size.w),
+    // A 1-tall cell (176px) fits one row of 64px tiles and their labels; a
+    // 2-tall one (368px) fits three — so "taller" is three rows, not two
+    // rows with a gap under them.
+    rows: size.h >= 2 ? 3 : 1,
+    axis: "x",
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -220,12 +242,14 @@ function PageDots({
 // -----------------------------------------------------------------------------
 
 export function AppFolder({ layout: layoutOverride, className }: AppFolderProps) {
+  const size = useWidgetSize(APP_FOLDER_SIZE.default);
   const layout: AppFolderLayout = {
     ...DEFAULT_APP_FOLDER_LAYOUT,
+    ...folderLayoutFor(size),
     ...layoutOverride,
   };
   const capacity = pageCapacity(layout);
-  const edit = useMasonryEdit();
+  const edit = useGridEdit();
   const editing = edit?.editing ?? false;
   const [order, setOrder] = useState<string[]>(DEFAULT_APP_IDS);
   const [activeId, setActiveId] = useState<string | null>(null);
