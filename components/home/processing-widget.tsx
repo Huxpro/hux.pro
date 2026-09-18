@@ -115,7 +115,12 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
 
       {/* Vertical snapping stack — the column analogue of the talks widget's
           horizontal card row. */}
-      <WidgetScrollBody>
+      <WidgetScrollBody
+        label={t(locale, "widgetStatus")}
+        href="/works"
+        sheetId="surface-widget-projects"
+        pageSize={2}
+      >
         {runs.map((run, runIdx) => {
           const nodes = run.indices.map((i) => (
             <TimelineMini

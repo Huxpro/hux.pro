@@ -70,7 +70,13 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
         <WidgetLink href="/writing" />
       </WidgetHeader>
 
-      <WidgetScrollBody className="max-h-64">
+      <WidgetScrollBody
+        className="max-h-64"
+        label={t(locale, "widgetBlog")}
+        href="/writing"
+        sheetId="surface-widget-writing"
+        pageSize={4}
+      >
         {latest.map((post) => (
           <PostRow key={post.slug} post={post} locale={locale} />
         ))}

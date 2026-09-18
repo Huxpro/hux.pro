@@ -19,6 +19,7 @@ import { DevtoolProvider } from "@/systems/devtool";
 import { MusicProvider } from "@/systems/music";
 import { TheaterProvider } from "@/systems/theater";
 import { WindowProvider } from "@/systems/windows";
+import { WidgetScrollModeProvider } from "@/components/ui/widget-scroll-mode";
 
 // =============================================================================
 // Internal Wrappers
@@ -59,16 +60,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <VisitorProvider>
               <CommandProvider>
                 <DevtoolWrapper>
-                  <AmbientWrapper>
-                    <MusicProvider>
-                      <TheaterProvider>
-                        <WindowProvider>
-                          {children}
-                          <SystemSonner />
-                        </WindowProvider>
-                      </TheaterProvider>
-                    </MusicProvider>
-                  </AmbientWrapper>
+                  <WidgetScrollModeProvider>
+                    <AmbientWrapper>
+                      <MusicProvider>
+                        <TheaterProvider>
+                          <WindowProvider>
+                            {children}
+                            <SystemSonner />
+                          </WindowProvider>
+                        </TheaterProvider>
+                      </MusicProvider>
+                    </AmbientWrapper>
+                  </WidgetScrollModeProvider>
                 </DevtoolWrapper>
               </CommandProvider>
             </VisitorProvider>

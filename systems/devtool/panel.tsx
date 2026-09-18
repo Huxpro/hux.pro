@@ -55,6 +55,7 @@ import {
   type PhonePalette,
 } from "./provider";
 import { useHeroExit } from "@/components/ui/hero-exit";
+import { WidgetScrollModeControls } from "@/components/ui/widget-scroll-mode";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
 import appsJson from "@/content/apps.json";
@@ -129,6 +130,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 export function DevtoolModules() {
   return (
     <>
+      <WidgetScrollModule />
       <FrontmatterModule />
       <ReadingModule />
       <WallpaperModule />
@@ -386,6 +388,25 @@ function DebugSection({
         <div className={cn("px-4", compact ? "py-2" : "py-3")}>{children}</div>
       )}
     </div>
+  );
+}
+
+// =============================================================================
+// Widget scroll prototypes
+// Home writing / projects nested-scroll lab. Session-only; the home bar is
+// the same switch.
+// =============================================================================
+
+function WidgetScrollModule() {
+  const { locale } = useLocale();
+  return (
+    <DebugSection
+      id="widget-scroll"
+      title={locale === "zh" ? "卡片滚动" : "Widget scroll"}
+      icon={<Layers2 className="h-3 w-3" />}
+    >
+      <WidgetScrollModeControls />
+    </DebugSection>
   );
 }
 

@@ -13,6 +13,7 @@ import {
 import { PromptWidget } from "@/components/home/prompt-widget";
 import { ScrambleIdentifier } from "@/components/home/scramble-identifier";
 import { WritingWidget } from "@/components/home/writing-widget";
+import { WidgetScrollPicker } from "@/components/ui/widget-scroll-mode";
 import { Commit } from "@/components/log";
 import { HeaderZone } from "@/components/ui/header-zone";
 import {
@@ -145,10 +146,20 @@ function WidgetGrid({
   ];
 
   return (
-    <SortableMasonry
-      items={items}
-      className={heroContentClassName(heroExit, "pt-2 sm:pt-4 mb-16")}
-    />
+    <>
+      <div
+        className={heroContentClassName(
+          heroExit,
+          "mx-auto max-w-[680px] pt-2 sm:pt-4",
+        )}
+      >
+        <WidgetScrollPicker />
+      </div>
+      <SortableMasonry
+        items={items}
+        className={heroContentClassName(heroExit, "pt-2 sm:pt-4 mb-16")}
+      />
+    </>
   );
 }
 

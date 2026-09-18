@@ -207,31 +207,12 @@ export function WidgetBody({
  * the scroll port is inset by the rows' hover bleed (`-mx-2`) so a row's
  * rounded highlight isn't clipped at the card's left edge. Rows should carry
  * `snap-start` and the `-mx-2 px-2` bleed themselves.
+ *
+ * Nested inner scroll is the default. On a phone that fights the page, so
+ * the home lab bar (`WidgetScrollPicker`) can switch in prototypes — peek,
+ * expand, lock, rail, pages, sheet — without forking the widgets.
  */
-export function WidgetScrollBody({
-  className,
-  children,
-}: {
-  /** Height goes here — defaults to a fixed `h-64`; pass `max-h-*` for a
-   *  stack that should only scroll once it overflows. */
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="px-5">
-      <div
-        className={cn(
-          "relative -mx-2 px-2 pb-7",
-          "overflow-y-auto snap-y snap-mandatory scroll-smooth no-scrollbar",
-          "[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
-          className ?? "h-64"
-        )}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
+export { WidgetScrollBody } from "./widget-scroll-body";
 
 /**
  * WidgetLink - Navigation arrow link for header

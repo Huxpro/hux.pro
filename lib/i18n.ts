@@ -98,6 +98,36 @@ export const translations = {
     theaterSurfaceGo: "Switch to {surface}",
     widgetEditDone: "Done",
     widgetEditReset: "Reset",
+    widgetScrollLab: "widget scroll",
+    widgetScrollNested: "nested",
+    widgetScrollPeek: "peek",
+    widgetScrollExpand: "expand",
+    widgetScrollLock: "lock",
+    widgetScrollRail: "rail",
+    widgetScrollPages: "pages",
+    widgetScrollSheet: "sheet",
+    widgetScrollNestedHint:
+      "Inner list captures vertical pans — today's behaviour.",
+    widgetScrollPeekHint:
+      "Clip the list. Vertical pans always scroll the page; tap the card to open it.",
+    widgetScrollExpandHint:
+      "Start clipped. Tap More to grow the card into the page, then scroll the page.",
+    widgetScrollLockHint:
+      "Page scroll wins until you tap Scroll. Then the list is live; tap Done to give it back.",
+    widgetScrollRailHint:
+      "The list never captures. Drag the grip on the right to move it.",
+    widgetScrollPagesHint:
+      "Swipe sideways between screens. Vertical pans scroll the page.",
+    widgetScrollSheetHint:
+      "Clip the list. Browse opens a sheet that can scroll on its own.",
+    widgetScrollMore: "More",
+    widgetScrollLess: "Less",
+    widgetScrollArm: "Scroll",
+    widgetScrollArmed: "Done",
+    widgetScrollBrowse: "Browse",
+    widgetScrollViewAll: "View all",
+    widgetScrollClose: "Close",
+    widgetScrollRailAria: "Scroll the list",
     musicNotPlaying: "nothing playing",
     settingsMusic: "Music",
     musicPlay: "Play",
@@ -363,6 +393,36 @@ export const translations = {
     theaterSurfaceGo: "切换到{surface}",
     widgetEditDone: "完成",
     widgetEditReset: "重置",
+    widgetScrollLab: "卡片滚动",
+    widgetScrollNested: "内嵌",
+    widgetScrollPeek: "裁切",
+    widgetScrollExpand: "展开",
+    widgetScrollLock: "锁定",
+    widgetScrollRail: "侧轨",
+    widgetScrollPages: "分页",
+    widgetScrollSheet: "面板",
+    widgetScrollNestedHint:
+      "列表吃掉纵向滑动——现在的行为。",
+    widgetScrollPeekHint:
+      "裁切列表。纵向滑动始终滚页面；点卡片打开完整列表。",
+    widgetScrollExpandHint:
+      "先裁切。点「更多」把卡片在页面里长高，再滚页面。",
+    widgetScrollLockHint:
+      "默认滚页面。点「滚动」后列表才能滑；点「完成」交还页面。",
+    widgetScrollRailHint:
+      "列表不抢手势。拖右侧握柄才移动列表。",
+    widgetScrollPagesHint:
+      "左右滑切换一屏。纵向滑动滚页面。",
+    widgetScrollSheetHint:
+      "裁切列表。点「浏览」打开可以自己滚动的面板。",
+    widgetScrollMore: "更多",
+    widgetScrollLess: "收起",
+    widgetScrollArm: "滚动",
+    widgetScrollArmed: "完成",
+    widgetScrollBrowse: "浏览",
+    widgetScrollViewAll: "查看全部",
+    widgetScrollClose: "关闭",
+    widgetScrollRailAria: "滚动列表",
     musicNotPlaying: "暂无播放",
     settingsMusic: "音乐",
     musicPlay: "播放",
