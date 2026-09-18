@@ -157,30 +157,6 @@ export function PostContent({
     </>
   );
 
-  // Below `md` the provenance folds, so it needs a handle. At `md` and up it
-  // is simply on the line, and a control for hiding a sentence that already
-  // fits is a control the row does not need.
-  const infoChip = displayOrigin ? (
-    <>
-      <span aria-hidden className="text-quaternary-foreground md:hidden">
-        {printed ? "·" : ""}
-      </span>
-      <HeaderAction
-        variant="action"
-        className="md:hidden"
-        active={originOpen}
-        onClick={() => setOriginOpen((v) => !v)}
-        expanded={originOpen}
-        controls={originId}
-        label={t(displayLocale, "postOrigin")}
-        title={t(displayLocale, "postOrigin")}
-      >
-        <Info className="h-3 w-3" />
-      </HeaderAction>
-    </>
-  ) : null;
-  if (displayOrigin) printed = true;
-
   const langChip = hasAlternate ? (
     <>
       {lead()}
@@ -201,17 +177,33 @@ export function PostContent({
   ) : null;
 
   /**
-   * Where this text came from: the handles' face, size and ink, on the same
-   * line as them wherever the line has room. Below `md` it is hidden until the
-   * `(i)` asks for it, and then it wraps onto a second line as the flex row's
-   * last item -- with no dot in front of it, so nothing dangles at the end of
-   * the line above.
+   * Where this text came from, last on the line either way.
+   *
+   * At `md` and up it is simply there. Below it, the `(i)` stands in its place
+   * -- literally: the handle takes the slot the sentence would have had, so
+   * the row does not rearrange itself between widths. Pressing it wraps the
+   * sentence onto a second line as the row's last item.
+   *
+   * One dot serves both, because exactly one of them is ever on screen: the
+   * `(i)` is `md:hidden`, the sentence is hidden below `md` until asked for.
+   * So nothing is left dangling at the end of a line at either width, and
+   * there is no second separator to keep in step with the first.
    */
-  const originText = displayOrigin ? (
+  const provenance = displayOrigin ? (
     <>
-      <span aria-hidden className="hidden text-quaternary-foreground md:inline">
-        ·
-      </span>
+      {lead()}
+      <HeaderAction
+        variant="action"
+        className="md:hidden"
+        active={originOpen}
+        onClick={() => setOriginOpen((v) => !v)}
+        expanded={originOpen}
+        controls={originId}
+        label={t(displayLocale, "postOrigin")}
+        title={t(displayLocale, "postOrigin")}
+      >
+        <Info className="h-3 w-3" />
+      </HeaderAction>
       <span
         id={originId}
         className={cn(
@@ -236,10 +228,9 @@ export function PostContent({
         )}
       >
         {facts}
-        {infoChip}
         {langChip}
         {readingChip}
-        {originText}
+        {provenance}
       </div>
     ) : undefined;
 
