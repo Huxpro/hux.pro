@@ -194,7 +194,23 @@ The Sky engine (`WallpaperRenderer`):
 - lets a hand dragged across the page add to the wind, same section;
 - renders at a **pixel budget** (≈1.1 M px desktop, ≈0.5 M px phones) and backs
   off further when frames run long, recovering when they are cheap — the scene
-  is soft, so CSS upscaling is invisible;
+  is soft, so CSS upscaling is invisible. Pixels are the only lever here: the
+  **frame cap can only ever deliver a whole divisor of the refresh rate**,
+  because the loop can skip an animation frame but cannot invent one between
+  two, so a cap of 45 on a 60 Hz panel silently delivers 30. It is 60 on both
+  profiles for that reason. And because the cap holds `dt` at the budget
+  whatever a frame actually cost, "cheap enough for more pixels" has to mean
+  *meeting* the cap rather than beating it — against a fraction of the budget
+  it was unreachable, and a canvas scaled down once never came back;
+- **leaves each cloud deck the moment its coverage is zero.** The deck's own
+  eight-octave noise decides that, and everything past it — a second eight-octave
+  sample for the sun-facing rim, the lighting, the silver lining — is then
+  multiplied by that zero by the caller. The test is `cov <= 0.0` and not a
+  threshold, so no pixel carrying any cloud is touched and the frame is
+  bit-identical; verified that way on eight scenes from clear to overcast. It is
+  the single largest saving in the shader, because the rim sample is the most
+  expensive thing in the frame and a clear night asks for it on nearly every
+  pixel;
 - pauses when the tab is hidden, renders a single still frame under
   `prefers-reduced-motion`, and survives context loss;
 - fades the canvas in only after the first frame is painted (no black flash).
@@ -671,7 +687,7 @@ thunder or foggy night can never have one.
 - **The head is kept small**, which is most of what separates a meteor from a
   comet: what a meteor is long in is its streak, not its head. On a 13" laptop
   it measures about 2 px of white core and 9 px to the edge of its glow, across
-  the streak. An earlier cut was a 28 px bright ball inside a 63 px glow —
+  the streak. An earlier cut was a 20 px bright ball inside an 84 px glow —
   nine percent of the screen's height — because the halo carried 0.42 of the
   core over a 3.3× exponential, and an exponential that wide takes a very long
   way to reach nothing.
@@ -701,7 +717,7 @@ thunder or foggy night can never have one.
 - **Shape**: a bright head, a short wake right behind it, and a faint, wider
   train beyond that. The wake and the train are the same air at
   two ages, so they come from one walk down the streak — see below. Gone inside
-  1.2 s (`POKE_MS.meteor`, which the shader's `METEOR_LIFE` must match).
+  1.7 s (`POKE_MS.meteor`, which the shader's `METEOR_LIFE` must match).
 - **The tail is short, and its two time constants are really lengths.** At
   `METEOR_SPEED`, a tau of 0.1 s is 0.28 of the screen's height, so the decay
   clocks decide how much of the screen the thing covers. An earlier cut ran the
@@ -739,6 +755,17 @@ thunder or foggy night can never have one.
   dimmer — measurably: first and last point both lost exactly half between
   0.45 s and 0.60 s. Raised to a power, the visible extent collapses from 500 px
   to 200 px over the same interval instead.
+- **Costed by one test, not by the shape it draws.** Everything the meteor puts
+  on screen — head, wake and train — lies on the circle its arc is cut from, so
+  the distance from a pixel to that circle is a lower bound on its distance to
+  all three. One `abs(length(p - centre) - radius) > METEOR_REACH` therefore
+  stands in for the three hundred operations behind it, and what it keeps is one
+  thin annulus. `METEOR_REACH` is a bound on the light and not a look: at that
+  distance the three widest profiles come to 2e-4, 0 and about 1e-9 of a level
+  out of 255. It reads as free, and it measures as free — over 560 frames swept
+  across seeds, ages, click points and two viewport shapes, 537 are bit-identical
+  to the version without it and 23 differ by one level on one to four channels
+  out of 273600, which is a rounding boundary rather than light.
 - **Drawn over the star field and under the cloud decks**, the opposite of the
   strike's channel: a meteor behind a cloud should be hidden, so a drifting deck
   occludes a lingering trail.

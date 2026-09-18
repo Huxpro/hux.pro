@@ -273,12 +273,6 @@ const snowFallRate = (snow: number) => 0.85 + 0.3 * snow;
  */
 const FALL_WRAP_SEC = 3600;
 
-/** How long each poke lives, in seconds — the shader's envelope is spent by then. */
-const POKE_SEC: Record<PokeKind, number> = {
-  strike: POKE_MS.strike / 1000,
-  meteor: POKE_MS.meteor / 1000,
-};
-
 /** How long one wiped point lives — cleared, held, and closed over again. */
 const WIPE_LIFE_SEC = WIPE_LIFE_MS / 1000;
 
@@ -466,6 +460,8 @@ export class WallpaperRenderer {
   private lastTimeSec = STILL_FRAME_SEC;
   private slowFrames = 0;
   private fastFrames = 0;
+  /** The smallest scale that has already failed to keep up; never tried again. */
+  private failedScale = Infinity;
   private cssWidth = 0;
   private cssHeight = 0;
 
@@ -547,7 +543,7 @@ export class WallpaperRenderer {
     this.pokeY = y;
     this.pokeSeed = Math.random() * 97;
     this.pokeKind = POKE_KIND_CODE[kind];
-    this.pokeLife = POKE_SEC[kind];
+    this.pokeLife = POKE_MS[kind] / 1000;
     this.pokeAt = performance.now();
     this.pokeAge = 0;
   }
@@ -902,6 +898,7 @@ export class WallpaperRenderer {
       this.scale = this.baseScale;
       this.slowFrames = 0;
       this.fastFrames = 0;
+      this.failedScale = Infinity;
     }
     this.applySize();
   }
@@ -935,20 +932,34 @@ export class WallpaperRenderer {
       this.slowFrames++;
       this.fastFrames = 0;
       if (this.slowFrames > 45 && this.scale > MIN_SCALE) {
+        this.failedScale = Math.min(this.failedScale, this.scale);
         this.scale = Math.max(MIN_SCALE, this.scale * 0.8);
         this.slowFrames = 0;
         this.applySize(false);
       }
-    } else if (this.frameEma < budget * 0.9) {
+    } else if (this.frameEma < budget * 1.05) {
+      // Meeting the cap, which is as good as this can ever look: dt is the
+      // gated interval, so on a 60 Hz panel a frame costing 2 ms and one
+      // costing 15 both arrive 16.7 ms apart. The test for "there is room for
+      // more pixels" therefore has to be "we are meeting the cap" and not "we
+      // are beating it" -- against a fraction of the budget it was
+      // unreachable, and a canvas scaled down once stayed down for the life of
+      // the page.
       this.fastFrames++;
       this.slowFrames = 0;
-      if (this.fastFrames > 300 && this.scale < this.baseScale) {
-        this.scale = Math.min(this.baseScale, this.scale / 0.8);
+      // Climb back, but never to a scale already measured as too slow. Without
+      // that the two rules would take turns forever: five seconds of keeping
+      // up, one step up, three quarters of a second of dropped frames, one
+      // step back down, repeat.
+      const next = Math.min(this.baseScale, this.scale / 0.8);
+      if (this.fastFrames > 300 && next > this.scale && next < this.failedScale) {
+        this.scale = next;
         this.fastFrames = 0;
         this.applySize(false);
       }
     } else {
       this.slowFrames = Math.max(0, this.slowFrames - 1);
+      this.fastFrames = 0;
     }
   }
 

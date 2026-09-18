@@ -68,8 +68,9 @@ interface WallpaperBackgroundProps {
 }
 
 /**
- * The tap the easter eggs are found by: while `armed`, a click that lands on
- * the wallpaper — and nowhere else — is handed on to be answered.
+ * The tap the easter eggs are found by: while a kind is armed, a click that
+ * lands on the wallpaper — and nowhere else — is handed on to be answered.
+ * Armed *is* the kind, so there is one source of truth for both questions.
  *
  * On `click` rather than `pointerdown`, which is what makes it survive a phone:
  * a click is press and release on the same spot, so scrolling the page with a
@@ -77,8 +78,8 @@ interface WallpaperBackgroundProps {
  * dropped too, and two pokes a second is the ceiling (see lib/poke.ts).
  */
 function usePokeOnClick(
-  armed: boolean,
-  fire: (clientX: number, clientY: number) => void
+  kind: PokeKind | null,
+  fire: (kind: PokeKind, clientX: number, clientY: number) => void
 ) {
   const fireRef = useRef(fire);
   useEffect(() => {
@@ -87,7 +88,7 @@ function usePokeOnClick(
   const lastAt = useRef(0);
 
   useEffect(() => {
-    if (!armed) return;
+    if (!kind) return;
     const onClick = (event: MouseEvent) => {
       // The cooldown first: it is a subtraction, and the sky test below walks
       // ancestors asking for computed styles.
@@ -95,12 +96,12 @@ function usePokeOnClick(
       if (at - lastAt.current < POKE_COOLDOWN_MS) return;
       if (!isBackgroundPress(event)) return;
       lastAt.current = at;
-      fireRef.current(event.clientX, event.clientY);
+      fireRef.current(kind, event.clientX, event.clientY);
     };
     // Bubble phase, on purpose: anything that stopped the click handled it.
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
-  }, [armed]);
+  }, [kind]);
 }
 
 export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
@@ -155,10 +156,9 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   // same (through `sky`), because the setting is about motion and not only
   // about flashes.
   const poke = sky ? armedPoke(scene) : null;
-  usePokeOnClick(poke !== null, (clientX, clientY) => {
-    if (!poke) return;
+  usePokeOnClick(poke, (kind, clientX, clientY) => {
     const point = at(clientX, clientY);
-    if (point) pokeRef.current?.(poke, point.x, point.y);
+    if (point) pokeRef.current?.(kind, point.x, point.y);
   });
 
   // The foggy-day egg. The recognizer is `lib/wipe.ts`'s, the way the gust's is
