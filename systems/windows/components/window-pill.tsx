@@ -151,6 +151,29 @@ export function TrafficDots({
 }
 
 /**
+ * The app's name, revealed on the pill on hover — and, where there is no hover,
+ * still the thing that gives the pill its height. Its line box is why the pill
+ * is 48×28.5 and not 48×18: a slightly plump capsule rather than a flat slot.
+ * That is the shape it has always had, so both homes wear it, phone included.
+ */
+export function PillTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      className={cn(
+        "cursor-pointer overflow-hidden whitespace-nowrap text-[11px] font-medium",
+        "text-foreground/70 transition-all duration-200 hover:text-foreground",
+        "max-w-0 opacity-0",
+        "[@media(hover:hover)]:group-hover/chrome:max-w-40",
+        "[@media(hover:hover)]:group-hover/chrome:opacity-100",
+        "[@media(hover:hover)]:group-hover/chrome:ml-2",
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+/**
  * The pill the dots sit on. Two states, kept mutually exclusive so light/dark
  * utilities never fight on specificity: chromeless at rest, glass while
  * something is happening — which is what gives a phone pill its glass look,

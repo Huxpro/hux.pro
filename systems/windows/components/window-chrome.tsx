@@ -10,7 +10,7 @@ import { armPointer } from "../lib/pointer";
 import type { WindowInstance } from "../lib/types";
 import { useWindows } from "../provider";
 import { WindowMenuBody, WindowMenuSheet } from "./window-menu";
-import { pillShell, TrafficDots, type DotAction } from "./window-pill";
+import { PillTitle, pillShell, TrafficDots, type DotAction } from "./window-pill";
 
 // =============================================================================
 // WindowChrome — the window controls
@@ -154,18 +154,7 @@ export function WindowChrome({
         />
 
         {/* App title — revealed on hover; brightens on its own hover (clickable). */}
-        <span
-          className={cn(
-            "cursor-pointer overflow-hidden whitespace-nowrap text-[11px] font-medium",
-            "text-foreground/70 transition-all duration-200 hover:text-foreground",
-            "max-w-0 opacity-0",
-            "[@media(hover:hover)]:group-hover/chrome:max-w-40",
-            "[@media(hover:hover)]:group-hover/chrome:opacity-100",
-            "[@media(hover:hover)]:group-hover/chrome:ml-2",
-          )}
-        >
-          {title}
-        </span>
+        <PillTitle>{title}</PillTitle>
       </div>
 
       {/* Touch: the menu as an action sheet, content height, from the bottom

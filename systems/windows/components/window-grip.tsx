@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useRef, useState } from "react";
-import { pillShell, TrafficDots } from "./window-pill";
+import { PillTitle, pillShell, TrafficDots } from "./window-pill";
 
 // =============================================================================
 // WindowGrip — the window's pill, doing double duty as the sheet's handle
@@ -141,6 +141,9 @@ export function WindowGrip({
         )}
       >
         <TrafficDots focused={focused} interacting={lit} />
+        {/* Never revealed without a hover — but it is what makes the pill the
+            shape it is. See PillTitle. */}
+        <PillTitle>{label}</PillTitle>
       </div>
       {/* The same control, for anyone not using a finger. */}
       <button

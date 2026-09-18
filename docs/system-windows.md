@@ -208,8 +208,8 @@ wears, and a press whose release goes missing leaves the pill looking pressed �
 wrong, never missing. That is the bar anything on this control has to clear.
 
 The one thing the phone pill does not borrow is its target. `::before` takes
-the hit area to 80×42 from a pill of 48×18 (`globals.css`), because this pill
-is also a handle. Target and look are deliberately separate — a pill that one
+the hit area to 72×44.5 from a pill of 48×28.5 (`globals.css`), because this
+pill is also a handle. Target and look are deliberately separate — a pill that one
 day shrinks into the 36×4 bar must not take its target down with it.
 
 What failed that bar is worth keeping written down. The dots used to
