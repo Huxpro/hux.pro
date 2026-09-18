@@ -21,10 +21,17 @@ import { useWallpaper } from "../provider";
 // desktop case.
 //
 // The picture is the argument. Saying "the rain leans" is the part nobody reads
-// — so a phone rocks, and the rain inside it stays level with the world while
-// the phone moves under it. That is the whole feature, at a size that fits
-// above a paragraph, and it is the same relationship the shader draws at full
-// size: the weather is aimed at real down, and the screen is what turns.
+// — so a phone tilts one way and the rain inside it tilts the other, which is
+// the whole feature at a size that fits above a paragraph, and the same
+// relationship the shader draws at full size: the weather is aimed at real
+// down, and the screen is what turns.
+//
+// Both of them move because of where the camera stands, and that is the whole
+// legibility of the thing: drawn in the world's frame the rain would be fixed
+// and only the phone would turn — leaving the one thing worth noticing as the
+// one thing that never changes. The camera follows the device part of the way
+// instead, so the cause and the effect are both on screen with the angle
+// between them still exactly the device's. See the block in globals.css.
 //
 // It stays up through the browser's dialog and says how it went, because it is
 // the only thing on screen that can. A refusal especially: the sky simply goes
@@ -76,13 +83,14 @@ const RAIN = [
 /**
  * How the picture is standing. `held` is not a third drawing: it is these same
  * animations paused at 0%, which CSS does under `prefers-reduced-motion`
- * without this component having to know.
+ * without this component having to know — and it lands on a tilted phone with
+ * the rain slanting the other way, which says it in one frame.
  *
- *   rocking — the phone turns and the rain stays level with the world. The
- *             promise, and the argument.
- *   flat    — upright, rain straight down the screen. What a refused browser
- *             actually gives you, which is the honest thing to show next to
- *             the sentence saying so.
+ *   rocking — the phone tilts one way, the rain the other. The promise, and
+ *             the argument.
+ *   flat    — upright, rain straight down the screen. Nothing leaning at all,
+ *             which is exactly what a refused browser gives you, and the
+ *             honest thing to show next to the sentence saying so.
  */
 type Pose = "rocking" | "flat";
 
@@ -95,9 +103,11 @@ function TiltIllustration({ pose }: { pose: Pose }) {
         pose === "flat" && "tilt-primer-flat"
       )}
     >
-      {/* The viewBox holds the phone at full tilt — 121 × 169 about (48, 80) —
-          or the SVG viewport cuts a straight line through the corner. */}
-      <svg viewBox="-15 -7 126 174" width="139" height="191" fill="none">
+      {/* The viewBox holds the phone at the angle it is DRAWN at — c·θ, so
+          107 × 164 about (48, 80) — or the SVG viewport cuts a straight line
+          through the corner. It is tighter than the device's own tilt because
+          the camera only follows part of the way; see globals.css. */}
+      <svg viewBox="-9 -6 114 172" width="135" height="203" fill="none">
         <defs>
           <clipPath id="tilt-primer-screen">
             <rect x="13" y="9" width="70" height="142" rx="10" />
@@ -137,8 +147,10 @@ function TiltIllustration({ pose }: { pose: Pose }) {
           {/* The notch, so it reads as a phone and not as a card. */}
           <rect x="38" y="13" width="20" height="4" rx="2" className="fill-foreground/20" />
 
-          {/* And the weather inside it, which does not turn with it. The same
-              counter-rotation the shader does per fragment, here done once. */}
+          {/* And the weather inside it, which turns the other way — its own
+              rotation is the device's whole angle, and the camera above takes
+              back part of it. The same counter-rotation the shader does per
+              fragment, here done once. */}
           <g clipPath="url(#tilt-primer-screen)">
             <g className="tilt-primer-level">
               <g className="tilt-primer-fall">

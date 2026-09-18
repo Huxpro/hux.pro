@@ -263,21 +263,43 @@ arrives with no idea what it is for gets refused, and a refusal is final
 everywhere: there is no second prompt, only the site settings nobody opens.
 The first press buys the explanation; the second spends the one chance.
 
-The picture is the argument. A phone rocks, and the rain inside it stays level
-with the world while the phone turns under it — the same relationship the
-shader draws at full size, at a size that fits above a paragraph. Saying "the
-rain leans" is the part nobody reads.
+The picture is the argument. A phone tilts one way and the rain inside it tilts
+the other — the same relationship the shader draws at full size, at a size that
+fits above a paragraph. Saying "the rain leans" is the part nobody reads.
 
-Two things make that picture hold up, and both are the kind of bug that only
-shows at an angle:
+**Where the camera stands is the whole legibility of it**, and the first
+version got that wrong. Drawn in the WORLD's frame — rain fixed, phone turning
+— the rain never changes on screen, so the one thing the viewer is meant to
+notice is the one thing that never moves. But nobody watches their phone from
+the world's frame: it is in your hand, so the screen is what holds still and
+the rain is what swings.
+
+So the camera follows the device part of the way. With a device tilt of θ the
+phone is drawn at `c·θ` and the rain at `(c − 1)·θ`, with c = 0.45 and θ = 24°:
+
+| | drawn at | what it does |
+|---|---|---|
+| the phone | c·θ = ±10.8° | tilts, so the cause is on screen |
+| the rain | (c − 1)·θ = ∓13.2° | tilts the other way, so the effect is too |
+| between them | θ = **24°** | the device's own angle, exactly, at every instant |
+
+Nothing is exaggerated to get that: the two are simply both moving, where at
+c = 1 only one of them was. The rain's group is nested in the phone's, so its
+own rotation stays −θ whatever the camera does and only the phone's amplitude
+carries c — which also means the refusal pose (both still, rain straight down
+the screen) now differs from the rocking one in two ways rather than one.
+
+Two more things make the picture hold up, and both are the kind of bug that
+only shows at an angle:
 
 - **The rain field is sized by the screen's half-diagonal, not by the screen.**
   It turns under the phone, so a field only as wide as the screen swings out
   from under its own corners — and what you then see cutting the shower off is
   the field's edge, not the phone. 79.2 units about the rock's centre covers
-  every corner at every angle. (The viewBox has the same problem: it has to
-  hold the phone at full tilt, 121 × 169, or the SVG viewport cuts a straight
-  line through it.)
+  every corner at every angle, so θ can change without touching it. (The
+  viewBox has the same problem from the other side and does *not* get that for
+  free: it has to hold the phone at the angle the phone is **drawn** at, c·θ —
+  107 × 164 — or the SVG viewport cuts a straight line through the corner.)
 - **It is CSS, not a JS animator.** The rain is level only for as long as the
   phone's rotation and the rain's counter-rotation stay exactly opposite, and
   two declarative animations of one duration cannot drift where a dozen
