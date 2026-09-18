@@ -1358,12 +1358,13 @@ html.dragging * {
    The home screen is one OS composition, not a document. iOS Safari skips
    `user-select: none` on individual labels and expands a long-press into a
    full-page selection (Copy / Find Selection across the viewport). Lock the
-   whole tree — every descendant — so the selection has nowhere to grow.
-   `useLockTextSelection` is the matching JS for WebKit ignoring the CSS.
+   surface so the selection has nowhere to grow; `useLockTextSelection` is the
+   matching JS for WebKit ignoring the CSS. (A descendant `*` rule is omitted
+   on purpose: the CSS pipeline drops that selector. Inheritance + the JS
+   hook cover children.)
    ============================================================================= */
 
-.system-surface,
-.system-surface * {
+.system-surface {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;

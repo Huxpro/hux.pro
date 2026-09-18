@@ -27,7 +27,7 @@ export function useLockTextSelection() {
       const active = document.activeElement;
       if (active && isEditable(active)) return;
       const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+      if (!sel || sel.rangeCount === 0) return;
       if (isEditable(sel.anchorNode)) return;
       sel.removeAllRanges();
     };

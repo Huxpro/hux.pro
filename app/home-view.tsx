@@ -155,7 +155,7 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
     // Auto margins (rather than `justify-center`) are what make that safe: an
     // overflowing composition still starts at the top edge instead of being
     // clipped above it.
-    <main className="system-surface mx-auto flex min-h-svh w-full flex-col px-6 pt-16 sm:pt-24 pb-32 sm:pb-40">
+    <main className="system-surface select-none mx-auto flex min-h-svh w-full flex-col px-6 pt-16 sm:pt-24 pb-32 sm:pb-40">
       <div className="my-auto w-full">
         <div className="mx-auto max-w-[680px]">
           <HeaderZone
