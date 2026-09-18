@@ -6,12 +6,13 @@
 // hiding shows through, the hand tires as it goes, and the fog closes back over
 // it. Nothing is kept — it heals, and that is the whole shape.
 //
-// One module per egg, which is how the other two are arranged. The strike
-// (lib/strike.ts) is a tap on a thunder day; the gust (lib/wallpaper/stir.ts) is
-// a drag on a rainy or snowy one. All three ask `isBackgroundClick` the same
-// question about where the sky is, so they can never disagree about it, and
-// `data-no-strike` keeps all three off. (It is named for a click, but it only
-// ever looks at the target, and a press is the same question.)
+// One module per egg, which is how the others are arranged. The pokes
+// (lib/poke.ts) are taps — a bolt on a thunder day, a meteor on a clear night;
+// the gust (lib/wallpaper/stir.ts) is a drag on a rainy or snowy one. All of
+// them ask `isBackgroundClick` the same question about where the sky is, so
+// they can never disagree about it, and `data-no-poke` keeps them all off. (It
+// is named for a poke, but it only ever looks at the target, and a press is the
+// same question.)
 //
 // They can never both be armed, so no arbitration code exists anywhere and none
 // is needed. From `deriveWeatherScene`: a fog scene carries `fog: 0.9` with no
@@ -32,7 +33,7 @@ import {
   isBackgroundPress,
   TOUCH_HOLD_MS,
   TOUCH_HOLD_SLOP_PX,
-} from "./strike";
+} from "./poke";
 
 // -----------------------------------------------------------------------------
 // The wipe (fog)

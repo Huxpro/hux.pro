@@ -4,10 +4,12 @@ import { cn } from "@/lib/utils";
 import { useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useRef } from "react";
 import {
+  armedPoke,
   isBackgroundPress,
-  strikePoint,
-  STRIKE_COOLDOWN_MS,
-} from "../lib/strike";
+  pokePoint,
+  POKE_COOLDOWN_MS,
+  type PokeKind,
+} from "../lib/poke";
 import { attachWipeDrag, WIPE_MIN_FOG, type WipeHandle } from "../lib/wipe";
 import {
   attachTiltPrimer,
@@ -36,12 +38,14 @@ import { WeatherWallpaper } from "./wallpaper";
 // the wash opacity. The provider resolves which one (`renderer`), so this
 // component only swaps the child.
 //
-// It is also where the thunder-day easter egg is wired: the wallpaper layer is
+// It is also where the weather easter eggs are wired: the wallpaper layer is
 // pointer-events-none (it must be — it is behind the whole page), so the click
-// is caught on the document and handed to the shader. The egg belongs to the
-// Sky alone — a wash has no geometry to strike, and a flash without a bolt is
-// not the same find — so it is armed only while the shader is the one painting.
-// See lib/strike.ts for what counts as a click on the sky.
+// is caught on the document and handed to the shader. The tapped eggs — a bolt
+// on a thunder day, a meteor on a clear night — belong to the Sky alone: a wash
+// has no geometry to strike and no star field for a streak to belong to, and
+// either one faked would be a lesser find, so they are armed only while the
+// shader is the one painting. See lib/poke.ts for which weather answers a
+// click, with what, and what counts as a click on the sky.
 //
 // The foggy-day egg — a drag wipes the mist clear — is wired here too, and on
 // the same terms: only the Sky has a fog layer to thin and a sky behind it to
@@ -64,17 +68,18 @@ interface WallpaperBackgroundProps {
 }
 
 /**
- * The thunder-day easter egg: while `armed`, a click that lands on the
- * wallpaper — and nowhere else — calls a bolt down onto it.
+ * The tap the easter eggs are found by: while a kind is armed, a click that
+ * lands on the wallpaper — and nowhere else — is handed on to be answered.
+ * Armed *is* the kind, so there is one source of truth for both questions.
  *
  * On `click` rather than `pointerdown`, which is what makes it survive a phone:
  * a click is press and release on the same spot, so scrolling the page with a
  * thumb on the sky never lights it up. A drag that ended in a selection is
- * dropped too, and two strikes a second is the ceiling (see lib/strike.ts).
+ * dropped too, and two pokes a second is the ceiling (see lib/poke.ts).
  */
-function useStrikeOnClick(
-  armed: boolean,
-  fire: (clientX: number, clientY: number) => void
+function usePokeOnClick(
+  kind: PokeKind | null,
+  fire: (kind: PokeKind, clientX: number, clientY: number) => void
 ) {
   const fireRef = useRef(fire);
   useEffect(() => {
@@ -83,20 +88,20 @@ function useStrikeOnClick(
   const lastAt = useRef(0);
 
   useEffect(() => {
-    if (!armed) return;
+    if (!kind) return;
     const onClick = (event: MouseEvent) => {
       // The cooldown first: it is a subtraction, and the sky test below walks
       // ancestors asking for computed styles.
       const at = event.timeStamp || performance.now();
-      if (at - lastAt.current < STRIKE_COOLDOWN_MS) return;
+      if (at - lastAt.current < POKE_COOLDOWN_MS) return;
       if (!isBackgroundPress(event)) return;
       lastAt.current = at;
-      fireRef.current(event.clientX, event.clientY);
+      fireRef.current(kind, event.clientX, event.clientY);
     };
     // Bubble phase, on purpose: anything that stopped the click handled it.
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
-  }, [armed]);
+  }, [kind]);
 }
 
 export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
@@ -121,10 +126,14 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
 
   const useShader = kind === "weather" && renderer === "shader";
 
-  // The strike, the Sky's alone: the ref is registered by <WeatherWallpaper />
-  // and is null under every other engine, so the egg cannot half-exist.
+  // The pokes, the Sky's alone: the ref is registered by <WeatherWallpaper />
+  // and is null under every other engine, so the eggs cannot half-exist. One
+  // ref for both of them — a scene can only ever arm one, so there is never a
+  // question of which one answers.
   const layerRef = useRef<HTMLDivElement | null>(null);
-  const strikeRef = useRef<((x: number, y: number) => void) | null>(null);
+  const pokeRef = useRef<
+    ((kind: PokeKind, x: number, y: number) => void) | null
+  >(null);
   const wipeRef = useRef<WipeHandle | null>(null);
   const reducedMotion = useReducedMotion() ?? false;
   // Not while the home grid is in jiggle edit mode: there a tap on the empty
@@ -137,12 +146,19 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   const at = useCallback((clientX: number, clientY: number) => {
     const layer = layerRef.current;
     if (!layer) return null;
-    return strikePoint(layer.getBoundingClientRect(), clientX, clientY);
+    return pokePoint(layer.getBoundingClientRect(), clientX, clientY);
   }, []);
 
-  useStrikeOnClick(sky && scene.lightning > 0, (clientX, clientY) => {
+  // Which egg this weather has, if any — one scene can only ever arm one, so
+  // nothing here has to arbitrate. A meteor is a small, fast, bright object
+  // rather than a full-screen flash, so it is much less of a photosensitivity
+  // concern than the strike; it refuses under `prefers-reduced-motion` all the
+  // same (through `sky`), because the setting is about motion and not only
+  // about flashes.
+  const poke = sky ? armedPoke(scene) : null;
+  usePokeOnClick(poke, (kind, clientX, clientY) => {
     const point = at(clientX, clientY);
-    if (point) strikeRef.current?.(point.x, point.y);
+    if (point) pokeRef.current?.(kind, point.x, point.y);
   });
 
   // The foggy-day egg. The recognizer is `lib/wipe.ts`'s, the way the gust's is
@@ -160,7 +176,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         // have moved between two samples of the same frame.
         const box = layer.getBoundingClientRect();
         for (let i = 0; i < path.length; i += 2) {
-          const point = strikePoint(box, path[i], path[i + 1]);
+          const point = pokePoint(box, path[i], path[i + 1]);
           if (point) sink.wipe(point.x, point.y);
         }
       },
@@ -220,7 +236,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
           interactive
           onFallback={reportShaderFallback}
           statsRef={statsRef}
-          strikeRef={strikeRef}
+          pokeRef={pokeRef}
           wipeRef={wipeRef}
         />
       ) : (

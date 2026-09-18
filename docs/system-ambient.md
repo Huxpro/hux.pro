@@ -1,6 +1,6 @@
 # Ambient System
 
-The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon, and whose rain and snow fall along the device's own gravity — offered in three styles: Sky, Gradient and Classic. On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg), and while it is raining or snowing a drag across the background [stirs up a gust](#stirring-the-wind-rain-and-snow-easter-egg); on a foggy one a drag [wipes the mist clear](#the-fog-wipe-foggy-day-easter-egg).
+The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon, and whose rain and snow fall along the device's own gravity — offered in three styles: Sky, Gradient and Classic. On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg) and on a clear night with [a shooting star](#the-shooting-star-clear-night-easter-egg); while it is raining or snowing a drag across the background [stirs up a gust](#stirring-the-wind-rain-and-snow-easter-egg), and on a foggy one a drag [wipes the mist clear](#the-fog-wipe-foggy-day-easter-egg).
 
 It also owns the page background — the **wallpaper**. Weather is not a separate
 background feature; it is the one wallpaper that changes on its own. See
@@ -194,7 +194,24 @@ The Sky engine (`WallpaperRenderer`):
 - lets a hand dragged across the page add to the wind, same section;
 - renders at a **pixel budget** (≈1.1 M px desktop, ≈0.5 M px phones) and backs
   off further when frames run long, recovering when they are cheap — the scene
-  is soft, so CSS upscaling is invisible;
+  is soft, so CSS upscaling is invisible. Pixels are the only lever here: the
+  **frame cap can only ever deliver a whole divisor of the refresh rate**,
+  because the loop can skip an animation frame but cannot invent one between
+  two, so a cap of 45 on a 60 Hz panel silently delivers 30. It is 60 on both
+  profiles for that reason. And because the cap holds `dt` at the budget
+  whatever a frame actually cost, "cheap enough for more pixels" has to mean
+  *meeting* the cap rather than beating it — against a fraction of the budget
+  it was unreachable, and a canvas scaled down once never came back;
+- **leaves each cloud deck the moment its coverage is zero.** The deck's own
+  eight-octave noise decides that, and everything past it — a second eight-octave
+  sample for the sun-facing rim, the lighting, the silver lining — is then
+  multiplied by that zero by the caller. The test is `cov <= 0.0` and not a
+  threshold, so no pixel carrying any cloud is touched and the frame is
+  bit-identical; verified that way against the version without it, over fifty
+  states built from twelve real scenes captured off the page. It is
+  the single largest saving in the shader, because the rim sample is the most
+  expensive thing in the frame and a clear night asks for it on nearly every
+  pixel;
 - pauses when the tab is hidden, renders a single still frame under
   `prefers-reduced-motion`, and survives context loss;
 - fades the canvas in only after the first frame is painted (no black flash).
@@ -360,7 +377,7 @@ takes the touch, stops sending pointer events and fires `pointercancel` —
 landing right on top of a 400 ms hold and killing it before it can. The fog
 wipe has suppressed `-webkit-touch-callout` on `pointerdown` since it shipped,
 which is why its hold works on a phone; the primer did not, which is why its
-did not. Both now go through `holdCallout()` in `lib/strike.ts`, along with
+did not. Both now go through `holdCallout()` in `lib/poke.ts`, along with
 `TOUCH_HOLD_MS` / `TOUCH_HOLD_SLOP_PX` — one hold, one definition, instead of
 two copies of 400/10 and three comments promising they agreed.
 
@@ -522,56 +539,21 @@ per-widget overlays, so they transition identically. The iOS `fixedBgTracker`
 (background-attachment polyfill + viewport-relative edge mask) is applied per
 layer, so soft-edging keeps working mid-crossfade.
 
-### The easter eggs
+│   ├── poke.ts                   # The two tapped eggs: which weather, how long,
+│   │                             #   and "is this the sky?" — asked for all of them
+│   ├── wipe.ts                   # The foggy-day wipe: the stroke, the hand, the gesture
 
-Three of the six conditions answer a hand, and only three. The rest do nothing —
-**a click on a clear noon sky doing nothing is what makes the others feel like a
-find**, and once every sky reacted it would stop being a secret and become an
-undiscoverable-but-mandatory affordance. They are three *different* gestures on
-purpose, too: a tap that answers with violence, a drag that stirs the air, and a
-drag that takes something away and gives it back.
-
-| Condition | `lightning` | precipitation | `fog` | armed |
-|---|---|---|---|---|
-| thunder | 1 | rain | 0.2 | [the strike](#the-strike-thunder-day-easter-egg) — a tap |
-| rain / drizzle / snow | 0 | yes | ≤ 0.3 | [the gust](#stirring-the-wind-rain-and-snow-easter-egg) — a drag |
-| fog | 0 | none | 0.9 | [the wipe](#the-fog-wipe-foggy-day-easter-egg) — a drag |
-| clear / cloudy | 0 | none | ≤ 0.2 | nothing |
-
-**No two can ever be armed at once**, which is why no arbitration code exists
-anywhere: each gates on its own scene scalar and the three sets do not meet.
-
-They are one module each — `lib/strike.ts`, `lib/wallpaper/stir.ts`,
-`lib/wipe.ts` — each holding its own tuning *and* its own recognizer, so what
-a gesture is stays engine-free and testable, and only the wiring is a component.
-All three ask `isBackgroundPress` from `lib/strike.ts` the same question about
-whether a press is theirs — the primary button with nothing held down, no
-selection to disturb, and a target that is wallpaper rather than page — so they
-can never disagree about it. `data-no-strike` keeps all three off. (The
-attribute is named for a click, but the test only ever looks at the target, and
-a press is the same question.)
-
-**All three belong to the Sky**, for the reason the strike's section gives
-below, and each is armed where the thing it acts on lives: the strike and the
-wipe in `wallpaper-background.tsx`, on the document; the gust one layer down in
-`<WeatherWallpaper />`, with the particles it blows. Arming is all those
-components do — four lines apiece — because the recognizers are `attachWipeDrag`
-and `attachWindStir`, in the lib modules above.
-
-### The Strike (thunder-day easter egg)
-
-**On a thunder day, clicking the sky calls lightning down onto the spot you
-clicked.**
-
-`lib/strike.ts` owns the rules and the one question the interaction turns on —
-**did that click land on the sky, or on something?** It is not a guess: the
-handler walks from the clicked element up to `<body>` and the click counts as
-background only when nothing on the way paints anything (no background colour,
-no background image, no backdrop filter) and nothing on the way is interactive.
-That is the same question the visitor already answered with their eyes — the
-pixel under the pointer was wallpaper — so the two cannot disagree. A widget
-card, a link, the dock, an open sheet: all of them are something. Mark any
-transparent layer that should still swallow strikes with `data-no-strike`.
+`lib/poke.ts` owns the part with no engine in it: which condition is armed
+(`armedPoke`), how long each answer lives, how often one may fire, and the one
+question the interaction turns on — **did that click land on the sky, or on
+something?** It is not a guess: the handler walks from the clicked element up to
+`<body>` and the click counts as background only when nothing on the way paints
+anything (no background colour, no background image, no backdrop filter) and
+nothing on the way is interactive. That is the same question the visitor already
+answered with their eyes — the pixel under the pointer was wallpaper — so the
+two cannot disagree. A widget card, a link, the dock, an open sheet: all of them
+are something. Mark any transparent layer that should still swallow pokes with
+`data-no-poke`.
 
 The listener lives in `wallpaper-background.tsx`, on the document, because the
 wallpaper layer is `pointer-events-none` and must stay that way — it is behind
@@ -579,13 +561,12 @@ the whole page. It listens for `click`, not `pointerdown`, which is what makes
 it survive a phone: a click is a press and a release on the same spot, so
 scrolling the page with a thumb on the sky never lights it up.
 
-**The Sky is the only engine that answers.** `uStrike` / `uStrikeAge` /
-`uStrikeSeed` drive `strike()` in the shader: a forked channel drawn top-down
-out of the cloud base over ~70 ms, landing exactly on the point clicked,
-flickering through two return strokes and gone inside 1.2 s. The flash it
-throws lights the cloud decks the same way the weather's own `lightning()`
-does. `WallpaperRenderer.strike(x, y)` is the entry point; the three uniforms
-are per-frame and never eased — a strike that eased in would not be a strike.
+**The Sky is the only engine that answers.** `uPokeKind == 1` drives `strike()`
+in the shader: a forked channel drawn top-down out of the cloud base over
+~70 ms, landing exactly on the point clicked, flickering through two return
+strokes and gone inside 1.2 s. The flash it throws lights the cloud decks the
+same way the weather's own `lightning()` does. `WallpaperRenderer.poke("strike",
+x, y)` is the entry point.
 
 Under the Gradient and Classic styles the egg **does not exist**, and that is
 the decision rather than an omission. A wash has no geometry to draw a channel
@@ -609,6 +590,201 @@ Three things it will not do, all of them deliberate:
 
 To see it without waiting for a storm: force **Thunder** in the devtool's Sky
 module and click the page background.
+
+### The Shooting Star (clear-night easter egg)
+
+**On a clear night, clicking the star field sends a meteor in off the edge of
+the screen and through the point you clicked.** Same grammar as the strike — a tap, a point, a second, no state —
+and deliberately the opposite tone: the thunder day answers a click with
+violence, the clear night answers it with a wish. The second discovery should
+feel like a different joke, not the same one told again.
+
+Armed on `scene.stars > 0.35`, never on `condition === "clear"`. `stars` is not
+a proxy for a clear night, it *is* "can you see stars right now": it already
+accounts for cloud cover, fog and a bright moon washing the field out. So the
+gate falls out correctly for free — a partly cloudy night with stars still
+showing gets a meteor, a full-moon night loses it as the field dims, and a
+thunder or foggy night can never have one.
+
+`meteor()` in the shader (`uPokeKind == 3`) draws it:
+
+- **It passes through the click**, it is not launched from it. A meteor was
+  always already falling; the click only says where you happened to catch sight
+  of one. So the path is backed up from the point until it leaves the frame —
+  that is the entry, just outside whichever edge it meets — and carried on past
+  the point until it burns out or an edge arrives, but never by less than 60% of
+  the lead-in. That last ratio is really about *time*: it puts the crossing at
+  0.62 of the flight at the latest, so the head is still inside its light curve
+  when it gets there rather than past it.
+- **Everything about the path is re-rolled per click**: which side it comes from
+  and how steeply it falls (20°–70° off the horizon, so never horizontal and
+  never vertical), which way it bows, and what *grade* of meteor it is. The
+  angle is what decides where on the edge it appears, so randomising it
+  randomises the entry point for free. Nothing is held for the session. A real
+  shower does share one radiant, and an earlier cut modelled that, but an egg
+  you will click a dozen times wants to be unpredictable more than it wants to
+  be right — with a fixed radiant every trail pointed back at the same spot.
+- **The grade is the reason to click again.** One roll, `pow(hash, 1.8)`, sets
+  how bright it is, how big the coma, how far it runs, how slowly it falls, how
+  long the train lasts, and whether it flares at all. The skew is the payload:
+  the median grade is 0.29 and one in eight is above 0.8, so most clicks give
+  something modest and now and then you get a fireball that comes apart.
+  Measured over 24 rolls, total light output spans 11× — median 94, top 754 —
+  and four of the 24 show a flare as a convexity in their light curve where the
+  smooth ones are flat. A real sky is mostly faint quick ones too.
+- **Fragmentation flares** (`meteorBurst`) are what a fireball does that a faint
+  streak never does: one or two bursts partway down, each brightening and
+  swelling the head. They multiply into the light curve, so the train remembers
+  a flare as a knot where it happened. Only the top grades get them.
+- **A slight bow.** A meteor's track is dead straight in space and projects
+  straight onto a narrow field — but this is a wide field, and a wide field
+  bends a great circle, so a little curvature is honest as well as prettier. The
+  sagitta is 2.5–6% of the run. It is carried as a *circular arc*, which is what
+  makes a bowed path cost no more than a straight one: the distance from a pixel
+  to an arc and its position along it are both an angle, where for a parabola
+  they would be a cubic. The radius is deliberately bounded away from infinity —
+  a nearly-straight arc is a huge radius, and float32 cannot subtract those
+  accurately.
+- **It always bends so the path steepens as it falls**, and that is a choice
+  rather than a roll. The real track is straight, so its projected bow could go
+  either way and the sign is free — but one of the two reads as wrong.
+  Steepening is what diving into thicker air looks like; the other sign flattens
+  the far end and reads as a meteor *pulling up*, which nothing falling does. On
+  screen it still varies, because which way is "steeper" depends on which side
+  it came from.
+- **And the bow is clipped to the room the pitch has.** The arc turns
+  `8 × bow` radians end to end — up to 27° — which is enough to lift a 20° pitch
+  above the horizon at one end, or push a 70° one past vertical at the other. So
+  the bow is bounded at both ends by `METEOR_PITCH_FLOOR` / `_CEIL`. That fault
+  was found by sweeping the parameter space rather than by rendering samples:
+  0.4% of combinations climbed, by up to 7.4°, and another 0.4% curled past
+  vertical — rare enough that 48 rendered cases all passed it, common enough to
+  be seen by anyone clicking a few dozen times. With the clip the same sweep
+  reports zero of either.
+- **One pace, not one duration.** The head moves at a fixed speed, so a long
+  sweep across the frame takes about a second and a short chord near a corner
+  is over quickly — bounded at both ends (`METEOR_MIN_FLIGHT` /
+  `METEOR_MAX_FLIGHT`) so the shortest is never a blink and the longest still
+  fits the poke's lifetime on a very wide screen.
+- **The head crosses the clicked point 0.06–0.73 s in** (median 0.23 s),
+  depending on how far away its entry edge was, and the streak itself is on
+  screen from ~0.03 s. Something appearing promptly is part of what "fires every
+  time" means — an egg that answers late reads as broken just as an egg that
+  answers one click in five does — and so is brightness, which is why the head
+  is never under about a third of its peak where you pointed.
+- **The pace is constant.** A meteor does not slow down, it stops giving off
+  light, and those two look nothing alike: an eased path reads as a thrown
+  object losing steam, or worse, as an animation curve, and the eye knows that
+  signature. The first cut of this eased out over its flight and measured a
+  1.5× slowdown — 34 px/frame down to 22 — which was the single loudest tell
+  that it was drawn rather than falling.
+- **One light curve, asymmetric, peaking somewhere past the middle**
+  (`meteorGlow`, re-rolled per click). It climbs as it digs into thicker air and
+  is spent faster than it climbed; nothing switches on or off. That curve also
+  sets the head's size, so a brightening reads as a swelling coma, and only the
+  tip of the peak clips to white — a dozen pixels for a fifth of a second
+  instead of the whole first half of the flight, which is what a flat-topped
+  envelope was doing.
+- **The head is kept small**, which is most of what separates a meteor from a
+  comet: what a meteor is long in is its streak, not its head. On a 13" laptop
+  it measures about 2 px of white core and 9 px to the edge of its glow, across
+  the streak. An earlier cut was a 20 px bright ball inside an 84 px glow —
+  nine percent of the screen's height — because the halo carried 0.42 of the
+  core over a 3.3× exponential, and an exponential that wide takes a very long
+  way to reach nothing.
+- **Colour is keyed to the age of the air, not to the wake and train
+  amplitudes** (`meteorTint`), and that is the whole trick. An earlier pass gave
+  the wake one colour and the train another, and it was invisible: the warm wake
+  outweighed the cool train everywhere the train could still be seen, so two
+  colours in the source came out as one on screen — measured at saturation
+  0.05–0.12 from head to tail, with the blue never appearing at all. Keyed to
+  age, the gradient cannot be cancelled by a weighting. Three stages, each
+  something different emitting: the head, hot and near white; the metal it has
+  just shed, burning sodium-orange a few hundredths of a second later; then the
+  air itself, green — the forbidden oxygen line at 557.7 nm, which is the green
+  in photographs of real meteors. The stages have to fit inside the first tenth
+  of a second of air, because that is all of the streak that is still bright; a
+  first attempt spread them over 0.15 s and the green arrived at rgb(7,7,5),
+  where there was no light left to colour.
+- **Every roll has its own hue**, from a draw of its own, deliberately not the
+  grade's — so a faint one can be the blue one and a fireball can be the orange
+  one, and two independent draws make many more distinct meteors than one. It
+  maps the real thing: sodium and iron burn orange and yellow, magnesium and
+  shock-excited air burn blue-white. The oxygen green at the end is atmospheric
+  rather than compositional, so every meteor shares it — a signature rather
+  than a variable. Measured, the streak now runs at saturation 0.37–0.66 through
+  the metal stage and lands green (G clearly over R and B) in the train, in both
+  themes.
+- **Shape**: a bright head, a short wake right behind it, and a faint, wider
+  train beyond that. The wake and the train are the same air at
+  two ages, so they come from one walk down the streak — see below. Gone inside
+  1.7 s (`POKE_MS.meteor`, which the shader's `METEOR_LIFE` must match).
+- **The tail is short, and its two time constants are really lengths.** At
+  `METEOR_SPEED`, a tau of 0.1 s is 0.28 of the screen's height, so the decay
+  clocks decide how much of the screen the thing covers. An earlier cut ran the
+  train at 0.3 s and drew a streak 833 px long on a 945 px-tall laptop — 88% of
+  the height, still carrying 34/255 halfway down — which reads as a light beam.
+  What the eye sees of a real meteor is a bright dash and a ghost behind it; the
+  full path only appears in a photograph, which integrates the whole flight. So
+  the wake is a short bright dash (`METEOR_WAKE_TAU`) and the train is a faint
+  ghost (`METEOR_TRAIN_GAIN`) whose greater length never adds up to a band. It
+  now measures under 300 px at its longest, a third of the height, with the
+  bright part inside the first 55 (of an ordinary grade — a fireball is
+  brighter and thicker, which is the point of it).
+- **The wake also has a floor that is about displays, not meteors.** The dash is
+  `tau × speed` long and the head moves `speed/fps` between frames, so what
+  decides whether consecutive frames *overlap* is `tau × fps` — the speed
+  cancels, and slowing a strobing meteor down does not stop it strobing. A cut
+  of this moved the head 44 px a frame behind a 25 px dash, which drew a row of
+  separate dashes: broken, and in motion faintly bent, while every still frame
+  of it looked right. The wake is therefore never shorter than about two frames
+  of travel, taken from `uFrameSec` — the renderer's own measured frame time,
+  the same number `adaptQuality` steers resolution by — so a machine that drops
+  to 20 fps gets a longer dash instead of a strobe, capped so that the
+  adaptation cannot run away and draw the beam back at a few frames a second.
+  With that floor in hand the
+  pace could come down to something watchable: 25 px a frame, 39 frames of
+  flight, against 44 px and 22 frames before.
+- **Every point of the train decays on its own clock.** Constant pace is what
+  makes that cheap: where a bit of the streak sits says *when* the head made it,
+  and so both how old it is now and how bright the head was that made it. Hence
+  a train with a bright middle, an old end that goes first, and a thread that
+  widens and dims as the air diffuses. The decay is deliberately steeper than an
+  exponential (`METEOR_TRAIN_FALL`), because under a plain `exp(-t/tau)` every
+  point ages at the same rate once emission has stopped, so the whole profile
+  scales by one factor per frame and the thing reads as a rigid stick on a
+  dimmer — measurably: first and last point both lost exactly half between
+  0.45 s and 0.60 s. Raised to a power, the visible extent collapses from 500 px
+  to 200 px over the same interval instead.
+- **Costed by one test, not by the shape it draws.** Everything the meteor puts
+  on screen — head, wake and train — lies on the circle its arc is cut from, so
+  the distance from a pixel to that circle is a lower bound on its distance to
+  all three. One `abs(length(p - centre) - radius) > METEOR_REACH` therefore
+  stands in for the three hundred operations behind it, and what it keeps is one
+  thin annulus. `METEOR_REACH` is a bound on the light and not a look: at that
+  distance the three widest profiles come to 2e-4, 0 and about 1e-9 of a level
+  out of 255. It reads as free, and it measures as free — over 560 frames swept
+  across seeds, ages, click points and two viewport shapes, 535 are bit-identical
+  to the version without it and 25 differ by one level on one or two channels
+  out of 273600, which is a rounding boundary rather than light.
+- **Drawn over the star field and under the cloud decks**, the opposite of the
+  strike's channel: a meteor behind a cloud should be hidden, so a drifting deck
+  occludes a lingering trail.
+- **Brightness scales with `scene.stars`**, for the same reason the stars' does:
+  on a washed-out night the meteor is faint too.
+
+**Sky only, and that is deliberate.** The CSS wash draws no stars at all —
+`gradient.ts` builds a sun-glow radial, a cloud wash and a zenith→horizon
+linear, and nothing else — so there is no field for a meteor to belong to, and a
+streak over a flat night gradient would read as a scratch on the screen. Unlike
+the strike, this egg has no honest CSS answer, so it does not have one: on
+Gradient and Classic a clear night does nothing. The wash is documented as the
+low-fidelity engine and the Sky is the default; inventing a fake for the sake of
+parity would be worse than the gap.
+
+To see it without waiting for nightfall: force **Clear** in the devtool's Sky
+module, run the clock into the night with the time slider, and click the page
+background.
 
 ### Stirring the wind (rain-and-snow easter egg)
 
@@ -725,9 +901,9 @@ What it deliberately does **not** do:
   swiped straight down does not make a sideways breeze — which also means an
   ordinary vertical scroll leaves the weather alone.
 - **It does not invent a second idea of "the sky".** What counts as background
-  is [`isBackgroundClick`](#the-strike-thunder-day-easter-egg) from
-  `lib/strike.ts`, the same question the strike asks, so the two easter eggs can
-  never disagree — and `data-no-strike` keeps both of them off.
+  is [`isBackgroundClick`](#the-easter-eggs) from `lib/poke.ts`, the same
+  question the tapped eggs ask, so no two of them can disagree — and
+  `data-no-poke` keeps all of them off.
 - **It uses touch events, not pointer events.** A touch drag that turns into a
   scroll fires `pointercancel` and stops sending `pointermove`, which would cut
   the gesture off exactly where it is most fun.

@@ -1,39 +1,101 @@
 // =============================================================================
-// The strike — a bolt on demand, on a thunder day.
+// The poke — the sky answers where you touched it.
 //
-// `lightning()` in the shader is weather: it fires on its own schedule, wherever
-// it likes. A strike is an *answer*. On a thunder day (and only then) a click on
-// the wallpaper calls one bolt down onto the spot that was clicked, over roughly
-// a second, and the sky lights up with it.
+// Some weather is worth answering. On a thunder day a click calls a bolt down
+// onto the spot (`strike`); on a clear night it sends a meteor away from it
+// (`meteor`). Both are the same shape of thing: point-aimed, brief, bright,
+// self-cleaning, and belonging to one condition only. A poke is that shape.
 //
 // The Sky is the only engine that answers. A wash has no geometry to draw a
-// channel on, and a flash with no bolt in it is a different, lesser find — so
-// the Gradient and Classic styles simply do not have this easter egg, rather
-// than having a worse one.
+// channel or a streak on, and a flash with no bolt in it is a different, lesser
+// find — so the Gradient and Classic styles simply do not have these easter
+// eggs, rather than having worse ones.
 //
-// This module is the part with no engine in it: how long a strike lives, how
-// often one may fire, and the one question the interaction turns on — did that
-// click land on the sky, or on something?
+// This module is the part with no engine in it: which condition is armed, how
+// long each answer lives, how often one may fire, and the one question the
+// interaction turns on — did that click land on the sky, or on something?
 //
-// "On the sky" is not a guess. A click is on the background when nothing between
-// the clicked element and <body> paints anything: no background colour, no
-// background image, no backdrop filter, and nothing interactive on the way up.
-// That is the same question the visitor answered with their eyes — the pixel
-// under the pointer was wallpaper — so the two can never disagree.
+// That last question is asked by more than the pokes. The fog wipe (lib/wipe.ts)
+// and the gust (lib/wallpaper/stir.ts) are drags rather than taps and run their
+// own machinery, but they read `isBackgroundPress` and `isBackgroundClick` from
+// here, so no two eggs can come to different answers about what the background
+// is. Which is why this module is named for the question and not for one of the
+// answers.
+//
+// "On the sky" is not a guess. A click is on the background when nothing
+// between the clicked element and <body> paints anything: no background colour,
+// no background image, no backdrop filter, and nothing interactive on the way
+// up. That is the same question the visitor answered with their eyes — the
+// pixel under the pointer was wallpaper — so the two can never disagree.
+//
+// The answers are disjoint by construction, so there is no arbitration here and
+// never needs to be: `lightning` is 1 only on a thunder day, whose cover of
+// 0.96 drives `stars` to 0, and a foggy day's fog of 0.9 does the same. One
+// condition, one answer, and the shader carries a single set of uniforms for
+// whichever is running.
 // =============================================================================
 
-/** How long one strike lives, ms — the span the shader's envelope is spent over. */
-export const STRIKE_MS = 1200;
+import type { WeatherScene } from "./scene";
 
 /**
- * The shortest gap between two strikes, ms. Clicking as fast as you can is
- * capped at two flashes a second — a full-screen flash is exactly the thing
- * that must never become a strobe (WCAG allows three; we allow two).
+ * What a poke can be. The shader reads these as numbers (`uPokeKind`). 2 is
+ * spare: it was held for the fog wipe, which turned out to be a drag with a
+ * path rather than a tap with a point, so it runs its own uniforms instead.
  */
-export const STRIKE_COOLDOWN_MS = 500;
+export type PokeKind = "strike" | "meteor";
 
-/** Mark a transparent layer that should still swallow strikes. */
-export const STRIKE_OPT_OUT_ATTR = "data-no-strike";
+export const POKE_KIND_CODE: Record<PokeKind, number> = {
+  strike: 1,
+  meteor: 3,
+};
+
+/**
+ * How long each answer lives, ms — the span the shader's envelope is spent
+ * over. Past it the renderer retires the poke, because there is nothing left
+ * to draw.
+ */
+export const POKE_MS: Record<PokeKind, number> = {
+  strike: 1200,
+  // A meteor comes in from off the edge of the screen and crosses it, at one
+  // pace whatever the distance, so a long sweep takes the better part of a
+  // second and its train wants a beat after that. The shader's METEOR_LIFE is
+  // this number — keep the two together.
+  meteor: 1700,
+};
+
+/**
+ * The shortest gap between two pokes, ms. Clicking as fast as you can is capped
+ * at two a second — a full-screen flash is exactly the thing that must never
+ * become a strobe (WCAG allows three; we allow two). The meteor is no strobe
+ * hazard, but the same ceiling is what stops a mashed click turning a wish into
+ * a meteor shower.
+ */
+export const POKE_COOLDOWN_MS = 500;
+
+/**
+ * How visible the star field has to be before a click earns a meteor. `stars`
+ * already means "can you see stars right now" — it accounts for cloud cover,
+ * fog and a bright moon washing the field out — so this is the whole gate: a
+ * partly cloudy night with stars still showing gets one, a moonlit night loses
+ * it as the field dims, and a thunder or foggy night can never have one.
+ *
+ * Gated on the scalar, never on `condition === "clear"`, which would wrongly
+ * exclude a clear-enough cloudy night.
+ */
+export const METEOR_STARS_MIN = 0.35;
+
+/** Mark a transparent layer that should still swallow pokes. */
+export const POKE_OPT_OUT_ATTR = "data-no-poke";
+
+/**
+ * Which answer this scene is armed for, if any. One scene can only ever arm
+ * one: see the note at the top of this file.
+ */
+export function armedPoke(scene: WeatherScene): PokeKind | null {
+  if (scene.lightning > 0) return "strike";
+  if (scene.stars > METEOR_STARS_MIN) return "meteor";
+  return null;
+}
 
 /**
  * Things a click can land *on*. A click here is on the thing, not on the sky —
@@ -59,7 +121,7 @@ const INTERACTIVE = [
   '[role="switch"]',
   '[contenteditable=""]',
   '[contenteditable="true"]',
-  `[${STRIKE_OPT_OUT_ATTR}]`,
+  `[${POKE_OPT_OUT_ATTR}]`,
 ].join(",");
 
 /**
@@ -174,12 +236,12 @@ export function isBackgroundPress(event: MouseEvent): boolean {
 }
 
 /**
- * Where the bolt lands, in the wallpaper layer's own space: 0..1 across,
+ * Where the poke lands, in the wallpaper layer's own space: 0..1 across,
  * 0..1 **bottom → top** (the shader's screen convention, same as `uSun`).
  * Null when the click was outside the layer — with the bezel on, the layer
  * stops inside it, and the band around it is not sky.
  */
-export function strikePoint(
+export function pokePoint(
   rect: DOMRect,
   clientX: number,
   clientY: number
