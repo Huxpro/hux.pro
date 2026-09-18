@@ -1679,16 +1679,17 @@ html.dragging * {
 
    It also takes care of what the sibling rules had to be scoped around: Base
    UI parks focus guards and an `aria-owns` span next to the trigger while a
-   panel is open, and they are out of flow, so a gap never lands on them. */
-[data-dock-row] {
-  column-gap: 0.375rem;
-}
+   panel is open, and they are out of flow, so a gap never lands on them.
 
-/* The island buys its extra detachment with a margin of its own, which lands
-   in the gap after it wherever it sits — and only when there is something to
-   be detached from, or it would push a lone island off centre. */
-[data-dock-row]:not([data-dock-satellites="0"]) [data-dock-slot="island"] {
-  margin-right: 0.25rem;
+   ONE VALUE, not a tier per boundary. The island used to buy an extra 4px of
+   detachment with a margin of its own, on the theory that the gaps should
+   carry the hierarchy. They do not have to: a satellite is a capsule again,
+   so the boundary is already carried by the chevron the island alone wears
+   and by what each one holds. All the extra 4px bought was a row that looked
+   unevenly spaced. 0.5rem is what this row used before any of this — the
+   `gap-2` it was written with. */
+[data-dock-row] {
+  column-gap: 0.5rem;
 }
 
 /* ---- Collapsing a satellite ---------------------------------------------- */

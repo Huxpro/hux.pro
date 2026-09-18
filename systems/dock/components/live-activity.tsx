@@ -21,8 +21,8 @@ import { useDock } from "../provider";
 //               leading side, `trail` on the trailing side. iOS puts the
 //               TrueDepth camera between them; we have no camera, so the gap
 //               is the island's own and the chevron sits in it.
-//   Satellite — every other activity, detached from the island by a wider gap
-//               exactly as iOS detaches the second of two Live Activities. It
+//   Satellite — every other activity, detached from the island exactly as iOS
+//               detaches the second of two Live Activities. It
 //               keeps `lead` and `trail` while the row has room, and collapses
 //               to iOS's minimal presentation — a bare circle carrying `lead`
 //               alone — when it does not. The row decides which (dock.tsx);

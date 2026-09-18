@@ -23,8 +23,7 @@ import { DockProvider } from "../provider";
 //
 //   island   one activity, the compact presentation: lead + trail + chevron
 //   dot      every other activity — lead and its live bit, detached from the
-//            island by a wider gap, as iOS detaches the second of two Live
-//            Activities
+//            island as iOS detaches the second of two Live Activities
 //   window   minimized app windows, further out and a step down in glass —
 //            they are parked apps, not ongoing activity, and the island is
 //            not their home

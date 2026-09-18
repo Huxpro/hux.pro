@@ -54,7 +54,7 @@ So the row lays out three classes of thing, and the gaps carry the hierarchy:
 | Slot | What | Form |
 |---|---|---|
 | `island` | one activity — the one that arrived LAST | the compact presentation: `lead` + `trail` + chevron |
-| `dot` | every other activity | `lead` + `trail`, detached by a 10px gap — collapsing to a bare `h-9` circle when the row is crowded |
+| `dot` | every other activity | `lead` + `trail` — collapsing to a bare `h-9` circle when the row is crowded |
 | `window` | minimized app windows | an app icon + its title, one step down in glass, furthest out — collapsing the same way |
 
 Apple's compact presentation splits around the TrueDepth camera — one element
@@ -78,8 +78,14 @@ it is first in `layout.tsx`, the 6px landed at the row's left edge and the two
 touched. (`:first-of-type` was worse: it matches by tag name, both are divs, so
 a dot was never the first of its type and that rule could never fire.) A gap is
 applied between items in **order-resolved** order, so it is the only thing here
-that can be trusted; the island buys its extra detachment with a
-`margin-right` of its own, which lands in the gap after it wherever it sits.
+that can be trusted.
+
+It is **one value**, 8px, not a tier per boundary. The island used to buy an
+extra 4px with a margin of its own, on the theory that the gaps should carry
+the hierarchy; they do not have to, now that a satellite is a capsule again —
+the boundary is carried by the chevron the island alone wears, and by what each
+one holds. All the extra 4px bought was a row that looked unevenly spaced. 8px
+is what this row used before any of this, the `gap-2` it was written with.
 
 The walkthrough keeps that configuration as a regression: it seeds a sun event
 so the ambient activity mounts, then asserts the gaps while reporting both
@@ -433,7 +439,7 @@ Order in the JSX does not decide order in the row: `data-dock-slot` and CSS
 
 ## Layout & coexistence rules
 
-- **Collapsed:** one island, then the other activities as detached circles,
+- **Collapsed:** one island, then the other activities as satellites,
   then minimized windows. Nothing scrolls. Sorted by `data-dock-slot`, not by
   DOM order, because the children come from four different systems and none of
   them knows what the others rendered.
