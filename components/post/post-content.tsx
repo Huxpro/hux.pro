@@ -3,7 +3,7 @@
 import { PageLayout } from "@/components/ui/page-layout";
 import type { PostLanguage } from "@/lib/content";
 import type { Locale } from "@/lib/i18n";
-import { ChevronDown, Languages } from "lucide-react";
+import { Info, Languages } from "lucide-react";
 import { t } from "@/services";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useState, type ReactNode } from "react";
@@ -140,41 +140,45 @@ export function PostContent({
         </>
       )}
 
-      {/* The handle for the line below, sitting with the facts because that is
-          what it discloses -- one more fact, folded. Same glyph size as the
-          language switch, same ink, same hover. */}
+    </>
+  );
+
+  /**
+   * What you can do to it. The chips /writing and /docs already use, and the
+   * provenance toggle is one of them now rather than a bare glyph with its own
+   * spacing and its own hover: an `i`, which is what it offers. It does not
+   * rotate -- a chevron promises a direction, and this one only ever opens the
+   * same line. Being lit is what says it is open.
+   */
+  const headerChips = (
+    <>
       {displayOrigin && (
-        <button
-          type="button"
+        <HeaderAction
+          variant="action"
+          active={originOpen}
           onClick={() => setOriginOpen((v) => !v)}
-          aria-expanded={originOpen}
-          aria-controls={originId}
-          aria-label={t(displayLocale, "postOrigin")}
+          expanded={originOpen}
+          controls={originId}
+          label={t(displayLocale, "postOrigin")}
           title={t(displayLocale, "postOrigin")}
-          className="inline-flex items-center hover:text-foreground transition-colors cursor-pointer"
         >
-          <ChevronDown
-            className={cn(
-              "h-3 w-3 transition-transform duration-200",
-              !originOpen && "-rotate-90"
-            )}
-          />
-        </button>
+          <Info className="h-3 w-3" />
+        </HeaderAction>
+      )}
+
+      {hasAlternate && (
+        <HeaderAction variant="action" onClick={switchLanguage}>
+          <Languages className="h-3 w-3" />
+          <span>{alternateLabel}</span>
+        </HeaderAction>
       )}
     </>
   );
 
-  /** What you can do to it. The chips /writing and /docs already use. */
-  const headerChips = hasAlternate ? (
-    <HeaderAction variant="action" onClick={switchLanguage}>
-      <Languages className="h-3 w-3" />
-      <span>{alternateLabel}</span>
-    </HeaderAction>
-  ) : null;
-
   /**
-   * Where this text came from. Same face and same size as the handles above --
-   * the only thing that marks it as the quieter line is the ink.
+   * Where this text came from. The handles' face, size and ink exactly: it is
+   * the same kind of thing as the date, not a rung below it. What separates it
+   * is that it is folded away until asked for.
    *
    * Height animates through `grid-template-rows` 0fr -> 1fr (docs/motion.md):
    * CSS cannot transition height from 0 to `auto`, and a fixed height would be
@@ -193,7 +197,7 @@ export function PostContent({
       )}
     >
       <div className="min-h-0 overflow-hidden">
-        <div className={cn(TYPE.rowMeta, "pt-1.5")}>
+        <div className={cn(TYPE.meta, "pt-1.5")}>
           {renderMarkdownLinks(displayOrigin)}
         </div>
       </div>
@@ -222,7 +226,12 @@ export function PostContent({
           <div className={cn("flex flex-wrap items-center gap-2", TYPE.meta)}>
             {headerFacts}
             {headerChips}
-            {toc && <ReadingSettings />}
+            {/* Desktop has the room the original layout used, and at these
+                widths the ruler's lane is nowhere near the column, so the
+                "Aa" goes back to the trailing edge -- same row, as it was.
+                Below `md` it stays inline, which is where it has to be: the
+                column reaches into the ruler's lane under 712px. */}
+            {toc && <ReadingSettings className="md:ml-auto" />}
           </div>
         )}
         {headerOrigin}

@@ -1009,16 +1009,44 @@ main[data-variant="reader"] .reader-masthead h1 {
   font-size: calc(var(--reading-size) * 1.25);
 }
 
+/* -----------------------------------------------------------------------------
+   The gap under the masthead, and the one over the title.
+
+   These were 48px / 56px while `h2` inside the article takes a 64px `mt`. So a
+   section break in the middle of a piece was given more air than the break
+   between the piece's title and its first line -- the largest division on the
+   page getting the smallest gap, which is the hierarchy upside down.
+
+   The number is measured rather than picked. On /writing the first text on the
+   page sits 70px from the top edge on a phone and 102px on a desktop (`main`'s
+   own `pt-16 sm:pt-24`, plus the 6px the nav's 44px touch target centres its
+   text by). That distance is what the eye is already calibrated to as "a new
+   thing starts here", so the article's two equivalent breaks -- nav to title,
+   masthead to first line -- take it too.
+
+   Expressed against `--reading-size` so they move with the type like everything
+   else in the composition; at the default 16px they resolve to exactly the 70
+   and 102 that were measured. The nav's own gap is 14px less than the total,
+   because its box hangs that far below its text (the same touch target).
+   ----------------------------------------------------------------------------- */
+
+main[data-variant="reader"] .reader-masthead > a {
+  margin-bottom: calc(var(--reading-size) * 3.5); /* 56 -> 70px text to title */
+}
+
 main[data-variant="reader"] .reader-masthead {
-  margin-bottom: calc(var(--reading-size) * 3);
+  margin-bottom: calc(var(--reading-size) * 4.375); /* 70px */
 }
 
 @media (width >= 40rem) {
   main[data-variant="reader"] .reader-masthead h1 {
     font-size: calc(var(--reading-size) * 1.5);
   }
+  main[data-variant="reader"] .reader-masthead > a {
+    margin-bottom: calc(var(--reading-size) * 5.5); /* 88 -> 102px text to title */
+  }
   main[data-variant="reader"] .reader-masthead {
-    margin-bottom: calc(var(--reading-size) * 3.5);
+    margin-bottom: calc(var(--reading-size) * 6.375); /* 102px */
   }
 }
 
