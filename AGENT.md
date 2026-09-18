@@ -27,6 +27,7 @@
 | **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (The site's one light — Siri's ring as a shared WebGL shader: `ring` / `line`, voice `level`, `processing`; voice search in ⌘K via the Web Speech API; the `/editor/glow` lab) |
 | **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (Who signed a commit — the profile card behind `<handle>` and `Role:`) |
 | **Widget Scroll** | [docs/system-widget-scroll.md](./docs/system-widget-scroll.md) (A widget's list body scrolls under a pointer, holds still under a finger — and why) |
+| **Widget Board** | [docs/system-widget-board.md](./docs/system-widget-board.md) (The home grid as cells: size families, a design per size, the drag system and the resize grip) |
 
 ## 2. Quick Start Context
 

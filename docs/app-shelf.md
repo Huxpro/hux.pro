@@ -78,26 +78,33 @@ and (via the same fill/pad rules) the minimized dock pills.
 
 ## Rendering — App Folder
 
-`components/apps/app-folder.tsx` renders as one chrome-less item in the home
-`SortableMasonry`, so it drags alongside widgets. Icons inside are a *nested*
-dnd-kit sortable with its own persisted order (`localStorage["hux_app_order_v2"]`):
+`components/apps/app-folder.tsx` renders as one chrome-less item on the home
+[Widget Board](./system-widget-board.md), so it drags alongside widgets and
+is sized like one. Each size is a different page shape, not the same icons
+scaled — **small** is the folder glyph (a page of small icons, no labels),
+**medium** the 4×2 springboard row-pair, and **large** (4×4) / **xl** (8×2)
+are only offered once the catalog fills more than a medium page
+(`appFolderSizes`). Icons inside are a *nested* dnd-kit sortable with its
+own persisted order (`localStorage["hux_app_order_v2"]`):
 
 - Pointer presses on icons stop propagation, so dragging an icon never lifts
   the whole folder (the folder still lifts from its empty areas).
-- An inner drag enters the masonry's shared jiggle edit mode (via
-  `useMasonryEdit()`), which also makes the item wrapper swallow the
+- An inner drag enters the board's shared jiggle edit mode (via
+  `useBoardEdit()`), which also makes the item wrapper swallow the
   post-drop click that would otherwise open the dropped icon's link.
 - The shared **Reset** control restores the icon order too (the folder
-  registers itself as a masonry *section* under id `"app-shelf"` for
+  registers itself as a board *section* under id `"app-shelf"` for
   backwards-compatible persistence).
 - The inner `DragOverlay` is **portaled to `<body>`**. This is load-bearing:
-  in jiggle mode the masonry item wrapper carries a `rotate` transform, and a
+  in jiggle mode the board item wrapper carries a `rotate` transform, and a
   transformed ancestor becomes the containing block for the overlay's
   `position: fixed` — displacing both the visible clone and dnd-kit's
   collision rect, which silently broke cross-row sorting.
 
-**Pages.** Default layout is **4 columns × 2 rows** per page (`axis: "x"`).
-Pass `layout={{ columns, rows, axis }}` to change capacity or scroll direction.
+**Pages.** Default (medium) layout is **4 columns × 2 rows** per page
+(`axis: "x"`); the board's `size` prop picks the others (`folderLayoutFor`).
+Pass `layout={{ columns, rows, axis }}` to override capacity or scroll
+direction.
 
 | Catalog size | Behavior |
 |--------------|----------|
