@@ -124,9 +124,6 @@ export function PostContent({
   //
   // Folded by default. Provenance is a thing a reader looks up once, if ever;
   // the article is what they came for.
-  const hasHeaderMetaContent =
-    !!headerMeta || !!displayReadingTime || hasAlternate || !!displayOrigin;
-
   /**
    * One row, joined by dots -- the shape the header had before any of this was
    * interactive, and the shape it keeps. That some of these now do something
@@ -160,26 +157,25 @@ export function PostContent({
   // `relative z-[35]`: the row wraps, so any item can end up near the docked
   // edge on a narrow screen, and the collapsed ruler (z-30) is interactive
   // across a band it paints nothing in. Under the open ruler's backdrop.
-  const headerActions =
-    hasHeaderMetaContent || toc ? (
-      <div
-        className={cn(
-          "relative z-[35] flex flex-wrap items-center gap-2",
-          TYPE.meta
-        )}
-      >
-        {items.map((item, i) => (
-          <Fragment key={i}>
-            {i > 0 && (
-              <span aria-hidden className="text-quaternary-foreground">
-                ·
-              </span>
-            )}
-            {item}
-          </Fragment>
-        ))}
-      </div>
-    ) : undefined;
+  const headerActions = items.length ? (
+    <div
+      className={cn(
+        "relative z-[35] flex flex-wrap items-center gap-2",
+        TYPE.meta,
+      )}
+    >
+      {items.map((item, i) => (
+        <Fragment key={i}>
+          {i > 0 && (
+            <span aria-hidden className="text-quaternary-foreground">
+              ·
+            </span>
+          )}
+          {item}
+        </Fragment>
+      ))}
+    </div>
+  ) : undefined;
 
   return (
     <PageLayout
@@ -233,7 +229,7 @@ function Provenance({ origin, locale }: { origin: string; locale: Locale }) {
         // is a disclosure that is forced open once the line has room.
         className={cn(
           !open && "max-md:hidden",
-          open && "animate-in fade-in duration-200"
+          open && "animate-in fade-in duration-200",
         )}
       >
         {renderMarkdownLinks(origin)}
