@@ -659,8 +659,31 @@ thunder or foggy night can never have one.
   nine percent of the screen's height — because the halo carried 0.42 of the
   core over a 3.3× exponential, and an exponential that wide takes a very long
   way to reach nothing.
-- **Shape**: a bright warm head, a short wake right behind it, and a faint,
-  cooler, wider train beyond that. The wake and the train are the same air at
+- **Colour is keyed to the age of the air, not to the wake and train
+  amplitudes** (`meteorTint`), and that is the whole trick. An earlier pass gave
+  the wake one colour and the train another, and it was invisible: the warm wake
+  outweighed the cool train everywhere the train could still be seen, so two
+  colours in the source came out as one on screen — measured at saturation
+  0.05–0.12 from head to tail, with the blue never appearing at all. Keyed to
+  age, the gradient cannot be cancelled by a weighting. Three stages, each
+  something different emitting: the head, hot and near white; the metal it has
+  just shed, burning sodium-orange a few hundredths of a second later; then the
+  air itself, green — the forbidden oxygen line at 557.7 nm, which is the green
+  in photographs of real meteors. The stages have to fit inside the first tenth
+  of a second of air, because that is all of the streak that is still bright; a
+  first attempt spread them over 0.15 s and the green arrived at rgb(7,7,5),
+  where there was no light left to colour.
+- **Every roll has its own hue**, from a draw of its own, deliberately not the
+  grade's — so a faint one can be the blue one and a fireball can be the orange
+  one, and two independent draws make many more distinct meteors than one. It
+  maps the real thing: sodium and iron burn orange and yellow, magnesium and
+  shock-excited air burn blue-white. The oxygen green at the end is atmospheric
+  rather than compositional, so every meteor shares it — a signature rather
+  than a variable. Measured, the streak now runs at saturation 0.37–0.66 through
+  the metal stage and lands green (G clearly over R and B) in the train, in both
+  themes.
+- **Shape**: a bright head, a short wake right behind it, and a faint, wider
+  train beyond that. The wake and the train are the same air at
   two ages, so they come from one walk down the streak — see below. Gone inside
   1.2 s (`POKE_MS.meteor`, which the shader's `METEOR_LIFE` must match).
 - **The tail is short, and its two time constants are really lengths.** At

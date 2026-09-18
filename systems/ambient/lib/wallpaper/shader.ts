@@ -976,6 +976,38 @@ const float METEOR_BOW_MIN = 0.025;
 const float METEOR_BOW_MAX = 0.06;
 
 /**
+ * The colour of the air a moment after the head has passed, which every meteor
+ * ends in whatever it is made of: the forbidden oxygen line at 557.7 nm. That
+ * is the green in photographs of real ones, and because it is atmospheric
+ * rather than compositional it is the one part of the spectrum they all share —
+ * which makes it a signature rather than a variable. Tempered well off a pure
+ * green: this is a restrained sky.
+ */
+const vec3 METEOR_AIR = vec3(0.58, 0.95, 0.74);
+
+/**
+ * The spectrum along the streak, keyed to the age of the air rather than to the
+ * wake and train amplitudes. That is the whole trick, and it is why the last
+ * attempt at colour was invisible: the warm wake outweighed the cool train
+ * everywhere the train could still be seen, so two colours in the source came
+ * out as one on screen (measured: saturation 0.05-0.12 from head to tail, and
+ * the blue never appeared at all). Keyed to age instead, the gradient cannot be
+ * cancelled by a weighting.
+ *
+ * Three stages, and each is something different emitting: the head itself, hot
+ * and near white; the metal it has just shed, burning sodium-orange a few
+ * hundredths of a second later; then the air, green, outlasting both.
+ */
+vec3 meteorTint(float old, vec3 hot, vec3 metal) {
+  // The stages have to fit inside the part of the streak that is still bright,
+  // which is only the first tenth of a second of air. A first pass spread them
+  // over 0.15 s and the green never arrived: at the age it began, the streak
+  // measured rgb(7,7,5) — there was no light left to colour.
+  vec3 c = mix(hot, metal, smoothstep(0.0, 0.018, old));
+  return mix(c, METEOR_AIR, smoothstep(0.014, 0.055, old));
+}
+
+/**
  * The light curve. A meteor is not a lamp that switches on: it brightens as it
  * digs into thicker air, peaks, and is spent — and it is spent faster than it
  * climbed, because what is burning is running out. So: one peak, asymmetric,
@@ -1024,11 +1056,9 @@ float meteorBurst(float t, float fire, float seed) {
   return 1.0 + fire * (2.0 * exp(-z1 * z1) + again * 1.3 * exp(-z2 * z2));
 }
 
-/** Returns the head; the wake behind it and the train it leaves come back out. */
-float meteor(vec2 p, float aspect, out float wake, out float train) {
-  wake = 0.0;
-  train = 0.0;
-  if (!poking(POKE_METEOR)) return 0.0;
+/** The light this meteor puts into this pixel, colour and all. */
+vec3 meteor(vec2 p, float aspect) {
+  if (!poking(POKE_METEOR)) return vec3(0.0);
   float age = uPokeAge;
 
   // Which way it falls: a side, and a steepness between 20 and 70 degrees off
@@ -1047,6 +1077,19 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   // whether it flares at all.
   float mag = pow(hash1(vec2(uPokeSeed, 44.1)), 1.8);
   float fire = smoothstep(0.62, 0.92, mag);
+
+  // What it is made of and how fast it came in — the two things that set a real
+  // meteor's colour. Sodium and iron burn orange and yellow; magnesium and
+  // shock-excited air burn blue-white. Its own roll, deliberately not the
+  // grade's, so a faint one can be the blue one and a fireball can be the
+  // orange one: two independent draws make many more distinct meteors than one.
+  float spectrum = hash1(vec2(uPokeSeed, 33.5));
+  vec3 hot = spectrum < 0.5
+    ? mix(vec3(1.0, 0.80, 0.55), vec3(1.0, 0.97, 0.91), spectrum * 2.0)
+    : mix(vec3(1.0, 0.97, 0.91), vec3(0.80, 0.89, 1.0), (spectrum - 0.5) * 2.0);
+  // The metal it sheds follows from the same roll: a slow sodium-rich one runs
+  // deep orange behind the head, a fast one barely shows sodium at all.
+  vec3 metal = mix(vec3(1.0, 0.58, 0.26), vec3(0.82, 0.94, 0.80), spectrum);
 
   float side = hash1(vec2(uPokeSeed, 8.3)) < 0.5 ? -1.0 : 1.0;
   float pitch = mix(0.35, 1.22, hash1(vec2(uPokeSeed, 3.1)));
@@ -1167,13 +1210,13 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   // would grow past a screen height and be the light beam again. Under about
   // 15 fps it goes back to strobing, and at that frame rate so does the page.
   float wakeTau = max(METEOR_WAKE_TAU, min(uFrameSec * 1.8, 0.12));
-  wake = exp(-d / max(0.0021, px)) * exp(-old / wakeTau) * lit;
+  float wake = exp(-d / max(0.0021, px)) * exp(-old / wakeTau) * lit;
   // Spreading dims as well as widens: the same light over a wider thread, so
   // the surface brightness goes down with the width it went up with.
   float spread = 1.0 + old * 8.0;
   // A big one leaves a train that lasts; a faint one barely leaves one at all.
   float trainTau = METEOR_TRAIN_TAU * mix(0.7, 1.35, mag);
-  train = exp(-d / max(0.0013 * spread, px)) / spread
+  float train = exp(-d / max(0.0013 * spread, px)) / spread
         * exp(-pow(old / trainTau, METEOR_TRAIN_FALL))
         * lit * METEOR_TRAIN_GAIN * mix(0.45, 1.7, mag);
 
@@ -1185,9 +1228,9 @@ float meteor(vec2 p, float aspect, out float wake, out float train) {
   float visible = uStars * (0.55 + 0.45 * smoothstep(0.02, 0.4, p.y))
                 * (1.0 - smoothstep(METEOR_LIFE * 0.85, METEOR_LIFE, age))
                 * bright;
-  wake *= visible;
-  train *= visible;
-  return core * glow * visible;
+  // The head keeps its own colour; the streak takes the colour of its age.
+  return (core * glow * hot + (wake + train) * meteorTint(old, hot, metal))
+       * visible;
 }
 
 // ---------------------------------------------------------------------------
@@ -1219,13 +1262,9 @@ void main() {
   col += moon(p, moonP, moonAmt);
 
   // The meteor, over the field it belongs to and under the decks that should
-  // hide it: a warm-white head (it is a rock burning) over a cooler trail (it
-  // is ionised air glowing). Both go in before the clouds, so a drifting deck
-  // occludes a lingering trail exactly as it should.
-  float mWake, mTrain;
-  float mHead = meteor(p, aspect, mWake, mTrain);
-  col += vec3(1.0, 0.96, 0.88) * (mHead + mWake)
-       + vec3(0.72, 0.86, 1.0) * mTrain;
+  // hide it, so a drifting deck occludes a lingering train exactly as it
+  // should. It brings its own colour: see meteorTint().
+  col += meteor(p, aspect);
 
   // Far deck: large, slow, flattened by perspective. Near deck: smaller,
   // faster, a touch heavier.
