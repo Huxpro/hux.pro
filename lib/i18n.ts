@@ -98,6 +98,12 @@ export const translations = {
     theaterSurfaceGo: "Switch to {surface}",
     widgetEditDone: "Done",
     widgetEditReset: "Reset",
+    // The size grip on a widget in edit mode (see WidgetBoard).
+    widgetResize: "Resize",
+    // Per-size widget copy.
+    widgetNow: "now",
+    widgetLatest: "latest",
+    widgetWatch: "watch",
     musicNotPlaying: "nothing playing",
     settingsMusic: "Music",
     musicPlay: "Play",
@@ -380,6 +386,10 @@ export const translations = {
     theaterSurfaceGo: "切换到{surface}",
     widgetEditDone: "完成",
     widgetEditReset: "重置",
+    widgetResize: "调整大小",
+    widgetNow: "现在",
+    widgetLatest: "最新",
+    widgetWatch: "观看",
     musicNotPlaying: "暂无播放",
     settingsMusic: "音乐",
     musicPlay: "播放",

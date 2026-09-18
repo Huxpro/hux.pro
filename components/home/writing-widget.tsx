@@ -1,12 +1,14 @@
 "use client";
 
 import {
+  WidgetBody,
   WidgetHeader,
   WidgetLink,
   WidgetScrollBody,
   WidgetShell,
   WidgetTitle,
 } from "@/components/ui/widget";
+import type { WidgetSize } from "@/components/ui/widget-size";
 import {
   formatPostDate,
   getLocalizedTitle,
@@ -22,15 +24,25 @@ import { useMemo } from "react";
 
 import { TYPE } from "@/lib/typography";
 // ---------------------------------------------------------------------------
-// WritingWidget — the home "writing" card.
+// WritingWidget — the home "writing" card, in two sizes.
 //
-// A vertical snap stack (same body as the projects widget) of the posts
-// worth surfacing: the latest few — so the widget always says what's new —
-// then, under a hairline, every post flagged `featured` in its frontmatter,
-// so the evergreen pieces don't scroll out of reach as new ones land. Rows
-// echo the /writing list (title + lowercase mono date) and the /works rows
-// (date at the muted/50 tier) so the two widgets share one metadata register.
+//   medium  what's new: the newest post alone, with its description — the
+//           one thing this card can say in a single row's height, said with
+//           room to breathe. Tap the post to read it; the card opens the
+//           list.
+//   large   what's worth reading: a vertical snap stack of the latest few
+//           — so the widget always says what's new — then, under a
+//           hairline, every post flagged `featured` in its frontmatter, so
+//           the evergreen pieces don't scroll out of reach as new ones
+//           land. Rows echo the /writing list (title + lowercase mono date)
+//           and the /works rows (date at the muted/50 tier) so the two
+//           widgets share one metadata register.
+//
+// Medium is not the large with fewer rows: a row is a title and a date, a
+// hero is a title, a date and what the piece is about.
 // ---------------------------------------------------------------------------
+
+export const WRITING_WIDGET_SIZES: readonly WidgetSize[] = ["medium", "large"];
 
 /** How many of the newest posts are always kept, featured or not. */
 const LATEST_COUNT = 3;
@@ -55,13 +67,58 @@ export function selectWritingPosts(
   return { latest, featured };
 }
 
-export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
+export function WritingWidget({
+  posts,
+  size = "large",
+}: {
+  posts: BlogPostSummary[];
+  size?: WidgetSize;
+}) {
   const { locale } = useLocale();
   const { latest, featured } = useMemo(
     () => selectWritingPosts(posts, locale),
     [posts, locale],
   );
   if (latest.length === 0 && featured.length === 0) return null;
+
+  if (size === "medium") {
+    const post = latest[0] ?? featured[0];
+    return (
+      <WidgetShell href="/writing">
+        <WidgetHeader className="pb-2">
+          <WidgetTitle>{t(locale, "widgetBlog")}</WidgetTitle>
+          <WidgetLink href="/writing" />
+        </WidgetHeader>
+        <WidgetBody fill className="justify-end">
+          <Link
+            href={getPostHref(post, locale, "/writing")}
+            className="pressable -mx-2 block rounded-lg px-2 py-1.5 transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35"
+          >
+            <div className={cn("flex items-center gap-2", TYPE.rowMeta)}>
+              <span>{t(locale, "widgetLatest")}</span>
+              <span aria-hidden className="text-quaternary-foreground">
+                ·
+              </span>
+              <time dateTime={post.date}>{formatPostDate(post.date)}</time>
+            </div>
+            <div className={cn("mt-1 line-clamp-2", TYPE.rowTitle)}>
+              {getLocalizedTitle(post, locale)}
+            </div>
+            {post.description && (
+              <p
+                className={cn(
+                  "mt-1 line-clamp-1 @min-[360px]:line-clamp-2",
+                  TYPE.captionQuiet,
+                )}
+              >
+                {post.description}
+              </p>
+            )}
+          </Link>
+        </WidgetBody>
+      </WidgetShell>
+    );
+  }
 
   return (
     <WidgetShell href="/writing">
@@ -70,7 +127,7 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
         <WidgetLink href="/writing" />
       </WidgetHeader>
 
-      <WidgetScrollBody className="max-h-64">
+      <WidgetScrollBody fill>
         {latest.map((post) => (
           <PostRow key={post.slug} post={post} locale={locale} />
         ))}
