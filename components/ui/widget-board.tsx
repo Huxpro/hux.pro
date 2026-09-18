@@ -85,7 +85,13 @@ function readCols(el: HTMLElement | null): number {
 function readCell(el: HTMLElement): { cell: number; gap: number } {
   const styles = getComputedStyle(el);
   const gap = Number.parseFloat(styles.columnGap || styles.gap) || 16;
-  const cell = Number.parseFloat(styles.getPropertyValue("--cell")) || 80;
+  // `--cell` is a `min()` expression; the used length is the first track.
+  const track = Number.parseFloat(styles.gridTemplateColumns);
+  const raw = Number.parseFloat(styles.getPropertyValue("--cell"));
+  const cell =
+    (Number.isFinite(track) && track > 0 && track) ||
+    (Number.isFinite(raw) && raw > 0 && raw) ||
+    80;
   return { cell, gap };
 }
 
