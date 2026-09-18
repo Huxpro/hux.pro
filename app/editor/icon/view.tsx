@@ -20,7 +20,7 @@ import {
   Slider,
   TextField,
   Toggle,
-} from "./controls";
+} from "../controls";
 
 /**
  * Inlines the icon SVG into the DOM (not via `<img>`) so the wordmark renders

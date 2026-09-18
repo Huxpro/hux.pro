@@ -26,8 +26,9 @@ systems/ambient/
 ├── lib/
 │   ├── weather.ts                # Open-Meteo integration + condition model
 │   ├── gyroscope.ts              # Screen-space gravity from `deviceorientation` + motion access
-│   ├── solar.ts                  # Sun elevation/azimuth, lunar ephemeris, moon phase
-│   ├── scene.ts                  # weather × sun × moon × theme → WeatherScene
+│   ├── solar.ts                  # Sun/moon ephemeris, rise-set solver, explain* readouts
+│   ├── scene.ts                  # weather × sun × moon × theme × config → WeatherScene
+│   ├── sky-config.ts             # SkyConfig: the tunable world model (content/sky.json)
 │   ├── gradient.ts               # WeatherScene → CSS gradient + crossfade types
 │   ├── wallpaper/
 │   │   ├── shader.ts             # GLSL: the full-screen procedural sky (CG)
@@ -108,10 +109,19 @@ The **moon** uses a low-precision lunar ephemeris (Schlyter, ~1°): topocentric
 elevation/azimuth plus the phase from the sun–moon elongation. So the moon
 rises, crosses and sets when it really does, a young crescent follows the sun
 down in the west while a full moon climbs in the east at dusk, and the phase
-matches the calendar (`getMoonPhaseName()` gives the eight-way name). Moonlight
+matches the calendar (`getMoonPhaseName()` gives the eight-way name, and
+`getMoonPhaseLabel()` what to call it in either language). Moonlight
 is modelled too: a bright, high moon lifts the night sky and cloud tops and
 washes out the fainter stars; cloud cover and fog occlude it. In the southern
 hemisphere the crescent is mirrored.
+
+**Rise and set for any day.** Open-Meteo gives sunrise and sunset for *today*.
+Anything that moves the calendar — the devtool's day offset, the lab's month and
+year sweeps — solves them locally instead (`getSunTimes` / `getMoonTimes`): scan
+the local day for a horizon crossing, bisect it to the second. Reusing today's
+times is wrong by minutes within a week and by an hour within a season, which
+the phase and the greeting would report while the sun on screen said otherwise.
+Polar day and polar night come back as no crossing at all, not as a guess.
 
 **Staging the moon.** Where the moon *is* comes from the ephemeris and is never
 bent. Where it is *drawn* is a composition decision (`stageMoon` in
@@ -170,6 +180,20 @@ Both renderers consume the same scene, so switching engines never changes the
 mood — only the fidelity. (The devtool condition thumbnails deliberately keep
 the older hand-tuned per-condition palettes so conditions stay distinguishable
 at 40 px.)
+
+### SkyConfig
+
+Every number the *look* depends on — the sky keyframes, the six condition
+profiles, the theme veils, the moon's stage, the shader's disc sizes and cloud
+decks — is a field of a **`SkyConfig`** (`lib/sky-config.ts`), not a constant.
+`deriveWeatherScene` takes one and defaults to the committed `content/sky.json`;
+the scene carries the shader's half of it as `scene.render`, so the renderer
+stays a dumb pipe and one config drives both engines.
+
+The config is plain JSON (colours are `#rrggbb` strings) and goes through
+`normalizeSkyConfig` on every path in, so a hand-edited or stale file can never
+produce a broken sky. It is authored in the **Sky Engine Lab** (below) and
+checked by `pnpm sky:check`.
 
 ### Two Engines
 
@@ -1296,6 +1320,26 @@ too**: playing the day in the Sky module crosses sunrise and sunset for real,
 and the theme changes there exactly as it would on the real clock — or does
 not, if the setting is off. The Sky module carries the toggle beside that
 timeline for the same reason.
+
+## Sky Engine Lab
+
+**`/editor/sky`** is the workbench for everything above: the ephemeris with its
+working shown, the solar and lunar trajectories plotted, the composition step
+between "where things are" and "where they are drawn" made visible, and every
+table above turned into a lever with a live preview in all three engines. It
+saves to `content/sky.json`, which this system imports at build.
+
+It is a **consumer** of `systems/ambient/lib`, never a fork: the plots, the
+readouts and the preview all come from `deriveWeatherScene`, `stageMoon` and
+`solar.ts`, so what the lab shows is what the wallpaper did. Full documentation:
+[docs/editor-sky.md](./editor-sky.md).
+
+The devtool's Sky module stays the on-page shortcut; it gains a picker over the
+config's named presets and nothing else.
+
+```bash
+pnpm sky:check   # fail if content/sky.json no longer normalizes cleanly
+```
 
 ## Wallpaper
 
