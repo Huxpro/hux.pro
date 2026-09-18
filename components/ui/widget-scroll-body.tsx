@@ -100,7 +100,6 @@ export function WidgetScrollBody({
     !innerScrolls && mode !== "pages" && "overflow-hidden touch-pan-y",
     !isExpanded &&
       "[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
-    isArmed && "ring-1 ring-foreground/25 ring-inset rounded-lg",
   );
 
   const showMore = mode === "expand" && overflows && !expanded;
@@ -111,7 +110,16 @@ export function WidgetScrollBody({
 
   return (
     <div className="px-5">
-      <div className="relative flex">
+      <div
+        className={cn(
+          "relative flex",
+          isArmed && "rounded-xl ring-2 ring-foreground/35",
+        )}
+        data-widget-scroll={mode}
+        data-widget-scroll-armed={isArmed ? "" : undefined}
+        data-widget-scroll-expanded={isExpanded ? "" : undefined}
+        data-widget-scroll-overflows={overflows ? "" : undefined}
+      >
         {mode === "pages" ? (
           <PagesBody
             className={cn("min-w-0 flex-1", heightClass)}
@@ -194,6 +202,7 @@ function Affordance({
     <button
       type="button"
       aria-pressed={pressed}
+      data-widget-scroll-affordance=""
       onClick={(e) => {
         e.stopPropagation();
         onClick();
@@ -219,34 +228,26 @@ function WidgetScrollRail({
   scrollerRef: RefObject<HTMLDivElement | null>;
   label: string;
 }) {
-  const drag = useRef<{
-    pointerId: number;
-    startY: number;
-    startScroll: number;
-  } | null>(null);
-
   const onPointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
-    e.preventDefault();
     e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = {
-      pointerId: e.pointerId,
-      startY: e.clientY,
-      startScroll: scroller.scrollTop,
+    const pointerId = e.pointerId;
+    const startY = e.clientY;
+    const startScroll = scroller.scrollTop;
+    const move = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      scroller.scrollTop = startScroll + (startY - ev.clientY);
     };
-  };
-
-  const onPointerMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    const d = drag.current;
-    const scroller = scrollerRef.current;
-    if (!d || d.pointerId !== e.pointerId || !scroller) return;
-    scroller.scrollTop = d.startScroll + (d.startY - e.clientY);
-  };
-
-  const endDrag = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    if (drag.current?.pointerId === e.pointerId) drag.current = null;
+    const up = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
   };
 
   const onKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
@@ -274,12 +275,10 @@ function WidgetScrollRail({
       data-widget-inert
       aria-label={label}
       onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
       onKeyDown={onKeyDown}
       onClick={(e) => e.stopPropagation()}
-      className="pressable relative mb-7 w-7 shrink-0 touch-none cursor-ns-resize self-stretch"
+      className="pressable relative mb-7 w-8 shrink-0 touch-none cursor-ns-resize self-stretch"
+      data-widget-scroll-rail
     >
       <span
         aria-hidden
@@ -332,11 +331,12 @@ function PagesBody({
   };
 
   return (
-    <div className="min-w-0 flex-1">
+    <div className="min-w-0 w-full flex-1">
       <div
         ref={scrollRef}
+        data-widget-scroll-pages
         className={cn(
-          "flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden",
+          "flex w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden",
           "overscroll-x-contain touch-pan-x scroll-smooth no-scrollbar",
           className,
         )}
@@ -345,8 +345,8 @@ function PagesBody({
           <div
             key={i}
             className={cn(
-              "w-full shrink-0 snap-start snap-always overflow-hidden",
-              "relative -mx-0 px-2 pb-7",
+              "w-full min-w-full shrink-0 snap-start snap-always overflow-hidden",
+              "relative px-2 pb-7",
               "[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
             )}
           >

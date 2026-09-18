@@ -42,6 +42,8 @@ export const DRAGGABLE_DEFAULTS: Record<string, DraggableInstanceConfig> = {
   // palette: drag it out of the way while you work, back to centre next open.
   "surface-wallpaper": { draggable: true, persist: false },
   "surface-playlist": { draggable: true, persist: false },
+  "surface-widget-writing": { draggable: true, persist: false },
+  "surface-widget-projects": { draggable: true, persist: false },
 };
 
 export const DRAGGABLE_INSTANCES = [

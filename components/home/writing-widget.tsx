@@ -75,7 +75,7 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
         label={t(locale, "widgetBlog")}
         href="/writing"
         sheetId="surface-widget-writing"
-        pageSize={4}
+        pageSize={3}
       >
         {latest.map((post) => (
           <PostRow key={post.slug} post={post} locale={locale} />

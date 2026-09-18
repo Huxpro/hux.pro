@@ -149,7 +149,7 @@ function ModeChips({
       role="group"
       aria-label={t(locale, "widgetScrollLab")}
       className={cn(
-        "no-scrollbar flex gap-1 overflow-x-auto overscroll-x-contain touch-pan-x",
+        "no-scrollbar flex flex-wrap gap-1 overflow-visible",
         className,
       )}
     >
@@ -160,6 +160,7 @@ function ModeChips({
             key={m}
             type="button"
             aria-pressed={selected}
+            data-widget-scroll-chip={m}
             onClick={() => setMode(m)}
             className={cn(
               "pressable shrink-0 font-mono uppercase tracking-wider transition-colors",
