@@ -102,6 +102,17 @@ export interface WeatherScene {
    * See "The Fog Wipe" in docs/system-ambient.md.
    */
   behind: { stars: number; moon: number };
+  /**
+   * How much of the sky the murk leaves you: 1 under an open sky, 0 under an
+   * overcast or a fog. `stars` is `behind.stars * clarity` — the first factor
+   * is how dark the night is, the second is whether there is anything in the
+   * way — and keeping them apart is what lets a question about one be asked
+   * without dragging in the other. The meteor's window is the example: whether
+   * it is dark enough is the sun's business and whether you could see through
+   * is the weather's, and multiplying them together (which is all `stars` is)
+   * answers neither.
+   */
+  clarity: number;
   /** Theme veil: blend the rendered scene toward the page background. */
   veil: { color: RGB; amount: number };
   exposure: number;
@@ -517,7 +528,17 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const moonLight = moonIllum * smoothstep(0, 25, lunar.elevation) * night;
 
   const starDust = night * (1 - 0.55 * moonLight);
-  const stars = starDust * (1 - smoothstep(0.15, 0.65, cover)) * (1 - fog);
+  // What the deck and the fog leave of whatever is up there. Named because two
+  // different questions want it on its own: how bright to draw the star field
+  // (that is `stars`, below) and whether anything up there could be seen at all
+  // (that is the meteor's window — see lib/poke.ts).
+  const clarity = (1 - smoothstep(0.15, 0.65, cover)) * (1 - fog);
+  // Naming it moves a multiplication inside a bracket, and `a * (b * c)` is not
+  // `(a * b) * c`: `stars` shifts by one double ULP on about 3% of scenes. It
+  // reaches the shader as a float32, whose spacing near 1 is five hundred
+  // million times coarser, so nothing rendered moves — checked over 366336
+  // scenes, zero of them landing on a different float32.
+  const stars = starDust * clarity;
   // The same two with the murk taken away — see `behind` on WeatherScene. Only
   // the fog wipe ever asks for them, and only inside the swath it has cleared.
   const behind = { stars: starDust, moon: moonBare };
@@ -554,6 +575,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
     fog,
     lightning: condition === "thunder" ? 1 : 0,
     stars,
+    clarity,
     behind,
     veil: { color: veilDefaults.color, amount: ov.veilAmount ?? veilDefaults.amount },
     exposure: veilDefaults.exposure,

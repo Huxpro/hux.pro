@@ -25,7 +25,16 @@ import { formatClockTime } from "@/systems/ambient/lib/format";
 import { gravityTiltDegrees, readGravity } from "@/systems/ambient/lib/gyroscope";
 import { getWeatherGradient, getWeatherStyleGradient } from "@/systems/ambient/lib/gradient";
 import type { AmbientPhase } from "@/systems/ambient/lib/phase";
-import { rgbToCss, sampleDaySky } from "@/systems/ambient/lib/scene";
+import {
+  meteorSkyIsOpen,
+  meteorWindows,
+  METEOR_SUN_MAX_DEG,
+} from "@/systems/ambient/lib/poke";
+import {
+  deriveWeatherScene,
+  rgbToCss,
+  sampleDaySky,
+} from "@/systems/ambient/lib/scene";
 import {
   getMoonPhaseName,
   startOfLocalDay,
@@ -46,6 +55,7 @@ import {
 import {
   WEATHER_CONDITION_LIST,
   getWeatherConditionLabel,
+  type WeatherCondition,
 } from "@/systems/ambient/lib/weather";
 import {
   useDevtool,
@@ -1287,6 +1297,37 @@ function PanelSlider({
 // limb (northern hemisphere), and `mirror` flips it for the south.
 // =============================================================================
 
+/**
+ * A meteor, small enough to sit in a corner. Drawn rather than borrowed: the
+ * icon set has no meteor, and the one glyph close enough to press into service
+ * (Sparkles) is already the Sky style's mark a few rows up — two meanings for
+ * one shape in the same panel is worse than a dozen lines of SVG.
+ *
+ * A head with a trail behind it, falling left to right the way the shader draws
+ * them. Stroked rather than filled: a tapering wedge is the truer shape, and at
+ * ten pixels it read as a mouse cursor — the wide end of the wedge and the head
+ * merged into an arrowhead. A round-capped line with a dot at its leading end
+ * survives the size, which is the only thing a badge has to do.
+ */
+function MeteorMark({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 12 12"
+      className={cn("h-3 w-3 shrink-0", className)}
+      aria-hidden
+    >
+      {/* The trail: a wedge from a sharp tail to a blunt end, kept narrower
+          than the head so the two read as a ball with a trail behind it rather
+          than as one arrowhead. */}
+      <path
+        d="M1.5 1.5 L6.05 6.95 L6.95 6.05 Z"
+        className="fill-current opacity-50"
+      />
+      <circle cx="8.3" cy="8.3" r="2.4" className="fill-current" />
+    </svg>
+  );
+}
+
 function MoonPhaseIcon({
   phase,
   mirror = false,
@@ -1528,6 +1569,69 @@ function SkyModule() {
     );
     return `linear-gradient(90deg, ${stops.join(", ")})`;
   }, [dayStartMs, lat, lon, sceneWeather, theme, sceneOverrides]);
+
+  // When a meteor is possible today, for the bands under the strip. Asked of
+  // real scenes rather than solved from the sun's altitude, so the marks can
+  // never drift from the click that fires one — see lib/poke.ts.
+  const starWindows = useMemo(
+    () =>
+      meteorWindows({
+        dayMs: dayStartMs,
+        lat,
+        lon,
+        weather: sceneWeather,
+        theme,
+        overrides: sceneOverrides,
+      }),
+    [dayStartMs, lat, lon, sceneWeather, theme, sceneOverrides]
+  );
+
+  // Which conditions you could see a meteor THROUGH — the weather half of the
+  // window, asked of the scene each chip would actually produce, overrides and
+  // all. So it answers the question somebody about to click it has: if I picked
+  // this one now, could I see one? Pulling the cloud slider down lights Cloudy
+  // up, and while that override stands it takes Clear with it, because a clear
+  // sky under 70% forced cloud really has no meteor in it.
+  //
+  // Deliberately not the whole rule: the chips answer "through which weather",
+  // the strip above answers "when", and a chip that went dark at noon would be
+  // answering the strip's question badly.
+  /**
+   * The window as a line of text. Two intervals is one window that crosses
+   * midnight — which is the normal case, since it is a night — so it reads as
+   * the evening opening through to the morning close rather than as two
+   * separate stretches bumping into the ends of the strip.
+   *
+   * Not memoised: it is two clock formats off a memoised array, and a memo
+   * keyed on the render-local `clock` would recompute every render anyway.
+   */
+  const meteorWindowLabel = (() => {
+    if (starWindows.length === 0) return zh ? "无" : "none";
+    const wraps =
+      starWindows.length === 2 &&
+      starWindows[0].from === 0 &&
+      starWindows[1].to === DAY_MINUTES;
+    const [from, to] = wraps
+      ? [starWindows[1].from, starWindows[0].to]
+      : [starWindows[0].from, starWindows[0].to];
+    return `${clock(from)} → ${clock(to % DAY_MINUTES)}`;
+  })();
+
+  const meteorConditions = useMemo(() => {
+    const open = new Set<WeatherCondition>();
+    for (const condition of WEATHER_CONDITION_LIST) {
+      const scene = deriveWeatherScene({
+        nowMs,
+        lat,
+        lon,
+        theme,
+        weather: { ...(sceneWeather ?? {}), condition } as typeof sceneWeather,
+        overrides: sceneOverrides,
+      });
+      if (meteorSkyIsOpen(scene)) open.add(condition);
+    }
+    return open;
+  }, [nowMs, lat, lon, theme, sceneWeather, sceneOverrides]);
 
   const sr = minutesOfDay(sunriseMs, DEFAULT_SUNRISE_MINUTES);
   const ss = minutesOfDay(sunsetMs, DEFAULT_SUNSET_MINUTES);
@@ -1774,6 +1878,24 @@ function SkyModule() {
                 style={{ left: pct(m) }}
               />
             ))}
+            {/* When a meteor is possible: the same ink as the sunrise and
+                sunset ticks, but a stretch rather than an instant — a bar along
+                the foot of the strip with a tick standing up at each end. It
+                rides mix-blend-difference like the ticks do, so it stays legible
+                over a night that is nearly black and a noon that is nearly
+                white. A window across midnight arrives as two of these, one
+                against each end of the day. */}
+            {starWindows.map(({ from, to }) => (
+              <span
+                key={`${from}-${to}`}
+                aria-hidden
+                className="pointer-events-none absolute bottom-0 h-1 bg-white/70 mix-blend-difference"
+                style={{ left: pct(from), width: pct(to - from) }}
+              >
+                <span className="absolute bottom-0 left-0 h-3 w-px bg-white/70" />
+                <span className="absolute bottom-0 right-0 h-3 w-px bg-white/70" />
+              </span>
+            ))}
             {isTimeTravelActive && (
               <span
                 aria-hidden
@@ -1798,6 +1920,23 @@ function SkyModule() {
             <span className="inline-flex items-center gap-1">
               <Sunrise className="h-3 w-3" />
               {formatClockTime(sunriseMs, locale)}
+            </span>
+            {/* The meteor's window, read off the same bar. Two intervals mean
+                one window that crosses midnight, so it is shown the way it is
+                lived: the evening opening, an arrow, the morning close. */}
+            <span
+              className={cn(
+                "inline-flex items-center gap-1",
+                starWindows.length === 0 && "text-muted-foreground/40"
+              )}
+              title={
+                zh
+                  ? `流星可能出现的时段：太阳低于 ${METEOR_SUN_MAX_DEG}°（航海暮光结束），且天空不被遮住`
+                  : `When a meteor is possible: the sun below ${METEOR_SUN_MAX_DEG}° (nautical twilight over) and the sky not covered`
+              }
+            >
+              <MeteorMark className="h-3 w-3" />
+              {meteorWindowLabel}
             </span>
             <span className="inline-flex items-center gap-1">
               <Sunset className="h-3 w-3" />
@@ -1886,6 +2025,7 @@ function SkyModule() {
             {WEATHER_CONDITION_LIST.map((condition) => {
               const selected = debugOverride?.condition === condition;
               const isLive = weather?.condition === condition;
+              const starry = meteorConditions.has(condition);
               const preview = getWeatherGradient({ condition, isDay: isDayNow, theme });
               return (
                 <button
@@ -1902,13 +2042,20 @@ function SkyModule() {
                   style={{ backgroundImage: preview }}
                   aria-label={`Set weather to ${getWeatherConditionLabel(condition, locale)}`}
                   aria-pressed={selected}
-                  title={
+                  title={[
                     selected
                       ? zh
                         ? "再点一次回到实况"
                         : "Click again for the live weather"
-                      : getWeatherConditionLabel(condition, locale)
-                  }
+                      : getWeatherConditionLabel(condition, locale),
+                    starry
+                      ? zh
+                        ? "这个天气能看见流星（夜里点一下天空）"
+                        : "A meteor can be seen through this weather (click the sky at night)"
+                      : zh
+                        ? "这个天气挡住了天空，没有流星"
+                        : "This weather covers the sky — no meteor",
+                  ].join(" · ")}
                 >
                   <div className="absolute inset-0 bg-white/10 dark:bg-black/10" />
                   <div className="absolute inset-0 flex items-center justify-center text-foreground/70">
@@ -1919,6 +2066,21 @@ function SkyModule() {
                       aria-hidden
                       className="absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full bg-green-500 ring-1 ring-background"
                     />
+                  )}
+                  {/* A corner mark for the weather you could see a meteor
+                      through. Only the weather half of the rule: when it is
+                      dark enough is the strip's question, a few rows up. The
+                      mark is live, so forcing Cloudy darkens it and then
+                      pulling the cloud slider down lights it again — which is
+                      the whole mechanism, shown rather than written.
+                      In `foreground` rather than white, for the same reason the
+                      weather glyph below it is: these previews are pale in the
+                      light theme and dark in the dark one, so the ink that
+                      contrasts with both is the one that flips with them. White
+                      read beautifully on the night chips and disappeared
+                      completely on the day ones. */}
+                  {starry && (
+                    <MeteorMark className="absolute left-1 top-1 h-3 w-3 text-foreground" />
                   )}
                 </button>
               );
