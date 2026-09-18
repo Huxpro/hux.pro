@@ -973,12 +973,53 @@ html.dragging * {
 }
 
 /* Reading size: the one number every `em` in an article resolves against.
-   Default needs no attribute, so <html> stays clean at the common case. */
+   16px is what the body was before any of this existed, so `default` is not a
+   new middle -- it is the size the site always set, and the small/large steps
+   are one point either side of it. Declared here rather than left to a `var()`
+   fallback so anything can resolve it without repeating the number. Default
+   needs no attribute, so <html> stays clean at the common case. */
+:root {
+  --reading-size: 16px;
+}
 :root[data-reading-size="small"] {
   --reading-size: 15px;
 }
 :root[data-reading-size="large"] {
   --reading-size: 18px;
+}
+
+/* =============================================================================
+   The masthead scales with the article.
+
+   #190 made everything inside `.prose-article` an `em` of the reading size, so
+   headings, captions and code all move together. The title above the article
+   did not, which is the one place the seam showed: at `large` the body came up
+   to meet a title that had stayed where it was, and the gap under that title
+   stayed a flat 48px whatever size the text below it was.
+
+   Both are ratios of the same number now. At the default they resolve to
+   exactly what the Tailwind utilities set -- 20px / 24px for the title, 48px /
+   56px for the gap -- so nothing moves for a reader who never opens "Aa".
+
+   Unlayered on purpose, so it wins over the `text-xl sm:text-2xl` and
+   `mb-12 sm:mb-14` utilities that stay on the elements as a fallback.
+   ============================================================================= */
+
+main[data-variant="reader"] .reader-masthead h1 {
+  font-size: calc(var(--reading-size) * 1.25);
+}
+
+main[data-variant="reader"] .reader-masthead {
+  margin-bottom: calc(var(--reading-size) * 3);
+}
+
+@media (width >= 40rem) {
+  main[data-variant="reader"] .reader-masthead h1 {
+    font-size: calc(var(--reading-size) * 1.5);
+  }
+  main[data-variant="reader"] .reader-masthead {
+    margin-bottom: calc(var(--reading-size) * 3.5);
+  }
 }
 
 /* Reading measure: widen/narrow the reader column. Only the reader variant's

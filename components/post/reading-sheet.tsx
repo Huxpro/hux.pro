@@ -1,13 +1,9 @@
 "use client";
 
-import { Segmented, Switch } from "@/components/ui/controls";
+import { HeaderAction, Segmented, Switch } from "@/components/ui/controls";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import {
-  ANCHORED_PRESENTATION,
-  AdaptiveSurface,
-  HEADER_BUTTON,
-} from "@/systems/surface";
+import { ANCHORED_PRESENTATION, AdaptiveSurface } from "@/systems/surface";
 import { useRef, useState } from "react";
 import {
   setBleedEnabled,
@@ -241,37 +237,24 @@ export function ReadingSettings({ className }: { className?: string }) {
 
   return (
     <>
-      <button
+      {/* The same chip /writing and /docs put under their titles, and the same
+          one the language switch beside it is. It used to be a surface header
+          button floated into the right margin -- a shape borrowed from sheet
+          chrome, in the one place on the page the ruler also wants. */}
+      <HeaderAction
         ref={anchor}
-        type="button"
+        variant="action"
+        active={open}
         onClick={() => setOpen((v) => !v)}
-        aria-label={t(locale, "readingSettings")}
-        aria-expanded={open}
-        className={cn(
-          // The same button every surface header uses, at meta-row size, so it
-          // brightens and presses like the close button it will sit next to.
-          HEADER_BUTTON,
-          "relative inline-flex items-baseline gap-px px-1.5 py-1",
-          // The ruler's scrub lane is 40px of the docked edge, and on a phone
-          // the column reaches close enough to that edge that it covers the
-          // right half of this button. The lane is interactive down its whole
-          // height but the tape only paints between 22% and 78% of it, so up
-          // here it is invisible and still takes the tap. z-30 is the
-          // collapsed ruler; sitting one layer over it gives the header back
-          // the few pixels it draws in. Still under the open ruler's backdrop
-          // (z-40), so an open ruler covers this the way it covers the page.
-          "z-[35]",
-          // A 29x23 glyph is a small thing to hit with a thumb. The press area
-          // grows by 8px on every side without the visual box moving.
-          "before:absolute before:-inset-2 before:content-['']",
-          open && "bg-accent text-foreground",
-          className
-        )}
+        label={t(locale, "readingSettings")}
+        expanded={open}
+        className={className}
       >
-        {/* Both faces in the mark, so the button says what it is for. */}
-        <span className="font-sans text-[13px] leading-none">A</span>
-        <span className="font-serif text-[15px] leading-none">a</span>
-      </button>
+        {/* Mono, like every other chip. The mark used to set "A" in sans and
+            "a" in serif to say what it was for; in a row that is one typeface
+            by rule, that was the row's only exception. */}
+        <span>Aa</span>
+      </HeaderAction>
 
       <AdaptiveSurface
         id="reading-settings"
@@ -281,9 +264,10 @@ export function ReadingSettings({ className }: { className?: string }) {
         popover={{
           anchor,
           width: "min(92vw, 288px)",
-          // The button sits at the trailing edge of the header row; the card
-          // hangs back over the article rather than out into the margin.
-          align: "end",
+          // The chip sits near the start of the header row now, so the card
+          // hangs from its leading edge and opens across the column rather
+          // than off the side of it.
+          align: "start",
         }}
         title={t(locale, "readingSettingsTitle")}
         closeLabel={t(locale, "readingSettingsClose")}

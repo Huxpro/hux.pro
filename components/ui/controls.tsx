@@ -139,3 +139,84 @@ export function Switch({
     </button>
   );
 }
+
+// =============================================================================
+// HeaderAction — the chips a page puts under its big title.
+//
+// /writing and /docs already had these: the language filter's two segments.
+// They are the site's word for "something you can do to this page", and they
+// are mono because they belong to the machine layer, not to the prose. An
+// article's header has its own — switch language, open reading settings — and
+// until now they were each drawn differently and one of them floated off to
+// the right margin, where the ruler lives.
+//
+// Same spec as the filter had inline, lifted here so there is one of it:
+// mono xs, a soft chip, tertiary until you point at it, `bg-muted` when it is
+// the state you are in.
+// =============================================================================
+
+export function HeaderAction({
+  active = false,
+  variant = "segment",
+  onClick,
+  children,
+  label,
+  title,
+  expanded,
+  controls,
+  className,
+  ref,
+}: {
+  /** The chip is the state the page is in, not just a thing to press. */
+  active?: boolean;
+  /**
+   * `segment` is a chip in a group where one of them is always the answer, so
+   * the unpicked ones can sit back on tertiary -- the picked one anchors the
+   * pair. `action` is a chip standing on its own with nothing lit beside it,
+   * so it keeps the ink of the row it sits in and only paints its chip under
+   * a pointer. Same shape either way; what differs is whether anything else
+   * in the group is already bright.
+   */
+  variant?: "segment" | "action";
+  onClick: () => void;
+  children: ReactNode;
+  /** Accessible name, where the chip's own text is not enough. */
+  label?: string;
+  title?: string;
+  /** For a chip that opens something. */
+  expanded?: boolean;
+  controls?: string;
+  className?: string;
+  /** For a chip something is anchored to. React 19 takes `ref` as a prop. */
+  ref?: React.Ref<HTMLButtonElement>;
+}) {
+  return (
+    <button
+      ref={ref}
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-expanded={expanded}
+      aria-controls={controls}
+      title={title}
+      className={cn(
+        // `pressable` is the touch contract any chip with a hover wash gets
+        // (docs/design-system.md, "Touch"): the wash lands on the touch-down
+        // frame instead of easing in behind a tap that is already over.
+        "pressable inline-flex shrink-0 items-center gap-1 rounded px-2 py-1",
+        "transition-colors duration-200",
+        active && "bg-muted",
+        variant === "segment"
+          ? active
+            ? "text-muted-foreground"
+            : "text-tertiary-foreground hover:text-muted-foreground"
+          : active
+            ? "text-foreground"
+            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+        className
+      )}
+    >
+      {children}
+    </button>
+  );
+}

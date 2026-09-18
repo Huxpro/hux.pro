@@ -122,7 +122,11 @@ export function PageLayout({
     >
       {variant === "reader" ? (
         <>
-          <div className="mb-12 sm:mb-14">
+          {/* `reader-masthead` hands the title's size and the gap under it to
+              the reading-size system in globals.css, so the whole composition
+              moves when the reader changes the type size -- not the body
+              alone. The Tailwind sizes below stay as the fallback. */}
+          <div className="reader-masthead mb-12 sm:mb-14">
             <SystemNav href={backHref} path={backLabel} className="mb-8 sm:mb-12" />
             {titleJsx}
             {headerActions && <div className="mt-4">{headerActions}</div>}

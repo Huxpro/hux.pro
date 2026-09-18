@@ -11,6 +11,7 @@ import { ReadingSettings } from "./reading-sheet";
 import { RulerToc } from "./ruler-toc";
 import { usePostLanguage } from "./use-post-language";
 
+import { HeaderAction } from "@/components/ui/controls";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 interface PostContentProps {
@@ -127,8 +128,9 @@ export function PostContent({
   // the article is what they came for.
   const hasHandles = !!headerMeta || !!displayReadingTime || hasAlternate;
   const hasHeaderMetaContent = hasHandles || !!displayOrigin;
-  const headerHandles = (
-    <div className={cn("flex items-center gap-2 flex-wrap", TYPE.meta)}>
+  /** The facts: a date, how long it takes. Plain text, joined by dots. */
+  const headerFacts = (
+    <>
       {headerMeta}
 
       {displayReadingTime && (
@@ -138,23 +140,9 @@ export function PostContent({
         </>
       )}
 
-      {hasAlternate && (
-        <>
-          {(headerMeta || displayReadingTime) && (
-            <span className="text-quaternary-foreground">·</span>
-          )}
-          <button
-            onClick={switchLanguage}
-            className="inline-flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
-          >
-            <Languages className="h-3 w-3" />
-            <span>{alternateLabel}</span>
-          </button>
-        </>
-      )}
-
-      {/* The handle for the line below. No separator before it: the dots join
-          handles to each other, and this one is a control, not a fact. */}
+      {/* The handle for the line below, sitting with the facts because that is
+          what it discloses -- one more fact, folded. Same glyph size as the
+          language switch, same ink, same hover. */}
       {displayOrigin && (
         <button
           type="button"
@@ -163,13 +151,7 @@ export function PostContent({
           aria-controls={originId}
           aria-label={t(displayLocale, "postOrigin")}
           title={t(displayLocale, "postOrigin")}
-          className={cn(
-            // 20px of press for a 12px glyph; the negative inset keeps the row
-            // at the height the text alone would set.
-            "-my-0.5 inline-flex h-5 w-5 items-center justify-center rounded",
-            "text-tertiary-foreground transition-colors hover:text-foreground",
-            originOpen && "text-foreground"
-          )}
+          className="inline-flex items-center hover:text-foreground transition-colors cursor-pointer"
         >
           <ChevronDown
             className={cn(
@@ -179,8 +161,16 @@ export function PostContent({
           />
         </button>
       )}
-    </div>
+    </>
   );
+
+  /** What you can do to it. The chips /writing and /docs already use. */
+  const headerChips = hasAlternate ? (
+    <HeaderAction variant="action" onClick={switchLanguage}>
+      <Languages className="h-3 w-3" />
+      <span>{alternateLabel}</span>
+    </HeaderAction>
+  ) : null;
 
   /**
    * Where this text came from. Same face and same size as the handles above --
@@ -210,23 +200,31 @@ export function PostContent({
     </div>
   ) : null;
 
-  // The "Aa" belongs to the pages that are actually read end to end — the same
-  // ones the ruler tracks. It rides in the header's action slot, where the
-  // list pages keep their language filter, so no new floating layer is added
-  // to the article.
+  // One row: what this article is, then what you can do to it. The "Aa" used
+  // to be pushed to the far edge with `ml-auto` and nudged up a pixel with
+  // `-mt-1` to look level with the text beside it -- two hacks covering for
+  // the fact that it was not in the row, and it landed in the ruler's lane
+  // while it was out there. As a chip among the others it is level because
+  // the row centres it, and it is nowhere near the margin.
+  //
+  // `relative z-[35]` on the whole row rather than on one control: the row
+  // wraps, so any chip can end up near the docked edge on a narrow screen,
+  // and the collapsed ruler (z-30) is interactive across a band it paints
+  // nothing in. Under the open ruler's backdrop (z-40), as it should be.
   const headerActions =
     hasHeaderMetaContent || toc ? (
-      <div>
-        <div className="flex items-start gap-3">
-          {/* `hasHeaderMetaContent`, not `hasHandles`: the chevron lives in this
-              row, so a post with provenance but no date, reading time or
-              alternate would otherwise fold its origin away with nothing left
-              to unfold it. */}
-          {hasHeaderMetaContent && (
-            <div className="min-w-0">{headerHandles}</div>
-          )}
-          {toc && <ReadingSettings className="-mt-1 ml-auto" />}
-        </div>
+      <div className="relative z-[35]">
+        {/* `hasHeaderMetaContent`, not `hasHandles`: the chevron lives in this
+            row, so a post with provenance but no date, reading time or
+            alternate would otherwise fold its origin away with nothing left
+            to unfold it. */}
+        {(hasHeaderMetaContent || toc) && (
+          <div className={cn("flex flex-wrap items-center gap-2", TYPE.meta)}>
+            {headerFacts}
+            {headerChips}
+            {toc && <ReadingSettings />}
+          </div>
+        )}
         {headerOrigin}
       </div>
     ) : undefined;
