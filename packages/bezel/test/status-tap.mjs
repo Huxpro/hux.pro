@@ -70,6 +70,28 @@ const FIXTURE = `<!doctype html>
     import { SCROLL_ATTRIBUTE } from "/constants.js";
     import { enableStatusTapToTop } from "/status-tap.js";
 
+    // iOS scrolls the MAIN FRAME in the UI process: window.scrollTo is a
+    // request, and scrollY keeps reporting the old offset until the UI process
+    // answers, a couple of frames later. Chromium answers synchronously, so
+    // without this the difference that matters most on a phone is invisible
+    // here. Installed before the module reads anything.
+    if (new URL(location.href).searchParams.has("async")) {
+      const real = window.scrollTo.bind(window);
+      let reported = 0;
+      Object.defineProperty(window, "scrollY", { get: () => reported, configurable: true });
+      Object.defineProperty(window, "pageYOffset", { get: () => reported, configurable: true });
+      window.scrollTo = (x, y) => {
+        const to = typeof x === "object" ? (x.top ?? 0) : y;
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            real(0, to);
+            reported = document.documentElement.scrollTop;
+            window.dispatchEvent(new Event("scroll"));
+          })
+        );
+      };
+    }
+
     ensureBezelStyle();
     document.documentElement.setAttribute(SCROLL_ATTRIBUTE, "container");
 
@@ -112,6 +134,7 @@ const FIXTURE = `<!doctype html>
       state: () => ({
         armed: document.documentElement.hasAttribute("data-bezel-status-tap"),
         windowY: window.scrollY,
+        realWindowY: document.documentElement.scrollTop,
         container: Math.round(el.scrollTop),
         htmlOverflowY: getComputedStyle(document.documentElement).overflowY,
       }),
@@ -176,16 +199,18 @@ function serve(dir) {
 // -- assertions -------------------------------------------------------------
 
 let passed = 0;
+let label = "";
 const failures = [];
 
 function check(name, ok, detail) {
+  const full = `${label}${name}`;
   if (ok) {
     passed += 1;
-    console.log(`  ok   ${name}`);
+    console.log(`  ok   ${full}`);
     return;
   }
-  failures.push(name);
-  console.log(`  FAIL ${name}${detail === undefined ? "" : ` — ${JSON.stringify(detail)}`}`);
+  failures.push(full);
+  console.log(`  FAIL ${full}${detail === undefined ? "" : ` — ${JSON.stringify(detail)}`}`);
 }
 
 /** The largest single-frame move up the page, i.e. the worst lurch. */
@@ -219,6 +244,10 @@ async function main() {
   const { server, port } = await serve(dir);
   const url = `http://127.0.0.1:${port}/`;
   const browser = await playwright.chromium.launch();
+  // Every case runs twice: once where the main frame is scrolled in this
+  // process, once where the platform answers a scroll request late, as iOS
+  // does. The second is the one a phone lives in.
+  let mode = "";
 
   const open = async (ua = IPHONE_UA, options = {}) => {
     const context = await browser.newContext({
@@ -229,12 +258,12 @@ async function main() {
       ...options,
     });
     const page = await context.newPage();
-    await page.goto(url);
+    await page.goto(url + mode);
     await page.evaluate(() => window.__tap.frames(2));
     return { context, page };
   };
 
-  try {
+  const cases = async () => {
     // -- arming ------------------------------------------------------------
     {
       const { context, page } = await open();
@@ -244,20 +273,23 @@ async function main() {
       });
       check("at the top: not armed, <html> reads locked", !top.armed && top.htmlOverflowY === "hidden", top);
 
+      // Long enough for a platform that answers a scroll request late: the
+      // attribute goes on first (it is what creates the range to park in), and
+      // the window lands a frame or two after.
       const scrolled = await page.evaluate(async () => {
         window.__tap.el.scrollTop = 2000;
-        await window.__tap.frames(3);
+        await window.__tap.frames(12);
         return window.__tap.state();
       });
       check(
         "scrolled away: armed, window parked",
-        scrolled.armed && scrolled.windowY >= 1.5 && scrolled.container === 2000,
+        scrolled.armed && scrolled.realWindowY >= 1 && scrolled.container === 2000,
         scrolled
       );
 
       const back = await page.evaluate(async () => {
         window.__tap.el.scrollTop = 0;
-        await window.__tap.frames(3);
+        await window.__tap.frames(12);
         return window.__tap.state();
       });
       check(
@@ -265,6 +297,35 @@ async function main() {
         !back.armed && back.windowY === 0 && back.htmlOverflowY === "hidden",
         back
       );
+      await context.close();
+    }
+
+    // -- the park, when the platform answers late --------------------------
+    // The one difference between this browser and a phone that the rest of the
+    // harness cannot see. Reading scrollY straight after asking for the park
+    // and giving up on it cancels the park that was on its way — every time,
+    // so the gesture never arms at all.
+    {
+      const { context, page } = await open();
+      const result = await page.evaluate(async () => {
+        const t = window.__tap;
+        t.el.scrollTop = 2000;
+        await t.frames(12);
+        return t.state();
+      });
+      check(
+        "a park the platform answers late still arms",
+        result.armed && result.realWindowY >= 1,
+        result
+      );
+
+      const tap = await page.evaluate(async () => {
+        const t = window.__tap;
+        window.scrollTo(0, 0);
+        await t.frames(60);
+        return { container: Math.round(t.el.scrollTop), state: t.state() };
+      });
+      check("and the gesture lands on it", tap.container === 0, tap);
       await context.close();
     }
 
@@ -431,12 +492,18 @@ async function main() {
         const t = window.__tap;
         t.el.scrollTop = 3000;
         await t.frames(3);
+        // A rotation, as the page sees it: the viewport really changes size,
+        // and the window lands back at 0 on its own straight afterwards. A
+        // bare resize event with nothing resized is not this — iOS fires those
+        // for its own reasons, and suppressing taps on them loses real ones.
+        const was = window.innerHeight;
+        Object.defineProperty(window, "innerHeight", { get: () => was - 120, configurable: true });
         window.dispatchEvent(new Event("resize"));
         window.scrollTo(0, 0);
         await t.frames(10);
         return { container: Math.round(t.el.scrollTop) };
       });
-      check("a window scroll right after a resize is not read as a tap", result.container === 3000, result);
+      check("a window scroll right after a real resize is not read as a tap", result.container === 3000, result);
       await context.close();
     }
 
@@ -514,6 +581,15 @@ async function main() {
         result
       );
       await context.close();
+    }
+  };
+
+  try {
+    for (const run of ["", "?async=1"]) {
+      mode = run;
+      label = run ? "[late] " : "[sync] ";
+      console.log(run ? "\nthe platform answers scroll requests late (iOS):" : "the platform scrolls in this process:");
+      await cases();
     }
   } finally {
     await browser.close();

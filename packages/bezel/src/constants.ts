@@ -34,8 +34,8 @@ export const BOOT_GLOBAL = "__bezel";
  * that cannot be told apart from the top is a gesture that never arrives.
  * Both are invisible — <body> is fixed, so the document has nothing to move.
  */
-export const STATUS_TAP_PARK_PX = 4;
-export const STATUS_TAP_RANGE_PX = 8;
+export const STATUS_TAP_PARK_PX = 2;
+export const STATUS_TAP_RANGE_PX = 4;
 
 /** Thinnest fixed content, px, that iOS 26 Safari's chrome follows (5 does not). */
 export const CHROME_SAMPLE_PX = 6;

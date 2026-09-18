@@ -127,6 +127,14 @@ fixture and drives them in Chromium: arming and standing down, the tap at rest
 and mid-fling, a fling that outlives the momentum kill, a finger landing on a
 page already on its way up, a scroll lock taking `<html>` away, a rotation.
 
+Every case runs twice. Chromium scrolls the main frame in the page's own
+process, so `window.scrollTo` takes effect before the next line runs; iOS
+scrolls it in the UI process, so it is a request and `scrollY` keeps reporting
+the old offset until the answer comes back. The second run models that, and it
+is the one a phone lives in — code that reads `scrollY` straight after asking
+for the park and gives up on it cancels the park itself, and the gesture never
+arms at all.
+
 Safari's gesture cannot be produced there, but what it does to the page can:
 it scrolls the main frame to 0, and everything that can go wrong afterwards is
 on the page's side of that. Chromium shares the rendering loop the whole design
@@ -147,7 +155,7 @@ the glass and no viewport change, is the gesture — and the container is eased
 to the top on the chrome morph's curve, 280–640ms by distance. Reduced motion
 jumps. A touch stops it where it is.
 
-Three things it has to get right, all of them timing:
+Four things it has to get right, all of them timing:
 
 - **One decision per frame.** Scroll events are asynchronous and a frame can
   carry two, the container's and the window's. Nothing acts inside a scroll
@@ -162,6 +170,11 @@ Three things it has to get right, all of them timing:
   compositor never sees it — and the return re-bases itself if the container
   moves under it anyway, rather than yanking it back onto a curve that stopped
   being true.
+- **The park is a request, not a move.** On iOS the main frame is scrolled in
+  the UI process, so `window.scrollY` still reports the old offset on the line
+  after `window.scrollTo`. The park is therefore confirmed late, and only a
+  confirmed park counts — an unconfirmed one is never read as a tap, and is
+  never taken back on the strength of a reading that has not caught up yet.
 - **Being armed unlocks the page.** `overflow: hidden` on `<html>` is how an
   overlay library decides the page is already locked (Base UI reads the
   computed `overflow-y` of the viewport scroller). While armed, `<html>` no
