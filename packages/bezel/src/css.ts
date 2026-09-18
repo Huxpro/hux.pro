@@ -3,8 +3,11 @@ import {
   BEZEL_ATTRIBUTE,
   BEZEL_LAYER_ATTRIBUTE,
   COLOR_VAR,
+  PAGE_SCROLL_TIMELINE,
   SCROLL_ATTRIBUTE,
   SCROLL_CONTAINER_ID,
+  STATUS_TAP_ATTRIBUTE,
+  STATUS_TAP_RANGE_PX,
   STYLE_ID,
 } from "./constants";
 
@@ -24,27 +27,45 @@ import {
 //   - The toolbar collapses only when the DOCUMENT scrolls, and each collapse
 //     is a relayout and a fresh look at what is under the chrome.
 //
-// So in container scroll the document never scrolls, and nothing fixed spans
-// the edge: <body> is fixed at inset 0, and its fixed children become absolute,
-// which is the identical box because <body> never moves. Its overflow is
-// `clip`, not `hidden`: `hidden` would make <body> a scroll container that
-// `scrollIntoView` and `focus()` can still move, and a bottom sheet resting
-// below the edge at a lower detent is exactly the overflow they would move it
-// for. `clip` cuts without ever scrolling.
+// So in container scroll the document does not scroll with the page, and
+// nothing fixed spans the edge: <body> is fixed at inset 0, and its fixed
+// children become absolute, which is the identical box because <body> never
+// moves. Its overflow is `clip`, not `hidden`: `hidden` would make <body> a
+// scroll container that `scrollIntoView` and `focus()` can still move, and a
+// bottom sheet resting below the edge at a lower detent is exactly the
+// overflow they would move it for. `clip` cuts without ever scrolling.
+//
+// The armed rules are the one exception, and they apply only while the page is
+// away from the top. WebKit sets scrollsToTop = NO on overflow UIScrollViews,
+// so a tap on the status bar never reaches the container; giving <html> a few
+// pixels of scroll range gives Safari a main-frame scroll to perform, which is
+// the only way the page can observe the gesture. Nothing moves on screen: the
+// document has nothing to scroll, because <body> is fixed.
+//
+// The range is on the armed rule alone, so an unarmed page has no overflow at
+// all to be found by anything that measures the document.
+//
+// Being armed also means <html> no longer reads as `overflow: hidden`, which
+// is how overlay libraries decide the page is already locked. That is why the
+// arming is short-lived and stands down the moment one of them takes over —
+// see status-tap.ts.
 // =============================================================================
 
 const html = "html";
 const on = `${html}[${BEZEL_ATTRIBUTE}]`;
 const contained = `${html}[${SCROLL_ATTRIBUTE}="container"]`;
+const armed = `${contained}[${STATUS_TAP_ATTRIBUTE}]`;
 const container = `#${SCROLL_CONTAINER_ID}`;
 
 export const BEZEL_CSS = `
-:root{${COLOR_VAR}:#000;${BAND_VAR}:0px}
+:root{${COLOR_VAR}:#000;${BAND_VAR}:0px;scroll-timeline-name:${PAGE_SCROLL_TIMELINE};scroll-timeline-axis:block}
 ${on},${on} body{background-color:var(${COLOR_VAR})}
 ${contained}{height:100%;overflow:hidden;overscroll-behavior:none}
+${armed}{overflow-y:auto;min-height:calc(100% + ${STATUS_TAP_RANGE_PX}px);scrollbar-width:none}
+${armed}::-webkit-scrollbar{display:none;width:0;height:0}
 ${contained} body{position:fixed;inset:0;overflow:clip;overscroll-behavior:none}
 ${contained} body>.fixed,${contained} body>[style*="position:fixed"],${contained} body>[style*="position: fixed"],${contained} [${BEZEL_LAYER_ATTRIBUTE}]{position:absolute!important}
-${contained} ${container}{position:absolute;min-height:0;overflow-x:clip;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
+${contained} ${container}{position:absolute;min-height:0;overflow-x:clip;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;scroll-timeline-name:${PAGE_SCROLL_TIMELINE};scroll-timeline-axis:block}
 `.trim();
 
 /** Install the stylesheet into `document`, once. */

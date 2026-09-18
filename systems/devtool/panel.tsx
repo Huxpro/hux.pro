@@ -36,6 +36,7 @@ import {
 } from "@/systems/ambient/lib/solar";
 import type { WallpaperStats } from "@/systems/ambient/lib/wallpaper/renderer";
 import {
+  getWallpaperPlayName,
   getWeatherWallpaperName,
   WEATHER_STYLE_LABEL,
   WEATHER_STYLE_META,
@@ -53,6 +54,7 @@ import {
   PHONE_PALETTE_DEFAULT,
   type PhonePalette,
 } from "./provider";
+import { useHeroExit } from "@/components/ui/hero-exit";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
 import appsJson from "@/content/apps.json";
@@ -88,7 +90,6 @@ import {
   ExternalLink,
   Check,
   ChevronDown,
-  ChevronUp,
   Command as CommandIcon,
   Clock,
   Cloud,
@@ -109,164 +110,76 @@ import {
   Sunset,
   X,
 } from "lucide-react";
-import { withDraggable } from "@/systems/draggable";
 import Link from "next/link";
 import { Segmented, Switch } from "@/components/ui/controls";
 import { Slider } from "@/components/ui/slider";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 // =============================================================================
-// Devtool FAB Component
-// A foldable floating action button for devtools
-// Positioned at top-right, similar to Next.js dev tools
+// Devtool content — the modules, and nothing about where they are shown.
+//
+// The devtool is hosted in three different shells over its life (a bottom
+// sheet, a floating window, and neither while it is a pill), and none of that
+// is this file's business. `dock.tsx` owns the shells and the gesture that
+// moves between them; here are the modules and the footer that go inside
+// whichever one is up.
 // =============================================================================
 
-function DevtoolFABInner() {
+/** The module list. Whatever is hosting it supplies the scroll area. */
+export function DevtoolModules() {
+  return (
+    <>
+      <FrontmatterModule />
+      <ReadingModule />
+      <WallpaperModule />
+      <GlassModule />
+      <SkyModule />
+      <MusicModule />
+      <CommandModule />
+      <DraggableModule />
+      <AppsModule />
+      <RefetchModule />
+    </>
+  );
+}
+
+/** The status line under the modules: how to toggle, and how to turn it off. */
+export function DevtoolFooter() {
   const { locale } = useLocale();
-  const { isEnabled, isOpen, toggle, signalDragReset } = useDevtool();
-
-  // Reset drag position when devtool is toggled on (not fold/unfold)
-  const prevEnabledRef = useRef(isEnabled);
-  useEffect(() => {
-    if (isEnabled && !prevEnabledRef.current) {
-      signalDragReset("devtool");
-    }
-    prevEnabledRef.current = isEnabled;
-  }, [isEnabled, signalDragReset]);
-
-  // Don't render if devtool is not enabled
-  if (!isEnabled) return null;
+  const zh = locale === "zh";
+  const { toggleEnabled } = useDevtool();
 
   return (
-    <div
-      className={cn(
-        "fixed z-50 transition-all duration-300 ease-out",
-        "top-4 right-4",
-        // When open, expand to panel width
-        isOpen ? "w-[420px] max-w-[calc(100vw-2rem)]" : "w-auto"
-      )}
-    >
-      {/* Collapsed FAB button - hides when panel is open */}
-      <button
-        onClick={toggle}
-        data-drag-handle
-        className={cn(
-          "flex items-center gap-2 transition-all duration-300",
-          "rounded-full touch-none",
-          "bg-foreground text-background",
-          "shadow-raised",
-          "hover:scale-105 active:scale-95",
-          // Hide when expanded
-          isOpen ? "opacity-0 pointer-events-none scale-75" : "opacity-100",
-          // Size
-          "h-10 px-4"
-        )}
-        aria-label="Open devtool panel"
-      >
-        <Bug className="h-4 w-4" />
-        <span className="text-xs font-mono uppercase tracking-wider">
-          {locale === "zh" ? "调试" : "Debug"}
+    <div className="border-t border-border/50 bg-muted/20 px-4 py-2">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span className="font-mono">
+          {zh ? "按 D 切换" : "Press D to toggle"}
         </span>
-        <kbd className="text-[10px] font-mono opacity-60 ml-1">D</kbd>
-      </button>
-
-      {/* Expanded panel */}
-      <div
-        className={cn(
-          "absolute top-0 right-0 w-full",
-          "transition-all duration-300 ease-out",
-          "origin-top-right",
-          isOpen
-            ? "opacity-100 scale-100 translate-y-0"
-            : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
-        )}
-      >
-        <DevtoolPanel />
+        <button
+          onClick={toggleEnabled}
+          className="flex items-center gap-1 font-mono transition-colors hover:text-foreground"
+        >
+          <X className="h-3 w-3" />
+          <span>{zh ? "关闭调试" : "Disable Devtool"}</span>
+        </button>
       </div>
     </div>
   );
 }
 
-export const DevtoolFAB = withDraggable(DevtoolFABInner, {
-  id: "devtool",
-  // Only the collapsed pill and the panel's title bar move the devtool; the
-  // module bodies keep their sliders, inputs and scrolling.
-  dragHandle: "[data-drag-handle]",
-});
-
-// =============================================================================
-// Devtool Panel Component
-// The expanded panel containing debug modules
-// =============================================================================
-
-function DevtoolPanel() {
+/** The header's title: the bug, the name, the DEV badge. */
+export function DevtoolTitle() {
   const { locale } = useLocale();
-  const { close, toggleEnabled } = useDevtool();
-
   return (
-    <div
-      className={cn(
-        "rounded-2xl overflow-hidden cursor-default",
-        "bg-glass-popover backdrop-blur-xl",
-        "border border-border/50",
-        "shadow-overlay"
-      )}
-    >
-      {/* Header */}
-      <div
-        data-drag-handle
-        className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-muted/30 touch-none cursor-grab active:cursor-grabbing"
-      >
-        <div className="flex items-center gap-2">
-          <Bug className="h-4 w-4 text-foreground" />
-          <span className="text-sm font-mono text-foreground">
-            {locale === "zh" ? "调试面板" : "Devtool Panel"}
-          </span>
-          <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
-            DEV
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={close}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors"
-            aria-label="Close devtool panel"
-          >
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-          </button>
-        </div>
-      </div>
-
-      {/* Scrollable content */}
-      <div className="max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
-        <FrontmatterModule />
-        <ReadingModule />
-        <WallpaperModule />
-        <GlassModule />
-        <SkyModule />
-        <MusicModule />
-        <CommandModule />
-        <DraggableModule />
-        <AppsModule />
-        <RefetchModule />
-      </div>
-
-      {/* Footer */}
-      <div className="px-4 py-2 border-t border-border/50 bg-muted/20">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="font-mono">
-            {locale === "zh" ? "按 D 切换" : "Press D to toggle"}
-          </span>
-          <button
-            onClick={toggleEnabled}
-            className="flex items-center gap-1 font-mono hover:text-foreground transition-colors"
-          >
-            <X className="h-3 w-3" />
-            <span>{locale === "zh" ? "关闭调试" : "Disable Devtool"}</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    <span className="flex items-center gap-2">
+      <Bug className="h-3.5 w-3.5 shrink-0" />
+      <span className="truncate">
+        {locale === "zh" ? "调试面板" : "Devtool Panel"}
+      </span>
+      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] leading-none normal-case tracking-normal">
+        DEV
+      </span>
+    </span>
   );
 }
 
@@ -889,7 +802,6 @@ function GlassModule() {
 function WallpaperModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { close: closePanel } = useDevtool();
   const {
     kind,
     setKind,
@@ -900,6 +812,8 @@ function WallpaperModule() {
     shaderSupported,
     statsRef,
     wallpaper,
+    play,
+    playAlbum,
     variant,
     opacity,
     veil,
@@ -929,6 +843,8 @@ function WallpaperModule() {
     devtoolOverrides,
     setDevtoolOverrides,
   } = useWallpaper();
+  const { heroExitOverride, setHeroExitOverride } = useDevtool();
+  const heroExit = useHeroExit();
   const { scene } = useWeather();
   const { phase } = useAmbientTime();
 
@@ -1021,7 +937,11 @@ function WallpaperModule() {
   // One line that answers "what am I actually looking at".
   const weatherName = getWeatherWallpaperName(locale, weatherStyle);
   const now = [
-    isImage ? wallpaper.name : weatherName,
+    isImage
+      ? play !== "off" && playAlbum
+        ? `${getWallpaperPlayName(locale, play, playAlbum)} · ${wallpaper.name}`
+        : wallpaper.name
+      : weatherName,
     variant,
     isImage ? (reading ? (zh ? "阅读" : "read") : zh ? "桌面" : "desktop") : placement,
   ].join(" · ");
@@ -1109,11 +1029,9 @@ function WallpaperModule() {
         )}
         <button
           type="button"
-          // The picker is about the page; the panel folds so the page is there.
-          onClick={() => {
-            openPicker();
-            closePanel();
-          }}
+          // The picker stacks on the devtool rather than replacing it: the
+          // panel steps back a notch behind it and comes forward when it goes.
+          onClick={openPicker}
           aria-label={zh ? "打开壁纸选择器" : "Open wallpaper picker"}
           className="flex w-full items-center gap-2 rounded-md border border-border/60 p-1 text-left transition-colors hover:bg-muted/40"
         >
@@ -1138,7 +1056,9 @@ function WallpaperModule() {
           )}
           <span className="min-w-0 flex-1 truncate text-[10px] font-mono text-foreground/80">
             {isImage
-              ? wallpaper.name
+              ? play !== "off" && playAlbum
+                ? `${getWallpaperPlayName(locale, play, playAlbum)} · ${wallpaper.name}`
+                : wallpaper.name
               : weatherName}
             {isImage && (
               <span className="ml-1.5 tabular-nums text-tertiary-foreground">
@@ -1251,6 +1171,28 @@ function WallpaperModule() {
                 { value: "container", label: "Container" },
               ]}
               onChange={(scroll) => setDevtoolOverrides({ ...devtoolOverrides, scroll })}
+            />
+          </PanelRow>
+          {/* How the hero leaves: in flow (home's lift) or sticky-and-fade
+              (blog / work / prompt). The platform picks; this pins one. */}
+          <PanelRow
+            label={zh ? "标题离场" : "Hero exit"}
+            star={
+              heroExitOverride !== undefined ? (
+                <PanelStar
+                  onReset={() => setHeroExitOverride(undefined)}
+                  source="session"
+                />
+              ) : null
+            }
+          >
+            <PanelSegmented<"scroll" | "fade">
+              value={heroExit}
+              options={[
+                { value: "scroll", label: zh ? "滚走" : "Scroll" },
+                { value: "fade", label: zh ? "淡出" : "Fade" },
+              ]}
+              onChange={setHeroExitOverride}
             />
           </PanelRow>
         </div>
@@ -2039,7 +1981,7 @@ function SkyModule() {
             }
             star={
               gyro.enabled ? null : (
-                <PanelStar onReset={() => setGyroEnabled(true)} source="saved" />
+                <PanelStar onReset={() => void setGyroEnabled(true)} source="saved" />
               )
             }
           >
@@ -2050,7 +1992,7 @@ function SkyModule() {
               <PanelToggle
                 on={gyro.active}
                 disabled={!gyro.supported}
-                onClick={() => setGyroEnabled(!gyro.active)}
+                onClick={() => void setGyroEnabled(!gyro.active)}
                 label="Toggle gyroscope tilt"
               />
             </span>

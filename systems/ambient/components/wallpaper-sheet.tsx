@@ -7,7 +7,7 @@ import {
 import { cn } from "@/lib/utils";
 import { t, useLocale, type TranslationKey } from "@/services";
 import { AlbumTabs } from "@/systems/theater";
-import { Check, Cloud, Moon, Palette, Smartphone, Sparkles, Sun } from "lucide-react";
+import { Check, Cloud, Moon, Palette, Repeat, Shuffle, Smartphone, Sparkles, Sun } from "lucide-react";
 import { useState } from "react";
 import {
   ADAPTIVE_PRESENTATION,
@@ -24,11 +24,15 @@ import {
   pickWallpaperSrc,
   readDisplaySize,
   WALLPAPER_CATEGORIES,
+  wallpapersInAlbum,
   WEATHER_STYLE_LABEL,
   WEATHER_STYLE_META,
   WEATHER_STYLES,
   type Wallpaper,
   type WallpaperCategory,
+  type WallpaperPlay,
+  type WallpaperPlayAlbum,
+  type WallpaperPlayEvery,
   type WeatherStyle,
 } from "../lib/wallpaper";
 import { useAmbientTime, useSolarTheme, useWallpaper, useWeather } from "../provider";
@@ -58,6 +62,13 @@ import { WeatherWallpaper } from "./wallpaper";
 // Classic (the original condition palettes). It used to be one tile leading
 // every grid; with styles to choose between it is a group, and the way back
 // to it is always the first tab.
+//
+// Apple and Nature each open with Shuffle and Loop, the same two modes iOS
+// Photo Shuffle and macOS Change Picture use on a folder of stills. Shuffle
+// is a fanned collage (iOS); Loop is the same stills in a tidy stack (macOS
+// sequential). They sit as their own pair — not in the stills grid — and
+// Frequency (iOS Shuffle Frequency, On Lock → On Visit) lands directly under
+// them while either is on, so it is not stranded below nineteen pictures.
 // ---------------------------------------------------------------------------
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -371,6 +382,101 @@ function WeatherStyleTile({
 }
 
 /**
+ * Three thumbs from the album, the way iOS draws Photo Shuffle.
+ *
+ * Shuffle fans them (a handful of photos). Loop keeps them square and
+ * slightly offset — catalog order, macOS Change Picture without Randomly.
+ */
+function PlayCollage({
+  wallpapers,
+  variant,
+  fanned,
+}: {
+  wallpapers: Wallpaper[];
+  variant: "light" | "dark";
+  fanned: boolean;
+}) {
+  const shots = wallpapers.slice(0, 3);
+  const poses = fanned
+    ? [
+        { rotate: -11, x: -22, y: 8, z: 1 },
+        { rotate: 12, x: 22, y: 10, z: 2 },
+        { rotate: -2, x: 0, y: -4, z: 3 },
+      ]
+    : [
+        { rotate: 0, x: -18, y: 6, z: 1 },
+        { rotate: 0, x: 0, y: 0, z: 2 },
+        { rotate: 0, x: 18, y: -6, z: 3 },
+      ];
+
+  return (
+    <span
+      className="absolute inset-0"
+      style={{ backgroundColor: shots[0]?.[variant].base ?? "transparent" }}
+    >
+      {shots.map((wallpaper, i) => (
+        <span
+          key={wallpaper.id}
+          className="absolute left-1/2 top-1/2 h-[64%] w-[56%] overflow-hidden rounded-[10px] bg-cover bg-center shadow-md ring-1 ring-white/50"
+          style={{
+            backgroundImage: `url("${wallpaper[variant].thumb}")`,
+            transform: `translate(-50%, -50%) translate(${poses[i].x}%, ${poses[i].y}%) rotate(${poses[i].rotate}deg)`,
+            zIndex: poses[i].z,
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
+/**
+ * Shuffle or Loop for one album. Same frame as every other tile; the collage
+ * is the affordance, the chip says which motion it is.
+ */
+function PlayTile({
+  album,
+  play,
+  selected,
+}: {
+  album: WallpaperPlayAlbum;
+  play: Exclude<WallpaperPlay, "off">;
+  selected: boolean;
+}) {
+  const { locale } = useLocale();
+  const { selectPlay, variant } = useWallpaper();
+  const albumWallpapers = wallpapersInAlbum(album);
+  const shuffle = play === "shuffle";
+  const name = t(locale, shuffle ? "wallpaperShuffle" : "wallpaperLoop");
+  const meta = t(locale, shuffle ? "wallpaperShuffleMeta" : "wallpaperLoopMeta");
+  const Glyph = shuffle ? Shuffle : Repeat;
+
+  return (
+    <div className="group min-w-0">
+      <TileFrame selected={selected}>
+        <button
+          type="button"
+          onClick={() => selectPlay(album, play)}
+          aria-pressed={selected}
+          aria-label={`${name} — ${meta}`}
+          className="absolute inset-0"
+        >
+          <PlayCollage wallpapers={albumWallpapers} variant={variant} fanned={shuffle} />
+          <span
+            className={cn(
+              "absolute bottom-2 left-2 flex size-5 items-center justify-center rounded-full",
+              ARTWORK_CHIP
+            )}
+          >
+            <Glyph className="size-2.5" strokeWidth={2.25} />
+          </span>
+        </button>
+      </TileFrame>
+      <TileCaption name={name} meta={meta} />
+    </div>
+  );
+}
+
+/**
  * Tilt — the one control the weather tiles need under them.
  *
  * The Sky's rain and snow fall along gravity rather than down the page, which
@@ -401,7 +507,7 @@ function WeatherTiltRow() {
           { value: "on", label: t(locale, "stateOn") },
           { value: "off", label: t(locale, "stateOff") },
         ]}
-        onChange={(value) => setGyroEnabled(value === "on")}
+        onChange={(value) => void setGyroEnabled(value === "on")}
       />
       <p className="px-0.5 text-[11px] leading-snug text-tertiary-foreground">
         {t(locale, note)}
@@ -427,7 +533,9 @@ export function WallpaperSheet() {
       // on, and a drag carries it to the top for the whole catalog at once.
       snapPoints={SHEET_DETENTS}
     >
-      <WallpaperPickerBody />
+      {/* Remount on open so the tab matches the live wallpaper; the sheet
+          stays mounted while closed and would otherwise keep a stale album. */}
+      <WallpaperPickerBody key={isPickerOpen ? "open" : "closed"} />
     </AdaptiveSurface>
   );
 }
@@ -453,6 +561,10 @@ function WallpaperPickerBody() {
     wallpaper: active,
     placement,
     setPlacement,
+    play,
+    playAlbum,
+    playEvery,
+    setPlayEvery,
   } = useWallpaper();
   const { followSun, setFollowSun } = useSolarTheme();
   const isImage = kind === "image";
@@ -461,18 +573,26 @@ function WallpaperPickerBody() {
 
   // Opens on the category of what is in use, so the check mark is on screen.
   const [category, setCategory] = useState<WallpaperCategory>(
-    isImage ? active.category : "weather"
+    isImage ? (playAlbum ?? active.category) : "weather"
   );
   const categories = WALLPAPER_CATEGORIES.map((id) => ({
     id,
     title: t(locale, CATEGORY_LABEL[id]),
   }));
   const shown = wallpapers.filter((w) => w.category === category);
+  const playAlbumCategory = category === "apple" || category === "nature" ? category : null;
+  const playSelected = isImage && play !== "off" && playAlbum === playAlbumCategory;
 
   const options: { value: WallpaperPlacement; label: string }[] = [
     { value: "full", label: t(locale, "wallpaperPlacementFull") },
     { value: "widget", label: t(locale, "wallpaperPlacementWidget") },
     { value: "off", label: t(locale, "wallpaperPlacementOff") },
+  ];
+
+  const frequencyOptions: { value: WallpaperPlayEvery; label: string }[] = [
+    { value: "visit", label: t(locale, "wallpaperPlayEveryVisit") },
+    { value: "hourly", label: t(locale, "wallpaperPlayEveryHourly") },
+    { value: "daily", label: t(locale, "wallpaperPlayEveryDaily") },
   ];
 
   return (
@@ -498,6 +618,40 @@ function WallpaperPickerBody() {
           raised={false}
         />
       </div>
+      {playAlbumCategory && (
+        <div className="space-y-3 pb-4">
+          <div
+            className="grid gap-x-3"
+            // Same cell size as the catalog: two columns of an N-col grid, so
+            // Shuffle / Loop do not inflate to half-width on the desktop.
+            style={{
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              ...(columns > 2
+                ? {
+                    maxWidth: `calc((100% - ${(columns - 1) * 0.75}rem) / ${columns} * 2 + 0.75rem)`,
+                  }
+                : null),
+            }}
+          >
+            {(["shuffle", "loop"] as const).map((mode) => (
+              <PlayTile
+                key={mode}
+                album={playAlbumCategory}
+                play={mode}
+                selected={playSelected && play === mode}
+              />
+            ))}
+          </div>
+          {playSelected && (
+            <CompactRow<WallpaperPlayEvery>
+              label={t(locale, "wallpaperPlayFrequency")}
+              value={playEvery}
+              options={frequencyOptions}
+              onChange={setPlayEvery}
+            />
+          )}
+        </div>
+      )}
       <div
         className="grid gap-x-3 gap-y-4"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
@@ -514,7 +668,7 @@ function WallpaperPickerBody() {
           <WallpaperTile
             key={w.id}
             wallpaper={w}
-            selected={isImage && active.id === w.id}
+            selected={isImage && play === "off" && active.id === w.id}
           />
         ))}
       </div>

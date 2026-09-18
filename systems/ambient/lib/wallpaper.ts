@@ -8,7 +8,8 @@
 //
 //     wallpaperKind: "weather"  →  the live sky, in one of three styles
 //                                   (`weatherStyle`: Sky, Gradient, Classic)
-//                    "image"    →  a fixed pair from this catalog
+//                    "image"    →  a pair from this catalog, pinned or playing
+//                                   Shuffle / Loop over Apple or Nature
 //
 // Mutual exclusivity is therefore structural, not a rule anyone has to remember:
 // there is a single stack, and a single kind feeds it. Where that stack paints
@@ -60,6 +61,32 @@ export type WallpaperPlatform = "macOS" | "iPadOS" | "iOS";
 
 export type WallpaperCategory = "weather" | "apple" | "nature";
 
+/**
+ * Apple and Nature can play the whole album. Weather cannot: the sky already
+ * moves on its own. These are the albums iOS Photo Shuffle / macOS Change
+ * Picture would see as a folder of stills.
+ */
+export type WallpaperPlayAlbum = Exclude<WallpaperCategory, "weather">;
+
+/** `off` is a pinned still. The other two are the picker tiles. */
+export type WallpaperPlay = "off" | "shuffle" | "loop";
+
+/**
+ * iOS Shuffle Frequency, with On Lock mapped to a site visit. On Tap is
+ * omitted — there is no lock screen to tap.
+ */
+export type WallpaperPlayEvery = "visit" | "hourly" | "daily";
+
+export const WALLPAPER_PLAY_ALBUMS: readonly WallpaperPlayAlbum[] = ["apple", "nature"];
+
+export const WALLPAPER_PLAYS: readonly WallpaperPlay[] = ["off", "shuffle", "loop"];
+
+export const WALLPAPER_PLAY_EVERY: readonly WallpaperPlayEvery[] = [
+  "visit",
+  "hourly",
+  "daily",
+];
+
 /** In picker order. Labels are proper nouns or i18n keys resolved by the UI. */
 export const WALLPAPER_CATEGORIES: readonly WallpaperCategory[] = [
   "weather",
@@ -102,6 +129,20 @@ export const WEATHER_STYLE_META = {
 /** "Weather · Sky" — how every surface names a weather style in use. */
 export function getWeatherWallpaperName(locale: Locale, style: WeatherStyle): string {
   return `${t(locale, "wallpaperWeather")} · ${t(locale, WEATHER_STYLE_LABEL[style])}`;
+}
+
+/** "Shuffle · Apple" — how the command row names a playing album. */
+export function getWallpaperPlayName(
+  locale: Locale,
+  play: Exclude<WallpaperPlay, "off">,
+  album: WallpaperPlayAlbum
+): string {
+  const playName = t(locale, play === "shuffle" ? "wallpaperShuffle" : "wallpaperLoop");
+  const albumName = t(
+    locale,
+    album === "apple" ? "wallpaperCategoryApple" : "wallpaperCategoryNature"
+  );
+  return `${playName} · ${albumName}`;
 }
 
 /** Which engine paints the full-page layer: the canvas or the CSS stack. */
@@ -682,6 +723,33 @@ export function getWallpaper(id: string): Wallpaper | null {
 /** The stored id, falling back to the default when it no longer exists. */
 export function getWallpaperOrDefault(id: string): Wallpaper {
   return BY_ID.get(id) ?? BUILT_IN_WALLPAPERS[0];
+}
+
+export function isWallpaperPlayAlbum(value: unknown): value is WallpaperPlayAlbum {
+  return value === "apple" || value === "nature";
+}
+
+export function wallpapersInAlbum(album: WallpaperPlayAlbum): Wallpaper[] {
+  return BUILT_IN_WALLPAPERS.filter((wallpaper) => wallpaper.category === album);
+}
+
+export function readWallpaperPlay(raw: unknown): WallpaperPlay {
+  return raw === "shuffle" || raw === "loop" ? raw : "off";
+}
+
+export function readWallpaperPlayEvery(raw: unknown): WallpaperPlayEvery {
+  return raw === "visit" || raw === "hourly" || raw === "daily" ? raw : "hourly";
+}
+
+export function readWallpaperPlayAlbum(raw: unknown): WallpaperPlayAlbum | null {
+  return isWallpaperPlayAlbum(raw) ? raw : null;
+}
+
+export function readWallpaperPlayOrder(raw: unknown, album: WallpaperPlayAlbum | null): string[] {
+  if (!album) return [];
+  const allowed = new Set(wallpapersInAlbum(album).map((wallpaper) => wallpaper.id));
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((id): id is string => typeof id === "string" && allowed.has(id));
 }
 
 function buildAsset(

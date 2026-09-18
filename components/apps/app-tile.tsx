@@ -135,7 +135,7 @@ export function AppTile({
       {showLabel && (
         <span
           className={cn(
-            "block truncate text-center",
+            "block truncate text-center select-none",
             TYPE.appLabel,
             LABEL[size],
           )}

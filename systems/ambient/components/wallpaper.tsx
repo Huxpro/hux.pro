@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { subscribeGravity } from "../lib/gyroscope";
+import type { PokeKind } from "../lib/poke";
+import type { WipeHandle } from "../lib/wipe";
 import type { WeatherScene } from "../lib/scene";
 import {
   WallpaperRenderer,
@@ -53,10 +55,17 @@ interface WeatherWallpaperProps {
   /** Handed a getter for live renderer stats (resolution / frame time), for the devtool. */
   statsRef?: React.MutableRefObject<(() => WallpaperStats) | null>;
   /**
-   * Handed the renderer's strike — one bolt at (x, y) in screen space, 0..1
-   * bottom → top. The thunder-day easter egg; see lib/strike.ts.
+   * Handed the renderer's poke — one answer of the given kind at (x, y) in
+   * screen space, 0..1 bottom → top. The weather easter eggs; see lib/poke.ts.
    */
-  strikeRef?: React.MutableRefObject<((x: number, y: number) => void) | null>;
+  pokeRef?: React.MutableRefObject<
+    ((kind: PokeKind, x: number, y: number) => void) | null
+  >;
+  /**
+   * Handed the renderer's wipe — the foggy-day easter egg; see lib/wipe.ts.
+   * Null under every other engine, so the egg cannot half-exist.
+   */
+  wipeRef?: React.MutableRefObject<WipeHandle | null>;
   /**
    * Override the device quality profile — for a small preview (the picker's
    * CG tile) that should cost a fraction of the full-page layer.
@@ -79,7 +88,8 @@ export function WeatherWallpaper({
   className,
   onFallback,
   statsRef,
-  strikeRef,
+  pokeRef,
+  wipeRef,
   quality,
   themeEaseMs = null,
 }: WeatherWallpaperProps) {
@@ -106,11 +116,18 @@ export function WeatherWallpaper({
     rendererRef.current = renderer;
     // The devtool pulls stats on its own schedule; nothing is copied until it asks.
     if (statsRef) statsRef.current = () => renderer.getStats();
-    if (strikeRef) strikeRef.current = (x, y) => renderer.strike(x, y);
+    if (pokeRef) pokeRef.current = (kind, x, y) => renderer.poke(kind, x, y);
+    if (wipeRef) {
+      wipeRef.current = {
+        wipe: (x, y) => renderer.wipe(x, y),
+        wipeEnd: () => renderer.wipeEnd(),
+      };
+    }
 
     return () => {
       if (statsRef) statsRef.current = null;
-      if (strikeRef) strikeRef.current = null;
+      if (pokeRef) pokeRef.current = null;
+      if (wipeRef) wipeRef.current = null;
       renderer.destroy();
       rendererRef.current = null;
     };

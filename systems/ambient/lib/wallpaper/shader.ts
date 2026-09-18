@@ -4,10 +4,12 @@
 //
 //   sky gradient + sun glow / disc      (continuous with sun elevation)
 //   stars (twinkling) + moon (sphere)   (night only, occluded by cloud)
+//   the meteor                          (one aimed streak, on a click — a poke)
 //   two parallax cloud decks (fbm)      (cover / density / storminess / wind)
-//   fog / haze                          (low-frequency drifting veil)
+//   fog / haze                          (low-frequency drifting veil, wipeable)
 //   lightning                           (stochastic cloud-illuminating flashes)
-//   the strike                          (one aimed bolt, on a click — see lib/strike.ts)
+//   the strike                          (one aimed bolt, on a click — a poke)
+//   the fog wipe                        (a swath of cleared mist — see lib/wipe.ts)
 //   rain streaks                        (hash-cell particles, falling along the wind)
 //   snow                                (depth-layered flakes, slow and fluttering)
 //   …each along its own fall            (wind does not shear the weather; it
@@ -21,7 +23,20 @@
 // scene's wind, the cloud deck's accumulated travel, and the sideways half of
 // the snow's. The travels are *subtracted* where they are used, because
 // sampling a procedural field further right is what walks it left.
+//
+// NO BACKTICKS BELOW THIS LINE, not even inside a comment: the GLSL lives in a
+// template literal, and a backtick ends it. tsc catches it immediately, with a
+// parse error pointing at the GLSL rather than at the quote, which is why this
+// note is here — it has cost three round trips already.
 // =============================================================================
+
+import {
+  WIPE_DECAY,
+  WIPE_MAX_POINTS,
+  WIPE_RADIUS,
+  WIPE_REACH,
+  WIPE_TAIL,
+} from "../wipe";
 
 export const VERTEX_SHADER = /* glsl */ `#version 300 es
 precision highp float;
@@ -38,6 +53,7 @@ out vec4 fragColor;
 
 uniform vec2  uResolution;
 uniform float uTime;
+uniform float uFrameSec;     // smoothed frame interval; what "one frame" means
 uniform float uSeed;
 // Accumulated travel, in JS, from the smoothed wind. Positive travels right.
 uniform float uCloudDrift;
@@ -80,14 +96,54 @@ uniform vec2  uSnowFall;      // seconds of travel, as a vector; (0,-clock) calm
 uniform float uFog;
 uniform float uLightning;
 uniform float uStars;
+// What the murk is hiding — the same night sky without the fog and the deck a
+// fog day puts in front of it. Only the wipe asks for these, and only inside
+// the swath it has cleared; everywhere else the scene's own values stand.
+uniform float uStarsBehind;
+uniform float uMoonBehind;
 
-uniform vec2  uStrike;      // screen 0..1, y up — where the clicked bolt lands
-uniform float uStrikeAge;   // seconds since it fired; < 0 when none is running
-uniform float uStrikeSeed;  // re-rolled per strike, so no two bolts are alike
+// The poke: whatever the weather answers a click with (see lib/poke.ts). The
+// answers are disjoint — one condition arms one of them — so they share one set
+// of uniforms instead of each adding its own, and a new answer costs one float.
+uniform vec2  uPoke;        // screen 0..1, y up — where the click landed
+uniform float uPokeAge;     // seconds since it fired; < 0 when none is running
+uniform float uPokeSeed;    // re-rolled per poke, so no two are alike
+uniform float uPokeKind;    // 0 none, 1 strike, 3 meteor (2 is spare)
+
+// The wipe is a path, and a fragment shader has no memory: JS keeps a bounded
+// ring of the path's recent corners and the shader sweeps the swath along the
+// polyline they describe. Corners rather than dots is what makes the trail long
+// enough to write with — one entry buys a whole segment.
+//
+// xy is screen 0..1 y-up; z is how far through its life the corner is, 0..1 (JS
+// owns the clock, so the duration lives in one place); w carries two things at
+// once — its magnitude is what the hand had left when this corner was made (see
+// the hand in lib/wipe.ts), and its sign says whether the corner continues the
+// one before it or opens a stroke of its own, which is how two letters do not
+// get joined by a line across the gap. A charge is never zero, so the sign is
+// always readable. Only the first uWipeCount entries are live.
+const int WIPE_MAX = ${WIPE_MAX_POINTS};
+uniform vec4  uWipe[WIPE_MAX];
+uniform int   uWipeCount;
+uniform vec4  uWipeBox;   // the live corners' bounds, screen 0..1: minx, miny, maxx, maxy
+// How far a cleared point travels over the whole of its life, screen units. The
+// sky has no general notion of a horizontal wind any more — each falling thing
+// carries its own aim (see "Where the weather falls") — so the wipe's drift is
+// worked out in JS from the same smoothed wind and arrives already resolved.
+uniform vec2  uWipeBlow;
 
 uniform vec3  uVeilColor;
 uniform float uVeilAmount;
 uniform float uExposure;
+
+/**
+ * Square. Worth a name because the alternative, a pow() of two, is both
+ * slower -- it compiles to exp2(2 * log2(x)) -- and wrong: GLSL leaves pow()
+ * undefined for a negative base, and every Gaussian below is centred on
+ * something, so half of each one has a negative base. This file used it in
+ * seven places, one of them across the bottom sixth of the sky.
+ */
+float sq(float x) { return x * x; }
 
 // ---------------------------------------------------------------------------
 // Hash / noise
@@ -160,7 +216,7 @@ vec3 skyBase(vec2 uv, vec2 p, vec2 sunP, float aspect) {
   sky += uGlow * g * uGlowStrength * mix(0.55, 0.85, lowSun);
 
   // Horizon warmth band at dawn/dusk.
-  float band = exp(-pow((uv.y - 0.16) / 0.28, 2.0)) * lowSun * uGlowStrength;
+  float band = exp(-sq((uv.y - 0.16) / 0.28)) * lowSun * uGlowStrength;
   sky += uGlow * band * 0.26;
 
   // Sun disc when the sun is up and the sky is open.
@@ -172,8 +228,8 @@ vec3 skyBase(vec2 uv, vec2 p, vec2 sunP, float aspect) {
   return sky;
 }
 
-float stars(vec2 p, vec2 uv) {
-  if (uStars < 0.002) return 0.0;
+float stars(vec2 p, vec2 uv, float amount) {
+  if (amount < 0.002) return 0.0;
   float s = 0.0;
   // Two densities: a sparse bright field and a fine dust.
   for (int i = 0; i < 2; i++) {
@@ -190,7 +246,7 @@ float stars(vec2 p, vec2 uv) {
     s += star * twinkle * (i == 0 ? 0.85 : 0.4);
   }
   // Fade stars toward the horizon haze.
-  return s * uStars * smoothstep(0.05, 0.45, uv.y);
+  return s * amount * smoothstep(0.05, 0.45, uv.y);
 }
 
 // One crater per cell: a bowl with a raised rim, jittered inside its cell, so a
@@ -223,8 +279,8 @@ float moonRelief(vec2 q, vec2 detail) {
   return h;
 }
 
-vec3 moon(vec2 p, vec2 moonP) {
-  if (uMoonVisible < 0.002) return vec3(0.0);
+vec3 moon(vec2 p, vec2 moonP, float visible) {
+  if (visible < 0.002) return vec3(0.0);
   float r = DISC_R * uMoonSize;
   vec2 d = (p - moonP) / r;
   d.x *= uHemisphere;
@@ -324,7 +380,7 @@ vec3 moon(vec2 p, vec2 moonP) {
   float illum = 0.5 - 0.5 * k;
   float glow = exp(-md * md * 0.22) * 0.1 * (0.35 + 0.65 * illum);
   col += vec3(0.75, 0.82, 1.0) * glow * (1.0 - lit * 0.6);
-  return col * uMoonVisible;
+  return col * visible;
 }
 
 // ---------------------------------------------------------------------------
@@ -348,6 +404,26 @@ CloudSample cloudLayer(vec2 p, vec2 sunDir, float scale, float speed, float para
   float cover = clamp(uCloudCover + coverBias, 0.0, 1.0);
   float th = mix(0.96, 0.2, cover);
   float cov = smoothstep(th, th + 0.38, n);
+
+  // Where this deck is absent, stop: nothing computed below can be seen. The
+  // caller weights this sample's colour by cov and takes cloudMask as its max,
+  // so a cov of zero discards every value produced past this line — including
+  // the second eight-octave noise sample, which is the most expensive single
+  // thing in the frame. On a clear night (cover 0.04, so a threshold of 0.96)
+  // that is very nearly every pixel, and the deck was drawing nothing for it.
+  //
+  // The test is exactly zero rather than a threshold, so no pixel that carries
+  // any cloud is affected and the output is bit-identical. Verified that way
+  // against main: twelve real scenes captured off the page, day and night, each
+  // at three clock times and each also with a strike over it, plus a real fog
+  // wipe and a real gust -- fifty states, not one channel different.
+  CloudSample s;
+  if (cov <= 0.0) {
+    s.cov = 0.0;
+    s.thick = 0.0;
+    s.col = vec3(0.0);
+    return s;
+  }
   float thick = cov * cov;
 
   // Fake lighting: compare with a sample nudged toward the sun.
@@ -359,7 +435,6 @@ CloudSample cloudLayer(vec2 p, vec2 sunDir, float scale, float speed, float para
   // Silver lining toward the sun.
   base += uGlow * uGlowStrength * (1.0 - thick) * 0.12;
 
-  CloudSample s;
   s.cov = cov * clamp(uCloudDensity + 0.1, 0.0, 1.0);
   s.thick = thick;
   s.col = base;
@@ -614,15 +689,31 @@ float lightning(vec2 p, float aspect, out vec2 flashPos) {
   float on = step(0.62, r);
   float ft = fract(lt) * period;
   // Sharp strike, then a softer second flicker.
-  float env = exp(-ft * 14.0) + 0.55 * exp(-pow(ft - 0.16, 2.0) * 420.0) * step(0.1, ft)
-            + 0.25 * exp(-pow(ft - 0.32, 2.0) * 600.0) * step(0.25, ft);
+  float env = exp(-ft * 14.0) + 0.55 * exp(-sq(ft - 0.16) * 420.0) * step(0.1, ft)
+            + 0.25 * exp(-sq(ft - 0.32) * 600.0) * step(0.25, ft);
   flashPos = vec2(hash1(vec2(slot, 1.7)) * aspect, 0.72 + 0.22 * hash1(vec2(slot, 2.9)));
   float local = exp(-length(p - flashPos) * 1.9);
   return on * env * uLightning * (0.35 + 1.4 * local);
 }
 
 // ---------------------------------------------------------------------------
-// The strike — one aimed bolt (see lib/strike.ts)
+// The pokes — what a click is answered with (see lib/poke.ts)
+//
+// One condition arms one answer, so at most one of these ever runs and they
+// share the uPoke* uniforms between them. The kind is a uniform, so every
+// early-out below is a branch the whole draw takes together — free.
+// ---------------------------------------------------------------------------
+
+const float POKE_STRIKE = 1.0;
+const float POKE_METEOR = 3.0;
+
+/** Is this kind of poke the one currently in flight? */
+bool poking(float kind) {
+  return uPokeAge >= 0.0 && abs(uPokeKind - kind) < 0.5;
+}
+
+// ---------------------------------------------------------------------------
+// The strike — one aimed bolt, on a thunder day
 //
 // Where lightning() fires on its own schedule, this one is an answer to a
 // click: it comes down out of the cloud base onto the point that was asked
@@ -663,37 +754,575 @@ float boltSeg(vec2 p, vec2 a, vec2 b, float seed, float width, float grown) {
 /** Returns the flash on the sky; the channel itself comes back in 'bolt'. */
 float strike(vec2 p, float aspect, out float bolt) {
   bolt = 0.0;
-  if (uStrikeAge < 0.0) return 0.0;
-  float age = uStrikeAge;
+  if (!poking(POKE_STRIKE)) return 0.0;
+  float age = uPokeAge;
 
-  vec2 hit = vec2(uStrike.x * aspect, uStrike.y);
+  vec2 hit = vec2(uPoke.x * aspect, uPoke.y);
   // The cloud it leaves is near, but never directly above, the point hit.
-  vec2 top = vec2(hit.x + (hash1(vec2(uStrikeSeed, 3.7)) - 0.5) * 0.42, 1.06);
+  vec2 top = vec2(hit.x + (hash1(vec2(uPokeSeed, 3.7)) - 0.5) * 0.42, 1.06);
   float reach = age / 0.07;
-  float trunk = boltSeg(p, top, hit, uStrikeSeed, 0.0026, reach);
+  float trunk = boltSeg(p, top, hit, uPokeSeed, 0.0026, reach);
 
   // Two forks off the trunk, each a beat later and thinner than the one before.
   vec2 f1 = mix(top, hit, 0.40);
   vec2 f2 = mix(top, hit, 0.68);
   trunk += 0.55 * boltSeg(p, f1,
-    f1 + vec2((hash1(vec2(uStrikeSeed, 9.1)) - 0.5) * 0.46, -0.28),
-    uStrikeSeed + 2.0, 0.0017, (age - 0.02) / 0.07);
+    f1 + vec2((hash1(vec2(uPokeSeed, 9.1)) - 0.5) * 0.46, -0.28),
+    uPokeSeed + 2.0, 0.0017, (age - 0.02) / 0.07);
   trunk += 0.40 * boltSeg(p, f2,
-    f2 + vec2((hash1(vec2(uStrikeSeed, 4.3)) - 0.5) * 0.38, -0.20),
-    uStrikeSeed + 6.0, 0.0013, (age - 0.03) / 0.07);
+    f2 + vec2((hash1(vec2(uPokeSeed, 4.3)) - 0.5) * 0.38, -0.20),
+    uPokeSeed + 6.0, 0.0013, (age - 0.03) / 0.07);
 
   // The channel holds while the flash has already gone: a strike you can see
   // the shape of, not just a white frame. Two return strokes flicker on it.
   bolt = trunk * (exp(-age * 7.0)
-    + 0.80 * exp(-pow(age - 0.13, 2.0) * 700.0)
-    + 0.50 * exp(-pow(age - 0.27, 2.0) * 900.0));
+    + 0.80 * exp(-sq(age - 0.13) * 700.0)
+    + 0.50 * exp(-sq(age - 0.27) * 900.0));
 
   // The flash is the opposite: a spike, brightest around the channel, spent in
   // a tenth of a second — the same shape as the weather's own (see lightning()).
   float env = exp(-age * 12.0)
-    + 0.55 * exp(-pow(age - 0.13, 2.0) * 900.0)
-    + 0.28 * exp(-pow(age - 0.27, 2.0) * 1100.0);
+    + 0.55 * exp(-sq(age - 0.13) * 900.0)
+    + 0.28 * exp(-sq(age - 0.27) * 1100.0);
   return env * (0.35 + 0.7 * exp(-length(p - hit) * 2.6));
+}
+
+// ---------------------------------------------------------------------------
+// The fog wipe — the foggy-day easter egg (see lib/wipe.ts)
+// ---------------------------------------------------------------------------
+
+/**
+ * How much of the mist is gone at p: 0 untouched, 1 clear air.
+ *
+ * The swath is swept along the polyline — the distance to each segment, not to
+ * a point — so a drag comes out as one stroke of even width however fast the
+ * hand was going, and there are no dots to blend into each other.
+ *
+ * Nothing about it is a circle, because a circle in fog reads as a lens. The
+ * whole field is looked up through a domain warp made of the same drifting
+ * noise the fog itself is made of, and the width is pushed around by a second,
+ * finer one: the edge tears and feathers along its length, and it keeps moving
+ * with the mist rather than sitting on top of it. A long, soft falloff does the
+ * rest — a wiped window has no outline.
+ *
+ * Healing is a fade and a shrink together, run per corner and interpolated
+ * along each segment, so the tail of a long stroke silts up while the head is
+ * still being drawn. Shrinking alone would pull the swath apart into beads.
+ */
+float fogWipe(vec2 p, float aspect) {
+  // Nothing to arbitrate: a fog scene carries no lightning and no precipitation,
+  // so the count is the whole gate (see lib/wipe.ts).
+  if (uWipeCount < 2) return 0.0;
+
+  // Everywhere the stroke is not — which, for a scribble, is most of the
+  // screen — costs one box test instead of the whole loop. Whole tiles fall on
+  // the same side of it, so it is the one early-out a GPU actually likes. The
+  // margin covers the widest the swath can be, plus the furthest the warp below
+  // can push it, plus the furthest the wind can carry it over a whole life.
+  const float REACH = ${WIPE_REACH.toFixed(3)};
+  if (p.x < uWipeBox.x * aspect - REACH || p.x > uWipeBox.z * aspect + REACH ||
+      p.y < uWipeBox.y - REACH || p.y > uWipeBox.w + REACH) return 0.0;
+
+  vec2 drift = vec2(uTime * 0.014, uTime * -0.011);
+  // Two scales of warp rather than one: a slow, broad one that leans the whole
+  // stroke around, and a faster one that works on its edges. A single octave
+  // holds its shape — you can see the same noise sitting in the same place —
+  // and holding a shape is what a drawing does.
+  vec2 warp = vec2(
+    fbm3(p * 1.7 + drift * 0.45 + uSeed),
+    fbm3(p * 1.7 - drift * 0.45 + uSeed + 7.1)
+  ) - 0.5
+  + 0.55 * (vec2(
+    fbm3(p * 4.6 + drift * 1.5 + uSeed + 19.3),
+    fbm3(p * 4.6 - drift * 1.5 + uSeed + 31.7)
+  ) - 0.5);
+
+  // And the whole thing is carried off. A patch of cleared air is not a mark on
+  // the screen, it is a hole in something that is moving: it goes downwind and
+  // settles as it ages, so the old end of a stroke has travelled further than
+  // the new end and the stroke shears rather than sitting still. This is the
+  // single strongest reason the mark reads as weather and not as a board.
+  vec2 blow = uWipeBlow;
+
+  // Two scales of fray on the width — big lobes that make one side of the
+  // stroke fatter than the other for a while, and a fine tear on top of them —
+  // and a third that leaves streaks of mist standing inside the swath. Nothing
+  // here is ever the same twice along the path, which is the whole difference
+  // between a wiped window and a hole cut in a mask.
+  float lobes = fbm3(p * 9.0 + drift * 0.6 + uSeed * 0.7);
+  float tear = vnoise(p * 27.0 - drift + uSeed * 1.9);
+  float ragged = 0.42 + 1.05 * lobes + 0.26 * (tear - 0.5);
+  // What the same fray does to the width once the mist has been working on it
+  // for a while. Loop-invariant, so it is worked out once rather than per
+  // segment.
+  float raggedHeal = ragged * ragged * 1.35;
+
+  float clear = 0.0;
+  for (int i = 0; i + 1 < WIPE_MAX; i++) {
+    if (i + 1 >= uWipeCount) break;
+    vec4 b = uWipe[i + 1];
+    // b opens a stroke of its own: there is no segment between it and a.
+    if (b.w < 0.0) continue;
+    vec4 a = uWipe[i];
+    vec2 pa = p - vec2(a.x * aspect, a.y);
+    vec2 ba = vec2((b.x - a.x) * aspect, b.y - a.y);
+    float bb = max(dot(ba, ba), 1e-6);
+    float t = clamp(dot(pa, ba) / bb, 0.0, 1.0);
+    float life = clamp(mix(a.z, b.z, t), 0.0, 1.0);
+    // No hold: it is closing from the first instant, and the visible life is
+    // mostly tail. See WIPE_DECAY.
+    float age = exp(-${WIPE_DECAY.toFixed(2)} * life)
+      * (1.0 - smoothstep(${WIPE_TAIL.toFixed(3)}, 1.0, life));
+    // And what the hand had when this stretch was made. A tired hand covers the
+    // same ground — it just stops bringing anything up, so this is strength and
+    // not width: the far end of a long stroke is as wide as the near end and a
+    // great deal less clear.
+    float left = age * mix(abs(a.w), abs(b.w), t);
+    if (left < 1e-3) continue;
+    // The older this stretch is, the further it has blown and the more the mist
+    // has worked on it: the warp grows with age rather than being a fixed
+    // texture the stroke wears.
+    vec2 qa = pa - blow * life + warp * (0.055 + 0.16 * life);
+    float d = length(qa - ba * clamp(dot(qa, ba) / bb, 0.0, 1.0));
+    float r = ${WIPE_RADIUS.toFixed(4)} * mix(ragged, raggedHeal, life)
+      * (0.45 + 0.55 * age);
+    float e = d / max(r, 1e-4);
+    // A Gaussian, and one field for the whole effect.
+    //
+    // Anything with a shoulder — a disc with a soft edge, a core term unioned
+    // with a wider halo term, mist made to bead along the boundary — draws an
+    // outline, and an outlined stroke is the single most pen-like thing there
+    // is. This has no shoulder at any width and no boundary anywhere to put an
+    // outline on: it is a density, falling off forever, which is what mist
+    // around a wiped patch actually is.
+    clear = max(clear, left * exp(-e * e * 1.1));
+  }
+  if (clear <= 0.0) return 0.0;
+  // Wiped, not deleted: what is left of the mist in the swath still drifts.
+  // Lightly, though — enough to see the streaks against the sky behind, not so
+  // much that the sky behind stops arriving.
+  float streak = vnoise(vec2(p.x * 5.0, p.y * 19.0) + drift + uSeed * 2.7);
+  return clear * (0.86 + 0.14 * streak);
+}
+
+// ---------------------------------------------------------------------------
+// The meteor — one aimed streak, on a clear night
+//
+// The clear night's answer to a click, and deliberately the strike's opposite:
+// same grammar (a tap, a point, a second, no state), inverted tone. A thunder
+// day answers with violence; a clear night answers with a wish.
+//
+// It does not launch from your finger — it *passes through* the point you
+// clicked. A meteor was always already falling; clicking only says where you
+// happened to catch sight of one. So it comes in from off the edge of the
+// screen, sweeps through the point, and burns out somewhere past it.
+//
+// Everything about the path is re-rolled per click: which side it comes from
+// and how steeply it falls, which means where on the edge it appears. Nothing
+// is fixed for the session — a real shower does share one radiant, and this
+// used to model that, but an egg you will click a dozen times wants to be
+// unpredictable more than it wants to be right. Two meteors through the same
+// point now arrive from two different places.
+//
+// It is drawn under the cloud decks, unlike the strike's channel: a bolt read
+// through cloud is no bolt, but a meteor behind a cloud is simply hidden, which
+// is the truth.
+// ---------------------------------------------------------------------------
+
+/**
+ * The pace and the bounds, in screen heights and seconds. Pace is what is held
+ * fixed rather than duration: a long path across the frame should take longer
+ * than a short one, the way a real meteor's does — but never longer than
+ * METEOR_MAX_FLIGHT, which is what keeps the whole thing inside its budget on a
+ * very wide screen (there the head simply moves faster).
+ *
+ * METEOR_LIFE is POKE_MS.meteor: the renderer retires the poke then, so the
+ * trail has to be gone by then or it vanishes mid-fade.
+ */
+const float METEOR_SPEED = 1.6;
+const float METEOR_MIN_FLIGHT = 0.45;
+const float METEOR_MAX_FLIGHT = 1.25;
+const float METEOR_LIFE = 1.7;
+/**
+ * How far outside the frame it starts, so it is plainly arriving from away.
+ * Wide enough to absorb the bow: the lead-in is measured along the tangent, and
+ * the arc it is actually walked along departs from that by up to the sagitta.
+ */
+const float METEOR_EDGE = 0.1;
+/**
+ * How fast the wake and the train forget, in seconds — and these are really
+ * *lengths*, which is the thing to hold on to: at METEOR_SPEED, a tau of 0.1 s
+ * is 0.28 of the screen's height. An earlier cut ran the train at 0.3 s and so
+ * drew a streak 833 px long on a 945 px-tall laptop — 88% of the height, still
+ * carrying 34/255 halfway down it. That is a light beam, not a meteor. What the
+ * eye actually sees of a meteor is a bright dash and a ghost behind it; the
+ * long full path only shows up in a photograph, which integrates the whole
+ * flight. So the wake is a short bright dash, and the train is faint enough
+ * that its greater length never adds up to a band.
+ *
+ * The wake is the air just behind the head, still hot; the train is what is
+ * left of it a moment later. One clock is 3x the other, which is why they read
+ * as two things.
+ *
+ * The wake's clock also has a floor that has nothing to do with meteors and
+ * everything to do with displays. The dash is tau x speed long and the head
+ * moves speed/fps between frames, so what decides whether consecutive frames
+ * overlap is tau x fps — the speed cancels, and slowing a strobing meteor down
+ * does not stop it strobing. An earlier cut moved the head 44 px a frame behind
+ * a 25 px dash: a row of separate dashes, which is why it looked broken and
+ * even slightly bent in motion while every still frame of it looked right. So
+ * the wake is never shorter than about two frames of travel, taken from the
+ * renderer's own measured frame time rather than from a guess about the
+ * hardware; on a machine that drops to 20 fps the dash lengthens to match.
+ *
+ * The train's decay is deliberately steeper than an exponential, and that is
+ * the difference between a train and a line that dims. Under a plain
+ * exp(-t/tau) every point ages at the same rate once the head has stopped
+ * emitting, so the whole profile scales by the same factor every frame and the
+ * thing reads as one rigid stick on a dimmer — measurably so: first and last
+ * point both lost exactly half between 0.45 s and 0.60 s. Raised to a power the
+ * old end loses disproportionately, so the train retreats toward where the
+ * meteor died, which is what a real one does (recombination is not a one-body
+ * process and does not decay like one).
+ */
+const float METEOR_WAKE_TAU = 0.055;
+const float METEOR_TRAIN_TAU = 0.17;
+const float METEOR_TRAIN_FALL = 1.8;
+/** How much of the head's light the train carries — a ghost, not a second tail. */
+const float METEOR_TRAIN_GAIN = 0.18;
+
+/**
+ * The bow, as the sagitta of the path over its own length. A meteor's track is
+ * dead straight in space, and on a narrow field it projects straight too — but
+ * this is a wide field, and a wide field bends a great circle, so a little bow
+ * is honest as well as prettier. Kept small, and bounded away from zero on
+ * purpose: the path is carried as a circular arc, and a radius that grows
+ * without bound is a radius float32 cannot subtract accurately.
+ */
+const float METEOR_BOW_MIN = 0.025;
+const float METEOR_BOW_MAX = 0.06;
+/**
+ * How far off the horizon the tangent has to stay, at both ends of the arc.
+ * The path turns 8 * bow radians end to end, which is up to 27 degrees — enough
+ * to lift a 20-degree tangent above the horizon, or to push a 70-degree one
+ * past vertical. A meteor does neither: it does not climb, and it does not curl
+ * back the other way.
+ *
+ * Swept over the parameter space rather than sampled, because this is the kind
+ * of fault sampling misses: 0.4% of the combinations climbed, by up to 7.4
+ * degrees, and another 0.4% curled past vertical. Rare enough that 48 rendered
+ * cases all passed, common enough to be seen by anyone clicking a few dozen
+ * times.
+ */
+const float METEOR_PITCH_FLOOR = 0.09;
+const float METEOR_PITCH_CEIL = 1.45;
+
+/**
+ * How far from the track any of the meteor's light can reach, in screen
+ * heights. Not an artistic number: it is an upper bound used to skip pixels,
+ * so it has to be one nothing can exceed. The three widest profiles at this
+ * distance come to, in order, 2e-4, 0, and about 1e-9 of a level out of 255 --
+ * the halo (0.30 * exp(-d / 0.0068), the loosest the coma ever gets), the wake
+ * (exp(-d / 0.0045) at the largest pixel a viewport can have), and the train,
+ * whose widest thread only happens when its own age has already taken it to
+ * nothing. Generous on purpose: the annulus it keeps is thin either way.
+ *
+ * Measured rather than argued: over 560 frames swept across seeds, ages, click
+ * points and two viewport shapes, 535 come out bit-identical to the version
+ * without the test and 25 differ by exactly one level on one or two channels
+ * out of 273600 -- a residual of about a thousandth of a level landing on a
+ * rounding boundary, not light that was dropped.
+ */
+const float METEOR_REACH = 0.09;
+
+/**
+ * The colour of the air a moment after the head has passed, which every meteor
+ * ends in whatever it is made of: the forbidden oxygen line at 557.7 nm. That
+ * is the green in photographs of real ones, and because it is atmospheric
+ * rather than compositional it is the one part of the spectrum they all share —
+ * which makes it a signature rather than a variable. Tempered well off a pure
+ * green: this is a restrained sky.
+ */
+const vec3 METEOR_AIR = vec3(0.58, 0.95, 0.74);
+
+/**
+ * The spectrum along the streak, keyed to the age of the air rather than to the
+ * wake and train amplitudes. That is the whole trick, and it is why the last
+ * attempt at colour was invisible: the warm wake outweighed the cool train
+ * everywhere the train could still be seen, so two colours in the source came
+ * out as one on screen (measured: saturation 0.05-0.12 from head to tail, and
+ * the blue never appeared at all). Keyed to age instead, the gradient cannot be
+ * cancelled by a weighting.
+ *
+ * Three stages, and each is something different emitting: the head itself, hot
+ * and near white; the metal it has just shed, burning sodium-orange a few
+ * hundredths of a second later; then the air, green, outlasting both.
+ */
+vec3 meteorTint(float old, vec3 hot, vec3 metal) {
+  // The stages have to fit inside the part of the streak that is still bright,
+  // which is only the first tenth of a second of air. A first pass spread them
+  // over 0.15 s and the green never arrived: at the age it began, the streak
+  // measured rgb(7,7,5) — there was no light left to colour.
+  vec3 c = mix(hot, metal, smoothstep(0.0, 0.018, old));
+  return mix(c, METEOR_AIR, smoothstep(0.014, 0.055, old));
+}
+
+/**
+ * The light curve. A meteor is not a lamp that switches on: it brightens as it
+ * digs into thicker air, peaks, and is spent — and it is spent faster than it
+ * climbed, because what is burning is running out. So: one peak, asymmetric,
+ * and near zero past the end, which means nothing anywhere has to be switched
+ * off by hand. It is also what decides the head's size, and what each bit of
+ * the train remembers of the head that made it.
+ *
+ * The climb is the wide side, so it is already burning at a third to a half of
+ * its peak when it enters the frame — which is the truth of it: nothing ignites
+ * exactly at the edge of a screen. It also means a click near an edge, where
+ * the head reaches the point a few frames in, is still answered by something
+ * bright.
+ */
+float meteorGlow(float t, float peak) {
+  float z = (t - peak) / (t < peak ? 0.55 : 0.22);
+  return exp(-z * z);
+}
+
+/**
+ * Where the path is, s of arc length from the click. The whole track is one
+ * circular arc about c of radius r, which is what makes a bowed path no
+ * harder than a straight one: the distance from a pixel to an arc and its
+ * position along it are an angle, where for a parabola they would be a cubic.
+ * Returning the point rather than a radius also sidesteps the precision trap —
+ * length(p - c) - r subtracts two large nearly-equal numbers, this does not.
+ */
+vec2 meteorAt(vec2 c, float r, float a0, float spin, float s) {
+  float a = a0 + spin * s / r;
+  return c + r * vec2(cos(a), sin(a));
+}
+
+/**
+ * Fragmentation. A bright meteor comes apart on the way down, and each break
+ * flares: the classic thing a fireball does that a faint streak never does. Two
+ * possible bursts, the second only on some of them, and only the top grades
+ * get either. Multiplied into the light curve, so the train remembers the flare
+ * as a knot where it happened.
+ */
+float meteorBurst(float t, float fire, float seed) {
+  if (fire < 0.002) return 1.0;
+  float at1 = 0.34 + 0.22 * hash1(vec2(seed, 12.3));
+  float at2 = 0.62 + 0.22 * hash1(vec2(seed, 57.1));
+  float again = step(0.45, hash1(vec2(seed, 71.9)));
+  float z1 = (t - at1) / 0.05;
+  float z2 = (t - at2) / 0.04;
+  return 1.0 + fire * (2.0 * exp(-z1 * z1) + again * 1.3 * exp(-z2 * z2));
+}
+
+/** The light this meteor puts into this pixel, colour and all. */
+vec3 meteor(vec2 p, float aspect) {
+  if (!poking(POKE_METEOR)) return vec3(0.0);
+  float age = uPokeAge;
+
+  vec2 at = vec2(uPoke.x * aspect, uPoke.y);   // the point it must cross
+
+  // What kind of meteor this one is — the roll that makes clicking again worth
+  // doing. A real sky is mostly faint quick ones with the occasional fireball,
+  // and the skew is the payload: pow() puts the median grade at 0.29 and leaves
+  // one in eight above 0.8, so most clicks give something modest and now and
+  // then you get the one that comes apart. Everything below reads mag: how
+  // bright, how big the coma, how far it runs, how long the train lasts, and
+  // whether it flares at all.
+  float mag = pow(hash1(vec2(uPokeSeed, 44.1)), 1.8);
+  float fire = smoothstep(0.62, 0.92, mag);
+
+  // What it is made of and how fast it came in — the two things that set a real
+  // meteor's colour. Sodium and iron burn orange and yellow; magnesium and
+  // shock-excited air burn blue-white. Its own roll, deliberately not the
+  // grade's, so a faint one can be the blue one and a fireball can be the
+  // orange one: two independent draws make many more distinct meteors than one.
+  float spectrum = hash1(vec2(uPokeSeed, 33.5));
+  vec3 hot = spectrum < 0.5
+    ? mix(vec3(1.0, 0.80, 0.55), vec3(1.0, 0.97, 0.91), spectrum * 2.0)
+    : mix(vec3(1.0, 0.97, 0.91), vec3(0.80, 0.89, 1.0), (spectrum - 0.5) * 2.0);
+  // The metal it sheds follows from the same roll: a slow sodium-rich one runs
+  // deep orange behind the head, a fast one barely shows sodium at all.
+  vec3 metal = mix(vec3(1.0, 0.58, 0.26), vec3(0.82, 0.94, 0.80), spectrum);
+
+  // Which way it falls: a side, and a steepness between 20 and 70 degrees off
+  // the horizon. Both re-rolled per click, which is the whole of the variety —
+  // the angle is what decides where on the frame's edge the thing appears, so
+  // randomising it randomises the entry point for free. Never horizontal,
+  // never vertical.
+  float side = hash1(vec2(uPokeSeed, 8.3)) < 0.5 ? -1.0 : 1.0;
+  float pitch = mix(0.35, 1.22, hash1(vec2(uPokeSeed, 3.1)));
+  float cx = cos(pitch);
+  float cy = sin(pitch);
+  // Unless the side it drew has no sky in it: a point near the right edge has
+  // one long path through it and it runs left. The roll stands wherever there
+  // is room, which is nearly everywhere.
+  float ahead = (side > 0.0 ? aspect - at.x : at.x) + METEOR_EDGE;
+  if (ahead < 0.4 * cx) {
+    side = -side;
+    ahead = (side > 0.0 ? aspect - at.x : at.x) + METEOR_EDGE;
+  }
+  // How much frame there is on each side of the point, measured after the side
+  // is settled: behind it for the lead-in, in front of it for the run-out.
+  float behind = (side > 0.0 ? at.x : aspect - at.x) + METEOR_EDGE;
+  vec2 dir = vec2(side * cx, -cy);
+
+  // Back the path up from the point until it leaves the frame: that is the
+  // entry, a little outside whichever edge the angle happens to meet. Forward,
+  // it keeps going a while past the point and burns out — unless an edge
+  // arrives first, in which case it just leaves, which is also what they do.
+  float lead = min(behind / cx, (1.0 + METEOR_EDGE - at.y) / cy);
+  float burn = mix(0.55, 1.05, hash1(vec2(uPokeSeed, 5.9))) * mix(0.62, 1.2, mag);
+  float leave = min(ahead / cx, (at.y + METEOR_EDGE) / cy);
+  // How far it carries on past the point: its own burn-out distance where there
+  // is room, but never under 60% of the lead-in. That ratio is really a
+  // statement about *time* — it puts the crossing of the point at 0.62 of the
+  // flight at the latest, and therefore inside the light curve rather than
+  // after it. Without it, a click near the bottom of the frame gets a long
+  // lead-in and is met by a head that has already gone out.
+  float run = lead + max(min(burn, leave), lead * 0.6);
+
+  // The bow. dir is the tangent *at the clicked point*, and the track is the
+  // circular arc through it — so the click is still crossed exactly, and the
+  // lead-in and run-out above, which were measured along the tangent, are now
+  // approximations good to the sagitta.
+  //
+  // Which way it bends is *not* a roll: it always bends so that the path
+  // steepens as it falls. A real meteor's track is straight and its projection
+  // on a wide field could bow either way, so the choice is free — and one of
+  // the two reads as wrong. Steepening is what diving into thicker air looks
+  // like; the other sign flattens the far end and reads as a meteor pulling up,
+  // which nothing falling does. It still varies on screen, because which way is
+  // "steeper" depends on which side it came from: spin = -side.
+  //
+  // The amount is then clipped to the room the pitch has at each end, so
+  // neither end can cross the horizon or vertical — see METEOR_PITCH_FLOOR.
+  float back = lead / run;                 // the share of the turn behind the point
+  float bow = mix(METEOR_BOW_MIN, METEOR_BOW_MAX, hash1(vec2(uPokeSeed, 21.7)));
+  bow = min(bow, min((pitch - METEOR_PITCH_FLOOR) / max(8.0 * back, 1e-3),
+                     (METEOR_PITCH_CEIL - pitch) / max(8.0 * (1.0 - back), 1e-3)));
+  float spin = -side;
+  float radius = run / (8.0 * bow);
+  vec2 centre = at + vec2(-dir.y, dir.x) * spin * radius;
+  // Nothing below this line can light a pixel that is far from the circle the
+  // track is cut from: the head sits on that circle, and every lit point of
+  // the streak is an arc of it, so the distance from a pixel to the circle is a
+  // lower bound on its distance to both. Farther than METEOR_REACH and the
+  // answer is exactly zero -- which is nearly every pixel on the screen, since
+  // what is left is one thin annulus. Six operations instead of the three
+  // hundred that follow it.
+  //
+  // This is the one place the subtraction the rest of the function avoids is
+  // safe. It is inaccurate in proportion to the radius, and the radius is
+  // bounded here: the bow clips above cannot fall below 0.0288, so the radius
+  // cannot exceed run / 0.23, and run cannot exceed two frame diagonals. That
+  // puts the error around 1e-5 of a screen height against a threshold of 0.09.
+  if (abs(length(p - centre) - radius) > METEOR_REACH) return vec3(0.0);
+  float aAt = atan(at.y - centre.y, at.x - centre.x);
+
+  // spin is used as-is from here, and the reason is worth writing down
+  // because getting it backwards sends the whole meteor up instead of down.
+  // The radial direction is u = (at - centre)/radius = -perp(dir) * spin, so
+  // the tangent at the clicked point is spin * perp(u) = spin * spin * dir,
+  // which is dir for either sign: putting the centre on the other side flips
+  // the radius too, and the two cancel.
+
+  // One pace for every meteor, so a long path takes longer than a short one —
+  // but never quicker than METEOR_MIN_FLIGHT, because the shortest chords
+  // (a click in the very corner of the frame) would otherwise be over in
+  // seventy milliseconds, which is a blink and not a streak. A big one also
+  // falls a touch more slowly, which is most of why fireballs read as stately.
+  float pace = METEOR_SPEED * mix(1.12, 0.86, mag);
+  float flight = clamp(run / pace, METEOR_MIN_FLIGHT, METEOR_MAX_FLIGHT);
+  // And that pace is *constant*. A meteor does not slow down — it stops giving
+  // off light, which is a different thing and looks like one: an eased path
+  // reads either as a thrown object losing steam or, worse, as an animation
+  // curve, and the eye knows that signature. Nor is the position clamped at the
+  // end, so it never parks: the curve below has already taken it to nothing.
+  float t = age / flight;
+  vec2 head = meteorAt(centre, radius, aAt, spin, run * t - lead);
+
+  // How bright it is, over its life. Where the peak falls is re-rolled per
+  // click, so one meteor blazes early and the next is still climbing as it
+  // crosses your point.
+  float peak = mix(0.45, 0.72, hash1(vec2(uPokeSeed, 17.3)));
+  // Ablation is not smooth, so the brightness wanders. From noise rather than a
+  // sine, which at a fixed rate reads as a mechanism rather than as burning.
+  float flicker = 0.88 + 0.24 * vnoise(vec2(age * 13.0, uPokeSeed * 7.0));
+  // How much light it gives at all is the grade's largest effect.
+  float bright = mix(0.6, 1.55, mag);
+  float glow = meteorGlow(t, peak) * meteorBurst(t, fire, uPokeSeed) * flicker;
+
+  // The head: a coma, and a brighter one is a bigger one, with a soft halo of
+  // scattered light around it. The gain is set so only the peak of the curve
+  // clips — for the rest of the flight the head has structure instead of being
+  // a white sticker.
+  //
+  // It is kept *small*, and that is the whole of what separates a meteor from a
+  // comet: what a meteor is long in is its streak, not its head. An earlier cut
+  // measured a 20 px bright ball inside an 84 px glow on a 13" laptop — nine
+  // percent of the screen's height — because the halo carried 0.42 of the core
+  // over a 3.3x exponential, and an exponential that wide takes a very long
+  // time to reach nothing. Halved the coma, and the halo is now weaker and
+  // three times tighter. The pixel floor is for a small viewport, where a head
+  // measured in screen heights would otherwise thin out of existence.
+  float px = 1.0 / uResolution.y;            // one device pixel in screen units
+  float dh = length(p - head);
+  float hr = max(0.0026 * mix(0.75, 1.45, mag) * (0.65 + 0.35 * glow), 1.1 * px);
+  float core = exp(-(dh * dh) / (hr * hr)) + exp(-dh / (hr * 1.8)) * 0.30;
+
+  // The wake and the train are the same air at two ages — what the head lit on
+  // its way past — so they come out of one walk down the path it has flown.
+  // Emission stops when the head is spent, so that path stops at the end of the
+  // flight however long the poke lives afterwards.
+  float lastLit = min(t, 1.0);
+  float sLit = run * lastLit;                 // how much arc length is lit
+  // Where this pixel sits along the arc, as arc length from the click: the
+  // angle it subtends at the centre. Wrapped into (-pi, pi] because both
+  // atan()s come back on their own branch.
+  float ap = atan(p.y - centre.y, p.x - centre.x);
+  float dA = mod((ap - aAt) * spin + 3.14159265, 6.28318531) - 3.14159265;
+  // Clamped to the lit stretch, so past either end the distance is to that end
+  // rather than to the circle the arc came from.
+  float s = clamp(dA * radius, -lead, sLit - lead);
+  float d = length(p - meteorAt(centre, radius, aAt, spin, s));
+  float q = (s + lead) / max(sLit, 1e-4);
+  // Constant speed is what makes this cheap: where a bit of the streak sits
+  // says *when* it was made, and therefore both how old it is now and how
+  // bright the head was that made it. Which is the whole difference between a
+  // train and a drawn line — the old end goes first, so the thing retreats
+  // toward where the meteor died instead of dimming all over at once, it
+  // spreads as it goes because the air is diffusing, and it keeps a bright
+  // middle because that is where the head was brightest.
+  float made = q * lastLit;                   // the head's own t back then
+  float old = max(age - made * flight, 0.0);  // and how long ago that was
+  float lit = meteorGlow(made, peak) * meteorBurst(made, fire, uPokeSeed);
+  // Capped, or the adaptation runs away: at a few frames a second the dash
+  // would grow past a screen height and be the light beam again. Under about
+  // 15 fps it goes back to strobing, and at that frame rate so does the page.
+  float wakeTau = max(METEOR_WAKE_TAU, min(uFrameSec * 1.8, 0.12));
+  float wake = exp(-d / max(0.0021, 0.9 * px)) * exp(-old / wakeTau) * lit;
+  // Spreading dims as well as widens: the same light over a wider thread, so
+  // the surface brightness goes down with the width it went up with.
+  float spread = 1.0 + old * 8.0;
+  // A big one leaves a train that lasts; a faint one barely leaves one at all.
+  float trainTau = METEOR_TRAIN_TAU * mix(0.7, 1.35, mag);
+  float train = exp(-d / max(0.0013 * spread, 0.9 * px)) / spread
+        * exp(-pow(old / trainTau, METEOR_TRAIN_FALL))
+        * lit * METEOR_TRAIN_GAIN * mix(0.45, 1.7, mag);
+
+  // Faint on a washed-out night, for the same reason the stars are — and the
+  // horizon haze thins it as it does them, though never to nothing: a meteor
+  // you asked for and did not get reads as broken, not as rare. The close is
+  // the renderer's deadline, not the physics: whatever is left when the poke is
+  // retired has to be nothing.
+  float visible = uStars * (0.55 + 0.45 * smoothstep(0.02, 0.4, p.y))
+                * (1.0 - smoothstep(METEOR_LIFE * 0.85, METEOR_LIFE, age))
+                * bright;
+  // The head keeps its own colour; the streak takes the colour of its age.
+  return (core * glow * hot + (wake + train) * meteorTint(old, hot, metal))
+       * visible;
 }
 
 // ---------------------------------------------------------------------------
@@ -708,9 +1337,26 @@ void main() {
   vec2 moonP = vec2(uMoon.x * aspect, uMoon.y);
   vec2 sunDir = normalize(sunP - vec2(aspect * 0.5, 0.35) + vec2(0.0001));
 
+  // The wipe is worked out first, because what it uncovers is composited here,
+  // at the very back of the frame — long before the fog it is clearing.
+  float cleared = fogWipe(p, aspect);
+
+  // Inside the swath, the night sky the murk was hiding. A foggy night has no
+  // stars and barely a moon by the time the scene reaches this shader (the deck
+  // saturates the star term, the fog takes what is left), so clearing the fog
+  // alone uncovers nothing, and the whole promise of the gesture — there really
+  // is a sky up there — comes to nothing with it. These two are that sky.
+  float starAmt = mix(uStars, max(uStars, uStarsBehind), cleared);
+  float moonAmt = mix(uMoonVisible, max(uMoonVisible, uMoonBehind), cleared);
+
   vec3 col = skyBase(uv, p, sunP, aspect);
-  col += vec3(0.9, 0.93, 1.0) * stars(p, uv);
-  col += moon(p, moonP);
+  col += vec3(0.9, 0.93, 1.0) * stars(p, uv, starAmt);
+  col += moon(p, moonP, moonAmt);
+
+  // The meteor, over the field it belongs to and under the decks that should
+  // hide it, so a drifting deck occludes a lingering train exactly as it
+  // should. It brings its own colour: see meteorTint().
+  col += meteor(p, aspect);
 
   // Far deck: large, slow, flattened by perspective. Near deck: smaller,
   // faster, a touch heavier.
@@ -718,6 +1364,8 @@ void main() {
   CloudSample near = cloudLayer(p + vec2(3.1, 1.7), sunDir, 2.6, 0.03, 1.0, 0.0);
 
   // Clouds sit over the sky; the near deck also shades the far one a little.
+  // What the sky looks like underneath them is kept, for the fog wipe below.
+  vec3 belowDecks = col;
   col = mix(col, far.col, far.cov);
   col = mix(col, near.col * (1.0 - 0.08 * near.thick), near.cov);
   float cloudMask = max(far.cov, near.cov);
@@ -735,11 +1383,34 @@ void main() {
   col += vec3(0.95, 0.97, 1.0) * bolt * 1.25;
 
   // Fog / haze: drifting low-frequency veil, denser toward the bottom.
+  //
+  // The wipe thins it rather than cutting a hole in the frame: 'fa' is the only
+  // thing it touches, so what shows through a cleared patch is whatever the sky
+  // is already rendering behind the mist — the gradient, the cloud decks, a sun
+  // glow. That is the payoff. A foggy day hides a real sky, and wiping reveals
+  // it rather than revealing a flat colour.
   if (uFog > 0.002) {
     vec3 fogCol = mix(uHorizon, uCloudLit, 0.35);
     float fn = 0.7 + 0.3 * fbm3(p * 1.8 + vec2(uTime * 0.02, 0.0) + uSeed);
     float fa = uFog * (0.45 + 0.55 * (1.0 - uv.y)) * fn;
+    fa *= 1.0 - cleared;
     col = mix(col, fogCol, clamp(fa, 0.0, 0.95));
+    // And the deck goes with it, because on a fog day the deck IS the murk: the
+    // profile carries three quarters cover with a white lit colour precisely
+    // because fog reads as overcast. Leave it standing and clearing the mist
+    // uncovers nothing — the mist and the cloud above it are the same white by
+    // day, and by night the deck is what buries the stars. It can only ever
+    // happen where there is fog to wipe, and it follows the same field the fog
+    // does, so what opens up is a thinning in weather rather than a hole in a
+    // mask. A gate, not a dial: on a fog day the deck goes, and on anything
+    // else there is no wipe to be running in the first place.
+    col = mix(col, belowDecks, cleared * smoothstep(0.2, 0.7, uFog));
+    // Clear air scatters less than mist, so the swath sits a shade darker than
+    // what is around it. On a white noon — where the mist, the deck above it
+    // and the sky behind them are all within a few levels of each other — this
+    // is most of what there is to see, and it is the reason the egg reads at
+    // all on the brightest day it can happen on.
+    col *= 1.0 - 0.05 * cleared * uFog;
   }
 
   // Precipitation over everything.

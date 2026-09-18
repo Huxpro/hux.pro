@@ -48,8 +48,18 @@ import {
   type WallpaperEngine,
   type WallpaperFamily,
   type WallpaperKind,
+  type WallpaperPlay,
+  type WallpaperPlayAlbum,
+  type WallpaperPlayEvery,
   type WeatherStyle,
 } from "./lib/wallpaper";
+import {
+  markVisitConsumed,
+  readVisitConsumed,
+  shouldAdvancePlay,
+  startAlbumPlay,
+  stepAlbumPlay,
+} from "./lib/wallpaper-play";
 import {
   DEFAULT_BEZEL_BAND,
   DEFAULT_BEZEL_RADIUS,
@@ -305,8 +315,19 @@ interface WallpaperContextType {
   /** Selected built-in pair (meaningful when kind === "image"). */
   wallpaper: Wallpaper;
   wallpapers: Wallpaper[];
-  /** Selects a pair AND switches the background kind to it. */
+  /** Selects a pair AND switches the background kind to it. Pins; play turns off. */
   selectWallpaper: (id: string) => void;
+  /**
+   * Shuffle or Loop over Apple / Nature — iOS Photo Shuffle and macOS Change
+   * Picture. Selects the mode AND switches the background kind to image.
+   */
+  selectPlay: (album: WallpaperPlayAlbum, play: Exclude<WallpaperPlay, "off">) => void;
+  /** `off` while a still is pinned. */
+  play: WallpaperPlay;
+  /** Album Shuffle / Loop is walking; null while play is off. */
+  playAlbum: WallpaperPlayAlbum | null;
+  playEvery: WallpaperPlayEvery;
+  setPlayEvery: (every: WallpaperPlayEvery) => void;
   /**
    * Which half of the pair is showing. The app theme, except while the sun is
    * handing the theme over — then the sky leads and this is where it shows.
@@ -405,6 +426,24 @@ interface WallpaperContextType {
   isPickerOpen: boolean;
   openPicker: () => void;
   closePicker: () => void;
+  /**
+   * The tilt primer — the one-time offer that comes before WebKit's motion
+   * prompt. See lib/tilt-primer.ts. Open state lives here rather than in the
+   * background component because the sheet is mounted in the layout, beside
+   * the picker, and not inside a `pointer-events-none` wallpaper layer.
+   */
+  isTiltPrimerOpen: boolean;
+  /** The offer has been made and answered; it is never made again. */
+  gyroPrimed: boolean;
+  offerTilt: () => void;
+  /** Close it, and never offer again — the answer was "no" or was given. */
+  closeTiltPrimer: () => void;
+  /**
+   * Turn the tilt on and ask, reporting how it went so the sheet can say so.
+   * Must be called straight from the press. It does NOT close the sheet —
+   * whoever showed the outcome closes it.
+   */
+  takeTilt: () => Promise<GyroAccess>;
 }
 
 const WallpaperContext = createContext<WallpaperContextType | undefined>(undefined);
@@ -516,19 +555,57 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   const setWallpaperKind = useCallback(
     (kind: WallpaperKind) => {
       if (kind === settings.wallpaperKind) return;
+      if (kind === "weather") {
+        updateSettings({ wallpaperKind: kind, wallpaperPlay: "off", wallpaperAlbum: null });
+        return;
+      }
       updateSettings({ wallpaperKind: kind });
     },
     [settings.wallpaperKind, updateSettings]
   );
 
   const selectWallpaper = useCallback(
-    (id: string) => updateSettings({ wallpaperId: id, wallpaperKind: "image" }),
+    (id: string) =>
+      updateSettings({
+        wallpaperId: id,
+        wallpaperKind: "image",
+        wallpaperPlay: "off",
+        wallpaperAlbum: null,
+      }),
     [updateSettings]
+  );
+
+  const selectPlay = useCallback(
+    (album: WallpaperPlayAlbum, play: Exclude<WallpaperPlay, "off">) => {
+      const next = startAlbumPlay({
+        play,
+        album,
+        currentId: settings.wallpaperId,
+        now: Date.now(),
+      });
+      // Tapping the tile is this visit's change; don't step again on mount.
+      markVisitConsumed();
+      updateSettings({ wallpaperKind: "image", ...next });
+    },
+    [settings.wallpaperId, updateSettings]
+  );
+
+  const setPlayEvery = useCallback(
+    (every: WallpaperPlayEvery) => {
+      if (every === settings.wallpaperPlayEvery) return;
+      updateSettings({ wallpaperPlayEvery: every });
+    },
+    [settings.wallpaperPlayEvery, updateSettings]
   );
 
   const selectWeather = useCallback(
     (style: WeatherStyle) =>
-      updateSettings({ weatherStyle: readWeatherStyle(style), wallpaperKind: "weather" }),
+      updateSettings({
+        weatherStyle: readWeatherStyle(style),
+        wallpaperKind: "weather",
+        wallpaperPlay: "off",
+        wallpaperAlbum: null,
+      }),
     [updateSettings]
   );
 
@@ -543,11 +620,66 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   const openPicker = useCallback(() => setIsPickerOpen(true), []);
   const closePicker = useCallback(() => setIsPickerOpen(false), []);
 
+  const [isTiltPrimerOpen, setIsTiltPrimerOpen] = useState(false);
+  const offerTilt = useCallback(() => setIsTiltPrimerOpen(true), []);
+
   const activeWallpaper = useMemo(
     () => getWallpaperOrDefault(settings.wallpaperId),
     [settings.wallpaperId]
   );
   const isImageKind = settings.wallpaperKind === "image";
+
+  // Shuffle / Loop — step when iOS Shuffle Frequency says so. On Visit is once
+  // per tab session; Hourly and Daily poll on a minute so a long-lived tab
+  // still turns over. A week away advances once, not seven times.
+  useEffect(() => {
+    if (!settingsLoaded) return;
+    if (settings.wallpaperKind !== "image") return;
+    if (settings.wallpaperPlay === "off" || !settings.wallpaperAlbum) return;
+
+    const play = settings.wallpaperPlay;
+    const album = settings.wallpaperAlbum;
+
+    const tick = () => {
+      const now = Date.now();
+      if (
+        !shouldAdvancePlay({
+          every: settings.wallpaperPlayEvery,
+          playAt: settings.wallpaperPlayAt,
+          now,
+          visitConsumed: readVisitConsumed(),
+        })
+      ) {
+        return;
+      }
+      const next = stepAlbumPlay({
+        play,
+        album,
+        currentId: settings.wallpaperId,
+        index: settings.wallpaperPlayIndex,
+        order: settings.wallpaperPlayOrder,
+        now,
+      });
+      markVisitConsumed();
+      updateSettings(next);
+    };
+
+    tick();
+    if (settings.wallpaperPlayEvery === "visit") return;
+    const timer = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(timer);
+  }, [
+    settingsLoaded,
+    settings.wallpaperKind,
+    settings.wallpaperPlay,
+    settings.wallpaperAlbum,
+    settings.wallpaperPlayEvery,
+    settings.wallpaperPlayAt,
+    settings.wallpaperPlayIndex,
+    settings.wallpaperPlayOrder,
+    settings.wallpaperId,
+    updateSettings,
+  ]);
 
   const setBezelRadius = useCallback(
     (px: number | null) => updateSettings({ bezelRadius: px }),
@@ -731,23 +863,45 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   }, [settingsLoaded, settings.weatherGyroGranted, updateSettings]);
 
   const setGyroEnabled = useCallback(
-    (on: boolean) => {
+    async (on: boolean): Promise<GyroAccess> => {
       if (!on) {
         updateSettings({ weatherGyro: false });
-        return;
+        return gyroAccess;
       }
       updateSettings({ weatherGyro: true });
       // Turning it on is the gesture WebKit wants, so ask now — the promise is
       // resolved in the same task the tap started, which is what makes the
       // prompt appear at all.
-      if (isGyroReachable(gyroAccess) || gyroAccess === "unsupported") return;
-      void requestGyroAccess().then((access) => {
-        setGyroAccess(access);
-        updateSettings({ weatherGyroGranted: access === "granted" });
-      });
+      if (isGyroReachable(gyroAccess) || gyroAccess === "unsupported") {
+        return gyroAccess;
+      }
+      const access = await requestGyroAccess();
+      setGyroAccess(access);
+      updateSettings({ weatherGyroGranted: access === "granted" });
+      // Handed back rather than only stored, because the one caller that has
+      // to SAY something — the primer sheet — needs the answer, and a toggle
+      // that merely flips can keep ignoring it.
+      return access;
     },
     [gyroAccess, updateSettings]
   );
+
+  const closeTiltPrimer = useCallback(() => {
+    setIsTiltPrimerOpen(false);
+    // Whichever way it ended, the offer is spent.
+    updateSettings({ weatherGyroPrimed: true });
+  }, [updateSettings]);
+
+  const takeTilt = useCallback(() => {
+    // Written before the asking, not after: a prompt that is refused — and no
+    // browser asks twice — must not leave the offer armed for the next rainy
+    // day, and neither must a visitor who walks away with the dialog still up.
+    updateSettings({ weatherGyroPrimed: true });
+    // Straight from the press, because that press IS the gesture WebKit's gate
+    // wants. Anything deferred loses it. The sheet stays open on purpose: it is
+    // the one thing on screen that can report how this went.
+    return setGyroEnabled(true);
+  }, [setGyroEnabled, updateSettings]);
 
   const gyroActive = settings.weatherGyro && isGyroReachable(gyroAccess);
 
@@ -1288,6 +1442,11 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       wallpaper: activeWallpaper,
       wallpapers: BUILT_IN_WALLPAPERS,
       selectWallpaper,
+      selectPlay,
+      play: settings.wallpaperPlay,
+      playAlbum: settings.wallpaperAlbum,
+      playEvery: settings.wallpaperPlayEvery,
+      setPlayEvery,
       variant: wallpaperTheme,
       placement: settings.wallpaperPlacement,
       setPlacement,
@@ -1332,11 +1491,19 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       isPickerOpen,
       openPicker,
       closePicker,
+      isTiltPrimerOpen,
+      gyroPrimed: settings.weatherGyroPrimed,
+      offerTilt,
+      closeTiltPrimer,
+      takeTilt,
     }),
     [
       settings.wallpaperKind,
       settings.weatherStyle,
       settings.wallpaperPlacement,
+      settings.wallpaperPlay,
+      settings.wallpaperAlbum,
+      settings.wallpaperPlayEvery,
       settings.bezelTint,
       settings.bezelBand,
       settings.bezelRadius,
@@ -1344,6 +1511,8 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       settings.wallpaperReadingDim,
       setWallpaperKind,
       selectWeather,
+      selectPlay,
+      setPlayEvery,
       effectiveStyle,
       renderer,
       shaderSupported,
@@ -1388,6 +1557,11 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       isPickerOpen,
       openPicker,
       closePicker,
+      isTiltPrimerOpen,
+      settings.weatherGyroPrimed,
+      offerTilt,
+      closeTiltPrimer,
+      takeTilt,
     ]
   );
 

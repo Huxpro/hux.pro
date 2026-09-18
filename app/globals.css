@@ -573,36 +573,8 @@ html.dragging * {
    - Sans-serif headings (Inter) with reduced weight
    - Serif only for emphasis (em, italic, blockquote)
    - "De-weighted" headings: smaller, subtle but slightly brighter than body */
-/* =============================================================================
-   Mixed-script prose. This site publishes the same essays in English and in
-   Chinese, and the two want opposite things from a line.
-
-   `text-wrap: pretty` makes the browser look ahead at the last few lines and
-   refuse to leave a word alone on the final one. Measured over one essay in
-   both languages (Chromium 141, 680px column): English drops from 16 very
-   short last lines to 12, and Chinese keeps 22 — but the Chinese count is
-   misleading on its own. Per paragraph it does move; it just moves by about
-   one character (代。→ 時代。) where English moves by a whole word ("bloated:"
-   → "became bloated:"). That is the shape you would predict: the unit it can
-   pull down is the unit the script breaks on, and Chinese breaks between
-   almost any two characters. Both scripts gain; Latin gains more.
-
-   `hanging-punctuation: allow-end` is the rule that is actually for Chinese —
-   a full stop or a comma sits in the margin rather than inside the measure, so
-   a column that ends in 。 or 、 as often as Chinese does reads straight down
-   the right edge instead of ragged-by-punctuation. Safari only today
-   (Chromium 141 reports no support), so this is a progressive improvement for
-   the readers who have it and nothing at all for the rest.
-
-   No `hyphens: auto`. On a 680px column with a serif face it breaks more words
-   than it saves, and a hyphenated word mid-paragraph is more disruptive to
-   read past than a slightly ragged edge.
-   ============================================================================= */
-
 .prose-article {
   @apply text-foreground/85 leading-relaxed;
-  text-wrap: pretty;
-  hanging-punctuation: allow-end;
   /* Everything sized inside an article is an `em` of this, so the reader's
      size setting moves the whole composition rather than the body alone —
      headings keep their hierarchy, captions and code keep their relation to
@@ -679,15 +651,6 @@ html.dragging * {
 
 .prose-article p:not(:where(.not-prose, .not-prose *)) {
   margin-bottom: calc(var(--reading-size) * 1.5);
-}
-
-/* A heading is a handful of words, so `balance` rather than `pretty`: even the
-   lines of a two-line title instead of only rescuing the last one. The spec
-   caps balancing at a few lines, which is all a heading ever has. */
-.prose-article h1:not(:where(.not-prose, .not-prose *)),
-.prose-article h2:not(:where(.not-prose, .not-prose *)),
-.prose-article h3:not(:where(.not-prose, .not-prose *)) {
-  text-wrap: balance;
 }
 
 .prose-article h1:not(:where(.not-prose, .not-prose *)) {
@@ -1200,6 +1163,8 @@ main[data-variant="reader"] .reader-masthead {
    =============================================================================
    Uses CSS scroll-driven animations (animation-timeline: view()) to dim
    items near the viewport edges and spotlight the one near the center.
+   `view()` follows the nearest scrollport, so it keeps working when the
+   page scrolls in the bezel's container rather than the window.
    Gracefully degrades to full opacity in unsupported browsers.
    ============================================================================= */
 
@@ -1248,9 +1213,16 @@ main[data-variant="reader"] .reader-masthead {
     animation-duration: 1ms;
     animation-timing-function: linear;
     animation-fill-mode: both;
-    animation-timeline: scroll(root block);
+    /* Window scroll: the nearest scroller is the viewport. `scroll(root)`
+       is silent once the page moves into the bezel's container. */
+    animation-timeline: scroll(nearest block);
     /* Mobile header-zone default height (h-44 = 11rem) */
     animation-range: 0 11rem;
+  }
+
+  html[data-bezel-scroll="container"] .hero-zone-fade {
+    /* The named timeline @hux/bezel publishes on #bezel-scroll. */
+    animation-timeline: --page-scroll;
   }
 
   @media (min-width: 768px) {
@@ -1432,11 +1404,16 @@ main[data-variant="reader"] .reader-masthead {
 
 /* =============================================================================
    System chrome — `.system-chrome`
-   Navigation, the command bar, the dock, edit controls: these are the OS's
-   own UI, not a document. No text selection, no long-press callout, no grey
-   tap flash — a press on them is a gesture, never an attempt to grab text.
-   Content (prose, the /writing list, /works rows) deliberately keeps the
-   browser defaults so a long-press on a link still previews it.
+   Navigation, the command bar, the dock, edit controls, secondary surfaces:
+   these are the OS's own UI, not a document. No text selection, no long-press
+   callout, no grey tap flash — a press on them is a gesture, never an attempt
+   to grab text.
+
+   Decorative System UI that is not chrome (the greeting, poetic index titles,
+   widget cards) uses Tailwind `select-none` for the same selection rule,
+   without also killing link previews / tap highlight. Content (prose, the
+   /writing list, /works rows, article titles) keeps the browser defaults so a
+   long-press on a link still previews it and copy still works.
    ============================================================================= */
 
 .system-chrome {
@@ -1451,6 +1428,29 @@ main[data-variant="reader"] .reader-masthead {
 .system-chrome :is(input, textarea, [contenteditable="true"]) {
   -webkit-user-select: text;
   user-select: text;
+}
+
+/* =============================================================================
+   System surface — `.system-surface`
+   The home screen is one OS composition, not a document. iOS Safari skips
+   `user-select: none` on individual labels and expands a long-press into a
+   full-page selection (Copy / Find Selection across the viewport). Lock the
+   surface so the selection has nowhere to grow; `useLockTextSelection` is the
+   matching JS for WebKit ignoring the CSS. (A descendant `*` rule is omitted
+   on purpose: the CSS pipeline drops that selector. Inheritance + the JS
+   hook cover children.)
+   ============================================================================= */
+
+.system-surface {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.system-surface :is(input, textarea, [contenteditable="true"]) {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 
 /* =============================================================================
@@ -1639,8 +1639,11 @@ main[data-variant="reader"] .reader-masthead {
       var(--surface-stack-depth, 0)
   );
   margin-bottom: var(--drawer-keyboard-inset, 0px);
+  /* An extra pinch a sheet can ask for without restating the formula — see
+     `[data-pull-armed]` below. */
+  --surface-pull-give: 0;
   transform: translate3d(0, calc(var(--surface-depth) * -8px), 0)
-    scale(calc(1 - var(--surface-depth) * 0.05));
+    scale(calc(1 - var(--surface-depth) * 0.05 - var(--surface-pull-give)));
   transition:
     margin-bottom var(--surface-duration) var(--surface-easing),
     transform var(--surface-duration) var(--surface-recede-easing);
@@ -1650,6 +1653,15 @@ main[data-variant="reader"] .reader-masthead {
    for the same reason as above. */
 [data-surface-popup][data-nested-drawer-swiping] > [data-surface-shell] {
   transition-duration: 0ms;
+}
+
+/* Pulled past the top far enough that letting go will lift the sheet off the
+   edge (`onPullPastTop`, sheet.tsx). It gives a little, the way a thing about
+   to come loose does, so the gesture can be seen before it is committed — and
+   eased back out of. Shares the depth transform rather than fighting it. */
+[data-surface-shell][data-pull-armed] {
+  --surface-pull-give: 0.025;
+  transition-duration: 180ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1827,5 +1839,127 @@ main[data-variant="reader"] .reader-masthead {
 
   [data-dock-panel] [data-surface-shell] {
     animation: none;
+  }
+}
+
+/* =============================================================================
+   Tilt primer illustration — a phone tilting one way while the rain inside it
+   tilts the other (systems/ambient/components/tilt-primer-sheet).
+
+   WHICH WAY THE CAMERA LOOKS is the whole legibility of this picture, and the
+   first version got it wrong. Drawn in the WORLD's frame — rain fixed, phone
+   turning — the rain never changes on screen, and the one thing the viewer is
+   meant to notice is the one thing that never moves. But nobody watches their
+   phone from the world's frame: it is in your hand, so the screen is what holds
+   still and the rain is what swings.
+
+   So the camera follows the device part of the way. With a device tilt of θ the
+   phone is drawn at c·θ and the rain at (c − 1)·θ, c = 0.45: they swing apart,
+   in opposite directions, and the angle between them is c·θ − (c − 1)·θ = θ
+   exactly, at every instant. Nothing is exaggerated — the cause and the effect
+   are simply both on screen, where at c = 1 only the cause was.
+
+   The rain's group is NESTED in the phone's, so its own rotation is −θ whatever
+   the camera does; only the phone's amplitude carries c.
+
+   CSS rather than a JS animator, for two reasons that are the whole quality of
+   the thing. One: the rain is "level" only for as long as the phone's rotation
+   and the rain's counter-rotation stay exactly opposite, and two declarative
+   animations of the same duration cannot drift, where two dozen independently
+   started JS springs can. Two: this plays over a live WebGL sky, and the main
+   thread is already spoken for.
+
+   Three animations in total, whatever the drop count: the shell, the level
+   group, and the rain — because the rain is a seamless TILE-tall tile stamped
+   three times and slid by exactly one tile, not a drop each. The fall is slow
+   on purpose: the rocking is the thing to watch, and a busy shower competes
+   with it.
+
+   The rain field is sized by the screen's HALF-DIAGONAL about the rock's
+   centre (79.2 units), not by the screen box: a field only as wide as the
+   screen turns out from under its own corners, and what you see cutting the
+   shower off is then the field's edge rather than the phone. A half-diagonal
+   covers every angle, so θ can change without touching it. The viewBox has the
+   same problem from the other side and does NOT get that for free: it has to
+   hold the phone at the angle the phone is DRAWN at (c·θ), or the SVG viewport
+   cuts a straight line through the corner.
+   ============================================================================= */
+
+.tilt-primer-phone,
+.tilt-primer-level,
+.tilt-primer-fall {
+  transform-box: view-box;
+}
+
+.tilt-primer-phone,
+.tilt-primer-level {
+  transform-origin: 48px 80px;
+}
+
+/* The phone, at c·θ — 0.45 × 24°. */
+@keyframes tilt-primer-rock {
+  0%,
+  100% {
+    transform: rotate(-10.8deg);
+  }
+  50% {
+    transform: rotate(10.8deg);
+  }
+}
+
+/* And the rain's own turn, which is −θ whatever the camera is doing: this
+   group is nested in the one above, so on screen it lands at (c − 1)·θ. */
+@keyframes tilt-primer-unrock {
+  0%,
+  100% {
+    transform: rotate(24deg);
+  }
+  50% {
+    transform: rotate(-24deg);
+  }
+}
+
+@keyframes tilt-primer-fall {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(120px);
+  }
+}
+
+.tilt-primer-phone {
+  animation: tilt-primer-rock 3.6s ease-in-out infinite;
+}
+
+.tilt-primer-level {
+  animation: tilt-primer-unrock 3.6s ease-in-out infinite;
+}
+
+.tilt-primer-fall {
+  animation: tilt-primer-fall 2.8s linear infinite;
+}
+
+/* Refused: upright, rain straight down the screen — what a refusal actually
+   leaves you with, rather than a picture still promising the thing. */
+.tilt-primer-flat .tilt-primer-phone,
+.tilt-primer-flat .tilt-primer-level {
+  animation: none;
+  transform: none;
+}
+
+.tilt-primer-flat .tilt-primer-fall {
+  animation-play-state: paused;
+}
+
+/* Held: the same picture, stopped — a tilted phone with level rain, which
+   still says it where an upright one would just be a phone. Paused at 0% is
+   exactly that pose, so the still frame IS the animation, not a second
+   drawing to keep in step. */
+@media (prefers-reduced-motion: reduce) {
+  .tilt-primer-phone,
+  .tilt-primer-level,
+  .tilt-primer-fall {
+    animation-play-state: paused;
   }
 }

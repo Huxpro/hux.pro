@@ -21,26 +21,39 @@
 // and content that wants to adapt (column counts, density) reads the shape it
 // landed in from `useSurfaceContext()` instead of re-measuring the viewport.
 //
-// A surface that belongs to one button rather than to the page takes the
-// fourth shape instead — `ANCHORED_PRESENTATION`, a sheet on a phone and a
-// popover hanging off that button above it — and passes `anchor`.
+// A surface that belongs to one button rather than to the page takes a fourth
+// shape — `ANCHORED_PRESENTATION`, a sheet on a phone and a popover hanging off
+// that button above it — and passes `anchor`.
 //
-// Underneath, every phone shape is one <SurfaceSheet> (sheet.tsx), a Base UI
-// Drawer. A surface whose header is not a title bar — the command palette,
-// whose header is its search field — composes that primitive directly and
-// still gets the same shell, gaps, detents and iOS-style stacking (stack.ts).
+// Two layers, because shape is not always the viewport's call:
+//
+//   primitives   <SurfaceSheet> (sheet.tsx), <SurfaceWindow> (window.tsx) and
+//                the chrome they hold (<SurfaceBody>, chrome.tsx). Shells that
+//                know nothing about viewports.
+//   policy       <AdaptiveSurface>, the rule above — viewport picks the shape.
+//
+// A feature composes the primitives directly when the rule is not its rule:
+// the command palette, whose header is a search field rather than a title bar,
+// and the devtool, whose shape is something the developer chose by pulling the
+// sheet off the bottom edge. Both still get the same shell, gaps, detents and
+// iOS-style stacking (stack.ts).
 // =============================================================================
 
 export { AdaptiveSurface, useSurfaceContext } from "./adaptive-surface";
 export type { AdaptiveSurfaceProps } from "./adaptive-surface";
+export { SurfaceBody } from "./chrome";
+export type { SurfaceBodyProps } from "./chrome";
 export {
   detentHeight,
+  EDGE_GAP_PX,
   HEADER_BUTTON,
   SHEET_DETENTS,
   SurfaceSheet,
   SurfaceViewport,
   surfaceMotionVars,
 } from "./sheet";
+export { SurfaceWindow, WINDOW_SPRING } from "./window";
+export type { SurfaceWindowProps } from "./window";
 export { SURFACE_TRANSITION_MS, useSurfaceStack } from "./stack";
 export {
   ADAPTIVE_PRESENTATION,

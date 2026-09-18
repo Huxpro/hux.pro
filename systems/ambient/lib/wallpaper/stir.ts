@@ -20,10 +20,10 @@
 // look in `shader.ts`.
 //
 // What counts as the background is not asked here twice: it is `isBackgroundClick`
-// from `lib/strike.ts`, the same question the thunder-day strike asks, so the two
-// easter eggs can never disagree about where the sky is. (It is named for a
-// click, but it only ever looks at the target, and a press is the same question.
-// `data-no-strike` keeps both of them off.)
+// from `lib/poke.ts`, the same question the tapped eggs ask, so no two of them
+// can disagree about where the sky is. (It is named for a click, but it only
+// ever looks at the target, and a press is the same question. `data-no-poke`
+// keeps all of them off.)
 //
 // Two deliberate choices:
 //
@@ -38,7 +38,7 @@
 //     adds wind to the wallpaper behind them.
 // =============================================================================
 
-import { isBackgroundClick } from "../strike";
+import { isBackgroundClick } from "../poke";
 
 /** Compatibility mouse events follow a tap; ignore a mouse this soon after one. */
 const AFTER_TOUCH_MS = 700;
