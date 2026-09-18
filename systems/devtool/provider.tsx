@@ -64,6 +64,15 @@ export type PhonePalette = "sheet" | "popover";
 export const PHONE_PALETTE_DEFAULT: PhonePalette = "sheet";
 
 /**
+ * How the hero leaves as the page scrolls. The platform picks a default;
+ * the DevTool can pin either for the session. See `defaultHeroExit`.
+ *
+ *   scroll  in flow: the hero rides the page up and off.
+ *   fade    sticky: the hero holds and phases out while content slides over it.
+ */
+export type HeroExit = "scroll" | "fade";
+
+/**
  * Whether this viewport has a bottom edge worth docking to. Tailwind's `sm`,
  * the same width at which every other surface stops being a bottom sheet.
  */
@@ -229,6 +238,12 @@ interface DevtoolContextType {
   /** The command palette's shape on a phone. A saved setting. */
   phonePalette: PhonePalette;
   setPhonePalette: (shape: PhonePalette) => void;
+  /**
+   * Pin how the hero leaves as the page scrolls, for this session.
+   * `undefined` is the platform default (`defaultHeroExit`).
+   */
+  heroExitOverride: HeroExit | undefined;
+  setHeroExitOverride: (value: HeroExit | undefined) => void;
 }
 
 // =============================================================================
@@ -290,6 +305,9 @@ export function DevtoolProvider({
   >({});
   const [phonePalette, setPhonePaletteState] =
     useState<PhonePalette>(PHONE_PALETTE_DEFAULT);
+  const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
+    undefined
+  );
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -485,6 +503,8 @@ export function DevtoolProvider({
         setSectionCollapsed,
         phonePalette,
         setPhonePalette,
+        heroExitOverride,
+        setHeroExitOverride,
       }}
     >
       {children}

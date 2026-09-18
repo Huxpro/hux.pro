@@ -1058,6 +1058,8 @@ html.dragging * {
    =============================================================================
    Uses CSS scroll-driven animations (animation-timeline: view()) to dim
    items near the viewport edges and spotlight the one near the center.
+   `view()` follows the nearest scrollport, so it keeps working when the
+   page scrolls in the bezel's container rather than the window.
    Gracefully degrades to full opacity in unsupported browsers.
    ============================================================================= */
 
@@ -1106,9 +1108,16 @@ html.dragging * {
     animation-duration: 1ms;
     animation-timing-function: linear;
     animation-fill-mode: both;
-    animation-timeline: scroll(root block);
+    /* Window scroll: the nearest scroller is the viewport. `scroll(root)`
+       is silent once the page moves into the bezel's container. */
+    animation-timeline: scroll(nearest block);
     /* Mobile header-zone default height (h-44 = 11rem) */
     animation-range: 0 11rem;
+  }
+
+  html[data-bezel-scroll="container"] .hero-zone-fade {
+    /* The named timeline @hux/bezel publishes on #bezel-scroll. */
+    animation-timeline: --page-scroll;
   }
 
   @media (min-width: 768px) {

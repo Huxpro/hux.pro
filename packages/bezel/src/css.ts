@@ -3,6 +3,7 @@ import {
   BEZEL_ATTRIBUTE,
   BEZEL_LAYER_ATTRIBUTE,
   COLOR_VAR,
+  PAGE_SCROLL_TIMELINE,
   SCROLL_ATTRIBUTE,
   SCROLL_CONTAINER_ID,
   STYLE_ID,
@@ -39,12 +40,12 @@ const contained = `${html}[${SCROLL_ATTRIBUTE}="container"]`;
 const container = `#${SCROLL_CONTAINER_ID}`;
 
 export const BEZEL_CSS = `
-:root{${COLOR_VAR}:#000;${BAND_VAR}:0px}
+:root{${COLOR_VAR}:#000;${BAND_VAR}:0px;scroll-timeline-name:${PAGE_SCROLL_TIMELINE};scroll-timeline-axis:block}
 ${on},${on} body{background-color:var(${COLOR_VAR})}
 ${contained}{height:100%;overflow:hidden;overscroll-behavior:none}
 ${contained} body{position:fixed;inset:0;overflow:clip;overscroll-behavior:none}
 ${contained} body>.fixed,${contained} body>[style*="position:fixed"],${contained} body>[style*="position: fixed"],${contained} [${BEZEL_LAYER_ATTRIBUTE}]{position:absolute!important}
-${contained} ${container}{position:absolute;min-height:0;overflow-x:clip;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
+${contained} ${container}{position:absolute;min-height:0;overflow-x:clip;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;scroll-timeline-name:${PAGE_SCROLL_TIMELINE};scroll-timeline-axis:block}
 `.trim();
 
 /** Install the stylesheet into `document`, once. */
