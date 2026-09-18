@@ -97,7 +97,11 @@ export function WidgetShell({
       onTouchStart={tappable ? noop : undefined}
       data-widget-tappable={tappable ? "" : undefined}
       className={cn(
-        "group relative rounded-2xl overflow-hidden select-none",
+        // `h-full` + a column: the card is its cell. On the home grid a
+        // widget's footprint is the visitor's choice, so the shell fills
+        // whatever it was given and a body that wants the remaining height
+        // takes it with `flex-1` (see `WidgetScrollBody`'s `fill`).
+        "group relative flex h-full flex-col rounded-2xl overflow-hidden select-none",
         "border border-border/50",
         "transition-all duration-300",
         widgetEnabled
@@ -210,25 +214,48 @@ export function WidgetBody({
  */
 export function WidgetScrollBody({
   className,
+  fill = false,
   children,
 }: {
   /** Height goes here — defaults to a fixed `h-64`; pass `max-h-*` for a
-   *  stack that should only scroll once it overflows. */
+   *  stack that should only scroll once it overflows. Ignored with `fill`. */
+  className?: string;
+  /** Take whatever height the shell has left: the body of a widget whose
+   *  footprint the visitor chose, where the cell decides how many rows show. */
+  fill?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={cn("px-5", fill && "flex min-h-0 flex-1 flex-col")}>
+      <WidgetScrollPort className={fill ? "min-h-0 flex-1" : (className ?? "h-64")}>
+        {children}
+      </WidgetScrollPort>
+    </div>
+  );
+}
+
+/**
+ * WidgetScrollPort - The snapping, tail-fading scroll port on its own, for a
+ * body that lays several of them side by side (a wide list widget's columns).
+ * `WidgetScrollBody` is this plus the card's horizontal padding.
+ */
+export function WidgetScrollPort({
+  className,
+  children,
+}: {
   className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="px-5">
-      <div
-        className={cn(
-          "relative -mx-2 px-2 pb-7",
-          "overflow-y-auto snap-y snap-mandatory scroll-smooth no-scrollbar",
-          "[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
-          className ?? "h-64"
-        )}
-      >
-        {children}
-      </div>
+    <div
+      className={cn(
+        "relative -mx-2 px-2 pb-7",
+        "overflow-y-auto snap-y snap-mandatory scroll-smooth no-scrollbar",
+        "[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
+        className
+      )}
+    >
+      {children}
     </div>
   );
 }

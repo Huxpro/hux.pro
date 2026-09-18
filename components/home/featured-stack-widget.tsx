@@ -1,15 +1,23 @@
 "use client";
 
 import {
-  WidgetBody,
   WidgetHeader,
   WidgetLink,
+  WidgetScrollBody,
   WidgetShell,
   WidgetTitle,
 } from "@/components/ui/widget";
+import { sizeSpec } from "@/components/ui/widget-grid";
+import { useWidgetSize } from "@/components/ui/widget-size";
 import { cn } from "@/lib/utils";
 import { ArrowRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+// A horizontal stack is a carousel one cell wide and a three-card shelf two
+// cells wide, like the talks widget; it has one height. A vertical stack is
+// a list: one cell wide, and taller shows more of it.
+export const HSTACK_WIDGET_SIZE = sizeSpec([1, 2], [2, 2], [1, 2]);
+export const VSTACK_WIDGET_SIZE = sizeSpec([1, 1], [1, 3], [1, 2]);
 
 type FeaturedStackWidgetProps = {
   title: string;
@@ -51,6 +59,8 @@ export function HStackWidget({
   className,
 }: FeaturedStackWidgetProps) {
   const items = useMemo(() => children.filter(Boolean), [children]);
+  const { w } = useWidgetSize(HSTACK_WIDGET_SIZE.default);
+  const shelf = w >= 2;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const getStride = useCallback((): number | null => {
@@ -114,8 +124,11 @@ export function HStackWidget({
               key={i}
               className={cn(
                 "snap-start shrink-0",
-                // Show 1 item with a peek of the next
-                "w-[86%] sm:w-[78%] max-w-[200px]"
+                shelf
+                  ? // Three abreast, the gaps taken out of the content box.
+                    "w-[calc((100%-1.5rem)/3)]"
+                  : // Show 1 item with a peek of the next
+                    "w-[86%] sm:w-[78%] max-w-[200px]"
               )}
               data-carousel-card
             >
@@ -125,8 +138,8 @@ export function HStackWidget({
           <div className="flex-shrink-0 w-5" aria-hidden="true" />
         </div>
 
-        {/* Dots */}
-        {items.length > 1 && (
+        {/* Dots — only once there is more than the row shows. */}
+        {items.length > (shelf ? 3 : 1) && (
           <div className="flex items-center justify-center gap-1.5 pt-3">
             {items.map((_, i) => (
               <button
@@ -159,11 +172,14 @@ export function VStackWidget({
 
   return (
     <StackShell title={title} href={href} className={className}>
-      <WidgetBody className="space-y-3">
+      {/* Fills the cell: a taller footprint simply shows more of the list. */}
+      <WidgetScrollBody fill>
         {items.map((child, i) => (
-          <div key={i}>{child}</div>
+          <div key={i} className="snap-start py-1.5">
+            {child}
+          </div>
         ))}
-      </WidgetBody>
+      </WidgetScrollBody>
     </StackShell>
   );
 }

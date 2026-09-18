@@ -6,6 +6,8 @@ import {
   WidgetShell,
   WidgetTitle,
 } from "@/components/ui/widget";
+import { sizeSpec } from "@/components/ui/widget-grid";
+import { useWidgetSize } from "@/components/ui/widget-size";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { AlbumTabs, TrackThumb, useTheater } from "@/systems/theater";
@@ -21,17 +23,30 @@ import { TYPE } from "@/lib/typography";
 // album-switching card: pick an album (segmented control), scroll its videos
 // horizontally, tap one to open the immersive theater / PiP player. The albums
 // are the same curated groups used everywhere else, so content stays in sync.
+//
+// Footprints: the card is two cells tall and nothing else — a thumbnail row
+// under a tab row has exactly one height. Width is where it changes: one
+// cell is a carousel (one card, a peek of the next, dots); two cells is a
+// shelf, three cards abreast, and the dots only return once an album holds
+// more than the shelf shows.
 // ---------------------------------------------------------------------------
+
+export const FEATURED_TALKS_SIZE = sizeSpec([1, 2], [2, 2], [1, 2]);
+
+/** Cards abreast on the wide shelf. */
+const SHELF_CARDS = 3;
 
 export function FeaturedTalksWidget() {
   const { locale } = useLocale();
   const { open } = useTheater();
+  const { w } = useWidgetSize(FEATURED_TALKS_SIZE.default);
   const albums = useMemo(() => buildTalkAlbums(locale), [locale]);
   const [activeAlbum, setActiveAlbum] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeCard, setActiveCard] = useState(0);
 
   const album = albums[activeAlbum] ?? null;
+  const shelf = w >= 2;
 
   const getStride = useCallback((): number | null => {
     const el = scrollRef.current;
@@ -65,6 +80,8 @@ export function FeaturedTalksWidget() {
   }, [activeAlbum]);
 
   if (albums.length === 0 || !album) return null;
+
+  const showDots = album.tracks.length > (shelf ? SHELF_CARDS : 1);
 
   return (
     <WidgetShell href="/works">
@@ -101,7 +118,12 @@ export function FeaturedTalksWidget() {
               // Cards sink slightly under the finger (iOS card press) and
               // spring back on release.
               className={cn(
-                "group/thumb w-[86%] max-w-[200px] shrink-0 snap-start rounded-xl text-left",
+                "group/thumb shrink-0 snap-start rounded-xl text-left",
+                // Carousel: one card and a peek of the next. Shelf: three
+                // abreast, the gaps taken out of the row's content box.
+                shelf
+                  ? "w-[calc((100%-1.5rem)/3)]"
+                  : "w-[86%] max-w-[200px]",
                 "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
                 PRESS_CARD,
               )}
@@ -120,7 +142,7 @@ export function FeaturedTalksWidget() {
           <div className="w-5 shrink-0" aria-hidden />
         </div>
 
-        {album.tracks.length > 1 && (
+        {showDots && (
           <div className="flex items-center justify-center gap-1.5 pt-3">
             {album.tracks.map((_, i) => (
               <span

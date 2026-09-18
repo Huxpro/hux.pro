@@ -1,24 +1,33 @@
 "use client";
 
-import { AppFolder } from "@/components/apps";
+import { APP_FOLDER_SIZE, AppFolder } from "@/components/apps";
 import {
+  HSTACK_WIDGET_SIZE,
   HStackWidget,
+  VSTACK_WIDGET_SIZE,
   VStackWidget,
 } from "@/components/home/featured-stack-widget";
-import { FeaturedTalksWidget } from "@/components/home/featured-talks-widget";
 import {
+  FEATURED_TALKS_SIZE,
+  FeaturedTalksWidget,
+} from "@/components/home/featured-talks-widget";
+import {
+  PROCESSING_WIDGET_SIZE,
   ProcessingWidget,
   buildProcessingCommits,
 } from "@/components/home/processing-widget";
-import { PromptWidget } from "@/components/home/prompt-widget";
+import { PROMPT_WIDGET_SIZE, PromptWidget } from "@/components/home/prompt-widget";
 import { ScrambleIdentifier } from "@/components/home/scramble-identifier";
-import { WritingWidget } from "@/components/home/writing-widget";
+import {
+  WRITING_WIDGET_SIZE,
+  WritingWidget,
+} from "@/components/home/writing-widget";
 import { Commit } from "@/components/log";
 import { HeaderZone } from "@/components/ui/header-zone";
 import {
-  SortableMasonry,
+  SortableGrid,
   type SortableWidget,
-} from "@/components/ui/sortable-masonry";
+} from "@/components/ui/sortable-grid";
 import {
   heroContentClassName,
   heroZoneClassName,
@@ -35,8 +44,12 @@ import { localize, normalizeLogData, resolveGroupCommits } from "@/lib/log";
 import { enrichLogDataWithPreviews, type OGSnapshot } from "@/lib/og-enrich";
 import ogSnapshotJson from "@/content/og-snapshot.json";
 import { useLocale } from "@/services";
-import { AmbientGreeting, WeatherWidget } from "@/systems/ambient";
-import { MusicWidget } from "@/systems/music";
+import {
+  AmbientGreeting,
+  WEATHER_WIDGET_SIZE,
+  WeatherWidget,
+} from "@/systems/ambient";
+import { MUSIC_WIDGET_SIZE, MusicWidget } from "@/systems/music";
 import { ALBUM_GROUP_IDS } from "@/systems/theater/lib/albums";
 
 // =============================================================================
@@ -119,11 +132,18 @@ function WidgetGrid({
         .length > 0,
   );
 
+  // Each widget brings the footprints it has a representation for (see
+  // `components/ui/widget-grid.ts`); the grid clamps the visitor's choice to
+  // them and to the columns the viewport has.
   const items: SortableWidget[] = [
-    { id: "apps", node: <AppFolder /> },
-    { id: "weather", node: <WeatherWidget /> },
-    { id: "blog", node: <WritingWidget posts={posts} /> },
-    { id: "music", node: <MusicWidget /> },
+    { id: "apps", node: <AppFolder />, size: APP_FOLDER_SIZE },
+    { id: "weather", node: <WeatherWidget />, size: WEATHER_WIDGET_SIZE },
+    {
+      id: "blog",
+      node: <WritingWidget posts={posts} />,
+      size: WRITING_WIDGET_SIZE,
+    },
+    { id: "music", node: <MusicWidget />, size: MUSIC_WIDGET_SIZE },
     // Keeps the legacy "status" id so visitors' persisted grid order survives
     // the widget's change of shape.
     ...(processingCommits.length > 0
@@ -133,19 +153,25 @@ function WidgetGrid({
             node: (
               <ProcessingWidget log={log} commits={processingCommits} />
             ),
+            size: PROCESSING_WIDGET_SIZE,
           },
         ]
       : []),
-    { id: "featured-talks", node: <FeaturedTalksWidget /> },
-    { id: "prompt", node: <PromptWidget /> },
+    {
+      id: "featured-talks",
+      node: <FeaturedTalksWidget />,
+      size: FEATURED_TALKS_SIZE,
+    },
+    { id: "prompt", node: <PromptWidget />, size: PROMPT_WIDGET_SIZE },
     ...visibleGroups.map((group) => ({
       id: `group-${group.id}`,
       node: <GroupWidget group={group} />,
+      size: (group.layout ?? "h") === "v" ? VSTACK_WIDGET_SIZE : HSTACK_WIDGET_SIZE,
     })),
   ];
 
   return (
-    <SortableMasonry
+    <SortableGrid
       items={items}
       className={heroContentClassName(heroExit, "pt-2 sm:pt-4 mb-16")}
     />
@@ -200,7 +226,7 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
         </div>
 
         {/* Widget grid — owns its own responsive width so column count and
-            container width stay in step (see SortableMasonry's `gridScale`). */}
+            container width stay in step (see SortableGrid's `gridScale`). */}
         <WidgetGrid posts={posts} heroExit={heroExit} />
       </div>
     </main>

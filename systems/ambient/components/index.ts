@@ -4,7 +4,7 @@ export { WallpaperBackground } from "./wallpaper-background";
 export { WallpaperSheet } from "./wallpaper-sheet";
 export { TiltPrimerSheet } from "./tilt-primer-sheet";
 export { WeatherIcon } from "./weather-icon";
-export { WeatherWidget } from "./weather-widget";
+export { WEATHER_WIDGET_SIZE, WeatherWidget } from "./weather-widget";
 export { WeatherNow, useDisplayWeather } from "./weather-now";
 export { AmbientPhaseActivity } from "./phase-activity";
 export { SolarThemeSync } from "./solar-theme";
