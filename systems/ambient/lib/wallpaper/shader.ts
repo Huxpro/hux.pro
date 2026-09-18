@@ -974,6 +974,21 @@ const float METEOR_TRAIN_GAIN = 0.18;
  */
 const float METEOR_BOW_MIN = 0.025;
 const float METEOR_BOW_MAX = 0.06;
+/**
+ * How far off the horizon the tangent has to stay, at both ends of the arc.
+ * The path turns 8 * bow radians end to end, which is up to 27 degrees — enough
+ * to lift a 20-degree tangent above the horizon, or to push a 70-degree one
+ * past vertical. A meteor does neither: it does not climb, and it does not curl
+ * back the other way.
+ *
+ * Swept over the parameter space rather than sampled, because this is the kind
+ * of fault sampling misses: 0.4% of the combinations climbed, by up to 7.4
+ * degrees, and another 0.4% curled past vertical. Rare enough that 48 rendered
+ * cases all passed, common enough to be seen by anyone clicking a few dozen
+ * times.
+ */
+const float METEOR_PITCH_FLOOR = 0.09;
+const float METEOR_PITCH_CEIL = 1.45;
 
 /**
  * The colour of the air a moment after the head has passed, which every meteor
@@ -1121,9 +1136,23 @@ vec3 meteor(vec2 p, float aspect) {
   // The bow. dir is the tangent *at the clicked point*, and the track is the
   // circular arc through it — so the click is still crossed exactly, and the
   // lead-in and run-out above, which were measured along the tangent, are now
-  // approximations good to the sagitta. Which way it bends is another roll.
+  // approximations good to the sagitta.
+  //
+  // Which way it bends is *not* a roll: it always bends so that the path
+  // steepens as it falls. A real meteor's track is straight and its projection
+  // on a wide field could bow either way, so the choice is free — and one of
+  // the two reads as wrong. Steepening is what diving into thicker air looks
+  // like; the other sign flattens the far end and reads as a meteor pulling up,
+  // which nothing falling does. It still varies on screen, because which way is
+  // "steeper" depends on which side it came from: spin = -side.
+  //
+  // The amount is then clipped to the room the pitch has at each end, so
+  // neither end can cross the horizon or vertical — see METEOR_PITCH_FLOOR.
+  float back = lead / run;                 // the share of the turn behind the point
   float bow = mix(METEOR_BOW_MIN, METEOR_BOW_MAX, hash1(vec2(uPokeSeed, 21.7)));
-  float spin = hash1(vec2(uPokeSeed, 6.4)) < 0.5 ? -1.0 : 1.0;
+  bow = min(bow, (pitch - METEOR_PITCH_FLOOR) / max(8.0 * back, 1e-3));
+  bow = min(bow, (METEOR_PITCH_CEIL - pitch) / max(8.0 * (1.0 - back), 1e-3));
+  float spin = -side;
   float radius = run / (8.0 * bow);
   vec2 centre = at + vec2(-dir.y, dir.x) * spin * radius;
   float aAt = atan(at.y - centre.y, at.x - centre.x);

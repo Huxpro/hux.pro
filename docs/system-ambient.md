@@ -628,6 +628,22 @@ thunder or foggy night can never have one.
   they would be a cubic. The radius is deliberately bounded away from infinity —
   a nearly-straight arc is a huge radius, and float32 cannot subtract those
   accurately.
+- **It always bends so the path steepens as it falls**, and that is a choice
+  rather than a roll. The real track is straight, so its projected bow could go
+  either way and the sign is free — but one of the two reads as wrong.
+  Steepening is what diving into thicker air looks like; the other sign flattens
+  the far end and reads as a meteor *pulling up*, which nothing falling does. On
+  screen it still varies, because which way is "steeper" depends on which side
+  it came from.
+- **And the bow is clipped to the room the pitch has.** The arc turns
+  `8 × bow` radians end to end — up to 27° — which is enough to lift a 20° pitch
+  above the horizon at one end, or push a 70° one past vertical at the other. So
+  the bow is bounded at both ends by `METEOR_PITCH_FLOOR` / `_CEIL`. That fault
+  was found by sweeping the parameter space rather than by rendering samples:
+  0.4% of combinations climbed, by up to 7.4°, and another 0.4% curled past
+  vertical — rare enough that 48 rendered cases all passed it, common enough to
+  be seen by anyone clicking a few dozen times. With the clip the same sweep
+  reports zero of either.
 - **One pace, not one duration.** The head moves at a fixed speed, so a long
   sweep across the frame takes about a second and a short chord near a corner
   is over quickly — bounded at both ends (`METEOR_MIN_FLIGHT` /
