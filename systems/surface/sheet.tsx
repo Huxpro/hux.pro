@@ -140,9 +140,28 @@ export function detentHeight(point: number): string {
     : `calc(${detentLength(point)} - ${EDGE_GAP})`;
 }
 
-/** An icon button in a surface header: close, back, an external link. */
+/**
+ * An icon button in a surface header: close, back, an external link.
+ *
+ * It carries the touch contract the design system gives any button with a
+ * `hover:` wash (docs/design-system.md, "Touch"), which this had been missing:
+ *
+ *   `pressable`      zeroes the transition while held, so the press lands on
+ *                    the touch-down frame rather than easing in over 150ms.
+ *                    `hover:` is gated on `(hover: hover)` in Tailwind v4, so
+ *                    without this a finger got no wash at all on the way down.
+ *                    It also sets `touch-action: manipulation`.
+ *   `system-chrome`  a control, not text: no selection, no long-press callout.
+ *
+ * The transition names `scale` explicitly. `transition-colors` does not cover
+ * it, and Tailwind v4 compiles `scale-*` to the `scale` property rather than
+ * `transform` — so the press used to snap back on the frame it was released
+ * while the colour went on easing for another 80ms, which is one press read as
+ * two events. Now both land together going down and ease out together coming
+ * back up.
+ */
 export const HEADER_BUTTON =
-  "shrink-0 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
+  "pressable system-chrome shrink-0 rounded-md p-2 text-muted-foreground transition-[color,background-color,scale] duration-150 ease-out hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
 
 /** The glass shell every shape shares. */
 export const SHELL = [

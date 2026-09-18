@@ -12,6 +12,7 @@ import {
   type Post,
   type PostLanguage,
 } from "@/lib/content";
+import { HeaderAction } from "@/components/ui/controls";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { MagneticPreview, PEEK_W } from "@/components/motion-primitives/magnetic-preview";
@@ -32,30 +33,16 @@ export function LanguageFilter({
 }: LanguageFilterProps) {
   const { locale } = useLocale();
 
+  // The chip spec moved to HeaderAction so the article header can be the same
+  // control rather than a fourth copy of it.
   return (
     <span className="inline-flex items-center gap-0.5 font-mono text-xs select-none">
-      <button
-        onClick={() => setIncludeOther(false)}
-        className={cn(
-          "px-2 py-1 rounded transition-colors duration-200",
-          !includeOther
-            ? "bg-muted text-muted-foreground"
-            : "text-tertiary-foreground hover:text-muted-foreground"
-        )}
-      >
+      <HeaderAction active={!includeOther} onClick={() => setIncludeOther(false)}>
         {locale === "en" ? "EN" : "中文"}
-      </button>
-      <button
-        onClick={() => setIncludeOther(true)}
-        className={cn(
-          "px-2 py-1 rounded transition-colors duration-200",
-          includeOther
-            ? "bg-muted text-muted-foreground"
-            : "text-tertiary-foreground hover:text-muted-foreground"
-        )}
-      >
+      </HeaderAction>
+      <HeaderAction active={includeOther} onClick={() => setIncludeOther(true)}>
         {t(locale, "allLanguages")}
-      </button>
+      </HeaderAction>
     </span>
   );
 }
