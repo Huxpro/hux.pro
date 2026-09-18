@@ -332,6 +332,28 @@ is no permission to ask for (everywhere but WebKit the sky is already tilting,
 and a refusal already counts as answered), or the visitor went to the picker
 and turned tilt off, or nothing is falling, or the Sky is not what paints.
 
+**And it has to sit on iOS's own press first.** A finger resting on the page
+starts a ~500 ms clock in WebKit; when that fires, WebKit's gesture recognizer
+takes the touch, stops sending pointer events and fires `pointercancel` —
+landing right on top of a 400 ms hold and killing it before it can. The fog
+wipe has suppressed `-webkit-touch-callout` on `pointerdown` since it shipped,
+which is why its hold works on a phone; the primer did not, which is why its
+did not. Both now go through `holdCallout()` in `lib/strike.ts`, along with
+`TOUCH_HOLD_MS` / `TOUCH_HOLD_SLOP_PX` — one hold, one definition, instead of
+two copies of 400/10 and three comments promising they agreed.
+
+The suppression covers the **whole press**, not just the hold: handing it back
+the moment the sheet opens would let iOS's own clock run out underneath and put
+the callout up over it. It is saved and restored rather than cleared, because
+the page sets the property for its own reasons (`.system-surface` does).
+
+> Not verifiable in Chromium, and worth knowing before trusting a test here:
+> `-webkit-touch-callout` is WebKit-only and Chromium's CSSOM **drops it
+> silently** — `CSS.supports` is false and `setProperty` is a no-op. A harness
+> that reads the property back always sees nothing, whatever the code did. What
+> can be checked headlessly is that the calls happen at the right moments, by
+> spying on `setProperty` / `removeProperty`.
+
 **And only on the system surface.** Those five are about the scene; this last
 one is about where the finger landed, so it lives in the recognizer instead:
 the press must be inside `.system-surface` — the page that has declared itself

@@ -27,7 +27,12 @@
 // egg is arranged the same way, in `lib/wallpaper/stir.ts`.
 // =============================================================================
 
-import { isBackgroundPress } from "./strike";
+import {
+  holdCallout,
+  isBackgroundPress,
+  TOUCH_HOLD_MS,
+  TOUCH_HOLD_SLOP_PX,
+} from "./strike";
 
 // -----------------------------------------------------------------------------
 // The wipe (fog)
@@ -251,17 +256,13 @@ export const WIPE_SLOP_PX = 10;
 // it back.
 
 /**
- * How long a finger must rest on the sky before the wipe takes the gesture, ms.
- * Between a tap and iOS's own ~500 ms home-screen hold — long enough that the
- * start of a scroll never arms it, short enough not to feel like a wait.
+ * How long a finger must rest on the sky before the wipe takes the gesture, and
+ * how far it may drift while it does — `TOUCH_HOLD_*`, the one hold every
+ * press-and-hold on this site keeps. Past the slop the gesture was a scroll all
+ * along and the wipe never existed.
  */
-export const WIPE_ARM_MS = 400;
-
-/**
- * How far the finger may drift during that hold, in CSS px. Past it the gesture
- * was a scroll all along and the wipe never existed.
- */
-export const WIPE_ARM_SLOP_PX = 10;
+export const WIPE_ARM_MS = TOUCH_HOLD_MS;
+export const WIPE_ARM_SLOP_PX = TOUCH_HOLD_SLOP_PX;
 
 /**
  * How long after a stroke ends a fresh touch is armed at once, ms. Writing is
@@ -299,9 +300,6 @@ export interface WipeHandle {
  * samples, which no real hand reaches and a stalled tab would otherwise.
  */
 const MAX_PENDING = 512;
-
-/** Not in `CSSStyleDeclaration`, and the only way to sit on iOS's own hold. */
-const CALLOUT = "-webkit-touch-callout";
 
 /** What a wipe gesture reports back, in client coordinates. */
 export interface WipeGestureHandlers {
@@ -346,7 +344,8 @@ export function attachWipeDrag(handlers: WipeGestureHandlers): () => void {
   let raf = 0;
   let arming = 0;
   let selectable = "";
-  let callout = "";
+  /** Undoes the callout suppression put up on the way down; see `holdCallout`. */
+  let freeCallout: (() => void) | null = null;
   // Where and when the last stroke ended, for the resume window.
   let endedAt = 0;
   let endedX = 0;
@@ -467,11 +466,8 @@ export function attachWipeDrag(handlers: WipeGestureHandlers): () => void {
     // WIPE_JUMP, the renderer joins them: a line straight from where the next
     // touch went down back to where the last one came up.
     pending.length = 0;
-    if (touch) {
-      const root = document.documentElement;
-      if (callout) root.style.setProperty(CALLOUT, callout);
-      else root.style.removeProperty(CALLOUT);
-    }
+    freeCallout?.();
+    freeCallout = null;
     id = -1;
     live = false;
   };
@@ -499,12 +495,10 @@ export function attachWipeDrag(handlers: WipeGestureHandlers): () => void {
     document.addEventListener("pointerup", onUp);
     document.addEventListener("pointercancel", onCancel);
     if (!touch) return;
-    // iOS starts its own ~500 ms clock on a press, and the callout it can put
-    // up would land right on top of a stroke. Suppressed for the length of
-    // this press and restored on release, whether it became a wipe or not.
-    const root = document.documentElement;
-    callout = root.style.getPropertyValue(CALLOUT);
-    root.style.setProperty(CALLOUT, "none");
+    // Sit on iOS's own press gesture for the length of this touch, whether it
+    // becomes a wipe or not — see `holdCallout`. Without it WebKit claims the
+    // press and cancels the pointer before the hold below can finish.
+    freeCallout = holdCallout();
     if (resuming(atX, atY)) engage();
     else arming = window.setTimeout(engage, WIPE_ARM_MS);
   };

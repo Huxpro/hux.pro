@@ -38,18 +38,25 @@
 //   · Any drift before that is the gust's (or the scroller's), and this one
 //     stands down for the rest of the press without having taken anything.
 //
-// Nothing here ever calls `preventDefault` and nothing changes a style, exactly
-// as `stir.ts` does not: a press that turns out to be a scroll must scroll, and
-// the page's own fast path is not this module's to slow down. The sheet opens
-// on a `setTimeout`, which is not a user gesture — that is fine, because the
-// gesture WebKit wants is the button inside the sheet.
+// Nothing here ever calls `preventDefault`: a press that turns out to be a
+// scroll must scroll, and the page's own fast path is not this module's to slow
+// down. The one style it touches is iOS's callout, for the length of the press
+// and put back after — see `holdCallout`, and the note on its absence being why
+// this hold did not work on a phone while the wipe's did. The sheet opens on a
+// `setTimeout`, which is not a user gesture — that is fine, because the gesture
+// WebKit wants is the button inside the sheet.
 //
 // Touch only. A mouse cannot tilt anything, and the gate this exists to open is
 // WebKit's, which is a phone's. And the system surface only — see
 // SYSTEM_SURFACE below: a long press on a document is the reader's.
 // =============================================================================
 
-import { isBackgroundPress } from "./strike";
+import {
+  holdCallout,
+  isBackgroundPress,
+  TOUCH_HOLD_MS,
+  TOUCH_HOLD_SLOP_PX,
+} from "./strike";
 
 /**
  * The page that has declared itself one OS composition rather than a document
@@ -71,13 +78,13 @@ function onSystemSurface(target: EventTarget | null): boolean {
 }
 
 /**
- * How long the finger rests before the offer comes up, ms, and how far it may
- * drift while it does. The same beat as every other press-and-hold on this site
- * — the widget grid's `TOUCH_ACTIVATION` and the fog wipe's arming — so a
- * visitor who has learned one hold has learned all of them.
+ * How long the finger rests before the offer comes up, and how far it may drift
+ * while it does — `TOUCH_HOLD_*`, the same hold the fog wipe arms on and the
+ * same beat as the widget grid's `TOUCH_ACTIVATION`, from one definition rather
+ * than from three comments promising they agree.
  */
-export const TILT_PRIMER_HOLD_MS = 400;
-export const TILT_PRIMER_SLOP_PX = 10;
+export const TILT_PRIMER_HOLD_MS = TOUCH_HOLD_MS;
+export const TILT_PRIMER_SLOP_PX = TOUCH_HOLD_SLOP_PX;
 
 /**
  * How much precipitation counts as "there is weather to lean". The same test
@@ -123,11 +130,23 @@ export function attachTiltPrimer(onHold: () => void): () => void {
   let startX = 0;
   let startY = 0;
   let timer = 0;
+  /** This press has already made its offer; it does not get to make another. */
+  let spent = false;
+  /** Undoes the callout suppression put up on the way down. */
+  let freeCallout: (() => void) | null = null;
 
+  /**
+   * The end of a press, however it ended — and the only way out, so what was
+   * put up on the way down always comes back down. Harmless when there was
+   * never a press at all.
+   */
   const stand = () => {
     if (timer) clearTimeout(timer);
     timer = 0;
     id = -1;
+    spent = false;
+    freeCallout?.();
+    freeCallout = null;
     document.removeEventListener("pointermove", onMove);
     document.removeEventListener("pointerup", onEnd);
     document.removeEventListener("pointercancel", onEnd);
@@ -149,16 +168,26 @@ export function attachTiltPrimer(onHold: () => void): () => void {
     document.addEventListener("pointermove", onMove);
     document.addEventListener("pointerup", onEnd);
     document.addEventListener("pointercancel", onEnd);
+    // Before the hold, not after: iOS claims a resting finger for its own press
+    // gesture at around 500 ms and cancels the pointer on the way, which lands
+    // on top of this timer. The fog wipe has done this since it shipped, and it
+    // is the difference between a hold that works on a phone and one that does
+    // not.
+    freeCallout = holdCallout();
     timer = window.setTimeout(() => {
-      // The press is over as far as this module is concerned; whatever the
-      // finger does next belongs to the page again.
-      stand();
+      // The offer is made, but the PRESS is not over — the finger is still
+      // down, and iOS's own clock has not run out yet. Standing down here would
+      // hand the callout back at 400 ms and let it come up over the sheet at
+      // 500. So the suppression, and the listeners that undo it, stay until the
+      // finger actually lifts.
+      timer = 0;
+      spent = true;
       onHold();
     }, TILT_PRIMER_HOLD_MS);
   };
 
   const onMove = (event: PointerEvent) => {
-    if (event.pointerId !== id) return;
+    if (event.pointerId !== id || spent) return;
     const travelled = Math.hypot(event.clientX - startX, event.clientY - startY);
     // It went somewhere: a scroll, or a hand stirring up a gust. Either way it
     // is not a rest, and nothing was taken that has to be given back.
