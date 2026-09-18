@@ -172,6 +172,9 @@ export const translations = {
     solarThemeToDark: "Dark Mode",
     solarThemeNote: "Preference unchanged",
 
+    // The article header's provenance line, folded behind a chevron.
+    postOrigin: "Where this was first published",
+
     // Reading settings (the article page's "Aa")
     readingSettings: "Reading settings",
     readingSettingsTitle: "reading",
@@ -427,6 +430,9 @@ export const translations = {
     solarThemeToLight: "浅色模式",
     solarThemeToDark: "深色模式",
     solarThemeNote: "偏好未更改",
+
+    // The article header's provenance line, folded behind a chevron.
+    postOrigin: "首发于何处",
 
     // Reading settings (the article page's "Aa")
     readingSettings: "阅读设置",

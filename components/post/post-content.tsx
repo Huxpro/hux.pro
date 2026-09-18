@@ -3,9 +3,10 @@
 import { PageLayout } from "@/components/ui/page-layout";
 import type { PostLanguage } from "@/lib/content";
 import type { Locale } from "@/lib/i18n";
-import { Languages } from "lucide-react";
+import { ChevronDown, Languages } from "lucide-react";
+import { t } from "@/services";
 import { usePathname } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { ReadingSettings } from "./reading-sheet";
 import { RulerToc } from "./ruler-toc";
 import { usePostLanguage } from "./use-post-language";
@@ -87,6 +88,8 @@ export function PostContent({
   onMount,
 }: PostContentProps) {
   const pathname = usePathname();
+  const originId = useId();
+  const [originOpen, setOriginOpen] = useState(false);
 
   const { displayLocale, switchLanguage, hasAlternate, alternateLabel } =
     usePostLanguage({ locale, language });
@@ -112,11 +115,16 @@ export function PostContent({
   // two lines at every width, stranding a "·" at the end of the first and
   // leaving the "Aa" alone above an empty half-line.
   //
-  // So they are two lines now. Both stay in the mono voice the rest of the
-  // machine layer speaks — a second face in a header this small reads as
-  // another thing to parse, not as a softer one. The provenance separates by
-  // size and ink instead: a point down and a rung down, which is the whole
-  // difference between a handle you press and a note you may ignore.
+  // So the provenance folds away instead. It keeps the handles' face and its
+  // size exactly -- the two things tried before this, a serif aside and a
+  // point smaller, each bought quiet by making the header a place where two
+  // typographic systems meet, which is the crowding it was meant to fix. A
+  // chevron is not a third voice: the row is one line until someone asks it
+  // not to be, and when they do the sentence arrives in the voice it always
+  // had, one ink rung down because that is what tertiary is for.
+  //
+  // Folded by default. Provenance is a thing a reader looks up once, if ever;
+  // the article is what they came for.
   const hasHandles = !!headerMeta || !!displayReadingTime || hasAlternate;
   const hasHeaderMetaContent = hasHandles || !!displayOrigin;
   const headerHandles = (
@@ -144,21 +152,61 @@ export function PostContent({
           </button>
         </>
       )}
+
+      {/* The handle for the line below. No separator before it: the dots join
+          handles to each other, and this one is a control, not a fact. */}
+      {displayOrigin && (
+        <button
+          type="button"
+          onClick={() => setOriginOpen((v) => !v)}
+          aria-expanded={originOpen}
+          aria-controls={originId}
+          aria-label={t(displayLocale, "postOrigin")}
+          title={t(displayLocale, "postOrigin")}
+          className={cn(
+            // 20px of press for a 12px glyph; the negative inset keeps the row
+            // at the height the text alone would set.
+            "-my-0.5 inline-flex h-5 w-5 items-center justify-center rounded",
+            "text-tertiary-foreground transition-colors hover:text-foreground",
+            originOpen && "text-foreground"
+          )}
+        >
+          <ChevronDown
+            className={cn(
+              "h-3 w-3 transition-transform duration-200",
+              !originOpen && "-rotate-90"
+            )}
+          />
+        </button>
+      )}
     </div>
   );
 
   /**
-   * Where this text came from: a note under the handles, not among them. Same
-   * mono face, a point smaller and an ink rung quieter — which is as far as
-   * this needs to go to stop reading as another handle. At 12px the longest of
-   * these wrapped and stranded one character on a second line, so the header
-   * came out taller than the row it replaced; at 11px every string the content
-   * actually contains sits on one line except the longest, which wraps to the
-   * same two lines it always did.
+   * Where this text came from. Same face and same size as the handles above --
+   * the only thing that marks it as the quieter line is the ink.
+   *
+   * Height animates through `grid-template-rows` 0fr -> 1fr (docs/motion.md):
+   * CSS cannot transition height from 0 to `auto`, and a fixed height would be
+   * a lie about a sentence that is one line for most posts and two for the
+   * longest. `inert` while folded so the links inside are not a tab stop that
+   * lands nowhere visible.
    */
   const headerOrigin = displayOrigin ? (
-    <div className={cn(TYPE.rowMeta, "mt-1 text-[11px]")}>
-      {renderMarkdownLinks(displayOrigin)}
+    <div
+      id={originId}
+      // React 19 renders `inert` as the boolean attribute.
+      inert={!originOpen}
+      className={cn(
+        "grid transition-all duration-300 ease-out",
+        originOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+      )}
+    >
+      <div className="min-h-0 overflow-hidden">
+        <div className={cn(TYPE.rowMeta, "pt-1.5")}>
+          {renderMarkdownLinks(displayOrigin)}
+        </div>
+      </div>
     </div>
   ) : null;
 
@@ -170,7 +218,13 @@ export function PostContent({
     hasHeaderMetaContent || toc ? (
       <div>
         <div className="flex items-start gap-3">
-          {hasHandles && <div className="min-w-0">{headerHandles}</div>}
+          {/* `hasHeaderMetaContent`, not `hasHandles`: the chevron lives in this
+              row, so a post with provenance but no date, reading time or
+              alternate would otherwise fold its origin away with nothing left
+              to unfold it. */}
+          {hasHeaderMetaContent && (
+            <div className="min-w-0">{headerHandles}</div>
+          )}
           {toc && <ReadingSettings className="-mt-1 ml-auto" />}
         </div>
         {headerOrigin}
