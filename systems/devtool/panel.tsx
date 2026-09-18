@@ -1981,7 +1981,7 @@ function SkyModule() {
             }
             star={
               gyro.enabled ? null : (
-                <PanelStar onReset={() => setGyroEnabled(true)} source="saved" />
+                <PanelStar onReset={() => void setGyroEnabled(true)} source="saved" />
               )
             }
           >
@@ -1992,7 +1992,7 @@ function SkyModule() {
               <PanelToggle
                 on={gyro.active}
                 disabled={!gyro.supported}
-                onClick={() => setGyroEnabled(!gyro.active)}
+                onClick={() => void setGyroEnabled(!gyro.active)}
                 label="Toggle gyroscope tilt"
               />
             </span>

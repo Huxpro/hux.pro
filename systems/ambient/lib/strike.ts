@@ -109,6 +109,48 @@ export function isBackgroundClick(target: EventTarget | null): boolean {
 }
 
 /**
+ * How long a finger must rest before a press-and-hold counts, ms, and how far
+ * it may drift while it does.
+ *
+ * One source for every hold in the ambient system — the fog wipe's arming and
+ * the tilt primer's offer — and the same beat as the widget grid's
+ * `TOUCH_ACTIVATION`, so a visitor who has learned one hold has learned all of
+ * them. They were two copies of 400/10 with three comments promising they
+ * matched; now they match because there is one of them.
+ */
+export const TOUCH_HOLD_MS = 400;
+export const TOUCH_HOLD_SLOP_PX = 10;
+
+/** Not in `CSSStyleDeclaration`, and the only way to sit on iOS's own hold. */
+const CALLOUT = "-webkit-touch-callout";
+
+/**
+ * Sit on iOS's own press gesture for the length of one touch, and hand back
+ * the undo. **Call this on `pointerdown`, before the hold, not after it.**
+ *
+ * iOS starts a ~500 ms clock of its own the moment a finger lands. Left alone
+ * it puts up the callout / selection magnifier — but worse than the visual, it
+ * takes the touch: once WebKit's gesture recognizer claims the press it stops
+ * sending pointer events and fires `pointercancel`, which lands right on top of
+ * a 400 ms hold and kills it before it can fire. The fog wipe has suppressed
+ * this since it shipped, which is why its hold works on a phone.
+ *
+ * The inline value is saved and put back rather than simply cleared, because
+ * the page may be setting it for its own reasons (`.system-surface` does), and
+ * an egg that ends a gesture by clearing a page-wide property is a page-wide
+ * regression.
+ */
+export function holdCallout(): () => void {
+  const root = document.documentElement;
+  const previous = root.style.getPropertyValue(CALLOUT);
+  root.style.setProperty(CALLOUT, "none");
+  return () => {
+    if (previous) root.style.setProperty(CALLOUT, previous);
+    else root.style.removeProperty(CALLOUT);
+  };
+}
+
+/**
  * Is this press one the sky may answer?
  *
  * The whole of the question, in the one place all the eggs ask it, so that they

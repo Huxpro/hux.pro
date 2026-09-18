@@ -248,6 +248,173 @@ the screen is too flat to have a direction (a phone on a table).
   they go from the sensor to `WallpaperRenderer.setGravity()` — one shared
   `deviceorientation` listener, however many surfaces are drawing.
 
+#### Asking for it, on a rainy day
+
+WebKit puts `deviceorientation` behind
+`DeviceOrientationEvent.requestPermission()`, which needs a user gesture — so
+on an iPhone the whole feature above waits for one tap. Until this, the only
+place to make it was the wallpaper picker's Weather tab: three taps from the
+page, offering a switch for something the visitor has never seen.
+
+So on a rainy or snowy sky, **resting a finger on the background brings up what
+the tilt does, and a button under it asks.** Two presses to reach the browser's
+dialog, and the first is why the second gets a yes — a permission prompt that
+arrives with no idea what it is for gets refused, and a refusal is final
+everywhere: there is no second prompt, only the site settings nobody opens.
+The first press buys the explanation; the second spends the one chance.
+
+The picture is the argument. A phone tilts one way and the rain inside it tilts
+the other — the same relationship the shader draws at full size, at a size that
+fits above a paragraph. Saying "the rain leans" is the part nobody reads.
+
+**Where the camera stands is the whole legibility of it**, and the first
+version got that wrong. Drawn in the WORLD's frame — rain fixed, phone turning
+— the rain never changes on screen, so the one thing the viewer is meant to
+notice is the one thing that never moves. But nobody watches their phone from
+the world's frame: it is in your hand, so the screen is what holds still and
+the rain is what swings.
+
+So the camera follows the device part of the way. With a device tilt of θ the
+phone is drawn at `c·θ` and the rain at `(c − 1)·θ`, with c = 0.45 and θ = 24°:
+
+| | drawn at | what it does |
+|---|---|---|
+| the phone | c·θ = ±10.8° | tilts, so the cause is on screen |
+| the rain | (c − 1)·θ = ∓13.2° | tilts the other way, so the effect is too |
+| between them | θ = **24°** | the device's own angle, exactly, at every instant |
+
+Nothing is exaggerated to get that: the two are simply both moving, where at
+c = 1 only one of them was. The rain's group is nested in the phone's, so its
+own rotation stays −θ whatever the camera does and only the phone's amplitude
+carries c — which also means the refusal pose (both still, rain straight down
+the screen) now differs from the rocking one in two ways rather than one.
+
+Two more things make the picture hold up, and both are the kind of bug that
+only shows at an angle:
+
+- **The rain field is sized by the screen's half-diagonal, not by the screen.**
+  It turns under the phone, so a field only as wide as the screen swings out
+  from under its own corners — and what you then see cutting the shower off is
+  the field's edge, not the phone. 79.2 units about the rock's centre covers
+  every corner at every angle, so θ can change without touching it. (The
+  viewBox has the same problem from the other side and does *not* get that for
+  free: it has to hold the phone at the angle the phone is **drawn** at, c·θ —
+  107 × 164 — or the SVG viewport cuts a straight line through the corner.)
+- **It is CSS, not a JS animator.** The rain is level only for as long as the
+  phone's rotation and the rain's counter-rotation stay exactly opposite, and
+  two declarative animations of one duration cannot drift where a dozen
+  independently started JS springs can — over a live WebGL sky, on a main
+  thread already spoken for. Three animations drive the whole thing whatever
+  the drop count, because the rain is a seamless tile stamped three times and
+  slid by exactly one tile, rather than an animation per drop. Under
+  `prefers-reduced-motion` they are simply paused at 0%, which is a tilted
+  phone with level rain — the still frame IS the animation, not a second
+  drawing to keep in step.
+
+And it is **a diagram, not a downpour**: eleven strokes evenly spaced, one
+length and one weight, about five on screen. It has exactly one thing to say,
+and every drop past the few it takes to read as rain competes with it. Even
+spacing for the same reason — scattered drops read as a simulation, and a
+window showing only two fifths of the field turns scatter into clumps as the
+field rotates through it. The fall is slow, because the rocking is the thing to
+watch.
+
+**And it stays up to say how it went.** The sheet is the only thing on screen
+that can. A refusal especially: the sky simply goes on falling straight down,
+and without a word here the only explanation lives three taps away in the
+picker's Weather tab — which is the very problem this sheet exists to fix. So
+it says it once, with where to undo it, and lets itself out. A grant gets a
+word too, shorter, because the phone in your hand is about to do the thing and
+the sheet is in front of it.
+
+| outcome | the sheet says | the picture | gone after |
+|---|---|---|---|
+| granted | tilt is on, lean the device | keeps rocking — it is real now | 1.4 s |
+| refused | motion access was refused, and where to allow it again | **upright, rain straight down** — what a refusal actually leaves you with | 3.0 s |
+| neither | nothing; the offer is still standing | keeps rocking | — |
+
+"Neither" is WebKit's gate declining to even consider the request (no user
+gesture): no dialog was shown and nothing was answered, so the buttons simply
+come back.
+
+That the outcome is reportable at all is why `setGyroEnabled` **hands the
+access back** rather than only storing it. A toggle can afford to ignore how it
+went; a sheet that has to speak cannot.
+
+**It is offered once.** `weatherGyroPrimed` is written the moment the sheet is
+answered, either way, and nothing clears it — including a close or a swipe,
+which mean the same thing as *Not now*. It is written **before** the asking,
+not after: a prompt that is refused, and no browser asks twice, must not leave
+the offer armed for the next rainy day, and neither must a visitor who walks
+away with the dialog still up. An introduction repeated is a nag, and
+this one interrupts a page the visitor came to for something else. It is also
+armed by the *absence* of things, so every one of them is a reason to stay
+quiet (`shouldOfferTilt` in `lib/tilt-primer.ts`): the offer is spent, or there
+is no permission to ask for (everywhere but WebKit the sky is already tilting,
+and a refusal already counts as answered), or the visitor went to the picker
+and turned tilt off, or nothing is falling, or the Sky is not what paints.
+
+**And it has to sit on iOS's own press first.** A finger resting on the page
+starts a ~500 ms clock in WebKit; when that fires, WebKit's gesture recognizer
+takes the touch, stops sending pointer events and fires `pointercancel` —
+landing right on top of a 400 ms hold and killing it before it can. The fog
+wipe has suppressed `-webkit-touch-callout` on `pointerdown` since it shipped,
+which is why its hold works on a phone; the primer did not, which is why its
+did not. Both now go through `holdCallout()` in `lib/strike.ts`, along with
+`TOUCH_HOLD_MS` / `TOUCH_HOLD_SLOP_PX` — one hold, one definition, instead of
+two copies of 400/10 and three comments promising they agreed.
+
+The suppression covers the **whole press**, not just the hold: handing it back
+the moment the sheet opens would let iOS's own clock run out underneath and put
+the callout up over it. It is saved and restored rather than cleared, because
+the page sets the property for its own reasons (`.system-surface` does).
+
+> Not verifiable in Chromium, and worth knowing before trusting a test here:
+> `-webkit-touch-callout` is WebKit-only and Chromium's CSSOM **drops it
+> silently** — `CSS.supports` is false and `setProperty` is a no-op. A harness
+> that reads the property back always sees nothing, whatever the code did. What
+> can be checked headlessly is that the calls happen at the right moments, by
+> spying on `setProperty` / `removeProperty`.
+
+**And only on the system surface.** Those five are about the scene; this last
+one is about where the finger landed, so it lives in the recognizer instead:
+the press must be inside `.system-surface` — the page that has declared itself
+one OS composition rather than a document (see "System chrome / System surface"
+in `docs/design-system.md`). The wallpaper is full-page on *every* route, so
+without this an article is fair game too — and `isBackgroundPress` cannot tell
+the difference, because it asks whether anything **paints** over the wallpaper
+and a paragraph paints nothing. On an article the whole column answers
+"background", so a finger resting in the margin, or on the prose itself, would
+put a permission sheet over what somebody is reading. A long press on a
+document belongs to the reader. Keying off the class rather than a list of
+routes also means any surface that later opts into being system UI gets this
+for free, and no route knowledge lives in the ambient system.
+
+**Not a fourth easter egg**, whatever the sheet's own copy says. The eggs are
+rewards for poking at a sky that owes you nothing; this is a feature explaining
+itself, and it stops existing once it has been. (The copy greets it as a find
+because that is honestly how it arrives for the visitor. The distinction is
+about lifecycle, not about how it feels to meet.) But it shares a background with [the gust](#stirring-the-wind-rain-and-snow-easter-egg),
+which on a rainy day is armed on that same background — and they cannot
+collide, because **a gust is travel and this is stillness**:
+
+| the hand | what it is |
+|---|---|
+| rests 400 ms, going nowhere | the offer |
+| moves at all before that | the gust's, or the scroller's — this stands down for the rest of the press |
+| lifts early | nothing |
+
+A hold that has gone nowhere has reported no speed to `attachWindStir`, so
+there is no gust to take away. And like the gust, this recognizer never calls
+`preventDefault` and never touches a style: a press that turns out to be a
+scroll scrolls, on the browser's own fast path. The 400 ms is
+`TOUCH_ACTIVATION`'s, the same beat as the widget grid and the fog wipe, so a
+visitor who has learned one hold has learned all of them.
+
+The sheet opens from a `setTimeout`, which is *not* a user gesture — and that
+is fine, because the gesture WebKit wants is the button inside it, which
+reaches `requestPermission()` in the same task as the press.
+
 #### Across gravity, not across the page
 
 A storm's wind is horizontal **in the world**, and horizontal means

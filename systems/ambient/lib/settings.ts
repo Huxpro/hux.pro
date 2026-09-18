@@ -91,6 +91,13 @@ export interface AmbientSettings {
    * out of nowhere.
    */
   weatherGyroGranted: boolean;
+  /**
+   * The tilt has been offered once, on a rainy or snowy sky, and answered —
+   * taken or waved off. Only ever set, never cleared: the offer is a one-time
+   * introduction to something the visitor did not ask about, and a second one
+   * would be nagging. See lib/tilt-primer.ts.
+   */
+  weatherGyroPrimed: boolean;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
   wallpaperReadingBlur: boolean;
   /** Veil the wallpaper on reading pages. */
@@ -111,6 +118,7 @@ export function getDefaultSettings(): AmbientSettings {
     weatherStyle: "sky",
     weatherGyro: true,
     weatherGyroGranted: false,
+    weatherGyroPrimed: false,
     wallpaperId: DEFAULT_WALLPAPER_ID,
     wallpaperPlay: "off",
     wallpaperAlbum: null,
@@ -180,6 +188,7 @@ export function getAmbientSettings(): AmbientSettings {
       weatherStyle: readWeatherStyle(parsed.weatherStyle),
       weatherGyro: parsed.weatherGyro !== false,
       weatherGyroGranted: parsed.weatherGyroGranted === true,
+      weatherGyroPrimed: parsed.weatherGyroPrimed === true,
       wallpaperId,
       wallpaperPlay: play,
       wallpaperAlbum: play === "off" ? null : wallpaperAlbum,

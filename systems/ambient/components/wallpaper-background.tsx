@@ -9,6 +9,11 @@ import {
   STRIKE_COOLDOWN_MS,
 } from "../lib/strike";
 import { attachWipeDrag, WIPE_MIN_FOG, type WipeHandle } from "../lib/wipe";
+import {
+  attachTiltPrimer,
+  shouldOfferTilt,
+  TILT_PRIMER_MIN_PRECIP,
+} from "../lib/tilt-primer";
 import { useHomeEditing } from "@/components/ui/home-edit-store";
 import { useWeather } from "../provider";
 import { useWallpaper } from "../provider";
@@ -107,6 +112,8 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     blurred,
     bezel,
     gyro,
+    gyroPrimed,
+    offerTilt,
     reportShaderFallback,
     statsRef,
   } = useWallpaper();
@@ -160,6 +167,23 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
       onEnd: () => wipeRef.current?.wipeEnd(),
     });
   }, [wiping]);
+
+  // Not an egg — the feature introducing itself. A finger resting on a rainy
+  // or snowy sky brings up what the tilt does, once ever, and only where there
+  // is a permission standing between the visitor and it. See lib/tilt-primer.ts.
+  const offering = shouldOfferTilt({
+    primed: gyroPrimed,
+    gated: gyro.gated,
+    wished: gyro.enabled,
+    falling:
+      scene.precipitation.type !== "none" &&
+      scene.precipitation.intensity > TILT_PRIMER_MIN_PRECIP,
+    sky,
+  });
+  useEffect(() => {
+    if (!offering) return;
+    return attachTiltPrimer(offerTilt);
+  }, [offering, offerTilt]);
 
   if (!useShader && layers.length === 0) return null;
 

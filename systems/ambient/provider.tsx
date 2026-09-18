@@ -426,6 +426,24 @@ interface WallpaperContextType {
   isPickerOpen: boolean;
   openPicker: () => void;
   closePicker: () => void;
+  /**
+   * The tilt primer — the one-time offer that comes before WebKit's motion
+   * prompt. See lib/tilt-primer.ts. Open state lives here rather than in the
+   * background component because the sheet is mounted in the layout, beside
+   * the picker, and not inside a `pointer-events-none` wallpaper layer.
+   */
+  isTiltPrimerOpen: boolean;
+  /** The offer has been made and answered; it is never made again. */
+  gyroPrimed: boolean;
+  offerTilt: () => void;
+  /** Close it, and never offer again — the answer was "no" or was given. */
+  closeTiltPrimer: () => void;
+  /**
+   * Turn the tilt on and ask, reporting how it went so the sheet can say so.
+   * Must be called straight from the press. It does NOT close the sheet —
+   * whoever showed the outcome closes it.
+   */
+  takeTilt: () => Promise<GyroAccess>;
 }
 
 const WallpaperContext = createContext<WallpaperContextType | undefined>(undefined);
@@ -601,6 +619,9 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const openPicker = useCallback(() => setIsPickerOpen(true), []);
   const closePicker = useCallback(() => setIsPickerOpen(false), []);
+
+  const [isTiltPrimerOpen, setIsTiltPrimerOpen] = useState(false);
+  const offerTilt = useCallback(() => setIsTiltPrimerOpen(true), []);
 
   const activeWallpaper = useMemo(
     () => getWallpaperOrDefault(settings.wallpaperId),
@@ -842,23 +863,45 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   }, [settingsLoaded, settings.weatherGyroGranted, updateSettings]);
 
   const setGyroEnabled = useCallback(
-    (on: boolean) => {
+    async (on: boolean): Promise<GyroAccess> => {
       if (!on) {
         updateSettings({ weatherGyro: false });
-        return;
+        return gyroAccess;
       }
       updateSettings({ weatherGyro: true });
       // Turning it on is the gesture WebKit wants, so ask now — the promise is
       // resolved in the same task the tap started, which is what makes the
       // prompt appear at all.
-      if (isGyroReachable(gyroAccess) || gyroAccess === "unsupported") return;
-      void requestGyroAccess().then((access) => {
-        setGyroAccess(access);
-        updateSettings({ weatherGyroGranted: access === "granted" });
-      });
+      if (isGyroReachable(gyroAccess) || gyroAccess === "unsupported") {
+        return gyroAccess;
+      }
+      const access = await requestGyroAccess();
+      setGyroAccess(access);
+      updateSettings({ weatherGyroGranted: access === "granted" });
+      // Handed back rather than only stored, because the one caller that has
+      // to SAY something — the primer sheet — needs the answer, and a toggle
+      // that merely flips can keep ignoring it.
+      return access;
     },
     [gyroAccess, updateSettings]
   );
+
+  const closeTiltPrimer = useCallback(() => {
+    setIsTiltPrimerOpen(false);
+    // Whichever way it ended, the offer is spent.
+    updateSettings({ weatherGyroPrimed: true });
+  }, [updateSettings]);
+
+  const takeTilt = useCallback(() => {
+    // Written before the asking, not after: a prompt that is refused — and no
+    // browser asks twice — must not leave the offer armed for the next rainy
+    // day, and neither must a visitor who walks away with the dialog still up.
+    updateSettings({ weatherGyroPrimed: true });
+    // Straight from the press, because that press IS the gesture WebKit's gate
+    // wants. Anything deferred loses it. The sheet stays open on purpose: it is
+    // the one thing on screen that can report how this went.
+    return setGyroEnabled(true);
+  }, [setGyroEnabled, updateSettings]);
 
   const gyroActive = settings.weatherGyro && isGyroReachable(gyroAccess);
 
@@ -1448,6 +1491,11 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       isPickerOpen,
       openPicker,
       closePicker,
+      isTiltPrimerOpen,
+      gyroPrimed: settings.weatherGyroPrimed,
+      offerTilt,
+      closeTiltPrimer,
+      takeTilt,
     }),
     [
       settings.wallpaperKind,
@@ -1509,6 +1557,11 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       isPickerOpen,
       openPicker,
       closePicker,
+      isTiltPrimerOpen,
+      settings.weatherGyroPrimed,
+      offerTilt,
+      closeTiltPrimer,
+      takeTilt,
     ]
   );
 

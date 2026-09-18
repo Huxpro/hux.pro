@@ -28,6 +28,7 @@ export {
   SolarThemeToast,
   WallpaperBackground,
   WallpaperSheet,
+  TiltPrimerSheet,
   WeatherIcon,
   WeatherWidget,
   WeatherNow,
