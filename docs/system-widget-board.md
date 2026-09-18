@@ -56,7 +56,7 @@ SSR-renderable container with nothing measured:
 ```css
 .widget-board {
   --board-cols: 4;
-  --cell: min(120px, calc((100% - (cols - 1) * 1rem) / cols));
+  --cell: min(120px, calc((100cqi - (cols - 1) * 1rem) / cols));
   grid-template-columns: repeat(cols, var(--cell));
   grid-auto-rows: var(--cell);
 }

@@ -1212,6 +1212,10 @@ html.dragging * {
 
 .widget-board-frame {
   max-width: 680px;
+  /* The cell is derived from this frame's inline size (`100cqi`), not from
+     `100%` on the board — a percentage in `grid-template-rows` would be the
+     block size and the rows would grow with content again. */
+  container-type: inline-size;
 }
 
 @media (width >= 64rem) {
@@ -1230,7 +1234,7 @@ html.dragging * {
   --board-cols: 4;
   --cell: min(
     120px,
-    calc((100% - (var(--board-cols) - 1) * 1rem) / var(--board-cols))
+    calc((100cqi - (var(--board-cols) - 1) * 1rem) / var(--board-cols))
   );
   display: grid;
   grid-template-columns: repeat(var(--board-cols), var(--cell));
