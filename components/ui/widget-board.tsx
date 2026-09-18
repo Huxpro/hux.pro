@@ -284,9 +284,11 @@ export function WidgetBoard({
   useEffect(() => {
     const storedOrder = reconcile(loadOrder(STORAGE_ORDER) ?? ids, ids);
     const storedLayout = loadLayout();
+    const nextSpans = reconcileLayout(storedLayout, storedOrder, cols);
+    spansRef.current = nextSpans;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only: localStorage + measured columns
     setOrder(storedOrder);
-    setSpans(reconcileLayout(storedLayout, storedOrder, cols));
+    setSpans(nextSpans);
   }, [idsKey, cols]); // eslint-disable-line react-hooks/exhaustive-deps -- ids via idsKey
 
   useEffect(() => {
@@ -315,6 +317,7 @@ export function WidgetBoard({
 
   const commitSpans = useCallback(
     (next: Record<string, CellSpan>) => {
+      spansRef.current = next;
       setSpans(next);
       persist(next, cols, ids);
     },
@@ -456,8 +459,10 @@ export function WidgetBoard({
   function handleReset() {
     clearOrder(STORAGE_ORDER);
     clearLayout();
+    const next = defaultLayout(ids, cols);
+    spansRef.current = next;
     setOrder(ids);
-    setSpans(defaultLayout(ids, cols));
+    setSpans(next);
     for (const section of sections.values()) section.reset();
   }
 
