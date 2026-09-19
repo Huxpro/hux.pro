@@ -241,14 +241,14 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
   );
 
   // The vocabulary's knobs.
-  const [size, setSize] = useState<MediaMarkSize>("default");
+  const [size, setSize] = useState<Exclude<MediaMarkSize, "mini">>("default");
   const [tier, setTier] = useState<"works" | "peek">("works");
   const [withImage, setWithImage] = useState(true);
 
   // The policy's context: starts live, and can be taken anywhere.
   const live: HomeContext = useMemo(
-    () => ({ compact: liveCompact, windows: !!windows, locale }),
-    [liveCompact, windows, locale],
+    () => ({ compact: liveCompact, windows: !!windows }),
+    [liveCompact, windows],
   );
   const [override, setOverride] = useState<Partial<HomeContext>>({});
   const ctx: HomeContext = { ...live, ...override };
@@ -309,7 +309,7 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {VOCABULARY.map((v) => (
               <div key={v.key}>
-                <CoverTile image={imageFor(v.key)} mark={markOf(v.key)} size={size === "mini" ? "default" : size} raised={tier === "peek"} />
+                <CoverTile image={imageFor(v.key)} mark={markOf(v.key)} size={size} raised={tier === "peek"} />
                 <div className="mt-2 font-mono text-[11px] text-foreground">{v.title}</div>
                 <div className="text-[11px] text-muted-foreground">{v.meaning}</div>
               </div>
@@ -525,7 +525,6 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
               value={size}
               onChange={setSize}
               options={[
-                { value: "mini", label: "mini" },
                 { value: "compact", label: "compact" },
                 { value: "default", label: "default" },
               ]}

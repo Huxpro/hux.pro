@@ -17,12 +17,18 @@ import {
   isSlidesMedia,
   isSocialEmbedMedia,
   isVideoMedia,
+  VIDEO_PLATFORM_LABEL,
   type Media,
-  type SocialEmbedPlatform,
   type VideoPlatform,
 } from "@/lib/log";
-import { getDomainLabel, isVideoLinkHost, videoLinkHostLabel } from "@/lib/og-core";
+import {
+  getDomainLabel,
+  isVideoLinkHost,
+  SOCIAL_PLATFORM_LABEL,
+  videoLinkHostLabel,
+} from "@/lib/og-core";
 import { cn } from "@/lib/utils";
+import { isInternalLink } from "@/systems/attachments/lib/policy";
 
 // =============================================================================
 // MediaMark — what this cover is, said once, in one chip.
@@ -76,31 +82,16 @@ import { cn } from "@/lib/utils";
 
 export type MediaKind = "video" | "slides" | "web" | "post" | "image" | "social";
 
-export const MEDIA_KINDS: readonly MediaKind[] = [
-  "video",
-  "slides",
-  "web",
-  "post",
-  "image",
-  "social",
-];
-
-/** The kind a link stands for: a recording on a video host, a page, a post. */
-export function linkKindOf(url: string, internal = false): MediaKind {
-  if (internal) return "post";
-  return isVideoLinkHost(url) ? "video" : "web";
-}
-
 /** The kind a media item stands for — what pressing its cover opens. */
 export function mediaKindOf(media: Media): MediaKind {
   if (isVideoMedia(media)) return "video";
   if (isSlidesMedia(media)) return "slides";
   if (isLinkMedia(media)) {
-    return linkKindOf(media.url, !!media.internal || media.url.startsWith("/"));
+    if (isInternalLink(media)) return "post";
+    return isVideoLinkHost(media.url) ? "video" : "web";
   }
   if (isImageMedia(media)) return "image";
-  if (isSocialEmbedMedia(media)) return "social";
-  return "web";
+  return "social";
 }
 
 /** What the chip says: a glyph and a word. */
@@ -111,25 +102,18 @@ export interface MediaMarkSpec {
   fill?: boolean;
 }
 
-export const PLATFORM_LABEL: Record<VideoPlatform, string> = {
-  youtube: "YouTube",
-  bilibili: "bilibili",
-  vimeo: "Vimeo",
-};
-
-const SOCIAL_LABEL: Record<SocialEmbedPlatform, string> = {
-  twitter: "X",
-  x: "X",
-  instagram: "Instagram",
-  tiktok: "TikTok",
-};
-
 /** The deck's chip, for a cover that knows it is a deck without a `Media`. */
 export const SLIDES_MARK: MediaMarkSpec = { icon: Presentation, label: "Slides" };
 
 /** A recording's chip: the platform it is on. */
 export function videoMark(platform: VideoPlatform): MediaMarkSpec {
-  return { icon: Play, label: PLATFORM_LABEL[platform], fill: true };
+  return { icon: Play, label: VIDEO_PLATFORM_LABEL[platform], fill: true };
+}
+
+/** A recording that lives on a page: the same chip, the talks host's name. */
+export function talksMark(url: string): MediaMarkSpec | null {
+  const host = videoLinkHostLabel(url);
+  return host ? { icon: Play, label: host, fill: true } : null;
 }
 
 /** The chip for a cover whose press leaves the site. */
@@ -153,12 +137,11 @@ export function markFor(
   if (opts.leaves) return newTabMark(locale);
   if (isVideoMedia(media)) return videoMark(media.platform);
   if (isSlidesMedia(media)) return SLIDES_MARK;
-  const host = isLinkMedia(media) ? videoLinkHostLabel(media.url) : null;
-  if (host) return { icon: Play, label: host, fill: true };
+  const talks = isLinkMedia(media) ? talksMark(media.url) : null;
+  if (talks) return talks;
   if (!opts.all) return null;
   if (isLinkMedia(media)) {
-    const internal = !!media.internal || media.url.startsWith("/");
-    return internal
+    return isInternalLink(media)
       ? { icon: BookOpen, label: "Writing" }
       : { icon: Globe, label: "Web" };
   }
@@ -166,7 +149,9 @@ export function markFor(
   if (isSocialEmbedMedia(media)) {
     return {
       icon: AtSign,
-      label: media.platform ? SOCIAL_LABEL[media.platform] : getDomainLabel(media.url),
+      label: media.platform
+        ? SOCIAL_PLATFORM_LABEL[media.platform]
+        : getDomainLabel(media.url),
     };
   }
   return null;

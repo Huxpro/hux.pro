@@ -16,6 +16,7 @@ import { Presentation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SlidesMedia } from "@/lib/log";
 import { resolveSlidesEmbedUrl } from "@/lib/slides";
+import { useOptionalAttachments } from "@/systems/attachments";
 import { useOptionalTheater } from "@/systems/theater";
 import { ExternalImage } from "./external-image";
 import { MediaMark, SLIDES_MARK } from "./media-mark";
@@ -66,8 +67,8 @@ export function Slides({
   className,
   onPlay,
 }: SlidesProps) {
+  const attachments = useOptionalAttachments();
   const theater = useOptionalTheater();
-  const embedUrl = resolveSlidesEmbedUrl(url);
   const label = title || "Slides";
 
   const sizeClasses = {
@@ -81,17 +82,20 @@ export function Slides({
       onPlay();
       return;
     }
-    // Standalone (an MDX `<Media as="slides" />`): the theater when the
-    // viewport can hold one — a deck in a phone's PiP is unreadable — and
-    // the deck's own tab otherwise.
-    if (theater?.theaterAvailable) {
-      theater.openMedia(
-        { kind: "slides", url, thumbnail, title },
-        { id: url, title: label },
-      );
+    // Standalone (an MDX `<Media as="slides" />`): a one-deck set through
+    // the attachments policy, so it opens where every other deck does —
+    // the sheet on a phone, the stage elsewhere. Outside the provider, the
+    // stage directly, or the deck's own tab when there is none.
+    const media: SlidesMedia = { kind: "slides", url, thumbnail, title };
+    if (attachments) {
+      attachments.open({ id: url, title: label, items: [media] }, 0);
       return;
     }
-    openSlidesInNewTab(embedUrl);
+    if (theater) {
+      theater.openMedia(media, { id: url, title: label });
+      return;
+    }
+    openSlidesInNewTab(resolveSlidesEmbedUrl(url));
   };
 
   return (

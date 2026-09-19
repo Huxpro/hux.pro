@@ -78,6 +78,13 @@ export type LinkPresent = "pill" | "card";
 /** Video platforms with native iframe support. */
 export type VideoPlatform = "youtube" | "bilibili" | "vimeo";
 
+/** How each platform writes its own name — the rail pill, the cover chip. */
+export const VIDEO_PLATFORM_LABEL: Record<VideoPlatform, string> = {
+  youtube: "YouTube",
+  bilibili: "bilibili",
+  vimeo: "Vimeo",
+};
+
 // SocialEmbedPlatform's canonical definition lives in `lib/og-core` (the
 // Node snapshot script imports it from there, so it must stay framework-
 // agnostic). Re-import + re-export so the type is in scope for the Media
@@ -1811,23 +1818,13 @@ export function getCommitThumbnails(commit: Commit): string[] {
  *                preview image. Reads like the full LinkCard but at peek size.
  *  - `"thumb"` → a bare cover image, used for videos and image media. The
  *                player / asset IS the visual signal; no text strip needed.
+ *
+ * Carries the `Media` itself, as `StripItem` does: the renderer reads the
+ * viewer's locale variant of a card off it, and the chip its cover wears.
  */
 export type PeekItem =
-  | {
-      kind: "card";
-      url: string;
-      title?: string;
-      description?: string;
-      image: string;
-      internal?: InternalLinkMeta;
-      /** Author-chosen cover fill for the single-item peek. See MediaPreview. */
-      fit?: CoverFit;
-      /** Fixed-mode aspect override for the single-item peek. */
-      aspect?: string;
-      /** The item itself, for the chip its cover wears (media-mark.tsx). */
-      media: Media;
-    }
-  | { kind: "thumb"; url: string; image: string; media: Media };
+  | { kind: "card"; media: LinkMedia }
+  | { kind: "thumb"; image: string; media: Media };
 
 /**
  * Collect peek-renderable items from a commit's media, preserving order.
@@ -1845,24 +1842,11 @@ export function getCommitPeekItems(commit: Commit): PeekItem[] {
   for (const m of commit.media ?? []) {
     if (isPinnedMedia(m)) continue; // already visible inline; nothing to peek
     if (isLinkMedia(m) && m.present === "card") {
-      const image = m.preview?.image;
-      if (image) {
-        out.push({
-          kind: "card",
-          url: m.url,
-          title: m.preview?.title,
-          description: m.preview?.description,
-          image,
-          internal: m.internal,
-          fit: m.preview?.fit,
-          aspect: m.preview?.aspect,
-          media: m,
-        });
-      }
+      if (m.preview?.image) out.push({ kind: "card", media: m });
       continue;
     }
     const t = getMediaThumbnail(m);
-    if (t) out.push({ kind: "thumb", url: m.url, image: t, media: m });
+    if (t) out.push({ kind: "thumb", image: t, media: m });
   }
   return out;
 }
@@ -1880,8 +1864,6 @@ export function getCommitPeekItems(commit: Commit): PeekItem[] {
 export interface StripItem {
   media: Media;
   image: string;
-  /** Whether the cover wears a play badge — see {@link isPlayableMedia}. */
-  playable: boolean;
 }
 
 /**
@@ -1911,7 +1893,7 @@ export function getMediaStripItems(
     const image = isLinkMedia(m)
       ? (m.previews?.[locale] ?? m.preview)?.image ?? null
       : getMediaThumbnail(m);
-    if (image) out.push({ media: m, image, playable: isPlayableMedia(m) });
+    if (image) out.push({ media: m, image });
   }
   return out;
 }

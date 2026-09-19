@@ -173,6 +173,12 @@ interface AuthorFieldsProps {
 }
 
 /**
+ * A region spanning the field stack's two columns and keeping them: the
+ * author block, whose two lines are one thing (see `identity` below).
+ */
+const FIELD_SUBGRID = "col-span-2 grid grid-cols-subgrid gap-y-0.5";
+
+/**
  * The author block at the foot of an expanded commit — the vertical form of
  * the handle that was on the meta line a moment ago. Folded, the row states
  * its author compactly on that line; open, it transposes into this labelled
@@ -205,11 +211,17 @@ export function AuthorFields({
    */
   const identity = (children: React.ReactNode) =>
     byline ? (
-      <IdentityHover identityId={byline.identityId} roleId={byline.roleId} block>
+      <IdentityHover
+        identityId={byline.identityId}
+        roleId={byline.roleId}
+        block
+        wrapperClassName={FIELD_SUBGRID}
+        className={FIELD_SUBGRID}
+      >
         {children}
       </IdentityHover>
     ) : (
-      <div className="col-span-2 grid grid-cols-subgrid gap-x-3 gap-y-0.5">{children}</div>
+      <div className={FIELD_SUBGRID}>{children}</div>
     );
 
   return (

@@ -1,9 +1,7 @@
 import type { Locale } from "@/lib/i18n";
 import {
-  isImageMedia,
   isLinkMedia,
   isSlidesMedia,
-  isSocialEmbedMedia,
   isVideoMedia,
   type Media,
 } from "@/lib/log";
@@ -36,7 +34,6 @@ export interface HomeContext {
   compact: boolean;
   /** A window manager is mounted to open a page in. */
   windows: boolean;
-  locale: Locale;
 }
 
 /**
@@ -96,8 +93,7 @@ export function nativeHomeFor(media: Media, ctx: HomeContext): AttachmentHome {
  */
 export function homeFor(media: Media, ctx: HomeContext): AttachmentHome {
   if (ctx.compact) return "surface";
-  if (isVideoMedia(media) || isSlidesMedia(media)) return "theater";
   if (isLinkMedia(media)) return nativeHomeFor(media, ctx);
-  if (isImageMedia(media) || isSocialEmbedMedia(media)) return "surface";
+  if (isVideoMedia(media) || isSlidesMedia(media)) return "theater";
   return "surface";
 }

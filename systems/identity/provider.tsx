@@ -1,7 +1,6 @@
 "use client";
 
-import logJson from "@/content/log.json";
-import { normalizeLogData, type LogData, type RawLogData } from "@/lib/log";
+import { LOG } from "@/lib/log-client";
 import { useLocale } from "@/services";
 import {
   createContext,
@@ -27,9 +26,6 @@ import { buildIdentityProfile, type IdentityProfile } from "./lib/profile";
 // than passed in, so a trigger needs to know nothing but the two ids the
 // byline already carries.
 // =============================================================================
-
-/** The full log, flattened once for the lifetime of the module. */
-const LOG: LogData = normalizeLogData(logJson as unknown as RawLogData);
 
 /**
  * The profile for an identity, derived on demand. Used by the hover peek,

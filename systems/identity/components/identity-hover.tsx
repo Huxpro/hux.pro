@@ -53,8 +53,9 @@ interface IdentityHoverProps {
    * `Author:` and `Role:` lines stand for the one identity together. The
    * whole area lights on hover, and under the finger that opens the sheet —
    * a wash over the block, since colouring one line of it would say the
-   * lines were separate things. The wrapper and the button are subgrids, so
-   * the block keeps the columns of the field stack it sits in.
+   * lines were separate things. The region's own layout (a subgrid of the
+   * field stack it sits in) is the caller's, passed in `className` and
+   * `wrapperClassName`; this only lights it.
    */
   block?: boolean;
   children: ReactNode;
@@ -62,7 +63,6 @@ interface IdentityHoverProps {
 
 /** The region's highlight: a wash over the whole block, hover and press alike. */
 const BLOCK_HIGHLIGHT = cn(
-  "col-span-2 grid grid-cols-subgrid gap-x-3 gap-y-0.5",
   "-mx-2 -my-1 rounded-md px-2 py-1",
   "transition-colors duration-150 hover:bg-accent/40 active:bg-accent/60",
 );
@@ -80,7 +80,7 @@ export function IdentityHover({
 
   if (!card) {
     return block ? (
-      <div className="col-span-2 grid grid-cols-subgrid gap-x-3 gap-y-0.5">{children}</div>
+      <div className={className}>{children}</div>
     ) : (
       <span className={className}>{children}</span>
     );
@@ -90,12 +90,7 @@ export function IdentityHover({
     <MagneticPreview
       preview={<IdentityPeek identityId={identityId} roleId={roleId} />}
       panelClassName={IDENTITY_PEEK_PANEL}
-      className={cn(
-        block
-          ? "col-span-2 grid grid-cols-subgrid gap-x-3 gap-y-0.5"
-          : "inline-block max-w-full align-baseline",
-        wrapperClassName,
-      )}
+      className={cn(!block && "inline-block max-w-full align-baseline", wrapperClassName)}
     >
       <button
         type="button"

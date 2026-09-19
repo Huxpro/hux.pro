@@ -41,11 +41,6 @@ export function TheaterActivity() {
   const showEQ = !deck && (isPlaying || isLoading);
   const Glyph = deck ? Presentation : Video;
 
-  const go = (surface: "theater" | "pip") => {
-    closeDock();
-    if (surface === "pip") toPip();
-    else toTheater();
-  };
 
   return (
     <LiveActivity
@@ -99,10 +94,10 @@ export function TheaterActivity() {
           current="mini"
           theaterAvailable={theaterAvailable}
           labels
-          deck={deck}
           onSelect={(surface) => {
-            if (surface === "pip") go("pip");
-            if (surface === "theater") go("theater");
+            if (surface === "mini") return;
+            closeDock();
+            (surface === "pip" ? toPip : toTheater)();
           }}
         />
       </div>

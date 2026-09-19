@@ -8,13 +8,11 @@
 // re-ordering or re-tagging talks there updates the albums automatically.
 // =============================================================================
 
-import logData from "@/content/log.json";
-import ogSnapshotJson from "@/content/og-snapshot.json";
+import { LOG as log } from "@/lib/log-client";
 import type { Locale } from "@/lib/i18n";
 import {
   type Commit,
   type Media,
-  type RawLogData,
   type VideoMedia,
   getCommitThumbnail,
   getMediaThumbnail,
@@ -22,12 +20,11 @@ import {
   isSlidesMedia,
   isVideoMedia,
   localize,
-  normalizeLogData,
   resolveGroupCommits,
   sortCommitsByDate,
 } from "@/lib/log";
-import { enrichLogDataWithPreviews, type OGSnapshot } from "@/lib/og-enrich";
-import { resolveSlidesEmbedUrl } from "@/components/log/media/slides";
+import { resolveSlidesEmbedUrl } from "@/lib/slides";
+import { t } from "@/lib/i18n";
 import { resolveVideoId } from "./player";
 import type { Album, Track } from "./types";
 
@@ -48,11 +45,6 @@ const ALBUM_LABELS: Record<string, { en: string; zh: string }> = {
   "featured-lynx-talks": { en: "Lynx", zh: "Lynx" },
   "featured-personal-talks": { en: "Personal", zh: "个人" },
 };
-
-const log = enrichLogDataWithPreviews(
-  normalizeLogData(logData as unknown as RawLogData),
-  ogSnapshotJson as OGSnapshot,
-);
 
 function firstVideo(commit: Commit): VideoMedia | null {
   for (const m of commit.media ?? []) {
@@ -170,7 +162,6 @@ export function buildSlidesAlbum(locale: Locale): Album | null {
     });
   }
   if (tracks.length === 0) return null;
-  return { id: "slides", title: SLIDES_LABEL[locale], tracks };
+  return { id: "slides", title: t(locale, "logSlides"), tracks };
 }
 
-const SLIDES_LABEL: Record<Locale, string> = { en: "Slides", zh: "幻灯片" };

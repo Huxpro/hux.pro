@@ -30,12 +30,12 @@ import {
   getMediaThumbnail,
   getMediaStripItems,
   isPlayableMedia,
+  VIDEO_PLATFORM_LABEL,
 } from "@/lib/log";
 import { pickInternalLink } from "@/lib/og-enrich";
 import {
   detectSocialEmbedPlatform,
-  getDomainLabel,
-} from "@/lib/og-core";
+  getDomainLabel, SOCIAL_PLATFORM_LABEL } from "@/lib/og-core";
 
 // =============================================================================
 // Types
@@ -131,11 +131,10 @@ function socialEmbedToLink(m: {
   switch (platform) {
     case "x":
     case "twitter":
-      return { url: m.url, label: "X", icon: "x" };
+      return { url: m.url, label: SOCIAL_PLATFORM_LABEL[platform], icon: "x" };
     case "instagram":
-      return { url: m.url, label: "Instagram", icon: "instagram" };
     case "tiktok":
-      return { url: m.url, label: "TikTok", icon: "tiktok" };
+      return { url: m.url, label: SOCIAL_PLATFORM_LABEL[platform], icon: platform };
     default:
       return { url: m.url, label: getDomainLabel(m.url), icon: "globe" };
   }
@@ -181,14 +180,9 @@ export function extractMediaLinks(
 
   for (const m of media) {
     if (isVideoMedia(m)) {
-      const platformLabel: Record<string, string> = {
-        bilibili: "Bilibili",
-        youtube: "YouTube",
-        vimeo: "Vimeo",
-      };
       links.push({
         url: m.url,
-        label: platformLabel[m.platform] ?? m.platform,
+        label: VIDEO_PLATFORM_LABEL[m.platform],
         icon: m.platform,
         media: m,
       });

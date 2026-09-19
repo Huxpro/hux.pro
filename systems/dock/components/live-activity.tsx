@@ -195,7 +195,7 @@ export function LiveActivity({
             was aimed, the way it does under every other surface on the site.
             Measured with the scrim kept as a pointer-taking viewport: the FAB
             went unreachable, which is why it is not one. */}
-        <SurfaceViewport modal={false} layer={Math.max(0, rank)}>
+        <SurfaceViewport modal={false} layer={rank}>
           <Drawer.Popup
             data-dock-panel=""
             style={{ ...surfaceMotionVars(TOP_INSET), top: TOP_INSET }}

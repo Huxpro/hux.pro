@@ -5,6 +5,7 @@ import { t, useLocale } from "@/services";
 import { motion, useReducedMotion } from "framer-motion";
 import { Maximize2, Minimize2, PictureInPicture2, Volume2 } from "lucide-react";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useOptionalTheater } from "../provider";
 import {
   GLASS_ACTION,
   GLASS_HIT,
@@ -25,7 +26,8 @@ import {
 // + Audio / 声音 — that surface already *is* the audio activity.
 //
 // A deck has no audio to keep: for it the third view is plainly Minimize,
-// icon and word, everywhere (`deck`).
+// icon and word, everywhere. The switch reads the track off the theater
+// itself, so every host of it agrees on what is on the stage.
 //
 // The highlight is one absolutely-positioned ball. It animates x/width when
 // `current` changes. It does NOT use layoutId — a shared-element projection
@@ -57,8 +59,6 @@ interface SurfaceSwitchProps {
   tone?: "default" | "onDark";
   /** Text labels (Live Activity). Icon-only in the tight PiP / theater bars. */
   labels?: boolean;
-  /** The track is a deck: the minimized view is Minimize, not Audio. */
-  deck?: boolean;
   /**
    * When false, no outer track — parent already provides the capsule
    * (one window toolbar instead of nested glass).
@@ -73,12 +73,13 @@ export function SurfaceSwitch({
   theaterAvailable = true,
   tone = "default",
   labels = false,
-  deck = false,
   framed = true,
   className,
   onSelect,
 }: SurfaceSwitchProps) {
   const { locale } = useLocale();
+  // The track is a deck: the minimized view is Minimize, not Audio.
+  const deck = useOptionalTheater()?.track?.kind === "slides";
   const reduceMotion = useReducedMotion();
   const onDark = tone === "onDark";
   const trackRef = useRef<HTMLDivElement>(null);

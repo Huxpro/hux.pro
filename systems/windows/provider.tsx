@@ -1,6 +1,7 @@
 "use client";
 
 import type { AppLink } from "@/lib/app-icon-core";
+import { getHostname } from "@/lib/og-core";
 import {
   createContext,
   useCallback,
@@ -128,11 +129,7 @@ function soloOnPhone(
 
 /** The window title for a page that arrives without one: its host. */
 function urlTitle(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return "Web";
-  }
+  return getHostname(url) ?? "Web";
 }
 
 function bundleTitle(url: string): string {

@@ -20,8 +20,6 @@ export interface AttachmentSet {
   title: string;
   /** Venue line — conference, publication, platform, company. */
   subtitle?: string;
-  /** The commit's 7-character hash, for its address. */
-  hash?: string;
   /** In-site address of the commit (`/works#<hash>`). */
   href?: string;
   /** The attachments themselves. Object identity matters: callers find an

@@ -9,10 +9,9 @@ import {
   isLinkMedia,
   isSlidesMedia,
   isVideoMedia,
+  type LinkMedia,
   type Media,
-  type PeekItem,
 } from "@/lib/log";
-import { isVideoLinkHost } from "@/lib/og-core";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { Presentation } from "lucide-react";
@@ -88,34 +87,38 @@ export function PeekThumb({
  * inside the row's clickable wrapper without nested anchors.
  */
 export function PeekCard({
-  item,
+  media,
+  locale,
   fixedAspect = false,
   mark,
   className,
   onResolved,
 }: {
-  item: Extract<PeekItem, { kind: "card" }>;
+  media: LinkMedia;
+  locale: Locale;
   fixedAspect?: boolean;
   /** The chip on the cover — see CardFace. */
   mark?: MediaMarkSpec | null;
   className?: string;
   onResolved?: () => void;
 }) {
-  // Peek is purely visual — the click goes through the row's anchor — so
-  // we only need the caption swap, not the locale-aware URL pick.
-  const domainLabel = item.internal ? "/writing" : undefined;
+  // The viewer's locale variant of the card, as MediaRenderer would print
+  // it. Peek is purely visual — the click goes through the row's anchor —
+  // so the caption is all that is localized here, not the URL.
+  const preview = media.previews?.[locale] ?? media.preview;
+  const domainLabel = media.internal ? "/writing" : undefined;
   return (
     <CardFace
-      url={item.url}
-      title={item.title}
-      description={item.description}
-      image={item.image}
+      url={media.url}
+      title={preview?.title}
+      description={preview?.description}
+      image={preview?.image ?? ""}
       size="compact"
       fixedAspect={fixedAspect}
       // Single-item peek honors the author's cover-fit; the stacked deck sets
       // `fixedAspect` above, which takes precedence (predictable rectangles).
-      fit={item.fit}
-      aspect={item.aspect}
+      fit={preview?.fit}
+      aspect={preview?.aspect}
       domainLabel={domainLabel}
       mark={mark}
       raisedMark
@@ -190,23 +193,12 @@ export function mediaPeek(
 ): MediaPeekSpec | null {
   const mark = markFor(media, locale, { all: true, leaves: opts.leaves });
   if (isLinkMedia(media)) {
-    const preview = media.previews?.[locale] ?? media.preview;
-    const item: Extract<PeekItem, { kind: "card" }> = {
-      kind: "card",
-      url: media.url,
-      title: preview?.title,
-      description: preview?.description,
-      image: preview?.image ?? "",
-      internal: media.internal,
-      fit: preview?.fit,
-      aspect: preview?.aspect,
-      media,
-    };
     return {
       panelClassName: BARE,
       node: (
         <PeekCard
-          item={item}
+          media={media}
+          locale={locale}
           mark={mark}
           className={cn(PEEK_W, "shadow-raised")}
         />
@@ -216,21 +208,10 @@ export function mediaPeek(
 
   const image = getMediaThumbnail(media);
 
-  if (isVideoMedia(media)) {
+  if (isVideoMedia(media) || isSlidesMedia(media)) {
     return {
       panelClassName: BARE,
-      node: (
-        <PeekPoster image={image} mark={mark} />
-      ),
-    };
-  }
-
-  if (isSlidesMedia(media)) {
-    return {
-      panelClassName: BARE,
-      node: (
-        <PeekPoster image={image} mark={mark} />
-      ),
+      node: <PeekPoster image={image} mark={mark} />,
     };
   }
 
@@ -256,7 +237,3 @@ export function mediaPeek(
   return null;
 }
 
-/** Whether a link card's cover reads as a recording (a GitNation page). */
-export function isRecordingLink(media: Media): boolean {
-  return isLinkMedia(media) && isVideoLinkHost(media.url);
-}

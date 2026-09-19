@@ -82,7 +82,14 @@ export function Cursor({
     [offset.x, offset.y, translateX, translateY]
   );
 
+  // Only while the panel can show. A page of covers and handles mounts a
+  // hundred of these; a hundred document listeners doing four motion-value
+  // writes per pointer event, for panels that are not on screen, is not a
+  // hover system. The enter event seeds the position, so the first frame is
+  // already under the pointer.
+  const listening = !attachToParent || isHovering;
   useEffect(() => {
+    if (!listening) return;
     const updatePosition = (e: MouseEvent) => {
       cursorX.set(e.clientX);
       cursorY.set(e.clientY);
@@ -94,7 +101,7 @@ export function Cursor({
     return () => {
       document.removeEventListener("mousemove", updatePosition);
     };
-  }, [cursorX, cursorY, recomputeOffset, onPositionChange]);
+  }, [listening, cursorX, cursorY, recomputeOffset, onPositionChange]);
 
   // Recompute once the panel mounts/measures so the first frame is already
   // positioned correctly (the panel height is unknown until it renders).
@@ -105,7 +112,14 @@ export function Cursor({
   const cursorXSpring = useSpring(cursorX, springConfig || { duration: 0 });
   const cursorYSpring = useSpring(cursorY, springConfig || { duration: 0 });
 
-  const handleMouseEnter = useCallback(() => setIsHovering(true), []);
+  const handleMouseEnter = useCallback(
+    (e: MouseEvent) => {
+      cursorX.set(e.clientX);
+      cursorY.set(e.clientY);
+      setIsHovering(true);
+    },
+    [cursorX, cursorY],
+  );
   const handleMouseLeave = useCallback(() => setIsHovering(false), []);
 
   useEffect(() => {

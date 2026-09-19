@@ -2,7 +2,7 @@
 
 import { ExternalImage } from "@/components/log/media/external-image";
 import { SocialEmbed } from "@/components/log/media/embed";
-import { linkKindOf, type MediaKind } from "@/components/log/media/media-mark";
+import { mediaKindOf } from "@/components/log/media/media-mark";
 import { PeekCover } from "@/components/log/media/peek-cover";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
@@ -101,7 +101,7 @@ function Cover({
 }
 
 /** The glyph on the primary action: what the item is, and where it goes. */
-function homeIcon(home: AttachmentHome, kind: MediaKind): ReactNode {
+function homeIcon(home: AttachmentHome, kind: ReturnType<typeof mediaKindOf>): ReactNode {
   if (kind === "slides") return <Presentation className="h-3.5 w-3.5" />;
   if (kind === "video") {
     return <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />;
@@ -168,8 +168,9 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
   const open = () => act(set, index);
   const home = nativeHomeOf(set, index);
 
+  const kind = mediaKindOf(media);
+
   if (isVideoMedia(media) || isSlidesMedia(media)) {
-    const kind: MediaKind = isSlidesMedia(media) ? "slides" : "video";
     const label = t(locale, kind === "slides" ? "logSlides" : "logWatch");
     return (
       <div className="space-y-4">
@@ -189,7 +190,6 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
     const internal = isInternalLink(media);
     const preview = media.previews?.[locale] ?? media.preview;
     const domain = internal ? "/writing" : getDomainLabel(url);
-    const kind = linkKindOf(url, internal);
     const label = t(
       locale,
       kind === "post" ? "logRead" : kind === "video" ? "logWatch" : "logVisit",

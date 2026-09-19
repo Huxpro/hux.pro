@@ -13,18 +13,17 @@ import { useState, useEffect } from "react";
 import {
   ExternalLink as ExternalLinkIcon,
   Image as ImageIcon,
-  Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchOGData } from "@/lib/og";
 import type { OGData } from "@/lib/og-core";
-import { getDomainLabel, isArchivedUrl, videoLinkHostLabel } from "@/lib/og-core";
+import { getDomainLabel, isArchivedUrl } from "@/lib/og-core";
 import type { InternalLinkMeta, LinkMedia } from "@/lib/log";
 import { pickInternalLink } from "@/lib/og-enrich";
 import { useLocale } from "@/services";
 import { ExternalImage } from "./external-image";
 import { PeekCover } from "./peek-cover";
-import { MediaMark, type MediaMarkSpec } from "./media-mark";
+import { MediaMark, talksMark, type MediaMarkSpec } from "./media-mark";
 import type { CoverFit } from "@/lib/content";
 
 // =============================================================================
@@ -228,8 +227,9 @@ export function CardFace({
   const compact = size === "compact";
   const domain = domainLabel ?? getDomainLabel(url);
   // Talk-recording links (GitNation) wear the play chip with the host's
-  // name, so the card reads as the recording it is (media-mark.tsx).
-  const talksHost = videoLinkHostLabel(url);
+  // name, so the card reads as the recording it is (media-mark.tsx) — unless
+  // the caller has said what the cover wears.
+  const chip = mark !== undefined ? mark : talksMark(url);
   const [imgLoaded, setImgLoaded] = useState(false);
   const handleResolved = () => {
     setImgLoaded(true);
@@ -298,17 +298,7 @@ export function CardFace({
     >
       <div className="relative shrink-0">
         {slot}
-        <MediaMark
-          mark={
-            mark !== undefined
-              ? mark
-              : talksHost
-                ? { icon: Play, label: talksHost, fill: true }
-                : null
-          }
-          size={compact ? "compact" : "default"}
-          raised={raisedMark}
-        />
+        <MediaMark mark={chip} size={compact ? "compact" : "default"} raised={raisedMark} />
       </div>
       <div className={cn("flex-1 space-y-1", compact ? "p-2.5" : "p-4")}>
         <div
@@ -320,18 +310,7 @@ export function CardFace({
         >
           <span className="truncate">{domain}</span>
           {/* No cover to wear the chip on: it sits in the caption's line. */}
-          {!image && (
-            <MediaMark
-              inline
-              mark={
-                mark !== undefined
-                  ? mark
-                  : talksHost
-                    ? { icon: Play, label: talksHost, fill: true }
-                    : null
-              }
-            />
-          )}
+          {!image && <MediaMark inline mark={chip} />}
           {languageBadge && (
             <span
               className={cn(

@@ -46,7 +46,6 @@ export function attachmentSetFor(
     id: commit.id,
     title: localize(commit.title, locale),
     subtitle: subtitleFor(commit, locale),
-    hash,
     href: `/works#${hash}`,
     items,
   };

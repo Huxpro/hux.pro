@@ -1,18 +1,18 @@
 "use client";
 
 import { ExternalImage } from "@/components/log/media/external-image";
-import { PLATFORM_LABEL as VIDEO_LABEL } from "@/components/log/media/media-mark";
+import { VIDEO_PLATFORM_LABEL } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import type { Track } from "../lib/types";
 
 // ---------------------------------------------------------------------------
-// TrackThumb — a video cover with a play affordance. Bilibili/Vimeo tracks
-// often lack a public cover, so we fall back to a branded placeholder rather
-// than an empty box, keeping the album rails visually consistent.
+// TrackThumb — a track's cover in a rail. Bilibili/Vimeo tracks often lack a
+// public cover, so we fall back to a branded placeholder rather than an empty
+// box, keeping the album rails visually consistent. No chip: the rail's title
+// already says what the track is (media-mark.tsx).
 //
-// Glass capsule chrome: translucent white play (not a black stamp), hairline
-// active edge (not a heavy ring) so selection is readable without stealing
-// focus from the cover.
+// A hairline active edge (not a heavy ring) so selection is readable without
+// stealing focus from the cover.
 // ---------------------------------------------------------------------------
 
 /** What the placeholder names, and the tint it takes — by platform, or by
@@ -24,7 +24,7 @@ function sourceOf(track: Track): Source {
 }
 
 const PLATFORM_LABEL: Record<Source, string> = {
-  ...VIDEO_LABEL,
+  ...VIDEO_PLATFORM_LABEL,
   slides: "Slides",
 };
 

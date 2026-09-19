@@ -322,6 +322,14 @@ export function decodeHTMLEntities(str: string): string {
 /** Social platforms that render as native widgets (no OG card needed). */
 export type SocialEmbedPlatform = "twitter" | "x" | "instagram" | "tiktok";
 
+/** How each platform writes its own name — the rail pill, the cover chip. */
+export const SOCIAL_PLATFORM_LABEL: Record<SocialEmbedPlatform, string> = {
+  twitter: "X",
+  x: "X",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+};
+
 /**
  * Detect a social-embed platform from a URL or an explicit platform hint.
  * Used by the editor / renderer to auto-classify a pasted URL when the author

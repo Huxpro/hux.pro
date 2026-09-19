@@ -10,7 +10,7 @@
  * - "bare": Minimal compact for widgets (CommitCompact)
  */
 
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
 import { getCommitPeekItems, localize } from "@/lib/log";
@@ -89,6 +89,17 @@ export function Commit({
   onSelectHash,
 }: CommitProps) {
   const edit = useTimelineEdit();
+  const inspecting = edit?.mode === "inspect";
+  // Everything the commit attaches, as the one set every affordance on the
+  // row opens (systems/attachments). Not while inspecting: the editor's
+  // clicks select, they do not open. Memoized, above the guard so hook order
+  // holds: a hover flips the timeline's active beam and re-renders every
+  // row, and a set with a stable identity is what lets the strip, the
+  // renderer and the row keep their own memo one day.
+  const attachmentSet = useMemo(
+    () => (!commit || inspecting ? null : attachmentSetFor(commit, locale)),
+    [commit, locale, inspecting],
+  );
 
   // Runtime guard: MDX/JSON inputs can bypass static typing.
   if (
@@ -105,12 +116,6 @@ export function Commit({
 
   const data = normalizeCommit(commit, locale);
   const preview = buildCommitPreview(commit, locale);
-  // Everything the commit attaches, as the one set every affordance on the
-  // row opens (systems/attachments). Not while inspecting: the editor's
-  // clicks select, they do not open.
-  const attachmentSet =
-    edit?.mode === "inspect" ? null : attachmentSetFor(commit, locale);
-  const inspecting = edit?.mode === "inspect";
   const isSelected = !!edit && edit.selectedCommitId === commit.id;
   const selectedMedia =
     inspecting && isSelected && edit && edit.selectedMediaIndex != null
@@ -251,7 +256,8 @@ function buildCommitPreview(
         // Single peek mirrors the expanded /works LinkCard: natural aspect.
         node: (
           <PeekCard
-            item={item}
+            media={item.media}
+            locale={locale}
             mark={peekMark(item, locale)}
             className={cn(PEEK_W, "shadow-raised")}
           />
@@ -390,7 +396,8 @@ function StackedPeek({ items, locale }: { items: PeekItem[]; locale: Locale }) {
               // cards' shadows recede instead of compounding into mud (which
               // the old heavy shadow-2xl did).
               <PeekCard
-                item={item}
+                media={item.media}
+                locale={locale}
                 mark={peekMark(item, locale)}
                 fixedAspect
                 className={cn("shadow-raised", isFront && "bg-card")}

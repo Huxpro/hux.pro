@@ -16,7 +16,13 @@ import { ArrowUpRight } from "lucide-react";
 import { useBreakpointValue } from "@/systems/surface";
 import { useOptionalTheater } from "@/systems/theater";
 import { useOptionalWindows } from "@/systems/windows";
-import { homeFor, linkTarget, nativeHomeFor, type HomeContext } from "./lib/policy";
+import {
+  homeFor,
+  leavesSite,
+  linkTarget,
+  nativeHomeFor,
+  type HomeContext,
+} from "./lib/policy";
 import type { AttachmentHome, AttachmentSet } from "./lib/types";
 
 // =============================================================================
@@ -86,13 +92,16 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
   const [session, setSession] = useState<AttachmentSession | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
+  // Only the facts the policy branches on, and only the callbacks `send`
+  // calls: the theater's context value is rebuilt on every playback tick,
+  // and depending on the object would re-publish this context — and
+  // re-render every row on /works — twice a second while a video plays.
+  const hasWindows = !!windows;
+  const openMedia = theater?.openMedia;
+  const openUrl = windows?.openUrl;
   const ctx = useMemo<HomeContext>(
-    () => ({
-      compact,
-      windows: !!windows,
-      locale,
-    }),
-    [compact, windows, locale],
+    () => ({ compact, windows: hasWindows }),
+    [compact, hasWindows],
   );
 
   const close = useCallback(() => setIsOpen(false), []);
@@ -104,11 +113,11 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
       if (!media) return;
       switch (home) {
         case "theater": {
-          if (!theater) return;
+          if (!openMedia) return;
           if (media.kind !== "video" && media.kind !== "slides") return;
           // The stage picks the library: a recording lands among the talks,
           // a deck among the decks.
-          theater.openMedia(media, {
+          openMedia(media, {
             id: `${set.id}#${index}`,
             title: set.title,
             subtitle: set.subtitle,
@@ -118,10 +127,8 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
           return;
         }
         case "window": {
-          if (!windows) return;
-          windows.openUrl(linkTarget(media, locale), {
-            title: set.title,
-          });
+          if (!openUrl) return;
+          openUrl(linkTarget(media, locale), { title: set.title });
           // On a phone the window is a sheet, and it stacks on the attachment
           // sheet: putting the page away lands back on the commit's
           // attachments, the way a mobile app's in-app browser returns to
@@ -147,11 +154,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
           // On a phone the sheet's own button already says so (its mark is
           // the arrow out, and the page notes it) — no toast under a tab
           // that has just covered the screen.
-          if (
-            !compact &&
-            media.kind === "link" &&
-            media.preview?.frame === "deny"
-          ) {
+          if (!compact && leavesSite(media)) {
             const host = getDomainLabel(url);
             showCustomToast(
               <SystemToast
@@ -166,7 +169,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
         }
       }
     },
-    [theater, windows, router, locale, compact],
+    [openMedia, openUrl, router, locale, compact],
   );
 
   const open = useCallback(
