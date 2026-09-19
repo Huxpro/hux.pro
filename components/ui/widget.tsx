@@ -207,6 +207,23 @@ export function WidgetBody({
  * the scroll port is inset by the rows' hover bleed (`-mx-2`) so a row's
  * rounded highlight isn't clipped at the card's left edge. Rows should carry
  * `snap-start` and the `-mx-2 px-2` bleed themselves.
+ *
+ * **The port only scrolls under a pointer.** A nested vertical scroller inside
+ * the page's own vertical scroll is free with a wheel — it goes to whatever is
+ * under the cursor, and hover makes the port discoverable at all. Under a
+ * finger it is a fight the widget always wins: on a phone the card is most of
+ * the screen, `snap-mandatory` holds the list wherever the gesture leaves it,
+ * and nothing chains back to the page inside one gesture, so a swipe meant for
+ * the page is simply spent. Measured on an iPhone 13 viewport, a swipe from
+ * the middle of the projects widget moved the page 0px and the list 204px.
+ *
+ * So touch gets the card at a fixed height, faded at the tail, and the card's
+ * own tap for the rest — which is what a widget is everywhere else: Apple's
+ * widgets have no scroll gesture at all, and answer "more than fits" with a
+ * bigger size or the app. See docs/system-widget-scroll.md.
+ *
+ * One media query rather than a hook: the same markup serves both, so there is
+ * no hydration branch and nothing to measure.
  */
 export function WidgetScrollBody({
   className,
@@ -221,8 +238,8 @@ export function WidgetScrollBody({
     <div className="px-5">
       <div
         className={cn(
-          "relative -mx-2 px-2 pb-7",
-          "overflow-y-auto snap-y snap-mandatory scroll-smooth no-scrollbar",
+          "relative -mx-2 px-2 pb-7 overflow-hidden no-scrollbar",
+          "pointer-fine:overflow-y-auto pointer-fine:snap-y pointer-fine:snap-mandatory pointer-fine:scroll-smooth",
           "[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
           className ?? "h-64"
         )}
