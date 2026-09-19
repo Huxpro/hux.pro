@@ -99,6 +99,9 @@ export const translations = {
     theaterDeck: "slides",
     theaterSurfaceNow: "Now in {surface}",
     theaterSurfaceGo: "Switch to {surface}",
+    theaterPlaylist: "playlist",
+    theaterOpenPlaylist: "Browse playlist",
+    theaterClosePlaylist: "Close playlist",
     widgetEditDone: "Done",
     widgetEditReset: "Reset",
     musicNotPlaying: "nothing playing",
@@ -301,6 +304,7 @@ export const translations = {
     // Toolbar: type filter + form (see components/log/works-toolbar.tsx)
     logFilterLabel: "Filter by type",
     logFilterClear: "Clear filter",
+    logChapterStart: "Back to the start of this chapter",
     logFormLabel: "View",
     logFormIndex: "Index",
     logFormCovers: "Covers",
@@ -328,7 +332,7 @@ export const translations = {
     promptsTitle: "System Prompts",
     promptsTitleHover: "Propositions",
     promptSubtitle:
-      "Quotes, principles, people, and books I keep re-reading — the system prompt I actually run on.",
+      "Quotes, principles, and role models that shape my thinking.",
     promptShapedBy: "shaped by",
     promptTokens: "tokens",
     promptLastUpdated: "last updated",
@@ -395,6 +399,9 @@ export const translations = {
     theaterDeck: "幻灯片",
     theaterSurfaceNow: "当前：{surface}",
     theaterSurfaceGo: "切换到{surface}",
+    theaterPlaylist: "播放列表",
+    theaterOpenPlaylist: "浏览播放列表",
+    theaterClosePlaylist: "关闭播放列表",
     widgetEditDone: "完成",
     widgetEditReset: "重置",
     musicNotPlaying: "暂无播放",
@@ -594,6 +601,7 @@ export const translations = {
     // Toolbar: type filter + form (see components/log/works-toolbar.tsx)
     logFilterLabel: "按类型筛选",
     logFilterClear: "清除筛选",
+    logChapterStart: "回到这一章的开头",
     logFormLabel: "视图",
     logFormIndex: "索引",
     logFormCovers: "封面",
@@ -620,7 +628,7 @@ export const translations = {
     // Prompts page
     promptsTitle: "系统提示词",
     promptsTitleHover: "闻道有先后",
-    promptSubtitle: "我反复重读的句子、原则、人和书——我真正跑着的那份系统提示词。",
+    promptSubtitle: "塑造我思维的名言、原则和榜样。",
     promptShapedBy: "受启发于",
     promptTokens: "tokens",
     promptLastUpdated: "更新于",
