@@ -38,7 +38,7 @@ places is usable.
 | | phone (`< sm`): a tap | phone: the sheet's button | tablet / desktop |
 |---|---|---|---|
 | video | attachment sheet | theater (a PiP there) | theater |
-| slides | attachment sheet | a tab | theater (a `slides` track — see below) |
+| slides | attachment sheet | theater (a PiP there, like a recording) | theater (a `slides` track — see below) |
 | link card, external | attachment sheet | **the in-app browser, as a sheet stacked on this one**; a tab if the page refuses to be framed | in-app browser window, or a tab if the page refuses to be framed |
 | link card, `/writing/…` | attachment sheet | the router | the router |
 | image, social widget | attachment sheet | a tab | attachment surface, in its desktop shape |
@@ -47,9 +47,10 @@ places is usable.
 the same question with the surface taken out of the picture — what the item
 does natively, which is what a page's primary button in the sheet performs.
 On a phone the sheet opens for everything and its `Watch` / `Slides` / `Read`
-/ `Visit` button is the native action: a video plays in PiP, a deck opens in
-a tab (reveal.js in a phone-sized frame is unreadable), a page opens in the
-in-app browser.
+/ `Visit` button is the native action: a video and a deck go to the stage,
+which is a PiP there, and a page opens in the in-app browser. The stage is
+the stage whatever shape it takes; a deck is no different from a recording in
+this, and nothing sends it to a tab any more.
 
 The in-app browser is the same on every viewport: `useWindows().openUrl`. A
 window on a phone is a sheet ([Window System](./system-windows.md), "A phone
@@ -60,9 +61,10 @@ link in a mobile app opens in its own in-app browser and returns to the
 screen it came from. The provider keeps the attachment sheet open for this
 (`send`, the `window` case); on a desktop the window is its own thing and the
 surface closes. The only `Visit` that leaves the site is a page that refuses
-to be framed, and the sheet's page says so in a line above its actions before
-the button is pressed; the button's glyph is the arrow out there, a globe
-for the in-app browser, a play mark for the stage, a book for a post.
+to be framed, and the sheet's page says so before the button is pressed — in
+the chip on its cover (`New tab`, see below), not in a line of its own; the
+button's glyph is the arrow out there, a globe for the in-app browser, a
+play mark for a recording, the deck glyph for a deck, a book for a post.
 
 Whether a page refuses framing is read at snapshot time: `pnpm og:snapshot`
 now records `X-Frame-Options` / `frame-ancestors` as `frame: "deny"` on the
@@ -72,9 +74,9 @@ says nothing about framing is not read as permission. Pages the crawl cannot
 reach at all can be told by hand (`preview: { frame: "deny" }`, as The Verge is).
 
 A card that will leave for a tab says so **before** the click, not after:
-the expanded card and the cover's hover peek print `Opens in a new tab` as a
-last line (`CardFace`'s `note`), the cover's tooltip carries it, the sheet's
-page prints the same line above its actions, and when the tab does open on a
+its cover wears the `New tab` chip — on the expanded card, on the strip
+cover, in the hover peek and on the sheet's page (the one chip vocabulary,
+below) — the cover's tooltip carries it, and when the tab does open on a
 desktop, a one-line system toast names the site that would not be framed
 (`components/ui/system-toast.tsx`). Gitee, Medium, web.dev, The Verge and
 Meta are the ones in the log today; the rest open in a window — on every
@@ -133,41 +135,53 @@ The surface sizes to its content (`fitContent`); the track is a flex row, so
 every page is as tall as the tallest and the sheet holds still while swiping.
 Pages off screen are `inert`.
 
-## The mark a cover wears
+## The chip a cover wears
 
-Every cover on the site says what pressing it does, and it used to say so in
-three vocabularies at once — a play disc on anything that played, a `Slides`
-chip on a deck over the play disc, a browser glyph in places — each drawn in
-place by whichever component was holding the cover. `MediaMark`
-(`components/log/media/media-mark.tsx`) is the one vocabulary, and the only
-thing that draws it:
+Every cover on the site says what it is before it is pressed, and it used to
+say so in three vocabularies at once — a play disc stamped on anything that
+played, a caption chip over the disc on a deck, a line of prose under a card
+that would leave for a tab — each drawn in place by whichever component was
+holding the cover. `MediaMark` (`components/log/media/media-mark.tsx`) is the
+one vocabulary and the only thing that draws it: **a chip at the cover's
+bottom-left corner, with a glyph and a word** — the same chip a wallpaper
+tile wears for Live / Preset (`ARTWORK_CHIP`, `lib/glass.ts`), so a chip on
+a picture arrives the same way wherever the picture is.
 
-| kind | the mark | meaning |
-|---|---|---|
-| `video` (a video, or a link to a video host) | the play disc, centred | it plays, on the stage |
-| `slides` | the `Slides` chip, bottom-left — and no disc | it presents, on the stage; a deck is not watched |
-| `web` (an external page) | nothing | it is a page: the card is the hint, the action says `Visit` |
-| `post` (`/writing/…`) | nothing | a page of this site; `Read` |
-| `image`, `social` | nothing | what you see is the thing |
+| the cover | the chip |
+|---|---|
+| a recording (a video, or a link to a talks host) | `▶ YouTube` / `bilibili` / `Vimeo` — the platform, so a talk says where it was recorded; a talks-host link, its domain |
+| a deck | `Slides` |
+| a page that refuses to be framed, whatever its kind | `↗ New tab` |
+| a page, standing alone | `Web` |
+| a post (`/writing/…`), standing alone | `Writing` |
+| an image, a social widget, standing alone | `Image`, the platform |
 
-`mediaKindOf(media)` reads the kind off an item (a link to YouTube is a video
-whatever its `kind` field says), so a cover never has to know why it wears
-what it wears. Three sizes follow the play disc's stops — `mini` for the
-contact strip's 56px covers, where the chip keeps its glyph and drops its
-word; `compact` for rail thumbs and dense cards; `default` for a full cover —
-and two tones, the log's dark disc and the stage's glass one. The strip
-cover, the link card, the deck cover, the theater's rail thumb, the
-attachment sheet's page and the hover peek's poster all take the mark from
-here. The mark says what the thing is; the policy above says where it opens,
-and the two never trade jobs.
+Two rules decide which covers wear one. On `/works` — the contact strip, the
+expanded card, the widgets' covers — **only a recording and a deck are
+marked**, and a page that will leave: a card is its own hint (domain, title),
+and a chip on every card would be noise. Where a cover **stands alone** — the
+hover peek, the attachment sheet's page — every kind wears one (`markFor`'s
+`all`), because there the chip is the caption. `markFor(media, locale,
+{ all, leaves })` reads the chip off an item; `mediaKindOf` still reads the
+kind, for the sheet's button glyph and the lab.
+
+Three sizes: `mini` for the contact strip's 56px covers, where the chip
+keeps its glyph and drops its word (the wallpaper tile's small badge);
+`compact` for rail thumbs and dense cards; `default` for a full cover. The
+strip cover, the link card, the deck cover, the theater's rail thumb, the
+home widgets' covers, the attachment sheet's page and the hover peek's
+poster all take the chip from here, and nothing else on a cover says what it
+is — the peek's poster has no caption but a deck's or an image's name. The
+chip says what the thing is; the policy above says where it opens, and the
+two never trade jobs.
 
 ## The lab
 
 **`/editor/apps`** — hidden, `noindex` — is the devtool for this system, the
-way `/editor/legibility` is for reading surfaces: the vocabulary at every
-size and tone on the log's own covers; the policy as a table, read live from
-`homeFor` / `nativeHomeFor` for a context you can pin (phone or not, a
-theater, a window manager); the same media rendered by the production strip,
+way `/editor/legibility` is for reading surfaces: the chip vocabulary at
+every size on the log's own covers, alone and among others; the policy as a
+table, read live from `homeFor` / `nativeHomeFor` for a context you can pin
+(phone or not, a window manager); the same media rendered by the production strip,
 card, deck cover, rail thumb and attachment page; and buttons that go through
 the real providers, with a readout of the surface stack and the open windows
 as they stand. On a phone it is where to watch `Visit` stack the browser over
@@ -193,8 +207,12 @@ stage as the recording. `Track` is `VideoTrack | SlidesTrack`
 stage's iframe, keeps the theater's title bar, prev / next and playlist rail,
 and has no transport (reveal.js takes the arrow keys inside the frame). It
 minimizes to the Live Activity like anything else on the stage — the pill is
-a place to keep a deck open, not only a place to listen. `TrackThumb` wears
-the same `Slides` chip the `/works` cover does.
+a place to keep a deck open, not only a place to listen, and it knows the
+difference: for a deck the third view is `Minimize`, icon and word, in the
+theater bar, the PiP bar and the pill alike (`SurfaceSwitch`'s `deck`),
+never `Audio`, and the pill reads `slides` under the deck glyph rather than
+`watching` behind an equalizer. `TrackThumb` wears the same `Slides` chip
+the `/works` cover does.
 
 The stage keeps **two libraries** and never shows them together. A recording
 is browsed among recordings: the talk albums (React / Lynx / Personal) the
@@ -217,7 +235,7 @@ second. `Open in browser` in the window menu is the way out. See
 ## Adding a kind
 
 1. Say where it opens in `lib/policy.ts` — both functions.
-2. Say what its cover wears in `media-mark.tsx` — `mediaKindOf` and the mark.
+2. Say what its cover wears in `media-mark.tsx` — `mediaKindOf` and `markFor`.
 3. Give it a page in `attachment-page.tsx`.
 4. If it can play on the stage, give it a `Track` kind and teach `mediaToTrack`
    (`systems/theater/lib/albums.ts`) to build one.

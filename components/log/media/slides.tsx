@@ -18,7 +18,7 @@ import type { SlidesMedia } from "@/lib/log";
 import { resolveSlidesEmbedUrl } from "@/lib/slides";
 import { useOptionalTheater } from "@/systems/theater";
 import { ExternalImage } from "./external-image";
-import { MediaMark } from "./media-mark";
+import { MediaMark, SLIDES_MARK } from "./media-mark";
 
 export { isPlayableSlidesUrl, resolveSlidesEmbedUrl } from "@/lib/slides";
 
@@ -123,9 +123,9 @@ export function Slides({
         )}
 
         <div className="absolute inset-0 bg-black/15 transition-colors group-hover:bg-black/25" />
-        {/* A deck wears the `Slides` chip and no play disc: the one vocabulary
-            every cover speaks (media-mark.tsx). */}
-        <MediaMark kind="slides" size={size === "compact" ? "compact" : "default"} />
+        {/* The `Slides` chip: the one vocabulary every cover speaks
+            (media-mark.tsx). */}
+        <MediaMark mark={SLIDES_MARK} size={size === "compact" ? "compact" : "default"} />
       </button>
     </>
   );

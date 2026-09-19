@@ -156,11 +156,17 @@ export function getDomainLabel(url: string): string {
  * cover, unlike YouTube/Bilibili). Used to give such cards a "video-ish" play
  * affordance so a GitNation talk reads like the recording it is.
  */
-const VIDEO_LINK_HOSTS = ["gitnation.com"];
+/** Talks hosts whose pages are recordings, and the name each goes by. */
+const VIDEO_LINK_HOSTS: Record<string, string> = { "gitnation.com": "GitNation" };
 export function isVideoLinkHost(url: string): boolean {
+  return videoLinkHostLabel(url) !== null;
+}
+/** The talks host's name for a chip — `GitNation` — or null for any other page. */
+export function videoLinkHostLabel(url: string): string | null {
   const host = getHostname(url)?.toLowerCase();
-  if (!host) return false;
-  return VIDEO_LINK_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
+  if (!host) return null;
+  const hit = Object.keys(VIDEO_LINK_HOSTS).find((h) => host === h || host.endsWith(`.${h}`));
+  return hit ? VIDEO_LINK_HOSTS[hit] : null;
 }
 
 /**

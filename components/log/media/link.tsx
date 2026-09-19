@@ -11,20 +11,20 @@
 
 import { useState, useEffect } from "react";
 import {
-  ArrowUpRight,
   ExternalLink as ExternalLinkIcon,
   Image as ImageIcon,
+  Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchOGData } from "@/lib/og";
 import type { OGData } from "@/lib/og-core";
-import { getDomainLabel, isArchivedUrl, isVideoLinkHost } from "@/lib/og-core";
+import { getDomainLabel, isArchivedUrl, videoLinkHostLabel } from "@/lib/og-core";
 import type { InternalLinkMeta, LinkMedia } from "@/lib/log";
 import { pickInternalLink } from "@/lib/og-enrich";
 import { useLocale } from "@/services";
 import { ExternalImage } from "./external-image";
 import { PeekCover } from "./peek-cover";
-import { MediaMark } from "./media-mark";
+import { MediaMark, type MediaMarkSpec } from "./media-mark";
 import type { CoverFit } from "@/lib/content";
 
 // =============================================================================
@@ -69,8 +69,8 @@ export interface LinkCardProps {
    * and the anchor keeps its `href` for them.
    */
   onOpen?: () => void;
-  /** See {@link CardFaceProps.note}: printed on the card, and as its tooltip. */
-  note?: string;
+  /** See {@link CardFaceProps.mark}. */
+  mark?: MediaMarkSpec | null;
   /** Additional CSS classes */
   className?: string;
 }
@@ -189,12 +189,12 @@ export interface CardFaceProps {
   /** "EN" / "中文" when the post is only available in the non-current locale. */
   languageBadge?: "EN" | "中文" | null;
   /**
-   * A last line under the text, in the caption's voice: where a click on the
-   * card will go when it leaves the site. A page that refuses to be framed
-   * cannot open in the in-app browser window, so the card says "opens in a
-   * new tab" before the click rather than surprising after it.
+   * The chip the cover wears (media-mark.tsx). Left out, a card pointing at
+   * a talks host wears the play chip and any other card wears none; given,
+   * it is what the cover says — `New tab` for a page that refuses to be
+   * framed, so the card says where the click goes before it is pressed.
    */
-  note?: React.ReactNode;
+  mark?: MediaMarkSpec | null;
   className?: string;
   /** Fires when the foreground image resolves (load / cache-warm / error). */
   onImgResolved?: () => void;
@@ -218,15 +218,15 @@ export function CardFace({
   dense = false,
   domainLabel,
   languageBadge = null,
-  note,
+  mark,
   className,
   onImgResolved,
 }: CardFaceProps) {
   const compact = size === "compact";
   const domain = domainLabel ?? getDomainLabel(url);
-  // Talk-recording links (GitNation) get a play affordance so the card reads
-  // as the video it is, even though it renders as an OG card.
-  const isVideo = isVideoLinkHost(url);
+  // Talk-recording links (GitNation) wear the play chip with the host's
+  // name, so the card reads as the recording it is (media-mark.tsx).
+  const talksHost = videoLinkHostLabel(url);
   const [imgLoaded, setImgLoaded] = useState(false);
   const handleResolved = () => {
     setImgLoaded(true);
@@ -295,7 +295,16 @@ export function CardFace({
     >
       <div className="relative shrink-0">
         {slot}
-        <MediaMark kind={isVideo ? "video" : "web"} size={compact ? "compact" : "default"} />
+        <MediaMark
+          mark={
+            mark !== undefined
+              ? mark
+              : talksHost
+                ? { icon: Play, label: talksHost, fill: true }
+                : null
+          }
+          size={compact ? "compact" : "default"}
+        />
       </div>
       <div className={cn("flex-1 space-y-1", compact ? "p-2.5" : "p-4")}>
         <div
@@ -306,6 +315,19 @@ export function CardFace({
           )}
         >
           <span className="truncate">{domain}</span>
+          {/* No cover to wear the chip on: it sits in the caption's line. */}
+          {!image && (
+            <MediaMark
+              inline
+              mark={
+                mark !== undefined
+                  ? mark
+                  : talksHost
+                    ? { icon: Play, label: talksHost, fill: true }
+                    : null
+              }
+            />
+          )}
           {languageBadge && (
             <span
               className={cn(
@@ -366,18 +388,6 @@ export function CardFace({
             {description}
           </p>
         )}
-        {note && (
-          <div
-            className={cn(
-              "flex items-center gap-1 pt-1 text-tertiary-foreground",
-              "font-mono uppercase tracking-wide",
-              compact ? "text-[10px]" : "text-[11px]",
-            )}
-          >
-            <ArrowUpRight className="h-3 w-3 shrink-0" />
-            <span className="truncate">{note}</span>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -396,7 +406,7 @@ export function LinkCard({
   dense = false,
   internal,
   onOpen,
-  note,
+  mark,
   className,
 }: LinkCardProps) {
   const { locale } = useLocale();
@@ -501,7 +511,6 @@ export function LinkCard({
             }
           : undefined
       }
-      title={note}
       className="block"
     >
       <CardFace
@@ -513,7 +522,7 @@ export function LinkCard({
         dense={dense}
         domainLabel={domainLabel}
         languageBadge={languageBadge}
-        note={note}
+        mark={mark}
         className={cn(
           // The row's hover lives on its summary area only (see
           // timeline-commit's `:not(:has([data-row-body]:hover))` gate),

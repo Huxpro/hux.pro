@@ -33,7 +33,7 @@ import { isSlidesMedia } from "@/lib/log";
 import { getDomainLabel } from "@/lib/og-core";
 import { ExternalImage } from "./external-image";
 import { mediaPeek } from "./media-peek";
-import { MediaMark, mediaKindOf } from "./media-mark";
+import { markFor, MediaMark, newTabMark } from "./media-mark";
 
 export interface MediaStripProps {
   /**
@@ -106,9 +106,7 @@ export function MediaStrip({ items, set, className }: MediaStripProps) {
           attachments && set && index >= 0
             ? attachments.homeOf(set, index) === "tab"
             : false;
-        const peek = mediaPeek(item.media, locale, {
-          note: leavesSite ? t(locale, "linkOpensInTab") : undefined,
-        });
+        const peek = mediaPeek(item.media, locale, { leaves: leavesSite });
 
         return (
           // The row itself stops peeking once it prints its covers (see
@@ -158,7 +156,12 @@ export function MediaStrip({ items, set, className }: MediaStripProps) {
                 alt=""
                 className="block h-full w-full object-cover"
               />
-              <MediaMark kind={mediaKindOf(item.media)} size="mini" />
+              {/* The strip marks a recording and a deck, and a page that
+                  will leave; a card is its own hint (media-mark.tsx). */}
+              <MediaMark
+                mark={leavesSite ? newTabMark(locale) : markFor(item.media, locale)}
+                size="mini"
+              />
             </a>
           </MagneticPreview>
         );

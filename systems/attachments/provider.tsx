@@ -89,11 +89,10 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
   const ctx = useMemo<HomeContext>(
     () => ({
       compact,
-      theaterAvailable: theater?.theaterAvailable ?? false,
       windows: !!windows,
       locale,
     }),
-    [compact, theater?.theaterAvailable, windows, locale],
+    [compact, windows, locale],
   );
 
   const close = useCallback(() => setIsOpen(false), []);

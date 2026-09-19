@@ -3,7 +3,7 @@
 import { t, useLocale } from "@/services";
 import { LiveActivity, useDock } from "@/systems/dock";
 import { EQBars } from "@/systems/music/components/now-playing";
-import { Video } from "lucide-react";
+import { Presentation, Video } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTheater } from "../provider";
 import { SurfaceSwitch } from "./surface-switch";
@@ -16,6 +16,9 @@ import { VideoControls } from "./video-controls";
 // Exclusive with Theater and PiP. The video parks off-screen; only sound
 // keeps playing. A Live Activity pill unfolds into transport + a
 // SurfaceSwitch whose lifted pill is Audio (current), not an action.
+//
+// A deck parked here is not playing anything: the pill says `slides` rather
+// than `watching`, wears the deck glyph, and its lifted view is Minimize.
 // ---------------------------------------------------------------------------
 
 export function TheaterActivity() {
@@ -32,9 +35,11 @@ export function TheaterActivity() {
 
   if (!mounted || !minimized || !track) return null;
 
+  const deck = track.kind === "slides";
   const isPlaying = phase === "playing";
   const isLoading = phase === "loading";
-  const showEQ = isPlaying || isLoading;
+  const showEQ = !deck && (isPlaying || isLoading);
+  const Glyph = deck ? Presentation : Video;
 
   const go = (surface: "theater" | "pip") => {
     closeDock();
@@ -55,7 +60,7 @@ export function TheaterActivity() {
               <img src={track.thumbnail} alt="" className="h-full w-full object-cover" />
             ) : (
               <span className="flex h-full w-full items-center justify-center bg-muted/60">
-                <Video className="h-3.5 w-3.5 text-muted-foreground" />
+                <Glyph className="h-3.5 w-3.5 text-muted-foreground" />
               </span>
             )}
           </span>
@@ -66,7 +71,7 @@ export function TheaterActivity() {
         <>
           {showEQ && <EQBars className="text-red-500" />}
           <span className="truncate text-xs font-mono uppercase tracking-wider text-muted-foreground">
-            {t(locale, "theaterWatching")}
+            {t(locale, deck ? "theaterDeck" : "theaterWatching")}
           </span>
         </>
       }
@@ -94,6 +99,7 @@ export function TheaterActivity() {
           current="mini"
           theaterAvailable={theaterAvailable}
           labels
+          deck={deck}
           onSelect={(surface) => {
             if (surface === "pip") go("pip");
             if (surface === "theater") go("theater");

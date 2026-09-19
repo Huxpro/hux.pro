@@ -19,8 +19,8 @@ import type { AttachmentHome } from "./types";
 // desktop an attachment goes to its native home — the click on a video cover
 // lands in the theater, the click on a link card in an in-app browser window.
 //
-// A phone has fewer of those homes in a usable shape: the theater is a PiP
-// the size of a thumb, and a deck in it is unreadable. There every attachment
+// A phone has fewer of those homes in a usable shape: the stage is a PiP
+// there, and a window is the whole screen. There every attachment
 // opens the same way, in a bottom sheet that pages through the commit's
 // attachments and offers each one's native action as a button. A page still
 // has its home there — a window on a phone is a sheet (systems/windows), so
@@ -34,8 +34,6 @@ import type { AttachmentHome } from "./types";
 export interface HomeContext {
   /** A phone-class viewport (below `sm`): the sheet takes everything. */
   compact: boolean;
-  /** The theater can put up its stage (tablet+, and tall enough). */
-  theaterAvailable: boolean;
   /** A window manager is mounted to open a page in. */
   windows: boolean;
   locale: Locale;
@@ -64,9 +62,9 @@ export function isInternalLink(media: Media): boolean {
  * lands directly for the kinds that have one.
  */
 export function nativeHomeFor(media: Media, ctx: HomeContext): AttachmentHome {
-  if (isVideoMedia(media)) return "theater";
-  // A deck in a phone's PiP is unreadable; reveal.js wants the tab there.
-  if (isSlidesMedia(media)) return ctx.theaterAvailable ? "theater" : "tab";
+  // The stage, whatever shape it takes here: the theater where it fits, a
+  // PiP where it does not. A deck is no different from a recording in this.
+  if (isVideoMedia(media) || isSlidesMedia(media)) return "theater";
   if (isLinkMedia(media)) {
     if (isInternalLink(media)) return "route";
     // A page that refuses to be framed (X-Frame-Options, frame-ancestors —
@@ -87,8 +85,7 @@ export function nativeHomeFor(media: Media, ctx: HomeContext): AttachmentHome {
  */
 export function homeFor(media: Media, ctx: HomeContext): AttachmentHome {
   if (ctx.compact) return "surface";
-  if (isVideoMedia(media)) return "theater";
-  if (isSlidesMedia(media)) return ctx.theaterAvailable ? "theater" : "surface";
+  if (isVideoMedia(media) || isSlidesMedia(media)) return "theater";
   if (isLinkMedia(media)) return nativeHomeFor(media, ctx);
   if (isImageMedia(media) || isSocialEmbedMedia(media)) return "surface";
   return "surface";

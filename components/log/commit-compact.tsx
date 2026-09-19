@@ -11,7 +11,8 @@
 
 import type { NormalizedCommit } from "./commit-data";
 import { ExternalImage } from "./media/external-image";
-import { MediaMark } from "./media/media-mark";
+import { useLocale } from "@/services";
+import { markFor, MediaMark } from "./media/media-mark";
 
 interface CommitCompactProps {
   data: NormalizedCommit;
@@ -19,6 +20,7 @@ interface CommitCompactProps {
 }
 
 export function CommitCompact({ data, className }: CommitCompactProps) {
+  const { locale } = useLocale();
   return (
     <div className={className}>
       {/* Thumbnail (any commit with video/image media) */}
@@ -33,13 +35,9 @@ export function CommitCompact({ data, className }: CommitCompactProps) {
             src={data.thumbnail.url}
             className="w-full h-full object-cover"
           />
-          {/* Play affordance for video-ish covers (real videos + talk-recording
-              links like GitNation), so widget talk covers read as playable. */}
-          <MediaMark
-            kind={data.thumbnail.isVideo ? "video" : "web"}
-            size="compact"
-            className="transition-transform group-hover/thumb:scale-105"
-          />
+          {/* The cover's chip — the platform on a recording, `Slides` on a
+              deck — so a widget cover reads the way the row's does. */}
+          <MediaMark mark={markFor(data.thumbnail.media, locale)} size="compact" />
         </a>
       )}
 

@@ -12,15 +12,14 @@ import {
   type Media,
   type PeekItem,
 } from "@/lib/log";
-import { getDomainLabel, isVideoLinkHost } from "@/lib/og-core";
+import { isVideoLinkHost } from "@/lib/og-core";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
-import { t } from "@/lib/i18n";
 import { Presentation } from "lucide-react";
 import type { ReactNode } from "react";
 import { ExternalImage } from "./external-image";
 import { CardFace } from "./link";
-import { MediaMark, type MediaKind } from "./media-mark";
+import { markFor, MediaMark, type MediaMarkSpec } from "./media-mark";
 
 // =============================================================================
 // Media peeks — what a cover shows when the pointer rests on it.
@@ -87,14 +86,14 @@ export function PeekThumb({
 export function PeekCard({
   item,
   fixedAspect = false,
-  note,
+  mark,
   className,
   onResolved,
 }: {
   item: Extract<PeekItem, { kind: "card" }>;
   fixedAspect?: boolean;
-  /** A last line under the text — where the click will go, when it leaves. */
-  note?: ReactNode;
+  /** The chip on the cover — see CardFace. */
+  mark?: MediaMarkSpec | null;
   className?: string;
   onResolved?: () => void;
 }) {
@@ -114,7 +113,7 @@ export function PeekCard({
       fit={item.fit}
       aspect={item.aspect}
       domainLabel={domainLabel}
-      note={note}
+      mark={mark}
       // Peek-specific chrome — the shared panel recipe, minus the shadow: the
       // single-peek and stacked-peek branches strip the panel's own chrome
       // (BARE_PANEL_CHROME), so callers add `shadow-raised` per use (front /
@@ -127,16 +126,16 @@ export function PeekCard({
 }
 
 
-/** A poster with a caption strip — a cover that says what it is. */
+/** A poster wearing its chip, and a caption when there is a name to print. */
 function PeekPoster({
   image,
   caption,
-  kind,
+  mark,
 }: {
   image: string | null;
-  caption: ReactNode;
-  /** The cover's mark (media-mark.tsx), the same one the row's cover wears. */
-  kind?: MediaKind;
+  caption?: ReactNode;
+  /** The cover's chip (media-mark.tsx), the same one the row's cover wears. */
+  mark: MediaMarkSpec | null;
 }) {
   return (
     <div className={cn(PEEK_W, GLASS_PANEL, "overflow-hidden shadow-raised")}>
@@ -152,20 +151,16 @@ function PeekPoster({
             <Presentation className="h-8 w-8 text-quaternary-foreground" />
           </span>
         )}
-        {kind && <MediaMark kind={kind} tone="glass" />}
+        <MediaMark mark={mark} />
       </div>
-      <div className={cn("flex items-center gap-1.5 px-3 py-2", TYPE.labelSm)}>
-        {caption}
-      </div>
+      {caption && (
+        <div className={cn("flex items-center gap-1.5 px-3 py-2", TYPE.labelSm)}>
+          {caption}
+        </div>
+      )}
     </div>
   );
 }
-
-const PLATFORM_LABEL: Record<string, string> = {
-  youtube: "YouTube",
-  bilibili: "bilibili",
-  vimeo: "Vimeo",
-};
 
 export interface MediaPeekSpec {
   node: ReactNode;
@@ -177,16 +172,17 @@ export interface MediaPeekSpec {
 const BARE = "p-0 bg-transparent border-transparent backdrop-blur-none";
 
 /**
- * The peek for one piece of media, or null when it has nothing to show. The
- * `note` is a line the caller adds when the click will leave the site — a
- * page that refuses to be framed opens in a tab, and the peek says so
- * before the click rather than after.
+ * The peek for one piece of media, or null when it has nothing to show. A
+ * cover standing alone wears its chip whatever its kind (media-mark.tsx);
+ * `leaves` says the click will open a tab — a page that refuses to be
+ * framed — and the chip says so before the click rather than after.
  */
 export function mediaPeek(
   media: Media,
   locale: Locale,
-  opts: { note?: ReactNode } = {},
+  opts: { leaves?: boolean } = {},
 ): MediaPeekSpec | null {
+  const mark = markFor(media, locale, { all: true, leaves: opts.leaves });
   if (isLinkMedia(media)) {
     const preview = media.previews?.[locale] ?? media.preview;
     const item: Extract<PeekItem, { kind: "card" }> = {
@@ -204,7 +200,7 @@ export function mediaPeek(
       node: (
         <PeekCard
           item={item}
-          note={opts.note}
+          mark={mark}
           className={cn(PEEK_W, "shadow-raised")}
         />
       ),
@@ -217,17 +213,7 @@ export function mediaPeek(
     return {
       panelClassName: BARE,
       node: (
-        <PeekPoster
-          image={image}
-          kind="video"
-          caption={
-            <>
-              <span>{PLATFORM_LABEL[media.platform] ?? media.platform}</span>
-              <span className="text-quaternary-foreground">·</span>
-              <span>{t(locale, "logWatch")}</span>
-            </>
-          }
-        />
+        <PeekPoster image={image} mark={mark} />
       ),
     };
   }
@@ -238,20 +224,13 @@ export function mediaPeek(
       node: (
         <PeekPoster
           image={image}
-          kind="slides"
+          mark={mark}
           caption={
-            <>
-              <Presentation className="h-3 w-3" />
-              <span>{t(locale, "logSlides")}</span>
-              {media.title && (
-                <>
-                  <span className="text-quaternary-foreground">·</span>
-                  <span className="truncate normal-case tracking-normal">
-                    {media.title}
-                  </span>
-                </>
-              )}
-            </>
+            media.title && (
+              <span className="truncate normal-case tracking-normal">
+                {media.title}
+              </span>
+            )
           }
         />
       ),
@@ -264,10 +243,13 @@ export function mediaPeek(
       node: (
         <PeekPoster
           image={media.url}
+          mark={mark}
           caption={
-            <span className="truncate normal-case tracking-normal">
-              {media.alt || getDomainLabel(media.url)}
-            </span>
+            media.alt && (
+              <span className="truncate normal-case tracking-normal">
+                {media.alt}
+              </span>
+            )
           }
         />
       ),

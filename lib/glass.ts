@@ -19,3 +19,12 @@
  */
 export const GLASS_PANEL =
   "rounded-lg border border-border/50 bg-glass-overlay backdrop-blur-xl";
+
+/**
+ * The chip a glyph gets when it sits on artwork rather than on a surface —
+ * a wallpaper tile's Live / Preset mark, the mark a media cover wears
+ * (components/log/media/media-mark.tsx). One recipe, so a chip on a picture
+ * arrives the same way wherever the picture is.
+ */
+export const ARTWORK_CHIP =
+  "bg-black/35 text-white ring-1 ring-white/25 backdrop-blur-[2px]";

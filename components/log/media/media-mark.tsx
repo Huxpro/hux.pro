@@ -1,5 +1,16 @@
-import { Presentation } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  ArrowUpRight,
+  AtSign,
+  BookOpen,
+  Globe,
+  Image as ImageIcon,
+  Play,
+  Presentation,
+  type LucideIcon,
+} from "lucide-react";
+import { ARTWORK_CHIP } from "@/lib/glass";
+import type { Locale } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 import {
   isImageMedia,
   isLinkMedia,
@@ -7,37 +18,41 @@ import {
   isSocialEmbedMedia,
   isVideoMedia,
   type Media,
+  type SocialEmbedPlatform,
+  type VideoPlatform,
 } from "@/lib/log";
-import { isVideoLinkHost } from "@/lib/og-core";
-import { PlayBadge, type PlayBadgeSize, type PlayBadgeTone } from "./play-badge";
+import { getDomainLabel, isVideoLinkHost, videoLinkHostLabel } from "@/lib/og-core";
+import { cn } from "@/lib/utils";
 
 // =============================================================================
-// MediaMark — what pressing this cover does, said once, the same way everywhere.
+// MediaMark — what this cover is, said once, in one chip.
 //
-// A cover on the site is one of a few kinds of thing, and each kind opens in a
-// different place: a video and a deck on the theater's stage, a page in the
-// in-app browser, a post on its own route. The cover has to say which before
-// it is pressed, and it used to say so in three vocabularies at once — a play
-// disc on anything that played, a `Slides` chip on a deck (over the play
-// disc), a browser glyph here and there — each drawn in place by whichever
-// component was holding the cover. This is the one vocabulary:
+// A cover on the site is one of a few kinds of thing, and each kind opens in
+// a different place: a recording and a deck on the theater's stage, a page in
+// the in-app browser, a post on its own route. The cover says which before it
+// is pressed, and it used to say so in three vocabularies at once — a play
+// disc stamped on anything that played, a caption chip over the disc on a
+// deck, a line of prose under a card that would leave for a tab. This is the
+// one vocabulary: a chip at the cover's bottom-left corner, the same chip a
+// wallpaper tile wears for Live / Preset (`ARTWORK_CHIP`), with a glyph and
+// a word.
 //
-//   video   a play disc, centred        — it plays, on the stage
-//   slides  a `Slides` chip, bottom-left — it presents, on the stage
-//   web     nothing                      — it is a page; the card is the hint,
-//                                          and the action says `Visit`
-//   post    nothing                      — a page of this site; `Read`
-//   image / social  nothing              — what you see is the thing
+//   video    ▶ YouTube · bilibili · Vimeo — the platform, so a talk says
+//            where it was recorded (a link to a talks host: its name)
+//   slides   ▤ Slides
+//   new tab  ↗ New tab — a page that refuses to be framed, whatever its kind
 //
-// A deck wears its chip and not the disc: a play disc says "press to watch"
-// and a deck is not watched. `mediaKindOf` reads the kind off a media item
-// (a link to YouTube is a video, whatever its `kind` field says), so a cover
-// never has to know why it wears what it wears.
+// On the /works page only a recording and a deck are marked: a card is its
+// own hint (domain, title), and a chip on every card would be noise. Where a
+// cover stands alone — the hover peek, the attachment sheet's page — every
+// kind wears one (`all`): a page says Web, a post says Writing, an image says
+// Image, a social widget says its platform. `markFor` reads the mark off a
+// media item; `MediaMark` draws whatever it is handed, so a cover never has
+// to know why it wears what it wears.
 //
-// The mark is absolutely positioned: the parent must be `relative`. Sizes
-// follow PlayBadge's three stops — `mini` for the /works contact strip, whose
-// covers are 56px tall (the chip drops its word there and keeps the glyph),
-// `compact` for rail thumbs and dense cards, `default` for a full cover.
+// The chip is absolutely positioned: the parent must be `relative`. At
+// `mini` — the /works contact strip, whose covers are 56px tall — the chip
+// keeps its glyph and drops its word, the wallpaper tile's small badge.
 // =============================================================================
 
 export type MediaKind = "video" | "slides" | "web" | "post" | "image" | "social";
@@ -69,60 +84,143 @@ export function mediaKindOf(media: Media): MediaKind {
   return "web";
 }
 
-export type MediaMarkSize = PlayBadgeSize;
-export type MediaMarkTone = PlayBadgeTone;
+/** What the chip says: a glyph and a word. */
+export interface MediaMarkSpec {
+  icon: LucideIcon;
+  label: string;
+  /** A filled glyph (the play mark). */
+  fill?: boolean;
+}
 
-const CHIP_SIZE: Record<MediaMarkSize, { box: string; icon: string; word: boolean }> = {
-  mini: { box: "bottom-1 left-1 h-4 px-1 rounded", icon: "h-2.5 w-2.5", word: false },
-  compact: { box: "bottom-1.5 left-1.5 px-1.5 py-0.5 rounded-md", icon: "h-3 w-3", word: true },
-  default: { box: "bottom-2 left-2 px-1.5 py-0.5 rounded-md", icon: "h-3 w-3", word: true },
+export const PLATFORM_LABEL: Record<VideoPlatform, string> = {
+  youtube: "YouTube",
+  bilibili: "bilibili",
+  vimeo: "Vimeo",
 };
 
-/** The `Slides` chip: a caption at the corner, where a badge on a cover goes. */
-function KindChip({
-  size,
-  icon: Icon,
-  label,
+const SOCIAL_LABEL: Record<SocialEmbedPlatform, string> = {
+  twitter: "X",
+  x: "X",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+};
+
+/** The deck's chip, for a cover that knows it is a deck without a `Media`. */
+export const SLIDES_MARK: MediaMarkSpec = { icon: Presentation, label: "Slides" };
+
+/** A recording's chip: the platform it is on. */
+export function videoMark(platform: VideoPlatform): MediaMarkSpec {
+  return { icon: Play, label: PLATFORM_LABEL[platform], fill: true };
+}
+
+/** The chip for a cover whose press leaves the site. */
+export function newTabMark(locale: Locale): MediaMarkSpec {
+  return { icon: ArrowUpRight, label: t(locale, "linkNewTab") };
+}
+
+/**
+ * The mark a media item's cover wears, or null for a cover that wears none.
+ *
+ *   `leaves`  the press will open a tab (a page that refuses to be framed):
+ *             the chip says so, whatever the kind.
+ *   `all`     mark every kind, not only a recording and a deck — for a cover
+ *             standing alone in a peek or on the attachment sheet's page.
+ */
+export function markFor(
+  media: Media,
+  locale: Locale,
+  opts: { all?: boolean; leaves?: boolean } = {},
+): MediaMarkSpec | null {
+  if (opts.leaves) return newTabMark(locale);
+  if (isVideoMedia(media)) return videoMark(media.platform);
+  if (isSlidesMedia(media)) return SLIDES_MARK;
+  const host = isLinkMedia(media) ? videoLinkHostLabel(media.url) : null;
+  if (host) return { icon: Play, label: host, fill: true };
+  if (!opts.all) return null;
+  if (isLinkMedia(media)) {
+    const internal = !!media.internal || media.url.startsWith("/");
+    return internal
+      ? { icon: BookOpen, label: "Writing" }
+      : { icon: Globe, label: "Web" };
+  }
+  if (isImageMedia(media)) return { icon: ImageIcon, label: "Image" };
+  if (isSocialEmbedMedia(media)) {
+    return {
+      icon: AtSign,
+      label: media.platform ? SOCIAL_LABEL[media.platform] : getDomainLabel(media.url),
+    };
+  }
+  return null;
+}
+
+export type MediaMarkSize = "mini" | "compact" | "default";
+
+/** The word chip, the wallpaper tile's; `mini` is its small glyph badge. */
+const CHIP_SIZE: Record<MediaMarkSize, { box: string; icon: string; word: boolean }> = {
+  mini: { box: "bottom-1 left-1 size-5 justify-center", icon: "size-2.5", word: false },
+  compact: { box: "bottom-1.5 left-1.5 gap-1 px-1.5 py-0.5", icon: "size-2.5", word: true },
+  default: { box: "bottom-2 left-2 gap-1 px-2 py-0.5", icon: "size-3", word: true },
+};
+
+/**
+ * The same chip on a surface instead of on artwork — for a card that has no
+ * cover to wear it on, where it sits in the caption's line.
+ */
+const SURFACE_CHIP =
+  "bg-foreground/[0.06] text-muted-foreground ring-1 ring-border/50 dark:bg-white/[0.08]";
+
+export function MediaMark({
+  mark,
+  size = "default",
+  inline = false,
+  className,
 }: {
-  size: MediaMarkSize;
-  icon: typeof Presentation;
-  label: string;
+  mark: MediaMarkSpec | null | undefined;
+  size?: MediaMarkSize;
+  /** In the flow of a caption line rather than on a cover. */
+  inline?: boolean;
+  className?: string;
 }) {
+  if (!mark) return null;
   const stop = CHIP_SIZE[size];
+  const Icon = mark.icon;
+  if (inline) {
+    return (
+      <span
+        aria-hidden
+        className={cn(
+          "inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-px",
+          "font-mono text-[10px] uppercase tracking-wider whitespace-nowrap leading-none",
+          SURFACE_CHIP,
+          className,
+        )}
+      >
+        <Icon
+          className={cn("size-2.5", mark.fill && "translate-x-px")}
+          strokeWidth={2.25}
+          fill={mark.fill ? "currentColor" : "none"}
+        />
+        {mark.label}
+      </span>
+    );
+  }
   return (
     <span
       aria-hidden
       className={cn(
-        "pointer-events-none absolute inline-flex items-center gap-1",
-        "bg-black/55 font-mono text-[10px] uppercase tracking-wide text-white/90 ring-1 ring-white/15 backdrop-blur-sm",
+        "pointer-events-none absolute z-10 flex items-center rounded-full",
+        "font-mono text-[10px] uppercase tracking-wider whitespace-nowrap",
+        ARTWORK_CHIP,
         stop.box,
+        className,
       )}
     >
-      <Icon className={stop.icon} />
-      {stop.word && label}
+      <Icon
+        className={cn(stop.icon, mark.fill && "translate-x-px")}
+        strokeWidth={2.25}
+        fill={mark.fill ? "currentColor" : "none"}
+      />
+      {stop.word && mark.label}
     </span>
   );
-}
-
-export function MediaMark({
-  kind,
-  size = "default",
-  tone = "dark",
-  className,
-}: {
-  kind: MediaKind;
-  size?: MediaMarkSize;
-  /** The play disc's material — dark on log covers, glass on the stage's. */
-  tone?: MediaMarkTone;
-  /** Merged into the play disc (e.g. a hover scale); the chip takes none. */
-  className?: string;
-}) {
-  switch (kind) {
-    case "video":
-      return <PlayBadge size={size} tone={tone} className={className} />;
-    case "slides":
-      return <KindChip size={size} icon={Presentation} label="Slides" />;
-    default:
-      return null;
-  }
 }

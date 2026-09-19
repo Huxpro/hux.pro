@@ -24,6 +24,9 @@ import {
 // "keep listening" hint. In the Live Activity the same view shows Volume2
 // + Audio / 声音 — that surface already *is* the audio activity.
 //
+// A deck has no audio to keep: for it the third view is plainly Minimize,
+// icon and word, everywhere (`deck`).
+//
 // The highlight is one absolutely-positioned ball. It animates x/width when
 // `current` changes. It does NOT use layoutId — a shared-element projection
 // would also tween when the parent PiP window is dragged, so the ball trails
@@ -54,6 +57,8 @@ interface SurfaceSwitchProps {
   tone?: "default" | "onDark";
   /** Text labels (Live Activity). Icon-only in the tight PiP / theater bars. */
   labels?: boolean;
+  /** The track is a deck: the minimized view is Minimize, not Audio. */
+  deck?: boolean;
   /**
    * When false, no outer track — parent already provides the capsule
    * (one window toolbar instead of nested glass).
@@ -68,6 +73,7 @@ export function SurfaceSwitch({
   theaterAvailable = true,
   tone = "default",
   labels = false,
+  deck = false,
   framed = true,
   className,
   onSelect,
@@ -143,13 +149,16 @@ export function SurfaceSwitch({
       {surfaces.map((surface) => {
         const active = surface === current;
         const Icon =
-          surface === "mini" && !labels ? Minimize2 : ICONS[surface];
-        const label = t(locale, LABEL_KEY[surface]);
+          surface === "mini" && (deck || !labels) ? Minimize2 : ICONS[surface];
+        const label = t(
+          locale,
+          surface === "mini" && deck ? "theaterSurfaceMinimize" : LABEL_KEY[surface],
+        );
         const named = (key: "theaterSurfaceNow" | "theaterSurfaceGo") =>
           t(locale, key).replace("{surface}", label);
         const hint =
           surface === "mini" && !labels
-            ? t(locale, "theaterSurfaceMiniHint")
+            ? t(locale, deck ? "theaterSurfaceMinimizeHint" : "theaterSurfaceMiniHint")
             : undefined;
 
         return (

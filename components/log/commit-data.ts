@@ -108,7 +108,7 @@ export interface NormalizedCommit {
   stripItems: StripItem[];
 
   // Compact rendering
-  thumbnail?: { url: string; linkUrl?: string; isVideo?: boolean };
+  thumbnail?: { url: string; linkUrl?: string; media: Media };
   secondaryLine?: string;
 }
 
@@ -247,19 +247,19 @@ function getPlatformIcon(platform: string): string {
  */
 function deriveThumbnail(
   media: Media[],
-): { url: string; linkUrl?: string; isVideo?: boolean } | undefined {
+): { url: string; linkUrl?: string; media: Media } | undefined {
   for (const m of media) {
     if (isPlayableMedia(m) || isImageMedia(m)) {
       const thumb = getMediaThumbnail(m);
-      if (thumb) return { url: thumb, linkUrl: m.url, isVideo: isPlayableMedia(m) };
+      if (thumb) return { url: thumb, linkUrl: m.url, media: m };
     }
   }
   for (const m of media) {
     if (isLinkMedia(m) && m.present === "card") {
       const thumb = getMediaThumbnail(m);
-      // A card cover pointing at a talk-recording host (GitNation) reads as a
-      // video in the compact cover, matching the play affordance on the card.
-      if (thumb) return { url: thumb, linkUrl: m.url, isVideo: isPlayableMedia(m) };
+      // The cover wears the card's own chip: a card pointing at a talks host
+      // (GitNation) reads as the recording it is (media-mark.tsx).
+      if (thumb) return { url: thumb, linkUrl: m.url, media: m };
     }
   }
   return undefined;

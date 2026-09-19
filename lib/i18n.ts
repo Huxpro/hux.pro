@@ -94,6 +94,9 @@ export const translations = {
     theaterSurfacePip: "PiP",
     theaterSurfaceMini: "Audio",
     theaterSurfaceMiniHint: "Minimize — audio keeps playing",
+    theaterSurfaceMinimize: "Minimize",
+    theaterSurfaceMinimizeHint: "Minimize — the deck stays open",
+    theaterDeck: "slides",
     theaterSurfaceNow: "Now in {surface}",
     theaterSurfaceGo: "Switch to {surface}",
     widgetEditDone: "Done",
@@ -317,6 +320,7 @@ export const translations = {
     identityCommits: "commits signed",
     // Links that leave the site (see systems/attachments)
     linkOpensInTab: "Opens in a new tab",
+    linkNewTab: "New tab",
     linkFrameDenied: "{host} does not allow being shown in a window",
 
     // Prompts page
@@ -385,6 +389,9 @@ export const translations = {
     theaterSurfacePip: "画中画",
     theaterSurfaceMini: "声音",
     theaterSurfaceMiniHint: "缩小，声音继续播放",
+    theaterSurfaceMinimize: "缩小",
+    theaterSurfaceMinimizeHint: "缩小，幻灯片保持打开",
+    theaterDeck: "幻灯片",
     theaterSurfaceNow: "当前：{surface}",
     theaterSurfaceGo: "切换到{surface}",
     widgetEditDone: "完成",
@@ -605,6 +612,7 @@ export const translations = {
     identityCommits: "条署名提交",
     // Links that leave the site (see systems/attachments)
     linkOpensInTab: "在新标签页打开",
+    linkNewTab: "新标签页",
     linkFrameDenied: "{host} 不允许在窗口中显示",
 
     // Prompts page

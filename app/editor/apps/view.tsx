@@ -9,8 +9,9 @@
 //
 // Four things on the stage, none of them mocks:
 //
-//   vocabulary   the mark each kind of cover wears (media-mark.tsx), at each
-//                size and tone, on the log's own covers.
+//   vocabulary   the chip each kind of cover wears (media-mark.tsx), at each
+//                size, on the log's own covers — and the `New tab` chip a
+//                cover wears when its press leaves the site.
 //   homes        the policy (systems/attachments/lib/policy.ts) as a table —
 //                where a tap lands and where the surface's button sends it —
 //                for a context you set: phone or not, a theater, a window
@@ -27,12 +28,13 @@
 import { Field, Section, Segmented, Toggle } from "@/app/editor/icon/controls";
 import { LinkCardFromMedia } from "@/components/log/media/link";
 import {
+  markFor,
   MEDIA_KINDS,
   MediaMark,
-  mediaKindOf,
+  newTabMark,
   type MediaKind,
   type MediaMarkSize,
-  type MediaMarkTone,
+  type MediaMarkSpec,
 } from "@/components/log/media/media-mark";
 import { MediaStrip } from "@/components/log/media/media-strip";
 import { SlidesFromMedia } from "@/components/log/media/slides";
@@ -110,11 +112,11 @@ const SAMPLE_LABEL: Record<keyof LabSamples, string> = {
   social: "social widget",
 };
 
-/** What each mark means, in a line. */
+/** What each kind is, in a line. */
 const KIND_MEANING: Record<MediaKind, string> = {
-  video: "plays, on the stage",
+  video: "plays, on the stage — the chip is its platform",
   slides: "presents, on the stage",
-  web: "a page — the card is the hint",
+  web: "a page, in the in-app browser",
   post: "a page of this site",
   image: "what you see is the thing",
   social: "a live widget",
@@ -174,18 +176,16 @@ function Note({ children }: { children: React.ReactNode }) {
   return <p className="max-w-prose text-xs leading-relaxed text-muted-foreground">{children}</p>;
 }
 
-/** A cover to wear a mark on: the sample's own image, or a plain ground. */
+/** A cover to wear a chip on: the sample's own image, or a plain ground. */
 function CoverTile({
   image,
-  kind,
+  mark,
   size,
-  tone,
   className,
 }: {
   image: string | null;
-  kind: MediaKind;
+  mark: MediaMarkSpec | null;
   size: MediaMarkSize;
-  tone: MediaMarkTone;
   className?: string;
 }) {
   return (
@@ -201,7 +201,7 @@ function CoverTile({
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-muted/60 to-muted/10" />
       )}
-      <MediaMark kind={kind} size={size} tone={tone} />
+      <MediaMark mark={mark} size={size} />
     </div>
   );
 }
@@ -227,18 +227,13 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
 
   // The vocabulary's knobs.
   const [size, setSize] = useState<MediaMarkSize>("default");
-  const [tone, setTone] = useState<MediaMarkTone>("dark");
+  const [all, setAll] = useState(true);
   const [withImage, setWithImage] = useState(true);
 
   // The policy's context: starts live, and can be taken anywhere.
   const live: HomeContext = useMemo(
-    () => ({
-      compact: liveCompact,
-      theaterAvailable: theater?.theaterAvailable ?? false,
-      windows: !!windows,
-      locale,
-    }),
-    [liveCompact, theater?.theaterAvailable, windows, locale],
+    () => ({ compact: liveCompact, windows: !!windows, locale }),
+    [liveCompact, windows, locale],
   );
   const [override, setOverride] = useState<Partial<HomeContext>>({});
   const ctx: HomeContext = { ...live, ...override };
@@ -258,12 +253,17 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
     [items],
   );
   const stripItems = useMemo(() => getMediaStripItems(items, locale), [items, locale]);
+  const sampleFor = (kind: MediaKind): Media | undefined => samples[kind];
   const imageFor = (kind: MediaKind): string | null => {
-    const key = (
-      { video: "video", slides: "slides", web: "web", post: "post", image: "image", social: "social" } as const
-    )[kind];
-    const m = samples[key];
+    const m = sampleFor(kind);
     return withImage && m ? getMediaThumbnail(m) : null;
+  };
+  /** The chip a kind's cover wears: read off the sample when the log has one. */
+  const markOf = (kind: MediaKind): MediaMarkSpec | null => {
+    const m = sampleFor(kind);
+    if (m) return markFor(m, locale, { all });
+    if (kind === "web" && all) return markFor({ kind: "link", url: "https://example.com", present: "card" }, locale, { all });
+    return null;
   };
 
   return (
@@ -282,8 +282,8 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
           <div className="font-mono text-[11px] text-muted-foreground">
             {mounted && (
               <>
-                {live.compact ? "phone" : "sm+"} · theater {live.theaterAvailable ? "on" : "off"} · windows{" "}
-                {live.windows ? "on" : "off"}
+                {live.compact ? "phone" : "sm+"} · stage {theater?.theaterAvailable ? "theater" : "pip"} ·
+                windows {live.windows ? "on" : "off"}
               </>
             )}
             {pinned && <span className="ml-2 text-amber-500/90">· policy pinned</span>}
@@ -296,26 +296,34 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {MEDIA_KINDS.map((kind) => (
               <div key={kind}>
-                <CoverTile image={imageFor(kind)} kind={kind} size={size === "mini" ? "default" : size} tone={tone} />
+                <CoverTile image={imageFor(kind)} mark={markOf(kind)} size={size === "mini" ? "default" : size} />
                 <div className="mt-2 font-mono text-[11px] text-foreground">{kind}</div>
                 <div className="text-[11px] text-muted-foreground">{KIND_MEANING[kind]}</div>
               </div>
             ))}
+            <div>
+              <CoverTile image={imageFor("web")} mark={newTabMark(locale)} size={size === "mini" ? "default" : size} />
+              <div className="mt-2 font-mono text-[11px] text-foreground">leaves</div>
+              <div className="text-[11px] text-muted-foreground">a page that refuses framing — the press opens a tab</div>
+            </div>
           </div>
           <div className="mt-6">
             <Label>The contact strip: 56px covers, and the chip keeps its glyph</Label>
             <div className="flex flex-wrap gap-2">
               {MEDIA_KINDS.map((kind) => (
-                <CoverTile key={kind} image={imageFor(kind)} kind={kind} size="mini" tone={tone} />
+                <CoverTile key={kind} image={imageFor(kind)} mark={markOf(kind)} size="mini" />
               ))}
+              <CoverTile image={imageFor("web")} mark={newTabMark(locale)} size="mini" />
             </div>
           </div>
           <div className="mt-4">
             <Note>
-              One vocabulary, drawn by one component. A video wears the play disc, centred; a deck wears the
-              `Slides` chip at the bottom left and no disc, because a deck is not watched. A page wears nothing:
-              its card — domain, title — is the hint, and its button says `Visit`. The mark never says where
-              the thing opens; the policy below does.
+              One chip, drawn by one component, the same chip a wallpaper tile wears for Live / Preset. On
+              `/works` only a recording and a deck are marked — a recording by its platform, so a talk says
+              where it was recorded — and a card is its own hint. Standing alone, in the hover peek or on the
+              attachment sheet&rsquo;s page, every cover wears one, and a page that will leave for a tab says
+              `New tab` in its chip rather than in a line of prose. The chip says what the thing is; the policy
+              below says where it opens.
             </Note>
           </div>
         </section>
@@ -337,7 +345,6 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
                 {SAMPLE_ORDER.map((key) => {
                   const m = samples[key];
                   if (!m) return null;
-                  const kind = mediaKindOf(m);
                   return (
                     <tr key={key} className="border-t border-border/40">
                       <td className="px-3 py-2">
@@ -345,7 +352,7 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
                         <div className="max-w-[28ch] truncate font-mono text-[10px] text-tertiary-foreground">{m.url}</div>
                       </td>
                       <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">
-                        {kind === "video" ? "play disc" : kind === "slides" ? "Slides chip" : "—"}
+                        {markFor(m, locale, { leaves: nativeHomeFor(m, ctx) === "tab" })?.label ?? "—"}
                       </td>
                       <td className="px-3 py-2">
                         {mounted && <HomeChip home={homeFor(m, ctx)} compact={ctx.compact} />}
@@ -362,9 +369,9 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
           <div className="mt-4">
             <Note>
               Read live from `homeFor` and `nativeHomeFor`. On a phone every tap opens the attachment sheet and
-              the button sends the item on: a video to the theater (a PiP there), a page to the in-app browser —
-              a window is a sheet on a phone, and it stacks on the attachment sheet — and only a page that refuses
-              to be framed leaves for a tab, which the page says in a line before the button is pressed.
+              the button sends the item on: a recording or a deck to the stage (a PiP there), a page to the
+              in-app browser — a window is a sheet on a phone, and it stacks on the attachment sheet — and only
+              a page that refuses to be framed leaves for a tab, which its chip says before the button is pressed.
             </Note>
           </div>
         </section>
@@ -503,16 +510,7 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
               ]}
             />
           </Field>
-          <Field label="Tone" hint={tone === "glass" ? "the stage's" : "the log's"}>
-            <Segmented
-              value={tone}
-              onChange={setTone}
-              options={[
-                { value: "dark", label: "dark" },
-                { value: "glass", label: "glass" },
-              ]}
-            />
-          </Field>
+          <Toggle value={all} onChange={setAll} label="Every kind, as a peek or a sheet page" />
           <Toggle value={withImage} onChange={setWithImage} label="On the log's covers" />
         </Section>
         <Section title="Policy context">
@@ -526,11 +524,6 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
               ]}
             />
           </Field>
-          <Toggle
-            value={mounted && ctx.theaterAvailable}
-            onChange={(v) => setOverride((o) => ({ ...o, theaterAvailable: v }))}
-            label="A theater can put up its stage"
-          />
           <Toggle
             value={ctx.windows}
             onChange={(v) => setOverride((o) => ({ ...o, windows: v }))}

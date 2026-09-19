@@ -4,12 +4,13 @@ import { ExternalImage } from "@/components/log/media/external-image";
 import { SocialEmbed } from "@/components/log/media/embed";
 import {
   linkKindOf,
+  markFor,
   MediaMark,
   type MediaKind,
+  type MediaMarkSpec,
 } from "@/components/log/media/media-mark";
 import { PeekCover } from "@/components/log/media/peek-cover";
 import { cn } from "@/lib/utils";
-import type { Locale } from "@/lib/i18n";
 import { t, useLocale } from "@/services";
 import {
   getMediaThumbnail,
@@ -55,11 +56,13 @@ import { useAttachments } from "../provider";
 // material the PiP bar and the Live Activity wear. The surface and the stage
 // are one system, and their controls should say so.
 //
-// The primary action's glyph is where it goes, not what the item is: a play
-// mark for the stage, a globe for the in-app browser, a book for a post of
-// this site, and the arrow out for the one case that leaves — a page that
-// refuses to be framed, which the page also says in a line of its own. The
-// cover wears the one mark every cover on the site wears (media-mark.tsx).
+// The cover wears the chip every cover on the site wears (media-mark.tsx),
+// and standing alone here it wears one whatever its kind: the platform on a
+// recording, `Slides` on a deck, `Web` on a page, and `New tab` on the one
+// case that leaves — a page that refuses to be framed — so the page says
+// where the button goes before it is pressed, in the chip and nowhere else.
+// The button's glyph is what the item is: a play mark, the deck glyph, a
+// globe for the in-app browser, a book for a post, the arrow out for a tab.
 // =============================================================================
 
 interface AttachmentPageProps {
@@ -67,17 +70,17 @@ interface AttachmentPageProps {
   index: number;
 }
 
-/** A cover the page action opens — a stage-shaped 16:9 box wearing its mark. */
+/** A cover the page action opens — a stage-shaped 16:9 box wearing its chip. */
 function Cover({
   image,
   label,
-  kind,
+  mark,
   onOpen,
 }: {
   image: string | null;
   label: string;
-  /** What the cover is, for its mark: a play disc, the `Slides` chip. */
-  kind: MediaKind;
+  /** The cover's chip (media-mark.tsx). */
+  mark: MediaMarkSpec | null;
   onOpen: () => void;
 }) {
   return (
@@ -103,36 +106,21 @@ function Cover({
           <Presentation className="h-10 w-10 text-tertiary-foreground" />
         </span>
       )}
-      <span className="absolute inset-0 bg-black/0 transition-colors group-hover/thumb:bg-black/10">
-        <MediaMark
-          kind={kind}
-          tone="glass"
-          className="transition-transform group-hover/thumb:scale-105"
-        />
-      </span>
+      <span className="absolute inset-0 bg-black/0 transition-colors group-hover/thumb:bg-black/10" />
+      <MediaMark mark={mark} />
     </button>
   );
 }
 
-/** The glyph on the primary action: where the item goes. */
+/** The glyph on the primary action: what the item is, and where it goes. */
 function homeIcon(home: AttachmentHome, kind: MediaKind): ReactNode {
-  if (home === "theater" || kind === "video") {
+  if (kind === "slides") return <Presentation className="h-3.5 w-3.5" />;
+  if (kind === "video") {
     return <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />;
   }
-  if (kind === "slides") return <Presentation className="h-3.5 w-3.5" />;
   if (home === "route") return <BookOpen className="h-3.5 w-3.5" />;
   if (home === "window") return <Globe className="h-3.5 w-3.5" />;
   return <ArrowUpRight className="h-3.5 w-3.5" />;
-}
-
-/** The line a page prints when its button will leave the site. */
-function LeavesNote({ locale }: { locale: Locale }) {
-  return (
-    <div className={cn("flex items-center gap-1", TYPE.labelSm)}>
-      <ArrowUpRight className="h-3 w-3" />
-      {t(locale, "linkOpensInTab")}
-    </div>
-  );
 }
 
 /** The action row: the primary action on the pill, the way out beside it. */
@@ -191,6 +179,9 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
 
   const open = () => act(set, index);
   const home = nativeHomeOf(set, index);
+  // Standing alone, the cover wears its chip whatever its kind — and says
+  // `New tab` when the button will leave the site.
+  const mark = markFor(media, locale, { all: true, leaves: home === "tab" });
 
   if (isVideoMedia(media) || isSlidesMedia(media)) {
     const kind: MediaKind = isSlidesMedia(media) ? "slides" : "video";
@@ -200,11 +191,10 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
         <Cover
           image={getMediaThumbnail(media)}
           label={label}
-          kind={kind}
+          mark={mark}
           onOpen={open}
         />
         <Meta set={set} />
-        {home === "tab" && <LeavesNote locale={locale} />}
         <Actions
           primary={{ label, icon: homeIcon(home, kind), onSelect: open }}
           href={media.url}
@@ -234,11 +224,12 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
               aspect={preview.aspect}
               className="rounded-none border-0"
             />
-            <MediaMark kind={kind} tone="glass" />
+            <MediaMark mark={mark} />
           </div>
         ) : (
-          <div className="flex aspect-[2/1] items-center justify-center rounded-xl border border-border/50 bg-muted/10">
+          <div className="relative flex aspect-[2/1] items-center justify-center rounded-xl border border-border/50 bg-muted/10">
             <ImageIcon className="h-8 w-8 text-quaternary-foreground" />
+            <MediaMark mark={mark} />
           </div>
         )}
         <div className="min-w-0 space-y-1">
@@ -250,7 +241,6 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
             </p>
           )}
         </div>
-        {home === "tab" && <LeavesNote locale={locale} />}
         <Actions
           primary={{ label, icon: homeIcon(home, kind), onSelect: open }}
           href={url}

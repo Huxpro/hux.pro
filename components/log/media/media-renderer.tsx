@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/services/theme";
-import { t, useLocale } from "@/services";
+import { useLocale } from "@/services";
 import { useOptionalTheater } from "@/systems/theater";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import type { Media } from "@/lib/log";
@@ -30,6 +30,7 @@ import {
 import { Video } from "./video";
 import { SocialEmbed } from "./embed";
 import { Link, LinkCard } from "./link";
+import { newTabMark } from "./media-mark";
 import { Figure } from "./image";
 import { Slides } from "./slides";
 
@@ -224,7 +225,7 @@ function SingleMedia({ media, theme, size, className, dense, set }: SingleMediaP
           image={preview?.image}
           internal={media.internal}
           onOpen={openAttachment}
-          note={leavesSite ? t(locale, "linkOpensInTab") : undefined}
+          mark={leavesSite ? newTabMark(locale) : undefined}
           className={className}
         />
       );

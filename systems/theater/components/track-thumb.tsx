@@ -1,7 +1,12 @@
 "use client";
 
 import { ExternalImage } from "@/components/log/media/external-image";
-import { MediaMark } from "@/components/log/media/media-mark";
+import {
+  MediaMark,
+  PLATFORM_LABEL as VIDEO_LABEL,
+  SLIDES_MARK,
+  videoMark,
+} from "@/components/log/media/media-mark";
 import { cn } from "@/lib/utils";
 import type { Track } from "../lib/types";
 
@@ -24,9 +29,7 @@ function sourceOf(track: Track): Source {
 }
 
 const PLATFORM_LABEL: Record<Source, string> = {
-  youtube: "YouTube",
-  bilibili: "bilibili",
-  vimeo: "Vimeo",
+  ...VIDEO_LABEL,
   slides: "Slides",
 };
 
@@ -78,24 +81,14 @@ export function TrackThumb({
           </span>
         </div>
       )}
-      {/* The mark every cover on the site wears (media-mark.tsx): a play
-          disc on a recording, the `Slides` chip on a deck, so a deck reads as
-          a deck beside the videos in a rail. */}
-      {track.kind === "slides" ? (
-        <MediaMark kind="slides" size="compact" />
-      ) : (
-        showBadge && (
-          <div
-            className={cn(
-              "absolute inset-0 bg-black/0 transition-colors group-hover/thumb:bg-black/10",
-              // When this track is the current one, let the cover win — play
-              // returns on hover so the affordance is still discoverable.
-              active && "opacity-0 group-hover/thumb:opacity-100",
-            )}
-          >
-            <MediaMark kind="video" size="compact" tone="glass" />
-          </div>
-        )
+      {/* The chip every cover on the site wears (media-mark.tsx): the
+          platform on a recording, `Slides` on a deck, so a deck reads as a
+          deck beside the videos in a rail. */}
+      {showBadge && (
+        <MediaMark
+          mark={track.kind === "slides" ? SLIDES_MARK : videoMark(track.platform)}
+          size="compact"
+        />
       )}
     </div>
   );
