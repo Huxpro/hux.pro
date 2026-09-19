@@ -298,12 +298,11 @@ export const translations = {
     logHead: "HEAD",
     logCurrent: "Current",
     logInit: "git init",
-    // Toolbar: type filter + density (see components/log/works-toolbar.tsx)
+    // Toolbar: type filter + form (see components/log/works-toolbar.tsx)
     logFilterLabel: "Filter by type",
     logFilterClear: "Clear filter",
     logFormLabel: "View",
     logFormIndex: "Index",
-    logFormBrief: "Brief",
     logFormCovers: "Covers",
     logFormFeed: "Feed",
     logNoMatches: "no commits match this filter.",
@@ -592,12 +591,11 @@ export const translations = {
     logHead: "HEAD",
     logCurrent: "当前",
     logInit: "git init",
-    // Toolbar: type filter + density (see components/log/works-toolbar.tsx)
+    // Toolbar: type filter + form (see components/log/works-toolbar.tsx)
     logFilterLabel: "按类型筛选",
     logFilterClear: "清除筛选",
     logFormLabel: "视图",
     logFormIndex: "索引",
-    logFormBrief: "摘要",
     logFormCovers: "封面",
     logFormFeed: "信息流",
     logNoMatches: "没有符合筛选条件的提交。",

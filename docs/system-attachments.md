@@ -187,22 +187,21 @@ with no cover to wear it on carries the chip in its caption line. The
 chip says what the thing is; the policy above says where it opens, and the
 two never trade jobs.
 
-## The four forms of /works
+## The three forms of /works
 
-How much of a commit the page prints is one of four *forms*, and a form is
-a preset of a few independent atoms rather than a layout of its own
+How much of a commit the page prints is one of three *forms*, and a form
+is a preset of a few independent atoms rather than a layout of its own
 (`ROW_FORM`, `lib/log-view.ts`): what of the description prints (`none` ·
-`clamp` · `full`), which attachment object (`none` · `thumbs` · `covers` ·
-`grid`), whether the notes print (commentary, the author fields, the link
-labels), and whether anything peeks on hover. The toolbar's control resets
-every row to a preset; a row the reader opens by hand takes the `feed`
-preset for itself. Old links with git's names (`oneline`, `stat`, `patch`)
-still parse, as aliases.
+`clamp` · `full`), which attachment object (`none` · `covers` · `grid`),
+whether the notes print (commentary, the author fields, the link labels),
+and whether anything peeks on hover. The toolbar's control resets every
+row to a preset; a row the reader opens by hand takes the `feed` preset
+for itself. Old links with git's names (`oneline`, `stat`, `patch`) still
+parse, as aliases.
 
 | form | description | media | notes | peek | the reading |
 |---|---|---|---|---|---|
 | `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |
-| `brief` | two lines | `thumbs` — 56px tiles, glyph chip | — | ✓ | text first, a thumbnail beside it: the LinkedIn reading |
 | `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
 | `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet |
 
@@ -216,17 +215,21 @@ show whole — and one aspect for every kind is what lets a video sit beside
 a card, and a row of tiles line up with the next row's. The form decides the
 size and the caption, never the shape.
 
-**The strip** (`MediaStrip`, `brief` and `covers`) is the tiles in a row
-with no caption — the chip is enough at that size, and the peek shows the
-rest. When the covers are wider than the column the strip scrolls, and its
-track runs to the edge of the page rather than the column, so a cover is
-only ever cut by the screen: a row cut mid-page reads as a mistake, the
-same row running under the edge reads as a rail there is more of. The
-handle signs the strip's line only when a single cover leaves it the room
-on any viewport; otherwise it stays on the meta line.
+**The strip** (`MediaStrip`, `covers`) is the tiles in a row with no
+caption — the chip is enough at that size, and the peek shows the rest.
+When the covers are wider than the column the strip runs on under the
+page's bleed (`--page-bleed`, globals.css: from the column's edge to the
+viewport's), so a cover is only ever cut by the screen: on a phone the
+strip reaches the gutter's edge and scrolls; on a desk it runs into the
+margin, where three covers simply fit. A row cut mid-page reads as a
+mistake, the same row running under the edge reads as a rail there is
+more of. The handle signs the strip's line only when a single cover
+leaves it the room on any viewport; otherwise it stays on the meta line.
 
-**The grid** (`AttachmentGrid`, `feed`) is where the captions are written
-out — where it is from, what it is, its blurb — and where nothing needs a
+**The grid** (`AttachmentGrid`, `feed`) takes the row's own strip items —
+the timeline hands it `stripItems` directly, and what has no cover (a live
+widget) goes to `MediaRenderer` under it. It is where the captions are
+written out — where it is from, what it is, its blurb — and where nothing needs a
 second step: the chip is down to the glyph on a recording or a deck (a
 play mark is an affordance, not information) and gone from a card, and a
 click is the item's native action (`act`: the stage, the in-app browser,
@@ -248,13 +251,20 @@ what is already on screen.
   pressing play moves nothing — names the item and carries one control,
   `PiP`, which hands playback to the stage (`act`) for whoever wants to
   keep scrolling and stops the inline player so the two never play at
-  once. A card goes to its native home.
+  once. While the item is on the stage its place in the feed says so (a
+  wash and the PiP mark over the cover, read off `useOptionalTheaterStage`
+  — the stage's occupant and its doors, without the ticking clock that the
+  full theater context carries), and pressing it brings playback back. A
+  card goes to its native home.
 
 Before this, one card was full width and natural aspect, a video was full
 width and 16:9, two of anything was a scroll rail at half width with the
 publisher's caption deciding each tile's height — so every open row was a
-different shape and no two right edges met. What has no cover (a live
-social widget, a still) still stacks under the grid at full width.
+different shape and no two right edges met.
+
+Every tile is drawn from a `TileSlot` (`resolveTile`): its place in the
+set, where its click lands, its chip and its caption, resolved once per
+item by the strip or the grid rather than once per tile per render.
 
 ### The gutter
 
@@ -265,6 +275,33 @@ the page column's own left edge, in line with the era markers and with
 every other page's prose. Below `lg` there is no margin to hang it in and
 the gutter stays inside the column; below the row's `@sm` the hash hides,
 as it always did.
+
+## What the page costs to scroll
+
+The wallpaper is a canvas animating under the whole page, so every frame
+already carries a composite; what the log puts on top decides whether the
+frame is spent by then. Three rules keep the feed scrolling on a phone:
+
+- **No `backdrop-filter` on a cover's chip.** Every cover wore a 2px blur
+  under its chip — twenty-odd backdrop roots scrolling over full-bleed
+  bitmaps. A translucent fill reads the same and costs a fill.
+- **Open rows render near the viewport only.** The open row's body
+  (`data-row-lazy`) carries `content-visibility: auto` with a remembered
+  intrinsic size, so an off-screen cover is neither laid out nor decoded
+  nor layered until it is about to show. The folded strip is not marked:
+  112px of images gains little and would pay the resize.
+- **A peek panel exists only while it peeks.** `Cursor` used to keep a
+  fixed, transformed panel mounted for every row — fifty compositing
+  layers on a desk before anyone hovered. Idle, it is a hidden span.
+
+And the rest, each small: covers decode off the main thread
+(`decoding="async"`); the sticky era pill's frosted blur is `sm:` and up;
+nothing that only sends something to the stage subscribes to the ticking
+theater context (`useOptionalTheaterStage`); no peek tree is built where
+no pointer can hover (the row's, the strip's, the handle's); one handle
+per row rather than a second, invisible one; a connector observes its
+container alone. The trace in the PR shows where the rest goes — the
+wallpaper's canvas, which every page pays alike.
 
 ## The lab
 

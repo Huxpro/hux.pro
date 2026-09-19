@@ -26,7 +26,7 @@ import {
 // A row is made of a few independent parts: the title line (always), the
 // description, the attachment object, the notes under it, and whether it
 // peeks on hover. Each part has its own small set of states (`RowForm`), and
-// a *form* is one preset of all of them — so the four readings of the page
+// a *form* is one preset of all of them — so the three readings of the page
 // are compositions of the same atoms, and switching form is resetting every
 // row to a preset rather than four hand-made layouts. A row the reader opens
 // by hand is the same thing at a smaller scale: it takes the `feed` preset
@@ -35,8 +35,6 @@ import {
 //  - `index`  — the title line only. The overview: one row per commit, the
 //    whole career in two screens. Rich media is reachable but not shown
 //    (hover peek on a pointer device, or open the row).
-//  - `brief`  — text first: the title, two lines of what it is, and a strip
-//    of small thumbs with glyph chips. The LinkedIn reading.
 //  - `covers` — the default: the title, two lines, and the covers at a size
 //    you can recognise a slide or a screenshot at. Still one row per commit,
 //    so the overview survives, but the work is on screen rather than behind
@@ -50,7 +48,7 @@ import {
 // `-p`); those names still parse, as aliases, so old links keep working.
 // =============================================================================
 
-export const LOG_FORMS = ["index", "brief", "covers", "feed"] as const;
+export const LOG_FORMS = ["index", "covers", "feed"] as const;
 
 export type LogForm = (typeof LOG_FORMS)[number];
 
@@ -61,11 +59,10 @@ export interface RowForm {
   /** What of the description prints: nothing, two lines, or all of it. */
   description: "none" | "clamp" | "full";
   /**
-   * The attachment object: nothing, the strip at two sizes (`thumbs` is the
-   * 56px glyph-chip strip, `covers` the 112px one), or the grid — the feed's
-   * half-column tiles with their captions written out.
+   * The attachment object: nothing, the strip of covers, or the grid — the
+   * feed's half-column tiles with their captions written out.
    */
-  media: "none" | "thumbs" | "covers" | "grid";
+  media: "none" | "covers" | "grid";
   /** The notes under the message: commentary, the author fields, the link
    *  labels beside the rail icons. */
   notes: boolean;
@@ -76,10 +73,22 @@ export interface RowForm {
 
 export const ROW_FORM: Record<LogForm, RowForm> = {
   index: { description: "none", media: "none", notes: false, peek: true },
-  brief: { description: "clamp", media: "thumbs", notes: false, peek: true },
   covers: { description: "clamp", media: "covers", notes: false, peek: true },
   feed: { description: "full", media: "grid", notes: true, peek: false },
 };
+
+/**
+ * The feed is the form with every row open, and an open row is the feed at
+ * row scale: one rule, read from both ends. The page asks whether a form
+ * opens its rows; a row asks what its atoms are given whether it is open.
+ */
+export function formOpensRows(form: LogForm): boolean {
+  return form === "feed";
+}
+
+export function rowFormFor(form: LogForm, open: boolean): RowForm {
+  return ROW_FORM[open ? "feed" : form];
+}
 
 /** The git flags the forms were first named after — old links carry them. */
 const FORM_ALIAS: Record<string, LogForm> = {

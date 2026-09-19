@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
-import { DEFAULT_FORM, ROW_FORM, type LogForm } from "@/lib/log-view";
+import { DEFAULT_FORM, rowFormFor, type LogForm } from "@/lib/log-view";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
@@ -26,6 +26,7 @@ import {
   AuthorFields,
 } from "./embeds/shared";
 import { MediaRenderer } from "./media";
+import { AttachmentGrid } from "./media/attachment-grid";
 import { MediaStrip } from "./media/media-strip";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
@@ -173,7 +174,7 @@ export function TimelineCommit({
 
   // Seeded from `expandAll`, not just `defaultExpanded`: the reconciliation
   // below only fires when the prop *changes*, so a row mounting with
-  // `expandAll` already true (someone opened `/works?view=patch` directly, or
+  // `expandAll` already true (someone opened `/works?view=feed` directly, or
   // navigated in) would otherwise sit collapsed with no flip ever coming.
   const [isExpandedState, setIsExpanded] = useState(
     defaultExpanded || (expandAll === true && hasExpandableContent),
@@ -233,35 +234,34 @@ export function TimelineCommit({
         : undefined;
 
   // The row's form: the page's, unless the reader opened this row, in which
-  // case it is the feed for itself — a form is a preset of the row's atoms
-  // (lib/log-view.ts), and an open row is the same preset at row scale.
-  // Everything below reads those atoms and nothing reads the form's name.
-  const rowForm = ROW_FORM[isExpanded ? "feed" : form];
+  // case it is the feed for itself (`rowFormFor`, lib/log-view.ts — a form
+  // is a preset of the row's atoms, and an open row is the same preset at
+  // row scale). Everything below reads those atoms and nothing reads the
+  // form's name, or `isExpanded` again: the feed's atoms already say
+  // "no strip, no clamp, no peek".
+  const rowForm = rowFormFor(form, isExpanded);
 
-  // What the folded forms add under the title line: the description at two
-  // lines, and the strip at one of its sizes. Both or either — a commit with
-  // no media still gets its description, so a form is "title, what, and
-  // what it looks like" rather than "title, and covers if any".
+  // What the folded form adds under the title line: the description at two
+  // lines, and the strip of covers. Both or either — a commit with no media
+  // still gets its description, so a form is "title, what, and what it
+  // looks like" rather than "title, and covers if any".
   //
   // Events are out. They are datelines between commits, not works, which is
   // the same reason they get no filter chip; giving one a caption would
   // promote punctuation to a paragraph.
-  const folded = !isExpanded && !isEvent;
-  const stripSize =
-    rowForm.media === "thumbs" || rowForm.media === "covers"
-      ? rowForm.media
-      : null;
-  // The strip is the folded forms' own: while the row is open the feed's
+  //
+  // The strip is the folded form's own: while the row is open the feed's
   // grid shows the real thing, and a row of miniatures of what is directly
   // below it is noise.
-  const showStrip = folded && !!stripSize && data.stripItems.length > 0;
+  const showStrip =
+    !isEvent && rowForm.media === "covers" && data.stripItems.length > 0;
   const showStatDescription =
-    folded && rowForm.description === "clamp" && !!data.description;
+    !isEvent && rowForm.description === "clamp" && !!data.description;
   // Where the handle signs: the bottom-right of the row, which is the media
   // line when a single cover leaves it the room — on any viewport — and the
   // meta line when there is more than one, since two covers may already be
   // the width of a phone and the strip then scrolls under the edge.
-  const signsOnMediaLine = showStrip && !!byline && data.stripItems.length === 1;
+  const signsOnMediaLine = showStrip && data.stripItems.length === 1;
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
   // has no peek at all (`rowForm.peek`): it has printed everything one
@@ -269,9 +269,13 @@ export function TimelineCommit({
   // which no form prints.
   const showCursorPreview =
     !!cursorPreview &&
-    !isExpanded &&
     rowForm.peek &&
     (data.type === "role" || (!showStrip && !showStatDescription));
+  // The feed's covers are the row's own strip items; what has no cover (a
+  // live widget) stacks under the grid. The editor's inspect mode keeps the
+  // classic renderer for everything, since its handles live there.
+  const tiled = new Set(data.stripItems.map((item) => item.media));
+  const stacked = expandedMedia.filter((m) => !tiled.has(m));
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
@@ -359,7 +363,7 @@ export function TimelineCommit({
         aligned with the commit rows around it.
 
         Where the page has margins (`lg`), the hash and the rail hang in the
-        left one as marginalia — `GUTTER_W` wide, so the row can be pulled
+        left one as marginalia — a fixed width, so the row can be pulled
         left by exactly that and the title lands on the page column's own
         left edge, in line with the era markers and every other page's prose.
         A git log prints the graph and the hash before the subject too; what
@@ -606,16 +610,17 @@ export function TimelineCommit({
           {/* The handle has three places it could sign and wears exactly
               one at a time. Folded with no covers under it, it is here: a
               compact mark stacked horizontally on the meta line, under the
-              date. With covers, it moves to the foot of the strip; open, it
+              date. With a cover, it moves to the foot of the strip; open, it
               transposes into the vertical `Author:` / `Role:` stack at the
-              foot of the body. Each of the other two makes this one stand
-              down, so the same handle is never printed twice forty pixels
-              apart, which is what the folded/expanded pair used to do. */}
-          <Handle
-            byline={byline}
-            standDown={isExpanded || signsOnMediaLine}
-            className="text-tertiary-foreground"
-          />
+              foot of the body. While one of the other two is signing, this
+              slot holds only the line's height — not a second, invisible
+              handle with a peek of its own — so the line beneath never
+              moves and the same handle is never mounted twice. */}
+          {isExpanded || signsOnMediaLine ? (
+            <span aria-hidden className="h-4 shrink-0" />
+          ) : (
+            <Handle byline={byline} className="text-tertiary-foreground" />
+          )}
         </div>
       )}
 
@@ -638,7 +643,7 @@ export function TimelineCommit({
         </div>
       )}
 
-      {/* Contact strip — the folded forms with a strip. Sits below the
+      {/* Contact strip — the `covers` form's. Sits below the
           pinned block so the two read as one column of "what this commit
           contains", largest first: a pinned cover at full width, then the
           rest as thumbnails.
@@ -668,8 +673,7 @@ export function TimelineCommit({
               <MediaStrip
                 items={data.stripItems}
                 set={attachmentSet}
-                size={stripSize ?? undefined}
-                peek={rowForm.peek}
+                peek={rowForm.peek && magneticPreviewEnabled}
                 className="min-w-0"
               />
 
@@ -709,6 +713,11 @@ export function TimelineCommit({
         // not the text inside it.
         <div
           data-row-body
+          // Rendered only near the viewport (globals.css): an open row's
+          // body is the heaviest thing on the page, and twenty of them off
+          // screen need no layout, decode or layer until they are about to
+          // show.
+          data-row-lazy
           // `min-w-0` for the same reason the strip line carries it: the
           // content track is `1fr`, whose automatic minimum is its content,
           // and a caption line that does not wrap would set it.
@@ -723,16 +732,30 @@ export function TimelineCommit({
               a desk, the edge-to-edge stack on a phone, captions written
               out, and every click its native one. */}
           {expandedMedia.length > 0 && (
-            <div onClick={(e) => e.stopPropagation()}>
-              <MediaRenderer
-                media={expandedMedia}
-                layout="tiles"
-                size="default"
-                inspecting={inspecting}
-                onInspect={onInspectMedia}
-                selectedMedia={selectedMedia}
-                set={attachmentSet}
-              />
+            <div onClick={(e) => e.stopPropagation()} className="space-y-4">
+              {inspecting ? (
+                <MediaRenderer
+                  media={expandedMedia}
+                  layout="stack"
+                  size="default"
+                  inspecting
+                  onInspect={onInspectMedia}
+                  selectedMedia={selectedMedia}
+                  set={attachmentSet}
+                />
+              ) : (
+                <>
+                  <AttachmentGrid items={data.stripItems} set={attachmentSet} />
+                  {stacked.length > 0 && (
+                    <MediaRenderer
+                      media={stacked}
+                      layout="stack"
+                      size="default"
+                      set={attachmentSet}
+                    />
+                  )}
+                </>
+              )}
             </div>
           )}
 
@@ -855,20 +878,17 @@ export function TimelineCommit({
  * Sparse by rule: at rest only the head of an author's run wears it, and
  * the repeats inside a run appear on hover — a column of twenty-five rows
  * each restating the same employer is noise, and the rail already draws the
- * tenure. `standDown` is how a slot yields to another that is printing the
- * same handle right now; it fades rather than unmounts, so the line beneath
- * never moves — and a faded mark takes no pointer.
+ * tenure. A slot that is not signing right now mounts nothing (the meta
+ * line keeps its height with a spacer), so one handle exists per row.
  *
  * The mark is the identity card's trigger (systems/identity): hover peeks
  * the profile, a tap where there is no pointer opens it as a sheet.
  */
 function Handle({
   byline,
-  standDown = false,
   className,
 }: {
   byline?: Byline | null;
-  standDown?: boolean;
   className?: string;
 }) {
   if (!byline) return null;
@@ -878,11 +898,9 @@ function Handle({
       roleId={byline.roleId}
       wrapperClassName={cn(
         "shrink-0 transition-opacity duration-200",
-        standDown
-          ? "opacity-0 pointer-events-none"
-          : byline.isClusterHead
-            ? "opacity-100"
-            : "opacity-0 group-hover:opacity-100",
+        byline.isClusterHead
+          ? "opacity-100"
+          : "opacity-0 group-hover:opacity-100",
       )}
       className={className}
     >

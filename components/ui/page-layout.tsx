@@ -123,7 +123,10 @@ export function PageLayout({
     <main
       data-variant={variant}
       className={cn(
-        "mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32 sm:pb-40",
+        // The column and its gutter are `--page-col` / `--page-gutter`
+        // (globals.css), so a rail that bleeds past the column (`--page-bleed`)
+        // reads the same numbers.
+        "mx-auto max-w-[var(--page-col)] px-[var(--page-gutter)] pt-16 sm:pt-24 pb-32 sm:pb-40",
         className
       )}
     >

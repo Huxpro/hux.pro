@@ -45,8 +45,6 @@ export interface VideoProps {
   className?: string;
   /** Hand off playback to the immersive theater / PiP player instead of inline. */
   onPlay?: () => void;
-  /** The cover's chip size — see the platform facades. */
-  chip?: "mini" | "compact" | "default";
 }
 
 export interface VideoPropsFromMedia {
@@ -133,7 +131,6 @@ export function Video({
   size = "default",
   className,
   onPlay,
-  chip,
 }: VideoProps) {
   // Route to platform-specific implementation
   switch (platform) {
@@ -145,7 +142,6 @@ export function Video({
           size={size}
           className={className}
           onPlay={onPlay}
-          chip={chip}
         />
       );
     case "bilibili":
@@ -156,7 +152,6 @@ export function Video({
           size={size}
           className={className}
           onPlay={onPlay}
-          chip={chip}
         />
       );
     case "vimeo":
@@ -167,7 +162,6 @@ export function Video({
           size={size}
           className={className}
           onPlay={onPlay}
-          chip={chip}
         />
       );
     default:

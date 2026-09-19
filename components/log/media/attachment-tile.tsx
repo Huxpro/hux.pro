@@ -10,36 +10,40 @@
  * for every kind is what lets a row of them line up, and what lets a video
  * sit beside a card without one towering over the other.
  *
- * Three sizes, one per form (lib/log-view.ts, docs/system-attachments.md):
+ * Two sizes, one per form (lib/log-view.ts, docs/system-attachments.md):
  *
- *  - `thumbs` — `brief`: 56px tall, the glyph chip. A thumbnail beside text.
  *  - `covers` — `covers`: 112px tall, the glyph chip. A cover you can
- *    recognise a slide or a screenshot at.
+ *    recognise a slide or a screenshot at; two of them and the handle fill
+ *    the column, which is how the height was chosen.
  *  - `cell`   — `feed`: the width of its grid cell. The feed writes the
  *    caption out, so the chip is the glyph alone on a recording or a deck
  *    (a play mark is an affordance, not information) and nothing on a card.
+ *
+ * A tile is drawn from a `TileSlot`: everything the strip or the grid needs
+ * to know about one item — its place in the set, where its click lands, its
+ * chip, its caption — resolved once per item by the caller (`resolveTile`)
+ * rather than once per tile per render. The tile does no lookups of its own.
  *
  * The tile is an anchor even when the attachment system takes the click:
  * ⌘-click, middle-click and "copy link address" keep working, and there is a
  * real destination when no provider is mounted. Which door the click takes
  * is the caller's: `open` (the policy's home — the sheet on a phone) for the
- * folded forms, `act` (the native action — the stage, the page) for the feed,
+ * folded form, `act` (the native action — the stage, the page) for the feed,
  * which has already shown everything the sheet would.
  */
 
 import type { MouseEvent } from "react";
-import { Play, Presentation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { t, type Locale } from "@/lib/i18n";
 import { getDomainLabel } from "@/lib/og-core";
 import {
-  getMediaThumbnail,
   isImageMedia,
   isLinkMedia,
   isSlidesMedia,
   isVideoMedia,
   VIDEO_PLATFORM_LABEL,
   type Media,
+  type StripItem,
 } from "@/lib/log";
 import type { AttachmentSet, AttachmentsApi } from "@/systems/attachments";
 import { ExternalImage } from "./external-image";
@@ -51,12 +55,11 @@ import {
   type MediaMarkSpec,
 } from "./media-mark";
 
-export type AttachmentTileSize = "thumbs" | "covers" | "cell";
+type AttachmentTileSize = "covers" | "cell";
 
-const TILE_SIZE: Record<AttachmentTileSize, { box: string; chip: MediaMarkSize }> = {
-  thumbs: { box: "h-14", chip: "mini" },
-  covers: { box: "h-28", chip: "mini" },
-  cell: { box: "w-full", chip: "compact" },
+const TILE_SIZE: Record<AttachmentTileSize, string> = {
+  covers: "h-28",
+  cell: "w-full",
 };
 
 /** What a tile says under (or beside) itself, when the form prints it. */
@@ -68,100 +71,85 @@ export interface TileCaption {
   title: string;
   /** A page's blurb. */
   description?: string;
-  /**
-   * What pressing it does, for a kind with no blurb — the same word the
-   * attachment page's primary button wears (`Watch`, `Slides`), so the row
-   * and the sheet name the act the same way.
-   */
-  action?: MediaMarkSpec;
+  /** The tile's one name — its tooltip and accessible name. */
+  label: string;
 }
 
 /**
- * The caption for one piece of media, in the viewer's locale. The strips
- * print none of it (the chip is enough at that size); the feed prints it.
+ * The caption for one piece of media, in the viewer's locale. The strip
+ * prints none of it (the chip is enough at that size); the feed prints it;
+ * both name the tile by it.
  */
 export function tileCaption(media: Media, locale: Locale): TileCaption {
+  const named = (source: string, title: string, description?: string) => ({
+    source,
+    title,
+    description,
+    label: title || source,
+  });
   if (isVideoMedia(media)) {
-    return {
-      source: VIDEO_PLATFORM_LABEL[media.platform],
-      title: t(locale, "logRecording"),
-      action: { icon: Play, label: t(locale, "logWatch"), fill: true },
-    };
+    return named(VIDEO_PLATFORM_LABEL[media.platform], t(locale, "logRecording"));
   }
   if (isSlidesMedia(media)) {
-    return {
-      source: t(locale, "logSlides"),
-      title: media.title || "",
-      action: { icon: Presentation, label: t(locale, "logSlides") },
-    };
+    return named(t(locale, "logSlides"), media.title || "");
   }
   if (isLinkMedia(media)) {
     const preview = media.previews?.[locale] ?? media.preview;
-    return {
-      source: media.internal ? "/writing" : getDomainLabel(media.url),
-      title: preview?.title || getDomainLabel(media.url),
-      description: preview?.description,
-    };
+    const domain = getDomainLabel(media.url);
+    return named(
+      media.internal ? "/writing" : domain,
+      preview?.title || domain,
+      preview?.description,
+    );
   }
-  return {
-    source: getDomainLabel(media.url),
-    title: isImageMedia(media) ? media.alt || "" : "",
-  };
+  return named(getDomainLabel(media.url), isImageMedia(media) ? media.alt || "" : "");
 }
 
-/** The cover for one piece of media, in the viewer's locale; null when it
- *  has none (a pill, a live embed), in which case it is not a tile. */
-export function tileImage(media: Media, locale: Locale): string | null {
-  if (isLinkMedia(media)) {
-    return media.present === "card"
-      ? ((media.previews?.[locale] ?? media.preview)?.image ?? null)
-      : null;
-  }
-  // A video's cover may be derived (YouTube's, from the id) rather than
-  // authored; a deck's and a still's are what `getMediaThumbnail` says.
-  if (isVideoMedia(media) || isSlidesMedia(media) || isImageMedia(media)) {
-    return getMediaThumbnail(media);
-  }
-  return null;
+/** Everything a tile needs, resolved once per item — see the note above. */
+export interface TileSlot {
+  media: Media;
+  image: string;
+  /** Its place in the set, or -1 when there is no set or provider. */
+  index: number;
+  /** The click will open a tab — a page that refuses to be framed. */
+  leaves: boolean;
+  /** The chip the cover wears: `New tab` when it leaves, else its kind's. */
+  mark: MediaMarkSpec | null;
+  caption: TileCaption;
 }
 
-/**
- * Where a tile's click will land, and the chip that says so: a page that
- * refuses to be framed opens a tab, and the tile says `New tab` before the
- * click rather than after.
- */
-export function tileMark(
-  media: Media,
+export function resolveTile(
+  item: StripItem,
   locale: Locale,
   set: AttachmentSet | null | undefined,
   attachments: AttachmentsApi | null | undefined,
-): { mark: MediaMarkSpec | null; leaves: boolean } {
-  const index = set && attachments ? set.items.indexOf(media) : -1;
+): TileSlot {
+  const index = set && attachments ? set.items.indexOf(item.media) : -1;
   const leaves =
     index >= 0 && set && attachments
       ? attachments.homeOf(set, index) === "tab"
       : false;
-  return { mark: leaves ? newTabMark(locale) : markFor(media, locale), leaves };
+  return {
+    media: item.media,
+    image: item.image,
+    index,
+    leaves,
+    mark: leaves ? newTabMark(locale) : markFor(item.media, locale),
+    caption: tileCaption(item.media, locale),
+  };
 }
 
 export interface AttachmentTileProps {
-  media: Media;
-  image: string;
+  slot: TileSlot;
   size: AttachmentTileSize;
   locale: Locale;
-  /** The tile's tooltip and accessible name. */
-  label: string;
-  /**
-   * The set this media belongs to and the provider that opens it. With both,
-   * the click goes through the system; without, the anchor navigates.
-   */
   set?: AttachmentSet | null;
   attachments?: AttachmentsApi | null;
   /** Which door the click takes — see the note above. Default `open`. */
   mode?: "open" | "act";
   /** Take the click instead of either door — the feed's inline player. */
   onPress?: () => void;
-  /** The chip, overriding the size's: `none` for a card in the feed. */
+  /** The chip: the glyph by default; `none` for a card in the feed. */
   chip?: MediaMarkSize | "none";
   /** Square the corners — a phone's edge-to-edge feed. */
   flush?: boolean;
@@ -169,23 +157,18 @@ export interface AttachmentTileProps {
 }
 
 export function AttachmentTile({
-  media,
-  image,
+  slot,
   size,
   locale,
-  label,
   set,
   attachments,
   mode = "open",
   onPress,
-  chip,
+  chip = "mini",
   flush = false,
   className,
 }: AttachmentTileProps) {
-  const stop = TILE_SIZE[size];
-  const { mark, leaves } = tileMark(media, locale, set, attachments);
-  const index = set && attachments ? set.items.indexOf(media) : -1;
-  const chipSize = chip ?? stop.chip;
+  const { media, image, index, leaves, mark, caption } = slot;
 
   const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
     // A click on a cover is the cover's business: without this the row would
@@ -209,8 +192,8 @@ export function AttachmentTile({
       href={media.url}
       target="_blank"
       rel="noopener noreferrer"
-      title={leaves ? `${label} · ${t(locale, "linkOpensInTab")}` : label}
-      aria-label={label}
+      title={leaves ? `${caption.label} · ${t(locale, "linkOpensInTab")}` : caption.label}
+      aria-label={caption.label}
       onClick={onClick}
       className={cn(
         "relative block aspect-[2/1] shrink-0 overflow-hidden",
@@ -218,7 +201,7 @@ export function AttachmentTile({
         flush
           ? "rounded-none"
           : "rounded-md border border-border/50 hover:border-border focus-visible:border-border",
-        stop.box,
+        TILE_SIZE[size],
         className,
       )}
     >
@@ -227,7 +210,7 @@ export function AttachmentTile({
         alt=""
         className="block h-full w-full object-cover"
       />
-      {chipSize !== "none" && <MediaMark mark={mark} size={chipSize} />}
+      {chip !== "none" && <MediaMark mark={mark} size={chip} />}
     </a>
   );
 }

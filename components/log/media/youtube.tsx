@@ -11,7 +11,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./external-image";
 import { Play } from "lucide-react";
-import { MediaMark, videoMark, type MediaMarkSize } from "./media-mark";
+import { MediaMark, videoMark } from "./media-mark";
 
 // =============================================================================
 // Types
@@ -31,9 +31,6 @@ export interface YouTubeEmbedProps {
    * used to hand off playback to the immersive theater / PiP player.
    */
   onPlay?: () => void;
-  /** The cover's chip size (media-mark.tsx); `mini` is the glyph alone, for
-   *  a feed that has already written the platform out. */
-  chip?: MediaMarkSize;
 }
 
 // =============================================================================
@@ -109,7 +106,6 @@ export function YouTubeEmbed({
   size = "default",
   className,
   onPlay,
-  chip = "default",
 }: YouTubeEmbedProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const videoId = extractYouTubeId(url);
@@ -163,7 +159,7 @@ export function YouTubeEmbed({
         {/* The cover wears its chip — the platform — the way every cover on the
             site does (media-mark.tsx); the hover wash is the press affordance. */}
         <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
-        <MediaMark mark={videoMark("youtube")} size={chip} />
+        <MediaMark mark={videoMark("youtube")} />
       </button>
     );
   }

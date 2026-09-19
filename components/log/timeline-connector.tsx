@@ -114,15 +114,13 @@ export function TimelineConnector({
     };
 
     measure();
+    // The container alone: the icons are fixed-size, and a window resize
+    // reaches here as a container resize. Fewer observers, and the same
+    // measurements — which run on the scroll path now that an open row's
+    // body lays itself out as it comes into view.
     const ro = new ResizeObserver(measure);
     ro.observe(container);
-    ro.observe(fromIcon);
-    ro.observe(toIcon);
-    window.addEventListener("resize", measure);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", measure);
-    };
+    return () => ro.disconnect();
   }, [fromHash, toHash, fromGap, toGap]);
 
   return (

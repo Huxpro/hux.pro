@@ -3,7 +3,7 @@
 /**
  * WorksToolbar — the one line under the /works title.
  *
- *   ⎇ main │ ▣ Projects 8  ◔ Talks 12  ◌ Social 3  ▤ Roles 2  ⨯ │ ≡ ≣ ▤ ▦
+ *   ⎇ main │ ▣ Projects 8  ◔ Talks 12  ◌ Social 3  ▤ Roles 2  ⨯ │ ≡ ▤ ▦
  *   └ ref    └───────────────── pathspec ──────────────────────┘   └ form
  *
  * Three controls, one row, because the row is the budget: this sits in the
@@ -14,7 +14,7 @@
  *
  * "Fits" is not something this component gets to assume, though: the chip row
  * is derived from the data, so a type nobody has filed anything under yet
- * would add a chip the day it does. The ref and the density control are
+ * would add a chip the day it does. The ref and the form control are
  * pinned and the chips take the squeeze — they scroll inside their own group
  * rather than pushing the page sideways. On any real phone it never comes up.
  *
@@ -26,19 +26,12 @@
  * off returns to rest — the way out is the same gesture as the way in.
  *
  * The form control is the page's real answer to "everything at once" vs.
- * "see the work" — see `lib/log-view.ts` for what the four stops print. It
+ * "see the work" — see `lib/log-view.ts` for what the three stops print. It
  * replaces the old expand/collapse toggle, whose two states were exactly the
  * two extremes this is trying to sit between.
  */
 
-import {
-  AlignLeft,
-  GalleryVertical,
-  GitBranch,
-  LayoutList,
-  List,
-  X,
-} from "lucide-react";
+import { GalleryVertical, GitBranch, LayoutList, List, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Segmented } from "@/components/ui/controls";
@@ -87,13 +80,12 @@ const FORM_CHIP: Record<
   LogForm,
   {
     icon: LucideIcon;
-    labelKey: "logFormIndex" | "logFormBrief" | "logFormCovers" | "logFormFeed";
+    labelKey: "logFormIndex" | "logFormCovers" | "logFormFeed";
   }
 > = {
-  // Lines only; lines of text; lines with a cover block; full panels. The
-  // glyphs climb in visual weight the way the forms climb in detail.
+  // Lines only; lines with a cover block; full panels. The glyphs climb in
+  // visual weight the way the forms climb in detail.
   index: { icon: List, labelKey: "logFormIndex" },
-  brief: { icon: AlignLeft, labelKey: "logFormBrief" },
   covers: { icon: LayoutList, labelKey: "logFormCovers" },
   feed: { icon: GalleryVertical, labelKey: "logFormFeed" },
 };
@@ -188,8 +180,8 @@ export function WorksToolbar({
 
       <Divider />
 
-      {/* Form. Segmented rather than a cycling button: four stops is too
-          many to discover by tapping, and every form stays one tap away.
+      {/* Form. Segmented rather than a cycling button: three stops is one
+          too many to discover by tapping, and every form stays one tap away.
           Each stop resets every row to a preset (`ROW_FORM`), which is all
           a form is. */}
       <Segmented

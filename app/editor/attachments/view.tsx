@@ -391,15 +391,10 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
         {/* Surfaces -------------------------------------------------------- */}
         <section className="space-y-8">
           <div>
-            <Label>The contact strip — MediaStrip, `brief` and `covers`</Label>
+            <Label>The contact strip — MediaStrip, the `covers` form</Label>
             {/* The strip and the pages read the policy, which reads the
                 viewport; they render once the client has one. */}
-            {mounted && (
-              <div className="space-y-4">
-                <MediaStrip items={stripItems} set={set} size="thumbs" />
-                <MediaStrip items={stripItems} set={set} size="covers" />
-              </div>
-            )}
+            {mounted && <MediaStrip items={stripItems} set={set} />}
           </div>
           <div>
             <Label>The attachment object in the `feed` — AttachmentGrid</Label>

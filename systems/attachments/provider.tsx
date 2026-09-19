@@ -14,7 +14,7 @@ import { getDomainLabel } from "@/lib/og-core";
 import { t, useLocale } from "@/services";
 import { ArrowUpRight } from "lucide-react";
 import { useBreakpointValue } from "@/systems/surface";
-import { useOptionalTheater } from "@/systems/theater";
+import { useOptionalTheaterStage } from "@/systems/theater";
 import { useOptionalWindows } from "@/systems/windows";
 import {
   homeFor,
@@ -86,7 +86,7 @@ export function useOptionalAttachments(): AttachmentsContextValue | null {
 const COMPACT = { base: true, sm: false } as const;
 
 export function AttachmentProvider({ children }: { children: React.ReactNode }) {
-  const theater = useOptionalTheater();
+  const theater = useOptionalTheaterStage();
   const windows = useOptionalWindows();
   const router = useTransitionRouter();
   const { locale } = useLocale();

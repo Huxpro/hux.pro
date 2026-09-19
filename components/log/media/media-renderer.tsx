@@ -15,7 +15,7 @@ import { MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/services/theme";
 import { useLocale } from "@/services";
-import { useOptionalTheater } from "@/systems/theater";
+import { useOptionalTheaterStage } from "@/systems/theater";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import type { Media } from "@/lib/log";
 import {
@@ -33,8 +33,6 @@ import { Link, LinkCard } from "./link";
 import { newTabMark } from "./media-mark";
 import { Figure } from "./image";
 import { Slides } from "./slides";
-import { AttachmentGrid } from "./attachment-grid";
-import { tileImage } from "./attachment-tile";
 
 // =============================================================================
 // Types
@@ -47,13 +45,8 @@ export interface MediaRendererProps {
   theme?: "light" | "dark";
   /** Size variant. */
   size?: "compact" | "default" | "large";
-  /**
-   * Layout direction. `tiles` is /works' `patch` density: everything with a
-   * cover (a video, a deck, a card) becomes a half-column tile in an
-   * AttachmentGrid, and the rest — a live widget, a still — stacks under it
-   * as before.
-   */
-  layout?: "stack" | "inline" | "grid" | "tiles";
+  /** Layout direction. */
+  layout?: "stack" | "inline" | "grid";
   /** Additional CSS classes. */
   className?: string;
   /** Editor inspect mode: reveal small selection handles without blocking media clicks. */
@@ -151,7 +144,9 @@ interface SingleMediaProps {
 
 function SingleMedia({ media, theme, size, className, dense, set }: SingleMediaProps) {
   const { locale } = useLocale();
-  const theater = useOptionalTheater();
+  // The stage without its clock: this only ever needs `openVideo`, and the
+  // full theater context re-renders twice a second while a video plays.
+  const theater = useOptionalTheaterStage();
   const attachments = useOptionalAttachments();
 
   // One door for the whole set (systems/attachments): the item's index in it,
@@ -372,7 +367,6 @@ export function MediaRenderer({
   // Use site theme from context, allow prop override.
   const { theme: siteTheme } = useTheme();
   const theme = themeProp ?? siteTheme;
-  const { locale } = useLocale();
   if (!media || media.length === 0) {
     return null;
   }
@@ -399,7 +393,6 @@ export function MediaRenderer({
     stack: "flex flex-col gap-4",
     inline: "flex flex-row flex-wrap gap-3 items-start",
     grid: "grid grid-cols-1 md:grid-cols-2 gap-4",
-    tiles: "flex flex-col gap-4",
   };
 
   // Partition into "rich" media (videos / slides / images / link-cards /
@@ -432,30 +425,14 @@ export function MediaRenderer({
     );
   }
 
-  // `tiles`: whatever has a cover goes to the grid, and only what has none
-  // (a live widget, a still) takes the stack path below.
-  const tiles =
-    layout === "tiles"
-      ? rich.flatMap((m) => {
-          if (isSocialEmbedMedia(m) || isImageMedia(m)) return [];
-          const image = tileImage(m, locale);
-          return image ? [{ media: m, image }] : [];
-        })
-      : [];
-  const tiled = new Set<Media>(tiles.map((t) => t.media));
-  const stacked = layout === "tiles" ? rich.filter((m) => !tiled.has(m)) : rich;
-
   // 2+ rich items — regardless of family — become a horizontal scroll-snap
   // rail rather than a vertical stack. Two videos, a video + a card, or three
   // cards all read as a compact side-by-side row instead of a tall pile. A
   // single rich item renders full-width as before (big player / full card).
-  const useRail = layout !== "tiles" && rich.length >= 2;
+  const useRail = rich.length >= 2;
 
   return (
     <div className={cn(layoutClasses[layout], className)}>
-      {tiles.length > 0 && (
-        <AttachmentGrid items={tiles} set={set} />
-      )}
       {useRail ? (
         // The rail's *nominal* width is the content column, so the first two
         // items line up pixel-for-pixel with a two-item commit. The scroll
@@ -493,7 +470,7 @@ export function MediaRenderer({
           ))}
         </CardScrollRail>
       ) : (
-        stacked.map((m, i) =>
+        rich.map((m, i) =>
           wrap(
             `rich-${i}`,
             m,

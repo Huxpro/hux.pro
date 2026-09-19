@@ -42,86 +42,142 @@
  * screen.
  */
 
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { PictureInPicture2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE } from "@/lib/typography";
 import { t, type Locale } from "@/lib/i18n";
 import { useLocale } from "@/services";
-import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
-import type { AttachmentsApi } from "@/systems/attachments";
-import { isSlidesMedia, isVideoMedia, type Media } from "@/lib/log";
-import { resolveSlidesEmbedUrl } from "@/lib/slides";
 import {
-  AttachmentTile,
-  tileCaption,
-  tileMark,
-  type TileCaption,
-} from "./attachment-tile";
-import { MediaMark, newTabMark } from "./media-mark";
+  useOptionalAttachments,
+  type AttachmentSet,
+  type AttachmentsApi,
+} from "@/systems/attachments";
+import { mediaToTrack, useOptionalTheaterStage } from "@/systems/theater";
+import { isSlidesMedia, isVideoMedia, type StripItem } from "@/lib/log";
+import { resolveSlidesEmbedUrl } from "@/lib/slides";
+import { AttachmentTile, resolveTile, type TileSlot } from "./attachment-tile";
+import { MediaMark, newTabMark, SURFACE_CHIP } from "./media-mark";
 import { videoEmbedUrl } from "./video";
 
 export interface AttachmentGridProps {
-  /** Tiles, in authored order — each with the cover the caller resolved. */
-  items: { media: Media; image: string }[];
+  /** Tiles, in authored order — the row's own strip items. */
+  items: StripItem[];
   set?: AttachmentSet | null;
   className?: string;
 }
 
 /**
- * A phone's feed runs edge to edge: back over the page gutter (`<main>`'s
- * `px-6`) and, on the left, over the rail column too (`TimelineCommit`'s
- * icon `w-5` and `gap-x-2`; the hash is hidden at this width). The caption
- * stays in the column.
+ * A phone's feed runs edge to edge: back over the page gutter and, on the
+ * left, over the rail column too (`TimelineCommit`'s icon `w-5` and
+ * `gap-x-2`; the hash is hidden at this width). The caption stays in the
+ * column.
  */
-const PHONE_BLEED = "-ml-[3.25rem] -mr-6";
+const PHONE_BLEED =
+  "-ml-[calc(var(--page-gutter)+1.75rem)] -mr-[var(--page-gutter)]";
 
 const SOURCE = cn(TYPE.labelSm, "flex items-center gap-1.5 min-w-0");
 const TITLE = "text-xs leading-4 text-foreground";
 
-/** A recording or a deck: the kinds with a glyph and no blurb. */
-const isPlayable = (m: Media) => isVideoMedia(m) || isSlidesMedia(m);
+/** The caption's first line, with the way out written in when it leaves. */
+function SourceLine({ slot, locale }: { slot: TileSlot; locale: Locale }) {
+  return (
+    <div className={SOURCE}>
+      <span className="min-w-0 truncate">{slot.caption.source}</span>
+      {slot.leaves && <MediaMark inline mark={newTabMark(locale)} />}
+    </div>
+  );
+}
+
+/** Source, title, blurb — the caption in its three places. */
+function Caption({
+  slot,
+  locale,
+  lines,
+  strong = false,
+  onClick,
+  className,
+}: {
+  slot: TileSlot;
+  locale: Locale;
+  /** How many lines the blurb may take. */
+  lines: 2 | 3 | 4;
+  strong?: boolean;
+  onClick?: () => void;
+  className?: string;
+}) {
+  const { caption } = slot;
+  return (
+    <div
+      className={cn("min-w-0 space-y-0.5", onClick && "cursor-pointer", className)}
+      onClick={onClick}
+    >
+      <SourceLine slot={slot} locale={locale} />
+      <div className={cn(TITLE, "line-clamp-2", strong && "font-medium")}>
+        {caption.title}
+      </div>
+      {caption.description && (
+        <p
+          className={cn(
+            TYPE.captionQuiet,
+            lines === 2 ? "line-clamp-2" : lines === 3 ? "line-clamp-3" : "line-clamp-4",
+          )}
+        >
+          {caption.description}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** A recording's or a deck's one line: the source, and a deck's title. */
+function PlayableLine({ slot, className }: { slot: TileSlot; className?: string }) {
+  const { media, caption } = slot;
+  return (
+    <div className={cn(SOURCE, className)}>
+      <span className="shrink-0">{caption.source}</span>
+      {isSlidesMedia(media) && caption.title && (
+        <span className={cn("min-w-0 truncate normal-case tracking-normal", TITLE)}>
+          {caption.title}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
   const attachments = useOptionalAttachments();
   const { locale } = useLocale();
-  if (items.length === 0) return null;
+  // Once per item, not once per tile per render: the set lookup, the policy
+  // question, the chip and the caption.
+  const slots = useMemo(
+    () => items.map((item) => resolveTile(item, locale, set, attachments)),
+    [items, locale, set, attachments],
+  );
+  if (slots.length === 0) return null;
 
   const compact = attachments?.compact ?? false;
 
-  const tileOf = (media: Media, image: string, caption: TileCaption, flush = false) => (
+  const tileOf = (slot: TileSlot, flush = false) => (
     <AttachmentTile
-      media={media}
-      image={image}
+      slot={slot}
       size="cell"
       locale={locale}
-      label={caption.title || caption.source}
       set={set}
       attachments={attachments}
       mode="act"
-      chip={isPlayable(media) ? "mini" : "none"}
+      // The glyph on what plays — a recording, a deck, a talks-host card —
+      // and nothing on a page: the caption has said what it is.
+      chip={slot.mark ? "mini" : "none"}
       flush={flush}
     />
   );
 
-  /** The caption's first line, with the way out written in when it leaves. */
-  const sourceLine = (media: Media, caption: TileCaption) => {
-    const { leaves } = tileMark(media, locale, set, attachments);
-    return (
-      <div className={SOURCE}>
-        <span className="min-w-0 truncate">{caption.source}</span>
-        {leaves && <MediaMark inline mark={newTabMark(locale)} />}
-      </div>
-    );
-  };
-
   /** What pressing the caption does: the same door as the tile. */
-  const actOf = (media: Media) => {
-    const index = set && attachments ? set.items.indexOf(media) : -1;
-    return index >= 0 && set && attachments
-      ? () => attachments.act(set, index)
+  const actOf = (slot: TileSlot) =>
+    slot.index >= 0 && set && attachments
+      ? () => attachments.act(set, slot.index)
       : undefined;
-  };
 
   // ---------------------------------------------------------------------
   // Phone: the stack.
@@ -129,42 +185,29 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
   if (compact) {
     return (
       <div className={cn("space-y-4", className)}>
-        {items.map(({ media, image }, i) => {
-          const caption = tileCaption(media, locale);
-          if (isPlayable(media)) {
-            return (
-              <InlinePlayable
-                key={`${media.url}-${i}`}
-                media={media}
-                image={image}
-                caption={caption}
-                set={set}
-                attachments={attachments}
+        {slots.map((slot, i) =>
+          isVideoMedia(slot.media) || isSlidesMedia(slot.media) ? (
+            <InlinePlayable
+              key={`${slot.media.url}-${i}`}
+              slot={slot}
+              set={set}
+              attachments={attachments}
+              locale={locale}
+            />
+          ) : (
+            <div key={`${slot.media.url}-${i}`} className="min-w-0">
+              <div className={PHONE_BLEED}>{tileOf(slot, true)}</div>
+              <Caption
+                slot={slot}
                 locale={locale}
+                lines={3}
+                strong
+                onClick={actOf(slot)}
+                className="mt-2"
               />
-            );
-          }
-          const act = actOf(media);
-          return (
-            <div key={`${media.url}-${i}`} className="min-w-0">
-              <div className={PHONE_BLEED}>{tileOf(media, image, caption, true)}</div>
-              <div
-                className={cn("mt-2 min-w-0 space-y-0.5", act && "cursor-pointer")}
-                onClick={act}
-              >
-                {sourceLine(media, caption)}
-                <div className={cn(TITLE, "font-medium line-clamp-2")}>
-                  {caption.title}
-                </div>
-                {caption.description && (
-                  <p className={cn(TYPE.captionQuiet, "line-clamp-3")}>
-                    {caption.description}
-                  </p>
-                )}
-              </div>
             </div>
-          );
-        })}
+          ),
+        )}
       </div>
     );
   }
@@ -174,42 +217,28 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
   // ---------------------------------------------------------------------
   return (
     <div className={cn("grid grid-cols-2 gap-x-2.5 gap-y-4", className)}>
-      {items.map(({ media, image }, i) => {
-        const caption = tileCaption(media, locale);
-        const tile = tileOf(media, image, caption);
-        const lone = i % 2 === 0 && i === items.length - 1;
-        const act = actOf(media);
+      {slots.map((slot, i) => {
+        const { media } = slot;
+        const tile = tileOf(slot);
+        const lone = i % 2 === 0 && i === slots.length - 1;
 
         if (!lone) {
           return (
             <figure key={`${media.url}-${i}`} className="min-w-0">
               {tile}
-              <figcaption className="mt-1.5 min-w-0 space-y-0.5">
-                {sourceLine(media, caption)}
-                <div className={cn(TITLE, "line-clamp-2")}>{caption.title}</div>
-                {caption.description && (
-                  <p className={cn(TYPE.captionQuiet, "line-clamp-2")}>
-                    {caption.description}
-                  </p>
-                )}
-              </figcaption>
+              <Caption slot={slot} locale={locale} lines={2} className="mt-1.5" />
             </figure>
           );
         }
 
         // A lone recording or deck takes the column; a deck names itself
         // under it, a recording is named by the row.
-        if (isPlayable(media)) {
+        if (isVideoMedia(media) || isSlidesMedia(media)) {
           return (
             <figure key={`${media.url}-${i}`} className="col-span-2 min-w-0">
               {tile}
-              {isSlidesMedia(media) && caption.title && (
-                <figcaption className={cn("mt-1.5", SOURCE)}>
-                  <span className="shrink-0">{caption.source}</span>
-                  <span className={cn("min-w-0 truncate normal-case tracking-normal", TITLE)}>
-                    {caption.title}
-                  </span>
-                </figcaption>
+              {isSlidesMedia(media) && slot.caption.title && (
+                <PlayableLine slot={slot} className="mt-1.5" />
               )}
             </figure>
           );
@@ -219,20 +248,14 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
         return (
           <Fragment key={`${media.url}-${i}`}>
             <div className="min-w-0">{tile}</div>
-            <div
-              className={cn("min-w-0 self-center space-y-1", act && "cursor-pointer")}
-              onClick={act}
-            >
-              {sourceLine(media, caption)}
-              <div className={cn(TITLE, "font-medium line-clamp-2")}>
-                {caption.title}
-              </div>
-              {caption.description && (
-                <p className={cn(TYPE.captionQuiet, "line-clamp-4")}>
-                  {caption.description}
-                </p>
-              )}
-            </div>
+            <Caption
+              slot={slot}
+              locale={locale}
+              lines={4}
+              strong
+              onClick={actOf(slot)}
+              className="self-center space-y-1"
+            />
           </Fragment>
         );
       })}
@@ -249,29 +272,38 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
  * for whoever wants to keep scrolling; the inline player stops so the two
  * never play at once. Reserving the bar from the start is what keeps the
  * page still when play is pressed.
+ *
+ * While the item is on the stage, its place here says so — a dark wash and
+ * the PiP mark over the cover, the way a music app marks the track that is
+ * playing elsewhere — and pressing it brings playback back: the stage
+ * closes and the player mounts here again.
  */
 function InlinePlayable({
-  media,
-  image,
-  caption,
+  slot,
   set,
   attachments,
   locale,
 }: {
-  media: Media;
-  image: string;
-  caption: TileCaption;
+  slot: TileSlot;
   set?: AttachmentSet | null;
   attachments: AttachmentsApi | null;
   locale: Locale;
 }) {
+  const { media, caption, index } = slot;
   const [playing, setPlaying] = useState(false);
   const embed = isVideoMedia(media)
     ? videoEmbedUrl(media.url, media.platform)
     : isSlidesMedia(media)
       ? resolveSlidesEmbedUrl(media.url)
       : null;
-  const index = set && attachments ? set.items.indexOf(media) : -1;
+  // Is this item the one on the stage? Asked of the track the theater would
+  // build for it, so the grid never learns how a track's URL is made.
+  const stage = useOptionalTheaterStage();
+  const onStage =
+    !!stage &&
+    stage.mode !== "closed" &&
+    !!stage.track &&
+    stage.track.url === mediaToTrack(media, { id: media.url, title: caption.label })?.url;
   const toStage =
     index >= 0 && set && attachments
       ? () => {
@@ -279,50 +311,63 @@ function InlinePlayable({
           attachments.act(set, index);
         }
       : undefined;
-  const title = caption.title || caption.source;
+
+  let cover: ReactNode;
+  if (playing && embed && !onStage) {
+    cover = (
+      <div className="relative aspect-video bg-black">
+        <iframe
+          src={embed}
+          title={caption.label}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="absolute inset-0 h-full w-full"
+        />
+      </div>
+    );
+  } else {
+    cover = (
+      <AttachmentTile
+        slot={slot}
+        size="cell"
+        locale={locale}
+        set={set}
+        attachments={attachments}
+        mode="act"
+        flush
+        // 16:9 rather than the tiles' 2:1, because the player that
+        // replaces it is 16:9 and the swap should move nothing.
+        className="aspect-video"
+        onPress={embed ? () => setPlaying(true) : undefined}
+      />
+    );
+  }
 
   return (
     <div className="min-w-0">
-      <div className={PHONE_BLEED}>
-        {playing && embed ? (
-          <div className="relative aspect-video bg-black">
-            <iframe
-              src={embed}
-              title={title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="absolute inset-0 h-full w-full"
-            />
-          </div>
-        ) : (
-          <AttachmentTile
-            media={media}
-            image={image}
-            size="cell"
-            locale={locale}
-            label={title}
-            set={set}
-            attachments={attachments}
-            mode="act"
-            chip="mini"
-            flush
-            // 16:9 rather than the tiles' 2:1, because the player that
-            // replaces it is 16:9 and the swap should move nothing.
-            className="aspect-video"
-            onPress={embed ? () => setPlaying(true) : undefined}
-          />
+      <div className={cn(PHONE_BLEED, "relative")}>
+        {cover}
+        {onStage && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              stage.close();
+              setPlaying(true);
+            }}
+            aria-label={t(locale, "theaterReturnPip")}
+            className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/55 text-white/90"
+          >
+            <PictureInPicture2 className="size-6" strokeWidth={1.75} />
+            <span className="font-mono text-[10px] uppercase tracking-wider">
+              {t(locale, "theaterSurfacePip")}
+            </span>
+          </button>
         )}
       </div>
       <div className="mt-2 flex items-center justify-between gap-3">
-        <div className={cn(SOURCE, "min-w-0 flex-1")}>
-          <span className="shrink-0">{caption.source}</span>
-          {isSlidesMedia(media) && caption.title && (
-            <span className={cn("min-w-0 truncate normal-case tracking-normal", TITLE)}>
-              {caption.title}
-            </span>
-          )}
-        </div>
-        {toStage && (
+        <PlayableLine slot={slot} className="min-w-0 flex-1" />
+        {toStage && !onStage && (
           <button
             type="button"
             onClick={(e) => {
@@ -334,7 +379,7 @@ function InlinePlayable({
             className={cn(
               "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5",
               "font-mono text-[10px] uppercase tracking-wider leading-none",
-              "bg-foreground/[0.06] text-muted-foreground ring-1 ring-border/50 dark:bg-white/[0.08]",
+              SURFACE_CHIP,
               "transition-colors hover:text-foreground",
             )}
           >

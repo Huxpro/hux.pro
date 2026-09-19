@@ -18,6 +18,7 @@ import {
 import {
   parseViewState,
   serializeViewState,
+  formOpensRows,
   toggleType,
   type LogForm,
 } from "@/lib/log-view";
@@ -161,7 +162,7 @@ export function WorksView({ logData }: WorksViewProps) {
         // own as a button. Passing the boolean (rather than a bumped counter)
         // means index ⇄ covers leaves hand-opened rows alone: only entering
         // or leaving `feed` re-syncs every row.
-        expandAll={view.form === "feed"}
+        expandAll={formOpensRows(view.form)}
         identities={logData.identities}
         form={view.form}
         activeTypes={view.types}

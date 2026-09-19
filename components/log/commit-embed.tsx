@@ -26,6 +26,7 @@ import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
+import { useInputCapability } from "@/services";
 
 import { TYPE } from "@/lib/typography";
 // =============================================================================
@@ -100,6 +101,22 @@ export function Commit({
     () => (!commit || inspecting ? null : attachmentSetFor(commit, locale)),
     [commit, locale, inspecting],
   );
+  // The same for the row's normalised data and its hover peek: a timeline
+  // render (a beam hover, a form change) touches every row, and neither of
+  // these changes with it. The peek is built only where a pointer can rest
+  // on it — a phone would build and discard one per row.
+  const { magneticPreviewEnabled } = useInputCapability();
+  const data = useMemo(
+    () => (commit ? normalizeCommit(commit, locale) : null),
+    [commit, locale],
+  );
+  const preview = useMemo(
+    () =>
+      commit && magneticPreviewEnabled
+        ? buildCommitPreview(commit, locale)
+        : null,
+    [commit, locale, magneticPreviewEnabled],
+  );
 
   // Runtime guard: MDX/JSON inputs can bypass static typing.
   if (
@@ -114,8 +131,7 @@ export function Commit({
     return null;
   }
 
-  const data = normalizeCommit(commit, locale);
-  const preview = buildCommitPreview(commit, locale);
+  if (!data) return null;
   const isSelected = !!edit && edit.selectedCommitId === commit.id;
   const selectedMedia =
     inspecting && isSelected && edit && edit.selectedMediaIndex != null
