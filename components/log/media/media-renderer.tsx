@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { scrollStackMask } from "@/components/ui/scroll-edge";
 import { useTheme } from "@/services/theme";
 import { useLocale } from "@/services";
 import { useOptionalTheater } from "@/systems/theater";
@@ -225,10 +226,11 @@ function SingleMedia({ media, theme, size, className, dense }: SingleMediaProps)
 /**
  * Horizontal rail for exactly three cards. Bleeds one page gutter past the
  * content column so the third card's edge peeks (see the tripleCards branch
- * for the sizing trick), and carries scroll-position "shadow" gradients on
- * both edges: the left fades in only once the rail is scrolled off its start
- * (so card 1 isn't dimmed at rest), the right fades out once the end is
- * reached (so the last card lands clear over the trailing whitespace).
+ * for the sizing trick). The overflow edge uses the same mask dissolve as
+ * the home stacked widgets (`WidgetScrollBody`): content goes transparent
+ * over 28px, so the wallpaper (or glass) shows through — no overlay, no
+ * `--background` slab. Left fade only once scrolled off the start; right
+ * fade drops at the end so the last card rests clear of the trailing space.
  */
 function CardScrollRail({ children }: { children: ReactNode }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -274,32 +276,10 @@ function CardScrollRail({ children }: { children: ReactNode }) {
           // would keep yanking it back ("can't scroll to the last one").
           "snap-x snap-proximity scroll-smooth no-scrollbar",
         )}
+        style={scrollStackMask("x", !atStart, !atEnd)}
       >
         {children}
       </div>
-      {/* Left fade — appears only once scrolled off the start, softening
-          card 1's cut-off edge. */}
-      <div
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute inset-y-0 left-0 w-6",
-          "bg-gradient-to-r from-background to-transparent",
-          "transition-opacity duration-200",
-          atStart ? "opacity-0" : "opacity-100",
-        )}
-      />
-      {/* Right fade — over the gutter/peek; starts at the column edge so
-          card 2 and both gaps stay undimmed, and disappears at the end so the
-          last card reads clear over the pr-6 whitespace. */}
-      <div
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute inset-y-0 -right-6 w-6",
-          "bg-gradient-to-l from-background to-transparent",
-          "transition-opacity duration-200",
-          atEnd ? "opacity-0" : "opacity-100",
-        )}
-      />
     </div>
   );
 }

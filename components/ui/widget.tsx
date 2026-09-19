@@ -8,6 +8,7 @@ import { ArrowRight } from "lucide-react";
 import { Link, useTransitionRouter } from "next-view-transitions";
 import { useCallback, useState, type MouseEvent } from "react";
 import { landsOnOwnAction } from "./widget-surface";
+import { scrollStackMask } from "./scroll-edge";
 
 import { TYPE } from "@/lib/typography";
 // =============================================================================
@@ -223,9 +224,11 @@ export function WidgetScrollBody({
         className={cn(
           "relative -mx-2 px-2 pb-7",
           "overflow-y-auto snap-y snap-mandatory scroll-smooth no-scrollbar",
-          "[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
           className ?? "h-64"
         )}
+        // Same 28px two-stop dissolve as the card rail — content into glass,
+        // not a painted overlay. See `scrollStackMask`.
+        style={scrollStackMask("y", false, true)}
       >
         {children}
       </div>
