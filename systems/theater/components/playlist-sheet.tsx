@@ -192,7 +192,7 @@ export function TheaterPlaylistSheet() {
               )}
             >
               <span className="w-24 shrink-0">
-                <TrackThumb track={track} active={active} showBadge={!active} />
+                <TrackThumb track={track} active={active} />
               </span>
 
               <span className="min-w-0 flex-1">
