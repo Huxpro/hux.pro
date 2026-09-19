@@ -8,21 +8,23 @@
 // re-ordering or re-tagging talks there updates the albums automatically.
 // =============================================================================
 
-import logData from "@/content/log.json";
-import ogSnapshotJson from "@/content/og-snapshot.json";
+import { LOG as log } from "@/lib/log-client";
 import type { Locale } from "@/lib/i18n";
 import {
   type Commit,
-  type RawLogData,
+  type Media,
   type VideoMedia,
   getCommitThumbnail,
   getMediaThumbnail,
+  isCommitVisibleIn,
+  isSlidesMedia,
   isVideoMedia,
   localize,
-  normalizeLogData,
   resolveGroupCommits,
+  sortCommitsByDate,
 } from "@/lib/log";
-import { enrichLogDataWithPreviews, type OGSnapshot } from "@/lib/og-enrich";
+import { resolveSlidesEmbedUrl } from "@/lib/slides";
+import { t } from "@/lib/i18n";
 import { resolveVideoId } from "./player";
 import type { Album, Track } from "./types";
 
@@ -44,11 +46,6 @@ const ALBUM_LABELS: Record<string, { en: string; zh: string }> = {
   "featured-personal-talks": { en: "Personal", zh: "个人" },
 };
 
-const log = enrichLogDataWithPreviews(
-  normalizeLogData(logData as unknown as RawLogData),
-  ogSnapshotJson as OGSnapshot,
-);
-
 function firstVideo(commit: Commit): VideoMedia | null {
   for (const m of commit.media ?? []) {
     if (isVideoMedia(m)) return m;
@@ -67,6 +64,7 @@ function commitToTrack(commit: Commit, locale: Locale): Track | null {
   if (!video) return null;
   return {
     id: commit.id,
+    kind: "video",
     platform: video.platform,
     url: video.url,
     videoId: resolveVideoId(video.url, video.platform),
@@ -105,3 +103,65 @@ export function buildTalkAlbums(locale: Locale): Album[] {
 export function adHocAlbum(track: Track, title: string): Album {
   return { id: `adhoc-${track.id}`, title, tracks: [track] };
 }
+
+/**
+ * One track for one piece of media, or null for media the stage cannot hold
+ * (a link card, an image, a social widget). `id` must be unique within the
+ * album — the caller derives it from the commit and the media's position.
+ */
+export function mediaToTrack(
+  media: Media,
+  meta: { id: string; title: string; subtitle?: string; href?: string },
+): Track | null {
+  if (isVideoMedia(media)) {
+    return {
+      ...meta,
+      kind: "video",
+      platform: media.platform,
+      url: media.url,
+      videoId: resolveVideoId(media.url, media.platform),
+      thumbnail: getMediaThumbnail(media),
+    };
+  }
+  if (isSlidesMedia(media)) {
+    return {
+      ...meta,
+      kind: "slides",
+      // The deck's playable address, not the page that wraps it — legacy
+      // huangxuan.me links and Wayback snapshots resolve to the live deck.
+      url: resolveSlidesEmbedUrl(media.url),
+      title: media.title || meta.title,
+      thumbnail: getMediaThumbnail(media),
+    };
+  }
+  return null;
+}
+
+/**
+ * Every deck in the log, as one album: the theater's second library.
+ *
+ * Decks and recordings are different things to browse. A recording sits in
+ * a talk playlist (React / Lynx / Personal); a deck belongs with the other
+ * decks, in the order they were given. So the stage keeps two libraries and
+ * never mixes them: open a video and the talk albums are the tabs; open a
+ * deck and this is the only album, with every other deck a card away.
+ */
+export function buildSlidesAlbum(locale: Locale): Album | null {
+  const tracks: Track[] = [];
+  for (const commit of sortCommitsByDate(log.commits as Commit[])) {
+    if (!isCommitVisibleIn(commit, locale)) continue;
+    (commit.media ?? []).forEach((m, i) => {
+      if (!isSlidesMedia(m)) return;
+      const track = mediaToTrack(m, {
+        id: `${commit.id}#${i}`,
+        title: localize(commit.title, locale),
+        subtitle: commitSubtitle(commit),
+        href: "/works",
+      });
+      if (track) tracks.push(track);
+    });
+  }
+  if (tracks.length === 0) return null;
+  return { id: "slides", title: t(locale, "logSlides"), tracks };
+}
+

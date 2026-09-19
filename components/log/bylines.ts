@@ -18,6 +18,10 @@ import {
 } from "@/lib/log";
 
 export interface Byline {
+  /** The identity the commit was made as — the key into `identities`. */
+  identityId: string;
+  /** The specific role instance, when one owns the commit's date. */
+  roleId?: string;
   handle: string;
   /**
    * Per-identity: the first row of a contiguous same-identity run shows
@@ -101,6 +105,8 @@ export function computeBylines(
     }
 
     result[i] = {
+      identityId: resolved.identityId,
+      roleId: role?.id,
       handle: identity.handle,
       isClusterHead,
       subtitle,

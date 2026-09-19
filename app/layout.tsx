@@ -9,6 +9,8 @@ import {
   TiltPrimerSheet,
   WallpaperSheet,
 } from "@/systems/ambient";
+import { AttachmentSurface } from "@/systems/attachments";
+import { IdentityCard } from "@/systems/identity";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
 import { DevtoolFAB } from "@/systems/devtool";
 import { Dock } from "@/systems/dock";
@@ -134,6 +136,8 @@ export default function RootLayout({
             <TiltPrimerSheet />
             <TheaterRegistrar />
             <TheaterSurfaces />
+            <AttachmentSurface />
+            <IdentityCard />
             <CommandPalette />
             <FloatingActionButton />
           </Providers>

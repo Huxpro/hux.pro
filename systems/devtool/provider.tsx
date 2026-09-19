@@ -52,6 +52,7 @@ export const DRAGGABLE_INSTANCES = [
   // sheet and panel shapes ignore these entries.
   { id: "surface-wallpaper", labelEn: "Wallpaper Window", labelZh: "壁纸窗口" },
   { id: "surface-playlist", labelEn: "Playlist Window", labelZh: "播放列表窗口" },
+  { id: "surface-attachments", labelEn: "Attachments Window", labelZh: "附件窗口" },
 ] as const;
 
 // =============================================================================

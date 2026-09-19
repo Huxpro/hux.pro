@@ -211,15 +211,31 @@ export const surfaceMotionVars = (exitClearance: string) =>
  */
 export function SurfaceViewport({
   modal,
+  layer = 0,
   children,
 }: {
   modal: boolean;
+  /**
+   * The surface's place in the stack (`useSurfaceStack().rank`, raw: −1
+   * once it has left). Every viewport is a stacking context at the same
+   * level, so sibling sheets otherwise paint in the order their portals
+   * mounted — and a kept-mounted sheet (an app window) reopened over a
+   * younger one would come up under it. The stack's order is the paint
+   * order.
+   */
+  layer?: number;
   children: React.ReactNode;
 }) {
+  // Kept across the close: a sheet leaves the stack (rank −1) the moment it
+  // starts to leave the screen, and it should slide away from where it
+  // was, not from under whatever it was covering.
+  const [held, setHeld] = useState(Math.max(0, layer));
+  if (layer >= 0 && layer !== held) setHeld(layer);
   return (
     <Drawer.Viewport
       {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
-      className={cn("fixed inset-0 z-[60]", !modal && "pointer-events-none")}
+      className={cn("fixed inset-0", !modal && "pointer-events-none")}
+      style={{ zIndex: 60 + held }}
     >
       {children}
     </Drawer.Viewport>
@@ -457,7 +473,7 @@ export function SurfaceSheet({
       : undefined
     : levelProp;
 
-  const { behind, depth, beneathLevel } = useSurfaceStack(id, open, {
+  const { behind, depth, beneathLevel, rank } = useSurfaceStack(id, open, {
     nestedIn,
     level,
   });
@@ -563,7 +579,7 @@ export function SurfaceSheet({
           rather than behind it. A sheet with no fields never notices. */}
       <Drawer.VirtualKeyboardProvider>
         <Drawer.Portal keepMounted={keepMounted}>
-          <SurfaceViewport modal={modal}>
+          <SurfaceViewport modal={modal} layer={rank}>
             <Drawer.Popup
               ref={setPopup}
               finalFocus={restoreFocus ? undefined : false}

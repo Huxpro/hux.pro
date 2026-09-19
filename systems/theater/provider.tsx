@@ -11,7 +11,7 @@ import {
 } from "react";
 import { usePathname } from "next/navigation";
 import { useOptionalMusic } from "@/systems/music";
-import type { VideoPlatform } from "@/lib/log";
+import type { SlidesMedia, VideoMedia, VideoPlatform } from "@/lib/log";
 import { useInputCapability } from "@/services";
 import {
   readViewport,
@@ -19,7 +19,7 @@ import {
   theaterAvailable as theaterFits,
   type Viewport,
 } from "./lib/geometry";
-import { adHocAlbum } from "./lib/albums";
+import { adHocAlbum, mediaToTrack } from "./lib/albums";
 import {
   enableIframeFullscreen,
   loadYouTubeAPI,
@@ -51,6 +51,14 @@ interface OpenOptions {
   trackIndex?: number;
   /** Force a mode; otherwise theater on tablet+/desktop, PiP on phones. */
   mode?: TheaterMode;
+}
+
+/** What a track shows for the media it came from: the commit's name. */
+export interface MediaMeta {
+  id: string;
+  title: string;
+  subtitle?: string;
+  href?: string;
 }
 
 export interface OpenVideoInput {
@@ -97,6 +105,16 @@ interface TheaterContextValue {
    * it as a one-off while still exposing the curated albums to switch to.
    */
   openVideo: (input: OpenVideoInput) => void;
+  /**
+   * Open a piece of media on the stage, in the library it belongs to. A video
+   * lands in its curated talk album when it has one (`openVideo`); a deck
+   * lands in the Slides album beside every other deck. The two libraries are
+   * never on screen together — a recording is browsed among recordings, a
+   * deck among decks.
+   */
+  openMedia: (media: VideoMedia | SlidesMedia, meta: MediaMeta) => void;
+  /** Register the Slides library (every deck in the log) once. */
+  registerSlidesAlbum: (album: Album | null) => void;
   close: () => void;
   minimize: () => void;
   restore: () => void;
@@ -151,6 +169,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   // --- Playlist + mode state ---
   const [albums, setAlbums] = useState<Album[]>([]);
   const [registeredAlbums, setRegisteredAlbums] = useState<Album[]>([]);
+  const [slidesAlbum, setSlidesAlbum] = useState<Album | null>(null);
   const [albumIndex, setAlbumIndex] = useState(0);
   const [trackIndex, setTrackIndex] = useState(0);
   const [mode, setMode] = useState<TheaterMode>("closed");
@@ -459,6 +478,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       // available to switch into.
       const track: Track = {
         id: input.id ?? input.url,
+        kind: "video",
         platform: input.platform,
         url: input.url,
         videoId,
@@ -476,6 +496,40 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       });
     },
     [registeredAlbums, open],
+  );
+
+  const registerSlidesAlbum = useCallback((next: Album | null) => {
+    setSlidesAlbum(next);
+  }, []);
+
+  const openMedia = useCallback(
+    (media: VideoMedia | SlidesMedia, meta: MediaMeta) => {
+      if (media.kind === "video") {
+        openVideo({
+          id: meta.id,
+          url: media.url,
+          platform: media.platform,
+          thumbnail: media.thumbnail,
+          title: meta.title,
+          subtitle: meta.subtitle,
+          href: meta.href,
+        });
+        return;
+      }
+      const track = mediaToTrack(media, meta);
+      if (!track) return;
+      // The Slides library, at this deck — every other deck a card away. A
+      // deck the log does not list (an MDX page's) plays alone.
+      const idx = slidesAlbum
+        ? slidesAlbum.tracks.findIndex((tk) => tk.url === track.url)
+        : -1;
+      if (slidesAlbum && idx >= 0) {
+        open({ albums: [slidesAlbum], albumIndex: 0, trackIndex: idx });
+        return;
+      }
+      open({ albums: [adHocAlbum(track, track.title)], albumIndex: 0, trackIndex: 0 });
+    },
+    [openVideo, slidesAlbum, open],
   );
 
   const close = useCallback(() => {
@@ -594,6 +648,8 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     open,
     openTrack,
     openVideo,
+    openMedia,
+    registerSlidesAlbum,
     close,
     minimize,
     restore,

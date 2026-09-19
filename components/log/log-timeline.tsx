@@ -23,7 +23,6 @@ import { Commit } from "./commit-embed";
 import { TimelineConnector } from "./timeline-connector";
 import type { BeamSpec } from "./timeline-commit";
 import { useTimelineEdit } from "./timeline-edit-context";
-import { SlidesPlayerProvider } from "./media/slides-player";
 
 /** Stable "no filter" default — a fresh `[]` per render would bust the
  *  per-tag memo below on every render for callers that never filter
@@ -80,24 +79,22 @@ export function LogTimeline({
   onSelectHash,
 }: LogTimelineProps) {
   return (
-    <SlidesPlayerProvider>
-      <div className="space-y-0">
-        {data.map(({ tag, commits }, tagIndex) => (
-          <TagBlock
-            key={tag.id}
-            tag={tag}
-            commits={commits}
-            tagIndex={tagIndex}
-            locale={locale}
-            expandAll={expandAll}
-            identities={identities}
-            density={density}
-            activeTypes={activeTypes}
-            onSelectHash={onSelectHash}
-          />
-        ))}
-      </div>
-    </SlidesPlayerProvider>
+    <div className="space-y-0">
+      {data.map(({ tag, commits }, tagIndex) => (
+        <TagBlock
+          key={tag.id}
+          tag={tag}
+          commits={commits}
+          tagIndex={tagIndex}
+          locale={locale}
+          expandAll={expandAll}
+          identities={identities}
+          density={density}
+          activeTypes={activeTypes}
+          onSelectHash={onSelectHash}
+        />
+      ))}
+    </div>
   );
 }
 

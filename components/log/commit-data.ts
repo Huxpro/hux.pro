@@ -30,12 +30,12 @@ import {
   getMediaThumbnail,
   getMediaStripItems,
   isPlayableMedia,
+  VIDEO_PLATFORM_LABEL,
 } from "@/lib/log";
 import { pickInternalLink } from "@/lib/og-enrich";
 import {
   detectSocialEmbedPlatform,
-  getDomainLabel,
-} from "@/lib/og-core";
+  getDomainLabel, SOCIAL_PLATFORM_LABEL } from "@/lib/og-core";
 
 // =============================================================================
 // Types
@@ -52,10 +52,13 @@ export interface SimpleLink {
    */
   redundantWhenExpanded?: boolean;
   /**
-   * When set, the rail affordance opens the in-site slides player instead of
-   * navigating away. Used for `kind:"slides"` media.
+   * The media this pill stands for, when it stands for one of the commit's
+   * attachments (a video, a deck, a card, a social widget) rather than a
+   * plain link. The rail opens it through the attachment system by finding
+   * it in the commit's set — by reference, so this is the commit's own
+   * object, never a copy.
    */
-  playSlides?: boolean;
+  media?: Media;
 }
 
 export interface NormalizedCommit {
@@ -105,7 +108,7 @@ export interface NormalizedCommit {
   stripItems: StripItem[];
 
   // Compact rendering
-  thumbnail?: { url: string; linkUrl?: string; isVideo?: boolean };
+  thumbnail?: { url: string; linkUrl?: string };
   secondaryLine?: string;
 }
 
@@ -128,11 +131,10 @@ function socialEmbedToLink(m: {
   switch (platform) {
     case "x":
     case "twitter":
-      return { url: m.url, label: "X", icon: "x" };
+      return { url: m.url, label: SOCIAL_PLATFORM_LABEL[platform], icon: "x" };
     case "instagram":
-      return { url: m.url, label: "Instagram", icon: "instagram" };
     case "tiktok":
-      return { url: m.url, label: "TikTok", icon: "tiktok" };
+      return { url: m.url, label: SOCIAL_PLATFORM_LABEL[platform], icon: platform };
     default:
       return { url: m.url, label: getDomainLabel(m.url), icon: "globe" };
   }
@@ -178,28 +180,24 @@ export function extractMediaLinks(
 
   for (const m of media) {
     if (isVideoMedia(m)) {
-      const platformLabel: Record<string, string> = {
-        bilibili: "Bilibili",
-        youtube: "YouTube",
-        vimeo: "Vimeo",
-      };
       links.push({
         url: m.url,
-        label: platformLabel[m.platform] ?? m.platform,
+        label: VIDEO_PLATFORM_LABEL[m.platform],
         icon: m.platform,
+        media: m,
       });
     } else if (isSlidesMedia(m)) {
       links.push({
         url: m.url,
         label: m.title || "Slides",
         icon: "slides",
-        playSlides: true,
+        media: m,
       });
     } else if (isSocialEmbedMedia(m)) {
-      links.push(socialEmbedToLink(m));
+      links.push({ ...socialEmbedToLink(m), media: m });
     } else if (isLinkMedia(m)) {
       if (m.present === "card") {
-        links.push(linkCardToLink(m, locale));
+        links.push({ ...linkCardToLink(m, locale), media: m });
       } else {
         links.push({
           url: m.url,
@@ -243,19 +241,17 @@ function getPlatformIcon(platform: string): string {
  */
 function deriveThumbnail(
   media: Media[],
-): { url: string; linkUrl?: string; isVideo?: boolean } | undefined {
+): { url: string; linkUrl?: string } | undefined {
   for (const m of media) {
     if (isPlayableMedia(m) || isImageMedia(m)) {
       const thumb = getMediaThumbnail(m);
-      if (thumb) return { url: thumb, linkUrl: m.url, isVideo: isPlayableMedia(m) };
+      if (thumb) return { url: thumb, linkUrl: m.url };
     }
   }
   for (const m of media) {
     if (isLinkMedia(m) && m.present === "card") {
       const thumb = getMediaThumbnail(m);
-      // A card cover pointing at a talk-recording host (GitNation) reads as a
-      // video in the compact cover, matching the play affordance on the card.
-      if (thumb) return { url: thumb, linkUrl: m.url, isVideo: isPlayableMedia(m) };
+      if (thumb) return { url: thumb, linkUrl: m.url };
     }
   }
   return undefined;

@@ -185,6 +185,12 @@ desktop mid-app is not a gesture anyone makes.
   the dock (`soloOnPhone` in `provider.tsx`): a second sheet would bury the
   first rather than sit beside it, and the dock is the app switcher. Windows
   coexist from `sm` up, as windows do.
+- **It stacks on whatever opened it.** A window sheet is a sheet like any
+  other in the shared stack, so one opened from the attachment sheet (a
+  `Visit`) sends that sheet a step back and brings it forward again when the
+  window is put away — and paints above it even when the window was kept
+  mounted from an earlier visit, because the stack's order is the paint order
+  ([Surface System](./system-surface.md), "Stacking").
 - **The menu** is a sheet stacked on the window — a React child of it, so Base
   UI treats it as a real nested drawer and sends the window a step back, the
   way iOS presents a sheet from a sheet.
@@ -387,6 +393,18 @@ Three ways in, all routing through `useWindows()`:
 - **Over-the-air.** `openBundleUrl(url)` opens an ad-hoc Lynx window for any
   `.web.bundle` URL. Reachable from the palette action above and from the
   DevTool.
+- **In-app browser.** `openUrl(url, { title })` opens any web page in a
+  window — the same frame, pill and menu an app gets, keyed by URL so the same
+  page focuses its window rather than opening a second. This is where a link
+  card a commit attaches opens (see
+  [Attachments System](./system-attachments.md)): a window on a desktop, and
+  on a phone the window sheet, stacked over the attachment sheet the `Visit`
+  came from, the way a mobile app opens a link in its own in-app browser and
+  returns to the screen underneath when it is put away. Pages whose headers
+  refuse framing never get here, they go to a tab. `Open in browser` in the
+  menu is the way out. The browser is an app with `runtime: "web"`; a second
+  runtime for links — a reader, a different frame — would be another `AppLink`
+  and another row in the attachments policy, nothing more.
 
 ## DevTool inspector
 
