@@ -1,9 +1,12 @@
 import { cn } from "@/lib/utils";
 import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 
-/** System-voice heading: the greeting, index titles. Not a document title. */
+/**
+ * System-voice heading: the greeting, index titles. Not a document title, so
+ * it is not selectable and the cursor says so (`.system-voice`, globals.css).
+ */
 export const TITLE_POETIC =
-  "font-serif text-3xl sm:text-4xl tracking-tight select-none cursor-default";
+  "font-serif text-3xl sm:text-4xl tracking-tight system-voice cursor-default";
 
 /** Article / reader heading: content, so text stays selectable. */
 export const TITLE_READER =

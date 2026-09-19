@@ -94,8 +94,7 @@ export function PageLayout({
   const currentText = isHovered ? hoverTitle : displayTitle;
   const titleClassName = cn(
     "text-foreground",
-    variant === "reader" ? TITLE_READER : TITLE_POETIC,
-    useScramble && "cursor-default"
+    variant === "reader" ? TITLE_READER : TITLE_POETIC
   );
 
   const titleJsx = (
@@ -147,7 +146,7 @@ export function PageLayout({
         <>
           <HeaderZone
             data-hero-exit={heroExit}
-            className={heroZoneClassName(heroExit, !heroFadeStyle, "select-none")}
+            className={heroZoneClassName(heroExit, !heroFadeStyle, "system-voice")}
             style={heroZoneStyle(heroExit, heroFadeStyle)}
           >
             <div className="h-11 flex items-start">

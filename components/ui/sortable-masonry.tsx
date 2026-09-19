@@ -226,7 +226,7 @@ function SortableMasonryItem({
       onContextMenu={(e) => e.preventDefault()}
       // Widgets are tactile objects, not prose — never let a drag turn into a
       // text selection.
-      className="mb-4 break-inside-avoid select-none"
+      className="mb-4 break-inside-avoid system-voice"
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
