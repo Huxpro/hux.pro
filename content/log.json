@@ -440,6 +440,7 @@
     {
       "id": "wad-2026-lynx-workshop",
       "type": "talk",
+      "present": "aside",
       "tagId": "lynx-era",
       "title": {
         "en": "Vibe³ Cross Platform Apps with Lynx: A TikTok Hackathon",
@@ -480,6 +481,7 @@
     {
       "id": "gosim-2026-vibe-native",
       "type": "talk",
+      "present": "aside",
       "tagId": "lynx-era",
       "title": {
         "en": "Why AI Agents Deserve a Better App Framework",
@@ -553,6 +555,7 @@
     {
       "id": "wad-2025-lynx-native",
       "type": "talk",
+      "present": "aside",
       "tagId": "lynx-era",
       "title": {
         "en": "Lynx: Native for More",

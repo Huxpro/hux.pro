@@ -146,11 +146,10 @@ function TagBlock({
   // Compute beam specs for explicit `attachedTo` attachments. Both
   // endpoints (source + target) carry the same spec so hovering/
   // focusing/expanding EITHER end brightens the connector line.
-  // Per-endpoint gap is derived from the commit's type so the line
-  // meets each endpoint at the right radius (role ring vs icon vs
-  // event dot).
-  const gapFor = (type: CommitData["type"]) =>
-    type === "role" ? 10 : type === "event" ? 3 : 7;
+  // Per-endpoint gap is derived from the commit so the line meets each
+  // endpoint at the right radius (role ring vs icon vs event/aside dot).
+  const gapFor = (c: CommitData) =>
+    c.type === "role" ? 10 : c.type === "event" || c.present === "aside" ? 3 : 7;
 
   const {
     railInfo,
@@ -183,8 +182,8 @@ function TagBlock({
 
     const attachmentsWithGaps = allBeams.map((b) => ({
       ...b,
-      fromGap: gapFor(commits[b.fromIdx].type),
-      toGap: gapFor(commits[b.toIdx].type),
+      fromGap: gapFor(commits[b.fromIdx]),
+      toGap: gapFor(commits[b.toIdx]),
     }));
 
     // Each beam endpoint stashes a BeamSpec so hover/focus/expand
