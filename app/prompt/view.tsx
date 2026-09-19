@@ -206,7 +206,8 @@ function PrincipleItem({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const attributes = principle.topic ? { on: principle.topic } : undefined;
-  const hasExpandableContent = principle.shapedBy || principle.reasoning;
+  const hasExpandableContent =
+    principle.shapedBy || principle.reasoning || principle.links;
 
   return (
     <div
@@ -271,6 +272,30 @@ function PrincipleItem({
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {principle.reasoning}
                   </p>
+                )}
+                {principle.links && principle.links.length > 0 && (
+                  <div
+                    className={cn(
+                      "flex flex-wrap gap-3",
+                      (principle.shapedBy || principle.reasoning) && "mt-3",
+                    )}
+                  >
+                    {principle.links.map((link, i) => (
+                      <motion.a
+                        key={link.url}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs font-mono text-muted-foreground hover:text-foreground underline underline-offset-2 decoration-muted-foreground/30 hover:decoration-foreground transition-colors"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.1 + i * 0.05, duration: 0.2 }}
+                      >
+                        {link.label}
+                      </motion.a>
+                    ))}
+                  </div>
                 )}
               </motion.div>
             </motion.div>

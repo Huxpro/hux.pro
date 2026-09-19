@@ -32,6 +32,7 @@ interface RawPrinciple {
   topic?: BilingualText;
   shapedBy?: BilingualArray;
   reasoning?: BilingualText;
+  links?: PromptLink[];
 }
 
 interface RawNamedEntry {
@@ -66,6 +67,7 @@ export interface Principle {
   topic?: string;
   shapedBy?: string[];
   reasoning?: string;
+  links?: PromptLink[];
 }
 
 export interface NamedEntry {
@@ -152,6 +154,7 @@ export function getPromptsData(locale: Locale = "en"): PromptsData {
       topic: resolveOptionalText(p.topic, locale),
       shapedBy: resolveArray(p.shapedBy, locale),
       reasoning: resolveOptionalText(p.reasoning, locale),
+      links: p.links,
     })),
     people: raw.people.map((p) => resolveNamedEntry(p, locale)),
     books: (raw.books ?? []).map((b) => resolveNamedEntry(b, locale)),
