@@ -26,7 +26,7 @@ import {
   AuthorFields,
 } from "./embeds/shared";
 import { MediaRenderer } from "./media";
-import { AttachmentGrid } from "./media/attachment-grid";
+import { AttachmentGrid, PHONE_BLEED_BOX } from "./media/attachment-grid";
 import { MediaStrip } from "./media/media-strip";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
@@ -720,8 +720,13 @@ export function TimelineCommit({
           data-row-lazy
           // `min-w-0` for the same reason the strip line carries it: the
           // content track is `1fr`, whose automatic minimum is its content,
-          // and a caption line that does not wrap would set it.
-          className="col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-1.5"
+          // and a caption line that does not wrap would set it. On a phone
+          // the box spans the screen (PHONE_BLEED_BOX): the lazy render
+          // clips paint to it, and the feed's covers run edge to edge.
+          className={cn(
+            "col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-1.5",
+            PHONE_BLEED_BOX,
+          )}
         >
           {/* The message: what it is, the thing itself, the note on it.
               Topics and stats are authored but deliberately unprinted — a row
@@ -834,13 +839,18 @@ export function TimelineCommit({
           data-row-trigger
           // Clip the rail segments vertically so they can't leak past the
           // tenure cluster's last row — but only on the block axis. The
-          // inline axis stays visible so a three-card media rail can bleed
-          // into the page gutter (see MediaRenderer). `overflow-y: clip`
-          // keeps the vertical clip without turning the row into a scroll
-          // container; the cursor preview is `position: fixed`, so it was
-          // never clipped here anyway.
+          // inline axis stays open so the covers can bleed past the row: the
+          // feed's edge to edge on a phone, the strip to the screen's right.
+          // A clip-path, not `overflow-y: clip`: WebKit paints a one-axis
+          // `overflow: clip` as a clip on both axes (while still computing
+          // `overflow-x: visible`), so on iOS every cover stopped at the
+          // row's box, 12px in from each edge. The inset clips top and
+          // bottom at the border box and leaves the sides a screen's width
+          // of room, in every engine. Nothing in the row is
+          // `position: fixed` (the cursor preview is the row's sibling), so
+          // a clip-path clips nothing an overflow clip would not.
           className={cn(
-            "group pressable relative -mx-3 px-3 rounded-lg transition-colors duration-150 overflow-y-clip",
+            "group pressable relative -mx-3 px-3 rounded-lg transition-colors duration-150 [clip-path:inset(0_-100vw)]",
             // The gutter as marginalia (see the hash cell): pulled left by the
             // gutter's width so the content column is the page column. The
             // hover wash follows, which is right — the hash and the rail are
