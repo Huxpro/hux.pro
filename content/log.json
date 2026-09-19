@@ -1426,6 +1426,16 @@
         },
         {
           "kind": "link",
+          "url": "https://huxpro.github.io/2015/01/29/hello-2015/",
+          "present": "card",
+          "preview": {
+            "title": "Hello 2015",
+            "description": "Hello World, Hello Blog. The introductory post for Hux Blog.",
+            "image": "/img/post-bg-2015.jpg"
+          }
+        },
+        {
+          "kind": "link",
           "url": "https://github.com/Huxpro/huxpro.github.io",
           "present": "card"
         }
