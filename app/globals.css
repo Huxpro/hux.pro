@@ -603,9 +603,9 @@ html.dragging * {
    still land, and an inline player keeps playing. The folded strip is not
    marked: 112px of images gains little from being skipped and would pay
    the resize. */
+/* EXPERIMENT (H3): off, to see whether a feed whose height changes under the
+   finger is what stalls a scroll on a phone. */
 [data-row-lazy] {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 24rem;
 }
 
 /* Commit permalink arrival — /works#<hash>. The row you travelled to is
