@@ -52,15 +52,25 @@ export function TimelineMini({
   className,
 }: TimelineMiniProps) {
   const isEvent = data.type === "event";
+  const isAside = data.present === "aside";
+  // Folded asides borrow the event voice: muted italic line, rail
+  // dot. Mini rows do not unfold in place — they permalink into /works,
+  // where the aside can be opened. The type is unchanged, so filters
+  // still find it.
+  const displayTitle =
+    isAside && data.foldedTitle ? data.foldedTitle : data.title;
 
   // Attachments never render here, so the pills that merely proxy a link
   // card (`redundantWhenExpanded`) go too — what's left are the commit's
   // real outbound links (website / GitHub / platform), which keeps narrow
   // rows from drowning the title in globes.
-  const links = data.links.filter((l) => !l.redundantWhenExpanded);
+  const links = isAside
+    ? []
+    : data.links.filter((l) => !l.redundantWhenExpanded);
 
   // Events are the log's punctuation — they have no page of their own to
-  // open, so they stay plain text.
+  // open, so they stay plain text. Asides are real commits (a talk, a
+  // post) wearing the event voice, so they still permalink into /works.
   const href = isEvent ? null : `/works#${data.hash}`;
 
   // Rail drawn through the icon column as two segments (above / below the
@@ -69,7 +79,7 @@ export function TimelineMini({
   const hasRailAbove = rail === "│" || rail === "┘";
   const hasRailBelow = rail === "│" || rail === "┐";
   const isRoleAnchor = isRole && rail !== "";
-  const iconGapPx = isEvent ? 3 : isRoleAnchor ? 10 : 7;
+  const iconGapPx = isEvent || isAside ? 3 : isRoleAnchor ? 10 : 7;
 
   const body = (
     <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 items-start">
@@ -77,7 +87,7 @@ export function TimelineMini({
         data-rail-icon
         className={cn(
           "relative inline-flex items-center justify-center w-5",
-          isEvent ? "h-4" : "h-5",
+          isEvent || isAside ? "h-4" : "h-5",
         )}
       >
         {hasRailAbove && (
@@ -96,7 +106,7 @@ export function TimelineMini({
             style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
           />
         )}
-        {isEvent ? (
+        {isEvent || isAside ? (
           <span
             aria-hidden
             className="block w-[3px] h-[3px] rounded-full bg-muted-foreground/30"
@@ -125,18 +135,18 @@ export function TimelineMini({
         <span
           className={cn(
             "min-w-0 flex-1 truncate",
-            isEvent
+            isEvent || isAside
               ? cn(
                   "text-xs text-tertiary-foreground",
-                  /[぀-ヿ一-鿿]/.test(data.title)
+                  /[぀-ヿ一-鿿]/.test(displayTitle)
                     ? "font-mono"
                     : "italic font-serif",
                 )
               : TYPE.rowTitle,
           )}
         >
-          {data.title}
-          {data.languageBadge && (
+          {displayTitle}
+          {!(isEvent || isAside) && data.languageBadge && (
             <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
               {data.languageBadge}
             </span>
@@ -182,7 +192,7 @@ export function TimelineMini({
       {/* Subtitle row: meta / team on the left, <handle> byline on the
           right. Sparse handle: cluster heads print it at rest, the rest
           fade in on row hover. */}
-      {(data.meta || byline) && (
+      {(!(isEvent || isAside) && (data.meta || byline)) && (
         <div
           className={cn(
             "col-start-2 mt-0.5 flex items-baseline justify-between gap-2",
@@ -229,7 +239,7 @@ export function TimelineMini({
 
   const shell = cn(
     "group pressable relative block -mx-2 px-2 rounded-lg transition-colors duration-150 overflow-y-clip",
-    isEvent ? "py-1" : "py-2",
+    isEvent || isAside ? "py-1" : "py-2",
     className,
   );
 
@@ -256,7 +266,7 @@ export function TimelineMini({
       <Link
         href={href}
         data-row-link
-        aria-label={data.title}
+        aria-label={displayTitle}
         className="absolute inset-0 z-0 rounded-lg outline-none"
       />
       <div className="relative z-10 pointer-events-none [&_a]:pointer-events-auto">
