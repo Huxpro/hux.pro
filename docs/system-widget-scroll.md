@@ -5,8 +5,16 @@ One media query, in `WidgetScrollBody` (`components/ui/widget.tsx`):
 
 ```
 overflow-hidden
-pointer-fine:overflow-y-auto pointer-fine:snap-y pointer-fine:snap-mandatory
+pointer-fine:h-64 pointer-fine:overflow-y-auto
+pointer-fine:snap-y pointer-fine:snap-mandatory
+pointer-fine:[mask-image:…]
 ```
+
+The height, the scroll and the fade are one thing and all three are
+`pointer-fine:`. Under a finger there is no port at all: each list renders a
+fixed number of rows and hides the rest (`pointer-coarse:hidden` past the
+cut — 5 for writing, 4 for projects), and the body is exactly as tall as they
+are. Nothing is cut off, so there is nothing to fade and no height to hold.
 
 This file is the reasoning, because the rule looks arbitrary and isn't.
 
@@ -30,8 +38,8 @@ Under a finger the widget always wins:
 - Nothing chains back to the page *inside* one gesture. iOS chains only at the
   **start** of the next one, and only if the inner scroller was already at its
   end — so the first swipe is simply spent.
-- With the bezel on an iPhone the page itself scrolls in a container (see
-  `packages/bezel`), so it is a container inside a container.
+- Inside vitre on an iPhone the page itself scrolls in a container (see
+  `packages/vitre`), so it is a container inside a container.
 
 Measured on an iPhone 13 viewport, swiping up from the middle of the projects
 widget:
@@ -39,7 +47,20 @@ widget:
 | | page moved | widget list moved |
 |---|---|---|
 | nested scroll | **0px** | 204px |
-| fixed height | **235px** | 0px |
+| fixed row count | **235px** | 0px |
+
+## Why a row count and not a fixed height
+
+Both stop the fight; only one of them has a size you can predict. A fixed
+height clips whatever is under it, so how much the card says depends on how
+long the titles happen to be — and a Chinese title against an English one is
+a whole row of difference. A row count inverts it: the rows are fixed and the
+height follows, which is why the writing card is 246px in both languages and
+the projects card is 282px in both.
+
+That costs the titles their second line — the writing rows truncate now, like
+a project's name always has. A card is a preview; the title in full is one
+tap away, and a row that can't wrap is a row whose height is knowable.
 
 ## Why a media query and not a gesture
 
@@ -71,9 +92,10 @@ branch, nothing measured, correct on the server.
   scroll view with the same orientation.** … It's alright to place a horizontal
   scroll view inside a vertical scroll view (or vice versa), however."*
 
-Touch therefore lands where Apple already is: the card is a preview at a fixed
-height, faded at the tail, and the card's own tap opens `/writing` or `/works`
-— which is the real list.
+Touch therefore lands where Apple already is: the card is a preview of a
+fixed few rows, and the tap opens the real list — the card's own surface for
+`/writing` or `/works`, a projects row for its commit's permalink
+(`/works#<hash>`, see `components/log/use-commit-anchor.ts`).
 
 ## What was tried and rejected
 

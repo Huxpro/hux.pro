@@ -217,10 +217,17 @@ export function WidgetBody({
  * the page is simply spent. Measured on an iPhone 13 viewport, a swipe from
  * the middle of the projects widget moved the page 0px and the list 204px.
  *
- * So touch gets the card at a fixed height, faded at the tail, and the card's
- * own tap for the rest — which is what a widget is everywhere else: Apple's
- * widgets have no scroll gesture at all, and answer "more than fits" with a
- * bigger size or the app. See docs/system-widget-scroll.md.
+ * So touch gets a plain stack instead: the widget renders a fixed number of
+ * rows (each list decides how many, and hides the rest with `pointer-coarse:`)
+ * and the body is exactly as tall as they are — no port, no mask, nothing cut
+ * off — with the card's own tap for the rest. Which is what a widget is
+ * everywhere else: Apple's widgets have no scroll gesture at all, and answer
+ * "more than fits" with a bigger size or the app.
+ * See docs/system-widget-scroll.md.
+ *
+ * So the height, the fade and the scroll are all one thing and all three are
+ * `pointer-fine:` — a body with no port needs no room for a fade and no mask
+ * over its last row, it just ends on the card's padding like `WidgetBody`.
  *
  * One media query rather than a hook: the same markup serves both, so there is
  * no hydration branch and nothing to measure.
@@ -229,8 +236,9 @@ export function WidgetScrollBody({
   className,
   children,
 }: {
-  /** Height goes here — defaults to a fixed `h-64`; pass `max-h-*` for a
-   *  stack that should only scroll once it overflows. */
+  /** The port's height under a pointer — defaults to a fixed `h-64`; pass
+   *  `pointer-fine:max-h-*` for a stack that should only scroll once it
+   *  overflows. Under a finger there is no port, so leave it unset. */
   className?: string;
   children: React.ReactNode;
 }) {
@@ -238,10 +246,10 @@ export function WidgetScrollBody({
     <div className="px-5">
       <div
         className={cn(
-          "relative -mx-2 px-2 pb-7 overflow-hidden no-scrollbar",
-          "pointer-fine:overflow-y-auto pointer-fine:snap-y pointer-fine:snap-mandatory pointer-fine:scroll-smooth",
-          "[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
-          className ?? "h-64"
+          "relative -mx-2 px-2 pb-5 overflow-hidden no-scrollbar",
+          "pointer-fine:pb-7 pointer-fine:overflow-y-auto pointer-fine:snap-y pointer-fine:snap-mandatory pointer-fine:scroll-smooth",
+          "pointer-fine:[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
+          className ?? "pointer-fine:h-64"
         )}
       >
         {children}

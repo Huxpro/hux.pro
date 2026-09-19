@@ -19,6 +19,7 @@ import {
   buildTimelineData,
   computeRail,
 } from "@/lib/log";
+import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { useMemo } from "react";
 
@@ -36,6 +37,10 @@ import { useMemo } from "react";
 // /works uses (`buildTimelineData`, `computeRail`, `computeBylines`,
 // `normalizeCommit`), so the widget can't drift from the page.
 // ---------------------------------------------------------------------------
+
+/** Rows a finger sees. The rest are still rendered — they are what the
+ *  pointer's port scrolls through — and hidden by a media query. */
+const TOUCH_ROWS = 4;
 
 /**
  * The commits the widget renders: projects only, newest first across every
@@ -109,6 +114,18 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
     return out;
   }, [commits, railInfo]);
 
+  // Position of each rendered row within the whole stack, so a row can tell
+  // whether it falls past what a finger is shown. The rail is computed over
+  // the full list either way, so the run that continues past the cut still
+  // draws its `│` out of the bottom of the card — which is true: there is
+  // more below, on /works.
+  const rowOrdinal = useMemo(() => {
+    const map = new Map<number, number>();
+    let n = 0;
+    for (const run of runs) for (const i of run.indices) map.set(i, n++);
+    return map;
+  }, [runs]);
+
   if (commits.length === 0) return null;
 
   return (
@@ -130,7 +147,13 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
               isRole={commits[i].type === "role"}
               byline={bylines[i]}
               hideDate={hideDateFor(commits[i])}
-              className="snap-start"
+              className={cn(
+                "snap-start",
+                // Counted over rendered rows, not over `commits` — the
+                // hidden role rows that anchor the rail don't spend one.
+                (rowOrdinal.get(i) ?? 0) >= TOUCH_ROWS &&
+                  "pointer-coarse:hidden",
+              )}
             />
           ));
           return run.kind === "cluster" ? (
