@@ -29,6 +29,27 @@ import { useTimelineEdit } from "./timeline-edit-context";
  *  (the editor's inspect loop re-renders constantly). */
 const NO_TYPES: FilterableCommitType[] = [];
 
+/** What a chapter's ref marker says: the newest chapter is `HEAD`, the rest
+ *  their title. Shared with the pinned bar, which wears the same marker. */
+export function chapterLabel(tag: Tag, tagIndex: number, locale: Locale): string {
+  return tagIndex === 0 ? "HEAD" : getLocalizedTagTitle(tag, locale).toUpperCase();
+}
+
+/**
+ * The ref marker's pill. Frosted-glass fill: translucent + blurred so the
+ * ambient gradient shows through and gets tinted per-theme rather than
+ * covered by a flat opaque patch. The blur is `sm:` and up: a sticky
+ * backdrop filter over an animating wallpaper and full-bleed covers is
+ * re-sampled every scroll frame, which a phone cannot afford, so there the
+ * fill is denser instead. The tint direction follows the theme — lighten
+ * toward white in light mode (keeping the near-white chip it always was),
+ * darken with black in dark mode (the "shade darker than the page" look).
+ * Compositing a tint at alpha α over backdrop B gives a uniform shift, so a
+ * solid background reads the same as before while a gradient keeps its hue.
+ */
+export const CHAPTER_PILL =
+  "inline-flex items-center bg-white/85 dark:bg-black/45 sm:bg-white/70 sm:dark:bg-black/25 sm:backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full";
+
 interface LogTimelineProps {
   data: {
     tag: Tag;
@@ -59,6 +80,13 @@ interface LogTimelineProps {
   activeTypes?: FilterableCommitType[];
   /** Wires each row's hash as its permalink. Omit and it is plain text. */
   onSelectHash?: (hash: string) => void;
+  /**
+   * The page pins a bar that wears the current chapter (/works). Each
+   * chapter's marker then stays in the flow as a divider and hands its pill
+   * to the bar as it scrolls under it, instead of sticking on its own —
+   * two sticky layers at the top of a phone would be one too many.
+   */
+  pinnedChapters?: boolean;
 }
 
 /**
@@ -73,6 +101,7 @@ export function LogTimeline({
   form = DEFAULT_FORM,
   activeTypes = NO_TYPES,
   onSelectHash,
+  pinnedChapters = false,
 }: LogTimelineProps) {
   return (
     <div className="space-y-0">
@@ -88,6 +117,7 @@ export function LogTimeline({
           form={form}
           activeTypes={activeTypes}
           onSelectHash={onSelectHash}
+          pinned={pinnedChapters}
         />
       ))}
     </div>
@@ -104,6 +134,7 @@ interface TagBlockProps {
   form: LogForm;
   activeTypes: FilterableCommitType[];
   onSelectHash?: (hash: string) => void;
+  pinned: boolean;
 }
 
 function TagBlock({
@@ -116,12 +147,12 @@ function TagBlock({
   form,
   activeTypes,
   onSelectHash,
+  pinned,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
   const isTagSelected = edit?.editingTagId === tag.id;
-  const tagLabel =
-    tagIndex === 0 ? "HEAD" : getLocalizedTagTitle(tag, locale).toUpperCase();
+  const tagLabel = chapterLabel(tag, tagIndex, locale);
   const [activeBeam, setActiveBeam] = useState<BeamSpec | null>(null);
   const handleBeamSet = useCallback(
     (spec: BeamSpec) => setActiveBeam(spec),
@@ -227,27 +258,18 @@ function TagBlock({
       {/* Tag ref marker — like `git log --decorate` ref annotations */}
       <div
         className={cn(
-          "sticky top-4 z-20 flex items-center gap-3 py-2",
+          "flex items-center gap-3 py-2",
+          !pinned && "sticky top-4 z-20",
           tagIndex > 0 && "mt-6 pt-6 border-t border-border/30",
         )}
       >
-        {/* Frosted-glass fill: translucent + blurred so the ambient gradient
-            shows through and gets tinted per-theme rather than covered by a
-            flat opaque patch. The blur is `sm:` and up: a sticky backdrop
-            filter over an animating wallpaper and full-bleed covers is
-            re-sampled every scroll frame, which a phone cannot afford, so
-            there the fill is denser instead. The tint direction follows the theme — lighten
-            toward white in light mode (keeping the near-white chip it always
-            was), darken with black in dark mode (the "shade darker than the
-            page" look). Compositing a tint at alpha α over backdrop B gives a
-            uniform shift, so a solid background reads the same as before while
-            a gradient keeps its hue. */}
         {inspecting && edit ? (
           <button
             type="button"
             onClick={() => edit.onSelectTag(tag.id)}
             className={cn(
-              "inline-flex items-center bg-white/85 dark:bg-black/45 sm:bg-white/70 sm:dark:bg-black/25 sm:backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full transition-colors",
+              CHAPTER_PILL,
+              "transition-colors",
               isTagSelected
                 ? "border-sky-500/70 ring-1 ring-inset ring-sky-500/35 bg-sky-500/[0.05]"
                 : "border-border hover:border-sky-500/50",
@@ -257,7 +279,12 @@ function TagBlock({
             {tagLabel}
           </button>
         ) : (
-          <span className="inline-flex items-center bg-white/85 dark:bg-black/45 sm:bg-white/70 sm:dark:bg-black/25 sm:backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border border-border rounded-full">
+          // `data-chapter` is what the pinned bar watches: the moment this
+          // pill reaches the bar's ref slot, the slot wears it.
+          <span
+            data-chapter={pinned ? tag.id : undefined}
+            className={cn(CHAPTER_PILL, "border-border")}
+          >
             {tagLabel}
           </span>
         )}

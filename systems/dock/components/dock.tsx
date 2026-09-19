@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { DockProvider } from "../provider";
 
 // ---------------------------------------------------------------------------
@@ -28,6 +28,54 @@ function DockSurface({ children }: { children: React.ReactNode }) {
   // Mouse drag-to-scroll (touch scrolls natively). `moved` gates the click
   // suppression so a drag never also fires a pill's onClick.
   const drag = useRef({ active: false, startX: 0, startLeft: 0, moved: false });
+
+  // What the pills cover, published as `--dock-clear` on <html>: the
+  // distance from the top of the viewport to their bottom edge, 0 when there
+  // are none. Anything that pins itself to the top of the page (the /works
+  // bar) clears the dock by it instead of guessing whether a Live Activity
+  // is up here right now.
+  useEffect(() => {
+    const row = scrollRef.current;
+    const bar = row?.parentElement;
+    if (!row || !bar) return;
+    const root = document.documentElement;
+    const publish = () => {
+      // Layout boxes, not rects: a pill arrives scaled (`dock-pop-in`), and
+      // its rect would report the frame of the animation it was caught in.
+      // The pills' offsets are from the fixed bar; the row's own `py-3` is
+      // shadow room, not something to clear.
+      let bottom = 0;
+      for (const pill of Array.from(row.children) as HTMLElement[]) {
+        if (pill.offsetHeight > 0) {
+          bottom = Math.max(bottom, pill.offsetTop + pill.offsetHeight);
+        }
+      }
+      root.style.setProperty(
+        "--dock-clear",
+        bottom > 0 ? `${Math.ceil(bar.getBoundingClientRect().top + bottom)}px` : "0px",
+      );
+    };
+    publish();
+    // A pill arriving or leaving, and a pill changing size (a panel
+    // collapsing back into it).
+    const ro = new ResizeObserver(publish);
+    ro.observe(row);
+    const mo = new MutationObserver(() => {
+      ro.disconnect();
+      ro.observe(row);
+      for (const pill of Array.from(row.children)) ro.observe(pill);
+      publish();
+    });
+    mo.observe(row, { childList: true });
+    for (const pill of Array.from(row.children)) ro.observe(pill);
+    window.addEventListener("resize", publish);
+    return () => {
+      ro.disconnect();
+      mo.disconnect();
+      window.removeEventListener("resize", publish);
+      root.style.removeProperty("--dock-clear");
+    };
+  }, []);
 
   return (
     /* Pill row. Outer centers; inner scrolls. Splitting the two avoids the

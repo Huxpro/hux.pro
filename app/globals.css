@@ -143,6 +143,20 @@
   );
 }
 
+/* The gap under a page's hero (components/ui/hero-exit.ts), a variable so a
+   bar pinned out of the hero can be lifted back over it by the same amount.
+   `--dock-clear` is the bottom of the Dock's pills, published by the Dock
+   itself (systems/dock) — 0 until it has any. */
+:root {
+  --hero-gap: 1rem;
+  --dock-clear: 0px;
+}
+@media (width >= 40rem) {
+  :root {
+    --hero-gap: 1.5rem;
+  }
+}
+
 :root {
   /* --- INPUTS: the two colours of the light theme --- */
   --ink: oklch(0.145 0 0);
