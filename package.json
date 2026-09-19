@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "vite build --config packages/vitre/site/vite.config.ts --outDir ../../../public/vitre && next build",
+    "build": "pnpm vitre:site:build && next build",
     "start": "next start",
     "lynx:shadow-css": "node scripts/lynx-shadow-css-bundle.mjs",
     "predev": "node scripts/lynx-shadow-css-bundle.mjs",

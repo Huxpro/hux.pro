@@ -12,7 +12,6 @@ import { DEFAULT_CONFIG, GROUND, STORAGE_KEY, type DemoConfig } from "./defaults
 export {
   DEFAULT_CONFIG,
   GROUND,
-  STORAGE_KEY,
   type Backdrop,
   type ColorMode,
   type DemoConfig,
@@ -86,7 +85,7 @@ export function isDemoPage(): boolean {
 // Messages between the docs page and the phone
 // -----------------------------------------------------------------------------
 
-export type DemoAction = "status-tap" | "scroll-top" | "scroll-middle" | "scroll-bottom" | "reset";
+export type DemoAction = "scroll-top" | "scroll-middle" | "scroll-bottom" | "reset";
 
 export type ToPhone =
   | { type: "bezel-demo:patch"; patch: Partial<DemoConfig> }
@@ -97,17 +96,15 @@ export type ToPhone =
 export interface PhoneScroll {
   type: "bezel-demo:scroll";
   top: number;
-  scroll: "window" | "container";
-  /** False while the page scrolls itself, as `scrollPageTo` does. */
+  scroll: BezelScroll;
+  /** Whether the user scrolled, rather than the page scrolling itself. */
   user: boolean;
 }
 
 export interface PhoneReport {
   type: "bezel-demo:report";
-  config: DemoConfig;
   theme: "light" | "dark";
   state: Record<string, unknown>;
-  html: Record<string, string>;
   themeColor: string | null;
   scrollTop: number;
 }

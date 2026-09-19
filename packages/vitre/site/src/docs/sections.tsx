@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
-import type { PhoneReport } from "../config";
+import type { DemoAction, PhoneReport } from "../config";
 import { useT, type Text } from "../i18n";
-import type { ScenarioName } from "../scenarios";
 import { Code } from "./Code";
 import {
   BEZEL_PROPS,
@@ -21,7 +20,7 @@ import {
 // =============================================================================
 
 export interface DocSection {
-  id: SectionId & ScenarioName;
+  id: SectionId;
   /** Short label for the section switcher. */
   nav: Text;
   /** The API the section is about. Not translated. */
@@ -31,8 +30,12 @@ export interface DocSection {
   body?: Text<ReactNode>;
   code?: string;
   live?: (report: PhoneReport | null) => { label: Text; value: unknown } | null;
-  actions?: { label: Text; run: "reload" | "top" | "bottom" }[];
+  actions?: { label: Text; run: DemoAction | "reload" }[];
 }
+
+type Live = NonNullable<DocSection["live"]>;
+const themeColorLive: Live = (r) => r && { label: { en: "theme-color in the phone", zh: "手机里的 theme-color" }, value: r.themeColor };
+const scrollLive: Live = (r) => r && { label: { en: "scroll · pageScrollTop()", zh: "滚动模式 · pageScrollTop()" }, value: `${String(r.state.scroll)} · ${r.scrollTop}px` };
 
 const REBIND = `const { scroll } = useBezel();
 useEffect(() => {
@@ -41,7 +44,7 @@ useEffect(() => {
   return () => target.removeEventListener("scroll", onScroll);
 }, [scroll]);`;
 
-function Table({ head, rows }: { head: Text[]; rows: [Text<ReactNode>, ...Text<ReactNode>[]][] }) {
+function Table({ head, rows }: { head: Text[]; rows: Text<ReactNode>[][] }) {
   const t = useT();
   return (
     <div className="docs-table-wrap">
@@ -111,69 +114,38 @@ const HEAD: Text[] = [
 ];
 
 export function Fields({ fields }: { fields: Record<string, FieldDoc> }) {
-  const t = useT();
   return (
-    <div className="docs-table-wrap">
-      <table className="docs-table">
-        <thead>
-          <tr>
-            {HEAD.map((h) => (
-              <th key={h.en}>{t(h)}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {Object.entries(fields).map(([name, f]) => (
-            <tr key={name}>
-              <td>
-                <code>{name}</code>
-              </td>
-              <td>
-                <code>{f.type}</code>
-              </td>
-              <td>{f.default ? <code>{f.default}</code> : "—"}</td>
-              <td>{t(f.summary)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table
+      head={HEAD}
+      rows={Object.entries(fields).map(([name, f]) => [
+        same(<code>{name}</code>),
+        same(<code>{f.type}</code>),
+        same(f.default ? <code>{f.default}</code> : "—"),
+        f.summary,
+      ])}
+    />
   );
 }
 
 function ExportsTable() {
-  const t = useT();
   return (
-    <div className="docs-table-wrap">
-      <table className="docs-table">
-        <thead>
-          <tr>
-            <th>{t({ en: "Export", zh: "导出" })}</th>
-            <th>{t({ en: "Signature", zh: "签名" })}</th>
-            <th>{t({ en: "Description", zh: "说明" })}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Object.entries(EXPORTS).map(([name, d]) => (
-            <tr key={name}>
-              <td>
-                <code>{name}</code>
-                <span className="docs-kind">{d.kind}</span>
-              </td>
-              <td>
-                <code>{d.signature}</code>
-              </td>
-              <td>{t(d.summary)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table
+      head={[{ en: "Export", zh: "导出" }, { en: "Signature", zh: "签名" }, { en: "Description", zh: "说明" }]}
+      rows={Object.entries(EXPORTS).map(([name, d]) => [
+        same(
+          <>
+            <code>{name}</code>
+            <span className="docs-kind">{d.kind}</span>
+          </>,
+        ),
+        same(<code>{d.signature}</code>),
+        d.summary,
+      ])}
+    />
   );
 }
 
 function SafariTable() {
-  const t = useT();
   const rows: [Text, Text][] = [
     [
       { en: "Chrome colour at load", zh: "加载时的 chrome 颜色" },
@@ -198,26 +170,7 @@ function SafariTable() {
     ],
     [{ en: "Safe-area insets in portrait", zh: "竖屏时的安全区" }, { en: "All 0", zh: "全部为 0" }],
   ];
-  return (
-    <div className="docs-table-wrap">
-      <table className="docs-table">
-        <thead>
-          <tr>
-            <th>{t({ en: "Behaviour", zh: "行为" })}</th>
-            <th>iOS 26.5</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(([k, v]) => (
-            <tr key={k.en}>
-              <td>{t(k)}</td>
-              <td>{t(v)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  return <Table head={[{ en: "Behaviour", zh: "行为" }, { en: "iOS 26.5", zh: "iOS 26.5" }]} rows={rows} />;
 }
 
 export function SectionCovers({ id }: { id: SectionId }) {
@@ -350,7 +303,7 @@ export const SECTIONS: DocSection[] = [
       en: <p>Black is ryOS&apos;s choice and the usual one. A saturated colour makes the chrome sync easy to see on a phone.</p>,
       zh: <p>黑色是 ryOS 的选择，也最常用。在手机上用饱和一点的颜色，更容易看出 chrome 同步的效果。</p>,
     },
-    live: (r) => r && { label: { en: "theme-color in the phone", zh: "手机里的 theme-color" }, value: r.themeColor },
+    live: themeColorLive,
   },
   {
     id: "theme",
@@ -405,7 +358,7 @@ export const SECTIONS: DocSection[] = [
       ),
     },
     code: `<Bezel scroll={bezelOn ? "container" : "window"} … />`,
-    live: (r) => r && { label: { en: "scroll · pageScrollTop()", zh: "滚动模式 · pageScrollTop()" }, value: `${String(r.state.scroll)} · ${r.scrollTop}px` },
+    live: scrollLive,
   },
   {
     id: "statusTap",
@@ -432,7 +385,7 @@ export const SECTIONS: DocSection[] = [
         </>
       ),
     },
-    live: (r) => r && { label: { en: "scroll · pageScrollTop()", zh: "滚动模式 · pageScrollTop()" }, value: `${String(r.state.scroll)} · ${r.scrollTop}px` },
+    live: scrollLive,
   },
   {
     id: "backdrop",
@@ -474,7 +427,7 @@ export const SECTIONS: DocSection[] = [
       ),
     },
     code: `syncChrome("#c1440e", { band: 0, radius: 16 });`,
-    live: (r) => r && { label: { en: "theme-color in the phone", zh: "手机里的 theme-color" }, value: r.themeColor },
+    live: themeColorLive,
   },
   {
     id: "boot",
@@ -545,8 +498,8 @@ export const SECTIONS: DocSection[] = [
 scrollPageTo(pageOffsetOf(heading) - 96, { behavior: "smooth" });`,
     live: (r) => r && { label: { en: "pageScrollTop() in the phone", zh: "手机里的 pageScrollTop()" }, value: `${r.scrollTop}px` },
     actions: [
-      { label: { en: "Scroll to top", zh: "滚到顶部" }, run: "top" },
-      { label: { en: "Scroll to bottom", zh: "滚到底部" }, run: "bottom" },
+      { label: { en: "Scroll to top", zh: "滚到顶部" }, run: "scroll-top" },
+      { label: { en: "Scroll to bottom", zh: "滚到底部" }, run: "scroll-bottom" },
     ],
   },
   {
@@ -558,7 +511,7 @@ scrollPageTo(pageOffsetOf(heading) - 96, { behavior: "smooth" });`,
       en: "useBezel() returns the state the bezel is showing. Outside <Bezel> it returns a disabled default.",
       zh: "useBezel() 返回 bezel 当前显示的状态。在 <Bezel> 之外返回一个关闭状态的默认值。",
     },
-    body: { en: <Fields fields={BEZEL_STATE} />, zh: <Fields fields={BEZEL_STATE} /> },
+    body: same(<Fields fields={BEZEL_STATE} />),
     live: (r) => r && { label: { en: "useBezel() in the phone", zh: "手机里的 useBezel()" }, value: r.state },
   },
   {
@@ -570,7 +523,7 @@ scrollPageTo(pageOffsetOf(heading) - 96, { behavior: "smooth" });`,
       en: "The whole public API. This list is type-checked against the package's contract, so it cannot miss an export.",
       zh: "完整的公开 API。这份列表会和包的类型契约做类型检查，不会漏掉任何导出。",
     },
-    body: { en: <ExportsTable />, zh: <ExportsTable /> },
+    body: same(<ExportsTable />),
   },
   {
     id: "safari",
@@ -581,6 +534,6 @@ scrollPageTo(pageOffsetOf(heading) - 96, { behavior: "smooth" });`,
       en: "Measured in the iOS 26.5 simulator by reading screenshot pixels, and checked on a phone.",
       zh: "在 iOS 26.5 模拟器里通过读取截图像素测得，并在真机上核对过。",
     },
-    body: { en: <SafariTable />, zh: <SafariTable /> },
+    body: same(<SafariTable />),
   },
 ];

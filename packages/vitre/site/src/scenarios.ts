@@ -10,11 +10,13 @@ import type { DemoAction, DemoConfig } from "./config";
 export interface ScenarioHost {
   patch(patch: Partial<DemoConfig>): void;
   action(action: DemoAction): void;
+  /** Tap the status bar. Only the docs' phone has one to tap. */
+  statusTap(): void;
 }
 
 export interface Scenario {
   /** The config the scenario starts from, over the defaults. */
-  base: Partial<DemoConfig>;
+  base?: Partial<DemoConfig>;
   run?(host: ScenarioHost): () => void;
   /**
    * On a phone, where the user performs the gesture themselves: what the card
@@ -50,15 +52,13 @@ function wave(key: "band" | "radius", max: number, periodMs: number) {
 }
 
 export const SCENARIOS = {
-  intro: { base: {} },
+  intro: {},
   enabled: {
-    base: {},
     run: every(1800, [(h) => h.patch({ enabled: true }), (h) => h.patch({ enabled: false })]),
   },
-  band: { base: {}, run: wave("band", Math.min(40, BEZEL_BAND_MAX), 3200) },
-  radius: { base: {}, run: wave("radius", Math.min(48, BEZEL_RADIUS_MAX), 3200) },
+  band: { run: wave("band", Math.min(40, BEZEL_BAND_MAX), 3200) },
+  radius: { run: wave("radius", Math.min(48, BEZEL_RADIUS_MAX), 3200) },
   color: {
-    base: {},
     run: every(1800, [
       (h) => h.patch({ colorMode: "black" }),
       (h) => h.patch({ colorMode: "custom", customColor: "#c1440e" }),
@@ -73,7 +73,6 @@ export const SCENARIOS = {
   // Container, then window. The page scrolls itself here, so the docs'
   // simulated toolbar holds, as Safari's does, until the scroll reaches the top.
   scroll: {
-    base: {},
     run: every(1600, [
       (h) => h.patch({ scroll: "container" }),
       (h) => h.action("scroll-middle"),
@@ -84,7 +83,6 @@ export const SCENARIOS = {
     ]),
   },
   backdrop: {
-    base: {},
     run: every(1800, [
       (h) => h.patch({ backdrop: "aurora" }),
       (h) => h.patch({ backdrop: "sunset" }),
@@ -92,7 +90,6 @@ export const SCENARIOS = {
     ]),
   },
   chrome: {
-    base: {},
     run: every(2000, [
       (h) => h.patch({ enabled: true, colorMode: "black" }),
       (h) => h.patch({ enabled: false }),
@@ -100,28 +97,27 @@ export const SCENARIOS = {
       (h) => h.patch({ enabled: false }),
     ]),
   },
-  boot: { base: {} },
+  boot: {},
   // The docs phone's status bar is tapped for you; on a phone, the card scrolls
   // down and leaves the tap to you.
   statusTap: {
     base: { scroll: "container" },
-    run: every(2400, [(h) => h.action("scroll-bottom"), (h) => h.action("status-tap")]),
+    run: every(2400, [(h) => h.action("scroll-bottom"), (h) => h.statusTap()]),
     onPhone: (h) => {
       h.action("scroll-bottom");
       return () => {};
     },
   },
   pageScroll: {
-    base: {},
     run: every(1500, [
       (h) => h.action("scroll-middle"),
       (h) => h.action("scroll-bottom"),
       (h) => h.action("scroll-top"),
     ]),
   },
-  state: { base: {} },
-  api: { base: {} },
-  safari: { base: {} },
+  state: {},
+  api: {},
+  safari: {},
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;

@@ -123,8 +123,13 @@ export function Range({
   );
 }
 
+/** A value as the devtool and the docs' readouts show it. */
+export function formatValue(value: unknown): string {
+  return typeof value === "string" ? value : JSON.stringify(value, null, 2);
+}
+
 export function Readout({ value }: { value: unknown }) {
-  return <pre className="dt-readout">{typeof value === "string" ? value : JSON.stringify(value, null, 2)}</pre>;
+  return <pre className="dt-readout">{formatValue(value)}</pre>;
 }
 
 export function ActionButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {

@@ -37,7 +37,7 @@ import { ActionButton, Range, Readout, Row, Section, Segmented, Star, Toggle } f
 // grown to cover the whole API.
 // =============================================================================
 
-export function readHtml(): Record<string, string> {
+function readHtml(): Record<string, string> {
   const html = document.documentElement;
   const out: Record<string, string> = {};
   for (const a of Array.from(html.attributes)) {
@@ -79,6 +79,7 @@ export function Devtool({
   const state = useBezel();
   const t = useT();
   const [scrollTop, setScrollTop] = useState(0);
+  const scroller = getScrollContainer();
   usePageScroll(() => setScrollTop(Math.round(pageScrollTop())));
   // Attributes and theme-color change outside React (the package writes them).
   useTick(500);
@@ -186,7 +187,7 @@ export function Devtool({
             <span className="dt-mono">{Math.round(pageViewportHeight())}px</span>
           </Row>
           <Row label="getScrollContainer()">
-            <span className="dt-mono">{getScrollContainer() ? "#bezel-scroll" : "null (window)"}</span>
+            <span className="dt-mono">{scroller ? `#${scroller.id}` : "null (window)"}</span>
           </Row>
           <div className="dt-actions">
             <ActionButton onClick={() => onAction("scroll-top")}>scrollPageTo(0)</ActionButton>

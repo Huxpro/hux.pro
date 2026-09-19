@@ -19,5 +19,6 @@ export default defineConfig({
         html.replace("<!-- bezel-boot -->", `<script>${bezelBootScript(bootResolver())}</script>`),
     },
   ],
-  build: { outDir: "dist", emptyOutDir: true },
+  // Straight into hux.pro's public folder, which serves it at /vitre.
+  build: { outDir: fileURLToPath(new URL("../../../public/vitre", import.meta.url)), emptyOutDir: true },
 });

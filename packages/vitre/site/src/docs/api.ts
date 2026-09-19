@@ -1,6 +1,7 @@
 import type * as Contract from "../../../vitre";
 import type { BezelBootState, BezelProps, BezelState, ChromeSyncOptions, ScrollPageOptions } from "vitre";
 import type { Text } from "../i18n";
+import type { ScenarioName } from "../scenarios";
 
 // =============================================================================
 // The API reference, checked against the contract. Every value export of
@@ -9,22 +10,8 @@ import type { Text } from "../i18n";
 // that is not documented fails the type check.
 // =============================================================================
 
-export type SectionId =
-  | "intro"
-  | "enabled"
-  | "band"
-  | "radius"
-  | "color"
-  | "theme"
-  | "scroll"
-  | "statusTap"
-  | "backdrop"
-  | "chrome"
-  | "boot"
-  | "pageScroll"
-  | "state"
-  | "api"
-  | "safari";
+/** One per docs section; each section runs the scenario of the same name. */
+export type SectionId = ScenarioName;
 
 export interface ExportDoc {
   kind: "component" | "hook" | "function" | "constant";

@@ -1,17 +1,17 @@
-import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { DemoAction, PhoneReport, PhoneScroll, ToPhone } from "../config";
 import { LangSwitch, useLang, useT } from "../i18n";
 import { Code } from "./Code";
+import { formatValue } from "../devtool/controls";
 import { SCENARIOS, type Scenario } from "../scenarios";
-import { SECTIONS, SectionCovers, type DocSection } from "./sections";
+import type { SectionId } from "./api";
+import { SECTIONS, SectionCovers } from "./sections";
 
 // =============================================================================
 // The documentation page, for anything wider than a phone. A simulated iPhone
 // stays on screen while the article scrolls; whichever section is in the middle
 // of the viewport runs its scenario in the phone.
 // =============================================================================
-
-type SectionIdT = DocSection["id"];
 
 const PHONE = { width: 402, height: 874, status: 62 };
 /** Safari's bottom toolbar, expanded and collapsed, in points. */
@@ -32,21 +32,22 @@ function luminance(color: string | null): number {
  * the user scrolling down collapses it and scrolling up expands it; the page
  * scrolling itself leaves it as it is, except that reaching the top expands it.
  * In container scroll the document never scrolls, so it stays expanded.
+ * Returns whether it is collapsed, and what to do with each scroll message.
  */
-interface Toolbar {
-  collapsed: boolean;
-  /** The last scroll top, kept across modes so a switch is not read as a scroll. */
-  last: number | null;
-}
-
-function toolbarReducer(state: Toolbar, scroll: PhoneScroll): Toolbar {
-  const { last } = state;
-  const next = { ...state, last: scroll.top };
-  if (scroll.scroll !== "window" || scroll.top <= 0) next.collapsed = false;
-  else if (!scroll.user) return next;
-  else if (last !== null && scroll.top - last > TOOLBAR_THRESHOLD) next.collapsed = true;
-  else if (last !== null && last - scroll.top > TOOLBAR_THRESHOLD) next.collapsed = false;
-  return next;
+function useSimulatedToolbar(): [boolean, (scroll: PhoneScroll) => void] {
+  const [collapsed, setCollapsed] = useState(false);
+  // The last scroll top, kept across modes so a switch is not read as a scroll.
+  // A ref, so a scroll that changes nothing re-renders nothing.
+  const last = useRef<number | null>(null);
+  const onScroll = useCallback((scroll: PhoneScroll) => {
+    const prev = last.current;
+    last.current = scroll.top;
+    if (scroll.scroll !== "window" || scroll.top <= 0) setCollapsed(false);
+    else if (!scroll.user || prev === null) return;
+    else if (scroll.top - prev > TOOLBAR_THRESHOLD) setCollapsed(true);
+    else if (prev - scroll.top > TOOLBAR_THRESHOLD) setCollapsed(false);
+  }, []);
+  return [collapsed, onScroll];
 }
 
 function Phone({
@@ -127,7 +128,7 @@ function Phone({
  * slides to the active section. It scrolls sideways with snap, and keeps the
  * active section centred as the article scrolls or a section is picked.
  */
-function SectionTabs({ active, onPick }: { active: SectionIdT; onPick: (id: SectionIdT) => void }) {
+function SectionTabs({ active, onPick }: { active: SectionId; onPick: (id: SectionId) => void }) {
   const t = useT();
   const { lang } = useLang();
   const track = useRef<HTMLDivElement>(null);
@@ -183,24 +184,23 @@ export function Docs() {
   const { lang } = useLang();
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [ready, setReady] = useState(false);
-  const [active, setActive] = useState<SectionIdT>(SECTIONS[0].id);
+  const [active, setActive] = useState<SectionId>(SECTIONS[0].id);
   const [report, setReport] = useState<PhoneReport | null>(null);
-  const [{ collapsed }, onPhoneScroll] = useReducer(toolbarReducer, { collapsed: false, last: null });
+  const [collapsed, onPhoneScroll] = useSimulatedToolbar();
   // The phone's first language comes from its URL; later changes go by message.
   const [frameSrc] = useState(() => `${import.meta.env.BASE_URL}index.html?frame=1&lang=${lang}`);
 
   const send = useCallback((message: ToPhone) => {
     frameRef.current?.contentWindow?.postMessage(message, location.origin);
   }, []);
-  // The phone's status bar: a tap is what Safari's gesture does to the page.
+  const sendAction = useCallback((action: DemoAction) => send({ type: "bezel-demo:action", action }), [send]);
+  // The phone's status bar: a tap flashes it, and takes the page to the top as
+  // Safari's gesture does.
   const [taps, setTaps] = useState(0);
-  const sendAction = useCallback(
-    (action: DemoAction) => {
-      if (action === "status-tap") setTaps((n) => n + 1);
-      send({ type: "bezel-demo:action", action });
-    },
-    [send],
-  );
+  const statusTap = useCallback(() => {
+    setTaps((n) => n + 1);
+    sendAction("scroll-top");
+  }, [sendAction]);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -212,7 +212,7 @@ export function Docs() {
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, []);
+  }, [onPhoneScroll]);
 
   useEffect(() => {
     if (ready) send({ type: "bezel-demo:lang", lang });
@@ -227,7 +227,7 @@ export function Docs() {
       (entries) => {
         if (picking.current !== null) return;
         for (const entry of entries) {
-          if (entry.isIntersecting) setActive(entry.target.id as SectionIdT);
+          if (entry.isIntersecting) setActive(entry.target.id as SectionId);
         }
       },
       { rootMargin: "-45% 0px -50% 0px" }
@@ -236,7 +236,7 @@ export function Docs() {
     return () => observer.disconnect();
   }, []);
 
-  const pick = useCallback((id: SectionIdT) => {
+  const pick = useCallback((id: SectionId) => {
     setActive(id);
     history.replaceState(null, "", `#${id}`);
     if (picking.current !== null) window.clearTimeout(picking.current);
@@ -251,21 +251,18 @@ export function Docs() {
     if (!ready) return;
     const scenario: Scenario = SCENARIOS[active];
     send({ type: "bezel-demo:action", action: "reset" });
-    send({ type: "bezel-demo:patch", patch: scenario.base });
+    send({ type: "bezel-demo:patch", patch: scenario.base ?? {} });
     return scenario.run?.({
       patch: (patch) => send({ type: "bezel-demo:patch", patch }),
       action: sendAction,
+      statusTap,
     });
-  }, [active, ready, send, sendAction]);
+  }, [active, ready, send, sendAction, statusTap]);
 
-  const runAction = (run: "reload" | "top" | "bottom") => {
-    if (run === "reload") {
-      setReady(false);
-      frameRef.current?.contentWindow?.location.reload();
-    } else {
-      const action: DemoAction = run === "top" ? "scroll-top" : "scroll-bottom";
-      send({ type: "bezel-demo:action", action });
-    }
+  const runAction = (run: DemoAction | "reload") => {
+    if (run !== "reload") return sendAction(run);
+    setReady(false);
+    frameRef.current?.contentWindow?.location.reload();
   };
 
   return (
@@ -277,7 +274,7 @@ export function Docs() {
           collapsed={collapsed}
           src={frameSrc}
           taps={taps}
-          onStatusTap={() => sendAction("status-tap")}
+          onStatusTap={statusTap}
         />
       </aside>
       <article className="docs-article">
@@ -312,7 +309,7 @@ export function Docs() {
               {live && (
                 <div className="docs-live">
                   <span>{t(live.label)}</span>
-                  <pre>{typeof live.value === "string" ? live.value : JSON.stringify(live.value, null, 2)}</pre>
+                  <pre>{formatValue(live.value)}</pre>
                 </div>
               )}
               <SectionCovers id={s.id} />

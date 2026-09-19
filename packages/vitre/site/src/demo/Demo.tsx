@@ -25,7 +25,7 @@ import {
   type PhoneScroll,
   type ToPhone,
 } from "../config";
-import { Devtool, readHtml, readThemeColor } from "../devtool/Devtool";
+import { Devtool, readThemeColor } from "../devtool/Devtool";
 import { LangSwitch, useLang, useT, type Text } from "../i18n";
 import { SCENARIOS, type Scenario, type ScenarioName } from "../scenarios";
 
@@ -62,32 +62,43 @@ function useSystemDark(): boolean {
 }
 
 /**
- * Whether the page is scrolling itself. Set by the scroll actions and held
- * while scroll events keep coming, so the docs' toolbar can tell a user's
- * scroll from the page's own.
+ * Whether a scroll is the user's: Safari moves its toolbar for those alone. A
+ * scroll is the user's while a pointer or finger is down on the page, or just
+ * after a wheel or a scrolling key; anything else is the page scrolling itself.
  */
-const selfScroll = {
-  active: false,
-  timer: 0,
-  /** Until `ms` pass without a scroll event, or the scroll ends. */
-  hold(ms: number) {
-    this.active = true;
-    window.clearTimeout(this.timer);
-    this.timer = window.setTimeout(() => (this.active = false), ms);
-  },
-  release() {
-    window.clearTimeout(this.timer);
-    this.active = false;
-  },
-};
+const USER_SCROLL_MS = 400;
+const SCROLL_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "]);
+const input = { at: -Infinity, held: false };
+
+function isUserScroll(): boolean {
+  return input.held || performance.now() - input.at < USER_SCROLL_MS;
+}
+
+function useUserInput() {
+  useEffect(() => {
+    const now = () => (input.at = performance.now());
+    const hold = () => ((input.held = true), now());
+    const release = () => ((input.held = false), now());
+    const key = (event: Event) => SCROLL_KEYS.has((event as KeyboardEvent).key) && now();
+    const listeners: [string, EventListener][] = [
+      ["wheel", now],
+      ["touchstart", hold],
+      ["touchend", release],
+      ["pointerdown", hold],
+      ["pointerup", release],
+      ["keydown", key],
+    ];
+    for (const [type, fn] of listeners) window.addEventListener(type, fn, { capture: true, passive: true });
+    return () => {
+      for (const [type, fn] of listeners) window.removeEventListener(type, fn, { capture: true });
+    };
+  }, []);
+}
 
 function runAction(action: DemoAction, reset: () => void) {
   const max = Math.max(0, pageScrollHeight() - pageViewportHeight());
   const smooth = { behavior: "smooth" } as const;
-  // Long enough for a smooth scroll to start, or to end at once where it already is.
-  selfScroll.hold(600);
-  // What Safari's status-bar tap does, for the docs phone that has no status bar.
-  if (action === "status-tap" || action === "scroll-top") scrollPageTo(0, smooth);
+  if (action === "scroll-top") scrollPageTo(0, smooth);
   else if (action === "scroll-middle") scrollPageTo(Math.round(max / 2), smooth);
   else if (action === "scroll-bottom") scrollPageTo(max, smooth);
   else if (action === "reset") {
@@ -121,13 +132,14 @@ export function Demo() {
   // A scenario from a card: its base now, then its script until stopped.
   const run = useCallback((name: ScenarioName | null) => {
     setRunning(name);
-    if (name) setConfig({ ...DEFAULT_CONFIG, ...SCENARIOS[name].base });
+    if (name) setConfig({ ...DEFAULT_CONFIG, ...(SCENARIOS[name] as Scenario).base });
   }, []);
   useEffect(() => {
     if (!running) return;
     const scenario: Scenario = SCENARIOS[running];
     const script = !isFramed() && scenario.onPhone ? scenario.onPhone : scenario.run;
-    return script?.({ patch, action });
+    // A phone has a real status bar; the tap is the user's own.
+    return script?.({ patch, action, statusTap: () => action("scroll-top") });
   }, [running, patch, action]);
 
   // Driven by the docs page.
@@ -180,7 +192,7 @@ export function Demo() {
       }
       className="demo-scroll"
     >
-      <Reporter config={config} theme={theme} />
+      <Reporter theme={theme} />
       <DemoPage running={running} onRun={run} theme={theme} />
       {!devtoolOpen && (
         <button type="button" className="demo-fab" onClick={() => setDevtoolOpen(true)}>
@@ -204,16 +216,15 @@ export function Demo() {
 }
 
 /** Inside the docs page: tell the docs what the package resolved. */
-function Reporter({ config, theme }: { config: DemoConfig; theme: "light" | "dark" }) {
+function Reporter({ theme }: { theme: "light" | "dark" }) {
   const state = useBezel();
   const last = useRef("");
+  useUserInput();
   // Every scroll, straight away: the docs move the simulated toolbar with it.
   usePageScroll(() => {
     if (!isFramed()) return;
-    const user = !selfScroll.active;
-    if (!user) selfScroll.hold(200);
     const message: PhoneScroll = {
-      user,
+      user: isUserScroll(),
       type: "bezel-demo:scroll",
       top: Math.round(pageScrollTop()),
       // From the page, not from state: a mode switch scrolls before React re-renders.
@@ -221,21 +232,13 @@ function Reporter({ config, theme }: { config: DemoConfig; theme: "light" | "dar
     };
     window.parent.postMessage(message, location.origin);
   });
-  // Only window scroll moves the toolbar, so only the window's scroll end matters.
-  useEffect(() => {
-    const end = () => selfScroll.release();
-    window.addEventListener("scrollend", end);
-    return () => window.removeEventListener("scrollend", end);
-  }, []);
   useEffect(() => {
     if (!isFramed()) return;
     const send = () => {
       const report: PhoneReport = {
         type: "bezel-demo:report",
-        config,
         theme,
         state: state as unknown as Record<string, unknown>,
-        html: readHtml(),
         themeColor: readThemeColor(),
         scrollTop: Math.round(pageScrollTop()),
       };
@@ -247,7 +250,7 @@ function Reporter({ config, theme }: { config: DemoConfig; theme: "light" | "dar
     send();
     const id = window.setInterval(send, 250);
     return () => window.clearInterval(id);
-  }, [config, theme, state]);
+  }, [theme, state]);
   return null;
 }
 
