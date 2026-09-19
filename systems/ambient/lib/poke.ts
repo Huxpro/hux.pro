@@ -30,12 +30,13 @@
 //
 // The answers are disjoint by construction, so there is no arbitration here and
 // never needs to be: `lightning` is 1 only on a thunder day, whose cover of
-// 0.96 drives `stars` to 0, and a foggy day's fog of 0.9 does the same. One
+// 0.96 drives `clarity` to 0, and a foggy day's fog of 0.9 does the same. One
 // condition, one answer, and the shader carries a single set of uniforms for
 // whichever is running.
 // =============================================================================
 
 import type { WeatherScene } from "./scene";
+import { DAY_MINUTES } from "./solar";
 
 /**
  * What a poke can be. The shader reads these as numbers (`uPokeKind`). 2 is
@@ -73,16 +74,165 @@ export const POKE_MS: Record<PokeKind, number> = {
 export const POKE_COOLDOWN_MS = 500;
 
 /**
- * How visible the star field has to be before a click earns a meteor. `stars`
- * already means "can you see stars right now" — it accounts for cloud cover,
- * fog and a bright moon washing the field out — so this is the whole gate: a
- * partly cloudy night with stars still showing gets one, a moonlit night loses
- * it as the field dims, and a thunder or foggy night can never have one.
+ * When a meteor is possible, in the two terms the real answer has.
  *
- * Gated on the scalar, never on `condition === "clear"`, which would wrongly
- * exclude a clear-enough cloudy night.
+ * **Dark enough.** The sun must be more than twelve degrees below the horizon
+ * — the end of nautical twilight, which is where meteor observing
+ * conventionally begins and the first line at which a streak has any contrast
+ * to work with. Not a number chosen for feel: the two neighbouring
+ * definitions were measured and rejected. Civil twilight (-6) puts meteors
+ * over a sky still bright enough to read by. Astronomical twilight (-18), full
+ * darkness, is the purist's answer and takes the egg away for 59 nights of the
+ * year in London, 118 in Stockholm and 145 in Reykjavik — a threshold that
+ * deletes a whole summer is not physics, it is a bug with a citation. At -12
+ * London never loses a night (its shortest window is 3.3 hours, its median
+ * 9.3), and the far-northern white nights that do lose it genuinely have no
+ * meteors to see.
+ *
+ * **Not obscured.** Whatever is in the way has to leave most of the sky: an
+ * overcast, a fog or a downpour hides a meteor at any hour. That is `clarity`,
+ * which is cover and fog and nothing else.
+ *
+ * What is deliberately NOT here is the moon. A bright moon washes out the
+ * faint end of a shower — it cuts the RATE you see, not the possibility — and
+ * a fireball is a fireball under a full moon. This used to gate on `stars`,
+ * which multiplies all three together, and that conflation had two costs: the
+ * window opened at an arbitrary -7.99 degrees rather than at any named line,
+ * and the moon was documented as able to close it when in fact it never could
+ * (365 nights checked, and not one where it did).
+ *
+ * Gated on the geometry and the weather, never on `condition === "clear"`,
+ * which would wrongly exclude a clear-enough cloudy night.
  */
-export const METEOR_STARS_MIN = 0.35;
+export const METEOR_SUN_MAX_DEG = -12;
+const METEOR_CLARITY_MIN = 0.35;
+
+/** Is the sun far enough down? The question the clock answers. */
+function meteorSkyIsDark(scene: WeatherScene): boolean {
+  return scene.sun.elevation < METEOR_SUN_MAX_DEG;
+}
+
+/** Is there a way through the murk? The question the weather answers. */
+export function meteorSkyIsOpen(scene: WeatherScene): boolean {
+  return scene.clarity > METEOR_CLARITY_MIN;
+}
+
+/**
+ * Could a click earn a meteor in this scene? The whole of the window, in one
+ * place, so the devtool's timeline and the click that fires one cannot come to
+ * different answers about it.
+ *
+ * Split in two above because the two halves are asked separately as well as
+ * together: `meteorWindows` leans on the split to skip a day's sweep, and the
+ * devtool's condition chips ask `meteorSkyIsOpen` alone, since "through which
+ * weather" is their question and "when" belongs to the timeline.
+ */
+export function meteorPossible(scene: WeatherScene): boolean {
+  return meteorSkyIsDark(scene) && meteorSkyIsOpen(scene);
+}
+
+/** Minutes past local midnight, half-open: `[from, to)`. */
+export interface MeteorWindow {
+  from: number;
+  to: number;
+}
+
+/**
+ * Minutes between samples in the scan below.
+ *
+ * Safe at five because the only thing that moves within a day is the sun, and
+ * it crosses a given altitude at most once per half-day — so five minutes
+ * cannot hide a whole window, and each edge is then found exactly. See the
+ * decomposition in `meteorWindows`.
+ */
+const WINDOW_STEP_MIN = 5;
+
+/**
+ * When a meteor is possible over one local day, as minute intervals.
+ *
+ * Takes a sampler rather than building scenes, which is what keeps this module
+ * the part with no engine in it (see the top of this file): the caller owns the
+ * ephemeris, this owns the rule. `scene.ts`'s `daySceneAt` is the sampler the
+ * devtool passes.
+ *
+ * The rule decomposes, and this exploits it rather than pretending not to.
+ * `clarity` is a property of the weather and is exactly constant over a day —
+ * measured, not assumed: 2304 condition/cover/override combinations sampled
+ * minute by minute, zero variation — so a sky you cannot see through has no
+ * window at all and costs one sample instead of three hundred. That is most
+ * devtool states: four of the six condition profiles, and any forced cover
+ * over about a half. What is left varies only with the sun.
+ *
+ * Whole-predicate sampling for the rest, rather than solving for the sun's
+ * altitude, so the timeline cannot drift from the click that fires one.
+ *
+ * A window that spans midnight comes back as two intervals, one against each
+ * end of the day, because that is what a day-wide strip has to draw.
+ * `meteorWindowSpan` puts them back together for anything wanting to read it
+ * as the one night it is.
+ */
+export function meteorWindows(
+  sceneAt: (minute: number) => WeatherScene
+): MeteorWindow[] {
+  if (!meteorSkyIsOpen(sceneAt(0))) return [];
+
+  const at = (minute: number) => meteorSkyIsDark(sceneAt(minute));
+  /** The first minute in `(lo, hi]` whose answer differs from `want`. */
+  const edge = (lo: number, hi: number, want: boolean) => {
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (at(mid) === want) lo = mid;
+      else hi = mid;
+    }
+    return hi;
+  };
+
+  const windows: MeteorWindow[] = [];
+  let openedAt: number | null = at(0) ? 0 : null;
+  let previous = 0;
+  const step = (minute: number) => {
+    const on = at(minute);
+    if (on && openedAt === null) openedAt = edge(previous, minute, false);
+    else if (!on && openedAt !== null) {
+      windows.push({ from: openedAt, to: edge(previous, minute, true) });
+      openedAt = null;
+    }
+    previous = minute;
+  };
+
+  // Five-minute strides, and then the last minute of the day explicitly.
+  // That final short stride is not a formality: at Quito the window opens
+  // inside it on two days of the year, and a scan that stops at 1435 loses the
+  // whole evening half of the window. Which is also why `previous` is carried
+  // rather than computed as `minute - WINDOW_STEP_MIN` — the last stride is
+  // shorter than the rest.
+  const last = DAY_MINUTES - 1;
+  for (let m = WINDOW_STEP_MIN; m < last; m += WINDOW_STEP_MIN) step(m);
+  step(last);
+
+  if (openedAt !== null) windows.push({ from: openedAt, to: DAY_MINUTES });
+  return windows;
+}
+
+/**
+ * The windows read as the one stretch they usually are: a night, which crosses
+ * midnight and therefore arrives as two intervals pinned to the ends of the
+ * day. Joining them belongs next to the code that split them, or every reader
+ * has to re-infer the convention from the array's shape.
+ *
+ * `to` may run past midnight (up to 2879) so the span stays contiguous; take
+ * it modulo a day to print it.
+ */
+export function meteorWindowSpan(
+  windows: MeteorWindow[]
+): MeteorWindow | null {
+  if (windows.length === 0) return null;
+  const first = windows[0];
+  const last = windows[windows.length - 1];
+  const wraps =
+    windows.length > 1 && first.from === 0 && last.to === DAY_MINUTES;
+  return wraps ? { from: last.from, to: first.to + DAY_MINUTES } : first;
+}
 
 /** Mark a transparent layer that should still swallow pokes. */
 export const POKE_OPT_OUT_ATTR = "data-no-poke";
@@ -93,7 +243,7 @@ export const POKE_OPT_OUT_ATTR = "data-no-poke";
  */
 export function armedPoke(scene: WeatherScene): PokeKind | null {
   if (scene.lightning > 0) return "strike";
-  if (scene.stars > METEOR_STARS_MIN) return "meteor";
+  if (meteorPossible(scene)) return "meteor";
   return null;
 }
 

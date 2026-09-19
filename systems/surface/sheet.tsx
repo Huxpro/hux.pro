@@ -176,7 +176,21 @@ export function detentHeight(point: number): string {
 export const HEADER_BUTTON =
   "pressable system-chrome shrink-0 rounded-md p-2 text-muted-foreground transition-[color,background-color,scale] duration-150 ease-out hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
 
-/** The glass shell every shape shares. */
+/**
+ * The glass shell every shape shares — and, with `.system-chrome`, the ruling
+ * that a surface is the OS's own UI until something proves otherwise: nothing
+ * inside one selects, raises a long-press callout, or takes the grey tap
+ * flash. Every surface today is chrome (the reading settings, the playlist,
+ * the wallpaper picker, the devtool, the command palette), and the fields in
+ * the last two keep their caret through the text-field exception in
+ * globals.css.
+ *
+ * The case this does not cover is a surface holding a *document* — an article
+ * in a quick-look, a page previewed in a panel. `select-text` would win back
+ * the selection but not the link preview that `-webkit-touch-callout` takes
+ * away, so that is a third tier rather than an override: put it in the voice
+ * block in globals.css, beside the other two, when something needs it.
+ */
 export const SHELL = [
   "system-chrome flex flex-col overflow-hidden outline-none",
   "rounded-3xl bg-glass-sheet backdrop-blur-xl",

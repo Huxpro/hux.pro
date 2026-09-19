@@ -55,7 +55,7 @@ function firstVideo(commit: Commit): VideoMedia | null {
 
 function commitSubtitle(commit: Commit): string | undefined {
   if (commit.type === "talk") return commit.conference.name;
-  if (commit.type === "social") return commit.platform;
+  if (commit.type === "press") return commit.platform;
   return undefined;
 }
 

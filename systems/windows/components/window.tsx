@@ -254,7 +254,11 @@ function DesktopWindow({ win }: { win: WindowInstance }) {
           : "left .28s cubic-bezier(.22,1,.36,1), top .28s cubic-bezier(.22,1,.36,1), width .28s cubic-bezier(.22,1,.36,1), height .28s cubic-bezier(.22,1,.36,1)",
       }}
       className={cn(
-        "overflow-hidden",
+        // A window is the OS's own frame: its chrome, its grips and its
+        // shelf are gestures, never text. A web app inside is an <iframe>
+        // — a separate document, so its own text stays selectable; a Lynx
+        // app renders in this document and is an app, not a page of prose.
+        "system-chrome overflow-hidden",
         maximized ? "rounded-2xl" : "rounded-[22px]",
         "border border-black/10 dark:border-white/14",
         appGround(win.app),

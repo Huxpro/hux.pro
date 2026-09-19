@@ -301,7 +301,9 @@ export function smoothstep(edge0: number, edge1: number, x: number): number {
 // Clock helpers
 // -----------------------------------------------------------------------------
 
-/** Local midnight of the day containing `ms`. */
+/** Minutes in a day. The unit every clock helper here speaks in. */
+export const DAY_MINUTES = 1440;
+
 /** Fallback sun times, minutes past local midnight, when the forecast has none. */
 export const DEFAULT_SUNRISE_MINUTES = 6 * 60 + 30;
 export const DEFAULT_SUNSET_MINUTES = 18 * 60 + 30;
@@ -313,6 +315,7 @@ export function minutesOfDay(ms: number | undefined, fallback = 0): number {
   return d.getHours() * 60 + d.getMinutes();
 }
 
+/** Local midnight of the day containing `ms`. */
 export function startOfLocalDay(ms: number): number {
   const d = new Date(ms);
   d.setHours(0, 0, 0, 0);

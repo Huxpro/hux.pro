@@ -24,6 +24,7 @@ import {
   getSolarPosition,
   smoothstep,
   startOfLocalDay,
+  DAY_MINUTES,
   sunTimesOrDefault,
 } from "./solar";
 import type {
@@ -102,6 +103,17 @@ export interface WeatherScene {
    * See "The Fog Wipe" in docs/system-ambient.md.
    */
   behind: { stars: number; moon: number };
+  /**
+   * How much of the sky the murk leaves you: 1 under an open sky, 0 under an
+   * overcast or a fog. `stars` is `behind.stars * clarity` — the first factor
+   * is how dark the night is, the second is whether there is anything in the
+   * way — and keeping them apart is what lets a question about one be asked
+   * without dragging in the other. The meteor's window is the example: whether
+   * it is dark enough is the sun's business and whether you could see through
+   * is the weather's, and multiplying them together (which is all `stars` is)
+   * answers neither.
+   */
+  clarity: number;
   /** Theme veil: blend the rendered scene toward the page background. */
   veil: { color: RGB; amount: number };
   exposure: number;
@@ -517,7 +529,17 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const moonLight = moonIllum * smoothstep(0, 25, lunar.elevation) * night;
 
   const starDust = night * (1 - 0.55 * moonLight);
-  const stars = starDust * (1 - smoothstep(0.15, 0.65, cover)) * (1 - fog);
+  // What the deck and the fog leave of whatever is up there. Named because two
+  // different questions want it on its own: how bright to draw the star field
+  // (that is `stars`, below) and whether anything up there could be seen at all
+  // (that is the meteor's window — see lib/poke.ts).
+  const clarity = (1 - smoothstep(0.15, 0.65, cover)) * (1 - fog);
+  // Naming it moves a multiplication inside a bracket, and `a * (b * c)` is not
+  // `(a * b) * c`: `stars` shifts by one double ULP on about 3% of scenes. It
+  // reaches the shader as a float32, whose spacing near 1 is five hundred
+  // million times coarser, so nothing rendered moves — checked over 366336
+  // scenes, zero of them landing on a different float32.
+  const stars = starDust * clarity;
   // The same two with the murk taken away — see `behind` on WeatherScene. Only
   // the fog wipe ever asks for them, and only inside the swath it has cleared.
   const behind = { stars: starDust, moon: moonBare };
@@ -554,6 +576,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
     fog,
     lightning: condition === "thunder" ? 1 : 0,
     stars,
+    clarity,
     behind,
     veil: { color: veilDefaults.color, amount: ov.veilAmount ?? veilDefaults.amount },
     exposure: veilDefaults.exposure,
@@ -596,18 +619,12 @@ export function toSceneWeather(
   };
 }
 
-/** Scenes per day in `sampleDaySky`: one every twenty minutes. */
-const DAY_SKY_SAMPLES = 72;
-
 /**
- * The sky across one day, for a timeline.
- *
- * Scenes from local midnight to midnight, each reduced to one colour (the
- * zenith/horizon mix, unveiled, so it stays vivid at 4px tall). Pure and
- * cheap — the ephemeris is a few hundred multiplies — so a devtool can redraw
- * it whenever the condition, the day or the location changes.
+ * One day's worth of scene inputs: everything `deriveWeatherScene` needs except
+ * the instant. Anything walking a day — the devtool's sky strip, the meteor's
+ * window — takes this, so a new scene input is threaded through once.
  */
-export function sampleDaySky(params: {
+export interface DaySampleParams {
   /** Any instant of the day to sample; the day is taken from local midnight. */
   dayMs: number;
   lat?: number;
@@ -615,19 +632,38 @@ export function sampleDaySky(params: {
   weather: SceneWeatherInput | null;
   theme: "light" | "dark";
   overrides?: SceneOverrides;
-}): RGB[] {
-  const n = DAY_SKY_SAMPLES;
+  seed?: number;
+}
+
+/**
+ * The scene at a given minute of one local day.
+ *
+ * The one way to walk a day, so the things drawn from it cannot disagree about
+ * which day it is. Pure and cheap — the ephemeris is a few hundred multiplies.
+ */
+export function daySceneAt(
+  params: DaySampleParams
+): (minute: number) => WeatherScene {
   const startMs = startOfLocalDay(params.dayMs);
+  return (minute) =>
+    deriveWeatherScene({ ...params, nowMs: startMs + minute * 60_000 });
+}
+
+/** Scenes per day in `sampleDaySky`: one every twenty minutes. */
+const DAY_SKY_SAMPLES = 72;
+
+/**
+ * The sky across one day, for a timeline.
+ *
+ * Scenes from local midnight to midnight, each reduced to one colour (the
+ * zenith/horizon mix, unveiled, so it stays vivid at 4px tall), so a devtool
+ * can redraw it whenever the condition, the day or the location changes.
+ */
+export function sampleDaySky(params: DaySampleParams): RGB[] {
+  const sceneAt = daySceneAt(params);
   const out: RGB[] = [];
-  for (let i = 0; i < n; i++) {
-    const scene = deriveWeatherScene({
-      nowMs: startMs + ((i + 0.5) / n) * 86_400_000,
-      lat: params.lat,
-      lon: params.lon,
-      weather: params.weather,
-      theme: params.theme,
-      overrides: params.overrides,
-    });
+  for (let i = 0; i < DAY_SKY_SAMPLES; i++) {
+    const scene = sceneAt(((i + 0.5) / DAY_SKY_SAMPLES) * DAY_MINUTES);
     out.push(mixRGB(scene.sky.zenith, scene.sky.horizon, 0.45));
   }
   return out;

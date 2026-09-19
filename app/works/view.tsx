@@ -18,8 +18,9 @@ import {
 import {
   parseViewState,
   serializeViewState,
+  formOpensRows,
   toggleType,
-  type LogDensity,
+  type LogForm,
 } from "@/lib/log-view";
 
 interface WorksViewProps {
@@ -68,7 +69,7 @@ export function WorksView({ logData }: WorksViewProps) {
   const selectHash = useCommitAnchor();
 
   const commit = useCallback(
-    (next: { types?: FilterableCommitType[]; density?: LogDensity }) => {
+    (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
       const merged = { ...view, ...next };
       setView(merged);
       const query = serializeViewState(
@@ -87,8 +88,13 @@ export function WorksView({ logData }: WorksViewProps) {
   // Facet counts are of the UNFILTERED timeline, so a chip's number never
   // moves as you select — it answers "how much of this is there?", not "how
   // much survived what I just did?", which is the question the rows answer.
-  // Hence `isRowVisible(c)` with no types: the rest of the rule, none of the
-  // filter.
+  //
+  // The question it answers precisely is "how many rows does tapping this
+  // chip print?", which is why each commit is asked against its own type
+  // rather than against no filter at all. For every type but one the two
+  // are the same sentence; for `role` they are not, because a suppressed
+  // role un-suppresses under its own chip (see `isRowVisible`) and a count
+  // of 2 over a column of 9 is just a wrong number.
   //
   // Counted over `data` rather than the raw log, because `data` is what the
   // timeline renders — locale filtered and grouped under a tag that exists.
@@ -105,7 +111,8 @@ export function WorksView({ logData }: WorksViewProps) {
 
     for (const { commits } of data) {
       for (const c of commits) {
-        if (!isFilterableCommitType(c.type) || !isRowVisible(c)) continue;
+        if (!isFilterableCommitType(c.type)) continue;
+        if (!isRowVisible(c, [c.type])) continue;
         const entry = seen.get(c.type) ?? { count: 0, icons: new Set() };
         entry.count += 1;
         entry.icons.add(c.icon);
@@ -148,8 +155,8 @@ export function WorksView({ logData }: WorksViewProps) {
             commit({ types: toggleType(view.types, type) })
           }
           onClearTypes={() => commit({ types: [] })}
-          density={view.density}
-          onDensityChange={(density) => commit({ density })}
+          form={view.form}
+          onFormChange={(form) => commit({ form })}
         />
       }
     >
@@ -157,13 +164,13 @@ export function WorksView({ logData }: WorksViewProps) {
       <LogTimeline
         data={data}
         locale={locale}
-        // `patch` is the page-level "expand all" command the toolbar used to
+        // `feed` is the page-level "expand all" command the toolbar used to
         // own as a button. Passing the boolean (rather than a bumped counter)
-        // means oneline ⇄ stat leaves hand-opened rows alone: only entering or
-        // leaving `patch` re-syncs every row.
-        expandAll={view.density === "patch"}
+        // means index ⇄ covers leaves hand-opened rows alone: only entering
+        // or leaving `feed` re-syncs every row.
+        expandAll={formOpensRows(view.form)}
         identities={logData.identities}
-        density={view.density}
+        form={view.form}
         activeTypes={view.types}
         onSelectHash={selectHash}
       />

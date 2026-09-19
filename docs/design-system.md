@@ -35,7 +35,7 @@ The site uses a carefully curated font system:
 All inner page headers (Writing, Docs, Career, Talks) use the same typography as the homepage greeting:
 
 ```css
-font-serif text-3xl sm:text-4xl text-foreground tracking-tight select-none cursor-default
+font-serif text-3xl sm:text-4xl text-foreground tracking-tight system-voice cursor-default
 ```
 
 This creates visual consistency across the site and reinforces the literary, personal tone. **No subtitles** — the header stands alone. The heading is System voice, not a document title, so it is not selectable. Article titles use `TITLE_READER` and stay copyable.
@@ -207,23 +207,48 @@ carry it; nothing is inferred from the pointer type at runtime.
 | Class | Where | What it does |
 |---|---|---|
 | `pressable` | Rows, links, buttons, tiles — anything with a `hover:` wash | Pair with an `active:` colour/scale. The `:active` rule zeroes the transition so the highlight lands on the **touch-down frame** (Tailwind's `hover:` is gated on `(hover: hover)`, so a finger otherwise gets nothing); release eases out through the element's own `transition-*`. |
-| `system-chrome` | Navigation, command bar, dock, palette, edit controls, sheets | OS chrome: no text selection, no long-press callout, no grey tap flash. Text fields inside keep their caret. |
-| `system-surface` | The home screen (and 404) | The whole OS composition is non-selectable, including descendants. iOS otherwise skips `select-none` labels and expands a long-press into a full-page Copy / Find Selection. Paired with `useLockTextSelection`. |
+| `system-chrome` | Navigation, command bar, dock, palette, edit controls, a window's frame, every surface (`SHELL`) | OS chrome: no text selection, no long-press callout, no grey tap flash. Text fields inside keep their caret. |
+| `system-surface` | The home screen, the 404 | The whole OS composition is non-selectable, descendants included. iOS otherwise skips `select-none` labels and expands a long-press into a full-page Copy / Find Selection. Paired with `useLockTextSelection`. |
+| `system-voice` | Poetic titles, the widget grid, app labels — System text inside a page that is otherwise a document | Selection off, everything else untouched, so a link keeps its preview and its tap flash. Text fields inside keep their caret. |
 | `press-hold` | Widgets and app icons (via `usePressHold`) | The visual half of a long-press: the held object grows slowly for the sensor's whole activation delay, then pops to its lifted size (`widget-lift`). Letting go or scrolling eases it back. |
 
-**Text selection, by surface:**
+**Four voices, and a piece of UI picks one.** The three classes live in
+`globals.css` rather than as Tailwind utilities at the call sites, so the
+policies can be read side by side — and so all three carry the text-field
+exception: `user-select: none` inherited into an `<input>` costs Safari the
+caret, and a `select-none` in a class string has no way to say otherwise.
 
-- **System chrome** (`.system-chrome`) — nothing: not selectable, no callout.
-- **System surface** (`.system-surface`) — the home screen. Not a document:
-  a long-press must not grow into a viewport-wide selection. Text fields
-  inside still take a caret.
-- **Decorative System UI** — `select-none`. The greeting ("Good Night"),
-  poetic index titles (`TITLE_POETIC`), widget cards, app labels: these are
-  the OS speaking, not a document. Dragging across them must not paint a
-  highlight. Links inside still navigate; they just are not copy targets.
-- **Content** (prose, article titles via `TITLE_READER`, the `/writing` list,
-  `/works` rows) — browser defaults. Text stays selectable. A long-press on
-  a link still opens the system preview.
+- **Chrome** (`.system-chrome`) — nothing: not selectable, no callout, no tap
+  flash. Navigation, the command bar, the dock, edit controls, a window's own
+  frame, and every secondary surface (see
+  [Surface System](./system-surface.md#a-surface-is-chrome)).
+- **Surface** (`.system-surface`) — a whole composition that is not a document:
+  the home screen, the 404. A long-press must not grow into a viewport-wide
+  selection, which iOS will do even over `select-none` labels; `useLockTextSelection`
+  is the JS half. Text fields inside still take a caret.
+- **Voice** (`.system-voice`) — selection off, nothing else. Poetic index
+  titles (`TITLE_POETIC`), the widget grid, app labels: the OS speaking inside
+  a page that is otherwise a document. Dragging across them must not paint a
+  highlight, but a link inside still previews and still flashes. Pair it with
+  `cursor-default` where the arrow should say so too — never on an element
+  inside a link or button, where a cursor set on the text beats the pointer the
+  control would have lent it.
+- **Document** (no class) — prose, article titles via `TITLE_READER`, the
+  `/writing` list, `/works` rows. Browser defaults: text stays selectable, and
+  a long-press on a link still opens the system preview.
+
+A drag is the one case that cuts across all four: while something is being
+dragged — a window by its frame, a widget in edit mode — `html.dragging`
+suspends selection on the whole page, so the document under the dragged object
+never gets painted blue by a gesture that was never about its text. It is a
+state, not a tier: the moment the drag ends the page is a document again.
+
+The cost, taken knowingly: what cannot be selected also cannot be handed to
+iOS Translate or Speak Selection. It is spent on System text only — greetings,
+index titles, widget cards, labels — never on an article's body or its own
+title, and the one article title that speaks in the System voice (the
+greeting's "last reading" line) is a link to the page where it is selectable
+again.
 
 **Long-press semantics, by surface:**
 

@@ -11,8 +11,8 @@
         "zh": "大规模跨平台"
       },
       "narrative": {
-        "en": "Co-leading Lynx as architect in ByteDance's Web Infra Cross Platform team. Building cross-platform UI powering experiences for billions of users, while exploring AI-native interfaces and developer tools.",
-        "zh": "作为架构师共同领导字节跳动 Web Infra 跨平台团队的 Lynx 框架。构建服务数十亿用户的跨平台 UI，同时探索 AI 原生界面与开发者工具。"
+        "en": "Architect of Lynx at ByteDance, an open source, cross platform framework powering TikTok and CapCut. Making interfaces better for more users, more developers, and more machines, and exploring what app frameworks should look like in the age of AI.",
+        "zh": "字节跳动 Lynx 架构师。Lynx 是驱动 TikTok 与剪映的开源跨平台框架。让界面更好地服务更多用户、更多开发者、更多机器，并探索 AI 时代的应用框架应当长成什么样子。"
       },
       "company": {
         "en": "ByteDance",
@@ -125,6 +125,21 @@
       "limit": 5
     },
     {
+      "id": "featured-projects",
+      "title": {
+        "en": "Featured projects",
+        "zh": "精选项目"
+      },
+      "layout": "v",
+      "column": "left",
+      "href": "/works?type=project",
+      "commitIds": [
+        "lynx-framework",
+        "react-core",
+        "hermes-engine"
+      ]
+    },
+    {
       "id": "featured-react-talks",
       "title": {
         "en": "Featured React talks",
@@ -134,6 +149,7 @@
       "href": "/works",
       "commitIds": [
         "react-universe-2025-two-threads",
+        "see-conf-2025-two-threads",
         "coscon-2022",
         "reactconf-2021-memo"
       ]
@@ -149,8 +165,7 @@
       "query": {
         "type": "talk",
         "tagId": "lynx-era"
-      },
-      "limit": 6
+      }
     },
     {
       "id": "featured-personal-talks",
@@ -184,8 +199,8 @@
             "zh": "架构师"
           },
           "description": {
-            "en": "Co-leading Lynx architecture and developer experience in ByteDance's Web Infra Cross Platform team.",
-            "zh": "在字节跳动 Web Infra 跨平台团队共同领导 Lynx 架构与开发者体验工作。"
+            "en": "Architect of Lynx at ByteDance. Making interfaces better for more users, more developers, and more machines.",
+            "zh": "字节跳动 Lynx 架构师。让界面更好地服务更多用户、更多开发者、更多机器。"
           },
           "date": "2023-02",
           "hideRow": true,
@@ -423,6 +438,158 @@
   },
   "commits": [
     {
+      "id": "wad-2026-lynx-workshop",
+      "type": "talk",
+      "tagId": "lynx-era",
+      "title": {
+        "en": "Vibe³ Cross Platform Apps with Lynx: A TikTok Hackathon",
+        "zh": "Vibe³：用 Lynx 做跨平台应用 · TikTok 黑客松"
+      },
+      "description": {
+        "en": "A hands on workshop and hackathon at WeAreDevelopers World Congress. Vibe code once and bring the same app to web, mobile, and desktop with Lynx, plus a look at AI native app infra: AI Ergonomic, AI Efficient, and AI Expressive.",
+        "zh": "WeAreDevelopers World Congress 上的动手工作坊与黑客松。用 Lynx 一次 vibe code，把同一套应用带到 Web、移动端和桌面；并讨论 AI 原生应用基建：对 AI 友好、对 token 经济、对意图表达。"
+      },
+      "date": "2026-07",
+      "conference": {
+        "name": "WeAreDevelopers World Congress",
+        "city": "Berlin, Germany",
+        "url": "https://www.wearedevelopers.com/events/world-congress-2026-europe/sessions/1237-vibe-cross-platform"
+      },
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://www.wearedevelopers.com/events/world-congress-2026-europe/sessions/1237-vibe-cross-platform",
+          "present": "card",
+          "label": "Session",
+          "icon": "globe",
+          "preview": {
+            "title": "Vibe³ Cross Platform Apps with Lynx: A TikTok Hackathon",
+            "description": "Hands on workshop and TikTok hackathon at WeAreDevelopers World Congress 2026 Europe. Vibe code once with Lynx for web, mobile, and desktop.",
+            "image": "https://www.wearedevelopers.com/og-image.jpg"
+          }
+        }
+      ],
+      "tags": [
+        "Lynx",
+        "Workshop",
+        "AI",
+        "Cross Platform"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "gosim-2026-vibe-native",
+      "type": "talk",
+      "tagId": "lynx-era",
+      "title": {
+        "en": "Why AI Agents Deserve a Better App Framework",
+        "zh": "为什么 AI Agent 配得上更好的应用框架"
+      },
+      "description": {
+        "en": "AI is transforming how apps are built, but not what they are built on. Without a cross platform framework, agents must generate, verify, and maintain separate code for every platform. This talk introduces Lynx and three principles for AI native app infrastructure (AI Ergonomic, AI Efficient, AI Expressive), with vue-lynx vibe coded in two weeks as the demo.",
+        "zh": "AI 正在改变应用如何被构建，却还没改变它们构建在什么之上。没有跨平台框架，Agent 就得为每个平台分别生成、验证和维护代码。这次演讲介绍 Lynx，以及 AI 原生应用基建的三条原则：对 AI 友好、对 token 经济、对意图表达，并以两周 vibe code 出的 vue-lynx 作为演示。"
+      },
+      "date": "2026-05",
+      "conference": {
+        "name": "GOSIM Paris 2026",
+        "city": "Paris, France",
+        "url": "https://paris2026.gosim.org/schedule/vibe-native-for-more-why-ai-agents-deserve-a-better-app-framework/"
+      },
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://paris2026.gosim.org/schedule/vibe-native-for-more-why-ai-agents-deserve-a-better-app-framework/",
+          "present": "card",
+          "label": "Session",
+          "icon": "globe",
+          "preview": {
+            "title": "Why AI Agents Deserve a Better App Framework",
+            "description": "GOSIM Paris 2026. Lynx and three principles for AI native app infrastructure, with vue-lynx as the demo.",
+            "image": "https://paris2026.gosim.org/images/thumbnail.jpg"
+          }
+        }
+      ],
+      "tags": [
+        "Lynx",
+        "AI",
+        "Cross Platform",
+        "Vue"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "see-conf-2025-two-threads",
+      "type": "talk",
+      "tagId": "lynx-era",
+      "title": {
+        "en": "React for Two Threads",
+        "zh": "双线程的 React"
+      },
+      "description": {
+        "en": "The Chinese telling of React for Two Threads. Lynx's dual threaded React, instant first frame rendering, and what changes when the UI thread is first class. With Ziqi Zhen and Haoyang Wang.",
+        "zh": "《React for Two Threads》的中文场。讲 Lynx 的双线程 React、瞬时首帧渲染，以及当 UI 线程成为一等公民之后会涌现什么。与甄子琦、王浩阳一起。"
+      },
+      "date": "2025-11",
+      "conference": {
+        "name": "SEE Conf 2025",
+        "city": "Hangzhou, China",
+        "url": "https://mp.weixin.qq.com/s/icNHRRm6u1Dh9gx-9nIS6Q"
+      },
+      "media": [
+        {
+          "kind": "video",
+          "url": "https://www.bilibili.com/video/BV1YeSgBCEoe/",
+          "platform": "bilibili"
+        }
+      ],
+      "tags": [
+        "React",
+        "Architecture",
+        "Lynx",
+        "Cross Platform"
+      ],
+      "language": "zh"
+    },
+    {
+      "id": "wad-2025-lynx-native",
+      "type": "talk",
+      "tagId": "lynx-era",
+      "title": {
+        "en": "Lynx: Native for More",
+        "zh": "Lynx: Native for More"
+      },
+      "description": {
+        "en": "TikTok's production ready UI framework, Lynx, eliminates single thread bottlenecks. Write standard JavaScript and CSS to render buttery smooth, truly native mobile primitives, without the sluggishness of WebView wrappers.",
+        "zh": "TikTok 投入生产的 UI 框架 Lynx，用来消解单线程瓶颈。用标准 JavaScript 与 CSS 渲染丝滑、真正原生的移动端原语，而不是套一层迟滞的 WebView。"
+      },
+      "date": "2025-07",
+      "conference": {
+        "name": "WeAreDevelopers World Congress",
+        "city": "Berlin, Germany",
+        "url": "https://www.wearedevelopers.com/videos/1445-lynx-native-for-more"
+      },
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://www.wearedevelopers.com/videos/1445-lynx-native-for-more",
+          "present": "card",
+          "label": "Video",
+          "icon": "globe",
+          "preview": {
+            "title": "Lynx: Native for More",
+            "description": "WeAreDevelopers World Congress 2025. Xuan Huang on Lynx, TikTok's production ready UI framework.",
+            "image": "https://customer-goifxnzhrq3d0d54.cloudflarestream.com/c109772e681041ad0dc067bc4d80e785/thumbnails/thumbnail.jpg?time=244825ms"
+          }
+        }
+      ],
+      "tags": [
+        "Lynx",
+        "Cross Platform",
+        "Performance"
+      ],
+      "language": "en"
+    },
+    {
       "id": "d2-2025-lynx",
       "type": "talk",
       "tagId": "lynx-era",
@@ -631,12 +798,13 @@
         "zh": "前端已死，前端永生"
       },
       "description": {
-        "en": "Annual tech keynote at Juejin 2023.",
-        "zh": "掘金年度技术演讲 2023。"
+        "en": "Frontend is a moving concept, as technology and as a division of labor. Modeling its inflection points to argue that the bond between humans and machines does not die; it is rewritten. Then a look at what AI and the metaverse open next.",
+        "zh": "无论从技术还是行业分工看，前端都只是一个动态概念。通过对历史上大小拐点建模，论证它作为人与机器的纽带会以被重写的方式「永生」，并展望 AI 与元宇宙带来的新可能。"
       },
-      "date": "2023-12",
+      "date": "2024-01",
       "conference": {
         "name": "掘金年度技术演讲 2023",
+        "city": "Shenzhen, China",
         "url": "https://juejin.cn/meetings/talk2023"
       },
       "media": [
@@ -661,13 +829,14 @@
         "zh": "我的大前端世界观"
       },
       "description": {
-        "en": "A personal take on the past, present, and future of frontend engineering.",
-        "zh": "对大前端工程过去、现在与未来的个人视角。"
+        "en": "Is frontend dead, or is it the future? A personal model of the inflection points in frontend's evolution, and a guess at what frontend (and frontend engineers) become in the next generation: AI, AVXR, and beyond.",
+        "zh": "前端已死，又或是前端未来？当我们在说前端时，我们又在说什么？对大前端技术演化拐点的建模，以及对下个世代（AI、AVXR…）前端与前端工程师的猜想。"
       },
-      "date": "2023-06",
+      "date": "2023-11",
       "conference": {
         "name": "FEDAY 2023",
-        "city": "Guangzhou, China"
+        "city": "Hangzhou, China",
+        "url": "https://fequan.com/2023/"
       },
       "media": [
         {
@@ -707,7 +876,7 @@
       "media": [
         {
           "kind": "link",
-          "url": "https://lynxjs.dev",
+          "url": "https://lynxjs.org",
           "present": "pill",
           "label": "Website",
           "icon": "globe"
@@ -739,7 +908,7 @@
     },
     {
       "id": "opensrc-pioneer-2022",
-      "type": "social",
+      "type": "press",
       "tagId": "react-era",
       "title": {
         "en": "China Open Source Pioneer 33",
@@ -798,7 +967,7 @@
     },
     {
       "id": "gitee-cover-2022",
-      "type": "social",
+      "type": "press",
       "tagId": "react-era",
       "attachedTo": null,
       "title": {
@@ -838,8 +1007,8 @@
         "zh": "React without a Memo"
       },
       "description": {
-        "en": "A practical talk about removing accidental complexity from React apps.",
-        "zh": "关于减少 React 应用偶然复杂度的实践分享。"
+        "en": "Introducing React Forget (now the React Compiler), an auto memoization compiler so you can write React without useMemo and useCallback, and forget about accidental rerenders.",
+        "zh": "介绍 React Forget（现 React Compiler），自动记忆化编译器，让你不用手写 useMemo / useCallback，也能忘掉意外的重渲染。"
       },
       "date": "2021-09",
       "conference": {
@@ -1252,7 +1421,7 @@
     },
     {
       "id": "bilibili-sabbatical-2023",
-      "type": "social",
+      "type": "press",
       "tagId": "lynx-era",
       "attachedTo": "event-career-break",
       "title": {

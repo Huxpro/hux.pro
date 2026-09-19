@@ -25,7 +25,10 @@ export {
   useAttachments,
   useOptionalAttachments,
 } from "./provider";
-export type { AttachmentSession } from "./provider";
+export type {
+  AttachmentSession,
+  AttachmentsContextValue as AttachmentsApi,
+} from "./provider";
 export { AttachmentSurface } from "./components/attachment-surface";
 export { attachmentSetFor } from "./lib/set";
 export {

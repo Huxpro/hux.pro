@@ -170,7 +170,7 @@ const CHIP_SIZE: Record<MediaMarkSize, { box: string; icon: string; word: boolea
  * The same chip on a surface instead of on artwork — for a card that has no
  * cover to wear it on, where it sits in the caption's line.
  */
-const SURFACE_CHIP =
+export const SURFACE_CHIP =
   "bg-foreground/[0.06] text-muted-foreground ring-1 ring-border/50 dark:bg-white/[0.08]";
 
 /**

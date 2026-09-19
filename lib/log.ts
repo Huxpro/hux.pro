@@ -45,7 +45,7 @@ export type CommitType =
   | "talk"
   | "post"
   | "role"
-  | "social"
+  | "press"
   | "event";
 
 // =============================================================================
@@ -445,11 +445,23 @@ export interface RoleCommit extends BaseCommit {
 }
 
 // -----------------------------------------------------------------------------
-// Social Commit (Social post / thread)
+// Press Commit (coverage, and the things said off-site)
 // -----------------------------------------------------------------------------
 
-export interface SocialCommit extends BaseCommit {
-  type: "social";
+/**
+ * A public appearance that isn't a talk: a magazine cover story, a list you
+ * were named to, a long post published somewhere that isn't this site.
+ *
+ * Both directions on purpose — written *about* me and written *by* me,
+ * elsewhere. English leans toward coverage and Chinese (媒体) covers 媒体报道
+ * and 自媒体 alike; each label is idiomatic in its own language, which is
+ * worth more than making the two translations of each other.
+ *
+ * Distinct from the `social-embed` *media* kind, which is a platform widget
+ * any commit can attach. This is the commit; that is a thing it carries.
+ */
+export interface PressCommit extends BaseCommit {
+  type: "press";
   /** Display name of the platform (e.g. "X", "Twitter", "YouTube") */
   platform: string;
 }
@@ -486,7 +498,7 @@ export type Commit =
   | TalkCommit
   | PostCommit
   | RoleCommit
-  | SocialCommit
+  | PressCommit
   | EventCommit;
 
 // =============================================================================
@@ -919,14 +931,14 @@ const COMMIT_TYPE_LABELS: Record<CommitType, LocalizedString> = {
   talk: { en: "Talk", zh: "演讲" },
   post: { en: "Post", zh: "文章" },
   role: { en: "Role", zh: "职位" },
-  social: { en: "Social", zh: "社交" },
+  press: { en: "Press", zh: "媒体" },
   event: { en: "Event", zh: "事件" },
 };
 
-/** Where the rule doesn't hold. `social` is a mass noun here — a body of
- *  posts, not a count of them — so "Socials" would be a different word. */
+/** Where the rule doesn't hold. `press` is a mass noun — a body of coverage,
+ *  not a count of pieces — so "Presses" would be a different word. */
 const COMMIT_TYPE_PLURAL_EN: Partial<Record<CommitType, string>> = {
-  social: "Social",
+  press: "Press",
 };
 
 /**
@@ -981,7 +993,7 @@ export const FILTERABLE_COMMIT_TYPES = [
   "project",
   "talk",
   "post",
-  "social",
+  "press",
   "role",
 ] as const;
 
@@ -1021,7 +1033,7 @@ export function getCommitTypeIcon(type: CommitType): string {
     talk: "○",
     post: "◆",
     role: "■",
-    social: "▲",
+    press: "▲",
     event: "·",
   };
   return icons[type];
@@ -1250,6 +1262,14 @@ export function isSuppressedRow(commit: Commit): boolean {
  * then rendered an empty column. One predicate, so the next visibility
  * rule is one edit rather than three.
  *
+ * **Suppression is conditional on context, and this is where that lives.**
+ * `hideRow` means "the cluster this role anchors already speaks for the
+ * tenure" — which is true of the whole log and false the moment the reader
+ * filters to roles, because then there is no cluster left to speak. Seven
+ * of nine roles are `hideRow`, so the Roles chip used to print the two
+ * that aren't: both degrees, and a career page that was nothing but
+ * education. Asking for roles is asking for the rows.
+ *
  * The locale rule is deliberately not in here: `buildTimelineData` has
  * already applied it to everything a caller can reach, so asking again
  * would be the fourth spelling rather than the last one.
@@ -1258,7 +1278,11 @@ export function isRowVisible(
   commit: Commit,
   activeTypes: readonly FilterableCommitType[] = [],
 ): boolean {
-  return !isSuppressedRow(commit) && matchesTypeFilter(commit, activeTypes);
+  if (!matchesTypeFilter(commit, activeTypes)) return false;
+  if (!isSuppressedRow(commit)) return true;
+  // The reader asked for this type by name, so the redundancy that
+  // suppressed the row no longer holds.
+  return activeTypes.includes(commit.type as FilterableCommitType);
 }
 
 /**
@@ -1647,8 +1671,8 @@ export function isRoleCommit(commit: Commit): commit is RoleCommit {
   return commit.type === "role";
 }
 
-export function isSocialCommit(commit: Commit): commit is SocialCommit {
-  return commit.type === "social";
+export function isPressCommit(commit: Commit): commit is PressCommit {
+  return commit.type === "press";
 }
 
 export function isEventCommit(commit: Commit): commit is EventCommit {

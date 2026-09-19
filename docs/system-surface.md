@@ -158,6 +158,22 @@ moving that surface to `panel` would silently change what the feature offers.
 Gate on the constraint itself — a breakpoint the CSS already names, a capability
 — or do not gate.
 
+## A surface is chrome
+
+`SHELL` (`sheet.tsx`) carries `.system-chrome`, so every shape — sheet, panel,
+window, popover — and everything inside it is the OS's own UI: no text
+selection, no long-press callout, no grey tap flash. That is the ruling, not an
+accident of the class list, and it holds for whatever a surface is given to
+hold. Text fields are the one exception, in `globals.css`, so the command
+palette's search and the devtool's fields keep their caret.
+
+Every surface today is chrome, and content-shaped surfaces are where this would
+have to be revisited: an article in a quick-look, a page previewed in a panel.
+`select-text` on such content wins back the selection but not the link preview
+`-webkit-touch-callout` takes away — so it is a third voice rather than an
+override, and it belongs in the voice block in `globals.css` beside the other
+two. See [Design System](./design-system.md#touch).
+
 ## Props worth knowing
 
 | Prop | For |

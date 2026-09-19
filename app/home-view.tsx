@@ -7,6 +7,7 @@ import {
 } from "@/components/home/featured-stack-widget";
 import { FeaturedTalksWidget } from "@/components/home/featured-talks-widget";
 import {
+  FEATURED_GROUP_ID as PROCESSING_GROUP_ID,
   ProcessingWidget,
   buildProcessingCommits,
 } from "@/components/home/processing-widget";
@@ -107,14 +108,20 @@ function WidgetGrid({
   // Resolve presence up-front so conditionally-empty widgets never occupy an
   // empty, draggable slot in the masonry.
   const processingCommits = buildProcessingCommits(log, locale);
-  // The three featured talk groups (React / Lynx / Personal) are now unified
-  // into the single album-switching FeaturedTalksWidget, so exclude them from
-  // the generic group rendering.
-  const albumGroupIds = new Set<string>(ALBUM_GROUP_IDS);
+  // Groups a dedicated widget already owns don't also get a generic card:
+  // the three featured talk groups (React / Lynx / Personal) are unified into
+  // the album-switching FeaturedTalksWidget, and `featured-projects` is what
+  // ProcessingWidget prints. `hidden` is the author's own "don't render this
+  // one"; being spoken for is a different fact, and it belongs next to the
+  // widget doing the speaking rather than in the data.
+  const claimedGroupIds = new Set<string>([
+    ...ALBUM_GROUP_IDS,
+    PROCESSING_GROUP_ID,
+  ]);
   const visibleGroups = (log.groups ?? []).filter(
     (group) =>
       !group.hidden &&
-      !albumGroupIds.has(group.id) &&
+      !claimedGroupIds.has(group.id) &&
       resolveGroupCommits(group, log.commits as CommitData[], undefined, locale)
         .length > 0,
   );
@@ -172,7 +179,7 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
     // Auto margins (rather than `justify-center`) are what make that safe: an
     // overflowing composition still starts at the top edge instead of being
     // clipped above it.
-    <main className="system-surface select-none mx-auto flex min-h-svh w-full flex-col px-6 pt-16 sm:pt-24 pb-32 sm:pb-40">
+    <main className="system-surface mx-auto flex min-h-svh w-full flex-col px-6 pt-16 sm:pt-24 pb-32 sm:pb-40">
       <div className="my-auto w-full">
         <div className="mx-auto max-w-[680px]">
           <HeaderZone
@@ -183,11 +190,7 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
             // is the zone read off the top band whose ink may flip; the app folder is
             // the other, read off the middle band (see docs/system-legibility.md).
             data-hero-exit={heroExit}
-            className={heroZoneClassName(
-              heroExit,
-              !heroFadeStyle,
-              "ink-bare select-none"
-            )}
+            className={heroZoneClassName(heroExit, !heroFadeStyle, "ink-bare")}
             style={heroZoneStyle(heroExit, heroFadeStyle)}
           >
             <div className="h-11 flex items-start justify-center">

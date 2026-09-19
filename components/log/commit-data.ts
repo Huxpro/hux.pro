@@ -389,7 +389,7 @@ export function normalizeCommit(
       };
     }
 
-    case "social": {
+    case "press": {
       const socialPrimaryUrl = media[0]?.url;
 
       // Build platform link. The first media item is represented by the

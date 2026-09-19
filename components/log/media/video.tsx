@@ -15,9 +15,18 @@
 import { cn } from "@/lib/utils";
 import { Play } from "lucide-react";
 import type { VideoMedia, VideoPlatform } from "@/lib/log";
-import { YouTubeEmbed, extractYouTubeId } from "./youtube";
-import { BilibiliEmbed, extractBilibiliId } from "./bilibili";
-import { VimeoEmbed, extractVimeoId } from "./vimeo";
+import {
+  YouTubeEmbed,
+  extractYouTubeId,
+  getEmbedUrl as youtubeEmbedUrl,
+} from "./youtube";
+import {
+  BilibiliEmbed,
+  extractBilibiliId,
+  getEmbedUrl as bilibiliEmbedUrl,
+  parseBilibiliId,
+} from "./bilibili";
+import { VimeoEmbed, extractVimeoId, getEmbedUrl as vimeoEmbedUrl } from "./vimeo";
 
 // =============================================================================
 // Types
@@ -82,6 +91,30 @@ export function extractVideoId(url: string, platform: VideoPlatform): string | n
       return extractBilibiliId(url);
     case "vimeo":
       return extractVimeoId(url);
+    default:
+      return null;
+  }
+}
+
+/**
+ * The player URL for a video, the one each facade mounts once pressed — so a
+ * caller that keeps the playing state itself (the feed's inline player, which
+ * has a bar to hand playback on to the stage) can mount the same iframe.
+ */
+export function videoEmbedUrl(url: string, platform: VideoPlatform): string | null {
+  switch (platform) {
+    case "youtube": {
+      const id = extractYouTubeId(url);
+      return id ? youtubeEmbedUrl(id) : null;
+    }
+    case "bilibili": {
+      const id = parseBilibiliId(url);
+      return id ? bilibiliEmbedUrl(id) : null;
+    }
+    case "vimeo": {
+      const id = extractVimeoId(url);
+      return id ? vimeoEmbedUrl(id) : null;
+    }
     default:
       return null;
   }

@@ -20,7 +20,7 @@ function NotFoundIdentifier() {
     <div className="text-center mb-12">
       <span
         className={cn(
-          "font-mono text-xs tracking-wider relative inline-block cursor-default select-none transition-colors duration-300",
+          "font-mono text-xs tracking-wider relative inline-block cursor-default transition-colors duration-300",
           isHovered ? "text-foreground" : "text-muted-foreground"
         )}
         onMouseEnter={() => setIsHovered(true)}
@@ -54,7 +54,7 @@ function ReturnHomeButton() {
       <Link
         href="/"
         className={cn(
-          "inline-flex items-center gap-2 px-5 py-3 rounded-2xl select-none",
+          "inline-flex items-center gap-2 px-5 py-3 rounded-2xl",
           "bg-glass backdrop-blur-xl",
           "border border-border/50",
           "text-sm text-foreground",
@@ -88,12 +88,12 @@ export default function NotFound() {
   useLockTextSelection();
 
   return (
-    <main className="system-surface select-none mx-auto max-w-[680px] px-6 pt-12 sm:pt-24 pb-32 sm:pb-40 min-h-screen flex flex-col justify-center">
+    <main className="system-surface mx-auto max-w-[680px] px-6 pt-12 sm:pt-24 pb-32 sm:pb-40 min-h-screen flex flex-col justify-center">
       {/* 404 identifier with scramble effect */}
       <NotFoundIdentifier />
 
       {/* 404 Message - Hux speaking to the user */}
-      <div className="text-center mb-16 select-none cursor-default">
+      <div className="text-center mb-16 cursor-default">
         <h1 className={`${TITLE_POETIC} text-foreground`}>
           {t(locale, "notFoundMessage")}
         </h1>

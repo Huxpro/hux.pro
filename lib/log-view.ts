@@ -21,47 +21,87 @@ import {
 } from "./log";
 
 // =============================================================================
-// Density
+// Form — how much of each commit is printed, as a composition.
+//
+// A row is made of a few independent parts: the title line (always), the
+// description, the attachment object, the notes under it, and whether it
+// peeks on hover. Each part has its own small set of states (`RowForm`), and
+// a *form* is one preset of all of them — so the three readings of the page
+// are compositions of the same atoms, and switching form is resetting every
+// row to a preset rather than four hand-made layouts. A row the reader opens
+// by hand is the same thing at a smaller scale: it takes the `feed` preset
+// for itself (see TimelineCommit).
+//
+//  - `index`  — the title line only. The overview: one row per commit, the
+//    whole career in two screens. Rich media is reachable but not shown
+//    (hover peek on a pointer device, or open the row).
+//  - `covers` — the default: the title, two lines, and the covers at a size
+//    you can recognise a slide or a screenshot at. Still one row per commit,
+//    so the overview survives, but the work is on screen rather than behind
+//    a hover a phone cannot perform.
+//  - `feed`   — every row open: the whole description, the attachment grid
+//    with its captions written out, the notes and the author fields. All the
+//    information is right there, so nothing in it peeks or opens a sheet: a
+//    video plays where it is, a card goes to its page.
+//
+// The page borrowed git's vocabulary for these once (`--oneline`, `--stat`,
+// `-p`); those names still parse, as aliases, so old links keep working.
 // =============================================================================
 
-/**
- * How much of each commit is printed. Named after the `git log` flags the
- * timeline already imitates, because they mean exactly the same thing here:
- *
- *  - `oneline` — subject line only. The overview: one row per commit, the
- *    whole career in two screens. Rich media is reachable but not shown
- *    (hover peek on a pointer device, or open the row).
- *  - `stat`    — subject line, a contact strip of every cover the row is
- *    holding, and one clamped line of what the thing is. Still one row per
- *    commit, so the overview survives, but the media is now *on screen*
- *    rather than behind a hover a phone cannot perform, and the covers have
- *    a caption. This is the middle the page was missing. It costs almost
- *    nothing: the description sits in the space a single cover leaves over,
- *    so the page grows by a couple of percent, not by a screen.
- *  - `patch`   — every row open: players, cards, commentary, tags. The full
- *    read.
- *
- * `stat` is the default. A first visit should land on the reading that does
- * both jobs at once — the whole career still scans as one column, and the
- * work itself is on screen rather than behind a hover a phone cannot
- * perform. `oneline` remains one tap away for whoever wants only the index.
- */
-export const LOG_DENSITIES = ["oneline", "stat", "patch"] as const;
+export const LOG_FORMS = ["index", "covers", "feed"] as const;
 
-export type LogDensity = (typeof LOG_DENSITIES)[number];
+export type LogForm = (typeof LOG_FORMS)[number];
 
-export const DEFAULT_DENSITY: LogDensity = "stat";
+export const DEFAULT_FORM: LogForm = "covers";
 
-export function isLogDensity(value: string): value is LogDensity {
-  return (LOG_DENSITIES as readonly string[]).includes(value);
+/** The atoms a row composes. Every form is one setting of each. */
+export interface RowForm {
+  /** What of the description prints: nothing, two lines, or all of it. */
+  description: "none" | "clamp" | "full";
+  /**
+   * The attachment object: nothing, the strip of covers, or the grid — the
+   * feed's half-column tiles with their captions written out.
+   */
+  media: "none" | "covers" | "grid";
+  /** The notes under the message: commentary, the author fields, the link
+   *  labels beside the rail icons. */
+  notes: boolean;
+  /** Whether the row, or its covers, peek on hover. The feed does not: it
+   *  has already printed everything a peek would show. */
+  peek: boolean;
 }
 
-/** The `git log` invocation a density stands for — the control's tooltip. */
-export const DENSITY_COMMAND: Record<LogDensity, string> = {
-  oneline: "git log --oneline",
-  stat: "git log --stat",
-  patch: "git log -p",
+export const ROW_FORM: Record<LogForm, RowForm> = {
+  index: { description: "none", media: "none", notes: false, peek: true },
+  covers: { description: "clamp", media: "covers", notes: false, peek: true },
+  feed: { description: "full", media: "grid", notes: true, peek: false },
 };
+
+/**
+ * The feed is the form with every row open, and an open row is the feed at
+ * row scale: one rule, read from both ends. The page asks whether a form
+ * opens its rows; a row asks what its atoms are given whether it is open.
+ */
+export function formOpensRows(form: LogForm): boolean {
+  return form === "feed";
+}
+
+export function rowFormFor(form: LogForm, open: boolean): RowForm {
+  return ROW_FORM[open ? "feed" : form];
+}
+
+/** The git flags the forms were first named after — old links carry them. */
+const FORM_ALIAS: Record<string, LogForm> = {
+  oneline: "index",
+  stat: "covers",
+  patch: "feed",
+};
+
+export function parseLogForm(value: string | null): LogForm | null {
+  if (!value) return null;
+  if ((LOG_FORMS as readonly string[]).includes(value)) return value as LogForm;
+  return FORM_ALIAS[value] ?? null;
+}
 
 // =============================================================================
 // View state
@@ -73,7 +113,7 @@ export interface LogViewState {
    * selected" — the rest-state of the chip row, where every commit shows.
    */
   types: FilterableCommitType[];
-  density: LogDensity;
+  form: LogForm;
 }
 
 /**
@@ -95,31 +135,40 @@ export function toggleType(
 // =============================================================================
 
 export const TYPE_PARAM = "type";
-export const DENSITY_PARAM = "view";
+export const FORM_PARAM = "view";
 
 /**
  * Read view state out of a query string.
  *
  * Tolerant by design — a hand-edited or stale URL degrades to the default
  * rather than rendering an empty page: unknown type names are dropped,
- * an unknown density falls back to `oneline`.
+ * an unknown form falls back to the default.
  */
+/** Type names that have been renamed — old links carry the old word, the
+ *  same way `FORM_ALIAS` carries the git flags the forms were first named
+ *  after. `social` became `press` when the type stopped meaning "my social
+ *  accounts" and started meaning coverage. */
+const TYPE_ALIAS: Record<string, FilterableCommitType> = {
+  social: "press",
+};
+
 export function parseViewState(params: URLSearchParams): LogViewState {
   const raw = params.get(TYPE_PARAM);
-  const requested = raw ? raw.split(",").map((s) => s.trim()) : [];
+  const requested = (raw ? raw.split(",").map((s) => s.trim()) : []).map(
+    (name) => TYPE_ALIAS[name] ?? name,
+  );
   const types = FILTERABLE_COMMIT_TYPES.filter((t) => requested.includes(t));
 
-  const density = params.get(DENSITY_PARAM);
   return {
     types,
-    density: density && isLogDensity(density) ? density : DEFAULT_DENSITY,
+    form: parseLogForm(params.get(FORM_PARAM)) ?? DEFAULT_FORM,
   };
 }
 
 /**
  * Write view state back into a query string, dropping both params at their
  * defaults so the plain `/works` URL stays clean — nobody should have to
- * share `?type=&view=stat`.
+ * share `?type=&view=covers`.
  *
  * Takes the current params and mutates a copy so unrelated query state
  * (anything another feature owns) survives a chip tap.
@@ -136,10 +185,10 @@ export function serializeViewState(
     params.delete(TYPE_PARAM);
   }
 
-  if (state.density !== DEFAULT_DENSITY) {
-    params.set(DENSITY_PARAM, state.density);
+  if (state.form !== DEFAULT_FORM) {
+    params.set(FORM_PARAM, state.form);
   } else {
-    params.delete(DENSITY_PARAM);
+    params.delete(FORM_PARAM);
   }
 
   return params.toString();

@@ -268,6 +268,35 @@ while the modules scroll. The modules:
    gravity (`docs/system-ambient.md` → Gyroscope Tilt), with the live angle as
    its readout — and, on iOS, the second place besides the wallpaper picker
    where motion access can be granted, since that needs a tap to ask.
+
+   **The meteor's window is marked on both axes it depends on**, because the
+   rule has two halves and each one has a surface here that answers it alone:
+
+   - **When** — a bar along the foot of the day timeline, ticked at each end,
+     in the same ink as the sunrise and sunset marks it sits between; the times
+     read out under it beside them. A window crosses midnight, so it arrives as
+     two bars, one against each end of the strip, and reads as one range
+     (`19:40 → 05:21`), which `meteorWindowSpan()` rejoins next to the code that
+     split them. Derived by asking `meteorPossible()` about real scenes rather
+     than by solving for the sun's altitude, so the marks cannot drift from the
+     click that fires one — and it costs one scene rather than three hundred
+     whenever the sky is closed, because `clarity` cannot change over a day.
+   - **Through what** — a corner mark on every condition chip you could see a
+     meteor through. It answers *if I picked this one now, could I see one?*,
+     so it is evaluated **through `toSceneWeather`** — the one function that
+     knows what forcing a condition means, which is that the real measurements
+     go away, because a measured cover of 10% is a fact about today's clear sky
+     and not about the overcast being previewed. Predicting any other way makes
+     the mark promise something the click does not deliver. Overrides are
+     included too: force **Cloudy** and the mark goes out (the
+     profile's cover is 0.7), pull **Tune → Cloud** down to 20% and it comes
+     back — and while that override stands it moves Clear with it, because a
+     clear sky under 70% forced cloud really has no meteor in it. Only the
+     weather half of the rule, though: a chip that also went dark at noon would
+     be answering the timeline's question badly, so it does not.
+
+   See `docs/system-ambient.md` → The Shooting Star for the two terms and why
+   twelve degrees.
 4. **Command**: **Phone palette** — Sheet (the bottom sheet the palette is on a
    phone) / Popover (the desktop card at phone width, the palette as it was).
    A saved setting, so a blue `*` marks it and resets it. Lets the two be

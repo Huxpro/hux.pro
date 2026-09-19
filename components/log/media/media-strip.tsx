@@ -3,12 +3,12 @@
 /**
  * MediaStrip — a commit's contact sheet.
  *
- * The `stat` density prints one of these under each folded row: every cover
- * the commit is carrying, at 56px tall, in authored order. It is the answer
- * to the /works paradox — folded, the page is a perfect two-screen overview
- * and none of the media exists; unfolded, the media is all there and the
- * overview is gone. The strip keeps one row per commit and still puts the
- * work on screen.
+ * The `covers` form prints one of these under each folded row: every cover
+ * the commit is carrying, as a row of `covers` tiles (attachment-tile.tsx)
+ * in authored order. It is the answer to the /works paradox — folded, the page is a perfect two-screen
+ * overview and none of the media exists; unfolded, the media is all there
+ * and the overview is gone. The strip keeps one row per commit and still
+ * puts the work on screen.
  *
  * It is not a picture of the row: the thumbs are the real affordances, wired
  * to the same door the expanded block opens — the attachment system, which
@@ -17,23 +17,27 @@
  * Nothing here needs a pointer, which is the other half of the point — the
  * hover peek this stands beside has never existed on a phone.
  *
- * Deliberately chrome-light: rounded covers, a mini play mark where one is
- * warranted, nothing else. Titles live on the row above and the commit's own
- * description sits beside the covers (TimelineCommit lays the two out as one
- * media object); a caption under every thumbnail on top of that would undo
- * the density the strip exists for.
+ * Deliberately chrome-light: the tiles and their chips, nothing else. Titles
+ * live on the row above and the commit's own description sits over the
+ * covers; a caption under every thumbnail on top of that would undo the
+ * density the strip exists for.
+ *
+ * When the covers are wider than the column the strip runs on past it,
+ * under the page's bleed (`--page-bleed`, globals.css): to the gutter's
+ * edge on a phone, where it scrolls, and into the margin on a desk, where
+ * three covers simply fit. A cover is only ever cut by the screen. A row of
+ * covers cut mid-page reads as a mistake; the same row running under the
+ * edge reads as a rail there is more of, which is what it is.
  */
 
+import { useMemo } from "react";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { cn } from "@/lib/utils";
-import { t, useLocale } from "@/services";
+import { useLocale } from "@/services";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
-import type { Media, StripItem } from "@/lib/log";
-import { isSlidesMedia } from "@/lib/log";
-import { getDomainLabel } from "@/lib/og-core";
-import { ExternalImage } from "./external-image";
+import type { StripItem } from "@/lib/log";
+import { AttachmentTile, resolveTile } from "./attachment-tile";
 import { mediaPeek } from "./media-peek";
-import { markFor, MediaMark, newTabMark } from "./media-mark";
 
 export interface MediaStripProps {
   /**
@@ -49,120 +53,75 @@ export interface MediaStripProps {
    * covers are plain outbound links.
    */
   set?: AttachmentSet | null;
+  /**
+   * Whether a cover peeks on hover: the form's `peek` (lib/log-view.ts)
+   * and a pointer to hover with. Off, no peek tree is built — a phone would
+   * build and discard one per cover otherwise.
+   */
+  peek?: boolean;
   className?: string;
 }
 
-/** Tooltip / screen-reader text for one cover. */
-function labelFor({ media }: StripItem): string {
-  if (isSlidesMedia(media)) return media.title || "Slides";
-  if (media.kind === "image") return media.alt || "Image";
-  if (media.kind === "link") {
-    return media.preview?.title || getDomainLabel(media.url);
-  }
-  return getDomainLabel(media.url);
-}
-
-export function MediaStrip({ items, set, className }: MediaStripProps) {
+export function MediaStrip({
+  items,
+  set,
+  peek = true,
+  className,
+}: MediaStripProps) {
   const attachments = useOptionalAttachments();
   const { locale } = useLocale();
+  // Once per item, not once per tile per render (attachment-tile.tsx).
+  const slots = useMemo(
+    () => items.map((item) => resolveTile(item, locale, set, attachments)),
+    [items, locale, set, attachments],
+  );
 
-  if (items.length === 0) return null;
-
-  /** Open `media` through the attachment system. Reports whether it took the
-   *  click, so the caller knows whether to suppress the anchor. */
-  const openInSite = (media: Media): boolean => {
-    if (!attachments || !set) return false;
-    const index = set.items.indexOf(media);
-    if (index < 0) return false;
-    attachments.open(set, index);
-    return true;
-  };
+  if (slots.length === 0) return null;
 
   return (
     <div
       // Content inside the row that is not the row's fold trigger — see the
       // `data-row-body` note in TimelineCommit. Hovering a cover brightens
       // that cover, not the whole commit, exactly as hovering an expanded
-      // LinkCard or player does.
+      // tile does.
       data-row-body
       className={cn(
         // `w-max` so the track is as wide as the covers it draws and no
-        // wider; `max-w-full` so past the column width it stops growing and
-        // scrolls instead, which is how a phone handles a commit carrying
-        // four covers. Both are layout: the clicks are the covers' own (see
-        // the anchor below), so an empty stretch of this band is the row's
-        // to take, whatever width it happens to have.
-        "flex w-max max-w-full gap-1.5 overflow-x-auto overscroll-x-contain",
+        // wider; past that it stops growing and scrolls instead. The cap is
+        // the column plus the page's bleed, and the track bleeds by the
+        // same, so the scroll edge is the screen's edge and the last cover
+        // has a gutter to rest in (`pr-6`). Layout only: the clicks are the
+        // covers' own, so an empty stretch of this band is the row's to take.
+        "flex w-max max-w-[calc(100%+var(--page-bleed))] gap-2 pr-6",
+        "[margin-right:calc(var(--page-bleed)*-1)]",
+        "overflow-x-auto overscroll-x-contain",
         "snap-x snap-proximity no-scrollbar",
         className,
       )}
     >
-      {items.map((item, i) => {
-        const label = labelFor(item);
-        const index = set ? set.items.indexOf(item.media) : -1;
-        // Where the click will land; a tab means the page refuses to be
-        // framed, and the peek says so before the click does.
-        const leavesSite =
-          attachments && set && index >= 0
-            ? attachments.homeOf(set, index) === "tab"
-            : false;
-        const peek = mediaPeek(item.media, locale, { leaves: leavesSite });
-
+      {slots.map((slot, i) => {
+        // The row itself stops peeking once it prints its covers (see
+        // `showCursorPreview` in TimelineCommit); each cover peeks instead,
+        // in the same vocabulary, showing what it is at a readable size —
+        // and whole, where the tile crops.
+        const spec = peek
+          ? mediaPeek(slot.media, locale, { leaves: slot.leaves })
+          : null;
         return (
-          // The row itself stops peeking once it prints its covers (see
-          // `showCursorPreview` in TimelineCommit); each cover peeks instead,
-          // in the same vocabulary, showing what it is at a readable size.
           <MagneticPreview
-            key={`${item.media.url}-${i}`}
-            preview={peek?.node}
-            enabled={!!peek}
-            panelClassName={peek?.panelClassName}
+            key={`${slot.media.url}-${i}`}
+            preview={spec?.node}
+            enabled={!!spec}
+            panelClassName={spec?.panelClassName}
             className="shrink-0 snap-start"
           >
-            {/* An anchor even when the attachment system will take the
-                click: that keeps ⌘-click, middle-click and "copy link
-                address" working, and leaves a real destination when the
-                provider isn't mounted. */}
-            <a
-              href={item.media.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={leavesSite ? `${label} · ${t(locale, "linkOpensInTab")}` : label}
-              aria-label={label}
-              onClick={(e) => {
-                // A click on a cover is the cover's business: without this
-                // the row would fold underneath you as you left for the
-                // video. On the anchor rather than the track, so it is the
-                // cover that takes the click and not every pixel of the band
-                // around it.
-                e.stopPropagation();
-                // Modified clicks belong to the browser — never hijack them.
-                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-                if (openInSite(item.media)) e.preventDefault();
-              }}
-              className={cn(
-                "group/strip relative block",
-                // 16:9 at h-14 → ~100px wide, so five fit the content column.
-                // A 56px cover is still big enough to recognize a talk slide
-                // or a product screenshot; 40px is not.
-                "h-14 aspect-video rounded-md overflow-hidden",
-                "border border-border/50 bg-muted/30",
-                "transition-colors duration-200",
-                "hover:border-border focus-visible:border-border",
-              )}
-            >
-              <ExternalImage
-                src={item.image}
-                alt=""
-                className="block h-full w-full object-cover"
-              />
-              {/* The strip marks a recording and a deck, and a page that
-                  will leave; a card is its own hint (media-mark.tsx). */}
-              <MediaMark
-                mark={leavesSite ? newTabMark(locale) : markFor(item.media, locale)}
-                size="mini"
-              />
-            </a>
+            <AttachmentTile
+              slot={slot}
+              size="covers"
+              locale={locale}
+              set={set}
+              attachments={attachments}
+            />
           </MagneticPreview>
         );
       })}

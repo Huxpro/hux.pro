@@ -97,7 +97,7 @@ export function WidgetShell({
       onTouchStart={tappable ? noop : undefined}
       data-widget-tappable={tappable ? "" : undefined}
       className={cn(
-        "group relative rounded-2xl overflow-hidden select-none",
+        "group relative rounded-2xl overflow-hidden",
         "border border-border/50",
         "transition-all duration-300",
         widgetEnabled
@@ -207,13 +207,46 @@ export function WidgetBody({
  * the scroll port is inset by the rows' hover bleed (`-mx-2`) so a row's
  * rounded highlight isn't clipped at the card's left edge. Rows should carry
  * `snap-start` and the `-mx-2 px-2` bleed themselves.
+ *
+ * **The port only scrolls under a pointer.** A nested vertical scroller inside
+ * the page's own vertical scroll is free with a wheel — it goes to whatever is
+ * under the cursor, and hover makes the port discoverable at all. Under a
+ * finger it is a fight the widget always wins: on a phone the card is most of
+ * the screen, `snap-mandatory` holds the list wherever the gesture leaves it,
+ * and nothing chains back to the page inside one gesture, so a swipe meant for
+ * the page is simply spent. Measured on an iPhone 13 viewport, a swipe from
+ * the middle of the projects widget moved the page 0px and the list 204px.
+ *
+ * So the default is a plain stack: the widget prints a fixed set of rows —
+ * curated, or capped with `pointer-coarse:hidden` — and the body is exactly
+ * as tall as they are. No port, no mask, nothing cut off, with the card's own
+ * tap for the rest. Which is what a widget is everywhere else: Apple's widgets
+ * have no scroll gesture at all, and answer "more than fits" with a bigger
+ * size or the app. See docs/system-widget-scroll.md.
+ *
+ * `port` opts a list back into scrolling **under a pointer only**, and it is
+ * one prop because the height, the scroll, the fade and the room the fade
+ * needs are one decision, not four: a body with no port must not wear a mask
+ * over its last row or reserve 28px under it. One media query rather than a
+ * hook — the same markup serves both, so there is no hydration branch and
+ * nothing to measure.
+ *
+ * The stack ends on `pb-3` rather than the card's `pb-5`, because a row
+ * carries its own `py-2`: 12 + 8 puts the last line 20px off the card's
+ * bottom edge, which is what `pt-5` puts the title from its top.
  */
 export function WidgetScrollBody({
+  port,
   className,
   children,
 }: {
-  /** Height goes here — defaults to a fixed `h-64`; pass `max-h-*` for a
-   *  stack that should only scroll once it overflows. */
+  /**
+   * Scroll this list under a pointer, at this height — `pointer-fine:h-64`
+   * for a fixed port, `pointer-fine:max-h-64` for one that only appears once
+   * the list outgrows it. Omitted, the body is a stack and prints whole on
+   * every device.
+   */
+  port?: string;
   className?: string;
   children: React.ReactNode;
 }) {
@@ -221,10 +254,13 @@ export function WidgetScrollBody({
     <div className="px-5">
       <div
         className={cn(
-          "relative -mx-2 px-2 pb-7",
-          "overflow-y-auto snap-y snap-mandatory scroll-smooth no-scrollbar",
-          "[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
-          className ?? "h-64"
+          "relative -mx-2 px-2 pb-3 overflow-hidden no-scrollbar",
+          port && [
+            "pointer-fine:pb-7 pointer-fine:overflow-y-auto pointer-fine:snap-y pointer-fine:snap-mandatory pointer-fine:scroll-smooth",
+            "pointer-fine:[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
+            port,
+          ],
+          className,
         )}
       >
         {children}

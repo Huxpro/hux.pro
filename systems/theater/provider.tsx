@@ -136,6 +136,28 @@ interface TheaterContextValue {
 
 const TheaterContext = createContext<TheaterContextValue | undefined>(undefined);
 
+/**
+ * The stage — its occupant and its doors — and nothing that ticks.
+ * `TheaterContext` carries `currentTime`, so everything subscribed to it
+ * re-renders twice a second while a video plays. Anything that only sends
+ * something to the stage (a cover's `openVideo`, the attachment system's
+ * `openMedia`) or only asks what is on it (the feed's inline player, which
+ * marks its place while its recording is in PiP) subscribes here instead.
+ */
+interface TheaterStageValue {
+  track: Track | null;
+  mode: TheaterMode;
+  close: () => void;
+  openVideo: (input: OpenVideoInput) => void;
+  openMedia: TheaterContextValue["openMedia"];
+}
+
+const TheaterStageContext = createContext<TheaterStageValue | undefined>(undefined);
+
+export function useOptionalTheaterStage() {
+  return useContext(TheaterStageContext);
+}
+
 export function useTheater() {
   const ctx = useContext(TheaterContext);
   if (!ctx) throw new Error("useTheater must be used within TheaterProvider");
@@ -627,6 +649,11 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [effectiveMode, close]);
 
+  const stageValue = useMemo<TheaterStageValue>(
+    () => ({ track, mode, close, openVideo, openMedia }),
+    [track, mode, close, openVideo, openMedia],
+  );
+
   const value: TheaterContextValue = {
     albums,
     registeredAlbums,
@@ -669,7 +696,9 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <TheaterContext.Provider value={value}>
-      {children}
+      <TheaterStageContext.Provider value={stageValue}>
+        {children}
+      </TheaterStageContext.Provider>
       <Stage
         hostRef={hostRef}
         rect={rect}
