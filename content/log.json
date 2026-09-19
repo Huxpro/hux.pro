@@ -149,7 +149,6 @@
       "href": "/works",
       "commitIds": [
         "react-universe-2025-two-threads",
-        "see-conf-2025-two-threads",
         "coscon-2022",
         "reactconf-2021-memo"
       ]
@@ -162,10 +161,12 @@
       },
       "column": "right",
       "href": "/works",
-      "query": {
-        "type": "talk",
-        "tagId": "lynx-era"
-      }
+      "commitIds": [
+        "react-universe-2025-two-threads",
+        "react-universe-2025-interview",
+        "react-summit-2025-unlock-native",
+        "d2-2025-lynx"
+      ]
     },
     {
       "id": "featured-personal-talks",
@@ -522,6 +523,7 @@
     {
       "id": "see-conf-2025-two-threads",
       "type": "talk",
+      "present": "aside",
       "tagId": "lynx-era",
       "title": {
         "en": "React for Two Threads",
