@@ -9,6 +9,6 @@ export default function OpengraphImage() {
   return renderOgImage({
     title: "System Prompts",
     eyebrow: "/prompts",
-    meta: "quotes, principles, and role models",
+    meta: "quotes, principles, people, and books",
   });
 }

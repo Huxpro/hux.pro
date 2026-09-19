@@ -47,12 +47,6 @@ import { TYPE } from "@/lib/typography";
  */
 const HASH_CELL = "lg:w-14 lg:text-right";
 const GUTTER_PULL = "lg:-ml-[6.5rem]";
-/**
- * Fallback handle for the expanded author block when a commit has no
- * resolvable identity (e.g. personal talks / recognitions with
- * `attachedTo: null`). The subtitle-row byline stays blank for those
- * rows, but the author block still names the person once opened.
- */
 
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter

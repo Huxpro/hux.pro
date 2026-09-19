@@ -9,18 +9,8 @@ export interface BlogPostMeta extends LocalizedContent {
   tags?: string[];
 }
 
-export interface TalkData {
-  id: string;
-  title: string;
-  titleZh?: string;
-  event: string;
-  date: string;
-  location: string;
-  video?: string;
-  slides?: string;
-  description?: string;
-  descriptionZh?: string;
-}
+// Talks live in content/log.json (type: "talk"). Do not keep a parallel
+// catalog here — the old placeholder entries were fiction.
 
 // Static data for client-side search in command palette
 // This mirrors the MDX frontmatter for quick access without fs
@@ -302,47 +292,5 @@ export const blogPosts: BlogPostMeta[] = [
     date: "2014-08-16",
     description: "",
     tags: ["知乎", "产品", "UX/UI"],
-  },
-];
-
-export const talks: TalkData[] = [
-  {
-    id: "gosim-2026-vibe-native",
-    title: "Why AI Agents Deserve a Better App Framework",
-    titleZh: "为什么 AI Agent 配得上更好的应用框架",
-    event: "GOSIM Paris 2026",
-    date: "2026-05-05",
-    location: "Paris, France",
-    slides:
-      "https://paris2026.gosim.org/schedule/vibe-native-for-more-why-ai-agents-deserve-a-better-app-framework/",
-    description:
-      "Why AI agents deserve a better app framework: Lynx, and three principles for AI native infra.",
-    descriptionZh:
-      "为什么 AI Agent 配得上更好的应用框架：Lynx，以及 AI 原生基建的三条原则。",
-  },
-  {
-    id: "react-summit-2025-unlock-native",
-    title: "Lynx: Unlock Native for More",
-    titleZh: "Lynx: Unlock Native for More",
-    event: "React Summit",
-    date: "2025-06",
-    location: "Amsterdam, Netherlands",
-    video: "https://youtu.be/l2dByiwiQcM",
-    description:
-      "What makes Lynx familiar and what sets it apart: dual threaded design, instant launch, silky interaction.",
-    descriptionZh:
-      "Lynx 为何既熟悉又与众不同：双线程架构、瞬时启动、丝滑交互。",
-  },
-  {
-    id: "reactconf-2021-memo",
-    title: "React without a Memo",
-    titleZh: "React without a Memo",
-    event: "React Conf 2021",
-    date: "2021-09",
-    location: "Online",
-    video: "https://youtu.be/lGEMwh32soc",
-    description:
-      "Introducing React Forget. Write React without useMemo and useCallback.",
-    descriptionZh: "介绍 React Forget。不用手写 useMemo / useCallback 的 React。",
   },
 ];

@@ -86,10 +86,10 @@
       "hidden": true,
       "href": "/works",
       "commitIds": [
-        "hux-pro",
-        "qcon-shanghai",
-        "tech-lead-lynx",
-        "x-thread-lynx-perf"
+        "lynx-framework",
+        "react-core",
+        "eleme-pwa",
+        "qcon-shanghai-2016"
       ]
     },
     {
@@ -103,9 +103,9 @@
       "hidden": true,
       "href": "/works",
       "commitIds": [
-        "hux-pro",
         "lynx-framework",
-        "tech-lead-lynx"
+        "react-core",
+        "hux-blog"
       ]
     },
     {
@@ -332,8 +332,8 @@
             "zh": "顾问专家，PWA"
           },
           "description": {
-            "en": "",
-            "zh": ""
+            "en": "Short consulting engagement that produced China's first widely cited Progressive Web App.",
+            "zh": "短期顾问合作，做出中国首个被广泛引用的 Progressive Web App。"
           },
           "date": "2017-02",
           "endDate": "2017-05",
@@ -603,7 +603,7 @@
         "zh": "Lynx：让字节跨端跳动"
       },
       "description": {
-        "en": "As client-side products mature and fragment, cross-platform has become the default choice for many developers and companies. Yet UI-framework innovation is converging, cross-platform approaches look increasingly alike, and the market is settling into a fixed shape. Against this backdrop, why did Lynx — the cross-platform technology ByteDance nurtured for years — decide to go open source? This talk lifts the veil on Lynx and explores the insights and future of cross-platform together.",
+        "en": "As client products mature and fragment, cross platform has become the default choice for many developers and companies. At the same time, UI framework innovation is converging, the approaches look more and more alike, and the market is settling into a fixed shape. Against that backdrop, why did Lynx, the cross platform technology ByteDance nurtured for years, decide to go open source? This talk lifts the veil on Lynx and looks at the insights and the future of cross platform together.",
         "zh": "伴随终端业务的成熟和碎片化，跨端已成为众多开发者和企业的首选。但同时，UI 框架的创新在收敛，跨端思路大同小异，市场格局趋于固化。在这个背景下，字节孕育多年的跨端技术 —— Lynx，为何决定走向开源？本演讲将揭开 Lynx 的“神秘面纱”，与你一同探寻跨端的洞见与未来。"
       },
       "date": "2025-03",
@@ -803,8 +803,12 @@
         "zh": "前端已死，前端永生"
       },
       "description": {
-        "en": "Frontend is a moving concept, as technology and as a division of labor. Modeling its inflection points to argue that the bond between humans and machines does not die; it is rewritten. Then a look at what AI and the metaverse open next.",
-        "zh": "无论从技术还是行业分工看，前端都只是一个动态概念。通过对历史上大小拐点建模，论证它作为人与机器的纽带会以被重写的方式「永生」，并展望 AI 与元宇宙带来的新可能。"
+        "en": "In 2023 the hottest thing about frontend was not a framework. It was the line \"frontend is dead.\" Looking back and ahead, in this constantly shifting digital world frontend has \"died\" before, and it will \"die\" again. Every leap, from PC to Web to mobile, and now as we stand at the edge of AI and the metaverse, the form may change, but frontend as the bond between humans and machines is eternal. This talk reviews the inflection points in that evolution, and looks ahead at what comes next.",
+        "zh": "2023 年聊起前端，最火的并不是哪个框架，而是那句「前端已死」。放眼过去和未来，在这个不断变化的数字世界里，前端不但「死」过，而且还一定会再「死」。每一次跃迁 —— 从 PC 到 Web 到移动时代，再到现在我们正站在 AI 的风口浪尖和元宇宙的边缘 —— 或许形式会不同，但前端作为人与机器纽带的本质是永恒的。本演讲将回顾大前端技术演化中的拐点，并对下一个世代的前端趋势做一些展望和猜想。"
+      },
+      "commentary": {
+        "en": "Frontend as a job title may fade. Frontend as the bond between humans and machines will not.",
+        "zh": "作为岗位的前端或许会消亡，但作为人机交互纽带的前端不会。"
       },
       "date": "2024-01",
       "conference": {
@@ -834,8 +838,8 @@
         "zh": "我的大前端世界观"
       },
       "description": {
-        "en": "Is frontend dead, or is it the future? A personal model of the inflection points in frontend's evolution, and a guess at what frontend (and frontend engineers) become in the next generation: AI, AVXR, and beyond.",
-        "zh": "前端已死，又或是前端未来？当我们在说前端时，我们又在说什么？对大前端技术演化拐点的建模，以及对下个世代（AI、AVXR…）前端与前端工程师的猜想。"
+        "en": "Is frontend dead, or is it the future? And when we say frontend, what are we actually talking about? Inspired by Qi Lu's talk on large models, a look at the inflection points in frontend's evolution, and a guess at what frontend (and frontend engineers) become in the next generation: AI, AVXR, and beyond.",
+        "zh": "前端已死，又或是前端未来？当我们在说前端时，我们又在说什么？受陆奇博士的大模型演讲启发，不妨我们也来探讨一些大前端技术演化中的拐点，对下个世代（ AI、AVXR …）的前端（工程师）做一点猜想。"
       },
       "date": "2023-11",
       "conference": {
@@ -866,8 +870,8 @@
         "zh": "Lynx 框架"
       },
       "description": {
-        "en": "Cross-platform UI framework powering TikTok, Douyin, and more.",
-        "zh": "为 TikTok、抖音等产品提供动力的跨平台 UI 框架。"
+        "en": "Open-source cross-platform UI framework behind TikTok, Douyin, and CapCut. Familiar React and CSS, native rendering, dual-threaded architecture — instant launch and main-thread interactivity. Open-sourced in March 2025.",
+        "zh": "支撑 TikTok、抖音、CapCut 的开源跨平台 UI 框架。熟悉的 React 与 CSS、原生渲染、双线程架构——瞬时启动与主线程交互。2025 年 3 月开源。"
       },
       "date": "2023-02",
       "endDate": "present",
@@ -907,8 +911,8 @@
         "users": "1B+"
       },
       "commentary": {
-        "en": "The most impactful project of my career. Shipping to billions taught me what scale really means.",
-        "zh": "我职业生涯中最具影响力的项目。向数十亿用户交付让我理解了规模的真正含义。"
+        "en": "Not a better React Native. The bet is that web skills plus a two-thread runtime can unlock native — for more platforms, more products, more people.",
+        "zh": "不是更好的 React Native。赌注是：Web 技能加上双线程运行时，能把原生能力解锁给更多平台、更多产品、更多人。"
       }
     },
     {
@@ -949,13 +953,14 @@
         "zh": "React 国情咨文"
       },
       "description": {
-        "en": "A comprehensive overview of React's current state and future direction.",
-        "zh": "全面概述 React 现状与未来方向。"
+        "en": "A look back and a look ahead at what has happened, and what is about to happen, across the React ecosystem. React core, web, cross platform, libraries, frameworks, docs, tools: the whole picture. Hoping it helps you see React's big picture.",
+        "zh": "跟大家一起回顾以及展望一下 React 整个生态这一段时期以来已经发生和将要发生的一些变化，力求涵盖 React 核心、Web、跨平台、库、框架、文档、工具等整个 React 生态的方方面面，希望能对大家理解 React 的整个 big picture 有帮助！"
       },
       "date": "2022-10",
       "conference": {
         "name": "COSCon 2022",
-        "city": "Online"
+        "city": "Online",
+        "url": "https://www.bagevent.com/event/coscon"
       },
       "media": [
         {
@@ -1008,28 +1013,35 @@
       "tagId": "react-era",
       "attachedTo": "react-core",
       "title": {
-        "en": "React without a Memo",
-        "zh": "React without a Memo"
+        "en": "React without memo",
+        "zh": "React without memo"
       },
       "description": {
-        "en": "Introducing React Forget (now the React Compiler), an auto memoization compiler so you can write React without useMemo and useCallback, and forget about accidental rerenders.",
-        "zh": "介绍 React Forget（现 React Compiler），自动记忆化编译器，让你不用手写 useMemo / useCallback，也能忘掉意外的重渲染。"
+        "en": "The introductory talk on React Forget (now the React Compiler), an auto-memoizing compiler so you can write React without memo, useMemo, and useCallback.",
+        "zh": "React Forget（现 React Compiler）的首次公开演讲：一个自动记忆化编译器，让你可以不用手写 memo、useMemo 和 useCallback。"
       },
       "date": "2021-09",
       "conference": {
         "name": "React Conf 2021",
-        "city": "Online"
+        "city": "Online",
+        "url": "https://react.dev/blog/2021/12/17/react-conf-2021-recap"
       },
       "media": [
         {
           "kind": "video",
           "url": "https://youtu.be/lGEMwh32soc",
           "platform": "youtube"
+        },
+        {
+          "kind": "link",
+          "url": "https://react.dev/blog/2021/12/17/react-conf-2021-recap",
+          "present": "card"
         }
       ],
       "tags": [
         "React",
-        "Patterns"
+        "Compiler",
+        "Performance"
       ],
       "language": "en"
     },
@@ -1133,14 +1145,19 @@
           "kind": "link",
           "url": "https://react.dev/blog/2022/06/15/react-labs-what-we-have-been-working-on-june-2022#react-compiler",
           "present": "card"
+        },
+        {
+          "kind": "link",
+          "url": "https://react.dev/learn/react-compiler",
+          "present": "card"
         }
       ],
       "stats": {
         "stars": 220000
       },
       "commentary": {
-        "en": "Working on React taught me that good abstractions are worth fighting for — and that compilers can reshape the developer experience.",
-        "zh": "在 React 上工作让我明白，好的抽象值得为之奋斗，而编译器能够重塑开发者体验。"
+        "en": "The authoring model should stay clean. If memoization is load-bearing, a compiler should do it — so React can be fast by default. We called it Forget; it shipped as React Compiler.",
+        "zh": "编写模型就该是干净的。如果记忆化是刚需，那就该由编译器来做——让 React 默认就很快。我们当时叫它 Forget，后来以 React Compiler 落地。"
       }
     },
     {
@@ -1153,7 +1170,7 @@
       },
       "description": {
         "en": "Summer 2019 internship. My manager framed it as: \"As part of Reality Labs Research (formerly Oculus Research), I led a research team building a new programming language and application framework specifically targeting all-day wearable, low power devices.\"",
-        "zh": "2019 年暑期实习。我的主管这样描述这个项目：\"As part of Reality Labs Research (formerly Oculus Research), I led a research team building a new programming language and application framework specifically targeting all-day wearable, low power devices.\""
+        "zh": "2019 年暑期实习。我的主管这样描述这个项目：「作为 Reality Labs Research（原 Oculus Research）的一部分，我带领研究团队，为全天可穿戴、低功耗设备构建一门新的编程语言和应用框架。」"
       },
       "date": "2019-05",
       "endDate": "2019-08",
@@ -1276,8 +1293,8 @@
         "zh": "饿了么 PWA"
       },
       "description": {
-        "en": "Led the Ele.me PWA upgrade, pioneering the use of PWA techniques for Vue-based Multi-Page Apps (MPA). \n\nFeatured by web.dev and highlighted at Google I/O 2017.",
-        "zh": "指导构建中国首个有影响力的 Progressive Web App。"
+        "en": "Guided the Ele.me PWA upgrade, pioneering PWA techniques for Vue-based multi-page apps. Featured by web.dev and highlighted at Google I/O 2017 — China's first widely cited Progressive Web App.",
+        "zh": "指导饿了么的 PWA 升级，把 PWA 技术用在基于 Vue 的多页应用上。被 web.dev 收录，并在 Google I/O 2017 上被点名——中国首个被广泛引用的 Progressive Web App。"
       },
       "date": "2017-02",
       "endDate": "2017-05",
@@ -1393,6 +1410,150 @@
       ]
     },
     {
+      "id": "hux-blog",
+      "type": "project",
+      "tagId": "pwa-era",
+      "attachedTo": null,
+      "title": {
+        "en": "Hux Blog",
+        "zh": "Hux Blog"
+      },
+      "description": {
+        "en": "The Jekyll theme and personal site that a generation of Chinese frontend engineers forked. Later a PWA; still one of the most starred Chinese blog themes on GitHub.",
+        "zh": "被一代中国前端工程师 fork 的 Jekyll 主题与个人站点。后来做成了 PWA；至今仍是 GitHub 上星标最多的中文博客主题之一。"
+      },
+      "date": "2015-01",
+      "endDate": "present",
+      "tags": [
+        "Blog",
+        "Jekyll",
+        "PWA",
+        "Design"
+      ],
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://huangxuan.me",
+          "present": "pill",
+          "label": "Website",
+          "icon": "globe"
+        },
+        {
+          "kind": "link",
+          "url": "https://huxpro.github.io/2015/01/29/hello-2015/",
+          "present": "card",
+          "preview": {
+            "title": "Hello 2015",
+            "description": "Hello World, Hello Blog. The introductory post for Hux Blog.",
+            "image": "/img/post-bg-2015.jpg"
+          }
+        },
+        {
+          "kind": "link",
+          "url": "https://github.com/Huxpro/huxpro.github.io",
+          "present": "card"
+        }
+      ],
+      "stats": {
+        "stars": 7600
+      },
+      "commentary": {
+        "en": "要做一个有 swag 的程序员. The theme was the first thing a lot of people knew me for — before compilers, before Lynx.",
+        "zh": "要做一个有 swag 的程序员。在编译器、在 Lynx 之前，很多人是先从这套主题认识我的。"
+      }
+    },
+    {
+      "id": "js-module-7day",
+      "type": "talk",
+      "tagId": "pwa-era",
+      "title": {
+        "en": "JavaScript Modularization Journey",
+        "zh": "JavaScript 模块化七日谈"
+      },
+      "description": {
+        "en": "An internal WePiao talk that escaped the building. Seven days from design patterns to ES6 modules — script loaders, CommonJS, AMD/CMD, Browserify/Webpack. The Weibo thread hit 100k reads.",
+        "zh": "微影内部的一次分享，流传了出去。从设计模式讲到 ES6 Module，七天走完 script loader、CommonJS、AMD/CMD、Browserify/Webpack。微博转发后阅读到了 10 万。"
+      },
+      "date": "2015-07",
+      "conference": {
+        "name": "WePiao Internal Tech Talk",
+        "city": "Beijing, China"
+      },
+      "media": [
+        {
+          "kind": "slides",
+          "url": "https://huxpro.github.io/js-module-7day/",
+          "title": "JavaScript Modularization Journey"
+        }
+      ],
+      "tags": [
+        "JavaScript",
+        "Modules",
+        "Frontend"
+      ],
+      "language": "zh"
+    },
+    {
+      "id": "css-sucks-2015",
+      "type": "talk",
+      "tagId": "pwa-era",
+      "title": {
+        "en": "CSS Still Sucks 2015",
+        "zh": "都 2015 年了，CSS 怎么还是这么糟糕"
+      },
+      "description": {
+        "en": "A tour of how we got from OOCSS and BEM to CSS Modules — and POCss, a pragmatic proposal: scope styles to components, let pages override them.",
+        "zh": "从 OOCSS、BEM 讲到 CSS Modules，并提出 POCss：组件样式要隔离，页面再合理地覆盖。"
+      },
+      "date": "2015-08",
+      "conference": {
+        "name": "CSS Still Sucks 2015"
+      },
+      "media": [
+        {
+          "kind": "slides",
+          "url": "https://huxpro.github.io/css-sucks-2015/",
+          "title": "CSS Still Sucks 2015"
+        }
+      ],
+      "tags": [
+        "CSS",
+        "Frontend",
+        "Design"
+      ],
+      "language": "zh"
+    },
+    {
+      "id": "pwa-in-my-pov-2016",
+      "type": "talk",
+      "tagId": "pwa-era",
+      "title": {
+        "en": "Progressive Web App, in my points of view",
+        "zh": "Progressive Web App 之我见"
+      },
+      "description": {
+        "en": "Installability, the app shell, offline, service workers, re-engagement — and the cons, honestly. An early field note from the year before Ele.me's PWA.",
+        "zh": "可安装、App Shell、离线、Service Worker、再参与——以及诚实的缺点。饿了么 PWA 之前一年的田野笔记。"
+      },
+      "date": "2016-06",
+      "conference": {
+        "name": "PWA 之我见"
+      },
+      "media": [
+        {
+          "kind": "slides",
+          "url": "https://huxpro.github.io/pwa-in-my-pov/",
+          "title": "Progressive Web App, in my points of view"
+        }
+      ],
+      "tags": [
+        "PWA",
+        "Service Worker",
+        "Mobile Web"
+      ],
+      "language": "zh"
+    },
+    {
       "id": "qcon-shanghai-2016",
       "type": "talk",
       "tagId": "pwa-era",
@@ -1463,8 +1624,8 @@
         "zh": "回国休整"
       },
       "description": {
-        "en": "",
-        "zh": ""
+        "en": "A few months between Meta and ByteDance — back in China, thinking about what to build next.",
+        "zh": "离开 Meta、加入字节之前的几个月，回国休整，想清楚下一件要做的事。"
       }
     },
     {
@@ -1478,8 +1639,8 @@
         "zh": "搬到美国"
       },
       "description": {
-        "en": "",
-        "zh": ""
+        "en": "Left Beijing for Rochester — starting the M.S. at RIT.",
+        "zh": "离开北京，前往罗切斯特理工学院攻读硕士。"
       }
     }
   ]
