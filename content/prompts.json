@@ -128,6 +128,31 @@
           "url": "https://www.youtube.com/watch?v=IcgmSRJHu_8"
         }
       ]
+    },
+    {
+      "id": "every-level-different-job",
+      "statement": {
+        "en": "Every level is a different job.",
+        "zh": "每一级都是一份不同的工作。"
+      },
+      "topic": {
+        "en": "career",
+        "zh": "职业"
+      },
+      "shapedBy": {
+        "en": ["The Manager's Path", "Staff Engineer"],
+        "zh": ["The Manager's Path", "Staff Engineer"]
+      },
+      "reasoning": {
+        "en": "I've heard this since early in my career, and I keep hearing it — from The Manager's Path to Staff Engineer. Growth is never getting the last level perfect. It's stepping into the next one's mindset first.",
+        "zh": "职业生涯早期就听过，后来一遍又一遍地听到——从 The Manager's Path 到 Staff Engineer。成长从来都不是把上一个级别做到炉火纯青，而是要先进入下一级的 mindset。"
+      },
+      "links": [
+        {
+          "label": "staffeng.com/about",
+          "url": "https://staffeng.com/about/"
+        }
+      ]
     }
   ],
   "people": [
