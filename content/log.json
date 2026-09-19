@@ -178,6 +178,7 @@
       "ranges": [
         {
           "id": "hux-personal",
+          "sortBy": "date",
           "title": {
             "en": "Personal",
             "zh": "个人"
