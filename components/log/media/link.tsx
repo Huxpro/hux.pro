@@ -232,7 +232,8 @@ export function CardFace({
   const domain = domainLabel ?? getDomainLabel(url);
   // GitHub's generated social image is already a complete repo card (title,
   // description, stats). Repeating those fields in our caption makes a
-  // card-in-a-card. Keep the domain line; let the image speak.
+  // card-in-a-card. Keep the domain line; let the image speak. Don't crop
+  // it in the 2-up rail either — 16:9 would slice the sides of a 2:1 card.
   const githubSocialCard = !!image?.includes("opengraph.githubassets.com");
   // Talk-recording links (GitNation) wear the play chip with the host's
   // name, so the card reads as the recording it is (media-mark.tsx) — unless
@@ -282,7 +283,7 @@ export function CardFace({
     // it. There, crop the cover to the same 16:9 slot so the two tiles' covers
     // line up and the card is only taller by its caption block. Full-width
     // single cards keep the whole image (natural).
-    const railCover = dense && fit === "natural";
+    const railCover = dense && fit === "natural" && !githubSocialCard;
     slot = (
       <PeekCover
         src={image}
@@ -351,20 +352,21 @@ export function CardFace({
             </span>
           )}
         </div>
-        <h4
-          className={cn(
-            "font-medium text-foreground",
-            // Title is intentionally unclamped — publisher titles are the
-            // strongest at-a-glance signal and an ellipsis on the second
-            // line ("Multi-page Progressive Web App | …") obscures more
-            // than it saves. Card height grows to fit; the grid is `items-
-            // stretch` so siblings track the tallest tile naturally.
-            compact ? "text-xs leading-snug" : "text-sm",
-            githubSocialCard && "sr-only",
-          )}
-        >
-          {title || domain}
-        </h4>
+        {!githubSocialCard && (
+          <h4
+            className={cn(
+              "font-medium text-foreground",
+              // Title is intentionally unclamped — publisher titles are the
+              // strongest at-a-glance signal and an ellipsis on the second
+              // line ("Multi-page Progressive Web App | …") obscures more
+              // than it saves. Card height grows to fit; the grid is `items-
+              // stretch` so siblings track the tallest tile naturally.
+              compact ? "text-xs leading-snug" : "text-sm",
+            )}
+          >
+            {title || domain}
+          </h4>
+        )}
         {description && !githubSocialCard && (
           <p
             className={cn(
@@ -496,6 +498,7 @@ export function LinkCard({
       href={effectiveUrl}
       target={internal ? undefined : "_blank"}
       rel={internal ? undefined : "noopener noreferrer"}
+      aria-label={ogData?.title || undefined}
       onClick={
         onOpen
           ? (e) => {

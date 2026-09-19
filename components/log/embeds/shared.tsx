@@ -127,7 +127,13 @@ export function Commentary({ text, className }: CommentaryProps) {
 // Author Fields — `git log --pretty=fuller`
 // =============================================================================
 
-/** Who a commit belongs to when no identity resolves. */
+/**
+ * Fallback handle for the expanded author block when a commit has no
+ * resolvable identity (e.g. personal works with `attachedTo: null`).
+ * The subtitle-row byline stays blank for those rows, but the author
+ * block still names the person once opened. This is a display fallback
+ * only — it is not an identity in the log.
+ */
 const DEFAULT_AUTHOR_HANDLE = "hux";
 
 /**
