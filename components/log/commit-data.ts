@@ -67,9 +67,20 @@ export interface NormalizedCommit {
   type: CommitType;
   /** Optional icon override key (e.g. "graduation-cap"). */
   iconOverride?: string;
+  /**
+   * Timeline dressing. `"aside"` folds the row to a muted line
+   * (see `foldedTitle`) until the reader opens it. Not a type.
+   */
+  present?: "aside";
 
   // Core content
   title: string;
+  /**
+   * The one line an aside row prints while folded. For a talk this is
+   * the conference name; other types fall back to their meta or title.
+   * Absent when the row is not an aside.
+   */
+  foldedTitle?: string;
   description: string;
   date: string;
 
@@ -281,12 +292,24 @@ export function normalizeCommit(
   const hash = computeCommitHash(commit.id);
   const thumbnail = deriveThumbnail(media);
   const languageBadge = getCommitLanguageBadge(commit, locale);
+  const foldedTitle =
+    commit.present === "aside"
+      ? commit.type === "talk"
+        ? commit.conference.name
+        : commit.type === "post"
+          ? commit.publication.name
+          : commit.type === "press"
+            ? commit.platform
+            : title
+      : undefined;
 
   // Identity fields shared by every branch's return.
   const identity = {
     hash,
     type: commit.type,
     iconOverride: commit.icon,
+    present: commit.present,
+    foldedTitle,
   };
 
   // Type-specific extraction
@@ -389,7 +412,7 @@ export function normalizeCommit(
       };
     }
 
-    case "social": {
+    case "press": {
       const socialPrimaryUrl = media[0]?.url;
 
       // Build platform link. The first media item is represented by the

@@ -267,7 +267,7 @@ function defaultFieldsForType(type: CommitType): Partial<Commit> {
       return {
         company: { en: "", zh: "" },
       };
-    case "social":
+    case "press":
       return { platform: "" };
     case "event":
       return {};
@@ -333,6 +333,7 @@ export function CommitEditor({
       commentary: commit.commentary,
       tags: commit.tags,
       listed: commit.listed,
+      present: commit.present,
     };
     onUpdate({
       ...base,
@@ -465,7 +466,7 @@ function FormFields({
   focusMediaIndex?: number | null;
   onFocusMediaIndexChange?: (index: number | null) => void;
 }) {
-  const commitTypes: CommitType[] = ["project", "talk", "post", "role", "social", "event"];
+  const commitTypes: CommitType[] = ["project", "talk", "post", "role", "press", "event"];
 
   return (
     <div className="space-y-2">
@@ -504,6 +505,11 @@ function FormFields({
         label="Hide Date"
         checked={commit.hideDate === true}
         onChange={(v) => onUpdate({ hideDate: v ? true : undefined })}
+      />
+      <CheckField
+        label="Aside"
+        checked={commit.present === "aside"}
+        onChange={(v) => onUpdate({ present: v ? "aside" : undefined })}
       />
       <ChoiceField<"" | "date" | "endDate">
         label="Sort By"
@@ -957,10 +963,10 @@ function TypeSpecificFields({
         </>
       );
 
-    case "social":
+    case "press":
       return (
         <>
-          <SectionLabel>Social</SectionLabel>
+          <SectionLabel>Press</SectionLabel>
           <Field
             label="Platform"
             value={commit.platform}

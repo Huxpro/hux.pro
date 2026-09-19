@@ -9,7 +9,7 @@ systems/surface/
 ├── sheet.tsx             # <SurfaceSheet> — the one bottom sheet, detents, scrim
 ├── window.tsx            # <SurfaceWindow> — the one floating, draggable shell
 ├── chrome.tsx            # <SurfaceBody> — the title bar, scroll area and footer
-├── stack.ts              # which sheets are open, so a sheet under another recedes
+├── stack.ts              # which sheets are open, so a sheet *covered* by another recedes
 └── index.ts
 ```
 
@@ -418,12 +418,59 @@ place in the stack as its `layer` (`useSurfaceStack().rank`, `SurfaceViewport`
 it was rather than from under whatever it was covering. A readout of the
 stack as it stands is `useSurfaceStackEntries()`, for the attachments lab.
 
+### Covering, not merely later
+
+Opening second is not the same as covering. The dock's Live Activity panel
+hangs from the top edge and a sheet climbs from the bottom, so both can be up
+with neither hidden — the theater playlist stops exactly at the panel's bottom
+edge, and a queue opened *from* the player's card should leave that card
+usable rather than dim it and make it inert.
+
+So each surface reports the band it stands in (`band` on `useSurfaceStack`),
+and only a surface that overlaps it counts as being on top. An unreported band
+covers everything, which is the behaviour every surface had before any of them
+could say — so the shapes that never register (panel, window, popover: nothing
+recedes on a tablet or a desktop) are unaffected, and a new sheet is correct
+before it is measured.
+
+A band is two Y coordinates rather than a rectangle, and that is a claim about
+who is in the stack: every member is anchored to an edge and spans the width,
+so where it stands vertically is the whole of where it stands.
+
+Two consequences, both measured on an iPhone 13:
+
+- The dock panel (8–269) and the playlist sheet under it (277–652) tile:
+  neither is `data-behind`, both stay live.
+- The command palette at its 0.7 detent (199–652) *does* reach over the panel,
+  so it still steps both it and the sheet back, exactly as before.
+
+**Measure layout, never a rect.** The recede a band decides is a `scale()` on
+the very element being measured, so a `getBoundingClientRect` would feed its
+own answer back in. `useMeasuredBand` holds the plumbing — measure now, again
+once the entrance has landed, and on every resize of the shell or the window —
+and each shape supplies one reading off `offsetTop` / `offsetHeight`:
+
+| | pinned edge | so the measurement is |
+|---|---|---|
+| sheet | bottom (the popup's padding holds the shell a gap above the screen at every detent) | its height says where its **top** is |
+| dock panel | top (`popup.offsetTop`) | its height says where its **bottom** is |
+
+Because a detent change is padding on the popup rather than a transform on the
+shell, the sheet's band is live with the drag: tiling resolves during the
+gesture, not after it.
+
+A surface that has to fit around one it does not own reads the band instead of
+measuring it again from outside — `useSurfaceBandOf("dock-activity")` is how
+the theater playlist finds its ceiling when the player is a Live Activity.
+That keeps one owner per edge, and the two of them cannot disagree.
+
 ## Adopters
 
 | Surface | Presentation | Notes |
 |---------|--------------|-------|
 | Music playlist | `ADAPTIVE_PRESENTATION` | macOS-sized window (980×620), track list breaks into columns |
 | Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode; `SHEET_DETENTS` as a sheet |
+| Theater playlist | `ADAPTIVE_PRESENTATION` | Albums + tracks for the video player. Its detents are a function of where the player is rather than a pair of fractions (`playlistDetents`): the sheet stops under whatever shape the player is wearing — the PiP window, which the provider parks at the top of the screen while the list is up, or the dock card it collapsed into, read from that card's band — so on a phone the two split the screen instead of overlapping, and the video is never something the list has to work around. The tablet panel can't resize to that, so there it ends above the window instead |
 | Reading settings | `ANCHORED_PRESENTATION` | The article page's "Aa". `fitContent` sheet, end-aligned popover off the button; rows appear only where the setting does something, so the sheet is shorter than the popover |
 | Attachments | `ADAPTIVE_PRESENTATION` | A commit's attachments, paged (`useSnapPager`). `fitContent`; a 560px window. On a phone it is where every attachment opens; elsewhere only the kinds with no native home reach it. See [Attachments System](./system-attachments.md) |
 | Identity card | `ANCHORED_PRESENTATION` | Who signed a commit: a profile card, for a finger — with a pointer the same profile is a magnetic hover peek and this never opens. `fitContent`; the popover hangs off whichever `<handle>` or `Role:` was tapped, the anchor kept in a ref by its provider. See [Identity System](./system-identity.md) |

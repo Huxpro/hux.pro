@@ -4,11 +4,12 @@ import { cn } from "@/lib/utils";
 import {
   SurfaceViewport,
   surfaceMotionVars,
+  useMeasuredBand,
   useSurfaceStack,
 } from "@/systems/surface";
 import { Drawer } from "@base-ui/react/drawer";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useDock } from "../provider";
 
 // ---------------------------------------------------------------------------
@@ -140,7 +141,32 @@ export function LiveActivity({
 
   // One entry for the dock, not one per activity: only ever one is expanded,
   // and what the other surfaces care about is "the dock panel is up".
-  const { behind, depth, rank } = useSurfaceStack("dock-activity", expanded);
+  //
+  // The band it reports is what lets a sheet tell tiling from covering: a
+  // playlist that stops at this panel's bottom edge is beside it, not under
+  // it, and neither should push the other back. It is also where that sheet
+  // reads its own ceiling from (`useSurfaceBandOf`), so this measurement is
+  // the one answer to "how far down does the dock reach", rather than each
+  // surface going and measuring the panel for itself.
+  //
+  // The mirror of a sheet's: a sheet hangs from a pinned bottom edge, so its
+  // height says where its top is; the panel hangs from a pinned top edge, so
+  // its height says where its bottom is. Layout values only — `offsetTop` on
+  // the popup, `offsetHeight` on the shell — because the travel in and the
+  // recede are both transforms on these very elements.
+  const shellRef = useRef<HTMLDivElement>(null);
+  const measure = useCallback(() => {
+    const shell = shellRef.current;
+    const popup = shell?.parentElement;
+    if (!shell || !popup) return undefined;
+    const top = popup.offsetTop;
+    return { top, bottom: top + shell.offsetHeight };
+  }, []);
+  const band = useMeasuredBand(expanded, measure, shellRef);
+
+  const { behind, depth, rank } = useSurfaceStack("dock-activity", expanded, {
+    band,
+  });
 
   return (
     <Drawer.Root
@@ -198,6 +224,10 @@ export function LiveActivity({
         <SurfaceViewport modal={false} layer={rank}>
           <Drawer.Popup
             data-dock-panel=""
+            // The dock's expanded shape — see the note in dock.tsx. On the
+            // popup rather than the shell: the shell carries the surface
+            // stack's recede transform, so its box shrinks when something
+            // rises over it; the popup's is where the panel actually stands.
             style={{ ...surfaceMotionVars(TOP_INSET), top: TOP_INSET }}
             // A positioning box only, centred without a transform so the drag
             // has the axis to itself. Nothing paints here; the shell inside does.
@@ -207,6 +237,7 @@ export function LiveActivity({
             )}
           >
             <div
+              ref={shellRef}
               data-surface-shell
               data-behind={behind ? "" : undefined}
               // React 19 renders `inert` as the boolean attribute.

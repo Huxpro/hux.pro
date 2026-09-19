@@ -4,6 +4,7 @@ export { Stage } from "./stage";
 export { TheaterActivity } from "./theater-activity";
 export { TheaterOverlay } from "./theater-overlay";
 export { PipOverlay } from "./pip-overlay";
+export { TheaterPlaylistSheet } from "./playlist-sheet";
 export { TrackThumb } from "./track-thumb";
 export { VideoControls } from "./video-controls";
 export { SurfaceSwitch } from "./surface-switch";

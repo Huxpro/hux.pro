@@ -144,9 +144,19 @@ export const FORM_PARAM = "view";
  * rather than rendering an empty page: unknown type names are dropped,
  * an unknown form falls back to the default.
  */
+/** Type names that have been renamed — old links carry the old word, the
+ *  same way `FORM_ALIAS` carries the git flags the forms were first named
+ *  after. `social` became `press` when the type stopped meaning "my social
+ *  accounts" and started meaning coverage. */
+const TYPE_ALIAS: Record<string, FilterableCommitType> = {
+  social: "press",
+};
+
 export function parseViewState(params: URLSearchParams): LogViewState {
   const raw = params.get(TYPE_PARAM);
-  const requested = raw ? raw.split(",").map((s) => s.trim()) : [];
+  const requested = (raw ? raw.split(",").map((s) => s.trim()) : []).map(
+    (name) => TYPE_ALIAS[name] ?? name,
+  );
   const types = FILTERABLE_COMMIT_TYPES.filter((t) => requested.includes(t));
 
   return {

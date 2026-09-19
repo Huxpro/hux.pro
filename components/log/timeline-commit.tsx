@@ -26,7 +26,7 @@ import {
   AuthorFields,
 } from "./embeds/shared";
 import { MediaRenderer } from "./media";
-import { AttachmentGrid } from "./media/attachment-grid";
+import { AttachmentGrid, PHONE_BLEED_BOX } from "./media/attachment-grid";
 import { MediaStrip } from "./media/media-strip";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
@@ -154,6 +154,10 @@ export function TimelineCommit({
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
   const isEvent = data.type === "event";
+  const isAside = data.present === "aside";
+  // Folded asides borrow the event voice: muted italic line, rail
+  // dot, no hash. Opening one reveals the real title and media; the
+  // type is unchanged, so filters still find it.
 
   // Topics and stats are authored but not printed (see the expanded body),
   // so they can no longer be the reason a row is openable — a commit whose
@@ -240,17 +244,20 @@ export function TimelineCommit({
   // still gets its description, so a form is "title, what, and what it
   // looks like" rather than "title, and covers if any".
   //
-  // Events are out. They are datelines between commits, not works, which is
-  // the same reason they get no filter chip; giving one a caption would
-  // promote punctuation to a paragraph.
+  // Events and folded asides are out. Events are datelines between
+  // commits, not works; asides borrow that voice until opened. Giving
+  // either a caption while folded would promote a quiet line to a
+  // paragraph.
   //
   // The strip is the folded form's own: while the row is open the feed's
   // grid shows the real thing, and a row of miniatures of what is directly
   // below it is noise.
+  const isQuiet = isEvent || (isAside && !isExpanded);
+  const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
   const showStrip =
-    !isEvent && rowForm.media === "covers" && data.stripItems.length > 0;
+    !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
   const showStatDescription =
-    !isEvent && rowForm.description === "clamp" && !!data.description;
+    !isQuiet && rowForm.description === "clamp" && !!data.description;
   // Where the handle signs: the bottom-right of the row, which is the media
   // line when a single cover leaves it the room — on any viewport — and the
   // meta line when there is more than one, since two covers may already be
@@ -342,7 +349,7 @@ export function TimelineCommit({
   // 12px (h-3) so 6px radius + 1px breathing room. Role: ring is 16px
   // (h-4) so 8px radius + 2px breathing room. Events: tiny 3px dot
   // sits close to the line for visual continuity.
-  const iconGapPx = isEvent ? 3 : isRoleAnchor ? 10 : 7;
+  const iconGapPx = isEvent || isAside ? 3 : isRoleAnchor ? 10 : 7;
 
   const rowContent = (
     <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
@@ -352,9 +359,11 @@ export function TimelineCommit({
         like a permalink from the day it was drawn — `select-all` so it could
         be copied — while pointing at nothing.
 
-        Events keep the transparent placeholder: no link, no reference, the
-        hash is noise there. It still occupies the column so titles stay
-        aligned with the commit rows around it.
+        Events and folded asides keep the transparent placeholder: no
+        link, no reference, the hash is noise on a quiet line. An aside
+        that has been opened is a real commit again, and the hash
+        returns. The column still occupies space so titles stay aligned
+        with the rows around it.
 
         Where the page has margins (`lg`), the hash and the rail hang in the
         left one as marginalia — a fixed width, so the row can be pulled
@@ -363,13 +372,13 @@ export function TimelineCommit({
         A git log prints the graph and the hash before the subject too; what
         it never did was push the subject off the margin to make room.
       */}
-      {isEvent || !onSelectHash ? (
+      {isQuiet || !onSelectHash ? (
         <span
           className={cn(
             "hidden @sm:inline-block select-all",
             HASH_CELL,
             TYPE.hash,
-            isEvent ? "text-transparent leading-4" : "leading-5",
+            isQuiet ? "text-transparent leading-4" : "leading-5",
           )}
         >
           {data.hash}
@@ -408,7 +417,7 @@ export function TimelineCommit({
           // (left-1/2 of this span) is identical for every row —
           // otherwise the event's narrower span would shift the line
           // 2px left of the surrounding rail.
-          isEvent ? "h-4" : "h-5",
+          isQuiet ? "h-4" : "h-5",
         )}
       >
         {hasRailAbove && (
@@ -427,9 +436,11 @@ export function TimelineCommit({
             style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
           />
         )}
-        {isEvent ? (
-          // Events get a tiny CSS dot — quieter than any lucide icon
-          // and reads as "node on the rail" rather than "category icon".
+        {isEvent || isAside ? (
+          // Events and folded asides get a tiny CSS dot, quieter
+          // than any lucide icon and reads as "node on the rail" rather
+          // than "category icon". Asides keep the dot when open so the
+          // rail does not jump.
           <span
             aria-hidden
             className="block w-[3px] h-[3px] rounded-full bg-muted-foreground/30"
@@ -466,22 +477,23 @@ export function TimelineCommit({
         <span
           className={cn(
             "min-w-0 flex-1",
-            // Events drop a tier in hierarchy: secondary/meta style.
-            // Font per script: CJK uses mono (matches meta line, no
-            // italic — italic on CJK reads as emphasis). English uses
-            // serif italic (the traditional typographic aside).
-            isEvent
+            // Events and folded asides drop a tier in hierarchy:
+            // secondary/meta style. Font per script: CJK uses mono
+            // (matches meta line, no italic — italic on CJK reads as
+            // emphasis). English uses serif italic (the traditional
+            // typographic aside).
+            isQuiet
               ? cn(
                   "text-xs text-tertiary-foreground",
-                  /[぀-ヿ一-鿿]/.test(data.title)
+                  /[぀-ヿ一-鿿]/.test(displayTitle)
                     ? "font-mono"
                     : "italic font-serif",
                 )
               : TYPE.rowTitle,
           )}
         >
-          {data.title}
-          {data.languageBadge && (
+          {displayTitle}
+          {!isQuiet && data.languageBadge && (
             <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
               {data.languageBadge}
             </span>
@@ -497,7 +509,7 @@ export function TimelineCommit({
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          {data.links.map((link, i) => {
+          {(!isQuiet ? data.links : []).map((link, i) => {
             const className =
               cn("inline-flex items-center gap-1", TYPE.linkQuiet);
             // The label is one of the notes: the feed spells the rail out.
@@ -575,7 +587,7 @@ export function TimelineCommit({
         byline fully visible so the cluster's authorial context stays
         on-screen while you read.
       */}
-      {(data.meta || byline) && (
+      {!isQuiet && (data.meta || byline) && (
         <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
           <span className="min-w-0 truncate">
             {data.meta ? (
@@ -620,7 +632,7 @@ export function TimelineCommit({
 
       {/* Pinned items: rendered once here whether the row is folded or
           expanded, so toggling never remounts them. */}
-      {pinnedMedia.length > 0 && (
+      {!isQuiet && pinnedMedia.length > 0 && (
         <div
           className="col-start-2 @sm:col-start-3 mt-2"
           onClick={(e) => e.stopPropagation()}
@@ -714,8 +726,13 @@ export function TimelineCommit({
           data-row-lazy
           // `min-w-0` for the same reason the strip line carries it: the
           // content track is `1fr`, whose automatic minimum is its content,
-          // and a caption line that does not wrap would set it.
-          className="col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-1.5"
+          // and a caption line that does not wrap would set it. On a phone
+          // the box spans the screen (PHONE_BLEED_BOX): the lazy render
+          // clips paint to it, and the feed's covers run edge to edge.
+          className={cn(
+            "col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-1.5",
+            PHONE_BLEED_BOX,
+          )}
         >
           {/* The message: what it is, the thing itself, the note on it.
               Topics and stats are authored but deliberately unprinted — a row
@@ -828,13 +845,18 @@ export function TimelineCommit({
           data-row-trigger
           // Clip the rail segments vertically so they can't leak past the
           // tenure cluster's last row — but only on the block axis. The
-          // inline axis stays visible so a three-card media rail can bleed
-          // into the page gutter (see MediaRenderer). `overflow-y: clip`
-          // keeps the vertical clip without turning the row into a scroll
-          // container; the cursor preview is `position: fixed`, so it was
-          // never clipped here anyway.
+          // inline axis stays open so the covers can bleed past the row: the
+          // feed's edge to edge on a phone, the strip to the screen's right.
+          // A clip-path, not `overflow-y: clip`: WebKit paints a one-axis
+          // `overflow: clip` as a clip on both axes (while still computing
+          // `overflow-x: visible`), so on iOS every cover stopped at the
+          // row's box, 12px in from each edge. The inset clips top and
+          // bottom at the border box and leaves the sides a screen's width
+          // of room, in every engine. Nothing in the row is
+          // `position: fixed` (the cursor preview is the row's sibling), so
+          // a clip-path clips nothing an overflow clip would not.
           className={cn(
-            "group pressable relative -mx-3 px-3 rounded-lg transition-colors duration-150 overflow-y-clip",
+            "group pressable relative -mx-3 px-3 rounded-lg transition-colors duration-150 [clip-path:inset(0_-100vw)]",
             // The gutter as marginalia (see the hash cell): pulled left by the
             // gutter's width so the content column is the page column. The
             // hover wash follows, which is right — the hash and the rail are
@@ -842,7 +864,7 @@ export function TimelineCommit({
             GUTTER_PULL,
             // Events get tighter vertical padding so they sit between
             // commits as ambient annotations rather than as full rows.
-            isEvent ? "py-1" : "py-2.5",
+            isQuiet ? "py-1" : "py-2.5",
             rowOnClick ? "cursor-pointer" : "cursor-default",
             "@container",
             // Hover/active highlight is tied to the fold/unfold trigger

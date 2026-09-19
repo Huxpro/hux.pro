@@ -125,6 +125,21 @@
       "limit": 5
     },
     {
+      "id": "featured-projects",
+      "title": {
+        "en": "Featured projects",
+        "zh": "精选项目"
+      },
+      "layout": "v",
+      "column": "left",
+      "href": "/works?type=project",
+      "commitIds": [
+        "lynx-framework",
+        "react-core",
+        "hermes-engine"
+      ]
+    },
+    {
       "id": "featured-react-talks",
       "title": {
         "en": "Featured React talks",
@@ -134,7 +149,6 @@
       "href": "/works",
       "commitIds": [
         "react-universe-2025-two-threads",
-        "see-conf-2025-two-threads",
         "coscon-2022",
         "reactconf-2021-memo"
       ]
@@ -147,10 +161,12 @@
       },
       "column": "right",
       "href": "/works",
-      "query": {
-        "type": "talk",
-        "tagId": "lynx-era"
-      }
+      "commitIds": [
+        "react-universe-2025-two-threads",
+        "react-universe-2025-interview",
+        "react-summit-2025-unlock-native",
+        "d2-2025-lynx"
+      ]
     },
     {
       "id": "featured-personal-talks",
@@ -425,6 +441,7 @@
     {
       "id": "wad-2026-lynx-workshop",
       "type": "talk",
+      "present": "aside",
       "tagId": "lynx-era",
       "title": {
         "en": "Vibe³ Cross Platform Apps with Lynx: A TikTok Hackathon",
@@ -465,6 +482,7 @@
     {
       "id": "gosim-2026-vibe-native",
       "type": "talk",
+      "present": "aside",
       "tagId": "lynx-era",
       "title": {
         "en": "Why AI Agents Deserve a Better App Framework",
@@ -505,6 +523,7 @@
     {
       "id": "see-conf-2025-two-threads",
       "type": "talk",
+      "present": "aside",
       "tagId": "lynx-era",
       "title": {
         "en": "React for Two Threads",
@@ -538,6 +557,7 @@
     {
       "id": "wad-2025-lynx-native",
       "type": "talk",
+      "present": "aside",
       "tagId": "lynx-era",
       "title": {
         "en": "Lynx: Native for More",
@@ -897,7 +917,7 @@
     },
     {
       "id": "opensrc-pioneer-2022",
-      "type": "social",
+      "type": "press",
       "tagId": "react-era",
       "title": {
         "en": "China Open Source Pioneer 33",
@@ -957,7 +977,7 @@
     },
     {
       "id": "gitee-cover-2022",
-      "type": "social",
+      "type": "press",
       "tagId": "react-era",
       "attachedTo": null,
       "title": {
@@ -1567,7 +1587,7 @@
     },
     {
       "id": "bilibili-sabbatical-2023",
-      "type": "social",
+      "type": "press",
       "tagId": "lynx-era",
       "attachedTo": "event-career-break",
       "title": {
