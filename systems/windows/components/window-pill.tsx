@@ -162,6 +162,7 @@ export function TrafficDots({
 export function PillTitle({ children }: { children: React.ReactNode }) {
   return (
     <span
+      data-window-title
       className={cn(
         "cursor-pointer overflow-hidden whitespace-nowrap text-[11px] font-medium",
         "text-foreground/70 transition-all duration-200 hover:text-foreground",

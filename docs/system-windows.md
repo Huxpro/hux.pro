@@ -209,26 +209,36 @@ when stranded**: lit is glass with bright dots, rest is the pill the desktop
 wears, and a press whose release goes missing leaves the pill looking pressed —
 wrong, never missing. That is the bar anything on this control has to clear.
 
-**The tuck.** Under a drag the pill draws itself in: padding and the gaps
-between the dots close, and 48×28.5 becomes **36×20.5** — the width of the
-site's grabber — so it reads as something you are holding rather than something
-you might tap. It comes home on release.
+**The tuck.** Under a drag the pill draws itself in and its dots run together
+into one line: **48×28.5 with three 6px dots becomes 36×10 around a 30×6 bar** —
+the site's own grabber, wearing the window's glass. It reads as something you
+are holding rather than something you might tap, and it comes home on release.
+The dots widen, the gaps shut, and the corners where they meet square off, so
+the joins disappear rather than pinching.
 
 It is not a state. Base UI publishes the live drag as
 `--drawer-swipe-movement-y`; the sheet re-publishes it as `--surface-travel`
 (Base UI registers its own `inherits: false`), and every dimension is a
-`clamp()` away from rest, in CSS. Nothing to set, nothing to clear, nothing to
-strand — and since a tap produces no travel, a tap never starts down the road
-to being a handle. `transition-duration` goes to zero while the drag is live,
-exactly as the sheet's own transform does, so the pill follows the finger
-rather than chasing it.
+`clamp()` away from rest, in CSS. Nothing to set, nothing to clear — and since
+a tap produces no travel, a tap never starts down the road to being a handle.
+`transition-duration` goes to zero while the drag is live, exactly as the
+sheet's own transform does, so the pill follows the finger rather than chasing
+it.
 
-What makes this one safe where five others were not is not the signal. It is
-that **the tucked state is a window's controls too** — three dots, full ink —
-and that the target does not move with it: `::before` is a fixed 72×44 box
-centred on the pill, not an inset, so the tuck cannot take the target along.
-Strand the whole thing and you have a slightly squat pill, not a window with
-nothing on it.
+A merged line is the one shape that does **not** read as a window's controls,
+so unlike a plain tuck it cannot rest on "stranded is merely wrong". Three
+things carry it instead:
+
+- It takes **two independent signals** to reach — `data-swiping` and a non-zero
+  travel — and either one coming home on its own undoes it. Both are cleared by
+  Base UI itself on release, on every path this app has, including the captured
+  mouse release that reaches none of our listeners.
+- The **glass, its 36px of width, and the target never go anywhere**. `::before`
+  is a fixed 72×44 box centred on the pill, not an inset, so the tuck cannot
+  take the target along.
+- The dots on a grip are an **indicator, never three buttons** — the whole pill
+  is the one control — so even fully merged, nothing has stopped working: still
+  a handle you can drag, still a target that opens the menu.
 
 The five that failed are worth keeping written down. The dots used to
 *become* the 36×4 grabber while the sheet was dragged, and then had to be

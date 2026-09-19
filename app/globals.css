@@ -1759,44 +1759,87 @@ main[data-variant="reader"] .reader-masthead {
    though it reaches no further up than the shell's own edge, which clips. That
    separation is what lets the pill change shape at all.
 
-   THE TUCK. Under a drag the pill draws itself in: its padding and the gaps
-   between its dots close, so 48×28.5 becomes 36×20.5 — the width of the site's
-   grabber — and it reads as something you are holding rather than something
-   you might tap. It comes back on release.
+   THE TUCK. Under a drag the pill draws itself in and its dots run together
+   into one bar: 48×28.5 of pill with three 6px dots becomes 36×10 of pill
+   around a 30×6 line — the site's own grabber, wearing the window's glass. It
+   reads as something you are holding rather than something you might tap, and
+   it comes back on release.
 
    Nothing here is a state. The whole thing is a length: Base UI publishes the
    live drag as `--drawer-swipe-movement-y` on the popup, the surface block
    above re-publishes it as `--surface-travel` (Base UI registers its own
    `inherits: false`, so a descendant cannot read it), and each dimension is a
-   `clamp()` away from rest. There is nothing to set and nothing to clear, so
-   there is nothing to be stranded — which is what killed the five previous
-   versions of this (the note at the top of window-grip.tsx has them). Even if
-   Base UI left both signals behind, the worst case is a tucked pill: three
-   dots, full ink, a live target. That is the bar this control has to clear —
-   not "can it get stuck" but "is every state it can get stuck in still a
-   window's controls".
+   `clamp()` away from rest. There is nothing to set and nothing to clear —
+   which is what killed the five versions before the tuck (the note at the top
+   of window-grip.tsx has them).
 
    It follows the finger rather than chasing it: `transition-duration` goes to
    zero while the drag is live, exactly as the sheet's own transform does, and
    comes back for the ride home.
    ============================================================================= */
 
-[data-window-grip] {
-  /* Magnitude of the drag, either direction. `abs()` is too new to rely on. */
+/* Everything below is gated on BOTH `data-swiping` and a non-zero travel, and
+   that is on purpose. Under the tuck alone the grip could not be stranded into
+   anything worse than a squat pill, so one signal was enough. A merged line is
+   different: it is the one shape that does not read as a window's controls, so
+   it takes two independent signals to reach — Base UI's attribute AND its
+   length — and either one coming home on its own is enough to undo it. Both
+   are cleared by Base UI itself on release, measured on every path this app
+   has, including the captured mouse release we never see.
+
+   What cannot go away either way: the glass, its 36px of width, and the target
+   (::before, below — a fixed box, so the tuck can't take it along). The dots
+   on a grip are an indicator, never three buttons — the whole pill is the one
+   control — so even fully merged nothing here has stopped working. */
+[data-surface-popup][data-swiping] [data-window-grip] {
+  /* Magnitude of the drag, either direction. `abs()` is too new to rely on.
+     Every dimension below is a clamp() off it: nothing to set, nothing to
+     clear, and a tap — which produces no travel — never starts down the road
+     to being a handle. Fully merged at 28px, past Base UI's own swipe
+     threshold. */
   --grip-reach: max(var(--surface-travel, 0px), calc(-1 * var(--surface-travel, 0px)));
-  /* Fully tucked at 28px of travel — past Base UI's own swipe threshold, so a
-     tap is never on the way to becoming a handle. */
-  padding-inline: clamp(7px, calc(10px - var(--grip-reach) * 0.107), 10px);
+  --grip-close: calc(var(--grip-reach) * 0.107);
+
+  padding-inline: clamp(3px, calc(10px - var(--grip-reach) * 0.25), 10px);
   padding-block: clamp(2px, calc(6px - var(--grip-reach) * 0.143), 6px);
 }
 
-[data-window-grip] [data-window-dots] {
-  gap: clamp(2px, calc(5px - var(--grip-reach) * 0.107), 5px);
+/* The dots slide together and stretch into segments of one bar: gaps shut,
+   widths out, and the corners where they meet square off so the joins vanish.
+   The two ends keep their curve, so what lands at the end of the drag is the
+   site's grabber — 30×6 of it — wearing the window's glass. */
+[data-surface-popup][data-swiping] [data-window-dots] {
+  gap: clamp(0px, calc(5px - var(--grip-reach) * 0.179), 5px);
+}
+
+[data-surface-popup][data-swiping] [data-window-grip] [data-window-control] {
+  width: clamp(6px, calc(6px + var(--grip-reach) * 0.143), 10px);
+  /* 3px is what `rounded-full` already draws on a 6px box, so this is the
+     resting shape restated in a form the corners below can be peeled off. */
+  border-radius: 3px;
+}
+[data-surface-popup][data-swiping] [data-window-grip] [data-window-control]:not(:first-child) {
+  border-start-start-radius: clamp(0px, calc(3px - var(--grip-close)), 3px);
+  border-end-start-radius: clamp(0px, calc(3px - var(--grip-close)), 3px);
+}
+[data-surface-popup][data-swiping] [data-window-grip] [data-window-control]:not(:last-child) {
+  border-start-end-radius: clamp(0px, calc(3px - var(--grip-close)), 3px);
+  border-end-end-radius: clamp(0px, calc(3px - var(--grip-close)), 3px);
+}
+
+/* The pill is 28.5 tall because the title it never shows holds it open (see
+   PillTitle). A bar cannot be, so the line box comes down with everything
+   else. Capped from a number well above its natural height rather than from
+   the height itself, so nothing here has to know the font's metrics. */
+[data-surface-popup][data-swiping] [data-window-grip] [data-window-title] {
+  max-height: clamp(6px, calc(20px - var(--grip-reach) * 0.5), 20px);
 }
 
 /* Under the finger the pill is direct, like the sheet it is the handle for. */
 [data-surface-popup][data-swiping] [data-window-grip],
-[data-surface-popup][data-swiping] [data-window-grip] [data-window-dots] {
+[data-surface-popup][data-swiping] [data-window-dots],
+[data-surface-popup][data-swiping] [data-window-grip] [data-window-control],
+[data-surface-popup][data-swiping] [data-window-grip] [data-window-title] {
   transition-duration: 0ms;
 }
 
