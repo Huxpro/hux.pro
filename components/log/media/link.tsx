@@ -50,6 +50,10 @@ export interface LinkCardProps {
   description?: string;
   /** Override image URL */
   image?: string;
+  /** See {@link CardFaceProps.fit}. */
+  fit?: CoverFit;
+  /** See {@link CardFaceProps.aspect}. */
+  aspect?: string;
   /** Size variant */
   size?: "compact" | "default" | "large";
   /**
@@ -226,6 +230,10 @@ export function CardFace({
 }: CardFaceProps) {
   const compact = size === "compact";
   const domain = domainLabel ?? getDomainLabel(url);
+  // GitHub's generated social image is already a complete repo card (title,
+  // description, stats). Repeating those fields in our caption makes a
+  // card-in-a-card. Keep the domain line; let the image speak.
+  const githubSocialCard = !!image?.includes("opengraph.githubassets.com");
   // Talk-recording links (GitNation) wear the play chip with the host's
   // name, so the card reads as the recording it is (media-mark.tsx) — unless
   // the caller has said what the cover wears.
@@ -352,11 +360,12 @@ export function CardFace({
             // than it saves. Card height grows to fit; the grid is `items-
             // stretch` so siblings track the tallest tile naturally.
             compact ? "text-xs leading-snug" : "text-sm",
+            githubSocialCard && "sr-only",
           )}
         >
           {title || domain}
         </h4>
-        {description && (
+        {description && !githubSocialCard && (
           <p
             className={cn(
               "text-muted-foreground line-clamp-2",
@@ -387,6 +396,8 @@ export function LinkCard({
   image: imageOverride,
   size = "default",
   dense = false,
+  fit,
+  aspect,
   internal,
   onOpen,
   mark,
@@ -503,6 +514,8 @@ export function LinkCard({
         image={ogData?.image}
         size={size}
         dense={dense}
+        fit={fit}
+        aspect={aspect}
         domainLabel={domainLabel}
         languageBadge={languageBadge}
         mark={mark}

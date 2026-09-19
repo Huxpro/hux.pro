@@ -228,6 +228,8 @@ function SingleMedia({ media, theme, size, className, dense, set }: SingleMediaP
           internal={media.internal}
           onOpen={openAttachment}
           mark={leavesSite ? newTabMark(locale) : undefined}
+          fit={preview?.fit}
+          aspect={preview?.aspect}
           className={className}
         />
       );

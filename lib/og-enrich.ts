@@ -75,6 +75,8 @@ function mergePreview(
     title: sources.find((s) => s?.title)?.title,
     description: sources.find((s) => s?.description)?.description,
     image: sources.find((s) => s?.image)?.image,
+    fit: sources.find((s) => s?.fit)?.fit,
+    aspect: sources.find((s) => s?.aspect)?.aspect,
   };
   // The framing policy rides along with whatever else the card knows: a
   // manual preview says nothing about it, so the snapshot's answer stands.
