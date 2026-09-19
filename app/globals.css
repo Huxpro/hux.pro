@@ -1585,6 +1585,12 @@ main[data-variant="reader"] .reader-masthead {
   transition:
     transform var(--surface-duration) var(--surface-easing),
     padding-bottom var(--surface-duration) var(--surface-easing);
+  /* The live drag, re-published so anything inside the sheet can read it.
+     Base UI registers its own `inherits: false` (item 2 at the top of
+     sheet.tsx), so a descendant cannot, and this is the only element the
+     original resolves on. Zero at rest and zero again on release — Base UI
+     clears it itself, for a captured mouse release as much as for a touch. */
+  --surface-travel: var(--drawer-swipe-movement-y, 0px);
 }
 
 /* Under the finger the sheet is direct: a transition here would chase every
@@ -1740,29 +1746,71 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
-   Window grip — the hit area
+   Window grip — the hit area, and the tuck
    The chrome of an app window on a phone (systems/windows/components/
    window-grip.tsx) is the window's own pill of traffic lights, floating over
    edge-to-edge content as it does on the desktop, doing double duty as the
    sheet's grabber. It looks exactly like the desktop pill, down to the padding
    (window-pill.tsx has all of it), and that pill is 48×28.5 — a fine target for
    a mouse and a small one for a thumb that also has to drag the sheet by it.
-   So the only thing said here is the thing the look cannot say: the glass is
-   the pill, and the target reaches past it — though no further up than the
-   shell's own edge, which clips. 72×44.5, from a pill of 48×28.5.
 
-   Keeping the two apart is also what a future morph needs: a pill that shrinks
-   into the site's 36×4 bar must not take its target down with it. There is no
-   shape change here today — the dots used to become that bar while the sheet
-   was dragged, keyed off one state or another, and every version of that state
-   could be stranded with the controls hidden inside it. The note at the top of
-   window-grip.tsx has the history.
+   THE TARGET IS NOT THE LOOK. The glass is the pill; the target is a fixed
+   72×44 centred on it — not an inset, so the tuck below cannot take it along —
+   though it reaches no further up than the shell's own edge, which clips. That
+   separation is what lets the pill change shape at all.
+
+   THE TUCK. Under a drag the pill draws itself in: its padding and the gaps
+   between its dots close, so 48×28.5 becomes 36×20.5 — the width of the site's
+   grabber — and it reads as something you are holding rather than something
+   you might tap. It comes back on release.
+
+   Nothing here is a state. The whole thing is a length: Base UI publishes the
+   live drag as `--drawer-swipe-movement-y` on the popup, the surface block
+   above re-publishes it as `--surface-travel` (Base UI registers its own
+   `inherits: false`, so a descendant cannot read it), and each dimension is a
+   `clamp()` away from rest. There is nothing to set and nothing to clear, so
+   there is nothing to be stranded — which is what killed the five previous
+   versions of this (the note at the top of window-grip.tsx has them). Even if
+   Base UI left both signals behind, the worst case is a tucked pill: three
+   dots, full ink, a live target. That is the bar this control has to clear —
+   not "can it get stuck" but "is every state it can get stuck in still a
+   window's controls".
+
+   It follows the finger rather than chasing it: `transition-duration` goes to
+   zero while the drag is live, exactly as the sheet's own transform does, and
+   comes back for the ride home.
    ============================================================================= */
+
+[data-window-grip] {
+  /* Magnitude of the drag, either direction. `abs()` is too new to rely on. */
+  --grip-reach: max(var(--surface-travel, 0px), calc(-1 * var(--surface-travel, 0px)));
+  /* Fully tucked at 28px of travel — past Base UI's own swipe threshold, so a
+     tap is never on the way to becoming a handle. */
+  padding-inline: clamp(7px, calc(10px - var(--grip-reach) * 0.107), 10px);
+  padding-block: clamp(2px, calc(6px - var(--grip-reach) * 0.143), 6px);
+}
+
+[data-window-grip] [data-window-dots] {
+  gap: clamp(2px, calc(5px - var(--grip-reach) * 0.107), 5px);
+}
+
+/* Under the finger the pill is direct, like the sheet it is the handle for. */
+[data-surface-popup][data-swiping] [data-window-grip],
+[data-surface-popup][data-swiping] [data-window-grip] [data-window-dots] {
+  transition-duration: 0ms;
+}
 
 [data-window-grip]::before {
   content: "";
   position: absolute;
-  inset: -0.5rem -0.75rem;
+  /* A fixed box, centred on the pill — NOT an inset, which would let the tuck
+     take the target in with it. What you can hit does not move when what you
+     can see draws itself in; that is the whole reason the two are separate. */
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: 72px;
+  height: 44px;
 }
 
 /* =============================================================================

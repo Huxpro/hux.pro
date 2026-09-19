@@ -29,20 +29,34 @@ import { PillTitle, pillShell, TrafficDots } from "./window-pill";
 // looking pressed — which is merely wrong, never missing. That is the bar
 // anything here has to clear.
 //
-// What used to fail it: the dots became the sheet's 36×4 grabber while it was
-// dragged — first interpolated on the live travel (which a sheet with detents
-// zeroes every time it lands on one, so it flickered), then latched by a phase
-// machine here (which has to know when the gesture ended, and cannot: Base UI
-// captures the pointer for everything but touch, and the release can then
-// reach nothing at all — no pointerup, no pointercancel, no lostpointercapture,
-// on window, document or the popup, not even for a listener installed before
-// the app), then driven by the sheet's own gesture state (better, and still one
-// flush of a nested drawer away from being stranded). Every version had the
-// same shape: something had to *clear* the interesting state, and whatever
-// clears it can be missed — and what it cleared was the controls themselves.
+// The shape follows the same bar, and that is the sixth version of it. Under a
+// drag the pill draws itself in — padding and dot gaps closing, 48×28.5 down to
+// 36×20.5, the width of the site's grabber — so it reads as something you are
+// holding rather than something you might tap. The rule it obeys is the one
+// above: its *tucked* state is a window's controls too. Three dots, full ink, a
+// target that does not move with it (the target is a fixed box, not an inset —
+// globals.css). Strand it and you have a slightly squat pill, not a window with
+// nothing on it.
 //
-// If the morph comes back it has to be incapable of persisting: an animation
-// that always ends where it started, not a state someone has to clear.
+// It lives entirely in CSS, off a length. Base UI publishes the live drag, the
+// sheet re-publishes it as `--surface-travel`, and every dimension is a
+// `clamp()` away from rest — so there is no state to set and none to clear,
+// and a tap (no travel) never starts down the road to being a handle.
+//
+// What used to fail: the dots *became* the 36×4 bar, and then had to be turned
+// back into dots. First interpolated on the live travel — under a note saying a
+// sheet with detents zeroes that at every landing, which this round finally
+// measured and found false; the real flicker was elsewhere. Then latched by a
+// phase machine here, which has to know when the gesture ended, and cannot:
+// Base UI captures the pointer for everything but touch, and the release can
+// then reach nothing at all — no pointerup, no pointercancel, no
+// lostpointercapture, on window, document or the popup, not even for a listener
+// installed before the app. Then driven by the sheet's own published gesture
+// state: better, and still one flush of a nested drawer away from stranding.
+// Every version had the same shape, and it was never really about the signal —
+// something had to *clear* a state, whatever clears it can be missed, and what
+// it cleared was the controls themselves. The fix was not a better signal. It
+// was a morph with nothing to hide.
 //
 // The tap is this component's one job, and it is the one thing that can be
 // lost harmlessly: no menu opens, nothing sticks, the next tap works. It

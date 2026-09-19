@@ -305,18 +305,27 @@ document: an app window's chrome has always been a pill over its content, never
 a title bar. Two things bite anything built there: Base UI
 never starts a swipe from a `<button>` (or `a`, `input`, `label`,
 `[role="button"]`), and once a press becomes a swipe it captures the pointer,
-so no further move, up or click arrives. Items 7 and 8 of the list at the top
+so no further move, up or click arrives. Items 8 and 9 of the list at the top
 of `sheet.tsx`.
 
-**No gesture state up there.** A grip that changes with the drag is a grip that
-has to be changed back, and the end of a Base UI gesture can be missed
-altogether — so the sheet publishes nothing for a grip to change on, and the
-window grip keeps only states that are harmless to be stuck in (it lights up
-under a thumb; it never changes shape).
+**The live drag, for whatever is riding on it.** The popup re-publishes Base
+UI's `--drawer-swipe-movement-y` as `--surface-travel`, because Base UI
+registers its own `inherits: false` and nothing inside the sheet can read it
+otherwise. Measured, so it can be relied on: it is monotonic from the start of
+the gesture, it does **not** reset when the sheet lands on a detent, and Base
+UI returns it to `0px` on release — including the captured mouse release that
+never reaches our own listeners. The window grip's tuck is drawn entirely from
+it, in CSS, with no state anywhere.
+
+**No gesture state up there, though.** A grip that changes *state* with the
+drag is a grip that has to be changed back, and the end of a Base UI gesture
+can be missed altogether — so nothing above `Drawer.Content` may hold one.
+A length is not a state: it has no stuck value that isn't simply the last one,
+and it costs nothing to be wrong about.
 `systems/windows/components/window-grip.tsx` has the story of the five versions
-that did. If some future handle has to move with the drag, it should be an
-animation that always ends where it started, never a state something has to
-clear.
+that learned this the other way. The rule that survives them is not about
+signals at all: whatever the handle turns into has to still be the window's
+controls, so that being stranded there is merely wrong and never missing.
 
 **Content, not a handle.** Everything below the grabber is wrapped in
 `Drawer.Content`. Without it a *mouse* press anywhere in a sheet starts a swipe,

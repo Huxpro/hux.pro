@@ -209,26 +209,46 @@ when stranded**: lit is glass with bright dots, rest is the pill the desktop
 wears, and a press whose release goes missing leaves the pill looking pressed —
 wrong, never missing. That is the bar anything on this control has to clear.
 
-The one thing the phone pill does not borrow is its target. `::before` takes
-the hit area to 72×44.5 from a pill of 48×28.5 (`globals.css`), because this
-pill is also a handle. Target and look are deliberately separate — a pill that one
-day shrinks into the 36×4 bar must not take its target down with it.
+**The tuck.** Under a drag the pill draws itself in: padding and the gaps
+between the dots close, and 48×28.5 becomes **36×20.5** — the width of the
+site's grabber — so it reads as something you are holding rather than something
+you might tap. It comes home on release.
 
-What failed that bar is worth keeping written down. The dots used to
-become the site's 36×4 grabber while the sheet was dragged: proportional to the
-live travel first (which a sheet with detents zeroes every time it lands on
-one, so it flickered), then a phase machine in the grip (which had to know when
+It is not a state. Base UI publishes the live drag as
+`--drawer-swipe-movement-y`; the sheet re-publishes it as `--surface-travel`
+(Base UI registers its own `inherits: false`), and every dimension is a
+`clamp()` away from rest, in CSS. Nothing to set, nothing to clear, nothing to
+strand — and since a tap produces no travel, a tap never starts down the road
+to being a handle. `transition-duration` goes to zero while the drag is live,
+exactly as the sheet's own transform does, so the pill follows the finger
+rather than chasing it.
+
+What makes this one safe where five others were not is not the signal. It is
+that **the tucked state is a window's controls too** — three dots, full ink —
+and that the target does not move with it: `::before` is a fixed 72×44 box
+centred on the pill, not an inset, so the tuck cannot take the target along.
+Strand the whole thing and you have a slightly squat pill, not a window with
+nothing on it.
+
+The five that failed are worth keeping written down. The dots used to
+*become* the 36×4 grabber while the sheet was dragged, and then had to be
+turned back into dots: proportional to the live travel first, then a phase
+machine in the grip (which had to know when
 the gesture ended, and cannot — Base UI captures the pointer for everything
 except touch, and the release then reaches nothing at all, so the phase stuck
 and `keepMounted` carried it into the next time the app opened), then the
 sheet's own gesture state (better, and still one flush of a nested drawer away
 from being stranded). Every version had the same shape: something had to
 *clear* the interesting state, whatever clears it can be missed, and what it
-cleared was the controls themselves. Whatever a handle gains from changing
-shape does not outweigh a window whose controls are sometimes missing — so
-nothing changes shape, and if the morph returns it must be something that
-cannot persist: an animation that always ends where it started, not a state
-someone has to clear.
+cleared was the controls themselves.
+
+Two things came out of finally measuring those signals instead of reasoning
+about them. `--drawer-swipe-movement-y` is **monotonic from the start of the
+gesture and does not reset at a detent landing** — the note that said otherwise,
+and sent three of those versions hunting for a latch, was simply wrong. And
+both it and `data-swiping` are cleared by Base UI itself on release, including
+the captured mouse release our own listeners never see. The signal was never
+the problem. Morphing into something that is not a control was.
 
 The one thing the grip still owns is the tap, which is the one thing that can
 be lost harmlessly (no menu opens; the next tap works). It opens the menu
