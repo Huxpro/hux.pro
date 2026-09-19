@@ -997,8 +997,8 @@
         "zh": "React without memo"
       },
       "description": {
-        "en": "Introducing React Forget (now the React Compiler), an auto memoization compiler so you can write React without useMemo and useCallback, and forget about accidental rerenders.",
-        "zh": "介绍 React Forget（现 React Compiler），自动记忆化编译器，让你不用手写 useMemo / useCallback，也能忘掉意外的重渲染。"
+        "en": "The introductory talk on React Forget (now the React Compiler), an auto-memoizing compiler so you can write React without memo, useMemo, and useCallback.",
+        "zh": "React Forget（现 React Compiler）的首次公开演讲：一个自动记忆化编译器，让你可以不用手写 memo、useMemo 和 useCallback。"
       },
       "date": "2021-09",
       "conference": {
