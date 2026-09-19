@@ -1,4 +1,4 @@
-// @hux/bezel — implementation entry. The contract is ../bezel.d.ts.
+// vitre — implementation entry. The contract is ../vitre.d.ts.
 
 export { Bezel, BEZEL_INSET, useBezel } from "./bezel";
 export { bezelBootScript, readBezelBoot } from "./boot";
@@ -34,4 +34,5 @@ export type {
   BezelScroll,
   BezelState,
   ChromeSyncOptions,
-} from "../bezel";
+  ScrollPageOptions,
+} from "../vitre";

@@ -1,10 +1,15 @@
-# @hux/bezel
+# vitre
 
-A bezel around the page, the browser chrome kept in step with it, and a page
-that can scroll in a container while the window stays locked. Built for iOS
-Safari, where each of those is harder than it looks.
+Safari `theme-color` for iOS 26, and safe page edges. vitre draws a bezel around
+the page, tints Safari's glass toolbar and status bar live in the colour you
+choose, and scrolls the page in a container so the viewport and its edges hold
+still. For React.
 
-The public API is [`bezel.d.ts`](./bezel.d.ts). `src/contract.ts` fails the
+*Vitre* is French for a windowpane: the glass set in a frame. Safari on iOS 26
+draws its bars as glass over the edges of the page and tints them from what it
+finds there. vitre is the frame and the pane at those edges.
+
+The public API is [`vitre.d.ts`](./vitre.d.ts). `src/contract.ts` fails the
 type check if the implementation drifts from it.
 
 ## Words
@@ -14,8 +19,6 @@ type check if the implementation drifts from it.
 | **bezel** | The border drawn around the page: a band on each edge, rounded inner corners, one colour. | — |
 | **chrome** | The browser's own UI: Safari's status bar and toolbar. | The bezel. |
 | **scroll** | Where the page scrolls: `window`, or `container` with the window locked. | — |
-
-"Frame" and "letterbox" are gone. They were two more names for the bezel.
 
 ## What iOS Safari does
 
@@ -28,7 +31,7 @@ against the same builds on a phone. iOS 18.5 is noted where it differs.
 | Chrome colour after a later change to the root background | Not re-read. The chrome keeps the old colour. | Not re-read |
 | Chrome colour after a later change to `theme-color` | Ignored | Followed |
 | Fixed content at the edge, added later | Followed live, from 6 CSS px thick (5 does not register), and the colour stays after the content is removed | — |
-| Toolbar collapse | Only when the document scrolls. Each collapse re-samples the chrome. | Same |
+| Toolbar collapse | When the user scrolls the document down; scrolling up expands it. A script's scroll leaves it as it is, except that reaching the top expands it. Each collapse re-samples the chrome. | Same for the user's scroll; a script's scroll not measured |
 | Safe-area insets in portrait | All 0 | All 0 |
 | React 19 failed hydration (error #418) | Strips every attribute off `<html>` | Same |
 
@@ -85,7 +88,7 @@ Every prop of `<Bezel>` is live:
 ## Using it
 
 ```tsx
-import { Bezel, BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE, bezelBootScript } from "@hux/bezel";
+import { Bezel, BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE, bezelBootScript } from "vitre";
 
 // <head>: paint the first frame right, before React.
 <script dangerouslySetInnerHTML={{ __html: bezelBootScript(resolverSource) }} />
@@ -104,16 +107,93 @@ import { Bezel, BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE, bezelBootScript } from "@hux
 </Bezel>
 ```
 
-In a component anywhere on the page:
+## Scroll
+
+`scroll` picks the page's scroller: the window, or a container inside the bezel
+with `<html>` and `<body>` held still. `<Bezel>` writes the choice to `<html>`
+(`data-bezel-scroll`), and everything else reads it from there. It is
+independent of `enabled`, `color` and `band`; container scroll is the one to use
+while the bezel is on.
+
+| | `window` | `container` |
+|---|---|---|
+| Scroller | The document | A container inside the bezel |
+| Safari's toolbar | Collapses and expands with scroll | Stays expanded |
+| `getScrollContainer()` | `null` | The container |
+| `window.scrollY`, `scrollTo`, `scroll` event | The page | Not the page's scroll |
+| Tap on the status bar | Scrolls to the top | Scrolls to the top (on iOS; see [The status-bar tap](#the-status-bar-tap)) |
+| Full-screen fixed layers (`body > .fixed`, `BEZEL_LAYER_ATTRIBUTE`) | fixed | absolute |
+| `position: sticky`, IntersectionObserver, `scrollIntoView`, anchors | Work | Work |
+
+Switching carries the scroll position across and notifies page scroll
+listeners.
+
+### Page scroll API
+
+Two layers, the second built on the first:
+
+- **The scroller.** `getScrollContainer()` returns the container in container
+  scroll and `null` in window scroll, the platform's value for the viewport (as
+  in an IntersectionObserver's `root`). Hand it to anything that takes a scroll
+  element, and bind again when `useBezel().scroll` changes.
+- **The page.** `pageScrollTop`, `pageScrollHeight`, `pageViewportHeight`,
+  `pageOffsetOf`, `scrollPageTo`, `onPageScroll`, `usePageScroll` and
+  `emitPageScroll` read the mode at every call, so they work in both modes,
+  across a live switch, and outside React. Without `<Bezel>` they act on the
+  window. `scrollPageTo(top, { behavior: "smooth" })` animates.
+
+| Your page | Use |
+|---|---|
+| Only `position: sticky`, IntersectionObserver, `scrollIntoView` and anchors | Nothing more |
+| Always window scroll | `window` |
+| Always container scroll | `getScrollContainer()`, as any scroll container |
+| Switches mode live, or a component that does not know the host's mode | The page helpers |
+| A library that takes a scroll element | `getScrollContainer()`, bound again on `useBezel().scroll` |
 
 ```tsx
-usePageScroll(() => measure());    // scroll in either mode
-const { enabled, scroll } = useBezel();
+usePageScroll(() => setProgress(pageScrollTop() / (pageScrollHeight() - pageViewportHeight())));
+scrollPageTo(pageOffsetOf(heading) - 96, { behavior: "smooth" });
+
+const { scroll } = useBezel();
+useEffect(() => {
+  const target = getScrollContainer() ?? window;
+  target.addEventListener("scroll", onScroll, { passive: true });
+  return () => target.removeEventListener("scroll", onScroll);
+}, [scroll]);
 ```
 
-Outside React, read and drive page scroll with `pageScrollTop`,
-`scrollPageTo`, `onPageScroll` and the rest. `window.scrollY` reads 0 in
-container scroll.
+### Window scroll on iOS Safari
+
+Measured in the iOS 26.5 simulator:
+
+- **Edge leak.** Each time the toolbar collapses or expands, a strip of page
+  content up to about 50px shows below the bottom band for about 200ms, while
+  Safari still draws fixed elements at the old viewport size.
+- **Live changes.** A toolbar collapse makes Safari sample the edge again, and in
+  rare cases the chrome keeps the wrong colour after a live change until a
+  reload.
+
+## Demo and documentation site
+
+`packages/vitre/site` is the package's own website, built with Vite and importing
+only `vitre`. It is served by hux.pro at `/vitre`.
+
+- **On a phone** it is the demo itself: a small site inside `<Bezel>`, with
+  cards that each run one feature and a devtool that edits every prop and
+  shows what the package resolved, wrote to `<html>` and set as `theme-color`.
+  Settings are saved, and the boot script paints the next load from them, so
+  Safari's real chrome can be tested.
+- **On anything wider** it is a single documentation page: a simulated iPhone
+  running the demo stays on screen while the article scrolls, and the section
+  in view drives the phone. Every export and every prop is documented, and
+  that reference is type-checked against `vitre.d.ts`.
+
+```bash
+pnpm vitre:site
+```
+
+Then open `http://localhost:5173/vitre/` on a desktop browser, or on the iOS
+simulator or a phone on the same network.
 
 Scroll-driven CSS should not use `animation-timeline: scroll(root)`. The
 package names the live scroller `--page-scroll` (root in window scroll,
@@ -123,7 +203,7 @@ package names the live scroller `--page-scroll` (root in window scroll,
 ## Testing
 
 ```bash
-pnpm bezel:typecheck
+pnpm vitre:typecheck
 ```
 
 ## The status-bar tap
@@ -178,8 +258,6 @@ devtool, so the check is real rather than assumed.
 - Fixed overlays rendered inside the scroll container can still reach the
   viewport edge while shown, and tint the chrome for that time.
 - The morph is visible: an 8px band in the new colour for about 600ms.
-- In window scroll, the next toolbar collapse re-samples the chrome from the
-  page, which can undo a sync unless the band is at least `CHROME_SAMPLE_PX`.
 - iOS 18's expanded bottom toolbar follows neither `theme-color` nor the root
   background.
 - The stylesheet makes `body > .fixed` absolute in container scroll. `.fixed`

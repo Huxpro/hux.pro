@@ -7,7 +7,7 @@ import {
   BEZEL_LAYER_ATTRIBUTE,
   getScrollContainer,
   scrollPageTo,
-} from "@hux/bezel";
+} from "vitre";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { useWallpaper } from "../provider";

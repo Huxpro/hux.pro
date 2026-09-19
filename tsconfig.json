@@ -21,7 +21,7 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "@hux/bezel": ["./packages/bezel/src/index.ts"]
+      "vitre": ["./packages/vitre/src/index.ts"]
     }
   },
   "include": [

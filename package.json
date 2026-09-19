@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "vite build --config packages/vitre/site/vite.config.ts --outDir ../../../public/vitre && next build",
     "start": "next start",
     "lynx:shadow-css": "node scripts/lynx-shadow-css-bundle.mjs",
     "predev": "node scripts/lynx-shadow-css-bundle.mjs",
@@ -21,7 +21,9 @@
     "wallpapers:profile:check": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/wallpaper-profile.ts --check",
     "apps:snapshot": "node scripts/app-icon-snapshot.ts",
     "apps:check": "node scripts/app-icon-snapshot.ts --check",
-    "bezel:typecheck": "tsc -p packages/bezel"
+    "vitre:typecheck": "tsc -p packages/vitre",
+    "vitre:site": "vite --config packages/vitre/site/vite.config.ts --host 0.0.0.0",
+    "vitre:site:build": "vite build --config packages/vitre/site/vite.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",
@@ -69,7 +71,8 @@
     "sharp": "^0.35.4",
     "tailwindcss": "^4",
     "types-react": "19.0.0-alpha.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "8.3.0"
   },
   "packageManager": "pnpm@9.15.2+sha512.93e57b0126f0df74ce6bff29680394c0ba54ec47246b9cf321f0121d8d9bb03f750a705f24edc3c1180853afd7c2c3b94196d0a3d53d3e069d9e2793ef11f321"
 }

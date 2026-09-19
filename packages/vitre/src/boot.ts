@@ -1,4 +1,4 @@
-import type { BezelBootState } from "../bezel";
+import type { BezelBootState } from "../vitre";
 import {
   BAND_VAR,
   BEZEL_ATTRIBUTE,

@@ -1,4 +1,4 @@
-import type { ChromeSyncOptions } from "../bezel";
+import type { ChromeSyncOptions } from "../vitre";
 import { CHROME_MORPH_PX, THEME_COLOR_ID } from "./constants";
 
 // =============================================================================

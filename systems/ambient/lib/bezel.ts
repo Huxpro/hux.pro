@@ -2,11 +2,11 @@ import {
   BEZEL_BAND_MAX,
   BEZEL_BAND_MIN,
   DEFAULT_BEZEL_BAND,
-} from "@hux/bezel";
+} from "vitre";
 import { WALLPAPER_LOOK_FAMILY, type WallpaperFamily } from "./wallpaper";
 
 // =============================================================================
-// The site's bezel: what @hux/bezel is configured with here.
+// The site's bezel: what vitre is configured with here.
 //
 // The package draws a bezel in any colour, scrolls the page wherever it is
 // told, and keeps the browser chrome in step. What the colour is, when the
@@ -48,7 +48,7 @@ export const WALLPAPER_FAMILY_EDGES: Record<WallpaperFamily, WallpaperEdges> = {
  *   black    the default, and ryOS's.
  *   dark     the page's dark ground, in both themes.
  *   theme    the page's ground in the current theme: light in light, dark in
- *            dark. It changes live with the theme; @hux/bezel shows the change
+ *            dark. It changes live with the theme; vitre shows the change
  *            to the browser chrome.
  *   #rrggbb  anything else.
  */

@@ -1,7 +1,7 @@
-// Fails to type-check if ./index and ../bezel.d.ts disagree: an export missing
+// Fails to type-check if ./index and ../vitre.d.ts disagree: an export missing
 // on either side, or a different type. Nothing here runs.
 
-import type * as Contract from "../bezel";
+import type * as Contract from "../vitre";
 import type * as Implementation from "./index";
 
 type C = typeof Contract;

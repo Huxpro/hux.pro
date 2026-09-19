@@ -12,5 +12,6 @@
     "allowImportingTsExtensions": true,
     "types": []
   },
-  "include": ["bezel.d.ts", "src/**/*.ts", "src/**/*.tsx"]
+  "include": ["vitre.d.ts", "src/**/*.ts", "src/**/*.tsx", "site/**/*.ts", "site/**/*.tsx"],
+  "exclude": ["site/vite.config.ts", "site/dist"]
 }

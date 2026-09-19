@@ -1,4 +1,4 @@
-import { onPageScroll } from "@hux/bezel";
+import { onPageScroll } from "vitre";
 
 /**
  * JS polyfill for `background-attachment: fixed`, which is unsupported on iOS.
@@ -113,7 +113,7 @@ class FixedBgTracker {
   private startListening() {
     this.listening = true;
     // Page scroll, not window scroll: in container scroll the page scrolls in
-    // the bezel's container and a window listener would never fire. See @hux/bezel.
+    // the bezel's container and a window listener would never fire. See vitre.
     this.offPageScroll = onPageScroll(this.schedule);
     window.addEventListener("resize", this.schedule);
     window.visualViewport?.addEventListener("scroll", this.schedule);

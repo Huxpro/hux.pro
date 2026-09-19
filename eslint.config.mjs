@@ -40,6 +40,9 @@ const eslintConfig = defineConfig([
   GLASS_TOKENS_ONLY,
   // Override default ignores of eslint-config-next.
   globalIgnores([
+    // vitre site build output, generated into public at build time.
+    "public/vitre/**",
+    "packages/vitre/site/dist/**",
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",

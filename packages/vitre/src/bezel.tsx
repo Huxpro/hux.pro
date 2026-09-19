@@ -11,7 +11,7 @@ import {
   type CSSProperties,
   type JSX,
 } from "react";
-import type { BezelProps, BezelScroll, BezelState } from "../bezel";
+import type { BezelProps, BezelScroll, BezelState } from "../vitre";
 import { readBezelBoot } from "./boot";
 import { syncChrome } from "./chrome";
 import {
@@ -26,7 +26,7 @@ import { keepRoot, type RootState } from "./root";
 import { enableStatusTapToTop } from "./status-tap";
 
 // =============================================================================
-// <Bezel> — see ../bezel.d.ts for the contract.
+// <Bezel> — see ../vitre.d.ts for the contract.
 //
 // Four bands and four quarter-circles in the bezel colour, drawn above
 // everything so the page stops on a clean line and is rounded off inside
