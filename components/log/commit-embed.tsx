@@ -19,7 +19,7 @@ import { GLASS_PANEL } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./media/external-image";
 import { CardFace } from "./media/link";
-import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
+import { PEEK_W } from "@/components/motion-primitives/peek";
 import type { Byline } from "./bylines";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";

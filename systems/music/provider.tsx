@@ -183,11 +183,15 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [playlist, setPlaylist] = useState<PlaylistEntry[]>([]);
   const [playlistIndex, setPlaylistIndex] = useState(-1);
   const [isPlaylistOpen, setPlaylistOpen] = useState(false);
+  const [wantsPlayer, setWantsPlayer] = useState(false);
   const playerRef = useRef<YT.Player | null>(null);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const initedRef = useRef(false);
   // Track pending skip so we can force playVideo() on iOS Safari
   const pendingSkipRef = useRef(false);
+  // Play was requested before the IFrame API finished constructing the player.
+  const pendingPlayRef = useRef(false);
+  const pendingPlayAtRef = useRef<number | null>(null);
   // Offline mock mode (dev / headless verification) — see lib/mock.ts.
   const mockRef = useRef(false);
   const mockIndexRef = useRef(0);
@@ -214,12 +218,20 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const requestPlayer = useCallback((opts?: { play?: boolean }) => {
+    if (opts?.play) pendingPlayRef.current = true;
+    setWantsPlayer(true);
+  }, []);
+
   // --- Initialize player (or mock) ---
   // The container div is rendered by this provider (always mounted), so the
   // player persists across route changes and audio never stops on navigation.
-  // Re-runs when `isMockEnabled` flips: the cleanup tears the old backend
-  // down and the next run initializes the other one — a live backend swap.
+  // Init itself waits for the first play / playlist open so the YouTube
+  // IFrame API stays off the home TTI path. Re-runs when `isMockEnabled`
+  // flips: the cleanup tears the old backend down and the next run
+  // initializes the other one — a live backend swap.
   useEffect(() => {
+    if (!wantsPlayer) return;
     if (!PLAYLIST_ID || initedRef.current) return;
 
     // Reset every cross-backend bit so a swap starts from scratch (all
@@ -252,7 +264,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         thumbnailUrl: entry.thumbnailUrl,
       });
       setDuration(MOCK_DURATION);
-      setPlayerState("idle");
+      if (pendingPlayRef.current) {
+        pendingPlayRef.current = false;
+        setHasPlayed(true);
+        setPlayerState("playing");
+      } else {
+        setPlayerState("idle");
+      }
       return () => {
         initedRef.current = false;
         mockRef.current = false;
@@ -305,9 +323,18 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
             onReady: () => {
               if (destroyed) return;
               clearTimeout(readyTimeout);
-              // Cue the playlist without auto-playing
+              // Cue the playlist without auto-playing unless play() already ran.
               setPlayerState("idle");
               setTrack(readTrack(player));
+              if (pendingPlayAtRef.current !== null) {
+                const index = pendingPlayAtRef.current;
+                pendingPlayAtRef.current = null;
+                pendingPlayRef.current = false;
+                player.playVideoAt(index);
+              } else if (pendingPlayRef.current) {
+                pendingPlayRef.current = false;
+                player.playVideo();
+              }
               playlistPoll = setInterval(() => {
                 syncPlaylist();
                 try {
@@ -359,7 +386,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       playerRef.current = null;
       initedRef.current = false;
     };
-  }, [isMockEnabled, syncPlaylist]);
+  }, [isMockEnabled, syncPlaylist, wantsPlayer]);
 
   // --- Progress polling (only while playing) ---
   useEffect(() => {
@@ -418,8 +445,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       setPlayerState("playing");
       return;
     }
-    playerRef.current?.playVideo();
-  }, []);
+    if (playerRef.current) {
+      playerRef.current.playVideo();
+      return;
+    }
+    if (!isMockEnabled) setPlayerState("loading");
+    requestPlayer({ play: true });
+  }, [isMockEnabled, requestPlayer]);
   const pause = useCallback(() => {
     if (mockRef.current) {
       setPlayerState("paused");
@@ -449,9 +481,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       mockJumpTo((mockIndexRef.current + 1) % MOCK_PLAYLIST.length);
       return;
     }
+    if (!playerRef.current) {
+      requestPlayer({ play: true });
+      return;
+    }
     pendingSkipRef.current = true;
-    playerRef.current?.nextVideo();
-  }, [mockJumpTo]);
+    playerRef.current.nextVideo();
+  }, [mockJumpTo, requestPlayer]);
   const previous = useCallback(() => {
     if (mockRef.current) {
       mockJumpTo(
@@ -460,9 +496,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       );
       return;
     }
+    if (!playerRef.current) {
+      requestPlayer({ play: true });
+      return;
+    }
     pendingSkipRef.current = true;
-    playerRef.current?.previousVideo();
-  }, [mockJumpTo]);
+    playerRef.current.previousVideo();
+  }, [mockJumpTo, requestPlayer]);
 
   const playAt = useCallback(
     (index: number) => {
@@ -470,15 +510,23 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         mockJumpTo(index);
         return;
       }
+      if (!playerRef.current) {
+        pendingPlayAtRef.current = index;
+        requestPlayer({ play: true });
+        return;
+      }
       // Same iOS-Safari guard as next/previous: playVideoAt may only cue.
       pendingSkipRef.current = true;
       setHasPlayed(true);
-      playerRef.current?.playVideoAt(index);
+      playerRef.current.playVideoAt(index);
     },
-    [mockJumpTo],
+    [mockJumpTo, requestPlayer],
   );
 
-  const openPlaylist = useCallback(() => setPlaylistOpen(true), []);
+  const openPlaylist = useCallback(() => {
+    setPlaylistOpen(true);
+    requestPlayer();
+  }, [requestPlayer]);
   const closePlaylist = useCallback(() => setPlaylistOpen(false), []);
 
   return (

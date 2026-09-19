@@ -8,7 +8,7 @@ import { Command, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
-import { useDevtool } from "@/systems/devtool";
+import { useDevtool } from "@/systems/devtool/provider";
 import { HANDOFF, useHomeEditing } from "@/components/ui/home-edit-store";
 import { useCompactViewport } from "./use-compact-viewport";
 

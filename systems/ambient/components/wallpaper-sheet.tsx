@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/controls";
 import { cn } from "@/lib/utils";
 import { t, useLocale, type TranslationKey } from "@/services";
-import { AlbumTabs } from "@/systems/theater";
+import { AlbumTabs } from "@/systems/theater/components/album-tabs";
 import { Check, Cloud, Moon, Palette, Repeat, Shuffle, Smartphone, Sparkles, Sun } from "lucide-react";
 import { useState } from "react";
 import {

@@ -10,7 +10,8 @@ import {
   useState,
 } from "react";
 import { usePathname } from "next/navigation";
-import { useOptionalMusic } from "@/systems/music";
+import { useArmed } from "@/lib/deferred";
+import { useOptionalMusic } from "@/systems/music/provider";
 import type { VideoPlatform } from "@/lib/log";
 import { useInputCapability } from "@/services";
 import {
@@ -33,7 +34,12 @@ import type {
   TheaterMode,
   Track,
 } from "./lib/types";
-import { Stage } from "./components/stage";
+import dynamic from "next/dynamic";
+
+const Stage = dynamic(
+  () => import("./components/stage").then((m) => ({ default: m.Stage })),
+  { ssr: false },
+);
 
 // =============================================================================
 // Theater Provider — the immersive video system's coordination layer.
@@ -611,18 +617,22 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     setDragging,
   };
 
+  const stageArmed = useArmed(mode !== "closed");
+
   return (
     <TheaterContext.Provider value={value}>
       {children}
-      <Stage
-        hostRef={hostRef}
-        rect={rect}
-        track={track}
-        active={mode !== "closed"}
-        visible={visible}
-        dragging={dragging}
-        pip={geomMode === "pip"}
-      />
+      {stageArmed ? (
+        <Stage
+          hostRef={hostRef}
+          rect={rect}
+          track={track}
+          active={mode !== "closed"}
+          visible={visible}
+          dragging={dragging}
+          pip={geomMode === "pip"}
+        />
+      ) : null}
     </TheaterContext.Provider>
   );
 }

@@ -1,8 +1,14 @@
 "use client";
 
+import { useArmed } from "@/lib/deferred";
 import { AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useWindows } from "../provider";
-import { Window } from "./window";
+
+const Window = dynamic(
+  () => import("./window").then((m) => ({ default: m.Window })),
+  { ssr: false },
+);
 
 // =============================================================================
 // WindowLayer — the "desktop" surface every window floats on
@@ -19,6 +25,9 @@ import { Window } from "./window";
 
 export function WindowLayer() {
   const { windows } = useWindows();
+  const armed = useArmed(windows.length > 0);
+
+  if (!armed) return null;
 
   return (
     <div

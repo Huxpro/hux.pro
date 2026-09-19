@@ -8,7 +8,9 @@ import {
 } from "@/components/ui/widget";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { AlbumTabs, TrackThumb, useTheater } from "@/systems/theater";
+import { AlbumTabs } from "@/systems/theater/components/album-tabs";
+import { TrackThumb } from "@/systems/theater/components/track-thumb";
+import { useTheater } from "@/systems/theater/provider";
 import { buildTalkAlbums } from "@/systems/theater/lib/albums";
 import { PRESS_CARD } from "@/systems/theater/lib/chrome";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

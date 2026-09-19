@@ -7,16 +7,17 @@ import {
   EDGE_GAP_PX,
   HEADER_BUTTON,
   SHEET_DETENTS,
-  SurfaceBody,
   SurfaceSheet,
   SurfaceWindow,
   WINDOW_SPRING,
 } from "@/systems/surface";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bug, PanelBottom } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DevtoolFooter, DevtoolModules, DevtoolTitle } from "./panel";
 import { useDevtool } from "./provider";
+
+const DevtoolPanelBody = dynamic(() => import("./panel-body"), { ssr: false });
 
 // =============================================================================
 // Devtool dock — where the devtool is, and the gestures that move it.
@@ -285,14 +286,10 @@ export function DevtoolFAB() {
 
   if (!isEnabled) return null;
 
-  const body = (
-    <SurfaceBody
-      title={<DevtoolTitle />}
+  const body = isOpen ? (
+    <DevtoolPanelBody
       closeLabel={zh ? "关闭调试面板" : "Close devtool panel"}
       onClose={close}
-      // The modules bring their own padding and full-bleed section rules.
-      contentClassName="pb-0"
-      footer={<DevtoolFooter />}
       actions={
         isFloating && canDock ? (
           <button
@@ -304,10 +301,8 @@ export function DevtoolFAB() {
           </button>
         ) : undefined
       }
-    >
-      <DevtoolModules />
-    </SurfaceBody>
-  );
+    />
+  ) : null;
 
   if (isFloating) {
     return (

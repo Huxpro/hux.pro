@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import type { Locale } from "@/lib/i18n";
 import { RefreshCw } from "lucide-react";
+import { afterFirstPaint } from "@/lib/deferred";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -177,17 +178,26 @@ export function PromptWidget() {
   const [index, setIndex] = useState(0);
   const [spinKey, setSpinKey] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  // First paint is static copy; motion starts on the first rotation.
+  const [enterMotion, setEnterMotion] = useState(false);
 
   const current = shuffled[index % shuffled.length];
 
   const advance = useCallback(() => {
+    setEnterMotion(true);
     setIndex((i) => (i + 1) % shuffled.length);
   }, [shuffled.length]);
 
-  // Auto-rotation
+  // Auto-rotation waits for first paint + idle so the interval is not
+  // competing with hydration / TTI.
   useEffect(() => {
-    timerRef.current = setInterval(advance, ROTATION_INTERVAL);
-    return () => clearInterval(timerRef.current);
+    const stop = afterFirstPaint(() => {
+      timerRef.current = setInterval(advance, ROTATION_INTERVAL);
+    });
+    return () => {
+      stop();
+      clearInterval(timerRef.current);
+    };
   }, [advance]);
 
   const handleNext = useCallback(() => {
@@ -223,7 +233,7 @@ export function PromptWidget() {
           <motion.div
             key={current.id}
             variants={fadeVariants}
-            initial="initial"
+            initial={enterMotion ? "initial" : false}
             animate="animate"
             exit="exit"
           >

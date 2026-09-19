@@ -13,12 +13,12 @@ import {
 } from "@/services";
 
 import { SystemSonner } from "@/components/ui/system-sonner";
-import { AmbientProvider } from "@/systems/ambient";
-import { CommandProvider, useCommand } from "@/systems/command";
-import { DevtoolProvider } from "@/systems/devtool";
-import { MusicProvider } from "@/systems/music";
-import { TheaterProvider } from "@/systems/theater";
-import { WindowProvider } from "@/systems/windows";
+import { AmbientProvider } from "@/systems/ambient/provider";
+import { CommandProvider, useCommand } from "@/systems/command/provider";
+import { DevtoolProvider } from "@/systems/devtool/provider";
+import { MusicProvider } from "@/systems/music/provider";
+import { TheaterProvider } from "@/systems/theater/provider";
+import { WindowProvider } from "@/systems/windows/provider";
 
 // =============================================================================
 // Internal Wrappers
