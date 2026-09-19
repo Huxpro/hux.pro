@@ -1,0 +1,32 @@
+diff --git a/drawer/viewport/DrawerViewport.js b/drawer/viewport/DrawerViewport.js
+index 6d54e6627da1b754a9e21cfc6f10eee0fd266711..9b8a6c074d16a146ba153eb97db89e5bb7c18bb9 100644
+--- a/drawer/viewport/DrawerViewport.js
++++ b/drawer/viewport/DrawerViewport.js
+@@ -510,7 +510,10 @@ const DrawerViewport = exports.DrawerViewport = /*#__PURE__*/React.forwardRef(fu
+   resetSwipeRef.current = resetSwipe;
+   React.useEffect(() => {
+     const rootElement = viewportElement ?? popupElementState;
+-    if (!rootElement) {
++    // hux.pro: only while open. A closed drawer returns from every move
++    // anyway, and a kept-mounted one would otherwise leave a blocking
++    // touchmove listener on the document for as long as it exists.
++    if (!rootElement || !open) {
+       return undefined;
+     }
+     const resolvedRootElement = rootElement;
+diff --git a/drawer/viewport/DrawerViewport.mjs b/drawer/viewport/DrawerViewport.mjs
+index 4346ad56648c6bc624ffcf5de8756329026a09d2..d0aed40fbb33a4e47d4265d13ad79fc03ed945e5 100644
+--- a/drawer/viewport/DrawerViewport.mjs
++++ b/drawer/viewport/DrawerViewport.mjs
+@@ -504,7 +504,10 @@ export const DrawerViewport = /*#__PURE__*/React.forwardRef(function DrawerViewp
+   resetSwipeRef.current = resetSwipe;
+   React.useEffect(() => {
+     const rootElement = viewportElement ?? popupElementState;
+-    if (!rootElement) {
++    // hux.pro: only while open. A closed drawer returns from every move
++    // anyway, and a kept-mounted one would otherwise leave a blocking
++    // touchmove listener on the document for as long as it exists.
++    if (!rootElement || !open) {
+       return undefined;
+     }
+     const resolvedRootElement = rootElement;
