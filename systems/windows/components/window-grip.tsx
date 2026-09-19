@@ -30,10 +30,11 @@ import { PillTitle, pillShell, TrafficDots } from "./window-pill";
 // anything here has to clear.
 //
 // The shape follows the same bar, and this is the sixth version of it. Under a
-// drag the pill draws itself in and the dots run together into one line —
-// 48×28.5 with three 6px dots becomes 36×10 around a 30×6 bar, the site's own
-// grabber wearing the window's glass. It reads as something you are holding
-// rather than something you might tap, and it comes home on release.
+// drag the dots run together and stretch into a handle — 48×28.5 around three
+// 6px dots becomes 48×14 around a 36×4 line, which is `h-1 w-9`, the bar every
+// other sheet on the site is dragged by. It reads as something you are holding
+// rather than something you might tap, and it comes home on release. The two
+// acts of it, and why they are timed the way they are, are in globals.css.
 //
 // It lives entirely in CSS, off a length. Base UI publishes the live drag, the
 // sheet re-publishes it as `--surface-travel`, and every dimension is a

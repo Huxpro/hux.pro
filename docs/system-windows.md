@@ -209,12 +209,17 @@ when stranded**: lit is glass with bright dots, rest is the pill the desktop
 wears, and a press whose release goes missing leaves the pill looking pressed —
 wrong, never missing. That is the bar anything on this control has to clear.
 
-**The tuck.** Under a drag the pill draws itself in and its dots run together
-into one line: **48×28.5 with three 6px dots becomes 36×10 around a 30×6 bar** —
-the site's own grabber, wearing the window's glass. It reads as something you
-are holding rather than something you might tap, and it comes home on release.
-The dots widen, the gaps shut, and the corners where they meet square off, so
-the joins disappear rather than pinching.
+**The tuck.** Under a drag the dots run together and stretch into a handle:
+**48×28.5 around three 6px dots becomes 48×14 around a 36×4 line** — `h-1 w-9`,
+the same bar every other sheet on the site is dragged by, wearing the window's
+glass and keeping a margin around it. It reads as something you are holding
+rather than something you might tap, and it comes home on release.
+
+In two acts, because they say different things. Over the first 8px of travel
+the gaps shut and the corners where the dots meet square off, so three dots
+become one short slug — fast, so the gesture is acknowledged almost as it
+starts, and the joins vanish instead of pinching. Over the next 20px that slug
+stretches and thins into the line while the pill flattens around it.
 
 It is not a state. Base UI publishes the live drag as
 `--drawer-swipe-movement-y`; the sheet re-publishes it as `--surface-travel`
