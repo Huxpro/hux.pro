@@ -22,7 +22,14 @@ import { TYPE } from "@/lib/typography";
 // album-switching card: pick an album (segmented control), scroll its videos
 // horizontally, tap one to open the immersive theater / PiP player. The albums
 // are the same curated groups used everywhere else, so content stays in sync.
+//
+// The card hands off to the reading of /works it is a preview of, not to the
+// page's default: a card about talks that lands you in a column of twenty-five
+// commits has made you do the filtering it was already doing for you.
 // ---------------------------------------------------------------------------
+
+/** Where the card's surface and its arrow go. */
+const TALKS_HREF = "/works?type=talk";
 
 export function FeaturedTalksWidget() {
   const { locale } = useLocale();
@@ -43,10 +50,10 @@ export function FeaturedTalksWidget() {
   if (albums.length === 0 || !album) return null;
 
   return (
-    <WidgetShell href="/works">
+    <WidgetShell href={TALKS_HREF}>
       <WidgetHeader className="pb-3">
         <WidgetTitle>{t(locale, "widgetFeaturedTalks")}</WidgetTitle>
-        <WidgetLink href="/works" />
+        <WidgetLink href={TALKS_HREF} />
       </WidgetHeader>
 
       <div className="px-5 pb-3">

@@ -267,7 +267,7 @@ function defaultFieldsForType(type: CommitType): Partial<Commit> {
       return {
         company: { en: "", zh: "" },
       };
-    case "social":
+    case "press":
       return { platform: "" };
     case "event":
       return {};
@@ -465,7 +465,7 @@ function FormFields({
   focusMediaIndex?: number | null;
   onFocusMediaIndexChange?: (index: number | null) => void;
 }) {
-  const commitTypes: CommitType[] = ["project", "talk", "post", "role", "social", "event"];
+  const commitTypes: CommitType[] = ["project", "talk", "post", "role", "press", "event"];
 
   return (
     <div className="space-y-2">
@@ -957,10 +957,10 @@ function TypeSpecificFields({
         </>
       );
 
-    case "social":
+    case "press":
       return (
         <>
-          <SectionLabel>Social</SectionLabel>
+          <SectionLabel>Press</SectionLabel>
           <Field
             label="Platform"
             value={commit.platform}

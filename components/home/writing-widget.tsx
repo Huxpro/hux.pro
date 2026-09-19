@@ -24,16 +24,26 @@ import { TYPE } from "@/lib/typography";
 // ---------------------------------------------------------------------------
 // WritingWidget — the home "writing" card.
 //
-// A vertical snap stack (same body as the projects widget) of the posts
-// worth surfacing: the latest few — so the widget always says what's new —
-// then, under a hairline, every post flagged `featured` in its frontmatter,
-// so the evergreen pieces don't scroll out of reach as new ones land. Rows
-// echo the /writing list (title + lowercase mono date) and the /works rows
-// (date at the muted/50 tier) so the two widgets share one metadata register.
+// The posts worth surfacing: the latest few — so the widget always says
+// what's new — then every post flagged `featured` in its frontmatter, so the
+// evergreen pieces don't fall off the end as new ones land. Rows echo the
+// /writing list (title + lowercase mono date) and the /works rows (date at
+// the muted/50 tier) so the two widgets share one metadata register.
+//
+// Featured is a *word in the date slot*, not a section. A hairline and a
+// label cost a row of height and a second heading on a card that already has
+// one, to say something each row can say for itself.
+//
+// Under a finger the body is a plain stack of exactly TOUCH_ROWS rows (see
+// WidgetScrollBody); under a pointer it is a fixed port holding all of them.
 // ---------------------------------------------------------------------------
 
 /** How many of the newest posts are always kept, featured or not. */
 const LATEST_COUNT = 3;
+
+/** Rows a finger sees. The rest are still rendered — they are what the
+ *  pointer's port scrolls through — and hidden by a media query. */
+const TOUCH_ROWS = 5;
 
 export interface WritingSelection {
   /** The newest posts, in date order. */
@@ -61,7 +71,18 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
     () => selectWritingPosts(posts, locale),
     [posts, locale],
   );
-  if (latest.length === 0 && featured.length === 0) return null;
+  // The marker belongs to the *run*, not the post. A post in the latest run
+  // is there because it is new, so its date is the truer answer even when it
+  // is also flagged `featured`; a post in the tail is there for no reason
+  // other than the flag, so the flag is what the slot should say.
+  const rows = useMemo(
+    () => [
+      ...latest.map((post) => ({ post, marker: false })),
+      ...featured.map((post) => ({ post, marker: true })),
+    ],
+    [latest, featured],
+  );
+  if (rows.length === 0) return null;
 
   return (
     <WidgetShell href="/writing">
@@ -70,63 +91,64 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
         <WidgetLink href="/writing" />
       </WidgetHeader>
 
-      <WidgetScrollBody className="max-h-64">
-        {latest.map((post) => (
-          <PostRow key={post.slug} post={post} locale={locale} />
+      <WidgetScrollBody port="pointer-fine:max-h-64">
+        {rows.map(({ post, marker }, i) => (
+          <PostRow
+            key={post.slug}
+            post={post}
+            locale={locale}
+            marker={marker}
+            className={i >= TOUCH_ROWS ? "pointer-coarse:hidden" : undefined}
+          />
         ))}
-
-        {featured.length > 0 && (
-          <>
-            {/* Section break between "what's new" and "what's worth
-                reading". The label is a *subordinate* heading, not a second
-                widget title: the log's event-row voice (serif italic; mono
-                for CJK, where italic reads as emphasis) one tier fainter
-                than an event, on the header-to-first-row rhythm of the card
-                so the featured run reads as a second paragraph. */}
-            {latest.length > 0 && (
-              <div className="mt-3 pt-4 pb-1.5 border-t border-border/30">
-                <span
-                  className={cn(
-                    "block text-xs text-tertiary-foreground",
-                    /[぀-ヿ一-鿿]/.test(t(locale, "writingFeatured"))
-                      ? "font-mono"
-                      : "italic font-serif",
-                  )}
-                >
-                  {t(locale, "writingFeatured")}
-                </span>
-              </div>
-            )}
-            {featured.map((post) => (
-              <PostRow key={post.slug} post={post} locale={locale} />
-            ))}
-          </>
-        )}
       </WidgetScrollBody>
     </WidgetShell>
   );
 }
 
-function PostRow({ post, locale }: { post: BlogPostSummary; locale: Locale }) {
+function PostRow({
+  post,
+  locale,
+  marker,
+  className,
+}: {
+  post: BlogPostSummary;
+  locale: Locale;
+  /** Print `featured` in the date slot instead of the date. */
+  marker: boolean;
+  className?: string;
+}) {
   return (
     <Link
       href={getPostHref(post, locale, "/writing")}
       // `pressable` + `active:` — the row washes on touch-down, not only on
       // hover (which touch devices never see), and eases back on release.
-      className="pressable snap-start flex items-baseline gap-3 -mx-2 px-2 py-2 rounded-lg transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35"
+      className={cn(
+        "pressable snap-start flex items-baseline gap-3 -mx-2 px-2 py-2 rounded-lg transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35",
+        className,
+      )}
     >
-      {/* Titles are the content here, so they wrap (two lines max) instead
-          of truncating like a project name would; the date stays on the
-          first baseline. */}
-      <span className={cn("min-w-0 flex-1 line-clamp-2", TYPE.rowTitle)}>
+      {/* One line, like a project's name on the projects widget. Wrapping
+          would make the card's height a function of how long the titles
+          happen to be — and a Chinese title against an English one is a
+          whole row of difference — where the whole point of a fixed row
+          count is that the card is the same size whatever is in it. The
+          title in full is one tap away. */}
+      <span className={cn("min-w-0 flex-1 truncate", TYPE.rowTitle)}>
         {getLocalizedTitle(post, locale)}
       </span>
-      <time
-        dateTime={post.date}
-        className={cn("shrink-0", TYPE.rowMeta)}
-      >
-        {formatPostDate(post.date)}
-      </time>
+      {/* The date slot carries the marker instead of the date, for the posts
+          that are here *because* they are featured: the slot answers why the
+          row is on the card, and for those rows the flag is the answer. */}
+      {marker ? (
+        <span className={cn("shrink-0", TYPE.rowMeta)}>
+          {t(locale, "writingFeatured")}
+        </span>
+      ) : (
+        <time dateTime={post.date} className={cn("shrink-0", TYPE.rowMeta)}>
+          {formatPostDate(post.date)}
+        </time>
+      )}
     </Link>
   );
 }

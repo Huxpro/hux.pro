@@ -125,6 +125,21 @@
       "limit": 5
     },
     {
+      "id": "featured-projects",
+      "title": {
+        "en": "Featured projects",
+        "zh": "精选项目"
+      },
+      "layout": "v",
+      "column": "left",
+      "href": "/works?type=project",
+      "commitIds": [
+        "lynx-framework",
+        "react-core",
+        "hermes-engine"
+      ]
+    },
+    {
       "id": "featured-react-talks",
       "title": {
         "en": "Featured React talks",
@@ -893,7 +908,7 @@
     },
     {
       "id": "opensrc-pioneer-2022",
-      "type": "social",
+      "type": "press",
       "tagId": "react-era",
       "title": {
         "en": "China Open Source Pioneer 33",
@@ -952,7 +967,7 @@
     },
     {
       "id": "gitee-cover-2022",
-      "type": "social",
+      "type": "press",
       "tagId": "react-era",
       "attachedTo": null,
       "title": {
@@ -1406,7 +1421,7 @@
     },
     {
       "id": "bilibili-sabbatical-2023",
-      "type": "social",
+      "type": "press",
       "tagId": "lynx-era",
       "attachedTo": "event-career-break",
       "title": {

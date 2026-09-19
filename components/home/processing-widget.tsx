@@ -18,6 +18,7 @@ import {
   isRowVisible,
   buildTimelineData,
   computeRail,
+  resolveGroupCommits,
 } from "@/lib/log";
 import { t, useLocale } from "@/services";
 import { useMemo } from "react";
@@ -25,22 +26,32 @@ import { useMemo } from "react";
 // ---------------------------------------------------------------------------
 // ProcessingWidget — a minimized /works timeline for the home grid.
 //
-// The vertical sibling of FeaturedTalksWidget's horizontal stack: the same
-// commits as /works, in the same order, rendered as one snap-scrolling
-// column of dense git-log rows. Only projects render (talks have their own
-// featured card; posts, roles and events are noise at this size) — with
-// link pills, author bylines and the expanded Author / Role block intact,
-// and attachments (cards, videos, slides) stripped for the footprint.
+// The vertical sibling of FeaturedTalksWidget's horizontal stack, and
+// curated the same way: the talks card reads its `featured-*-talks` groups,
+// this one reads `featured-projects`. A card is a preview, and a preview is
+// a choice about what to show — a truncated list is not one. Rows are dense
+// git-log lines with link pills and author bylines; attachments (cards,
+// videos, slides) are stripped for the footprint.
 //
 // Everything is derived from `content/log.json` through the same helpers
-// /works uses (`buildTimelineData`, `computeRail`, `computeBylines`,
-// `normalizeCommit`), so the widget can't drift from the page.
+// /works uses (`resolveGroupCommits`, `buildTimelineData`, `computeRail`,
+// `computeBylines`, `normalizeCommit`), so the widget can't drift from the
+// page, and what it shows is edited in the log rather than in here.
 // ---------------------------------------------------------------------------
 
+/** The curated group that decides which projects the card shows. */
+export const FEATURED_GROUP_ID = "featured-projects";
+
+/** Where the card hands off — the same reading of /works it is a preview
+ *  of, so arriving there does not mean finding these three in a column of
+ *  twenty-five. */
+export const PROJECTS_HREF = "/works?type=project";
+
 /**
- * The commits the widget renders: projects only, newest first across every
- * chapter. Roles are carried along as hidden rows — they never render, but
- * they still anchor the tenure rail and resolve each project's byline.
+ * The commits the widget renders: the curated projects, in the log's own
+ * order. Roles are carried along as hidden rows — they never render, but
+ * they still anchor the tenure rail and resolve each project's byline, so
+ * they are taken from the whole timeline rather than the curated slice.
  * Exported so the home grid can gate the widget's presence before mounting
  * the masonry slot.
  */
@@ -48,9 +59,20 @@ export function buildProcessingCommits(
   log: LogData,
   locale: Locale,
 ): CommitData[] {
+  const group = log.groups?.find((g) => g.id === FEATURED_GROUP_ID);
+  const featured = group
+    ? new Set(
+        resolveGroupCommits(group, log.commits, undefined, locale).map(
+          (c) => c.id,
+        ),
+      )
+    : null;
+
   const commits = buildTimelineData(log, locale).flatMap(({ commits }) =>
     commits.flatMap((c): CommitData[] => {
-      if (c.type === "project") return [c];
+      if (c.type === "project") {
+        return featured ? (featured.has(c.id) ? [c] : []) : [c];
+      }
       if (c.type === "role") return [{ ...c, hideRow: true }];
       return [];
     }),
@@ -112,14 +134,14 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
   if (commits.length === 0) return null;
 
   return (
-    <WidgetShell href="/works">
+    <WidgetShell href={PROJECTS_HREF}>
       <WidgetHeader className="pb-2">
         <WidgetTitle>{t(locale, "widgetStatus")}</WidgetTitle>
-        <WidgetLink href="/works" label="View works" />
+        <WidgetLink href={PROJECTS_HREF} label="View works" />
       </WidgetHeader>
 
-      {/* Vertical snapping stack — the column analogue of the talks widget's
-          horizontal card row. */}
+      {/* No port, on any device: the group is short enough to print whole,
+          so there is nothing to scroll and nothing to cut. */}
       <WidgetScrollBody>
         {runs.map((run, runIdx) => {
           const nodes = run.indices.map((i) => (
@@ -130,7 +152,6 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
               isRole={commits[i].type === "role"}
               byline={bylines[i]}
               hideDate={hideDateFor(commits[i])}
-              className="snap-start"
             />
           ));
           return run.kind === "cluster" ? (
