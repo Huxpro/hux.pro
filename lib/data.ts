@@ -318,7 +318,7 @@ export const talks: TalkData[] = [
     description:
       "Why AI agents deserve a better app framework: Lynx, and three principles for AI native infra.",
     descriptionZh:
-      "为什么 AI Agent 配得上更好的应用框架——Lynx，以及 AI 原生基建的三条原则。",
+      "为什么 AI Agent 配得上更好的应用框架：Lynx，以及 AI 原生基建的三条原则。",
   },
   {
     id: "react-summit-2025-unlock-native",
@@ -343,6 +343,6 @@ export const talks: TalkData[] = [
     video: "https://youtu.be/lGEMwh32soc",
     description:
       "Introducing React Forget. Write React without useMemo and useCallback.",
-    descriptionZh: "介绍 React Forget——不用手写 useMemo / useCallback 的 React。",
+    descriptionZh: "介绍 React Forget。不用手写 useMemo / useCallback 的 React。",
   },
 ];

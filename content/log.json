@@ -432,7 +432,7 @@
       },
       "description": {
         "en": "A hands on workshop and hackathon at WeAreDevelopers World Congress. Vibe code once and bring the same app to web, mobile, and desktop with Lynx, plus a look at AI native app infra: AI Ergonomic, AI Efficient, and AI Expressive.",
-        "zh": "WeAreDevelopers World Congress 上的动手工作坊与黑客松。用 Lynx 一次 vibe-code，把同一套应用带到 Web、移动端和桌面；并讨论 AI 原生应用基建：对 AI 友好、对 token 经济、对意图表达。"
+        "zh": "WeAreDevelopers World Congress 上的动手工作坊与黑客松。用 Lynx 一次 vibe code，把同一套应用带到 Web、移动端和桌面；并讨论 AI 原生应用基建：对 AI 友好、对 token 经济、对意图表达。"
       },
       "date": "2026-07",
       "conference": {
@@ -472,7 +472,7 @@
       },
       "description": {
         "en": "AI is transforming how apps are built, but not what they are built on. Without a cross platform framework, agents must generate, verify, and maintain separate code for every platform. This talk introduces Lynx and three principles for AI native app infrastructure (AI Ergonomic, AI Efficient, AI Expressive), with vue-lynx vibe coded in two weeks as the demo.",
-        "zh": "AI 正在改变应用如何被构建，却还没改变它们构建在什么之上。没有跨平台框架，Agent 就得为每个平台分别生成、验证和维护代码。这次演讲介绍 Lynx，以及 AI 原生应用基建的三条原则——对 AI 友好、对 token 经济、对意图表达——并以两周 vibe-code 出的 vue-lynx 作为演示。"
+        "zh": "AI 正在改变应用如何被构建，却还没改变它们构建在什么之上。没有跨平台框架，Agent 就得为每个平台分别生成、验证和维护代码。这次演讲介绍 Lynx，以及 AI 原生应用基建的三条原则：对 AI 友好、对 token 经济、对意图表达，并以两周 vibe code 出的 vue-lynx 作为演示。"
       },
       "date": "2026-05",
       "conference": {
@@ -993,7 +993,7 @@
       },
       "description": {
         "en": "Introducing React Forget (now the React Compiler), an auto memoization compiler so you can write React without useMemo and useCallback, and forget about accidental rerenders.",
-        "zh": "介绍 React Forget（现 React Compiler）——自动记忆化编译器，让你不用手写 useMemo / useCallback，也能忘掉意外的重渲染。"
+        "zh": "介绍 React Forget（现 React Compiler），自动记忆化编译器，让你不用手写 useMemo / useCallback，也能忘掉意外的重渲染。"
       },
       "date": "2021-09",
       "conference": {
