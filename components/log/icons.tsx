@@ -14,7 +14,7 @@ export const commitIcons: Record<CommitType, LucideIcon> = {
   project: Package,
   talk: Mic,
   post: FileText,
-  social: MessageCircle,
+  press: MessageCircle,
   role: Briefcase,
   event: Dot,
 };

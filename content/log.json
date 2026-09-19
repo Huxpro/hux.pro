@@ -754,7 +754,7 @@
     },
     {
       "id": "opensrc-pioneer-2022",
-      "type": "social",
+      "type": "press",
       "tagId": "react-era",
       "title": {
         "en": "China Open Source Pioneer 33",
@@ -813,7 +813,7 @@
     },
     {
       "id": "gitee-cover-2022",
-      "type": "social",
+      "type": "press",
       "tagId": "react-era",
       "attachedTo": null,
       "title": {
@@ -1267,7 +1267,7 @@
     },
     {
       "id": "bilibili-sabbatical-2023",
-      "type": "social",
+      "type": "press",
       "tagId": "lynx-era",
       "attachedTo": "event-career-break",
       "title": {

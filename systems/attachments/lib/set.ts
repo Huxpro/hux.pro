@@ -19,7 +19,7 @@ function subtitleFor(commit: Commit, locale: Locale): string | undefined {
       return commit.conference.name;
     case "post":
       return commit.publication.name;
-    case "social":
+    case "press":
       return commit.platform;
     case "role":
       return localize(commit.company, locale);
