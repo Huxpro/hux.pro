@@ -1,7 +1,7 @@
 "use client";
 
 import { PageLayout } from "@/components/ui/page-layout";
-import type { Person, Principle, PromptsData, Quote } from "@/lib/prompts";
+import type { Book, NamedEntry, Person, Principle, PromptsData, Quote } from "@/lib/prompts";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { AnimatePresence, motion } from "motion/react";
@@ -142,7 +142,22 @@ function QuoteItem({ quote }: { quote: Quote }) {
         <p className="mt-3 text-sm text-muted-foreground">
           {quote.author}
           {quote.source && (
-            <span className="text-tertiary-foreground"> · {quote.source}</span>
+            <>
+              <span className="text-tertiary-foreground"> · </span>
+              {quote.url ? (
+                <a
+                  href={quote.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-tertiary-foreground hover:text-foreground underline underline-offset-2 decoration-muted-foreground/30 hover:decoration-foreground transition-colors"
+                >
+                  {quote.source}
+                </a>
+              ) : (
+                <span className="text-tertiary-foreground">{quote.source}</span>
+              )}
+            </>
           )}
         </p>
 
@@ -276,11 +291,16 @@ function PrincipleItem({
   );
 }
 
-// Person item component
-function PersonItem({ person }: { person: Person }) {
+function NamedEntryItem({
+  entry,
+  tag,
+}: {
+  entry: NamedEntry;
+  tag: "people" | "book";
+}) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const hasExpandableContent = person.admire || person.links;
+  const hasExpandableContent = entry.admire || entry.links;
 
   return (
     <div
@@ -298,7 +318,7 @@ function PersonItem({ person }: { person: Person }) {
             isExpanded && "opacity-100",
           )}
         >
-          person
+          {tag}
         </XmlTag>
         {hasExpandableContent && (
           <motion.span
@@ -315,17 +335,14 @@ function PersonItem({ person }: { person: Person }) {
       </div>
 
       <div className="mt-2 mb-2">
-        {/* Name - serif, large */}
         <p className="font-serif text-xl sm:text-2xl text-foreground">
-          {person.name}
+          {entry.name}
         </p>
 
-        {/* Context */}
-        {person.context && (
-          <p className="mt-1 text-sm text-muted-foreground">{person.context}</p>
+        {entry.context && (
+          <p className="mt-1 text-sm text-muted-foreground">{entry.context}</p>
         )}
 
-        {/* Expandable detail */}
         <AnimatePresence>
           {isExpanded && hasExpandableContent && (
             <motion.div
@@ -337,9 +354,9 @@ function PersonItem({ person }: { person: Person }) {
             >
               <motion.div variants={contentVariants}>
                 <Divider />
-                {person.admire && person.admire.length > 0 && (
+                {entry.admire && entry.admire.length > 0 && (
                   <ul className="space-y-1 mb-4">
-                    {person.admire.map((point, i) => (
+                    {entry.admire.map((point, i) => (
                       <motion.li
                         key={i}
                         className="text-sm text-muted-foreground flex items-start gap-2"
@@ -353,9 +370,9 @@ function PersonItem({ person }: { person: Person }) {
                     ))}
                   </ul>
                 )}
-                {person.links && person.links.length > 0 && (
+                {entry.links && entry.links.length > 0 && (
                   <div className="flex flex-wrap gap-3">
-                    {person.links.map((link, i) => (
+                    {entry.links.map((link, i) => (
                       <motion.a
                         key={link.url}
                         href={link.url}
@@ -385,10 +402,18 @@ function PersonItem({ person }: { person: Person }) {
           isExpanded && "opacity-100",
         )}
       >
-        person
+        {tag}
       </XmlTag>
     </div>
   );
+}
+
+function PeopleItem({ person }: { person: Person }) {
+  return <NamedEntryItem entry={person} tag="people" />;
+}
+
+function BookItem({ book }: { book: Book }) {
+  return <NamedEntryItem entry={book} tag="book" />;
 }
 
 // Footer meta component
@@ -457,7 +482,11 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
 
           {/* People */}
           {data.people.map((person) => (
-            <PersonItem key={person.id} person={person} />
+            <PeopleItem key={person.id} person={person} />
+          ))}
+
+          {data.books.map((book) => (
+            <BookItem key={book.id} book={book} />
           ))}
         </div>
 

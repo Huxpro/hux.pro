@@ -38,6 +38,16 @@
         "en": "\"Pressure is a privilege, and champions adjust.\" If you feel the pressure, it means you earned your way to a moment that matters. Reframe the weight as proof you belong.",
         "zh": "\"压力是一种荣幸，而冠军懂得调整。\" 如果你感受到压力，说明你已经凭实力赢得了这个重要的时刻。把这份重量重新理解为你有资格在场的证明。"
       }
+    },
+    {
+      "id": "matt-might-keep-pushing",
+      "text": {
+        "en": "Keep pushing",
+        "zh": "Keep pushing"
+      },
+      "author": "Matt Might",
+      "source": "The illustrated guide to a Ph.D.",
+      "url": "https://matt.might.net/articles/phd-school-in-pictures/"
     }
   ],
   "principles": [
@@ -80,25 +90,6 @@
       }
     },
     {
-      "id": "tools-for-thought",
-      "statement": {
-        "en": "Build tools for thought, not tools for output.",
-        "zh": "构建思考的工具，而非产出的工具。"
-      },
-      "topic": {
-        "en": "product",
-        "zh": "产品"
-      },
-      "shapedBy": {
-        "en": ["Bret Victor", "Doug Engelbart"],
-        "zh": ["Bret Victor", "Doug Engelbart"]
-      },
-      "reasoning": {
-        "en": "The best tools don't just produce artifacts—they change how you think about the problem space.",
-        "zh": "最好的工具不只是产出产物——它们改变你思考问题空间的方式。"
-      }
-    },
-    {
       "id": "always-becoming",
       "statement": {
         "en": "You are always becoming. Narrative is how you answer who you are.",
@@ -120,52 +111,23 @@
   ],
   "people": [
     {
-      "id": "dan-abramov",
-      "name": "Dan Abramov",
+      "id": "react-team",
+      "name": "React Team",
       "context": {
-        "en": "React Core Team",
-        "zh": "React 核心团队"
-      },
-      "admire": {
-        "en": [
-          "Demo-driven, not spec-driven",
-          "User perspective first",
-          "Makes complex things simple"
-        ],
-        "zh": [
-          "演示驱动，而非规格驱动",
-          "用户视角优先",
-          "让复杂的事情变简单"
-        ]
-      },
-      "links": [
-        { "label": "overreacted.io", "url": "https://overreacted.io" },
-        { "label": "@dan_abramov", "url": "https://twitter.com/dan_abramov" }
-      ]
+        "en": "Cheng, Dan, Jordan, Seb, Tom'O… sorry, too many",
+        "zh": "Cheng、Dan、Jordan、Seb、Tom'O……sorry, too many"
+      }
     },
     {
-      "id": "alan-kay",
-      "name": "Alan Kay",
+      "id": "chrome-team",
+      "name": "Chrome Team",
       "context": {
-        "en": "Xerox PARC, Smalltalk",
-        "zh": "Xerox PARC, Smalltalk"
-      },
-      "admire": {
-        "en": [
-          "Invented the future he wanted to see",
-          "Thinking in decades, not quarters",
-          "Objects were about messaging, not data"
-        ],
-        "zh": [
-          "发明了他想看到的未来",
-          "以十年为单位思考，而非季度",
-          "对象是关于消息传递，而非数据"
-        ]
-      },
-      "links": [
-        { "label": "Wikipedia", "url": "https://en.wikipedia.org/wiki/Alan_Kay" }
-      ]
-    },
+        "en": "Alex Russell, Addy Osmani",
+        "zh": "Alex Russell、Addy Osmani"
+      }
+    }
+  ],
+  "books": [
     {
       "id": "hackers-and-painters",
       "name": "Hackers & Painters",
@@ -190,40 +152,14 @@
       ]
     },
     {
-      "id": "matt-might",
-      "name": "Keep pushing",
+      "id": "principles-dalio",
+      "name": "Principles",
       "context": {
-        "en": "Matt Might",
-        "zh": "Matt Might"
+        "en": "Ray Dalio",
+        "zh": "Ray Dalio"
       },
       "links": [
-        {
-          "label": "The illustrated guide to a Ph.D.",
-          "url": "https://matt.might.net/articles/phd-school-in-pictures/"
-        }
-      ]
-    },
-    {
-      "id": "alex-russell",
-      "name": "Alex Russell",
-      "context": {
-        "en": "PWA, platform economics",
-        "zh": "PWA，平台经济学"
-      },
-      "admire": {
-        "en": [
-          "The web as a distribution and power question, not a framework question",
-          "Uncomfortable honesty about what browsers actually afford",
-          "Still the clearest writer I know on platform economics"
-        ],
-        "zh": [
-          "把 Web 当成分发与权力的问题，而不是框架的问题",
-          "对浏览器真正能提供什么，诚实得让人不舒服",
-          "讲平台经济学，仍是我读过最清楚的人之一"
-        ]
-      },
-      "links": [
-        { "label": "infrequently.org", "url": "https://infrequently.org" }
+        { "label": "principles.com", "url": "https://www.principles.com/" }
       ]
     }
   ],

@@ -3,7 +3,7 @@ import { PromptView } from "./view";
 
 export const metadata = {
   title: "System Prompts",
-  description: "Quotes, principles, and role models that shape my thinking.",
+  description: "Quotes, principles, people, and books that shape my thinking.",
 };
 
 export default function PromptPage() {

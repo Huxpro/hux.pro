@@ -23,7 +23,8 @@ import { TYPE } from "@/lib/typography";
 type PromptItem =
   | { kind: "quote"; id: string; text: string; author: string; source?: string }
   | { kind: "principle"; id: string; statement: string; topic?: string }
-  | { kind: "person"; id: string; name: string; context?: string };
+  | { kind: "people"; id: string; name: string; context?: string }
+  | { kind: "book"; id: string; name: string; context?: string };
 
 // =============================================================================
 // Data helpers
@@ -52,10 +53,18 @@ function resolveItems(locale: Locale): PromptItem[] {
   }
   for (const p of promptsRaw.people) {
     items.push({
-      kind: "person",
+      kind: "people",
       id: p.id,
       name: p.name,
       context: p.context?.[l],
+    });
+  }
+  for (const b of promptsRaw.books ?? []) {
+    items.push({
+      kind: "book",
+      id: b.id,
+      name: b.name,
+      context: b.context?.[l],
     });
   }
 
@@ -128,7 +137,11 @@ function PrincipleDisplay({ item, locale }: { item: Extract<PromptItem, { kind: 
   );
 }
 
-function PersonDisplay({ item }: { item: Extract<PromptItem, { kind: "person" }> }) {
+function NamedDisplay({
+  item,
+}: {
+  item: Extract<PromptItem, { kind: "people" | "book" }>;
+}) {
   return (
     <div>
       <p className="font-serif text-base text-foreground">
@@ -147,8 +160,9 @@ function PromptItemDisplay({ item, locale }: { item: PromptItem; locale: Locale 
       return <QuoteDisplay item={item} />;
     case "principle":
       return <PrincipleDisplay item={item} locale={locale} />;
-    case "person":
-      return <PersonDisplay item={item} />;
+    case "people":
+    case "book":
+      return <NamedDisplay item={item} />;
   }
 }
 

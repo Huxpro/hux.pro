@@ -328,7 +328,7 @@ export const translations = {
     promptsTitle: "System Prompts",
     promptsTitleHover: "Propositions",
     promptSubtitle:
-      "Quotes, principles, and people I keep re-reading — the system prompt I actually run on.",
+      "Quotes, principles, people, and books I keep re-reading — the system prompt I actually run on.",
     promptShapedBy: "shaped by",
     promptTokens: "tokens",
     promptLastUpdated: "last updated",
@@ -620,7 +620,7 @@ export const translations = {
     // Prompts page
     promptsTitle: "系统提示词",
     promptsTitleHover: "闻道有先后",
-    promptSubtitle: "我反复重读的句子、原则和人——我真正跑着的那份系统提示词。",
+    promptSubtitle: "我反复重读的句子、原则、人和书——我真正跑着的那份系统提示词。",
     promptShapedBy: "受启发于",
     promptTokens: "tokens",
     promptLastUpdated: "更新于",
