@@ -26,7 +26,7 @@ import {
   AuthorFields,
 } from "./embeds/shared";
 import { MediaRenderer } from "./media";
-import { AttachmentGrid, PHONE_BLEED_BOX } from "./media/attachment-grid";
+import { AttachmentGrid } from "./media/attachment-grid";
 import { MediaStrip } from "./media/media-strip";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
@@ -719,20 +719,13 @@ export function TimelineCommit({
         // not the text inside it.
         <div
           data-row-body
-          // Rendered only near the viewport (globals.css): an open row's
-          // body is the heaviest thing on the page, and twenty of them off
-          // screen need no layout, decode or layer until they are about to
-          // show.
-          data-row-lazy
           // `min-w-0` for the same reason the strip line carries it: the
           // content track is `1fr`, whose automatic minimum is its content,
-          // and a caption line that does not wrap would set it. On a phone
-          // the box spans the screen (PHONE_BLEED_BOX): the lazy render
-          // clips paint to it, and the feed's covers run edge to edge.
-          className={cn(
-            "col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-1.5",
-            PHONE_BLEED_BOX,
-          )}
+          // and a caption line that does not wrap would set it. The covers
+          // bleed past this box on a phone and paint there: nothing on this
+          // row contains paint, which is what the body being skippable used
+          // to cost (see the note on the row's clip-path).
+          className="col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-1.5"
         >
           {/* The message: what it is, the thing itself, the note on it.
               Topics and stats are authored but deliberately unprinted — a row

@@ -593,21 +593,6 @@ html.dragging * {
   display: none;
 }
 
-/* An open /works row's body renders only near the viewport. Off-screen,
-   the browser keeps a box of the remembered size and skips the layout and
-   paint of what is in it: a full-bleed cover it would otherwise decode,
-   layer and composite for a row three screens away. `auto` remembers the
-   size once rendered, so the scrollbar holds still; 24rem is the guess
-   before that — about one tile and its caption, close enough that a first
-   scroll does not resize the page under the thumb. Anchors (`#<hash>`)
-   still land, and an inline player keeps playing. The folded strip is not
-   marked: 112px of images gains little from being skipped and would pay
-   the resize. */
-[data-row-lazy] {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 24rem;
-}
-
 /* Commit permalink arrival — /works#<hash>. The row you travelled to is
    marked for two seconds (see `useCommitAnchor`) so the eye lands on it
    instead of counting rows. A wash, not a border: the timeline's rows have no

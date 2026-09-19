@@ -285,11 +285,19 @@ frame is spent by then. Three rules keep the feed scrolling on a phone:
 - **No `backdrop-filter` on a cover's chip.** Every cover wore a 2px blur
   under its chip — twenty-odd backdrop roots scrolling over full-bleed
   bitmaps. A translucent fill reads the same and costs a fill.
-- **Open rows render near the viewport only.** The open row's body
-  (`data-row-lazy`) carries `content-visibility: auto` with a remembered
-  intrinsic size, so an off-screen cover is neither laid out nor decoded
-  nor layered until it is about to show. The folded strip is not marked:
-  112px of images gains little and would pay the resize.
+- **No `content-visibility` on a row body.** It was tried, with a 24rem
+  intrinsic size, and it cost more than it saved — it is the one rule here
+  that was never measured in time, only in what it skipped. Rows are
+  380–530px on a 402px phone, so the page kept resizing as they came into
+  range (32 changes over one pass, 17.0k → 20.1k), and each row entering
+  range is a layout: **248ms of layout over a scroll versus 36ms without
+  it, 147 layouts versus 67** (Chromium, 4x CPU throttle, scripted pass of
+  the phone feed). It buys about 200ms of the first load at that throttle,
+  and on iOS the resizing is worse than slow: the scroll view's idea of the
+  page lags behind it, so a finger moving up can hit a bottom that is no
+  longer there. The work it would skip is already lazy by other means —
+  `loading="lazy"` on the covers, `decoding="async"`, and no peek tree
+  where no pointer can hover.
 - **A peek panel exists only while it peeks.** `Cursor` used to keep a
   fixed, transformed panel mounted for every row — fifty compositing
   layers on a desk before anyone hovered. Idle, it is a hidden span.
