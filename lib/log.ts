@@ -1694,7 +1694,7 @@ export function isEventCommit(commit: Commit): commit is EventCommit {
   return commit.type === "event";
 }
 
-/** True when the row dresses as a muted one-liner until opened. */
+/** True when the row dresses as a muted line until opened. */
 export function isAsideCommit(commit: Commit): boolean {
   return commit.present === "aside";
 }
