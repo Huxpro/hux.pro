@@ -3,7 +3,8 @@
     "title": "Gitee 封面人物:React 黄玄",
     "description": "React 黄玄：不懂艺术的 B-Boy 不是 Swag 的程序员",
     "image": "https://gitee.com/index/gitee-people/images/common-thumb.jpg",
-    "siteName": "Gitee"
+    "siteName": "Gitee",
+    "frame": "deny"
   },
   "https://gitnation.com/contents/lynx-ui-dual-threaded-ui-with-lynx": {
     "title": "lynx-ui: Best Lynx in Components",
@@ -35,10 +36,13 @@
     "image": "https://lynxjs.org/next/og/blog/zh/lynx-unlock-native-for-more.png",
     "siteName": "Lynx"
   },
+  "https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509": {
+    "frame": "deny"
+  },
   "https://react.dev/blog/2022/06/15/react-labs-what-we-have-been-working-on-june-2022#react-compiler": {
     "title": "React Labs: What We've Been Working On – June 2022 – React",
     "description": "The library for web and native user interfaces",
-    "image": "https://react.dev/images/og-blog.png",
+    "image": "https://react.dev/images/og/blog-2022-06-15-react-labs-what-we-have-been-working-on-june-2022.png",
     "siteName": "react.dev"
   },
   "https://reactnative.dev/blog/2021/10/26/toward-hermes-being-the-default": {
@@ -53,7 +57,7 @@
   "https://rescript-lang.org/": {
     "title": "The ReScript Programming Language",
     "description": "JavaScript Made Simple for Humans and AI. ReScript is a strongly typed language that compiles to clean, efficient JavaScript that humans and AI tools can read and understand.",
-    "image": "https://rescript-lang.org/ogimage/index.png?url=%2F",
+    "image": "https://rescript-lang.org/ogimage/index.png?url=https%3A%2F%2Frescript-lang.org%2F",
     "siteName": "ReScript Documentation"
   },
   "https://segmentfault.com/a/1190000043208486": {
@@ -71,7 +75,8 @@
     "title": "Ele.me improves performance load times with a multi-page Progressive Web App  |  web.dev",
     "description": "Ele.me is the biggest food ordering and delivery company in mainland China. They built their Progressive Web App (PWA) as a multi-page app to improve its mobile web experience, making it faster and more reliable in flaky connections, while accommodating their operational needs to best serve their customers.",
     "image": "https://web.dev/static/images/social-wide.jpg",
-    "siteName": "web.dev"
+    "siteName": "web.dev",
+    "frame": "deny"
   },
   "https://www.bilibili.com/video/BV1A1XxYXERk": {
     "image": "https://i1.hdslb.com/bfs/archive/a83de40a3936f6ec3adad3a7f99502d76f0f78b2.jpg"
@@ -81,6 +86,9 @@
   },
   "https://www.bilibili.com/video/BV1SC4y1c7ju/": {
     "image": "https://i2.hdslb.com/bfs/archive/fe0c80595fc3ec885ef6377ea4dd1133324eb94c.jpg"
+  },
+  "https://www.bilibili.com/video/BV1YeSgBCEoe/": {
+    "image": "https://i1.hdslb.com/bfs/archive/7b3aa9cb0c7b6b70a0c33f5d21215026b9f19b93.jpg"
   },
   "https://www.bilibili.com/video/BV1ky4y1R7Zm/": {
     "image": "https://i1.hdslb.com/bfs/archive/bc1c58ea74186267875aff7770d03b409f8148f5.jpg"
@@ -98,7 +106,8 @@
     "title": "Orion AI Glasses: The Future of AR Glasses Technology",
     "description": "A decade in the making, recent groundbreaking innovations from Meta with Orion redefine what is possible for AR, AI and beyond.",
     "image": "https://lookaside.fbsbx.com/elementpath/media/?media_id=535767592162374&version=1758876218",
-    "siteName": "Meta"
+    "siteName": "Meta",
+    "frame": "deny"
   },
   "https://www.theverge.com/2022/2/25/22950710/meta-vr-ar-os-team-xros-breakup-hyper-tuned-focus": {
     "title": "Meta reportedly breaks up the 300-person team that was building a hybrid VR / AR OS",

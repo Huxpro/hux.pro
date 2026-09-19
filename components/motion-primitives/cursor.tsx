@@ -45,8 +45,12 @@ export function Cursor({
     typeof window !== "undefined" ? window.innerHeight / 2 : 0
   );
   // Horizontal offset stays fixed so the panel always sits in the same side
-  // gutter and never covers the reading column. Only the vertical offset is
-  // recomputed, to keep the panel on screen near the bottom edge.
+  // gutter and never covers the reading column — with one exception: a panel
+  // that would leave the screen on the right flips to the pointer's left
+  // instead. A mark at the trailing edge of the column (a `<handle>` under
+  // the date) would otherwise peek into the void. The vertical offset is
+  // recomputed to keep the panel on screen near the bottom edge.
+  const translateX = useMotionValue(offset.x);
   const translateY = useMotionValue(offset.y);
   const cursorRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = useState(false);
@@ -55,27 +59,41 @@ export function Cursor({
   // would spill off the bottom, then clamp against the top edge (panels taller
   // than the viewport). The panel keeps its horizontal gutter position, so
   // shifting it up never drops it over the reading column.
-  const recomputeOffsetY = useCallback(
-    (py: number) => {
+  const recomputeOffset = useCallback(
+    (px: number, py: number) => {
       if (typeof window === "undefined") return;
       const margin = 8;
       const h = cursorRef.current?.offsetHeight ?? 0;
+      const w = cursorRef.current?.offsetWidth ?? 0;
       const vh = window.innerHeight;
+      const vw = window.innerWidth;
 
       let ty = offset.y;
       if (py + ty + h + margin > vh) ty = -offset.y - h;
       if (py + ty < margin) ty = margin - py;
 
+      let tx = offset.x;
+      if (px + tx + w + margin > vw) tx = -offset.x - w;
+      if (px + tx < margin) tx = margin - px;
+
+      translateX.set(tx);
       translateY.set(ty);
     },
-    [offset.y, translateY]
+    [offset.x, offset.y, translateX, translateY]
   );
 
+  // Only while the panel can show. A page of covers and handles mounts a
+  // hundred of these; a hundred document listeners doing four motion-value
+  // writes per pointer event, for panels that are not on screen, is not a
+  // hover system. The enter event seeds the position, so the first frame is
+  // already under the pointer.
+  const listening = !attachToParent || isHovering;
   useEffect(() => {
+    if (!listening) return;
     const updatePosition = (e: MouseEvent) => {
       cursorX.set(e.clientX);
       cursorY.set(e.clientY);
-      recomputeOffsetY(e.clientY);
+      recomputeOffset(e.clientX, e.clientY);
       onPositionChange?.(e.clientX, e.clientY);
     };
 
@@ -83,18 +101,25 @@ export function Cursor({
     return () => {
       document.removeEventListener("mousemove", updatePosition);
     };
-  }, [cursorX, cursorY, recomputeOffsetY, onPositionChange]);
+  }, [listening, cursorX, cursorY, recomputeOffset, onPositionChange]);
 
   // Recompute once the panel mounts/measures so the first frame is already
   // positioned correctly (the panel height is unknown until it renders).
   useEffect(() => {
-    if (isHovering) recomputeOffsetY(cursorY.get());
-  }, [isHovering, recomputeOffsetY, cursorY]);
+    if (isHovering) recomputeOffset(cursorX.get(), cursorY.get());
+  }, [isHovering, recomputeOffset, cursorX, cursorY]);
 
   const cursorXSpring = useSpring(cursorX, springConfig || { duration: 0 });
   const cursorYSpring = useSpring(cursorY, springConfig || { duration: 0 });
 
-  const handleMouseEnter = useCallback(() => setIsHovering(true), []);
+  const handleMouseEnter = useCallback(
+    (e: MouseEvent) => {
+      cursorX.set(e.clientX);
+      cursorY.set(e.clientY);
+      setIsHovering(true);
+    },
+    [cursorX, cursorY],
+  );
   const handleMouseLeave = useCallback(() => setIsHovering(false), []);
 
   useEffect(() => {
@@ -124,6 +149,24 @@ export function Cursor({
 
   const isVisible = attachToParent ? isHovering : true;
 
+  // The panel exists only while it peeks. A fixed, transformed element is a
+  // compositing layer, and one per row of /works was fifty layers on a desk
+  // before anyone hovered; idle, this is a hidden span — enough for the
+  // parent-attach effect above to find the parent. `present` outlives
+  // `isVisible` by the exit animation, so the panel can leave the way it
+  // came. (React's "adjusting state during render" pattern, so the panel
+  // is in the same commit as the hover that asked for it.)
+  const [present, setPresent] = useState(isVisible);
+  if (isVisible && !present) setPresent(true);
+  if (!present) {
+    return (
+      <span
+        ref={cursorRef as unknown as React.RefObject<HTMLSpanElement>}
+        hidden
+      />
+    );
+  }
+
   return (
     <motion.div
       ref={cursorRef}
@@ -131,11 +174,11 @@ export function Cursor({
       style={{
         x: cursorXSpring,
         y: cursorYSpring,
-        translateX: `${offset.x}px`,
+        translateX,
         translateY,
       }}
     >
-      <AnimatePresence>
+      <AnimatePresence onExitComplete={() => setPresent(false)}>
         {isVisible && (
           <motion.div
             initial="initial"

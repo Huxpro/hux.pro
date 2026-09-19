@@ -34,8 +34,10 @@ systems/ambient/
 │   │   ├── renderer.ts           # WallpaperRenderer: uniform easing, adaptive quality
 │   │   ├── stir.ts               # Drag the background to stir up a gust of wind
 │   │   └── support.ts            # WebGL2 / reduced-motion / quality-profile detection
-│   ├── strike.ts                 # The thunder-day strike: timing + "is this the sky?"
+│   ├── poke.ts                   # The two tapped eggs: which weather, when it is
+│   │                             #   dark enough, and "is this the sky?" — for all of them
 │   ├── wipe.ts                   # The foggy-day wipe: the stroke, the hand, the gesture
+│   ├── tilt-primer.ts            # The press-and-hold that offers the gyroscope
 │   ├── greeting.ts               # Time-of-day helpers
 │   ├── location.ts               # IP/GPS location resolution
 │   ├── notification.ts           # Upcoming sun-event detection (lead-up + window)
@@ -539,10 +541,6 @@ per-widget overlays, so they transition identically. The iOS `fixedBgTracker`
 (background-attachment polyfill + viewport-relative edge mask) is applied per
 layer, so soft-edging keeps working mid-crossfade.
 
-│   ├── poke.ts                   # The two tapped eggs: which weather, how long,
-│   │                             #   and "is this the sky?" — asked for all of them
-│   ├── wipe.ts                   # The foggy-day wipe: the stroke, the hand, the gesture
-
 `lib/poke.ts` owns the part with no engine in it: which condition is armed
 (`armedPoke`), how long each answer lives, how often one may fire, and the one
 question the interaction turns on — **did that click land on the sky, or on
@@ -599,12 +597,56 @@ and deliberately the opposite tone: the thunder day answers a click with
 violence, the clear night answers it with a wish. The second discovery should
 feel like a different joke, not the same one told again.
 
-Armed on `scene.stars > 0.35`, never on `condition === "clear"`. `stars` is not
-a proxy for a clear night, it *is* "can you see stars right now": it already
-accounts for cloud cover, fog and a bright moon washing the field out. So the
-gate falls out correctly for free — a partly cloudy night with stars still
-showing gets a meteor, a full-moon night loses it as the field dims, and a
-thunder or foggy night can never have one.
+#### The window, in the two terms the real answer has
+
+`meteorPossible()` asks two questions, and they are independent because the
+things they are about are:
+
+| | | |
+|---|---|---|
+| **Dark enough?** | the sun more than **12°** below the horizon | the clock's business |
+| **Anything in the way?** | `clarity` over 0.35 — cover and fog, nothing else | the weather's business |
+
+Twelve degrees is the end of **nautical twilight**, where meteor observing
+conventionally begins and the first line at which a streak has any contrast to
+work with. It is not a number picked for feel; the two neighbouring definitions
+were measured and rejected:
+
+| line | | London | Stockholm | Reykjavik |
+|---|---|---|---|---|
+| −6° | civil twilight ends | 0 nights lost | 0 | 65 |
+| −12° | **nautical** — this one | **0** | 76 | 110 |
+| −18° | astronomical, full dark | **59** | 118 | 145 |
+
+Civil twilight puts meteors over a sky still bright enough to read by.
+Astronomical twilight is the purist's answer and deletes two months of London's
+summer — a threshold that takes the egg away for a season is not physics, it is
+a bug with a citation. At −12° London never loses a night (its shortest window
+is 3.3 hours, its median 9.3), and the far-northern white nights that do lose it
+genuinely have no meteors to see.
+
+**The moon is deliberately not in the rule.** A bright moon washes out the faint
+end of a shower — it cuts the *rate* you see, not the possibility — and a
+fireball is a fireball under a full moon.
+
+This used to gate on `scene.stars`, which is `behind.stars × clarity`: how dark
+the night is, times whether anything is in the way, times how much the moon has
+washed out, all multiplied into one number. That conflation cost two things. The
+window opened at an arbitrary **−7.99°** rather than at any named line, because
+that is simply where `night` crosses 0.35. And the moon was documented here as
+able to close the gate when it never could: moonlight can take `stars` no lower
+than ×0.45, against a threshold of 0.35, and across 365 nights there was not one
+where it closed. Splitting `clarity` out of `stars` is what lets each question
+be asked without dragging in the other.
+
+Never gated on `condition === "clear"`, which would wrongly exclude a
+clear-enough cloudy night — and that is not hypothetical. `cloudy` has a cover
+floor of 0.2 and `cover = max(floor, measured)`, so a real broken-cloud night
+reports low cover, `clarity` comes out at 0.92, and **it is armed**. Thirty
+nights sampled, thirty armed. The devtool's Cloudy button hides this, because
+forcing a condition uses the profile's default cover of 0.7, where `clarity` is
+exactly 0: to see it, force Cloudy and then pull the cloud slider in **Tune**
+down to 20%.
 
 `meteor()` in the shader (`uPokeKind == 3`) draws it:
 
@@ -1036,9 +1078,13 @@ up there — on a clear night, a moon and stars. `deriveWeatherScene` has alread
 thrown both away by the time the shader runs:
 
 ```
-stars       = night × (1 − smoothstep(0.15, 0.65, cover)) × (1 − fog) × …
+clarity     = (1 − smoothstep(0.15, 0.65, cover)) × (1 − fog)
+stars       = night × (1 − 0.55 × moonLight) × clarity
 moonVisible = … × (1 − smoothstep(0.45, 0.9, cover)) × (1 − 0.8 × fog)
 ```
+
+(`clarity` is the murk's whole contribution, named because the meteor's window
+needs it without the rest — see The Shooting Star above.)
 
 On a fog day `cover` is 0.75, which saturates the star term on its own — stars
 are exactly **0** — and together with `fog` at 0.9 it leaves the moon at 0.07.
@@ -1501,7 +1547,7 @@ falls back to the Gradient keeps its frame rather than flickering). A desktop
 window gets none of it unless overridden. Session edge overrides are stamped with the family they were set under, so a
 change of family (a kind switch, or Sky ↔ a CSS style) ends them.
 
-**The bezel** is `@hux/bezel` (`packages/bezel`), after ryOS (os.ryo.lu): one
+**The bezel** is `vitre` (`packages/vitre`), after ryOS (os.ryo.lu): one
 flat colour around the page, black by default, with the page rounded off inside
 it and, on iOS, scrolling in a container while the document holds still. A
 devtool override turns it on or off for the session and ends when the kind

@@ -10,21 +10,23 @@
  * - "bare": Minimal compact for widgets (CommitCompact)
  */
 
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
 import { getCommitPeekItems, localize } from "@/lib/log";
-import { DEFAULT_DENSITY, type LogDensity } from "@/lib/log-view";
-import { GLASS_PANEL } from "@/lib/glass";
+import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { cn } from "@/lib/utils";
-import { ExternalImage } from "./media/external-image";
-import { CardFace } from "./media/link";
+import { attachmentSetFor, leavesSite } from "@/systems/attachments";
+import { IDENTITY_PEEK_PANEL, IdentityPeek } from "@/systems/identity";
+import { markFor } from "./media/media-mark";
+import { PeekCard, PeekThumb } from "./media/media-peek";
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { Byline } from "./bylines";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
+import { useInputCapability } from "@/services";
 
 import { TYPE } from "@/lib/typography";
 // =============================================================================
@@ -60,7 +62,7 @@ export interface CommitProps {
    *  the timeline so this component stays locale-agnostic. */
   byline?: Byline | null;
   /** Timeline-only: how much of the commit to print (see `lib/log-view`). */
-  density?: LogDensity;
+  form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
 }
@@ -84,10 +86,37 @@ export function Commit({
   onBeamSet,
   onBeamClear,
   byline = null,
-  density = DEFAULT_DENSITY,
+  form = DEFAULT_FORM,
   onSelectHash,
 }: CommitProps) {
   const edit = useTimelineEdit();
+  const inspecting = edit?.mode === "inspect";
+  // Everything the commit attaches, as the one set every affordance on the
+  // row opens (systems/attachments). Not while inspecting: the editor's
+  // clicks select, they do not open. Memoized, above the guard so hook order
+  // holds: a hover flips the timeline's active beam and re-renders every
+  // row, and a set with a stable identity is what lets the strip, the
+  // renderer and the row keep their own memo one day.
+  const attachmentSet = useMemo(
+    () => (!commit || inspecting ? null : attachmentSetFor(commit, locale)),
+    [commit, locale, inspecting],
+  );
+  // The same for the row's normalised data and its hover peek: a timeline
+  // render (a beam hover, a form change) touches every row, and neither of
+  // these changes with it. The peek is built only where a pointer can rest
+  // on it — a phone would build and discard one per row.
+  const { magneticPreviewEnabled } = useInputCapability();
+  const data = useMemo(
+    () => (commit ? normalizeCommit(commit, locale) : null),
+    [commit, locale],
+  );
+  const preview = useMemo(
+    () =>
+      commit && magneticPreviewEnabled
+        ? buildCommitPreview(commit, locale)
+        : null,
+    [commit, locale, magneticPreviewEnabled],
+  );
 
   // Runtime guard: MDX/JSON inputs can bypass static typing.
   if (
@@ -102,9 +131,7 @@ export function Commit({
     return null;
   }
 
-  const data = normalizeCommit(commit, locale);
-  const preview = buildCommitPreview(commit, locale);
-  const inspecting = edit?.mode === "inspect";
+  if (!data) return null;
   const isSelected = !!edit && edit.selectedCommitId === commit.id;
   const selectedMedia =
     inspecting && isSelected && edit && edit.selectedMediaIndex != null
@@ -139,8 +166,9 @@ export function Commit({
           onBeamSet={onBeamSet}
           onBeamClear={onBeamClear}
           byline={byline}
-          density={density}
+          form={form}
           onSelectHash={onSelectHash}
+          attachmentSet={attachmentSet}
           inspecting={inspecting}
           isSelected={isSelected}
           isUnlisted={commit.listed === false}
@@ -210,6 +238,15 @@ function buildCommitPreview(
   commit: CommitData,
   locale: Locale,
 ): CommitPreview | null {
+  // A role row stands for an identity, and its peek is that identity's
+  // card — the same profile the handle on any other row peeks.
+  if (commit.type === "role") {
+    return {
+      panelClassName: IDENTITY_PEEK_PANEL,
+      node: <IdentityPeek identityId={commit.identityId} roleId={commit.id} />,
+    };
+  }
+
   const items = getCommitPeekItems(commit);
 
   if (items.length >= 2) {
@@ -220,7 +257,7 @@ function buildCommitPreview(
       // gives the back layers' translate + rotate room to peek out around
       // the front card (the panel's default cap already fits it).
       panelClassName: `p-8 ${BARE_PANEL_CHROME}`,
-      node: <StackedPeek items={items} />,
+      node: <StackedPeek items={items} locale={locale} />,
     };
   }
 
@@ -233,7 +270,14 @@ function buildCommitPreview(
       return {
         panelClassName: `p-0 ${BARE_PANEL_CHROME}`,
         // Single peek mirrors the expanded /works LinkCard: natural aspect.
-        node: <PeekCard item={item} className={cn(PEEK_W, "shadow-raised")} />,
+        node: (
+          <PeekCard
+            media={item.media}
+            locale={locale}
+            mark={peekMark(item, locale)}
+            className={cn(PEEK_W, "shadow-raised")}
+          />
+        ),
       };
     }
     return {
@@ -246,6 +290,7 @@ function buildCommitPreview(
       node: (
         <PeekThumb
           image={item.image}
+          mark={peekMark(item, locale)}
           className={cn(PEEK_W, "aspect-video border-0 shadow-raised")}
         />
       ),
@@ -272,91 +317,6 @@ function buildCommitPreview(
   };
 }
 
-// Peek items render as `<div>` (never `<a>`) so they can sit inside the
-// row's own clickable wrapper without producing nested anchors.
-
-/** Bare cover image inside a soft card frame. Used for video / image media. */
-function PeekThumb({
-  image,
-  className,
-  onResolved,
-}: {
-  image: string;
-  className?: string;
-  onResolved?: () => void;
-}) {
-  return (
-    <div
-      className={cn(
-        // Border matches the card peek / panel (border/50). Shadow is
-        // supplied per-use: the single video peek and the deck's front layer
-        // add `shadow-raised`; deck back layers stay flat.
-        "rounded-lg overflow-hidden border border-border/50 bg-muted/30",
-        className,
-      )}
-    >
-      {/* object-cover is safe for thumbnails: YouTube / Bilibili / Vimeo all
-          serve 16:9 covers, matching the aspect-video container. */}
-      <ExternalImage
-        src={image}
-        className="block w-full h-full object-cover"
-        loading="eager"
-        onResolved={onResolved}
-      />
-    </div>
-  );
-}
-
-/**
- * Mini OG-style card for `kind:"link", present:"card"` media — a thin
- * adapter over `CardFace` that picks the right slot shape per context:
- *  - Single-item peek: natural aspect (matches the expanded `/works`
- *    LinkCard so the hover and the row read as the same artifact).
- *  - Stacked peek:     fixed `aspect-[2/1]` + blur backdrop, because the
- *    layered `translate/rotate/scale` transforms need predictable
- *    rectangles to overlap cleanly.
- *
- * Rendering as a `<div>` (CardFace's default element) means it can sit
- * inside the row's clickable wrapper without nested anchors.
- */
-function PeekCard({
-  item,
-  fixedAspect = false,
-  className,
-  onResolved,
-}: {
-  item: Extract<PeekItem, { kind: "card" }>;
-  fixedAspect?: boolean;
-  className?: string;
-  onResolved?: () => void;
-}) {
-  // Peek is purely visual — the click goes through the row's anchor — so
-  // we only need the caption swap, not the locale-aware URL pick.
-  const domainLabel = item.internal ? "/writing" : undefined;
-  return (
-    <CardFace
-      url={item.url}
-      title={item.title}
-      description={item.description}
-      image={item.image}
-      size="compact"
-      fixedAspect={fixedAspect}
-      // Single-item peek honors the author's cover-fit; the stacked deck sets
-      // `fixedAspect` above, which takes precedence (predictable rectangles).
-      fit={item.fit}
-      aspect={item.aspect}
-      domainLabel={domainLabel}
-      // Peek-specific chrome — the shared panel recipe, minus the shadow: the
-      // single-peek and stacked-peek branches strip the panel's own chrome
-      // (BARE_PANEL_CHROME), so callers add `shadow-raised` per use (front /
-      // single) and deck back layers stay flat — same opt-in convention as
-      // PeekThumb.
-      className={cn(GLASS_PANEL, className)}
-      onImgResolved={onResolved}
-    />
-  );
-}
-
 // The deck's rotated/translated back cards add ~20–40px of overhang beyond
 // the front card, so a front card at the full PEEK_W (384) makes the deck
 // read wider and heavier than the flush single-card / video / writing peeks.
@@ -375,7 +335,16 @@ const DECK_FRONT_W = "w-[22rem]"; // 352px
  * appear together — Bilibili's CDN especially trickles in on a cold hover
  * and a staggered reveal looks broken.
  */
-function StackedPeek({ items }: { items: PeekItem[] }) {
+/**
+ * The chip a peeked item's cover wears: the peek's tier (media-mark.tsx),
+ * every kind marked, and `New tab` on a page that will leave — the same
+ * vocabulary the stat covers' own peeks use, so oneline and stat agree.
+ */
+function peekMark(item: PeekItem, locale: Locale) {
+  return markFor(item.media, locale, { all: true, leaves: leavesSite(item.media) });
+}
+
+function StackedPeek({ items, locale }: { items: PeekItem[]; locale: Locale }) {
   const visible = items.slice(0, 3);
   const overflow = items.length - visible.length;
 
@@ -443,7 +412,9 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
               // cards' shadows recede instead of compounding into mud (which
               // the old heavy shadow-2xl did).
               <PeekCard
-                item={item}
+                media={item.media}
+                locale={locale}
+                mark={peekMark(item, locale)}
                 fixedAspect
                 className={cn("shadow-raised", isFront && "bg-card")}
                 onResolved={() => markResolved(i)}
@@ -451,6 +422,7 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
             ) : (
               <PeekThumb
                 image={item.image}
+                mark={peekMark(item, locale)}
                 className={cn("aspect-video shadow-raised", isFront && "bg-muted")}
                 onResolved={() => markResolved(i)}
               />

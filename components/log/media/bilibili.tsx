@@ -9,9 +9,9 @@
  */
 
 import { useState, useMemo } from "react";
-import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./external-image";
+import { MediaMark, videoMark } from "./media-mark";
 
 // =============================================================================
 // Types
@@ -47,7 +47,7 @@ export interface BilibiliEmbedProps {
  * Parse a Bilibili URL (or raw BV/AV ID) into a structured ID with page.
  * Returns null if the URL doesn't contain a recognisable Bilibili video ID.
  */
-function parseBilibiliId(url: string): BilibiliVideoId | null {
+export function parseBilibiliId(url: string): BilibiliVideoId | null {
   const trimmed = url.trim();
 
   // Raw BV ID: "BV1xx411c7mD"
@@ -103,7 +103,7 @@ export function extractBilibiliId(url: string): string | null {
  * Build the Bilibili embed URL. Autoplay is always on because the iframe is
  * only mounted after the user explicitly clicks the play button.
  */
-function getEmbedUrl(id: BilibiliVideoId, overridePage?: number): string {
+export function getEmbedUrl(id: BilibiliVideoId, overridePage?: number): string {
   const u = new URL("https://player.bilibili.com/player.html");
   if (id.kind === "bvid") u.searchParams.set("bvid", id.bvid);
   if (id.kind === "aid") u.searchParams.set("aid", id.aid);
@@ -198,12 +198,10 @@ export function BilibiliEmbed({
           </div>
         )}
 
-        {/* Play button overlay */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
-          <div className="w-16 h-16 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-black/50 transition-all">
-            <Play className="w-7 h-7 text-white fill-white ml-1" />
-          </div>
-        </div>
+        {/* The cover wears its chip — the platform — the way every cover on the
+            site does (media-mark.tsx); the hover wash is the press affordance. */}
+        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
+        <MediaMark mark={videoMark("bilibili")} />
       </button>
     );
   }

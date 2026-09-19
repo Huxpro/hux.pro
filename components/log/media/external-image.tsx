@@ -110,6 +110,9 @@ export function ExternalImage({
       alt={alt}
       className={className}
       loading={loading}
+      // Off the main thread: a column of covers scrolling into view should
+      // not stall the scroll while each one decodes.
+      decoding="async"
       referrerPolicy="no-referrer"
       onLoad={fire}
       onError={(e) => {

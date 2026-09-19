@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
-import { DEFAULT_DENSITY, type LogDensity } from "@/lib/log-view";
+import { DEFAULT_FORM, rowFormFor, type LogForm } from "@/lib/log-view";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
@@ -26,11 +26,27 @@ import {
   AuthorFields,
 } from "./embeds/shared";
 import { MediaRenderer } from "./media";
+import { AttachmentGrid } from "./media/attachment-grid";
 import { MediaStrip } from "./media/media-strip";
-import { useSlidesPlayer } from "./media/slides-player";
-import { resolveSlidesEmbedUrl } from "./media/slides";
+import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
+import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
+import { useInputCapability } from "@/services";
 
 import { TYPE } from "@/lib/typography";
+
+/**
+ * The gutter — hash, rail icon, and the two gaps between them and the title —
+ * has a fixed width from `lg` up, so the whole row can be pulled left by it
+ * and the title sits on the page column's left edge (see the hash cell).
+ *
+ *   hash 3.5rem + gap 0.5rem + icon 1.25rem + gap 0.5rem = 5.75rem
+ *
+ * plus the row's own 0.75rem of padding, which is what `-mx-3` already
+ * subtracts on the right. Below `lg` the page has no margin to hang it in
+ * and the gutter stays inside the column as it always did.
+ */
+const HASH_CELL = "lg:w-14 lg:text-right";
+const GUTTER_PULL = "lg:-ml-[6.5rem]";
 /**
  * Fallback handle for the expanded author block when a commit has no
  * resolvable identity (e.g. personal talks / recognitions with
@@ -94,13 +110,20 @@ interface TimelineCommitProps {
    *  Expanded: the `expanded` payload feeds a `git log --pretty=fuller`
    *  style block at the top of the row's expanded body. */
   byline?: Byline | null;
-  /** How much of the commit to print. See `lib/log-view.ts`. */
-  density?: LogDensity;
+  /** The page's form — how much of the commit to print (lib/log-view.ts). */
+  form?: LogForm;
   /**
    * Make this commit the page's address. When supplied, the hash column is
    * the permalink it always looked like — see `useCommitAnchor`.
    */
   onSelectHash?: (hash: string) => void;
+  /**
+   * The commit's attachments as one set (see systems/attachments). Every
+   * media affordance on the row — a strip cover, an expanded player or card,
+   * a rail icon — opens this set at its own item, so a phone gets the
+   * attachment sheet and a desktop the theater or a window, from any of them.
+   */
+  attachmentSet?: AttachmentSet | null;
   inspecting?: boolean;
   isSelected?: boolean;
   isUnlisted?: boolean;
@@ -123,8 +146,9 @@ export function TimelineCommit({
   onBeamSet,
   onBeamClear,
   byline = null,
-  density = DEFAULT_DENSITY,
+  form = DEFAULT_FORM,
   onSelectHash,
+  attachmentSet = null,
   inspecting = false,
   isSelected = false,
   isUnlisted = false,
@@ -132,7 +156,9 @@ export function TimelineCommit({
   onInspectMedia,
   selectedMedia = null,
 }: TimelineCommitProps) {
-  const slidesPlayer = useSlidesPlayer();
+  const attachments = useOptionalAttachments();
+  const identityCard = useOptionalIdentityCard();
+  const { magneticPreviewEnabled } = useInputCapability();
   const isEvent = data.type === "event";
 
   // Topics and stats are authored but not printed (see the expanded body),
@@ -148,7 +174,7 @@ export function TimelineCommit({
 
   // Seeded from `expandAll`, not just `defaultExpanded`: the reconciliation
   // below only fires when the prop *changes*, so a row mounting with
-  // `expandAll` already true (someone opened `/works?view=patch` directly, or
+  // `expandAll` already true (someone opened `/works?view=feed` directly, or
   // navigated in) would otherwise sit collapsed with no flip ever coming.
   const [isExpandedState, setIsExpanded] = useState(
     defaultExpanded || (expandAll === true && hasExpandableContent),
@@ -181,33 +207,75 @@ export function TimelineCommit({
     setIsExpanded((prev) => !prev);
   }, [hasExpandableContent]);
 
+  // A role row is nothing but its identity, so with a pointer its hover peek
+  // is the identity card (see `buildCommitPreview`), and with a finger a tap
+  // opens the same card as a sheet instead of unfolding two lines of prose.
+  const openIdentity = useCallback(
+    (e: React.SyntheticEvent<HTMLElement>) => {
+      if (!identityCard || !byline) return;
+      e.stopPropagation();
+      identityCard.open({
+        identityId: byline.identityId,
+        roleId: byline.roleId,
+        anchor: e.currentTarget,
+      });
+    },
+    [identityCard, byline],
+  );
+  const rowOpensIdentity =
+    data.type === "role" && !!byline && !!identityCard && !magneticPreviewEnabled;
+
   const rowOnClick = inspecting
     ? onInspectCommit
-    : hasExpandableContent
-      ? handleToggleExpanded
-      : undefined;
+    : rowOpensIdentity
+      ? openIdentity
+      : hasExpandableContent
+        ? handleToggleExpanded
+        : undefined;
 
-  // What `stat` adds to a folded row: the covers, and one clamped line of
-  // what the thing is. Both or either — a commit with no media still gets
-  // its description, so the mode is "title, what, and what it looks like"
-  // rather than "title, and covers if any".
+  // The row's form: the page's, unless the reader opened this row, in which
+  // case it is the feed for itself (`rowFormFor`, lib/log-view.ts — a form
+  // is a preset of the row's atoms, and an open row is the same preset at
+  // row scale). Everything below reads those atoms and nothing reads the
+  // form's name, or `isExpanded` again: the feed's atoms already say
+  // "no strip, no clamp, no peek".
+  const rowForm = rowFormFor(form, isExpanded);
+
+  // What the folded form adds under the title line: the description at two
+  // lines, and the strip of covers. Both or either — a commit with no media
+  // still gets its description, so a form is "title, what, and what it
+  // looks like" rather than "title, and covers if any".
   //
   // Events are out. They are datelines between commits, not works, which is
   // the same reason they get no filter chip; giving one a caption would
   // promote punctuation to a paragraph.
-  const statBody = density === "stat" && !isExpanded && !isEvent;
-  // The strip is the `stat` density's own: while the row is open the expanded
-  // block shows the real thing, and a row of miniatures of what is directly
+  //
+  // The strip is the folded form's own: while the row is open the feed's
+  // grid shows the real thing, and a row of miniatures of what is directly
   // below it is noise.
-  const showStrip = statBody && data.stripItems.length > 0;
-  const showStatDescription = statBody && !!data.description;
+  const showStrip =
+    !isEvent && rowForm.media === "covers" && data.stripItems.length > 0;
+  const showStatDescription =
+    !isEvent && rowForm.description === "clamp" && !!data.description;
   // Where the handle signs: the bottom-right of the row, which is the media
-  // line when there is one and the meta line when there is not.
-  const signsOnMediaLine = showStrip && !!byline;
+  // line when a single cover leaves it the room — on any viewport — and the
+  // meta line when there is more than one, since two covers may already be
+  // the width of a phone and the strip then scrolls under the edge.
+  const signsOnMediaLine = showStrip && data.stripItems.length === 1;
   // A hover panel repeating, on top of the row, what the row now prints
-  // inside itself is the one thing `stat` makes redundant.
+  // inside itself is the one thing a strip makes redundant — and the feed
+  // has no peek at all (`rowForm.peek`): it has printed everything one
+  // would show. A role row is the exception: its peek is the identity card,
+  // which no form prints.
   const showCursorPreview =
-    !!cursorPreview && !isExpanded && !showStrip && !showStatDescription;
+    !!cursorPreview &&
+    rowForm.peek &&
+    (data.type === "role" || (!showStrip && !showStatDescription));
+  // The feed's covers are the row's own strip items; what has no cover (a
+  // live widget) stacks under the grid. The editor's inspect mode keeps the
+  // classic renderer for everything, since its handles live there.
+  const tiled = new Set(data.stripItems.map((item) => item.media));
+  const stacked = expandedMedia.filter((m) => !tiled.has(m));
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
@@ -293,11 +361,19 @@ export function TimelineCommit({
         Events keep the transparent placeholder: no link, no reference, the
         hash is noise there. It still occupies the column so titles stay
         aligned with the commit rows around it.
+
+        Where the page has margins (`lg`), the hash and the rail hang in the
+        left one as marginalia — a fixed width, so the row can be pulled
+        left by exactly that and the title lands on the page column's own
+        left edge, in line with the era markers and every other page's prose.
+        A git log prints the graph and the hash before the subject too; what
+        it never did was push the subject off the margin to make room.
       */}
       {isEvent || !onSelectHash ? (
         <span
           className={cn(
-            "hidden @sm:inline select-all",
+            "hidden @sm:inline-block select-all",
+            HASH_CELL,
             TYPE.hash,
             isEvent ? "text-transparent leading-4" : "leading-5",
           )}
@@ -315,7 +391,8 @@ export function TimelineCommit({
           }}
           aria-label={`Link to commit ${data.hash}`}
           className={cn(
-            "hidden @sm:inline leading-5",
+            "hidden @sm:inline-block leading-5",
+            HASH_CELL,
             TYPE.hash,
             "transition-colors hover:text-muted-foreground",
           )}
@@ -429,29 +506,19 @@ export function TimelineCommit({
           {data.links.map((link, i) => {
             const className =
               cn("inline-flex items-center gap-1", TYPE.linkQuiet);
-            const label = isExpanded && !link.redundantWhenExpanded && (
+            // The label is one of the notes: the feed spells the rail out.
+            const label = rowForm.notes && !link.redundantWhenExpanded && (
               <span className="hidden @sm:inline text-xs">{link.label}</span>
             );
 
-            if (link.playSlides && slidesPlayer.hasProvider) {
-              return (
-                <button
-                  key={`link-${i}`}
-                  type="button"
-                  onClick={() =>
-                    slidesPlayer.open({
-                      url: resolveSlidesEmbedUrl(link.url),
-                      title: link.label,
-                    })
-                  }
-                  className={className}
-                  aria-label={`Play slides: ${link.label}`}
-                >
-                  <LinkIcon icon={link.icon} />
-                  {label}
-                </button>
-              );
-            }
+            // A rail icon that stands for one of the commit's attachments
+            // opens it through the attachment system, exactly as its cover
+            // does; a plain pill (a website, a repo) stays a plain link. The
+            // anchor stays either way, for ⌘-click and "copy link address".
+            const attachmentIndex =
+              attachments && attachmentSet && link.media
+                ? attachmentSet.items.indexOf(link.media)
+                : -1;
 
             return (
               <a
@@ -459,6 +526,15 @@ export function TimelineCommit({
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={
+                  attachmentIndex >= 0
+                    ? (e) => {
+                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                        e.preventDefault();
+                        attachments!.open(attachmentSet!, attachmentIndex);
+                      }
+                    : undefined
+                }
                 className={className}
               >
                 <LinkIcon icon={link.icon} />
@@ -534,16 +610,17 @@ export function TimelineCommit({
           {/* The handle has three places it could sign and wears exactly
               one at a time. Folded with no covers under it, it is here: a
               compact mark stacked horizontally on the meta line, under the
-              date. With covers, it moves to the foot of the strip; open, it
+              date. With a cover, it moves to the foot of the strip; open, it
               transposes into the vertical `Author:` / `Role:` stack at the
-              foot of the body. Each of the other two makes this one stand
-              down, so the same handle is never printed twice forty pixels
-              apart, which is what the folded/expanded pair used to do. */}
-          <Handle
-            byline={byline}
-            standDown={isExpanded || signsOnMediaLine}
-            className="text-tertiary-foreground"
-          />
+              foot of the body. While one of the other two is signing, this
+              slot holds only the line's height — not a second, invisible
+              handle with a peek of its own — so the line beneath never
+              moves and the same handle is never mounted twice. */}
+          {isExpanded || signsOnMediaLine ? (
+            <span aria-hidden className="h-4 shrink-0" />
+          ) : (
+            <Handle byline={byline} className="text-tertiary-foreground" />
+          )}
         </div>
       )}
 
@@ -561,13 +638,15 @@ export function TimelineCommit({
             inspecting={inspecting}
             onInspect={onInspectMedia}
             selectedMedia={selectedMedia}
+            set={attachmentSet}
           />
         </div>
       )}
 
-      {/* Contact strip — `stat` density only. Sits below the pinned block so
-          the two read as one column of "what this commit contains", largest
-          first: a pinned cover at full width, then the rest as thumbnails.
+      {/* Contact strip — the `covers` form's. Sits below the
+          pinned block so the two read as one column of "what this commit
+          contains", largest first: a pinned cover at full width, then the
+          rest as thumbnails.
 
           No handler on this cell: the strip is sized to its covers and stops
           its own clicks, so the line it sits on stays the row's — the empty
@@ -579,7 +658,7 @@ export function TimelineCommit({
         // strip is `w-max`.
         <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0 space-y-2">
           {/* Reads down the same left edge the title and the meta do, and
-              that `patch` will start it on when the row opens. */}
+              that the feed will start it on when the row opens. */}
           {showStatDescription && <Description text={data.description} />}
 
           {/*
@@ -591,17 +670,26 @@ export function TimelineCommit({
           */}
           {showStrip && (
             <div className="flex items-end justify-between gap-4">
-              <MediaStrip items={data.stripItems} className="min-w-0" />
+              <MediaStrip
+                items={data.stripItems}
+                set={attachmentSet}
+                peek={rowForm.peek && magneticPreviewEnabled}
+                className="min-w-0"
+              />
 
               {/*
                 And the room the covers leave takes the letterhead. The handle
                 signs the bottom-right of the row, which is where a letterhead
-                goes and which is a better use of 300px than nothing was. The
-                meta line gives it up while this line exists, so it is still
-                printed exactly once — and with the same sparseness it has
-                always had: at rest, only the head of an author's run wears it.
+                goes and which is a better use of the space than nothing was.
+                The meta line gives it up while this line exists, so it is
+                still printed exactly once — and with the same sparseness it
+                has always had: at rest, only the head of an author's run
+                wears it. A full strip leaves no room, and the handle stays on
+                the meta line (`signsOnMediaLine`).
               */}
-              <Handle byline={byline} className={TYPE.rowMeta} />
+              {signsOnMediaLine && (
+                <Handle byline={byline} className={TYPE.rowMeta} />
+              )}
             </div>
           )}
         </div>
@@ -625,28 +713,54 @@ export function TimelineCommit({
         // not the text inside it.
         <div
           data-row-body
-          className="col-start-2 @sm:col-start-3 mt-2 space-y-1.5"
+          // Rendered only near the viewport (globals.css): an open row's
+          // body is the heaviest thing on the page, and twenty of them off
+          // screen need no layout, decode or layer until they are about to
+          // show.
+          data-row-lazy
+          // `min-w-0` for the same reason the strip line carries it: the
+          // content track is `1fr`, whose automatic minimum is its content,
+          // and a caption line that does not wrap would set it.
+          className="col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-1.5"
         >
           {/* The message: what it is, the thing itself, the note on it.
               Topics and stats are authored but deliberately unprinted — a row
               of uppercase keywords and a star count were decoration here. */}
           <Description text={data.description} isExpanded />
 
+          {/* The attachment object in the feed (AttachmentGrid): the grid on
+              a desk, the edge-to-edge stack on a phone, captions written
+              out, and every click its native one. */}
           {expandedMedia.length > 0 && (
-            <div onClick={(e) => e.stopPropagation()}>
-              <MediaRenderer
-                media={expandedMedia}
-                layout="stack"
-                size="default"
-                inspecting={inspecting}
-                onInspect={onInspectMedia}
-                selectedMedia={selectedMedia}
-              />
+            <div onClick={(e) => e.stopPropagation()} className="space-y-4">
+              {inspecting ? (
+                <MediaRenderer
+                  media={expandedMedia}
+                  layout="stack"
+                  size="default"
+                  inspecting
+                  onInspect={onInspectMedia}
+                  selectedMedia={selectedMedia}
+                  set={attachmentSet}
+                />
+              ) : (
+                <>
+                  <AttachmentGrid items={data.stripItems} set={attachmentSet} />
+                  {stacked.length > 0 && (
+                    <MediaRenderer
+                      media={stacked}
+                      layout="stack"
+                      size="default"
+                      set={attachmentSet}
+                    />
+                  )}
+                </>
+              )}
             </div>
           )}
 
           {/* Liner notes come after the thing they are notes on. */}
-          {data.commentary && <Commentary text={data.commentary} />}
+          {rowForm.notes && data.commentary && <Commentary text={data.commentary} />}
 
           {/*
             The author fields, as `git log --pretty=fuller` writes them (see
@@ -660,7 +774,7 @@ export function TimelineCommit({
             three unlabelled lines, and the wrap that costs is cheaper than
             the form it was buying.
           */}
-          {showAuthorBlock && (
+          {rowForm.notes && showAuthorBlock && (
             <AuthorFields
               byline={byline}
               // Below `@sm` the gutter hash column is hidden, so the row has
@@ -727,6 +841,11 @@ export function TimelineCommit({
           // never clipped here anyway.
           className={cn(
             "group pressable relative -mx-3 px-3 rounded-lg transition-colors duration-150 overflow-y-clip",
+            // The gutter as marginalia (see the hash cell): pulled left by the
+            // gutter's width so the content column is the page column. The
+            // hover wash follows, which is right — the hash and the rail are
+            // the row's, not the margin's.
+            GUTTER_PULL,
             // Events get tighter vertical padding so they sit between
             // commits as ambient annotations rather than as full rows.
             isEvent ? "py-1" : "py-2.5",
@@ -759,33 +878,33 @@ export function TimelineCommit({
  * Sparse by rule: at rest only the head of an author's run wears it, and
  * the repeats inside a run appear on hover — a column of twenty-five rows
  * each restating the same employer is noise, and the rail already draws the
- * tenure. `standDown` is how a slot yields to another that is printing the
- * same handle right now; it fades rather than unmounts, so the line beneath
- * never moves.
+ * tenure. A slot that is not signing right now mounts nothing (the meta
+ * line keeps its height with a spacer), so one handle exists per row.
+ *
+ * The mark is the identity card's trigger (systems/identity): hover peeks
+ * the profile, a tap where there is no pointer opens it as a sheet.
  */
 function Handle({
   byline,
-  standDown = false,
   className,
 }: {
   byline?: Byline | null;
-  standDown?: boolean;
   className?: string;
 }) {
   if (!byline) return null;
   return (
-    <span
-      className={cn(
+    <IdentityHover
+      identityId={byline.identityId}
+      roleId={byline.roleId}
+      wrapperClassName={cn(
         "shrink-0 transition-opacity duration-200",
-        className,
-        standDown
-          ? "opacity-0"
-          : byline.isClusterHead
-            ? "opacity-100"
-            : "opacity-0 group-hover:opacity-100",
+        byline.isClusterHead
+          ? "opacity-100"
+          : "opacity-0 group-hover:opacity-100",
       )}
+      className={className}
     >
       {byline.handle}
-    </span>
+    </IdentityHover>
   );
 }

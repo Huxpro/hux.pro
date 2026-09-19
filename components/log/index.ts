@@ -9,7 +9,7 @@
  *                 video, slides, image.
  *  - Link card:   `kind:"link", present:"card"` — an OG-style preview block.
  *  - SocialEmbed: native social platform widget (X / Instagram / TikTok).
- *  - Slides:      HTML reveal.js deck played in an ~80% in-site modal.
+ *  - Slides:      HTML reveal.js deck played on the theater stage.
  */
 
 // =============================================================================
@@ -47,7 +47,6 @@ export {
   MediaThumbnail,
   Video,
   Slides,
-  SlidesPlayerProvider,
   SocialEmbed,
   Link,
   LinkCard,

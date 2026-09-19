@@ -43,10 +43,13 @@ export function Stage({
   pip,
 }: StageProps) {
   const isYouTube = track?.platform === "youtube" && !!track.videoId;
-  const embedUrl = useMemo(
-    () => (track && !isYouTube ? embedUrlFor(track.url, track.platform) : null),
-    [track, isYouTube],
-  );
+  // A deck is its own player: the stage frames the deck URL as it is. Videos
+  // off YouTube get a platform embed URL built for autoplay.
+  const embedUrl = useMemo(() => {
+    if (!track || isYouTube) return null;
+    if (track.kind === "slides") return track.url;
+    return embedUrlFor(track.url, track.platform);
+  }, [track, isYouTube]);
 
   return (
     <motion.div
@@ -100,16 +103,29 @@ export function Stage({
       />
 
       {/* Non-YouTube (Bilibili / Vimeo) — a plain iframe, kept mounted while
-          active so it keeps playing when parked / minimized. */}
+          active so it keeps playing when parked / minimized. A slide deck is
+          the same iframe: reveal.js drives itself from inside it (arrow keys
+          once it has focus, taps on touch), so the stage only has to hold it.
+          Decks get the clipboard for their own "copy link" affordances and no
+          sandbox — they are ours, and reveal's fullscreen shortcut needs the
+          real document. */}
       {active && !isYouTube && embedUrl && (
         <iframe
           key={embedUrl}
           src={embedUrl}
           title={track?.title ?? "Video"}
-          allow="autoplay; fullscreen; picture-in-picture"
+          allow={
+            track?.kind === "slides"
+              ? "fullscreen; clipboard-write"
+              : "autoplay; fullscreen; picture-in-picture"
+          }
           allowFullScreen
           scrolling="no"
-          sandbox="allow-scripts allow-same-origin allow-popups allow-presentation"
+          sandbox={
+            track?.kind === "slides"
+              ? undefined
+              : "allow-scripts allow-same-origin allow-popups allow-presentation"
+          }
           className="absolute inset-0 h-full w-full border-0"
         />
       )}
@@ -117,7 +133,7 @@ export function Stage({
       {/* Fallback frame when a track can't be embedded. */}
       {active && !isYouTube && !embedUrl && (
         <div className="absolute inset-0 flex items-center justify-center text-xs font-mono text-white/60">
-          Unable to play this video
+          {track?.kind === "slides" ? "Unable to open this deck" : "Unable to play this video"}
         </div>
       )}
     </motion.div>

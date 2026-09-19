@@ -4,7 +4,7 @@
  * WorksToolbar — the one line under the /works title.
  *
  *   ⎇ main │ ▣ Projects 8  ◔ Talks 12  ◌ Social 3  ▤ Roles 2  ⨯ │ ≡ ▤ ▦
- *   └ ref    └───────────────── pathspec ──────────────────────┘   └ density
+ *   └ ref    └───────────────── pathspec ──────────────────────┘   └ form
  *
  * Three controls, one row, because the row is the budget: this sits in the
  * header zone above a sticky timeline, and anything that wraps to a second
@@ -14,7 +14,7 @@
  *
  * "Fits" is not something this component gets to assume, though: the chip row
  * is derived from the data, so a type nobody has filed anything under yet
- * would add a chip the day it does. The ref and the density control are
+ * would add a chip the day it does. The ref and the form control are
  * pinned and the chips take the squeeze — they scroll inside their own group
  * rather than pushing the page sideways. On any real phone it never comes up.
  *
@@ -25,7 +25,7 @@
  * quaternary rung, and a clear button appears. Tapping the last selected chip
  * off returns to rest — the way out is the same gesture as the way in.
  *
- * The density control is the page's real answer to "everything at once" vs.
+ * The form control is the page's real answer to "everything at once" vs.
  * "see the work" — see `lib/log-view.ts` for what the three stops print. It
  * replaces the old expand/collapse toggle, whose two states were exactly the
  * two extremes this is trying to sit between.
@@ -40,11 +40,7 @@ import {
   getCommitTypePluralLabel,
   type FilterableCommitType,
 } from "@/lib/log";
-import {
-  DENSITY_COMMAND,
-  LOG_DENSITIES,
-  type LogDensity,
-} from "@/lib/log-view";
+import { LOG_FORMS, type LogForm } from "@/lib/log-view";
 import { CommitIcon } from "./icons";
 
 export interface TypeFacet {
@@ -70,25 +66,28 @@ interface WorksToolbarProps {
   active: FilterableCommitType[];
   onToggleType: (type: FilterableCommitType) => void;
   onClearTypes: () => void;
-  density: LogDensity;
-  onDensityChange: (density: LogDensity) => void;
+  form: LogForm;
+  onFormChange: (form: LogForm) => void;
 }
 
 /**
- * What each stop wears and what it is called. One table rather than one per
- * attribute, so a fourth density is one row here. The `git` invocation it
- * stands for stays in `lib/log-view.ts` with the rest of the vocabulary —
- * that module is deliberately React-free, and an icon is a component.
+ * What each form wears and what it is called. One table rather than one per
+ * attribute, so a fifth form is one row here; what each form *prints* is
+ * `ROW_FORM` in `lib/log-view.ts` — that module is deliberately React-free,
+ * and an icon is a component.
  */
-const DENSITY_CHIP: Record<
-  LogDensity,
-  { icon: LucideIcon; labelKey: "logDensityOneline" | "logDensityStat" | "logDensityPatch" }
+const FORM_CHIP: Record<
+  LogForm,
+  {
+    icon: LucideIcon;
+    labelKey: "logFormIndex" | "logFormCovers" | "logFormFeed";
+  }
 > = {
-  // Lines only; lines plus a cover block; full-bleed panels. The glyphs
-  // climb in visual weight the way the modes climb in detail.
-  oneline: { icon: List, labelKey: "logDensityOneline" },
-  stat: { icon: LayoutList, labelKey: "logDensityStat" },
-  patch: { icon: GalleryVertical, labelKey: "logDensityPatch" },
+  // Lines only; lines with a cover block; full panels. The glyphs climb in
+  // visual weight the way the forms climb in detail.
+  index: { icon: List, labelKey: "logFormIndex" },
+  covers: { icon: LayoutList, labelKey: "logFormCovers" },
+  feed: { icon: GalleryVertical, labelKey: "logFormFeed" },
 };
 
 export function WorksToolbar({
@@ -97,8 +96,8 @@ export function WorksToolbar({
   active,
   onToggleType,
   onClearTypes,
-  density,
-  onDensityChange,
+  form,
+  onFormChange,
 }: WorksToolbarProps) {
   const filtering = active.length > 0;
 
@@ -181,24 +180,23 @@ export function WorksToolbar({
 
       <Divider />
 
-      {/* Density. Segmented rather than a cycling button: three stops is one
-          too many to discover by tapping, and every mode stays one tap away.
-          The tooltip names the git invocation each stop stands for — the
-          timeline has borrowed git's vocabulary throughout, and this is where
-          it says so out loud. */}
+      {/* Form. Segmented rather than a cycling button: three stops is one
+          too many to discover by tapping, and every form stays one tap away.
+          Each stop resets every row to a preset (`ROW_FORM`), which is all
+          a form is. */}
       <Segmented
         tone="bare"
-        label={t(locale, "logDensityLabel")}
-        value={density}
-        onChange={onDensityChange}
-        options={LOG_DENSITIES.map((d) => {
-          const { icon: Icon, labelKey } = DENSITY_CHIP[d];
+        label={t(locale, "logFormLabel")}
+        value={form}
+        onChange={onFormChange}
+        options={LOG_FORMS.map((f) => {
+          const { icon: Icon, labelKey } = FORM_CHIP[f];
           const name = t(locale, labelKey);
           return {
-            value: d,
+            value: f,
             label: <Icon className="h-3.5 w-3.5" />,
             ariaLabel: name,
-            title: `${name} — ${DENSITY_COMMAND[d]}`,
+            title: name,
           };
         })}
       />

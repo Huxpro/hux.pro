@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { Drawer } from "@base-ui/react/drawer";
-import { BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
+import { BEZEL_LAYER_ATTRIBUTE } from "vitre";
 import {
   SURFACE_EASING,
   SURFACE_RECEDE_EASING,
@@ -55,7 +55,7 @@ import {
 // press, the same click-away its desktop popover has. Base UI's scroll lock is
 // safe here in a way Radix's was not: on iOS it only sets `overflow: hidden` on
 // whichever element scrolls the viewport, and it stands down entirely when that
-// element is already locked — which is exactly the state @hux/bezel leaves the
+// element is already locked — which is exactly the state vitre leaves the
 // page in during container scroll.
 // =============================================================================
 
@@ -176,7 +176,21 @@ export function detentHeight(point: number): string {
 export const HEADER_BUTTON =
   "pressable system-chrome shrink-0 rounded-md p-2 text-muted-foreground transition-[color,background-color,scale] duration-150 ease-out hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
 
-/** The glass shell every shape shares. */
+/**
+ * The glass shell every shape shares — and, with `.system-chrome`, the ruling
+ * that a surface is the OS's own UI until something proves otherwise: nothing
+ * inside one selects, raises a long-press callout, or takes the grey tap
+ * flash. Every surface today is chrome (the reading settings, the playlist,
+ * the wallpaper picker, the devtool, the command palette), and the fields in
+ * the last two keep their caret through the text-field exception in
+ * globals.css.
+ *
+ * The case this does not cover is a surface holding a *document* — an article
+ * in a quick-look, a page previewed in a panel. `select-text` would win back
+ * the selection but not the link preview that `-webkit-touch-callout` takes
+ * away, so that is a third tier rather than an override: put it in the voice
+ * block in globals.css, beside the other two, when something needs it.
+ */
 export const SHELL = [
   "system-chrome flex flex-col overflow-hidden outline-none",
   "rounded-3xl bg-glass-sheet backdrop-blur-xl",
@@ -211,15 +225,31 @@ export const surfaceMotionVars = (exitClearance: string) =>
  */
 export function SurfaceViewport({
   modal,
+  layer = 0,
   children,
 }: {
   modal: boolean;
+  /**
+   * The surface's place in the stack (`useSurfaceStack().rank`, raw: −1
+   * once it has left). Every viewport is a stacking context at the same
+   * level, so sibling sheets otherwise paint in the order their portals
+   * mounted — and a kept-mounted sheet (an app window) reopened over a
+   * younger one would come up under it. The stack's order is the paint
+   * order.
+   */
+  layer?: number;
   children: React.ReactNode;
 }) {
+  // Kept across the close: a sheet leaves the stack (rank −1) the moment it
+  // starts to leave the screen, and it should slide away from where it
+  // was, not from under whatever it was covering.
+  const [held, setHeld] = useState(Math.max(0, layer));
+  if (layer >= 0 && layer !== held) setHeld(layer);
   return (
     <Drawer.Viewport
       {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
-      className={cn("fixed inset-0 z-[60]", !modal && "pointer-events-none")}
+      className={cn("fixed inset-0", !modal && "pointer-events-none")}
+      style={{ zIndex: 60 + held }}
     >
       {children}
     </Drawer.Viewport>
@@ -457,7 +487,7 @@ export function SurfaceSheet({
       : undefined
     : levelProp;
 
-  const { behind, depth, beneathLevel } = useSurfaceStack(id, open, {
+  const { behind, depth, beneathLevel, rank } = useSurfaceStack(id, open, {
     nestedIn,
     level,
   });
@@ -563,7 +593,7 @@ export function SurfaceSheet({
           rather than behind it. A sheet with no fields never notices. */}
       <Drawer.VirtualKeyboardProvider>
         <Drawer.Portal keepMounted={keepMounted}>
-          <SurfaceViewport modal={modal}>
+          <SurfaceViewport modal={modal} layer={rank}>
             <Drawer.Popup
               ref={setPopup}
               finalFocus={restoreFocus ? undefined : false}

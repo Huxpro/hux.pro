@@ -193,6 +193,25 @@
         "en": "The best tools don't just emit artifacts. They change how you think about the problem space.",
         "zh": "最好的工具不只是吐产物——它们会改变你思考问题空间的方式。"
       }
+    },
+    {
+      "id": "always-becoming",
+      "statement": {
+        "en": "You are always becoming. Narrative is how you answer who you are.",
+        "zh": "人永远都在 Becoming。叙事就是在回答「你是谁」。"
+      },
+      "topic": {
+        "en": "identity",
+        "zh": "身份"
+      },
+      "shapedBy": {
+        "en": ["Personal storytelling across three year career cycles"],
+        "zh": ["以三年为周期的个人叙事"]
+      },
+      "reasoning": {
+        "en": "Identity is not a title you freeze. Each era, consumer, producer, architect, is a rewrite, not a reveal.",
+        "zh": "身份不是冻结的头衔。每个时代，消费者、生产者、架构师，都是一次重写，而不是揭晓。"
+      }
     }
   ],
   "people": [
@@ -314,7 +333,7 @@
     }
   ],
   "meta": {
-    "tokenCount": 1980,
+    "tokenCount": 2200,
     "lastUpdated": "2026.09",
     "model": "hux-v35"
   }

@@ -18,8 +18,9 @@ import {
 import {
   parseViewState,
   serializeViewState,
+  formOpensRows,
   toggleType,
-  type LogDensity,
+  type LogForm,
 } from "@/lib/log-view";
 
 interface WorksViewProps {
@@ -68,7 +69,7 @@ export function WorksView({ logData }: WorksViewProps) {
   const selectHash = useCommitAnchor();
 
   const commit = useCallback(
-    (next: { types?: FilterableCommitType[]; density?: LogDensity }) => {
+    (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
       const merged = { ...view, ...next };
       setView(merged);
       const query = serializeViewState(
@@ -148,8 +149,8 @@ export function WorksView({ logData }: WorksViewProps) {
             commit({ types: toggleType(view.types, type) })
           }
           onClearTypes={() => commit({ types: [] })}
-          density={view.density}
-          onDensityChange={(density) => commit({ density })}
+          form={view.form}
+          onFormChange={(form) => commit({ form })}
         />
       }
     >
@@ -157,13 +158,13 @@ export function WorksView({ logData }: WorksViewProps) {
       <LogTimeline
         data={data}
         locale={locale}
-        // `patch` is the page-level "expand all" command the toolbar used to
+        // `feed` is the page-level "expand all" command the toolbar used to
         // own as a button. Passing the boolean (rather than a bumped counter)
-        // means oneline ⇄ stat leaves hand-opened rows alone: only entering or
-        // leaving `patch` re-syncs every row.
-        expandAll={view.density === "patch"}
+        // means index ⇄ covers leaves hand-opened rows alone: only entering
+        // or leaving `feed` re-syncs every row.
+        expandAll={formOpensRows(view.form)}
         identities={logData.identities}
-        density={view.density}
+        form={view.form}
         activeTypes={view.types}
         onSelectHash={selectHash}
       />

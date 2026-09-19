@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { ScrollPageOptions } from "../vitre";
 import { SCROLL_ATTRIBUTE, SCROLL_CONTAINER_ID } from "./constants";
 
 // =============================================================================
@@ -43,10 +44,8 @@ export function pageOffsetOf(element: Element): number {
   return element.getBoundingClientRect().top - top + pageScrollTop();
 }
 
-export function scrollPageTo(top: number): void {
-  const container = getScrollContainer();
-  if (container) container.scrollTop = top;
-  else window.scrollTo(0, top);
+export function scrollPageTo(top: number, { behavior = "auto" }: ScrollPageOptions = {}): void {
+  (getScrollContainer() ?? window).scrollTo({ top, behavior });
 }
 
 export function onPageScroll(listener: () => void): () => void {

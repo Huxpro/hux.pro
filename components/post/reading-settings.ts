@@ -1,6 +1,6 @@
 "use client";
 
-import { onPageScroll } from "@hux/bezel";
+import { onPageScroll } from "vitre";
 import { useEffect } from "react";
 import { makeStore } from "./persisted-setting";
 

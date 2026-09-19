@@ -8,7 +8,12 @@
 // be browsed and navigated by click, scroll, swipe, or keyboard.
 // =============================================================================
 
-export { TheaterProvider, useTheater, useOptionalTheater } from "./provider";
+export {
+  TheaterProvider,
+  useTheater,
+  useOptionalTheater,
+  useOptionalTheaterStage,
+} from "./provider";
 export {
   TheaterSurfaces,
   TheaterActivity,
@@ -18,9 +23,14 @@ export {
 } from "./components";
 export {
   buildTalkAlbums,
+  buildSlidesAlbum,
   adHocAlbum,
+  mediaToTrack,
   resolveVideoId,
   type Album,
   type Track,
+  type TrackKind,
+  type VideoTrack,
+  type SlidesTrack,
   type TheaterMode,
 } from "./lib";

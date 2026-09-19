@@ -9,7 +9,7 @@
  *                  card (OG-style preview block backed by the card pipeline).
  *  - SocialEmbed:  a native social platform widget (X / Instagram / TikTok).
  *  - VideoMedia:   YouTube / Bilibili / Vimeo iframe player with cover.
- *  - SlidesMedia:  HTML reveal.js deck played in an ~80% in-site modal.
+ *  - SlidesMedia:  HTML reveal.js deck played on the theater's stage.
  *  - ImageMedia:   static image asset (uses Next.js Image).
  *
  * Structure:
@@ -24,12 +24,6 @@
 export { MediaRenderer, type MediaRendererProps } from "./media-renderer";
 export { Media, type MediaProps } from "./media";
 export { MediaThumbnail, type MediaThumbnailProps } from "./thumbnail";
-export {
-  SlidesPlayerProvider,
-  useSlidesPlayer,
-  type OpenSlidesOptions,
-} from "./slides-player";
-export { SlideModal, type SlideModalProps } from "./slide-modal";
 
 // =============================================================================
 // Router Components (dispatch to platform-specific implementations)

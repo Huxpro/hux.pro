@@ -1,6 +1,7 @@
 "use client";
 
 import type { AppLink } from "@/lib/app-icon-core";
+import { getHostname } from "@/lib/og-core";
 import {
   createContext,
   useCallback,
@@ -42,6 +43,13 @@ interface WindowContextType {
   openApp: (app: AppLink) => void;
   /** Open (or focus) an ad-hoc Lynx window for an arbitrary `.web.bundle` URL. */
   openBundleUrl: (url: string, opts?: { title?: string; flavor?: "react" | "vue" }) => void;
+  /**
+   * Open (or focus) a web page in a window — the in-app browser. A link a
+   * commit attaches opens here on a desktop rather than leaving the site, the
+   * way a link in a mobile app opens in its own in-app browser. The window is
+   * the same one an app gets: `Open in browser` in its menu is the way out.
+   */
+  openUrl: (url: string, opts?: { title?: string; id?: string }) => void;
   close: (id: string) => void;
   /** Bring a window to the front and mark it focused. */
   focus: (id: string) => void;
@@ -117,6 +125,11 @@ function soloOnPhone(
   return list.map((w) =>
     w.id === id || w.mode === "minimized" ? w : { ...w, mode: "minimized" },
   );
+}
+
+/** The window title for a page that arrives without one: its host. */
+function urlTitle(url: string): string {
+  return getHostname(url) ?? "Web";
 }
 
 function bundleTitle(url: string): string {
@@ -202,6 +215,21 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
         runtime: "lynx",
         flavor: opts?.flavor ?? "react",
         bundleUrl: url,
+      });
+    },
+    [openApp],
+  );
+
+  const openUrl = useCallback(
+    (url: string, opts?: { title?: string; id?: string }) => {
+      // Keyed by URL: opening the same page twice focuses the window it is
+      // already in, exactly as an app would.
+      openApp({
+        id: opts?.id ?? `url:${url}`,
+        title: opts?.title ?? urlTitle(url),
+        url,
+        runtime: "web",
+        size: "landscape",
       });
     },
     [openApp],
@@ -308,22 +336,32 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
     return visible.reduce((a, b) => (a.z >= b.z ? a : b)).id;
   }, [windows]);
 
-  // Esc closes the front-most window — but not while another overlay owns the
-  // Escape (the command palette), nor while typing in a field, so closing a
-  // palette/menu never also nukes the window behind it.
+  // Keys that belong to the front-most window rather than to the page under
+  // it — the same rule a window server follows: the key goes to the window in
+  // front, and the page behind one is the background.
+  //
+  //   Esc  closes it — but not while another overlay owns the Escape (the
+  //        command palette), nor while typing in a field, so closing a
+  //        palette/menu never also nukes the window behind it.
+  //   ⌘A   selects nothing. A cross-origin app frame owns the key outright
+  //        once it has focus, so this only fires while the key is still the
+  //        page's: aimed at the app, it would otherwise paint the whole
+  //        document behind the window blue. Dragging still selects that text
+  //        for anyone who means to.
   useEffect(() => {
     if (!focusedId) return;
+    const inTextField = (t: HTMLElement | null) =>
+      !!t &&
+      (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
       const t = e.target as HTMLElement | null;
-      if (
-        t &&
-        (t.tagName === "INPUT" ||
-          t.tagName === "TEXTAREA" ||
-          t.isContentEditable)
-      ) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
+        if (inTextField(t)) return;
+        e.preventDefault();
         return;
       }
+      if (e.key !== "Escape") return;
+      if (inTextField(t)) return;
       // Let an open overlay consume Escape first — the command palette (cmdk)
       // or a window's own menu — instead of nuking the window behind it.
       if (document.querySelector("[cmdk-root], [role='menu']")) return;
@@ -338,6 +376,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
       windows,
       openApp,
       openBundleUrl,
+      openUrl,
       close,
       focus,
       minimize,
@@ -352,6 +391,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
       windows,
       openApp,
       openBundleUrl,
+      openUrl,
       close,
       focus,
       minimize,

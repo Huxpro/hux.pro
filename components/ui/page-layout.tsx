@@ -94,8 +94,7 @@ export function PageLayout({
   const currentText = isHovered ? hoverTitle : displayTitle;
   const titleClassName = cn(
     "text-foreground",
-    variant === "reader" ? TITLE_READER : TITLE_POETIC,
-    useScramble && "cursor-default"
+    variant === "reader" ? TITLE_READER : TITLE_POETIC
   );
 
   const titleJsx = (
@@ -123,7 +122,10 @@ export function PageLayout({
     <main
       data-variant={variant}
       className={cn(
-        "mx-auto max-w-[680px] px-6 pt-16 sm:pt-24 pb-32 sm:pb-40",
+        // The column and its gutter are `--page-col` / `--page-gutter`
+        // (globals.css), so a rail that bleeds past the column (`--page-bleed`)
+        // reads the same numbers.
+        "mx-auto max-w-[var(--page-col)] px-[var(--page-gutter)] pt-16 sm:pt-24 pb-32 sm:pb-40",
         className
       )}
     >
@@ -144,7 +146,7 @@ export function PageLayout({
         <>
           <HeaderZone
             data-hero-exit={heroExit}
-            className={heroZoneClassName(heroExit, !heroFadeStyle, "select-none")}
+            className={heroZoneClassName(heroExit, !heroFadeStyle, "system-voice")}
             style={heroZoneStyle(heroExit, heroFadeStyle)}
           >
             <div className="h-11 flex items-start">

@@ -128,6 +128,21 @@
    See docs/system-legibility.md.
    ============================================================================= */
 
+/* The page column (components/ui/page-layout.tsx reads these), and its
+   bleed: from the column's edge to the viewport's. A rail that would be cut
+   by the column runs under the bleed instead, so it is only ever cut by the
+   screen — on a phone that is the gutter, on a desk the margin. `html`
+   clips x overflow (below), so the 100vw here cannot open a horizontal
+   scroll. */
+:root {
+  --page-col: 680px;
+  --page-gutter: 1.5rem;
+  --page-bleed: max(
+    var(--page-gutter),
+    calc((100vw - var(--page-col)) / 2 + var(--page-gutter))
+  );
+}
+
 :root {
   /* --- INPUTS: the two colours of the light theme --- */
   --ink: oklch(0.145 0 0);
@@ -517,7 +532,7 @@ body,
 }
 
 /* The bezel's stylesheet (html[data-bezel], container scroll, fixed layers
-   made absolute) ships with @hux/bezel and is installed by its boot script. */
+   made absolute) ships with vitre and is installed by its boot script. */
 
 @layer base {
   * {
@@ -543,10 +558,16 @@ body,
   }
 }
 
-/* Force grabbing cursor on all elements during drag */
+/* A drag, whatever is being dragged: the cursor says so, and nothing under the
+   pointer turns into a text selection. A window pulled across an article used
+   to paint the whole page blue on the way — the gesture was about the window,
+   never about the words behind it. The page is a document again the frame the
+   drag ends (see the voice block above). */
 html.dragging,
 html.dragging * {
   cursor: grabbing !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
 }
 
 /* Hide scrollbars while preserving scroll (e.g. the dock pill row) */
@@ -556,6 +577,21 @@ html.dragging * {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* An open /works row's body renders only near the viewport. Off-screen,
+   the browser keeps a box of the remembered size and skips the layout and
+   paint of what is in it: a full-bleed cover it would otherwise decode,
+   layer and composite for a row three screens away. `auto` remembers the
+   size once rendered, so the scrollbar holds still; 24rem is the guess
+   before that — about one tile and its caption, close enough that a first
+   scroll does not resize the page under the thumb. Anchors (`#<hash>`)
+   still land, and an inline player keeps playing. The folded strip is not
+   marked: 112px of images gains little from being skipped and would pay
+   the resize. */
+[data-row-lazy] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 24rem;
 }
 
 /* Commit permalink arrival — /works#<hash>. The row you travelled to is
@@ -1255,7 +1291,7 @@ main[data-variant="reader"] .reader-masthead {
   }
 
   html[data-bezel-scroll="container"] .hero-zone-fade {
-    /* The named timeline @hux/bezel publishes on #bezel-scroll. */
+    /* The named timeline vitre publishes on #bezel-scroll. */
     animation-timeline: --page-scroll;
   }
 
@@ -1437,17 +1473,40 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
-   System chrome — `.system-chrome`
-   Navigation, the command bar, the dock, edit controls, secondary surfaces:
-   these are the OS's own UI, not a document. No text selection, no long-press
-   callout, no grey tap flash — a press on them is a gesture, never an attempt
-   to grab text.
+   Voice — `.system-chrome`, `.system-surface`, `.system-voice`, the default
+   Four tiers, and a piece of UI picks one. The classes live here rather than
+   as Tailwind utilities at the call sites so the policies can be read side by
+   side, and so all three carry the text-field exception below: `user-select:
+   none` inherited into an `<input>` costs Safari the caret, and a
+   `select-none` in a class string has no way to say otherwise.
 
-   Decorative System UI that is not chrome (the greeting, poetic index titles,
-   widget cards) uses Tailwind `select-none` for the same selection rule,
-   without also killing link previews / tap highlight. Content (prose, the
-   /writing list, /works rows, article titles) keeps the browser defaults so a
-   long-press on a link still previews it and copy still works.
+   chrome    `.system-chrome` — navigation, the command bar, the dock, edit
+             controls, a window's own frame, every secondary surface (`SHELL`,
+             systems/surface). The OS's own UI: no text selection, no
+             long-press callout, no grey tap flash. A press on it is a gesture,
+             never a grab at text.
+   surface   `.system-surface` — a whole composition that is not a document:
+             the home screen, the 404. iOS Safari skips `user-select: none` on
+             individual labels and expands a long-press into a full-page
+             selection (Copy / Find Selection across the viewport), so the lock
+             goes on the tree and `useLockTextSelection` cancels the ranges
+             WebKit makes anyway. (A descendant `*` rule is omitted on purpose:
+             the CSS pipeline drops that selector. Inheritance plus the hook
+             cover children.)
+   voice     `.system-voice` — System text inside a page that is otherwise a
+             document: poetic index titles, the widget grid, app labels.
+             Selection only, so a link inside keeps its preview and its tap
+             flash. Pair it with `cursor-default` where the arrow should say so
+             too — but never on an element inside a link or button, where a
+             cursor set here would beat the pointer the control lends it.
+   document  no class. Prose, article titles (`TITLE_READER`), the /writing
+             list, /works rows. Browser defaults: text stays selectable and a
+             long-press on a link still previews it.
+
+   A drag is the fourth case and it is not a tier: `html.dragging` (below)
+   suspends selection everywhere for as long as something is being dragged,
+   because the page under a dragged window is a document and should stay one
+   the moment the drag ends.
    ============================================================================= */
 
 .system-chrome {
@@ -1457,31 +1516,21 @@ main[data-variant="reader"] .reader-masthead {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Text fields inside chrome (the command palette's input) must still let
-   the caret be placed and text be selected. */
-.system-chrome :is(input, textarea, [contenteditable="true"]) {
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-/* =============================================================================
-   System surface — `.system-surface`
-   The home screen is one OS composition, not a document. iOS Safari skips
-   `user-select: none` on individual labels and expands a long-press into a
-   full-page selection (Copy / Find Selection across the viewport). Lock the
-   surface so the selection has nowhere to grow; `useLockTextSelection` is the
-   matching JS for WebKit ignoring the CSS. (A descendant `*` rule is omitted
-   on purpose: the CSS pipeline drops that selector. Inheritance + the JS
-   hook cover children.)
-   ============================================================================= */
-
 .system-surface {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
 
-.system-surface :is(input, textarea, [contenteditable="true"]) {
+.system-voice {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* A text field in any of the three keeps its caret, its selection and its own
+   callout: the command palette's search, the devtool's fields. */
+:is(.system-chrome, .system-surface, .system-voice)
+  :is(input, textarea, [contenteditable="true"]) {
   -webkit-user-select: text;
   user-select: text;
   -webkit-touch-callout: default;

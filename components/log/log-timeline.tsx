@@ -15,7 +15,7 @@ import {
   isRowVisible,
   type Tag,
 } from "@/lib/log";
-import { DEFAULT_DENSITY, type LogDensity } from "@/lib/log-view";
+import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeBylines } from "./bylines";
@@ -23,7 +23,6 @@ import { Commit } from "./commit-embed";
 import { TimelineConnector } from "./timeline-connector";
 import type { BeamSpec } from "./timeline-commit";
 import { useTimelineEdit } from "./timeline-edit-context";
-import { SlidesPlayerProvider } from "./media/slides-player";
 
 /** Stable "no filter" default — a fresh `[]` per render would bust the
  *  per-tag memo below on every render for callers that never filter
@@ -45,12 +44,8 @@ interface LogTimelineProps {
    * up here.
    */
   identities?: Record<string, Identity>;
-  /**
-   * How much of each commit to print. See `lib/log-view.ts` — `stat` is the
-   * one that changes this component's shape, adding a contact strip under
-   * every folded row that has covers.
-   */
-  density?: LogDensity;
+  /** How much of each commit to print. See `lib/log-view.ts`. */
+  form?: LogForm;
   /**
    * Selected commit types. Empty is "no filter"; anything else hides every
    * commit that doesn't match — events included, since they are the one
@@ -75,29 +70,27 @@ export function LogTimeline({
   locale,
   expandAll,
   identities,
-  density = DEFAULT_DENSITY,
+  form = DEFAULT_FORM,
   activeTypes = NO_TYPES,
   onSelectHash,
 }: LogTimelineProps) {
   return (
-    <SlidesPlayerProvider>
-      <div className="space-y-0">
-        {data.map(({ tag, commits }, tagIndex) => (
-          <TagBlock
-            key={tag.id}
-            tag={tag}
-            commits={commits}
-            tagIndex={tagIndex}
-            locale={locale}
-            expandAll={expandAll}
-            identities={identities}
-            density={density}
-            activeTypes={activeTypes}
-            onSelectHash={onSelectHash}
-          />
-        ))}
-      </div>
-    </SlidesPlayerProvider>
+    <div className="space-y-0">
+      {data.map(({ tag, commits }, tagIndex) => (
+        <TagBlock
+          key={tag.id}
+          tag={tag}
+          commits={commits}
+          tagIndex={tagIndex}
+          locale={locale}
+          expandAll={expandAll}
+          identities={identities}
+          form={form}
+          activeTypes={activeTypes}
+          onSelectHash={onSelectHash}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -108,7 +101,7 @@ interface TagBlockProps {
   locale: Locale;
   expandAll?: boolean;
   identities?: Record<string, Identity>;
-  density: LogDensity;
+  form: LogForm;
   activeTypes: FilterableCommitType[];
   onSelectHash?: (hash: string) => void;
 }
@@ -120,7 +113,7 @@ function TagBlock({
   locale,
   expandAll,
   identities,
-  density,
+  form,
   activeTypes,
   onSelectHash,
 }: TagBlockProps) {
@@ -240,7 +233,10 @@ function TagBlock({
       >
         {/* Frosted-glass fill: translucent + blurred so the ambient gradient
             shows through and gets tinted per-theme rather than covered by a
-            flat opaque patch. The tint direction follows the theme — lighten
+            flat opaque patch. The blur is `sm:` and up: a sticky backdrop
+            filter over an animating wallpaper and full-bleed covers is
+            re-sampled every scroll frame, which a phone cannot afford, so
+            there the fill is denser instead. The tint direction follows the theme — lighten
             toward white in light mode (keeping the near-white chip it always
             was), darken with black in dark mode (the "shade darker than the
             page" look). Compositing a tint at alpha α over backdrop B gives a
@@ -251,7 +247,7 @@ function TagBlock({
             type="button"
             onClick={() => edit.onSelectTag(tag.id)}
             className={cn(
-              "inline-flex items-center bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full transition-colors",
+              "inline-flex items-center bg-white/85 dark:bg-black/45 sm:bg-white/70 sm:dark:bg-black/25 sm:backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full transition-colors",
               isTagSelected
                 ? "border-sky-500/70 ring-1 ring-inset ring-sky-500/35 bg-sky-500/[0.05]"
                 : "border-border hover:border-sky-500/50",
@@ -261,7 +257,7 @@ function TagBlock({
             {tagLabel}
           </button>
         ) : (
-          <span className="inline-flex items-center bg-white/70 dark:bg-black/25 backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border border-border rounded-full">
+          <span className="inline-flex items-center bg-white/85 dark:bg-black/45 sm:bg-white/70 sm:dark:bg-black/25 sm:backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border border-border rounded-full">
             {tagLabel}
           </span>
         )}
@@ -332,7 +328,7 @@ function TagBlock({
                 onBeamSet={handleBeamSet}
                 onBeamClear={handleBeamClear}
                 byline={bylines[i]}
-                density={density}
+                form={form}
                 onSelectHash={onSelectHash}
               />
             ));
