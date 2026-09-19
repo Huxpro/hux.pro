@@ -95,7 +95,7 @@ function getThumbnailUrl(videoId: string, customThumbnail?: string): string {
  * Get embed URL with privacy-friendly domain
  * Muted by default, user can unmute after interaction
  */
-function getEmbedUrl(videoId: string): string {
+export function getEmbedUrl(videoId: string): string {
   return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&mute=1`;
 }
 

@@ -159,6 +159,8 @@ export interface AttachmentTileProps {
   attachments?: AttachmentsApi | null;
   /** Which door the click takes — see the note above. Default `open`. */
   mode?: "open" | "act";
+  /** Take the click instead of either door — the feed's inline player. */
+  onPress?: () => void;
   /** The chip, overriding the size's: `none` for a card in the feed. */
   chip?: MediaMarkSize | "none";
   /** Square the corners — a phone's edge-to-edge feed. */
@@ -175,6 +177,7 @@ export function AttachmentTile({
   set,
   attachments,
   mode = "open",
+  onPress,
   chip,
   flush = false,
   className,
@@ -190,6 +193,11 @@ export function AttachmentTile({
     e.stopPropagation();
     // Modified clicks belong to the browser — never hijack them.
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (onPress) {
+      e.preventDefault();
+      onPress();
+      return;
+    }
     if (index < 0 || !set || !attachments) return;
     e.preventDefault();
     if (mode === "act") attachments.act(set, index);

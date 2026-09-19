@@ -34,17 +34,24 @@
  *
  * Phone — a feed: one thing under the next, each running edge to edge like
  * Instagram's or a landscape video on YouTube's, with the text back in the
- * column under it. A video plays in place; the rest go straight to their
- * native home (the in-app browser, the stage) — never the attachment sheet,
- * which would be a drawer opening on what is already on screen.
+ * column under it. A recording or a deck plays in place, and the bar under
+ * it — there from the start, so pressing play moves nothing — names it and
+ * offers the stage (`PiP`) for whoever wants to keep scrolling. A card goes
+ * straight to its native home (the in-app browser). Nothing here opens the
+ * attachment sheet, which would be a drawer opening on what is already on
+ * screen.
  */
 
-import { Fragment, type ReactNode } from "react";
+import { Fragment, useState } from "react";
+import { PictureInPicture2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE } from "@/lib/typography";
+import { t, type Locale } from "@/lib/i18n";
 import { useLocale } from "@/services";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
+import type { AttachmentsApi } from "@/systems/attachments";
 import { isSlidesMedia, isVideoMedia, type Media } from "@/lib/log";
+import { resolveSlidesEmbedUrl } from "@/lib/slides";
 import {
   AttachmentTile,
   tileCaption,
@@ -52,7 +59,7 @@ import {
   type TileCaption,
 } from "./attachment-tile";
 import { MediaMark, newTabMark } from "./media-mark";
-import { Video } from "./video";
+import { videoEmbedUrl } from "./video";
 
 export interface AttachmentGridProps {
   /** Tiles, in authored order — each with the cover the caller resolved. */
@@ -124,65 +131,37 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
       <div className={cn("space-y-4", className)}>
         {items.map(({ media, image }, i) => {
           const caption = tileCaption(media, locale);
-          // The bleed is on a wrapper rather than the cover: a facade is a
-          // `<button>`, which sizes to its content even as a block, so it
-          // fills the wrapper (`w-full`) and the wrapper does the reaching.
-          const cover: ReactNode = (
-            <div className={PHONE_BLEED}>
-              {isVideoMedia(media) ? (
-                // No `onPlay`: the facade plays here, in the row.
-                <Video
-                  url={media.url}
-                  platform={media.platform}
-                  thumbnail={media.thumbnail}
-                  chip="mini"
-                  className="rounded-none border-0"
-                />
-              ) : (
-                tileOf(media, image, caption, true)
-              )}
-            </div>
-          );
-          // A recording's caption is the row above it. A deck names itself;
-          // a card says where it goes and what it says.
-          const lines = isVideoMedia(media)
-            ? null
-            : isSlidesMedia(media)
-              ? (
-                  <div className={cn(SOURCE, TYPE.labelSm)}>
-                    <span className="truncate">{caption.source}</span>
-                    {caption.title && (
-                      <span className={cn("truncate normal-case tracking-normal", TITLE)}>
-                        {caption.title}
-                      </span>
-                    )}
-                  </div>
-                )
-              : (
-                  <div className="space-y-0.5">
-                    {sourceLine(media, caption)}
-                    <div className={cn(TITLE, "font-medium line-clamp-2")}>
-                      {caption.title}
-                    </div>
-                    {caption.description && (
-                      <p className={cn(TYPE.captionQuiet, "line-clamp-3")}>
-                        {caption.description}
-                      </p>
-                    )}
-                  </div>
-                );
+          if (isPlayable(media)) {
+            return (
+              <InlinePlayable
+                key={`${media.url}-${i}`}
+                media={media}
+                image={image}
+                caption={caption}
+                set={set}
+                attachments={attachments}
+                locale={locale}
+              />
+            );
+          }
           const act = actOf(media);
           return (
             <div key={`${media.url}-${i}`} className="min-w-0">
-              {cover}
-              {lines && (
-                <div
-                  className={cn("mt-2 min-w-0", act && "cursor-pointer")}
-                  onClick={act}
-                >
-                  {lines}
+              <div className={PHONE_BLEED}>{tileOf(media, image, caption, true)}</div>
+              <div
+                className={cn("mt-2 min-w-0 space-y-0.5", act && "cursor-pointer")}
+                onClick={act}
+              >
+                {sourceLine(media, caption)}
+                <div className={cn(TITLE, "font-medium line-clamp-2")}>
+                  {caption.title}
                 </div>
-              )}
+                {caption.description && (
+                  <p className={cn(TYPE.captionQuiet, "line-clamp-3")}>
+                    {caption.description}
+                  </p>
+                )}
+              </div>
             </div>
           );
         })}
@@ -257,6 +236,113 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
           </Fragment>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * A recording or a deck in the phone's feed: a 16:9 cover that plays in
+ * place when pressed — the platform's player, or the deck itself — and a
+ * bar under it that is there before, during and after. The bar names the
+ * item (its source, and the deck's title) and carries one control, `PiP`,
+ * which hands playback to the stage (`act`: the theater, a PiP on a phone)
+ * for whoever wants to keep scrolling; the inline player stops so the two
+ * never play at once. Reserving the bar from the start is what keeps the
+ * page still when play is pressed.
+ */
+function InlinePlayable({
+  media,
+  image,
+  caption,
+  set,
+  attachments,
+  locale,
+}: {
+  media: Media;
+  image: string;
+  caption: TileCaption;
+  set?: AttachmentSet | null;
+  attachments: AttachmentsApi | null;
+  locale: Locale;
+}) {
+  const [playing, setPlaying] = useState(false);
+  const embed = isVideoMedia(media)
+    ? videoEmbedUrl(media.url, media.platform)
+    : isSlidesMedia(media)
+      ? resolveSlidesEmbedUrl(media.url)
+      : null;
+  const index = set && attachments ? set.items.indexOf(media) : -1;
+  const toStage =
+    index >= 0 && set && attachments
+      ? () => {
+          setPlaying(false);
+          attachments.act(set, index);
+        }
+      : undefined;
+  const title = caption.title || caption.source;
+
+  return (
+    <div className="min-w-0">
+      <div className={PHONE_BLEED}>
+        {playing && embed ? (
+          <div className="relative aspect-video bg-black">
+            <iframe
+              src={embed}
+              title={title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="absolute inset-0 h-full w-full"
+            />
+          </div>
+        ) : (
+          <AttachmentTile
+            media={media}
+            image={image}
+            size="cell"
+            locale={locale}
+            label={title}
+            set={set}
+            attachments={attachments}
+            mode="act"
+            chip="mini"
+            flush
+            // 16:9 rather than the tiles' 2:1, because the player that
+            // replaces it is 16:9 and the swap should move nothing.
+            className="aspect-video"
+            onPress={embed ? () => setPlaying(true) : undefined}
+          />
+        )}
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <div className={cn(SOURCE, "min-w-0")}>
+          <span className="truncate">{caption.source}</span>
+          {isSlidesMedia(media) && caption.title && (
+            <span className={cn("truncate normal-case tracking-normal", TITLE)}>
+              {caption.title}
+            </span>
+          )}
+        </div>
+        {toStage && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toStage();
+            }}
+            aria-label={t(locale, "theaterReturnPip")}
+            title={t(locale, "theaterReturnPip")}
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5",
+              "font-mono text-[10px] uppercase tracking-wider leading-none",
+              "bg-foreground/[0.06] text-muted-foreground ring-1 ring-border/50 dark:bg-white/[0.08]",
+              "transition-colors hover:text-foreground",
+            )}
+          >
+            <PictureInPicture2 className="size-3" strokeWidth={2.25} />
+            {t(locale, "theaterSurfacePip")}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

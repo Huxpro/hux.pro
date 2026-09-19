@@ -67,7 +67,7 @@ function getThumbnailUrl(videoId: string, customThumbnail?: string): string {
  * Get Vimeo embed URL
  * Muted by default with autoplay after user click
  */
-function getEmbedUrl(videoId: string): string {
+export function getEmbedUrl(videoId: string): string {
   return `https://player.vimeo.com/video/${videoId}?autoplay=1&muted=1`;
 }
 

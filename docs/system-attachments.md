@@ -242,8 +242,13 @@ what is already on screen.
   does.
 - On a phone, the feed is a feed: one thing under the next, each running
   edge to edge over the page gutter and the rail column (`PHONE_BLEED`),
-  the text back in the column under it. A video plays in place — the
-  facade with no `onPlay` — and the rest go to their native home.
+  the text back in the column under it. A recording or a deck plays in
+  place (`InlinePlayable`: a 16:9 cover swapped for the platform's player
+  or the deck itself), and the bar under it — there from the start, so
+  pressing play moves nothing — names the item and carries one control,
+  `PiP`, which hands playback to the stage (`act`) for whoever wants to
+  keep scrolling and stops the inline player so the two never play at
+  once. A card goes to its native home.
 
 Before this, one card was full width and natural aspect, a video was full
 width and 16:9, two of anything was a scroll rail at half width with the

@@ -50,7 +50,7 @@ export interface BilibiliEmbedProps {
  * Parse a Bilibili URL (or raw BV/AV ID) into a structured ID with page.
  * Returns null if the URL doesn't contain a recognisable Bilibili video ID.
  */
-function parseBilibiliId(url: string): BilibiliVideoId | null {
+export function parseBilibiliId(url: string): BilibiliVideoId | null {
   const trimmed = url.trim();
 
   // Raw BV ID: "BV1xx411c7mD"
@@ -106,7 +106,7 @@ export function extractBilibiliId(url: string): string | null {
  * Build the Bilibili embed URL. Autoplay is always on because the iframe is
  * only mounted after the user explicitly clicks the play button.
  */
-function getEmbedUrl(id: BilibiliVideoId, overridePage?: number): string {
+export function getEmbedUrl(id: BilibiliVideoId, overridePage?: number): string {
   const u = new URL("https://player.bilibili.com/player.html");
   if (id.kind === "bvid") u.searchParams.set("bvid", id.bvid);
   if (id.kind === "aid") u.searchParams.set("aid", id.aid);
