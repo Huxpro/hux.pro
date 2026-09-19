@@ -151,6 +151,15 @@ export function getDomainLabel(url: string): string {
 }
 
 /**
+ * GitHub's generated social image is already a complete repo card (title,
+ * description, stats, 1200×600). Repeating those fields in our caption
+ * makes a card-in-a-card; the image is the card.
+ */
+export function isGithubSocialImage(image?: string | null): boolean {
+  return !!image?.includes("opengraph.githubassets.com");
+}
+
+/**
  * True when a link points at a talk-recording host — a page that IS a video
  * even though we render it as an OG card (no embeddable iframe / derivable
  * cover, unlike YouTube/Bilibili). Used to give such cards a "video-ish" play

@@ -13,12 +13,16 @@ type BilingualArray = {
   zh: string[];
 };
 
+type PromptLink = { label: string; url: string };
+
 // Raw types (as stored in JSON)
 interface RawQuote {
   id: string;
   text: BilingualText;
   author: string;
   source?: string;
+  /** When set, `source` is a link to this URL. */
+  url?: string;
   commentary?: BilingualText;
 }
 
@@ -28,20 +32,22 @@ interface RawPrinciple {
   topic?: BilingualText;
   shapedBy?: BilingualArray;
   reasoning?: BilingualText;
+  links?: PromptLink[];
 }
 
-interface RawPerson {
+interface RawNamedEntry {
   id: string;
   name: string;
   context?: BilingualText;
   admire?: BilingualArray;
-  links?: { label: string; url: string }[];
+  links?: PromptLink[];
 }
 
 interface RawPromptsData {
   quotes: RawQuote[];
   principles: RawPrinciple[];
-  people: RawPerson[];
+  people: RawNamedEntry[];
+  books: RawNamedEntry[];
   meta: PromptsMeta;
 }
 
@@ -51,6 +57,7 @@ export interface Quote {
   text: string;
   author: string;
   source?: string;
+  url?: string;
   commentary?: string;
 }
 
@@ -60,15 +67,21 @@ export interface Principle {
   topic?: string;
   shapedBy?: string[];
   reasoning?: string;
+  links?: PromptLink[];
 }
 
-export interface Person {
+export interface NamedEntry {
   id: string;
   name: string;
   context?: string;
   admire?: string[];
-  links?: { label: string; url: string }[];
+  links?: PromptLink[];
 }
+
+/** A team or group on the people list. */
+export type Person = NamedEntry;
+/** A book on the books list. */
+export type Book = NamedEntry;
 
 export interface PromptsMeta {
   tokenCount: number;
@@ -80,6 +93,7 @@ export interface PromptsData {
   quotes: Quote[];
   principles: Principle[];
   people: Person[];
+  books: Book[];
   meta: PromptsMeta;
 }
 
@@ -109,6 +123,16 @@ function resolveOptionalText(text: BilingualText | undefined, locale: Locale): s
   return text[locale];
 }
 
+function resolveNamedEntry(entry: RawNamedEntry, locale: Locale): NamedEntry {
+  return {
+    id: entry.id,
+    name: entry.name,
+    context: resolveOptionalText(entry.context, locale),
+    admire: resolveArray(entry.admire, locale),
+    links: entry.links,
+  };
+}
+
 /**
  * Load prompts data resolved to a specific locale
  */
@@ -121,6 +145,7 @@ export function getPromptsData(locale: Locale = "en"): PromptsData {
       text: resolveText(q.text, locale),
       author: q.author,
       source: q.source,
+      url: q.url,
       commentary: resolveOptionalText(q.commentary, locale),
     })),
     principles: raw.principles.map((p) => ({
@@ -129,14 +154,10 @@ export function getPromptsData(locale: Locale = "en"): PromptsData {
       topic: resolveOptionalText(p.topic, locale),
       shapedBy: resolveArray(p.shapedBy, locale),
       reasoning: resolveOptionalText(p.reasoning, locale),
-    })),
-    people: raw.people.map((p) => ({
-      id: p.id,
-      name: p.name,
-      context: resolveOptionalText(p.context, locale),
-      admire: resolveArray(p.admire, locale),
       links: p.links,
     })),
+    people: raw.people.map((p) => resolveNamedEntry(p, locale)),
+    books: (raw.books ?? []).map((b) => resolveNamedEntry(b, locale)),
     meta: raw.meta,
   };
 }

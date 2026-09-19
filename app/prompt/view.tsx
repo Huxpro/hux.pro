@@ -1,7 +1,7 @@
 "use client";
 
 import { PageLayout } from "@/components/ui/page-layout";
-import type { Person, Principle, PromptsData, Quote } from "@/lib/prompts";
+import type { Book, NamedEntry, Person, Principle, PromptsData, Quote } from "@/lib/prompts";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { AnimatePresence, motion } from "motion/react";
@@ -142,7 +142,22 @@ function QuoteItem({ quote }: { quote: Quote }) {
         <p className="mt-3 text-sm text-muted-foreground">
           {quote.author}
           {quote.source && (
-            <span className="text-tertiary-foreground"> · {quote.source}</span>
+            <>
+              <span className="text-tertiary-foreground"> · </span>
+              {quote.url ? (
+                <a
+                  href={quote.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-tertiary-foreground hover:text-foreground underline underline-offset-2 decoration-muted-foreground/30 hover:decoration-foreground transition-colors"
+                >
+                  {quote.source}
+                </a>
+              ) : (
+                <span className="text-tertiary-foreground">{quote.source}</span>
+              )}
+            </>
           )}
         </p>
 
@@ -191,7 +206,8 @@ function PrincipleItem({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const attributes = principle.topic ? { on: principle.topic } : undefined;
-  const hasExpandableContent = principle.shapedBy || principle.reasoning;
+  const hasExpandableContent =
+    principle.shapedBy || principle.reasoning || principle.links;
 
   return (
     <div
@@ -257,105 +273,14 @@ function PrincipleItem({
                     {principle.reasoning}
                   </p>
                 )}
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <XmlTag
-        closing
-        className={cn(
-          "opacity-0 group-hover:opacity-100",
-          isExpanded && "opacity-100",
-        )}
-      >
-        belief
-      </XmlTag>
-    </div>
-  );
-}
-
-// Person item component
-function PersonItem({ person }: { person: Person }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const hasExpandableContent = person.admire || person.links;
-
-  return (
-    <div
-      className={cn(
-        "prompt-item group py-3 cursor-pointer transition-colors duration-200",
-        "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg",
-      )}
-      {...(isExpanded ? { "data-expanded": "" } : {})}
-      onClick={() => setIsExpanded(!isExpanded)}
-    >
-      <div className="flex items-center gap-2">
-        <XmlTag
-          className={cn(
-            "opacity-0 group-hover:opacity-100",
-            isExpanded && "opacity-100",
-          )}
-        >
-          person
-        </XmlTag>
-        {hasExpandableContent && (
-          <motion.span
-            className={cn(
-              "text-quaternary-foreground text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-              isExpanded && "opacity-100",
-            )}
-            animate={{ rotate: isExpanded ? 90 : 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-          >
-            ›
-          </motion.span>
-        )}
-      </div>
-
-      <div className="mt-2 mb-2">
-        {/* Name - serif, large */}
-        <p className="font-serif text-xl sm:text-2xl text-foreground">
-          {person.name}
-        </p>
-
-        {/* Context */}
-        {person.context && (
-          <p className="mt-1 text-sm text-muted-foreground">{person.context}</p>
-        )}
-
-        {/* Expandable detail */}
-        <AnimatePresence>
-          {isExpanded && hasExpandableContent && (
-            <motion.div
-              variants={expandVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              className="overflow-hidden"
-            >
-              <motion.div variants={contentVariants}>
-                <Divider />
-                {person.admire && person.admire.length > 0 && (
-                  <ul className="space-y-1 mb-4">
-                    {person.admire.map((point, i) => (
-                      <motion.li
-                        key={i}
-                        className="text-sm text-muted-foreground flex items-start gap-2"
-                        initial={{ opacity: 0, x: -4 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.05, duration: 0.2 }}
-                      >
-                        <span className="text-quaternary-foreground">·</span>
-                        {point}
-                      </motion.li>
-                    ))}
-                  </ul>
-                )}
-                {person.links && person.links.length > 0 && (
-                  <div className="flex flex-wrap gap-3">
-                    {person.links.map((link, i) => (
+                {principle.links && principle.links.length > 0 && (
+                  <div
+                    className={cn(
+                      "flex flex-wrap gap-3",
+                      (principle.shapedBy || principle.reasoning) && "mt-3",
+                    )}
+                  >
+                    {principle.links.map((link, i) => (
                       <motion.a
                         key={link.url}
                         href={link.url}
@@ -385,10 +310,135 @@ function PersonItem({ person }: { person: Person }) {
           isExpanded && "opacity-100",
         )}
       >
-        person
+        belief
       </XmlTag>
     </div>
   );
+}
+
+function NamedEntryItem({
+  entry,
+  tag,
+}: {
+  entry: NamedEntry;
+  tag: "people" | "book";
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const hasExpandableContent = entry.admire || entry.links;
+
+  return (
+    <div
+      className={cn(
+        "prompt-item group py-3 cursor-pointer transition-colors duration-200",
+        "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg",
+      )}
+      {...(isExpanded ? { "data-expanded": "" } : {})}
+      onClick={() => setIsExpanded(!isExpanded)}
+    >
+      <div className="flex items-center gap-2">
+        <XmlTag
+          className={cn(
+            "opacity-0 group-hover:opacity-100",
+            isExpanded && "opacity-100",
+          )}
+        >
+          {tag}
+        </XmlTag>
+        {hasExpandableContent && (
+          <motion.span
+            className={cn(
+              "text-quaternary-foreground text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+              isExpanded && "opacity-100",
+            )}
+            animate={{ rotate: isExpanded ? 90 : 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            ›
+          </motion.span>
+        )}
+      </div>
+
+      <div className="mt-2 mb-2">
+        <p className="font-serif text-xl sm:text-2xl text-foreground">
+          {entry.name}
+        </p>
+
+        {entry.context && (
+          <p className="mt-1 text-sm text-muted-foreground">{entry.context}</p>
+        )}
+
+        <AnimatePresence>
+          {isExpanded && hasExpandableContent && (
+            <motion.div
+              variants={expandVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="overflow-hidden"
+            >
+              <motion.div variants={contentVariants}>
+                <Divider />
+                {entry.admire && entry.admire.length > 0 && (
+                  <ul className="space-y-1 mb-4">
+                    {entry.admire.map((point, i) => (
+                      <motion.li
+                        key={i}
+                        className="text-sm text-muted-foreground flex items-start gap-2"
+                        initial={{ opacity: 0, x: -4 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05, duration: 0.2 }}
+                      >
+                        <span className="text-quaternary-foreground">·</span>
+                        {point}
+                      </motion.li>
+                    ))}
+                  </ul>
+                )}
+                {entry.links && entry.links.length > 0 && (
+                  <div className="flex flex-wrap gap-3">
+                    {entry.links.map((link, i) => (
+                      <motion.a
+                        key={link.url}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs font-mono text-muted-foreground hover:text-foreground underline underline-offset-2 decoration-muted-foreground/30 hover:decoration-foreground transition-colors"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.1 + i * 0.05, duration: 0.2 }}
+                      >
+                        {link.label}
+                      </motion.a>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <XmlTag
+        closing
+        className={cn(
+          "opacity-0 group-hover:opacity-100",
+          isExpanded && "opacity-100",
+        )}
+      >
+        {tag}
+      </XmlTag>
+    </div>
+  );
+}
+
+function PeopleItem({ person }: { person: Person }) {
+  return <NamedEntryItem entry={person} tag="people" />;
+}
+
+function BookItem({ book }: { book: Book }) {
+  return <NamedEntryItem entry={book} tag="book" />;
 }
 
 // Footer meta component
@@ -457,7 +507,11 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
 
           {/* People */}
           {data.people.map((person) => (
-            <PersonItem key={person.id} person={person} />
+            <PeopleItem key={person.id} person={person} />
+          ))}
+
+          {data.books.map((book) => (
+            <BookItem key={book.id} book={book} />
           ))}
         </div>
 

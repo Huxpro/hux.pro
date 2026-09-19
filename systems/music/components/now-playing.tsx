@@ -53,6 +53,7 @@ function MusicTransport({
   onNext,
   onPlaylist,
   playlistLabel,
+  playlistOpen = false,
   idle = false,
   raised = true,
 }: {
@@ -62,6 +63,8 @@ function MusicTransport({
   onNext?: () => void;
   onPlaylist: () => void;
   playlistLabel: string;
+  /** Lit while the playlist surface is up; the button then closes it again. */
+  playlistOpen?: boolean;
   idle?: boolean;
   /** Live Activity keeps the raised cluster; the homepage widget uses a light frame. */
   raised?: boolean;
@@ -93,7 +96,19 @@ function MusicTransport({
           <FastForward className="h-3.5 w-3.5" />
         </button>
       )}
-      <button onClick={onPlaylist} aria-label={playlistLabel} className={GLASS_CLUSTER_BTN}>
+      {/* A toggle, and lit while the list is up: the playlist is a place you
+          are in or out of, and a button that did nothing when you were already
+          in it read as broken. */}
+      <button
+        onClick={onPlaylist}
+        aria-pressed={playlistOpen}
+        aria-label={playlistLabel}
+        className={cn(
+          GLASS_CLUSTER_BTN,
+          playlistOpen &&
+            cn(raised ? GLASS_PILL : GLASS_PILL_FLAT, "text-foreground"),
+        )}
+      >
         <ListMusic className="h-3.5 w-3.5" />
       </button>
     </div>
@@ -125,7 +140,9 @@ export function NowPlaying({
     pause,
     next,
     previous,
+    isPlaylistOpen,
     openPlaylist,
+    closePlaylist,
   } = useMusic();
 
   const isPlaying = playerState === "playing";
@@ -188,8 +205,12 @@ export function NowPlaying({
               onPrevious={previous}
               onPlayPause={isPlaying ? pause : play}
               onNext={next}
-              onPlaylist={openPlaylist}
-              playlistLabel={t(locale, "musicOpenPlaylist")}
+              onPlaylist={isPlaylistOpen ? closePlaylist : openPlaylist}
+              playlistLabel={t(
+                locale,
+                isPlaylistOpen ? "musicClosePlaylist" : "musicOpenPlaylist",
+              )}
+              playlistOpen={isPlaylistOpen}
               raised={raised}
             />
           )}
@@ -220,8 +241,12 @@ export function NowPlaying({
           <MusicTransport
             isPlaying={false}
             onPlayPause={play}
-            onPlaylist={openPlaylist}
-            playlistLabel={t(locale, "musicOpenPlaylist")}
+            onPlaylist={isPlaylistOpen ? closePlaylist : openPlaylist}
+            playlistLabel={t(
+              locale,
+              isPlaylistOpen ? "musicClosePlaylist" : "musicOpenPlaylist",
+            )}
+            playlistOpen={isPlaylistOpen}
             idle
             raised={raised}
           />

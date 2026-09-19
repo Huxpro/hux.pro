@@ -17,6 +17,7 @@ import { Dock } from "@/systems/dock";
 import { MusicActivity, MusicPlaylistSheet } from "@/systems/music";
 import {
   TheaterActivity,
+  TheaterPlaylistSheet,
   TheaterRegistrar,
   TheaterSurfaces,
 } from "@/systems/theater";
@@ -132,6 +133,7 @@ export default function RootLayout({
               <MinimizedWindows />
             </Dock>
             <MusicPlaylistSheet />
+            <TheaterPlaylistSheet />
             <WallpaperSheet />
             <TiltPrimerSheet />
             <TheaterRegistrar />

@@ -56,9 +56,12 @@ export { SurfaceWindow, WINDOW_SPRING } from "./window";
 export type { SurfaceWindowProps } from "./window";
 export {
   SURFACE_TRANSITION_MS,
+  useMeasuredBand,
+  useSurfaceBandOf,
   useSurfaceStack,
   useSurfaceStackEntries,
 } from "./stack";
+export type { SurfaceBand } from "./stack";
 export {
   ADAPTIVE_PRESENTATION,
   ANCHORED_PRESENTATION,

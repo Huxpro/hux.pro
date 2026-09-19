@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   SurfaceViewport,
   surfaceMotionVars,
+  useMeasuredBand,
   useSurfaceStack,
 } from "@/systems/surface";
 import { Drawer } from "@base-ui/react/drawer";
@@ -272,10 +273,6 @@ export function LiveActivity({
   // activity unmounts while open, and — by its order — who holds the island.
   useEffect(() => registerActivity(id), [id, registerActivity]);
 
-  // One entry for the dock, not one per activity: only ever one is expanded,
-  // and what the other surfaces care about is "the dock panel is up".
-  const { behind, depth, rank } = useSurfaceStack("dock-activity", expanded);
-
   // The wrapper, not the button: by the time a panel is opening the button is
   // already fading and shrinking away, and its rect carries that scale.
   const fromRef = useRef<HTMLDivElement>(null);
@@ -285,6 +282,39 @@ export function LiveActivity({
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [content, setContent] = useState<HTMLDivElement | null>(null);
   const [resting, setResting] = useState<React.CSSProperties | null>(null);
+
+  // One entry for the dock, not one per activity: only ever one is expanded,
+  // and what the other surfaces care about is "the dock panel is up".
+  //
+  // The band it reports is what lets a sheet tell tiling from covering: a
+  // playlist that stops at this panel's bottom edge is beside it, not under
+  // it, and neither should push the other back. It is also where that sheet
+  // reads its own ceiling from (`useSurfaceBandOf`), so this measurement is
+  // the one answer to "how far down does the dock reach", rather than each
+  // surface going and measuring the panel for itself.
+  //
+  // The mirror of a sheet's: a sheet hangs from a pinned bottom edge, so its
+  // height says where its top is; the panel hangs from a pinned top edge, so
+  // its height says where its bottom is.
+  //
+  // Measured off the POPUP, where a sheet measures its shell. Here the shell
+  // is the thing that deforms — mid-entrance its height is the compact form's,
+  // not the panel's, so a band read from it would say the dock reaches 36px
+  // down and a sheet would tile itself under a panel that is about to be 172
+  // tall. The popup is pinned to the panel's box from the first frame (see its
+  // `height` below), which is the box the band is asking about. It is also the
+  // cheaper observer: the shell's size changes every frame of the deformation
+  // and the popup's does not.
+  const measureBand = useCallback(() => {
+    const popup = popupRef.current;
+    if (!popup) return undefined;
+    const top = popup.offsetTop;
+    return { top, bottom: top + popup.offsetHeight };
+  }, []);
+  const band = useMeasuredBand(expanded, measureBand, popupRef);
+  const { behind, depth, rank } = useSurfaceStack("dock-activity", expanded, {
+    band,
+  });
 
   const measure = useCallback(() => {
     const popup = popupRef.current;

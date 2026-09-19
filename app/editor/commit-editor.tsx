@@ -333,6 +333,7 @@ export function CommitEditor({
       commentary: commit.commentary,
       tags: commit.tags,
       listed: commit.listed,
+      present: commit.present,
     };
     onUpdate({
       ...base,
@@ -504,6 +505,11 @@ function FormFields({
         label="Hide Date"
         checked={commit.hideDate === true}
         onChange={(v) => onUpdate({ hideDate: v ? true : undefined })}
+      />
+      <CheckField
+        label="Aside"
+        checked={commit.present === "aside"}
+        onChange={(v) => onUpdate({ present: v ? "aside" : undefined })}
       />
       <ChoiceField<"" | "date" | "endDate">
         label="Sort By"

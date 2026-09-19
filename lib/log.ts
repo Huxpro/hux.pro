@@ -349,7 +349,22 @@ interface BaseCommit {
    * the default briefcase.
    */
   icon?: "graduation-cap";
+  /**
+   * How this commit dresses on the timeline. Not a type: filters still
+   * key off `type`, so an aside talk survives `?type=talk`. Same data,
+   * different row — the media layer already uses `present` this way
+   * (`pill` vs `card`).
+   *
+   *  - undefined (default): the ordinary row for this type.
+   *  - `"aside"`: folded, the row borrows the event voice: one muted
+   *    italic line (for a talk, the conference name). Click to expand
+   *    into the real title, description, and media.
+   */
+  present?: CommitPresent;
 }
+
+/** Timeline row dressing. Orthogonal to {@link CommitType}. */
+export type CommitPresent = "aside";
 
 /**
  * The language of a work or its visibility scope.
@@ -1677,6 +1692,11 @@ export function isPressCommit(commit: Commit): commit is PressCommit {
 
 export function isEventCommit(commit: Commit): commit is EventCommit {
   return commit.type === "event";
+}
+
+/** True when the row dresses as a muted line until opened. */
+export function isAsideCommit(commit: Commit): boolean {
+  return commit.present === "aside";
 }
 
 // =============================================================================

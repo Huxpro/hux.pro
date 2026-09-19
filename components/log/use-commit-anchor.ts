@@ -37,7 +37,7 @@ import {
 const TARGET_ATTR = "data-commit-target";
 
 /** Distance from the top of the viewport the row comes to rest at, clearing
- *  the sticky chapter marker (`top-4`) with room to read the row above it. */
+ *  the pinned bar (`top-4`, WorksToolbar) with room to read the row above it. */
 const HEADROOM = 120;
 
 const TRAVEL_MS = 460;
