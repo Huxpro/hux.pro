@@ -1,4 +1,13 @@
-import { ArrowUpRight, Play, Presentation, type LucideIcon } from "lucide-react";
+import {
+  ArrowUpRight,
+  AtSign,
+  BookOpen,
+  Globe,
+  Image as ImageIcon,
+  Play,
+  Presentation,
+  type LucideIcon,
+} from "lucide-react";
 import { ARTWORK_CHIP } from "@/lib/glass";
 import type { Locale } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
@@ -9,9 +18,10 @@ import {
   isSocialEmbedMedia,
   isVideoMedia,
   type Media,
+  type SocialEmbedPlatform,
   type VideoPlatform,
 } from "@/lib/log";
-import { isVideoLinkHost, videoLinkHostLabel } from "@/lib/og-core";
+import { getDomainLabel, isVideoLinkHost, videoLinkHostLabel } from "@/lib/og-core";
 import { cn } from "@/lib/utils";
 
 // =============================================================================
@@ -36,10 +46,19 @@ import { cn } from "@/lib/utils";
 //   slides   ▤ Slides
 //   new tab  ↗ New tab — a page that refuses to be framed, whatever its kind
 //
-// Three chips, and nothing else. A chip says something the surface does not
-// already say: a page's card prints its domain and title, the attachment
-// sheet's page prints the domain and a labelled button, so a `Web` chip
-// there would only repeat them, and a cover that is a page wears none.
+// Who wears one is the surface's call, in three tiers:
+//
+//   /works (the strip, the expanded body)   a recording, a deck, and a page
+//            that will leave. A card is its own hint (domain, title), and a
+//            chip on every card would be noise.
+//   the hover peek                          every kind (`all`): a page says
+//            Web, a post Writing, an image Image, a social widget its
+//            platform. The peek is a glance, and the chip is its caption.
+//   the attachment sheet's page, the home    none. Each already says what the
+//   widgets' covers, the theater's rail      thing is beside the cover — a
+//            labelled button, the widget's line, the rail's title — and a
+//            chip there would only repeat it.
+//
 // `markFor` reads the chip off a media item; `MediaMark` draws whatever it
 // is handed, so a cover never has to know why it wears what it wears.
 //
@@ -91,6 +110,13 @@ export const PLATFORM_LABEL: Record<VideoPlatform, string> = {
   vimeo: "Vimeo",
 };
 
+const SOCIAL_LABEL: Record<SocialEmbedPlatform, string> = {
+  twitter: "X",
+  x: "X",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+};
+
 /** The deck's chip, for a cover that knows it is a deck without a `Media`. */
 export const SLIDES_MARK: MediaMarkSpec = { icon: Presentation, label: "Slides" };
 
@@ -106,19 +132,36 @@ export function newTabMark(locale: Locale): MediaMarkSpec {
 
 /**
  * The chip a media item's cover wears, or null for a cover that wears none.
- * `leaves` says the press will open a tab (a page that refuses to be
- * framed): the chip says so, whatever the kind.
+ *
+ *   `leaves`  the press will open a tab (a page that refuses to be framed):
+ *             the chip says so, whatever the kind.
+ *   `all`     mark every kind, not only a recording and a deck — the hover
+ *             peek's tier.
  */
 export function markFor(
   media: Media,
   locale: Locale,
-  opts: { leaves?: boolean } = {},
+  opts: { all?: boolean; leaves?: boolean } = {},
 ): MediaMarkSpec | null {
   if (opts.leaves) return newTabMark(locale);
   if (isVideoMedia(media)) return videoMark(media.platform);
   if (isSlidesMedia(media)) return SLIDES_MARK;
   const host = isLinkMedia(media) ? videoLinkHostLabel(media.url) : null;
   if (host) return { icon: Play, label: host, fill: true };
+  if (!opts.all) return null;
+  if (isLinkMedia(media)) {
+    const internal = !!media.internal || media.url.startsWith("/");
+    return internal
+      ? { icon: BookOpen, label: "Writing" }
+      : { icon: Globe, label: "Web" };
+  }
+  if (isImageMedia(media)) return { icon: ImageIcon, label: "Image" };
+  if (isSocialEmbedMedia(media)) {
+    return {
+      icon: AtSign,
+      label: media.platform ? SOCIAL_LABEL[media.platform] : getDomainLabel(media.url),
+    };
+  }
   return null;
 }
 

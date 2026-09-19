@@ -79,7 +79,7 @@ export function TheaterActivity() {
       <div className="space-y-3.5 px-5 pb-4">
         <div className="flex items-start gap-3.5">
           <div className="w-24 shrink-0">
-            <TrackThumb track={track} showBadge={false} />
+            <TrackThumb track={track} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-medium leading-snug text-foreground">

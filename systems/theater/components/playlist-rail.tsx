@@ -59,7 +59,7 @@ export function PlaylistRail({
               active ? "opacity-100" : "opacity-70 hover:opacity-100",
             )}
           >
-            <TrackThumb track={track} active={active} showBadge={!active} />
+            <TrackThumb track={track} active={active} />
             <div className={cn("mt-1.5 truncate text-xs", titleColor)}>
               {track.title}
             </div>

@@ -2,13 +2,7 @@
 
 import { ExternalImage } from "@/components/log/media/external-image";
 import { SocialEmbed } from "@/components/log/media/embed";
-import {
-  linkKindOf,
-  markFor,
-  MediaMark,
-  type MediaKind,
-  type MediaMarkSpec,
-} from "@/components/log/media/media-mark";
+import { linkKindOf, type MediaKind } from "@/components/log/media/media-mark";
 import { PeekCover } from "@/components/log/media/peek-cover";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
@@ -56,12 +50,9 @@ import { useAttachments } from "../provider";
 // material the PiP bar and the Live Activity wear. The surface and the stage
 // are one system, and their controls should say so.
 //
-// The cover wears the chip every cover on the site wears (media-mark.tsx) —
-// the same chip the row's cover wore when it was tapped: the platform on a
-// recording, `Slides` on a deck, and `New tab` on the one case that leaves,
-// a page that refuses to be framed, so the page says where the button goes
-// before it is pressed, in the chip and nowhere else. A page's cover wears
-// none: the domain line and the button already say what it is.
+// The cover wears no chip here (media-mark.tsx): the page prints the domain,
+// the title and a labelled button, and the button's glyph already says what
+// the item is and where it goes — a chip on the cover would repeat it.
 // The button's glyph is what the item is: a play mark, the deck glyph, a
 // globe for the in-app browser, a book for a post, the arrow out for a tab.
 // =============================================================================
@@ -71,17 +62,14 @@ interface AttachmentPageProps {
   index: number;
 }
 
-/** A cover the page action opens — a stage-shaped 16:9 box wearing its chip. */
+/** A cover the page action opens — a stage-shaped 16:9 box. */
 function Cover({
   image,
   label,
-  mark,
   onOpen,
 }: {
   image: string | null;
   label: string;
-  /** The cover's chip (media-mark.tsx). */
-  mark: MediaMarkSpec | null;
   onOpen: () => void;
 }) {
   return (
@@ -108,7 +96,6 @@ function Cover({
         </span>
       )}
       <span className="absolute inset-0 bg-black/0 transition-colors group-hover/thumb:bg-black/10" />
-      <MediaMark mark={mark} />
     </button>
   );
 }
@@ -180,20 +167,13 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
 
   const open = () => act(set, index);
   const home = nativeHomeOf(set, index);
-  // The row's chip, and `New tab` when the button will leave the site.
-  const mark = markFor(media, locale, { leaves: home === "tab" });
 
   if (isVideoMedia(media) || isSlidesMedia(media)) {
     const kind: MediaKind = isSlidesMedia(media) ? "slides" : "video";
     const label = t(locale, kind === "slides" ? "logSlides" : "logWatch");
     return (
       <div className="space-y-4">
-        <Cover
-          image={getMediaThumbnail(media)}
-          label={label}
-          mark={mark}
-          onOpen={open}
-        />
+        <Cover image={getMediaThumbnail(media)} label={label} onOpen={open} />
         <Meta set={set} />
         <Actions
           primary={{ label, icon: homeIcon(home, kind), onSelect: open }}
@@ -224,12 +204,10 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
               aspect={preview.aspect}
               className="rounded-none border-0"
             />
-            <MediaMark mark={mark} />
           </div>
         ) : (
-          <div className="relative flex aspect-[2/1] items-center justify-center rounded-xl border border-border/50 bg-muted/10">
+          <div className="flex aspect-[2/1] items-center justify-center rounded-xl border border-border/50 bg-muted/10">
             <ImageIcon className="h-8 w-8 text-quaternary-foreground" />
-            <MediaMark mark={mark} />
           </div>
         )}
         <div className="min-w-0 space-y-1">

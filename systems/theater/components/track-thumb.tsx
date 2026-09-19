@@ -1,12 +1,7 @@
 "use client";
 
 import { ExternalImage } from "@/components/log/media/external-image";
-import {
-  MediaMark,
-  PLATFORM_LABEL as VIDEO_LABEL,
-  SLIDES_MARK,
-  videoMark,
-} from "@/components/log/media/media-mark";
+import { PLATFORM_LABEL as VIDEO_LABEL } from "@/components/log/media/media-mark";
 import { cn } from "@/lib/utils";
 import type { Track } from "../lib/types";
 
@@ -43,12 +38,10 @@ const PLATFORM_TINT: Record<Source, string> = {
 export function TrackThumb({
   track,
   active = false,
-  showBadge = true,
   className,
 }: {
   track: Track;
   active?: boolean;
-  showBadge?: boolean;
   className?: string;
 }) {
   return (
@@ -80,15 +73,6 @@ export function TrackThumb({
             {PLATFORM_LABEL[sourceOf(track)]}
           </span>
         </div>
-      )}
-      {/* The chip every cover on the site wears (media-mark.tsx): the
-          platform on a recording, `Slides` on a deck, so a deck reads as a
-          deck beside the videos in a rail. */}
-      {showBadge && (
-        <MediaMark
-          mark={track.kind === "slides" ? SLIDES_MARK : videoMark(track.platform)}
-          size="compact"
-        />
       )}
     </div>
   );

@@ -61,10 +61,10 @@ link in a mobile app opens in its own in-app browser and returns to the
 screen it came from. The provider keeps the attachment sheet open for this
 (`send`, the `window` case); on a desktop the window is its own thing and the
 surface closes. The only `Visit` that leaves the site is a page that refuses
-to be framed, and the sheet's page says so before the button is pressed — in
-the chip on its cover (`New tab`, see below), not in a line of its own; the
-button's glyph is the arrow out there, a globe for the in-app browser, a
-play mark for a recording, the deck glyph for a deck, a book for a post.
+to be framed, and the button says so before it is pressed: its glyph is the
+arrow out there, a globe for the in-app browser, a play mark for a
+recording, the deck glyph for a deck, a book for a post. The page's cover
+wears no chip (see below) — the button is the whole of it.
 
 Whether a page refuses framing is read at snapshot time: `pnpm og:snapshot`
 now records `X-Frame-Options` / `frame-ancestors` as `frame: "deny"` on the
@@ -75,8 +75,8 @@ reach at all can be told by hand (`preview: { frame: "deny" }`, as The Verge is)
 
 A card that will leave for a tab says so **before** the click, not after:
 its cover wears the `New tab` chip — on the expanded card, on the strip
-cover, in the hover peek and on the sheet's page (the one chip vocabulary,
-below) — the cover's tooltip carries it, and when the tab does open on a
+cover and in the hover peek (the one chip vocabulary, below) — the cover's
+tooltip carries it, the sheet's button wears the arrow out, and when the tab does open on a
 desktop, a one-line system toast names the site that would not be framed
 (`components/ui/system-toast.tsx`). Gitee, Medium, web.dev, The Verge and
 Meta are the ones in the log today; the rest open in a window — on every
@@ -153,36 +153,40 @@ a picture arrives the same way wherever the picture is.
 | a recording that lives on a page (a GitNation talk) | `▶ GitNation` — the same chip, the host's name |
 | a deck | `Slides` |
 | a page that refuses to be framed, whatever its kind | `↗ New tab` |
-| a page, a post, an image, a social widget | none |
+| a page, a post, an image, a social widget — in the hover peek only | `Web`, `Writing`, `Image`, the platform |
 
-Three chips, and one rule for who wears one: **a chip says something the
-surface does not already say.** A card prints its domain and its title, so a
-page wears none; the attachment sheet's page prints the domain and a
-labelled button, so it wears the chip the row's cover wore and no more; the
-hover peek's card is a card. The chip says what the thing *is*, never where
-it opens — which is how a GitNation recording wears a play chip and opens in
-the in-app browser rather than on the stage: it is a recording, and the
-policy above decides the rest. `markFor(media, locale, { leaves })` reads
-the chip off an item; `mediaKindOf` still reads the kind, for the sheet's
-button glyph and the lab.
+Who wears one is the surface's call, in three tiers:
+
+| where | who wears a chip |
+|---|---|
+| `/works` (the strip, the expanded card, the inline players, the deck cover) | a recording, a deck, and a page that will leave — a card is its own hint (domain, title), and a chip on every card would be noise |
+| the hover peek | **every kind** (`markFor`'s `all`) — a peek is a glance, and the chip is its caption |
+| the attachment sheet's page, the home widgets' covers, the theater's rail | **none** — each already says what the thing is beside the cover (a labelled button whose glyph is the arrow out when it leaves, the widget's line, the rail's title), and a chip would repeat it |
+
+The chip says what the thing *is*, never where it opens — which is how a
+GitNation recording wears a play chip and opens in the in-app browser
+rather than on the stage: it is a recording, and the policy above decides
+the rest. `markFor(media, locale, { all, leaves })` reads the chip off an
+item; `mediaKindOf` still reads the kind, for the sheet's button glyph and
+the lab.
 
 Three sizes: `mini` for the contact strip's 56px covers, where the chip
 keeps its glyph and drops its word (the wallpaper tile's small badge);
 `compact` for rail thumbs and dense cards; `default` for a full cover. The
-strip cover, the link card, the inline video facades, the deck cover, the
-theater's rail thumb, the home widgets' covers, the attachment sheet's page
-and the hover peek's poster all take the chip from here, and nothing else on
-a cover says what it is — the peek's poster has no caption but a deck's or
-an image's name; a card with no cover to wear it on carries the chip in its
-caption line. The
+strip cover, the link card, the inline video facades, the deck cover and
+the hover peek's poster all take the chip from here, and nothing else on a
+cover says what it is —
+the peek's poster has no caption but a deck's or an image's name; a card
+with no cover to wear it on carries the chip in its caption line. The
 chip says what the thing is; the policy above says where it opens, and the
 two never trade jobs.
 
 ## The lab
 
 **`/editor/attachments`** — hidden, `noindex` — is the devtool for this system, the
-way `/editor/legibility` is for reading surfaces: the three chips at every
-size on the log's own covers, the GitNation case among them; the policy as a
+way `/editor/legibility` is for reading surfaces: the chips at every size
+on the log's own covers, in the `/works` tier and the peek's, the GitNation
+case among them; the policy as a
 table, read live from `homeFor` / `nativeHomeFor` for a context you can pin
 (phone or not, a window manager); the same media rendered by the production strip,
 card, deck cover, rail thumb and attachment page; and buttons that go through
@@ -214,8 +218,7 @@ a place to keep a deck open, not only a place to listen, and it knows the
 difference: for a deck the third view is `Minimize`, icon and word, in the
 theater bar, the PiP bar and the pill alike (`SurfaceSwitch`'s `deck`),
 never `Audio`, and the pill reads `slides` under the deck glyph rather than
-`watching` behind an equalizer. `TrackThumb` wears the same `Slides` chip
-the `/works` cover does.
+`watching` behind an equalizer.
 
 The stage keeps **two libraries** and never shows them together. A recording
 is browsed among recordings: the talk albums (React / Lynx / Personal) the

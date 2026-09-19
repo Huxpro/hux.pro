@@ -9,11 +9,12 @@
 //
 // Four things on the stage, none of them mocks:
 //
-//   vocabulary   the three chips a cover can wear (media-mark.tsx), at each
-//                size, on the log's own covers — the platform on a recording
-//                (and on a recording that lives on a page, the one case where
-//                a play chip opens the in-app browser), `Slides` on a deck,
-//                `New tab` on a page whose press leaves the site.
+//   vocabulary   the chips a cover can wear (media-mark.tsx), at each size,
+//                on the log's own covers — the platform on a recording (and
+//                on a recording that lives on a page, the one case where a
+//                play chip opens the in-app browser), `Slides` on a deck,
+//                `New tab` on a page whose press leaves the site; and, in
+//                the peek's tier, a chip on every kind.
 //   homes        the policy (systems/attachments/lib/policy.ts) as a table —
 //                where a tap lands and where the surface's button sends it —
 //                for a context you set: phone or not, a theater, a window
@@ -126,8 +127,10 @@ const VOCABULARY: readonly { key: keyof LabSamples | "leaves"; title: string; me
   { key: "talkPage", title: "recording on a page", meaning: "the same play chip, the host's name — and it opens in the in-app browser, not on the stage. GitNation is the case." },
   { key: "slides", title: "deck", meaning: "Slides; it presents on the stage" },
   { key: "leaves", title: "leaves", meaning: "a page that refuses framing: the press opens a tab, whatever the kind" },
-  { key: "web", title: "page", meaning: "no chip — the card prints its domain and title, and that is the hint" },
-  { key: "image", title: "image", meaning: "no chip — what you see is the thing" },
+  { key: "web", title: "page", meaning: "Web in the peek; nothing on /works, where the card prints its domain and title" },
+  { key: "post", title: "post", meaning: "Writing in the peek; nothing on /works" },
+  { key: "image", title: "image", meaning: "Image in the peek; nothing on /works" },
+  { key: "social", title: "social widget", meaning: "its platform in the peek; nothing on /works" },
 ];
 
 // -----------------------------------------------------------------------------
@@ -235,6 +238,7 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
 
   // The vocabulary's knobs.
   const [size, setSize] = useState<MediaMarkSize>("default");
+  const [tier, setTier] = useState<"works" | "peek">("works");
   const [withImage, setWithImage] = useState(true);
 
   // The policy's context: starts live, and can be taken anywhere.
@@ -264,11 +268,11 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
     const m = samples[key === "leaves" ? "denied" : key] ?? samples.web;
     return withImage && m ? getMediaThumbnail(m) : null;
   };
-  /** The chip a tile's cover wears: read off the log's own sample. */
+  /** The chip a tile's cover wears in the chosen tier, read off the log's own sample. */
   const markOf = (key: keyof LabSamples | "leaves"): MediaMarkSpec | null => {
     if (key === "leaves") return newTabMark(locale);
     const m = samples[key];
-    return m ? markFor(m, locale) : null;
+    return m ? markFor(m, locale, { all: tier === "peek" }) : null;
   };
 
   return (
@@ -317,13 +321,15 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
           </div>
           <div className="mt-4">
             <Note>
-              Three chips, drawn by one component, the same chip a wallpaper tile wears for Live / Preset: the
-              platform on a recording, so a talk says where it was recorded; `Slides` on a deck; `New tab` on
-              a page whose press leaves the site. A chip says something the surface does not already say, so a
-              page wears none — its card prints the domain and the title — and the attachment sheet&rsquo;s
-              page, which prints the domain and a labelled button, wears the same chip the row&rsquo;s cover
-              did and no more. The chip says what the thing is; the policy below says where it opens — which
-              is how a GitNation recording wears a play chip and opens in the in-app browser.
+              One chip, drawn by one component, the same chip a wallpaper tile wears for Live / Preset. Who
+              wears one is the surface&rsquo;s call, in three tiers. On `/works`, the strip and the expanded
+              body: a recording (its platform, so a talk says where it was recorded), a deck (`Slides`) and a
+              page whose press leaves the site (`New tab`) — a card is its own hint. In the hover peek: every
+              kind, because a peek is a glance and the chip is its caption. On the attachment sheet&rsquo;s
+              page, the home widgets&rsquo; covers and the theater&rsquo;s rail: none, because each already
+              says what the thing is beside the cover. The chip says
+              what the thing is; the policy below says where it opens — which is how a GitNation recording
+              wears a play chip and opens in the in-app browser.
             </Note>
           </div>
         </section>
@@ -499,6 +505,16 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
       {/* ------------------------------------------------------------------ */}
       <aside className="ink-flat w-full shrink-0 self-start rounded-2xl border border-border/50 bg-glass-sheet shadow-overlay backdrop-blur-xl lg:sticky lg:top-6 lg:max-h-[calc(100svh-3rem)] lg:w-[340px] lg:overflow-y-auto">
         <Section title="Mark">
+          <Field label="Tier" hint={tier === "peek" ? "every kind" : "recording · deck · leaves"}>
+            <Segmented
+              value={tier}
+              onChange={setTier}
+              options={[
+                { value: "works", label: "/works" },
+                { value: "peek", label: "hover peek" },
+              ]}
+            />
+          </Field>
           <Field label="Size">
             <Segmented
               value={size}

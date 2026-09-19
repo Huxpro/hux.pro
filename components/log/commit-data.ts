@@ -108,7 +108,7 @@ export interface NormalizedCommit {
   stripItems: StripItem[];
 
   // Compact rendering
-  thumbnail?: { url: string; linkUrl?: string; media: Media };
+  thumbnail?: { url: string; linkUrl?: string };
   secondaryLine?: string;
 }
 
@@ -247,19 +247,17 @@ function getPlatformIcon(platform: string): string {
  */
 function deriveThumbnail(
   media: Media[],
-): { url: string; linkUrl?: string; media: Media } | undefined {
+): { url: string; linkUrl?: string } | undefined {
   for (const m of media) {
     if (isPlayableMedia(m) || isImageMedia(m)) {
       const thumb = getMediaThumbnail(m);
-      if (thumb) return { url: thumb, linkUrl: m.url, media: m };
+      if (thumb) return { url: thumb, linkUrl: m.url };
     }
   }
   for (const m of media) {
     if (isLinkMedia(m) && m.present === "card") {
       const thumb = getMediaThumbnail(m);
-      // The cover wears the card's own chip: a card pointing at a talks host
-      // (GitNation) reads as the recording it is (media-mark.tsx).
-      if (thumb) return { url: thumb, linkUrl: m.url, media: m };
+      if (thumb) return { url: thumb, linkUrl: m.url };
     }
   }
   return undefined;
