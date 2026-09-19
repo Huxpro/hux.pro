@@ -113,9 +113,11 @@ function Caption({
       onClick={onClick}
     >
       <SourceLine slot={slot} locale={locale} />
-      <div className={cn(TITLE, "line-clamp-2", strong && "font-medium")}>
-        {caption.title}
-      </div>
+      {caption.title ? (
+        <div className={cn(TITLE, "line-clamp-2", strong && "font-medium")}>
+          {caption.title}
+        </div>
+      ) : null}
       {caption.description && (
         <p
           className={cn(

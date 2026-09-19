@@ -35,7 +35,7 @@
 import type { MouseEvent } from "react";
 import { cn } from "@/lib/utils";
 import { t, type Locale } from "@/lib/i18n";
-import { getDomainLabel } from "@/lib/og-core";
+import { getDomainLabel, isGithubSocialImage } from "@/lib/og-core";
 import {
   isImageMedia,
   isLinkMedia,
@@ -96,6 +96,17 @@ export function tileCaption(media: Media, locale: Locale): TileCaption {
   if (isLinkMedia(media)) {
     const preview = media.previews?.[locale] ?? media.preview;
     const domain = getDomainLabel(media.url);
+    // GitHub's social image already is the repo card. Keep the domain (and
+    // the accessible name); drop the title and blurb so the caption does
+    // not reprint what the cover says.
+    if (isGithubSocialImage(preview?.image)) {
+      return {
+        source: media.internal ? "/writing" : domain,
+        title: "",
+        description: undefined,
+        label: preview?.title || domain,
+      };
+    }
     return named(
       media.internal ? "/writing" : domain,
       preview?.title || domain,

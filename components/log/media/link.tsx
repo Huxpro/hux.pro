@@ -17,7 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { fetchOGData } from "@/lib/og";
 import type { OGData } from "@/lib/og-core";
-import { getDomainLabel, isArchivedUrl } from "@/lib/og-core";
+import { getDomainLabel, isArchivedUrl, isGithubSocialImage } from "@/lib/og-core";
 import type { InternalLinkMeta, LinkMedia } from "@/lib/log";
 import { pickInternalLink } from "@/lib/og-enrich";
 import { useLocale } from "@/services";
@@ -234,7 +234,7 @@ export function CardFace({
   // description, stats). Repeating those fields in our caption makes a
   // card-in-a-card. Keep the domain line; let the image speak. Don't crop
   // it in the 2-up rail either — 16:9 would slice the sides of a 2:1 card.
-  const githubSocialCard = !!image?.includes("opengraph.githubassets.com");
+  const githubSocialCard = isGithubSocialImage(image);
   // Talk-recording links (GitNation) wear the play chip with the host's
   // name, so the card reads as the recording it is (media-mark.tsx) — unless
   // the caller has said what the cover wears.
