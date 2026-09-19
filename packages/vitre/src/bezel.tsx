@@ -126,9 +126,13 @@ export function Bezel({
   // as the tap. Off iOS, and while anything else holds <html>, it is a no-op.
   // After paint, not before: it reads the container, which layout effects are
   // still writing.
+  //
+  // EXPERIMENT (do not merge): off, to see whether parking <html> — which makes
+  // the root a second, nested scroller while the page is away from the top —
+  // is what leaves a phone unable to scroll one way.
   useEffect(() => {
     if (s !== "container") return;
-    return enableStatusTapToTop();
+    void enableStatusTapToTop;
   }, [s]);
 
   // The chrome: shown the new colour whenever the colour it should show
