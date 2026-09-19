@@ -445,7 +445,13 @@
         {
           "kind": "link",
           "url": "https://www.wearedevelopers.com/events/world-congress-2026-europe/sessions/1237-vibe-cross-platform",
-          "present": "card"
+          "present": "pill",
+          "label": "Session",
+          "icon": "globe",
+          "preview": {
+            "title": "Vibe³ Cross-Platform Apps with Lynx: A TikTok Hackathon",
+            "description": "Hands-on workshop at WeAreDevelopers World Congress 2026 Europe. Vibe-code once with Lynx for web, mobile, and desktop."
+          }
         }
       ],
       "tags": [
@@ -478,7 +484,13 @@
         {
           "kind": "link",
           "url": "https://paris2026.gosim.org/schedule/vibe-native-for-more-why-ai-agents-deserve-a-better-app-framework/",
-          "present": "card"
+          "present": "pill",
+          "label": "Session",
+          "icon": "globe",
+          "preview": {
+            "title": "Vibe Native for More: Why AI Agents Deserve a Better App Framework",
+            "description": "GOSIM Paris 2026 — Lynx and three principles for AI-native app infrastructure, with vue-lynx as the demo."
+          }
         }
       ],
       "tags": [
@@ -511,7 +523,13 @@
         {
           "kind": "link",
           "url": "https://mp.weixin.qq.com/s/icNHRRm6u1Dh9gx-9nIS6Q",
-          "present": "card"
+          "present": "pill",
+          "label": "SEE Conf",
+          "icon": "globe",
+          "preview": {
+            "title": "SEE Conf 2025：开启体验科技的新十年",
+            "description": "黄玄在杭州 SEE Conf 2025 分享《双线程的 React》。"
+          }
         }
       ],
       "tags": [
@@ -544,7 +562,13 @@
         {
           "kind": "link",
           "url": "https://www.wearedevelopers.com/videos/1445-lynx-native-for-more",
-          "present": "card"
+          "present": "pill",
+          "label": "Video",
+          "icon": "globe",
+          "preview": {
+            "title": "Lynx: Native for More",
+            "description": "WeAreDevelopers World Congress 2025 — Xuan Huang on Lynx, TikTok's production-ready UI framework."
+          }
         }
       ],
       "tags": [
