@@ -583,7 +583,7 @@
         "zh": "Lynx：让字节跨端跳动"
       },
       "description": {
-        "en": "As client-side products mature and fragment, cross-platform has become the default choice for many developers and companies. Yet UI-framework innovation is converging, cross-platform approaches look increasingly alike, and the market is settling into a fixed shape. Against this backdrop, why did Lynx — the cross-platform technology ByteDance nurtured for years — decide to go open source? This talk lifts the veil on Lynx and explores the insights and future of cross-platform together.",
+        "en": "As client products mature and fragment, cross platform has become the default choice for many developers and companies. At the same time, UI framework innovation is converging, the approaches look more and more alike, and the market is settling into a fixed shape. Against that backdrop, why did Lynx, the cross platform technology ByteDance nurtured for years, decide to go open source? This talk lifts the veil on Lynx and looks at the insights and the future of cross platform together.",
         "zh": "伴随终端业务的成熟和碎片化，跨端已成为众多开发者和企业的首选。但同时，UI 框架的创新在收敛，跨端思路大同小异，市场格局趋于固化。在这个背景下，字节孕育多年的跨端技术 —— Lynx，为何决定走向开源？本演讲将揭开 Lynx 的“神秘面纱”，与你一同探寻跨端的洞见与未来。"
       },
       "date": "2025-03",
@@ -783,8 +783,12 @@
         "zh": "前端已死，前端永生"
       },
       "description": {
-        "en": "Frontend is a moving concept, as technology and as a division of labor. Modeling its inflection points to argue that the bond between humans and machines does not die; it is rewritten. Then a look at what AI and the metaverse open next.",
-        "zh": "无论从技术还是行业分工看，前端都只是一个动态概念。通过对历史上大小拐点建模，论证它作为人与机器的纽带会以被重写的方式「永生」，并展望 AI 与元宇宙带来的新可能。"
+        "en": "In 2023 the hottest thing about frontend was not a framework. It was the line \"frontend is dead.\" Looking back and ahead, in this constantly shifting digital world frontend has \"died\" before, and it will \"die\" again. Every leap, from PC to Web to mobile, and now as we stand at the edge of AI and the metaverse, the form may change, but frontend as the bond between humans and machines is eternal. This talk reviews the inflection points in that evolution, and looks ahead at what comes next.",
+        "zh": "2023 年聊起前端，最火的并不是哪个框架，而是那句「前端已死」。放眼过去和未来，在这个不断变化的数字世界里，前端不但「死」过，而且还一定会再「死」。每一次跃迁 —— 从 PC 到 Web 到移动时代，再到现在我们正站在 AI 的风口浪尖和元宇宙的边缘 —— 或许形式会不同，但前端作为人与机器纽带的本质是永恒的。本演讲将回顾大前端技术演化中的拐点，并对下一个世代的前端趋势做一些展望和猜想。"
+      },
+      "commentary": {
+        "en": "Frontend as a job title may fade. Frontend as the bond between humans and machines will not.",
+        "zh": "作为岗位的前端或许会消亡，但作为人机交互纽带的前端不会。"
       },
       "date": "2024-01",
       "conference": {
@@ -814,8 +818,8 @@
         "zh": "我的大前端世界观"
       },
       "description": {
-        "en": "Is frontend dead, or is it the future? A personal model of the inflection points in frontend's evolution, and a guess at what frontend (and frontend engineers) become in the next generation: AI, AVXR, and beyond.",
-        "zh": "前端已死，又或是前端未来？当我们在说前端时，我们又在说什么？对大前端技术演化拐点的建模，以及对下个世代（AI、AVXR…）前端与前端工程师的猜想。"
+        "en": "Is frontend dead, or is it the future? And when we say frontend, what are we actually talking about? Inspired by Qi Lu's talk on large models, a look at the inflection points in frontend's evolution, and a guess at what frontend (and frontend engineers) become in the next generation: AI, AVXR, and beyond.",
+        "zh": "前端已死，又或是前端未来？当我们在说前端时，我们又在说什么？受陆奇博士的大模型演讲启发，不妨我们也来探讨一些大前端技术演化中的拐点，对下个世代（ AI、AVXR …）的前端（工程师）做一点猜想。"
       },
       "date": "2023-11",
       "conference": {
@@ -929,8 +933,8 @@
         "zh": "React 国情咨文"
       },
       "description": {
-        "en": "State of React — React 18, what the core team was solving next (including the compiler), and how developers in China can take part.",
-        "zh": "React 现状与方向：React 18、核心团队接下来在解决的问题（包括编译器），以及中国开发者如何参与。"
+        "en": "A look back and a look ahead at what has happened, and what is about to happen, across the React ecosystem. React core, web, cross platform, libraries, frameworks, docs, tools: the whole picture. Hoping it helps you see React's big picture.",
+        "zh": "跟大家一起回顾以及展望一下 React 整个生态这一段时期以来已经发生和将要发生的一些变化，力求涵盖 React 核心、Web、跨平台、库、框架、文档、工具等整个 React 生态的方方面面，希望能对大家理解 React 的整个 big picture 有帮助！"
       },
       "date": "2022-10",
       "conference": {
