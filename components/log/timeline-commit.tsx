@@ -32,6 +32,20 @@ import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
 import { useInputCapability } from "@/services";
 
 import { TYPE } from "@/lib/typography";
+
+/**
+ * The gutter — hash, rail icon, and the two gaps between them and the title —
+ * has a fixed width from `lg` up, so the whole row can be pulled left by it
+ * and the title sits on the page column's left edge (see the hash cell).
+ *
+ *   hash 3.5rem + gap 0.5rem + icon 1.25rem + gap 0.5rem = 5.75rem
+ *
+ * plus the row's own 0.75rem of padding, which is what `-mx-3` already
+ * subtracts on the right. Below `lg` the page has no margin to hang it in
+ * and the gutter stays inside the column as it always did.
+ */
+const HASH_CELL = "lg:w-14 lg:text-right";
+const GUTTER_PULL = "lg:-ml-[6.5rem]";
 /**
  * Fallback handle for the expanded author block when a commit has no
  * resolvable identity (e.g. personal talks / recognitions with
@@ -233,8 +247,9 @@ export function TimelineCommit({
   const showStrip = statBody && data.stripItems.length > 0;
   const showStatDescription = statBody && !!data.description;
   // Where the handle signs: the bottom-right of the row, which is the media
-  // line when there is one and the meta line when there is not.
-  const signsOnMediaLine = showStrip && !!byline;
+  // line when there is one with room beside the covers — two tiles leave it;
+  // three fill the column — and the meta line when there is not.
+  const signsOnMediaLine = showStrip && !!byline && data.stripItems.length <= 2;
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing `stat` makes redundant. A role row is the
   // exception: its peek is the identity card, which no density prints.
@@ -327,11 +342,19 @@ export function TimelineCommit({
         Events keep the transparent placeholder: no link, no reference, the
         hash is noise there. It still occupies the column so titles stay
         aligned with the commit rows around it.
+
+        Where the page has margins (`lg`), the hash and the rail hang in the
+        left one as marginalia — `GUTTER_W` wide, so the row can be pulled
+        left by exactly that and the title lands on the page column's own
+        left edge, in line with the era markers and every other page's prose.
+        A git log prints the graph and the hash before the subject too; what
+        it never did was push the subject off the margin to make room.
       */}
       {isEvent || !onSelectHash ? (
         <span
           className={cn(
-            "hidden @sm:inline select-all",
+            "hidden @sm:inline-block select-all",
+            HASH_CELL,
             TYPE.hash,
             isEvent ? "text-transparent leading-4" : "leading-5",
           )}
@@ -349,7 +372,8 @@ export function TimelineCommit({
           }}
           aria-label={`Link to commit ${data.hash}`}
           className={cn(
-            "hidden @sm:inline leading-5",
+            "hidden @sm:inline-block leading-5",
+            HASH_CELL,
             TYPE.hash,
             "transition-colors hover:text-muted-foreground",
           )}
@@ -633,12 +657,16 @@ export function TimelineCommit({
               {/*
                 And the room the covers leave takes the letterhead. The handle
                 signs the bottom-right of the row, which is where a letterhead
-                goes and which is a better use of 300px than nothing was. The
-                meta line gives it up while this line exists, so it is still
-                printed exactly once — and with the same sparseness it has
-                always had: at rest, only the head of an author's run wears it.
+                goes and which is a better use of the space than nothing was.
+                The meta line gives it up while this line exists, so it is
+                still printed exactly once — and with the same sparseness it
+                has always had: at rest, only the head of an author's run
+                wears it. A full strip leaves no room, and the handle stays on
+                the meta line (`signsOnMediaLine`).
               */}
-              <Handle byline={byline} className={TYPE.rowMeta} />
+              {signsOnMediaLine && (
+                <Handle byline={byline} className={TYPE.rowMeta} />
+              )}
             </div>
           )}
         </div>
@@ -669,11 +697,14 @@ export function TimelineCommit({
               of uppercase keywords and a star count were decoration here. */}
           <Description text={data.description} isExpanded />
 
+          {/* The attachment object: half-column tiles whatever the count
+              (AttachmentGrid), so every open row's media has the same edges
+              as the next row's. */}
           {expandedMedia.length > 0 && (
             <div onClick={(e) => e.stopPropagation()}>
               <MediaRenderer
                 media={expandedMedia}
-                layout="stack"
+                layout="tiles"
                 size="default"
                 inspecting={inspecting}
                 onInspect={onInspectMedia}
@@ -765,6 +796,11 @@ export function TimelineCommit({
           // never clipped here anyway.
           className={cn(
             "group pressable relative -mx-3 px-3 rounded-lg transition-colors duration-150 overflow-y-clip",
+            // The gutter as marginalia (see the hash cell): pulled left by the
+            // gutter's width so the content column is the page column. The
+            // hover wash follows, which is right — the hash and the rail are
+            // the row's, not the margin's.
+            GUTTER_PULL,
             // Events get tighter vertical padding so they sit between
             // commits as ambient annotations rather than as full rows.
             isEvent ? "py-1" : "py-2.5",

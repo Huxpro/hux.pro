@@ -176,16 +176,56 @@ to the full chip — the chip reads the hover off the anchor or button it
 sits in, so no cover has to be a `group` — and a cover in a peek, which is
 the after-hover state, is raised from the start (`raised`).
 
-Three sizes: `mini` for the contact strip's 56px covers, where the chip
-keeps its glyph and drops its word (the wallpaper tile's small badge);
-`compact` for rail thumbs and dense cards; `default` for a full cover. The
-strip cover, the link card, the inline video facades, the deck cover and
-the hover peek's poster all take the chip from here, and nothing else on a
-cover says what it is —
+Three sizes: `mini` for the contact strip's tiles, where the chip keeps
+its glyph and drops its word (the wallpaper tile's small badge); `compact`
+for the grid's tiles, rail thumbs and dense cards; `default` for a full
+cover. The tiles, the link card, the inline video facades, the deck cover
+and the hover peek's poster all take the chip from here, and nothing else
+on a cover says what it is —
 the peek's poster has no caption but a deck's or an image's name; a card
 with no cover to wear it on carries the chip in its caption line. The
 chip says what the thing is; the policy above says where it opens, and the
 two never trade jobs.
+
+## The attachment object on /works
+
+What a row prints of its attachments is one object with one aspect
+(`AttachmentTile`, `components/log/media/attachment-tile.tsx`): a 2:1 crop of
+the cover wearing its chip, and nothing else on it. 2:1 is the aspect the
+covers come in — an OG image is 1.91:1, a video poster loses a sliver top
+and bottom that the peek and the surface show whole — and one aspect for
+every kind is what lets a video sit beside a card, and a row of tiles line
+up with the next row's. The density decides the size, never the shape:
+
+| density | the object |
+|---|---|
+| `oneline` | none — the covers are behind the hover peek, or the row |
+| `stat` | `MediaStrip`: `strip` tiles (`h-28`, 224px wide) in a row; three fill the column. No caption — the chip is enough at that size, and the peek shows the rest |
+| `patch` | `AttachmentGrid`: `cell` tiles, **half the column each whatever the count**. A pair carries two caption lines under each tile (the source, the title), fixed at their line counts so the pair is one height by construction. A lone tile — one attachment, or the third — takes its caption *beside* it, description included: the unfurl a chat app prints for a link |
+
+The feeds this borrows from (X, LinkedIn, Instagram) agree on the rule: the
+media has a footprint, and the count changes how it is tiled, never how big
+the post is. Before this, one card was full width and natural aspect, a
+video was full width and 16:9, two of anything was a scroll rail at half
+width with the publisher's caption deciding each tile's height — so every
+open row was a different shape and no two right edges met. What has no
+cover (a live social widget, a still) still stacks under the grid at full
+width, as it did.
+
+A tile is always an anchor (⌘-click, middle-click, "copy link address"),
+and the click goes through `open(set, index)` like every other affordance.
+On a phone the grid is still two across: a pair stays a pair, and a lone
+tile spans the column with its caption under it.
+
+### The gutter
+
+From `lg` up the hash and the rail hang in the page's left margin
+(`GUTTER_PULL` in `TimelineCommit`): the row is pulled left by the gutter's
+fixed width, so the title, the description and the attachment object sit on
+the page column's own left edge, in line with the era markers and with
+every other page's prose. Below `lg` there is no margin to hang it in and
+the gutter stays inside the column; below the row's `@sm` the hash hides,
+as it always did.
 
 ## The lab
 

@@ -312,6 +312,7 @@ export const translations = {
     logVisit: "Visit",
     logWatch: "Watch",
     logSlides: "Slides",
+    logRecording: "Recording",
     // Attachment surface (see systems/attachments)
     attachmentsClose: "Close attachments",
     // Identity card (see systems/identity)
@@ -604,6 +605,7 @@ export const translations = {
     logVisit: "访问",
     logWatch: "观看",
     logSlides: "幻灯片",
+    logRecording: "录像",
     // Attachment surface (see systems/attachments)
     attachmentsClose: "关闭附件",
     // Identity card (see systems/identity)

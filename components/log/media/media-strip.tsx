@@ -4,11 +4,11 @@
  * MediaStrip — a commit's contact sheet.
  *
  * The `stat` density prints one of these under each folded row: every cover
- * the commit is carrying, at 56px tall, in authored order. It is the answer
- * to the /works paradox — folded, the page is a perfect two-screen overview
- * and none of the media exists; unfolded, the media is all there and the
- * overview is gone. The strip keeps one row per commit and still puts the
- * work on screen.
+ * the commit is carrying, as a row of `strip`-sized tiles in authored order.
+ * It is the answer to the /works paradox — folded, the page is a perfect
+ * two-screen overview and none of the media exists; unfolded, the media is
+ * all there and the overview is gone. The strip keeps one row per commit and
+ * still puts the work on screen.
  *
  * It is not a picture of the row: the thumbs are the real affordances, wired
  * to the same door the expanded block opens — the attachment system, which
@@ -17,23 +17,23 @@
  * Nothing here needs a pointer, which is the other half of the point — the
  * hover peek this stands beside has never existed on a phone.
  *
- * Deliberately chrome-light: rounded covers, a mini play mark where one is
- * warranted, nothing else. Titles live on the row above and the commit's own
- * description sits beside the covers (TimelineCommit lays the two out as one
- * media object); a caption under every thumbnail on top of that would undo
- * the density the strip exists for.
+ * Deliberately chrome-light: the tiles and their chips, nothing else. Titles
+ * live on the row above and the commit's own description sits over the
+ * covers; a caption under every thumbnail on top of that would undo the
+ * density the strip exists for. The size is the tile's (attachment-tile.tsx):
+ * tall enough to recognise a talk slide or a product screenshot, and three
+ * of them fill the column.
  */
 
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { cn } from "@/lib/utils";
-import { t, useLocale } from "@/services";
+import { useLocale } from "@/services";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
-import type { Media, StripItem } from "@/lib/log";
+import type { StripItem } from "@/lib/log";
 import { isSlidesMedia } from "@/lib/log";
 import { getDomainLabel } from "@/lib/og-core";
-import { ExternalImage } from "./external-image";
+import { AttachmentTile, tileMark } from "./attachment-tile";
 import { mediaPeek } from "./media-peek";
-import { markFor, MediaMark, newTabMark } from "./media-mark";
 
 export interface MediaStripProps {
   /**
@@ -53,7 +53,7 @@ export interface MediaStripProps {
 }
 
 /** Tooltip / screen-reader text for one cover. */
-function labelFor({ media }: StripItem): string {
+export function tileLabel({ media }: StripItem): string {
   if (isSlidesMedia(media)) return media.title || "Slides";
   if (media.kind === "image") return media.alt || "Image";
   if (media.kind === "link") {
@@ -68,50 +68,32 @@ export function MediaStrip({ items, set, className }: MediaStripProps) {
 
   if (items.length === 0) return null;
 
-  /** Open `media` through the attachment system. Reports whether it took the
-   *  click, so the caller knows whether to suppress the anchor. */
-  const openInSite = (media: Media): boolean => {
-    if (!attachments || !set) return false;
-    const index = set.items.indexOf(media);
-    if (index < 0) return false;
-    attachments.open(set, index);
-    return true;
-  };
-
   return (
     <div
       // Content inside the row that is not the row's fold trigger — see the
       // `data-row-body` note in TimelineCommit. Hovering a cover brightens
       // that cover, not the whole commit, exactly as hovering an expanded
-      // LinkCard or player does.
+      // tile does.
       data-row-body
       className={cn(
         // `w-max` so the track is as wide as the covers it draws and no
         // wider; `max-w-full` so past the column width it stops growing and
         // scrolls instead, which is how a phone handles a commit carrying
-        // four covers. Both are layout: the clicks are the covers' own (see
-        // the anchor below), so an empty stretch of this band is the row's
-        // to take, whatever width it happens to have.
-        "flex w-max max-w-full gap-1.5 overflow-x-auto overscroll-x-contain",
+        // three covers. Both are layout: the clicks are the covers' own, so
+        // an empty stretch of this band is the row's to take.
+        "flex w-max max-w-full gap-2 overflow-x-auto overscroll-x-contain",
         "snap-x snap-proximity no-scrollbar",
         className,
       )}
     >
       {items.map((item, i) => {
-        const label = labelFor(item);
-        const index = set ? set.items.indexOf(item.media) : -1;
-        // Where the click will land; a tab means the page refuses to be
-        // framed, and the peek says so before the click does.
-        const leavesSite =
-          attachments && set && index >= 0
-            ? attachments.homeOf(set, index) === "tab"
-            : false;
-        const peek = mediaPeek(item.media, locale, { leaves: leavesSite });
-
+        // The row itself stops peeking once it prints its covers (see
+        // `showCursorPreview` in TimelineCommit); each cover peeks instead,
+        // in the same vocabulary, showing what it is at a readable size —
+        // and whole, where the tile crops.
+        const { leaves } = tileMark(item.media, locale, set, attachments);
+        const peek = mediaPeek(item.media, locale, { leaves });
         return (
-          // The row itself stops peeking once it prints its covers (see
-          // `showCursorPreview` in TimelineCommit); each cover peeks instead,
-          // in the same vocabulary, showing what it is at a readable size.
           <MagneticPreview
             key={`${item.media.url}-${i}`}
             preview={peek?.node}
@@ -119,50 +101,15 @@ export function MediaStrip({ items, set, className }: MediaStripProps) {
             panelClassName={peek?.panelClassName}
             className="shrink-0 snap-start"
           >
-            {/* An anchor even when the attachment system will take the
-                click: that keeps ⌘-click, middle-click and "copy link
-                address" working, and leaves a real destination when the
-                provider isn't mounted. */}
-            <a
-              href={item.media.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={leavesSite ? `${label} · ${t(locale, "linkOpensInTab")}` : label}
-              aria-label={label}
-              onClick={(e) => {
-                // A click on a cover is the cover's business: without this
-                // the row would fold underneath you as you left for the
-                // video. On the anchor rather than the track, so it is the
-                // cover that takes the click and not every pixel of the band
-                // around it.
-                e.stopPropagation();
-                // Modified clicks belong to the browser — never hijack them.
-                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-                if (openInSite(item.media)) e.preventDefault();
-              }}
-              className={cn(
-                "group/strip relative block",
-                // 16:9 at h-14 → ~100px wide, so five fit the content column.
-                // A 56px cover is still big enough to recognize a talk slide
-                // or a product screenshot; 40px is not.
-                "h-14 aspect-video rounded-md overflow-hidden",
-                "border border-border/50 bg-muted/30",
-                "transition-colors duration-200",
-                "hover:border-border focus-visible:border-border",
-              )}
-            >
-              <ExternalImage
-                src={item.image}
-                alt=""
-                className="block h-full w-full object-cover"
-              />
-              {/* The strip marks a recording and a deck, and a page that
-                  will leave; a card is its own hint (media-mark.tsx). */}
-              <MediaMark
-                mark={leavesSite ? newTabMark(locale) : markFor(item.media, locale)}
-                size="mini"
-              />
-            </a>
+            <AttachmentTile
+              media={item.media}
+              image={item.image}
+              size="strip"
+              locale={locale}
+              label={tileLabel(item)}
+              set={set}
+              attachments={attachments}
+            />
           </MagneticPreview>
         );
       })}

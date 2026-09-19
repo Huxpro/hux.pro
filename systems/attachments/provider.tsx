@@ -49,7 +49,7 @@ export interface AttachmentSession {
   key: number;
 }
 
-interface AttachmentsContextValue {
+export interface AttachmentsContextValue {
   /** Open the attachment at `index` — per the policy, wherever it belongs. */
   open: (set: AttachmentSet, index?: number) => void;
   /** Perform the attachment's native action: play it, open its page… */

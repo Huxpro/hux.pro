@@ -38,6 +38,7 @@ import {
   type MediaMarkSpec,
 } from "@/components/log/media/media-mark";
 import { MediaStrip } from "@/components/log/media/media-strip";
+import { AttachmentGrid } from "@/components/log/media/attachment-grid";
 import { SlidesFromMedia } from "@/components/log/media/slides";
 import { ExternalImage } from "@/components/log/media/external-image";
 import { cn } from "@/lib/utils";
@@ -394,6 +395,18 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
             {/* The strip and the pages read the policy, which reads the
                 viewport; they render once the client has one. */}
             {mounted && <MediaStrip items={stripItems} set={set} />}
+          </div>
+          <div>
+            <Label>The attachment object at `patch` — AttachmentGrid</Label>
+            {/* Half-column tiles whatever the count: a pair with two caption
+                lines each, then a lone tile with its caption beside it. The
+                column is /works' (632px), so the tiles are the row's size. */}
+            {mounted && stripItems.length > 0 && (
+              <div className="@container max-w-[632px] space-y-6">
+                <AttachmentGrid items={stripItems.slice(0, 2)} set={set} />
+                <AttachmentGrid items={stripItems.slice(0, 1)} set={set} />
+              </div>
+            )}
           </div>
           <div className="grid gap-6 md:grid-cols-2">
             {samples.web && (
