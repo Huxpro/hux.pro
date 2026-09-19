@@ -56,6 +56,9 @@ export function FeaturedTalksWidget() {
         <WidgetLink href={TALKS_HREF} />
       </WidgetHeader>
 
+      {/* Tabs and thumbs are sibling press surfaces. The shell is
+          `group/widget`; AlbumTabs is `group/glass`. A finger on a
+          thumbnail must not deepen the segmented control. */}
       <div className="px-5 pb-3">
         <AlbumTabs
           albums={albums}
