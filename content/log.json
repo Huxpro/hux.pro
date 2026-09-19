@@ -125,6 +125,21 @@
       "limit": 5
     },
     {
+      "id": "featured-projects",
+      "title": {
+        "en": "Featured projects",
+        "zh": "精选项目"
+      },
+      "layout": "v",
+      "column": "left",
+      "href": "/works?type=project",
+      "commitIds": [
+        "lynx-framework",
+        "react-core",
+        "hermes-engine"
+      ]
+    },
+    {
       "id": "featured-react-talks",
       "title": {
         "en": "Featured React talks",

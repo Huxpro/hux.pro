@@ -1250,6 +1250,14 @@ export function isSuppressedRow(commit: Commit): boolean {
  * then rendered an empty column. One predicate, so the next visibility
  * rule is one edit rather than three.
  *
+ * **Suppression is conditional on context, and this is where that lives.**
+ * `hideRow` means "the cluster this role anchors already speaks for the
+ * tenure" — which is true of the whole log and false the moment the reader
+ * filters to roles, because then there is no cluster left to speak. Seven
+ * of nine roles are `hideRow`, so the Roles chip used to print the two
+ * that aren't: both degrees, and a career page that was nothing but
+ * education. Asking for roles is asking for the rows.
+ *
  * The locale rule is deliberately not in here: `buildTimelineData` has
  * already applied it to everything a caller can reach, so asking again
  * would be the fourth spelling rather than the last one.
@@ -1258,7 +1266,11 @@ export function isRowVisible(
   commit: Commit,
   activeTypes: readonly FilterableCommitType[] = [],
 ): boolean {
-  return !isSuppressedRow(commit) && matchesTypeFilter(commit, activeTypes);
+  if (!matchesTypeFilter(commit, activeTypes)) return false;
+  if (!isSuppressedRow(commit)) return true;
+  // The reader asked for this type by name, so the redundancy that
+  // suppressed the row no longer holds.
+  return activeTypes.includes(commit.type as FilterableCommitType);
 }
 
 /**

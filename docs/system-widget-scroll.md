@@ -10,11 +10,21 @@ pointer-fine:snap-y pointer-fine:snap-mandatory
 pointer-fine:[mask-image:…]
 ```
 
-The height, the scroll and the fade are one thing and all three are
-`pointer-fine:`. Under a finger there is no port at all: each list renders a
-fixed number of rows and hides the rest (`pointer-coarse:hidden` past the
-cut — 5 for writing, 4 for projects), and the body is exactly as tall as they
-are. Nothing is cut off, so there is nothing to fade and no height to hold.
+A body is a plain stack by default and `port` opts one list back into
+scrolling, under a pointer only. It is one prop because the height, the
+scroll, the fade and the room the fade needs are one decision: a body with no
+port must not wear a mask over its last row or reserve 28px under it.
+
+What each list prints is then a curation question, not a truncation one:
+
+| | touch | pointer |
+|---|---|---|
+| **projects** | the `featured-projects` group — 3 rows | the same 3, no port |
+| **writing** | 5 rows (`pointer-coarse:hidden` past the cut) | all of them, `max-h-64` |
+
+The projects card reads its group the way the talks card reads its
+`featured-*-talks` ones: a preview is a choice about what to show, and a
+truncated list is not one. Writing has no such group, so it caps by count.
 
 This file is the reasoning, because the rule looks arbitrary and isn't.
 
@@ -55,12 +65,17 @@ Both stop the fight; only one of them has a size you can predict. A fixed
 height clips whatever is under it, so how much the card says depends on how
 long the titles happen to be — and a Chinese title against an English one is
 a whole row of difference. A row count inverts it: the rows are fixed and the
-height follows, which is why the writing card is 246px in both languages and
-the projects card is 282px in both.
+height follows, which is why the writing card measures 238px in both
+languages and the projects card 220px in both.
 
 That costs the titles their second line — the writing rows truncate now, like
 a project's name always has. A card is a preview; the title in full is one
 tap away, and a row that can't wrap is a row whose height is knowable.
+
+The stack ends on `pb-3`, not the card's `pb-5`, because a row carries its
+own `py-2`: 12 + 8 puts the last line 20px off the bottom edge, which is what
+`pt-5` puts the title from the top. A card with a knowable height should look
+like it meant that height.
 
 ## Why a media query and not a gesture
 
@@ -94,8 +109,12 @@ branch, nothing measured, correct on the server.
 
 Touch therefore lands where Apple already is: the card is a preview of a
 fixed few rows, and the tap opens the real list — the card's own surface for
-`/writing` or `/works`, a projects row for its commit's permalink
-(`/works#<hash>`, see `components/log/use-commit-anchor.ts`).
+`/writing` or `/works?type=project`, a projects row for its commit's
+permalink (`/works#<hash>`, see `components/log/use-commit-anchor.ts`).
+
+The hand-off carries the card's own filter, because a card about projects
+that lands you in a column of twenty-five commits has made you redo the
+narrowing it was already doing for you.
 
 ## What was tried and rejected
 

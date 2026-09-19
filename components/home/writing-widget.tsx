@@ -32,9 +32,7 @@ import { TYPE } from "@/lib/typography";
 //
 // Featured is a *word in the date slot*, not a section. A hairline and a
 // label cost a row of height and a second heading on a card that already has
-// one, to say something each row can say for itself — and once the marker is
-// per-row, a post that is both new and evergreen is marked in the latest run
-// too, which the two-section form couldn't do.
+// one, to say something each row can say for itself.
 //
 // Under a finger the body is a plain stack of exactly TOUCH_ROWS rows (see
 // WidgetScrollBody); under a pointer it is a fixed port holding all of them.
@@ -73,7 +71,17 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
     () => selectWritingPosts(posts, locale),
     [posts, locale],
   );
-  const rows = useMemo(() => [...latest, ...featured], [latest, featured]);
+  // The marker belongs to the *run*, not the post. A post in the latest run
+  // is there because it is new, so its date is the truer answer even when it
+  // is also flagged `featured`; a post in the tail is there for no reason
+  // other than the flag, so the flag is what the slot should say.
+  const rows = useMemo(
+    () => [
+      ...latest.map((post) => ({ post, marker: false })),
+      ...featured.map((post) => ({ post, marker: true })),
+    ],
+    [latest, featured],
+  );
   if (rows.length === 0) return null;
 
   return (
@@ -83,12 +91,13 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
         <WidgetLink href="/writing" />
       </WidgetHeader>
 
-      <WidgetScrollBody className="pointer-fine:max-h-64">
-        {rows.map((post, i) => (
+      <WidgetScrollBody port="pointer-fine:max-h-64">
+        {rows.map(({ post, marker }, i) => (
           <PostRow
             key={post.slug}
             post={post}
             locale={locale}
+            marker={marker}
             className={i >= TOUCH_ROWS ? "pointer-coarse:hidden" : undefined}
           />
         ))}
@@ -100,10 +109,13 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
 function PostRow({
   post,
   locale,
+  marker,
   className,
 }: {
   post: BlogPostSummary;
   locale: Locale;
+  /** Print `featured` in the date slot instead of the date. */
+  marker: boolean;
   className?: string;
 }) {
   return (
@@ -125,9 +137,10 @@ function PostRow({
       <span className={cn("min-w-0 flex-1 truncate", TYPE.rowTitle)}>
         {getLocalizedTitle(post, locale)}
       </span>
-      {/* The date slot carries the marker instead of the date: a featured
-          post is saying *why it is here*, which outranks when it landed. */}
-      {post.featured ? (
+      {/* The date slot carries the marker instead of the date, for the posts
+          that are here *because* they are featured: the slot answers why the
+          row is on the card, and for those rows the flag is the answer. */}
+      {marker ? (
         <span className={cn("shrink-0", TYPE.rowMeta)}>
           {t(locale, "writingFeatured")}
         </span>
