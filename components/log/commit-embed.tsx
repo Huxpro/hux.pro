@@ -16,8 +16,9 @@ import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
 import { getCommitPeekItems, localize } from "@/lib/log";
 import { DEFAULT_DENSITY, type LogDensity } from "@/lib/log-view";
 import { cn } from "@/lib/utils";
-import { attachmentSetFor } from "@/systems/attachments";
+import { attachmentSetFor, leavesSite } from "@/systems/attachments";
 import { IDENTITY_PEEK_PANEL, IdentityPeek } from "@/systems/identity";
+import { markFor } from "./media/media-mark";
 import { PeekCard, PeekThumb } from "./media/media-peek";
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { Byline } from "./bylines";
@@ -235,7 +236,7 @@ function buildCommitPreview(
       // gives the back layers' translate + rotate room to peek out around
       // the front card (the panel's default cap already fits it).
       panelClassName: `p-8 ${BARE_PANEL_CHROME}`,
-      node: <StackedPeek items={items} />,
+      node: <StackedPeek items={items} locale={locale} />,
     };
   }
 
@@ -248,7 +249,13 @@ function buildCommitPreview(
       return {
         panelClassName: `p-0 ${BARE_PANEL_CHROME}`,
         // Single peek mirrors the expanded /works LinkCard: natural aspect.
-        node: <PeekCard item={item} className={cn(PEEK_W, "shadow-raised")} />,
+        node: (
+          <PeekCard
+            item={item}
+            mark={peekMark(item, locale)}
+            className={cn(PEEK_W, "shadow-raised")}
+          />
+        ),
       };
     }
     return {
@@ -261,6 +268,7 @@ function buildCommitPreview(
       node: (
         <PeekThumb
           image={item.image}
+          mark={peekMark(item, locale)}
           className={cn(PEEK_W, "aspect-video border-0 shadow-raised")}
         />
       ),
@@ -305,7 +313,16 @@ const DECK_FRONT_W = "w-[22rem]"; // 352px
  * appear together — Bilibili's CDN especially trickles in on a cold hover
  * and a staggered reveal looks broken.
  */
-function StackedPeek({ items }: { items: PeekItem[] }) {
+/**
+ * The chip a peeked item's cover wears: the peek's tier (media-mark.tsx),
+ * every kind marked, and `New tab` on a page that will leave — the same
+ * vocabulary the stat covers' own peeks use, so oneline and stat agree.
+ */
+function peekMark(item: PeekItem, locale: Locale) {
+  return markFor(item.media, locale, { all: true, leaves: leavesSite(item.media) });
+}
+
+function StackedPeek({ items, locale }: { items: PeekItem[]; locale: Locale }) {
   const visible = items.slice(0, 3);
   const overflow = items.length - visible.length;
 
@@ -374,6 +391,7 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
               // the old heavy shadow-2xl did).
               <PeekCard
                 item={item}
+                mark={peekMark(item, locale)}
                 fixedAspect
                 className={cn("shadow-raised", isFront && "bg-card")}
                 onResolved={() => markResolved(i)}
@@ -381,6 +399,7 @@ function StackedPeek({ items }: { items: PeekItem[] }) {
             ) : (
               <PeekThumb
                 image={item.image}
+                mark={peekMark(item, locale)}
                 className={cn("aspect-video shadow-raised", isFront && "bg-muted")}
                 onResolved={() => markResolved(i)}
               />

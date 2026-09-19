@@ -28,3 +28,12 @@ export const GLASS_PANEL =
  */
 export const ARTWORK_CHIP =
   "bg-black/35 text-white ring-1 ring-white/25 backdrop-blur-[2px]";
+
+/**
+ * The same chip at rest — a cover on the page, not yet looked at. Lighter,
+ * so a row of covers is not a row of stamps; the cover's hover raises it to
+ * `ARTWORK_CHIP`, and a cover standing alone in a peek is raised from the
+ * start (media-mark.tsx).
+ */
+export const ARTWORK_CHIP_REST =
+  "bg-black/20 text-white/85 ring-1 ring-white/10 backdrop-blur-[2px]";

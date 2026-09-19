@@ -15,6 +15,12 @@ import {
   type RoleCommit,
 } from "@/lib/log";
 
+/**
+ * The photo an identity falls back to when none is authored for it: the
+ * GitHub avatar, the one face every identity is a moment of.
+ */
+export const DEFAULT_AVATAR = "https://avatars.githubusercontent.com/u/5563315?v=4";
+
 // =============================================================================
 // Identity profile — everything the identity card prints, derived once.
 //
@@ -128,7 +134,7 @@ export function buildIdentityProfile(
     company: role.companyOverride
       ? localize(role.companyOverride, locale)
       : localize(identity.company, locale),
-    avatar: identity.avatar,
+    avatar: identity.avatar ?? DEFAULT_AVATAR,
     accentColor: identity.accentColor ?? era?.accentColor,
     role: toProfileRole(role, locale),
     otherRoles: roles.filter((r) => r.id !== role.id).map((r) => toProfileRole(r, locale)),

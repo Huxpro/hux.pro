@@ -28,6 +28,12 @@ export {
 export type { AttachmentSession } from "./provider";
 export { AttachmentSurface } from "./components/attachment-surface";
 export { attachmentSetFor } from "./lib/set";
-export { homeFor, nativeHomeFor, linkTarget, isInternalLink } from "./lib/policy";
+export {
+  homeFor,
+  nativeHomeFor,
+  linkTarget,
+  isInternalLink,
+  leavesSite,
+} from "./lib/policy";
 export type { HomeContext } from "./lib/policy";
 export type { AttachmentHome, AttachmentSet } from "./lib/types";

@@ -51,6 +51,17 @@ export function linkTarget(media: Media, locale: Locale): string {
   return media.urls?.[locale] ?? media.url;
 }
 
+/**
+ * True when a press on the media leaves the site for a tab wherever a window
+ * manager is mounted: a page that refuses to be framed. The hover peek asks
+ * this without a provider, since a peek only exists where windows do.
+ */
+export function leavesSite(media: Media): boolean {
+  return (
+    isLinkMedia(media) && !isInternalLink(media) && media.preview?.frame === "deny"
+  );
+}
+
 /** True when the link points at one of this site's own pages. */
 export function isInternalLink(media: Media): boolean {
   return isLinkMedia(media) && (!!media.internal || media.url.startsWith("/"));

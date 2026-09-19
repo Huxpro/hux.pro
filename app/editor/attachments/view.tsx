@@ -192,15 +192,19 @@ function CoverTile({
   image,
   mark,
   size,
+  raised,
   className,
 }: {
   image: string | null;
   mark: MediaMarkSpec | null;
   size: MediaMarkSize;
+  /** The peek's tier: the chip at full weight from the start. */
+  raised?: boolean;
   className?: string;
 }) {
   return (
     <div
+      data-cover
       className={cn(
         "relative overflow-hidden rounded-md border border-border/50 bg-muted/30",
         size === "mini" ? "h-14 aspect-video" : "aspect-video w-full",
@@ -212,7 +216,7 @@ function CoverTile({
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-muted/60 to-muted/10" />
       )}
-      <MediaMark mark={mark} size={size} />
+      <MediaMark mark={mark} size={size} raised={raised} />
     </div>
   );
 }
@@ -305,7 +309,7 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {VOCABULARY.map((v) => (
               <div key={v.key}>
-                <CoverTile image={imageFor(v.key)} mark={markOf(v.key)} size={size === "mini" ? "default" : size} />
+                <CoverTile image={imageFor(v.key)} mark={markOf(v.key)} size={size === "mini" ? "default" : size} raised={tier === "peek"} />
                 <div className="mt-2 font-mono text-[11px] text-foreground">{v.title}</div>
                 <div className="text-[11px] text-muted-foreground">{v.meaning}</div>
               </div>
@@ -315,7 +319,7 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
             <Label>The contact strip: 56px covers, and the chip keeps its glyph</Label>
             <div className="flex flex-wrap gap-2">
               {VOCABULARY.map((v) => (
-                <CoverTile key={v.key} image={imageFor(v.key)} mark={markOf(v.key)} size="mini" />
+                <CoverTile key={v.key} image={imageFor(v.key)} mark={markOf(v.key)} size="mini" raised={tier === "peek"} />
               ))}
             </div>
           </div>
@@ -325,7 +329,8 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
               wears one is the surface&rsquo;s call, in three tiers. On `/works`, the strip and the expanded
               body: a recording (its platform, so a talk says where it was recorded), a deck (`Slides`) and a
               page whose press leaves the site (`New tab`) — a card is its own hint. In the hover peek: every
-              kind, because a peek is a glance and the chip is its caption. On the attachment sheet&rsquo;s
+              kind, because a peek is a glance and the chip is its caption — and there the chip is raised from the
+              start, where a cover in the page wears it light until hovered. On the attachment sheet&rsquo;s
               page, the home widgets&rsquo; covers and the theater&rsquo;s rail: none, because each already
               says what the thing is beside the cover. The chip says
               what the thing is; the policy below says where it opens — which is how a GitNation recording
@@ -505,7 +510,7 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
       {/* ------------------------------------------------------------------ */}
       <aside className="ink-flat w-full shrink-0 self-start rounded-2xl border border-border/50 bg-glass-sheet shadow-overlay backdrop-blur-xl lg:sticky lg:top-6 lg:max-h-[calc(100svh-3rem)] lg:w-[340px] lg:overflow-y-auto">
         <Section title="Mark">
-          <Field label="Tier" hint={tier === "peek" ? "every kind" : "recording · deck · leaves"}>
+          <Field label="Tier" hint={tier === "peek" ? "every kind · raised" : "recording · deck · leaves · at rest"}>
             <Segmented
               value={tier}
               onChange={setTier}

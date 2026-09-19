@@ -195,6 +195,8 @@ export interface CardFaceProps {
    * framed, so the card says where the click goes before it is pressed.
    */
   mark?: MediaMarkSpec | null;
+  /** The chip at full weight from the start — a card in a peek. */
+  raisedMark?: boolean;
   className?: string;
   /** Fires when the foreground image resolves (load / cache-warm / error). */
   onImgResolved?: () => void;
@@ -219,6 +221,7 @@ export function CardFace({
   domainLabel,
   languageBadge = null,
   mark,
+  raisedMark = false,
   className,
   onImgResolved,
 }: CardFaceProps) {
@@ -304,6 +307,7 @@ export function CardFace({
                 : null
           }
           size={compact ? "compact" : "default"}
+          raised={raisedMark}
         />
       </div>
       <div className={cn("flex-1 space-y-1", compact ? "p-2.5" : "p-4")}>

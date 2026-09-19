@@ -197,23 +197,19 @@ export function AuthorFields({
   );
 
   /**
-   * A field value that stands for an identity — the handle, the role — is
-   * the identity card's trigger (systems/identity): hover peeks the profile
-   * on a desktop, a tap opens it as a sheet on a phone. The affordance is the
-   * text itself; a control bolted onto a line of prose reads as chrome, and
-   * this block has none.
+   * The `Author:` and `Role:` lines stand for one identity, so together they
+   * are the identity card's trigger (systems/identity): hover peeks the
+   * profile on a desktop, a tap opens it as a sheet on a phone, and either
+   * lights the whole block — not one line of it, which would say the lines
+   * were separate things. No control bolted on; the region is the affordance.
    */
   const identity = (children: React.ReactNode) =>
     byline ? (
-      <IdentityHover
-        identityId={byline.identityId}
-        roleId={byline.roleId}
-        className="text-tertiary-foreground"
-      >
+      <IdentityHover identityId={byline.identityId} roleId={byline.roleId} block>
         {children}
       </IdentityHover>
     ) : (
-      children
+      <div className="col-span-2 grid grid-cols-subgrid gap-x-3 gap-y-0.5">{children}</div>
     );
 
   return (
@@ -266,31 +262,35 @@ export function AuthorFields({
         </>
       )}
 
-      <span className="text-tertiary-foreground">Author:</span>
-      <span className="text-tertiary-foreground">
-        {identity(<>&lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;</>)}
-      </span>
-
-      {role && (
+      {identity(
         <>
-          <span className="text-tertiary-foreground">Role:</span>
+          <span className="text-tertiary-foreground">Author:</span>
           <span className="text-tertiary-foreground">
-            {/*
-              The role's prose — its tenure, the other roles under the same
-              handle, what was signed with it — is the identity card behind
-              this field rather than a disclosure under it. It is tenure
-              prose, the same under all twelve commits of a tenure, so it
-              belongs to the identity and not to the row.
-            */}
-            {identity(role)}
-            {byline.expanded.location && (
-              <>
-                <span className="text-quaternary-foreground"> · </span>
-                {byline.expanded.location}
-              </>
-            )}
+            &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;
           </span>
-        </>
+
+          {role && (
+            <>
+              <span className="text-tertiary-foreground">Role:</span>
+              <span className="text-tertiary-foreground">
+                {/*
+                  The role's prose — its tenure, the other roles under the
+                  same handle, what was signed with it — is the identity card
+                  behind this block rather than a disclosure under it. It is
+                  tenure prose, the same under all twelve commits of a
+                  tenure, so it belongs to the identity and not to the row.
+                */}
+                {role}
+                {byline.expanded.location && (
+                  <>
+                    <span className="text-quaternary-foreground"> · </span>
+                    {byline.expanded.location}
+                  </>
+                )}
+              </span>
+            </>
+          )}
+        </>,
       )}
     </div>
   );

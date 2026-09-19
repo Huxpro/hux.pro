@@ -48,26 +48,54 @@ interface IdentityHoverProps {
   className?: string;
   /** Classes for the wrapper the peek attaches to — a flex item's `shrink-0`. */
   wrapperClassName?: string;
+  /**
+   * The mark is a region, not a run of text: the author block, whose
+   * `Author:` and `Role:` lines stand for the one identity together. The
+   * whole area lights on hover, and under the finger that opens the sheet —
+   * a wash over the block, since colouring one line of it would say the
+   * lines were separate things. The wrapper and the button are subgrids, so
+   * the block keeps the columns of the field stack it sits in.
+   */
+  block?: boolean;
   children: ReactNode;
 }
+
+/** The region's highlight: a wash over the whole block, hover and press alike. */
+const BLOCK_HIGHLIGHT = cn(
+  "col-span-2 grid grid-cols-subgrid gap-x-3 gap-y-0.5",
+  "-mx-2 -my-1 rounded-md px-2 py-1",
+  "transition-colors duration-150 hover:bg-accent/40 active:bg-accent/60",
+);
 
 export function IdentityHover({
   identityId,
   roleId,
   className,
   wrapperClassName,
+  block = false,
   children,
 }: IdentityHoverProps) {
   const card = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
 
-  if (!card) return <span className={className}>{children}</span>;
+  if (!card) {
+    return block ? (
+      <div className="col-span-2 grid grid-cols-subgrid gap-x-3 gap-y-0.5">{children}</div>
+    ) : (
+      <span className={className}>{children}</span>
+    );
+  }
 
   return (
     <MagneticPreview
       preview={<IdentityPeek identityId={identityId} roleId={roleId} />}
       panelClassName={IDENTITY_PEEK_PANEL}
-      className={cn("inline-block max-w-full align-baseline", wrapperClassName)}
+      className={cn(
+        block
+          ? "col-span-2 grid grid-cols-subgrid gap-x-3 gap-y-0.5"
+          : "inline-block max-w-full align-baseline",
+        wrapperClassName,
+      )}
     >
       <button
         type="button"
@@ -79,8 +107,10 @@ export function IdentityHover({
           card.open({ identityId, roleId, anchor: e.currentTarget });
         }}
         className={cn(
-          "text-left transition-colors hover:text-foreground",
-          "pressable outline-none focus-visible:text-foreground",
+          "pressable text-left outline-none",
+          block
+            ? cn(BLOCK_HIGHLIGHT, "focus-visible:bg-accent/40")
+            : "transition-colors hover:text-foreground focus-visible:text-foreground",
           className,
         )}
       >

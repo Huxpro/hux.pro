@@ -170,6 +170,12 @@ the rest. `markFor(media, locale, { all, leaves })` reads the chip off an
 item; `mediaKindOf` still reads the kind, for the sheet's button glyph and
 the lab.
 
+Two weights. On a cover in the page the chip is light (`ARTWORK_CHIP_REST`):
+a row of covers should not be a row of stamps. The cover's hover raises it
+to the full chip — the chip reads the hover off the anchor or button it
+sits in, so no cover has to be a `group` — and a cover in a peek, which is
+the after-hover state, is raised from the start (`raised`).
+
 Three sizes: `mini` for the contact strip's 56px covers, where the chip
 keeps its glyph and drops its word (the wallpaper tile's small badge);
 `compact` for rail thumbs and dense cards; `default` for a full cover. The
@@ -201,10 +207,11 @@ row is holding — stands down at the `stat` density, because the row now
 prints its covers. Each cover peeks instead, in the same vocabulary
 (`components/log/media/media-peek.tsx`): rest the pointer on a thumbnail in
 the contact strip and a link card peeks as the mini OG card (domain, title,
-description), a video or a deck or an image as its poster with a caption
-saying what pressing it does (`YouTube · Watch`, `Slides · <deck>`). `PeekThumb`
-and `PeekCard` moved there from `commit-embed.tsx`; the row's stacked deck is
-built from the same two, so the strip and the deck cannot drift.
+description), a video or a deck or an image as its poster — each wearing
+its chip, raised, and nothing else: no caption, no note. `PeekThumb` and
+`PeekCard` moved there from `commit-embed.tsx`; the row's stacked deck at
+`oneline` is built from the same two and wears the same chips (`PeekItem`
+carries its `media` for that), so the two densities peek alike.
 
 ## Slides in the theater
 

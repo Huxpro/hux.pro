@@ -39,13 +39,16 @@ import { markFor, MediaMark, type MediaMarkSpec } from "./media-mark";
 // Peek items render as `<div>` (never `<a>`) so they can sit inside the
 // row's own clickable wrapper without producing nested anchors.
 
-/** Bare cover image inside a soft card frame. Used for video / image media. */
+/** Bare cover image inside a soft card frame, wearing its chip. */
 export function PeekThumb({
   image,
+  mark,
   className,
   onResolved,
 }: {
   image: string;
+  /** The chip (media-mark.tsx); a peek is the after-hover state, so raised. */
+  mark?: MediaMarkSpec | null;
   className?: string;
   onResolved?: () => void;
 }) {
@@ -55,7 +58,7 @@ export function PeekThumb({
         // Border matches the card peek / panel (border/50). Shadow is
         // supplied per-use: the single video peek and the deck's front layer
         // add `shadow-raised`; deck back layers stay flat.
-        "rounded-lg overflow-hidden border border-border/50 bg-muted/30",
+        "relative rounded-lg overflow-hidden border border-border/50 bg-muted/30",
         className,
       )}
     >
@@ -67,6 +70,7 @@ export function PeekThumb({
         loading="eager"
         onResolved={onResolved}
       />
+      <MediaMark mark={mark} raised />
     </div>
   );
 }
@@ -114,6 +118,7 @@ export function PeekCard({
       aspect={item.aspect}
       domainLabel={domainLabel}
       mark={mark}
+      raisedMark
       // Peek-specific chrome — the shared panel recipe, minus the shadow: the
       // single-peek and stacked-peek branches strip the panel's own chrome
       // (BARE_PANEL_CHROME), so callers add `shadow-raised` per use (front /
@@ -151,7 +156,7 @@ function PeekPoster({
             <Presentation className="h-8 w-8 text-quaternary-foreground" />
           </span>
         )}
-        <MediaMark mark={mark} />
+        <MediaMark mark={mark} raised />
       </div>
       {caption && (
         <div className={cn("flex items-center gap-1.5 px-3 py-2", TYPE.labelSm)}>
@@ -195,6 +200,7 @@ export function mediaPeek(
       internal: media.internal,
       fit: preview?.fit,
       aspect: preview?.aspect,
+      media,
     };
     return {
       panelClassName: BARE,
@@ -223,17 +229,7 @@ export function mediaPeek(
     return {
       panelClassName: BARE,
       node: (
-        <PeekPoster
-          image={image}
-          mark={mark}
-          caption={
-            media.title && (
-              <span className="truncate normal-case tracking-normal">
-                {media.title}
-              </span>
-            )
-          }
-        />
+        <PeekPoster image={image} mark={mark} />
       ),
     };
   }

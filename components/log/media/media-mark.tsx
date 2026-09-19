@@ -8,7 +8,7 @@ import {
   Presentation,
   type LucideIcon,
 } from "lucide-react";
-import { ARTWORK_CHIP } from "@/lib/glass";
+import { ARTWORK_CHIP, ARTWORK_CHIP_REST } from "@/lib/glass";
 import type { Locale } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import {
@@ -61,6 +61,13 @@ import { cn } from "@/lib/utils";
 //
 // `markFor` reads the chip off a media item; `MediaMark` draws whatever it
 // is handed, so a cover never has to know why it wears what it wears.
+//
+// A chip has two weights. At rest, on a cover in the page, it is light
+// (`ARTWORK_CHIP_REST`): a row of covers should not be a row of stamps. The
+// cover's hover raises it — the chip reads the hover off the anchor or
+// button it sits in, so no cover has to be a `group` — and a cover standing
+// alone in a peek, which is the after-hover state, is raised from the start
+// (`raised`).
 //
 // The chip is absolutely positioned: the parent must be `relative`. At
 // `mini` — the /works contact strip, whose covers are 56px tall — the chip
@@ -181,16 +188,32 @@ const CHIP_SIZE: Record<MediaMarkSize, { box: string; icon: string; word: boolea
 const SURFACE_CHIP =
   "bg-foreground/[0.06] text-muted-foreground ring-1 ring-border/50 dark:bg-white/[0.08]";
 
+/**
+ * At rest the chip is light; the hover of the cover it sits in raises it.
+ * Read off the nearest anchor / button / `data-cover` so a cover need not be
+ * a `group`.
+ */
+const CHIP_REST = cn(
+  ARTWORK_CHIP_REST,
+  "transition-[background-color,color,box-shadow] duration-200",
+  "[:where(a,button,[data-cover]):hover_&]:bg-black/35",
+  "[:where(a,button,[data-cover]):hover_&]:text-white",
+  "[:where(a,button,[data-cover]):hover_&]:ring-white/25",
+);
+
 export function MediaMark({
   mark,
   size = "default",
   inline = false,
+  raised = false,
   className,
 }: {
   mark: MediaMarkSpec | null | undefined;
   size?: MediaMarkSize;
   /** In the flow of a caption line rather than on a cover. */
   inline?: boolean;
+  /** Already looked at — a peek's cover: the full-weight chip from the start. */
+  raised?: boolean;
   className?: string;
 }) {
   if (!mark) return null;
@@ -222,7 +245,7 @@ export function MediaMark({
       className={cn(
         "pointer-events-none absolute z-10 flex items-center rounded-full",
         "font-mono text-[10px] uppercase tracking-wider whitespace-nowrap",
-        ARTWORK_CHIP,
+        raised ? ARTWORK_CHIP : CHIP_REST,
         stop.box,
         className,
       )}

@@ -1824,8 +1824,10 @@ export type PeekItem =
       fit?: CoverFit;
       /** Fixed-mode aspect override for the single-item peek. */
       aspect?: string;
+      /** The item itself, for the chip its cover wears (media-mark.tsx). */
+      media: Media;
     }
-  | { kind: "thumb"; url: string; image: string };
+  | { kind: "thumb"; url: string; image: string; media: Media };
 
 /**
  * Collect peek-renderable items from a commit's media, preserving order.
@@ -1854,12 +1856,13 @@ export function getCommitPeekItems(commit: Commit): PeekItem[] {
           internal: m.internal,
           fit: m.preview?.fit,
           aspect: m.preview?.aspect,
+          media: m,
         });
       }
       continue;
     }
     const t = getMediaThumbnail(m);
-    if (t) out.push({ kind: "thumb", url: m.url, image: t });
+    if (t) out.push({ kind: "thumb", url: m.url, image: t, media: m });
   }
   return out;
 }

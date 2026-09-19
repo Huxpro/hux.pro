@@ -27,12 +27,13 @@ handle, what was signed with it — had no surface.
 A handle, a `Role:` field, or a role row stands for the identity's card: a
 GitHub profile page sized to a card, with nothing to press.
 
-- **The header** a profile opens with: a photo from that time masked to a
-  circle (`Identity.avatar` in `content/log.json`, a site-local path or URL;
-  a monogram of the company on the era's accent stands in until one is
-  authored), the company, the handle, and the era it belongs to.
 - **The role** the card was opened at — title, tenure (`2020 – 2022`,
-  `2023 – Present`), team, location — and its prose.
+  `2023 – Present`), team, location — and its prose, with a photo from that
+  time masked to a circle as its mark (`Identity.avatar` in
+  `content/log.json`, a site-local path or URL; the GitHub avatar stands in
+  until one is authored, `DEFAULT_AVATAR` in `lib/profile.ts`). The company
+  and the handle are not restated: the mark that opened the card printed
+  them, and the sheet is titled by the handle.
 - **The other roles** under the same identity, latest first.
 - **Contributions**: how many commits were signed with this handle, by type,
   most numerous first (`7 commits signed · 4 projects · 3 talks`).
@@ -73,6 +74,6 @@ a mark needs nothing else:
 | Where | The mark |
 |---|---|
 | `/works` row (`TimelineCommit`) | the `<handle>` on the meta line or at the foot of the contact strip; **the row itself, for a role** — its row peek is the identity (`buildCommitPreview`), and a tap opens the sheet |
-| The author block (`AuthorFields`, shared by `/works` and the home status widget) | the `Author:` and `Role:` values |
+| The author block (`AuthorFields`, shared by `/works` and the home status widget) | the `Author:` and `Role:` lines **together**, as one region (`IdentityHover`'s `block`): they stand for one identity, so the whole block lights on hover and under the finger that opens the sheet, rather than one line of it |
 
 Outside the provider the marks print as plain text, as they did.
