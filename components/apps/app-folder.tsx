@@ -361,7 +361,7 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
       <SortableContext items={order} strategy={rectSortingStrategy}>
         <div
           className={cn(
-            "relative rounded-2xl border px-1 pb-1.5",
+            "relative rounded-2xl border",
             "transition-colors duration-300",
             // At rest the labels have nothing behind them but the wallpaper,
             // so the folder is a bare zone whose ink may flip — on the
@@ -403,12 +403,14 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
                 key={`page-${pi}`}
                 className={cn(
                   "grid gap-x-2 gap-y-5",
-                  // Icon tops sit flush with sibling widgets' card edge, so
-                  // only a sliver of top clearance for the hover scale is
-                  // needed; the bottom keeps room for that scale plus the
-                  // badge overhang so overflow-x/y on a snap scroller can't
-                  // clip the art.
-                  "px-1 pt-1 pb-1.5",
+                  // The folder is chrome-less at rest, so its own edges are
+                  // where the tiles sit, not a card border — keep this snug
+                  // (rather than the ~20px card padding elsewhere) so icons
+                  // read flush with sibling widgets' top/left/right edges.
+                  // The remaining sliver is just clipping headroom for the
+                  // hover scale (top/left/right) and the badge overhang
+                  // (bottom) once a snap scroller has to clip overflow.
+                  "px-0 pt-1 pb-2",
                   needsPages && "w-full shrink-0 snap-start snap-always",
                 )}
                 style={pageStyle}
