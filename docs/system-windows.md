@@ -243,6 +243,18 @@ It is not a state of ours. Base UI publishes the live drag as
 (Base UI registers its own `inherits: false`), and every dimension is one lerp
 off it, in CSS. Nothing to set, nothing to clear.
 
+**Letting go is not the morph in reverse.** Released, the glass and then the
+shape, in that order: the background fades out with the handle still a handle,
+and the shape comes back underneath once there is nothing left to see it in.
+Going out is immediate; only the return is staged, which is why the delays live
+on the rest rules and the `data-swiping` rules zero them. Two details this
+needed: the title needs an explicit `max-height` at rest, because reverting to
+`none` is not interpolable and the pill's height — which is that line box —
+snapped back in a single frame with the glass still on it; and the ink holds at
+full strength until the laps have opened, because three translucent shapes
+lapping over one another paint their overlaps twice and the joins would show as
+two dark pips.
+
 A merged line is the one shape that does **not** read as a window's controls,
 so unlike a plain tuck it cannot rest on "stranded is merely wrong". Three
 things carry it instead:

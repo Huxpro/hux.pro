@@ -1808,20 +1808,52 @@ main[data-variant="reader"] .reader-masthead {
    fourteen times it was a bowtie.) The dots keep `rounded-full` throughout and
    the browser clamps it to half their height as they thin, so the ends stay
    stadium-round without being told to. */
+/* LETTING GO IS NOT THE MORPH IN REVERSE. Released, the glass and the ink go
+   first and the shape holds where it is, so what you see is a handle fading
+   out — not a handle re-forming into a pill that then fades. The shape comes
+   back underneath, once there is nothing left to see it in. The wait is on
+   these rules, which govern the RETURN; the `data-swiping` rules below zero it
+   so the way out stays immediate.
+
+   The title needs a length at both ends or there is nothing to interpolate:
+   reverting to `max-height: none` is a snap, and since this line box is what
+   sets the pill's height (see PillTitle), the pill popped back to full height
+   in a single frame with the glass still on it. 20px is above its natural
+   height, so it does not clip at rest.
+
+   The ink waits longest of all, and for a reason that only exists because the
+   segments overlap: three translucent shapes lapping over one another paint
+   their overlaps twice, so the moment the ink stops being opaque the joins
+   show as two dark pips. Held, the ink is at full strength and there is
+   nothing to see; so on the way back it stays there until the laps have
+   opened, and only then dims to the resting grey. */
+/* Written as the `transition` shorthand, one complete tuple per line, and not
+   as parallel `transition-property` / `-duration` / `-delay` lists. A shorthand
+   in a property list (`margin`, `padding`) expands to its longhands and shifts
+   every index after it, so the parallel lists silently slide out of step —
+   which is how the ink here ended up on the shape's timing and fading while
+   the laps were still closed. Per-item timing cannot misalign. */
 [data-window-grip] {
-  transition-property: padding, background-color, border-color, box-shadow, backdrop-filter;
-  transition-duration: 140ms;
-  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  --grip-ease: cubic-bezier(0.2, 0, 0, 1);
+  transition:
+    padding 130ms var(--grip-ease) 70ms,
+    background-color 110ms var(--grip-ease),
+    border-color 110ms var(--grip-ease),
+    box-shadow 110ms var(--grip-ease),
+    backdrop-filter 110ms var(--grip-ease);
 }
 [data-window-grip] [data-window-control] {
-  transition-property: margin, width, height, opacity, background-color, transform;
-  transition-duration: 140ms;
-  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  transition:
+    margin 130ms var(--grip-ease) 70ms,
+    width 130ms var(--grip-ease) 70ms,
+    height 130ms var(--grip-ease) 70ms,
+    opacity 120ms var(--grip-ease) 130ms,
+    background-color 120ms var(--grip-ease),
+    transform 140ms var(--grip-ease);
 }
 [data-window-grip] [data-window-title] {
-  transition-property: max-height;
-  transition-duration: 140ms;
-  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  max-height: 20px;
+  transition: max-height 130ms var(--grip-ease) 70ms;
 }
 
 /* Spacing is a margin here, not the row's `gap`, because only a margin can go
@@ -1849,6 +1881,7 @@ main[data-variant="reader"] .reader-masthead {
      shrink-wrapping it. */
   padding-inline: calc(10px - 4 * var(--held));
   padding-block: calc(6px - 1 * var(--held));
+  transition-delay: 0ms;
 }
 
 /* The three dots become the site's own grabber: three 14px segments lapping
@@ -1857,6 +1890,7 @@ main[data-variant="reader"] .reader-masthead {
 [data-surface-popup][data-swiping] [data-window-grip] [data-window-control] {
   width: calc(6px + 8 * var(--held));
   height: calc(6px - 2 * var(--held));
+  transition-delay: 0ms;
 }
 
 /* The pill is 28.5 tall because the title it never shows holds it open (see
@@ -1865,6 +1899,7 @@ main[data-variant="reader"] .reader-masthead {
    so nothing here has to know the font's metrics. */
 [data-surface-popup][data-swiping] [data-window-grip] [data-window-title] {
   max-height: calc(20px - 16 * var(--held));
+  transition-delay: 0ms;
 }
 
 [data-window-grip]::before {
