@@ -187,35 +187,69 @@ with no cover to wear it on carries the chip in its caption line. The
 chip says what the thing is; the policy above says where it opens, and the
 two never trade jobs.
 
-## The attachment object on /works
+## The four forms of /works
 
-What a row prints of its attachments is one object with one aspect
-(`AttachmentTile`, `components/log/media/attachment-tile.tsx`): a 2:1 crop of
-the cover wearing its chip, and nothing else on it. 2:1 is the aspect the
-covers come in — an OG image is 1.91:1, a video poster loses a sliver top
-and bottom that the peek and the surface show whole — and one aspect for
-every kind is what lets a video sit beside a card, and a row of tiles line
-up with the next row's. The density decides the size, never the shape:
+How much of a commit the page prints is one of four *forms*, and a form is
+a preset of a few independent atoms rather than a layout of its own
+(`ROW_FORM`, `lib/log-view.ts`): what of the description prints (`none` ·
+`clamp` · `full`), which attachment object (`none` · `thumbs` · `covers` ·
+`grid`), whether the notes print (commentary, the author fields, the link
+labels), and whether anything peeks on hover. The toolbar's control resets
+every row to a preset; a row the reader opens by hand takes the `feed`
+preset for itself. Old links with git's names (`oneline`, `stat`, `patch`)
+still parse, as aliases.
 
-| density | the object |
-|---|---|
-| `oneline` | none — the covers are behind the hover peek, or the row |
-| `stat` | `MediaStrip`: `strip` tiles (`h-28`, 224px wide) in a row; three fill the column. No caption — the chip is enough at that size, and the peek shows the rest |
-| `patch` | `AttachmentGrid`: `cell` tiles, **half the column each whatever the count**. A pair carries two caption lines under each tile (the source, the title), fixed at their line counts so the pair is one height by construction. A lone tile — one attachment, or the third — takes its caption *beside* it, description included: the unfurl a chat app prints for a link |
+| form | description | media | notes | peek | the reading |
+|---|---|---|---|---|---|
+| `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |
+| `brief` | two lines | `thumbs` — 56px tiles, glyph chip | — | ✓ | text first, a thumbnail beside it: the LinkedIn reading |
+| `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
+| `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet |
 
-The feeds this borrows from (X, LinkedIn, Instagram) agree on the rule: the
-media has a footprint, and the count changes how it is tiled, never how big
-the post is. Before this, one card was full width and natural aspect, a
-video was full width and 16:9, two of anything was a scroll rail at half
-width with the publisher's caption deciding each tile's height — so every
-open row was a different shape and no two right edges met. What has no
-cover (a live social widget, a still) still stacks under the grid at full
-width, as it did.
+### The attachment object
 
-A tile is always an anchor (⌘-click, middle-click, "copy link address"),
-and the click goes through `open(set, index)` like every other affordance.
-On a phone the grid is still two across: a pair stays a pair, and a lone
-tile spans the column with its caption under it.
+Every cover is one tile (`AttachmentTile`,
+`components/log/media/attachment-tile.tsx`): a 2:1 crop of the artwork,
+and its chip. 2:1 is the aspect the covers come in — an OG image is 1.91:1,
+a video poster loses a sliver top and bottom that the peek and the surface
+show whole — and one aspect for every kind is what lets a video sit beside
+a card, and a row of tiles line up with the next row's. The form decides the
+size and the caption, never the shape.
+
+**The strip** (`MediaStrip`, `brief` and `covers`) is the tiles in a row
+with no caption — the chip is enough at that size, and the peek shows the
+rest. When the covers are wider than the column the strip scrolls, and its
+track runs to the edge of the page rather than the column, so a cover is
+only ever cut by the screen: a row cut mid-page reads as a mistake, the
+same row running under the edge reads as a rail there is more of. The
+handle signs the strip's line only when a single cover leaves it the room
+on any viewport; otherwise it stays on the meta line.
+
+**The grid** (`AttachmentGrid`, `feed`) is where the captions are written
+out — where it is from, what it is, its blurb — and where nothing needs a
+second step: the chip is down to the glyph on a recording or a deck (a
+play mark is an affordance, not information) and gone from a card, and a
+click is the item's native action (`act`: the stage, the in-app browser,
+the page), never the attachment sheet, which would be a drawer opening on
+what is already on screen.
+
+- On a desk, the unit is half the column whatever the count — the rule the
+  feeds this borrows from (X, LinkedIn) agree on: media has a footprint,
+  and the count changes how it is tiled, never how big the post is. A pair
+  is two captioned tiles; a lone card is the tile with its caption beside
+  it (the unfurl a chat app prints for a link); a lone recording or deck,
+  which has nothing to say beside itself, takes the column as a video post
+  does.
+- On a phone, the feed is a feed: one thing under the next, each running
+  edge to edge over the page gutter and the rail column (`PHONE_BLEED`),
+  the text back in the column under it. A video plays in place — the
+  facade with no `onPlay` — and the rest go to their native home.
+
+Before this, one card was full width and natural aspect, a video was full
+width and 16:9, two of anything was a scroll rail at half width with the
+publisher's caption deciding each tile's height — so every open row was a
+different shape and no two right edges met. What has no cover (a live
+social widget, a still) still stacks under the grid at full width.
 
 ### The gutter
 
@@ -243,15 +277,15 @@ the attachment sheet.
 ## Hovering a cover
 
 The row's magnetic peek — the cursor-following panel that shows what a folded
-row is holding — stands down at the `stat` density, because the row now
-prints its covers. Each cover peeks instead, in the same vocabulary
+row is holding — stands down in the forms that print a strip, because the
+row now prints its covers, and in the feed altogether (`ROW_FORM.peek`). Each cover peeks instead, in the same vocabulary
 (`components/log/media/media-peek.tsx`): rest the pointer on a thumbnail in
 the contact strip and a link card peeks as the mini OG card (domain, title,
 description), a video or a deck or an image as its poster — each wearing
 its chip, raised, and nothing else: no caption, no note. `PeekThumb` and
-`PeekCard` moved there from `commit-embed.tsx`; the row's stacked deck at
-`oneline` is built from the same two and wears the same chips (`PeekItem`
-carries its `media` for that), so the two densities peek alike.
+`PeekCard` moved there from `commit-embed.tsx`; the row's stacked deck in
+the `index` form is built from the same two and wears the same chips
+(`PeekItem` carries its `media` for that), so the two forms peek alike.
 
 ## Slides in the theater
 

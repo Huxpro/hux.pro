@@ -391,16 +391,22 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
         {/* Surfaces -------------------------------------------------------- */}
         <section className="space-y-8">
           <div>
-            <Label>The contact strip — MediaStrip</Label>
+            <Label>The contact strip — MediaStrip, `brief` and `covers`</Label>
             {/* The strip and the pages read the policy, which reads the
                 viewport; they render once the client has one. */}
-            {mounted && <MediaStrip items={stripItems} set={set} />}
+            {mounted && (
+              <div className="space-y-4">
+                <MediaStrip items={stripItems} set={set} size="thumbs" />
+                <MediaStrip items={stripItems} set={set} size="covers" />
+              </div>
+            )}
           </div>
           <div>
-            <Label>The attachment object at `patch` — AttachmentGrid</Label>
-            {/* Half-column tiles whatever the count: a pair with two caption
-                lines each, then a lone tile with its caption beside it. The
-                column is /works' (632px), so the tiles are the row's size. */}
+            <Label>The attachment object in the `feed` — AttachmentGrid</Label>
+            {/* Half-column tiles whatever the count on a desk: a pair with
+                captions under each, then a lone one. On a phone, the stack.
+                The column is /works' (632px), so the tiles are the row's
+                size. */}
             {mounted && stripItems.length > 0 && (
               <div className="@container max-w-[632px] space-y-6">
                 <AttachmentGrid items={stripItems.slice(0, 2)} set={set} />

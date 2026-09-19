@@ -3,23 +3,28 @@
 /**
  * AttachmentTile — one cover in a commit's attachment object.
  *
- * Every cover on /works is this: a 2:1 crop of the artwork wearing its chip
- * (media-mark.tsx), and nothing else on it. 2:1 because it is the aspect the
- * covers already come in — an OG image is 1.91:1, and a 16:9 video poster
- * loses a sliver top and bottom, which the hover peek and the surface show
- * whole. One aspect for every kind is what lets a row of them line up, and
- * what lets a video sit beside a card without one towering over the other.
+ * Every cover on /works is this: a 2:1 crop of the artwork wearing its chip,
+ * and nothing else on it. 2:1 because it is the aspect the covers already
+ * come in — an OG image is 1.91:1, and a 16:9 video poster loses a sliver
+ * top and bottom, which the hover peek and the surface show whole. One aspect
+ * for every kind is what lets a row of them line up, and what lets a video
+ * sit beside a card without one towering over the other.
  *
- * Two sizes, one per density (docs/system-attachments.md):
+ * Three sizes, one per form (lib/log-view.ts, docs/system-attachments.md):
  *
- *  - `strip` — `stat`: a fixed height, laid out in a row; a commit carrying
- *    three fills the column.
- *  - `cell`  — `patch`: the width of its grid cell, which the grid keeps at
- *    half the column whatever the count (see AttachmentGrid).
+ *  - `thumbs` — `brief`: 56px tall, the glyph chip. A thumbnail beside text.
+ *  - `covers` — `covers`: 112px tall, the glyph chip. A cover you can
+ *    recognise a slide or a screenshot at.
+ *  - `cell`   — `feed`: the width of its grid cell. The feed writes the
+ *    caption out, so the chip is the glyph alone on a recording or a deck
+ *    (a play mark is an affordance, not information) and nothing on a card.
  *
  * The tile is an anchor even when the attachment system takes the click:
  * ⌘-click, middle-click and "copy link address" keep working, and there is a
- * real destination when no provider is mounted.
+ * real destination when no provider is mounted. Which door the click takes
+ * is the caller's: `open` (the policy's home — the sheet on a phone) for the
+ * folded forms, `act` (the native action — the stage, the page) for the feed,
+ * which has already shown everything the sheet would.
  */
 
 import type { MouseEvent } from "react";
@@ -38,36 +43,42 @@ import {
 } from "@/lib/log";
 import type { AttachmentSet, AttachmentsApi } from "@/systems/attachments";
 import { ExternalImage } from "./external-image";
-import { markFor, MediaMark, newTabMark, type MediaMarkSpec } from "./media-mark";
+import {
+  markFor,
+  MediaMark,
+  newTabMark,
+  type MediaMarkSize,
+  type MediaMarkSpec,
+} from "./media-mark";
 
-export type AttachmentTileSize = "strip" | "cell";
+export type AttachmentTileSize = "thumbs" | "covers" | "cell";
 
-const TILE_SIZE: Record<AttachmentTileSize, { box: string; chip: "mini" | "compact" }> = {
-  strip: { box: "h-28", chip: "mini" },
+const TILE_SIZE: Record<AttachmentTileSize, { box: string; chip: MediaMarkSize }> = {
+  thumbs: { box: "h-14", chip: "mini" },
+  covers: { box: "h-28", chip: "mini" },
   cell: { box: "w-full", chip: "compact" },
 };
 
-/** What a tile says under (or beside) itself, when the density prints it. */
+/** What a tile says under (or beside) itself, when the form prints it. */
 export interface TileCaption {
   /** Where it is from: the platform, the domain, `Slides`. */
   source: string;
   /** What it is: the page's title, the deck's; a recording has none but
-   *  the word. Always a string, so a caption is always the same two lines. */
+   *  the word. Always a string, so a caption always has its first two lines. */
   title: string;
-  /** A page's blurb — the third line beside a lone tile. */
+  /** A page's blurb. */
   description?: string;
   /**
-   * What pressing it does, for a kind with no blurb to fill the line — the
-   * same word the attachment page's primary button wears (`Watch`, `Slides`),
-   * so the row and the sheet name the act the same way.
+   * What pressing it does, for a kind with no blurb — the same word the
+   * attachment page's primary button wears (`Watch`, `Slides`), so the row
+   * and the sheet name the act the same way.
    */
   action?: MediaMarkSpec;
 }
 
 /**
- * The caption for one piece of media, in the viewer's locale. The strip
- * prints none of it (the chip is enough at that size); the grid prints the
- * first two lines under a tile, and all three beside a lone one.
+ * The caption for one piece of media, in the viewer's locale. The strips
+ * print none of it (the chip is enough at that size); the feed prints it.
  */
 export function tileCaption(media: Media, locale: Locale): TileCaption {
   if (isVideoMedia(media)) {
@@ -114,22 +125,6 @@ export function tileImage(media: Media, locale: Locale): string | null {
   return null;
 }
 
-export interface AttachmentTileProps {
-  media: Media;
-  image: string;
-  size: AttachmentTileSize;
-  locale: Locale;
-  /** The tile's tooltip and accessible name. */
-  label: string;
-  /**
-   * The set this media belongs to and the provider that opens it. With both,
-   * the click opens the set at this item; without, the anchor navigates.
-   */
-  set?: AttachmentSet | null;
-  attachments?: AttachmentsApi | null;
-  className?: string;
-}
-
 /**
  * Where a tile's click will land, and the chip that says so: a page that
  * refuses to be framed opens a tab, and the tile says `New tab` before the
@@ -149,6 +144,28 @@ export function tileMark(
   return { mark: leaves ? newTabMark(locale) : markFor(media, locale), leaves };
 }
 
+export interface AttachmentTileProps {
+  media: Media;
+  image: string;
+  size: AttachmentTileSize;
+  locale: Locale;
+  /** The tile's tooltip and accessible name. */
+  label: string;
+  /**
+   * The set this media belongs to and the provider that opens it. With both,
+   * the click goes through the system; without, the anchor navigates.
+   */
+  set?: AttachmentSet | null;
+  attachments?: AttachmentsApi | null;
+  /** Which door the click takes — see the note above. Default `open`. */
+  mode?: "open" | "act";
+  /** The chip, overriding the size's: `none` for a card in the feed. */
+  chip?: MediaMarkSize | "none";
+  /** Square the corners — a phone's edge-to-edge feed. */
+  flush?: boolean;
+  className?: string;
+}
+
 export function AttachmentTile({
   media,
   image,
@@ -157,11 +174,15 @@ export function AttachmentTile({
   label,
   set,
   attachments,
+  mode = "open",
+  chip,
+  flush = false,
   className,
 }: AttachmentTileProps) {
   const stop = TILE_SIZE[size];
   const { mark, leaves } = tileMark(media, locale, set, attachments);
   const index = set && attachments ? set.items.indexOf(media) : -1;
+  const chipSize = chip ?? stop.chip;
 
   const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
     // A click on a cover is the cover's business: without this the row would
@@ -171,7 +192,8 @@ export function AttachmentTile({
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     if (index < 0 || !set || !attachments) return;
     e.preventDefault();
-    attachments.open(set, index);
+    if (mode === "act") attachments.act(set, index);
+    else attachments.open(set, index);
   };
 
   return (
@@ -183,9 +205,11 @@ export function AttachmentTile({
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "relative block aspect-[2/1] shrink-0 overflow-hidden rounded-md",
-        "border border-border/50 bg-muted/30",
-        "transition-colors duration-200 hover:border-border focus-visible:border-border",
+        "relative block aspect-[2/1] shrink-0 overflow-hidden",
+        "bg-muted/30 transition-colors duration-200",
+        flush
+          ? "rounded-none"
+          : "rounded-md border border-border/50 hover:border-border focus-visible:border-border",
         stop.box,
         className,
       )}
@@ -195,7 +219,7 @@ export function AttachmentTile({
         alt=""
         className="block h-full w-full object-cover"
       />
-      <MediaMark mark={mark} size={stop.chip} />
+      {chipSize !== "none" && <MediaMark mark={mark} size={chipSize} />}
     </a>
   );
 }

@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
-import { DEFAULT_DENSITY, type LogDensity } from "@/lib/log-view";
+import { DEFAULT_FORM, ROW_FORM, type LogForm } from "@/lib/log-view";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
@@ -109,8 +109,8 @@ interface TimelineCommitProps {
    *  Expanded: the `expanded` payload feeds a `git log --pretty=fuller`
    *  style block at the top of the row's expanded body. */
   byline?: Byline | null;
-  /** How much of the commit to print. See `lib/log-view.ts`. */
-  density?: LogDensity;
+  /** The page's form — how much of the commit to print (lib/log-view.ts). */
+  form?: LogForm;
   /**
    * Make this commit the page's address. When supplied, the hash column is
    * the permalink it always looked like — see `useCommitAnchor`.
@@ -145,7 +145,7 @@ export function TimelineCommit({
   onBeamSet,
   onBeamClear,
   byline = null,
-  density = DEFAULT_DENSITY,
+  form = DEFAULT_FORM,
   onSelectHash,
   attachmentSet = null,
   inspecting = false,
@@ -232,30 +232,45 @@ export function TimelineCommit({
         ? handleToggleExpanded
         : undefined;
 
-  // What `stat` adds to a folded row: the covers, and one clamped line of
-  // what the thing is. Both or either — a commit with no media still gets
-  // its description, so the mode is "title, what, and what it looks like"
-  // rather than "title, and covers if any".
+  // The row's form: the page's, unless the reader opened this row, in which
+  // case it is the feed for itself — a form is a preset of the row's atoms
+  // (lib/log-view.ts), and an open row is the same preset at row scale.
+  // Everything below reads those atoms and nothing reads the form's name.
+  const rowForm = ROW_FORM[isExpanded ? "feed" : form];
+
+  // What the folded forms add under the title line: the description at two
+  // lines, and the strip at one of its sizes. Both or either — a commit with
+  // no media still gets its description, so a form is "title, what, and
+  // what it looks like" rather than "title, and covers if any".
   //
   // Events are out. They are datelines between commits, not works, which is
   // the same reason they get no filter chip; giving one a caption would
   // promote punctuation to a paragraph.
-  const statBody = density === "stat" && !isExpanded && !isEvent;
-  // The strip is the `stat` density's own: while the row is open the expanded
-  // block shows the real thing, and a row of miniatures of what is directly
+  const folded = !isExpanded && !isEvent;
+  const stripSize =
+    rowForm.media === "thumbs" || rowForm.media === "covers"
+      ? rowForm.media
+      : null;
+  // The strip is the folded forms' own: while the row is open the feed's
+  // grid shows the real thing, and a row of miniatures of what is directly
   // below it is noise.
-  const showStrip = statBody && data.stripItems.length > 0;
-  const showStatDescription = statBody && !!data.description;
+  const showStrip = folded && !!stripSize && data.stripItems.length > 0;
+  const showStatDescription =
+    folded && rowForm.description === "clamp" && !!data.description;
   // Where the handle signs: the bottom-right of the row, which is the media
-  // line when there is one with room beside the covers — two tiles leave it;
-  // three fill the column — and the meta line when there is not.
-  const signsOnMediaLine = showStrip && !!byline && data.stripItems.length <= 2;
+  // line when a single cover leaves it the room — on any viewport — and the
+  // meta line when there is more than one, since two covers may already be
+  // the width of a phone and the strip then scrolls under the edge.
+  const signsOnMediaLine = showStrip && !!byline && data.stripItems.length === 1;
   // A hover panel repeating, on top of the row, what the row now prints
-  // inside itself is the one thing `stat` makes redundant. A role row is the
-  // exception: its peek is the identity card, which no density prints.
+  // inside itself is the one thing a strip makes redundant — and the feed
+  // has no peek at all (`rowForm.peek`): it has printed everything one
+  // would show. A role row is the exception: its peek is the identity card,
+  // which no form prints.
   const showCursorPreview =
     !!cursorPreview &&
     !isExpanded &&
+    rowForm.peek &&
     (data.type === "role" || (!showStrip && !showStatDescription));
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
@@ -487,7 +502,8 @@ export function TimelineCommit({
           {data.links.map((link, i) => {
             const className =
               cn("inline-flex items-center gap-1", TYPE.linkQuiet);
-            const label = isExpanded && !link.redundantWhenExpanded && (
+            // The label is one of the notes: the feed spells the rail out.
+            const label = rowForm.notes && !link.redundantWhenExpanded && (
               <span className="hidden @sm:inline text-xs">{link.label}</span>
             );
 
@@ -622,9 +638,10 @@ export function TimelineCommit({
         </div>
       )}
 
-      {/* Contact strip — `stat` density only. Sits below the pinned block so
-          the two read as one column of "what this commit contains", largest
-          first: a pinned cover at full width, then the rest as thumbnails.
+      {/* Contact strip — the folded forms with a strip. Sits below the
+          pinned block so the two read as one column of "what this commit
+          contains", largest first: a pinned cover at full width, then the
+          rest as thumbnails.
 
           No handler on this cell: the strip is sized to its covers and stops
           its own clicks, so the line it sits on stays the row's — the empty
@@ -636,7 +653,7 @@ export function TimelineCommit({
         // strip is `w-max`.
         <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0 space-y-2">
           {/* Reads down the same left edge the title and the meta do, and
-              that `patch` will start it on when the row opens. */}
+              that the feed will start it on when the row opens. */}
           {showStatDescription && <Description text={data.description} />}
 
           {/*
@@ -651,6 +668,8 @@ export function TimelineCommit({
               <MediaStrip
                 items={data.stripItems}
                 set={attachmentSet}
+                size={stripSize ?? undefined}
+                peek={rowForm.peek}
                 className="min-w-0"
               />
 
@@ -697,9 +716,9 @@ export function TimelineCommit({
               of uppercase keywords and a star count were decoration here. */}
           <Description text={data.description} isExpanded />
 
-          {/* The attachment object: half-column tiles whatever the count
-              (AttachmentGrid), so every open row's media has the same edges
-              as the next row's. */}
+          {/* The attachment object in the feed (AttachmentGrid): the grid on
+              a desk, the edge-to-edge stack on a phone, captions written
+              out, and every click its native one. */}
           {expandedMedia.length > 0 && (
             <div onClick={(e) => e.stopPropagation()}>
               <MediaRenderer
@@ -715,7 +734,7 @@ export function TimelineCommit({
           )}
 
           {/* Liner notes come after the thing they are notes on. */}
-          {data.commentary && <Commentary text={data.commentary} />}
+          {rowForm.notes && data.commentary && <Commentary text={data.commentary} />}
 
           {/*
             The author fields, as `git log --pretty=fuller` writes them (see
@@ -729,7 +748,7 @@ export function TimelineCommit({
             three unlabelled lines, and the wrap that costs is cheaper than
             the form it was buying.
           */}
-          {showAuthorBlock && (
+          {rowForm.notes && showAuthorBlock && (
             <AuthorFields
               byline={byline}
               // Below `@sm` the gutter hash column is hidden, so the row has

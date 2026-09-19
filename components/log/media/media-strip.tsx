@@ -3,12 +3,13 @@
 /**
  * MediaStrip — a commit's contact sheet.
  *
- * The `stat` density prints one of these under each folded row: every cover
- * the commit is carrying, as a row of `strip`-sized tiles in authored order.
- * It is the answer to the /works paradox — folded, the page is a perfect
- * two-screen overview and none of the media exists; unfolded, the media is
- * all there and the overview is gone. The strip keeps one row per commit and
- * still puts the work on screen.
+ * The `brief` and `covers` forms print one of these under each folded row:
+ * every cover the commit is carrying, as a row of tiles in authored order,
+ * at the form's size (`thumbs`, `covers` — attachment-tile.tsx). It is the
+ * answer to the /works paradox — folded, the page is a perfect two-screen
+ * overview and none of the media exists; unfolded, the media is all there
+ * and the overview is gone. The strip keeps one row per commit and still
+ * puts the work on screen.
  *
  * It is not a picture of the row: the thumbs are the real affordances, wired
  * to the same door the expanded block opens — the attachment system, which
@@ -20,9 +21,13 @@
  * Deliberately chrome-light: the tiles and their chips, nothing else. Titles
  * live on the row above and the commit's own description sits over the
  * covers; a caption under every thumbnail on top of that would undo the
- * density the strip exists for. The size is the tile's (attachment-tile.tsx):
- * tall enough to recognise a talk slide or a product screenshot, and three
- * of them fill the column.
+ * density the strip exists for.
+ *
+ * When the covers are wider than the column the strip scrolls — and its
+ * track runs to the edge of the page, not the edge of the column, so a cover
+ * is only ever cut by the screen. A row of covers cut mid-page reads as a
+ * mistake; the same row running under the edge reads as a rail there is more
+ * of, which is what it is.
  */
 
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
@@ -32,7 +37,11 @@ import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachment
 import type { StripItem } from "@/lib/log";
 import { isSlidesMedia } from "@/lib/log";
 import { getDomainLabel } from "@/lib/og-core";
-import { AttachmentTile, tileMark } from "./attachment-tile";
+import {
+  AttachmentTile,
+  tileMark,
+  type AttachmentTileSize,
+} from "./attachment-tile";
 import { mediaPeek } from "./media-peek";
 
 export interface MediaStripProps {
@@ -49,6 +58,10 @@ export interface MediaStripProps {
    * covers are plain outbound links.
    */
   set?: AttachmentSet | null;
+  /** The form's tile size: `thumbs` for `brief`, `covers` for `covers`. */
+  size?: Extract<AttachmentTileSize, "thumbs" | "covers">;
+  /** Whether a cover peeks on hover (the form's `peek`, lib/log-view.ts). */
+  peek?: boolean;
   className?: string;
 }
 
@@ -62,7 +75,13 @@ export function tileLabel({ media }: StripItem): string {
   return getDomainLabel(media.url);
 }
 
-export function MediaStrip({ items, set, className }: MediaStripProps) {
+export function MediaStrip({
+  items,
+  set,
+  size = "covers",
+  peek = true,
+  className,
+}: MediaStripProps) {
   const attachments = useOptionalAttachments();
   const { locale } = useLocale();
 
@@ -77,11 +96,14 @@ export function MediaStrip({ items, set, className }: MediaStripProps) {
       data-row-body
       className={cn(
         // `w-max` so the track is as wide as the covers it draws and no
-        // wider; `max-w-full` so past the column width it stops growing and
-        // scrolls instead, which is how a phone handles a commit carrying
-        // three covers. Both are layout: the clicks are the covers' own, so
-        // an empty stretch of this band is the row's to take.
-        "flex w-max max-w-full gap-2 overflow-x-auto overscroll-x-contain",
+        // wider; past that it stops growing and scrolls instead. The cap is
+        // the column plus the page gutter, and the track bleeds by the same
+        // gutter (`-mr-6`, `<main>`'s `px-6`), so the scroll edge is the
+        // screen's edge and the last cover has the gutter to rest in
+        // (`pr-6`). Layout only: the clicks are the covers' own, so an empty
+        // stretch of this band is the row's to take.
+        "flex w-max max-w-[calc(100%+1.5rem)] -mr-6 gap-2 pr-6",
+        "overflow-x-auto overscroll-x-contain",
         "snap-x snap-proximity no-scrollbar",
         className,
       )}
@@ -92,19 +114,19 @@ export function MediaStrip({ items, set, className }: MediaStripProps) {
         // in the same vocabulary, showing what it is at a readable size —
         // and whole, where the tile crops.
         const { leaves } = tileMark(item.media, locale, set, attachments);
-        const peek = mediaPeek(item.media, locale, { leaves });
+        const spec = peek ? mediaPeek(item.media, locale, { leaves }) : null;
         return (
           <MagneticPreview
             key={`${item.media.url}-${i}`}
-            preview={peek?.node}
-            enabled={!!peek}
-            panelClassName={peek?.panelClassName}
+            preview={spec?.node}
+            enabled={!!spec}
+            panelClassName={spec?.panelClassName}
             className="shrink-0 snap-start"
           >
             <AttachmentTile
               media={item.media}
               image={item.image}
-              size="strip"
+              size={size}
               locale={locale}
               label={tileLabel(item)}
               set={set}

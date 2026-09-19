@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./external-image";
-import { MediaMark, videoMark } from "./media-mark";
+import { MediaMark, videoMark, type MediaMarkSize } from "./media-mark";
 
 // =============================================================================
 // Types
@@ -27,6 +27,9 @@ export interface VimeoEmbedProps {
   className?: string;
   /** Hand off playback to the immersive theater / PiP player instead of inline. */
   onPlay?: () => void;
+  /** The cover's chip size (media-mark.tsx); `mini` is the glyph alone, for
+   *  a feed that has already written the platform out. */
+  chip?: MediaMarkSize;
 }
 
 // =============================================================================
@@ -78,6 +81,7 @@ export function VimeoEmbed({
   size = "default",
   className,
   onPlay,
+  chip = "default",
 }: VimeoEmbedProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const videoId = extractVimeoId(url);
@@ -131,7 +135,7 @@ export function VimeoEmbed({
         {/* The cover wears its chip — the platform — the way every cover on the
             site does (media-mark.tsx); the hover wash is the press affordance. */}
         <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
-        <MediaMark mark={videoMark("vimeo")} />
+        <MediaMark mark={videoMark("vimeo")} size={chip} />
       </button>
     );
   }

@@ -62,6 +62,9 @@ export interface AttachmentsContextValue {
   /** The surface's current session; it stays through the close animation. */
   session: AttachmentSession | null;
   isOpen: boolean;
+  /** A phone-sized viewport — the one fact of the policy's context a row
+   *  lays itself out by (the feed plays a video where it is there). */
+  compact: boolean;
 }
 
 const AttachmentsContext = createContext<AttachmentsContextValue | null>(null);
@@ -213,8 +216,8 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
   );
 
   const value = useMemo<AttachmentsContextValue>(
-    () => ({ open, act, homeOf, nativeHomeOf, close, session, isOpen }),
-    [open, act, homeOf, nativeHomeOf, close, session, isOpen],
+    () => ({ open, act, homeOf, nativeHomeOf, close, session, isOpen, compact }),
+    [open, act, homeOf, nativeHomeOf, close, session, isOpen, compact],
   );
 
   return (

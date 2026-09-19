@@ -14,7 +14,7 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
 import { getCommitPeekItems, localize } from "@/lib/log";
-import { DEFAULT_DENSITY, type LogDensity } from "@/lib/log-view";
+import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { cn } from "@/lib/utils";
 import { attachmentSetFor, leavesSite } from "@/systems/attachments";
 import { IDENTITY_PEEK_PANEL, IdentityPeek } from "@/systems/identity";
@@ -61,7 +61,7 @@ export interface CommitProps {
    *  the timeline so this component stays locale-agnostic. */
   byline?: Byline | null;
   /** Timeline-only: how much of the commit to print (see `lib/log-view`). */
-  density?: LogDensity;
+  form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
 }
@@ -85,7 +85,7 @@ export function Commit({
   onBeamSet,
   onBeamClear,
   byline = null,
-  density = DEFAULT_DENSITY,
+  form = DEFAULT_FORM,
   onSelectHash,
 }: CommitProps) {
   const edit = useTimelineEdit();
@@ -150,7 +150,7 @@ export function Commit({
           onBeamSet={onBeamSet}
           onBeamClear={onBeamClear}
           byline={byline}
-          density={density}
+          form={form}
           onSelectHash={onSelectHash}
           attachmentSet={attachmentSet}
           inspecting={inspecting}
