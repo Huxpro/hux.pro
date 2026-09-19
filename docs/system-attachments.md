@@ -35,20 +35,34 @@ places is usable.
 
 `lib/policy.ts` is the rule, and it is two functions:
 
-| | phone (`< sm`) | tablet / desktop |
-|---|---|---|
-| video | attachment sheet | theater |
-| slides | attachment sheet | theater (a `slides` track — see below) |
-| link card, external | attachment sheet | in-app browser window, or a tab if the page refuses to be framed |
-| link card, `/writing/…` | attachment sheet | the router |
-| image, social widget | attachment sheet | attachment surface, in its desktop shape |
+| | phone (`< sm`): a tap | phone: the sheet's button | tablet / desktop |
+|---|---|---|---|
+| video | attachment sheet | theater (a PiP there) | theater |
+| slides | attachment sheet | a tab | theater (a `slides` track — see below) |
+| link card, external | attachment sheet | **the in-app browser, as a sheet stacked on this one**; a tab if the page refuses to be framed | in-app browser window, or a tab if the page refuses to be framed |
+| link card, `/writing/…` | attachment sheet | the router | the router |
+| image, social widget | attachment sheet | a tab | attachment surface, in its desktop shape |
 
 `homeFor(media, ctx)` says where a click lands. `nativeHomeFor(media, ctx)` is
 the same question with the surface taken out of the picture — what the item
 does natively, which is what a page's primary button in the sheet performs.
 On a phone the sheet opens for everything and its `Watch` / `Slides` / `Read`
 / `Visit` button is the native action: a video plays in PiP, a deck opens in
-a tab (reveal.js in a phone-sized frame is unreadable), a card opens.
+a tab (reveal.js in a phone-sized frame is unreadable), a page opens in the
+in-app browser.
+
+The in-app browser is the same on every viewport: `useWindows().openUrl`. A
+window on a phone is a sheet ([Window System](./system-windows.md), "A phone
+window is a sheet"), so on a phone `Visit` stacks the browser over the
+attachment sheet — the attachment sheet steps back, the page rises over it,
+and a drag down on the page lands back on the commit's attachments, the way a
+link in a mobile app opens in its own in-app browser and returns to the
+screen it came from. The provider keeps the attachment sheet open for this
+(`send`, the `window` case); on a desktop the window is its own thing and the
+surface closes. The only `Visit` that leaves the site is a page that refuses
+to be framed, and the sheet's page says so in a line above its actions before
+the button is pressed; the button's glyph is the arrow out there, a globe
+for the in-app browser, a play mark for the stage, a book for a post.
 
 Whether a page refuses framing is read at snapshot time: `pnpm og:snapshot`
 now records `X-Frame-Options` / `frame-ancestors` as `frame: "deny"` on the
@@ -59,10 +73,12 @@ reach at all can be told by hand (`preview: { frame: "deny" }`, as The Verge is)
 
 A card that will leave for a tab says so **before** the click, not after:
 the expanded card and the cover's hover peek print `Opens in a new tab` as a
-last line (`CardFace`'s `note`), the cover's tooltip carries it, and when the
-tab does open, a one-line system toast names the site that would not be
-framed (`components/ui/system-toast.tsx`). Gitee, Medium, web.dev, The Verge
-and Meta are the ones in the log today; the rest open in a window.
+last line (`CardFace`'s `note`), the cover's tooltip carries it, the sheet's
+page prints the same line above its actions, and when the tab does open on a
+desktop, a one-line system toast names the site that would not be framed
+(`components/ui/system-toast.tsx`). Gitee, Medium, web.dev, The Verge and
+Meta are the ones in the log today; the rest open in a window — on every
+viewport.
 
 ## The set
 
@@ -117,6 +133,46 @@ The surface sizes to its content (`fitContent`); the track is a flex row, so
 every page is as tall as the tallest and the sheet holds still while swiping.
 Pages off screen are `inert`.
 
+## The mark a cover wears
+
+Every cover on the site says what pressing it does, and it used to say so in
+three vocabularies at once — a play disc on anything that played, a `Slides`
+chip on a deck over the play disc, a browser glyph in places — each drawn in
+place by whichever component was holding the cover. `MediaMark`
+(`components/log/media/media-mark.tsx`) is the one vocabulary, and the only
+thing that draws it:
+
+| kind | the mark | meaning |
+|---|---|---|
+| `video` (a video, or a link to a video host) | the play disc, centred | it plays, on the stage |
+| `slides` | the `Slides` chip, bottom-left — and no disc | it presents, on the stage; a deck is not watched |
+| `web` (an external page) | nothing | it is a page: the card is the hint, the action says `Visit` |
+| `post` (`/writing/…`) | nothing | a page of this site; `Read` |
+| `image`, `social` | nothing | what you see is the thing |
+
+`mediaKindOf(media)` reads the kind off an item (a link to YouTube is a video
+whatever its `kind` field says), so a cover never has to know why it wears
+what it wears. Three sizes follow the play disc's stops — `mini` for the
+contact strip's 56px covers, where the chip keeps its glyph and drops its
+word; `compact` for rail thumbs and dense cards; `default` for a full cover —
+and two tones, the log's dark disc and the stage's glass one. The strip
+cover, the link card, the deck cover, the theater's rail thumb, the
+attachment sheet's page and the hover peek's poster all take the mark from
+here. The mark says what the thing is; the policy above says where it opens,
+and the two never trade jobs.
+
+## The lab
+
+**`/editor/apps`** — hidden, `noindex` — is the devtool for this system, the
+way `/editor/legibility` is for reading surfaces: the vocabulary at every
+size and tone on the log's own covers; the policy as a table, read live from
+`homeFor` / `nativeHomeFor` for a context you can pin (phone or not, a
+theater, a window manager); the same media rendered by the production strip,
+card, deck cover, rail thumb and attachment page; and buttons that go through
+the real providers, with a readout of the surface stack and the open windows
+as they stand. On a phone it is where to watch `Visit` stack the browser over
+the attachment sheet.
+
 ## Hovering a cover
 
 The row's magnetic peek — the cursor-following panel that shows what a folded
@@ -161,6 +217,8 @@ second. `Open in browser` in the window menu is the way out. See
 ## Adding a kind
 
 1. Say where it opens in `lib/policy.ts` — both functions.
-2. Give it a page in `attachment-page.tsx`.
-3. If it can play on the stage, give it a `Track` kind and teach `mediaToTrack`
+2. Say what its cover wears in `media-mark.tsx` — `mediaKindOf` and the mark.
+3. Give it a page in `attachment-page.tsx`.
+4. If it can play on the stage, give it a `Track` kind and teach `mediaToTrack`
    (`systems/theater/lib/albums.ts`) to build one.
+5. Check it in `/editor/apps`: the table, the specimens, the buttons.

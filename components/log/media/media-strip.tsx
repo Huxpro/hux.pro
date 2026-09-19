@@ -33,7 +33,7 @@ import { isSlidesMedia } from "@/lib/log";
 import { getDomainLabel } from "@/lib/og-core";
 import { ExternalImage } from "./external-image";
 import { mediaPeek } from "./media-peek";
-import { PlayBadge } from "./play-badge";
+import { MediaMark, mediaKindOf } from "./media-mark";
 
 export interface MediaStripProps {
   /**
@@ -158,7 +158,7 @@ export function MediaStrip({ items, set, className }: MediaStripProps) {
                 alt=""
                 className="block h-full w-full object-cover"
               />
-              {item.playable && <PlayBadge size="mini" />}
+              <MediaMark kind={mediaKindOf(item.media)} size="mini" />
             </a>
           </MagneticPreview>
         );

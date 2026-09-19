@@ -2,9 +2,14 @@
 
 import { ExternalImage } from "@/components/log/media/external-image";
 import { SocialEmbed } from "@/components/log/media/embed";
+import {
+  linkKindOf,
+  MediaMark,
+  type MediaKind,
+} from "@/components/log/media/media-mark";
 import { PeekCover } from "@/components/log/media/peek-cover";
-import { PlayBadge } from "@/components/log/media/play-badge";
 import { cn } from "@/lib/utils";
+import type { Locale } from "@/lib/i18n";
 import { t, useLocale } from "@/services";
 import {
   getMediaThumbnail,
@@ -15,7 +20,7 @@ import {
   isVideoMedia,
   type Media,
 } from "@/lib/log";
-import { getDomainLabel, isVideoLinkHost } from "@/lib/og-core";
+import { getDomainLabel } from "@/lib/og-core";
 import { TYPE } from "@/lib/typography";
 import {
   GLASS_ACTION,
@@ -25,13 +30,14 @@ import {
 import {
   ArrowUpRight,
   BookOpen,
+  Globe,
   Image as ImageIcon,
   Play,
   Presentation,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { isInternalLink, linkTarget } from "../lib/policy";
-import type { AttachmentSet } from "../lib/types";
+import type { AttachmentHome, AttachmentSet } from "../lib/types";
 import { useAttachments } from "../provider";
 
 // =============================================================================
@@ -48,6 +54,12 @@ import { useAttachments } from "../provider";
 // uppercase actions, the primary one lifted on the glass pill, the same
 // material the PiP bar and the Live Activity wear. The surface and the stage
 // are one system, and their controls should say so.
+//
+// The primary action's glyph is where it goes, not what the item is: a play
+// mark for the stage, a globe for the in-app browser, a book for a post of
+// this site, and the arrow out for the one case that leaves — a page that
+// refuses to be framed, which the page also says in a line of its own. The
+// cover wears the one mark every cover on the site wears (media-mark.tsx).
 // =============================================================================
 
 interface AttachmentPageProps {
@@ -55,17 +67,17 @@ interface AttachmentPageProps {
   index: number;
 }
 
-/** A cover the page action opens — a stage-shaped 16:9 box with a play mark. */
+/** A cover the page action opens — a stage-shaped 16:9 box wearing its mark. */
 function Cover({
   image,
   label,
-  chip,
+  kind,
   onOpen,
 }: {
   image: string | null;
   label: string;
-  /** Caption chip at the corner — `Slides`, the way the /works cover marks a deck. */
-  chip?: ReactNode;
+  /** What the cover is, for its mark: a play disc, the `Slides` chip. */
+  kind: MediaKind;
   onOpen: () => void;
 }) {
   return (
@@ -92,24 +104,34 @@ function Cover({
         </span>
       )}
       <span className="absolute inset-0 bg-black/0 transition-colors group-hover/thumb:bg-black/10">
-        <PlayBadge tone="glass" className="transition-transform group-hover/thumb:scale-105" />
+        <MediaMark
+          kind={kind}
+          tone="glass"
+          className="transition-transform group-hover/thumb:scale-105"
+        />
       </span>
-      {chip}
     </button>
   );
 }
 
-function SlidesChip() {
+/** The glyph on the primary action: where the item goes. */
+function homeIcon(home: AttachmentHome, kind: MediaKind): ReactNode {
+  if (home === "theater" || kind === "video") {
+    return <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />;
+  }
+  if (kind === "slides") return <Presentation className="h-3.5 w-3.5" />;
+  if (home === "route") return <BookOpen className="h-3.5 w-3.5" />;
+  if (home === "window") return <Globe className="h-3.5 w-3.5" />;
+  return <ArrowUpRight className="h-3.5 w-3.5" />;
+}
+
+/** The line a page prints when its button will leave the site. */
+function LeavesNote({ locale }: { locale: Locale }) {
   return (
-    <span
-      className={cn(
-        "absolute bottom-2 left-2 inline-flex items-center gap-1",
-        "rounded-md bg-black/55 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-white/90 ring-1 ring-white/15 backdrop-blur-sm",
-      )}
-    >
-      <Presentation className="h-3 w-3" />
-      Slides
-    </span>
+    <div className={cn("flex items-center gap-1", TYPE.labelSm)}>
+      <ArrowUpRight className="h-3 w-3" />
+      {t(locale, "linkOpensInTab")}
+    </div>
   );
 }
 
@@ -162,35 +184,29 @@ function Meta({ set }: { set: AttachmentSet }) {
 }
 
 export function AttachmentPage({ set, index }: AttachmentPageProps) {
-  const { act } = useAttachments();
+  const { act, nativeHomeOf } = useAttachments();
   const { locale } = useLocale();
   const media: Media | undefined = set.items[index];
   if (!media) return null;
 
   const open = () => act(set, index);
+  const home = nativeHomeOf(set, index);
 
   if (isVideoMedia(media) || isSlidesMedia(media)) {
-    const slides = isSlidesMedia(media);
-    const label = t(locale, slides ? "logSlides" : "logWatch");
+    const kind: MediaKind = isSlidesMedia(media) ? "slides" : "video";
+    const label = t(locale, kind === "slides" ? "logSlides" : "logWatch");
     return (
       <div className="space-y-4">
         <Cover
           image={getMediaThumbnail(media)}
           label={label}
-          chip={slides ? <SlidesChip /> : undefined}
+          kind={kind}
           onOpen={open}
         />
         <Meta set={set} />
+        {home === "tab" && <LeavesNote locale={locale} />}
         <Actions
-          primary={{
-            label,
-            icon: slides ? (
-              <Presentation className="h-3.5 w-3.5" />
-            ) : (
-              <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />
-            ),
-            onSelect: open,
-          }}
+          primary={{ label, icon: homeIcon(home, kind), onSelect: open }}
           href={media.url}
           hrefLabel={getDomainLabel(media.url)}
         />
@@ -203,8 +219,11 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
     const internal = isInternalLink(media);
     const preview = media.previews?.[locale] ?? media.preview;
     const domain = internal ? "/writing" : getDomainLabel(url);
-    const playable = isVideoLinkHost(url);
-    const label = t(locale, internal ? "logRead" : playable ? "logWatch" : "logVisit");
+    const kind = linkKindOf(url, internal);
+    const label = t(
+      locale,
+      kind === "post" ? "logRead" : kind === "video" ? "logWatch" : "logVisit",
+    );
     return (
       <div className="space-y-4">
         {preview?.image ? (
@@ -215,7 +234,7 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
               aspect={preview.aspect}
               className="rounded-none border-0"
             />
-            {playable && <PlayBadge tone="glass" />}
+            <MediaMark kind={kind} tone="glass" />
           </div>
         ) : (
           <div className="flex aspect-[2/1] items-center justify-center rounded-xl border border-border/50 bg-muted/10">
@@ -231,18 +250,9 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
             </p>
           )}
         </div>
+        {home === "tab" && <LeavesNote locale={locale} />}
         <Actions
-          primary={{
-            label,
-            icon: internal ? (
-              <BookOpen className="h-3.5 w-3.5" />
-            ) : playable ? (
-              <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />
-            ) : (
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            ),
-            onSelect: open,
-          }}
+          primary={{ label, icon: homeIcon(home, kind), onSelect: open }}
           href={url}
           hrefLabel={domain}
         />

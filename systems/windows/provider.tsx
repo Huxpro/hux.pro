@@ -124,6 +124,7 @@ function soloOnPhone(
   return list.map((w) =>
     w.id === id || w.mode === "minimized" ? w : { ...w, mode: "minimized" },
   );
+}
 
 /** The window title for a page that arrives without one: its host. */
 function urlTitle(url: string): string {

@@ -11,7 +11,7 @@
 
 import type { NormalizedCommit } from "./commit-data";
 import { ExternalImage } from "./media/external-image";
-import { PlayBadge } from "./media/play-badge";
+import { MediaMark } from "./media/media-mark";
 
 interface CommitCompactProps {
   data: NormalizedCommit;
@@ -35,12 +35,11 @@ export function CommitCompact({ data, className }: CommitCompactProps) {
           />
           {/* Play affordance for video-ish covers (real videos + talk-recording
               links like GitNation), so widget talk covers read as playable. */}
-          {data.thumbnail.isVideo && (
-            <PlayBadge
-              size="compact"
-              className="transition-transform group-hover/thumb:scale-105"
-            />
-          )}
+          <MediaMark
+            kind={data.thumbnail.isVideo ? "video" : "web"}
+            size="compact"
+            className="transition-transform group-hover/thumb:scale-105"
+          />
         </a>
       )}
 

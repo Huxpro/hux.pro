@@ -1,9 +1,8 @@
 "use client";
 
 import { ExternalImage } from "@/components/log/media/external-image";
-import { PlayBadge } from "@/components/log/media/play-badge";
+import { MediaMark } from "@/components/log/media/media-mark";
 import { cn } from "@/lib/utils";
-import { Presentation } from "lucide-react";
 import type { Track } from "../lib/types";
 
 // ---------------------------------------------------------------------------
@@ -79,30 +78,24 @@ export function TrackThumb({
           </span>
         </div>
       )}
-      {showBadge && (
-        <div
-          className={cn(
-            "absolute inset-0 bg-black/0 transition-colors group-hover/thumb:bg-black/10",
-            // When this track is the current one, let the cover win — play
-            // returns on hover so the affordance is still discoverable.
-            active && "opacity-0 group-hover/thumb:opacity-100",
-          )}
-        >
-          <PlayBadge size="compact" tone="glass" />
-        </div>
-      )}
-      {/* The same caption chip the /works cover wears, so a deck reads as a
-          deck beside the videos in a rail. */}
-      {track.kind === "slides" && (
-        <span
-          className={cn(
-            "absolute bottom-1.5 left-1.5 inline-flex items-center gap-1",
-            "rounded-md bg-black/55 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-white/90 ring-1 ring-white/15 backdrop-blur-sm",
-          )}
-        >
-          <Presentation className="h-3 w-3" />
-          Slides
-        </span>
+      {/* The mark every cover on the site wears (media-mark.tsx): a play
+          disc on a recording, the `Slides` chip on a deck, so a deck reads as
+          a deck beside the videos in a rail. */}
+      {track.kind === "slides" ? (
+        <MediaMark kind="slides" size="compact" />
+      ) : (
+        showBadge && (
+          <div
+            className={cn(
+              "absolute inset-0 bg-black/0 transition-colors group-hover/thumb:bg-black/10",
+              // When this track is the current one, let the cover win — play
+              // returns on hover so the affordance is still discoverable.
+              active && "opacity-0 group-hover/thumb:opacity-100",
+            )}
+          >
+            <MediaMark kind="video" size="compact" tone="glass" />
+          </div>
+        )
       )}
     </div>
   );

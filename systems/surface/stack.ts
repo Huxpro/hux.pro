@@ -78,6 +78,14 @@ function setLevel(id: string, level: number | undefined) {
 }
 
 /**
+ * The stack as it stands, bottom first — for a readout (the apps lab), not
+ * for a sheet, which asks `useSurfaceStack` about its own place.
+ */
+export function useSurfaceStackEntries(): readonly { id: string; nestedIn?: string }[] {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
+/**
  * Registers a sheet while `active`, and reports how many sheets have opened on
  * top of it since. Deregisters on close (not on unmount), so the one behind
  * comes forward in step with the top sheet's exit rather than after it.
@@ -87,13 +95,22 @@ function setLevel(id: string, level: number | undefined) {
  * UI already counts those on the parent popup as `--nested-drawers`, live with
  * their swipe — so a shell can add the two without counting a sheet twice.
  * `beneathLevel` is the detent of the sheet directly under this one, so a
- * sheet can arrive level with what it is stacked on.
+ * sheet can arrive level with what it is stacked on. `rank` is the sheet's
+ * place in the stack from the bottom — its layer, for a viewport to stand on:
+ * sheets portal into sibling subtrees in whatever order they first mounted,
+ * and a kept-mounted one (a window) opened again over a younger sheet would
+ * otherwise paint under it while the stack says it is on top.
  */
 export function useSurfaceStack(
   id: string,
   active: boolean,
   { nestedIn, level }: { nestedIn?: string; level?: number } = {}
-): { behind: boolean; depth: number; beneathLevel: number | undefined } {
+): {
+  behind: boolean;
+  depth: number;
+  beneathLevel: number | undefined;
+  rank: number;
+} {
   const current = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   useEffect(() => {
@@ -110,11 +127,20 @@ export function useSurfaceStack(
   // Before it registers (the render that opens it) the sheet beneath is the
   // top of the stack; after, the entry under its own.
   const beneath = current[index === -1 ? current.length - 1 : index - 1];
-  if (index === -1) return { behind: false, depth: 0, beneathLevel: beneath?.level };
+  if (index === -1) {
+    // Opening: it is about to be the top. Closed: it has no place.
+    return {
+      behind: false,
+      depth: 0,
+      beneathLevel: beneath?.level,
+      rank: active ? current.length : -1,
+    };
+  }
   const above = current.slice(index + 1);
   return {
     behind: above.length > 0,
     depth: above.filter((e) => e.nestedIn !== id).length,
     beneathLevel: beneath?.level,
+    rank: index,
   };
 }

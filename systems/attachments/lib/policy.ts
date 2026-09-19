@@ -19,12 +19,16 @@ import type { AttachmentHome } from "./types";
 // desktop an attachment goes to its native home — the click on a video cover
 // lands in the theater, the click on a link card in an in-app browser window.
 //
-// A phone has none of those homes in a usable shape: the theater is a PiP the
-// size of a thumb, a window is the whole screen. There every attachment opens
-// the same way, in a bottom sheet that pages through the commit's attachments
-// and offers each one's native action as a button. Two rules, one function,
-// so a cover on the contact strip and the player in the expanded body never
-// disagree about what a tap does.
+// A phone has fewer of those homes in a usable shape: the theater is a PiP
+// the size of a thumb, and a deck in it is unreadable. There every attachment
+// opens the same way, in a bottom sheet that pages through the commit's
+// attachments and offers each one's native action as a button. A page still
+// has its home there — a window on a phone is a sheet (systems/windows), so
+// `Visit` stacks the in-app browser over the attachment sheet the way a link
+// in a mobile app opens in its own in-app browser, and only a page that
+// refuses to be framed leaves for a tab. Two rules, one function, so a cover
+// on the contact strip and the player in the expanded body never disagree
+// about what a tap does.
 // =============================================================================
 
 export interface HomeContext {
@@ -68,16 +72,18 @@ export function nativeHomeFor(media: Media, ctx: HomeContext): AttachmentHome {
     // A page that refuses to be framed (X-Frame-Options, frame-ancestors —
     // read at snapshot time) would open a window showing a refusal.
     if (media.preview?.frame === "deny") return "tab";
-    return ctx.windows && !ctx.compact ? "window" : "tab";
+    // The in-app browser, on every viewport: a window is a sheet on a phone.
+    return ctx.windows ? "window" : "tab";
   }
   return "tab";
 }
 
 /**
  * Where a click on the attachment lands. A phone opens the surface for
- * everything; elsewhere a video or a deck goes to the theater, a link to its
- * window, and the kinds with no native home of their own — an image, a
- * social widget — open the surface in its desktop shape.
+ * everything, and the surface's button sends the item on (`nativeHomeFor`);
+ * elsewhere a video or a deck goes to the theater, a link to its window, and
+ * the kinds with no native home of their own — an image, a social widget —
+ * open the surface in its desktop shape.
  */
 export function homeFor(media: Media, ctx: HomeContext): AttachmentHome {
   if (ctx.compact) return "surface";

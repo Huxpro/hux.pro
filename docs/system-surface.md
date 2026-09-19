@@ -391,6 +391,17 @@ under the slash sheet and the picker, two — `depth` from the stack plus Base
 UI's own count of nested sheets, one `--surface-depth` on the shell. See
 [Command System](./system-command.md).
 
+The stack's order is also the paint order. Every viewport is a stacking
+context at the same level, so sibling sheets would otherwise paint in the
+order their portals mounted — fine while every sheet mounts as it opens, wrong
+the moment one is kept mounted: an app window put away and brought back over
+a younger sheet (the attachment sheet, say, whose `Visit` restored it) would
+come up underneath it while the stack said it was on top. So a sheet takes its
+place in the stack as its `layer` (`useSurfaceStack().rank`, `SurfaceViewport`
+`layer`) and a closing sheet keeps the layer it had, so it leaves from where
+it was rather than from under whatever it was covering. A readout of the
+stack as it stands is `useSurfaceStackEntries()`, for the apps lab.
+
 ## Adopters
 
 | Surface | Presentation | Notes |

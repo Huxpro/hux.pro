@@ -24,7 +24,7 @@ import { pickInternalLink } from "@/lib/og-enrich";
 import { useLocale } from "@/services";
 import { ExternalImage } from "./external-image";
 import { PeekCover } from "./peek-cover";
-import { PlayBadge } from "./play-badge";
+import { MediaMark } from "./media-mark";
 import type { CoverFit } from "@/lib/content";
 
 // =============================================================================
@@ -295,7 +295,7 @@ export function CardFace({
     >
       <div className="relative shrink-0">
         {slot}
-        {isVideo && <PlayBadge size={compact ? "compact" : "default"} />}
+        <MediaMark kind={isVideo ? "video" : "web"} size={compact ? "compact" : "default"} />
       </div>
       <div className={cn("flex-1 space-y-1", compact ? "p-2.5" : "p-4")}>
         <div

@@ -50,6 +50,8 @@ interface AttachmentsContextValue {
   act: (set: AttachmentSet, index: number) => void;
   /** Where `open` would send the attachment right now. */
   homeOf: (set: AttachmentSet, index: number) => AttachmentHome;
+  /** Where `act` would send it — its native home, from any surface. */
+  nativeHomeOf: (set: AttachmentSet, index: number) => AttachmentHome;
   close: () => void;
   /** The surface's current session; it stays through the close animation. */
   session: AttachmentSession | null;
@@ -121,7 +123,12 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
           windows.openUrl(linkTarget(media, locale), {
             title: set.title,
           });
-          setIsOpen(false);
+          // On a phone the window is a sheet, and it stacks on the attachment
+          // sheet: putting the page away lands back on the commit's
+          // attachments, the way a mobile app's in-app browser returns to
+          // the screen it was opened from. Elsewhere the window is its own
+          // thing and the surface has nothing left to say.
+          if (!compact) setIsOpen(false);
           return;
         }
         case "route": {
@@ -138,6 +145,9 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
           // A page that could have had a window but refused to be framed
           // says why it left: the reader asked the site to open something
           // and the browser took it, which reads as a glitch unless named.
+          // On a phone the sheet's own button already says so (its mark is
+          // the arrow out, and the page notes it) — no toast under a tab
+          // that has just covered the screen.
           if (
             !compact &&
             media.kind === "link" &&
@@ -192,9 +202,17 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
     [ctx],
   );
 
+  const nativeHomeOf = useCallback(
+    (set: AttachmentSet, index: number) => {
+      const media = set.items[index];
+      return media ? nativeHomeFor(media, ctx) : "tab";
+    },
+    [ctx],
+  );
+
   const value = useMemo<AttachmentsContextValue>(
-    () => ({ open, act, homeOf, close, session, isOpen }),
-    [open, act, homeOf, close, session, isOpen],
+    () => ({ open, act, homeOf, nativeHomeOf, close, session, isOpen }),
+    [open, act, homeOf, nativeHomeOf, close, session, isOpen],
   );
 
   return (

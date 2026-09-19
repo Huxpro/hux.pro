@@ -15,8 +15,8 @@ import { cn } from "@/lib/utils";
  * at `compact` the disc would eat half the thumbnail, so the mark shrinks to
  * a 20px disc that still reads as "this one plays" at a glance.
  */
-type PlayBadgeSize = "mini" | "compact" | "default";
-type PlayBadgeTone = "dark" | "glass";
+export type PlayBadgeSize = "mini" | "compact" | "default";
+export type PlayBadgeTone = "dark" | "glass";
 
 /** Disc and glyph per stop, as a table rather than a stack of ternaries:
  *  two axes and five sizes between them is one too many to read inline.

@@ -18,7 +18,7 @@ import type { SlidesMedia } from "@/lib/log";
 import { resolveSlidesEmbedUrl } from "@/lib/slides";
 import { useOptionalTheater } from "@/systems/theater";
 import { ExternalImage } from "./external-image";
-import { PlayBadge } from "./play-badge";
+import { MediaMark } from "./media-mark";
 
 export { isPlayableSlidesUrl, resolveSlidesEmbedUrl } from "@/lib/slides";
 
@@ -123,21 +123,9 @@ export function Slides({
         )}
 
         <div className="absolute inset-0 bg-black/15 transition-colors group-hover:bg-black/25" />
-        <PlayBadge
-          size={size === "compact" ? "compact" : "default"}
-          className="transition-transform group-hover:scale-110"
-        />
-
-        {/* Caption chip — distinguishes decks from video covers in mixed rails. */}
-        <span
-          className={cn(
-            "absolute bottom-2 left-2 inline-flex items-center gap-1",
-            "rounded-md bg-black/55 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-white/90 ring-1 ring-white/15 backdrop-blur-sm",
-          )}
-        >
-          <Presentation className="h-3 w-3" />
-          Slides
-        </span>
+        {/* A deck wears the `Slides` chip and no play disc: the one vocabulary
+            every cover speaks (media-mark.tsx). */}
+        <MediaMark kind="slides" size={size === "compact" ? "compact" : "default"} />
       </button>
     </>
   );

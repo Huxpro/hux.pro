@@ -20,6 +20,7 @@ import { Presentation } from "lucide-react";
 import type { ReactNode } from "react";
 import { ExternalImage } from "./external-image";
 import { CardFace } from "./link";
+import { MediaMark, type MediaKind } from "./media-mark";
 
 // =============================================================================
 // Media peeks — what a cover shows when the pointer rests on it.
@@ -130,11 +131,12 @@ export function PeekCard({
 function PeekPoster({
   image,
   caption,
-  chip,
+  kind,
 }: {
   image: string | null;
   caption: ReactNode;
-  chip?: ReactNode;
+  /** The cover's mark (media-mark.tsx), the same one the row's cover wears. */
+  kind?: MediaKind;
 }) {
   return (
     <div className={cn(PEEK_W, GLASS_PANEL, "overflow-hidden shadow-raised")}>
@@ -150,7 +152,7 @@ function PeekPoster({
             <Presentation className="h-8 w-8 text-quaternary-foreground" />
           </span>
         )}
-        {chip}
+        {kind && <MediaMark kind={kind} tone="glass" />}
       </div>
       <div className={cn("flex items-center gap-1.5 px-3 py-2", TYPE.labelSm)}>
         {caption}
@@ -217,6 +219,7 @@ export function mediaPeek(
       node: (
         <PeekPoster
           image={image}
+          kind="video"
           caption={
             <>
               <span>{PLATFORM_LABEL[media.platform] ?? media.platform}</span>
@@ -235,6 +238,7 @@ export function mediaPeek(
       node: (
         <PeekPoster
           image={image}
+          kind="slides"
           caption={
             <>
               <Presentation className="h-3 w-3" />
