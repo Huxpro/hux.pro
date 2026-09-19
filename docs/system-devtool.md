@@ -281,8 +281,12 @@ while the modules scroll. The modules:
      marks cannot drift from the click that fires one.
    - **Through what** — a corner mark on every condition chip you could see a
      meteor through. It answers *if I picked this one now, could I see one?*,
-     so it is evaluated against the scene that chip would actually produce,
-     **overrides included**: force **Cloudy** and the mark goes out (the
+     so it is evaluated **through `toSceneWeather`** — the one function that
+     knows what forcing a condition means, which is that the real measurements
+     go away, because a measured cover of 10% is a fact about today's clear sky
+     and not about the overcast being previewed. Predicting any other way makes
+     the mark promise something the click does not deliver. Overrides are
+     included too: force **Cloudy** and the mark goes out (the
      profile's cover is 0.7), pull **Tune → Cloud** down to 20% and it comes
      back — and while that override stands it moves Clear with it, because a
      clear sky under 70% forced cloud really has no meteor in it. Only the

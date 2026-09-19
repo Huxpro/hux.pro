@@ -34,6 +34,7 @@ import {
   deriveWeatherScene,
   rgbToCss,
   sampleDaySky,
+  toSceneWeather,
 } from "@/systems/ambient/lib/scene";
 import {
   getMoonPhaseName,
@@ -1625,13 +1626,23 @@ function SkyModule() {
         lat,
         lon,
         theme,
-        weather: { ...(sceneWeather ?? {}), condition } as typeof sceneWeather,
+        // Through `toSceneWeather`, which is the one function that knows what
+        // forcing a condition MEANS — and what it means is that the real
+        // measurements go away, because a measured cover of 10% is a fact
+        // about today's clear sky and not about the overcast being previewed.
+        // Spreading the live weather and swapping the condition looked
+        // equivalent and was not: on a clear day it kept cover at 0.1, so
+        // Cloudy came out at max(0.2, 0.1) and wore the mark, and then
+        // clicking it fell back to the profile's 0.7 and the mark went out.
+        // A badge that promises something the click does not deliver is worse
+        // than no badge.
+        weather: toSceneWeather(weather, { condition }, { sunriseMs, sunsetMs }),
         overrides: sceneOverrides,
       });
       if (meteorSkyIsOpen(scene)) open.add(condition);
     }
     return open;
-  }, [nowMs, lat, lon, theme, sceneWeather, sceneOverrides]);
+  }, [nowMs, lat, lon, theme, weather, sunriseMs, sunsetMs, sceneOverrides]);
 
   const sr = minutesOfDay(sunriseMs, DEFAULT_SUNRISE_MINUTES);
   const ss = minutesOfDay(sunsetMs, DEFAULT_SUNSET_MINUTES);
