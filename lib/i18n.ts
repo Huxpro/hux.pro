@@ -51,7 +51,7 @@ export const translations = {
       "Prose, profession, programming, production, projects—each a facet of a complete person.",
     currently: "Currently",
     currentStatus:
-      "Building cross-platform experiences. Thinking about developer tools, design systems, and the intersection of engineering and craft.",
+      "Architect of Lynx at ByteDance. Making interfaces better for more users, more developers, and more machines — and exploring what app frameworks should look like in the age of AI.",
     careerDesc: "Professional trajectory",
     blogDesc: "Writing & thoughts",
     talksDesc: "Presentations & speaking",
@@ -333,7 +333,7 @@ export const translations = {
     tagline: "散文、职业、编程、生产、项目——一个完整人格的多重面向。",
     currently: "近况",
     currentStatus:
-      "正在构建跨平台体验。思考开发者工具、设计系统，以及工程与工艺的交汇点。",
+      "字节跳动 Lynx 架构师。让界面更好地服务更多用户、更多开发者、更多机器，并探索 AI 时代的应用框架。",
     careerDesc: "职业历程",
     blogDesc: "写作与思考",
     talksDesc: "演讲与分享",

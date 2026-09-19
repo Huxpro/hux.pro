@@ -51,6 +51,19 @@
         "en": "\"Pressure is a privilege, and champions adjust.\" If you feel the pressure, it means you earned your way to a moment that matters. Reframe the weight as proof you belong.",
         "zh": "\"压力是一种荣幸，而冠军懂得调整。\" 如果你感受到压力，说明你已经凭实力赢得了这个重要的时刻。把这份重量重新理解为你有资格在场的证明。"
       }
+    },
+    {
+      "id": "make-interfaces-better",
+      "text": {
+        "en": "Make interfaces better — for more users, more developers, and more machines.",
+        "zh": "让界面变得更好——为了更多用户、更多开发者、更多机器。"
+      },
+      "author": "Xuan Huang",
+      "source": "Lynx public bio",
+      "commentary": {
+        "en": "The through-line from PWA to React Forget to Lynx. Not a slogan about shipping faster — a bet that the interface layer is still the place to invent the future.",
+        "zh": "从 PWA 到 React Forget 再到 Lynx 的主线。不是更快交付的口号，而是押注界面层仍是发明未来的地方。"
+      }
     }
   ],
   "principles": [
@@ -109,6 +122,44 @@
       "reasoning": {
         "en": "The best tools don't just produce artifacts—they change how you think about the problem space.",
         "zh": "最好的工具不只是产出产物——它们改变你思考问题空间的方式。"
+      }
+    },
+    {
+      "id": "always-becoming",
+      "statement": {
+        "en": "You are always becoming. Narrative is how you answer who you are.",
+        "zh": "人永远都在 Becoming。叙事就是在回答「你是谁」。"
+      },
+      "topic": {
+        "en": "identity",
+        "zh": "身份"
+      },
+      "shapedBy": {
+        "en": ["Personal storytelling across three-year career cycles"],
+        "zh": ["以三年为周期的个人叙事"]
+      },
+      "reasoning": {
+        "en": "Identity is not a title you freeze. Each era — consumer, producer, architect — is a rewrite, not a reveal.",
+        "zh": "身份不是冻结的头衔。每个时代——消费者、生产者、架构师——都是一次重写，而不是揭晓。"
+      }
+    },
+    {
+      "id": "ai-native-infra",
+      "statement": {
+        "en": "App frameworks should be AI-ergonomic, AI-efficient, and AI-expressive.",
+        "zh": "应用框架应当对 AI 友好、对 token 经济、对意图表达。"
+      },
+      "topic": {
+        "en": "architecture",
+        "zh": "架构"
+      },
+      "shapedBy": {
+        "en": ["Lynx", "vue-lynx", "GOSIM Paris 2026"],
+        "zh": ["Lynx", "vue-lynx", "GOSIM Paris 2026"]
+      },
+      "reasoning": {
+        "en": "Agents should harness the framework, not drown in tokens, and generate UI from intent. vue-lynx being vibe-coded in two weeks was the demo.",
+        "zh": "Agent 应当能驾驭框架，而不是淹没在 token 里，并从意图生成 UI。两周 vibe-code 出 vue-lynx，就是这场演示。"
       }
     }
   ],
@@ -185,8 +236,8 @@
     }
   ],
   "meta": {
-    "tokenCount": 847,
-    "lastUpdated": "2024.03",
+    "tokenCount": 1120,
+    "lastUpdated": "2026.09",
     "model": "hux-v34"
   }
 }
