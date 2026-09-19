@@ -308,8 +308,8 @@ export const blogPosts: BlogPostMeta[] = [
 export const talks: TalkData[] = [
   {
     id: "gosim-2026-vibe-native",
-    title: "Vibe Native for More",
-    titleZh: "Vibe Native for More",
+    title: "Why AI Agents Deserve a Better App Framework",
+    titleZh: "为什么 AI Agent 配得上更好的应用框架",
     event: "GOSIM Paris 2026",
     date: "2026-05-05",
     location: "Paris, France",

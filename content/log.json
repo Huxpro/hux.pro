@@ -427,8 +427,8 @@
       "type": "talk",
       "tagId": "lynx-era",
       "title": {
-        "en": "Vibe³ Cross-Platform Apps with Lynx",
-        "zh": "Vibe³：用 Lynx 做跨平台应用"
+        "en": "Vibe³ Cross-Platform Apps with Lynx: A TikTok Hackathon",
+        "zh": "Vibe³：用 Lynx 做跨平台应用 · TikTok 黑客松"
       },
       "description": {
         "en": "A hands-on workshop and hackathon at WeAreDevelopers World Congress. Vibe-code once and bring the same app to web, mobile, and desktop with Lynx — and a look at AI-native app infra: AI-Ergonomic, AI-Efficient, and AI-Expressive.",
@@ -444,12 +444,13 @@
         {
           "kind": "link",
           "url": "https://www.wearedevelopers.com/events/world-congress-2026-europe/sessions/1237-vibe-cross-platform",
-          "present": "pill",
+          "present": "card",
           "label": "Session",
           "icon": "globe",
           "preview": {
             "title": "Vibe³ Cross-Platform Apps with Lynx: A TikTok Hackathon",
-            "description": "Hands-on workshop at WeAreDevelopers World Congress 2026 Europe. Vibe-code once with Lynx for web, mobile, and desktop."
+            "description": "Hands-on workshop and TikTok hackathon at WeAreDevelopers World Congress 2026 Europe. Vibe-code once with Lynx for web, mobile, and desktop.",
+            "image": "https://www.wearedevelopers.com/og-image.jpg"
           }
         }
       ],
@@ -466,8 +467,8 @@
       "type": "talk",
       "tagId": "lynx-era",
       "title": {
-        "en": "Vibe Native for More",
-        "zh": "Vibe Native for More"
+        "en": "Why AI Agents Deserve a Better App Framework",
+        "zh": "为什么 AI Agent 配得上更好的应用框架"
       },
       "description": {
         "en": "AI is transforming how apps are built, but not what they're built on. Without a cross-platform framework, agents must generate, verify, and maintain separate code for every platform. This talk introduces Lynx and three principles for AI-native app infrastructure — AI-Ergonomic, AI-Efficient, AI-Expressive — with vue-lynx vibe-coded in two weeks as the demo.",
@@ -483,12 +484,13 @@
         {
           "kind": "link",
           "url": "https://paris2026.gosim.org/schedule/vibe-native-for-more-why-ai-agents-deserve-a-better-app-framework/",
-          "present": "pill",
+          "present": "card",
           "label": "Session",
           "icon": "globe",
           "preview": {
-            "title": "Vibe Native for More: Why AI Agents Deserve a Better App Framework",
-            "description": "GOSIM Paris 2026 — Lynx and three principles for AI-native app infrastructure, with vue-lynx as the demo."
+            "title": "Why AI Agents Deserve a Better App Framework",
+            "description": "GOSIM Paris 2026 — Lynx and three principles for AI-native app infrastructure, with vue-lynx as the demo.",
+            "image": "https://paris2026.gosim.org/images/thumbnail.jpg"
           }
         }
       ],
@@ -520,15 +522,9 @@
       },
       "media": [
         {
-          "kind": "link",
-          "url": "https://mp.weixin.qq.com/s/icNHRRm6u1Dh9gx-9nIS6Q",
-          "present": "pill",
-          "label": "SEE Conf",
-          "icon": "globe",
-          "preview": {
-            "title": "SEE Conf 2025：开启体验科技的新十年",
-            "description": "黄玄在杭州 SEE Conf 2025 分享《双线程的 React》。"
-          }
+          "kind": "video",
+          "url": "https://www.bilibili.com/video/BV1YeSgBCEoe/",
+          "platform": "bilibili"
         }
       ],
       "tags": [
@@ -561,12 +557,13 @@
         {
           "kind": "link",
           "url": "https://www.wearedevelopers.com/videos/1445-lynx-native-for-more",
-          "present": "pill",
+          "present": "card",
           "label": "Video",
           "icon": "globe",
           "preview": {
             "title": "Lynx: Native for More",
-            "description": "WeAreDevelopers World Congress 2025 — Xuan Huang on Lynx, TikTok's production-ready UI framework."
+            "description": "WeAreDevelopers World Congress 2025 — Xuan Huang on Lynx, TikTok's production-ready UI framework.",
+            "image": "https://customer-goifxnzhrq3d0d54.cloudflarestream.com/c109772e681041ad0dc067bc4d80e785/thumbnails/thumbnail.jpg?time=244825ms"
           }
         }
       ],
