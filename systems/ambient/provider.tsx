@@ -64,7 +64,7 @@ import {
   DEFAULT_BEZEL_BAND,
   DEFAULT_BEZEL_RADIUS,
   type BezelScroll,
-} from "@hux/bezel";
+} from "vitre";
 import {
   EDGE_FADE_MASK,
   EDGE_FADE_MASK_HIGH_CONTRAST,
@@ -380,7 +380,7 @@ interface WallpaperContextType {
   bezelScroll: BezelScroll;
   /**
    * Whether a chrome colour change has to be morphed onto the screen for the
-   * browser to see it. iOS Safari only — see @hux/bezel. Everywhere else the
+   * browser to see it. iOS Safari only — see vitre. Everywhere else the
    * chrome follows `theme-color` or has no colour to follow, and the morph
    * would just be bands at the edges of the window for the best part of a
    * second, on every theme change.
@@ -755,7 +755,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   );
 
   /**
-   * The bezel — @hux/bezel, configured in ./lib/bezel. Live.
+   * The bezel — vitre, configured in ./lib/bezel. Live.
    *
    * The wallpaper's family decides whether it is on (`WALLPAPER_FAMILY_EDGES`:
    * a picture — the Sky or an image — is framed, a wash fades), on iOS only;

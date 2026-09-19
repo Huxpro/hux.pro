@@ -1,6 +1,6 @@
 import { ReadingRootSync } from "@/components/post/reading-settings";
 import { bezelBootResolver } from "@/systems/ambient/lib/bezel";
-import { bezelBootScript } from "@hux/bezel";
+import { bezelBootScript } from "vitre";
 import { Providers } from "@/shared/providers";
 import {
   AmbientPhaseActivity,
@@ -9,6 +9,8 @@ import {
   TiltPrimerSheet,
   WallpaperSheet,
 } from "@/systems/ambient";
+import { AttachmentSurface } from "@/systems/attachments";
+import { IdentityCard } from "@/systems/identity";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
 import { DevtoolFAB } from "@/systems/devtool";
 import { Dock } from "@/systems/dock";
@@ -88,14 +90,14 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  // theme-color is owned by @hux/bezel at runtime (the page ground, or the
+  // theme-color is owned by vitre at runtime (the page ground, or the
   // bezel colour while the bezel is on). Rendering static ones here would hand
   // React a node the package then mutates, which is a hydration mismatch once
   // Next streams the metadata in.
 };
 
 /**
- * The bezel's first frame, before React runs: @hux/bezel's boot script with
+ * The bezel's first frame, before React runs: vitre's boot script with
  * this site's resolver (see @/systems/ambient/lib/bezel), which makes the same
  * decisions as the ambient provider from localStorage and the platform.
  */
@@ -134,6 +136,8 @@ export default function RootLayout({
             <TiltPrimerSheet />
             <TheaterRegistrar />
             <TheaterSurfaces />
+            <AttachmentSurface />
+            <IdentityCard />
             <CommandPalette />
             <FloatingActionButton />
           </Providers>

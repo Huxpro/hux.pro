@@ -35,8 +35,10 @@ import { normalizeLogData, type RawLogData } from "../lib/log.ts";
 
 type Snapshot = Record<string, SnapshotEntry>;
 
-/** Stable field order for the serialized artifact. */
-const FIELDS = ["title", "description", "image", "siteName"] as const;
+/** Stable field order for the serialized artifact. `frame` is only ever
+ *  `"deny"` — a page that may be framed stores nothing, so the field reads
+ *  as the exception it is (see `FramePolicy` in lib/og-core). */
+const FIELDS = ["title", "description", "image", "siteName", "frame"] as const;
 
 const ROOT = process.cwd();
 const LOG_PATH = path.join(ROOT, "content", "log.json");
@@ -118,7 +120,13 @@ function collectTargets(): Target[] {
 /** Keep only truthy known fields, in a fixed order. */
 function pickEntry(d: Partial<SnapshotEntry>): SnapshotEntry {
   const e: SnapshotEntry = {};
-  for (const f of FIELDS) if (d[f]) e[f] = d[f];
+  for (const f of FIELDS) {
+    if (f === "frame") {
+      if (d.frame === "deny") e.frame = "deny";
+    } else if (d[f]) {
+      e[f] = d[f];
+    }
+  }
   return e;
 }
 
@@ -140,17 +148,20 @@ async function crawl(t: Target): Promise<{
   entry: SnapshotEntry;
   ok: boolean;
   reason: string;
+  /** The page's framing policy, learned from the headers of any response —
+   *  a refusal to be crawled still answers this. */
+  frame?: SnapshotEntry["frame"];
 }> {
   if (t.kind === "card") {
     const res = await fetchOG(t.url);
-    const entry = pickEntry(res.data);
+    const entry = pickEntry({ ...res.data, frame: res.frame });
     const ok = res.ok && entryUsable(entry);
     const reason = ok
       ? ""
       : res.ok
         ? "no OG tags on page"
         : res.error || "fetch failed";
-    return { entry, ok, reason };
+    return { entry, ok, reason, frame: res.frame };
   }
   const res = await fetchVideoCover(t.media);
   const entry = pickEntry({ image: res.image });
@@ -198,19 +209,30 @@ async function main() {
   const manualSkipped: string[] = [];
   const missing: { url: string; reason: string }[] = [];
 
-  // Split out the manual-covered targets — they need no network and shouldn't
-  // burn a concurrency slot.
+  // Split out the manual-covered targets — their preview needs no network.
+  // Their framing policy still does (an author writes a title and an image
+  // for a page that blocks crawlers; whether it blocks frames is the page's
+  // to say), so external ones get a headers-only look below.
   const toCrawl: Target[] = [];
+  const manual: Target[] = [];
   for (const t of targets) {
     if (t.needsCrawl) toCrawl.push(t);
-    else manualSkipped.push(t.url);
+    else {
+      manualSkipped.push(t.url);
+      if (t.kind === "card" && /^https?:/.test(t.url)) manual.push(t);
+    }
   }
 
   const results = await mapWithLimit(toCrawl, CRAWL_CONCURRENCY, crawl);
+  const manualFrames = await mapWithLimit(
+    manual,
+    CRAWL_CONCURRENCY,
+    async (t) => (await fetchOG(t.url)).frame,
+  );
 
   for (let i = 0; i < toCrawl.length; i++) {
     const t = toCrawl[i];
-    const { entry, ok, reason } = results[i];
+    const { entry, ok, reason, frame } = results[i];
     const prev = existing[t.url];
 
     if (ok) {
@@ -221,12 +243,31 @@ async function main() {
       else unchanged.push(t.url);
     } else {
       if (prev && entryUsable(prev)) {
-        next[t.url] = pickEntry(prev); // preserve good prior data
+        // Preserve good prior data — and the one thing a failed crawl can
+        // still teach: whether the page may be framed.
+        const kept = pickEntry({ ...prev, frame: frame ?? prev.frame });
+        next[t.url] = kept;
+        if (JSON.stringify(kept) !== JSON.stringify(pickEntry(prev)))
+          updated.push(t.url);
         keptOnFailure.push(`${t.url} (${reason})`);
       } else {
         missing.push({ url: t.url, reason });
       }
     }
+  }
+
+  // A manual-preview card keeps whatever entry it had (none, usually) and
+  // learns only its framing policy. `pickEntry` drops the entry again when
+  // the page may be framed, so a framable page stores nothing.
+  for (let i = 0; i < manual.length; i++) {
+    const t = manual[i];
+    const frame = manualFrames[i];
+    const prev = existing[t.url];
+    const entry = pickEntry({ ...(prev ?? {}), frame: frame ?? prev?.frame });
+    if (Object.keys(entry).length === 0) continue;
+    next[t.url] = entry;
+    if (JSON.stringify(entry) !== JSON.stringify(prev ? pickEntry(prev) : {}))
+      updated.push(t.url);
   }
 
   const nextStr = serialize(next);

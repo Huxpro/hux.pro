@@ -11,21 +11,22 @@
 import type { VideoPlatform } from "@/lib/log";
 
 /**
- * A single playable video. Derived from a commit's video media plus display
- * metadata (title / subtitle / cover) so the player chrome never needs the
- * commit itself.
+ * What a track can be. The theater began as a video player; a slide deck is
+ * the other thing a talk leaves behind, and it belongs on the same stage —
+ * same 16:9 box, same title bar, same playlist rail, same prev / next. A deck
+ * is a track with no audio and no transport, which is all that differs.
  */
-export interface Track {
+export type TrackKind = "video" | "slides";
+
+interface TrackBase {
   /** Stable id — the source commit id, or a synthetic id for ad-hoc tracks. */
   id: string;
-  platform: VideoPlatform;
-  /** Original watch URL (used for the "open externally" affordance). */
-  url: string;
+  kind: TrackKind;
   /**
-   * YouTube video id when resolvable. Only YouTube tracks get JS-API control
-   * (play / pause / seek / progress); other platforms play in a plain iframe.
+   * The thing itself: a watch URL for a video (the "open externally"
+   * affordance), a playable deck URL for slides (also what the stage frames).
    */
-  videoId: string | null;
+  url: string;
   title: string;
   /** Conference / publication / date line. */
   subtitle?: string;
@@ -34,6 +35,35 @@ export interface Track {
   /** Optional in-site link to the source commit / works page. */
   href?: string;
 }
+
+/**
+ * A playable video. Derived from a commit's video media plus display
+ * metadata (title / subtitle / cover) so the player chrome never needs the
+ * commit itself.
+ */
+export interface VideoTrack extends TrackBase {
+  kind: "video";
+  platform: VideoPlatform;
+  /**
+   * YouTube video id when resolvable. Only YouTube tracks get JS-API control
+   * (play / pause / seek / progress); other platforms play in a plain iframe.
+   */
+  videoId: string | null;
+}
+
+/**
+ * An HTML slide deck (reveal.js). Plays in a plain iframe on the stage; the
+ * deck drives itself — arrow keys, taps — so the theater draws no transport
+ * for it. It still minimizes to the Live Activity like anything else on the
+ * stage: the pill is a place to keep a deck open, not only a place to listen.
+ */
+export interface SlidesTrack extends TrackBase {
+  kind: "slides";
+  platform?: never;
+  videoId?: never;
+}
+
+export type Track = VideoTrack | SlidesTrack;
 
 /** A named playlist — one of the home widget's "albums" (React / Lynx / …). */
 export interface Album {

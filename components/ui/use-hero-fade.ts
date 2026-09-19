@@ -1,6 +1,6 @@
 "use client";
 
-import { onPageScroll, pageScrollTop, useBezel } from "@hux/bezel";
+import { onPageScroll, pageScrollTop, useBezel } from "vitre";
 import { useEffect, useState, type CSSProperties } from "react";
 
 /**
@@ -49,7 +49,7 @@ export function useHeroFade(enabled = true): CSSProperties | undefined {
       window.matchMedia("(min-width: 768px)").matches ? 144 : 176;
 
     // Page scroll, not window scroll: in container scroll the page scrolls in
-    // the bezel's container and the window never moves. See @hux/bezel.
+    // the bezel's container and the window never moves. See vitre.
     const update = () => {
       setOpacity(1 - Math.min(pageScrollTop() / getFadeDistance(), 1));
     };

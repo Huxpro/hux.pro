@@ -27,8 +27,9 @@ import {
 } from "./embeds/shared";
 import { MediaRenderer } from "./media";
 import { MediaStrip } from "./media/media-strip";
-import { useSlidesPlayer } from "./media/slides-player";
-import { resolveSlidesEmbedUrl } from "./media/slides";
+import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
+import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
+import { useInputCapability } from "@/services";
 
 import { TYPE } from "@/lib/typography";
 /**
@@ -101,6 +102,13 @@ interface TimelineCommitProps {
    * the permalink it always looked like — see `useCommitAnchor`.
    */
   onSelectHash?: (hash: string) => void;
+  /**
+   * The commit's attachments as one set (see systems/attachments). Every
+   * media affordance on the row — a strip cover, an expanded player or card,
+   * a rail icon — opens this set at its own item, so a phone gets the
+   * attachment sheet and a desktop the theater or a window, from any of them.
+   */
+  attachmentSet?: AttachmentSet | null;
   inspecting?: boolean;
   isSelected?: boolean;
   isUnlisted?: boolean;
@@ -125,6 +133,7 @@ export function TimelineCommit({
   byline = null,
   density = DEFAULT_DENSITY,
   onSelectHash,
+  attachmentSet = null,
   inspecting = false,
   isSelected = false,
   isUnlisted = false,
@@ -132,7 +141,9 @@ export function TimelineCommit({
   onInspectMedia,
   selectedMedia = null,
 }: TimelineCommitProps) {
-  const slidesPlayer = useSlidesPlayer();
+  const attachments = useOptionalAttachments();
+  const identityCard = useOptionalIdentityCard();
+  const { magneticPreviewEnabled } = useInputCapability();
   const isEvent = data.type === "event";
 
   // Topics and stats are authored but not printed (see the expanded body),
@@ -181,11 +192,31 @@ export function TimelineCommit({
     setIsExpanded((prev) => !prev);
   }, [hasExpandableContent]);
 
+  // A role row is nothing but its identity, so with a pointer its hover peek
+  // is the identity card (see `buildCommitPreview`), and with a finger a tap
+  // opens the same card as a sheet instead of unfolding two lines of prose.
+  const openIdentity = useCallback(
+    (e: React.SyntheticEvent<HTMLElement>) => {
+      if (!identityCard || !byline) return;
+      e.stopPropagation();
+      identityCard.open({
+        identityId: byline.identityId,
+        roleId: byline.roleId,
+        anchor: e.currentTarget,
+      });
+    },
+    [identityCard, byline],
+  );
+  const rowOpensIdentity =
+    data.type === "role" && !!byline && !!identityCard && !magneticPreviewEnabled;
+
   const rowOnClick = inspecting
     ? onInspectCommit
-    : hasExpandableContent
-      ? handleToggleExpanded
-      : undefined;
+    : rowOpensIdentity
+      ? openIdentity
+      : hasExpandableContent
+        ? handleToggleExpanded
+        : undefined;
 
   // What `stat` adds to a folded row: the covers, and one clamped line of
   // what the thing is. Both or either — a commit with no media still gets
@@ -205,9 +236,12 @@ export function TimelineCommit({
   // line when there is one and the meta line when there is not.
   const signsOnMediaLine = showStrip && !!byline;
   // A hover panel repeating, on top of the row, what the row now prints
-  // inside itself is the one thing `stat` makes redundant.
+  // inside itself is the one thing `stat` makes redundant. A role row is the
+  // exception: its peek is the identity card, which no density prints.
   const showCursorPreview =
-    !!cursorPreview && !isExpanded && !showStrip && !showStatDescription;
+    !!cursorPreview &&
+    !isExpanded &&
+    (data.type === "role" || (!showStrip && !showStatDescription));
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
@@ -433,25 +467,14 @@ export function TimelineCommit({
               <span className="hidden @sm:inline text-xs">{link.label}</span>
             );
 
-            if (link.playSlides && slidesPlayer.hasProvider) {
-              return (
-                <button
-                  key={`link-${i}`}
-                  type="button"
-                  onClick={() =>
-                    slidesPlayer.open({
-                      url: resolveSlidesEmbedUrl(link.url),
-                      title: link.label,
-                    })
-                  }
-                  className={className}
-                  aria-label={`Play slides: ${link.label}`}
-                >
-                  <LinkIcon icon={link.icon} />
-                  {label}
-                </button>
-              );
-            }
+            // A rail icon that stands for one of the commit's attachments
+            // opens it through the attachment system, exactly as its cover
+            // does; a plain pill (a website, a repo) stays a plain link. The
+            // anchor stays either way, for ⌘-click and "copy link address".
+            const attachmentIndex =
+              attachments && attachmentSet && link.media
+                ? attachmentSet.items.indexOf(link.media)
+                : -1;
 
             return (
               <a
@@ -459,6 +482,15 @@ export function TimelineCommit({
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={
+                  attachmentIndex >= 0
+                    ? (e) => {
+                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                        e.preventDefault();
+                        attachments!.open(attachmentSet!, attachmentIndex);
+                      }
+                    : undefined
+                }
                 className={className}
               >
                 <LinkIcon icon={link.icon} />
@@ -561,6 +593,7 @@ export function TimelineCommit({
             inspecting={inspecting}
             onInspect={onInspectMedia}
             selectedMedia={selectedMedia}
+            set={attachmentSet}
           />
         </div>
       )}
@@ -591,7 +624,11 @@ export function TimelineCommit({
           */}
           {showStrip && (
             <div className="flex items-end justify-between gap-4">
-              <MediaStrip items={data.stripItems} className="min-w-0" />
+              <MediaStrip
+                items={data.stripItems}
+                set={attachmentSet}
+                className="min-w-0"
+              />
 
               {/*
                 And the room the covers leave takes the letterhead. The handle
@@ -641,6 +678,7 @@ export function TimelineCommit({
                 inspecting={inspecting}
                 onInspect={onInspectMedia}
                 selectedMedia={selectedMedia}
+                set={attachmentSet}
               />
             </div>
           )}
@@ -761,7 +799,10 @@ export function TimelineCommit({
  * each restating the same employer is noise, and the rail already draws the
  * tenure. `standDown` is how a slot yields to another that is printing the
  * same handle right now; it fades rather than unmounts, so the line beneath
- * never moves.
+ * never moves — and a faded mark takes no pointer.
+ *
+ * The mark is the identity card's trigger (systems/identity): hover peeks
+ * the profile, a tap where there is no pointer opens it as a sheet.
  */
 function Handle({
   byline,
@@ -774,18 +815,20 @@ function Handle({
 }) {
   if (!byline) return null;
   return (
-    <span
-      className={cn(
+    <IdentityHover
+      identityId={byline.identityId}
+      roleId={byline.roleId}
+      wrapperClassName={cn(
         "shrink-0 transition-opacity duration-200",
-        className,
         standDown
-          ? "opacity-0"
+          ? "opacity-0 pointer-events-none"
           : byline.isClusterHead
             ? "opacity-100"
             : "opacity-0 group-hover:opacity-100",
       )}
+      className={className}
     >
       {byline.handle}
-    </span>
+    </IdentityHover>
   );
 }

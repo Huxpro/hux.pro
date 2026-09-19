@@ -1,0 +1,32 @@
+{
+  "name": "vitre",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Safari theme-color for iOS 26, and safe page edges: a bezel around the page, Safari's glass toolbar and status bar tinted live, and a page that scrolls in a container. For React.",
+  "keywords": [
+    "safari",
+    "ios",
+    "ios-26",
+    "theme-color",
+    "toolbar",
+    "status-bar",
+    "tint",
+    "liquid-glass",
+    "safe-area",
+    "bezel",
+    "scroll",
+    "react"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "types": "./vitre.d.ts",
+  "exports": {
+    ".": {
+      "types": "./vitre.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  }
+}

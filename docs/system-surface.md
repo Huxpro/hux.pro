@@ -284,7 +284,7 @@ takes the page away and a press on it dismisses; when it is off it is
 is safe under the bezel where Radix's was not: on iOS it only sets `overflow:
 hidden` on whichever element scrolls the viewport, never `position: relative` on
 `<body>`, and it stands down entirely when that element is already locked —
-which is the state `@hux/bezel` leaves the page in during container scroll
+which is the state `vitre` leaves the page in during container scroll
 (`<html>` hidden, `<body>` fixed at inset 0). Independently, the bezel keeps
 `<body>` at `overflow: clip` rather than `hidden`: `hidden` is a scroll
 container that `scrollIntoView` can still move, and a sheet resting below the
@@ -391,6 +391,17 @@ under the slash sheet and the picker, two — `depth` from the stack plus Base
 UI's own count of nested sheets, one `--surface-depth` on the shell. See
 [Command System](./system-command.md).
 
+The stack's order is also the paint order. Every viewport is a stacking
+context at the same level, so sibling sheets would otherwise paint in the
+order their portals mounted — fine while every sheet mounts as it opens, wrong
+the moment one is kept mounted: an app window put away and brought back over
+a younger sheet (the attachment sheet, say, whose `Visit` restored it) would
+come up underneath it while the stack said it was on top. So a sheet takes its
+place in the stack as its `layer` (`useSurfaceStack().rank`, `SurfaceViewport`
+`layer`) and a closing sheet keeps the layer it had, so it leaves from where
+it was rather than from under whatever it was covering. A readout of the
+stack as it stands is `useSurfaceStackEntries()`, for the attachments lab.
+
 ## Adopters
 
 | Surface | Presentation | Notes |
@@ -398,6 +409,8 @@ UI's own count of nested sheets, one `--surface-depth` on the shell. See
 | Music playlist | `ADAPTIVE_PRESENTATION` | macOS-sized window (980×620), track list breaks into columns |
 | Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode; `SHEET_DETENTS` as a sheet |
 | Reading settings | `ANCHORED_PRESENTATION` | The article page's "Aa". `fitContent` sheet, end-aligned popover off the button; rows appear only where the setting does something, so the sheet is shorter than the popover |
+| Attachments | `ADAPTIVE_PRESENTATION` | A commit's attachments, paged (`useSnapPager`). `fitContent`; a 560px window. On a phone it is where every attachment opens; elsewhere only the kinds with no native home reach it. See [Attachments System](./system-attachments.md) |
+| Identity card | `ANCHORED_PRESENTATION` | Who signed a commit: a profile card, for a finger — with a pointer the same profile is a magnetic hover peek and this never opens. `fitContent`; the popover hangs off whichever `<handle>` or `Role:` was tapped, the anchor kept in a ref by its provider. See [Identity System](./system-identity.md) |
 | Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight card, anchored to nothing, not the `popover` shape above |
 | Devtool panel | primitives, not `AdaptiveSurface` | `SurfaceSheet` docked / `SurfaceWindow` floating, and which one is the developer's call, not the viewport's — it is pulled off the edge by hand. `onPullPastTop`, `placement="top-right"`, a `footer` for its status line. See [Devtool System](./system-devtool.md) |
 

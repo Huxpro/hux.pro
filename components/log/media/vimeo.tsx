@@ -8,9 +8,9 @@
  */
 
 import { useState } from "react";
-import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./external-image";
+import { MediaMark, videoMark } from "./media-mark";
 
 // =============================================================================
 // Types
@@ -128,13 +128,10 @@ export function VimeoEmbed({
           src={thumbnailUrl}
           className="absolute inset-0 w-full h-full object-cover"
         />
-
-        {/* Play button overlay */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
-          <div className="w-16 h-16 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-black/50 transition-all">
-            <Play className="w-7 h-7 text-white fill-white ml-1" />
-          </div>
-        </div>
+        {/* The cover wears its chip — the platform — the way every cover on the
+            site does (media-mark.tsx); the hover wash is the press affordance. */}
+        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
+        <MediaMark mark={videoMark("vimeo")} />
       </button>
     );
   }

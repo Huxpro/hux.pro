@@ -5,6 +5,7 @@ import { t, useLocale } from "@/services";
 import { motion, useReducedMotion } from "framer-motion";
 import { Maximize2, Minimize2, PictureInPicture2, Volume2 } from "lucide-react";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useOptionalTheater } from "../provider";
 import {
   GLASS_ACTION,
   GLASS_HIT,
@@ -23,6 +24,10 @@ import {
 // In theater / PiP the Audio move is a Minimize icon (the action) with a
 // "keep listening" hint. In the Live Activity the same view shows Volume2
 // + Audio / 声音 — that surface already *is* the audio activity.
+//
+// A deck has no audio to keep: for it the third view is plainly Minimize,
+// icon and word, everywhere. The switch reads the track off the theater
+// itself, so every host of it agrees on what is on the stage.
 //
 // The highlight is one absolutely-positioned ball. It animates x/width when
 // `current` changes. It does NOT use layoutId — a shared-element projection
@@ -73,6 +78,8 @@ export function SurfaceSwitch({
   onSelect,
 }: SurfaceSwitchProps) {
   const { locale } = useLocale();
+  // The track is a deck: the minimized view is Minimize, not Audio.
+  const deck = useOptionalTheater()?.track?.kind === "slides";
   const reduceMotion = useReducedMotion();
   const onDark = tone === "onDark";
   const trackRef = useRef<HTMLDivElement>(null);
@@ -143,13 +150,16 @@ export function SurfaceSwitch({
       {surfaces.map((surface) => {
         const active = surface === current;
         const Icon =
-          surface === "mini" && !labels ? Minimize2 : ICONS[surface];
-        const label = t(locale, LABEL_KEY[surface]);
+          surface === "mini" && (deck || !labels) ? Minimize2 : ICONS[surface];
+        const label = t(
+          locale,
+          surface === "mini" && deck ? "theaterSurfaceMinimize" : LABEL_KEY[surface],
+        );
         const named = (key: "theaterSurfaceNow" | "theaterSurfaceGo") =>
           t(locale, key).replace("{surface}", label);
         const hint =
           surface === "mini" && !labels
-            ? t(locale, "theaterSurfaceMiniHint")
+            ? t(locale, deck ? "theaterSurfaceMinimizeHint" : "theaterSurfaceMiniHint")
             : undefined;
 
         return (

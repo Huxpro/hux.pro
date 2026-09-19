@@ -5,6 +5,7 @@ import {
   type SegmentedOption,
 } from "@/components/ui/controls";
 import { cn } from "@/lib/utils";
+import { ARTWORK_CHIP } from "@/lib/glass";
 import { t, useLocale, type TranslationKey } from "@/services";
 import { AlbumTabs } from "@/systems/theater";
 import { Check, Cloud, Moon, Palette, Repeat, Shuffle, Smartphone, Sparkles, Sun } from "lucide-react";
@@ -100,14 +101,6 @@ function CompactRow<T extends string>({
     </div>
   );
 }
-
-/**
- * The chip a glyph gets when it sits on artwork rather than on a surface.
- * Named once because there are two uses — the variant marks and the Weather
- * badge — and they should arrive the same way.
- */
-const ARTWORK_CHIP =
-  "bg-black/35 text-white ring-1 ring-white/25 backdrop-blur-[2px]";
 
 /**
  * Marks which half of the pair is which. An indicator, not a control: the half

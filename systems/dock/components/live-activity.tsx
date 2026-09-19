@@ -274,7 +274,7 @@ export function LiveActivity({
 
   // One entry for the dock, not one per activity: only ever one is expanded,
   // and what the other surfaces care about is "the dock panel is up".
-  const { behind, depth } = useSurfaceStack("dock-activity", expanded);
+  const { behind, depth, rank } = useSurfaceStack("dock-activity", expanded);
 
   // The wrapper, not the button: by the time a panel is opening the button is
   // already fading and shrinking away, and its rect carries that scale.
@@ -401,7 +401,7 @@ export function LiveActivity({
             was aimed, the way it does under every other surface on the site.
             Measured with the scrim kept as a pointer-taking viewport: the FAB
             went unreachable, which is why it is not one. */}
-        <SurfaceViewport modal={false}>
+        <SurfaceViewport modal={false} layer={rank}>
           <Drawer.Popup
             data-dock-panel=""
             // The anchor, and only the anchor, gates the deformation: it is

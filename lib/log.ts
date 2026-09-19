@@ -59,8 +59,8 @@ export type CommitType =
  * - "social-embed": a native social platform widget (X / Instagram / TikTok)
  *                   that mounts the platform's own iframe/script.
  * - "video":        a video player (YouTube / Bilibili / Vimeo iframe).
- * - "slides":       a reveal.js / HTML slide deck played in an ~80% modal
- *                   iframe (e.g. huxpro.github.io decks from Yanshuo.io).
+ * - "slides":       a reveal.js / HTML slide deck played on the theater's
+ *                   stage (e.g. huxpro.github.io decks from Yanshuo.io).
  * - "image":        a static image asset.
  *
  * A discriminator field `kind` (not `type`, which is taken by CommitType) keeps
@@ -78,13 +78,20 @@ export type LinkPresent = "pill" | "card";
 /** Video platforms with native iframe support. */
 export type VideoPlatform = "youtube" | "bilibili" | "vimeo";
 
+/** How each platform writes its own name — the rail pill, the cover chip. */
+export const VIDEO_PLATFORM_LABEL: Record<VideoPlatform, string> = {
+  youtube: "YouTube",
+  bilibili: "bilibili",
+  vimeo: "Vimeo",
+};
+
 // SocialEmbedPlatform's canonical definition lives in `lib/og-core` (the
 // Node snapshot script imports it from there, so it must stay framework-
 // agnostic). Re-import + re-export so the type is in scope for the Media
 // interfaces below and consumers can keep a single import source.
-import type { SocialEmbedPlatform } from "./og-core";
+import type { FramePolicy, SocialEmbedPlatform } from "./og-core";
 import { isVideoLinkHost } from "./og-core";
-export type { SocialEmbedPlatform };
+export type { FramePolicy, SocialEmbedPlatform };
 // Shared cover-fit vocabulary, from the framework-agnostic content layer, so
 // both hover surfaces (and the node snapshot script that imports this file)
 // speak the same language.
@@ -114,6 +121,16 @@ export interface MediaPreview {
   fit?: CoverFit;
   /** Fixed-mode aspect ratio (any CSS `aspect-ratio` value, e.g. `"3 / 4"`). */
   aspect?: string;
+  /**
+   * Whether the page lets itself be framed by another origin, read from its
+   * `X-Frame-Options` / `frame-ancestors` headers by the snapshot crawl. The
+   * desktop opens a link card in an in-app browser window (systems/windows)
+   * only when the answer is not `"deny"`; a page that refuses goes to a tab
+   * instead of a window showing a refusal. Written by the enrichment
+   * pipeline, never authored — absent means "not checked", and is read as
+   * allowed.
+   */
+  frame?: FramePolicy;
 }
 
 /**
@@ -205,8 +222,8 @@ export interface VideoMedia extends Pinned {
 
 /**
  * HTML slide deck — typically a reveal.js export (Yanshuo.io / self-hosted).
- * Renders as a cover with a play affordance; click opens the in-site
- * SlideModal (~80% viewport iframe) so visitors never leave the page.
+ * Renders as a cover with a play affordance; opening it puts the deck on the
+ * theater's stage beside the videos, so visitors never leave the page.
  */
 export interface SlidesMedia extends Pinned {
   kind: "slides";
@@ -570,6 +587,12 @@ export interface Identity {
   company: LocalizedString;
   /** Rail / avatar accent color (oklch or any CSS color). Optional. */
   accentColor?: string;
+  /**
+   * A photo of me from that time, for the identity card (systems/identity):
+   * a site-local `/…` path or a URL, masked to a circle where it is shown.
+   * Optional — the card draws a monogram of the company in its place.
+   */
+  avatar?: string;
 }
 
 /**
@@ -659,6 +682,7 @@ export function normalizeLogData(raw: RawLogData | LogData): LogData {
         handle: def.handle,
         company: def.company,
         accentColor: def.accentColor,
+        avatar: def.avatar,
       };
       const ranges = (def as RawIdentity).ranges;
       const defaultTagId = (def as RawIdentity).tagId;
@@ -708,6 +732,7 @@ export function denormalizeLogData(flat: LogData): RawLogData {
         handle: meta.handle,
         company: meta.company,
         accentColor: meta.accentColor,
+        avatar: meta.avatar,
         ranges: [],
       };
     }
@@ -1793,21 +1818,13 @@ export function getCommitThumbnails(commit: Commit): string[] {
  *                preview image. Reads like the full LinkCard but at peek size.
  *  - `"thumb"` → a bare cover image, used for videos and image media. The
  *                player / asset IS the visual signal; no text strip needed.
+ *
+ * Carries the `Media` itself, as `StripItem` does: the renderer reads the
+ * viewer's locale variant of a card off it, and the chip its cover wears.
  */
 export type PeekItem =
-  | {
-      kind: "card";
-      url: string;
-      title?: string;
-      description?: string;
-      image: string;
-      internal?: InternalLinkMeta;
-      /** Author-chosen cover fill for the single-item peek. See MediaPreview. */
-      fit?: CoverFit;
-      /** Fixed-mode aspect override for the single-item peek. */
-      aspect?: string;
-    }
-  | { kind: "thumb"; url: string; image: string };
+  | { kind: "card"; media: LinkMedia }
+  | { kind: "thumb"; image: string; media: Media };
 
 /**
  * Collect peek-renderable items from a commit's media, preserving order.
@@ -1825,23 +1842,11 @@ export function getCommitPeekItems(commit: Commit): PeekItem[] {
   for (const m of commit.media ?? []) {
     if (isPinnedMedia(m)) continue; // already visible inline; nothing to peek
     if (isLinkMedia(m) && m.present === "card") {
-      const image = m.preview?.image;
-      if (image) {
-        out.push({
-          kind: "card",
-          url: m.url,
-          title: m.preview?.title,
-          description: m.preview?.description,
-          image,
-          internal: m.internal,
-          fit: m.preview?.fit,
-          aspect: m.preview?.aspect,
-        });
-      }
+      if (m.preview?.image) out.push({ kind: "card", media: m });
       continue;
     }
     const t = getMediaThumbnail(m);
-    if (t) out.push({ kind: "thumb", url: m.url, image: t });
+    if (t) out.push({ kind: "thumb", image: t, media: m });
   }
   return out;
 }
@@ -1859,8 +1864,6 @@ export function getCommitPeekItems(commit: Commit): PeekItem[] {
 export interface StripItem {
   media: Media;
   image: string;
-  /** Whether the cover wears a play badge — see {@link isPlayableMedia}. */
-  playable: boolean;
 }
 
 /**
@@ -1890,7 +1893,7 @@ export function getMediaStripItems(
     const image = isLinkMedia(m)
       ? (m.previews?.[locale] ?? m.preview)?.image ?? null
       : getMediaThumbnail(m);
-    if (image) out.push({ media: m, image, playable: isPlayableMedia(m) });
+    if (image) out.push({ media: m, image });
   }
   return out;
 }

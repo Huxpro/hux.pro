@@ -1,5 +1,6 @@
 "use client";
 
+import { PagerDots, useSnapPager } from "@/components/ui/snap-pager";
 import {
   WidgetHeader,
   WidgetLink,
@@ -11,7 +12,7 @@ import { t, useLocale } from "@/services";
 import { AlbumTabs, TrackThumb, useTheater } from "@/systems/theater";
 import { buildTalkAlbums } from "@/systems/theater/lib/albums";
 import { PRESS_CARD } from "@/systems/theater/lib/chrome";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { TYPE } from "@/lib/typography";
 // ---------------------------------------------------------------------------
@@ -28,41 +29,16 @@ export function FeaturedTalksWidget() {
   const { open } = useTheater();
   const albums = useMemo(() => buildTalkAlbums(locale), [locale]);
   const [activeAlbum, setActiveAlbum] = useState(0);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [activeCard, setActiveCard] = useState(0);
 
   const album = albums[activeAlbum] ?? null;
-
-  const getStride = useCallback((): number | null => {
-    const el = scrollRef.current;
-    if (!el) return null;
-    const card = el.querySelector<HTMLElement>("[data-talk-card]");
-    if (!card) return null;
-    const gap = Number.parseFloat(getComputedStyle(el).gap || "0");
-    return card.offsetWidth + (Number.isFinite(gap) ? gap : 0);
-  }, []);
-
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const stride = getStride();
-    if (!stride) return;
-    setActiveCard(Math.round(el.scrollLeft / stride));
-  }, [getStride]);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", handleScroll, { passive: true });
-    return () => el.removeEventListener("scroll", handleScroll);
-  }, [handleScroll]);
+  const { scrollRef, index: activeCard, scrollTo } = useSnapPager(
+    album?.tracks.length ?? 0,
+  );
 
   // Reset scroll to the start whenever the album changes.
   useEffect(() => {
-    scrollRef.current?.scrollTo({ left: 0 });
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setActiveCard(0);
-  }, [activeAlbum]);
+    scrollTo(0, "instant");
+  }, [activeAlbum, scrollTo]);
 
   if (albums.length === 0 || !album) return null;
 
@@ -94,7 +70,7 @@ export function FeaturedTalksWidget() {
           {album.tracks.map((track, i) => (
             <button
               key={track.id}
-              data-talk-card
+              data-pager-card
               onClick={() =>
                 open({ albums, albumIndex: activeAlbum, trackIndex: i })
               }
@@ -120,19 +96,11 @@ export function FeaturedTalksWidget() {
           <div className="w-5 shrink-0" aria-hidden />
         </div>
 
-        {album.tracks.length > 1 && (
-          <div className="flex items-center justify-center gap-1.5 pt-3">
-            {album.tracks.map((_, i) => (
-              <span
-                key={i}
-                className={cn(
-                  "h-1.5 rounded-full transition-all duration-200",
-                  i === activeCard ? "w-3 bg-foreground/45" : "w-1.5 bg-foreground/15",
-                )}
-              />
-            ))}
-          </div>
-        )}
+        <PagerDots
+          count={album.tracks.length}
+          index={activeCard}
+          className="pt-3"
+        />
       </div>
     </WidgetShell>
   );

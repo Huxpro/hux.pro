@@ -13,7 +13,7 @@
  * marks it; click a row's hash and the URL becomes that permalink without a
  * navigation.
  *
- * Scrolling goes through `@hux/bezel`, never `window.scrollY` — with the
+ * Scrolling goes through `vitre`, never `window.scrollY` — with the
  * bezel on an iPhone the page scrolls inside a container, so the window knows
  * nothing about it (see docs/system-ambient.md). The travel itself is the
  * same shape as the table of contents' (`ruler-toc.tsx`): `animate` from
@@ -30,7 +30,7 @@ import {
   pageOffsetOf,
   pageScrollTop,
   scrollPageTo,
-} from "@hux/bezel";
+} from "vitre";
 
 /** Marks the row that was just travelled to; `globals.css` styles it and
  *  owns how long the mark stays up (`commit-target-wash`). */

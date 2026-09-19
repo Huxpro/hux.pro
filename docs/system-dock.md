@@ -399,7 +399,7 @@ indented identically, and the palette indenting is exactly what we decided
 against for the sheets (the bezel already frames the page).
 
 The fatal one: `Drawer.Indent` works by transforming the box around the app's
-main UI, and under `@hux/bezel` this site's page *is* a stack of fixed layers —
+main UI, and under `vitre` this site's page *is* a stack of fixed layers —
 the wallpaper, the window layer, the body itself in container scroll. A
 transform on their ancestor makes it their containing block, and with the
 indent's `overflow: hidden` the box has no flow content to be as tall as.

@@ -5,9 +5,9 @@
  * Used by TimelineCommit and CommitCompact.
  */
 
-import { useState } from "react";
 import { Link } from "next-view-transitions";
 import { cn } from "@/lib/utils";
+import { IdentityHover } from "@/systems/identity";
 import type { Byline } from "../bylines";
 import {
   ExternalLink,
@@ -173,6 +173,12 @@ interface AuthorFieldsProps {
 }
 
 /**
+ * A region spanning the field stack's two columns and keeping them: the
+ * author block, whose two lines are one thing (see `identity` below).
+ */
+const FIELD_SUBGRID = "col-span-2 grid grid-cols-subgrid gap-y-0.5";
+
+/**
  * The author block at the foot of an expanded commit — the vertical form of
  * the handle that was on the meta line a moment ago. Folded, the row states
  * its author compactly on that line; open, it transposes into this labelled
@@ -188,9 +194,6 @@ export function AuthorFields({
   commit,
   className,
 }: AuthorFieldsProps) {
-  const [roleOpen, setRoleOpen] = useState(false);
-  const roleDescription = byline?.expanded.description;
-
   const role = byline?.expanded.title && (
     <>
       {byline.expanded.title}
@@ -198,6 +201,28 @@ export function AuthorFields({
       {byline.expanded.company}
     </>
   );
+
+  /**
+   * The `Author:` and `Role:` lines stand for one identity, so together they
+   * are the identity card's trigger (systems/identity): hover peeks the
+   * profile on a desktop, a tap opens it as a sheet on a phone, and either
+   * lights the whole block — not one line of it, which would say the lines
+   * were separate things. No control bolted on; the region is the affordance.
+   */
+  const identity = (children: React.ReactNode) =>
+    byline ? (
+      <IdentityHover
+        identityId={byline.identityId}
+        roleId={byline.roleId}
+        block
+        wrapperClassName={FIELD_SUBGRID}
+        className={FIELD_SUBGRID}
+      >
+        {children}
+      </IdentityHover>
+    ) : (
+      <div className={FIELD_SUBGRID}>{children}</div>
+    );
 
   return (
     <div
@@ -249,57 +274,35 @@ export function AuthorFields({
         </>
       )}
 
-      <span className="text-tertiary-foreground">Author:</span>
-      <span className="text-tertiary-foreground">
-        &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;
-      </span>
-
-      {role && (
+      {identity(
         <>
-          <span className="text-tertiary-foreground">Role:</span>
+          <span className="text-tertiary-foreground">Author:</span>
           <span className="text-tertiary-foreground">
-            {/*
-              The role's own description opens from here rather than printing
-              with it. It is tenure prose — the same two lines under all twelve
-              commits of a tenure — so printing it always was twelve copies,
-              and printing it on the cluster head only made it look arbitrary:
-              rows that differed in nothing a reader can see had it or didn't.
-              Behind the field it is neither. Every role behaves the same way,
-              and the only asymmetry left is honest — a role with nothing to
-              say carries no affordance to open.
-            */}
-            {roleDescription ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setRoleOpen((v) => !v);
-                }}
-                aria-expanded={roleOpen}
-                className="text-left transition-colors hover:text-foreground"
-              >
-                {role}
-              </button>
-            ) : (
-              role
-            )}
-            {byline.expanded.location && (
-              <>
-                <span className="text-quaternary-foreground"> · </span>
-                {byline.expanded.location}
-              </>
-            )}
+            &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;
           </span>
-        </>
-      )}
 
-      {roleOpen && roleDescription && (
-        <>
-          <span />
-          <span className="mt-1 leading-relaxed text-tertiary-foreground">
-            {roleDescription}
-          </span>
-        </>
+          {role && (
+            <>
+              <span className="text-tertiary-foreground">Role:</span>
+              <span className="text-tertiary-foreground">
+                {/*
+                  The role's prose — its tenure, the other roles under the
+                  same handle, what was signed with it — is the identity card
+                  behind this block rather than a disclosure under it. It is
+                  tenure prose, the same under all twelve commits of a
+                  tenure, so it belongs to the identity and not to the row.
+                */}
+                {role}
+                {byline.expanded.location && (
+                  <>
+                    <span className="text-quaternary-foreground"> · </span>
+                    {byline.expanded.location}
+                  </>
+                )}
+              </span>
+            </>
+          )}
+        </>,
       )}
     </div>
   );

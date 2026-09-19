@@ -21,6 +21,8 @@
 | **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Crawling *others'* OG for /works cards) |
 | **App Icon** | [docs/app-icon.md](./docs/app-icon.md) (Generative favicon + `/editor/icon` studio) |
 | **App Folder** | [docs/app-shelf.md](./docs/app-shelf.md) (Home-screen snap-paged app folder) |
+| **Attachments** | [docs/system-attachments.md](./docs/system-attachments.md) (Where a commit's media opens: sheet on a phone, with the in-app browser stacked on it; theater / in-app window / router elsewhere; the chip every cover wears; the `/editor/attachments` lab) |
+| **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (Who signed a commit — the profile card behind `<handle>` and `Role:`) |
 
 ## 2. Quick Start Context
 
@@ -97,9 +99,9 @@ duration-300 (morphing transitions)
 
 ### Testing the Bezel
 
-The bezel is its own package, `packages/bezel` (`@hux/bezel`). Its API and the
-iOS Safari findings behind it are in `packages/bezel/bezel.d.ts` and
-`packages/bezel/README.md`; read those before changing anything about the edge
+The bezel is its own package, `packages/vitre` (`vitre`). Its API and the
+iOS Safari findings behind it are in `packages/vitre/bezel.d.ts` and
+`packages/vitre/README.md`; read those before changing anything about the edge
 of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
 
 - **Bezel on/off** follows the wallpaper kind (`WALLPAPER_KIND_EDGES`): weather
@@ -130,6 +132,10 @@ of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
   setting; clicking it resets the row.
 
 ```bash
-pnpm bezel:typecheck
+pnpm vitre:typecheck
 ```
+
+The package's demo and docs site is `packages/vitre/site` (`pnpm vitre:site`,
+served at `/bezel` in production). A new export or prop fails the type check
+until it is documented there.
 
