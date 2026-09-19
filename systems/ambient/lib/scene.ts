@@ -24,6 +24,7 @@ import {
   getSolarPosition,
   smoothstep,
   startOfLocalDay,
+  DAY_MINUTES,
   sunTimesOrDefault,
 } from "./solar";
 import type {
@@ -618,18 +619,12 @@ export function toSceneWeather(
   };
 }
 
-/** Scenes per day in `sampleDaySky`: one every twenty minutes. */
-const DAY_SKY_SAMPLES = 72;
-
 /**
- * The sky across one day, for a timeline.
- *
- * Scenes from local midnight to midnight, each reduced to one colour (the
- * zenith/horizon mix, unveiled, so it stays vivid at 4px tall). Pure and
- * cheap — the ephemeris is a few hundred multiplies — so a devtool can redraw
- * it whenever the condition, the day or the location changes.
+ * One day's worth of scene inputs: everything `deriveWeatherScene` needs except
+ * the instant. Anything walking a day — the devtool's sky strip, the meteor's
+ * window — takes this, so a new scene input is threaded through once.
  */
-export function sampleDaySky(params: {
+export interface DaySampleParams {
   /** Any instant of the day to sample; the day is taken from local midnight. */
   dayMs: number;
   lat?: number;
@@ -637,19 +632,38 @@ export function sampleDaySky(params: {
   weather: SceneWeatherInput | null;
   theme: "light" | "dark";
   overrides?: SceneOverrides;
-}): RGB[] {
-  const n = DAY_SKY_SAMPLES;
+  seed?: number;
+}
+
+/**
+ * The scene at a given minute of one local day.
+ *
+ * The one way to walk a day, so the things drawn from it cannot disagree about
+ * which day it is. Pure and cheap — the ephemeris is a few hundred multiplies.
+ */
+export function daySceneAt(
+  params: DaySampleParams
+): (minute: number) => WeatherScene {
   const startMs = startOfLocalDay(params.dayMs);
+  return (minute) =>
+    deriveWeatherScene({ ...params, nowMs: startMs + minute * 60_000 });
+}
+
+/** Scenes per day in `sampleDaySky`: one every twenty minutes. */
+const DAY_SKY_SAMPLES = 72;
+
+/**
+ * The sky across one day, for a timeline.
+ *
+ * Scenes from local midnight to midnight, each reduced to one colour (the
+ * zenith/horizon mix, unveiled, so it stays vivid at 4px tall), so a devtool
+ * can redraw it whenever the condition, the day or the location changes.
+ */
+export function sampleDaySky(params: DaySampleParams): RGB[] {
+  const sceneAt = daySceneAt(params);
   const out: RGB[] = [];
-  for (let i = 0; i < n; i++) {
-    const scene = deriveWeatherScene({
-      nowMs: startMs + ((i + 0.5) / n) * 86_400_000,
-      lat: params.lat,
-      lon: params.lon,
-      weather: params.weather,
-      theme: params.theme,
-      overrides: params.overrides,
-    });
+  for (let i = 0; i < DAY_SKY_SAMPLES; i++) {
+    const scene = sceneAt(((i + 0.5) / DAY_SKY_SAMPLES) * DAY_MINUTES);
     out.push(mixRGB(scene.sky.zenith, scene.sky.horizon, 0.45));
   }
   return out;

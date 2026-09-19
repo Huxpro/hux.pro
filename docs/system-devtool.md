@@ -276,9 +276,11 @@ while the modules scroll. The modules:
      in the same ink as the sunrise and sunset marks it sits between; the times
      read out under it beside them. A window crosses midnight, so it arrives as
      two bars, one against each end of the strip, and reads as one range
-     (`19:40 → 05:21`). Derived by asking `meteorPossible()` about real scenes
-     minute by minute rather than by solving for the sun's altitude, so the
-     marks cannot drift from the click that fires one.
+     (`19:40 → 05:21`), which `meteorWindowSpan()` rejoins next to the code that
+     split them. Derived by asking `meteorPossible()` about real scenes rather
+     than by solving for the sun's altitude, so the marks cannot drift from the
+     click that fires one — and it costs one scene rather than three hundred
+     whenever the sky is closed, because `clarity` cannot change over a day.
    - **Through what** — a corner mark on every condition chip you could see a
      meteor through. It answers *if I picked this one now, could I see one?*,
      so it is evaluated **through `toSceneWeather`** — the one function that

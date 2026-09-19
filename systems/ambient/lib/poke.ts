@@ -30,18 +30,13 @@
 //
 // The answers are disjoint by construction, so there is no arbitration here and
 // never needs to be: `lightning` is 1 only on a thunder day, whose cover of
-// 0.96 drives `stars` to 0, and a foggy day's fog of 0.9 does the same. One
+// 0.96 drives `clarity` to 0, and a foggy day's fog of 0.9 does the same. One
 // condition, one answer, and the shader carries a single set of uniforms for
 // whichever is running.
 // =============================================================================
 
-import {
-  deriveWeatherScene,
-  type SceneOverrides,
-  type SceneWeatherInput,
-  type WeatherScene,
-} from "./scene";
-import { startOfLocalDay } from "./solar";
+import type { WeatherScene } from "./scene";
+import { DAY_MINUTES } from "./solar";
 
 /**
  * What a poke can be. The shader reads these as numbers (`uPokeKind`). 2 is
@@ -110,10 +105,10 @@ export const POKE_COOLDOWN_MS = 500;
  * which would wrongly exclude a clear-enough cloudy night.
  */
 export const METEOR_SUN_MAX_DEG = -12;
-export const METEOR_CLARITY_MIN = 0.35;
+const METEOR_CLARITY_MIN = 0.35;
 
 /** Is the sun far enough down? The question the clock answers. */
-export function meteorSkyIsDark(scene: WeatherScene): boolean {
+function meteorSkyIsDark(scene: WeatherScene): boolean {
   return scene.sun.elevation < METEOR_SUN_MAX_DEG;
 }
 
@@ -125,9 +120,12 @@ export function meteorSkyIsOpen(scene: WeatherScene): boolean {
 /**
  * Could a click earn a meteor in this scene? The whole of the window, in one
  * place, so the devtool's timeline and the click that fires one cannot come to
- * different answers about it — and split in two above, because the devtool has
- * one surface for each half: the timeline marks when it is dark enough, and the
- * condition chips mark which weather you could see through.
+ * different answers about it.
+ *
+ * Split in two above because the two halves are asked separately as well as
+ * together: `meteorWindows` leans on the split to skip a day's sweep, and the
+ * devtool's condition chips ask `meteorSkyIsOpen` alone, since "through which
+ * weather" is their question and "when" belongs to the timeline.
  */
 export function meteorPossible(scene: WeatherScene): boolean {
   return meteorSkyIsDark(scene) && meteorSkyIsOpen(scene);
@@ -139,50 +137,48 @@ export interface MeteorWindow {
   to: number;
 }
 
-/** Minutes between samples in the coarse pass below. */
+/**
+ * Minutes between samples in the scan below.
+ *
+ * Safe at five because the only thing that moves within a day is the sun, and
+ * it crosses a given altitude at most once per half-day — so five minutes
+ * cannot hide a whole window, and each edge is then found exactly. See the
+ * decomposition in `meteorWindows`.
+ */
 const WINDOW_STEP_MIN = 5;
 
 /**
  * When a meteor is possible over one local day, as minute intervals.
  *
- * For a timeline: the devtool paints these under the day strip the way it ticks
- * sunrise and sunset. Derived by asking `meteorPossible` about real scenes
- * rather than by solving for the sun's altitude, so the timeline cannot drift
- * from the click — if the rule grows a third term, this follows it for free.
+ * Takes a sampler rather than building scenes, which is what keeps this module
+ * the part with no engine in it (see the top of this file): the caller owns the
+ * ephemeris, this owns the rule. `scene.ts`'s `daySceneAt` is the sampler the
+ * devtool passes.
  *
- * Coarse pass every five minutes, then each edge bisected to the minute, which
- * is what the strip is read at. About three hundred scene derivations, each a
- * few hundred multiplies, memoised by the caller.
+ * The rule decomposes, and this exploits it rather than pretending not to.
+ * `clarity` is a property of the weather and is exactly constant over a day —
+ * measured, not assumed: 2304 condition/cover/override combinations sampled
+ * minute by minute, zero variation — so a sky you cannot see through has no
+ * window at all and costs one sample instead of three hundred. That is most
+ * devtool states: four of the six condition profiles, and any forced cover
+ * over about a half. What is left varies only with the sun.
+ *
+ * Whole-predicate sampling for the rest, rather than solving for the sun's
+ * altitude, so the timeline cannot drift from the click that fires one.
  *
  * A window that spans midnight comes back as two intervals, one against each
  * end of the day, because that is what a day-wide strip has to draw.
+ * `meteorWindowSpan` puts them back together for anything wanting to read it
+ * as the one night it is.
  */
-export function meteorWindows(params: {
-  /** Any instant of the day to sample; the day is taken from local midnight. */
-  dayMs: number;
-  lat?: number;
-  lon?: number;
-  weather: SceneWeatherInput | null;
-  theme: "light" | "dark";
-  overrides?: SceneOverrides;
-}): MeteorWindow[] {
-  const startMs = startOfLocalDay(params.dayMs);
-  const at = (minute: number) =>
-    meteorPossible(
-      deriveWeatherScene({
-        nowMs: startMs + minute * 60_000,
-        lat: params.lat,
-        lon: params.lon,
-        weather: params.weather,
-        theme: params.theme,
-        overrides: params.overrides,
-      })
-    );
+export function meteorWindows(
+  sceneAt: (minute: number) => WeatherScene
+): MeteorWindow[] {
+  if (!meteorSkyIsOpen(sceneAt(0))) return [];
 
-  const DAY = 1440;
-  /** The first minute in (lo, hi] whose answer differs from lo's. */
-  const edge = (lo: number, hi: number) => {
-    const want = at(lo);
+  const at = (minute: number) => meteorSkyIsDark(sceneAt(minute));
+  /** The first minute in `(lo, hi]` whose answer differs from `want`. */
+  const edge = (lo: number, hi: number, want: boolean) => {
     while (hi - lo > 1) {
       const mid = (lo + hi) >> 1;
       if (at(mid) === want) lo = mid;
@@ -194,18 +190,48 @@ export function meteorWindows(params: {
   const windows: MeteorWindow[] = [];
   let openedAt: number | null = at(0) ? 0 : null;
   let previous = 0;
-  for (let m = WINDOW_STEP_MIN; m <= DAY; m += WINDOW_STEP_MIN) {
-    const minute = Math.min(m, DAY - 1);
+  const step = (minute: number) => {
     const on = at(minute);
-    if (on && openedAt === null) openedAt = edge(previous, minute);
+    if (on && openedAt === null) openedAt = edge(previous, minute, false);
     else if (!on && openedAt !== null) {
-      windows.push({ from: openedAt, to: edge(previous, minute) });
+      windows.push({ from: openedAt, to: edge(previous, minute, true) });
       openedAt = null;
     }
     previous = minute;
-  }
-  if (openedAt !== null) windows.push({ from: openedAt, to: DAY });
+  };
+
+  // Five-minute strides, and then the last minute of the day explicitly.
+  // That final short stride is not a formality: at Quito the window opens
+  // inside it on two days of the year, and a scan that stops at 1435 loses the
+  // whole evening half of the window. Which is also why `previous` is carried
+  // rather than computed as `minute - WINDOW_STEP_MIN` — the last stride is
+  // shorter than the rest.
+  const last = DAY_MINUTES - 1;
+  for (let m = WINDOW_STEP_MIN; m < last; m += WINDOW_STEP_MIN) step(m);
+  step(last);
+
+  if (openedAt !== null) windows.push({ from: openedAt, to: DAY_MINUTES });
   return windows;
+}
+
+/**
+ * The windows read as the one stretch they usually are: a night, which crosses
+ * midnight and therefore arrives as two intervals pinned to the ends of the
+ * day. Joining them belongs next to the code that split them, or every reader
+ * has to re-infer the convention from the array's shape.
+ *
+ * `to` may run past midnight (up to 2879) so the span stays contiguous; take
+ * it modulo a day to print it.
+ */
+export function meteorWindowSpan(
+  windows: MeteorWindow[]
+): MeteorWindow | null {
+  if (windows.length === 0) return null;
+  const first = windows[0];
+  const last = windows[windows.length - 1];
+  const wraps =
+    windows.length > 1 && first.from === 0 && last.to === DAY_MINUTES;
+  return wraps ? { from: last.from, to: first.to + DAY_MINUTES } : first;
 }
 
 /** Mark a transparent layer that should still swallow pokes. */
