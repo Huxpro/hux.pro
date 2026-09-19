@@ -150,8 +150,7 @@
       "query": {
         "type": "talk",
         "tagId": "lynx-era"
-      },
-      "limit": 6
+      }
     },
     {
       "id": "featured-personal-talks",
