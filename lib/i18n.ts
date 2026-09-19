@@ -301,6 +301,7 @@ export const translations = {
     // Toolbar: type filter + form (see components/log/works-toolbar.tsx)
     logFilterLabel: "Filter by type",
     logFilterClear: "Clear filter",
+    logChapterStart: "Back to the start of this chapter",
     logFormLabel: "View",
     logFormIndex: "Index",
     logFormCovers: "Covers",
@@ -594,6 +595,7 @@ export const translations = {
     // Toolbar: type filter + form (see components/log/works-toolbar.tsx)
     logFilterLabel: "按类型筛选",
     logFilterClear: "清除筛选",
+    logChapterStart: "回到这一章的开头",
     logFormLabel: "视图",
     logFormIndex: "索引",
     logFormCovers: "封面",

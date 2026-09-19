@@ -40,6 +40,12 @@ interface PageLayoutProps {
   backLabel?: string;
   /** Content rendered below the title (e.g., meta row, language filter) */
   headerActions?: ReactNode;
+  /**
+   * A bar that rests where `headerActions` would and stays: it rides up with
+   * the content and pins at the top of the page instead of fading with the
+   * hero. Instead of `headerActions`, not with it; the `poetic` header only.
+   */
+  pinnedActions?: ReactNode;
   /** Title typography variant */
   variant?: "poetic" | "reader";
   /** Additional className for the main element */
@@ -72,6 +78,7 @@ export function PageLayout({
   backHref = "/",
   backLabel = "λhux",
   headerActions,
+  pinnedActions,
   variant = "poetic",
   className,
   children,
@@ -126,6 +133,11 @@ export function PageLayout({
         // (globals.css), so a rail that bleeds past the column (`--page-bleed`)
         // reads the same numbers.
         "mx-auto max-w-[var(--page-col)] px-[var(--page-gutter)] pt-16 sm:pt-24 pb-32 sm:pb-40",
+        // Title foot to hero bottom when a bar is pinned: what centring put
+        // there when the actions sat in the zone (`h-44`/`h-48`, less the
+        // nav, the `pb-6`/`pb-4` reserve and half the spare), kept so the
+        // page looks the same at rest.
+        pinnedActions && "[--pin-rest:3.75rem] sm:[--pin-rest:3.875rem]",
         className
       )}
     >
@@ -154,7 +166,15 @@ export function PageLayout({
             </div>
             <div
               className={cn(
-                "flex-1 flex flex-col justify-center",
+                "flex-1 flex flex-col",
+                // A pinned bar is not in this zone (it has to outlive the
+                // hero's fade), so the title is set by its foot instead of
+                // centred: `--pin-rest` below it, the same number the bar
+                // is lifted by. They cannot drift apart, and the pair lands
+                // where the centred title and its actions always did.
+                pinnedActions
+                  ? "justify-end pb-[var(--pin-rest)]"
+                  : "justify-center",
                 headerActions && "pb-6 sm:pb-4"
               )}
             >
@@ -168,7 +188,24 @@ export function PageLayout({
               </div>
             </div>
           </HeaderZone>
-          <div className={heroContentClassName(heroExit)}>{children}</div>
+          <div className={heroContentClassName(heroExit)}>
+            {pinnedActions && (
+              // Zero-height and sticky, so the bar pins without taking room
+              // from the content: lifted out of the flow to rest half a
+              // line under the title (the hero's bottom margin, then
+              // `--pin-rest`, then back down the 0.5rem gap), and given the
+              // same back as bottom margin. Above the content's own layers
+              // (the chapter markers are `z-20`) so rows pass under it. It
+              // pins a rem from the top, or half a rem under the Dock's
+              // Live Activities when there are any (`--dock-clear`).
+              <div
+                className="sticky top-[max(1rem,calc(var(--dock-clear)+0.5rem))] z-30 h-0 -mt-[calc(var(--pin-rest)-0.5rem+var(--hero-gap))] mb-[calc(var(--pin-rest)-0.5rem+var(--hero-gap))]"
+              >
+                {pinnedActions}
+              </div>
+            )}
+            {children}
+          </div>
         </>
       )}
 

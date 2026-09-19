@@ -54,7 +54,9 @@ export function heroZoneClassName(
 ): string {
   return cn(
     extra,
-    "mb-4 sm:mb-6",
+    // `--hero-gap` (globals.css) so a bar pinned out of the zone can be
+    // lifted back over it by the same amount (PageLayout `pinnedActions`).
+    "mb-[var(--hero-gap)]",
     exit === "fade" && "sticky top-16 sm:top-24 z-10",
     exit === "fade" && cssFade && "hero-zone-fade"
   );

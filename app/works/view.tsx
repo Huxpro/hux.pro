@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PageLayout } from "@/components/ui/page-layout";
-import { LogTimeline } from "@/components/log/log-timeline";
+import { chapterLabel, LogTimeline } from "@/components/log/log-timeline";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
 import { t, useLocale } from "@/services";
@@ -130,6 +130,16 @@ export function WorksView({ logData }: WorksViewProps) {
     });
   }, [data]);
 
+  // The chapters, as the pinned bar names them when it wears one.
+  const chapters = useMemo(
+    () =>
+      data.map(({ tag }, i) => ({
+        id: tag.id,
+        label: chapterLabel(tag, i, locale),
+      })),
+    [data, locale],
+  );
+
   // Whether the log has anything to print under the current filter — the same
   // question every TagBlock asks itself before rendering, so the end marker
   // and the rows can never disagree. (They used to: this check knew about the
@@ -146,7 +156,7 @@ export function WorksView({ logData }: WorksViewProps) {
   return (
     <PageLayout
       page="works"
-      headerActions={
+      pinnedActions={
         <WorksToolbar
           locale={locale}
           facets={facets}
@@ -157,6 +167,7 @@ export function WorksView({ logData }: WorksViewProps) {
           onClearTypes={() => commit({ types: [] })}
           form={view.form}
           onFormChange={(form) => commit({ form })}
+          chapters={chapters}
         />
       }
     >
@@ -173,6 +184,7 @@ export function WorksView({ logData }: WorksViewProps) {
         form={view.form}
         activeTypes={view.types}
         onSelectHash={selectHash}
+        pinnedChapters
       />
 
       {/* End marker — `git init` closes a timeline that has commits in it;
