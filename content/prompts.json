@@ -9,21 +9,21 @@
       "author": "Alan Kay",
       "source": "PARC, 1971",
       "commentary": {
-        "en": "The ultimate form of agency. Not waiting for permission, not forecasting trends—just building what should exist.",
-        "zh": "终极的主动性。不等待许可，不预测趋势——只是构建应该存在的事物。"
+        "en": "Not forecasting. Not waiting for permission. Build the future you actually want to live in — and think in decades, not quarters.",
+        "zh": "不是预测，也不是等许可。去建造你想活在其中的未来——以十年为单位思考，而不是以季度。"
       }
     },
     {
-      "id": "dan-abramov-simple",
+      "id": "einstein-simple",
       "text": {
-        "en": "Make the complex simple, but not simpler.",
-        "zh": "让复杂变简单，但不要过度简化。"
+        "en": "Everything should be made as simple as possible, but not simpler.",
+        "zh": "凡事都应尽可能简单，但不能更简单。"
       },
-      "author": "Dan Abramov",
-      "source": "Overreacted",
+      "author": "Albert Einstein",
+      "source": "attributed, c. 1933",
       "commentary": {
-        "en": "A reminder that simplification has a floor. The goal isn't minimal lines of code, but minimal cognitive load.",
-        "zh": "提醒我们简化是有底线的。目标不是最少的代码行数，而是最小的认知负担。"
+        "en": "Simplification has a floor. The goal is not fewer lines of code — it is less cognitive load, without sanding off the part that was actually hard.",
+        "zh": "简化是有底线的。目标不是更少的代码行数，而是更小的心智负担——还不能把真正难的那一层磨掉。"
       }
     },
     {
@@ -35,8 +35,34 @@
       "author": "Bret Victor",
       "source": "The Future of Programming, 2013",
       "commentary": {
-        "en": "Stay a beginner. Expertise can become a prison—the best ideas come from naive questions.",
-        "zh": "保持初学者心态。专业知识可能成为牢笼——最好的想法来自天真的问题。"
+        "en": "Stay a beginner. Expertise calcifies into a prison — the best ideas still come from naive questions.",
+        "zh": "保持初学者心态。专业知识会慢慢变成牢笼——最好的想法，往往还是来自天真的问题。"
+      }
+    },
+    {
+      "id": "spj-avoiding-success",
+      "text": {
+        "en": "Avoiding success at all cost.",
+        "zh": "Avoiding success at all cost."
+      },
+      "author": "Simon Peyton Jones",
+      "source": "the informal motto of Haskell",
+      "commentary": {
+        "en": "Parenthesize it two ways and both are true: don't chase popularity if it costs the idea; and sometimes staying small is how the idea stays free. I wrote a whole note about this after watching SPJ's Haskell journey talk.",
+        "zh": "两种括法都成立：不要为了流行而牺牲想法本身；有时保持小众，想法才能自由。看完 SPJ 讲 Haskell 的那通分享，我专门写过一篇笔记。"
+      }
+    },
+    {
+      "id": "chenglou-producer-side",
+      "text": {
+        "en": "Welcome to the producer side!",
+        "zh": "Welcome to the producer side!"
+      },
+      "author": "Cheng Lou",
+      "source": "Reason / React, via 「程序员中的梦想家」",
+      "commentary": {
+        "en": "The tools look messy while they are being invented. Visionaries get underestimated on the way up and mythologized after. If you are in the pit with them — that's the job.",
+        "zh": "东西在被发明的时候看起来都很糟。梦想家在过程中被低估，流行之后又被神化。如果你正在坑里跟他们一起填——那就是这份工作。"
       }
     },
     {
@@ -48,8 +74,8 @@
       "author": "Billie Jean King",
       "source": "Fed Cup, 2000",
       "commentary": {
-        "en": "\"Pressure is a privilege, and champions adjust.\" If you feel the pressure, it means you earned your way to a moment that matters. Reframe the weight as proof you belong.",
-        "zh": "\"压力是一种荣幸，而冠军懂得调整。\" 如果你感受到压力，说明你已经凭实力赢得了这个重要的时刻。把这份重量重新理解为你有资格在场的证明。"
+        "en": "\"Pressure is a privilege, and champions adjust.\" If you feel the weight, you already earned a moment that matters. Reframe it as proof you belong on the floor.",
+        "zh": "\"压力是一种荣幸，而冠军懂得调整。\" 你能感到这份重量，说明你已经凭实力站上了这个场合。把它重新理解为：你有资格在场。"
       }
     }
   ],
@@ -65,12 +91,12 @@
         "zh": "架构"
       },
       "shapedBy": {
-        "en": ["Years of watching invented abstractions fail", "React's emergence from Facebook's actual needs"],
-        "zh": ["多年来目睹发明的抽象层失败", "React 从 Facebook 实际需求中诞生"]
+        "en": ["Years of watching invented abstractions fail", "React emerging from Facebook's actual product needs"],
+        "zh": ["多年来目睹发明出来的抽象层失败", "React 从 Facebook 真实产品需求里长出来"]
       },
       "reasoning": {
-        "en": "Good frameworks emerge from solving real problems repeatedly. Invented frameworks solve imaginary problems elegantly.",
-        "zh": "好的框架源于反复解决真实问题。发明的框架优雅地解决想象中的问题。"
+        "en": "Good frameworks show up after you have solved the same real problem enough times. Invented frameworks solve imaginary problems — very elegantly.",
+        "zh": "好的框架来自反复解决同一个真问题。发明的框架，则优雅地解决想象中的问题。"
       }
     },
     {
@@ -88,8 +114,65 @@
         "zh": ["Dan Abramov", "Lynx 团队文化"]
       },
       "reasoning": {
-        "en": "Specs describe what you think you want. Demos reveal what you actually need. Show me, don't tell me.",
-        "zh": "规格描述你认为你想要的。演示揭示你真正需要的。给我看，别告诉我。"
+        "en": "A spec describes what you think you want. A demo reveals what you actually need. Show me, don't tell me.",
+        "zh": "规格写的是你以为你想要的。演示揭开的是你真正需要的。给我看，别只告诉我。"
+      }
+    },
+    {
+      "id": "fast-by-default",
+      "statement": {
+        "en": "Absorb complexity into the compiler. Fast by default.",
+        "zh": "把复杂度吸收进编译器。默认就该很快。"
+      },
+      "topic": {
+        "en": "compilers",
+        "zh": "编译器"
+      },
+      "shapedBy": {
+        "en": ["React Forget / React Compiler", "Hermes", "Lynx's dual-thread runtime"],
+        "zh": ["React Forget / React Compiler", "Hermes", "Lynx 的双线程运行时"]
+      },
+      "reasoning": {
+        "en": "The worst tax in UI programming is asking every product engineer to be a performance expert. If the authoring model is clean, the compiler and the runtime should do the remembering — memo, threads, dependencies — so the default path is already the fast path.",
+        "zh": "UI 编程最重的税，是要求每个业务工程师都先成为性能专家。如果编写模型本身是干净的，记忆化、线程、依赖这些事就该由编译器和运行时来做——让默认路径就是快路径。"
+      }
+    },
+    {
+      "id": "mental-models",
+      "statement": {
+        "en": "Mental models over APIs.",
+        "zh": "心智模型重于 API。"
+      },
+      "topic": {
+        "en": "interfaces",
+        "zh": "界面"
+      },
+      "shapedBy": {
+        "en": ["Thinking in React vs. Thinking in Vue", "Hooks' referential-identity tax"],
+        "zh": ["Thinking in React vs. Thinking in Vue", "Hooks 的引用同一性税"]
+      },
+      "reasoning": {
+        "en": "Two systems can expose the same features and still be incomparable, because they ask you to think differently. Copy the API and you have copied nothing. The hard part is the model — and the consistency it demands.",
+        "zh": "两套系统可以功能对等，却完全无法类比，因为它们要求你用不同的方式思考。抄了 API，等于什么都没抄到。难的是模型，以及模型所要求的一致性。"
+      }
+    },
+    {
+      "id": "tourist-at-the-edge",
+      "statement": {
+        "en": "Stay a tourist at the glowing edge of what you don't understand.",
+        "zh": "在「看不懂集」发光的边缘，继续当游客。"
+      },
+      "topic": {
+        "en": "learning",
+        "zh": "认知"
+      },
+      "shapedBy": {
+        "en": ["Matt Might's illustrated guide to a Ph.D.", "The jump from frontend into PL / compilers"],
+        "zh": ["Matt Might 的「博士是什么」", "从前端跳进编程语言与编译器"]
+      },
+      "reasoning": {
+        "en": "For any field I actually know, I can name a pile of things I don't. That set grows faster than what I learn. The work is not to finish knowing — it is to pick, from an ever-larger unread set, the next subset still worth touring.",
+        "zh": "对任何一个我真正了解的领域，我都能列出一大堆看不懂的东西。那个集合比我学会的东西涨得更快。要做的不是把知识学完，而是在愈发巨大的「看不懂集」里，挑出下一片还愿意去逛的子集。"
       }
     },
     {
@@ -107,8 +190,8 @@
         "zh": ["Bret Victor", "Doug Engelbart"]
       },
       "reasoning": {
-        "en": "The best tools don't just produce artifacts—they change how you think about the problem space.",
-        "zh": "最好的工具不只是产出产物——它们改变你思考问题空间的方式。"
+        "en": "The best tools don't just emit artifacts. They change how you think about the problem space.",
+        "zh": "最好的工具不只是吐产物——它们会改变你思考问题空间的方式。"
       }
     }
   ],
@@ -123,18 +206,18 @@
       "admire": {
         "en": [
           "Demo-driven, not spec-driven",
-          "User perspective first",
-          "Makes complex things simple"
+          "Explains from the user's side of the API",
+          "Makes the complex simple — without making it simpler"
         ],
         "zh": [
           "演示驱动，而非规格驱动",
-          "用户视角优先",
-          "让复杂的事情变简单"
+          "从 API 使用者的一侧开始解释",
+          "让复杂变简单，但不更简单"
         ]
       },
       "links": [
         { "label": "overreacted.io", "url": "https://overreacted.io" },
-        { "label": "@dan_abramov", "url": "https://twitter.com/dan_abramov" }
+        { "label": "@danabra.mov", "url": "https://bsky.app/profile/danabra.mov" }
       ]
     },
     {
@@ -152,7 +235,7 @@
         ],
         "zh": [
           "不懈追求更好的界面",
-          "改变你看世界方式的演示",
+          "能改变你看世界方式的演示",
           "不愿接受现状"
         ]
       },
@@ -182,11 +265,57 @@
       "links": [
         { "label": "Wikipedia", "url": "https://en.wikipedia.org/wiki/Alan_Kay" }
       ]
+    },
+    {
+      "id": "paul-graham",
+      "name": "Paul Graham",
+      "context": {
+        "en": "Hackers & Painters",
+        "zh": "《黑客与画家》"
+      },
+      "admire": {
+        "en": [
+          "The hacker and the painter are the same kind of maker",
+          "Taste is a technical skill",
+          "Essays that made it legitimate to care about both code and art"
+        ],
+        "zh": [
+          "黑客与画家是同一种创造者",
+          "品味本身是一种技术能力",
+          "让「既写代码又在乎艺术」变成一件正经事"
+        ]
+      },
+      "links": [
+        { "label": "paulgraham.com", "url": "https://paulgraham.com/hp.html" }
+      ]
+    },
+    {
+      "id": "alex-russell",
+      "name": "Alex Russell",
+      "context": {
+        "en": "PWA, platform economics",
+        "zh": "PWA，平台经济学"
+      },
+      "admire": {
+        "en": [
+          "The web as a distribution and power question, not a framework question",
+          "Uncomfortable honesty about what browsers actually afford",
+          "Still the clearest writer I know on platform economics"
+        ],
+        "zh": [
+          "把 Web 当成分发与权力的问题，而不是框架的问题",
+          "对浏览器真正能提供什么，诚实得让人不舒服",
+          "讲平台经济学，仍是我读过最清楚的人之一"
+        ]
+      },
+      "links": [
+        { "label": "infrequently.org", "url": "https://infrequently.org" }
+      ]
     }
   ],
   "meta": {
-    "tokenCount": 847,
-    "lastUpdated": "2024.03",
-    "model": "hux-v34"
+    "tokenCount": 1980,
+    "lastUpdated": "2026.09",
+    "model": "hux-v35"
   }
 }

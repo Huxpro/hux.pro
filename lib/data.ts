@@ -9,18 +9,8 @@ export interface BlogPostMeta extends LocalizedContent {
   tags?: string[];
 }
 
-export interface TalkData {
-  id: string;
-  title: string;
-  titleZh?: string;
-  event: string;
-  date: string;
-  location: string;
-  video?: string;
-  slides?: string;
-  description?: string;
-  descriptionZh?: string;
-}
+// Talks live in content/log.json (type: "talk"). Do not keep a parallel
+// catalog here — the old placeholder entries were fiction.
 
 // Static data for client-side search in command palette
 // This mirrors the MDX frontmatter for quick access without fs
@@ -302,44 +292,5 @@ export const blogPosts: BlogPostMeta[] = [
     date: "2014-08-16",
     description: "",
     tags: ["知乎", "产品", "UX/UI"],
-  },
-];
-
-export const talks: TalkData[] = [
-  {
-    id: "cross-platform-at-scale",
-    title: "Building for the Future: Cross-Platform at Scale",
-    titleZh: "构建未来：大规模跨平台开发",
-    event: "Tech Conference 2024",
-    date: "2024-03-15",
-    location: "San Francisco, CA",
-    video: "https://youtube.com/watch?v=example1",
-    slides: "https://slides.com/example1",
-    description:
-      "A deep dive into building cross-platform applications that scale to millions of users.",
-    descriptionZh: "深入探讨构建可扩展至百万用户的跨平台应用。",
-  },
-  {
-    id: "design-systems-tokens",
-    title: "Design Systems: From Tokens to Components",
-    titleZh: "设计系统：从令牌到组件",
-    event: "Frontend Summit",
-    date: "2023-10-20",
-    location: "Virtual",
-    slides: "https://slides.com/example2",
-    description:
-      "How to build a design system that bridges the gap between design and engineering.",
-    descriptionZh: "如何构建一个连接设计与工程的设计系统。",
-  },
-  {
-    id: "developer-experience-art",
-    title: "The Art of Developer Experience",
-    titleZh: "开发者体验的艺术",
-    event: "DevTools Conf",
-    date: "2023-06-12",
-    location: "Seattle, WA",
-    video: "https://youtube.com/watch?v=example3",
-    description: "What makes developer tools delightful and how to build them.",
-    descriptionZh: "是什么让开发者工具令人愉悦，以及如何构建它们。",
   },
 ];
