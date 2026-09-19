@@ -17,6 +17,7 @@ export {
 export {
   TheaterSurfaces,
   TheaterActivity,
+  TheaterPlaylistSheet,
   TheaterRegistrar,
   AlbumTabs,
   TrackThumb,

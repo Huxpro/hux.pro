@@ -1,14 +1,16 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Drawer } from "@base-ui/react/drawer";
 import { BEZEL_LAYER_ATTRIBUTE } from "vitre";
 import {
   SURFACE_EASING,
   SURFACE_RECEDE_EASING,
   SURFACE_TRANSITION_MS,
+  useMeasuredBand,
   useSurfaceStack,
+  type SurfaceBand,
 } from "./stack";
 
 // =============================================================================
@@ -359,6 +361,46 @@ function usePullPastTop(
   }, [popup, enabled, onArmedChange]);
 }
 
+/**
+ * The band a bottom sheet stands in, for the stack to tell covering from
+ * tiling (stack.ts).
+ *
+ * A sheet's bottom edge is pinned by construction — the popup's padding holds
+ * the shell a gap above the screen's edge at every detent (see the note at the
+ * top of this file) — so the only thing that moves is how tall it is, and its
+ * height is therefore its position. That makes one rule out of what would
+ * otherwise be three: a detent sheet, a fixed-height sheet and a `fitContent`
+ * sheet all just say how tall they laid out.
+ *
+ * `offsetHeight`, not a rect: the recede this band decides is a `scale()` on
+ * this very element, and a measurement that saw it would feed its own answer
+ * back in. The layout box does not move under a transform — and it does move
+ * under a drag, because Base UI spends the detent offset as the popup's
+ * padding, which is layout. So the tiling is live with the gesture, the way
+ * the rest of the stacking already is.
+ */
+function useSheetBand(
+  open: boolean,
+  hasSnapPoints: boolean,
+  shellRef: React.RefObject<HTMLDivElement | null>
+): SurfaceBand | undefined {
+  const measure = useCallback(() => {
+    const shell = shellRef.current;
+    const popup = shell?.parentElement;
+    if (!shell || !popup) return undefined;
+    // Where the shell's bottom edge rests. With detents that is the edge gap,
+    // always; without them it is wherever the popup's own box ends, which
+    // already carries the home-indicator inset.
+    const bottom = hasSnapPoints
+      ? window.innerHeight - EDGE_GAP_PX
+      : popup.offsetTop + popup.offsetHeight;
+    const height = shell.offsetHeight;
+    return height > 0 ? { top: bottom - height, bottom } : undefined;
+  }, [hasSnapPoints, shellRef]);
+
+  return useMeasuredBand(open, measure, shellRef);
+}
+
 export interface SurfaceSheetProps {
   /** Stable id — the sheet's key in the surface stack. */
   id: string;
@@ -487,9 +529,12 @@ export function SurfaceSheet({
       : undefined
     : levelProp;
 
+  const shellRef = useRef<HTMLDivElement>(null);
+  const band = useSheetBand(open, hasSnapPoints, shellRef);
   const { behind, depth, beneathLevel, rank } = useSurfaceStack(id, open, {
     nestedIn,
     level,
+    band,
   });
 
   // Two marks a *kept-mounted* sheet needs on its way in, and nothing else
@@ -640,6 +685,7 @@ export function SurfaceSheet({
             >
               {label && <Drawer.Title className="sr-only">{label}</Drawer.Title>}
               <div
+                ref={shellRef}
                 data-surface-shell
                 data-behind={behind ? "" : undefined}
                 // Past the threshold: the release will lift the sheet off the

@@ -1,7 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
+import { ListVideo, Pause, Play, SkipBack, SkipForward } from "lucide-react";
+import { t, useLocale } from "@/services";
 import { GLASS_CLUSTER, GLASS_CLUSTER_BTN, GLASS_PILL } from "../lib/chrome";
 import { formatTime } from "../lib/player";
 import { useTheater } from "../provider";
@@ -10,6 +11,10 @@ import { useTheater } from "../provider";
 // VideoControls — transport controls bound to the global player. Full controls
 // (scrub + play/pause) are only meaningful for YouTube tracks; other platforms
 // keep their native in-iframe controls and expose only track navigation here.
+//
+// The playlist button closes the cluster, exactly as it does in the Music
+// system's transport: from the Live Activity, where the video is parked
+// off-screen, it is the only way back to the rest of the album.
 // ---------------------------------------------------------------------------
 
 interface VideoControlsProps {
@@ -18,6 +23,7 @@ interface VideoControlsProps {
 }
 
 export function VideoControls({ variant = "theater", className }: VideoControlsProps) {
+  const { locale } = useLocale();
   const {
     track,
     phase,
@@ -31,6 +37,9 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
     next,
     previous,
     seek,
+    isPlaylistOpen,
+    openPlaylist,
+    closePlaylist,
   } = useTheater();
 
   const isYouTube = track?.platform === "youtube" && !!track.videoId;
@@ -111,6 +120,23 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
             className={GLASS_CLUSTER_BTN}
           >
             <SkipForward className="h-3.5 w-3.5" fill="currentColor" />
+          </button>
+
+          {/* A toggle, and lit while the list is up: from in here the list is
+              the other half of the player, not a one-way door. */}
+          <button
+            onClick={isPlaylistOpen ? closePlaylist : openPlaylist}
+            aria-pressed={isPlaylistOpen}
+            aria-label={t(
+              locale,
+              isPlaylistOpen ? "theaterClosePlaylist" : "theaterOpenPlaylist",
+            )}
+            className={cn(
+              GLASS_CLUSTER_BTN,
+              isPlaylistOpen && cn(GLASS_PILL, "text-foreground"),
+            )}
+          >
+            <ListVideo className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
