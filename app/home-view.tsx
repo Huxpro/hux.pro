@@ -13,7 +13,7 @@ import {
 import { PromptWidget } from "@/components/home/prompt-widget";
 import { ScrambleIdentifier } from "@/components/home/scramble-identifier";
 import { WritingWidget } from "@/components/home/writing-widget";
-import { Commit } from "@/components/log";
+import { Commit } from "@/components/log/commit-embed";
 import { HeaderZone } from "@/components/ui/header-zone";
 import {
   SortableMasonry,
@@ -29,29 +29,19 @@ import {
 import { useHeroFade } from "@/components/ui/use-hero-fade";
 import { useLockTextSelection } from "@/components/ui/use-lock-text-selection";
 import type { BlogPostSummary } from "@/lib/content";
-import logData from "@/content/log.json";
-import type { Commit as CommitData, Group, RawLogData } from "@/lib/log";
-import { localize, normalizeLogData, resolveGroupCommits } from "@/lib/log";
-import { enrichLogDataWithPreviews, type OGSnapshot } from "@/lib/og-enrich";
-import ogSnapshotJson from "@/content/og-snapshot.json";
+import type { Commit as CommitData, Group, LogData } from "@/lib/log";
+import { localize, resolveGroupCommits } from "@/lib/log";
 import { useLocale } from "@/services";
-import { AmbientGreeting, WeatherWidget } from "@/systems/ambient";
-import { MusicWidget } from "@/systems/music";
+import { AmbientGreeting } from "@/systems/ambient/components/greeting";
+import { WeatherWidget } from "@/systems/ambient/components/weather-widget";
+import { MusicWidget } from "@/systems/music/components/music-widget";
 import { ALBUM_GROUP_IDS } from "@/systems/theater/lib/albums";
 
 // =============================================================================
 // Widget Components
 // =============================================================================
 
-// Enrich with OG previews (same as /works and the editor preview do) so link
-// cards resolve their cover image from the snapshot — otherwise widget covers
-// that rely on OG images (e.g. GitNation talk cards) render empty.
-const log = enrichLogDataWithPreviews(
-  normalizeLogData(logData as unknown as RawLogData),
-  ogSnapshotJson as OGSnapshot,
-);
-
-function GroupWidget({ group }: { group: Group }) {
+function GroupWidget({ group, log }: { group: Group; log: LogData }) {
   const { locale } = useLocale();
 
   const commits = resolveGroupCommits(
@@ -97,9 +87,11 @@ function GroupWidget({ group }: { group: Group }) {
 
 function WidgetGrid({
   posts,
+  log,
   heroExit,
 }: {
   posts: BlogPostSummary[];
+  log: LogData;
   heroExit: HeroExit;
 }) {
   const { locale } = useLocale();
@@ -140,7 +132,7 @@ function WidgetGrid({
     { id: "prompt", node: <PromptWidget /> },
     ...visibleGroups.map((group) => ({
       id: `group-${group.id}`,
-      node: <GroupWidget group={group} />,
+      node: <GroupWidget group={group} log={log} />,
     })),
   ];
 
@@ -156,7 +148,13 @@ function WidgetGrid({
 // Main Homepage
 // =============================================================================
 
-export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
+export function HomeView({
+  posts,
+  log,
+}: {
+  posts: BlogPostSummary[];
+  log: LogData;
+}) {
   const heroExit = useHeroExit();
   const heroFadeStyle = useHeroFade(heroExit === "fade");
   // iOS will otherwise expand a long-press into a full-page selection.
@@ -201,7 +199,7 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
 
         {/* Widget grid — owns its own responsive width so column count and
             container width stay in step (see SortableMasonry's `gridScale`). */}
-        <WidgetGrid posts={posts} heroExit={heroExit} />
+        <WidgetGrid posts={posts} log={log} heroExit={heroExit} />
       </div>
     </main>
   );

@@ -1,24 +1,23 @@
 import { ReadingRootSync } from "@/components/post/reading-settings";
 import { bezelBootResolver } from "@/systems/ambient/lib/bezel";
+import { AmbientPhaseActivity } from "@/systems/ambient/components/phase-activity";
+import { AmbientSurface } from "@/systems/ambient/components/surface";
+import { SolarThemeSync } from "@/systems/ambient/components/solar-theme";
+import { TiltPrimerSheet } from "@/systems/ambient/components/tilt-primer-sheet-lazy";
+import { WallpaperSheet } from "@/systems/ambient/components/wallpaper-sheet-lazy";
 import { bezelBootScript } from "@hux/bezel";
 import { Providers } from "@/shared/providers";
-import {
-  AmbientPhaseActivity,
-  AmbientSurface,
-  SolarThemeSync,
-  TiltPrimerSheet,
-  WallpaperSheet,
-} from "@/systems/ambient";
-import { CommandPalette, FloatingActionButton } from "@/systems/command";
-import { DevtoolFAB } from "@/systems/devtool";
-import { Dock } from "@/systems/dock";
-import { MusicActivity, MusicPlaylistSheet } from "@/systems/music";
-import {
-  TheaterActivity,
-  TheaterRegistrar,
-  TheaterSurfaces,
-} from "@/systems/theater";
-import { MinimizedWindows, WindowLayer } from "@/systems/windows";
+import { CommandPalette } from "@/systems/command/palette";
+import { FloatingActionButton } from "@/systems/command/fab";
+import { DevtoolFAB } from "@/systems/devtool/dock";
+import { Dock } from "@/systems/dock/components";
+import { MusicActivity } from "@/systems/music/components/music-activity";
+import { MusicPlaylistSheet } from "@/systems/music/components/playlist-sheet-lazy";
+import { TheaterActivity } from "@/systems/theater/components/theater-activity";
+import { TheaterRegistrar } from "@/systems/theater/components/registrar";
+import { TheaterSurfaces } from "@/systems/theater/components/surfaces";
+import { MinimizedWindows } from "@/systems/windows/components/minimized-dock";
+import { WindowLayer } from "@/systems/windows/components/window-layer";
 import type { Metadata, Viewport } from "next";
 import { ViewTransitions } from "next-view-transitions";
 import {

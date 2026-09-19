@@ -1,6 +1,6 @@
 "use client";
 
-import { useDevtool } from "@/systems/devtool";
+import { useDevtool } from "@/systems/devtool/provider";
 import {
   animate,
   motion,

@@ -93,7 +93,7 @@ import {
 } from "./lib/wallpaper-profile";
 import { getImageProfile, getWeatherProfile } from "./lib/wallpaper-profiles";
 import { queryClient } from "@/lib/query";
-import { useDevtool } from "@/systems/devtool";
+import { useDevtool } from "@/systems/devtool/provider";
 
 
 function formatGeolocationError(err: unknown): string {

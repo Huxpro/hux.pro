@@ -24,7 +24,7 @@
  */
 
 import { cn } from "@/lib/utils";
-import { useOptionalTheater } from "@/systems/theater";
+import { useOptionalTheater } from "@/systems/theater/provider";
 import type { Media, StripItem } from "@/lib/log";
 import { isSlidesMedia, isVideoMedia } from "@/lib/log";
 import { getDomainLabel } from "@/lib/og-core";

@@ -24,7 +24,7 @@ import {
 } from "@/lib/apps";
 import type { AppLink } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
-import { useOptionalWindows } from "@/systems/windows";
+import { useOptionalWindows } from "@/systems/windows/provider";
 import {
   DndContext,
   DragOverlay,

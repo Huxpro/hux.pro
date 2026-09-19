@@ -1,9 +1,14 @@
 "use client";
 
-import { useDevtool } from "@/systems/devtool";
-import { useBreakpointValue, type BreakpointMap } from "@/systems/surface";
-import { CommandPopover } from "./popover";
-import { CommandSheet } from "./sheet";
+import { afterFirstPaint, useArmed } from "@/lib/deferred";
+import { useDevtool } from "@/systems/devtool/provider";
+import {
+  useBreakpointValue,
+  type BreakpointMap,
+} from "@/systems/surface/presentation";
+import dynamic from "next/dynamic";
+import { useEffect } from "react";
+import { useCommand } from "./provider";
 
 // =============================================================================
 // CommandPalette — one palette, two shells.
@@ -18,6 +23,9 @@ import { CommandSheet } from "./sheet";
 // the palette as it was before the sheet, kept whole: the popover never lost
 // its phone accommodations, so the switch is one presentation map, not a
 // second code path.
+//
+// Neither shell is in the initial bundle. The provider owns ⌘K / the FAB;
+// the first open (or an idle prefetch) loads cmdk + the matching chrome.
 // =============================================================================
 
 type CommandShellShape = "sheet" | "popover";
@@ -31,10 +39,32 @@ const COMMAND_PRESENTATION: BreakpointMap<CommandShellShape> = {
 /** The popover everywhere — the devtool's "Popover" choice. */
 const POPOVER_PRESENTATION: BreakpointMap<CommandShellShape> = { base: "popover" };
 
+const CommandSheet = dynamic(
+  () => import("./sheet").then((m) => ({ default: m.CommandSheet })),
+  { ssr: false },
+);
+
+const CommandPopover = dynamic(
+  () => import("./popover").then((m) => ({ default: m.CommandPopover })),
+  { ssr: false },
+);
+
 export function CommandPalette() {
+  const { isOpen } = useCommand();
   const { phonePalette } = useDevtool();
+  const armed = useArmed(isOpen);
   const shape = useBreakpointValue(
-    phonePalette === "popover" ? POPOVER_PRESENTATION : COMMAND_PRESENTATION
+    phonePalette === "popover" ? POPOVER_PRESENTATION : COMMAND_PRESENTATION,
   );
+
+  // Warm the shells after TTI so the first ⌘K does not wait on the chunk.
+  useEffect(() => {
+    return afterFirstPaint(() => {
+      void import("./sheet");
+      void import("./popover");
+    });
+  }, []);
+
+  if (!armed) return null;
   return shape === "sheet" ? <CommandSheet /> : <CommandPopover />;
 }

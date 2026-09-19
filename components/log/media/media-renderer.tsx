@@ -15,7 +15,7 @@ import { MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/services/theme";
 import { useLocale } from "@/services";
-import { useOptionalTheater } from "@/systems/theater";
+import { useOptionalTheater } from "@/systems/theater/provider";
 import type { Media } from "@/lib/log";
 import {
   isVideoMedia,

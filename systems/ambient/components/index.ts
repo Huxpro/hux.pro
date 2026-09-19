@@ -1,8 +1,8 @@
 export { AmbientGreeting } from "./greeting";
 export { AmbientSurface } from "./surface";
 export { WallpaperBackground } from "./wallpaper-background";
-export { WallpaperSheet } from "./wallpaper-sheet";
-export { TiltPrimerSheet } from "./tilt-primer-sheet";
+export { WallpaperSheet } from "./wallpaper-sheet-lazy";
+export { TiltPrimerSheet } from "./tilt-primer-sheet-lazy";
 export { WeatherIcon } from "./weather-icon";
 export { WeatherWidget } from "./weather-widget";
 export { WeatherNow, useDisplayWeather } from "./weather-now";

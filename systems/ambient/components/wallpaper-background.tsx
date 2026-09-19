@@ -1,7 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useAfterFirstPaint } from "@/lib/deferred";
 import { useReducedMotion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef } from "react";
 import {
   armedPoke,
@@ -21,7 +23,10 @@ import { useWeather } from "../provider";
 import { useWallpaper } from "../provider";
 import { GradientStack } from "./gradient-stack";
 import { BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
-import { WeatherWallpaper } from "./wallpaper";
+const WeatherWallpaper = dynamic(
+  () => import("./wallpaper").then((m) => ({ default: m.WeatherWallpaper })),
+  { ssr: false },
+);
 
 // ---------------------------------------------------------------------------
 // WallpaperBackground — the full-page background layer.
@@ -125,6 +130,10 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   const { scene } = useWeather();
 
   const useShader = kind === "weather" && renderer === "shader";
+  // Keep the shader + renderer chunk off first paint / TTI. The bezel boot
+  // script already painted the ground colour; the canvas fades in on its
+  // first frame the same way it always has.
+  const skyReady = useAfterFirstPaint(useShader);
 
   // The pokes, the Sky's alone: the ref is registered by <WeatherWallpaper />
   // and is null under every other engine, so the eggs cannot half-exist. One
@@ -224,7 +233,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         ...(bezel ? BEZEL_INSET : null),
       }}
     >
-      {useShader ? (
+      {useShader && skyReady ? (
         <WeatherWallpaper
           scene={scene}
           active={enabled}

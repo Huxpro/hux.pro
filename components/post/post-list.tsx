@@ -15,7 +15,8 @@ import {
 import { HeaderAction } from "@/components/ui/controls";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { MagneticPreview, PEEK_W } from "@/components/motion-primitives/magnetic-preview";
+import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
+import { PEEK_W } from "@/components/motion-primitives/peek";
 import { PeekCover } from "@/components/log/media/peek-cover";
 import { useOptionalDevtool } from "@/systems/devtool/provider";
 import { Link } from "next-view-transitions";

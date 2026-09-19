@@ -5,7 +5,7 @@ import type { AppLink } from "@/lib/app-icon-core";
 import { appTitle, resolveAppIconSrc } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
-import { AppBadgeFor } from "@/systems/windows";
+import { AppBadgeFor } from "@/systems/windows/components/app-badge";
 
 import { TYPE } from "@/lib/typography";
 // =============================================================================
