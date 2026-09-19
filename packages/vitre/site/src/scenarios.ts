@@ -16,6 +16,11 @@ export interface Scenario {
   /** The config the scenario starts from, over the defaults. */
   base: Partial<DemoConfig>;
   run?(host: ScenarioHost): () => void;
+  /**
+   * On a phone, where the user performs the gesture themselves: what the card
+   * sets up instead of `run`.
+   */
+  onPhone?(host: ScenarioHost): () => void;
 }
 
 function every(ms: number, steps: ((host: ScenarioHost) => void)[]) {
@@ -96,6 +101,16 @@ export const SCENARIOS = {
     ]),
   },
   boot: { base: {} },
+  // The docs phone's status bar is tapped for you; on a phone, the card scrolls
+  // down and leaves the tap to you.
+  statusTap: {
+    base: { scroll: "container" },
+    run: every(2400, [(h) => h.action("scroll-bottom"), (h) => h.action("status-tap")]),
+    onPhone: (h) => {
+      h.action("scroll-bottom");
+      return () => {};
+    },
+  },
   pageScroll: {
     base: {},
     run: every(1500, [

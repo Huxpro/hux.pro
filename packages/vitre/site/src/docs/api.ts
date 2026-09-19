@@ -17,6 +17,7 @@ export type SectionId =
   | "color"
   | "theme"
   | "scroll"
+  | "statusTap"
   | "backdrop"
   | "chrome"
   | "boot"
@@ -115,6 +116,12 @@ export const EXPORTS: { [K in keyof typeof Contract]: ExportDoc } = {
     kind: "function",
     signature: "emitPageScroll(): void",
     summary: { en: "Fire page scroll listeners without scrolling, to force a re-measure.", zh: "不滚动也触发一次滚动回调，用来强制重新测量。" },
+    section: "pageScroll",
+  },
+  PAGE_SCROLL_TIMELINE: {
+    kind: "constant",
+    signature: 'PAGE_SCROLL_TIMELINE: "--page-scroll"',
+    summary: { en: "A named scroll timeline on whichever element scrolls the page. Bind scroll-driven CSS to it: animation-timeline: --page-scroll.", zh: "挂在实际滚动页面的元素上的具名滚动时间线。滚动驱动的 CSS 动画绑定它即可：animation-timeline: --page-scroll。" },
     section: "pageScroll",
   },
   BEZEL_INSET: {

@@ -54,11 +54,16 @@ function Phone({
   report,
   collapsed,
   src,
+  taps,
+  onStatusTap,
 }: {
   frameRef: React.RefObject<HTMLIFrameElement | null>;
   report: PhoneReport | null;
   collapsed: boolean;
   src: string;
+  /** Status-bar taps so far; each one flashes the bar. */
+  taps: number;
+  onStatusTap: () => void;
 }) {
   const t = useT();
   const [scale, setScale] = useState(1);
@@ -83,11 +88,18 @@ function Phone({
   return (
     <figure className="phone-wrap" style={{ height: PHONE.height * scale, width: PHONE.width * scale }}>
       <div className="phone" style={style}>
-        <div className="phone-status" style={{ height: PHONE.status }}>
+        <button
+          type="button"
+          className="phone-status"
+          style={{ height: PHONE.status }}
+          onClick={onStatusTap}
+          title={t({ en: "Tap to scroll to the top", zh: "点击回到顶部" })}
+        >
+          {taps > 0 && <span key={taps} className="phone-status-flash" aria-hidden="true" />}
           <span className="phone-time">9:41</span>
           <span className="phone-island" />
           <span className="phone-icons">●●● ◐</span>
-        </div>
+        </button>
         <iframe
           ref={frameRef}
           title="vitre demo"
@@ -180,6 +192,15 @@ export function Docs() {
   const send = useCallback((message: ToPhone) => {
     frameRef.current?.contentWindow?.postMessage(message, location.origin);
   }, []);
+  // The phone's status bar: a tap is what Safari's gesture does to the page.
+  const [taps, setTaps] = useState(0);
+  const sendAction = useCallback(
+    (action: DemoAction) => {
+      if (action === "status-tap") setTaps((n) => n + 1);
+      send({ type: "bezel-demo:action", action });
+    },
+    [send],
+  );
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -233,9 +254,9 @@ export function Docs() {
     send({ type: "bezel-demo:patch", patch: scenario.base });
     return scenario.run?.({
       patch: (patch) => send({ type: "bezel-demo:patch", patch }),
-      action: (action: DemoAction) => send({ type: "bezel-demo:action", action }),
+      action: sendAction,
     });
-  }, [active, ready, send]);
+  }, [active, ready, send, sendAction]);
 
   const runAction = (run: "reload" | "top" | "bottom") => {
     if (run === "reload") {
@@ -250,7 +271,14 @@ export function Docs() {
   return (
     <div className="docs">
       <aside className="docs-phone">
-        <Phone frameRef={frameRef} report={report} collapsed={collapsed} src={frameSrc} />
+        <Phone
+          frameRef={frameRef}
+          report={report}
+          collapsed={collapsed}
+          src={frameSrc}
+          taps={taps}
+          onStatusTap={() => sendAction("status-tap")}
+        />
       </aside>
       <article className="docs-article">
         <div className="docs-nav">

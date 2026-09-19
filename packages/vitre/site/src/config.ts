@@ -86,7 +86,7 @@ export function isDemoPage(): boolean {
 // Messages between the docs page and the phone
 // -----------------------------------------------------------------------------
 
-export type DemoAction = "scroll-top" | "scroll-middle" | "scroll-bottom" | "reset";
+export type DemoAction = "status-tap" | "scroll-top" | "scroll-middle" | "scroll-bottom" | "reset";
 
 export type ToPhone =
   | { type: "bezel-demo:patch"; patch: Partial<DemoConfig> }

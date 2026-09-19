@@ -169,7 +169,14 @@ html[data-page="docs"] body::before {
   background: linear-gradient(125deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 22%, transparent 40%, transparent 72%, rgba(255, 255, 255, 0.06) 100%);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
-.phone-status { display: flex; align-items: center; justify-content: space-between; padding: 0 34px; color: var(--chrome-ink); font-weight: 600; font-size: 16px; flex: none; }
+.phone-status { position: relative; border: 0; background: none; cursor: pointer; font: inherit; width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 34px; color: var(--chrome-ink); font-weight: 600; font-size: 16px; flex: none; }
+.phone-status-flash {
+  position: absolute; inset: 6px 18px; border-radius: 22px; pointer-events: none;
+  background: color-mix(in srgb, var(--chrome-ink) 22%, transparent);
+  animation: phone-status-flash 0.5s ease-out forwards;
+}
+@keyframes phone-status-flash { from { opacity: 1; } to { opacity: 0; } }
+.phone-status > :not(.phone-status-flash) { position: relative; }
 .phone-island { width: 124px; height: 36px; border-radius: 20px; background: #000; }
 .phone-icons { font-size: 10px; letter-spacing: 1px; }
 .phone iframe { border: 0; width: 100%; display: block; flex: none; background: transparent; }

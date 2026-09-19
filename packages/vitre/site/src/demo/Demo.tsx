@@ -86,7 +86,8 @@ function runAction(action: DemoAction, reset: () => void) {
   const smooth = { behavior: "smooth" } as const;
   // Long enough for a smooth scroll to start, or to end at once where it already is.
   selfScroll.hold(600);
-  if (action === "scroll-top") scrollPageTo(0, smooth);
+  // What Safari's status-bar tap does, for the docs phone that has no status bar.
+  if (action === "status-tap" || action === "scroll-top") scrollPageTo(0, smooth);
   else if (action === "scroll-middle") scrollPageTo(Math.round(max / 2), smooth);
   else if (action === "scroll-bottom") scrollPageTo(max, smooth);
   else if (action === "reset") {
@@ -125,7 +126,8 @@ export function Demo() {
   useEffect(() => {
     if (!running) return;
     const scenario: Scenario = SCENARIOS[running];
-    return scenario.run?.({ patch, action });
+    const script = !isFramed() && scenario.onPhone ? scenario.onPhone : scenario.run;
+    return script?.({ patch, action });
   }, [running, patch, action]);
 
   // Driven by the docs page.
@@ -256,6 +258,7 @@ const CARDS: { name: ScenarioName; title: string; body: Text }[] = [
   { name: "color", title: "color", body: { en: "Any CSS colour. Each change is shown to Safari's chrome.", zh: "任意 CSS 颜色，每次变化都会同步给 Safari 的 chrome。" } },
   { name: "theme", title: "theme & ground", body: { en: "A colour that follows light and dark, and the ground the chrome takes when the bezel is off.", zh: "跟随深浅色的颜色，以及 bezel 关闭时 chrome 显示的页面底色。" } },
   { name: "scroll", title: "scroll", body: { en: "Window, or a container inside a locked window — ryOS's rule.", zh: "window 滚动，或者锁住 window、在容器里滚动（ryOS 的做法）。" } },
+  { name: "statusTap", title: "status-bar tap", body: { en: "Switches to container scroll and scrolls down. Tap the status bar to come back to the top.", zh: "切到 container 滚动并滚到下面。点一下状态栏，就会回到顶部。" } },
   { name: "backdrop", title: "backdrop", body: { en: "Layers painted behind the page and inside the bezel.", zh: "画在页面后面、bezel 里面的图层。" } },
   { name: "chrome", title: "syncChrome", body: { en: "The bezel morphs to 8px so Safari samples the new colour, then back.", zh: "bezel 变形到 8px 让 Safari 取到新颜色，再收回来。" } },
   { name: "pageScroll", title: "page scroll helpers", body: { en: "Read and drive scroll in either mode.", zh: "在两种滚动模式下读取和控制滚动。" } },

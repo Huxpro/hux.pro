@@ -121,6 +121,7 @@ while the bezel is on.
 | Safari's toolbar | Collapses and expands with scroll | Stays expanded |
 | `getScrollContainer()` | `null` | The container |
 | `window.scrollY`, `scrollTo`, `scroll` event | The page | Not the page's scroll |
+| `animation-timeline: scroll(root)` | The page | Silent; use `--page-scroll` |
 | Tap on the status bar | Scrolls to the top | Scrolls to the top (on iOS; see [The status-bar tap](#the-status-bar-tap)) |
 | Full-screen fixed layers (`body > .fixed`, `BEZEL_LAYER_ATTRIBUTE`) | fixed | absolute |
 | `position: sticky`, IntersectionObserver, `scrollIntoView`, anchors | Work | Work |
@@ -148,6 +149,7 @@ Two layers, the second built on the first:
 | Always window scroll | `window` |
 | Always container scroll | `getScrollContainer()`, as any scroll container |
 | Switches mode live, or a component that does not know the host's mode | The page helpers |
+| Scroll-driven CSS | `animation-timeline: --page-scroll` (`PAGE_SCROLL_TIMELINE`) |
 | A library that takes a scroll element | `getScrollContainer()`, bound again on `useBezel().scroll` |
 
 ```tsx

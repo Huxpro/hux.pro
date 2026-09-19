@@ -77,7 +77,9 @@ function ModeTable() {
         [{ en: "Scroller", zh: "滚动者" }, { en: "The document", zh: "document" }, { en: "A container inside the bezel", zh: "bezel 里的容器" }],
         [{ en: "Safari's toolbar", zh: "Safari 工具栏" }, { en: "Collapses and expands with scroll", zh: "随滚动收起和展开" }, { en: "Stays expanded", zh: "保持展开" }],
         [same(<code>getScrollContainer()</code>), same(<code>null</code>), { en: "The container", zh: "容器" }],
-        [{ en: <><code>window.scrollY</code>, <code>scrollTo</code>, <code>scroll</code> event</>, zh: <><code>window.scrollY</code>、<code>scrollTo</code>、<code>scroll</code> 事件</> }, { en: "The page", zh: "页面" }, { en: <><code>0</code> · no effect · never fires</>, zh: <><code>0</code> · 无效 · 不触发</> }],
+        [{ en: <><code>window.scrollY</code>, <code>scrollTo</code>, <code>scroll</code> event</>, zh: <><code>window.scrollY</code>、<code>scrollTo</code>、<code>scroll</code> 事件</> }, { en: "The page", zh: "页面" }, { en: "Not the page's scroll", zh: "不是页面的滚动" }],
+        [same(<code>animation-timeline: scroll(root)</code>), { en: "The page", zh: "页面" }, { en: "Silent; use --page-scroll", zh: "不生效，改用 --page-scroll" }],
+        [{ en: "Tap on the status bar", zh: "点击状态栏" }, { en: "Back to the top", zh: "回到顶部" }, { en: "Back to the top, on iOS", zh: "回到顶部（iOS）" }],
         [{ en: <>Full-screen fixed layers: <code>body &gt; .fixed</code>, <code>BEZEL_LAYER_ATTRIBUTE</code></>, zh: <>全屏 fixed 图层：<code>body &gt; .fixed</code>、<code>BEZEL_LAYER_ATTRIBUTE</code></> }, same("fixed"), same("absolute")],
         [{ en: <><code>position: sticky</code>, IntersectionObserver, <code>scrollIntoView</code>, anchors</>, zh: <><code>position: sticky</code>、IntersectionObserver、<code>scrollIntoView</code>、锚点</> }, { en: "Work", zh: "正常" }, { en: "Work", zh: "正常" }],
       ]}
@@ -94,6 +96,7 @@ function NeedTable() {
         [{ en: "Always window scroll", zh: "始终 window 滚动" }, same(<code>window</code>)],
         [{ en: "Always container scroll", zh: "始终 container 滚动" }, { en: <><code>getScrollContainer()</code>, as any scroll container</>, zh: <><code>getScrollContainer()</code>，当作普通滚动容器</> }],
         [{ en: "Switches mode live, or a component that does not know the host's mode", zh: "模式会实时切换，或组件不知道宿主用哪种模式" }, { en: "The page helpers", zh: "页面滚动工具函数" }],
+        [{ en: "Scroll-driven CSS", zh: "滚动驱动的 CSS 动画" }, same(<><code>animation-timeline: --page-scroll</code></>)],
         [{ en: "A library that takes a scroll element", zh: "需要传入滚动元素的库" }, { en: <><code>getScrollContainer()</code>, bound again on <code>useBezel().scroll</code></>, zh: <><code>getScrollContainer()</code>，随 <code>useBezel().scroll</code> 重新绑定</> }],
       ]}
     />
@@ -402,6 +405,33 @@ export const SECTIONS: DocSection[] = [
       ),
     },
     code: `<Bezel scroll={bezelOn ? "container" : "window"} … />`,
+    live: (r) => r && { label: { en: "scroll · pageScrollTop()", zh: "滚动模式 · pageScrollTop()" }, value: `${String(r.state.scroll)} · ${r.scrollTop}px` },
+  },
+  {
+    id: "statusTap",
+    nav: { en: "Status bar", zh: "状态栏" },
+    eyebrow: '<Bezel scroll="container">',
+    title: { en: "Tap the status bar, back to the top", zh: "点状态栏，回到顶部" },
+    lede: {
+      en: "On iOS, tapping the status bar takes the page back to the top. In container scroll the gesture reaches the container too, and the page eases back up.",
+      zh: "在 iOS 上，点击状态栏会让页面回到顶部。container 滚动时这个手势同样会传到容器，页面平滑地回到顶部。",
+    },
+    body: {
+      en: (
+        <>
+          <p>iOS hands the gesture to the window&apos;s scroll view. While the page is away from the top, vitre parks the window a few pixels down — invisible, because <code>&lt;body&gt;</code> is fixed — and Safari scrolling it back to 0 is the tap. The container then eases to the top in 280–640ms, by distance. With reduced motion it jumps, and a touch stops it where it is.</p>
+          <p>It is on wherever container scroll is on iOS, with nothing to call. While a sheet or dialog holds a scroll lock, the tap waits until it closes.</p>
+          <p>Click the phone&apos;s status bar to try it.</p>
+        </>
+      ),
+      zh: (
+        <>
+          <p>iOS 把这个手势交给 window 的滚动视图。页面离开顶部时，vitre 把 window 往下停几个像素，因为 <code>&lt;body&gt;</code> 是固定的，所以看不出来；Safari 把它滚回 0，就是这次点击。随后容器在 280–640ms 内（按距离）平滑回到顶部。开启减弱动态效果时直接跳到顶部，手指一碰就停在当前位置。</p>
+          <p>只要在 iOS 上使用 container 滚动，这个能力就会自动开启，不需要调用任何东西。sheet 或对话框持有滚动锁时，点击会等到它关闭后才生效。</p>
+          <p>点一下左边手机的状态栏试试。</p>
+        </>
+      ),
+    },
     live: (r) => r && { label: { en: "scroll · pageScrollTop()", zh: "滚动模式 · pageScrollTop()" }, value: `${String(r.state.scroll)} · ${r.scrollTop}px` },
   },
   {
