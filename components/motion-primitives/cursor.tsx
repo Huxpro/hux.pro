@@ -149,6 +149,24 @@ export function Cursor({
 
   const isVisible = attachToParent ? isHovering : true;
 
+  // The panel exists only while it peeks. A fixed, transformed element is a
+  // compositing layer, and one per row of /works was fifty layers on a desk
+  // before anyone hovered; idle, this is a hidden span — enough for the
+  // parent-attach effect above to find the parent. `present` outlives
+  // `isVisible` by the exit animation, so the panel can leave the way it
+  // came. (React's "adjusting state during render" pattern, so the panel
+  // is in the same commit as the hover that asked for it.)
+  const [present, setPresent] = useState(isVisible);
+  if (isVisible && !present) setPresent(true);
+  if (!present) {
+    return (
+      <span
+        ref={cursorRef as unknown as React.RefObject<HTMLSpanElement>}
+        hidden
+      />
+    );
+  }
+
   return (
     <motion.div
       ref={cursorRef}
@@ -160,7 +178,7 @@ export function Cursor({
         translateY,
       }}
     >
-      <AnimatePresence>
+      <AnimatePresence onExitComplete={() => setPresent(false)}>
         {isVisible && (
           <motion.div
             initial="initial"

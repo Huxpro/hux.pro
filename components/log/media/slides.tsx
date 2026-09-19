@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import type { SlidesMedia } from "@/lib/log";
 import { resolveSlidesEmbedUrl } from "@/lib/slides";
 import { useOptionalAttachments } from "@/systems/attachments";
-import { useOptionalTheater } from "@/systems/theater";
+import { useOptionalTheaterStage } from "@/systems/theater";
 import { ExternalImage } from "./external-image";
 import { MediaMark, SLIDES_MARK } from "./media-mark";
 
@@ -68,7 +68,7 @@ export function Slides({
   onPlay,
 }: SlidesProps) {
   const attachments = useOptionalAttachments();
-  const theater = useOptionalTheater();
+  const theater = useOptionalTheaterStage();
   const label = title || "Slides";
 
   const sizeClasses = {

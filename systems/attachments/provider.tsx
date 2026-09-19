@@ -14,7 +14,7 @@ import { getDomainLabel } from "@/lib/og-core";
 import { t, useLocale } from "@/services";
 import { ArrowUpRight } from "lucide-react";
 import { useBreakpointValue } from "@/systems/surface";
-import { useOptionalTheater } from "@/systems/theater";
+import { useOptionalTheaterStage } from "@/systems/theater";
 import { useOptionalWindows } from "@/systems/windows";
 import {
   homeFor,
@@ -49,7 +49,7 @@ export interface AttachmentSession {
   key: number;
 }
 
-interface AttachmentsContextValue {
+export interface AttachmentsContextValue {
   /** Open the attachment at `index` — per the policy, wherever it belongs. */
   open: (set: AttachmentSet, index?: number) => void;
   /** Perform the attachment's native action: play it, open its page… */
@@ -62,6 +62,9 @@ interface AttachmentsContextValue {
   /** The surface's current session; it stays through the close animation. */
   session: AttachmentSession | null;
   isOpen: boolean;
+  /** A phone-sized viewport — the one fact of the policy's context a row
+   *  lays itself out by (the feed plays a video where it is there). */
+  compact: boolean;
 }
 
 const AttachmentsContext = createContext<AttachmentsContextValue | null>(null);
@@ -83,7 +86,7 @@ export function useOptionalAttachments(): AttachmentsContextValue | null {
 const COMPACT = { base: true, sm: false } as const;
 
 export function AttachmentProvider({ children }: { children: React.ReactNode }) {
-  const theater = useOptionalTheater();
+  const theater = useOptionalTheaterStage();
   const windows = useOptionalWindows();
   const router = useTransitionRouter();
   const { locale } = useLocale();
@@ -213,8 +216,8 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
   );
 
   const value = useMemo<AttachmentsContextValue>(
-    () => ({ open, act, homeOf, nativeHomeOf, close, session, isOpen }),
-    [open, act, homeOf, nativeHomeOf, close, session, isOpen],
+    () => ({ open, act, homeOf, nativeHomeOf, close, session, isOpen, compact }),
+    [open, act, homeOf, nativeHomeOf, close, session, isOpen, compact],
   );
 
   return (

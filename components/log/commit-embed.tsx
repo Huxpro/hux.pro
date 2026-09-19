@@ -14,7 +14,7 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
 import { getCommitPeekItems, localize } from "@/lib/log";
-import { DEFAULT_DENSITY, type LogDensity } from "@/lib/log-view";
+import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { cn } from "@/lib/utils";
 import { attachmentSetFor, leavesSite } from "@/systems/attachments";
 import { IDENTITY_PEEK_PANEL, IdentityPeek } from "@/systems/identity";
@@ -26,6 +26,7 @@ import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
+import { useInputCapability } from "@/services";
 
 import { TYPE } from "@/lib/typography";
 // =============================================================================
@@ -61,7 +62,7 @@ export interface CommitProps {
    *  the timeline so this component stays locale-agnostic. */
   byline?: Byline | null;
   /** Timeline-only: how much of the commit to print (see `lib/log-view`). */
-  density?: LogDensity;
+  form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
 }
@@ -85,7 +86,7 @@ export function Commit({
   onBeamSet,
   onBeamClear,
   byline = null,
-  density = DEFAULT_DENSITY,
+  form = DEFAULT_FORM,
   onSelectHash,
 }: CommitProps) {
   const edit = useTimelineEdit();
@@ -99,6 +100,22 @@ export function Commit({
   const attachmentSet = useMemo(
     () => (!commit || inspecting ? null : attachmentSetFor(commit, locale)),
     [commit, locale, inspecting],
+  );
+  // The same for the row's normalised data and its hover peek: a timeline
+  // render (a beam hover, a form change) touches every row, and neither of
+  // these changes with it. The peek is built only where a pointer can rest
+  // on it — a phone would build and discard one per row.
+  const { magneticPreviewEnabled } = useInputCapability();
+  const data = useMemo(
+    () => (commit ? normalizeCommit(commit, locale) : null),
+    [commit, locale],
+  );
+  const preview = useMemo(
+    () =>
+      commit && magneticPreviewEnabled
+        ? buildCommitPreview(commit, locale)
+        : null,
+    [commit, locale, magneticPreviewEnabled],
   );
 
   // Runtime guard: MDX/JSON inputs can bypass static typing.
@@ -114,8 +131,7 @@ export function Commit({
     return null;
   }
 
-  const data = normalizeCommit(commit, locale);
-  const preview = buildCommitPreview(commit, locale);
+  if (!data) return null;
   const isSelected = !!edit && edit.selectedCommitId === commit.id;
   const selectedMedia =
     inspecting && isSelected && edit && edit.selectedMediaIndex != null
@@ -150,7 +166,7 @@ export function Commit({
           onBeamSet={onBeamSet}
           onBeamClear={onBeamClear}
           byline={byline}
-          density={density}
+          form={form}
           onSelectHash={onSelectHash}
           attachmentSet={attachmentSet}
           inspecting={inspecting}

@@ -27,7 +27,7 @@ export const GLASS_PANEL =
  * arrives the same way wherever the picture is.
  */
 export const ARTWORK_CHIP =
-  "bg-black/35 text-white ring-1 ring-white/25 backdrop-blur-[2px]";
+  "bg-black/35 text-white ring-1 ring-white/25";
 
 /**
  * The same chip at rest — a cover on the page, not yet looked at. Lighter,
@@ -36,4 +36,4 @@ export const ARTWORK_CHIP =
  * start (media-mark.tsx).
  */
 export const ARTWORK_CHIP_REST =
-  "bg-black/20 text-white/85 ring-1 ring-white/10 backdrop-blur-[2px]";
+  "bg-black/20 text-white/85 ring-1 ring-white/10";

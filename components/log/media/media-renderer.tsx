@@ -15,7 +15,7 @@ import { MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/services/theme";
 import { useLocale } from "@/services";
-import { useOptionalTheater } from "@/systems/theater";
+import { useOptionalTheaterStage } from "@/systems/theater";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import type { Media } from "@/lib/log";
 import {
@@ -144,7 +144,9 @@ interface SingleMediaProps {
 
 function SingleMedia({ media, theme, size, className, dense, set }: SingleMediaProps) {
   const { locale } = useLocale();
-  const theater = useOptionalTheater();
+  // The stage without its clock: this only ever needs `openVideo`, and the
+  // full theater context re-renders twice a second while a video plays.
+  const theater = useOptionalTheaterStage();
   const attachments = useOptionalAttachments();
 
   // One door for the whole set (systems/attachments): the item's index in it,

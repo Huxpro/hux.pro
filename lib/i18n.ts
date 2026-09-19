@@ -298,13 +298,13 @@ export const translations = {
     logHead: "HEAD",
     logCurrent: "Current",
     logInit: "git init",
-    // Toolbar: type filter + density (see components/log/works-toolbar.tsx)
+    // Toolbar: type filter + form (see components/log/works-toolbar.tsx)
     logFilterLabel: "Filter by type",
     logFilterClear: "Clear filter",
-    logDensityLabel: "Detail level",
-    logDensityOneline: "Titles only",
-    logDensityStat: "Titles + media",
-    logDensityPatch: "Everything",
+    logFormLabel: "View",
+    logFormIndex: "Index",
+    logFormCovers: "Covers",
+    logFormFeed: "Feed",
     logNoMatches: "no commits match this filter.",
     writingFeatured: "featured",
     logSelectedWorks: "Selected Works",
@@ -312,6 +312,7 @@ export const translations = {
     logVisit: "Visit",
     logWatch: "Watch",
     logSlides: "Slides",
+    logRecording: "Recording",
     // Attachment surface (see systems/attachments)
     attachmentsClose: "Close attachments",
     // Identity card (see systems/identity)
@@ -590,13 +591,13 @@ export const translations = {
     logHead: "HEAD",
     logCurrent: "当前",
     logInit: "git init",
-    // Toolbar: type filter + density (see components/log/works-toolbar.tsx)
+    // Toolbar: type filter + form (see components/log/works-toolbar.tsx)
     logFilterLabel: "按类型筛选",
     logFilterClear: "清除筛选",
-    logDensityLabel: "详略",
-    logDensityOneline: "仅标题",
-    logDensityStat: "标题 + 媒体",
-    logDensityPatch: "全部展开",
+    logFormLabel: "视图",
+    logFormIndex: "索引",
+    logFormCovers: "封面",
+    logFormFeed: "信息流",
     logNoMatches: "没有符合筛选条件的提交。",
     writingFeatured: "精选",
     logSelectedWorks: "精选作品",
@@ -604,6 +605,7 @@ export const translations = {
     logVisit: "访问",
     logWatch: "观看",
     logSlides: "幻灯片",
+    logRecording: "录像",
     // Attachment surface (see systems/attachments)
     attachmentsClose: "关闭附件",
     // Identity card (see systems/identity)
