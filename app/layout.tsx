@@ -104,6 +104,8 @@ export const viewport: Viewport = {
  */
 const BEZEL_BOOT = bezelBootScript(bezelBootResolver());
 
+const SCROLL_PROBE_LOADER = `try{var m=/[?&]scroll-probe=([01])/.exec(location.search);if(m)localStorage.setItem("scroll-probe",m[1]);if(localStorage.getItem("scroll-probe")==="1")document.write('<script src="/scroll-probe.js"><\\/script>')}catch(e){}`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -116,6 +118,10 @@ export default function RootLayout({
           {/* Before first paint: Safari picks its chrome colour at load, from
               the root background (iOS 26) or theme-color (iOS 18). */}
           <script dangerouslySetInnerHTML={{ __html: BEZEL_BOOT }} />
+          {/* Opt-in touch diagnostics for a phone: `?scroll-probe=1`. Written
+              in synchronously so it is in place before the app registers any
+              listener. See public/scroll-probe.js. */}
+          <script dangerouslySetInnerHTML={{ __html: SCROLL_PROBE_LOADER }} />
         </head>
         <body
           className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
