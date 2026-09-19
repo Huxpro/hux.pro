@@ -76,19 +76,6 @@ export interface AttachmentGridProps {
 const PHONE_BLEED =
   "-ml-[calc(var(--page-gutter)+1.75rem)] -mr-[var(--page-gutter)]";
 
-/**
- * The same bleed for the box the stack sits in, padded back into the column
- * so its content does not move. The row body is `content-visibility: auto`
- * (globals.css), and that implies paint containment: nothing inside it
- * paints past its padding box, in Chromium and WebKit alike. With the body
- * no wider than the column, a cover laid out edge to edge was drawn
- * column-wide, cut mid-image on both sides. Spanning the screen, the body
- * clips where the screen already does. `max-sm` is `compact`'s own 640px,
- * the widths where the stack bleeds.
- */
-export const PHONE_BLEED_BOX =
-  "max-sm:-ml-[calc(var(--page-gutter)+1.75rem)] max-sm:pl-[calc(var(--page-gutter)+1.75rem)] max-sm:-mr-[var(--page-gutter)] max-sm:pr-[var(--page-gutter)]";
-
 const SOURCE = cn(TYPE.labelSm, "flex items-center gap-1.5 min-w-0");
 const TITLE = "text-xs leading-4 text-foreground";
 
