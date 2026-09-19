@@ -3,7 +3,8 @@
 import { GLASS_PANEL } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { useInputCapability } from "@/services";
-import React, { useSyncExternalStore } from "react";
+import React, { useRef, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { Cursor } from "./cursor";
 
 export interface MagneticPreviewProps {
@@ -70,53 +71,62 @@ export function MagneticPreview({
   // update — a hundred instances on a page used to schedule a hundred.
   const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
   const showPreview = hydrated && enabled && magneticPreviewEnabled;
+  const hostRef = useRef<HTMLDivElement>(null);
+
+  const panel = showPreview ? (
+    <Cursor
+      attachToParent
+      attachHost={hostRef}
+      variants={defaultVariants}
+      transition={defaultTransition}
+      springConfig={defaultSpringConfig}
+      // Intentionally NOT clipped. This wrapper used to carry
+      // `overflow-hidden rounded-lg`, which sheared the panel's soft
+      // shadow off at the rounded edge — that's why every peek but the
+      // stacked deck looked flat. Each peek surface rounds its OWN
+      // content (the panel/card carry their own `overflow-hidden`), so
+      // the wrapper doesn't need to; leaving it unclipped lets the
+      // `shadow-raised` lift breathe.
+    >
+      <div
+        className={cn(
+          // Translucent lifted surface. No shadow here on purpose: the
+          // shadow belongs to whatever is the *visible* surface.
+          // Panel-as-card peeks (writing / details) add `shadow-raised`
+          // themselves; peeks that strip this chrome (deck / single card /
+          // video) let their inner card/thumb cast the shadow — so the
+          // deck, an irregular rotated stack, never gets a rectangular
+          // container shadow around it.
+          GLASS_PANEL,
+          // Default cap fits the unified peek width (PEEK_W = 384); peeks
+          // no longer need to lift a narrower default.
+          "p-3 max-w-md",
+          panelClassName,
+        )}
+      >
+        {preview}
+      </div>
+    </Cursor>
+  ) : null;
 
   return (
     <div
+      ref={hostRef}
       className={cn(
-        // A peek is `position: fixed` but still a child, so later siblings
-        // of this wrapper paint over it unless the wrapper rises on hover.
-        // The panel keeps `pointer-events-none`; hover stays on the trigger.
-        showPreview && "relative hover:z-50",
         showPreview && hideNativeCursor && "[&:hover]:cursor-none",
         className,
       )}
     >
       {children}
-      {showPreview && (
-        <Cursor
-          attachToParent
-          variants={defaultVariants}
-          transition={defaultTransition}
-          springConfig={defaultSpringConfig}
-          // Intentionally NOT clipped. This wrapper used to carry
-          // `overflow-hidden rounded-lg`, which sheared the panel's soft
-          // shadow off at the rounded edge — that's why every peek but the
-          // stacked deck looked flat. Each peek surface rounds its OWN
-          // content (the panel/card carry their own `overflow-hidden`), so
-          // the wrapper doesn't need to; leaving it unclipped lets the
-          // `shadow-raised` lift breathe.
-        >
-          <div
-            className={cn(
-              // Translucent lifted surface. No shadow here on purpose: the
-              // shadow belongs to whatever is the *visible* surface.
-              // Panel-as-card peeks (writing / details) add `shadow-raised`
-              // themselves; peeks that strip this chrome (deck / single card /
-              // video) let their inner card/thumb cast the shadow — so the
-              // deck, an irregular rotated stack, never gets a rectangular
-              // container shadow around it.
-              GLASS_PANEL,
-              // Default cap fits the unified peek width (PEEK_W = 384); peeks
-              // no longer need to lift a narrower default.
-              "p-3 max-w-md",
-              panelClassName,
-            )}
-          >
-            {preview}
-          </div>
-        </Cursor>
-      )}
+      {/*
+        Portaled to `document.body`. Cover peeks mount inside a row
+        `clip-path` (and often an `overflow-x` strip); those ancestors are
+        stacking contexts and containing blocks for `position: fixed`, so a
+        later /works row painted over the panel. On `body` the peek keeps
+        `fixed` + `z-50` against the viewport. Hover still lives on this
+        wrapper (`attachHost`); the panel is `pointer-events-none`.
+      */}
+      {panel && createPortal(panel, document.body)}
     </div>
   );
 }

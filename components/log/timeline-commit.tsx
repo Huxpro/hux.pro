@@ -809,11 +809,7 @@ export function TimelineCommit({
       id={data.hash}
       data-rail-row
       data-role-row={isRoleAnchor ? "" : undefined}
-      // Cover peeks mount inside the trigger's clip-path, and a clip-path
-      // is a stacking context: later rows would paint over the panel.
-      // The row rises on hover so that whole context, peek included, sits
-      // above its neighbors. z-30 clears the sticky chapter header (z-20).
-      className={cn("relative hover:z-30", className)}
+      className={className}
     >
       <MagneticPreview
         preview={cursorPreview}
@@ -849,10 +845,8 @@ export function TimelineCommit({
           // `overflow-x: visible`), so on iOS every cover stopped at the
           // row's box, 12px in from each edge. The inset clips top and
           // bottom at the border box and leaves the sides a screen's width
-          // of room, in every engine. The row-level cursor preview is this
-          // trigger's sibling, so the clip does not shear it. Cover peeks
-          // mount inside, as `position: fixed`; the clip-path traps them in
-          // this stacking context, which is why the row root rises on hover.
+          // of room, in every engine. Cursor previews portal to `document.body`
+          // (see MagneticPreview), so a clip-path here cannot trap them.
           className={cn(
             "group pressable relative -mx-3 px-3 rounded-lg transition-colors duration-150 [clip-path:inset(0_-100vw)]",
             // The gutter as marginalia (see the hash cell): pulled left by the
