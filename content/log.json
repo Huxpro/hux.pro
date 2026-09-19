@@ -1292,14 +1292,14 @@
         },
         {
           "kind": "link",
-          "url": "https://github.com/Huxpro/huxpro.github.io",
+          "url": "https://github.com/Huxpro/huxblog-boilerplate",
           "present": "pill",
-          "label": "GitHub",
+          "label": "Boilerplate",
           "icon": "github"
         },
         {
           "kind": "link",
-          "url": "https://github.com/Huxpro/huxblog-boilerplate",
+          "url": "https://github.com/Huxpro/huxpro.github.io",
           "present": "card"
         }
       ],
