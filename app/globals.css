@@ -558,10 +558,16 @@ body,
   }
 }
 
-/* Force grabbing cursor on all elements during drag */
+/* A drag, whatever is being dragged: the cursor says so, and nothing under the
+   pointer turns into a text selection. A window pulled across an article used
+   to paint the whole page blue on the way — the gesture was about the window,
+   never about the words behind it. The page is a document again the frame the
+   drag ends (see the voice block above). */
 html.dragging,
 html.dragging * {
   cursor: grabbing !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
 }
 
 /* Hide scrollbars while preserving scroll (e.g. the dock pill row) */
