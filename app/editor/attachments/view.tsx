@@ -1,17 +1,19 @@
 "use client";
 
 // =============================================================================
-// Apps Lab — /editor/apps
+// Attachments Lab — /editor/attachments
 //
-// The devtool for the built-in apps system: the question "what happens when
-// I press this?", answered for every kind of thing a commit attaches, on every
+// The devtool for the attachments system: the question "what happens when I
+// press this?", answered for every kind of thing a commit attaches, on every
 // viewport, with the site's own surfaces doing the answering.
 //
 // Four things on the stage, none of them mocks:
 //
-//   vocabulary   the chip each kind of cover wears (media-mark.tsx), at each
-//                size, on the log's own covers — and the `New tab` chip a
-//                cover wears when its press leaves the site.
+//   vocabulary   the three chips a cover can wear (media-mark.tsx), at each
+//                size, on the log's own covers — the platform on a recording
+//                (and on a recording that lives on a page, the one case where
+//                a play chip opens the in-app browser), `Slides` on a deck,
+//                `New tab` on a page whose press leaves the site.
 //   homes        the policy (systems/attachments/lib/policy.ts) as a table —
 //                where a tap lands and where the surface's button sends it —
 //                for a context you set: phone or not, a theater, a window
@@ -29,10 +31,8 @@ import { Field, Section, Segmented, Toggle } from "@/app/editor/icon/controls";
 import { LinkCardFromMedia } from "@/components/log/media/link";
 import {
   markFor,
-  MEDIA_KINDS,
   MediaMark,
   newTabMark,
-  type MediaKind,
   type MediaMarkSize,
   type MediaMarkSpec,
 } from "@/components/log/media/media-mark";
@@ -82,6 +82,12 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 export interface LabSamples {
   video?: VideoMedia;
   slides?: SlidesMedia;
+  /**
+   * A recording that lives on a page — a GitNation talk. The special case:
+   * it is a recording (the play chip, the host's name) that opens in the
+   * in-app browser rather than on the stage.
+   */
+  talkPage?: LinkMedia;
   /** An external page that can be framed: the in-app browser's case. */
   web?: LinkMedia;
   /** A page that refuses to be framed: the one case that leaves for a tab. */
@@ -95,6 +101,7 @@ export interface LabSamples {
 const SAMPLE_ORDER: readonly (keyof LabSamples)[] = [
   "video",
   "slides",
+  "talkPage",
   "web",
   "denied",
   "post",
@@ -105,6 +112,7 @@ const SAMPLE_ORDER: readonly (keyof LabSamples)[] = [
 const SAMPLE_LABEL: Record<keyof LabSamples, string> = {
   video: "video",
   slides: "slides",
+  talkPage: "recording on a page",
   web: "page",
   denied: "page · refuses framing",
   post: "post",
@@ -112,15 +120,15 @@ const SAMPLE_LABEL: Record<keyof LabSamples, string> = {
   social: "social widget",
 };
 
-/** What each kind is, in a line. */
-const KIND_MEANING: Record<MediaKind, string> = {
-  video: "plays, on the stage — the chip is its platform",
-  slides: "presents, on the stage",
-  web: "a page, in the in-app browser",
-  post: "a page of this site",
-  image: "what you see is the thing",
-  social: "a live widget",
-};
+/** The vocabulary, one tile each: the sample that shows it, and what it says. */
+const VOCABULARY: readonly { key: keyof LabSamples | "leaves"; title: string; meaning: string }[] = [
+  { key: "video", title: "recording", meaning: "the platform it is on; it plays on the stage" },
+  { key: "talkPage", title: "recording on a page", meaning: "the same play chip, the host's name — and it opens in the in-app browser, not on the stage. GitNation is the case." },
+  { key: "slides", title: "deck", meaning: "Slides; it presents on the stage" },
+  { key: "leaves", title: "leaves", meaning: "a page that refuses framing: the press opens a tab, whatever the kind" },
+  { key: "web", title: "page", meaning: "no chip — the card prints its domain and title, and that is the hint" },
+  { key: "image", title: "image", meaning: "no chip — what you see is the thing" },
+];
 
 // -----------------------------------------------------------------------------
 // Homes
@@ -210,7 +218,7 @@ function CoverTile({
 // The lab
 // -----------------------------------------------------------------------------
 
-export function AppsLabView({ samples }: { samples: LabSamples }) {
+export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
   const { locale } = useLocale();
   const attachments = useAttachments();
   const theater = useOptionalTheater();
@@ -227,7 +235,6 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
 
   // The vocabulary's knobs.
   const [size, setSize] = useState<MediaMarkSize>("default");
-  const [all, setAll] = useState(true);
   const [withImage, setWithImage] = useState(true);
 
   // The policy's context: starts live, and can be taken anywhere.
@@ -245,25 +252,23 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
   );
   const set: AttachmentSet = useMemo(
     () => ({
-      id: "editor-apps",
-      title: "Apps Lab",
-      subtitle: "/editor/apps",
+      id: "editor-attachments",
+      title: "Attachments Lab",
+      subtitle: "/editor/attachments",
       items,
     }),
     [items],
   );
   const stripItems = useMemo(() => getMediaStripItems(items, locale), [items, locale]);
-  const sampleFor = (kind: MediaKind): Media | undefined => samples[kind];
-  const imageFor = (kind: MediaKind): string | null => {
-    const m = sampleFor(kind);
+  const imageFor = (key: keyof LabSamples | "leaves"): string | null => {
+    const m = samples[key === "leaves" ? "denied" : key] ?? samples.web;
     return withImage && m ? getMediaThumbnail(m) : null;
   };
-  /** The chip a kind's cover wears: read off the sample when the log has one. */
-  const markOf = (kind: MediaKind): MediaMarkSpec | null => {
-    const m = sampleFor(kind);
-    if (m) return markFor(m, locale, { all });
-    if (kind === "web" && all) return markFor({ kind: "link", url: "https://example.com", present: "card" }, locale, { all });
-    return null;
+  /** The chip a tile's cover wears: read off the log's own sample. */
+  const markOf = (key: keyof LabSamples | "leaves"): MediaMarkSpec | null => {
+    if (key === "leaves") return newTabMark(locale);
+    const m = samples[key];
+    return m ? markFor(m, locale) : null;
   };
 
   return (
@@ -277,7 +282,7 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
             <Link href="/" className="font-mono text-xs tracking-wide text-muted-foreground hover:text-foreground">
               λhux
             </Link>
-            <h1 className="mt-1 font-serif text-2xl tracking-tight text-foreground">Apps Lab</h1>
+            <h1 className="mt-1 font-serif text-2xl tracking-tight text-foreground">Attachments Lab</h1>
           </div>
           <div className="font-mono text-[11px] text-muted-foreground">
             {mounted && (
@@ -294,36 +299,31 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
         <section>
           <Label>Vocabulary — what a cover says before it is pressed</Label>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {MEDIA_KINDS.map((kind) => (
-              <div key={kind}>
-                <CoverTile image={imageFor(kind)} mark={markOf(kind)} size={size === "mini" ? "default" : size} />
-                <div className="mt-2 font-mono text-[11px] text-foreground">{kind}</div>
-                <div className="text-[11px] text-muted-foreground">{KIND_MEANING[kind]}</div>
+            {VOCABULARY.map((v) => (
+              <div key={v.key}>
+                <CoverTile image={imageFor(v.key)} mark={markOf(v.key)} size={size === "mini" ? "default" : size} />
+                <div className="mt-2 font-mono text-[11px] text-foreground">{v.title}</div>
+                <div className="text-[11px] text-muted-foreground">{v.meaning}</div>
               </div>
             ))}
-            <div>
-              <CoverTile image={imageFor("web")} mark={newTabMark(locale)} size={size === "mini" ? "default" : size} />
-              <div className="mt-2 font-mono text-[11px] text-foreground">leaves</div>
-              <div className="text-[11px] text-muted-foreground">a page that refuses framing — the press opens a tab</div>
-            </div>
           </div>
           <div className="mt-6">
             <Label>The contact strip: 56px covers, and the chip keeps its glyph</Label>
             <div className="flex flex-wrap gap-2">
-              {MEDIA_KINDS.map((kind) => (
-                <CoverTile key={kind} image={imageFor(kind)} mark={markOf(kind)} size="mini" />
+              {VOCABULARY.map((v) => (
+                <CoverTile key={v.key} image={imageFor(v.key)} mark={markOf(v.key)} size="mini" />
               ))}
-              <CoverTile image={imageFor("web")} mark={newTabMark(locale)} size="mini" />
             </div>
           </div>
           <div className="mt-4">
             <Note>
-              One chip, drawn by one component, the same chip a wallpaper tile wears for Live / Preset. On
-              `/works` only a recording and a deck are marked — a recording by its platform, so a talk says
-              where it was recorded — and a card is its own hint. Standing alone, in the hover peek or on the
-              attachment sheet&rsquo;s page, every cover wears one, and a page that will leave for a tab says
-              `New tab` in its chip rather than in a line of prose. The chip says what the thing is; the policy
-              below says where it opens.
+              Three chips, drawn by one component, the same chip a wallpaper tile wears for Live / Preset: the
+              platform on a recording, so a talk says where it was recorded; `Slides` on a deck; `New tab` on
+              a page whose press leaves the site. A chip says something the surface does not already say, so a
+              page wears none — its card prints the domain and the title — and the attachment sheet&rsquo;s
+              page, which prints the domain and a labelled button, wears the same chip the row&rsquo;s cover
+              did and no more. The chip says what the thing is; the policy below says where it opens — which
+              is how a GitNation recording wears a play chip and opens in the in-app browser.
             </Note>
           </div>
         </section>
@@ -405,7 +405,7 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
                 {[samples.video, samples.slides]
                   .filter((m): m is VideoMedia | SlidesMedia => !!m)
                   .map((m) => {
-                    const track = mediaToTrack(m, { id: `lab:${m.url}`, title: "Apps Lab" });
+                    const track = mediaToTrack(m, { id: `lab:${m.url}`, title: "Attachments Lab" });
                     return track ? (
                       <TrackThumb key={track.id} track={track} className="w-40" />
                     ) : null;
@@ -450,7 +450,7 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
             {windows && samples.web && (
               <button
                 type="button"
-                onClick={() => windows.openUrl(samples.web!.url, { title: "Apps Lab" })}
+                onClick={() => windows.openUrl(samples.web!.url, { title: "Attachments Lab" })}
                 className="pressable inline-flex items-center gap-2 rounded-md border border-border/60 px-3 py-1.5 font-mono text-xs text-foreground transition-colors hover:bg-muted/30"
               >
                 <Globe className="h-3 w-3 text-muted-foreground" />
@@ -510,7 +510,6 @@ export function AppsLabView({ samples }: { samples: LabSamples }) {
               ]}
             />
           </Field>
-          <Toggle value={all} onChange={setAll} label="Every kind, as a peek or a sheet page" />
           <Toggle value={withImage} onChange={setWithImage} label="On the log's covers" />
         </Section>
         <Section title="Policy context">

@@ -172,17 +172,17 @@ export interface MediaPeekSpec {
 const BARE = "p-0 bg-transparent border-transparent backdrop-blur-none";
 
 /**
- * The peek for one piece of media, or null when it has nothing to show. A
- * cover standing alone wears its chip whatever its kind (media-mark.tsx);
- * `leaves` says the click will open a tab — a page that refuses to be
- * framed — and the chip says so before the click rather than after.
+ * The peek for one piece of media, or null when it has nothing to show. The
+ * cover wears the row's chip (media-mark.tsx); `leaves` says the click will
+ * open a tab — a page that refuses to be framed — and the chip says so
+ * before the click rather than after.
  */
 export function mediaPeek(
   media: Media,
   locale: Locale,
   opts: { leaves?: boolean } = {},
 ): MediaPeekSpec | null {
-  const mark = markFor(media, locale, { all: true, leaves: opts.leaves });
+  const mark = markFor(media, locale, { leaves: opts.leaves });
   if (isLinkMedia(media)) {
     const preview = media.previews?.[locale] ?? media.preview;
     const item: Extract<PeekItem, { kind: "card" }> = {

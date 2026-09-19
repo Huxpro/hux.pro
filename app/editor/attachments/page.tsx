@@ -11,12 +11,12 @@ import {
 } from "@/lib/log";
 import { isVideoLinkHost } from "@/lib/og-core";
 import { enrichLogDataWithPreviews } from "@/lib/og-snapshot";
-import { AppsLabView, type LabSamples } from "./view";
+import { AttachmentsLabView, type LabSamples } from "./view";
 
 export const metadata = {
-  title: "Apps Lab | Hux.Pro",
+  title: "Attachments Lab | Hux.Pro",
   description:
-    "Where a commit's attachments open, and the mark each cover wears — with the real surfaces on the page.",
+    "Where a commit's attachments open, and the chip each cover wears — with the real surfaces on the page.",
   robots: { index: false, follow: false },
 };
 
@@ -37,6 +37,9 @@ function pickSamples(): LabSamples {
   return {
     video: first(isVideoMedia),
     slides: first(isSlidesMedia),
+    talkPage: first(
+      (m): m is LinkMedia => card(m) && isVideoLinkHost(m.url) && m.preview?.frame !== "deny",
+    ),
     web: first(
       (m): m is LinkMedia =>
         card(m) &&
@@ -53,6 +56,6 @@ function pickSamples(): LabSamples {
   };
 }
 
-export default function AppsLabPage() {
-  return <AppsLabView samples={pickSamples()} />;
+export default function AttachmentsLabPage() {
+  return <AttachmentsLabView samples={pickSamples()} />;
 }

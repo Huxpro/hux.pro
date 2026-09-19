@@ -78,7 +78,7 @@ function setLevel(id: string, level: number | undefined) {
 }
 
 /**
- * The stack as it stands, bottom first — for a readout (the apps lab), not
+ * The stack as it stands, bottom first — for a readout (the attachments lab), not
  * for a sheet, which asks `useSurfaceStack` about its own place.
  */
 export function useSurfaceStackEntries(): readonly { id: string; nestedIn?: string }[] {

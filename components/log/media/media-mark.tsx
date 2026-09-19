@@ -1,13 +1,4 @@
-import {
-  ArrowUpRight,
-  AtSign,
-  BookOpen,
-  Globe,
-  Image as ImageIcon,
-  Play,
-  Presentation,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowUpRight, Play, Presentation, type LucideIcon } from "lucide-react";
 import { ARTWORK_CHIP } from "@/lib/glass";
 import type { Locale } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
@@ -18,10 +9,9 @@ import {
   isSocialEmbedMedia,
   isVideoMedia,
   type Media,
-  type SocialEmbedPlatform,
   type VideoPlatform,
 } from "@/lib/log";
-import { getDomainLabel, isVideoLinkHost, videoLinkHostLabel } from "@/lib/og-core";
+import { isVideoLinkHost, videoLinkHostLabel } from "@/lib/og-core";
 import { cn } from "@/lib/utils";
 
 // =============================================================================
@@ -38,17 +28,20 @@ import { cn } from "@/lib/utils";
 // a word.
 //
 //   video    ▶ YouTube · bilibili · Vimeo — the platform, so a talk says
-//            where it was recorded (a link to a talks host: its name)
+//            where it was recorded. A recording that lives on a page (a
+//            GitNation talk) is the same chip with the host's name: the chip
+//            says what the thing is, and it is a recording; where it opens —
+//            the stage for a video, the in-app browser for that page — is the
+//            policy's business (systems/attachments), never the chip's.
 //   slides   ▤ Slides
 //   new tab  ↗ New tab — a page that refuses to be framed, whatever its kind
 //
-// On the /works page only a recording and a deck are marked: a card is its
-// own hint (domain, title), and a chip on every card would be noise. Where a
-// cover stands alone — the hover peek, the attachment sheet's page — every
-// kind wears one (`all`): a page says Web, a post says Writing, an image says
-// Image, a social widget says its platform. `markFor` reads the mark off a
-// media item; `MediaMark` draws whatever it is handed, so a cover never has
-// to know why it wears what it wears.
+// Three chips, and nothing else. A chip says something the surface does not
+// already say: a page's card prints its domain and title, the attachment
+// sheet's page prints the domain and a labelled button, so a `Web` chip
+// there would only repeat them, and a cover that is a page wears none.
+// `markFor` reads the chip off a media item; `MediaMark` draws whatever it
+// is handed, so a cover never has to know why it wears what it wears.
 //
 // The chip is absolutely positioned: the parent must be `relative`. At
 // `mini` — the /works contact strip, whose covers are 56px tall — the chip
@@ -98,13 +91,6 @@ export const PLATFORM_LABEL: Record<VideoPlatform, string> = {
   vimeo: "Vimeo",
 };
 
-const SOCIAL_LABEL: Record<SocialEmbedPlatform, string> = {
-  twitter: "X",
-  x: "X",
-  instagram: "Instagram",
-  tiktok: "TikTok",
-};
-
 /** The deck's chip, for a cover that knows it is a deck without a `Media`. */
 export const SLIDES_MARK: MediaMarkSpec = { icon: Presentation, label: "Slides" };
 
@@ -119,37 +105,20 @@ export function newTabMark(locale: Locale): MediaMarkSpec {
 }
 
 /**
- * The mark a media item's cover wears, or null for a cover that wears none.
- *
- *   `leaves`  the press will open a tab (a page that refuses to be framed):
- *             the chip says so, whatever the kind.
- *   `all`     mark every kind, not only a recording and a deck — for a cover
- *             standing alone in a peek or on the attachment sheet's page.
+ * The chip a media item's cover wears, or null for a cover that wears none.
+ * `leaves` says the press will open a tab (a page that refuses to be
+ * framed): the chip says so, whatever the kind.
  */
 export function markFor(
   media: Media,
   locale: Locale,
-  opts: { all?: boolean; leaves?: boolean } = {},
+  opts: { leaves?: boolean } = {},
 ): MediaMarkSpec | null {
   if (opts.leaves) return newTabMark(locale);
   if (isVideoMedia(media)) return videoMark(media.platform);
   if (isSlidesMedia(media)) return SLIDES_MARK;
   const host = isLinkMedia(media) ? videoLinkHostLabel(media.url) : null;
   if (host) return { icon: Play, label: host, fill: true };
-  if (!opts.all) return null;
-  if (isLinkMedia(media)) {
-    const internal = !!media.internal || media.url.startsWith("/");
-    return internal
-      ? { icon: BookOpen, label: "Writing" }
-      : { icon: Globe, label: "Web" };
-  }
-  if (isImageMedia(media)) return { icon: ImageIcon, label: "Image" };
-  if (isSocialEmbedMedia(media)) {
-    return {
-      icon: AtSign,
-      label: media.platform ? SOCIAL_LABEL[media.platform] : getDomainLabel(media.url),
-    };
-  }
   return null;
 }
 

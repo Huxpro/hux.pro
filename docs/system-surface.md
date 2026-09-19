@@ -400,7 +400,7 @@ come up underneath it while the stack said it was on top. So a sheet takes its
 place in the stack as its `layer` (`useSurfaceStack().rank`, `SurfaceViewport`
 `layer`) and a closing sheet keeps the layer it had, so it leaves from where
 it was rather than from under whatever it was covering. A readout of the
-stack as it stands is `useSurfaceStackEntries()`, for the apps lab.
+stack as it stands is `useSurfaceStackEntries()`, for the attachments lab.
 
 ## Adopters
 

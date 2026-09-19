@@ -56,11 +56,12 @@ import { useAttachments } from "../provider";
 // material the PiP bar and the Live Activity wear. The surface and the stage
 // are one system, and their controls should say so.
 //
-// The cover wears the chip every cover on the site wears (media-mark.tsx),
-// and standing alone here it wears one whatever its kind: the platform on a
-// recording, `Slides` on a deck, `Web` on a page, and `New tab` on the one
-// case that leaves — a page that refuses to be framed — so the page says
-// where the button goes before it is pressed, in the chip and nowhere else.
+// The cover wears the chip every cover on the site wears (media-mark.tsx) —
+// the same chip the row's cover wore when it was tapped: the platform on a
+// recording, `Slides` on a deck, and `New tab` on the one case that leaves,
+// a page that refuses to be framed, so the page says where the button goes
+// before it is pressed, in the chip and nowhere else. A page's cover wears
+// none: the domain line and the button already say what it is.
 // The button's glyph is what the item is: a play mark, the deck glyph, a
 // globe for the in-app browser, a book for a post, the arrow out for a tab.
 // =============================================================================
@@ -179,9 +180,8 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
 
   const open = () => act(set, index);
   const home = nativeHomeOf(set, index);
-  // Standing alone, the cover wears its chip whatever its kind — and says
-  // `New tab` when the button will leave the site.
-  const mark = markFor(media, locale, { all: true, leaves: home === "tab" });
+  // The row's chip, and `New tab` when the button will leave the site.
+  const mark = markFor(media, locale, { leaves: home === "tab" });
 
   if (isVideoMedia(media) || isSlidesMedia(media)) {
     const kind: MediaKind = isSlidesMedia(media) ? "slides" : "video";

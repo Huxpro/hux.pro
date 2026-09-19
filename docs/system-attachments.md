@@ -149,37 +149,40 @@ a picture arrives the same way wherever the picture is.
 
 | the cover | the chip |
 |---|---|
-| a recording (a video, or a link to a talks host) | `▶ YouTube` / `bilibili` / `Vimeo` — the platform, so a talk says where it was recorded; a talks-host link, its domain |
+| a recording (a video) | `▶ YouTube` / `bilibili` / `Vimeo` — the platform, so a talk says where it was recorded |
+| a recording that lives on a page (a GitNation talk) | `▶ GitNation` — the same chip, the host's name |
 | a deck | `Slides` |
 | a page that refuses to be framed, whatever its kind | `↗ New tab` |
-| a page, standing alone | `Web` |
-| a post (`/writing/…`), standing alone | `Writing` |
-| an image, a social widget, standing alone | `Image`, the platform |
+| a page, a post, an image, a social widget | none |
 
-Two rules decide which covers wear one. On `/works` — the contact strip, the
-expanded card, the widgets' covers — **only a recording and a deck are
-marked**, and a page that will leave: a card is its own hint (domain, title),
-and a chip on every card would be noise. Where a cover **stands alone** — the
-hover peek, the attachment sheet's page — every kind wears one (`markFor`'s
-`all`), because there the chip is the caption. `markFor(media, locale,
-{ all, leaves })` reads the chip off an item; `mediaKindOf` still reads the
-kind, for the sheet's button glyph and the lab.
+Three chips, and one rule for who wears one: **a chip says something the
+surface does not already say.** A card prints its domain and its title, so a
+page wears none; the attachment sheet's page prints the domain and a
+labelled button, so it wears the chip the row's cover wore and no more; the
+hover peek's card is a card. The chip says what the thing *is*, never where
+it opens — which is how a GitNation recording wears a play chip and opens in
+the in-app browser rather than on the stage: it is a recording, and the
+policy above decides the rest. `markFor(media, locale, { leaves })` reads
+the chip off an item; `mediaKindOf` still reads the kind, for the sheet's
+button glyph and the lab.
 
 Three sizes: `mini` for the contact strip's 56px covers, where the chip
 keeps its glyph and drops its word (the wallpaper tile's small badge);
 `compact` for rail thumbs and dense cards; `default` for a full cover. The
-strip cover, the link card, the deck cover, the theater's rail thumb, the
-home widgets' covers, the attachment sheet's page and the hover peek's
-poster all take the chip from here, and nothing else on a cover says what it
-is — the peek's poster has no caption but a deck's or an image's name. The
+strip cover, the link card, the inline video facades, the deck cover, the
+theater's rail thumb, the home widgets' covers, the attachment sheet's page
+and the hover peek's poster all take the chip from here, and nothing else on
+a cover says what it is — the peek's poster has no caption but a deck's or
+an image's name; a card with no cover to wear it on carries the chip in its
+caption line. The
 chip says what the thing is; the policy above says where it opens, and the
 two never trade jobs.
 
 ## The lab
 
-**`/editor/apps`** — hidden, `noindex` — is the devtool for this system, the
-way `/editor/legibility` is for reading surfaces: the chip vocabulary at
-every size on the log's own covers, alone and among others; the policy as a
+**`/editor/attachments`** — hidden, `noindex` — is the devtool for this system, the
+way `/editor/legibility` is for reading surfaces: the three chips at every
+size on the log's own covers, the GitNation case among them; the policy as a
 table, read live from `homeFor` / `nativeHomeFor` for a context you can pin
 (phone or not, a window manager); the same media rendered by the production strip,
 card, deck cover, rail thumb and attachment page; and buttons that go through
@@ -239,4 +242,4 @@ second. `Open in browser` in the window menu is the way out. See
 3. Give it a page in `attachment-page.tsx`.
 4. If it can play on the stage, give it a `Track` kind and teach `mediaToTrack`
    (`systems/theater/lib/albums.ts`) to build one.
-5. Check it in `/editor/apps`: the table, the specimens, the buttons.
+5. Check it in `/editor/attachments`: the table, the specimens, the buttons.
