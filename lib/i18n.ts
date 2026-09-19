@@ -51,7 +51,7 @@ export const translations = {
       "Prose, profession, programming, production, projects—each a facet of a complete person.",
     currently: "Currently",
     currentStatus:
-      "Architect of Lynx at ByteDance. Making interfaces better for more users, more developers, and more machines — and exploring what app frameworks should look like in the age of AI.",
+      "Architect of Lynx at ByteDance. Making interfaces better for more users, more developers, and more machines, and exploring what app frameworks should look like in the age of AI.",
     careerDesc: "Professional trajectory",
     blogDesc: "Writing & thoughts",
     talksDesc: "Presentations & speaking",
