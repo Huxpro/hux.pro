@@ -1445,13 +1445,6 @@
         },
         {
           "kind": "link",
-          "url": "https://github.com/Huxpro/huxblog-boilerplate",
-          "present": "pill",
-          "label": "Boilerplate",
-          "icon": "github"
-        },
-        {
-          "kind": "link",
           "url": "https://huxpro.github.io/2015/01/29/hello-2015/",
           "present": "card",
           "preview": {
