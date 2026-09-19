@@ -205,7 +205,7 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
               {tile}
               {isSlidesMedia(media) && caption.title && (
                 <figcaption className={cn("mt-1.5", SOURCE)}>
-                  <span className="min-w-0 truncate">{caption.source}</span>
+                  <span className="shrink-0">{caption.source}</span>
                   <span className={cn("min-w-0 truncate normal-case tracking-normal", TITLE)}>
                     {caption.title}
                   </span>
@@ -315,7 +315,7 @@ function InlinePlayable({
       </div>
       <div className="mt-2 flex items-center justify-between gap-3">
         <div className={cn(SOURCE, "min-w-0 flex-1")}>
-          <span className="min-w-0 truncate">{caption.source}</span>
+          <span className="shrink-0">{caption.source}</span>
           {isSlidesMedia(media) && caption.title && (
             <span className={cn("min-w-0 truncate normal-case tracking-normal", TITLE)}>
               {caption.title}
