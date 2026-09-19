@@ -101,6 +101,19 @@ import {
 //    threshold has already eaten ~17px of the gesture: a 207px pull from the
 //    0.7 detent arrives as 1.6px of movement, measured. Draw the rubber band
 //    from it; read intent from the pointer (`usePullPastTop` below).
+// 8. A swipe never starts from `button,a,input,select,textarea,label,
+//    [role="button"]` — `DEFAULT_IGNORE_SELECTOR` in
+//    utils/useSwipeDismiss.js, checked for mouse and touch alike. A control
+//    that has to be draggable (the window grip) cannot wear those roles; give
+//    it a visually hidden button beside it for the semantics.
+// 9. Once a press becomes a swipe the popup captures the pointer and the rest
+//    of the stream never reaches you: no move, no up — and out here, above
+//    `Drawer.Content`, no click at all, even for a plain tap. Anything that
+//    listens for a tap on the grabber has to treat "the release came back to
+//    us at all" as the signal; a timer armed on press will otherwise fire in
+//    the middle of a drag. And nothing up here may hold a state the end of a
+//    gesture has to clear, because that end can be missed entirely (see the
+//    note at the top of window-grip.tsx).
 // -----------------------------------------------------------------------------
 
 /**
@@ -140,9 +153,28 @@ export function detentHeight(point: number): string {
     : `calc(${detentLength(point)} - ${EDGE_GAP})`;
 }
 
-/** An icon button in a surface header: close, back, an external link. */
+/**
+ * An icon button in a surface header: close, back, an external link.
+ *
+ * It carries the touch contract the design system gives any button with a
+ * `hover:` wash (docs/design-system.md, "Touch"), which this had been missing:
+ *
+ *   `pressable`      zeroes the transition while held, so the press lands on
+ *                    the touch-down frame rather than easing in over 150ms.
+ *                    `hover:` is gated on `(hover: hover)` in Tailwind v4, so
+ *                    without this a finger got no wash at all on the way down.
+ *                    It also sets `touch-action: manipulation`.
+ *   `system-chrome`  a control, not text: no selection, no long-press callout.
+ *
+ * The transition names `scale` explicitly. `transition-colors` does not cover
+ * it, and Tailwind v4 compiles `scale-*` to the `scale` property rather than
+ * `transform` — so the press used to snap back on the frame it was released
+ * while the colour went on easing for another 80ms, which is one press read as
+ * two events. Now both land together going down and ease out together coming
+ * back up.
+ */
 export const HEADER_BUTTON =
-  "shrink-0 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
+  "pressable system-chrome shrink-0 rounded-md p-2 text-muted-foreground transition-[color,background-color,scale] duration-150 ease-out hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
 
 /** The glass shell every shape shares. */
 export const SHELL = [
@@ -349,6 +381,27 @@ export interface SurfaceSheetProps {
    */
   restoreFocus?: boolean;
   /**
+   * Keep the sheet's DOM alive while it is closed (Base UI hides the popup
+   * rather than unmounting it). For a sheet whose content must keep running
+   * when it is put away — an app window, whose iframe or Lynx view would
+   * otherwise reload and lose its state.
+   */
+  keepMounted?: boolean;
+  /**
+   * The affordance at the top of the shell. Defaults to the plain grabber;
+   * a sheet whose handle says more than "drag me" — the window grip, which is
+   * also its menu button — passes its own. It sits outside `Drawer.Content`,
+   * so a *mouse* press on it starts a drag like the grabber it replaces.
+   */
+  grip?: React.ReactNode;
+  /**
+   * Float the grip over the content instead of giving it a row of its own, so
+   * the sheet is edge-to-edge under it. For a sheet holding something that is
+   * not a document — an app window, whose chrome has always been a pill over
+   * its content and never a title bar.
+   */
+  gripOverlay?: boolean;
+  /**
    * Fired when a drag carries the sheet past its top edge by more than
    * `PULL_PAST_TOP_TRAVEL` real pixels and lets go there — the gesture that
    * lifts a surface off the edge it is docked to. Without it the overshoot is
@@ -377,6 +430,9 @@ export function SurfaceSheet({
   fitContent = false,
   level: levelProp,
   restoreFocus = true,
+  keepMounted,
+  grip,
+  gripOverlay,
   onPullPastTop,
   label,
   className,
@@ -406,11 +462,74 @@ export function SurfaceSheet({
     level,
   });
 
+  // Two marks a *kept-mounted* sheet needs on its way in, and nothing else
+  // does. A sheet Base UI mounts fresh measures itself in a layout effect,
+  // which React flushes before paint, so its detent is resolved by the first
+  // frame; one hidden with `display: none` has no box to measure and comes
+  // back with an offset of 0 — the top detent — so it arrives full height and
+  // slides down into its detent over half a second. Both marks are therefore
+  // conditioned on `keepMounted`: the three sheets that had none of this
+  // before the window came along keep exactly the behaviour they had, and in
+  // particular a drag begun in the first half-second still moves them.
+  //
+  //   `entering`  the offset is no mystery — it is `popupHeight -
+  //               detentHeight` — so for the length of the entrance the popup
+  //               stands on `--surface-snap-fallback`, computed in CSS from
+  //               the detent it is opening at, and Base UI's own value lands
+  //               under it, identical, before the mark comes off.
+  //   `arriving`  nothing transitions out of `display: none`: the browser has
+  //               no painted "before" to travel from, so Base UI's starting
+  //               style does nothing and the sheet simply lands. One painted
+  //               frame at the bottom edge is all it needs.
+  //
+  // Both are set from the render that opens the sheet, not from an effect,
+  // which would paint it in place first — and cleared on the way out, because
+  // a mark left behind would pin the *exit* to a detent offset.
+  const pinned = !!keepMounted && hasSnapPoints;
+  const [entering, setEntering] = useState(open && pinned);
+  const [arriving, setArriving] = useState(open && !!keepMounted);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    if (open && keepMounted) setArriving(true);
+    if (open && pinned) setEntering(true);
+    if (!open && entering) setEntering(false);
+  }
+  useEffect(() => {
+    if (!entering) return;
+    const t = window.setTimeout(() => setEntering(false), SURFACE_TRANSITION_MS);
+    return () => window.clearTimeout(t);
+  }, [entering]);
+  useEffect(() => {
+    if (!arriving) return;
+    // Two frames, not one: a rAF callback runs *before* that frame is painted,
+    // so letting go in the first would leave the browser with nothing painted
+    // at the bottom edge to travel from — and no transition at all, which is
+    // the bug this is here to fix.
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setArriving(false));
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [arriving]);
+
   // Arrive level with the sheet beneath, when it stands at one of ours.
   const arrival =
     hasSnapPoints && beneathLevel !== undefined && snapPoints.includes(beneathLevel)
       ? beneathLevel
       : (snapPoints?.[0] ?? null);
+
+  // Where the detent it is opening at puts the sheet, before anything has been
+  // measured. An owner that controls the detent already knows it; an
+  // uncontrolled sheet is about to be moved to `arrival` by the effect below,
+  // which runs after this paint — so read that, not the detent it is leaving.
+  const opensAt = isControlled ? snap : arrival;
+  const snapFallback = `max(0px, calc(100dvh - ${TOP_INSET} - ${detentLength(
+    typeof opensAt === "number" ? opensAt : (snapPoints?.[0] ?? 1),
+  )}))`;
   useEffect(() => {
     if (!open || isControlled || !hasSnapPoints) return;
     setOwnSnap(arrival);
@@ -443,15 +562,21 @@ export function SurfaceSheet({
           `--drawer-keyboard-inset`, and the shell rests on top of the keyboard
           rather than behind it. A sheet with no fields never notices. */}
       <Drawer.VirtualKeyboardProvider>
-        <Drawer.Portal>
+        <Drawer.Portal keepMounted={keepMounted}>
           <SurfaceViewport modal={modal}>
             <Drawer.Popup
               ref={setPopup}
               finalFocus={restoreFocus ? undefined : false}
               data-surface-popup=""
               data-surface-snap={hasSnapPoints ? "" : undefined}
+              data-surface-entering={entering ? "" : undefined}
+              data-surface-arriving={arriving ? "" : undefined}
               style={{
                 ...surfaceMotionVars(hasSnapPoints ? EDGE_GAP : BOTTOM_INSET),
+                ...(entering &&
+                  ({
+                    "--surface-snap-fallback": snapFallback,
+                  } as React.CSSProperties)),
                 ...(hasSnapPoints
                   ? {
                       // Flush with the bottom and as tall as the top detent.
@@ -498,7 +623,9 @@ export function SurfaceSheet({
                 style={{ "--surface-stack-depth": depth } as React.CSSProperties}
                 className={cn(
                   SHELL,
-                  "min-h-0 origin-top",
+                  // Positioned: the receded wash and a floating grip both
+                  // anchor to the shell, not to the popup's travel box.
+                  "relative min-h-0 origin-top",
                   // A content-height sheet is `flex: 0 1 auto`: it measures
                   // itself, and shrinks only when the max height bites.
                   !fitContent && "flex-1",
@@ -509,9 +636,22 @@ export function SurfaceSheet({
                   className
                 )}
               >
-                {/* Grabber — the affordance for drag-to-dismiss and the detents */}
-                <div className="flex shrink-0 justify-center pt-2">
-                  <span className="h-1 w-9 rounded-full bg-muted-foreground/25" />
+                {/* Grabber — the affordance for drag-to-dismiss and the detents.
+                    A sheet can hand in its own (`grip`); either way it lives
+                    here, above Drawer.Content, so a mouse press on it is a
+                    drag. Floating, it takes no room and only the grip itself
+                    takes pointers, so the content runs under it edge to edge. */}
+                <div
+                  className={cn(
+                    "flex justify-center pt-2",
+                    gripOverlay
+                      ? "pointer-events-none absolute inset-x-0 top-0 z-20"
+                      : "shrink-0",
+                  )}
+                >
+                  {grip ?? (
+                    <span className="h-1 w-9 rounded-full bg-muted-foreground/25" />
+                  )}
                 </div>
                 {/* Everything below the grabber is content, not a handle: a
                     mouse press inside it is a press on a row, never the start

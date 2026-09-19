@@ -9,6 +9,14 @@
 // so a tap never jerks the window and a drag never pops the menu.
 // =============================================================================
 
+/**
+ * How far a finger may wander and still be called a tap. One number for the
+ * window's gestures, wherever they are read — the desktop pill arms a pointer
+ * with it, and the phone grip, which cannot use `armPointer` at all (see the
+ * note at the top of window-grip.tsx), measures its own release against it.
+ */
+export const TAP_SLOP = 6;
+
 export interface ArmPointerOpts {
   threshold?: number;
   longPressMs?: number;
@@ -24,7 +32,7 @@ export function armPointer(
   e: { clientX: number; clientY: number; target: EventTarget | null },
   opts: ArmPointerOpts,
 ): void {
-  const { threshold = 6, longPressMs = 450, onDragStart, onTap, onLongPress } = opts;
+  const { threshold = TAP_SLOP, longPressMs = 450, onDragStart, onTap, onLongPress } = opts;
   const startX = e.clientX;
   const startY = e.clientY;
   const target = e.target;

@@ -83,6 +83,7 @@ export type VideoPlatform = "youtube" | "bilibili" | "vimeo";
 // agnostic). Re-import + re-export so the type is in scope for the Media
 // interfaces below and consumers can keep a single import source.
 import type { SocialEmbedPlatform } from "./og-core";
+import { isVideoLinkHost } from "./og-core";
 export type { SocialEmbedPlatform };
 // Shared cover-fit vocabulary, from the framework-agnostic content layer, so
 // both hover surfaces (and the node snapshot script that imports this file)
@@ -884,19 +885,106 @@ export function computeCommitHash(commitId: string): string {
 // =============================================================================
 
 /**
+ * The word for each commit type. One table for both numbers: Chinese does
+ * not inflect for plural, and English does it by rule, so a second copy
+ * would be five letters of difference and six rows to keep in sync.
+ */
+const COMMIT_TYPE_LABELS: Record<CommitType, LocalizedString> = {
+  project: { en: "Project", zh: "项目" },
+  talk: { en: "Talk", zh: "演讲" },
+  post: { en: "Post", zh: "文章" },
+  role: { en: "Role", zh: "职位" },
+  social: { en: "Social", zh: "社交" },
+  event: { en: "Event", zh: "事件" },
+};
+
+/** Where the rule doesn't hold. `social` is a mass noun here — a body of
+ *  posts, not a count of them — so "Socials" would be a different word. */
+const COMMIT_TYPE_PLURAL_EN: Partial<Record<CommitType, string>> = {
+  social: "Social",
+};
+
+/**
  * Get display name for commit type
  */
 export function getCommitTypeLabel(type: CommitType, locale: Locale): string {
-  const labels: Record<CommitType, LocalizedString> = {
-    project: { en: "Project", zh: "项目" },
-    talk: { en: "Talk", zh: "演讲" },
-    post: { en: "Post", zh: "文章" },
-    role: { en: "Role", zh: "职位" },
-    social: { en: "Social", zh: "社交" },
-    event: { en: "Event", zh: "事件" },
-  };
+  return localize(COMMIT_TYPE_LABELS[type], locale);
+}
 
-  return localize(labels[type], locale);
+/**
+ * Display name for a commit type as a *collection* — the label on a
+ * /works filter chip, which names a body of work rather than one row.
+ *
+ * Deliberately a straight pluralization of `getCommitTypeLabel`: the chip
+ * is the only place a visitor sees a type name, so it must be the same
+ * word the rest of the system uses. Renaming a chip means renaming the
+ * type here, not mapping one vocabulary onto another.
+ */
+export function getCommitTypePluralLabel(
+  type: CommitType,
+  locale: Locale,
+): string {
+  const label = COMMIT_TYPE_LABELS[type];
+  return localize(
+    { ...label, en: COMMIT_TYPE_PLURAL_EN[type] ?? `${label.en}s` },
+    locale,
+  );
+}
+
+/**
+ * The commit types /works lets a visitor filter by: every type that
+ * renders a row of its own, so the chip row is a complete account of
+ * what is on the page.
+ *
+ * `event` is the one exception, and not on a "work vs. not work"
+ * distinction — `role` earns a chip on exactly those grounds. An event
+ * is a dateline ("moved to the US"): no title of its own worth reading
+ * alone, no media, no link, rendered as a muted italic between the
+ * commits it annotates. It is punctuation, and "show me only the
+ * punctuation" is not a reading anyone wants. A role is a row with a
+ * title, a company, a tenure and often a link — "just the career" is.
+ *
+ * Note that the chips the toolbar actually prints are derived from the
+ * data: a type with no *visible* rows gets none. Roles are usually
+ * `hideRow` (the cluster they anchor speaks for the tenure), so the
+ * count reflects the ones that render, not the ones that exist.
+ *
+ * Order is display order: it drives the chip row left-to-right, with
+ * the artifacts leading and the CV spine last.
+ */
+export const FILTERABLE_COMMIT_TYPES = [
+  "project",
+  "talk",
+  "post",
+  "social",
+  "role",
+] as const;
+
+export type FilterableCommitType = (typeof FILTERABLE_COMMIT_TYPES)[number];
+
+export function isFilterableCommitType(
+  type: CommitType,
+): type is FilterableCommitType {
+  return (FILTERABLE_COMMIT_TYPES as readonly CommitType[]).includes(type);
+}
+
+/**
+ * True when `commit` survives the active type filter.
+ *
+ * An empty `active` list is "no filter" — everything passes, events
+ * included. Once anything is selected the predicate is exact: only
+ * commits of a selected type pass, so events (never selectable — see
+ * {@link FILTERABLE_COMMIT_TYPES}) drop out with the rest.
+ */
+export function matchesTypeFilter(
+  commit: Commit,
+  active: readonly FilterableCommitType[],
+): boolean {
+  if (active.length === 0) return true;
+  return (
+    isFilterableCommitType(commit.type) &&
+    active.includes(commit.type)
+  );
 }
 
 /**
@@ -1112,22 +1200,65 @@ export function computeRail(commits: Commit[]): RailInfo[] {
 }
 
 /**
- * Re-derive rail glyphs after some rows are hidden (currently: roles
- * with `hideRow: true`). The identity cluster (segmentId) is
- * unchanged — we just shift the `┐` / `┘` top/bottom markers onto the
- * first/last *visible* row in each cluster, and clear the hidden
- * row's own rail so it contributes nothing to the gutter.
+ * True for a commit that never takes a row, whatever any filter says.
+ *
+ * Only `hideRow` roles qualify today: they stay in the array because
+ * identity resolution needs their handle and tenure, but the cluster
+ * they anchor speaks for the tenure and the row itself would be
+ * redundant. Exported so that everything which has to agree on "what
+ * is on the page" — the rail, the render loop, the toolbar's per-type
+ * counts — asks the same question.
+ */
+export function isSuppressedRow(commit: Commit): boolean {
+  return commit.type === "role" && commit.hideRow === true;
+}
+
+/**
+ * The one question every part of /works has to agree on: does this commit
+ * take a row in the current reading of the log?
+ *
+ * Two rules compose — a row the data suppresses outright, and a row the
+ * reader's type filter drops. They were composed by hand at three call
+ * sites and the three had already drifted apart: the toolbar's counts
+ * checked suppression, the page's "did anything match?" check did not, so
+ * `?type=role` on a log whose roles are all `hideRow` reported a match and
+ * then rendered an empty column. One predicate, so the next visibility
+ * rule is one edit rather than three.
+ *
+ * The locale rule is deliberately not in here: `buildTimelineData` has
+ * already applied it to everything a caller can reach, so asking again
+ * would be the fourth spelling rather than the last one.
+ */
+export function isRowVisible(
+  commit: Commit,
+  activeTypes: readonly FilterableCommitType[] = [],
+): boolean {
+  return !isSuppressedRow(commit) && matchesTypeFilter(commit, activeTypes);
+}
+
+/**
+ * Re-derive rail glyphs after some rows are hidden. The identity
+ * cluster (segmentId) is unchanged — we just shift the `┐` / `┘`
+ * top/bottom markers onto the first/last *visible* row in each
+ * cluster, and clear the hidden row's own rail so it contributes
+ * nothing to the gutter.
+ *
+ * `isHidden` is the whole rule, not a supplement to one held in here —
+ * see {@link isRowVisible}, which is what callers negate. /works passes
+ * its type filter through it, so a filtered timeline re-brackets around
+ * the rows that survive instead of drawing a rail into the gap where a
+ * dropped row used to be.
  *
  * Called after `computeRail` so the identity clustering stays derived
- * from the full data (hidden roles still contribute their handle /
- * tenure to identity resolution for surrounding commits).
+ * from the full data: hidden rows — filtered-out ones included — still
+ * contribute their handle / tenure to identity resolution for the
+ * commits around them, which is why filtering never costs a byline.
  */
 export function adjustRailForHidden(
   commits: Commit[],
   rail: RailInfo[],
+  isHidden: (commit: Commit) => boolean,
 ): RailInfo[] {
-  const isHidden = (c: Commit) => c.type === "role" && c.hideRow === true;
-
   const hidden = new Set<number>();
   for (let i = 0; i < commits.length; i++) {
     if (isHidden(commits[i])) hidden.add(i);
@@ -1193,11 +1324,19 @@ export function computeInferredBeams(
  * Silently skips when the target is missing — a typo in JSON degrades
  * to "no connector" rather than crashing.
  */
-export function computeBeams(commits: Commit[]): BeamLink[] {
+export function computeBeams(
+  commits: Commit[],
+  /** Rows the caller will not render — the whole rule, as
+   *  {@link adjustRailForHidden} takes it. A connector with a hidden
+   *  endpoint has nothing to draw between, so it is dropped rather than
+   *  left dangling; both ends are asked the same question. */
+  isHidden: (commit: Commit) => boolean,
+): BeamLink[] {
   const beams: BeamLink[] = [];
   for (let i = 0; i < commits.length; i++) {
     const c = commits[i];
     if (typeof c.attachedTo !== "string") continue;
+    if (isHidden(c)) continue;
     const toIdx = commits.findIndex((x) => x.id === c.attachedTo);
     if (toIdx < 0) continue;
     // attachedTo can target any anchor row we're willing to draw a
@@ -1212,10 +1351,9 @@ export function computeBeams(commits: Commit[]): BeamLink[] {
       targetType !== "project"
     )
       continue;
-    // If the target is a hidden role, drop the beam — the connector
-    // has nothing to land on. (Projects don't have a hideRow flag.)
-    const target = commits[toIdx];
-    if (target.type === "role" && target.hideRow === true) continue;
+    // If the target is hidden — a `hideRow` role, or one the filter
+    // dropped — the connector has nothing to land on.
+    if (isHidden(commits[toIdx])) continue;
     beams.push({
       fromIdx: i,
       toIdx,
@@ -1526,6 +1664,24 @@ export function isLinkPill(media: Media): media is LinkMedia & { present: "pill"
   return media.kind === "link" && media.present === "pill";
 }
 
+/**
+ * True when an item plays rather than opens — the one rule behind every
+ * play badge on the site.
+ *
+ * Videos and decks play in-site (the theater, the slides player); a link
+ * card pointing at a talk-recording host (GitNation) plays where it lands,
+ * and reads as a video in a cover for the same reason. It was written out
+ * at each site that draws a badge, which is how a compact cover and a
+ * contact-strip cover of the same media could have disagreed.
+ */
+export function isPlayableMedia(media: Media): boolean {
+  return (
+    isVideoMedia(media) ||
+    isSlidesMedia(media) ||
+    (isLinkMedia(media) && isVideoLinkHost(media.url))
+  );
+}
+
 /** True when an item is pinned above the row's fold. */
 export function isPinnedMedia(media: Media): boolean {
   return media.pinned === true;
@@ -1686,6 +1842,55 @@ export function getCommitPeekItems(commit: Commit): PeekItem[] {
     }
     const t = getMediaThumbnail(m);
     if (t) out.push({ kind: "thumb", url: m.url, image: t });
+  }
+  return out;
+}
+
+/**
+ * One cover in a commit's contact strip — the row of thumbnails the
+ * `stat` density prints under a folded row (see `MediaStrip`).
+ *
+ * Carries the `Media` itself, not just its URL, because the strip is
+ * live: a video thumb opens the theater, a deck thumb opens the slides
+ * player, everything else is a plain outbound link. The consumer needs
+ * the discriminated union to pick, so we hand it over rather than
+ * flattening to a URL the way `PeekItem` does.
+ */
+export interface StripItem {
+  media: Media;
+  image: string;
+  /** Whether the cover wears a play badge — see {@link isPlayableMedia}. */
+  playable: boolean;
+}
+
+/**
+ * Collect every cover in a media array, preserving authored order.
+ *
+ * Where the hover peek asks "what is behind the fold?", the strip asks
+ * "what is in this commit?" — so the two filters differ:
+ *  - pills contribute nothing either way (no cover; they already show
+ *    as icons in the folded row's right rail);
+ *  - social embeds contribute nothing (a live widget has no still to
+ *    stand in for it — they stay expanded-only);
+ *  - link cards use the viewer's locale variant when the enrichment
+ *    pipeline resolved one, matching what `MediaRenderer` would render.
+ *
+ * Pinned media is the caller's business: `/works` passes
+ * `NormalizedCommit.expandedMedia`, which already excludes it, because
+ * a pinned cover is rendered full-size right above the strip and does
+ * not want a second, smaller copy of itself.
+ */
+export function getMediaStripItems(
+  media: readonly Media[],
+  locale: Locale,
+): StripItem[] {
+  const out: StripItem[] = [];
+  for (const m of media) {
+    if (isLinkPill(m)) continue;
+    const image = isLinkMedia(m)
+      ? (m.previews?.[locale] ?? m.preview)?.image ?? null
+      : getMediaThumbnail(m);
+    if (image) out.push({ media: m, image, playable: isPlayableMedia(m) });
   }
   return out;
 }

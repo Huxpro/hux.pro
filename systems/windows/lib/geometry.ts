@@ -1,3 +1,4 @@
+import { SURFACE_BREAKPOINTS } from "@/systems/surface";
 import type { Rect } from "./types";
 
 // =============================================================================
@@ -43,8 +44,15 @@ export function getViewport(): Viewport {
   return { width: window.innerWidth, height: window.innerHeight };
 }
 
+/**
+ * Phone-width, by the surface system's own definition. It is the same question
+ * the shape fork asks (`WINDOW_PRESENTATION` in window.tsx), and it has to be
+ * the same answer: a phone window is a sheet, and the rule that follows from
+ * that — one app at a time — is true exactly when it is one. Two literals
+ * agreeing by coincidence would let the two drift apart in silence.
+ */
 export function isMobile(vp: Viewport): boolean {
-  return vp.width < 640;
+  return vp.width < SURFACE_BREAKPOINTS.sm;
 }
 
 /**
@@ -153,4 +161,45 @@ export function clampDrag(
   );
   const y = Math.min(Math.max(rect.y, area.y), area.y + area.height - CHROME_H);
   return { rect: { ...rect, x, y }, clamped: x !== rect.x || y !== rect.y };
+}
+
+/**
+ * Run `onChange` when the viewport changes size, at most once a frame.
+ *
+ * Every window geometry that is a fraction of the viewport has to be recomputed
+ * when it moves, and on iOS it moves constantly — through a rotation and every
+ * time the URL bar slides. So this is one listener and one frame for the whole
+ * system, not one per subscriber: the layer renders every window including the
+ * minimized ones, and on a phone all but one of those are put away. Five open
+ * apps were five listeners and five viewport reads a frame, four of them for
+ * sheets nobody could see.
+ */
+const watchers = new Set<() => void>();
+let watchRaf = 0;
+let stopWatching: (() => void) | null = null;
+
+export function onViewportChange(onChange: () => void): () => void {
+  watchers.add(onChange);
+  if (!stopWatching) {
+    const handle = () => {
+      if (watchRaf) return;
+      watchRaf = requestAnimationFrame(() => {
+        watchRaf = 0;
+        for (const w of watchers) w();
+      });
+    };
+    window.addEventListener("resize", handle);
+    stopWatching = () => {
+      window.removeEventListener("resize", handle);
+      if (watchRaf) cancelAnimationFrame(watchRaf);
+      watchRaf = 0;
+    };
+  }
+  return () => {
+    watchers.delete(onChange);
+    if (watchers.size === 0) {
+      stopWatching?.();
+      stopWatching = null;
+    }
+  };
 }

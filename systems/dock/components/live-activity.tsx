@@ -31,7 +31,7 @@ import { useDock } from "../provider";
 // and one expanded panel, which is a Base UI Drawer travelling UP — the mirror
 // of the phone sheet in systems/surface. Everything the dock used to
 // hand-write (the drag, the enter/exit animation, the scrim, Escape) is the
-// library's now, or CSS ("Dock panel motion" in globals.css).
+// library's now, or CSS ("Dock" in globals.css).
 //
 // Three things the drawer brought that the hand-written panel could not:
 //
@@ -59,7 +59,7 @@ import { useDock } from "../provider";
 // ---------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
-// BEFORE CHANGING THIS FILE, OR THE "Dock panel motion" BLOCK IN globals.css:
+// BEFORE CHANGING THIS FILE, OR THE "Dock" BLOCK IN globals.css:
 // read the "BEFORE CHANGING THIS FILE" list at the top of
 // systems/surface/sheet.tsx. Every item on it applies here too — this is the
 // same library, the same data attributes, the same custom properties. Six

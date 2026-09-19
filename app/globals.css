@@ -570,6 +570,40 @@ html.dragging * {
   display: none;
 }
 
+/* Commit permalink arrival — /works#<hash>. The row you travelled to is
+   marked for two seconds (see `useCommitAnchor`) so the eye lands on it
+   instead of counting rows. A wash, not a border: the timeline's rows have no
+   edges of their own, and giving one an outline for two seconds would read as
+   a different kind of row rather than the same row, found.
+
+   `--accent-wash` rather than a hand-mixed alpha: the wash ladder is one
+   setting per theme (7% light, 10% dark) so a tint holds over any wallpaper
+   without each site guessing, per docs/system-legibility.md. Fades out on its
+   own; fading in is the point of arrival, so that side is instant. The 2s is
+   the mark's whole life — `useCommitAnchor` takes the attribute off on
+   `animationend` rather than keeping a timer that agrees with this one. */
+[data-commit-target] [data-row-trigger] {
+  animation: commit-target-wash 2s ease-out forwards;
+}
+
+@keyframes commit-target-wash {
+  0% {
+    background-color: var(--accent-wash);
+  }
+  60% {
+    background-color: var(--accent-wash);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-commit-target] [data-row-trigger] {
+    animation-duration: 0.01ms;
+  }
+}
+
 /* Theater stage — the YouTube IFrame API injects an <iframe> sized by the
    width/height player options; force it to fill the morphing stage so the
    video stays responsive as the stage animates between theater and PiP. */
@@ -592,7 +626,7 @@ html.dragging * {
      headings keep their hierarchy, captions and code keep their relation to
      the paragraph they annotate. `line-height` is unitless for the same
      reason: it follows whatever the size lands on. */
-  font-size: var(--reading-size, 16px);
+  font-size: var(--reading-size);
   line-height: 1.75;
   /* Break long unbreakable strings (e.g. raw URLs used as link text) so they
      wrap instead of overflowing the viewport horizontally on mobile. */
@@ -631,7 +665,7 @@ html.dragging * {
 
 /* First-level .not-prose in prose context gets vertical margin */
 .prose-article .not-prose {
-  @apply my-6;
+  margin-block: calc(var(--reading-size) * 1.5);
 }
 
 /* Nested .not-prose elements reset margin - parent handles spacing */
@@ -640,20 +674,47 @@ html.dragging * {
   margin-bottom: 0;
 }
 
+/* -----------------------------------------------------------------------------
+   Block spacing, against the reading size.
+
+   #190 made every font-size inside an article an `em`, so the type scaled. The
+   margins did not: they were Tailwind spacing utilities, which are `rem` and so
+   answer to the root font size, which the reading setting never touches. The
+   result ran the wrong way -- as a fraction of its own line, the gap between two
+   paragraphs was 0.91 lines at `small`, 0.86 at the default and 0.76 at `large`.
+   A reader who asks for bigger type gets the tightest page of the three, which
+   is the opposite of what they asked for.
+
+   Every one of them is a multiple of `--reading-size` now. At the default they
+   resolve to exactly the pixels the utilities set -- 1.5 x 16 = 24, 4 x 16 = 64
+   -- so nothing moves for a reader who never opens "Aa".
+
+   Not `em`: on a heading `em` resolves against the heading's own size, so `4em`
+   on an `h2` would be 72px rather than 64 and every level would drift by its own
+   factor. `--reading-size` is one number for the whole article, which is the
+   point.
+   ----------------------------------------------------------------------------- */
+
 .prose-article p:not(:where(.not-prose, .not-prose *)) {
-  @apply mb-6;
+  margin-bottom: calc(var(--reading-size) * 1.5);
 }
 
 .prose-article h1:not(:where(.not-prose, .not-prose *)) {
-  @apply font-sans text-[1.25em] font-medium mt-14 mb-6 text-foreground first:mt-0;
+  @apply font-sans text-[1.25em] font-medium text-foreground first:mt-0;
+  margin-top: calc(var(--reading-size) * 3.5);
+  margin-bottom: calc(var(--reading-size) * 1.5);
 }
 
 .prose-article h2:not(:where(.not-prose, .not-prose *)) {
-  @apply font-sans text-[1.125em] font-medium mt-16 mb-6 text-foreground;
+  @apply font-sans text-[1.125em] font-medium text-foreground;
+  margin-top: calc(var(--reading-size) * 4);
+  margin-bottom: calc(var(--reading-size) * 1.5);
 }
 
 .prose-article h3:not(:where(.not-prose, .not-prose *)) {
-  @apply font-sans text-[1em] font-medium mt-12 mb-4 text-foreground;
+  @apply font-sans text-[1em] font-medium text-foreground;
+  margin-top: calc(var(--reading-size) * 3);
+  margin-bottom: var(--reading-size);
 }
 
 .prose-article a:not(:where(.not-prose, .not-prose *)) {
@@ -682,7 +743,8 @@ html.dragging * {
 
 /* Blockquote - Editorial hanging quotation marks style */
 .prose-article blockquote:not(:where(.not-prose, .not-prose *)) {
-  @apply my-8 font-serif italic text-foreground/70 relative;
+  @apply font-serif italic text-foreground/70 relative;
+  margin-block: calc(var(--reading-size) * 2);
   padding-left: 0;
   border: none;
 }
@@ -706,7 +768,7 @@ html.dragging * {
 /* Lists - custom markers with absolute positioning for proper text flow */
 .prose-article ul:not(:where(.not-prose, .not-prose *)),
 .prose-article ol:not(:where(.not-prose, .not-prose *)) {
-  @apply my-6;
+  margin-block: calc(var(--reading-size) * 1.5);
   padding-left: 1.25em;
   list-style: none;
 }
@@ -716,7 +778,7 @@ html.dragging * {
 }
 
 .prose-article li:not(:where(.not-prose, .not-prose *)) {
-  @apply mb-2;
+  margin-bottom: calc(var(--reading-size) * 0.5);
   position: relative;
   padding-left: 0;
 }
@@ -744,7 +806,7 @@ html.dragging * {
 /* Nested lists - indentation and counter reset */
 .prose-article li:not(:where(.not-prose, .not-prose *)) ul,
 .prose-article li:not(:where(.not-prose, .not-prose *)) ol {
-  @apply my-2;
+  margin-block: calc(var(--reading-size) * 0.5);
   padding-left: 1.25em;
   margin-left: 0;
 }
@@ -764,7 +826,8 @@ html.dragging * {
 
 /* Horizontal rule */
 .prose-article hr:not(:where(.not-prose, .not-prose *)) {
-  @apply my-12 border-border;
+  @apply border-border;
+  margin-block: calc(var(--reading-size) * 3);
 }
 
 /* Tables */
@@ -804,7 +867,8 @@ html.dragging * {
 
 /* Code blocks with rehype-pretty-code styling */
 .prose-article pre:not(:where(.not-prose, .not-prose *)) {
-  @apply my-6 rounded-lg overflow-x-auto border border-border bg-muted/50;
+  @apply rounded-lg overflow-x-auto border border-border bg-muted/50;
+  margin-block: calc(var(--reading-size) * 1.5);
   color: var(--shiki-light);
 }
 
@@ -888,14 +952,16 @@ html.dragging * {
 }
 
 .prose-article img:not(:where(.not-prose, .not-prose *)) {
-  @apply my-8 rounded-lg;
+  @apply rounded-lg;
+  margin-block: calc(var(--reading-size) * 2);
 }
 
 /* Raw embeds (e.g. YouTube <iframe>) authored directly in MDX.
    The hardcoded width/height attributes overflow the viewport on mobile,
    so force a responsive 16:9 box that never exceeds the content width. */
 .prose-article iframe:not(:where(.not-prose, .not-prose *)) {
-  @apply my-8 w-full max-w-full rounded-lg;
+  @apply w-full max-w-full rounded-lg;
+  margin-block: calc(var(--reading-size) * 2);
   height: auto;
   aspect-ratio: 16 / 9;
 }
@@ -948,12 +1014,84 @@ html.dragging * {
 }
 
 /* Reading size: the one number every `em` in an article resolves against.
-   Default needs no attribute, so <html> stays clean at the common case. */
+   16px is what the body was before any of this existed, so `default` is not a
+   new middle -- it is the size the site always set, and the small/large steps
+   are one point either side of it. Declared here rather than left to a `var()`
+   fallback so anything can resolve it without repeating the number. Default
+   needs no attribute, so <html> stays clean at the common case. */
+:root {
+  --reading-size: 16px;
+}
 :root[data-reading-size="small"] {
   --reading-size: 15px;
 }
 :root[data-reading-size="large"] {
   --reading-size: 18px;
+}
+
+/* =============================================================================
+   The masthead scales with the article.
+
+   #190 made everything inside `.prose-article` an `em` of the reading size, so
+   headings, captions and code all move together. The title above the article
+   did not, which is the one place the seam showed: at `large` the body came up
+   to meet a title that had stayed where it was, and the gap under that title
+   stayed a flat 48px whatever size the text below it was.
+
+   Both are ratios of the same number now. At the default they resolve to
+   exactly what the Tailwind utilities set -- 20px / 24px for the title, 48px /
+   56px for the gap -- so nothing moves for a reader who never opens "Aa".
+
+   Unlayered on purpose, so it wins over the `text-xl sm:text-2xl` and
+   `mb-12 sm:mb-14` utilities that stay on the elements as a fallback.
+   ============================================================================= */
+
+main[data-variant="reader"] .reader-masthead h1 {
+  font-size: calc(var(--reading-size) * 1.25);
+}
+
+/* -----------------------------------------------------------------------------
+   The gap under the masthead, and the one over the title.
+
+   These were 48px / 56px while `h2` inside the article takes a 64px `mt`. So a
+   section break in the middle of a piece was given more air than the break
+   between the piece's title and its first line -- the largest division on the
+   page getting the smallest gap, which is the hierarchy upside down.
+
+   The number came from measuring: on /writing the first text sits 70px from the
+   top edge on a phone and 102px on a desktop. On a phone that was close, and
+   64px -- four times the reading size, and the same figure an `h2` takes -- is
+   the last bit of it back. Wide, 102px was simply too much air; the title fell
+   so far down the page that it read as a hole rather than a breath, so those
+   keep the values the site already had.
+
+   Both are ratios of `--reading-size`, so they move with the type.
+   ----------------------------------------------------------------------------- */
+
+main[data-variant="reader"] .reader-masthead > a {
+  /* The nav's box hangs 14px below its text -- the 44px touch target centring
+     a 16px line -- so the margin is that much less than the gap you see. */
+  margin-bottom: calc(var(--reading-size) * 4 - 14px);
+}
+
+main[data-variant="reader"] .reader-masthead {
+  margin-bottom: calc(var(--reading-size) * 4); /* 64px at the default */
+}
+
+@media (width >= 40rem) {
+  main[data-variant="reader"] .reader-masthead h1 {
+    font-size: calc(var(--reading-size) * 1.5);
+  }
+  /* Wide, the page is not fighting for the fold and the measured 102px read as
+     a hole rather than a breath, so these are the values the site already had
+     -- 48px and 56px -- expressed against the reading size so they still move
+     with the type. */
+  main[data-variant="reader"] .reader-masthead > a {
+    margin-bottom: calc(var(--reading-size) * 3);
+  }
+  main[data-variant="reader"] .reader-masthead {
+    margin-bottom: calc(var(--reading-size) * 3.5);
+  }
 }
 
 /* Reading measure: widen/narrow the reader column. Only the reader variant's
@@ -975,11 +1113,12 @@ html.dragging * {
 }
 
 .prose-article figure:not(:where(.not-prose, .not-prose *)) {
-  @apply my-8;
+  margin-block: calc(var(--reading-size) * 2);
 }
 
 .prose-article figcaption:not(:where(.not-prose, .not-prose *)) {
-  @apply mt-2 text-center text-[0.875em] text-muted-foreground;
+  @apply text-center text-[0.875em] text-muted-foreground;
+  margin-top: calc(var(--reading-size) * 0.5);
 }
 
 /* Strikethrough (GFM) */
@@ -1500,6 +1639,40 @@ html.dragging * {
   transform: translateX(var(--drawer-swipe-movement-x, 0px));
 }
 
+/* Arriving, a kept-mounted sheet rises at the size it is going to be.
+
+   Base UI resolves the active detent's offset from measurements — the popup's
+   height and the viewport's (useDrawerSnapPoints.js) — and a popup coming back
+   out of `display: none` has no box to measure, so on its first painted frame
+   the offset is 0, which *is* the top detent: the sheet arrives at full height
+   and then slides down into its detent over half a second, growing and
+   shrinking as it comes. The offset is no mystery though — it is
+   `popupHeight - detentHeight` — and sheet.tsx publishes exactly that as
+   `--surface-snap-fallback`, which CSS can compute without measuring anything.
+   For the length of the entrance the sheet stands on ours; Base UI's lands
+   under it, the same number, before the mark comes off.
+
+   Only a kept-mounted sheet is marked (sheet.tsx), and deliberately: this rule
+   outranks the live-drag transform, so a sheet wearing it for half a second
+   after every open would not answer a drag begun in that half second. */
+[data-surface-popup][data-surface-entering][data-surface-snap] {
+  transform: translateY(var(--surface-snap-fallback, 0px));
+  padding-bottom: calc(
+    var(--surface-snap-fallback, 0px) + max(env(safe-area-inset-bottom), var(--surface-gap))
+  );
+}
+
+/* The one painted frame a kept-mounted sheet needs to have somewhere to rise
+   from (sheet.tsx sets the mark for exactly one frame; the note there says
+   why). It must land instantly — this is the start of the journey, not part of
+   it — so the duration goes, never the property: a popup with no transition
+   property at all cannot be told when it has finished leaving (item 3 at the
+   top of systems/surface/sheet.tsx). */
+[data-surface-popup][data-surface-arriving][data-swipe-direction="down"] {
+  transform: translateY(calc(100% + var(--surface-exit)));
+  transition-duration: 0ms;
+}
+
 /* Entering and leaving: past the edge by the gap as well, otherwise the
    surface "pops" for the last few pixels. */
 [data-surface-popup][data-swipe-direction="down"]:is(
@@ -1576,6 +1749,32 @@ html.dragging * {
   [data-surface-shell] {
     transition: none;
   }
+}
+
+/* =============================================================================
+   Window grip — the hit area
+   The chrome of an app window on a phone (systems/windows/components/
+   window-grip.tsx) is the window's own pill of traffic lights, floating over
+   edge-to-edge content as it does on the desktop, doing double duty as the
+   sheet's grabber. It looks exactly like the desktop pill, down to the padding
+   (window-pill.tsx has all of it), and that pill is 48×28.5 — a fine target for
+   a mouse and a small one for a thumb that also has to drag the sheet by it.
+   So the only thing said here is the thing the look cannot say: the glass is
+   the pill, and the target reaches past it — though no further up than the
+   shell's own edge, which clips. 72×44.5, from a pill of 48×28.5.
+
+   Keeping the two apart is also what a future morph needs: a pill that shrinks
+   into the site's 36×4 bar must not take its target down with it. There is no
+   shape change here today — the dots used to become that bar while the sheet
+   was dragged, keyed off one state or another, and every version of that state
+   could be stranded with the controls hidden inside it. The note at the top of
+   window-grip.tsx has the history.
+   ============================================================================= */
+
+[data-window-grip]::before {
+  content: "";
+  position: absolute;
+  inset: -0.5rem -0.75rem;
 }
 
 /* =============================================================================

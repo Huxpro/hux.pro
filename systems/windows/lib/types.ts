@@ -34,6 +34,11 @@ export interface WindowInstance {
   sizePreset: SizePreset;
   /** Stacking order; the focused window holds the highest value. */
   z: number;
+  /**
+   * Bumped by `reload` — the app frame keys off it, so a reload is a remount:
+   * the only way to restart a cross-origin iframe or a Lynx runtime from here.
+   */
+  generation: number;
   /** Rect to return to when leaving "max". */
   restoreRect?: Rect;
   /** Preset to return to when leaving "max". */

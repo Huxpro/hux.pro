@@ -1,11 +1,11 @@
 "use client";
 
-import { APP_ICONS, iconFillsTile } from "@/lib/apps";
-import { appTitle, resolveAppIconSrc } from "@/lib/app-icon-core";
+import { appTitle } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { AnimatePresence, motion } from "framer-motion";
 import { useWindows } from "../provider";
+import { AppIconPlate } from "./app-icon-plate";
 import type { WindowInstance } from "../lib/types";
 import { AppBadgeFor } from "./app-badge";
 
@@ -25,41 +25,13 @@ import { AppBadgeFor } from "./app-badge";
 //
 // Rendered as a child of <Dock>, so its dots become flex items in the dock's
 // row; `data-dock-slot="window"` is what puts them last and spaces them (see
-// "Dock panel motion" in globals.css).
+// "Dock" in globals.css).
 // =============================================================================
 
 function PillIcon({ win }: { win: WindowInstance }) {
-  const { locale } = useLocale();
-  const title = appTitle(win.app, locale);
-  const entry = APP_ICONS[win.app.id];
-  const src = resolveAppIconSrc(win.app, APP_ICONS);
-  const fills = iconFillsTile(entry);
   return (
     <span className="relative block h-6 w-6 shrink-0">
-      <span
-        className={cn(
-          "block h-6 w-6 overflow-hidden rounded-[7px]",
-          // Glyph icons need a plate so dark marks stay visible; full-bleed
-          // icons bring their own background — no border, no plate.
-          !fills && "bg-white",
-        )}
-      >
-        {src ? (
-          // eslint-disable-next-line @next/next/no-img-element -- tiny local static asset
-          <img
-            src={src}
-            alt=""
-            className={cn(
-              "h-full w-full",
-              fills ? "object-cover" : "object-contain p-0.5",
-            )}
-          />
-        ) : (
-          <span className="flex h-full w-full items-center justify-center font-mono text-[10px] text-neutral-400">
-            {title.charAt(0)}
-          </span>
-        )}
-      </span>
+      <AppIconPlate app={win.app} className="h-6 w-6" textClassName="text-[10px]" />
       {/* The runtime marker rides along, so a minimized Lynx app still reads as
           one at a glance in the dock. */}
       {/* Tucked in rather than hung off the corner: the dot is a circle now,

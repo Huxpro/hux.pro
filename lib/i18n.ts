@@ -188,6 +188,9 @@ export const translations = {
     solarThemeToDark: "Dark Mode",
     solarThemeNote: "Preference unchanged",
 
+    // The article header's provenance line, folded behind an `(i)`.
+    postOrigin: "Where this was first published",
+
     // Reading settings (the article page's "Aa")
     readingSettings: "Reading settings",
     readingSettingsTitle: "reading",
@@ -292,8 +295,14 @@ export const translations = {
     logHead: "HEAD",
     logCurrent: "Current",
     logInit: "git init",
-    logExpandAll: "expand",
-    logCollapseAll: "collapse",
+    // Toolbar: type filter + density (see components/log/works-toolbar.tsx)
+    logFilterLabel: "Filter by type",
+    logFilterClear: "Clear filter",
+    logDensityLabel: "Detail level",
+    logDensityOneline: "Titles only",
+    logDensityStat: "Titles + media",
+    logDensityPatch: "Everything",
+    logNoMatches: "no commits match this filter.",
     writingFeatured: "featured",
     logSelectedWorks: "Selected Works",
     logRead: "Read",
@@ -460,6 +469,9 @@ export const translations = {
     solarThemeToDark: "深色模式",
     solarThemeNote: "偏好未更改",
 
+    // The article header's provenance line, folded behind an `(i)`.
+    postOrigin: "首发于何处",
+
     // Reading settings (the article page's "Aa")
     readingSettings: "阅读设置",
     readingSettingsTitle: "阅读",
@@ -562,8 +574,14 @@ export const translations = {
     logHead: "HEAD",
     logCurrent: "当前",
     logInit: "git init",
-    logExpandAll: "展开",
-    logCollapseAll: "收起",
+    // Toolbar: type filter + density (see components/log/works-toolbar.tsx)
+    logFilterLabel: "按类型筛选",
+    logFilterClear: "清除筛选",
+    logDensityLabel: "详略",
+    logDensityOneline: "仅标题",
+    logDensityStat: "标题 + 媒体",
+    logDensityPatch: "全部展开",
+    logNoMatches: "没有符合筛选条件的提交。",
     writingFeatured: "精选",
     logSelectedWorks: "精选作品",
     logRead: "阅读",

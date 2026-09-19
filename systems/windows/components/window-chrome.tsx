@@ -1,30 +1,16 @@
 "use client";
 
-import appIconSnapshot from "@/content/app-icons.json";
-import {
-  appTitle,
-  resolveAppIconSrc,
-  runtimeLabel,
-  type AppIconSnapshot,
-} from "@/lib/app-icon-core";
+import { appTitle } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useInputCapability, useLocale } from "@/services";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Check,
-  ExternalLink,
-  Maximize2,
-  Minus,
-  Monitor,
-  Smartphone,
-  X,
-} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { SizePreset } from "../lib/geometry";
 import { armPointer } from "../lib/pointer";
 import type { WindowInstance } from "../lib/types";
 import { useWindows } from "../provider";
+import { WindowMenuBody, WindowMenuSheet } from "./window-menu";
+import { PillTitle, pillShell, TrafficDots, type DotAction } from "./window-pill";
 
 // =============================================================================
 // WindowChrome — the window controls
@@ -35,143 +21,35 @@ import { useWindows } from "../provider";
 //     green traffic lights on a glass pill (glyphs + title) on hover.
 //   • Mobile (touch)    → a small, centred, always-grey ••• pill; tap → menu.
 //
-// The menu is a real modal: it's portaled to <body> with a full-viewport scrim
-// (so a tap anywhere — even over an iframe, whose pointer events don't bubble —
-// dismisses it), and clamped into the viewport (left under the desktop pill,
-// centred under the mobile pill). Opened by right-click / tap-title / long-press.
+// The menu takes the shape the device asks for, and only the shape:
+//
+//   • Desktop → a popover under the pill, a real modal: portaled to <body>
+//     with a full-viewport scrim (so a click anywhere — even over an iframe,
+//     whose pointer events don't bubble — dismisses it) and clamped into the
+//     viewport.
+//   • Touch → an action sheet from the bottom edge (window-menu.tsx), which is
+//     what iOS answers "long-press an object, get its actions" with. Nothing
+//     here computes a position for it.
+//
+// Both shapes render one WindowMenuBody (window-menu.tsx), so the menu offers
+// the same things whatever it is shaped like. Opened by right-click /
+// tap-title / long-press.
+//
+// This is the chrome of a *windowed* window. Where the window is itself a
+// sheet (a phone — see window-sheet.tsx), there is no pill: the sheet's grip
+// is the whole chrome, and the menu hangs off that instead.
 // =============================================================================
 
-const ICONS = appIconSnapshot as AppIconSnapshot;
 const MENU_W = 208; // w-52
 
-const PRESET_META: Record<SizePreset, { label: string; Icon: typeof Smartphone }> = {
-  portrait: { label: "Portrait", Icon: Smartphone },
-  landscape: { label: "Landscape", Icon: Monitor },
-  max: { label: "Maximize", Icon: Maximize2 },
-};
-
-/** A traffic-light dot: dim grey at rest, coloured (active window) on hover. */
-function Dot({
-  active,
-  interacting,
-  colorHover,
-  label,
-  onClick,
-  glyph,
-}: {
-  active: boolean;
-  /** Window is being dragged/resized or its menu is open → controls "wake up". */
-  interacting: boolean;
-  colorHover: string;
-  label: string;
-  onClick: () => void;
-  glyph: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      data-window-control
-      aria-label={label}
-      title={label}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      className={cn(
-        "flex cursor-default items-center justify-center rounded-full text-black/55",
-        "transition-all duration-150 active:scale-90",
-        // Small on touch; always full-size on desktop.
-        "h-[6px] w-[6px] [@media(hover:hover)]:h-3 [@media(hover:hover)]:w-3",
-        // Inert on touch → tap reaches the pill (menu); live on pointer devices.
-        "pointer-events-none [@media(hover:hover)]:pointer-events-auto",
-        // Grey base (no `dark:`, to avoid out-specifying the hover colour in
-        // dark mode). Dim at rest on both platforms; full when interacting, and
-        // coloured (active window only) on desktop hover.
-        "bg-zinc-500",
-        interacting
-          ? "opacity-100"
-          : "opacity-40 [@media(hover:hover)]:group-hover/chrome:opacity-100",
-        active && colorHover,
-      )}
-    >
-      <span className="opacity-0 transition-opacity [@media(hover:hover)]:group-hover/chrome:opacity-100">
-        {glyph}
-      </span>
-    </button>
-  );
+/**
+ * Where the desktop popover hangs. Touch has nothing to anchor to — it gets a
+ * sheet — so the popover only ever hangs one way now, from the pill's top left.
+ */
+interface MenuAnchor {
+  left: number;
+  top: number;
 }
-
-function MenuItem({
-  onSelect,
-  icon,
-  children,
-  active,
-}: {
-  onSelect: () => void;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  active?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      role="menuitem"
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect();
-      }}
-      onPointerDown={(e) => e.stopPropagation()}
-      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-xs text-foreground hover:bg-black/6 dark:hover:bg-white/10"
-    >
-      <span className="flex h-4 w-4 items-center justify-center opacity-70">{icon}</span>
-      <span className="flex-1">{children}</span>
-      {active && <Check className="h-3.5 w-3.5 opacity-80" />}
-    </button>
-  );
-}
-
-const stroke = "h-2 w-2 stroke-[2.5]";
-
-// The three traffic lights, in macOS order (close · minimize · zoom). `action`
-// keys into the per-window dispatch built inside the component. Colours are the
-// on-hover fills (active window only); glyphs show on hover.
-const DOTS: {
-  label: string;
-  action: "close" | "minimize" | "zoom";
-  colorHover: string;
-  glyph: React.ReactNode;
-}[] = [
-  {
-    label: "Close",
-    action: "close",
-    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-[#ff5f57]",
-    glyph: (
-      <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
-        <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" stroke="currentColor" fill="none" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    label: "Minimize",
-    action: "minimize",
-    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-[#febc2e]",
-    glyph: (
-      <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
-        <path d="M2.2 5h5.6" stroke="currentColor" fill="none" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    label: "Zoom",
-    action: "zoom",
-    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-[#28c840]",
-    glyph: (
-      <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
-        <path d="M5 2.2v5.6M2.2 5h5.6" stroke="currentColor" fill="none" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-];
 
 export function WindowChrome({
   win,
@@ -185,7 +63,7 @@ export function WindowChrome({
   gesturing: boolean;
   beginDrag: (clientX: number, clientY: number) => void;
 }) {
-  const { close, minimize, toggleMaximize, setSizePreset } = useWindows();
+  const { close, minimize, toggleMaximize } = useWindows();
   // Canonical hover-capability read (not a raw `(hover: hover)` media query,
   // which is unreliable — e.g. always `hover: none` in headless Chrome).
   const { hasFineHoverPointer } = useInputCapability();
@@ -193,44 +71,43 @@ export function WindowChrome({
   const title = appTitle(win.app, locale);
   const pillRef = useRef<HTMLDivElement>(null);
   const suppressClick = useRef(false);
-  const [menu, setMenu] = useState<{
-    left: number;
-    top: number;
-    origin: string;
-  } | null>(null);
+  // A pointer device gets the popover; anything else gets the sheet.
+  const shape = hasFineHoverPointer ? "popover" : "sheet";
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
   // The pill "wakes up" (glass + full-opacity dots) while interacting — this is
   // what gives the mobile pill its glass look when there's no hover to trigger it.
-  const interacting = gesturing || !!menu;
-
-  const src = resolveAppIconSrc(win.app, ICONS);
-  const isWeb = win.app.runtime !== "lynx";
-  const kind = runtimeLabel(win.app);
+  const interacting = gesturing || menuOpen;
 
   const openMenu = () => {
-    const r = pillRef.current?.getBoundingClientRect();
-    if (!r) return;
-    // Desktop (top-left pill) → left-aligned under the pill; touch (centred
-    // pill) → centred under it. Clamped into the viewport either way.
-    const desired = hasFineHoverPointer ? r.left : r.left + r.width / 2 - MENU_W / 2;
-    const left = Math.min(
-      Math.max(desired, 8),
-      window.innerWidth - MENU_W - 8,
-    );
-    setMenu({
-      left,
-      top: r.bottom + 6,
-      origin: hasFineHoverPointer ? "top left" : "top center",
-    });
+    // The sheet rises from the bottom edge: nothing to anchor, nothing to
+    // measure. Only the popover hangs off the pill.
+    if (shape === "popover") {
+      const r = pillRef.current?.getBoundingClientRect();
+      if (!r) return;
+      // Left-aligned under the pill, clamped into the viewport.
+      const left = Math.min(Math.max(r.left, 8), window.innerWidth - MENU_W - 8);
+      setAnchor({ left, top: r.bottom + 6 });
+    }
+    setMenuOpen(true);
   };
-  const closeMenu = () => setMenu(null);
-  const toggleMenu = () => (menu ? closeMenu() : openMenu());
+  const closeMenu = () => setMenuOpen(false);
+  const toggleMenu = () => (menuOpen ? closeMenu() : openMenu());
 
+  // The sheet brings its own Escape (and its own scrim).
   useEffect(() => {
-    if (!menu) return;
+    if (!menuOpen || shape !== "popover") return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeMenu();
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [menu]);
+  }, [menuOpen, shape]);
+
+  /** Pick a row in the popover: it closes, the action lands. (The sheet form
+   *  waits for its own exit first — see WindowMenuSheet.) */
+  const run = (action?: () => void) => {
+    closeMenu();
+    action?.();
+  };
 
   const onPillPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
@@ -247,13 +124,12 @@ export function WindowChrome({
     });
   };
 
-  const setSize = (pr: SizePreset) => {
-    setSizePreset(win.id, pr);
-    closeMenu();
+  // Per-window dispatch the traffic lights key into.
+  const dotAction: Record<DotAction, (id: string) => void> = {
+    close,
+    minimize,
+    zoom: toggleMaximize,
   };
-
-  // Per-window dispatch the DOTS array keys into by `action`.
-  const dotAction = { close, minimize, zoom: toggleMaximize };
 
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-40 flex justify-center px-2.5 pt-2 [@media(hover:hover)]:justify-start">
@@ -271,63 +147,35 @@ export function WindowChrome({
             suppressClick.current = false;
           }
         }}
-        className={cn(
-          "group/chrome pointer-events-auto flex cursor-default items-center rounded-full px-2.5 py-1.5",
-          "touch-none select-none transition-all duration-200",
-          // Two states, kept mutually exclusive so light/dark utilities never
-          // fight on specificity:
-          interacting
-            ? // Interacting (drag / menu open) → glass, on either platform.
-              "border-black/10 bg-white/80 shadow-raised backdrop-blur-xl dark:border-white/14 dark:bg-black/60"
-            : cn(
-                // Idle → fully transparent (both platforms).
-                "border-transparent bg-transparent shadow-none",
-                // …except desktop hover, which lights the glass. `hover:` (not
-                // group-hover) since this element *is* the group.
-                "[@media(hover:hover)]:hover:border-black/10 [@media(hover:hover)]:hover:bg-white/80 [@media(hover:hover)]:hover:shadow-raised [@media(hover:hover)]:hover:backdrop-blur-xl",
-                "dark:[@media(hover:hover)]:hover:border-white/14 dark:[@media(hover:hover)]:hover:bg-black/60",
-              ),
-        )}
+        className={cn(pillShell(interacting), "pointer-events-auto")}
       >
-        {/* Dots grouped so the title never adds a gap at rest (mobile symmetry).
-            Order is load-bearing (close · minimize · zoom, like macOS). */}
-        <div className="flex items-center gap-[5px] [@media(hover:hover)]:gap-2">
-          {DOTS.map((dot) => (
-            <Dot
-              key={dot.label}
-              active={focused}
-              interacting={interacting}
-              colorHover={dot.colorHover}
-              label={dot.label}
-              onClick={() => dotAction[dot.action](win.id)}
-              glyph={dot.glyph}
-            />
-          ))}
-        </div>
+        <TrafficDots
+          focused={focused}
+          interacting={interacting}
+          onAction={(action) => dotAction[action](win.id)}
+        />
 
         {/* App title — revealed on hover; brightens on its own hover (clickable). */}
-        <span
-          className={cn(
-            "cursor-pointer overflow-hidden whitespace-nowrap text-[11px] font-medium",
-            "text-foreground/70 transition-all duration-200 hover:text-foreground",
-            "max-w-0 opacity-0",
-            "[@media(hover:hover)]:group-hover/chrome:max-w-40",
-            "[@media(hover:hover)]:group-hover/chrome:opacity-100",
-            "[@media(hover:hover)]:group-hover/chrome:ml-2",
-          )}
-        >
-          {title}
-        </span>
+        <PillTitle>{title}</PillTitle>
       </div>
 
-      {/* Modal menu — portaled to <body> so its scrim covers everything (incl.
-          iframes) and it's never clipped by the window. WindowChrome only ever
-          renders client-side (windows open on interaction), so `document` is
-          always present here. */}
-      {typeof document !== "undefined" &&
+      {/* Touch: the menu as an action sheet, content height, from the bottom
+          edge. It is portaled, scrimmed and stacked by the surface system
+          (z-60, over the window layer and its iframes), which also brings a
+          palette or devtool sheet underneath it a step back. */}
+      {shape === "sheet" && (
+        <WindowMenuSheet win={win} open={menuOpen} onClose={closeMenu} />
+      )}
+
+      {/* Desktop: the popover, portaled to <body> so its scrim covers
+          everything (incl. iframes) and it's never clipped by the window.
+          WindowChrome only ever renders client-side (windows open on
+          interaction), so `document` is always present here. */}
+      {shape === "popover" &&
+        typeof document !== "undefined" &&
         createPortal(
           <AnimatePresence>
-            {menu && (
+            {menuOpen && anchor && (
               <>
                 <div
                   className="fixed inset-0 z-[55]"
@@ -343,7 +191,7 @@ export function WindowChrome({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -4, scale: 0.97 }}
                   transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
-                  style={{ left: menu.left, top: menu.top, transformOrigin: menu.origin }}
+                  style={{ left: anchor.left, top: anchor.top, transformOrigin: "top left" }}
                   onPointerDown={(e) => e.stopPropagation()}
                   className={cn(
                     "fixed z-[56] w-52 select-none p-1",
@@ -351,72 +199,7 @@ export function WindowChrome({
                     "bg-white/90 shadow-overlay backdrop-blur-xl dark:bg-neutral-900/90",
                   )}
                 >
-                  <div className="flex items-center gap-2.5 px-2 py-1.5">
-                    {src ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- tiny local asset
-                      <img src={src} alt="" className="h-7 w-7 rounded-[7px] object-cover" draggable={false} />
-                    ) : (
-                      <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-muted text-[11px] font-mono text-muted-foreground">
-                        {title.charAt(0)}
-                      </span>
-                    )}
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-foreground">{title}</div>
-                      <div className="truncate text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                        {kind}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="my-1 h-px bg-black/6 dark:bg-white/8" />
-
-                  {(["portrait", "landscape", "max"] as SizePreset[]).map((pr) => {
-                    const { label, Icon } = PRESET_META[pr];
-                    return (
-                      <MenuItem
-                        key={pr}
-                        icon={<Icon className="h-3.5 w-3.5" strokeWidth={2.1} />}
-                        active={win.sizePreset === pr}
-                        onSelect={() => setSize(pr)}
-                      >
-                        {label}
-                      </MenuItem>
-                    );
-                  })}
-
-                  <div className="my-1 h-px bg-black/6 dark:bg-white/8" />
-
-                  {isWeb && win.app.url && (
-                    <a
-                      role="menuitem"
-                      href={win.app.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={closeMenu}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-xs text-foreground hover:bg-black/6 dark:hover:bg-white/10"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5 opacity-70" strokeWidth={2.1} />
-                      Open in browser
-                    </a>
-                  )}
-                  <MenuItem
-                    icon={<Minus className="h-3.5 w-3.5" strokeWidth={2.1} />}
-                    onSelect={() => {
-                      minimize(win.id);
-                      closeMenu();
-                    }}
-                  >
-                    Minimize
-                  </MenuItem>
-                  <MenuItem
-                    icon={<X className="h-3.5 w-3.5" strokeWidth={2.1} />}
-                    onSelect={() => {
-                      close(win.id);
-                      closeMenu();
-                    }}
-                  >
-                    Close
-                  </MenuItem>
+                  <WindowMenuBody win={win} shape="popover" run={run} />
                 </motion.div>
               </>
             )}
