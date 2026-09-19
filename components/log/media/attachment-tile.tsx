@@ -33,6 +33,7 @@
  */
 
 import type { MouseEvent } from "react";
+import { COVER_WASH } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { t, type Locale } from "@/lib/i18n";
 import { getDomainLabel, isGithubSocialImage } from "@/lib/og-core";
@@ -207,7 +208,7 @@ export function AttachmentTile({
       aria-label={caption.label}
       onClick={onClick}
       className={cn(
-        "relative block aspect-[2/1] shrink-0 overflow-hidden",
+        "group/thumb pressable relative block aspect-[2/1] shrink-0 overflow-hidden",
         "bg-muted/30 transition-colors duration-200",
         flush
           ? "rounded-none"
@@ -221,6 +222,7 @@ export function AttachmentTile({
         alt=""
         className="block h-full w-full object-cover"
       />
+      <span className={COVER_WASH} />
       {chip !== "none" && <MediaMark mark={mark} size={chip} />}
     </a>
   );

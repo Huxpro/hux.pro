@@ -201,12 +201,15 @@ widget grid. Two rules keep it at home on any display (`app/page.tsx`,
 
 ### Touch
 
-Touch gets the iOS contract, not a mouse's. Three classes in `globals.css`
-carry it; nothing is inferred from the pointer type at runtime.
+Touch gets the iOS contract, not a mouse's. The classes in `globals.css`
+carry the chrome policies; cover press lives with the artwork tokens
+(`COVER_WASH` in `lib/glass.ts`). Nothing is inferred from the pointer
+type at runtime.
 
 | Class | Where | What it does |
 |---|---|---|
-| `pressable` | Rows, links, buttons, tiles — anything with a `hover:` wash | Pair with an `active:` colour/scale. The `:active` rule zeroes the transition so the highlight lands on the **touch-down frame** (Tailwind's `hover:` is gated on `(hover: hover)`, so a finger otherwise gets nothing); release eases out through the element's own `transition-*`. |
+| `pressable` | Rows, links, buttons, tiles — anything with a `hover:` wash | Pair with an `active:` colour (or, on chrome buttons, a scale). The `:active` rule zeroes the transition so the highlight lands on the **touch-down frame** (Tailwind's `hover:` is gated on `(hover: hover)`, so a finger otherwise gets nothing); release eases out through the element's own `transition-*`. |
+| `COVER_WASH` | Media covers — talks thumbs, `/works` tiles, inline players (`lib/glass.ts`) | iOS Photos / Music / Home Screen: a dark wash over the **art** on touch-down, not a scale of the card. The control is `group/thumb pressable` so a press on a sibling cover or the commit row cannot dim every thumbnail. |
 | `system-chrome` | Navigation, command bar, dock, palette, edit controls, a window's frame, every surface (`SHELL`) | OS chrome: no text selection, no long-press callout, no grey tap flash. Text fields inside keep their caret. |
 | `system-surface` | The home screen, the 404 | The whole OS composition is non-selectable, descendants included. iOS otherwise skips `select-none` labels and expands a long-press into a full-page Copy / Find Selection. Paired with `useLockTextSelection`. |
 | `system-voice` | Poetic titles, the widget grid, app labels — System text inside a page that is otherwise a document | Selection off, everything else untouched, so a link keeps its preview and its tap flash. Text fields inside keep their caret. |

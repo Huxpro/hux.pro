@@ -171,7 +171,7 @@ export function TheaterPlaylistSheet() {
               ref={active ? activeRef : undefined}
               onClick={() => selectTrack(i)}
               className={cn(
-                "group/thumb flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors",
+                "group/thumb pressable flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors",
                 active ? "bg-accent/60" : "hover:bg-accent/40 active:bg-accent/60",
               )}
             >

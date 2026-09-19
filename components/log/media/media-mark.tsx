@@ -70,10 +70,10 @@ import { isInternalLink } from "@/systems/attachments/lib/policy";
 //
 // A chip has two weights. At rest, on a cover in the page, it is light
 // (`ARTWORK_CHIP_REST`): a row of covers should not be a row of stamps. The
-// cover's hover raises it — the chip reads the hover off the anchor or
-// button it sits in, so no cover has to be a `group` — and a cover standing
-// alone in a peek, which is the after-hover state, is raised from the start
-// (`raised`).
+// cover's hover — and its press, which a finger never hovers — raises it.
+// The chip reads both off the anchor or button it sits in, so no cover has
+// to be a `group`. A cover standing alone in a peek, which is the
+// after-hover state, is raised from the start (`raised`).
 //
 // The chip is absolutely positioned: the parent must be `relative`. At
 // `mini` — the /works contact strip, whose covers are 56px tall — the chip
@@ -174,9 +174,9 @@ export const SURFACE_CHIP =
   "bg-foreground/[0.06] text-muted-foreground ring-1 ring-border/50 dark:bg-white/[0.08]";
 
 /**
- * At rest the chip is light; the hover of the cover it sits in raises it.
- * Read off the nearest anchor / button / `data-cover` so a cover need not be
- * a `group`.
+ * At rest the chip is light; the hover — and the press — of the cover it
+ * sits in raises it. Read off the nearest anchor / button / `data-cover`
+ * so a cover need not be a `group`.
  */
 const CHIP_REST = cn(
   ARTWORK_CHIP_REST,
@@ -184,6 +184,11 @@ const CHIP_REST = cn(
   "[:where(a,button,[data-cover]):hover_&]:bg-black/35",
   "[:where(a,button,[data-cover]):hover_&]:text-white",
   "[:where(a,button,[data-cover]):hover_&]:ring-white/25",
+  // Touch never hovers: raise the chip on the same press that dims the art.
+  "[:where(a,button,[data-cover]):active_&]:bg-black/35",
+  "[:where(a,button,[data-cover]):active_&]:text-white",
+  "[:where(a,button,[data-cover]):active_&]:ring-white/25",
+  "[:where(a,button,[data-cover]):active_&]:duration-0",
 );
 
 export function MediaMark({

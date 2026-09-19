@@ -9,6 +9,7 @@
  * Layout: optional thumbnail → title → secondaryLine → date
  */
 
+import { COVER_WASH } from "@/lib/glass";
 import type { NormalizedCommit } from "./commit-data";
 import { ExternalImage } from "./media/external-image";
 
@@ -26,12 +27,13 @@ export function CommitCompact({ data, className }: CommitCompactProps) {
           href={data.thumbnail.linkUrl ?? data.thumbnail.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="pressable relative block w-full aspect-video rounded-lg overflow-hidden bg-muted/20 border border-border/50 hover:border-border active:border-border active:opacity-80 transition-[border-color,opacity] mb-2 group/thumb"
+          className="group/thumb pressable relative mb-2 block aspect-video w-full overflow-hidden rounded-lg border border-border/50 bg-muted/20 transition-colors hover:border-border active:border-border"
         >
           <ExternalImage
             src={data.thumbnail.url}
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover"
           />
+          <span className={COVER_WASH} />
           {/* No chip on a widget cover (media-mark.tsx): the widget's line
               under it says what the commit is. */}
         </a>

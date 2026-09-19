@@ -2,7 +2,6 @@
 
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
-import { PRESS_CARD } from "../lib/chrome";
 import { useTheater } from "../provider";
 import { TrackThumb } from "./track-thumb";
 
@@ -53,8 +52,7 @@ export function PlaylistRail({
             ref={active ? activeRef : undefined}
             onClick={() => selectTrack(i)}
             className={cn(
-              "group/thumb w-40 shrink-0 text-left outline-none",
-              PRESS_CARD,
+              "group/thumb pressable w-40 shrink-0 text-left outline-none",
               "focus-visible:opacity-100 active:opacity-100",
               active ? "opacity-100" : "opacity-70 hover:opacity-100",
             )}

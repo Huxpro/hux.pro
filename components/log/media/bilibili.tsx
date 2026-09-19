@@ -9,6 +9,7 @@
  */
 
 import { useState, useMemo } from "react";
+import { COVER_WASH_TINTED } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./external-image";
 import { MediaMark, videoMark } from "./media-mark";
@@ -174,7 +175,7 @@ export function BilibiliEmbed({
         className={cn(
           "relative w-full aspect-video rounded-lg overflow-hidden",
           "border border-border/50",
-          "group cursor-pointer",
+          "group/thumb pressable cursor-pointer",
           sizeClasses[size],
           className
         )}
@@ -199,8 +200,8 @@ export function BilibiliEmbed({
         )}
 
         {/* The cover wears its chip — the platform — the way every cover on the
-            site does (media-mark.tsx); the hover wash is the press affordance. */}
-        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
+            site does (media-mark.tsx). COVER_WASH is the iOS press affordance. */}
+        <div className={COVER_WASH_TINTED} />
         <MediaMark mark={videoMark("bilibili")} />
       </button>
     );

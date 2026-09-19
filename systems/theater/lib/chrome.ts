@@ -42,14 +42,6 @@ export const GLASS_CLUSTER = cn(
 );
 
 /**
- * Card press: a thumbnail / cover sinks slightly under the finger and springs
- * back on release (Featured Talks thumbs, the theater playlist rail).
- */
-export const PRESS_CARD = cn(
-  "pressable transition-[opacity,transform] duration-200 active:scale-[0.97]",
-);
-
-/**
  * Widget rest vs hover — inverted per theme, opacity so gradient cards show through.
  *
  * Light: a hairline frame at rest, ink deepens on hover.
