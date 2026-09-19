@@ -56,6 +56,8 @@ export { SurfaceWindow, WINDOW_SPRING } from "./window";
 export type { SurfaceWindowProps } from "./window";
 export {
   SURFACE_TRANSITION_MS,
+  useMeasuredBand,
+  useSurfaceBandOf,
   useSurfaceStack,
   useSurfaceStackEntries,
 } from "./stack";

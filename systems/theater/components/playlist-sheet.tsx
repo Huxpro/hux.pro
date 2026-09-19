@@ -7,10 +7,16 @@ import {
   ADAPTIVE_PRESENTATION,
   AdaptiveSurface,
   SURFACE_TRANSITION_MS,
+  useSurfaceBandOf,
   useSurfaceMode,
 } from "@/systems/surface";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PIP_CONTROLS_H, PIP_GAP, playlistDetents } from "../lib/geometry";
+import {
+  PIP_CONTROLS_H,
+  PIP_GAP,
+  PIP_TOP_STOP,
+  playlistDetents,
+} from "../lib/geometry";
 import { useTheater } from "../provider";
 import { AlbumTabs } from "./album-tabs";
 import { TrackThumb } from "./track-thumb";
@@ -34,25 +40,20 @@ import { TrackThumb } from "./track-thumb";
 // video and the video never covers a row. Summoned from the Live Activity
 // instead, the same rule points at the dock card the player collapsed into —
 // the sheet stops under whatever shape the player is currently wearing, which
-// is why the detents are measured rather than declared.
+// is why the detents are a function of where the player is rather than a pair
+// of fractions.
+//
+// Neither ceiling is measured here. The PiP window's comes from the same rect
+// the stage is drawn from, and the dock card's from the band the dock panel
+// already publishes to the surface stack — so the two edges of the split are
+// one number each, held by whoever owns that edge, and the sheet and the
+// player cannot end up disagreeing about where the line runs.
 // ---------------------------------------------------------------------------
 
 /** Room for a column of 16:9 thumbnails without the drawer feel. */
 const WINDOW_WIDTH = "min(92vw, 520px)";
 const WINDOW_HEIGHT = "min(78vh, 620px)";
 
-/** Before the dock is measured: half the screen, the site's lower detent. */
-const FALLBACK_DETENTS = [0.5];
-
-/** The lowest edge of the dock — its pill row, or an expanded panel. */
-function dockBottom(): number {
-  let bottom = 0;
-  for (const el of document.querySelectorAll("[data-dock-anchor]")) {
-    const rect = el.getBoundingClientRect();
-    if (rect.height > 0) bottom = Math.max(bottom, rect.bottom);
-  }
-  return bottom;
-}
 
 export function TheaterPlaylistSheet() {
   const { locale } = useLocale();
@@ -98,38 +99,21 @@ export function TheaterPlaylistSheet() {
   // where the line between them runs.
   const pipCeiling = rect.top + rect.height + PIP_CONTROLS_H;
 
-  // The dock's, when the player is a Live Activity instead. Measured, because
-  // the pill and the expanded panel are different heights and only the DOM
-  // knows which one is up — and it can change under the open sheet, when the
-  // panel is collapsed back to its pill. The panel is a drawer portalled into
-  // the shared surface viewport rather than a child of the dock row, so the
-  // watch is on the document: a measure is a few rects, and an unchanged
-  // number is a no-op render.
-  const [dockCeiling, setDockCeiling] = useState(0);
-  useEffect(() => {
-    if (!isPlaylistOpen || pipShowing) return;
-    let settle = 0;
-    const measure = () => {
-      setDockCeiling(dockBottom());
-      // The dock morphs pill ⇄ panel over its own animation; read it again
-      // once that has landed rather than mid-flight.
-      clearTimeout(settle);
-      settle = window.setTimeout(() => setDockCeiling(dockBottom()), SURFACE_TRANSITION_MS);
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    const observer = new MutationObserver(measure);
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => {
-      clearTimeout(settle);
-      window.removeEventListener("resize", measure);
-      observer.disconnect();
-    };
-  }, [isPlaylistOpen, pipShowing]);
+  // The dock's, when the player is a Live Activity instead. The panel
+  // measures itself for the surface stack already, so the sheet reads that
+  // rather than going out and measuring the dock a second time — and it
+  // follows the panel live, so collapsing the card back to its pill under an
+  // open sheet lets the sheet climb into the room that frees up.
+  //
+  // With no panel up the player is a pill in the dock row, and the ceiling is
+  // the line the PiP window parks at: the same constant, so the two shapes of
+  // the player leave the sheet the same room rather than nearly the same.
+  const panelBand = useSurfaceBandOf("dock-activity");
+  const dockCeiling = panelBand?.bottom ?? PIP_TOP_STOP;
 
   const ceiling = pipShowing ? pipCeiling : dockCeiling;
   const detents = useMemo(
-    () => (ceiling > 0 ? playlistDetents(viewport.height, ceiling) : FALLBACK_DETENTS),
+    () => playlistDetents(viewport.height, ceiling),
     [viewport.height, ceiling],
   );
 

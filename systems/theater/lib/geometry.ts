@@ -163,11 +163,6 @@ export function pipOffsetAtTop(
   return { x: from.x, y: Math.min(PIP_TOP_STOP - pipRestTop(vp), from.y) };
 }
 
-/** The window's bottom edge once parked — the ceiling a sheet stops under. */
-export function pipParkedBottom(vp: Viewport): number {
-  return PIP_TOP_STOP + pipHeight(vp);
-}
-
 /** The shorter of the playlist sheet's two detents, where both fit. */
 const PLAYLIST_FIRST_DETENT = 0.5;
 /** Below this much room, a second detent would be a few pixels of travel. */

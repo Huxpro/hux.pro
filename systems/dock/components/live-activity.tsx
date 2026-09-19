@@ -2,15 +2,14 @@
 
 import { cn } from "@/lib/utils";
 import {
-  SURFACE_TRANSITION_MS,
   SurfaceViewport,
   surfaceMotionVars,
+  useMeasuredBand,
   useSurfaceStack,
-  type SurfaceBand,
 } from "@/systems/surface";
 import { Drawer } from "@base-ui/react/drawer";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useDock } from "../provider";
 
 // ---------------------------------------------------------------------------
@@ -145,41 +144,25 @@ export function LiveActivity({
   //
   // The band it reports is what lets a sheet tell tiling from covering: a
   // playlist that stops at this panel's bottom edge is beside it, not under
-  // it, and neither should push the other back. Height comes from
-  // `offsetHeight`, the layout box — the shell's own recede transform is a
-  // scale on this element, and measuring that would feed back into the answer.
+  // it, and neither should push the other back. It is also where that sheet
+  // reads its own ceiling from (`useSurfaceBandOf`), so this measurement is
+  // the one answer to "how far down does the dock reach", rather than each
+  // surface going and measuring the panel for itself.
+  //
+  // The mirror of a sheet's: a sheet hangs from a pinned bottom edge, so its
+  // height says where its top is; the panel hangs from a pinned top edge, so
+  // its height says where its bottom is. Layout values only — `offsetTop` on
+  // the popup, `offsetHeight` on the shell — because the travel in and the
+  // recede are both transforms on these very elements.
   const shellRef = useRef<HTMLDivElement>(null);
-  const [band, setBand] = useState<SurfaceBand | undefined>(undefined);
-  useEffect(() => {
-    if (!expanded) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setBand(undefined);
-      return;
-    }
-    const measure = () => {
-      const shell = shellRef.current;
-      const popup = shell?.parentElement;
-      if (!shell || !popup) return;
-      // Layout values only: `offsetTop` is the popup's inset from the viewport
-      // box and `offsetHeight` the shell's own height, neither of which a
-      // transform — the travel in, the recede — can move.
-      const top = popup.offsetTop;
-      setBand({ top, bottom: top + shell.offsetHeight });
-    };
-    measure();
-    // The panel travels in over one surface transition; read it again once it
-    // has landed.
-    const settled = setTimeout(measure, SURFACE_TRANSITION_MS);
-    window.addEventListener("resize", measure);
+  const measure = useCallback(() => {
     const shell = shellRef.current;
-    const observer = shell ? new ResizeObserver(measure) : null;
-    if (shell) observer?.observe(shell);
-    return () => {
-      clearTimeout(settled);
-      window.removeEventListener("resize", measure);
-      observer?.disconnect();
-    };
-  }, [expanded]);
+    const popup = shell?.parentElement;
+    if (!shell || !popup) return undefined;
+    const top = popup.offsetTop;
+    return { top, bottom: top + shell.offsetHeight };
+  }, []);
+  const band = useMeasuredBand(expanded, measure, shellRef);
 
   const { behind, depth, rank } = useSurfaceStack("dock-activity", expanded, {
     band,
@@ -245,7 +228,6 @@ export function LiveActivity({
             // popup rather than the shell: the shell carries the surface
             // stack's recede transform, so its box shrinks when something
             // rises over it; the popup's is where the panel actually stands.
-            data-dock-anchor=""
             style={{ ...surfaceMotionVars(TOP_INSET), top: TOP_INSET }}
             // A positioning box only, centred without a transform so the drag
             // has the axis to itself. Nothing paints here; the shell inside does.

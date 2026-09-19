@@ -38,9 +38,6 @@ function DockSurface({ children }: { children: React.ReactNode }) {
     >
       <div
         ref={scrollRef}
-        // The dock's collapsed shape. A surface that must not cover the
-        // player measures this (see `dockBottom` in the theater playlist).
-        data-dock-anchor=""
         onPointerDown={(e) => {
           if (e.pointerType !== "mouse") return;
           drag.current = {

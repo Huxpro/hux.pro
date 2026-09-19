@@ -1,13 +1,14 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Drawer } from "@base-ui/react/drawer";
 import { BEZEL_LAYER_ATTRIBUTE } from "vitre";
 import {
   SURFACE_EASING,
   SURFACE_RECEDE_EASING,
   SURFACE_TRANSITION_MS,
+  useMeasuredBand,
   useSurfaceStack,
   type SurfaceBand,
 } from "./stack";
@@ -362,53 +363,42 @@ function usePullPastTop(
 
 /**
  * The band a bottom sheet stands in, for the stack to tell covering from
- * tiling (stack.ts). A sheet with detents is pure arithmetic — its shell's top
- * edge is the detent, its bottom the edge gap — and one without is as tall as
- * it laid out, read from `offsetHeight` so the recede transform (a scale on
- * the same element) cannot feed back into the measurement.
+ * tiling (stack.ts).
+ *
+ * A sheet's bottom edge is pinned by construction — the popup's padding holds
+ * the shell a gap above the screen's edge at every detent (see the note at the
+ * top of this file) — so the only thing that moves is how tall it is, and its
+ * height is therefore its position. That makes one rule out of what would
+ * otherwise be three: a detent sheet, a fixed-height sheet and a `fitContent`
+ * sheet all just say how tall they laid out.
+ *
+ * `offsetHeight`, not a rect: the recede this band decides is a `scale()` on
+ * this very element, and a measurement that saw it would feed its own answer
+ * back in. The layout box does not move under a transform — and it does move
+ * under a drag, because Base UI spends the detent offset as the popup's
+ * padding, which is layout. So the tiling is live with the gesture, the way
+ * the rest of the stacking already is.
  */
 function useSheetBand(
   open: boolean,
-  snap: number | string | null,
   hasSnapPoints: boolean,
   shellRef: React.RefObject<HTMLDivElement | null>
 ): SurfaceBand | undefined {
-  const [band, setBand] = useState<SurfaceBand | undefined>(undefined);
-  const point = typeof snap === "number" ? snap : null;
-
-  useEffect(() => {
-    if (!open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setBand(undefined);
-      return;
-    }
-    const measure = () => {
-      const vh = window.innerHeight;
-      const gap = EDGE_GAP_PX;
-      const bottom = vh - gap;
-      if (hasSnapPoints && point !== null) {
-        setBand({ top: point >= 1 ? gap : vh * (1 - point), bottom });
-        return;
-      }
-      const height = shellRef.current?.offsetHeight ?? 0;
-      setBand(height > 0 ? { top: bottom - height, bottom } : undefined);
-    };
-    measure();
-    // The shell settles into its detent over one transition; read it again
-    // once it has landed, and whenever the viewport changes under it.
-    const settled = setTimeout(measure, SURFACE_TRANSITION_MS);
-    window.addEventListener("resize", measure);
+  const measure = useCallback(() => {
     const shell = shellRef.current;
-    const observer = shell ? new ResizeObserver(measure) : null;
-    if (shell) observer?.observe(shell);
-    return () => {
-      clearTimeout(settled);
-      window.removeEventListener("resize", measure);
-      observer?.disconnect();
-    };
-  }, [open, hasSnapPoints, point, shellRef]);
+    const popup = shell?.parentElement;
+    if (!shell || !popup) return undefined;
+    // Where the shell's bottom edge rests. With detents that is the edge gap,
+    // always; without them it is wherever the popup's own box ends, which
+    // already carries the home-indicator inset.
+    const bottom = hasSnapPoints
+      ? window.innerHeight - EDGE_GAP_PX
+      : popup.offsetTop + popup.offsetHeight;
+    const height = shell.offsetHeight;
+    return height > 0 ? { top: bottom - height, bottom } : undefined;
+  }, [hasSnapPoints, shellRef]);
 
-  return band;
+  return useMeasuredBand(open, measure, shellRef);
 }
 
 export interface SurfaceSheetProps {
@@ -540,7 +530,7 @@ export function SurfaceSheet({
     : levelProp;
 
   const shellRef = useRef<HTMLDivElement>(null);
-  const band = useSheetBand(open, snap, hasSnapPoints, shellRef);
+  const band = useSheetBand(open, hasSnapPoints, shellRef);
   const { behind, depth, beneathLevel, rank } = useSurfaceStack(id, open, {
     nestedIn,
     level,
