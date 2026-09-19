@@ -74,6 +74,10 @@ export function MagneticPreview({
   return (
     <div
       className={cn(
+        // A peek is `position: fixed` but still a child, so later siblings
+        // of this wrapper paint over it unless the wrapper rises on hover.
+        // The panel keeps `pointer-events-none`; hover stays on the trigger.
+        showPreview && "relative hover:z-50",
         showPreview && hideNativeCursor && "[&:hover]:cursor-none",
         className,
       )}
