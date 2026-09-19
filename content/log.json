@@ -168,31 +168,6 @@
     }
   ],
   "identities": {
-    "hux": {
-      "handle": "hux",
-      "company": {
-        "en": "Hux",
-        "zh": "黄玄"
-      },
-      "tagId": "pwa-era",
-      "ranges": [
-        {
-          "id": "hux-personal",
-          "sortBy": "date",
-          "title": {
-            "en": "Personal",
-            "zh": "个人"
-          },
-          "description": {
-            "en": "Personal site, writing, and the Hux Blog theme.",
-            "zh": "个人站点、写作，以及 Hux Blog 主题。"
-          },
-          "date": "2015-01",
-          "endDate": "2015-01",
-          "hideRow": true
-        }
-      ]
-    },
     "bytedance": {
       "handle": "@bytedance",
       "company": {
@@ -1418,7 +1393,7 @@
       "id": "hux-blog",
       "type": "project",
       "tagId": "pwa-era",
-      "identityId": "hux",
+      "attachedTo": null,
       "title": {
         "en": "Hux Blog",
         "zh": "Hux Blog"
