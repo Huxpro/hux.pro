@@ -709,7 +709,10 @@ export function TimelineCommit({
         // not the text inside it.
         <div
           data-row-body
-          className="col-start-2 @sm:col-start-3 mt-2 space-y-1.5"
+          // `min-w-0` for the same reason the strip line carries it: the
+          // content track is `1fr`, whose automatic minimum is its content,
+          // and a caption line that does not wrap would set it.
+          className="col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-1.5"
         >
           {/* The message: what it is, the thing itself, the note on it.
               Topics and stats are authored but deliberately unprinted — a row
