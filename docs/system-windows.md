@@ -215,20 +215,33 @@ the same bar every other sheet on the site is dragged by, wearing the window's
 glass and keeping a margin around it. It reads as something you are holding
 rather than something you might tap, and it comes home on release.
 
-In two acts, because they say different things. Over the first 8px of travel
-the gaps shut and the corners where the dots meet square off, so three dots
-become one short slug — fast, so the gesture is acknowledged almost as it
-starts, and the joins vanish instead of pinching. Over the next 20px that slug
-stretches and thins into the line while the pill flattens around it.
+**Two states and a transition**, not a value tracking the finger. Every version
+of this that interpolated on the live drag was harder than it needed to be and
+less steady than it looked: each had to decide what the shape meant at every
+pixel, and the answer was never more interesting than *held* or *not*. So the
+travel is read once, as a switch, and the morph is the same 140ms whether the
+sheet moves 20px or 200.
 
-It is not a state. Base UI publishes the live drag as
+The switch is free, because **Base UI does not publish any travel until it has
+decided the press is a swipe** — it eats its own ~16px threshold first. A
+non-zero travel already means a drag, so the grip needs no threshold, no
+timer and no state of its own; a tap produces no travel and so never starts
+down the road to being a handle.
+
+The segments **overlap** rather than butting together — three 14px stadiums
+lapping 3px over one another is 36 wide — which is what lets the whole thing be
+one unstaged transition. Two stadiums of the same height and colour merge
+seamlessly wherever they meet, so the joins never have to be squared off and
+there is no moment mid-morph where the corners have gone square but the gaps
+have not yet closed. (There was, when this squared its own corners: two frames
+at full speed, a bowtie at a fourteenth of it.) The dots keep `rounded-full`
+throughout and the browser clamps it to half their height as they thin, so the
+ends stay stadium-round without being told to.
+
+It is not a state of ours. Base UI publishes the live drag as
 `--drawer-swipe-movement-y`; the sheet re-publishes it as `--surface-travel`
-(Base UI registers its own `inherits: false`), and every dimension is a
-`clamp()` away from rest, in CSS. Nothing to set, nothing to clear — and since
-a tap produces no travel, a tap never starts down the road to being a handle.
-`transition-duration` goes to zero while the drag is live, exactly as the
-sheet's own transform does, so the pill follows the finger rather than chasing
-it.
+(Base UI registers its own `inherits: false`), and every dimension is one lerp
+off it, in CSS. Nothing to set, nothing to clear.
 
 A merged line is the one shape that does **not** read as a window's controls,
 so unlike a plain tuck it cannot rest on "stranded is merely wrong". Three

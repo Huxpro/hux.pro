@@ -1765,17 +1765,23 @@ main[data-variant="reader"] .reader-masthead {
    the window's glass. It reads as something you are holding rather than
    something you might tap, and it comes back on release.
 
-   Nothing here is a state. The whole thing is a length: Base UI publishes the
-   live drag as `--drawer-swipe-movement-y` on the popup, the surface block
-   above re-publishes it as `--surface-travel` (Base UI registers its own
-   `inherits: false`, so a descendant cannot read it), and each dimension is a
-   `clamp()` away from rest. There is nothing to set and nothing to clear —
-   which is what killed the five versions before the tuck (the note at the top
-   of window-grip.tsx has them).
+   TWO STATES AND A TRANSITION, not a value tracking the finger. Every version
+   of this that interpolated on the live drag was harder than it needed to be
+   and less steady than it looked: each one had to decide what the shape meant
+   at every pixel, and the answer was never more interesting than "held" or
+   "not". So the travel is read once, as a switch — Base UI does not publish
+   any travel until it has decided the press is a swipe, so a non-zero travel
+   already means a drag — and the morph is the same 140ms whether the sheet
+   moves 20px or 200. The switch, and the overlap that lets the transition run
+   unstaged, are just below.
 
-   It follows the finger rather than chasing it: `transition-duration` goes to
-   zero while the drag is live, exactly as the sheet's own transform does, and
-   comes back for the ride home.
+   Nothing here is a state of ours. Base UI publishes the live drag as
+   `--drawer-swipe-movement-y` on the popup, the surface block above
+   re-publishes it as `--surface-travel` (Base UI registers its own
+   `inherits: false`, so a descendant cannot read it), and every dimension is
+   one lerp off it. There is nothing to set and nothing to clear — which is
+   what killed the five versions before the tuck (the note at the top of
+   window-grip.tsx has them).
    ============================================================================= */
 
 /* Everything below is gated on BOTH `data-swiping` and a non-zero travel, and
@@ -1791,64 +1797,74 @@ main[data-variant="reader"] .reader-masthead {
    (::before, below — a fixed box, so the tuck can't take it along). The dots
    on a grip are an indicator, never three buttons — the whole pill is the one
    control — so even fully merged nothing here has stopped working. */
+/* ONE TRANSITION BETWEEN TWO STATES, not a value tracking the finger. One
+   duration, no stagger, nothing to sequence: the segments slide together and
+   grow at the same time, and because they OVERLAP rather than butt up against
+   each other, the shape is right at every instant of it. Two stadiums of the
+   same height and colour merge seamlessly wherever they meet — so the joins
+   never have to be squared off, and there is no moment mid-morph where the
+   corners have gone square but the gaps have not yet closed. (There was, when
+   this squared its own corners. At full speed it lasted two frames; slowed
+   fourteen times it was a bowtie.) The dots keep `rounded-full` throughout and
+   the browser clamps it to half their height as they thin, so the ends stay
+   stadium-round without being told to. */
+[data-window-grip] {
+  transition-property: padding, background-color, border-color, box-shadow, backdrop-filter;
+  transition-duration: 140ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+[data-window-grip] [data-window-control] {
+  transition-property: margin, width, height, opacity, background-color, transform;
+  transition-duration: 140ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+[data-window-grip] [data-window-title] {
+  transition-property: max-height;
+  transition-duration: 140ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Spacing is a margin here, not the row's `gap`, because only a margin can go
+   negative — and going negative is the whole trick. */
+[data-window-grip] [data-window-dots] {
+  gap: 0;
+}
+[data-window-grip] [data-window-control]:not(:first-child) {
+  margin-inline-start: calc(5px - 8 * var(--held, 0px));
+}
+
 [data-surface-popup][data-swiping] [data-window-grip] {
   /* Magnitude of the drag, either direction. `abs()` is too new to rely on. */
   --grip-reach: max(var(--surface-travel, 0px), calc(-1 * var(--surface-travel, 0px)));
-  /* The morph is in two acts, and they read as two different things happening.
-     ACT ONE, over the first 8px: the dots slide together and the corners where
-     they meet square off, so three dots become one short slug — fast, so the
-     gesture is acknowledged almost the moment it starts. ACT TWO, over the
-     next 20px: that slug stretches and thins into the line, and the pill
-     flattens around it. `--grip-stretch` is how far into act two we are. */
-  --grip-stretch: max(0px, calc(var(--grip-reach) - 8px));
+  /* A SWITCH, NOT A SLIDER: 0px until there is any travel at all, 1px after.
+     Base UI does not publish travel until it has decided the press is a swipe
+     — it eats its own threshold first, ~16px, measured — so "travel is not
+     zero" already means "this is a drag", and the grip needs no threshold of
+     its own. Every dimension is then one lerp between two numbers, and the
+     transition carries it: the morph is the same 140ms whether the sheet moves
+     20px or 200. */
+  --held: clamp(0px, calc(var(--grip-reach) * 1000), 1px);
 
   /* Ends at 36 + 2×6: the glass keeps a margin around the line rather than
      shrink-wrapping it. */
-  padding-inline: clamp(6px, calc(10px - var(--grip-stretch) * 0.2), 10px);
-  padding-block: clamp(5px, calc(6px - var(--grip-stretch) * 0.05), 6px);
+  padding-inline: calc(10px - 4 * var(--held));
+  padding-block: calc(6px - 1 * var(--held));
 }
 
-/* Act one: the gaps shut. */
-[data-surface-popup][data-swiping] [data-window-dots] {
-  gap: clamp(0px, calc(5px - var(--grip-reach) * 0.625), 5px);
-}
-
-/* Act two: the segments stretch and thin, landing on the site's own grabber —
-   3 × 12 = 36 wide and 4 tall, which is `h-1 w-9` in sheet.tsx, the bar every
-   other sheet on the site is dragged by. */
+/* The three dots become the site's own grabber: three 14px segments lapping
+   3px over one another is 36 wide, and they thin to 4 tall — `h-1 w-9` in
+   sheet.tsx, the bar every other sheet is dragged by. */
 [data-surface-popup][data-swiping] [data-window-grip] [data-window-control] {
-  width: clamp(6px, calc(6px + var(--grip-stretch) * 0.3), 12px);
-  height: clamp(4px, calc(6px - var(--grip-stretch) * 0.1), 6px);
-  /* Half the height, so the two ends stay stadium-round throughout. This is
-     what `rounded-full` already draws; restating it is what lets the inner
-     corners below be peeled off it. */
-  border-radius: clamp(2px, calc(3px - var(--grip-stretch) * 0.05), 3px);
-}
-/* …and the corners where they meet square off with the gaps, in act one, so
-   the joins vanish instead of pinching. */
-[data-surface-popup][data-swiping] [data-window-grip] [data-window-control]:not(:first-child) {
-  border-start-start-radius: clamp(0px, calc(3px - var(--grip-reach) * 0.375), 3px);
-  border-end-start-radius: clamp(0px, calc(3px - var(--grip-reach) * 0.375), 3px);
-}
-[data-surface-popup][data-swiping] [data-window-grip] [data-window-control]:not(:last-child) {
-  border-start-end-radius: clamp(0px, calc(3px - var(--grip-reach) * 0.375), 3px);
-  border-end-end-radius: clamp(0px, calc(3px - var(--grip-reach) * 0.375), 3px);
+  width: calc(6px + 8 * var(--held));
+  height: calc(6px - 2 * var(--held));
 }
 
 /* The pill is 28.5 tall because the title it never shows holds it open (see
-   PillTitle). A bar cannot be, so the line box comes down through act two.
-   Capped from a number well above its natural height rather than from the
-   height itself, so nothing here has to know the font's metrics. */
+   PillTitle). A bar cannot be, so the line box comes down with it. Capped from
+   a number well above its natural height rather than from the height itself,
+   so nothing here has to know the font's metrics. */
 [data-surface-popup][data-swiping] [data-window-grip] [data-window-title] {
-  max-height: clamp(4px, calc(20px - var(--grip-stretch) * 0.8), 20px);
-}
-
-/* Under the finger the pill is direct, like the sheet it is the handle for. */
-[data-surface-popup][data-swiping] [data-window-grip],
-[data-surface-popup][data-swiping] [data-window-dots],
-[data-surface-popup][data-swiping] [data-window-grip] [data-window-control],
-[data-surface-popup][data-swiping] [data-window-grip] [data-window-title] {
-  transition-duration: 0ms;
+  max-height: calc(20px - 16 * var(--held));
 }
 
 [data-window-grip]::before {

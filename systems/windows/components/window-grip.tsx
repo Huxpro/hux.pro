@@ -33,8 +33,9 @@ import { PillTitle, pillShell, TrafficDots } from "./window-pill";
 // drag the dots run together and stretch into a handle — 48×28.5 around three
 // 6px dots becomes 48×14 around a 36×4 line, which is `h-1 w-9`, the bar every
 // other sheet on the site is dragged by. It reads as something you are holding
-// rather than something you might tap, and it comes home on release. The two
-// acts of it, and why they are timed the way they are, are in globals.css.
+// rather than something you might tap, and it comes home on release. Two
+// states and one 140ms transition, the same however far the sheet is dragged —
+// globals.css has the shape of it, and why the segments overlap.
 //
 // It lives entirely in CSS, off a length. Base UI publishes the live drag, the
 // sheet re-publishes it as `--surface-travel`, and every dimension is a
