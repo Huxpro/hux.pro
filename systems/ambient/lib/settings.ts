@@ -1,4 +1,4 @@
-import { clampBezelBand, clampBezelRadius } from "@hux/bezel";
+import { clampBezelBand, clampBezelRadius } from "vitre";
 import { DEFAULT_BEZEL_TINT, isBezelTint, type BezelTint } from "./bezel";
 import type { LocationMode } from "./location";
 import {

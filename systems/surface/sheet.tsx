@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { Drawer } from "@base-ui/react/drawer";
-import { BEZEL_LAYER_ATTRIBUTE } from "@hux/bezel";
+import { BEZEL_LAYER_ATTRIBUTE } from "vitre";
 import {
   SURFACE_EASING,
   SURFACE_RECEDE_EASING,
@@ -55,7 +55,7 @@ import {
 // press, the same click-away its desktop popover has. Base UI's scroll lock is
 // safe here in a way Radix's was not: on iOS it only sets `overflow: hidden` on
 // whichever element scrolls the viewport, and it stands down entirely when that
-// element is already locked — which is exactly the state @hux/bezel leaves the
+// element is already locked — which is exactly the state vitre leaves the
 // page in during container scroll.
 // =============================================================================
 

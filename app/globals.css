@@ -517,7 +517,7 @@ body,
 }
 
 /* The bezel's stylesheet (html[data-bezel], container scroll, fixed layers
-   made absolute) ships with @hux/bezel and is installed by its boot script. */
+   made absolute) ships with vitre and is installed by its boot script. */
 
 @layer base {
   * {
@@ -1255,7 +1255,7 @@ main[data-variant="reader"] .reader-masthead {
   }
 
   html[data-bezel-scroll="container"] .hero-zone-fade {
-    /* The named timeline @hux/bezel publishes on #bezel-scroll. */
+    /* The named timeline vitre publishes on #bezel-scroll. */
     animation-timeline: --page-scroll;
   }
 

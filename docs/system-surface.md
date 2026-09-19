@@ -284,7 +284,7 @@ takes the page away and a press on it dismisses; when it is off it is
 is safe under the bezel where Radix's was not: on iOS it only sets `overflow:
 hidden` on whichever element scrolls the viewport, never `position: relative` on
 `<body>`, and it stands down entirely when that element is already locked —
-which is the state `@hux/bezel` leaves the page in during container scroll
+which is the state `vitre` leaves the page in during container scroll
 (`<html>` hidden, `<body>` fixed at inset 0). Independently, the bezel keeps
 `<body>` at `overflow: clip` rather than `hidden`: `hidden` is a scroll
 container that `scrollIntoView` can still move, and a sheet resting below the

@@ -1501,7 +1501,7 @@ falls back to the Gradient keeps its frame rather than flickering). A desktop
 window gets none of it unless overridden. Session edge overrides are stamped with the family they were set under, so a
 change of family (a kind switch, or Sky ↔ a CSS style) ends them.
 
-**The bezel** is `@hux/bezel` (`packages/bezel`), after ryOS (os.ryo.lu): one
+**The bezel** is `vitre` (`packages/vitre`), after ryOS (os.ryo.lu): one
 flat colour around the page, black by default, with the page rounded off inside
 it and, on iOS, scrolling in a container while the document holds still. A
 devtool override turns it on or off for the session and ends when the kind

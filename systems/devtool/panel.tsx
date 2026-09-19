@@ -12,7 +12,7 @@ import {
   getTintLabel,
 } from "@/services";
 import { useAmbientTime, useLocation, useSolarTheme, useWallpaper, useWeather } from "@/systems/ambient";
-import { BEZEL_BAND_MAX, BEZEL_BAND_MIN, BEZEL_RADIUS_MAX } from "@hux/bezel";
+import { BEZEL_BAND_MAX, BEZEL_BAND_MIN, BEZEL_RADIUS_MAX } from "vitre";
 import {
   DEFAULT_BEZEL_TINT,
   isBezelHex,
@@ -874,7 +874,7 @@ function WallpaperModule() {
   }, [isShader, statsRef]);
 
   // The segmented control has a position the setting does not: "custom" is not
-  // a tint, it is "whatever the swatch says". Every row here is live; @hux/bezel
+  // a tint, it is "whatever the swatch says". Every row here is live; vitre
   // shows each change to the browser chrome as it happens.
   const tints: { value: TintChoice; label: string; title: string }[] = [
     {

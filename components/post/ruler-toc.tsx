@@ -8,7 +8,7 @@ import {
   pageScrollTop,
   pageViewportHeight,
   scrollPageTo,
-} from "@hux/bezel";
+} from "vitre";
 import { cn } from "@/lib/utils";
 import {
   AnimatePresence,
@@ -173,7 +173,7 @@ function useReadingProgress(
 
     // Page geometry, not window geometry: in container scroll the page scrolls
     // in the bezel's container, so the window's scrollY is always 0 there and
-    // its height is not the height of what scrolls. See @hux/bezel.
+    // its height is not the height of what scrolls. See vitre.
     const measure = () => {
       tops = sections.map(({ el }) => pageOffsetOf(el));
       docHeight = pageScrollHeight();

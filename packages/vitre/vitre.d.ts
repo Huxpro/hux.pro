@@ -1,5 +1,9 @@
 // =============================================================================
-// @hux/bezel — public API.
+// vitre — public API. Safari theme-color for iOS 26, and safe page edges.
+//
+// Vitre is French for a windowpane: the glass set in a frame. Safari on iOS 26
+// draws its bars as glass over the edges of the page and tints them from what
+// it finds there; vitre is the frame and the pane at those edges.
 //
 // This file is the contract. The implementation in ./src must match it exactly:
 // ./src/contract.ts fails to type-check if an export is missing, extra, or has
@@ -24,16 +28,18 @@ import type { CSSProperties, JSX, ReactNode } from "react";
 // -----------------------------------------------------------------------------
 
 /**
- * Where the page scrolls.
+ * Where the page scrolls. `<Bezel>` writes it to <html>; the page scroll API
+ * reads it from there at every call.
  *
- *   window     the document scrolls, as on any page.
- *   container  <html> and <body> do not scroll with the page; the page scrolls
- *              inside the bezel's scroll container. On iOS Safari this keeps the
- *              toolbar from collapsing, so the chrome and the viewport hold
- *              still. Every full-screen `position: fixed` child of <body>, and
- *              every element marked with `BEZEL_LAYER_ATTRIBUTE`, becomes
- *              absolute, because Safari tints its chrome from fixed content at
- *              the viewport edge.
+ *   window     the document scrolls. On iOS Safari the toolbar collapses and
+ *              expands with it; see the README for what that costs the bezel.
+ *   container  <html> and <body> hold still and the page scrolls in a container
+ *              inside the bezel, so Safari's toolbar and chrome hold still too.
+ *              Full-screen `position: fixed` children of <body>, and elements
+ *              marked with `BEZEL_LAYER_ATTRIBUTE`, become absolute.
+ *              `window.scrollY` and `window.scrollTo` are not the page's
+ *              scroll; `position: sticky`, IntersectionObserver,
+ *              `scrollIntoView` and anchors work as in window scroll.
  *
  *              A tap on the status bar still takes the page to the top. WebKit
  *              will not give that gesture to an overflow scroller, so on iOS
@@ -182,12 +188,21 @@ export declare function syncChrome(color: string, options?: ChromeSyncOptions): 
 
 // -----------------------------------------------------------------------------
 // Scroll
+//
+// Two layers. The scroller, `getScrollContainer()`, is for anything that takes
+// a scroll element. The page helpers are built on it and read the mode at every
+// call, so they work in both modes, across a live switch, and outside React;
+// without <Bezel> they act on the window.
 // -----------------------------------------------------------------------------
 
 /** Run `listener` on page scroll, wherever it happens, while mounted. */
 export declare function usePageScroll(listener: () => void): void;
 
-/** The element the page scrolls in, or `null` when the window scrolls. */
+/**
+ * The element the page scrolls in, or `null` when the window scrolls — the
+ * platform's value for the viewport, as in an IntersectionObserver's `root`.
+ * Bind again when `useBezel().scroll` changes.
+ */
 export declare function getScrollContainer(): HTMLElement | null;
 /** How far the page is scrolled, px. */
 export declare function pageScrollTop(): number;
@@ -197,8 +212,14 @@ export declare function pageScrollHeight(): number;
 export declare function pageViewportHeight(): number;
 /** Where an element sits in the page's scrollable content, from its top, px. */
 export declare function pageOffsetOf(element: Element): number;
+/** How `scrollPageTo` moves. */
+export interface ScrollPageOptions {
+  /** `"smooth"` animates, `"instant"` jumps, `"auto"` follows CSS `scroll-behavior`. Default `"auto"`. */
+  behavior?: ScrollBehavior;
+}
+
 /** Scroll the page to an absolute position, px. */
-export declare function scrollPageTo(top: number): void;
+export declare function scrollPageTo(top: number, options?: ScrollPageOptions): void;
 /**
  * Subscribe to page scroll outside React. Survives a switch between scroll
  * modes. Returns the unsubscribe.

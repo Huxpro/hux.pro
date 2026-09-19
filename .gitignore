@@ -58,3 +58,6 @@ content/.backups/
 
 # Diag walkthrough output (Playwright screenshots + video). Scratch, not source.
 /shots/
+# vitre site, built into public at build time
+public/vitre/
+packages/vitre/node_modules/

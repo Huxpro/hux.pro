@@ -97,9 +97,9 @@ duration-300 (morphing transitions)
 
 ### Testing the Bezel
 
-The bezel is its own package, `packages/bezel` (`@hux/bezel`). Its API and the
-iOS Safari findings behind it are in `packages/bezel/bezel.d.ts` and
-`packages/bezel/README.md`; read those before changing anything about the edge
+The bezel is its own package, `packages/vitre` (`vitre`). Its API and the
+iOS Safari findings behind it are in `packages/vitre/bezel.d.ts` and
+`packages/vitre/README.md`; read those before changing anything about the edge
 of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
 
 - **Bezel on/off** follows the wallpaper kind (`WALLPAPER_KIND_EDGES`): weather
@@ -130,6 +130,10 @@ of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
   setting; clicking it resets the row.
 
 ```bash
-pnpm bezel:typecheck
+pnpm vitre:typecheck
 ```
+
+The package's demo and docs site is `packages/vitre/site` (`pnpm vitre:site`,
+served at `/bezel` in production). A new export or prop fails the type check
+until it is documented there.
 
