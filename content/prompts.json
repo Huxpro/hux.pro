@@ -172,7 +172,7 @@
         },
         "source": {
           "en": "Rogers Commission, Appendix F, 1986",
-          "zh": "《天论》· 下半句是我接的"
+          "zh": "《天论》"
         }
       }
     },
@@ -322,11 +322,11 @@
       "quotedFrom": {
         "name": {
           "en": "William Blake",
-          "zh": "《鹖冠子》"
+          "zh": "《鹖冠子·环流》"
         },
         "source": {
           "en": "The Marriage of Heaven and Hell, 1790",
-          "zh": "「物极则反」· 后面是我接的"
+          "zh": ""
         }
       }
     },
@@ -762,8 +762,8 @@
         }
       ],
       "body": {
-        "en": "Identity is not a title you freeze. Each era — consumer, producer, architect — is a rewrite, not a reveal.\nThe line comes out of narrative identity: the self is not found and then described, it is constituted in the telling. I got it from Liu Qing's lectures on modern Western thought, and behind those is Ricoeur. Which is why the imperative is not “find yourself” but “become who you are” — you are always becoming, and narration is how the question “who?” gets answered at all.",
-        "zh": "身份不是冻结的头衔。每个时代 —— 消费者、生产者、架构师 —— 都是一次重写，而不是一次揭晓。\n这句话的来路是「叙事性自我」：自我不是先被找到、再被讲出来的，而是在讲述中才被构成。我是听刘擎讲西方现代思想时接上这条线的，他背后是利科。所以这里的祈使句不是「找到自己」，而是「成为你自己」—— 人永远都在 Becoming，而叙事就是「你是谁」这个问题唯一能被回答的方式。"
+        "en": "Identity is not a title you freeze. Each era — consumer, producer, architect — is a rewrite, not a reveal.\nThe line comes out of narrative identity: the self is not found and then described, it is constituted in the telling. I got it from Liu Qing's lectures on modern Western thought, and behind those is Ricoeur. Which is why the imperative is not “find yourself” but “become who you are” — you are always becoming, and narration is how the question “who?” gets answered at all.\nNietzsche's imperative is Pindar's line before it: become such as you are.",
+        "zh": "身份不是冻结的头衔。每个时代 —— 消费者、生产者、架构师 —— 都是一次重写，而不是一次揭晓。\n这句话的来路是「叙事性自我」：自我不是先被找到、再被讲出来的，而是在讲述中才被构成。我是听刘擎讲西方现代思想时接上这条线的，他背后是利科。所以这里的祈使句不是「找到自己」，而是「成为你自己」—— 人永远都在 Becoming，而叙事就是「你是谁」这个问题唯一能被回答的方式。\n尼采那句祈使的祖宗是品达：成为你所是的那个人。"
       },
       "topics": ["being"],
       "commentary": {
@@ -819,8 +819,8 @@
           "zh": "尼采"
         },
         "source": {
-          "en": "The Gay Science §270, after Pindar",
-          "zh": "《快乐的科学》§270，语出品达"
+          "en": "The Gay Science §270",
+          "zh": "《快乐的科学》§270"
         }
       }
     },
@@ -833,7 +833,7 @@
       "topics": ["being"],
       "statement": {
         "en": "You can't connect the dots looking forward; you can only connect them looking backwards.",
-        "zh": "〔待补：蛋堡《过程》那一句，12 字〕"
+        "zh": "离开时间之前，一切都是过程。"
       },
       "commentary": {
         "en": "Density over duration. Life is a journey.",
@@ -1091,7 +1091,7 @@
         },
         "source": {
           "en": "iPad 2 keynote, 2011",
-          "zh": "「君子不器」×「观其会通」"
+          "zh": ""
         }
       }
     },
@@ -1111,8 +1111,8 @@
         "zh": "痛苦 + 反思 = 进步。"
       },
       "body": {
-        "en": "Everything in nature runs toward maximum entropy, which for a living thing is death; staying alive means continually drawing order back out of the environment. It is the most compact statement I know of what living, working and building all are.",
-        "zh": "自然里的一切都朝着最大熵去，而对生命来说，最大熵就是死亡；活着，就是不断从环境里把秩序取回来。这是我见过对「活着、工作、创造」最凝练的一句描述。"
+        "en": "Everything in nature runs toward maximum entropy, which for a living thing is death; staying alive means continually drawing order back out of the environment. It is the most compact statement I know of what living, working and building all are.\n(The Chinese half borrows 取法于上 — aim at the highest and you land in the middle — and puts Schrödinger where the highest is.)",
+        "zh": "自然里的一切都朝着最大熵去，而对生命来说，最大熵就是死亡；活着，就是不断从环境里把秩序取回来。这是我见过对「活着、工作、创造」最凝练的一句描述。\n（中文那半句化自「取法于上，仅得乎中」，而把「上」换成了薛定谔。）"
       },
       "instances": [
         {
@@ -1242,7 +1242,7 @@
         },
         "source": {
           "en": "What Is Life?, 1944",
-          "zh": "《生命是什么》，1944 · 上半句化自「取法于上」"
+          "zh": "《生命是什么》，1944"
         },
         "url": "https://en.wikipedia.org/wiki/Entropy_and_life"
       }

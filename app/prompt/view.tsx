@@ -430,19 +430,17 @@ function useCopyLink(id: string) {
 }
 
 /**
- * The row above an entry, and the only chrome this page keeps on screen at
- * rest.
+ * The row above an entry: `<conviction id="会通" on="修身">`, revealed on
+ * hover, focus or expand and invisible at rest.
  *
- * Folded, it is a watermark: `#变异` at the quaternary rung — the entry's
- * outline word and its anchor, which are the same string. Open (hovered,
- * focused, or expanded) the rest of the tag grows around that same word:
- * the `#` becomes `<conviction id="`, and `on=…` arrives behind it.
+ * The id is the entry's outline word and its anchor at the same time, so it
+ * is the one attribute that is also a control — underlined by default,
+ * because a link that only announces itself on hover inside a row that is
+ * itself only there on hover is a secret.
  *
- * The word is never redrawn, only moved, which is the whole point of doing
- * it this way. The first version cross-faded two complete strings in one
- * position, so for the length of the fade the row printed `#变异` on top of
- * `<conviction id="变异"` — two legible things at once, which reads as a
- * bug rather than as a transition.
+ * A previous version printed `#会通` at rest as a watermark. It made the
+ * page's outline visible down the left margin and cost every entry a line
+ * of permanent chrome; the chrome won.
  */
 function EntryTag({
   tag,
@@ -459,77 +457,44 @@ function EntryTag({
   copied: boolean;
   onIdClick: (e: React.MouseEvent) => void;
 }) {
-  // `id` is rendered by hand below — it is the one attribute that is also a
-  // control, and the one that survives into the folded state.
   const rest = Object.entries(attributes ?? {}).filter(([key]) => key !== "id");
 
   return (
-    <span className="flex items-baseline font-mono text-xs select-none whitespace-pre">
-      {open ? (
-        <motion.span
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={TAG_FADE}
-          className="text-tertiary-foreground"
-        >
-          {`<${tag} `}
-          <span className="text-quaternary-foreground">id</span>=&quot;
-        </motion.span>
-      ) : (
-        <span className="text-quaternary-foreground">#</span>
+    <span
+      className={cn(
+        "flex items-baseline font-mono text-xs select-none whitespace-pre",
+        "text-tertiary-foreground transition-opacity duration-150",
+        open ? "opacity-100" : "opacity-0",
       )}
-
-      {/* The word itself: the same element in both states, so it is never
-          drawn twice — the whole reason this is not a crossfade. */}
+    >
+      {`<${tag} `}
+      <span className="text-quaternary-foreground">id</span>=&quot;
       <button
         type="button"
         onClick={onIdClick}
         aria-label={`Link to ${anchor}`}
+        tabIndex={open ? 0 : -1}
         className={cn(
-          "underline-offset-2 decoration-muted-foreground/40",
-          "transition-colors duration-200 hover:text-foreground hover:underline",
-          copied
-            ? "text-muted-foreground"
-            : open
-              ? "text-tertiary-foreground"
-              : "text-quaternary-foreground",
+          "underline underline-offset-2 decoration-muted-foreground/40",
+          "transition-colors duration-200 hover:text-foreground hover:decoration-foreground",
+          copied ? "text-muted-foreground" : "text-tertiary-foreground",
         )}
       >
         {anchor}
         {copied && " ✓"}
       </button>
-
-      {open && (
-        <motion.span
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={TAG_FADE}
-          className="text-tertiary-foreground"
-        >
-          &quot;
-          {rest.map(([key, value]) => (
-            <span key={key}>
-              {" "}
-              <span className="text-quaternary-foreground">{key}</span>
-              {`="${value}"`}
-            </span>
-          ))}
-          {">"}
-        </motion.span>
-      )}
+      &quot;
+      {rest.map(([key, value]) => (
+        <span key={key}>
+          {" "}
+          <span className="text-quaternary-foreground">{key}</span>
+          {`="${value}"`}
+        </span>
+      ))}
+      {">"}
     </span>
   );
 }
-
-// A fast fade in, and nothing on the way out. Two earlier passes animated
-// the word's position as the tag grew around it — first snappy and staged,
-// then slow and soft — and both drew the eye to a row whose whole job is to
-// be ignorable until it is wanted. Sliding a word 100px is a big gesture
-// however gently it is timed. So the word lands where it belongs, the text
-// around it fades in, and on the way out it is simply gone: nobody watches
-// chrome leave, and an exit animation is one more thing that can stay
-// mounted after it is done.
-const TAG_FADE = { duration: 0.12, ease: "easeOut" as const };
 
 /** Shared shell: the hover-revealed open/close tags around expandable content. */
 function PromptItem({
@@ -680,7 +645,9 @@ function ConvictionItem({
   labelOf: (id: string) => string | undefined;
 }) {
   const quoted = conviction.quotedFrom;
-  // `id` first, the way it would be in the markup this row is imitating.
+  // `id` and `on` only. Whose words they are is printed under the statement
+  // where it is read; repeating it up here made the row long and said the
+  // same thing twice.
   // The id is the entry's outline word — the one word this belief would be
   // filed under — which is why it is worth showing rather than hiding: in
   // 修身 and 行事 that word is already the statement (成为, 演示), and in
@@ -692,7 +659,6 @@ function ConvictionItem({
     id: conviction.anchor,
     on: topics.join(" "),
   };
-  if (quoted) attributes.from = quoted.name;
 
   return (
     <PromptItem
@@ -743,7 +709,7 @@ function ConvictionItem({
           <blockquote className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed italic">
             &ldquo;{conviction.statement}&rdquo;
           </blockquote>
-          <p className="mt-3 text-sm">
+          <p className="mt-2 text-sm">
             <AttributionText attribution={quoted} />
           </p>
         </>
@@ -757,7 +723,7 @@ function ConvictionItem({
           the margin, so a proverb and the line I actually say can share a
           row without competing. */}
       {conviction.commentary && (
-        <p className={cn(TYPE.aside, "mt-2")}>
+        <p className={cn(TYPE.aside, "mt-4")}>
           &ldquo;{conviction.commentary}&rdquo;
         </p>
       )}
