@@ -145,14 +145,11 @@ function XmlTag({
   attributes,
   closing = false,
   className,
-  onIdClick,
 }: {
   children: string;
   attributes?: Record<string, string>;
   closing?: boolean;
   className?: string;
-  /** Makes the `id` value the link to this entry, since that is what it is. */
-  onIdClick?: (e: React.MouseEvent) => void;
 }) {
   return (
     <span
@@ -168,19 +165,9 @@ function XmlTag({
           <span key={key}>
             {" "}
             <span className="text-quaternary-foreground">{key}</span>=
-            {key === "id" && onIdClick ? (
-              <button
-                type="button"
-                onClick={onIdClick}
-                className={cn("text-tertiary-foreground", linkClass)}
-              >
-                &quot;{value}&quot;
-              </button>
-            ) : (
-              <span className="text-tertiary-foreground">
-                &quot;{value}&quot;
-              </span>
-            )}
+            <span className="text-tertiary-foreground">
+              &quot;{value}&quot;
+            </span>
           </span>
         ))}
       {">"}
@@ -442,6 +429,123 @@ function useCopyLink(id: string) {
   return { copied, copyLink };
 }
 
+/**
+ * The row above an entry, and the only chrome this page keeps on screen at
+ * rest.
+ *
+ * Folded, it is a watermark: `#变异` at the quaternary rung — the entry's
+ * outline word and its anchor, which are the same string. Open (hovered,
+ * focused, or expanded) the rest of the tag grows around that same word:
+ * the `#` becomes `<conviction id="`, and `on=…` arrives behind it.
+ *
+ * The word is never redrawn, only moved, which is the whole point of doing
+ * it this way. The first version cross-faded two complete strings in one
+ * position, so for the length of the fade the row printed `#变异` on top of
+ * `<conviction id="变异"` — two legible things at once, which reads as a
+ * bug rather than as a transition.
+ */
+function EntryTag({
+  tag,
+  attributes,
+  anchor,
+  open,
+  copied,
+  onIdClick,
+}: {
+  tag: string;
+  attributes?: Record<string, string>;
+  anchor: string;
+  open: boolean;
+  copied: boolean;
+  onIdClick: (e: React.MouseEvent) => void;
+}) {
+  // `id` is rendered by hand below — it is the one attribute that is also a
+  // control, and the one that survives into the folded state.
+  const rest = Object.entries(attributes ?? {}).filter(([key]) => key !== "id");
+
+  return (
+    <motion.span
+      layout
+      className="flex items-baseline font-mono text-xs select-none whitespace-pre"
+    >
+      {/* `#` and `<conviction id="` never share the row: one leaves before
+          the other arrives (`mode="wait"`). */}
+      <AnimatePresence initial={false} mode="wait">
+        {open ? (
+          <motion.span
+            key="tag"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={TAG_FADE}
+            className="text-tertiary-foreground"
+          >
+            {`<${tag} `}
+            <span className="text-quaternary-foreground">id</span>=&quot;
+          </motion.span>
+        ) : (
+          <motion.span
+            key="hash"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={TAG_FADE}
+            className="text-quaternary-foreground"
+          >
+            #
+          </motion.span>
+        )}
+      </AnimatePresence>
+
+      {/* The word itself: the same element in both states, so it slides
+          rather than swaps. */}
+      <motion.button
+        layout="position"
+        type="button"
+        onClick={onIdClick}
+        aria-label={`Link to ${anchor}`}
+        className={cn(
+          "underline-offset-2 decoration-muted-foreground/40",
+          "transition-colors duration-200 hover:text-foreground hover:underline",
+          copied
+            ? "text-muted-foreground"
+            : open
+              ? "text-tertiary-foreground"
+              : "text-quaternary-foreground",
+        )}
+      >
+        {anchor}
+        {copied && " ✓"}
+      </motion.button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.span
+            key="rest"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={TAG_FADE}
+            className="text-tertiary-foreground"
+          >
+            &quot;
+            {rest.map(([key, value]) => (
+              <span key={key}>
+                {" "}
+                <span className="text-quaternary-foreground">{key}</span>
+                {`="${value}"`}
+              </span>
+            ))}
+            {">"}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </motion.span>
+  );
+}
+
+const TAG_FADE = { duration: 0.14, ease: "easeOut" as const };
+
 /** Shared shell: the hover-revealed open/close tags around expandable content. */
 function PromptItem({
   tag,
@@ -459,6 +563,11 @@ function PromptItem({
   detail?: React.ReactNode;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  // Pointer and keyboard both open the tag, so it is state rather than
+  // `group-hover`: the morph below needs to know, and a tab stop should get
+  // the same row a mouse does.
+  const [active, setActive] = useState(false);
+  const open = active || isExpanded;
   const { copied, copyLink } = useCopyLink(anchorId);
 
   return (
@@ -470,23 +579,25 @@ function PromptItem({
       )}
       {...(isExpanded ? { "data-expanded": "" } : {})}
       onClick={() => setIsExpanded(!isExpanded)}
+      onMouseEnter={() => setActive(true)}
+      onMouseLeave={() => setActive(false)}
+      onFocus={() => setActive(true)}
+      onBlur={() => setActive(false)}
     >
-      <div className="relative flex items-center gap-2">
-        <XmlTag
+      <div className="flex items-center gap-2">
+        <EntryTag
+          tag={tag}
           attributes={attributes}
+          anchor={anchorId}
+          open={open}
+          copied={copied}
           onIdClick={copyLink}
-          className={cn(
-            "opacity-0 group-hover:opacity-100",
-            isExpanded && "opacity-100",
-          )}
-        >
-          {tag}
-        </XmlTag>
+        />
         {expandable && (
           <motion.span
             className={cn(
-              "text-quaternary-foreground text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-              isExpanded && "opacity-100",
+              "text-quaternary-foreground text-xs select-none opacity-0 transition-opacity duration-200",
+              open && "opacity-100",
             )}
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
@@ -494,25 +605,6 @@ function PromptItem({
             ›
           </motion.span>
         )}
-
-        {/* The same anchor, folded: it sits where the tag's own `id=` will
-            appear, and hands the row over as soon as you arrive. */}
-        <button
-          type="button"
-          onClick={copyLink}
-          aria-label={`Link to ${anchorId}`}
-          className={cn(
-            "absolute left-0 font-mono text-xs select-none",
-            "transition-opacity duration-200 hover:text-muted-foreground",
-            copied ? "text-muted-foreground" : "text-quaternary-foreground",
-            isExpanded
-              ? "pointer-events-none opacity-0"
-              : "opacity-100 group-hover:pointer-events-none group-hover:opacity-0",
-          )}
-        >
-          #{anchorId}
-          {copied && " ✓"}
-        </button>
       </div>
 
       <div className="mt-2 mb-2">
@@ -536,13 +628,7 @@ function PromptItem({
         </AnimatePresence>
       </div>
 
-      <XmlTag
-        closing
-        className={cn(
-          "opacity-0 group-hover:opacity-100",
-          isExpanded && "opacity-100",
-        )}
-      >
+      <XmlTag closing className={cn("opacity-0", open && "opacity-100")}>
         {tag}
       </XmlTag>
     </div>
