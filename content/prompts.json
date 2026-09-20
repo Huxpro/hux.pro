@@ -4,7 +4,7 @@
       "id": "reality",
       "anchor": {
         "en": "reality",
-        "zh": "有常"
+        "zh": "自然"
       },
       "topics": ["worlding"],
       "statement": {
@@ -37,6 +37,26 @@
             "source": {
               "en": "Discourse on Heaven",
               "zh": "《荀子·天论》"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "The Way follows what is so of itself",
+            "zh": "道法自然"
+          },
+          "text": {
+            "en": "“Man follows earth, earth follows heaven, heaven follows the Way, and the Way follows what is so of itself.” 自然 is not scenery in that sentence — it is self-so-ness: at the end of the chain there is nobody left to appeal to.",
+            "zh": "「人法地，地法天，天法道，道法自然。」这里的「自然」不是风景，是**自己如此** —— 链条走到最后，没有一个可以上诉的对象了。"
+          },
+          "from": {
+            "name": {
+              "en": "Laozi",
+              "zh": "老子"
+            },
+            "source": {
+              "en": "Tao Te Ching 25",
+              "zh": "《道德经》第二十五章"
             }
           }
         },
