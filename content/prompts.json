@@ -1,23 +1,23 @@
 {
   "convictions": [
     {
-      "id": "flux",
+      "id": "reality",
       "anchor": {
-        "en": "flux",
-        "zh": "流变"
+        "en": "reality",
+        "zh": "有常"
       },
       "topics": ["worlding"],
       "statement": {
-        "en": "The constant is change, and change has constants.",
-        "zh": "常就是变，变就是常。"
+        "en": "Nature cannot be fooled.",
+        "zh": "天行有常，变就是常。"
       },
       "commentary": {
         "en": "“Constant” never meant still. A river's constancy is that it keeps running.",
         "zh": "「常」不是不动，是它自己有走法 —— 河的常，就是它一直在流。"
       },
       "body": {
-        "en": "This is the floor; there is nothing under it. The world runs to its own course and is not organised around anyone's wishes — which is where my allergy to wishful thinking comes from. But “constant” is the word that gets misread: the most stable fact about the world is that it keeps moving. And the reverse misreading is just as bad — motion is not noise. It has polarity, period, feedback, reversal, and that is why it can be known at all.\nChinese settled this contradiction inside a single character a long time ago: 易 means both 变易 and 不易 — changing, and unchanging.",
-        "zh": "这是地板，底下没有别的了：世界按它自己的方式运行，不围着谁的愿望转 —— 我对 wishful thinking 的过敏就是从这里来的。但「有常」是最容易被读错的那个词：世界最稳定的那件事，恰恰是它一直在动。反过来读错也一样糟 —— 动不是噪声，它有极性、有周期、有反馈、有反转，正因如此它才可能被认识。\n中文很早就把这对矛盾解在了一个字里：「易」同时是变易和不易。"
+        "en": "This is the floor; there is nothing under it. The world runs to its own course and is not organised around anyone's wishes — which is where my allergy to wishful thinking comes from. But “constant” is the word that gets misread: the most stable fact about the world is that it keeps moving. And the reverse misreading is just as bad — motion is not noise. It has polarity, period, feedback, reversal, and that is why it can be known at all.\nChinese settled this contradiction inside a single character a long time ago: 易 means both 变易 and 不易 — changing, and unchanging.\nFeynman wrote his half of it into the appendix he was allowed to add to the Challenger report, alone, after the commission would not print it in the body: for a successful technology, reality must take precedence over public relations.",
+        "zh": "这是地板，底下没有别的了：世界按它自己的方式运行，不围着谁的愿望转 —— 我对 wishful thinking 的过敏就是从这里来的。但「有常」是最容易被读错的那个词：世界最稳定的那件事，恰恰是它一直在动。反过来读错也一样糟 —— 动不是噪声，它有极性、有周期、有反馈、有反转，正因如此它才可能被认识。\n中文很早就把这对矛盾解在了一个字里：「易」同时是变易和不易。\n「天行有常」是荀子的，下半句是我接的。英文那半是费曼的：挑战者号事故报告不肯把他的结论放进正文，他就要来一个附录，一个人写完 —— 一项技术要成功，现实必须优先于公关，因为自然不可欺。"
       },
       "instances": [
         {
@@ -90,6 +90,51 @@
         },
         {
           "title": {
+            "en": "Reality gets the last word",
+            "zh": "极度现实"
+          },
+          "text": {
+            "en": "Believe what the world hands back, not what you wish it had. Confirmations are cheap — you can find them for anything.",
+            "zh": "相信世界递回来的东西，而不是你希望它是什么。印证是廉价的 —— 任何理论你都能给它找到印证。"
+          }
+        },
+        {
+          "title": {
+            "en": "An accurate understanding of reality",
+            "zh": "对现实的准确理解"
+          },
+          "text": {
+            "en": "Truth — more precisely, an accurate understanding of reality — is the essential foundation for producing good outcomes.",
+            "zh": "真相 —— 更准确地说，是对现实的准确理解 —— 是产生好结果的根本基础。"
+          },
+          "from": {
+            "name": "Ray Dalio",
+            "ref": "principles-dalio",
+            "source": "Principles"
+          }
+        },
+        {
+          "title": {
+            "en": "Nature cannot be fooled",
+            "zh": "自然不可欺"
+          },
+          "text": {
+            "en": "“For a successful technology, reality must take precedence over public relations, for nature cannot be fooled.” From the appendix he wrote alone, after Challenger.",
+            "zh": "「一项技术要成功，现实必须优先于公关，因为自然不可欺。」出自挑战者号事故报告里他一个人写的那份附录。"
+          },
+          "from": {
+            "name": {
+              "en": "Richard Feynman",
+              "zh": "费曼"
+            },
+            "source": {
+              "en": "Rogers Commission, Appendix F, 1986",
+              "zh": "罗杰斯委员会报告附录 F，1986"
+            }
+          }
+        },
+        {
+          "title": {
             "en": "Then how it turns",
             "zh": "那它怎么变"
           },
@@ -99,7 +144,17 @@
           },
           "ref": "sublation"
         }
-      ]
+      ],
+      "quotedFrom": {
+        "name": {
+          "en": "Richard Feynman",
+          "zh": "荀子"
+        },
+        "source": {
+          "en": "Rogers Commission, Appendix F, 1986",
+          "zh": "《天论》· 下半句是我接的"
+        }
+      }
     },
     {
       "id": "sublation",
@@ -109,7 +164,7 @@
       },
       "topics": ["worlding"],
       "statement": {
-        "en": "Extremes meet; nothing returns unchanged.",
+        "en": "Without contraries is no progression.",
         "zh": "阴阳相生，物极必反；扬弃而新。"
       },
       "commentary": {
@@ -184,7 +239,7 @@
             "en": "The old man who lost his horse — how do you know it isn't a blessing?",
             "zh": "塞翁失马，焉知非福。"
           },
-          "ref": "selection"
+          "ref": "limits"
         },
         {
           "title": {
@@ -214,6 +269,26 @@
         },
         {
           "title": {
+            "en": "Contraria sunt complementa",
+            "zh": "对立即互补"
+          },
+          "text": {
+            "en": "Bohr took the taiji for his coat of arms when he was knighted, under the motto “contraria sunt complementa” — opposites are complementary. A physicist reached for a Chinese diagram because his own tradition had no picture of a thing that needs its opposite to be itself.",
+            "zh": "玻尔受封时把太极图放进了自己的族徽，配的铭文是「contraria sunt complementa」—— 对立即互补。一个物理学家去借了一张中国的图，因为他自己的传统里没有「一个东西需要它的反面才能成立」这张画。"
+          },
+          "from": {
+            "name": {
+              "en": "Niels Bohr",
+              "zh": "玻尔"
+            },
+            "source": {
+              "en": "coat of arms, 1947",
+              "zh": "族徽，1947"
+            }
+          }
+        },
+        {
+          "title": {
             "en": "Then how to know it",
             "zh": "那怎么知道它"
           },
@@ -221,20 +296,30 @@
             "en": "The structure is not written on the surface, so the only way in is to guess and then let reality cut. That is the next one.",
             "zh": "结构不写在表面上，所以只能先猜，再让现实去砍。那是下一条。"
           },
-          "ref": "variation"
+          "ref": "models"
         }
-      ]
+      ],
+      "quotedFrom": {
+        "name": {
+          "en": "William Blake",
+          "zh": "《鹖冠子》"
+        },
+        "source": {
+          "en": "The Marriage of Heaven and Hell, 1790",
+          "zh": "「物极则反」· 后面是我接的"
+        }
+      }
     },
     {
-      "id": "variation",
+      "id": "models",
       "anchor": {
-        "en": "variation",
-        "zh": "变数"
+        "en": "models",
+        "zh": "人事"
       },
       "topics": ["worlding"],
       "statement": {
         "en": "All models are wrong, but some are useful.",
-        "zh": "不怕他真理无穷，进一寸有一寸的欢喜。"
+        "zh": "尽人事，进一寸有一寸的欢喜。"
       },
       "commentary": {
         "en": "Mutate, then let reality select. Everything else I believe about progress is a corollary of this one.",
@@ -253,8 +338,8 @@
         }
       ],
       "body": {
-        "en": "The ceiling does not exist: no model ever closes on the world, and reality keeps the right to refute whatever I hold. That is the floor of this shelf rather than a complaint about it — an inexhaustible truth is precisely what makes it worth spending a life on, an inch at a time.\nThe scientific, experimental, evolutionary mode is my top-level model of how anything gets better — a person, a framework, a species. Its two halves only work together: a conjecture nobody could refute is a wish, and a test with nothing bold to test is bookkeeping. Wishful thinking is the one bug this model cannot report about itself, which is why the boldness has to be paid for with a referee.\nBoth of Hu Shih's lines live on this shelf. He wrote the Science Society's anthem in 1929, Zhao Yuanren set it, and it was first sung at the society's fifteenth anniversary in 1930: “We sing that heaven's course is constant, we sing of reaching knowledge by exhausting principle. What is there to fear in an inexhaustible truth — every inch gained is an inch of joy.” The shelf is named 天行 after Xunzi, and Hu Shih had already sung it into the anthem of Chinese science; 致知穷理 is Zhu Xi's line, a few rows down.",
-        "zh": "「真理无穷」不是一句丧气话，是这一格的地板：没有一个模型能把世界收完，而现实随时保留推翻我的权利。正因为它无穷，才值得用一辈子去进 —— 一寸一寸地进。\n科学的、实验的、进化的思维方式，是我关于「一个东西如何变好」最顶层的模型 —— 无论那个东西是一个人、一个框架还是一个物种。它的两半只有合在一起才成立：一个没人能推翻的假设只是愿望，而一场没有大胆假设可检的求证只是记账。wishful thinking 是这个模型唯一不会自己报出来的 bug，所以大胆必须用一个裁判来偿付。\n胡适的两句话都在这一格里。社歌是 1929 年写的，赵元任谱曲，1930 年中国科学社十五周年年会首唱：「我们唱天行有常，我们唱致知穷理。不怕他真理无穷，进一寸有一寸的欢喜。」这一格叫「天行」是从荀子《天论》来的，而胡适早就把它唱进了中国科学社的社歌；「致知穷理」就是下面朱熹那条。（流传最广的版本把第一句写作「怕什么真理无穷」，这里用的是原词。）"
+        "en": "This rung is my half of the shelf: everything that is mine to do. No model ever closes on the world, and reality keeps the right to refute whatever I hold — so the work is to guess well, check hard, and take the inch. The line is welded from two: 尽人事 is the old proverb's first half, and the rest is Hu Shih's.\nThe scientific, experimental, evolutionary mode is my top-level model of how anything gets better — a person, a framework, a species. Its two halves only work together: a conjecture nobody could refute is a wish, and a test with nothing bold to test is bookkeeping. Wishful thinking is the one bug this model cannot report about itself, which is why the boldness has to be paid for with a referee.\nBoth of Hu Shih's lines live on this shelf. He wrote the Science Society's anthem in 1929, Zhao Yuanren set it, and it was first sung at the society's fifteenth anniversary in 1930: “We sing that heaven's course is constant, we sing of reaching knowledge by exhausting principle. What is there to fear in an inexhaustible truth — every inch gained is an inch of joy.” The shelf is named 天行 after Xunzi, and Hu Shih had already sung it into the anthem of Chinese science; 致知穷理 is Zhu Xi's line, a few rows down.",
+        "zh": "这一级是天人之分里「人」的那一半：所有该我做的事。没有一个模型能把世界收完，现实随时保留推翻我的权利 —— 所以能做的就是猜得好一点、验得狠一点，然后把那一寸拿到手。这句话是焊起来的：「尽人事」是那句老话的前半，后半是胡适的。\n科学的、实验的、进化的思维方式，是我关于「一个东西如何变好」最顶层的模型 —— 无论那个东西是一个人、一个框架还是一个物种。它的两半只有合在一起才成立：一个没人能推翻的假设只是愿望，而一场没有大胆假设可检的求证只是记账。wishful thinking 是这个模型唯一不会自己报出来的 bug，所以大胆必须用一个裁判来偿付。\n胡适的两句话都在这一格里。社歌是 1929 年写的，赵元任谱曲，1930 年中国科学社十五周年年会首唱：「我们唱天行有常，我们唱致知穷理。不怕他真理无穷，进一寸有一寸的欢喜。」这一格叫「天行」是从荀子《天论》来的，而胡适早就把它唱进了中国科学社的社歌；「致知穷理」就是下面朱熹那条。（流传最广的版本把第一句写作「怕什么真理无穷」，这里用的是原词。）"
       },
       "instances": [
         {
@@ -310,47 +395,6 @@
             "source": {
               "en": "Geometry and Experience, 1921",
               "zh": "《几何学与经验》，1921"
-            }
-          }
-        },
-        {
-          "title": {
-            "en": "No system closes on itself",
-            "zh": "没有系统能自己兜住自己"
-          },
-          "text": {
-            "en": "No consistent system strong enough to do arithmetic can prove its own consistency from the inside. That the map never closes is not a suspicion — it is a theorem.",
-            "zh": "任何足够强的一致系统，都无法在自身内部证明自己一致。「地图永远合不拢」不是一种怀疑，它是一条定理。"
-          },
-          "from": {
-            "name": {
-              "en": "Gödel",
-              "zh": "哥德尔"
-            },
-            "source": {
-              "en": "Incompleteness, 1931",
-              "zh": "不完备性定理，1931"
-            }
-          },
-          "ref": "types-and-languages"
-        },
-        {
-          "title": {
-            "en": "Nature cannot be fooled",
-            "zh": "自然不可欺"
-          },
-          "text": {
-            "en": "“For a successful technology, reality must take precedence over public relations, for nature cannot be fooled.” From the appendix he wrote alone, after Challenger.",
-            "zh": "「一项技术要成功，现实必须优先于公关，因为自然不可欺。」出自挑战者号事故报告里他一个人写的那份附录。"
-          },
-          "from": {
-            "name": {
-              "en": "Richard Feynman",
-              "zh": "费曼"
-            },
-            "source": {
-              "en": "Rogers Commission, Appendix F, 1986",
-              "zh": "罗杰斯委员会报告附录 F，1986"
             }
           }
         },
@@ -421,31 +465,6 @@
         },
         {
           "title": {
-            "en": "Reality gets the last word",
-            "zh": "极度现实"
-          },
-          "text": {
-            "en": "Believe what the world hands back, not what you wish it had. Confirmations are cheap — you can find them for anything.",
-            "zh": "相信世界递回来的东西，而不是你希望它是什么。印证是廉价的 —— 任何理论你都能给它找到印证。"
-          }
-        },
-        {
-          "title": {
-            "en": "An accurate understanding of reality",
-            "zh": "对现实的准确理解"
-          },
-          "text": {
-            "en": "Truth — more precisely, an accurate understanding of reality — is the essential foundation for producing good outcomes.",
-            "zh": "真相 —— 更准确地说，是对现实的准确理解 —— 是产生好结果的根本基础。"
-          },
-          "from": {
-            "name": "Ray Dalio",
-            "ref": "principles-dalio",
-            "source": "Principles"
-          }
-        },
-        {
-          "title": {
             "en": "Go find the outlier",
             "zh": "去找那个 outlier"
           },
@@ -507,6 +526,17 @@
         },
         {
           "title": {
+            "en": "Negate, keep, raise",
+            "zh": "否定、保留、提升"
+          },
+          "text": {
+            "en": "Each theory that replaces mine does not delete it: it cancels what was wrong, keeps what held, and lifts both into something that can say more. Progress is a spiral, not a queue.",
+            "zh": "后一个理论不是把前一个删掉：它否定错的、保留对的，再把两者抬进一个能说得更多的东西里。进步是螺旋，不是排队。"
+          },
+          "ref": "sublation"
+        },
+        {
+          "title": {
             "en": "Then where it ends",
             "zh": "那它到哪为止"
           },
@@ -514,38 +544,38 @@
             "en": "And however good the model is, there is a part of the world it cannot reach. That is the next one.",
             "zh": "而模型再好，也有它够不着的地方。那是下一条。"
           },
-          "ref": "selection"
+          "ref": "limits"
         }
       ],
       "quotedFrom": {
         "name": {
           "en": "George Box",
-          "zh": "胡适"
+          "zh": "李汝珍 × 胡适"
         },
         "source": {
           "en": "Robustness in the Strategy of Scientific Model Building, 1978",
-          "zh": "中国科学社社歌，1929"
+          "zh": "《镜花缘》× 中国科学社社歌"
         }
       }
     },
     {
-      "id": "selection",
+      "id": "limits",
       "anchor": {
-        "en": "selection",
-        "zh": "天择"
+        "en": "limits",
+        "zh": "天命"
       },
       "topics": ["worlding"],
       "statement": {
-        "en": "Man proposes, God disposes.",
-        "zh": "尽人事，听天命。"
+        "en": "Some things are up to us and some are not.",
+        "zh": "听天命，不怕他真理无穷。"
       },
       "commentary": {
         "en": "There has never been an option in life that was safe by necessity.",
         "zh": "人生从来就没有必然安全的选项。"
       },
       "body": {
-        "en": "Act fully. Judge slowly. Then wait longer.\nDo everything that is yours to do, then let the outcome be the outcome. It isn't fatalism, it's aim: spend the attention on what you can actually change, and stop paying rent on what you can't. And when the outcome does land, you still cannot tell a loss from a gift at the moment of impact — only later, and usually only backwards.",
-        "zh": "事前尽人事，事后听天命，再往后，焉知非福。\n把该你做的都做完，然后让结果就是结果。这不是宿命论，是瞄准：把注意力花在你真能改变的东西上，别再为你改变不了的付房租。而就算结果砸下来了，在它砸下来的那一刻，你也分不出那是损失还是礼物 —— 只能后来才知道，而且通常只能倒着看。"
+        "en": "Act fully. Judge slowly. Then wait longer.\nThis rung is the other half: everything that was never mine. Do everything that is yours to do, then let the outcome be the outcome. It isn't fatalism, it's aim: spend the attention on what you can actually change, and stop paying rent on what you can't. And when the outcome does land, you still cannot tell a loss from a gift at the moment of impact — only later, and usually only backwards.\nThe ceiling is not a mood either. Gödel proved that a system strong enough to be interesting cannot close on itself from the inside, which turns an old proverb about fate into a theorem about knowledge.",
+        "zh": "事前尽人事，事后听天命，再往后，焉知非福。\n这一级是天人之分的另一半：所有从来就不归我的部分。把该你做的都做完，然后让结果就是结果。这不是宿命论，是瞄准：把注意力花在你真能改变的东西上，别再为你改变不了的付房租。而就算结果砸下来了，在它砸下来的那一刻，你也分不出那是损失还是礼物 —— 只能后来才知道，而且通常只能倒着看。\n那个上限也不是一种情绪。哥德尔证明了：一个强到有意思的系统，无法在自身内部兜住自己。于是一句关于命运的老话，变成了一条关于知识的定理。"
       },
       "instances": [
         {
@@ -611,16 +641,6 @@
         },
         {
           "title": {
-            "en": "The dichotomy of control",
-            "zh": "由得了与由不得"
-          },
-          "text": {
-            "en": "Epictetus opens the Enchiridion with the same cut: some things are up to us, and some are not.",
-            "zh": "爱比克泰德在《手册》开篇切的是同一刀：有些事由得了我们，有些事由不得。"
-          }
-        },
-        {
-          "title": {
             "en": "At work",
             "zh": "放到工作里"
           },
@@ -655,17 +675,38 @@
             "en": "Doing my part is the variation, the only half I get to produce; the verdict is the selection, and it was never mine. The two together are one turn of the same loop.",
             "zh": "尽人事是我这边能做的变异，听天命是我这边做不了的选择。两条合起来，才是一次进化。"
           },
-          "ref": "variation"
+          "ref": "models"
+        },
+        {
+          "title": {
+            "en": "No system closes on itself",
+            "zh": "没有系统能自己兜住自己"
+          },
+          "text": {
+            "en": "No consistent system strong enough to do arithmetic can prove its own consistency from the inside. That the map never closes is not a suspicion — it is a theorem.",
+            "zh": "任何足够强的一致系统，都无法在自身内部证明自己一致。「地图永远合不拢」不是一种怀疑，它是一条定理。"
+          },
+          "from": {
+            "name": {
+              "en": "Gödel",
+              "zh": "哥德尔"
+            },
+            "source": {
+              "en": "Incompleteness, 1931",
+              "zh": "不完备性定理，1931"
+            }
+          },
+          "ref": "types-and-languages"
         }
       ],
       "quotedFrom": {
         "name": {
-          "en": "Thomas à Kempis",
-          "zh": "李汝珍"
+          "en": "Epictetus",
+          "zh": "李汝珍 × 胡适"
         },
         "source": {
-          "en": "The Imitation of Christ, c. 1420",
-          "zh": "《镜花缘》第六回"
+          "en": "Enchiridion, c. 125",
+          "zh": "《镜花缘》× 中国科学社社歌"
         }
       },
       "shapedBy": [
@@ -1190,7 +1231,7 @@
             "en": "The same move as looking for the outlier: go where your current model has never been tested.",
             "zh": "这和去找 outlier 是同一个动作：去你现有的模型从没被检验过的地方。"
           },
-          "ref": "variation"
+          "ref": "models"
         },
         {
           "title": {
@@ -1388,7 +1429,7 @@
             "en": "The principle is found out there; the form is one I impose. The first half is investigating things — this station is the second half.",
             "zh": "理是去现实里找的，形是我立的。前一半是格物，这一格是后一半。"
           },
-          "ref": "variation"
+          "ref": "models"
         },
         {
           "title": {
