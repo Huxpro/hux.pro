@@ -78,11 +78,7 @@ export interface AttachmentGridProps {
 const PHONE_BLEED =
   "-ml-[calc(var(--page-gutter)+1.75rem)] -mr-[var(--page-gutter)]";
 
-const SOURCE = cn(
-  TYPE.labelSm,
-  "flex items-center gap-1.5 min-w-0 transition-colors duration-200",
-  "group-hover/thumb:text-muted-foreground group-active/thumb:text-muted-foreground",
-);
+const SOURCE = cn(TYPE.labelSm, "flex items-center gap-1.5 min-w-0");
 const TITLE = "text-xs leading-4 text-foreground";
 
 /** The caption's first line, with the way out written in when it leaves. */
@@ -98,8 +94,9 @@ function SourceLine({ slot, locale }: { slot: TileSlot; locale: Locale }) {
 /** Source, title, blurb — the caption in its three places.
  *
  *  Always a child of the tile's `<a>` (`footer`), never its own click
- *  target. Hovering the copy is hovering the cover: the source and blurb
- *  rise a tier and the artwork washes, so the unit reads as one door.
+ *  target. A press dims this copy (`COPY_WASH`) and the artwork together,
+ *  which is how it reads as the open-attachment door — not the row's
+ *  fold wash.
  */
 function Caption({
   slot,
@@ -128,7 +125,6 @@ function Caption({
         <p
           className={cn(
             TYPE.captionQuiet,
-            "transition-colors duration-200 group-hover/thumb:text-muted-foreground group-active/thumb:text-muted-foreground",
             lines === 2 ? "line-clamp-2" : lines === 3 ? "line-clamp-3" : "line-clamp-4",
           )}
         >

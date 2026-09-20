@@ -237,9 +237,11 @@ the page), never the attachment sheet, which would be a drawer opening on
 what is already on screen.
 
 Cover and caption are one control (`AttachmentTile`'s `footer`): the same
-`<a>`, so hovering the title washes the artwork and the source rises a
-tier. The caption is not a second click target that happens to do the
-same thing, and it is not the row's fold handle. A hand-opened row in
+`<a>`, so a press on the title washes the artwork and dims the copy
+(`COPY_WASH` — opacity, the cover-press language). The caption is not a
+second click target that happens to do the same thing, and it is not the
+row's fold handle. Folding is a muted fill on the title line; opening an
+attachment is a dim. Mixing the two would make the presses feel the same. A hand-opened row in
 `covers` / `index` still folds from its title line; the expanded body
 (`data-row-body`) stops that click and wears a default cursor, so
 description, notes and captions do not look like fold targets. The feed

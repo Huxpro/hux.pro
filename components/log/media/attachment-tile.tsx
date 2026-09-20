@@ -33,12 +33,14 @@
  *
  * In the feed the caption is the rest of the same control, not a second
  * click target that happens to do the same thing. Pass it as `footer` and
- * the cover wash, the cursor and the door all belong to one `<a>` — hovering
- * the title dims the artwork, the way a chat unfurl does.
+ * the cover wash, the copy wash, the cursor and the door all belong to
+ * one `<a>` — a press on the title dims the artwork *and* the title, the
+ * way a chat unfurl does. Folding a commit is a different press: a muted
+ * fill on the row, never this dim.
  */
 
 import type { MouseEvent, ReactNode } from "react";
-import { COVER_WASH } from "@/lib/glass";
+import { COVER_WASH, COPY_WASH } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { t, type Locale } from "@/lib/i18n";
 import { getDomainLabel, isGithubSocialImage } from "@/lib/og-core";
@@ -266,7 +268,7 @@ export function AttachmentTile({
       )}
     >
       {imageClassName ? <span className={cn("block", imageClassName)}>{crop}</span> : crop}
-      {footer}
+      {footer ? <span className={COPY_WASH}>{footer}</span> : null}
     </a>
   );
 }
