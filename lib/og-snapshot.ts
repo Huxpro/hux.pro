@@ -17,7 +17,7 @@ export type { SnapshotEntry, OGSnapshot };
  * (media with `kind:"link", present:"card"`) render from this (or a manual
  * `preview`) instead of crawling at request time, so production has no
  * runtime dependency on third-party sites being up or crawlable. Regenerate
- * with `pnpm og:snapshot`; CI guards drift with `pnpm og:check`. The file is
+ * with `pnpm og:snapshot`; CI guards coverage with `pnpm og:complete`. The file is
  * intentionally timestamp-free and key-sorted so it only changes when the
  * *content* changes (no flaky churn).
  *

@@ -1787,6 +1787,25 @@ function extractYouTubeId(url: string): string | null {
 }
 
 /**
+ * The still image an attachment paints at runtime — same resolver the
+ * contact strip, feed tiles, and the og-snapshot completeness check use.
+ *
+ * Pills and live social widgets return null (they are not covers). Cards
+ * prefer the viewer's locale snapshot entry, then the shared `preview`.
+ * Everything else goes through {@link getMediaThumbnail}.
+ */
+export function getAttachmentImage(
+  media: Media,
+  locale: Locale,
+): string | null {
+  if (isLinkPill(media) || isSocialEmbedMedia(media)) return null;
+  if (isLinkMedia(media)) {
+    return (media.previews?.[locale] ?? media.preview)?.image ?? null;
+  }
+  return getMediaThumbnail(media);
+}
+
+/**
  * Get thumbnail URL for a single media item.
  *
  * Derivation by kind:
@@ -1933,10 +1952,7 @@ export function getMediaStripItems(
 ): StripItem[] {
   const out: StripItem[] = [];
   for (const m of media) {
-    if (isLinkPill(m)) continue;
-    const image = isLinkMedia(m)
-      ? (m.previews?.[locale] ?? m.preview)?.image ?? null
-      : getMediaThumbnail(m);
+    const image = getAttachmentImage(m, locale);
     if (image) out.push({ media: m, image });
   }
   return out;
