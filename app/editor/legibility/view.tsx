@@ -22,6 +22,7 @@
 // =============================================================================
 
 import { Field, Section, Segmented, Slider } from "@/app/editor/icon/controls";
+import { EditorNav } from "@/app/editor/nav";
 import { cn } from "@/lib/utils";
 import { useGlass, useTheme } from "@/services";
 import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
@@ -470,7 +471,9 @@ export function LegibilityLabView() {
             <Link href="/" className="text-xs font-mono tracking-wide text-muted-foreground hover:text-foreground">
               λhux
             </Link>
-            <h1 className="mt-1 font-serif text-2xl tracking-tight text-foreground">{L.title}</h1>
+            <div className="mt-1">
+              <EditorNav appearance="page" />
+            </div>
           </div>
           <div className="text-[11px] font-mono text-muted-foreground">
             {sceneLabel(scene, locale)}

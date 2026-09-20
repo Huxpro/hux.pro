@@ -177,7 +177,12 @@ export function TimelineCommit({
   const [isExpandedState, setIsExpanded] = useState(
     defaultExpanded || (expandAll === true && hasExpandableContent),
   );
-  const isExpanded = inspecting ? isSelected : isExpandedState;
+  // Inspect selects; it does not invent a layout. A selected row opens so
+  // its media can take a handle. The page's form still applies: `feed`
+  // keeps every row open, `index` / `covers` leave the others folded.
+  const isExpanded = inspecting
+    ? isSelected || (expandAll === true && hasExpandableContent)
+    : isExpandedState;
 
   // Pinned items render once in a stable spot beneath the row (visible
   // folded *and* expanded), so toggling never remounts them. The expanded
@@ -273,8 +278,9 @@ export function TimelineCommit({
     rowForm.peek &&
     (data.type === "role" || (!showStrip && !showStatDescription));
   // The feed's covers are the row's own strip items; what has no cover (a
-  // live widget) stacks under the grid. The editor's inspect mode keeps the
-  // classic renderer for everything, since its handles live there.
+  // live widget) stacks under the grid. Inspect mode keeps this layout —
+  // the handle lives on the tile (InspectableMedia), not on a different
+  // renderer — so the editor stays the page it is editing.
   const tiled = new Set(data.stripItems.map((item) => item.media));
   const stacked = expandedMedia.filter((m) => !tiled.has(m));
 
@@ -681,6 +687,9 @@ export function TimelineCommit({
                 set={attachmentSet}
                 peek={rowForm.peek && magneticPreviewEnabled}
                 className="min-w-0"
+                inspecting={inspecting}
+                onInspect={onInspectMedia}
+                selectedMedia={selectedMedia}
               />
 
               {/*
@@ -737,28 +746,23 @@ export function TimelineCommit({
               out, and every click its native one. */}
           {expandedMedia.length > 0 && (
             <div onClick={(e) => e.stopPropagation()} className="space-y-4">
-              {inspecting ? (
+              <AttachmentGrid
+                items={data.stripItems}
+                set={attachmentSet}
+                inspecting={inspecting}
+                onInspect={onInspectMedia}
+                selectedMedia={selectedMedia}
+              />
+              {stacked.length > 0 && (
                 <MediaRenderer
-                  media={expandedMedia}
+                  media={stacked}
                   layout="stack"
                   size="default"
-                  inspecting
+                  inspecting={inspecting}
                   onInspect={onInspectMedia}
                   selectedMedia={selectedMedia}
                   set={attachmentSet}
                 />
-              ) : (
-                <>
-                  <AttachmentGrid items={data.stripItems} set={attachmentSet} />
-                  {stacked.length > 0 && (
-                    <MediaRenderer
-                      media={stacked}
-                      layout="stack"
-                      size="default"
-                      set={attachmentSet}
-                    />
-                  )}
-                </>
               )}
             </div>
           )}

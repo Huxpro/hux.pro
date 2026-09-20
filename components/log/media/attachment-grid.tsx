@@ -54,9 +54,10 @@ import {
   type AttachmentsApi,
 } from "@/systems/attachments";
 import { mediaToTrack, useOptionalTheaterStage } from "@/systems/theater";
-import { isSlidesMedia, isVideoMedia, type StripItem } from "@/lib/log";
+import { isSlidesMedia, isVideoMedia, type Media, type StripItem } from "@/lib/log";
 import { resolveSlidesEmbedUrl } from "@/lib/slides";
 import { AttachmentTile, resolveTile, type TileSlot } from "./attachment-tile";
+import { InspectableMedia } from "./inspectable";
 import { MediaMark, newTabMark, SURFACE_CHIP } from "./media-mark";
 import { videoEmbedUrl } from "./video";
 
@@ -65,6 +66,14 @@ export interface AttachmentGridProps {
   items: StripItem[];
   set?: AttachmentSet | null;
   className?: string;
+  /**
+   * Pin the phone stack regardless of the live viewport. The attachments
+   * lab uses this so both layouts sit on one page.
+   */
+  compact?: boolean;
+  inspecting?: boolean;
+  onInspect?: (media: Media) => void;
+  selectedMedia?: Media | null;
 }
 
 /**
@@ -147,7 +156,15 @@ function PlayableLine({ slot, className }: { slot: TileSlot; className?: string 
   );
 }
 
-export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
+export function AttachmentGrid({
+  items,
+  set,
+  className,
+  compact: compactProp,
+  inspecting = false,
+  onInspect,
+  selectedMedia = null,
+}: AttachmentGridProps) {
   const attachments = useOptionalAttachments();
   const { locale } = useLocale();
   // Once per item, not once per tile per render: the set lookup, the policy
@@ -158,21 +175,28 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
   );
   if (slots.length === 0) return null;
 
-  const compact = attachments?.compact ?? false;
+  const compact = compactProp ?? attachments?.compact ?? false;
 
   const tileOf = (slot: TileSlot, flush = false) => (
-    <AttachmentTile
-      slot={slot}
-      size="cell"
-      locale={locale}
-      set={set}
-      attachments={attachments}
-      mode="act"
-      // The glyph on what plays — a recording, a deck, a talks-host card —
-      // and nothing on a page: the caption has said what it is.
-      chip={slot.mark ? "mini" : "none"}
-      flush={flush}
-    />
+    <InspectableMedia
+      media={slot.media}
+      inspecting={inspecting}
+      selected={selectedMedia === slot.media}
+      onInspect={onInspect}
+    >
+      <AttachmentTile
+        slot={slot}
+        size="cell"
+        locale={locale}
+        set={set}
+        attachments={attachments}
+        mode="act"
+        // The glyph on what plays — a recording, a deck, a talks-host card —
+        // and nothing on a page: the caption has said what it is.
+        chip={slot.mark ? "mini" : "none"}
+        flush={flush}
+      />
+    </InspectableMedia>
   );
 
   /** What pressing the caption does: the same door as the tile. */
@@ -189,13 +213,20 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
       <div className={cn("space-y-4", className)}>
         {slots.map((slot, i) =>
           isVideoMedia(slot.media) || isSlidesMedia(slot.media) ? (
-            <InlinePlayable
+            <InspectableMedia
               key={`${slot.media.url}-${i}`}
-              slot={slot}
-              set={set}
-              attachments={attachments}
-              locale={locale}
-            />
+              media={slot.media}
+              inspecting={inspecting}
+              selected={selectedMedia === slot.media}
+              onInspect={onInspect}
+            >
+              <InlinePlayable
+                slot={slot}
+                set={set}
+                attachments={attachments}
+                locale={locale}
+              />
+            </InspectableMedia>
           ) : (
             <div key={`${slot.media.url}-${i}`} className="min-w-0">
               <div className={PHONE_BLEED}>{tileOf(slot, true)}</div>

@@ -314,15 +314,19 @@ wallpaper's canvas, which every page pays alike.
 ## The lab
 
 **`/editor/attachments`** — hidden, `noindex` — is the devtool for this system, the
-way `/editor/legibility` is for reading surfaces: the chips at every size
-on the log's own covers, in the `/works` tier and the peek's, the GitNation
-case among them; the policy as a
-table, read live from `homeFor` / `nativeHomeFor` for a context you can pin
-(phone or not, a window manager); the same media rendered by the production strip,
-card, deck cover, rail thumb and attachment page; and buttons that go through
+way `/editor/legibility` is for reading surfaces. The lab prints every render
+path (`app/editor/attachments/paths.ts`) next to live specimens: the chips at
+every size on the log's own covers, in the `/works` tier and the peek's, the
+GitNation case among them; the policy as a table, read live from `homeFor` /
+`nativeHomeFor` for a context you can pin (phone or not, a window manager);
+and the production surfaces themselves — the strip, the desk grid, the phone
+feed (`InlinePlayable`), `MediaRenderer` (single and rail), pills, peeks,
+inline players, the MDX `<Media />`, the home featured stack, `MediaThumbnail`,
+the theater rail thumb, and the attachment page — plus buttons that go through
 the real providers, with a readout of the surface stack and the open windows
-as they stand. On a phone it is where to watch `Visit` stack the browser over
-the attachment sheet.
+as they stand. `/editor/attachment` redirects here. On a phone it is where to
+watch `Visit` stack the browser over the attachment sheet. The top-left title
+is the editor-family dropdown (`app/editor/catalog.ts`).
 
 ## Hovering a cover
 

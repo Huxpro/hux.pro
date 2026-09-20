@@ -8,6 +8,8 @@ import {
   isVideoMedia,
   type LinkMedia,
   type Media,
+  type SocialEmbedMedia,
+  type VideoMedia,
 } from "@/lib/log";
 import { isVideoLinkHost } from "@/lib/og-core";
 import { enrichLogDataWithPreviews } from "@/lib/og-snapshot";
@@ -34,8 +36,15 @@ function pickSamples(): LabSamples {
     return undefined;
   };
   const card = (m: Media): m is LinkMedia => isLinkMedia(m) && !isLinkPill(m);
+  const videoOn = (platform: VideoMedia["platform"]) =>
+    first((m): m is VideoMedia => isVideoMedia(m) && m.platform === platform);
+  const socialOn = (platform: NonNullable<SocialEmbedMedia["platform"]>) =>
+    first((m): m is SocialEmbedMedia => isSocialEmbedMedia(m) && m.platform === platform);
   return {
     video: first(isVideoMedia),
+    youtube: videoOn("youtube"),
+    bilibili: videoOn("bilibili"),
+    vimeo: videoOn("vimeo"),
     slides: first(isSlidesMedia),
     talkPage: first(
       (m): m is LinkMedia => card(m) && isVideoLinkHost(m.url) && m.preview?.frame !== "deny",
@@ -51,8 +60,12 @@ function pickSamples(): LabSamples {
     ),
     denied: first((m): m is LinkMedia => card(m) && m.preview?.frame === "deny"),
     post: first((m): m is LinkMedia => card(m) && !!m.internal),
+    pill: first(isLinkPill),
     image: first(isImageMedia),
     social: first(isSocialEmbedMedia),
+    twitter: socialOn("twitter"),
+    instagram: socialOn("instagram"),
+    tiktok: socialOn("tiktok"),
   };
 }
 

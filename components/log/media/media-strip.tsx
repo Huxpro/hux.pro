@@ -35,8 +35,9 @@ import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
-import type { StripItem } from "@/lib/log";
+import type { Media, StripItem } from "@/lib/log";
 import { AttachmentTile, resolveTile } from "./attachment-tile";
+import { InspectableMedia } from "./inspectable";
 import { mediaPeek } from "./media-peek";
 
 export interface MediaStripProps {
@@ -60,6 +61,10 @@ export interface MediaStripProps {
    */
   peek?: boolean;
   className?: string;
+  /** Editor inspect: the same handle the leftover renderer wears. */
+  inspecting?: boolean;
+  onInspect?: (media: Media) => void;
+  selectedMedia?: Media | null;
 }
 
 export function MediaStrip({
@@ -67,6 +72,9 @@ export function MediaStrip({
   set,
   peek = true,
   className,
+  inspecting = false,
+  onInspect,
+  selectedMedia = null,
 }: MediaStripProps) {
   const attachments = useOptionalAttachments();
   const { locale } = useLocale();
@@ -115,13 +123,20 @@ export function MediaStrip({
             panelClassName={spec?.panelClassName}
             className="shrink-0 snap-start"
           >
-            <AttachmentTile
-              slot={slot}
-              size="covers"
-              locale={locale}
-              set={set}
-              attachments={attachments}
-            />
+            <InspectableMedia
+              media={slot.media}
+              inspecting={inspecting}
+              selected={selectedMedia === slot.media}
+              onInspect={onInspect}
+            >
+              <AttachmentTile
+                slot={slot}
+                size="covers"
+                locale={locale}
+                set={set}
+                attachments={attachments}
+              />
+            </InspectableMedia>
           </MagneticPreview>
         );
       })}

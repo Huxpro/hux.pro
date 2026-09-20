@@ -266,6 +266,7 @@ function defaultFieldsForType(type: CommitType): Partial<Commit> {
     case "role":
       return {
         company: { en: "", zh: "" },
+        identityId: "",
       };
     case "press":
       return { platform: "" };
@@ -511,6 +512,28 @@ function FormFields({
         checked={commit.present === "aside"}
         onChange={(v) => onUpdate({ present: v ? "aside" : undefined })}
       />
+      <ChoiceField<"" | "en" | "zh" | "both">
+        label="Language"
+        value={commit.language ?? ""}
+        options={[
+          { value: "", label: "—" },
+          { value: "en", label: "en" },
+          { value: "zh", label: "zh" },
+          { value: "both", label: "both" },
+        ]}
+        onChange={(v) => onUpdate({ language: v === "" ? undefined : v })}
+      />
+      <ChoiceField<"" | "en" | "zh" | "both">
+        label="Listed In"
+        value={commit.listedIn ?? ""}
+        options={[
+          { value: "", label: "both" },
+          { value: "en", label: "en" },
+          { value: "zh", label: "zh" },
+          { value: "both", label: "both" },
+        ]}
+        onChange={(v) => onUpdate({ listedIn: v === "" ? undefined : v })}
+      />
       <ChoiceField<"" | "date" | "endDate">
         label="Sort By"
         value={commit.sortBy ?? ""}
@@ -562,6 +585,31 @@ function FormFields({
         value={commit.description.zh}
         onChange={(v) => onUpdate({ description: { ...commit.description, zh: v } })}
         multiline
+      />
+
+      <SectionLabel>Team</SectionLabel>
+      <Field
+        label="EN"
+        value={commit.team?.en ?? ""}
+        onChange={(v) =>
+          onUpdate({
+            team: v || commit.team?.zh
+              ? { en: v, zh: commit.team?.zh ?? "" }
+              : undefined,
+          })
+        }
+        placeholder="React Core team @ Meta"
+      />
+      <Field
+        label="ZH"
+        value={commit.team?.zh ?? ""}
+        onChange={(v) =>
+          onUpdate({
+            team: v || commit.team?.en
+              ? { en: commit.team?.en ?? "", zh: v }
+              : undefined,
+          })
+        }
       />
 
       <SectionLabel>Commentary</SectionLabel>
@@ -874,6 +922,15 @@ function TypeSpecificFields({
               })
             }
           />
+          <Field
+            label="Downloads"
+            value={commit.stats?.downloads ?? ""}
+            onChange={(v) =>
+              onUpdate({
+                stats: { ...commit.stats, downloads: v || undefined },
+              })
+            }
+          />
         </>
       );
 
@@ -937,6 +994,12 @@ function TypeSpecificFields({
         <>
           <SectionLabel>Role</SectionLabel>
           <Field
+            label="Identity"
+            value={commit.identityId}
+            onChange={(v) => onUpdate({ identityId: v })}
+            placeholder="meta, bytedance, …"
+          />
+          <Field
             label="Company EN"
             value={commit.company.en}
             onChange={(v) =>
@@ -951,6 +1014,29 @@ function TypeSpecificFields({
             }
           />
           <Field
+            label="Override EN"
+            value={commit.companyOverride?.en ?? ""}
+            onChange={(v) =>
+              onUpdate({
+                companyOverride: v || commit.companyOverride?.zh
+                  ? { en: v, zh: commit.companyOverride?.zh ?? "" }
+                  : undefined,
+              })
+            }
+            placeholder="Meta Reality Labs"
+          />
+          <Field
+            label="Override ZH"
+            value={commit.companyOverride?.zh ?? ""}
+            onChange={(v) =>
+              onUpdate({
+                companyOverride: v || commit.companyOverride?.en
+                  ? { en: commit.companyOverride?.en ?? "", zh: v }
+                  : undefined,
+              })
+            }
+          />
+          <Field
             label="Location"
             value={commit.location ?? ""}
             onChange={(v) => onUpdate({ location: v || undefined })}
@@ -959,6 +1045,11 @@ function TypeSpecificFields({
             label="URL"
             value={commit.url ?? ""}
             onChange={(v) => onUpdate({ url: v || undefined })}
+          />
+          <CheckField
+            label="Hide Row"
+            checked={commit.hideRow === true}
+            onChange={(v) => onUpdate({ hideRow: v ? true : undefined })}
           />
         </>
       );
@@ -1009,6 +1100,7 @@ interface MediaDraft {
   // link
   present?: LinkPresent;
   preview?: { title?: string; description?: string; image?: string };
+  urls?: { en?: string; zh?: string };
   label?: string;
   icon?: string;
   // social-embed
@@ -1033,6 +1125,7 @@ function mediaToDraft(m: Media): MediaDraft {
         ...base,
         present: m.present,
         preview: m.preview,
+        urls: m.urls,
         label: m.label,
         icon: m.icon,
       };
@@ -1073,6 +1166,14 @@ function draftToMedia(d: MediaDraft): Media {
         url: d.url,
         present: d.present ?? "pill",
         ...(d.preview ? { preview: d.preview } : {}),
+        ...(d.urls?.en || d.urls?.zh
+          ? {
+              urls: {
+                ...(d.urls.en ? { en: d.urls.en } : {}),
+                ...(d.urls.zh ? { zh: d.urls.zh } : {}),
+              },
+            }
+          : {}),
         ...(d.label ? { label: d.label } : {}),
         ...(d.icon ? { icon: d.icon } : {}),
         ...pinned,
@@ -1278,6 +1379,26 @@ function MediaItemEditor({
           {draft.present === "card" && (
             <>
               <Field
+                label="URL EN"
+                value={draft.urls?.en ?? ""}
+                onChange={(v) =>
+                  set({
+                    urls: { ...draft.urls, en: v || undefined },
+                  })
+                }
+                placeholder="Locale variant (optional)"
+              />
+              <Field
+                label="URL ZH"
+                value={draft.urls?.zh ?? ""}
+                onChange={(v) =>
+                  set({
+                    urls: { ...draft.urls, zh: v || undefined },
+                  })
+                }
+                placeholder="Locale variant (optional)"
+              />
+              <Field
                 label="Preview title"
                 value={draft.preview?.title ?? ""}
                 onChange={(v) =>
@@ -1289,6 +1410,19 @@ function MediaItemEditor({
                   })
                 }
                 placeholder="Card title override"
+              />
+              <Field
+                label="Preview desc"
+                value={draft.preview?.description ?? ""}
+                onChange={(v) =>
+                  set({
+                    preview: {
+                      ...draft.preview,
+                      description: v || undefined,
+                    },
+                  })
+                }
+                placeholder="Card description override"
               />
               <Field
                 label="Preview image"

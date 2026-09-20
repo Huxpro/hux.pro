@@ -1,5 +1,6 @@
 "use client";
 
+import { EditorNav } from "@/app/editor/nav";
 import { cn } from "@/lib/utils";
 import { buildTalkAlbums } from "@/systems/theater/lib/albums";
 import type { Track } from "@/systems/theater/lib/types";
@@ -100,9 +101,9 @@ export function TheaterVariantsView() {
           <p className="text-xs font-mono uppercase tracking-wider text-white/40">
             Design exploration · /editor/theater-variants
           </p>
-          <h1 className="text-2xl font-medium tracking-tight text-white">
-            Theater chrome variants
-          </h1>
+          <div className="text-white">
+            <EditorNav appearance="page" className="text-white" />
+          </div>
           <p className="max-w-2xl text-sm text-white/55 leading-relaxed">
             Fullscreen theater margins — album tabs, window controls, prev/next,
             title, playlist. Production uses the frosted system at the top
