@@ -9,7 +9,7 @@
   "https://github.com/Huxpro/huxpro.github.io": {
     "title": "GitHub - Huxpro/huxpro.github.io: My Blog / Jekyll Themes / PWA",
     "description": "My Blog / Jekyll Themes / PWA. Contribute to Huxpro/huxpro.github.io development by creating an account on GitHub.",
-    "image": "https://opengraph.githubassets.com/a9157ffbdb4374e9e3b829542d50217b5bec0ab05f5147b25f6f9692831b0837/Huxpro/huxpro.github.io",
+    "image": "https://opengraph.githubassets.com/3f62dd7161beee7f3de7de469071ee20bb807d46dcd4d978e9553cca01850966/Huxpro/huxpro.github.io",
     "siteName": "GitHub",
     "frame": "deny"
   },
@@ -46,10 +46,22 @@
   "https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509": {
     "frame": "deny"
   },
+  "https://react.dev/blog/2021/12/17/react-conf-2021-recap": {
+    "title": "React Conf 2021 Recap – React",
+    "description": "The library for web and native user interfaces",
+    "image": "https://react.dev/images/og/blog-2021-12-17-react-conf-2021-recap.png",
+    "siteName": "react.dev"
+  },
   "https://react.dev/blog/2022/06/15/react-labs-what-we-have-been-working-on-june-2022#react-compiler": {
     "title": "React Labs: What We've Been Working On – June 2022 – React",
     "description": "The library for web and native user interfaces",
     "image": "https://react.dev/images/og/blog-2022-06-15-react-labs-what-we-have-been-working-on-june-2022.png",
+    "siteName": "react.dev"
+  },
+  "https://react.dev/learn/react-compiler": {
+    "title": "React Compiler – React",
+    "description": "The library for web and native user interfaces",
+    "image": "https://react.dev/images/og/learn-react-compiler.png",
     "siteName": "react.dev"
   },
   "https://reactnative.dev/blog/2021/10/26/toward-hermes-being-the-default": {
@@ -120,12 +132,18 @@
     "title": "Meta reportedly breaks up the 300-person team that was building a hybrid VR / AR OS",
     "description": "From a centralized OS to “hyper-tuned” solutions",
     "image": "https://platform.theverge.com/wp-content/uploads/sites/2/chorus/uploads/chorus_asset/file/22977157/acastro_211101_1777_meta_0003.jpg?quality=90&strip=all&crop=0%2C10.732984293194%2C100%2C78.534031413613&w=1200",
-    "siteName": "The Verge"
+    "siteName": "The Verge",
+    "frame": "deny"
   },
   "https://www.ticketingbusinessforum.com/awards-2017-shortlists-revealed/": {
-    "title": "AWARDS: 2017 Shortlists Revealed",
-    "description": "Ticketing Technology Forum is delighted to announce the Ticketing Technology Awards 2017 finalists. We were inundated with submissions this year,...",
+    "title": "AWARDS: 2017 Shortlists Revealed – Ticketing Business Forum",
     "image": "https://www.ticketingbusinessforum.com/wp-content/uploads/2017/01/FINALISTS-ARTICLE-FEATURE.jpg",
-    "siteName": "TheTicketingBusiness Forum"
+    "siteName": "ticketingbusinessforum.com"
+  },
+  "https://www.wearedevelopers.com/events/world-congress-2026-europe/sessions/1237-vibe-cross-platform": {
+    "frame": "deny"
+  },
+  "https://www.wearedevelopers.com/videos/1445-lynx-native-for-more": {
+    "frame": "deny"
   }
 }

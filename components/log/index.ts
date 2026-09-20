@@ -44,7 +44,6 @@ export type { NormalizedCommit, SimpleLink } from "./commit-data";
 export {
   Media,
   MediaRenderer,
-  MediaThumbnail,
   Video,
   Slides,
   SocialEmbed,
@@ -62,7 +61,6 @@ export {
   isPlayableSlidesUrl,
   type MediaProps,
   type MediaRendererProps,
-  type MediaThumbnailProps,
   type VideoProps,
   type SlidesProps,
   type SocialEmbedProps,

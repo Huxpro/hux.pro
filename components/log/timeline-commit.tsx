@@ -532,22 +532,41 @@ export function TimelineCommit({
                 ? attachmentSet.items.indexOf(link.media)
                 : -1;
 
+            // Inspecting, the rail selects like everything else on the row.
+            // It is the only affordance a pill has — no cover, no tile — so
+            // without this a pill is uneditable except by scrolling the
+            // inspector, and the icon would follow its href out of the
+            // editor besides (there is no set while inspecting, so the
+            // branch above cannot take the press).
+            const onPress =
+              inspecting && link.media
+                ? (e: React.MouseEvent) => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                    e.preventDefault();
+                    onInspectMedia?.(link.media!);
+                  }
+                : attachmentIndex >= 0
+                  ? (e: React.MouseEvent) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                      e.preventDefault();
+                      attachments!.open(attachmentSet!, attachmentIndex);
+                    }
+                  : undefined;
+
             return (
               <a
                 key={`link-${i}`}
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={
-                  attachmentIndex >= 0
-                    ? (e) => {
-                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-                        e.preventDefault();
-                        attachments!.open(attachmentSet!, attachmentIndex);
-                      }
-                    : undefined
-                }
-                className={className}
+                onClick={onPress}
+                className={cn(
+                  className,
+                  inspecting &&
+                    link.media &&
+                    selectedMedia === link.media &&
+                    "text-sky-600 dark:text-sky-400",
+                )}
               >
                 <LinkIcon icon={link.icon} />
                 {label}

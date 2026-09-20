@@ -44,7 +44,6 @@ import { MediaStrip } from "@/components/log/media/media-strip";
 import { AttachmentGrid } from "@/components/log/media/attachment-grid";
 import { mediaPeek } from "@/components/log/media/media-peek";
 import { SlidesFromMedia } from "@/components/log/media/slides";
-import { MediaThumbnail } from "@/components/log/media/thumbnail";
 import { VideoFromMedia } from "@/components/log/media/video";
 import { ExternalImage } from "@/components/log/media/external-image";
 import { cn } from "@/lib/utils";
@@ -584,30 +583,31 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
               )}
             </div>
           </div>
-          {stripItems.length > 0 && (
+          {(samples.video || samples.slides) && (
             <div>
-              <Label>Home featured stack — the widget&rsquo;s snap-pager</Label>
+              <Label>
+                Home Featured Talks — the same TrackThumb, in the widget&rsquo;s
+                snap-pager
+              </Label>
               <div className="max-w-sm overflow-hidden rounded-2xl border border-border/50 bg-glass-sheet shadow-overlay backdrop-blur-xl">
-                <div className="px-5 pt-4 text-sm font-medium text-foreground">Attachments</div>
+                <div className="px-5 pt-4 text-sm font-medium text-foreground">Featured Talks</div>
                 <div className="flex gap-3 overflow-x-auto px-5 pb-5 pt-3 no-scrollbar snap-x snap-mandatory">
-                  {stripItems.slice(0, 3).map((item) => (
-                    <MediaThumbnail
-                      key={item.media.url}
-                      media={item.media}
-                      className="w-56 shrink-0 snap-start"
-                    />
-                  ))}
+                  {[samples.video, samples.slides]
+                    .filter((m): m is VideoMedia | SlidesMedia => !!m)
+                    .map((m) => {
+                      const track = mediaToTrack(m, {
+                        id: `lab:widget:${m.url}`,
+                        title: "Attachments Lab",
+                      });
+                      return track ? (
+                        <TrackThumb
+                          key={track.id}
+                          track={track}
+                          className="w-56 shrink-0 snap-start"
+                        />
+                      ) : null;
+                    })}
                 </div>
-              </div>
-            </div>
-          )}
-          {items[0] && (
-            <div>
-              <Label>MediaThumbnail — generic 16:9 cover</Label>
-              <div className="grid max-w-xl grid-cols-3 gap-3">
-                {items.slice(0, 3).map((m) => (
-                  <MediaThumbnail key={m.url} media={m} />
-                ))}
               </div>
             </div>
           )}

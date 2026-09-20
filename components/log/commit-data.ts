@@ -52,11 +52,15 @@ export interface SimpleLink {
    */
   redundantWhenExpanded?: boolean;
   /**
-   * The media this pill stands for, when it stands for one of the commit's
-   * attachments (a video, a deck, a card, a social widget) rather than a
-   * plain link. The rail opens it through the attachment system by finding
-   * it in the commit's set — by reference, so this is the commit's own
-   * object, never a copy.
+   * The media this pill stands for — always the commit's own object, by
+   * reference, never a copy.
+   *
+   * On /works only the ones in the commit's set do anything with it: the
+   * rail opens a video, a deck, a card or a social widget through the
+   * attachment system by finding it there, and a plain pill (a website, a
+   * repo) is not in the set, so `indexOf` misses and it stays a plain link.
+   * The editor reads it off every pill regardless — the rail is the only
+   * affordance a plain pill has, so it is the only way to select one.
    */
   media?: Media;
 }
@@ -214,6 +218,7 @@ export function extractMediaLinks(
           url: m.url,
           label: m.label || (locale === "zh" ? "链接" : "Link"),
           icon: m.icon || "external",
+          media: m,
         });
       }
     }

@@ -17,7 +17,7 @@ export async function GET() {
   }
 
   try {
-    // Editor consumes the FLAT runtime shape so its commit-list, form,
+    // Editor consumes the FLAT runtime shape so its inspector, form,
     // and preview all reason about a plain `commits[]`. Normalize on
     // read; the reverse happens on POST to preserve nested authoring
     // on disk.

@@ -19,8 +19,7 @@ export type RenderSurfaceId =
   | "page"
   | "rail-thumb"
   | "mdx"
-  | "widget"
-  | "thumbnail";
+  | "widget";
 
 export interface RenderPath {
   id: RenderSurfaceId;
@@ -38,7 +37,7 @@ export const RENDER_PATHS: readonly RenderPath[] = [
   {
     id: "strip",
     surface: "MediaStrip → AttachmentTile",
-    context: "/works covers · home featured widgets",
+    context: "/works covers — one row per commit, under the description",
     click: "open() → homeFor (sheet on a phone, native home elsewhere)",
     file: "components/log/media/media-strip.tsx",
   },
@@ -66,8 +65,9 @@ export const RENDER_PATHS: readonly RenderPath[] = [
   {
     id: "renderer",
     surface: "MediaRenderer",
-    context: "Pinned covers, leftover live widgets, MDX, inspect leftovers",
-    click: "open() when a set is handed in; else inline / <a>",
+    context:
+      "MDX \u003cMedia /\u003e, and whatever the grid has no cover for — a live\n       social widget. Nothing else on /works reaches it any more.",
+    click: "open() when a set is handed in; else inline / \u003ca\u003e",
     file: "components/log/media/media-renderer.tsx",
   },
   {
@@ -108,9 +108,9 @@ export const RENDER_PATHS: readonly RenderPath[] = [
   {
     id: "rail-thumb",
     surface: "TrackThumb",
-    context: "Theater playlist rail",
+    context: "Theater playlist rail · the home Featured Talks card",
     click: "select the track on the stage",
-    file: "systems/theater/components/playlist-rail.tsx",
+    file: "systems/theater/components/track-thumb.tsx",
   },
   {
     id: "mdx",
@@ -121,16 +121,9 @@ export const RENDER_PATHS: readonly RenderPath[] = [
   },
   {
     id: "widget",
-    surface: "Featured stack / talks widgets",
+    surface: "FeaturedTalksWidget → TrackThumb",
     context: "Home: the same snap-pager the attachment sheet pages with",
-    click: "open() through the attachment set, or the talk's href",
-    file: "components/home/featured-stack-widget.tsx",
-  },
-  {
-    id: "thumbnail",
-    surface: "MediaThumbnail",
-    context: "Generic 16:9 cover from getMediaThumbnail — leftover callers",
-    click: "caller-defined",
-    file: "components/log/media/thumbnail.tsx",
+    click: "useTheater().open — the stage, never the attachment set",
+    file: "components/home/featured-talks-widget.tsx",
   },
 ];

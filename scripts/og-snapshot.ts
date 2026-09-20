@@ -31,7 +31,14 @@ import {
   type PreviewableMedia,
   type SnapshotEntry,
 } from "../lib/og-core.ts";
-import { normalizeLogData, type RawLogData } from "../lib/log.ts";
+import {
+  getMediaStripItems,
+  isLinkPill,
+  isSocialEmbedMedia,
+  normalizeLogData,
+  type RawLogData,
+} from "../lib/log.ts";
+import { enrichLogDataWithPreviews, type OGSnapshot } from "../lib/og-enrich.ts";
 
 type Snapshot = Record<string, SnapshotEntry>;
 
@@ -206,6 +213,7 @@ async function main() {
   const updated: string[] = [];
   const unchanged: string[] = [];
   const keptOnFailure: string[] = [];
+  const keptImage: string[] = [];
   const manualSkipped: string[] = [];
   const missing: { url: string; reason: string }[] = [];
 
@@ -236,9 +244,18 @@ async function main() {
     const prev = existing[t.url];
 
     if (ok) {
-      next[t.url] = entry;
+      // "Never overwrite good data" has to cover the crawl that *succeeds*
+      // and comes back thinner, not just the one that fails. A site
+      // redesign that drops its `og:image` still answers 200 with a title,
+      // which `entryUsable` calls a success — and the cover we already had
+      // would go with it, silently, taking the commit's tile off /works.
+      // The image we recorded once is kept until a crawl offers another.
+      const merged =
+        !entry.image && prev?.image ? pickEntry({ ...entry, image: prev.image }) : entry;
+      if (merged !== entry) keptImage.push(`${t.url} (page no longer advertises one)`);
+      next[t.url] = merged;
       if (!prev) added.push(t.url);
-      else if (JSON.stringify(pickEntry(prev)) !== JSON.stringify(entry))
+      else if (JSON.stringify(pickEntry(prev)) !== JSON.stringify(merged))
         updated.push(t.url);
       else unchanged.push(t.url);
     } else {
@@ -287,6 +304,7 @@ async function main() {
   line("added", added);
   line("updated", updated);
   line("kept on crawl failure", keptOnFailure);
+  line("kept the cover we already had", keptImage);
   line("skipped — manual preview", manualSkipped);
   if (unchanged.length) log(`  unchanged: ${unchanged.length}`);
   if (missing.length) {
@@ -305,9 +323,60 @@ async function main() {
     log("✓ No changes — snapshot already current.");
   }
 
+  // --- The invariant: every attachment has a cover --------------------------
+  //
+  // The snapshot's idea of success is "the crawl returned something"; the
+  // page's requirement is "there is an image". Those two drifted apart and
+  // nothing noticed, because the render layer degrades *plausibly*: an
+  // attachment with no cover is dropped from `getMediaStripItems`, so it
+  // vanishes from the strip (a sparse row looks deliberate) and falls to
+  // the leftover `MediaRenderer` in the feed (a bordered card next to a
+  // full-bleed tile looks like a variant). Nothing is ever drawn broken,
+  // so only a count finds it.
+  //
+  // So this asks the production question, through the production function,
+  // against the snapshot we just wrote: does every attachment the page will
+  // try to tile actually resolve an image? Pills are exempt — they are not
+  // covers and never were. A social widget is exempt too: a live embed has
+  // no still to stand in for it, which is the one honest reason to have
+  // none, and it is why `MediaRenderer` still exists on /works.
+  const enriched = enrichLogDataWithPreviews(
+    normalizeLogData(JSON.parse(fs.readFileSync(LOG_PATH, "utf8")) as RawLogData),
+    next as OGSnapshot,
+  );
+  const uncovered: { commit: string; kind: string; url: string }[] = [];
+  for (const commit of enriched.commits ?? []) {
+    const tileable = (commit.media ?? []).filter(
+      (m) => !isLinkPill(m) && !isSocialEmbedMedia(m),
+    );
+    if (tileable.length === 0) continue;
+    const tiles = getMediaStripItems(tileable, "en");
+    for (const m of tileable) {
+      if (!tiles.some((t) => t.media === m))
+        uncovered.push({ commit: commit.id, kind: m.kind, url: m.url });
+    }
+  }
+  if (uncovered.length) {
+    log(`  ✗ NO COVER (${uncovered.length}) — these draw nothing on /works:`);
+    for (const u of uncovered)
+      log(`    • ${u.commit} — ${u.kind} — ${u.url}`);
+    log("");
+  }
+
   // --- Decide exit code -----------------------------------------------------
   // A target that can't be crawled and has no manual preview is a hard error:
   // the author must add a `preview` to recover. Surfaced loudly, non-zero.
+  // An attachment with no cover is as broken as a card that can't be
+  // crawled, and for the author the recovery is the same shape: say where
+  // the picture is. A deck is the common case — a reveal.js export carries
+  // no OG tags at all, so its cover can only ever be authored.
+  if (uncovered.length) {
+    log(`✗ ${uncovered.length} attachment(s) have no cover.`);
+    log(`  A deck needs "thumbnail": "…"; a card needs "preview": { "image": "…" }.`);
+    log(`  Add it to that media item in content/log.json.`);
+    process.exit(1);
+  }
+
   if (missing.length) {
     log(
       `✗ ${missing.length} card(s) can't be crawled and have no manual preview.`,
