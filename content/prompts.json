@@ -1099,7 +1099,7 @@
       "id": "evolving",
       "anchor": {
         "en": "evolving",
-        "zh": "进化"
+        "zh": "不息"
       },
       "topics": ["being"],
       "statement": {
@@ -1115,6 +1115,23 @@
         "zh": "自然里的一切都朝着最大熵去，而对生命来说，最大熵就是死亡；活着，就是不断从环境里把秩序取回来。这是我见过对「活着、工作、创造」最凝练的一句描述。"
       },
       "instances": [
+        {
+          "title": {
+            "en": "The gentleman never ceases",
+            "zh": "自强不息"
+          },
+          "text": {
+            "en": "“Heaven's motion is unrelenting; so the gentleman never ceases to strengthen himself.” The shelf next door is named after the first half of that line and this entry after the second — that is how the world runs, so this is how a person lives in it.",
+            "zh": "「天行健，君子以自强不息。」隔壁那一格叫「天行」，这一条叫「不息」，本来是同一句话的两半：世界这样运转，所以人这样活。"
+          },
+          "from": {
+            "name": {
+              "en": "I Ching, Image of Qian",
+              "zh": "《周易·乾·象》"
+            }
+          },
+          "ref": "reality"
+        },
         {
           "title": {
             "en": "Generation upon generation",
