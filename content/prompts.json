@@ -233,8 +233,8 @@
       },
       "topics": ["worlding"],
       "statement": {
-        "en": "Bold conjectures, severe tests.",
-        "zh": "大胆假设，小心求证。"
+        "en": "All models are wrong, but some are useful.",
+        "zh": "不怕他真理无穷，进一寸有一寸的欢喜。"
       },
       "commentary": {
         "en": "Mutate, then let reality select. Everything else I believe about progress is a corollary of this one.",
@@ -253,10 +253,117 @@
         }
       ],
       "body": {
-        "en": "The scientific, experimental, evolutionary mode is my top-level model of how anything gets better — a person, a framework, a species. Its two halves only work together: a conjecture nobody could refute is a wish, and a test with nothing bold to test is bookkeeping. Wishful thinking is the one bug this model cannot report about itself, which is why the boldness has to be paid for with a referee.\n(The Chinese eight characters are Hu Shih's, who took the method from Dewey's experimentalism — and who in 1959 traced the same method back to Zhu Xi's “go to the thing and exhaust its principle”.)",
-        "zh": "科学的、实验的、进化的思维方式，是我关于「一个东西如何变好」最顶层的模型 —— 无论那个东西是一个人、一个框架还是一个物种。它的两半只有合在一起才成立：一个没人能推翻的假设只是愿望，而一场没有大胆假设可检的求证只是记账。wishful thinking 是这个模型唯一不会自己报出来的 bug，所以大胆必须用一个裁判来偿付。\n（那八个字是胡适的，他的方法来自杜威的实验主义；而 1959 年他又把这套方法的来路，一直上溯到朱熹的「即物而穷其理」。）"
+        "en": "The ceiling does not exist: no model ever closes on the world, and reality keeps the right to refute whatever I hold. That is the floor of this shelf rather than a complaint about it — an inexhaustible truth is precisely what makes it worth spending a life on, an inch at a time.\nThe scientific, experimental, evolutionary mode is my top-level model of how anything gets better — a person, a framework, a species. Its two halves only work together: a conjecture nobody could refute is a wish, and a test with nothing bold to test is bookkeeping. Wishful thinking is the one bug this model cannot report about itself, which is why the boldness has to be paid for with a referee.\nBoth of Hu Shih's lines live on this shelf. He wrote the Science Society's anthem in 1929, Zhao Yuanren set it, and it was first sung at the society's fifteenth anniversary in 1930: “We sing that heaven's course is constant, we sing of reaching knowledge by exhausting principle. What is there to fear in an inexhaustible truth — every inch gained is an inch of joy.” The shelf is named 天行 after Xunzi, and Hu Shih had already sung it into the anthem of Chinese science; 致知穷理 is Zhu Xi's line, a few rows down.",
+        "zh": "「真理无穷」不是一句丧气话，是这一格的地板：没有一个模型能把世界收完，而现实随时保留推翻我的权利。正因为它无穷，才值得用一辈子去进 —— 一寸一寸地进。\n科学的、实验的、进化的思维方式，是我关于「一个东西如何变好」最顶层的模型 —— 无论那个东西是一个人、一个框架还是一个物种。它的两半只有合在一起才成立：一个没人能推翻的假设只是愿望，而一场没有大胆假设可检的求证只是记账。wishful thinking 是这个模型唯一不会自己报出来的 bug，所以大胆必须用一个裁判来偿付。\n胡适的两句话都在这一格里。社歌是 1929 年写的，赵元任谱曲，1930 年中国科学社十五周年年会首唱：「我们唱天行有常，我们唱致知穷理。不怕他真理无穷，进一寸有一寸的欢喜。」这一格叫「天行」是从荀子《天论》来的，而胡适早就把它唱进了中国科学社的社歌；「致知穷理」就是下面朱熹那条。（流传最广的版本把第一句写作「怕什么真理无穷」，这里用的是原词。）"
       },
       "instances": [
+        {
+          "title": {
+            "en": "Bold conjectures, severe tests",
+            "zh": "大胆假设，小心求证"
+          },
+          "text": {
+            "en": "The method is a corollary of the claim: if the truth is inexhaustible, all you can do is guess boldly and check severely.",
+            "zh": "「大胆假设，小心求证。」方法是那句断言的推论：既然真理无穷，能做的就是猜得大胆一点，验得小心一点。"
+          },
+          "from": {
+            "name": {
+              "en": "Hu Shih",
+              "zh": "胡适"
+            },
+            "source": {
+              "en": "after Dewey's experimentalism",
+              "zh": "「大胆的假设，小心的求证」"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "What can be said is not the thing",
+            "zh": "可说的，不是那个东西"
+          },
+          "text": {
+            "en": "“It is wrong to think that the task of physics is to find out how nature is. Physics concerns what we can say about nature.” Laozi got there in six characters, 2,400 years earlier: the way that can be spoken is not the constant way.",
+            "zh": "「物理学的任务不是去发现自然是什么，而是我们能就自然说些什么。」两千四百年前老子说的是同一件事：「道可道，非常道。」"
+          },
+          "from": {
+            "name": {
+              "en": "Niels Bohr",
+              "zh": "玻尔"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Certainty or reality, pick one",
+            "zh": "确定与现实，二选一"
+          },
+          "text": {
+            "en": "“As far as the laws of mathematics refer to reality, they are not certain; and as far as they are certain, they do not refer to reality.”",
+            "zh": "「就数学定律涉及现实而言，它们并不确定；就它们确定而言，它们不涉及现实。」"
+          },
+          "from": {
+            "name": {
+              "en": "Einstein",
+              "zh": "爱因斯坦"
+            },
+            "source": {
+              "en": "Geometry and Experience, 1921",
+              "zh": "《几何学与经验》，1921"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "No system closes on itself",
+            "zh": "没有系统能自己兜住自己"
+          },
+          "text": {
+            "en": "No consistent system strong enough to do arithmetic can prove its own consistency from the inside. That the map never closes is not a suspicion — it is a theorem.",
+            "zh": "任何足够强的一致系统，都无法在自身内部证明自己一致。「地图永远合不拢」不是一种怀疑，它是一条定理。"
+          },
+          "from": {
+            "name": {
+              "en": "Gödel",
+              "zh": "哥德尔"
+            },
+            "source": {
+              "en": "Incompleteness, 1931",
+              "zh": "不完备性定理，1931"
+            }
+          },
+          "ref": "types-and-languages"
+        },
+        {
+          "title": {
+            "en": "Nature cannot be fooled",
+            "zh": "自然不可欺"
+          },
+          "text": {
+            "en": "“For a successful technology, reality must take precedence over public relations, for nature cannot be fooled.” From the appendix he wrote alone, after Challenger.",
+            "zh": "「一项技术要成功，现实必须优先于公关，因为自然不可欺。」出自挑战者号事故报告里他一个人写的那份附录。"
+          },
+          "from": {
+            "name": {
+              "en": "Richard Feynman",
+              "zh": "费曼"
+            },
+            "source": {
+              "en": "Rogers Commission, Appendix F, 1986",
+              "zh": "罗杰斯委员会报告附录 F，1986"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Practice is the only test",
+            "zh": "实践是检验真理的唯一标准"
+          },
+          "text": {
+            "en": "The title of the 1978 editorial that reopened a country's mind, and the line goes back to Marx's second thesis on Feuerbach: whether human thinking has objective truth is not a question for theory but for practice.",
+            "zh": "1978 年那篇社论的标题，而它的来路是马克思《关于费尔巴哈的提纲》第二条：人的思维是否具有客观的真理性，不是一个理论的问题，而是一个实践的问题。"
+          }
+        },
         {
           "title": {
             "en": "Investigating things",
@@ -279,33 +386,22 @@
         },
         {
           "title": {
-            "en": "Stand off the main line",
-            "zh": "敢待在侧面"
+            "en": "Knowing takes doing",
+            "zh": "绝知此事要躬行"
           },
           "text": {
-            "en": "Everything that ever grew did it beside the trunk, not inside it: W3C and WHATWG, Node and Deno, webpack and Vite, React and Solid. The departure is a means, not an end — you fork in order to come back.",
-            "zh": "所有长出来的东西都长在主干旁边，而不是主干里面：W3C 与 WHATWG，Node 与 Deno，webpack 与 Vite，React 与 Solid。分叉是手段而非目的 —— 你离开是为了回来。"
-          }
-        },
-        {
-          "title": {
-            "en": "Evolution runs on mutations",
-            "zh": "进化靠的是突变"
+            "en": "“What you get off the page stays shallow; to really know a thing you have to go and do it.”",
+            "zh": "「纸上得来终觉浅，绝知此事要躬行。」"
           },
-          "text": {
-            "en": "Life itself is the outlier — a local anomaly running against the current. Nothing that stayed on the mean ever became anything.",
-            "zh": "生命本身就是那个 outlier —— 一个逆流而上的局部异常。没有什么停在均值上的东西变成过什么。"
-          },
-          "ref": "evolving"
-        },
-        {
-          "title": {
-            "en": "Reality gets the last word",
-            "zh": "极度现实"
-          },
-          "text": {
-            "en": "Believe what the world hands back, not what you wish it had. Confirmations are cheap — you can find them for anything.",
-            "zh": "相信世界递回来的东西，而不是你希望它是什么。印证是廉价的 —— 任何理论你都能给它找到印证。"
+          "from": {
+            "name": {
+              "en": "Lu You",
+              "zh": "陆游"
+            },
+            "source": {
+              "en": "to his son, Song dynasty",
+              "zh": "《冬夜读书示子聿》"
+            }
           }
         },
         {
@@ -325,12 +421,12 @@
         },
         {
           "title": {
-            "en": "Go find the outlier",
-            "zh": "去找那个 outlier"
+            "en": "Reality gets the last word",
+            "zh": "极度现实"
           },
           "text": {
-            "en": "A theory only improves where it breaks, so the useful work is hunting for the case it can't hold — and a larger scope is simply a severer test of the model you are holding.",
-            "zh": "理论只在它崩掉的地方进步，所以真正有用的工作是去找它兜不住的那个例子 —— 而更大的 scope，不过是对你手上这套模型更严苛的一次检验。"
+            "en": "Believe what the world hands back, not what you wish it had. Confirmations are cheap — you can find them for anything.",
+            "zh": "相信世界递回来的东西，而不是你希望它是什么。印证是廉价的 —— 任何理论你都能给它找到印证。"
           }
         },
         {
@@ -347,6 +443,37 @@
             "ref": "principles-dalio",
             "source": "Principles"
           }
+        },
+        {
+          "title": {
+            "en": "Go find the outlier",
+            "zh": "去找那个 outlier"
+          },
+          "text": {
+            "en": "A theory only improves where it breaks, so the useful work is hunting for the case it can't hold — and a larger scope is simply a severer test of the model you are holding.",
+            "zh": "理论只在它崩掉的地方进步，所以真正有用的工作是去找它兜不住的那个例子 —— 而更大的 scope，不过是对你手上这套模型更严苛的一次检验。"
+          }
+        },
+        {
+          "title": {
+            "en": "Stand off the main line",
+            "zh": "敢待在侧面"
+          },
+          "text": {
+            "en": "Everything that ever grew did it beside the trunk, not inside it: W3C and WHATWG, Node and Deno, webpack and Vite, React and Solid. The departure is a means, not an end — you fork in order to come back.",
+            "zh": "所有长出来的东西都长在主干旁边，而不是主干里面：W3C 与 WHATWG，Node 与 Deno，webpack 与 Vite，React 与 Solid。分叉是手段而非目的 —— 你离开是为了回来。"
+          }
+        },
+        {
+          "title": {
+            "en": "Evolution runs on mutations",
+            "zh": "进化靠的是突变"
+          },
+          "text": {
+            "en": "Life itself is the outlier — a local anomaly running against the current. Nothing that stayed on the mean ever became anything.",
+            "zh": "生命本身就是那个 outlier —— 一个逆流而上的局部异常。没有什么停在均值上的东西变成过什么。"
+          },
+          "ref": "evolving"
         },
         {
           "title": {
@@ -392,12 +519,12 @@
       ],
       "quotedFrom": {
         "name": {
-          "en": "Hu Shih",
+          "en": "George Box",
           "zh": "胡适"
         },
         "source": {
-          "en": "after Dewey's experimentalism",
-          "zh": "「大胆的假设，小心的求证」"
+          "en": "Robustness in the Strategy of Scientific Model Building, 1978",
+          "zh": "中国科学社社歌，1929"
         }
       }
     },
