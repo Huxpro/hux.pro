@@ -746,8 +746,8 @@
         "zh": "成为"
       },
       "statement": {
-        "en": "Becoming.",
-        "zh": "成为。"
+        "en": "Become who you are.",
+        "zh": "成为你自己。"
       },
       "shapedBy": [
         {
@@ -762,38 +762,45 @@
         }
       ],
       "body": {
-        "en": "Identity is not a title you freeze. Each era, consumer, producer, architect, is a rewrite, not a reveal.",
-        "zh": "身份不是冻结的头衔。每个时代，消费者、生产者、架构师，都是一次重写，而不是揭晓。"
+        "en": "Identity is not a title you freeze. Each era — consumer, producer, architect — is a rewrite, not a reveal.\nThe line comes out of narrative identity: the self is not found and then described, it is constituted in the telling. I got it from Liu Qing's lectures on modern Western thought, and behind those is Ricoeur. Which is why the imperative is not “find yourself” but “become who you are” — you are always becoming, and narration is how the question “who?” gets answered at all.",
+        "zh": "身份不是冻结的头衔。每个时代 —— 消费者、生产者、架构师 —— 都是一次重写，而不是一次揭晓。\n这句话的来路是「叙事性自我」：自我不是先被找到、再被讲出来的，而是在讲述中才被构成。我是听刘擎讲西方现代思想时接上这条线的，他背后是利科。所以这里的祈使句不是「找到自己」，而是「成为你自己」—— 人永远都在 Becoming，而叙事就是「你是谁」这个问题唯一能被回答的方式。"
       },
       "topics": ["being"],
       "commentary": {
-        "en": "You are always becoming. Narrative is how you answer who you are.",
-        "zh": "人永远都在 Becoming。叙事就是在回答「你是谁」。"
+        "en": "Self is authored.",
+        "zh": "自我是被写出来的。"
       },
       "instances": [
         {
+          "title": {
+            "en": "The story makes the character",
+            "zh": "叙事构成人物"
+          },
           "text": {
-            "en": "You can't connect the dots looking forward; you can only connect them looking backwards.",
-            "zh": "你无法预先把点点滴滴串连起来；只有在回顾的时候，你才会发现它们串在了一起。"
+            "en": "“It is the identity of the story that makes the identity of the character.” The self is not a substance that the story reports on; the story is where it gets made.",
+            "zh": "「使人物成其为人物的，是故事的同一性。」自我不是一个被故事报道的实体，故事本身就是它成形的地方。"
           },
           "from": {
-            "name": "Steve Jobs",
-            "ref": "steve-jobs",
+            "name": {
+              "en": "Paul Ricoeur",
+              "zh": "保罗·利科"
+            },
             "source": {
-              "en": "Stanford, 2005",
-              "zh": "斯坦福毕业典礼，2005"
+              "en": "Oneself as Another, 1990",
+              "zh": "《作为一个他者的自身》，1990"
             }
           }
         },
         {
           "title": {
-            "en": "Connecting the dots",
-            "zh": "串起那些点"
+            "en": "Idem and ipse",
+            "zh": "既是，也不是"
           },
           "text": {
-            "en": "Life is connecting the dots — and then one day you look up and the dots connected again.",
-            "zh": "人生就是 connecting the dots —— 然后某一天你一抬头，dots are connected again。"
-          }
+            "en": "Ricoeur splits identity in two: idem, staying the same, and ipse, being the one who came through the change. Which is why I am and am not the person I was ten years ago.",
+            "zh": "利科把同一性切成两半：idem 是保持相同，ipse 是穿过变化之后仍然是我。所以 —— 我既是、也不是十年前的那个人。"
+          },
+          "ref": "sublation"
         },
         {
           "title": {
@@ -805,7 +812,17 @@
             "zh": "每一个阶段 —— 消费者、生产者、架构师 —— 都是一次重写，而不是一次揭晓。身份不是冻结的头衔。"
           }
         }
-      ]
+      ],
+      "quotedFrom": {
+        "name": {
+          "en": "Nietzsche",
+          "zh": "尼采"
+        },
+        "source": {
+          "en": "The Gay Science §270, after Pindar",
+          "zh": "《快乐的科学》§270，语出品达"
+        }
+      }
     },
     {
       "id": "wandering",
@@ -815,11 +832,11 @@
       },
       "topics": ["being"],
       "statement": {
-        "en": "Wandering.",
-        "zh": "浪游。"
+        "en": "You can't connect the dots looking forward; you can only connect them looking backwards.",
+        "zh": "〔待补：蛋堡《过程》那一句，12 字〕"
       },
       "commentary": {
-        "en": "Process over outcome, thickness over length.",
+        "en": "Density over duration. Life is a journey.",
         "zh": "过程 > 结果，厚度 > 长度。"
       },
       "shapedBy": [
@@ -931,7 +948,17 @@
           },
           "ref": "imagining"
         }
-      ]
+      ],
+      "quotedFrom": {
+        "name": {
+          "en": "Steve Jobs",
+          "zh": "蛋堡"
+        },
+        "source": {
+          "en": "Stanford, 2005",
+          "zh": "《过程》·《月光》，2010"
+        }
+      }
     },
     {
       "id": "interfacing",
@@ -941,8 +968,8 @@
       },
       "topics": ["being"],
       "statement": {
-        "en": "Interfacing.",
-        "zh": "会通。"
+        "en": "Technology alone is not enough — it's technology married with the liberal arts, married with the humanities.",
+        "zh": "君子不器，观其会通。"
       },
       "commentary": {
         "en": "A romantic geek, for life.",
@@ -959,21 +986,27 @@
         }
       ],
       "body": {
-        "en": "Technology alone is not enough — it's technology married with the liberal arts that yields the results that make our hearts sing. There must be such an intersection; there are just too few people willing to go and look. Every boundary I have been handed turned out to be an artifact of some moment's division of labour rather than a fact about the work — in culture too, East and West, the local and the world — which is exactly why the unclaimed things are found on the seam.",
-        "zh": "光有技术是不够的 —— 技术与人文结合，才能产生让我们内心歌唱的结果。这样一个 intersection 一定存在，只是愿意去探索的人太少。别人交到我手上的每一条边界，后来都被证明只是某个时代社会分工的产物，而不是这件事本身的性质 —— 文化上也一样，东方与西方、民族与世界 —— 正因如此，没人认领的东西都在接缝上。"
+        "en": "There must be such an intersection; there are just too few people willing to go and look. Every boundary I have been handed turned out to be an artifact of some moment's division of labour rather than a fact about the work — in culture too, East and West, the local and the world — which is exactly why the unclaimed things are found on the seam.\nA vessel is a thing with one use. The artifact I am building should become one — from the rule, the instrument — and the person building it should not. Make vessels; don't be one.",
+        "zh": "这样一个 intersection 一定存在，只是愿意去探索的人太少。别人交到我手上的每一条边界，后来都被证明只是某个时代社会分工的产物，而不是这件事本身的性质 —— 文化上也一样，东方与西方、民族与世界 —— 正因如此，没人认领的东西都在接缝上。\n器是只有一种用途的东西。我做出来的东西应该成器 ——「以法成器」—— 而做这件事的人不该成器。**做出来的要成器，做事的人不要成器。**"
       },
       "instances": [
         {
+          "title": {
+            "en": "A vessel cannot cross over",
+            "zh": "器者，各适其用而不能相通"
+          },
           "text": {
-            "en": "At the crossroads of technology and the liberal arts.",
-            "zh": "站在科技与人文的十字路口。"
+            "en": "Zhu Xi's gloss on the line: a vessel suits one use and cannot cross over; a person of formed character is not one talent or one craft. The flaw he names in a vessel is exactly the thing this entry is about — 通.",
+            "zh": "朱熹的注：「器者，各适其用而**不能相通**。成德之士，体无不具，故用无不周，非特为一才一艺而已。」他给器定的毛病正是「不能相通」，而「通」就是这一条说的那件事。"
           },
           "from": {
-            "name": "Steve Jobs",
-            "ref": "steve-jobs",
+            "name": {
+              "en": "Zhu Xi",
+              "zh": "朱熹"
+            },
             "source": {
-              "en": "iPad 2 keynote, 2011",
-              "zh": "iPad 2 发布会，2011"
+              "en": "Commentary on the Analects",
+              "zh": "《论语集注》"
             }
           }
         },
@@ -1014,6 +1047,26 @@
           }
         },
         {
+          "title": {
+            "en": "Harmony without sameness",
+            "zh": "和而不同"
+          },
+          "text": {
+            "en": "“The gentleman harmonises without becoming the same; the small man becomes the same without harmonising.” Two things can meet without either being erased — which is the rule of the meeting, once you have decided to go to it.",
+            "zh": "「君子和而不同，小人同而不和。」两个东西可以相遇而不互相抹掉 —— 这是相遇本身的规矩，在你决定去相遇之后。"
+          },
+          "from": {
+            "name": {
+              "en": "Confucius",
+              "zh": "孔子"
+            },
+            "source": {
+              "en": "Analects XIII",
+              "zh": "《论语·子路》"
+            }
+          }
+        },
+        {
           "text": {
             "en": "Romantic: exploratory, spontaneous, in it for the possibilities. Geek: technical, exacting, in it for the thing itself. A science kid sat the art exam, went to a media school, and four years later was making a living writing code — with a Bachelor of Arts.",
             "zh": "浪漫，是探索的、即兴的，为了可能性；极客，是技术的、较真的，为了事情本身。一个纯正的理工科学子通过艺考进了广院，四年后以写代码为生 —— 却拿了一个文学学士学位。"
@@ -1030,7 +1083,17 @@
           },
           "ref": "hackers-and-painters"
         }
-      ]
+      ],
+      "quotedFrom": {
+        "name": {
+          "en": "Steve Jobs",
+          "zh": "《论语》×《周易》"
+        },
+        "source": {
+          "en": "iPad 2 keynote, 2011",
+          "zh": "「君子不器」×「观其会通」"
+        }
+      }
     },
     {
       "id": "evolving",
@@ -1040,12 +1103,12 @@
       },
       "topics": ["being"],
       "statement": {
-        "en": "Evolving.",
-        "zh": "进化。"
+        "en": "What an organism feeds upon is negative entropy.",
+        "zh": "取法乎上，负熵为生。"
       },
       "commentary": {
-        "en": "I keep myself unsettled on purpose, so that the entropy has to keep coming down and life keeps feeling like it needs to burn.",
-        "zh": "通过不安定不断刺激自己的熵减，永远保持激素水平，让生命感觉需要燃烧。"
+        "en": "Pain + Reflection = Progress.",
+        "zh": "痛苦 + 反思 = 进步。"
       },
       "body": {
         "en": "Everything in nature runs toward maximum entropy, which for a living thing is death; staying alive means continually drawing order back out of the environment. It is the most compact statement I know of what living, working and building all are.",
@@ -1053,14 +1116,19 @@
       },
       "instances": [
         {
+          "title": {
+            "en": "Generation upon generation",
+            "zh": "生生之谓易"
+          },
           "text": {
-            "en": "What an organism feeds upon is negative entropy.",
-            "zh": "生命以负熵为食。"
+            "en": "“Generation upon generation is what change means.” The classical Chinese word for what a living thing does is not adaptation but 生生 — generating, and generating again. Same claim as the physics, four thousand years earlier and without the thermodynamics.",
+            "zh": "「生生之谓易。」中文给「活着」找的词不是适应，是**生生** —— 生了又生。和那句物理说的是同一件事，只是早了几千年，也还没有热力学。"
           },
           "from": {
-            "name": "Erwin Schrödinger",
-            "source": "What Is Life?, 1944",
-            "url": "https://en.wikipedia.org/wiki/Entropy_and_life"
+            "name": {
+              "en": "I Ching, Great Commentary",
+              "zh": "《周易·系辞上》"
+            }
           }
         },
         {
@@ -1129,8 +1197,8 @@
         },
         {
           "title": {
-            "en": "Pain + Reflection = Progress",
-            "zh": "痛苦 + 反思 = 进步"
+            "en": "Healthy painful truth",
+            "zh": "健康而痛苦的真相"
           },
           "text": {
             "en": "Every time you confront something painful you are at a potentially important juncture: the choice is healthy painful truth, or unhealthy comfortable delusion.",
@@ -1149,7 +1217,18 @@
           "ref": "principles-dalio",
           "source": "Principles"
         }
-      ]
+      ],
+      "quotedFrom": {
+        "name": {
+          "en": "Erwin Schrödinger",
+          "zh": "薛定谔"
+        },
+        "source": {
+          "en": "What Is Life?, 1944",
+          "zh": "《生命是什么》，1944 · 上半句化自「取法于上」"
+        },
+        "url": "https://en.wikipedia.org/wiki/Entropy_and_life"
+      }
     },
     {
       "id": "imagining",
