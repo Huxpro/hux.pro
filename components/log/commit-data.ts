@@ -28,6 +28,7 @@ import {
   isImageMedia,
   isPinnedMedia,
   getMediaThumbnail,
+  isMediaPill,
   getMediaStripItems,
   isPlayableMedia,
   VIDEO_PLATFORM_LABEL,
@@ -285,7 +286,7 @@ export function normalizeCommit(
   const mediaLinks = extractMediaLinks(media, locale);
   // Rich media (everything except pills) is what flows into the expanded
   // block; folded-prominent items get hoisted above the row separately.
-  const richMedia = media.filter((m) => !isLinkPill(m));
+  const richMedia = media.filter((m) => !isMediaPill(m));
   const pinnedMedia = richMedia.filter(isPinnedMedia);
   const expandedMedia = richMedia.filter((m) => !isPinnedMedia(m));
   const stripItems = getMediaStripItems(expandedMedia, locale);

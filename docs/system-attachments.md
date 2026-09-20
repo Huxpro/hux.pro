@@ -99,6 +99,42 @@ interface AttachmentSet {
 }
 ```
 
+The set, the strip and the grid are now the *same* collection — 39 items,
+39 tiles, 39 set entries — so the sheet's `2 / 3` can no longer count a
+page the row never showed. They used to disagree: the set took every
+non-pill attachment, while the strip took only the ones with a cover, and
+the five without one fell through to `MediaRenderer` looking like a
+deliberate variant. Two things keep them equal now.
+
+A cover is a build-time invariant: `pnpm og:check` fails when an
+attachment that will be tiled cannot resolve an image (see below). And an
+attachment that has no cover says so, by dressing as a **pill**:
+
+```jsonc
+{ "kind": "slides", "url": "…", "title": "…", "present": "pill" }
+```
+
+`present` is no longer a link's private field. It is on every kind, with
+the same two values it always had — `card` is the full treatment (a tile
+in the strip and the grid, a peek, a page in the sheet), `pill` is the
+rail alone: an icon and a label beside the date, and nothing else. A pill
+is **a button, not an object**. It is not in the set, so nothing tiles or
+peeks it, and the cover invariant stops asking it for a picture.
+
+That is the honest shape for an attachment you can reach but cannot show.
+A reveal.js deck carries no OG tags at all — it crawls 200 and returns
+nothing — so its cover can only ever be a screenshot someone takes. Drawn
+as a coverless card it used to land in the leftover renderer, a bordered
+box beside a full-bleed tile. As a pill it keeps its button and stops
+pretending to be an object. The three 2015–16 decks are held this way,
+their rows folded to the `aside` voice, until someone takes the
+screenshot; then it is one field back to `card`.
+
+A pill's rail entry is a plain link, as every pill's is — so a pill deck
+opens in a tab rather than on the stage. The deck is still in the
+theater's Slides library either way (`buildSlidesAlbum` reads every deck
+in the log), so it is one card away from any other deck there.
+
 A cover in the contact strip (`MediaStrip`), a player or card in the expanded
 body (`MediaRenderer`), and an icon in the folded rail (`TimelineCommit`)
 each find their own item by reference (`set.items.indexOf(media)`) and call

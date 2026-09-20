@@ -1,7 +1,7 @@
 import type { Locale } from "@/lib/i18n";
 import {
   computeCommitHash,
-  isLinkPill,
+  isMediaPill,
   localize,
   localizeOptional,
   type Commit,
@@ -39,7 +39,7 @@ export function attachmentSetFor(
   commit: Commit,
   locale: Locale,
 ): AttachmentSet | null {
-  const items = (commit.media ?? []).filter((m) => !isLinkPill(m));
+  const items = (commit.media ?? []).filter((m) => !isMediaPill(m));
   if (items.length === 0) return null;
   const hash = computeCommitHash(commit.id);
   return {

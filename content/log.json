@@ -1483,7 +1483,8 @@
         {
           "kind": "slides",
           "url": "https://huxpro.github.io/js-module-7day/",
-          "title": "JavaScript Modularization Journey"
+          "title": "JavaScript Modularization Journey",
+          "present": "pill"
         }
       ],
       "tags": [
@@ -1491,7 +1492,8 @@
         "Modules",
         "Frontend"
       ],
-      "language": "zh"
+      "language": "zh",
+      "present": "aside"
     },
     {
       "id": "css-sucks-2015",
@@ -1513,7 +1515,8 @@
         {
           "kind": "slides",
           "url": "https://huxpro.github.io/css-sucks-2015/",
-          "title": "CSS Still Sucks 2015"
+          "title": "CSS Still Sucks 2015",
+          "present": "pill"
         }
       ],
       "tags": [
@@ -1521,7 +1524,8 @@
         "Frontend",
         "Design"
       ],
-      "language": "zh"
+      "language": "zh",
+      "present": "aside"
     },
     {
       "id": "pwa-in-my-pov-2016",
@@ -1543,7 +1547,8 @@
         {
           "kind": "slides",
           "url": "https://huxpro.github.io/pwa-in-my-pov/",
-          "title": "Progressive Web App, in my points of view"
+          "title": "Progressive Web App, in my points of view",
+          "present": "pill"
         }
       ],
       "tags": [
@@ -1551,7 +1556,8 @@
         "Service Worker",
         "Mobile Web"
       ],
-      "language": "zh"
+      "language": "zh",
+      "present": "aside"
     },
     {
       "id": "qcon-shanghai-2016",

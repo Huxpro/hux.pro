@@ -1117,7 +1117,7 @@ interface MediaDraft {
 }
 
 function mediaToDraft(m: Media): MediaDraft {
-  const base = { url: m.url, pinned: m.pinned };
+  const base = { url: m.url, pinned: m.pinned, present: m.present };
   switch (m.kind) {
     case "link":
       return {
@@ -1159,6 +1159,8 @@ function draftToMedia(d: MediaDraft): Media {
   // Pin only appears in saved JSON when explicitly true — matching `Pinned`'s
   // `pinned?: true` shape and keeping log.json minimal.
   const pinned = d.pinned ? { pinned: true as const } : {};
+  // Only the exception is written, the way `pinned` is: absent means card.
+  const pill = d.present === "pill" ? { present: "pill" as const } : {};
   switch (d.kind) {
     case "link":
       return {
@@ -1184,6 +1186,7 @@ function draftToMedia(d: MediaDraft): Media {
         url: d.url,
         ...(d.socialPlatform ? { platform: d.socialPlatform } : {}),
         ...pinned,
+        ...pill,
       };
     case "video":
       return {
@@ -1192,6 +1195,7 @@ function draftToMedia(d: MediaDraft): Media {
         platform: d.videoPlatform ?? "youtube",
         ...(d.thumbnail ? { thumbnail: d.thumbnail } : {}),
         ...pinned,
+        ...pill,
       };
     case "slides":
       return {
@@ -1200,6 +1204,7 @@ function draftToMedia(d: MediaDraft): Media {
         ...(d.thumbnail ? { thumbnail: d.thumbnail } : {}),
         ...(d.slidesTitle ? { title: d.slidesTitle } : {}),
         ...pinned,
+        ...pill,
       };
     case "image":
       return {
@@ -1207,6 +1212,7 @@ function draftToMedia(d: MediaDraft): Media {
         url: d.url,
         ...(d.alt ? { alt: d.alt } : {}),
         ...pinned,
+        ...pill,
       };
   }
 }
@@ -1508,6 +1514,20 @@ function MediaItemEditor({
         checked={draft.pinned === true}
         onChange={(v) => set({ pinned: v || undefined })}
       />
+
+      {/* A link says this above, with its own control. Every other kind
+          says it here: `pill` is the rail alone — a button, no tile, no
+          peek, not in the attachment set — which is how an attachment with
+          no cover stays reachable without pretending to be an object
+          (lib/log.ts, MediaPresent). */}
+      {draft.kind !== "link" && (
+        <ChoiceField<LinkPresent>
+          label="Present"
+          value={draft.present ?? "card"}
+          options={presentOptions}
+          onChange={(v) => set({ present: v })}
+        />
+      )}
     </div>
   );
 }

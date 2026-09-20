@@ -33,9 +33,10 @@ import {
 } from "../lib/og-core.ts";
 import {
   getMediaStripItems,
-  isLinkPill,
+  isMediaPill,
   isSocialEmbedMedia,
   normalizeLogData,
+  type Media,
   type RawLogData,
 } from "../lib/log.ts";
 import { enrichLogDataWithPreviews, type OGSnapshot } from "../lib/og-enrich.ts";
@@ -83,6 +84,8 @@ function collectTargets(): Target[] {
   };
   for (const commit of log.commits ?? []) {
     for (const media of (commit.media ?? []) as PreviewableMedia[]) {
+      // A pill is a button, not an object: it has no cover to crawl for.
+      if (isMediaPill(media as unknown as Media)) continue;
       if (mediaIsCardTarget(media)) {
         // Primary URL always crawled.
         upsert({
@@ -347,7 +350,7 @@ async function main() {
   const uncovered: { commit: string; kind: string; url: string }[] = [];
   for (const commit of enriched.commits ?? []) {
     const tileable = (commit.media ?? []).filter(
-      (m) => !isLinkPill(m) && !isSocialEmbedMedia(m),
+      (m) => !isMediaPill(m) && !isSocialEmbedMedia(m),
     );
     if (tileable.length === 0) continue;
     const tiles = getMediaStripItems(tileable, "en");
