@@ -1,11 +1,99 @@
 "use client";
 
+import { createContext, useContext, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PageLayout } from "@/components/ui/page-layout";
-import type { Book, NamedEntry, Person, Principle, PromptsData, Quote } from "@/lib/prompts";
+import {
+  PromptToolbar,
+  type KindFacet,
+  type TopicFacet,
+} from "@/components/prompt/prompt-toolbar";
+import {
+  matchesView,
+  parsePromptView,
+  PROMPT_TOPICS,
+  serializePromptView,
+  toggleKind,
+  toggleTopic,
+  topicLabel,
+  type PromptKind,
+  type PromptTopic,
+  type PromptViewState,
+} from "@/lib/prompt-view";
+import type {
+  Attribution,
+  Conviction,
+  Influence,
+  Instance,
+  PromptsData,
+} from "@/lib/prompts";
 import { cn } from "@/lib/utils";
+import { TYPE } from "@/lib/typography";
 import { t, useLocale } from "@/services";
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { Presentation } from "lucide-react";
+import { useOptionalTheater } from "@/systems/theater";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+/**
+ * Every in-page reference — an attribution anchor, a back-link, an item's own
+ * `#` mark — travels the same way: put the id in the URL so the link can be
+ * shared, then glide there instead of teleporting. `scrollIntoView` follows
+ * whichever element actually scrolls, so this keeps working inside the
+ * bezel's scroll container as well as the window.
+ */
+function scrollToId(id: string) {
+  const element = document.getElementById(id);
+  if (!element) return;
+
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  element.scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
+}
+
+function goToId(id: string) {
+  if (!document.getElementById(id)) return;
+  history.pushState(null, "", `#${id}`);
+  scrollToId(id);
+}
+
+/**
+ * How an in-page link travels, and what it points at.
+ *
+ * `goTo` defaults to the plain scroll above; the page installs one that
+ * first lifts the filter when the target is currently filtered out — a
+ * reference has to be allowed to win over a reading, or "shaped by: Steve
+ * Jobs" is a dead link the moment you tap 行事.
+ *
+ * `anchorFor` turns a canonical id (what `ref` holds) into the anchor this
+ * locale actually prints, since the Chinese page answers to 「#常变」 and the
+ * English one to `#flux`.
+ */
+interface Navigation {
+  goTo: (id: string) => void;
+  anchorFor: (id: string) => string;
+}
+
+const GoToContext = createContext<Navigation>({
+  goTo: goToId,
+  anchorFor: (id) => id,
+});
+
+function useNav() {
+  return useContext(GoToContext);
+}
+
+/** Click handler for an in-page anchor: keeps the href, drops the jump. */
+function handleAnchorClick(
+  e: React.MouseEvent<HTMLAnchorElement>,
+  id: string,
+  goTo: (id: string) => void,
+) {
+  // Let modified clicks (new tab, etc.) behave natively.
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  e.stopPropagation();
+  goTo(id);
+}
 
 // Animation variants for expandable content
 const expandVariants = {
@@ -57,11 +145,14 @@ function XmlTag({
   attributes,
   closing = false,
   className,
+  onIdClick,
 }: {
   children: string;
   attributes?: Record<string, string>;
   closing?: boolean;
   className?: string;
+  /** Makes the `id` value the link to this entry, since that is what it is. */
+  onIdClick?: (e: React.MouseEvent) => void;
 }) {
   return (
     <span
@@ -77,9 +168,19 @@ function XmlTag({
           <span key={key}>
             {" "}
             <span className="text-quaternary-foreground">{key}</span>=
-            <span className="text-tertiary-foreground">
-              &quot;{value}&quot;
-            </span>
+            {key === "id" && onIdClick ? (
+              <button
+                type="button"
+                onClick={onIdClick}
+                className={cn("text-tertiary-foreground", linkClass)}
+              >
+                &quot;{value}&quot;
+              </button>
+            ) : (
+              <span className="text-tertiary-foreground">
+                &quot;{value}&quot;
+              </span>
+            )}
           </span>
         ))}
       {">"}
@@ -96,248 +197,284 @@ function Divider() {
   );
 }
 
-// Quote item component
-function QuoteItem({ quote }: { quote: Quote }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+const linkClass =
+  "hover:text-foreground underline underline-offset-2 decoration-muted-foreground/30 hover:decoration-foreground transition-colors";
 
+/** External links, shared by convictions and influences. */
+function LinkRow({
+  links,
+  className,
+}: {
+  links: { label: string; url: string }[];
+  className?: string;
+}) {
   return (
-    <div
-      className={cn(
-        "prompt-item group py-3 cursor-pointer transition-colors duration-200",
-        "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg",
-      )}
-      {...(isExpanded ? { "data-expanded": "" } : {})}
-      onClick={() => setIsExpanded(!isExpanded)}
-    >
-      <div className="flex items-center gap-2">
-        <XmlTag
-          className={cn(
-            "opacity-0 group-hover:opacity-100",
-            isExpanded && "opacity-100",
-          )}
+    <div className={cn("flex flex-wrap gap-3", className)}>
+      {links.map((link, i) => (
+        <motion.a
+          key={link.url}
+          href={link.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className={cn("text-xs font-mono text-muted-foreground", linkClass)}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 + i * 0.05, duration: 0.2 }}
         >
-          quote
-        </XmlTag>
-        {quote.commentary && (
-          <motion.span
-            className={cn(
-              "text-quaternary-foreground text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-              isExpanded && "opacity-100",
-            )}
-            animate={{ rotate: isExpanded ? 90 : 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-          >
-            ›
-          </motion.span>
-        )}
-      </div>
-
-      <div className="mt-2 mb-2">
-        {/* Main quote - serif, large */}
-        <blockquote className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed italic">
-          &ldquo;{quote.text}&rdquo;
-        </blockquote>
-
-        {/* Attribution */}
-        <p className="mt-3 text-sm text-muted-foreground">
-          {quote.author}
-          {quote.source && (
-            <>
-              <span className="text-tertiary-foreground"> · </span>
-              {quote.url ? (
-                <a
-                  href={quote.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-tertiary-foreground hover:text-foreground underline underline-offset-2 decoration-muted-foreground/30 hover:decoration-foreground transition-colors"
-                >
-                  {quote.source}
-                </a>
-              ) : (
-                <span className="text-tertiary-foreground">{quote.source}</span>
-              )}
-            </>
-          )}
-        </p>
-
-        {/* Expandable detail */}
-        <AnimatePresence>
-          {isExpanded && quote.commentary && (
-            <motion.div
-              variants={expandVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              className="overflow-hidden"
-            >
-              <motion.div variants={contentVariants}>
-                <Divider />
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {quote.commentary}
-                </p>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <XmlTag
-        closing
-        className={cn(
-          "opacity-0 group-hover:opacity-100",
-          isExpanded && "opacity-100",
-        )}
-      >
-        quote
-      </XmlTag>
+          {link.label}
+        </motion.a>
+      ))}
     </div>
   );
 }
 
-// Principle/Belief item component
-function PrincipleItem({
-  principle,
-  shapedByLabel,
-}: {
-  principle: Principle;
-  shapedByLabel: string;
-}) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const attributes = principle.topic ? { on: principle.topic } : undefined;
-  const hasExpandableContent =
-    principle.shapedBy || principle.reasoning || principle.links;
+/**
+ * An attribution renders as an anchor when it points at an entry in
+ * `influences`, and as plain text when it doesn't — most of what shaped a
+ * belief never gets an entry of its own.
+ */
+function AttributionText({ attribution }: { attribution: Attribution }) {
+  const { goTo, anchorFor } = useNav();
+  const name = attribution.ref ? (
+    <a
+      href={`#${anchorFor(attribution.ref)}`}
+      onClick={(e) => handleAnchorClick(e, attribution.ref!, goTo)}
+      className={cn("text-muted-foreground", linkClass)}
+    >
+      {attribution.name}
+    </a>
+  ) : (
+    <span className="text-muted-foreground">{attribution.name}</span>
+  );
 
   return (
-    <div
-      className={cn(
-        "prompt-item group py-3 cursor-pointer transition-colors duration-200",
-        "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg",
-      )}
-      {...(isExpanded ? { "data-expanded": "" } : {})}
-      onClick={() => setIsExpanded(!isExpanded)}
-    >
-      <div className="flex items-center gap-2">
-        <XmlTag
-          attributes={attributes}
-          className={cn(
-            "opacity-0 group-hover:opacity-100",
-            isExpanded && "opacity-100",
-          )}
-        >
-          belief
-        </XmlTag>
-        {hasExpandableContent && (
-          <motion.span
-            className={cn(
-              "text-quaternary-foreground text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-              isExpanded && "opacity-100",
-            )}
-            animate={{ rotate: isExpanded ? 90 : 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-          >
-            ›
-          </motion.span>
-        )}
-      </div>
-
-      <div className="mt-2 mb-2">
-        {/* Main statement - serif, large */}
-        <p className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed">
-          {principle.statement}
-        </p>
-
-        {/* Expandable detail */}
-        <AnimatePresence>
-          {isExpanded && hasExpandableContent && (
-            <motion.div
-              variants={expandVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              className="overflow-hidden"
+    <>
+      {name}
+      {attribution.source && (
+        <>
+          <span className="text-tertiary-foreground"> · </span>
+          {attribution.url ? (
+            <a
+              href={attribution.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className={cn("text-tertiary-foreground", linkClass)}
             >
-              <motion.div variants={contentVariants}>
-                <Divider />
-                {principle.shapedBy && principle.shapedBy.length > 0 && (
-                  <p className="text-xs font-mono text-tertiary-foreground mb-2">
-                    {shapedByLabel}:{" "}
-                    <span className="text-muted-foreground">
-                      {principle.shapedBy.join(", ")}
-                    </span>
-                  </p>
-                )}
-                {principle.reasoning && (
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {principle.reasoning}
-                  </p>
-                )}
-                {principle.links && principle.links.length > 0 && (
-                  <div
+              {attribution.source}
+            </a>
+          ) : (
+            <span className="text-tertiary-foreground">
+              {attribution.source}
+            </span>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+/**
+ * Markdown-lite body: "- " lines are a list, anything else is a paragraph,
+ * and a body can be both.
+ *
+ * That shape is the point of this page rather than a convenience. A belief
+ * arrives in a dozen phrasings — one for a talk, one for a 3am note, one for
+ * an argument — and filing each as its own entry would make the page a pile
+ * instead of a system. So each entry keeps the shortest form of the thing as
+ * its statement, the reasoning as the paragraph, and every other way it has
+ * been said as a line underneath: same belief, different instances.
+ */
+function Body({ text }: { text: string }) {
+  const lines = text.split("\n").filter((line) => line.trim().length > 0);
+
+  // Group consecutive lines so a list stays one <ul> rather than several.
+  const blocks: { list: boolean; lines: string[] }[] = [];
+  for (const line of lines) {
+    const list = line.startsWith("- ");
+    const last = blocks[blocks.length - 1];
+    if (last && last.list === list) last.lines.push(line);
+    else blocks.push({ list, lines: [line] });
+  }
+
+  return (
+    <div className="space-y-3">
+      {blocks.map((block, b) =>
+        block.list ? (
+          <ul key={b} className="space-y-1">
+            {block.lines.map((line, i) => (
+              <motion.li
+                key={i}
+                className="text-sm text-muted-foreground flex items-start gap-2"
+                initial={{ opacity: 0, x: -4 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05, duration: 0.2 }}
+              >
+                <span className="text-quaternary-foreground">·</span>
+                <span>{line.slice(2)}</span>
+              </motion.li>
+            ))}
+          </ul>
+        ) : (
+          <div key={b} className="space-y-2">
+            {block.lines.map((line, i) => (
+              <p
+                key={i}
+                className="text-sm text-muted-foreground leading-relaxed"
+              >
+                {line}
+              </p>
+            ))}
+          </div>
+        ),
+      )}
+    </div>
+  );
+}
+
+/**
+ * The faces of a belief, revealed on expand.
+ *
+ * Each line is the same conviction showing up somewhere specific, so it is
+ * set quieter than the reasoning above it and can carry two kinds of
+ * pointer: whose words or example it is (`from`), and which other entry on
+ * this page it is also filed under (`ref`). The second is what lets a big
+ * belief own its small ones without deleting them — the page groups by
+ * linking, not by swallowing.
+ */
+function Instances({
+  instances,
+  labelOf,
+}: {
+  instances: Instance[];
+  labelOf: (id: string) => string | undefined;
+}) {
+  const { goTo, anchorFor } = useNav();
+  return (
+    <ul className="space-y-1.5">
+      {instances.map((instance, i) => {
+        const label = instance.ref ? labelOf(instance.ref) : undefined;
+        // When the instance IS the other entry's sentence, the arrow alone
+        // carries the link — printing the label would say it twice.
+        const echo =
+          label !== undefined &&
+          instance.text.includes(label.replace(/…$/, "").trim());
+        return (
+          <motion.li
+            key={i}
+            className="text-sm text-muted-foreground flex items-start gap-2"
+            initial={{ opacity: 0, x: -4 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.05, duration: 0.2 }}
+          >
+            <span className="text-quaternary-foreground">·</span>
+            <span>
+              {/* The name this face goes by, when it has one — a quote's own
+                  words, a discipline, a chapter of a career. */}
+              {instance.title && (
+                <span className="text-foreground">
+                  {instance.title}
+                  <span className="text-quaternary-foreground">{" — "}</span>
+                </span>
+              )}
+              {instance.text}
+              {instance.from && (
+                <span className="text-tertiary-foreground">
+                  {" — "}
+                  <AttributionText attribution={instance.from} />
+                </span>
+              )}
+              {instance.ref && label && (
+                <>
+                  {" "}
+                  <a
+                    href={`#${anchorFor(instance.ref)}`}
+                    onClick={(e) => handleAnchorClick(e, instance.ref!, goTo)}
                     className={cn(
-                      "flex flex-wrap gap-3",
-                      (principle.shapedBy || principle.reasoning) && "mt-3",
+                      "font-mono text-xs text-tertiary-foreground",
+                      linkClass,
                     )}
                   >
-                    {principle.links.map((link, i) => (
-                      <motion.a
-                        key={link.url}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-xs font-mono text-muted-foreground hover:text-foreground underline underline-offset-2 decoration-muted-foreground/30 hover:decoration-foreground transition-colors"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.1 + i * 0.05, duration: 0.2 }}
-                      >
-                        {link.label}
-                      </motion.a>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <XmlTag
-        closing
-        className={cn(
-          "opacity-0 group-hover:opacity-100",
-          isExpanded && "opacity-100",
-        )}
-      >
-        belief
-      </XmlTag>
-    </div>
+                    {echo ? "↗" : `↗ ${label}`}
+                  </a>
+                </>
+              )}
+            </span>
+          </motion.li>
+        );
+      })}
+    </ul>
   );
 }
 
-function NamedEntryItem({
-  entry,
+/**
+ * What an entry's id is worth printing for: it is this belief's outline word
+ * — the one word it would be filed under — and it is also the anchor. So the
+ * two are the same control at two sizes. At rest the row prints `#flux`,
+ * quietly, which is the only line of chrome this page shows by default; on
+ * hover it gives way to the full tag, where the same click lives on the `id`
+ * value itself.
+ */
+function useCopyLink(id: string) {
+  const [copied, setCopied] = useState(false);
+
+  const copyLink = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      goToId(id);
+      // `location.href` percent-encodes a Chinese anchor into 27 characters
+      // of noise; what goes on the clipboard should be the link as it reads.
+      navigator.clipboard?.writeText(decodeURI(window.location.href)).then(
+        () => setCopied(true),
+        () => {}, // clipboard denied — the URL is updated either way
+      );
+    },
+    [id],
+  );
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 1200);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
+  return { copied, copyLink };
+}
+
+/** Shared shell: the hover-revealed open/close tags around expandable content. */
+function PromptItem({
   tag,
+  attributes,
+  anchorId,
+  expandable,
+  children,
+  detail,
 }: {
-  entry: NamedEntry;
-  tag: "people" | "book";
+  tag: string;
+  attributes?: Record<string, string>;
+  anchorId: string;
+  expandable: boolean;
+  children: React.ReactNode;
+  detail?: React.ReactNode;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
-
-  const hasExpandableContent = entry.admire || entry.links;
+  const { copied, copyLink } = useCopyLink(anchorId);
 
   return (
     <div
+      id={anchorId}
       className={cn(
         "prompt-item group py-3 cursor-pointer transition-colors duration-200",
-        "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg",
+        "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg scroll-mt-24",
       )}
       {...(isExpanded ? { "data-expanded": "" } : {})}
       onClick={() => setIsExpanded(!isExpanded)}
     >
-      <div className="flex items-center gap-2">
+      <div className="relative flex items-center gap-2">
         <XmlTag
+          attributes={attributes}
+          onIdClick={copyLink}
           className={cn(
             "opacity-0 group-hover:opacity-100",
             isExpanded && "opacity-100",
@@ -345,7 +482,7 @@ function NamedEntryItem({
         >
           {tag}
         </XmlTag>
-        {hasExpandableContent && (
+        {expandable && (
           <motion.span
             className={cn(
               "text-quaternary-foreground text-xs select-none opacity-0 group-hover:opacity-100 transition-opacity duration-200",
@@ -357,19 +494,32 @@ function NamedEntryItem({
             ›
           </motion.span>
         )}
+
+        {/* The same anchor, folded: it sits where the tag's own `id=` will
+            appear, and hands the row over as soon as you arrive. */}
+        <button
+          type="button"
+          onClick={copyLink}
+          aria-label={`Link to ${anchorId}`}
+          className={cn(
+            "absolute left-0 font-mono text-xs select-none",
+            "transition-opacity duration-200 hover:text-muted-foreground",
+            copied ? "text-muted-foreground" : "text-quaternary-foreground",
+            isExpanded
+              ? "pointer-events-none opacity-0"
+              : "opacity-100 group-hover:pointer-events-none group-hover:opacity-0",
+          )}
+        >
+          #{anchorId}
+          {copied && " ✓"}
+        </button>
       </div>
 
       <div className="mt-2 mb-2">
-        <p className="font-serif text-xl sm:text-2xl text-foreground">
-          {entry.name}
-        </p>
-
-        {entry.context && (
-          <p className="mt-1 text-sm text-muted-foreground">{entry.context}</p>
-        )}
+        {children}
 
         <AnimatePresence>
-          {isExpanded && hasExpandableContent && (
+          {isExpanded && expandable && (
             <motion.div
               variants={expandVariants}
               initial="initial"
@@ -379,41 +529,7 @@ function NamedEntryItem({
             >
               <motion.div variants={contentVariants}>
                 <Divider />
-                {entry.admire && entry.admire.length > 0 && (
-                  <ul className="space-y-1 mb-4">
-                    {entry.admire.map((point, i) => (
-                      <motion.li
-                        key={i}
-                        className="text-sm text-muted-foreground flex items-start gap-2"
-                        initial={{ opacity: 0, x: -4 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.05, duration: 0.2 }}
-                      >
-                        <span className="text-quaternary-foreground">·</span>
-                        {point}
-                      </motion.li>
-                    ))}
-                  </ul>
-                )}
-                {entry.links && entry.links.length > 0 && (
-                  <div className="flex flex-wrap gap-3">
-                    {entry.links.map((link, i) => (
-                      <motion.a
-                        key={link.url}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-xs font-mono text-muted-foreground hover:text-foreground underline underline-offset-2 decoration-muted-foreground/30 hover:decoration-foreground transition-colors"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.1 + i * 0.05, duration: 0.2 }}
-                      >
-                        {link.label}
-                      </motion.a>
-                    ))}
-                  </div>
-                )}
+                {detail}
               </motion.div>
             </motion.div>
           )}
@@ -433,12 +549,247 @@ function NamedEntryItem({
   );
 }
 
-function PeopleItem({ person }: { person: Person }) {
-  return <NamedEntryItem entry={person} tag="people" />;
+/**
+ * A conviction. `quotedFrom` decides the typography: borrowed words are set
+ * as a quote with their attribution on the surface; my own words are set as
+ * a statement. Provenance is the only thing that varies — the belief is
+ * mine either way, so both are `<conviction>`.
+ */
+function ConvictionItem({
+  conviction,
+  topics,
+  shapedByLabel,
+  labelOf,
+}: {
+  conviction: Conviction;
+  /** The topics' names in the reader's language. */
+  topics: string[];
+  shapedByLabel: string;
+  /** Short label for an id an instance points at. */
+  labelOf: (id: string) => string | undefined;
+}) {
+  const quoted = conviction.quotedFrom;
+  // `id` first, the way it would be in the markup this row is imitating.
+  // The id is the entry's outline word — the one word this belief would be
+  // filed under — which is why it is worth showing rather than hiding: in
+  // 修身 and 行事 that word is already the statement (成为, 演示), and in
+  // 天行 the statements are sentences the culture handed me, so the id is
+  // the only place my own name for them appears. It is also the hash, so
+  // the row doubles as "what you get when you click the #".
+  // `on` is space-separated, the way a `class` attribute holds several.
+  const attributes: Record<string, string> = {
+    id: conviction.anchor,
+    on: topics.join(" "),
+  };
+  if (quoted) attributes.from = quoted.name;
+
+  return (
+    <PromptItem
+      tag="conviction"
+      attributes={attributes}
+      anchorId={conviction.anchor}
+      expandable={Boolean(
+        conviction.body ||
+        conviction.shapedBy ||
+        conviction.links ||
+        conviction.instances?.length,
+      )}
+      detail={
+        <>
+          {conviction.shapedBy && conviction.shapedBy.length > 0 && (
+            <p className="text-xs font-mono text-tertiary-foreground mb-3">
+              {shapedByLabel}:{" "}
+              {conviction.shapedBy.map((attribution, i) => (
+                <span key={attribution.name}>
+                  {i > 0 && ", "}
+                  <AttributionText attribution={attribution} />
+                </span>
+              ))}
+            </p>
+          )}
+          {conviction.body && <Body text={conviction.body} />}
+          {conviction.instances && conviction.instances.length > 0 && (
+            <div className={cn(conviction.body && "mt-3")}>
+              <Instances instances={conviction.instances} labelOf={labelOf} />
+            </div>
+          )}
+          {conviction.links && conviction.links.length > 0 && (
+            <LinkRow
+              links={conviction.links}
+              className={cn(
+                (conviction.shapedBy ||
+                  conviction.body ||
+                  conviction.instances?.length) &&
+                  "mt-4",
+              )}
+            />
+          )}
+        </>
+      }
+    >
+      {quoted ? (
+        <>
+          <blockquote className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed italic">
+            &ldquo;{conviction.statement}&rdquo;
+          </blockquote>
+          <p className="mt-3 text-sm">
+            <AttributionText attribution={quoted} />
+          </p>
+        </>
+      ) : (
+        <p className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed">
+          {conviction.statement}
+        </p>
+      )}
+
+      {/* My own way of saying it — the aside voice /works uses for a note in
+          the margin, so a proverb and the line I actually say can share a
+          row without competing. */}
+      {conviction.commentary && (
+        <p className={cn(TYPE.aside, "mt-2")}>
+          &ldquo;{conviction.commentary}&rdquo;
+        </p>
+      )}
+    </PromptItem>
+  );
 }
 
-function BookItem({ book }: { book: Book }) {
-  return <NamedEntryItem entry={book} tag="book" />;
+/**
+ * A deck this entry is carrying. Tapping it opens the Theater stage — the
+ * same library the log's decks live in, so this one lands beside them and
+ * can be sent to PiP and read while you keep scrolling.
+ */
+function SlidesPill({
+  media,
+  entryId,
+  entryName,
+  label,
+}: {
+  media: NonNullable<Influence["media"]>;
+  entryId: string;
+  entryName: string;
+  label: string;
+}) {
+  const theater = useOptionalTheater();
+  if (!theater) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        theater.openMedia(
+          { kind: "slides", url: media.url, thumbnail: media.thumbnail },
+          {
+            id: `prompt-${entryId}`,
+            title: media.title ?? entryName,
+            subtitle: entryName,
+          },
+        );
+      }}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded px-1.5 py-1",
+        "font-mono text-xs text-muted-foreground transition-colors duration-200",
+        "hover:bg-muted hover:text-foreground",
+      )}
+    >
+      <Presentation className="h-3 w-3" />
+      {media.title ?? label}
+    </button>
+  );
+}
+
+/** A person, team, book or paper that trained the convictions above. */
+function InfluenceItem({
+  influence,
+  shapedLabel,
+  slidesLabel,
+  convictions,
+}: {
+  influence: Influence;
+  shapedLabel: string;
+  slidesLabel: string;
+  convictions: Conviction[];
+}) {
+  const { goTo, anchorFor } = useNav();
+  // Back-links are computed, never authored — the same relation read from
+  // the other end.
+  const shaped = convictions.filter(
+    (c) =>
+      c.quotedFrom?.ref === influence.id ||
+      c.shapedBy?.some((s) => s.ref === influence.id),
+  );
+
+  // `id` then `kind`. An influence sits on no shelf (`lib/prompts`), and the
+  // row below — what they shaped — is the truer answer to what they are "on".
+  const attributes: Record<string, string> = {
+    id: influence.anchor,
+    kind: influence.kind,
+  };
+
+  return (
+    <PromptItem
+      tag="influence"
+      attributes={attributes}
+      anchorId={influence.anchor}
+      expandable={Boolean(influence.body || influence.links || shaped.length)}
+      detail={
+        <>
+          {influence.body && <Body text={influence.body} />}
+          {shaped.length > 0 && (
+            <p
+              className={cn(
+                "text-xs font-mono text-tertiary-foreground",
+                influence.body && "mt-4",
+              )}
+            >
+              {shapedLabel}:{" "}
+              {shaped.map((conviction, i) => (
+                // Statements end in a period, so a comma would read as ".,"
+                <span key={conviction.id}>
+                  {i > 0 && " · "}
+                  <a
+                    href={`#${anchorFor(conviction.id)}`}
+                    onClick={(e) => handleAnchorClick(e, conviction.id, goTo)}
+                    className={cn("text-muted-foreground", linkClass)}
+                  >
+                    {conviction.statement}
+                  </a>
+                </span>
+              ))}
+            </p>
+          )}
+          {influence.media && (
+            <div className={cn((influence.body || shaped.length) && "mt-4")}>
+              <SlidesPill
+                media={influence.media}
+                entryId={influence.id}
+                entryName={influence.name}
+                label={slidesLabel}
+              />
+            </div>
+          )}
+          {influence.links && influence.links.length > 0 && (
+            <LinkRow
+              links={influence.links}
+              className={cn(
+                (influence.body || shaped.length || influence.media) && "mt-4",
+              )}
+            />
+          )}
+        </>
+      }
+    >
+      <p className="font-serif text-xl sm:text-2xl text-foreground">
+        {influence.name}
+      </p>
+      {influence.context && (
+        <p className="mt-1 text-sm text-muted-foreground">
+          {influence.context}
+        </p>
+      )}
+    </PromptItem>
+  );
 }
 
 // Footer meta component
@@ -479,7 +830,192 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
   const { locale } = useLocale();
   const data = locale === "zh" ? dataZh : dataEn;
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Canonical id → the anchor this locale prints. Every `ref` in the data is
+  // canonical, so all in-page links pass through here on their way out.
+  const anchorOf = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const e of [...data.convictions, ...data.influences])
+      map.set(e.id, e.anchor);
+    return map;
+  }, [data]);
+
+  // …and every anchor this page prints in *either* language, back to the
+  // canonical id. A link shared off the Chinese page has to land when it is
+  // opened in English, so an incoming hash is read as an alias first.
+  const canonicalOf = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const set of [dataEn, dataZh])
+      for (const e of [...set.convictions, ...set.influences]) {
+        map.set(e.id, e.id);
+        map.set(e.anchor, e.id);
+      }
+    return map;
+  }, [dataEn, dataZh]);
+
+  const anchorFor = useCallback(
+    (raw: string) => {
+      const canonical = canonicalOf.get(raw) ?? raw;
+      return anchorOf.get(canonical) ?? canonical;
+    },
+    [canonicalOf, anchorOf],
+  );
+
+  // A reading of this page ("just the convictions, just on open source") is a
+  // link someone can send, and the back button undoes a filter — same
+  // contract as /works, same codec shape (lib/prompt-view).
+  const urlView = useMemo(
+    () => parsePromptView(new URLSearchParams(searchParams.toString())),
+    [searchParams],
+  );
+  const urlKey = serializePromptView(urlView);
+
+  // …but local state is what paints, because `router.replace` re-runs the
+  // route and a chip you tap three times in a row must not wait for that.
+  const [view, setView] = useState(urlView);
+  const [lastUrlKey, setLastUrlKey] = useState(urlKey);
+  if (urlKey !== lastUrlKey) {
+    setLastUrlKey(urlKey);
+    if (urlKey !== serializePromptView(view)) setView(urlView);
+  }
+
+  const commit = useCallback(
+    (next: Partial<PromptViewState>, hash?: string) => {
+      const merged = { ...view, ...next };
+      setView(merged);
+      const query = serializePromptView(
+        merged,
+        new URLSearchParams(searchParams.toString()),
+      );
+      // One write, hash included: a jump that lifts the filter changes both
+      // halves of the URL, and doing it in two calls leaves whichever lands
+      // second holding a stale copy of the other.
+      const mark = hash ? `#${hash}` : "";
+      // `replace`, not `push`: finding a reading should not cost a tap of
+      // the back button per chip.
+      router.replace(
+        query ? `${pathname}?${query}${mark}` : `${pathname}${mark}`,
+        { scroll: false },
+      );
+    },
+    [view, searchParams, router, pathname],
+  );
+
+  // A shared link lands mid-page before the wallpaper and fonts settle, so
+  // re-seat the target once after mount rather than trusting the browser's
+  // initial jump.
+  useEffect(() => {
+    const raw = window.location.hash.slice(1);
+    if (!raw) return;
+    const id = anchorFor(decodeURIComponent(raw));
+    const frame = requestAnimationFrame(() => {
+      const element = document.getElementById(id);
+      if (!element) return;
+      // Arrived under the other language's name: say so in the address bar
+      // rather than leaving a link that only half works.
+      if (id !== decodeURIComponent(raw))
+        history.replaceState(null, "", `#${id}`);
+      element.scrollIntoView({ block: "start" });
+    });
+    return () => cancelAnimationFrame(frame);
+    // Once, on mount — a later locale switch must not yank the page around.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Counts are of the UNFILTERED page, so a chip's number never moves as you
+  // select: it answers "how much of this is there?", which is the question a
+  // chip is asked, not "how much survived?", which the entries answer.
+  const kindFacets = useMemo<KindFacet[]>(
+    () =>
+      (
+        [
+          ["conviction", data.convictions.length],
+          ["influence", data.influences.length],
+        ] as const
+      )
+        .filter(([, count]) => count > 0)
+        .map(([kind, count]) => ({ kind: kind as PromptKind, count })),
+    [data],
+  );
+
+  const topicFacets = useMemo<TopicFacet[]>(() => {
+    // Convictions only — the influences carry no topic. A belief on two
+    // shelves is counted on both: the chip answers "how much is filed
+    // here?", and both answers are true.
+    const counts = new Map<PromptTopic, number>();
+    for (const entry of data.convictions) {
+      for (const topic of entry.topics) {
+        counts.set(topic, (counts.get(topic) ?? 0) + 1);
+      }
+    }
+    return PROMPT_TOPICS.filter((topic) => counts.has(topic)).map((topic) => ({
+      topic,
+      count: counts.get(topic)!,
+    }));
+  }, [data]);
+
+  const convictions = data.convictions.filter((c) =>
+    matchesView(view, { kind: "conviction", topics: c.topics }),
+  );
+  // With no topics of their own, the influences answer to the kind chips and
+  // step aside whenever a shelf is picked.
+  const influences = data.influences.filter(() =>
+    matchesView(view, { kind: "influence" }),
+  );
+  const hasMatches = convictions.length > 0 || influences.length > 0;
+
+  // A reference outranks a reading: following one into something the filter
+  // is currently hiding clears the filter and then goes there, rather than
+  // silently doing nothing. Two renders — the entry has to exist before it
+  // can be scrolled to — so the id waits in state for one pass.
+  const pendingId = useRef<string | null>(null);
+
+  const goTo = useCallback(
+    (raw: string) => {
+      const id = anchorFor(raw);
+      if (document.getElementById(id)) {
+        goToId(id);
+        return;
+      }
+      pendingId.current = id;
+      commit({ kinds: [], topics: [] }, id);
+    },
+    [commit, anchorFor],
+  );
+
+  const nav = useMemo<Navigation>(
+    () => ({ goTo, anchorFor }),
+    [goTo, anchorFor],
+  );
+
+  useEffect(() => {
+    const id = pendingId.current;
+    if (!id) return;
+    pendingId.current = null;
+    // The URL was written by `commit` — this only travels.
+    scrollToId(id);
+  }, [view]);
+
+  // What an instance's pointer is called, from either collection.
+  const labelOf = useCallback(
+    (id: string) => {
+      const label =
+        data.convictions.find((c) => c.id === id)?.statement ??
+        data.influences.find((i) => i.id === id)?.name;
+      // A pointer is a signpost, not a second copy of the sentence.
+      return label && label.length > 36
+        ? `${label.slice(0, 34).trimEnd()}…`
+        : label;
+    },
+    [data],
+  );
+
   const shapedByLabel = t(locale, "promptShapedBy");
+  const shapedLabel = t(locale, "promptShaped");
+  const slidesLabel = t(locale, "logSlides");
   const footerLabels: FooterLabels = {
     tokens: t(locale, "promptTokens"),
     lastUpdated: t(locale, "promptLastUpdated"),
@@ -487,39 +1023,64 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
   };
 
   return (
-    <PageLayout page="prompts" headerActions={<XmlTag>system</XmlTag>}>
-      {/* System wrapper */}
-      <div className="relative -mt-4">
-        <div className="pb-4 space-y-2">
-          {/* Quotes */}
-          {data.quotes.map((quote) => (
-            <QuoteItem key={quote.id} quote={quote} />
-          ))}
+    <GoToContext.Provider value={nav}>
+      <PageLayout
+        page="prompts"
+        pinnedActions={
+          <PromptToolbar
+            locale={locale}
+            kindFacets={kindFacets}
+            topicFacets={topicFacets}
+            activeKinds={view.kinds}
+            activeTopics={view.topics}
+            onToggleKind={(kind) =>
+              commit({ kinds: toggleKind(view.kinds, kind) })
+            }
+            onToggleTopic={(topic) =>
+              commit({ topics: toggleTopic(view.topics, topic) })
+            }
+            onClear={() => commit({ kinds: [], topics: [] })}
+          />
+        }
+      >
+        <div className="relative -mt-4">
+          <div className="pb-4 space-y-2">
+            {/* What I hold */}
+            {convictions.map((conviction) => (
+              <ConvictionItem
+                key={conviction.id}
+                conviction={conviction}
+                topics={conviction.topics.map((t) => topicLabel(t, locale))}
+                shapedByLabel={shapedByLabel}
+                labelOf={labelOf}
+              />
+            ))}
 
-          {/* Principles */}
-          {data.principles.map((principle) => (
-            <PrincipleItem
-              key={principle.id}
-              principle={principle}
-              shapedByLabel={shapedByLabel}
-            />
-          ))}
+            {/* Who trained it */}
+            {influences.map((influence) => (
+              <InfluenceItem
+                key={influence.id}
+                influence={influence}
+                shapedLabel={shapedLabel}
+                slidesLabel={slidesLabel}
+                convictions={data.convictions}
+              />
+            ))}
+          </div>
 
-          {/* People */}
-          {data.people.map((person) => (
-            <PeopleItem key={person.id} person={person} />
-          ))}
+          {/* A filter that matched nothing says so in the page's own voice,
+            rather than leaving it to end in silence. */}
+          {!hasMatches && (
+            <p className="py-4 font-mono text-xs text-tertiary-foreground">
+              {t(locale, "promptNoMatches")}
+            </p>
+          )}
 
-          {data.books.map((book) => (
-            <BookItem key={book.id} book={book} />
-          ))}
+          <XmlTag closing>system</XmlTag>
         </div>
 
-        <XmlTag closing>system</XmlTag>
-      </div>
-
-      {/* Footer meta */}
-      <PromptFooter meta={data.meta} labels={footerLabels} />
-    </PageLayout>
+        <PromptFooter meta={data.meta} labels={footerLabels} />
+      </PageLayout>
+    </GoToContext.Provider>
   );
 }

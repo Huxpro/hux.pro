@@ -10,6 +10,7 @@ import {
 import promptsRaw from "@/content/prompts.json";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
+import { topicLabel, type PromptTopic } from "@/lib/prompt-view";
 import type { Locale } from "@/lib/i18n";
 import { RefreshCw } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -22,9 +23,13 @@ import { TYPE } from "@/lib/typography";
 
 type PromptItem =
   | { kind: "quote"; id: string; text: string; author: string; source?: string }
-  | { kind: "principle"; id: string; statement: string; topic?: string }
-  | { kind: "people"; id: string; name: string; context?: string }
-  | { kind: "book"; id: string; name: string; context?: string };
+  | { kind: "belief"; id: string; statement: string; topic: PromptTopic }
+  | { kind: "influence"; id: string; name: string; context?: string };
+
+/** Names are locale-neutral ("Dan Abramov") unless they're a phrase. */
+function resolveName(name: string | { en: string; zh: string }, l: Locale) {
+  return typeof name === "string" ? name : name[l];
+}
 
 // =============================================================================
 // Data helpers
@@ -34,37 +39,34 @@ function resolveItems(locale: Locale): PromptItem[] {
   const l = locale;
   const items: PromptItem[] = [];
 
-  for (const q of promptsRaw.quotes) {
-    items.push({
-      kind: "quote",
-      id: q.id,
-      text: q.text[l],
-      author: q.author,
-      source: q.source,
-    });
+  // A conviction quoted from someone keeps their voice; one in my own words
+  // reads as a statement. Same split as the /prompt page.
+  for (const c of promptsRaw.convictions) {
+    const quoted = "quotedFrom" in c ? c.quotedFrom : undefined;
+    if (quoted) {
+      items.push({
+        kind: "quote",
+        id: c.id,
+        text: c.statement[l],
+        author: resolveName(quoted.name, l),
+        // A saying can carry a different source in each language.
+        source: quoted.source ? resolveName(quoted.source, l) : undefined,
+      });
+    } else {
+      items.push({
+        kind: "belief",
+        id: c.id,
+        statement: c.statement[l],
+        topic: (c.topics as PromptTopic[])[0],
+      });
+    }
   }
-  for (const p of promptsRaw.principles) {
+  for (const i of promptsRaw.influences) {
     items.push({
-      kind: "principle",
-      id: p.id,
-      statement: p.statement[l],
-      topic: p.topic?.[l],
-    });
-  }
-  for (const p of promptsRaw.people) {
-    items.push({
-      kind: "people",
-      id: p.id,
-      name: p.name,
-      context: p.context?.[l],
-    });
-  }
-  for (const b of promptsRaw.books ?? []) {
-    items.push({
-      kind: "book",
-      id: b.id,
-      name: b.name,
-      context: b.context?.[l],
+      kind: "influence",
+      id: i.id,
+      name: resolveName(i.name, l),
+      context: i.context?.[l],
     });
   }
 
@@ -121,8 +123,9 @@ function QuoteDisplay({ item }: { item: Extract<PromptItem, { kind: "quote" }> }
   );
 }
 
-function PrincipleDisplay({ item, locale }: { item: Extract<PromptItem, { kind: "principle" }>; locale: Locale }) {
-  const topicLabel = locale === "zh" ? `论「${item.topic}」` : `on ${item.topic}`;
+function BeliefDisplay({ item, locale }: { item: Extract<PromptItem, { kind: "belief" }>; locale: Locale }) {
+  const name = topicLabel(item.topic, locale);
+  const label = locale === "zh" ? `论「${name}」` : `on ${name}`;
   return (
     <div>
       <p className="font-serif text-base text-foreground leading-relaxed line-clamp-3">
@@ -130,17 +133,17 @@ function PrincipleDisplay({ item, locale }: { item: Extract<PromptItem, { kind: 
       </p>
       {item.topic && (
         <p className={cn("mt-2", TYPE.rowMeta)}>
-          {topicLabel}
+          {label}
         </p>
       )}
     </div>
   );
 }
 
-function NamedDisplay({
+function InfluenceDisplay({
   item,
 }: {
-  item: Extract<PromptItem, { kind: "people" | "book" }>;
+  item: Extract<PromptItem, { kind: "influence" }>;
 }) {
   return (
     <div>
@@ -158,11 +161,10 @@ function PromptItemDisplay({ item, locale }: { item: PromptItem; locale: Locale 
   switch (item.kind) {
     case "quote":
       return <QuoteDisplay item={item} />;
-    case "principle":
-      return <PrincipleDisplay item={item} locale={locale} />;
-    case "people":
-    case "book":
-      return <NamedDisplay item={item} />;
+    case "belief":
+      return <BeliefDisplay item={item} locale={locale} />;
+    case "influence":
+      return <InfluenceDisplay item={item} />;
   }
 }
 
