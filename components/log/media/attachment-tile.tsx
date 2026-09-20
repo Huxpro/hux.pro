@@ -176,7 +176,14 @@ export interface AttachmentTileProps {
    * the attachment. The cover box keeps the crop; this sits outside it.
    */
   footer?: ReactNode;
-  /** Classes on the cover box when `footer` splits the crop from the copy. */
+  /**
+   * Wrapper around the crop — the phone feed's edge-to-edge bleed. It is a
+   * wrapper, not a class on the crop: the crop is `w-full overflow-hidden`,
+   * and negative margins on that box only shift a column-width picture.
+   * Width auto plus the bleed is what actually runs to the screen's edge;
+   * the caption stays in the column because it is a sibling, not a child
+   * of this wrapper.
+   */
   imageClassName?: string;
   className?: string;
 }
@@ -221,8 +228,7 @@ export function AttachmentTile({
       ? "rounded-none"
       : "rounded-md border border-border/50 group-hover/thumb:border-border group-focus-visible/thumb:border-border",
     TILE_SIZE[size],
-    imageClassName,
-    !footer && className,
+    !footer && !imageClassName && className,
   );
 
   const cover = (
@@ -237,6 +243,13 @@ export function AttachmentTile({
     </>
   );
 
+  const crop =
+    footer || imageClassName ? (
+      <span className={coverClassName}>{cover}</span>
+    ) : (
+      cover
+    );
+
   return (
     <a
       href={media.url}
@@ -247,10 +260,12 @@ export function AttachmentTile({
       onClick={onClick}
       className={cn(
         "group/thumb pressable",
-        footer ? cn("block min-w-0", className) : coverClassName,
+        footer || imageClassName
+          ? cn("block min-w-0", className)
+          : coverClassName,
       )}
     >
-      {footer ? <span className={coverClassName}>{cover}</span> : cover}
+      {imageClassName ? <span className={cn("block", imageClassName)}>{crop}</span> : crop}
       {footer}
     </a>
   );

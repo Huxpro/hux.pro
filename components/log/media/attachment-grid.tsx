@@ -34,12 +34,14 @@
  *
  * Phone — a feed: one thing under the next, each running edge to edge like
  * Instagram's or a landscape video on YouTube's, with the text back in the
- * column under it. A recording or a deck plays in place, and the bar under
- * it — there from the start, so pressing play moves nothing — names it and
- * offers the stage (`PiP`) for whoever wants to keep scrolling. A card goes
- * straight to its native home (the in-app browser). Nothing here opens the
- * attachment sheet, which would be a drawer opening on what is already on
- * screen.
+ * column under it. Cover and caption are still one `<a>`: the bleed wraps
+ * only the crop (`PHONE_BLEED` is a wrapper, not a class on the `w-full`
+ * picture), so a tap on the title under a card is the same door as the
+ * artwork, and the copy stays on the column. A recording or a deck plays
+ * in place, and the bar under it — there from the start, so pressing play
+ * moves nothing — names it and offers the stage (`PiP`) for whoever wants
+ * to keep scrolling. Nothing here opens the attachment sheet, which would
+ * be a drawer opening on what is already on screen.
  */
 
 import { Fragment, useMemo, useState, type ReactNode } from "react";
@@ -79,7 +81,7 @@ const PHONE_BLEED =
 const SOURCE = cn(
   TYPE.labelSm,
   "flex items-center gap-1.5 min-w-0 transition-colors duration-200",
-  "group-hover/thumb:text-muted-foreground",
+  "group-hover/thumb:text-muted-foreground group-active/thumb:text-muted-foreground",
 );
 const TITLE = "text-xs leading-4 text-foreground";
 
@@ -126,7 +128,7 @@ function Caption({
         <p
           className={cn(
             TYPE.captionQuiet,
-            "transition-colors duration-200 group-hover/thumb:text-muted-foreground",
+            "transition-colors duration-200 group-hover/thumb:text-muted-foreground group-active/thumb:text-muted-foreground",
             lines === 2 ? "line-clamp-2" : lines === 3 ? "line-clamp-3" : "line-clamp-4",
           )}
         >

@@ -256,14 +256,16 @@ hands playback to the stage, so that line is a label, not a second door.
   which has nothing to say beside itself, takes the column as a video post
   does.
 - On a phone, the feed is a feed: one thing under the next, each running
-  edge to edge over the page gutter and the rail column (`PHONE_BLEED`),
-  the text back in the column under it. A recording or a deck plays in
-  place (`InlinePlayable`: a 16:9 cover swapped for the platform's player
-  or the deck itself), and the bar under it — there from the start, so
-  pressing play moves nothing — names the item and carries one control,
-  `PiP`, which hands playback to the stage (`act`) for whoever wants to
-  keep scrolling and stops the inline player so the two never play at
-  once. While the item is on the stage its place in the feed says so (a
+  edge to edge over the page gutter and the rail column (`PHONE_BLEED` wraps
+  the crop, not the caption — negative margins on the `w-full` picture
+  would only shift a column-width cover). Cover and caption are still one
+  control; a tap on the title under a card is the same door as the artwork.
+  A recording or a deck plays in place (`InlinePlayable`: a 16:9 cover
+  swapped for the platform's player or the deck itself), and the bar under
+  it — there from the start, so pressing play moves nothing — names the
+  item and carries one control, `PiP`, which hands playback to the stage
+  (`act`) for whoever wants to keep scrolling and stops the inline player
+  so the two never play at once. While the item is on the stage its place in the feed says so (a
   wash and the PiP mark over the cover, read off `useOptionalTheaterStage`
   — the stage's occupant and its doors, without the ticking clock that the
   full theater context carries), and pressing it brings playback back. A
