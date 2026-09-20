@@ -203,7 +203,7 @@ parse, as aliases.
 |---|---|---|---|---|---|
 | `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |
 | `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
-| `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet |
+| `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
 
 ### The attachment object
 
@@ -235,6 +235,18 @@ play mark is an affordance, not information) and gone from a card, and a
 click is the item's native action (`act`: the stage, the in-app browser,
 the page), never the attachment sheet, which would be a drawer opening on
 what is already on screen.
+
+Cover and caption are one control (`AttachmentTile`'s `footer`): the same
+`<a>`, so hovering the title washes the artwork and the source rises a
+tier. The caption is not a second click target that happens to do the
+same thing, and it is not the row's fold handle. A hand-opened row in
+`covers` / `index` still folds from its title line; the expanded body
+(`data-row-body`) stops that click and wears a default cursor, so
+description, notes and captions do not look like fold targets. The feed
+itself does not fold per row — every commit is already open, and leaving
+is a form change on the toolbar. On a phone, a recording or a deck is
+the exception: the cover plays in place and the bar under it (`PiP`)
+hands playback to the stage, so that line is a label, not a second door.
 
 - On a desk, the unit is half the column whatever the count — the rule the
   feeds this borrows from (X, LinkedIn) agree on: media has a footprint,

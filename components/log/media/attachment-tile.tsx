@@ -30,9 +30,14 @@
  * is the caller's: `open` (the policy's home — the sheet on a phone) for the
  * folded form, `act` (the native action — the stage, the page) for the feed,
  * which has already shown everything the sheet would.
+ *
+ * In the feed the caption is the rest of the same control, not a second
+ * click target that happens to do the same thing. Pass it as `footer` and
+ * the cover wash, the cursor and the door all belong to one `<a>` — hovering
+ * the title dims the artwork, the way a chat unfurl does.
  */
 
-import type { MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { COVER_WASH } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { t, type Locale } from "@/lib/i18n";
@@ -165,6 +170,14 @@ export interface AttachmentTileProps {
   chip?: MediaMarkSize | "none";
   /** Square the corners — a phone's edge-to-edge feed. */
   flush?: boolean;
+  /**
+   * Copy under or beside the cover. Mounted inside the same `<a>`, so the
+   * caption is the cover's label, not a sibling that also happens to open
+   * the attachment. The cover box keeps the crop; this sits outside it.
+   */
+  footer?: ReactNode;
+  /** Classes on the cover box when `footer` splits the crop from the copy. */
+  imageClassName?: string;
   className?: string;
 }
 
@@ -178,6 +191,8 @@ export function AttachmentTile({
   onPress,
   chip = "mini",
   flush = false,
+  footer,
+  imageClassName,
   className,
 }: AttachmentTileProps) {
   const { media, image, index, leaves, mark, caption } = slot;
@@ -199,6 +214,29 @@ export function AttachmentTile({
     else attachments.open(set, index);
   };
 
+  const coverClassName = cn(
+    "relative block aspect-[2/1] shrink-0 overflow-hidden",
+    "bg-muted/30 transition-colors duration-200",
+    flush
+      ? "rounded-none"
+      : "rounded-md border border-border/50 group-hover/thumb:border-border group-focus-visible/thumb:border-border",
+    TILE_SIZE[size],
+    imageClassName,
+    !footer && className,
+  );
+
+  const cover = (
+    <>
+      <ExternalImage
+        src={image}
+        alt=""
+        className="block h-full w-full object-cover"
+      />
+      <span className={COVER_WASH} />
+      {chip !== "none" && <MediaMark mark={mark} size={chip} />}
+    </>
+  );
+
   return (
     <a
       href={media.url}
@@ -208,22 +246,12 @@ export function AttachmentTile({
       aria-label={caption.label}
       onClick={onClick}
       className={cn(
-        "group/thumb pressable relative block aspect-[2/1] shrink-0 overflow-hidden",
-        "bg-muted/30 transition-colors duration-200",
-        flush
-          ? "rounded-none"
-          : "rounded-md border border-border/50 hover:border-border focus-visible:border-border",
-        TILE_SIZE[size],
-        className,
+        "group/thumb pressable",
+        footer ? cn("block min-w-0", className) : coverClassName,
       )}
     >
-      <ExternalImage
-        src={image}
-        alt=""
-        className="block h-full w-full object-cover"
-      />
-      <span className={COVER_WASH} />
-      {chip !== "none" && <MediaMark mark={mark} size={chip} />}
+      {footer ? <span className={coverClassName}>{cover}</span> : cover}
+      {footer}
     </a>
   );
 }

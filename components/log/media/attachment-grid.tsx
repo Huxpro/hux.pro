@@ -19,8 +19,8 @@
  *
  *   ┌────────┐ ┌────────┐      a pair — two tiles, each captioned under:
  *   │        │ │        │      where it is from, what it is, and its blurb.
- *   └────────┘ └────────┘
- *    SOURCE      SOURCE
+ *   └────────┘ └────────┘      Cover and caption are one control: the same
+ *    SOURCE      SOURCE        `<a>`, so hovering the title washes the art.
  *    Title       Title
  *    Blurb…      Blurb…
  *
@@ -76,7 +76,11 @@ export interface AttachmentGridProps {
 const PHONE_BLEED =
   "-ml-[calc(var(--page-gutter)+1.75rem)] -mr-[var(--page-gutter)]";
 
-const SOURCE = cn(TYPE.labelSm, "flex items-center gap-1.5 min-w-0");
+const SOURCE = cn(
+  TYPE.labelSm,
+  "flex items-center gap-1.5 min-w-0 transition-colors duration-200",
+  "group-hover/thumb:text-muted-foreground",
+);
 const TITLE = "text-xs leading-4 text-foreground";
 
 /** The caption's first line, with the way out written in when it leaves. */
@@ -89,13 +93,17 @@ function SourceLine({ slot, locale }: { slot: TileSlot; locale: Locale }) {
   );
 }
 
-/** Source, title, blurb — the caption in its three places. */
+/** Source, title, blurb — the caption in its three places.
+ *
+ *  Always a child of the tile's `<a>` (`footer`), never its own click
+ *  target. Hovering the copy is hovering the cover: the source and blurb
+ *  rise a tier and the artwork washes, so the unit reads as one door.
+ */
 function Caption({
   slot,
   locale,
   lines,
   strong = false,
-  onClick,
   className,
 }: {
   slot: TileSlot;
@@ -103,15 +111,11 @@ function Caption({
   /** How many lines the blurb may take. */
   lines: 2 | 3 | 4;
   strong?: boolean;
-  onClick?: () => void;
   className?: string;
 }) {
   const { caption } = slot;
   return (
-    <div
-      className={cn("min-w-0 space-y-0.5", onClick && "cursor-pointer", className)}
-      onClick={onClick}
-    >
+    <div className={cn("min-w-0 space-y-0.5", className)}>
       <SourceLine slot={slot} locale={locale} />
       {caption.title ? (
         <div className={cn(TITLE, "line-clamp-2", strong && "font-medium")}>
@@ -122,6 +126,7 @@ function Caption({
         <p
           className={cn(
             TYPE.captionQuiet,
+            "transition-colors duration-200 group-hover/thumb:text-muted-foreground",
             lines === 2 ? "line-clamp-2" : lines === 3 ? "line-clamp-3" : "line-clamp-4",
           )}
         >
@@ -160,7 +165,15 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
 
   const compact = attachments?.compact ?? false;
 
-  const tileOf = (slot: TileSlot, flush = false) => (
+  const tileOf = (
+    slot: TileSlot,
+    extra?: {
+      flush?: boolean;
+      footer?: ReactNode;
+      className?: string;
+      imageClassName?: string;
+    },
+  ) => (
     <AttachmentTile
       slot={slot}
       size="cell"
@@ -171,15 +184,12 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
       // The glyph on what plays — a recording, a deck, a talks-host card —
       // and nothing on a page: the caption has said what it is.
       chip={slot.mark ? "mini" : "none"}
-      flush={flush}
+      flush={extra?.flush}
+      footer={extra?.footer}
+      className={extra?.className}
+      imageClassName={extra?.imageClassName}
     />
   );
-
-  /** What pressing the caption does: the same door as the tile. */
-  const actOf = (slot: TileSlot) =>
-    slot.index >= 0 && set && attachments
-      ? () => attachments.act(set, slot.index)
-      : undefined;
 
   // ---------------------------------------------------------------------
   // Phone: the stack.
@@ -198,15 +208,19 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
             />
           ) : (
             <div key={`${slot.media.url}-${i}`} className="min-w-0">
-              <div className={PHONE_BLEED}>{tileOf(slot, true)}</div>
-              <Caption
-                slot={slot}
-                locale={locale}
-                lines={3}
-                strong
-                onClick={actOf(slot)}
-                className="mt-2"
-              />
+              {tileOf(slot, {
+                flush: true,
+                imageClassName: PHONE_BLEED,
+                footer: (
+                  <Caption
+                    slot={slot}
+                    locale={locale}
+                    lines={3}
+                    strong
+                    className="mt-2"
+                  />
+                ),
+              })}
             </div>
           ),
         )}
@@ -221,15 +235,22 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
     <div className={cn("grid grid-cols-2 gap-x-2.5 gap-y-4", className)}>
       {slots.map((slot, i) => {
         const { media } = slot;
-        const tile = tileOf(slot);
         const lone = i % 2 === 0 && i === slots.length - 1;
 
         if (!lone) {
           return (
-            <figure key={`${media.url}-${i}`} className="min-w-0">
-              {tile}
-              <Caption slot={slot} locale={locale} lines={2} className="mt-1.5" />
-            </figure>
+            <div key={`${media.url}-${i}`} className="min-w-0">
+              {tileOf(slot, {
+                footer: (
+                  <Caption
+                    slot={slot}
+                    locale={locale}
+                    lines={2}
+                    className="mt-1.5"
+                  />
+                ),
+              })}
+            </div>
           );
         }
 
@@ -237,27 +258,32 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
         // under it, a recording is named by the row.
         if (isVideoMedia(media) || isSlidesMedia(media)) {
           return (
-            <figure key={`${media.url}-${i}`} className="col-span-2 min-w-0">
-              {tile}
-              {isSlidesMedia(media) && slot.caption.title && (
-                <PlayableLine slot={slot} className="mt-1.5" />
-              )}
-            </figure>
+            <div key={`${media.url}-${i}`} className="col-span-2 min-w-0">
+              {tileOf(slot, {
+                footer:
+                  isSlidesMedia(media) && slot.caption.title ? (
+                    <PlayableLine slot={slot} className="mt-1.5" />
+                  ) : undefined,
+              })}
+            </div>
           );
         }
 
         // A lone card: the caption beside it, with the room to say more.
         return (
           <Fragment key={`${media.url}-${i}`}>
-            <div className="min-w-0">{tile}</div>
-            <Caption
-              slot={slot}
-              locale={locale}
-              lines={4}
-              strong
-              onClick={actOf(slot)}
-              className="self-center space-y-1"
-            />
+            {tileOf(slot, {
+              className: "col-span-2 grid grid-cols-2 gap-x-2.5 items-center",
+              footer: (
+                <Caption
+                  slot={slot}
+                  locale={locale}
+                  lines={4}
+                  strong
+                  className="self-center space-y-1"
+                />
+              ),
+            })}
           </Fragment>
         );
       })}
