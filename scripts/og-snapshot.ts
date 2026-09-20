@@ -1,8 +1,10 @@
 /**
  * Build-time card snapshot generator.
  *
- *   node scripts/og-snapshot.ts          # crawl + write content/og-snapshot.json
- *   node scripts/og-snapshot.ts --check  # CI: re-crawl, diff, exit 1 on drift
+ *   node scripts/og-snapshot.ts             # crawl + write content/og-snapshot.json
+ *   node scripts/og-snapshot.ts --complete  # CI: no network; every cover-bearing
+ *                                           # attachment has a runtime image
+ *   node scripts/og-snapshot.ts --check     # completeness, then re-crawl + diff
  *
  * Reuses the exact crawl/parse core the runtime Server Action uses
  * (lib/og-core.ts), so the snapshot equals what the server would fetch.
@@ -17,6 +19,10 @@
  *    (the recovery path for crawl-blocked sites like Medium).
  *  - Deterministic, timestamp-free output → no flaky churn.
  *  - Report exactly what changed.
+ *  - Completeness (`--complete`) is filesystem-only and is what GitHub CI
+ *    runs: after the same enrichment production uses, every media
+ *    attachment that paints a cover has an image (and site-local files
+ *    exist on disk). Live social widgets are not covers.
  */
 
 import fs from "fs";
@@ -31,7 +37,17 @@ import {
   type PreviewableMedia,
   type SnapshotEntry,
 } from "../lib/og-core.ts";
-import { normalizeLogData, type RawLogData } from "../lib/log.ts";
+import {
+  getAttachmentImage,
+  isLinkMedia,
+  isSocialEmbedMedia,
+  isLinkPill,
+  normalizeLogData,
+  type Media,
+  type RawLogData,
+} from "../lib/log.ts";
+import type { Locale } from "../lib/i18n.ts";
+import { enrichLogDataWithPreviews } from "../lib/og-enrich.ts";
 
 type Snapshot = Record<string, SnapshotEntry>;
 
@@ -45,6 +61,7 @@ const LOG_PATH = path.join(ROOT, "content", "log.json");
 const SNAPSHOT_PATH = path.join(ROOT, "content", "og-snapshot.json");
 
 const CHECK = process.argv.includes("--check");
+const COMPLETE = process.argv.includes("--complete");
 
 // --- Collect every URL that renders as a card or needs a video cover --------
 
@@ -137,8 +154,101 @@ function serialize(snap: Snapshot): string {
   return JSON.stringify(ordered, null, 2) + "\n";
 }
 
+/** A snapshot entry is only a cover if it actually has an image. Title-only
+ *  OG is not enough — the strip, tiles, and attachment page would paint
+ *  a blank. Recover with a manual `preview.image` / `thumbnail`. */
 function entryUsable(e: SnapshotEntry): boolean {
-  return !!(e.title || e.image);
+  return !!e.image;
+}
+
+// --- Completeness (filesystem-only; the GitHub CI gate) ----------------------
+
+/** Site-local `/img/…` (or any public path) → path under `public/`. */
+function localPublicPath(url: string): string | null {
+  if (!url.startsWith("/") || url.startsWith("//")) return null;
+  const clean = url.split(/[?#]/)[0] ?? url;
+  return path.join(ROOT, "public", clean.replace(/^\//, ""));
+}
+
+function localesFor(media: Media): Locale[] {
+  if (isLinkMedia(media) && media.urls) {
+    const locales = (["en", "zh"] as const).filter((l) => media.urls?.[l]);
+    return locales.length ? [...locales] : ["en"];
+  }
+  return ["en"];
+}
+
+function recoverHint(media: Media): string {
+  if (isLinkMedia(media)) {
+    return 'add preview.image or run `pnpm og:snapshot`';
+  }
+  if (media.kind === "slides" || media.kind === "video") {
+    return "add a thumbnail on the media item";
+  }
+  return "give the media an image URL that exists at runtime";
+}
+
+/**
+ * After the same enrichment `/works` uses, every cover-bearing attachment
+ * must resolve an image. Pills are not attachments; live social widgets
+ * paint themselves and are skipped. Site-local paths must exist on disk.
+ *
+ * Exits 1 on any gap. No network.
+ */
+function checkCompleteness(): void {
+  const log = (s: string) => process.stdout.write(s + "\n");
+  const raw = JSON.parse(fs.readFileSync(LOG_PATH, "utf8")) as RawLogData;
+  let snapshot: Record<string, SnapshotEntry> = {};
+  try {
+    snapshot = JSON.parse(fs.readFileSync(SNAPSHOT_PATH, "utf8"));
+  } catch {
+    // Missing snapshot: every card then depends on a manual preview.
+  }
+  const data = enrichLogDataWithPreviews(normalizeLogData(raw), snapshot);
+
+  const problems: string[] = [];
+  let checked = 0;
+  let skippedWidgets = 0;
+
+  for (const commit of data.commits) {
+    for (const media of (commit.media ?? []) as Media[]) {
+      if (isLinkPill(media)) continue;
+      if (isSocialEmbedMedia(media)) {
+        skippedWidgets += 1;
+        continue;
+      }
+      for (const locale of localesFor(media)) {
+        const image = getAttachmentImage(media, locale);
+        const where = media.urls?.[locale] ?? media.url;
+        const tag = media.urls ? ` [${locale}]` : "";
+        const label = `${commit.id} · ${media.kind} · ${where}${tag}`;
+        if (!image) {
+          problems.push(`${label} — no runtime image (${recoverHint(media)})`);
+          continue;
+        }
+        const local = localPublicPath(image);
+        if (local && !fs.existsSync(local)) {
+          problems.push(`${label} — missing file ${image}`);
+          continue;
+        }
+        checked += 1;
+      }
+    }
+  }
+
+  log("");
+  log("OG snapshot (complete)");
+  log("─".repeat(48));
+  log(`  checked: ${checked} attachment cover(s)`);
+  if (skippedWidgets) log(`  skipped — social widgets: ${skippedWidgets}`);
+  if (problems.length) {
+    log(`  ✗ MISSING IMAGE (${problems.length}):`);
+    for (const p of problems) log(`    • ${p}`);
+    log("");
+    log("✗ A media attachment would paint without an image at runtime.");
+    process.exit(1);
+  }
+  log("✓ every media attachment has a runtime image.");
 }
 
 // --- Main --------------------------------------------------------------------
@@ -191,6 +301,13 @@ async function mapWithLimit<T, R>(
 }
 
 async function main() {
+  // Completeness is free of the network and is the CI gate. `--check`
+  // runs it first so a missing cover fails before a long re-crawl.
+  if (COMPLETE || CHECK) {
+    checkCompleteness();
+    if (COMPLETE) return;
+  }
+
   const targets = collectTargets();
   // Read the existing artifact once: parsed for lookups, raw kept for the diff.
   let prevStr = "";

@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  og-complete:
+    name: og snapshot completeness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Filesystem-only: enrich log.json with the committed snapshot and
+      # fail if any cover-bearing media attachment has no runtime image.
+      # No `pnpm install` — the script is local TypeScript.
+      - name: Check attachment images
+        run: pnpm og:complete

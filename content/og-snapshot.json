@@ -46,10 +46,22 @@
   "https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509": {
     "frame": "deny"
   },
+  "https://react.dev/blog/2021/12/17/react-conf-2021-recap": {
+    "title": "React Conf 2021 Recap – React",
+    "description": "The library for web and native user interfaces",
+    "image": "https://react.dev/images/og/blog-2021-12-17-react-conf-2021-recap.png",
+    "siteName": "react.dev"
+  },
   "https://react.dev/blog/2022/06/15/react-labs-what-we-have-been-working-on-june-2022#react-compiler": {
     "title": "React Labs: What We've Been Working On – June 2022 – React",
     "description": "The library for web and native user interfaces",
     "image": "https://react.dev/images/og/blog-2022-06-15-react-labs-what-we-have-been-working-on-june-2022.png",
+    "siteName": "react.dev"
+  },
+  "https://react.dev/learn/react-compiler": {
+    "title": "React Compiler – React",
+    "description": "The library for web and native user interfaces",
+    "image": "https://react.dev/images/og/learn-react-compiler.png",
     "siteName": "react.dev"
   },
   "https://reactnative.dev/blog/2021/10/26/toward-hermes-being-the-default": {
