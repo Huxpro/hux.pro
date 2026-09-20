@@ -468,15 +468,16 @@ function EntryTag({
       layout
       className="flex items-baseline font-mono text-xs select-none whitespace-pre"
     >
-      {/* `#` and `<conviction id="` never share the row: one leaves before
-          the other arrives (`mode="wait"`). */}
-      <AnimatePresence initial={false} mode="wait">
+      {/* The two prefixes cross in place, and whichever is leaving steps out
+          of the flow while it does (`position: absolute`), so the word is
+          pushed once, by one thing, instead of jittering between two. */}
+      <AnimatePresence initial={false}>
         {open ? (
           <motion.span
             key="tag"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, position: "absolute" }}
             transition={TAG_FADE}
             className="text-tertiary-foreground"
           >
@@ -488,7 +489,7 @@ function EntryTag({
             key="hash"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, position: "absolute" }}
             transition={TAG_FADE}
             className="text-quaternary-foreground"
           >
@@ -501,6 +502,7 @@ function EntryTag({
           rather than swaps. */}
       <motion.button
         layout="position"
+        transition={TAG_SLIDE}
         type="button"
         onClick={onIdClick}
         aria-label={`Link to ${anchor}`}
@@ -544,7 +546,16 @@ function EntryTag({
   );
 }
 
-const TAG_FADE = { duration: 0.14, ease: "easeOut" as const };
+// Slow and soft on purpose. The first pass was 140ms with the two halves
+// staged one after the other, which made a hover read as a little
+// performance; the row is chrome, and chrome should settle rather than
+// announce itself. Everything moves at once now, and the word travels on a
+// gentler curve than the text fades.
+const TAG_FADE = { duration: 0.22, ease: "easeOut" as const };
+const TAG_SLIDE = {
+  duration: 0.34,
+  ease: [0.32, 0.72, 0, 1] as const,
+};
 
 /** Shared shell: the hover-revealed open/close tags around expandable content. */
 function PromptItem({
@@ -570,9 +581,45 @@ function PromptItem({
   const open = active || isExpanded;
   const { copied, copyLink } = useCopyLink(anchorId);
 
+  // `mouseenter`/`mouseleave` only fire when the pointer moves, so anything
+  // that moves the page under a still pointer — collapsing this entry,
+  // scrolling — leaves the row open on an entry the pointer is no longer
+  // on, until the next click. `:hover` is the browser's own answer to the
+  // same question and it survives layout, so re-ask it whenever the layout
+  // is what changed.
+  const ref = useRef<HTMLDivElement>(null);
+  const syncHover = useCallback(
+    () => setActive(ref.current?.matches(":hover") ?? false),
+    [],
+  );
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(syncHover);
+    return () => cancelAnimationFrame(frame);
+  }, [isExpanded, syncHover]);
+
+  useEffect(() => {
+    // Only the entry the pointer is actually on pays for this.
+    if (!active) return;
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(syncHover);
+    };
+    document.addEventListener("scroll", onScroll, {
+      passive: true,
+      capture: true,
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("scroll", onScroll, { capture: true });
+    };
+  }, [active, syncHover]);
+
   return (
     <div
       id={anchorId}
+      ref={ref}
       className={cn(
         "prompt-item group py-3 cursor-pointer transition-colors duration-200",
         "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg scroll-mt-24",
