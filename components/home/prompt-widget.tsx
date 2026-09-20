@@ -21,10 +21,16 @@ import { TYPE } from "@/lib/typography";
 // Types
 // =============================================================================
 
-type PromptItem =
-  | { kind: "quote"; id: string; text: string; author: string; source?: string }
-  | { kind: "belief"; id: string; statement: string; topic: PromptTopic }
-  | { kind: "influence"; id: string; name: string; context?: string };
+/**
+ * `id` keys the rotation; `anchor` is where the entry lives on /prompt in
+ * this language (`#流变` / `#flux`), so tapping the card lands on the line
+ * it was showing rather than at the top of the page.
+ */
+type PromptItem = { id: string; anchor: string } & (
+  | { kind: "quote"; text: string; author: string; source?: string }
+  | { kind: "belief"; statement: string; topic: PromptTopic }
+  | { kind: "influence"; name: string; context?: string }
+);
 
 /** Names are locale-neutral ("Dan Abramov") unless they're a phrase. */
 function resolveName(name: string | { en: string; zh: string }, l: Locale) {
@@ -47,6 +53,7 @@ function resolveItems(locale: Locale): PromptItem[] {
       items.push({
         kind: "quote",
         id: c.id,
+        anchor: c.anchor?.[l] ?? c.id,
         text: c.statement[l],
         author: resolveName(quoted.name, l),
         // A saying can carry a different source in each language.
@@ -56,6 +63,7 @@ function resolveItems(locale: Locale): PromptItem[] {
       items.push({
         kind: "belief",
         id: c.id,
+        anchor: c.anchor?.[l] ?? c.id,
         statement: c.statement[l],
         topic: (c.topics as PromptTopic[])[0],
       });
@@ -65,6 +73,7 @@ function resolveItems(locale: Locale): PromptItem[] {
     items.push({
       kind: "influence",
       id: i.id,
+      anchor: i.anchor?.[l] ?? i.id,
       name: resolveName(i.name, l),
       context: i.context?.[l],
     });
@@ -107,7 +116,11 @@ const ROTATION_INTERVAL = 20_000; // 20 seconds
 // Item renderers
 // =============================================================================
 
-function QuoteDisplay({ item }: { item: Extract<PromptItem, { kind: "quote" }> }) {
+function QuoteDisplay({
+  item,
+}: {
+  item: Extract<PromptItem, { kind: "quote" }>;
+}) {
   return (
     <div>
       <blockquote className="font-serif text-base text-foreground leading-relaxed italic line-clamp-3">
@@ -123,7 +136,13 @@ function QuoteDisplay({ item }: { item: Extract<PromptItem, { kind: "quote" }> }
   );
 }
 
-function BeliefDisplay({ item, locale }: { item: Extract<PromptItem, { kind: "belief" }>; locale: Locale }) {
+function BeliefDisplay({
+  item,
+  locale,
+}: {
+  item: Extract<PromptItem, { kind: "belief" }>;
+  locale: Locale;
+}) {
   const name = topicLabel(item.topic, locale);
   const label = locale === "zh" ? `论「${name}」` : `on ${name}`;
   return (
@@ -131,11 +150,7 @@ function BeliefDisplay({ item, locale }: { item: Extract<PromptItem, { kind: "be
       <p className="font-serif text-base text-foreground leading-relaxed line-clamp-3">
         {item.statement}
       </p>
-      {item.topic && (
-        <p className={cn("mt-2", TYPE.rowMeta)}>
-          {label}
-        </p>
-      )}
+      {item.topic && <p className={cn("mt-2", TYPE.rowMeta)}>{label}</p>}
     </div>
   );
 }
@@ -147,9 +162,7 @@ function InfluenceDisplay({
 }) {
   return (
     <div>
-      <p className="font-serif text-base text-foreground">
-        {item.name}
-      </p>
+      <p className="font-serif text-base text-foreground">{item.name}</p>
       {item.context && (
         <p className={cn("mt-1", TYPE.caption)}>{item.context}</p>
       )}
@@ -157,7 +170,13 @@ function InfluenceDisplay({
   );
 }
 
-function PromptItemDisplay({ item, locale }: { item: PromptItem; locale: Locale }) {
+function PromptItemDisplay({
+  item,
+  locale,
+}: {
+  item: PromptItem;
+  locale: Locale;
+}) {
   switch (item.kind) {
     case "quote":
       return <QuoteDisplay item={item} />;
@@ -187,7 +206,9 @@ export function PromptWidget() {
   const shuffled = useMemo(() => {
     if (!shuffledIds) return items;
     const idMap = new Map(items.map((i) => [i.id, i]));
-    return shuffledIds.map((id) => idMap.get(id)).filter(Boolean) as PromptItem[];
+    return shuffledIds
+      .map((id) => idMap.get(id))
+      .filter(Boolean) as PromptItem[];
   }, [items, shuffledIds]);
 
   const [index, setIndex] = useState(0);
@@ -217,7 +238,9 @@ export function PromptWidget() {
   if (!current) return null;
 
   return (
-    <WidgetShell href="/prompt">
+    // The card is a pointer at one entry, so the surface opens that entry.
+    // "View prompts" in the header stays the whole page.
+    <WidgetShell href={`/prompt#${current.anchor}`}>
       <WidgetHeader>
         <div className="flex items-center gap-2">
           <WidgetTitle>{t(locale, "widgetPrompt")}</WidgetTitle>
@@ -225,7 +248,7 @@ export function PromptWidget() {
             onClick={handleNext}
             className={cn(
               "pressable text-muted-foreground hover:text-foreground active:text-foreground text-xs",
-              "transition-colors duration-200 select-none"
+              "transition-colors duration-200 select-none",
             )}
             aria-label="Next prompt"
           >
