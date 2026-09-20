@@ -854,9 +854,8 @@ export function TimelineCommit({
           // `overflow-x: visible`), so on iOS every cover stopped at the
           // row's box, 12px in from each edge. The inset clips top and
           // bottom at the border box and leaves the sides a screen's width
-          // of room, in every engine. Nothing in the row is
-          // `position: fixed` (the cursor preview is the row's sibling), so
-          // a clip-path clips nothing an overflow clip would not.
+          // of room, in every engine. Cursor previews portal to `document.body`
+          // (see MagneticPreview), so a clip-path here cannot trap them.
           className={cn(
             "group relative -mx-3 px-3 rounded-lg transition-colors duration-150 [clip-path:inset(0_-100vw)]",
             // The gutter as marginalia (see the hash cell): pulled left by the
