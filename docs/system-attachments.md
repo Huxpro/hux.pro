@@ -203,7 +203,7 @@ parse, as aliases.
 |---|---|---|---|---|---|
 | `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |
 | `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
-| `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet |
+| `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
 
 ### The attachment object
 
@@ -236,6 +236,20 @@ click is the item's native action (`act`: the stage, the in-app browser,
 the page), never the attachment sheet, which would be a drawer opening on
 what is already on screen.
 
+Cover and caption are one control (`AttachmentTile`'s `footer`): the same
+`<a>`, so a press on the title washes the artwork and dims the copy
+(`COPY_WASH` — opacity, the cover-press language). The caption is not a
+second click target that happens to do the same thing, and it is not the
+row's fold handle. Folding is a muted fill on the title line; opening an
+attachment is a dim. Mixing the two would make the presses feel the same. A hand-opened row in
+`covers` / `index` still folds from its title line; the expanded body
+(`data-row-body`) stops that click and wears a default cursor, so
+description, notes and captions do not look like fold targets. The feed
+itself does not fold per row — every commit is already open, and leaving
+is a form change on the toolbar. On a phone, a recording or a deck is
+the exception: the cover plays in place and the bar under it (`PiP`)
+hands playback to the stage, so that line is a label, not a second door.
+
 - On a desk, the unit is half the column whatever the count — the rule the
   feeds this borrows from (X, LinkedIn) agree on: media has a footprint,
   and the count changes how it is tiled, never how big the post is. A pair
@@ -244,14 +258,16 @@ what is already on screen.
   which has nothing to say beside itself, takes the column as a video post
   does.
 - On a phone, the feed is a feed: one thing under the next, each running
-  edge to edge over the page gutter and the rail column (`PHONE_BLEED`),
-  the text back in the column under it. A recording or a deck plays in
-  place (`InlinePlayable`: a 16:9 cover swapped for the platform's player
-  or the deck itself), and the bar under it — there from the start, so
-  pressing play moves nothing — names the item and carries one control,
-  `PiP`, which hands playback to the stage (`act`) for whoever wants to
-  keep scrolling and stops the inline player so the two never play at
-  once. While the item is on the stage its place in the feed says so (a
+  edge to edge over the page gutter and the rail column (`PHONE_BLEED` wraps
+  the crop, not the caption — negative margins on the `w-full` picture
+  would only shift a column-width cover). Cover and caption are still one
+  control; a tap on the title under a card is the same door as the artwork.
+  A recording or a deck plays in place (`InlinePlayable`: a 16:9 cover
+  swapped for the platform's player or the deck itself), and the bar under
+  it — there from the start, so pressing play moves nothing — names the
+  item and carries one control, `PiP`, which hands playback to the stage
+  (`act`) for whoever wants to keep scrolling and stops the inline player
+  so the two never play at once. While the item is on the stage its place in the feed says so (a
   wash and the PiP mark over the cover, read off `useOptionalTheaterStage`
   — the stage's occupant and its doors, without the ticking clock that the
   full theater context carries), and pressing it brings playback back. A

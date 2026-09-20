@@ -42,7 +42,9 @@ import {
 //  - `feed`   — every row open: the whole description, the attachment grid
 //    with its captions written out, the notes and the author fields. All the
 //    information is right there, so nothing in it peeks or opens a sheet: a
-//    video plays where it is, a card goes to its page.
+//    video plays where it is, a card goes to its page. Rows do not fold
+//    one-by-one — cover and caption are one door, and leaving the feed is
+//    a form change.
 //
 // The page borrowed git's vocabulary for these once (`--oneline`, `--stat`,
 // `-p`); those names still parse, as aliases, so old links keep working.
