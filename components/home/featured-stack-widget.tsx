@@ -37,7 +37,7 @@ function StackShell({
         {href ? (
           <WidgetLink href={href} />
         ) : (
-          <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+          <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 -translate-x-1 group-hover/widget:opacity-100 group-hover/widget:translate-x-0 transition-all" />
         )}
       </WidgetHeader>
       {children}

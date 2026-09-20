@@ -1,6 +1,7 @@
 "use client";
 
 import { ExternalImage } from "@/components/log/media/external-image";
+import { COVER_WASH } from "@/lib/glass";
 import { VIDEO_PLATFORM_LABEL } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import type { Track } from "../lib/types";
@@ -74,6 +75,8 @@ export function TrackThumb({
           </span>
         </div>
       )}
+      {/* iOS cover press: dim the art, don't scale the card. */}
+      <span className={COVER_WASH} />
     </div>
   );
 }

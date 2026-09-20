@@ -40,7 +40,8 @@ interface AlbumTabsProps {
   /** Force light-on-dark glass (theater). Default is theme-aware (homepage). */
   tone?: "default" | "onDark";
   /**
-   * Homepage widgets use a light frame that deepens on hover.
+   * Homepage widgets use a light frame that deepens when *this*
+   * control is hovered or pressed — not when the surrounding card is.
    * Theater / Live Activity keep the raised track.
    */
   raised?: boolean;

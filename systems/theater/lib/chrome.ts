@@ -42,41 +42,28 @@ export const GLASS_CLUSTER = cn(
 );
 
 /**
- * Card press: a thumbnail / cover sinks slightly under the finger and springs
- * back on release (Featured Talks thumbs, the theater playlist rail).
- */
-export const PRESS_CARD = cn(
-  "pressable transition-[opacity,transform] duration-200 active:scale-[0.97]",
-);
-
-/**
  * Widget rest vs hover — inverted per theme, opacity so gradient cards show through.
  *
  * Light: a hairline frame at rest, ink deepens on hover.
  * Dark: no visible border at rest (fill only); hover brings a whisper of
  * edge + wash, never brighter than raised `GLASS_TRACK` (`white/08`).
  *
- * Touch gets the same deepening: `active:` / `group-active:` mirror every
- * hover rule, and `pressable` makes the deepen land on the touch-down frame
- * (a finger never hovers). Pressing any control inside the track, or the
- * card around it, is what deepens it — `:active` bubbles up from the button.
+ * This control is its own named group (`group/glass`). It must not follow
+ * the parent widget's hover/press — WidgetShell is `:active` whenever a
+ * descendant (a thumbnail, a row) is held, and an unnamed `group-active:`
+ * here used to light the tabs up under the wrong finger. Hover and press
+ * on *this* track still deepen it (`hover:` / `active:`); the selected
+ * pill follows via `group-hover/glass` / `group-active/glass`.
  */
 export const GLASS_TRACK_FLAT = cn(
-  "pressable border border-border/30 bg-foreground/[0.03]",
+  "group/glass pressable border border-border/30 bg-foreground/[0.03]",
   "dark:border-transparent dark:bg-white/[0.02]",
   "backdrop-blur-xl",
   "transition-[background-color,border-color,box-shadow] duration-200",
-  // A press on the surrounding card lands instantly too (`pressable` only
-  // covers the track's own `:active`).
-  "group-active:duration-0",
   "hover:border-border/50 hover:bg-foreground/[0.08]",
-  "group-hover:border-border/50 group-hover:bg-foreground/[0.08]",
   "active:border-border/50 active:bg-foreground/[0.08]",
-  "group-active:border-border/50 group-active:bg-foreground/[0.08]",
   "dark:hover:border-white/[0.06] dark:hover:bg-white/[0.05]",
-  "dark:group-hover:border-white/[0.06] dark:group-hover:bg-white/[0.05]",
   "dark:active:border-white/[0.06] dark:active:bg-white/[0.05]",
-  "dark:group-active:border-white/[0.06] dark:group-active:bg-white/[0.05]",
 );
 
 export const GLASS_CLUSTER_FLAT = cn(
@@ -86,22 +73,22 @@ export const GLASS_CLUSTER_FLAT = cn(
 
 /**
  * Selected pill: light lift in light mode; dark stamp in dark mode.
- * Same hover → active mirroring as GLASS_TRACK_FLAT.
+ * Follows the enclosing `group/glass` track — not the parent widget.
  */
 export const GLASS_PILL_FLAT = cn(
   "pressable bg-glass-overlay ring-1 ring-border/30",
   "dark:bg-glass-strong-hover dark:ring-transparent dark:shadow-none",
   "backdrop-blur-xl",
   "transition-[background-color,box-shadow,ring-color] duration-200",
-  "group-active:duration-0",
+  "group-active/glass:duration-0",
   "hover:bg-card hover:shadow-sm hover:ring-border/50",
-  "group-hover:bg-card group-hover:shadow-sm group-hover:ring-border/50",
+  "group-hover/glass:bg-card group-hover/glass:shadow-sm group-hover/glass:ring-border/50",
   "active:bg-card active:shadow-sm active:ring-border/50",
-  "group-active:bg-card group-active:shadow-sm group-active:ring-border/50",
+  "group-active/glass:bg-card group-active/glass:shadow-sm group-active/glass:ring-border/50",
   "dark:hover:bg-card dark:hover:ring-white/[0.06]",
-  "dark:group-hover:bg-card dark:group-hover:ring-white/[0.06]",
+  "dark:group-hover/glass:bg-card dark:group-hover/glass:ring-white/[0.06]",
   "dark:active:bg-card dark:active:ring-white/[0.06]",
-  "dark:group-active:bg-card dark:group-active:ring-white/[0.06]",
+  "dark:group-active/glass:bg-card dark:group-active/glass:ring-white/[0.06]",
 );
 
 /**

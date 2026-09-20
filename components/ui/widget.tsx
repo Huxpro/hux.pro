@@ -21,7 +21,10 @@ import { TYPE } from "@/lib/typography";
  * refresh the weather, open the playlist) and the whole card becomes the tap
  * target, not just the header arrow. Interactive descendants keep their own
  * taps (see `landsOnOwnAction`); the masonry's edit mode swallows clicks
- * before they reach here, so rearranging never opens anything. Keyboard users
+ * before they reach here, so rearranging never opens anything. Hover and
+ * press chrome on those descendants must use their own named group —
+ * the shell is `group/widget`, so a nested `group-active:` cannot follow
+ * a thumbnail press that bubbles `:active` up to the card. Keyboard users
  * still reach the page through the visible `WidgetLink` — the shell itself
  * deliberately adds no tab stop.
  *
@@ -97,7 +100,10 @@ export function WidgetShell({
       onTouchStart={tappable ? noop : undefined}
       data-widget-tappable={tappable ? "" : undefined}
       className={cn(
-        "group relative rounded-2xl overflow-hidden",
+        // Named group: nested chrome (AlbumTabs, transport clusters) must
+        // not inherit the card's `:hover` / `:active`. Widget-level hover
+        // effects opt in with `group-hover/widget`.
+        "group/widget relative rounded-2xl overflow-hidden",
         "border border-border/50",
         "transition-all duration-300",
         widgetEnabled
