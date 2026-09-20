@@ -464,45 +464,24 @@ function EntryTag({
   const rest = Object.entries(attributes ?? {}).filter(([key]) => key !== "id");
 
   return (
-    <motion.span
-      layout
-      className="flex items-baseline font-mono text-xs select-none whitespace-pre"
-    >
-      {/* The two prefixes cross in place, and whichever is leaving steps out
-          of the flow while it does (`position: absolute`), so the word is
-          pushed once, by one thing, instead of jittering between two. */}
-      <AnimatePresence initial={false}>
-        {open ? (
-          <motion.span
-            key="tag"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, position: "absolute" }}
-            transition={TAG_FADE}
-            className="text-tertiary-foreground"
-          >
-            {`<${tag} `}
-            <span className="text-quaternary-foreground">id</span>=&quot;
-          </motion.span>
-        ) : (
-          <motion.span
-            key="hash"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, position: "absolute" }}
-            transition={TAG_FADE}
-            className="text-quaternary-foreground"
-          >
-            #
-          </motion.span>
-        )}
-      </AnimatePresence>
+    <span className="flex items-baseline font-mono text-xs select-none whitespace-pre">
+      {open ? (
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={TAG_FADE}
+          className="text-tertiary-foreground"
+        >
+          {`<${tag} `}
+          <span className="text-quaternary-foreground">id</span>=&quot;
+        </motion.span>
+      ) : (
+        <span className="text-quaternary-foreground">#</span>
+      )}
 
-      {/* The word itself: the same element in both states, so it slides
-          rather than swaps. */}
-      <motion.button
-        layout="position"
-        transition={TAG_SLIDE}
+      {/* The word itself: the same element in both states, so it is never
+          drawn twice — the whole reason this is not a crossfade. */}
+      <button
         type="button"
         onClick={onIdClick}
         aria-label={`Link to ${anchor}`}
@@ -518,44 +497,39 @@ function EntryTag({
       >
         {anchor}
         {copied && " ✓"}
-      </motion.button>
+      </button>
 
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.span
-            key="rest"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={TAG_FADE}
-            className="text-tertiary-foreground"
-          >
-            &quot;
-            {rest.map(([key, value]) => (
-              <span key={key}>
-                {" "}
-                <span className="text-quaternary-foreground">{key}</span>
-                {`="${value}"`}
-              </span>
-            ))}
-            {">"}
-          </motion.span>
-        )}
-      </AnimatePresence>
-    </motion.span>
+      {open && (
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={TAG_FADE}
+          className="text-tertiary-foreground"
+        >
+          &quot;
+          {rest.map(([key, value]) => (
+            <span key={key}>
+              {" "}
+              <span className="text-quaternary-foreground">{key}</span>
+              {`="${value}"`}
+            </span>
+          ))}
+          {">"}
+        </motion.span>
+      )}
+    </span>
   );
 }
 
-// Slow and soft on purpose. The first pass was 140ms with the two halves
-// staged one after the other, which made a hover read as a little
-// performance; the row is chrome, and chrome should settle rather than
-// announce itself. Everything moves at once now, and the word travels on a
-// gentler curve than the text fades.
-const TAG_FADE = { duration: 0.22, ease: "easeOut" as const };
-const TAG_SLIDE = {
-  duration: 0.34,
-  ease: [0.32, 0.72, 0, 1] as const,
-};
+// A fast fade in, and nothing on the way out. Two earlier passes animated
+// the word's position as the tag grew around it — first snappy and staged,
+// then slow and soft — and both drew the eye to a row whose whole job is to
+// be ignorable until it is wanted. Sliding a word 100px is a big gesture
+// however gently it is timed. So the word lands where it belongs, the text
+// around it fades in, and on the way out it is simply gone: nobody watches
+// chrome leave, and an exit animation is one more thing that can stay
+// mounted after it is done.
+const TAG_FADE = { duration: 0.12, ease: "easeOut" as const };
 
 /** Shared shell: the hover-revealed open/close tags around expandable content. */
 function PromptItem({
@@ -578,7 +552,11 @@ function PromptItem({
   // `group-hover`: the morph below needs to know, and a tab stop should get
   // the same row a mouse does.
   const [active, setActive] = useState(false);
-  const open = active || isExpanded;
+  // Clicking the anchor focuses it, and a focused button used to hold the
+  // row open until something else took the focus away. Only keyboard focus
+  // should open it, which is what `:focus-visible` means.
+  const [focused, setFocused] = useState(false);
+  const open = active || focused || isExpanded;
   const { copied, copyLink } = useCopyLink(anchorId);
 
   // `mouseenter`/`mouseleave` only fire when the pointer moves, so anything
@@ -628,8 +606,8 @@ function PromptItem({
       onClick={() => setIsExpanded(!isExpanded)}
       onMouseEnter={() => setActive(true)}
       onMouseLeave={() => setActive(false)}
-      onFocus={() => setActive(true)}
-      onBlur={() => setActive(false)}
+      onFocus={(e) => setFocused(e.target.matches(":focus-visible"))}
+      onBlur={() => setFocused(false)}
     >
       <div className="flex items-center gap-2">
         <EntryTag
