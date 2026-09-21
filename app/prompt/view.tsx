@@ -467,33 +467,11 @@ function EntryTag({
   return (
     <span
       className={cn(
-        "group/tag relative flex items-baseline font-mono text-xs",
-        "select-none whitespace-pre",
+        "flex items-baseline font-mono text-xs select-none whitespace-pre",
         "text-tertiary-foreground transition-opacity duration-150",
         open ? "opacity-100" : "opacity-0",
       )}
     >
-      {/* The promise and the receipt, in the margin: a `#` when the pointer
-          is on the id, because that is what you are about to get, and a ✓ in
-          its place once you have it. It hangs outside the tag rather than
-          sitting inside the quotes — the id's value is `会通`, not `#会通`,
-          and a row that says otherwise is lying about the markup it is
-          imitating. Hanging also means nothing moves when it appears. */}
-      <span
-        aria-hidden
-        className={cn(
-          "absolute right-full pr-1 transition-opacity duration-150",
-          copied
-            ? "text-foreground opacity-100"
-            : [
-                "text-muted-foreground opacity-0",
-                "group-has-[button:hover]/tag:opacity-100",
-                "group-has-[button:focus-visible]/tag:opacity-100",
-              ],
-        )}
-      >
-        {copied ? "✓" : "#"}
-      </span>
       {`<${tag} `}
       <span className="text-quaternary-foreground">id</span>=&quot;
       <button
@@ -502,11 +480,34 @@ function EntryTag({
         aria-label={`Link to ${anchor}`}
         tabIndex={open ? 0 : -1}
         className={cn(
-          "underline underline-offset-2 decoration-muted-foreground/40",
+          "group/id underline underline-offset-2 decoration-muted-foreground/40",
           "transition-colors duration-200 hover:text-foreground hover:decoration-foreground",
           copied ? "text-muted-foreground" : "text-tertiary-foreground",
         )}
       >
+        {/* The promise and the receipt in one character-wide slot, in front
+            of the word: under the pointer the value reads `#会通`, which is
+            the fragment you are about to be handed, and after the click a ✓
+            takes the same place. Width rather than opacity alone, so the
+            row is only ever as wide as it reads — and CSS rather than
+            state, because whether the pointer is on the word is the
+            browser's question to answer. */}
+        <span
+          aria-hidden
+          className={cn(
+            "inline-block overflow-hidden align-baseline",
+            "transition-[width,opacity] duration-150 ease-out",
+            copied
+              ? "w-[1ch] text-foreground opacity-100"
+              : [
+                  "w-0 text-muted-foreground opacity-0",
+                  "group-hover/id:w-[1ch] group-hover/id:opacity-100",
+                  "group-focus-visible/id:w-[1ch] group-focus-visible/id:opacity-100",
+                ],
+          )}
+        >
+          {copied ? "✓" : "#"}
+        </span>
         {anchor}
       </button>
       &quot;
