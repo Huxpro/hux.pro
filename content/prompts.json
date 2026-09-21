@@ -1650,8 +1650,8 @@
         }
       ],
       "body": {
-        "en": "Specs describe what you think you want; demos reveal what you actually need. People are visual animals — a thing that runs persuades in five seconds what five pages cannot, and it persuades the person who built it first.\nShow it, learn from it, earn the next step. What a demo buys is not agreement, it is time — and evidence is the only currency it pays in.\n“For the things we have to learn before we can do them, we learn by doing them: people become builders by building, and lyre-players by playing the lyre.” That is Aristotle, fifteen centuries before Lu You and twenty-two before Dewey — who did write the phrase down, in a book about schools he wrote with his daughter.",
-        "zh": "规格描述你以为你想要的，演示揭示你真正需要的。人是视觉动物 —— 一个跑起来的东西五秒钟能说服的事，五页文档说不动；而它第一个说服的人，是做它的那个人。\n试演以求知，见实而取信。演示换来的不是同意，是时间；而它唯一付得出的货币是证据。\n「那些我们必须先学会才能做的事，我们是通过做它们来学会的 —— 人通过造房子成为建筑师，通过弹琴成为琴师。」这是亚里士多德，比陆游早一千五百年，比杜威早两千二百年 —— 而杜威确实把这个词组写下来了，写在他和女儿合著的那本谈学校的书里。"
+        "en": "Specs describe what you think you want; demos reveal what you actually need. People are visual animals — a thing that runs persuades in five seconds what five pages cannot, and it persuades the person who built it first.\nMaking makes it visible, demoing makes it testable, and earning buys the time to go on. What a demo buys is not agreement, it is time — and evidence is the only currency it pays in.\nDemo or die was set against the university's own standing order, publish or perish: what counts as evidence in that building is a thing that runs in front of you.\n“For the things we have to learn before we can do them, we learn by doing them: people become builders by building, and lyre-players by playing the lyre.” That is Aristotle, fifteen centuries before Lu You and twenty-two before Dewey — who did write the phrase down, in a book about schools he wrote with his daughter.",
+        "zh": "规格描述你以为你想要的，演示揭示你真正需要的。人是视觉动物 —— 一个跑起来的东西五秒钟能说服的事，五页文档说不动；而它第一个说服的人，是做它的那个人。\n立象使它可见，示形使它可验，取信使它得以继续。演示换来的不是同意，是时间；而它唯一付得出的货币是证据。\n「不演示，毋宁死」是 MIT 媒体实验室对着大学那句 publish or perish 立的规矩：在那栋楼里算数的证据，是一个当着你的面跑起来的东西。\n「那些我们必须先学会才能做的事，我们是通过做它们来学会的 —— 人通过造房子成为建筑师，通过弹琴成为琴师。」这是亚里士多德，比陆游早一千五百年，比杜威早两千二百年 —— 而杜威确实把这个词组写下来了，写在他和女儿合著的那本谈学校的书里。"
       },
       "instances": [
         {
@@ -1662,26 +1662,6 @@
           "text": {
             "en": "A spec cannot carry a vision, so you show it running.",
             "zh": "言（spec）载不动意（vision），所以立象（demo）。"
-          }
-        },
-        {
-          "title": {
-            "en": "Demo or die",
-            "zh": "Demo or Die"
-          },
-          "text": {
-            "en": "The Media Lab's standing order, set against the university's own — publish or perish. What counts as evidence there is a thing that runs in front of you.",
-            "zh": "MIT Media Lab 的规矩，对着大学那句 publish or perish 立的。在那里算数的证据，是一个当着你的面跑起来的东西。"
-          },
-          "from": {
-            "name": {
-              "en": "MIT Media Lab",
-              "zh": "MIT 媒体实验室"
-            },
-            "source": {
-              "en": "",
-              "zh": ""
-            }
           }
         },
         {
@@ -1797,6 +1777,26 @@
           }
         },
         {
+          "facet": {
+            "en": "the eye",
+            "zh": "眼见"
+          },
+          "text": {
+            "en": "Seeing is believing.",
+            "zh": "百闻不如一见。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "English proverb",
+              "zh": "赵充国"
+            },
+            "source": {
+              "en": "in print by 1639",
+              "zh": "《汉书·赵充国传》"
+            }
+          }
+        },
+        {
           "text": {
             "en": "Learning by doing.",
             "zh": "纸上得来终觉浅，绝知此事要躬行。"
@@ -1809,6 +1809,30 @@
             "source": {
               "en": "*Nicomachean Ethics* × *Schools of Tomorrow*",
               "zh": "《冬夜读书示子聿》"
+            }
+          },
+          "facet": {
+            "en": "the hand",
+            "zh": "躬行"
+          }
+        },
+        {
+          "facet": {
+            "en": "evidence",
+            "zh": "证据"
+          },
+          "text": {
+            "en": "Demo or die.",
+            "zh": "不演示，毋宁死。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "MIT Media Lab",
+              "zh": "MIT 媒体实验室"
+            },
+            "source": {
+              "en": "Visible Language Workshop, 1985",
+              "zh": "Visible Language Workshop，1985"
             }
           }
         }
