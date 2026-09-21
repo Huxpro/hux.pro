@@ -11,10 +11,6 @@
         "en": "Nature cannot be fooled.",
         "zh": "天行有常，变就是常。"
       },
-      "commentary": {
-        "en": "“Constant” never meant still. A river's constancy is that it keeps running.",
-        "zh": "「常」不是不动，是它自己有走法 —— 河的常，就是它一直在流。"
-      },
       "body": {
         "en": "This is the floor; there is nothing under it. The world runs to its own course and is not organised around anyone's wishes — which is where my allergy to wishful thinking comes from. But “constant” is the word that gets misread: the most stable fact about the world is that it keeps moving. And the reverse misreading is just as bad — motion is not noise. It has polarity, period, feedback, reversal, and that is why it can be known at all.\nChinese settled this contradiction inside a single character a long time ago: 易 means both 变易 and 不易 — changing, and unchanging.\nFeynman wrote his half of it into the appendix he was allowed to add to the Challenger report, alone, after the commission would not print it in the body: for a successful technology, reality must take precedence over public relations.",
         "zh": "这是地板，底下没有别的了：世界按它自己的方式运行，不围着谁的愿望转 —— 我对 wishful thinking 的过敏就是从这里来的。但「有常」是最容易被读错的那个词：世界最稳定的那件事，恰恰是它一直在动。反过来读错也一样糟 —— 动不是噪声，它有极性、有周期、有反馈、有反转，正因如此它才可能被认识。\n中文很早就把这对矛盾解在了一个字里：「易」同时是变易和不易。\n「天行有常」是荀子的，下半句是我接的。英文那半是费曼的：挑战者号事故报告不肯把他的结论放进正文，他就要来一个附录，一个人写完 —— 一项技术要成功，现实必须优先于公关，因为自然不可欺。"
@@ -187,10 +183,6 @@
         "en": "Without contraries is no progression.",
         "zh": "阴阳相生，物极必反；扬弃而新。"
       },
-      "commentary": {
-        "en": "Both. And.",
-        "zh": "既是，也是。"
-      },
       "body": {
         "en": "The oldest model I hold, and the one I reach for first: a thing carries its opposite, and past a certain point turns into it. It is a lens rather than a law — what it buys you is patience at the top and nerve at the bottom.",
         "zh": "我手上最老的一个模型，也是我最先拿出来用的那个：一个东西内部就含着它的反面，过了某个点就会转过去。它是透镜而不是定律 —— 它给你的，是在顶点时的耐心和在低谷时的胆量。"
@@ -340,10 +332,6 @@
       "statement": {
         "en": "All models are wrong, but some are useful.",
         "zh": "尽人事，进一寸有一寸的欢喜。"
-      },
-      "commentary": {
-        "en": "Mutate, then let reality select. Everything else I believe about progress is a corollary of this one.",
-        "zh": "先变异，再让现实来选择。我关于「进步」的其他信念，都是这一条的推论。"
       },
       "shapedBy": [
         {
@@ -568,10 +556,6 @@
       "statement": {
         "en": "Some things are up to us and some are not.",
         "zh": "听天命，不怕他真理无穷。"
-      },
-      "commentary": {
-        "en": "There has never been an option in life that was safe by necessity.",
-        "zh": "人生从来就没有必然安全的选项。"
       },
       "body": {
         "en": "Act fully. Judge slowly. Then wait longer.\nThis rung is the other half: everything that was never mine. Do everything that is yours to do, then let the outcome be the outcome. It isn't fatalism, it's aim: spend the attention on what you can actually change, and stop paying rent on what you can't. And when the outcome does land, you still cannot tell a loss from a gift at the moment of impact — only later, and usually only backwards.\nThe ceiling is not a mood either. Gödel proved that a system strong enough to be interesting cannot close on itself from the inside, which turns an old proverb about fate into a theorem about knowledge.",
@@ -813,7 +797,7 @@
       "topics": ["being"],
       "statement": {
         "en": "You can't connect the dots looking forward; you can only connect them looking backwards.",
-        "zh": "离开时间之前，一切都是过程。"
+        "zh": "离开世界之前，一切都是过程。"
       },
       "commentary": {
         "en": "Density over duration. Life is a journey.",
