@@ -157,9 +157,9 @@ export function WeatherNow() {
         className={cn(
           "pressable -mx-2 inline-flex min-h-7 items-center rounded-md px-2 outline-none",
           TYPE.nav,
-          "hover:bg-muted/20 hover:text-foreground",
-          "focus-visible:bg-muted/20 focus-visible:text-foreground",
-          "active:bg-muted/30 active:text-foreground",
+          "hover:bg-foreground/[0.06] hover:text-foreground",
+          "focus-visible:bg-foreground/[0.08] focus-visible:text-foreground",
+          "active:bg-foreground/[0.10] active:text-foreground",
         )}
       >
         {t(locale, "weatherRetry")}

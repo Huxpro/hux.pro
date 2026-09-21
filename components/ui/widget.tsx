@@ -287,9 +287,11 @@ export function WidgetScrollBody({
 export const WIDGET_ICON_HIT = cn(
   "pressable -m-2 inline-flex size-7 shrink-0 items-center justify-center rounded-md outline-none",
   "text-muted-foreground transition-colors duration-200",
-  "hover:bg-muted/20 hover:text-foreground",
-  "focus-visible:bg-muted/20 focus-visible:text-foreground",
-  "active:bg-muted/30 active:text-foreground",
+  // `--muted` is already a 4–6% ink wash, so `bg-muted/20` is invisible.
+  // Same foreground alphas as `GLASS_BTN` — a finger can see the well.
+  "hover:bg-foreground/[0.06] hover:text-foreground",
+  "focus-visible:bg-foreground/[0.08] focus-visible:text-foreground",
+  "active:bg-foreground/[0.10] active:text-foreground",
 );
 
 /**

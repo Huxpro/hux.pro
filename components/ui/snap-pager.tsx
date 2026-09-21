@@ -134,7 +134,7 @@ export function PagerDots({
               // The well is 24px (WCAG 2.5.8); `-m-[9px]` cancels the extra
               // so the row still reads as 6px dots with a 6px gap.
               "pressable relative -m-[9px] inline-flex size-6 items-center justify-center rounded-full outline-none",
-              "hover:bg-foreground/10 focus-visible:bg-foreground/10 active:bg-foreground/15",
+              "hover:bg-foreground/[0.08] focus-visible:bg-foreground/[0.08] active:bg-foreground/[0.12]",
             )}
           >
             <span className={shape} aria-hidden />
