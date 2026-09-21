@@ -716,17 +716,14 @@ function ConvictionItem({
   // 天行 the statements are sentences the culture handed me, so the id is
   // the only place my own name for them appears. It is also the hash.
   //
-  // `type` is the shelf and `on` is what the sentences are about — the
-  // facets of a chorus, space-separated the way a `class` holds several.
-  // A single-voiced entry has nothing to say there and so says nothing.
-  const facets = conviction.statements
-    .map((statement) => statement.facet)
-    .filter((facet): facet is string => Boolean(facet));
+  // `on` is the shelf, space-separated the way a `class` attribute holds
+  // several. A statement's `facet` is authored but not printed — the row
+  // was long enough with it, and the facets are what the voices answer,
+  // not what the entry is.
   const attributes: Record<string, string> = {
     id: conviction.anchor,
-    type: topics.join(" "),
+    on: topics.join(" "),
   };
-  if (facets.length > 0) attributes.on = facets.join(" ");
 
   return (
     <PromptItem

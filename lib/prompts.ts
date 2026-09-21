@@ -80,8 +80,9 @@ type InfluenceKind = "person" | "team" | "book" | "paper" | "field";
 interface RawStatement {
   /**
    * What this sentence answers for — correctness, behaviour, abstraction.
-   * It does not print beside the sentence; it rides in the tag row as
-   * `on="…"`, because it is the kind of thing that row is for.
+   * Authored, not printed: it is the editorial test for whether a voice
+   * belongs in a chorus (each must answer a different one), and the page
+   * has not yet found a place to say it that is worth the room.
    */
   facet?: BilingualText;
   text: BilingualText;
