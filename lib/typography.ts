@@ -63,6 +63,19 @@ export const TYPE = {
    * carried by the quotation marks and one rung of ink, not by a different
    * size and a different family. Borrowed words sit on this rung; mine
    * override to tertiary at the call site.
+   *
+   * Three semantic objects, two sizes, two faces — and the face belongs to
+   * the role, never to the position:
+   *
+   *   a conviction   serif, large
+   *   a voice        serif italic, smaller
+   *   provenance     sans, smaller, muted — under a statement, trailing a
+   *                  voice, after a title, anywhere
+   *
+   * So a source keeps the same face whether it sits on its own line or
+   * inside a sentence. That is what makes the site's two alphabets legible
+   * without a legend: serif is somebody's thinking, sans and mono are the
+   * system talking about it.
    */
   voice:
     "font-serif italic text-sm sm:text-base text-muted-foreground leading-relaxed",

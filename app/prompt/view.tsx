@@ -674,8 +674,12 @@ function StatementLine({
         {quoted ? <>&ldquo;{statement.text}&rdquo;</> : statement.text}
         {quoted && (
           // Trailing rather than stacked: a witness's papers belong on the
-          // same line as the testimony, the way an instance's do.
-          <span className="text-tertiary-foreground">
+          // same line as the testimony, the way an instance's do — but in
+          // the metadata face, not the sentence's. A face says what kind of
+          // thing this is, not where it happens to sit: serif is a voice,
+          // sans is provenance, and provenance that goes italic because it
+          // is inline would be the layout talking over the meaning.
+          <span className="font-sans text-sm not-italic">
             {" — "}
             <AttributionText attribution={quoted} />
           </span>
