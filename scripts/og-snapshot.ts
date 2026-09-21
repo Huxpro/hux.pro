@@ -219,8 +219,11 @@ function checkCompleteness(): void {
       }
       for (const locale of localesFor(media)) {
         const image = getAttachmentImage(media, locale);
-        const where = media.urls?.[locale] ?? media.url;
-        const tag = media.urls ? ` [${locale}]` : "";
+        // Only a link carries a per-locale `urls` map — the same guard
+        // `localesFor` uses to decide there is more than one locale here.
+        const urls = isLinkMedia(media) ? media.urls : undefined;
+        const where = urls?.[locale] ?? media.url;
+        const tag = urls ? ` [${locale}]` : "";
         const label = `${commit.id} · ${media.kind} · ${where}${tag}`;
         if (!image) {
           problems.push(`${label} — no runtime image (${recoverHint(media)})`);
