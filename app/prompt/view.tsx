@@ -438,6 +438,11 @@ function useCopyLink(id: string) {
  * because a link that only announces itself on hover inside a row that is
  * itself only there on hover is a secret.
  *
+ * Under the pointer it grows a `#`, which is both the promise (this is an
+ * anchor) and the thing you are about to get (`#会通` is the link). The
+ * click turns that same glyph into a ✓ rather than adding one somewhere
+ * else, so the confirmation lands where the promise was made.
+ *
  * A previous version printed `#会通` at rest as a watermark. It made the
  * page's outline visible down the left margin and cost every entry a line
  * of permanent chrome; the chrome won.
@@ -475,13 +480,32 @@ function EntryTag({
         aria-label={`Link to ${anchor}`}
         tabIndex={open ? 0 : -1}
         className={cn(
-          "underline underline-offset-2 decoration-muted-foreground/40",
+          "group/id underline underline-offset-2 decoration-muted-foreground/40",
           "transition-colors duration-200 hover:text-foreground hover:decoration-foreground",
           copied ? "text-muted-foreground" : "text-tertiary-foreground",
         )}
       >
+        {/* The promise and the receipt, in front of the word: under the
+            pointer the value reads `#会通`, which is the fragment about to
+            land on the clipboard, and after the click a ✓ takes the same
+            place. Plain inline text that is simply not there until it is —
+            an inline-block with a clipped width sits on its own bottom
+            edge rather than on the line's baseline, which is what had the
+            `#` floating a pixel above the word it belongs to. */}
+        <span
+          aria-hidden
+          className={cn(
+            copied
+              ? "text-foreground"
+              : [
+                  "hidden text-muted-foreground",
+                  "group-hover/id:inline group-focus-visible/id:inline",
+                ],
+          )}
+        >
+          {copied ? "✓" : "#"}
+        </span>
         {anchor}
-        {copied && " ✓"}
       </button>
       &quot;
       {rest.map(([key, value]) => (
