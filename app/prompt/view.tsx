@@ -669,7 +669,7 @@ function PromptItem({
  * that has fallen into the middle of a line, and at one size the whole
  * thing reads as one citation sentence.
  */
-const VOICE_META = "font-sans not-italic text-sm leading-relaxed";
+const VOICE_META = "font-sans text-sm leading-relaxed";
 
 function StatementLine({
   statement,
@@ -685,7 +685,7 @@ function StatementLine({
   // entry's own aside also lives. Different forms, one visual band.
   if (!head)
     return (
-      <p className={cn(TYPE.voice, "mt-3")}>
+      <p className={cn(TYPE.voice, !quoted && "italic", "mt-3")}>
         {quoted ? <>&ldquo;{statement.text}&rdquo;</> : statement.text}
         {quoted && (
           // Trailing rather than stacked: a witness's papers belong on the
@@ -706,7 +706,7 @@ function StatementLine({
     <div>
       {quoted ? (
         <>
-          <blockquote className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed italic">
+          <blockquote className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed">
             &ldquo;{statement.text}&rdquo;
           </blockquote>
           <p className={cn(VOICE_META, "mt-2")}>

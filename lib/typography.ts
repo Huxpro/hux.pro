@@ -68,7 +68,12 @@ export const TYPE = {
    * the role, never to the position:
    *
    *   a conviction   serif, large
-   *   a voice        serif italic, 14px
+   *   a voice        serif, 14px — italic only when the words are mine,
+   *                  because a quotation already has its marks and its
+   *                  papers, and a second signal for the same fact costs
+   *                  a script that has no italic at all (the CJK serif
+   *                  carries no oblique; the browser makes one by shearing
+   *                  the glyphs, which Chinese typography has never done)
    *   provenance     sans, 14px, muted — under a statement, trailing a
    *                  voice, after a title, anywhere
    *
@@ -81,7 +86,7 @@ export const TYPE = {
    * without a legend: serif is somebody's thinking, sans and mono are the
    * system talking about it.
    */
-  voice: "font-serif italic text-sm text-muted-foreground leading-relaxed",
+  voice: "font-serif text-sm text-muted-foreground leading-relaxed",
   /** Body-sized secondary copy: a widget's description, an empty state. */
   body: "text-sm text-muted-foreground leading-relaxed",
 
