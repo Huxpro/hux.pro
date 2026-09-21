@@ -485,24 +485,21 @@ function EntryTag({
           copied ? "text-muted-foreground" : "text-tertiary-foreground",
         )}
       >
-        {/* The promise and the receipt in one character-wide slot, in front
-            of the word: under the pointer the value reads `#会通`, which is
-            the fragment you are about to be handed, and after the click a ✓
-            takes the same place. Width rather than opacity alone, so the
-            row is only ever as wide as it reads — and CSS rather than
-            state, because whether the pointer is on the word is the
-            browser's question to answer. */}
+        {/* The promise and the receipt, in front of the word: under the
+            pointer the value reads `#会通`, which is the fragment about to
+            land on the clipboard, and after the click a ✓ takes the same
+            place. Plain inline text that is simply not there until it is —
+            an inline-block with a clipped width sits on its own bottom
+            edge rather than on the line's baseline, which is what had the
+            `#` floating a pixel above the word it belongs to. */}
         <span
           aria-hidden
           className={cn(
-            "inline-block overflow-hidden align-baseline",
-            "transition-[width,opacity] duration-150 ease-out",
             copied
-              ? "w-[1ch] text-foreground opacity-100"
+              ? "text-foreground"
               : [
-                  "w-0 text-muted-foreground opacity-0",
-                  "group-hover/id:w-[1ch] group-hover/id:opacity-100",
-                  "group-focus-visible/id:w-[1ch] group-focus-visible/id:opacity-100",
+                  "hidden text-muted-foreground",
+                  "group-hover/id:inline group-focus-visible/id:inline",
                 ],
           )}
         >
