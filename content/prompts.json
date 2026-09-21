@@ -1411,8 +1411,8 @@
         }
       ],
       "body": {
-        "en": "Specs describe what you think you want; demos reveal what you actually need. People are visual animals — a thing that runs persuades in five seconds what five pages cannot, and it persuades the person who built it first.",
-        "zh": "规格描述你以为你想要的，演示揭示你真正需要的。人是视觉动物 —— 一个跑起来的东西五秒钟能说服的事，五页文档说不动；而它第一个说服的人，是做它的那个人。"
+        "en": "Specs describe what you think you want; demos reveal what you actually need. People are visual animals — a thing that runs persuades in five seconds what five pages cannot, and it persuades the person who built it first.\n“For the things we have to learn before we can do them, we learn by doing them: people become builders by building, and lyre-players by playing the lyre.” That is Aristotle, fifteen centuries before Lu You and twenty-two before Dewey — who did write the phrase down, in a book about schools he wrote with his daughter.",
+        "zh": "规格描述你以为你想要的，演示揭示你真正需要的。人是视觉动物 —— 一个跑起来的东西五秒钟能说服的事，五页文档说不动；而它第一个说服的人，是做它的那个人。\n「那些我们必须先学会才能做的事，我们是通过做它们来学会的 —— 人通过造房子成为建筑师，通过弹琴成为琴师。」这是亚里士多德，比陆游早一千五百年，比杜威早两千二百年 —— 而杜威确实把这个词组写下来了，写在他和女儿合著的那本谈学校的书里。"
       },
       "instances": [
         {
@@ -1556,11 +1556,11 @@
       },
       "quotedFrom": {
         "name": {
-          "en": "John Dewey",
+          "en": "Aristotle × John Dewey",
           "zh": "陆游"
         },
         "source": {
-          "en": "",
+          "en": "Nicomachean Ethics × Schools of Tomorrow",
           "zh": "《冬夜读书示子聿》"
         }
       }
